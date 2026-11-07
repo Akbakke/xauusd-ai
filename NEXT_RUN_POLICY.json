@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Selected 0.5 ATR activity and conservative local side use the corrected five-TF TRAIN mask. The one mature fold1 native time-query v1 fit and later chronological TRAIN OOF lost M5 certified-side Brier to the frozen prior in all 14 weeks; a paired frozen diagnostic found upward miscalibration and the free-three-logit unknown-side objective defect. Factorized v2 model/loss and stable raw-logit scorer now pass source/synthetic checks, and read-only fold1 receipt/v2 view metadata binding passes. Physical v2 zero-step on two TRAIN rows passed direct activity/side gradient mechanics; target-role clarification, genuine optimizer/resume, fit, generalization, Entry decision value and economics are unqualified. training_enabled=false; consumed plans do not authorize new runs. TEST, Entry, Exit, broker, trading and spending remain closed.",
-  "next_action": "Run exactly one 4G/512M/1800s capped TRAIN-only decision-anchored M5-close future-return audit on five native leads. Reuse the fixed GC/EMA/confirmed-swing reference math, existing model/fold axes and GC inputs; read M5 OHLC only, publish one local reusable F target tape, score paired later TRAIN rows and UTC weeks. No M1 raw rescan, model, fit, TEST, Entry, Exit, broker, trading or spending; training_enabled=false.",
+  "next_action": "Run only the new _002 one-use capped 4G/512M/1800s TRAIN M5-close future-return audit after source-row alignment repair. The failed _001 plan is consumed and must not relaunch. Reuse exact five-fold GC/EMA/confirmed-swing reference math and publish one F target tape; no M1 raw reread, model, fit, TEST, Entry, Exit, broker, trading or spending. training_enabled=false.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -63714,8 +63714,8 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "DECISION_ANCHORED_FUTURE_RETURN_REFERENCE_ADMITTED_NO_FIT",
-  "recorded_observed_utc": "2026-11-07T23:27:38.377616+00:00",
+  "recorded_status": "DECISION_ANCHORED_FUTURE_RETURN_REFERENCE_002_ADMITTED_NO_FIT",
+  "recorded_observed_utc": "2026-11-07T23:30:12.471848+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
     "decision": "BLOCK",
@@ -64143,8 +64143,8 @@
     "post_run_review": "One capped 4G/512M/1800s CPU audit completed exit0 in 298.78s; 591682 TRAIN M1 rows, 118706 M5 issues, 537909 ratio-parity cells, all 15 prior sign partitions, 5 chronological folds, 0 model/optimizer/TEST. Hash-bound independent tape/receipt review: local D windows begin before issue for 0/0/0/8343/63942 later-TRAIN nonzero rows on M5/M15/H1/H4/D1; denominators 88225/87613/84639/81230/63942. D1 result is not a future-return test. M5 paired common n=86636, prior/price/price+GC Brier .2499137/.2498420/.2498389; GC incremental effect +.0000031 and 3/5 positive folds, insufficient evidence of useful direction. This is a fixed sign-bin baseline, not full GC model ablation or economic edge."
   },
   "market_state_decision_return_gc_20261108_001": {
-    "status": "ADMITTED",
-    "decision": "ADMITTED",
+    "status": "FAILED_CONSUMED_NO_RELAUNCH",
+    "decision": "SOURCE_ROW_ALIGNMENT_ERROR_BEFORE_SCORING",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_DECISION_RETURN_GC_20261108_001.json",
       "sha256": "385cdf2778ae11958848e8f34575c865f8ba1aae5d2646f6de7f25446677e312"
@@ -64155,6 +64155,49 @@
     },
     "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_DECISION_RETURN_GC_20261108_001",
     "scope": "One exact M5-close F_s(t,t+native lead) TRAIN audit on five TF and five chronological folds, frozen prefix prior versus EMA5+confirmed XAU swing order versus those plus GC M5 aggressor pressure; paired rows and UTC weeks, no fit or TEST.",
+    "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
+    "max_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 0,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "relaunch_allowed": false,
+    "memory_max": "4G",
+    "swap_max": "512M",
+    "wall_seconds": 1800,
+    "model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "broker_access_allowed": false,
+    "training_authorized": false,
+    "test_data_used": false,
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_DECISION_RETURN_GC_20261108_001/CLAIM.json",
+      "sha256": "543049784a6922e25d38ee9e31ca42afc9089400184e80c94794178b3a18e9b2"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_DECISION_RETURN_GC_20261108_001/TERMINAL.json",
+      "sha256": "f587ff44ac9dffd01cbcdddad101d310bed7d9fae58fbc69c0d410db9df264ad"
+    },
+    "launch_log": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_DECISION_RETURN_GC_20261108_001/LAUNCH.log",
+      "sha256": "f136219ef28390baa48973b979b57aaa6e6e7503c976d40d5c884c6341a63b4d"
+    },
+    "post_run_review": "One capped invocation exit1 after 9.57s: M5 bounded source includes warmup/terminal rows, while issue source_rows select only decision bars. The worker incorrectly required all bounded M5 closes to equal issue count and stopped at ISSUE_PRICE_AXIS. No RESULT, target tape, score, model, optimizer or TEST. Plan consumed; new _002 source uses source_rows to choose exact decision close."
+  },
+  "market_state_decision_return_gc_20261108_002": {
+    "status": "ADMITTED",
+    "decision": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_DECISION_RETURN_GC_20261108_002.json",
+      "sha256": "0c13e95d0eab5c98db1065052bca180cead12be740df3927fe8e311b8669aced"
+    },
+    "worker": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/measure_market_state_decision_return_gc_v1.py",
+      "sha256": "f8629367d581c5ab2a9e2635cc2aef8f8556b8b98da35c7b73e80b74e7a4e9cf"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_DECISION_RETURN_GC_20261108_002",
+    "scope": "One exact M5-close F_s(t,t+native lead) TRAIN audit after source-row alignment fix; five TF and five chronological folds, paired prefix prior versus EMA5+confirmed swing versus those plus GC pressure. No fit or TEST.",
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
     "max_invocations": 1,
     "claimed_invocations": 0,

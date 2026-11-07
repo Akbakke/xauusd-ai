@@ -27,9 +27,9 @@ from gx1.contracts import market_state_five_endpoint_target_binding_v1 as bindin
 from gx1.contracts.immutable_event_authority_v1 import _publish_bytes
 
 REPO = base.REPO
-STAGE = 'market_state_decision_return_gc_20261108_001'
-PLAN_PATH = REPO / 'configs/research/MARKET_STATE_DECISION_RETURN_GC_20261108_001.json'
-ROOT = Path('/home/andre2/GX1_RUNS/MARKET_STATE_DECISION_RETURN_GC_20261108_001')
+STAGE = 'market_state_decision_return_gc_20261108_002'
+PLAN_PATH = REPO / 'configs/research/MARKET_STATE_DECISION_RETURN_GC_20261108_002.json'
+ROOT = Path('/home/andre2/GX1_RUNS/MARKET_STATE_DECISION_RETURN_GC_20261108_002')
 TAPE_NAME = 'DECISION_RETURN_TAPE.npz'
 SOURCE_PATHS = (
     'gx1/audit/measure_market_state_decision_return_gc_v1.py',
@@ -186,12 +186,16 @@ def _future_tape(full_plan: dict) -> tuple[dict, dict, tuple[tuple[str, tuple], 
         np.asarray(clock.asi8, dtype=np.int64),
         pd.Timestamp(base.TRAIN_START).value,
         pd.Timestamp(base.TRAIN_END).value, np)
+    bounded_clock = np.asarray(clock.asi8[keep], dtype=np.int64)
     m5 = m5.loc[keep].reset_index(drop=True)
-    close = m5['close'].to_numpy(dtype=np.float64, copy=True)
-    need(len(issues) == len(close) == 118706
-         and len(source_rows) == len(issues)
-         and np.isfinite(close).all() and np.all(close > 0)
-         and np.all(np.diff(issues) > 0), 'ISSUE_PRICE_AXIS')
+    bounded_close = m5['close'].to_numpy(dtype=np.float64, copy=True)
+    need(len(issues) == len(source_rows) == 118706
+         and np.all(source_rows >= 0) and np.all(source_rows < len(bounded_close))
+         and np.array_equal(bounded_clock[source_rows] + base.M5_NS, issues),
+         'ISSUE_PRICE_AXIS')
+    close = bounded_close[source_rows]
+    need(np.isfinite(close).all() and np.all(close > 0)
+         and np.all(np.diff(issues) > 0), 'ISSUE_PRICE_VALUES')
     atr = state_target.build_causal_tf_atr(m5,
                                            cutoff_ns=pd.Timestamp(base.TRAIN_END).value)
     shape = (len(issues), len(LEADS))
