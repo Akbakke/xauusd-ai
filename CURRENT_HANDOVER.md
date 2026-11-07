@@ -7,7 +7,7 @@ Les [GX1_RULES.md](GX1_RULES.md) og kjør `bash scripts/gx1_handover.sh --check`
 
 Før Entry skal modellen lære løpende OPP/NED/FLATT på M5/M15/H1/H4/D1, med ny prognose på lukkede M5-barer. Entry-plassering, Exit og handel kommer senere. [Gjenværende læringsmetode](docs/NATIVE_LEARNING.md) og [målkandidatene](docs/MARKET_STATE_ENDPOINT_CANDIDATE_20261106.md) beskriver kravene. **Aktivitetssemantikken er valgt: komplett `R<0,5 ATR` betyr FLATT, komplett `R≥0,5 ATR` betyr AKTIV; OPP/NED krever separat sidebevis. Korrigert maske er eksakt koblet til modellradene, og ren fem-endepunkts tap-/skårmatematikk og femutgangshode er kilde-/syntetisk testet. Modellbyggeren har nå en egen kilde-/syntetisk testet modus; én faktisk native forward er teknisk kvalifisert på én TRAIN-fit-rad; modell→tap/backward/skip er nå fysisk kvalifisert på to TRAIN-fit-rader uten vektoppdatering; en kronologisk konstant TRAIN-prior er målt på fem senere folder; faktisk modellæring, generalisering og treningsløp er ennå ikke kvalifisert.** `training_enabled=false`; ingen ny fit, TEST-tilpasning, broker, ordre eller handel er autorisert.
 
-Aktuell policystatus: `MARKET_STATE_GRADIENT_BRIDGE_CONSUMED_INPUT_NUMERIC_AUDIT_PENDING`. [Den korrigerte fem-TF-masken](configs/research/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001.json), [fire-TF-sidekontrollen](configs/research/MTF_STATE_SIDE_LOCALITY_20261107_001.json) og alle eldre engangsplaner er fullført og konsumert. Ingen fit er innrømmet.
+Aktuell policystatus: `MARKET_STATE_CAUSAL_PERSISTENCE_REFERENCE_ADMITTED`. [Den korrigerte fem-TF-masken](configs/research/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001.json), [fire-TF-sidekontrollen](configs/research/MTF_STATE_SIDE_LOCALITY_20261107_001.json) og alle eldre engangsplaner er fullført og konsumert. Ingen fit er innrømmet.
 
 ## Målt og bevist konsistent
 
@@ -56,7 +56,7 @@ På M5 var alltid-AKTIV aktivitets-Brier 0,066409 og alltid-FLATT 0,933591. Den 
 
 ## Hindring og neste arbeid
 
-Kausal nåtilstands-persistens har kilde og [engangsplan](configs/research/MARKET_STATE_CAUSAL_PERSISTENCE_REFERENCE_20261107_001.json) for fem TRAIN-scorefolder; policy står `PREPARED_NOT_ADMITTED`. Kilde/syntetiske tester er ikke fysisk M1-kobling eller faktisk skår. Planen skal først innrømmes etter ren kilde, fokusert test og lesende preflight; ingen modellfit eller TEST.
+Kausal nåtilstands-persistens har kilde og [engangsplan](configs/research/MARKET_STATE_CAUSAL_PERSISTENCE_REFERENCE_20261107_001.json) for fem TRAIN-scorefolder; policy står `ADMITTED` etter ren kilde, 77 avgrensede tester og lesende preflight `READY_NO_CLAIM_NO_PAYLOAD` på commit `c7fe1be289f11b444d9ed68cbf2174af14474c5f`. Kilde/syntetiske tester er ikke fysisk M1-kobling eller faktisk skår. Én 2G/512M/600s CPU-kjøring er tillatt; ingen modellfit eller TEST.
 
 Felles [63-felt-kilde](gx1/audit/verify_market_state_remaining_mtf_numeric_v1.py) og [engangsplan](configs/research/MARKET_STATE_REMAINING_MTF_NUMERIC_20261107_001.json) dekker de nøyaktige gjenværende kolonnene på alle fem TF i mai–desember 2024 TRAIN etter fullt historisk prefiks. Ni uavhengige orakelgrupper, gamle små kvitteringer, rå float64 RSI/ATR og frosne squeeze-parametre er bundet. 75 avgrensede kilde-/syntetiske tester og liten lesende kvitteringskontroll besto. Policy står `PREPARED_NOT_ADMITTED`; ingen fysisk 63-felt-sammenligning eller modellfit er kjørt. Planen må gjennom peer review, ren kilde og lesende preflight før én capped datajobb.
 

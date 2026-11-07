@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-07T06:31:08.984614+00:00",
-  "status": "MARKET_STATE_GRADIENT_BRIDGE_CONSUMED_INPUT_NUMERIC_AUDIT_PENDING",
+  "status": "MARKET_STATE_CAUSAL_PERSISTENCE_REFERENCE_ADMITTED",
   "market_state_five_endpoint_gradient_bridge_20261107_001": {"status": "CONSUMED_COMPLETE_TRAIN_GRADIENT_WITNESS", "decision": "PASS_TRAIN_MODEL_LOSS_BACKWARD_AND_SKIP_WITNESS_NO_LEARNING_CLAIM", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_FIVE_ENDPOINT_GRADIENT_BRIDGE_20261107_001.json", "sha256": "26a43d9456f2ef6ff6b26f9e1e3e0efe93a45029f5e3de87869e0b5111016a11"}, "execution_authorized": false, "data_reads_authorized": false, "model_forwards_authorized": 0, "backward_calls_authorized": 0, "optimizer_steps_authorized": 0, "training_authorized": false, "test_authorized": false, "claimed_invocations": 1, "completed_invocations": 1, "max_invocations": 1, "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_FIVE_ENDPOINT_GRADIENT_BRIDGE_20261107_001", "relaunch_allowed": false, "checkpoint_reads_authorized": false, "broker_access_allowed": false, "test_data_used": false, "memory_max": "12G", "swap_max": "512M", "wall_seconds": 3600, "claim": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_FIVE_ENDPOINT_GRADIENT_BRIDGE_20261107_001/CLAIM.json", "sha256": "f132311b4fb66bb6b909821a0112a6cd3defb236bc0479301840e29e37697429"}, "result": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_FIVE_ENDPOINT_GRADIENT_BRIDGE_20261107_001/RESULT.json", "sha256": "7dcc6e74c39a6687cf4edb338bfa61a707565e01c8f9695cf37a635bbcfeb23c"}, "terminal": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_FIVE_ENDPOINT_GRADIENT_BRIDGE_20261107_001/TERMINAL.json", "sha256": "87cf693f85715862123eded4149a20469cd53b040adb5b505758492e72dcfb31"}, "admission_policy_sha256": "25e43db514e746caace44110884c273d7f36776f926a427b8d9669fa54ea458d", "source_head": "b63b57c591ed2a417ac36a25c0a2a363c6a63576", "guard_log": {"path": "/home/andre2/GX1_RUNS/.MARKET_STATE_FIVE_ENDPOINT_GRADIENT_BRIDGE_20261107_001.guard.kn6nMc0L.log", "sha256": "f78ff929890497d1fc479cc909c96cca432bc30905067e19ec16a14880cc30ab"}, "stdio_log": {"path": "/home/andre2/GX1_RUNS/.MARKET_STATE_FIVE_ENDPOINT_GRADIENT_BRIDGE_20261107_001.trainer.H0QnIACz.log", "sha256": "038d2049e337cc6454f72be275e2a7b55e46124fc58aba6ecf6c34d5b994c02a"}, "observed": {"elapsed_seconds": 24.27090156000486, "active_loss": 0.5097607970237732, "active_support": 5, "skipped_support": 0, "head_nonzero_gradient_count": 384, "backbone_nonzero_gradient_count": 65536, "floating_input_surfaces_nonzero": 13, "cuda_peak_allocated_bytes": 334457344, "guard_peak_power_draw_w": 132.92, "guard_peak_memory_used_mib": 794, "original_host_power_limit_restored_w": 250, "mtf_local_numeric_gradient_nonzero_counts": {"M5": 4032, "M15": 16128, "H1": 24192, "H4": 24192, "D1": 63504}, "mtf_numeric_slot_counts_per_row": {"M5": 4032, "M15": 16128, "H1": 24192, "H4": 24192, "D1": 63504}, "mtf_categorical_column": 85, "mtf_categorical_embedding_nonzero_all_five_tf": true, "local_sensitivity_scope": "One informative unfitted TRAIN row; not formula correctness, learned field value, side-specific effect, later-fold generalization or economic edge."}, "limitations": "Two unfitted TRAIN fit rows prove model-to-loss gradient and skipped-row behavior only. They do not prove all 253 individual cache fields per timeframe influence the output, learning, OOF generalization, directional edge or economics."},
   "market_state_five_endpoint_gradient_bridge_source_20261107": {
     "status": "SOURCE_TESTED_NO_PLAN_NO_DATA_JOB",
@@ -62082,8 +62082,8 @@
     "post_run_review": "One capped TRAIN-only source-mask correction exit0 elapsed0.70s changed exactly seven measured H4/D1 old singleton 1/4 cells to ACTIVE=5 with side unknown. Independent read-only NPZ/receipt review verified every 118706x5 cell, all axes, activity masks unchanged, 20x5 monthly class totals and exact seven locality witnesses; side observed212434, activity observed539544, singleton255016. Capped4G/512M/pids64/one thread, all source/admission/output hashes; no raw M1 replay by reviewer, model fit, TEST or economics. Corrected source artifact only; full model contract remains open. Consumed; no relaunch."
   },
   "market_state_causal_persistence_reference_20261107_001": {
-    "status": "PREPARED_NOT_ADMITTED",
-    "decision": "PREPARED_NOT_ADMITTED",
+    "status": "ADMITTED",
+    "decision": "ADMITTED",
     "scope": "One unfitted TRAIN-only exact causal current-state persistence reference on five mature score folds; explicit no forecast; paired prior on the same supported rows. No model fit, TEST, Entry, Exit or trade.",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_CAUSAL_PERSISTENCE_REFERENCE_20261107_001.json",
@@ -62100,9 +62100,9 @@
     "max_invocations": 1,
     "claimed_invocations": 0,
     "completed_invocations": 0,
-    "execution_authorized": false,
-    "data_reads_authorized": false,
-    "deterministic_reference_authorized": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "deterministic_reference_authorized": true,
     "baseline_estimation_authorized": false,
     "model_forwards_authorized": 0,
     "optimizer_steps_authorized": 0,
