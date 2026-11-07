@@ -114,7 +114,13 @@ def test_v2_batch_uses_raw_head_and_rejects_v1(monkeypatch):
     assert report['query_k'].shape == (2, 5)
     assert report['validity_ns'].shape == (2, 5)
     assert torch.isfinite(report['loss'])
+    assert report['activity_side_logits'].shape == (2, 5, 2)
+    assert report['activity_side_logits'].requires_grad
+    assert torch.equal(report['logits'], factorized_log_probabilities(
+        report['activity_side_logits']))
+    report['activity_side_logits'].retain_grad()
     report['loss'].backward()
+    assert report['activity_side_logits'].grad[0, 3, 1] == 0
     assert model.query_head.weight.grad is not None
     assert torch.count_nonzero(model.query_head.weight.grad[0]) > 0
     assert torch.count_nonzero(model.query_head.weight.grad[1]) > 0

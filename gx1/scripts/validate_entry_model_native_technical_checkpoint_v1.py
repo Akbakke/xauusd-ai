@@ -1275,6 +1275,40 @@ def main(argv: Sequence[str] | None = None) -> int:
         ))
         print(json.dumps(_safe_json(report), indent=2, sort_keys=True, allow_nan=False))
         return 0
+    time_query_v2_zero_step_options = (
+        "--market-state-time-query-v2-zero-step-plan",
+        "--market-state-time-query-v2-zero-step-plan-sha256",
+    )
+    if any(value.partition("=")[0] in time_query_v2_zero_step_options for value in supplied):
+        v2_parser = argparse.ArgumentParser(
+            description="One bounded factorized v2 TRAIN zero-step gradient witness",
+            allow_abbrev=False, add_help=False,
+        )
+        v2_parser.add_argument(time_query_v2_zero_step_options[0], type=Path, required=True)
+        v2_parser.add_argument(time_query_v2_zero_step_options[1], required=True)
+        v2_parser.add_argument("--device", choices=("cuda",), required=True)
+        v2_parser.add_argument("--out-dir", type=Path, required=True)
+        v2_parser.add_argument("--preflight", action="store_true")
+        for option in (*time_query_v2_zero_step_options, "--device", "--out-dir", "--preflight"):
+            if sum(value.partition("=")[0] == option for value in supplied) > 1:
+                v2_parser.error(f"duplicate flag: {option}")
+        v2_args = v2_parser.parse_args(supplied)
+        if not v2_args.out_dir.is_absolute():
+            v2_parser.error("--out-dir must be an absolute path")
+        from gx1.audit.verify_market_state_time_query_v2_zero_step_v1 import (
+            preflight_read_only as preflight_v2, run as run_v2,
+        )
+        report = (preflight_v2(
+            plan_path=v2_args.market_state_time_query_v2_zero_step_plan,
+            plan_sha256=str(v2_args.market_state_time_query_v2_zero_step_plan_sha256),
+            out_dir=v2_args.out_dir,
+        ) if v2_args.preflight else run_v2(
+            plan_path=v2_args.market_state_time_query_v2_zero_step_plan,
+            plan_sha256=str(v2_args.market_state_time_query_v2_zero_step_plan_sha256),
+            device="cuda", out_dir=v2_args.out_dir,
+        ))
+        print(json.dumps(_safe_json(report), indent=2, sort_keys=True, allow_nan=False))
+        return 0
     time_query_zero_step_options = (
         "--market-state-time-query-zero-step-plan",
         "--market-state-time-query-zero-step-plan-sha256",

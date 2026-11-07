@@ -81,6 +81,7 @@ def evaluate_fit_batch(
             or sum(report['per_tf_counts'].values()) != report['count']):
         raise RuntimeError('TIME_QUERY_V2_BATCH_SUPPORT_MISMATCH')
     return {
+        'activity_side_logits': raw_logits, 'logits': class_logp,
         'loss': report['loss'], 'count': report['count'],
         'per_tf_counts': report['per_tf_counts'],
         'skip_update': report['skip_update'],
