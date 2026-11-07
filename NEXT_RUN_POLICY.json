@@ -45,9 +45,9 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-07T03:10:14.780833+00:00",
-  "status": "MARKET_STATE_FIVE_ENDPOINT_SOURCE_TESTED_ROUTING_PENDING",
+  "status": "MARKET_STATE_FIVE_ENDPOINT_BUILDER_SOURCE_TESTED_REAL_FORWARD_PENDING",
   "market_state_five_endpoint_source_binding": {
-    "status": "TARGET_AND_OUTPUT_SOURCE_TESTED_NOT_ROUTED",
+    "status": "TARGET_OUTPUT_BUILDER_SOURCE_TESTED_REAL_FORWARD_PENDING",
     "target_binding_source_path": "gx1/contracts/market_state_five_endpoint_target_binding_v1.py",
     "target_binding_source_sha256": "725eb6ec4d6630d483270afa1fbbcc70ed792da28003d1811826a201d324198d",
     "target_binding_test_path": "tests/test_market_state_five_endpoint_target_binding.py",
@@ -57,6 +57,10 @@
     "model_test_path": "tests/test_market_state_five_endpoint_model.py",
     "model_test_sha256": "882f0ccf466c538abf15b0716d1e2e75148863b0ce7b99e6426c2abdacf1e89d",
     "model_contract_sha256": "bc4f261a5ee2380879d4eb53a118e5aac5479e37dcb073126dab91c05f6420ed",
+    "view_source_path": "gx1/contracts/entry_native_direction_feature_view_v1.py",
+    "view_source_sha256": "382a70c2f708f0b641ec1dd2295027283b7e7059847b9c7c69f192f60fce2e20",
+    "view_test_path": "tests/test_market_state_five_endpoint_view_mode.py",
+    "view_test_sha256": "673d749586452cb4643378a048caa85395fbd7741b66299a3f991c0003d782fa",
     "bound_model_rows": 118249,
     "target_rows_without_model_parent": 457,
     "fit_authorized": false
@@ -83,7 +87,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Operator-selected 0.5 ATR activity and conservative local side now have an immutable corrected five-TF TRAIN source mask. Exactly 273200 full-window gray cells became ACTIVE side-unknown, then seven measured H4/D1 old singleton sides were conservatively demoted; all other masks and axes preserved. Remaining certified sides match cold local replay in scoped audits. Five-endpoint output/loss/scorer, causal now-state references, chronological baselines and indicator usefulness remain unqualified. training_enabled=false; no model fit, TEST, Entry/Exit, broker, trading or spending.",
-  "next_action": "Route the source-tested five-output wrapper and exact target adapter through the existing causal feature-view/model builder without future target input; bind actual loss/skip-update, separate proper scores and identical-row chronological TRAIN references before any fit. Reuse existing five-TF/GC/eight-specialist/D1 backbone; do not enable old 7200-query chain or stale current-state input. Qualify indicator formulas and consumption; only then consider a separately admitted fit. training_enabled=false; TEST and trading closed.",
+  "next_action": "The five-output wrapper now has a source-tested exclusive feature-view/builder mode. Bind real verified source refs and one existing fold normalization, then qualify one genuine zero-step native forward through exact capped admission before target-only batch/loss and chronological TRAIN references; no fit until those gates pass. Reuse existing five-TF/GC/eight-specialist/D1 backbone; do not enable old 7200-query chain or stale current-state input. Qualify indicator formulas and consumption; only then consider a separately admitted fit. training_enabled=false; TEST and trading closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",

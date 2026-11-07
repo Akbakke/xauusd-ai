@@ -33,6 +33,10 @@ from gx1.contracts.entry_native_direction_research_v1 import (
     NativeEntryDirectionResearch, native_direction_research_contract,
     NativeDynamicMTFStateResearch, dynamic_mtf_state_research_contract,
 )
+from gx1.contracts.market_state_five_endpoint_model_v1 import (
+    FiveEndpointMarketStateModel, five_endpoint_model_contract,
+)
+from gx1.contracts import market_state_five_endpoint_target_binding_v1 as five_endpoint_targets
 from gx1.features import entry_specialist_feature_groups_v1 as owners
 from gx1.features import entry_direction_momentum_profile_v1 as price_momentum_owner
 from gx1.features.htf_features import MULTI_TF_SHIFT, get_model_native_multi_tf_route_windows
@@ -47,6 +51,8 @@ SOURCE_REF_KEYS = frozenset({'feature_view_design', 'input_qualification', 'raw_
 DENSE_SOURCE_REF_KEYS = frozenset({'dense_direction_component_source', 'dense_profile_source', 'dense_native_constructor_source'})
 PRICE_MOMENTUM_SOURCE_REF_KEYS = frozenset({'price_momentum_profile_source'})
 DYNAMIC_STATE_SOURCE_REF_KEYS = frozenset({'dynamic_state_target_source'})
+FIVE_ENDPOINT_SOURCE_REF_KEYS = frozenset({'five_endpoint_model_source', 'five_endpoint_contract_source',
+    'five_endpoint_target_binding_source', 'five_endpoint_corrected_mask'})
 CONFIRMED_AGE_SOURCE_REF_KEYS = frozenset({'confirmed_age_candidate_design'})
 OCTOBER_SOURCE_REF_KEYS = frozenset({'october_input_plan'})
 GC_RELATIVE_SOURCE_REF_KEYS = frozenset({'gc_relative_coordinates_source', 'gc_price_coordinate_source_map_source'})
@@ -217,6 +223,7 @@ def _require_view(view, *, unobserved_units_profile=None):
     price_momentum = 'price_momentum_profile' in view
     full = 'full_feature_profile' in view
     dynamic_state = 'dynamic_state_supervision' in view
+    five_endpoint = 'market_state_five_endpoint' in view
     current_state = 'current_state_first_loss_weight' in view
     confirmed_age = 'confirmed_run_age_input' in view
     october_source = 'october_input_plan' in view.get('source_bindings', {})
@@ -232,12 +239,12 @@ def _require_view(view, *, unobserved_units_profile=None):
     family = 'family_intervention' in view
     initialization = view.get('price_momentum_initialization', 'zero_residual')
     relative = 'gc_relative_coordinates_sha256' in view
-    _require(set(view) == VIEW_KEYS | ({'bps_scale'} if 'bps_scale' in view else set()) | ({'magnitude_weight_contract'} if 'magnitude_weight_contract' in view else set()) | ({'dense_minute_supervision'} if dense else set()) | ({'price_momentum_profile'} if price_momentum else set()) | ({'full_feature_profile'} if full else set()) | ({'five_minute_priority'} if five_priority else set()) | ({'dense_bps_scale'} if dense_bps else set()) | ({'m1_ofi_normalization'} if m1_ofi else set()) | ({'m1_ofi_coarsened'} if coarsened else set()) | ({'family_intervention'} if family else set()) | ({'price_momentum_initialization'} if initialization != 'zero_residual' else set()) | ({'gc_relative_coordinates_sha256'} if relative else set()) | ({'dynamic_state_supervision'} if dynamic_state else set()) | ({'current_state_first_loss_weight'} if current_state else set()) | ({'confirmed_run_age_input'} if confirmed_age else set()) | ({'extended_forecast_minutes'} if extended_state else set()) | ({'first_flat_activity_weight'} if first_activity else set())
+    _require(set(view) == VIEW_KEYS | ({'bps_scale'} if 'bps_scale' in view else set()) | ({'magnitude_weight_contract'} if 'magnitude_weight_contract' in view else set()) | ({'dense_minute_supervision'} if dense else set()) | ({'price_momentum_profile'} if price_momentum else set()) | ({'full_feature_profile'} if full else set()) | ({'five_minute_priority'} if five_priority else set()) | ({'dense_bps_scale'} if dense_bps else set()) | ({'m1_ofi_normalization'} if m1_ofi else set()) | ({'m1_ofi_coarsened'} if coarsened else set()) | ({'family_intervention'} if family else set()) | ({'price_momentum_initialization'} if initialization != 'zero_residual' else set()) | ({'gc_relative_coordinates_sha256'} if relative else set()) | ({'dynamic_state_supervision'} if dynamic_state else set()) | ({'market_state_five_endpoint'} if five_endpoint else set()) | ({'current_state_first_loss_weight'} if current_state else set()) | ({'confirmed_run_age_input'} if confirmed_age else set()) | ({'extended_forecast_minutes'} if extended_state else set()) | ({'first_flat_activity_weight'} if first_activity else set())
         | ({'native_endpoint_loss'} if endpoint else set()) | ({'zero_support_profile', 'reserved_observer_axes'} if masked_profile else set())
         | ({'unobserved_units_profile'} if units_profile else set()) | ({'october_observer_axes'} if scoped_october else set())
         and not (masked_profile and units_profile)
         and (not scoped_october or (units_profile and not masked_profile))
-        and (not units_profile or (full and dynamic_state and endpoint))
+        and (not units_profile or (full and ((dynamic_state and endpoint) or five_endpoint)))
         and (not masked_profile or endpoint)
         and (not endpoint or (view['native_endpoint_loss'] is True and first_activity and not extended_state))
         and (not first_activity or current_state)
@@ -252,6 +259,12 @@ def _require_view(view, *, unobserved_units_profile=None):
             and not any((dense, price_momentum, five_priority, dense_bps, m1_ofi, coarsened, family, relative))
             and 'bps_scale' not in view and 'magnitude_weight_contract' not in view
             and initialization == 'zero_residual'))
+        and (not five_endpoint or (view['market_state_five_endpoint'] is True and full
+            and not any((dynamic_state, dense, price_momentum, five_priority, dense_bps, m1_ofi,
+                coarsened, family, relative, current_state, confirmed_age, first_activity,
+                endpoint, masked_profile, extended_state))
+            and 'bps_scale' not in view and 'magnitude_weight_contract' not in view
+            and initialization == 'zero_residual'))
         and initialization in ('zero_residual', 'linear_default')
         and (initialization == 'zero_residual' or (price_momentum and not family))
         and (not relative or (not family and initialization == 'zero_residual'))
@@ -259,7 +272,9 @@ def _require_view(view, *, unobserved_units_profile=None):
         and (not dense_bps or (dense and price_momentum and not five_priority and not m1_ofi))
         and (not family or (dense and price_momentum and not five_priority and not dense_bps and not m1_ofi))
         and (not m1_ofi or dense) and (not coarsened or (m1_ofi and view['m1_ofi_coarsened'] is True)), 'VIEW_KEYS')
-    if dynamic_state:
+    if five_endpoint:
+        objective = five_endpoint_model_contract()
+    elif dynamic_state:
         objective = (dynamic_mtf_state_research_contract() if not current_state
             else dynamic_mtf_state_research_contract(current_state_input=True,
                 first_state_loss_weight=view['current_state_first_loss_weight'],
@@ -287,8 +302,12 @@ def _require_view(view, *, unobserved_units_profile=None):
         and view['research_objective'] == objective
         and view['evidence_scope'] == EVIDENCE_SCOPE
         and type(view['max_batch_rows']) is int and view['max_batch_rows'] > 0, 'VIEW_CANONICAL_IDENTITY')
-    _require(set(view['source_bindings']) == SOURCE_REF_KEYS | (DENSE_SOURCE_REF_KEYS if dense else set()) | (PRICE_MOMENTUM_SOURCE_REF_KEYS if price_momentum else set()) | (FIVE_PRIORITY_SOURCE_REF_KEYS if five_priority else set()) | (DENSE_BPS_SOURCE_REF_KEYS if dense_bps else set()) | (M1_OFI_SOURCE_REF_KEYS if m1_ofi else set()) | (FAMILY_SOURCE_REF_KEYS if family else set()) | (GC_RELATIVE_SOURCE_REF_KEYS if relative else set()) | (DYNAMIC_STATE_SOURCE_REF_KEYS if dynamic_state else set()) | (CONFIRMED_AGE_SOURCE_REF_KEYS if confirmed_age else set()) | (OCTOBER_SOURCE_REF_KEYS if october_source else set()), 'SOURCE_REF_KEYS')
+    _require(set(view['source_bindings']) == SOURCE_REF_KEYS | (DENSE_SOURCE_REF_KEYS if dense else set()) | (PRICE_MOMENTUM_SOURCE_REF_KEYS if price_momentum else set()) | (FIVE_PRIORITY_SOURCE_REF_KEYS if five_priority else set()) | (DENSE_BPS_SOURCE_REF_KEYS if dense_bps else set()) | (M1_OFI_SOURCE_REF_KEYS if m1_ofi else set()) | (FAMILY_SOURCE_REF_KEYS if family else set()) | (GC_RELATIVE_SOURCE_REF_KEYS if relative else set()) | (DYNAMIC_STATE_SOURCE_REF_KEYS if dynamic_state else set()) | (FIVE_ENDPOINT_SOURCE_REF_KEYS if five_endpoint else set()) | (CONFIRMED_AGE_SOURCE_REF_KEYS if confirmed_age else set()) | (OCTOBER_SOURCE_REF_KEYS if october_source else set()), 'SOURCE_REF_KEYS')
     for item in view['source_bindings'].values(): _ref(item)
+    if five_endpoint:
+        path, sha256 = five_endpoint_targets.REFS['mask']
+        _require(view['source_bindings']['five_endpoint_corrected_mask'] == {'path': path, 'sha256': sha256},
+                 'FIVE_ENDPOINT_CORRECTED_MASK')
     _require(masked_profile == ('zero_support_profile_sha256' in view['prefix_normalization'])
              == ('reserved_observer_axes_sha256' in view['prefix_normalization']), 'ZERO_SUPPORT_VIEW_BINDING')
     _require(units_profile == ('unobserved_units_profile_sha256' in view['prefix_normalization']),
@@ -374,7 +393,7 @@ def family_reference_view(view):
 
 
 def bind_native_direction_feature_view(*, prefix_normalization, prefix_normalization_ref,
-    constructor_metadata, constructor_metadata_ref, source_bindings, max_batch_rows, expected=None, bps_scale=None, magnitude_weight_contract=None, dense_minutes=False, price_momentum=False, m1_ofi_normalization=None, m1_ofi_coarsened=False, five_minute_priority=False, dense_bps_scale=None, family_intervention=None, price_momentum_initialization='zero_residual', full_feature_profile=False, dynamic_state_supervision=False, current_state_first_loss_weight=None, extended_forecast_minutes=None, first_flat_activity_weight=None, native_endpoint_loss=False, confirmed_run_age_input=False, zero_support_profile=None, unobserved_units_profile=None, october_observer_axes=None):
+    constructor_metadata, constructor_metadata_ref, source_bindings, max_batch_rows, expected=None, bps_scale=None, magnitude_weight_contract=None, dense_minutes=False, price_momentum=False, m1_ofi_normalization=None, m1_ofi_coarsened=False, five_minute_priority=False, dense_bps_scale=None, family_intervention=None, price_momentum_initialization='zero_residual', full_feature_profile=False, dynamic_state_supervision=False, market_state_five_endpoint=False, current_state_first_loss_weight=None, extended_forecast_minutes=None, first_flat_activity_weight=None, native_endpoint_loss=False, confirmed_run_age_input=False, zero_support_profile=None, unobserved_units_profile=None, october_observer_axes=None):
     """Bind verified metadata; ``expected`` requires exact reconstruction of a view.
 
     Plainrefs identify caller-verified files. Content seals bind their decoded
@@ -405,7 +424,8 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
     else:
         _require('zero_support_profile' not in report, 'UNBOUND_ZERO_SUPPORT_PROFILE')
     if unobserved_units_profile is not None:
-        _require(full_feature_profile is True and dynamic_state_supervision is True and native_endpoint_loss is True
+        _require(full_feature_profile is True
+                 and ((dynamic_state_supervision and native_endpoint_loss) or market_state_five_endpoint)
                  and prefix_normalization['unobserved_units_profile'] == unobserved_units_profile
                  and report.get('unobserved_units_profile') == unobserved_units_profile, 'UNOBSERVED_UNITS_FIT_BINDING')
         prefix_owner.require_october_units_normalization_bindings(prefix_normalization, unobserved_units_profile)
@@ -438,7 +458,16 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
     _require(type(dense_minutes) is bool and type(price_momentum) is bool and type(m1_ofi_coarsened) is bool and type(five_minute_priority) is bool
         and type(full_feature_profile) is bool and (not full_feature_profile or (not price_momentum and family_intervention is None))
         and type(dynamic_state_supervision) is bool and type(native_endpoint_loss) is bool
-        and type(confirmed_run_age_input) is bool
+        and type(market_state_five_endpoint) is bool and type(confirmed_run_age_input) is bool
+        and (not market_state_five_endpoint or (full_feature_profile and not any((
+            dynamic_state_supervision, dense_minutes, price_momentum, m1_ofi_coarsened,
+            five_minute_priority, confirmed_run_age_input, native_endpoint_loss))
+            and current_state_first_loss_weight is None and first_flat_activity_weight is None
+            and extended_forecast_minutes is None and bps_scale is None
+            and magnitude_weight_contract is None and dense_bps_scale is None
+            and m1_ofi_normalization is None and family_intervention is None
+            and relative is None and zero_support_profile is None
+            and price_momentum_initialization == 'zero_residual'))
         and (not confirmed_run_age_input or (current_state_first_loss_weight is not None
             and native_endpoint_loss and unobserved_units_profile is not None))
         and (not native_endpoint_loss or (first_flat_activity_weight is not None and extended_forecast_minutes is None))
@@ -458,7 +487,7 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
     provenance = proof['source_bindings']
     october_provenance = unobserved_units_profile is not None and set(provenance) == {
             'ancestral_264_plan', 'ancestral_267_plan', 'current_plan', 'prior_october_support'}
-    _require(isinstance(source_bindings, Mapping) and set(source_bindings) == SOURCE_REF_KEYS | (DENSE_SOURCE_REF_KEYS if dense_minutes else set()) | (PRICE_MOMENTUM_SOURCE_REF_KEYS if price_momentum else set()) | (FIVE_PRIORITY_SOURCE_REF_KEYS if five_minute_priority else set()) | (DENSE_BPS_SOURCE_REF_KEYS if dense_bps_scale is not None else set()) | (M1_OFI_SOURCE_REF_KEYS if m1_ofi_normalization is not None else set()) | (FAMILY_SOURCE_REF_KEYS if family_intervention is not None else set()) | (GC_RELATIVE_SOURCE_REF_KEYS if relative is not None else set()) | (DYNAMIC_STATE_SOURCE_REF_KEYS if dynamic_state_supervision else set()) | (CONFIRMED_AGE_SOURCE_REF_KEYS if confirmed_run_age_input else set()) | (OCTOBER_SOURCE_REF_KEYS if october_provenance else set()), 'SOURCE_REF_KEYS')
+    _require(isinstance(source_bindings, Mapping) and set(source_bindings) == SOURCE_REF_KEYS | (DENSE_SOURCE_REF_KEYS if dense_minutes else set()) | (PRICE_MOMENTUM_SOURCE_REF_KEYS if price_momentum else set()) | (FIVE_PRIORITY_SOURCE_REF_KEYS if five_minute_priority else set()) | (DENSE_BPS_SOURCE_REF_KEYS if dense_bps_scale is not None else set()) | (M1_OFI_SOURCE_REF_KEYS if m1_ofi_normalization is not None else set()) | (FAMILY_SOURCE_REF_KEYS if family_intervention is not None else set()) | (GC_RELATIVE_SOURCE_REF_KEYS if relative is not None else set()) | (DYNAMIC_STATE_SOURCE_REF_KEYS if dynamic_state_supervision else set()) | (FIVE_ENDPOINT_SOURCE_REF_KEYS if market_state_five_endpoint else set()) | (CONFIRMED_AGE_SOURCE_REF_KEYS if confirmed_run_age_input else set()) | (OCTOBER_SOURCE_REF_KEYS if october_provenance else set()), 'SOURCE_REF_KEYS')
     source_bindings = {key: _ref(value) for key, value in source_bindings.items()}
     if october_provenance:
         # October's qualified input-only proof binds its own plan and ancestry.
@@ -489,7 +518,9 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
             gc_mtf_history=gc_history, base_normalization=base, gc_normalization=gc_history['normalization'])
         _require(reference['contract_sha256'] == intervention['contract_sha256'], 'FAMILY_NORMALIZATION_PROFILE_BINDING')
     _require(type(max_batch_rows) is int and max_batch_rows > 0, 'MAX_BATCH_ROWS')
-    if dynamic_state_supervision:
+    if market_state_five_endpoint:
+        objective = five_endpoint_model_contract()
+    elif dynamic_state_supervision:
         objective = (dynamic_mtf_state_research_contract() if current_state_first_loss_weight is None
             else dynamic_mtf_state_research_contract(current_state_input=True,
                 first_state_loss_weight=current_state_first_loss_weight, confirmed_run_age_input=confirmed_run_age_input,
@@ -533,6 +564,8 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
         value['full_feature_profile'] = True
     if dynamic_state_supervision:
         value['dynamic_state_supervision'] = True
+    if market_state_five_endpoint:
+        value['market_state_five_endpoint'] = True
     if current_state_first_loss_weight is not None:
         value['current_state_first_loss_weight'] = current_state_first_loss_weight
     if confirmed_run_age_input:
@@ -699,6 +732,7 @@ def build_native_direction_research_model(
         price_momentum_initialization=view.get('price_momentum_initialization', 'zero_residual'),
         full_feature_profile=view.get('full_feature_profile', False),
         dynamic_state_supervision=view.get('dynamic_state_supervision', False),
+        market_state_five_endpoint=view.get('market_state_five_endpoint', False),
         current_state_first_loss_weight=view.get('current_state_first_loss_weight'),
         confirmed_run_age_input=view.get('confirmed_run_age_input', False),
         extended_forecast_minutes=view.get('extended_forecast_minutes'),
@@ -724,7 +758,9 @@ def build_native_direction_research_model(
     _require(type(backbone) is EntryV10CtxHybridTransformer and backbone.entry_execution_profile == view['entry_execution_profile']
         and backbone.gc_mtf_history == prefix_normalization['gc_mtf_history'], 'CONSTRUCTED_NATIVE_BINDING')
     backbone.require_input_normalization_state()
-    if view.get('dynamic_state_supervision', False):
+    if view.get('market_state_five_endpoint', False):
+        wrapper = FiveEndpointMarketStateModel(backbone)
+    elif view.get('dynamic_state_supervision', False):
         first_weight = view.get('current_state_first_loss_weight')
         wrapper = (NativeDynamicMTFStateResearch(backbone) if first_weight is None
             else NativeDynamicMTFStateResearch(backbone, current_state_input=True, first_state_loss_weight=first_weight,
