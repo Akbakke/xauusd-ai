@@ -124,6 +124,64 @@ class BoundFiveEndpointTargets:
                 "eligible": eligible, "mature": mature}
 
 
+    def mature_oof_axes(self, *, fold_id: int) -> dict:
+        """Bind the first five-endpoint OOF to one target-mature fit prefix.
+
+        These are axes only. The original score interval and unknown target
+        masks remain owned by ``gather``; this grants no normalization or fit.
+        """
+        _need(type(fold_id) is int and 1 <= fold_id <= 5, "OOF_FOLD")
+        _need(tuple(LEAD_MINUTES) == (5, 15, 60, 240, 1440), "OOF_LEADS")
+        issues, parents = self.decision_ns, self.parent_rows
+        _need(issues.dtype == parents.dtype == np.int64
+              and issues.ndim == parents.ndim == 1
+              and len(issues) == len(parents) > 0
+              and bool(np.all(np.diff(issues) > 0))
+              and bool(np.all(np.diff(parents) > 0))
+              and issues[0] >= TRAIN_START_NS
+              and issues[-1] < FOLD_BOUNDARIES_NS[-1], "OOF_SOURCE_AXES")
+        official = FOLD_BOUNDARIES_NS[fold_id - 1]
+        next_boundary = FOLD_BOUNDARIES_NS[fold_id]
+        effective = official - 1440 * MINUTE_NS
+        fit_stop = int(np.searchsorted(issues, effective, side="left"))
+        old_fit_stop = int(np.searchsorted(issues, official, side="left"))
+        score_stop = int(np.searchsorted(issues, next_boundary, side="left"))
+        _need(0 < fit_stop <= old_fit_stop < score_stop <= len(issues),
+              "OOF_PARTITION_ROWS")
+        fit_parents = parents[:fit_stop].copy()
+        fit_issues = issues[:fit_stop].copy()
+        score_parents = parents[old_fit_stop:score_stop].copy()
+        score_issues = issues[old_fit_stop:score_stop].copy()
+        fit_truth = self.gather(fit_parents, fit_issues,
+                                fold_id=fold_id, partition="fit")
+        score_truth = self.gather(score_parents, score_issues,
+                                  fold_id=fold_id, partition="score")
+        _need(bool(fit_truth["mature"].all())
+              and np.array_equal(score_truth["issue_ns"], score_issues)
+              and bool(np.all(score_issues >= official))
+              and bool(np.all(score_issues < next_boundary)),
+              "OOF_MATURE_FIT_OR_SCORE_AXIS")
+        for array in (fit_parents, fit_issues, score_parents, score_issues):
+            array.setflags(write=False)
+        return {
+            "fold_id": fold_id,
+            "official_fit_cutoff_ns": official,
+            "effective_fit_cutoff_ns": effective,
+            "score_end_exclusive_ns": next_boundary,
+            "fit_parent_rows": fit_parents,
+            "fit_decision_ns": fit_issues,
+            "score_parent_rows": score_parents,
+            "score_decision_ns": score_issues,
+            "old_joined_fit_rows": old_fit_stop,
+            "joined_fit_rows": fit_stop,
+            "discarded_joined_fit_rows": old_fit_stop - fit_stop,
+            "fit_parent_rows_sha256": _axis_hash(fit_parents),
+            "fit_decision_ns_sha256": _axis_hash(fit_issues),
+            "score_parent_rows_sha256": _axis_hash(score_parents),
+            "score_decision_ns_sha256": _axis_hash(score_issues),
+        }
+
+
 def _bind_arrays(model, mask, *, expected_model_rows: int | None = None,
                  expected_target_rows: int | None = None) -> BoundFiveEndpointTargets:
     """Pure axis and semantic checks, also used with tiny synthetic fixtures."""

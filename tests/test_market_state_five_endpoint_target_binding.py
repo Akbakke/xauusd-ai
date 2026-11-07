@@ -105,3 +105,59 @@ def test_pinned_file_hash_is_checked(tmp_path, monkeypatch):
     monkeypatch.setitem(binding.REFS, "mask_result", (str(path), "0" * 64))
     with pytest.raises(ValueError, match="MASK_RESULT_HASH"):
         binding._checked_bytes("mask_result", 100)
+
+
+def test_mature_oof_prefix_censors_one_day_and_keeps_original_score_and_unknown():
+    official, next_boundary = binding.FOLD_BOUNDARIES_NS[:2]
+    effective = official - 1440 * binding.MINUTE_NS
+    issues = np.array([binding.TRAIN_START_NS + binding.M5_NS,
+                       effective - binding.M5_NS, effective,
+                       official - binding.M5_NS, official + binding.M5_NS,
+                       next_boundary - binding.M5_NS], dtype=np.int64)
+    parents = np.arange(10, 70, 10, dtype=np.int64)
+    allowed = np.full((len(issues), 5), 1, dtype=np.uint8)
+    allowed[1] = [5, 7, 7, 1, 4]
+    source = np.full_like(allowed, 100, dtype=np.int64)
+    source[allowed == 7] = -1
+    bound = binding.BoundFiveEndpointTargets(parents, issues, allowed, source,
+                                            np.arange(len(issues), dtype=np.int64), 0)
+    cohort = bound.mature_oof_axes(fold_id=1)
+    assert cohort["effective_fit_cutoff_ns"] == effective
+    assert cohort["old_joined_fit_rows"] == 4
+    assert cohort["joined_fit_rows"] == 2
+    assert cohort["discarded_joined_fit_rows"] == 2
+    assert cohort["fit_parent_rows"].tolist() == [10, 20]
+    assert cohort["score_parent_rows"].tolist() == [50, 60]
+    assert np.array_equal(cohort["score_decision_ns"], issues[4:])
+    assert cohort["fit_parent_rows_sha256"] == binding._axis_hash(parents[:2])
+    assert cohort["score_decision_ns_sha256"] == binding._axis_hash(issues[4:])
+    truth = bound.gather(cohort["fit_parent_rows"], cohort["fit_decision_ns"],
+                         fold_id=1, partition="fit")
+    assert truth["mature"].all()
+    assert truth["allowed"][1].tolist() == [5, 7, 7, 1, 4]
+    assert truth["eligible"][1].tolist() == [True, False, False, True, True]
+    excluded = bound.gather(parents[2:3], issues[2:3], fold_id=1, partition="fit")
+    assert not excluded["mature"][0, 4]
+    with pytest.raises(ValueError):
+        cohort["fit_parent_rows"][0] = 999
+    with pytest.raises(ValueError, match="OOF_FOLD"):
+        bound.mature_oof_axes(fold_id=6)
+
+
+def test_pinned_mature_oof_axes_keep_five_original_score_windows():
+    bound = binding.load_bound_five_endpoint_targets()
+    expected_old = (29849, 47602, 64890, 82427, 100499)
+    expected_fit = (29574, 47338, 64615, 82152, 100224)
+    expected_score = (17753, 17288, 17537, 18072, 17750)
+    for fold_id in range(1, 6):
+        cohort = bound.mature_oof_axes(fold_id=fold_id)
+        assert cohort["old_joined_fit_rows"] == expected_old[fold_id - 1]
+        assert cohort["joined_fit_rows"] == expected_fit[fold_id - 1]
+        assert cohort["score_parent_rows"].shape == (expected_score[fold_id - 1],)
+        assert cohort["discarded_joined_fit_rows"] == expected_old[fold_id - 1] - expected_fit[fold_id - 1]
+        assert cohort["official_fit_cutoff_ns"] == binding.FOLD_BOUNDARIES_NS[fold_id - 1]
+        assert cohort["score_end_exclusive_ns"] == binding.FOLD_BOUNDARIES_NS[fold_id]
+        fit = bound.gather(cohort["fit_parent_rows"], cohort["fit_decision_ns"],
+                           fold_id=fold_id, partition="fit")
+        assert fit["mature"].all()
+        assert np.isin(fit["allowed"], (1, 2, 4, 5, 7)).all()
