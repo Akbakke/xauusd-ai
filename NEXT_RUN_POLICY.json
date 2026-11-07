@@ -44,13 +44,22 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-07T02:05:05.740209+00:00",
-  "status": "MARKET_STATE_GRAY_PHYSICAL_COMPLETE_TARGET_OPEN",
+  "observed_utc": "2026-11-07T02:21:38.829228+00:00",
+  "status": "MARKET_STATE_ACTIVITY_SEMANTICS_SELECTED_H4_AUDIT_ADMITTED",
+  "market_state_activity_semantics": {
+    "status": "OPERATOR_SELECTED_CANDIDATE_FULL_TARGET_PENDING",
+    "complete_local_range_below_atr14": 0.5,
+    "below_threshold": "FLAT_ONLY_WHEN_COMPLETE_AND_SOURCE_KNOWN",
+    "at_or_above_threshold": "ACTIVE_WITH_SIDE_ONLY_WHEN_SEPARATELY_CERTIFIED",
+    "gray_band_allowed_set": ["DOWN", "UP"],
+    "five_tf_rowwise_target_locked": false,
+    "model_fit_authorized": false
+  },
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Full TRAIN source-gap and 20x5 endpoint candidate masks are verified. New physical TRAIN gray-band audit found intermediate net movement/efficiency and exact range/ATR parity on complete cells; market-state target remains PROPOSED pending operator choice of FLAT/ACTIVE semantics. Latest full-profile fit routed 253 MTF fields per TF, but 95 lack full independent numeric qualification and per-field learned value is open. training_enabled=false; no model fit, TEST, Entry/Exit, broker, trading or spending.",
-  "next_action": "Choose physical meaning of the 0.5-1.0 ATR band: proposed ACTIVE with side unknown, versus wholly UNKNOWN or 1.0 ATR FLAT. Do not choose from coverage/model score. While operator choice is pending, continue bounded indicator formula audit preparation; then bind five-TF target, output/loss/score and chronological references. The gray audit is consumed and cannot relaunch. training_enabled=false; TEST and trading closed.",
+  "rule": "Operator accepted ACTIVE with side unknown for the 0.5-1.0 ATR gray band after physical TRAIN review. This selects activity semantics only; rowwise five-TF target, side proof, loss, scoring and chronological references remain unbound. H4 source-only independent trendline audit is admitted once. training_enabled=false; no model fit, TEST, Entry/Exit, broker, trading or spending.",
+  "next_action": "Execute the one admitted H4 numeric source audit after committed clean preflight, CLAIM and capped launch; consume it with immutable terminal. Then bind the selected ACTIVE/side-unknown semantics rowwise across five TF, output/loss/scores and chronological TRAIN references before considering any model admission. No threshold adjustment from class balance or model scores. training_enabled=false; TEST and trading closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -61449,5 +61458,36 @@
       "sha256": "8f83777d03c90794dbe5c534e1647d41ccb9137e3dcd0c9af1f2168105e871fb"
     },
     "post_run_review": "One capped exit0 285.59s full TRAIN physical audit: 591682 M1 rows, 118706 M5 issues, 537909 complete TF endpoint cells with exact bit parity of raw-window range/ATR to saved ratios. Gray 0.5-1.0 ATR has 273200 cells; M5 gray median absolute net 0.296 ATR, efficiency 0.404, 1.179 quoted spreads; D1 0.265 ATR, 0.353, 22.745 quoted spreads. Read-only independent receipt review verified 300 month-TF-cohort counts and hashes but did not replay raw M1 or rehash large parquet. Gray is intermediate physical movement; no target lock, model learning, TEST or economics. Plan consumed; no relaunch."
+  },
+  "h4_trendline_lifecycle_physical_oracle_20261107_001": {
+    "status": "ADMITTED",
+    "decision": "ADMITTED",
+    "scope": "One source-only independent H4 trendline lifecycle audit on all 1044 May-Dec2024 TRAIN H4 cache rows x 31 fields; eight anchors. Exact native M5/closed H4/ATR/cache alignment. No model/TEST/Entry/Exit/trade.",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/H4_TRENDLINE_LIFECYCLE_PHYSICAL_ORACLE_20261107_001.json",
+      "sha256": "51be8cd511db606751d62e85bf1b8348601fd350b62e106116140cbacf4ccb2c"
+    },
+    "worker": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/verify_h4_trendline_lifecycle_oracle_v1.py",
+      "sha256": "49d71d78652f79fe2619f7f60bd59f3f27156c1fb8173ac07f4bdab1f848eaca"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/H4_TRENDLINE_LIFECYCLE_PHYSICAL_ORACLE_20261107_001",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "relaunch_allowed": false,
+    "memory_max": "4G",
+    "swap_max": "512M",
+    "wall_seconds": 1800,
+    "model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "broker_access_allowed": false,
+    "test_data_used": false,
+    "training_authorized": false,
+    "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
+    "terminal_owner": "Integrator writes immutable success/failure TERMINAL after the one claimed capped invocation; no relaunch."
   }
 }

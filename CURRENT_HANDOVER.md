@@ -5,9 +5,9 @@ Les [GX1_RULES.md](GX1_RULES.md) og kjør `bash scripts/gx1_handover.sh --check`
 
 ## Gjeldende mål og status
 
-Før Entry skal modellen lære løpende OPP/NED/FLATT på M5/M15/H1/H4/D1, med ny prognose på lukkede M5-barer. Entry-plassering, Exit og handel kommer senere. [Gjenværende læringsmetode](docs/NATIVE_LEARNING.md) og [målkandidatene](docs/MARKET_STATE_ENDPOINT_CANDIDATE_20261106.md) beskriver kravene. **Markedsmålet er fremdeles foreslått, ikke valgt/låst.** `training_enabled=false`; ingen ny fit, TEST-tilpasning, broker, ordre eller handel er autorisert.
+Før Entry skal modellen lære løpende OPP/NED/FLATT på M5/M15/H1/H4/D1, med ny prognose på lukkede M5-barer. Entry-plassering, Exit og handel kommer senere. [Gjenværende læringsmetode](docs/NATIVE_LEARNING.md) og [målkandidatene](docs/MARKET_STATE_ENDPOINT_CANDIDATE_20261106.md) beskriver kravene. **Aktivitetssemantikken er valgt: komplett `R<0,5 ATR` betyr FLATT, komplett `R≥0,5 ATR` betyr AKTIV; OPP/NED krever separat sidebevis. Radvis fem-TF-mål, tap og scoring er ennå ikke bundet.** `training_enabled=false`; ingen ny fit, TEST-tilpasning, broker, ordre eller handel er autorisert.
 
-Aktuell policystatus: `MARKET_STATE_GRAY_PHYSICAL_COMPLETE_TARGET_OPEN`. [Gråsoneplanen](configs/research/MARKET_STATE_GRAY_PHYSICAL_20261107_001.json) og alle tidligere engangsplaner er fullført og konsumert. Ingen ny kjøring eller fit er innrømmet; målvalget er fortsatt åpent.
+Aktuell policystatus: `MARKET_STATE_ACTIVITY_SEMANTICS_SELECTED_H4_AUDIT_ADMITTED`. [H4-indikatorplanen](configs/research/H4_TRENDLINE_LIFECYCLE_PHYSICAL_ORACLE_20261107_001.json) er innrømmet for én capped kildekontroll etter ren preflight; den er ennå ikke claimet eller kjørt. [Gråsoneplanen](configs/research/MARKET_STATE_GRAY_PHYSICAL_20261107_001.json) og alle eldre engangsplaner er konsumert. Ingen fit er innrømmet.
 
 ## Målt og bevist konsistent
 
@@ -24,9 +24,9 @@ Aktuell policystatus: `MARKET_STATE_GRAY_PHYSICAL_COMPLETE_TARGET_OPEN`. [Gråso
 
 ## Hindring og neste arbeid
 
-Målsemantikken er den første porten. En enkelt 1,0 ATR-grense gir høy dekning ved å kalle en fysisk mellomliggende gråsone FLATT. M5-sideankeret er kontrollert på eksakte retninger, men FLATT/AKTIV/UKJENT og øvrige TF er fortsatt åpne. Ingen side eller ukjent kilde fylles med gjettede etiketter.
+Aktivitetssemantikken er valgt etter fysisk TRAIN-kontroll: mellomsonen 0,5–1,0 ATR er AKTIV med uavklart retning. M5-sideankeret er kontrollert på eksakte retninger, men radvis FLATT/AKTIV/UKJENT og øvrige TF er ennå ikke samlet til én målkontrakt. Ingen side eller ukjent kilde fylles med gjettede etiketter.
 
-1. Velg betydningen av 0,5–1,0 ATR-mellomsonen på grunnlag av den fysiske kontrollen: foreslått AKTIV med ukjent side, fortsatt helt UKJENT eller FLATT ved 1,0 ATR. Målet låses først etter operatørvalg; ingen terskel velges fra klassebalanse eller modellscore. Bevar fem TF, kausalitet og egne masker for aktivitet og side.
+1. Kjør den ene innrømmede H4-formelkontrollen etter ren kilde/preflight/CLAIM. Samle deretter valgt aktivitet og separat sidebevis radvis på fem TF; ukjent og manglende kilde forblir ukjent. Ingen terskel velges fra klassebalanse eller modellscore.
 2. Bind fem endepunktsutganger, tillatt-mengde-tap, aktivitet/side/treklasse-skår og kronologiske TRAIN-referanser til **samme** mål. Først deretter kvalifiseres en eksakt, begrenset modellfit. `training_enabled=false` inntil egen admisjon.
 3. Fortsett uavhengig kontroll av resterende indikatorformler på M5/M15/H1/H4 og de øvrige familiene. D1-vinduets PASS er ingen generell dom om alle felt eller prognoseverdi.
 
