@@ -190,8 +190,14 @@ def require_december_normalization_bindings(fitted, profile):
 
 
 def require_october_units_normalization_bindings(fitted, profile):
-    """Validate an exact physical prefix fit without granting model-run authority."""
-    spec = units.require_october_prefix_units_profile(profile)
+    """Keep the original October-only validator strict for existing callers."""
+    units.require_october_prefix_units_profile(profile)
+    return require_prefix_units_normalization_bindings(fitted, profile)
+
+
+def require_prefix_units_normalization_bindings(fitted, profile):
+    """Validate either explicitly sealed physical prefix fit without model authority."""
+    spec = units.require_prefix_units_profile(profile)
     _require(isinstance(fitted, Mapping)
              and fitted.get("contract_sha256") == _sha({k: v for k, v in fitted.items() if k != "contract_sha256"})
              and fitted.get("schema_version") == SCHEMA_VERSION
@@ -378,7 +384,7 @@ def qualify_native_direction_prefix_population(
             spec = require_december_zero_support_profile(zero_support_profile)
             _require(prefix == spec["fit_prefix"], "DECEMBER_FIT_PREFIX")
         else:
-            spec = units.require_october_prefix_units_profile(unobserved_units_profile)
+            spec = units.require_prefix_units_profile(unobserved_units_profile)
             units.require_prefix_units_fit_identity(prefix, spec)
     physical = compile_compact_entry_execution_profile()["physical_field_names"]
     names = list(ordered_signal_names)
@@ -538,7 +544,7 @@ def fit_native_direction_prefix_normalization(qualification, *, gc_relative_coor
         _require(gc_relative_coordinates is None, "DECEMBER_RAW_GC_REQUIRED")
         profile_args["zero_support_profile"] = profile
     elif units_profile is not None:
-        units.require_october_prefix_units_profile(units_profile)
+        units.require_prefix_units_profile(units_profile)
         units.require_prefix_units_fit_identity(report["proof"]["prefix"], units_profile)
         _require(gc_relative_coordinates is None, "UNOBSERVED_UNITS_RAW_GC_REQUIRED")
         profile_args["unobserved_units_profile"] = units_profile
@@ -586,5 +592,5 @@ def fit_native_direction_prefix_normalization(qualification, *, gc_relative_coor
     if profile is not None:
         require_december_normalization_bindings(fitted, profile)
     elif units_profile is not None:
-        require_october_units_normalization_bindings(fitted, units_profile)
+        require_prefix_units_normalization_bindings(fitted, units_profile)
     return fitted

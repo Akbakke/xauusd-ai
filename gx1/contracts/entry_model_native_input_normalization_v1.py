@@ -829,7 +829,7 @@ def fit_surface_normalization(
         from gx1.contracts import entry_native_direction_prefix_units_v1 as units
         if zero_support_profile is not None or allow_unobserved_train_fields is not False:
             raise RuntimeError("ENTRY_INPUT_RESEARCH_UNITS_PROFILE_CONFLICT")
-        spec = units.require_october_prefix_units_profile(unobserved_units_profile)
+        spec = units.require_prefix_units_profile(unobserved_units_profile)
         unit_columns = units.prefix_units_surface_columns(spec, surface=surface, field_names=names)
         if unit_columns:
             units_profile_sha = spec["contract_sha256"]
@@ -1211,7 +1211,7 @@ def require_surface_normalization(
         from gx1.contracts import entry_native_direction_prefix_units_v1 as units
         if profile_sha is not None:
             raise RuntimeError("ENTRY_INPUT_RESEARCH_UNITS_PROFILE_CONFLICT")
-        spec = units.require_october_prefix_units_profile(unobserved_units_profile)
+        spec = units.require_prefix_units_profile(unobserved_units_profile)
         unit_columns = units.prefix_units_surface_columns(spec, surface=surface, field_names=field_names)
         if (units_profile_sha != (spec["contract_sha256"] if unit_columns else None)):
             raise RuntimeError("ENTRY_INPUT_RESEARCH_UNITS_BINDING")
@@ -1560,8 +1560,8 @@ def share_temporal_alias_stats_from_signal(
 
 def _require_unobserved_units_base_lineage(lineage, *, fit_population, profile):
     """Check available prefix metadata; the prefix owner binds exact axis hashes."""
-    from gx1.contracts.entry_native_direction_prefix_units_v1 import require_october_prefix_units_profile
-    spec = require_october_prefix_units_profile(profile)
+    from gx1.contracts.entry_native_direction_prefix_units_v1 import require_prefix_units_profile
+    spec = require_prefix_units_profile(profile)
     prefix = spec["fit_prefix"]
     if (fit_population != DYNAMIC_M5_FIT_POPULATION
             or lineage["train_row_count"] != prefix["rows"]

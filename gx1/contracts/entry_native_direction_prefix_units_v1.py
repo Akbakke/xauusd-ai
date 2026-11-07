@@ -1,4 +1,4 @@
-"""Exact October research prefix units; metadata only, with no fit authority.
+"""Exact sealed research prefix units; metadata only, with no fit authority.
 
 The immutable preparation plan owns the fields, units and physical indices.
 This module neither normalizes values nor imports a fitter or model.
@@ -14,6 +14,10 @@ UNIT_SCALE_SOURCE = "unobserved_prefix_unit_scale"
 PLAN_PATH = "configs/research/DYNAMIC_M5_OOF_PREFIX_UNITS_20261105_001.json"
 PLAN_SHA256 = "83b70d1b610eef9a3de9c8cf4d0eaf45435bed88d112442e7e315032b3f8c8b2"
 _PLAN_FILE = Path(__file__).resolve().parents[2] / PLAN_PATH
+MATURE_FOLD1_PROFILE_NAME = "market_state_mature_fold1_prefix_units_v1"
+MATURE_FOLD1_PLAN_PATH = "configs/research/MARKET_STATE_MATURE_FOLD1_PREFIX_UNITS_20261107_001.json"
+MATURE_FOLD1_PLAN_SHA256 = "a19b4773b443573f3644ba4cc43e14652a929a8b97ea44391586dd5bf59ac630"
+_MATURE_FOLD1_PLAN_FILE = Path(__file__).resolve().parents[2] / MATURE_FOLD1_PLAN_PATH
 STANDARD_SURFACES = (
     "signal", "ctx_cont",
     "mtf_m5", "mtf_m15", "mtf_h1", "mtf_h4", "mtf_d1",
@@ -88,9 +92,76 @@ def require_october_prefix_units_profile(profile):
     return expected
 
 
+def mature_fold1_prefix_units_profile():
+    """Bind the shorter fold-1 prefix to declared units, never to October statistics."""
+    source = october_prefix_units_profile()
+    raw = _MATURE_FOLD1_PLAN_FILE.read_bytes()
+    _require(hashlib.sha256(raw).hexdigest() == MATURE_FOLD1_PLAN_SHA256, "MATURE_PLAN_SHA")
+    plan = json.loads(raw)
+    _require(set(plan) == {"schema_version", "plan_id", "status", "authority", "unit_source",
+                           "support_evidence", "fit_prefix", "unobserved_surface_field_count",
+                           "old_normalization_identity_reused"}
+             and plan["schema_version"] == "gx1_mature_fold1_declared_units_preparation_v1"
+             and plan["plan_id"] == "MARKET_STATE_MATURE_FOLD1_PREFIX_UNITS_20261107_001"
+             and plan["status"] == "PREPARATION_ONLY_NOT_NATIVE_ADMISSION"
+             and plan["authority"] == source["authority"]
+             and plan["unit_source"] == {"path": PLAN_PATH, "sha256": PLAN_SHA256,
+                                          "reuse_scope": "declared_source_units_and_physical_column_maps_only"}
+             and plan["unobserved_surface_field_count"] == 153
+             and plan["old_normalization_identity_reused"] is False,
+             "MATURE_PLAN_SCOPE")
+    fit = plan["fit_prefix"]
+    _require(set(fit) == set(_PREFIX_KEYS) and type(fit["rows"]) is int and fit["rows"] == 29574
+             and type(fit["cutoff_ns"]) is int and fit["cutoff_ns"] == 1727654400000000000
+             and all(type(fit[key]) is str and len(fit[key]) == 64
+                     and all(c in "0123456789abcdef" for c in fit[key]) for key in _PREFIX_KEYS[2:])
+             and fit != source["fit_prefix"], "MATURE_FIT_PREFIX")
+    evidence = plan["support_evidence"]
+    _require(set(evidence) == {"path", "sha256"}
+             and evidence["path"] == "/home/andre2/GX1_RUNS/MARKET_STATE_MATURE_PREFIX_NORMALIZATION_20261107_001/QUALIFICATION_FOLD_1.json"
+             and type(evidence["sha256"]) is str and len(evidence["sha256"]) == 64
+             and all(c in "0123456789abcdef" for c in evidence["sha256"]),
+             "MATURE_SUPPORT_EVIDENCE")
+    value = {
+        "schema_version": "gx1_native_direction_prefix_units_v1",
+        "profile_name": MATURE_FOLD1_PROFILE_NAME,
+        "plan": {"path": MATURE_FOLD1_PLAN_PATH, "sha256": MATURE_FOLD1_PLAN_SHA256},
+        "unit_scale_source": UNIT_SCALE_SOURCE,
+        "fit_prefix": fit,
+        "fields": source["fields"],
+        "surfaces": source["surfaces"],
+        "support_evidence": evidence,
+        "unobserved_semantics": source["unobserved_semantics"],
+        "authority": plan["authority"],
+    }
+    return {**value, "contract_sha256": _sha(value)}
+
+
+def require_mature_fold1_prefix_units_profile(profile):
+    """Reject modified or resealed mature fold-1 profiles."""
+    _require(isinstance(profile, Mapping), "PROFILE")
+    expected = mature_fold1_prefix_units_profile()
+    try:
+        actual = _canonical(dict(profile))
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError("NATIVE_DIRECTION_PREFIX_UNITS_PROFILE") from exc
+    _require(actual == _canonical(expected), "PROFILE_IDENTITY")
+    return expected
+
+
+def require_prefix_units_profile(profile):
+    """Allow only the two exact, independently sealed prefix unit identities."""
+    _require(isinstance(profile, Mapping), "PROFILE")
+    if profile.get("profile_name") == PROFILE_NAME:
+        return require_october_prefix_units_profile(profile)
+    if profile.get("profile_name") == MATURE_FOLD1_PROFILE_NAME:
+        return require_mature_fold1_prefix_units_profile(profile)
+    _require(False, "PROFILE_IDENTITY")
+
+
 def prefix_units_surface_columns(profile, *, surface, field_names):
     """Map exact physical value indices to their source unit and observation mask."""
-    spec = require_october_prefix_units_profile(profile)
+    spec = require_prefix_units_profile(profile)
     _require(isinstance(surface, str) and surface in STANDARD_SURFACES, "SURFACE")
     if surface not in spec["surfaces"]:
         return {}
@@ -116,7 +187,7 @@ def prefix_units_surface_columns(profile, *, surface, field_names):
 
 def require_prefix_units_fit_identity(prefix, profile):
     """Bind the five exact prefix fields, allowing unrelated extra proof keys."""
-    spec = require_october_prefix_units_profile(profile)
+    spec = require_prefix_units_profile(profile)
     expected = spec["fit_prefix"]
     _require(isinstance(prefix, Mapping)
              and all(key in prefix and type(prefix[key]) is type(expected[key])

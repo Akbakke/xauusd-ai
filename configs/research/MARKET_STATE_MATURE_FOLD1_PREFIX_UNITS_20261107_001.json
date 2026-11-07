@@ -1,0 +1,32 @@
+{
+  "authority": {
+    "broker_or_network_collection": false,
+    "genuine_data_audit": false,
+    "genuine_statistics_fit": false,
+    "native_model_launch": false,
+    "spending": false,
+    "test_access": false,
+    "training_enabled": false
+  },
+  "fit_prefix": {
+    "bar_start_ns_sha256": "4031eb33963b717f0e2bdf9082d8d38c476b3db7beb6a10dc0e3c03329f1b6d1",
+    "cutoff_ns": 1727654400000000000,
+    "decision_ns_sha256": "ebb3489c45b01b6fd8e77bf27529d650beb6883ba84b57ee936dc549ec74e427",
+    "parent_rows_sha256": "1c5a8c36a94b8fa39d613f0bc122cf869dc9fa3c2f87dc64c0506acd2f55a90f",
+    "rows": 29574
+  },
+  "old_normalization_identity_reused": false,
+  "plan_id": "MARKET_STATE_MATURE_FOLD1_PREFIX_UNITS_20261107_001",
+  "schema_version": "gx1_mature_fold1_declared_units_preparation_v1",
+  "status": "PREPARATION_ONLY_NOT_NATIVE_ADMISSION",
+  "support_evidence": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_MATURE_PREFIX_NORMALIZATION_20261107_001/QUALIFICATION_FOLD_1.json",
+    "sha256": "6df90574ef2e414a0b544f69c25de35b488147d91ad413916691b973b525ff3f"
+  },
+  "unit_source": {
+    "path": "configs/research/DYNAMIC_M5_OOF_PREFIX_UNITS_20261105_001.json",
+    "reuse_scope": "declared_source_units_and_physical_column_maps_only",
+    "sha256": "83b70d1b610eef9a3de9c8cf4d0eaf45435bed88d112442e7e315032b3f8c8b2"
+  },
+  "unobserved_surface_field_count": 153
+}

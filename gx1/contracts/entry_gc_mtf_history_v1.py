@@ -250,8 +250,8 @@ def require_gc_mtf_history_normalization(value, *, layout, unobserved_units_prof
         and isinstance(data['surfaces'], Mapping)
         and set(data['surfaces']) == {'gc_mtf_' + tf.lower() for tf in TIMEFRAMES}, 'NORMALIZATION_LAYOUT')
     if unobserved_units_profile is not None:
-        from gx1.contracts.entry_native_direction_prefix_units_v1 import require_october_prefix_units_profile
-        units_spec = require_october_prefix_units_profile(unobserved_units_profile)
+        from gx1.contracts.entry_native_direction_prefix_units_v1 import require_prefix_units_profile
+        units_spec = require_prefix_units_profile(unobserved_units_profile)
         _require(not relative, 'UNOBSERVED_UNITS_RAW_COORDINATES')
     for tf in TIMEFRAMES:
         name = 'gc_mtf_' + tf.lower()
@@ -302,8 +302,8 @@ def fit_gc_mtf_history_normalization(surfaces, train_row_indices_by_tf, *, train
         and set(train_row_indices_by_tf) == set(TIMEFRAMES), 'FIT_TRAIN_UNION_KEYS')
     coordinates = None
     if unobserved_units_profile is not None:
-        from gx1.contracts.entry_native_direction_prefix_units_v1 import require_october_prefix_units_profile
-        units_spec = require_october_prefix_units_profile(unobserved_units_profile)
+        from gx1.contracts.entry_native_direction_prefix_units_v1 import require_prefix_units_profile
+        units_spec = require_prefix_units_profile(unobserved_units_profile)
         _require(zero_support_profile is None and relative_price_coordinates is None,
             'UNOBSERVED_UNITS_PROFILE_CONFLICT')
         _require(train_end_ns == units_spec['fit_prefix']['cutoff_ns'], 'UNOBSERVED_UNITS_FIT_CUTOFF')
