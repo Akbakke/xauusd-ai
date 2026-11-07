@@ -1,6 +1,6 @@
 # Fem-TF markedstilstand ved framtidig endepunkt — kandidat 06.11.2026
 
-**Status: aktivitetssemantikk valgt; full fem-TF-fasit ennå ikke bundet.** Operatøren valgte 0,5 ATR som grense for FLATT mot AKTIV når hele lokale vinduet er observert. Retning krever separat bevis; eksisterende radvise masker må ommerkes og kontrolleres før mål, tap, scorer eller trening kan låses. `training_enabled=false`; TEST forblir forseglet.
+**Status: aktivitetssemantikk valgt og radvis TRAIN-maske publisert; full fem-TF-læringskontrakt ennå ikke bundet.** Operatøren valgte 0,5 ATR som grense for FLATT mot AKTIV når hele lokale vinduet er observert. Retning krever separat bevis; den nye radvise masken er kontrollert, mens M15/H1/H4/D1-sidens lokale mening, tap, scorer og treningskontrakt fortsatt må kvalifiseres. `training_enabled=false`; TEST forblir forseglet.
 
 ## Valgt aktivitet og foreslått full målkontrakt
 
@@ -106,6 +106,20 @@ Netto er close ved eksakt endepunkt minus open i første av de siste `W_TF` fakt
 Gråsonen ligger mellom de to referansegruppene både i netto bevegelse og retningsandel. M5-gråsonens `|netto|` var 0,216/1,179/3,209 siterte spreads ved p10/median/p90; den månedlige medianen for `|netto|/ATR` lå mellom 0,278 og 0,315. D1 hadde større månedsspredning, 0,188–0,370. Sitert spread er fysisk skala, ikke gjennomførbar nettoøkonomi. M1-close-kryssinger og terminalt antall closes i RESULT er beskrivelser av observerte lukkekurser, ikke intraminuttrekkefølge eller faktisk tilstandsvarighet. Overlappende endepunkter er ikke uavhengige markedsepisoder.
 
 Det er dermed uforsvarlig å velge én 1,0 ATR-grense *bare* fordi den gir høyere dekning: den kaller hele denne mellomsonen FLATT. Den valgte aktivitetssemantikken lar fullt `R<0,5A` bevise FLATT og fullt `R≥0,5A` bevise AKTIV, mens OPP/NED fortsatt krever separat konservativt sidebevis; mellomsonen får tillatt mengde `{NED,OPP}`. Operatøren har valgt dette for neste målkandidat; radvis fem-TF-fasit, separat sidebevis, tap og scoring er ennå ikke bundet. En ren avledning av de lagrede maskene viser konsekvensen: ved slik AKTIV-merking blir 110 016/118 198 aktivitetskjente M5-celler AKTIV (93,08 %), men bare 39 670/110 016 av de aktive (36,06 %) har sertifisert side. På D1 er tilsvarende 80 178/82 587 (97,08 %) AKTIV og 36 633/80 178 (45,69 %) med side. En alltid-AKTIV-referanse må derfor måles på identiske rader, og side skåres for seg. Dette er en målekonsekvens, ikke grunn til å flytte terskelen etter klassebalanse. Fysisk netto er ulik mellom cellene, og senere modellscore skal heller ikke tune terskelen. Dette er ingen fit-admisjon eller bevis for retningslæring; `training_enabled=false` består.
+
+## Valgt radvis aktivitet på hele TRAIN
+
+Den ene kildebundne, capped [maskekontrollen](/home/andre2/GX1_RUNS/MARKET_STATE_SELECTED_ACTIVITY_MASKS_20261107_001/RESULT.json) SHA-256 `a2f085b3d14b4fc6d934db22c47955eeff6f2f25732574f940dc8bba5281916e` og [terminalen](/home/andre2/GX1_RUNS/MARKET_STATE_SELECTED_ACTIVITY_MASKS_20261107_001/TERMINAL.json) SHA-256 `2f994f52d594e403b9777063aefd0de70f335dc0e5d62a007b6180dd1b2b53fc` publiserte [ROW_MASKS.npz](/home/andre2/GX1_RUNS/MARKET_STATE_SELECTED_ACTIVITY_MASKS_20261107_001/ROW_MASKS.npz) SHA-256 `5a6e9b3377ded33760080d7f9145ecfcd8bf60faf24e53a34a42c420ad4a1a02`. Av 118 706 M5-utstedelser × fem TF ble **bare** 273 200 fullt observerte 0,5–1,0 ATR-celler ommerket fra gammel `ALL=7` til `ACTIVE=5` (`{NED,OPP}`). De øvrige 320 330 cellene, utstedelsestid, M5-kilderad, native lead og eksakt M1-endepunktsrad er uendret. Alle 20 måneder × fem TF stemte med den gamle gråsonekvitteringen. Aktivitet, sertifisert side og singleton har egne sannhetsmasker.
+
+| TF | NED | FLATT | OPP | AKTIV, side ukjent | Helt UKJENT |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| M5 | 18 921 | 8 182 | 20 749 | 70 346 | 508 |
+| M15 | 21 375 | 12 280 | 24 036 | 59 549 | 1 466 |
+| H1 | 20 265 | 11 836 | 24 370 | 56 632 | 5 603 |
+| H4 | 20 776 | 7 875 | 25 316 | 54 449 | 10 290 |
+| D1 | 14 910 | 2 409 | 21 723 | 43 545 | 36 119 |
+
+På tvers av overlappende TF-/tidsceller er aktivitet kjent i 539 544, side i 212 441 og en singleton i 255 023. Dette er ikke uavhengige markedsepisoder. Kildeetterkontrollen verifiserte alle publiserte masker og tidligere NPZ-kvitteringer, men gjentok ikke rå M1-/ATR-replay. M15/H1/H4/D1-sidens lokale anker er fortsatt uprøvd; radmasken alene kvalifiserer ikke modellfit, retningslæring eller økonomi. `training_enabled=false`.
 
 ## Lokal M5-side ved 1,0 ATR
 
