@@ -44,15 +44,15 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-07T04:30:33.369584+00:00",
-  "status": "MARKET_STATE_FIVE_ENDPOINT_ZERO_STEP_002_PLAN_PREPARED_PREFLIGHT_PENDING",
+  "observed_utc": "2026-11-07T04:31:57.190558+00:00",
+  "status": "MARKET_STATE_FIVE_ENDPOINT_ZERO_STEP_002_ADMITTED_UNCLAIMED",
   "market_state_five_endpoint_zero_step_20261107_002": {
-    "status": "PLAN_PREPARED_PREFLIGHT_PENDING",
+    "status": "ADMITTED_ONCE_UNCLAIMED",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_FIVE_ENDPOINT_ZERO_STEP_20261107_002.json",
       "sha256": "e1603b7036bdfe835288c46be1ab0c4f48c189aea3ffd6cca9fdcf985b384ed3"
     },
-    "decision": "BLOCKED",
+    "decision": "ADMITTED",
     "scope": "New one-use TRAIN-only zero-step source after plan001 was rejected before CLAIM by 250W host setting. Same fixed Oct24 parent=0, one CUDA forward, zero optimizer steps; physical host profile temporarily 160W signed-verified.",
     "worker": {
       "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/verify_market_state_five_endpoint_zero_step_v1.py",
@@ -62,9 +62,9 @@
     "max_invocations": 1,
     "claimed_invocations": 0,
     "completed_invocations": 0,
-    "execution_authorized": false,
-    "data_reads_authorized": false,
-    "model_forwards_authorized": 0,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "model_forwards_authorized": 1,
     "optimizer_steps_authorized": 0,
     "training_authorized": false,
     "test_authorized": false,
@@ -78,6 +78,16 @@
       "previous_config_sha256": "22af0d65294d636164705b100101a47a56bfcf0e2b660a4bb2808965a3434d98",
       "temporary_config_sha256": "62b53dafcf663aac82b43c3d215a6e2b84622a01339bb6dd1197c315dd5d2667",
       "restore_previous_profile_after_terminal": true
+    },
+    "read_only_preflight": {
+      "status": "READY_NO_CLAIM_NO_PAYLOAD",
+      "source_head": "901aba4999235092f65605f4f6b45424ab79402b",
+      "source_owner_refs_checked": 19,
+      "october_source_refs_checked": 23,
+      "claim_created": false,
+      "model_forwards": 0,
+      "optimizer_steps": 0,
+      "test_data_used": false
     },
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105"
   },
@@ -176,7 +186,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Operator-selected 0.5 ATR activity and conservative local side now have an immutable corrected five-TF TRAIN source mask. Exactly 273200 full-window gray cells became ACTIVE side-unknown, then seven measured H4/D1 old singleton sides were conservatively demoted; all other masks and axes preserved. Remaining certified sides match cold local replay in scoped audits. Five-endpoint output/loss/scorer, causal now-state references, chronological baselines and indicator usefulness remain unqualified. training_enabled=false; no model fit, TEST, Entry/Exit, broker, trading or spending.",
-  "next_action": "The Oct24 metadata-only five-output view and guarded zero-step worker now pass source/synthetic checks. Plan001 is consumed after preclaim signed-power rejection. Host guard config was temporarily reduced from 250W to 160W; signed telemetry now reports 160W. Plan002 is prepared from clean source HEAD; run read-only preclaim before separate admission; no fit, TEST or old-plan relaunch. Restore prior 250W host profile after plan002 terminal. No fit until target-only batch/loss, indicator and chronological reference gates pass. Reuse existing five-TF/GC/eight-specialist/D1 backbone; do not enable old 7200-query chain or stale current-state input. Qualify indicator formulas and consumption; only then consider a separately admitted fit. training_enabled=false; TEST and trading closed.",
+  "next_action": "The Oct24 metadata-only five-output view and guarded zero-step worker now pass source/synthetic checks. Plan001 is consumed after preclaim signed-power rejection. Host guard config was temporarily reduced from 250W to 160W; signed telemetry now reports 160W. Plan002 passed read-only preclaim and is admitted for exactly one capped CUDA forward on one Oct24 TRAIN fit row; zero optimizer steps, no fit, TEST or old-plan relaunch. Restore prior 250W host profile after plan002 terminal. No fit until target-only batch/loss, indicator and chronological reference gates pass. Reuse existing five-TF/GC/eight-specialist/D1 backbone; do not enable old 7200-query chain or stale current-state input. Qualify indicator formulas and consumption; only then consider a separately admitted fit. training_enabled=false; TEST and trading closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
