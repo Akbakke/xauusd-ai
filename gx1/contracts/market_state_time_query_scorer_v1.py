@@ -73,6 +73,8 @@ class TimeQueryMatchedScorer:
     """Consume one bounded issue batch at a time, in contiguous k blocks.
 
     Each add_block array has shape B,Q,5 (probabilities have final class axis 3).
+    An explicit conditional-side probability is accepted for a factorized
+    successor; the original probability-ratio path remains the default.
     The scorer ignores inactive TF slots after their native K even if a capped
     tape gather returns cached labels. The tape owner binds source provenance.
     """
@@ -112,7 +114,8 @@ class TimeQueryMatchedScorer:
                   validity_ns: np.ndarray, model_p: np.ndarray,
                   prior_activity: np.ndarray, prior_side_up: np.ndarray,
                   prior_three: np.ndarray, allowed: np.ndarray,
-                  eligible: np.ndarray, mature: np.ndarray) -> None:
+                  eligible: np.ndarray, mature: np.ndarray,
+                  model_side_up: np.ndarray | None = None) -> None:
         batch = self._active
         _require(batch is not None, 'NO_OPEN_BATCH')
         _require(type(step_start) is int and step_start == batch['next_step'],
@@ -151,6 +154,13 @@ class TimeQueryMatchedScorer:
                      and value.dtype in (np.dtype('float32'), np.dtype('float64'))
                      and value.shape == expected and bool(np.isfinite(value).all())
                      and bool(np.all((value >= 0) & (value <= 1))), name)
+        if model_side_up is not None:
+            _require(isinstance(model_side_up, np.ndarray)
+                     and model_side_up.dtype in (np.dtype('float32'), np.dtype('float64'))
+                     and model_side_up.shape == shape
+                     and bool(np.isfinite(model_side_up).all())
+                     and bool(np.all((model_side_up >= 0) & (model_side_up <= 1))),
+                     'MODEL_SIDE')
         _require(bool(np.allclose(model_p.sum(axis=-1, dtype=np.float64), 1,
                                   rtol=0, atol=1e-6))
                  and bool(np.allclose(prior_three.sum(axis=-1, dtype=np.float64), 1,
@@ -160,8 +170,22 @@ class TimeQueryMatchedScorer:
                                    [None, :, :], shape)
         side_cells = eligible & mature & included & np.isin(allowed, (1, 4))
         active_mass = model_p[..., 0] + model_p[..., 2]
-        _require(bool(np.all(active_mass[side_cells] > 0)),
-                 'UNDEFINED_CONDITIONAL_SIDE')
+        if model_side_up is None:
+            _require(bool(np.all(active_mass[side_cells] > 0)),
+                     'UNDEFINED_CONDITIONAL_SIDE')
+        else:
+            representable = side_cells & (active_mass > 0)
+            if representable.any():
+                ratio = (model_p[..., 2][representable].astype(np.float64)
+                         / active_mass[representable].astype(np.float64))
+                supplied = model_side_up[representable].astype(np.float64)
+                eps = max(np.finfo(model_p.dtype).eps,
+                          np.finfo(model_side_up.dtype).eps)
+                # Near the subnormal limit the class masses lose side precision.
+                underflow = (2 * np.finfo(model_p.dtype).smallest_subnormal
+                             / active_mass[representable].astype(np.float64))
+                _require(bool(np.all(np.abs(ratio - supplied) <= 8 * eps + underflow)),
+                         'MODEL_SIDE_PARITY')
         for offset in range(q):
             step = step_start + offset
             for j, tf in enumerate(TIMEFRAMES):
@@ -186,8 +210,11 @@ class TimeQueryMatchedScorer:
                                      np.square(pp - y), cov)
                 if side.any():
                     y = (bits[side] == 4).astype(np.float64)
-                    denom = model_p[side, offset, j, 0] + model_p[side, offset, j, 2]
-                    mp = model_p[side, offset, j, 2] / denom
+                    if model_side_up is None:
+                        denom = model_p[side, offset, j, 0] + model_p[side, offset, j, 2]
+                        mp = model_p[side, offset, j, 2] / denom
+                    else:
+                        mp = model_side_up[side, offset, j]
                     pp = prior_side_up[side, offset, j]
                     self._add_scores(batch, side, j, 1, np.square(mp - y),
                                      np.square(pp - y), cov)

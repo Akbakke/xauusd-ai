@@ -10,12 +10,10 @@ from __future__ import annotations
 import hashlib
 import json
 
-import numpy as np
 import torch
 import torch.nn.functional as F
 
 from gx1.contracts import market_state_five_endpoint_contract_v1 as five
-from gx1.contracts import market_state_time_query_loss_v1 as previous
 from gx1.contracts.market_state_time_query_target_v1 import NATIVE_K, TIMEFRAMES
 
 K = tuple(int(value) for value in NATIVE_K)
@@ -34,7 +32,7 @@ def factorized_time_query_loss_contract() -> dict:
         "loss": "mean_per_TF_activity_BCE_plus_known_conditional_side_BCE_divided_by_five",
         "side_gradient": "zero_direct_side_logit_gradient_for_bits_2_5_7_or_immature",
         "empty_support": "zero_loss_anchored_to_primitive_logits_skip_update",
-        "proper_score": "same_activity_conditional_side_and_three_class_Brier_log_as_v1",
+        "proper_score": "factorized_time_query_scorer_v2_from_primitive_logits",
         "future_labels_as_model_forward_inputs": False,
     }
     raw = json.dumps(value, sort_keys=True, separators=(",", ":"),
@@ -106,13 +104,3 @@ def allowed_set_loss(raw_logits: torch.Tensor, allowed: torch.Tensor,
         "skip_update": count == 0,
         "contract_sha256": factorized_time_query_loss_contract()["contract_sha256"],
     }
-
-
-def proper_score_sums(probabilities: np.ndarray, allowed: np.ndarray,
-                      eligible: np.ndarray, mature: np.ndarray,
-                      query_k: np.ndarray) -> dict:
-    """Score the factorized probabilities with the unchanged proper-score math."""
-    report = previous.proper_score_sums(
-        probabilities, allowed, eligible, mature, query_k)
-    return {**report,
-            "contract_sha256": factorized_time_query_loss_contract()["contract_sha256"]}

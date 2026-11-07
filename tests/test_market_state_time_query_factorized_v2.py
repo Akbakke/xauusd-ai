@@ -11,7 +11,10 @@ from gx1.contracts.entry_model_native_training_objective_v1 import (
 )
 from gx1.contracts import market_state_time_query_loss_v1 as previous_loss
 from gx1.contracts.market_state_time_query_loss_v2 import (
-    allowed_set_loss, factorized_time_query_loss_contract, proper_score_sums,
+    allowed_set_loss, factorized_time_query_loss_contract,
+)
+from gx1.contracts.market_state_time_query_scorer_v2 import (
+    proper_score_sums, factorized_time_query_scorer_contract,
 )
 from gx1.contracts.market_state_time_query_model_v2 import (
     FactorizedTimeQueryMarketStateModel, factorized_log_probabilities,
@@ -137,13 +140,20 @@ def test_factorized_probability_loss_and_proper_score_are_consistent():
     assert float(actual["loss"]) == pytest.approx(
         float(old_algebra["loss"]), abs=2e-7)
     score = proper_score_sums(
-        probabilities, allowed.numpy(), ready.numpy(), ready.numpy(),
+        raw.detach().numpy(), allowed.numpy(), ready.numpy(), ready.numpy(),
         query.numpy())
     old_score = previous_loss.proper_score_sums(
         probabilities, allowed.numpy(), ready.numpy(), ready.numpy(),
         query.numpy())
-    assert score["per_tf"] == old_score["per_tf"]
-    assert score["contract_sha256"] == factorized_time_query_loss_contract()[
+    for tf in TIMEFRAMES:
+        for metric in score["per_tf"][tf]:
+            for key, value in score["per_tf"][tf][metric].items():
+                reference = old_score["per_tf"][tf][metric][key]
+                if isinstance(value, float):
+                    assert value == pytest.approx(reference, abs=2e-7)
+                else:
+                    assert value == reference
+    assert score["contract_sha256"] == factorized_time_query_scorer_contract()[
         "contract_sha256"]
     assert score["per_tf"]["H4"]["activity"]["count"] == 2
     assert score["per_tf"]["H4"]["conditional_side"]["count"] == 0
