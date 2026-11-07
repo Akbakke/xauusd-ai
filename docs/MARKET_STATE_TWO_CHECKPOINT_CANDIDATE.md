@@ -1,6 +1,6 @@
 # To framtidige tilstandstidspunkt — avgrenset TRAIN-kandidat 07.11.2026
 
-**Status:** forhåndsbeskrevet kandidat for lesende fysisk kontroll, ikke valgt treningsmål eller modelladmisjon. Gjeldende arbeidsstatus står i `NEXT_RUN_POLICY.json` og `CURRENT_HANDOVER.md`.
+**Status:** lesende fysisk TRAIN-kontroll fullført. To tidspunkt forkastes som beskrivelse av hele forløpet; ingen modellfit er innrømmet. Gjeldende arbeidsstatus står i `NEXT_RUN_POLICY.json` og `CURRENT_HANDOVER.md`.
 
 ## Hvorfor denne kontrollen trengs
 
@@ -30,3 +30,21 @@ En lesende TRAIN-kontroll bruker hele observerte M1-tilstandstapen og publiserer
 Disse er nedre grenser for oversette hendelser. M1-OHLC fastslår ikke intraminuttrekkefølge. En mellomliggende motside er ikke nødvendigvis en sammenhengende fysisk episode. To punkt kan heller ikke bevise fravær av vendinger mellom dem. Kontrollen skal vise eksempler med prisbane og mask før det avgjøres om to punkt er en nyttig, men begrenset prognose, eller om et rikere forløpsmål trengs. Ingen modellscore, VAL eller TEST brukes til målvalg.
 
 Dagens endepunktmål beholdes som separat referanse. `training_enabled=false`; Entry, Exit, broker, TEST og handel er stengt.
+
+## Målt utfall 07.11.2026
+
+[Engangskontrollen](/home/andre2/GX1_RUNS/MARKET_STATE_TWO_CHECKPOINT_20261107_001/RESULT.json) SHA-256 `1848ade7716273ff416686e250d9b3b4e3e6aae3fbcaad5666a50e991d69af35` og [terminalen](/home/andre2/GX1_RUNS/MARKET_STATE_TWO_CHECKPOINT_20261107_001/TERMINAL.json) SHA-256 `3f402c471e7a9f45034f95d45228436101546a54d1c81048643ff840eb2fea00` bekrefter exit 0 etter 300,94 s. Uavhengig kvitteringskontroll avstemte 12/12 kildehash, 7/7 inputhash, måneds- og maskepartisjoner samt **0 bit-/kilderadavvik på alle 118 706 × 5 eksisterende endepunkt**. Det ble ikke kjørt modellfit, publisert ny fasit eller åpnet TEST.
+
+Nevnerne under omfatter bare utstedelser der de to punktene er like og den aktuelle hendelsen kan observeres gjennom hele intervallet på M1-oppløsning. Tallene er overlappende, beskrivende TRAIN-intervaller, ikke uavhengige sannsynlighetsestimater.
+
+| TF | AKTIV mellom to FLATT-punkt | Bekreftet motside mellom to like sidepunkt |
+| --- | ---: | ---: |
+| M5 | 2 237 / 3 882 (57,6 %) | 2 816 / 8 612 (32,7 %) |
+| M15 | 3 132 / 6 167 (50,8 %) | 4 707 / 10 046 (46,9 %) |
+| H1 | 2 867 / 5 165 (55,5 %) | 5 095 / 9 326 (54,6 %) |
+| H4 | 724 / 1 041 (69,5 %) | 4 271 / 8 185 (52,2 %) |
+| D1 | Ingen komplett 1 440-minutters M1-nevner | Ingen komplett 1 440-minutters M1-nevner |
+
+D1s null komplette klokkeintervaller skyldes blant annet dokumenterte stengninger og er **ikke** null oversette bevegelser. Blant sensurerte D1-intervaller finnes minst 172 observerte tilfeller med aktivitet mellom to FLATT-punkt og 3 841 med bekreftet motside mellom like sidepunkt, men ingen sammenlignbar rate. M5-midtpunktet er AKTIV med ukjent side på 69 363/118 706 (58,4 %) utstedelser; et ekstra tidspunkt reparerer derfor ikke sideetikettenes observerbarhet.
+
+Beslutning: de to punktene kan fortsatt være to gyldige punktprognoser, men de **skal ikke trenes eller rapporteres som en prognose for hele forløpet**. Det gamle endepunktet beholdes som referanse. Neste designarbeid er én delt, tidsstyrt marginal tilstandsprognose for `S_s(v)` på forhåndsvalgte framtidstidspunkt. Den eksisterende fem-TF-modellen har allerede ett felles dekoderhode; en tidskoordinat kan legges til i en ny, kildebundet modellkontrakt. Nåværende målbinding er låst til fem faste endepunkter og M1-tapen mellom dem er bare diagnostikk. Ny per-query-målbinding, maskert tap/skår, kausale referanser og eksplisitt treningskobling må derfor kvalifiseres før fit; ingen 352 uavhengige hoder innføres. Marginale prognoser alene gir ikke sannsynlighet for en felles vending/episode. Den fullstendige M1-tapen mellom de opprinnelige endepunktene er en ny lokal diagnostisk utvidelse med eksakt endepunktsparitet, ikke en tidligere publisert fasit på hvert minutt. Intraminuttrekkefølge og økonomisk verdi er ubevist.
