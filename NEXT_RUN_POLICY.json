@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-07T05:52:16.111949+00:00",
-  "status": "MARKET_STATE_EMA_SIMPLE_REFERENCE_NO_STABLE_SIDE_GAIN_INPUT_AUDIT_PENDING",
+  "observed_utc": "2026-11-07T06:03:44.568011+00:00",
+  "status": "MARKET_STATE_MODEL_LOSS_BRIDGE_SOURCE_PREP_INPUT_AUDIT_PENDING",
   "market_state_ema_side_reference_20261107_001": {
     "status": "CONSUMED_COMPLETE_TRAIN_EMA_REFERENCE",
     "decision": "PASS_REFERENCE_MEASUREMENT_NO_STABLE_DIRECTION_GAIN",
@@ -465,7 +465,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Operator-selected 0.5 ATR activity and conservative local side now have an immutable corrected five-TF TRAIN source mask. Exactly 273200 full-window gray cells became ACTIVE side-unknown, then seven measured H4/D1 old singleton sides were conservatively demoted; all other masks and axes preserved. Remaining certified sides match cold local replay in scoped audits. Pure five-endpoint output/loss/scorer, one real forward route, and a target-only batch bridge on two real TRAIN rows with synthetic logits are source-qualified; actual model-to-loss and optimizer skip, causal now-state references and indicator usefulness remain unqualified; one five-fold chronological TRAIN constant-prior reference is now measured. training_enabled=false; no model fit, TEST, Entry/Exit, broker, trading or spending.",
-  "next_action": "Prior, five-TF trendline TRAIN-window formula parity and one binary EMA50/200 directional reference are measured; all one-use plans are consumed. EMA side Brier gain versus constant prior is M5 -0.000054216, M15 -0.000054569, H1 +0.000126137, H4 -0.000129749, D1 0 across five chronological TRAIN folds, with mixed fold signs; no stable directional gain. Next map and quantify the remaining 64 parked non-trendline fields per TF and verify actual numerical model consumption before any fit admission. Preserve mature masks, closed bars, fold-specific preprocessing and the frozen prior; no TEST, Entry/Exit, broker or trading.",
+  "next_action": "The new five-endpoint head has only one fresh unfitted TRAIN forward and no actual model-to-loss call; the current physical trainer still uses the older dynamic-state target and sequence loss. Prepare one separate zero-optimizer TRAIN full-profile forward/backward/skip witness, with exact source/cap/host gates and no relaunch of plan003. The old numeric index covers 158 cache fields/TF, scoped trendline oracle covers 31 more, and close_position_range20 has separate full numeric proof; 63 other fields/TF need full independent numeric qualification. Before interpreting model gain also bind a causal current-state transition reference. training_enabled=false; TEST, Entry/Exit, broker and trading closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
