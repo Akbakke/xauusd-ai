@@ -45,10 +45,10 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-07T03:10:14.780833+00:00",
-  "status": "MARKET_STATE_FIVE_ENDPOINT_ZERO_STEP_ADMITTED_ONCE_PENDING_CLAIM",
+  "status": "MARKET_STATE_FIVE_ENDPOINT_ZERO_STEP_POWER_LIMIT_BLOCKED_NEW_PLAN_REQUIRED",
   "market_state_five_endpoint_zero_step_20261107_001": {
-    "status": "ADMITTED_ONCE_UNCLAIMED",
-    "decision": "ADMITTED",
+    "status": "PRECLAIM_GUARD_REJECTED_CONSUMED",
+    "decision": "BLOCKED",
     "scope": "One TRAIN May-Sep 2024 parent=0, existing Oct24 full-profile normalization and new five-endpoint view, exactly one native forward, zero optimizer steps, corrected target only after forward; no TEST, fit, Entry, Exit or trading.",
     "worker": {
       "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/verify_market_state_five_endpoint_zero_step_v1.py",
@@ -70,9 +70,9 @@
     "max_invocations": 1,
     "claimed_invocations": 0,
     "completed_invocations": 0,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "model_forwards_authorized": 1,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "model_forwards_authorized": 0,
     "optimizer_steps_authorized": 0,
     "training_authorized": false,
     "test_authorized": false,
@@ -87,7 +87,18 @@
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_FIVE_ENDPOINT_ZERO_STEP_20261107_001.json",
       "sha256": "60f3d4ff466f0111230a6f188d49f57c67de69e03b46950e752614ebb8c6c8ca"
     },
-    "preclaim_result": "READY_NO_CLAIM_NO_PAYLOAD; exact .venv CLI dispatcher smoke; 19 source owners, 23 October owners, expected view/objective hashes; no output root"
+    "preclaim_result": "READY_NO_CLAIM_NO_PAYLOAD; exact .venv CLI dispatcher smoke; 19 source owners, 23 October owners, expected view/objective hashes; no output root",
+    "attempted_invocations": 1,
+    "preclaim_failure": "Signed Windows telemetry reported configured GPU power limit 250W versus exact CUDA producer maximum 160W; gx1_capped_run exit75 before worker/CLAIM/model. Old one-use plan will not be relaunched.",
+    "guard_log": {
+      "path": "/home/andre2/GX1_RUNS/.MARKET_STATE_FIVE_ENDPOINT_ZERO_STEP_20261107_001.guard.7nJ2fzw5.log",
+      "sha256": "5896fe1f37cc5edf284072c947d48293b732b2df10a77bb278126c1ead302b86"
+    },
+    "stdio_log": {
+      "path": "/home/andre2/GX1_RUNS/.MARKET_STATE_FIVE_ENDPOINT_ZERO_STEP_20261107_001.trainer.2s018ISI.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "output_root_created": false
   },
   "market_state_five_endpoint_source_binding": {
     "status": "TARGET_OUTPUT_BUILDER_SOURCE_TESTED_REAL_FORWARD_PENDING",
@@ -130,7 +141,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Operator-selected 0.5 ATR activity and conservative local side now have an immutable corrected five-TF TRAIN source mask. Exactly 273200 full-window gray cells became ACTIVE side-unknown, then seven measured H4/D1 old singleton sides were conservatively demoted; all other masks and axes preserved. Remaining certified sides match cold local replay in scoped audits. Five-endpoint output/loss/scorer, causal now-state references, chronological baselines and indicator usefulness remain unqualified. training_enabled=false; no model fit, TEST, Entry/Exit, broker, trading or spending.",
-  "next_action": "The Oct24 metadata-only five-output view and guarded zero-step worker now pass source/synthetic checks. Read-only preclaim and exact .venv dispatcher smoke passed without CLAIM/output. Run the admitted one-use capped CUDA producer exactly once on Oct24 TRAIN parent=0, then inspect and consume its immutable terminal; 0 optimizer steps and training_enabled=false. No fit until target-only batch/loss, indicator and chronological reference gates pass. Reuse existing five-TF/GC/eight-specialist/D1 backbone; do not enable old 7200-query chain or stale current-state input. Qualify indicator formulas and consumption; only then consider a separately admitted fit. training_enabled=false; TEST and trading closed.",
+  "next_action": "The Oct24 metadata-only five-output view and guarded zero-step worker now pass source/synthetic checks. First admitted one-use zero-step attempt was rejected by the existing signed GPU guard before CLAIM: configured 250W exceeds 160W cap. Do not relaunch plan 001. Restore a verified <=160W physical host profile through the existing guard owner, then prepare a new exact one-use plan with fresh source/policy binding; training_enabled=false. No fit until target-only batch/loss, indicator and chronological reference gates pass. Reuse existing five-TF/GC/eight-specialist/D1 backbone; do not enable old 7200-query chain or stale current-state input. Qualify indicator formulas and consumption; only then consider a separately admitted fit. training_enabled=false; TEST and trading closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
