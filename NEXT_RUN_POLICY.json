@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
-  "full_epoch_training_allowed": true,
+  "training_enabled": false,
+  "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Selected 0.5 ATR activity and conservative local side have a corrected five-TF TRAIN mask: 273200 full-window gray cells are ACTIVE with unknown side; seven measured H4/D1 singleton sides were demoted. The fixed five-fold CPU snapshot fit failed the predeclared M5 side gate, while native sequence fit, chronological OOF direction and indicator predictive usefulness remain unqualified; the model-to-loss and four-step optimizer/resume paths are only technically qualified. The read-only M1 duration audit passed selected-endpoint parity but cannot establish physical episode lengths because most side runs are censored. The exact fold1 native time-query fit _001 failed before a batch and is consumed; only the separately qualified _002 fit is now admitted with training_enabled=true in its bound scope. TEST, Entry, Exit, broker, trading and spending remain closed.",
-  "next_action": "New _002 recipe c1ee668a388d0be6b73ce94efc2d3827958c410bb0f51ebcb6cda9b14f0a854c binds clean source 070a99ee, 71 source owners, 19 TRAIN refs, actual seven-field fold1 view, one 29574-row B16 fit pass and 17753 later TRAIN OOF score rows. Read-only view and synthetic COMPLETE/FAILED preflight passed. Materialize one guarded 250W four-window plan from boot619, verify exact window command and receipts, then require a fresh physical boot for one manual invocation. No automatic continuation; no TEST, Entry, Exit, broker or trading.",
+  "rule": "Selected 0.5 ATR activity and conservative local side have a corrected five-TF TRAIN mask: 273200 full-window gray cells are ACTIVE with unknown side; seven measured H4/D1 singleton sides were demoted. The fixed five-fold CPU snapshot fit failed the predeclared M5 side gate, while native sequence fit, chronological OOF direction and indicator predictive usefulness remain unqualified; the model-to-loss and four-step optimizer/resume paths are only technically qualified. The read-only M1 duration audit passed selected-endpoint parity but cannot establish physical episode lengths because most side runs are censored. The exact fold1 native time-query fit _001 failed before a batch and is consumed; the separately qualified _002 fit is COMPLETE and consumed; its M5 side Brier is worse than frozen prior in all 14 weeks, so training_enabled=false and no repeat fit is admitted. TEST, Entry, Exit, broker, trading and spending remain closed.",
+  "next_action": "Fold1 native time-query fit _002 is COMPLETE and consumed: 29574 fit rows, 1849 updates, 17753 later TRAIN OOF rows. M5 k1 certified-side Brier 0.277630566 vs frozen prior 0.249827988 on 6096 same rows; model worse in all 14 weeks. Activity Brier 0.058853423 vs prior 0.061702092 on 17751 rows. Do not repeat neural fit or claim direction/Entry edge. The consumed EMA50/200 reference is also negative on the same 6096 fold1 M5 side rows (its older fit prefix and prior differ slightly); do not repeat it. Define one genuinely new causal ATR/support or calibration diagnostic on earlier TRAIN data, freeze its rule and matched reference before any later TRAIN score or new exact plan. TEST, Entry, Exit, broker and trading remain closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -35083,7 +35083,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -63666,11 +63666,11 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "MARKET_STATE_TIME_QUERY_FOLD1_FIT_002_ADMITTED_UNCLAIMED",
-  "recorded_observed_utc": "2026-11-07T15:58:26.214868+00:00",
+  "recorded_status": "MARKET_STATE_TIME_QUERY_FOLD1_FIT_002_COMPLETE_NO_DIRECTION_QUALIFICATION",
+  "recorded_observed_utc": "2026-11-07T19:28:03.718480+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
-    "status": "ADMITTED",
-    "decision": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
+    "decision": "BLOCK",
     "scope": "One bounded native time-query fold1 full mature TRAIN pass plus later TRAIN OOF score; no TEST, Entry, Exit or trade.",
     "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TIME_QUERY_FOLD1_FIT_20261107_002/RUNTIME",
     "recipe": {
@@ -63690,24 +63690,24 @@
       "sha256": "c4f5974f96400b1247f11119eabbf6b495efbe4f10917734f7b51f9471e3bbce"
     },
     "max_invocations": 4,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "training_rounds": 1,
     "automatic_repetition_authorized": false,
-    "campaign_preparation_authorized": true,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
-    "genuine_predictor_fit_authorized": true,
-    "native_launch_authorized": true,
-    "time_query_fold1_fit_authorized": true,
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "full_epoch_training_allowed": true,
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "native_launch_authorized": false,
+    "time_query_fold1_fit_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "full_epoch_training_allowed": false,
     "normalization_fit_authorized": false,
     "synthetic_test_execution_authorized": false,
     "test_data_used": false,
@@ -63724,6 +63724,39 @@
     "power_limit_w": 250,
     "standing_authorization_source": "GX1_RULES_20261105_local_zero_spend_with_exact_new_admission",
     "predictive_value_qualified": false,
-    "test_authorized": false
+    "test_authorized": false,
+    "terminal_outcome": "COMPLETE",
+    "genuine_updates_observed": 1849,
+    "fit_rows_observed": 29574,
+    "score_rows_observed": 17753,
+    "terminal_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TIME_QUERY_FOLD1_FIT_20261107_002/RUNTIME/prefix-fit/window-0001/RESULT.json",
+      "sha256": "08172fc2c17f8eaf4f0457e38bdd3aa750bfbbf9ae719cb587aabd4d93d21254"
+    },
+    "terminal_receipt": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TIME_QUERY_FOLD1_FIT_20261107_002/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "8a2b638a49dfcf32558f361ee968c6c60b6d768d40d916fc87abca620b96b536"
+    },
+    "train_oof": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TIME_QUERY_FOLD1_FIT_20261107_002/RUNTIME/prefix-fit/window-0001/OOF.json",
+      "sha256": "ff6e3099c5d7e59ec7f917a0a0e734b1017980b801273d4f3ecfcc444da64f11"
+    },
+    "final_fit_checkpoint": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TIME_QUERY_FOLD1_FIT_20261107_002/RUNTIME/prefix-fit/states/FINAL_FOLD1_FIT_STATE.pt",
+      "sha256": "0bc00ee262aedf7083d62a04b841d38f10067c621dede4fdecac3e3fb1ffccc5"
+    },
+    "fold1_primary_m5_k1": {
+      "certified_side_count": 6096,
+      "model_side_brier": 0.27763056626718213,
+      "frozen_prior_side_brier": 0.24982798778829138,
+      "prior_minus_model_side_brier": -0.027802578478890762,
+      "positive_side_weeks": 0,
+      "total_side_weeks": 14,
+      "activity_count": 17751,
+      "model_activity_brier": 0.058853422584024456,
+      "frozen_prior_activity_brier": 0.06170209239793864,
+      "prior_minus_model_activity_brier": 0.0028486698139141807,
+      "positive_activity_weeks": 12
+    }
   }
 }
