@@ -7,7 +7,7 @@ Les [GX1_RULES.md](GX1_RULES.md) og kjør `bash scripts/gx1_handover.sh --check`
 
 Før Entry skal modellen lære løpende OPP/NED/FLATT på M5/M15/H1/H4/D1, med ny prognose på lukkede M5-barer. Entry-plassering, Exit og handel kommer senere. [Gjenværende læringsmetode](docs/NATIVE_LEARNING.md) og [målkandidatene](docs/MARKET_STATE_ENDPOINT_CANDIDATE_20261106.md) beskriver kravene. **Aktivitetssemantikken er valgt: komplett `R<0,5 ATR` betyr FLATT, komplett `R≥0,5 ATR` betyr AKTIV; OPP/NED krever separat sidebevis. Korrigert maske er eksakt koblet til modellradene, og ren fem-endepunkts tap-/skårmatematikk og femutgangshode er kilde-/syntetisk testet. Modellbyggeren har nå en egen kilde-/syntetisk testet modus; faktisk native forward og treningsløp er ennå ikke kvalifisert.** `training_enabled=false`; ingen ny fit, TEST-tilpasning, broker, ordre eller handel er autorisert.
 
-Aktuell policystatus: `MARKET_STATE_FIVE_ENDPOINT_ZERO_STEP_POWER_LIMIT_BLOCKED_NEW_PLAN_REQUIRED`. [Den korrigerte fem-TF-masken](configs/research/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001.json), [fire-TF-sidekontrollen](configs/research/MTF_STATE_SIDE_LOCALITY_20261107_001.json) og alle eldre engangsplaner er fullført og konsumert. Ingen fit er innrømmet.
+Aktuell policystatus: `MARKET_STATE_FIVE_ENDPOINT_ZERO_STEP_002_SOURCE_TESTED_PLAN_PENDING`. [Den korrigerte fem-TF-masken](configs/research/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001.json), [fire-TF-sidekontrollen](configs/research/MTF_STATE_SIDE_LOCALITY_20261107_001.json) og alle eldre engangsplaner er fullført og konsumert. Ingen fit er innrømmet.
 
 ## Målt og bevist konsistent
 
@@ -32,11 +32,13 @@ Aktuell policystatus: `MARKET_STATE_FIVE_ENDPOINT_ZERO_STEP_POWER_LIMIT_BLOCKED_
 - Lesende TRAIN-referanse på eksakt kildekoblet nå-/framtidstilstand: ved 1,0 ATR slår alltid FLATT enkel tilstandspersistens på alle fem TF (M5 65,63 mot 53,82 % på 104 009 sammenlignbare rader). Den høye dekningen gir altså en dominerende FLATT-klasse, ikke bevist prognoseverdi. [Sammenligning](docs/MARKET_STATE_ENDPOINT_CANDIDATE_20261106.md).
 - De fem TRAIN-foldene er kilde-/klokkemessig mulige med eksakt M1-endepunkt og streng `issue+lead < grense`. Uten modningsvakten ville 265–276 D1-mål per skårperiode krysset høyre grense. [Foldtabell](docs/MARKET_STATE_ENDPOINT_CANDIDATE_20261106.md). Dette er ikke etikettbevis eller fit-admisjon.
 
+Maskinprofil: GX1s vedvarende Windows-vakt var konfigurert til 250 W. Den ble midlertidig satt til 160 W og vakten startet på nytt; signert GPU-telemetri svarte `33,40,23.92,160,78` og bekreftet 160 W. Opprinnelig config-SHA `22af0d65294d636164705b100101a47a56bfcf0e2b660a4bb2808965a3434d98`, midlertidig SHA `62b53dafcf663aac82b43c3d215a6e2b84622a01339bb6dd1197c315dd5d2667`. Gjenopprett den opprinnelige 250 W-profilen etter terminal. Ny 002-kilde peker på samme avgrensede arbeider med SHA `09e238d0f3355afd391004df4e1a24dc3b25c483a294a5752c2313b8437e3b81`; 001 relanseres ikke.
+
 ## Hindring og neste arbeid
 
 Aktivitetssemantikk, korrigert maskekilde, eksakt modellradkobling og ren fem-endepunkts output/tap/skår er kilde-/syntetisk kontrollert. Nullstegsarbeideren og CLI-ruten er testet; ingen reell native forward, optimizer eller skårkampanje er kjørt. Ingen side eller ukjent kilde fylles med gjettede etiketter.
 
-1. Sett maskinens fysiske GX1-effektprofil trygt til høyst 160 W via eksisterende vakt-eier og verifiser signert telemetri. Lag deretter en NY eksakt engangsplan; plan 001 ble stoppet før CLAIM og skal ikke forsøkes igjen. Nullstegs forward, målmasker bare etter forward og terminalkvittering er fortsatt uutført. Gammel 7 200-posisjonskjede og nåtilstandsfasit kan ikke brukes i denne modusen.
+1. Lag NY eksakt engangsplan 002 på den korrigerte 160 W-profilen og ren source HEAD. Kjør lesende preclaim før policyadmisjon; 001 ble stoppet før CLAIM og skal ikke forsøkes igjen. Nullstegs forward, målmasker bare etter forward og terminalkvittering er fortsatt uutført. Gammel 7 200-posisjonskjede og nåtilstandsfasit kan ikke brukes i denne modusen.
 2. Bruk en avgrenset egen løkke som gjenbruker eksisterende fysisk provider/gather og numeriske steg. Bind target-only batch, faktisk tom-støtte skip, separate skårer og forhåndsvalgte kronologiske TRAIN-referanser på identiske rader. `training_enabled=false` inntil egen fit-admisjon.
 3. Kontroller resterende fullprofil-indikatorformler på M5/M15/H1/H4; H4/D1 trendlinjeorakler gjelder sine avgrensede vinduer. Ingen formel-PASS alene beviser prognoseverdi.
 

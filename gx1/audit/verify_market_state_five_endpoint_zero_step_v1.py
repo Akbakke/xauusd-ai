@@ -14,7 +14,7 @@ import time
 
 REPO = Path("/home/andre2/src/GX1_CURRENT")
 POLICY = REPO / "NEXT_RUN_POLICY.json"
-STAGE = "market_state_five_endpoint_zero_step_20261107_001"
+STAGE = "market_state_five_endpoint_zero_step_20261107_002"
 SCHEMA = "gx1_market_state_five_endpoint_zero_step_plan_v1"
 RUNS = Path("/home/andre2/GX1_RUNS")
 FIXED = {

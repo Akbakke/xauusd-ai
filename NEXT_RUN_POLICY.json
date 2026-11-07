@@ -45,7 +45,38 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-07T03:10:14.780833+00:00",
-  "status": "MARKET_STATE_FIVE_ENDPOINT_ZERO_STEP_POWER_LIMIT_BLOCKED_NEW_PLAN_REQUIRED",
+  "status": "MARKET_STATE_FIVE_ENDPOINT_ZERO_STEP_002_SOURCE_TESTED_PLAN_PENDING",
+  "market_state_five_endpoint_zero_step_20261107_002": {
+    "status": "SOURCE_TESTED_NEW_PLAN_PENDING",
+    "decision": "BLOCKED",
+    "scope": "New one-use TRAIN-only zero-step source after plan001 was rejected before CLAIM by 250W host setting. Same fixed Oct24 parent=0, one CUDA forward, zero optimizer steps; physical host profile temporarily 160W signed-verified.",
+    "worker": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/verify_market_state_five_endpoint_zero_step_v1.py",
+      "sha256": "09e238d0f3355afd391004df4e1a24dc3b25c483a294a5752c2313b8437e3b81"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_FIVE_ENDPOINT_ZERO_STEP_20261107_002",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "model_forwards_authorized": 0,
+    "optimizer_steps_authorized": 0,
+    "training_authorized": false,
+    "test_authorized": false,
+    "relaunch_allowed": false,
+    "memory_max": "8G",
+    "swap_max": "512M",
+    "wall_seconds": 3600,
+    "host_power_profile": {
+      "configured_w": 160,
+      "signed_telemetry": "33,40,23.92,160,78",
+      "previous_config_sha256": "22af0d65294d636164705b100101a47a56bfcf0e2b660a4bb2808965a3434d98",
+      "temporary_config_sha256": "62b53dafcf663aac82b43c3d215a6e2b84622a01339bb6dd1197c315dd5d2667",
+      "restore_previous_profile_after_terminal": true
+    },
+    "standing_authorization_source": "no_cost_local_standing_authorization_20261105"
+  },
   "market_state_five_endpoint_zero_step_20261107_001": {
     "status": "PRECLAIM_GUARD_REJECTED_CONSUMED",
     "decision": "BLOCKED",
@@ -141,7 +172,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Operator-selected 0.5 ATR activity and conservative local side now have an immutable corrected five-TF TRAIN source mask. Exactly 273200 full-window gray cells became ACTIVE side-unknown, then seven measured H4/D1 old singleton sides were conservatively demoted; all other masks and axes preserved. Remaining certified sides match cold local replay in scoped audits. Five-endpoint output/loss/scorer, causal now-state references, chronological baselines and indicator usefulness remain unqualified. training_enabled=false; no model fit, TEST, Entry/Exit, broker, trading or spending.",
-  "next_action": "The Oct24 metadata-only five-output view and guarded zero-step worker now pass source/synthetic checks. First admitted one-use zero-step attempt was rejected by the existing signed GPU guard before CLAIM: configured 250W exceeds 160W cap. Do not relaunch plan 001. Restore a verified <=160W physical host profile through the existing guard owner, then prepare a new exact one-use plan with fresh source/policy binding; training_enabled=false. No fit until target-only batch/loss, indicator and chronological reference gates pass. Reuse existing five-TF/GC/eight-specialist/D1 backbone; do not enable old 7200-query chain or stale current-state input. Qualify indicator formulas and consumption; only then consider a separately admitted fit. training_enabled=false; TEST and trading closed.",
+  "next_action": "The Oct24 metadata-only five-output view and guarded zero-step worker now pass source/synthetic checks. Plan001 is consumed after preclaim signed-power rejection. Host guard config was temporarily reduced from 250W to 160W; signed telemetry now reports 160W. Prepare a new exact plan002 from source HEAD and run read-only preclaim; no fit, TEST or old-plan relaunch. Restore prior 250W host profile after plan002 terminal. No fit until target-only batch/loss, indicator and chronological reference gates pass. Reuse existing five-TF/GC/eight-specialist/D1 backbone; do not enable old 7200-query chain or stale current-state input. Qualify indicator formulas and consumption; only then consider a separately admitted fit. training_enabled=false; TEST and trading closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
