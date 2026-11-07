@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Selected 0.5 ATR activity and conservative local side use the corrected five-TF TRAIN mask. The one mature fold1 native time-query v1 fit and later chronological TRAIN OOF lost M5 certified-side Brier to the frozen prior in all 14 weeks; a paired frozen diagnostic found upward miscalibration and the free-three-logit unknown-side objective defect. Factorized v2 model/loss and stable raw-logit scorer now pass source/synthetic checks, and read-only fold1 receipt/v2 view metadata binding passes. Physical v2 initial predictions, genuine gradient/resume, fit, generalization, Entry decision value and economics are unqualified. training_enabled=false; consumed plans do not authorize new runs. TEST, Entry, Exit, broker, trading and spending remain closed.",
-  "next_action": "Factorized v2 raw-logit proper scorer and matched issue/TF/week scorer now source-tested: at activity logit -1000, conditional UP remains 0.5 and proper log finite; ordinary v1/v2 parity and mismatch rejection pass. Read-only historical fold1 receipt and 17-ref v2 view metadata binding passed again on clean committed head 24823917, view SHA 5ceac9557d37234090805b8b0edde0f1444ab4e6a140f7b956c6120811e592ac; no feature payload or model forward. Next: bind a distinct v2 zero-step plan with exact source/view/scorer identities and mature TRAIN prefix, and measure fresh initial predictions/loss without optimizer. Then qualify genuine v2 gradients, full checkpoint/bit-exact resume and raw-grid OOF driver before a separately admitted capped fit. Do not reuse old v1 plans/checkpoints or float32-softmax scorer. training_enabled=false; TEST/Entry/Exit/broker/trading/spending remain closed. After objective repair, prebind M5 GC buy/sell/delta/OFI added-value measurement on later TRAIN.",
+  "next_action": "Run exactly one capped read-only TRAIN M5 GC flow reference under admitted 001 plan after clean preflight and resource guard; then independently reconcile RESULT/TERMINAL and close this stage. This tests raw GC/XAU association only, not model added value or Entry edge. Factorized v2 still requires a separate fresh physical zero-step, genuine gradients, checkpoint/resume and raw-grid OOF qualification before any new fit; training_enabled=false and TEST/Entry/Exit/broker/trading/spending stay closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -63666,8 +63666,8 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "MARKET_STATE_FACTORIZED_V2_SCORER_SOURCE_TESTED_FIT_CLOSED",
-  "recorded_observed_utc": "2026-11-07T21:23:35.094419+00:00",
+  "recorded_status": "MARKET_STATE_GC_FLOW_REFERENCE_ADMITTED_READ_ONLY_V2_FIT_CLOSED",
+  "recorded_observed_utc": "2026-11-07T21:46:35.017392+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
     "decision": "BLOCK",
@@ -63880,5 +63880,33 @@
       "utc_weeks": 14,
       "original_auc_positive_weeks": 5
     }
+  },
+  "market_state_gc_flow_reference_20261107_001": {
+    "status": "ADMITTED",
+    "decision": "ADMITTED",
+    "scope": "One capped read-only no-fit M5 GC trade-pressure and book-OFI reference on five later chronological TRAIN folds against corrected certified M5 k1 direction; fixed sign and rank AUC, coverage and UTC weeks. No threshold fit, calibration, model, TEST, Entry, Exit, broker or trade.",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_GC_FLOW_REFERENCE_20261107_001.json",
+      "sha256": "7581dd1f77c6e0df17c6e98b43c5ecf30088af36a9e218bd91a10c7ae6299354"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_GC_FLOW_REFERENCE_20261107_001",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "model_forwards_authorized": 0,
+    "optimizer_steps_authorized": 0,
+    "training_authorized": false,
+    "test_authorized": false,
+    "test_data_used": false,
+    "checkpoint_reads_authorized": false,
+    "broker_access_allowed": false,
+    "relaunch_allowed": false,
+    "memory_max": "4G",
+    "swap_max": "512M",
+    "wall_seconds": 1800,
+    "prepared_source_head": "cb025a0b4901812c7f6c5ac3f5ee80d4ef9d06b2",
+    "standing_authorization_source": "GX1_RULES_local_zero_spend_read_only_research"
   }
 }
