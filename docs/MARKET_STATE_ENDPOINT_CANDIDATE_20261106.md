@@ -89,6 +89,24 @@ En ekstra lesende TRAIN-kontroll koblet en nåtilstandsproxy `S_TF(t)` fra eksak
 
 I den matchede M5-populasjonen var framtidige NED/FLATT/OPP `8 410/2 768/9 336` med to terskler og `17 062/68 256/18 691` med én terskel. De fire M5-overgangene mellom to entydige sider er identiske i variantene: NED→NED 3 626, NED→OPP 4 370, OPP→NED 4 065 og OPP→OPP 4 197. Blant disse sideparene skifter altså 8 435/16 258 (51,88 %) side fra `t` til `t+5`; dette er overlappende radpar, ikke uavhengige episoder. Én-terskelens økte støtte består i stor grad av FLATT-etiketter, og alltid FLATT slår enkel tilstandspersistens på samtlige TF. Nåtilstandsproxyen er historisk kildekobling, ikke bevist live tilgjengelig modellinput, og denne kontrollen er ikke fit, målvalg, prognosebevis eller økonomisk edge.
 
+## Fysisk TRAIN-kontroll av mellomsonen
+
+Den innrømmede engangskontrollen [RESULT](/home/andre2/GX1_RUNS/MARKET_STATE_GRAY_PHYSICAL_20261107_001/RESULT.json) SHA-256 `0b8392ed9713113c64a251edd8e1daa70521c0738a2995e85b17ef9de639581e`, [TERMINAL](/home/andre2/GX1_RUNS/MARKET_STATE_GRAY_PHYSICAL_20261107_001/TERMINAL.json) SHA-256 `8f83777d03c90794dbe5c534e1647d41ccb9137e3dcd0c9af1f2168105e871fb`, leste 591 682 TRAIN M1-rader og de to hashbundne kandidatemaskene. Capped audit var ferdig på 285,59 s med exit 0, null modell- og optimizersteg, ingen TEST. Den gjenbygde lokal range fra M1 OHLC og sist observerte close ved dokumentert gjenåpning, og fant **eksakt bitparitet** i range/ATR mot lagret forhold på alle 537 909 komplette celler. Det er kildekonsistens for denne formelen og disse dataene, ikke en uavhengig ATR-formelrevisjon.
+
+Netto er close ved eksakt endepunkt minus open i første av de siste `W_TF` faktisk observerte M1-barene. `|netto|/range` beskriver hvor mye av prisbanens spenn som ble beholdt som netto retning. Gruppene er fullt observerte lokale vinduer med range under 0,5 ATR, 0,5–1,0 ATR og minst 1,0 ATR. Alle tall er medianer; hver gråsonecelle beholdes på sin opprinnelige TF og M5-utstedelse.
+
+| TF | Gråsone n | `|netto|/ATR` under / grå / over | `|netto|/range` under / grå / over | Grå `|netto|` i siterte spreads |
+| --- | ---: | ---: | ---: | ---: |
+| M5 | 62 687 | 0,131 / 0,296 / 0,741 | 0,316 / 0,404 / 0,574 | 1,179 |
+| M15 | 57 992 | 0,128 / 0,287 / 0,731 | 0,324 / 0,397 / 0,554 | 2,120 |
+| H1 | 56 316 | 0,125 / 0,285 / 0,741 | 0,314 / 0,394 / 0,548 | 4,440 |
+| H4 | 54 197 | 0,123 / 0,277 / 0,743 | 0,296 / 0,382 / 0,551 | 8,869 |
+| D1 | 42 008 | 0,120 / 0,265 / 0,791 | 0,271 / 0,353 / 0,613 | 22,745 |
+
+Gråsonen ligger mellom de to referansegruppene både i netto bevegelse og retningsandel. M5-gråsonens `|netto|` var 0,216/1,179/3,209 siterte spreads ved p10/median/p90; den månedlige medianen for `|netto|/ATR` lå mellom 0,278 og 0,315. D1 hadde større månedsspredning, 0,188–0,370. Sitert spread er fysisk skala, ikke gjennomførbar nettoøkonomi. M1-close-kryssinger og terminalt antall closes i RESULT er beskrivelser av observerte lukkekurser, ikke intraminuttrekkefølge eller faktisk tilstandsvarighet. Overlappende endepunkter er ikke uavhengige markedsepisoder.
+
+Det er dermed uforsvarlig å velge én 1,0 ATR-grense *bare* fordi den gir høyere dekning: den kaller hele denne mellomsonen FLATT. Et konkret neste målforslag er å la fullt `R<0,5A` bevise FLATT og fullt `R≥0,5A` bevise AKTIV, mens OPP/NED fortsatt krever separat konservativt sidebevis; mellomsonen ville da ha tillatt mengde `{NED,OPP}`. Dette er **forslag, ikke valgt mål**. Fysisk netto er ulik mellom cellene, og verken denne fordelingen eller senere modellscore skal brukes til å tune terskelen. Operatørens valg av betydningen av FLATT/AKTIV avventes; `training_enabled=false` består.
+
 ## Lokal M5-side ved 1,0 ATR
 
 En egen, **konsumert** TRAIN-only diagnose gjenbygde eksisterende 1,0 ATR-måleier fra bundne M1/M5/ATR/kildestengninger og sammenlignet hver av de 39 670 eksakte M5-NED/OPP-endepunktene med en kald `_step_direction`-beregning fra bare siste fem observerte M1-barer. [RESULT](/home/andre2/GX1_RUNS/M5_STATE_SIDE_LOCALITY_20261107_001/RESULT.json) SHA-256 `bbda7175c50ad0b0517c04f0cc07aa77e20692762cdc0fa6c78671dcf2539df3` og [TERMINAL](/home/andre2/GX1_RUNS/M5_STATE_SIDE_LOCALITY_20261107_001/TERMINAL.json) SHA-256 `39e66884806bf743252a903c14755b9b12e557fecefad1a45cb56a8575234edf` viser capped exit 0, 0 modellsteg og ingen TEST. Lokal side var **samme på 39 670/39 670**, ukjent 0, motsatt 0, over alle 20 TRAIN-måneder. Etterkontroll bekreftet hasher, gammelt radutvalg og alle månedssummer; den gjorde ikke en ny råpris-/ATR-replay.

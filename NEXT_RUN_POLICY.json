@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-07T00:23:45.855116+00:00",
-  "status": "MARKET_STATE_GRAY_PHYSICAL_ADMITTED_SOURCE_ONLY",
+  "observed_utc": "2026-11-07T02:05:05.740209+00:00",
+  "status": "MARKET_STATE_GRAY_PHYSICAL_COMPLETE_TARGET_OPEN",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Full TRAIN source-gap authority and 20x5 candidate masks are verified; endpoint target remains PROPOSED. Latest full-profile fit routed 253 MTF fields per TF, but 95 lack full independent numeric qualification and per-field learned value is open. Gray-zone meaning, other state masks/TFs, output/loss/scores and earlier-only references remain open. training_enabled=false; no model fit, TEST, Entry/Exit, broker, trading or spending.",
-  "next_action": "Execute exactly one capped TRAIN-only physical gray-zone audit after a clean source commit and hashbound CLAIM; measure net displacement, efficiency, close crossings and terminal same-side support across five TF. No target lock or model fit. training_enabled=false; TEST, Entry/Exit, broker, trading and spending remain closed.",
+  "rule": "Full TRAIN source-gap and 20x5 endpoint candidate masks are verified. New physical TRAIN gray-band audit found intermediate net movement/efficiency and exact range/ATR parity on complete cells; market-state target remains PROPOSED pending operator choice of FLAT/ACTIVE semantics. Latest full-profile fit routed 253 MTF fields per TF, but 95 lack full independent numeric qualification and per-field learned value is open. training_enabled=false; no model fit, TEST, Entry/Exit, broker, trading or spending.",
+  "next_action": "Choose physical meaning of the 0.5-1.0 ATR band: proposed ACTIVE with side unknown, versus wholly UNKNOWN or 1.0 ATR FLAT. Do not choose from coverage/model score. While operator choice is pending, continue bounded indicator formula audit preparation; then bind five-TF target, output/loss/score and chronological references. The gray audit is consumed and cannot relaunch. training_enabled=false; TEST and trading closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "06.11: Predict and calibrate dynamic market state first. Entry location/Entry-Q follows later; M5 is forecast cadence. No assumption of extensive prior training.",
-    "current_activity": "Exact one-use TRAIN-only gray-zone physical audit prepared and admitted; 273200 gray endpoint cells from two immutable candidates, 4G/512M/1800s cap, zero model calls. CLAIM and run await clean committed source. Existing target remains PROPOSED; training_enabled=false.",
+    "current_activity": "One capped source-only full TRAIN gray audit COMPLETE/CONSUMED: 537909 physically complete TF cells, exact saved range/ATR parity, 273200 gray; M5 gray median |net|=0.296 ATR, efficiency=0.404, 1.179 quoted spreads. Independently verified 300 month-TF-cohort counts and immutable refs. Target still PROPOSED; user asked to choose gray semantics. No model calls, TEST or trade.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -61403,8 +61403,8 @@
     "post_run_review": "One capped exit0 full TRAIN M5 side-locality diagnostic: all39670 exact 1.0 ATR DOWN/UP endpoints reproduced by cold replay from last five observed M1 bars, local_unknown=0, local_opposite=0. Side transition older than five bars on13298 (33.52 percent), exactly those at/before issue t; FLAT after entry on11882 (29.95 percent). Independent immutable JSON/NPZ review checked all20 months and partitions; raw M1/ATR not independently replayed. Applies only to selected M5 singleton sides, not FLAT/ACTIVE/UNKNOWN or other TF, target lock, forecast skill or edge."
   },
   "market_state_gray_physical_20261107_001": {
-    "status": "ADMITTED",
-    "decision": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_PHYSICAL_DIAGNOSTIC_TARGET_OPEN",
+    "decision": "BLOCKED",
     "scope": "One source-only full TRAIN audit of 0.5-1.0 ATR gray cells and fixed below/above reference cohorts across M5/M15/H1/H4/D1. Raw M1 start-to-end net, efficiency, quoted-spread scale, close crossings and terminal same-side closes. No target lock/model/TEST/Entry/Exit/trade.",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_GRAY_PHYSICAL_20261107_001.json",
@@ -61416,10 +61416,10 @@
     },
     "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_GRAY_PHYSICAL_20261107_001",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "relaunch_allowed": false,
     "memory_max": "4G",
     "swap_max": "512M",
@@ -61431,6 +61431,23 @@
     "test_data_used": false,
     "training_authorized": false,
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
-    "terminal_owner": "Integrator writes immutable success/failure TERMINAL after the one claimed capped invocation; no relaunch."
+    "terminal_owner": "Integrator writes immutable success/failure TERMINAL after the one claimed capped invocation; no relaunch.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_GRAY_PHYSICAL_20261107_001/CLAIM.json",
+      "sha256": "f81646d118279fd72f9150062eb0bf593527ac783eac2ae14463a9f3cb7e052a"
+    },
+    "launch_log": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_GRAY_PHYSICAL_20261107_001/LAUNCH.log",
+      "sha256": "567db06895337372e025997e5757b85762655c8d09ca2fe83d27587827113c0c"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_GRAY_PHYSICAL_20261107_001/RESULT.json",
+      "sha256": "0b8392ed9713113c64a251edd8e1daa70521c0738a2995e85b17ef9de639581e"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_GRAY_PHYSICAL_20261107_001/TERMINAL.json",
+      "sha256": "8f83777d03c90794dbe5c534e1647d41ccb9137e3dcd0c9af1f2168105e871fb"
+    },
+    "post_run_review": "One capped exit0 285.59s full TRAIN physical audit: 591682 M1 rows, 118706 M5 issues, 537909 complete TF endpoint cells with exact bit parity of raw-window range/ATR to saved ratios. Gray 0.5-1.0 ATR has 273200 cells; M5 gray median absolute net 0.296 ATR, efficiency 0.404, 1.179 quoted spreads; D1 0.265 ATR, 0.353, 22.745 quoted spreads. Read-only independent receipt review verified 300 month-TF-cohort counts and hashes but did not replay raw M1 or rehash large parquet. Gray is intermediate physical movement; no target lock, model learning, TEST or economics. Plan consumed; no relaunch."
   }
 }
