@@ -1,0 +1,127 @@
+{
+  "command_template": [
+    "timeout",
+    "--signal=TERM",
+    "--kill-after=10s",
+    "1800s",
+    "scripts/gx1_capped_run.sh",
+    "--class",
+    "audit",
+    "--mem",
+    "4G",
+    "--swap",
+    "512M",
+    "--",
+    ".venv/bin/python",
+    "-m",
+    "gx1.audit.verify_market_state_m1_duration_v1",
+    "--plan",
+    "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_M1_DURATION_20261107_001.json",
+    "--plan-sha256",
+    "{plan_sha256}",
+    "--out-dir",
+    "/home/andre2/GX1_RUNS/MARKET_STATE_M1_DURATION_20261107_001"
+  ],
+  "execution": {
+    "class": "audit",
+    "kill_after_seconds": 10,
+    "memory": "4G",
+    "model_fits": 0,
+    "module": "gx1.audit.verify_market_state_m1_duration_v1",
+    "published_target_tapes": 0,
+    "runner": "scripts/gx1_capped_run.sh",
+    "swap": "512M",
+    "temporary_target_tapes": 2,
+    "timeout_seconds": 1800
+  },
+  "expected_issue_rows": 118706,
+  "expected_m1_rows": 591682,
+  "input_refs": {
+    "mask": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001/ROW_MASKS.npz",
+      "sha256": "2b063e35b97cc1dbdbb522d2b2876a39514b1145d8c59d8a2ab07561764f9edc"
+    },
+    "mask_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001.json",
+      "sha256": "5639382b63f2b56dcf3e263eff4d6a1408bb84555567f542b9bff4897cbcd0b7"
+    },
+    "mask_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001/RESULT.json",
+      "sha256": "126aceee074dc223a60894545533d1f242275d8c4b4327acc67b048449cac7b8"
+    },
+    "mask_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001/TERMINAL.json",
+      "sha256": "457a9da5085d04362a5eeb76568a6a97cd68d424cef1efc6d4aee1332c2cb782"
+    },
+    "model_plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/PLAN_SUPPORT.json",
+      "sha256": "96ff82533042ab069292505b3a44315c13223a9b9d9e9ee669cd757e3f84c086"
+    },
+    "selected_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_SELECTED_ACTIVITY_MASKS_20261107_001.json",
+      "sha256": "9b43bd30b3d3a9bb414923df547191200ca5b9c1e6993fc906cfdd283cd0f406"
+    },
+    "target_source_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/FULL_TRAIN_MARKET_STATE_ENDPOINT_CANDIDATE_20261107_001.json",
+      "sha256": "c3c789f4e7ed3edba2880bfb9e51decc9efad779324351bbd19ac86d2a607ce2"
+    }
+  },
+  "limits": {
+    "cold_batch_rows": 8192,
+    "internal_wall_seconds": 1680,
+    "max_output_bytes": 1048576,
+    "memory_high": 4294967296,
+    "memory_max": 4294967296,
+    "numerical_threads": 1,
+    "pids": 64,
+    "swap": 536870912
+  },
+  "max_invocations": 1,
+  "metric_contract": {
+    "atr_update": "exact_adjacent_known_state_changes_with_or_without_closed_TF_ATR_update",
+    "censor": "unknown_label_documented_closure_unknown_source_gap_data_edge",
+    "decision": "DESCRIPTIVE_ONLY_NO_TARGET_OR_MODEL_SELECTION",
+    "factors": [
+      0.5,
+      1.0
+    ],
+    "gray_middle": "ACTIVE_side_unknown",
+    "own_lead_comparison": "fully_known_bounded_runs_below_or_at_lead_minutes",
+    "path_confirmed": "singleton_and_corresponding_existing_path_observed",
+    "required_selected_endpoint_bit_mismatches": 0,
+    "run_clock": "exact_consecutive_observed_M1_validity_minutes",
+    "run_duration": "inclusive_observed_M1_bar_count_not_intraminute_time",
+    "scope": "selected_formula_on_all_591682_observed_TRAIN_M1_rows",
+    "side_proof": "last_W_observed_M1_cold_replay_of_existing_step_direction",
+    "state_bits": {
+      "ACTIVE": 5,
+      "ALL": 7,
+      "DOWN": 1,
+      "FLAT": 2,
+      "UP": 4
+    },
+    "test_data_used": false,
+    "unsampled_minute_status": "new_local_extension_not_unique_selected_tape"
+  },
+  "numba_version": "0.65.0",
+  "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_M1_DURATION_20261107_001",
+  "read_only": true,
+  "schema_version": "gx1_market_state_m1_duration_plan_v1",
+  "source_base_head": "e585180ec755832c81df3b6f593d86977c4bb751",
+  "source_owners": {
+    "gx1/audit/build_full_train_market_state_endpoint_candidate_v1.py": "20fae20053070161ddfe69dde08b03846e94c3bdccaacb91bf8156695986de52",
+    "gx1/audit/verify_market_state_endpoint_candidate_v2.py": "8c50c9fead5b79e724f6e3ab365680813f6f19e758d0a76615b66d8377666785",
+    "gx1/audit/verify_market_state_endpoint_persistence_v1.py": "60658a0e81e4dba5cf14b26f966ece0fee87a6014793c1293c9e75003b99dead",
+    "gx1/audit/verify_market_state_m1_duration_v1.py": "fb56377e5ec284485754f6810c3c1907e40997a583f990036e4e93266593fa0a",
+    "gx1/contracts/entry_dynamic_mtf_state_targets_v1.py": "42de2b1a774ec6be8c4de4a369cadcbee07d390048a8c3f950a78747cc323212",
+    "gx1/contracts/gx1_capped_execution_v1.py": "60b1ccf2eda470a84ddded0d8160c628314ebb19f5766b87b70fef7c9aa3ccff",
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "gx1/contracts/market_state_five_endpoint_target_binding_v1.py": "71dc01154aada84d01e930cb78970a79608c5bff5ebd710d9f48273934e14bfd",
+    "gx1/contracts/unified_exit_market_closure_authority_v1.py": "899380c7e1e23d28893e1f155dd8ca8ef8d5c149188fed08bf4bba700bdf6ed9",
+    "gx1/scripts/audit_dynamic_mtf_state_closure_observability_v1.py": "f10f3c2253fb0631e9d106409f03e4bcd2a1dc03f496569059fc1b877059611f",
+    "scripts/gx1_capped_run.sh": "7749d3cd610535ae19ba33cdd8827c9f309ab64ccb39c7231d03151556bd7681"
+  },
+  "stage": "market_state_m1_duration_20261107_001",
+  "status": "PREPARED_NOT_ADMITTED",
+  "test_data_used": false
+}
