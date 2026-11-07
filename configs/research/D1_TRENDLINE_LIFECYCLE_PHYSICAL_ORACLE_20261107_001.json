@@ -1,0 +1,78 @@
+{
+  "inputs": {
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/TRENDLINE_CONDITIONAL_PREFIX_20261106_001.json",
+      "sha256": "bc4469117ef476250e50ed308941b790da67ed30b134b5bf350e100240f17491"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/TRENDLINE_CONDITIONAL_PREFIX_20261106_001/RESULT.json",
+      "sha256": "09be782ab60eaf522ee121254354ef8af33077d6d71a9ee173c779f0b77add3f"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/TRENDLINE_CONDITIONAL_PREFIX_20261106_001/TERMINAL.json",
+      "sha256": "02a100486d68e5afb59df94bbb7c5d8372d901f40cb1d5a3de6c5945c65acd2e"
+    }
+  },
+  "limits": {
+    "execution_class": "audit",
+    "memory_max": "4G",
+    "model_forwards": 0,
+    "optimizer_steps": 0,
+    "swap_max": "512M",
+    "wall_seconds": 1800
+  },
+  "output_dir": "/home/andre2/GX1_RUNS/D1_TRENDLINE_LIFECYCLE_PHYSICAL_ORACLE_20261107_001",
+  "schema_version": "gx1_d1_trendline_lifecycle_physical_plan_v1",
+  "scope": {
+    "anchor_cache_rows": [
+      3588,
+      3595,
+      3596,
+      3604
+    ],
+    "test_data_used": false,
+    "timeframe": "D1",
+    "train_cache_row_count": 174,
+    "train_cache_row_first": 3588,
+    "train_cache_row_last_inclusive": 3761,
+    "train_end_exclusive_ns": 1735689600000000000,
+    "train_start_ns": 1714521600000000000
+  },
+  "sources": {
+    "atr": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/technical_indicators_v1.py",
+      "sha256": "3a81bec825639e57a3071cc28d4dc2d3d394fef031dc89d71da3b468ca28ecad"
+    },
+    "capped_contract": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/gx1_capped_execution_v1.py",
+      "sha256": "e8206a3d7bf6922b1c4f0fac85498c5a913270e96e94871d7f7a9c48c9611cb5"
+    },
+    "capped_runner": {
+      "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_capped_run.sh",
+      "sha256": "7749d3cd610535ae19ba33cdd8827c9f309ab64ccb39c7231d03151556bd7681"
+    },
+    "oracle": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/verify_d1_trendline_lifecycle_oracle_v1.py",
+      "sha256": "44439301fad87e1b05b41ddba8d94083e496615493c2828204ec0ed20e6f5c5f"
+    },
+    "publication": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/immutable_event_authority_v1.py",
+      "sha256": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01"
+    },
+    "replay_loader": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_direction_d1_trendline_replay_v1.py",
+      "sha256": "afe228b61eb5ec5a10e39f80c1bf4131b806ebf95ea028c6545c74f89530b56a"
+    },
+    "resample": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/htf_features.py",
+      "sha256": "9ca968805e3eca72525e14c8b53e5b31817cd2baa7c0cdb9b636cb112f092520"
+    },
+    "worker": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/verify_d1_trendline_lifecycle_physical_v1.py",
+      "sha256": "d7b8d2e940766a892ba89875052d0733cb9b26579fb6bcb91d2e7415162ec62f"
+    }
+  },
+  "stage": "d1_trendline_lifecycle_physical_oracle_20261107_001",
+  "status": "PREPARED_NOT_ADMITTED",
+  "test_data_used": false
+}

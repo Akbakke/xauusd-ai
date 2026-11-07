@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-07T00:23:45.855116+00:00",
-  "status": "SINGLE_THRESHOLD_MARKET_STATE_CANDIDATE_VERIFIED_NOT_SELECTED",
+  "status": "D1_TRENDLINE_LIFECYCLE_PHYSICAL_ORACLE_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Full TRAIN source-gap authority and 20x5 candidate masks are verified; endpoint target is still PROPOSED, not locked. D1 overlap, longer-lived side anchor, 77 parked indicator formulas, broad actual model consumption, output/loss/scores and earlier-only reference fit remain open. training_enabled=false; no model fit, TEST, Entry/Exit, broker, trading or spending.",
-  "next_action": "Single 1.0 ATR full TRAIN source candidate completed and consumed; compare physical FLAT meaning with 0.5/1.0 gray-band candidate, then bind one target, five-endpoint output/loss/score and chronological simple references before any fit. Independent D1 trendline lifecycle physical oracle pilot is next concrete indicator formula audit. training_enabled=false; TEST, Entry/Exit, broker, trading and spending closed.",
+  "next_action": "One capped, source-only independent D1 trendline lifecycle physical audit admitted for 174 May-Dec2024 TRAIN D1 rows x 31 fields; no model/TEST. Verify actual parity and field support, then close one-use receipt and continue target semantic decision plus remaining indicator families. training_enabled=false; no Entry/Exit, broker, trading or spending.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -22928,7 +22928,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-07T00:36:41.217367+00:00",
+  "updated_utc": "2026-11-07T00:48:47.337689+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -61305,5 +61305,36 @@
       "sha256": "9ce11435f5be8174dd629c5f6c564f8a945cc432fb037afed14de47222798295"
     },
     "post_run_review": "Independent immutable JSON/NPZ-only parity PASS all 100 month-TF partitions; every old non-UNKNOWN bit and endpoint row unchanged, 273200 old gray cells become FLAT and none get a side. Exact M5/M15/H1/H4/D1=110539/115683/112787/108164/81050; partial=7659/1557/316/252/1537. M5 median 1.0 ATR/quoted spread=4.164; 5.67 percent <=2 spreads. Raw bid/ask and ATR not independently recomputed. Source candidate only; target selection, model fit and edge remain open."
+  },
+  "d1_trendline_lifecycle_physical_oracle_20261107_001": {
+    "status": "ADMITTED",
+    "decision": "ADMITTED",
+    "scope": "One source-only independent D1 lifecycle oracle audit on all 174 May-Dec2024 TRAIN D1 cache rows x 31 fields; four old anchors. Exact native M5 source/closed D1/ATR/cache alignment, no model/TEST/Entry/Exit/trade.",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/D1_TRENDLINE_LIFECYCLE_PHYSICAL_ORACLE_20261107_001.json",
+      "sha256": "f403ea8ad2e771782c6f58d9fbc9b0ca56fe39092bc3c7d57c18661cbd8a5e2b"
+    },
+    "worker": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/verify_d1_trendline_lifecycle_physical_v1.py",
+      "sha256": "d7b8d2e940766a892ba89875052d0733cb9b26579fb6bcb91d2e7415162ec62f"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/D1_TRENDLINE_LIFECYCLE_PHYSICAL_ORACLE_20261107_001",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "relaunch_allowed": false,
+    "memory_max": "4G",
+    "swap_max": "512M",
+    "wall_seconds": 1800,
+    "model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "broker_access_allowed": false,
+    "test_data_used": false,
+    "training_authorized": false,
+    "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
+    "terminal_owner": "Integrator writes immutable success/failure TERMINAL after the one claimed capped invocation; no relaunch."
   }
 }
