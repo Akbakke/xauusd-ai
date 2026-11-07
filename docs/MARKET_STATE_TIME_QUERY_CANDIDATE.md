@@ -16,6 +16,22 @@ En dokumentert markedspause bevarer siste observerte lokale historikk, men lager
 
 Én kildebundet, kompakt TRAIN-kandidattape skal publiseres lokalt med M1-gyldighetstid, kildeindeks, fem tillatt-tilstand-masker, bevis for observert lokal bane og gaptype. Den bygges én gang av eksisterende 0,5/1,0-ATR-kilder og kald lokal sidekontroll, med null avvik på de gamle endepunktene før publisering. Den gjenbrukes i alle folder bare når engangskjøringen har COMPLETE-terminal og eksakt tape-SHA; en tape fra en FAILED-kjøring er ingen autoritet. Kandidattapen er ikke i seg selv en treningsadmisjon eller økonomisk fasit.
 
+## Separat retningsinformasjon som skal prøves før ny fit
+
+Den hashbundne fysiske TRAIN-kontrollen `MARKET_STATE_GRAY_PHYSICAL_20261107_001/RESULT.json` (SHA-256 `0b8392ed9713113c64a251edd8e1daa70521c0738a2995e85b17ef9de639581e`) har allerede målt netto fra første åpning til siste close i hvert komplett lokalt M1-vindu. I den valgte 0,5–1,0 ATR-sonen er dette fortegnet observerbart nesten overalt, mens tilstandssiden bevisst er uavklart:
+
+| TF | Komplette gråsoneceller | Netto NED / null / OPP | Ikke-null netto | Median M1-close-kryssinger av startprisen |
+| --- | ---: | ---: | ---: | ---: |
+| M5 | 62 687 | 30 381 / 142 / 32 164 | 99,77 % | 1 |
+| M15 | 57 992 | 27 588 / 79 / 30 325 | 99,86 % | 2 |
+| H1 | 56 316 | 25 975 / 23 / 30 318 | 99,96 % | 4 |
+| H4 | 54 197 | 23 115 / 9 / 31 073 | 99,98 % | 9 |
+| D1 | 42 008 | 17 710 / 2 / 24 296 | 99,995 % | 22 |
+
+Dette er overlappende framtidsceller, ikke uavhengige episoder. Kryssingene er bare mellom lukkede M1-priser relativt til første åpning; de beviser verken intraminuttrekkefølge eller en serie av bekreftede høyere topper og bunner. Særlig på lange TF kan et nettofortegn skjule motgående bevegelser. Den gjeldende `_step_direction` bruker konservative high/low-overganger og terskelbevis, ikke en eksplisitt høyere-topp/høyere-bunn-fasit. Nåværende SMC-/svingfelter er input, men får ikke automatisk definere framtidsfasit.
+
+Én separat *diagnostisk* kandidat er lokal signert forskyvning `D_s(v) = close_siste_M1(v) - open_første_M1(v)` over de siste `W_s` faktisk observerte M1-barene ved `v`, med egne masker for fullt vindu, eksakt endepunkt, ukjent kildegap, positiv kausalt lukket ATR og nullfortegn. `D_s(v)` bruker ikke prognoseprisen ved `t` som anker, og er ikke en ny OPP/NED/FLATT-tilstand, Entry-regel eller ferdig treningsloss. Før den kan gi supervisjon skal en ny kildebundet, TRAIN-only radvis kontroll sammenligne fortegn og størrelse med sertifisert tilstandsside, gråsone, observerte prisvendinger og kausal nåtilstands-/GC-/prisstrukturreferanse på de samme senere foldradene. Rapporter alle fem TF, dekning og UTC-uker; behold både små nettoendringer og motgående bevegelser synlige. Verken 0,5–1,0-sonen eller tapet endres ut fra aggregattallene, og ingen v2-fit starter før denne målrollen er avklart.
+
 ## Output, tap og måling som må kvalifiseres før fit
 
 Dagens modell har allerede ett delt dekoderhode for fem TF. En ny, eksplisitt modellkontrakt kan gi samme `B×5×3` tilstandssannsynligheter og én normalisert framtidsavstand per TF-spørring; alle fem output gjelder valgte `v` for samme utstedelse `t`. Et treningspass velger én `k` per TF/utstedelse med forhåndsbundet, etikettuavhengig regel fra utstedelsesidentitet, TF, passindeks og fast seed. Valget skjer **før** framtidig maskekikk. 352 mulige spørringer betyr ikke 352 modellhoder eller 352 uavhengige observasjoner.
