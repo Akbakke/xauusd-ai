@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-07T14:39:53.721864+00:00",
-  "status": "MARKET_STATE_TIME_QUERY_PRIVATE_4STEP_003_COMPLETE_TECHNICAL_ONLY_FIT_CLOSED",
+  "status": "GC_PRICE_RESPONSE_REFERENCE_COMPLETE_DIRECTION_GAIN_UNPROVEN",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Selected 0.5 ATR activity and conservative local side use the corrected five-TF TRAIN mask. The one mature fold1 native time-query v1 fit and later chronological TRAIN OOF lost M5 certified-side Brier to the frozen prior in all 14 weeks; a paired frozen diagnostic found upward miscalibration and the free-three-logit unknown-side objective defect. Factorized v2 model/loss and stable raw-logit scorer now pass source/synthetic checks, and read-only fold1 receipt/v2 view metadata binding passes. Physical v2 zero-step on two TRAIN rows passed direct activity/side gradient mechanics; target-role clarification, genuine optimizer/resume, fit, generalization, Entry decision value and economics are unqualified. training_enabled=false; consumed plans do not authorize new runs. TEST, Entry, Exit, broker, trading and spending remain closed.",
-  "next_action": "The _002 decision-anchored F_s(t,v) target and paired causal references are complete and consumed. M5 price+GC versus price-only Brier gain is only +0.0000060 on 86671 common later-TRAIN rows (3/5 folds, 37/70 UTC weeks); M15/H1/H4/D1 are worse. Fixed GC-buy pressure alone has no demonstrated future XAU direction value under this recipe. Keep S_s(v) market state primary and F_s(t,v) a separate diagnostic candidate; do not silently relabel S. Next perform one no-raw-source, predefined GC-pressure x contemporaneous XAU-price-response interaction review on the saved F target tape and current input mmaps, paired to price-response-only/prior by chronological fold and UTC week. Then decide whether F is useful supervision before any v2 fit; one admitted fit maximum, with checkpoint/resume/OOF qualification. training_enabled=false; TEST/Entry/Exit/broker/trading/spending closed.",
+  "next_action": "Stop repeating coarse GC sign tables without a new prebound hypothesis. Keep S_s(v) future market-state/activity as the primary target and F_s(t,v) as a distinct decision-anchored future-direction diagnostic. Next decide from existing tape/coverage whether F can supply a separate direction-supervision coordinate on exact endpoints while preserving S activity/side masks and documented gaps; do not silently relabel the 0.5-1.0 ATR S gray zone. Only then qualify one chronological v2 fit with checkpoint/resume and OOF gate. training_enabled=false; TEST/Entry/Exit/broker/trading/spending closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -63714,8 +63714,8 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "DECISION_RETURN_REFERENCE_COMPLETE_SIMPLE_GC_GAIN_UNPROVEN",
-  "recorded_observed_utc": "2026-11-07T23:38:46.660741+00:00",
+  "recorded_status": "GC_PRICE_RESPONSE_REFERENCE_COMPLETE_DIRECTION_GAIN_UNPROVEN",
+  "recorded_observed_utc": "2026-11-07T23:52:11.600138+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
     "decision": "BLOCK",
@@ -64235,5 +64235,47 @@
       "sha256": "f87dcc7c669e86a10325a526023933346926f17037685a3082a875e67a1fb167"
     },
     "post_run_review": "One capped 4G/512M/1800s TRAIN-only run completed exit0 in 292.76s. Exact t and t+native-lead M5 closes, ATR at t, five chronological folds, paired GC/EMA5/confirmed-swing reference; no M1 reread, model, optimizer or TEST. Independent receipt/tape/clock review matched hashes, 5 sampled source close pairs across 5 M5 row groups, and every fold/TF weekly Brier partition. M5 common 86671 rows: prior .2499144, price .2498369, price+GC .2498309 Brier, incremental +.0000060; 3/5 folds and 37/70 weeks positive. M15/H1/H4/D1 incremental gains negative. M5 GC positive-pressure rows UP 21988/43466=.50587 versus negative pressure 22595/43956=.51404; no reverse rule selected. D1 exact endpoints cross M5 clock gaps whose cause this audit does not classify; gap masks are reported, not a holding rule. Fixed coarse baseline only, not full GC model ablation, generalization, Entry utility or economic edge."
+  },
+  "market_state_gc_price_response_20261108_003": {
+    "status": "COMPLETE_CONSUMED_READ_ONLY_REFERENCE",
+    "decision": "SIMPLE_GC_X_CURRENT_XAU_RESPONSE_INTERACTION_DIRECTION_GAIN_UNPROVEN",
+    "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_GC_PRICE_RESPONSE_20261108_003",
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_GC_PRICE_RESPONSE_20261108_003/review.py",
+      "sha256": "91a3612f1263a112c48680ef2debd1e96f46f8972e3a4ef06df1bcdadb0e9f3d"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_GC_PRICE_RESPONSE_20261108_003/RESULT.json",
+      "sha256": "aa6579bf47075f7dab2ecc19da88305445f6c43138238c0cc44bc7d1f9570c87"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_GC_PRICE_RESPONSE_20261108_003/TERMINAL.json",
+      "sha256": "c13644e54deb43c307023f4beca1f206982a4c87ce92ed5ef4a8a043db0b0ba4"
+    },
+    "saved_future_target_tape": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_DECISION_RETURN_GC_20261108_002/DECISION_RETURN_TAPE.npz",
+      "sha256": "f87dcc7c669e86a10325a526023933346926f17037685a3082a875e67a1fb167"
+    },
+    "scope": "One fixed TRAIN-only sign-cell interaction: current XAU M5 ret_1 sign x GC M5 known aggressor pressure sign, on F_s(t,v) five TF/five chronological folds; prefix prior and response-only paired references. No raw reread, model fit, optimizer, TEST or Entry.",
+    "observed": "M5 n=88111 Brier prior .249909170, response .249911979, joint .249927031; GC increment -.000015051 per row, 2/5 folds and 36/70 UTC weeks positive. M15/H1/D1 negative GC increments; H4 +.000009334, 3/5 folds and 39/70 weeks. This sign table does not test large absolute buy volume, absorption, full sequence model or economic edge.",
+    "startup_failures_before_score": [
+      {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_GC_PRICE_RESPONSE_20261108_001/TERMINAL.json",
+        "sha256": "24ce65b7e2de1b954e889aad7cdf3c4be2ad14a3a7c4acdf93b542fa18892c76"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_GC_PRICE_RESPONSE_20261108_002/TERMINAL.json",
+        "sha256": "9768765f9d2c279457b8d9236b314c9c92a42c34c1ba0a0cb98c60736099801d"
+      }
+    ],
+    "max_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "relaunch_allowed": false,
+    "model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "training_authorized": false,
+    "test_data_used": false
   }
 }
