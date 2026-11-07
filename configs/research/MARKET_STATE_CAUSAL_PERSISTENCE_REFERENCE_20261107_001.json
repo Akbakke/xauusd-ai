@@ -1,0 +1,90 @@
+{
+  "baseline_estimation_authorized": false,
+  "execution": {
+    "class": "audit",
+    "kill_after_seconds": 10,
+    "memory": "2G",
+    "model_forwards": 0,
+    "module": "gx1.audit.measure_market_state_causal_persistence_reference_v1",
+    "optimizer_steps": 0,
+    "runner": "scripts/gx1_capped_run.sh",
+    "swap": "512M",
+    "timeout_seconds": 600
+  },
+  "fold_ids": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "input_refs": {
+    "mask": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001/ROW_MASKS.npz",
+      "sha256": "2b063e35b97cc1dbdbb522d2b2876a39514b1145d8c59d8a2ab07561764f9edc"
+    },
+    "mask_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001.json",
+      "sha256": "5639382b63f2b56dcf3e263eff4d6a1408bb84555567f542b9bff4897cbcd0b7"
+    },
+    "mask_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001/RESULT.json",
+      "sha256": "126aceee074dc223a60894545533d1f242275d8c4b4327acc67b048449cac7b8"
+    },
+    "mask_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001/TERMINAL.json",
+      "sha256": "457a9da5085d04362a5eeb76568a6a97cd68d424cef1efc6d4aee1332c2cb782"
+    },
+    "model_axes": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_DATA_20261024_245/OUTPUT/PRICE_TARGETS.npz",
+      "sha256": "9d4a5fb3c473b088aff5a5d5a176c199a64053b679229c14f125697b93af577d"
+    },
+    "model_plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/PLAN_SUPPORT.json",
+      "sha256": "96ff82533042ab069292505b3a44315c13223a9b9d9e9ee669cd757e3f84c086"
+    },
+    "selected_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_SELECTED_ACTIVITY_MASKS_20261107_001.json",
+      "sha256": "9b43bd30b3d3a9bb414923df547191200ca5b9c1e6993fc906cfdd283cd0f406"
+    },
+    "target_source_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/FULL_TRAIN_MARKET_STATE_ENDPOINT_CANDIDATE_20261107_001.json",
+      "sha256": "c3c789f4e7ed3edba2880bfb9e51decc9efad779324351bbd19ac86d2a607ce2"
+    }
+  },
+  "limits": {
+    "max_wall_seconds": 600,
+    "memory_high": 2147483648,
+    "memory_max": 2147483648,
+    "swap": 536870912
+  },
+  "max_invocations": 1,
+  "model_forwards_authorized": 0,
+  "optimizer_steps_authorized": 0,
+  "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_CAUSAL_PERSISTENCE_REFERENCE_20261107_001",
+  "prior_result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FIVE_ENDPOINT_PRIOR_20261107_001/RESULT.json",
+    "sha256": "5304433c42b43ea2bdf593066e627c8904604a751aa27c6fa5dab6349efefa48"
+  },
+  "prior_terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FIVE_ENDPOINT_PRIOR_20261107_001/TERMINAL.json",
+    "sha256": "8f9804b384baf0c1b3d5d321465f00424da17956c06ef39929f107767bc4e9a4"
+  },
+  "reference_rule": "exact_predecessor_same_m1_row_no_fit_no_fallback_v1",
+  "schema_version": "gx1_market_state_causal_persistence_plan_v1",
+  "source_base_head": "8ddcb1c5b7133bc32d81f810460ec48dda299a00",
+  "source_owners": {
+    "gx1/audit/measure_market_state_causal_persistence_reference_v1.py": "6dccec4a1b089b3dc924df53234e1635a1696033a2c45fb635f84d6273395b3f",
+    "gx1/audit/measure_market_state_five_endpoint_prior_v1.py": "c6b4b39ec45d0ea3ad541a059b35186e9d08046162a6e5ead4a3d7e5656456dc",
+    "gx1/contracts/gx1_capped_execution_v1.py": "e8206a3d7bf6922b1c4f0fac85498c5a913270e96e94871d7f7a9c48c9611cb5",
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "gx1/contracts/market_state_five_endpoint_contract_v1.py": "5007214d0f8df9dc9834dcf8c88d22ea75567772e8ffc184ad5cecb77fc19b34",
+    "gx1/contracts/market_state_five_endpoint_prior_v1.py": "102922a72478f7b4281cccdc57f935abaf67f9a721f89448a9945b19edec6104",
+    "gx1/contracts/market_state_five_endpoint_target_binding_v1.py": "725eb6ec4d6630d483270afa1fbbcc70ed792da28003d1811826a201d324198d",
+    "scripts/gx1_capped_run.sh": "7749d3cd610535ae19ba33cdd8827c9f309ab64ccb39c7231d03151556bd7681"
+  },
+  "stage": "market_state_causal_persistence_reference_20261107_001",
+  "status": "PREPARED_NOT_ADMITTED",
+  "test_data_used": false,
+  "training_authorized": false
+}
