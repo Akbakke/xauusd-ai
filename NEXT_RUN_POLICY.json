@@ -45,9 +45,35 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-07T05:14:33.535019+00:00",
-  "status": "MARKET_STATE_M5_M15_H1_TRENDLINE_ORACLE_SOURCE_TESTED_PLAN_PENDING",
+  "status": "MARKET_STATE_M5_M15_H1_TRENDLINE_PLAN_PREPARED_PREFLIGHT_PENDING",
+  "m5_m15_h1_trendline_physical_oracle_20261107_001": {
+    "status": "PREPARED_NOT_ADMITTED",
+    "decision": "BLOCKED_PENDING_PREFLIGHT_AND_SEPARATE_ADMISSION",
+    "scope": "One 4G/512M/1800s capped independent source-formula audit of 31 trendline cache columns for May-Dec 2024 TRAIN M5/M15/H1 closed bars. No model, optimizer, TEST, Entry, Exit, broker or trade.",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/M5_M15_H1_TRENDLINE_PHYSICAL_ORACLE_20261107_001.json",
+      "sha256": "2fa56e3827926dacb4b469433227bb8e153671ff66ddd45a31e57b9df6173d28"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/M5_M15_H1_TRENDLINE_PHYSICAL_ORACLE_20261107_001",
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "max_invocations": 1,
+    "relaunch_allowed": false,
+    "memory_max": "4G",
+    "swap_max": "512M",
+    "wall_seconds": 1800,
+    "test_data_used": false,
+    "checkpoint_reads_authorized": false,
+    "broker_access_allowed": false,
+    "model_forwards_authorized": 0,
+    "optimizer_steps_authorized": 0,
+    "training_authorized": false,
+    "test_authorized": false
+  },
   "m5_m15_h1_trendline_oracle_source_20261107": {
-    "status": "SOURCE_TESTED_NO_PLAN_NO_DATA_JOB",
+    "status": "SOURCE_TESTED_PLAN_PREPARED_NO_DATA_JOB",
     "decision": "THREE_TF_INDEPENDENT_ORACLE_SOURCE_READY",
     "scope": "May-Dec 2024 TRAIN closed-bar M5/M15/H1 rows only; 31 trendline fields, including 19 lifecycle fields. Source binds existing receipts and independently rebuilds native history after one-use CLAIM under capped audit. Source parity is not predictor influence or learning.",
     "source": {
@@ -395,7 +421,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Operator-selected 0.5 ATR activity and conservative local side now have an immutable corrected five-TF TRAIN source mask. Exactly 273200 full-window gray cells became ACTIVE side-unknown, then seven measured H4/D1 old singleton sides were conservatively demoted; all other masks and axes preserved. Remaining certified sides match cold local replay in scoped audits. Pure five-endpoint output/loss/scorer, one real forward route, and a target-only batch bridge on two real TRAIN rows with synthetic logits are source-qualified; actual model-to-loss and optimizer skip, causal now-state references and indicator usefulness remain unqualified; one five-fold chronological TRAIN constant-prior reference is now measured. training_enabled=false; no model fit, TEST, Entry/Exit, broker, trading or spending.",
-  "next_action": "One capped five-fold TRAIN prior audit is complete and consumed, with independent reconstruction of exact mature fit prefixes and later score folds; no model/optimizer/TEST. M5 constant prior activity Brier is 0.062047 on 88376 cells; certified-side Brier is 0.249438 on 29576 cells. The scoped M5/M15/H1 trendline oracle is in source preparation; its observed list-membership performance blocker is fixed and 11 focused tests pass, no data job yet. Next qualify residual indicator formulas and numerical consumption, beginning with this capped scoped oracle; then bind actual model-to-loss/skip and chronological OOF under fold-specific normalization. Compare activity, certified side and three-class on identical mature rows against this frozen prior before any model fit claim. training_enabled=false; TEST, Entry/Exit, broker and trading closed.",
+  "next_action": "One capped five-fold TRAIN prior audit is complete and consumed, with independent reconstruction of exact mature fit prefixes and later score folds; no model/optimizer/TEST. M5 constant prior activity Brier is 0.062047 on 88376 cells; certified-side Brier is 0.249438 on 29576 cells. The scoped M5/M15/H1 trendline source passed 18 focused tests including existing D1/H4 checks; a frozen one-use plan is prepared, with preflight and separate admission pending. No data job yet. Next qualify residual indicator formulas and numerical consumption, beginning with this capped scoped oracle; then bind actual model-to-loss/skip and chronological OOF under fold-specific normalization. Compare activity, certified side and three-class on identical mature rows against this frozen prior before any model fit claim. training_enabled=false; TEST, Entry/Exit, broker and trading closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",

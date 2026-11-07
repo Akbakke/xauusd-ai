@@ -1,0 +1,97 @@
+{
+  "execution": {
+    "class": "audit",
+    "kill_after_seconds": 10,
+    "memory": "4G",
+    "model_forwards": 0,
+    "module": "gx1.audit.verify_m5_m15_h1_trendline_oracle_v1",
+    "optimizer_steps": 0,
+    "runner": "scripts/gx1_capped_run.sh",
+    "swap": "512M",
+    "timeout_seconds": 1800
+  },
+  "input_refs": {
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/TRENDLINE_CONDITIONAL_PREFIX_20261106_001.json",
+      "sha256": "bc4469117ef476250e50ed308941b790da67ed30b134b5bf350e100240f17491"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/TRENDLINE_CONDITIONAL_PREFIX_20261106_001/RESULT.json",
+      "sha256": "09be782ab60eaf522ee121254354ef8af33077d6d71a9ee173c779f0b77add3f"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/TRENDLINE_CONDITIONAL_PREFIX_20261106_001/TERMINAL.json",
+      "sha256": "02a100486d68e5afb59df94bbb7c5d8372d901f40cb1d5a3de6c5945c65acd2e"
+    }
+  },
+  "limits": {
+    "max_wall_seconds": 1800,
+    "memory_high": 4294967296,
+    "memory_max": 4294967296,
+    "swap": 536870912
+  },
+  "max_invocations": 1,
+  "model_forwards_authorized": 0,
+  "optimizer_steps_authorized": 0,
+  "output_root": "/home/andre2/GX1_RUNS/M5_M15_H1_TRENDLINE_PHYSICAL_ORACLE_20261107_001",
+  "schema_version": "gx1_m5_m15_h1_trendline_physical_plan_v1",
+  "scope": {
+    "feature_columns": [
+      159,
+      190
+    ],
+    "tf_scope": {
+      "H1": {
+        "band_atr": 0.7319144469085033,
+        "bar_ns": 3600000000000,
+        "first_row": 83174,
+        "last_row": 87159,
+        "prefix_rows": 90075,
+        "seq_len": 96,
+        "witnesses": 10
+      },
+      "M15": {
+        "band_atr": 0.906513313573848,
+        "bar_ns": 900000000000,
+        "first_row": 329804,
+        "last_row": 345732,
+        "prefix_rows": 357385,
+        "seq_len": 64,
+        "witnesses": 10
+      },
+      "M5": {
+        "band_atr": 0.9161632622285967,
+        "bar_ns": 300000000000,
+        "first_row": 987340,
+        "last_row": 1035124,
+        "prefix_rows": 1070080,
+        "seq_len": 16,
+        "witnesses": 11
+      }
+    },
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1"
+    ],
+    "train_end_exclusive_ns": 1735689600000000000,
+    "train_start_ns": 1714521600000000000
+  },
+  "source_base_head": "4b1e053e9e29f94d539b2752404e798419de4a90",
+  "source_owners": {
+    "gx1/audit/verify_d1_trendline_lifecycle_oracle_v1.py": "64e727badf7bb2d322da1c05fcf34964c0b7c6d29fb9fa1511a78c87fe4d8095",
+    "gx1/audit/verify_d1_trendline_lifecycle_physical_v1.py": "d7b8d2e940766a892ba89875052d0733cb9b26579fb6bcb91d2e7415162ec62f",
+    "gx1/audit/verify_h4_trendline_lifecycle_oracle_v1.py": "49d71d78652f79fe2619f7f60bd59f3f27156c1fb8173ac07f4bdab1f848eaca",
+    "gx1/audit/verify_m5_m15_h1_trendline_oracle_v1.py": "fa1219f9d44b856d1c9b141f5bc6c978da1a2c928072e5c49799726acf6e5166",
+    "gx1/contracts/gx1_capped_execution_v1.py": "e8206a3d7bf6922b1c4f0fac85498c5a913270e96e94871d7f7a9c48c9611cb5",
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "gx1/features/htf_features.py": "9ca968805e3eca72525e14c8b53e5b31817cd2baa7c0cdb9b636cb112f092520",
+    "gx1/features/technical_indicators_v1.py": "3a81bec825639e57a3071cc28d4dc2d3d394fef031dc89d71da3b468ca28ecad",
+    "gx1/scripts/audit_direction_d1_trendline_replay_v1.py": "afe228b61eb5ec5a10e39f80c1bf4131b806ebf95ea028c6545c74f89530b56a",
+    "scripts/gx1_capped_run.sh": "7749d3cd610535ae19ba33cdd8827c9f309ab64ccb39c7231d03151556bd7681"
+  },
+  "stage": "m5_m15_h1_trendline_physical_oracle_20261107_001",
+  "status": "PREPARED_NOT_ADMITTED",
+  "test_data_used": false,
+  "training_authorized": false
+}
