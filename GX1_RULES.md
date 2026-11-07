@@ -448,7 +448,14 @@ forbudt og kan ikke gjenåpnes av historiske moduler på disk.
     sampling i én native fit. I kronologisk utviklings-OOF er hver folds tidligere,
     målmodne TRAIN-rader den eneste fit-populasjonen for den foldens statistikk.
     Statistikk, kategoriske domener og hasher er immutabel bundle-tilstand.
-    VAL, TEST og serve refitter aldri.
+    VAL, TEST og serve refitter aldri. Første vedtatte fem-endepunkts-OOF
+    bruker samme fysiske fitpopulasjon for inputstatistikk og modell:
+    `decision_ns < offisiell_foldgrense_ns − 1 440 × MINUTE_NS`. Alle fem
+    framtidsmål er da tidsmessig modne; opprinnelige scoregrenser beholdes,
+    og manglende observerbar fasit maskeres. De fem gamle prefixstatistikkene
+    kan ikke ommerkes til dette utvalget; nye stats og parvis prior trengs.
+    Dette er en treningsmodningsgrense, ingen handelsregel eller holdetid,
+    og gir ingen fit- eller TEST-admisjon.
 19. **Hvert kontekstfelt har nøyaktig én spesialisteier**; aliaser oppdages fra det faktiske
     signalmanifestet, må være bit-identiske og kan ikke skape en ny normaliseringseier.
 20. **Kun atomisk publisering**: ingen bundle eller immutabel hendelse under endelig navn før

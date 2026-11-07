@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-07T06:31:08.984614+00:00",
-  "status": "MARKET_STATE_REMAINING_MTF_NUMERIC_ADMITTED",
+  "status": "MARKET_STATE_INPUT_NUMERIC_CONSUMED_MATURE_PREFIX_PENDING",
   "market_state_five_endpoint_gradient_bridge_20261107_001": {"status": "CONSUMED_COMPLETE_TRAIN_GRADIENT_WITNESS", "decision": "PASS_TRAIN_MODEL_LOSS_BACKWARD_AND_SKIP_WITNESS_NO_LEARNING_CLAIM", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_FIVE_ENDPOINT_GRADIENT_BRIDGE_20261107_001.json", "sha256": "26a43d9456f2ef6ff6b26f9e1e3e0efe93a45029f5e3de87869e0b5111016a11"}, "execution_authorized": false, "data_reads_authorized": false, "model_forwards_authorized": 0, "backward_calls_authorized": 0, "optimizer_steps_authorized": 0, "training_authorized": false, "test_authorized": false, "claimed_invocations": 1, "completed_invocations": 1, "max_invocations": 1, "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_FIVE_ENDPOINT_GRADIENT_BRIDGE_20261107_001", "relaunch_allowed": false, "checkpoint_reads_authorized": false, "broker_access_allowed": false, "test_data_used": false, "memory_max": "12G", "swap_max": "512M", "wall_seconds": 3600, "claim": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_FIVE_ENDPOINT_GRADIENT_BRIDGE_20261107_001/CLAIM.json", "sha256": "f132311b4fb66bb6b909821a0112a6cd3defb236bc0479301840e29e37697429"}, "result": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_FIVE_ENDPOINT_GRADIENT_BRIDGE_20261107_001/RESULT.json", "sha256": "7dcc6e74c39a6687cf4edb338bfa61a707565e01c8f9695cf37a635bbcfeb23c"}, "terminal": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_FIVE_ENDPOINT_GRADIENT_BRIDGE_20261107_001/TERMINAL.json", "sha256": "87cf693f85715862123eded4149a20469cd53b040adb5b505758492e72dcfb31"}, "admission_policy_sha256": "25e43db514e746caace44110884c273d7f36776f926a427b8d9669fa54ea458d", "source_head": "b63b57c591ed2a417ac36a25c0a2a363c6a63576", "guard_log": {"path": "/home/andre2/GX1_RUNS/.MARKET_STATE_FIVE_ENDPOINT_GRADIENT_BRIDGE_20261107_001.guard.kn6nMc0L.log", "sha256": "f78ff929890497d1fc479cc909c96cca432bc30905067e19ec16a14880cc30ab"}, "stdio_log": {"path": "/home/andre2/GX1_RUNS/.MARKET_STATE_FIVE_ENDPOINT_GRADIENT_BRIDGE_20261107_001.trainer.H0QnIACz.log", "sha256": "038d2049e337cc6454f72be275e2a7b55e46124fc58aba6ecf6c34d5b994c02a"}, "observed": {"elapsed_seconds": 24.27090156000486, "active_loss": 0.5097607970237732, "active_support": 5, "skipped_support": 0, "head_nonzero_gradient_count": 384, "backbone_nonzero_gradient_count": 65536, "floating_input_surfaces_nonzero": 13, "cuda_peak_allocated_bytes": 334457344, "guard_peak_power_draw_w": 132.92, "guard_peak_memory_used_mib": 794, "original_host_power_limit_restored_w": 250, "mtf_local_numeric_gradient_nonzero_counts": {"M5": 4032, "M15": 16128, "H1": 24192, "H4": 24192, "D1": 63504}, "mtf_numeric_slot_counts_per_row": {"M5": 4032, "M15": 16128, "H1": 24192, "H4": 24192, "D1": 63504}, "mtf_categorical_column": 85, "mtf_categorical_embedding_nonzero_all_five_tf": true, "local_sensitivity_scope": "One informative unfitted TRAIN row; not formula correctness, learned field value, side-specific effect, later-fold generalization or economic edge."}, "limitations": "Two unfitted TRAIN fit rows prove model-to-loss gradient and skipped-row behavior only. They do not prove all 253 individual cache fields per timeframe influence the output, learning, OOF generalization, directional edge or economics."},
   "market_state_five_endpoint_gradient_bridge_source_20261107": {
     "status": "SOURCE_TESTED_NO_PLAN_NO_DATA_JOB",
@@ -481,7 +481,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Operator-selected 0.5 ATR activity and conservative local side now have an immutable corrected five-TF TRAIN source mask. Exactly 273200 full-window gray cells became ACTIVE side-unknown, then seven measured H4/D1 old singleton sides were conservatively demoted; all other masks and axes preserved. Remaining certified sides match cold local replay in scoped audits. Pure five-endpoint output/loss/scorer, one real forward route, and a target-only batch bridge on two real TRAIN rows with synthetic logits are source-qualified; actual model-to-loss and optimizer skip, causal now-state references and indicator usefulness remain unqualified; one five-fold chronological TRAIN constant-prior reference is now measured. training_enabled=false; no model fit, TEST, Entry/Exit, broker, trading or spending.",
-  "next_action": "The consumed two-row zero-optimizer gradient witness shows local loss sensitivity for all 252 numeric MTF cells per sequence row and the categorical column 85 embedding on each of five TFs; this does not prove formula correctness, learned value or OOF. Reuse it; no redundant random-model CUDA field audit. The consumed unfitted causal persistence reference scored 88400 later TRAIN rows: on paired M5 certified-side rows the hard persistence wrong rate/Brier is 0.513697 versus prior Brier 0.249173; paired prior Brier is better on all five TF and three metrics. This is one reference, not a learnability verdict. Next run the prepared 63-field-per-TF full-prefix physical cache comparison once through the capped audit gate after admission. Then derive exact earlier target-mature TRAIN fit rows under rule 18 and refit fold-specific normalization: all five older artifacts include all pre-cutoff parent rows, and at least fold-1 row 29848 is target-immature. Separately admit an actual five-endpoint trainer/OOF; the old physical trainer still uses the older target. training_enabled=false; TEST, Entry/Exit, broker and trading closed.",
+  "next_action": "The causal persistence reference and one consolidated 63-field-per-TF numeric audit are consumed. May-Dec 2024 TRAIN physical cache parity covers 4341834 residual cells with zero mismatches and finite/nonzero support for each field/TF; this does not prove learned value or edge. User-approved first five-endpoint OOF fit cohort: decision_ns < official_fold_cutoff - 1440 minutes, with original score boundaries unchanged; exact lost joined fit rows per fold [275,264,275,275,275]. Bind this mature cohort, refit its five fold-specific input normalizations rather than reusing older pre-cutoff stats, and re-estimate paired TRAIN prior on the same fit rows. Then minimally connect existing five-endpoint model/loss to a separately admitted fixed-budget chronological trainer/OOF. training_enabled=false; TEST, Entry/Exit, broker and trading closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -62140,8 +62140,8 @@
     }
   },
   "market_state_remaining_mtf_numeric_20261107_001": {
-    "status": "ADMITTED",
-    "decision": "ADMITTED",
+    "status": "CONSUMED_COMPLETE_TRAIN_63_FIELD_NUMERIC_AUDIT",
+    "decision": "PASS_63_FIELD_TRAIN_NUMERIC_PARITY_ALL_EXERCISED",
     "scope": "One capped CPU TRAIN May-Dec 2024 full-prefix independent numeric comparison of exactly 63 residual cache fields on each M5/M15/H1/H4/D1. Reuse existing 158-field, 31 trendline and column 236 receipts. No model fit, TEST, Entry, Exit or trade.",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_REMAINING_MTF_NUMERIC_20261107_001.json",
@@ -62157,10 +62157,10 @@
     ],
     "fields_per_tf": 63,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "model_forwards_authorized": 0,
     "optimizer_steps_authorized": 0,
     "training_authorized": false,
@@ -62172,6 +62172,69 @@
     "memory_max": "4G",
     "swap_max": "512M",
     "wall_seconds": 3600,
-    "standing_authorization_source": "no_cost_local_standing_authorization_20261105"
+    "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_REMAINING_MTF_NUMERIC_20261107_001/CLAIM.json",
+      "sha256": "8ea89d373d3ee9fa1c9dfb8b068b0aa687bfe23eb9b82c5e7344379de06d0846"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_REMAINING_MTF_NUMERIC_20261107_001/RESULT.json",
+      "sha256": "9ac7800d23eede5c6479a6cb48d42d82fd2923fa391ab4a094d082d2c3db10ce"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_REMAINING_MTF_NUMERIC_20261107_001/TERMINAL.json",
+      "sha256": "ea6ab754f96c7f4433b00a9cd38dd0d3fb87ad6168a957227587fa37b2e2735a"
+    },
+    "source_head": "2b065de058d49bb4b72a35c79eec9fbf98435d69",
+    "observed": {
+      "elapsed_seconds": 553.2774927620048,
+      "rows_per_tf": {
+        "M5": 47785,
+        "M15": 15929,
+        "H1": 3986,
+        "H4": 1044,
+        "D1": 174
+      },
+      "compared_cells": 4341834,
+      "mismatched_cells": 0,
+      "all_63_fields_finite_nonzero_each_tf": true,
+      "native_parts_hashed": 16,
+      "cache_arrays_hashed": 10,
+      "model_forwards": 0,
+      "optimizer_steps": 0,
+      "test_data_used": false
+    }
+  },
+  "market_state_mature_prefix_oof_design_20261107": {
+    "status": "APPROVED_DESIGN_NOT_FITTED",
+    "rule": "decision_ns < official_fold_cutoff_ns - 1440 * MINUTE_NS",
+    "maturity": "all five validity clocks precede original fold cutoff",
+    "official_score_boundaries_unchanged": true,
+    "old_joined_fit_rows": [
+      29849,
+      47602,
+      64890,
+      82427,
+      100499
+    ],
+    "selected_joined_fit_rows": [
+      29574,
+      47338,
+      64615,
+      82152,
+      100224
+    ],
+    "discarded_joined_fit_rows": [
+      275,
+      264,
+      275,
+      275,
+      275
+    ],
+    "normalization_fit_authorized": false,
+    "prior_refit_authorized": false,
+    "model_training_authorized": false,
+    "test_data_used": false,
+    "source": "explicit_user_decision_20261107_one_day_maturity_prefix"
   }
 }

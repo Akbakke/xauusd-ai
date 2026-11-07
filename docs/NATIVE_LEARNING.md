@@ -133,6 +133,20 @@ terskelvalg.
 Tidligere path-/bps-forsøk beholdes som avgrenset evidens. Gjeldende
 kjøreautorisasjon eies av NEXT_RUN_POLICY; målbeskrivelsen starter ingen jobb.
 
+For første kronologiske fem-endepunkts-OOF er det vedtatt å kutte hver folds
+fysiske fitpopulasjon ett døgn før den opprinnelige foldgrensen:
+`decision_ns < offisiell_foldgrense_ns − 1 440 × MINUTE_NS`. Begge
+inputnormalisering og modellfit bruker akkurat dette sammenhengende
+prefikset; original scoreakse endres ikke. Den bundne TRAIN-targeten viser
+tap av 275/264/275/275/275 joined fit-rader i fold 1–5 og at alle fem
+mål er tidsmessig modne på de gjenværende radene. Kildehull og ukjent
+retning beholdes som masker, ikke oppdiktede labels. Alle fem eldre
+prefixnormaliseringer omfatter umodne rader og må refittes/bindes på nytt;
+første folds nullstøtte-enhetsprofil krever egen ny kvalifikasjon. Frosset
+TRAIN-prior må estimeres på samme forkortede fitpopulasjon før parvis OOF.
+Dette er en modningsgrense for treningsrader, ikke en handelsregel eller
+maksimal holdetid. Valgt design gir ingen modellfit-admisjon.
+
 ## Før en modell kan startes
 
 Aktuell ren/committet/pushet kilde, fysiske inputs, preprocessing og
