@@ -1,0 +1,122 @@
+{
+  "command_template": [
+    "timeout",
+    "--signal=TERM",
+    "--kill-after=10s",
+    "600s",
+    "scripts/gx1_capped_run.sh",
+    "--class",
+    "audit",
+    "--mem",
+    "4G",
+    "--swap",
+    "512M",
+    "--",
+    ".venv/bin/python",
+    "-m",
+    "gx1.audit.verify_market_state_endpoint_persistence_v1",
+    "--plan",
+    "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_ENDPOINT_PERSISTENCE_20261107_001.json",
+    "--plan-sha256",
+    "{plan_sha256}",
+    "--out-dir",
+    "/home/andre2/GX1_RUNS/MARKET_STATE_ENDPOINT_PERSISTENCE_20261107_001"
+  ],
+  "execution": {
+    "class": "audit",
+    "kill_after_seconds": 10,
+    "memory": "4G",
+    "model_fits": 0,
+    "module": "gx1.audit.verify_market_state_endpoint_persistence_v1",
+    "runner": "scripts/gx1_capped_run.sh",
+    "swap": "512M",
+    "target_builds": 0,
+    "timeout_seconds": 600
+  },
+  "expected_issue_rows": 118706,
+  "expected_joined_model_rows": 118249,
+  "input_refs": {
+    "mask": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001/ROW_MASKS.npz",
+      "sha256": "2b063e35b97cc1dbdbb522d2b2876a39514b1145d8c59d8a2ab07561764f9edc"
+    },
+    "mask_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001.json",
+      "sha256": "5639382b63f2b56dcf3e263eff4d6a1408bb84555567f542b9bff4897cbcd0b7"
+    },
+    "mask_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001/RESULT.json",
+      "sha256": "126aceee074dc223a60894545533d1f242275d8c4b4327acc67b048449cac7b8"
+    },
+    "mask_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001/TERMINAL.json",
+      "sha256": "457a9da5085d04362a5eeb76568a6a97cd68d424cef1efc6d4aee1332c2cb782"
+    },
+    "model_axes": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_DATA_20261024_245/OUTPUT/PRICE_TARGETS.npz",
+      "sha256": "9d4a5fb3c473b088aff5a5d5a176c199a64053b679229c14f125697b93af577d"
+    },
+    "model_plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/PLAN_SUPPORT.json",
+      "sha256": "96ff82533042ab069292505b3a44315c13223a9b9d9e9ee669cd757e3f84c086"
+    },
+    "selected_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_SELECTED_ACTIVITY_MASKS_20261107_001.json",
+      "sha256": "9b43bd30b3d3a9bb414923df547191200ca5b9c1e6993fc906cfdd283cd0f406"
+    },
+    "target_source_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/FULL_TRAIN_MARKET_STATE_ENDPOINT_CANDIDATE_20261107_001.json",
+      "sha256": "c3c789f4e7ed3edba2880bfb9e51decc9efad779324351bbd19ac86d2a607ce2"
+    }
+  },
+  "limits": {
+    "internal_wall_seconds": 540,
+    "max_output_bytes": 1048576,
+    "memory_high": 4294967296,
+    "memory_max": 4294967296,
+    "numerical_threads": 1,
+    "pids": 64,
+    "swap": 536870912
+  },
+  "max_invocations": 1,
+  "metric_contract": {
+    "censor": "ACTIVE_or_ALL_unknown_side_untyped_clock_gap_validity_month_data_edge",
+    "certified_bits": {
+      "DOWN": 1,
+      "FLAT": 2,
+      "UP": 4
+    },
+    "continuous_M1_duration_proven": false,
+    "decision": "DESCRIPTIVE_ONLY_NO_TARGET_OR_MODEL_SELECTION",
+    "issue_cadence_minutes": 5,
+    "known_run_end": "next_exact_5min_singleton_different_including_FLAT",
+    "lead_minutes": [
+      5,
+      15,
+      60,
+      240,
+      1440
+    ],
+    "overlapping_pairs_independent": false,
+    "pointwise_intermediate_gaps": "counted_separately_not_continuity",
+    "pointwise_side": "exact_own_lead_UTC_both_certified_SIDE_same_or_opposite",
+    "run": "same_singleton_at_consecutive_5min_issues_same_UTC_validity_month",
+    "sampled_span_minutes": "(endpoint_count_minus_one)_times_five",
+    "scope": "full_selected_TRAIN_target_118706_issues_with_118249_model_join_reported"
+  },
+  "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_ENDPOINT_PERSISTENCE_20261107_001",
+  "read_only": true,
+  "schema_version": "gx1_market_state_endpoint_persistence_plan_v1",
+  "source_base_head": "522443c06ee23ab9faafc421b6ccb90cbfbd3d0e",
+  "source_owners": {
+    "gx1/audit/verify_market_state_endpoint_persistence_v1.py": "60658a0e81e4dba5cf14b26f966ece0fee87a6014793c1293c9e75003b99dead",
+    "gx1/contracts/gx1_capped_execution_v1.py": "60b1ccf2eda470a84ddded0d8160c628314ebb19f5766b87b70fef7c9aa3ccff",
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "gx1/contracts/market_state_five_endpoint_contract_v1.py": "5007214d0f8df9dc9834dcf8c88d22ea75567772e8ffc184ad5cecb77fc19b34",
+    "gx1/contracts/market_state_five_endpoint_target_binding_v1.py": "71dc01154aada84d01e930cb78970a79608c5bff5ebd710d9f48273934e14bfd",
+    "scripts/gx1_capped_run.sh": "7749d3cd610535ae19ba33cdd8827c9f309ab64ccb39c7231d03151556bd7681"
+  },
+  "stage": "market_state_endpoint_persistence_20261107_001",
+  "status": "PREPARED_NOT_ADMITTED",
+  "test_data_used": false
+}

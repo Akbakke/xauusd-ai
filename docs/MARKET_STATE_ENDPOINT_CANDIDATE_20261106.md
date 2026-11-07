@@ -1,6 +1,6 @@
 # Fem-TF markedstilstand ved framtidig endepunkt — kandidat 06.11.2026
 
-**Historisk målkandidat; gjeldende status står i [CURRENT_HANDOVER.md](../CURRENT_HANDOVER.md) og [NEXT_RUN_POLICY.json](../NEXT_RUN_POLICY.json).** Aktivitet er valgt ved 0,5 ATR, lokal side er korrigert i TRAIN-masken, og femutgangshode, tap, scorer og et avgrenset fysisk gradientvitne er kvalifisert. Faktisk modellfit og kronologisk modellskår mangler fortsatt. Avsnittene under bevarer metode og målehistorikk; eldre forslag om fallback er korrigert til eksplisitt udekket prognose. `training_enabled=false`; TEST forblir forseglet.
+**Historisk målkandidat; gjeldende status står i [CURRENT_HANDOVER.md](../CURRENT_HANDOVER.md) og [NEXT_RUN_POLICY.json](../NEXT_RUN_POLICY.json).** Aktivitet er valgt ved 0,5 ATR, lokal side er korrigert i TRAIN-masken, og femutgangshode, tap, scorer og et avgrenset fysisk gradientvitne er kvalifisert. Native sekvensmodell mangler fortsatt fit og kronologisk skår; en separat, låst femfolds CPU-tabellmodell er nå trent på den valgte TRAIN-masken, men bestod ikke den forhåndsbundne M5-sideporten. Den avgjør ikke sekvensmodellen eller målets varighet. Avsnittene under bevarer metode og målehistorikk; eldre forslag om fallback er korrigert til eksplisitt udekket prognose. `training_enabled=false`; TEST forblir forseglet.
 
 ## Valgt aktivitet og foreslått full målkontrakt
 
