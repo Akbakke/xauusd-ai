@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-07T00:23:45.855116+00:00",
-  "status": "M5_STATE_SIDE_LOCALITY_AUDIT_ADMITTED",
+  "status": "M5_SIDE_LOCALITY_DIAGNOSTIC_COMPLETE_TARGET_OPEN",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Full TRAIN source-gap authority and 20x5 candidate masks are verified; endpoint target is still PROPOSED, not locked. D1 overlap, longer-lived side anchor, 77 parked indicator formulas, broad actual model consumption, output/loss/scores and earlier-only reference fit remain open. training_enabled=false; no model fit, TEST, Entry/Exit, broker, trading or spending.",
-  "next_action": "One capped source-only M5 side-locality audit is admitted on the 39670 exact 1.0 ATR TRAIN side endpoints. Measure whether full-history OPP/NED is provable from last five observed M1 bars, side-entry age, FLAT after entry and closure strata. Target remains PROPOSED; no fit, TEST, Entry/Exit, broker, trading or spending; training_enabled=false.",
+  "next_action": "M5 1.0 ATR exact side provenance audited: cold five-observed-M1 replay agrees on all39670 singleton side endpoints, so older side entry does not create a mismatch on that cohort. Decide physical meaning of 0.5-1.0 ATR gray region/FLAT without using coverage or score; then bind full five-TF target, output/loss/score and chronological simple references. Other state masks, TFs and indicators remain open. training_enabled=false; no fit, TEST, Entry/Exit, broker, trading or spending.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "06.11: Predict and calibrate dynamic market state first. Entry location/Entry-Q follows later; M5 is forecast cadence. No assumption of extensive prior training.",
-    "current_activity": "Full TRAIN state source candidates verified but target PROPOSED. D1 trendline 174-row oracle PASS 5394/5394. One new M5 side-locality source audit admitted to test long-lived direction anchor against last five observed M1 bars on 39670 exact side endpoints. No model fit; training_enabled=false.",
+    "current_activity": "Full TRAIN state candidates verified, target still PROPOSED. One M5 side-locality audit consumed: all39670 exact1.0 side endpoints matched cold local five-bar replay; 13298 side entries predate local window and 11882 had intervening FLAT, yet no local mismatch. D1 trendline 174-row oracle PASS5394/5394. Other masks/TFs/formulas and five-endpoint output/loss/score remain open. training_enabled=false.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -22928,7 +22928,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-07T01:08:26.569406+00:00",
+  "updated_utc": "2026-11-07T01:17:10.229174+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -61355,8 +61355,8 @@
     "post_run_review": "One capped exit0 3.32s source-only audit compared all174 May-Dec2024 TRAIN D1 rows x31 fields=5394 cells, 3306 lifecycle cells; 0 mismatches. All19 lifecycle fields had nonzero/event support, rarest retest_fail_down4 and retest_fail_up6. Independent NPY-only review verified all per-field cache finite/nonzero support and immutable refs; no independent raw price replay. D1 TRAIN-window only, no other TF/global qualification, model learning or edge."
   },
   "m5_state_side_locality_20261107_001": {
-    "status": "ADMITTED",
-    "decision": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_DIAGNOSTIC_ONLY",
+    "decision": "BLOCKED",
     "scope": "One source-only M5 side-locality diagnostic on 39670 full-TRAIN 1.0 ATR exact DOWN/UP endpoints. Cold replay last five observed M1 bars and compare to full-history side; report side transition age, FLAT since entry, month and closure strata. No target lock/model/TEST/Entry/Exit/trade.",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/M5_STATE_SIDE_LOCALITY_20261107_001.json",
@@ -61368,10 +61368,10 @@
     },
     "output_root": "/home/andre2/GX1_RUNS/M5_STATE_SIDE_LOCALITY_20261107_001",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "relaunch_allowed": false,
     "memory_max": "4G",
     "swap_max": "512M",
@@ -61383,6 +61383,23 @@
     "test_data_used": false,
     "training_authorized": false,
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
-    "terminal_owner": "Integrator writes immutable success/failure TERMINAL after claimed capped invocation; no relaunch."
+    "terminal_owner": "Integrator writes immutable success/failure TERMINAL after claimed capped invocation; no relaunch.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/M5_STATE_SIDE_LOCALITY_20261107_001/CLAIM.json",
+      "sha256": "c2db388ce58d4eaa7f71450a4b6e1bb1715d08ef60d7d576f19bccd20e805347"
+    },
+    "launch_log": {
+      "path": "/home/andre2/GX1_RUNS/M5_STATE_SIDE_LOCALITY_20261107_001/LAUNCH.log",
+      "sha256": "b3b19772172350767f09c828a266b19e35e52ed14f36d5c2f1d14832066f128d"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/M5_STATE_SIDE_LOCALITY_20261107_001/RESULT.json",
+      "sha256": "bbda7175c50ad0b0517c04f0cc07aa77e20692762cdc0fa6c78671dcf2539df3"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/M5_STATE_SIDE_LOCALITY_20261107_001/TERMINAL.json",
+      "sha256": "39e66884806bf743252a903c14755b9b12e557fecefad1a45cb56a8575234edf"
+    },
+    "post_run_review": "One capped exit0 full TRAIN M5 side-locality diagnostic: all39670 exact 1.0 ATR DOWN/UP endpoints reproduced by cold replay from last five observed M1 bars, local_unknown=0, local_opposite=0. Side transition older than five bars on13298 (33.52 percent), exactly those at/before issue t; FLAT after entry on11882 (29.95 percent). Independent immutable JSON/NPZ review checked all20 months and partitions; raw M1/ATR not independently replayed. Applies only to selected M5 singleton sides, not FLAT/ACTIVE/UNKNOWN or other TF, target lock, forecast skill or edge."
   }
 }
