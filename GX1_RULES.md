@@ -74,6 +74,15 @@ Forseglet TEST, Entry, Exit, broker og handel åpnes ikke av presiseringen.
 `training_enabled=false` består til mål, indikatorgrunnlag og en eksakt
 kronologisk treningsplan er kvalifisert og innrømmet.
 
+Operatørvalg07.11 etter fysisk TRAIN-kontroll: ved et fullt observert lokalt
+vindu betyr `R < 0,5 × ATR14` FLATT og `R ≥ 0,5 × ATR14` AKTIV. I
+0,5–1,0 ATR-sonen er retningen uavklart inntil separat konservativt
+sidebevis; den merkes `{NED,OPP}`, aldri FLATT eller gjettet side.
+Manglende kilde/ATR og ufullstendige vinduer beholder egne ukjent-/
+post-gap-regler. Dette er valgt aktivitetssemantikk, ikke ferdig radvis
+fem-TF-fasit eller treningsadmisjon. Fasit, output, tap, skår og
+kronologiske referanser bindes til samme valgte semantikk før fit.
+
 Stående arbeidsbestilling05.11.2026: Brukeren ber om langsiktig, aktivt arbeid
 mot senere retningsedge ved M5-Entry via den aktive markedstilstandsfasen
 uten gjentatte «fortsett». Gå videre mellom

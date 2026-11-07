@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-07T02:21:38.829228+00:00",
-  "status": "MARKET_STATE_ACTIVITY_SEMANTICS_SELECTED_H4_AUDIT_ADMITTED",
+  "observed_utc": "2026-11-07T02:27:03.406874+00:00",
+  "status": "MARKET_STATE_ACTIVITY_SELECTED_H4_SOURCE_PASS_TARGET_MASK_PENDING",
   "market_state_activity_semantics": {
     "status": "OPERATOR_SELECTED_CANDIDATE_FULL_TARGET_PENDING",
     "complete_local_range_below_atr14": 0.5,
@@ -58,8 +58,8 @@
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Operator accepted ACTIVE with side unknown for the 0.5-1.0 ATR gray band after physical TRAIN review. This selects activity semantics only; rowwise five-TF target, side proof, loss, scoring and chronological references remain unbound. H4 source-only independent trendline audit is admitted once. training_enabled=false; no model fit, TEST, Entry/Exit, broker, trading or spending.",
-  "next_action": "Execute the one admitted H4 numeric source audit after committed clean preflight, CLAIM and capped launch; consume it with immutable terminal. Then bind the selected ACTIVE/side-unknown semantics rowwise across five TF, output/loss/scores and chronological TRAIN references before considering any model admission. No threshold adjustment from class balance or model scores. training_enabled=false; TEST and trading closed.",
+  "rule": "Operator selected ACTIVE with side unknown for the 0.5-1.0 ATR full-window gray band. Independent H4 trendline source audit passed 1044x31 TRAIN cells and is consumed. Rowwise selected five-TF masks, M15/H1/H4/D1 side locality, output/loss/scores and chronological references remain unbound. training_enabled=false; no model fit, TEST, Entry/Exit, broker, trading or spending.",
+  "next_action": "Prepare one exact source-bound rowwise five-TF mask artifact for the selected ACTIVE/side-unknown gray band, changing only fully observed 0.5-1.0 ATR old-UNKNOWN cells. Verify clocks, source rows, per-TF/month masks and unchanged other cells; then bind output/loss/scoring and chronological references. Audit M15/H1/H4/D1 side locality separately. H4 plan consumed; no relaunch. training_enabled=false; TEST and trading closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -61460,8 +61460,8 @@
     "post_run_review": "One capped exit0 285.59s full TRAIN physical audit: 591682 M1 rows, 118706 M5 issues, 537909 complete TF endpoint cells with exact bit parity of raw-window range/ATR to saved ratios. Gray 0.5-1.0 ATR has 273200 cells; M5 gray median absolute net 0.296 ATR, efficiency 0.404, 1.179 quoted spreads; D1 0.265 ATR, 0.353, 22.745 quoted spreads. Read-only independent receipt review verified 300 month-TF-cohort counts and hashes but did not replay raw M1 or rehash large parquet. Gray is intermediate physical movement; no target lock, model learning, TEST or economics. Plan consumed; no relaunch."
   },
   "h4_trendline_lifecycle_physical_oracle_20261107_001": {
-    "status": "ADMITTED",
-    "decision": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_H4_TRAIN_WINDOW_19_EXERCISED",
+    "decision": "BLOCKED",
     "scope": "One source-only independent H4 trendline lifecycle audit on all 1044 May-Dec2024 TRAIN H4 cache rows x 31 fields; eight anchors. Exact native M5/closed H4/ATR/cache alignment. No model/TEST/Entry/Exit/trade.",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/H4_TRENDLINE_LIFECYCLE_PHYSICAL_ORACLE_20261107_001.json",
@@ -61473,10 +61473,10 @@
     },
     "output_root": "/home/andre2/GX1_RUNS/H4_TRENDLINE_LIFECYCLE_PHYSICAL_ORACLE_20261107_001",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "relaunch_allowed": false,
     "memory_max": "4G",
     "swap_max": "512M",
@@ -61488,6 +61488,23 @@
     "test_data_used": false,
     "training_authorized": false,
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
-    "terminal_owner": "Integrator writes immutable success/failure TERMINAL after the one claimed capped invocation; no relaunch."
+    "terminal_owner": "Integrator writes immutable success/failure TERMINAL after the one claimed capped invocation; no relaunch.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/H4_TRENDLINE_LIFECYCLE_PHYSICAL_ORACLE_20261107_001/CLAIM.json",
+      "sha256": "1b64778e56717cabcc295fc709977c6cdd25f7b472bd7e2ab3c974c261605152"
+    },
+    "launch_log": {
+      "path": "/home/andre2/GX1_RUNS/H4_TRENDLINE_LIFECYCLE_PHYSICAL_ORACLE_20261107_001/LAUNCH.log",
+      "sha256": "0b2d55d60203f0dfbcca2d588cd70430d130f33bc827de0b6ec9662b782d0f63"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/H4_TRENDLINE_LIFECYCLE_PHYSICAL_ORACLE_20261107_001/RESULT.json",
+      "sha256": "6c4bea5179d2d9231f7e2051d2349b9c7ee97880c93b7aec939a4e10788206da"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/H4_TRENDLINE_LIFECYCLE_PHYSICAL_ORACLE_20261107_001/TERMINAL.json",
+      "sha256": "b36b219d75897911e6765f8137053d6a893b107dce35a3ea187e15c4a82ca32f"
+    },
+    "post_run_review": "One capped audit exit0 in 7.83s: independent H4 oracle compared all 1044 May-Dec2024 TRAIN rows x31 fields=32364 cells, 19 lifecycle fields=19836 cells, 0 mismatches; all19 exercised, rare fail_up4/fail_down6. Independent immutable-receipt review verified claim/plan/policy/source hashes, cap 4G/512M/pids64/one thread and all eight old witness coordinates. No separate raw M5/cache replay or large-file rehash by reviewer. H4 window numeric parity only; no global five-TF, model consumption, prediction or edge claim. Consumed, no relaunch."
   }
 }
