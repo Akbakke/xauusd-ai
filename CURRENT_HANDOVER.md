@@ -7,7 +7,7 @@ Les [GX1_RULES.md](GX1_RULES.md) og kjør `bash scripts/gx1_handover.sh --check`
 
 Før Entry skal modellen lære løpende OPP/NED/FLATT på M5/M15/H1/H4/D1, med ny prognose på lukkede M5-barer. Entry-plassering, Exit og handel kommer senere. [Gjenværende læringsmetode](docs/NATIVE_LEARNING.md) og [målkandidatene](docs/MARKET_STATE_ENDPOINT_CANDIDATE_20261106.md) beskriver kravene. **Markedsmålet er fremdeles foreslått, ikke valgt/låst.** `training_enabled=false`; ingen ny fit, TEST-tilpasning, broker, ordre eller handel er autorisert.
 
-Aktuell policystatus: `M5_SIDE_LOCALITY_DIAGNOSTIC_COMPLETE_TARGET_OPEN`. Engangsplanene for full TRAIN-kilde/masker, én-terskelkontroll, D1-trendlinjeorakel og M5-lokal side er fullført og konsumert. Ingen ny kjøring eller fit er innrømmet.
+Aktuell policystatus: `MARKET_STATE_GRAY_PHYSICAL_ADMITTED_SOURCE_ONLY`. Tidligere engangsplaner er fullført og konsumert. Én ny [fysisk TRAIN-kildekontroll](configs/research/MARKET_STATE_GRAY_PHYSICAL_20261107_001.json) av gråsonen er innrømmet som nøyaktig én capped audit (4G/512M/1800 s, 0 modellsteg); CLAIM og kjøring er ennå ikke opprettet. Ingen fit er innrømmet.
 
 ## Målt og bevist konsistent
 
@@ -25,7 +25,7 @@ Aktuell policystatus: `M5_SIDE_LOCALITY_DIAGNOSTIC_COMPLETE_TARGET_OPEN`. Engang
 
 Målsemantikken er den første porten. En enkelt 1,0 ATR-grense gir høy dekning ved å kalle betydelige gråsonebevegelser FLATT. M5-sideankeret er nå kontrollert på eksakte retninger, men FLATT/AKTIV/UKJENT og øvrige TF er fortsatt åpne. Ingen side eller ukjent kilde fylles med gjettede etiketter.
 
-1. Avklar 0,5–1,0 ATR-mellomsonen med en separat, begrenset TRAIN-kildekontroll av signert netto start→slutt, `|netto|/lokal range`, sideveksling og varighet i observerte M1-minutter per TF/måned; behold eksakte endepunkter og gapmasker. Velg så meningsfull FLATT/AKTIV/OPP/NED-kontrakt fra fysisk bevegelse og observerbarhet, ikke klassebalanse eller modellscore. Bevar fem TF og kausalitet; ny kjøring krever egen engangsadmisjon.
+1. Kjør den innrømmede engangskontrollen av 0,5–1,0 ATR-mellomsonen: signert netto start→slutt, `|netto|/lokal range`, M1-close-kryssinger og terminal støtte per TF/måned, med eksakte endepunkter og gapmasker. Velg så meningsfull FLATT/AKTIV/OPP/NED-kontrakt fra fysisk bevegelse og observerbarhet, ikke klassebalanse eller modellscore. Bevar fem TF og kausalitet; kryssingene beviser ikke intraminuttorden eller ekte episoders varighet.
 2. Bind fem endepunktsutganger, tillatt-mengde-tap, aktivitet/side/treklasse-skår og kronologiske TRAIN-referanser til **samme** mål. Først deretter kvalifiseres en eksakt, begrenset modellfit. `training_enabled=false` inntil egen admisjon.
 3. Fortsett uavhengig kontroll av resterende indikatorformler på M5/M15/H1/H4 og de øvrige familiene. D1-vinduets PASS er ingen generell dom om alle felt eller prognoseverdi.
 
