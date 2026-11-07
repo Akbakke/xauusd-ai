@@ -1241,6 +1241,35 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         print(json.dumps(_safe_json(report), indent=2, sort_keys=True, allow_nan=False))
         return 0
+    five_endpoint_options = (
+        "--market-state-five-endpoint-zero-step-plan",
+        "--market-state-five-endpoint-zero-step-plan-sha256",
+    )
+    if any(value.partition("=")[0] in five_endpoint_options for value in supplied):
+        zero_parser = argparse.ArgumentParser(
+            description="One bounded five-endpoint native zero-step forward",
+            allow_abbrev=False, add_help=False,
+        )
+        zero_parser.add_argument(five_endpoint_options[0], type=Path, required=True)
+        zero_parser.add_argument(five_endpoint_options[1], required=True)
+        zero_parser.add_argument("--device", choices=("cuda",), required=True)
+        zero_parser.add_argument("--out-dir", type=Path, required=True)
+        for option in (*five_endpoint_options, "--device", "--out-dir"):
+            if sum(value.partition("=")[0] == option for value in supplied) > 1:
+                zero_parser.error(f"duplicate flag: {option}")
+        zero_args = zero_parser.parse_args(supplied)
+        if not zero_args.out_dir.is_absolute():
+            zero_parser.error("--out-dir must be an absolute path")
+        from gx1.audit.verify_market_state_five_endpoint_zero_step_v1 import run as run_zero_step
+
+        report = run_zero_step(
+            plan_path=zero_args.market_state_five_endpoint_zero_step_plan,
+            plan_sha256=str(zero_args.market_state_five_endpoint_zero_step_plan_sha256),
+            device="cuda",
+            out_dir=zero_args.out_dir,
+        )
+        print(json.dumps(_safe_json(report), indent=2, sort_keys=True, allow_nan=False))
+        return 0
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--bundle-dir", type=Path, required=True)
     parser.add_argument("--checkpoint-session-dir", type=Path, required=True)
