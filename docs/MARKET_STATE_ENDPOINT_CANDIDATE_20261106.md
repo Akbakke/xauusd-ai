@@ -49,6 +49,20 @@ Det meste av M5-UKJENT kommer fra **måldefinisjonens** gråsone `0,5 A ≤ R < 
 
 D1-eksaktdekningen varierer fra 7,8 % i august 2025 til 64,2 % i oktober 2025; senere resultat kan derfor ikke tolkes uten månedlig dekning. En separat capped kontroll av bare TRAIN M1-tidskolonnen fant at alle 39 042 eksakte D1-vinduer inneholder allerede kjente barer ved `t`, typisk 64 av 1 440 (4,44 %). Typisk veggklokkespenn er 1 504 minutter, og 486 eksakte vinduer som krysser en dokumentert helg spenner typisk 4 448 minutter. Dette er **tilstand ved `v`**, ikke bevegelsen fra `t` til `v`; overlappen alene forklarer ikke 50/50-retning. Retningssiden i dagens måleier bruker et fortløpende anker som kan være eldre enn `W_TF` og nullstilles først ved ukjent gap eller manglende ATR. Ankeralder og verdi mot kausal nåtilstand må undersøkes før målet låses.
 
+## Alternativ med én forhåndsbundet 1,0 ATR-grense
+
+En separat, **ikke valgt** kildekandidat bruker samme eksakte klokke, konservative sidebevis og hullregler, men kaller et fullt vindu `R < 1,0 A` FLATT og `R ≥ 1,0 A` AKTIV. [RESULT](/home/andre2/GX1_RUNS/SINGLE_THRESHOLD_MARKET_STATE_CANDIDATE_20261107_001/RESULT.json) SHA-256 `1bad8a8a88d61a67ee2487e387c246da06f4f4ccf319e7edd8ce35d39d13eba1`, [radvise masker og kalibrering](/home/andre2/GX1_RUNS/SINGLE_THRESHOLD_MARKET_STATE_CANDIDATE_20261107_001/ROW_MASKS_AND_RATIOS.npz) SHA-256 `35257429efa4ec553293e1b10bec0993c3c494f04e7f5be72d55877112e590e5`, og [TERMINAL](/home/andre2/GX1_RUNS/SINGLE_THRESHOLD_MARKET_STATE_CANDIDATE_20261107_001/TERMINAL.json) SHA-256 `9ce11435f5be8174dd629c5f6c564f8a945cc432fb037afed14de47222798295` dokumenterer én capped, full-TRAIN kildekontroll med exit 0, 0 modellkall og 0 optimizersteg. De 591 682 M1-radene hadde ingen ugyldige/kryssede eller null-spread bid/ask-close-sitater i denne kilden. Kontroll av sitert spread er fysisk målskala, **ikke** utførbar nettoøkonomi.
+
+| TF | Eksakt av 118 706 | Delvis `{NED,OPP}` | Ukjent | NED / FLATT / OPP blant eksakte | Månedsmedian for `1,0 ATR / sitert spread` |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| M5 | 110 539 (93,12 %) | 7 659 | 508 | 18 921 / 70 869 / 20 749 | 2,97–6,83 |
+| M15 | 115 683 (97,45 %) | 1 557 | 1 466 | 21 375 / 70 272 / 24 036 | 5,24–12,43 |
+| H1 | 112 787 (95,01 %) | 316 | 5 603 | 20 265 / 68 152 / 24 370 | 10,76–25,60 |
+| H4 | 108 164 (91,12 %) | 252 | 10 290 | 20 776 / 62 072 / 25 316 | 21,66–49,78 |
+| D1 | 81 050 (68,28 %) | 1 537 | 36 119 | 14 910 / 44 417 / 21 723 | 61,36–125,75 |
+
+En uavhengig kontroll av lagret RESULT/NPZ bekreftet alle 100 måned×TF-partisjoner, forholdstall, gyldighetsmasker, uendrede endepunktsrader og at **alle tidligere ikke-UKJENT-masker er bevart**. I alt 273 200 gamle gråsoneceller ble FLATT, ingen ble gitt side. På M5 er tallet 62 687. Over hele TRAIN er M5-medianen `1,0 ATR / sitert spread` 4,164; bare 5,67 % av gyldige M5-vinduer hadde terskel ≤2 spreads. Tilsvarende 0,5 ATR-skala er median 2,082 spreads og 46,24 % ≤2. Etterkontrollen leste ikke rå bud/tilbud eller beregnet ATR på nytt. Den høye dekningen kommer hovedsakelig fra **endret FLATT-betydning**, ikke ny prisinformasjon eller bedre modell. En lokal high–low-range på 1,0 ATR beviser fortsatt ikke en entydig netto retning, vedvarende episode, prognoseevne eller edge. Før målvedtak må vi velge hva FLATT/OPP/NED faktisk betyr ved hver TF og binde taps- og scorekontrakten; terskel eller modell skal ikke velges fra klasseandelene eller disse dekningsprosentene. Ingen fit, VAL-utvalg, TEST eller handel er gjort.
+
 Før fit forhåndsbindes disse fem ekspanderende TRAIN-foldene, alle med venstre grense inkludert og høyre ekskludert:
 
 | Fold | Tidligere fit fra 2024-05-01 | Senere skårperiode |
