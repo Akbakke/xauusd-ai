@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Selected 0.5 ATR activity and conservative local side use the corrected five-TF TRAIN mask. The one mature fold1 native time-query v1 fit and later chronological TRAIN OOF lost M5 certified-side Brier to the frozen prior in all 14 weeks; a paired frozen diagnostic found upward miscalibration and the free-three-logit unknown-side objective defect. Factorized v2 model/loss and stable raw-logit scorer now pass source/synthetic checks, and read-only fold1 receipt/v2 view metadata binding passes. Physical v2 zero-step on two TRAIN rows passed direct activity/side gradient mechanics; target-role clarification, genuine optimizer/resume, fit, generalization, Entry decision value and economics are unqualified. training_enabled=false; consumed plans do not authorize new runs. TEST, Entry, Exit, broker, trading and spending remain closed.",
-  "next_action": "Invoke the new one-use, capped 4G/512M/1800s TRAIN-only signed-net/GC/EMA/confirmed-swing reference audit once. It publishes one reusable local signed target tape and five chronological fold/UTC-week paired scores. No model fit, threshold selection, TEST, Entry, Exit, broker, trade or spending. Review result and consume plan before any further v2 work; training_enabled=false.",
+  "next_action": "The one-use signed local D_s reference is complete and consumed. It is future-only on M5/M15/H1 score rows, but 8343/81230 H4 and 63942/63942 D1 nonzero later-TRAIN labels start before the decision. Do not interpret H4 full or any D1 local-D score as future price direction; S_s(v) remains a distinct local-state target. Next, source-bind one decision-anchored F_s(t,v)=XAU_close(v)-XAU_close(t) target at the five native leads using exact M5 closes, earlier mature TRAIN fit and later TRAIN score rows, causal GC/EMA/confirmed-swing references on paired masks and UTC weeks. Reuse the existing reference core and GC inputs; no M1 raw rescan, no model fit, no TEST/Entry/Exit/broker/trade/spending. training_enabled=false.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -63714,8 +63714,8 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "MARKET_STATE_SIGNED_NET_GC_REFERENCE_ADMITTED_NO_FIT",
-  "recorded_observed_utc": "2026-11-07T23:12:05.993175+00:00",
+  "recorded_status": "SIGNED_NET_LOCAL_REFERENCE_COMPLETE_FUTURE_DIRECTION_ANCHOR_OPEN",
+  "recorded_observed_utc": "2026-11-07T23:21:33.695321+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
     "decision": "BLOCK",
@@ -64092,8 +64092,8 @@
     "test_data_used": false
   },
   "market_state_signed_net_gc_reference_20261108_001": {
-    "status": "ADMITTED",
-    "decision": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_LOCAL_DIAGNOSTIC_ONLY",
+    "decision": "LOCAL_D_NOT_FUTURE_ONLY_FOR_H4_D1",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_SIGNED_NET_GC_REFERENCE_20261108_001.json",
       "sha256": "799229e5b1562b6f2b00eea14c92bd4be9b3b93dda695b7ec69caea88d225517"
@@ -64106,10 +64106,10 @@
     "scope": "One consolidated source-only D_s native-endpoint audit on five later TRAIN folds: frozen prefix prior versus EMA5 plus confirmed XAU swing pivot order versus the same price bins plus GC M5 aggressor pressure. Paired rows/UTC weeks and magnitude bins; publish one local signed target tape. No model or TEST.",
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "relaunch_allowed": false,
     "memory_max": "4G",
     "swap_max": "512M",
@@ -64119,6 +64119,27 @@
     "checkpoint_reads_authorized": false,
     "broker_access_allowed": false,
     "training_authorized": false,
-    "test_data_used": false
+    "test_data_used": false,
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_SIGNED_NET_GC_REFERENCE_20261108_001/CLAIM.json",
+      "sha256": "102171ebf27db614fe61b1f2577f4446777125f1b2f2c4afdf3105927b0c4a40"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_SIGNED_NET_GC_REFERENCE_20261108_001/RESULT.json",
+      "sha256": "a59f0fcb7e9ed2327651788166f1932d5456f9e7f47677f2b30adc230bc3624d"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_SIGNED_NET_GC_REFERENCE_20261108_001/TERMINAL.json",
+      "sha256": "d527919897c5d93230be0c2dee553d9a8cc98585a92d2be1ec8dde05c8961b9c"
+    },
+    "launch_log": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_SIGNED_NET_GC_REFERENCE_20261108_001/LAUNCH.log",
+      "sha256": "78a02c7290914065c99e24762062493a19b78dbfadd6e6f27011dd5daccb2882"
+    },
+    "target_tape": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_SIGNED_NET_GC_REFERENCE_20261108_001/SIGNED_TARGET_TAPE.npz",
+      "sha256": "f363f6f730712921e7b1c63c65701dc3a3d981db377892408068d161025b0b5a"
+    },
+    "post_run_review": "One capped 4G/512M/1800s CPU audit completed exit0 in 298.78s; 591682 TRAIN M1 rows, 118706 M5 issues, 537909 ratio-parity cells, all 15 prior sign partitions, 5 chronological folds, 0 model/optimizer/TEST. Hash-bound independent tape/receipt review: local D windows begin before issue for 0/0/0/8343/63942 later-TRAIN nonzero rows on M5/M15/H1/H4/D1; denominators 88225/87613/84639/81230/63942. D1 result is not a future-return test. M5 paired common n=86636, prior/price/price+GC Brier .2499137/.2498420/.2498389; GC incremental effect +.0000031 and 3/5 positive folds, insufficient evidence of useful direction. This is a fixed sign-bin baseline, not full GC model ablation or economic edge."
   }
 }
