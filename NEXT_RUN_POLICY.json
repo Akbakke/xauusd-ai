@@ -45,7 +45,16 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-07T03:10:14.780833+00:00",
-  "status": "MARKET_STATE_LOCAL_SIDE_MASK_CORRECTED_MODEL_CONTRACT_PENDING",
+  "status": "MARKET_STATE_FIVE_ENDPOINT_MATH_TESTED_TARGET_BINDING_PENDING",
+  "market_state_five_endpoint_math": {
+    "status": "PURE_MATH_TESTED_NOT_ROUTED",
+    "source_path": "gx1/contracts/market_state_five_endpoint_contract_v1.py",
+    "source_sha256": "5007214d0f8df9dc9834dcf8c88d22ea75567772e8ffc184ad5cecb77fc19b34",
+    "test_path": "tests/test_market_state_five_endpoint_contract.py",
+    "test_sha256": "244e586931db49cf910855fe43fa4a4c9ef0450143f63bbea9c1dc6709976e77",
+    "contract_sha256": "06907f77767dbc82be3b8bf3b1f956fd7f844c560336fe0bc07936885e0c24b9",
+    "fit_authorized": false
+  },
   "market_state_activity_semantics": {
     "status": "OPERATOR_SELECTED_CANDIDATE_FULL_TARGET_PENDING",
     "complete_local_range_below_atr14": 0.5,
@@ -59,7 +68,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Operator-selected 0.5 ATR activity and conservative local side now have an immutable corrected five-TF TRAIN source mask. Exactly 273200 full-window gray cells became ACTIVE side-unknown, then seven measured H4/D1 old singleton sides were conservatively demoted; all other masks and axes preserved. Remaining certified sides match cold local replay in scoped audits. Five-endpoint output/loss/scorer, causal now-state references, chronological baselines and indicator usefulness remain unqualified. training_enabled=false; no model fit, TEST, Entry/Exit, broker, trading or spending.",
-  "next_action": "Bind one exact five-endpoint market-state model contract to corrected ROW_MASKS.npz: logits[B,5,3], allowed-set loss on mature masks, separate proper activity/side/three-class scores and identical-row chronological TRAIN references. Reuse existing five-TF/GC/eight-specialist/D1 backbone; do not enable old 7200-query chain or stale current-state input. Qualify indicator formulas and consumption; only then consider a separately admitted fit. training_enabled=false; TEST and trading closed.",
+  "next_action": "Bind the corrected ROW_MASKS.npz to exact existing model parent/decision clocks and the tested pure five-endpoint loss/scores; implement separate causal five-output routing and identical-row chronological TRAIN references before any fit. Reuse existing five-TF/GC/eight-specialist/D1 backbone; do not enable old 7200-query chain or stale current-state input. Qualify indicator formulas and consumption; only then consider a separately admitted fit. training_enabled=false; TEST and trading closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
