@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Selected 0.5 ATR activity and conservative local side use the corrected five-TF TRAIN mask. The one mature fold1 native time-query v1 fit and later chronological TRAIN OOF lost M5 certified-side Brier to the frozen prior in all 14 weeks; a paired frozen diagnostic found upward miscalibration and the free-three-logit unknown-side objective defect. Factorized v2 model/loss and stable raw-logit scorer now pass source/synthetic checks, and read-only fold1 receipt/v2 view metadata binding passes. Physical v2 initial predictions, genuine gradient/resume, fit, generalization, Entry decision value and economics are unqualified. training_enabled=false; consumed plans do not authorize new runs. TEST, Entry, Exit, broker, trading and spending remain closed.",
-  "next_action": "Run exactly one source-frozen, guarded CUDA v2 zero-step on fold1 TRAIN rows 0/2 after clean direct and capped preflight, signed 160W keeper and resource checks; restore original 250W keeper after terminal. Independently reconcile direct M5 unknown-side zero gradient, known-side nonzero gradient, initial probabilities/loss, unchanged model state and no optimizer/TEST. Close this plan whether COMPLETE or FAILED; no relaunch. training_enabled=false; separate gradient/resume/checkpoint/OOF qualification before any fit.",
+  "next_action": "Use the physical v2 zero-step PASS only as technical mechanics. The v1 private/fold1 checkpoint owners hard-require v1 model/loss/view identities, and v1 OOF decodes float32-softmax; neither can be reused. Next source-bind a distinct v2 four-step TRAIN checkpoint/bit-exact resume witness and v2 OOF driver using decode_raw_query_grid plus FactorizedTimeQueryMatchedScorer before one separately admitted capped fold1 fit. Hypothesis: removing unknown-side direct gradients improves later certified M5 k1 side proper score versus the same frozen prior, with five-TF/UTC-week reporting. No repeated fit without a new hypothesis. training_enabled=false; TEST/Entry/Exit/broker/trading/spending closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -63666,8 +63666,8 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "MARKET_STATE_V2_ZERO_STEP_ADMITTED_FIT_CLOSED",
-  "recorded_observed_utc": "2026-11-07T22:10:48.120250+00:00",
+  "recorded_status": "MARKET_STATE_V2_ZERO_STEP_CONSUMED_FIT_CLOSED",
+  "recorded_observed_utc": "2026-11-07T22:20:50.530888+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
     "decision": "BLOCK",
@@ -63951,8 +63951,8 @@
     "limitations": "Fixed raw positive-buy-pressure and book-OFI orientation on certified M5 k1 side, five later TRAIN intervals only. No calibration, probability score, GC model ablation, other TF/horizon or economic edge; observed small inverse association cannot be selected as a reverse trading rule from these same folds."
   },
   "market_state_time_query_v2_zero_step_20261107_001": {
-    "status": "ADMITTED",
-    "decision": "ADMITTED",
+    "status": "CONSUMED_COMPLETE_FACTORIZED_V2_INITIAL_GRADIENT_NO_UPDATE",
+    "decision": "TECHNICAL_PASS_NO_DIRECTION_OR_FIT_AUTHORITY",
     "scope": "One guarded CUDA TRAIN fold1 physical initial witness on prebound parent rows 0 and 2: known M5 DOWN and ACTIVE unknown M5 side, exact factorized v2 view, one forward and backward, zero optimizer/checkpoint/fit. No OOF, TEST, Entry, Exit, broker or trade.",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TIME_QUERY_V2_ZERO_STEP_20261107_001.json",
@@ -63960,10 +63960,10 @@
     },
     "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TIME_QUERY_V2_ZERO_STEP_20261107_001",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "model_forwards_authorized": 1,
     "backward_calls_authorized": 1,
     "optimizer_steps_authorized": 0,
@@ -63978,6 +63978,49 @@
     "wall_seconds": 3600,
     "required_signed_power_limit_w": 160,
     "prepared_source_head": "ba83bf0e716e5df12146c2216d30b2854f008c38",
-    "standing_authorization_source": "GX1_RULES_local_zero_spend_read_only_research"
+    "standing_authorization_source": "GX1_RULES_local_zero_spend_read_only_research",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TIME_QUERY_V2_ZERO_STEP_20261107_001/CLAIM.json",
+      "sha256": "4aa1daf9d86ec2cd3516b126f8d74ec99fd3aefcd8ba747ab8880e447c65ee81"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TIME_QUERY_V2_ZERO_STEP_20261107_001/RESULT.json",
+      "sha256": "7390bd17b32f26a6145f2eac0b562f4bcffbe16385a907d42daa1372c8e6ad86"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TIME_QUERY_V2_ZERO_STEP_20261107_001/TERMINAL.json",
+      "sha256": "85f6ed6cbae48257a45f091a7e5a9a2eaf19f927637eda6f0da96060e89440b2"
+    },
+    "source_head": "e4739d64cb09e73f805fae8c625070ca18184d8b",
+    "observed": {
+      "elapsed_seconds": 89.80761979499948,
+      "fold_id": 1,
+      "train_rows": 2,
+      "informative_cells": 5,
+      "initial_loss": 0.7100969552993774,
+      "unknown_m5_direct_side_gradient_zero": true,
+      "unknown_m5_activity_gradient_nonzero": true,
+      "known_m5_side_gradient_nonzero": true,
+      "initial_final_state_bit_equal": true,
+      "model_forwards": 1,
+      "backward_calls": 1,
+      "optimizer_steps": 0,
+      "checkpoint_loaded": false,
+      "test_data_used": false,
+      "guard_peak_core_temp_c": 44,
+      "guard_peak_memory_temp_c": 46,
+      "guard_peak_power_draw_w": 132.58,
+      "guard_peak_memory_used_mib": 794
+    },
+    "guard_log": {
+      "path": "/home/andre2/GX1_RUNS/.MARKET_STATE_TIME_QUERY_V2_ZERO_STEP_20261107_001.guard.DpLktWaA.log",
+      "sha256": "9ca90b27291988be0f35ba6a722135d6ed449e416cfc68cf55cef423f4f634ff"
+    },
+    "hardware_restored": {
+      "power_limit_w": 250,
+      "config_sha256": "22af0d65294d636164705b100101a47a56bfcf0e2b660a4bb2808965a3434d98",
+      "signed_bridge_sample": "34,42,23.78,250,78"
+    },
+    "limitations": "Two initial TRAIN rows prove only factorized-v2 direct gradient mechanics and physical input/model connection. No optimizer, learned weights, checkpoint/resume, chronological OOF, GC model added value, Entry quality or economic edge. This plan is consumed and cannot be reused."
   }
 }
