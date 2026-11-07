@@ -1,0 +1,108 @@
+{
+  "backward_calls_authorized": 1,
+  "constructor": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_FRESH_PREPARATION_20261022_187/CONSTRUCTOR_METADATA.json",
+    "sha256": "8d0fc19b646b142dced37ad86dd0e43a71bb8efe299a9ba4fd2de08e324db2bf"
+  },
+  "corrected_mask": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001/ROW_MASKS.npz",
+    "sha256": "2b063e35b97cc1dbdbb522d2b2876a39514b1145d8c59d8a2ab07561764f9edc"
+  },
+  "execution": {
+    "backward_calls": 1,
+    "class": "producer",
+    "cuda_producer": true,
+    "device": "cuda",
+    "flag": "--market-state-five-endpoint-gradient-bridge-plan",
+    "memory": "12G",
+    "model_forwards": 1,
+    "module": "gx1.scripts.validate_entry_model_native_technical_checkpoint_v1",
+    "optimizer_steps": 0,
+    "swap": "512M"
+  },
+  "expected_objective_sha256": "bc4f261a5ee2380879d4eb53a118e5aac5479e37dcb073126dab91c05f6420ed",
+  "expected_view_sha256": "094e6e64f7b5092c91a9e2c8f3259f176a90c753767d585d4169247ba2ae92ae",
+  "fold_id": 1,
+  "input_plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_003.json",
+    "sha256": "4a80b5d15f16e6a790de3a80155043e9fc2177a329256d67f4985597384f8fa5"
+  },
+  "input_result": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_003/RESULT.json",
+    "sha256": "3177fee2339bfc81354088cae50f22ac31d191fd4ad7c64c2d047bd68c682b71"
+  },
+  "input_terminal": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_003/TERMINAL.json",
+    "sha256": "0ac8a8926a08f0044c30e38df0d257720edcbb5740f2439bbb730d12fbb81300"
+  },
+  "limits": {
+    "max_wall_seconds": 3600,
+    "memory_high": 12884901888,
+    "memory_max": 12884901888,
+    "swap": 536870912
+  },
+  "max_invocations": 1,
+  "max_json_bytes": 1048576,
+  "model_forwards_authorized": 1,
+  "normalization": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_003/PREFIX_NORMALIZATION.json",
+    "sha256": "9cbde23587e2296365b799d9f288c27ce3cd9b4023baa19cc77aad3476076109"
+  },
+  "observer_axes": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_VIEW_BINDING_20261106_001/OCTOBER_OBSERVER_AXES.json",
+    "sha256": "3693ca3c259b7093148c78069cf1e868837441000a12d5db750f3bef8e495a83"
+  },
+  "old_view": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_VIEW_BINDING_20261106_001/CONTROL_VIEW.json",
+    "sha256": "c0d64f1e0f16ffb8a85942567858b5e2a6e6b04482c901472bdc2789d6aec9db"
+  },
+  "optimizer_steps_authorized": 0,
+  "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_FIVE_ENDPOINT_GRADIENT_BRIDGE_20261107_001",
+  "partition": "fit",
+  "prior_zero_result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FIVE_ENDPOINT_ZERO_STEP_20261107_003/RESULT.json",
+    "sha256": "c787c27de60788b30dea83acb859130ea63aa82a68c3a537aa899b7e925c5d91"
+  },
+  "prior_zero_terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FIVE_ENDPOINT_ZERO_STEP_20261107_003/TERMINAL.json",
+    "sha256": "25a1cd3a235730594437935810a298ca6b8e301fe3be332c05b6a663c6a7e7d6"
+  },
+  "sample_issue_ns": [
+    1714521900000000000,
+    1727740500000000000
+  ],
+  "sample_parent_rows": [
+    0,
+    29848
+  ],
+  "schema_version": "gx1_market_state_five_endpoint_gradient_bridge_plan_v1",
+  "seed": 20261107,
+  "source_base_head": "9cb408aaf9d30166c35cf42c513327e727b3e376",
+  "source_owners": {
+    "gx1/audit/dynamic_mtf_october_input_only.py": "174c46d0bec2dc7a9ae46f893bcfbd7ef5945f79c39d95cefa9595918251f680",
+    "gx1/audit/dynamic_mtf_train_prefix_inputs.py": "cb29b4a696119b341bc1f1eae0a1bbb281ea4c101498dd34544abfcf46bd7185",
+    "gx1/audit/verify_market_state_five_endpoint_gradient_bridge_v1.py": "393926d709e8b6fd133533b32db9f6fc693b43c39514a3d4d342e866655c1ba3",
+    "gx1/audit/verify_market_state_five_endpoint_zero_step_v1.py": "bfbb4d13e32755010587a7d2323a738b7052054e319dfc2f11f281197f140e20",
+    "gx1/contracts/entry_native_direction_feature_view_v1.py": "382a70c2f708f0b641ec1dd2295027283b7e7059847b9c7c69f192f60fce2e20",
+    "gx1/contracts/entry_native_direction_prefix_units_v1.py": "37627f5321e476b00b2b5ed6c9d96b4c59f3b04124b3eb64cbedb6b3cf9a021d",
+    "gx1/contracts/entry_native_direction_research_v1.py": "dba2d263f0d28e52e73fa38e1d7febd88b3e9a5958edc566f30df0ca69180fa3",
+    "gx1/contracts/gx1_capped_execution_v1.py": "e8206a3d7bf6922b1c4f0fac85498c5a913270e96e94871d7f7a9c48c9611cb5",
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "gx1/contracts/local_random_access_campaign_v2.py": "00759c4ae37f0894ff42a673ad4b7d91e6e1a8bf9945386ac202cfaa6b992143",
+    "gx1/contracts/market_state_five_endpoint_batch_v1.py": "61a62a4918be774dcbefcfeb13bb36d64e2263ac23e5b39a6bdaf84f5d818270",
+    "gx1/contracts/market_state_five_endpoint_contract_v1.py": "5007214d0f8df9dc9834dcf8c88d22ea75567772e8ffc184ad5cecb77fc19b34",
+    "gx1/contracts/market_state_five_endpoint_model_v1.py": "a1d1ed498d1dd3cbbb8426acb6457848b3d59f57148972e529f6b3c85ea309f5",
+    "gx1/contracts/market_state_five_endpoint_target_binding_v1.py": "725eb6ec4d6630d483270afa1fbbcc70ed792da28003d1811826a201d324198d",
+    "gx1/contracts/model_state_digest_v1.py": "f5d362079bb61bd61919bdea56e7f782d2461499691f2d588cc9a6a078e487e4",
+    "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": "43526ebda18d32a98e29da100e845f1643d0b558da9b950ffa9d1c54b4df2c6e",
+    "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "5983cd8d6395ed2a61a139a35069d96accc4c8c62378a8460d09ff3aeaf7201e",
+    "gx1/scripts/validate_entry_model_native_technical_checkpoint_v1.py": "a4fee26d713f6033a8f1e73332a2112c5bea4bad0cd1259ff0d4760df68f8bc2",
+    "scripts/gx1_capped_run.sh": "7749d3cd610535ae19ba33cdd8827c9f309ab64ccb39c7231d03151556bd7681",
+    "scripts/gx1_guarded_trainer_exec.sh": "6c4a4bfe704828aeb1c5ad2d89160e4cbb8fadb210be5fc33d26f12b96db0c45",
+    "scripts/gx1_host_telemetry_bridge_query.sh": "ffcb8eb3dd72e36cef63361ae9cabaf96b9a44fdbfa5686a83247182e382b514"
+  },
+  "stage": "market_state_five_endpoint_gradient_bridge_20261107_001",
+  "status": "PREPARED_NOT_ADMITTED",
+  "test_data_used": false,
+  "training_authorized": false
+}
