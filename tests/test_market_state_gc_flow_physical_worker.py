@@ -66,3 +66,18 @@ def test_volume_and_delta_parity_fail_closed_on_joint_observed_rows():
     values['gc_m5_observed_volume'][1] = 8.0
     with pytest.raises(RuntimeError, match='TRADE_ARITHMETIC'):
         worker._flow_parity(values)
+
+
+def test_weekly_result_writer_supports_bounded_payload_and_no_replace(tmp_path):
+    payload = {'weekly_evidence': 'x' * (300 * 1024)}
+    ref = worker._write(tmp_path, 'RESULT.json', payload)
+    stored = (tmp_path / 'RESULT.json').read_bytes()
+    assert len(stored) > 256 * 1024
+    assert len(stored) <= worker.MAX_JSON_BYTES
+    assert hashlib.sha256(stored).hexdigest() == ref['sha256']
+    with pytest.raises(RuntimeError, match='immutable event already exists'):
+        worker._write(tmp_path, 'RESULT.json', payload)
+    with pytest.raises(RuntimeError, match='PUBLICATION_SIZE_OR_ROUNDTRIP'):
+        worker._write(tmp_path, 'TOO_BIG.json',
+                      {'weekly_evidence': 'x' * worker.MAX_JSON_BYTES})
+    assert not (tmp_path / 'TOO_BIG.json').exists()

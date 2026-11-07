@@ -19,7 +19,7 @@ import numpy as np
 from gx1.audit import measure_market_state_five_endpoint_prior_v1 as base
 from gx1.audit import market_state_m5_gc_flow_reference_core_v1 as core
 from gx1.contracts import market_state_five_endpoint_target_binding_v1 as target
-from gx1.contracts.immutable_event_authority_v1 import _fsync_directory
+from gx1.contracts.immutable_event_authority_v1 import _fsync_directory, _publish_bytes
 from gx1.features import entry_specialist_feature_groups_v1 as owners
 
 REPO, RUNS, POLICY = base.REPO, base.RUNS, base.POLICY
@@ -44,6 +44,7 @@ SOURCE_PATHS = frozenset({
     'gx1/features/volume_features.py',
     'scripts/gx1_capped_run.sh',
 })
+MAX_JSON_BYTES = 1024 * 1024
 LIMITS = {'memory_max': 4 * 1024**3, 'memory_high': 4 * 1024**3,
           'swap': 512 * 1024**2, 'max_wall_seconds': 1800}
 EXECUTION = {'class': 'audit', 'runner': 'scripts/gx1_capped_run.sh',
@@ -111,13 +112,25 @@ SCOPE = {
     'certified_side_rows': list(EXPECTED_CERTIFIED_SIDE),
     'core_contract_sha256': core.gc_flow_reference_contract()['contract_sha256'],
     'full_mmap_content_sha_claimed': False,
+    'max_published_json_bytes': MAX_JSON_BYTES,
 }
-_sha, _ref, _write, _clean_head = base._sha, base._ref, base._write, base._clean_head
+_sha, _ref, _clean_head = base._sha, base._ref, base._clean_head
 
 
 def _need(ok: object, reason: str) -> None:
     if not bool(ok):
         raise RuntimeError('GC_FLOW_REFERENCE_' + reason)
+
+
+def _write(root: Path, name: str, value: dict) -> dict:
+    # The five fixed folds include UTC-week tables, beyond the prior owner's
+    # 256 KiB bound. Keep identical immutable no-replace publication semantics.
+    data = (json.dumps(value, sort_keys=True, indent=2, allow_nan=False) + '\n').encode()
+    _need(len(data) <= MAX_JSON_BYTES and json.loads(data) == value,
+          'PUBLICATION_SIZE_OR_ROUNDTRIP')
+    path = root / name
+    _publish_bytes(path, data)
+    return {'path': str(path), 'sha256': hashlib.sha256(data).hexdigest()}
 
 
 def _file_stat(path: Path) -> dict:
