@@ -1418,8 +1418,8 @@
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Selected 0.5 ATR activity and conservative local side have a corrected five-TF TRAIN mask: 273200 full-window gray cells are ACTIVE with unknown side; seven measured H4/D1 singleton sides were demoted. The fixed five-fold CPU snapshot fit failed the predeclared M5 side gate, while native sequence fit, chronological OOF direction and indicator predictive usefulness remain unqualified; the model-to-loss and four-step optimizer/resume paths are only technically qualified. The read-only M1 duration audit passed selected-endpoint parity but cannot establish physical episode lengths because most side runs are censored. The exact fold1 native time-query fit _001 failed before a batch and is consumed; the separately qualified _002 fit is COMPLETE and consumed; its M5 side Brier is worse than frozen prior in all 14 weeks, so training_enabled=false and no repeat fit is admitted. TEST, Entry, Exit, broker, trading and spending remain closed.",
-  "next_action": "Plan 002 completed/consumed. Fold1 M5 k1 side Brier 0.277630566 vs frozen prior 0.249827988, AUC 0.489107, mean predicted UP 0.649881 vs actual 0.513944. Fit-absent 51 GC D1 fields change mean Brier by only 1.01e-7; this does not test M5 GC flow. Source and CPU autograd prove bit5 ACTIVE side-unknown allowed-set NLL pushes the free 3-logit head toward its already favored side; 17241 M5 fit bit5 rows vs 10010 certified sides. No claim this is sole cause. Block further v1 fit. Next: specify and source-test factorized activity and conditional-side output with zero direct side-logit gradient on bit5, align loss and score, fresh initial baseline and exact new admission before any fit. Separately evaluate M5 known GC buy/sell/delta/OFI contribution on later TRAIN after objective repair. TEST/Entry/Exit/broker/trading remain closed.",
+  "rule": "Selected 0.5 ATR activity and conservative local side use the corrected five-TF TRAIN mask: 273200 full-window gray cells are ACTIVE with unknown side; seven measured H4/D1 singleton sides were demoted. One mature fold1 native time-query v1 fit and later chronological TRAIN OOF completed, but M5 certified-side Brier lost to the frozen prior in all 14 weeks. The paired frozen diagnostic found upward miscalibration and the v1 free-three-logit loss was proven to update side on unknown-side cells. A factorized v2 activity/conditional-side source candidate now passes synthetic gradient and wiring checks; no physical v2 initial baseline, genuine fit, generalization, Entry edge or economic value is qualified. training_enabled=false; consumed plans do not authorize new runs. TEST, Entry, Exit, broker, trading and spending remain closed.",
+  "next_action": "Factorized v2 model/loss and explicit opt-in view/batch source candidate are implemented. Synthetic trainable-head autograd proves exact zero direct conditional-side gradient for bit5 and bit2 across all five TF; activity gradient remains, bits1/4 train side. Focused old/new source tests pass; v1 receipts and checkpoints remain historical. No physical v2 baseline, genuine gradient/resume, scorer binding, fit or direction edge is qualified. Next: bind exact v2 source/feature/prefix-normalization identity to mature TRAIN, create fresh initial prediction/loss baseline and v2 checkpoint/resume plus stable scorer qualification. Before physical OOF resolve or fail-close the demonstrated float32 zero-active-mass conditional-side scorer underflow at extreme logits. Then prepare a distinct exact admission for one capped fit only if all gates pass; training_enabled stays false now. After objective repair, prebind M5 GC buy/sell/delta/OFI added-value measurement on later TRAIN. TEST/Entry/Exit/broker/trading stay closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1624,7 +1624,7 @@
   },
   "current_work": {
     "operator_request": "06.11: Predict and calibrate dynamic market state first. Entry location/Entry-Q follows later; M5 is forecast cadence. No assumption of extensive prior training.",
-    "current_activity": "One native fold1 mature TRAIN time-query fit and later TRAIN OOF completed/consumed: 29574 fit rows, 1849 updates, 17753 later rows. M5 k1 certified-side Brier loses to frozen prior on 6096 rows. One frozen paired GC D1 diagnostic completed: AUC 0.489107, predicted UP 0.649881 vs observed 0.513944; masking 51 D1 GC fields changes Brier by only 1.01e-7 per row. No TEST, Entry/Exit or trade. No job currently authorized.",
+    "current_activity": "Factorized v2 source candidate implemented with two primitive logits, explicit v2 view and batch bridge. Synthetic actual-head autograd and focused v1/v2 tests pass; no physical v2 baseline, optimizer, refit, TEST or trade. Fold1 v1 negative side OOF and frozen diagnostic remain the measured evidence, not v2 results.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1677,7 +1677,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Current v1 three-logit allowed-set loss for bit5 ACTIVE side-unknown yields nonzero conditional-side gradient and reinforces the favored side; 17241 M5 fold1 fit bit5 rows vs 10010 certified sides. This is an objective mismatch, not proven sole cause of poor OOF direction. A factorized activity/conditional-side output with matched loss and score, gradient proof, fresh initial baseline and new exact plan is required before further native fit. M5 GC buy/sell/delta/OFI value remains unmeasured; D1 ablation did not test it. Full project direction/economics remain UNKNOWN.",
+    "current_blocker": "Factorized v2 is only a source candidate. Actual mature TRAIN view/prefix-normalization identity, fresh v2 initial predictions/loss, genuine gradient/resume, checkpoint and stable scorer require new qualification and exact new plan before any fit. Synthetic extreme negative activity logit exposes underflow in the reused probability-only conditional-side scorer; bind a v2-safe scoring domain or fail closed before physical OOF. M5 GC flow predictive added value and direction/economic edge remain UNKNOWN. Training remains disabled.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -58193,7 +58193,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Define and measure dynamic DOWN/FLAT/UP market state at M5 forecast cadence for M5/M15/H1/H4/D1 before any Entry decision. Qualify source clocks, target/masks, genuine indicators, output/loss/scores and chronological TRAIN-only references before model fit; preserve sealed TEST and later Entry/economics as separate phases.",
     "operator_request": "Ja men så lag deg et langsiktig mål da for faen, jeg er dritt lei si «fortsett»! Målet er at vi skal gjøre ALT vi kan for å få en god Edge på entry retning!",
-    "status": "MARKET_STATE_FOLD1_OOF_NO_SIDE_GAIN_V1_OBJECTIVE_REPAIR_REQUIRED",
+    "status": "FACTORIZED_V2_SOURCE_CANDIDATE_TESTED_FIT_CLOSED",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793897675,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -63666,8 +63666,8 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "MARKET_STATE_FOLD1_DIAGNOSTIC_COMPLETE_SIDE_OBJECTIVE_DEFECT_FOUND",
-  "recorded_observed_utc": "2026-11-07T20:45:56.686990+00:00",
+  "recorded_status": "MARKET_STATE_FACTORIZED_V2_SOURCE_CANDIDATE_TESTED_FIT_CLOSED",
+  "recorded_observed_utc": "2026-11-07T21:01:17.934233+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
     "decision": "BLOCK",
