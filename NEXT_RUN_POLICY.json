@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-07T04:39:49.988893+00:00",
-  "status": "MARKET_STATE_FIVE_ENDPOINT_ZERO_STEP_003_ADMITTED_UNCLAIMED",
+  "observed_utc": "2026-11-07T04:43:35.501353+00:00",
+  "status": "MARKET_STATE_FIVE_ENDPOINT_ZERO_STEP_TECHNICAL_PASS_TARGET_LOOP_PENDING",
   "market_state_five_endpoint_zero_step_20261107_002": {
     "status": "CONSUMED_FAILED_SOURCE_HEADERS",
     "plan": {
@@ -111,12 +111,12 @@
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105"
   },
   "market_state_five_endpoint_zero_step_20261107_003": {
-    "status": "ADMITTED_ONCE_UNCLAIMED",
+    "status": "CONSUMED_COMPLETE_ZERO_STEP_SOURCE_PASS",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_FIVE_ENDPOINT_ZERO_STEP_20261107_003.json",
       "sha256": "6ba2f8449975b11cfa063b85389c281cfd7a17a59994e34088fa67e921755405"
     },
-    "decision": "ADMITTED",
+    "decision": "PASS_TECHNICAL_ROUTE_ONLY",
     "scope": "Minimal worker-only immutable clock-header adapter after plan002 claimed and failed before model forward. Same one Oct24 TRAIN fit row, one forward, zero optimizer if separately admitted; host profile currently restored to 250W.",
     "worker": {
       "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/verify_market_state_five_endpoint_zero_step_v1.py",
@@ -128,11 +128,11 @@
     },
     "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_FIVE_ENDPOINT_ZERO_STEP_20261107_003",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "model_forwards_authorized": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "model_forwards_authorized": 0,
     "optimizer_steps_authorized": 0,
     "training_authorized": false,
     "test_authorized": false,
@@ -149,6 +149,30 @@
       "model_forwards": 0,
       "optimizer_steps": 0,
       "test_data_used": false
+    },
+    "terminal_evidence": {
+      "claim_sha256": "778ee0987913b44fdac693b3c85240883179d7b8d99f00d29e6fab5fff3fd098",
+      "result_sha256": "c787c27de60788b30dea83acb859130ea63aa82a68c3a537aa899b7e925c5d91",
+      "terminal_sha256": "25a1cd3a235730594437935810a298ca6b8e301fe3be332c05b6a663c6a7e7d6",
+      "guard_log_sha256": "f14a8d347a5df074b2cc271f8c6b4062b22483ed1cf0a19c014b4a3c5261cd3f",
+      "stdio_log_sha256": "d8ad661fcbc0d751b48ea92515be395cbefba9a0d315cbaa6117c18b0cc1366d",
+      "exit_code": 0,
+      "decision": "PASS_ZERO_STEP_SOURCE_AND_OUTPUT_ONLY",
+      "train_fit_parent_rows": [0],
+      "output_shape": [1, 5, 3],
+      "finite_logits": true,
+      "model_forwards": 1,
+      "optimizer_steps": 0,
+      "model_state_unchanged": true,
+      "test_data_used": false,
+      "source_snapshot_files": 29,
+      "no_relaunch_under_this_plan": true
+    },
+    "host_power_profile_restored": {
+      "configured_w": 250,
+      "config_sha256": "22af0d65294d636164705b100101a47a56bfcf0e2b660a4bb2808965a3434d98",
+      "scheduled_task": "Running",
+      "signed_telemetry": "34,40,24.04,250,78"
     },
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105"
   },
@@ -246,8 +270,8 @@
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Operator-selected 0.5 ATR activity and conservative local side now have an immutable corrected five-TF TRAIN source mask. Exactly 273200 full-window gray cells became ACTIVE side-unknown, then seven measured H4/D1 old singleton sides were conservatively demoted; all other masks and axes preserved. Remaining certified sides match cold local replay in scoped audits. Five-endpoint output/loss/scorer, causal now-state references, chronological baselines and indicator usefulness remain unqualified. training_enabled=false; no model fit, TEST, Entry/Exit, broker, trading or spending.",
-  "next_action": "The Oct24 metadata-only five-output view and guarded zero-step worker now pass source/synthetic checks. Plan001 is consumed after preclaim signed-power rejection. Host guard config was temporarily reduced from 250W to 160W; signed telemetry now reports 160W. Plan002 claimed and failed before model forward on writable October clock headers; terminal is immutable and no relaunch is allowed. Original 250W host profile was restored and signed-verified. A minimal immutable-header adapter is source-tested; exact stage003 plan passed read-only preclaim and is admitted once for a capped zero-step forward. Set host power profile to 160W with signed verification immediately before launch. No fit, TEST or old-plan relaunch. No fit until target-only batch/loss, indicator and chronological reference gates pass. Reuse existing five-TF/GC/eight-specialist/D1 backbone; do not enable old 7200-query chain or stale current-state input. Qualify indicator formulas and consumption; only then consider a separately admitted fit. training_enabled=false; TEST and trading closed.",
+  "rule": "Operator-selected 0.5 ATR activity and conservative local side now have an immutable corrected five-TF TRAIN source mask. Exactly 273200 full-window gray cells became ACTIVE side-unknown, then seven measured H4/D1 old singleton sides were conservatively demoted; all other masks and axes preserved. Remaining certified sides match cold local replay in scoped audits. Pure five-endpoint output/loss/scorer and one real five-output forward route are source-qualified; target-only batch/loss, causal now-state references, chronological baselines and indicator usefulness remain unqualified. training_enabled=false; no model fit, TEST, Entry/Exit, broker, trading or spending.",
+  "next_action": "Plan003 completed and is consumed: one Oct24 TRAIN fit row, one fresh CUDA forward, output [1,5,3], zero optimizer steps, no TEST, no measured learning or edge. Original 250W host profile is restored. Reuse the certified source route; next bind corrected target-only batch/loss with empty-support skip and exact chronological TRAIN references on matching rows, then audit remaining indicator formulas and numerical consumption. No fit until separate evidence and admission. training_enabled=false; TEST, Entry/Exit, broker and trading closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
