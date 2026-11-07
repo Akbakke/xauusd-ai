@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-07T14:25:05.857487+00:00",
-  "status": "MARKET_STATE_TIME_QUERY_PRIVATE_4STEP_003_ADMITTED_READINESS_PREFLIGHT_PENDING",
+  "observed_utc": "2026-11-07T14:39:53.721864+00:00",
+  "status": "MARKET_STATE_TIME_QUERY_PRIVATE_4STEP_003_COMPLETE_TECHNICAL_ONLY_FIT_CLOSED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Selected 0.5 ATR activity and conservative local side have a corrected five-TF TRAIN mask: 273200 full-window gray cells are ACTIVE with unknown side; seven measured H4/D1 singleton sides were demoted. The fixed five-fold CPU snapshot fit failed the predeclared M5 side gate, while native sequence fit, actual model-to-loss and optimizer path, causal now-state references and indicator usefulness remain unqualified. The read-only M1 duration audit passed selected-endpoint parity but cannot establish physical episode lengths because most side runs are censored. No new fit is admitted. training_enabled=false; TEST, Entry, Exit, broker, trading and spending closed.",
-  "next_action": "Private 002 failed after one guarded invocation at boot 617 with 0 model/optimizer steps; task disabled, plan consumed. Three minimal source fixes now reuse full zero-step plan, correct existing input owner and read-only axes. A capped TRAIN-only input/target preflight passed on both B16 batches. Fresh 003 recipe is bound to 63 source owners and 19 inputs. At clean committed HEAD preflight native readiness read-only before preparation CLAIM, then materialize one new plan, stage/reinstall task, perform machine-wide idle review and fresh physical boot. Full predictor fit/OOF, TEST, Entry, Exit, broker and trading remain closed.",
+  "next_action": "Private 003 completed once under signed 250W guard at physical boot 618: 3 fresh models, 6 forwards, 4 backwards/AdamW updates, bit-exact 2-vs-1+resume+1 state, no TEST; task disabled and plan consumed. This is optimizer/resume/input timing qualification, not learned direction. Keep training_enabled=false. Next design and qualify one exact bounded TRAIN-only native time-query fit plus chronological OOF scorer against frozen M5 k=1 side prior and appropriate horizon-sensitive references; do not launch fit without separate source/recipe/policy admission and preclaim read-only smoke. Full fit, Entry, Exit, broker, trading and TEST remain closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -35083,7 +35083,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -63467,28 +63467,31 @@
     "failure_reason": "Zero-step physical invocation FAILED before model construction: KeyError:'source_owners' from passing a partial zero-step plan to _bind_view; no forwards/backwards/optimizer, no TEST. Consumed, no relaunch."
   },
   "market_state_time_query_private_4step_20261107_003": {
-    "status": "ADMITTED",
-    "decision": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_TECHNICAL_ONLY",
+    "decision": "COMPLETE_CONSUMED_TECHNICAL_ONLY",
     "scope": "TRAIN-only fold1 native time-query private optimizer/resume/throughput probe; two distinct chronological batches of 16, 3 fresh models, 6 forwards, 4 backwards, 4 AdamW updates, no predictor fit or OOF claim.",
     "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TIME_QUERY_PRIVATE_4STEP_20261107_003/RUNTIME",
     "recipe": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TIME_QUERY_PRIVATE_4STEP_20261107_003/RECIPE.json",
       "sha256": "ceb4fd478a1195b8c4f2656461e2a4fbf7a2dc3a6def5a4902e4d60188f0aa23"
     },
-    "campaign_plan": null,
+    "campaign_plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TIME_QUERY_PRIVATE_4STEP_20261107_003/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "sha256": "1c78e53a46d69601c9332d9526ebce892ea2b1e6c72a8f303312673d695b94b9"
+    },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "time_query_private_probe_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "time_query_private_probe_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
     "genuine_predictor_fit_authorized": false,
-    "training_enabled": true,
-    "native_training_enabled": true,
+    "training_enabled": false,
+    "native_training_enabled": false,
     "test_data_used": false,
     "model_forwards_authorized": 6,
     "backward_calls_authorized": 4,
@@ -63523,7 +63526,7 @@
     "fresh_windows_boot_required": true,
     "windows_task_currently_disabled": true,
     "standing_authorization_source": "GX1_RULES_20261105_local_zero_spend_read_only_research",
-    "campaign_preparation_authorized": true,
+    "campaign_preparation_authorized": false,
     "fold_id": 1,
     "sample_parent_rows": [
       2,
@@ -63564,6 +63567,35 @@
     "normalization_fit_authorized": false,
     "synthetic_test_execution_authorized": false,
     "exit_evaluation": false,
-    "full_epoch_training_allowed": false
+    "full_epoch_training_allowed": false,
+    "campaign_preparation_claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TIME_QUERY_PRIVATE_4STEP_20261107_003/CAMPAIGN_PREPARATION_CLAIM.json",
+      "sha256": "a8adc9b9a284ad08e6fa57e8813041490e14c3e579803eb29c17786d410df4c5"
+    },
+    "invocation_receipt": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TIME_QUERY_PRIVATE_4STEP_20261107_003/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "dcfe8ca2614914bacbf23fffe56fc4322e3a45ee38dfb5885415c77eaeb180b7"
+    },
+    "private_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TIME_QUERY_PRIVATE_4STEP_20261107_003/RUNTIME/private-research/RESULT.json",
+      "sha256": "fd8768d8accf319a15a68076dafcd12565ca79f9b70d1002f6726a31b81d9146"
+    },
+    "cursor": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TIME_QUERY_PRIVATE_4STEP_20261107_003/RUNTIME/research-cursor/RESUME_CURSOR.json",
+      "sha256": "a844d9483c8da0c30c718e560c477974852b0adc62981b720afdb838f8c87be2"
+    },
+    "progress": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TIME_QUERY_PRIVATE_4STEP_20261107_003/RUNTIME/progress/invocation-0001.json",
+      "sha256": "82cb2d29b82cb04176d674bb9d98c714b48e9fd029ba63c74ba7f0f5084f4726"
+    },
+    "guard_log": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TIME_QUERY_PRIVATE_4STEP_20261107_003/RUNTIME/logs/invocation-0001.signed-guard.log",
+      "sha256": "b5221bdf32995a83329caebea3798e52df84cfd9d685267ce562b4388d11303b"
+    },
+    "optimizer_steps_completed": 4,
+    "model_forwards_completed": 6,
+    "backward_calls_completed": 4,
+    "bit_exact_resume": true,
+    "predictive_value_qualified": false
   }
 }
