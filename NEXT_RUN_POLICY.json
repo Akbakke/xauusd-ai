@@ -44,8 +44,47 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-07T04:48:26.013756+00:00",
-  "status": "MARKET_STATE_TARGET_BATCH_BRIDGE_SOURCE_PASS_BASELINES_PENDING",
+  "observed_utc": "2026-11-07T05:01:42.952357+00:00",
+  "status": "MARKET_STATE_PRIOR_SOURCE_TESTED_PLAN_PENDING",
+  "market_state_five_endpoint_prior_20261107_001": {
+    "status": "SOURCE_TESTED_NEW_PLAN_PENDING",
+    "decision": "BLOCKED",
+    "scope": "One capped CPU audit for five predeclared chronological TRAIN fit-prefix priors and next-fold scores, corrected mature targets only. Laplace +1 activity and certified conditional side; always-ACTIVE/FLAT activity Brier references. No model, TEST, Entry, Exit or trade.",
+    "worker": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/measure_market_state_five_endpoint_prior_v1.py",
+      "sha256": "c6b4b39ec45d0ea3ad541a059b35186e9d08046162a6e5ead4a3d7e5656456dc"
+    },
+    "prior_source": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_five_endpoint_prior_v1.py",
+      "sha256": "102922a72478f7b4281cccdc57f935abaf67f9a721f89448a9945b19edec6104"
+    },
+    "prior_test": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_market_state_five_endpoint_prior.py",
+      "sha256": "6f393088e8609b8d11aae351d934f9f6829374f2d67c892f36887188a91bdbdf"
+    },
+    "worker_test": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_market_state_five_endpoint_prior_audit.py",
+      "sha256": "d2944a3568f35e7db9e68fa54fa294fd8f48f2deb5b7011570ab23a08edc7dbc"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_FIVE_ENDPOINT_PRIOR_20261107_001",
+    "fold_ids": [1, 2, 3, 4, 5],
+    "smoothing": "laplace_plus_one_separate_binary_activity_and_conditional_side",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "baseline_estimation_authorized": false,
+    "model_forwards_authorized": 0,
+    "optimizer_steps_authorized": 0,
+    "training_authorized": false,
+    "test_authorized": false,
+    "relaunch_allowed": false,
+    "memory_max": "2G",
+    "swap_max": "512M",
+    "wall_seconds": 600,
+    "standing_authorization_source": "no_cost_local_standing_authorization_20261105"
+  },
   "market_state_five_endpoint_batch_v1": {
     "status": "SOURCE_TESTED_REAL_TARGET_TWO_ROW_SMOKE",
     "decision": "NO_FIT_AUTHORITY",
@@ -289,7 +328,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Operator-selected 0.5 ATR activity and conservative local side now have an immutable corrected five-TF TRAIN source mask. Exactly 273200 full-window gray cells became ACTIVE side-unknown, then seven measured H4/D1 old singleton sides were conservatively demoted; all other masks and axes preserved. Remaining certified sides match cold local replay in scoped audits. Pure five-endpoint output/loss/scorer, one real forward route, and a target-only batch bridge on two real TRAIN rows with synthetic logits are source-qualified; actual model-to-loss and optimizer skip, causal now-state references, chronological baselines and indicator usefulness remain unqualified. training_enabled=false; no model fit, TEST, Entry/Exit, broker, trading or spending.",
-  "next_action": "Plan003 is consumed technical source pass: one Oct24 TRAIN fit row, one fresh CUDA forward, output [1,5,3], zero optimizer and no TEST. The post-forward target-only bridge passed focused real-TRAIN-row tests with synthetic logits, including mature support and empty-support skip signal; no actual model-to-loss or optimizer skip has run. Freeze predeclared chronological TRAIN priors on the same corrected mature rows under separate admission, audit remaining indicator formulas/consumption, then qualify actual model-to-loss and skip before any fit. Original 250W host profile is restored. training_enabled=false; TEST, Entry/Exit, broker and trading closed.",
+  "next_action": "Plan003 is consumed technical source pass: one Oct24 TRAIN fit row, one fresh CUDA forward, output [1,5,3], zero optimizer and no TEST. The post-forward target-only bridge passed focused real-TRAIN-row tests with synthetic logits, including mature support and empty-support skip signal; no actual model-to-loss or optimizer skip has run. The predeclared five-fold prior and one-use capped CPU audit worker pass source/synthetic checks; prepare an exact plan from clean source, read-only preclaim, then separately admit one baseline-estimation run. Audit remaining indicator formulas/consumption, then qualify actual model-to-loss and skip before any model fit. Original 250W host profile is restored. training_enabled=false; TEST, Entry/Exit, broker and trading closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
