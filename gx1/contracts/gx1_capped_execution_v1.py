@@ -505,6 +505,63 @@ def require_capped_cpu_audit_execution(
     }
 
 
+
+def require_capped_cpu_research_producer_execution(
+    *,
+    environ: Mapping[str, str] | None = None,
+    read_text: Callable[[Path], str] | None = None,
+) -> dict[str, Any]:
+    """Prove the one bounded CPU market-state research-fit scope.
+
+    This grants no model or data authority. The caller must additionally bind
+    its exact one-use plan and policy before reading payloads or fitting.
+    """
+    env = os.environ if environ is None else environ
+    memory = 12 * 1024**3
+    swap = 512 * 1024**2
+    required = {
+        "GX1_CAPPED_CLASS": "producer",
+        "GX1_CUDA_PRODUCER_GUARD": "false",
+        "GX1_TRAINER_DEVICE": "",
+        "GX1_TRAINER_EXECUTION_MODE": "canonical",
+        "GX1_CAPPED_MEMORY_BYTES": str(memory),
+        "GX1_CAPPED_SWAP_BYTES": str(swap),
+        "GX1_CAPPED_TASKS_MAX": "64",
+        "OMP_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1",
+        "NUMEXPR_NUM_THREADS": "1",
+        "VECLIB_MAXIMUM_THREADS": "1",
+        "BLIS_NUM_THREADS": "1",
+        "ARROW_NUM_THREADS": "1",
+        "POLARS_MAX_THREADS": "1",
+    }
+    for name, expected in required.items():
+        if env.get(name) != expected:
+            raise RuntimeError(f"[GX1_CPU_RESEARCH_{name}_INVALID]")
+    reader = read_text or (lambda path: path.read_text(encoding="utf-8"))
+    proof = _require_capped_cgroup_limits(
+        environ=env, read_text=reader, max_memory_bytes=memory,
+        max_pids=64, error_prefix="GX1_CPU_RESEARCH",
+    )
+    if (proof["memory_max"] != memory or proof["memory_high"] != memory
+            or proof["swap"] != swap or proof["pids"] != 64):
+        raise RuntimeError("[GX1_CPU_RESEARCH_EXACT_LIMITS]")
+    try:
+        status = str(reader(Path("/proc/self/status"))).splitlines()
+    except Exception as exc:
+        raise RuntimeError("[GX1_CPU_RESEARCH_AFFINITY_UNAVAILABLE]") from exc
+    allowed = [line.split(":", 1)[1].strip() for line in status
+               if line.startswith("Cpus_allowed_list:")]
+    if allowed != ["0-7"]:
+        raise RuntimeError("[GX1_CPU_RESEARCH_AFFINITY_INVALID]")
+    return {
+        "class": "producer", "execution_mode": "cpu_research",
+        **proof, "cpu_affinity": list(range(8)), "numerical_threads": 1,
+        "lock": require_capped_lock_ancestry(),
+    }
+
+
 def _main() -> int:
     parser = argparse.ArgumentParser(description="Canonical capped-runner lock proof")
     operation = parser.add_mutually_exclusive_group(required=True)
