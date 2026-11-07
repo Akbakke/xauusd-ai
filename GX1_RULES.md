@@ -59,7 +59,11 @@ observerbarhetsmasker, output, tap og samme evalueringsmål. Når komplett
 lokal range beviser FLATT/ikke-FLATT, men intraminuttorden ikke beviser
 OPP/NED, skal aktivitet og retning ha separate, sanne masker i mål,
 tap og måling ved relevante framtidstidspunkter. Ukjent retning fylles
-aldri som FLATT eller en gjettet side. Kandidaten
+aldri som FLATT eller en gjettet side. På den faktiske trenbare headen
+må autograd bevise null direkte gradient til betinget sidekoordinat når
+fasitsiden er ukjent, mens aktivitetsgradienten består. En test som holder
+samlet aktivitetsmasse fast uten å teste frie head-parametre er utilstrekkelig;
+samme faktoriserte sannsynlighet skal brukes i output, tap og skår. Kandidaten
 0,5 × ATR(14) er ingen ferdig fasit før den er kontrollert på eksisterende
 TRAIN-prisforløp. Alle genuine indikatorer, EMA/ATR, støtte/motstand, GC,
 alle fem TF, åtte spesialister og D1/makro skal få kontrollerte formler,
@@ -99,8 +103,10 @@ nøyaktig policyadmisjon, kilde-/ressursbinding og nødvendige maskinvarevakter;
 brukte engangsplaner relanseres aldri. Før policy-claim av ny engangsplan må
 oppstart/import fra den eksakte planlagte kommandoen, arbeidskatalogen og
 miljøet røykprøves lesende uten å lage CLAIM/OUTPUT. En lett preflight må
-også kontrollere alle brukte kvitteringsnøkler mot de faktiske bundne filene
-og både suksess- og feilvei i rapporteringen med små syntetiske verdier.
+også kontrollere alle brukte kvitteringsnøkler mot de faktiske bundne filene,
+utføre den samme kilde-/kvitterings-/visningsporten som jobben når før første
+modellforward, og kontrollere både suksess- og feilvei i rapporteringen med
+små syntetiske verdier.
 Før ny native fit skal den faktiske bundne feature-/normaliseringsidentiteten
 valideres lesende mot checkpointkontrakten; syntetisk form alene er ikke nok.
 Ingen full data-/modelljobb gjentas for denne kontrollen.
