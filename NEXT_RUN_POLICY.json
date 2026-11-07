@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-07T00:23:45.855116+00:00",
-  "status": "D1_TRENDLINE_LIFECYCLE_PHYSICAL_ORACLE_ADMITTED",
+  "status": "D1_TRENDLINE_LIFECYCLE_TRAIN_WINDOW_VERIFIED_TARGET_OPEN",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Full TRAIN source-gap authority and 20x5 candidate masks are verified; endpoint target is still PROPOSED, not locked. D1 overlap, longer-lived side anchor, 77 parked indicator formulas, broad actual model consumption, output/loss/scores and earlier-only reference fit remain open. training_enabled=false; no model fit, TEST, Entry/Exit, broker, trading or spending.",
-  "next_action": "One capped, source-only independent D1 trendline lifecycle physical audit admitted for 174 May-Dec2024 TRAIN D1 rows x 31 fields; no model/TEST. Verify actual parity and field support, then close one-use receipt and continue target semantic decision plus remaining indicator families. training_enabled=false; no Entry/Exit, broker, trading or spending.",
+  "next_action": "D1 trendline lifecycle physical oracle completed/consumed on 174 TRAIN rows with 0/5394 mismatches and all19 lifecycle fields exercised. Decide physical five-TF state target semantics from 0.5/1.0 gray-band versus single1.0 source evidence, bind output/loss/score and chronological references, then extend independent indicator audits to M5/M15/H1/H4 and other parked formulas. training_enabled=false; no TEST, Entry/Exit, broker, trading or spending.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "06.11: Predict and calibrate dynamic market state first. Entry location/Entry-Q follows later; M5 is forecast cadence. No assumption of extensive prior training.",
-    "current_activity": "Full TRAIN 0.5/1.0 gray-band and single 1.0 ATR five-TF pointwise endpoint source candidates verified; latter 110539 exact M5 of 118706. Source audits do not select target or show model learning/edge. D1 trendline lifecycle physical oracle pilot next; 77 parked indicator formulas and five-endpoint output/loss/score remain open. training_enabled=false.",
+    "current_activity": "Full TRAIN 0.5/1.0 gray-band and single1.0 five-TF endpoint source candidates verified, target still PROPOSED. D1 independent trendline lifecycle 174-row TRAIN-window physical oracle PASS 5394/5394 with all19 lifecycle fields exercised; other TF/formulas and five-endpoint output/loss/score remain open. training_enabled=false.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -22928,7 +22928,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-07T00:48:47.337689+00:00",
+  "updated_utc": "2026-11-07T00:52:03.017155+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -61307,8 +61307,8 @@
     "post_run_review": "Independent immutable JSON/NPZ-only parity PASS all 100 month-TF partitions; every old non-UNKNOWN bit and endpoint row unchanged, 273200 old gray cells become FLAT and none get a side. Exact M5/M15/H1/H4/D1=110539/115683/112787/108164/81050; partial=7659/1557/316/252/1537. M5 median 1.0 ATR/quoted spread=4.164; 5.67 percent <=2 spreads. Raw bid/ask and ATR not independently recomputed. Source candidate only; target selection, model fit and edge remain open."
   },
   "d1_trendline_lifecycle_physical_oracle_20261107_001": {
-    "status": "ADMITTED",
-    "decision": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_D1_TRAIN_WINDOW_19_EXERCISED",
+    "decision": "BLOCKED",
     "scope": "One source-only independent D1 lifecycle oracle audit on all 174 May-Dec2024 TRAIN D1 cache rows x 31 fields; four old anchors. Exact native M5 source/closed D1/ATR/cache alignment, no model/TEST/Entry/Exit/trade.",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/D1_TRENDLINE_LIFECYCLE_PHYSICAL_ORACLE_20261107_001.json",
@@ -61320,10 +61320,10 @@
     },
     "output_root": "/home/andre2/GX1_RUNS/D1_TRENDLINE_LIFECYCLE_PHYSICAL_ORACLE_20261107_001",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "relaunch_allowed": false,
     "memory_max": "4G",
     "swap_max": "512M",
@@ -61335,6 +61335,23 @@
     "test_data_used": false,
     "training_authorized": false,
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
-    "terminal_owner": "Integrator writes immutable success/failure TERMINAL after the one claimed capped invocation; no relaunch."
+    "terminal_owner": "Integrator writes immutable success/failure TERMINAL after the one claimed capped invocation; no relaunch.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/D1_TRENDLINE_LIFECYCLE_PHYSICAL_ORACLE_20261107_001/CLAIM.json",
+      "sha256": "307340ade05db052e6d5017e89a2c0610ea408e1eef23a8d919670dbf82b2a1a"
+    },
+    "launch_log": {
+      "path": "/home/andre2/GX1_RUNS/D1_TRENDLINE_LIFECYCLE_PHYSICAL_ORACLE_20261107_001/LAUNCH.log",
+      "sha256": "7fdf9e6269a4e73010f9912802d52c61acef7df5ebeae17bce2e1decbbca2fc0"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/D1_TRENDLINE_LIFECYCLE_PHYSICAL_ORACLE_20261107_001/RESULT.json",
+      "sha256": "aac68ee7dd349f1e56d3d85da280292706c7e6f414556d9c5842a29e24405b8e"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/D1_TRENDLINE_LIFECYCLE_PHYSICAL_ORACLE_20261107_001/TERMINAL.json",
+      "sha256": "405412e20b0d854fb0efbd5a513e617c56082bb8f3a43232f98139f8fd519cf5"
+    },
+    "post_run_review": "One capped exit0 3.32s source-only audit compared all174 May-Dec2024 TRAIN D1 rows x31 fields=5394 cells, 3306 lifecycle cells; 0 mismatches. All19 lifecycle fields had nonzero/event support, rarest retest_fail_down4 and retest_fail_up6. Independent NPY-only review verified all per-field cache finite/nonzero support and immutable refs; no independent raw price replay. D1 TRAIN-window only, no other TF/global qualification, model learning or edge."
   }
 }
