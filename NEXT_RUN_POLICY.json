@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Selected 0.5 ATR activity and conservative local side use the corrected five-TF TRAIN mask. The one mature fold1 native time-query v1 fit and later chronological TRAIN OOF lost M5 certified-side Brier to the frozen prior in all 14 weeks; a paired frozen diagnostic found upward miscalibration and the free-three-logit unknown-side objective defect. Factorized v2 model/loss and stable raw-logit scorer now pass source/synthetic checks, and read-only fold1 receipt/v2 view metadata binding passes. Physical v2 initial predictions, genuine gradient/resume, fit, generalization, Entry decision value and economics are unqualified. training_enabled=false; consumed plans do not authorize new runs. TEST, Entry, Exit, broker, trading and spending remain closed.",
-  "next_action": "Factorized v2 raw-logit proper scorer and matched issue/TF/week scorer now source-tested: at activity logit -1000, conditional UP remains 0.5 and proper log finite; ordinary v1/v2 parity and mismatch rejection pass. Read-only historical fold1 receipt and 17-ref v2 view metadata binding passed on current source bytes; no feature payload or model forward. Next: reverify clean committed source and view hash, bind a distinct v2 zero-step plan with exact current source/view/scorer identities and mature TRAIN prefix, and measure fresh initial predictions/loss without optimizer. Then qualify genuine v2 gradients, full checkpoint/bit-exact resume and raw-grid OOF driver before a separately admitted capped fit. Do not reuse old v1 plans/checkpoints or float32-softmax scorer. training_enabled=false; TEST/Entry/Exit/broker/trading/spending remain closed. After objective repair, prebind M5 GC buy/sell/delta/OFI added-value measurement on later TRAIN.",
+  "next_action": "Factorized v2 raw-logit proper scorer and matched issue/TF/week scorer now source-tested: at activity logit -1000, conditional UP remains 0.5 and proper log finite; ordinary v1/v2 parity and mismatch rejection pass. Read-only historical fold1 receipt and 17-ref v2 view metadata binding passed again on clean committed head 24823917, view SHA 5ceac9557d37234090805b8b0edde0f1444ab4e6a140f7b956c6120811e592ac; no feature payload or model forward. Next: bind a distinct v2 zero-step plan with exact source/view/scorer identities and mature TRAIN prefix, and measure fresh initial predictions/loss without optimizer. Then qualify genuine v2 gradients, full checkpoint/bit-exact resume and raw-grid OOF driver before a separately admitted capped fit. Do not reuse old v1 plans/checkpoints or float32-softmax scorer. training_enabled=false; TEST/Entry/Exit/broker/trading/spending remain closed. After objective repair, prebind M5 GC buy/sell/delta/OFI added-value measurement on later TRAIN.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1624,7 +1624,7 @@
   },
   "current_work": {
     "operator_request": "06.11: Predict and calibrate dynamic market state first. Entry location/Entry-Q follows later; M5 is forecast cadence. No assumption of extensive prior training.",
-    "current_activity": "Factorized v2 model/loss/view/batch plus stable raw-logit scorer are source/synthetically tested. A read-only historical fold1 receipt and explicit 17-ref v2 view metadata binding passed; no feature payload, model forward, optimizer, refit, TEST or trade. One v1 fold1 negative side OOF and frozen diagnostic remain measured model evidence, not v2 results.",
+    "current_activity": "Factorized v2 model/loss/view/batch plus stable raw-logit scorer are source/synthetically tested. A read-only historical fold1 receipt and explicit 17-ref v2 view metadata binding passed on clean committed head 24823917; no feature payload, model forward, optimizer, refit, TEST or trade. One v1 fold1 negative side OOF and frozen diagnostic remain measured model evidence, not v2 results.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -63667,7 +63667,7 @@
     }
   },
   "recorded_status": "MARKET_STATE_FACTORIZED_V2_SCORER_SOURCE_TESTED_FIT_CLOSED",
-  "recorded_observed_utc": "2026-11-07T21:19:37.799806+00:00",
+  "recorded_observed_utc": "2026-11-07T21:23:35.094419+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
     "decision": "BLOCK",
