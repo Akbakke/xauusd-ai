@@ -461,7 +461,8 @@ def _paired_m5_summary(rows: list[tuple[int, float, float, int]],
 def diagnose_fold1_from_checkpoint(*, fit_checkpoint_ref: Mapping[str, str],
                                     expected_model_state_sha256: str,
                                     source_commit: str, execution_commit: str,
-                                    frozen_oof_ref: Mapping[str, str], device,
+                                    frozen_oof_ref: Mapping[str, str],
+                                    reviewed_runner_ref: Mapping[str, str], device,
                                     check_deadline: Callable[[], None] | None = None) -> dict:
     """One guarded TRAIN-only M5 k=1 replay, original versus fit-absent GC D1."""
     import numpy as np
@@ -497,7 +498,7 @@ def diagnose_fold1_from_checkpoint(*, fit_checkpoint_ref: Mapping[str, str],
           'FROZEN_OOF_SCOPE')
     fold = _frozen_fold_reference()
     prior_up = float(_prior_arrays(fold)[1][0, 0])
-    receipts = zero._inspect_receipts()
+    receipts = zero._inspect_receipts(reviewed_runner_ref=reviewed_runner_ref)
     view = zero._bind_view(zero._read_ref(ZERO_STEP_PLAN), receipts, FOLD_ID)
     _need(view['contract_sha256'] == VIEW_SHA256, 'VIEW_IDENTITY')
     bound = query_target.load_bound_time_query_targets()

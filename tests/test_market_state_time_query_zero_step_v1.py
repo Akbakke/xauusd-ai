@@ -63,11 +63,13 @@ def test_preclaim_plan_scope_and_source_hash_fail_closed():
 def test_complete_fold1_fold2_receipts_and_source_ref_split():
     if not audit.FIXED['fold2_normalization'][0].exists():
         pytest.skip('Local immutable fold-2 receipt is unavailable')
-    receipts = audit._inspect_receipts()
+    runner = audit.REPO / audit.RUNNER_SOURCE
+    runner_ref = {'path': str(runner), 'sha256': audit._sha(runner)}
+    receipts = audit._inspect_receipts(reviewed_runner_ref=runner_ref)
     assert receipts['historical_lineage']['historical_source_head'] == (
         '39b4ac93af9938a3452e457d3d14d5a3c8a5846a')
     assert set(receipts['historical_lineage']['reviewed_runtime_drift']) == (
-        set(audit.HISTORICAL_RUNTIME_BRIDGE))
+        set(audit.HISTORICAL_RUNTIME_BRIDGE) | {audit.RUNNER_SOURCE})
     assert receipts['fold1']['cohort']['joined_fit_rows'] == 29574
     assert receipts['fold1']['profile']['contract_sha256'] == audit.fold1.PROFILE_SHA256
     assert receipts['fold1']['lineage']['current_source_owner_count'] == 25

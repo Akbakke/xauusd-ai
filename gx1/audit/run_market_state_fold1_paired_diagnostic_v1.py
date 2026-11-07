@@ -13,11 +13,11 @@ from typing import Mapping
 
 REPO = Path('/home/andre2/src/GX1_CURRENT')
 RUNS = Path('/home/andre2/GX1_RUNS')
-STAGE = 'market_state_fold1_paired_diagnostic_20261107_001'
+STAGE = 'market_state_fold1_paired_diagnostic_20261107_002'
 SCHEMA = 'gx1_market_state_fold1_paired_diagnostic_plan_v1'
-PLAN_PATH = REPO / 'configs/research/MARKET_STATE_FOLD1_PAIRED_DIAGNOSTIC_20261107_001.json'
+PLAN_PATH = REPO / 'configs/research/MARKET_STATE_FOLD1_PAIRED_DIAGNOSTIC_20261107_002.json'
 POLICY_PATH = REPO / 'NEXT_RUN_POLICY.json'
-OUT_ROOT = RUNS / 'MARKET_STATE_FOLD1_PAIRED_DIAGNOSTIC_20261107_001'
+OUT_ROOT = RUNS / 'MARKET_STATE_FOLD1_PAIRED_DIAGNOSTIC_20261107_002'
 FIT_SOURCE_COMMIT = '79d4fb3de0bf9940d3392f36f5ae6834d7fb7e77'
 MODEL_DIGEST = 'de8e8665a0ff31c0ec50950758597d2768d7d241d7433a735513b34164b90ac9'
 SCORE_ROWS = 17753
@@ -28,6 +28,7 @@ WALL_SECONDS = 3600
 MAX_JSON_BYTES = 1024 * 1024
 CHANGED_EXECUTION_SOURCES = frozenset({
     'gx1/audit/score_market_state_time_query_fold1_oof_v1.py',
+    'gx1/audit/verify_market_state_time_query_zero_step_v1.py',
     'gx1/scripts/validate_entry_model_native_technical_checkpoint_v1.py',
     'scripts/gx1_capped_run.sh',
 })
@@ -240,6 +241,15 @@ def _qualify(plan_path: Path, plan_sha256: str, out_dir: Path) -> tuple:
     policy_ref = {'path': str(POLICY_PATH), 'sha256': _sha(POLICY_PATH)}
     policy = _bound(policy_ref)
     _policy_gate(policy, plan_ref, plan)
+    # The archived zero-step receipt chain binds the old capped-runner SHA.
+    # A separately reviewed current runner is admissible only for this diagnostic.
+    from gx1.audit import verify_market_state_time_query_zero_step_v1 as zero
+    from gx1.audit.score_market_state_time_query_fold1_oof_v1 import VIEW_SHA256, ZERO_STEP_PLAN
+    reviewed_runner = {'path': str(REPO / 'scripts/gx1_capped_run.sh'),
+                       'sha256': plan['source_owners']['scripts/gx1_capped_run.sh']}
+    receipts = zero._inspect_receipts(reviewed_runner_ref=reviewed_runner)
+    view = zero._bind_view(zero._read_ref(ZERO_STEP_PLAN), receipts, 1)
+    _need(view['contract_sha256'] == VIEW_SHA256, 'PRECLAIM_VIEW_IDENTITY')
     return plan, plan_ref, policy_ref, head, payloads
 
 
@@ -339,6 +349,8 @@ def run(plan_path: Path, plan_sha256: str, device: str, out_dir: Path) -> dict:
                 expected_model_state_sha256=MODEL_DIGEST,
                 source_commit=FIT_SOURCE_COMMIT, execution_commit=head,
                 frozen_oof_ref=INPUT_REFS['frozen_oof'],
+                reviewed_runner_ref={'path': str(REPO / 'scripts/gx1_capped_run.sh'),
+                                     'sha256': plan['source_owners']['scripts/gx1_capped_run.sh']},
                 device=torch.device('cuda', 0),
                 check_deadline=lambda: _need(
                     time.monotonic() - started < WALL_SECONDS - 15, 'WALL_LIMIT'),

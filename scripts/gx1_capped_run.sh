@@ -295,8 +295,8 @@ validate_target_command() {
       fi
       if [[ "${3:-}" == "$TECHNICAL_VALIDATION_PRODUCER_MODULE" \
         && "${4:-}" == --market-state-fold1-paired-diagnostic-plan ]]; then
-        local paired_plan="$REPO_ROOT/configs/research/MARKET_STATE_FOLD1_PAIRED_DIAGNOSTIC_20261107_001.json"
-        local paired_output=/home/andre2/GX1_RUNS/MARKET_STATE_FOLD1_PAIRED_DIAGNOSTIC_20261107_001
+        local paired_plan="$REPO_ROOT/configs/research/MARKET_STATE_FOLD1_PAIRED_DIAGNOSTIC_20261107_002.json"
+        local paired_output=/home/andre2/GX1_RUNS/MARKET_STATE_FOLD1_PAIRED_DIAGNOSTIC_20261107_002
         if ! matches_bound_market_state_fold1_paired_diagnostic "$paired_plan" "$paired_output" "$@"; then
           echo "FATAL: fold-1 paired diagnostic 250W scope is not exactly bound" >&2
           exit 75

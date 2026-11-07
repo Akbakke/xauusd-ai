@@ -15,6 +15,7 @@ from pathlib import Path
 import signal
 import subprocess
 import time
+from typing import Mapping
 
 from gx1.audit import qualify_market_state_mature_prefix_normalization_v1 as mature
 from gx1.audit import fit_market_state_mature_fold1_units_v1 as fold1
@@ -209,7 +210,27 @@ def _checked_plan(plan_path: Path, plan_sha256: str) -> tuple[dict, dict]:
     return _read_ref(ref), ref
 
 
-def _inspect_receipts() -> dict:
+RUNNER_SOURCE = 'scripts/gx1_capped_run.sh'
+
+
+def _reviewed_runner_sha(reviewed_runner_ref: Mapping[str, str] | None) -> str | None:
+    """Accept only the current, plan-bound runner bytes for a later diagnostic."""
+    if reviewed_runner_ref is None:
+        return None
+    path = REPO / RUNNER_SOURCE
+    _need(isinstance(reviewed_runner_ref, Mapping)
+          and dict(reviewed_runner_ref) == {'path': str(path),
+                                           'sha256': reviewed_runner_ref.get('sha256')}
+          and isinstance(reviewed_runner_ref['sha256'], str)
+          and len(reviewed_runner_ref['sha256']) == 64
+          and all(c in '0123456789abcdef' for c in reviewed_runner_ref['sha256'])
+          and path.is_file() and not path.is_symlink()
+          and _sha(path) == reviewed_runner_ref['sha256'],
+          'REVIEWED_RUNNER_REF')
+    return reviewed_runner_ref['sha256']
+
+
+def _inspect_receipts(*, reviewed_runner_ref: Mapping[str, str] | None = None) -> dict:
     plan = _read_ref(_fixed_ref('mature_plan'))
     claim = _read_ref(_fixed_ref('mature_claim'))
     result = _read_ref(_fixed_ref('mature_result'))
@@ -252,14 +273,15 @@ def _inspect_receipts() -> dict:
     binding._candidate_receipts()
     binding._checked_bytes('tape', 32 * 1024**2)
     chain = mature._receipt_chain()
-    lineage = _historical_source_lineage(normal, result)
-    fold1_receipts = _inspect_fold1_receipts(plan)
+    runner_sha = _reviewed_runner_sha(reviewed_runner_ref)
+    lineage = _historical_source_lineage(normal, result, reviewed_runner_sha=runner_sha)
+    fold1_receipts = _inspect_fold1_receipts(plan, reviewed_runner_sha=runner_sha)
     return {'mature_plan': plan, 'normal': normal, 'constructor': constructor,
             'base_view': base_view, 'cohort2': cohort2, 'fold1': fold1_receipts,
             'provider_chain': chain, 'historical_lineage': lineage}
 
 
-def _inspect_fold1_receipts(mature_plan: dict) -> dict:
+def _inspect_fold1_receipts(mature_plan: dict, *, reviewed_runner_sha: str | None = None) -> dict:
     plan = _read_ref(_fixed_ref('fold1_plan'))
     claim = _read_ref(_fixed_ref('fold1_claim'))
     result = _read_ref(_fixed_ref('fold1_result'))
@@ -323,12 +345,12 @@ def _inspect_fold1_receipts(mature_plan: dict) -> dict:
           'MATURE_FOLD1_CHAIN')
     fold1._validate_new_report(qualified, old_report, profile, provenance)
     require_prefix_units_normalization_bindings(normal, profile)
-    lineage = _fold1_source_lineage(provenance)
+    lineage = _fold1_source_lineage(provenance, reviewed_runner_sha=reviewed_runner_sha)
     return {'normal': normal, 'qualification': qualified, 'profile': profile,
             'cohort': cohort, 'lineage': lineage}
 
 
-def _fold1_source_lineage(provenance: dict) -> dict:
+def _fold1_source_lineage(provenance: dict, *, reviewed_runner_sha: str | None = None) -> dict:
     head = provenance['current_source_head']
     owners = provenance['current_source_owners']
     _need(isinstance(owners, dict) and set(owners) == fold1.SOURCE_PATHS
@@ -344,8 +366,9 @@ def _fold1_source_lineage(provenance: dict) -> dict:
           'FOLD1_HISTORICAL_POLICY')
     for path, source_sha in owners.items():
         relative = Path(path)
+        current_sha = reviewed_runner_sha if path == RUNNER_SOURCE and reviewed_runner_sha is not None else source_sha
         _need(not relative.is_absolute() and '..' not in relative.parts
-              and len(source_sha) == 64 and _sha(REPO / relative) == source_sha
+              and len(source_sha) == 64 and _sha(REPO / relative) == current_sha
               and hashlib.sha256(subprocess.check_output(
                   ['git', 'show', head + ':' + path], cwd=REPO,
                   timeout=15)).hexdigest() == source_sha,
@@ -354,7 +377,8 @@ def _fold1_source_lineage(provenance: dict) -> dict:
             'current_source_owner_count': len(owners)}
 
 
-def _historical_source_lineage(normal: dict, result: dict) -> dict:
+def _historical_source_lineage(normal: dict, result: dict, *,
+                               reviewed_runner_sha: str | None = None) -> dict:
     provenance = normal['prefix_qualification']['proof']['source_bindings']
     head = provenance['current_source_head']
     owners = provenance['current_source_owners']
@@ -383,7 +407,13 @@ def _historical_source_lineage(normal: dict, result: dict) -> dict:
         current_sha = _sha(REPO / path)
         if current_sha != old_sha:
             drift[path] = (old_sha, current_sha)
-    _need(drift == HISTORICAL_RUNTIME_BRIDGE
+    expected_drift = dict(HISTORICAL_RUNTIME_BRIDGE)
+    if reviewed_runner_sha is not None:
+        old_runner_sha = owners.get(RUNNER_SOURCE)
+        _need(isinstance(old_runner_sha, str) and len(old_runner_sha) == 64
+              and old_runner_sha != reviewed_runner_sha, 'REVIEWED_RUNNER_HISTORY')
+        expected_drift[RUNNER_SOURCE] = (old_runner_sha, reviewed_runner_sha)
+    _need(drift == expected_drift
           and 'unobserved_units_profile' not in normal
           and 'unobserved_units_profile' not in normal['prefix_qualification'],
           'REVIEWED_RUNTIME_DRIFT')
