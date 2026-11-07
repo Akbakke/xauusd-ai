@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-07T02:47:28.813404+00:00",
-  "status": "MARKET_STATE_MTF_SIDE_LOCALITY_ADMITTED_TARGET_OPEN",
+  "observed_utc": "2026-11-07T02:57:59.571194+00:00",
+  "status": "MARKET_STATE_MTF_SIDE_AUDIT_COMPLETE_SEVEN_EXCEPTIONS",
   "market_state_activity_semantics": {
     "status": "OPERATOR_SELECTED_CANDIDATE_FULL_TARGET_PENDING",
     "complete_local_range_below_atr14": 0.5,
@@ -58,8 +58,8 @@
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Selected 0.5 ATR activity semantics and 273200 gray relabels have exact immutable TRAIN source masks. Existing M15/H1/H4/D1 singleton side locality is now admitted for one bounded source-only audit on 172771 endpoints; it cannot relabel targets or fit a model. Five-endpoint output/loss/scores and chronological references remain open. training_enabled=false; no model fit, TEST, Entry/Exit, broker, trading or spending.",
-  "next_action": "Execute the one admitted M15/H1/H4/D1 singleton-side locality audit after clean exact preflight, CLAIM and capped launch, then consume immutable terminal. Compare cold last 15/60/240/1440 observed M1 bars against old side by TF/month; if mismatches occur, resolve target semantics before full lock. No model fit while training_enabled=false; TEST and trading closed.",
+  "rule": "Selected 0.5 ATR activity semantics and rowwise source masks are verified. Full TRAIN M15/H1/H4/D1 cold side audit found 172764/172771 same, seven local UNKNOWN and zero opposite; old singleton side on those seven is not locally certified. Source audit is consumed. Correct only seven sides to ACTIVE/side unknown in a new immutable target-mask revision before full five-TF target lock. Output/loss/scores, causal references and chronological baselines remain open. training_enabled=false; no model fit, TEST, Entry/Exit, broker, trading or spending.",
+  "next_action": "Create one minimal source-bound selected-mask correction using the seven exact TF/issue/endpoint witnesses from immutable side-audit RESULT; demote only their singleton side to ACTIVE=5, preserve activity and all other masks/axes, verify 20x5 counts and immutable refs. Do not infer root cause from aggregate closure counts or rerun consumed side audit. Then bind five-endpoint output/loss/scorer/references. training_enabled=false; TEST and trading closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -61560,8 +61560,8 @@
     "post_run_review": "One capped TRAIN-only audit exit0 in 0.73s; exact 118706x5 source/clock axes, only 273200 full-window 0.5-1.0 ATR old ALL=7 cells changed to ACTIVE=5, no side promotion; 320330 other cells unchanged. All 20x5 monthly relabel counts match previous immutable receipt. Independent read-only NPZ/receipt review verified all cells, four axes, masks, source/plan/policy/cap and immutable hashes. Activity observed539544, side observed212441, singleton255023 overlapping TF cells. No independent raw M1/ATR replay by reviewer, no M15/H1/H4/D1 side-locality or model learning/edge. Consumed; no relaunch."
   },
   "mtf_state_side_locality_20261107_001": {
-    "status": "ADMITTED",
-    "decision": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_SEVEN_LOCAL_SIDE_EXCEPTIONS",
+    "decision": "BLOCKED",
     "scope": "One TRAIN-only source diagnostic of existing singleton DOWN/UP side locality on M15/H1/H4/D1, 172771 endpoints, cold W=15/60/240/1440 observed M1 bars versus full-history side and source/closure/ATR parity by TF/month. No relabel/model/TEST/Entry/Exit/trade.",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/MTF_STATE_SIDE_LOCALITY_20261107_001.json",
@@ -61573,10 +61573,10 @@
     },
     "output_root": "/home/andre2/GX1_RUNS/MTF_STATE_SIDE_LOCALITY_20261107_001",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "relaunch_allowed": false,
     "memory_max": "4G",
     "swap_max": "512M",
@@ -61588,6 +61588,23 @@
     "test_data_used": false,
     "training_authorized": false,
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
-    "terminal_owner": "Integrator writes immutable success/failure TERMINAL after the one claimed capped invocation; no relaunch."
+    "terminal_owner": "Integrator writes immutable success/failure TERMINAL after the one claimed capped invocation; no relaunch.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/MTF_STATE_SIDE_LOCALITY_20261107_001/CLAIM.json",
+      "sha256": "718e687c839f047c3212465101dea89ea5687af5504192bdab5c501a100849ec"
+    },
+    "launch_log": {
+      "path": "/home/andre2/GX1_RUNS/MTF_STATE_SIDE_LOCALITY_20261107_001/LAUNCH.log",
+      "sha256": "f7ec592e5c8fed25d85531f757dfb199d457f1c7455d101ec9064961236cce4b"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MTF_STATE_SIDE_LOCALITY_20261107_001/RESULT.json",
+      "sha256": "5d65c5aa5f416feaaf11b0e8570ece2f7455a6b65694bb87aa98e844ed12ac9e"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MTF_STATE_SIDE_LOCALITY_20261107_001/TERMINAL.json",
+      "sha256": "eda79cacb5711041837b91ebc2b1a285ea5d0ab1d47d685921e5ebb7591eb3fd"
+    },
+    "post_run_review": "One capped TRAIN-only audit exit0 elapsed377.74s checked 172771 existing M15/H1/H4/D1 singleton sides against cold last-W M1 replay. Same172764, local UNKNOWN7 (H4 6 in six months, D1 1 in Mar2025), opposite0; M15/H1 exact. All 20x4 month partitions, three old/selected NPZ axes/side identities and 12 immutable refs passed independent receipt review. No individual raw-price trace or separate large-source rehash by reviewer; no cause attributed to closures/anchor age. Seven old sides require conservative side-unknown correction before local five-TF target lock. Consumed; no relaunch."
   }
 }
