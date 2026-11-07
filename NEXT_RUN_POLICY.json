@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-07T03:06:24.759250+00:00",
-  "status": "MARKET_STATE_SEVEN_SIDE_CORRECTION_ADMITTED_NO_FIT",
+  "observed_utc": "2026-11-07T03:10:14.780833+00:00",
+  "status": "MARKET_STATE_LOCAL_SIDE_MASK_CORRECTED_MODEL_CONTRACT_PENDING",
   "market_state_activity_semantics": {
     "status": "OPERATOR_SELECTED_CANDIDATE_FULL_TARGET_PENDING",
     "complete_local_range_below_atr14": 0.5,
@@ -58,8 +58,8 @@
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Selected 0.5 ATR full-window activity masks are verified; four-TF cold replay found seven exact old singleton sides without local proof and zero opposite. One source-only correction of only these seven to ACTIVE side unknown is admitted; old mask and side audits are consumed. No model fit or full target lock. training_enabled=false; TEST, Entry/Exit, broker, trading and spending closed.",
-  "next_action": "Execute the one admitted seven-side correction after clean exact preflight, CLAIM and capped audit. Verify seven exact H4/D1 witnesses, all clock/source axes, activity unchanged, side count212434, singleton255016 and 20x5 monthly deltas; consume immutable terminal. Then bind five-endpoint output/loss/scorer and chronological references to the corrected mask. training_enabled=false; TEST and trading closed.",
+  "rule": "Operator-selected 0.5 ATR activity and conservative local side now have an immutable corrected five-TF TRAIN source mask. Exactly 273200 full-window gray cells became ACTIVE side-unknown, then seven measured H4/D1 old singleton sides were conservatively demoted; all other masks and axes preserved. Remaining certified sides match cold local replay in scoped audits. Five-endpoint output/loss/scorer, causal now-state references, chronological baselines and indicator usefulness remain unqualified. training_enabled=false; no model fit, TEST, Entry/Exit, broker, trading or spending.",
+  "next_action": "Bind one exact five-endpoint market-state model contract to corrected ROW_MASKS.npz: logits[B,5,3], allowed-set loss on mature masks, separate proper activity/side/three-class scores and identical-row chronological TRAIN references. Reuse existing five-TF/GC/eight-specialist/D1 backbone; do not enable old 7200-query chain or stale current-state input. Qualify indicator formulas and consumption; only then consider a separately admitted fit. training_enabled=false; TEST and trading closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -61608,8 +61608,8 @@
     "post_run_review": "One capped TRAIN-only audit exit0 elapsed377.74s checked 172771 existing M15/H1/H4/D1 singleton sides against cold last-W M1 replay. Same172764, local UNKNOWN7 (H4 6 in six months, D1 1 in Mar2025), opposite0; M15/H1 exact. All 20x4 month partitions, three old/selected NPZ axes/side identities and 12 immutable refs passed independent receipt review. No individual raw-price trace or separate large-source rehash by reviewer; no cause attributed to closures/anchor age. Seven old sides require conservative side-unknown correction before local five-TF target lock. Consumed; no relaunch."
   },
   "market_state_local_side_exceptions_20261107_001": {
-    "status": "ADMITTED",
-    "decision": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_EXACT_SEVEN_SIDE_CORRECTIONS",
+    "decision": "BLOCKED",
     "scope": "One TRAIN-only source correction of seven exact old singleton H4/D1 sides to ACTIVE=5 with side unknown, based on immutable 172771-cell four-TF cold replay result. Preserve all activity, clocks, source rows and remaining 593523 labels; verify 20x5 monthly counts. No raw price/model/TEST/Entry/Exit/trade.",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001.json",
@@ -61621,10 +61621,10 @@
     },
     "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "relaunch_allowed": false,
     "memory_max": "4G",
     "swap_max": "512M",
@@ -61636,6 +61636,27 @@
     "test_data_used": false,
     "training_authorized": false,
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
-    "terminal_owner": "Integrator writes immutable success/failure TERMINAL after the one claimed capped invocation; no relaunch."
+    "terminal_owner": "Integrator writes immutable success/failure TERMINAL after the one claimed capped invocation; no relaunch.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001/CLAIM.json",
+      "sha256": "58a071463fea14e2aaf2991887e47aaaba2f5afc288468591fede6b9882f9f89"
+    },
+    "launch_log": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001/LAUNCH.log",
+      "sha256": "11ec1b21a91ac7758e2bc3cce8edce9a21687e0da56ea221b23b101ec041a2e7"
+    },
+    "row_masks": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001/ROW_MASKS.npz",
+      "sha256": "2b063e35b97cc1dbdbb522d2b2876a39514b1145d8c59d8a2ab07561764f9edc"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001/RESULT.json",
+      "sha256": "126aceee074dc223a60894545533d1f242275d8c4b4327acc67b048449cac7b8"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001/TERMINAL.json",
+      "sha256": "457a9da5085d04362a5eeb76568a6a97cd68d424cef1efc6d4aee1332c2cb782"
+    },
+    "post_run_review": "One capped TRAIN-only source-mask correction exit0 elapsed0.70s changed exactly seven measured H4/D1 old singleton 1/4 cells to ACTIVE=5 with side unknown. Independent read-only NPZ/receipt review verified every 118706x5 cell, all axes, activity masks unchanged, 20x5 monthly class totals and exact seven locality witnesses; side observed212434, activity observed539544, singleton255016. Capped4G/512M/pids64/one thread, all source/admission/output hashes; no raw M1 replay by reviewer, model fit, TEST or economics. Corrected source artifact only; full model contract remains open. Consumed; no relaunch."
   }
 }
