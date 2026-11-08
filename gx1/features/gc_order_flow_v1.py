@@ -631,10 +631,12 @@ def aggregate_observed_event_diagnostics_v1(minutes, selected, events, timeframe
 
 
 TRUSTED_TRADE_SIZE_FIELDS_V1 = ('buy_trade_records','sell_trade_records','unknown_trade_records',
-    'size_sum_contracts','size_sum_squared_contracts2','size_min_contracts','size_max_contracts')
+    'size_sum_contracts','size_sum_squared_contracts2','size_min_contracts','size_max_contracts',
+    'buy_size_max_contracts','sell_size_max_contracts')
 TRADE_SIZE_NATIVE_FIELDS_V1 = tuple(side+'_trade_records' for side in ('buy','sell','unknown')) + tuple(
     side+'_avg_executed_trade_contracts' for side in ('buy','sell','unknown')) + (
-    'executed_trade_size_std_contracts','executed_trade_size_min_contracts','executed_trade_size_max_contracts')
+    'executed_trade_size_std_contracts','executed_trade_size_min_contracts','executed_trade_size_max_contracts',
+    'buy_max_executed_trade_contracts','sell_max_executed_trade_contracts')
 
 
 def checked_trade_uint64_sums_v1(values, first, counts):
@@ -680,7 +682,8 @@ def aggregate_observed_trade_size_v1(minutes, selected, metrics, masks, stats, t
     for name in TRUSTED_TRADE_SIZE_FIELDS_V1:
         values = stats[name]
         if name=='size_min_contracts':value=np.minimum.reduceat(np.where(accepted,values,np.iinfo(np.uint64).max),first)
-        elif name=='size_max_contracts':value=np.maximum.reduceat(np.where(accepted,values,0),first)
+        elif name in ('size_max_contracts','buy_size_max_contracts','sell_size_max_contracts'):
+            value=np.maximum.reduceat(np.where(accepted,values,0),first)
         else:value=checked_trade_uint64_sums_v1(np.where(accepted,values,0),first,counts)
         reduced[name]=value
     n = trusted_trade_record_count_v1(reduced)
@@ -694,6 +697,11 @@ def aggregate_observed_trade_size_v1(minutes, selected, metrics, masks, stats, t
         out['observed_'+side+'_trade_size_valid']=side_valid
         out['observed_'+side+'_avg_executed_trade_contracts']=np.divide(side_volume,records,
             out=np.full(len(stamps),np.nan),where=side_valid)
+        if side in ('buy','sell'):
+            largest=reduced[side+'_size_max_contracts']
+            if np.any(side_valid & ((largest>side_volume) | (largest>reduced['size_max_contracts']))):
+                raise RuntimeError('GC_TRADE_STAT_SIDE_MAX_INCONSISTENT')
+            out['observed_'+side+'_max_executed_trade_contracts']=np.where(side_valid,largest,np.nan)
     variance_numerator = [int(count)*int(square)-int(total)**2 for count,square,total in
         zip(n,reduced['size_sum_squared_contracts2'],reduced['size_sum_contracts'])]
     if any(value<0 for value in variance_numerator):raise RuntimeError('GC_TRADE_STAT_NEGATIVE_EXACT_VARIANCE')
@@ -870,6 +878,9 @@ class L1FeatureCollectorV2:
             self.trade_size_stats[name][unique]=old+added
         np.minimum.at(self.trade_size_stats['size_min_contracts'],pos,size)
         np.maximum.at(self.trade_size_stats['size_max_contracts'],pos,size)
+        for code,label in (('B','buy'),('A','sell')):
+            known=side==code
+            np.maximum.at(self.trade_size_stats[label+'_size_max_contracts'],pos[known],size[known])
     def trusted_trade_statistics(self):
         if not self.include_trusted_trade_stats:raise RuntimeError('GC_TRADE_STAT_NOT_REQUESTED')
         result={name:value.copy() for name,value in self.trade_size_stats.items()}
@@ -1083,10 +1094,13 @@ def completion_native_candidates_v1(*, include_trade_size_stats=True):
         'observed_avg_executed_trade_contracts','observed_known_delta_contracts','observed_known_aggressor_fraction',
         'observed_accepted_minutes','observed_signed_minutes','observed_coverage_fraction','observed_signed_minute_fraction'), flow, 'observed_valid')
     if include_trade_size_stats:
-        add(tuple('observed_'+name for name in TRADE_SIZE_NATIVE_FIELDS_V1 if 'avg_executed' not in name),flow,'observed_valid')
-        # Side averages are undefined without a T record on that side.
+        add(tuple('observed_'+name for name in TRADE_SIZE_NATIVE_FIELDS_V1
+            if 'avg_executed' not in name and 'max_executed' not in name),flow,'observed_valid')
+        # Side averages and maxima are undefined without a T record on that side.
         for side in ('buy','sell','unknown'):
             add(('observed_'+side+'_avg_executed_trade_contracts',),flow,'observed_'+side+'_trade_size_valid')
+            if side in ('buy','sell'):
+                add(('observed_'+side+'_max_executed_trade_contracts',),flow,'observed_'+side+'_trade_size_valid')
     add(('observed_open_usd','observed_high_usd','observed_low_usd','observed_close_usd'), 'price_action_candle_encoder', 'observed_valid')
     add(('observed_spot_basis_bps','observed_spot_basis_age_minutes'), flow,
         'observed_spot_basis_valid', 'observed_spot_basis_source_available_ns', 'same_closed_m1_cross_venue_basis')

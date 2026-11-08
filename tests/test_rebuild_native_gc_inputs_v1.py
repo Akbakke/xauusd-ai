@@ -254,6 +254,8 @@ def test_completion_event_worker_reuses_original_metrics_and_book_without_new_tr
     assert size_table['size_sum_squared_contracts2'].to_pylist()==[12]
     assert size_table['size_min_contracts'].to_pylist()==[2]
     assert size_table['size_max_contracts'].to_pylist()==[2]
+    assert size_table['buy_size_max_contracts'].to_pylist()==[2]
+    assert size_table['sell_size_max_contracts'].to_pylist()==[2]
     assert pq.read_table(extended['path']).equals(table)
     wrong={name:values.copy() for name,values in metrics.items()};wrong['volume'][0]+=1
     with pytest.raises(RuntimeError,match='ORIGINAL_METRIC_PARITY:volume'):

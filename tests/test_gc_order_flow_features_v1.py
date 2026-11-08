@@ -672,8 +672,10 @@ def test_trusted_trade_sizes_keep_exact_side_counts_population_dispersion_and_vo
     stats['buy_trade_records'][:]=1;stats['sell_trade_records'][:]=1
     stats['size_sum_contracts'][:]=4;stats['size_sum_squared_contracts2'][:]=10
     stats['size_min_contracts'][:]=1;stats['size_max_contracts'][:]=3
+    stats['buy_size_max_contracts'][:]=3;stats['sell_size_max_contracts'][:]=1
     # Replace a real known-side print with an unknown-side print, no imputation.
     stats['buy_trade_records'][5]=0;stats['unknown_trade_records'][5]=1
+    stats['buy_size_max_contracts'][5]=0
     a[2]['buy'][5]=0;a[2]['unknown'][5]=3
     a[3]['delta'][5]=False;a[3]['cvd'][5]=False
     surface,_=f.timeframe_skeleton(*a,tf,100000000)
@@ -689,6 +691,10 @@ def test_trusted_trade_sizes_keep_exact_side_counts_population_dispersion_and_vo
         assert np.asarray(side_valid).dtype==np.dtype(bool)
         np.testing.assert_array_equal(out['observed_'+side+'_avg_executed_trade_contracts'][side_valid],np.full(side_valid.sum(),expected))
         assert np.isnan(out['observed_'+side+'_avg_executed_trade_contracts'][~side_valid]).all()
+        if side in ('buy','sell'):
+            maximum=out['observed_'+side+'_max_executed_trade_contracts']
+            np.testing.assert_array_equal(maximum[side_valid],np.full(side_valid.sum(),expected))
+            assert np.isnan(maximum[~side_valid]).all()
     bad={**stats,'size_sum_contracts':stats['size_sum_contracts']+1}
     with pytest.raises(RuntimeError,match='M1_VOLUME_OR_RECORD_PARITY'):
         f.aggregate_observed_trade_size_v1(a[0],a[1],a[2],a[3],bad,tf)
@@ -706,6 +712,8 @@ def test_trade_size_uint64_guard_and_native_declaration_are_explicit():
     assert len(new)-len(old)==5*(len(f.TRADE_SIZE_NATIVE_FIELDS_V1)+3)
     row=next(v for v in new if v['column']=='observed_buy_avg_executed_trade_contracts')
     assert row['owner']=='momentum_flow_encoder' and row['validity_column']=='observed_buy_trade_size_valid'
+    maximum=next(v for v in new if v['column']=='observed_buy_max_executed_trade_contracts')
+    assert maximum['owner']=='momentum_flow_encoder' and maximum['validity_column']=='observed_buy_trade_size_valid'
     mask=next(v for v in new if v['column']=='observed_buy_trade_size_valid')
     assert mask['role']=='structural_observation_mask'
 
@@ -720,6 +728,7 @@ def test_trusted_T_statistics_keep_identical_prints_and_batch_carry_without_nonT
     assert [int(stats[side+'_trade_records'][0]) for side in ('buy','sell','unknown')]==[2,1,1]
     assert stats['size_sum_contracts'][0]==11 and stats['size_sum_squared_contracts2'][0]==33
     assert stats['size_min_contracts'][0]==2 and stats['size_max_contracts'][0]==4
+    assert stats['buy_size_max_contracts'][0]==2 and stats['sell_size_max_contracts'][0]==4
 
 
 @pytest.mark.parametrize('tf,duration',[('M5',5),('M15',15),('H1',60),('H4',240),('D1',1440)])
@@ -784,7 +793,8 @@ def test_unequal_trade_record_counts_have_exact_all_tf_quantity_weighted_means(t
     for name,values in {'buy_trade_records':[2,1],'sell_trade_records':[1,2],
         'unknown_trade_records':[0,1],'size_sum_contracts':[6,23],
         'size_sum_squared_contracts2':[14,157],'size_min_contracts':[1,4],
-        'size_max_contracts':[3,10]}.items():stats[name][:2]=values
+        'size_max_contracts':[3,10],'buy_size_max_contracts':[3,10],
+        'sell_size_max_contracts':[2,4]}.items():stats[name][:2]=values
     surface,_=f.timeframe_skeleton(*a,tf,100000000)
     sized=f.aggregate_observed_trade_size_v1(a[0],a[1],a[2],a[3],stats,tf)
     assert surface['observed_valid'].tolist()==[True]
@@ -801,3 +811,5 @@ def test_unequal_trade_record_counts_have_exact_all_tf_quantity_weighted_means(t
     np.testing.assert_allclose(sized['observed_executed_trade_size_std_contracts'],[np.sqrt(356)/7],rtol=0,atol=1e-15)
     assert sized['observed_executed_trade_size_min_contracts'][0]==1
     assert sized['observed_executed_trade_size_max_contracts'][0]==10
+    assert sized['observed_buy_max_executed_trade_contracts'][0]==10
+    assert sized['observed_sell_max_executed_trade_contracts'][0]==4

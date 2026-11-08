@@ -92,6 +92,15 @@ forseglet periode scores bare etter forward-journalregelen i GX1_RULES.md.
   [Dekningskvittering](/home/andre2/GX1_RUNS/MARKET_STATE_GC_SIDE_LARGE_TRADE_COVERAGE_20261108_001/RESULT.json)
   SHA `7fdf2adb1138e0d777f85181c59d4272a50c6e832c6391d40ee9519ac684d184`.
 
+- **Sidevis storhandel, bare kilde:** Eksisterende GC-samler bevarer nå
+  største betrodde `T`-kjøp (`B`) og -salg (`A`) separat per M1 og reduserer
+  dem kausalt til M5/M15/H1/H4/D1. Ti nye kandidater har samme sidevise
+  observasjonsmasker og flow-eier; `N` gjøres ikke om til kjøp/salg. 77
+  fokuserte kilde-/syntetiske tester består. Gamle fysiske GC-tabeller og
+  nåværende modellvisning mangler fortsatt de nye feltene: faktisk input,
+  prediktiv verdi og Entry er ubevist. Policyens
+  `market_state_gc_side_max_source_20261108_001` binder dette kildesteget.
+
 - **Ny retningsvekt, kun kilde:** På de fem senere TRAIN-foldenes faste
   endepunkter hadde S entydig side i 33–44 % og F i 37–41 % av informative
   rader. Det gamle v2-tapet delte sidefeilen på alle informative rader. En
@@ -132,12 +141,13 @@ indikatorene eller native modell.
 
 **Neste ene hypotese:** Store aggressive GC-kjøp/salg kan få annen framtidig
 XAU-betydning når de sees sammen med prisrespons og støtte/motstand.
-Råhendelsen har `side` og `size`, mens dagens sammenfatning beholder bare
-største handel uten side. M5-dekningen er nå målt på modellaksen; neste steg
-er å binde én kausal, maskert sidevis storhandelskandidat på alle fem TF og
-én parvis sammenligning mot eksisterende GC-/strukturflater og fryst prior
-på senere kronologiske TRAIN-rader. Den native S/F-ruten kan bare få én egen
-capped fit-/OOF-admisjon etter denne kontrollen. Mål aktivitet og betinget side
+Råhendelsen har `side` og `size`; kildekandidaten bevarer nå største
+betrodde kjøp/salg separat, men nye fysiske bytes og faktisk modellkonsum
+mangler. Neste steg er én ny eksakt capped råreskanning med eksisterende
+eier, fysisk numerisk/klokke-/maskekvalifikasjon og ny native visning. Deretter
+kan én parvis sammenligning av akkurat disse ti feltene mot samme input uten
+dem, eksisterende GC-/strukturflater og fryst prior på senere kronologiske
+TRAIN-rader få en særskilt fit-/OOF-admisjon. Mål aktivitet og betinget side
 separat på alle fem TF og UTC-uker. Ingen ny grov GC-fortegnstabell,
 terskelsøk eller omkjøring av konsumerte planer. `training_enabled=false`.
 

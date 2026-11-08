@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Selected 0.5 ATR activity and conservative local side use the corrected five-TF TRAIN mask. The one mature fold1 native time-query v1 fit and later chronological TRAIN OOF lost M5 certified-side Brier to the frozen prior in all 14 weeks; a paired frozen diagnostic found upward miscalibration and the free-three-logit unknown-side objective defect. Factorized v2 model/loss and stable raw-logit scorer now pass source/synthetic checks, and read-only fold1 receipt/v2 view metadata binding passes. Physical v2 zero-step passed direct activity/side gradient mechanics. The exact S/F B16 two-batch private optimizer/resume probe completed four guarded physical updates with bit-exact resume and zero exit codes. It did not fit a predictor or establish GC direction value. All plans are consumed; training_enabled=false. Full fit, generalization, Entry decision value, economics, TEST, Entry, Exit, broker, trading and spending remain closed.",
-  "next_action": "Original F M5 GC LightGBM one-use run remains FAILED and consumed; read-only recovered fold scores showed no directional gain over frozen prior, while activity improved. Native S/F private four-update optimizer/resume probe is complete and consumed. Exact M5 TRAIN GC coverage audit now confirms B/A records on 117541/118249 model rows and a global largest-trade size with no side attribution. Bind one causal side-specific large-trade hypothesis, preserving masks and all five TF; then one separate later-TRAIN native OOF admission with frozen prior and paired GC ablation if the design qualifies. No rerun of consumed probes or coarse GC sign tables. training_enabled=false; TEST/Entry/Exit/broker/trading/spending closed.",
+  "next_action": "Current source-only GC side-max candidate captures exact B/A trusted T maxima and declares two masked flow fields on each of five TF. Old physical GC tables and model view lack these fields; no model consumption or value claim. Prepare one new exact capped 26-month trusted-record rescan/build plan using existing owner (prior 024 plan consumed), qualify physical side-max numbers, clock, masks and native view, then prefix normalization/fresh baseline and one paired later-TRAIN S/F OOF versus frozen prior if all gates pass. No repeated coarse sign tests or consumed plans. training_enabled=false; TEST/Entry/Exit/broker/trading/spending closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -24297,7 +24297,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-08T02:42:35.925607+00:00",
+  "updated_utc": "2026-11-08T02:50:24.024596+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -64940,5 +64940,35 @@
     "next_gate": "Bind one causal, masked, side-specific large-trade candidate across all five TF, with fixed paired later-TRAIN OOF and frozen prior. Any new fit requires a new capped admission; consumed plans stay closed.",
     "test_data_used": false,
     "predictor_fit": false
+  },
+  "market_state_gc_side_max_source_20261108_001": {
+    "status": "SOURCE_ONLY_PHYSICAL_INPUT_AND_VALUE_UNQUALIFIED",
+    "decision": "T_RECORD_BUY_SELL_MAX_EXACT_FIVE_TF_CANDIDATE",
+    "scope": "Existing GC trusted T collector and five-TF aggregation; two side-specific largest executed trade sizes in contracts, no threshold. Source and synthetic tests only; current physical tables/model view do not contain the new fields.",
+    "source": {
+      "path": "gx1/features/gc_order_flow_v1.py",
+      "sha256": "361c9f740ff23b206a56902bbccc80d1e89231a5eee11c365eedd257017c1710"
+    },
+    "feature_names": [
+      "gc_{tf}_observed_buy_max_executed_trade_contracts",
+      "gc_{tf}_observed_sell_max_executed_trade_contracts"
+    ],
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ],
+    "owner": "momentum_flow_encoder",
+    "masks": [
+      "observed_buy_trade_size_valid",
+      "observed_sell_trade_size_valid"
+    ],
+    "definition": "Per completed TF bucket, maximum size of admitted trusted T records with B or A aggressor. Unknown N does not enter either side. Undefined side is NaN under the existing side record mask.",
+    "comparison": "One later chronological TRAIN paired S/F OOF on identical targets/rows: full current GC/structure/indicator context plus two exact side maxima per TF versus the same rebuilt view with only these ten values masked; both versus fold-specific frozen prior. Evaluate activity and conditional side separately by TF/fold/UTC week; no threshold search or model architecture change.",
+    "tests": "77 focused tests across GC feature and rebuild owners passed; exact ten candidate names/owners/masks inspected. No real new side-max physical data, model forward, fit, TEST or Entry quality measured.",
+    "training_enabled": false,
+    "test_data_used": false
   }
 }
