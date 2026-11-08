@@ -15,28 +15,24 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: `TA_NATIVE_INPUT003_ADMITTED_READY_FOR_EXACT_PREFLIGHT`.
-`training_enabled=false`. Inputaudit 002 er konsumert med feil etter 1219,1 s.
-Den passerte full rågather, normalisering og én familiehook-forward, men
-stoppet i formelorakelets eksakte prefiksport før formelsammenligning.
-Det delte, lengre prefikset for lokale trendlinjer var ikke gyldig som input
-til residual63-orakelet, som krever slutt ved siste etterspurte observasjon.
-Ingen fullstendig input-PASS eller frosne priorer ble publisert.
-Minste rettelse avgrenser akkurat dette kallet uten å nullstille historikk
-eller svekke orakelets port. Alle 16 fokuserte tester består, inkludert
-ekte residual63-/lokal96-orakler og bevaring av fullført inputfase ved
-senere formelfeil. Fasekvitteringen er ikke full input-PASS og åpner ingen
-gjenopptakelse eller relansering. Ny eksakt plan 003 er innrømmet og uklamet:
-73 kildeeiere, CPU 12 GiB/512 MiB/3600 s, én forward og null optimizer.
-Eksakt preflight skal bestå før claim. Nye påkrevde 10 guard-/61 modell-
-kontrakttester bestod.
-Den tidligere provider-grensefeilen i 001 er rettet; utvidet faktisk
-preflight for 002 bestod på 73 kildeeiere, 25 metadata-, 48 payload-stat- og
-seks skrivebeskyttede dekodefiler. 14 fokuserte tester og påkrevde
-10 guard-/61 modellkontrakttester bestod.
-Begge originale `CLAIM/FAILED/TERMINAL` og kjørelogger er bevart i
-sine `MARKET_STATE_TA_NATIVE_INPUT_20261108_001/002`-røtter.
-Ingen av dem relanseres. Ny mekanikk og predictor-fit er ikke innrømmet.
+Policystatus: `TA_LOCAL_TRENDLINE_NUMERIC_MISMATCH_DIAGNOSIS_REQUIRED`.
+`training_enabled=false`. Inputaudit 003 er konsumert med faktisk numerisk
+avvik i lokale 31 trendlinjefelt mot uavhengig lokal96-replay etter 1460,6 s.
+Årsaken er ikke avklart: produksjonsfeil og ulikt pris-/ATR-/historikkgrunnlag
+eller orakelsemantikk skal skilles før rettelse. Eksakte avviksceller mangler
+fordi sammenligningsporten stoppet før denne rapporten ble publisert.
+Den separate [inputfasekvitteringen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_20261108_003/INPUT_TENSOR_PHASE.json)
+er komplett innen sitt scope: 47 327 rader, 7 726 606 020 råverdier bitlike,
+null normaliseringsavvik og én faktisk forward med åtte familier/fem TF.
+Den gir uttrykkelig ikke full input-PASS, retningsverdi eller launchmyndighet.
+Ingen priorer eller fullstendig RESULT ble publisert. Alle originale
+`CLAIM/FAILED/TERMINAL` og kjørelogger for 001–003 er bevart; ingen relanseres.
+De tidligere provider-/prefiksfeilene var i den nye auditkoblingen og er rettet.
+16 fokuserte tester med ekte orakeleiere, 10 guard- og 61 modellkontrakttester
+bestod før 003. Neste arbeid er en avgrenset formeldiagnose uten ny fullgather,
+modellforward eller trening; eksisterende tensorbevis skal gjenbrukes.
+Brukeren presiserte at trendlinjers berøring, brudd og vending er sentralt.
+Hendelsesbetinget prediksjonsverdi er en testbar hypotese, ikke et påvist funn.
 GC-registerplanen er utsatt og uklamet. Juni 2026 er brukt utviklings-VAL;
 forseglet periode følger bare forward-journalregelen i GX1_RULES.md.
 
@@ -245,14 +241,13 @@ markedstilstand, senere Entry-beslutningsverdi eller økonomisk edge er påvist.
 Den enkle tabellmodellens negative retning er ikke en generell dom over GC,
 indikatorene eller native modell.
 
-**Neste steg:** Eksakt lesende preflight, deretter engangs inputaudit 003 på nøyaktig alle konsumerte
-fit-/scorevinduer: råverdier, klokker, normalisering, uavhengig formeldekning
-og én faktisk familiehook-forward. Deretter bare ved PASS: ny guarded TA S/F
-fireoppdateringsmekanikk, fersk initialbaseline og 29 574-raders ettpass-fit
-med matchet initial/final og senere 17 753-raders TRAIN-score.
-Bruk nye eksakte kilder, planer og maskinvarevakter; aldri private
-kvalifikasjonsvekter i hovedfit. Første fulle initialevaluering har ennå
-ingen målt kjøretid. Den negative BOS+EMA20-hypotesen relanseres ikke.
+**Neste steg:** Spor lokal31-produksjon og uavhengig oracle til samme pris-,
+ATR-, klokke-, parameter- og historikkgrunnlag. Kjør deretter kun en ny
+eksakt innrømmet CPU-formeldiagnose med avvikseksempler, uten fullgather,
+modell eller mål. Ikke svekk toleranser eller endre indikatorer for å få PASS.
+Full inputkvalifikasjon må være avklart før nye guarded TA S/F-mekanikk,
+fersk initialbaseline og 29 574-raders ettpass-fit med matchet initial/final
+og senere 17 753-raders TRAIN-score. Ingen kvalifikasjonsvekter brukes i fit.
 Native femfolds generalisering, Entry-verdi og økonomisk edge er ubevist.
 
 Den tidligere [GC-registerplanen](configs/research/MARKET_STATE_GC_SIDE_MAX_REGISTRY_20261108_001.json)

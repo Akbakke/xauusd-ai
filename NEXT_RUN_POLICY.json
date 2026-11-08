@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-08T13:25:29.845700+00:00",
-  "status": "TA_NATIVE_INPUT003_ADMITTED_READY_FOR_EXACT_PREFLIGHT",
+  "status": "TA_LOCAL_TRENDLINE_NUMERIC_MISMATCH_DIAGNOSIS_REQUIRED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Selected 0.5 ATR activity and conservative local side use the corrected five-TF TRAIN mask. The one mature fold1 native time-query v1 fit and later chronological TRAIN OOF lost M5 certified-side Brier to the frozen prior in all 14 weeks; a paired frozen diagnostic found upward miscalibration and the free-three-logit unknown-side objective defect. Factorized v2 model/loss and stable raw-logit scorer now pass source/synthetic checks, and read-only fold1 receipt/v2 view metadata binding passes. Physical v2 zero-step passed direct activity/side gradient mechanics. The exact S/F B16 two-batch private optimizer/resume probe completed four guarded physical updates with bit-exact resume and zero exit codes. It did not fit a predictor or establish GC direction value. All plans are consumed; training_enabled=false. Full fit, generalization, Entry decision value, economics, TEST, Entry, Exit, broker, trading and spending remain closed.",
-  "next_action": "Run exact capped input003 command with --preflight, then consume003 once if qualified. Keep source and policy frozen during execution. Review complete terminal/formula evidence before new TA S/F mechanical admission; input phase alone is insufficient. Never relaunch consumed001/002.",
+  "next_action": "Preserve consumed input003 and its complete tensor-only phase. Trace actual local31 production versus oracle OHLC/ATR/history/parameter semantics; prepare one narrow no-model CPU diagnostic that emits per-field mismatch counts and examples. Do not repeat full gather or model forward, enable training, or infer a production bug before the cause is measured.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1624,7 +1624,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Exact read-only source/provider/view preflight for input003, then one bounded physical audit.",
+    "current_activity": "Investigate actual local31 trendline numeric disagreement; independently trace producer lineage and oracle assumptions.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1677,7 +1677,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Complete physical TA input/formula qualification remains pending; no numeric indicator mismatch observed. COT2024 actual publication/vintage remains UNKNOWN.",
+    "current_blocker": "Local trendline numeric mismatch blocks full input qualification and new native fit. Input delivery and normalization are verified for the exact003 tensor phase, not predictive value.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -21748,7 +21748,7 @@
       }
     },
     "ta_native_candidate_20261108": {
-      "status": "PHYSICAL_INPUT_AUDIT003_ADMITTED_UNCLAIMED",
+      "status": "LOCAL31_NUMERIC_MISMATCH_WITH_COMPLETED_TENSOR_PHASE",
       "profile": "full_xau_ta_mtf_entry_research_v1",
       "physical_widths": {
         "signal": 315,
@@ -21770,7 +21770,7 @@
       "fit_optimizer_update_ceiling": 1849,
       "actual_checkpoint_view_sha256": "3e2761afaf1d29e6537843e9e59b592a7c149a9cd99c97f866a2cd1e88611906",
       "normalization_refit": false,
-      "current_model_executions": 1,
+      "current_model_executions": 2,
       "current_optimizer_updates": 0,
       "local_exact_m5_alias_fields": 186,
       "distinct_local_trendline_fields": 31,
@@ -21780,7 +21780,7 @@
       "calendar_regression_fixed": true,
       "bound_calendar_dates_verified": 9000,
       "changed_availability_on_bound_history_through_2024": 0,
-      "physical_audit_admitted": true,
+      "physical_audit_admitted": false,
       "mechanical_qualification_admitted": false,
       "predictor_fit_admitted": false,
       "test_data_used": false,
@@ -21826,12 +21826,12 @@
         "sha256": "206a88f6dd1f4041e0278350b1fc83aff6aa749ae5df7da9a439a3b428233677"
       },
       "input_audit_failure": {
-        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_20261108_002/FAILED.json",
-        "sha256": "a58d7126e6d92169aefcf031824da54d11cf86adb0690ec1f846ea7966e87add"
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_20261108_003/FAILED.json",
+        "sha256": "55b3ffeac8f5420eb979afa4e9adba6852889ed098c69116ebb8de1faebb268b"
       },
       "input_audit_terminal": {
-        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_20261108_002/TERMINAL.json",
-        "sha256": "af5916b0924cdef08ba717f0166e888e209e856c78c86f5d87b168888a3bcd5c"
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_20261108_003/TERMINAL.json",
+        "sha256": "594fa5403b502c49d9a582d01fecb254fc1a2654f76777b3b923070494838f83"
       },
       "provider_integration_repair_tests": {
         "passed": 14,
@@ -21896,7 +21896,16 @@
             "sha256": "15941cd3d44aa046a3c50ed4434f97bcc7c9076bc0c9d434029998929297c93a"
           }
         }
-      }
+      },
+      "input_tensor_phase": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_20261108_003/INPUT_TENSOR_PHASE.json",
+        "sha256": "57d17dc576d3e22ee7c5ba1e4a25c1e7f07f3cb57bed2bc60365d9fe349ae79d"
+      },
+      "verified_tensor_parent_rows": 47327,
+      "verified_tensor_values": 7726606020,
+      "normalization_maximum_absolute_error": 0.0,
+      "all_eight_families_and_five_timeframes_observed": true,
+      "numeric_mismatch_cause": "UNRESOLVED_PRODUCER_VERSUS_ORACLE_INPUT_OR_SEMANTICS"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -24461,7 +24470,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-08T14:25:24.638223+00:00",
+  "updated_utc": "2026-11-08T14:53:17.434251+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -65443,8 +65452,8 @@
     "memory_max": "12G",
     "swap_max": "512M",
     "wall_seconds": 3600,
-    "status": "ADMITTED",
-    "decision": "ADMITTED",
+    "status": "FAILED_CONSUMED",
+    "decision": "FAILED_CONSUMED",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_NATIVE_INPUT_20261108_003.json",
       "sha256": "67f35d185c6c5a9e2f4067f40a477823fdf63fb71f3aedc3dd0fbfa11d27dda3"
@@ -65453,11 +65462,11 @@
       "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/verify_market_state_ta_native_input_path_v1.py",
       "sha256": "88d58ee356522c421477e3eaee149b6feed109d94715e49d81b261a957288a5b"
     },
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "endpoint_prior_fit_authorized": true,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "endpoint_prior_fit_authorized": false,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_20261108_003",
     "scope": "Exact fold1 TA input/normalization/family routing, full causal oracle prefixes with separate local96/MTF scopes, fit-only S/F priors; one forward, zero predictor updates. Diagnostic input phase alone cannot authorize training.",
     "predecessor_failure": {
@@ -65476,6 +65485,35 @@
       },
       "real_residual63_and_local96_owners_exercised": true,
       "late_formula_failure_preserves_input_phase": true
+    },
+    "successful_invocations": 0,
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_20261108_003/CLAIM.json",
+      "sha256": "8f566b6e53d47982ad55e2aef404331c233c30407ee7cdc23a7e0d4db1340c5f"
+    },
+    "failure": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_20261108_003/FAILED.json",
+      "sha256": "55b3ffeac8f5420eb979afa4e9adba6852889ed098c69116ebb8de1faebb268b"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_20261108_003/TERMINAL.json",
+      "sha256": "594fa5403b502c49d9a582d01fecb254fc1a2654f76777b3b923070494838f83"
+    },
+    "execution_log": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_20261108_003/EXECUTION.log",
+      "sha256": "548506e3475f347dbcea4613e685cba89d9b2e9ae27959b6965a7e61cc3196d8"
+    },
+    "completed_input_tensor_phase": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_20261108_003/INPUT_TENSOR_PHASE.json",
+      "sha256": "57d17dc576d3e22ee7c5ba1e4a25c1e7f07f3cb57bed2bc60365d9fe349ae79d"
+    },
+    "observed_model_forwards": 1,
+    "observed_optimizer_steps": 0,
+    "complete_input_qualification": false,
+    "error": "Local31 model signal differs from independent local96 trendline replay. Exact fields/cells were not emitted before fail-closed comparison; production defect versus oracle input/semantics mismatch remains unresolved.",
+    "read_only_preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SOURCE_QUALIFICATION_20261108_001/INPUT003_PREFLIGHT.json",
+      "sha256": "341bba0ec734d027d85da7964db8e2bc37a09ac2e732e298c3796118c101f44c"
     }
   }
 }
