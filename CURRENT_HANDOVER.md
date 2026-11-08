@@ -14,7 +14,7 @@ M5 er prognosetakten; kausalt lukkede M15/H1/H4/D1 og GC/indikatorhistorikk er
 input. Alle fem TF har egne framtidige mål. Entry, Exit, ordre, broker, handel,
 spending og forseglet TEST er stengt.
 
-Policystatus: `NATIVE_F_SIDE_NORMALIZED_ZERO_STEP_COMPLETE_NO_FIT`.
+Policystatus: `NATIVE_F_PRIVATE_STATE_SOURCE_ONLY_TRAINING_CLOSED`.
 `training_enabled=false`; ny nullstegsplan er konsumert, ingen tung jobb kjører. Ingen tidligere
 claimet, fullført eller feilet plan relanseres. Juni 2026 er brukt utviklings-VAL;
 forseglet periode scores bare etter forward-journalregelen i GX1_RULES.md.
@@ -96,6 +96,15 @@ forseglet periode scores bare etter forward-journalregelen i GX1_RULES.md.
   Dette beviser teknisk kobling, ikke læring eller retning. Policyens
   `market_state_native_F_side_normalized_design_20261108_001` binder designet.
 
+- **Optimizer/gjenopptakelse, kun kilde:** En smal S/F-tilstandseier gjenbruker
+  B16/AdamW/FP32-oppskriften og de tidligere valgte TRAIN-radene 2–33.
+  Fire syntetiske tester består: begge hoder er aktive, ubrukte gamle hoder
+  fryses, avbrutt/lastet to-stegsforløp er bitlikt, og ødelagt checkpoint
+  avvises før modellmutasjon. Ingen ekte optimizersteg er gjort. Den tekniske
+  prøven må inn i eksisterende beskyttet trainer-kampanje og GPU-vakter;
+  CPU-produsentklassen er ikke en lovlig snarvei. Policyens
+  `market_state_native_F_private_state_source_20261108_001` binder kilden.
+
 ## Ikke gjort, hindring og neste steg
 
 Native S/F har **ingen** optimizer-/resume-kvalifikasjon, full kronologisk fit
@@ -108,8 +117,8 @@ indikatorene eller native modell.
 **Neste ene hypotese:** Den native sekvenshistorikken kan fange tidsforløp og
 GC × prisstruktur som tabellens siste snapshot ikke gjorde. Gjenbruk nøyaktig
 samme kvalifiserte inputs/targets/visning og den bundne
-side-normaliserte S/F-tapsmodusen. Behold samme proper score. Kvalifiser minimal faktisk optimizer/resume
-på denne eksakte modellen; deretter bare én egen admittert, capped kronologisk
+side-normaliserte S/F-tapsmodusen. Behold samme proper score. Koble den smale tilstandseieren til den eksisterende beskyttede
+trainer-kampanjen og kvalifiser faktisk optimizer/resume; deretter bare én egen admittert, capped kronologisk
 TRAIN-fit/OOF med forhåndsbundet prior og parret GC-ablasjon. Mål aktivitet og
 betinget side separat på alle fem TF og UTC-uker, særlig M5 framtidig side.
 Ingen ny grov GC-fortegnstabell, terskelsøk eller tabellomkjøring uten en ny
