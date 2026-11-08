@@ -15,7 +15,7 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: `TA_SF_ONE_PASS_FIT_ADMITTED_AFTER_INPUT_AND_MECHANICS`.
+Policystatus: `TA_SF_INTERRUPTED_DUPLICATE_CHECK_OPTIMIZED`.
 [Fullføringen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001/RESULT.json)
 er COMPLETE: 600 ekstra historikkrader × 94 felt = 56 400 sammenligninger,
 null avvik. M5/M15/H1/H4/D1-gapene var 94/63/95/96/252 rader. Alle ni
@@ -39,10 +39,27 @@ fersk baseline og bitlik gjenopptakelse. 154,96 s, 5,75 GB topp-RSS og
 1,79 GB toppallokert GPU-minne. Trener/observatør/kontroller avsluttet med 0.
 Oppgaven er deaktivert og planen konsumert. Dette er ikke markedspresisjon.
 
-Ny ettpass-fit er admitted: 29 574 modne fit-rader, fersk INITIAL og FINAL
-på hele samme populasjon, og senere 17 753 TRAIN-rader. Maks 1 849 updates
-over inntil fire vaktholdte vinduer. Trening er åpen kun for denne nye planen.
-Kampanjeforberedelse, fersk Windows-boot og faktisk fit gjenstår.
+Brukeren ba om å rette den målte ytelsesflaskehalsen straks. Ettpass-fit
+ble derfor avbrutt før kildeendringen; planen er ABORTED_CONSUMED.
+Full INITIAL på 29 574 rader og checkpoint ved 4 096 rader / 256 updates
+er bevart. Checkpointets hele state- og komponenthasher er kontrollert.
+Oppdateringer etter siste checkpoint er UNKNOWN; FINAL og senere TRAIN-score
+er ikke fullført. Startoppsettet ignorerte SIGINT; SIGTERM ga guard-exit143
+og Windows-task-exit1. Ingen vellykket trenerterminal eller resume-cursor
+ble publisert. Oppgaven er deaktivert, GPU/prosess/lås er ledige.
+[Operatørterminalen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_FIT_20261108_001/OPERATOR_INTERRUPTION_TERMINAL.json)
+bevarer dette som avbrudd, ikke PASS. Ingen gammel plan relanseres.
+
+Den minste ytelsesrettelsen erstatter 2 700 gjentatte tuple.count-skanninger
+med Counter. I 25 like metadata-målinger sank feltvalideringen fra
+66,994 til 0,834 ms (80,34 ganger); hele TA-profilbyggingen fra
+117,099 til 50,161 ms (2,33 ganger). Gyldige profiler, kontrakter,
+feltrekkefølge og seks kontrollerte normal-/feiltilfeller er identiske.
+Alle validatorer kjøres fortsatt; modell, features og regning er uendret.
+Tre fokuserte TA-profil-/normaliserings-/konsumtester består. Tre nye
+duplikatfeiltester følger den eksisterende obligatoriske pre-commit-gaten.
+[Resultatet](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DUPLICATE_CHECK_PERF_20261108_001/RESULT.json)
+binder før/etter-målingene. Gevinsten for hele treningsløpet er ikke målt.
 
 Den separate [inputfasekvitteringen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_20261108_003/INPUT_TENSOR_PHASE.json)
 er komplett innen sitt scope: 47 327 beslutningsrader og alle overlappende
@@ -74,7 +91,8 @@ forseglet periode følger bare forward-journalregelen i GX1_RULES.md.
   før/etter fit, med globale aktivitets-/sidemasker og frosne priorer.
   Senere 17 753 TRAIN-rader scores separat. Gammel initialkvittering
   med null forwards er ikke en læringsmåling. Inputkvalifikasjonen er komplett innen deklarert scope;
-  ny fireoppdateringsmekanikk består; faktisk predictor-fit gjenstår.
+  ny fireoppdateringsmekanikk består. Fit ble avbrutt etter brukerens
+  ytelsesbestilling; 256 oppdateringer er bevart, men full læringsmåling gjenstår.
 
 - **Funksjonsgjennomgang:** EMA bruker SMA-seed og alfa `2/(p+1)`;
   ATR bruker klassisk TR og Wilder14. SMC-pivot blir synlig etter bekreftelse,
@@ -268,10 +286,12 @@ markedstilstand, senere Entry-beslutningsverdi eller økonomisk edge er påvist.
 Den enkle tabellmodellens negative retning er ikke en generell dom over GC,
 indikatorene eller native modell.
 
-**Neste steg:** Materialiser og forhåndskontroller TA S/F-fitens eksakte
-recipe/campaign. Etter maskinvid idle-kontroll kreves bekreftet fersk
-Windows-boot. Kjør én epoke med full matchet initial/final og senere TRAIN-score.
-Input- og mekanikkprøvene skal ikke gjentas.
+**Neste steg:** Bruk den målte lineære duplikatkontrollen. Videre læring
+trenger en ny eksakt kildebundet plan og kvalifisert gjenopptakelses-/
+baselinerute; avbrutt plan og ubundet checkpoint skal ikke startes automatisk.
+Full INITIAL, kvalifiserte inputs og mekanikkbevis bevares og gjenbrukes
+innen uendret scope; ikke bygg data eller gjenta beståtte prøver uten grunn.
+Trening og launch er stengt.
 Brukerens spørsmål om 30 epoker og fem år beholdes som åpne hypoteser.
 Dagens fit dekker omtrent mai–september2024, senere score oktober–desember2024.
 Ett kort pass er ingen generell dom over lengre læring eller historikk.
@@ -281,7 +301,7 @@ Native femfolds generalisering, samme-linje-reaksjonsverdi, Entry-verdi og
 
 Den tidligere [GC-registerplanen](configs/research/MARKET_STATE_GC_SIDE_MAX_REGISTRY_20261108_001.json)
 forblir bevart, men er utsatt og uklamet etter brukerens nye prioritering.
-`training_enabled=true` gjelder kun den nye ettpass-fit-porten.
+`training_enabled=false` etter avbruddet; ingen ny treningsplan er admitted.
 
 Kilde/metode for denne fasen: [docs/NATIVE_LEARNING.md](docs/NATIVE_LEARNING.md).
 Detaljert historikk og eldre beslutninger: Git, ikke nye arkivmapper her.

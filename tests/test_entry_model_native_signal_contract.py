@@ -198,6 +198,42 @@ def _exact_model_kwargs(*, ctx_cont_dim: int = MODEL_NATIVE_CTX_CONT_DIM) -> dic
     }
 
 
+@pytest.mark.parametrize(
+    ("replacement", "expected_duplicates"),
+    [
+        pytest.param(
+            ["__dup_z__", "__dup_a__", "__dup_z__", "__dup_a__", "__dup_z__"],
+            ["__dup_a__", "__dup_z__"],
+            id="sorted_unique",
+        ),
+        pytest.param(
+            [" __dup_z__ ", "\t__dup_a__\n", "__dup_z__", "__dup_a__"],
+            ["__dup_a__", "__dup_z__"],
+            id="whitespace_normalized_before_count",
+        ),
+        pytest.param(
+            [f"__dup_{i:02d}__" for i in range(21, -1, -1) for _ in range(2)],
+            [f"__dup_{i:02d}__" for i in range(20)],
+            id="first_20_sorted_duplicate_names",
+        ),
+    ],
+)
+def test_signal_duplicate_error_semantics(
+    replacement: list[str], expected_duplicates: list[str],
+) -> None:
+    selected = _selected_fields()
+    selected[-len(replacement):] = replacement
+
+    with pytest.raises(RuntimeError) as exc:
+        ordered_model_native_signal_fields(selected)
+
+    assert str(exc.value) == (
+        "MODEL_NATIVE_SIGNAL_FIELDS_INVALID: "
+        f"duplicate_selected_fields={expected_duplicates}"
+        " | available_candidate_suffix_order_mismatch"
+    )
+
+
 def test_model_native_signal_contract_has_exact_derived_width_and_all_groups_live() -> (
     None
 ):

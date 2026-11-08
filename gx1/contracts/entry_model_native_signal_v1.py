@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections import Counter
 from collections.abc import Mapping, Sequence
 from typing import Any
 
@@ -882,7 +883,7 @@ def ordered_model_native_signal_fields(
     blank = [index for index, name in enumerate(selected) if not name]
     if blank:
         failures.append(f"blank_selected_field_indices={blank[:10]}")
-    duplicates = sorted({name for name in selected if selected.count(name) > 1})
+    duplicates = sorted(name for name, count in Counter(selected).items() if count > 1)
     if duplicates:
         failures.append(f"duplicate_selected_fields={duplicates[:20]}")
     forbidden = sorted(set(selected) & set(FORBIDDEN_LEGACY_BRIDGE_FIELDS))
