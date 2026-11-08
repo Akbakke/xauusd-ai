@@ -1,0 +1,56 @@
+{
+  "inputs": {
+    "F_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_DECISION_RETURN_GC_20261108_002/RESULT.json",
+      "sha256": "0998ed88ae6118293f193ace6d4e05660dad6d7abdb67fada2955730fdc03fc9"
+    },
+    "F_tape": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_DECISION_RETURN_GC_20261108_002/DECISION_RETURN_TAPE.npz",
+      "sha256": "f87dcc7c669e86a10325a526023933346926f17037685a3082a875e67a1fb167"
+    },
+    "completed_v2_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TIME_QUERY_V2_ZERO_STEP_20261107_001.json",
+      "sha256": "68d36eb425cadd94e5d3db1f89d9660174d981cc5329f9a0762fc6ed2bbc9c5b"
+    }
+  },
+  "limits": {
+    "memory_high": 12884901888,
+    "memory_max": 12884901888,
+    "swap": 536870912,
+    "wall_seconds": 1800
+  },
+  "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_CPU_ZERO_STEP_20261108_001",
+  "schema_version": "gx1_market_state_native_F_cpu_zero_step_plan_v1",
+  "scope": {
+    "backward_calls": 1,
+    "fold_id": 1,
+    "optimizer_steps": 0,
+    "partition": "fit",
+    "pass_index": 0,
+    "physical_model_forwards": 1,
+    "sample_issue_ns": [
+      1714521900000000000,
+      1714522500000000000
+    ],
+    "sample_parent_rows": [
+      0,
+      2
+    ],
+    "seed": 20261107,
+    "test_data_used": false,
+    "training_authorized": false,
+    "witness_F_weight": 0.25
+  },
+  "source_base_head": "e22ac9f6a317412d1688c5fbf6909a6d8d239697",
+  "source_owners": {
+    "gx1/audit/verify_market_state_native_F_cpu_zero_step_v1.py": "505c6bcc71289b8f62929e71ce0da2bba32f4dff00e2418f1318d5d1e4881fa8",
+    "gx1/contracts/gx1_capped_execution_v1.py": "60b1ccf2eda470a84ddded0d8160c628314ebb19f5766b87b70fef7c9aa3ccff",
+    "gx1/contracts/market_state_future_displacement_candidate_v1.py": "4a7e0a582bef097109555ddfe1b96cb2c9d7b31c2a53366ef9a4bbbe0c6deb62",
+    "gx1/contracts/market_state_time_query_native_F_batch_v1.py": "711230f069ad826aa2b3b077ceb9abd6f67e596a11bc445f99bdee8fb018cfe8",
+    "gx1/contracts/market_state_time_query_native_F_model_v1.py": "e495b0a51aa10cb3e1e69079b1976fcb634126d85e0aedc6c3e9a8cc7aba0316",
+    "gx1/contracts/market_state_time_query_native_F_objective_v1.py": "3e6afc1c543a9a7e3df3b515399e3a1313280f5e9a4324fe0a1f458d061d6184",
+    "scripts/gx1_capped_run.sh": "6cd8ccbc010e1ca16d2db3c8253582d7547561ae7b832473098f541787aa3c00"
+  },
+  "stage": "market_state_native_F_cpu_zero_step_20261108_001",
+  "status": "PREPARED_NOT_ADMITTED"
+}
