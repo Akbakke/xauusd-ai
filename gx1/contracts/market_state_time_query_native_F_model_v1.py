@@ -1,0 +1,124 @@
+"""Research wrapper: unchanged S query head plus native-endpoint F head.
+
+One causal feature encoding feeds both heads. Future targets are never passed to
+forward. The existing v2 state model, checkpoint format and score stay intact.
+"""
+from __future__ import annotations
+
+import hashlib
+import json
+
+import torch
+from torch import nn
+
+from gx1.contracts.market_state_future_displacement_candidate_v1 import contract as future_contract
+from gx1.contracts.market_state_time_query_model_v2 import (
+    FactorizedTimeQueryMarketStateModel, factorized_log_probabilities,
+    factorized_time_query_model_contract,
+)
+from gx1.contracts.market_state_time_query_target_v1 import NATIVE_K, TIMEFRAMES
+
+
+def contract() -> dict:
+    value = {
+        'schema_version': 'gx1_market_state_native_F_dual_model_candidate_v1',
+        'role': 'research_only_no_fit_or_trade_authority',
+        'S_model_contract_sha256': factorized_time_query_model_contract()['contract_sha256'],
+        'F_target_contract_sha256': future_contract()['contract_sha256'],
+        'encoder': 'one_existing_v2_causal_native_backbone_encode_features_call',
+        'S': 'unchanged_v2_sampled_query_projection_and_state_head',
+        'F': 'one_fixed_native_k_query_per_TF_from_same_hidden_and_projection_with_distinct_two_logit_head',
+        'native_k': list(NATIVE_K),
+        'F_primitive_logits': ['NET_ACTIVE', 'UP_GIVEN_NET_ACTIVE'],
+        'S_and_F_targets_as_forward_inputs': False,
+    }
+    raw = json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
+    return {**value, 'contract_sha256': hashlib.sha256(raw).hexdigest()}
+
+
+class NativeFutureDualModel(nn.Module):
+    """Keep the v2 S submodel exact while adding one small F decoder head."""
+
+    def __init__(self, state_model: FactorizedTimeQueryMarketStateModel):
+        super().__init__()
+        if type(state_model) is not FactorizedTimeQueryMarketStateModel:
+            raise TypeError('NATIVE_F_STATE_MODEL_OWNER')
+        self.state_model = state_model
+        width = state_model._hidden_width
+        device = state_model.query_head.weight.device
+        self.future_head = nn.Linear(width, 2, device=device, dtype=torch.float32)
+        self.register_buffer('native_F_objective_sha256', torch.tensor(
+            list(bytes.fromhex(contract()['contract_sha256'])),
+            device=device, dtype=torch.uint8))
+
+    @property
+    def research_objective(self) -> dict:
+        return contract()
+
+    @property
+    def backbone(self) -> nn.Module:
+        return self.state_model.backbone
+
+    def encode_features(self, **features: torch.Tensor) -> torch.Tensor:
+        return self.state_model.encode_features(**features)
+
+    def decode_native_F_raw(self, hidden: torch.Tensor) -> torch.Tensor:
+        self.state_model._require_binding()
+        if not (isinstance(hidden, torch.Tensor) and hidden.dtype == torch.float32
+                and hidden.ndim == 2 and hidden.shape[0] > 0
+                and hidden.shape[1] == self.state_model._hidden_width
+                and hidden.device == self.future_head.weight.device
+                and bool(torch.isfinite(hidden).all())):
+            raise ValueError('NATIVE_F_HIDDEN')
+        device = hidden.device
+        reference = torch.tensor(list(bytes.fromhex(contract()['contract_sha256'])),
+                                 dtype=torch.uint8, device=device)
+        if not (torch.equal(self.native_F_objective_sha256, reference)
+                and self.future_head.in_features == hidden.shape[1]
+                and self.future_head.out_features == 2
+                and self.future_head.weight.dtype == self.future_head.bias.dtype
+                    == torch.float32
+                and self.future_head.weight.device == self.future_head.bias.device
+                    == device
+                and bool(torch.isfinite(self.future_head.weight).all())
+                and bool(torch.isfinite(self.future_head.bias).all())):
+            raise RuntimeError('NATIVE_F_HEAD_BINDING')
+        batch = hidden.shape[0]
+        source = hidden[:, None, :].expand(-1, len(TIMEFRAMES), -1)
+        tf = self.state_model.query_tf_coordinates[None].expand(batch, -1, -1)
+        native_fraction = torch.ones((batch, len(TIMEFRAMES), 1),
+                                     dtype=torch.float32, device=device)
+        representation = self.state_model.query_projection(
+            torch.cat((source, tf, native_fraction), dim=-1))
+        raw = self.future_head(representation)
+        if not (raw.shape == (batch, len(TIMEFRAMES), 2)
+                and bool(torch.isfinite(raw).all())):
+            raise RuntimeError('NATIVE_F_LOGITS')
+        return raw
+
+    def forward(self, seq_x: torch.Tensor, snap_x: torch.Tensor, *,
+                query_k: torch.Tensor, ctx_cat: torch.Tensor,
+                ctx_cont: torch.Tensor, seq_m5: torch.Tensor,
+                seq_m15: torch.Tensor, seq_h1: torch.Tensor,
+                seq_h4: torch.Tensor, seq_d1: torch.Tensor,
+                gc_seq_m5: torch.Tensor, gc_seq_m15: torch.Tensor,
+                gc_seq_h1: torch.Tensor, gc_seq_h4: torch.Tensor,
+                gc_seq_d1: torch.Tensor) -> dict[str, torch.Tensor]:
+        features = dict(seq_x=seq_x, snap_x=snap_x, ctx_cat=ctx_cat,
+                        ctx_cont=ctx_cont, seq_m5=seq_m5, seq_m15=seq_m15,
+                        seq_h1=seq_h1, seq_h4=seq_h4, seq_d1=seq_d1,
+                        gc_seq_m5=gc_seq_m5, gc_seq_m15=gc_seq_m15,
+                        gc_seq_h1=gc_seq_h1, gc_seq_h4=gc_seq_h4,
+                        gc_seq_d1=gc_seq_d1)
+        hidden = self.encode_features(**features)
+        if not (isinstance(query_k, torch.Tensor) and query_k.dtype == torch.int64
+                and query_k.shape == (hidden.shape[0], len(TIMEFRAMES))
+                and query_k.device == hidden.device):
+            raise ValueError('NATIVE_F_S_QUERY')
+        state_raw = self.state_model.decode_raw_query_grid(
+            hidden, query_k[:, None, :])[:, 0]
+        future_raw = self.decode_native_F_raw(hidden)
+        return {'state_activity_side_logits': state_raw,
+                'state_log_probs': factorized_log_probabilities(state_raw),
+                'future_activity_side_logits': future_raw,
+                'future_log_probs': factorized_log_probabilities(future_raw)}
