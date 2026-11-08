@@ -15,7 +15,7 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: `LOCAL31_DIAGNOSTIC_IMPLEMENTED_METADATA_VERIFIED_NOT_ADMITTED`.
+Policystatus: `LOCAL31_DIAGNOSTIC_ADMITTED_READY_FOR_PREFLIGHT`.
 `training_enabled=false`. Inputaudit 003 er konsumert med faktisk numerisk
 avvik i lokale 31 trendlinjefelt mot uavhengig lokal96-replay etter 1460,6 s.
 Årsaken er ikke avklart: produksjonsfeil og ulikt pris-/ATR-/historikkgrunnlag
@@ -39,7 +39,9 @@ Begge bruker float64-HLC og ny Wilder14; lagret float32-ATR brukes ikke.
 Originalproduksjonens relevante kode er byte-/AST-identisk med dagens.
 Dette beviser inputforskjellen, ikke at den alene forklarer tallavviket.
 Ny avgrenset diagnose er implementert med 76 kildeeiere; seks fokuserte
-tester og faktisk metadata-binding består. Eksakt plan/claim gjenstår.
+tester og faktisk metadata-binding består. Ny eksakt plan er innrømmet og
+uklamet: CPU 12 GiB/512 MiB/3600 s, null modeller/targets/gather/normalisering.
+Eksakt lesende preflight må bestå før claim.
 
 Trendlinjerepresentasjonen har to nærmeste-linjeplasser uten linje-ID,
 ankre eller byttemarkør; hendelsesfelt kan gjelde andre registerlinjer.
@@ -255,8 +257,8 @@ markedstilstand, senere Entry-beslutningsverdi eller økonomisk edge er påvist.
 Den enkle tabellmodellens negative retning er ikke en generell dom over GC,
 indikatorene eller native modell.
 
-**Neste steg:** Forbered og innrøm én eksakt plan for den nye lokale31-
-diagnosen, kjør faktisk lesende preflight, så den avgrensede CPU-sammenligningen.
+**Neste steg:** Kjør eksakt lesende preflight, så den ene innrømmede lokale31-
+diagnosen gjennom eksisterende CPU-kapsel.
 Gjenbruk 003s tensorbevis; ingen ny fullgather, normalisering, modell eller mål.
 Mål pris-/klokkeparitet og cache/oracle/produksjon på dokumentert samme grunnlag;
 bevar alle avvikstellinger og eksempler. Ingen toleranse- eller parameterendring.
