@@ -15,7 +15,11 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: `TA_SF_RECOVERY_COMPLETE_NO_M5_DIRECTION_GAIN`.
+Policystatus: `TA_M5_DIRECTION_CAUSE_DIAGNOSIS_TARGET_ONLY`.
+
+Aktivt brukermål08.11: jobb bare direkte med retning. Første avgrensede
+kontroll måler faktisk OPP/NED-støtte, minibatchvekting og tidsrekkefølge
+på eksisterende TRAIN-fasit, uten modellkall. Ingen ny fit er åpnet.
 
 Korrigert TA S/F fold1 er nå **COMPLETE og konsumert**. 256 oppdateringer
 ble gjenbrukt, 1 593 nye fullførte samme pass, totalt 1 849 uten skip.
@@ -327,7 +331,8 @@ historiske publisering og vintage er fortsatt UNKNOWN.
 **Neste steg:** Ta utgangspunkt i den målte M5-retningssvikten allerede
 på TRAIN, adskilt fra aktivitet og senere generalisering. Årsaken er ikke
 isolert; ingen ny arkitektur, ny fit eller automatisk utvidelse følger av
-resultatet. Avklar en avgrenset diagnose/designendring før videre modellarbeid.
+resultatet. Brukerens nye retningsmål autoriserer en avgrenset diagnose;
+start med faktisk batchvekting og kronologisk sidestøtte uten modellkall.
 Brukerens spørsmål om 30 epoker og fem år er fortsatt åpne hypoteser.
 Denne fitten dekker omtrent mai–september2024, senere score oktober–desember2024.
 Ett pass og én fold er ingen generell dom over lengre læring eller historikk.
