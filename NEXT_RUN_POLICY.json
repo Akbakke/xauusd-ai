@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-08T21:03:46.873871+00:00",
-  "status": "TA_DIRECTION_CONVEX_M5_READOUT_ADMITTED",
+  "status": "TA_DIRECTION_FULL_READOUT_COMPLETE_CALIBRATION_DEFECT_GENERALIZATION_UNPROVEN",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Run one fixed affine-logit calibration and one converged full frozen-readout fit for each M5S/F on all knownTRAIN rows. Score identical laterTRAIN without fit. Use cached representations; zero nativeforwards.",
+  "next_action": "Direct next hypothesis: compare a predeclared lightweight control using original causal indicator inputs against frozen-representation controls on same M5 targets and chronological partitions. Reuse existing input path and normalization. Determine whether useful directional information is discarded by learned representation; do not promote calibration or infer no market signal from these results. Prepare exact new plan before any fit.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1632,7 +1632,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Full cache complete; exact M5 calibration versus converged readout control admitted.",
+    "current_activity": "Full direction readout diagnosis complete; original-input control is next directly relevant hypothesis.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1661,11 +1661,11 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "Actual full frozen GPU cache terminal:47327rows,2959encodings,no backward/optimizer,all5TFsideparityexact.",
+    "latest_terminal_role": "Actual private M5 convex readout terminal:four convergedfits on frozenfullTRAIN, laterTRAINscoreonly,zero nativeforwards.",
     "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_CONVEX_M5_20261108_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_FULL_CACHE_20261108_001/TERMINAL.json",
-      "sha256": "030c1a139813369a83c8ea0beb4f05b7a3313bdbb3070b173859f2dace4aa90a"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_CONVEX_M5_20261108_001/TERMINAL.json",
+      "sha256": "0c99b31b44acce3221f2deaddeaab5259ddf8a4c6aff6d5754bf861cc21f43c6"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -1685,7 +1685,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "M5 S/F conditional-side scores worsen already on matched TRAIN and lose to prior on later TRAIN. Cause unisolated; extra epochs/history and same-line reactions unmeasured; COT release/vintage UNKNOWN.",
+    "current_blocker": "Strong native UPmiscalibration measured. Flexible readouts recover TRAINfit but not laterdirection; originalinputinformation versus learnedrepresentationloss not yet isolated.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -40143,7 +40143,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "market_state_ta_direction_convex_m5_20261108_001",
+  "training_enabled_scope": "NONE_DIRECTION_DIAGNOSTICS_CONSUMED",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -66262,7 +66262,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "Full frozen cache COMPLETE:47327rows,2959encodings,zero side-score difference vs original atall5TF,2584.765scontroller. Exact four private convexM5fits admitted to distinguish calibration from unused representation information; nativeweightsunchanged."
+    "latest_progress": "FullTRAIN/laterTRAIN cache exact; four convexM5fits converged in4.615s, zero newforwards. Measured large UPmiscalibration and reversedS ranking; flexible frozenreadouts fitTRAIN but fail to beat laterprior. Root cause of whole training path and native correction remain unresolved. Userasked foradifferentcleverapproach; original-input lightweight control is nextcandidate, notyetadmitted."
   },
   "market_state_ta_direction_weight_diagnostic_20261108_001": {
     "status": "COMPLETE_CONSUMED",
@@ -66469,24 +66469,229 @@
     "maximum_conditional_side_mean_delta": 0.0
   },
   "market_state_ta_direction_convex_m5_20261108_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_CONVEX_M5_20261108_001/PLAN.json",
       "sha256": "5df36c88f9c4c95abe5a5a4f997cb5938231b4b2ec6ff991b630b36f941f20e3"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "training_authorized": true,
-    "readout_fits": 4,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "training_authorized": false,
+    "readout_fits": 0,
     "new_native_forwards": 0,
     "new_native_parameter_updates": 0,
     "relaunch_allowed": false,
     "test_data_used": false,
     "memory_max": "12G",
     "swap_max": "512M",
-    "wall_seconds": 900
+    "wall_seconds": 900,
+    "observed_readout_fits": 4,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_CONVEX_M5_20261108_001/RESULT.json",
+      "sha256": "edf53b9a7de1782d172a693ce68a5095f89c58246a1797f393b12e9cbd5e043c"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_CONVEX_M5_20261108_001/TERMINAL.json",
+      "sha256": "0c99b31b44acce3221f2deaddeaab5259ddf8a4c6aff6d5754bf861cc21f43c6"
+    },
+    "verification": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_CONVEX_M5_20261108_001/VERIFICATION.json",
+      "sha256": "74611a3ff8b39b3ef572ff00c2b0b00dbe92c4b546d874c0795525d9d73f1068"
+    },
+    "elapsed_seconds": 4.614765361000536,
+    "scores": {
+      "future": {
+        "fit": {
+          "calibrated": {
+            "auc": 0.519589111439605,
+            "bias_gradient": 9.940609815408421e-11,
+            "brier": 0.24958530424794456,
+            "count": 11909,
+            "log": 0.6923171645704901,
+            "mean_p": 0.5111260392294759,
+            "std_p": 0.017059477620348724,
+            "up_count": 6087,
+            "up_fraction": 0.5111260391300697
+          },
+          "convex": {
+            "auc": 0.5642192841381555,
+            "bias_gradient": 1.7963381071951834e-09,
+            "brier": 0.246604813576908,
+            "count": 11909,
+            "log": 0.6863038441469361,
+            "mean_p": 0.5111260409264078,
+            "std_p": 0.05722746477269611,
+            "up_count": 6087,
+            "up_fraction": 0.5111260391300697
+          },
+          "frozen_prior": {
+            "auc": 0.5,
+            "bias_gradient": -1.8681956393103596e-06,
+            "brier": 0.24987621125676626,
+            "count": 11909,
+            "log": 0.6928995826378952,
+            "mean_p": 0.5111241709344305,
+            "std_p": 1.1102230246251565e-16,
+            "up_count": 6087,
+            "up_fraction": 0.5111260391300697
+          },
+          "original": {
+            "auc": 0.519589111439605,
+            "bias_gradient": 0.1916472076211032,
+            "brier": 0.3029299871892868,
+            "count": 11909,
+            "log": 0.8293205604655555,
+            "mean_p": 0.702773246751173,
+            "std_p": 0.14564764703968522,
+            "up_count": 6087,
+            "up_fraction": 0.5111260391300697
+          }
+        },
+        "score": {
+          "calibrated": {
+            "auc": 0.504582956351861,
+            "bias_gradient": 0.0026309069288217982,
+            "brier": 0.25000053439765235,
+            "count": 7165,
+            "log": 0.6931485083421318,
+            "mean_p": 0.5156804533349627,
+            "std_p": 0.01484193996222516,
+            "up_count": 3676,
+            "up_fraction": 0.513049546406141
+          },
+          "convex": {
+            "auc": 0.50511361527649,
+            "bias_gradient": -0.005709432201678827,
+            "brier": 0.2529635272452544,
+            "count": 7165,
+            "log": 0.6992199276965345,
+            "mean_p": 0.5073401142044621,
+            "std_p": 0.061300739091278277,
+            "up_count": 3676,
+            "up_fraction": 0.513049546406141
+          },
+          "frozen_prior": {
+            "auc": 0.5,
+            "bias_gradient": -0.0019253754717105799,
+            "brier": 0.249833416409301,
+            "count": 7165,
+            "log": 0.6928139788167914,
+            "mean_p": 0.5111241709344305,
+            "std_p": 1.1102230246251565e-16,
+            "up_count": 3676,
+            "up_fraction": 0.513049546406141
+          },
+          "original": {
+            "auc": 0.504582956351861,
+            "bias_gradient": 0.2282947117750969,
+            "brier": 0.31656685878867086,
+            "count": 7165,
+            "log": 0.8658506648265584,
+            "mean_p": 0.7413442581812378,
+            "std_p": 0.1221239490893532,
+            "up_count": 3676,
+            "up_fraction": 0.513049546406141
+          }
+        }
+      },
+      "state": {
+        "fit": {
+          "calibrated": {
+            "auc": 0.523097609695537,
+            "bias_gradient": 2.816256668828495e-09,
+            "brier": 0.24923846839809535,
+            "count": 10010,
+            "log": 0.6916232234901329,
+            "mean_p": 0.5186813214975753,
+            "std_p": 0.020298879377755964,
+            "up_count": 5192,
+            "up_fraction": 0.5186813186813187
+          },
+          "convex": {
+            "auc": 0.5757809216977168,
+            "bias_gradient": 1.2845588495045215e-08,
+            "brier": 0.24498485211799992,
+            "count": 10010,
+            "log": 0.6829969146005931,
+            "mean_p": 0.5186813315269072,
+            "std_p": 0.0684046006567332,
+            "up_count": 5192,
+            "up_fraction": 0.5186813186813187
+          },
+          "frozen_prior": {
+            "auc": 0.5,
+            "bias_gradient": -3.731785593496828e-06,
+            "brier": 0.24965100834625317,
+            "count": 10010,
+            "log": 0.6924490347681654,
+            "mean_p": 0.5186775868957252,
+            "std_p": 0.0,
+            "up_count": 5192,
+            "up_fraction": 0.5186813186813187
+          },
+          "original": {
+            "auc": 0.476902390304463,
+            "bias_gradient": 0.10082567761260039,
+            "brier": 0.2685424608852315,
+            "count": 10010,
+            "log": 0.7337471636930539,
+            "mean_p": 0.619506996293919,
+            "std_p": 0.07561953526136024,
+            "up_count": 5192,
+            "up_fraction": 0.5186813186813187
+          }
+        },
+        "score": {
+          "calibrated": {
+            "auc": 0.5153082290908005,
+            "bias_gradient": 0.001746739878950261,
+            "brier": 0.2496624365684585,
+            "count": 6096,
+            "log": 0.6924722424041546,
+            "mean_p": 0.5156903094327561,
+            "std_p": 0.01956746298520128,
+            "up_count": 3133,
+            "up_fraction": 0.5139435695538058
+          },
+          "convex": {
+            "auc": 0.5055920562563347,
+            "bias_gradient": 0.004627698001455068,
+            "brier": 0.25380389080328164,
+            "count": 6096,
+            "log": 0.701022143405878,
+            "mean_p": 0.5185712675552608,
+            "std_p": 0.06959711240666006,
+            "up_count": 3133,
+            "up_fraction": 0.5139435695538058
+          },
+          "frozen_prior": {
+            "auc": 0.5,
+            "bias_gradient": 0.00473401734191941,
+            "brier": 0.2498279877882917,
+            "count": 6096,
+            "log": 0.6928031584293621,
+            "mean_p": 0.5186775868957252,
+            "std_p": 0.0,
+            "up_count": 3133,
+            "up_fraction": 0.5139435695538058
+          },
+          "original": {
+            "auc": 0.4846917709091994,
+            "bias_gradient": 0.11678339813416704,
+            "brier": 0.2705747801168673,
+            "count": 6096,
+            "log": 0.7382108888796778,
+            "mean_p": 0.6307269676879728,
+            "std_p": 0.07211959035387804,
+            "up_count": 3133,
+            "up_fraction": 0.5139435695538058
+          }
+        }
+      }
+    },
+    "finding": "Allfourfits converged. Native M5 is strongly UP-biased; S original rank reversed onTRAIN andlaterTRAIN. TRAIN-onlyaffinecalibration sharplyreduces loss, S laterBrier .249662 vsprior .249828, F .250001 vsprior .249833. Full128D readouts improveTRAIN but later AUC .505592/.505114 and Brier .253804/.252964; no qualifiedgeneralization gain. Mainmodelunchanged."
   }
 }
