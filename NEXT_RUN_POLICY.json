@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-08T00:34:35.561072+00:00",
-  "status": "NATIVE_F_CPU_ZERO_STEP_COMPLETE_NO_FIT",
+  "observed_utc": "2026-11-08T00:45:04.684912+00:00",
+  "status": "F_M5_GC_ABLATION_ADMITTED_CPU_RESEARCH_ONLY",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Selected 0.5 ATR activity and conservative local side use the corrected five-TF TRAIN mask. The one mature fold1 native time-query v1 fit and later chronological TRAIN OOF lost M5 certified-side Brier to the frozen prior in all 14 weeks; a paired frozen diagnostic found upward miscalibration and the free-three-logit unknown-side objective defect. Factorized v2 model/loss and stable raw-logit scorer now pass source/synthetic checks, and read-only fold1 receipt/v2 view metadata binding passes. Physical v2 zero-step on two TRAIN rows passed direct activity/side gradient mechanics; target-role clarification, genuine optimizer/resume, fit, generalization, Entry decision value and economics are unqualified. training_enabled=false; consumed plans do not authorize new runs. TEST, Entry, Exit, broker, trading and spending remain closed.",
-  "next_action": "Real-feature S/F two-row zero-step passed and the one-use plan is consumed. Define one prebound S/F loss weight and exact chronological TRAIN fit/OOF plan using the existing target/view source, then separately test native GC added value including size and price response or absorption on matched later-TRAIN rows. No broad GC sign-table repetition. training_enabled=false; no fit until separate exact admission. TEST/Entry/Exit/broker/trading/spending closed.",
+  "next_action": "One source-bound capped CPU LightGBM F M5 diagnostic admitted: five chronological TRAIN folds, full features versus all GC-named fields removed, fixed activity/side heads and recipe, 20 fits total. This is candidate-target research, not native S/F training, five-TF qualification, TEST, Entry or trade. Consume plan once, review paired UTC-week score independently, then return training_enabled=false.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -64440,5 +64440,37 @@
       "test_data_used": false
     },
     "limitations": "Two initial TRAIN rows only; no fit, OOF, direction learning, GC added value, Entry quality or economic edge."
+  },
+  "market_state_F_m5_gc_ablation_20261108_001": {
+    "status": "ADMITTED",
+    "decision": "ADMITTED",
+    "scope": "One M5 F candidate 5-fold TRAIN-only fixed LightGBM 20-fit paired full/without-GC diagnostic; no native model update, TEST, Entry, broker or trading.",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_F_M5_GC_ABLATION_20261108_001.json",
+      "sha256": "826578c7d9808144e9b8c39d2db83b26d0f108fb4c8b1866c883300b6aea92fc"
+    },
+    "worker": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/run_market_state_F_m5_gc_ablation_v1.py",
+      "sha256": "d1cabc6d5c4ab4db98782a610d419be61e0459e692c50ec64d6364cba89d9893"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_F_M5_GC_ABLATION_20261108_001",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "research_fit_authorized": true,
+    "fixed_fits_authorized": 20,
+    "native_training_authorized": false,
+    "test_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "broker_access_allowed": false,
+    "relaunch_allowed": false,
+    "test_data_used": false,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "wall_seconds": 3600,
+    "standing_authorization_source": "GX1_RULES_20261105_local_zero_spend_research",
+    "prepared_source_head": "311a55cfa5694b02b4a047295109735df938eabc"
   }
 }
