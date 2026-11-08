@@ -15,32 +15,36 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: `TA_INPUT_COMPLETION_ADMITTED_PREDICTOR_CLOSED`.
-En ny fullføringsplan er admitted, men ennå ikke kjørt. Den gjenbruker
-003s tensorfase og lokal31-diagnosen, og kjører bare gjenstående MTF-gap,
-råfeltcensus på unike konsumerte rader og 29 574-raders fit-only-priorer.
-Seks fokuserte tester består, inkludert COMPLETE og FAILED_CONSUMED med
-bevaring av delresultater. Faktisk metadata-bygg består; 75 gamle kildefiler
-er byteidentiske, og scopefilen har bare én verifisert stage-literalendring.
-Ingen nye modell-, gather-, normaliserings- eller lokal31-replaykall.
-`training_enabled=false`. Det lokale trendlinjeavviket er avklart:
-den opprinnelige kontrollen brukte native-historikk fra 2009, mens den
-historiske produsenten initialiserte fra M5_ENRICHED i juni 2010.
-Den nye [diagnosen](/home/andre2/GX1_RUNS/MARKET_STATE_LOCAL_TRENDLINE_FORMULA_DIAGNOSTIC_20261108_001/RESULT.json)
-fullførte med `ACTUAL_SOURCE_MATCH`: 47 697 lokale rader × 31 felt,
-1 478 607 sammenligninger, null oracle/cache- og oracle/producer-avvik.
-Produsent/cache er også float32-bitlike. Alle 1 035 124 felles OHLC-/klokkerader
-er bitlike, og ATR-hash på vitner er lik. 2009-referansen avvek i 683 celler;
-ulik state-historikk og absolutt koordinatstart er ikke isolert fra hverandre.
-Ingen produksjonsfeil er bevist. 303,65 s, 2,50 GB topp-RSS, null modeller,
-targets, gather, normalisering eller optimizer. Diagnosen er konsumert.
+Policystatus: `TA_INPUT_COMPLETE_MECHANICAL_ADMITTED_NO_PREDICTOR_FIT`.
+[Fullføringen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001/RESULT.json)
+er COMPLETE: 600 ekstra historikkrader × 94 felt = 56 400 sammenligninger,
+null avvik. M5/M15/H1/H4/D1-gapene var 94/63/95/96/252 rader. Alle ni
+modellflater har null ikke-endelige verdier på unike konsumerte rader.
+315 lokale felt og 132 kontekstfelt er ikke konstante i dette utvalget;
+noen tilstedeværelses-/sesjonsfelt er konstante på lengre TF.
+Frosne S/F-priorer bruker eksakt 29 574 modne fit-rader, null score-fit.
+385,86 s og 5,74 GB topp-RSS; null nye modeller, gather, normalisering,
+lokal31-replay, backward eller optimizer. Én tidligere forward gjenbrukes
+eksplisitt som evidens. Fullføringsplanen er konsumert.
+
+Den tidligere lokal31-diagnosen er ACTUAL_SOURCE_MATCH: 47 697 rader ×
+31 felt, 1 478 607 sammenligninger, null oracle/cache-/producer-avvik.
+Den gamle auditreferansen startet i 2009, mens faktisk produsent startet
+i juni 2010. Ingen produksjonsfeil ble demonstrert; ulike state-historikker
+og absolutte koordinatstarter ble ikke isolert fra hverandre.
+
+Ny TA S/F-mekanikk er avgrenset admitted: første 32 modne fit-rader,
+seks forwards, fire backwards/optimizeroppdateringer, fersk baseline og
+bitlik gjenopptakelse. `training_enabled=true` gjelder bare denne
+tekniske engangsprøven; ekte predictor-fit og full epoke er stengt.
+Forberedelse, fersk Windows-boot og fysisk mekanikk gjenstår.
 
 Den separate [inputfasekvitteringen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_20261108_003/INPUT_TENSOR_PHASE.json)
 er komplett innen sitt scope: 47 327 beslutningsrader og alle overlappende
 inputvinduer, 7 726 606 020 råverdier bitlike, null normaliseringsavvik og
 én faktisk forward med åtte familier/fem TF.
-Disse bevisene gjenbrukes. Full inputkvittering og frosne fit-priorer mangler:
-003 stoppet i M5-lokalreplay før de øvrige MTF-historikkgapene ble fullført.
+Disse bevisene er gjenbrukt i fullføringskvitteringen ovenfor.
+003 stoppet i M5-lokalreplay; de øvrige MTF-historikkgapene er nå kvalifisert.
 Alle originale `CLAIM/FAILED/TERMINAL` og logger for input001–003 og
 diagnosen er bevart. Ingen konsumert plan relanseres.
 
@@ -64,7 +68,7 @@ forseglet periode følger bare forward-journalregelen i GX1_RULES.md.
   Ny rute bruker korrigert S/F og hele samme 29 574-raders TRAIN-populasjon
   før/etter fit, med globale aktivitets-/sidemasker og frosne priorer.
   Senere 17 753 TRAIN-rader scores separat. Gammel initialkvittering
-  med null forwards er ikke en læringsmåling. Ny fysisk kvalifikasjon,
+  med null forwards er ikke en læringsmåling. Inputkvalifikasjonen er komplett innen deklarert scope;
   ny fireoppdateringsmekanikk og faktisk predictor-fit gjenstår.
 
 - **Funksjonsgjennomgang:** EMA bruker SMA-seed og alfa `2/(p+1)`;
@@ -98,7 +102,7 @@ forseglet periode følger bare forward-journalregelen i GX1_RULES.md.
    per rapport. Ingen konkret 2024-lekkasje er påvist; full historisk
    tilgjengelighet er UNKNOWN og blir ikke bevist av teknisk input-PASS.
   Tidligere 253-feltsunion 158+31+1+63 og asof/postnorm-bevis gjenbrukes
-  bare på deklarerte rader; eldre faktisk konsumert historikk skal også måles.
+  på deklarerte rader; de eldre faktisk konsumerte historikkgapene er nå også målt.
   [Tidligere kvitteringskontroll](/home/andre2/GX1_RUNS/MARKET_STATE_TA_INPUT_LOSS_REUSE_REVIEW_20261108_001/REVIEW_20261108T120132104946Z.json).
 
 - **Input og mål:** 118 249 modellkoblede TRAIN-rader, 26 måneder GC MBP-1 og
@@ -259,20 +263,17 @@ markedstilstand, senere Entry-beslutningsverdi eller økonomisk edge er påvist.
 Den enkle tabellmodellens negative retning er ikke en generell dom over GC,
 indikatorene eller native modell.
 
-**Neste steg:** Etter ren kilde og eksakt CLI-preflight kjøres den nye
-[fullføringsplanen](configs/research/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001.json)
-én gang. Den binder 003s tensorfase og faktisk lokal31-bevis, og beregner kun
-gjenstående MTF-historikkgap, råfeltcensus og fit-only S/F-priorer. Ingen ny fullgather, normalisering eller modellforward.
-Forbrukerbinding til ny fullføringskvittering skal bevise uendrede numeriske
-eiere; gamle terminaler endres aldri. Full inputkvalifikasjon må være avklart
-før ny guarded TA S/F-mekanikk, fersk initialbaseline og 29 574-raders ettpass-fit
-med matchet initial/final og senere 17 753-raders TRAIN-score.
+**Neste steg:** Materialiser og forhåndskontroller den nye TA S/F-mekanikkens
+eksakte recipe/campaign. Etter maskinvid idle-kontroll kreves bekreftet fersk
+Windows-boot og én guarded prøve. Bare etter faktisk mekanikk-PASS kan ny
+29 574-raders ettpass-fit med fersk, matchet initial/final og senere
+17 753-raders TRAIN-score innrømmes. Inputfullføringen skal ikke gjentas.
 Native femfolds generalisering, samme-linje-reaksjonsverdi, Entry-verdi og
 økonomisk edge er ubevist.
 
 Den tidligere [GC-registerplanen](configs/research/MARKET_STATE_GC_SIDE_MAX_REGISTRY_20261108_001.json)
 forblir bevart, men er utsatt og uklamet etter brukerens nye prioritering.
-`training_enabled=false`.
+`training_enabled=true` gjelder kun den nye tekniske mekanikkporten.
 
 Kilde/metode for denne fasen: [docs/NATIVE_LEARNING.md](docs/NATIVE_LEARNING.md).
 Detaljert historikk og eldre beslutninger: Git, ikke nye arkivmapper her.

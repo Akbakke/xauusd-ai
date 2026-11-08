@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-08T13:25:29.845700+00:00",
-  "status": "TA_INPUT_COMPLETION_ADMITTED_PREDICTOR_CLOSED",
+  "status": "TA_INPUT_COMPLETE_MECHANICAL_ADMITTED_NO_PREDICTOR_FIT",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,7 +1415,7 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Selected 0.5 ATR activity and conservative local side use the corrected five-TF TRAIN mask. The one mature fold1 native time-query v1 fit and later chronological TRAIN OOF lost M5 certified-side Brier to the frozen prior in all 14 weeks; a paired frozen diagnostic found upward miscalibration and the free-three-logit unknown-side objective defect. Factorized v2 model/loss and stable raw-logit scorer now pass source/synthetic checks, and read-only fold1 receipt/v2 view metadata binding passes. Physical v2 zero-step passed direct activity/side gradient mechanics. The exact S/F B16 two-batch private optimizer/resume probe completed four guarded physical updates with bit-exact resume and zero exit codes. It did not fit a predictor or establish GC direction value. All plans are consumed; training_enabled=false. Full fit, generalization, Entry decision value, economics, TEST, Entry, Exit, broker, trading and spending remain closed.",
@@ -1624,7 +1624,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "One-use TA input completion admitted: reuse tensor/local31 phases, measure missing MTF history and raw-field census, fit mature-TRAIN-only priors.",
+    "current_activity": "TA input completion PASS; prepare fresh guarded TA S/F mechanics with32 rows,6 forwards and4 physical optimizer updates.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1677,7 +1677,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Completion has not run. Corrected S/F predictor learning and same-line reaction value remain unmeasured; COT publication/vintage remains UNKNOWN.",
+    "current_blocker": "Fresh TA S/F mechanical qualification and corrected predictor initial/fit/final/later score remain absent. Same-line reaction value and COT publication/vintage remain unqualified.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -21748,7 +21748,7 @@
       }
     },
     "ta_native_candidate_20261108": {
-      "status": "INPUT_COMPLETION_ADMITTED_NO_NEW_MODEL",
+      "status": "INPUT_QUALIFIED_MECHANICAL_ADMITTED_PREDICTOR_CLOSED",
       "profile": "full_xau_ta_mtf_entry_research_v1",
       "physical_widths": {
         "signal": 315,
@@ -21781,7 +21781,7 @@
       "bound_calendar_dates_verified": 9000,
       "changed_availability_on_bound_history_through_2024": 0,
       "physical_audit_admitted": false,
-      "mechanical_qualification_admitted": false,
+      "mechanical_qualification_admitted": true,
       "predictor_fit_admitted": false,
       "test_data_used": false,
       "predictive_value_claimed": false,
@@ -21871,7 +21871,7 @@
           }
         }
       },
-      "complete_input_qualification": false,
+      "complete_input_qualification": true,
       "oracle_prefix_repair_tests": {
         "passed": 16,
         "evidence": {
@@ -21991,6 +21991,30 @@
         "scope_file_only_change": "TA_INPUT_STAGE assignment literal",
         "new_owner_files": 1,
         "model_changes": false
+      },
+      "input_completion_result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001/RESULT.json",
+        "sha256": "107c95312f3decce4c00bbe75ccf467363853d0377c448599bed7c673b871dc0"
+      },
+      "input_completion_terminal": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001/TERMINAL.json",
+        "sha256": "f10055be7c756139670a18f774f513d118af95793153114e8953b57996d80f6f"
+      },
+      "endpoint_priors": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001/ENDPOINT_PRIORS.json",
+        "sha256": "48fe2c9da6c510ebdd9c7dadb79b50774310d8d9e9bfcf93248a5c260c786e2f"
+      },
+      "raw_census": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001/RAW_CENSUS_AND_FORMULA_UNIONS.json",
+        "sha256": "e300facd266211bfcc17eb689785c5d347a3ffbefaa5d6265e9dff5698392c63"
+      },
+      "all_consumed_mtf_history_gaps_qualified": true,
+      "new_formula_compared_cells": 56400,
+      "new_formula_mismatched_cells": 0,
+      "raw_census_nonfinite_cells": 0,
+      "mechanical_recipe": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SF_MECHANICAL_20261108_001/RECIPE.json",
+        "sha256": "25e7a30e660ee042d99241b5c016040e47d094e41be9bb04b1c6698ed78abe11"
       }
     }
   },
@@ -35342,7 +35366,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -65666,7 +65690,7 @@
     "observed_optimizer_steps": 0
   },
   "market_state_ta_native_input_completion_20261108_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001.json",
       "sha256": "491b9c11edea282f1426e1db7cf8db6473e65c0dbb126023c118d4f43b212191"
@@ -65675,9 +65699,9 @@
       "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/complete_market_state_ta_native_input_path_v1.py",
       "sha256": "bc1768ecfd25208f290be2d054c5e223334507fe2db7b0fa2b65086696375eef"
     },
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "endpoint_prior_fit_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "endpoint_prior_fit_authorized": false,
     "training_authorized": false,
     "model_constructions_authorized": 0,
     "model_forwards_authorized": 0,
@@ -65692,8 +65716,8 @@
     "test_data_used": false,
     "relaunch_allowed": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001",
     "memory_max": "12G",
     "swap_max": "512M",
@@ -65703,6 +65727,124 @@
     "scope": "Bind immutable003 tensor phase and actual-source local31 diagnosis, compute only missing consumed MTF history, deduplicated raw field census and exact29574-row fit-only endpoint priors. No predictor or event-design change.",
     "reused_model_forwards": 1,
     "new_model_forwards": 0,
-    "cot_2024_publication_vintage_boundary": "UNKNOWN; not settled by this completion"
+    "cot_2024_publication_vintage_boundary": "UNKNOWN; not settled by this completion",
+    "successful_invocations": 1,
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001/CLAIM.json",
+      "sha256": "8fd35f7f8f2cfa757103638534c1a20995c6766bac045b9695a2bdf5ed33ee3c"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001/RESULT.json",
+      "sha256": "107c95312f3decce4c00bbe75ccf467363853d0377c448599bed7c673b871dc0"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001/TERMINAL.json",
+      "sha256": "f10055be7c756139670a18f774f513d118af95793153114e8953b57996d80f6f"
+    },
+    "endpoint_priors": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001/ENDPOINT_PRIORS.json",
+      "sha256": "48fe2c9da6c510ebdd9c7dadb79b50774310d8d9e9bfcf93248a5c260c786e2f"
+    },
+    "raw_census": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001/RAW_CENSUS_AND_FORMULA_UNIONS.json",
+      "sha256": "e300facd266211bfcc17eb689785c5d347a3ffbefaa5d6265e9dff5698392c63"
+    },
+    "mtf_history_measurements": {
+      "D1": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001/MTF_HISTORY_D1.json",
+        "sha256": "776ef7b73371dda310e4953b6d8b9fc34671248fbf8418cf20276fee9b371455"
+      },
+      "H1": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001/MTF_HISTORY_H1.json",
+        "sha256": "3effebc4e792113967a60a063554a3d0f3ea626fca4ba310d596ad1c56068485"
+      },
+      "H4": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001/MTF_HISTORY_H4.json",
+        "sha256": "1c1ef777de28a5ce9efaa64c45babdb580f8b1982da77ff188067aa51bdd7ca8"
+      },
+      "M15": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001/MTF_HISTORY_M15.json",
+        "sha256": "94efa2ed09a26ef32b26dafcdf4aa79f22665597b9f2060f620e19325e384621"
+      },
+      "M5": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001/MTF_HISTORY_M5.json",
+        "sha256": "3b89f5f8266e74c7372cfbffb53380a7bebd75ac6dd305daebbe67877434fab5"
+      }
+    },
+    "execution_log": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001/EXECUTION.log",
+      "sha256": "30bbbb81b13fa15f59559154b8398cc25670ba42d073c9f7b7e4f46e596c6e45"
+    },
+    "read_only_preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SOURCE_QUALIFICATION_20261108_001/INPUT_COMPLETION_PREFLIGHT.json",
+      "sha256": "b9db38ea76a23e0e01cf97694d855cc9b9203b2f675bdf4cd299081adc315305"
+    },
+    "observed_model_forwards": 0,
+    "observed_optimizer_steps": 0,
+    "observed_endpoint_prior_fit_rows": 29574,
+    "elapsed_seconds": 385.86362979299884,
+    "peak_rss_bytes": 5737476096,
+    "new_formula_compared_cells": 56400,
+    "new_formula_mismatched_cells": 0
+  },
+  "market_state_ta_sf_mechanical_20261108_001": {
+    "status": "ADMITTED",
+    "decision": "ADMITTED",
+    "scope": "Fresh TA S/F mechanical baseline and exact interrupted/resumed optimizer parity on first32 mature-fold1 rows; no genuine predictor fit.",
+    "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SF_MECHANICAL_20261108_001/RUNTIME",
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SF_MECHANICAL_20261108_001/RECIPE.json",
+      "sha256": "25e7a30e660ee042d99241b5c016040e47d094e41be9bb04b1c6698ed78abe11"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "ta_sf_mechanical_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "fresh_windows_boot_required": true,
+    "campaign_preparation_authorized": true,
+    "genuine_predictor_fit_authorized": false,
+    "broker_access_allowed": false,
+    "test_authorized": false,
+    "test_data_used": false,
+    "native_launch_authorized": false,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "exit_evaluation": false,
+    "full_epoch_training_allowed": false,
+    "predictive_value_qualified": false,
+    "model_forwards_authorized": 6,
+    "backward_calls_authorized": 4,
+    "optimizer_steps_authorized": 4,
+    "fold_id": 1,
+    "parent_selection": "first_two_batches_of_exact_mature_fold1_order",
+    "selected_fit_rows": 32,
+    "prepared_boot": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SF_MECHANICAL_20261108_001/PREPARED_WINDOWS_BOOT.json",
+      "sha256": "08e5d0e67ea9c3c6a4aa0194f621ce7feaa9bac832a53b114d858ed411a27cb8"
+    },
+    "guard_template": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_PRIVATE_4STEP_20261108_001/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "sha256": "f93b7934f1f09c2c311e7cd42cfc7ff96b201d0265d4c4f2b9fdac574e1c9db2"
+    },
+    "materializer": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_market_state_time_query_fold1_fit_campaign_v1.py",
+      "sha256": "af427b64ea196ed9f875d6acd9a3e454d440797ef2b20bbf1027c1308cd10998"
+    },
+    "input_qualification": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001/RESULT.json",
+      "sha256": "107c95312f3decce4c00bbe75ccf467363853d0377c448599bed7c673b871dc0"
+    },
+    "source_owner_count_expected": 85,
+    "standing_authorization_source": "Current user-approved TA/indicator/model-route audit and standing local0USD research authority; exact one-use mechanics only.",
+    "limitation": "Mechanical gradients/resume are not learned prediction quality. No reuse of qualification weights for main fit."
   }
 }
