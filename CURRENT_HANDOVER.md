@@ -15,7 +15,7 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: `SMC_TA_REFERENCE_PREPARED_TRAINING_CLOSED`.
+Policystatus: `SMC_TA_REFERENCE_CLAIMED_TRAINING_CLOSED`.
 `training_enabled=false`; S/F-fire-stegsplanen og GC-sidevis fysisk bygg er
 fullført og konsumert, og Windows-oppgaven er deaktivert. GC-registerplanen er
 utsatt og uklamet; ingen tung CURRENT-jobb kjører. Faktisk prosessstatus overstyrer.
@@ -174,7 +174,7 @@ retning som EMA20-helningen gir mer 60-minutters XAU-prisforskyvning i
 bruddretningen enn EMA-retning uten brudd i samme UTC-uke, fold og side.
 [Engangsplanen](configs/research/MARKET_STATE_SMC_EMA_BOS_20261108_001.json)
 SHA `d3bdadb60060598610f2d5e8e2a269874c6f4f6484f50dbd6a2af94a6da0b9aa`
-er forhåndsbundet og ikke claimet. Les bare M5 BOS/EMA og eksisterende
+er forhåndsbundet og claimet for nøyaktig én capped TRAIN-only lesning. Les bare M5 BOS/EMA og eksisterende
 TRAIN-only F-fasit ved eksakt 60-minutters endepunkt. Fem senere kronologiske
 TRAIN-perioder, ukeblokk-bootstrap og forhåndsbundet positiv port; ingen
 parameter-/horisontsøk, modellfit, GC-features, TEST eller handel. Et positivt

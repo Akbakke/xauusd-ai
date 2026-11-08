@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-08T02:32:28.913738+00:00",
-  "status": "SMC_TA_REFERENCE_PREPARED_TRAINING_CLOSED",
+  "status": "SMC_TA_REFERENCE_CLAIMED_TRAINING_CLOSED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Selected 0.5 ATR activity and conservative local side use the corrected five-TF TRAIN mask. The one mature fold1 native time-query v1 fit and later chronological TRAIN OOF lost M5 certified-side Brier to the frozen prior in all 14 weeks; a paired frozen diagnostic found upward miscalibration and the free-three-logit unknown-side objective defect. Factorized v2 model/loss and stable raw-logit scorer now pass source/synthetic checks, and read-only fold1 receipt/v2 view metadata binding passes. Physical v2 zero-step passed direct activity/side gradient mechanics. The exact S/F B16 two-batch private optimizer/resume probe completed four guarded physical updates with bit-exact resume and zero exit codes. It did not fit a predictor or establish GC direction value. All plans are consumed; training_enabled=false. Full fit, generalization, Entry decision value, economics, TEST, Entry, Exit, broker, trading and spending remain closed.",
-  "next_action": "Operator pivot 2026-11-08: defer unclaimed GC side-max registry. One fixed TRAIN-only SMC BOS plus EMA20 slope reference is prepared after source-only event coverage and synthetic scorer preflight: compare 60-minute H1 F signed displacement on closed M5 aligned BOS events against no-BOS EMA controls in the same fold/UTC week/EMA side. Five later chronological TRAIN folds; no GC feature values, model fit, TEST or trade. Claim and execute this one read-only capped audit once under current operator request; stop this fixed hypothesis if the prebound pooled/week-CI/fold gate fails. training_enabled=false.",
+  "next_action": "One current-user-authorized fixed TRAIN-only SMC BOS+EMA20 60-minute F reference is claimed; run exactly once via capped audit4G/512M/600s, inspect terminal/result and stop the hypothesis if the prebound weekly/fold gate fails. Do not change frozen source during run; no GC input or model fit, TEST, Entry or trade. training_enabled=false.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -24310,7 +24310,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-08T09:23:04.142304+00:00",
+  "updated_utc": "2026-11-08T09:24:30.201053+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -65043,7 +65043,7 @@
     "deferred_reason": "Operator 2026-11-08 changed current research focus to SMC/technical analysis; no claim or GC registry run."
   },
   "market_state_smc_ema_bos_20261108_001": {
-    "status": "PREPARED_NOT_CLAIMED",
+    "status": "EXECUTION_CLAIMED",
     "decision": "FIXED_TRAIN_ONLY_SMC_EMA_BOS_REFERENCE",
     "scope": "One 0 USD read-only five-fold 60-minute F direction diagnostic of closed M5 BOS aligned EMA20 slope versus no-BOS EMA controls within UTC week and side. No GC feature values, model fit, TEST, Entry or economics.",
     "plan": {
@@ -65057,11 +65057,11 @@
     },
     "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_SMC_EMA_BOS_20261108_001",
     "operator_request": "2026-11-08 user instruction to focus SMC/technical analysis instead of GC",
-    "execution_authorized": false,
-    "data_reads_authorized": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
     "research_fit_authorized": false,
     "test_authorized": false,
-    "claimed_invocations": 0,
+    "claimed_invocations": 1,
     "completed_invocations": 0,
     "relaunch_allowed": false,
     "training_enabled": false,
