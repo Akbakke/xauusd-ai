@@ -15,7 +15,7 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_DIRECTION_SHARED_HEAD_CONSTRAINT_MEASURED_NATIVE_FIX_PENDING.
+Policystatus: TA_DIRECTION_DEDICATED_M5_IMPLEMENTED_NATIVE_QUALIFICATION_PENDING.
 
 Den fulle [koblingskontrollen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_SHARED_OBJECTIVE_20261108_001/RESULT.json)
 er COMPLETE og konsumert. Seks konvergerte readout-fits på samme frosne
@@ -31,12 +31,23 @@ men taper fortsatt mot prior0,249828/0,249833. Ingen kvalifisert edge.
 Alle poeng/tellinger er kontrollert med0avvik; separat batchvis rekalkulert
 treningsobjektiv avviker maksimalt1,05e-15. Alle seks løsninger konvergerte.
 
-Neste minste native rettelse klargjøres som opt-in egne M5-sidehoder for S/F.
-Aktivitet, øvrige TF, alle genuine input/familier og mål beholdes. Legacydefault
-og originale checkpoints må forbli lesbare; ny variant skal gjenbruke vekter
-og kontrollert AdamW/RNG-state, med fersk faktisk initialbaseline før ny fit.
-Ingen hovedmodellendring er implementert eller ny fit innrømmet ennå.
-Horisontspørsmålet til brukeren står fortsatt åpent; ingen target endres.
+Minste native rettelse er implementert som TA-only opt-in
+dedicated_m5_side=True: to egne 128→1 M5-sidehoder, 258 nye parametre.
+Aktivitet, øvrige TF, genuine input/familier, mål og tapsvekter beholdes.
+Standardkontrakter/state-nøkler/RNG og gamle checkpoints er bevart.
+89 unike fokuserte tester består: gradientruting, vektmigrering, nye
+optimizerparametre og bitlik syntetisk gjenopptakelse. Én testforventning
+brukte ulik Q-form; den er rettet og kun egen testfil kjørt om, 26/26 PASS.
+Faktisk metadatabinding bevarer opprinnelige felter, vinduer, ruter,
+normalisering og priortall.
+[Kildekontroll](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DEDICATED_M5_SOURCE_20261109_001/RESULT.json).
+
+Varmstart kopierer alle gamle vekter og kloner de to sideradene; ny
+modellidentitet beholdes. Dagens statekontrakt tillater ikke gammel AdamW-
+historikk ved ny cursor0. Ny tom AdamW er derfor eksplisitt valgt; originalt
+checkpoint bevares. Faktisk CUDA-migrering/RNG/gjenopptakelse og fersk
+initialbaseline gjenstår før ny native fit. Ingen ny fit er innrømmet.
+Horisontspørsmålet står åpent; ingen target endres.
 
 Kontrollen på [opprinnelige indikatorinput](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_INPUT_CONTROL_20261108_001/RESULT.json)
 er COMPLETE og konsumert. 1 713 kolonner med alle genuine aktuelle felt og
@@ -424,15 +435,14 @@ tidssekvensmodellen, samme-linje-reaksjonsverdi, Entry-verdi og økonomisk edge
 er ubevist. 61 makrofelt mangler uavhengig formelorakel; COTs faktiske
 historiske publisering og vintage er fortsatt UNKNOWN.
 
-**Neste steg:** Avklar retningsinformasjon og readout-konvergens på hele det
-eksisterende TRAIN-prefikset og senere TRAIN før en hovedmodellendring.
-Den lille kontrasten er for snever til å kvalifisere generalisering.
-Klargjør minste opt-in native M5-side-separasjon og eksakt checkpointmigrering.
-Kvalifiser fersk initialbaseline før videre native fit. Avklar brukerens
-primære retningshorisont før en eventuell målendring.
+**Neste steg:** Kvalifiser faktisk originalt FINAL-checkpoint → egen M5-side
+med ny tom AdamW, kontrollert RNG og eksisterende guarded native mekanikk.
+Kontroller faktisk output-paritet og gjenopptakelse; mål fersk initialbaseline
+før en ny avgrenset retningsfit. Fullpopulasjonskontrollen er ferdig og skal
+ikke gjentas. Avklar primær retningshorisont før en eventuell målendring.
 Gjenbruk ferdige input-/representasjonscacher og checkpoints. M5-tapet er
 målt, men full årsaksforklaring og kvalifisert senere forbedring mangler.
-Målet er aktivt; ingen hovedmodellendring, ny fit eller promotering er innrømmet.
+Målet er aktivt; opt-in kilde er implementert, faktisk kvalifikasjon og ny fit er ikke innrømmet.
 Brukerens spørsmål om 30 epoker og fem år er fortsatt åpne hypoteser.
 Denne fitten dekker omtrent mai–september2024, senere score oktober–desember2024.
 Ett pass og én fold er ingen generell dom over lengre læring eller historikk.

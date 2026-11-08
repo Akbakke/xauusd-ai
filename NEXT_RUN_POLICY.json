@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-08T21:03:46.873871+00:00",
-  "status": "TA_DIRECTION_SHARED_HEAD_CONSTRAINT_MEASURED_NATIVE_FIX_PENDING",
+  "observed_utc": "2026-11-08T23:17:19.430340+00:00",
+  "status": "TA_DIRECTION_DEDICATED_M5_IMPLEMENTED_NATIVE_QUALIFICATION_PENDING",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Prepare smallest opt-in native M5-specific side heads for S/F, preserving activity, otherTF, all input/families/targets and legacydefault. Bind exact legacy checkpoint/AdamW/RNG migration with fresh actual initialbaseline before any newnativefit. Pendinghorizonpriority doesnotauthorize targetchange. No architecturesearch or promotion.",
+  "next_action": "Qualify actual legacy FINAL checkpoint migration into dedicated M5 side heads using existing guarded native mechanics,fresh AdamW/cursor0 and checkpoint RNG; verify genuine output parity and exact resume before a new one-pass direction fit. Reuse unchanged input/target/normalization evidence; fresh actual initialbaseline required. No target change/broad search; pending horizon preference does not block unchanged-target mechanics.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1527,13 +1527,13 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_HISTORY_SAVED_MEASUREMENT_GUARD_20261023_226/SOURCE_QUALIFICATION_TERMINAL.json",
       "sha256": "a206d6460550afb869b64ae4c5b1a8f2fdb1827e13b157d156f8434c9eca6e51"
     },
-    "current_function_native_baseline_missing": false,
-    "current_function_native_baseline_qualified": true,
+    "current_function_native_baseline_missing": true,
+    "current_function_native_baseline_qualified": false,
     "latest_current_initial_measurement": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_HISTORY_INITIAL_20261023_229/TERMINAL.json",
       "sha256": "e9f20ddbf614f691c88d8bedcb1aecc28af582b533cd734346384890d245b98d"
     },
-    "current_function_native_baseline_qualification_scope": "Technical matched full INITIAL/FINAL with identical input/model/loss/prior bindings, masks and observations; fresh-initial parity verified on recovery. Not predictive-value qualification.",
+    "current_function_native_baseline_qualification_scope": "Dedicated-M5 opt-in candidate needs fresh actual baseline;legacy evidence remains valid only for legacy mode.",
     "latest_current_initial_state_audit": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_HISTORY_INITIAL_AUDIT_20261023_230/TERMINAL.json",
       "sha256": "4956438fc41dc9bc4c8d14aa2b72d141fb75527e78232cbd35d0a4d486d98054"
@@ -1542,8 +1542,8 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_HISTORY_TECHNICAL_20261023_231/TERMINAL.json",
       "sha256": "a9285a924886605bef861d992cc34e25681761ca0af3cfdc3be2ac10fda05289"
     },
-    "current_function_private_technical_qualified": true,
-    "current_function_private_technical_scope": "TA S/F four-update native mechanical qualification and bit-identical resume reused; recovery full model/AdamW/RNG/order and fresh-initial parity passed.",
+    "current_function_private_technical_qualified": false,
+    "current_function_private_technical_scope": "89 focused synthetic/legacy tests and real input metadata pass;new candidate actual CUDA migration/resume pending.",
     "latest_current_function_main": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_HISTORY_SINGLE_FULL_NATIVE_EPOCH_20261024_232/TERMINAL.json",
       "sha256": "c77ef8f6de087c5dfa8b079db8b504afcb1c1dccba8c5a4caad18886f551d799"
@@ -18860,7 +18860,7 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "NO_TRAINING_DIRECTION_DIAGNOSTICS_CONSUMED",
+    "current_training_scope": "NONE",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -19274,7 +19274,7 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_001/UNEXPECTED_INTERRUPTION_INTEGRITY_001.json",
       "sha256": "a24c10b0873f8c94ea086c8c79083d390092521a9aabf77523c3624e2ecfe020"
     },
-    "current_native_launch_scope": "CLOSED_TA_FOLD1_RECOVERY_COMPLETE_NO_RELAUNCH",
+    "current_native_launch_scope": "CLOSED_DEDICATED_M5_NATIVE_QUALIFICATION_PENDING",
     "current_host_interruption": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/CONNECTION_LOSS_OBSERVATION_001.json",
       "sha256": "b399a59dc7af1e8b0af84c8c135d5b4efe96ac3eaa74aa4f7fb54ee8a3ce9882"
@@ -22051,6 +22051,10 @@
     "latest_direction_readout_comparison": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_READOUT_COMPARISON_20261108_001/RESULT.json",
       "sha256": "cb9c02a6ae2183b191127ac48975db0a25bea07db9dc220d2438d227c82acfe7"
+    },
+    "latest_dedicated_m5_source_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DEDICATED_M5_SOURCE_20261109_001/RESULT.json",
+      "sha256": "78ede8c1112ccc63e185749a3b28ef8ed6aaaba634163b653fbed1243a2ee295"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -40143,7 +40147,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "NONE_DIRECTION_DIAGNOSTICS_CONSUMED",
+  "training_enabled_scope": "NONE_DEDICATED_M5_NATIVE_QUALIFICATION_PENDING",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -66262,7 +66266,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "Fullpopulation exact-weight convergencecontrol isolates current readoutsharing constraint in7.992s. M5isolated beatsprior onTRAIN while shared cannot, and improveslaterscores vs shared butnotprior. Independent scores exact; objectiveerror1.05e-15. Next is minimum opt-in native correction with checkpointreuse andfreshbaseline; goalstillactive."
+    "latest_progress": "Fullpopulation matched-objective control isolated shared-readout M5 TRAIN constraint. Minimum native opt-in correction implemented;89 unique focused cases pass,real metadata preserves original fields/windows/routes/normalization/prior values. Actual checkpoint migration/native baseline and fit pending."
   },
   "market_state_ta_direction_weight_diagnostic_20261108_001": {
     "status": "COMPLETE_CONSUMED",
@@ -67159,5 +67163,30 @@
       }
     },
     "finding": "At frozenFINAL, exact native side-objective coupling forces a measurable M5TRAIN compromise even with convergedheadfits: sharedS/F Brier .255734/.252135 versus isolated .246126/.247188, prior .249651/.249876. IsolatingM5 improves later comparedtoshared (.254622/.253853 vs .258874/.259311) but losesprior. Current readoutconstraint established; historical whole-network cause and lateredge remainunproved."
+  },
+  "market_state_ta_dedicated_m5_source_20261109_001": {
+    "status": "IMPLEMENTED_FOCUSED_CHECKS_PASS_NATIVE_QUALIFICATION_PENDING",
+    "execution_authorized": false,
+    "training_authorized": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DEDICATED_M5_SOURCE_20261109_001/RESULT.json",
+      "sha256": "78ede8c1112ccc63e185749a3b28ef8ed6aaaba634163b653fbed1243a2ee295"
+    },
+    "candidate_view": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DEDICATED_M5_SOURCE_20261109_001/CANDIDATE_VIEW.json",
+      "sha256": "d277accc5400eed895ea59470c54e3e92e425efedc068ede5d3df976a79833d8"
+    },
+    "endpoint_priors": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DEDICATED_M5_SOURCE_20261109_001/ENDPOINT_PRIORS.json",
+      "sha256": "9f2cc89f5abc886fa4a89a1c3b0d0f9c39f877d8ab1374af651aee678c7a425c"
+    },
+    "new_parameters": 258,
+    "unique_focused_tests_passed": 89,
+    "actual_checkpoint_migration_qualified": false,
+    "actual_native_resume_qualified": false,
+    "fresh_initialbaseline_qualified": false,
+    "new_native_fit_admitted": false,
+    "test_data_used": false,
+    "predictive_value_claimed": false
   }
 }

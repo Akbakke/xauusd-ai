@@ -24,7 +24,7 @@ NATIVE_QUERY = np.asarray(NATIVE_K, dtype=np.int64)[None, :]
 METRICS = ('activity', 'conditional_side', 'three_class')
 
 
-def contract(*, ta_only: bool = False) -> dict:
+def contract(*, ta_only: bool = False, dedicated_m5_side: bool = False) -> dict:
     if type(ta_only) is not bool:
         raise ValueError('NATIVE_F_OBJECTIVE_PROFILE')
     value = {
@@ -32,7 +32,7 @@ def contract(*, ta_only: bool = False) -> dict:
         'role': 'research_only_no_fit_or_trade_authority',
         'S_loss_contract_sha256': state_loss.contract()['contract_sha256'],
         'F_target_contract_sha256': future_contract()['contract_sha256'],
-        'dual_model_contract_sha256': model_contract(ta_only=ta_only)['contract_sha256'],
+        'dual_model_contract_sha256': model_contract(ta_only=ta_only, dedicated_m5_side=dedicated_m5_side)['contract_sha256'],
         'F_score_contract_sha256': scorer.factorized_time_query_scorer_contract()['contract_sha256'],
         'combined_loss': 'side_normalized_S_loss_plus_prebound_positive_weight_times_side_normalized_F_loss',
         'F_query': 'fixed_native_k_per_TF_every_row',
@@ -48,7 +48,7 @@ def contract(*, ta_only: bool = False) -> dict:
 def combined_loss(*, state_raw: torch.Tensor, future_raw: torch.Tensor,
                   state_truth: dict, future_truth: dict,
                   state_query_k: torch.Tensor, future_weight: float,
-                  ta_only: bool = False) -> dict:
+                  ta_only: bool = False, dedicated_m5_side: bool = False) -> dict:
     """Reuse v2 masked loss on two distinct heads; weight is plan-owned."""
     if not (type(future_weight) is float and np.isfinite(future_weight)
             and 0 < future_weight <= 1
@@ -83,7 +83,7 @@ def combined_loss(*, state_raw: torch.Tensor, future_raw: torch.Tensor,
     return {'loss': total, 'state': s, 'future': f,
             'skip_update': s['skip_update'] and f['skip_update'],
             'future_weight': future_weight,
-            'contract_sha256': contract(ta_only=ta_only)['contract_sha256']}
+            'contract_sha256': contract(ta_only=ta_only, dedicated_m5_side=dedicated_m5_side)['contract_sha256']}
 
 
 def _weeks(issues: np.ndarray) -> np.ndarray:
@@ -107,7 +107,7 @@ def _prior_raw(fit_truth: dict) -> tuple[np.ndarray, dict]:
 
 
 def score_native_F_fold(*, bound: BoundFutureDisplacement, axes: dict,
-                        fold_id: int, score_raw: np.ndarray, ta_only: bool = False) -> dict:
+                        fold_id: int, score_raw: np.ndarray, ta_only: bool = False, dedicated_m5_side: bool = False) -> dict:
     """Compare one frozen later-TRAIN score to its earlier-TRAIN F prior."""
     if not (type(bound) is BoundFutureDisplacement
             and type(fold_id) is int and 1 <= fold_id <= 5
@@ -163,7 +163,7 @@ def score_native_F_fold(*, bound: BoundFutureDisplacement, axes: dict,
             'score_parent_rows_sha256': axes['score_parent_rows_sha256'],
             'prefix_counts': prior_counts,
             'overall': overall, 'by_utc_week': weekly,
-            'contract_sha256': contract(ta_only=ta_only)['contract_sha256'],
+            'contract_sha256': contract(ta_only=ta_only, dedicated_m5_side=dedicated_m5_side)['contract_sha256'],
             'test_data_used': False}
 
 # Endpoint measurements use the same fixed five queries before/after fit.
@@ -175,7 +175,7 @@ def _seal(value: dict) -> dict:
 
 
 def fit_endpoint_priors(state_bound, future_bound, *, axes: dict, fold_id: int,
-                        ta_only: bool = False) -> dict:
+                        ta_only: bool = False, dedicated_m5_side: bool = False) -> dict:
     """Freeze both endpoint priors on exactly the declared mature fit axis."""
     from gx1.contracts.market_state_five_endpoint_target_binding_v1 import BoundFiveEndpointTargets
     if not (type(state_bound) is BoundFiveEndpointTargets
@@ -194,7 +194,7 @@ def fit_endpoint_priors(state_bound, future_bound, *, axes: dict, fold_id: int,
         'fit_parent_rows_sha256': expected['fit_parent_rows_sha256'],
         'fit_decision_ns_sha256': expected['fit_decision_ns_sha256'],
         'native_query_k': list(NATIVE_K),
-        'loss_contract_sha256': contract(ta_only=ta_only)['contract_sha256'],
+        'loss_contract_sha256': contract(ta_only=ta_only, dedicated_m5_side=dedicated_m5_side)['contract_sha256'],
         'tasks': {},
     }
     for name, bound in (('state', state_bound), ('future', future_bound)):
@@ -206,12 +206,12 @@ def fit_endpoint_priors(state_bound, future_bound, *, axes: dict, fold_id: int,
     return _seal(result)
 
 
-def _endpoint_prior_arrays(value: dict, fold_id: int, *, ta_only: bool = False) -> dict:
+def _endpoint_prior_arrays(value: dict, fold_id: int, *, ta_only: bool = False, dedicated_m5_side: bool = False) -> dict:
     if not (isinstance(value, dict)
             and value.get('schema_version') == 'gx1_native_S_F_frozen_endpoint_priors_v1'
             and value.get('fold_id') == fold_id
             and value.get('native_query_k') == list(NATIVE_K)
-            and value.get('loss_contract_sha256') == contract(ta_only=ta_only)['contract_sha256']
+            and value.get('loss_contract_sha256') == contract(ta_only=ta_only, dedicated_m5_side=dedicated_m5_side)['contract_sha256']
             and value.get('contract_sha256') == _seal(
                 {k: v for k, v in value.items() if k != 'contract_sha256'})['contract_sha256']
             and set(value.get('tasks', {})) == {'state', 'future'}):
@@ -226,9 +226,9 @@ def _endpoint_prior_arrays(value: dict, fold_id: int, *, ta_only: bool = False) 
 
 
 def require_endpoint_priors(value: dict, *, fold_id: int = 1,
-                            ta_only: bool = False) -> dict:
+                            ta_only: bool = False, dedicated_m5_side: bool = False) -> dict:
     """Validate the frozen prior seal, endpoint axes and explicit model route."""
-    _endpoint_prior_arrays(value, fold_id, ta_only=ta_only)
+    _endpoint_prior_arrays(value, fold_id, ta_only=ta_only, dedicated_m5_side=dedicated_m5_side)
     return value
 
 
@@ -252,7 +252,7 @@ def endpoint_measurement_sums(*, state_raw: np.ndarray, future_raw: np.ndarray,
                               parent_rows: np.ndarray, issue_ns: np.ndarray,
                               fold_id: int, partition: str, future_weight: float,
                               model_contract_sha256: str, feature_view_sha256: str,
-                              frozen_priors: dict | None = None, ta_only: bool = False) -> dict:
+                              frozen_priors: dict | None = None, ta_only: bool = False, dedicated_m5_side: bool = False) -> dict:
     """Additive endpoint sufficient statistics; never average minibatch losses."""
     if not (type(fold_id) is int and 1 <= fold_id <= 5 and partition in ('fit', 'score')
             and type(future_weight) is float and np.isfinite(future_weight)
@@ -283,7 +283,7 @@ def endpoint_measurement_sums(*, state_raw: np.ndarray, future_raw: np.ndarray,
     }}
     prior_sha = None
     if frozen_priors is not None:
-        priors = _endpoint_prior_arrays(frozen_priors, fold_id, ta_only=ta_only)
+        priors = _endpoint_prior_arrays(frozen_priors, fold_id, ta_only=ta_only, dedicated_m5_side=dedicated_m5_side)
         scores['prior'] = {}
         for name, truth in (('state', state_truth), ('future', future_truth)):
             repeated = np.broadcast_to(priors[name][None, :, :], state_raw.shape)
@@ -293,7 +293,7 @@ def endpoint_measurement_sums(*, state_raw: np.ndarray, future_raw: np.ndarray,
         'schema_version': 'gx1_native_S_F_endpoint_batch_measurement_v1',
         'rows': len(parent_rows), 'fold_id': fold_id, 'partition': partition,
         'future_weight': future_weight, 'native_query_k': list(NATIVE_K),
-        'loss_contract_sha256': contract(ta_only=ta_only)['contract_sha256'],
+        'loss_contract_sha256': contract(ta_only=ta_only, dedicated_m5_side=dedicated_m5_side)['contract_sha256'],
         'model_contract_sha256': model_contract_sha256,
         'feature_view_sha256': feature_view_sha256,
         'frozen_prior_contract_sha256': prior_sha,
@@ -381,3 +381,15 @@ def finalize_endpoint_measurement(total: dict) -> dict:
             'combined': task_loss['state'] + total['future_weight'] * task_loss['future'],
         }
     return _seal(result)
+
+
+def rebind_endpoint_priors_for_dedicated_m5(value: dict) -> dict:
+    """Reuse exact frozen TRAIN counts/logits under the explicit new model route."""
+    import copy
+    require_endpoint_priors(value, fold_id=1, ta_only=True)
+    rebound = copy.deepcopy({k: v for k, v in value.items() if k != 'contract_sha256'})
+    rebound['loss_contract_sha256'] = contract(
+        ta_only=True, dedicated_m5_side=True)['contract_sha256']
+    rebound = _seal(rebound)
+    require_endpoint_priors(rebound, fold_id=1, ta_only=True, dedicated_m5_side=True)
+    return rebound

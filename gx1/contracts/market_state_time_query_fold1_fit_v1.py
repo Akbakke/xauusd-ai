@@ -294,15 +294,15 @@ def require_fit_gate(gate: Any, recipe: Mapping[str, Any]) -> None:
           'POLICY_GATE')
 
 
-def ta_sf_numerical_recipe() -> dict[str, Any]:
+def ta_sf_numerical_recipe(*, dedicated_m5_side: bool = False) -> dict[str, Any]:
     """Same mature one-pass optimizer; explicitly bind corrected TA S/F."""
     from gx1.contracts.market_state_time_query_native_F_model_v1 import contract as model_contract
     from gx1.contracts.market_state_time_query_native_F_objective_v1 import contract as loss_contract
     base = dict(native_direction_research_recipe(batch_size=BATCH_SIZE, max_updates=MAX_UPDATES))
     base.pop('contract_sha256')
     base.update(schema_version=TA_NUMERICAL_SCHEMA,
-        research_objective_sha256=model_contract(ta_only=True)['contract_sha256'],
-        native_F_loss_contract_sha256=loss_contract(ta_only=True)['contract_sha256'],
+        research_objective_sha256=model_contract(ta_only=True, dedicated_m5_side=dedicated_m5_side)['contract_sha256'],
+        native_F_loss_contract_sha256=loss_contract(ta_only=True, dedicated_m5_side=dedicated_m5_side)['contract_sha256'],
         future_weight=1.0)
     return {**base, 'contract_sha256': campaign.canonical_sha256(base)}
 

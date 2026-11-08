@@ -86,7 +86,8 @@ def evaluate_fit_batch(model: NativeFutureDualModel, features: Mapping,
         state_raw=output['state_activity_side_logits'],
         future_raw=output['future_activity_side_logits'],
         state_truth=state_truth, future_truth=future_truth,
-        state_query_k=query, future_weight=future_weight, ta_only=_ta_only(model))
+        state_query_k=query, future_weight=future_weight, ta_only=_ta_only(model),
+        dedicated_m5_side=getattr(model.state_model, '_dedicated_m5_side', False))
     return {**output, 'loss': report['loss'],
             'state_count': report['state']['count'],
             'future_count': report['future']['count'],
@@ -159,7 +160,8 @@ def evaluate_endpoint_batch(model: NativeFutureDualModel, features: Mapping,
         partition=partition, future_weight=future_weight,
         model_contract_sha256=model.research_objective['contract_sha256'],
         feature_view_sha256=model.state_model.feature_view_identity['contract_sha256'],
-        frozen_priors=frozen_priors, ta_only=_ta_only(model))
+        frozen_priors=frozen_priors, ta_only=_ta_only(model),
+        dedicated_m5_side=getattr(model.state_model, '_dedicated_m5_side', False))
     return {'measurement': measurement,
             'state_activity_side_logits': state_raw,
             'future_activity_side_logits': future_raw}

@@ -54,9 +54,10 @@ def _require_model_binding(model):
         return
     torch, _, _, _, _, _ = _deps()
     from gx1.contracts.market_state_time_query_native_F_model_v1 import contract
-    model.state_model._require_binding()
+    model._require_binding()
     _need(model.state_model._ta_only is True, 'TA_SF_PROFILE')
-    expected = contract(ta_only=True)['contract_sha256']
+    expected = contract(ta_only=True,
+        dedicated_m5_side=model.state_model._dedicated_m5_side)['contract_sha256']
     reference = torch.tensor(list(bytes.fromhex(expected)), dtype=torch.uint8,
                              device=model.future_head.weight.device)
     head = model.future_head
@@ -89,9 +90,11 @@ def _numerical(value, model):
         from gx1.contracts.market_state_time_query_fold1_fit_v1 import ta_sf_numerical_recipe
         from gx1.contracts.market_state_time_query_native_F_objective_v1 import contract as loss_contract
         _require_model_binding(model)
-        _need(isinstance(value, Mapping) and dict(value) == ta_sf_numerical_recipe()
+        _need(isinstance(value, Mapping) and dict(value) == ta_sf_numerical_recipe(
+                  dedicated_m5_side=model.state_model._dedicated_m5_side)
               and value['research_objective_sha256'] == model.research_objective['contract_sha256']
-              and value['native_F_loss_contract_sha256'] == loss_contract(ta_only=True)['contract_sha256']
+              and value['native_F_loss_contract_sha256'] == loss_contract(ta_only=True,
+                  dedicated_m5_side=model.state_model._dedicated_m5_side)['contract_sha256']
               and value['future_weight'] == 1.0
               and float(trainer._GRAD_CLIP_NORM) == value['grad_clip_norm'],
               'TA_SF_NUMERICAL_RECIPE')
@@ -298,3 +301,87 @@ def restore_fold1_fit_state(state, model, optimizer, *, numerical_recipe,
     return {'cursor': state['cursor'],
             'optimizer_updates': state['optimizer_updates'],
             'skipped_batches': state['skipped_batches']}
+
+
+def copy_legacy_weights_to_dedicated_m5(legacy_model, model, *,
+                                        expected_legacy_model_sha256):
+    """Copy a strictly restored legacy predictor into the opt-in variant.
+
+    The caller must restore the original full state first and bind its checkpoint
+    provenance. This transfers weights/buffers only, never optimizer history or
+    progress. A new empty AdamW, cursor zero and actual initial measurement are
+    required. No RNG is consumed here.
+    """
+    torch, old, private, _, digest, _ = _deps()
+    _need(_is_ta_sf(legacy_model) and _is_ta_sf(model)
+          and legacy_model is not model
+          and legacy_model.state_model._dedicated_m5_side is False
+          and model.state_model._dedicated_m5_side is True, 'M5_WARMSTART_MODE')
+    _require_model_binding(legacy_model)
+    _require_model_binding(model)
+    old._no_partial_gradients(legacy_model)
+    old._no_partial_gradients(model)
+    source_view, target_view = _feature_view(legacy_model), _feature_view(model)
+    private._view(legacy_model.state_model, source_view)
+    private._view(model.state_model, target_view)
+    _need(source_view['prefix_normalization'] == target_view['prefix_normalization'],
+          'M5_WARMSTART_NORMALIZATION')
+    source, target = legacy_model.state_dict(), model.state_dict()
+    _need(digest(source) == expected_legacy_model_sha256, 'M5_WARMSTART_SOURCE_DIGEST')
+    clones = {
+        'state_model.m5_side_head.weight': 'state_model.query_head.weight',
+        'state_model.m5_side_head.bias': 'state_model.query_head.bias',
+        'future_m5_side_head.weight': 'future_head.weight',
+        'future_m5_side_head.bias': 'future_head.bias',
+    }
+    identities = {'state_model.query_objective_sha256', 'native_F_objective_sha256'}
+    _need(set(target) == set(source) | set(clones), 'M5_WARMSTART_INVENTORY')
+    for name, value in source.items():
+        destination = target[name]
+        _need(value.shape == destination.shape and value.dtype == destination.dtype
+              and value.device == destination.device, 'M5_WARMSTART_TENSOR:' + name)
+    for name, original in clones.items():
+        _need(target[name].shape == source[original][1:2].shape
+              and target[name].dtype == source[original].dtype
+              and target[name].device == source[original].device,
+              'M5_WARMSTART_SIDE_ROW:' + name)
+    buffers = dict(model.named_buffers())
+    old_buffers = dict(legacy_model.named_buffers())
+    _need(set(buffers) == set(old_buffers), 'M5_WARMSTART_BUFFER_INVENTORY')
+    # Fresh/current normalization and other immutable buffers must already agree.
+    _need(all(torch.equal(buffers[name], old_buffers[name])
+              for name in buffers if name not in identities),
+          'M5_WARMSTART_BUFFER_VALUES')
+    old_modes = dict(legacy_model.named_modules())
+    modes = dict(model.named_modules())
+    mode_clones = {'state_model.m5_side_head': 'state_model.query_head',
+                   'future_m5_side_head': 'future_head'}
+    _need(set(modes) == set(old_modes) | set(mode_clones), 'M5_WARMSTART_MODULES')
+    with torch.no_grad():
+        for name, value in source.items():
+            if name not in identities:
+                target[name].copy_(value)
+        for name, original in clones.items():
+            target[name].copy_(source[original][1:2])
+    for name, module in modes.items():
+        module.training = old_modes[mode_clones.get(name, name)].training
+    _require_model_binding(model)
+    _need(digest(legacy_model.state_dict()) == expected_legacy_model_sha256,
+          'M5_WARMSTART_SOURCE_MUTATED')
+    copied_state = model.state_dict()
+    _need(all(torch.equal(copied_state[name], value)
+              for name, value in source.items() if name not in identities),
+          'M5_WARMSTART_COPY_PARITY')
+    return {
+        'schema_version': 'gx1_ta_dedicated_m5_weights_warmstart_v1',
+        'source_model_state_sha256': expected_legacy_model_sha256,
+        'model_state_sha256': digest(copied_state),
+        'source_model_contract_sha256': legacy_model.research_objective['contract_sha256'],
+        'model_contract_sha256': model.research_objective['contract_sha256'],
+        'copied_side_rows': clones,
+        'added_parameters': sum(target[name].numel() for name in clones),
+        'optimizer_policy': 'fresh_AdamW_empty_history_no_inherited_updates',
+        'cursor': 0, 'optimizer_updates': 0,
+        'fresh_actual_initial_measurement_required': True,
+        'prediction_parity_measured': False,
+    }

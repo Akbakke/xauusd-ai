@@ -31,9 +31,13 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
 from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import EntryV10CtxHybridTransformer
 
 
-def factorized_time_query_model_contract(*, ta_only: bool = False) -> dict:
+def factorized_time_query_model_contract(
+    *, ta_only: bool = False, dedicated_m5_side: bool = False,
+) -> dict:
     if type(ta_only) is not bool:
         raise ValueError("TIME_QUERY_TA_MODE")
+    if type(dedicated_m5_side) is not bool or (dedicated_m5_side and not ta_only):
+        raise ValueError("TIME_QUERY_DEDICATED_M5_SIDE_MODE")
     value = {
         "schema_version": "gx1_market_state_time_query_model_v2",
         "role": "research_only_no_entry_exit_or_trade_authority",
@@ -54,6 +58,12 @@ def factorized_time_query_model_contract(*, ta_only: bool = False) -> dict:
         "current_state_or_future_target_as_forward_input": False,
         "old_checkpoint_compatible": False,
     }
+    if dedicated_m5_side:
+        value["dedicated_m5_side"] = True
+        value["head"] = (
+            "shared_Linear_hidden_plus_6_to_hidden_GELU_then_Linear_hidden_to_2"
+            "_with_dedicated_M5_conditional_side_Linear_hidden_to_1")
+        value["M5_side_initialization"] = "clone_shared_side_row_preserving_CPU_and_active_CUDA_RNG"
     if ta_only:
         profile = compile_full_ta_entry_execution_profile()
         value["input_profile"] = {key: profile[key] for key in ("name", "contract_sha256")}
@@ -82,10 +92,22 @@ def factorized_log_probabilities(raw_logits: torch.Tensor) -> torch.Tensor:
     ), dim=-1)
 
 
+def _clone_side_head(head: nn.Linear) -> nn.Linear:
+    """Clone only conditional side without shifting existing head initialization."""
+    device = head.weight.device
+    with torch.random.fork_rng(devices=[device.index] if device.type == "cuda" else []):
+        result = nn.Linear(head.in_features, 1, device=device, dtype=torch.float32)
+    with torch.no_grad():
+        result.weight.copy_(head.weight[1:2])
+        result.bias.copy_(head.bias[1:2])
+    return result
+
+
 class FactorizedTimeQueryMarketStateModel(TimeQueryMarketStateModel):
     """The v1 causal encoding and query domain with a distinct two-logit head."""
 
-    def __init__(self, backbone: EntryV10CtxHybridTransformer):
+    def __init__(self, backbone: EntryV10CtxHybridTransformer, *,
+                 dedicated_m5_side: bool = False):
         # Build the distinct v2 head directly; do not instantiate an unused v1
         # three-logit head or consume its initialization randomness.
         nn.Module.__init__(self)
@@ -93,6 +115,10 @@ class FactorizedTimeQueryMarketStateModel(TimeQueryMarketStateModel):
         self._ta_only = (isinstance(backbone.entry_execution_profile, dict)
                          and backbone.entry_execution_profile.get("name")
                          == FULL_TA_ENTRY_EXECUTION_PROFILE_NAME)
+        _require(type(dedicated_m5_side) is bool
+                 and (not dedicated_m5_side or self._ta_only),
+                 "DEDICATED_M5_SIDE_MODE")
+        self._dedicated_m5_side = dedicated_m5_side
         self._require_input_profile(backbone)
         self.backbone = backbone
         self._hidden_width = width
@@ -101,17 +127,20 @@ class FactorizedTimeQueryMarketStateModel(TimeQueryMarketStateModel):
             nn.Linear(width + len(TIMEFRAMES) + 1, width, device=device, dtype=torch.float32),
             nn.GELU())
         self.query_head = nn.Linear(width, 2, device=device, dtype=torch.float32)
+        if self._dedicated_m5_side:
+            self.m5_side_head = _clone_side_head(self.query_head)
         self.register_buffer("query_tf_coordinates", torch.eye(
             len(TIMEFRAMES), device=device, dtype=torch.float32))
         self.register_buffer("query_native_k", torch.tensor(
             [int(k) for k in NATIVE_K], device=device, dtype=torch.int64))
         self.register_buffer("query_objective_sha256", torch.tensor(
-            list(bytes.fromhex(factorized_time_query_model_contract(ta_only=self._ta_only)["contract_sha256"])),
+            list(bytes.fromhex(self.research_objective["contract_sha256"])),
             device=device, dtype=torch.uint8))
 
     @property
     def research_objective(self) -> dict:
-        return factorized_time_query_model_contract(ta_only=self._ta_only)
+        return factorized_time_query_model_contract(
+            ta_only=self._ta_only, dedicated_m5_side=self._dedicated_m5_side)
 
     def _require_input_profile(self, backbone) -> None:
         if self._ta_only:
@@ -126,6 +155,11 @@ class FactorizedTimeQueryMarketStateModel(TimeQueryMarketStateModel):
                      and "relative_price" not in backbone.gc_mtf_history["normalization"], "FULL_GC_PROFILE")
 
     def _require_binding(self) -> None:
+        _require(type(self._dedicated_m5_side) is bool
+                 and (not self._dedicated_m5_side or self._ta_only),
+                 "DEDICATED_M5_SIDE_MODE")
+        _require(hasattr(self, "m5_side_head") == self._dedicated_m5_side,
+                 "M5_SIDE_HEAD_BINDING")
         width = _backbone_width(self.backbone)
         _require(width == self._hidden_width, "HIDDEN_WIDTH")
         self._require_input_profile(self.backbone)
@@ -147,10 +181,13 @@ class FactorizedTimeQueryMarketStateModel(TimeQueryMarketStateModel):
         _require(type(self.query_projection) is nn.Sequential
                  and len(self.query_projection) == 2
                  and type(self.query_projection[1]) is nn.GELU, "QUERY_PROJECTION")
-        for layer, inputs, outputs in (
+        layers = [
             (self.query_projection[0], width + len(TIMEFRAMES) + 1, width),
             (self.query_head, width, 2),
-        ):
+        ]
+        if self._dedicated_m5_side:
+            layers.append((self.m5_side_head, width, 1))
+        for layer, inputs, outputs in layers:
             _require(type(layer) is nn.Linear and layer.in_features == inputs
                      and layer.out_features == outputs and layer.weight.shape == (outputs, inputs)
                      and layer.bias is not None and layer.bias.shape == (outputs,)
@@ -221,8 +258,11 @@ class FactorizedTimeQueryMarketStateModel(TimeQueryMarketStateModel):
         tf = self.query_tf_coordinates[None, None].expand(batch, blocks, -1, -1)
         fraction = (query_k.to(torch.float32) /
                     self.query_native_k.to(torch.float32)[None, None, :]).unsqueeze(-1)
-        raw = self.query_head(self.query_projection(
-            torch.cat((source, tf, fraction), dim=-1)))
+        representation = self.query_projection(torch.cat((source, tf, fraction), dim=-1))
+        raw = self.query_head(representation)
+        if self._dedicated_m5_side:
+            raw = raw.clone()
+            raw[..., 0, 1] = self.m5_side_head(representation[..., 0, :]).squeeze(-1)
         _require(raw.shape == (batch, blocks, len(TIMEFRAMES), 2)
                  and bool(torch.isfinite(raw).all()), "LOGITS")
         return raw
