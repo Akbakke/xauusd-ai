@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-08T02:14:17.971368+00:00",
-  "status": "NATIVE_F_PRIVATE_4STEP_ADMITTED_NO_CAMPAIGN_PLAN",
+  "observed_utc": "2026-11-08T02:32:28.913738+00:00",
+  "status": "NATIVE_F_PRIVATE_4STEP_COMPLETE_CONSUMED_TRAINING_CLOSED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Selected 0.5 ATR activity and conservative local side use the corrected five-TF TRAIN mask. The one mature fold1 native time-query v1 fit and later chronological TRAIN OOF lost M5 certified-side Brier to the frozen prior in all 14 weeks; a paired frozen diagnostic found upward miscalibration and the free-three-logit unknown-side objective defect. Factorized v2 model/loss and stable raw-logit scorer now pass source/synthetic checks, and read-only fold1 receipt/v2 view metadata binding passes. Physical v2 zero-step passed direct activity/side gradient mechanics. Only the exact new S/F B16 two-batch private optimizer/resume probe is admitted for four guarded physical updates; it cannot fit a predictor or establish GC direction value. All prior plans remain consumed. No campaign plan exists yet; the recipe and source checks are qualified. Full fit, generalization, Entry decision value, economics, TEST, Entry, Exit, broker, trading and spending remain closed.",
-  "next_action": "Original F M5 GC LightGBM one-use run remains FAILED and consumed. Read-only recovery of all five target-bound fold predictions found no M5 directional gain against frozen prior in any fold; GC incremental side gain did not pass the prebound week/fold gate, though activity gains did. Do not rerun this tabular recipe or coarse GC sign tables. The side-normalized S/F loss and guarded four-update private route are source-bound. Materialize one exact campaign plan from clean HEAD, perform read-only preflight and required fresh-boot/idle guards, then run at most four optimizer updates for mechanics only. Before any predictive fit, audit the observed loss of side-specific largest GC trade size and decide one prebound input hypothesis; only then design later-TRAIN five-TF OOF and paired GC ablation. TEST/Entry/Exit/broker/trading/spending closed.",
+  "rule": "Selected 0.5 ATR activity and conservative local side use the corrected five-TF TRAIN mask. The one mature fold1 native time-query v1 fit and later chronological TRAIN OOF lost M5 certified-side Brier to the frozen prior in all 14 weeks; a paired frozen diagnostic found upward miscalibration and the free-three-logit unknown-side objective defect. Factorized v2 model/loss and stable raw-logit scorer now pass source/synthetic checks, and read-only fold1 receipt/v2 view metadata binding passes. Physical v2 zero-step passed direct activity/side gradient mechanics. The exact S/F B16 two-batch private optimizer/resume probe completed four guarded physical updates with bit-exact resume and zero exit codes. It did not fit a predictor or establish GC direction value. All plans are consumed; training_enabled=false. Full fit, generalization, Entry decision value, economics, TEST, Entry, Exit, broker, trading and spending remain closed.",
+  "next_action": "Original F M5 GC LightGBM one-use run remains FAILED and consumed. Read-only recovery of all five target-bound fold predictions found no M5 directional gain against frozen prior in any fold; GC incremental side gain did not pass the prebound week/fold gate, though activity gains did. Do not rerun this tabular recipe or coarse GC sign tables. The guarded four-update S/F optimizer/resume qualification is complete and consumed. Before any predictive fit, audit the observed loss of side-specific largest GC trade size and decide one prebound input hypothesis. Then design one later-TRAIN five-TF native OOF with frozen prior and paired GC ablation; require a separate exact capped admission. No rerun of the private probe. TEST/Entry/Exit/broker/trading/spending closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -35083,7 +35083,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -64760,8 +64760,8 @@
     "limitations": "Synthetic exact-type optimizer partition and state roundtrip only; no genuine feature optimizer, cold campaign resume, OOF or direction value."
   },
   "market_state_native_F_private_campaign_source_20261108_001": {
-    "status": "SOURCE_AND_FOCUSED_METADATA_TESTS_PASS_NO_ADMISSION",
-    "scope": "Existing guarded native research campaign routed to exact S/F B16 two-batch optimizer/resume probe; no recipe, plan, execution or predictor fit admission.",
+    "status": "SOURCE_ROUTE_VERIFIED_PRIVATE_PROBE_COMPLETED",
+    "scope": "Existing guarded native research campaign source route used by the exact S/F B16 two-batch private optimizer/resume probe; no predictor fit or OOF authority.",
     "campaign_source": {
       "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_native_F_private_campaign_v1.py",
       "sha256": "e2b37981f79729e7c3f17da034877dc45dafde371936f6e767476a21e2c919ff"
@@ -64794,11 +64794,11 @@
     "test_authorized": false,
     "broker_access_allowed": false,
     "test_data_used": false,
-    "limitations": "Source route and metadata tests only. Exact recipe is materialized and separate technical gate is admitted; no campaign plan, physical optimizer/resume, OOF or direction value."
+    "limitations": "Source route used by completed technical probe. Separate consumed gate records the physical result; no OOF or direction value."
   },
   "market_state_native_F_private_4step_20261108_001": {
-    "status": "ADMITTED",
-    "decision": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_TECHNICAL_ONLY",
+    "decision": "COMPLETE_CONSUMED_TECHNICAL_ONLY",
     "scope": "TRAIN-only fold1 native S/F private B16 two-batch optimizer/resume mechanics; 3 fresh models, 6 forwards, 4 backwards, 4 guarded AdamW updates. No predictor fit or OOF.",
     "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_PRIVATE_4STEP_20261108_001/RUNTIME",
     "recipe": {
@@ -64806,18 +64806,18 @@
       "sha256": "5e5577e03e9e41f3e8135621e550e16494e1f24de35d2d3b3db32abf3585b451"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "native_F_private_probe_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "native_F_private_probe_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
     "genuine_predictor_fit_authorized": false,
-    "training_enabled": true,
-    "native_training_enabled": true,
+    "training_enabled": false,
+    "native_training_enabled": false,
     "model_forwards_authorized": 6,
     "backward_calls_authorized": 4,
     "optimizer_steps_authorized": 4,
@@ -64866,11 +64866,59 @@
     "exit_evaluation": false,
     "full_epoch_training_allowed": false,
     "fresh_windows_boot_required": true,
-    "campaign_preparation_authorized": true,
+    "campaign_preparation_authorized": false,
     "input_receipts_expected": 21,
     "source_owner_count_expected": 71,
     "standing_authorization_source": "GX1_RULES_20261105_local_zero_spend_research",
     "predictive_value_qualified": false,
-    "limitation": "Metadata admission for one guarded four-update technical probe only; campaign plan not yet materialized and no physical optimizer, predictor fit, GC edge or TEST claim."
+    "limitation": "Metadata admission for one guarded four-update technical probe only; campaign plan not yet materialized and no physical optimizer, predictor fit, GC edge or TEST claim.",
+    "campaign_plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_PRIVATE_4STEP_20261108_001/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "sha256": "f93b7934f1f09c2c311e7cd42cfc7ff96b201d0265d4c4f2b9fdac574e1c9db2"
+    },
+    "campaign_preparation_claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_PRIVATE_4STEP_20261108_001/CAMPAIGN_PREPARATION_CLAIM.json",
+      "sha256": "b6099b62e5743c724c7a20becd26835b1ed55bed36c8286afb561852f6ca8041"
+    },
+    "pre_reboot_inspect": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_PRIVATE_4STEP_20261108_001/PRE_REBOOT_INSPECT.json",
+      "sha256": "f0d752ab75dfe37b3d70a2559bc5ba027f63e3d681d1953e16c100a431134c68"
+    },
+    "task_install_receipt": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_PRIVATE_4STEP_20261108_001/WINDOWS_TASK_INSTALL_RECEIPT.json",
+      "sha256": "477b6b2ca2da0d08601486da9728142d15e87ca75185f28f1f334ac997090640"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_PRIVATE_4STEP_20261108_001/RUNTIME/private-research/CLAIM.json",
+      "sha256": "49ba76323d267c1317ac64b6982f5f43a27fbc4f92bb0330f8db934077808d1d"
+    },
+    "private_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_PRIVATE_4STEP_20261108_001/RUNTIME/private-research/RESULT.json",
+      "sha256": "55936ccfb06bddcebebfb10a6a591de29143fae3f64036594463f04985ccd97e"
+    },
+    "cursor": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_PRIVATE_4STEP_20261108_001/RUNTIME/research-cursor/RESUME_CURSOR.json",
+      "sha256": "dd6fa591589f425d61a68374a379a902562d68f6c9fe1142cb36cdd2a7f22181"
+    },
+    "progress": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_PRIVATE_4STEP_20261108_001/RUNTIME/progress/invocation-0001.json",
+      "sha256": "79b1ed1d4a3b27ddf046874505636f77afc09c4969a929c2cdb79d3f32ceb2c9"
+    },
+    "guard_log": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_PRIVATE_4STEP_20261108_001/RUNTIME/logs/invocation-0001.signed-guard.log",
+      "sha256": "22d05a9d8251d02f0388c1fedba175f4eb15c38c24b2ba09cfef78577ab0b292"
+    },
+    "invocation_receipt": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_PRIVATE_4STEP_20261108_001/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "d274e2f0ea3d27842645105199b92761562965562cb2752d85169cd6fbc08f13"
+    },
+    "optimizer_steps_completed": 4,
+    "model_forwards_completed": 6,
+    "backward_calls_completed": 4,
+    "bit_exact_resume": true,
+    "source_unchanged": true,
+    "training_started": true,
+    "task_disabled_after_completion": true,
+    "limitations": "One genuine guarded technical optimizer/resume qualification on 32 earlier TRAIN rows only; no predictor fit, later chronology, GC side value, Entry decision value or economics."
   }
 }

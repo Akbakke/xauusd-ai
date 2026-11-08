@@ -14,10 +14,9 @@ M5 er prognosetakten; kausalt lukkede M15/H1/H4/D1 og GC/indikatorhistorikk er
 input. Alle fem TF har egne framtidige mål. Entry, Exit, ordre, broker, handel,
 spending og forseglet TEST er stengt.
 
-Policystatus: `NATIVE_F_PRIVATE_4STEP_ADMITTED_NO_CAMPAIGN_PLAN`.
-`training_enabled=true` gjelder bare den eksakte S/F fire-stegs optimizer-/
-resumeprøven; full fit er stengt. Ny nullstegsplan er konsumert, ingen tung
-jobb kjører. Ingen tidligere
+Policystatus: `NATIVE_F_PRIVATE_4STEP_COMPLETE_CONSUMED_TRAINING_CLOSED`.
+`training_enabled=false`; fire-stegsplanen er fullført og konsumert, og
+Windows-oppgaven er deaktivert. Ingen tung jobb kjører. Ingen tidligere
 claimet, fullført eller feilet plan relanseres. Juni 2026 er brukt utviklings-VAL;
 forseglet periode scores bare etter forward-journalregelen i GX1_RULES.md.
 
@@ -98,41 +97,40 @@ forseglet periode scores bare etter forward-journalregelen i GX1_RULES.md.
   Dette beviser teknisk kobling, ikke læring eller retning. Policyens
   `market_state_native_F_side_normalized_design_20261108_001` binder designet.
 
-- **Optimizer/gjenopptakelse, kun kilde:** En smal S/F-tilstandseier gjenbruker
-  B16/AdamW/FP32-oppskriften og de tidligere valgte TRAIN-radene 2–33.
-  Fire syntetiske tester består: begge hoder er aktive, ubrukte gamle hoder
-  fryses, avbrutt/lastet to-stegsforløp er bitlikt, og ødelagt checkpoint
-  avvises før modellmutasjon. Ingen ekte optimizersteg er gjort. Den tekniske
-  prøven er nå kilderutet inn i eksisterende beskyttet trainer-kampanje og
-  GPU-vakter; 250 W, tre modeller, seks forwards og fire fysiske updates er
-  bundet. Metadata-/rutetester består. Eksakt oppskrift er opprettet og validert,
-  men kampanjeplan og fysisk optimizer finnes ikke. En fire-stegs teknisk
-  prøve er innrømmet i policy, uten prediktor-fit. Policyens
-  `market_state_native_F_private_campaign_source_20261108_001` binder ruten.
+- **Optimizer/gjenopptakelse, faktisk teknisk PASS:** Én guarded native S/F-prøve
+  på de tidligere valgte TRAIN-radene 2–33 fullførte med seks forwards,
+  fire backwards, fire AdamW-oppdateringer og tre modellkonstruksjoner.
+  Avbrutt/gjenopptatt forløp var bitlikt referanseforløpet; trener- og
+  observatørutgang var 0. 132,8 s, 5,76 GB topp-RSS og 1,98 GB toppallokert
+  GPU-minne under 20 GiB/250 W-vakter. Planen er konsumert, og ingen
+  prediktor-fit eller retningsverdi følger av dette.
+  [Resultat](/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_PRIVATE_4STEP_20261108_001/RUNTIME/private-research/RESULT.json)
+  SHA `55936ccfb06bddcebebfb10a6a591de29143fae3f64036594463f04985ccd97e`;
+  [kampanjekvittering](/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_PRIVATE_4STEP_20261108_001/RUNTIME/receipts/invocation-0001.json)
+  SHA `d274e2f0ea3d27842645105199b92761562965562cb2752d85169cd6fbc08f13`.
+  Policyens `market_state_native_F_private_4step_20261108_001` binder
+  engangsutfallet.
 
 ## Ikke gjort, hindring og neste steg
 
-Native S/F har **ingen** optimizer-/resume-kvalifikasjon, full kronologisk fit
-eller senere femfolds OOF. F-vekt og retningsnormalisering er bundet,
-men optimizer/resume er ikke kvalifisert. GC-merverdi i den native tidssekvensmodellen er ikke målt. Verken framtidig
+Native S/F har **ingen** full kronologisk fit eller senere femfolds OOF.
+GC-merverdi i den native tidssekvensmodellen er ikke målt. Verken framtidig
 markedstilstand, senere Entry-beslutningsverdi eller økonomisk edge er påvist.
 Den enkle tabellmodellens negative retning er ikke en generell dom over GC,
 indikatorene eller native modell.
 
-**Neste ene hypotese:** Den native sekvenshistorikken kan fange tidsforløp og
-GC × prisstruktur som tabellens siste snapshot ikke gjorde. Gjenbruk nøyaktig
-samme kvalifiserte inputs/targets/visning og den bundne
-side-normaliserte S/F-tapsmodusen. Behold samme proper score. Oppskriften
-finnes; materialiser én guarded kampanjeplan fra ren HEAD og
-kjør lesende preflight/fersk-boot-vakter før høyst fire fysiske optimizersteg.
-Dette kvalifiserer bare mekanikk. Før en eventuell prediktiv fit kontrolleres
-det målte tapet av sideetikett på største GC-handel og én konkret hypotese
-for om dette må legges til. Deretter kan én egen admittert, capped kronologisk
-TRAIN-fit/OOF med forhåndsbundet prior og parret GC-ablasjon vurderes. Mål
-aktivitet og
-betinget side separat på alle fem TF og UTC-uker, særlig M5 framtidig side.
-Ingen ny grov GC-fortegnstabell, terskelsøk eller tabellomkjøring uten en ny
-målbar hypotese. `training_enabled=true` åpner bare den bundne tekniske prøven.
+**Neste ene hypotese:** Store aggressive GC-kjøp/salg kan få annen framtidig
+XAU-betydning når de sees sammen med prisrespons og støtte/motstand.
+Råhendelsen har `side` og `size`, men dagens sammenfatning beholder bare
+største handel uten side; dette konkrete informasjonstapet må kontrolleres
+på eksisterende TRAIN-data før ny input eller fit. Kontroller først hvor ofte
+størrelse, side og dekningsmaske er faktisk observerbare på de modellkoblede
+M5-radene. Bind deretter én kausal sammenligning med og uten presist
+sidevis storhandelssignal, mot eksisterende GC-/strukturflater og fryst prior,
+på senere kronologiske TRAIN-rader. Den native S/F-ruten kan bare få én egen
+capped fit-/OOF-admisjon etter denne kontrollen. Mål aktivitet og betinget side
+separat på alle fem TF og UTC-uker. Ingen ny grov GC-fortegnstabell,
+terskelsøk eller omkjøring av konsumerte planer. `training_enabled=false`.
 
 Kilde/metode for denne fasen: [docs/NATIVE_LEARNING.md](docs/NATIVE_LEARNING.md).
 Detaljert historikk og eldre beslutninger: Git, ikke nye arkivmapper her.
