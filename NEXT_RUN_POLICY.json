@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-07T14:39:53.721864+00:00",
-  "status": "F_TARGET_CANDIDATE_BOUND_SEPARATE_HEAD_UNQUALIFIED_FIT_CLOSED",
+  "status": "F_NATIVE_QUERY_SCHEDULE_GAP_MEASURED_MODEL_WIRING_PENDING",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Selected 0.5 ATR activity and conservative local side use the corrected five-TF TRAIN mask. The one mature fold1 native time-query v1 fit and later chronological TRAIN OOF lost M5 certified-side Brier to the frozen prior in all 14 weeks; a paired frozen diagnostic found upward miscalibration and the free-three-logit unknown-side objective defect. Factorized v2 model/loss and stable raw-logit scorer now pass source/synthetic checks, and read-only fold1 receipt/v2 view metadata binding passes. Physical v2 zero-step on two TRAIN rows passed direct activity/side gradient mechanics; target-role clarification, genuine optimizer/resume, fit, generalization, Entry decision value and economics are unqualified. training_enabled=false; consumed plans do not authorize new runs. TEST, Entry, Exit, broker, trading and spending remain closed.",
-  "next_action": "The separate F candidate target is now hash-bound and its 0.5 ATR_t activity/conditional-side masks pass focused tests; S remains primary and unchanged. Next make only the necessary distinct F output/loss/scorer wiring on the current v2 time-query model, retaining all five TF and full GC/indicator routes. Prove on real bound TRAIN rows that F target never enters model forward, F side gradient is zero on flat/missing cells, S output and scores are unchanged, and F proper scores use paired chronological references. Then prepare one explicitly admitted chronological fit plan with checkpoint/resume and later-TRAIN OOF; no fit under the current gate. training_enabled=false; TEST/Entry/Exit/broker/trading/spending closed.",
+  "next_action": "Use one shared causal encoder per batch. Keep the existing v2 S time-query schedule and its head unchanged; decode one additional fixed native-k query per TF for the separate F candidate head on every TRAIN row. Do not attach F labels to sampled non-native S queries: fold1 D1 meaningful support would be only 46 versus 8926 at fixed native endpoint. Implement the smallest distinct F output/loss/scorer path and prove S output parity, exact F target clock, null F side gradient on flat/missing rows, and paired later-TRAIN proper scores; no target forward input. After real zero-step qualification, prepare one explicitly admitted chronological fit plan with checkpoint/resume and OOF gate. training_enabled=false; TEST/Entry/Exit/broker/trading/spending closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -63714,8 +63714,8 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "F_TARGET_CANDIDATE_BOUND_SEPARATE_HEAD_UNQUALIFIED_FIT_CLOSED",
-  "recorded_observed_utc": "2026-11-08T00:03:07.582628+00:00",
+  "recorded_status": "F_NATIVE_QUERY_SCHEDULE_GAP_MEASURED_MODEL_WIRING_PENDING",
+  "recorded_observed_utc": "2026-11-08T00:10:33.958738+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
     "decision": "BLOCK",
@@ -64319,5 +64319,29 @@
     "model_output_changed": false,
     "training_authorized": false,
     "test_data_used": false
+  },
+  "market_state_F_native_query_coverage_20261108_001": {
+    "status": "COMPLETE_CONSUMED_READ_ONLY_SCHEDULE_AUDIT",
+    "decision": "F_REQUIRES_FIXED_NATIVE_EXTRA_QUERY_FROM_SAME_ENCODER",
+    "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_F_NATIVE_QUERY_COVERAGE_20261108_001",
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_F_NATIVE_QUERY_COVERAGE_20261108_001/review.py",
+      "sha256": "ef127ad94a4d11813051fb0c6c5be1a8c5d6e7067fc6df3a445948703d8efc45"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_F_NATIVE_QUERY_COVERAGE_20261108_001/RESULT.json",
+      "sha256": "bdf21f4de96ea80d4db26370840915c9af813aec2fdba59671d2369d7f0604ab"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_F_NATIVE_QUERY_COVERAGE_20261108_001/TERMINAL.json",
+      "sha256": "fbf1642d84be8beb128dff2eb689d0d8b9223d97e712f9d8b74390898301c870"
+    },
+    "scope": "Five mature TRAIN fit prefixes, existing v2 label-blind sampled query schedule versus fixed native F endpoint query; hash-bound F target, no model or TEST.",
+    "observed": "Fold1 29574 fit rows: sampled native queries M5/M15/H1/H4/D1 29574/9987/2444/628/112. Meaningful F labels at sampled native query 11909/3658/814/215/46 versus fixed native extra query 11909/10812/10263/10134/8926. The same dilution persists in folds2-5.",
+    "training_authorized": false,
+    "model_forwards": 0,
+    "optimizer_steps": 0,
+    "test_data_used": false,
+    "no_relaunch": true
   }
 }
