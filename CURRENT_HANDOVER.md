@@ -15,7 +15,7 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: `TA_DIRECTION_SHARED_VS_TF_READOUT_COMPARISON_ADMITTED`.
+Policystatus: `TA_DIRECTION_READOUT_CONTRAST_COMPLETE_M5_IMPROVED_PRIOR_UNBEATEN`.
 
 Aktivt brukermål08.11: jobb bare direkte med retning. Første avgrensede
 kontroll er fullført på eksisterende TRAIN-fasit på 1,24 s, uten modellkall.
@@ -28,10 +28,17 @@ M5/D1-fasit ga S/F aldri motsatt side; totalt var det likevel 5/3 motsatte
 prognoser av 246 rader. Total dekodergradient motarbeidet M5 S i 7/16 og F i
 3/16 batcher; aggregert pekte den gunstig. Dette beviser svak TF-differensiering
 og lokal konflikt i utvalget, ikke årsaken til hele treningsresultatet.
-Neste eksakte kontroll fryser backbone/projeksjon og sammenligner delt
-side-readout med fem TF-kloner med identiske startprognoser: 480 private
-oppdateringer per arm, samme 246 TRAIN- og 249 senere TRAIN-rader.
-Ingen hovedmodell eller inputarkitektur endres; dette er en årsakskontrast.
+Den kontrollerte readout-sammenligningen er også COMPLETE og konsumert:
+samme frosne backbone/projeksjon, identiske startprognoser, 480 private
+oppdateringer per arm, 246 TRAIN- og 249 senere TRAIN-rader, 198,07 s.
+På senere M5 S er Brier delt/TF-spesifikk/prior 0,270946/0,256937/0,249602
+(N=75); F 0,265582/0,255479/0,250228 (N=107). Begge M5-mål bedres også
+på TRAIN, men prior slår begge armer. Øvrige TF har blandede resultater.
+Dette støtter delt readout som begrensning i denne kontrasten, ikke som
+hele årsaken til tidligere native fit. Hovedmodellen er uendret.
+Lagrede prognoser er rekalkulert mot cachede masker/counts; null nye forwards.
+[Kontrollert sammenligning](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_READOUT_COMPARISON_20261108_001/RESULT.json)
+og frosne dekoderinputs bevares for gjenbruk. Retningsmålet er fortsatt aktivt.
 
 Korrigert TA S/F fold1 er nå **COMPLETE og konsumert**. 256 oppdateringer
 ble gjenbrukt, 1 593 nye fullførte samme pass, totalt 1 849 uten skip.
@@ -340,19 +347,21 @@ tidssekvensmodellen, samme-linje-reaksjonsverdi, Entry-verdi og økonomisk edge
 er ubevist. 61 makrofelt mangler uavhengig formelorakel; COTs faktiske
 historiske publisering og vintage er fortsatt UNKNOWN.
 
-**Neste steg:** Ta utgangspunkt i den målte M5-retningssvikten allerede
-på TRAIN, adskilt fra aktivitet og senere generalisering. Årsaken er ikke
-isolert; ingen ny arkitektur, ny fit eller automatisk utvidelse følger av
-resultatet. Brukerens nye retningsmål autoriserer en avgrenset diagnose;
-start med faktisk batchvekting og kronologisk sidestøtte uten modellkall.
+**Neste steg:** Avklar retningsinformasjon og readout-konvergens på hele det
+eksisterende TRAIN-prefikset og senere TRAIN før en hovedmodellendring.
+Den lille kontrasten er for snever til å kvalifisere generalisering.
+Klargjør én eksakt kontroll med frosne representasjoner og en konvergerende
+retnings-readout; gjenbruk lagrede vekter, inputbevis og dekodercache.
+Ingen bred arkitekturombygging eller hyperparametersøk. Målet er aktivt,
+men ingen ny modellkjøring er innrømmet ennå.
 Brukerens spørsmål om 30 epoker og fem år er fortsatt åpne hypoteser.
 Denne fitten dekker omtrent mai–september2024, senere score oktober–desember2024.
 Ett pass og én fold er ingen generell dom over lengre læring eller historikk.
 
 Den tidligere [GC-registerplanen](configs/research/MARKET_STATE_GC_SIDE_MAX_REGISTRY_20261108_001.json)
 forblir bevart, men er utsatt og uklamet etter brukerens nye prioritering.
-`training_enabled=true` gjelder bare den avgrensede private readout-kontrasten;
-begge tidligere native fitplaner er konsumert. Ingen full native fit er åpnet.
+`training_enabled=false`; alle tre nye retningsdiagnoser og de tidligere
+native fitplanene er konsumert.
 
 Kilde/metode for denne fasen: [docs/NATIVE_LEARNING.md](docs/NATIVE_LEARNING.md).
 Detaljert historikk og eldre beslutninger: Git, ikke nye arkivmapper her.
