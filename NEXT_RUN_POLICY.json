@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-08T13:25:29.845700+00:00",
-  "status": "LOCAL31_SOURCE_MATCH_FULL_INPUT_COMPLETION_PENDING",
+  "status": "TA_INPUT_COMPLETION_ADMITTED_PREDICTOR_CLOSED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1624,7 +1624,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Local31 matches actual historical producer/source; prepare minimal remaining MTF/prior qualification using existing tensor and local31 proof.",
+    "current_activity": "One-use TA input completion admitted: reuse tensor/local31 phases, measure missing MTF history and raw-field census, fit mature-TRAIN-only priors.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1677,7 +1677,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Full input completion and fit-only priors remain absent. Corrected S/F predictor learning and same-line reaction value are unmeasured; COT publication/vintage boundary remains UNKNOWN.",
+    "current_blocker": "Completion has not run. Corrected S/F predictor learning and same-line reaction value remain unmeasured; COT publication/vintage remains UNKNOWN.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -21748,7 +21748,7 @@
       }
     },
     "ta_native_candidate_20261108": {
-      "status": "TENSOR_AND_ACTUAL_LOCAL31_QUALIFIED_REMAINING_MTF_PRIORS_PENDING",
+      "status": "INPUT_COMPLETION_ADMITTED_NO_NEW_MODEL",
       "profile": "full_xau_ta_mtf_entry_research_v1",
       "physical_widths": {
         "signal": 315,
@@ -21976,6 +21976,21 @@
         "elapsed_seconds": 303.65003405999596,
         "peak_rss_bytes": 2496708608,
         "full_input_audit_pass": false
+      },
+      "input_completion_plan": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001.json",
+        "sha256": "491b9c11edea282f1426e1db7cf8db6473e65c0dbb126023c118d4f43b212191"
+      },
+      "input_completion_focused_tests": {
+        "passed": 6,
+        "log": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SOURCE_QUALIFICATION_20261108_001/gx1_ta_input_completion_tests_20261108.log",
+        "includes_complete_and_failed_publication": true
+      },
+      "input_completion_source_reuse": {
+        "unchanged_files": 75,
+        "scope_file_only_change": "TA_INPUT_STAGE assignment literal",
+        "new_owner_files": 1,
+        "model_changes": false
       }
     }
   },
@@ -65649,5 +65664,45 @@
     "observed_model_forwards": 0,
     "observed_target_arrays_decoded": 0,
     "observed_optimizer_steps": 0
+  },
+  "market_state_ta_native_input_completion_20261108_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001.json",
+      "sha256": "491b9c11edea282f1426e1db7cf8db6473e65c0dbb126023c118d4f43b212191"
+    },
+    "worker": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/complete_market_state_ta_native_input_path_v1.py",
+      "sha256": "bc1768ecfd25208f290be2d054c5e223334507fe2db7b0fa2b65086696375eef"
+    },
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "endpoint_prior_fit_authorized": true,
+    "training_authorized": false,
+    "model_constructions_authorized": 0,
+    "model_forwards_authorized": 0,
+    "backward_calls_authorized": 0,
+    "optimizer_steps_authorized": 0,
+    "normalization_fits_authorized": 0,
+    "normalization_calls_authorized": 0,
+    "gather_calls_authorized": 0,
+    "local_trendline_replays_authorized": 0,
+    "endpoint_prior_fit_rows": 29574,
+    "score_fit_rows": 0,
+    "test_data_used": false,
+    "relaunch_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001",
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "wall_seconds": 3600,
+    "broker_access_allowed": false,
+    "spending_allowed": false,
+    "scope": "Bind immutable003 tensor phase and actual-source local31 diagnosis, compute only missing consumed MTF history, deduplicated raw field census and exact29574-row fit-only endpoint priors. No predictor or event-design change.",
+    "reused_model_forwards": 1,
+    "new_model_forwards": 0,
+    "cot_2024_publication_vintage_boundary": "UNKNOWN; not settled by this completion"
   }
 }

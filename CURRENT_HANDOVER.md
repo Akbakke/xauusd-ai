@@ -15,7 +15,14 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: `LOCAL31_SOURCE_MATCH_FULL_INPUT_COMPLETION_PENDING`.
+Policystatus: `TA_INPUT_COMPLETION_ADMITTED_PREDICTOR_CLOSED`.
+En ny fullføringsplan er admitted, men ennå ikke kjørt. Den gjenbruker
+003s tensorfase og lokal31-diagnosen, og kjører bare gjenstående MTF-gap,
+råfeltcensus på unike konsumerte rader og 29 574-raders fit-only-priorer.
+Seks fokuserte tester består, inkludert COMPLETE og FAILED_CONSUMED med
+bevaring av delresultater. Faktisk metadata-bygg består; 75 gamle kildefiler
+er byteidentiske, og scopefilen har bare én verifisert stage-literalendring.
+Ingen nye modell-, gather-, normaliserings- eller lokal31-replaykall.
 `training_enabled=false`. Det lokale trendlinjeavviket er avklart:
 den opprinnelige kontrollen brukte native-historikk fra 2009, mens den
 historiske produsenten initialiserte fra M5_ENRICHED i juni 2010.
@@ -252,9 +259,10 @@ markedstilstand, senere Entry-beslutningsverdi eller økonomisk edge er påvist.
 Den enkle tabellmodellens negative retning er ikke en generell dom over GC,
 indikatorene eller native modell.
 
-**Neste steg:** Kvalifiser én ny fullføringsstage som binder 003s tensorfase
-og faktisk lokal31-bevis, og kun beregner gjenstående MTF-historikkgap samt
-fit-only S/F-priorer. Ingen ny fullgather, normalisering eller modellforward.
+**Neste steg:** Etter ren kilde og eksakt CLI-preflight kjøres den nye
+[fullføringsplanen](configs/research/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001.json)
+én gang. Den binder 003s tensorfase og faktisk lokal31-bevis, og beregner kun
+gjenstående MTF-historikkgap, råfeltcensus og fit-only S/F-priorer. Ingen ny fullgather, normalisering eller modellforward.
 Forbrukerbinding til ny fullføringskvittering skal bevise uendrede numeriske
 eiere; gamle terminaler endres aldri. Full inputkvalifikasjon må være avklart
 før ny guarded TA S/F-mekanikk, fersk initialbaseline og 29 574-raders ettpass-fit
