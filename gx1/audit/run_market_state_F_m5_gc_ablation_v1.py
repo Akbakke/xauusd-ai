@@ -195,6 +195,40 @@ def inspect(plan_ref: dict, *, admitted: bool) -> tuple[dict, dict | None, str]:
     return plan, policy_ref, head
 
 
+def preflight_feature_view(plan: dict) -> dict:
+    cap = require_capped_cpu_research_producer_execution()
+    need(cap['memory_max'] == cap['memory_high'] == LIMIT['memory_max']
+         and cap['swap'] == LIMIT['swap'] and cap['pids'] == LIMIT['pids']
+         and isinstance(cap['lock'], dict), 'PREFLIGHT_CAP')
+    chain = base._reference_chain()
+    provider = source._provider_module()
+    provider_plan = chain['provider_plan']
+    info = provider.validate_metadata(provider_plan)
+    prepared = source._prepare_inputs(provider, provider_plan, info, chain['gc_layout'])
+    try:
+        source._validate_axes(plan['cohorts'], prepared['axes'])
+        view = base._view(prepared)
+        columns = feature_indices(view.feature_names)
+        target = future.load_bound_future_displacement()
+        need(np.array_equal(target.parent_rows, view.parent_rows)
+             and np.array_equal(target.decision_ns, view.decision_ns),
+             'PREFLIGHT_FEATURE_TARGET_AXES')
+        state_bound = state.load_bound_five_endpoint_targets()
+        for fold in FOLDS:
+            cohort = state_bound.mature_oof_axes(fold_id=fold)
+            need(all(cohort[key] == plan['cohorts'][fold - 1][key]
+                     for key in plan['cohorts'][fold - 1]),
+                 'PREFLIGHT_COHORT:' + str(fold))
+            truth = target.gather(cohort['fit_parent_rows'], cohort['fit_decision_ns'],
+                                  fold_id=fold, partition='fit')
+            binary_fit_targets(truth['allowed'], truth['eligible'], truth['mature'])
+        provider.validate_metadata(provider_plan)
+        return {'feature_rows': len(view.parent_rows), 'feature_width': view.width,
+                'gc_columns': len(columns['gc']), 'cohorts': len(FOLDS)}
+    finally:
+        source._release_pages(provider, prepared)
+
+
 def weeks(issues: np.ndarray) -> np.ndarray:
     days = issues // (24 * 60 * 60 * 1_000_000_000)
     monday = days - (days + 3) % 7
@@ -425,9 +459,11 @@ def main() -> int:
     plan_ref = {'path': args.plan, 'sha256': args.plan_sha256}
     if args.preflight:
         plan, _, head = inspect(plan_ref, admitted=False)
-        print(json.dumps({'status': 'READY_NO_CLAIM_NO_RAW_FEATURES',
+        view_report = preflight_feature_view(plan)
+        print(json.dumps({'status': 'READY_NO_CLAIM_NO_FIT',
                           'plan': plan_ref, 'source_head': head,
-                          'fixed_fits': FITS, 'cohort_count': len(plan['cohorts']),
+                          'fixed_fits': FITS, 'view': view_report,
+                          'cohort_count': len(plan['cohorts']),
                           'claim_created': False, 'model_fits': 0,
                           'test_data_used': False}, sort_keys=True))
     else:

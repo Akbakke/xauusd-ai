@@ -44,7 +44,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-08T00:45:04.684912+00:00",
+  "observed_utc": "2026-11-08T00:46:59.568347+00:00",
   "status": "F_M5_GC_ABLATION_ADMITTED_CPU_RESEARCH_ONLY",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
@@ -64447,11 +64447,11 @@
     "scope": "One M5 F candidate 5-fold TRAIN-only fixed LightGBM 20-fit paired full/without-GC diagnostic; no native model update, TEST, Entry, broker or trading.",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_F_M5_GC_ABLATION_20261108_001.json",
-      "sha256": "826578c7d9808144e9b8c39d2db83b26d0f108fb4c8b1866c883300b6aea92fc"
+      "sha256": "7bf0f96877c8d22cd0a9c7652dbb23e94683da2629fc9b9d93f71822be842035"
     },
     "worker": {
       "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/run_market_state_F_m5_gc_ablation_v1.py",
-      "sha256": "d1cabc6d5c4ab4db98782a610d419be61e0459e692c50ec64d6364cba89d9893"
+      "sha256": "fdafec29bf6745a4fba734f872737174b105d7530811127f1bb38b1ca7bb69f3"
     },
     "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_F_M5_GC_ABLATION_20261108_001",
     "max_invocations": 1,
