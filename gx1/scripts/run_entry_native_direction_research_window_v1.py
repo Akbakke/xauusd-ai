@@ -644,6 +644,10 @@ def run_native_direction_research_window(*, policy_path: Path, policy_file_sha25
         from gx1.scripts.run_market_state_time_query_private_window_v1 import run_time_query_private_window
         return run_time_query_private_window(policy_path=policy_path,
             policy_file_sha256=policy_file_sha256, progress_path=progress_path)
+    if launch["run_scope"] == authority.NATIVE_F_PRIVATE_SCOPE:
+        from gx1.scripts.run_market_state_native_F_private_window_v1 import run_private_window
+        return run_private_window(policy_path=policy_path,
+            policy_file_sha256=policy_file_sha256, progress_path=progress_path)
     if launch['run_scope'] in (authority.BPS_SCOPE, authority.WEIGHT_SCOPE):
         from gx1.scripts.run_entry_native_direction_bps_qualification_v1 import run_bps_qualification
         return run_bps_qualification(policy_path=policy_path,policy_file_sha256=policy_file_sha256,progress_path=progress_path)
