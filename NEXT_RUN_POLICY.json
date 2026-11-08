@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-08T00:46:59.568347+00:00",
-  "status": "F_M5_GC_ABLATION_ADMITTED_CPU_RESEARCH_ONLY",
+  "observed_utc": "2026-11-08T01:06:49.186581+00:00",
+  "status": "F_M5_GC_ABLATION_FAILED_BOOKEND_REVIEW_PENDING",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Selected 0.5 ATR activity and conservative local side use the corrected five-TF TRAIN mask. The one mature fold1 native time-query v1 fit and later chronological TRAIN OOF lost M5 certified-side Brier to the frozen prior in all 14 weeks; a paired frozen diagnostic found upward miscalibration and the free-three-logit unknown-side objective defect. Factorized v2 model/loss and stable raw-logit scorer now pass source/synthetic checks, and read-only fold1 receipt/v2 view metadata binding passes. Physical v2 zero-step on two TRAIN rows passed direct activity/side gradient mechanics; target-role clarification, genuine optimizer/resume, fit, generalization, Entry decision value and economics are unqualified. training_enabled=false; consumed plans do not authorize new runs. TEST, Entry, Exit, broker, trading and spending remain closed.",
-  "next_action": "One source-bound capped CPU LightGBM F M5 diagnostic admitted: five chronological TRAIN folds, full features versus all GC-named fields removed, fixed activity/side heads and recipe, 20 fits total. This is candidate-target research, not native S/F training, five-TF qualification, TEST, Entry or trade. Consume plan once, review paired UTC-week score independently, then return training_enabled=false.",
+  "next_action": "The one-use fixed 20-fit CPU F M5 GC ablation reached all five fold artifacts but FAILED at a source bookend because the local source-head variable was overwritten by the final model-head loop. Do not relaunch. Keep training_enabled=false. Perform a separate read-only hash- and target-bound independent review of the existing five fold predictions/weights, including prebound UTC-week confidence and coverage; report them as recovered descriptive evidence, never a COMPLETE original run. Then decide whether a new native S/F fit hypothesis remains justified. TEST/Entry/Exit/broker/trading/spending closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -64442,8 +64442,8 @@
     "limitations": "Two initial TRAIN rows only; no fit, OOF, direction learning, GC added value, Entry quality or economic edge."
   },
   "market_state_F_m5_gc_ablation_20261108_001": {
-    "status": "ADMITTED",
-    "decision": "ADMITTED",
+    "status": "CONSUMED_FAILED_BOOKEND_AFTER_FIVE_FOLDS",
+    "decision": "FAILED_SOURCE_HEAD_VARIABLE_SHADOWING_AFTER_ALL_FITS",
     "scope": "One M5 F candidate 5-fold TRAIN-only fixed LightGBM 20-fit paired full/without-GC diagnostic; no native model update, TEST, Entry, broker or trading.",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_F_M5_GC_ABLATION_20261108_001.json",
@@ -64455,12 +64455,12 @@
     },
     "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_F_M5_GC_ABLATION_20261108_001",
     "max_invocations": 1,
-    "claimed_invocations": 0,
+    "claimed_invocations": 1,
     "completed_invocations": 0,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "research_fit_authorized": true,
-    "fixed_fits_authorized": 20,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "research_fit_authorized": false,
+    "fixed_fits_authorized": 0,
     "native_training_authorized": false,
     "test_authorized": false,
     "checkpoint_reads_authorized": false,
@@ -64471,6 +64471,44 @@
     "swap_max": "512M",
     "wall_seconds": 3600,
     "standing_authorization_source": "GX1_RULES_20261105_local_zero_spend_research",
-    "prepared_source_head": "311a55cfa5694b02b4a047295109735df938eabc"
+    "prepared_source_head": "311a55cfa5694b02b4a047295109735df938eabc",
+    "failed_invocations": 1,
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_F_M5_GC_ABLATION_20261108_001/CLAIM.json",
+      "sha256": "fff996a6d0033173fad631c31e9761c45ef752ca1958a7439f793a515d8d3e26"
+    },
+    "failure": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_F_M5_GC_ABLATION_20261108_001/FAILED.json",
+      "sha256": "81f3ef5e24205f8c61631655ff28834ada6dd4ae83a9b69648a556cb3585751b"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_F_M5_GC_ABLATION_20261108_001/TERMINAL.json",
+      "sha256": "ce1b1862d1808fc67d63720b20e5c4075bf82b478ec5afbd2391b71d06f4e4a3"
+    },
+    "source_head": "51ad5103f284f7865755d1ae8ffdfac13915776a",
+    "admission_policy_sha256": "d66be0d888bfd23a13aafe42a36d4222c6de9d85d603c2ace5e12be291ad760a",
+    "completed_fold_refs": [
+      {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_F_M5_GC_ABLATION_20261108_001/FOLD_1.json",
+        "sha256": "717d98b50486766d5f6a0835b7fb4b3ed5b65213325293542b8e1b5b3c7ee7a5"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_F_M5_GC_ABLATION_20261108_001/FOLD_2.json",
+        "sha256": "899278ddc510ba913c21fedb1929854bee3802c24dad3135972e9f1bb0693121"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_F_M5_GC_ABLATION_20261108_001/FOLD_3.json",
+        "sha256": "040ba0688b4fcc696d24479a2eb3109e4afbb262213047cda89cb7a2121cda0f"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_F_M5_GC_ABLATION_20261108_001/FOLD_4.json",
+        "sha256": "024952dfcc59db5f4c0fd26f94719d677a7f40dfbb905370c69be581265c66f6"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_F_M5_GC_ABLATION_20261108_001/FOLD_5.json",
+        "sha256": "dba355d0693ab0d67bde781b2907e8dc2f11a9ec294c45d1f3ce1b22e274b327"
+      }
+    ],
+    "limitation": "FAILED terminal is never promoted to COMPLETE; fold artifacts only support separate read-only descriptive review; no relaunch or new fit authority."
   }
 }
