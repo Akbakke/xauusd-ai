@@ -1,0 +1,70 @@
+{
+  "candidate_count_origin": "Current completion_native_candidates_v1: 1005 declared = 201 per M5/M15/H1/H4/D1; prior current registry049 has 1205 on same model axis; ten new physical B/A maxima passed five-TF and M5 model-clock support checks.",
+  "canonical_branch": "work/gx1-current",
+  "canonical_repo": "/home/andre2/src/GX1_CURRENT",
+  "clock_origin": "Only parent_rows, bar_start_ns, decision_ns members are read from the SHA-bound 245 model-axis NPZ; no future outcome arrays loaded.",
+  "controller": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_GC_SIDE_MAX_REGISTRY_20261108_001/run_registry.py",
+    "sha256": "78890bcaf6105288a79f041581c48df3b35e5d1eabb7c8ad83c4cead6bc9be0b"
+  },
+  "created_utc": "2026-11-08T03:34:56.222149+00:00",
+  "execution_ready": true,
+  "expected_candidate_count": 1005,
+  "expected_train_bar_clock_sha256": "e5d528ff8fcec2b23f0099834b1c5b42a12489dadfada0a6fc4aeab3b6ff4c5d",
+  "expected_train_decision_clock_sha256": "6430991e6af9acf67228afaf85bda5a92a20965c0359c8624777da6c79a062ca",
+  "expected_train_rows": 118249,
+  "final_count_policy": "Require all 210 rebound retained fields plus all 1005 declared current GC fields; zero unsupported and zero formula aliases on exact 118249 model TRAIN clocks.",
+  "final_field_count": null,
+  "max_wall_seconds": 600,
+  "native_training_admitted": false,
+  "one_shot_invocations": 1,
+  "optimizer_steps": 0,
+  "outcomes_accessed": false,
+  "plan_id": "MARKET_STATE_GC_SIDE_MAX_REGISTRY_20261108_001",
+  "resource_owner": "scripts/gx1_capped_run.sh --class audit --mem4G --swap512M; existing cgroup/CPU/task/projectlock guards",
+  "retained_registry_selector": "RETAINED_SOURCE_REBINDINGS.json::retained_registry",
+  "retained_source_rebindings": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_SIDE_MAX_RESTORE_20261108_001/RESULTS/RETAINED_SOURCE_REBINDINGS.json",
+    "sha256": "1547a64c97898a7f9945e27fab926bb453a4034cf6770c339a7385ff7b382997"
+  },
+  "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_GC_SIDE_MAX_REGISTRY_20261108_001",
+  "schema_version": "gx1_market_state_gc_side_max_registry_plan_v1",
+  "source_terminal": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_SIDE_MAX_RESTORE_20261108_001/RESULTS/TERMINAL.json",
+    "sha256": "664d7b9aca3d969cfd7a72c34f1b5a186d2c37fd1f3a079a0bcacd5446abebd6"
+  },
+  "status": "BOUND_AFTER_COMPLETE_SIDE_MAX__TRAIN_CLOCK_ONLY",
+  "tables": {
+    "TRADE_FEATURES_M5.parquet": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_SIDE_MAX_RESTORE_20261108_001/RESULTS/TRADE_FEATURES_M5.parquet",
+      "sha256": "d92e905e8548c685c8983fd63ec1b2b67d5a0d3341fc82a5094e7e7dde26d333"
+    },
+    "TRADE_FEATURES_M15.parquet": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_SIDE_MAX_RESTORE_20261108_001/RESULTS/TRADE_FEATURES_M15.parquet",
+      "sha256": "795f029954d846e46aec9189eef1178f18f57f940d262209ee6ad4e298b83809"
+    },
+    "TRADE_FEATURES_H1.parquet": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_SIDE_MAX_RESTORE_20261108_001/RESULTS/TRADE_FEATURES_H1.parquet",
+      "sha256": "1599880106661176eb402a61bf24be2d87a222b7c29d2448720b54bbbb24e6d6"
+    },
+    "TRADE_FEATURES_H4.parquet": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_SIDE_MAX_RESTORE_20261108_001/RESULTS/TRADE_FEATURES_H4.parquet",
+      "sha256": "55ee1467e5c460fc6a1eb6aa8ed36d69678c86a7e4fc6ca2dfc65c2b2d080368"
+    },
+    "TRADE_FEATURES_D1.parquet": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_SIDE_MAX_RESTORE_20261108_001/RESULTS/TRADE_FEATURES_D1.parquet",
+      "sha256": "21576a82ec0cc7fc6cbd5967b54a35cf6c84012c8eba1839c86a7b033a72fef5"
+    }
+  },
+  "train_end": "2026-01-01T00:00:00Z",
+  "train_start": "2024-05-01T00:00:00Z",
+  "validation_or_test_used": false,
+  "wall_budget_origin": "Prior 995-candidate register took 28.97 seconds on 109507 TRAIN clocks; 1005 candidates on 118249 clocks under same 4G capped audit, 600-second hard ceiling, no automatic retry.",
+  "operator_request": "08November 2026 market-state-first: admit the exact B/A side-max GC fields on 118249 actual model TRAIN issue clocks, no target values, no model fit or TEST.",
+  "expected_final_fields": 1215,
+  "expected_train_parent_rows_sha256": "f39321ccddb1f6c044ebd375afc92de4347260bc0bc42d276fcc2bebcfd50b84",
+  "axis_source": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_DATA_20261024_245/OUTPUT/PRICE_TARGETS.npz",
+    "sha256": "9d4a5fb3c473b088aff5a5d5a176c199a64053b679229c14f125697b93af577d"
+  }
+}

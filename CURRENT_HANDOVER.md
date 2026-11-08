@@ -14,7 +14,7 @@ M5 er prognosetakten; kausalt lukkede M15/H1/H4/D1 og GC/indikatorhistorikk er
 input. Alle fem TF har egne framtidige mål. Entry, Exit, ordre, broker, handel,
 spending og forseglet TEST er stengt.
 
-Policystatus: `GC_SIDE_MAX_PHYSICAL_COMPLETE_NATIVE_CONSUMPTION_PENDING_TRAINING_CLOSED`.
+Policystatus: `GC_SIDE_MAX_REGISTRY_PREFLIGHT_COMPLETE_TRAINING_CLOSED`.
 `training_enabled=false`; S/F-fire-stegsplanen er fullført og konsumert, og
 Windows-oppgaven er deaktivert. Ny GC-sidevis maksplan er fullført og
 konsumert; ingen tung CURRENT-jobb kjører. Faktisk prosessstatus overstyrer.
@@ -78,8 +78,9 @@ forseglet periode scores bare etter forward-journalregelen i GX1_RULES.md.
 - **GC-tolkning:** Kjent aggressivt kjøps-/salgsvolum, sidevis gjennomsnittlig
   handelsstørrelse, OFI og GC-prisrespons når inputruten. Største registrerte
   handel har ikke egen sideetikett; dagens felt identifiserer ikke presist ett
-  stort kjøp. En enkel positiv GC-kjøpsubalanse ga ingen stabil framtidig
-  XAU-retningsverdi; det tester ikke full native sekvensmodell eller absorpsjon
+  stort kjøp i aktiv modellvisning. De nye sidevise maksimumsfeltene er fysisk
+  bygget, men ikke registrert eller konsumert av modellen. En enkel positiv
+  GC-kjøpsubalanse ga ingen stabil framtidig XAU-retningsverdi; det tester ikke full native sekvensmodell eller absorpsjon
   ved struktur. [GC-flytreferanse](/home/andre2/GX1_RUNS/MARKET_STATE_GC_FLOW_REFERENCE_20261107_001/RESULT.json)
   SHA `256710c697cba9324cb4635aa323e99f4319ddbd1c418fa54ec549f04fde4946`.
 
@@ -94,13 +95,13 @@ forseglet periode scores bare etter forward-journalregelen i GX1_RULES.md.
   [Dekningskvittering](/home/andre2/GX1_RUNS/MARKET_STATE_GC_SIDE_LARGE_TRADE_COVERAGE_20261108_001/RESULT.json)
   SHA `7fdf2adb1138e0d777f85181c59d4272a50c6e832c6391d40ee9519ac684d184`.
 
-- **Sidevis storhandel, bare kilde:** Eksisterende GC-samler bevarer nå
+- **Sidevis storhandel, kilde og fysisk data:** Eksisterende GC-samler bevarer nå
   største betrodde `T`-kjøp (`B`) og -salg (`A`) separat per M1 og reduserer
   dem kausalt til M5/M15/H1/H4/D1. Ti nye kandidater har samme sidevise
   observasjonsmasker og flow-eier; `N` gjøres ikke om til kjøp/salg. 77
   fokuserte kilde-/syntetiske tester består. Gamle fysiske GC-tabeller og
-  nåværende modellvisning mangler fortsatt de nye feltene: faktisk input,
-  prediktiv verdi og Entry er ubevist. Policyens
+  nåværende native register/visning mangler fortsatt de nye feltene; nye
+  fysiske tabeller er kvalifisert nedenfor. Prediktiv verdi og Entry er ubevist. Policyens
   `market_state_gc_side_max_source_20261108_001` binder dette kildesteget.
   Ny engangsplan [sidevis GC-bygg](configs/research/NATIVE_GC_SIDE_MAX_RESTORE_20261108_001.json)
   SHA `57c076ffe2797297fa502a6fc32a0f0d38f4f347eaa71c9517e0d9c3b350bd47`
@@ -159,12 +160,18 @@ indikatorene eller native modell.
 
 **Neste ene hypotese:** Store aggressive GC-kjøp/salg kan få annen framtidig
 XAU-betydning når de sees sammen med prisrespons og støtte/motstand.
-Råhendelsen har `side` og `size`; kildekandidaten bevarer nå største
-betrodde kjøp/salg separat, men nye fysiske bytes og faktisk modellkonsum
-mangler. Den nye fysiske råreskanningen og numerisk/klokke-/maskekvalifikasjon er
-fullført. Neste nødvendige steg er nytt TRAIN-only GC-register og native
-layout/visning på disse immutabelt bundne tabellene, med faktisk modellkonsum,
-foldspesifikk normalisering og fersk baseline. Deretter
+Råhendelsen har `side` og `size`; kildekandidaten og de nye fysiske
+tabellene bevarer største betrodde kjøp/salg separat. Faktisk native
+modellkonsum mangler. En ny [TRAIN-klokke-registerplan](configs/research/MARKET_STATE_GC_SIDE_MAX_REGISTRY_20261108_001.json)
+SHA `015f4cb13a45285a9c0ae30b46fe410cf12f0aefd3fbec2249cc8f636237d6fc`
+er klargjort, ikke claimet eller kjørt. Eksakt input-/hash-/oppstart-/rapporterings-
+kontroll besto på 118 249 rader, 14 tabeller og 1 005 kandidater
+([PREFLIGHT](/home/andre2/GX1_RUNS/MARKET_STATE_GC_SIDE_MAX_REGISTRY_20261108_001/PREFLIGHT.json),
+SHA `167d6b4312df706a9b7d9b391a9d77d9e7a237468b0f68034466293e7b8730f1`).
+Planen leser bare rad- og klokkeaksene på de 118 249 faktiske modellradene,
+ingen framtidsutfall. Etter registeret
+kreves native layout/visning, faktisk modellkonsum, foldspesifikk
+normalisering og fersk baseline. Deretter
 kan én parvis sammenligning av akkurat disse ti feltene mot samme input uten
 dem, eksisterende GC-/strukturflater og fryst prior på senere kronologiske
 TRAIN-rader få en særskilt fit-/OOF-admisjon. Mål aktivitet og betinget side
