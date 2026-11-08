@@ -1299,7 +1299,7 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     window,plan,invocation,marker,launch=authority.require_native_direction_prefix_fit_context(policy_path,policy_file_sha256,progress_path)
     sys.dont_write_bytecode=True
     from gx1.contracts import market_state_time_query_fold1_fit_v1 as time_query_fold1
-    if launch['run_scope'] in (time_query_fold1.SCOPE, time_query_fold1.TA_SF_SCOPE):
+    if launch['run_scope'] in (time_query_fold1.SCOPE, time_query_fold1.TA_SF_SCOPE, time_query_fold1.TA_RECOVERY_SCOPE):
         from gx1.scripts.run_market_state_time_query_fold1_fit_window_v1 import run_market_state_time_query_fold1_fit_window
         return run_market_state_time_query_fold1_fit_window(window=window, plan=plan,
             invocation=invocation, marker=marker, launch=launch, progress_path=progress_path, limits=limits)

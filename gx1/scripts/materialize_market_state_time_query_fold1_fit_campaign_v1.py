@@ -51,11 +51,14 @@ def materialize(binding_path: Path) -> dict:
     repo = fold1.CANONICAL_REPO
     ta_mechanical = binding_path == mechanical.TA_ROOT / 'PREPARATION_EXECUTION_BINDING.json'
     ta_sf = binding_path == fold1.TA_SF_RUNTIME_ROOT.parent / 'PREPARATION_EXECUTION_BINDING.json'
-    runtime = fold1.TA_SF_RUNTIME_ROOT if ta_sf else fold1.RUNTIME_ROOT
+    ta_recovery = binding_path == fold1.TA_RECOVERY_RUNTIME_ROOT.parent / 'PREPARATION_EXECUTION_BINDING.json'
+    runtime = (fold1.TA_RECOVERY_RUNTIME_ROOT if ta_recovery
+               else fold1.TA_SF_RUNTIME_ROOT if ta_sf else fold1.RUNTIME_ROOT)
     root = runtime.parent
-    recipe_path = fold1.TA_SF_RECIPE_PATH if ta_sf else fold1.RECIPE_PATH
-    stage = fold1.TA_SF_STAGE if ta_sf else fold1.STAGE
-    run_scope = fold1.TA_SF_SCOPE if ta_sf else fold1.SCOPE
+    recipe_path = (fold1.TA_RECOVERY_RECIPE_PATH if ta_recovery
+                   else fold1.TA_SF_RECIPE_PATH if ta_sf else fold1.RECIPE_PATH)
+    stage = fold1.TA_RECOVERY_STAGE if ta_recovery else fold1.TA_SF_STAGE if ta_sf else fold1.STAGE
+    run_scope = fold1.TA_RECOVERY_SCOPE if ta_recovery else fold1.TA_SF_SCOPE if ta_sf else fold1.SCOPE
     authority = prefix
     windows_count = fold1.MAX_WINDOWS
     cursor_directory, output_directory = 'prefix-cursor', 'prefix-fit'

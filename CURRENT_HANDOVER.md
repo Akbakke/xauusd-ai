@@ -15,7 +15,7 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: `TA_SF_INTERRUPTED_DUPLICATE_CHECK_OPTIMIZED`.
+Policystatus: `TA_SF_CHECKPOINT_RECOVERY_ADMITTED_WITH_CORRECTED_CODE`.
 [Fullføringen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001/RESULT.json)
 er COMPLETE: 600 ekstra historikkrader × 94 felt = 56 400 sammenligninger,
 null avvik. M5/M15/H1/H4/D1-gapene var 94/63/95/96/252 rader. Alle ni
@@ -78,6 +78,27 @@ reaksjoner. Dette er en konkret representasjons-/målegrense; effekten på
 prediksjonsevne er ikke målt. Ingen ny modellarkitektur er innført.
 GC-registerplanen er utsatt og uklamet. Juni 2026 er brukt utviklings-VAL;
 forseglet periode følger bare forward-journalregelen i GX1_RULES.md.
+
+Ny brukerbestilling åpner én eksakt gjenopptakelse med rettet kode:
+[recipe](/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_RECOVERY_20261108_001/RECIPE.json).
+Den starter fra bevart rad 4 096 / update 256, med 25 478 rader / 1 593
+oppdateringer igjen i samme pass. Original full INITIAL gjenbrukes.
+Samme modell, targets, normalisering, feltrekkefølge og optimizer beholdes.
+85 kildeeiere er bundet; bare Counter og seks nødvendige recovery-eiere
+avviker fra originalen. Metadata/TA-loader/faktisk view er kvalifisert.
+Original state/AdamW/RNG/order må bestå full restore og fersk initialparitet
+før første nye oppdatering; importen lagres deretter under ny kilde.
+Input- og mekanikkjobbene gjentas ikke.
+
+Historisk evalueringsbane brukte 3 260,23 s for 29 574 rader / 1 849 batcher.
+Første bevarte fitblokk brukte 565,66 s for 256 oppdateringer. Dette er
+filtid-intervaller med dokumenterte publiseringsgrenser. Ny kjøring måler
+oppstart/restore, fitblokker, FINAL, senere score og total monotont.
+Gammel fullført total finnes ikke: samlet speedup kan bare anslås, mens
+fasegjennomstrømning og faktisk ny total kan måles. Vektene er forskjellige
+ved gammel INITIAL og ny FINAL, men populasjon og evalueringsbane er like.
+[Tidsgrunnlaget](/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_RECOVERY_20261108_001/HISTORICAL_TIMING_BASELINE.json)
+binder sammenligningen. Ingen ny epoke eller lengre historikk åpnes.
 
 ## Det som faktisk er målt
 
@@ -286,12 +307,12 @@ markedstilstand, senere Entry-beslutningsverdi eller økonomisk edge er påvist.
 Den enkle tabellmodellens negative retning er ikke en generell dom over GC,
 indikatorene eller native modell.
 
-**Neste steg:** Bruk den målte lineære duplikatkontrollen. Videre læring
-trenger en ny eksakt kildebundet plan og kvalifisert gjenopptakelses-/
-baselinerute; avbrutt plan og ubundet checkpoint skal ikke startes automatisk.
-Full INITIAL, kvalifiserte inputs og mekanikkbevis bevares og gjenbrukes
-innen uendret scope; ikke bygg data eller gjenta beståtte prøver uten grunn.
-Trening og launch er stengt.
+**Neste steg:** Fullfør ny recovery-campaigns preflight og maskinvid
+idle-kontroll; behold kravet om fersk Windows-boot. Kjør den nye planen
+med full state-restore og fortsett kun resterende pass, FINAL og senere
+TRAIN-score. Kontroller stabil drift hver 15.–30. minutt og bruk publiserte
+fasetider til den avgrensede hastighetssammenligningen. Kilden og policyen
+fryses gjennom kjøringen; original avbrutt plan relanseres aldri.
 Brukerens spørsmål om 30 epoker og fem år beholdes som åpne hypoteser.
 Dagens fit dekker omtrent mai–september2024, senere score oktober–desember2024.
 Ett kort pass er ingen generell dom over lengre læring eller historikk.
@@ -301,7 +322,7 @@ Native femfolds generalisering, samme-linje-reaksjonsverdi, Entry-verdi og
 
 Den tidligere [GC-registerplanen](configs/research/MARKET_STATE_GC_SIDE_MAX_REGISTRY_20261108_001.json)
 forblir bevart, men er utsatt og uklamet etter brukerens nye prioritering.
-`training_enabled=false` etter avbruddet; ingen ny treningsplan er admitted.
+`training_enabled=true` gjelder bare den nye eksplisitte recovery-planen.
 
 Kilde/metode for denne fasen: [docs/NATIVE_LEARNING.md](docs/NATIVE_LEARNING.md).
 Detaljert historikk og eldre beslutninger: Git, ikke nye arkivmapper her.

@@ -520,7 +520,7 @@ def _bind_view(plan: dict, receipts: dict, fold_id: int) -> dict:
 
 # The TA candidate reuses immutable fold-1 TRAIN statistics. These explicit
 # runtime owners may change for the approved GC-free route; every other old
-# numeric/feature owner must still match the original fitting source bytes.
+# numeric/feature owner must match the original bytes or the exact Counter pair below.
 TA_PREFIX_RUNTIME_SOURCE_CHANGES = frozenset({
     'gx1/audit/qualify_market_state_mature_prefix_normalization_v1.py',
     'gx1/contracts/entry_model_native_input_normalization_v1.py',
@@ -537,6 +537,42 @@ TA_SOURCE_PATHS = SOURCE_PATHS | frozenset({
     'gx1/contracts/market_state_time_query_native_F_objective_v1.py',
     'gx1/audit/verify_market_state_ta_native_input_path_v1.py',
 })
+
+
+TA_SIGNAL_COUNTER_SOURCE = 'gx1/contracts/entry_model_native_signal_v1.py'
+TA_SIGNAL_COUNTER_SOURCE_SHA256 = (
+    '521f089a9b6d98121939610ff7cc37e1093e5f651fdb2f5b94b2aab7ab2c0f83',
+    '2390e52858e953886a60c414bd8fc080564beec2868984359ef4ebc4b3e2671b',
+)
+TA_SIGNAL_COUNTER_PARITY_REF = {
+    'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_DUPLICATE_CHECK_PERF_20261108_001/RESULT.json',
+    'sha256': '1532bffd0f7facd4380db3d98a9cf6aeb722d5f38d8a96f99cfb170bb131e60a',
+}
+
+
+def _require_ta_prefix_source_changes(old_owners: Mapping[str, str],
+                                      current: Mapping[str, str]) -> set[str]:
+    changed = {path for path, digest in old_owners.items() if current[path] != digest}
+    numeric_changes = changed - TA_PREFIX_RUNTIME_SOURCE_CHANGES
+    if numeric_changes:
+        _need(numeric_changes == {TA_SIGNAL_COUNTER_SOURCE}
+              and (old_owners[TA_SIGNAL_COUNTER_SOURCE], current[TA_SIGNAL_COUNTER_SOURCE])
+              == TA_SIGNAL_COUNTER_SOURCE_SHA256, 'TA_UNREVIEWED_NUMERIC_SOURCE_DRIFT')
+        parity = _read_ref(TA_SIGNAL_COUNTER_PARITY_REF)
+        before = _read_ref(parity['before'])
+        after = _read_ref(parity['after'])
+        _need(parity.get('schema_version') == 'gx1_ta_duplicate_check_performance_result_v1'
+              and parity.get('status') == 'PASS_METADATA_AND_FOCUSED_TA_TESTS'
+              and parity.get('valid_outputs_and_error_semantics_identical') is True
+              and parity.get('test_data_used') is False
+              and (before.get('owner_sha256'), after.get('owner_sha256'))
+              == TA_SIGNAL_COUNTER_SOURCE_SHA256
+              and after.get('identical_valid_outputs_contracts_and_errors') is True
+              and before.get('semantics_sha256') == after.get('semantics_sha256')
+              == parity.get('semantics_sha256')
+              == '4402d8dc6be0fdae3e8fadf322403f2fe40e41a1c4787ba080d7e49da68b216d',
+              'TA_COUNTER_PARITY')
+    return changed
 
 
 def load_ta_input_receipts(*, current_source_owners: Mapping[str, str] | None = None) -> dict:
@@ -563,8 +599,7 @@ def load_ta_input_receipts(*, current_source_owners: Mapping[str, str] | None = 
             _need(current_source_owners[relative] == digest, 'TA_CURRENT_SOURCE:' + relative)
         current[relative] = digest
     old_owners = provenance['current_source_owners']
-    changed = {path for path, digest in old_owners.items() if current[path] != digest}
-    _need(changed <= TA_PREFIX_RUNTIME_SOURCE_CHANGES, 'TA_UNREVIEWED_NUMERIC_SOURCE_DRIFT')
+    changed = _require_ta_prefix_source_changes(old_owners, current)
     from gx1.contracts.entry_model_native_input_normalization_v1 import (
         project_ta_input_normalization_contract,
     )

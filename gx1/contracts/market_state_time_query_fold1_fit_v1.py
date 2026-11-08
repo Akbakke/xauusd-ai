@@ -27,6 +27,25 @@ TA_SF_SCOPE = 'market_state_ta_sf_fold1_one_pass_fit_v1'
 TA_SF_STAGE = 'market_state_ta_native_fold1_fit_20261108_001'
 TA_SF_RUNTIME_ROOT = Path('/home/andre2/GX1_RUNS') / TA_SF_STAGE.upper() / 'RUNTIME'
 TA_SF_RECIPE_PATH = TA_SF_RUNTIME_ROOT.parent / 'RECIPE.json'
+TA_RECOVERY_SCOPE = 'market_state_ta_sf_fold1_recovery_fit_v1'
+TA_RECOVERY_STAGE = 'market_state_ta_native_fold1_recovery_20261108_001'
+TA_RECOVERY_RUNTIME_ROOT = Path('/home/andre2/GX1_RUNS') / TA_RECOVERY_STAGE.upper() / 'RUNTIME'
+TA_RECOVERY_RECIPE_PATH = TA_RECOVERY_RUNTIME_ROOT.parent / 'RECIPE.json'
+TA_RECOVERY_ORIGIN_SCHEMA = 'gx1_market_state_ta_fold1_recovery_origin_v1'
+TA_RECOVERY_SOURCE_COMMIT = 'c7c1f4f5a5f21e1b8ac5255d65e1646b7ea99410'
+TA_RECOVERY_PARENT_CURSOR = 4096
+TA_RECOVERY_UPDATES = 256
+# Only the measured Counter replacement and this recovery's orchestration differ.
+TA_RECOVERY_CHANGED_SOURCE_PATHS = frozenset({
+    'gx1/audit/verify_market_state_time_query_zero_step_v1.py',
+    'gx1/contracts/entry_model_native_signal_v1.py',
+    'gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py',
+    'gx1/contracts/market_state_time_query_fold1_fit_v1.py',
+    'gx1/scripts/run_market_state_time_query_fold1_fit_window_v1.py',
+    'gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py',
+    'gx1/scripts/materialize_market_state_time_query_fold1_fit_campaign_v1.py',
+})
+TA_RECOVERY_SIGNAL_SHA256 = '2390e52858e953886a60c414bd8fc080564beec2868984359ef4ebc4b3e2671b'
 TA_INPUT_STAGE = 'market_state_ta_native_input_completion_20261108_001'
 TA_INPUT_ROOT = Path('/home/andre2/GX1_RUNS') / TA_INPUT_STAGE.upper()
 TA_MECHANICAL_ROOT = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_SF_MECHANICAL_20261108_001')
@@ -122,7 +141,7 @@ def required_source_paths(*, ta_sf: bool = False) -> frozenset[str]:
 def require_checkpoint_view(value: Any, *, recipe: Mapping[str, Any] | None = None,
                             verify_files: bool = True, ta_sf: bool = False) -> dict[str, Any]:
     """Require the exact matured fold-1 feature and normalization identity."""
-    if ta_sf or (recipe is not None and recipe.get("run_scope") == TA_SF_SCOPE):
+    if ta_sf or (recipe is not None and recipe.get("run_scope") in (TA_SF_SCOPE, TA_RECOVERY_SCOPE)):
         return _require_ta_checkpoint_view(value, recipe=recipe, verify_files=verify_files)
     _need(isinstance(value, Mapping)
           and set(value) == {'contract_sha256', 'prefix_normalization',
@@ -177,6 +196,9 @@ def require_launch_recipe(value: Any, *, source_repo: Path,
                           source_commit: str,
                           verify_files: bool = True) -> dict[str, Any]:
     """Validate a distinct fit admission without the legacy prefix fold registry."""
+    if isinstance(value, Mapping) and value.get("run_scope") == TA_RECOVERY_SCOPE:
+        return _require_ta_recovery_recipe(value, source_repo=source_repo,
+            source_commit=source_commit, verify_files=verify_files)
     if isinstance(value, Mapping) and value.get("run_scope") == TA_SF_SCOPE:
         return _require_ta_launch_recipe(value, source_repo=source_repo,
             source_commit=source_commit, verify_files=verify_files)
@@ -246,7 +268,12 @@ def require_launch_recipe(value: Any, *, source_repo: Path,
 
 def require_fit_gate(gate: Any, recipe: Mapping[str, Any]) -> None:
     """Separate positive fit gate; the completed private probe remains closed."""
-    if recipe.get("run_scope") == TA_SF_SCOPE:
+    if recipe.get("run_scope") == TA_RECOVERY_SCOPE:
+        _need(isinstance(gate, Mapping)
+              and gate.get("ta_sf_fold1_recovery_authorized") is True
+              and gate.get("recovery_origin") == recipe["recovery_origin"],
+              "TA_RECOVERY_POLICY")
+    if recipe.get("run_scope") in (TA_SF_SCOPE, TA_RECOVERY_SCOPE):
         _need(isinstance(gate, Mapping)
               and gate.get("ta_sf_fold1_fit_authorized") is True
               and gate.get("input_audit") == recipe["input_refs"]["ta_input_audit"]
@@ -316,14 +343,15 @@ def _require_ta_checkpoint_view(value: Any, *, recipe=None, verify_files=True):
         and prefix['unobserved_units_profile_sha256'] == PROFILE_SHA256,
         'TA_VIEW_NORMALIZATION')
     if recipe is not None:
-        _need(recipe.get('run_scope') == TA_SF_SCOPE
+        _need(recipe.get('run_scope') in (TA_SF_SCOPE, TA_RECOVERY_SCOPE)
             and recipe.get('expected_view_sha256') == value['contract_sha256'],
             'TA_CHECKPOINT_RECIPE_VIEW')
     return prefix_fit._view_identity(value, verify_files=verify_files,
         allow_unobserved_units_profile=True, allow_ta_profile=True)
 
 
-def _require_ta_launch_recipe(value, *, source_repo, source_commit, verify_files):
+def _require_ta_launch_recipe(value, *, source_repo, source_commit, verify_files,
+                              historical_source_commit=None):
     """New candidate requires new physical inputs and new mechanical proof."""
     _need(verify_files, 'TA_PHYSICAL_METADATA_REQUIRED')
     fields = {'schema_version', 'source_repo', 'runtime_root', 'run_id',
@@ -386,9 +414,7 @@ def _require_ta_launch_recipe(value, *, source_repo, source_commit, verify_files
     owners = recipe['source_owners']
     _need(isinstance(owners, Mapping) and set(owners) == required_source_paths(ta_sf=True),
         'TA_SOURCE_OWNER_SET')
-    for name, ref in owners.items():
-        checked = campaign.require_binding(ref, label='TA S/F source', verify_file=True)
-        _need(checked['path'] == str(CANONICAL_REPO / name), 'TA_SOURCE_PATH:' + name)
+    _require_ta_source_owners(owners, historical_source_commit=historical_source_commit)
     _need(all(mechanical.get('source_owners', {}).get(name) == ref
         for name, ref in owners.items()), 'TA_QUALIFIED_SOURCE')
     audit_owners = audit.get('source_owners', {})
@@ -402,4 +428,150 @@ def _require_ta_launch_recipe(value, *, source_repo, source_commit, verify_files
         and terminal.get('result') == refs['ta_mechanical_qualification']
         and terminal.get('no_relaunch_under_this_plan') is True
         and terminal.get('test_data_used') is False, 'TA_MECHANICAL_TERMINAL')
+    return recipe
+
+
+def _require_ta_source_owners(owners, *, historical_source_commit=None):
+    """Validate old qualification bytes without pretending they are current."""
+    for name, ref in owners.items():
+        checked = campaign.require_binding(ref, label='TA S/F source',
+            verify_file=historical_source_commit is None)
+        _need(checked['path'] == str(CANONICAL_REPO / name), 'TA_SOURCE_PATH:' + name)
+        if historical_source_commit is not None:
+            _need(historical_source_commit == TA_RECOVERY_SOURCE_COMMIT,
+                  'TA_RECOVERY_ORIGINAL_SOURCE')
+            if campaign.file_sha256(Path(checked['path'])) != checked['sha256']:
+                _need(name in TA_RECOVERY_CHANGED_SOURCE_PATHS,
+                      'TA_RECOVERY_UNQUALIFIED_SOURCE:' + name)
+                import subprocess
+                old = subprocess.run(['git', 'show', historical_source_commit + ':' + name],
+                    cwd=CANONICAL_REPO, check=True, capture_output=True).stdout
+                _need(hashlib.sha256(old).hexdigest() == checked['sha256'],
+                      'TA_RECOVERY_HISTORICAL_SOURCE:' + name)
+
+
+def read_ta_recovery_origin(value, *, expected_view_sha256):
+    """Read the one consumed origin; no checkpoint deserialization or new cursor."""
+    paths = {
+        'original_recipe': TA_SF_RECIPE_PATH,
+        'original_plan': TA_SF_RUNTIME_ROOT.parent / 'CAMPAIGN/CAMPAIGN_PLAN.json',
+        'interruption_terminal': TA_SF_RUNTIME_ROOT.parent / 'OPERATOR_INTERRUPTION_TERMINAL.json',
+        'initial_state': TA_SF_RUNTIME_ROOT / 'prefix-fit/states/INITIAL_FOLD1_STATE.pt',
+        'initial_measurement': TA_SF_RUNTIME_ROOT / 'prefix-fit/window-0001/INITIAL_TRAIN.json',
+        'checkpoint': TA_SF_RUNTIME_ROOT / 'prefix-fit/states/w0001_p004096.pt',
+    }
+    _need(isinstance(value, Mapping)
+          and set(value) == set(paths) | {'schema_version', 'source_commit'}
+          and value['schema_version'] == TA_RECOVERY_ORIGIN_SCHEMA
+          and value['source_commit'] == TA_RECOVERY_SOURCE_COMMIT,
+          'TA_RECOVERY_ORIGIN_FIELDS')
+    for name, path in paths.items():
+        ref = campaign.require_binding(value[name], label='TA recovery ' + name,
+                                       verify_file=True)
+        _need(ref['path'] == str(path), 'TA_RECOVERY_ORIGIN_PATH:' + name)
+    def read(name):
+        ref = value[name]
+        return campaign.read_bound_json(Path(ref['path']), ref['sha256'])
+    original, plan, terminal, initial = (
+        read(name) for name in ('original_recipe', 'original_plan',
+                               'interruption_terminal', 'initial_measurement'))
+    _need(plan.get('source_commit') == value['source_commit']
+          and plan.get('source_repo') == str(CANONICAL_REPO)
+          and plan.get('runtime_root') == str(TA_SF_RUNTIME_ROOT)
+          and plan.get('recipe') == value['original_recipe']
+          and plan.get('plan_sha256') == campaign.canonical_sha256({
+              key: item for key, item in plan.items() if key != 'plan_sha256'}),
+          'TA_RECOVERY_ORIGINAL_PLAN')
+    _need(terminal.get('schema_version') == 'gx1_operator_interruption_terminal_v1'
+          and terminal.get('status') == 'ABORTED_CONSUMED'
+          and terminal.get('source_commit_at_interruption') == value['source_commit']
+          and terminal.get('source_changed_during_trainer') is False
+          and terminal.get('old_plan_relaunch_allowed') is False
+          and terminal.get('originals_modified') is False
+          and terminal.get('test_data_used') is False
+          and terminal.get('full_fit_complete') is False
+          and terminal.get('final_train_measurement_complete') is False
+          and terminal.get('later_train_score_complete') is False
+          and terminal.get('last_preserved_parent_cursor') == TA_RECOVERY_PARENT_CURSOR
+          and terminal.get('last_preserved_optimizer_updates') == TA_RECOVERY_UPDATES
+          and terminal.get('initial_measurement_optimizer_updates') == 0,
+          'TA_RECOVERY_INTERRUPTION')
+    preserved = terminal.get('preserved_checkpoints')
+    _need(isinstance(preserved, list) and len(preserved) == 2,
+          'TA_RECOVERY_PRESERVED_STATES')
+    metadata = {}
+    for name, cursor, updates in (
+            ('initial_state', 0, 0),
+            ('checkpoint', TA_RECOVERY_PARENT_CURSOR, TA_RECOVERY_UPDATES)):
+        matches = [item for item in preserved if item.get('path') == value[name]['path']]
+        _need(len(matches) == 1, 'TA_RECOVERY_STATE_REFERENCE:' + name)
+        item = matches[0]
+        _need({key: item.get(key) for key in ('path', 'sha256')} == value[name]
+              and item.get('schema_version') == 'gx1_market_state_ta_sf_fold1_fit_state_v1'
+              and item.get('source_commit') == value['source_commit']
+              and type(item.get('cursor')) is int and item['cursor'] == cursor
+              and type(item.get('optimizer_updates')) is int and item['optimizer_updates'] == updates
+              and type(item.get('skipped_batches')) is int and item['skipped_batches'] == 0
+              and item.get('feature_view_sha256') == expected_view_sha256
+              and item.get('state_and_component_digest_checks') == 'PASS',
+              'TA_RECOVERY_STATE_METADATA:' + name)
+        for key in ('contract_sha256', 'model_state_sha256'):
+            campaign._sha(item.get(key), 'TA recovery ' + key)
+        metadata[name] = item
+    _need({key: terminal.get('initial_measurement', {}).get(key)
+           for key in ('path', 'sha256')} == value['initial_measurement'],
+          'TA_RECOVERY_INITIAL_REFERENCE')
+    from gx1.contracts.market_state_time_query_native_F_objective_v1 import _seal as endpoint_seal
+    measured = initial.get('measurement', {})
+    _need(initial.get('schema_version') == 'gx1_market_state_ta_sf_fold1_evaluation_v1'
+          and initial.get('fold_id') == 1 and initial.get('optimizer_updates') == 0
+          and initial.get('test_data_used') is False
+          and initial.get('predictive_value_claimed') is False
+          and initial.get('evaluated_checkpoint') == value['initial_state']
+          and initial.get('evaluated_model_state_sha256') == metadata['initial_state']['model_state_sha256']
+          and measured.get('schema_version') == 'gx1_native_S_F_endpoint_measurement_v1'
+          and measured.get('partition') == 'fit' and measured.get('fold_id') == 1
+          and measured.get('rows') == FIT_ROWS and measured.get('batches') == MAX_UPDATES
+          and measured.get('feature_view_sha256') == expected_view_sha256
+          and measured.get('model_contract_sha256') == original.get('expected_model_contract_sha256')
+          and measured.get('loss_contract_sha256') == original.get('expected_loss_contract_sha256')
+          and measured == endpoint_seal({
+              key: item for key, item in measured.items() if key != 'contract_sha256'}),
+          'TA_RECOVERY_COMPLETE_INITIAL')
+    return {'origin': dict(value), 'original_recipe': original, 'original_plan': plan,
+            'initial_metadata': metadata['initial_state'],
+            'checkpoint_metadata': metadata['checkpoint'], 'initial_payload': initial}
+
+
+def _require_ta_recovery_recipe(value, *, source_repo, source_commit, verify_files):
+    """Reuse qualified evidence only across the declared source bridge."""
+    _need(verify_files, 'TA_RECOVERY_PHYSICAL_METADATA_REQUIRED')
+    fields = set(value) - {'recipe_sha256'} if isinstance(value, Mapping) else set()
+    recipe = _identity(value, fields)
+    _need(source_repo == CANONICAL_REPO
+          and isinstance(source_commit, str)
+          and campaign._COMMIT.fullmatch(source_commit) is not None
+          and source_commit != TA_RECOVERY_SOURCE_COMMIT,
+          'TA_RECOVERY_CURRENT_SOURCE')
+    origin = read_ta_recovery_origin(recipe.get('recovery_origin'),
+                                    expected_view_sha256=recipe.get('expected_view_sha256'))
+    original = _require_ta_launch_recipe(origin['original_recipe'],
+        source_repo=source_repo, source_commit=TA_RECOVERY_SOURCE_COMMIT,
+        verify_files=True, historical_source_commit=TA_RECOVERY_SOURCE_COMMIT)
+    expected = {**original, 'run_id': TA_RECOVERY_STAGE,
+        'admission_stage': TA_RECOVERY_STAGE, 'run_scope': TA_RECOVERY_SCOPE,
+        'runtime_root': str(TA_RECOVERY_RUNTIME_ROOT),
+        'execution_binding_path': str(TA_RECOVERY_RUNTIME_ROOT / 'EXECUTION_BINDING.json'),
+        'source_owners': recipe['source_owners'], 'recovery_origin': recipe['recovery_origin']}
+    expected.pop('recipe_sha256')
+    _need(recipe == {**expected, 'recipe_sha256': campaign.canonical_sha256(expected)},
+          'TA_RECOVERY_RECIPE_SCOPE')
+    owners = recipe['source_owners']
+    _need(isinstance(owners, Mapping) and set(owners) == set(original['source_owners']),
+          'TA_RECOVERY_SOURCE_OWNER_SET')
+    _require_ta_source_owners(owners)
+    changed = {name for name, ref in owners.items() if ref != original['source_owners'][name]}
+    _need(changed <= TA_RECOVERY_CHANGED_SOURCE_PATHS
+          and owners['gx1/contracts/entry_model_native_signal_v1.py']['sha256']
+              == TA_RECOVERY_SIGNAL_SHA256, 'TA_RECOVERY_SOURCE_BRIDGE')
     return recipe

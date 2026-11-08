@@ -28,12 +28,23 @@ def test_numerical_and_frozen_fold1_reference_match_selected_scope():
 
 
 def _bound_fold1_checkpoint_identity():
-    plan = zero._read_ref(scope.private.ZERO_STEP_REFS['plan'])
-    view = zero._bind_view(plan, zero._inspect_receipts(), 1)
+    # Test the published checkpoint identity without requalifying today's legacy runtime.
+    result = zero._read_ref(scope.private.ZERO_STEP_REFS['result'])
+    fold = result['fold_results']['1']
+    assert fold['normalization'] == zero._fixed_ref('fold1_normalization')
+    normal = zero._read_ref(fold['normalization'])
     return {
-        'contract_sha256': view['contract_sha256'],
-        'prefix_normalization': copy.deepcopy(view['prefix_normalization']),
-        'research_objective_sha256': view['research_objective']['contract_sha256'],
+        'contract_sha256': fold['view_sha256'],
+        'prefix_normalization': {
+            'binding': copy.deepcopy(fold['normalization']),
+            'contract_sha256': normal['contract_sha256'],
+            'base_sha256': normal['base_normalization']['contract_sha256'],
+            'gc_layout_sha256': normal['gc_mtf_history']['layout']['contract_sha256'],
+            'gc_normalization_sha256': normal['gc_mtf_history']['normalization']['contract_sha256'],
+            'qualification_sha256': normal['prefix_qualification']['contract_sha256'],
+            'unobserved_units_profile_sha256': normal['unobserved_units_profile']['contract_sha256'],
+        },
+        'research_objective_sha256': fold['model_contract_sha256'],
     }
 
 

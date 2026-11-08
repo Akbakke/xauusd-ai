@@ -70,6 +70,10 @@ def _bookend(launch: dict, plan: dict, policy_path: Path,
               'INPUT_CHANGED:' + name)
     _need(campaign.file_sha256(Path(launch['reference_result']['path']))
           == launch['reference_result']['sha256'], 'REFERENCE_CHANGED')
+    if launch['run_scope'] == scope.TA_RECOVERY_SCOPE:
+        for name, ref in launch['recovery_origin'].items():
+            if isinstance(ref, dict):
+                campaign.require_binding(ref, label='TA recovery ' + name, verify_file=True)
 
 
 def _prepared_fold1(receipts: dict, view: dict, *, np):
@@ -211,6 +215,35 @@ def _ta_measurement_payload(measurement, *, checkpoint, model_state_sha256, opti
             'optimizer_updates': optimizer_updates, 'test_data_used': False,
             'predictive_value_claimed': False, 'realized_economics_claimed': False}
 
+def _ta_restore_recovery(*, recovery, fresh, model, optimizer, numerical,
+                         view_identity, order, device, load_state, restore_state):
+    """Import exactly the preserved state through the unchanged full-state owner."""
+    origin = recovery['origin']
+    initial = load_state(origin['initial_state'])
+    initial_meta = recovery['initial_metadata']
+    _need(initial.get('contract_sha256') == initial_meta['contract_sha256']
+          == fresh['contract_sha256']
+          and initial.get('source_commit') == fresh.get('source_commit') == origin['source_commit']
+          and initial.get('cursor') == initial.get('optimizer_updates') == 0
+          and initial.get('model_state_sha256') == initial_meta['model_state_sha256']
+          == fresh['model_state_sha256'], 'TA_RECOVERY_FRESH_INITIAL_BASELINE')
+    del initial
+    loaded = load_state(origin['checkpoint'])
+    metadata = recovery['checkpoint_metadata']
+    for key in ('schema_version', 'source_commit', 'cursor', 'optimizer_updates',
+                'skipped_batches', 'contract_sha256', 'model_state_sha256',
+                'feature_view_sha256'):
+        _need(loaded.get(key) == metadata[key], 'TA_RECOVERY_CHECKPOINT:' + key)
+    restored = restore_state(
+        loaded, model, optimizer, numerical_recipe=numerical,
+        feature_view_identity=view_identity, parent_order=order,
+        source_commit=origin['source_commit'], device=device)
+    _need(restored == {'cursor': scope.TA_RECOVERY_PARENT_CURSOR,
+                      'optimizer_updates': scope.TA_RECOVERY_UPDATES, 'skipped_batches': 0},
+          'TA_RECOVERY_EXACT_PROGRESS')
+    return restored
+
+
 def _save_snapshot(path: Path, model, optimizer, *, numerical: dict,
                    view_identity: dict, order, cursor: int, updates: int,
                    skipped: int, source_commit: str, device, launch: dict,
@@ -249,7 +282,7 @@ def _publish_terminal(*, work: Path, progress_path: Path,
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
     from gx1.scripts import run_entry_native_direction_research_window_v1 as common
     payload = {
-        'schema_version': (scope.TA_RESULT_SCHEMA if launch['run_scope'] == scope.TA_SF_SCOPE
+        'schema_version': (scope.TA_RESULT_SCHEMA if launch['run_scope'] in (scope.TA_SF_SCOPE, scope.TA_RECOVERY_SCOPE)
                            else scope.RESULT_SCHEMA),
         'outcome': outcome, 'phase_state': phase_state,
         'recipe': window['recipe'], 'fold': fold,
@@ -274,6 +307,8 @@ def _publish_terminal(*, work: Path, progress_path: Path,
         'private_weights_for_main_fit': False,
         'entry_or_exit_training': False,
     }
+    if launch['run_scope'] == scope.TA_RECOVERY_SCOPE:
+        payload['recovery_origin'] = launch['recovery_origin']
     result = common._json(
         work / 'RESULT.json', payload, counters,
         launch['max_published_json_bytes'])
@@ -328,9 +363,10 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
     )
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
 
-    ta_sf = launch['run_scope'] == scope.TA_SF_SCOPE
+    recovery_run = launch['run_scope'] == scope.TA_RECOVERY_SCOPE
+    ta_sf = launch['run_scope'] in (scope.TA_SF_SCOPE, scope.TA_RECOVERY_SCOPE)
     expected_recipe = scope.ta_sf_numerical_recipe() if ta_sf else scope.fold1_numerical_recipe()
-    _need(launch['run_scope'] in {scope.SCOPE, scope.TA_SF_SCOPE}
+    _need(launch['run_scope'] in {scope.SCOPE, scope.TA_SF_SCOPE, scope.TA_RECOVERY_SCOPE}
           and launch['fold'] == scope.FOLD
           and launch['numerical_recipe'] == expected_recipe
           and launch['reference_result'] == (
@@ -358,6 +394,7 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
         'staged_state_load_returns', 'resume_state_load_calls',
         'resume_state_load_returns', 'json_bytes')}
     timings = {}
+    recovery = None
     provider = provider_plan = prepared = None
     model = optimizer = None
     view_identity = None
@@ -386,6 +423,9 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
              'invocation_number': number, 'limits': limits,
              'test_data_used': False},
             counters, launch['max_published_json_bytes'])
+        if recovery_run:
+            recovery = scope.read_ta_recovery_origin(launch['recovery_origin'],
+                expected_view_sha256=launch['expected_view_sha256'])
         if ta_sf:
             receipts = zero.load_ta_input_receipts()
             view = zero._bind_ta_view(receipts)
@@ -446,12 +486,48 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
             actual_view, recipe=launch, verify_files=True, ta_sf=ta_sf)
         timings['fresh_model_seconds'] = time.monotonic() - tic
 
+        tic = time.monotonic()
+        initial_source_commit = (
+            recovery['origin']['source_commit'] if recovery_run else plan['source_commit'])
         fresh = state.capture_fold1_fit_state(
             model, optimizer, numerical_recipe=numerical,
             feature_view_identity=view_identity, parent_order=order,
             cursor=0, optimizer_updates=0, skipped_batches=0,
-            source_commit=plan['source_commit'], device=device)
-        if number == 1:
+            source_commit=initial_source_commit, device=device)
+        if number == 1 and recovery_run:
+            initial_ref = recovery['origin']['initial_state']
+            initial_measurement = recovery['origin']['initial_measurement']
+            def load_original(ref):
+                return common._load_state(ref, torch=torch,
+                    maximum=launch['max_checkpoint_bytes'], counters=counters)
+            restored = _ta_restore_recovery(
+                recovery=recovery, fresh=fresh, model=model, optimizer=optimizer,
+                numerical=numerical, view_identity=view_identity, order=order, device=device,
+                load_state=load_original, restore_state=state.restore_fold1_fit_state)
+            cursor, updates, skipped = (restored[key] for key in (
+                'cursor', 'optimizer_updates', 'skipped_batches'))
+            full_state, imported_seal, imported_model_sha = _save_snapshot(
+                state_dir / f'RECOVERY_IMPORTED_p{cursor:06d}.pt',
+                model, optimizer, numerical=numerical, view_identity=view_identity,
+                order=order, cursor=cursor, updates=updates, skipped=skipped,
+                source_commit=plan['source_commit'], device=device, launch=launch,
+                counters=counters, state_dir=state_dir)
+            _need(imported_model_sha == recovery['checkpoint_metadata']['model_state_sha256'],
+                  'TA_RECOVERY_IMPORTED_MODEL')
+            durable = {'state': full_state, 'cursor': cursor,
+                       'updates': updates, 'skipped': skipped,
+                       'phase': 'TRAINING', 'final_measurement': None}
+            common._json(work / 'RECOVERY_IMPORT.json', {
+                'schema_version': 'gx1_market_state_ta_fold1_recovery_import_v1',
+                'recovery_origin': recovery['origin'],
+                'fresh_initial_state_sha256': fresh['contract_sha256'],
+                'source_commit': plan['source_commit'], 'imported_state': full_state,
+                'imported_state_sha256': imported_seal,
+                'imported_model_state_sha256': imported_model_sha,
+                'parent_order_sha256': order_sha, **restored,
+                'initial_measurement_reused': True, 'test_data_used': False},
+                counters, launch['max_published_json_bytes'])
+        elif number == 1:
             initial_ref = common._save_state(
                 state_dir / 'INITIAL_FOLD1_STATE.pt', fresh, torch=torch,
                 maximum=launch['max_checkpoint_bytes'], counters=counters)
@@ -501,6 +577,10 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
                 prior, order_sha=order_sha, view_identity=view_identity, ta_sf=ta_sf)
             initial_ref = prior['own_initial_state']
             initial_measurement = prior['initial_measurement']
+            if recovery_run:
+                _need(initial_ref == recovery['origin']['initial_state']
+                      and initial_measurement == recovery['origin']['initial_measurement'],
+                      'TA_RECOVERY_RESUME_ORIGIN')
             initial_loaded = common._load_state(
                 initial_ref, torch=torch,
                 maximum=launch['max_checkpoint_bytes'], counters=counters)
@@ -529,6 +609,7 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
             phase = prior['phase_state']
             del loaded
         del fresh
+        timings['initial_or_resume_seconds'] = time.monotonic() - tic
         durable = {'state': full_state, 'cursor': cursor,
                    'updates': updates, 'skipped': skipped,
                    'phase': phase, 'final_measurement': final_measurement}
@@ -536,6 +617,9 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
         fit_loss_sum = 0.0
         fit_batches = 0
         per_tf_counts = Counter()
+        fit_started = block_started = time.monotonic()
+        block_cursor, block_updates, block_skipped = cursor, updates, skipped
+        timings['fit_blocks'] = []
         while cursor < scope.FIT_ROWS and time.monotonic() < deadline - 120:
             left = cursor
             right = min(left + scope.BATCH_SIZE, scope.FIT_ROWS)
@@ -612,6 +696,21 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
                 durable = {'state': full_state, 'cursor': cursor,
                            'updates': updates, 'skipped': skipped,
                            'phase': 'TRAINING', 'final_measurement': None}
+                block_finished = time.monotonic()
+                timings['fit_blocks'].append({
+                    'start_cursor': block_cursor, 'end_cursor': cursor,
+                    'rows': cursor - block_cursor, 'optimizer_updates': updates - block_updates,
+                    'skipped_batches': skipped - block_skipped,
+                    'elapsed_seconds_including_checkpoint': block_finished - block_started})
+                block_started = block_finished
+                block_cursor, block_updates, block_skipped = cursor, updates, skipped
+        timings['fit_seconds'] = time.monotonic() - fit_started
+        if cursor > block_cursor:
+            timings['fit_blocks'].append({
+                'start_cursor': block_cursor, 'end_cursor': cursor,
+                'rows': cursor - block_cursor, 'optimizer_updates': updates - block_updates,
+                'skipped_batches': skipped - block_skipped,
+                'elapsed_seconds_before_terminal_checkpoint': time.monotonic() - block_started})
 
         if cursor == scope.FIT_ROWS:
             _need(updates + skipped == scope.MAX_UPDATES
@@ -646,12 +745,16 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
                 outcome = 'RESUMABLE'
                 try:
                     if final_measurement is None:
-                        measured = _ta_endpoint_measurement(
-                            model=model, prepared=prepared, view=view, receipts=receipts,
-                            rows=fit_rows, issues=issues, partition='fit',
-                            endpoint_bound=endpoint_bound, future_bound=future_bound,
-                            frozen_priors=frozen_priors, device=device, deadline=deadline,
-                            counters=counters)
+                        tic = time.monotonic()
+                        try:
+                            measured = _ta_endpoint_measurement(
+                                model=model, prepared=prepared, view=view, receipts=receipts,
+                                rows=fit_rows, issues=issues, partition='fit',
+                                endpoint_bound=endpoint_bound, future_bound=future_bound,
+                                frozen_priors=frozen_priors, device=device, deadline=deadline,
+                                counters=counters)
+                        finally:
+                            timings['final_train_measurement_seconds'] = time.monotonic() - tic
                         initial_payload = authority.campaign.read_bound_json(
                             Path(initial_measurement['path']), initial_measurement['sha256'])
                         _ta_require_matched_observations(
@@ -670,12 +773,16 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
                         and np.array_equal(score_issues, score_axes['score_decision_ns']),
                         'TA_EXACT_LATER_SCORE_AXIS')
                     score_started = True
-                    measured = _ta_endpoint_measurement(
-                        model=model, prepared=prepared, view=view, receipts=receipts,
-                        rows=score_rows, issues=score_issues, partition='score',
-                        endpoint_bound=endpoint_bound, future_bound=future_bound,
-                        frozen_priors=frozen_priors, device=device, deadline=deadline,
-                        counters=counters)
+                    tic = time.monotonic()
+                    try:
+                        measured = _ta_endpoint_measurement(
+                            model=model, prepared=prepared, view=view, receipts=receipts,
+                            rows=score_rows, issues=score_issues, partition='score',
+                            endpoint_bound=endpoint_bound, future_bound=future_bound,
+                            frozen_priors=frozen_priors, device=device, deadline=deadline,
+                            counters=counters)
+                    finally:
+                        timings['later_train_score_seconds'] = time.monotonic() - tic
                     oof_measurement = common._json(work / 'OOF.json',
                         _ta_measurement_payload(measured, checkpoint=full_state,
                             model_state_sha256=model_sha, optimizer_updates=updates),
@@ -764,7 +871,9 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
             durable = {'state': full_state, 'cursor': cursor,
                        'updates': updates, 'skipped': skipped,
                        'phase': phase, 'final_measurement': None}
+        tic = time.monotonic()
         _bookend(launch, plan, *_window_binding(invocation))
+        timings['terminal_bookend_seconds'] = time.monotonic() - tic
         source_unchanged = True
     except BaseException as exc:
         error = type(exc).__name__ + ':' + str(exc)
