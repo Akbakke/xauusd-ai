@@ -15,7 +15,7 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: `TA_NATIVE_INPUT_001_FAILED_CONSUMED_MINIMAL_PROVIDER_REPAIR`.
+Policystatus: `TA_NATIVE_INPUT002_ADMITTED_READY_FOR_EXACT_PREFLIGHT`.
 `training_enabled=false`. Inputaudit 001 er konsumert med feil etter 83,8 s,
 før `audit_inputs`, modellkonstruksjon eller forward. Kontrollkoden ba om en
 kampanjesnapshot som providerens egen validering ikke fyller. Dette er en
@@ -24,7 +24,9 @@ Minste rettelse bruker providerens faktiske metadata-/statkontrakt før og
 etter konsum; ny lesende preflight skal også kontrollere denne grensen.
 Alle 14 fokuserte inputaudit-tester består, inkludert faktisk providergrensesnitt,
 lesende preflight og avvisning av endret payload-identitet.
-Ny eksakt plan 002 forberedes. Original
+Ny eksakt plan 002 er innrømmet og uklamet: 73 kildeeiere, CPU 12 GiB,
+512 MiB swap, 3600 s, én forward og null optimizer. Eksakt utvidet preflight
+må bestå før claim. Påkrevde commitkontroller bestod: 10 guard- og 61 modellkontrakttester. Original
 `CLAIM/FAILED/TERMINAL` og kjørelogg er bevart i
 `/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_20261108_001`.
 001 skal aldri relanseres. Mekanikk og predictor-fit er ikke innrømmet.
@@ -236,7 +238,7 @@ markedstilstand, senere Entry-beslutningsverdi eller økonomisk edge er påvist.
 Den enkle tabellmodellens negative retning er ikke en generell dom over GC,
 indikatorene eller native modell.
 
-**Neste steg:** Kvalifiser provider-rettelsen og ny engangsplan 002, deretter inputaudit på nøyaktig alle konsumerte
+**Neste steg:** Eksakt lesende preflight, deretter engangs inputaudit 002 på nøyaktig alle konsumerte
 fit-/scorevinduer: råverdier, klokker, normalisering, uavhengig formeldekning
 og én faktisk familiehook-forward. Deretter bare ved PASS: ny guarded TA S/F
 fireoppdateringsmekanikk, fersk initialbaseline og 29 574-raders ettpass-fit
