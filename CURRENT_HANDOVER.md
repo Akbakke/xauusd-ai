@@ -15,11 +15,15 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: `TA_M5_DIRECTION_CAUSE_DIAGNOSIS_TARGET_ONLY`.
+Policystatus: `TA_M5_DIRECTION_FROZEN_DECODER_DIAGNOSIS_ADMITTED`.
 
 Aktivt brukermål08.11: jobb bare direkte med retning. Første avgrensede
-kontroll måler faktisk OPP/NED-støtte, minibatchvekting og tidsrekkefølge
-på eksisterende TRAIN-fasit, uten modellkall. Ingen ny fit er åpnet.
+kontroll er fullført på eksisterende TRAIN-fasit på 1,24 s, uten modellkall.
+M5 global/batchvektet OPP-andel er S 0,518681/0,526853 og F 0,511126/0,515518.
+Denne statiske priorforskjellen alene forklarer ikke det målte Brier-fallet.
+Neste kontroll gjelder retningskonflikt i delte dekoderparametre på frosne
+checkpoints, uten optimizer eller ny fit. Planen binder 16 faktiske batcher,
+246 TRAIN-rader og 32 CPU-enkodinger; bare dekodergradienter beregnes.
 
 Korrigert TA S/F fold1 er nå **COMPLETE og konsumert**. 256 oppdateringer
 ble gjenbrukt, 1 593 nye fullførte samme pass, totalt 1 849 uten skip.

@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-08T20:33:28.795144+00:00",
-  "status": "TA_M5_DIRECTION_CAUSE_DIAGNOSIS_TARGET_ONLY",
+  "observed_utc": "2026-11-08T20:44:26.086748+00:00",
+  "status": "TA_M5_DIRECTION_FROZEN_DECODER_DIAGNOSIS_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1418,8 +1418,8 @@
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "The explicitly authorized checkpoint recovery completed one pass and later TRAIN scoring. Both original interrupted plan and recovery plan are consumed. No relaunch, extra epoch, history expansion, TEST, Entry, Exit, broker, trading or spending.",
-  "next_action": "Measure exact TRAIN side support, per-minibatch weighting and chronological tail using existing target owners; zero model calls. Then choose one causal diagnostic directly for M5 direction.",
+  "rule": "Active user direction-only goal. Exactly one bounded frozen checkpoint decoder diagnosis, zero optimizer updates. Both fit plans consumed; all training flags remain false. No TEST/GC/Entry/Exit/trading.",
+  "next_action": "Probe INITIAL/FINAL frozen decoder on sixteen preselected actual TRAIN batches; measure M5 probabilities and decoder gradient alignment against other directions/activity, without optimizer or model changes.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1628,7 +1628,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Direction-only diagnosis: exact conditional-side minibatch weighting and chronological tail before any new model execution.",
+    "current_activity": "Frozen INITIAL/FINAL direction decoder diagnosis admitted:32CPU encodings,246 fixedTRAIN rows,zerooptimizer.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -24607,7 +24607,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-08T20:12:47.173651+00:00",
+  "updated_utc": "2026-11-08T20:44:26.086748+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -64024,8 +64024,8 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "TA_SF_RECOVERY_COMPLETE_NO_M5_DIRECTION_GAIN",
-  "recorded_observed_utc": "2026-11-08T20:12:47.173651+00:00",
+  "recorded_status": "TA_M5_DIRECTION_FROZEN_DECODER_DIAGNOSIS_ADMITTED",
+  "recorded_observed_utc": "2026-11-08T20:44:26.086748+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
     "decision": "BLOCK",
@@ -66256,20 +66256,53 @@
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623"
   },
   "market_state_ta_direction_weight_diagnostic_20261108_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_WEIGHT_DIAGNOSTIC_20261108_001/PLAN.json",
       "sha256": "06264843b613108d780ae4b94223b5d3d8527eb2dcacb533949848882083b0a7"
     },
-    "execution_authorized": true,
-    "data_reads_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "model_forwards_authorized": 0,
     "optimizer_steps_authorized": 0,
     "training_authorized": false,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "max_invocations": 1,
     "relaunch_allowed": false,
-    "test_data_used": false
+    "test_data_used": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_WEIGHT_DIAGNOSTIC_20261108_001/RESULT.json",
+      "sha256": "0a3b53e9c637a30b4f8cdda41956d909449c04d057a624fa3709fb2fc1765df3"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_WEIGHT_DIAGNOSTIC_20261108_001/TERMINAL.json",
+      "sha256": "fe4ceac8fc710879ea923116eaf459eb5c00c904a40f678b5d9bd4e9c7e3ef73"
+    },
+    "finding": "M5 global/equal-minibatch UP fractions S .518681/.526853 and F .511126/.515518; static-prior weighting alone adds only .0000668/.0000193 Brier, far below measured final excess .018891/.053054. Temporal optimizer effects and shared-task interactions remain unisolated."
+  },
+  "market_state_ta_direction_decoder_diagnostic_20261108_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_DECODER_DIAGNOSTIC_20261108_001/PLAN.json",
+      "sha256": "a74496093de5ee41f94bf52aea252a1e941b5c11f99026251aabf9596f933496"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "backbone_encodings_authorized": 32,
+    "decoder_gradient_groups_authorized": 4,
+    "optimizer_steps_authorized": 0,
+    "training_authorized": false,
+    "relaunch_allowed": false,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "wall_seconds": 1800,
+    "test_data_used": false,
+    "question": "Do other direction/activity decoder gradients oppose M5 S/F direction, and did frozen TRAIN output collapse toward one common side?",
+    "scope_limit": "246 preselected TRAIN observations, eval mode, detached backbone decoder only; no full-network AdamW or generalization claim."
   }
 }
