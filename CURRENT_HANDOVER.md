@@ -10,14 +10,15 @@ bare ved et konkret avvik eller en ny nødvendig gatekontroll.
 ## Mål og gjeldende port
 
 Lær løpende framtidig OPP/NED/FLATT markedstilstand **før** Entry-plassering.
-M5 er prognosetakten; kausalt lukkede M15/H1/H4/D1 og GC/indikatorhistorikk er
-input. Alle fem TF har egne framtidige mål. Entry, Exit, ordre, broker, handel,
-spending og forseglet TEST er stengt.
+M5 er prognosetakten; kausalt lukkede M15/H1/H4/D1 og eksisterende genuine
+indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
+forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
+er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: `GC_SIDE_MAX_REGISTRY_PREFLIGHT_COMPLETE_TRAINING_CLOSED`.
-`training_enabled=false`; S/F-fire-stegsplanen er fullført og konsumert, og
-Windows-oppgaven er deaktivert. Ny GC-sidevis maksplan er fullført og
-konsumert; ingen tung CURRENT-jobb kjører. Faktisk prosessstatus overstyrer.
+Policystatus: `SMC_TA_REFERENCE_PREPARED_TRAINING_CLOSED`.
+`training_enabled=false`; S/F-fire-stegsplanen og GC-sidevis fysisk bygg er
+fullført og konsumert, og Windows-oppgaven er deaktivert. GC-registerplanen er
+utsatt og uklamet; ingen tung CURRENT-jobb kjører. Faktisk prosessstatus overstyrer.
 Ingen tidligere
 claimet, fullført eller feilet plan relanseres. Juni 2026 er brukt utviklings-VAL;
 forseglet periode scores bare etter forward-journalregelen i GX1_RULES.md.
@@ -36,6 +37,16 @@ forseglet periode scores bare etter forward-journalregelen i GX1_RULES.md.
   hadde `|F|≥0,5 ATR(t)` og dermed meningsfull F-side.
   [F-dekning](/home/andre2/GX1_RUNS/MARKET_STATE_F_SUPERVISION_COVERAGE_20261108_001/RESULT.json)
   SHA `61b1e21a2dac1b86c8263e60fdcec5cd12b652135fcb991e231607493c942312`.
+
+- **SMC/teknisk grunnlag:** Eksisterende 26-måneders M5-kilde og den eksakte
+  modellklokken har 118 249 felles TRAIN-rader. Kausalt lukket M5 BOS og
+  EMA20-helning gir 6 737 sidejusterte hendelser totalt; fem senere TRAIN-folds
+  har henholdsvis 1 006/953/1 017/1 038/1 032 modne kandidater før noe
+  framtidsutfall ble lest. [Kildedekning](/home/andre2/GX1_RUNS/MARKET_STATE_SMC_EMA_BOS_20261108_001/PREFLIGHT.json)
+  SHA `f87a834f985cc53f1e5517f76753f6b00b4ef66d07735cc1d51bcc56594681b7`.
+  Eldre SMC-familiefit kvalifiserte ikke retningsverdi på sitt tidligere mål;
+  enkel EMA50/200-referanse ga ikke stabil sidegevinst på nytt S-mål. Ingen
+  av dem tester den nå forhåndsbundne BOS+EMA20-sammenhengen ved 60 minutter.
 
 - **Native tilstand, gammel v1:** Én fold-1-fit brukte 29 574 modne TRAIN-rader
   og 1 849 AdamW-steg. På 6 096 senere sertifiserte M5-siderader var
@@ -158,25 +169,21 @@ markedstilstand, senere Entry-beslutningsverdi eller økonomisk edge er påvist.
 Den enkle tabellmodellens negative retning er ikke en generell dom over GC,
 indikatorene eller native modell.
 
-**Neste ene hypotese:** Store aggressive GC-kjøp/salg kan få annen framtidig
-XAU-betydning når de sees sammen med prisrespons og støtte/motstand.
-Råhendelsen har `side` og `size`; kildekandidaten og de nye fysiske
-tabellene bevarer største betrodde kjøp/salg separat. Faktisk native
-modellkonsum mangler. En ny [TRAIN-klokke-registerplan](configs/research/MARKET_STATE_GC_SIDE_MAX_REGISTRY_20261108_001.json)
-SHA `015f4cb13a45285a9c0ae30b46fe410cf12f0aefd3fbec2249cc8f636237d6fc`
-er klargjort, ikke claimet eller kjørt. Eksakt input-/hash-/oppstart-/rapporterings-
-kontroll besto på 118 249 rader, 14 tabeller og 1 005 kandidater
-([PREFLIGHT](/home/andre2/GX1_RUNS/MARKET_STATE_GC_SIDE_MAX_REGISTRY_20261108_001/PREFLIGHT.json),
-SHA `167d6b4312df706a9b7d9b391a9d77d9e7a237468b0f68034466293e7b8730f1`).
-Planen leser bare rad- og klokkeaksene på de 118 249 faktiske modellradene,
-ingen framtidsutfall. Etter registeret
-kreves native layout/visning, faktisk modellkonsum, foldspesifikk
-normalisering og fersk baseline. Deretter
-kan én parvis sammenligning av akkurat disse ti feltene mot samme input uten
-dem, eksisterende GC-/strukturflater og fryst prior på senere kronologiske
-TRAIN-rader få en særskilt fit-/OOF-admisjon. Mål aktivitet og betinget side
-separat på alle fem TF og UTC-uker. Ingen ny grov GC-fortegnstabell,
-terskelsøk eller omkjøring av konsumerte planer. `training_enabled=false`.
+**Neste ene hypotese:** Et bekreftet M5-brudd av svingtopp/-bunn i samme
+retning som EMA20-helningen gir mer 60-minutters XAU-prisforskyvning i
+bruddretningen enn EMA-retning uten brudd i samme UTC-uke, fold og side.
+[Engangsplanen](configs/research/MARKET_STATE_SMC_EMA_BOS_20261108_001.json)
+SHA `d3bdadb60060598610f2d5e8e2a269874c6f4f6484f50dbd6a2af94a6da0b9aa`
+er forhåndsbundet og ikke claimet. Les bare M5 BOS/EMA og eksisterende
+TRAIN-only F-fasit ved eksakt 60-minutters endepunkt. Fem senere kronologiske
+TRAIN-perioder, ukeblokk-bootstrap og forhåndsbundet positiv port; ingen
+parameter-/horisontsøk, modellfit, GC-features, TEST eller handel. Et positivt
+resultat er kun prisretningssammenheng, ikke Entry-/økonomisk edge. Ved negativ
+port stoppes denne hypotesen uten ny variant.
+
+Den tidligere [GC-registerplanen](configs/research/MARKET_STATE_GC_SIDE_MAX_REGISTRY_20261108_001.json)
+forblir bevart, men er utsatt og uklamet etter brukerens nye prioritering.
+`training_enabled=false`.
 
 Kilde/metode for denne fasen: [docs/NATIVE_LEARNING.md](docs/NATIVE_LEARNING.md).
 Detaljert historikk og eldre beslutninger: Git, ikke nye arkivmapper her.

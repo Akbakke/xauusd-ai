@@ -1,0 +1,61 @@
+{
+  "bootstrap": {
+    "confidence": 0.95,
+    "replicates": 2000,
+    "seed": 20261108,
+    "unit": "UTC_Monday_week"
+  },
+  "canonical_branch": "work/gx1-current",
+  "canonical_repo": "/home/andre2/src/GX1_CURRENT",
+  "columns": [
+    "time",
+    "smc_bos_up",
+    "smc_bos_down",
+    "ema20_slope_atr"
+  ],
+  "entry_exit_broker_trade_spending_authorized": false,
+  "fixed_hypothesis": "Closed M5 one-shot BOS up/down aligned with nonzero same-side EMA20 slope adds 60min future signed XAU price displacement, normalized by last closed H1 ATR, beyond EMA direction on no-BOS rows in same UTC week and direction.",
+  "future_target_owner": "gx1/contracts/market_state_future_displacement_candidate_v1.py::load_bound_future_displacement",
+  "future_target_role": "Existing separately bound TRAIN F diagnostic; no new target fit or F threshold lock",
+  "m5_source": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/M5_ENRICHED.parquet",
+    "sha256": "5e5cb256fc60a5e9a7ffe1a161aa875660f01806b8e8de2bf601fc2f528e7f99"
+  },
+  "max_wall_seconds": 600,
+  "model_axis": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_DATA_20261024_245/OUTPUT/PRICE_TARGETS.npz",
+    "sha256": "9d4a5fb3c473b088aff5a5d5a176c199a64053b679229c14f125697b93af577d"
+  },
+  "model_forwards": 0,
+  "no_relaunch_on_failure": true,
+  "one_shot_invocations": 1,
+  "operator_request": "2026-11-08: Vi konsentrerer oss ikke om gc n\u00e5, og heller pr\u00f8ver \u00e5 skaffe Edge p\u00e5 smc/teknisk analyse.",
+  "optimizer_steps": 0,
+  "outcomes_accessed_in_preflight": false,
+  "pass_gate": {
+    "events_per_fold_at_least": 200,
+    "pooled_effect_strictly_positive": true,
+    "positive_folds_at_least": 4,
+    "week_bootstrap_CI_lower_strictly_positive": true
+  },
+  "plan_id": "MARKET_STATE_SMC_EMA_BOS_20261108_001",
+  "primary_horizon_minutes": 60,
+  "primary_reference": "EMA20 direction on no-BOS rows with exact mature H1 F endpoint in same fold/week/direction",
+  "primary_statistic": "event_count_weighted_mean_of_event_minus_no_BOS_EMA_control_within_same_fold_UTC_week_EMA_direction",
+  "resource_runner": "scripts/gx1_capped_run.sh --class audit --mem 4G --swap 512M",
+  "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_SMC_EMA_BOS_20261108_001",
+  "schema_version": "gx1_market_state_smc_ema_bos_plan_v1",
+  "scope_limit": "A positive result is directional association only, not calibrated market-state prediction, Entry decision value, execution-adjusted edge, or profit. A failed gate ends this fixed hypothesis without parameter/horizon search.",
+  "score_folds": 5,
+  "secondary_not_selectable": [
+    "event_signed_F_vs_always_LONG_same_rows",
+    "event_side_hit_given_abs_F_ge_0.5_H1_ATR",
+    "gap_fraction",
+    "per_fold_and_side_coverage"
+  ],
+  "source_sha256": "928e4643b99017f4d6c2921c35cd057654cf864d6e7a613b6f0f911bb8172e65",
+  "status": "PREPARED_NOT_CLAIMED",
+  "target_access_after_claim_only": true,
+  "test_data_used": false,
+  "training_enabled": false
+}

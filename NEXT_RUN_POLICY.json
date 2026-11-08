@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-08T02:32:28.913738+00:00",
-  "status": "GC_SIDE_MAX_REGISTRY_PREFLIGHT_COMPLETE_TRAINING_CLOSED",
+  "status": "SMC_TA_REFERENCE_PREPARED_TRAINING_CLOSED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Selected 0.5 ATR activity and conservative local side use the corrected five-TF TRAIN mask. The one mature fold1 native time-query v1 fit and later chronological TRAIN OOF lost M5 certified-side Brier to the frozen prior in all 14 weeks; a paired frozen diagnostic found upward miscalibration and the free-three-logit unknown-side objective defect. Factorized v2 model/loss and stable raw-logit scorer now pass source/synthetic checks, and read-only fold1 receipt/v2 view metadata binding passes. Physical v2 zero-step passed direct activity/side gradient mechanics. The exact S/F B16 two-batch private optimizer/resume probe completed four guarded physical updates with bit-exact resume and zero exit codes. It did not fit a predictor or establish GC direction value. All plans are consumed; training_enabled=false. Full fit, generalization, Entry decision value, economics, TEST, Entry, Exit, broker, trading and spending remain closed.",
-  "next_action": "Exact one-shot GC side-max TRAIN-clock registry preflight PASS: bound controller/plan and all 14 source tables, 210 retained fields, 1005 candidates, 118249 model axis rows, three clock keys only, report/failure probe. New plan remains PREPARED_NOT_CLAIMED. Obtain a new plan-specific decision before claim under GX1_RULES; then one audit4G/600s registry build with frozen source. Native layout/view and model consumption still pending; training_enabled=false, TEST/Entry/Exit/broker/trading/spending closed.",
+  "next_action": "Operator pivot 2026-11-08: defer unclaimed GC side-max registry. One fixed TRAIN-only SMC BOS plus EMA20 slope reference is prepared after source-only event coverage and synthetic scorer preflight: compare 60-minute H1 F signed displacement on closed M5 aligned BOS events against no-BOS EMA controls in the same fold/UTC week/EMA side. Five later chronological TRAIN folds; no GC feature values, model fit, TEST or trade. Claim and execute this one read-only capped audit once under current operator request; stop this fixed hypothesis if the prebound pooled/week-CI/fold gate fails. training_enabled=false.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -24310,7 +24310,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-08T03:40:10.907393+00:00",
+  "updated_utc": "2026-11-08T09:23:04.142304+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -65012,7 +65012,7 @@
     }
   },
   "market_state_gc_side_max_registry_20261108_001": {
-    "status": "PREPARED_NOT_CLAIMED",
+    "status": "DEFERRED_BY_OPERATOR_UNCLAIMED",
     "decision": "EXACT_MODEL_TRAIN_CLOCK_GC_REGISTRY_ONLY",
     "scope": "One capped 0 USD TRAIN-only registry fit on 118249 actual M5 model decision clocks, 210 rebound retained fields plus 1005 new-generation GC candidates. Read only axis keys from bound NPZ; no target values, model forward, optimizer, TEST or Entry.",
     "plan": {
@@ -65039,6 +65039,32 @@
     "preflight": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_GC_SIDE_MAX_REGISTRY_20261108_001/PREFLIGHT.json",
       "sha256": "167d6b4312df706a9b7d9b391a9d77d9e7a237468b0f68034466293e7b8730f1"
-    }
+    },
+    "deferred_reason": "Operator 2026-11-08 changed current research focus to SMC/technical analysis; no claim or GC registry run."
+  },
+  "market_state_smc_ema_bos_20261108_001": {
+    "status": "PREPARED_NOT_CLAIMED",
+    "decision": "FIXED_TRAIN_ONLY_SMC_EMA_BOS_REFERENCE",
+    "scope": "One 0 USD read-only five-fold 60-minute F direction diagnostic of closed M5 BOS aligned EMA20 slope versus no-BOS EMA controls within UTC week and side. No GC feature values, model fit, TEST, Entry or economics.",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_SMC_EMA_BOS_20261108_001.json",
+      "sha256": "d3bdadb60060598610f2d5e8e2a269874c6f4f6484f50dbd6a2af94a6da0b9aa"
+    },
+    "source_sha256": "928e4643b99017f4d6c2921c35cd057654cf864d6e7a613b6f0f911bb8172e65",
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_SMC_EMA_BOS_20261108_001/PREFLIGHT.json",
+      "sha256": "f87a834f985cc53f1e5517f76753f6b00b4ef66d07735cc1d51bcc56594681b7"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_SMC_EMA_BOS_20261108_001",
+    "operator_request": "2026-11-08 user instruction to focus SMC/technical analysis instead of GC",
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "research_fit_authorized": false,
+    "test_authorized": false,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "training_enabled": false,
+    "test_data_used": false
   }
 }
