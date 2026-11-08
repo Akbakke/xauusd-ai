@@ -117,6 +117,8 @@ Alle genuine indikatorer revideres fra formel og tilgjengelighet til faktisk
 modellkonsum på fem TF. Behold åtte spesialister og D1/makro; at en familie
 er representert beviser ikke at hvert felt brukes eller gir prognoseverdi.
 Ingen automatisk aktivering, sletting eller ny modellkjøring følger av dette.
+Beslutningsforankret framtidig sluttprisforskjell `F_s(t,v)=XAU_M5_close(v)-XAU_M5_close(t)` er et **separat** retningsmål, aldri en erstatning for den lokale tilstanden `S_s(v)` eller en ommerking av `{OPP,NED}`. Et mulig F-mål må ha egen maske for eksakt start-/sluttklokke og foldmodning, egen aktivitetsdefinisjon ut fra `|F|/ATR(t)`, betinget OPP/NED-supervisjon bare når meningsfull bevegelse er bevist, og egne skår mot forhåndsbundne referanser. `0,5 ATR(t)` fra den valgte S-aktivitetsgrensen kan undersøkes som kandidat; det er ingen optimalisert F-grense. Små, ikke-null F-fortegn skal ikke automatisk gi hard retningsfasit. D1-endepunkt over mellomliggende datagap beviser sluttprisforskjell, ikke prisbane. En eventuell modellendring må holde S- og F-output, tap og måling atskilt og bevise null direkte F-sidegradient når F-side er ukjent.
+
 TRAIN-fit, senere generalisering og eventuell handelsverdi måles separat.
 
 En dynamisk fem-TF target-/output-/loss-kandidat er nå implementert og teknisk
