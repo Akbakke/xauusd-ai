@@ -287,7 +287,7 @@ def require_ta_sf_mechanical_gate(gate, recipe):
 
 
 # New one-use TA/M5 qualification; the completed TA/SF campaign stays immutable.
-TA_M5_STAGE = 'market_state_ta_dedicated_m5_mechanical_20261109_001'
+TA_M5_STAGE = 'market_state_ta_dedicated_m5_mechanical_20261109_002'
 TA_M5_SCOPE = 'market_state_ta_dedicated_m5_mechanical_v1'
 TA_M5_RECIPE_SCHEMA = 'gx1_market_state_ta_m5_mechanical_launch_recipe_v1'
 TA_M5_RESULT_SCHEMA = 'gx1_market_state_ta_m5_mechanical_result_v1'

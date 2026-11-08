@@ -18,13 +18,19 @@ er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er ste
 Policystatus: TA_DIRECTION_DEDICATED_M5_MECHANICAL_ADMITTED_AWAITING_FRESH_BOOT.
 
 Én ny, avgrenset M5-mekanikk er innrømmet:
-[engangsrecipe](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DEDICATED_M5_MECHANICAL_20261109_001/RECIPE.json).
+[engangsrecipe](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DEDICATED_M5_MECHANICAL_20261109_002/RECIPE.json).
 Faktisk metadatapreflight og50 fokuserte tester består. Den skal strict-restaurere
 opprinnelig FINAL med full AdamW/RNG-validering, kopiere vekter til tre nye
 kandidatbaner og bruke ny tom AdamW. Fire modell-/optimizerkonstruksjoner,
 seks forwards og fire fysiske updates på de første32 modne TRAIN-radene.
 M5-output sammenlignes ved fast FP32-toleranse; uendrede koordinater bitlikt.
 To steg mot ett+gjenopptatt ett må gi identisk full tilstand.
+
+Første klargjøring001 stoppet før GPU fordi generell native_launch_authorized
+var åpnet; denne private ruten krever den stengt og eksplisitt
+synthetic_test_execution_authorized=False. Original claim/plan er bevart og
+konsumert. Erstatning002 retter disse policyfeltene; modellkode og budsjett
+er uendret. De50 fokuserte testene gjenbrukes; faktisk metadata er kontrollert på nytt.
 
 Kjøringen er ikke startet. Ny hashbundet plan materialiseres før maskinvid
 idle-kontroll og påkrevd fersk fysisk Windows-boot. Eksisterende vakter og
