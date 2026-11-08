@@ -110,7 +110,7 @@ def test_context_bridge_accepts_separate_rsi_rounding_and_checks_utc_boundaries(
         audit._local_context_formula_bridges(changed, times, cache, profile)
 
 
-def _synthetic_publication_run(monkeypatch, tmp_path, *, fail_audit):
+def _synthetic_publication_run(monkeypatch, tmp_path, *, fail_audit, fail_after_phase=False):
     import hashlib
     import json
     from gx1.audit import verify_market_state_time_query_zero_step_v1 as zero
@@ -147,7 +147,14 @@ def _synthetic_publication_run(monkeypatch, tmp_path, *, fail_audit):
     rows = np.arange(audit.fold.FIT_ROWS, dtype=np.int64)
     issues = rows * 300_000_000_000 + 1714521900000000000
     calls = {'metadata': 0, 'prepared': 0, 'audit': 0, 'target_loads': 0, 'prior_fit': 0, 'release': 0}
-    measurement = {'synthetic_input_audit': True}
+    measurement = {'synthetic_input_audit': True,
+        'gather': {'synthetic': True},
+        'normalization': {'signal': {'unique_rows': 1, 'row_ids_sha256': 'c' * 64,
+            'checked_values': 1, 'maximum_absolute_error': 0., 'field_names': ['synthetic']}},
+        'family_consumption': {'synthetic': True},
+        'local_formula_alias_bridge': {'synthetic': True},
+        'local_context_formula_evidence': {'synthetic': True},
+        'limits_of_evidence': ['synthetic measurements only']}
     priors = {'synthetic_endpoint_priors': True, 'fit_rows': len(rows),
               'fit_parent_rows_sha256': audit.axis_sha(rows),
               'fit_decision_ns_sha256': audit.axis_sha(issues)}
@@ -170,10 +177,15 @@ def _synthetic_publication_run(monkeypatch, tmp_path, *, fail_audit):
         provider.validate_metadata(provider_plan)
         return provider, provider_plan, prepared, rows, issues
     def audit_stub(**kwargs):
+        completed = kwargs.pop('on_input_checks_complete')
+        assert callable(completed)
         assert kwargs == {'plan': plan, 'receipts': receipts, 'view': view, 'prepared': prepared}
         calls['audit'] += 1
         if fail_audit:
             raise RuntimeError('injected input audit failure')
+        completed(measurement)
+        if fail_after_phase:
+            raise RuntimeError('injected formula audit failure')
         return measurement
     def state_stub():
         calls['target_loads'] += 1
@@ -237,7 +249,7 @@ def test_run_success_publishes_hash_bound_priors_result_and_terminal(monkeypatch
     alarm = signal.getsignal(signal.SIGALRM)
     published = audit.run(context['plan_ref'])
     assert {p.name for p in context['out'].iterdir()} == {
-        'CANDIDATE_VIEW.json', 'CLAIM.json', 'ENDPOINT_PRIORS.json', 'RESULT.json', 'TERMINAL.json'}
+        'CANDIDATE_VIEW.json', 'CLAIM.json', 'INPUT_TENSOR_PHASE.json', 'ENDPOINT_PRIORS.json', 'RESULT.json', 'TERMINAL.json'}
     result = context['read_ref'](published['result'])
     terminal = context['read_ref'](published['terminal'])
     claim = context['read_ref'](result['claim'])
@@ -249,6 +261,13 @@ def test_run_success_publishes_hash_bound_priors_result_and_terminal(monkeypatch
     assert result['candidate_view'] == claim['candidate_view'] == context['plan']['inputs']['candidate_view']
     assert terminal['result'] == published['result'] and terminal['claim'] == result['claim']
     assert result['endpoint_priors'] == terminal['endpoint_priors'] == published['endpoint_priors']
+    phase = context['read_ref'](result['input_tensor_phase'])
+    assert terminal['input_tensor_phase'] == result['input_tensor_phase']
+    assert phase['status'] == 'COMPLETE_INPUT_TENSOR_PHASE_ONLY'
+    assert phase['plan'] == context['plan_ref'] and phase['claim'] == result['claim']
+    assert phase['full_input_audit_pass'] is False and phase['independent_formula_qualification_complete'] is False
+    assert phase['gather'] == context['measurement']['gather']
+    assert phase['normalization'] == context['measurement']['normalization']
     assert result['input_audit'] == context['measurement']
     integrity = result['input_integrity']
     assert integrity['provider_metadata_bookend']['payload_stat_files'] == 1
@@ -257,7 +276,7 @@ def test_run_success_publishes_hash_bound_priors_result_and_terminal(monkeypatch
     assert integrity['reused_local_decode_fresh_body_hash_claimed'] is False
     assert 'verified_payload_files' not in result
     assert result['source_unchanged'] is True and result['test_data_used'] is False
-    assert context['calls'] == {'metadata': 2, 'prepared': 1, 'audit': 1, 'target_loads': 2, 'prior_fit': 1, 'release': 1}
+    assert context['calls'] == {'metadata': 3, 'prepared': 1, 'audit': 1, 'target_loads': 2, 'prior_fit': 1, 'release': 1}
     assert signal.getitimer(signal.ITIMER_REAL) == (0., 0.) and signal.getsignal(signal.SIGALRM) == alarm
     _assert_consumed_publications_cannot_be_replaced(context)
 
@@ -306,9 +325,67 @@ def test_run_provider_bookend_rejects_changed_payload_before_success_publication
     with pytest.raises(RuntimeError, match='synthetic provider payload identity changed'):
         audit.run(context['plan_ref'])
     assert {p.name for p in context['out'].iterdir()} == {
-        'CANDIDATE_VIEW.json', 'CLAIM.json', 'FAILED.json', 'TERMINAL.json'}
+        'CANDIDATE_VIEW.json', 'CLAIM.json', 'INPUT_TENSOR_PHASE.json', 'FAILED.json', 'TERMINAL.json'}
     terminal = context['read_ref'](context['ref'](context['out'] / 'TERMINAL.json'))
     failure = context['read_ref'](terminal['failure'])
     assert terminal['status'] == 'FAILED_CONSUMED' and terminal['exit_code'] == 1
     assert failure['error'] == 'synthetic provider payload identity changed'
-    assert context['calls'] == {'metadata': 2, 'prepared': 1, 'audit': 1, 'target_loads': 2, 'prior_fit': 1, 'release': 1}
+    assert context['calls'] == {'metadata': 3, 'prepared': 1, 'audit': 1, 'target_loads': 2, 'prior_fit': 1, 'release': 1}
+
+
+def test_late_formula_failure_preserves_bound_completed_input_phase(monkeypatch, tmp_path):
+    context = _synthetic_publication_run(monkeypatch, tmp_path, fail_audit=False, fail_after_phase=True)
+    with pytest.raises(RuntimeError, match='injected formula audit failure'):
+        audit.run(context['plan_ref'])
+    assert {p.name for p in context['out'].iterdir()} == {
+        'CANDIDATE_VIEW.json', 'CLAIM.json', 'INPUT_TENSOR_PHASE.json', 'FAILED.json', 'TERMINAL.json'}
+    terminal = context['read_ref'](context['ref'](context['out'] / 'TERMINAL.json'))
+    failure = context['read_ref'](terminal['failure'])
+    phase_ref = terminal['completed_input_tensor_phase']
+    phase = context['read_ref'](phase_ref)
+    assert failure['completed_input_tensor_phase'] == phase_ref
+    assert terminal['status'] == 'FAILED_CONSUMED' and terminal['no_relaunch_under_this_plan'] is True
+    assert phase['plan'] == context['plan_ref'] and phase['claim'] == terminal['claim']
+    assert phase['full_input_audit_pass'] is False and phase['independent_formula_qualification_complete'] is False
+    assert phase['diagnostic_only_no_resume_or_relaunch_authority'] is True
+    assert phase['family_consumption'] == context['measurement']['family_consumption']
+    assert context['calls'] == {'metadata': 2, 'prepared': 1, 'audit': 1, 'target_loads': 0, 'prior_fit': 0, 'release': 1}
+    _assert_consumed_publications_cannot_be_replaced(context)
+
+
+def test_shared_long_history_is_trimmed_for_real_residual_oracle_without_reseeding():
+    import pandas as pd
+    from gx1.audit import verify_market_state_remaining_mtf_numeric_v1 as residual
+    from gx1.audit.verify_d1_trendline_lifecycle_oracle_v1 import oracle_rows
+    from gx1.features.htf_features import MULTI_TF_PER_BAR_FEATURES_V4
+    from gx1.features.technical_indicators_v1 import wilder_rsi, wilder_atr
+    row = np.arange(320, dtype=np.float64)
+    close = 2000. + .07 * row + 2. * np.sin(.27 * row)
+    span = .5 + .2 * (1. + np.sin(.19 * row))
+    bars = pd.DataFrame({'open': close - .1, 'high': close + span,
+        'low': close - span, 'close': close, 'volume': 100. + row % 13},
+        index=pd.date_range('2024-04-01', periods=len(row), freq='5min', tz='UTC'))
+    rsi = wilder_rsi(bars['close'], 14).to_numpy(dtype=np.float64)
+    atr = wilder_atr(bars['high'], bars['low'], bars['close'], 14).to_numpy(dtype=np.float64)
+    positions = np.array([219, 250, 259], dtype=np.int64)
+    names = tuple(MULTI_TF_PER_BAR_FEATURES_V4[i] for i in residual.EXPECTED_COLUMNS)
+    fit = {'bandwidth_mean': [.002, .006], 'bandwidth_variance': [1e-6, 1e-5],
+           'transition_probability': [[.98, .02], [.03, .97]], 'initial_probability': [.5, .5]}
+    with pytest.raises(RuntimeError, match='ORACLE_PREFIX_POSITIONS'):
+        residual._oracle_matrix(bars, positions, 'M5', fit, names, rsi, atr)
+    prefix, prefix_rsi, prefix_atr = audit._formula_prefix(bars, positions, rsi, atr)
+    assert len(prefix) == 260 and prefix.index[0] == bars.index[0]
+    assert np.shares_memory(prefix_rsi, rsi) and np.shares_memory(prefix_atr, atr)
+    np.testing.assert_array_equal(prefix_rsi, wilder_rsi(prefix['close'], 14).to_numpy())
+    actual = residual._oracle_matrix(prefix, positions, 'M5', fit, names, prefix_rsi, prefix_atr)
+    expected = residual._oracle_matrix(bars.iloc[:260], positions, 'M5', fit, names, rsi[:260], atr[:260])
+    np.testing.assert_array_equal(actual, expected)
+    assert actual.shape == (3, 63) and not np.isinf(actual).any()
+    full_lines, full_events = oracle_rows(bars.high.to_numpy(), bars.low.to_numpy(), bars.close.to_numpy(), atr,
+        seq_len=96, band_atr=.9865694402555613, witness_positions=positions)
+    prefix_lines, prefix_events = oracle_rows(prefix.high.to_numpy(), prefix.low.to_numpy(), prefix.close.to_numpy(), prefix_atr,
+        seq_len=96, band_atr=.9865694402555613, witness_positions=positions)
+    np.testing.assert_array_equal(prefix_lines, full_lines)
+    assert prefix_events == full_events
+    with pytest.raises(RuntimeError, match='ORACLE_PREFIX_INPUT'):
+        audit._formula_prefix(bars, positions, rsi[:-1], atr)

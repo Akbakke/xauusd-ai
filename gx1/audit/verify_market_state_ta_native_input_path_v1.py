@@ -285,6 +285,20 @@ def _family_witness(model, raw, normalized, profile):
             'predictive_influence_or_value_measured': False}
 
 
+def _formula_prefix(bars, positions, rsi, atr):
+    "Return the complete causal prefix ending at this oracle's last witness."
+    positions = np.asarray(positions)
+    need(positions.dtype == np.int64 and positions.ndim == 1 and len(positions) > 0
+         and positions[0] >= 0 and np.all(np.diff(positions) > 0)
+         and positions[-1] < len(bars)
+         and rsi.dtype == atr.dtype == np.float64
+         and rsi.shape == atr.shape == (len(bars),), 'ORACLE_PREFIX_INPUT')
+    stop = int(positions[-1]) + 1
+    # Only the unused tail is removed. Index zero and every state/warmup row
+    # remain present; RSI/ATR retain their original full-history initialization.
+    return bars.iloc[:stop], rsi[:stop], atr[:stop]
+
+
 def _history_formula_measure(formula_inputs, cache, unions, *, local_trendline):
     """Extend MTF history gaps and qualify all consumed genuine local-96 lines."""
     import pandas as pd
@@ -375,11 +389,12 @@ def _history_formula_measure(formula_inputs, cache, unions, *, local_trendline):
             bars['close'].to_numpy()[p], rsi[p], positive_atr[p],
             np.asarray(cache[tf].attrs['feats_np'][np.ix_(prerequisite_rows, [0, 1])]))
         if len(rows):
-            oracle63 = residual._oracle_matrix(bars, positions, tf, frozen.require_params(tf)['fit'],
-                                               names, rsi, positive_atr)
+            gap_bars, gap_rsi, gap_atr = _formula_prefix(bars, positions, rsi, positive_atr)
+            oracle63 = residual._oracle_matrix(gap_bars, positions, tf, frozen.require_params(tf)['fit'],
+                                               names, gap_rsi, gap_atr)
             c = residual.TF_SCOPE[tf]
-            oracle31, events = oracle_rows(bars['high'].to_numpy(), bars['low'].to_numpy(),
-                bars['close'].to_numpy(), positive_atr, seq_len=c['seq_len'], band_atr=c['band_atr'],
+            oracle31, events = oracle_rows(gap_bars['high'].to_numpy(), gap_bars['low'].to_numpy(),
+                gap_bars['close'].to_numpy(), gap_atr, seq_len=c['seq_len'], band_atr=c['band_atr'],
                 witness_positions=positions)
             comparisons = []; offset = 0
             for part in contiguous_parts(rows):
@@ -392,9 +407,9 @@ def _history_formula_measure(formula_inputs, cache, unions, *, local_trendline):
                 comparisons.append({'remaining63': a, 'trendline31': b}); offset = right
             reports[tf] = {'additional_rows': len(rows), 'cache_row_first': int(rows[0]),
                 'cache_row_last': int(rows[-1]), 'row_ids_sha256': axis_sha(rows),
-                'native_prefix_rows': end, 'prerequisites': prerequisites,
+                'native_prefix_rows': len(gap_bars), 'shared_source_prefix_rows': end, 'prerequisites': prerequisites,
                 'comparisons': comparisons, 'trendline_events': events}
-            del oracle63, oracle31
+            del oracle63, oracle31, gap_bars, gap_rsi, gap_atr
         else:
             reports[tf] = {'additional_rows': 0}
         if tf == 'M5':
@@ -402,8 +417,9 @@ def _history_formula_measure(formula_inputs, cache, unions, *, local_trendline):
             need(np.all(local_positions < end)
                  and np.array_equal(resampled['bar_start_ns'][local_positions], local_times), 'LOCAL_TRENDLINE_SOURCE_CLOCK')
             tic = time.monotonic()
+            local_bars, _, local_atr = _formula_prefix(bars, local_positions, rsi, positive_atr)
             local_oracle, local_events = oracle_rows(
-                bars['high'].to_numpy(), bars['low'].to_numpy(), bars['close'].to_numpy(), positive_atr,
+                local_bars['high'].to_numpy(), local_bars['low'].to_numpy(), local_bars['close'].to_numpy(), local_atr,
                 seq_len=local_parameters['seq_len'], band_atr=local_parameters['band_atr'],
                 witness_positions=local_positions)
             local_comparisons = []; offset = 0
@@ -416,13 +432,13 @@ def _history_formula_measure(formula_inputs, cache, unions, *, local_trendline):
             local_report = {'rows': len(local_rows), 'fields': 31, 'checked_values': len(local_rows) * 31,
                 'local_field_names': local_trendline['fields'], 'parameters': local_parameters,
                 'row_ids_sha256': axis_sha(local_rows), 'times_ns_sha256': axis_sha(local_times),
-                'native_prefix_rows': end, 'prerequisites': prerequisites,
+                'native_prefix_rows': len(local_bars), 'prerequisites': prerequisites,
                 'comparisons': local_comparisons, 'trendline_events': local_events,
                 'oracle_elapsed_seconds': time.monotonic() - tic,
                 'independent_oracle_owner': 'gx1.audit.verify_d1_trendline_lifecycle_oracle_v1.oracle_rows',
                 'all_consumed_local_trendline_rows_covered': True,
                 'shared_prefix_with_mtf_gap_audit': True, 'no_reseed_or_gap_reset': True}
-            del local_oracle
+            del local_oracle, local_bars, local_atr
         del bars, resampled, rsi, atr, positive_atr
         gc.collect()
     for path, stat in snapshots.items():
@@ -578,7 +594,7 @@ def _local_context_formula_bridges(local_matrix, local_times, cache, profile):
                               for key, rows in required_rows.items()}}
 
 
-def audit_inputs(*, plan, receipts, view, prepared):
+def audit_inputs(*, plan, receipts, view, prepared, on_input_checks_complete=None):
     """Caller must execute under the new hash-bound capped producer admission."""
     import torch
     from gx1.contracts import entry_native_direction_feature_view_v1 as views
@@ -693,14 +709,7 @@ def audit_inputs(*, plan, receipts, view, prepared):
     family_report = _family_witness(model, witness_raw, normalized, profile)
     del model, local_matrix, current_ctx
     gc.collect()
-    formula_unions = dict(unions)
-    formula_unions['mtf_m5'] = np.union1d(unions['mtf_m5'], local_m5_ids).astype(np.int64)
-    for key, rows in context_formula_rows.items():
-        formula_unions[key] = np.union1d(formula_unions[key], rows).astype(np.int64)
-    formula_report = _history_formula_measure(plan['formula_inputs'], prepared['cache'], formula_unions,
-        local_trendline=local_trendline)
-    local31_report = formula_report.pop('local31')
-    return {'schema_version': SCHEMA, 'candidate_view_sha256': view['contract_sha256'],
+    measurement = {'schema_version': SCHEMA, 'candidate_view_sha256': view['contract_sha256'],
         'profile': view['entry_execution_profile'], 'scope': audit_scope(),
         'gather': {'parent_rows': len(at), 'fit_rows': fold.FIT_ROWS, 'score_rows': fold.SCORE_ROWS,
             'parent_rows_sha256': axis_sha(parents), 'decision_ns_sha256': axis_sha(issues),
@@ -708,15 +717,27 @@ def audit_inputs(*, plan, receipts, view, prepared):
             'local_source_row_intervals': local_intervals, 'mtf_cache_row_intervals': tf_intervals,
             'all_fields_all_window_positions_bit_identical': True},
         'normalization': normalized_report, 'family_consumption': family_report,
-        'mtf_formula_evidence': formula_report, 'local_formula_alias_bridge': local_alias_report,
-        'local_trendline_formula_evidence': local31_report,
+        'local_formula_alias_bridge': local_alias_report,
         'local_context_formula_evidence': context_formula_report,
         'limits_of_evidence': ['The 61 macro fields retain separate prior formula/asof evidence; this audit does not independently rederive every macro formula.',
+            'COT 2024 release/vintage provenance is UNKNOWN: as_of + 7 calendar days is a proxy without per-report historical release/vintage qualification. No 2024 leakage has been demonstrated; that does not qualify publication timing.',
             'The single genuine forward proves routed pre-projection values, not predictive utility or per-field influence.',
             'No TRAIN fit, OOF prediction quality, serving parity, TEST or trading evidence.'],
         'normalization_fits': 0, 'model_constructions': 1, 'model_forwards': 1,
         'backward_calls': 0, 'optimizer_steps': 0, 'targets_used_as_inputs': False,
         'test_data_used': False, 'predictive_value_claimed': False}
+    if on_input_checks_complete is not None:
+        on_input_checks_complete(measurement)
+    formula_unions = dict(unions)
+    formula_unions['mtf_m5'] = np.union1d(unions['mtf_m5'], local_m5_ids).astype(np.int64)
+    for key, rows in context_formula_rows.items():
+        formula_unions[key] = np.union1d(formula_unions[key], rows).astype(np.int64)
+    formula_report = _history_formula_measure(plan['formula_inputs'], prepared['cache'], formula_unions,
+        local_trendline=local_trendline)
+    local31_report = formula_report.pop('local31')
+    measurement.update({'mtf_formula_evidence': formula_report,
+                        'local_trendline_formula_evidence': local31_report})
+    return measurement
 
 
 # One newly admitted producer invocation owns this audit and separate TRAIN-only
@@ -921,6 +942,7 @@ def run(plan_ref):
         published_bytes += size
         return item
     provider = provider_plan = prepared = None
+    input_phase_ref = None
     from gx1.audit.verify_market_state_remaining_mtf_numeric_v1 import TERMINAL_RESERVE_SECONDS
     remaining = WALL_SECONDS - TERMINAL_RESERVE_SECONDS - (time.monotonic() - began)
     need(remaining > 0., 'PRECLAIM_WALL_BUDGET')
@@ -928,6 +950,44 @@ def run(plan_ref):
         'plan': plan_ref, 'policy': policy_ref, 'source_head': head, 'cap': cap,
         'candidate_view': plan['inputs']['candidate_view'], 'audit_scope': audit_scope(),
         'endpoint_prior_fit_rows': fold.FIT_ROWS, 'test_data_used': False})
+    def source_bookend():
+        need(zero._clean_head() == head and zero._sha(PLAN_PATH) == plan_ref['sha256']
+             and zero._sha(POLICY_PATH) == policy_ref['sha256']
+             and all(zero._sha(REPO / path) == digest for path, digest in plan['source_owners'].items())
+             and zero._sha(Path(plan['inputs']['candidate_view']['path']))
+                 == plan['inputs']['candidate_view']['sha256'], 'PRODUCER_SOURCE_BOOKEND')
+
+    def publish_input_phase(measurement):
+        nonlocal input_phase_ref
+        need(input_phase_ref is None, 'DUPLICATE_INPUT_PHASE')
+        integrity = _provider_integrity_metadata(provider, provider_plan)
+        source_bookend()
+        # Keep the completed numerical measurements without repeating the
+        # large per-field extrema arrays in the eventual final RESULT.
+        normalization = {surface: {key: values[key] for key in (
+            'unique_rows', 'row_ids_sha256', 'checked_values',
+            'maximum_absolute_error', 'field_names')}
+            for surface, values in measurement['normalization'].items()}
+        input_phase_ref = publish('INPUT_TENSOR_PHASE.json', {
+            'schema_version': SCHEMA + '_input_tensor_phase',
+            'status': 'COMPLETE_INPUT_TENSOR_PHASE_ONLY',
+            'plan': plan_ref, 'claim': claim, 'policy': policy_ref,
+            'source_head': head, 'source_owners': plan['source_owners'],
+            'candidate_view': plan['inputs']['candidate_view'],
+            'candidate_view_sha256': view['contract_sha256'],
+            'audit_scope': audit_scope(), 'provider_metadata_bookend': integrity,
+            'gather': measurement['gather'], 'normalization': normalization,
+            'family_consumption': measurement['family_consumption'],
+            'local_formula_alias_bridge': measurement['local_formula_alias_bridge'],
+            'local_context_formula_evidence': measurement['local_context_formula_evidence'],
+            'limits_of_evidence': measurement['limits_of_evidence'],
+            'independent_formula_qualification_complete': False,
+            'full_input_audit_pass': False,
+            'model_constructions': 1, 'model_forwards': 1, 'backward_calls': 0,
+            'optimizer_steps': 0, 'normalization_fits': 0,
+            'targets_used_as_inputs': False, 'test_data_used': False,
+            'diagnostic_only_no_resume_or_relaunch_authority': True})
+
     old_alarm = signal.getsignal(signal.SIGALRM)
     def expired(_signum, _frame):
         raise TimeoutError('TA_NATIVE_INPUT_3600_SECOND_SCOPE')
@@ -939,7 +999,9 @@ def run(plan_ref):
         # its provider uses independent ref/stat owners, not campaign's memo.
         provider, provider_plan, prepared, fit_rows, issues = runner._prepared_fold1(receipts, view, np=np)
         setup_seconds = time.monotonic() - setup
-        measurement = audit_inputs(plan=plan, receipts=receipts, view=view, prepared=prepared)
+        measurement = audit_inputs(plan=plan, receipts=receipts, view=view, prepared=prepared,
+                                   on_input_checks_complete=publish_input_phase)
+        need(input_phase_ref is not None, 'INPUT_PHASE_NOT_PUBLISHED')
         # This separate reference fit never enters model.forward and has no
         # access to score outcomes through its exact fit-only gather call.
         state_bound = state.load_bound_five_endpoint_targets()
@@ -952,17 +1014,15 @@ def run(plan_ref):
         integrity = _provider_integrity_metadata(provider, provider_plan)
         mature._release_pages(provider, prepared)
         prepared = None
-        need(zero._clean_head() == head and zero._sha(PLAN_PATH) == plan_ref['sha256']
-             and zero._sha(POLICY_PATH) == policy_ref['sha256']
-             and all(zero._sha(REPO / path) == digest for path, digest in plan['source_owners'].items())
-             and zero._sha(Path(plan['inputs']['candidate_view']['path']))
-                 == plan['inputs']['candidate_view']['sha256'], 'PRODUCER_SOURCE_BOOKEND')
+        source_bookend()
         priors_ref = publish('ENDPOINT_PRIORS.json', priors)
         result = publish('RESULT.json', {'schema_version': SCHEMA + '_result',
             'status': 'COMPLETE', 'plan': plan_ref, 'claim': claim, 'policy': policy_ref,
             'source_head': head, 'source_owners': plan['source_owners'],
             'candidate_view': plan['inputs']['candidate_view'], 'endpoint_priors': priors_ref,
             'input_audit': measurement, 'cap': cap, 'input_setup_seconds': setup_seconds,
+            'limits_of_evidence': measurement['limits_of_evidence'],
+            'input_tensor_phase': input_phase_ref,
             'input_integrity': {'provider_metadata_bookend': integrity,
                 'provider_metadata_validated_before_prepare_and_after_measurement': True,
                 'axes_archive_and_native_MTF_payloads_fresh_SHA_verified_by_prepare': True,
@@ -976,16 +1036,19 @@ def run(plan_ref):
         terminal = publish('TERMINAL.json', {'schema_version': SCHEMA + '_terminal',
             'status': 'COMPLETE', 'exit_code': 0, 'plan': plan_ref, 'claim': claim,
             'result': result, 'endpoint_priors': priors_ref,
+            'input_tensor_phase': input_phase_ref,
             'no_relaunch_under_this_plan': True, 'test_data_used': False})
         return {'result': result, 'terminal': terminal, 'endpoint_priors': priors_ref}
     except BaseException as exc:
         failed = publish('FAILED.json', {'schema_version': SCHEMA + '_failure',
             'plan': plan_ref, 'claim': claim, 'source_head': head,
             'error_type': type(exc).__name__, 'error': str(exc)[:2048],
+            'completed_input_tensor_phase': input_phase_ref,
             'elapsed_seconds': time.monotonic() - began, 'test_data_used': False})
         publish('TERMINAL.json', {'schema_version': SCHEMA + '_terminal',
             'status': 'FAILED_CONSUMED', 'exit_code': 1, 'plan': plan_ref,
             'claim': claim, 'failure': failed, 'no_relaunch_under_this_plan': True,
+            'completed_input_tensor_phase': input_phase_ref,
             'model_forwards_upper_bound': 1, 'optimizer_steps': 0, 'test_data_used': False})
         raise
     finally:

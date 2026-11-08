@@ -15,21 +15,25 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: `TA_NATIVE_INPUT002_ADMITTED_READY_FOR_EXACT_PREFLIGHT`.
-`training_enabled=false`. Inputaudit 001 er konsumert med feil etter 83,8 s,
-før `audit_inputs`, modellkonstruksjon eller forward. Kontrollkoden ba om en
-kampanjesnapshot som providerens egen validering ikke fyller. Dette er en
-orkestreringsfeil, ikke et målt avvik i indikatorverdiene.
-Minste rettelse bruker providerens faktiske metadata-/statkontrakt før og
-etter konsum; ny lesende preflight skal også kontrollere denne grensen.
-Alle 14 fokuserte inputaudit-tester består, inkludert faktisk providergrensesnitt,
-lesende preflight og avvisning av endret payload-identitet.
-Ny eksakt plan 002 er innrømmet og uklamet: 73 kildeeiere, CPU 12 GiB,
-512 MiB swap, 3600 s, én forward og null optimizer. Eksakt utvidet preflight
-må bestå før claim. Påkrevde commitkontroller bestod: 10 guard- og 61 modellkontrakttester. Original
-`CLAIM/FAILED/TERMINAL` og kjørelogg er bevart i
-`/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_20261108_001`.
-001 skal aldri relanseres. Mekanikk og predictor-fit er ikke innrømmet.
+Policystatus: `TA_NATIVE_INPUT002_FAILED_CONSUMED_ORACLE_PREFIX_REPAIR`.
+`training_enabled=false`. Inputaudit 002 er konsumert med feil etter 1219,1 s.
+Den passerte full rågather, normalisering og én familiehook-forward, men
+stoppet i formelorakelets eksakte prefiksport før formelsammenligning.
+Det delte, lengre prefikset for lokale trendlinjer var ikke gyldig som input
+til residual63-orakelet, som krever slutt ved siste etterspurte observasjon.
+Ingen fullstendig input-PASS eller frosne priorer ble publisert.
+Minste rettelse avgrenser akkurat dette kallet uten å nullstille historikk
+eller svekke orakelets port. Alle 16 fokuserte tester består, inkludert
+ekte residual63-/lokal96-orakler og bevaring av fullført inputfase ved
+senere formelfeil. Fasekvitteringen er ikke full input-PASS og åpner ingen
+gjenopptakelse eller relansering. Ny eksakt plan 003 må kvalifiseres.
+Den tidligere provider-grensefeilen i 001 er rettet; utvidet faktisk
+preflight for 002 bestod på 73 kildeeiere, 25 metadata-, 48 payload-stat- og
+seks skrivebeskyttede dekodefiler. 14 fokuserte tester og påkrevde
+10 guard-/61 modellkontrakttester bestod.
+Begge originale `CLAIM/FAILED/TERMINAL` og kjørelogger er bevart i
+sine `MARKET_STATE_TA_NATIVE_INPUT_20261108_001/002`-røtter.
+Ingen av dem relanseres. Ny mekanikk og predictor-fit er ikke innrømmet.
 GC-registerplanen er utsatt og uklamet. Juni 2026 er brukt utviklings-VAL;
 forseglet periode følger bare forward-journalregelen i GX1_RULES.md.
 
@@ -238,7 +242,7 @@ markedstilstand, senere Entry-beslutningsverdi eller økonomisk edge er påvist.
 Den enkle tabellmodellens negative retning er ikke en generell dom over GC,
 indikatorene eller native modell.
 
-**Neste steg:** Eksakt lesende preflight, deretter engangs inputaudit 002 på nøyaktig alle konsumerte
+**Neste steg:** Kvalifiser orakelgrensen og ny plan 003, deretter engangs inputaudit på nøyaktig alle konsumerte
 fit-/scorevinduer: råverdier, klokker, normalisering, uavhengig formeldekning
 og én faktisk familiehook-forward. Deretter bare ved PASS: ny guarded TA S/F
 fireoppdateringsmekanikk, fersk initialbaseline og 29 574-raders ettpass-fit
