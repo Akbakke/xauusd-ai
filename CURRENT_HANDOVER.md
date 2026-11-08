@@ -15,19 +15,28 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_DIRECTION_EXACT_SHARED_OBJECTIVE_CONTROL_ADMITTED.
+Policystatus: TA_DIRECTION_SHARED_HEAD_CONSTRAINT_MEASURED_NATIVE_FIX_PENDING.
 
-Mens spørsmålet om primær horisont står åpent, fullføres én uavhengig,
-manglende [mekanismekontroll](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_SHARED_OBJECTIVE_20261108_001/PLAN.json):
-konvergert felles retningshode mot eget M5-hode og felles hode for de fire
-andre TF, på hele frosne FINAL-representasjonen. Samme pass0 sampled-S/
-native-F-fasit og eksakte batch16-/TF-sidevekter beholdes i begge armer.
-Den tidligere lille A/B-kontrasten brukte bare246TRAIN-rader/480oppdateringer;
-den senere full-M5-kontrollen manglet en konvergert felles-head-arm.
-Seks private konvekse tilpasninger er innrømmet; ingen native forwards,
-hovedmodell- eller målendring. Syntetisk kontroll av tomme/siste batcher,
-gradient og motstridende oppgaver består. Denne kontrollen er uavhengig av
-hvilken framtidig reaksjonshorisont brukeren velger å prioritere.
+Den fulle [koblingskontrollen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_SHARED_OBJECTIVE_20261108_001/RESULT.json)
+er COMPLETE og konsumert. Seks konvergerte readout-fits på samme frosne
+FINAL-representasjon, samme pass0 sampled-S/native-F-fasit og eksakte
+batch16-/TF-sidevekter; 7,992 s, null nye native forwards eller vektendringer.
+Felles hode kontra eget M5-hode, med felles hode for de fire andre TF:
+TRAIN M5 S Brier0,255734 mot0,246126; F0,252135 mot0,247188.
+Felles hode taper altså mot prior0,249651/0,249876 på TRAIN selv ved
+konvergens; eget M5-hode slår prior. Dette isolerer en konkret begrensning
+i dagens readout ved den frosne representasjonen, ikke hele treningshistorien.
+Senere S/F bedres fra0,258874/0,259311 til0,254622/0,253853 ved å skille M5,
+men taper fortsatt mot prior0,249828/0,249833. Ingen kvalifisert edge.
+Alle poeng/tellinger er kontrollert med0avvik; separat batchvis rekalkulert
+treningsobjektiv avviker maksimalt1,05e-15. Alle seks løsninger konvergerte.
+
+Neste minste native rettelse klargjøres som opt-in egne M5-sidehoder for S/F.
+Aktivitet, øvrige TF, alle genuine input/familier og mål beholdes. Legacydefault
+og originale checkpoints må forbli lesbare; ny variant skal gjenbruke vekter
+og kontrollert AdamW/RNG-state, med fersk faktisk initialbaseline før ny fit.
+Ingen hovedmodellendring er implementert eller ny fit innrømmet ennå.
+Horisontspørsmålet til brukeren står fortsatt åpent; ingen target endres.
 
 Kontrollen på [opprinnelige indikatorinput](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_INPUT_CONTROL_20261108_001/RESULT.json)
 er COMPLETE og konsumert. 1 713 kolonner med alle genuine aktuelle felt og
@@ -418,8 +427,9 @@ historiske publisering og vintage er fortsatt UNKNOWN.
 **Neste steg:** Avklar retningsinformasjon og readout-konvergens på hele det
 eksisterende TRAIN-prefikset og senere TRAIN før en hovedmodellendring.
 Den lille kontrasten er for snever til å kvalifisere generalisering.
-Fullfør den innrømmede, hurtige koblingskontrollen fra cache. Avklar brukerens
-primære retningshorisont før neste kostbare hovedmodell-treningsdesign.
+Klargjør minste opt-in native M5-side-separasjon og eksakt checkpointmigrering.
+Kvalifiser fersk initialbaseline før videre native fit. Avklar brukerens
+primære retningshorisont før en eventuell målendring.
 Gjenbruk ferdige input-/representasjonscacher og checkpoints. M5-tapet er
 målt, men full årsaksforklaring og kvalifisert senere forbedring mangler.
 Målet er aktivt; ingen hovedmodellendring, ny fit eller promotering er innrømmet.
@@ -429,9 +439,9 @@ Ett pass og én fold er ingen generell dom over lengre læring eller historikk.
 
 Den tidligere [GC-registerplanen](configs/research/MARKET_STATE_GC_SIDE_MAX_REGISTRY_20261108_001.json)
 forblir bevart, men er utsatt og uklamet etter brukerens nye prioritering.
-`training_enabled=true` gjelder kun den innrømmede koblingskontrollen.
-Alle tidligere retningsdiagnoser, input-kontrollen, den konvekse M5-planen,
-cacheplanen og native fitplanene er konsumert.
+`training_enabled=false`; koblingskontrollen og alle tidligere
+retningsdiagnoser, input-kontrollen, den konvekse M5-planen, cacheplanen
+og native fitplanene er konsumert.
 
 Kilde/metode for denne fasen: [docs/NATIVE_LEARNING.md](docs/NATIVE_LEARNING.md).
 Detaljert historikk og eldre beslutninger: Git, ikke nye arkivmapper her.

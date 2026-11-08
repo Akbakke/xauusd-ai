@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-08T21:03:46.873871+00:00",
-  "status": "TA_DIRECTION_EXACT_SHARED_OBJECTIVE_CONTROL_ADMITTED",
+  "status": "TA_DIRECTION_SHARED_HEAD_CONSTRAINT_MEASURED_NATIVE_FIX_PENDING",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Finish the missing full-population converged shared-versus-isolatedM5 head control under unchanged cached pass0 side objective. This does not depend on pending horizon-priority clarification and changes no target/nativecode. Six private fits, zero nativeforwards; compare matchedTRAIN andlaterTRAIN toprior.",
+  "next_action": "Prepare smallest opt-in native M5-specific side heads for S/F, preserving activity, otherTF, all input/families/targets and legacydefault. Bind exact legacy checkpoint/AdamW/RNG migration with fresh actual initialbaseline before any newnativefit. Pendinghorizonpriority doesnotauthorize targetchange. No architecturesearch or promotion.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1632,7 +1632,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Exact frozen full-population shared-head mechanism control admitted; primary horizon question remains open.",
+    "current_activity": "Measured M5 readout-sharing constraint; minimal native opt-in correction preparation.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1661,11 +1661,11 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "Actual original-indicator M5 tree control terminal:two fixed fits on matched TRAIN, laterTRAINscoreonly;zero nativeforwards.",
+    "latest_terminal_role": "Actual sixfit converged frozen shared-versus-isolatedM5 terminal under exactpass0batchsideweights;zero nativeforwards.",
     "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_SHARED_OBJECTIVE_20261108_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_INPUT_CONTROL_20261108_001/TERMINAL.json",
-      "sha256": "f003f75c9e3043c392618cf7f1f24f581c0b9631b13d0462a30cc128cef2f86f"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_SHARED_OBJECTIVE_20261108_001/TERMINAL.json",
+      "sha256": "b30fd133db02fdc6f3cd9bd628279f90d4023edab1b998715380ac9dbfea2c42"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -1685,7 +1685,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No stable later direction demonstrated by native, frozen-readout or current-indicator snapshot controls. Native UPbias measured; fulltraining cause unresolved. Primary intended direction horizon needs clarification before choosing next costly intervention.",
+    "current_blocker": "Shared native side readout limits M5fit at currentrepresentation; minimum native separation/migration/freshbaseline notimplemented. Latergeneralization stillunproved. Horizonpriority pending; currenttargetsremainunchanged.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -40143,7 +40143,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "market_state_ta_direction_shared_objective_20261108_001",
+  "training_enabled_scope": "NONE_DIRECTION_DIAGNOSTICS_CONSUMED",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -66262,7 +66262,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "While horizon priority is pending, complete an independent missing control: exact existing batch weights, converged shared-all versus isolated-M5 readouts at frozenFINALrepresentation. Earlier fullM5convex fits did not include a converged shared-head control; earlier sharedA/B was only246rows/480AdamWupdates."
+    "latest_progress": "Fullpopulation exact-weight convergencecontrol isolates current readoutsharing constraint in7.992s. M5isolated beatsprior onTRAIN while shared cannot, and improveslaterscores vs shared butnotprior. Independent scores exact; objectiveerror1.05e-15. Next is minimum opt-in native correction with checkpointreuse andfreshbaseline; goalstillactive."
   },
   "market_state_ta_direction_weight_diagnostic_20261108_001": {
     "status": "COMPLETE_CONSUMED",
@@ -66975,19 +66975,19 @@
     "finding": "Original-indicator snapshot control learns TRAIN (S/F AUC .788409/.769324), laterTRAIN .510227/.509349; Brier .254091/.253952 worse than frozen priors .249828/.249833. Used geometry/EMA/SMC and volatility fields, not only pricelevel. Range drift among most influential fields generally small; no sole cause established. No native model change."
   },
   "market_state_ta_direction_shared_objective_20261108_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_SHARED_OBJECTIVE_20261108_001/PLAN.json",
       "sha256": "c99f976239abdf6142f64ad68b8a6a626e8439add64e3f4bb61d7326fa76a9a9"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
-    "execution_authorized": true,
-    "training_authorized": true,
-    "data_reads_authorized": true,
-    "readout_fits": 6,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "data_reads_authorized": false,
+    "readout_fits": 0,
     "new_native_forwards": 0,
     "new_native_parameter_updates": 0,
     "test_data_used": false,
@@ -66997,6 +66997,167 @@
     "synthetic_check": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_SHARED_OBJECTIVE_20261108_001/SYNTHETIC_CHECK.log",
       "sha256": "b477441701a0722adce3ae3f3efb0211378f92d952279a5c9ce39f81fcd49211"
-    }
+    },
+    "observed_readout_fits": 6,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_SHARED_OBJECTIVE_20261108_001/RESULT.json",
+      "sha256": "66c08aa53f3be8b597be06fd1fe23a292dc9379366e208b645fa9338e4e3ed6b"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_SHARED_OBJECTIVE_20261108_001/TERMINAL.json",
+      "sha256": "b30fd133db02fdc6f3cd9bd628279f90d4023edab1b998715380ac9dbfea2c42"
+    },
+    "verification": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_SHARED_OBJECTIVE_20261108_001/VERIFICATION.json",
+      "sha256": "fbbf0e9c48895fe9d08fc29a3b09224e0311c4f8c7e100b03dc8850a58fbd632"
+    },
+    "verifier": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_SHARED_OBJECTIVE_20261108_001/verify_scores_and_objective.py",
+      "sha256": "415f9575428cfcd2351fc0923899dae0a21ff0758572ab85dbb8288adaac1c95"
+    },
+    "elapsed_seconds": 7.991652624999915,
+    "m5_scores": {
+      "future": {
+        "fit": {
+          "frozen_prior": {
+            "auc": 0.5,
+            "brier": 0.24987621125676626,
+            "count": 11909,
+            "log": 0.6928995826378952,
+            "mean_p": 0.5111241709344305,
+            "up_count": 6087
+          },
+          "m5_isolated": {
+            "auc": 0.5597212117867019,
+            "brier": 0.24718817030370363,
+            "count": 11909,
+            "log": 0.6874910153603189,
+            "mean_p": 0.51444504781266,
+            "up_count": 6087
+          },
+          "original": {
+            "auc": 0.519589111439605,
+            "brier": 0.3029299871892868,
+            "count": 11909,
+            "log": 0.8293205604655555,
+            "mean_p": 0.702773246751173,
+            "up_count": 6087
+          },
+          "shared_all": {
+            "auc": 0.545964257982149,
+            "brier": 0.2521349236500707,
+            "count": 11909,
+            "log": 0.6981519107679509,
+            "mean_p": 0.5203703776589963,
+            "up_count": 6087
+          }
+        },
+        "score": {
+          "frozen_prior": {
+            "auc": 0.5,
+            "brier": 0.249833416409301,
+            "count": 7165,
+            "log": 0.6928139788167914,
+            "mean_p": 0.5111241709344305,
+            "up_count": 3676
+          },
+          "m5_isolated": {
+            "auc": 0.5011303986319822,
+            "brier": 0.2538534206845416,
+            "count": 7165,
+            "log": 0.7010457201122332,
+            "mean_p": 0.5142442444440806,
+            "up_count": 3676
+          },
+          "original": {
+            "auc": 0.504582956351861,
+            "brier": 0.31656685878867086,
+            "count": 7165,
+            "log": 0.8658506648265584,
+            "mean_p": 0.7413442581812378,
+            "up_count": 3676
+          },
+          "shared_all": {
+            "auc": 0.4987966221212572,
+            "brier": 0.2593108115251864,
+            "count": 7165,
+            "log": 0.7127529762109222,
+            "mean_p": 0.5350353138708879,
+            "up_count": 3676
+          }
+        }
+      },
+      "state": {
+        "fit": {
+          "frozen_prior": {
+            "auc": 0.5,
+            "brier": 0.24965100834625317,
+            "count": 10010,
+            "log": 0.6924490347681654,
+            "mean_p": 0.5186775868957252,
+            "up_count": 5192
+          },
+          "m5_isolated": {
+            "auc": 0.5675877759378192,
+            "brier": 0.2461256949748635,
+            "count": 10010,
+            "log": 0.6853686949176144,
+            "mean_p": 0.5252495316622477,
+            "up_count": 5192
+          },
+          "original": {
+            "auc": 0.476902390304463,
+            "brier": 0.2685424608852315,
+            "count": 10010,
+            "log": 0.7337471636930539,
+            "mean_p": 0.619506996293919,
+            "up_count": 5192
+          },
+          "shared_all": {
+            "auc": 0.5215002916643481,
+            "brier": 0.2557340646839421,
+            "count": 10010,
+            "log": 0.7055443791092135,
+            "mean_p": 0.5323606611946439,
+            "up_count": 5192
+          }
+        },
+        "score": {
+          "frozen_prior": {
+            "auc": 0.5,
+            "brier": 0.2498279877882917,
+            "count": 6096,
+            "log": 0.6928031584293621,
+            "mean_p": 0.5186775868957252,
+            "up_count": 3133
+          },
+          "m5_isolated": {
+            "auc": 0.5065137332128704,
+            "brier": 0.2546222652724795,
+            "count": 6096,
+            "log": 0.7027740351062501,
+            "mean_p": 0.5262793930228588,
+            "up_count": 3133
+          },
+          "original": {
+            "auc": 0.4846917709091994,
+            "brier": 0.2705747801168673,
+            "count": 6096,
+            "log": 0.7382108888796778,
+            "mean_p": 0.6307269676879728,
+            "up_count": 3133
+          },
+          "shared_all": {
+            "auc": 0.5039967881346264,
+            "brier": 0.25887413982311824,
+            "count": 6096,
+            "log": 0.7123830799453322,
+            "mean_p": 0.5441838720113058,
+            "up_count": 3133
+          }
+        }
+      }
+    },
+    "finding": "At frozenFINAL, exact native side-objective coupling forces a measurable M5TRAIN compromise even with convergedheadfits: sharedS/F Brier .255734/.252135 versus isolated .246126/.247188, prior .249651/.249876. IsolatingM5 improves later comparedtoshared (.254622/.253853 vs .258874/.259311) but losesprior. Current readoutconstraint established; historical whole-network cause and lateredge remainunproved."
   }
 }
