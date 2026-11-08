@@ -15,7 +15,7 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: `TA_LOCAL_TRENDLINE_NUMERIC_MISMATCH_DIAGNOSIS_REQUIRED`.
+Policystatus: `LOCAL31_DIAGNOSTIC_IMPLEMENTED_METADATA_VERIFIED_NOT_ADMITTED`.
 `training_enabled=false`. Inputaudit 003 er konsumert med faktisk numerisk
 avvik i lokale 31 trendlinjefelt mot uavhengig lokal96-replay etter 1460,6 s.
 Årsaken er ikke avklart: produksjonsfeil og ulikt pris-/ATR-/historikkgrunnlag
@@ -33,6 +33,19 @@ bestod før 003. Neste arbeid er en avgrenset formeldiagnose uten ny fullgather,
 modellforward eller trening; eksisterende tensorbevis skal gjenbrukes.
 Brukeren presiserte at trendlinjers berøring, brudd og vending er sentralt.
 Hendelsesbetinget prediksjonsverdi er en testbar hypotese, ikke et påvist funn.
+Kildesporingen bekrefter ulik initialisering: lokalprodusenten bruker
+M5_ENRICHED fra 2010-06-13 22:00, mens oraklet startet native i 2009.
+Begge bruker float64-HLC og ny Wilder14; lagret float32-ATR brukes ikke.
+Originalproduksjonens relevante kode er byte-/AST-identisk med dagens.
+Dette beviser inputforskjellen, ikke at den alene forklarer tallavviket.
+Ny avgrenset diagnose er implementert med 76 kildeeiere; seks fokuserte
+tester og faktisk metadata-binding består. Eksakt plan/claim gjenstår.
+
+Trendlinjerepresentasjonen har to nærmeste-linjeplasser uten linje-ID,
+ankre eller byttemarkør; hendelsesfelt kan gjelde andre registerlinjer.
+Nåværende tap har S/F-framtidsmål, men ingen separat fasit/evaluering for
+reaksjonen på samme linje. Dette kan gjøre læringen vanskeligere; effekten
+på presisjon er ikke målt og åpner ikke en utestet modellendring.
 GC-registerplanen er utsatt og uklamet. Juni 2026 er brukt utviklings-VAL;
 forseglet periode følger bare forward-journalregelen i GX1_RULES.md.
 
@@ -72,7 +85,8 @@ forseglet periode følger bare forward-journalregelen i GX1_RULES.md.
   186 lokale felt har eksakt M5-cache-alias. De 31 lokale trendlinjefeltene
   bruker egne 96-barsparametere og kontrolleres separat. Auditen inkluderer
   også 37 HTF/session-felt med eksplisitte asof-/avrundings-/klokkekontroller;
-  den nye auditeierens ti fokuserte tester består. Fysisk måling gjenstår.
+  den nye auditeierens kontroller er utvidet til 16 beståtte tilfeller.
+  Fysisk tensorfase bestod; lokal31-formelsammenligningen stoppet som beskrevet over.
   61 makrofelt har eldre samme-eier-paritet/asof-bevis, ikke et uavhengig
   formelorakel; dette er en uttrykkelig bevisgrense.
    COT i 2024 bruker as-of +7 kalenderdager som tilgjengelighetsproxy.
@@ -241,10 +255,11 @@ markedstilstand, senere Entry-beslutningsverdi eller økonomisk edge er påvist.
 Den enkle tabellmodellens negative retning er ikke en generell dom over GC,
 indikatorene eller native modell.
 
-**Neste steg:** Spor lokal31-produksjon og uavhengig oracle til samme pris-,
-ATR-, klokke-, parameter- og historikkgrunnlag. Kjør deretter kun en ny
-eksakt innrømmet CPU-formeldiagnose med avvikseksempler, uten fullgather,
-modell eller mål. Ikke svekk toleranser eller endre indikatorer for å få PASS.
+**Neste steg:** Forbered og innrøm én eksakt plan for den nye lokale31-
+diagnosen, kjør faktisk lesende preflight, så den avgrensede CPU-sammenligningen.
+Gjenbruk 003s tensorbevis; ingen ny fullgather, normalisering, modell eller mål.
+Mål pris-/klokkeparitet og cache/oracle/produksjon på dokumentert samme grunnlag;
+bevar alle avvikstellinger og eksempler. Ingen toleranse- eller parameterendring.
 Full inputkvalifikasjon må være avklart før nye guarded TA S/F-mekanikk,
 fersk initialbaseline og 29 574-raders ettpass-fit med matchet initial/final
 og senere 17 753-raders TRAIN-score. Ingen kvalifikasjonsvekter brukes i fit.

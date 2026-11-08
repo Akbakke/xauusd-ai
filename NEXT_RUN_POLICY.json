@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-08T13:25:29.845700+00:00",
-  "status": "TA_LOCAL_TRENDLINE_NUMERIC_MISMATCH_DIAGNOSIS_REQUIRED",
+  "status": "LOCAL31_DIAGNOSTIC_IMPLEMENTED_METADATA_VERIFIED_NOT_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Selected 0.5 ATR activity and conservative local side use the corrected five-TF TRAIN mask. The one mature fold1 native time-query v1 fit and later chronological TRAIN OOF lost M5 certified-side Brier to the frozen prior in all 14 weeks; a paired frozen diagnostic found upward miscalibration and the free-three-logit unknown-side objective defect. Factorized v2 model/loss and stable raw-logit scorer now pass source/synthetic checks, and read-only fold1 receipt/v2 view metadata binding passes. Physical v2 zero-step passed direct activity/side gradient mechanics. The exact S/F B16 two-batch private optimizer/resume probe completed four guarded physical updates with bit-exact resume and zero exit codes. It did not fit a predictor or establish GC direction value. All plans are consumed; training_enabled=false. Full fit, generalization, Entry decision value, economics, TEST, Entry, Exit, broker, trading and spending remain closed.",
-  "next_action": "Preserve consumed input003 and its complete tensor-only phase. Trace actual local31 production versus oracle OHLC/ATR/history/parameter semantics; prepare one narrow no-model CPU diagnostic that emits per-field mismatch counts and examples. Do not repeat full gather or model forward, enable training, or infer a production bug before the cause is measured.",
+  "next_action": "Prepare a new exact76-source local31 formula diagnostic plan from committed source, admit its no-model/no-target scope, run exact read-only preflight then consume once. Reuse003 tensor evidence; compare2009 reference and actual2010 source plus genuine producer without repeating gather/normalization/forward.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1624,7 +1624,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Investigate actual local31 trendline numeric disagreement; independently trace producer lineage and oracle assumptions.",
+    "current_activity": "New local31 diagnostic is implemented; six focused cases and actual metadata binding passed. Exact one-use plan preparation remains.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1677,7 +1677,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Local trendline numeric mismatch blocks full input qualification and new native fit. Input delivery and normalization are verified for the exact003 tensor phase, not predictive value.",
+    "current_blocker": "Numeric discrepancy cause remains unmeasured. Different2009/2010 input origins are verified; shared-clock OHLC parity and matching-source replay remain to be measured.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -21905,7 +21905,49 @@
       "verified_tensor_values": 7726606020,
       "normalization_maximum_absolute_error": 0.0,
       "all_eight_families_and_five_timeframes_observed": true,
-      "numeric_mismatch_cause": "UNRESOLVED_PRODUCER_VERSUS_ORACLE_INPUT_OR_SEMANTICS"
+      "numeric_mismatch_cause": "UNRESOLVED_PRODUCER_VERSUS_ORACLE_INPUT_OR_SEMANTICS",
+      "local31_diagnostic_preparation": {
+        "status": "IMPLEMENTED_METADATA_VERIFIED_NOT_ADMITTED",
+        "source_owners": 76,
+        "tests_passed": 6,
+        "evidence": {
+          "gx1_local31_diagnostic_tests_20261108.log": {
+            "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SOURCE_QUALIFICATION_20261108_001/gx1_local31_diagnostic_tests_20261108.log",
+            "sha256": "91c64f373ac1d953fbbaa544a71ec6fb698d39fe61b4b6a32f8332b50cc71ba0"
+          },
+          "gx1_local31_binding_test_20261108.log": {
+            "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SOURCE_QUALIFICATION_20261108_001/gx1_local31_binding_test_20261108.log",
+            "sha256": "bf69c714776e2b806c96487dea0bbf746e0ce83fe2aeb6ffba6b6531ea4bb91b"
+          },
+          "gx1_local31_diagnostic_metadata_repair_20261108.json": {
+            "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SOURCE_QUALIFICATION_20261108_001/gx1_local31_diagnostic_metadata_repair_20261108.json",
+            "sha256": "d8b86db89801c61cb6b27133ebed696b4825aec4903160fff5dbb7e65aab6b2d"
+          }
+        },
+        "model_forwards": 0,
+        "target_arrays_decoded": 0,
+        "new_gather": false
+      },
+      "local31_source_lineage": {
+        "original_producer_head": "7128684281792657431df09e8c844c8ec935bec9",
+        "local_source_origin": "2010-06-13T22:00:00Z",
+        "native_reference_origin": "2009-06-01T00:00:00Z",
+        "source_HLC_dtype": "float64",
+        "ATR": "Wilder14 recomputed from each source origin; stored float32 ATR is unused",
+        "local_seq_len": 96,
+        "local_band_atr": 0.9865694402555613,
+        "actual_shared_history_price_parity": "NOT_YET_MEASURED",
+        "production_defect_proven": false
+      },
+      "trendline_representation_review": {
+        "nearest_line_slots": 2,
+        "line_identity_and_anchors_in_model_fields": false,
+        "slot_change_marker_in_model_fields": false,
+        "events_aggregate_across_registry": true,
+        "same_line_event_sequence_unambiguously_encoded": false,
+        "predictive_impact_measured": false,
+        "current_supervision": "Future state S and decision-anchored displacement F; no separate same-line reaction target or event-conditioned evaluation in current loss/measurement."
+      }
     }
   },
   "gc_order_flow_research_20261006": {
@@ -24470,7 +24512,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-08T14:53:17.434251+00:00",
+  "updated_utc": "2026-11-08T15:18:15.984934+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
