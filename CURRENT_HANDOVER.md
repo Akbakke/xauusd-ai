@@ -100,6 +100,11 @@ forseglet periode scores bare etter forward-journalregelen i GX1_RULES.md.
   nåværende modellvisning mangler fortsatt de nye feltene: faktisk input,
   prediktiv verdi og Entry er ubevist. Policyens
   `market_state_gc_side_max_source_20261108_001` binder dette kildesteget.
+  Ny engangsplan [sidevis GC-bygg](configs/research/NATIVE_GC_SIDE_MAX_RESTORE_20261108_001.json)
+  SHA `57c076ffe2797297fa502a6fc32a0f0d38f4f347eaa71c9517e0d9c3b350bd47`
+  er klargjort, **ikke claimet eller kjørt**. Den gjenbruker kvalifiserte
+  råkilder, 66 filer, 1 800 s/4 GiB kapsel og samme byggeeier; tidligere
+  `024`-plan relanseres ikke. Fysisk output og faktisk modellkonsum gjenstår.
 
 - **Ny retningsvekt, kun kilde:** På de fem senere TRAIN-foldenes faste
   endepunkter hadde S entydig side i 33–44 % og F i 37–41 % av informative
@@ -143,8 +148,9 @@ indikatorene eller native modell.
 XAU-betydning når de sees sammen med prisrespons og støtte/motstand.
 Råhendelsen har `side` og `size`; kildekandidaten bevarer nå største
 betrodde kjøp/salg separat, men nye fysiske bytes og faktisk modellkonsum
-mangler. Neste steg er én ny eksakt capped råreskanning med eksisterende
-eier, fysisk numerisk/klokke-/maskekvalifikasjon og ny native visning. Deretter
+mangler. Neste steg er lesende oppstart-/hash-/maskinpreflight på den nye planen,
+deretter én ny eksakt capped råreskanning med eksisterende eier, fysisk
+numerisk/klokke-/maskekvalifikasjon og ny native visning. Deretter
 kan én parvis sammenligning av akkurat disse ti feltene mot samme input uten
 dem, eksisterende GC-/strukturflater og fryst prior på senere kronologiske
 TRAIN-rader få en særskilt fit-/OOF-admisjon. Mål aktivitet og betinget side
