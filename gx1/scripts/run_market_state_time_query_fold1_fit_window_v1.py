@@ -23,7 +23,7 @@ class _ScoreWindowExhausted(Exception):
 
 
 def _require_prior_cursor(prior: dict, *, order_sha: str,
-                          view_identity: dict) -> bool:
+                          view_identity: dict, ta_sf: bool = False) -> bool:
     """Validate a durable fit cursor; return whether only score remains."""
     _need(prior['outcome'] == 'RESUMABLE'
           and prior['parent_order_sha256'] == order_sha
@@ -33,7 +33,7 @@ def _require_prior_cursor(prior: dict, *, order_sha: str,
     if prior['phase_state'] == 'SCORING':
         _need(prior['parent_cursor'] == scope.FIT_ROWS
               and prior['optimizer_updates'] <= scope.MAX_UPDATES
-              and prior['final_train_measurement'] is not None
+              and (ta_sf or prior['final_train_measurement'] is not None)
               and Path(prior['full_state']['path']).name
                   == 'FINAL_FOLD1_FIT_STATE.pt',
               'SCORE_ONLY_RESUME_FROZEN_FIT')
@@ -80,7 +80,8 @@ def _prepared_fold1(receipts: dict, view: dict, *, np):
     provider_plan = chain['provider_plan']
     info = provider.validate_metadata(provider_plan)
     prepared = base._prepare_inputs(provider, provider_plan, info,
-                                    chain['gc_layout'])
+                                    chain['gc_layout'],
+                                    ta_only=view.get('full_ta_feature_profile') is True)
     try:
         base._validate_axes(receipts['mature_plan']['cohorts'],
                             prepared['axes'])
@@ -115,6 +116,10 @@ def _feature_batch(prepared: dict, view: dict, receipts: dict,
                    parent_rows, issue_ns, left: int, right: int, *, np):
     from gx1.contracts import entry_native_direction_feature_view_v1 as views
     from gx1.contracts.market_state_time_query_batch_v1 import FEATURE_KEYS
+    ta_sf = view.get('full_ta_feature_profile') is True
+    if ta_sf:
+        from gx1.features.entry_specialist_feature_groups_v1 import FULL_TA_ENTRY_FEATURE_KEYS
+        FEATURE_KEYS = FULL_TA_ENTRY_FEATURE_KEYS
     axes = prepared['axes']
     rows = parent_rows[left:right]
     issues = issue_ns[left:right]
@@ -127,8 +132,8 @@ def _feature_batch(prepared: dict, view: dict, receipts: dict,
         ctx_cont=prepared['current']['ctx_cont'],
         ctx_cat=prepared['current']['ctx_cat'],
         multi_tf_sources=prepared['cache'],
-        gc_surfaces=prepared['gc']['surfaces'],
-        gc_layout=prepared['gc']['layout'],
+        gc_surfaces=None if ta_sf else prepared['gc']['surfaces'],
+        gc_layout=None if ta_sf else prepared['gc']['layout'],
         batch_parent_rows=rows,
         unobserved_units_profile=receipts['fold1']['profile'])
     _need(set(raw['features']) == FEATURE_KEYS
@@ -138,6 +143,73 @@ def _feature_batch(prepared: dict, view: dict, receipts: dict,
           'EXACT_FEATURE_BATCH')
     return raw['features'], rows, issues
 
+
+
+def _ta_endpoint_measurement(*, model, prepared, view, receipts, rows, issues,
+        partition, endpoint_bound, future_bound, frozen_priors, device, deadline,
+        counters):
+    """Evaluate every declared row once; never average unequal batch losses."""
+    import numpy as np
+    import torch
+    from gx1.contracts.market_state_time_query_native_F_batch_v1 import evaluate_endpoint_batch
+    from gx1.contracts import market_state_time_query_native_F_objective_v1 as objective
+    from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
+    expected_rows = scope.FIT_ROWS if partition == 'fit' else scope.SCORE_ROWS
+    _need(partition in ('fit', 'score') and len(rows) == len(issues) == expected_rows,
+          'TA_MEASUREMENT_POPULATION')
+    before_sha = canonical_model_state_sha256(model.state_dict())
+    modes = {name: module.training for name, module in model.named_modules()}
+    total = None
+    model.eval()
+    try:
+        for left in range(0, len(rows), scope.BATCH_SIZE):
+            if time.monotonic() >= deadline - 120:
+                raise _ScoreWindowExhausted()
+            right = min(left + scope.BATCH_SIZE, len(rows))
+            raw, parents, clocks = _feature_batch(
+                prepared, view, receipts, rows, issues, left, right, np=np)
+            features = {key: torch.from_numpy(value).to(device) for key, value in raw.items()}
+            counters['forward_calls'] += 1
+            report = evaluate_endpoint_batch(model, features, endpoint_bound, future_bound,
+                parents, clocks, fold_id=1, partition=partition,
+                future_weight=1.0, frozen_priors=frozen_priors)
+            total = objective.merge_endpoint_measurements(total, report['measurement'])
+            del raw, features, report
+    finally:
+        for name, module in model.named_modules():
+            module.training = modes[name]
+        _need(canonical_model_state_sha256(model.state_dict()) == before_sha,
+              'TA_MEASUREMENT_MUTATED_MODEL')
+    measured = objective.finalize_endpoint_measurement(total)
+    _need(measured['rows'] == expected_rows
+          and measured['batches'] == (expected_rows + scope.BATCH_SIZE - 1) // scope.BATCH_SIZE,
+          'TA_MEASUREMENT_COMPLETE')
+    return measured
+
+
+def _ta_require_matched_observations(initial, final):
+    """Paired learning comparison must use identical endpoints and masks."""
+    from gx1.contracts import market_state_time_query_native_F_objective_v1 as objective
+    for key in (*objective._MEASUREMENT_BINDINGS, 'rows', 'batches', 'observation_chain_sha256'):
+        _need(initial[key] == final[key], 'TA_UNMATCHED_MEASUREMENT:' + key)
+    _need(set(initial['scores']) == set(final['scores']), 'TA_UNMATCHED_SCORE_ROLES')
+    for role, tasks in initial['scores'].items():
+        for task, tfs in tasks.items():
+            for tf, metrics in tfs.items():
+                for metric, values in metrics.items():
+                    _need(values['count'] == final['scores'][role][task][tf][metric]['count'],
+                          'TA_UNMATCHED_SUPPORT')
+    _need(initial['scores']['prior'] == final['scores']['prior'], 'TA_CHANGED_FROZEN_PRIOR')
+
+
+def _ta_measurement_payload(measurement, *, checkpoint, model_state_sha256, optimizer_updates):
+    _need(measurement.get('schema_version') == 'gx1_native_S_F_endpoint_measurement_v1',
+          'TA_MEASUREMENT_PAYLOAD')
+    return {'schema_version': 'gx1_market_state_ta_sf_fold1_evaluation_v1',
+            'fold_id': 1, 'measurement': measurement, 'evaluated_checkpoint': checkpoint,
+            'evaluated_model_state_sha256': model_state_sha256,
+            'optimizer_updates': optimizer_updates, 'test_data_used': False,
+            'predictive_value_claimed': False, 'realized_economics_claimed': False}
 
 def _save_snapshot(path: Path, model, optimizer, *, numerical: dict,
                    view_identity: dict, order, cursor: int, updates: int,
@@ -177,7 +249,8 @@ def _publish_terminal(*, work: Path, progress_path: Path,
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
     from gx1.scripts import run_entry_native_direction_research_window_v1 as common
     payload = {
-        'schema_version': scope.RESULT_SCHEMA,
+        'schema_version': (scope.TA_RESULT_SCHEMA if launch['run_scope'] == scope.TA_SF_SCOPE
+                           else scope.RESULT_SCHEMA),
         'outcome': outcome, 'phase_state': phase_state,
         'recipe': window['recipe'], 'fold': fold,
         'source_commit': plan['source_commit'],
@@ -255,10 +328,13 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
     )
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
 
-    _need(launch['run_scope'] == scope.SCOPE
+    ta_sf = launch['run_scope'] == scope.TA_SF_SCOPE
+    expected_recipe = scope.ta_sf_numerical_recipe() if ta_sf else scope.fold1_numerical_recipe()
+    _need(launch['run_scope'] in {scope.SCOPE, scope.TA_SF_SCOPE}
           and launch['fold'] == scope.FOLD
-          and launch['numerical_recipe'] == scope.fold1_numerical_recipe()
-          and launch['reference_result'] == scope.REFERENCE_RESULT
+          and launch['numerical_recipe'] == expected_recipe
+          and launch['reference_result'] == (
+              launch['input_refs']['ta_endpoint_priors'] if ta_sf else scope.REFERENCE_RESULT)
           and launch['test_data_used'] is False
           and window['invocation_number'] == invocation['invocation_number'],
           'ADMITTED_SCOPE')
@@ -310,15 +386,38 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
              'invocation_number': number, 'limits': limits,
              'test_data_used': False},
             counters, launch['max_published_json_bytes'])
-        zero_plan = zero._read_ref(scope.private.ZERO_STEP_REFS['plan'])
-        receipts = zero._inspect_receipts()
-        view = zero._bind_view(zero_plan, receipts, 1)
-        _need(view['contract_sha256'] == scope.VIEW_SHA256,
+        if ta_sf:
+            receipts = zero.load_ta_input_receipts()
+            view = zero._bind_ta_view(receipts)
+            candidate_ref = launch['input_refs']['ta_candidate_view']
+            candidate = authority.campaign.read_bound_json(
+                Path(candidate_ref['path']), candidate_ref['sha256'])
+            _need(view == candidate, 'TA_EXACT_CANDIDATE_VIEW')
+            from gx1.contracts.market_state_five_endpoint_target_binding_v1 import load_bound_five_endpoint_targets
+            from gx1.contracts.market_state_future_displacement_candidate_v1 import load_bound_future_displacement
+            from gx1.contracts import market_state_time_query_native_F_objective_v1 as sf_objective
+            from gx1.contracts.market_state_time_query_native_F_batch_v1 import evaluate_fit_batch
+            endpoint_bound = load_bound_five_endpoint_targets()
+            future_bound = load_bound_future_displacement()
+            prior_ref = launch['input_refs']['ta_endpoint_priors']
+            frozen_priors = authority.campaign.read_bound_json(
+                Path(prior_ref['path']), prior_ref['sha256'])
+        else:
+            zero_plan = zero._read_ref(scope.private.ZERO_STEP_REFS['plan'])
+            receipts = zero._inspect_receipts()
+            view = zero._bind_view(zero_plan, receipts, 1)
+            scope._reference_report()
+        _need(view['contract_sha256'] == launch['expected_view_sha256'],
               'FOLD1_MATURE_VIEW')
-        scope._reference_report()
         bound = targets.load_bound_time_query_targets()
         provider, provider_plan, prepared, fit_rows, issues = _prepared_fold1(
             receipts, view, np=np)
+        if ta_sf:
+            exact_priors = sf_objective.fit_endpoint_priors(
+                endpoint_bound, future_bound, axes={
+                    'fit_parent_rows': fit_rows, 'fit_decision_ns': issues},
+                fold_id=1, ta_only=True)
+            _need(exact_priors == frozen_priors, 'TA_FROZEN_FIT_PRIORS')
         order = torch.from_numpy(fit_rows.copy())
         order_sha = tree_sha(order)
         timings['input_setup_seconds'] = time.monotonic() - tic
@@ -330,17 +429,21 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
             view, prefix_normalization=receipts['fold1']['normal'],
             constructor_metadata=receipts['constructor'], device=device,
             unobserved_units_profile=receipts['fold1']['profile'])
+        if ta_sf:
+            from gx1.contracts.market_state_time_query_native_F_model_v1 import NativeFutureDualModel
+            model = NativeFutureDualModel(model).to(device)
         counters['model_constructions'] += 1
+        actual_view = model.state_model.feature_view_identity if ta_sf else model.feature_view_identity
         _need(model.research_objective['contract_sha256']
-              == scope.MODEL_CONTRACT_SHA256
-              and model.feature_view_identity['contract_sha256']
-              == scope.VIEW_SHA256, 'FRESH_MODEL_BINDING')
+              == launch['expected_model_contract_sha256']
+              and actual_view['contract_sha256']
+              == launch['expected_view_sha256'], 'FRESH_MODEL_BINDING')
         model.train()
         optimizer, _ = state.build_fold1_fit_optimizer(
             model, numerical_recipe=numerical)
         counters['optimizer_constructions'] += 1
         view_identity = scope.require_checkpoint_view(
-            model.feature_view_identity, recipe=launch, verify_files=True)
+            actual_view, recipe=launch, verify_files=True, ta_sf=ta_sf)
         timings['fresh_model_seconds'] = time.monotonic() - tic
 
         fresh = state.capture_fold1_fit_state(
@@ -352,8 +455,29 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
             initial_ref = common._save_state(
                 state_dir / 'INITIAL_FOLD1_STATE.pt', fresh, torch=torch,
                 maximum=launch['max_checkpoint_bytes'], counters=counters)
-            initial_measurement = common._json(
-                work / 'INITIAL_TRAIN.json',
+            if ta_sf:
+                measured = _ta_endpoint_measurement(
+                    model=model, prepared=prepared, view=view, receipts=receipts,
+                    rows=fit_rows, issues=issues, partition='fit',
+                    endpoint_bound=endpoint_bound, future_bound=future_bound,
+                    frozen_priors=frozen_priors, device=device, deadline=deadline,
+                    counters=counters)
+                initial_measurement = common._json(work / 'INITIAL_TRAIN.json',
+                    _ta_measurement_payload(measured, checkpoint=initial_ref,
+                        model_state_sha256=fresh['model_state_sha256'],
+                        optimizer_updates=0),
+                    counters, launch['max_published_json_bytes'])
+                after_initial = state.capture_fold1_fit_state(
+                    model, optimizer, numerical_recipe=numerical,
+                    feature_view_identity=view_identity, parent_order=order,
+                    cursor=0, optimizer_updates=0, skipped_batches=0,
+                    source_commit=plan['source_commit'], device=device)
+                _need(after_initial['contract_sha256'] == fresh['contract_sha256'],
+                      'TA_INITIAL_EVAL_MUTATED_FULL_STATE')
+                del after_initial
+            else:
+                initial_measurement = common._json(
+                    work / 'INITIAL_TRAIN.json',
                 {'schema_version': 'gx1_market_state_time_query_fold1_initial_v1',
                  'fold_id': 1, 'fit_rows': scope.FIT_ROWS,
                  'view_sha256': scope.VIEW_SHA256,
@@ -374,7 +498,7 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
                 prior_raw, expected_recipe=window['recipe'],
                 expected_fold=fold, verify_files=True)
             score_only_resume = _require_prior_cursor(
-                prior, order_sha=order_sha, view_identity=view_identity)
+                prior, order_sha=order_sha, view_identity=view_identity, ta_sf=ta_sf)
             initial_ref = prior['own_initial_state']
             initial_measurement = prior['initial_measurement']
             initial_loaded = common._load_state(
@@ -425,12 +549,23 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
             with trainer._training_mha_fastpath_context(model.backbone), \
                  trainer._training_autocast_context(), \
                  trainer._training_model_finite_check_context():
-                report = evaluate_fit_batch(
-                    model, features, bound, rows, batch_issues,
-                    fold_id=1, pass_index=scope.PASS_INDEX,
-                    seed=numerical['seed'])
-            _need(report['model_contract_sha256'] == scope.MODEL_CONTRACT_SHA256
-                  and report['loss_contract_sha256'] == scope.LOSS_CONTRACT_SHA256
+                if ta_sf:
+                    report = evaluate_fit_batch(
+                        model, features, bound, future_bound, rows, batch_issues,
+                        fold_id=1, pass_index=scope.PASS_INDEX,
+                        seed=numerical['seed'], future_weight=numerical['future_weight'])
+                    report['count'] = report['state_count'] + report['future_count']
+                    report['per_tf_counts'] = {
+                        task + ':' + tf: count
+                        for task in ('state', 'future')
+                        for tf, count in report[task + '_per_tf_counts'].items()}
+                else:
+                    report = evaluate_fit_batch(
+                        model, features, bound, rows, batch_issues,
+                        fold_id=1, pass_index=scope.PASS_INDEX,
+                        seed=numerical['seed'])
+            _need(report['model_contract_sha256'] == launch['expected_model_contract_sha256']
+                  and report['loss_contract_sha256'] == launch['expected_loss_contract_sha256']
                   and bool(torch.isfinite(report['loss']))
                   and report['skip_update'] is (report['count'] == 0),
                   'FIT_LOSS_AND_MASKS')
@@ -503,69 +638,117 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
                 final_seal = final_loaded['contract_sha256']
                 model_sha = final_loaded['model_state_sha256']
                 del final_loaded
-            if final_measurement is None:
-                final_measurement = common._json(
-                    work / 'FINAL_TRAIN.json',
-                    {'schema_version': 'gx1_market_state_time_query_fold1_final_train_v1',
-                     'fold_id': 1, 'fit_rows': scope.FIT_ROWS,
-                     'consumed_batches': scope.MAX_UPDATES,
-                     'optimizer_updates': updates,
-                     'skipped_batches': skipped,
-                     'view_sha256': scope.VIEW_SHA256,
-                     'fit_checkpoint': full_state,
-                     'fit_state_sha256': final_seal,
-                     'fit_model_state_sha256': model_sha,
-                     'observed_invocation_fit_batches': fit_batches,
-                     'observed_invocation_loss_sum': fit_loss_sum,
-                     'observed_invocation_per_tf_counts': dict(per_tf_counts),
-                     'test_data_used': False,
-                     'predictive_value_claimed': False},
-                    counters, launch['max_published_json_bytes'])
-            phase = 'SCORING'
-            durable = {'state': full_state, 'cursor': cursor,
-                       'updates': updates, 'skipped': skipped,
-                       'phase': phase, 'final_measurement': final_measurement}
-            base._release_pages(provider, prepared)
-            provider.validate_metadata(provider_plan)
-            provider = prepared = None
-            del model, optimizer
-            model = optimizer = None
-            gc.collect()
-            torch.cuda.empty_cache()
-            if time.monotonic() < deadline - 3600:
-                score_started = True
-                from gx1.audit.score_market_state_time_query_fold1_oof_v1 import (
-                    score_fold1_from_checkpoint,
-                )
-                def score_deadline() -> None:
-                    if time.monotonic() >= deadline - 120:
-                        raise _ScoreWindowExhausted()
+            if ta_sf:
+                phase = 'SCORING'
+                durable = {'state': full_state, 'cursor': cursor,
+                           'updates': updates, 'skipped': skipped,
+                           'phase': phase, 'final_measurement': final_measurement}
+                outcome = 'RESUMABLE'
                 try:
-                    score_report = score_fold1_from_checkpoint(
-                        fit_checkpoint_ref=full_state,
-                        expected_model_state_sha256=model_sha,
-                        source_commit=plan['source_commit'],
-                        device=device, check_deadline=score_deadline)
+                    if final_measurement is None:
+                        measured = _ta_endpoint_measurement(
+                            model=model, prepared=prepared, view=view, receipts=receipts,
+                            rows=fit_rows, issues=issues, partition='fit',
+                            endpoint_bound=endpoint_bound, future_bound=future_bound,
+                            frozen_priors=frozen_priors, device=device, deadline=deadline,
+                            counters=counters)
+                        initial_payload = authority.campaign.read_bound_json(
+                            Path(initial_measurement['path']), initial_measurement['sha256'])
+                        _ta_require_matched_observations(
+                            initial_payload['measurement'], measured)
+                        final_measurement = common._json(work / 'FINAL_TRAIN.json',
+                            _ta_measurement_payload(measured, checkpoint=full_state,
+                                model_state_sha256=model_sha, optimizer_updates=updates),
+                            counters, launch['max_published_json_bytes'])
+                        durable['final_measurement'] = final_measurement
+                    axes = prepared['axes']
+                    score_slice = slice(scope.FOLD['oof_start_row'], scope.FOLD['oof_end_row'])
+                    score_rows = np.asarray(axes['parent_rows'][score_slice], dtype=np.int64)
+                    score_issues = np.asarray(axes['decision_ns'][score_slice], dtype=np.int64)
+                    score_axes = endpoint_bound.mature_oof_axes(fold_id=1)
+                    _need(np.array_equal(score_rows, score_axes['score_parent_rows'])
+                        and np.array_equal(score_issues, score_axes['score_decision_ns']),
+                        'TA_EXACT_LATER_SCORE_AXIS')
+                    score_started = True
+                    measured = _ta_endpoint_measurement(
+                        model=model, prepared=prepared, view=view, receipts=receipts,
+                        rows=score_rows, issues=score_issues, partition='score',
+                        endpoint_bound=endpoint_bound, future_bound=future_bound,
+                        frozen_priors=frozen_priors, device=device, deadline=deadline,
+                        counters=counters)
+                    oof_measurement = common._json(work / 'OOF.json',
+                        _ta_measurement_payload(measured, checkpoint=full_state,
+                            model_state_sha256=model_sha, optimizer_updates=updates),
+                        counters, launch['max_published_json_bytes'])
+                    oof_cursor = scope.SCORE_ROWS
+                    phase = outcome = 'COMPLETE'
                 except _ScoreWindowExhausted:
                     score_started = False
-                    outcome = 'RESUMABLE'
-                    phase = 'SCORING'
-                _need(score_report is not None or outcome == 'RESUMABLE',
-                      'SCORER_RETURNED_NO_REPORT')
-                if score_report is not None:
-                    _need(isinstance(score_report, dict)
-                      and score_report.get('fold_id') == 1
-                      and score_report.get('score_rows') == scope.SCORE_ROWS
-                      and score_report.get('test_data_used') is False,
-                          'COMPLETE_SCORE_REPORT')
-                    oof_measurement = common._json(
-                        work / 'OOF.json', score_report, counters,
-                        launch['max_published_json_bytes'])
-                    oof_cursor = scope.SCORE_ROWS
-                    phase = 'COMPLETE'
-                    outcome = 'COMPLETE'
+                    outcome, phase = 'RESUMABLE', 'SCORING'
             else:
-                outcome = 'RESUMABLE'
+                if final_measurement is None:
+                    final_measurement = common._json(
+                        work / 'FINAL_TRAIN.json',
+                        {'schema_version': 'gx1_market_state_time_query_fold1_final_train_v1',
+                         'fold_id': 1, 'fit_rows': scope.FIT_ROWS,
+                         'consumed_batches': scope.MAX_UPDATES,
+                         'optimizer_updates': updates,
+                         'skipped_batches': skipped,
+                         'view_sha256': scope.VIEW_SHA256,
+                         'fit_checkpoint': full_state,
+                         'fit_state_sha256': final_seal,
+                         'fit_model_state_sha256': model_sha,
+                         'observed_invocation_fit_batches': fit_batches,
+                         'observed_invocation_loss_sum': fit_loss_sum,
+                         'observed_invocation_per_tf_counts': dict(per_tf_counts),
+                         'test_data_used': False,
+                         'predictive_value_claimed': False},
+                        counters, launch['max_published_json_bytes'])
+                phase = 'SCORING'
+                durable = {'state': full_state, 'cursor': cursor,
+                           'updates': updates, 'skipped': skipped,
+                           'phase': phase, 'final_measurement': final_measurement}
+                base._release_pages(provider, prepared)
+                provider.validate_metadata(provider_plan)
+                provider = prepared = None
+                del model, optimizer
+                model = optimizer = None
+                gc.collect()
+                torch.cuda.empty_cache()
+                if time.monotonic() < deadline - 3600:
+                    score_started = True
+                    from gx1.audit.score_market_state_time_query_fold1_oof_v1 import (
+                        score_fold1_from_checkpoint,
+                    )
+                    def score_deadline() -> None:
+                        if time.monotonic() >= deadline - 120:
+                            raise _ScoreWindowExhausted()
+                    try:
+                        score_report = score_fold1_from_checkpoint(
+                            fit_checkpoint_ref=full_state,
+                            expected_model_state_sha256=model_sha,
+                            source_commit=plan['source_commit'],
+                            device=device, check_deadline=score_deadline)
+                    except _ScoreWindowExhausted:
+                        score_started = False
+                        outcome = 'RESUMABLE'
+                        phase = 'SCORING'
+                    _need(score_report is not None or outcome == 'RESUMABLE',
+                          'SCORER_RETURNED_NO_REPORT')
+                    if score_report is not None:
+                        _need(isinstance(score_report, dict)
+                          and score_report.get('fold_id') == 1
+                          and score_report.get('score_rows') == scope.SCORE_ROWS
+                          and score_report.get('test_data_used') is False,
+                              'COMPLETE_SCORE_REPORT')
+                        oof_measurement = common._json(
+                            work / 'OOF.json', score_report, counters,
+                            launch['max_published_json_bytes'])
+                        oof_cursor = scope.SCORE_ROWS
+                        phase = 'COMPLETE'
+                        outcome = 'COMPLETE'
+                else:
+                    outcome = 'RESUMABLE'
         else:
             _need(cursor < scope.FIT_ROWS and time.monotonic() >= deadline - 120,
                   'FIT_INTERRUPTED_WITHOUT_DEADLINE')

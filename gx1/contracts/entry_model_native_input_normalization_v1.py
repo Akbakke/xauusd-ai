@@ -1680,6 +1680,114 @@ def build_input_normalization_contract(
     return payload
 
 
+
+def project_ta_input_normalization_contract(
+    value: Mapping[str, Any], *,
+    unobserved_units_profile: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Exactly select existing TRAIN statistics for the canonical TA profile.
+
+    No fit, scale invention, clipping or zero projection occurs. The original
+    validated contract and optional units authority remain embedded provenance,
+    including the bounded M5 apex unit used by the mature first fold.
+    """
+    from gx1.features.entry_specialist_feature_groups_v1 import (
+        compile_full_ta_entry_execution_profile,
+    )
+    profile = compile_full_ta_entry_execution_profile()
+    if not isinstance(value, Mapping) or "ta_projection" in value:
+        raise RuntimeError("TA_NORMALIZATION_SOURCE_INVALID")
+    source_fields = profile["source_field_names"]
+    source = require_input_normalization_contract(
+        value,
+        expected_field_names={surface: source_fields[
+            "mtf" if surface.startswith("mtf_") else surface]
+            for surface in EXPECTED_SURFACES},
+        expected_ctx_cat_names=source_fields["ctx_cat"],
+        expected_entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+        unobserved_units_profile=unobserved_units_profile,
+    )
+    # JSON round-trip follows the contract's canonical immutable representation.
+    result = json.loads(json.dumps(source))
+    takes = {"signal": profile["source_signal_indices"],
+             "ctx_cont": profile["source_ctx_cont_indices"]}
+    for surface, indices in takes.items():
+        old = source["surfaces"][surface]
+        names = [old["field_names"][i] for i in indices]
+        counts = old.get("observed_fit_counts")
+        if counts is not None and any(counts[i] == 0 for i in indices):
+            raise RuntimeError("TA_NORMALIZATION_RETAINED_UNOBSERVED_FIELD")
+        stats = result["surfaces"][surface]
+        for key in ("center", "scale", "binary_mask", "categorical_mask",
+                    "scale_source", "train_transformed_min", "train_transformed_max"):
+            stats[key] = [old[key][i] for i in indices]
+        for key in ("unobserved_units_profile_sha256", "unfitted_estimates",
+                    "observed_fit_counts"):
+            stats.pop(key, None)
+        stats.update(field_names=names, field_count=len(names),
+                     field_names_sha256=_field_names_sha256(names),
+                     binary_field_count=sum(stats["binary_mask"]),
+                     categorical_field_count=sum(stats["categorical_mask"]),
+                     categorical_domains={name: old["categorical_domains"][name]
+                                          for name in names
+                                          if name in old["categorical_domains"]})
+        stats["stats_sha256"] = _stats_sha256(
+            field_names=names, center=np.asarray(stats["center"], dtype=np.float32),
+            scale=np.asarray(stats["scale"], dtype=np.float32),
+            binary_mask=np.asarray(stats["binary_mask"], dtype=np.uint8),
+            categorical_mask=np.asarray(stats["categorical_mask"], dtype=np.uint8),
+            categorical_domains=stats["categorical_domains"],
+            train_transformed_min=np.asarray(stats["train_transformed_min"], dtype=np.float64),
+            train_transformed_max=np.asarray(stats["train_transformed_max"], dtype=np.float64),
+            scale_source=stats["scale_source"],
+        )
+    maps = {surface: {old: new for new, old in enumerate(indices)}
+            for surface, indices in takes.items()}
+    result["temporal_aliases"] = [
+        {**alias, "signal_index": maps["signal"][alias["signal_index"]],
+         "ctx_cont_index": maps["ctx_cont"][alias["ctx_cont_index"]]}
+        for alias in source["temporal_aliases"]
+        if alias["signal_index"] in maps["signal"]
+        and alias["ctx_cont_index"] in maps["ctx_cont"]
+    ]
+    result["temporal_aliases_sha256"] = _canonical_sha256(result["temporal_aliases"])
+    result["surface_stats_sha256"] = {
+        name: stats["stats_sha256"] for name, stats in result["surfaces"].items()}
+    result["ta_projection"] = {
+        "schema_version": "gx1_ta_existing_train_normalization_projection_v1",
+        "profile": {key: profile[key] for key in ("name", "contract_sha256")},
+        "source_contract": json.loads(json.dumps(source)),
+        "unobserved_units_profile": (None if unobserved_units_profile is None
+                                    else json.loads(json.dumps(unobserved_units_profile))),
+        "new_fit_performed": False,
+    }
+    result.pop("contract_sha256")
+    result["contract_sha256"] = _canonical_sha256(result)
+    return result
+
+
+def _require_ta_input_normalization_contract(
+    value: Mapping[str, Any], *, expected_field_names: Mapping[str, Sequence[str]],
+    expected_ctx_cat_names: Sequence[str], expected_entry_training_phase: str | None,
+    unobserved_units_profile: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    provenance = value.get("ta_projection")
+    if (unobserved_units_profile is not None or not isinstance(provenance, Mapping)
+            or set(provenance) != {"schema_version", "profile", "source_contract",
+                                   "unobserved_units_profile", "new_fit_performed"}):
+        raise RuntimeError("TA_NORMALIZATION_PROVENANCE_INVALID")
+    expected = project_ta_input_normalization_contract(
+        provenance["source_contract"],
+        unobserved_units_profile=provenance["unobserved_units_profile"])
+    if _canonical_sha256(value) != _canonical_sha256(expected):
+        raise RuntimeError("TA_NORMALIZATION_EXACT_PROJECTION_MISMATCH")
+    fields = {name: stats["field_names"] for name, stats in expected["surfaces"].items()}
+    if ({key: list(names) for key, names in expected_field_names.items()} != fields
+            or list(expected_ctx_cat_names) != list(CTX_CAT_DOMAINS)
+            or expected_entry_training_phase not in (None, ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)):
+        raise RuntimeError("TA_NORMALIZATION_CONSUMER_BINDING")
+    return expected
+
 def require_input_normalization_contract(
     value: Mapping[str, Any],
     *,
@@ -1690,6 +1798,12 @@ def require_input_normalization_contract(
 ) -> dict[str, Any]:
     if not isinstance(value, Mapping):
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_CONTRACT_MISSING]")
+    if "ta_projection" in value:
+        return _require_ta_input_normalization_contract(
+            value, expected_field_names=expected_field_names,
+            expected_ctx_cat_names=expected_ctx_cat_names,
+            expected_entry_training_phase=expected_entry_training_phase,
+            unobserved_units_profile=unobserved_units_profile)
     data = dict(value)
     expected_keys = {
         "schema_version",

@@ -25,12 +25,15 @@ from gx1.contracts.market_state_time_query_model_v1 import (
 )
 from gx1.contracts.market_state_time_query_target_v1 import NATIVE_K, TIMEFRAMES
 from gx1.features.entry_specialist_feature_groups_v1 import (
-    FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME,
+    FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME, FULL_TA_ENTRY_EXECUTION_PROFILE_NAME,
+    FULL_TA_ENTRY_FEATURE_KEYS, compile_full_ta_entry_execution_profile,
 )
 from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import EntryV10CtxHybridTransformer
 
 
-def factorized_time_query_model_contract() -> dict:
+def factorized_time_query_model_contract(*, ta_only: bool = False) -> dict:
+    if type(ta_only) is not bool:
+        raise ValueError("TIME_QUERY_TA_MODE")
     value = {
         "schema_version": "gx1_market_state_time_query_model_v2",
         "role": "research_only_no_entry_exit_or_trade_authority",
@@ -51,6 +54,10 @@ def factorized_time_query_model_contract() -> dict:
         "current_state_or_future_target_as_forward_input": False,
         "old_checkpoint_compatible": False,
     }
+    if ta_only:
+        profile = compile_full_ta_entry_execution_profile()
+        value["input_profile"] = {key: profile[key] for key in ("name", "contract_sha256")}
+        value["feature_keys"] = sorted(FULL_TA_ENTRY_FEATURE_KEYS)
     raw = json.dumps(value, sort_keys=True, separators=(",", ":"),
                      allow_nan=False).encode()
     return {**value, "contract_sha256": hashlib.sha256(raw).hexdigest()}
@@ -83,10 +90,10 @@ class FactorizedTimeQueryMarketStateModel(TimeQueryMarketStateModel):
         # three-logit head or consume its initialization randomness.
         nn.Module.__init__(self)
         width = _backbone_width(backbone)
-        _require(isinstance(backbone.entry_execution_profile, dict)
-                 and backbone.entry_execution_profile.get("name") == FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME
-                 and backbone.gc_mtf_history is not None
-                 and "relative_price" not in backbone.gc_mtf_history["normalization"], "FULL_GC_PROFILE")
+        self._ta_only = (isinstance(backbone.entry_execution_profile, dict)
+                         and backbone.entry_execution_profile.get("name")
+                         == FULL_TA_ENTRY_EXECUTION_PROFILE_NAME)
+        self._require_input_profile(backbone)
         self.backbone = backbone
         self._hidden_width = width
         device = backbone.entry_q_joint_in.weight.device
@@ -99,20 +106,29 @@ class FactorizedTimeQueryMarketStateModel(TimeQueryMarketStateModel):
         self.register_buffer("query_native_k", torch.tensor(
             [int(k) for k in NATIVE_K], device=device, dtype=torch.int64))
         self.register_buffer("query_objective_sha256", torch.tensor(
-            list(bytes.fromhex(factorized_time_query_model_contract()["contract_sha256"])),
+            list(bytes.fromhex(factorized_time_query_model_contract(ta_only=self._ta_only)["contract_sha256"])),
             device=device, dtype=torch.uint8))
 
     @property
     def research_objective(self) -> dict:
-        return factorized_time_query_model_contract()
+        return factorized_time_query_model_contract(ta_only=self._ta_only)
+
+    def _require_input_profile(self, backbone) -> None:
+        if self._ta_only:
+            profile = compile_full_ta_entry_execution_profile()
+            _require(backbone.entry_execution_profile == {
+                key: profile[key] for key in ("name", "contract_sha256")}
+                and backbone.gc_mtf_history is None, "FULL_TA_PROFILE")
+        else:
+            _require(isinstance(backbone.entry_execution_profile, dict)
+                     and backbone.entry_execution_profile.get("name") == FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME
+                     and backbone.gc_mtf_history is not None
+                     and "relative_price" not in backbone.gc_mtf_history["normalization"], "FULL_GC_PROFILE")
 
     def _require_binding(self) -> None:
         width = _backbone_width(self.backbone)
         _require(width == self._hidden_width, "HIDDEN_WIDTH")
-        _require(isinstance(self.backbone.entry_execution_profile, dict)
-                 and self.backbone.entry_execution_profile.get("name") == FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME
-                 and self.backbone.gc_mtf_history is not None
-                 and "relative_price" not in self.backbone.gc_mtf_history["normalization"], "FULL_GC_PROFILE")
+        self._require_input_profile(self.backbone)
         device = self.backbone.entry_q_joint_in.weight.device
         expected = {
             "query_tf_coordinates": torch.eye(
@@ -142,6 +158,45 @@ class FactorizedTimeQueryMarketStateModel(TimeQueryMarketStateModel):
                      and layer.weight.device == layer.bias.device == device
                      and bool(torch.isfinite(layer.weight).all())
                      and bool(torch.isfinite(layer.bias).all()), "HEAD_BINDING")
+
+    def encode_features(
+        self, seq_x: torch.Tensor, snap_x: torch.Tensor, *,
+        ctx_cat: torch.Tensor, ctx_cont: torch.Tensor,
+        seq_m5: torch.Tensor, seq_m15: torch.Tensor, seq_h1: torch.Tensor,
+        seq_h4: torch.Tensor, seq_d1: torch.Tensor, **gc_features: torch.Tensor,
+    ) -> torch.Tensor:
+        if not self._ta_only:
+            return super().encode_features(
+                seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont,
+                seq_m5=seq_m5, seq_m15=seq_m15, seq_h1=seq_h1,
+                seq_h4=seq_h4, seq_d1=seq_d1, **gc_features)
+        self._require_binding()
+        _require(not gc_features, "TA_GC_FEATURES_FORBIDDEN")
+        features = dict(seq_x=seq_x, snap_x=snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont,
+                        seq_m5=seq_m5, seq_m15=seq_m15, seq_h1=seq_h1,
+                        seq_h4=seq_h4, seq_d1=seq_d1)
+        _require(set(features) == FULL_TA_ENTRY_FEATURE_KEYS
+                 and isinstance(seq_x, torch.Tensor) and seq_x.ndim == 3
+                 and seq_x.shape[0] > 0, "TA_FEATURE_BATCH")
+        for name, value in features.items():
+            rank = 3 if name == "seq_x" or name.startswith("seq_") else 2
+            integer = name == "ctx_cat"
+            _require(isinstance(value, torch.Tensor) and value.ndim == rank
+                     and value.shape[0] == seq_x.shape[0]
+                     and all(size > 0 for size in value.shape)
+                     and value.device == self.query_tf_coordinates.device
+                     and (value.dtype in (torch.int8, torch.int16, torch.int32,
+                                          torch.int64, torch.uint8) if integer
+                          else value.dtype == torch.float32 and bool(torch.isfinite(value).all())),
+                     "FEATURE:" + name)
+        output = self.backbone(**features, research_representation_only=True)
+        _require(isinstance(output, dict), "BACKBONE_OUTPUT")
+        hidden = output.get("entry_q_joint_hidden")
+        _require(isinstance(hidden, torch.Tensor) and hidden.dtype == torch.float32
+                 and hidden.shape == (seq_x.shape[0], self._hidden_width)
+                 and hidden.device == self.query_tf_coordinates.device
+                 and bool(torch.isfinite(hidden).all()), "BACKBONE_HIDDEN")
+        return hidden
 
     def decode_raw_query_grid(
         self, hidden: torch.Tensor, query_k: torch.Tensor,
@@ -183,14 +238,12 @@ class FactorizedTimeQueryMarketStateModel(TimeQueryMarketStateModel):
         ctx_cat: torch.Tensor, ctx_cont: torch.Tensor,
         seq_m5: torch.Tensor, seq_m15: torch.Tensor, seq_h1: torch.Tensor,
         seq_h4: torch.Tensor, seq_d1: torch.Tensor,
-        gc_seq_m5: torch.Tensor, gc_seq_m15: torch.Tensor, gc_seq_h1: torch.Tensor,
-        gc_seq_h4: torch.Tensor, gc_seq_d1: torch.Tensor,
+        **gc_features: torch.Tensor,
     ) -> dict[str, torch.Tensor]:
         hidden = self.encode_features(
             seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont,
             seq_m5=seq_m5, seq_m15=seq_m15, seq_h1=seq_h1, seq_h4=seq_h4,
-            seq_d1=seq_d1, gc_seq_m5=gc_seq_m5, gc_seq_m15=gc_seq_m15,
-            gc_seq_h1=gc_seq_h1, gc_seq_h4=gc_seq_h4, gc_seq_d1=gc_seq_d1)
+            seq_d1=seq_d1, **gc_features)
         _require(isinstance(query_k, torch.Tensor) and query_k.ndim == 2, "QUERY_K")
         raw = self.decode_raw_query_grid(hidden, query_k[:, None, :])[:, 0, :, :]
         return {"activity_side_logits": raw,

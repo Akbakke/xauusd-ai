@@ -1780,6 +1780,84 @@ def compile_full_gc_mtf_entry_execution_profile(
     return {**payload, "contract_sha256": _canonical_sha256(payload)}
 
 
+FULL_TA_ENTRY_EXECUTION_PROFILE_NAME = "full_xau_ta_mtf_entry_research_v1"
+FULL_TA_ENTRY_FEATURE_KEYS = frozenset((
+    "seq_x", "snap_x", "ctx_cat", "ctx_cont",
+    "seq_m5", "seq_m15", "seq_h1", "seq_h4", "seq_d1",
+))
+
+
+def compile_full_ta_entry_execution_profile() -> dict[str, object]:
+    """Project the existing physical library to every canonical non-GC field.
+
+    GC ownership, including observation masks, is decided by the existing
+    registry. Source tensors/statistics remain immutable; the TA model receives
+    the projected ordered surfaces before normalization or device transfer.
+    """
+    source = compile_compact_entry_execution_profile()["physical_field_names"]
+    source_signal, source_ctx = source["signal"], source["ctx_cont"]
+    signal_take = tuple(i for i, name in enumerate(source_signal)
+                        if name.removeprefix("ctx_cont.") not in _GC_OWNERS)
+    ctx_take = tuple(i for i, name in enumerate(source_ctx) if name not in _GC_OWNERS)
+    fields = {
+        "signal": tuple(source_signal[i] for i in signal_take),
+        "ctx_cont": tuple(source_ctx[i] for i in ctx_take),
+        "ctx_cat": tuple(source["ctx_cat"]), "mtf": tuple(source["mtf"]),
+    }
+    if (len(source_signal) - len(signal_take) != len(_GC_OWNERS)
+            or len(source_ctx) - len(ctx_take) != len(_GC_OWNERS)
+            or not set(_D1_MACRO_CONTEXT_FIELDS).issubset(fields["ctx_cont"])):
+        raise RuntimeError("FULL_TA_CANONICAL_GC_EXCLUSION")
+    families = tuple(MODEL_NATIVE_TRAINING_SPECIALISTS)
+    local = {family: tuple(i for i, name in enumerate(fields["signal"])
+                          if classify_entry_specialist_feature(name) == family)
+             for family in families}
+    context = {family: tuple(i for i, name in enumerate(fields["ctx_cont"])
+                             if classify_entry_specialist_feature("ctx_cont." + name) == family)
+               for family in families}
+    mtf = require_multi_tf_specialist_routing_v4(fields["mtf"])
+    for width, routes in ((len(fields["signal"]), local),
+                          (len(fields["ctx_cont"]), context),
+                          (len(fields["mtf"]), mtf)):
+        if sorted(i for indices in routes.values() for i in indices) != list(range(width)):
+            raise RuntimeError("FULL_TA_FAMILY_PARTITION")
+    if any(not local[f] or not mtf[f] for f in families):
+        raise RuntimeError("FULL_TA_EMPTY_FAMILY")
+    old_aliases = model_native_context_temporal_alias_policy(source_signal)
+    signal_map = {old: new for new, old in enumerate(signal_take)}
+    ctx_map = {old: new for new, old in enumerate(ctx_take)}
+    alias_pairs = tuple((signal_map[a], ctx_map[b]) for a, b in zip(
+        old_aliases["signal_indices"], old_aliases["ctx_cont_indices"])
+        if a in signal_map and b in ctx_map)
+    if len(alias_pairs) != len(ctx_take):
+        raise RuntimeError("FULL_TA_CONTEXT_ALIAS_COVERAGE")
+    alias_signal = tuple(a for a, _ in alias_pairs)
+    payload = {
+        "schema_version": "gx1_full_ta_mtf_entry_research_profile_v1",
+        "name": FULL_TA_ENTRY_EXECUTION_PROFILE_NAME,
+        "gather_stage": "canonical_non_gc_columns_before_normalization_and_device_transfer",
+        "source_field_names": source,
+        "source_signal_indices": signal_take, "source_ctx_cont_indices": ctx_take,
+        "physical_field_names": fields, "active_field_names": dict(fields),
+        "physical_widths": {key: len(names) for key, names in fields.items()},
+        "timeframes": ("M5", "M15", "H1", "H4", "D1"),
+        "feature_keys": tuple(sorted(FULL_TA_ENTRY_FEATURE_KEYS)),
+        "signal_indices": tuple(range(len(fields["signal"]))),
+        "ctx_cont_indices": tuple(range(len(fields["ctx_cont"]))),
+        "mtf_indices": tuple(range(len(fields["mtf"]))),
+        "generic_snap_signal_indices": tuple(i for i in range(len(fields["signal"]))
+                                             if i not in set(alias_signal)),
+        "temporal_alias_signal_indices": alias_signal,
+        "temporal_alias_ctx_cont_indices": tuple(b for _, b in alias_pairs),
+        "local_specialists": families, "mtf_specialists": families,
+        "base_mtf_specialists": families,
+        "local_signal_indices_by_specialist": local,
+        "ctx_cont_indices_by_specialist": context, "mtf_indices_by_specialist": mtf,
+        "gc_context_fields": (), "macro_context_fields": tuple(_D1_MACRO_CONTEXT_FIELDS),
+    }
+    return {**payload, "contract_sha256": _canonical_sha256(payload)}
+
+
 def require_compact_entry_execution_profile_reference(
     value: object, *, context: str = "ENTRY_EXECUTION_PROFILE",
     gc_mtf_history: Mapping[str, object] | None = None,
@@ -1796,7 +1874,11 @@ def require_compact_entry_execution_profile_reference(
         raise RuntimeError(f"{context}_COMPACT_ENTRY_EXECUTION_PROFILE_REFERENCE_INVALID")
     units_kwargs = ({} if unobserved_units_profile is None
                     else {"unobserved_units_profile": unobserved_units_profile})
-    if value["name"] == FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME:
+    if value["name"] == FULL_TA_ENTRY_EXECUTION_PROFILE_NAME:
+        if gc_mtf_history is not None or unobserved_units_profile is not None:
+            raise RuntimeError(f"{context}_TA_GC_HISTORY_FORBIDDEN")
+        compiled = compile_full_ta_entry_execution_profile()
+    elif value["name"] == FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME:
         compiled = compile_full_gc_mtf_entry_execution_profile(gc_mtf_history, **units_kwargs)
     elif value["name"] == GC_MTF_GEOMETRY_ENTRY_EXECUTION_PROFILE_NAME:
         compiled = compile_gc_mtf_geometry_entry_execution_profile(gc_mtf_history, **units_kwargs)

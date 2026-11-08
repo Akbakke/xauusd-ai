@@ -281,7 +281,8 @@ def _inspect_receipts(*, reviewed_runner_ref: Mapping[str, str] | None = None) -
             'provider_chain': chain, 'historical_lineage': lineage}
 
 
-def _inspect_fold1_receipts(mature_plan: dict, *, reviewed_runner_sha: str | None = None) -> dict:
+def _read_validated_fold1_receipts(mature_plan: dict) -> dict:
+    """The immutable fold-1 receipt chain, independent of today's runtime."""
     plan = _read_ref(_fixed_ref('fold1_plan'))
     claim = _read_ref(_fixed_ref('fold1_claim'))
     result = _read_ref(_fixed_ref('fold1_result'))
@@ -345,12 +346,19 @@ def _inspect_fold1_receipts(mature_plan: dict, *, reviewed_runner_sha: str | Non
           'MATURE_FOLD1_CHAIN')
     fold1._validate_new_report(qualified, old_report, profile, provenance)
     require_prefix_units_normalization_bindings(normal, profile)
-    lineage = _fold1_source_lineage(provenance, reviewed_runner_sha=reviewed_runner_sha)
     return {'normal': normal, 'qualification': qualified, 'profile': profile,
-            'cohort': cohort, 'lineage': lineage}
+            'cohort': cohort}
 
 
-def _fold1_source_lineage(provenance: dict, *, reviewed_runner_sha: str | None = None) -> dict:
+def _inspect_fold1_receipts(mature_plan: dict, *, reviewed_runner_sha: str | None = None) -> dict:
+    receipts = _read_validated_fold1_receipts(mature_plan)
+    provenance = receipts['qualification']['proof']['source_bindings']
+    receipts['lineage'] = _fold1_source_lineage(
+        provenance, reviewed_runner_sha=reviewed_runner_sha)
+    return receipts
+
+
+def _fold1_historical_source_lineage(provenance: dict) -> dict:
     head = provenance['current_source_head']
     owners = provenance['current_source_owners']
     _need(isinstance(owners, dict) and set(owners) == fold1.SOURCE_PATHS
@@ -366,15 +374,22 @@ def _fold1_source_lineage(provenance: dict, *, reviewed_runner_sha: str | None =
           'FOLD1_HISTORICAL_POLICY')
     for path, source_sha in owners.items():
         relative = Path(path)
-        current_sha = reviewed_runner_sha if path == RUNNER_SOURCE and reviewed_runner_sha is not None else source_sha
         _need(not relative.is_absolute() and '..' not in relative.parts
-              and len(source_sha) == 64 and _sha(REPO / relative) == current_sha
+              and len(source_sha) == 64
               and hashlib.sha256(subprocess.check_output(
                   ['git', 'show', head + ':' + path], cwd=REPO,
                   timeout=15)).hexdigest() == source_sha,
-              'FOLD1_CURRENT_SOURCE:' + path)
-    return {'source_head': head, 'historical_policy_sha256': historical_policy['sha256'],
-            'current_source_owner_count': len(owners)}
+              'FOLD1_HISTORICAL_SOURCE:' + path)
+    return {'source_head': head, 'historical_policy_sha256': historical_policy['sha256']}
+
+
+def _fold1_source_lineage(provenance: dict, *, reviewed_runner_sha: str | None = None) -> dict:
+    lineage = _fold1_historical_source_lineage(provenance)
+    owners = provenance['current_source_owners']
+    for path, source_sha in owners.items():
+        current_sha = reviewed_runner_sha if path == RUNNER_SOURCE and reviewed_runner_sha is not None else source_sha
+        _need(_sha(REPO / path) == current_sha, 'FOLD1_CURRENT_SOURCE:' + path)
+    return {**lineage, 'current_source_owner_count': len(owners)}
 
 
 def _historical_source_lineage(normal: dict, result: dict, *,
@@ -500,6 +515,123 @@ def _bind_view(plan: dict, receipts: dict, fold_id: int) -> dict:
           == time_query_model_contract()['contract_sha256']
           == plan['expected_model_contract_sha256'], 'VIEW_IDENTITY')
     return view
+
+
+
+# The TA candidate reuses immutable fold-1 TRAIN statistics. These explicit
+# runtime owners may change for the approved GC-free route; every other old
+# numeric/feature owner must still match the original fitting source bytes.
+TA_PREFIX_RUNTIME_SOURCE_CHANGES = frozenset({
+    'gx1/audit/qualify_market_state_mature_prefix_normalization_v1.py',
+    'gx1/contracts/entry_model_native_input_normalization_v1.py',
+    'gx1/contracts/entry_exit_production_architecture_v1.py',
+    'gx1/features/entry_specialist_feature_groups_v1.py',
+    'gx1/contracts/gx1_capped_execution_v1.py',
+    'scripts/gx1_capped_run.sh',
+})
+TA_SOURCE_PATHS = SOURCE_PATHS | frozenset({
+    'gx1/contracts/market_state_time_query_model_v2.py',
+    'gx1/contracts/market_state_time_query_loss_v2.py',
+    'gx1/contracts/market_state_time_query_native_F_model_v1.py',
+    'gx1/contracts/market_state_time_query_native_F_batch_v1.py',
+    'gx1/contracts/market_state_time_query_native_F_objective_v1.py',
+    'gx1/audit/verify_market_state_ta_native_input_path_v1.py',
+})
+
+
+def load_ta_input_receipts(*, current_source_owners: Mapping[str, str] | None = None) -> dict:
+    """Read only the exact mature fold-1 chain and bind today's TA owners.
+
+    The historical statistics retain their original Git source/policy identity.
+    A supplied plan-owned map must cover every TA owner and match current bytes.
+    No data array, target tape, model, normalizer fit or checkpoint is loaded.
+    """
+    plan = _read_ref(_fixed_ref('mature_plan'))
+    mature._validate_cohort_contract(plan['cohorts'])
+    receipts = _read_validated_fold1_receipts(plan)
+    provenance = receipts['qualification']['proof']['source_bindings']
+    lineage = _fold1_historical_source_lineage(provenance)
+    current = {}
+    if current_source_owners is not None:
+        _need(isinstance(current_source_owners, Mapping)
+              and TA_SOURCE_PATHS <= set(current_source_owners), 'TA_SOURCE_OWNER_SET')
+    for relative in sorted(TA_SOURCE_PATHS):
+        path = REPO / relative
+        _need(path.is_file() and not path.is_symlink(), 'TA_SOURCE_PATH:' + relative)
+        digest = _sha(path)
+        if current_source_owners is not None:
+            _need(current_source_owners[relative] == digest, 'TA_CURRENT_SOURCE:' + relative)
+        current[relative] = digest
+    old_owners = provenance['current_source_owners']
+    changed = {path for path, digest in old_owners.items() if current[path] != digest}
+    _need(changed <= TA_PREFIX_RUNTIME_SOURCE_CHANGES, 'TA_UNREVIEWED_NUMERIC_SOURCE_DRIFT')
+    from gx1.contracts.entry_model_native_input_normalization_v1 import (
+        project_ta_input_normalization_contract,
+    )
+    projected = project_ta_input_normalization_contract(
+        receipts['normal']['base_normalization'],
+        unobserved_units_profile=receipts['profile'])
+    lineage.update(historical_source_owners=dict(old_owners),
+                   current_source_owners=current, changed_runtime_owners=sorted(changed))
+    receipts['lineage'] = lineage
+    return {'mature_plan': plan, 'normal': receipts['normal'],
+            'constructor': _read_ref(_fixed_ref('constructor')),
+            'base_view': _read_ref(_fixed_ref('base_view')),
+            'fold1': receipts, 'fold_ids': [FOLD1_ID],
+            'provider_chain': mature._receipt_chain(),
+            'historical_lineage': lineage, 'ta_source_owners': current,
+            'ta_normalization': projected}
+
+
+def _bind_ta_view(receipts: dict, *, max_batch_rows: int = 16) -> dict:
+    """Bind the TA view to current sources and original fold-1 statistics."""
+    from gx1.contracts import entry_native_direction_feature_view_v1 as views
+    _need(receipts.get('fold_ids') == [FOLD1_ID], 'TA_FOLD1_ONLY')
+    current = receipts['ta_source_owners']
+    _need(set(current) == TA_SOURCE_PATHS and all(
+        _sha(REPO / path) == digest for path, digest in current.items()),
+        'TA_RECEIPT_SOURCE_BOOKEND')
+    original = receipts['base_view']['source_bindings']
+    _need(views.SOURCE_REF_KEYS <= set(original), 'BASE_VIEW_SOURCE_KEYS')
+    refs = {key: original[key] for key in views.SOURCE_REF_KEYS}
+    provenance = receipts['fold1']['qualification']['proof']['source_bindings']
+    refs.update(input_qualification=_fixed_ref('fold1_qualification'),
+                raw_input_provider_plan=provenance['provider_plan'],
+                raw_gc_layout=provenance['boolean_raw_gc_layout'],
+                raw_gc_transition=provenance['boolean_raw_domain_transition'],
+                time_query_candidate_tape=_fixed_ref('candidate_tape'),
+                time_query_mature_prefix_plan=_fixed_ref('fold1_plan'))
+    paths = {key: path for key, path in TIME_QUERY_SOURCE_PATHS.items()
+             if key not in ('time_query_model_source', 'time_query_loss_source')}
+    paths.update(
+        direction_component_source='gx1/contracts/entry_native_direction_research_v1.py',
+        native_constructor_source='gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py',
+        mtf_window_source='gx1/features/htf_features.py',
+        gc_gather_source='gx1/contracts/entry_gc_mtf_history_v1.py',
+        owner_profile_source='gx1/features/entry_specialist_feature_groups_v1.py',
+        time_query_v2_model_source='gx1/contracts/market_state_time_query_model_v2.py',
+        time_query_v2_loss_source='gx1/contracts/market_state_time_query_loss_v2.py')
+    for key, path in paths.items():
+        refs[key] = _ref(REPO / path, current[path])
+    _need(set(refs) == views.SOURCE_REF_KEYS | views.TIME_QUERY_V2_SOURCE_REF_KEYS,
+          'TA_VIEW_SOURCE_SET')
+    # The candidate target tape remains a fixed ref and is verified by its own
+    # target loader before training; this input-only binder reads no target data.
+    for key in IMMUTABLE_VIEW_REF_KEYS - {'time_query_candidate_tape'}:
+        item = refs[key]
+        _need(Path(item['path']).is_file() and not Path(item['path']).is_symlink()
+              and _sha(Path(item['path'])) == item['sha256'], 'TA_IMMUTABLE_VIEW_REF:' + key)
+    value = views.bind_native_direction_feature_view(
+        prefix_normalization=receipts['fold1']['normal'],
+        prefix_normalization_ref=_fixed_ref('fold1_normalization'),
+        constructor_metadata=receipts['constructor'],
+        constructor_metadata_ref=_fixed_ref('constructor'), source_bindings=refs,
+        max_batch_rows=max_batch_rows, full_feature_profile=True,
+        full_ta_feature_profile=True, market_state_time_query_v2=True,
+        unobserved_units_profile=receipts['fold1']['profile'])
+    _need(value['prefix_normalization']['ta_base_normalization_sha256']
+          == receipts['ta_normalization']['contract_sha256'], 'TA_VIEW_PROJECTION_IDENTITY')
+    return value
 
 
 def _qualify_plan(plan: dict, plan_ref: dict, policy: dict | None, *,

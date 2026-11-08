@@ -6,7 +6,6 @@ following that forward. This owner has no optimizer or fit admission authority.
 from __future__ import annotations
 
 from collections.abc import Mapping
-import inspect
 
 import numpy as np
 import torch
@@ -19,8 +18,9 @@ from gx1.contracts.market_state_time_query_model_v2 import (
     FactorizedTimeQueryMarketStateModel,
 )
 
-FEATURE_KEYS = frozenset(inspect.signature(
-    FactorizedTimeQueryMarketStateModel.encode_features).parameters) - {'self'}
+# The v2 model accepts variadic GC kwargs for its separate TA profile.
+# This GC batch owner keeps the original explicit fourteen-input contract.
+from gx1.contracts.market_state_time_query_batch_v1 import FEATURE_KEYS
 
 
 def evaluate_fit_batch(

@@ -1,6 +1,7 @@
 """Synthetic shared-encoder and separate-head evidence; no fit or raw source."""
 from __future__ import annotations
 
+import pytest
 import torch
 from torch import nn
 
@@ -22,23 +23,25 @@ from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
 )
 
 
-def features(batch=1):
-    x = torch.arange(batch * 4, dtype=torch.float32).reshape(batch, 1, 4) + 1
+def features(batch=1, *, ta_only=False):
+    width = 315 if ta_only else 4
+    x = torch.arange(batch * width, dtype=torch.float32).reshape(batch, 1, width) + 1
     values = {'seq_x': x, 'snap_x': x[:, 0],
               'ctx_cat': torch.zeros(batch, 1, dtype=torch.int64),
-              'ctx_cont': torch.zeros(batch, 1, dtype=torch.float32)}
+              'ctx_cont': torch.zeros(batch, 132 if ta_only else 1, dtype=torch.float32)}
     for tf in ('m5', 'm15', 'h1', 'h4', 'd1'):
-        values['seq_' + tf] = torch.ones(batch, 1, 1)
-        values['gc_seq_' + tf] = torch.ones(batch, 1, 1)
+        values['seq_' + tf] = torch.ones(batch, 1, 253 if ta_only else 1)
+        if not ta_only:
+            values['gc_seq_' + tf] = torch.ones(batch, 1, 1)
     return values
 
 
-def model(monkeypatch, calls):
+def model(monkeypatch, calls, *, ta_only=False):
     def synthetic_forward(self, seq_x, snap_x, **kwargs):
         calls.append(1)
         assert kwargs.pop('research_representation_only') is True
         return {'entry_q_joint_hidden': self.entry_q_joint_in(
-            torch.cat((seq_x[:, 0, :],) * 4, dim=1))}
+            torch.cat((seq_x[:, 0, :4],) * 4, dim=1))}
     monkeypatch.setattr(EntryV10CtxHybridTransformer, 'forward', synthetic_forward)
     native = EntryV10CtxHybridTransformer.__new__(EntryV10CtxHybridTransformer)
     nn.Module.__init__(native)
@@ -50,6 +53,11 @@ def model(monkeypatch, calls):
     native.entry_q_joint_in = nn.Linear(16, 4)
     native.entry_execution_profile = {'name': FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME}
     native.gc_mtf_history = {'normalization': {}}
+    if ta_only:
+        from gx1.features.entry_specialist_feature_groups_v1 import compile_full_ta_entry_execution_profile
+        profile = compile_full_ta_entry_execution_profile()
+        native.entry_execution_profile = {key: profile[key] for key in ('name', 'contract_sha256')}
+        native.gc_mtf_history = None
     return FactorizedTimeQueryMarketStateModel(native)
 
 
@@ -114,3 +122,24 @@ def test_real_target_rows_reach_dual_heads_after_one_synthetic_forward(monkeypat
     out['loss'].backward()
     assert dual.state_model.query_head.weight.grad is not None
     assert dual.future_head.weight.grad is not None
+
+
+def test_ta_dual_model_uses_exact_nine_inputs_once_and_rejects_gc(monkeypatch):
+    from gx1.contracts.market_state_time_query_native_F_model_v1 import contract
+    from gx1.features.entry_specialist_feature_groups_v1 import FULL_TA_ENTRY_FEATURE_KEYS
+    calls = []
+    state = model(monkeypatch, calls, ta_only=True)
+    dual = NativeFutureDualModel(state)
+    values = features(ta_only=True)
+    assert set(values) == FULL_TA_ENTRY_FEATURE_KEYS
+    assert dual.research_objective == contract(ta_only=True)
+    assert dual.research_objective != contract()
+    out = dual(**values, query_k=torch.ones((1, 5), dtype=torch.int64))
+    assert calls == [1]
+    assert out['state_activity_side_logits'].shape == out['future_activity_side_logits'].shape == (1, 5, 2)
+    with pytest.raises(RuntimeError, match='TA_GC_FEATURES_FORBIDDEN'):
+        dual(**values, gc_seq_m5=torch.ones(1, 1, 1), query_k=torch.ones((1, 5), dtype=torch.int64))
+    assert calls == [1]
+    state.backbone.gc_mtf_history = {'normalization': {}}
+    with pytest.raises(RuntimeError, match='FULL_TA_PROFILE'):
+        dual(**values, query_k=torch.ones((1, 5), dtype=torch.int64))

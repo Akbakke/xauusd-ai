@@ -281,7 +281,8 @@ def _provider_module():
     return module
 
 
-def _prepare_inputs(provider, provider_plan: dict, info: dict, saved_layout: dict) -> dict:
+def _prepare_inputs(provider, provider_plan: dict, info: dict, saved_layout: dict, *,
+                    ta_only: bool = False) -> dict:
     from gx1.contracts.entry_exit_feature_surface_v1 import load_m1_feature_surface_times
     from gx1.contracts.entry_gc_mtf_history_v1 import load_gc_mtf_history_raw_artifact
     from gx1.features import htf_features as htf
@@ -308,7 +309,9 @@ def _prepare_inputs(provider, provider_plan: dict, info: dict, saved_layout: dic
           and cache.m5_prebuilt_source_sha256 == base['m5_prebuilt_sha256']
           and cache.v29_registry_constants['contract_sha256'] == info['v29']['expected_registry_contract_sha256'],
           'MTF_CACHE_IDENTITY')
-    gc = load_gc_mtf_history_raw_artifact(provider_plan['gc_surfaces'])
+    _need(type(ta_only) is bool, 'TA_ONLY_FLAG')
+    gc = ({'layout': saved_layout, 'surfaces': {}} if ta_only else
+          load_gc_mtf_history_raw_artifact(provider_plan['gc_surfaces']))
     _need(gc['layout'] == saved_layout, 'CURRENT_BOOLEAN_GC_LAYOUT')
     return {'axes': axes, 'expected_axes': expected_axes, 'source': source,
             'current': current, 'cache': cache, 'gc': gc,

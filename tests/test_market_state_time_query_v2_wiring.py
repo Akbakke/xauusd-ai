@@ -138,3 +138,76 @@ def test_v2_model_output_matches_factorization(monkeypatch):
     assert torch.equal(output['logits'], factorized_log_probabilities(raw))
     assert torch.allclose(output['logits'].exp().sum(dim=-1),
                           torch.ones_like(raw[..., 0]), rtol=0, atol=1e-6)
+
+
+def test_ta_view_gathers_only_canonical_columns_and_never_calls_gc(time_query_case, bound_case, monkeypatch):
+    import numpy as np
+    from gx1.features.entry_specialist_feature_groups_v1 import (
+        compile_full_ta_entry_execution_profile, FULL_TA_ENTRY_FEATURE_KEYS)
+    from tests.test_entry_native_direction_feature_view_v1 import _inputs
+    args = _v2_arguments(time_query_case)
+    old = views.bind_native_direction_feature_view(**args)
+    args['full_ta_feature_profile'] = True
+    args['source_bindings']['owner_profile_source']['sha256'] = '2' * 64
+    ta = views.bind_native_direction_feature_view(**args)
+    assert ta['prefix_normalization']['source_owner_profile_sha256'] == '1' * 64
+    assert ta['source_bindings']['owner_profile_source']['sha256'] == '2' * 64
+    assert ta['research_objective'] == factorized_time_query_model_contract(ta_only=True)
+    assert ta['research_objective'] != old['research_objective']
+    assert views.bind_native_direction_feature_view(**args, expected=ta) == ta
+    inputs = _inputs(deepcopy(bound_case))
+    before = views.gather_native_direction_feature_batch(old, **inputs)
+    inputs.update(gc_layout=None, gc_surfaces=None)
+    def forbidden(*args, **kwargs):
+        raise AssertionError('TA candidate reached GC gather or surface validator')
+    monkeypatch.setattr(views.history, 'require_gc_mtf_history_layout', forbidden)
+    monkeypatch.setattr(views.history, 'require_gc_mtf_history_surfaces', forbidden)
+    monkeypatch.setattr(views.history, 'gather_gc_mtf_history_rows', forbidden)
+    got = views.gather_native_direction_feature_batch(ta, **inputs)
+    profile = compile_full_ta_entry_execution_profile()
+    assert set(got['features']) == FULL_TA_ENTRY_FEATURE_KEYS
+    for key, indices in (('seq_x', profile['source_signal_indices']),
+                         ('snap_x', profile['source_signal_indices']),
+                         ('ctx_cont', profile['source_ctx_cont_indices'])):
+        assert np.array_equal(got['features'][key], np.take(before['features'][key], indices, axis=-1))
+    for key in ('ctx_cat', 'seq_m5', 'seq_m15', 'seq_h1', 'seq_h4', 'seq_d1'):
+        assert got['features'][key].tobytes() == before['features'][key].tobytes()
+    assert {k: v for k, v in got['witness'].items() if k != 'view_sha256'} == {
+        k: v for k, v in before['witness'].items() if k != 'view_sha256'}
+    with pytest.raises(RuntimeError, match='TA_GC_INPUT_FORBIDDEN'):
+        views.gather_native_direction_feature_batch(ta, **{**inputs, 'gc_surfaces': {}})
+
+
+def test_ta_builder_passes_reduced_statistics_and_no_gc_modules(time_query_case, monkeypatch):
+    args = _v2_arguments(time_query_case)
+    args['full_ta_feature_profile'] = True
+    bound = views.bind_native_direction_feature_view(**args)
+    calls = []
+    class BackboneShell:
+        def __init__(self, **kwargs):
+            calls.append(kwargs)
+            self.entry_execution_profile = kwargs['entry_execution_profile']
+            self.gc_mtf_history = kwargs['gc_mtf_history']
+        def to(self, device):
+            return self
+        def require_input_normalization_state(self):
+            return None
+    class QueryShell:
+        def __init__(self, backbone):
+            self.backbone = backbone
+    monkeypatch.setattr(views, 'EntryV10CtxHybridTransformer', BackboneShell)
+    monkeypatch.setattr(views, 'FactorizedTimeQueryMarketStateModel', QueryShell)
+    model = views.build_native_direction_research_model(
+        bound, prefix_normalization=args['prefix_normalization'],
+        constructor_metadata=args['constructor_metadata'], device='synthetic')
+    assert len(calls) == 1
+    kwargs = calls[0]
+    assert kwargs['seq_input_dim'] == kwargs['snap_input_dim'] == 315
+    assert kwargs['ctx_cont_dim'] == 132
+    assert kwargs['gc_mtf_history'] is None
+    assert 'research_unobserved_units_profile' not in kwargs
+    assert kwargs['input_normalization']['contract_sha256'] == (
+        bound['prefix_normalization']['ta_base_normalization_sha256'])
+    assert kwargs['input_normalization']['ta_projection']['source_contract'] == (
+        args['prefix_normalization']['base_normalization'])
+    assert model.feature_view_identity['prefix_normalization'] == bound['prefix_normalization']

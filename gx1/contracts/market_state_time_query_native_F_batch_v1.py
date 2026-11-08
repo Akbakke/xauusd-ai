@@ -20,6 +20,20 @@ from gx1.contracts.market_state_time_query_model_v2 import factorized_log_probab
 from gx1.contracts.market_state_time_query_native_F_objective_v1 import combined_loss
 
 
+
+def _ta_only(model) -> bool:
+    from gx1.features.entry_specialist_feature_groups_v1 import FULL_TA_ENTRY_EXECUTION_PROFILE_NAME
+    backbone = getattr(model, 'backbone', None)
+    profile = getattr(backbone, 'entry_execution_profile', None)
+    return isinstance(profile, Mapping) and profile.get('name') == FULL_TA_ENTRY_EXECUTION_PROFILE_NAME
+
+
+def _feature_keys(model) -> frozenset:
+    """Select the exact declared input signature; never mask absent GC inputs."""
+    from gx1.features.entry_specialist_feature_groups_v1 import FULL_TA_ENTRY_FEATURE_KEYS
+    return FULL_TA_ENTRY_FEATURE_KEYS if _ta_only(model) else FEATURE_KEYS
+
+
 def evaluate_fit_batch(model: NativeFutureDualModel, features: Mapping,
                        state_bound: BoundTimeQueryTargets,
                        future_bound: BoundFutureDisplacement,
@@ -29,7 +43,7 @@ def evaluate_fit_batch(model: NativeFutureDualModel, features: Mapping,
     if not (type(model) is NativeFutureDualModel
             and type(state_bound) is BoundTimeQueryTargets
             and type(future_bound) is BoundFutureDisplacement
-            and isinstance(features, Mapping) and set(features) == FEATURE_KEYS
+            and isinstance(features, Mapping) and set(features) == _feature_keys(model)
             and all(isinstance(value, torch.Tensor) for value in features.values())
             and isinstance(parent_rows, np.ndarray) and parent_rows.dtype == np.int64
             and isinstance(issue_ns, np.ndarray) and issue_ns.dtype == np.int64
@@ -72,7 +86,7 @@ def evaluate_fit_batch(model: NativeFutureDualModel, features: Mapping,
         state_raw=output['state_activity_side_logits'],
         future_raw=output['future_activity_side_logits'],
         state_truth=state_truth, future_truth=future_truth,
-        state_query_k=query, future_weight=future_weight)
+        state_query_k=query, future_weight=future_weight, ta_only=_ta_only(model))
     return {**output, 'loss': report['loss'],
             'state_count': report['state']['count'],
             'future_count': report['future']['count'],
@@ -87,3 +101,65 @@ def evaluate_fit_batch(model: NativeFutureDualModel, features: Mapping,
             'future_mature': future_truth['mature'],
             'loss_contract_sha256': report['contract_sha256'],
             'model_contract_sha256': model.research_objective['contract_sha256']}
+
+
+def evaluate_endpoint_batch(model: NativeFutureDualModel, features: Mapping,
+                            state_endpoint_bound, future_bound: BoundFutureDisplacement,
+                            parent_rows: np.ndarray, issue_ns: np.ndarray, *,
+                            fold_id: int, partition: str, future_weight: float,
+                            frozen_priors: dict | None = None) -> dict:
+    """One eval-only S/F forward at the five existing native endpoints."""
+    from gx1.contracts.market_state_five_endpoint_target_binding_v1 import BoundFiveEndpointTargets
+    from gx1.contracts.market_state_time_query_native_F_objective_v1 import endpoint_measurement_sums
+    from gx1.contracts.market_state_time_query_target_v1 import NATIVE_K
+    if not (type(model) is NativeFutureDualModel
+            and type(state_endpoint_bound) is BoundFiveEndpointTargets
+            and type(future_bound) is BoundFutureDisplacement
+            and isinstance(features, Mapping) and set(features) == _feature_keys(model)
+            and all(isinstance(value, torch.Tensor) for value in features.values())
+            and isinstance(parent_rows, np.ndarray) and parent_rows.dtype == np.int64
+            and isinstance(issue_ns, np.ndarray) and issue_ns.dtype == np.int64
+            and parent_rows.ndim == issue_ns.ndim == 1
+            and len(parent_rows) == len(issue_ns) > 0
+            and features['seq_x'].shape[0] == len(issue_ns)
+            and type(fold_id) is int and 1 <= fold_id <= 5
+            and partition in ('fit', 'score')):
+        raise ValueError('NATIVE_F_ENDPOINT_BATCH_INPUT')
+    if any(module.training for module in model.modules()):
+        raise ValueError('NATIVE_F_ENDPOINT_REQUIRES_EVAL')
+    device = model.state_model.query_native_k.device
+    query = torch.tensor(NATIVE_K, dtype=torch.int64, device=device)[None, :].expand(
+        len(issue_ns), -1)
+    with torch.inference_mode():
+        output = model(**features, query_k=query)
+        if not (set(output) == {'state_activity_side_logits', 'state_log_probs',
+                               'future_activity_side_logits', 'future_log_probs'}
+                and all(isinstance(value, torch.Tensor) and value.device == device
+                        and value.dtype == torch.float32 and bool(torch.isfinite(value).all())
+                        for value in output.values())
+                and output['state_activity_side_logits'].shape
+                    == output['future_activity_side_logits'].shape == (len(issue_ns), 5, 2)
+                and torch.equal(output['state_log_probs'], factorized_log_probabilities(
+                    output['state_activity_side_logits']))
+                and torch.equal(output['future_log_probs'], factorized_log_probabilities(
+                    output['future_activity_side_logits']))):
+            raise RuntimeError('NATIVE_F_ENDPOINT_MODEL_OUTPUT')
+        state_raw = output['state_activity_side_logits'].cpu().numpy().copy()
+        future_raw = output['future_activity_side_logits'].cpu().numpy().copy()
+    # This endpoint owner has certified parity with the time-query target tape.
+    # It permits fixed native TRAIN evaluation without weakening sampled fit.
+    s = state_endpoint_bound.gather(parent_rows, issue_ns, fold_id=fold_id,
+                                     partition=partition)
+    f = future_bound.gather(parent_rows, issue_ns, fold_id=fold_id, partition=partition)
+    if partition == 'fit' and not (bool(s['mature'].all()) and bool(f['mature'].all())):
+        raise ValueError('NATIVE_F_ENDPOINT_IMMATURE_FIT')
+    measurement = endpoint_measurement_sums(
+        state_raw=state_raw, future_raw=future_raw, state_truth=s, future_truth=f,
+        parent_rows=parent_rows, issue_ns=issue_ns, fold_id=fold_id,
+        partition=partition, future_weight=future_weight,
+        model_contract_sha256=model.research_objective['contract_sha256'],
+        feature_view_sha256=model.state_model.feature_view_identity['contract_sha256'],
+        frozen_priors=frozen_priors, ta_only=_ta_only(model))
+    return {'measurement': measurement,
+            'state_activity_side_logits': state_raw,
+            'future_activity_side_logits': future_raw}

@@ -23,6 +23,15 @@ RESULT_SCHEMA = 'gx1_market_state_time_query_fold1_fit_result_v1'
 CANONICAL_REPO = Path('/home/andre2/src/GX1_CURRENT')
 RUNTIME_ROOT = Path('/home/andre2/GX1_RUNS') / STAGE.upper() / 'RUNTIME'
 RECIPE_PATH = RUNTIME_ROOT.parent / 'RECIPE.json'
+TA_SF_SCOPE = 'market_state_ta_sf_fold1_one_pass_fit_v1'
+TA_SF_STAGE = 'market_state_ta_native_fold1_fit_20261108_001'
+TA_SF_RUNTIME_ROOT = Path('/home/andre2/GX1_RUNS') / TA_SF_STAGE.upper() / 'RUNTIME'
+TA_SF_RECIPE_PATH = TA_SF_RUNTIME_ROOT.parent / 'RECIPE.json'
+TA_INPUT_STAGE = 'market_state_ta_native_input_20261108_001'
+TA_INPUT_ROOT = Path('/home/andre2/GX1_RUNS') / TA_INPUT_STAGE.upper()
+TA_MECHANICAL_ROOT = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_SF_MECHANICAL_20261108_001')
+TA_NUMERICAL_SCHEMA = 'gx1_market_state_ta_sf_fold1_fit_numerical_v1'
+TA_RESULT_SCHEMA = 'gx1_market_state_ta_sf_fold1_fit_result_v1'
 FOLD = {
     'fold_id': 1,
     'prefix_rows': 29574,
@@ -90,16 +99,31 @@ def fold1_numerical_recipe() -> dict[str, Any]:
     return {**base, 'contract_sha256': hashlib.sha256(raw).hexdigest()}
 
 
-def required_source_paths() -> frozenset[str]:
+def required_source_paths(*, ta_sf: bool = False) -> frozenset[str]:
     """Exact executable and lineage owners for this one candidate."""
     from gx1.contracts import entry_native_direction_research_campaign_v1 as research
-    return frozenset(research.REQUIRED_SOURCE_PATHS) | frozenset(
+    paths = frozenset(research.REQUIRED_SOURCE_PATHS) | frozenset(
         private.EXTRA_SOURCE_PATHS) | EXTRA_SOURCE_PATHS
+    if ta_sf:
+        from gx1.contracts import market_state_native_F_private_campaign_v1 as sf
+        from gx1.audit import verify_market_state_time_query_zero_step_v1 as zero
+        paths |= zero.TA_SOURCE_PATHS | frozenset(sf.EXTRA_SOURCE_PATHS) | frozenset({
+            'gx1/contracts/market_state_time_query_model_v2.py',
+            'gx1/contracts/market_state_time_query_batch_v2.py',
+            'gx1/contracts/market_state_time_query_loss_v2.py',
+            'gx1/contracts/market_state_time_query_scorer_v2.py',
+            'gx1/contracts/market_state_five_endpoint_prior_v1.py',
+            'gx1/contracts/market_state_five_endpoint_target_binding_v1.py',
+            'gx1/audit/verify_market_state_ta_native_input_path_v1.py',
+        })
+    return paths
 
 
 def require_checkpoint_view(value: Any, *, recipe: Mapping[str, Any] | None = None,
-                            verify_files: bool = True) -> dict[str, Any]:
+                            verify_files: bool = True, ta_sf: bool = False) -> dict[str, Any]:
     """Require the exact matured fold-1 feature and normalization identity."""
+    if ta_sf or (recipe is not None and recipe.get("run_scope") == TA_SF_SCOPE):
+        return _require_ta_checkpoint_view(value, recipe=recipe, verify_files=verify_files)
     _need(isinstance(value, Mapping)
           and set(value) == {'contract_sha256', 'prefix_normalization',
                              'research_objective_sha256'}
@@ -153,6 +177,9 @@ def require_launch_recipe(value: Any, *, source_repo: Path,
                           source_commit: str,
                           verify_files: bool = True) -> dict[str, Any]:
     """Validate a distinct fit admission without the legacy prefix fold registry."""
+    if isinstance(value, Mapping) and value.get("run_scope") == TA_SF_SCOPE:
+        return _require_ta_launch_recipe(value, source_repo=source_repo,
+            source_commit=source_commit, verify_files=verify_files)
     _need(verify_files, 'PHYSICAL_METADATA_REQUIRED')
     fields = {
         'schema_version', 'source_repo', 'runtime_root', 'run_id',
@@ -219,6 +246,13 @@ def require_launch_recipe(value: Any, *, source_repo: Path,
 
 def require_fit_gate(gate: Any, recipe: Mapping[str, Any]) -> None:
     """Separate positive fit gate; the completed private probe remains closed."""
+    if recipe.get("run_scope") == TA_SF_SCOPE:
+        _need(isinstance(gate, Mapping)
+              and gate.get("ta_sf_fold1_fit_authorized") is True
+              and gate.get("input_audit") == recipe["input_refs"]["ta_input_audit"]
+              and gate.get("mechanical_qualification") == recipe["input_refs"]["ta_mechanical_qualification"],
+              "TA_POLICY_QUALIFICATION")
+        recipe = {**recipe, "run_scope": SCOPE, "admission_stage": STAGE}
     _need(isinstance(gate, Mapping)
           and gate.get('decision') == gate.get('status') == 'ADMITTED'
           and gate.get('time_query_fold1_fit_authorized') is True
@@ -231,3 +265,141 @@ def require_fit_gate(gate: Any, recipe: Mapping[str, Any]) -> None:
           and recipe.get('run_scope') == SCOPE
           and recipe.get('admission_stage') == STAGE,
           'POLICY_GATE')
+
+
+def ta_sf_numerical_recipe() -> dict[str, Any]:
+    """Same mature one-pass optimizer; explicitly bind corrected TA S/F."""
+    from gx1.contracts.market_state_time_query_native_F_model_v1 import contract as model_contract
+    from gx1.contracts.market_state_time_query_native_F_objective_v1 import contract as loss_contract
+    base = dict(native_direction_research_recipe(batch_size=BATCH_SIZE, max_updates=MAX_UPDATES))
+    base.pop('contract_sha256')
+    base.update(schema_version=TA_NUMERICAL_SCHEMA,
+        research_objective_sha256=model_contract(ta_only=True)['contract_sha256'],
+        native_F_loss_contract_sha256=loss_contract(ta_only=True)['contract_sha256'],
+        future_weight=1.0)
+    return {**base, 'contract_sha256': campaign.canonical_sha256(base)}
+
+
+def _ta_ref(name: str) -> dict[str, str]:
+    roots = {'ta_candidate_view': TA_INPUT_ROOT / 'CANDIDATE_VIEW.json',
+             'ta_input_audit': TA_INPUT_ROOT / 'RESULT.json',
+             'ta_endpoint_priors': TA_INPUT_ROOT / 'ENDPOINT_PRIORS.json',
+             'ta_mechanical_qualification': TA_MECHANICAL_ROOT / 'RESULT.json'}
+    path = roots[name]
+    return {'path': str(path), 'sha256': campaign.file_sha256(path)}
+
+
+def ta_sf_bound_input_refs() -> dict[str, dict[str, str]]:
+    from gx1.contracts import market_state_native_F_private_campaign_v1 as sf
+    refs = sf.ta_input_refs()
+    refs.update({name: _ta_ref(name) for name in (
+        'ta_candidate_view', 'ta_input_audit', 'ta_endpoint_priors',
+        'ta_mechanical_qualification')})
+    return refs
+
+
+def _require_ta_checkpoint_view(value: Any, *, recipe=None, verify_files=True):
+    from gx1.contracts.market_state_time_query_model_v2 import factorized_time_query_model_contract
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix_fit
+    from gx1.contracts import market_state_native_F_private_campaign_v1 as sf
+    from gx1.audit.fit_market_state_mature_fold1_units_v1 import PROFILE_SHA256
+    _need(isinstance(value, Mapping) and set(value) == {
+        'contract_sha256', 'prefix_normalization', 'research_objective_sha256'}, 'TA_VIEW_FIELDS')
+    prefix = value['prefix_normalization']
+    _need(value['research_objective_sha256'] == factorized_time_query_model_contract(
+        ta_only=True)['contract_sha256'] and isinstance(prefix, Mapping)
+        and set(prefix) == {'binding', 'contract_sha256', 'base_sha256',
+            'gc_layout_sha256', 'gc_normalization_sha256', 'qualification_sha256',
+            'unobserved_units_profile_sha256', 'ta_base_normalization_sha256',
+            'source_owner_profile_sha256'}
+        and prefix['binding'] == sf.bound_input_refs()['fold1_normalization']
+        and prefix['unobserved_units_profile_sha256'] == PROFILE_SHA256,
+        'TA_VIEW_NORMALIZATION')
+    if recipe is not None:
+        _need(recipe.get('run_scope') == TA_SF_SCOPE
+            and recipe.get('expected_view_sha256') == value['contract_sha256'],
+            'TA_CHECKPOINT_RECIPE_VIEW')
+    return prefix_fit._view_identity(value, verify_files=verify_files,
+        allow_unobserved_units_profile=True, allow_ta_profile=True)
+
+
+def _require_ta_launch_recipe(value, *, source_repo, source_commit, verify_files):
+    """New candidate requires new physical inputs and new mechanical proof."""
+    _need(verify_files, 'TA_PHYSICAL_METADATA_REQUIRED')
+    fields = {'schema_version', 'source_repo', 'runtime_root', 'run_id',
+        'admission_stage', 'run_scope', 'fold', 'train_passes', 'max_windows',
+        'numerical_recipe', 'input_manifest', 'input_refs', 'reference_result',
+        'expected_view_sha256', 'expected_model_contract_sha256',
+        'expected_loss_contract_sha256', 'source_owners', 'execution_binding_path',
+        'checkpoint_every_updates', 'max_checkpoint_bytes', 'max_checkpoint_total_bytes',
+        'max_published_json_bytes', 'training_enabled', 'full_epoch_training_allowed',
+        'test_data_used', 'predictive_value_claimed', 'qualification_weights_for_main_fit'}
+    recipe = _identity(value, fields)
+    refs = ta_sf_bound_input_refs()
+    numerical = ta_sf_numerical_recipe()
+    _need(source_repo == CANONICAL_REPO and isinstance(source_commit, str)
+        and campaign._COMMIT.fullmatch(source_commit) is not None
+        and recipe['source_repo'] == str(CANONICAL_REPO)
+        and recipe['runtime_root'] == str(TA_SF_RUNTIME_ROOT)
+        and recipe['run_id'] == recipe['admission_stage'] == TA_SF_STAGE
+        and recipe['run_scope'] == TA_SF_SCOPE and recipe['fold'] == FOLD
+        and type(recipe['train_passes']) is int and recipe['train_passes'] == 1
+        and type(recipe['max_windows']) is int and recipe['max_windows'] == MAX_WINDOWS
+        and recipe['numerical_recipe'] == numerical and recipe['input_refs'] == refs
+        and recipe['input_manifest'] == refs['mature_plan']
+        and recipe['reference_result'] == refs['ta_endpoint_priors']
+        and recipe['expected_model_contract_sha256'] == numerical['research_objective_sha256']
+        and recipe['expected_loss_contract_sha256'] == numerical['native_F_loss_contract_sha256']
+        and recipe['execution_binding_path'] == str(TA_SF_RUNTIME_ROOT / 'EXECUTION_BINDING.json')
+        and recipe['checkpoint_every_updates'] == CHECKPOINT_EVERY_UPDATES
+        and recipe['max_checkpoint_bytes'] == MAX_CHECKPOINT_BYTES
+        and recipe['max_checkpoint_total_bytes'] == MAX_CHECKPOINT_TOTAL_BYTES
+        and recipe['max_published_json_bytes'] == MAX_PUBLISHED_JSON_BYTES
+        and recipe['training_enabled'] is True and recipe['full_epoch_training_allowed'] is True
+        and recipe['test_data_used'] is False and recipe['predictive_value_claimed'] is False
+        and recipe['qualification_weights_for_main_fit'] is False, 'TA_RECIPE_SCOPE')
+    for name, ref in refs.items():
+        campaign.require_binding(ref, label='TA S/F input ' + name, verify_file=True)
+    def read(name):
+        ref = refs[name]
+        return campaign.read_bound_json(Path(ref['path']), ref['sha256'])
+    view, audit, mechanical, priors = (read(name) for name in (
+        'ta_candidate_view', 'ta_input_audit', 'ta_mechanical_qualification', 'ta_endpoint_priors'))
+    _need(view['contract_sha256'] == recipe['expected_view_sha256']
+        and view.get('full_ta_feature_profile') is True
+        and audit.get('status') == 'COMPLETE' and audit.get('test_data_used') is False
+        and audit.get('candidate_view') == refs['ta_candidate_view']
+        and audit['input_audit']['candidate_view_sha256'] == view['contract_sha256']
+        and audit['input_audit']['gather']['fit_rows'] == FIT_ROWS
+        and audit['input_audit']['gather']['score_rows'] == SCORE_ROWS
+        and audit['input_audit']['gather']['all_fields_all_window_positions_bit_identical'] is True
+        and mechanical.get('decision') == 'PASS_TA_SF_MECHANICAL'
+        and mechanical.get('candidate_view') == refs['ta_candidate_view']
+        and mechanical.get('input_audit') == refs['ta_input_audit']
+        and mechanical.get('bit_exact_resume') is True
+        and mechanical.get('fresh_initial_baseline') is True
+        and mechanical.get('test_data_used') is False
+        and mechanical.get('numerical_recipe') == numerical,
+        'TA_NEW_QUALIFICATION')
+    from gx1.contracts.market_state_time_query_native_F_objective_v1 import require_endpoint_priors
+    require_endpoint_priors(priors, fold_id=1, ta_only=True)
+    owners = recipe['source_owners']
+    _need(isinstance(owners, Mapping) and set(owners) == required_source_paths(ta_sf=True),
+        'TA_SOURCE_OWNER_SET')
+    for name, ref in owners.items():
+        checked = campaign.require_binding(ref, label='TA S/F source', verify_file=True)
+        _need(checked['path'] == str(CANONICAL_REPO / name), 'TA_SOURCE_PATH:' + name)
+    _need(all(mechanical.get('source_owners', {}).get(name) == ref
+        for name, ref in owners.items()), 'TA_QUALIFIED_SOURCE')
+    audit_owners = audit.get('source_owners', {})
+    _need(isinstance(audit_owners, dict) and all(
+        audit_owners[name] == ref['sha256']
+        for name, ref in owners.items() if name in audit_owners),
+        'TA_AUDITED_INPUT_SOURCE')
+    terminal_path = TA_MECHANICAL_ROOT / 'TERMINAL.json'
+    terminal = campaign.read_bound_json(terminal_path, campaign.file_sha256(terminal_path))
+    _need(terminal.get('status') == 'COMPLETE' and terminal.get('exit_code') == 0
+        and terminal.get('result') == refs['ta_mechanical_qualification']
+        and terminal.get('no_relaunch_under_this_plan') is True
+        and terminal.get('test_data_used') is False, 'TA_MECHANICAL_TERMINAL')
+    return recipe

@@ -19,11 +19,13 @@ from gx1.contracts.market_state_time_query_model_v2 import (
 from gx1.contracts.market_state_time_query_target_v1 import NATIVE_K, TIMEFRAMES
 
 
-def contract() -> dict:
+def contract(*, ta_only: bool = False) -> dict:
+    if type(ta_only) is not bool:
+        raise ValueError('NATIVE_F_TA_MODE')
     value = {
         'schema_version': 'gx1_market_state_native_F_dual_model_candidate_v1',
         'role': 'research_only_no_fit_or_trade_authority',
-        'S_model_contract_sha256': factorized_time_query_model_contract()['contract_sha256'],
+        'S_model_contract_sha256': factorized_time_query_model_contract(ta_only=ta_only)['contract_sha256'],
         'F_target_contract_sha256': future_contract()['contract_sha256'],
         'encoder': 'one_existing_v2_causal_native_backbone_encode_features_call',
         'S': 'unchanged_v2_sampled_query_projection_and_state_head',
@@ -48,12 +50,12 @@ class NativeFutureDualModel(nn.Module):
         device = state_model.query_head.weight.device
         self.future_head = nn.Linear(width, 2, device=device, dtype=torch.float32)
         self.register_buffer('native_F_objective_sha256', torch.tensor(
-            list(bytes.fromhex(contract()['contract_sha256'])),
+            list(bytes.fromhex(contract(ta_only=state_model._ta_only)['contract_sha256'])),
             device=device, dtype=torch.uint8))
 
     @property
     def research_objective(self) -> dict:
-        return contract()
+        return contract(ta_only=self.state_model._ta_only)
 
     @property
     def backbone(self) -> nn.Module:
@@ -71,7 +73,7 @@ class NativeFutureDualModel(nn.Module):
                 and bool(torch.isfinite(hidden).all())):
             raise ValueError('NATIVE_F_HIDDEN')
         device = hidden.device
-        reference = torch.tensor(list(bytes.fromhex(contract()['contract_sha256'])),
+        reference = torch.tensor(list(bytes.fromhex(self.research_objective['contract_sha256'])),
                                  dtype=torch.uint8, device=device)
         if not (torch.equal(self.native_F_objective_sha256, reference)
                 and self.future_head.in_features == hidden.shape[1]
@@ -101,15 +103,11 @@ class NativeFutureDualModel(nn.Module):
                 ctx_cont: torch.Tensor, seq_m5: torch.Tensor,
                 seq_m15: torch.Tensor, seq_h1: torch.Tensor,
                 seq_h4: torch.Tensor, seq_d1: torch.Tensor,
-                gc_seq_m5: torch.Tensor, gc_seq_m15: torch.Tensor,
-                gc_seq_h1: torch.Tensor, gc_seq_h4: torch.Tensor,
-                gc_seq_d1: torch.Tensor) -> dict[str, torch.Tensor]:
+                **gc_features: torch.Tensor) -> dict[str, torch.Tensor]:
         features = dict(seq_x=seq_x, snap_x=snap_x, ctx_cat=ctx_cat,
                         ctx_cont=ctx_cont, seq_m5=seq_m5, seq_m15=seq_m15,
                         seq_h1=seq_h1, seq_h4=seq_h4, seq_d1=seq_d1,
-                        gc_seq_m5=gc_seq_m5, gc_seq_m15=gc_seq_m15,
-                        gc_seq_h1=gc_seq_h1, gc_seq_h4=gc_seq_h4,
-                        gc_seq_d1=gc_seq_d1)
+                        **gc_features)
         hidden = self.encode_features(**features)
         if not (isinstance(query_k, torch.Tensor) and query_k.dtype == torch.int64
                 and query_k.shape == (hidden.shape[0], len(TIMEFRAMES))

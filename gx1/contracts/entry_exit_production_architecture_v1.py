@@ -36,6 +36,7 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     compile_gc_mtf_entry_execution_profile,
     compile_gc_mtf_geometry_entry_execution_profile, GC_MTF_GEOMETRY_ENTRY_EXECUTION_PROFILE_NAME,
     compile_full_gc_mtf_entry_execution_profile, FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME,
+    compile_full_ta_entry_execution_profile, FULL_TA_ENTRY_EXECUTION_PROFILE_NAME,
     require_compact_entry_execution_profile_reference,
 )
 from gx1.features.htf_features import (
@@ -142,6 +143,12 @@ def entry_exit_production_architecture_contract(
     }
     if profile is not None:
         result["entry_execution_profile"] = profile
+        if profile["name"] == FULL_TA_ENTRY_EXECUTION_PROFILE_NAME:
+            widths = compile_full_ta_entry_execution_profile()["physical_widths"]
+            result["shared_surface"] = {
+                "signal_dim": widths["signal"], "snap_dim": widths["signal"],
+                "ctx_cont_dim": widths["ctx_cont"], "ctx_cat_dim": widths["ctx_cat"],
+            }
     if gc_mtf_history is not None:
         compiled = (compile_full_gc_mtf_entry_execution_profile(gc_mtf_history, **units_kwargs)
             if profile is not None and profile["name"] == FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME else
@@ -183,6 +190,13 @@ def current_entry_exit_architecture_observation(
         "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
         "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
     }
+    if (entry_execution_profile is not None
+            and entry_execution_profile["name"] == FULL_TA_ENTRY_EXECUTION_PROFILE_NAME):
+        widths = compile_full_ta_entry_execution_profile()["physical_widths"]
+        observed["shared_surface"] = {
+            "signal_dim": widths["signal"], "snap_dim": widths["signal"],
+            "ctx_cont_dim": widths["ctx_cont"], "ctx_cat_dim": widths["ctx_cat"],
+        }
     observed["shared_encoder"] = ENTRY_EXIT_SHARED_ENCODER
     observed["local_specialists"] = list(MODEL_NATIVE_TRAINING_SPECIALISTS)
     observed["mtf_specialists"] = list(MODEL_NATIVE_TRAINING_SPECIALISTS)

@@ -122,3 +122,146 @@ def test_private_probe_gate_cannot_authorize_fold1_predictor_fit():
         scope.require_fit_gate({
             **admitted, 'time_query_fold1_fit_authorized': False,
         }, recipe)
+
+
+def _ta_sf_model(monkeypatch):
+    from torch import nn
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    from gx1.contracts.market_state_time_query_model_v2 import FactorizedTimeQueryMarketStateModel
+    from gx1.contracts.market_state_time_query_native_F_model_v1 import NativeFutureDualModel
+    from gx1.features.entry_specialist_feature_groups_v1 import compile_full_ta_entry_execution_profile
+    from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import CtxModelConfig, EntryV10CtxHybridTransformer
+    monkeypatch.setattr(EntryV10CtxHybridTransformer,
+                        'require_input_normalization_state', lambda self: None)
+    backbone = EntryV10CtxHybridTransformer.__new__(EntryV10CtxHybridTransformer)
+    nn.Module.__init__(backbone)
+    cfg = CtxModelConfig.__new__(CtxModelConfig)
+    object.__setattr__(cfg, 'd_model', 4)
+    object.__setattr__(cfg, 'entry_training_phase', ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
+    backbone.cfg = cfg
+    backbone.entry_training_phase = cfg.entry_training_phase
+    backbone.entry_q_joint_in = nn.Linear(16, 4)
+    backbone._drop = nn.Dropout(.25)
+    backbone.head_forecast = nn.Linear(4, 3)
+    backbone.dynamic_m5_query_projection = nn.Linear(4, 3)
+    backbone.task_log_variances = nn.ParameterDict({'old': nn.Parameter(torch.zeros(()))})
+    backbone.entry_decision_token = nn.Linear(4, 4)
+    backbone.exit_probe = nn.Linear(4, 1)
+    backbone.register_buffer('input_norm_signal_center', torch.zeros(4))
+    backbone.register_buffer('research_unobserved_units_profile_sha256',
+                             torch.tensor([3]*32, dtype=torch.uint8))
+    profile = compile_full_ta_entry_execution_profile()
+    backbone.entry_execution_profile = {key: profile[key] for key in ('name', 'contract_sha256')}
+    backbone.gc_mtf_history = None
+    base = FactorizedTimeQueryMarketStateModel(backbone)
+    base.feature_view_identity = {'contract_sha256': '1'*64,
+        'prefix_normalization': {'contract_sha256': '2'*64},
+        'research_objective_sha256': base.research_objective['contract_sha256']}
+    return NativeFutureDualModel(base)
+
+
+def _ta_sf_case(monkeypatch):
+    import random
+    import numpy as np
+    recipe = scope.ta_sf_numerical_recipe()
+    seed = recipe['seed']
+    def seed_all():
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+    seed_all()
+    model = _ta_sf_model(monkeypatch)
+    optimizer, binding = state.build_fold1_fit_optimizer(model, numerical_recipe=recipe)
+    seed_all()
+    return model, optimizer, recipe, binding
+
+
+def _ta_sf_update(model, optimizer, step):
+    import random
+    import numpy as np
+    from gx1.contracts.market_state_time_query_target_v1 import NATIVE_K
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+    optimizer.zero_grad(set_to_none=True)
+    x = torch.tensor([[1., 2., 3., 4.]]).expand(16, -1) + float(step)
+    hidden = model.backbone._drop(model.backbone.entry_q_joint_in(torch.cat((x,)*4, dim=1)))
+    hidden = hidden + (random.random() + float(np.random.random())) * torch.rand_like(hidden)
+    q = torch.tensor(NATIVE_K, dtype=torch.int64).expand(16, -1)
+    s = model.state_model.decode_raw_query_grid(hidden, q[:, None, :])[:, 0]
+    f = model.decode_native_F_raw(hidden)
+    (s.square().mean() + f.square().mean()).backward()
+    trainer._optimizer_step_with_finite_gradients(model=model, optimizer=optimizer)
+    optimizer.zero_grad(set_to_none=True)
+
+
+def _ta_sf_capture(model, optimizer, recipe, updates):
+    return state.capture_fold1_fit_state(
+        model, optimizer, numerical_recipe=recipe,
+        feature_view_identity=model.state_model.feature_view_identity,
+        parent_order=torch.arange(scope.FIT_ROWS, dtype=torch.int64),
+        cursor=16*updates, optimizer_updates=updates, skipped_batches=0,
+        source_commit='c'*40, device=torch.device('cpu'))
+
+
+def test_ta_sf_state_keeps_view_and_dual_objective_identities_separate(monkeypatch):
+    model, optimizer, recipe, binding = _ta_sf_case(monkeypatch)
+    assert binding['schema_version'] == state.TA_BINDING_SCHEMA
+    assert binding['feature_view_identity']['research_objective_sha256'] == model.state_model.research_objective['contract_sha256']
+    assert binding['research_objective']['contract_sha256'] == recipe['research_objective_sha256']
+    assert binding['feature_view_identity']['research_objective_sha256'] != recipe['research_objective_sha256']
+    assert {'state_model.query_head.weight', 'future_head.weight',
+            'state_model.backbone.entry_q_joint_in.weight'} <= set(binding['active_parameter_names'])
+    assert 'state_model.backbone.head_forecast.weight' in binding['inactive_parameter_names']
+    saved = _ta_sf_capture(model, optimizer, recipe, 0)
+    assert saved['schema_version'] == state.TA_STATE_SCHEMA
+    bad = dict(recipe, future_weight=.5)
+    with pytest.raises(RuntimeError, match='TA_SF_NUMERICAL_RECIPE'):
+        state.build_fold1_fit_optimizer(model, numerical_recipe=bad)
+
+
+def test_ta_sf_full_cursor_resume_keeps_model_adamw_rng_and_modes_bit_exact(monkeypatch):
+    reference, opt, recipe, _ = _ta_sf_case(monkeypatch)
+    for step in range(2):
+        _ta_sf_update(reference, opt, step)
+    expected = _ta_sf_capture(reference, opt, recipe, 2)
+    source, opt, _, _ = _ta_sf_case(monkeypatch)
+    _ta_sf_update(source, opt, 0)
+    saved = _ta_sf_capture(source, opt, recipe, 1)
+    resumed, opt, _, _ = _ta_sf_case(monkeypatch)
+    restored = state.restore_fold1_fit_state(
+        saved, resumed, opt, numerical_recipe=recipe,
+        feature_view_identity=resumed.state_model.feature_view_identity,
+        parent_order=torch.arange(scope.FIT_ROWS, dtype=torch.int64),
+        source_commit='c'*40, device=torch.device('cpu'))
+    assert restored == {'cursor': 16, 'optimizer_updates': 1, 'skipped_batches': 0}
+    _ta_sf_update(resumed, opt, 1)
+    actual = _ta_sf_capture(resumed, opt, recipe, 2)
+    for key in ('model_state_sha256', 'buffer_state_sha256',
+                'optimizer_state_sha256', 'rng_state_sha256', 'module_training'):
+        assert actual[key] == expected[key]
+
+
+@pytest.mark.parametrize('name', [
+    'native_F_objective_sha256', 'state_model.query_native_k',
+    'state_model.backbone.input_norm_signal_center',
+    'state_model.backbone.research_unobserved_units_profile_sha256',
+])
+def test_ta_sf_resealed_immutable_buffer_rejected_before_restore(monkeypatch, name):
+    from gx1.contracts import entry_native_direction_research_state_v1 as old
+    from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256 as digest
+    source, opt, recipe, _ = _ta_sf_case(monkeypatch)
+    _ta_sf_update(source, opt, 0)
+    bad = copy.deepcopy(_ta_sf_capture(source, opt, recipe, 1))
+    bad['model_state'][name].view(-1)[0] += 1
+    bad['buffer_state'][name].view(-1)[0] += 1
+    bad['model_state_sha256'] = digest(bad['model_state'])
+    bad['buffer_state_sha256'] = old._tree_sha(bad['buffer_state'])
+    bad['contract_sha256'] = old._tree_sha({k: v for k, v in bad.items() if k != 'contract_sha256'})
+    fresh, opt, _, _ = _ta_sf_case(monkeypatch)
+    before = _ta_sf_capture(fresh, opt, recipe, 0)
+    with pytest.raises(RuntimeError, match='IMMUTABLE_BUFFER'):
+        state.restore_fold1_fit_state(
+            bad, fresh, opt, numerical_recipe=recipe,
+            feature_view_identity=fresh.state_model.feature_view_identity,
+            parent_order=torch.arange(scope.FIT_ROWS, dtype=torch.int64),
+            source_commit='c'*40, device=torch.device('cpu'))
+    assert _ta_sf_capture(fresh, opt, recipe, 0)['model_state_sha256'] == before['model_state_sha256']

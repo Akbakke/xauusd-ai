@@ -178,7 +178,8 @@ def _fold(value):
     return dict(value)
 
 
-def _view_identity(value, *, verify_files, allow_unobserved_units_profile=False):
+def _view_identity(value, *, verify_files, allow_unobserved_units_profile=False,
+                   allow_ta_profile=False):
     _require(isinstance(value, Mapping) and set(value) == {'contract_sha256', 'prefix_normalization',
         'research_objective_sha256'}, 'VIEW_IDENTITY')
     prefix = value['prefix_normalization']
@@ -186,6 +187,10 @@ def _view_identity(value, *, verify_files, allow_unobserved_units_profile=False)
         'gc_normalization_sha256', 'qualification_sha256'}
     if allow_unobserved_units_profile:
         expected.add('unobserved_units_profile_sha256')
+    _require(type(allow_ta_profile) is bool and
+        (not allow_ta_profile or allow_unobserved_units_profile), 'TA_PROFILE_SCOPE')
+    if allow_ta_profile:
+        expected |= {'ta_base_normalization_sha256', 'source_owner_profile_sha256'}
     _require(isinstance(prefix, Mapping) and set(prefix) == expected, 'PREFIX_IDENTITY')
     for key in ('contract_sha256', 'research_objective_sha256'):
         campaign._sha(value[key], key)
@@ -1427,8 +1432,10 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
     _require(verify_files, 'RECIPE_REQUIRES_PHYSICAL_METADATA')
     value = campaign.read_bound_json(Path(ref['path']), ref['sha256'])
     from gx1.contracts import market_state_time_query_fold1_fit_v1 as time_query_fold1
-    if value.get('run_scope') == time_query_fold1.SCOPE:
-        _require(ref['path'] == str(time_query_fold1.RECIPE_PATH), 'TIME_QUERY_RECIPE_PATH')
+    time_query_paths = {time_query_fold1.SCOPE: time_query_fold1.RECIPE_PATH,
+                        time_query_fold1.TA_SF_SCOPE: time_query_fold1.TA_SF_RECIPE_PATH}
+    if value.get('run_scope') in time_query_paths:
+        _require(ref['path'] == str(time_query_paths[value['run_scope']]), 'TIME_QUERY_RECIPE_PATH')
         return time_query_fold1.require_launch_recipe(value, source_repo=source_repo,
             source_commit=source_commit, verify_files=verify_files)
     from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
@@ -1823,8 +1830,10 @@ def guarded_prefix_power_limit(recipe):
     _require(isinstance(recipe, Mapping), 'FACTOR_POWER_RECIPE')
     scope = recipe.get('run_scope')
     from gx1.contracts import market_state_time_query_fold1_fit_v1 as time_query_fold1
-    if scope == time_query_fold1.SCOPE:
-        _require(recipe.get('admission_stage') == time_query_fold1.STAGE, 'TIME_QUERY_POWER_SCOPE')
+    time_query_stages = {time_query_fold1.SCOPE: time_query_fold1.STAGE,
+                         time_query_fold1.TA_SF_SCOPE: time_query_fold1.TA_SF_STAGE}
+    if scope in time_query_stages:
+        _require(recipe.get('admission_stage') == time_query_stages[scope], 'TIME_QUERY_POWER_SCOPE')
         return 250
     from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
     from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
@@ -1904,7 +1913,8 @@ def require_prefix_fit_plan(value, *, verify_files=True):
     result['prepared_windows_boot'] = campaign.require_boot_identity(result['prepared_windows_boot'])
     expected_policy = campaign.family_campaign_policy(result)
     from gx1.contracts import market_state_time_query_fold1_fit_v1 as time_query_fold1
-    if result['recipe']['path'] == str(time_query_fold1.RECIPE_PATH):
+    if result['recipe']['path'] in (str(time_query_fold1.RECIPE_PATH),
+                                    str(time_query_fold1.TA_SF_RECIPE_PATH)):
         _require('family_same_boot' not in result, 'TIME_QUERY_FRESH_BOOT_REQUIRED')
         expected_policy['physical_power_limit_w'] = 250
     from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
@@ -1984,7 +1994,7 @@ def require_native_direction_prefix_fit_readiness(repo, *, window_path, window_f
             'genuine_constructor_authorized','genuine_forward_authorized','native_launch_authorized')
         _require(gate.get(key) is expected, 'READINESS_GATE:' + key)
     from gx1.contracts import market_state_time_query_fold1_fit_v1 as time_query_fold1
-    if recipe['run_scope'] == time_query_fold1.SCOPE:
+    if recipe['run_scope'] in (time_query_fold1.SCOPE, time_query_fold1.TA_SF_SCOPE):
         time_query_fold1.require_fit_gate(gate, recipe)
     if recipe['run_scope'] in (december.FIT_SCOPE, december.SCORE_SCOPE):
         december.require_phase_gate(gate, recipe)
@@ -2089,7 +2099,8 @@ def require_prefix_fit_cursor(value, *, expected_recipe, expected_fold=None, ver
     phases = {str(december.ROOTS[p].parent/'RECIPE.json'):p for p in ('fit','score')}
     phase = phases.get(expected_recipe['path'])
     from gx1.contracts import market_state_time_query_fold1_fit_v1 as time_query_fold1
-    time_query_fit = expected_recipe['path'] == str(time_query_fold1.RECIPE_PATH)
+    ta_sf_fit = expected_recipe['path'] == str(time_query_fold1.TA_SF_RECIPE_PATH)
+    time_query_fit = ta_sf_fit or expected_recipe['path'] == str(time_query_fold1.RECIPE_PATH)
     from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
     october_fit_arm = next((arm for arm, root in october.FIT_ROOTS.items()
         if expected_recipe['path'] == str(root.parent/'RECIPE.json')), None)
@@ -2139,7 +2150,7 @@ def require_prefix_fit_cursor(value, *, expected_recipe, expected_fold=None, ver
     if result['feature_view_identity'] is not None:
         if time_query_fit:
             time_query_fold1.require_checkpoint_view(result['feature_view_identity'],
-                verify_files=verify_files)
+                ta_sf=ta_sf_fit, verify_files=verify_files)
         elif october_arm:
             _require(october.roles.identity.require_checkpoint_view(result['feature_view_identity']) == october_arm,
                      'OCTOBER_CURSOR_ARM')
@@ -2151,8 +2162,12 @@ def require_prefix_fit_cursor(value, *, expected_recipe, expected_fold=None, ver
             bound = result['feature_view_identity']['prefix_normalization']
             if time_query_fit:
                 time_query_fold1.require_checkpoint_view(result['feature_view_identity'],
-                    recipe=launch, verify_files=verify_files)
-                matches = launch.get('run_scope') == time_query_fold1.SCOPE
+                    recipe=launch, ta_sf=ta_sf_fit, verify_files=verify_files)
+                expected_scope = time_query_fold1.TA_SF_SCOPE if ta_sf_fit else time_query_fold1.SCOPE
+                matches = launch.get('run_scope') == expected_scope
+                if ta_sf_fit:
+                    # The view binds state-v2; the numerical recipe binds both S/F heads.
+                    matches = matches and launch.get('numerical_recipe') == time_query_fold1.ta_sf_numerical_recipe()
             elif october_arm:
                 matches = (launch.get('run_scope') ==
                     (october.roles.FIT_SCOPE if october_fit_arm else october.roles.SCORE_SCOPE)
@@ -2179,8 +2194,9 @@ def require_prefix_fit_cursor(value, *, expected_recipe, expected_fold=None, ver
                 matches = bound['binding'] == prefix['output'] and all(bound[target] == prefix[source] for target,source in (
                     ('contract_sha256','combined_contract_sha256'),('base_sha256','base_normalization_sha256'),
                     ('gc_layout_sha256','gc_layout_sha256'),('gc_normalization_sha256','gc_normalization_sha256')))
-            _require(matches and result['feature_view_identity']['research_objective_sha256'] ==
-                launch['numerical_recipe']['research_objective_sha256'], 'CURSOR_INPUT_VIEW_IDENTITY')
+            _require(matches and (ta_sf_fit or
+                result['feature_view_identity']['research_objective_sha256'] ==
+                launch['numerical_recipe']['research_objective_sha256']), 'CURSOR_INPUT_VIEW_IDENTITY')
     else:
         _require(premodel_failure, 'CURSOR_MISSING_VIEW')
     for key in ('full_state','own_initial_state','initial_measurement'):
@@ -2233,7 +2249,8 @@ def require_prefix_fit_progress(value, *, plan_sha256, invocation, expected_sele
     from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
     recipe_path = invocation['direction_prefix_fit_recipe']['path']
     from gx1.contracts import market_state_time_query_fold1_fit_v1 as time_query_fold1
-    time_query_fit = recipe_path == str(time_query_fold1.RECIPE_PATH)
+    time_query_fit = recipe_path in (str(time_query_fold1.RECIPE_PATH),
+                                   str(time_query_fold1.TA_SF_RECIPE_PATH))
     dec_phase = next((p for p in ('fit','score') if recipe_path ==
         str(december.ROOTS[p].parent/'RECIPE.json')), None)
     from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october

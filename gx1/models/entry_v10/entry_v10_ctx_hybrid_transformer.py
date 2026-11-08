@@ -84,6 +84,7 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     compile_gc_mtf_entry_execution_profile,
     compile_gc_mtf_geometry_entry_execution_profile, GC_MTF_GEOMETRY_ENTRY_EXECUTION_PROFILE_NAME,
     compile_full_gc_mtf_entry_execution_profile, FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME,
+    compile_full_ta_entry_execution_profile, FULL_TA_ENTRY_EXECUTION_PROFILE_NAME,
 )
 from gx1.features.entry_direction_momentum_profile_v1 import (
     MOMENTUM_FAMILY as PRICE_MOMENTUM_FAMILY,
@@ -546,6 +547,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
             if profile_reference is not None and profile_reference["name"] in PRICE_MOMENTUM_PROFILE_NAMES else None
         )
         compiled_profile = (
+            compile_full_ta_entry_execution_profile()
+            if profile_reference is not None and profile_reference["name"] == FULL_TA_ENTRY_EXECUTION_PROFILE_NAME else
             compile_full_gc_mtf_entry_execution_profile(
                 gc_mtf_history, unobserved_units_profile=research_unobserved_units_profile)
             if profile_reference is not None and profile_reference["name"] == FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME else
@@ -679,13 +682,18 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 "SEQ_SNAP_DIM_MISMATCH: bit-identical current-bar contract "
                 f"requires equal widths; seq={seq_input_dim} snap={snap_input_dim}"
             )
+        expected_ctx_cont_dim = (
+            compiled_profile["physical_widths"]["ctx_cont"]
+            if profile_reference is not None
+            and profile_reference["name"] == FULL_TA_ENTRY_EXECUTION_PROFILE_NAME
+            else MODEL_NATIVE_CTX_CONT_DIM)
         if (
-            int(ctx_cont_dim) != MODEL_NATIVE_CTX_CONT_DIM
+            int(ctx_cont_dim) != expected_ctx_cont_dim
             or int(ctx_cat_dim) != MODEL_NATIVE_CTX_CAT_DIM
         ):
             raise RuntimeError(
                 "[ENTRY_MODEL_NATIVE_CTX_DIM_INVALID] "
-                f"ctx_cont_dim={int(ctx_cont_dim)} expected={MODEL_NATIVE_CTX_CONT_DIM} "
+                f"ctx_cont_dim={int(ctx_cont_dim)} expected={expected_ctx_cont_dim} "
                 f"ctx_cat_dim={int(ctx_cat_dim)} expected={MODEL_NATIVE_CTX_CAT_DIM}"
             )
         if min(m5_seq_dim, m15_seq_dim, h1_seq_dim, h4_seq_dim, d1_seq_dim) <= 0:
@@ -811,6 +819,10 @@ class EntryV10CtxHybridTransformer(nn.Module):
             else []
             for surface in INPUT_NORMALIZATION_SURFACES
         }
+        ta_only = (profile_reference is not None
+                   and profile_reference["name"] == FULL_TA_ENTRY_EXECUTION_PROFILE_NAME)
+        if ta_only != (isinstance(input_normalization, Mapping) and "ta_projection" in input_normalization):
+            raise RuntimeError("TA_INPUT_NORMALIZATION_PROFILE_BINDING")
         normalized_input_contract = require_input_normalization_contract(
             input_normalization,
             expected_field_names=normalization_field_names,
@@ -1882,6 +1894,16 @@ class EntryV10CtxHybridTransformer(nn.Module):
             if not torch.equal(self.entry_execution_profile_contract_sha256.detach().cpu(), expected_profile_hash):
                 raise RuntimeError("ENTRY_MODEL_EXECUTION_PROFILE_STATE_BINDING_INVALID")
         contract = self._input_normalization_contract
+        if (self.entry_execution_profile is not None
+                and self.entry_execution_profile["name"] == FULL_TA_ENTRY_EXECUTION_PROFILE_NAME):
+            if self.gc_mtf_history is not None:
+                raise RuntimeError("TA_GC_MODEL_STATE_FORBIDDEN")
+            contract = require_input_normalization_contract(
+                contract, expected_field_names={
+                    key: self._input_normalization_field_names[key]
+                    for key in INPUT_NORMALIZATION_SURFACES},
+                expected_ctx_cat_names=MODEL_NATIVE_CTX_CAT_FIELDS,
+                expected_entry_training_phase=self.entry_training_phase)
         units_profile = getattr(self, "_research_unobserved_units_profile", None)
         units_buffer = getattr(self, "research_unobserved_units_profile_sha256", None)
         research_stats = list(contract["surfaces"].values())

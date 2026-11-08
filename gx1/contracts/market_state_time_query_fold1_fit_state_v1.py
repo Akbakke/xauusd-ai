@@ -7,6 +7,8 @@ import re
 
 STATE_SCHEMA = 'gx1_market_state_time_query_fold1_fit_state_v1'
 BINDING_SCHEMA = 'gx1_market_state_time_query_fold1_fit_optimizer_binding_v1'
+TA_STATE_SCHEMA = 'gx1_market_state_ta_sf_fold1_fit_state_v1'
+TA_BINDING_SCHEMA = 'gx1_market_state_ta_sf_fold1_fit_optimizer_binding_v1'
 _STATE_KEYS = frozenset({
     'schema_version', 'source_commit', 'fold_id', 'feature_view_sha256',
     'binding', 'model_state', 'buffer_state', 'optimizer_state', 'rng_state',
@@ -36,11 +38,64 @@ def _deps():
     return torch, old, private, TimeQueryMarketStateModel, canonical_model_state_sha256, trainer
 
 
+
+def _is_ta_sf(model):
+    from gx1.contracts.market_state_time_query_native_F_model_v1 import NativeFutureDualModel
+    return type(model) is NativeFutureDualModel
+
+
+def _feature_view(model):
+    return model.state_model.feature_view_identity if _is_ta_sf(model) else model.feature_view_identity
+
+
+def _require_model_binding(model):
+    if not _is_ta_sf(model):
+        model._require_binding()
+        return
+    torch, _, _, _, _, _ = _deps()
+    from gx1.contracts.market_state_time_query_native_F_model_v1 import contract
+    model.state_model._require_binding()
+    _need(model.state_model._ta_only is True, 'TA_SF_PROFILE')
+    expected = contract(ta_only=True)['contract_sha256']
+    reference = torch.tensor(list(bytes.fromhex(expected)), dtype=torch.uint8,
+                             device=model.future_head.weight.device)
+    head = model.future_head
+    _need(model.research_objective['contract_sha256'] == expected
+          and torch.equal(model.native_F_objective_sha256, reference)
+          and head.in_features == model.state_model._hidden_width
+          and head.out_features == 2
+          and head.weight.dtype == head.bias.dtype == torch.float32
+          and head.weight.device == head.bias.device
+              == model.state_model.query_native_k.device
+          and bool(torch.isfinite(head.weight).all())
+          and bool(torch.isfinite(head.bias).all()), 'TA_SF_HEAD_BINDING')
+
+
+def _parameters(model):
+    if _is_ta_sf(model):
+        from gx1.contracts import market_state_native_F_private_state_v1 as dual
+        _require_model_binding(model)
+        return dual._parameters(model)
+    _, _, private, _, _, _ = _deps()
+    return private._parameters(model)
+
+
 def _numerical(value, model):
     from gx1.contracts.market_state_time_query_fold1_fit_v1 import (
         fold1_numerical_recipe, MODEL_CONTRACT_SHA256,
     )
     _, _, _, Model, _, trainer = _deps()
+    if _is_ta_sf(model):
+        from gx1.contracts.market_state_time_query_fold1_fit_v1 import ta_sf_numerical_recipe
+        from gx1.contracts.market_state_time_query_native_F_objective_v1 import contract as loss_contract
+        _require_model_binding(model)
+        _need(isinstance(value, Mapping) and dict(value) == ta_sf_numerical_recipe()
+              and value['research_objective_sha256'] == model.research_objective['contract_sha256']
+              and value['native_F_loss_contract_sha256'] == loss_contract(ta_only=True)['contract_sha256']
+              and value['future_weight'] == 1.0
+              and float(trainer._GRAD_CLIP_NORM) == value['grad_clip_norm'],
+              'TA_SF_NUMERICAL_RECIPE')
+        return copy.deepcopy(dict(value))
     _need(type(model) is Model and isinstance(value, Mapping)
           and dict(value) == fold1_numerical_recipe()
           and value['research_objective_sha256'] == MODEL_CONTRACT_SHA256
@@ -66,8 +121,9 @@ def _progress(cursor, updates, skipped, order, recipe):
 
 def _binding(model, optimizer, numerical_recipe, feature_view_identity):
     torch, old, private, _, _, _ = _deps()
-    pairs, active, inactive = private._parameters(model)
-    view = private._view(model, feature_view_identity)
+    pairs, active, inactive = _parameters(model)
+    view = private._view(model.state_model if _is_ta_sf(model) else model,
+                         feature_view_identity)
     _need(all(parameter.requires_grad for _, parameter in active)
           and all(not parameter.requires_grad for _, parameter in inactive),
           'PARAMETER_PARTITION')
@@ -82,7 +138,7 @@ def _binding(model, optimizer, numerical_recipe, feature_view_identity):
           and [id(parameter) for parameter in group['params']]
               == [id(parameter) for _, parameter in active], 'OPTIMIZER_GROUP_ORDER')
     binding = {
-        'schema_version': BINDING_SCHEMA,
+        'schema_version': TA_BINDING_SCHEMA if _is_ta_sf(model) else BINDING_SCHEMA,
         'numerical_recipe': copy.deepcopy(numerical_recipe),
         'feature_view_identity': view,
         'research_objective': model.research_objective,
@@ -105,7 +161,7 @@ def build_fold1_fit_optimizer(model, *, numerical_recipe):
     torch, old, private, _, _, _ = _deps()
     recipe = _numerical(numerical_recipe, model)
     old._no_partial_gradients(model)
-    _, active, inactive = private._parameters(model)
+    _, active, inactive = _parameters(model)
     for _, parameter in active:
         parameter.requires_grad_(True)
     for _, parameter in inactive:
@@ -113,7 +169,7 @@ def build_fold1_fit_optimizer(model, *, numerical_recipe):
     kwargs = copy.deepcopy(recipe['optimizer']['kwargs'])
     kwargs['betas'] = tuple(kwargs['betas'])
     optimizer = torch.optim.AdamW([parameter for _, parameter in active], **kwargs)
-    return optimizer, _binding(model, optimizer, recipe, model.feature_view_identity)
+    return optimizer, _binding(model, optimizer, recipe, _feature_view(model))
 
 
 def capture_fold1_fit_state(model, optimizer, *, numerical_recipe,
@@ -139,7 +195,7 @@ def capture_fold1_fit_state(model, optimizer, *, numerical_recipe,
     rng = copy.deepcopy(trainer._attended_session_rng_state(device=device))
     old._rng(rng, device=device, seed=recipe['seed'])
     value = {
-        'schema_version': STATE_SCHEMA,
+        'schema_version': TA_STATE_SCHEMA if _is_ta_sf(model) else STATE_SCHEMA,
         'source_commit': source_commit,
         'fold_id': 1,
         'feature_view_sha256': binding['feature_view_identity']['contract_sha256'],
@@ -176,7 +232,7 @@ def restore_fold1_fit_state(state, model, optimizer, *, numerical_recipe,
     binding = _binding(model, optimizer, recipe, feature_view_identity)
     order = old._order(parent_order)
     _need(isinstance(state, Mapping) and set(state) == _STATE_KEYS
-          and state['schema_version'] == STATE_SCHEMA
+          and state['schema_version'] == (TA_STATE_SCHEMA if _is_ta_sf(model) else STATE_SCHEMA)
           and state['source_commit'] == source_commit
           and type(state['fold_id']) is int and state['fold_id'] == 1
           and state['feature_view_sha256'] == binding['feature_view_identity']['contract_sha256']
@@ -199,8 +255,13 @@ def restore_fold1_fit_state(state, model, optimizer, *, numerical_recipe,
                               state['model_state'][name].detach().cpu()),
                   'PERSISTENT_BUFFER:' + name)
     immutable = old.IMMUTABLE_BUFFER_NAMES | _QUERY_BUFFERS
+    immutable_prefixes = old.IMMUTABLE_BUFFER_PREFIXES
+    if _is_ta_sf(model):
+        immutable = frozenset({'native_F_objective_sha256'} |
+                              {'state_model.' + name for name in immutable})
+        immutable_prefixes = tuple('state_model.' + prefix for prefix in immutable_prefixes)
     for name, buffer in model.named_buffers():
-        if name in immutable or name.startswith(old.IMMUTABLE_BUFFER_PREFIXES):
+        if name in immutable or name.startswith(immutable_prefixes):
             _need(torch.equal(state['buffer_state'][name].detach().cpu(),
                               buffer.detach().cpu()),
                   'IMMUTABLE_BUFFER:' + name)
@@ -225,7 +286,7 @@ def restore_fold1_fit_state(state, model, optimizer, *, numerical_recipe,
     for name, training in state['module_training'].items():
         modes[name].training = training
     model.backbone.require_input_normalization_state()
-    model._require_binding()
+    _require_model_binding(model)
     _need(_binding(model, optimizer, recipe, feature_view_identity) == binding
           and digest(model.state_dict()) == state['model_state_sha256']
           and old._tree_sha(dict(model.named_buffers())) == state['buffer_state_sha256']

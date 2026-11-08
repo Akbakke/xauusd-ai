@@ -156,3 +156,64 @@ def test_explicit_relative_history_keeps_all_original_fields_and_binds_extra_anc
         assert full['gc_mtf_widths'][tf] == len(raw) + 2
         assert sorted(i for values in full['gc_mtf_family_indices'][tf].values() for i in values) == list(range(len(raw) + 2))
     assert full['gc_mtf_history']['normalization_sha256'] == history['normalization']['contract_sha256']
+
+
+def test_ta_profile_excludes_exact_gc_registry_and_preserves_every_other_field(bound_case):
+    source = profiles.compile_compact_entry_execution_profile()['physical_field_names']
+    ta = profiles.compile_full_ta_entry_execution_profile()
+    gc = set(profiles._GC_OWNERS)
+    assert ta['physical_widths'] == {'signal': 315, 'ctx_cont': 132, 'ctx_cat': 1, 'mtf': 253}
+    assert set(source['ctx_cont']) - set(ta['physical_field_names']['ctx_cont']) == gc
+    assert set(source['signal']) - set(ta['physical_field_names']['signal']) == {
+        'ctx_cont.' + name for name in gc}
+    assert ta['physical_field_names']['mtf'] == tuple(source['mtf'])
+    assert ta['physical_field_names']['ctx_cat'] == tuple(source['ctx_cat'])
+    assert len(ta['macro_context_fields']) == 61
+    assert set(ta['macro_context_fields']) <= set(ta['physical_field_names']['ctx_cont'])
+    assert tuple(ta['local_specialists']) == tuple(profiles.MODEL_NATIVE_TRAINING_SPECIALISTS)
+    assert {key: len(value) for key, value in ta['mtf_indices_by_specialist'].items()} == {
+        'structure_swing_encoder': 24, 'smc_liquidity_encoder': 76,
+        'trend_ema_encoder': 39, 'vol_compression_encoder': 13,
+        'momentum_flow_encoder': 29, 'session_regime_encoder': 9,
+        'chart_geometry_encoder': 39, 'price_action_candle_encoder': 24}
+    assert set(ta['feature_keys']) == profiles.FULL_TA_ENTRY_FEATURE_KEYS
+    reference = _ref(ta)
+    assert profiles.require_compact_entry_execution_profile_reference(reference) == reference
+    with pytest.raises(RuntimeError, match='TA_GC_HISTORY_FORBIDDEN'):
+        profiles.require_compact_entry_execution_profile_reference(
+            reference, gc_mtf_history=bound_case['arguments']['prefix_normalization']['gc_mtf_history'])
+    actual = architecture.entry_exit_production_architecture_contract(entry_execution_profile=reference)
+    assert actual['shared_surface'] == {'signal_dim': 315, 'snap_dim': 315,
+                                         'ctx_cont_dim': 132, 'ctx_cat_dim': 1}
+    assert 'gc_mtf_history' not in actual
+
+
+def test_ta_normalization_is_exact_existing_column_projection_and_rejects_refit(bound_case):
+    from gx1.contracts import entry_model_native_input_normalization_v1 as normal
+    original = bound_case['arguments']['prefix_normalization']['base_normalization']
+    before = deepcopy(original)
+    ta = profiles.compile_full_ta_entry_execution_profile()
+    projected = normal.project_ta_input_normalization_contract(original)
+    assert original == before
+    assert projected['ta_projection']['source_contract'] == original
+    assert projected['ta_projection']['new_fit_performed'] is False
+    assert projected['lineage'] == original['lineage']
+    for surface, indices in (('signal', ta['source_signal_indices']),
+                             ('ctx_cont', ta['source_ctx_cont_indices'])):
+        for key in ('field_names', 'center', 'scale', 'binary_mask', 'categorical_mask',
+                    'scale_source', 'train_transformed_min', 'train_transformed_max'):
+            assert projected['surfaces'][surface][key] == [
+                original['surfaces'][surface][key][index] for index in indices]
+    for surface in normal.EXPECTED_SURFACES:
+        if surface.startswith('mtf_'):
+            assert projected['surfaces'][surface] == original['surfaces'][surface]
+    kwargs = dict(expected_field_names={surface: ta['physical_field_names'][
+        'mtf' if surface.startswith('mtf_') else surface] for surface in normal.EXPECTED_SURFACES},
+        expected_ctx_cat_names=ta['physical_field_names']['ctx_cat'])
+    assert normal.require_input_normalization_contract(projected, **kwargs) == projected
+    changed = deepcopy(projected)
+    changed['surfaces']['signal']['center'][0] += 1
+    with pytest.raises(RuntimeError, match='TA_NORMALIZATION_EXACT_PROJECTION_MISMATCH'):
+        normal.require_input_normalization_contract(changed, **kwargs)
+    with pytest.raises(RuntimeError, match='TA_NORMALIZATION_SOURCE_INVALID'):
+        normal.project_ta_input_normalization_contract(projected)

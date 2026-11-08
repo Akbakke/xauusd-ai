@@ -11,6 +11,9 @@ REF = {'path': str(fold1.RECIPE_PATH), 'sha256': 'a' * 64}
 ARTIFACT = {'path': '/tmp/gx1-fold1-campaign-test.json', 'sha256': 'b' * 64}
 
 
+def _recipe_ref(ta_sf):
+    return {**REF, 'path': str(fold1.TA_SF_RECIPE_PATH if ta_sf else fold1.RECIPE_PATH)}
+
 def _complete_cursor(monkeypatch, **changes):
     monkeypatch.setattr(fold1, 'require_checkpoint_view',
                         lambda value, **kwargs: value)
@@ -27,27 +30,31 @@ def _complete_cursor(monkeypatch, **changes):
     return prefix.build_prefix_fit_cursor(**{**args, **changes})
 
 
-def test_fold1_cursor_counts_only_later_score_rows(monkeypatch):
-    cursor = _complete_cursor(monkeypatch)
+@pytest.mark.parametrize('ta_sf', [False, True])
+def test_fold1_cursor_counts_only_later_score_rows(monkeypatch, ta_sf):
+    ref = _recipe_ref(ta_sf)
+    cursor = _complete_cursor(monkeypatch, recipe_ref=ref)
     assert cursor['parent_cursor'] == 29574
     assert cursor['oof_cursor'] == 17753
     with pytest.raises(Exception, match='CURSOR_COUNTER:oof_cursor'):
-        _complete_cursor(monkeypatch, oof_cursor=18028)
+        _complete_cursor(monkeypatch, recipe_ref=ref, oof_cursor=18028)
     with pytest.raises(Exception, match='TIME_QUERY_CURSOR_FOLD'):
-        _complete_cursor(monkeypatch, fold={**fold1.FOLD,
+        _complete_cursor(monkeypatch, recipe_ref=ref, fold={**fold1.FOLD,
                                            'oof_start_row': fold1.FIT_ROWS})
 
 
-def test_fold1_progress_uses_mature_fit_and_gap(monkeypatch):
-    cursor = _complete_cursor(monkeypatch)
+@pytest.mark.parametrize('ta_sf', [False, True])
+def test_fold1_progress_uses_mature_fit_and_gap(monkeypatch, ta_sf):
+    ref = _recipe_ref(ta_sf)
+    cursor = _complete_cursor(monkeypatch, recipe_ref=ref)
     invocation = {
-        'direction_prefix_fit_recipe': REF,
+        'direction_prefix_fit_recipe': ref,
         'optimizer_step_budget': fold1.MAX_UPDATES,
         'kind': prefix.KIND,
         'invocation_sha256': 'd' * 64,
         'checkpoint': {'pointer_path': '/tmp/gx1-fold1-campaign-cursor.json'},
     }
-    window = {'recipe': REF}
+    window = {'recipe': ref}
     plan = {'plan_sha256': 'e' * 64}
     pointer = {'path': invocation['checkpoint']['pointer_path'], 'sha256': 'f' * 64}
     progress = prefix.build_prefix_fit_progress(
@@ -128,3 +135,141 @@ def test_one_use_receipt_shapes_accept_honest_complete_and_failed():
     assert checked(failed)['outcome'] == 'FAILED'
     with pytest.raises(Exception, match='failed receipt has successful processes'):
         checked({**failed, 'trainer_guard_exit_code': 0})
+
+
+@pytest.mark.parametrize('ta_sf', [False, True])
+def test_fold1_recipe_dispatch_requires_its_own_path(monkeypatch, ta_sf):
+    ref = _recipe_ref(ta_sf)
+    scope = fold1.TA_SF_SCOPE if ta_sf else fold1.SCOPE
+    value = {'run_scope': scope}
+    monkeypatch.setattr(prefix.campaign, 'require_binding',
+                        lambda value, **kwargs: value)
+    monkeypatch.setattr(prefix.campaign, 'read_bound_json',
+                        lambda *args: value)
+    calls = []
+    def checked(recipe, **kwargs):
+        calls.append((recipe, kwargs))
+        return recipe
+    monkeypatch.setattr(fold1, 'require_launch_recipe', checked)
+    assert prefix.require_prefix_fit_launch_recipe(
+        ref, source_repo=fold1.CANONICAL_REPO, source_commit='a' * 40) is value
+    assert calls[0][1]['verify_files'] is True
+    with pytest.raises(Exception, match='TIME_QUERY_RECIPE_PATH'):
+        prefix.require_prefix_fit_launch_recipe(
+            _recipe_ref(not ta_sf), source_repo=fold1.CANONICAL_REPO,
+            source_commit='a' * 40)
+    assert len(calls) == 1
+
+
+@pytest.mark.parametrize('ta_sf', [False, True])
+def test_fold1_power_scope_keeps_exact_stage_and_250w(ta_sf):
+    scope = fold1.TA_SF_SCOPE if ta_sf else fold1.SCOPE
+    stage = fold1.TA_SF_STAGE if ta_sf else fold1.STAGE
+    other_stage = fold1.STAGE if ta_sf else fold1.TA_SF_STAGE
+    assert prefix.guarded_prefix_power_limit({
+        'run_scope': scope, 'admission_stage': stage}) == 250
+    with pytest.raises(Exception, match='TIME_QUERY_POWER_SCOPE'):
+        prefix.guarded_prefix_power_limit({
+            'run_scope': scope, 'admission_stage': other_stage})
+
+
+def test_ta_prefix_view_extension_requires_explicit_opt_in():
+    prefix_identity = {
+        'binding': ARTIFACT, 'contract_sha256': '1' * 64,
+        'base_sha256': '2' * 64, 'gc_layout_sha256': '3' * 64,
+        'gc_normalization_sha256': '4' * 64,
+        'qualification_sha256': '5' * 64,
+        'unobserved_units_profile_sha256': '6' * 64,
+        'ta_base_normalization_sha256': '7' * 64,
+        'source_owner_profile_sha256': '8' * 64,
+    }
+    view = {'contract_sha256': '9' * 64,
+            'research_objective_sha256': 'a' * 64,
+            'prefix_normalization': prefix_identity}
+    assert prefix._view_identity(view, verify_files=False,
+        allow_unobserved_units_profile=True, allow_ta_profile=True) == view
+    with pytest.raises(Exception, match='PREFIX_IDENTITY'):
+        prefix._view_identity(view, verify_files=False,
+            allow_unobserved_units_profile=True)
+    with pytest.raises(Exception, match='TA_PROFILE_SCOPE'):
+        prefix._view_identity(view, verify_files=False, allow_ta_profile=True)
+    for missing in ('ta_base_normalization_sha256', 'source_owner_profile_sha256'):
+        bad = {**view, 'prefix_normalization': {
+            key: value for key, value in prefix_identity.items() if key != missing}}
+        with pytest.raises(Exception, match='PREFIX_IDENTITY'):
+            prefix._view_identity(bad, verify_files=False,
+                allow_unobserved_units_profile=True, allow_ta_profile=True)
+
+
+def test_ta_cursor_binds_state_view_and_dual_recipe_separately(monkeypatch):
+    from gx1.contracts.market_state_time_query_model_v2 import factorized_time_query_model_contract
+    numerical = fold1.ta_sf_numerical_recipe()
+    state_sha = factorized_time_query_model_contract(ta_only=True)['contract_sha256']
+    assert state_sha != numerical['research_objective_sha256']
+    ref = _recipe_ref(True)
+    view = {'prefix_normalization': {},
+            'research_objective_sha256': state_sha}
+    cursor = _complete_cursor(monkeypatch, recipe_ref=ref,
+        feature_view_identity=view)
+    calls = []
+    def checked_view(value, **kwargs):
+        assert kwargs['ta_sf'] is True
+        assert value['research_objective_sha256'] == state_sha
+        calls.append(kwargs)
+        return value
+    monkeypatch.setattr(fold1, 'require_checkpoint_view', checked_view)
+    require_binding = prefix.campaign.require_binding
+    monkeypatch.setattr(prefix.campaign, 'require_binding',
+        lambda value, **kwargs: require_binding(value,
+            label=kwargs['label'], verify_file=False))
+    launch = {
+        'schema_version': prefix.RECIPE_SCHEMA, 'fold': fold1.FOLD,
+        'train_passes': 1, 'run_scope': fold1.TA_SF_SCOPE,
+        'numerical_recipe': numerical,
+    }
+    def sealed_launch():
+        return {**launch, 'recipe_sha256': prefix.campaign.canonical_sha256(launch)}
+    monkeypatch.setattr(prefix.campaign, 'read_bound_json',
+                        lambda *args: sealed_launch())
+    assert prefix.require_prefix_fit_cursor(cursor, expected_recipe=ref,
+        verify_files=True)['outcome'] == 'COMPLETE'
+    assert len(calls) == 2 and calls[-1]['recipe'] == sealed_launch()
+    launch['numerical_recipe'] = {**numerical, 'research_objective_sha256': state_sha}
+    with pytest.raises(Exception, match='CURSOR_INPUT_VIEW_IDENTITY'):
+        prefix.require_prefix_fit_cursor(cursor, expected_recipe=ref,
+            verify_files=True)
+    launch['numerical_recipe'] = numerical
+    launch['run_scope'] = fold1.SCOPE
+    with pytest.raises(Exception, match='CURSOR_INPUT_VIEW_IDENTITY'):
+        prefix.require_prefix_fit_cursor(cursor, expected_recipe=ref,
+            verify_files=True)
+
+
+@pytest.mark.parametrize('ta_sf', [False, True])
+def test_guarded_fold1_dispatch_preserves_checked_context(monkeypatch, tmp_path, ta_sf):
+    from gx1.contracts import gx1_capped_execution_v1 as capped
+    from gx1.scripts import run_entry_native_direction_prefix_fit_window_v1 as dispatch
+    from gx1.scripts import run_market_state_time_query_fold1_fit_window_v1 as fit_runner
+    calls = []
+    limits = {'synthetic_guard': True}
+    parts = ({'window': 1}, {'plan': 2}, {'invocation': 3}, {'marker': 4},
+             {'run_scope': fold1.TA_SF_SCOPE if ta_sf else fold1.SCOPE})
+    monkeypatch.setattr(capped, 'require_guarded_cuda_trainer_execution',
+                        lambda: calls.append('guard') or limits)
+    monkeypatch.setattr(prefix, 'require_native_direction_prefix_fit_context',
+                        lambda *args: calls.append('context') or parts)
+    output = {'synthetic_dispatch': True}
+    seen = {}
+    def fit(**kwargs):
+        calls.append('fit')
+        seen.update(kwargs)
+        return output
+    monkeypatch.setattr(fit_runner, 'run_market_state_time_query_fold1_fit_window', fit)
+    progress_path = tmp_path / 'PROGRESS.json'
+    assert dispatch.run_native_direction_prefix_fit_window(
+        policy_path=tmp_path / 'WINDOW.json', policy_file_sha256='a' * 64,
+        progress_path=progress_path) is output
+    assert calls == ['guard', 'context', 'fit']
+    assert seen == dict(zip(('window', 'plan', 'invocation', 'marker', 'launch'), parts),
+                        progress_path=progress_path, limits=limits)
+    assert list(tmp_path.iterdir()) == []

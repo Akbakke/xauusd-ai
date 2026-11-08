@@ -3348,7 +3348,10 @@ def _retrieval_records(binding: dict, prefix: str | None = None) -> list[dict]:
 
 def _driver_available_at(observation_dates: pd.DatetimeIndex) -> pd.DatetimeIndex:
     """Observation dated D (NY close) is usable strictly after the end of day D+1 America/New_York."""
-    local_end = (observation_dates.tz_localize(NY_TZ) + pd.Timedelta(days=2)).normalize()
+    local_dates = (observation_dates.tz_localize(NY_TZ) if observation_dates.tz is None
+                   else observation_dates.tz_convert(NY_TZ))
+    # Calendar midnights must remain two local dates apart across DST changes.
+    local_end = local_dates.normalize() + pd.DateOffset(days=2)
     return local_end.tz_convert("UTC")
 
 

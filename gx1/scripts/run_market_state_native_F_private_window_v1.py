@@ -18,22 +18,29 @@ def _need(ok, reason):
 
 
 def _publish_terminal(*, output, progress_path, window, plan, invocation,
-                      payload, counters, maximum):
+                      payload, counters, maximum, ta_sf=False):
     from gx1.contracts import entry_native_direction_research_campaign_v1 as authority
     from gx1.scripts import run_entry_native_direction_research_window_v1 as common
-    outcome = ('COMPLETE' if payload['decision'] == 'PASS_NATIVE_F_PRIVATE_RESUME'
-               else 'FAILED')
+    pass_decision = 'PASS_TA_SF_MECHANICAL' if ta_sf else 'PASS_NATIVE_F_PRIVATE_RESUME'
+    outcome = 'COMPLETE' if payload['decision'] == pass_decision else 'FAILED'
     _need(payload['recipe'] == window['recipe']
           and payload['test_data_used'] is False
           and (outcome != 'COMPLETE' or payload['final_state'] is not None),
           'TERMINAL_PAYLOAD')
-    result = common._json(output / 'RESULT.json', payload, counters, maximum)
+    result_path = (scope.TA_ROOT if ta_sf else output) / 'RESULT.json'
+    result = common._json(result_path, payload, counters, maximum)
+    if ta_sf:
+        common._json(scope.TA_ROOT / 'TERMINAL.json', {
+            'schema_version': scope.TA_RESULT_SCHEMA + '_terminal',
+            'status': outcome, 'exit_code': 0 if outcome == 'COMPLETE' else 1,
+            'result': result, 'recipe': window['recipe'], 'test_data_used': False,
+            'no_relaunch_under_this_plan': True}, counters, maximum)
     cursor = common._json(Path(window['campaign_cursor_path']),
         scope.build_cursor(recipe_ref=window['recipe'], outcome=outcome,
             optimizer_updates=counters['optimizer_updates'],
             parent_cursor=payload['parent_cursor'],
             parent_order_sha256=payload['parent_order_sha256'],
-            full_state=payload['final_state'], result=result),
+            full_state=payload['final_state'], result=result, ta_sf=ta_sf),
         counters, maximum)
     progress = authority.build_research_progress(
         window=window, plan=plan, invocation=invocation,
@@ -49,16 +56,20 @@ def _publish_terminal(*, output, progress_path, window, plan, invocation,
 
 
 def run_private_window(*, policy_path: Path, policy_file_sha256: str,
-                       progress_path: Path) -> dict:
+                       progress_path: Path, ta_sf: bool = False) -> dict:
     from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_trainer_execution
     limits = require_guarded_cuda_trainer_execution()
     from gx1.contracts import entry_native_direction_research_campaign_v1 as authority
     window, plan, invocation, marker, recipe = (
         authority.require_native_direction_research_context(
             policy_path, policy_file_sha256, progress_path))
-    _need(recipe['run_scope'] == scope.SCOPE
-          and recipe['numerical_recipe'] == scope.numerical_recipe()
-          and recipe['parent_rows'] == list(scope.PARENT_ROWS)
+    from gx1.contracts import market_state_time_query_fold1_fit_v1 as full_scope
+    expected_scope = scope.TA_SCOPE if ta_sf else scope.SCOPE
+    expected_numerical = full_scope.ta_sf_numerical_recipe() if ta_sf else scope.numerical_recipe()
+    _need(type(ta_sf) is bool and recipe['run_scope'] == expected_scope
+          and recipe['numerical_recipe'] == expected_numerical
+          and (recipe.get('parent_selection') == scope.TA_PARENT_SELECTION if ta_sf
+               else recipe['parent_rows'] == list(scope.PARENT_ROWS))
           and recipe['fold_id'] == 1 and recipe['test_data_used'] is False,
           'ADMITTED_SCOPE')
 
@@ -68,6 +79,7 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
     from gx1.contracts import entry_native_direction_feature_view_v1 as views
     from gx1.contracts import market_state_future_displacement_candidate_v1 as future
     from gx1.contracts import market_state_native_F_private_state_v1 as state
+    from gx1.contracts import market_state_time_query_fold1_fit_state_v1 as full_state_owner
     from gx1.contracts.market_state_time_query_native_F_model_v1 import NativeFutureDualModel, contract as model_contract
     from gx1.contracts.market_state_time_query_native_F_objective_v1 import contract as loss_contract
     from gx1.contracts.market_state_time_query_native_F_batch_v1 import evaluate_fit_batch
@@ -81,14 +93,16 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
     _need(torch.cuda.is_available(), 'CUDA_REQUIRED')
     device = torch.device('cuda', 0)
     numerical = recipe['numerical_recipe']
-    _need(numerical == state.numerical_recipe()
-          and scope.MODEL_CONTRACT_SHA256 == model_contract()['contract_sha256']
-          and scope.LOSS_CONTRACT_SHA256 == loss_contract()['contract_sha256']
-          and scope.PARENT_ROWS == previous.scope.PARENT_ROWS
+    expected_model = model_contract(ta_only=ta_sf)['contract_sha256']
+    expected_loss = loss_contract(ta_only=ta_sf)['contract_sha256']
+    _need(numerical == (full_scope.ta_sf_numerical_recipe() if ta_sf else state.numerical_recipe())
+          and recipe['expected_model_contract_sha256'] == expected_model
+          and recipe['expected_loss_contract_sha256'] == expected_loss
           and scope.BATCH_SIZE == previous.scope.BATCH_SIZE,
           'SOURCE_RECIPE_BINDING')
-    order = torch.tensor(scope.PARENT_ROWS, dtype=torch.int64)
-    order_sha = tree_sha(order)
+    order = None if ta_sf else torch.tensor(scope.PARENT_ROWS, dtype=torch.int64)
+    order_sha = '0' * 64 if ta_sf else tree_sha(order)
+    selected_parent_rows = [] if ta_sf else list(scope.PARENT_ROWS)
     output = Path(window['output_directory'])
     output.mkdir(parents=True)
     counters = {name: 0 for name in (
@@ -112,6 +126,12 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
               'DEADLINE')
 
     def capture(model, optimizer, cursor, updates):
+        if ta_sf:
+            return full_state_owner.capture_fold1_fit_state(
+                model, optimizer, numerical_recipe=numerical,
+                feature_view_identity=model.state_model.feature_view_identity,
+                parent_order=order, cursor=cursor, optimizer_updates=updates,
+                skipped_batches=0, source_commit=plan['source_commit'], device=device)
         return state.capture(model, optimizer, recipe=numerical,
             feature_view_identity=model.state_model.feature_view_identity,
             parent_order=order, cursor=cursor, optimizer_updates=updates,
@@ -122,17 +142,30 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
         previous._publish_claim(output=output, window=window, plan=plan,
             limits=limits, counters=counters,
             maximum=recipe['max_published_json_bytes'])
-        zero_plan = scope._read(scope._read(scope.ZERO_STEP_REFS['plan'],
-            'native F zero-step plan')['inputs']['completed_v2_plan'],
-            'completed v2 plan')
-        receipts, view, state_bound = zero._inspect_inputs(zero_plan)
-        _need(view['contract_sha256'] == recipe['expected_view_sha256'],
-              'FOLD1_VIEW')
-        raw_batches, batch_reports, provider, provider_plan = (
-            previous._load_train_batches(receipts, view, np=np))
+        if ta_sf:
+            from gx1.audit import verify_market_state_time_query_zero_step_v1 as input_owner
+            from gx1.contracts import market_state_time_query_binding_v1 as state_targets
+            receipts = input_owner.load_ta_input_receipts(current_source_owners={
+                path: ref['sha256'] for path, ref in recipe['source_owners'].items()})
+            view = input_owner._bind_ta_view(receipts, max_batch_rows=scope.BATCH_SIZE)
+            state_bound = state_targets.load_bound_time_query_targets()
+            raw_batches, batch_reports, provider, provider_plan, full_order = (
+                _load_ta_train_batches(receipts, view, np=np))
+            order = torch.from_numpy(full_order)
+            order_sha = tree_sha(order)
+            selected_parent_rows = full_order[:scope.TA_SELECTED_FIT_ROWS].tolist()
+        else:
+            zero_plan = scope._read(scope._read(scope.ZERO_STEP_REFS['plan'],
+                'native F zero-step plan')['inputs']['completed_v2_plan'],
+                'completed v2 plan')
+            receipts, view, state_bound = zero._inspect_inputs(zero_plan)
+            raw_batches, batch_reports, provider, provider_plan = (
+                previous._load_train_batches(receipts, view, np=np))
+        _need(view['contract_sha256'] == recipe['expected_view_sha256'], 'FOLD1_VIEW')
         future_bound = future.load_bound_future_displacement()
         common._json(output / 'INPUT_QUALIFICATION.json',
-            {'fold_id': 1, 'selection': 'fixed_chronological_train_rows_2_to_33',
+            {'fold_id': 1, 'selection': (scope.TA_PARENT_SELECTION if ta_sf
+                                        else 'fixed_chronological_train_rows_2_to_33'),
              'batch_size': 16, 'parent_order_sha256': order_sha,
              'batches': batch_reports, 'view_sha256': view['contract_sha256'],
              'label_blind_selection': True, 'test_data_used': False},
@@ -162,7 +195,9 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
                   == recipe['expected_model_contract_sha256'],
                   'FRESH_MODEL_BINDING')
             model.train()
-            optimizer, binding = state.build_optimizer(model, recipe=numerical)
+            optimizer, binding = (full_state_owner.build_fold1_fit_optimizer(
+                model, numerical_recipe=numerical) if ta_sf
+                else state.build_optimizer(model, recipe=numerical))
             counters['optimizer_constructions'] += 1
             _need({'state_model.query_head.weight', 'future_head.weight'}
                   <= set(binding['active_parameter_names']), 'BOTH_HEADS_ACTIVE')
@@ -183,18 +218,18 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
                         outcome = evaluate_fit_batch(
                             model, features, state_bound, future_bound,
                             rows, issue, fold_id=1, pass_index=scope.PASS_INDEX,
-                            seed=numerical['seed'], future_weight=state.F_WEIGHT)
+                            seed=numerical['seed'], future_weight=numerical['future_weight'])
                 else:
                     outcome = evaluate_fit_batch(
                         model, features, state_bound, future_bound,
                         rows, issue, fold_id=1, pass_index=scope.PASS_INDEX,
-                        seed=numerical['seed'], future_weight=state.F_WEIGHT)
+                        seed=numerical['seed'], future_weight=numerical['future_weight'])
             torch.cuda.synchronize()
             counters['forward_returns'] += 1
             _need(outcome['state_count'] > 0 and outcome['future_count'] > 0
                   and not outcome['skip_update']
-                  and outcome['model_contract_sha256'] == scope.MODEL_CONTRACT_SHA256
-                  and outcome['loss_contract_sha256'] == scope.LOSS_CONTRACT_SHA256
+                  and outcome['model_contract_sha256'] == expected_model
+                  and outcome['loss_contract_sha256'] == expected_loss
                   and bool(torch.isfinite(outcome['loss'])),
                   'SUPERVISED_FINITE_LOSS')
             return outcome, time.monotonic() - began
@@ -269,10 +304,16 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
             if trajectory == 'resumed':
                 loaded = common._load_state(interrupted, torch=torch,
                     maximum=scope.MAX_CHECKPOINT_BYTES, counters=counters)
-                restored = state.restore(loaded, model, optimizer,
-                    recipe=numerical,
-                    feature_view_identity=model.state_model.feature_view_identity,
-                    parent_order=order, device=device)
+                if ta_sf:
+                    restored = full_state_owner.restore_fold1_fit_state(
+                        loaded, model, optimizer, numerical_recipe=numerical,
+                        feature_view_identity=model.state_model.feature_view_identity,
+                        parent_order=order, source_commit=plan['source_commit'], device=device)
+                else:
+                    restored = state.restore(loaded, model, optimizer,
+                        recipe=numerical,
+                        feature_view_identity=model.state_model.feature_view_identity,
+                        parent_order=order, device=device)
                 _need(restored['cursor'] == scope.BATCH_SIZE
                       and restored['optimizer_updates'] == 1
                       and capture(model, optimizer, scope.BATCH_SIZE, 1)['contract_sha256']
@@ -329,8 +370,9 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
                 'reserved_bytes': int(torch.cuda.max_memory_reserved(device))}
     passed = bit_exact and source_unchanged and error is None
     payload = {
-        'schema_version': scope.RESULT_SCHEMA,
-        'decision': 'PASS_NATIVE_F_PRIVATE_RESUME' if passed else 'FAILED',
+        'schema_version': scope.TA_RESULT_SCHEMA if ta_sf else scope.RESULT_SCHEMA,
+        'decision': ('PASS_TA_SF_MECHANICAL' if ta_sf else 'PASS_NATIVE_F_PRIVATE_RESUME')
+                    if passed else 'FAILED',
         'recipe': window['recipe'],
         'source_unchanged': source_unchanged,
         'initial_state': initial, 'interrupted_state': interrupted,
@@ -342,7 +384,7 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
         'steps': steps,
         'counts': {key: value for key, value in counters.items()
                    if key != 'json_bytes'},
-        'parent_order': list(scope.PARENT_ROWS),
+        'parent_order': selected_parent_rows,
         'parent_order_sha256': order_sha,
         'parent_cursor': parent_cursor,
         'physical_optimizer_updates': counters['optimizer_updates'],
@@ -355,13 +397,46 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
         'target_model_created': False, 'private_weights_for_main_fit': False,
         'predictive_value_qualified': False, 'test_data_used': False,
         'error': error}
+    if ta_sf:
+        payload.update(candidate_view=recipe['input_refs']['ta_candidate_view'],
+            input_audit=recipe['input_refs']['ta_input_audit'],
+            fresh_initial_baseline=bool(initial is not None and len(initial_baseline) == 2),
+            numerical_recipe=numerical, source_owners=recipe['source_owners'],
+            parent_order_rows=full_scope.FIT_ROWS,
+            parent_selection=scope.TA_PARENT_SELECTION,
+            qualification_weights_for_main_fit=False)
     published = _publish_terminal(
         output=output, progress_path=progress_path,
         window=window, plan=plan, invocation=invocation,
         payload=payload, counters=counters,
-        maximum=recipe['max_published_json_bytes'])
+        maximum=recipe['max_published_json_bytes'], ta_sf=ta_sf)
     previous._bookend(recipe, plan, policy_path, policy_file_sha256)
     if not passed:
         raise RuntimeError('NATIVE_F_PRIVATE_WINDOW_FAILED:' + str(error))
-    return {'decision': 'PASS_NATIVE_F_PRIVATE_RESUME',
+    return {'decision': 'PASS_TA_SF_MECHANICAL' if ta_sf else 'PASS_NATIVE_F_PRIVATE_RESUME',
             **published, 'counts': counters}
+
+
+def _load_ta_train_batches(receipts, view, *, np):
+    """Use the full-fit provider/order/gather for the first two actual batches."""
+    from gx1.scripts import run_market_state_time_query_fold1_fit_window_v1 as full
+    from gx1.audit import qualify_market_state_mature_prefix_normalization_v1 as base
+    provider, provider_plan, prepared, parents, issues = full._prepared_fold1(
+        receipts, view, np=np)
+    try:
+        _need(len(parents) == 29574 and len(issues) == 29574, 'TA_FULL_ORDER')
+        batches, reports = [], []
+        for left in (0, scope.BATCH_SIZE):
+            raw, rows, issue = full._feature_batch(
+                prepared, view, receipts, parents, issues, left, left + scope.BATCH_SIZE, np=np)
+            batches.append((raw, rows.copy(), issue.copy()))
+            reports.append({'parent_rows': rows.tolist(), 'issue_ns': issue.tolist()})
+        return batches, reports, provider, provider_plan, parents.copy()
+    finally:
+        base._release_pages(provider, prepared)
+
+
+def run_ta_sf_mechanical(*, policy_path: Path, policy_file_sha256: str,
+                         progress_path: Path) -> dict:
+    return run_private_window(policy_path=policy_path,
+        policy_file_sha256=policy_file_sha256, progress_path=progress_path, ta_sf=True)

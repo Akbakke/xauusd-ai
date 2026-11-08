@@ -15,31 +15,55 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: `TA_INPUT_LOSS_REVIEW_COMPLETE_CORRECTED_NATIVE_FIT_UNQUALIFIED`.
-`training_enabled=false`; S/F-fire-stegsplanen og GC-sidevis fysisk bygg er
-fullført og konsumert, og Windows-oppgaven er deaktivert. GC-registerplanen er
-utsatt og uklamet; ingen tung CURRENT-jobb kjører. Faktisk prosessstatus overstyrer.
-Ingen tidligere
-claimet, fullført eller feilet plan relanseres. Juni 2026 er brukt utviklings-VAL;
-forseglet periode scores bare etter forward-journalregelen i GX1_RULES.md.
+Policystatus: `TA_NATIVE_SOURCE_PREPARED_INPUT_AUDIT_PENDING`.
+`training_enabled=false`. Ny eksplisitt TA-profil, korrigert S/F-rute og
+mekanisk kandidat er forberedt; fysisk inputkontroll og nye native kjøringer
+er ennå ikke startet. Gamle engangsplaner er konsumert og relanseres ikke.
+GC-registerplanen er utsatt og uklamet. Juni 2026 er brukt utviklings-VAL;
+forseglet periode følger bare forward-journalregelen i GX1_RULES.md.
 
 ## Det som faktisk er målt
 
-- **TA-/tapskontroll fullført med gjenbruk:** Alle 253 MTF-felt har eksakt
-  navngitt rute til åtte familier på fem TF. Numerisk dekningsunion er
-  158+31+1+63 uten overlapp, med samme cachemanifest/feltorden som aktiv view.
-  Dette kombinerer deklarerte populasjoner; de nye 63- og 31-feltskontrollene
-  gjelder mai–desember 2024, ikke en full 253-feltskontroll av 2025. As-of-
-  kontrollen dekker 36 172 foreldre; gather-/postnorm-vitner har egne avgrensninger.
-  Ingen ny klokke-/fortegns-/skala-/tapsfeil er påvist i denne kontrollen.
-  S/F-private-ruten bruker faktisk side-normalisert v2; ukjent side har null
-  direkte sidegradient i de to ekte nullstegsradene, og firestegs-resume er
-  bitlikt. Dette er teknisk evidens, ingen TRAIN-læringskurve eller OOF.
-  Siste kvalifiserte native profil er fortsatt `full_xau_gc_mtf_entry_research_v1`:
-  GC-pausen gjelder registerarbeid, ikke fjerning av GC-inndata. Ny kontroll
-  gjorde null modellkonstruksjoner, forwards eller oppdateringer.
-  [Samlet kilde-/kvitteringskontroll](/home/andre2/GX1_RUNS/MARKET_STATE_TA_INPUT_LOSS_REUSE_REVIEW_20261108_001/REVIEW_20261108T120132104946Z.json)
-  SHA `94ede20b1fe75028789dc01218a0837cce68babb9a6ab66d3b8903151dd4b006`.
+- **Eksplisitt TA-kandidat og korrigert læringsmåling:** Profilen
+  `full_xau_ta_mtf_entry_research_v1` beholder 315 signal-, 132 kontekst- og
+  253 MTF-felt, alle fem TF, åtte familier og 61 makrofelt. GC er fjernet
+  før modellinput; modne fold1-statistikker projiseres uten refit.
+  Faktisk FeatureView/checkpoint-identitet er kontrollert lesende:
+  `3e2761afaf1d29e6537843e9e59b592a7c149a9cd99c97f866a2cd1e88611906`.
+  Ny rute bruker korrigert S/F og hele samme 29 574-raders TRAIN-populasjon
+  før/etter fit, med globale aktivitets-/sidemasker og frosne priorer.
+  Senere 17 753 TRAIN-rader scores separat. Gammel initialkvittering
+  med null forwards er ikke en læringsmåling. Ny fysisk kvalifikasjon,
+  ny fireoppdateringsmekanikk og faktisk predictor-fit gjenstår.
+
+- **Funksjonsgjennomgang:** EMA bruker SMA-seed og alfa `2/(p+1)`;
+  ATR bruker klassisk TR og Wilder14. SMC-pivot blir synlig etter bekreftelse,
+  BOS bruker strict close-brudd, og alle inputbarene skal være lukket.
+  Ingen ny produksjonsfeil er påvist i disse formlene ved kildekontroll.
+  Modellen får indikatoravstander/helninger og candle-geometri.
+  Prisoppdateringsantall er ikke omsatt volum.
+  En reell makrodatofeil rundt høstens DST ble reprodusert og rettet:
+  tilgjengelighet følger nå kalenderen D+2 ved NY-midnatt, ikke 48 elapsed timer.
+  Alle 9 000 bundne kildedatoer fram til 2024-12-31 har identisk tilgjengelighet
+  før/etter rettelsen; kandidaten trenger ingen ny materialisering for denne
+  rettelsen. Kalender-/driverkontroll: 11 beståtte tester.
+
+- **Test- og formelbevisgrense:** Ny TA-gather mistet C-kontiguitet og
+  signaturrefleksjon mistet de fem gamle GC-argumentnavnene. Begge er rettet;
+  sju berørte tester består.
+  [Kilde-/testkvittering](/home/andre2/GX1_RUNS/MARKET_STATE_TA_SOURCE_QUALIFICATION_20261108_001/REVIEW_20261108T131458787986Z.json) SHA 68fcf96b270bf5c944fae4b3f6724ce25ad92c2ed25aaa3e1cdc329b55288a6d. Øvrige korrigerte taps-/batch-/state- og
+  initial/final-tester bestod første fokuserte kjøring.
+  Én eldre GC-relative-kildetest feiler på en uendret, foreldet
+  `gc_order_flow_v1.py`-SHA; ingen GC-reparasjon åpnes i denne bølgen.
+  186 lokale felt har eksakt M5-cache-alias. De 31 lokale trendlinjefeltene
+  bruker egne 96-barsparametere og kontrolleres separat. Auditen inkluderer
+  også 37 HTF/session-felt med eksplisitte asof-/avrundings-/klokkekontroller;
+  den nye auditeierens ti fokuserte tester består. Fysisk måling gjenstår.
+  61 makrofelt har eldre samme-eier-paritet/asof-bevis, ikke et uavhengig
+  formelorakel; dette er en uttrykkelig bevisgrense.
+  Tidligere 253-feltsunion 158+31+1+63 og asof/postnorm-bevis gjenbrukes
+  bare på deklarerte rader; eldre faktisk konsumert historikk skal også måles.
+  [Tidligere kvitteringskontroll](/home/andre2/GX1_RUNS/MARKET_STATE_TA_INPUT_LOSS_REUSE_REVIEW_20261108_001/REVIEW_20261108T120132104946Z.json).
 
 - **Input og mål:** 118 249 modellkoblede TRAIN-rader, 26 måneder GC MBP-1 og
   kausale fem-TF-flater er bevart. Foldprefikser, masker og normalisering er
@@ -199,16 +223,15 @@ markedstilstand, senere Entry-beslutningsverdi eller økonomisk edge er påvist.
 Den enkle tabellmodellens negative retning er ikke en generell dom over GC,
 indikatorene eller native modell.
 
-**Neste steg:** Denne BOS+EMA20-hypotesen er ferdig og feilet; ingen
-fortegnsnuing, horisontbytte, ny terskel eller omkjøring på de samme utfallene.
-Den avgrensede TA-/tapskontrollen over er fullført uten ny påvist defekt.
-Gjenbruk de kvalifiserte feltene og private mekanikkene. En framtidig korrigert
-S/F-læringsmåling trenger eksplisitt inputprofil og en bundet fit-/score-rute;
-den gamle fullfit-eieren importerer fortsatt v1-batchen og skal ikke relanseres
-som S/F. Den korrigerte modellen har ennå ingen matched TRAIN-læringskurve
-eller senere femfolds native fit/OOF. En ren TA-modell er ikke kvalifisert ved
-å utsette GC-registerarbeid. Ingen ny fit åpnes av denne kildekontrollen;
-Entry-/økonomisk edge er ubevist.
+**Neste steg:** Fullfør ny engangs inputaudit på nøyaktig alle konsumerte
+fit-/scorevinduer: råverdier, klokker, normalisering, uavhengig formeldekning
+og én faktisk familiehook-forward. Deretter bare ved PASS: ny guarded TA S/F
+fireoppdateringsmekanikk, fersk initialbaseline og 29 574-raders ettpass-fit
+med matchet initial/final og senere 17 753-raders TRAIN-score.
+Bruk nye eksakte kilder, planer og maskinvarevakter; aldri private
+kvalifikasjonsvekter i hovedfit. Første fulle initialevaluering har ennå
+ingen målt kjøretid. Den negative BOS+EMA20-hypotesen relanseres ikke.
+Native femfolds generalisering, Entry-verdi og økonomisk edge er ubevist.
 
 Den tidligere [GC-registerplanen](configs/research/MARKET_STATE_GC_SIDE_MAX_REGISTRY_20261108_001.json)
 forblir bevart, men er utsatt og uklamet etter brukerens nye prioritering.

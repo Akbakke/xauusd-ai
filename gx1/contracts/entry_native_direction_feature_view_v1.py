@@ -115,9 +115,11 @@ def _ref(value):
     return dict(value)
 
 
-@lru_cache(maxsize=1)
-def _canonical():
-    fields = owners.compile_compact_entry_execution_profile()['physical_field_names']
+@lru_cache(maxsize=2)
+def _canonical(*, ta_only=False):
+    profile = owners.compile_full_ta_entry_execution_profile() if ta_only else None
+    fields = (profile['physical_field_names'] if ta_only
+              else owners.compile_compact_entry_execution_profile()['physical_field_names'])
     families = tuple(owners.MODEL_NATIVE_TRAINING_SPECIALISTS)
     signal = {family: [] for family in families}
     for index, name in enumerate(fields['signal']):
@@ -125,7 +127,16 @@ def _canonical():
         _require(family in signal, 'SIGNAL_OWNER')
         signal[family].append(index)
     context = owners.model_native_context_specialist_routing_contract()
-    aliases = owners.model_native_context_temporal_alias_policy(fields['signal'])
+    aliases = owners.model_native_context_temporal_alias_policy(
+        profile['source_field_names']['signal'] if ta_only else fields['signal'])
+    if ta_only:
+        context = _copy(context)
+        mapping = {old: new for new, old in enumerate(profile['source_ctx_cont_indices'])}
+        for key in ('ctx_cont_indices', 'ctx_cont_nominal_indices'):
+            context[key] = {family: [mapping[i] for i in indices if i in mapping]
+                            for family, indices in context[key].items()}
+        aliases = {'signal_indices': list(profile['temporal_alias_signal_indices']),
+                   'ctx_cont_indices': list(profile['temporal_alias_ctx_cont_indices'])}
     mtf = {name: list(indices) for name, indices in owners.require_multi_tf_specialist_routing_v4(fields['mtf']).items()}
     _require(len(families) == 8 and set(signal) == set(mtf) == set(context['ctx_cont_indices']) == set(families), 'FULL_EIGHT_OWNERS')
     routes = {'specialist_input_indices': signal,
@@ -245,6 +256,7 @@ def _require_view(view, *, unobserved_units_profile=None):
     dense = 'dense_minute_supervision' in view
     price_momentum = 'price_momentum_profile' in view
     full = 'full_feature_profile' in view
+    ta_only = 'full_ta_feature_profile' in view
     dynamic_state = 'dynamic_state_supervision' in view
     five_endpoint = 'market_state_five_endpoint' in view
     current_state = 'current_state_first_loss_weight' in view
@@ -262,10 +274,11 @@ def _require_view(view, *, unobserved_units_profile=None):
     family = 'family_intervention' in view
     initialization = view.get('price_momentum_initialization', 'zero_residual')
     relative = 'gc_relative_coordinates_sha256' in view
-    _require(set(view) == VIEW_KEYS | ({'bps_scale'} if 'bps_scale' in view else set()) | ({'magnitude_weight_contract'} if 'magnitude_weight_contract' in view else set()) | ({'dense_minute_supervision'} if dense else set()) | ({'price_momentum_profile'} if price_momentum else set()) | ({'full_feature_profile'} if full else set()) | ({'five_minute_priority'} if five_priority else set()) | ({'dense_bps_scale'} if dense_bps else set()) | ({'m1_ofi_normalization'} if m1_ofi else set()) | ({'m1_ofi_coarsened'} if coarsened else set()) | ({'family_intervention'} if family else set()) | ({'price_momentum_initialization'} if initialization != 'zero_residual' else set()) | ({'gc_relative_coordinates_sha256'} if relative else set()) | ({'dynamic_state_supervision'} if dynamic_state else set()) | ({'market_state_five_endpoint'} if five_endpoint else set()) | ({'market_state_time_query'} if 'market_state_time_query' in view else set()) | ({'market_state_time_query_v2'} if time_query_v2 else set()) | ({'current_state_first_loss_weight'} if current_state else set()) | ({'confirmed_run_age_input'} if confirmed_age else set()) | ({'extended_forecast_minutes'} if extended_state else set()) | ({'first_flat_activity_weight'} if first_activity else set())
+    _require(set(view) == VIEW_KEYS | ({'bps_scale'} if 'bps_scale' in view else set()) | ({'magnitude_weight_contract'} if 'magnitude_weight_contract' in view else set()) | ({'dense_minute_supervision'} if dense else set()) | ({'price_momentum_profile'} if price_momentum else set()) | ({'full_feature_profile'} if full else set()) | ({'full_ta_feature_profile'} if ta_only else set()) | ({'five_minute_priority'} if five_priority else set()) | ({'dense_bps_scale'} if dense_bps else set()) | ({'m1_ofi_normalization'} if m1_ofi else set()) | ({'m1_ofi_coarsened'} if coarsened else set()) | ({'family_intervention'} if family else set()) | ({'price_momentum_initialization'} if initialization != 'zero_residual' else set()) | ({'gc_relative_coordinates_sha256'} if relative else set()) | ({'dynamic_state_supervision'} if dynamic_state else set()) | ({'market_state_five_endpoint'} if five_endpoint else set()) | ({'market_state_time_query'} if 'market_state_time_query' in view else set()) | ({'market_state_time_query_v2'} if time_query_v2 else set()) | ({'current_state_first_loss_weight'} if current_state else set()) | ({'confirmed_run_age_input'} if confirmed_age else set()) | ({'extended_forecast_minutes'} if extended_state else set()) | ({'first_flat_activity_weight'} if first_activity else set())
         | ({'native_endpoint_loss'} if endpoint else set()) | ({'zero_support_profile', 'reserved_observer_axes'} if masked_profile else set())
         | ({'unobserved_units_profile'} if units_profile else set()) | ({'october_observer_axes'} if scoped_october else set())
         and not (masked_profile and units_profile)
+        and (not ta_only or (view['full_ta_feature_profile'] is True and full and time_query_v2))
         and not (time_query_v2 and 'market_state_time_query' in view)
         and (not scoped_october or (units_profile and not masked_profile))
         and (not units_profile or (full and ((dynamic_state and endpoint) or five_endpoint or time_query)))
@@ -303,7 +316,7 @@ def _require_view(view, *, unobserved_units_profile=None):
         and (not family or (dense and price_momentum and not five_priority and not dense_bps and not m1_ofi))
         and (not m1_ofi or dense) and (not coarsened or (m1_ofi and view['m1_ofi_coarsened'] is True)), 'VIEW_KEYS')
     if time_query_v2:
-        objective = factorized_time_query_model_contract()
+        objective = factorized_time_query_model_contract(ta_only=ta_only)
     elif time_query:
         objective = time_query_model_contract()
     elif five_endpoint:
@@ -328,7 +341,7 @@ def _require_view(view, *, unobserved_units_profile=None):
     else:
         objective = native_direction_research_contract(signed_bps='bps_scale' in view, magnitude_weighted='magnitude_weight_contract' in view)
     _sealed(view, 'VIEW_SEAL')
-    fields, routes, widths = _canonical()
+    fields, routes, widths = _canonical(ta_only=ta_only)
     _require(view['schema_version'] == SCHEMA_VERSION and view['physical_widths'] == widths
         and view['physical_field_names_sha256'] == {key: _sha(names) for key, names in fields.items()}
         and view['sequence_bars'] == MODEL_NATIVE_SEQ_LEN and view['window_rows'] == history.WINDOW_ROWS
@@ -382,7 +395,21 @@ def _require_view(view, *, unobserved_units_profile=None):
     if relative:
         digest = view['gc_relative_coordinates_sha256']
         _require(type(digest) is str and len(digest) == 64 and all(c in '0123456789abcdef' for c in digest), 'GC_COORDINATE_IDENTITY')
-    _require((view['entry_execution_profile']['name'] == owners.FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME) == full, 'FULL_PROFILE_IDENTITY')
+    full_name = (owners.FULL_TA_ENTRY_EXECUTION_PROFILE_NAME if ta_only
+                 else owners.FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME)
+    _require((view['entry_execution_profile']['name'] == full_name) == full, 'FULL_PROFILE_IDENTITY')
+    _require(ta_only == ('ta_base_normalization_sha256' in view['prefix_normalization'])
+             == ('source_owner_profile_sha256' in view['prefix_normalization']),
+             'TA_NORMALIZATION_VIEW_BINDING')
+    if ta_only:
+        compiled_ta = owners.compile_full_ta_entry_execution_profile()
+        _require(view['entry_execution_profile'] == {
+            key: compiled_ta[key] for key in ('name', 'contract_sha256')},
+            'TA_PROFILE_IDENTITY')
+        for key in ('ta_base_normalization_sha256', 'source_owner_profile_sha256'):
+            digest = view['prefix_normalization'][key]
+            _require(type(digest) is str and len(digest) == 64
+                     and all(c in '0123456789abcdef' for c in digest), 'TA_NORMALIZATION_HASH')
     if price_momentum:
         expected_name = (price_momentum_owner.PROFILE_NAME if initialization == 'zero_residual'
             else price_momentum_owner.LINEAR_INIT_PROFILE_NAME)
@@ -440,7 +467,7 @@ def family_reference_view(view):
 
 
 def bind_native_direction_feature_view(*, prefix_normalization, prefix_normalization_ref,
-    constructor_metadata, constructor_metadata_ref, source_bindings, max_batch_rows, expected=None, bps_scale=None, magnitude_weight_contract=None, dense_minutes=False, price_momentum=False, m1_ofi_normalization=None, m1_ofi_coarsened=False, five_minute_priority=False, dense_bps_scale=None, family_intervention=None, price_momentum_initialization='zero_residual', full_feature_profile=False, dynamic_state_supervision=False, market_state_five_endpoint=False, current_state_first_loss_weight=None, extended_forecast_minutes=None, first_flat_activity_weight=None, native_endpoint_loss=False, confirmed_run_age_input=False, zero_support_profile=None, unobserved_units_profile=None, october_observer_axes=None, market_state_time_query=False, market_state_time_query_v2=False):
+    constructor_metadata, constructor_metadata_ref, source_bindings, max_batch_rows, expected=None, bps_scale=None, magnitude_weight_contract=None, dense_minutes=False, price_momentum=False, m1_ofi_normalization=None, m1_ofi_coarsened=False, five_minute_priority=False, dense_bps_scale=None, family_intervention=None, price_momentum_initialization='zero_residual', full_feature_profile=False, dynamic_state_supervision=False, market_state_five_endpoint=False, current_state_first_loss_weight=None, extended_forecast_minutes=None, first_flat_activity_weight=None, native_endpoint_loss=False, confirmed_run_age_input=False, zero_support_profile=None, unobserved_units_profile=None, october_observer_axes=None, market_state_time_query=False, market_state_time_query_v2=False, full_ta_feature_profile=False):
     """Bind verified metadata; ``expected`` requires exact reconstruction of a view.
 
     Plainrefs identify caller-verified files. Content seals bind their decoded
@@ -449,6 +476,9 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
     scalar configuration/full raw routing are used, never its old GC stats join.
     """
     time_query_mode = market_state_time_query or market_state_time_query_v2
+    _require(type(full_ta_feature_profile) is bool
+             and (not full_ta_feature_profile or (full_feature_profile is True
+                  and market_state_time_query_v2 is True)), 'TA_PROFILE_SCOPE')
     _require(zero_support_profile is None or unobserved_units_profile is None, 'PROFILE_MIX')
     _require(october_observer_axes is None or (unobserved_units_profile is not None
              and zero_support_profile is None), 'OCTOBER_OBSERVER_PROFILE')
@@ -585,8 +615,10 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
             and source_bindings['raw_input_provider_plan'] == provenance['provider_plan']
             and source_bindings['raw_gc_layout'] == provenance['boolean_raw_gc_layout']
             and source_bindings['raw_gc_transition'] == provenance['boolean_raw_domain_transition']
-            and all(source_bindings[key] == {'path': str(time_query_targets.ROOT / owner),
-                                             'sha256': owner_refs[owner]} for key, owner in (
+            and all(source_bindings[key]['path'] == str(time_query_targets.ROOT / owner)
+                    and ((full_ta_feature_profile and key == 'owner_profile_source')
+                         or source_bindings[key]['sha256'] == owner_refs[owner])
+                    for key, owner in (
                 ('mtf_window_source', 'gx1/features/htf_features.py'),
                 ('gc_gather_source', 'gx1/contracts/entry_gc_mtf_history_v1.py'),
                 ('owner_profile_source', 'gx1/features/entry_specialist_feature_groups_v1.py')))
@@ -611,7 +643,8 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
                 ('mtf_window_source', 'gx1/features/htf_features.py'), ('gc_gather_source', 'gx1/contracts/entry_gc_mtf_history_v1.py'),
                 ('owner_profile_source', 'gx1/features/entry_specialist_feature_groups_v1.py'))), 'SOURCE_PROVENANCE_JOINS')
     scalars = _configuration(constructor_metadata)
-    compiled = (owners.compile_full_gc_mtf_entry_execution_profile(gc_history, **units_kwargs) if full_feature_profile
+    compiled = (owners.compile_full_ta_entry_execution_profile() if full_ta_feature_profile
+        else owners.compile_full_gc_mtf_entry_execution_profile(gc_history, **units_kwargs) if full_feature_profile
         else price_momentum_owner.compile_price_momentum_profile(gc_history, initialization=price_momentum_initialization, **units_kwargs) if price_momentum
         else owners.compile_gc_mtf_geometry_entry_execution_profile(gc_history, **units_kwargs) if dense_minutes
         else owners.compile_gc_mtf_entry_execution_profile(gc_history, **units_kwargs))
@@ -625,7 +658,7 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
         _require(reference['contract_sha256'] == intervention['contract_sha256'], 'FAMILY_NORMALIZATION_PROFILE_BINDING')
     _require(type(max_batch_rows) is int and max_batch_rows > 0, 'MAX_BATCH_ROWS')
     if market_state_time_query_v2:
-        objective = factorized_time_query_model_contract()
+        objective = factorized_time_query_model_contract(ta_only=full_ta_feature_profile)
     elif market_state_time_query:
         objective = time_query_model_contract()
     elif market_state_five_endpoint:
@@ -647,6 +680,9 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
         objective = dense_direction_research_contract()
     else:
         objective = native_direction_research_contract(signed_bps=bps_scale is not None, magnitude_weighted=magnitude_weight_contract is not None)
+    if full_ta_feature_profile:
+        ta_base = norm.project_ta_input_normalization_contract(base, **units_kwargs)
+        fields, routes, widths = _canonical(ta_only=True)
     value = {'schema_version': SCHEMA_VERSION,
         'prefix_normalization': {'binding': _ref(prefix_normalization_ref), 'contract_sha256': prefix_normalization['contract_sha256'],
             'base_sha256': base['contract_sha256'], 'gc_layout_sha256': gc_history['layout']['contract_sha256'],
@@ -672,6 +708,11 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
         value['price_momentum_profile'] = True
     if full_feature_profile:
         value['full_feature_profile'] = True
+    if full_ta_feature_profile:
+        value['full_ta_feature_profile'] = True
+        value['prefix_normalization']['ta_base_normalization_sha256'] = ta_base['contract_sha256']
+        value['prefix_normalization']['source_owner_profile_sha256'] = (
+            provenance['current_source_owners']['gx1/features/entry_specialist_feature_groups_v1.py'])
     if dynamic_state_supervision:
         value['dynamic_state_supervision'] = True
     if market_state_five_endpoint:
@@ -739,6 +780,10 @@ def gather_native_direction_feature_batch(view, *, parent_rows, bar_start_ns, de
     """
     _require_view(view, unobserved_units_profile=unobserved_units_profile)
     fields, routes, widths = _canonical(); rows = view['full_axes']['rows']
+    ta_only = view.get('full_ta_feature_profile', False)
+    ta_profile = owners.compile_full_ta_entry_execution_profile() if ta_only else None
+    if ta_only:
+        _require(gc_surfaces is None and gc_layout is None, 'TA_GC_INPUT_FORBIDDEN')
     if 'zero_support_profile' in view or 'october_observer_axes' in view:
         _require(type(observer_axes) is NativeDirectionObserverAxes and observer_axes.view_sha256 == view['contract_sha256']
                  and parent_rows is observer_axes.parent_rows and bar_start_ns is observer_axes.bar_start_ns
@@ -775,15 +820,27 @@ def gather_native_direction_feature_batch(view, *, parent_rows, bar_start_ns, de
         clock = times[left:int(position) + 1]
         _require(np.all(clock[1:] > clock[:-1]) and np.all(clock % BAR_NS == 0)
             and np.all(clock <= MAX_NS - BAR_NS) and np.all(clock + BAR_NS <= decision), 'CAUSAL_LOCAL_SEQUENCE_CLOCK')
-        sequences.append(source[left:int(position) + 1]); clock_rows.append(clock)
-    features = {'seq_x': np.stack(sequences), 'snap_x': np.ascontiguousarray(snap_x[at]),
-        'ctx_cont': np.ascontiguousarray(ctx_cont[at]), 'ctx_cat': np.ascontiguousarray(ctx_cat[at])}
+        window = source[left:int(position) + 1]
+        sequences.append(np.ascontiguousarray(window[:, ta_profile['source_signal_indices']])
+                         if ta_only else window)
+        clock_rows.append(clock)
+    if ta_only:
+        # Select canonical non-GC columns directly, before any batch copy.
+        snap = snap_x[np.ix_(at, ta_profile['source_signal_indices'])]
+        context = ctx_cont[np.ix_(at, ta_profile['source_ctx_cont_indices'])]
+        _, routes, _ = _canonical(ta_only=True)
+    else:
+        snap = snap_x[at]
+        context = ctx_cont[at]
+    features = {'seq_x': np.stack(sequences), 'snap_x': np.ascontiguousarray(snap),
+        'ctx_cont': np.ascontiguousarray(context), 'ctx_cat': np.ascontiguousarray(ctx_cat[at])}
     _require(np.array_equal(features['seq_x'][:, -1], features['snap_x'])
         and np.array_equal(features['snap_x'][:, routes['temporal_alias_signal_indices']],
             features['ctx_cont'][:, routes['temporal_alias_ctx_cont_indices']]), 'CURRENT_SEQUENCE_ALIAS_PARITY')
-    layout = history.require_gc_mtf_history_layout(gc_layout)
-    _require(layout['contract_sha256'] == view['prefix_normalization']['gc_layout_sha256'], 'CURRENT_GC_LAYOUT')
-    gc_surfaces = history.require_gc_mtf_history_surfaces(gc_surfaces, layout=layout)
+    if not ta_only:
+        layout = history.require_gc_mtf_history_layout(gc_layout)
+        _require(layout['contract_sha256'] == view['prefix_normalization']['gc_layout_sha256'], 'CURRENT_GC_LAYOUT')
+        gc_surfaces = history.require_gc_mtf_history_surfaces(gc_surfaces, layout=layout)
     collected = {tf: [] for tf in history.TIMEFRAMES}; gc_collected = {tf: [] for tf in history.TIMEFRAMES}
     witnesses = {tf: [] for tf in history.TIMEFRAMES}
     for start, decision in zip(starts, decisions):
@@ -794,12 +851,14 @@ def gather_native_direction_feature_batch(view, *, parent_rows, bar_start_ns, de
             available = np.asarray(multi_tf_sources[tf].attrs['ts_int64'][ids], dtype=np.int64) + int(MULTI_TF_SHIFT[tf].value)
             _require(np.all(available <= decision), 'CAUSAL_TF_CLOCK:' + tf)
             collected[tf].append(window)
-            gc_collected[tf].append(history.gather_gc_mtf_history_rows(gc_surfaces[tf], tf=tf,
-                native_row_indices=ids, available_ns=available, layout=layout))
+            if not ta_only:
+                gc_collected[tf].append(history.gather_gc_mtf_history_rows(gc_surfaces[tf], tf=tf,
+                    native_row_indices=ids, available_ns=available, layout=layout))
             witnesses[tf].append({'native_row_indices': ids.tolist(), 'available_ns': available.tolist()})
     for tf in history.TIMEFRAMES:
         features['seq_' + tf.lower()] = np.stack(collected[tf])
-        features['gc_seq_' + tf.lower()] = np.stack(gc_collected[tf])
+        if not ta_only:
+            features['gc_seq_' + tf.lower()] = np.stack(gc_collected[tf])
     if 'm1_ofi_normalization' in view:
         from gx1.contracts import entry_closed_m1_ofi_window_v1 as m1
         fitted = view['m1_ofi_normalization']
@@ -845,6 +904,7 @@ def build_native_direction_research_model(
         family_intervention=view.get('family_intervention'),
         price_momentum_initialization=view.get('price_momentum_initialization', 'zero_residual'),
         full_feature_profile=view.get('full_feature_profile', False),
+        full_ta_feature_profile=view.get('full_ta_feature_profile', False),
         dynamic_state_supervision=view.get('dynamic_state_supervision', False),
         market_state_five_endpoint=view.get('market_state_five_endpoint', False),
         market_state_time_query=view.get('market_state_time_query', False),
@@ -856,23 +916,32 @@ def build_native_direction_research_model(
         native_endpoint_loss=view.get('native_endpoint_loss', False), zero_support_profile=view.get('zero_support_profile'),
         october_observer_axes=view.get('october_observer_axes'),
         **({} if unobserved_units_profile is None else {'unobserved_units_profile': unobserved_units_profile}))
-    _, routes, widths = _canonical()
+    ta_only = view.get('full_ta_feature_profile', False)
+    _, routes, widths = _canonical(ta_only=ta_only)
+    runtime_norm = (norm.project_ta_input_normalization_contract(
+        prefix_normalization['base_normalization'], unobserved_units_profile=unobserved_units_profile)
+        if ta_only else prefix_normalization['base_normalization'])
+    if ta_only:
+        _require(runtime_norm['contract_sha256']
+                 == view['prefix_normalization']['ta_base_normalization_sha256'],
+                 'TA_NORMALIZATION_CONSTRUCTION_BINDING')
+    runtime_gc = None if ta_only else prefix_normalization['gc_mtf_history']
     kwargs = _copy(routes)
     kwargs.update(view['constructor_scalar_config'])
     kwargs.update(seq_input_dim=widths['signal'], snap_input_dim=widths['signal'], seq_len=MODEL_NATIVE_SEQ_LEN,
         ctx_cont_dim=widths['ctx_cont'], ctx_cat_dim=widths['ctx_cat'],
-        input_normalization=prefix_normalization['base_normalization'],
-        gc_mtf_history=prefix_normalization['gc_mtf_history'], entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+        input_normalization=runtime_norm,
+        gc_mtf_history=runtime_gc, entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
         dynamic_m5_query_minutes=tuple(DYNAMIC_M1_PREFIX_HORIZON_MINUTES), entry_execution_profile=view['entry_execution_profile'])
     for tf, length in history.WINDOW_ROWS.items():
         kwargs[tf.lower() + '_seq_dim'] = widths['mtf']; kwargs[tf.lower() + '_seq_len'] = length
     if 'zero_support_profile' in view:
         kwargs['zero_support_profile'] = view['zero_support_profile']
-    if unobserved_units_profile is not None:
+    if unobserved_units_profile is not None and not ta_only:
         kwargs['research_unobserved_units_profile'] = _copy(unobserved_units_profile)
     backbone = EntryV10CtxHybridTransformer(**kwargs).to(device)
     _require(type(backbone) is EntryV10CtxHybridTransformer and backbone.entry_execution_profile == view['entry_execution_profile']
-        and backbone.gc_mtf_history == prefix_normalization['gc_mtf_history'], 'CONSTRUCTED_NATIVE_BINDING')
+        and backbone.gc_mtf_history == runtime_gc, 'CONSTRUCTED_NATIVE_BINDING')
     backbone.require_input_normalization_state()
     if view.get('market_state_time_query_v2', False):
         wrapper = FactorizedTimeQueryMarketStateModel(backbone)
