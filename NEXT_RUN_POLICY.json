@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-08T18:31:05.948742+00:00",
-  "status": "TA_SF_CHECKPOINT_RECOVERY_ADMITTED_WITH_CORRECTED_CODE",
+  "observed_utc": "2026-11-08T20:12:47.173651+00:00",
+  "status": "TA_SF_RECOVERY_COMPLETE_NO_M5_DIRECTION_GAIN",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
-  "full_epoch_training_allowed": true,
+  "training_enabled": false,
+  "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "One explicitly authorized TA S/F recovery of preserved256updates; original plan remains consumed. Same model/input/normalization/targets/loss/order/optimizer; exact Counter/recovery source bridge. Qualified full INITIAL and mechanical/input proofs reused. No extra epochs/history or TEST, Entry, Exit, broker, trading/spending.",
-  "next_action": "Finish exact guarded campaign preparation, verify idle/fresh Windows boot, import qualified4096-row checkpoint with original model/AdamW/RNG/order and fresh-initial parity, then complete remaining1593updates plus matched FINAL and laterTRAIN score. Record phase and total times against declared limited old baseline; no old-plan relaunch.",
+  "rule": "The explicitly authorized checkpoint recovery completed one pass and later TRAIN scoring. Both original interrupted plan and recovery plan are consumed. No relaunch, extra epoch, history expansion, TEST, Entry, Exit, broker, trading or spending.",
+  "next_action": "Review the measured M5 direction deficit already present on matched TRAIN, separately from activity and later generalization. No causal explanation or automatic new fit follows. Preserve checkpoint/results and reused input/mechanical qualification; agree a bounded diagnostic or design decision before further model changes or training.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1434,9 +1434,9 @@
     "profitability_demonstrated": false,
     "required_before_more_extensive_training": true,
     "entry_learning_demonstrated": false,
-    "current_evidence_scope": "Bactual14NPZ/70647parents/exactjoins/24native+72reference parity/48properCIs. Native withinfoldAUC1/5/15=.499534/.504000/.508697; positive5/15points retained. All32properCIs on5/15worse than4refs;1minute16CIinclude0. No useful direction qualification.",
+    "current_evidence_scope": "Corrected TA S/F fold1: matched29574-row TRAIN initial/final,17753 later TRAIN rows,1849 total updates. M5 S/F direction worsens on TRAIN and loses to frozen prior later; only D1 S beats later prior on point scores.",
     "component_learning_measured": true,
-    "component_learning_result": "WEAK_POSITIVE_5_15_RAW_RANK_POINTS_BUT_WORSE_PROPER_SCORES_NO_DIRECTION_QUALIFICATION",
+    "component_learning_result": "ACTIVITY_IMPROVES_BUT_M5_DIRECTION_WORSENS_ON_TRAIN_AND_LOSES_LATER_PRIOR",
     "primary_entry_quality_qualified": false,
     "paired_learning_review": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/PAIRED_LEARNING_REVIEW.json",
@@ -1528,12 +1528,12 @@
       "sha256": "a206d6460550afb869b64ae4c5b1a8f2fdb1827e13b157d156f8434c9eca6e51"
     },
     "current_function_native_baseline_missing": false,
-    "current_function_native_baseline_qualified": false,
+    "current_function_native_baseline_qualified": true,
     "latest_current_initial_measurement": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_HISTORY_INITIAL_20261023_229/TERMINAL.json",
       "sha256": "e9f20ddbf614f691c88d8bedcb1aecc28af582b533cd734346384890d245b98d"
     },
-    "current_function_native_baseline_qualification_scope": "4of4fixednativeexecutions complete,70647reportedlaterparents. Fold4finalTRAIN5improvesown0U;1/15worsen. Finalprior5/15better,1worse; OOFprior1/15tinybetter,5worse andall/virtuallyallUP. Matchedcontrols/rank/48CIs pending.",
+    "current_function_native_baseline_qualification_scope": "Technical matched full INITIAL/FINAL with identical input/model/loss/prior bindings, masks and observations; fresh-initial parity verified on recovery. Not predictive-value qualification.",
     "latest_current_initial_state_audit": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_HISTORY_INITIAL_AUDIT_20261023_230/TERMINAL.json",
       "sha256": "4956438fc41dc9bc4c8d14aa2b72d141fb75527e78232cbd35d0a4d486d98054"
@@ -1543,7 +1543,7 @@
       "sha256": "a9285a924886605bef861d992cc34e25681761ca0af3cfdc3be2ac10fda05289"
     },
     "current_function_private_technical_qualified": true,
-    "current_function_private_technical_scope": "273 actual pure-direction native4U/serialized fullONLINE+allbuffers+AdamW+RNG+modes+order/cursor resume PASS. Four parents only; qualification weights barred from main fit.",
+    "current_function_private_technical_scope": "TA S/F four-update native mechanical qualification and bit-identical resume reused; recovery full model/AdamW/RNG/order and fresh-initial parity passed.",
     "latest_current_function_main": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_HISTORY_SINGLE_FULL_NATIVE_EPOCH_20261024_232/TERMINAL.json",
       "sha256": "c77ef8f6de087c5dfa8b079db8b504afcb1c1dccba8c5a4caad18886f551d799"
@@ -1601,7 +1601,7 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD4_20261025_280/ACTUAL_QUALIFICATION_REVIEW.json",
       "sha256": "aeb243b261b922b00e5fce301d06c90dc5a27f3be4f4054358d2a61f00a2dd63"
     },
-    "current_function_completed_prefix_baselines": 4,
+    "current_function_completed_prefix_baselines": 1,
     "latest_matched_direction_diagnostic": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/B_SAVED_PREDICTION_ACTUAL_ROOT_REVIEW_001.json",
       "sha256": "76dd19534a68916512eaa2ee1e73b6a0eca70eebb8691290cb3b574ff92ce342"
@@ -1620,11 +1620,15 @@
     "latest_signed_bps_prefix_fit": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/ACTUAL_ROOT_REVIEW.json",
       "sha256": "32dbd4c59cd22188cdfb8f4070c02795061a321c100a13547a4d355769d663d6"
+    },
+    "latest_ta_sf_learning_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_RECOVERY_20261108_001/PERFORMANCE_AND_LEARNING_REVIEW.json",
+      "sha256": "9c355cfeb05a31e7e4fa7e3c9ef40c7eec89b9c52a522904efb576407689cb3a"
     }
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "TA input and mechanics PASS; prepare fixed one-pass learning measurement with full matched INITIAL/FINAL and later TRAIN score.",
+    "current_activity": "Completed corrected TA S/F fold1 one-pass fit and matched/later TRAIN review; measured M5 direction worsened despite lower aggregate TRAIN loss.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1650,14 +1654,14 @@
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
-    "gc_goal_status": "GC_PAUSED_EXPLICIT_TA_NATIVE_PROFILE_PREPARED_NOT_PHYSICALLY_QUALIFIED",
+    "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "Preserved prior process terminal: capped CPU native endpoint-loss arithmetic on isolated TRAIN, zero native model constructions/forwards/updates. Current source-clock preparation is separately bound by xau_input_physical_clock_goal_20261105.preparation_terminal; it is not a process terminal.",
-    "runtime_root": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_001",
+    "latest_terminal_role": "Post-run derived process review of original TA recovery RESULT and controller receipt; exit0/source-unchanged/no-TEST verified. Originals preserved; not a replacement trainer-produced terminal.",
+    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_RECOVERY_20261108_001/RUNTIME",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/NATIVE_ENDPOINT_LOSS_STEP1_001/TERMINAL.json",
-      "sha256": "93fbd95662bedcb7fd5c5d473dd8acba5e84cb769d39c4294f0aadd8f9d54629"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_RECOVERY_20261108_001/VERIFIED_PROCESS_TERMINAL.json",
+      "sha256": "0c033658d9abe5e91cd3e71646bcdd0ac8397aef646f05bf4130cdce13cc3ad8"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -1677,7 +1681,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Corrected TA predictor fit and later score not run; more epochs/history and same-line reactions unmeasured; COT release/vintage UNKNOWN.",
+    "current_blocker": "M5 S/F conditional-side scores worsen already on matched TRAIN and lose to prior on later TRAIN. Cause unisolated; extra epochs/history and same-line reactions unmeasured; COT release/vintage UNKNOWN.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -3627,7 +3631,7 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_20261022_188/.gx1-candidate-training-session.BUNDLE/initial_measurement/RESULT.json",
       "sha256": "a76b95e8952778ee71e1983936ebac17a772c2490d90f52bf34ccc64db62335e"
     },
-    "current_generation_acceptance": null,
+    "current_generation_acceptance": "TECHNICAL_COMPLETE_DIRECTION_NOT_QUALIFIED",
     "sampler_generation_scope": "Exact057outcome-blind ordered118249TRAINpopulation used once by108; not a sampler performance-selection claim.",
     "latest_manual_host_restart": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/POST_REBOOT.json",
@@ -3742,7 +3746,7 @@
       },
       "test_data_used": false
     },
-    "current_generation_initial_baseline_role": "ACTUAL188_CURRENT184_FUNCTION32F0U_WITH189_DURABLE_SAVED_STATE_AUDIT",
+    "current_generation_initial_baseline_role": "Reused full INITIAL with fresh-initial parity and restored full state verified before recovery updates.",
     "sampler_capacity_terminal_20261011": {
       "observed": true,
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/SAMPLER_BENCHMARK_001/TERMINAL.json",
@@ -8788,7 +8792,7 @@
         }
       }
     },
-    "training_started_note": "Historical fact for this session campaign: W1 completed 47602 TRAIN parents and2976updates before interruption; no native/training process is currently running and all launch gates are closed.",
+    "training_started_note": "TA recovery imported256updates and completed1593new updates; no active trainer, Windows task disabled, plans consumed.",
     "scalar_repair_note": "14.10.2026 document audit: scalars re-pointed from the FEATURE_REPAIR/V38 generation to the NATIVE_D1 minimum learning plan",
     "retention_wave1_20261014": {
       "status": "DELETE_COMPLETE",
@@ -17329,7 +17333,7 @@
         "path": "/home/andre2/src/GX1_CURRENT/docs/ORIGINAL_PROJECT_GOAL.md",
         "sha256": "da21eeb1ec9e712e3d5372140a8165e1d771f12df7ff8efdefd341bdf849454c"
       },
-      "current_phase": "Offline TA-only five-TF market-state source qualification. Corrected S/F one-pass route prepared, no new native predictor fit or later score measured; TEST, Entry, Exit and trading closed.",
+      "current_phase": "Offline TA-only five-TF corrected S/F one-pass fit and later TRAIN score complete. M5 direction worsens already on TRAIN; no directional edge demonstrated. TEST, Entry, Exit and trading closed.",
       "entry_decision_cadence_seconds": 300,
       "future_outcome_queries": "Source-supported time/size domain for future local-state validity remains to be bound for each timeframe. Existing terminal/first-event/session-day targets are scoped historical evidence, not a ready dynamic-state contract.",
       "latest_operator_clarification_date": "2026-11-06",
@@ -17619,7 +17623,7 @@
         "Originals preserved; unusedwindows3/4revoked. No new epoch,HPO,checkpoint/threshold selection,normalization refit,trading,broker,Exit or promotion."
       ]
     },
-    "latest_terminal_evidence_scope": "OriginalW1 training2976updates/47602parents plus genuine recovered4057forwards/0newupdates; all60 saved panels for originalinitial256/fullTRAIN47602/later17288 verified.7of10variants complete; all family confidence intervals pending.",
+    "latest_terminal_evidence_scope": "Same29574-row initial/final TRAIN population;17753 later TRAIN rows; one pass, one fold. M5 conditional direction worse than own initial and prior; later all F timeframes lose to prior.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -17713,12 +17717,12 @@
       "latest_actual_initial_checkpoint_write_seconds": 0.531438
     },
     "latest_native_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_SCORING_RECOVERY_001/VERIFIED_TERMINAL.json",
-      "sha256": "45b14620ffaa411fba4f2fd2bdf9c82ce896267a704c9afbae5cdf0287ae3adb"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_RECOVERY_20261108_001/VERIFIED_PROCESS_TERMINAL.json",
+      "sha256": "0c033658d9abe5e91cd3e71646bcdd0ac8397aef646f05bf4130cdce13cc3ad8"
     },
     "latest_native_terminal_review": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_SCORING_RECOVERY_001/ACTUAL_ROOT_REVIEW_001.json",
-      "sha256": "47f2e66661d3184ae1c2aeacc64bef8efa0a5310976ba5eebe917605934ab75f"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_RECOVERY_20261108_001/PERFORMANCE_AND_LEARNING_REVIEW.json",
+      "sha256": "9c355cfeb05a31e7e4fa7e3c9ef40c7eec89b9c52a522904efb576407689cb3a"
     },
     "latest_native_initial_review": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_20261022_188/ACTUAL_INITIAL_PEER_REVIEW.json",
@@ -17740,7 +17744,7 @@
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/ACCEPTANCE_REVIEW_001/RESULT.json",
       "sha256": "f67db984e0f6ca801abda2b33017287dea8da4926700f268926edd9eb2e04a8f"
     },
-    "current_generation_acceptance_scope": "Current184generation:188initial and189saved PREmeasurement equality,190private optimizer/parity/resume qualification and191one matched fullTRAIN pass with final measurement are complete/consumed.192measured earlypath pointfit gain but Entrydirection/actions remain unqualified. No new native run or reference fit is admitted.",
+    "current_generation_acceptance_scope": "TA inputs/mechanics/recovery and one-pass learning measurement complete; M5 direction deficit measured on TRAIN and later TRAIN.",
     "gc_clock_numeric_reference_118": {
       "status": "COMPLETE_PASS_PUBLISHED_M1_TO_FIVE_TF_CLOCK_REFERENCE",
       "plan": {
@@ -18748,7 +18752,7 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_HORIZON_DIAGNOSIS_20261021_154/HANDOVER_FOCUSED_CHECKS_TERMINAL.json",
       "sha256": "1ca82463022206a2a83d5cb6fddde8f26589fbf60640261df085911eb9ca37f4"
     },
-    "handover_ready_for_next_agent": false,
+    "handover_ready_for_next_agent": true,
     "autonomous_direction_qualification_goal_20261021": {
       "status": "ACTIVE_DIAGNOSE_THEN_MEASURE_ONE_JUSTIFIED_IMPROVEMENT",
       "operator_request_utc": "2026-10-21T19:15:05.466847+00:00",
@@ -18827,7 +18831,7 @@
     "current_training_started": true,
     "private_optimizer_qualification_admitted": false,
     "active_continuous_goal_thread_id": null,
-    "current_generation_initial_baseline_is_current_function": false,
+    "current_generation_initial_baseline_is_current_function": true,
     "current_function_initial_baseline_required_after184": false,
     "current_generation_saved_state_audit_pending": false,
     "current_generation_initial_measurement_audit": {
@@ -18852,7 +18856,7 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "NO_TRAINING_ALL_REGISTERED_NATIVE_PHASES_CONSUMED",
+    "current_training_scope": "NO_TRAINING_TA_FOLD1_RECOVERY_CONSUMED",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -18977,8 +18981,8 @@
     },
     "feature_potential_exhausted": false,
     "latest_terminal_receipt": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_SESSION_REGIME_001/VERIFIED_TERMINAL.json",
-      "sha256": "5e1abca12a336e32c52cab1ce23b20034a48801708d627ad3ed6f6a9034c089e"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_RECOVERY_20261108_001/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "cd540e14b3e201de09674411a4d4ca45e7a60b287360a835d831e02b209b21c9"
     },
     "latest_broad_direction_review": {
       "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/SYNTHESIS.json",
@@ -18995,10 +18999,10 @@
     "canonical_guard_child_exit_code": 0,
     "windows_task_last_result": 0,
     "canonical_terminal_receipt": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_prefix_part3_20261027_001_RUNTIME/receipts/invocation-0001.json",
-      "sha256": "b85fffb36ed5ad0ed844a97d2d516a9406a33f5510874a283ff0a40e8fdca118"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_RECOVERY_20261108_001/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "cd540e14b3e201de09674411a4d4ca45e7a60b287360a835d831e02b209b21c9"
     },
-    "terminal_exit_code_origin": "Genuine recovered scoring receipt trainer_guard_exit_code; original interrupted W2 native exit remains unknown.",
+    "terminal_exit_code_origin": "Current recovery RESULT COMPLETE and controller trainer_guard_exit_code=0; original interrupted plan remains ABORTED_CONSUMED.",
     "latest_throughput_measurement_design": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_THROUGHPUT_MEASUREMENT_DESIGN_001.json",
       "sha256": "572bcbe54cb67e7d477c40272c3bde3ff179d9b349499643849d09493c1f4684"
@@ -19160,8 +19164,8 @@
       "sha256": "c30946767a52650ec071f0457ea8b127d0d7bd38c556922b34d139897edc040e"
     },
     "latest_terminal_review": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_SCORING_RECOVERY_001/ACTUAL_ROOT_REVIEW_001.json",
-      "sha256": "47f2e66661d3184ae1c2aeacc64bef8efa0a5310976ba5eebe917605934ab75f"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_RECOVERY_20261108_001/PERFORMANCE_AND_LEARNING_REVIEW.json",
+      "sha256": "9c355cfeb05a31e7e4fa7e3c9ef40c7eec89b9c52a522904efb576407689cb3a"
     },
     "frozen_partition_completed_units": {
       "terminal_later_full": {
@@ -19214,7 +19218,7 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_ALLOCATION_ACTUAL_ROOT_REVIEW_001.json",
       "sha256": "66e16e4e53b258083ae05e3da53b520bf2cfc2eeddbf031bf13041be70ccafd3"
     },
-    "native_training_stage": "dynamic_m5_direction_family_chart_geometry_onepass_fit_20261101_001",
+    "native_training_stage": "market_state_ta_native_fold1_recovery_20261108_001",
     "genuine_predictor_fit_completed": true,
     "current_m5_direction_evidence": {
       "fit_review": {
@@ -19266,7 +19270,7 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_001/UNEXPECTED_INTERRUPTION_INTEGRITY_001.json",
       "sha256": "a24c10b0873f8c94ea086c8c79083d390092521a9aabf77523c3624e2ecfe020"
     },
-    "current_native_launch_scope": "CLOSED_QUALIFICATION_FIT_AND_ONE_DECEMBER_SCORE_CONSUMED_NO_RELAUNCH",
+    "current_native_launch_scope": "CLOSED_TA_FOLD1_RECOVERY_COMPLETE_NO_RELAUNCH",
     "current_host_interruption": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/CONNECTION_LOSS_OBSERVATION_001.json",
       "sha256": "b399a59dc7af1e8b0af84c8c135d5b4efe96ac3eaa74aa4f7fb54ee8a3ce9882"
@@ -22031,6 +22035,14 @@
         "sha256": "33a8fb4648821fcf7d45479a2f2820920e803c6fc2c2c7b64259042e0c27db01"
       },
       "epoch_history_hypothesis": "Insufficient training/short history remain plausible. One pass on May-Sep2024 cannot establish that30epochs or5years fail; no expansion admitted."
+    },
+    "latest_campaign_receipt": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_RECOVERY_20261108_001/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "cd540e14b3e201de09674411a4d4ca45e7a60b287360a835d831e02b209b21c9"
+    },
+    "latest_performance_and_learning_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_RECOVERY_20261108_001/PERFORMANCE_AND_LEARNING_REVIEW.json",
+      "sha256": "9c355cfeb05a31e7e4fa7e3c9ef40c7eec89b9c52a522904efb576407689cb3a"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -24595,7 +24607,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-08T18:31:05.948742+00:00",
+  "updated_utc": "2026-11-08T20:12:47.173651+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -30497,7 +30509,7 @@
       "sha256": "e9565142b3452010c60e04fce7cc9b52ec26d118c8458e8c434f09352b0f82ed"
     }
   },
-  "native_launch_authorized": true,
+  "native_launch_authorized": false,
   "dynamic_m5_fixed_snapshot_direction_reference_repair_200": {
     "status": "FAILED_CONSUMED_REFERENCE_COHORT_ORDER_GUARD_BEFORE_FIT",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_SNAPSHOT_DIRECTION_REFERENCE_REPAIR_20261023_200",
@@ -35381,7 +35393,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -40123,7 +40135,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "market_state_ta_native_fold1_recovery_20261108_001",
+  "training_enabled_scope": "NONE_ALL_CURRENT_TA_PLANS_CONSUMED",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -64012,8 +64024,8 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "TA_SF_RECOVERY_SOURCE_AND_METADATA_QUALIFIED",
-  "recorded_observed_utc": "2026-11-08T18:31:05.948742+00:00",
+  "recorded_status": "TA_SF_RECOVERY_COMPLETE_NO_M5_DIRECTION_GAIN",
+  "recorded_observed_utc": "2026-11-08T20:12:47.173651+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
     "decision": "BLOCK",
@@ -66063,8 +66075,8 @@
     "test_data_used": false
   },
   "market_state_ta_native_fold1_recovery_20261108_001": {
-    "status": "ADMITTED",
-    "decision": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
+    "decision": "COMPLETE_NO_M5_DIRECTION_GAIN",
     "scope": "Continue corrected TA S/F fold1 one pass from exact preserved4096rows/256updates; reuse full INITIAL; same remaining TRAIN and matched FINAL/later TRAIN score.",
     "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_RECOVERY_20261108_001/RUNTIME",
     "recipe": {
@@ -66072,8 +66084,8 @@
       "sha256": "7e572eca2c2f70d36eae90d4cc8b339df0f921436f64b5ecc7b2c16a382e4299"
     },
     "max_invocations": 4,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "fold_id": 1,
     "fit_rows": 29574,
@@ -66082,7 +66094,7 @@
     "max_optimizer_updates": 1849,
     "resume_parent_cursor": 4096,
     "resume_optimizer_updates": 256,
-    "remaining_optimizer_updates": 1593,
+    "remaining_optimizer_updates": 0,
     "input_audit": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001/RESULT.json",
       "sha256": "107c95312f3decce4c00bbe75ccf467363853d0377c448599bed7c673b871dc0"
@@ -66148,21 +66160,21 @@
     "epoch_history_expansion_authorized": false,
     "old_plan_relaunch_allowed": false,
     "predictive_value_qualified": false,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
-    "genuine_predictor_fit_authorized": true,
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "full_epoch_training_allowed": true,
-    "native_launch_authorized": true,
-    "campaign_preparation_authorized": true,
-    "time_query_fold1_fit_authorized": true,
-    "ta_sf_fold1_fit_authorized": true,
-    "ta_sf_fold1_recovery_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "native_launch_authorized": false,
+    "campaign_preparation_authorized": false,
+    "time_query_fold1_fit_authorized": false,
+    "ta_sf_fold1_fit_authorized": false,
+    "ta_sf_fold1_recovery_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_test_execution_authorized": false,
     "test_data_used": false,
@@ -66170,6 +66182,70 @@
     "exit_evaluation": false,
     "broker_access_allowed": false,
     "full_val_allowed": false,
-    "spending_allowed": false
+    "spending_allowed": false,
+    "successful_invocations": 1,
+    "unneeded_invocations_not_authorized": [
+      2,
+      3,
+      4
+    ],
+    "completed_utc": "2026-11-08T20:04:42.508198+00:00",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_RECOVERY_20261108_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+      "sha256": "503bf914961e316dde327c37f6df9455781fa6f26e8fd623f02e9db893d9a7b6"
+    },
+    "campaign_receipt": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_RECOVERY_20261108_001/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "cd540e14b3e201de09674411a4d4ca45e7a60b287360a835d831e02b209b21c9"
+    },
+    "performance_and_learning_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_RECOVERY_20261108_001/PERFORMANCE_AND_LEARNING_REVIEW.json",
+      "sha256": "9c355cfeb05a31e7e4fa7e3c9ef40c7eec89b9c52a522904efb576407689cb3a"
+    },
+    "task_disabled": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_RECOVERY_20261108_001/TASK_DISABLE_RECEIPT.json",
+      "sha256": "2b47d772dcb2af1f4b5d57d237c9f8c2094372cdd022e4172e239d449210b5b7"
+    },
+    "recovery_import": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_RECOVERY_20261108_001/RUNTIME/prefix-fit/window-0001/RECOVERY_IMPORT.json",
+      "sha256": "73baa503be136caa588ae1cf552d6ade02b5dc0e019ee54339b19195bdd75a95"
+    },
+    "initial_measurement": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_FIT_20261108_001/RUNTIME/prefix-fit/window-0001/INITIAL_TRAIN.json",
+      "sha256": "1f88bccb413930d12ad67c54ff1ffb8eacd3c723fb335aa668ef73b62ee3148c"
+    },
+    "final_train_measurement": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_RECOVERY_20261108_001/RUNTIME/prefix-fit/window-0001/FINAL_TRAIN.json",
+      "sha256": "a608b856ede83c348642dc6875686a25e237a42d56bad0cdcd44f85d1afcce74"
+    },
+    "later_train_measurement": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_RECOVERY_20261108_001/RUNTIME/prefix-fit/window-0001/OOF.json",
+      "sha256": "9c61e647afb114037469afc86abd21e226e5e1322ce6183c981ae4010272d4f7"
+    },
+    "final_state": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_RECOVERY_20261108_001/RUNTIME/prefix-fit/states/FINAL_FOLD1_FIT_STATE.pt",
+      "sha256": "f5ea915eb6803af22906c39580f9b7ceb10c94cd663659130cdbe6570b7a1f60"
+    },
+    "source_commit": "78cfce7fea40e41f9d3373ee025c8d535bdc4876",
+    "new_optimizer_updates": 1593,
+    "total_optimizer_updates": 1849,
+    "skipped_batches": 0,
+    "initial_measurement_reused": true,
+    "fresh_initial_parity_and_full_restore_passed": true,
+    "actual_windows_boot": {
+      "boot_id": 624,
+      "computer_name": "ANDRE2",
+      "identity_sha256": "7f2cf004dc2f77d96aeee7a406def0a631e060bdd4cadfa5b46f458d1308dc0f",
+      "last_boot_utc": "2026-11-08T18:38:57.5000000Z",
+      "schema_version": "gx1_windows_boot_identity_v1"
+    },
+    "actual_controller_wall_seconds": 5051.842912,
+    "whole_run_speedup_measured": false,
+    "source_unchanged": true,
+    "terminal_exit_code": 0,
+    "verified_process_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_RECOVERY_20261108_001/VERIFIED_PROCESS_TERMINAL.json",
+      "sha256": "0c033658d9abe5e91cd3e71646bcdd0ac8397aef646f05bf4130cdce13cc3ad8"
+    }
   }
 }

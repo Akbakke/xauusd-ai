@@ -15,7 +15,24 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: `TA_SF_CHECKPOINT_RECOVERY_ADMITTED_WITH_CORRECTED_CODE`.
+Policystatus: `TA_SF_RECOVERY_COMPLETE_NO_M5_DIRECTION_GAIN`.
+
+Korrigert TA S/F fold1 er nå **COMPLETE og konsumert**. 256 oppdateringer
+ble gjenbrukt, 1 593 nye fullførte samme pass, totalt 1 849 uten skip.
+Fersk initialparitet og full model/AdamW/RNG/order-restore bestod.
+INITIAL/FINAL har identisk observasjonskjede, alle nevnere og frosne priorer.
+På M5 TRAIN ble S-side-Brier dårligere fra 0,249789 til 0,268542 og
+F-side-Brier fra 0,255374 til 0,302930. På senere TRAIN ble S/F henholdsvis
+0,270575/0,316567 mot prior 0,249828/0,249833. Lavere er bedre.
+Dette er sidekjente observasjoner, ikke treffprosent eller valgte handler.
+Samlet TRAIN-tap falt fra 2,8812 til 2,4015 hovedsakelig via tilstand/aktivitet;
+fallet dokumenterer ikke bedre retning. Bare D1 S slo senere prior på begge
+sidemål; ingen statistisk kvalifisert gevinst eller årsaksforklaring følger.
+[Resultat og tidskontroll](/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_RECOVERY_20261108_001/PERFORMANCE_AND_LEARNING_REVIEW.json)
+binder målinger, nevnere og filhasher. Trener/observatør/kontroller avsluttet
+med 0, kilden var uendret, ingen TEST ble brukt. Windows-oppgaven er deaktivert,
+ingen treningsprosess er aktiv, og resterende tre vinduer er ikke autorisert.
+
 [Fullføringen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001/RESULT.json)
 er COMPLETE: 600 ekstra historikkrader × 94 felt = 56 400 sammenligninger,
 null avvik. M5/M15/H1/H4/D1-gapene var 94/63/95/96/252 rader. Alle ni
@@ -43,8 +60,8 @@ Brukeren ba om å rette den målte ytelsesflaskehalsen straks. Ettpass-fit
 ble derfor avbrutt før kildeendringen; planen er ABORTED_CONSUMED.
 Full INITIAL på 29 574 rader og checkpoint ved 4 096 rader / 256 updates
 er bevart. Checkpointets hele state- og komponenthasher er kontrollert.
-Oppdateringer etter siste checkpoint er UNKNOWN; FINAL og senere TRAIN-score
-er ikke fullført. Startoppsettet ignorerte SIGINT; SIGTERM ga guard-exit143
+Oppdateringer etter siste checkpoint i den avbrutte jobben er UNKNOWN;
+dens FINAL og senere TRAIN-score ble ikke fullført. Startoppsettet ignorerte SIGINT; SIGTERM ga guard-exit143
 og Windows-task-exit1. Ingen vellykket trenerterminal eller resume-cursor
 ble publisert. Oppgaven er deaktivert, GPU/prosess/lås er ledige.
 [Operatørterminalen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_FIT_20261108_001/OPERATOR_INTERRUPTION_TERMINAL.json)
@@ -59,7 +76,8 @@ Alle validatorer kjøres fortsatt; modell, features og regning er uendret.
 Tre fokuserte TA-profil-/normaliserings-/konsumtester består. Tre nye
 duplikatfeiltester følger den eksisterende obligatoriske pre-commit-gaten.
 [Resultatet](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DUPLICATE_CHECK_PERF_20261108_001/RESULT.json)
-binder før/etter-målingene. Gevinsten for hele treningsløpet er ikke målt.
+binder før/etter-målingene. Fasemåling og faktisk recovery-varighet står nedenfor;
+ingen gammel fullført total finnes for en målt helkjøringssammenligning.
 
 Den separate [inputfasekvitteringen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_20261108_003/INPUT_TENSOR_PHASE.json)
 er komplett innen sitt scope: 47 327 beslutningsrader og alle overlappende
@@ -79,26 +97,23 @@ prediksjonsevne er ikke målt. Ingen ny modellarkitektur er innført.
 GC-registerplanen er utsatt og uklamet. Juni 2026 er brukt utviklings-VAL;
 forseglet periode følger bare forward-journalregelen i GX1_RULES.md.
 
-Ny brukerbestilling åpner én eksakt gjenopptakelse med rettet kode:
-[recipe](/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_RECOVERY_20261108_001/RECIPE.json).
-Den starter fra bevart rad 4 096 / update 256, med 25 478 rader / 1 593
-oppdateringer igjen i samme pass. Original full INITIAL gjenbrukes.
-Samme modell, targets, normalisering, feltrekkefølge og optimizer beholdes.
-85 kildeeiere er bundet; bare Counter og seks nødvendige recovery-eiere
-avviker fra originalen. Metadata/TA-loader/faktisk view er kvalifisert.
-Original state/AdamW/RNG/order må bestå full restore og fersk initialparitet
-før første nye oppdatering; importen lagres deretter under ny kilde.
-Input- og mekanikkjobbene gjentas ikke.
+Den nye [recovery-planen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_RECOVERY_20261108_001/CAMPAIGN/CAMPAIGN_PLAN.json)
+fullførte i første vindu etter fersk Windows-boot624. Den bevarte modellen,
+targets, normalisering, feltrekkefølge og optimizer; 85 kildeeiere var bundet.
+Bare Counter og seks nødvendige recovery-eiere avvek fra originalen.
+Input-/mekanikkjobbene og full INITIAL ble gjenbrukt; originalplanen relanseres ikke.
 
-Historisk evalueringsbane brukte 3 260,23 s for 29 574 rader / 1 849 batcher.
-Første bevarte fitblokk brukte 565,66 s for 256 oppdateringer. Dette er
-filtid-intervaller med dokumenterte publiseringsgrenser. Ny kjøring måler
-oppstart/restore, fitblokker, FINAL, senere score og total monotont.
-Gammel fullført total finnes ikke: samlet speedup kan bare anslås, mens
-fasegjennomstrømning og faktisk ny total kan måles. Vektene er forskjellige
-ved gammel INITIAL og ny FINAL, men populasjon og evalueringsbane er like.
-[Tidsgrunnlaget](/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_RECOVERY_20261108_001/HISTORICAL_TIMING_BASELINE.json)
-binder sammenligningen. Ingen ny epoke eller lengre historikk åpnes.
+Hele controller-vinduet tok 5 051,84 s (**84 min 12 s**); runnerens monotone
+måling til før terminalpublisering var 5 033,16 s. Resterende fit tok
+2 240,82 s, full FINAL 1 681,83 s og senere TRAIN-score 1 013,11 s.
+Første nye 256-blokk tok 363,60 s mot gamle 565,66 s: 35,7 % kortere tid.
+Full evaluering av samme 29 574 rader tok 48,4 % kortere tid enn gammel
+INITIAL på 3 260,23 s. Gamle grenser er filtid-intervaller; nye er monotone.
+Fit bruker senere rader, INITIAL/FINAL ulike vekter. Dette er målt
+operasjonell fasegjennomstrømning, ikke et identisk A/B-forsøk.
+Gammel fullført total og gammel senere-score-tid finnes ikke; ingen målt
+prosentgevinst for hele løpet påstås. [Tidsgrunnlaget](/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_RECOVERY_20261108_001/HISTORICAL_TIMING_BASELINE.json)
+bevares. Ingen ekstra epoke eller lengre historikk er åpnet.
 
 ## Det som faktisk er målt
 
@@ -112,8 +127,10 @@ binder sammenligningen. Ingen ny epoke eller lengre historikk åpnes.
   før/etter fit, med globale aktivitets-/sidemasker og frosne priorer.
   Senere 17 753 TRAIN-rader scores separat. Gammel initialkvittering
   med null forwards er ikke en læringsmåling. Inputkvalifikasjonen er komplett innen deklarert scope;
-  ny fireoppdateringsmekanikk består. Fit ble avbrutt etter brukerens
-  ytelsesbestilling; 256 oppdateringer er bevart, men full læringsmåling gjenstår.
+  ny fireoppdateringsmekanikk består. Den avbrutte fitens 256 oppdateringer
+  er gjenbrukt, og den nye recovery-planen har fullført hele læringsmålingen.
+  Retningen ble dårligere på M5/M15/H1/H4 for begge hoder allerede i TRAIN;
+  bare D1 S/F forbedret begge sidemål fra initial og slo prior på TRAIN.
 
 - **Funksjonsgjennomgang:** EMA bruker SMA-seed og alfa `2/(p+1)`;
   ATR bruker klassisk TR og Wilder14. SMC-pivot blir synlig etter bekreftelse,
@@ -269,13 +286,13 @@ binder sammenligningen. Ingen ny epoke eller lengre historikk åpnes.
   SHA `3f8fcaa460b5f8e7f90d93cd84c504df914d1717bc1422bb8eb67f676d19289b`.
   Native register/layout/visning har ennå ikke konsumert de nye feltene.
 
-- **Ny retningsvekt, kun kilde:** På de fem senere TRAIN-foldenes faste
+- **Ny retningsvekt, teknikk og ett målt pass:** På de fem senere TRAIN-foldenes faste
   endepunkter hadde S entydig side i 33–44 % og F i 37–41 % av informative
   rader. Det gamle v2-tapet delte sidefeilen på alle informative rader. En
   separat side-normalisert tapsmodul deler nå på faktisk sidekjente rader;
   S/F-ruten bruker den for begge hoder. Den gamle v2-filen er byteidentisk
   med kvalifisert featurevisning.
-  Neste kandidats F-vekt er bundet til 1,0 mot S; ingen scorevalgt vektsøk.
+  Den målte kandidatens F-vekt er bundet til 1,0 mot S; ingen scorevalgt vektsøk.
   11 fokuserte tester består. Ny fysisk nullstegskjøring på to ekte
   TRAIN-rader besto: S-/F-hode og backbone fikk gradient; ukjent S-side og
   FLATT F-side fikk null direkte sidegradient. Vektene var bitlike før/etter;
@@ -301,28 +318,23 @@ binder sammenligningen. Ingen ny epoke eller lengre historikk åpnes.
 
 ## Ikke gjort, hindring og neste steg
 
-Native S/F har **ingen** full kronologisk fit eller senere femfolds OOF.
-GC-merverdi i den native tidssekvensmodellen er ikke målt. Verken framtidig
-markedstilstand, senere Entry-beslutningsverdi eller økonomisk edge er påvist.
-Den enkle tabellmodellens negative retning er ikke en generell dom over GC,
-indikatorene eller native modell.
+Native S/F har nå ett fullt korrigert fold1-pass med senere TRAIN-score,
+men ingen ny femfolds OOF-kvalifikasjon. GC-merverdi i den native
+tidssekvensmodellen, samme-linje-reaksjonsverdi, Entry-verdi og økonomisk edge
+er ubevist. 61 makrofelt mangler uavhengig formelorakel; COTs faktiske
+historiske publisering og vintage er fortsatt UNKNOWN.
 
-**Neste steg:** Fullfør ny recovery-campaigns preflight og maskinvid
-idle-kontroll; behold kravet om fersk Windows-boot. Kjør den nye planen
-med full state-restore og fortsett kun resterende pass, FINAL og senere
-TRAIN-score. Kontroller stabil drift hver 15.–30. minutt og bruk publiserte
-fasetider til den avgrensede hastighetssammenligningen. Kilden og policyen
-fryses gjennom kjøringen; original avbrutt plan relanseres aldri.
-Brukerens spørsmål om 30 epoker og fem år beholdes som åpne hypoteser.
-Dagens fit dekker omtrent mai–september2024, senere score oktober–desember2024.
-Ett kort pass er ingen generell dom over lengre læring eller historikk.
-Ingen slik utvidelse eller etterfølgende utvalg på forseglet TEST er innført.
-Native femfolds generalisering, samme-linje-reaksjonsverdi, Entry-verdi og
-økonomisk edge er ubevist.
+**Neste steg:** Ta utgangspunkt i den målte M5-retningssvikten allerede
+på TRAIN, adskilt fra aktivitet og senere generalisering. Årsaken er ikke
+isolert; ingen ny arkitektur, ny fit eller automatisk utvidelse følger av
+resultatet. Avklar en avgrenset diagnose/designendring før videre modellarbeid.
+Brukerens spørsmål om 30 epoker og fem år er fortsatt åpne hypoteser.
+Denne fitten dekker omtrent mai–september2024, senere score oktober–desember2024.
+Ett pass og én fold er ingen generell dom over lengre læring eller historikk.
 
 Den tidligere [GC-registerplanen](configs/research/MARKET_STATE_GC_SIDE_MAX_REGISTRY_20261108_001.json)
 forblir bevart, men er utsatt og uklamet etter brukerens nye prioritering.
-`training_enabled=true` gjelder bare den nye eksplisitte recovery-planen.
+`training_enabled=false`; begge fitplaner er konsumert.
 
 Kilde/metode for denne fasen: [docs/NATIVE_LEARNING.md](docs/NATIVE_LEARNING.md).
 Detaljert historikk og eldre beslutninger: Git, ikke nye arkivmapper her.
