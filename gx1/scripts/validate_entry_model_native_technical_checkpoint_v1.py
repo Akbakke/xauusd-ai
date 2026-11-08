@@ -1241,6 +1241,36 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         print(json.dumps(_safe_json(report), indent=2, sort_keys=True, allow_nan=False))
         return 0
+    ta_cache_options = (
+        "--market-state-ta-direction-cache-plan",
+        "--market-state-ta-direction-cache-plan-sha256",
+    )
+    if any(value.partition("=")[0] in ta_cache_options for value in supplied):
+        cache_parser = argparse.ArgumentParser(
+            description="Frozen TA fold-1 TRAIN direction representations",
+            allow_abbrev=False, add_help=False,
+        )
+        cache_parser.add_argument(ta_cache_options[0], type=Path, required=True)
+        cache_parser.add_argument(ta_cache_options[1], required=True)
+        cache_parser.add_argument("--device", choices=("cuda",), required=True)
+        cache_parser.add_argument("--out-dir", type=Path, required=True)
+        cache_parser.add_argument("--preflight", action="store_true")
+        for option in (*ta_cache_options, "--device", "--out-dir", "--preflight"):
+            if sum(value.partition("=")[0] == option for value in supplied) > 1:
+                cache_parser.error(f"duplicate flag: {option}")
+        cache_args = cache_parser.parse_args(supplied)
+        if not cache_args.out_dir.is_absolute():
+            cache_parser.error("--out-dir must be an absolute path")
+        from gx1.audit.cache_market_state_ta_direction_v1 import (
+            preflight_read_only as cache_preflight, run as cache_run,
+        )
+        kwargs = dict(plan_path=cache_args.market_state_ta_direction_cache_plan,
+                      plan_sha256=str(cache_args.market_state_ta_direction_cache_plan_sha256),
+                      out_dir=cache_args.out_dir)
+        report = cache_preflight(**kwargs) if cache_args.preflight else cache_run(
+            **kwargs, device="cuda")
+        print(json.dumps(_safe_json(report), indent=2, sort_keys=True, allow_nan=False))
+        return 0
     paired_options = (
         "--market-state-fold1-paired-diagnostic-plan",
         "--market-state-fold1-paired-diagnostic-plan-sha256",

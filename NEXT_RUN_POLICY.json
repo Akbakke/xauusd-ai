@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-08T21:03:46.873871+00:00",
-  "status": "TA_DIRECTION_READOUT_CONTRAST_COMPLETE_M5_IMPROVED_PRIOR_UNBEATEN",
+  "status": "TA_DIRECTION_FULL_FROZEN_CACHE_ADMITTED_250W",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Resolve readout convergence and directional information on the full existing TRAIN prefix and laterTRAIN, rather than extrapolating the246/249row private comparison. Prepare one exact frozen-representation cache/convex directional-readout diagnosis using existing guards and source; reuse existing small cache for read-only checks. No broad architecture or hyperparameter search.",
+  "next_action": "Run one exact frozen FINAL pass on29574existingTRAIN+17753laterTRAIN rows at250W; reuse resulting representations for predeclared M5 affine-calibration versus converged full-readout diagnosis. No native fit or new feature audit.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1632,7 +1632,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Direct direction diagnostics complete: measured weakTFdifferentiation and private M5gain from separateTFreadouts, but no prior-beating direction.",
+    "current_activity": "One frozen fullTRAIN/laterTRAIN representation cache admitted,250W; direction-only diagnosis.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1662,7 +1662,7 @@
     "existing_indicator_surface_changed": false,
     "training_started": true,
     "latest_terminal_role": "Actual CPU private shared-vs-TF side-readout terminal: frozen native backbone/projection, two480-update readout arms,32encodings, zero native backbone updates.",
-    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_READOUT_COMPARISON_20261108_001",
+    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_FULL_CACHE_20261108_001",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_READOUT_COMPARISON_20261108_001/TERMINAL.json",
       "sha256": "ffd6757329a659536c020b5068f429e25a80fc444c641d7424d7017dc5c423f1"
@@ -66262,7 +66262,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "Exact target weighting, frozen decoder gradients and controlled shared-vs-TF readout comparison complete. M5 improves with untiedreadout in smallsample but prior unbeaten; cause not fully isolated and goal remains active."
+    "latest_progress": "Full frozen TRAIN/laterTRAIN cache admitted; only dispatch/capped routing changes,83of85recipeowners unchanged.250Wretained perexplicituser. ConvexM5optimizer and affine-logit control prepared separately; synthetic convergence/gradient checks passed, no real-data fit authorized yet."
   },
   "market_state_ta_direction_weight_diagnostic_20261108_001": {
     "status": "COMPLETE_CONSUMED",
@@ -66412,6 +66412,35 @@
         "log": 0.6936026989378624,
         "log_sum": 74.21548878635127
       }
+    }
+  },
+  "market_state_ta_direction_full_cache_20261108_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_FULL_CACHE_20261108_001/PLAN.json",
+      "sha256": "4b4c67993003f04e9ee6f7776cf29fa812fb5c91396c90cb586a684a323c4ff2"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "backbone_encodings_authorized": 2959,
+    "backward_calls_authorized": 0,
+    "optimizer_steps_authorized": 0,
+    "training_authorized": false,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "wall_seconds": 3600,
+    "power_limit_w": 250,
+    "power_draw_guard_w": 170,
+    "user_power_authorization": "08.11: du trenger jo ikke senke til160W ...250W er bra",
+    "test_data_used": false,
+    "preflight_log": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_FULL_CACHE_20261108_001/PREFLIGHT.log",
+      "sha256": "4a7a3ebce1ce412c110b0077f84c41bab482ed06130b97b941ae2bf5bd5a5857"
     }
   }
 }

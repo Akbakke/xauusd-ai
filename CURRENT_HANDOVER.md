@@ -15,7 +15,26 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: `TA_DIRECTION_READOUT_CONTRAST_COMPLETE_M5_IMPROVED_PRIOR_UNBEATEN`.
+Policystatus: TA_DIRECTION_FULL_FROZEN_CACHE_ADMITTED_250W.
+
+Neste direkte retningskontroll er én frossen FINAL-utlesning av hele eksisterende
+TRAIN (29 574 rader) og senere TRAIN (17 753), batch16, 2 959 enkodinger.
+[Plan](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_FULL_CACHE_20261108_001/PLAN.json)
+er ny og kan kjøres én gang. Ingen backward eller optimizer er tillatt.
+Brukeren presiserte at 250 W skal beholdes; faktisk og vedvarende grense ble
+aldri senket. Samme signerte GPU-/temperatur-/minne-/tidsvakter beholdes.
+Bare to av recoveryens 85 kildeeiere endres: eksplisitt dispatch og eksakt
+250 W-selector. 83 eiere er fysisk uendret; 77 historiske Git-eiere og åtte
+installerte runtime-eiere er kontrollert. Fersk import-/view-/scope-preflight
+og to fokuserte rutetester består. Hovedmodell, vekter og mål er uendret.
+
+Utlesningen skal rekalkulere opprinnelige S/F-side-mål på alle fem TF,
+med identiske tellinger og <=1e-6 avvik i gjennomsnitt. Ferdige cachepartisjoner
+bevares også ved avvik. Deretter skal en separat, eksakt plan sammenligne
+kalibrering av eksisterende M5-logit med et konvergert lineært M5-readout på
+frosne representasjoner. Kun TRAIN tilpasses; senere TRAIN brukes til score.
+Dette skal skille feil sannsynlighetsnivå fra utnyttbar retningsinformasjon.
+Den etterfølgende tilpasningen er ennå ikke autorisert i policyen.
 
 Aktivt brukermål08.11: jobb bare direkte med retning. Første avgrensede
 kontroll er fullført på eksisterende TRAIN-fasit på 1,24 s, uten modellkall.
@@ -350,10 +369,9 @@ historiske publisering og vintage er fortsatt UNKNOWN.
 **Neste steg:** Avklar retningsinformasjon og readout-konvergens på hele det
 eksisterende TRAIN-prefikset og senere TRAIN før en hovedmodellendring.
 Den lille kontrasten er for snever til å kvalifisere generalisering.
-Klargjør én eksakt kontroll med frosne representasjoner og en konvergerende
-retnings-readout; gjenbruk lagrede vekter, inputbevis og dekodercache.
-Ingen bred arkitekturombygging eller hyperparametersøk. Målet er aktivt,
-men ingen ny modellkjøring er innrømmet ennå.
+Kjør den innrømmede, frosne 250 W-utlesningen én gang og gjenbruk deretter
+cache i den separate M5-kontrollen. Ingen bred arkitekturombygging eller
+hyperparametersøk. Målet er aktivt; readout-tilpasning må få egen eksakt plan.
 Brukerens spørsmål om 30 epoker og fem år er fortsatt åpne hypoteser.
 Denne fitten dekker omtrent mai–september2024, senere score oktober–desember2024.
 Ett pass og én fold er ingen generell dom over lengre læring eller historikk.
