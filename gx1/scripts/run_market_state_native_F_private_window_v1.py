@@ -18,20 +18,22 @@ def _need(ok, reason):
 
 
 def _publish_terminal(*, output, progress_path, window, plan, invocation,
-                      payload, counters, maximum, ta_sf=False):
+                      payload, counters, maximum, ta_sf=False, dedicated_m5_side=False):
     from gx1.contracts import entry_native_direction_research_campaign_v1 as authority
     from gx1.scripts import run_entry_native_direction_research_window_v1 as common
-    pass_decision = 'PASS_TA_SF_MECHANICAL' if ta_sf else 'PASS_NATIVE_F_PRIVATE_RESUME'
+    pass_decision = ('PASS_TA_M5_MECHANICAL' if dedicated_m5_side else
+                     'PASS_TA_SF_MECHANICAL' if ta_sf else 'PASS_NATIVE_F_PRIVATE_RESUME')
     outcome = 'COMPLETE' if payload['decision'] == pass_decision else 'FAILED'
     _need(payload['recipe'] == window['recipe']
           and payload['test_data_used'] is False
           and (outcome != 'COMPLETE' or payload['final_state'] is not None),
           'TERMINAL_PAYLOAD')
-    result_path = (scope.TA_ROOT if ta_sf else output) / 'RESULT.json'
+    result_root = scope.TA_M5_ROOT if dedicated_m5_side else scope.TA_ROOT if ta_sf else output
+    result_path = result_root / 'RESULT.json'
     result = common._json(result_path, payload, counters, maximum)
     if ta_sf:
-        common._json(scope.TA_ROOT / 'TERMINAL.json', {
-            'schema_version': scope.TA_RESULT_SCHEMA + '_terminal',
+        common._json(result_root / 'TERMINAL.json', {
+            'schema_version': (scope.TA_M5_RESULT_SCHEMA if dedicated_m5_side else scope.TA_RESULT_SCHEMA) + '_terminal',
             'status': outcome, 'exit_code': 0 if outcome == 'COMPLETE' else 1,
             'result': result, 'recipe': window['recipe'], 'test_data_used': False,
             'no_relaunch_under_this_plan': True}, counters, maximum)
@@ -40,7 +42,8 @@ def _publish_terminal(*, output, progress_path, window, plan, invocation,
             optimizer_updates=counters['optimizer_updates'],
             parent_cursor=payload['parent_cursor'],
             parent_order_sha256=payload['parent_order_sha256'],
-            full_state=payload['final_state'], result=result, ta_sf=ta_sf),
+            full_state=payload['final_state'], result=result, ta_sf=ta_sf,
+            dedicated_m5_side=dedicated_m5_side),
         counters, maximum)
     progress = authority.build_research_progress(
         window=window, plan=plan, invocation=invocation,
@@ -56,7 +59,8 @@ def _publish_terminal(*, output, progress_path, window, plan, invocation,
 
 
 def run_private_window(*, policy_path: Path, policy_file_sha256: str,
-                       progress_path: Path, ta_sf: bool = False) -> dict:
+                       progress_path: Path, ta_sf: bool = False,
+                       dedicated_m5_side: bool = False) -> dict:
     from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_trainer_execution
     limits = require_guarded_cuda_trainer_execution()
     from gx1.contracts import entry_native_direction_research_campaign_v1 as authority
@@ -64,9 +68,11 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
         authority.require_native_direction_research_context(
             policy_path, policy_file_sha256, progress_path))
     from gx1.contracts import market_state_time_query_fold1_fit_v1 as full_scope
-    expected_scope = scope.TA_SCOPE if ta_sf else scope.SCOPE
-    expected_numerical = full_scope.ta_sf_numerical_recipe() if ta_sf else scope.numerical_recipe()
-    _need(type(ta_sf) is bool and recipe['run_scope'] == expected_scope
+    expected_scope = scope.TA_M5_SCOPE if dedicated_m5_side else scope.TA_SCOPE if ta_sf else scope.SCOPE
+    expected_numerical = (full_scope.ta_sf_numerical_recipe(dedicated_m5_side=dedicated_m5_side)
+                          if ta_sf else scope.numerical_recipe())
+    _need(type(ta_sf) is bool and type(dedicated_m5_side) is bool
+          and (not dedicated_m5_side or ta_sf) and recipe['run_scope'] == expected_scope
           and recipe['numerical_recipe'] == expected_numerical
           and (recipe.get('parent_selection') == scope.TA_PARENT_SELECTION if ta_sf
                else recipe['parent_rows'] == list(scope.PARENT_ROWS))
@@ -93,9 +99,10 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
     _need(torch.cuda.is_available(), 'CUDA_REQUIRED')
     device = torch.device('cuda', 0)
     numerical = recipe['numerical_recipe']
-    expected_model = model_contract(ta_only=ta_sf)['contract_sha256']
-    expected_loss = loss_contract(ta_only=ta_sf)['contract_sha256']
-    _need(numerical == (full_scope.ta_sf_numerical_recipe() if ta_sf else state.numerical_recipe())
+    expected_model = model_contract(ta_only=ta_sf, dedicated_m5_side=dedicated_m5_side)['contract_sha256']
+    expected_loss = loss_contract(ta_only=ta_sf, dedicated_m5_side=dedicated_m5_side)['contract_sha256']
+    _need(numerical == (full_scope.ta_sf_numerical_recipe(dedicated_m5_side=dedicated_m5_side)
+                          if ta_sf else state.numerical_recipe())
           and recipe['expected_model_contract_sha256'] == expected_model
           and recipe['expected_loss_contract_sha256'] == expected_loss
           and scope.BATCH_SIZE == previous.scope.BATCH_SIZE,
@@ -118,6 +125,8 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
     initial_sha = reference_sha = None
     parent_cursor = 0
     initial_baseline, steps, timings = [], [], {}
+    migration_reports, baseline_parity = [], []
+    legacy_model = legacy_rng = legacy_import = None
     source_unchanged = bit_exact = False
     error = None
 
@@ -147,7 +156,8 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
             from gx1.contracts import market_state_time_query_binding_v1 as state_targets
             receipts = input_owner.load_ta_input_receipts(current_source_owners={
                 path: ref['sha256'] for path, ref in recipe['source_owners'].items()})
-            view = input_owner._bind_ta_view(receipts, max_batch_rows=scope.BATCH_SIZE)
+            view = input_owner._bind_ta_view(receipts, max_batch_rows=scope.BATCH_SIZE,
+                                             dedicated_m5_side=dedicated_m5_side)
             state_bound = state_targets.load_bound_time_query_targets()
             raw_batches, batch_reports, provider, provider_plan, full_order = (
                 _load_ta_train_batches(receipts, view, np=np))
@@ -175,13 +185,17 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
                    for raw, rows, issue in raw_batches]
         del raw_batches
         torch.cuda.reset_peak_memory_stats(device)
+        if dedicated_m5_side:
+            legacy_model, legacy_rng, legacy_import = _restore_m5_legacy_origin(
+                origin=recipe['warmstart_origin'], receipts=receipts, order=order,
+                device=device, counters=counters, maximum=recipe['max_checkpoint_bytes'])
 
         def fresh():
             clock_guard()
             trainer._set_deterministic(numerical['seed'], device,
                                        numerical['precision_policy'])
             counters['model_constructions'] += 1
-            _need(counters['model_constructions'] <= scope.MAX_MODEL_CONSTRUCTIONS,
+            _need(counters['model_constructions'] <= recipe['max_model_constructions'],
                   'MODEL_CONSTRUCTIONS')
             base = views.build_native_direction_research_model(
                 view, prefix_normalization=receipts['fold1']['normal'],
@@ -201,6 +215,17 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
             counters['optimizer_constructions'] += 1
             _need({'state_model.query_head.weight', 'future_head.weight'}
                   <= set(binding['active_parameter_names']), 'BOTH_HEADS_ACTIVE')
+            if dedicated_m5_side:
+                _need({'state_model.m5_side_head.weight', 'future_m5_side_head.weight'}
+                      <= set(binding['active_parameter_names']), 'DEDICATED_M5_HEADS_ACTIVE')
+                migration_reports.append(full_state_owner.copy_legacy_weights_to_dedicated_m5(
+                    legacy_model, model, expected_legacy_model_sha256=
+                    recipe['warmstart_origin']['model_state_sha256']))
+                _need(not optimizer.state and all(module.training for module in model.modules()),
+                      'WARMSTART_FRESH_OPTIMIZER_AND_TRAIN_MODES')
+                trainer._restore_attended_session_rng_state(legacy_rng, device=device)
+                _need(tree_sha(trainer._attended_session_rng_state(device=device))
+                      == legacy_import['rng_state_sha256'], 'WARMSTART_RNG_PARITY')
             return model, optimizer, binding
 
         def evaluate(model, batch, *, baseline):
@@ -213,17 +238,22 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
             with trainer._training_mha_fastpath_context(model.backbone), \
                  trainer._training_autocast_context(), \
                  trainer._training_model_finite_check_context():
-                if baseline:
-                    with torch.no_grad():
-                        outcome = evaluate_fit_batch(
-                            model, features, state_bound, future_bound,
-                            rows, issue, fold_id=1, pass_index=scope.PASS_INDEX,
-                            seed=numerical['seed'], future_weight=numerical['future_weight'])
-                else:
-                    outcome = evaluate_fit_batch(
+                def call():
+                    return evaluate_fit_batch(
                         model, features, state_bound, future_bound,
                         rows, issue, fold_id=1, pass_index=scope.PASS_INDEX,
                         seed=numerical['seed'], future_weight=numerical['future_weight'])
+                if baseline:
+                    with torch.no_grad():
+                        if dedicated_m5_side:
+                            outcome, parity = _m5_baseline_parity(model, call,
+                                atol=recipe['m5_side_parity_atol'],
+                                rtol=recipe['m5_side_parity_rtol'])
+                            baseline_parity.append(parity)
+                        else:
+                            outcome = call()
+                else:
+                    outcome = call()
             torch.cuda.synchronize()
             counters['forward_returns'] += 1
             _need(outcome['state_count'] > 0 and outcome['future_count'] > 0
@@ -255,6 +285,13 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
                                        'future_head.weight',
                                        'state_model.backbone.entry_q_joint_in.weight')),
                   'ACTIVE_AND_FROZEN_GRADIENTS')
+            m5_gradients = {}
+            if dedicated_m5_side:
+                for name in ('state_model.m5_side_head.weight', 'future_m5_side_head.weight'):
+                    gradient = parameters[name].grad
+                    _need(gradient is not None and bool(torch.isfinite(gradient).all()),
+                          'DEDICATED_M5_FINITE_GRADIENT:' + name)
+                    m5_gradients[name] = bool(torch.count_nonzero(gradient))
             counters['optimizer_step_calls'] += 1
             _need(counters['optimizer_step_calls'] <= scope.MAX_PRIVATE_UPDATES,
                   'OPTIMIZER_BUDGET')
@@ -275,7 +312,8 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
                     'gradient_norm': float(norm),
                     'forward_seconds': forward_seconds,
                     'backward_seconds': backward_seconds,
-                    'optimizer_seconds': optimizer_seconds}
+                    'optimizer_seconds': optimizer_seconds,
+                    **({'dedicated_m5_gradient_nonzero': m5_gradients} if dedicated_m5_side else {})}
 
         for trajectory in ('reference', 'interrupted', 'resumed'):
             model, optimizer, binding = fresh()
@@ -345,16 +383,22 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
             torch.cuda.empty_cache()
         _need(counters['model_constructions']
               == counters['model_construction_returns']
-              == counters['optimizer_constructions'] == 3
+              == counters['optimizer_constructions'] == (4 if dedicated_m5_side else 3)
               and counters['forwards'] == counters['forward_returns'] == 6
               and counters['backwards'] == counters['backward_returns'] == 4
               and counters['optimizer_step_calls'] == counters['optimizer_updates'] == 4
               and counters['staged_state_load_calls']
                   == counters['staged_state_load_returns'] == 3
               and counters['resume_state_load_calls']
-                  == counters['resume_state_load_returns'] == 1
+                  == counters['resume_state_load_returns'] == (2 if dedicated_m5_side else 1)
               and parent_cursor == len(scope.PARENT_ROWS) and bit_exact,
               'EXACT_PRIVATE_WORK')
+        if dedicated_m5_side:
+            _need(len(migration_reports) == 3 and len(baseline_parity) == 2
+                  and len({r['model_state_sha256'] for r in migration_reports}) == 1
+                  and all(any(step['dedicated_m5_gradient_nonzero'][name] for step in steps)
+                          for name in ('state_model.m5_side_head.weight', 'future_m5_side_head.weight')),
+                  'DEDICATED_M5_MIGRATION_PARITY_AND_GRADIENTS')
         provider.validate_metadata(provider_plan)
         previous._bookend(recipe, plan, policy_path, policy_file_sha256)
         source_unchanged = True
@@ -370,8 +414,10 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
                 'reserved_bytes': int(torch.cuda.max_memory_reserved(device))}
     passed = bit_exact and source_unchanged and error is None
     payload = {
-        'schema_version': scope.TA_RESULT_SCHEMA if ta_sf else scope.RESULT_SCHEMA,
-        'decision': ('PASS_TA_SF_MECHANICAL' if ta_sf else 'PASS_NATIVE_F_PRIVATE_RESUME')
+        'schema_version': (scope.TA_M5_RESULT_SCHEMA if dedicated_m5_side else
+                           scope.TA_RESULT_SCHEMA if ta_sf else scope.RESULT_SCHEMA),
+        'decision': ('PASS_TA_M5_MECHANICAL' if dedicated_m5_side else
+                     'PASS_TA_SF_MECHANICAL' if ta_sf else 'PASS_NATIVE_F_PRIVATE_RESUME')
                     if passed else 'FAILED',
         'recipe': window['recipe'],
         'source_unchanged': source_unchanged,
@@ -405,15 +451,22 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
             parent_order_rows=full_scope.FIT_ROWS,
             parent_selection=scope.TA_PARENT_SELECTION,
             qualification_weights_for_main_fit=False)
+    if dedicated_m5_side:
+        payload.update(warmstart_origin=recipe['warmstart_origin'],
+            legacy_import=legacy_import, weight_migrations=migration_reports,
+            baseline_output_parity=baseline_parity, full_TRAIN_initialbaseline_qualified=False,
+            native_fit_authorized=False)
     published = _publish_terminal(
         output=output, progress_path=progress_path,
         window=window, plan=plan, invocation=invocation,
         payload=payload, counters=counters,
-        maximum=recipe['max_published_json_bytes'], ta_sf=ta_sf)
+        maximum=recipe['max_published_json_bytes'], ta_sf=ta_sf,
+        dedicated_m5_side=dedicated_m5_side)
     previous._bookend(recipe, plan, policy_path, policy_file_sha256)
     if not passed:
         raise RuntimeError('NATIVE_F_PRIVATE_WINDOW_FAILED:' + str(error))
-    return {'decision': 'PASS_TA_SF_MECHANICAL' if ta_sf else 'PASS_NATIVE_F_PRIVATE_RESUME',
+    return {'decision': ('PASS_TA_M5_MECHANICAL' if dedicated_m5_side else
+                         'PASS_TA_SF_MECHANICAL' if ta_sf else 'PASS_NATIVE_F_PRIVATE_RESUME'),
             **published, 'counts': counters}
 
 
@@ -440,3 +493,109 @@ def run_ta_sf_mechanical(*, policy_path: Path, policy_file_sha256: str,
                          progress_path: Path) -> dict:
     return run_private_window(policy_path=policy_path,
         policy_file_sha256=policy_file_sha256, progress_path=progress_path, ta_sf=True)
+
+
+def run_ta_m5_mechanical(*, policy_path: Path, policy_file_sha256: str,
+                         progress_path: Path) -> dict:
+    return run_private_window(policy_path=policy_path,
+        policy_file_sha256=policy_file_sha256, progress_path=progress_path,
+        ta_sf=True, dedicated_m5_side=True)
+
+
+def _restore_m5_legacy_origin(*, origin, receipts, order, device, counters, maximum):
+    """Strictly restore the original full checkpoint before any weight transfer."""
+    import copy
+    from gx1.contracts import entry_native_direction_feature_view_v1 as views
+    from gx1.contracts import market_state_time_query_fold1_fit_state_v1 as state
+    from gx1.contracts import market_state_time_query_fold1_fit_v1 as full
+    from gx1.contracts.market_state_time_query_native_F_model_v1 import NativeFutureDualModel
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+    from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+    from gx1.scripts.run_unified_exit_random_access_full_train_v1 import (
+        _dynamic_m5_technical_tree_sha256 as tree_sha,
+    )
+    old_recipe = scope._read(origin['original_recipe'], 'M5 warmstart original recipe')
+    old_view = scope._read(origin['original_candidate_view'], 'M5 warmstart original view')
+    numerical = full.ta_sf_numerical_recipe()
+    _need(old_recipe['numerical_recipe'] == numerical
+          and old_view.get('dedicated_m5_side', False) is False
+          and old_view['contract_sha256'] == old_recipe['expected_view_sha256']
+          and tree_sha(order) == origin['parent_order_sha256'], 'LEGACY_ORIGIN_BINDING')
+    trainer._set_deterministic(numerical['seed'], device, numerical['precision_policy'])
+    counters['model_constructions'] += 1
+    _need(counters['model_constructions'] == 1, 'LEGACY_FIRST_CONSTRUCTION')
+    base = views.build_native_direction_research_model(
+        old_view, prefix_normalization=receipts['fold1']['normal'],
+        constructor_metadata=receipts['constructor'], device=device,
+        unobserved_units_profile=receipts['fold1']['profile'])
+    model = NativeFutureDualModel(base)
+    counters['model_construction_returns'] += 1
+    model.train()
+    optimizer, _ = state.build_fold1_fit_optimizer(model, numerical_recipe=numerical)
+    counters['optimizer_constructions'] += 1
+    import torch
+    loaded = common._load_state(origin['original_checkpoint'], torch=torch,
+                                maximum=maximum, counters=counters)
+    restored = state.restore_fold1_fit_state(
+        loaded, model, optimizer, numerical_recipe=numerical,
+        feature_view_identity=model.state_model.feature_view_identity,
+        parent_order=order, source_commit=origin['source_commit'], device=device)
+    _need(restored == {key: origin[key] for key in
+                      ('cursor', 'optimizer_updates', 'skipped_batches')}
+          and loaded['model_state_sha256'] == origin['model_state_sha256'],
+          'LEGACY_COMPLETE_FINAL_STATE')
+    rng = copy.deepcopy(loaded['rng_state'])
+    evidence = {
+        'original_checkpoint': origin['original_checkpoint'],
+        'source_commit': origin['source_commit'],
+        'full_state_contract_sha256': loaded['contract_sha256'],
+        'model_state_sha256': loaded['model_state_sha256'],
+        'optimizer_state_sha256': loaded['optimizer_state_sha256'],
+        'rng_state_sha256': loaded['rng_state_sha256'],
+        'strict_full_restore': True, 'restored_progress': restored,
+        'optimizer_history_transferred_to_candidate': False,
+    }
+    del loaded, optimizer
+    return model, rng, evidence
+
+
+def _m5_baseline_parity(model, forward, *, atol, rtol):
+    """Compare the cloned M5 side with legacy shared outputs in one encoding."""
+    import torch
+    _need(model.state_model._dedicated_m5_side is True
+          and type(atol) is float and atol == 2e-6
+          and type(rtol) is float and rtol == 1e-6, 'M5_PARITY_BOUND')
+    saved = {'state': [], 'future': []}
+    def record(task):
+        return lambda module, inputs, output: saved[task].append(output.detach().clone())
+    handles = [
+        model.state_model.query_head.register_forward_hook(record('state')),
+        model.future_head.register_forward_hook(record('future')),
+    ]
+    try:
+        outcome = forward()
+    finally:
+        for handle in handles:
+            handle.remove()
+    report = {'atol': atol, 'rtol': rtol, 'extra_native_forwards': 0, 'tasks': {}}
+    for task in ('state', 'future'):
+        _need(len(saved[task]) == 1, 'M5_PARITY_ONE_HEAD_CALL:' + task)
+        shared = saved[task][0]
+        if task == 'state':
+            _need(shared.ndim == 4 and shared.shape[1] == 1, 'M5_PARITY_QUERY')
+            shared = shared[:, 0]
+        actual = outcome[task + '_activity_side_logits']
+        _need(actual.shape == shared.shape and actual.shape[1:] == (5, 2)
+              and bool(torch.isfinite(actual).all()) and bool(torch.isfinite(shared).all()),
+              'M5_PARITY_SHAPE')
+        unchanged = torch.equal(actual[..., 0], shared[..., 0]) and torch.equal(
+            actual[:, 1:, 1], shared[:, 1:, 1])
+        side_equal = torch.allclose(actual[:, 0, 1], shared[:, 0, 1],
+                                    atol=atol, rtol=rtol)
+        _need(unchanged and side_equal, 'M5_CLONED_OUTPUT_PARITY:' + task)
+        report['tasks'][task] = {
+            'unchanged_coordinates_bit_equal': unchanged,
+            'm5_side_within_fp32_tolerance': side_equal,
+            'm5_side_max_abs_error': float((actual[:, 0, 1] - shared[:, 0, 1]).abs().max()),
+        }
+    return outcome, report

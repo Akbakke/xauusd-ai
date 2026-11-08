@@ -49,7 +49,8 @@ def materialize(binding_path: Path) -> dict:
     from gx1.contracts import entry_native_direction_research_campaign_v1 as research
     from gx1.contracts import market_state_native_F_private_campaign_v1 as mechanical
     repo = fold1.CANONICAL_REPO
-    ta_mechanical = binding_path == mechanical.TA_ROOT / 'PREPARATION_EXECUTION_BINDING.json'
+    ta_m5 = binding_path == mechanical.TA_M5_ROOT / 'PREPARATION_EXECUTION_BINDING.json'
+    ta_mechanical = ta_m5 or binding_path == mechanical.TA_ROOT / 'PREPARATION_EXECUTION_BINDING.json'
     ta_sf = binding_path == fold1.TA_SF_RUNTIME_ROOT.parent / 'PREPARATION_EXECUTION_BINDING.json'
     ta_recovery = binding_path == fold1.TA_RECOVERY_RUNTIME_ROOT.parent / 'PREPARATION_EXECUTION_BINDING.json'
     runtime = (fold1.TA_RECOVERY_RUNTIME_ROOT if ta_recovery
@@ -63,8 +64,10 @@ def materialize(binding_path: Path) -> dict:
     windows_count = fold1.MAX_WINDOWS
     cursor_directory, output_directory = 'prefix-cursor', 'prefix-fit'
     if ta_mechanical:
-        runtime, root = mechanical.TA_RUNTIME_ROOT, mechanical.TA_ROOT
-        recipe_path, stage, run_scope = mechanical.TA_RECIPE_PATH, mechanical.TA_STAGE, mechanical.TA_SCOPE
+        runtime, root = ((mechanical.TA_M5_RUNTIME_ROOT, mechanical.TA_M5_ROOT) if ta_m5
+                         else (mechanical.TA_RUNTIME_ROOT, mechanical.TA_ROOT))
+        recipe_path, stage, run_scope = ((mechanical.TA_M5_RECIPE_PATH, mechanical.TA_M5_STAGE, mechanical.TA_M5_SCOPE)
+            if ta_m5 else (mechanical.TA_RECIPE_PATH, mechanical.TA_STAGE, mechanical.TA_SCOPE))
         authority, windows_count = research, 1
         cursor_directory, output_directory = 'research-cursor', 'private-research'
     _need(binding_path == root / 'PREPARATION_EXECUTION_BINDING.json', 'BINDING_PATH')
@@ -109,7 +112,8 @@ def materialize(binding_path: Path) -> dict:
           and recipe['runtime_root'] == str(runtime)
           and (ta_mechanical or recipe['max_windows'] == windows_count), 'RECIPE')
     if ta_mechanical:
-        mechanical.require_ta_sf_mechanical_gate(gate, recipe)
+        (mechanical.require_ta_m5_mechanical_gate if ta_m5
+         else mechanical.require_ta_sf_mechanical_gate)(gate, recipe)
     else:
         fold1.require_fit_gate(gate, recipe)
     boot = campaign.require_boot_identity(campaign.read_bound_json(

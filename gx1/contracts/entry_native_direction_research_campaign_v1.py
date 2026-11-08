@@ -33,6 +33,7 @@ DYNAMIC_STATE_PRIVATE_SCOPE = 'private_dynamic_mtf_state_b16_initial_resume_qual
 TIME_QUERY_PRIVATE_SCOPE = 'market_state_time_query_private_4step_v1'
 NATIVE_F_PRIVATE_SCOPE = 'market_state_native_F_private_4step_v1'
 TA_SF_MECHANICAL_SCOPE = 'market_state_ta_sf_mechanical_v1'
+TA_M5_MECHANICAL_SCOPE = 'market_state_ta_dedicated_m5_mechanical_v1'
 FAMILY_EXTRA_SOURCE_PATHS = ('gx1/contracts/entry_direction_family_intervention_v1.py',)
 FAMILY_PROTOCOL_PATH = '/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_ADDED_VALUE_PROTOCOL_20261030.json'
 DECIMAL_INPUT_AUDIT = {'path':'/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_BOUND_INPUT_ACTUAL_20261028_001.json',
@@ -181,6 +182,10 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
     if value.get('run_scope') == NATIVE_F_PRIVATE_SCOPE:
         from gx1.contracts.market_state_native_F_private_campaign_v1 import require_recipe
         return require_recipe(value, source_repo=source_repo,
+            source_commit=source_commit, verify_files=verify_files)
+    if value.get('run_scope') == TA_M5_MECHANICAL_SCOPE:
+        from gx1.contracts.market_state_native_F_private_campaign_v1 import require_ta_m5_mechanical_recipe
+        return require_ta_m5_mechanical_recipe(value, source_repo=source_repo,
             source_commit=source_commit, verify_files=verify_files)
     if value.get('run_scope') == TA_SF_MECHANICAL_SCOPE:
         from gx1.contracts.market_state_native_F_private_campaign_v1 import require_ta_sf_mechanical_recipe
@@ -554,7 +559,7 @@ def guarded_research_power_limit(recipe):
     """Return the user-approved cap after the caller validates the bound recipe."""
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix
     _require(isinstance(recipe, Mapping), 'POWER_RECIPE')
-    if recipe.get('run_scope') in (NATIVE_F_PRIVATE_SCOPE, TA_SF_MECHANICAL_SCOPE):
+    if recipe.get('run_scope') in (NATIVE_F_PRIVATE_SCOPE, TA_SF_MECHANICAL_SCOPE, TA_M5_MECHANICAL_SCOPE):
         _require(recipe.get('fold_id') == 1
             and recipe.get('training_enabled') is True
             and recipe.get('test_data_used') is False
@@ -666,7 +671,7 @@ def require_research_plan(value: Any, *, verify_files: bool = True) -> dict[str,
         from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
         if policy_recipe['run_scope'] in (DYNAMIC_STATE_PRIVATE_SCOPE, december.PRIVATE_SCOPE,
                                           october.roles.PRIVATE_SCOPE, TIME_QUERY_PRIVATE_SCOPE,
-                                          NATIVE_F_PRIVATE_SCOPE, TA_SF_MECHANICAL_SCOPE):
+                                          NATIVE_F_PRIVATE_SCOPE, TA_SF_MECHANICAL_SCOPE, TA_M5_MECHANICAL_SCOPE):
             _require('family_same_boot' not in result, 'STATE_FRESH_BOOT_REQUIRED')
             expected_policy['physical_power_limit_w'] = 250
     _require(campaign.canonical_sha256(result['policy']) == campaign.canonical_sha256(expected_policy)
@@ -743,6 +748,9 @@ def require_native_direction_research_readiness(repo: Path, *, window_path: Path
     if recipe['run_scope'] == NATIVE_F_PRIVATE_SCOPE:
         from gx1.contracts.market_state_native_F_private_campaign_v1 import require_gate
         require_gate(gate, recipe)
+    if recipe['run_scope'] == TA_M5_MECHANICAL_SCOPE:
+        from gx1.contracts.market_state_native_F_private_campaign_v1 import require_ta_m5_mechanical_gate
+        require_ta_m5_mechanical_gate(gate, recipe)
     if recipe['run_scope'] == TA_SF_MECHANICAL_SCOPE:
         from gx1.contracts.market_state_native_F_private_campaign_v1 import require_ta_sf_mechanical_gate
         require_ta_sf_mechanical_gate(gate, recipe)
@@ -807,7 +815,8 @@ def build_research_cursor(*, recipe_ref, outcome, optimizer_updates, parent_curs
 def require_research_cursor(value, *, expected_recipe, verify_files=True, batch_size=2) -> dict[str, Any]:
     if isinstance(value, Mapping) and value.get('schema_version') in (
             'gx1_market_state_native_F_private_cursor_v1',
-            'gx1_market_state_ta_sf_mechanical_cursor_v1'):
+            'gx1_market_state_ta_sf_mechanical_cursor_v1',
+            'gx1_market_state_ta_m5_mechanical_cursor_v1'):
         from gx1.contracts.market_state_native_F_private_campaign_v1 import require_cursor
         return require_cursor(value, expected_recipe=expected_recipe,
             verify_files=verify_files, batch_size=batch_size)

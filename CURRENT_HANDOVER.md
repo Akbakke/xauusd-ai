@@ -15,7 +15,21 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_DIRECTION_DEDICATED_M5_IMPLEMENTED_NATIVE_QUALIFICATION_PENDING.
+Policystatus: TA_DIRECTION_DEDICATED_M5_MECHANICAL_ADMITTED_AWAITING_FRESH_BOOT.
+
+Én ny, avgrenset M5-mekanikk er innrømmet:
+[engangsrecipe](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DEDICATED_M5_MECHANICAL_20261109_001/RECIPE.json).
+Faktisk metadatapreflight og50 fokuserte tester består. Den skal strict-restaurere
+opprinnelig FINAL med full AdamW/RNG-validering, kopiere vekter til tre nye
+kandidatbaner og bruke ny tom AdamW. Fire modell-/optimizerkonstruksjoner,
+seks forwards og fire fysiske updates på de første32 modne TRAIN-radene.
+M5-output sammenlignes ved fast FP32-toleranse; uendrede koordinater bitlikt.
+To steg mot ett+gjenopptatt ett må gi identisk full tilstand.
+
+Kjøringen er ikke startet. Ny hashbundet plan materialiseres før maskinvid
+idle-kontroll og påkrevd fersk fysisk Windows-boot. Eksisterende vakter og
+250W beholdes. Global training_enabled=True gjelder kun denne engangskontrollen;
+full predictor-fit, GC, TEST, Entry/Exit og handel er fortsatt stengt.
 
 Den fulle [koblingskontrollen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_SHARED_OBJECTIVE_20261108_001/RESULT.json)
 er COMPLETE og konsumert. Seks konvergerte readout-fits på samme frosne
@@ -442,14 +456,14 @@ før en ny avgrenset retningsfit. Fullpopulasjonskontrollen er ferdig og skal
 ikke gjentas. Avklar primær retningshorisont før en eventuell målendring.
 Gjenbruk ferdige input-/representasjonscacher og checkpoints. M5-tapet er
 målt, men full årsaksforklaring og kvalifisert senere forbedring mangler.
-Målet er aktivt; opt-in kilde er implementert, faktisk kvalifikasjon og ny fit er ikke innrømmet.
+Målet er aktivt; opt-in kilde er implementert og én4-stegs faktisk kvalifikasjon er innrømmet. Ny full fit er stengt.
 Brukerens spørsmål om 30 epoker og fem år er fortsatt åpne hypoteser.
 Denne fitten dekker omtrent mai–september2024, senere score oktober–desember2024.
 Ett pass og én fold er ingen generell dom over lengre læring eller historikk.
 
 Den tidligere [GC-registerplanen](configs/research/MARKET_STATE_GC_SIDE_MAX_REGISTRY_20261108_001.json)
 forblir bevart, men er utsatt og uklamet etter brukerens nye prioritering.
-`training_enabled=false`; koblingskontrollen og alle tidligere
+`training_enabled=true` gjelder kun den nye M5-mekanikken; koblingskontrollen og alle tidligere
 retningsdiagnoser, input-kontrollen, den konvekse M5-planen, cacheplanen
 og native fitplanene er konsumert.
 
