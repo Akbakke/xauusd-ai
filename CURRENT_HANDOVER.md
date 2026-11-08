@@ -14,8 +14,8 @@ M5 er prognosetakten; kausalt lukkede M15/H1/H4/D1 og GC/indikatorhistorikk er
 input. Alle fem TF har egne framtidige mål. Entry, Exit, ordre, broker, handel,
 spending og forseglet TEST er stengt.
 
-Policystatus: `NATIVE_F_SIDE_NORMALIZED_ZERO_STEP_ADMITTED`.
-`training_enabled=false`; én ny nullstegsplan er admittert, ingen tung jobb kjører. Ingen tidligere
+Policystatus: `NATIVE_F_SIDE_NORMALIZED_ZERO_STEP_COMPLETE_NO_FIT`.
+`training_enabled=false`; ny nullstegsplan er konsumert, ingen tung jobb kjører. Ingen tidligere
 claimet, fullført eller feilet plan relanseres. Juni 2026 er brukt utviklings-VAL;
 forseglet periode scores bare etter forward-journalregelen i GX1_RULES.md.
 
@@ -87,17 +87,20 @@ forseglet periode scores bare etter forward-journalregelen i GX1_RULES.md.
   S/F-ruten bruker den for begge hoder. Den gamle v2-filen er byteidentisk
   med kvalifisert featurevisning.
   Neste kandidats F-vekt er bundet til 1,0 mot S; ingen scorevalgt vektsøk.
-  11 fokuserte tester består. Dette er **bare kilde og syntetisk numerikk**:
-  det tidligere fysiske nullsteget brukte annen vekt/tap og kvalifiserer ikke
-  den nye kandidaten. Policyens
-  `market_state_native_F_side_normalized_design_20261108_001` binder kilder,
-  dekning, kontrakt og fortsatt lukket treningsport.
+  11 fokuserte tester består. Ny fysisk nullstegskjøring på to ekte
+  TRAIN-rader besto: S-/F-hode og backbone fikk gradient; ukjent S-side og
+  FLATT F-side fikk null direkte sidegradient. Vektene var bitlike før/etter;
+  én forward/backward, null optimizer, null TEST. 87,6 s og 5,35 GiB topp-RSS
+  under 12 GiB kapsel. [Ny nullstegs-PASS](/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_CPU_ZERO_STEP_20261108_002/RESULT.json)
+  SHA `7302d760741ae0329bd936a3bc0461dfedc2ada3a337fb23700bb2be7207b84b`.
+  Dette beviser teknisk kobling, ikke læring eller retning. Policyens
+  `market_state_native_F_side_normalized_design_20261108_001` binder designet.
 
 ## Ikke gjort, hindring og neste steg
 
 Native S/F har **ingen** optimizer-/resume-kvalifikasjon, full kronologisk fit
 eller senere femfolds OOF. F-vekt og retningsnormalisering er bundet,
-men fysisk ny initial og optimizer/resume er ikke kvalifisert. GC-merverdi i den native tidssekvensmodellen er ikke målt. Verken framtidig
+men optimizer/resume er ikke kvalifisert. GC-merverdi i den native tidssekvensmodellen er ikke målt. Verken framtidig
 markedstilstand, senere Entry-beslutningsverdi eller økonomisk edge er påvist.
 Den enkle tabellmodellens negative retning er ikke en generell dom over GC,
 indikatorene eller native modell.
@@ -105,8 +108,7 @@ indikatorene eller native modell.
 **Neste ene hypotese:** Den native sekvenshistorikken kan fange tidsforløp og
 GC × prisstruktur som tabellens siste snapshot ikke gjorde. Gjenbruk nøyaktig
 samme kvalifiserte inputs/targets/visning og den bundne
-side-normaliserte S/F-tapsmodusen. Behold samme proper score. Kvalifiser
-fersk fysisk nullstegs-initial og minimal faktisk optimizer/resume
+side-normaliserte S/F-tapsmodusen. Behold samme proper score. Kvalifiser minimal faktisk optimizer/resume
 på denne eksakte modellen; deretter bare én egen admittert, capped kronologisk
 TRAIN-fit/OOF med forhåndsbundet prior og parret GC-ablasjon. Mål aktivitet og
 betinget side separat på alle fem TF og UTC-uker, særlig M5 framtidig side.

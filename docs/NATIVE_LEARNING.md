@@ -127,7 +127,7 @@ På senere TRAIN ved faste native endepunkter hadde bare 33–44 % av S-radene
 og 37–41 % av F-radene entydig side. Den gamle delingen på alle informative
 rader fortynnet sideleddet tilsvarende. Dette er en mål-/tapshypotese, ikke
 bevist årsak til tidligere svak retning; 0,25 i nullsteg var kun en teknisk
-vitnevekt. Ny fysisk initial og optimizer/resume-kvalifikasjon kreves før fit.
+vitnevekt. Fysisk nullstegs-initial er bestått; optimizer/resume-kvalifikasjon kreves før fit.
 Ingen endring i mål, masker, features eller modellarkitektur følger herav.
 
 Dagens S-treningsspørring velger `k` i `1..native_k` for hver TF. Den lagrede F-fasiten finnes bare ved `native_k`. En egen F-output må derfor få ett fast native-spørsmål per TF og rad fra **samme** kausale enkoder som S; F kan ikke arve det tilfeldige S-spørsmålet eller kreve en ny full enkoderpassering. S-hode, spørringsplan og skår forblir egne, og F evalueres på nøyaktig egne native endepunkt og kronologiske rader.
