@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-08T02:32:28.913738+00:00",
-  "status": "SMC_TA_BOS_EMA_NO_DIRECTION_GAIN_TRAINING_CLOSED",
+  "observed_utc": "2026-11-08T12:01:32.104946+00:00",
+  "status": "TA_INPUT_LOSS_REVIEW_COMPLETE_CORRECTED_NATIVE_FIT_UNQUALIFIED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Selected 0.5 ATR activity and conservative local side use the corrected five-TF TRAIN mask. The one mature fold1 native time-query v1 fit and later chronological TRAIN OOF lost M5 certified-side Brier to the frozen prior in all 14 weeks; a paired frozen diagnostic found upward miscalibration and the free-three-logit unknown-side objective defect. Factorized v2 model/loss and stable raw-logit scorer now pass source/synthetic checks, and read-only fold1 receipt/v2 view metadata binding passes. Physical v2 zero-step passed direct activity/side gradient mechanics. The exact S/F B16 two-batch private optimizer/resume probe completed four guarded physical updates with bit-exact resume and zero exit codes. It did not fit a predictor or establish GC direction value. All plans are consumed; training_enabled=false. Full fit, generalization, Entry decision value, economics, TEST, Entry, Exit, broker, trading and spending remain closed.",
-  "next_action": "Current SMC BOS plus EMA20 fixed 60-minute TRAIN reference completed once and failed its prebound directional gate: 4876 mature events, pooled incremental signed H1-ATR displacement -0.006385, 95% UTC-week CI [-0.022610,+0.010314], only 1/5 folds positive; independently checked. Do not rerun, flip sign, adjust horizon or sweep thresholds against these outcomes. GC registry stays deferred. Next useful work is source/normalization/model-consumption audit of existing SMC and technical inputs for a concrete defect; a genuinely new price-behavior hypothesis needs its own bound plan. No native predictor fit, TEST, Entry or economic edge; training_enabled=false.",
+  "next_action": "TA input/loss review complete with scoped reuse of all 253 MTF fields on five TF; no new input or corrected-loss defect found. Last qualified native profile still includes GC; GC registry remains deferred. A corrected S/F learning measurement needs its own explicit input profile and bound fit/score driver: the consumed old fullfit route uses v1, while S/F has only private four-step mechanics. Reuse mature TRAIN normalization and completed controls within unchanged scope. This review admits no new fit, TEST, Entry or economics; training_enabled=false.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1624,7 +1624,7 @@
   },
   "current_work": {
     "operator_request": "06.11: Predict and calibrate dynamic market state first. Entry location/Entry-Q follows later; M5 is forecast cadence. No assumption of extensive prior training.",
-    "current_activity": "Factorized v2 model/loss/view/batch plus stable raw-logit scorer are source/synthetically tested. A read-only historical fold1 receipt and explicit 17-ref v2 view metadata binding passed on clean committed head 24823917; no feature payload, model forward, optimizer, refit, TEST or trade. One v1 fold1 negative side OOF and frozen diagnostic remain measured model evidence, not v2 results.",
+    "current_activity": "Completed current-source and hash-verified receipt review of 253 TA MTF fields across five TF, canonical family routing, scoped as-of/gather/postnorm evidence, corrected S/F loss and actual private optimizer/resume. Zero new model executions or predictive measurements.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1650,7 +1650,7 @@
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
-    "gc_goal_status": "ACTIVE_GC_SENSITIVITY_COMPLETE_NO_EDGE_QUALIFIED",
+    "gc_goal_status": "GC_REGISTRY_DEFERRED_LAST_QUALIFIED_NATIVE_PROFILE_STILL_INCLUDES_GC",
     "existing_indicator_surface_changed": false,
     "training_started": true,
     "latest_terminal_role": "Preserved prior process terminal: capped CPU native endpoint-loss arithmetic on isolated TRAIN, zero native model constructions/forwards/updates. Current source-clock preparation is separately bound by xau_input_physical_clock_goal_20261105.preparation_terminal; it is not a process terminal.",
@@ -1677,7 +1677,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "V2 still lacks a clean-commit bound physical initial baseline, genuine feature/normalization and gradient/resume qualification, new checkpoint identity, raw-grid OOF driver and exact new fit admission. Old v1 plans and checkpoints are consumed/incompatible. GC M5 predictive added value and market-state/Entry edge remain UNKNOWN. Training stays disabled.",
+    "current_blocker": "Corrected S/F lacks a bound full predictor-fit/score driver and chronological TRAIN/OOF learning measurement. Private initial/gradient/optimizer/resume qualifications are complete within their scopes and should be reused. Last qualified native profile still includes GC; a TA-only native claim requires an explicit different input identity. No new TA or corrected-loss defect was found in this review.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -17329,7 +17329,7 @@
         "path": "/home/andre2/src/GX1_CURRENT/docs/ORIGINAL_PROJECT_GOAL.md",
         "sha256": "da21eeb1ec9e712e3d5372140a8165e1d771f12df7ff8efdefd341bdf849454c"
       },
-      "current_phase": "Offline five-timeframe market-state target/input qualification. One native fold1 time-query fit and later TRAIN OOF completed with negative M5 certified direction; frozen paired diagnostic complete. v1 side-unknown loss gradient mismatch blocks new fit. Entry, Exit, TEST and trades remain later decisions.",
+      "current_phase": "Offline five-TF market-state research; TA input/loss reuse review complete, corrected S/F private mechanics qualified, corrected native TRAIN-fit and later OOF unmeasured. GC registry deferred; Entry, Exit, TEST and trading remain closed.",
       "entry_decision_cadence_seconds": 300,
       "future_outcome_queries": "Source-supported time/size domain for future local-state validity remains to be bound for each timeframe. Existing terminal/first-event/session-day targets are scoped historical evidence, not a ready dynamic-state contract.",
       "latest_operator_clarification_date": "2026-11-06",
@@ -24310,7 +24310,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-08T09:29:00.418732+00:00",
+  "updated_utc": "2026-11-08T12:01:32.104946+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -65095,5 +65095,46 @@
       "optimizer_steps": 0,
       "test_data_used": false
     }
+  },
+  "market_state_ta_input_loss_reuse_review_20261108_001": {
+    "status": "COMPLETE_READ_ONLY_METADATA_AND_SOURCE_REVIEW",
+    "decision": "NO_NEW_TA_OR_SF_LOSS_DEFECT_FOUND_WITHIN_REVIEW_SCOPE",
+    "scope": "Light current-source and small JSON receipt verification only; zero dataset/checkpoint scans, model constructions, forwards or updates.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_INPUT_LOSS_REUSE_REVIEW_20261108_001/REVIEW_20261108T120132104946Z.json",
+      "sha256": "94ede20b1fe75028789dc01218a0837cce68babb9a6ab66d3b8903151dd4b006"
+    },
+    "source_head": "f3b0feea2c1a814f6a6879896e462f57ce5105b0",
+    "verified_receipts": 17,
+    "covered_mtf_fields_per_tf": 253,
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ],
+    "coverage_groups": [
+      158,
+      31,
+      1,
+      63
+    ],
+    "active_native_profile": "full_xau_gc_mtf_entry_research_v1",
+    "gc_input_disabled": false,
+    "corrected_native_predictor_fit_complete": false,
+    "corrected_native_five_fold_OOF_complete": false,
+    "execution_authorized": false,
+    "training_enabled": false,
+    "test_data_used": false,
+    "limits": [
+      "Review reuses small JSON receipts and unchanged current owners; no fresh array/checkpoint payload hashes or numeric rescan.",
+      "253-field union combines declared populations; 31 and 63 field groups cover May-Dec2024 TRAIN, not full2025.",
+      "As-of census covers36172 parents; eight-row gather witness covers four named indicator fields.",
+      "Historical postnorm covers8x5x253 values in its original normalization binding, not every later fold statistic.",
+      "Family routing and gradient contact do not prove each field contributes predictive value.",
+      "GC register work is deferred, but last qualified native S/F profile still includes GC.",
+      "Four-step technical mechanics are not TRAIN learning or later OOF; old v1 fit plans remain consumed."
+    ]
   }
 }
