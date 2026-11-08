@@ -83,8 +83,9 @@ forseglet periode scores bare etter forward-journalregelen i GX1_RULES.md.
 - **Ny retningsvekt, kun kilde:** På de fem senere TRAIN-foldenes faste
   endepunkter hadde S entydig side i 33–44 % og F i 37–41 % av informative
   rader. Det gamle v2-tapet delte sidefeilen på alle informative rader. En
-  valgfri side-normalisert tapsmodus deler nå på faktisk sidekjente rader;
-  S/F-ruten bruker den for begge hoder. Den gamle standardmodusen er bevart.
+  separat side-normalisert tapsmodul deler nå på faktisk sidekjente rader;
+  S/F-ruten bruker den for begge hoder. Den gamle v2-filen er byteidentisk
+  med kvalifisert featurevisning.
   Neste kandidats F-vekt er bundet til 1,0 mot S; ingen scorevalgt vektsøk.
   11 fokuserte tester består. Dette er **bare kilde og syntetisk numerikk**:
   det tidligere fysiske nullsteget brukte annen vekt/tap og kvalifiserer ikke

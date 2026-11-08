@@ -32,6 +32,7 @@ SOURCE_PATHS = (
     'gx1/contracts/market_state_time_query_native_F_model_v1.py',
     'gx1/contracts/market_state_time_query_native_F_objective_v1.py',
     'gx1/contracts/market_state_time_query_loss_v2.py',
+    'gx1/contracts/market_state_time_query_side_normalized_loss_v1.py',
     'gx1/contracts/market_state_time_query_native_F_batch_v1.py',
     'gx1/contracts/gx1_capped_execution_v1.py',
     'scripts/gx1_capped_run.sh',

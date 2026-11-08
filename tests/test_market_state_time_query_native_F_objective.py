@@ -3,7 +3,8 @@ import torch
 
 from gx1.contracts import market_state_five_endpoint_target_binding_v1 as state
 from gx1.contracts import market_state_time_query_native_F_objective_v1 as objective
-from gx1.contracts import market_state_time_query_loss_v2 as state_loss
+from gx1.contracts import market_state_time_query_loss_v2 as legacy_loss
+from gx1.contracts import market_state_time_query_side_normalized_loss_v1 as state_loss
 from gx1.contracts.market_state_future_displacement_candidate_v1 import BoundFutureDisplacement
 from gx1.contracts.market_state_time_query_target_v1 import NATIVE_K
 
@@ -63,13 +64,13 @@ def test_side_normalization_uses_only_known_side_rows_and_preserves_old_loss():
     mature = torch.ones((4, 5), dtype=torch.bool)
     query = torch.tensor([NATIVE_K] * 4, dtype=torch.int64)
     raw = torch.zeros((4, 5, 2), dtype=torch.float32, requires_grad=True)
-    old = state_loss.allowed_set_loss(raw, allowed, eligible, mature, query)
+    old = legacy_loss.allowed_set_loss(raw, allowed, eligible, mature, query)
     balanced = state_loss.allowed_set_loss(
-        raw, allowed, eligible, mature, query, normalize_known_side=True)
+        raw, allowed, eligible, mature, query)
     assert torch.isclose(old['loss'], torch.tensor(1.5 * np.log(2) / 5, dtype=torch.float32))
     assert torch.isclose(balanced['loss'], torch.tensor(2 * np.log(2) / 5, dtype=torch.float32))
-    assert balanced['contract_sha256'] == state_loss.side_normalized_time_query_loss_contract()['contract_sha256']
-    assert old['contract_sha256'] == state_loss.factorized_time_query_loss_contract()['contract_sha256']
+    assert balanced['contract_sha256'] == state_loss.contract()['contract_sha256']
+    assert old['contract_sha256'] == legacy_loss.factorized_time_query_loss_contract()['contract_sha256']
     balanced['loss'].backward()
     assert raw.grad[1, 0, 1] == raw.grad[2, 0, 1] == 0
     assert torch.isclose(raw.grad[0, 0, 1], torch.tensor(0.05))

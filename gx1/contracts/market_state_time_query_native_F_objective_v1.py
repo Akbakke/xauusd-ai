@@ -12,7 +12,7 @@ import numpy as np
 import torch
 
 from gx1.contracts import market_state_five_endpoint_prior_v1 as prior
-from gx1.contracts import market_state_time_query_loss_v2 as state_loss
+from gx1.contracts import market_state_time_query_side_normalized_loss_v1 as state_loss
 from gx1.contracts import market_state_time_query_scorer_v2 as scorer
 from gx1.contracts.market_state_future_displacement_candidate_v1 import (
     BoundFutureDisplacement, contract as future_contract,
@@ -28,7 +28,7 @@ def contract() -> dict:
     value = {
         'schema_version': 'gx1_market_state_native_F_objective_candidate_v1',
         'role': 'research_only_no_fit_or_trade_authority',
-        'S_loss_contract_sha256': state_loss.side_normalized_time_query_loss_contract()['contract_sha256'],
+        'S_loss_contract_sha256': state_loss.contract()['contract_sha256'],
         'F_target_contract_sha256': future_contract()['contract_sha256'],
         'dual_model_contract_sha256': model_contract()['contract_sha256'],
         'F_score_contract_sha256': scorer.factorized_time_query_scorer_contract()['contract_sha256'],
@@ -69,11 +69,11 @@ def combined_loss(*, state_raw: torch.Tensor, future_raw: torch.Tensor,
     s = state_loss.allowed_set_loss(
         state_raw, tensor(state_truth['allowed'], 'uint8'),
         tensor(state_truth['eligible'], 'bool'),
-        tensor(state_truth['mature'], 'bool'), state_query_k, normalize_known_side=True)
+        tensor(state_truth['mature'], 'bool'), state_query_k)
     f = state_loss.allowed_set_loss(
         future_raw, tensor(future_truth['allowed'], 'uint8'),
         tensor(future_truth['eligible'], 'bool'),
-        tensor(future_truth['mature'], 'bool'), native, normalize_known_side=True)
+        tensor(future_truth['mature'], 'bool'), native)
     total = s['loss'] + future_weight * f['loss']
     if not bool(torch.isfinite(total)):
         raise ValueError('NATIVE_F_LOSS_NONFINITE')

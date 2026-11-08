@@ -40,22 +40,6 @@ def factorized_time_query_loss_contract() -> dict:
     return {**value, "contract_sha256": hashlib.sha256(raw).hexdigest()}
 
 
-def side_normalized_time_query_loss_contract() -> dict:
-    """Equal activity and conditional-side terms on their own observed support."""
-    value = {
-        "schema_version": "gx1_market_state_time_query_side_normalized_loss_v1",
-        "role": "research_only_no_entry_exit_or_trade_authority",
-        "base_loss_contract_sha256": factorized_time_query_loss_contract()["contract_sha256"],
-        "loss": "mean_per_TF_activity_BCE_over_informative_plus_conditional_side_BCE_over_known_side_divided_by_five",
-        "side_gradient": "zero_direct_side_logit_gradient_for_bits_2_5_7_or_immature",
-        "empty_side_support": "zero_side_term_no_imputed_direction",
-        "future_labels_as_model_forward_inputs": False,
-    }
-    raw = json.dumps(value, sort_keys=True, separators=(",", ":"),
-                     allow_nan=False).encode()
-    return {**value, "contract_sha256": hashlib.sha256(raw).hexdigest()}
-
-
 def _torch_inputs(raw_logits: torch.Tensor, allowed: torch.Tensor,
                   eligible: torch.Tensor, mature: torch.Tensor,
                   query_k: torch.Tensor) -> None:
@@ -85,10 +69,8 @@ def _torch_inputs(raw_logits: torch.Tensor, allowed: torch.Tensor,
 
 def allowed_set_loss(raw_logits: torch.Tensor, allowed: torch.Tensor,
                      eligible: torch.Tensor, mature: torch.Tensor,
-                     query_k: torch.Tensor, *, normalize_known_side: bool = False) -> dict:
-    """Equal TF weighting; optional side normalization uses only certified sides."""
-    if type(normalize_known_side) is not bool:
-        raise ValueError("TIME_QUERY_SIDE_NORMALIZATION")
+                     query_k: torch.Tensor) -> dict:
+    """Equal TF weighting with activity and certified-side masks kept separate."""
     _torch_inputs(raw_logits, allowed, eligible, mature, query_k)
     informative = eligible & mature & (allowed != 7)
     side_known = informative & ((allowed == 1) | (allowed == 4))
@@ -105,19 +87,10 @@ def allowed_set_loss(raw_logits: torch.Tensor, allowed: torch.Tensor,
             raw_logits[..., 0], active_truth, reduction="none")
         side_nll = F.binary_cross_entropy_with_logits(
             raw_logits[..., 1], up_truth, reduction="none")
-        activity_cell = torch.where(informative, activity_nll, torch.zeros_like(activity_nll))
-        side_cell = torch.where(side_known, side_nll, torch.zeros_like(side_nll))
-        if normalize_known_side:
-            terms = []
-            for j, tf in enumerate(TIMEFRAMES):
-                side_count = int(side_known[:, j].sum().item())
-                activity_term = activity_cell[:, j].sum() / per_tf[tf] if per_tf[tf] else zero
-                side_term = side_cell[:, j].sum() / side_count if side_count else zero
-                terms.append(activity_term + side_term)
-        else:
-            per_cell = activity_cell + side_cell
-            terms = [(per_cell[:, j].sum() / per_tf[tf] if per_tf[tf] else zero)
-                     for j, tf in enumerate(TIMEFRAMES)]
+        per_cell = (torch.where(informative, activity_nll, torch.zeros_like(activity_nll))
+                    + torch.where(side_known, side_nll, torch.zeros_like(side_nll)))
+        terms = [(per_cell[:, j].sum() / per_tf[tf] if per_tf[tf] else zero)
+                 for j, tf in enumerate(TIMEFRAMES)]
     loss = sum(terms, zero) / len(TIMEFRAMES)
     if not bool(torch.isfinite(loss)):
         raise ValueError("TIME_QUERY_FACTORIZED_NONFINITE_LOSS")
@@ -129,6 +102,5 @@ def allowed_set_loss(raw_logits: torch.Tensor, allowed: torch.Tensor,
         "informative_mask": informative,
         "side_known_mask": side_known,
         "skip_update": count == 0,
-        "contract_sha256": (side_normalized_time_query_loss_contract()
-                            if normalize_known_side else factorized_time_query_loss_contract())["contract_sha256"],
+        "contract_sha256": factorized_time_query_loss_contract()["contract_sha256"],
     }
