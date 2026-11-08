@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-08T00:30:54.568908+00:00",
-  "status": "NATIVE_F_CPU_ZERO_STEP_ADMITTED_NO_FIT",
+  "observed_utc": "2026-11-08T00:34:35.561072+00:00",
+  "status": "NATIVE_F_CPU_ZERO_STEP_COMPLETE_NO_FIT",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Selected 0.5 ATR activity and conservative local side use the corrected five-TF TRAIN mask. The one mature fold1 native time-query v1 fit and later chronological TRAIN OOF lost M5 certified-side Brier to the frozen prior in all 14 weeks; a paired frozen diagnostic found upward miscalibration and the free-three-logit unknown-side objective defect. Factorized v2 model/loss and stable raw-logit scorer now pass source/synthetic checks, and read-only fold1 receipt/v2 view metadata binding passes. Physical v2 zero-step on two TRAIN rows passed direct activity/side gradient mechanics; target-role clarification, genuine optimizer/resume, fit, generalization, Entry decision value and economics are unqualified. training_enabled=false; consumed plans do not authorize new runs. TEST, Entry, Exit, broker, trading and spending remain closed.",
-  "next_action": "Run one source-bound CPU producer capped two-row TRAIN S/F physical zero-step witness; exactly one forward/backward, no optimizer, fit, TEST, Entry, Exit, broker or trading. Then consume gate and report exact result. GC large-buy/absorption value and native chronological direction value remain unproven; no new coarse GC sign-table rounds.",
+  "next_action": "Real-feature S/F two-row zero-step passed and the one-use plan is consumed. Define one prebound S/F loss weight and exact chronological TRAIN fit/OOF plan using the existing target/view source, then separately test native GC added value including size and price response or absorption on matched later-TRAIN rows. No broad GC sign-table repetition. training_enabled=false; no fit until separate exact admission. TEST/Entry/Exit/broker/trading/spending closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -64379,7 +64379,7 @@
     "test_data_used": false
   },
   "market_state_native_F_cpu_zero_step_20261108_001": {
-    "status": "ADMITTED",
+    "status": "CONSUMED_COMPLETE_REAL_FEATURE_S_F_NO_UPDATE",
     "scope": "One physical real-feature TRAIN-only fold1 S/F initial forward/backward on two prebound rows; no fit or GC value claim.",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_NATIVE_F_CPU_ZERO_STEP_20261108_001.json",
@@ -64391,12 +64391,12 @@
     },
     "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_CPU_ZERO_STEP_20261108_001",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "model_forwards_authorized": 1,
-    "backward_calls_authorized": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "model_forwards_authorized": 0,
+    "backward_calls_authorized": 0,
     "optimizer_steps_authorized": 0,
     "training_authorized": false,
     "test_authorized": false,
@@ -64408,6 +64408,37 @@
     "swap_max": "512M",
     "wall_seconds": 1800,
     "standing_authorization_source": "GX1_RULES_local_zero_spend_read_only_research",
-    "prepared_source_head": "e22ac9f6a317412d1688c5fbf6909a6d8d239697"
+    "prepared_source_head": "e22ac9f6a317412d1688c5fbf6909a6d8d239697",
+    "decision": "PASS_REAL_FEATURE_S_F_FORWARD_BACKWARD_NO_UPDATE",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_CPU_ZERO_STEP_20261108_001/CLAIM.json",
+      "sha256": "232e8b6d81c72689d48b589341dada260c96855fc254bbbc4868a8224444e3eb"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_CPU_ZERO_STEP_20261108_001/RESULT.json",
+      "sha256": "a2bb6cb8f586ea85f18ca4b313ffe28117dee67659216d00641d0a25cb0ccc7f"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_CPU_ZERO_STEP_20261108_001/TERMINAL.json",
+      "sha256": "838bcf83b254f3645b3d2f66d22e7c82b67900050f8c7836abb45442a3b31134"
+    },
+    "actual_source_head": "3866ae0bcc5e93cca3d1b986947b8bdc5e035aa0",
+    "admission_policy_sha256": "edb2c02169c53d477bffc427a2119e67f6a87f89db988eb3c425915c0fb03d41",
+    "observed": {
+      "elapsed_seconds": 87.97266268399835,
+      "cpu_peak_rss_kib": 5605576,
+      "state_count": 5,
+      "future_count": 10,
+      "model_forwards": 1,
+      "backward_calls": 1,
+      "optimizer_steps": 0,
+      "initial_final_state_bit_equal": true,
+      "direct_unknown_side_gradient_zero": true,
+      "direct_future_flat_side_gradient_zero": true,
+      "state_and_future_heads_and_backbone_nonzero_gradient": true,
+      "cuda_initialized": false,
+      "test_data_used": false
+    },
+    "limitations": "Two initial TRAIN rows only; no fit, OOF, direction learning, GC added value, Entry quality or economic edge."
   }
 }
