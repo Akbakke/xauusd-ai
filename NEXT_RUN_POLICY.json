@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-08T12:01:32.104946+00:00",
-  "status": "TA_NATIVE_SOURCE_PREPARED_INPUT_AUDIT_PENDING",
+  "observed_utc": "2026-11-08T13:25:29.845700+00:00",
+  "status": "TA_NATIVE_INPUT_ADMITTED_PREFLIGHT_PENDING",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Selected 0.5 ATR activity and conservative local side use the corrected five-TF TRAIN mask. The one mature fold1 native time-query v1 fit and later chronological TRAIN OOF lost M5 certified-side Brier to the frozen prior in all 14 weeks; a paired frozen diagnostic found upward miscalibration and the free-three-logit unknown-side objective defect. Factorized v2 model/loss and stable raw-logit scorer now pass source/synthetic checks, and read-only fold1 receipt/v2 view metadata binding passes. Physical v2 zero-step passed direct activity/side gradient mechanics. The exact S/F B16 two-batch private optimizer/resume probe completed four guarded physical updates with bit-exact resume and zero exit codes. It did not fit a predictor or establish GC direction value. All plans are consumed; training_enabled=false. Full fit, generalization, Entry decision value, economics, TEST, Entry, Exit, broker, trading and spending remain closed.",
-  "next_action": "TA input/loss review complete with scoped reuse of all 253 MTF fields on five TF; no new input or corrected-loss defect found. Last qualified native profile still includes GC; GC registry remains deferred. A corrected S/F learning measurement needs its own explicit input profile and bound fit/score driver: the consumed old fullfit route uses v1, while S/F has only private four-step mechanics. Reuse mature TRAIN normalization and completed controls within unchanged scope. This review admits no new fit, TEST, Entry or economics; training_enabled=false.",
+  "next_action": "Run the exact read-only TA input preflight, including actual view/checkpoint identity and completed-receipt field checks. Only after PASS consume the newly admitted single CPU input audit (12G/512M/3600s, one genuine forward, zero optimizer updates), then review exact terminal before any new TA mechanical or predictor-fit admission.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1624,7 +1624,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Prepared TA315/132/253 profile across five TF and eight families, mature TRAIN-statistics projection, corrected S/F fit/endpoint evaluation and four-update mechanical route. Focused tests and actual TA FeatureView/checkpoint metadata pass. Physical input audit and new native executions have not started.",
+    "current_activity": "TA source and contract gates passed; exact 73-source one-shot input audit prepared and admitted, read-only startup/receipt preflight pending. No physical TA input audit, new native mechanical job or predictor fit has started.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -21748,7 +21748,7 @@
       }
     },
     "ta_native_candidate_20261108": {
-      "status": "SOURCE_PREPARED_PHYSICAL_AUDIT_NOT_STARTED",
+      "status": "PHYSICAL_INPUT_AUDIT_ADMITTED_PREFLIGHT_PENDING",
       "profile": "full_xau_ta_mtf_entry_research_v1",
       "physical_widths": {
         "signal": 315,
@@ -21780,7 +21780,7 @@
       "calendar_regression_fixed": true,
       "bound_calendar_dates_verified": 9000,
       "changed_availability_on_bound_history_through_2024": 0,
-      "physical_audit_admitted": false,
+      "physical_audit_admitted": true,
       "mechanical_qualification_admitted": false,
       "predictor_fit_admitted": false,
       "test_data_used": false,
@@ -21797,7 +21797,30 @@
         }
       },
       "physical_audit_declared_local_formula_fields": 254,
-      "independent_local_formula_boundary": "61 macro fields; original same-owner numeric/as-of proof is scoped reuse only"
+      "independent_local_formula_boundary": "61 macro fields; original same-owner numeric/as-of proof is scoped reuse only",
+      "input_audit_plan": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_NATIVE_INPUT_20261108_001.json",
+        "sha256": "be98ab3bd28391ee588441c2d63b24837d63105ec56df75f00e8e6abe5a62b6e"
+      },
+      "required_commit_contract_checks": {
+        "gx1_precommit_drift.log": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SOURCE_QUALIFICATION_20261108_001/gx1_precommit_drift.log",
+          "sha256": "5a4cbb79d1767d5bab65586b70188612d34f106019ed9223cf718abd59d4a351",
+          "passed": 10
+        },
+        "gx1_precommit_model_native.log": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SOURCE_QUALIFICATION_20261108_001/gx1_precommit_model_native.log",
+          "sha256": "15941cd3d44aa046a3c50ed4434f97bcc7c9076bc0c9d434029998929297c93a",
+          "passed": 61
+        }
+      },
+      "synthetic_publication_checks": {
+        "passed": 2,
+        "evidence": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SOURCE_QUALIFICATION_20261108_001/gx1_ta_publication_tests_20261108.log",
+          "sha256": "9ebdf69a7d947d5636a77a772209b6f37ea2fcaf7591c5626cea72f87cbbf0d7"
+        }
+      }
     }
   },
   "gc_order_flow_research_20261006": {
@@ -24362,7 +24385,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-08T12:01:32.104946+00:00",
+  "updated_utc": "2026-11-08T13:26:43.432925+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -65188,5 +65211,45 @@
       "GC register work is deferred, but last qualified native S/F profile still includes GC.",
       "Four-step technical mechanics are not TRAIN learning or later OOF; old v1 fit plans remain consumed."
     ]
+  },
+  "market_state_ta_native_input_20261108_001": {
+    "status": "ADMITTED",
+    "decision": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_NATIVE_INPUT_20261108_001.json",
+      "sha256": "be98ab3bd28391ee588441c2d63b24837d63105ec56df75f00e8e6abe5a62b6e"
+    },
+    "worker": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/verify_market_state_ta_native_input_path_v1.py",
+      "sha256": "6523d5d9889b832101087e6a61bf1414df089c145a4c53f8b58e47b9fd7d56af"
+    },
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "endpoint_prior_fit_authorized": true,
+    "model_constructions_authorized": 1,
+    "model_forwards_authorized": 1,
+    "backward_calls_authorized": 0,
+    "optimizer_steps_authorized": 0,
+    "normalization_fits_authorized": 0,
+    "training_authorized": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "spending_allowed": false,
+    "relaunch_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_20261108_001",
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "wall_seconds": 3600,
+    "scope": "Full exact fold1 TA input routing/normalization plus scoped independent formula evidence and fit-only S/F priors; no predictor fit.",
+    "synthetic_publication_checks": {
+      "passed": 2,
+      "evidence": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SOURCE_QUALIFICATION_20261108_001/gx1_ta_publication_tests_20261108.log",
+        "sha256": "9ebdf69a7d947d5636a77a772209b6f37ea2fcaf7591c5626cea72f87cbbf0d7"
+      }
+    }
   }
 }
