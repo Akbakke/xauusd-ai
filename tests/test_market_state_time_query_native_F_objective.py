@@ -3,6 +3,7 @@ import torch
 
 from gx1.contracts import market_state_five_endpoint_target_binding_v1 as state
 from gx1.contracts import market_state_time_query_native_F_objective_v1 as objective
+from gx1.contracts import market_state_time_query_loss_v2 as state_loss
 from gx1.contracts.market_state_future_displacement_candidate_v1 import BoundFutureDisplacement
 from gx1.contracts.market_state_time_query_target_v1 import NATIVE_K
 
@@ -19,7 +20,7 @@ def test_two_losses_keep_F_flat_side_gradient_zero_and_S_independent():
     q = torch.tensor([NATIVE_K], dtype=torch.int64)
     result = objective.combined_loss(state_raw=s, future_raw=f,
                                      state_truth=state_truth, future_truth=future_truth,
-                                     state_query_k=q, future_weight=0.25)
+                                     state_query_k=q, future_weight=1.0)
     result['loss'].backward()
     assert result['state']['count'] == 4 and result['future']['count'] == 4
     assert s.grad[0, 0, 1] == 0 and s.grad[0, 1, 1] != 0
@@ -51,3 +52,27 @@ def test_native_F_score_uses_earlier_prefix_and_partitions_UTC_week():
         assert report['overall'][tf]['activity']['count']==2
         assert report['overall'][tf]['conditional_side']['count']==2
         assert report['overall'][tf]['conditional_side']['prior_minus_model_brier_sum']==0
+
+
+def test_side_normalization_uses_only_known_side_rows_and_preserves_old_loss():
+    allowed = torch.tensor([[1, 7, 7, 7, 7],
+                            [5, 7, 7, 7, 7],
+                            [2, 7, 7, 7, 7],
+                            [4, 7, 7, 7, 7]], dtype=torch.uint8)
+    eligible = torch.ones((4, 5), dtype=torch.bool)
+    mature = torch.ones((4, 5), dtype=torch.bool)
+    query = torch.tensor([NATIVE_K] * 4, dtype=torch.int64)
+    raw = torch.zeros((4, 5, 2), dtype=torch.float32, requires_grad=True)
+    old = state_loss.allowed_set_loss(raw, allowed, eligible, mature, query)
+    balanced = state_loss.allowed_set_loss(
+        raw, allowed, eligible, mature, query, normalize_known_side=True)
+    assert torch.isclose(old['loss'], torch.tensor(1.5 * np.log(2) / 5, dtype=torch.float32))
+    assert torch.isclose(balanced['loss'], torch.tensor(2 * np.log(2) / 5, dtype=torch.float32))
+    assert balanced['contract_sha256'] == state_loss.side_normalized_time_query_loss_contract()['contract_sha256']
+    assert old['contract_sha256'] == state_loss.factorized_time_query_loss_contract()['contract_sha256']
+    balanced['loss'].backward()
+    assert raw.grad[1, 0, 1] == raw.grad[2, 0, 1] == 0
+    assert torch.isclose(raw.grad[0, 0, 1], torch.tensor(0.05))
+    assert torch.isclose(raw.grad[3, 0, 1], torch.tensor(-0.05))
+    assert torch.isclose(raw.grad[0, 0, 0], torch.tensor(-0.025))
+    assert raw.grad[0, 1:, :].abs().sum() == 0

@@ -23,14 +23,15 @@ from gx1.contracts import market_state_time_query_native_F_model_v1 as dual_mode
 from gx1.contracts import market_state_time_query_native_F_objective_v1 as objective
 
 REPO, RUNS, POLICY = old.REPO, old.RUNS, old.POLICY
-STAGE = 'market_state_native_F_cpu_zero_step_20261108_001'
-PLAN_PATH = REPO / 'configs/research/MARKET_STATE_NATIVE_F_CPU_ZERO_STEP_20261108_001.json'
-OUT_ROOT = RUNS / 'MARKET_STATE_NATIVE_F_CPU_ZERO_STEP_20261108_001'
+STAGE = 'market_state_native_F_cpu_zero_step_20261108_002'
+PLAN_PATH = REPO / 'configs/research/MARKET_STATE_NATIVE_F_CPU_ZERO_STEP_20261108_002.json'
+OUT_ROOT = RUNS / 'MARKET_STATE_NATIVE_F_CPU_ZERO_STEP_20261108_002'
 SOURCE_PATHS = (
     'gx1/audit/verify_market_state_native_F_cpu_zero_step_v1.py',
     'gx1/contracts/market_state_future_displacement_candidate_v1.py',
     'gx1/contracts/market_state_time_query_native_F_model_v1.py',
     'gx1/contracts/market_state_time_query_native_F_objective_v1.py',
+    'gx1/contracts/market_state_time_query_loss_v2.py',
     'gx1/contracts/market_state_time_query_native_F_batch_v1.py',
     'gx1/contracts/gx1_capped_execution_v1.py',
     'scripts/gx1_capped_run.sh',
@@ -38,7 +39,7 @@ SOURCE_PATHS = (
 MEMORY_BYTES = 12 * 1024**3
 SWAP_BYTES = 512 * 1024**2
 WALL_SECONDS = 1800
-WITNESS_F_WEIGHT = 0.25  # Pure gradient witness, never a fit weight selection.
+WITNESS_F_WEIGHT = 1.0  # Prebound equal S/F candidate weight; no fit here.
 
 
 def need(ok: object, reason: str) -> None:
