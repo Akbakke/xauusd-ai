@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-08T13:25:29.845700+00:00",
-  "status": "TA_NATIVE_INPUT_ADMITTED_PREFLIGHT_PENDING",
+  "status": "TA_NATIVE_INPUT_ADMITTED_READY_FOR_ONE_EXECUTION",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Selected 0.5 ATR activity and conservative local side use the corrected five-TF TRAIN mask. The one mature fold1 native time-query v1 fit and later chronological TRAIN OOF lost M5 certified-side Brier to the frozen prior in all 14 weeks; a paired frozen diagnostic found upward miscalibration and the free-three-logit unknown-side objective defect. Factorized v2 model/loss and stable raw-logit scorer now pass source/synthetic checks, and read-only fold1 receipt/v2 view metadata binding passes. Physical v2 zero-step passed direct activity/side gradient mechanics. The exact S/F B16 two-batch private optimizer/resume probe completed four guarded physical updates with bit-exact resume and zero exit codes. It did not fit a predictor or establish GC direction value. All plans are consumed; training_enabled=false. Full fit, generalization, Entry decision value, economics, TEST, Entry, Exit, broker, trading and spending remain closed.",
-  "next_action": "Run the exact read-only TA input preflight, including actual view/checkpoint identity and completed-receipt field checks. Only after PASS consume the newly admitted single CPU input audit (12G/512M/3600s, one genuine forward, zero optimizer updates), then review exact terminal before any new TA mechanical or predictor-fit admission.",
+  "next_action": "Consume the newly admitted exact TA input audit once through capped CPU producer12G/512M/3600s after startup rechecks. Preserve source and policy while it runs. One genuine backbone forward, zero optimizer updates; review terminal and all field results before a new separate guarded TA S/F mechanical admission.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1624,7 +1624,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "TA source and contract gates passed; exact 73-source one-shot input audit prepared and admitted, read-only startup/receipt preflight pending. No physical TA input audit, new native mechanical job or predictor fit has started.",
+    "current_activity": "Exact TA input startup/receipt/view preflight passed for all73 source owners and actual checkpoint identity; two synthetic success/failure reporting checks passed. One bounded CPU input audit is ready but unclaimed; native training remains closed.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -21748,7 +21748,7 @@
       }
     },
     "ta_native_candidate_20261108": {
-      "status": "PHYSICAL_INPUT_AUDIT_ADMITTED_PREFLIGHT_PENDING",
+      "status": "PHYSICAL_INPUT_AUDIT_READY_NOT_CLAIMED",
       "profile": "full_xau_ta_mtf_entry_research_v1",
       "physical_widths": {
         "signal": 315,
@@ -21820,6 +21820,10 @@
           "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SOURCE_QUALIFICATION_20261108_001/gx1_ta_publication_tests_20261108.log",
           "sha256": "9ebdf69a7d947d5636a77a772209b6f37ea2fcaf7591c5626cea72f87cbbf0d7"
         }
+      },
+      "read_only_preflight": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SOURCE_QUALIFICATION_20261108_001/INPUT_PREFLIGHT.json",
+        "sha256": "206a88f6dd1f4041e0278350b1fc83aff6aa749ae5df7da9a439a3b428233677"
       }
     }
   },
@@ -24385,7 +24389,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-08T13:26:43.432925+00:00",
+  "updated_utc": "2026-11-08T13:31:45.753423+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -65250,6 +65254,10 @@
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SOURCE_QUALIFICATION_20261108_001/gx1_ta_publication_tests_20261108.log",
         "sha256": "9ebdf69a7d947d5636a77a772209b6f37ea2fcaf7591c5626cea72f87cbbf0d7"
       }
+    },
+    "read_only_preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SOURCE_QUALIFICATION_20261108_001/INPUT_PREFLIGHT.json",
+      "sha256": "206a88f6dd1f4041e0278350b1fc83aff6aa749ae5df7da9a439a3b428233677"
     }
   }
 }

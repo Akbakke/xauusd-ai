@@ -15,13 +15,15 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: `TA_NATIVE_INPUT_ADMITTED_PREFLIGHT_PENDING`.
+Policystatus: `TA_NATIVE_INPUT_ADMITTED_READY_FOR_ONE_EXECUTION`.
 `training_enabled=false`. Ny eksplisitt TA-profil, korrigert S/F-rute og
 mekanisk kandidat er forberedt; fysisk inputkontroll og nye native kjøringer
 er ennå ikke startet.
 Den nye 73-kildebundne inputplanen er innrømmet for én CPU-kjøring
 (12 GiB/512 MiB/3600 s), én forward og null optimizeroppdateringer.
-Eksakt lesende preflight og syntetiske rapporteringsgrener må bestå før claim. Gamle engangsplaner er konsumert og relanseres ikke.
+Eksakt lesende preflight på alle 73 kildeeiere og faktisk view/checkpoint-
+identitet bestod; begge syntetiske rapporteringsgrener bestod. Planen er
+ennå uklamet. Kilde/policy fryses under den ene innrømmede kjøringen. Gamle engangsplaner er konsumert og relanseres ikke.
 GC-registerplanen er utsatt og uklamet. Juni 2026 er brukt utviklings-VAL;
 forseglet periode følger bare forward-journalregelen i GX1_RULES.md.
 
@@ -226,7 +228,7 @@ markedstilstand, senere Entry-beslutningsverdi eller økonomisk edge er påvist.
 Den enkle tabellmodellens negative retning er ikke en generell dom over GC,
 indikatorene eller native modell.
 
-**Neste steg:** Kjør eksakt lesende preflight; deretter fullfør ny engangs inputaudit på nøyaktig alle konsumerte
+**Neste steg:** Etter oppstartsrecheck, fullfør den nye engangs inputauditen på nøyaktig alle konsumerte
 fit-/scorevinduer: råverdier, klokker, normalisering, uavhengig formeldekning
 og én faktisk familiehook-forward. Deretter bare ved PASS: ny guarded TA S/F
 fireoppdateringsmekanikk, fersk initialbaseline og 29 574-raders ettpass-fit
