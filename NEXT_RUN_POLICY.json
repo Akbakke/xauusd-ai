@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-08T02:32:28.913738+00:00",
-  "status": "SMC_TA_REFERENCE_CLAIMED_TRAINING_CLOSED",
+  "status": "SMC_TA_BOS_EMA_NO_DIRECTION_GAIN_TRAINING_CLOSED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Selected 0.5 ATR activity and conservative local side use the corrected five-TF TRAIN mask. The one mature fold1 native time-query v1 fit and later chronological TRAIN OOF lost M5 certified-side Brier to the frozen prior in all 14 weeks; a paired frozen diagnostic found upward miscalibration and the free-three-logit unknown-side objective defect. Factorized v2 model/loss and stable raw-logit scorer now pass source/synthetic checks, and read-only fold1 receipt/v2 view metadata binding passes. Physical v2 zero-step passed direct activity/side gradient mechanics. The exact S/F B16 two-batch private optimizer/resume probe completed four guarded physical updates with bit-exact resume and zero exit codes. It did not fit a predictor or establish GC direction value. All plans are consumed; training_enabled=false. Full fit, generalization, Entry decision value, economics, TEST, Entry, Exit, broker, trading and spending remain closed.",
-  "next_action": "One current-user-authorized fixed TRAIN-only SMC BOS+EMA20 60-minute F reference is claimed; run exactly once via capped audit4G/512M/600s, inspect terminal/result and stop the hypothesis if the prebound weekly/fold gate fails. Do not change frozen source during run; no GC input or model fit, TEST, Entry or trade. training_enabled=false.",
+  "next_action": "Current SMC BOS plus EMA20 fixed 60-minute TRAIN reference completed once and failed its prebound directional gate: 4876 mature events, pooled incremental signed H1-ATR displacement -0.006385, 95% UTC-week CI [-0.022610,+0.010314], only 1/5 folds positive; independently checked. Do not rerun, flip sign, adjust horizon or sweep thresholds against these outcomes. GC registry stays deferred. Next useful work is source/normalization/model-consumption audit of existing SMC and technical inputs for a concrete defect; a genuinely new price-behavior hypothesis needs its own bound plan. No native predictor fit, TEST, Entry or economic edge; training_enabled=false.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -24310,7 +24310,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-08T09:24:30.201053+00:00",
+  "updated_utc": "2026-11-08T09:29:00.418732+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -65043,8 +65043,8 @@
     "deferred_reason": "Operator 2026-11-08 changed current research focus to SMC/technical analysis; no claim or GC registry run."
   },
   "market_state_smc_ema_bos_20261108_001": {
-    "status": "EXECUTION_CLAIMED",
-    "decision": "FIXED_TRAIN_ONLY_SMC_EMA_BOS_REFERENCE",
+    "status": "CONSUMED_COMPLETE_NO_POSITIVE_DIRECTION_GATE",
+    "decision": "NO_POSITIVE_GATE",
     "scope": "One 0 USD read-only five-fold 60-minute F direction diagnostic of closed M5 BOS aligned EMA20 slope versus no-BOS EMA controls within UTC week and side. No GC feature values, model fit, TEST, Entry or economics.",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_SMC_EMA_BOS_20261108_001.json",
@@ -65057,14 +65057,43 @@
     },
     "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_SMC_EMA_BOS_20261108_001",
     "operator_request": "2026-11-08 user instruction to focus SMC/technical analysis instead of GC",
-    "execution_authorized": true,
-    "data_reads_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "research_fit_authorized": false,
     "test_authorized": false,
     "claimed_invocations": 1,
-    "completed_invocations": 0,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "training_enabled": false,
-    "test_data_used": false
+    "test_data_used": false,
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_SMC_EMA_BOS_20261108_001/CLAIM.json",
+      "sha256": "c907204cd851b737f0a49c6d32f91ca49fbfb3b6c5c3b26807c21148665ec805"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_SMC_EMA_BOS_20261108_001/RESULT.json",
+      "sha256": "79fd9bccd08c78af6f4fb2de59f0416258e73546b0a302969ce152fd4822e40b"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_SMC_EMA_BOS_20261108_001/TERMINAL.json",
+      "sha256": "817d7a87f2d7b1be19cdec21bc9a92b9a0a4107c8eb97809aab754d119b1fa13"
+    },
+    "independent_check": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_SMC_EMA_BOS_20261108_001/INDEPENDENT_CHECK.json",
+      "sha256": "d7a036c2065a29ea4f1a98c1c87cf4f62f2abc3ca51ae652243551ce5c36729d"
+    },
+    "measured": {
+      "mature_event_rows": 4876,
+      "positive_folds": 1,
+      "pooled_delta_signed_F_over_H1_ATR": -0.00638532564764511,
+      "week_block_95pct_CI": [
+        -0.022610471654651864,
+        0.010313952918917008
+      ],
+      "candidate_half_H1_ATR_hit_rate": 0.4887525562372188,
+      "model_forwards": 0,
+      "optimizer_steps": 0,
+      "test_data_used": false
+    }
   }
 }

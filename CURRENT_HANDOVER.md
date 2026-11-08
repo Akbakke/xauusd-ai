@@ -15,7 +15,7 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: `SMC_TA_REFERENCE_CLAIMED_TRAINING_CLOSED`.
+Policystatus: `SMC_TA_BOS_EMA_NO_DIRECTION_GAIN_TRAINING_CLOSED`.
 `training_enabled=false`; S/F-fire-stegsplanen og GC-sidevis fysisk bygg er
 fullført og konsumert, og Windows-oppgaven er deaktivert. GC-registerplanen er
 utsatt og uklamet; ingen tung CURRENT-jobb kjører. Faktisk prosessstatus overstyrer.
@@ -46,7 +46,21 @@ forseglet periode scores bare etter forward-journalregelen i GX1_RULES.md.
   SHA `f87a834f985cc53f1e5517f76753f6b00b4ef66d07735cc1d51bcc56594681b7`.
   Eldre SMC-familiefit kvalifiserte ikke retningsverdi på sitt tidligere mål;
   enkel EMA50/200-referanse ga ikke stabil sidegevinst på nytt S-mål. Ingen
-  av dem tester den nå forhåndsbundne BOS+EMA20-sammenhengen ved 60 minutter.
+  av dem testet den forhåndsbundne BOS+EMA20-sammenhengen ved 60 minutter.
+
+- **Fast SMC+EMA20-forsøk, negativ retningsport:** Engangsplanen
+  [MARKET_STATE_SMC_EMA_BOS_20261108_001](configs/research/MARKET_STATE_SMC_EMA_BOS_20261108_001.json)
+  er konsumert. På 4 876 modne TRAIN-hendelser var ekstra signert
+  60-minutters F-forskyvning mot EMA-kontroll i samme uke/side `−0,006385`
+  H1-ATR, 95 % ukeblokkintervall `[−0,022610,+0,010314]`; bare 1/5 fold
+  var positiv. Halv-ATR-kandidatens event-hit-rate var `0,488753`; det er
+  ikke en låst markedstilstand eller handelsmåling. Uavhengig pandas-gruppering
+  ga samme 4 876 rader og samme fem foldeffekter. Første auditforsøk tok med
+  tre rader over foldcutoff; dette var auditens egen indeksfeil, rettet før
+  kvittering, og påvirket ikke engangskjøringen. [Resultat](/home/andre2/GX1_RUNS/MARKET_STATE_SMC_EMA_BOS_20261108_001/RESULT.json)
+  SHA `79fd9bccd08c78af6f4fb2de59f0416258e73546b0a302969ce152fd4822e40b`;
+  [uavhengig kontroll](/home/andre2/GX1_RUNS/MARKET_STATE_SMC_EMA_BOS_20261108_001/INDEPENDENT_CHECK.json) SHA
+  `d7a036c2065a29ea4f1a98c1c87cf4f62f2abc3ca51ae652243551ce5c36729d`.
 
 - **Native tilstand, gammel v1:** Én fold-1-fit brukte 29 574 modne TRAIN-rader
   og 1 849 AdamW-steg. På 6 096 senere sertifiserte M5-siderader var
@@ -169,17 +183,14 @@ markedstilstand, senere Entry-beslutningsverdi eller økonomisk edge er påvist.
 Den enkle tabellmodellens negative retning er ikke en generell dom over GC,
 indikatorene eller native modell.
 
-**Neste ene hypotese:** Et bekreftet M5-brudd av svingtopp/-bunn i samme
-retning som EMA20-helningen gir mer 60-minutters XAU-prisforskyvning i
-bruddretningen enn EMA-retning uten brudd i samme UTC-uke, fold og side.
-[Engangsplanen](configs/research/MARKET_STATE_SMC_EMA_BOS_20261108_001.json)
-SHA `d3bdadb60060598610f2d5e8e2a269874c6f4f6484f50dbd6a2af94a6da0b9aa`
-er forhåndsbundet og claimet for nøyaktig én capped TRAIN-only lesning. Les bare M5 BOS/EMA og eksisterende
-TRAIN-only F-fasit ved eksakt 60-minutters endepunkt. Fem senere kronologiske
-TRAIN-perioder, ukeblokk-bootstrap og forhåndsbundet positiv port; ingen
-parameter-/horisontsøk, modellfit, GC-features, TEST eller handel. Et positivt
-resultat er kun prisretningssammenheng, ikke Entry-/økonomisk edge. Ved negativ
-port stoppes denne hypotesen uten ny variant.
+**Neste steg:** Denne BOS+EMA20-hypotesen er ferdig og feilet; ingen
+fortegnsnuing, horisontbytte, ny terskel eller omkjøring på de samme utfallene.
+Før nytt utfallseksperiment kontrolleres om SMC-/tekniske felt faktisk når den
+aktive modellvisningen med riktig klokke, maske, skala og fortegn. Bruk
+beståtte kontroller der de allerede dekker spørsmålet. Bare et konkret målt
+inputproblem eller en materiell ny prisatferdshypotese begrunner ny kode eller
+engangsplan. S/F-modellen har fortsatt ingen senere femfolds native fit/OOF,
+og Entry-/økonomisk edge er ubevist.
 
 Den tidligere [GC-registerplanen](configs/research/MARKET_STATE_GC_SIDE_MAX_REGISTRY_20261108_001.json)
 forblir bevart, men er utsatt og uklamet etter brukerens nye prioritering.
