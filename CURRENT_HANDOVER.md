@@ -15,26 +15,25 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_DIRECTION_FULL_FROZEN_CACHE_ADMITTED_250W.
+Policystatus: TA_DIRECTION_CONVEX_M5_READOUT_ADMITTED.
 
-Neste direkte retningskontroll er én frossen FINAL-utlesning av hele eksisterende
-TRAIN (29 574 rader) og senere TRAIN (17 753), batch16, 2 959 enkodinger.
-[Plan](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_FULL_CACHE_20261108_001/PLAN.json)
-er ny og kan kjøres én gang. Ingen backward eller optimizer er tillatt.
-Brukeren presiserte at 250 W skal beholdes; faktisk og vedvarende grense ble
-aldri senket. Samme signerte GPU-/temperatur-/minne-/tidsvakter beholdes.
-Bare to av recoveryens 85 kildeeiere endres: eksplisitt dispatch og eksakt
-250 W-selector. 83 eiere er fysisk uendret; 77 historiske Git-eiere og åtte
-installerte runtime-eiere er kontrollert. Fersk import-/view-/scope-preflight
-og to fokuserte rutetester består. Hovedmodell, vekter og mål er uendret.
+Full frossen FINAL-utlesning er COMPLETE og konsumert: 29 574 TRAIN-rader
+og 17 753 senere TRAIN-rader, 2 959 enkodinger, null backward/optimizer.
+Alle S/F-side-tellinger og Brier/log-gjennomsnitt på fem TF ble gjenskapt med
+eksakt null avvik. Vekter og kilde var uendret. Trener og kontroller avsluttet
+med 0; total kontrollertid 2 584,765 s (43 min 5 s), topp-RSS 5,85 GB.
+250 W ble beholdt som brukeren krevde; ingen effektinnstilling ble endret.
+[Full cache](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_FULL_CACHE_20261108_001/RESULT.json)
+bevares med originale kvitteringer og to NPZ-partisjoner.
 
-Utlesningen skal rekalkulere opprinnelige S/F-side-mål på alle fem TF,
-med identiske tellinger og <=1e-6 avvik i gjennomsnitt. Ferdige cachepartisjoner
-bevares også ved avvik. Deretter skal en separat, eksakt plan sammenligne
-kalibrering av eksisterende M5-logit med et konvergert lineært M5-readout på
-frosne representasjoner. Kun TRAIN tilpasses; senere TRAIN brukes til score.
-Dette skal skille feil sannsynlighetsnivå fra utnyttbar retningsinformasjon.
-Den etterfølgende tilpasningen er ennå ikke autorisert i policyen.
+Neste eksakte [M5-plan](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_CONVEX_M5_20261108_001/PLAN.json)
+er innrømmet én gang: affine kalibrering av eksisterende logit og konvergert
+lineært readout fra alle frosne representasjoner, separat for M5 S og F.
+Kun sidekjente TRAIN-rader tilpasses; samme senere TRAIN er score-only.
+Fire private readout-tilpasninger, ingen hovedmodelloppdatering og null nye
+native forwards. Objektiv, solver, konvergens og numerisk ranggrense er
+forhåndsbundet. Ingen hyperparameter-/terskelsøk eller modellpromotering.
+Dette skiller feil sannsynlighetsnivå fra ubrukt retningsinformasjon.
 
 Aktivt brukermål08.11: jobb bare direkte med retning. Første avgrensede
 kontroll er fullført på eksisterende TRAIN-fasit på 1,24 s, uten modellkall.
@@ -369,17 +368,16 @@ historiske publisering og vintage er fortsatt UNKNOWN.
 **Neste steg:** Avklar retningsinformasjon og readout-konvergens på hele det
 eksisterende TRAIN-prefikset og senere TRAIN før en hovedmodellendring.
 Den lille kontrasten er for snever til å kvalifisere generalisering.
-Kjør den innrømmede, frosne 250 W-utlesningen én gang og gjenbruk deretter
-cache i den separate M5-kontrollen. Ingen bred arkitekturombygging eller
-hyperparametersøk. Målet er aktivt; readout-tilpasning må få egen eksakt plan.
+Kjør den innrømmede M5-kontrollen én gang på den ferdige cachen. Ingen bred arkitekturombygging eller
+hyperparametersøk. Målet er aktivt; readout-tilpasning har nå egen eksakt plan.
 Brukerens spørsmål om 30 epoker og fem år er fortsatt åpne hypoteser.
 Denne fitten dekker omtrent mai–september2024, senere score oktober–desember2024.
 Ett pass og én fold er ingen generell dom over lengre læring eller historikk.
 
 Den tidligere [GC-registerplanen](configs/research/MARKET_STATE_GC_SIDE_MAX_REGISTRY_20261108_001.json)
 forblir bevart, men er utsatt og uklamet etter brukerens nye prioritering.
-`training_enabled=false`; alle tre nye retningsdiagnoser og de tidligere
-native fitplanene er konsumert.
+`training_enabled=true` gjelder kun den innrømmede private M5-readout-planen;
+alle tidligere retningsdiagnoser, cacheplanen og native fitplanene er konsumert.
 
 Kilde/metode for denne fasen: [docs/NATIVE_LEARNING.md](docs/NATIVE_LEARNING.md).
 Detaljert historikk og eldre beslutninger: Git, ikke nye arkivmapper her.

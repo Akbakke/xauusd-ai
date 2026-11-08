@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-08T21:03:46.873871+00:00",
-  "status": "TA_DIRECTION_FULL_FROZEN_CACHE_ADMITTED_250W",
+  "status": "TA_DIRECTION_CONVEX_M5_READOUT_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Run one exact frozen FINAL pass on29574existingTRAIN+17753laterTRAIN rows at250W; reuse resulting representations for predeclared M5 affine-calibration versus converged full-readout diagnosis. No native fit or new feature audit.",
+  "next_action": "Run one fixed affine-logit calibration and one converged full frozen-readout fit for each M5S/F on all knownTRAIN rows. Score identical laterTRAIN without fit. Use cached representations; zero nativeforwards.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1632,7 +1632,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "One frozen fullTRAIN/laterTRAIN representation cache admitted,250W; direction-only diagnosis.",
+    "current_activity": "Full cache complete; exact M5 calibration versus converged readout control admitted.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1661,11 +1661,11 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "Actual CPU private shared-vs-TF side-readout terminal: frozen native backbone/projection, two480-update readout arms,32encodings, zero native backbone updates.",
-    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_FULL_CACHE_20261108_001",
+    "latest_terminal_role": "Actual full frozen GPU cache terminal:47327rows,2959encodings,no backward/optimizer,all5TFsideparityexact.",
+    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_CONVEX_M5_20261108_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_READOUT_COMPARISON_20261108_001/TERMINAL.json",
-      "sha256": "ffd6757329a659536c020b5068f429e25a80fc444c641d7424d7017dc5c423f1"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_FULL_CACHE_20261108_001/TERMINAL.json",
+      "sha256": "030c1a139813369a83c8ea0beb4f05b7a3313bdbb3070b173859f2dace4aa90a"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -40143,7 +40143,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "NONE_DIRECTION_DIAGNOSTICS_CONSUMED",
+  "training_enabled_scope": "market_state_ta_direction_convex_m5_20261108_001",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -66262,7 +66262,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "Full frozen TRAIN/laterTRAIN cache admitted; only dispatch/capped routing changes,83of85recipeowners unchanged.250Wretained perexplicituser. ConvexM5optimizer and affine-logit control prepared separately; synthetic convergence/gradient checks passed, no real-data fit authorized yet."
+    "latest_progress": "Full frozen cache COMPLETE:47327rows,2959encodings,zero side-score difference vs original atall5TF,2584.765scontroller. Exact four private convexM5fits admitted to distinguish calibration from unused representation information; nativeweightsunchanged."
   },
   "market_state_ta_direction_weight_diagnostic_20261108_001": {
     "status": "COMPLETE_CONSUMED",
@@ -66415,19 +66415,19 @@
     }
   },
   "market_state_ta_direction_full_cache_20261108_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_FULL_CACHE_20261108_001/PLAN.json",
       "sha256": "4b4c67993003f04e9ee6f7776cf29fa812fb5c91396c90cb586a684a323c4ff2"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "backbone_encodings_authorized": 2959,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "backbone_encodings_authorized": 0,
     "backward_calls_authorized": 0,
     "optimizer_steps_authorized": 0,
     "training_authorized": false,
@@ -66441,6 +66441,52 @@
     "preflight_log": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_FULL_CACHE_20261108_001/PREFLIGHT.log",
       "sha256": "4a7a3ebce1ce412c110b0077f84c41bab482ed06130b97b941ae2bf5bd5a5857"
-    }
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_FULL_CACHE_20261108_001/RESULT.json",
+      "sha256": "efe7798b6342a44cf9641c22b2f40f44f8ec71bb31379ff914ead7cd10a81f2c"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_FULL_CACHE_20261108_001/TERMINAL.json",
+      "sha256": "030c1a139813369a83c8ea0beb4f05b7a3313bdbb3070b173859f2dace4aa90a"
+    },
+    "controller_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_FULL_CACHE_20261108_001/CONTROLLER_TERMINAL.json",
+      "sha256": "58ed07e62269f3f6676ecbf0d4f0db7a00a8664cd7059e16d3b722408134fa95"
+    },
+    "cache": {
+      "fit": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_FULL_CACHE_20261108_001/FIT_CACHE.npz",
+        "sha256": "e8a562314d81b5821931df0ff78ff563b0968015eac0eaa141e909c80d6fc22f"
+      },
+      "score": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_FULL_CACHE_20261108_001/SCORE_CACHE.npz",
+        "sha256": "8cc964f1ff229bc3c1140a47ed66e256ce90b9ecfbc18c4c4509ba60f63bfee9"
+      }
+    },
+    "elapsed_seconds": 2584.764613411,
+    "observed_backbone_encodings": 2959,
+    "maximum_conditional_side_mean_delta": 0.0
+  },
+  "market_state_ta_direction_convex_m5_20261108_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_CONVEX_M5_20261108_001/PLAN.json",
+      "sha256": "5df36c88f9c4c95abe5a5a4f997cb5938231b4b2ec6ff991b630b36f941f20e3"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "training_authorized": true,
+    "readout_fits": 4,
+    "new_native_forwards": 0,
+    "new_native_parameter_updates": 0,
+    "relaunch_allowed": false,
+    "test_data_used": false,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "wall_seconds": 900
   }
 }
