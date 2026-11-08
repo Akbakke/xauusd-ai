@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-08T21:03:46.873871+00:00",
-  "status": "TA_DIRECTION_FULL_READOUT_COMPLETE_CALIBRATION_DEFECT_GENERALIZATION_UNPROVEN",
+  "status": "TA_DIRECTION_ORIGINAL_INPUT_CONTROL_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Direct next hypothesis: compare a predeclared lightweight control using original causal indicator inputs against frozen-representation controls on same M5 targets and chronological partitions. Reuse existing input path and normalization. Determine whether useful directional information is discarded by learned representation; do not promote calibration or infer no market signal from these results. Prepare exact new plan before any fit.",
+  "next_action": "One fixed shallow-tree M5S/F control on all genuine current indicator fields across5closedTF, same29574TRAIN/17753laterTRAIN axes and frozen normalization; two256roundfits, no search/earlystopping, zero nativeforwards.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1632,7 +1632,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Full direction readout diagnosis complete; original-input control is next directly relevant hypothesis.",
+    "current_activity": "Original-input M5 control admitted, CPU-only, fixed two tree fits.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1662,7 +1662,7 @@
     "existing_indicator_surface_changed": false,
     "training_started": true,
     "latest_terminal_role": "Actual private M5 convex readout terminal:four convergedfits on frozenfullTRAIN, laterTRAINscoreonly,zero nativeforwards.",
-    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_CONVEX_M5_20261108_001",
+    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_INPUT_CONTROL_20261108_001",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_CONVEX_M5_20261108_001/TERMINAL.json",
       "sha256": "0c99b31b44acce3221f2deaddeaab5259ddf8a4c6aff6d5754bf861cc21f43c6"
@@ -40143,7 +40143,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "NONE_DIRECTION_DIAGNOSTICS_CONSUMED",
+  "training_enabled_scope": "market_state_ta_direction_input_control_20261108_001",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -66262,7 +66262,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "FullTRAIN/laterTRAIN cache exact; four convexM5fits converged in4.615s, zero newforwards. Measured large UPmiscalibration and reversedS ranking; flexible frozenreadouts fitTRAIN but fail to beat laterprior. Root cause of whole training path and native correction remain unresolved. Userasked foradifferentcleverapproach; original-input lightweight control is nextcandidate, notyetadmitted."
+    "latest_progress": "Original-input control admitted to test measured representation/generalization gap. All current genuine fields retained atlatestclosedTF, full sequence history explicitly outside this diagnostic; mainmodel unchanged."
   },
   "market_state_ta_direction_weight_diagnostic_20261108_001": {
     "status": "COMPLETE_CONSUMED",
@@ -66693,5 +66693,30 @@
       }
     },
     "finding": "Allfourfits converged. Native M5 is strongly UP-biased; S original rank reversed onTRAIN andlaterTRAIN. TRAIN-onlyaffinecalibration sharplyreduces loss, S laterBrier .249662 vsprior .249828, F .250001 vsprior .249833. Full128D readouts improveTRAIN but later AUC .505592/.505114 and Brier .253804/.252964; no qualifiedgeneralization gain. Mainmodelunchanged."
+  },
+  "market_state_ta_direction_input_control_20261108_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_INPUT_CONTROL_20261108_001/PLAN.json",
+      "sha256": "3164f8c317ecfb74f00f0bcd99318594b76b89b5645e1d67f3c614efdca289b2"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "training_authorized": true,
+    "tree_fits": 2,
+    "feature_batches": 2959,
+    "new_native_forwards": 0,
+    "relaunch_allowed": false,
+    "test_data_used": false,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "wall_seconds": 1800,
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_INPUT_CONTROL_20261108_001/PREFLIGHT_FINAL.log",
+      "sha256": "51f1cc7feb26fdd773e62477adfdf98f403bbab51e4308ef9c49a454be31a5a4"
+    }
   }
 }
