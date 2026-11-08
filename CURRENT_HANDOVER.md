@@ -15,39 +15,34 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: `LOCAL31_DIAGNOSTIC_ADMITTED_READY_FOR_PREFLIGHT`.
-`training_enabled=false`. Inputaudit 003 er konsumert med faktisk numerisk
-avvik i lokale 31 trendlinjefelt mot uavhengig lokal96-replay etter 1460,6 s.
-Årsaken er ikke avklart: produksjonsfeil og ulikt pris-/ATR-/historikkgrunnlag
-eller orakelsemantikk skal skilles før rettelse. Eksakte avviksceller mangler
-fordi sammenligningsporten stoppet før denne rapporten ble publisert.
-Den separate [inputfasekvitteringen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_20261108_003/INPUT_TENSOR_PHASE.json)
-er komplett innen sitt scope: 47 327 rader, 7 726 606 020 råverdier bitlike,
-null normaliseringsavvik og én faktisk forward med åtte familier/fem TF.
-Den gir uttrykkelig ikke full input-PASS, retningsverdi eller launchmyndighet.
-Ingen priorer eller fullstendig RESULT ble publisert. Alle originale
-`CLAIM/FAILED/TERMINAL` og kjørelogger for 001–003 er bevart; ingen relanseres.
-De tidligere provider-/prefiksfeilene var i den nye auditkoblingen og er rettet.
-16 fokuserte tester med ekte orakeleiere, 10 guard- og 61 modellkontrakttester
-bestod før 003. Neste arbeid er en avgrenset formeldiagnose uten ny fullgather,
-modellforward eller trening; eksisterende tensorbevis skal gjenbrukes.
-Brukeren presiserte at trendlinjers berøring, brudd og vending er sentralt.
-Hendelsesbetinget prediksjonsverdi er en testbar hypotese, ikke et påvist funn.
-Kildesporingen bekrefter ulik initialisering: lokalprodusenten bruker
-M5_ENRICHED fra 2010-06-13 22:00, mens oraklet startet native i 2009.
-Begge bruker float64-HLC og ny Wilder14; lagret float32-ATR brukes ikke.
-Originalproduksjonens relevante kode er byte-/AST-identisk med dagens.
-Dette beviser inputforskjellen, ikke at den alene forklarer tallavviket.
-Ny avgrenset diagnose er implementert med 76 kildeeiere; seks fokuserte
-tester og faktisk metadata-binding består. Ny eksakt plan er innrømmet og
-uklamet: CPU 12 GiB/512 MiB/3600 s, null modeller/targets/gather/normalisering.
-Eksakt lesende preflight må bestå før claim.
+Policystatus: `LOCAL31_SOURCE_MATCH_FULL_INPUT_COMPLETION_PENDING`.
+`training_enabled=false`. Det lokale trendlinjeavviket er avklart:
+den opprinnelige kontrollen brukte native-historikk fra 2009, mens den
+historiske produsenten initialiserte fra M5_ENRICHED i juni 2010.
+Den nye [diagnosen](/home/andre2/GX1_RUNS/MARKET_STATE_LOCAL_TRENDLINE_FORMULA_DIAGNOSTIC_20261108_001/RESULT.json)
+fullførte med `ACTUAL_SOURCE_MATCH`: 47 697 lokale rader × 31 felt,
+1 478 607 sammenligninger, null oracle/cache- og oracle/producer-avvik.
+Produsent/cache er også float32-bitlike. Alle 1 035 124 felles OHLC-/klokkerader
+er bitlike, og ATR-hash på vitner er lik. 2009-referansen avvek i 683 celler;
+ulik state-historikk og absolutt koordinatstart er ikke isolert fra hverandre.
+Ingen produksjonsfeil er bevist. 303,65 s, 2,50 GB topp-RSS, null modeller,
+targets, gather, normalisering eller optimizer. Diagnosen er konsumert.
 
-Trendlinjerepresentasjonen har to nærmeste-linjeplasser uten linje-ID,
-ankre eller byttemarkør; hendelsesfelt kan gjelde andre registerlinjer.
-Nåværende tap har S/F-framtidsmål, men ingen separat fasit/evaluering for
-reaksjonen på samme linje. Dette kan gjøre læringen vanskeligere; effekten
-på presisjon er ikke målt og åpner ikke en utestet modellendring.
+Den separate [inputfasekvitteringen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_20261108_003/INPUT_TENSOR_PHASE.json)
+er komplett innen sitt scope: 47 327 beslutningsrader og alle overlappende
+inputvinduer, 7 726 606 020 råverdier bitlike, null normaliseringsavvik og
+én faktisk forward med åtte familier/fem TF.
+Disse bevisene gjenbrukes. Full inputkvittering og frosne fit-priorer mangler:
+003 stoppet i M5-lokalreplay før de øvrige MTF-historikkgapene ble fullført.
+Alle originale `CLAIM/FAILED/TERMINAL` og logger for input001–003 og
+diagnosen er bevart. Ingen konsumert plan relanseres.
+
+Brukeren presiserte læring av berøring→brudd→retest på samme trendlinje.
+Dagens representasjon har to nærmeste-linjeplasser uten linje-ID, ankere
+eller byttemarkør; hendelsesfelt kan gjelde andre registerlinjer.
+Tapet har S/F-framtidsmål, men ingen separat fasit/evaluering av samme-linje-
+reaksjoner. Dette er en konkret representasjons-/målegrense; effekten på
+prediksjonsevne er ikke målt. Ingen ny modellarkitektur er innført.
 GC-registerplanen er utsatt og uklamet. Juni 2026 er brukt utviklings-VAL;
 forseglet periode følger bare forward-journalregelen i GX1_RULES.md.
 
@@ -88,7 +83,7 @@ forseglet periode følger bare forward-journalregelen i GX1_RULES.md.
   bruker egne 96-barsparametere og kontrolleres separat. Auditen inkluderer
   også 37 HTF/session-felt med eksplisitte asof-/avrundings-/klokkekontroller;
   den nye auditeierens kontroller er utvidet til 16 beståtte tilfeller.
-  Fysisk tensorfase bestod; lokal31-formelsammenligningen stoppet som beskrevet over.
+  Fysisk tensorfase bestod; lokal31 er nå kvalifisert mot faktisk kilde som beskrevet over.
   61 makrofelt har eldre samme-eier-paritet/asof-bevis, ikke et uavhengig
   formelorakel; dette er en uttrykkelig bevisgrense.
    COT i 2024 bruker as-of +7 kalenderdager som tilgjengelighetsproxy.
@@ -257,15 +252,15 @@ markedstilstand, senere Entry-beslutningsverdi eller økonomisk edge er påvist.
 Den enkle tabellmodellens negative retning er ikke en generell dom over GC,
 indikatorene eller native modell.
 
-**Neste steg:** Kjør eksakt lesende preflight, så den ene innrømmede lokale31-
-diagnosen gjennom eksisterende CPU-kapsel.
-Gjenbruk 003s tensorbevis; ingen ny fullgather, normalisering, modell eller mål.
-Mål pris-/klokkeparitet og cache/oracle/produksjon på dokumentert samme grunnlag;
-bevar alle avvikstellinger og eksempler. Ingen toleranse- eller parameterendring.
-Full inputkvalifikasjon må være avklart før nye guarded TA S/F-mekanikk,
-fersk initialbaseline og 29 574-raders ettpass-fit med matchet initial/final
-og senere 17 753-raders TRAIN-score. Ingen kvalifikasjonsvekter brukes i fit.
-Native femfolds generalisering, Entry-verdi og økonomisk edge er ubevist.
+**Neste steg:** Kvalifiser én ny fullføringsstage som binder 003s tensorfase
+og faktisk lokal31-bevis, og kun beregner gjenstående MTF-historikkgap samt
+fit-only S/F-priorer. Ingen ny fullgather, normalisering eller modellforward.
+Forbrukerbinding til ny fullføringskvittering skal bevise uendrede numeriske
+eiere; gamle terminaler endres aldri. Full inputkvalifikasjon må være avklart
+før ny guarded TA S/F-mekanikk, fersk initialbaseline og 29 574-raders ettpass-fit
+med matchet initial/final og senere 17 753-raders TRAIN-score.
+Native femfolds generalisering, samme-linje-reaksjonsverdi, Entry-verdi og
+økonomisk edge er ubevist.
 
 Den tidligere [GC-registerplanen](configs/research/MARKET_STATE_GC_SIDE_MAX_REGISTRY_20261108_001.json)
 forblir bevart, men er utsatt og uklamet etter brukerens nye prioritering.
