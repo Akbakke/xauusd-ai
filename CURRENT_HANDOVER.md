@@ -14,10 +14,11 @@ M5 er prognosetakten; kausalt lukkede M15/H1/H4/D1 og GC/indikatorhistorikk er
 input. Alle fem TF har egne framtidige mål. Entry, Exit, ordre, broker, handel,
 spending og forseglet TEST er stengt.
 
-Policystatus: `GC_SIDE_MAX_BUILD_CLAIMED_TRAINING_CLOSED`.
+Policystatus: `GC_SIDE_MAX_PHYSICAL_COMPLETE_NATIVE_CONSUMPTION_PENDING_TRAINING_CLOSED`.
 `training_enabled=false`; S/F-fire-stegsplanen er fullført og konsumert, og
-Windows-oppgaven er deaktivert. Ny GC-sidevis maksplan er claimet én gang,
-men ikke startet ved denne oppdateringen. Faktisk prosessstatus overstyrer. Ingen tidligere
+Windows-oppgaven er deaktivert. Ny GC-sidevis maksplan er fullført og
+konsumert; ingen tung CURRENT-jobb kjører. Faktisk prosessstatus overstyrer.
+Ingen tidligere
 claimet, fullført eller feilet plan relanseres. Juni 2026 er brukt utviklings-VAL;
 forseglet periode scores bare etter forward-journalregelen i GX1_RULES.md.
 
@@ -103,9 +104,20 @@ forseglet periode scores bare etter forward-journalregelen i GX1_RULES.md.
   `market_state_gc_side_max_source_20261108_001` binder dette kildesteget.
   Ny engangsplan [sidevis GC-bygg](configs/research/NATIVE_GC_SIDE_MAX_RESTORE_20261108_001.json)
   SHA `57c076ffe2797297fa502a6fc32a0f0d38f4f347eaa71c9517e0d9c3b350bd47`
-  er **claimet én gang, ennå ikke kjørt**. Den gjenbruker kvalifiserte
-  råkilder, 66 filer, 1 800 s/4 GiB kapsel og samme byggeeier; tidligere
-  `024`-plan relanseres ikke. Fysisk output og faktisk modellkonsum gjenstår.
+  er kjørt én gang og konsumert. Den gjenbrukte kvalifiserte råkilder og
+  samme byggeeier: 66 filer/892 100 712 poster, 1 603 s under 1 800 s/4 GiB-
+  kapsel. [Terminal](/home/andre2/GX1_RUNS/NATIVE_GC_SIDE_MAX_RESTORE_20261108_001/RESULTS/TERMINAL.json)
+  SHA `664d7b9aca3d969cfd7a72c34f1b5a186d2c37fd1f3a079a0bcacd5446abebd6`.
+  Alle gamle 270 TF-felt er numerisk like på fem TF. Nye sidevise maksverdier
+  har eksakte masker og likhet med maksimum over godkjente M1-minutter;
+  [fysisk kontroll](/home/andre2/GX1_RUNS/NATIVE_GC_SIDE_MAX_RESTORE_20261108_001/PHYSICAL_SIDE_MAX_AUDIT.json)
+  SHA `9cefe83b23b7c02d848308ce756deeb8575205edfb89551478ad740db28c4dcc`,
+  [M1–TF-paritet](/home/andre2/GX1_RUNS/NATIVE_GC_SIDE_MAX_RESTORE_20261108_001/PHYSICAL_SIDE_MAX_M1_TF_PARITY.json)
+  SHA `9bbcaf4bec20cd1e4bc642c8e60b8c4ee0cfd41ccfa2b803d51247a36942d7a0`.
+  På de eksakte 118 249 M5-modellklokkene har 117 541 begge nye felt;
+  [klokkedekning](/home/andre2/GX1_RUNS/NATIVE_GC_SIDE_MAX_RESTORE_20261108_001/MODEL_M5_SIDE_MAX_CLOCK_COVERAGE.json)
+  SHA `3f8fcaa460b5f8e7f90d93cd84c504df914d1717bc1422bb8eb67f676d19289b`.
+  Native register/layout/visning har ennå ikke konsumert de nye feltene.
 
 - **Ny retningsvekt, kun kilde:** På de fem senere TRAIN-foldenes faste
   endepunkter hadde S entydig side i 33–44 % og F i 37–41 % av informative
@@ -149,9 +161,10 @@ indikatorene eller native modell.
 XAU-betydning når de sees sammen med prisrespons og støtte/motstand.
 Råhendelsen har `side` og `size`; kildekandidaten bevarer nå største
 betrodde kjøp/salg separat, men nye fysiske bytes og faktisk modellkonsum
-mangler. Neste steg er lesende oppstart-/hash-/maskinpreflight på den nye planen,
-deretter én ny eksakt capped råreskanning med eksisterende eier, fysisk
-numerisk/klokke-/maskekvalifikasjon og ny native visning. Deretter
+mangler. Den nye fysiske råreskanningen og numerisk/klokke-/maskekvalifikasjon er
+fullført. Neste nødvendige steg er nytt TRAIN-only GC-register og native
+layout/visning på disse immutabelt bundne tabellene, med faktisk modellkonsum,
+foldspesifikk normalisering og fersk baseline. Deretter
 kan én parvis sammenligning av akkurat disse ti feltene mot samme input uten
 dem, eksisterende GC-/strukturflater og fryst prior på senere kronologiske
 TRAIN-rader få en særskilt fit-/OOF-admisjon. Mål aktivitet og betinget side
