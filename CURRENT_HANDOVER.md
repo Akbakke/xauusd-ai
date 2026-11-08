@@ -15,7 +15,7 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: `TA_INPUT_COMPLETE_MECHANICAL_ADMITTED_NO_PREDICTOR_FIT`.
+Policystatus: `TA_SF_ONE_PASS_FIT_ADMITTED_AFTER_INPUT_AND_MECHANICS`.
 [Fullføringen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001/RESULT.json)
 er COMPLETE: 600 ekstra historikkrader × 94 felt = 56 400 sammenligninger,
 null avvik. M5/M15/H1/H4/D1-gapene var 94/63/95/96/252 rader. Alle ni
@@ -33,11 +33,16 @@ Den gamle auditreferansen startet i 2009, mens faktisk produsent startet
 i juni 2010. Ingen produksjonsfeil ble demonstrert; ulike state-historikker
 og absolutte koordinatstarter ble ikke isolert fra hverandre.
 
-Ny TA S/F-mekanikk er avgrenset admitted: første 32 modne fit-rader,
-seks forwards, fire backwards/optimizeroppdateringer, fersk baseline og
-bitlik gjenopptakelse. `training_enabled=true` gjelder bare denne
-tekniske engangsprøven; ekte predictor-fit og full epoke er stengt.
-Forberedelse, fersk Windows-boot og fysisk mekanikk gjenstår.
+Ny [TA S/F-mekanikk](/home/andre2/GX1_RUNS/MARKET_STATE_TA_SF_MECHANICAL_20261108_001/RESULT.json)
+er PASS: 32 modne fit-rader, seks forwards, fire backwards/vektoppdateringer,
+fersk baseline og bitlik gjenopptakelse. 154,96 s, 5,75 GB topp-RSS og
+1,79 GB toppallokert GPU-minne. Trener/observatør/kontroller avsluttet med 0.
+Oppgaven er deaktivert og planen konsumert. Dette er ikke markedspresisjon.
+
+Ny ettpass-fit er admitted: 29 574 modne fit-rader, fersk INITIAL og FINAL
+på hele samme populasjon, og senere 17 753 TRAIN-rader. Maks 1 849 updates
+over inntil fire vaktholdte vinduer. Trening er åpen kun for denne nye planen.
+Kampanjeforberedelse, fersk Windows-boot og faktisk fit gjenstår.
 
 Den separate [inputfasekvitteringen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_20261108_003/INPUT_TENSOR_PHASE.json)
 er komplett innen sitt scope: 47 327 beslutningsrader og alle overlappende
@@ -69,7 +74,7 @@ forseglet periode følger bare forward-journalregelen i GX1_RULES.md.
   før/etter fit, med globale aktivitets-/sidemasker og frosne priorer.
   Senere 17 753 TRAIN-rader scores separat. Gammel initialkvittering
   med null forwards er ikke en læringsmåling. Inputkvalifikasjonen er komplett innen deklarert scope;
-  ny fireoppdateringsmekanikk og faktisk predictor-fit gjenstår.
+  ny fireoppdateringsmekanikk består; faktisk predictor-fit gjenstår.
 
 - **Funksjonsgjennomgang:** EMA bruker SMA-seed og alfa `2/(p+1)`;
   ATR bruker klassisk TR og Wilder14. SMC-pivot blir synlig etter bekreftelse,
@@ -263,17 +268,20 @@ markedstilstand, senere Entry-beslutningsverdi eller økonomisk edge er påvist.
 Den enkle tabellmodellens negative retning er ikke en generell dom over GC,
 indikatorene eller native modell.
 
-**Neste steg:** Materialiser og forhåndskontroller den nye TA S/F-mekanikkens
-eksakte recipe/campaign. Etter maskinvid idle-kontroll kreves bekreftet fersk
-Windows-boot og én guarded prøve. Bare etter faktisk mekanikk-PASS kan ny
-29 574-raders ettpass-fit med fersk, matchet initial/final og senere
-17 753-raders TRAIN-score innrømmes. Inputfullføringen skal ikke gjentas.
+**Neste steg:** Materialiser og forhåndskontroller TA S/F-fitens eksakte
+recipe/campaign. Etter maskinvid idle-kontroll kreves bekreftet fersk
+Windows-boot. Kjør én epoke med full matchet initial/final og senere TRAIN-score.
+Input- og mekanikkprøvene skal ikke gjentas.
+Brukerens spørsmål om 30 epoker og fem år beholdes som åpne hypoteser.
+Dagens fit dekker omtrent mai–september2024, senere score oktober–desember2024.
+Ett kort pass er ingen generell dom over lengre læring eller historikk.
+Ingen slik utvidelse eller etterfølgende utvalg på forseglet TEST er innført.
 Native femfolds generalisering, samme-linje-reaksjonsverdi, Entry-verdi og
 økonomisk edge er ubevist.
 
 Den tidligere [GC-registerplanen](configs/research/MARKET_STATE_GC_SIDE_MAX_REGISTRY_20261108_001.json)
 forblir bevart, men er utsatt og uklamet etter brukerens nye prioritering.
-`training_enabled=true` gjelder kun den nye tekniske mekanikkporten.
+`training_enabled=true` gjelder kun den nye ettpass-fit-porten.
 
 Kilde/metode for denne fasen: [docs/NATIVE_LEARNING.md](docs/NATIVE_LEARNING.md).
 Detaljert historikk og eldre beslutninger: Git, ikke nye arkivmapper her.
