@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Selected 0.5 ATR activity and conservative local side use the corrected five-TF TRAIN mask. The one mature fold1 native time-query v1 fit and later chronological TRAIN OOF lost M5 certified-side Brier to the frozen prior in all 14 weeks; a paired frozen diagnostic found upward miscalibration and the free-three-logit unknown-side objective defect. Factorized v2 model/loss and stable raw-logit scorer now pass source/synthetic checks, and read-only fold1 receipt/v2 view metadata binding passes. Physical v2 zero-step passed direct activity/side gradient mechanics. The exact S/F B16 two-batch private optimizer/resume probe completed four guarded physical updates with bit-exact resume and zero exit codes. It did not fit a predictor or establish GC direction value. All plans are consumed; training_enabled=false. Full fit, generalization, Entry decision value, economics, TEST, Entry, Exit, broker, trading and spending remain closed.",
-  "next_action": "Original F M5 GC LightGBM one-use run remains FAILED and consumed. Read-only recovery of all five target-bound fold predictions found no M5 directional gain against frozen prior in any fold; GC incremental side gain did not pass the prebound week/fold gate, though activity gains did. Do not rerun this tabular recipe or coarse GC sign tables. The guarded four-update S/F optimizer/resume qualification is complete and consumed. Before any predictive fit, audit the observed loss of side-specific largest GC trade size and decide one prebound input hypothesis. Then design one later-TRAIN five-TF native OOF with frozen prior and paired GC ablation; require a separate exact capped admission. No rerun of the private probe. TEST/Entry/Exit/broker/trading/spending closed.",
+  "next_action": "Original F M5 GC LightGBM one-use run remains FAILED and consumed; read-only recovered fold scores showed no directional gain over frozen prior, while activity improved. Native S/F private four-update optimizer/resume probe is complete and consumed. Exact M5 TRAIN GC coverage audit now confirms B/A records on 117541/118249 model rows and a global largest-trade size with no side attribution. Bind one causal side-specific large-trade hypothesis, preserving masks and all five TF; then one separate later-TRAIN native OOF admission with frozen prior and paired GC ablation if the design qualifies. No rerun of consumed probes or coarse GC sign tables. training_enabled=false; TEST/Entry/Exit/broker/trading/spending closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -24297,7 +24297,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-07T01:17:10.229174+00:00",
+  "updated_utc": "2026-11-08T02:42:35.925607+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -64920,5 +64920,25 @@
     "training_started": true,
     "task_disabled_after_completion": true,
     "limitations": "One genuine guarded technical optimizer/resume qualification on 32 earlier TRAIN rows only; no predictor fit, later chronology, GC side value, Entry decision value or economics."
+  },
+  "market_state_gc_side_large_trade_coverage_20261108_001": {
+    "status": "COMPLETE_READ_ONLY_M5_TRAIN_COVERAGE",
+    "decision": "SIDE_INPUT_PRESENT_SIDE_SPECIFIC_LARGEST_TRADE_LOST",
+    "scope": "Exact model-coupled 118249 M5 TRAIN rows and current physical GC trade feature table; no fit, TEST or predictive value claim.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_GC_SIDE_LARGE_TRADE_COVERAGE_20261108_001/RESULT.json",
+      "sha256": "7fdf2adb1138e0d777f85181c59d4272a50c6e832c6391d40ee9519ac684d184"
+    },
+    "counts": {
+      "model_train_rows": 118249,
+      "gc_observed_valid": 117626,
+      "known_buy_and_sell_records": 117541,
+      "global_trade_size_max_finite": 117626,
+      "side_specific_size_max_fields": 0
+    },
+    "interpretation": "Known B/A side information and side-average trade size are available on almost all model-coupled M5 TRAIN rows. The current global largest-trade field has no B/A attribution, so a single large aggressive buy or sell cannot be represented exactly by this statistic. N trades may coexist with B/A.",
+    "next_gate": "Bind one causal, masked, side-specific large-trade candidate across all five TF, with fixed paired later-TRAIN OOF and frozen prior. Any new fit requires a new capped admission; consumed plans stay closed.",
+    "test_data_used": false,
+    "predictor_fit": false
   }
 }

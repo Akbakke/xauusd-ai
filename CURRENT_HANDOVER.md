@@ -81,6 +81,17 @@ forseglet periode scores bare etter forward-journalregelen i GX1_RULES.md.
   ved struktur. [GC-flytreferanse](/home/andre2/GX1_RUNS/MARKET_STATE_GC_FLOW_REFERENCE_20261107_001/RESULT.json)
   SHA `256710c697cba9324cb4635aa323e99f4319ddbd1c418fa54ec549f04fde4946`.
 
+- **GC-side-dekning på faktisk modellakse:** Av 118 249 M5 TRAIN-rader har
+  117 626 gyldig GC-observasjon og global største handelsstørrelse; 117 541
+  har både kjente aggressive kjøps- og salgsregistreringer. Sidevis
+  størrelsesmaske finnes, men ingen sidevis største handel i den fysiske
+  tabellen. Dette er presist informasjonstap for store handler, ikke mangel
+  på GC-side generelt og ikke målt prediktiv verdi. 97 917 rader har også
+  minst én handel med ukjent aggressorside (`N`); det kan sameksistere med
+  kjente kjøp og salg. Kun eksakt M5-modellakse er kontrollert her.
+  [Dekningskvittering](/home/andre2/GX1_RUNS/MARKET_STATE_GC_SIDE_LARGE_TRADE_COVERAGE_20261108_001/RESULT.json)
+  SHA `7fdf2adb1138e0d777f85181c59d4272a50c6e832c6391d40ee9519ac684d184`.
+
 - **Ny retningsvekt, kun kilde:** På de fem senere TRAIN-foldenes faste
   endepunkter hadde S entydig side i 33–44 % og F i 37–41 % av informative
   rader. Det gamle v2-tapet delte sidefeilen på alle informative rader. En
@@ -121,12 +132,10 @@ indikatorene eller native modell.
 
 **Neste ene hypotese:** Store aggressive GC-kjøp/salg kan få annen framtidig
 XAU-betydning når de sees sammen med prisrespons og støtte/motstand.
-Råhendelsen har `side` og `size`, men dagens sammenfatning beholder bare
-største handel uten side; dette konkrete informasjonstapet må kontrolleres
-på eksisterende TRAIN-data før ny input eller fit. Kontroller først hvor ofte
-størrelse, side og dekningsmaske er faktisk observerbare på de modellkoblede
-M5-radene. Bind deretter én kausal sammenligning med og uten presist
-sidevis storhandelssignal, mot eksisterende GC-/strukturflater og fryst prior,
+Råhendelsen har `side` og `size`, mens dagens sammenfatning beholder bare
+største handel uten side. M5-dekningen er nå målt på modellaksen; neste steg
+er å binde én kausal, maskert sidevis storhandelskandidat på alle fem TF og
+én parvis sammenligning mot eksisterende GC-/strukturflater og fryst prior
 på senere kronologiske TRAIN-rader. Den native S/F-ruten kan bare få én egen
 capped fit-/OOF-admisjon etter denne kontrollen. Mål aktivitet og betinget side
 separat på alle fem TF og UTC-uker. Ingen ny grov GC-fortegnstabell,
