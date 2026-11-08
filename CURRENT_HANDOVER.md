@@ -15,15 +15,23 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: `TA_M5_DIRECTION_FROZEN_DECODER_DIAGNOSIS_ADMITTED`.
+Policystatus: `TA_DIRECTION_SHARED_VS_TF_READOUT_COMPARISON_ADMITTED`.
 
 Aktivt brukermål08.11: jobb bare direkte med retning. Første avgrensede
 kontroll er fullført på eksisterende TRAIN-fasit på 1,24 s, uten modellkall.
 M5 global/batchvektet OPP-andel er S 0,518681/0,526853 og F 0,511126/0,515518.
 Denne statiske priorforskjellen alene forklarer ikke det målte Brier-fallet.
-Neste kontroll gjelder retningskonflikt i delte dekoderparametre på frosne
-checkpoints, uten optimizer eller ny fit. Planen binder 16 faktiske batcher,
-246 TRAIN-rader og 32 CPU-enkodinger; bare dekodergradienter beregnes.
+Checkpoint-prøven er COMPLETE: 246 TRAIN-rader, 32 CPU-enkodinger,
+64 dekodergradienter, ingen optimizer, 153,21 s. Sluttmodellens TF-sidekorrelasjon
+er minst 0,998620 for S og 0,999533 for F. På 5/18 rader med kjent motsatt
+M5/D1-fasit ga S/F aldri motsatt side; totalt var det likevel 5/3 motsatte
+prognoser av 246 rader. Total dekodergradient motarbeidet M5 S i 7/16 og F i
+3/16 batcher; aggregert pekte den gunstig. Dette beviser svak TF-differensiering
+og lokal konflikt i utvalget, ikke årsaken til hele treningsresultatet.
+Neste eksakte kontroll fryser backbone/projeksjon og sammenligner delt
+side-readout med fem TF-kloner med identiske startprognoser: 480 private
+oppdateringer per arm, samme 246 TRAIN- og 249 senere TRAIN-rader.
+Ingen hovedmodell eller inputarkitektur endres; dette er en årsakskontrast.
 
 Korrigert TA S/F fold1 er nå **COMPLETE og konsumert**. 256 oppdateringer
 ble gjenbrukt, 1 593 nye fullførte samme pass, totalt 1 849 uten skip.
@@ -343,7 +351,8 @@ Ett pass og én fold er ingen generell dom over lengre læring eller historikk.
 
 Den tidligere [GC-registerplanen](configs/research/MARKET_STATE_GC_SIDE_MAX_REGISTRY_20261108_001.json)
 forblir bevart, men er utsatt og uklamet etter brukerens nye prioritering.
-`training_enabled=false`; begge fitplaner er konsumert.
+`training_enabled=true` gjelder bare den avgrensede private readout-kontrasten;
+begge tidligere native fitplaner er konsumert. Ingen full native fit er åpnet.
 
 Kilde/metode for denne fasen: [docs/NATIVE_LEARNING.md](docs/NATIVE_LEARNING.md).
 Detaljert historikk og eldre beslutninger: Git, ikke nye arkivmapper her.

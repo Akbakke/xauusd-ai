@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-08T20:44:26.086748+00:00",
-  "status": "TA_M5_DIRECTION_FROZEN_DECODER_DIAGNOSIS_ADMITTED",
+  "observed_utc": "2026-11-08T20:55:55.747096+00:00",
+  "status": "TA_DIRECTION_SHARED_VS_TF_READOUT_COMPARISON_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Active user direction-only goal. Exactly one bounded frozen checkpoint decoder diagnosis, zero optimizer updates. Both fit plans consumed; all training flags remain false. No TEST/GC/Entry/Exit/trading.",
-  "next_action": "Probe INITIAL/FINAL frozen decoder on sixteen preselected actual TRAIN batches; measure M5 probabilities and decoder gradient alignment against other directions/activity, without optimizer or model changes.",
+  "rule": "Direction-only private controlled readout comparison: frozen native backbone/projection, two linear side-readout arms,480updates each,32CPUencodings. No full native fit or architecture promotion; TEST/GC/Entry/Exit/trading closed.",
+  "next_action": "Run the exact fixed-budget shared-vs-TF-specific side readout comparison, reuse frozen checkpoint/features and compare same TRAIN/laterTRAIN probability scores against frozen priors; neither arm is a promoted model.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1628,7 +1628,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Frozen INITIAL/FINAL direction decoder diagnosis admitted:32CPU encodings,246 fixedTRAIN rows,zerooptimizer.",
+    "current_activity": "Controlled frozen-representation side-readout fit: sharedvsfiveTFclones, identicalinitialoutputs,480updatesperarm,246TRAIN/249laterTRAINrows.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -18856,7 +18856,7 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "NO_TRAINING_TA_FOLD1_RECOVERY_CONSUMED",
+    "current_training_scope": "market_state_ta_direction_readout_comparison_20261108_001",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -24607,7 +24607,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-08T20:44:26.086748+00:00",
+  "updated_utc": "2026-11-08T20:55:55.747096+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -40135,7 +40135,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "NONE_ALL_CURRENT_TA_PLANS_CONSUMED",
+  "training_enabled_scope": "market_state_ta_direction_readout_comparison_20261108_001",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -64024,8 +64024,8 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "TA_M5_DIRECTION_FROZEN_DECODER_DIAGNOSIS_ADMITTED",
-  "recorded_observed_utc": "2026-11-08T20:44:26.086748+00:00",
+  "recorded_status": "TA_DIRECTION_SHARED_VS_TF_READOUT_COMPARISON_ADMITTED",
+  "recorded_observed_utc": "2026-11-08T20:55:55.747096+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
     "decision": "BLOCK",
@@ -66282,19 +66282,19 @@
     "finding": "M5 global/equal-minibatch UP fractions S .518681/.526853 and F .511126/.515518; static-prior weighting alone adds only .0000668/.0000193 Brier, far below measured final excess .018891/.053054. Temporal optimizer effects and shared-task interactions remain unisolated."
   },
   "market_state_ta_direction_decoder_diagnostic_20261108_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_DECODER_DIAGNOSTIC_20261108_001/PLAN.json",
       "sha256": "a74496093de5ee41f94bf52aea252a1e941b5c11f99026251aabf9596f933496"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "backbone_encodings_authorized": 32,
-    "decoder_gradient_groups_authorized": 4,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "backbone_encodings_authorized": 0,
+    "decoder_gradient_groups_authorized": 0,
     "optimizer_steps_authorized": 0,
     "training_authorized": false,
     "relaunch_allowed": false,
@@ -66303,6 +66303,37 @@
     "wall_seconds": 1800,
     "test_data_used": false,
     "question": "Do other direction/activity decoder gradients oppose M5 S/F direction, and did frozen TRAIN output collapse toward one common side?",
-    "scope_limit": "246 preselected TRAIN observations, eval mode, detached backbone decoder only; no full-network AdamW or generalization claim."
+    "scope_limit": "246 preselected TRAIN observations, eval mode, detached backbone decoder only; no full-network AdamW or generalization claim.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_DECODER_DIAGNOSTIC_20261108_001/RESULT.json",
+      "sha256": "68b4b5c8a72ec20872f96e9a3d09ad05a6731dd600decc64bd2a16a72344bafd"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_DECODER_DIAGNOSTIC_20261108_001/TERMINAL.json",
+      "sha256": "6bb29a79e0974b745eaa3f9535837362e4c0479081caef6f7265cb588f46644c"
+    },
+    "elapsed_seconds": 153.21207870099988,
+    "observed_backbone_encodings": 32,
+    "observed_decoder_gradient_calls": 64,
+    "finding": "Weak final within-head TF differentiation on246fixedTRAINrows: minimum offdiagonal S/F side correlations .998620/.999533. On known oppositeM5/D1 truths predictions opposite0/5S,0/18F; overall opposite5/246S,3/246F. Totaldecodergradient opposes M5 S7/16 F3/16 batches but aggregate aligned; cause of entire fit remains unproved."
+  },
+  "market_state_ta_direction_readout_comparison_20261108_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_READOUT_COMPARISON_20261108_001/PLAN.json",
+      "sha256": "a1c19cc1d81f61847312e068f5a2d458d0fe7c2b5dbf8eaf0bfcfdec75e2f856"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "training_authorized": true,
+    "updates_per_arm": 480,
+    "backbone_encodings_authorized": 32,
+    "native_backbone_updates_authorized": 0,
+    "native_projection_updates_authorized": 0,
+    "relaunch_allowed": false,
+    "test_data_used": false
   }
 }
