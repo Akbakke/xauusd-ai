@@ -15,20 +15,31 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_DIRECTION_ORIGINAL_INPUT_CONTROL_ADMITTED.
+Policystatus: TA_DIRECTION_INPUT_CONTROL_COMPLETE_GENERALIZATION_UNPROVEN.
 
-En ny [kontrollplan](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_INPUT_CONTROL_20261108_001/PLAN.json)
-er innrømmet én gang: to faste LightGBM 4.6.0-modeller, separat M5 S/F.
-Samme 29 574 TRAIN- og 17 753 senere TRAIN-rader/fasit som tidligere.
-Alle genuine aktuelle felt og siste lukkede rad på M5/M15/H1/H4/D1 beholdes:
-1 713 kolonner, sju kategoriske. Eksisterende TRAIN-normalisering gjenbrukes
-uten fit; deklarerte kategorier bevares. Kontrollens input er øyeblikksbilder,
-ikke hovedmodellens fulle sekvenshistorikk. Åtte familier og D1/makro-input
-er bevart i hovedmodellen; ingen produksjonsmodell eller targetkode endres.
-To ganger 256 faste, grunne trær; én CPU-tråd, 12 GB, 1 800 s tak.
-Ingen hyperparametersøk, tidlig valg på senere TRAIN eller nye native forwards.
-Metadata-/importpreflight og syntetisk normaliserings-/kategorikontroll består.
-Dette skal teste om nyttig M5-retning finnes i input som hovedmodellen mister.
+Kontrollen på [opprinnelige indikatorinput](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_INPUT_CONTROL_20261108_001/RESULT.json)
+er COMPLETE og konsumert. 1 713 kolonner med alle genuine aktuelle felt og
+siste lukkede M5/M15/H1/H4/D1-rad, samme frosne TRAIN-normalisering og samme
+29 574 TRAIN-/17 753 senere TRAIN-rader. To faste LightGBM-modeller à256
+grunne trær, ingen søk/early stopping, null nye native forwards/modeller.
+Total 634,710 s; inputklargjøring 603,492 s, begge fit/score samlet25,868 s.
+Inputcache og private modeller er bevart. Ingen hovedmodellendring.
+
+M5 S: TRAIN/senere AUC 0,788409/0,510227; senere Brier0,254091 mot prior0,249828.
+M5 F: TRAIN/senere AUC 0,769324/0,509349; senere Brier0,253952 mot prior0,249833.
+Alle lagrede tellinger, Brier/log, gjennomsnitt og AUC er rekalkulert med
+eksakt null avvik. De største TRAIN-gain-bidragene omfatter prisposisjon,
+ATR-normalisert candle-geometri, EMA, trendlinje-/BOS-aldre og volatilitet.
+De fleste av disse holder seg innen tidligere min/max senere i tid.
+Dette er deskriptivt; verken feature-gain eller range-drift etablerer årsak.
+Kontrollen svekker en ren representasjonsforklaring, men utelukker ikke verdi
+i lengre historikk, andre tidsperioder eller modeller. Økonomisk edge er ukjent.
+
+Brukeren er spurt om hovedmålet er neste 5-minutters bevegelse, en lengre
+markedsreaksjon vurdert hvert 5.minutt, eller separate mål for begge.
+Det skiller prognosetakt fra forventet reaksjonshorisont. Ingen target- eller
+hovedmodellendring gjøres på grunnlag av en antagelse; gjeldende M5-fasit
+og alle øvrige TF-mål er bevart. Retningsmålet er aktivt, ny fit er stengt.
 
 Full frossen FINAL-utlesning er COMPLETE og konsumert: 29 574 TRAIN-rader
 og 17 753 senere TRAIN-rader, 2 959 enkodinger, null backward/optimizer.
@@ -60,7 +71,7 @@ er kontrollert separat mot cache, eksakt null måleavvik, ingen ny fit.
 Brukeren ba om en annen smart angrepsvinkel. Neste direkte hypotese er en
 liten kontrollmodell på de opprinnelige kausale indikatorinputene, med samme
 M5-mål og kronologiske perioder. Den kan skille informasjonsmangel i input
-fra informasjon som går tapt i den lærte representasjonen. Dette er nå bundet til planen ovenfor. Ingen promotering er tillatt.
+fra informasjon som går tapt i den lærte representasjonen. Kontrollen er nå fullført som beskrevet ovenfor. Ingen promotering er tillatt.
 
 Aktivt brukermål08.11: jobb bare direkte med retning. Første avgrensede
 kontroll er fullført på eksisterende TRAIN-fasit på 1,24 s, uten modellkall.
@@ -395,18 +406,18 @@ historiske publisering og vintage er fortsatt UNKNOWN.
 **Neste steg:** Avklar retningsinformasjon og readout-konvergens på hele det
 eksisterende TRAIN-prefikset og senere TRAIN før en hovedmodellendring.
 Den lille kontrasten er for snever til å kvalifisere generalisering.
-Kjør den ene innrømmede kontrollen på opprinnelige indikatorinput.
-Vurder samme TRAIN/senere TRAIN mot de frosne priorene og tidligere readouts.
-Målet er aktivt; ingen hovedmodellendring eller promotering er innrømmet.
+Avklar brukerens primære retningshorisont før neste kostbare treningsdesign.
+Gjenbruk ferdige input-/representasjonscacher og checkpoints. M5-tapet er
+målt, men full årsaksforklaring og kvalifisert senere forbedring mangler.
+Målet er aktivt; ingen hovedmodellendring, ny fit eller promotering er innrømmet.
 Brukerens spørsmål om 30 epoker og fem år er fortsatt åpne hypoteser.
 Denne fitten dekker omtrent mai–september2024, senere score oktober–desember2024.
 Ett pass og én fold er ingen generell dom over lengre læring eller historikk.
 
 Den tidligere [GC-registerplanen](configs/research/MARKET_STATE_GC_SIDE_MAX_REGISTRY_20261108_001.json)
 forblir bevart, men er utsatt og uklamet etter brukerens nye prioritering.
-`training_enabled=true` gjelder kun den nye input-kontrollplanen. Alle
-tidligere retningsdiagnoser, den konvekse M5-planen, cacheplanen og native
-fitplanene er konsumert.
+`training_enabled=false`; alle retningsdiagnoser, input-kontrollen,
+den konvekse M5-planen, cacheplanen og native fitplanene er konsumert.
 
 Kilde/metode for denne fasen: [docs/NATIVE_LEARNING.md](docs/NATIVE_LEARNING.md).
 Detaljert historikk og eldre beslutninger: Git, ikke nye arkivmapper her.
