@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-08T13:25:29.845700+00:00",
-  "status": "TA_NATIVE_INPUT_ADMITTED_READY_FOR_ONE_EXECUTION",
+  "status": "TA_NATIVE_INPUT_001_FAILED_CONSUMED_MINIMAL_PROVIDER_REPAIR",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Selected 0.5 ATR activity and conservative local side use the corrected five-TF TRAIN mask. The one mature fold1 native time-query v1 fit and later chronological TRAIN OOF lost M5 certified-side Brier to the frozen prior in all 14 weeks; a paired frozen diagnostic found upward miscalibration and the free-three-logit unknown-side objective defect. Factorized v2 model/loss and stable raw-logit scorer now pass source/synthetic checks, and read-only fold1 receipt/v2 view metadata binding passes. Physical v2 zero-step passed direct activity/side gradient mechanics. The exact S/F B16 two-batch private optimizer/resume probe completed four guarded physical updates with bit-exact resume and zero exit codes. It did not fit a predictor or establish GC direction value. All plans are consumed; training_enabled=false. Full fit, generalization, Entry decision value, economics, TEST, Entry, Exit, broker, trading and spending remain closed.",
-  "next_action": "Consume the newly admitted exact TA input audit once through capped CPU producer12G/512M/3600s after startup rechecks. Preserve source and policy while it runs. One genuine backbone forward, zero optimizer updates; review terminal and all field results before a new separate guarded TA S/F mechanical admission.",
+  "next_action": "Qualify the minimal provider-owned validation bookend repair and prepare a new exact TA input audit002. Never relaunch consumed001. No predictor training is enabled.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1624,7 +1624,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Exact TA input startup/receipt/view preflight passed for all73 source owners and actual checkpoint identity; two synthetic success/failure reporting checks passed. One bounded CPU input audit is ready but unclaimed; native training remains closed.",
+    "current_activity": "Repair the observed input-audit provider/snapshot interface and qualify new input audit002.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1677,7 +1677,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Complete new physical input/history/formula audit, then fresh guarded S/F initial/backward/AdamW/resume qualification and mature fold1 matched initial/final plus later TRAIN score. Full initial-evaluation runtime remains unmeasured. Macro61 has historical parity/as-of evidence, not an independent formula engine.",
+    "current_blocker": "Input001 failed after 83.8 seconds before audit_inputs/model; unrelated campaign verification scope was empty. New002 qualification required.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -21748,7 +21748,7 @@
       }
     },
     "ta_native_candidate_20261108": {
-      "status": "PHYSICAL_INPUT_AUDIT_READY_NOT_CLAIMED",
+      "status": "INPUT001_FAILED_CONSUMED_BEFORE_MODEL_NEW002_PREPARATION",
       "profile": "full_xau_ta_mtf_entry_research_v1",
       "physical_widths": {
         "signal": 315,
@@ -21780,7 +21780,7 @@
       "calendar_regression_fixed": true,
       "bound_calendar_dates_verified": 9000,
       "changed_availability_on_bound_history_through_2024": 0,
-      "physical_audit_admitted": true,
+      "physical_audit_admitted": false,
       "mechanical_qualification_admitted": false,
       "predictor_fit_admitted": false,
       "test_data_used": false,
@@ -21824,6 +21824,23 @@
       "read_only_preflight": {
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SOURCE_QUALIFICATION_20261108_001/INPUT_PREFLIGHT.json",
         "sha256": "206a88f6dd1f4041e0278350b1fc83aff6aa749ae5df7da9a439a3b428233677"
+      },
+      "input_audit_failure": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_20261108_001/FAILED.json",
+        "sha256": "0f98e2d130a68b9facfe28e38669bf056b4314b70dbf1342254d2e490f87c43f"
+      },
+      "input_audit_terminal": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_20261108_001/TERMINAL.json",
+        "sha256": "3f6c3a877c8f13464b3d980d7bd43388efddcdf16eee43800c2164d30342da2f"
+      },
+      "provider_integration_repair_tests": {
+        "passed": 14,
+        "evidence": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SOURCE_QUALIFICATION_20261108_001/gx1_ta_provider_repair_20261108.log",
+          "sha256": "e50ef890c5493c9672ca693c37e88cdf222f910754125c1e3117cb27088ef159"
+        },
+        "real_provider_has_no_campaign_scope": true,
+        "payload_identity_change_rejected": true
       }
     }
   },
@@ -24389,7 +24406,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-08T13:31:45.753423+00:00",
+  "updated_utc": "2026-11-08T13:48:08.892732+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -65217,8 +65234,8 @@
     ]
   },
   "market_state_ta_native_input_20261108_001": {
-    "status": "ADMITTED",
-    "decision": "ADMITTED",
+    "status": "FAILED_CONSUMED",
+    "decision": "FAILED_CONSUMED",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_NATIVE_INPUT_20261108_001.json",
       "sha256": "be98ab3bd28391ee588441c2d63b24837d63105ec56df75f00e8e6abe5a62b6e"
@@ -65227,9 +65244,9 @@
       "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/verify_market_state_ta_native_input_path_v1.py",
       "sha256": "6523d5d9889b832101087e6a61bf1414df089c145a4c53f8b58e47b9fd7d56af"
     },
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "endpoint_prior_fit_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "endpoint_prior_fit_authorized": false,
     "model_constructions_authorized": 1,
     "model_forwards_authorized": 1,
     "backward_calls_authorized": 0,
@@ -65241,8 +65258,8 @@
     "spending_allowed": false,
     "relaunch_allowed": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_20261108_001",
     "memory_max": "12G",
     "swap_max": "512M",
@@ -65258,6 +65275,26 @@
     "read_only_preflight": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SOURCE_QUALIFICATION_20261108_001/INPUT_PREFLIGHT.json",
       "sha256": "206a88f6dd1f4041e0278350b1fc83aff6aa749ae5df7da9a439a3b428233677"
-    }
+    },
+    "successful_invocations": 0,
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_20261108_001/CLAIM.json",
+      "sha256": "d9ad993888d352aed4f7bd6c30603be9a1b1948a1656eb4ce518b026bc04bbe8"
+    },
+    "failure": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_20261108_001/FAILED.json",
+      "sha256": "0f98e2d130a68b9facfe28e38669bf056b4314b70dbf1342254d2e490f87c43f"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_20261108_001/TERMINAL.json",
+      "sha256": "3f6c3a877c8f13464b3d980d7bd43388efddcdf16eee43800c2164d30342da2f"
+    },
+    "execution_log": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_20261108_001/EXECUTION.log",
+      "sha256": "9ae61ec2cfc73da05dde6785e5c6dc02b26197d3d7b633f9d2b764369b1d5420"
+    },
+    "observed_model_forwards": 0,
+    "observed_optimizer_steps": 0,
+    "error": "Unrelated campaign snapshot scope was empty after provider-owned input validation; failure before audit_inputs/model construction. Preserve consumed plan."
   }
 }

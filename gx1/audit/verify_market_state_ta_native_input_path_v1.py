@@ -865,13 +865,28 @@ def inspect(plan_ref, *, require_policy):
     return plan, policy_ref, head, receipts, view
 
 
+def _provider_integrity_metadata(provider, provider_plan):
+    "Use the bound provider's own metadata/immutable-reuse contract."
+    info = provider.validate_metadata(provider_plan)
+    return {'metadata_sha_files': len(info['metadata']),
+        'payload_stat_files': len(provider_plan['payloads']),
+        'readonly_reused_decode_files': len(info['reuse']['scratch_files']),
+        'verification_owner': 'provider264.validate_metadata',
+        'local_decode_scope': 'completed historical decode provenance plus exact dev/inode/mode/size/mtime/ctime; no fresh mmap body SHA',
+        'metadata_or_stat_checks_are_not_fresh_payload_hashes': True}
+
+
 def preflight(plan_ref):
+    from gx1.audit import qualify_market_state_mature_prefix_normalization_v1 as mature
     plan, _, head, receipts, view = inspect(plan_ref, require_policy=False)
+    provider = mature._provider_module()
+    integrity = _provider_integrity_metadata(provider, receipts['provider_chain']['provider_plan'])
     return {'status': 'READY_NO_CLAIM_NO_FEATURE_PAYLOAD_NO_MODEL',
             'plan': plan_ref, 'source_head': head, 'source_owners_checked': len(plan['source_owners']),
             'candidate_view': plan['inputs']['candidate_view'],
             'candidate_view_sha256': view['contract_sha256'], 'audit_scope': audit_scope(),
             'historical_lineage': receipts['historical_lineage'],
+            'provider_integrity_metadata': integrity,
             'endpoint_priors_fit_partition': 'mature_fold1_fit_only',
             'feature_payloads_read': False, 'model_constructions': 0,
             'model_forwards': 0, 'optimizer_steps': 0, 'test_data_used': False}
@@ -884,7 +899,6 @@ def run(plan_ref):
     import signal
     from gx1.audit import verify_market_state_time_query_zero_step_v1 as zero
     from gx1.audit import qualify_market_state_mature_prefix_normalization_v1 as mature
-    from gx1.contracts import local_random_access_campaign_v2 as campaign
     from gx1.contracts import market_state_five_endpoint_target_binding_v1 as state
     from gx1.contracts import market_state_future_displacement_candidate_v1 as future
     from gx1.contracts import market_state_time_query_native_F_objective_v1 as objective
@@ -906,7 +920,7 @@ def run(plan_ref):
         item = zero._write(OUT_ROOT, name, value, limit=plan['max_json_bytes'])
         published_bytes += size
         return item
-    provider = prepared = None
+    provider = provider_plan = prepared = None
     from gx1.audit.verify_market_state_remaining_mtf_numeric_v1 import TERMINAL_RESERVE_SECONDS
     remaining = WALL_SECONDS - TERMINAL_RESERVE_SECONDS - (time.monotonic() - began)
     need(remaining > 0., 'PRECLAIM_WALL_BUDGET')
@@ -921,12 +935,11 @@ def run(plan_ref):
     signal.setitimer(signal.ITIMER_REAL, remaining)
     try:
         setup = time.monotonic()
-        with campaign.fresh_file_verification_scope():
-            provider, _, prepared, fit_rows, issues = runner._prepared_fold1(receipts, view, np=np)
-            snapshot = campaign.capture_verified_file_snapshot()
+        # _prepared_fold1 validates provider metadata before opening inputs;
+        # its provider uses independent ref/stat owners, not campaign's memo.
+        provider, provider_plan, prepared, fit_rows, issues = runner._prepared_fold1(receipts, view, np=np)
         setup_seconds = time.monotonic() - setup
         measurement = audit_inputs(plan=plan, receipts=receipts, view=view, prepared=prepared)
-        snapshot.require_unchanged()
         # This separate reference fit never enters model.forward and has no
         # access to score outcomes through its exact fit-only gather call.
         state_bound = state.load_bound_five_endpoint_targets()
@@ -936,7 +949,7 @@ def run(plan_ref):
         need(priors['fit_rows'] == fold.FIT_ROWS
              and priors['fit_parent_rows_sha256'] == axis_sha(fit_rows)
              and priors['fit_decision_ns_sha256'] == axis_sha(issues), 'ENDPOINT_PRIOR_FIT_AXIS')
-        snapshot.require_unchanged()
+        integrity = _provider_integrity_metadata(provider, provider_plan)
         mature._release_pages(provider, prepared)
         prepared = None
         need(zero._clean_head() == head and zero._sha(PLAN_PATH) == plan_ref['sha256']
@@ -950,7 +963,11 @@ def run(plan_ref):
             'source_head': head, 'source_owners': plan['source_owners'],
             'candidate_view': plan['inputs']['candidate_view'], 'endpoint_priors': priors_ref,
             'input_audit': measurement, 'cap': cap, 'input_setup_seconds': setup_seconds,
-            'verified_payload_files': snapshot.file_count,
+            'input_integrity': {'provider_metadata_bookend': integrity,
+                'provider_metadata_validated_before_prepare_and_after_measurement': True,
+                'axes_archive_and_native_MTF_payloads_fresh_SHA_verified_by_prepare': True,
+                'native_MTF_verification_owner': 'htf_features.load_multi_tf_v4_cache:descriptor_SHA_then_readonly_mmap',
+                'reused_local_decode_fresh_body_hash_claimed': False},
             'elapsed_seconds': time.monotonic() - began,
             'peak_rss_bytes': resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024,
             'model_constructions': 1, 'model_forwards': 1, 'backward_calls': 0,

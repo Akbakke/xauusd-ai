@@ -116,7 +116,7 @@ def _synthetic_publication_run(monkeypatch, tmp_path, *, fail_audit):
     from gx1.audit import verify_market_state_time_query_zero_step_v1 as zero
     from gx1.audit import qualify_market_state_mature_prefix_normalization_v1 as mature
     from gx1.contracts import gx1_capped_execution_v1 as caps
-    from gx1.contracts import local_random_access_campaign_v2 as campaign
+    from types import SimpleNamespace
     from gx1.contracts import market_state_five_endpoint_target_binding_v1 as state
     from gx1.contracts import market_state_future_displacement_candidate_v1 as future
     from gx1.contracts import market_state_time_query_native_F_objective_v1 as objective
@@ -128,6 +128,11 @@ def _synthetic_publication_run(monkeypatch, tmp_path, *, fail_audit):
     repo = tmp_path / 'repo'; repo.mkdir()
     source = repo / 'owner.py'; source.write_text('# synthetic owner\n')
     payload = tmp_path / 'input.bin'; payload.write_bytes(b'synthetic input only\n')
+    payload.chmod(0o444)
+    def payload_identity():
+        value = payload.stat()
+        return tuple(getattr(value, name) for name in ('st_dev', 'st_ino', 'st_mode', 'st_size', 'st_mtime_ns', 'st_ctime_ns'))
+    original_payload_identity = payload_identity()
     plan_path = tmp_path / 'PLAN.json'; plan_path.write_text('{"synthetic":true}\n')
     policy_path = tmp_path / 'POLICY.json'; policy_path.write_text('{"synthetic":true}\n')
     candidate = out / 'CANDIDATE_VIEW.json'; candidate.write_text('{"synthetic":true}\n')
@@ -135,24 +140,35 @@ def _synthetic_publication_run(monkeypatch, tmp_path, *, fail_audit):
     plan = {'inputs': {'candidate_view': ref(candidate)},
             'source_owners': {'owner.py': ref(source)['sha256']}, 'max_json_bytes': 1024 * 1024}
     head = 'a' * 40
-    receipts, view, prepared = {'synthetic': True}, {'contract_sha256': 'b' * 64}, {'synthetic': True}
-    provider, state_bound, future_bound = object(), object(), object()
+    provider_plan = {'payloads': {str(payload): {'stat': original_payload_identity}}}
+    receipts = {'provider_chain': {'provider_plan': provider_plan}, 'historical_lineage': {'synthetic': True}}
+    view, prepared = {'contract_sha256': 'b' * 64}, {'synthetic': True}
+    state_bound, future_bound = object(), object()
     rows = np.arange(audit.fold.FIT_ROWS, dtype=np.int64)
     issues = rows * 300_000_000_000 + 1714521900000000000
-    calls = {'prepared': 0, 'audit': 0, 'target_loads': 0, 'prior_fit': 0, 'release': 0}
+    calls = {'metadata': 0, 'prepared': 0, 'audit': 0, 'target_loads': 0, 'prior_fit': 0, 'release': 0}
     measurement = {'synthetic_input_audit': True}
     priors = {'synthetic_endpoint_priors': True, 'fit_rows': len(rows),
               'fit_parent_rows_sha256': audit.axis_sha(rows),
               'fit_decision_ns_sha256': audit.axis_sha(issues)}
+    def validate_metadata_stub(got_plan):
+        assert got_plan is provider_plan
+        calls['metadata'] += 1
+        if payload_identity() != original_payload_identity:
+            raise RuntimeError('synthetic provider payload identity changed')
+        assert ref(source)['sha256'] == plan['source_owners']['owner.py']
+        return {'metadata': {str(source): {'ref': ref(source)}},
+                'reuse': {'scratch_files': {str(payload): original_payload_identity}}}
+    provider = SimpleNamespace(validate_metadata=validate_metadata_stub)
     def inspect_stub(got_ref, *, require_policy):
-        assert got_ref == plan_ref and require_policy is True
+        assert got_ref == plan_ref and type(require_policy) is bool
         return plan, policy_ref, head, receipts, view
     def prepared_stub(got_receipts, got_view, *, np):
         assert got_receipts is receipts and got_view is view
         calls['prepared'] += 1
-        # Real scoped hashing/snapshot bookkeeping on a tiny synthetic file.
-        assert campaign.file_sha256(payload) == ref(payload)['sha256']
-        return provider, None, prepared, rows, issues
+        # Match the real provider: own validation, no campaign registration.
+        provider.validate_metadata(provider_plan)
+        return provider, provider_plan, prepared, rows, issues
     def audit_stub(**kwargs):
         assert kwargs == {'plan': plan, 'receipts': receipts, 'view': view, 'prepared': prepared}
         calls['audit'] += 1
@@ -182,7 +198,7 @@ def _synthetic_publication_run(monkeypatch, tmp_path, *, fail_audit):
     monkeypatch.setattr(audit, 'POLICY_PATH', policy_path)
     monkeypatch.setattr(audit, 'inspect', inspect_stub)
     # This is the source-head part of the mocked inspection boundary; all
-    # publication, input snapshot and plan/policy/source/view hashes stay real.
+    # publication, payload stat bookends and plan/policy/source/view hashes stay real.
     monkeypatch.setattr(zero, '_clean_head', lambda: head)
     monkeypatch.setattr(caps, 'require_capped_cpu_research_producer_execution', lambda: dict(audit.LIMITS))
     monkeypatch.setattr(runner, '_prepared_fold1', prepared_stub)
@@ -191,13 +207,14 @@ def _synthetic_publication_run(monkeypatch, tmp_path, *, fail_audit):
     monkeypatch.setattr(future, 'load_bound_future_displacement', future_stub)
     monkeypatch.setattr(objective, 'fit_endpoint_priors', prior_stub)
     monkeypatch.setattr(mature, '_release_pages', release_stub)
+    monkeypatch.setattr(mature, '_provider_module', lambda: provider)
     monkeypatch.setenv('CUDA_VISIBLE_DEVICES', '')
     def read_ref(item):
         from pathlib import Path
         path = Path(item['path'])
         assert ref(path) == item
         return json.loads(path.read_text())
-    return {'out': out, 'plan': plan, 'plan_ref': plan_ref, 'policy_ref': policy_ref,
+    return {'out': out, 'payload': payload, 'plan': plan, 'plan_ref': plan_ref, 'policy_ref': policy_ref,
             'calls': calls, 'measurement': measurement, 'priors': priors,
             'ref': ref, 'read_ref': read_ref}
 
@@ -232,9 +249,15 @@ def test_run_success_publishes_hash_bound_priors_result_and_terminal(monkeypatch
     assert result['candidate_view'] == claim['candidate_view'] == context['plan']['inputs']['candidate_view']
     assert terminal['result'] == published['result'] and terminal['claim'] == result['claim']
     assert result['endpoint_priors'] == terminal['endpoint_priors'] == published['endpoint_priors']
-    assert result['input_audit'] == context['measurement'] and result['verified_payload_files'] == 1
+    assert result['input_audit'] == context['measurement']
+    integrity = result['input_integrity']
+    assert integrity['provider_metadata_bookend']['payload_stat_files'] == 1
+    assert integrity['provider_metadata_bookend']['metadata_sha_files'] == 1
+    assert integrity['provider_metadata_validated_before_prepare_and_after_measurement'] is True
+    assert integrity['reused_local_decode_fresh_body_hash_claimed'] is False
+    assert 'verified_payload_files' not in result
     assert result['source_unchanged'] is True and result['test_data_used'] is False
-    assert context['calls'] == {'prepared': 1, 'audit': 1, 'target_loads': 2, 'prior_fit': 1, 'release': 1}
+    assert context['calls'] == {'metadata': 2, 'prepared': 1, 'audit': 1, 'target_loads': 2, 'prior_fit': 1, 'release': 1}
     assert signal.getitimer(signal.ITIMER_REAL) == (0., 0.) and signal.getsignal(signal.SIGALRM) == alarm
     _assert_consumed_publications_cannot_be_replaced(context)
 
@@ -255,6 +278,37 @@ def test_run_audit_failure_publishes_failed_consumed_without_priors_or_result(mo
     assert terminal['plan'] == failure['plan'] == claim['plan'] == context['plan_ref']
     assert failure['claim'] == terminal['claim']
     assert failure['error_type'] == 'RuntimeError' and failure['error'] == 'injected input audit failure'
-    assert context['calls'] == {'prepared': 1, 'audit': 1, 'target_loads': 0, 'prior_fit': 0, 'release': 1}
+    assert context['calls'] == {'metadata': 1, 'prepared': 1, 'audit': 1, 'target_loads': 0, 'prior_fit': 0, 'release': 1}
     assert signal.getitimer(signal.ITIMER_REAL) == (0., 0.) and signal.getsignal(signal.SIGALRM) == alarm
     _assert_consumed_publications_cannot_be_replaced(context)
+
+
+def test_preflight_validates_provider_metadata_without_campaign_registration_or_payload_setup(monkeypatch, tmp_path):
+    context = _synthetic_publication_run(monkeypatch, tmp_path, fail_audit=False)
+    result = audit.preflight(context['plan_ref'])
+    assert result['status'] == 'READY_NO_CLAIM_NO_FEATURE_PAYLOAD_NO_MODEL'
+    assert result['provider_integrity_metadata']['payload_stat_files'] == 1
+    assert result['provider_integrity_metadata']['metadata_or_stat_checks_are_not_fresh_payload_hashes'] is True
+    assert result['feature_payloads_read'] is False and result['model_constructions'] == 0
+    assert context['calls'] == {'metadata': 1, 'prepared': 0, 'audit': 0, 'target_loads': 0, 'prior_fit': 0, 'release': 0}
+    assert {p.name for p in context['out'].iterdir()} == {'CANDIDATE_VIEW.json'}
+
+
+def test_run_provider_bookend_rejects_changed_payload_before_success_publication(monkeypatch, tmp_path):
+    context = _synthetic_publication_run(monkeypatch, tmp_path, fail_audit=False)
+    initial_audit = audit.audit_inputs
+    def mutate_after_measurement(**kwargs):
+        measurement = initial_audit(**kwargs)
+        context['payload'].chmod(0o644)
+        context['payload'].write_bytes(b'changed synthetic input')
+        return measurement
+    monkeypatch.setattr(audit, 'audit_inputs', mutate_after_measurement)
+    with pytest.raises(RuntimeError, match='synthetic provider payload identity changed'):
+        audit.run(context['plan_ref'])
+    assert {p.name for p in context['out'].iterdir()} == {
+        'CANDIDATE_VIEW.json', 'CLAIM.json', 'FAILED.json', 'TERMINAL.json'}
+    terminal = context['read_ref'](context['ref'](context['out'] / 'TERMINAL.json'))
+    failure = context['read_ref'](terminal['failure'])
+    assert terminal['status'] == 'FAILED_CONSUMED' and terminal['exit_code'] == 1
+    assert failure['error'] == 'synthetic provider payload identity changed'
+    assert context['calls'] == {'metadata': 2, 'prepared': 1, 'audit': 1, 'target_loads': 2, 'prior_fit': 1, 'release': 1}

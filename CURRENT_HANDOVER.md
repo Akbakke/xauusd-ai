@@ -15,15 +15,19 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: `TA_NATIVE_INPUT_ADMITTED_READY_FOR_ONE_EXECUTION`.
-`training_enabled=false`. Ny eksplisitt TA-profil, korrigert S/F-rute og
-mekanisk kandidat er forberedt; fysisk inputkontroll og nye native kjøringer
-er ennå ikke startet.
-Den nye 73-kildebundne inputplanen er innrømmet for én CPU-kjøring
-(12 GiB/512 MiB/3600 s), én forward og null optimizeroppdateringer.
-Eksakt lesende preflight på alle 73 kildeeiere og faktisk view/checkpoint-
-identitet bestod; begge syntetiske rapporteringsgrener bestod. Planen er
-ennå uklamet. Kilde/policy fryses under den ene innrømmede kjøringen. Gamle engangsplaner er konsumert og relanseres ikke.
+Policystatus: `TA_NATIVE_INPUT_001_FAILED_CONSUMED_MINIMAL_PROVIDER_REPAIR`.
+`training_enabled=false`. Inputaudit 001 er konsumert med feil etter 83,8 s,
+før `audit_inputs`, modellkonstruksjon eller forward. Kontrollkoden ba om en
+kampanjesnapshot som providerens egen validering ikke fyller. Dette er en
+orkestreringsfeil, ikke et målt avvik i indikatorverdiene.
+Minste rettelse bruker providerens faktiske metadata-/statkontrakt før og
+etter konsum; ny lesende preflight skal også kontrollere denne grensen.
+Alle 14 fokuserte inputaudit-tester består, inkludert faktisk providergrensesnitt,
+lesende preflight og avvisning av endret payload-identitet.
+Ny eksakt plan 002 forberedes. Original
+`CLAIM/FAILED/TERMINAL` og kjørelogg er bevart i
+`/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_20261108_001`.
+001 skal aldri relanseres. Mekanikk og predictor-fit er ikke innrømmet.
 GC-registerplanen er utsatt og uklamet. Juni 2026 er brukt utviklings-VAL;
 forseglet periode følger bare forward-journalregelen i GX1_RULES.md.
 
@@ -66,6 +70,10 @@ forseglet periode følger bare forward-journalregelen i GX1_RULES.md.
   den nye auditeierens ti fokuserte tester består. Fysisk måling gjenstår.
   61 makrofelt har eldre samme-eier-paritet/asof-bevis, ikke et uavhengig
   formelorakel; dette er en uttrykkelig bevisgrense.
+   COT i 2024 bruker as-of +7 kalenderdager som tilgjengelighetsproxy.
+   Faktiske publiseringstidspunkt og historisk datavintage er ikke kvalifisert
+   per rapport. Ingen konkret 2024-lekkasje er påvist; full historisk
+   tilgjengelighet er UNKNOWN og blir ikke bevist av teknisk input-PASS.
   Tidligere 253-feltsunion 158+31+1+63 og asof/postnorm-bevis gjenbrukes
   bare på deklarerte rader; eldre faktisk konsumert historikk skal også måles.
   [Tidligere kvitteringskontroll](/home/andre2/GX1_RUNS/MARKET_STATE_TA_INPUT_LOSS_REUSE_REVIEW_20261108_001/REVIEW_20261108T120132104946Z.json).
@@ -228,7 +236,7 @@ markedstilstand, senere Entry-beslutningsverdi eller økonomisk edge er påvist.
 Den enkle tabellmodellens negative retning er ikke en generell dom over GC,
 indikatorene eller native modell.
 
-**Neste steg:** Etter oppstartsrecheck, fullfør den nye engangs inputauditen på nøyaktig alle konsumerte
+**Neste steg:** Kvalifiser provider-rettelsen og ny engangsplan 002, deretter inputaudit på nøyaktig alle konsumerte
 fit-/scorevinduer: råverdier, klokker, normalisering, uavhengig formeldekning
 og én faktisk familiehook-forward. Deretter bare ved PASS: ny guarded TA S/F
 fireoppdateringsmekanikk, fersk initialbaseline og 29 574-raders ettpass-fit
