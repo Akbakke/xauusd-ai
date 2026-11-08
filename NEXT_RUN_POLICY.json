@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-08T21:03:46.873871+00:00",
-  "status": "TA_DIRECTION_INPUT_CONTROL_COMPLETE_GENERALIZATION_UNPROVEN",
+  "status": "TA_DIRECTION_EXACT_SHARED_OBJECTIVE_CONTROL_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Clarify intended primary direction horizon: next5minute outcome versus longer market reaction updated every5minutes (userquestion pending). Current tests concern next5minute M5 target; all5TFtargets remain intact. Reuse stored input/representation caches and checkpoints. No promotion or additional fit without exact question/design; native TRAIN calibration failure is measured but complete causal correction and later generalization remain unproved.",
+  "next_action": "Finish the missing full-population converged shared-versus-isolatedM5 head control under unchanged cached pass0 side objective. This does not depend on pending horizon-priority clarification and changes no target/nativecode. Six private fits, zero nativeforwards; compare matchedTRAIN andlaterTRAIN toprior.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1632,7 +1632,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Original-input direction control complete; primary horizon clarification pending before next training design.",
+    "current_activity": "Exact frozen full-population shared-head mechanism control admitted; primary horizon question remains open.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1662,7 +1662,7 @@
     "existing_indicator_surface_changed": false,
     "training_started": true,
     "latest_terminal_role": "Actual original-indicator M5 tree control terminal:two fixed fits on matched TRAIN, laterTRAINscoreonly;zero nativeforwards.",
-    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_INPUT_CONTROL_20261108_001",
+    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_SHARED_OBJECTIVE_20261108_001",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_INPUT_CONTROL_20261108_001/TERMINAL.json",
       "sha256": "f003f75c9e3043c392618cf7f1f24f581c0b9631b13d0462a30cc128cef2f86f"
@@ -40143,7 +40143,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "NONE_DIRECTION_DIAGNOSTICS_CONSUMED",
+  "training_enabled_scope": "market_state_ta_direction_shared_objective_20261108_001",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -66262,7 +66262,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "Original-input control COMPLETE in634.710s; 2fixed256treefits, zero nativeforwards. Later direction remains unqualified; this weakens representation-only explanation. Exact score verification0error. User intent question pending to distinguish M5 issuance cadence from intended reaction horizon before further costly training."
+    "latest_progress": "While horizon priority is pending, complete an independent missing control: exact existing batch weights, converged shared-all versus isolated-M5 readouts at frozenFINALrepresentation. Earlier fullM5convex fits did not include a converged shared-head control; earlier sharedA/B was only246rows/480AdamWupdates."
   },
   "market_state_ta_direction_weight_diagnostic_20261108_001": {
     "status": "COMPLETE_CONSUMED",
@@ -66973,5 +66973,30 @@
       }
     },
     "finding": "Original-indicator snapshot control learns TRAIN (S/F AUC .788409/.769324), laterTRAIN .510227/.509349; Brier .254091/.253952 worse than frozen priors .249828/.249833. Used geometry/EMA/SMC and volatility fields, not only pricelevel. Range drift among most influential fields generally small; no sole cause established. No native model change."
+  },
+  "market_state_ta_direction_shared_objective_20261108_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_SHARED_OBJECTIVE_20261108_001/PLAN.json",
+      "sha256": "c99f976239abdf6142f64ad68b8a6a626e8439add64e3f4bb61d7326fa76a9a9"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_authorized": true,
+    "training_authorized": true,
+    "data_reads_authorized": true,
+    "readout_fits": 6,
+    "new_native_forwards": 0,
+    "new_native_parameter_updates": 0,
+    "test_data_used": false,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "wall_seconds": 900,
+    "synthetic_check": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_SHARED_OBJECTIVE_20261108_001/SYNTHETIC_CHECK.log",
+      "sha256": "b477441701a0722adce3ae3f3efb0211378f92d952279a5c9ce39f81fcd49211"
+    }
   }
 }
