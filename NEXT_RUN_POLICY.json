@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-08T01:06:49.186581+00:00",
-  "status": "F_M5_GC_ABLATION_FAILED_BOOKEND_REVIEW_PENDING",
+  "observed_utc": "2026-11-08T01:09:46.666993+00:00",
+  "status": "F_M5_GC_FAILED_RECOVERED_DIAGNOSTIC_NO_SIDE_GATE",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Selected 0.5 ATR activity and conservative local side use the corrected five-TF TRAIN mask. The one mature fold1 native time-query v1 fit and later chronological TRAIN OOF lost M5 certified-side Brier to the frozen prior in all 14 weeks; a paired frozen diagnostic found upward miscalibration and the free-three-logit unknown-side objective defect. Factorized v2 model/loss and stable raw-logit scorer now pass source/synthetic checks, and read-only fold1 receipt/v2 view metadata binding passes. Physical v2 zero-step on two TRAIN rows passed direct activity/side gradient mechanics; target-role clarification, genuine optimizer/resume, fit, generalization, Entry decision value and economics are unqualified. training_enabled=false; consumed plans do not authorize new runs. TEST, Entry, Exit, broker, trading and spending remain closed.",
-  "next_action": "The one-use fixed 20-fit CPU F M5 GC ablation reached all five fold artifacts but FAILED at a source bookend because the local source-head variable was overwritten by the final model-head loop. Do not relaunch. Keep training_enabled=false. Perform a separate read-only hash- and target-bound independent review of the existing five fold predictions/weights, including prebound UTC-week confidence and coverage; report them as recovered descriptive evidence, never a COMPLETE original run. Then decide whether a new native S/F fit hypothesis remains justified. TEST/Entry/Exit/broker/trading/spending closed.",
+  "next_action": "Original F M5 GC LightGBM one-use run remains FAILED and consumed. Read-only recovery of all five target-bound fold predictions found no M5 directional gain against frozen prior in any fold; GC incremental side gain did not pass the prebound week/fold gate, though activity gains did. Do not rerun this tabular recipe or coarse GC sign tables. Retain native S/F hypothesis only as unproven temporal-model research: prebind a direction-sensitive loss weight, exact checkpoint/resume route and paired five-TF later-TRAIN OOF with GC ablation before any new fit. training_enabled=false; TEST/Entry/Exit/broker/trading/spending closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -64509,6 +64509,61 @@
         "sha256": "dba355d0693ab0d67bde781b2907e8dc2f11a9ec294c45d1f3ce1b22e274b327"
       }
     ],
-    "limitation": "FAILED terminal is never promoted to COMPLETE; fold artifacts only support separate read-only descriptive review; no relaunch or new fit authority."
+    "limitation": "FAILED terminal is never promoted to COMPLETE; fold artifacts only support separate read-only descriptive review; no relaunch or new fit authority.",
+    "read_only_recovered_diagnostic": {
+      "original_terminal_status": "FAILED",
+      "original_result_exists": false,
+      "source_bug": "run local head loop variable shadowed source HEAD at final source_bookend; original source at commit 51ad5103f284f7865755d1ae8ffdfac13915776a; no relaunch",
+      "source_bug_fix_current_sha256": "d997bf4ef3dd919da736d26ddcb2d70b165a540fc974c291de6d55381e3d4cd5",
+      "review": "All five FOLD refs from FAILED verified; 20 model weight refs and five prediction refs hash-verified; score axes and F target rebound; Brier sums recomputed from stored predictions; 70 UTC weeks and 2000 within-fold week bootstrap replicates using seed 20261108.",
+      "scope": "descriptive_recovery_only_not_COMPLETE_campaign_or_native_model_edge",
+      "conditional_side": {
+        "count": 34760,
+        "prior_brier": 0.249755421,
+        "full_brier": 0.250705491,
+        "without_gc_brier": 0.25082092,
+        "prior_minus_full": -0.000950070251,
+        "prior_minus_full_positive_folds": 0,
+        "prior_minus_full_95_ci": [
+          -0.001371366992,
+          -0.000509601902
+        ],
+        "without_gc_minus_full": 0.000115428542,
+        "without_gc_minus_full_positive_folds": 3,
+        "without_gc_minus_full_95_ci": [
+          -0.000182973284,
+          0.000425083078
+        ],
+        "direction_gate_passed": false,
+        "gc_direction_increment_gate_passed": false
+      },
+      "activity": {
+        "count": 88397,
+        "prior_brier": 0.238637134,
+        "full_brier": 0.230894237,
+        "without_gc_brier": 0.231863137,
+        "prior_minus_full": 0.007742896618,
+        "prior_minus_full_positive_folds": 5,
+        "prior_minus_full_95_ci": [
+          0.007128375696,
+          0.008350208849
+        ],
+        "without_gc_minus_full": 0.000968899864,
+        "without_gc_minus_full_positive_folds": 5,
+        "without_gc_minus_full_95_ci": [
+          0.00076192767,
+          0.001177076438
+        ]
+      },
+      "gain_importance_descriptive_only": {
+        "direction_gc_share": 0.3279,
+        "direction_trade_size_share": 0.0379,
+        "activity_gc_share": 0.3041,
+        "activity_trade_size_share": 0.0129,
+        "not_causal_or_added_value": true
+      },
+      "test_data_used": false,
+      "native_model_trained": false
+    }
   }
 }

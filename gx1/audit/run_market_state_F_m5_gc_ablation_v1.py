@@ -361,15 +361,15 @@ def run(plan_ref: dict) -> dict:
                 names = [view.feature_names[j] for j in cols]
                 categories = [i for i, j in enumerate(cols) if int(j) in category_map]
                 need(len(categories) == len(view.categorical), 'CATEGORICAL_ABLATION')
-                for j, (head, mask_key, label_key) in enumerate((
+                for j, (head_name, mask_key, label_key) in enumerate((
                     ('activity', 'activity_mask', 'activity_label'),
                     ('conditional_side', 'certified_side_mask', 'side_up_label'))):
                     booster, pred, counts = fit_head(lgb, train, score_matrix,
                         binary[mask_key][:, 0], binary[label_key][:, 0], names, categories)
                     prediction[arm][:, j] = pred
-                    fit_counts[arm + ':' + head] = counts
-                    weights[arm + ':' + head] = write(
-                        OUT_ROOT, f'MODEL_FOLD_{fold}_{arm}_{head}.txt',
+                    fit_counts[arm + ':' + head_name] = counts
+                    weights[arm + ':' + head_name] = write(
+                        OUT_ROOT, f'MODEL_FOLD_{fold}_{arm}_{head_name}.txt',
                         booster.model_to_string().encode())
                 del train, score_matrix
             frozen = prior_rows[fold-1]
@@ -379,9 +379,9 @@ def run(plan_ref: dict) -> dict:
             weekly = {str(week): score(prediction_subset(prediction, week_axis == week),
                                       subset_truth(truth, week_axis == week), p)
                       for week in np.unique(week_axis)}
-            for head in HEADS:
-                need(sum(x[head]['count'] for x in weekly.values()) == overall[head]['count']
-                     and all(abs(sum(x[head][key] for x in weekly.values()) - overall[head][key]) < 1e-6
+            for head_name in HEADS:
+                need(sum(x[head_name]['count'] for x in weekly.values()) == overall[head_name]['count']
+                     and all(abs(sum(x[head_name][key] for x in weekly.values()) - overall[head_name][key]) < 1e-6
                              for key in ('full_brier_sum', 'without_gc_brier_sum', 'prior_brier_sum')),
                      'WEEK_PARTITION')
             stream = io.BytesIO()
