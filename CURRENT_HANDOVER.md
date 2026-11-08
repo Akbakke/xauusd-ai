@@ -14,9 +14,10 @@ M5 er prognosetakten; kausalt lukkede M15/H1/H4/D1 og GC/indikatorhistorikk er
 input. Alle fem TF har egne framtidige mål. Entry, Exit, ordre, broker, handel,
 spending og forseglet TEST er stengt.
 
-Policystatus: `NATIVE_F_PRIVATE_4STEP_COMPLETE_CONSUMED_TRAINING_CLOSED`.
-`training_enabled=false`; fire-stegsplanen er fullført og konsumert, og
-Windows-oppgaven er deaktivert. Ingen tung jobb kjører. Ingen tidligere
+Policystatus: `GC_SIDE_MAX_BUILD_CLAIMED_TRAINING_CLOSED`.
+`training_enabled=false`; S/F-fire-stegsplanen er fullført og konsumert, og
+Windows-oppgaven er deaktivert. Ny GC-sidevis maksplan er claimet én gang,
+men ikke startet ved denne oppdateringen. Faktisk prosessstatus overstyrer. Ingen tidligere
 claimet, fullført eller feilet plan relanseres. Juni 2026 er brukt utviklings-VAL;
 forseglet periode scores bare etter forward-journalregelen i GX1_RULES.md.
 
@@ -102,7 +103,7 @@ forseglet periode scores bare etter forward-journalregelen i GX1_RULES.md.
   `market_state_gc_side_max_source_20261108_001` binder dette kildesteget.
   Ny engangsplan [sidevis GC-bygg](configs/research/NATIVE_GC_SIDE_MAX_RESTORE_20261108_001.json)
   SHA `57c076ffe2797297fa502a6fc32a0f0d38f4f347eaa71c9517e0d9c3b350bd47`
-  er klargjort, **ikke claimet eller kjørt**. Den gjenbruker kvalifiserte
+  er **claimet én gang, ennå ikke kjørt**. Den gjenbruker kvalifiserte
   råkilder, 66 filer, 1 800 s/4 GiB kapsel og samme byggeeier; tidligere
   `024`-plan relanseres ikke. Fysisk output og faktisk modellkonsum gjenstår.
 

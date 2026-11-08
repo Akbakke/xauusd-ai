@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-08T02:32:28.913738+00:00",
-  "status": "NATIVE_F_PRIVATE_4STEP_COMPLETE_CONSUMED_TRAINING_CLOSED",
+  "status": "GC_SIDE_MAX_BUILD_CLAIMED_TRAINING_CLOSED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Selected 0.5 ATR activity and conservative local side use the corrected five-TF TRAIN mask. The one mature fold1 native time-query v1 fit and later chronological TRAIN OOF lost M5 certified-side Brier to the frozen prior in all 14 weeks; a paired frozen diagnostic found upward miscalibration and the free-three-logit unknown-side objective defect. Factorized v2 model/loss and stable raw-logit scorer now pass source/synthetic checks, and read-only fold1 receipt/v2 view metadata binding passes. Physical v2 zero-step passed direct activity/side gradient mechanics. The exact S/F B16 two-batch private optimizer/resume probe completed four guarded physical updates with bit-exact resume and zero exit codes. It did not fit a predictor or establish GC direction value. All plans are consumed; training_enabled=false. Full fit, generalization, Entry decision value, economics, TEST, Entry, Exit, broker, trading and spending remain closed.",
-  "next_action": "New exact capped GC side-max build plan is prepared but unclaimed. Verify all prior input hashes, exact plan/controller/code inventory and command startup read-only; check idle process/lock, then claim once under the existing trusted-record stage and run with source frozen. Qualify physical B/A maxima and masks on all five TF and actual native view before any paired S/F OOF admission. training_enabled=false; TEST/Entry/Exit/broker/trading/spending closed.",
+  "next_action": "Exactly one new 66-file 26-month GC side-max source build is claimed under the current trusted-record stage. Run only its hash-bound controller once through the existing audit4G/swap512M/1800s capped path, with clean frozen source and no other CURRENT heavy job. Then inspect terminal/actual artifacts and physical B/A maxima on all five TF. No predictor fit; training_enabled=false and TEST/Entry/Exit/broker/trading/spending closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -11635,12 +11635,12 @@
         "retained_field_count_is_measured_not_hardcoded": true
       },
       "trusted_record_restoration_stage": {
-        "status": "PREPARED_NOT_CLAIMED",
+        "status": "EXECUTION_CLAIMED",
         "plan_path": "configs/research/NATIVE_GC_SIDE_MAX_RESTORE_20261108_001.json",
         "plan_sha256": "57c076ffe2797297fa502a6fc32a0f0d38f4f347eaa71c9517e0d9c3b350bd47",
         "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_SIDE_MAX_RESTORE_20261108_001",
         "execution_authorized": false,
-        "claimed_invocations": 0,
+        "claimed_invocations": 1,
         "completed_invocations": 0,
         "relaunch_allowed": false,
         "native_epoch_authorized_by_this_stage": false,
@@ -11648,7 +11648,8 @@
           "path": "/home/andre2/GX1_RUNS/NATIVE_GC_SIDE_MAX_RESTORE_20261108_001/FOCUSED_SOURCE_QUALIFICATION.json",
           "sha256": "003cde5ccf0ec38eb83c3761864d1ebc41c83cc92d89b642912bdd9291cd4ca6"
         },
-        "authority": "New one-use 08November 2026 0 USD capped restoration of exact B/A max trusted T sizes on existing 66-file 26-month source. Prior 024 plan completed and remains consumed in Git and immutable receipt. No native fit, TEST or Entry authority."
+        "authority": "New one-use 08November 2026 0 USD capped restoration of exact B/A max trusted T sizes on existing 66-file 26-month source. Prior 024 plan completed and remains consumed in Git and immutable receipt. No native fit, TEST or Entry authority.",
+        "claimed_utc": "2026-11-08T02:56:43.965087+00:00"
       },
       "current_source_qualification": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_GC_TRUSTED_RECORD_RESTORATION_20261018_024/FOCUSED_SOURCE_QUALIFICATION_FINAL.json",
@@ -24283,7 +24284,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-08T02:53:58.783066+00:00",
+  "updated_utc": "2026-11-08T02:56:43.965117+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -64959,7 +64960,7 @@
     "physical_build_plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_GC_SIDE_MAX_RESTORE_20261108_001.json",
       "sha256": "57c076ffe2797297fa502a6fc32a0f0d38f4f347eaa71c9517e0d9c3b350bd47",
-      "status": "PREPARED_NOT_CLAIMED"
+      "status": "EXECUTION_CLAIMED"
     }
   }
 }
