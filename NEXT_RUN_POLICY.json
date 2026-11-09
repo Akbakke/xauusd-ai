@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T02:55:52.099139+00:00",
-  "status": "TA_DIRECTION_BATCH_ORDER_CPU_CONTROL_ADMITTED",
+  "observed_utc": "2026-11-09T02:59:30.970921+00:00",
+  "status": "TA_DIRECTION_BATCH_ORDER_COMPLETE_ORDER_EFFECT_PRIOR_UNBEATEN",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Execute the single admitted cached CPU M5 original/reversed intact-batch AdamW contrast, then close scope and review matched TRAIN/later-TRAIN evidence. No native fit admitted.",
+  "next_action": "The exact converged frozen-head objective already beats TRAIN prior, while one-pass AdamW remains worse. Use this established convergence target to define the minimum optimization correction; do not select reverse order from reused later TRAIN or launch another full native fit.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1628,6 +1628,10 @@
     "latest_private_direction_readout_comparison": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_READOUT_COMPARISON_20261108_001/RESULT.json",
       "sha256": "cb9c02a6ae2183b191127ac48975db0a25bea07db9dc220d2438d227c82acfe7"
+    },
+    "latest_cached_m5_order_control": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_BATCH_ORDER_20261109_001/REVIEW.json",
+      "sha256": "541cabf69776730732571dd57bc5ff8797a3614b09510c6c0218df573f37923f"
     }
   },
   "current_work": {
@@ -40165,7 +40169,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "market_state_ta_direction_batch_order_20261109_001",
+  "training_enabled_scope": "NONE_CPU_BATCH_ORDER_COMPLETE_SAVED_EVIDENCE_REVIEW_ONLY",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -67514,21 +67518,21 @@
     "completed_utc": "2026-11-09T02:29:28.433637+00:00"
   },
   "market_state_ta_direction_batch_order_20261109_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_BATCH_ORDER_20261109_001/PLAN.json",
       "sha256": "66ef8e504352a0299db3b2aa632b16aa47d54a6b0ed7e5e8bc6bb6726efafd81"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
-    "execution_authorized": true,
-    "training_authorized": true,
-    "data_reads_authorized": true,
-    "private_optimizers": 2,
-    "private_side_heads": 4,
-    "private_updates": 3698,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "data_reads_authorized": false,
+    "private_optimizers": 0,
+    "private_side_heads": 0,
+    "private_updates": 0,
     "new_native_forwards": 0,
     "new_native_parameter_updates": 0,
     "test_data_used": false,
@@ -67538,6 +67542,62 @@
     "synthetic_check": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_BATCH_ORDER_20261109_001/SYNTHETIC_CHECK.log",
       "sha256": "811bcb4f3396114bf53a97e8f419bf0cae4dfe7fb656e3f348d1eaa76adb5a6a"
-    }
+    },
+    "observed_private_updates": 3698,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_BATCH_ORDER_20261109_001/RESULT.json",
+      "sha256": "c7c5114be89de9892c2dfd5153b465674fffe9b651a6dbb35b003aea3437dbe3"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_BATCH_ORDER_20261109_001/TERMINAL.json",
+      "sha256": "50b57348a5508e0e15bc266bc5ed79c5998fb26bca96099e3e9405ca2978c24e"
+    },
+    "elapsed_seconds": 9.841671587000747,
+    "verification": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_BATCH_ORDER_20261109_001/VERIFICATION.json",
+      "sha256": "bedce34e1e5f3120ba998ef427026dd95f54668fdd13b870bc65af823e918ea5"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_BATCH_ORDER_20261109_001/REVIEW.json",
+      "sha256": "541cabf69776730732571dd57bc5ff8797a3614b09510c6c0218df573f37923f"
+    },
+    "order_effect_established": true,
+    "native_cause_established": false,
+    "predictive_value_qualified": false,
+    "m5_brier": {
+      "fit": {
+        "future": {
+          "converged_reference_reused": 0.24718817030370363,
+          "frozen_prior": 0.24987621125676626,
+          "initial": 0.30292998729696863,
+          "original": 0.2583939605523607,
+          "reversed": 0.2537779324925494
+        },
+        "state": {
+          "converged_reference_reused": 0.2461256949748635,
+          "frozen_prior": 0.24965100834625317,
+          "initial": 0.26854246086366207,
+          "original": 0.2551560046422924,
+          "reversed": 0.252694809314199
+        }
+      },
+      "score": {
+        "future": {
+          "converged_reference_reused": 0.2538534206845416,
+          "frozen_prior": 0.249833416409301,
+          "initial": 0.3165668589060399,
+          "original": 0.2622421889448802,
+          "reversed": 0.2546423910936056
+        },
+        "state": {
+          "converged_reference_reused": 0.2546222652724795,
+          "frozen_prior": 0.2498279877882917,
+          "initial": 0.27057478052684913,
+          "original": 0.25709498199946873,
+          "reversed": 0.2522006080050897
+        }
+      }
+    },
+    "finding": "Batch order causally changes the fitted frozen M5 heads: reversing intact batches reduces UP bias and improves Brier/log for both tasks in TRAIN and reused later TRAIN. Both arms remain worse than frozen prior; TRAIN AUC changes below0.0004. This is principally probability-level change, not demonstrated direction discrimination."
   }
 }

@@ -15,7 +15,36 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_DIRECTION_BATCH_ORDER_CPU_CONTROL_ADMITTED.
+Policystatus: TA_DIRECTION_BATCH_ORDER_COMPLETE_ORDER_EFFECT_PRIOR_UNBEATEN.
+
+Den [nye CPU-kontrollen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_BATCH_ORDER_20261109_001/REVIEW.json)
+er COMPLETE og konsumert. Samme originale FINAL-sidevekter, tom AdamW,
+29574 rader, frosne representasjoner og1849 intakte B16-batcher per arm.
+Kun rekkefølgen varierer; halen på6 rader og alle masker/tapsvekter er bevart.
+9,842s totalt,4,400s private updates; ingen nye native forwards eller vektendringer.
+Dette er en rask kontroll, ikke en sammenlignbar speedup av full native trening.
+
+M5 Brier, vanlig→reversert rekkefølge:
+TRAIN S0,255156→0,252695 (prior0,249651), F0,258394→0,253778 (prior0,249876).
+Senere S0,257095→0,252201 (prior0,249828), F0,262242→0,254642 (prior0,249833).
+Rekkefølgen har altså en isolert effekt i den frosne kontrollen, men begge
+varianter taper mot prior. TRAIN gjennomsnittlig P(OPP) flyttes fra0,5725
+til0,5087 for S og0,5794 til0,4979 for F. TRAIN AUC endres mindre enn0,0004.
+Forbedringen gjelder hovedsakelig sannsynlighetsnivået; bedre skille mellom
+framtidig OPP/NED eller senere edge er ikke demonstrert.
+
+Rå startlogiter mot original cache avviker høyst4,77e-7, innen fryst FP32-toleranse.
+Alle16 scoreceller er kontrollregnet mot originale cachemål: maksavvik2,23e-16;
+uavhengig batchvis tapsrekonstruksjon avviker høyst1,28e-15.
+Kilde21829c7c var uendret. CPU-porten er lukket; ingen ny nativefit er innrømmet.
+Frossen representasjon og klipping av kun to hoder avviker fra full native fit;
+resultatet fastslår ikke årsaken i hele nettverket.
+
+Neste direkte spørsmål: Den allerede konvergerte frosne M5-løsningen slår
+TRAIN-prior, mens én passering med AdamW fortsatt taper. Bruk denne målte
+forskjellen til å avgrense minste optimeringsrettelse før mer native trening.
+Reversert rekkefølge velges ikke som løsning fra gjenbrukt senere TRAIN.
+GC, TEST, Entry/Exit og handel forblir stengt; retningsmålet er aktivt.
 
 Den nye [M5-fit-kjøringen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DEDICATED_M5_FOLD1_FIT_20261109_001/TERMINAL.json)
 er COMPLETE og konsumert: original FINAL varmstartet til egne M5-sidehoder,
@@ -52,23 +81,6 @@ er gjenbrukt: strictoriginalrestore, bitlike uendrede utganger, begge M5-hoder
 med gradienter og bitlik2mot1+resume1.69 fokuserte fittester og commitvakter bestod.
 Bare fem rute-/bindingsfiler endret; øvrige80 kildeeiere bevarte kvalifiserte bytes.
 
-Neste direkte spørsmål er hvorfor native TRAIN-fit fortsatt taper mot prior,
-mens konvergerte M5-readouts på frossen originalrepresentasjon slår TRAIN-prior.
-Neste lille kontroll bruker eksisterende FIT_CACHE/SCORE_CACHE: to frosne
-M5-readout-armer med samme originale sidevekter/tom AdamW og1849intakte B16-batcher,
-kronologisk mot reversert batchrekkefølge. Behold siste6rader, masker og/5-vekt.
-Originale side-rader kan hentes CPU-only fra bundet FINAL uten modellkonstruksjon;
-rålogitparitet mot cache må bestå før privateupdates. Gjenbruk konvergert referanse.
-Dette isolerer rekkefølge i readout-kontrollen, ikke effekten i en bevegelig
-nativebackbone med global gradientklipping. Gammel training_order_audit_20261029_001
-gjelder andre hoder/input og endret halebatch; ingen identisk kontroll er fullført.
-Den konkrete [CPU-planen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_BATCH_ORDER_20261109_001/PLAN.json)
-er nå innrømmet én gang: to private AdamW-armer, 3698 samlede små updates,
-12G/512M, én numerisk tråd, maks900s gjennom eksisterende capped runner.
-Syntetisk taps-/gradientkontroll, tomstøttesteg og bevart batchmedlemskap består.
-Separat leser fant to metadatafeil; checkpoint-/cache-/oppskrift-/referansebinding
-ble rettet før planfrysing. Ingen produksjonskode endres. Native porter er stengt.
-Retningsmålet er fortsatt aktivt; GC, TEST, Entry/Exit og handel er stengt.
 
 Den fulle [koblingskontrollen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_SHARED_OBJECTIVE_20261108_001/RESULT.json)
 er COMPLETE og konsumert. Seks konvergerte readout-fits på samme frosne
