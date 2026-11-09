@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-09T16:12:42.742401+00:00",
-  "status": "DIRECTION_FAST_DIAGNOSTICS_ONLY_AFTER_LATER_DETERIORATION",
+  "status": "SHORT_M5_ACCUMULATION_CONTROL_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Use existing cached forecasts/representations to isolate native M5 head change versus representation drift with a fixed small read-only comparison. No new native training or full-population encoder scoring. A native probe may be admitted only for a measured remaining blocker under the short budget and preserved causal/genuine MTF guards.",
+  "next_action": "Run only the fixed60s cached M5 accumulation comparison. Reuse all qualified inputs; no native launch or repeat of negative order/L2 controls.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -40200,7 +40200,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "NONE_CACHED_DIAGNOSTICS_FIRST",
+  "training_enabled_scope": "market_state_ta_m5_short_accumulation_20261109_001",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -69671,6 +69671,40 @@
       "sha256": "4e564176f518c75c124ba76ac0bc9551a788c49be7b66bad8349111c61130589"
     },
     "current_screen_limit": "Six fixed1024-row slices from already completed forecasts; no short training was rerun or qualified.",
-    "test_entry_exit_trading_closed": true
+    "test_entry_exit_trading_closed": true,
+    "current_cached_attribution_plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_PASS_READOUT_20261109_001/NATIVE_HEAD_ATTRIBUTION_PLAN.json",
+      "sha256": "bad76902fb729a3d1cf58ec20695afdf64c4c44824af312b94f34c7610d1c0b6"
+    },
+    "latest_cached_attribution_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_PASS_READOUT_20261109_001/NATIVE_HEAD_ATTRIBUTION_RESULT.json",
+      "sha256": "4489f12862b7c57cd546e8961302769261a86144c8ec7c93e3601941a1cd7b40"
+    },
+    "latest_cached_attribution_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_PASS_READOUT_20261109_001/NATIVE_HEAD_ATTRIBUTION_REVIEW.json",
+      "sha256": "9c3ea1e85f7b04269ccec31f1264b58a666dc158eba2ea821923dd9fe4177846"
+    }
+  },
+  "market_state_ta_m5_short_accumulation_20261109_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_ACCUMULATION_20261109_001/PLAN.json",
+      "sha256": "b1fd20580db9dee323767ad476c0736721bb94a4cfac5d9453b90bdd289523ea"
+    },
+    "execution_authorized": true,
+    "training_authorized": true,
+    "data_reads_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "private_heads": 4,
+    "private_optimizers": 2,
+    "max_private_updates": 72,
+    "wall_seconds": 60,
+    "native_forwards": 0,
+    "native_parameter_updates": 0,
+    "test_data_used": false,
+    "scope": "One64microbatch fixed-cache comparison, identical1024-row exposure; all actual native training remains closed."
   }
 }

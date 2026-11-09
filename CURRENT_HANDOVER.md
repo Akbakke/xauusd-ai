@@ -15,11 +15,25 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: DIRECTION_FAST_DIAGNOSTICS_ONLY_AFTER_LATER_DETERIORATION.
+Policystatus: SHORT_M5_ACCUMULATION_CONTROL_ADMITTED.
+
+Ny null-fit2×2-kontroll er COMPLETE og uavhengig PASS på6.258s/2.842s.
+På de faste små TRAIN-utvalgene forklarer hodeendringen71.0%S/65.6%F av
+Brier-svekkelsen; representasjonsendringen forklarer resten. Begge bidrar også
+negativt senere. Interaksjonen er halvfordelt, ikke et ekstra additivt bidrag.
+Dette lokaliserer effekt, men beviser ingen optimizerårsak.
+NATIVE_HEAD_ATTRIBUTION_RESULT/REVIEW ligger i forrige readoutrot.
+
+Kun én ny60s CPU-kontroll er innrømmet:
+MARKET_STATE_TA_M5_SHORT_ACCUMULATION_20261109_001. Samme1024observasjoner,
+samme korrigerte INITIAL-hoder, uendret AdamW/tap og frosne representasjoner:
+64vanlige steg mot8steg med gradientgjennomsnitt over8batcher. Kandidaten er
+forhåndsvalgt; senere faste utvalg leses bare etter forbedring for både S/F
+mot initial og prior på TRAIN. Dette er ikke en native treningsrute.
 
 Brukerens nye føring: korte tester først for å se retningssignal; ingen flere
-timevis lange kjøringer som første kontroll. training_enabled=false og all
-native launch/full-epoch er stengt. Gjenbruk checkpoint, lagrede arrays og
+timevis lange kjøringer som første kontroll. Kun den navngitte korte CPU-fit
+er åpen; all native launch/full-epoch er stengt. Gjenbruk checkpoint, lagrede arrays og
 beståtte kontroller. Default CPU-diagnostikk har60s budsjett.
 En eventuell senere native prøve må begrenses til64 oppdateringer/600s
 modellarbeid og små, forhåndsbundne initial/final/later-utvalg; alle genuine
