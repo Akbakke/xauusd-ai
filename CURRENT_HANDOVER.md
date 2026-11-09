@@ -15,7 +15,7 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_EQUAL_LOSS_NATIVE_SOURCE_QUALIFIED_PENDING_PREPARATION.
+Policystatus: TA_M5_EQUAL_LOSS_NATIVE_MECHANICAL_ADMITTED.
 
 Ny avgrenset native-rute er implementert: strict gammel restore av importert
 checkpoint616a22… og ny capture av samme modell/optimizer/RNG/order med
@@ -27,8 +27,11 @@ testfixture som blandet gammel oppskrift og dagens kilde; fixture er rettet
 til sin erklærte historiske kilde og kun disse24kjørt om. Produksjonsvakten
 er uendret. Faktisk metadata/view/importbinding med85kildefiler består.
 [Kildekontroll](/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_MECHANICAL_20261109_001/SOURCE_VALIDATION.json).
-Ingen nativeprøve eller ny fit er kjørt. Neste steg er eksakt klargjøring
-og engangsadmission med eksisterende vakter/fersk boot før nativekvalifikasjon.
+Ingen nativeprøve eller ny fit er kjørt. Ny recipe93693fff… og faktisk
+preflight57218ae8… består; én4-stegs nativekvalifikasjon er nå innrømmet.
+Kun denne avgrensede prøven har training_enabled=true.250W og fersk boot
+kreves. Ingen full predictor-fit er innrømmet. Neste steg er materialisering
+og engangskjøring gjennom eksisterende vakter.
 
 Den innrømmede [lagrede-logit-kontrollen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_OBSERVATION_LOSS_20261109_001/REVIEW.json)
 er COMPLETE og konsumert:1849FIT-batcher,3698rålogit-autogradkall,213,206s.
@@ -58,7 +61,7 @@ readout-forsøket er ikke gjenskapt av denne vektingsrettelsen.
 Den nye [nullstegsimporten](/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_WEIGHT_IMPORT_20261109_001/REVIEW.json)
 har native PASS og et uavhengig verifisert checkpoint. Kampanjekontrolleren
 feilet separat med exit1 og ga ingen campaign-receipt. Planen er konsumert,
-oppstartsoppgaven deaktivert; ingen kjøring eller trening er nå innrømmet.
+den gamle oppstartsoppgaven deaktivert; importplanen gir ingen ny kjøre- eller treningsmyndighet.
 Original RESULT/COMPLETE-terminal/progress/checkpoint/ACTIVE_INVOCATION er
 bevart. Ingen gjenkjøring eller omskriving til kampanje-PASS.
 
@@ -609,7 +612,7 @@ Ett pass og én fold er ingen generell dom over lengre læring eller historikk.
 
 Den tidligere [GC-registerplanen](configs/research/MARKET_STATE_GC_SIDE_MAX_REGISTRY_20261108_001.json)
 forblir bevart, men er utsatt og uklamet etter brukerens nye prioritering.
-`training_enabled=false` stenger ny trening; koblingskontrollen og alle tidligere
+`training_enabled=true` gjelder bare den nye firestegs kvalifikasjonen ovenfor; koblingskontrollen og alle tidligere
 retningsdiagnoser, input-kontrollen, den konvekse M5-planen, cacheplanen
 og native fitplanene er konsumert.
 
