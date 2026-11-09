@@ -90,21 +90,9 @@ RESULT: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_TRAIN_MONTHS_20261109_001/RESUL
 SHA 727f2eef95dc5d294b01db4bbf4c6a8c1d1b64cc025326ffdd74b08c52127e60.
 REVIEW i samme rot, SHA 5e6f0292d4001a4539d0b6d040ac9c416a8471f442e334ab8356e86ec916caaa.
 
-Neste arbeid er avgrenset design-/kildekvalifikasjon for én ekstra native
-passering fra det allerede korrigerte FINAL-importcheckpointet: 29574 rader,
-1849 steg, batch16, samme genuine inputs, mål, tap og numerikk. Checkpointet
-har tom optimizer/cursor0; dette er ikke gjenbruk av gamle AdamW-momenter.
-Mål full identisk initial/final TRAIN og uendret senere TRAIN. Kontroller de
-nye M5 S/F-representasjonene med samme faste alpha0.01 globale hodefit.
-
-Minste nødvendige ytelsesendring er identifisert:
-_ta_endpoint_measurement gjør allerede alle sluttmålingene, men kaster
-representasjonene. Lagre M5-hodeinput der, med eksisterende akser/masker,
-uten ekstra forwards eller endret modellfunksjon. Da kan en separat
-encoder-cachepassering (tidligere 2616.234 s) unngås. Paritet, telling,
-minnegrense og recipe må kvalifiseres før bruk; ingen speedup er ennå målt.
-Den nødvendige capture-/innlastingskoden er nå kvalifisert som beskrevet øverst.
-Bare den eksakte nye engangsplanen over er innrømmet; kravene står i NEXT_RUN_POLICY.
+Den tidligere planlagte native passeringen og capture-endringen er fullført;
+resultatet og gjeldende korte arbeidsløp er beskrevet øverst. Den gamle
+engangsplanen er konsumert og gir ingen adgang til ny trening.
 
 Den faste 2×2-krysskontrollen er COMPLETE/konsumert: gamle/nye M5 F-hoder
 på gammel/ny representasjon, uten fit eller nativekall. Beregning 5.074 s;
