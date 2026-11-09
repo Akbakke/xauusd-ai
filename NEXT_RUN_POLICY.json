@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T22:04:05.378299+00:00",
-  "status": "TA_M5_MATCHED_MIX24_ADMITTED",
+  "observed_utc": "2026-11-09T22:15:10.297777+00:00",
+  "status": "TA_M5_MATCHED_MIX24_COMPLETE_NO_IMPROVEMENT",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Execute exactly one admitted MIX24 from qualified INITIAL0 on the same384 SPREAD24 observations, then close gates and independently verify saved outcomes. No suffix, extra epochs or automatic continuation.",
+  "next_action": "No repeated sampler or optimizer sweep. Use the completed feature/target audit to specify a distinct falsifiable retningsintervention aligned with sniper and sustained-trend objectives before any next fit. Underlying native TRAIN deterioration remains unresolved.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -40204,7 +40204,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "market_state_ta_m5_mixed_batch_native_20261109_001",
+  "training_enabled_scope": "CLOSED_NO_AUTOMATIC_RELAUNCH",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -71358,9 +71358,9 @@
     "aggregate_report": "docs/TA_M5_HEAD_REP_ATTRIBUTION_REVIEW.json"
   },
   "market_state_ta_m5_mixed_batch_native_20261109_001": {
-    "status": "ADMITTED",
-    "execution_authorized": true,
-    "training_authorized": true,
+    "status": "COMPLETE_CONSUMED_INDEPENDENTLY_VERIFIED_NEGATIVE",
+    "execution_authorized": false,
+    "training_authorized": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_MIXED_BATCH_NATIVE_20261109_001/PLAN.json",
       "sha256": "c14dc33b9ed94a5b15be7baa301a3c713dee22d074b9078b3ac563333a73ea42"
@@ -71386,9 +71386,9 @@
       "sha256": "78da9219c574b6bbdc3bcef21176a497c574a8f610d730952bbc4b8a84eb6d60"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "max_updates": 24,
     "max_backwards": 24,
@@ -71415,6 +71415,39 @@
       },
       "scope": "Exact384transpose; originalpositions bind both S/F axes; legacy branch unchanged and query-forward-target-loss suffix byte-identical. Root reviewed worker; one-source bridge only. Same full starting state, both fixed192 panels, four reference gate, source and RNG bookends."
     },
-    "scope": "One matched24update batch-grouping experiment only. Same initial weights optimizer RNG data optimizer loss and fixed panels as SPREAD24. Grouping also changes dropout-row assignment and non-M5/activity batch weighting; not pure gradient-noise isolation."
+    "scope": "One matched24update batch-grouping experiment only. Same initial weights optimizer RNG data optimizer loss and fixed panels as SPREAD24. Grouping also changes dropout-row assignment and non-M5/activity batch weighting; not pure gradient-noise isolation.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_MIXED_BATCH_NATIVE_20261109_001/RESULT.json",
+      "sha256": "6895ee933974dae209c04251719033ffdff0ab70dbe1179e529a80cc60767cea"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_MIXED_BATCH_NATIVE_20261109_001/TERMINAL.json",
+      "sha256": "ea3fa6cb245e1937d435ad1b68faf764c84f594de4ed153789707596e3152745"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_MIXED_BATCH_NATIVE_20261109_001/CONTROLLER.json",
+      "sha256": "e52ec158d40a5524a9a4ce0ea964522d2404c0306d3c78c69863c8f1c6e0e15e"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_MIXED_BATCH_NATIVE_20261109_001/CLAIM.json",
+      "sha256": "38f924d90c6a777d7ea2097830a6f84f74ef83edb57f6f911dcea7bae7446f63"
+    },
+    "actual_source_head": "88f3989207bea343b5034e9f7ee017bde3cd7a60",
+    "actual_updates": 24,
+    "actual_forwards": 48,
+    "matched_comparison": true,
+    "whole_command_seconds": 341.5664367249992,
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_MIXED_BATCH_NATIVE_20261109_001/REVIEW.json",
+      "sha256": "d4a3bbcd3c9fdce924f6400b76944f141d8227a01e1dcf7bed9a7b87ca73fdfb"
+    },
+    "integrated_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_MIXED_BATCH_NATIVE_REVIEW.json",
+      "sha256": "972ede64bf9063e7e06bfd127411af968ed2635ee293715b7af6ba4e406a46af"
+    },
+    "comparison_passed": false,
+    "source_unchanged": true,
+    "worker_seconds": 338.39761102699777,
+    "review_whole_seconds": 4.939358682000602
   }
 }
