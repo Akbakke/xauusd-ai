@@ -15,14 +15,41 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_TRAIN_MONTH_DISAGGREGATION_ADMITTED.
+Policystatus: TA_M5_TRAIN_GAIN_ALL_MONTHS_LATER_TRANSFER_UNRESOLVED.
 
-Eksakt TRAIN-audit er innrømmet én gang: fem faste måneder mai–september,
-alle fire lagrede kryssprognoser og fryst prior. Ingen fit, nativeberegning
-eller lesing av senere prognosearrays. Audit4G, maks60s, trening fortsatt stengt.
-PLAN: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_TRAIN_MONTHS_20261109_001/PLAN.json
-SHA 7a61fd0fb8bf6e50d8137eb9d66ddc409fbf5fd06234e5cb331a879209d8aad8.
-Metadata og kildekontroll bestått. Alle månedsresultater er in-sample.
+TRAIN-månedskontrollen er COMPLETE/konsumert. Kun åtte eksisterende fit-arrays
+ble lest; ingen senere arrays, fit eller nativekall. Hele capped kjøringen tok
+3.655 s. Alle 30 scoreceller er uavhengig regnet om med nullavvik; samlet TRAIN
+reproduserer den tidligere kontrollen nøyaktig. Første review feilet på str/Path
+i hashhjelperen; bare review ble rettet. Original kode/logg er bevart.
+
+Ny representasjon + korrigert hode forbedrer både Brier og AUC i ALLE fem
+TRAIN-måneder og slår fryst prior i hver måned. Mai–september Brier:
+0.249060 / 0.249367 / 0.249173 / 0.248665 / 0.249127.
+Bare hodebyttet på ny representasjon forbedrer Brier i 4/5 måneder (august
+svakere), AUC i 4/5 (mai svakere). Den samlede TRAIN-forbedringen skjuler
+dermed ingen dårlig måned som forklarer desembertapet. Alle disse målingene
+er in-sample; de beviser ikke at retningen generaliserer.
+
+RESULT: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_TRAIN_MONTHS_20261109_001/RESULT.json
+SHA 727f2eef95dc5d294b01db4bbf4c6a8c1d1b64cc025326ffdd74b08c52127e60.
+REVIEW i samme rot, SHA 5e6f0292d4001a4539d0b6d040ac9c416a8471f442e334ab8356e86ec916caaa.
+
+Neste arbeid er avgrenset design-/kildekvalifikasjon for én ekstra native
+passering fra det allerede korrigerte FINAL-importcheckpointet: 29574 rader,
+1849 steg, batch16, samme genuine inputs, mål, tap og numerikk. Checkpointet
+har tom optimizer/cursor0; dette er ikke gjenbruk av gamle AdamW-momenter.
+Mål full identisk initial/final TRAIN og uendret senere TRAIN. Kontroller de
+nye M5 S/F-representasjonene med samme faste alpha0.01 globale hodefit.
+
+Minste nødvendige ytelsesendring er identifisert:
+_ta_endpoint_measurement gjør allerede alle sluttmålingene, men kaster
+representasjonene. Lagre M5-hodeinput der, med eksisterende akser/masker,
+uten ekstra forwards eller endret modellfunksjon. Da kan en separat
+encoder-cachepassering (tidligere 2616.234 s) unngås. Paritet, telling,
+minnegrense og recipe må kvalifiseres før bruk; ingen speedup er ennå målt.
+Ingen modell-/treningskode er endret eller ny kjøring innrømmet.
+training_enabled=false; forberedelsens eksakte krav står i NEXT_RUN_POLICY.
 
 Den faste 2×2-krysskontrollen er COMPLETE/konsumert: gamle/nye M5 F-hoder
 på gammel/ny representasjon, uten fit eller nativekall. Beregning 5.074 s;
@@ -53,13 +80,10 @@ Ingen arm er valgt, importert eller promotert.
 RESULT: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_READOUT_TRANSFER_20261109_001/RESULT.json
 SHA 0011322e3a920f640dc3702f7f5ce1c6a2bf9b9735674a862520d90271a0c454.
 REVIEW i samme rot, SHA 2913476a9ee97f2614ccdf1159db3de6928ef20914e3906c0ca85ac9efcc3bc2.
-training_enabled=false; kun den avgrensede TRAIN-auditen over er innrømmet.
+training_enabled=false; de to auditene er konsumert, ingen ny kjøring innrømmet.
 
-Neste direkte spørsmål bruker bare allerede lagrede TRAIN-prognoser:
-Hjelper hodeendringen stabilt gjennom mai–september, eller konsentreres
-forbedringen i ett regime? Avklar dette før ny læringsendring. Ingen ny fit,
-nativekoding, senere periodevalg, tilbakeføring eller horisontjakt er vedtatt.
-Den fullførte 2×2-kontrollen og historikkplanen skal gjenbrukes.
+TRAIN-månedsspørsmålet er nå besvart over. Gjenbruk de fullførte kontrollene;
+ingen tilbakeføring, terskel-/horisontseleksjon eller ny hodevariant er valgt.
 
 Den kausale M5-historikkplanen er også COMPLETE/konsumert. November- og
 desemberfit brukte henholdsvis 14484/16802 kjente utfall før prognosemåneden.
