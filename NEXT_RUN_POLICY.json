@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T03:28:23.514518+00:00",
-  "status": "TA_DIRECTION_CHRONOLOGICAL_INNER_L2_ADMITTED",
+  "observed_utc": "2026-11-09T03:43:26.544926+00:00",
+  "status": "TA_DIRECTION_EQUAL_OBSERVATION_WEIGHT_CONTROL_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Run the one-use30inner/atmost2final cached M5 head fits, freeze common alpha from chronological inner TRAIN before later score, reuse fixed1e-4fullfit if selected; close scope and independently review. No native launch.",
+  "next_action": "Execute exactly2cached equal-observation M5 fits at frozenalpha0.01 and preserved loss mass against reused weighted controls; close gate and independently verify. No new selection or native launch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1636,6 +1636,10 @@
     "latest_private_fixed_l2_m5_control": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_REGULARIZED_HEAD_20261109_001/REVIEW.json",
       "sha256": "c0c86f66eaf8547d704c131d690f23452df2ca87905d6047a2fdf0830502eace"
+    },
+    "latest_private_inner_l2_m5_control": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_INNER_L2_20261109_001/REVIEW.json",
+      "sha256": "2941792cab14f1974434fc8ef9dcd34b94ebc0894766b3eaf1346329885cbafe"
     }
   },
   "current_work": {
@@ -40173,7 +40177,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "market_state_ta_direction_inner_l2_20261109_001",
+  "training_enabled_scope": "market_state_ta_direction_equal_weight_20261109_001",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -67713,19 +67717,19 @@
     "finding": "Fixed explicit coupled-L2 converged M5 heads beat frozen prior on identical TRAIN and reduce later error versus unregularized readouts, but both later heads remain worse than frozen prior. This demonstrates a regularized TRAIN solution and reduced overfit at the fixed original representation, not a repaired native training trajectory or qualified direction edge."
   },
   "market_state_ta_direction_inner_l2_20261109_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_INNER_L2_20261109_001/PLAN.json",
       "sha256": "8ceb1158ac418a622e3c41b3905e19783cc1de8a50f128688666e32ec3862a8f"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
-    "execution_authorized": true,
-    "training_authorized": true,
-    "data_reads_authorized": true,
-    "max_readout_fits": 32,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "data_reads_authorized": false,
+    "max_readout_fits": 0,
     "new_native_forwards": 0,
     "new_native_parameter_updates": 0,
     "test_data_used": false,
@@ -67743,6 +67747,107 @@
       }
     ],
     "synthetic_note": "Maturity checks passed; initial exact dictionary equality assertion was overstrict for1.11e-16FP64 aggregation roundoff. Corrected selection/tie checks pass without worker math changes.",
-    "prelaunch_review": "One concrete import collision corrected by renaming select.py to choose_l2.py before plan binding; dataflow review otherwise passed."
+    "prelaunch_review": "One concrete import collision corrected by renaming select.py to choose_l2.py before plan binding; dataflow review otherwise passed.",
+    "observed_readout_fits": 32,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_INNER_L2_20261109_001/RESULT.json",
+      "sha256": "09c3232e6e97bc12379dc7f8638841137904dbf8cfc41f48e6262807b4aeb605"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_INNER_L2_20261109_001/TERMINAL.json",
+      "sha256": "809282910d082e993d6312879e8554aeaa9b8440b19a5d68f017779ec4b1f703"
+    },
+    "selection": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_INNER_L2_20261109_001/SELECTION.json",
+      "sha256": "e7e91e155e15b47ec554a2ea621c0d20f67775ed7f109e0b4f3e88fe4dd038c0"
+    },
+    "selected_alpha": 0.01,
+    "elapsed_seconds": 5.53655871599949,
+    "verification": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_INNER_L2_20261109_001/VERIFICATION.json",
+      "sha256": "3e88f2b89e119738fef5f2a0be7fdce2f8bbcbd4d6859280614d5764b0220c7a"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_INNER_L2_20261109_001/REVIEW.json",
+      "sha256": "2941792cab14f1974434fc8ef9dcd34b94ebc0894766b3eaf1346329885cbafe"
+    },
+    "decomposition": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_INNER_L2_20261109_001/CALIBRATION_DECOMPOSITION.json",
+      "sha256": "590c35232c8cfebd20b33c4434b9afd5bbf79071bb6912f1f8bc3d8a0de161e7"
+    },
+    "train_prior_beaten": true,
+    "later_prior_beaten": false,
+    "native_transfer_authorized": false,
+    "encoder_oof": false,
+    "m5_scores": {
+      "fit": {
+        "future": {
+          "brier": 0.24939106345451456,
+          "log": 0.6919289363599154,
+          "auc": 0.5253531934211463,
+          "mean_p": 0.5148397983488024,
+          "count": 11909,
+          "up_count": 6087
+        },
+        "state": {
+          "brier": 0.2485468312714343,
+          "log": 0.6902389706501806,
+          "auc": 0.5375833857817468,
+          "mean_p": 0.5268670601471058,
+          "count": 10010,
+          "up_count": 5192
+        }
+      },
+      "score": {
+        "future": {
+          "brier": 0.25004580072027605,
+          "log": 0.6932405439724867,
+          "auc": 0.5089202315001508,
+          "mean_p": 0.5186979248771215,
+          "count": 7165,
+          "up_count": 3676
+        },
+        "state": {
+          "brier": 0.25002197459786324,
+          "log": 0.6931974746952929,
+          "auc": 0.5225703670086186,
+          "mean_p": 0.5316959226239975,
+          "count": 6096,
+          "up_count": 3133
+        }
+      }
+    }
+  },
+  "market_state_ta_direction_equal_weight_20261109_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_EQUAL_WEIGHT_20261109_001/PLAN.json",
+      "sha256": "2271dbfffb0ae2fae0196f0cd59c514057a36b50ccb114d4618cd5f3b72b4c32"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_authorized": true,
+    "training_authorized": true,
+    "data_reads_authorized": true,
+    "readout_fits": 2,
+    "new_native_forwards": 0,
+    "new_native_parameter_updates": 0,
+    "test_data_used": false,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "wall_seconds": 900,
+    "weight_checks": [
+      {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_EQUAL_WEIGHT_20261109_001/WEIGHT_CHECK.log",
+        "sha256": "7bd4533d021f54610bfa3ee2871a080578b8d86318b4d10e76cf59de8355b729"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_EQUAL_WEIGHT_20261109_001/WEIGHT_CHECK_CORRECTED.log",
+        "sha256": "1ef1ec052f2e8121ee452765ca05e85085375927e2c76c1bbf986745535837e3"
+      }
+    ],
+    "check_note": "Initial literal0.04exact assertion was overstrict by6.94e-18; corrected uniformity/mass/gradient/empty-support checks pass. Worker math unchanged. Newton tests reused."
   }
 }
