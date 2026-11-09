@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T17:07:12.629858+00:00",
-  "status": "CACHED_FULL_TRAIN_OBJECTIVE_AND_WEIGHT_AUDIT_ADMITTED",
+  "observed_utc": "2026-11-09T20:10:35.900256+00:00",
+  "status": "CACHED_FULL_TRAIN_OBJECTIVE_WEIGHT_AUDIT_VERIFIED_ALL_SIDE_COMPONENTS_WORSE",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Execute admittedcachedfullTRAIN objective/weight arithmetic once,max60s,0forward/update/refit/checkpoint/targetload. Compare correctfullpassINITIAL/FINAL on29574sameTRAIN viaqualifiedfrozenlogits; report sampledS/nativeF components andsame-domainweightedprevalence. Do not infer sharedencoder cause or change normalizer before measuring. Allfitgatesclosed.",
+  "next_action": "Use saved step/loss receipts to locate how native training loses direction across the full pass; distinguish in-batch training behavior from frozen-eval deterioration before choosing one bounded causal intervention. No new fit, normalizer or learning-rate change admitted. Do not repeat consumed moment-reset/spread probes.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1677,6 +1677,10 @@
     "latest_m5_direction_readout_review": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_PASS_READOUT_20261109_001/REVIEW.json",
       "sha256": "2f61baa1b56d1c777ee1683f42a3865b2eeae34c2df836d0539920be66852118"
+    },
+    "latest_cached_full_train_objective_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SF_OBJECTIVE_WEIGHT_AUDIT_20261109_001/REVIEW.json",
+      "sha256": "48586cc5feb9d9edfc2dfad3e23078747d6b15f3d3b45360cd443e09005b58f1"
     }
   },
   "current_work": {
@@ -66319,7 +66323,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "LongerF readouts recoverTRAIN but laterunstable. Causal M5 extra-history contrast completed:two fits5.253s,whole cappedcommand7.288s;TRAIN improves but both subsequent months worsen versusstatic.26scorecells independently exact; cutoffstrictlycausal. FixedM5 AUC Oct.53148,Nov.52380,Dec.49443; oldimportDec.50270. Nextzero-fithead/representation attribution; no newfitadmitted.",
+    "latest_progress": "Verified full29574 TRAIN cached loss1.948957→2.021683; all10sidecomponentsworse, activityimproves. Audit3.323s wholecommand; independent review2.973s. Short momentreset/spread interventions remain negative on later direction. No specific cause or correction qualified; all training gates closed.",
     "user_clarification_20261109": {
       "scope": "Correct direction for short sniper and longer long/shorttrends; separate forecasts and targets at M5 cadence.",
       "existing_future_horizons_minutes": [
@@ -69693,7 +69697,7 @@
       "sha256": "1cfb6be1e258df9a51a0e67d06ef8bcb85e451e749829319f93ba6af6614c341"
     },
     "native_accumulation_change_qualified": false,
-    "next_measured_coverage_gap": "Fourheadmomentreset and temporalspread atmatched24steps didnotfixlaterdirection. ActualS/F M5query/target/weightsarebound; globalmeanP drift explainsaggregate laterBrierlossbutwithin-blockrankingismixed. Neither a globalbiascorrection nor datasamplingchange is justifiedasfix. Next reconcile actualall-tasknativeobjective improvements withM5conditionalside changes using savedcomponentreceipts before changingloss/learningrate orstartingmorefits. Reuse passedgradientchecks; do not reinterpretthreeinitialgradientbatches as entiretrajectory proof.",
+    "next_measured_coverage_gap": "Use saved step/loss receipts to locate how native training loses direction across the full pass; distinguish in-batch training behavior from frozen-eval deterioration before choosing one bounded causal intervention. No new fit, normalizer or learning-rate change admitted. Do not repeat consumed moment-reset/spread probes.",
     "head_trajectory": {
       "status": "COMPLETE_CONSUMED_NUMERICALLY_VERIFIED",
       "plan": {
@@ -70133,6 +70137,14 @@
           "sha256": "35b5a18d6b9dbb2c2434203d09c32d6565ad656619c395d957f6ed3b10c64fc3"
         }
       }
+    },
+    "latest_objective_weight_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SF_OBJECTIVE_WEIGHT_AUDIT_20261109_001/RESULT.json",
+      "sha256": "59511a3f8cddc0afbc4e6dceef609419bf3a6b6bdf4463fff080fbc703879707"
+    },
+    "latest_objective_weight_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SF_OBJECTIVE_WEIGHT_AUDIT_20261109_001/REVIEW.json",
+      "sha256": "48586cc5feb9d9edfc2dfad3e23078747d6b15f3d3b45360cd443e09005b58f1"
     }
   },
   "market_state_ta_m5_short_accumulation_20261109_001": {
@@ -70698,8 +70710,8 @@
     "comparison_passed": false
   },
   "market_state_ta_sf_objective_weight_audit_20261109_001": {
-    "status": "ADMITTED",
-    "execution_authorized": true,
+    "status": "COMPLETE_CONSUMED_INDEPENDENTLY_VERIFIED",
+    "execution_authorized": false,
     "training_authorized": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SF_OBJECTIVE_WEIGHT_AUDIT_20261109_001/PLAN.json",
@@ -70718,9 +70730,9 @@
       "sha256": "6fd1df4b76ba7631348360f5a0ecba120847f02d54c0aa8effeafd5db9902c6f"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "max_forwards": 0,
     "max_updates": 0,
@@ -70734,6 +70746,109 @@
       "status": "PASS",
       "agent": "/root/ta_formula_audit",
       "scope": "Correct imported fullpassINITIAL via oldcache plusqualifiedM5columns,FINALraw; sampledS/nativeF,mask/BCE/qN/1n/tail6, same-domainweightedprevalence. FrozenEVALonly,not historicaldropout/gradients. Rootreviewedcompleteworker;metadata/synthetic preflightpassed."
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SF_OBJECTIVE_WEIGHT_AUDIT_20261109_001/RESULT.json",
+      "sha256": "59511a3f8cddc0afbc4e6dceef609419bf3a6b6bdf4463fff080fbc703879707"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SF_OBJECTIVE_WEIGHT_AUDIT_20261109_001/TERMINAL.json",
+      "sha256": "3e9364eae75beda463656fcf51d937f93e2aa4b76755762a85611aa96254fdb9"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SF_OBJECTIVE_WEIGHT_AUDIT_20261109_001/CONTROLLER.json",
+      "sha256": "251a8b1c8f78f51daeaf781adfc37d52dfdb5f3b76f7829c6e6f2cd5cd5f3db8"
+    },
+    "worker_seconds": 3.0249019069997303,
+    "whole_command_seconds": 3.323327131998667,
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SF_OBJECTIVE_WEIGHT_AUDIT_20261109_001/REVIEW.json",
+      "sha256": "48586cc5feb9d9edfc2dfad3e23078747d6b15f3d3b45360cd443e09005b58f1"
+    },
+    "review_worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SF_OBJECTIVE_WEIGHT_AUDIT_20261109_001/review.py",
+      "sha256": "7d7fccf895c0bed1eddc8607c07ae417bbcd8fd99c4c1205fad8f6f53baf3542"
+    },
+    "review_controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SF_OBJECTIVE_WEIGHT_AUDIT_20261109_001/REVIEW_CONTROLLER.json",
+      "sha256": "1dd68fc862b1d3e1f437529ba193de41b8f64beee72f25de219fcf5a9ef9a30b"
+    },
+    "review_seconds": 2.644273965001048,
+    "review_whole_command_seconds": 2.972785832000227,
+    "findings": {
+      "full_train": {
+        "initial": 1.9489571622537976,
+        "final": 2.0216832481253224,
+        "delta": 0.07272608587152485,
+        "initial_reference_error_bound": 2.4882682663095908e-08,
+        "activity_delta": -0.010092679275884808,
+        "side_delta": 0.08281876514740916,
+        "side_per_tf_delta": {
+          "state": {
+            "M5": 0.0010616103011332756,
+            "M15": 0.005927445136899925,
+            "H1": 0.00277712277196579,
+            "H4": 0.0021574280513760313,
+            "D1": 0.0016363905899246939
+          },
+          "future": {
+            "M5": 0.001881402151920064,
+            "M15": 0.027308363526101387,
+            "H1": 0.022225051049483052,
+            "H4": 0.014146020432491385,
+            "D1": 0.0036979311361136774
+          }
+        },
+        "worsened_side_components": 10
+      },
+      "M5_full_train": {
+        "state": {
+          "initial": {
+            "count": 10010,
+            "up": 5192,
+            "brier": 0.24847336382286717,
+            "log": 0.6900898151924573
+          },
+          "final": {
+            "count": 10010,
+            "up": 5192,
+            "brier": 0.25111783404001126,
+            "log": 0.695545394533187
+          }
+        },
+        "future": {
+          "initial": {
+            "count": 11909,
+            "up": 6087,
+            "brier": 0.24932701074352281,
+            "log": 0.6918003280921216
+          },
+          "final": {
+            "count": 11909,
+            "up": 6087,
+            "brier": 0.25390394215160905,
+            "log": 0.7012328459307832
+          }
+        }
+      },
+      "weighted_up_delta_full_train": {
+        "state": {
+          "M5": 0.0,
+          "M15": -0.001097467396999785,
+          "H1": 0.005961943098050093,
+          "H4": 0.00550500725847014,
+          "D1": -0.030393352861659007
+        },
+        "future": {
+          "M5": 0.0,
+          "M15": 0.012101297305708858,
+          "H1": 0.0009483493833474244,
+          "H4": 0.0010569547608657581,
+          "D1": -0.025134762215773487
+        }
+      },
+      "interpretation": "Full-pass frozen-eval objective worsens, with all ten side components worse; improved activity does not offset direction loss. Full TRAIN does not support total-objective improvement traded for M5 loss. Other-TF weighting effects are mixed and do not establish a shared DOWN cause.",
+      "limits": "Imported full-pass INITIAL ae772f versus FINAL23ff34; sampledS/nativeF. Frozen eval algebra, not historical dropout/optimizer-loss replay. No causal correction, later generalization or economic edge established."
     }
   }
 }

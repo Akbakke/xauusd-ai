@@ -15,24 +15,42 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: CACHED_FULL_TRAIN_OBJECTIVE_AND_WEIGHT_AUDIT_ADMITTED.
+Policystatus: CACHED_FULL_TRAIN_OBJECTIVE_WEIGHT_AUDIT_VERIFIED_ALL_SIDE_COMPONENTS_WORSE.
 
-Én lagret tallkontroll er innrømmet:29574TRAIN-rader/1849B16+hale6,
-ogførste24batcher,0forwards/updates/refits/checkpoint-/targetloads.
-Maks60s/4G/512M/tråd1; alle treningsporter er stengt.
+Siste kontroll er COMPLETE, konsumert og uavhengig verifisert.
+29 574 TRAIN-observasjoner, 1 849 batcher inkludert hale på seks rader;
+0 forwards, oppdateringer, refits, checkpoint- eller targetloads.
+Hel kommando 3,323 s; uavhengig review 2,973 s. Prosessene er avsluttet.
+Alle trenings- og launchporter er stengt.
+
 Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_SF_OBJECTIVE_WEIGHT_AUDIT_20261109_001
-PLAN SHA199f7c1f0d702cd47762d0db27ccf66bf2bf510304ba12ace2686afb0fe4597b.
-Worker SHAa672b3937540a25408c9ec8eeba03ae691a391791728339f6578f405deea8996.
-15inputs/5aktivekildeeiere, metadata/tiny-syntheticpreflight og uavhengig
-avgrenset source-review PASS. Ingen ny normalizer eller trening er innrømmet.
+RESULT SHA59511a3f8cddc0afbc4e6dceef609419bf3a6b6bdf4463fff080fbc703879707.
+REVIEW SHA48586cc5feb9d9edfc2dfad3e23078747d6b15f3d3b45360cd443e09005b58f1.
 
-Dette undersøker tapsalgebraen for faktisk sampletS/nativeF på fryste
-eval-logits. INITIAL er fullpassets importerteae772f-modell: gamle aktivitet/
-andreTF-logits med bare toM5-sidekolonner erstattet av kvalifiserteimportverdier.
-M5-native referanseavvik er eksplisitt begrenset til7.82e-8/4.84e-8.
-FINAL er23ff34-modellen. SHORT INITIAL0 er en senere modell og brukes ikke.
-VektetOPP-andel sammenliknes meduvektetandeliSAMMEquery-/måldomene,
-ikke feilaktig motnativeS-prior påde4andreTF. Ingenhistoriskdropoutreplay.
+Fullpassets samlede tap på fryste eval-logits øker fra 1,948957162 til
+2,021683248 (+0,072726086). Alle ti sidekomponenter blir dårligere:
+sidebidrag +0,082818765; aktivitet -0,010092679. M5 Brier S
+0,248473364→0,251117834 og F 0,249327011→0,253903942 (lavere er bedre).
+Dette støtter ikke at fullpasset forbedret totalmålet ved å ofre M5.
+
+INITIAL er fullpassets importerte ae772f-modell, FINAL er 23ff34.
+Gamle aktivitet-/andreTF-logits brukes med kvalifiserte importerte M5-sidekolonner;
+native M5-referanseavvik er høyst 7,82e-8/4,84e-8. Senere SHORT INITIAL0
+brukes ikke. S har faktisk samplede queries, F native queries; dette er
+tapsalgebra på fryste eval-logits, ikke historisk dropout-/optimizerreplay.
+Uavhengig per-observasjonsberegning bekrefter tap, masker, querytellinger,
+vekter og hale. Maks sumtapsavvik 5,46e-12, vektavvik 5,69e-14.
+
+M5s vektede og uvektede OPP-andeler er like. Øvrige TF har blandede
+vekteffekter; D1s fulle S/F-andeler forskyves -3,04/-2,51 prosentpoeng,
+mens H1/H4 forskyves mot OPP. Dette isolerer ingen felles NED-årsak
+og kvalifiserer ingen generell endring av normalisering.
+
+Neste steg er å bruke lagrede steg-/tapskvitteringer til å skille faktisk
+treningsforløp fra forverring ved evaluering, før én konkret årsakstest velges.
+Ingen ny fit, normalizer- eller læringsrateendring er innrømmet. Ikke gjenta
+konsumerte moment-/rekkefølgeprøver eller øk epoker. Den konkrete årsaken,
+en fungerende rettelse og bedre retning på senere data er fortsatt ubevist.
 
 Forholdet mellom totalt ogprimærtmål er allerede sett iendpointmålingene:
 SPREAD−CONTROL senere total−.055551840, mens M5-sidebidrag+.000295557.
@@ -68,9 +86,9 @@ senere mål svakereCONTROL ogINITIAL0. Begge evalueringscapturer er bevart.
 Konklusjon: mer tidsmessig spredning ved samme24updates er ikke en påvist
 rettelse. Ingen større trening eller permanent modellendring er kvalifisert.
 Dette er en negativ liten sammenligning, ikke en generell dom over modellen.
-Neste direkte spørsmål er forholdet mellom faktisk samlet treningsmål og
-M5-retning: bruk lagrede aktivitet-/sidekomponenter for alleTF og tidligere
-gradientbevis før en ny årsakshypotese eller loss-/kodeendring velges.
+Forholdet mellom faktisk samlet treningsmål og M5-retning er nå kontrollert
+på lagrede full-TRAIN-komponenter, se siste resultat øverst. Tidligere
+gradientbevis beholdes; de isolerer ikke hele forløpets årsak.
 Ikke gjenta de konsumerte moment-/rekkefølgevariantene eller øk epoker.
 Målet er fortsatt uoppnådd. TEST/Entry/Exit/handel er stengt.
 
