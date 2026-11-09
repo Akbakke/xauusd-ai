@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T03:43:26.544926+00:00",
-  "status": "TA_DIRECTION_EQUAL_OBSERVATION_WEIGHT_CONTROL_ADMITTED",
+  "observed_utc": "2026-11-09T03:55:26.674978+00:00",
+  "status": "TA_DIRECTION_EQUAL_WEIGHT_S_LATER_PRIOR_BEATEN_F_UNBEATEN",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Execute exactly2cached equal-observation M5 fits at frozenalpha0.01 and preserved loss mass against reused weighted controls; close gate and independently verify. No new selection or native launch.",
+  "next_action": "Prepare minimum one-use native weights-only qualification for the verified equal-weight M5 heads: strictly restore original FINAL CUDA state (not latest native FINAL), migrate to existing dedicated model, import only four M5 tensors, bind new model identity, fresh actual output-baseline and strict checkpoint roundtrip with zero optimizer steps. Reuse original cache/baseline/source proofs where exact. No native launch is currently admitted; F later prior remains unbeaten.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1640,6 +1640,10 @@
     "latest_private_inner_l2_m5_control": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_INNER_L2_20261109_001/REVIEW.json",
       "sha256": "2941792cab14f1974434fc8ef9dcd34b94ebc0894766b3eaf1346329885cbafe"
+    },
+    "latest_private_equal_weight_m5_control": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_EQUAL_WEIGHT_20261109_001/REVIEW.json",
+      "sha256": "1b8e3192394e6eeb25eb2ceca0f74195b619c7e15ca53bf9a243128b032f1b78"
     }
   },
   "current_work": {
@@ -40177,7 +40181,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "market_state_ta_direction_equal_weight_20261109_001",
+  "training_enabled_scope": "NONE_EQUAL_WEIGHT_COMPLETE_SAVED_EVIDENCE_REVIEW_ONLY",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -67819,19 +67823,19 @@
     }
   },
   "market_state_ta_direction_equal_weight_20261109_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_EQUAL_WEIGHT_20261109_001/PLAN.json",
       "sha256": "2271dbfffb0ae2fae0196f0cd59c514057a36b50ccb114d4618cd5f3b72b4c32"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
-    "execution_authorized": true,
-    "training_authorized": true,
-    "data_reads_authorized": true,
-    "readout_fits": 2,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "data_reads_authorized": false,
+    "readout_fits": 0,
     "new_native_forwards": 0,
     "new_native_parameter_updates": 0,
     "test_data_used": false,
@@ -67848,6 +67852,94 @@
         "sha256": "1ef1ec052f2e8121ee452765ca05e85085375927e2c76c1bbf986745535837e3"
       }
     ],
-    "check_note": "Initial literal0.04exact assertion was overstrict by6.94e-18; corrected uniformity/mass/gradient/empty-support checks pass. Worker math unchanged. Newton tests reused."
+    "check_note": "Initial literal0.04exact assertion was overstrict by6.94e-18; corrected uniformity/mass/gradient/empty-support checks pass. Worker math unchanged. Newton tests reused.",
+    "observed_readout_fits": 2,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_EQUAL_WEIGHT_20261109_001/RESULT.json",
+      "sha256": "4d0189738896d76a7a459f74a0c1a262ce5cf16f19432f3513015c9bd45fef5c"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_EQUAL_WEIGHT_20261109_001/TERMINAL.json",
+      "sha256": "80f6cd4bf1ea6d1a34f6f40ae2bb5ad7a1a828320834b40230b3ac9c49cf7308"
+    },
+    "elapsed_seconds": 4.091148976998738,
+    "verification": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_EQUAL_WEIGHT_20261109_001/VERIFICATION.json",
+      "sha256": "85482fd6fabd6d97ec14769a50f44b47e95d9b4102f0d9c4a06e6b5ae4a3c9fe"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_EQUAL_WEIGHT_20261109_001/REVIEW.json",
+      "sha256": "1b8e3192394e6eeb25eb2ceca0f74195b619c7e15ca53bf9a243128b032f1b78"
+    },
+    "comparison": {
+      "fit": {
+        "future": {
+          "count": 11909,
+          "up_count": 6087,
+          "equal_brier": 0.24932701074352281,
+          "weighted_brier": 0.24939106345451456,
+          "prior_brier": 0.24987621125676626,
+          "brier_change": -6.405271099174659e-05,
+          "brier_minus_prior": -0.0005492005132434474,
+          "equal_log": 0.6918003280921216,
+          "weighted_log": 0.6919289363599154,
+          "prior_log": 0.6928995826378952,
+          "auc": 0.5273157192764911,
+          "mean_p": 0.5109712747092003
+        },
+        "state": {
+          "count": 10010,
+          "up_count": 5192,
+          "equal_brier": 0.24847336382286717,
+          "weighted_brier": 0.2485468312714343,
+          "prior_brier": 0.24965100834625317,
+          "brier_change": -7.346744856712162e-05,
+          "brier_minus_prior": -0.0011776445233860067,
+          "equal_log": 0.6900898151924573,
+          "weighted_log": 0.6902389706501806,
+          "prior_log": 0.6924490347681654,
+          "auc": 0.5381870822116089,
+          "mean_p": 0.5185591398769893
+        }
+      },
+      "score": {
+        "future": {
+          "count": 7165,
+          "up_count": 3676,
+          "equal_brier": 0.249855791231191,
+          "weighted_brier": 0.25004580072027605,
+          "prior_brier": 0.249833416409301,
+          "brier_change": -0.00019000948908504123,
+          "brier_minus_prior": 2.237482188999218e-05,
+          "equal_log": 0.6928588080616984,
+          "weighted_log": 0.6932405439724867,
+          "prior_log": 0.6928139788167914,
+          "auc": 0.5083225969633772,
+          "mean_p": 0.5143581495898966
+        },
+        "state": {
+          "count": 6096,
+          "up_count": 3133,
+          "equal_brier": 0.24965248806034565,
+          "weighted_brier": 0.25002197459786324,
+          "prior_brier": 0.2498279877882917,
+          "brier_change": -0.0003694865375175882,
+          "brier_minus_prior": -0.00017549972794606017,
+          "equal_log": 0.6924524133660842,
+          "weighted_log": 0.6931974746952929,
+          "prior_log": 0.6928031584293621,
+          "auc": 0.5219430966816074,
+          "mean_p": 0.522249243054054
+        }
+      }
+    },
+    "isolated_weighting_effect_measured": true,
+    "train_prior_beaten_both": true,
+    "later_prior_beaten": {
+      "state": true,
+      "future": false
+    },
+    "native_transfer_authorized": false,
+    "native_model_changed": false
   }
 }

@@ -15,48 +15,53 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_DIRECTION_EQUAL_OBSERVATION_WEIGHT_CONTROL_ADMITTED.
+Policystatus: TA_DIRECTION_EQUAL_WEIGHT_S_LATER_PRIOR_BEATEN_F_UNBEATEN.
 
-Den [kronologiske L2-kontrollen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_INNER_L2_20261109_001/REVIEW.json)
-er COMPLETE og konsumert. Fem forhåndsvalgte styrker × tre indre splitt ×
-to hoder, deretter to fullTRAIN-fits:32 små fits,5,537s totalt, ingen nativeforward.
-Felles alpha0,01 ble valgt kun fra pooled FP32-logloss på indre TRAIN og låst
-før senere cache ble åpnet. Én hel B16 ble purget ved hver grense; faktiske
-issue+5min<cutoff er kontrollert, og to umodne scorerader ble utelatt.
-FullTRAIN-encoder/normalisering gjør dette til betinget head-valg, ikke encoder-OOF.
+Den [parvise likevektskontrollen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_EQUAL_WEIGHT_20261109_001/REVIEW.json)
+er COMPLETE og konsumert. Kun vekten mellom kjente observasjoner ble endret:
+original128D-representasjon, alpha0,01, startprior, masker, solver og total
+M5-sidevekt ble holdt fast. To nye konvergerte hoder; vektet kontroll gjenbrukt.
+Hele kontrollen tok4,091s, ingen nativeforward eller nativevektendring.
 
-FP32 M5 Brier, lavere er bedre:
-TRAIN S0,248546831 mot prior0,249651008; F0,249391063 mot0,249876211.
-Senere S0,250021975 mot prior0,249827988; F0,250045801 mot0,249833416.
-Senere AUC er S0,522570/F0,508920. Begge slår TRAIN-prior, men begge taper
-fortsatt senere. Dette er en forbedret privat readout, ingen kvalifisert edge.
-Fullmodellens kode og vekter er uendret; ingen ny nativefit er innrømmet.
+M5 FP32 Brier, vektet→lik observasjonsvekt, med fryst prior:
+TRAIN S0,248546831→0,248473364, prior0,249651008.
+TRAIN F0,249391063→0,249327011, prior0,249876211.
+Senere S0,250021975→0,249652488, prior0,249827988.
+Senere F0,250045801→0,249855791, prior0,249833416.
+Alle fire Brier/log-målinger bedres. Begge slår TRAIN-prior; S slår nå også
+senere prior, mens F fortsatt taper svakt. Senere AUC S0,521943/F0,508323.
+Dette isolerer en konkret skade fra tapsvektingen ved frossen representasjon;
+hele native treningshistorien eller robust generalisering/edge er ikke bevist.
 
-Alle16 endelige scoreceller er kontrollregnet (maks2,23e-16), gamle batchmål
-(maks1,28e-15), alle32 optimumgradienter og alle FP32 B16-prediksjoner er
-kontrollert. Indre utvalg er uavhengig rekonstruert; største gradient9,35e-9.
-Nye split-/valgtester og separat review består etter en rettet overstreng
-testforventning og navnebytte fra select.py før planbinding. Kildea569240b
-var uendret. CPU-porten er lukket; forbrukte planer kan ikke relanseres.
+Alle24 scoreceller er uavhengig kontrollert (maks2,23e-16), begge mål
+(maks2,78e-17), begge optimumgradienter (maks8,13e-10), vektmasse og
+FP32 B16-prediksjoner (bitlike). Kontrollprediksjoner ble gjenbrukt bitlikt.
+Source6164a2f0 var uendret. Begge CPU-planer er lukket og konsumert.
+Worker ble avgrenset delegert, lest av root og kvalifisert med fokuserte
+vektkontroller; en overstreng float-literal-test ble rettet, uten workerendring.
 
-[Tapets vekting og skårdekomponering](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_INNER_L2_20261109_001/CALIBRATION_DECOMPOSITION.json)
-viser at batchvis kjent-side-mean gir inntil14× ulik vekt mellom kjente rader.
-Faktisk mot effektiv TRAIN OPP-andel: S0,518681→0,526853 og F0,511126→0,515518.
-Senere S har gunstig sentrert Brier-ledd−0,00009875, men nivåskjevhet+0,00029274
-gjør totalen dårligere enn prior. F har også ugunstig sentrert ledd.
-Dette alene beviser ikke hele native årsaken. Neste avgrensede kontroll
-holder alpha0,01, originalrepresentasjon, labels og total sidevekt fast,
-og endrer kun til lik vekt per kjent observasjon. To fits, ingen ny tuning.
-Den konkrete [likevektsplanen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_EQUAL_WEIGHT_20261109_001/PLAN.json)
-er innrømmet én gang:2fits,CPU12G/512M,én numerisk tråd,maks900s.
-Root har lest worker; nye vekt-/gradientkontroller består etter rettet
-float-literal-test. Ingen workermatematikk ble endret; Newton-kontroller gjenbrukes.
-Lagrede vektede prediksjoner gjenbrukes som kontroll. Native porter er stengt.
+Alpha0,01 kom fra [kronologisk indre TRAIN-valg](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_INNER_L2_20261109_001/REVIEW.json):
+fem forhåndsvalgte styrker, tre splitter,32fits/5,537s. Valget ble låst før
+senere cache åpnet. Én hel B16 ble purget, streng M5-modning kontrollert.
+Encoder/normalisering hadde sett hele TRAIN: dette er betinget head-valg,
+ikke encoder-OOF. Senere TRAIN er gjenbrukt utvikling, ikke forseglet TEST.
 
-Tidligere fullførte kontroller og råkvitteringer beholdes på opprinnelige
-artefaktstier og i Git. Konvergens-/regulariseringsløseren, fullcache og beståtte
-tester gjenbrukes. Direkte double→FP32-kopiering av de uregulariserte vektene
-er fortsatt ikke kvalifisert; ingen toleranse er senket.
+[Skår- og vektdiagnosen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_INNER_L2_20261109_001/CALIBRATION_DECOMPOSITION.json)
+viste inntil14× ulik observasjonsvekt. Effektiv OPP-andel var S0,526853
+mot faktisk0,518681, F0,515518 mot0,511126. Lik vekting fjerner akkurat dette
+avviket med bevart tapmasse S0,194591671/F0,199459167.
+Aktiv native rute er native_F_objective→side_normalized_loss_v1; den eldre
+loss_v2 er ikke siste side-normalisering. Native kode/vekter er fortsatt uendret.
+
+Minste neste steg er å kvalifisere de lagrede, konvergerte likevektskoeffisientene
+i eksisterende native M5-hoder med null optimizersteg. Bruk original FINAL
+som cachebasis, streng CUDA-restore, eksisterende dedicated-migrering og kun
+fire M5-tensorer. NPZ i REVIEW har state_beta_fp32/future_beta_fp32:
+bias først, deretter128 vekter. Siste native FINAL er feil representasjonsbasis.
+Ny modeldigest, fersk faktisk output-baseline, uendrede øvrige outputs/RNG og
+streng checkpoint-rundtur kreves. Gammel firestegsmekanikk kan ikke relanseres
+eller omtolkes. Cacheevaluering alene er ikke et nytt komplett encoderforløp.
+Ingen ny nativeplan/launch er innrømmet. F-priorgrensen er fortsatt uoppfylt.
 
 Den nye [M5-fit-kjøringen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DEDICATED_M5_FOLD1_FIT_20261109_001/TERMINAL.json)
 er COMPLETE og konsumert: original FINAL varmstartet til egne M5-sidehoder,
