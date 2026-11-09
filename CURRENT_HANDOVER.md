@@ -15,17 +15,54 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: SHORT_NATIVE16_SAVED_CONTRAST_V2_ADMITTED.
+Policystatus: EARLY_REPRESENTATION_DRIFT_LOCALIZED_BACKBONE_QUERY_SPLIT_REQUIRED.
 
-Ny read-only CONTRAST_V2_PLAN er innrømmet,60s/4G/tråd1,0fit/forward.
-PLAN SHA86890061256ece4d17e0b8366b342172747dc5f9108bf134644564fcf4783042.
-Originalkontrast feilet/konsumerte på representasjons-allclose; kvitteringen
-bevares. Målt avvik er2.927e-5 i én av24576koordinater per oppgave,
-RMS3.939e-6. Begge faktiske hoder gir prognose-logitavvik <=2.67e-6.
-Minste rettelse beholder originalallclose=false, reproduserer målt avvik
-eksakt og krever den eksisterende2e-5-logitgrensen. Ingen ny løsere
-representasjonsgrense, modell-/scoreendring eller trening. Preflight PASS.
-Kjør bare den nye planen én gang; alle treningsporter forblir stengt.
+Den lagrede kontrasten er COMPLETE/konsumert og numerisk verifisert.
+CONTRAST_V2_RESULT SHA57c407854940af56eb5c3c49ffb5cdd3a5a24cdf0787359f69902e128c59d2e2.
+CONTRAST_V2_REVIEW SHA2bf702b63a8780b9831122a16a89a69576ed6c79a8caa3ca292ac861f83b425d.
+Worker3.032s/hel capped kommando6.111s; review2.355s.70scoreceller er regnet
+om via separat radvis FP64-projeksjon og direkte par-AUC for192rader;
+maksavvik4.22e-15. Samme integrator gjorde alternativ numerisk kontroll,
+ikke ny agentreview. FullTRAIN-AUC er ikke separat omregnet.0fit/forward,
+ingen senerearrays/TEST. PID96001 er avsluttet; alle porter er stengt.
+
+Ny konkret observasjon: ved16updates kommer sisteblokktapet fra pre-head
+representasjon, mens hodeendringen delvis motvirker tapet.
+S Brierbidrag head−0.000531816,representasjon+0.004752079,total+0.004220263.
+F head−0.000039948,representasjon+0.003982702,total+0.003942754.
+2x2-interaksjonen er halvfordelt; dette beskriver faktiske fryste
+kombinasjoner, ikke en unik optimizerårsak.
+
+Sisteblokk OPP-andel er70.59%S(n17)/68.18%F(n22), men modellens meanOPP
+faller51.54→50.66%S og49.09→48.41%F. Bias²-endringen forklarer omtrent81%S
+og66%F av Brierøkningen; resten er svakere kovarians/margener minus en
+liten variansreduksjon. S-AUC er0.60→0.60, F0.61905→0.56190. Dette er små
+TRAIN-utvalg, ikke bevis for et generelt regime eller senere edge.
+Over192rader forbedres både score og AUC; forbedringen er dermed ikke
+utelukkende en felles biasendring. Felles labelfri logitforskyvning er
+−0.060604S/−0.040969F; den diagnostiske forskyvningen er ikke en valgt modell.
+
+HeleTRAIN, uendretINITIAL-representasjon og bare faktisk0/16hode:
+S Brier0.248201726→0.248207830;F0.249076427→0.249079063.
+Hodedriften er liten etter16steg og har motsatt sannsynlighetsretning:
+meanOPP øker0.518867→0.521427S/0.511068→0.512367F.
+Dette er ikke faktisk global16-stegsmodellscore. Eldre256–1849hodebane
+skal ikke brukes som forklaring på tidlig representasjonsendring alene.
+
+Neste konkrete hull er å skille backbone-hidden fra delt query_projection
+(Linear+GELU), som begge inngår i den lagrede pre-head representasjonen.
+Kilde: market_state_time_query_model_v2.py og native_F_model_v1.py.
+Kvalifiser maks24encoderforwards på de samme192TRAIN-radene,0updates/
+backwards/optimizer,600s/12G/tråd1 fra de to lagrede CPU-checkpointene.
+Lagre hidden og kryss gammel/ny hidden med gammel/ny queryprojeksjon;
+gjenbruk lagrede labels/masker og tidligere paritet. Ingen slik kjøring
+er implementert eller innrømmet ennå. Ikke endre tap/frys hoder nå.
+
+Originalkontrasten feilet/konsumerte på representasjons-allclose.
+Målt CPU/GPU-avvik2.927e-5 i én av24576koordinater, RMS3.939e-6;
+begge faktiske hoder påvirkes <=2.67e-6logit. V2 beholder original
+allclose=false, reproduserer avviket og består eksisterende2e-5-logitgrense.
+Originale kvitteringer bevares; ingen modell-/scoreformel er endret.
 
 Den nye korte CPU-prøven er COMPLETE/konsumert; controllerexit0 og PID95085
 er avsluttet. Alle treningsporter er stengt igjen. Ingen automatisk
@@ -62,10 +99,8 @@ F:0.258842→0.252083(n32),0.249267→0.248161(n32),0.250423→0.254366(n22).
 Begge slårprior i første/midtre blokk, taper i siste. Dette er en liten
 tidskontrast innen TRAIN, ikke bevis for en generell regimesammenheng.
 
-Neste direkte spørsmål er hva i de lagrede prognosene/representasjonene
-som skiller den siste blokken fra de to første. Gjenbruk småcaptures og
-eksisterende fullfit-bevis; ingen ny modellkjøring trengs for denne
-inspeksjonen. Ingen større fit er innrømmet. Kortløpet beviser ikke global
+Den lagrede tidskontrasten er nå undersøkt og lokalisert som beskrevet
+øverst. Ingen større fit er innrømmet. Kortløpet beviser ikke global
 TRAIN-forbedring, generaliserbar retning eller økonomisk edge.
 
 Den lagrede hodebanen er allerede COMPLETE og numerisk kontrollert:

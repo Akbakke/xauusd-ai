@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-09T17:07:12.629858+00:00",
-  "status": "SHORT_NATIVE16_SAVED_CONTRAST_V2_ADMITTED",
+  "status": "EARLY_REPRESENTATION_DRIFT_LOCALIZED_BACKBONE_QUERY_SPLIT_REQUIRED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Execute the new read-only60s contrast plan once. Original failed plan remains consumed. Measured CPU/GPU difference affects head logits <=2.67e-6; V2 records original representation comparison=false and requires already-qualified2e-5 logit bound. No model/fit/later data.",
+  "next_action": "Qualify one bounded zero-update CPU probe that captures INITIAL/FINAL16 hidden vectors on the existing fixed192TRAIN rows. The observed pre-head representation drift, not the M5head change, causes the last-block loss after16steps. Representation is backbone hidden followed by shared query_projection(Linear+GELU); current captures only store the latter. Reuse the two CPU checkpoints and passed input/target checks. At most24encoder forwards,0backwards/optimizer/fit,later/test closed,600s,12G,thread1. Cross old/new hidden with old/new query projection and existing heads to isolate the measured cause. No probe launch is admitted yet; do not freeze heads/change loss or repeat previous contrasts.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -69693,7 +69693,7 @@
       "sha256": "1cfb6be1e258df9a51a0e67d06ef8bcb85e451e749829319f93ba6af6614c341"
     },
     "native_accumulation_change_qualified": false,
-    "next_measured_coverage_gap": "Short actual full-model run now measured and independently checked. Temporal contrast remains: first/middle TRAIN blocks improve, last block worsens for both S/F. Need explanation from saved evidence, not another complete pass.",
+    "next_measured_coverage_gap": "Early last-block degradation is attributed to pre-head representation; head updates partly offset it. Saved capture lacks pre-query backbone hidden, so backbone vs sharedquery projection has not been isolated. Not an established optimizer fault or generalized regime effect.",
     "head_trajectory": {
       "status": "COMPLETE_CONSUMED_NUMERICALLY_VERIFIED",
       "plan": {
@@ -69748,6 +69748,49 @@
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/REVIEW.json",
         "sha256": "1cfb6be1e258df9a51a0e67d06ef8bcb85e451e749829319f93ba6af6614c341"
       }
+    },
+    "latest_saved_short_contrast_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/CONTRAST_V2_RESULT.json",
+      "sha256": "57c407854940af56eb5c3c49ffb5cdd3a5a24cdf0787359f69902e128c59d2e2"
+    },
+    "latest_saved_short_contrast_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/CONTRAST_V2_REVIEW.json",
+      "sha256": "2bf702b63a8780b9831122a16a89a69576ed6c79a8caa3ca292ac861f83b425d"
+    },
+    "next_zero_update_scope": {
+      "status": "MEASURED_NEED_NOT_IMPLEMENTED_NOT_ADMITTED",
+      "question": "Is the16-step pre-head representation damage caused by backbone hidden changes or shared Linear+GELU query projection changes?",
+      "initial_checkpoint": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/INITIAL_CPU_STATE.pt",
+        "sha256": "0afb2d8ca908f0324a096d20cfecab840f1c01d01193fd6dd33091c8d1bf5c97"
+      },
+      "final_checkpoint": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/FINAL_CPU_STATE.pt",
+        "sha256": "ba77633c365fadbdfe1b2d8073dbcbfc181b95fe013c4691214197c24490fc44"
+      },
+      "fit_eval_ranges": [
+        [
+          0,
+          64
+        ],
+        [
+          14272,
+          14336
+        ],
+        [
+          29504,
+          29568
+        ]
+      ],
+      "max_encoder_forwards": 24,
+      "max_backwards": 0,
+      "max_updates": 0,
+      "max_wall_seconds": 600,
+      "max_memory": "12G",
+      "numerical_threads": 1,
+      "native_or_cpu_execution_authorized": false,
+      "later_scoring_authorized": false,
+      "causal_boundary": "All existing genuine5TF inputs; frozen checkpoint counterfactual attribution only. No rawtarget reload needed when saved matched labels/masks are reused. No candidate selection/promotion."
     }
   },
   "market_state_ta_m5_short_accumulation_20261109_001": {
@@ -69949,8 +69992,8 @@
     }
   },
   "market_state_ta_m5_short_native16_contrast_20261109_002": {
-    "status": "ADMITTED",
-    "execution_authorized": true,
+    "status": "COMPLETE_CONSUMED_NUMERICALLY_VERIFIED",
+    "execution_authorized": false,
     "training_authorized": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/CONTRAST_V2_PLAN.json",
@@ -69965,9 +70008,9 @@
       "sha256": "02567281080fb72e1fd8c9b91ec8938eececd9e4c0b06e6878191fb46cceff02"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "wall_seconds": 60,
     "memory_max": "4G",
@@ -69975,6 +70018,25 @@
     "numerical_threads": 1,
     "max_updates": 0,
     "max_forwards": 0,
-    "test_data_used": false
+    "test_data_used": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/CONTRAST_V2_RESULT.json",
+      "sha256": "57c407854940af56eb5c3c49ffb5cdd3a5a24cdf0787359f69902e128c59d2e2"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/CONTRAST_V2_TERMINAL.json",
+      "sha256": "bb8b5fe0c70a32d27c02d9e3851153c118de1fde25f07e71f428055b1e4be2a5"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/CONTRAST_V2_CONTROLLER.json",
+      "sha256": "210afd1782f0e3a8f7ab700b04ff4e45797a7959879794a0ba506a1085f2e343"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/CONTRAST_V2_REVIEW.json",
+      "sha256": "2bf702b63a8780b9831122a16a89a69576ed6c79a8caa3ca292ac861f83b425d"
+    },
+    "review_seconds": 2.355103526999301,
+    "worker_seconds": 3.032169972000702,
+    "whole_command_seconds": 6.111372393999773
   }
 }
