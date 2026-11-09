@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-09T11:55:49.497560+00:00",
-  "status": "TA_M5_CAUSAL_HISTORY_NEGATIVE_DECEMBER_RANKING_LOCALIZED",
+  "status": "TA_M5_FIXED_READOUT_TRANSFER_AUDIT_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "DirectM5 diagnosis: use existing old/new FINAL representations and already-locked old/new converged F coefficients for a zero-fit2x2 transfer attribution, separately TRAIN and each later month. Localize December ranking loss to readout versus upstream representation; no new training, native call, threshold search or horizonselection. Prepare exact bounded audit; no run admitted yet.",
+  "next_action": "Execute the exact admitted zero-fit2x2 M5 F transfer audit once; all four fixed arms on matched TRAIN and each later month. No training/native execution/selection.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -9197,7 +9197,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Use saved corrected TA caches and completed readout evidence to isolate remaining TRAIN optimization deficit before any further native fit. Assess exact-objective whole-batch order/convergence control without new GPU encodings;do not repeat older nonmatching order audit.",
+    "next_action": "Execute the exact admitted zero-fit2x2 M5 F transfer audit once; all four fixed arms on matched TRAIN and each later month. No training/native execution/selection.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -18889,7 +18889,7 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "Closed; no active or admitted fit.",
+    "current_training_scope": "Closed; only fixed saved-output audit admitted, no fit.",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -24660,7 +24660,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-09T10:53:26.315040+00:00",
+  "updated_utc": "2026-11-09T12:03:18.828409+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -68942,5 +68942,34 @@
       "2024-12": true
     },
     "full_native_training_speedup_demonstrated": false
+  },
+  "market_state_ta_m5_readout_transfer_20261109_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_READOUT_TRANSFER_20261109_001/PLAN.json",
+      "sha256": "d951d5575c93975cd66cd12d317c0ad67aadf29d4526e9a2169046d130c2792c"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_READOUT_TRANSFER_20261109_001/SOURCE_REVIEW.json",
+      "sha256": "9d66138546cc25612cea17e7c32c48b2a427b5b071fd4460f4911ae90236c282"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "training_authorized": false,
+    "readout_fits": 0,
+    "native_forwards": 0,
+    "native_parameter_updates": 0,
+    "wall_seconds": 120,
+    "memory_max": "4G",
+    "swap_max": "512M",
+    "selection": false,
+    "test_data_used": false,
+    "scope": "Does the saved M5 F later ranking loss arise from changed readout or upstream representation? Fixed 2x2 matrix, TRAIN and each later month, no fitting or selection.",
+    "standing_authorization": "Active direction-only goal: finite zero-fit comparison reusing completed caches and locked heads; local zero-cost audit."
   }
 }

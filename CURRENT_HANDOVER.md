@@ -15,7 +15,15 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_CAUSAL_HISTORY_NEGATIVE_DECEMBER_RANKING_LOCALIZED.
+Policystatus: TA_M5_FIXED_READOUT_TRANSFER_AUDIT_ADMITTED.
+
+Eksakt engangsaudit er innrommet: gamle/nye lagrede M5 F-koeffisienter
+krysses med gammel/ny representasjon. Fire faste armer, TRAIN og alle tre
+senere maneder, ingen fit, nativekall eller utvalg. CPU audit4G, maks120s.
+PLAN: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_READOUT_TRANSFER_20261109_001/PLAN.json
+SHA d951d5575c93975cd66cd12d317c0ad67aadf29d4526e9a2169046d130c2792c.
+Metadata/preflight bestatt; original FP64-prognose skal reproduseres innen1e-12.
+training_enabled=false; ingen ny modelltrening er innrommet.
 
 Den kausale M5-historikkplanen er COMPLETE/konsumert. To faste F-hodefits
 tok5.253s; hele capped CPUkommandoen tok7.288s inkludert oppsett/kontroller.
@@ -43,8 +51,7 @@ Neste direkte M5-spørsmål kan besvares uten fit: bruk eksisterende gammel/ny
 FINAL-representasjon og allerede låste gamle/nye globale F-koeffisienter
 i en2×2krysskontroll påTRAIN og hver senere måned. Avgrens desemberfallet
 til endret avlesning versus oppstrømsrepresentasjon. Ingen nye koeffisienter,
-nativekall,terskelsøk eller horisontseleksjon. Ny avgrenset audit må bindes;
-ingen ny kjøring innrømmet ennå.
+nativekall,terskelsøk eller horisontseleksjon. Eksakt avgrenset audit er bundet over; kan kjøres én gang.
 
 Fire faste F-hoder på bevart FINAL-cache fullførte på5.792s,0nativekall.
 Alle fire TRAIN-Brier slår frystprior: M15/H1/H4/D1
