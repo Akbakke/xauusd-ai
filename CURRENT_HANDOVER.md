@@ -15,29 +15,37 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_ORIGINAL_APPLIED_STEP_ADMITTED_TWO_TECHNICAL_UPDATES.
+Policystatus: TA_M5_ORIGINAL_APPLIED_STEP_COMPLETE_LOCAL_IMPROVEMENT_ONLY.
 
-Én avgrenset teknisk prøve er innrømmet:
- /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_APPLIED_STEP_20261110_001/PLAN.json
-SHA6970a704bb3af61f6366cba76a56697e7ad6421b42e6c8e9a1e084d102e81a99.
-Original INITIALae772 og FINAL23ff får ett uavhengig faktisk AdamW-steg hver.
-Gradienter gjenbrukes fra de samme48TRAIN-radene; ingen ny backward/autograd.
-12 evalforwards,2 optimizerinstanser,2 checkpointdekodinger,0 nye checkpoints.
-training_enabled=true gjelder kun denne eksakte porten; øvrige native-/fullfit-
-porter er stengt. CPU12GiB/512MiB,1tråd,600s. Ingen senere rader eller TEST.
+To faktiske tekniske originalsteg er ferdige og uavhengig verifisert:
+[rapport](docs/TA_M5_ORIGINAL_APPLIED_STEP_REVIEW.json).
+Ett steg fra INITIALae772 og ett separat fra FINAL23ff; gradientene fra samme
+48TRAIN-rader er gjenbrukt.12 forwards,2 AdamW-steg,0 backward/autograd eller
+nye checkpoints. Originalmodellene er satt tilbake. Alle treningsporter er stengt.
+Helkommando139,071s, etterkontroll8,597s; forberedelse ikke medregnet.
 
-Spørsmålet er om lokalt beregnet lavere M5-tap også blir faktisk lavere etter
-samme oppdatering. Opprinnelige optimizer-momenter lastes uten RNG-restore.
-Kanonisk clipping/AdamW gjenbrukes; faktisk klippet gradient, parameterdelta og
-nye momenter beholdes privat for uavhengig avrundingskontroll. Modellene settes
-tilbake; tekniske vekter brukes ikke videre. Alle tre perioder bidrar til
-middelgradienten, så perioderesultatene er in-sample, ikke generalisering.
-Ingen fortegns-/gevinstport. Kodegjennomgang og metadata-preflight består.
-Ingen kanonisk modellkode er endret. Lukk porten straks terminal foreligger.
+Samlet M5 S/F vektet BCE, Brier og logtap bedres ved begge originalpunkter.
+INITIAL F-Brier0,249765→0,248838; FINAL0,261376→0,261217.
+INITIAL S-Brier0,251103→0,249851; FINAL0,259977→0,259763.
+Alle fire samlede tapsendringer samsvarer med den beregnede lokale retningen.
+Fra INITIAL forverres siste16-radersperiode litt for begge mål; FINAL bedrer
+begge i alle tre perioder. Alle perioder bidro til gradienten; dette er in-sample.
+FINAL er fortsatt verre enn frystprior og originalINITIAL. Ingen senere gevinst.
+
+Uavhengig NumPy-kontroll verifiserer tildelt/klippet gradient, faktisk delta,
+momenter/step/ID og forhåndsbundne avrundingsgrenser. Største målingsavvik2,67e-14.
+Original theta/momenter gjenbruker tidligere checkpointbevis; ingen modeller
+eller nye checkpointdekodinger i review. Full restore/buffer/RNG er produsentbevis.
+Ingen feil i lokalt steg eller konkret modellrettelse er påvist. Problemet med
+kumulativ fullTRAIN-forverring og senere retning er fortsatt uløst.
+
+Neste arbeid skal bruke eksisterende originaltrajektorie og periode-/head-
+representasjonsbevis til en konkret forklaring før ny treningskontrast.
+Ingen gjentakelse av modus-/gradient-/samme-punkt-stegprøver, nye reset-/
+sampler-sveip eller fullfit. Engangsplanen er konsumert.
 
 Forløper: [originalgradienter](docs/TA_M5_ORIGINAL_SHARED_GRADIENT_REVIEW.json)
-ga gunstig samlet lokal M5-retning ved begge tilstander, men målte ingen faktisk
-oppdatering. Den planen er konsumert; denne prøven gjenbruker gradientartefaktene.
+ga lokal retning; denne prøven målte faktisk anvendt oppdatering på samme rader.
 
 MIX24 er fullført og uavhengig verifisert:
 [docs/TA_M5_MIXED_BATCH_NATIVE_REVIEW.json](docs/TA_M5_MIXED_BATCH_NATIVE_REVIEW.json).

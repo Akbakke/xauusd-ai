@@ -1,0 +1,451 @@
+{
+  "schema_version": "gx1_original_m5_applied_step_integrated_review_v1",
+  "status": "COMPLETE_VERIFIED_LOCAL_STEP_IMPROVES_NO_FULLPASS_FIX",
+  "observed_utc": "2026-11-09T23:31:51.401249+00:00",
+  "source_head": "367544bff17e1a1bc54734fec11af774796b1552",
+  "scope": "Two independent actual CPU FP32 technical AdamW steps, one from original fullpass INITIAL and one from FINAL, using the previously saved mean gradient of the same48TRAIN rows.",
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_APPLIED_STEP_20261110_001/PLAN.json",
+    "sha256": "6970a704bb3af61f6366cba76a56697e7ad6421b42e6c8e9a1e084d102e81a99"
+  },
+  "worker": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_APPLIED_STEP_20261110_001/probe.py",
+    "sha256": "8f69c6ccec79fefbdf01d0965aa9c1700df99df3430e1f053d7132d9a5f28f64"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_APPLIED_STEP_20261110_001/RESULT.json",
+    "sha256": "29e405ae2621515cb4b90ee422862b9c3275d54baa5662fd78e8d4861649a3de"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_APPLIED_STEP_20261110_001/TERMINAL.json",
+    "sha256": "e9d2f7060ee6730ea01b0cae755bd784040ffd9bdf23575e5f8ed43affa90e74"
+  },
+  "controller": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_APPLIED_STEP_20261110_001/CONTROLLER.json",
+    "sha256": "7083d86234f30a5fb5417af6ccbaa6f7cec4c29d674581043904ffe16a22d3d9"
+  },
+  "review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_APPLIED_STEP_20261110_001/REVIEW.json",
+    "sha256": "33fb32ca507b5b7a426b91ee2177ebc4e71b2fdf2e22ba2da26b84f9d38d1b95"
+  },
+  "reviewer": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_APPLIED_STEP_20261110_001/review.py",
+    "sha256": "399c34c201fa6af9e005012ce67550f0c8b799a20f6b06f5f38fa4c5f7533de6"
+  },
+  "review_command": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_APPLIED_STEP_20261110_001/REVIEW_COMMAND.json",
+    "sha256": "d67dc6d772b7ec286958451bd0facaef6dc46725bcd54cd387e97f38d746e333"
+  },
+  "preflight": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_APPLIED_STEP_20261110_001/PREFLIGHT.json",
+    "sha256": "49797e988b48bdce4ce9f40e8144e7484f1655d61692c053dd3b69d54e90b5aa"
+  },
+  "counts": {
+    "model_constructions": 1,
+    "checkpoint_loads": 2,
+    "forwards": 12,
+    "optimizer_constructions": 2,
+    "optimizer_step_calls": 2,
+    "optimizer_updates": 2,
+    "step_pre_hook_calls": 2,
+    "model_restores": 2,
+    "backwards": 0,
+    "autograd_calls": 0,
+    "checkpoint_writes": 0,
+    "resume_state_load_calls": 2,
+    "resume_state_load_returns": 2
+  },
+  "measurements": [
+    {
+      "label": "INITIAL",
+      "measurement": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_APPLIED_STEP_20261110_001/INITIAL_MEASUREMENT.json",
+        "sha256": "c206de7faf54a45c86081c5251ab186b53c6f42f242d5ed39bf408daf8edf5e6"
+      },
+      "artifact": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_APPLIED_STEP_20261110_001/INITIAL_APPLIED_STEP.npz",
+        "sha256": "4fe3c3f1f06eeb8a6edcf2f034bdb6ebe5c512d60ef21499e33dafd65db2b394"
+      },
+      "input_gradients": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/INITIAL_AGGREGATE_GRADIENTS.npz",
+        "sha256": "f9e80f02bbe26cd5dcb8de75bb1e44295f8e0d33007214f28aae25168051a26a"
+      },
+      "mode_capture": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_MODE_CONTRAST_20261109_001/INITIAL_MODE_CAPTURE.npz",
+        "sha256": "b66cd131451b629b8602023e629f49917f754da8519c52dca4621d12edb714d7"
+      },
+      "m5": {
+        "state": {
+          "known_side_rows": 26,
+          "up_rows": 11,
+          "before": {
+            "brier": 0.2511034716853947,
+            "log": 0.6953479137041259,
+            "weighted_bce": 0.2166114106932853
+          },
+          "after": {
+            "brier": 0.2498512526582989,
+            "log": 0.6928382112685382,
+            "weighted_bce": 0.21582960035880525
+          },
+          "frozen_prior": {
+            "brier": 0.253222327159282,
+            "log": 0.6995949974788764
+          },
+          "comparison": {
+            "weighted_bce_change": -0.0007818103344800487,
+            "brier_change": -0.0012522190270957967,
+            "log_change": -0.0025097024355876796,
+            "actual_delta_dot_saved_eval_gradient": -0.0008030168909474739,
+            "previous_fp64_analytic_prediction": -0.0008030161154214754,
+            "actual_vs_linear": {
+              "observed": "DECREASE",
+              "predicted": "DECREASE",
+              "sign_agrees": true,
+              "nonlinear_remainder": 2.1206556467425267e-05
+            },
+            "actual_vs_previous": {
+              "observed": "DECREASE",
+              "predicted": "DECREASE",
+              "sign_agrees": true,
+              "nonlinear_remainder": 2.1205780941426704e-05
+            }
+          },
+          "period_changes": [
+            {
+              "start": 0,
+              "known_side_rows": 8,
+              "weighted_bce_change": -0.0010896745405725161,
+              "brier_change": -0.0018871469492781068,
+              "log_change": -0.003789481014150553
+            },
+            {
+              "start": 14272,
+              "known_side_rows": 13,
+              "weighted_bce_change": -0.0014458346318242943,
+              "brier_change": -0.0015470311848540252,
+              "log_change": -0.0030941986284178657
+            },
+            {
+              "start": 29552,
+              "known_side_rows": 5,
+              "weighted_bce_change": 0.00019007816895662277,
+              "brier_change": 0.0005301772585671327,
+              "log_change": 0.0010576333914706915
+            }
+          ]
+        },
+        "future": {
+          "known_side_rows": 28,
+          "up_rows": 12,
+          "before": {
+            "brier": 0.24976485881905378,
+            "log": 0.692674692686386,
+            "weighted_bce": 0.20020813240845012
+          },
+          "after": {
+            "brier": 0.24883845651853956,
+            "log": 0.6908191335359256,
+            "weighted_bce": 0.19967180845146196
+          },
+          "frozen_prior": {
+            "brier": 0.2517129144553257,
+            "log": 0.6965735953133232
+          },
+          "comparison": {
+            "weighted_bce_change": -0.0005363239569881606,
+            "brier_change": -0.0009264023005142175,
+            "log_change": -0.0018555591504604285,
+            "actual_delta_dot_saved_eval_gradient": -0.0005519991048197393,
+            "previous_fp64_analytic_prediction": -0.0005519985924637345,
+            "actual_vs_linear": {
+              "observed": "DECREASE",
+              "predicted": "DECREASE",
+              "sign_agrees": true,
+              "nonlinear_remainder": 1.5675147831578726e-05
+            },
+            "actual_vs_previous": {
+              "observed": "DECREASE",
+              "predicted": "DECREASE",
+              "sign_agrees": true,
+              "nonlinear_remainder": 1.567463547557388e-05
+            }
+          },
+          "period_changes": [
+            {
+              "start": 0,
+              "known_side_rows": 9,
+              "weighted_bce_change": -0.0008731779539113971,
+              "brier_change": -0.0015628570730055191,
+              "log_change": -0.003132886313910177
+            },
+            {
+              "start": 14272,
+              "known_side_rows": 13,
+              "weighted_bce_change": -0.0007469761457619684,
+              "brier_change": -0.0009281921499010581,
+              "log_change": -0.0018554436258716445
+            },
+            {
+              "start": 29552,
+              "known_side_rows": 6,
+              "weighted_bce_change": 1.1182228708800368e-05,
+              "brier_change": 3.215786522769992e-05,
+              "log_change": 6.018129143769979e-05
+            }
+          ]
+        }
+      },
+      "combined_eval_loss": [
+        2.3981439252921284,
+        2.3505949027641644
+      ],
+      "combined_eval_loss_change": -0.047549022527964,
+      "clipping": {
+        "preclip_norm_fp32": 3.6489994525909424,
+        "independent_norm_fp64": 3.649001726137412,
+        "norm_absolute_error": 2.2735464697554164e-06,
+        "norm_absolute_bound": 0.0003650001726137412,
+        "fp32_clip_coefficient": 0.2740476429462433
+      }
+    },
+    {
+      "label": "FINAL",
+      "measurement": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_APPLIED_STEP_20261110_001/FINAL_MEASUREMENT.json",
+        "sha256": "75c48df0e83462c5d402d5db2faa88ef30bb2aa6a4b32da8735a7fe9a5a7fc9b"
+      },
+      "artifact": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_APPLIED_STEP_20261110_001/FINAL_APPLIED_STEP.npz",
+        "sha256": "7e2a38d969218d63109cb2693e6bdbdf47841fda5a533b0a5dd55dfa6fb5dc62"
+      },
+      "input_gradients": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/FINAL_AGGREGATE_GRADIENTS.npz",
+        "sha256": "2a66ee9879acdf333b089d79b748148a7531a57c5d83a07d274efe432e7975b7"
+      },
+      "mode_capture": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_MODE_CONTRAST_20261109_001/FINAL_MODE_CAPTURE.npz",
+        "sha256": "d53ef6719871deb32c159347b8440117f6b3214092310c316e2e772afa46bd9a"
+      },
+      "m5": {
+        "state": {
+          "known_side_rows": 26,
+          "up_rows": 11,
+          "before": {
+            "brier": 0.25997676358568356,
+            "log": 0.7135030561566537,
+            "weighted_bce": 0.22226701264516366
+          },
+          "after": {
+            "brier": 0.2597630151911383,
+            "log": 0.713064610396133,
+            "weighted_bce": 0.2221304301476439
+          },
+          "frozen_prior": {
+            "brier": 0.253222327159282,
+            "log": 0.6995949974788764
+          },
+          "comparison": {
+            "weighted_bce_change": -0.00013658249751977158,
+            "brier_change": -0.00021374839454524341,
+            "log_change": -0.000438445760520656,
+            "actual_delta_dot_saved_eval_gradient": -0.00013664375891020037,
+            "previous_fp64_analytic_prediction": -0.00013664386619231225,
+            "actual_vs_linear": {
+              "observed": "DECREASE",
+              "predicted": "DECREASE",
+              "sign_agrees": true,
+              "nonlinear_remainder": 6.12613904287906e-08
+            },
+            "actual_vs_previous": {
+              "observed": "DECREASE",
+              "predicted": "DECREASE",
+              "sign_agrees": true,
+              "nonlinear_remainder": 6.136867254066857e-08
+            }
+          },
+          "period_changes": [
+            {
+              "start": 0,
+              "known_side_rows": 8,
+              "weighted_bce_change": -0.00016630598972325328,
+              "brier_change": -0.00027566596419520417,
+              "log_change": -0.0005783501101757071
+            },
+            {
+              "start": 14272,
+              "known_side_rows": 13,
+              "weighted_bce_change": -0.0001316425039354363,
+              "brier_change": -0.00013753556127638067,
+              "log_change": -0.00028172520297475856
+            },
+            {
+              "start": 29552,
+              "known_side_rows": 5,
+              "weighted_bce_change": -0.00011179899890058353,
+              "brier_change": -0.0003128336496046047,
+              "log_change": -0.0006220722506918852
+            }
+          ]
+        },
+        "future": {
+          "known_side_rows": 28,
+          "up_rows": 12,
+          "before": {
+            "brier": 0.2613760042110024,
+            "log": 0.7164095884324062,
+            "weighted_bce": 0.20706837892877653
+          },
+          "after": {
+            "brier": 0.26121728267668237,
+            "log": 0.7160848205440444,
+            "weighted_bce": 0.20697450921896662
+          },
+          "frozen_prior": {
+            "brier": 0.2517129144553257,
+            "log": 0.6965735953133232
+          },
+          "comparison": {
+            "weighted_bce_change": -9.386970980990172e-05,
+            "brier_change": -0.00015872153432000546,
+            "log_change": -0.0003247678883617766,
+            "actual_delta_dot_saved_eval_gradient": -9.40014840101235e-05,
+            "previous_fp64_analytic_prediction": -9.400154260991271e-05,
+            "actual_vs_linear": {
+              "observed": "DECREASE",
+              "predicted": "DECREASE",
+              "sign_agrees": true,
+              "nonlinear_remainder": 1.317742002217699e-07
+            },
+            "actual_vs_previous": {
+              "observed": "DECREASE",
+              "predicted": "DECREASE",
+              "sign_agrees": true,
+              "nonlinear_remainder": 1.3183280001098912e-07
+            }
+          },
+          "period_changes": [
+            {
+              "start": 0,
+              "known_side_rows": 9,
+              "weighted_bce_change": -0.00017358694937755215,
+              "brier_change": -0.00029496061888090175,
+              "log_change": -0.0006228148289156854
+            },
+            {
+              "start": 14272,
+              "known_side_rows": 13,
+              "weighted_bce_change": -9.566463673255088e-05,
+              "brier_change": -0.00012278507454116516,
+              "log_change": -0.00023762517913561432
+            },
+            {
+              "start": 29552,
+              "known_side_rows": 6,
+              "weighted_bce_change": -1.2357543319671538e-05,
+              "brier_change": -3.222523699952795e-05,
+              "log_change": -6.650668085406153e-05
+            }
+          ]
+        }
+      },
+      "combined_eval_loss": [
+        2.644661411209807,
+        2.623187934853803
+      ],
+      "combined_eval_loss_change": -0.02147347635600383,
+      "clipping": {
+        "preclip_norm_fp32": 4.499668598175049,
+        "independent_norm_fp64": 4.499671091947618,
+        "norm_absolute_error": 2.4937725688900514e-06,
+        "norm_absolute_bound": 0.0004500671091947618,
+        "fp32_clip_coefficient": 0.22223854064941406
+      }
+    }
+  ],
+  "frozen_prior": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DEDICATED_M5_SOURCE_20261109_001/ENDPOINT_PRIORS.json",
+    "sha256": "9f2cc89f5abc886fa4a89a1c3b0d0f9c39f877d8ab1374af651aee678c7a425c"
+  },
+  "arithmetic_profile": {
+    "fp32_unit_roundoff": 5.960464477539063e-08,
+    "fp32_min_subnormal": 1.401298464324817e-45,
+    "norm_rtol": 0.0001,
+    "norm_atol": 1e-07,
+    "clip_units": 4,
+    "moment_units": 8,
+    "weight_base_units": 4,
+    "weight_step_units": 16,
+    "weight_subnormal_units": 8,
+    "raw_atol": 2e-05,
+    "m5_probability_atol": 1e-06,
+    "loss_atol": 2e-06
+  },
+  "independent_validation": {
+    "status": "PASS_INDEPENDENT_ORIGINAL_APPLIED_STEP_REVIEW",
+    "max_arithmetic_errors": {
+      "clip": {
+        "max_abs_error": 7.172522131781989e-09,
+        "max_error_to_bound": 0.24995528893087499
+      },
+      "exp_avg": {
+        "max_abs_error": 2.980232227667301e-09,
+        "max_error_to_bound": 0.24985556078744958
+      },
+      "exp_avg_sq": {
+        "max_abs_error": 8.938174748951422e-10,
+        "max_error_to_bound": 0.3450858004464254
+      },
+      "weight": {
+        "max_abs_error": 1.4502434142471543e-07,
+        "max_error_to_bound": 0.2918564922779329
+      }
+    },
+    "max_metric_or_report_error": 2.6645352591003757e-14,
+    "checkpoint_decodes": 0,
+    "model_forwards": 0,
+    "optimizer_updates": 0,
+    "assigned_and_clipped_gradients_verified": true,
+    "actual_delta_moments_steps_verified": true,
+    "original_checkpoint_theta_moment_proof_reused": true,
+    "full_model_restore_buffer_rng_proof": "producer_source_witness",
+    "improvement_or_sign_is_pass_gate": false
+  },
+  "timing": {
+    "whole_command_seconds": 139.0714849770011,
+    "worker_seconds": 136.01070756300032,
+    "review_whole_seconds": 8.597035003000201,
+    "review_worker_seconds": 8.27343385399945,
+    "peak_rss_bytes": 5727526912,
+    "preflight_seconds": 5.760876993001148,
+    "preparation_included": false,
+    "training_speedup_established": false
+  },
+  "findings": [
+    "Actual pooled M5 S/F weighted BCE, Brier and log loss improve at both original states. All4 pooled weighted-BCE change signs agree with the frozen-gradient local predictions.",
+    "Original INITIAL F Brier falls0.249764859 to0.248838457; original FINAL F Brier falls0.261376004 to0.261217283. FINAL remains worse than its frozen prior and original INITIAL.",
+    "Original INITIAL S Brier falls0.251103472 to0.249851253; original FINAL S Brier falls0.259976764 to0.259763015.",
+    "INITIAL last16-row period worsens for both M5 tasks while pooled scores improve; FINAL improves both tasks in all3periods. All periods contributed to the saved mean gradient, so this is in-sample behavior, not held-out transfer.",
+    "Combined sampled-S/native-F eval objective also decreases at both states. No local finite-step sign reversal or corrective optimizer arithmetic change is established.",
+    "Exact assigned FP32 component reduction, captured clipping, actual deltas, moments, IDs and step increments pass independent predeclared rounding bounds. Original model/checkpoint state is preserved; no updated training checkpoint or candidate is produced.",
+    "This establishes local response to a real step on48TRAIN rows, not an explanation or fix of the full-pass deterioration, later generalization or economic edge."
+  ],
+  "limits": [
+    "One actual CPU FP32 step at each original state on the saved mean gradient of the same three TRAIN batches. Every period contributed to the update; no cross-period or later-data transfer is measured.",
+    "Original theta/moments/IDs are reused from the independently checkpoint-verified gradient artifacts; this reviewer performs no checkpoint decode, model, backward, optimizer or applied update.",
+    "Moment references use the captured clipped gradient; weight arithmetic uses actual captured post-step moments to isolate FP32 update rounding. The separately retained prior FP64 prediction used its declared saved-gradient reduction.",
+    "Active-parameter deltas, assigned/clipped gradients, moments and steps are independently checked. Full model restoration, inactive parameters, buffers and RNG remain qualified producer witnesses.",
+    "Actual weighted BCE change, Brier/log changes and first-order dot products are distinct. Neither sign is a PASS gate; this is not historical CUDA replay, sequential full-pass behavior, generalization, candidate selection or economic edge.",
+    "Only26S and28F known sides in48fixedTRAIN rows; no fullTRAIN or later evaluation in this stage.",
+    "The reference comparison uses the same small training panel. Its apparent advantage is not independent evidence of a tradable signal."
+  ],
+  "model_code_changed": false,
+  "local_same_panel_improvement_established": true,
+  "full_train_cause_established": false,
+  "full_train_correction_qualified": false,
+  "later_direction_improvement_established": false,
+  "original_models_restored": true,
+  "qualification_weights_retained": false,
+  "training_enabled": false,
+  "next_direct_step": "The canonical actual step improves pooled M5 loss locally; no update-sign or rounding correction is supported. The unresolved problem is cumulative full-pass deterioration and later-direction value. Reuse the existing original trajectory and period/head-representation evidence to identify a specific loss-of-learning mechanism before proposing a different bounded training contrast. Do not repeat mode, frozen-gradient or same-point applied-step probes, optimizer reset/sampler sweeps or fullfit. All training gates remain closed."
+}
