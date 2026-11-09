@@ -28,7 +28,9 @@ SOURCE_VALIDATION/PREFLIGHT ligger i
 hodetensorer erstattes, seks fullforwards på32TRAIN-rader, alle29574/17753
 cachede hodeprognoser og bitlik checkpointgjenopptakelse. Tre modeller/optimizere,
 null backwards/oppdateringer. Originalcheckpoint bevares; kandidaten får tom
-optimizer og cursor0. Materialisering og fersk idle-boundary Windows-boot
+optimizer og cursor0. Første materialiseringsforsøk avviste feil guard-template-fase før claim/modell;
+referansen er rettet til eksisterende research-template. Materialisering og
+fersk idle-boundary Windows-boot
 gjenstår.250W og eksisterende vakter beholdes. training_enabled=false.
 Ingen ny encoderfit/cache. Kilde og policy fryses før kjøringen.
 Native paritet er ennå ikke kvalifisert, og senereF-edge er fortsatt ubevist.
