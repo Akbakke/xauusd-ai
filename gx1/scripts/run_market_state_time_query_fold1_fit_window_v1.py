@@ -70,11 +70,42 @@ def _bookend(launch: dict, plan: dict, policy_path: Path,
               'INPUT_CHANGED:' + name)
     _need(campaign.file_sha256(Path(launch['reference_result']['path']))
           == launch['reference_result']['sha256'], 'REFERENCE_CHANGED')
+    if launch['run_scope'] == scope.TA_M5_EQUAL_LOSS_FIT_SCOPE:
+        campaign.require_binding(launch['imported_origin']['imported_checkpoint'],
+            label='M5 equal-loss original import', verify_file=True)
     if launch['run_scope'] in (scope.TA_RECOVERY_SCOPE, scope.TA_M5_FIT_SCOPE):
         origin = launch['warmstart_origin'] if launch['run_scope'] == scope.TA_M5_FIT_SCOPE else launch['recovery_origin']
         for name, ref in origin.items():
             if isinstance(ref, dict):
                 campaign.require_binding(ref, label='TA recovery ' + name, verify_file=True)
+
+
+def _ta_m5_rebind_import(*, launch, model, optimizer, view_identity,
+                        order, source_commit, device, counters):
+    """Reuse the qualified original zero-step state with only its loss rebound."""
+    import torch
+    from gx1.contracts import market_state_time_query_fold1_fit_state_v1 as state
+    from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+    from gx1.scripts.run_unified_exit_random_access_full_train_v1 import (
+        _dynamic_m5_technical_tree_sha256 as tree_sha,
+    )
+    origin = launch['imported_origin']
+    _need(tree_sha(order) == origin['parent_order_sha256'], 'IMPORTED_PARENT_ORDER')
+    saved = common._load_state(origin['imported_checkpoint'], torch=torch,
+        maximum=launch['max_checkpoint_bytes'], counters=counters)
+    rebound, proof = state.rebind_m5_equal_observation_initial_state(
+        saved, model, optimizer,
+        expected_model_state_sha256=origin['model_state_sha256'],
+        new_numerical_recipe=launch['numerical_recipe'],
+        feature_view_identity=view_identity, parent_order=order,
+        source_commit=origin['source_commit'], new_source_commit=source_commit,
+        device=device)
+    _need(rebound['model_state_sha256'] == launch['expected_initial_model_state_sha256']
+          and rebound['rng_state_sha256'] == origin['rng_state_sha256'],
+          'IMPORTED_MODEL_AND_RNG')
+    _need(not optimizer.state and all(module.training for module in model.modules()),
+          'IMPORTED_EMPTY_OPTIMIZER_AND_TRAIN_MODES')
+    return proof
 
 
 def _prepared_fold1(receipts: dict, view: dict, *, np):
@@ -296,7 +327,8 @@ def _publish_terminal(*, work: Path, progress_path: Path,
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
     from gx1.scripts import run_entry_native_direction_research_window_v1 as common
     payload = {
-        'schema_version': (scope.TA_RESULT_SCHEMA if launch['run_scope'] in (scope.TA_SF_SCOPE, scope.TA_RECOVERY_SCOPE, scope.TA_M5_FIT_SCOPE)
+        'schema_version': (scope.TA_RESULT_SCHEMA if launch['run_scope'] in (scope.TA_SF_SCOPE, scope.TA_RECOVERY_SCOPE, scope.TA_M5_FIT_SCOPE,
+            scope.TA_M5_EQUAL_LOSS_FIT_SCOPE)
                            else scope.RESULT_SCHEMA),
         'outcome': outcome, 'phase_state': phase_state,
         'recipe': window['recipe'], 'fold': fold,
@@ -326,6 +358,10 @@ def _publish_terminal(*, work: Path, progress_path: Path,
     if launch['run_scope'] == scope.TA_M5_FIT_SCOPE:
         payload['warmstart_origin'] = launch['warmstart_origin']
         payload['dedicated_m5_side'] = True
+    if launch['run_scope'] == scope.TA_M5_EQUAL_LOSS_FIT_SCOPE:
+        payload['imported_origin'] = launch['imported_origin']
+        payload['dedicated_m5_side'] = True
+        payload['m5_equal_observation'] = True
     result = common._json(
         work / 'RESULT.json', payload, counters,
         launch['max_published_json_bytes'])
@@ -381,13 +417,18 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
 
     recovery_run = launch['run_scope'] == scope.TA_RECOVERY_SCOPE
-    ta_sf = launch['run_scope'] in (scope.TA_SF_SCOPE, scope.TA_RECOVERY_SCOPE, scope.TA_M5_FIT_SCOPE)
-    dedicated_m5_side = launch['run_scope'] == scope.TA_M5_FIT_SCOPE
+    ta_sf = launch['run_scope'] in (scope.TA_SF_SCOPE, scope.TA_RECOVERY_SCOPE, scope.TA_M5_FIT_SCOPE,
+            scope.TA_M5_EQUAL_LOSS_FIT_SCOPE)
+    equal_loss_run = launch['run_scope'] == scope.TA_M5_EQUAL_LOSS_FIT_SCOPE
+    dedicated_m5_side = launch['run_scope'] in (
+        scope.TA_M5_FIT_SCOPE, scope.TA_M5_EQUAL_LOSS_FIT_SCOPE)
     m5_equal_observation = launch['numerical_recipe'].get('m5_equal_observation', False)
     expected_recipe = (scope.ta_sf_numerical_recipe(dedicated_m5_side=dedicated_m5_side,
                            m5_equal_observation=m5_equal_observation)
                        if ta_sf else scope.fold1_numerical_recipe())
-    _need(launch['run_scope'] in {scope.SCOPE, scope.TA_SF_SCOPE, scope.TA_RECOVERY_SCOPE, scope.TA_M5_FIT_SCOPE}
+    _need(launch['run_scope'] in {scope.SCOPE, scope.TA_SF_SCOPE, scope.TA_RECOVERY_SCOPE, scope.TA_M5_FIT_SCOPE,
+            scope.TA_M5_EQUAL_LOSS_FIT_SCOPE}
+          and m5_equal_observation == equal_loss_run
           and launch['fold'] == scope.FOLD
           and launch['numerical_recipe'] == expected_recipe
           and launch['reference_result'] == (
@@ -490,7 +531,7 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
 
         trainer._set_deterministic(
             numerical['seed'], device, numerical['precision_policy'])
-        if dedicated_m5_side:
+        if dedicated_m5_side and not equal_loss_run:
             from gx1.scripts.run_market_state_native_F_private_window_v1 import _restore_m5_legacy_origin
             legacy_model, legacy_rng, legacy_import = _restore_m5_legacy_origin(
                 origin=launch['warmstart_origin'], receipts=receipts, order=order,
@@ -514,7 +555,19 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
         optimizer, _ = state.build_fold1_fit_optimizer(
             model, numerical_recipe=numerical)
         counters['optimizer_constructions'] += 1
-        if dedicated_m5_side:
+        if equal_loss_run:
+            proof = _ta_m5_rebind_import(
+                launch=launch, model=model, optimizer=optimizer,
+                view_identity=actual_view, order=order,
+                source_commit=plan['source_commit'], device=device, counters=counters)
+            common._json(work / 'LOSS_REBINDING.json', {
+                'schema_version': 'gx1_market_state_ta_m5_equal_loss_fit_rebinding_v1',
+                'imported_origin': launch['imported_origin'],
+                'loss_rebinding': proof, 'source_commit': plan['source_commit'],
+                'fresh_full_initialbaseline_required': True,
+                'qualification_weights_for_main_fit': False, 'test_data_used': False},
+                counters, launch['max_published_json_bytes'])
+        elif dedicated_m5_side:
             migration = _ta_m5_apply_warmstart(
                 model=model, optimizer=optimizer, legacy_model=legacy_model,
                 legacy_rng=legacy_rng, origin=launch['warmstart_origin'], device=device)
@@ -540,7 +593,9 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
             source_commit=initial_source_commit, device=device)
         if dedicated_m5_side:
             _need(fresh['model_state_sha256'] == launch['expected_initial_model_state_sha256']
-                  and fresh['rng_state_sha256'] == legacy_import['rng_state_sha256'],
+                  and fresh['rng_state_sha256'] == (
+                      launch['imported_origin']['rng_state_sha256'] if equal_loss_run
+                      else legacy_import['rng_state_sha256']),
                   'M5_QUALIFIED_INITIAL_MODEL_AND_RNG')
         if number == 1 and recovery_run:
             initial_ref = recovery['origin']['initial_state']

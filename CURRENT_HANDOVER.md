@@ -15,7 +15,17 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_EQUAL_LOSS_NATIVE_QUALIFIED_DIRECTION_FIT_PENDING.
+Policystatus: TA_M5_EQUAL_LOSS_FULLFIT_SOURCE_QUALIFIED_ADMISSION_PENDING.
+
+Fullfit-koblingen er implementert med59fokuserte beståtte tester og separat
+lesereview. Ny scope bruker originalimport616a22… og kvalifisert rebind direkte:
+én modell/optimizer, ingen legacy-kloning av de importerte M5-hodene.
+Én12000s-window, full29574 INITIAL før1849updates, fullFINAL og17753senereTRAIN.
+Eksisterende checkpoint/RESUMABLE og250W beholdes; ingen automatisk ny window.
+State/loss/private-runner er byteidentiske med kvalifisert native619c79da.
+Kildekontroll: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FOLD1_FIT_20261109_001/SOURCE_VALIDATION.json.
+Ny recipe/metadata/admisjon gjenstår; training_enabled=false. Fullbaseline
+for imported ae772fd7 mangler; gammel71278ead-baseline er kun historikk.
 
 Den nye [native equal-loss-kvalifikasjonen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_MECHANICAL_20261109_001/REVIEW.json)
 er COMPLETE og konsumert:3modeller/3optimizere,6forwards/4backwards/4steg.
@@ -59,8 +69,8 @@ standardkontrakter beholdes. Siste batch på seks rader behandles likt.
 forward, gamle/nye state-rundturer og avvist kryss-restore. Syntaks består.
 [Kildekontroll](/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_OBSERVATION_LOSS_20261109_001/SOURCE_VALIDATION.json).
 
-Native fit med rettelsen er ikke kjørt. Neste nødvendige kobling er streng
-nativekontroll av den nå implementerte bindingen fra verifisert importcheckpoint.
+Native fullfit med rettelsen er ikke kjørt. Bindingen fra verifisert
+importcheckpoint er nå kvalifisert med native4steg; fullfit er neste steg.
 Den kvalifiserte nye grenen unngår den gamle legacy-varmstarten som ville klonet gamle hoder.
 Ingen fit er innrømmet. AdamW er uendret; Newton med koblet L2 fra
 readout-forsøket er ikke gjenskapt av denne vektingsrettelsen.

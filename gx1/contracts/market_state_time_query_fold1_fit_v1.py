@@ -56,6 +56,29 @@ TA_M5_FIT_CHANGED_SOURCE_PATHS = frozenset({
     'gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py',
     'gx1/scripts/materialize_market_state_time_query_fold1_fit_campaign_v1.py',
 })
+
+TA_M5_EQUAL_LOSS_FIT_SCOPE = 'market_state_ta_m5_equal_loss_fold1_fit_v1'
+TA_M5_EQUAL_LOSS_FIT_STAGE = 'market_state_ta_m5_equal_loss_fold1_fit_20261109_001'
+TA_M5_EQUAL_LOSS_FIT_ROOT = Path('/home/andre2/GX1_RUNS') / TA_M5_EQUAL_LOSS_FIT_STAGE.upper()
+TA_M5_EQUAL_LOSS_FIT_RUNTIME_ROOT = TA_M5_EQUAL_LOSS_FIT_ROOT / 'RUNTIME'
+TA_M5_EQUAL_LOSS_FIT_RECIPE_PATH = TA_M5_EQUAL_LOSS_FIT_ROOT / 'RECIPE.json'
+TA_M5_EQUAL_LOSS_FIT_MAX_WINDOWS = 1
+TA_M5_EQUAL_LOSS_FIT_MECHANICAL_COMMIT = '619c79da3e1478742766c07908103f04ef630f8d'
+TA_M5_EQUAL_LOSS_FIT_MECHANICAL_ROOT = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_MECHANICAL_20261109_001')
+TA_M5_EQUAL_LOSS_FIT_MECHANICAL_REFS = {
+    name: {'path': str(TA_M5_EQUAL_LOSS_FIT_MECHANICAL_ROOT / path), 'sha256': sha}
+    for name, path, sha in (
+        ('ta_mechanical_recipe', 'RECIPE.json', '93693fff5236861e1a2b2bd2e6a86a3ee7862c2a74e9da5127f537e7fab3c742'),
+        ('ta_mechanical_qualification', 'RESULT.json', '58fa9767f531f458c95e375d3f86e7c8efd956c58970bc0b976f743483277ef7'),
+        ('ta_mechanical_terminal', 'TERMINAL.json', '6eac64d7b0eddb8aa330e434133350ef099edebce994347017610d9a9bb3ccac'),
+        ('ta_mechanical_plan', 'CAMPAIGN/CAMPAIGN_PLAN.json', '905dd8efd3cd7fae95f2dc90457b710d673f5a23399a61831eea9063516fcd9d'),
+        ('ta_mechanical_review', 'REVIEW.json', 'c2d0114a1375c82e35b15231be195f1ff2e14d1831fdd6d1ae2ffc88ff978e4d'),
+        ('ta_mechanical_artifact_verification', 'ARTIFACT_VERIFICATION.json', 'e84a33f7cffe489b5fa43d0f519a29d2db8f8f5608a2dff20e41eb57ab3de18a'),
+        ('ta_mechanical_campaign_receipt', 'RUNTIME/receipts/invocation-0001.json', '683261526b538366d4ba1589d625c0bea918cbb9e1805a3bd289d46255b80869'),
+    )
+}
+TA_M5_EQUAL_LOSS_FIT_CHANGED_SOURCE_PATHS = TA_M5_FIT_CHANGED_SOURCE_PATHS
+
 TA_RECOVERY_ORIGIN_SCHEMA = 'gx1_market_state_ta_fold1_recovery_origin_v1'
 TA_RECOVERY_SOURCE_COMMIT = 'c7c1f4f5a5f21e1b8ac5255d65e1646b7ea99410'
 TA_RECOVERY_PARENT_CURSOR = 4096
@@ -169,12 +192,14 @@ def require_checkpoint_view(value: Any, *, recipe: Mapping[str, Any] | None = No
     """Require the exact matured fold-1 feature and normalization identity."""
     _need(type(dedicated_m5_side) is bool, 'TA_M5_VIEW_MODE')
     if recipe is not None:
-        m5_recipe = recipe.get('run_scope') == TA_M5_FIT_SCOPE
+        m5_recipe = recipe.get('run_scope') in (TA_M5_FIT_SCOPE, TA_M5_EQUAL_LOSS_FIT_SCOPE)
         _need(not dedicated_m5_side or m5_recipe, 'TA_M5_VIEW_RECIPE_MODE')
         dedicated_m5_side = m5_recipe
         if m5_recipe:
             _need(recipe.get('numerical_recipe') == ta_sf_numerical_recipe(
-                dedicated_m5_side=True), 'TA_M5_VIEW_NUMERICAL')
+                dedicated_m5_side=True,
+                m5_equal_observation=recipe.get('run_scope') == TA_M5_EQUAL_LOSS_FIT_SCOPE),
+                'TA_M5_VIEW_NUMERICAL')
     if ta_sf or dedicated_m5_side or (recipe is not None and recipe.get("run_scope") in (TA_SF_SCOPE, TA_RECOVERY_SCOPE)):
         return _require_ta_checkpoint_view(value, recipe=recipe, verify_files=verify_files,
                                            dedicated_m5_side=dedicated_m5_side)
@@ -231,6 +256,9 @@ def require_launch_recipe(value: Any, *, source_repo: Path,
                           source_commit: str,
                           verify_files: bool = True) -> dict[str, Any]:
     """Validate a distinct fit admission without the legacy prefix fold registry."""
+    if isinstance(value, Mapping) and value.get("run_scope") == TA_M5_EQUAL_LOSS_FIT_SCOPE:
+        return _require_ta_m5_equal_loss_fit_launch_recipe(value, source_repo=source_repo,
+            source_commit=source_commit, verify_files=verify_files)
     if isinstance(value, Mapping) and value.get("run_scope") == TA_M5_FIT_SCOPE:
         return _require_ta_m5_fit_launch_recipe(value, source_repo=source_repo,
             source_commit=source_commit, verify_files=verify_files)
@@ -306,6 +334,14 @@ def require_launch_recipe(value: Any, *, source_repo: Path,
 
 def require_fit_gate(gate: Any, recipe: Mapping[str, Any]) -> None:
     """Separate positive fit gate; the completed private probe remains closed."""
+    if recipe.get("run_scope") == TA_M5_EQUAL_LOSS_FIT_SCOPE:
+        _need(isinstance(gate, Mapping)
+              and gate.get("ta_m5_equal_loss_fold1_fit_authorized") is True
+              and recipe.get("admission_stage") == TA_M5_EQUAL_LOSS_FIT_STAGE
+              and gate.get("imported_origin") == recipe["imported_origin"]
+              and gate.get("mechanical_review") == recipe["input_refs"]["ta_mechanical_review"]
+              and gate.get("physical_power_limit_w") == 250,
+              "M5_EQUAL_LOSS_FIT_POLICY")
     if recipe.get("run_scope") == TA_M5_FIT_SCOPE:
         _need(isinstance(gate, Mapping)
               and gate.get("ta_m5_fold1_fit_authorized") is True
@@ -317,7 +353,7 @@ def require_fit_gate(gate: Any, recipe: Mapping[str, Any]) -> None:
               and gate.get("ta_sf_fold1_recovery_authorized") is True
               and gate.get("recovery_origin") == recipe["recovery_origin"],
               "TA_RECOVERY_POLICY")
-    if recipe.get("run_scope") in (TA_SF_SCOPE, TA_RECOVERY_SCOPE, TA_M5_FIT_SCOPE):
+    if recipe.get("run_scope") in (TA_SF_SCOPE, TA_RECOVERY_SCOPE, TA_M5_FIT_SCOPE, TA_M5_EQUAL_LOSS_FIT_SCOPE):
         _need(isinstance(gate, Mapping)
               and gate.get("ta_sf_fold1_fit_authorized") is True
               and gate.get("input_audit") == recipe["input_refs"]["ta_input_audit"]
@@ -396,7 +432,7 @@ def _require_ta_checkpoint_view(value: Any, *, recipe=None, verify_files=True,
         and prefix['unobserved_units_profile_sha256'] == PROFILE_SHA256,
         'TA_VIEW_NORMALIZATION')
     if recipe is not None:
-        _need(recipe.get('run_scope') in (TA_SF_SCOPE, TA_RECOVERY_SCOPE, TA_M5_FIT_SCOPE)
+        _need(recipe.get('run_scope') in (TA_SF_SCOPE, TA_RECOVERY_SCOPE, TA_M5_FIT_SCOPE, TA_M5_EQUAL_LOSS_FIT_SCOPE)
             and recipe.get('expected_view_sha256') == value['contract_sha256'],
             'TA_CHECKPOINT_RECIPE_VIEW')
     return prefix_fit._view_identity(value, verify_files=verify_files,
@@ -786,4 +822,182 @@ def _require_ta_m5_fit_launch_recipe(value, *, source_repo, source_commit, verif
                               source_commit=source_commit)
     for name, ref in refs.items():
         campaign.require_binding(ref, label='TA M5 fit input ' + name, verify_file=True)
+    return recipe
+
+
+def _ta_m5_equal_loss_fit_qualification():
+    """Reuse the completed native zero-state rebind and exact-resume proof."""
+    from gx1.contracts import market_state_native_F_private_campaign_v1 as sf
+    expected, _, _ = sf._ta_m5_equal_loss_expected()
+    refs = {**expected['input_refs'],
+            **{name: dict(ref) for name, ref in TA_M5_EQUAL_LOSS_FIT_MECHANICAL_REFS.items()}}
+    qualified, report, terminal, plan, review, checked, receipt = (
+        sf._read(refs[name], name) for name in TA_M5_EQUAL_LOSS_FIT_MECHANICAL_REFS)
+    qualified = sf._identity(qualified, set(expected) | {'source_owners'},
+        sf.TA_M5_EQUAL_LOSS_RECIPE_SCHEMA, 'recipe_sha256')
+    _need(all(qualified[k] == value and type(qualified[k]) is type(value)
+              for k, value in expected.items()), 'M5_EQUAL_LOSS_FIT_MECHANICAL_RECIPE')
+    origin, numerical = expected['imported_origin'], expected['numerical_recipe']
+    _need(report.get('schema_version') == sf.TA_M5_EQUAL_LOSS_RESULT_SCHEMA
+          and report.get('decision') == 'PASS_TA_M5_EQUAL_LOSS_MECHANICAL'
+          and report.get('recipe') == refs['ta_mechanical_recipe']
+          and report.get('source_owners') == qualified['source_owners']
+          and report.get('source_unchanged') is True
+          and report.get('numerical_recipe') == numerical
+          and report.get('imported_origin') == origin
+          and report.get('candidate_view') == refs['ta_candidate_view']
+          and report.get('input_audit') == refs['ta_input_audit']
+          and report.get('m5_equal_observation') is True
+          and report.get('bit_exact_resume') is True
+          and report.get('fresh_initial_baseline') is True
+          and report.get('full_TRAIN_initialbaseline_qualified') is False
+          and report.get('qualification_weights_for_main_fit') is False
+          and report.get('private_weights_for_main_fit') is False
+          and report.get('native_fit_authorized') is False
+          and report.get('physical_optimizer_updates') == 4
+          and report.get('parent_cursor') == 32
+          and report.get('parent_order_rows') == FIT_ROWS
+          and report.get('parent_order') == list(range(32))
+          and report.get('parent_order_sha256') == origin['parent_order_sha256']
+          and report.get('test_data_used') is False and report.get('error') is None,
+          'M5_EQUAL_LOSS_FIT_MECHANICAL_RESULT')
+    _need(plan.get('source_commit') == TA_M5_EQUAL_LOSS_FIT_MECHANICAL_COMMIT
+          and plan.get('recipe') == refs['ta_mechanical_recipe']
+          and terminal.get('status') == 'COMPLETE' and terminal.get('exit_code') == 0
+          and terminal.get('recipe') == refs['ta_mechanical_recipe']
+          and terminal.get('result') == refs['ta_mechanical_qualification']
+          and terminal.get('no_relaunch_under_this_plan') is True
+          and terminal.get('test_data_used') is False
+          and receipt.get('schema_version') == 'gx1_local_random_access_invocation_receipt_v2'
+          and receipt.get('plan_sha256') == plan.get('plan_sha256')
+          and receipt.get('invocation_number') == 1 and receipt.get('outcome') == 'COMPLETE'
+          and receipt.get('guard_decision') == 'PASS'
+          and receipt.get('trainer_guard_exit_code') == receipt.get('progress_observer_exit_code') == 0
+          and receipt.get('test_data_used') is False, 'M5_EQUAL_LOSS_FIT_TERMINAL')
+    _need(review.get('status') == 'NATIVE_EQUAL_LOSS_REBINDING_AND_RESUME_QUALIFIED_CONSUMED'
+          and review.get('native_source_commit') == TA_M5_EQUAL_LOSS_FIT_MECHANICAL_COMMIT
+          and review.get('imported_checkpoint') == origin['imported_checkpoint']
+          and review.get('initial_model_state_sha256') == origin['model_state_sha256']
+          and review.get('result') == checked.get('result') == refs['ta_mechanical_qualification']
+          and review.get('terminal') == checked.get('terminal') == refs['ta_mechanical_terminal']
+          and review.get('campaign_receipt') == checked.get('campaign_receipt')
+              == refs['ta_mechanical_campaign_receipt']
+          and review.get('artifact_verification') == refs['ta_mechanical_artifact_verification']
+          and review.get('model_buffers_optimizer_rng_modes_order_preserved_at_rebinding') is True
+          and review.get('bit_exact_resume') is True
+          and review.get('both_M5_heads_receive_gradient') is True
+          and review.get('physical_power_limit_w') == 250
+          and review.get('full_TRAIN_initialbaseline_qualified') is False
+          and review.get('qualified_initial_rows') == 32
+          and review.get('private_updated_weights_for_main_fit') is False
+          and checked.get('status') == 'PASS_ACTUAL_SAVED_STATE_AND_CONTROLLER'
+          and checked.get('all_model_buffers_optimizer_rng_modes_order_bitexact') is True
+          and checked.get('actual_final_equals_native_reference_full_state') is True
+          and checked.get('original_checkpoint_unchanged') is True
+          and checked.get('original_import_for_main_fit') is True
+          and checked.get('private_updated_weights_for_main_fit') is False
+          and checked.get('actual_state_cursors') == [0, 0, 16, 32]
+          and review.get('test_data_used') is checked.get('test_data_used') is False,
+          'M5_EQUAL_LOSS_FIT_REVIEW')
+    proofs = report.get('loss_rebindings')
+    _need(isinstance(proofs, list) and len(proofs) == 3
+          and all(p == proofs[0] for p in proofs), 'M5_EQUAL_LOSS_FIT_REBINDING_PARITY')
+    proof = proofs[0]
+    _need(proof.get('schema_version') == 'gx1_ta_m5_equal_observation_initial_rebinding_v1'
+          and proof.get('model_state_sha256') == origin['model_state_sha256']
+          and proof.get('rng_state_sha256') == origin['rng_state_sha256']
+          and proof.get('parent_order_sha256') == origin['parent_order_sha256']
+          and proof.get('source_commit') == origin['source_commit']
+          and proof.get('new_source_commit') == TA_M5_EQUAL_LOSS_FIT_MECHANICAL_COMMIT
+          and proof.get('old_numerical_recipe_sha256') == ta_sf_numerical_recipe(
+              dedicated_m5_side=True)['contract_sha256']
+          and proof.get('new_numerical_recipe_sha256') == numerical['contract_sha256']
+          and proof.get('state_sha256') == report.get('initial_state_sha256')
+          and all(type(proof.get(k)) is int and proof[k] == 0 for k in (
+              'cursor', 'optimizer_updates', 'skipped_batches', 'optimizer_steps_performed'))
+          and proof.get('parameter_identity_unchanged') is proof.get('buffer_identity_unchanged') is True
+          and proof.get('changed_state_fields') == ['binding', 'source_commit', 'contract_sha256']
+          and proof.get('changed_binding_fields') == ['numerical_recipe', 'contract_sha256'],
+          'M5_EQUAL_LOSS_FIT_REBINDING_STATE')
+    return refs, qualified
+
+
+def _require_ta_m5_equal_loss_fit_sources(owners, qualified, *, source_commit):
+    """Only five full-fit orchestration owners may differ from native qualification."""
+    import subprocess
+    from gx1.contracts import market_state_native_F_private_campaign_v1 as sf
+    paths = required_source_paths(ta_sf=True)
+    _need(isinstance(owners, Mapping) and isinstance(qualified, Mapping)
+          and set(owners) == set(qualified) == paths
+          and len(paths) == 85 and TA_M5_EQUAL_LOSS_FIT_CHANGED_SOURCE_PATHS <= paths,
+          'M5_EQUAL_LOSS_FIT_SOURCE_SET')
+    _need(subprocess.run(['git', 'merge-base', '--is-ancestor',
+        TA_M5_EQUAL_LOSS_FIT_MECHANICAL_COMMIT, source_commit], cwd=CANONICAL_REPO,
+        capture_output=True).returncode == 0, 'M5_EQUAL_LOSS_FIT_SOURCE_ANCESTRY')
+    for name, ref in owners.items():
+        current = campaign.require_binding(ref, label='equal-loss fit current source', verify_file=True)
+        old = campaign.require_binding(qualified[name], label='equal-loss qualified source', verify_file=False)
+        _need(current['path'] == old['path'] == str(CANONICAL_REPO / name),
+              'M5_EQUAL_LOSS_FIT_SOURCE_PATH:' + name)
+        if name in TA_M5_EQUAL_LOSS_FIT_CHANGED_SOURCE_PATHS:
+            _need(old['sha256'] == sf._ta_m5_git_source_sha(TA_M5_EQUAL_LOSS_FIT_MECHANICAL_COMMIT, name),
+                  'M5_EQUAL_LOSS_FIT_HISTORICAL_SOURCE:' + name)
+        else:
+            _need(current == old, 'M5_EQUAL_LOSS_FIT_UNQUALIFIED_SOURCE:' + name)
+
+
+def _ta_m5_equal_loss_fit_recipe_fields(refs, qualified):
+    numerical = ta_sf_numerical_recipe(dedicated_m5_side=True, m5_equal_observation=True)
+    return {
+        'schema_version': RECIPE_SCHEMA, 'source_repo': str(CANONICAL_REPO),
+        'runtime_root': str(TA_M5_EQUAL_LOSS_FIT_RUNTIME_ROOT),
+        'run_id': TA_M5_EQUAL_LOSS_FIT_STAGE, 'admission_stage': TA_M5_EQUAL_LOSS_FIT_STAGE,
+        'run_scope': TA_M5_EQUAL_LOSS_FIT_SCOPE,
+        'fold': dict(FOLD), 'train_passes': 1, 'max_windows': TA_M5_EQUAL_LOSS_FIT_MAX_WINDOWS,
+        'numerical_recipe': numerical, 'input_manifest': refs['mature_plan'],
+        'input_refs': refs, 'reference_result': refs['ta_endpoint_priors'],
+        'expected_view_sha256': qualified['expected_view_sha256'],
+        'expected_model_contract_sha256': numerical['research_objective_sha256'],
+        'expected_loss_contract_sha256': numerical['native_F_loss_contract_sha256'],
+        'expected_initial_model_state_sha256': qualified['expected_initial_model_state_sha256'],
+        'mechanical_source_commit': TA_M5_EQUAL_LOSS_FIT_MECHANICAL_COMMIT,
+        'imported_origin': qualified['imported_origin'],
+        'measurement_scope': {'initial_fit_rows': FIT_ROWS, 'final_fit_rows': FIT_ROWS,
+                              'later_train_rows': SCORE_ROWS, 'matched_initial_final': True},
+        'execution_binding_path': str(TA_M5_EQUAL_LOSS_FIT_RUNTIME_ROOT / 'EXECUTION_BINDING.json'),
+        'checkpoint_every_updates': CHECKPOINT_EVERY_UPDATES,
+        'max_checkpoint_bytes': MAX_CHECKPOINT_BYTES,
+        'max_checkpoint_total_bytes': MAX_CHECKPOINT_TOTAL_BYTES,
+        'max_published_json_bytes': MAX_PUBLISHED_JSON_BYTES,
+        'training_enabled': True, 'full_epoch_training_allowed': True,
+        'test_data_used': False, 'predictive_value_claimed': False,
+        'qualification_weights_for_main_fit': False,
+    }
+
+
+def build_ta_m5_equal_loss_fit_launch_recipe(*, source_commit: str) -> dict[str, Any]:
+    """Build one full-fold admission from the original zero-update import only."""
+    refs, qualified = _ta_m5_equal_loss_fit_qualification()
+    value = _ta_m5_equal_loss_fit_recipe_fields(refs, qualified)
+    value['source_owners'] = {name: {'path': str(CANONICAL_REPO / name),
+        'sha256': campaign.file_sha256(CANONICAL_REPO / name)}
+        for name in sorted(required_source_paths(ta_sf=True))}
+    value['recipe_sha256'] = campaign.canonical_sha256(value)
+    return _require_ta_m5_equal_loss_fit_launch_recipe(value, source_repo=CANONICAL_REPO,
+        source_commit=source_commit, verify_files=True)
+
+
+def _require_ta_m5_equal_loss_fit_launch_recipe(value, *, source_repo, source_commit, verify_files):
+    _need(verify_files, 'M5_EQUAL_LOSS_FIT_PHYSICAL_METADATA_REQUIRED')
+    refs, qualified = _ta_m5_equal_loss_fit_qualification()
+    expected = _ta_m5_equal_loss_fit_recipe_fields(refs, qualified)
+    recipe = _identity(value, set(expected) | {'source_owners'})
+    _need(source_repo == CANONICAL_REPO and isinstance(source_commit, str)
+          and campaign._COMMIT.fullmatch(source_commit) is not None
+          and all(recipe[k] == v and type(recipe[k]) is type(v) for k, v in expected.items()),
+          'M5_EQUAL_LOSS_FIT_RECIPE_SCOPE')
+    _require_ta_m5_equal_loss_fit_sources(recipe['source_owners'], qualified['source_owners'],
+                                        source_commit=source_commit)
+    for name, ref in refs.items():
+        campaign.require_binding(ref, label='equal-loss full-fit input ' + name, verify_file=True)
     return recipe
