@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-09T17:07:12.629858+00:00",
-  "status": "CONSUMED_TARGETS_VERIFIED_SPREAD_ORDER_SOURCE_PREPARATION_NO_FIT_ADMITTED",
+  "status": "SPREAD_24_STEP_DIRECTION_COMPARISON_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Finish private spread-order worker with existing canonical full-order-state API; qualify frozen code/receipts and fresh plan before any model execution. Do not rerun cachedCONTROL24 or old frozen-head order experiments. No fit admitted.",
+  "next_action": "Run exactly the admitted spread24 probe once with outer600s bound; reuseCONTROL24 andINITIAL0. Preserve bothfixed192TRAIN/lateroutputs, then close allfitgates and review actualorder/state/RNG/scores. No larger run or automatic continuation.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -40200,7 +40200,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "CLOSED_NO_AUTOMATIC_RELAUNCH",
+  "training_enabled_scope": "market_state_ta_m5_spread_native_20261109_001",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -69996,7 +69996,7 @@
       "sha256": "fef19cce9388bd9669ac14b89afc6840a54be0dadfd32c69226fc910cf0bdd8f"
     },
     "next_spread_native_scope": {
-      "status": "SOURCE_IN_PROGRESS_NOT_ADMITTED",
+      "status": "ADMITTED_ONE_INVOCATION",
       "question": "At matched24updates from exactINITIAL0, does temporallyspreadlabelblindTRAIN exposure improveM5direction vs contiguousCONTROL24,INITIAL0 andprior?",
       "original_batch_starts": [
         0,
@@ -70024,10 +70024,6 @@
         28256,
         29552
       ],
-      "source_checkpoint": {
-        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/RESULT.json",
-        "sha256": "11937f7a4d180d88e06e298aa0ed368e5529a398d7ab8df51f8801c19e426376"
-      },
       "initial_checkpoint": {
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/INITIAL_CPU_STATE.pt",
         "sha256": "0afb2d8ca908f0324a096d20cfecab840f1c01d01193fd6dd33091c8d1bf5c97"
@@ -70079,9 +70075,21 @@
       ],
       "scoring": "Bothfixedpartitionsscoredforonepredeclaredcandidate; no conditionalcandidatechoice. LaterTRAINisreuseddevelopment. Addedlater12fwneededtoanswertransferatmatchedbudget.",
       "gate": "BothS/F,bothpartitions:Brier improves>1e-6 againstINITIAL0,CONTROL24andprior;log<=all+1e-8. AllcellsreportedonFAIL;noautomaticcontinuation.",
-      "execution_authorized": false,
-      "training_authorized": false,
-      "automatic_continuation": false
+      "execution_authorized": true,
+      "training_authorized": true,
+      "automatic_continuation": false,
+      "short_result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/RESULT.json",
+        "sha256": "11937f7a4d180d88e06e298aa0ed368e5529a398d7ab8df51f8801c19e426376"
+      },
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SPREAD_NATIVE_20261109_001/PLAN.json",
+        "sha256": "2a4e41d957dd0e1673bfe103f244e075d22a02e5249935daa5ec53d28bc8f51b"
+      },
+      "worker": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SPREAD_NATIVE_20261109_001/probe.py",
+        "sha256": "89e746e02e4440c863401d17481969ff13c8231a8dd562c9267cd0cc7878c697"
+      }
     }
   },
   "market_state_ta_m5_short_accumulation_20261109_001": {
@@ -70579,5 +70587,49 @@
       "sha256": "fef19cce9388bd9669ac14b89afc6840a54be0dadfd32c69226fc910cf0bdd8f"
     },
     "worker_seconds": 2.06433371300227
+  },
+  "market_state_ta_m5_spread_native_20261109_001": {
+    "status": "ADMITTED",
+    "execution_authorized": true,
+    "training_authorized": true,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SPREAD_NATIVE_20261109_001/PLAN.json",
+      "sha256": "2a4e41d957dd0e1673bfe103f244e075d22a02e5249935daa5ec53d28bc8f51b"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SPREAD_NATIVE_20261109_001/probe.py",
+      "sha256": "89e746e02e4440c863401d17481969ff13c8231a8dd562c9267cd0cc7878c697"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SPREAD_NATIVE_20261109_001/PREFLIGHT.log",
+      "sha256": "7acf0a635d63dcfafd74644e52e118917da033b5786a09ecd37d2b1d64370a32"
+    },
+    "controller_source": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SPREAD_NATIVE_20261109_001/controller.py",
+      "sha256": "c9b2b72fba3330f38da0d520ad6e37fd24eaa13d3f1d4a110d98ec7defa7bd9c"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "max_updates": 24,
+    "max_backwards": 24,
+    "max_forwards": 48,
+    "evaluate_later_unconditionally": true,
+    "wall_seconds": 600,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "numerical_threads": 1,
+    "test_data_used": false,
+    "source_review": {
+      "status": "PASS",
+      "agent": "/root/ta_formula_audit",
+      "worker": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SPREAD_NATIVE_20261109_001/probe.py",
+        "sha256": "89e746e02e4440c863401d17481969ff13c8231a8dd562c9267cd0cc7878c697"
+      },
+      "scope": "Canonicaloriginalrestore then onlyorder/source/seal derivation; originalfitstart forfeature/targetbinding;24steps48forwards. ActualAST PASS,FAILone latercell,FAILRNGmismatch; badforwardcountrejected.0payload/model. RootreviewedcompleteworkerandcanonicalstateAPI."
+    }
   }
 }

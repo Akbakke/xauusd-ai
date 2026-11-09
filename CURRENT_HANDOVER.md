@@ -15,7 +15,24 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: CONSUMED_TARGETS_VERIFIED_SPREAD_ORDER_SOURCE_PREPARATION_NO_FIT_ADMITTED.
+Policystatus: SPREAD_24_STEP_DIRECTION_COMPARISON_ADMITTED.
+
+Én CPU-kjøring er innrømmet:24labelblinde spredteB16,48forwards/24backwards,
+maks600s/12G/512M/tråd1. CONTROL24 ogINITIAL0 gjenbrukes uten nye forwards.
+Bare denne eksakte engangsplanen har training_enabled; native/GPU/full_epoch
+er stengt. Ingen automatisk videreføring eller større kjøring.
+
+Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SPREAD_NATIVE_20261109_001
+PLAN SHA2a4e41d957dd0e1673bfe103f244e075d22a02e5249935daa5ec53d28bc8f51b.
+Worker SHA89e746e02e4440c863401d17481969ff13c8231a8dd562c9267cd0cc7878c697.
+Metadata-preflight PASS12inputs/85eiere. Uavhengig avgrenset source-review
+PASS; kilde-AST beviser PASS,FAILsenerecelle,FAILRNG og riktig48fw-telling.
+Startstate er originalstrictrestore, så eksplisitt fullordre-permutasjon.
+Kun384rader konsumeres;29190rader i suffix er ikke autorisert.
+Begge192-radersmålinger lagres før samlet beslutning. Kandidaten må slå
+INITIAL0,CONTROL24ogprior i beggeS/F og beggepartisjoner. RNG-avvik
+bevarer resultatene, men underkjenner den parede sammenligningen.
+Etter terminal stenges alle porter og lagrede resultater kontrolleres.
 
 M5-fasit/vekt-kontrollen er COMPLETE/konsumert,2.064s uten modell/targettape.
 Uavhengig54celle-kontroll1.158s PASS; maksavvik2.665e-15. FullTRAINN/q,
@@ -39,8 +56,7 @@ fra sammeINITIAL0; gjenbruk CONTROL24. Maks48fw/24back/24updates/600s.
 Kanonisk state krever29574rader. Bruk derfor en eksplisitt fullpermutasjon:
 de384valgte først i originalrekkefølge, resten ukonsumert. Strictrestore
 originalstate før egen avledetSTART; dokumenter kun ordre/binding/source/seal-
-endring. Ingen coreendring. Arbeiderfil er under implementering; ingen fit
-eller launch er innrømmet. Begge faste192-radersTRAIN/senere utvalg scores;
+endring. Ingen coreendring. Arbeiderfilen er nå fryst og innrømmet i den eksakte engangsplanen ovenfor. Begge faste192-radersTRAIN/senere utvalg scores;
 samlet forbedringskrav motINITIAL0,CONTROL24ogprior er låst i policyscope.
 Dette er en testbar hypotese om gradientenes representativitet, ikke en
 påvist rettelse. Gamle09.11order/accumulation var frozen-head/0native;
@@ -51,7 +67,7 @@ checkpoints/refits. Alternativ skalar/rank-sum-kontroll0.029s,56scoreceller/
 48kontraster, maksavvik1.11e-16. Alle tre faste blokker inngår.
 Samme parede rot nedenfor: SHIFT_RANK_RESULT.json
 SHA94dfc72a441b47bae539dffc9fa86a21d71ce9d2096c136a85e434422c688255.
-SHIFT_RANK_REVIEW.json bevarer kontrollen. Ingen jobb kjører.
+SHIFT_RANK_REVIEW.json bevarer kontrollen. Denne kontrollen brukte ingen modell.
 
 Senere CONTROL vs INITIAL0, eksakt Brier-dekomponering:
 S total+0.003090357 = gjennomsnitt+0.003723185 + sentrert−0.000632828.
