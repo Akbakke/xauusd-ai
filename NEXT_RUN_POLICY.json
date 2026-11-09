@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-09T11:55:49.497560+00:00",
-  "status": "TA_M5_READOUT_RANKING_AND_UPSTREAM_CALIBRATION_DRIFT_LOCALIZED",
+  "status": "TA_M5_TRAIN_MONTH_DISAGGREGATION_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Use only already-saved TRAIN predictions and fixed old/new coefficient projections to localize whether the head change helps consistently across May-September or concentrates in one regime; distinguish TRAIN temporal inconsistency from later-only drift before any new learning change. No new fit, native encoding, later-period selection, rollback or horizon search admitted. Reuse completed2x2 and monthly-history evidence.",
+  "next_action": "Execute exact TRAIN-only saved forecast calendar audit once. Five fixed months and all four fixed transfer arms plus frozen prior; no fit, later-array read, native computation or selection.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -9197,7 +9197,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Use only already-saved TRAIN predictions and fixed old/new coefficient projections to localize whether the head change helps consistently across May-September or concentrates in one regime; distinguish TRAIN temporal inconsistency from later-only drift before any new learning change. No new fit, native encoding, later-period selection, rollback or horizon search admitted. Reuse completed2x2 and monthly-history evidence.",
+    "next_action": "Execute exact TRAIN-only saved forecast calendar audit once. Five fixed months and all four fixed transfer arms plus frozen prior; no fit, later-array read, native computation or selection.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -24660,7 +24660,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-09T12:05:58.537167+00:00",
+  "updated_utc": "2026-11-09T12:08:21.779172+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -69035,5 +69035,34 @@
     },
     "full_native_training_speedup_demonstrated": false,
     "conclusion": "December ranking deterioration follows the newer locked readout on both coordinate sets; new representation raises UP probabilities on both heads. Neither cross-arm beats the frozen prior in aggregate Brier. Diagnostic output attribution only; no native change or candidate selection qualified."
+  },
+  "market_state_ta_m5_train_months_20261109_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_TRAIN_MONTHS_20261109_001/PLAN.json",
+      "sha256": "7a61fd0fb8bf6e50d8137eb9d66ddc409fbf5fd06234e5cb331a879209d8aad8"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_TRAIN_MONTHS_20261109_001/SOURCE_REVIEW.json",
+      "sha256": "74880ba5198a2e5babbe78dce1cebf0f746de360790222bb5af30fae8c1c5786"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "training_authorized": false,
+    "readout_fits": 0,
+    "native_forwards": 0,
+    "later_arrays_read": 0,
+    "wall_seconds": 60,
+    "memory_max": "4G",
+    "swap_max": "512M",
+    "selection": false,
+    "test_data_used": false,
+    "scope": "Is the fixed head change consistently helpful across all five TRAIN calendar months, or does aggregate improvement conceal month-specific deterioration?",
+    "standing_authorization": "Active direction-only goal; finite zero-fit TRAIN disaggregation of already completed forecasts."
   }
 }

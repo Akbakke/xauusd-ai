@@ -15,7 +15,14 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_READOUT_RANKING_AND_UPSTREAM_CALIBRATION_DRIFT_LOCALIZED.
+Policystatus: TA_M5_TRAIN_MONTH_DISAGGREGATION_ADMITTED.
+
+Eksakt TRAIN-audit er innrømmet én gang: fem faste måneder mai–september,
+alle fire lagrede kryssprognoser og fryst prior. Ingen fit, nativeberegning
+eller lesing av senere prognosearrays. Audit4G, maks60s, trening fortsatt stengt.
+PLAN: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_TRAIN_MONTHS_20261109_001/PLAN.json
+SHA 7a61fd0fb8bf6e50d8137eb9d66ddc409fbf5fd06234e5cb331a879209d8aad8.
+Metadata og kildekontroll bestått. Alle månedsresultater er in-sample.
 
 Den faste 2×2-krysskontrollen er COMPLETE/konsumert: gamle/nye M5 F-hoder
 på gammel/ny representasjon, uten fit eller nativekall. Beregning 5.074 s;
@@ -46,7 +53,7 @@ Ingen arm er valgt, importert eller promotert.
 RESULT: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_READOUT_TRANSFER_20261109_001/RESULT.json
 SHA 0011322e3a920f640dc3702f7f5ce1c6a2bf9b9735674a862520d90271a0c454.
 REVIEW i samme rot, SHA 2913476a9ee97f2614ccdf1159db3de6928ef20914e3906c0ca85ac9efcc3bc2.
-training_enabled=false; ingen aktivjobb eller ny kjøring innrømmet.
+training_enabled=false; kun den avgrensede TRAIN-auditen over er innrømmet.
 
 Neste direkte spørsmål bruker bare allerede lagrede TRAIN-prognoser:
 Hjelper hodeendringen stabilt gjennom mai–september, eller konsentreres
