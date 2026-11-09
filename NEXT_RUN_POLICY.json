@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T20:10:35.900256+00:00",
-  "status": "CACHED_FULL_TRAIN_OBJECTIVE_WEIGHT_AUDIT_VERIFIED_ALL_SIDE_COMPONENTS_WORSE",
+  "observed_utc": "2026-11-09T20:48:00.887046+00:00",
+  "status": "TA_FORWARD_SEMANTICS_REVIEW_COMPLETE_LIMITS_IDENTIFIED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Use saved step/loss receipts to locate how native training loses direction across the full pass; distinguish in-batch training behavior from frozen-eval deterioration before choosing one bounded causal intervention. No new fit, normalizer or learning-rate change admitted. Do not repeat consumed moment-reset/spread probes.",
+  "next_action": "Separate the confirmed semantic limits from the still-unexplained learning deterioration. Reuse saved full-pass checkpoints on fixed TRAIN observations to locate loss of direction; no new fit or feature/target change admitted. Do not repeat qualified input/formula sweeps. Historical COT/macro provenance remains an explicit gap before causal generalization claims.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -66323,7 +66323,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "Verified full29574 TRAIN cached loss1.948957→2.021683; all10sidecomponentsworse, activityimproves. Audit3.323s wholecommand; independent review2.973s. Short momentreset/spread interventions remain negative on later direction. No specific cause or correction qualified; all training gates closed.",
+    "latest_progress": "User-requested all-feature forward semantics audit complete:701surface definitions/253MTFx5/8families+61macro, exactsource/konsumcoverage reused. Confirmed HTF-M5 line-clock and target/reaction/small-move limits; COT/macro historicalvintageUNKNOWN. No newly proved modelbug or directional correction; fullpasscheckpointtrajectory not launched.",
     "user_clarification_20261109": {
       "scope": "Correct direction for short sniper and longer long/shorttrends; separate forecasts and targets at M5 cadence.",
       "existing_future_horizons_minutes": [
@@ -69697,7 +69697,7 @@
       "sha256": "1cfb6be1e258df9a51a0e67d06ef8bcb85e451e749829319f93ba6af6614c341"
     },
     "native_accumulation_change_qualified": false,
-    "next_measured_coverage_gap": "Use saved step/loss receipts to locate how native training loses direction across the full pass; distinguish in-batch training behavior from frozen-eval deterioration before choosing one bounded causal intervention. No new fit, normalizer or learning-rate change admitted. Do not repeat consumed moment-reset/spread probes.",
+    "next_measured_coverage_gap": "Separate the confirmed semantic limits from the still-unexplained learning deterioration. Reuse saved full-pass checkpoints on fixed TRAIN observations to locate loss of direction; no new fit or feature/target change admitted. Do not repeat qualified input/formula sweeps. Historical COT/macro provenance remains an explicit gap before causal generalization claims.",
     "head_trajectory": {
       "status": "COMPLETE_CONSUMED_NUMERICALLY_VERIFIED",
       "plan": {
@@ -70145,6 +70145,10 @@
     "latest_objective_weight_review": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SF_OBJECTIVE_WEIGHT_AUDIT_20261109_001/REVIEW.json",
       "sha256": "48586cc5feb9d9edfc2dfad3e23078747d6b15f3d3b45360cd443e09005b58f1"
+    },
+    "latest_forward_semantics_review": {
+      "path": "/home/andre2/GX1_RUNS/TA_FORWARD_SEMANTICS_AUDIT_20261109_001/RESULT.json",
+      "sha256": "2f7bb87db26edbb818a033b132b32092ab50c30aada9c9d4ae3858fbcdcda06e"
     }
   },
   "market_state_ta_m5_short_accumulation_20261109_001": {
@@ -70850,5 +70854,95 @@
       "interpretation": "Full-pass frozen-eval objective worsens, with all ten side components worse; improved activity does not offset direction loss. Full TRAIN does not support total-objective improvement traded for M5 loss. Other-TF weighting effects are mixed and do not establish a shared DOWN cause.",
       "limits": "Imported full-pass INITIAL ae772f versus FINAL23ff34; sampledS/nativeF. Frozen eval algebra, not historical dropout/optimizer-loss replay. No causal correction, later generalization or economic edge established."
     }
+  },
+  "ta_forward_semantics_audit_20261109_001": {
+    "status": "COMPLETE_SOURCE_REVIEW_WITH_LIMITS",
+    "execution_authorized": false,
+    "training_authorized": false,
+    "source_only_and_metadata": true,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/TA_FORWARD_SEMANTICS_AUDIT_20261109_001/RESULT.json",
+      "sha256": "2f7bb87db26edbb818a033b132b32092ab50c30aada9c9d4ae3858fbcdcda06e"
+    },
+    "coverage": {
+      "surface_definitions": 701,
+      "family_semantic_groups": 59,
+      "missing_fields": [],
+      "extra_fields": [],
+      "duplicate_owners": [],
+      "physical_widths": {
+        "ctx_cat": 1,
+        "ctx_cont": 132,
+        "mtf": 253,
+        "signal": 315
+      },
+      "timeframes": [
+        "M5",
+        "M15",
+        "H1",
+        "H4",
+        "D1"
+      ],
+      "mtf_field_timeframe_slots": 1265,
+      "local_context_aliases": 132,
+      "generic_snapshot_columns_after_alias_exclusion": 183,
+      "macro_context_fields": 61,
+      "families": {
+        "chart_geometry_encoder": {
+          "ctx_cat": 0,
+          "ctx_cont": 1,
+          "mtf": 39,
+          "signal": 32
+        },
+        "momentum_flow_encoder": {
+          "ctx_cat": 0,
+          "ctx_cont": 12,
+          "mtf": 29,
+          "signal": 35
+        },
+        "price_action_candle_encoder": {
+          "ctx_cat": 0,
+          "ctx_cont": 2,
+          "mtf": 24,
+          "signal": 23
+        },
+        "session_regime_encoder": {
+          "ctx_cat": 1,
+          "ctx_cont": 70,
+          "mtf": 9,
+          "signal": 70
+        },
+        "smc_liquidity_encoder": {
+          "ctx_cat": 0,
+          "ctx_cont": 14,
+          "mtf": 76,
+          "signal": 69
+        },
+        "structure_swing_encoder": {
+          "ctx_cat": 0,
+          "ctx_cont": 6,
+          "mtf": 24,
+          "signal": 30
+        },
+        "trend_ema_encoder": {
+          "ctx_cat": 0,
+          "ctx_cont": 21,
+          "mtf": 39,
+          "signal": 40
+        },
+        "vol_compression_encoder": {
+          "ctx_cat": 0,
+          "ctx_cont": 6,
+          "mtf": 13,
+          "signal": 16
+        }
+      },
+      "alias_warning": "Field positions, aliases and timeframes are not independent indicators."
+    },
+    "model_forwards": 0,
+    "fits": 0,
+    "production_code_changed": false,
+    "unqualified_historical_macro_vintage": true,
+    "confirmed_causes_of_TRAIN_deterioration": []
   }
 }

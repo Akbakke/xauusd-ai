@@ -15,42 +15,58 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: CACHED_FULL_TRAIN_OBJECTIVE_WEIGHT_AUDIT_VERIFIED_ALL_SIDE_COMPONENTS_WORSE.
+Policystatus: TA_FORWARD_SEMANTICS_REVIEW_COMPLETE_LIMITS_IDENTIFIED.
 
-Siste kontroll er COMPLETE, konsumert og uavhengig verifisert.
-29 574 TRAIN-observasjoner, 1 849 batcher inkludert hale på seks rader;
-0 forwards, oppdateringer, refits, checkpoint- eller targetloads.
-Hel kommando 3,323 s; uavhengig review 2,973 s. Prosessene er avsluttet.
-Alle trenings- og launchporter er stengt.
+Brukerens nye prioritet er gjennomgått: framoverbetydning og korrekt
+modellkonsum for hele den aktive TA-flaten på alle fem tidsrammer.
+Feltvis kilde-/matematikkontroll og metadata er samlet i
+[docs/TA_FORWARD_SEMANTICS_REVIEW.json](docs/TA_FORWARD_SEMANTICS_REVIEW.json).
+Privat rot: /home/andre2/GX1_RUNS/TA_FORWARD_SEMANTICS_AUDIT_20261109_001
+RESULT SHA2f7bb87db26edbb818a033b132b32092ab50c30aada9c9d4ae3858fbcdcda06e.
 
-Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_SF_OBJECTIVE_WEIGHT_AUDIT_20261109_001
-RESULT SHA59511a3f8cddc0afbc4e6dceef609419bf3a6b6bdf4463fff080fbc703879707.
-REVIEW SHA48586cc5feb9d9edfc2dfad3e23078747d6b15f3d3b45360cd443e09005b58f1.
+Dekning: 315 lokale signaler, 132 contextfelt, session_id og 253 MTF-felt
+på hver av M5/M15/H1/H4/D1. 701 feltdefinisjoner, 59 semantikkgrupper,
+ingen hull, ekstra felt eller dobbelte eiere. De132 contextfeltene finnes
+også som temporalaliaser; dette er ikke uavhengige indikatorer.
+Alle åtte familier og61 D1/makrofelt beholdes; GC er ekskludert.
+Gjenbrukt fysisk kontroll dekker29574TRAIN +17753senereTRAIN;
+den faktiske familie-forward-kontrollen brukte to rader, ikke hele datasettet.
+Aktuell inputruting, backbone og normalisering er koblet til dette beviset.
+Ingen nye modellkall, tensorlesinger, fits eller numeriske fullsuiter.
+Metadataextractor v2 tok5,363s etter en bevart feil: MTF har ikke
+observed_fit_counts; det rapporteres UNKNOWN, uten å oppfinne tellinger.
 
-Fullpassets samlede tap på fryste eval-logits øker fra 1,948957162 til
-2,021683248 (+0,072726086). Alle ti sidekomponenter blir dårligere:
-sidebidrag +0,082818765; aktivitet -0,010092679. M5 Brier S
-0,248473364→0,251117834 og F 0,249327011→0,253903942 (lavere er bedre).
-Dette støtter ikke at fullpasset forbedret totalmålet ved å ofre M5.
+Konkrete grenser:
+- De fleste features er kjent nåtilstand/historikk; S/F har framtidige mål.
+  Det finnes ikke en egen framtidsprognose for hver indikator.
+- HTF-linjer gjelder siste lukkede egen bar. Aktuell M5-pris sammenliknes
+  ikke eksplisitt med samme HTF-linje forlenget til aktuell M5-klokke/t+h.
+- Linjer krever tredje bekreftede pivot før ACTIVE; nærmeste over/under
+  oppsummeres. Hele linjeobjekter/ankere/identiteter leveres ikke separat.
+- Hold/reaction er observerte hendelser. S/F har ikke et eget mål for
+  kontakt/sprett/brudd på en bestemt linje. F under0,5ATR trener FLAT/
+  aktivitet, ikke fortegnet på små nettobevegelser.
+- Aktive squeeze-felt er filtrert tilstand/alder, ingen forecast-hazarder.
+  HMM-/linjeparametrenes fit sluttet2013, før den aktuelle2024-folden.
+- Historisk faktisk COT-publisering/vintage i2024 og full makrovintage er
+  ikke kvalifisert. Deklarert asof-lag alene er ikke historisk versjonsbevis.
 
-INITIAL er fullpassets importerte ae772f-modell, FINAL er 23ff34.
-Gamle aktivitet-/andreTF-logits brukes med kvalifiserte importerte M5-sidekolonner;
-native M5-referanseavvik er høyst 7,82e-8/4,84e-8. Senere SHORT INITIAL0
-brukes ikke. S har faktisk samplede queries, F native queries; dette er
-tapsalgebra på fryste eval-logits, ikke historisk dropout-/optimizerreplay.
-Uavhengig per-observasjonsberegning bekrefter tap, masker, querytellinger,
-vekter og hale. Maks sumtapsavvik 5,46e-12, vektavvik 5,69e-14.
+Ingen ny konkret produsentfeil/frakobling eller fungerende retningsrettelse
+er påvist. Per-felt prediktiv nytte og lærte framtidsreaksjoner er ubevist.
+Modell-/targetkode er uendret; alle treningsporter er stengt.
+Neste direkte steg: bruk bevarte fullpass-checkpoints på identiske, små
+TRAIN-utvalg for å lokalisere tapet av retning. Trajectory-ruten er kartlagt,
+men ingen worker/PLAN er innrømmet eller kjørt. Ikke gjenta bestått
+featurekontroll eller konsumerte moment-/rekkefølgeprøver.
 
-M5s vektede og uvektede OPP-andeler er like. Øvrige TF har blandede
-vekteffekter; D1s fulle S/F-andeler forskyves -3,04/-2,51 prosentpoeng,
-mens H1/H4 forskyves mot OPP. Dette isolerer ingen felles NED-årsak
-og kvalifiserer ingen generell endring av normalisering.
-
-Neste steg er å bruke lagrede steg-/tapskvitteringer til å skille faktisk
-treningsforløp fra forverring ved evaluering, før én konkret årsakstest velges.
-Ingen ny fit, normalizer- eller læringsrateendring er innrømmet. Ikke gjenta
-konsumerte moment-/rekkefølgeprøver eller øk epoker. Den konkrete årsaken,
-en fungerende rettelse og bedre retning på senere data er fortsatt ubevist.
+Siste læringsbevis beholdes: full29574 TRAIN fryst eval-tap1,948957162→
+2,021683248; alle10sidekomponenter verre, aktivitet bedre. M5 Brier S
+0,248473364→0,251117834 og F0,249327011→0,253903942. Importert
+INITIALae772f og FINAL23ff34, sampledS/nativeF; ikke historisk dropoutreplay.
+Resultat og uavhengig review finnes i
+/home/andre2/GX1_RUNS/MARKET_STATE_TA_SF_OBJECTIVE_WEIGHT_AUDIT_20261109_001.
+Det er fortsatt ingen isolert årsak til fullpassets forverring eller
+dokumentert bedre retning på senere data. Målet er uoppnådd.
 
 Forholdet mellom totalt ogprimærtmål er allerede sett iendpointmålingene:
 SPREAD−CONTROL senere total−.055551840, mens M5-sidebidrag+.000295557.

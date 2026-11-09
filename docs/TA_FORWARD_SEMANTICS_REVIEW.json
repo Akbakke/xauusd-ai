@@ -1,0 +1,303 @@
+{
+  "schema_version": "gx1_ta_forward_semantics_integrated_review_v1",
+  "status": "COMPLETE_SOURCE_SEMANTICS_REVIEW_WITH_EXPLICIT_LIMITS",
+  "observed_utc": "2026-11-09T20:48:00.887046+00:00",
+  "source_head": "239cb48bc70b3c9c91977da4cd3872b7bf51158e",
+  "user_request": "Review all active features and five timeframes for correct forward meaning, definition and model consumption.",
+  "evidence_scope": "New source/math/metadata review with reused physical input, normalization and one two-row family-consumption witness. No new model, tensor payload, target tape, fit, normalization, TEST or trading.",
+  "coverage": {
+    "surface_definitions": 701,
+    "family_semantic_groups": 59,
+    "missing_fields": [],
+    "extra_fields": [],
+    "duplicate_owners": [],
+    "physical_widths": {
+      "ctx_cat": 1,
+      "ctx_cont": 132,
+      "mtf": 253,
+      "signal": 315
+    },
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ],
+    "mtf_field_timeframe_slots": 1265,
+    "local_context_aliases": 132,
+    "generic_snapshot_columns_after_alias_exclusion": 183,
+    "macro_context_fields": 61,
+    "families": {
+      "chart_geometry_encoder": {
+        "ctx_cat": 0,
+        "ctx_cont": 1,
+        "mtf": 39,
+        "signal": 32
+      },
+      "momentum_flow_encoder": {
+        "ctx_cat": 0,
+        "ctx_cont": 12,
+        "mtf": 29,
+        "signal": 35
+      },
+      "price_action_candle_encoder": {
+        "ctx_cat": 0,
+        "ctx_cont": 2,
+        "mtf": 24,
+        "signal": 23
+      },
+      "session_regime_encoder": {
+        "ctx_cat": 1,
+        "ctx_cont": 70,
+        "mtf": 9,
+        "signal": 70
+      },
+      "smc_liquidity_encoder": {
+        "ctx_cat": 0,
+        "ctx_cont": 14,
+        "mtf": 76,
+        "signal": 69
+      },
+      "structure_swing_encoder": {
+        "ctx_cat": 0,
+        "ctx_cont": 6,
+        "mtf": 24,
+        "signal": 30
+      },
+      "trend_ema_encoder": {
+        "ctx_cat": 0,
+        "ctx_cont": 21,
+        "mtf": 39,
+        "signal": 40
+      },
+      "vol_compression_encoder": {
+        "ctx_cat": 0,
+        "ctx_cont": 6,
+        "mtf": 13,
+        "signal": 16
+      }
+    },
+    "alias_warning": "Field positions, aliases and timeframes are not independent indicators."
+  },
+  "findings": [
+    {
+      "id": "FORWARD_SUPERVISION_NOT_PER_FEATURE_FORECAST",
+      "status": "CONFIRMED",
+      "finding": "S/F predict future state and endpoint displacement. Most indicator inputs describe known history/current state; no per-feature future-value prediction is provided."
+    },
+    {
+      "id": "HTF_LINE_GEOMETRY_CLOCK",
+      "status": "CONFIRMED_REPRESENTATION_BOUNDARY",
+      "finding": "Each TF line uses its own last closed native bar. Current M5 price is not explicitly compared with that same HTF line projected to current M5 time or a future query horizon. Slope/history remain inputs; conditional usefulness of an added projection is unproven."
+    },
+    {
+      "id": "LINE_REACTION_SUPERVISION",
+      "status": "CONFIRMED_TARGET_BOUNDARY",
+      "finding": "No separate current-line touch/bounce/break/retest probability target. Input hold/reaction events are observed history; S/F targets are not a line-specific path outcome."
+    },
+    {
+      "id": "SMALL_MOVE_SIDE_TARGET",
+      "status": "CONFIRMED_TARGET_BOUNDARY",
+      "finding": "F signs are supervised only for valid mature endpoint moves of at least0.5 native-TF ATR known at issue. Smaller net moves supervise FLAT/activity, not their UP/DOWN sign."
+    },
+    {
+      "id": "LINE_INFORMATION_SUMMARY",
+      "status": "CONFIRMED_REPRESENTATION_BOUNDARY",
+      "finding": "Two anchors remain a candidate until a third confirmed same-side pivot validates the line. Inputs summarize nearest active line above/below plus events/counts; not all line objects/anchors/identities."
+    },
+    {
+      "id": "INDICATOR_UNITS",
+      "status": "CONFIRMED_DEFINITION_LIMITS",
+      "finding": "EMA slope can mean k-bar total change, not per-bar slope. Liquidity distances use historical bar extremes; VWAP uses quote-update counts. D1 pct-in-range is0..1; GLD macro is holdings tonnes, not ETF price. Per-field formulas and units are linked in family reviews."
+    },
+    {
+      "id": "HMM_FIT_TIMING",
+      "status": "QUALIFIED_METADATA_AND_SOURCE",
+      "finding": "Active squeeze inputs are three filtered current-state/bandwidth fields, no hazard forecasts. Fixed HMM fit ends2013-01-01, before fold1in2024."
+    },
+    {
+      "id": "COT_AND_MACRO_VINTAGE",
+      "status": "UNKNOWN",
+      "finding": "COT uses as-of+7calendar-day availability plus overrides; thirteen overrides concern2025. Actual historical2024 publication/vintage and all historical macro revision vintages are not independently qualified. No observed leak is not proof of real-time availability."
+    },
+    {
+      "id": "PER_FIELD_PREDICTIVE_VALUE",
+      "status": "UNPROVEN",
+      "finding": "Source/consumption correctness does not establish future reaction learning or directional value. No causal explanation or correction for the measured TRAIN deterioration is established by this audit."
+    }
+  ],
+  "target_semantics": {
+    "queries": {
+      "decision_clock_minutes": 5,
+      "timeframes": [
+        "M5",
+        "M15",
+        "H1",
+        "H4",
+        "D1"
+      ],
+      "native_k": [
+        1,
+        3,
+        12,
+        48,
+        288
+      ],
+      "native_minutes": [
+        5,
+        15,
+        60,
+        240,
+        1440
+      ],
+      "S_training": "label-blind sampled integer k in [1,native_k] per TF/pass/issue",
+      "F_training": "native_k per TF",
+      "S_query_input": "TF one-hot and k/native_k combined with causal shared hidden",
+      "F_query_input": "TF one-hot and fixed native fraction=1",
+      "sources": [
+        "market_state_time_query_target_v1.py:10-13,49-80",
+        "market_state_time_query_model_v2.py:250-266",
+        "market_state_time_query_native_F_model_v1.py:106-121"
+      ]
+    },
+    "S": {
+      "meaning": "Future market state at v=t+5k minutes, not net return from decision t",
+      "source_state": "Selected 0.5 ATR activity and 1.0 ATR local-side formula; ambiguous active sides remain UP|DOWN, unknown remains all bits",
+      "input_feature_future_values_predicted": false,
+      "line_specific_contact_reaction_target": false,
+      "source": "build_market_state_time_query_tape_v1.py:51-55;verify_market_state_m1_duration_v1.py:399-439"
+    },
+    "F": {
+      "meaning": "closed M5 price(v)-closed M5 price(t)",
+      "normalizer": "last completed native-TF ATR at issue t",
+      "active_threshold_atr": 0.5,
+      "conditional_side_supervision": "Only valid mature exact endpoint with abs(displacement)/ATR_t>=0.5; smaller net moves teach activity/FLAT, not UP/DOWN",
+      "intermediate_path_scored": false,
+      "line_specific_contact_reaction_target": false,
+      "trade_hold_or_stop_rule": false,
+      "source": "market_state_future_displacement_candidate_v1.py:37-74"
+    },
+    "M5_known_side_rows": {
+      "state": {
+        "fit_rows": 29574,
+        "known_side_rows": 10010,
+        "share": 0.3384729830256306
+      },
+      "future": {
+        "fit_rows": 29574,
+        "known_side_rows": 11909,
+        "share": 0.402684790694529
+      }
+    }
+  },
+  "retained_boundaries": {
+    "all_eight_families": true,
+    "d1_macro_context": true,
+    "gc_inputs_excluded": true,
+    "training_enabled": false,
+    "TEST_entry_exit_trading_closed": true
+  },
+  "validation": {
+    "exact_inventory_coverage_verified": true,
+    "current_source_files_hash_checked": 36,
+    "extraction_seconds": 5.36283335799817,
+    "first_extraction_failed_missing_optional_MTF_count_metadata": true,
+    "minimal_extractor_correction": "Missing MTF observed_fit_counts stays null/UNKNOWN; no fabricated count or data change. Original failure retained.",
+    "model_forwards": 0,
+    "fits": 0,
+    "new_numeric_formula_replays": 0,
+    "prior_physical_input_rows": {
+      "fit": 29574,
+      "later_TRAIN": 17753
+    },
+    "prior_actual_family_forward_rows": [
+      0,
+      2
+    ]
+  },
+  "limits": [
+    "No model/tensor/payload/normalization/fit executed in this review.",
+    "Source routing plus a prior two-row forward proves values reach family projections; it does not measure independent predictive usefulness or influence for every field.",
+    "Full gather audit covered 29574 fit and17753 later TRAIN rows; the actual family projection witness was only parent rows0 and2.",
+    "D1 macro retained as61 fields inside session/regime; its formula/release timing conclusions belong to separate context review.",
+    "MTF normalization metadata lacks observed_fit_counts. Missing counts are UNKNOWN, not inferred from fit row count.",
+    "Constant fitted d1_ema_stack_aligned_v2 and its temporal alias remain routed. No variation or directional information is claimed.",
+    "Any unreported semantic producer attribution remains for family reviews; this inventory does not turn mere name matching into formula equivalence.",
+    "No TEST/trading/profit or per-field forecast validity claim.",
+    "Source/math review plus reused qualified numerical and consumption evidence; no new physical numerical PASS manufactured.",
+    "No price prediction, economic edge, calibration, trade quality or generalization claim follows from feature correctness.",
+    "Cross-family structure/SMC/trendline geometry and S/F future-target semantics are separately owned; not double-counted here.",
+    "No new payload-level formula/parity/causality replay was performed.",
+    "Feature availability and current source routing do not establish that the model uses geometry well.",
+    "No attribution from these definition limits to observed TRAIN-fit deterioration was measured."
+  ],
+  "review_refs": {
+    "inventory": {
+      "path": "/home/andre2/GX1_RUNS/TA_FORWARD_SEMANTICS_AUDIT_20261109_001/INVENTORY.json",
+      "sha256": "eeb4b43a287a61cdd2a7b025373d9d478814c2edf1d6196a286666e4362c88fc"
+    },
+    "structure": {
+      "path": "/home/andre2/GX1_RUNS/TA_FORWARD_SEMANTICS_AUDIT_20261109_001/structure_geometry_review.json",
+      "sha256": "0813228b340fa06e8a6234c7624ecddb68551b67d9e3c617b27bff2b494ab84d"
+    },
+    "indicators": {
+      "path": "/home/andre2/GX1_RUNS/TA_FORWARD_SEMANTICS_AUDIT_20261109_001/indicator_semantics_review.json",
+      "sha256": "561e8da9283bc3e95d388062b0ba92569da8229ca09a9153d82808b694cbb351"
+    },
+    "consumption": {
+      "path": "/home/andre2/GX1_RUNS/TA_FORWARD_SEMANTICS_AUDIT_20261109_001/CONSUMPTION_BINDING_REVIEW.json",
+      "sha256": "a2b43ee7408c1ead9ab88bf2ccd45debce8647d4f42f13013247ea1b34790bf2"
+    },
+    "targets": {
+      "path": "/home/andre2/GX1_RUNS/TA_FORWARD_SEMANTICS_AUDIT_20261109_001/TARGET_SEMANTICS_REVIEW.json",
+      "sha256": "035e06b051ad0837a6e54a9d0fba7b98032e32717e29aae18400378fa9c0e5c2"
+    },
+    "extraction": {
+      "path": "/home/andre2/GX1_RUNS/TA_FORWARD_SEMANTICS_AUDIT_20261109_001/INVENTORY_EXTRACTION_V2.json",
+      "sha256": "61dea402ad21b1136e61a6c8c6357ca474ba0d387b4ab13714a2812b2af9566b"
+    }
+  },
+  "source_owners": {
+    "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_feature_view_v1.py": "253149dd0430d290144d4f6e6176a87e4e6e4a8bc6771e8e8733c2ed78daba46",
+    "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_time_query_model_v2.py": "b68301bd1c5299a49886d0e7616f3ade8c519287db123e371e230bbaadd339bc",
+    "/home/andre2/src/GX1_CURRENT/gx1/features/entry_foundation_structure_v1.py": "c3c91476051b2e6552fc3089ca50980a38a5a20060af74b802435c786325e558",
+    "/home/andre2/src/GX1_CURRENT/gx1/features/entry_model_native_feature_layers_v1.py": "97f29b0ccc13a2fb98bcec2fc661a71b5e0ec3a3579afa220ad61972c6dd6ec4",
+    "/home/andre2/src/GX1_CURRENT/gx1/features/entry_specialist_feature_groups_v1.py": "22644212825367e495f3a8396ff164eac50eac36f4be4694e037c2d941bf0035",
+    "/home/andre2/src/GX1_CURRENT/gx1/features/htf_features.py": "9ca968805e3eca72525e14c8b53e5b31817cd2baa7c0cdb9b636cb112f092520",
+    "/home/andre2/src/GX1_CURRENT/gx1/features/level_registry_v1.py": "e7304de96c211678f9c6d4a7513d267b1f974c7718fe3a33b8103c71f3a39e02",
+    "/home/andre2/src/GX1_CURRENT/gx1/features/smc_v1.py": "56b9fe479e1cdb7dc524179b65e585d890cdd2fef128d47a6cada00692b94d9a",
+    "/home/andre2/src/GX1_CURRENT/gx1/features/swing_structure_v1.py": "c46ab4413e5bd5dd7114625fa3539e21ab39f9100341092b73d17e6efdd101e0",
+    "/home/andre2/src/GX1_CURRENT/gx1/features/trendline_registry_v1.py": "df46a23dd47d81157eeeefd09401d1e2818b618f72998987fdcf3531a845f0f3",
+    "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": "028665b503f28704900574b551e3571f813065f6d1fb8bd2c91d0dc27400364c",
+    "/home/andre2/src/GX1_CURRENT/gx1/scripts/augment_forward_outcome_v2.py": "347e0d7b6235302c4afd8fabd10f9075e25a142a7b49fd5f18c3ed41f730a2c6",
+    "/home/andre2/src/GX1_CURRENT/gx1/features/basic_v1.py": "30ef4e4e6dc5a0011b13eeb7e11227dbeaa3a44b78c35405e64f7ca655bad220",
+    "/home/andre2/src/GX1_CURRENT/gx1/features/d1_macro_context_v1.py": "d07605b8acb808aa74fb34315b137f8084683a45f45cd73399750255023b5cc9",
+    "/home/andre2/src/GX1_CURRENT/gx1/features/entry_candle_primitives_v1.py": "3f5a5e4fa3f12233aa5f9e5cc43d00d5cd5d5069fb7625a6690ce606eec4b0d0",
+    "/home/andre2/src/GX1_CURRENT/gx1/features/event_age_v1.py": "7c20d98c26f5c94885d9defdfc070eb19df81d6344f0457acdf903b4f6712ef5",
+    "/home/andre2/src/GX1_CURRENT/gx1/features/micro_structure_v1.py": "761533b9ae31fd268dbe4c075bb7e73f1436076af8372a8efc08fa2d8c1800dd",
+    "/home/andre2/src/GX1_CURRENT/gx1/features/model_native_market_context_v1.py": "69f61a52c79711ea58a4c7b2d0e743c01cff6dd3af1e1f1e5f2b4864a12826c2",
+    "/home/andre2/src/GX1_CURRENT/gx1/features/technical_indicators_v1.py": "3a81bec825639e57a3071cc28d4dc2d3d394fef031dc89d71da3b468ca28ecad",
+    "/home/andre2/src/GX1_CURRENT/gx1/features/volatility_squeeze_state_v1.py": "0ad2121c620008909d290b24686a095cec05e52f60e41527a4498e7ac663936f",
+    "/home/andre2/src/GX1_CURRENT/gx1/features/volume_features.py": "31433e540ada7808142805aca353c36fa8de566c88724e7f046aed8f03aef493",
+    "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_build_canonical_features_v1.py": "b84ce141598294d2449f9f40b49b7ef8c2563ff8ad832e80664a2f1eb15a1a75",
+    "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_canonical_v3_augment.py": "f09ec727cac68e8a1a033362fe87276a254b249275fed993ba092afa9be53bae",
+    "/home/andre2/src/GX1_CURRENT/gx1/scripts/research_ta_campaign_v1.py": "021f28ca8ee112ca5ebf2c29c7e4af68b8e40312dd09265327a214d51b9c93e0",
+    "/home/andre2/src/GX1_CURRENT/gx1/time/session_detector.py": "ed0189b74ec72a80c9667c470e59c37719e59e549d683cc4b50759855c8e03d8",
+    "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_signal_v1.py": "2390e52858e953886a60c414bd8fc080564beec2868984359ef4ebc4b3e2671b",
+    "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_time_query_native_F_model_v1.py": "cf67ea44caf572121ea04eb047e46de8c00b306fd49a9f27098b7e0e9cb84373",
+    "/home/andre2/src/GX1_CURRENT/gx1/features/gc_native_context_v1.py": "28c4235d7a050698fc474e302ff1277d76983a72a4d11e74005fa74775c86fdf",
+    "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_input_normalization.py": "b9bfa16cc61c3772a1621325c25f3ae0631c735b5f4b3dafdf0a5fe63558f148",
+    "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_market_state_time_query_fold1_fit_window_v1.py": "36495353631b30ae612074622cf47b0fdedee9d7d7328bd90341cc24dcdbee5b",
+    "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_time_query_target_v1.py": "c4eacacdfb782e7dfb01cac51cb4521e95ca55d3dfeb1c215a958abbdde65ca9",
+    "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_time_query_binding_v1.py": "ccb4ec1398183597f9ee447f74d7e5b03fbcaf37739c1454b1b4cbb8145a5e91",
+    "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_time_query_native_F_batch_v1.py": "1167021db3c87d7b24a7d5f912267814b8dcc1640f81674ba9f6c6880cbca97b",
+    "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_future_displacement_candidate_v1.py": "4a7e0a582bef097109555ddfe1b96cb2c9d7b31c2a53366ef9a4bbbe0c6deb62",
+    "/home/andre2/src/GX1_CURRENT/gx1/audit/build_market_state_time_query_tape_v1.py": "169e8085f2ee78f41e96a9c3cb6e9fe224cc0bb430769bb72cbd4bb6e28a1dbc",
+    "/home/andre2/src/GX1_CURRENT/gx1/audit/verify_market_state_m1_duration_v1.py": "fb56377e5ec284485754f6810c3c1907e40997a583f990036e4e93266593fa0a"
+  },
+  "production_code_changed": false,
+  "required_model_fix_established": false,
+  "direction_improvement_established": false,
+  "next_direct_step": "Separate the confirmed semantic limits from the still-unexplained learning deterioration. Reuse saved full-pass checkpoints on fixed TRAIN observations to locate loss of direction; no new fit or feature/target change admitted. Do not repeat qualified input/formula sweeps. Historical COT/macro provenance remains an explicit gap before causal generalization claims."
+}
