@@ -15,7 +15,31 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: SPREAD24_NEGATIVE_DIRECTION_COMPARISON_INDEPENDENTLY_VERIFIED.
+Policystatus: CACHED_FULL_TRAIN_OBJECTIVE_AND_WEIGHT_AUDIT_ADMITTED.
+
+Én lagret tallkontroll er innrømmet:29574TRAIN-rader/1849B16+hale6,
+ogførste24batcher,0forwards/updates/refits/checkpoint-/targetloads.
+Maks60s/4G/512M/tråd1; alle treningsporter er stengt.
+Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_SF_OBJECTIVE_WEIGHT_AUDIT_20261109_001
+PLAN SHA199f7c1f0d702cd47762d0db27ccf66bf2bf510304ba12ace2686afb0fe4597b.
+Worker SHAa672b3937540a25408c9ec8eeba03ae691a391791728339f6578f405deea8996.
+15inputs/5aktivekildeeiere, metadata/tiny-syntheticpreflight og uavhengig
+avgrenset source-review PASS. Ingen ny normalizer eller trening er innrømmet.
+
+Dette undersøker tapsalgebraen for faktisk sampletS/nativeF på fryste
+eval-logits. INITIAL er fullpassets importerteae772f-modell: gamle aktivitet/
+andreTF-logits med bare toM5-sidekolonner erstattet av kvalifiserteimportverdier.
+M5-native referanseavvik er eksplisitt begrenset til7.82e-8/4.84e-8.
+FINAL er23ff34-modellen. SHORT INITIAL0 er en senere modell og brukes ikke.
+VektetOPP-andel sammenliknes meduvektetandeliSAMMEquery-/måldomene,
+ikke feilaktig motnativeS-prior påde4andreTF. Ingenhistoriskdropoutreplay.
+
+Forholdet mellom totalt ogprimærtmål er allerede sett iendpointmålingene:
+SPREAD−CONTROL senere total−.055551840, mens M5-sidebidrag+.000295557.
+AndreTFside−.031941814 ogaktivitet−.023905583 driver bedringen i totalen.
+PåTRAIN INITIAL0→SPREAD kommer−.193691039 fraandreTFside,−.002054836
+fraM5side og+.009448011 fraaktivitet. Dette er endpoint-evaluering på192,
+ikke den faktiske samplede treningsloss; den nye kontrollen holder dem atskilt.
 
 SPREAD24 er COMPLETE/konsumert; prosessen er bekreftet avsluttet og alle
 trenings-/launchporter er stengt. Hel kommando343.051s(5m43.05s),

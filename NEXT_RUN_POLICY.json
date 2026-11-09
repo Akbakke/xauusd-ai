@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-09T17:07:12.629858+00:00",
-  "status": "SPREAD24_NEGATIVE_DIRECTION_COMPARISON_INDEPENDENTLY_VERIFIED",
+  "status": "CACHED_FULL_TRAIN_OBJECTIVE_AND_WEIGHT_AUDIT_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Read-only compare saved all-TF activity/conditional-side component measurements and the exact optimized nativeobjective against primaryM5 scoring. Identify a specific objective/representation mechanism before any new modification. Do not rerun consumedmoment/order controls, adjust thresholds, increaseepochs orlaunchanotherfit. Directiongoalremainsunachieved; no permanentmodelcodechange qualified.",
+  "next_action": "Execute admittedcachedfullTRAIN objective/weight arithmetic once,max60s,0forward/update/refit/checkpoint/targetload. Compare correctfullpassINITIAL/FINAL on29574sameTRAIN viaqualifiedfrozenlogits; report sampledS/nativeF components andsame-domainweightedprevalence. Do not infer sharedencoder cause or change normalizer before measuring. Allfitgatesclosed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -70108,6 +70108,31 @@
     "latest_spread_native_review": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SPREAD_NATIVE_20261109_001/REVIEW.json",
       "sha256": "c6b4d07fcd7995edc64b5374f221aedeac042e837af921bf2832896b9a58b7de"
+    },
+    "endpoint_component_observation": {
+      "scope": "Same192rows,endpointqueries;not exact sampledS trainingobjective",
+      "spread_minus_control_later": {
+        "total": -0.05555183998622937,
+        "m5_side": 0.00029555735679496207,
+        "other_tf_side": -0.03194181425226229,
+        "activity": -0.02390558309076187
+      },
+      "initial0_to_spread_train": {
+        "total": -0.18629786439781437,
+        "m5_side": -0.002054836038662078,
+        "other_tf_side": -0.19369103948085123,
+        "activity": 0.009448011121698562
+      },
+      "refs": {
+        "TRAIN.json": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SPREAD_NATIVE_20261109_001/TRAIN.json",
+          "sha256": "cbc636c12a52044846c84a3e187a7ebf0b0d3b28df6ff7620e55e7702a2926d8"
+        },
+        "OOF.json": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SPREAD_NATIVE_20261109_001/OOF.json",
+          "sha256": "35b5a18d6b9dbb2c2434203d09c32d6565ad656619c395d957f6ed3b10c64fc3"
+        }
+      }
     }
   },
   "market_state_ta_m5_short_accumulation_20261109_001": {
@@ -70671,5 +70696,44 @@
     },
     "matched_comparison": true,
     "comparison_passed": false
+  },
+  "market_state_ta_sf_objective_weight_audit_20261109_001": {
+    "status": "ADMITTED",
+    "execution_authorized": true,
+    "training_authorized": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SF_OBJECTIVE_WEIGHT_AUDIT_20261109_001/PLAN.json",
+      "sha256": "199f7c1f0d702cd47762d0db27ccf66bf2bf510304ba12ace2686afb0fe4597b"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SF_OBJECTIVE_WEIGHT_AUDIT_20261109_001/probe.py",
+      "sha256": "a672b3937540a25408c9ec8eeba03ae691a391791728339f6578f405deea8996"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SF_OBJECTIVE_WEIGHT_AUDIT_20261109_001/PREFLIGHT.log",
+      "sha256": "f6fe1c2752b2af8dcfe4fb2bb5fd1118ac774dab222e71fa1a746ea3678158b0"
+    },
+    "controller_source": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SF_OBJECTIVE_WEIGHT_AUDIT_20261109_001/controller.py",
+      "sha256": "6fd1df4b76ba7631348360f5a0ecba120847f02d54c0aa8effeafd5db9902c6f"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "max_forwards": 0,
+    "max_updates": 0,
+    "max_fits": 0,
+    "wall_seconds": 60,
+    "memory_max": "4G",
+    "swap_max": "512M",
+    "numerical_threads": 1,
+    "test_data_used": false,
+    "source_review": {
+      "status": "PASS",
+      "agent": "/root/ta_formula_audit",
+      "scope": "Correct imported fullpassINITIAL via oldcache plusqualifiedM5columns,FINALraw; sampledS/nativeF,mask/BCE/qN/1n/tail6, same-domainweightedprevalence. FrozenEVALonly,not historicaldropout/gradients. Rootreviewedcompleteworker;metadata/synthetic preflightpassed."
+    }
   }
 }
