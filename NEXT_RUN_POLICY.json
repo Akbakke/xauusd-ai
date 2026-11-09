@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T21:04:00.116577+00:00",
-  "status": "TA_M5_FULLPASS_TRAJECTORY_ADMITTED",
+  "observed_utc": "2026-11-09T21:07:56.754622+00:00",
+  "status": "TA_M5_TRAJECTORY_INITIAL_PARITY_FAILED_NO_TRAINING",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Execute exactly one admitted CPU weights-only trajectory on9 preserved original full-pass states and fixed192TRAIN rows; independent cached review, then close execution. No fit, later scoring or checkpoint selection. Do not repeat feature audits.",
+  "next_action": "Review preserved INITIAL CPU/cache discrepancy without rerunning model. Native logits pass2e-5 but M5 representation2.5034e-5 exceeds2e-5. Original failed plan consumed; all execution/training closed. No midpoint or later evaluation yet.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -66323,7 +66323,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "All-feature semantics reviewed; input/source completeness does not prove forward reactions. Zero-fit fixed-panel trajectory admitted to locate original full-pass direction deterioration.",
+    "latest_progress": "Trajectory stopped after INITIAL12forwards/onecheckpoint before midpoints. CPU/cache internal representation tolerance failed; native logits passed. Cached numeric/source diagnosis only, no new fit.",
     "user_clarification_20261109": {
       "scope": "Correct direction for short sniper and longer long/shorttrends; separate forecasts and targets at M5 cadence.",
       "existing_future_horizons_minutes": [
@@ -70946,8 +70946,8 @@
     "confirmed_causes_of_TRAIN_deterioration": []
   },
   "market_state_ta_m5_fullpass_trajectory_20261109_001": {
-    "status": "ADMITTED",
-    "execution_authorized": true,
+    "status": "FAILED_CONSUMED_INITIAL_CPU_CACHE_REPRESENTATION_PARITY",
+    "execution_authorized": false,
     "training_authorized": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_001/PLAN.json",
@@ -70966,9 +70966,9 @@
       "sha256": "82bc6617eba592867f1db10918b789397c4dd34fc9b0ba4299dab5657705ec41"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
+    "claimed_invocations": 1,
     "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "max_forwards": 108,
     "max_checkpoint_loads": 9,
@@ -71012,6 +71012,31 @@
       "agent": "/root/ta_formula_audit"
     },
     "interpretation": "Report all9 checkpoints, no checkpoint selection/refit/later scoring. Separately describe last16 consumed original B16 batches; final16 starts29328 with6-row tail. Temporal correlation is descriptive, not causal.",
-    "no_automatic_training": true
+    "no_automatic_training": true,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_001/TERMINAL.json",
+      "sha256": "4cde46b9c7631d3217410095ac562f4e9059c7dafc20c562525a2c8824c2f533"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_001/CONTROLLER.json",
+      "sha256": "9eff2f8bbc3a62f554bb07aa0124bb79b14f9b810b0f7d587b60602a552533a9"
+    },
+    "initial_parity": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_001/INITIAL_PARITY.json",
+      "sha256": "52d0d089ab2abf503413a8846bcad16b9e8e90362fdff24c231abb344245d0c8"
+    },
+    "worker_seconds": 109.23912119799934,
+    "whole_command_seconds": 112.23065044899704,
+    "actual_counts": {
+      "model_constructions": 1,
+      "checkpoint_loads": 1,
+      "forwards": 12,
+      "backwards": 0,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "checkpoint_writes": 0,
+      "resume_state_load_calls": 1,
+      "resume_state_load_returns": 1
+    }
   }
 }

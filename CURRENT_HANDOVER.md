@@ -15,7 +15,7 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_FULLPASS_TRAJECTORY_ADMITTED.
+Policystatus: TA_M5_TRAJECTORY_INITIAL_PARITY_FAILED_NO_TRAINING.
 
 Brukerens nye prioritet er gjennomgått: framoverbetydning og korrekt
 modellkonsum for hele den aktive TA-flaten på alle fem tidsrammer.
@@ -67,7 +67,13 @@ Metadata-preflight PASS7,284s; ingen modell eller checkpoint dekodet.
 En konkret kontrollskriptfeil ble rettet før kjøring: GPU RNG valideres separat
 fra CPU-delsettet uten å restaurere RNG. Modell-/treningskode er uendret.
 Ikke gjenta bestått featurekontroll eller konsumerte moment-/rekkefølgeprøver.
-Peer-kontroll av den rettede worker er PASS. Ingen kjøring er startet ved innrømmelse.
+Peer-kontroll av den rettede worker er PASS. Kjøringen er nå FAILED_CONSUMED:
+INITIAL12forwards/én checkpoint; ingen mellomcheckpoint, fit eller senere scoring.
+CPU/cache rålogits S1,33514e-5/F5,60284e-6 passer2e-5. M5-representasjon
+2,503395e-5 overstiger2e-5; derfor stopp før de resterende åtte tilstandene.
+Worker109,239s, helkommando112,231s. Originale captures/kvitteringer er bevart.
+Execution/training stengt. Neste steg: avklar kun lagret tallavvik og cachekilde;
+den konsumerte planen kan ikke relanseres.
 
 Siste læringsbevis beholdes: full29574 TRAIN fryst eval-tap1,948957162→
 2,021683248; alle10sidekomponenter verre, aktivitet bedre. M5 Brier S
