@@ -15,30 +15,43 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_ORIGINAL_MODE_CONTRAST_ADMITTED_ZERO_UPDATES.
+Policystatus: TA_M5_ORIGINAL_MODE_CONTRAST_COMPLETE_NO_MODE_EXPLANATION.
 
-Én avgrenset moduskontrast er innrømmet; all trening forblir stengt.
-PLAN /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_MODE_CONTRAST_20261109_001/PLAN.json
-SHA def178c3f78001c2839ce426a5f4270be2217b953c56a50aec3d03c5af45cd1d.
-Original INITIAL ae772fd7 og FINAL 23ff344b, tre B16-startposisjoner
-[0,14272,29552]. 36 forwards, 2 vektlastinger, 0 backward/optimizer/fit.
-E bruker eval/inference; T0 bruker genuine train-rute med all Dropout.p og
-MHA.dropout midlertidig 0; T bruker fire parede CPU-trekk med dropout 0,05.
-Alle mål, queries og observasjoner er identiske mellom modusene. Vekter,
-buffere, modus, gradientflagg, dropout-attributter og RNG bookendes.
+Originalfullpassets moduskontrast er fullført og uavhengig kontrollert:
+[docs/TA_M5_ORIGINAL_MODE_CONTRAST_REVIEW.json](docs/TA_M5_ORIGINAL_MODE_CONTRAST_REVIEW.json).
+Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_MODE_CONTRAST_20261109_001
+RESULT SHA4b0e3ab66fef4278f747030fb65b9e3706a5b60915a1650fb876fd52303c1988.
+REVIEW SHAd31398f57721e2ba234a43578e20f3c7512500b51a2fa3c6653bb796cc919419.
 
-Grunnlaget er en konkret udekket forskjell: originalstartens M5-hoder var
-allerede tilpasset fullTRAIN med dropout av. Fullpass-auditen målte eval,
-mens de korte train/eval-gradientkontrollene gjaldt en annen, senere modell.
-Korrekt M5 k=1 i både fit og endpoint utelukker ulik M5-horisont som forklaring.
-E/T0 avvik er et resultat som beholdes; ikke automatisk avbruddsgrunn.
-T-tap er gjennomsnitt av fire separate drawtap, ikke et ensemble.
-48 rader/fire CPU-trekk kan avklare forskjellen her, ikke rekonstruere
-historisk CUDA-trening eller bevise årsaken på hele TRAIN.
-Metadata-preflight og avgrenset uavhengig kildekontroll består.
-Ingen modellkode er endret; gammel/ny batchkildebro fra MIX24 gjenbrukes.
+Original INITIAL ae772fd7 og FINAL23ff344b, de samme48TRAIN-radene ved
+B16-startene [0,14272,29552]. 36 forwards/2vektlastinger/0backward/optimizer.
+E=eval/inference; T0=genuine grad-enabled trainbane med all dropout0;
+T=fire parede CPU-dropouttrekk. Alle vekter, buffere, modus, gradientflagg,
+dropoutattributter og RNG bevart. Ingen modellkode eller funksjon endret.
 
+FINAL er verre i E, T0 og alle fire T-trekk for begge M5-retningsmål.
+Brier E: S0,251103→0,259977; F0,249765→0,261376.
+Brier middel av fire T-trekk: S0,250958→0,260074; F0,249784→0,261494.
+Samlet S/F-batchtap E2,398144→2,644661; T2,394237→2,637670.
+Ingen train-bedres/eval-forverres-konflikt på dette utvalget.
+E mot T0 avviker maksimalt2,80e-8 i M5-sannsynlighet og9,54e-7 i rålogit.
+Denne kontrollen begrunner ingen dropout- eller inference-rettelse.
 
+Helkommando190,424s, worker187,343s, cachedreview0,421s; peakRSS5,724GB.
+Uavhengig FP64-tap mot canonicalFP32 max3,804e-7 under fast2e-6-port;
+score-/rapporteringsavvik max2,221e-16. Ingen ny modell i review.
+Kun26S/28Fkjente sider. Fire CPU-trekk er ikke historiskCUDAreplay, fullTRAIN-
+årsaksbevis eller senere retningsverdi. Alle porter er stengt; planen konsumert.
+Retained attributtinventar er105Dropout/34MHA; dette inkluderer bevarte
+Exit-moduler og må ikke blandes med det statiske aktive-ruteestimatet95/31.
+
+Proveniens er viktig: originalstarten hadde allerede fullTRAIN-tilpassede
+M5-hoder; tidligere korte gradientkontroller brukte en senere INITIAL0.
+Neste distinkte spørsmål er om hjelpeoppgavenes gradienter eller lagret
+AdamW-oppdatering i ORIGINALfullpass-modellen motvirker M5 på de samme radene.
+Bruk disse E/T-capturene som funksjonsparitet ved en separat avgrenset
+nullstegsgradientplan. Ingen ny kjøring er innrømmet; ikke gjenta senere-
+INITIAL0-kontrollen, reset-/sampler-sveip, moduskontrast eller fullfit.
 
 MIX24 er fullført og uavhengig verifisert:
 [docs/TA_M5_MIXED_BATCH_NATIVE_REVIEW.json](docs/TA_M5_MIXED_BATCH_NATIVE_REVIEW.json).
@@ -133,7 +146,7 @@ med i disse tidene; dette er ingen sammenliknbar trenings-speedupmåling.
 00296forwards/8loads +gjenbrukt00112/1 =108/9;0fits/backwards/optimizer.
 Ingen senereTRAIN eller TEST. Alle launch-/treningsporter er stengt.
 
-Cachedattribusjon og MIX24 er fullført; bare nullstegs-moduskontrasten øverst er innrømmet.
+Cachedattribusjon, MIX24 og moduskontrast er fullført; ingen ny kjøring er innrømmet.
 
 Brukerens all-feature-kontroll er fullført i
 [docs/TA_FORWARD_SEMANTICS_REVIEW.json](docs/TA_FORWARD_SEMANTICS_REVIEW.json):
@@ -1335,7 +1348,7 @@ tidssekvensmodellen, samme-linje-reaksjonsverdi, Entry-verdi og økonomisk edge
 er ubevist. 61 makrofelt mangler uavhengig formelorakel; COTs faktiske
 historiske publisering og vintage er fortsatt UNKNOWN.
 
-**Neste steg:** Fullfør bare innrømmet nullstegs-moduskontrast og kontroller lagrede resultater. Ingen ny fit er innrømmet.
+**Neste steg:** Følg den avgrensede originale gradienthypotesen øverst. Ingen modellkjøring eller fit er innrømmet.
 Målet er aktivt; senere retningsverdi er ubevist.
 Brukerens spørsmål om 30 epoker og fem år er fortsatt åpne hypoteser.
 Denne fitten dekker omtrent mai–september2024, senere score oktober–desember2024.

@@ -1,0 +1,267 @@
+{
+  "schema_version": "gx1_original_fullpass_mode_contrast_integrated_review_v1",
+  "status": "COMPLETE_VERIFIED_NO_MODE_EXPLANATION_ON_FIXED_PANEL",
+  "observed_utc": "2026-11-09T22:44:16.807160+00:00",
+  "source_head": "808551607595b78130d3f9fd80aea2e7154229d3",
+  "scope": "Original fullpass INITIAL ae772fd7 and FINAL23ff344b;48fixedTRAIN rows,3B16,6conditions,4pairedCPUdropout draws. No parameter update.",
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_MODE_CONTRAST_20261109_001/PLAN.json",
+    "sha256": "def178c3f78001c2839ce426a5f4270be2217b953c56a50aec3d03c5af45cd1d"
+  },
+  "worker": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_MODE_CONTRAST_20261109_001/probe.py",
+    "sha256": "b1a8c4e1f7e68994d63c4371c87a40512a34d6f6ec1ec6cdcaccbec185a2ffcb"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_MODE_CONTRAST_20261109_001/RESULT.json",
+    "sha256": "4b0e3ab66fef4278f747030fb65b9e3706a5b60915a1650fb876fd52303c1988"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_MODE_CONTRAST_20261109_001/TERMINAL.json",
+    "sha256": "d335fa029af86302fa1d70c28fe4dbc8fbbbf68a8b6ed1444b7e480798871a22"
+  },
+  "controller": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_MODE_CONTRAST_20261109_001/CONTROLLER.json",
+    "sha256": "782759083900e401085fce8a397c5b6f087d912589df5ab4a41f11c1127b8662"
+  },
+  "review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_MODE_CONTRAST_20261109_001/REVIEW.json",
+    "sha256": "d31398f57721e2ba234a43578e20f3c7512500b51a2fa3c6653bb796cc919419"
+  },
+  "reviewer": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_MODE_CONTRAST_20261109_001/review.py",
+    "sha256": "13e752695d7115315c1155687bee77fc627121501546988d720c21db2c9531ca"
+  },
+  "preflight": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_MODE_CONTRAST_20261109_001/PREFLIGHT.json",
+    "sha256": "5fb4506d9758620bb1e0ec4f5b959e68a2ae056c454abce8f291fa55c6b8e585"
+  },
+  "question": "Did dropout-enabled training improve the original fullpass model while dropout-off evaluation made it appear worse?",
+  "provenance": [
+    "Original fullpass started with fullTRAIN-fitted M5 heads, not an untrained head. They were imported from dropout-off readouts.",
+    "Previous shared-gradient and POST16 probes concern later corrected INITIAL0/FINAL16, not original ae772/23ff.",
+    "FullTRAIN objective audit measured frozen eval losses only; current contrast adds original train-mode forward evidence on48rows."
+  ],
+  "counts": {
+    "model_constructions": 1,
+    "checkpoint_loads": 2,
+    "forwards": 36,
+    "backwards": 0,
+    "optimizer_constructions": 0,
+    "optimizer_updates": 0,
+    "checkpoint_writes": 0,
+    "resume_state_load_calls": 2,
+    "resume_state_load_returns": 2
+  },
+  "retained_dropout_attribute_inventory": {
+    "MultiheadAttention": 34,
+    "Dropout": 105
+  },
+  "all_dropout_attributes_original_value": 0.05,
+  "dropout_activation_witness": false,
+  "inventory_scope_correction": "Before publication root corrected an aggregation assertion equating the95/31 source active-route estimate with the105/34 actual retained module inventory. The latter includes Exit-episode modules; worker toggled all attributes correctly. No producer failure, source change or rerun.",
+  "primary_m5": {
+    "state": {
+      "known_side_count": 26,
+      "up_count": 11,
+      "eval_initial": {
+        "count": 26,
+        "up_count": 11,
+        "brier": 0.2511034716853947,
+        "log": 0.6953479137041259,
+        "mean_up_probability": 0.526820962202581
+      },
+      "eval_final": {
+        "count": 26,
+        "up_count": 11,
+        "brier": 0.2599767635856836,
+        "log": 0.7135030561566537,
+        "mean_up_probability": 0.5682121556965265
+      },
+      "stochastic_mean_initial": {
+        "count": 26,
+        "brier": 0.25095776352968674,
+        "log": 0.6950556070194324,
+        "mean_up_probability": 0.5267575988047033
+      },
+      "stochastic_mean_final": {
+        "count": 26,
+        "brier": 0.26007400922608426,
+        "log": 0.7136982398985757,
+        "mean_up_probability": 0.5679768554987854
+      },
+      "paired_draw_deltas": [
+        {
+          "count": 26,
+          "brier": 0.009329370404750847,
+          "log": 0.01905746142261011,
+          "mean_up_probability": 0.041182557640575546
+        },
+        {
+          "count": 26,
+          "brier": 0.009033556814148747,
+          "log": 0.018481260199709748,
+          "mean_up_probability": 0.04072798479074036
+        },
+        {
+          "count": 26,
+          "brier": 0.008997281388631428,
+          "log": 0.018414057054732202,
+          "mean_up_probability": 0.04147886683251678
+        },
+        {
+          "count": 26,
+          "brier": 0.00910477417805905,
+          "log": 0.018617752839521606,
+          "mean_up_probability": 0.041487617512495856
+        }
+      ]
+    },
+    "future": {
+      "known_side_count": 28,
+      "up_count": 12,
+      "eval_initial": {
+        "count": 28,
+        "up_count": 12,
+        "brier": 0.24976485881905378,
+        "log": 0.692674692686386,
+        "mean_up_probability": 0.5112210504670439
+      },
+      "eval_final": {
+        "count": 28,
+        "up_count": 12,
+        "brier": 0.26137600421100243,
+        "log": 0.7164095884324062,
+        "mean_up_probability": 0.570401121684916
+      },
+      "stochastic_mean_initial": {
+        "count": 28,
+        "brier": 0.24978388064042634,
+        "log": 0.6927131369569086,
+        "mean_up_probability": 0.5115485815178764
+      },
+      "stochastic_mean_final": {
+        "count": 28,
+        "brier": 0.26149441730407785,
+        "log": 0.7166470590288466,
+        "mean_up_probability": 0.5701473783997527
+      },
+      "paired_draw_deltas": [
+        {
+          "count": 28,
+          "brier": 0.011637859350523444,
+          "log": 0.023765749495137323,
+          "mean_up_probability": 0.05854557002967664
+        },
+        {
+          "count": 28,
+          "brier": 0.011648485509293927,
+          "log": 0.02381553584389573,
+          "mean_up_probability": 0.058154091509165284
+        },
+        {
+          "count": 28,
+          "brier": 0.011664841692930333,
+          "log": 0.02384404027212328,
+          "mean_up_probability": 0.0588329311449346
+        },
+        {
+          "count": 28,
+          "brier": 0.011890960101858333,
+          "log": 0.02431036267659592,
+          "mean_up_probability": 0.05886259484372869
+        }
+      ]
+    }
+  },
+  "losses": {
+    "INITIAL": {
+      "canonical_mean_batch_loss": {
+        "E": 2.398144086201986,
+        "T0": 2.398144086201986,
+        "T_DRAW0": 2.3943838278452554,
+        "T_DRAW1": 2.394606113433838,
+        "T_DRAW2": 2.392780303955078,
+        "T_DRAW3": 2.3951764901479087
+      },
+      "T_mean_of_draw_losses": 2.39423668384552
+    },
+    "FINAL": {
+      "canonical_mean_batch_loss": {
+        "E": 2.6446614265441895,
+        "T0": 2.6446614265441895,
+        "T_DRAW0": 2.6357264518737793,
+        "T_DRAW1": 2.637720743815104,
+        "T_DRAW2": 2.6375563939412436,
+        "T_DRAW3": 2.639676094055176
+      },
+      "T_mean_of_draw_losses": 2.6376699209213257
+    }
+  },
+  "eval_vs_train_zero_dropout": {
+    "INITIAL": {
+      "state": {
+        "max_abs_all_tf_logits": 9.5367431640625e-07,
+        "max_abs_m5_side_logit": 4.470348358154297e-08,
+        "max_abs_m5_probability": 1.1107112896091564e-08
+      },
+      "future": {
+        "max_abs_all_tf_logits": 3.5762786865234375e-07,
+        "max_abs_m5_side_logit": 5.21540641784668e-08,
+        "max_abs_m5_probability": 1.3024832767882799e-08
+      }
+    },
+    "FINAL": {
+      "state": {
+        "max_abs_all_tf_logits": 9.5367431640625e-07,
+        "max_abs_m5_side_logit": 1.1920928955078125e-07,
+        "max_abs_m5_probability": 2.7902820165515152e-08
+      },
+      "future": {
+        "max_abs_all_tf_logits": 9.5367431640625e-07,
+        "max_abs_m5_side_logit": 5.960464477539063e-08,
+        "max_abs_m5_probability": 1.4811224691158031e-08
+      }
+    }
+  },
+  "max_eval_train0_m5_probability_difference": 2.7902820165515152e-08,
+  "independent_validation": {
+    "status": "PASS_INDEPENDENT_ORIGINAL_MODE_CONTRAST_REVIEW",
+    "max_fp64_vs_canonical_fp32_loss_error": 3.803263837198756e-07,
+    "predeclared_loss_atol": 2e-06,
+    "max_metric_error": 2.220446049250313e-16,
+    "paired_rng": true,
+    "model_state_restore_receipts_verified": true,
+    "reference_E_output_parity": true,
+    "source_unchanged": true
+  },
+  "timing": {
+    "whole_command_seconds": 190.4240033740025,
+    "worker_seconds": 187.34293720000278,
+    "phases": {
+      "qualification_seconds": 1.6804902860021684,
+      "setup_seconds": 80.86232447000293
+    },
+    "review_whole_seconds": 0.42111822000151733,
+    "review_worker_seconds": 0.14851544599878252,
+    "peak_rss_bytes": 5724147712,
+    "preparation_included": false
+  },
+  "findings": [
+    "FINAL is worse than INITIAL for both M5 S/F Brier and log loss in E,T0 and all4pairedTdraws on the same48rows.",
+    "Combined S/F batch loss worsens in eval and dropout-enabled train; the proposed train-improves/eval-worsens reversal is absent on this panel.",
+    "Eval/inference and grad-enabled training with all dropout zero agree in M5 probability to2.80e-8 and allTF rawlogits to9.54e-7. No deterministic mode-path discrepancy explaining the loss is observed.",
+    "No change to dropout, inference, model architecture, targets or optimizer is justified by this result."
+  ],
+  "limits": [
+    "Only26 S and28 F known sides in48 fixedTRAIN rows; not a fullTRAIN expectation or later-generalization result.",
+    "Four paired CPU draws are not historicalCUDA dropout replay, gradients, optimizer trajectory or proof of the fullpass cause.",
+    "Inventory counts describe retained module attributes, not actual activation; no forward-hook activation witness.",
+    "S non-M5 uses sampled queries; old native-endpoint parity applies to M5S and allnativeF only.",
+    "No directional or economic improvement established; no TEST/laterTRAIN/Entry/Exit/broker/trading used."
+  ],
+  "model_code_changed": false,
+  "direction_improvement_established": false,
+  "training_enabled": false,
+  "next_direct_step": "No dropout or inference-path correction is supported. The next distinct mechanistic question is whether auxiliary-task gradients or the saved AdamW update at the ORIGINAL fullpass states oppose M5 direction on the same fixed TRAIN rows. Reuse the original E/T captures for exact function parity; any zero-update gradient plan must be separately bounded before execution. Do not repeat the later-INITIAL0 gradient study, reset/sampler sweeps, mode contrast, or full fit."
+}

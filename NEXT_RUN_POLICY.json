@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T22:32:38.887830+00:00",
-  "status": "TA_M5_ORIGINAL_MODE_CONTRAST_ADMITTED_ZERO_UPDATES",
+  "observed_utc": "2026-11-09T22:44:16.807160+00:00",
+  "status": "TA_M5_ORIGINAL_MODE_CONTRAST_COMPLETE_NO_MODE_EXPLANATION",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Run exact36-forward original INITIAL/FINAL E/T0/T4 mode contrast once, then close admission and verify cached outputs. No optimizer, backward, new fit or later data.",
+  "next_action": "No dropout or inference-path correction is supported. The next distinct mechanistic question is whether auxiliary-task gradients or the saved AdamW update at the ORIGINAL fullpass states oppose M5 direction on the same fixed TRAIN rows. Reuse the original E/T captures for exact function parity; any zero-update gradient plan must be separately bounded before execution. Do not repeat the later-INITIAL0 gradient study, reset/sampler sweeps, mode contrast, or full fit.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -71451,8 +71451,8 @@
     "review_whole_seconds": 4.939358682000602
   },
   "market_state_ta_m5_original_mode_contrast_20261109_001": {
-    "status": "ADMITTED",
-    "execution_authorized": true,
+    "status": "COMPLETE_CONSUMED_INDEPENDENTLY_VERIFIED_NO_MODE_EXPLANATION",
+    "execution_authorized": false,
     "training_authorized": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_MODE_CONTRAST_20261109_001/PLAN.json",
@@ -71475,9 +71475,9 @@
       "sha256": "ef53faad1de14e422e770e2e72bb3dc4ef2d80d8996e54177819a0ed5326aea1"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "max_forwards": 36,
     "max_updates": 0,
@@ -71502,6 +71502,48 @@
       "scope": "Root and independent full-worker source review; genuine E/nohooks and T/T0 grad-enabled routes, Dropout/MHA toggles, immutable state/RNG/mode parity, exact2originalstates and36forwards, same targets, one-source bridge."
     },
     "standing_authorization_source": "GX1_RULES_20261105_local_zero_spend_read_only_research_and_active_direction_goal",
-    "scope": "Original ae772INITIAL and23ffFINAL only, fixed three B16 TRAIN batches. E eval/inference, T0 all dropout0 with genuine grad-enabled train route, four paired CPUdropout draws. No optimizer/backward or selection. Not historical CUDA replay; only48observations."
+    "scope": "Original ae772INITIAL and23ffFINAL only, fixed three B16 TRAIN batches. E eval/inference, T0 all dropout0 with genuine grad-enabled train route, four paired CPUdropout draws. No optimizer/backward or selection. Not historical CUDA replay; only48observations.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_MODE_CONTRAST_20261109_001/RESULT.json",
+      "sha256": "4b0e3ab66fef4278f747030fb65b9e3706a5b60915a1650fb876fd52303c1988"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_MODE_CONTRAST_20261109_001/TERMINAL.json",
+      "sha256": "d335fa029af86302fa1d70c28fe4dbc8fbbbf68a8b6ed1444b7e480798871a22"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_MODE_CONTRAST_20261109_001/CONTROLLER.json",
+      "sha256": "782759083900e401085fce8a397c5b6f087d912589df5ab4a41f11c1127b8662"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_MODE_CONTRAST_20261109_001/CLAIM.json",
+      "sha256": "e5e049c10608329abc6f6cfd52ce374a82aff86d5c9dde82846cee599da0b291"
+    },
+    "actual_counts": {
+      "model_constructions": 1,
+      "checkpoint_loads": 2,
+      "forwards": 36,
+      "backwards": 0,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "checkpoint_writes": 0,
+      "resume_state_load_calls": 2,
+      "resume_state_load_returns": 2
+    },
+    "actual_source_head": "808551607595b78130d3f9fd80aea2e7154229d3",
+    "whole_command_seconds": 190.4240033740025,
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_MODE_CONTRAST_20261109_001/REVIEW.json",
+      "sha256": "d31398f57721e2ba234a43578e20f3c7512500b51a2fa3c6653bb796cc919419"
+    },
+    "integrated_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_ORIGINAL_MODE_CONTRAST_REVIEW.json",
+      "sha256": "6843b1a527cbf9f8d4db130dfe0d84f9012587f3887b59c89d970714119f6467"
+    },
+    "source_unchanged": true,
+    "max_m5_eval_train0_probability_error": 2.7902820165515152e-08,
+    "worker_seconds": 187.34293720000278,
+    "review_whole_seconds": 0.42111822000151733,
+    "direction_improvement_established": false
   }
 }
