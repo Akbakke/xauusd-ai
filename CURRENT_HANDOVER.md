@@ -15,20 +15,43 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: HIDDEN_BACKBONE_QUERY_SPLIT_ADMITTED_NO_FIT.
+Policystatus: EARLY_BACKBONE_DRIFT_VERIFIED_POST16_GRADIENT_COMPARISON_REQUIRED.
 
-Én ny zero-update hidden-kontroll er kilde-/metadatakvalifisert og innrømmet.
+Hidden-kontrollen er COMPLETE/konsumert og numerisk verifisert; ingen jobb
+kjører og alle porter er stengt.24encoderforwards,0optimizer/backwards/fit/
+targettapes. Hel kommando130.491s (2m10.49s),worker127.215s,peakRSS5.723GB.
 Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HIDDEN_SPLIT_20261109_001
-PLAN SHA8d9df494ac1a2c42ff5807b588767aa7e287e1d0cd94a081468d0198b9db53e6.
-Worker SHAb6d18fe6c4ef9da4c29069121c3dbeea4741dec4923b222b1862c69592dd35f0.
-85kildeeiere uendret;preflight og separat kildekontroll PASS.
-Kjør én gang:24encoderforwards,192sammeTRAIN-rader fraINITIAL/FINAL16,
-0optimizer/backwards/fit/targettapes,600s/12G/tråd1. Hidden lagres straks
-percheckpoint;8frosne backbone/query/head-kombinasjoner følger med3faktor-
-Shapley ogfrystprior. Faktiske scorer må matche den avsluttede kontrasten;
-rekonstruksjon må bestå2e-5. Ingen kandidatutvelging eller senere scoring.
-Alle treningsporter forblir stengt. Lukk denne engangsadmisjonen etter
-terminal; ingen relansering ved analysefeil, gjenbruk lagret hidden.
+RESULT SHA7c0c4a80f179381d96d6439597809ecfeba72f674cfda890ff52095bbf5a5486.
+REVIEW SHAa08b267d6f286f210d030fd7807e69e7e91f65ceb2fbb4f378c5512e2a9891c0.
+INITIAL_HIDDEN/FINAL_HIDDEN og8-kube er bevart.2.262s alternativ kontroll
+av88scoreceller/direktepar-AUC/subset-Shapley: maks1.11e-16. Uavhengig
+NumPy+math.erfFP64-decoder har maks1.706e-7logitavvik. Dette er alternativ
+numerisk kontroll av integrator, ikke encoder-/optimizerreplay.
+Faktisk tidligere capture matches innen1.192e-6repr/4.470e-8side-logit.
+
+Siste TRAIN-blokk,3faktor-Shapley Brier:
+S backbone+0.003734302,query+0.001017981,head−0.000532019.
+F backbone+0.003154375,query+0.000828557,head−0.000040178.
+Backbone står for mesteparten av representasjonstapet, også F-AUC-tapet.
+Shapley bruker6rekkefølger og er ikke samme interaksjonsfordeling som
+forrige2x2; diagonalscorene samsvarer. Ingen av8frosne kombinasjoner slår
+F-prior samlet på192rader; lavestF Brier0.251015137,prior0.250641150.
+Det er dermed ikke grunnlag for et enkelt komponentbytte/frys.
+
+De faktisk trente256radene dekker2024-05-01T00:05–22:25UTC.
+M5 OPP-andel55/101=54.46%S og66/122=54.10%F, mot heleTRAIN51.87%/51.11%.
+Den målte bearish forskyvningen er altså ikke forklart av en DOWN-majoritet
+i disse M5-labelene. Dette er beskrivende, ikke unik optimizerårsak.
+
+Neste konkrete kontroll er faktisk delt gradient vedFINAL16, på samme
+3TRAIN-batcher[0,14272,29552] som den ferdigeINITIAL-diagnosen. Gjenbruk
+INITIAL-resultat/gradienter; ikke kjør baseline om igjen. Sammequeries,
+vekting, CPUdropoutfrø og aktive parametergrupper; kun checkpoint endres.
+Kvalifiser maks6forwards/21autograd,0optimizer/updates,600s/12G/tråd1.
+Spørsmålet er om andre genuine mål nå motarbeider M5 i faktisk backbone/
+querygradient, siden INITIAL-kontrollen var gunstig. Ingen slik jobb er
+implementert/innrømmet ennå. Ikke bruk detached-hidden-proxy som svar,
+endre tapsvekter eller frys moduler ut fra attribusjonen alene.
 
 Den lagrede kontrasten er COMPLETE/konsumert og numerisk verifisert.
 CONTRAST_V2_RESULT SHA57c407854940af56eb5c3c49ffb5cdd3a5a24cdf0787359f69902e128c59d2e2.
@@ -62,14 +85,9 @@ meanOPP øker0.518867→0.521427S/0.511068→0.512367F.
 Dette er ikke faktisk global16-stegsmodellscore. Eldre256–1849hodebane
 skal ikke brukes som forklaring på tidlig representasjonsendring alene.
 
-Neste konkrete hull er å skille backbone-hidden fra delt query_projection
-(Linear+GELU), som begge inngår i den lagrede pre-head representasjonen.
-Kilde: market_state_time_query_model_v2.py og native_F_model_v1.py.
-Kvalifiser maks24encoderforwards på de samme192TRAIN-radene,0updates/
-backwards/optimizer,600s/12G/tråd1 fra de to lagrede CPU-checkpointene.
-Lagre hidden og kryss gammel/ny hidden med gammel/ny queryprojeksjon;
-gjenbruk lagrede labels/masker og tidligere paritet. Denne eksakte kjøringen
-er nå kvalifisert/innrømmet ovenfor. Ikke endre tap/frys hoder nå.
+Backbone/query-skillet er nå målt i den fullførte hidden-kontrollen øverst.
+Den konsumerte planen skal ikke relanseres. Alle hidden-/kubeoutputs
+bevares for billig videreanalyse uten nye encoderpasseringer.
 
 Originalkontrasten feilet/konsumerte på representasjons-allclose.
 Målt CPU/GPU-avvik2.927e-5 i én av24576koordinater, RMS3.939e-6;

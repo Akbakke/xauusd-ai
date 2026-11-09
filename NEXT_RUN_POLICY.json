@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-09T17:07:12.629858+00:00",
-  "status": "HIDDEN_BACKBONE_QUERY_SPLIT_ADMITTED_NO_FIT",
+  "status": "EARLY_BACKBONE_DRIFT_VERIFIED_POST16_GRADIENT_COMPARISON_REQUIRED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Run the qualified one-shot192-row INITIAL/FINAL16 hidden split:24encoderforwards maximum,0optimizer/backwards/fit,target-tape loads or later scoring,600s/12G/thread1. Reuse actual labels and frozenprior; retain captures before postanalysis. Then close admission, review frozen eight-combination attribution, and only act on measured cause.",
+  "next_action": "Qualify one zero-update shared-gradient diagnostic at saved FINAL16 on the exact same3TRAIN batches [0,14272,29552] and same CPU dropout/query recipe as the completed INITIAL diagnostic. Reuse INITIAL gradients/result/review; do not repeat baseline. Measure whether other genuine objectives now oppose M5 in actual shared backbone/query parameters. Max6forwards/21autograd,0optimizer/updates,600s/12G/thread1. No job is admitted yet. Do not freeze modules or alter loss based only on frozen-combination attribution; no one of eight combinations beats Fprior on the fixed192rows.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -69693,7 +69693,7 @@
       "sha256": "1cfb6be1e258df9a51a0e67d06ef8bcb85e451e749829319f93ba6af6614c341"
     },
     "native_accumulation_change_qualified": false,
-    "next_measured_coverage_gap": "Early last-block degradation is attributed to pre-head representation; head updates partly offset it. Saved capture lacks pre-query backbone hidden, so backbone vs sharedquery projection has not been isolated. Not an established optimizer fault or generalized regime effect.",
+    "next_measured_coverage_gap": "Early last-block harm comes mostly from backbone, with smaller query-projection harm. All8frozencombinations fail aggregateFprior. First256trainingrows have54.46%S/54.10%F UP, so downshift is not explained by a DOWN-majority class prior. Actual shared-gradient interaction after16updates is unmeasured; initial interaction was favorable on3fixedbatches.",
     "head_trajectory": {
       "status": "COMPLETE_CONSUMED_NUMERICALLY_VERIFIED",
       "plan": {
@@ -69758,7 +69758,7 @@
       "sha256": "2bf702b63a8780b9831122a16a89a69576ed6c79a8caa3ca292ac861f83b425d"
     },
     "next_zero_update_scope": {
-      "status": "SOURCE_AND_METADATA_QUALIFIED_ADMITTED",
+      "status": "COMPLETE_CONSUMED_NUMERICALLY_VERIFIED",
       "question": "Is the16-step pre-head representation damage caused by backbone hidden changes or shared Linear+GELU query projection changes?",
       "initial_checkpoint": {
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/INITIAL_CPU_STATE.pt",
@@ -69788,7 +69788,7 @@
       "max_wall_seconds": 600,
       "max_memory": "12G",
       "numerical_threads": 1,
-      "native_or_cpu_execution_authorized": true,
+      "native_or_cpu_execution_authorized": false,
       "later_scoring_authorized": false,
       "causal_boundary": "All existing genuine5TF inputs; frozen checkpoint counterfactual attribution only. No rawtarget reload needed when saved matched labels/masks are reused. No candidate selection/promotion.",
       "plan": {
@@ -69798,7 +69798,57 @@
       "worker": {
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HIDDEN_SPLIT_20261109_001/probe.py",
         "sha256": "b6d18fe6c4ef9da4c29069121c3dbeea4741dec4923b222b1862c69592dd35f0"
+      },
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HIDDEN_SPLIT_20261109_001/RESULT.json",
+        "sha256": "7c0c4a80f179381d96d6439597809ecfeba72f674cfda890ff52095bbf5a5486"
+      },
+      "review": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HIDDEN_SPLIT_20261109_001/REVIEW.json",
+        "sha256": "a08b267d6f286f210d030fd7807e69e7e91f65ceb2fbb4f378c5512e2a9891c0"
       }
+    },
+    "latest_hidden_split_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HIDDEN_SPLIT_20261109_001/RESULT.json",
+      "sha256": "7c0c4a80f179381d96d6439597809ecfeba72f674cfda890ff52095bbf5a5486"
+    },
+    "latest_hidden_split_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HIDDEN_SPLIT_20261109_001/REVIEW.json",
+      "sha256": "a08b267d6f286f210d030fd7807e69e7e91f65ceb2fbb4f378c5512e2a9891c0"
+    },
+    "next_post16_gradient_scope": {
+      "status": "MEASURED_NEED_NOT_IMPLEMENTED_NOT_ADMITTED",
+      "checkpoint": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/FINAL_CPU_STATE.pt",
+        "sha256": "ba77633c365fadbdfe1b2d8073dbcbfc181b95fe013c4691214197c24490fc44"
+      },
+      "measurement": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/FINAL_TRAIN.json",
+        "sha256": "4943fb04b15ec1fa3e89170986c0ca6593ea709b64b5ac976f06985f790d8590"
+      },
+      "initial_result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHARED_GRADIENT_20261109_001/RESULT.json",
+        "sha256": "f9876403a6ebc6881df9cd6164f199623a238bd07de0b257a6a2474d1b9b104d"
+      },
+      "initial_review": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHARED_GRADIENT_20261109_001/REVIEW.json",
+        "sha256": "221b1030e9c1c336e5dbeb8fca1570946ee6398f26ef4561c71758cc8926527d"
+      },
+      "batch_starts": [
+        0,
+        14272,
+        29552
+      ],
+      "max_forwards": 6,
+      "max_autograd_calls": 21,
+      "max_optimizer_updates": 0,
+      "max_optimizer_constructions": 0,
+      "wall_seconds": 600,
+      "memory_max": "12G",
+      "numerical_threads": 1,
+      "execution_authorized": false,
+      "training_authorized": false,
+      "comparison": "Same genuine observations, queries, weighting, CPU dropout recipe and active parameter partitions as INITIAL; only checkpoint changes. Reuse old baseline artifacts. Full shared encoder parameter gradients required, not detached hidden-only proxy."
     }
   },
   "market_state_ta_m5_short_accumulation_20261109_001": {
@@ -70048,8 +70098,8 @@
     "whole_command_seconds": 6.111372393999773
   },
   "market_state_ta_m5_hidden_split_20261109_001": {
-    "status": "ADMITTED",
-    "execution_authorized": true,
+    "status": "COMPLETE_CONSUMED_NUMERICALLY_VERIFIED",
+    "execution_authorized": false,
     "training_authorized": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HIDDEN_SPLIT_20261109_001/PLAN.json",
@@ -70060,9 +70110,9 @@
       "sha256": "ff8436643cd35ad45a3aeff4aa4da40de6baed6c64fe6f85fcbc9ded48cb161d"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "max_encoder_forwards": 24,
     "max_updates": 0,
@@ -70081,6 +70131,28 @@
         "sha256": "b6d18fe6c4ef9da4c29069121c3dbeea4741dec4923b222b1862c69592dd35f0"
       },
       "scope": "Static reviewed state/capture/cube route only; runtime and actual numerical parity remain unproven. Root independently read execution flow."
-    }
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HIDDEN_SPLIT_20261109_001/RESULT.json",
+      "sha256": "7c0c4a80f179381d96d6439597809ecfeba72f674cfda890ff52095bbf5a5486"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HIDDEN_SPLIT_20261109_001/TERMINAL.json",
+      "sha256": "0cf4283a8461623105d2ede6be09d8239ccbaad96f0602ecb9f139b865fecf83"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HIDDEN_SPLIT_20261109_001/CONTROLLER.json",
+      "sha256": "d09523268c0594f40a9f33a75534de6103cf5574a381dd6dede28e50f9d09454"
+    },
+    "actual_encoder_forwards": 24,
+    "actual_updates": 0,
+    "whole_command_seconds": 130.49129287399956,
+    "worker_seconds": 127.21544028599965,
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HIDDEN_SPLIT_20261109_001/REVIEW.json",
+      "sha256": "a08b267d6f286f210d030fd7807e69e7e91f65ceb2fbb4f378c5512e2a9891c0"
+    },
+    "review_seconds": 2.262437809999028,
+    "runtime_route_qualified": true
   }
 }
