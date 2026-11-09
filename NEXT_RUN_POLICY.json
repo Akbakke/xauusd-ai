@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T20:48:00.887046+00:00",
-  "status": "TA_FORWARD_SEMANTICS_REVIEW_COMPLETE_LIMITS_IDENTIFIED",
+  "observed_utc": "2026-11-09T21:04:00.116577+00:00",
+  "status": "TA_M5_FULLPASS_TRAJECTORY_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Separate the confirmed semantic limits from the still-unexplained learning deterioration. Reuse saved full-pass checkpoints on fixed TRAIN observations to locate loss of direction; no new fit or feature/target change admitted. Do not repeat qualified input/formula sweeps. Historical COT/macro provenance remains an explicit gap before causal generalization claims.",
+  "next_action": "Execute exactly one admitted CPU weights-only trajectory on9 preserved original full-pass states and fixed192TRAIN rows; independent cached review, then close execution. No fit, later scoring or checkpoint selection. Do not repeat feature audits.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -66323,7 +66323,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "User-requested all-feature forward semantics audit complete:701surface definitions/253MTFx5/8families+61macro, exactsource/konsumcoverage reused. Confirmed HTF-M5 line-clock and target/reaction/small-move limits; COT/macro historicalvintageUNKNOWN. No newly proved modelbug or directional correction; fullpasscheckpointtrajectory not launched.",
+    "latest_progress": "All-feature semantics reviewed; input/source completeness does not prove forward reactions. Zero-fit fixed-panel trajectory admitted to locate original full-pass direction deterioration.",
     "user_clarification_20261109": {
       "scope": "Correct direction for short sniper and longer long/shorttrends; separate forecasts and targets at M5 cadence.",
       "existing_future_horizons_minutes": [
@@ -70944,5 +70944,74 @@
     "production_code_changed": false,
     "unqualified_historical_macro_vintage": true,
     "confirmed_causes_of_TRAIN_deterioration": []
+  },
+  "market_state_ta_m5_fullpass_trajectory_20261109_001": {
+    "status": "ADMITTED",
+    "execution_authorized": true,
+    "training_authorized": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_001/PLAN.json",
+      "sha256": "8d23047e66550eed42a8960f85dfef1594d78898ec49d8ede609933f4a5c6806"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_001/probe.py",
+      "sha256": "c1a1384d871d19568063f2cc45f3940eb8fc6eb5d9e3cbee0e90c329bbbaaf2d"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_001/PREFLIGHT.log",
+      "sha256": "5d624235cf7f341e8dbfc0f1747e3d093b4a38b9f680adf9ceaf1369bc2a041e"
+    },
+    "controller_source": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_001/controller.py",
+      "sha256": "82bc6617eba592867f1db10918b789397c4dd34fc9b0ba4299dab5657705ec41"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "max_forwards": 108,
+    "max_checkpoint_loads": 9,
+    "max_model_constructions": 1,
+    "max_updates": 0,
+    "max_backwards": 0,
+    "max_optimizer_constructions": 0,
+    "max_checkpoint_writes": 0,
+    "wall_seconds": 600,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "numerical_threads": 1,
+    "test_data_used": false,
+    "score_partition_allowed": false,
+    "question": "When does original full-pass M5 direction deteriorate on the same fixed192TRAIN observations?",
+    "fit_eval_ranges": [
+      [
+        0,
+        64
+      ],
+      [
+        14272,
+        14336
+      ],
+      [
+        29504,
+        29568
+      ]
+    ],
+    "checkpoint_refs": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_001/CHECKPOINT_REFS.json",
+      "sha256": "eecf39200bfa6475ce2309369ff22d5dbd175556d8b0351900102ec683c678a8"
+    },
+    "source_review": {
+      "status": "PASS",
+      "worker": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_001/probe.py",
+        "sha256": "c1a1384d871d19568063f2cc45f3940eb8fc6eb5d9e3cbee0e90c329bbbaaf2d"
+      },
+      "scope": "Weights and buffers only, no optimizer/CUDA RNG restore. Original full RNG digest preserved; CUDA bytes validated separately and canonical CPU validator receives CPU subset. Full original state schema/inventory/seal/order and endpoint cache parity required. INITIAL parity before all seven middle states.",
+      "agent": "/root/ta_formula_audit"
+    },
+    "interpretation": "Report all9 checkpoints, no checkpoint selection/refit/later scoring. Separately describe last16 consumed original B16 batches; final16 starts29328 with6-row tail. Temporal correlation is descriptive, not causal.",
+    "no_automatic_training": true
   }
 }

@@ -15,7 +15,7 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_FORWARD_SEMANTICS_REVIEW_COMPLETE_LIMITS_IDENTIFIED.
+Policystatus: TA_M5_FULLPASS_TRAJECTORY_ADMITTED.
 
 Brukerens nye prioritet er gjennomgått: framoverbetydning og korrekt
 modellkonsum for hele den aktive TA-flaten på alle fem tidsrammer.
@@ -54,10 +54,20 @@ Konkrete grenser:
 Ingen ny konkret produsentfeil/frakobling eller fungerende retningsrettelse
 er påvist. Per-felt prediktiv nytte og lærte framtidsreaksjoner er ubevist.
 Modell-/targetkode er uendret; alle treningsporter er stengt.
-Neste direkte steg: bruk bevarte fullpass-checkpoints på identiske, små
-TRAIN-utvalg for å lokalisere tapet av retning. Trajectory-ruten er kartlagt,
-men ingen worker/PLAN er innrømmet eller kjørt. Ikke gjenta bestått
-featurekontroll eller konsumerte moment-/rekkefølgeprøver.
+Neste direkte steg er innrømmet én gang: ni originale fullpass-checkpoints
+på de samme192 TRAIN-observasjonene, posisjoner0:64,14272:14336,29504:29568.
+CPU laster bare modell/buffere; ingen optimizer, RNG-restore, fit eller senere
+TRAIN-scoring. Maks108 forwards,600s,12G/512M ogén numerisk tråd gjennom
+capped producer. INITIAL/FINAL må samsvare med bevarte råprognoser.
+Alle ni rapporteres; ingen checkpoint velges. Siste16 konsumerte B16-batcher
+beskrives fra lagrede mål; eventuell samvariasjon er ikke årsaksbevis.
+Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_001
+PLAN SHA8d23047e66550eed42a8960f85dfef1594d78898ec49d8ede609933f4a5c6806.
+Metadata-preflight PASS7,284s; ingen modell eller checkpoint dekodet.
+En konkret kontrollskriptfeil ble rettet før kjøring: GPU RNG valideres separat
+fra CPU-delsettet uten å restaurere RNG. Modell-/treningskode er uendret.
+Ikke gjenta bestått featurekontroll eller konsumerte moment-/rekkefølgeprøver.
+Peer-kontroll av den rettede worker er PASS. Ingen kjøring er startet ved innrømmelse.
 
 Siste læringsbevis beholdes: full29574 TRAIN fryst eval-tap1,948957162→
 2,021683248; alle10sidekomponenter verre, aktivitet bedre. M5 Brier S
