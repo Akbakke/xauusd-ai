@@ -15,17 +15,15 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: SHORT_NATIVE16_SAVED_CONTRAST_ADMITTED.
+Policystatus: SAVED_CONTRAST_CPU_GPU_REPRESENTATION_PARITY_BLOCKED.
 
-Én read-only kontrast er kvalifisert/innrømmet; trening forblir stengt.
-CONTRAST_PLAN.json i kortløpets rot, SHA
-be49f8138770dedcd0212de7ade70d7c973c68af72061ace18e4d1558ddf95fd.
-60s/4G/én tråd:192lagrede TRAIN-rader deles i felles logitforskyvning,
-rangering og head/representasjon2x2.16-steghodet projiseres også på fast
-INITIAL-representasjon for29574TRAIN-rader; dette er ikke faktisk global
-16-stegsmodellscore. Ingen modell, optimizer, fit, senerearrays eller
-kandidatutvalg. Preflight PASS; root har gjennomgått den fryste143-linjers
-beregningen. Kjør én gang og lukk kontrastadmisjonen etter terminal.
+Den read-only kontrasten feilet/konsumerte på CPU/GPU-representasjons-
+allclose(atol2e-5,rtol1e-5) før sluttresultat. Controllerexit1,5.091s.
+CONTRAST_PLAN/CLAIM/TERMINAL beholdes; ingen relansering. Trening er stengt.
+Minste neste kontroll er faktisk max/RMS-avvik og projisert logitfeil for
+de samme lagrede INITIAL-representasjonene. Ikke øk toleransen blindt.
+Den allerede beståtte INITIAL-logitpariteten og native16-resultatet er
+uendret. Ingen ny modell/fit/senerearrays er brukt.
 
 Den nye korte CPU-prøven er COMPLETE/konsumert; controllerexit0 og PID95085
 er avsluttet. Alle treningsporter er stengt igjen. Ingen automatisk

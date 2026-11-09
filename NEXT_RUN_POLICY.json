@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-09T17:07:12.629858+00:00",
-  "status": "SHORT_NATIVE16_SAVED_CONTRAST_ADMITTED",
+  "status": "SAVED_CONTRAST_CPU_GPU_REPRESENTATION_PARITY_BLOCKED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Run one60s saved-artifact contrast:192pairedTRAIN rows, common logit shift versus ranking/Brier decomposition and actual head/representation2x2; project16-stephead on existing fixed INITIAL fullTRAIN representation. No model/fit/later arrays or candidate selection. Then close admission and record result.",
+  "next_action": "Measure the exact CPU/GPU cached representation discrepancy and projected-logit effects from saved qualified artifacts. Do not blindly relax tolerance. Preserve failed one-shot receipts; no training/forward/later data authorized.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -69916,8 +69916,8 @@
     "review_seconds": 3.031039102
   },
   "market_state_ta_m5_short_native16_contrast_20261109_001": {
-    "status": "ADMITTED",
-    "execution_authorized": true,
+    "status": "FAILED_CONSUMED",
+    "execution_authorized": false,
     "training_authorized": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/CONTRAST_PLAN.json",
@@ -69928,9 +69928,9 @@
       "sha256": "7214e241ef0950abc7cfe87b7f678dfeb36a8e7412b4d8b9195a1b71b05825b9"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
+    "claimed_invocations": 1,
     "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "wall_seconds": 60,
     "memory_max": "4G",
@@ -69938,6 +69938,14 @@
     "numerical_threads": 1,
     "max_updates": 0,
     "max_forwards": 0,
-    "test_data_used": false
+    "test_data_used": false,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/CONTRAST_TERMINAL.json",
+      "sha256": "e8a72b672eb24305cd355a58ef6ad03c0654f162cb179662a8bad6669cf4e68e"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/CONTRAST_CONTROLLER.json",
+      "sha256": "264bfc9793605617994a4be16285cf149c94de14558f1c00fe317a620b0e98b4"
+    }
   }
 }
