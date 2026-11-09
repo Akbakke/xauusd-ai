@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-09T17:07:12.629858+00:00",
-  "status": "SHORT_NATIVE_16_UPDATES_VERIFIED_MIXED_TRAIN_DIRECTION",
+  "status": "SHORT_NATIVE16_SAVED_CONTRAST_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Use saved192-row INITIAL/FINAL captures and existing fullfit evidence to isolate the TRAIN temporal contrast: both S/F improve in first/middle blocks but worsen in last block. No new model run needed to inspect saved logits/labels/representation changes. The small sample does not establish generalization or an economic edge; do not launch full-epoch or repeat consumed probes. Any new fit needs a concrete hypothesis and fresh finite admission.",
+  "next_action": "Run one60s saved-artifact contrast:192pairedTRAIN rows, common logit shift versus ranking/Brier decomposition and actual head/representation2x2; project16-stephead on existing fixed INITIAL fullTRAIN representation. No model/fit/later arrays or candidate selection. Then close admission and record result.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -69660,7 +69660,7 @@
       "physical_power_limit_w": 250,
       "no_automatic_continuation_or_full_epoch": true,
       "runtime_route_qualified": true,
-      "qualification_note": "Admission constraints for a future measured need. No short native job is implemented/admitted by these policy values alone; current native training remains closed."
+      "qualification_note": "Finite limits only;16-updateCPU route was completed and reviewed. All fitting remains closed; new fit requires a concrete hypothesis and fresh admission."
     },
     "large_native_training_enabled": false,
     "larger_run_requires": "Predeclared short directional comparison improves on identical TRAIN and separate later observations against initial and frozen reference; technical PASS alone does not open larger work. Separate finite admission required.",
@@ -69914,5 +69914,30 @@
     "paired_train_beats_prior_both_tasks": false,
     "block_direction": "Both S/F improve against INITIAL in first/middle64-row blocks but worsen in last64-row block. All are TRAIN; no later score partition was opened.",
     "review_seconds": 3.031039102
+  },
+  "market_state_ta_m5_short_native16_contrast_20261109_001": {
+    "status": "ADMITTED",
+    "execution_authorized": true,
+    "training_authorized": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/CONTRAST_PLAN.json",
+      "sha256": "be49f8138770dedcd0212de7ade70d7c973c68af72061ace18e4d1558ddf95fd"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/CONTRAST_PREFLIGHT.log",
+      "sha256": "7214e241ef0950abc7cfe87b7f678dfeb36a8e7412b4d8b9195a1b71b05825b9"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "wall_seconds": 60,
+    "memory_max": "4G",
+    "swap_max": "512M",
+    "numerical_threads": 1,
+    "max_updates": 0,
+    "max_forwards": 0,
+    "test_data_used": false
   }
 }
