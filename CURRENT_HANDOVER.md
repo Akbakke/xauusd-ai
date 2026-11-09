@@ -15,7 +15,25 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: DIRECTION_SHORT_CONTROLS_COMPLETE_NO_NATIVE_FIX_QUALIFIED.
+Policystatus: SHORT_M5_SHARED_GRADIENT_DIAGNOSTIC_ADMITTED.
+
+Én kort null-update diagnose er nå innrømmet:
+MARKET_STATE_TA_M5_SHARED_GRADIENT_20261109_001, PLAN
+SHA63097b54609ab3b6c3144e4190a708a513a88aaa9765cf54f00c42e1b4a32460.
+Tre faste TRAIN-batcher/48rader,6fulle CPU-forwards,21autogradkall,
+0optimizerkonstruksjoner/updates.12G/512M,én numerisktråd,600s.
+KorrigertINITIAL og alle genuine5TF beholdes. Eval ogtrain bruker samme
+sampledS/nativeF-query; M5-evalparitet måles mot lagrede korrekte prognoser.
+Firetraingrupper til faktisk aktiv backbone/query/hoder, pluss to eval-M5-
+gradienter, skiller målinterferens fra mulig train/eval-forskjell.
+CPUdropout er egen frøbundet realisasjon, ikke CUDA-replay. Dotprodukter er
+lokal førsteordens BCE-effekt, ikke anvendt steg eller målt Brier-gevinst.
+
+Preflight og avgrenset uavhengig kildekontroll er fullført.85kildeeiere er
+uendret; taps-/gradientsum består (maks1.86e-9). Første syntetiske fixture
+manglet allow_unused for adskilteS/F-logits; rettet før genuineclaim.
+Kildekontroll fant trådoverstyring og manglende originalplan i sluttkontroll;
+begge er rettet før launch. Ingen produksjonsmodellkode er endret.
 
 Brukerens føring er korte tester først. training_enabled=false; native
 launch/full-epoch er stengt. Gjenbruk checkpoint, lagrede arrays og beståtte
@@ -54,7 +72,7 @@ Neste direkte hull er faktisk delt encodergradient. Den eldre
 DIRECTION_DECODER_DIAGNOSTIC_20261108_001 brukte detached-backbone derivatives,
 og besvarer derfor ikke om andre mål motvirker M5-side i felles modell.
 Kvalifiser høyst3 faste TRAIN-batcher/600s med null updates fra korrigert
-INITIAL og uendrede produksjonstap/inputs. Ingen slik jobb er innrømmet ennå.
+INITIAL og uendrede produksjonstap/inputs. Den eksakte engangsdiagnosen er nå innrømmet ovenfor.
 Ikke gjenta negative L2-, intakt-batch-rekkefølge- eller akkumuleringstester.
 Ingen retningsedge eller ferdig native rettelse er dokumentert.
 
