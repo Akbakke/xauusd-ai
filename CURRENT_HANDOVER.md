@@ -15,20 +15,18 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_EQUAL_LOSS_FULLFIT_ADMITTED_ONCE.
+Policystatus: TA_M5_EQUAL_LOSS_FULLFIT_SOURCE_QUALIFIED_ADMISSION_PENDING.
 
-Fullfit-koblingen er implementert med59fokuserte beståtte tester og separat
-lesereview. Ny scope bruker originalimport616a22… og kvalifisert rebind direkte:
-én modell/optimizer, ingen legacy-kloning av de importerte M5-hodene.
-Én12000s-window, full29574 INITIAL før1849updates, fullFINAL og17753senereTRAIN.
-Eksisterende checkpoint/RESUMABLE og250W beholdes; ingen automatisk ny window.
-State/loss/private-runner er byteidentiske med kvalifisert native619c79da.
-Kildekontroll: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FOLD1_FIT_20261109_001/SOURCE_VALIDATION.json.
-Faktisk85-owner/inputmetadata og transportpreflight består. Én ny fullfit er
-innrømmet i /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FOLD1_FIT_20261109_001.
-training_enabled=true kun for denne planen; alle gamle planer forblir konsumert.
-Materialisering, fersk Windows-boot og250W gjenstår. Fullbaseline
-for imported ae772fd7 mangler; gammel71278ead-baseline er kun historikk.
+Fullfit001 ble stoppet i siste metadatagate: integrator satte feil
+training_module i policy. Eksisterende authority.MODULE er
+gx1.scripts.run_unified_exit_native_candidate_window_v1. Ingen native
+invocation, modell eller update startet; kun forberedte planfiler finnes.
+Original001 og PREPARATION_FAILURE.json bevares, ingen relansering.
+Minste rettelse er korrekt policy-entrypoint og ny eksakt stage/root002.
+59beståtte tester og native4stegs-/lossbevis gjenbrukes; modell, numerikk,
+runner og kvalifisert helper er uendret. Ny002metadata/admisjon gjenstår,
+training_enabled=false. Én full29574INITIAL,1849updates,fullFINAL og17753senereTRAIN
+med250W beholdes; fullbaseline for imported ae772fd7 er fortsatt ubevist.
 
 Den nye [native equal-loss-kvalifikasjonen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_MECHANICAL_20261109_001/REVIEW.json)
 er COMPLETE og konsumert:3modeller/3optimizere,6forwards/4backwards/4steg.

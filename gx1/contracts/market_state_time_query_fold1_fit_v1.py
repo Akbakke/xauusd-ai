@@ -58,7 +58,7 @@ TA_M5_FIT_CHANGED_SOURCE_PATHS = frozenset({
 })
 
 TA_M5_EQUAL_LOSS_FIT_SCOPE = 'market_state_ta_m5_equal_loss_fold1_fit_v1'
-TA_M5_EQUAL_LOSS_FIT_STAGE = 'market_state_ta_m5_equal_loss_fold1_fit_20261109_001'
+TA_M5_EQUAL_LOSS_FIT_STAGE = 'market_state_ta_m5_equal_loss_fold1_fit_20261109_002'
 TA_M5_EQUAL_LOSS_FIT_ROOT = Path('/home/andre2/GX1_RUNS') / TA_M5_EQUAL_LOSS_FIT_STAGE.upper()
 TA_M5_EQUAL_LOSS_FIT_RUNTIME_ROOT = TA_M5_EQUAL_LOSS_FIT_ROOT / 'RUNTIME'
 TA_M5_EQUAL_LOSS_FIT_RECIPE_PATH = TA_M5_EQUAL_LOSS_FIT_ROOT / 'RECIPE.json'

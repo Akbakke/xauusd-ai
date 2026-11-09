@@ -2,7 +2,7 @@
   "schema_version": "gx1_next_native_run_policy_v1",
   "canonical_source_repo": "/home/andre2/src/GX1_CURRENT",
   "canonical_branch": "work/gx1-current",
-  "training_module": "gx1.scripts.run_entry_native_direction_prefix_fit_window_v1",
+  "training_module": "gx1.scripts.run_unified_exit_native_candidate_window_v1",
   "required_val_profile": {
     "max_model_forwards": 16,
     "max_state_views": 256,
@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T06:08:53.022803+00:00",
-  "status": "TA_M5_EQUAL_LOSS_FULLFIT_ADMITTED_ONCE",
+  "observed_utc": "2026-11-09T06:12:39.076566+00:00",
+  "status": "TA_M5_EQUAL_LOSS_FULLFIT_SOURCE_QUALIFIED_ADMISSION_PENDING",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
-  "full_epoch_training_allowed": true,
+  "training_enabled": false,
+  "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Materialize the exact new once-only plan, fresh Windows boot and250W. Full initial before1849updates, matched final/later scores. No extra windows or source changes while frozen.",
+  "next_action": "Use fresh002metadata plan with existing canonical native entrypoint;001preparation failed before any native job and remains consumed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -35439,7 +35439,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -40181,7 +40181,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "ONLY_MARKET_STATE_TA_M5_EQUAL_LOSS_FOLD1_FIT_20261109_001",
+  "training_enabled_scope": "NONE_FULLFIT_PREPARATION_FAILED",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -68184,8 +68184,8 @@
     "predictive_value_demonstrated": false
   },
   "market_state_ta_m5_equal_loss_fold1_fit_20261109_001": {
-    "status": "ADMITTED",
-    "decision": "ADMITTED",
+    "status": "PREPARATION_FAILED_CONSUMED",
+    "decision": "PREPARATION_FAILED",
     "scope": "One full fold1 equal-observation M5 direction pass from original imported zero-step model; matched full TRAIN initial/final and later TRAIN.",
     "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FOLD1_FIT_20261109_001/RUNTIME",
     "recipe": {
@@ -68195,16 +68195,16 @@
     "max_invocations": 1,
     "claimed_invocations": 0,
     "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "fold_id": 1,
     "fit_rows": 29574,
     "score_rows": 17753,
     "train_passes": 1,
     "max_optimizer_updates": 1849,
-    "time_query_fold1_fit_authorized": true,
-    "ta_sf_fold1_fit_authorized": true,
-    "ta_m5_equal_loss_fold1_fit_authorized": true,
+    "time_query_fold1_fit_authorized": false,
+    "ta_sf_fold1_fit_authorized": false,
+    "ta_m5_equal_loss_fold1_fit_authorized": false,
     "input_audit": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001/RESULT.json",
       "sha256": "107c95312f3decce4c00bbe75ccf467363853d0377c448599bed7c673b871dc0"
@@ -68271,17 +68271,36 @@
     "broker_access_allowed": false,
     "full_val_allowed": false,
     "spending_allowed": false,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
-    "genuine_predictor_fit_authorized": true,
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "full_epoch_training_allowed": true,
-    "native_launch_authorized": true,
-    "campaign_preparation_authorized": true
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "native_launch_authorized": false,
+    "campaign_preparation_authorized": false,
+    "preparation_failure": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FOLD1_FIT_20261109_001/PREPARATION_FAILURE.json",
+      "sha256": "84a018d31b7a60299017ccde0b2000a14f6185753a46e5e5f8c547a3590c0faa"
+    }
+  },
+  "market_state_ta_m5_equal_loss_fold1_fit_20261109_002": {
+    "status": "SOURCE_QUALIFIED_NATIVE_NOT_ADMITTED",
+    "source_validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FOLD1_FIT_20261109_002/SOURCE_VALIDATION.json",
+      "sha256": "5db7404a3da7c14299ebf504ed2265db51f99e4372709952c9b553ed51526b02"
+    },
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "execution_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "physical_power_limit_w": 250
   }
 }
