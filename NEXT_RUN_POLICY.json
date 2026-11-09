@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-09T16:34:58.762294+00:00",
-  "status": "SHORT_M5_SHARED_GRADIENT_DIAGNOSTIC_ADMITTED",
+  "status": "TRAIN_ONLY_CACHED_HEAD_TRAJECTORY_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Run only the bound3-batch zero-update CPU gradient diagnostic once. No model fit, weight changes, later scoring or full-population pass.",
+  "next_action": "One60s TRAIN-only projection of saved native heads on the fixed initial representation. No new model forward, fit, checkpoint selection or later data.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -69693,7 +69693,20 @@
       "sha256": "f175d3032925bcc4509f9aea1d1637f68edb33e8270e4ada5512f0e8907cf2ec"
     },
     "native_accumulation_change_qualified": false,
-    "next_measured_coverage_gap": "Earlier decoder diagnostic used detached backbone. Shared encoder gradients from M5side versus other genuine objectives have not been measured in this corrected model. Tiny zero-update diagnostic requires separate finite qualification; not admitted by this note."
+    "next_measured_coverage_gap": "Earlier decoder diagnostic used detached backbone. Shared encoder gradients from M5side versus other genuine objectives have not been measured in this corrected model. Tiny zero-update diagnostic requires separate finite qualification; not admitted by this note.",
+    "head_trajectory": {
+      "status": "ADMITTED",
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHARED_GRADIENT_20261109_001/HEAD_TRAJECTORY_PLAN.json",
+        "sha256": "d27e44f0c95f66cc758666e040a41b77f15ebe40411f23fd31dca26305f0b217"
+      },
+      "training_authorized": false,
+      "execution_authorized": true,
+      "max_invocations": 1,
+      "claimed_invocations": 0,
+      "completed_invocations": 0,
+      "relaunch_allowed": false
+    }
   },
   "market_state_ta_m5_short_accumulation_20261109_001": {
     "status": "COMPLETE_CONSUMED_INDEPENDENTLY_VERIFIED",
@@ -69740,7 +69753,7 @@
     "native_correction_qualified": false
   },
   "market_state_ta_m5_shared_gradient_20261109_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_INDEPENDENTLY_VERIFIED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHARED_GRADIENT_20261109_001/PLAN.json",
       "sha256": "63097b54609ab3b6c3144e4190a708a513a88aaa9765cf54f00c42e1b4a32460"
@@ -69749,13 +69762,13 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHARED_GRADIENT_20261109_001/PREFLIGHT_FINAL.json",
       "sha256": "f5048f6dee52f3fbb4dd2472101713187908bb5c471e19704139b9d860302191"
     },
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "checkpoint_reads_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "checkpoint_reads_authorized": false,
     "training_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "model_constructions_authorized": 1,
     "optimizer_constructions_authorized": 0,
@@ -69774,6 +69787,23 @@
     "numerical_threads": 1,
     "device": "cpu",
     "test_data_used": false,
-    "scope": "One fixed zero-update shared-gradient and train/eval comparison at corrected INITIAL; all genuine fiveTF inputs and production S/F objective preserved. No candidate choice or later data."
+    "scope": "One fixed zero-update shared-gradient and train/eval comparison at corrected INITIAL; all genuine fiveTF inputs and production S/F objective preserved. No candidate choice or later data.",
+    "remaining_invocations": 0,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHARED_GRADIENT_20261109_001/RESULT.json",
+      "sha256": "f9876403a6ebc6881df9cd6164f199623a238bd07de0b257a6a2474d1b9b104d"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHARED_GRADIENT_20261109_001/TERMINAL.json",
+      "sha256": "2c6b4a725823e69b6531ecf931665a37c7b9313f44837c1f760b53fca5b80b36"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHARED_GRADIENT_20261109_001/CONTROLLER.json",
+      "sha256": "03094729fe4e05e7acab2e99477b3c1d79a56dfd0250d05a99d56f53984789ae"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHARED_GRADIENT_20261109_001/REVIEW.json",
+      "sha256": "221b1030e9c1c336e5dbeb8fca1570946ee6398f26ef4561c71758cc8926527d"
+    }
   }
 }

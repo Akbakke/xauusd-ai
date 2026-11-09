@@ -15,9 +15,26 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: SHORT_M5_SHARED_GRADIENT_DIAGNOSTIC_ADMITTED.
+Policystatus: TRAIN_ONLY_CACHED_HEAD_TRAJECTORY_ADMITTED.
 
-Én kort null-update diagnose er nå innrømmet:
+Null-update gradientdiagnosen er COMPLETE og uavhengig PASS.
+220.756s worker/224.259s hel kommando,peakRSS7.316GB;6forwards/21autograd,
+0optimizer/updates og bitlike modell/buffere. Evalparitet maks1.993e-6,
+gradientsum maks1.192e-7. Aggregate M5train/evalcosine0.99815/0.99784.
+Joint førsteAdamW-retning har negativ lokal evalBCE-endring for bådeS/F i
+alle3batcher, også i backbone/query/M5hoder. Ingen initial antagonisme eller
+dropout-fortegnsforklaring er påvist. Ingen Brier-/generaliseringsgevinst.
+RESULT SHAf9876403a6ebc6881df9cd6164f199623a238bd07de0b257a6a2474d1b9b104d,
+REVIEW SHA221b1030e9c1c336e5dbeb8fca1570946ee6398f26ef4561c71758cc8926527d.
+Review3.724s gjenskaper alle5aggregatepartisjoner med maks2.085e-13 avvik.
+
+Neste eksakte engangskontroll bruker bare lagrede checkpoints og TRAIN-cache:
+HEAD_TRAJECTORY_PLAN i samme rot,60s/4G. Ni faktiskeM5hoder projiseres på
+samme INITIAL-representasjon for å lokalisere når hodedriften oppstår.
+Ingen encoderforward,fit,senerearrays eller valg av bestecheckpoint.
+Dette er ikke de mellomliggende helmodellenes faktiske TRAIN-score.
+
+Den fullførte null-update diagnosens konsumerte ramme:
 MARKET_STATE_TA_M5_SHARED_GRADIENT_20261109_001, PLAN
 SHA63097b54609ab3b6c3144e4190a708a513a88aaa9765cf54f00c42e1b4a32460.
 Tre faste TRAIN-batcher/48rader,6fulle CPU-forwards,21autogradkall,
