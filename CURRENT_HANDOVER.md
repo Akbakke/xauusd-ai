@@ -15,29 +15,57 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_EQUAL_WEIGHT_IMPORT_ZERO_STEP_ADMITTED.
+Policystatus: TA_M5_EQUAL_WEIGHT_NATIVE_IMPORT_VERIFIED_CONTROLLER_FAILED.
 
-Ny engangs nullstegskontroll er innrømmet i policy:
-MARKET_STATE_TA_M5_EQUAL_WEIGHT_IMPORT_20261109_001. Original FINAL
-restores strengt på CUDA, migreres gjennom eksisterende dedicated-eier, og
-bare fire FP32 M5-vekt-/bias-tensorer importeres fra verifisert likevekts-NPZ.
-Kropp, øvrige state/buffers, Parameter-identiteter, modes og RNG bevares.
-Før/etter/resume på de samme to B16-batchene gir seks fulle forwards.
-Begge native head-moduler må gjenskape alle29574/17753 lagrede prognoser;
-fersk full encoderbaseline gjelder bare32TRAIN-rader. Streng checkpoint-
-rundtur og bitlike resume-utganger kreves.0backwards/optimizersteg;250W.
+Den nye [nullstegsimporten](/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_WEIGHT_IMPORT_20261109_001/REVIEW.json)
+har native PASS og et uavhengig verifisert checkpoint. Kampanjekontrolleren
+feilet separat med exit1 og ga ingen campaign-receipt. Planen er konsumert,
+oppstartsoppgaven deaktivert; ingen kjøring eller trening er nå innrømmet.
+Original RESULT/COMPLETE-terminal/progress/checkpoint/ACTIVE_INVOCATION er
+bevart. Ingen gjenkjøring eller omskriving til kampanje-PASS.
 
-36fokuserte tester og faktisk input-/checkpoint-/cache-/visningsmetadata
-med85kildeeiere bestod. Også fysisk metadata-transport for ny nullstegs-
-invocation→execution→recipe/window er kontrollert før engangsclaim.
-Lesende review fant ulik MHA-evalueringskontekst; de seks frosne forwards
-bruker nå samme inference_mode som originalcache, med uendret bitparitetskrav.
-Gamle capture/restore/migration-metoder er byteidentiske; kun ny importhelper
-er lagt til. Ingen native kjøring er startet ved denne kodekvitteringen.
-Neste steg: eksisterende materializer, maskinvid idle-kontroll, fersk boot
-og den ene bundne kontrollen. training_enabled/native_training_enabled=false.
-TEST/GC/Entry/Exit/handel forblir stengt. Gammel4stegsplan gjenbrukes ikke.
+Native kontroll tok128,227s: streng original FINAL CUDA-restore, eksisterende
+dedicated-migrering, bare fire importerte FP32 M5-tensorer, seks fulle forwards
+på de faste32TRAIN-radene og5918native head-kall på alle29574/17753cacherader
+for begge mål.0backwards/optimizersteg. Modellkropp/cache-representasjon og
+øvrige outputs var bitlike; checkpoint-rundtur og resume-outputs var bitlike.
+Ny modeldigest ae772fd755cbfa07b1b7bcca8bccd2c8a8889806989a289ddb8267972c281b37.
+Nytt checkpoint616a22e467ebf35bded61705e00f99531d28420db90c30b8d755d447c612679f.
+Full fersk encoderbaseline dekker32TRAIN-rader; full head-baseline gjenbruker
+kvalifisert originalrepresentasjon. Ingen ny full encoderpopulasjon påstås.
 
+Uavhengig CPU-lesekontroll sammenlignet lagret state med kvalifisert dedicated
+INITIAL: eksakt fire endrede tensorer, bitlike koeffisienter, øvrig modellstate,
+buffers, tom optimizer, RNG, modes og parentorder.12scoreceller samsvarer med
+verifisert likevektskontroll, maksimalt4,78e-11. Ingen nye forwards eller fit.
+GPU↔CPU rålogitavvik var under7,83e-8.250W beholdt, maks47°C/minne52°C;
+signed guard avsluttet0. Vellykket total kampanjetid/speedup er ikke målt
+fordi kontrollerens sluttrapportering feilet.
+
+M5 Brier etter faktisk import, med fryst prior:
+TRAIN S0,248473364 mot0,249651008; F0,249327011 mot0,249876211.
+Senere S0,249652488 mot0,249827988; F0,249855791 mot0,249833416.
+Begge slår TRAIN-prior. S slår senere prior, F taper fortsatt svakt.
+Senere TRAIN er gjenbrukt utvikling; robust generalisering/økonomi er ubevist.
+
+Den målte rapporteringsdefekten er fysisk gjenskapt: Windows-observatøren
+avviste total_units0 når trenerprosessen fortsatt eksisterte. Smal kildefiks
+tillater bare eksakt importrecipe, korrekt fase, terminalstatus og fire
+heltallstellere0.7faktiske PowerShell-tester og syntaks består; legacy positiv
+progresjon består, feil recipe/optimizer/parent/terminal/bool avvises.
+Controller og øvrige vakter er urørt. Ingen UNC-fallback er bygget: lesing
+bestod ved repro, så en slik ny feilårsak er ikke etablert.
+36tidligere fokuserte tester, fysisk metadata-/transportpreflight og
+commitvakter gjenbrukes. Native kilde338f8b3f var uendret under kjøring.
+Alle gamle capture/restore/migration-metoder forble byteidentiske.
+Original Windows-kilde er bevart i den installerte speilingen; rettet observer
+er testet separat. En framtidig eksakt plan må binde og installere riktige bytes.
+
+**Direkte neste steg:** Native treningsloss bruker fortsatt de målte skjeve
+batchvektene. Klargjør minste TRAIN-bundne M5-korreksjon for lik observasjonsvekt,
+med bevart total tapmasse og uendrede øvrige TF/mål. Ingen ny fit er innrømmet.
+Det verifiserte importerte checkpointet og alle ferdige bevis skal gjenbrukes.
+GC/TEST/Entry/Exit/handel forblir stengt; F-priorgrensen gjenstår.
 
 Den [parvise likevektskontrollen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_EQUAL_WEIGHT_20261109_001/REVIEW.json)
 er COMPLETE og konsumert. Kun vekten mellom kjente observasjoner ble endret:
@@ -533,12 +561,10 @@ tidssekvensmodellen, samme-linje-reaksjonsverdi, Entry-verdi og økonomisk edge
 er ubevist. 61 makrofelt mangler uavhengig formelorakel; COTs faktiske
 historiske publisering og vintage er fortsatt UNKNOWN.
 
-**Neste steg:** Fullfør kun den nye nullstegsimporten beskrevet øverst.
-Gjenbruk ferdige inputs, representasjonscacher, checkpoints og beståtte
-kontroller. Ingen fit er innrømmet; den native treningslossens batchvekting
-er fortsatt uendret. S har slått senere prior i den fryste head-kontrollen;
-F taper fortsatt svakt. Robust generalisering/edge er ikke bevist.
-Målet er aktivt. Avklar primær retningshorisont før eventuell målendring.
+**Neste steg:** Kun den målte native M5-vektingsfeilen beskrevet øverst.
+Importert checkpoint er teknisk verifisert; rapporteringsfeilen skal ikke
+utløse omkjøring. Ingen fit er innrømmet. S har slått senere prior i den
+fryste head-kontrollen, F taper fortsatt svakt. Målet er aktivt.
 Brukerens spørsmål om 30 epoker og fem år er fortsatt åpne hypoteser.
 Denne fitten dekker omtrent mai–september2024, senere score oktober–desember2024.
 Ett pass og én fold er ingen generell dom over lengre læring eller historikk.

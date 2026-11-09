@@ -40,6 +40,31 @@ function Read-Gx1Progress {
     }
     return $value
 }
+function Test-Gx1M5ImportZeroTerminal {
+    param([object]$Value)
+    if ($null -eq $Value -or
+        $Value.phase -cne 'native_direction_research_window' -or
+        $null -eq $Value.PSObject.Properties['terminal'] -or
+        $Value.terminal -isnot [bool] -or $Value.terminal -ne $true -or
+        ($Value.outcome -cne 'COMPLETE' -and $Value.outcome -cne 'FAILED')) {
+        return $false
+    }
+    $recipe = $Value.PSObject.Properties['recipe']
+    if ($null -eq $recipe -or $null -eq $recipe.Value -or
+        $null -eq $recipe.Value.PSObject.Properties['path'] -or
+        $recipe.Value.path -cne '/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_WEIGHT_IMPORT_20261109_001/RECIPE.json') {
+        return $false
+    }
+    foreach ($name in @('completed_units', 'total_units', 'optimizer_updates', 'parent_cursor')) {
+        $counter = $Value.PSObject.Properties[$name]
+        if ($null -eq $counter -or
+            ($counter.Value -isnot [int] -and $counter.Value -isnot [long]) -or
+            $counter.Value -ne 0) {
+            return $false
+        }
+    }
+    return $true
+}
 $lastHumanUtc = $null
 $lastPhase = $null
 $lastCompleted = $null
@@ -51,7 +76,8 @@ while ($null -ne (Get-Process -Id $TrainerProcessId -ErrorAction SilentlyContinu
     $completed = if ($null -eq $progress) { $null } else { [int64]$progress.completed_units }
     $total = if ($null -eq $progress) { $null } else { [int64]$progress.total_units }
     $outcome = if ($null -eq $progress) { $null } else { $progress.outcome }
-    if ($null -ne $progress -and ($completed -lt 0 -or $total -lt 1 -or $completed -gt $total)) {
+    if ($null -ne $progress -and ($completed -lt 0 -or $total -lt 1 -or $completed -gt $total) -and
+        -not (Test-Gx1M5ImportZeroTerminal -Value $progress)) {
         throw 'Random-access progress range invalid'
     }
     $meaningful = (

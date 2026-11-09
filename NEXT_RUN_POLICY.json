@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-09T03:55:26.674978+00:00",
-  "status": "TA_M5_EQUAL_WEIGHT_IMPORT_ZERO_STEP_ADMITTED",
+  "status": "TA_M5_EQUAL_WEIGHT_NATIVE_IMPORT_VERIFIED_CONTROLLER_FAILED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Materialize and execute exactly one guarded native equal-weight M5 head import qualification after verified machine-wide idle and fresh boot. Six full forwards, full cached-head baseline, strict checkpoint roundtrip,0backwards/updates,250W. Original FINAL basis; no native fit or TEST.",
+  "next_action": "Work only on the remaining direction-learning mismatch: native M5 side loss still uses unequal batch-known denominators. Design the minimum TRAIN-bound equal-observation correction from the proven contrast, preserving other TF/tasks and saved imported checkpoint. No fit or replay is admitted; F later frozen prior remains unbeaten. Reuse qualified artifacts; do not rerun the consumed import for its reporting failure.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -40181,7 +40181,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "NONE_ZERO_STEP_M5_IMPORT_ONLY",
+  "training_enabled_scope": "NONE_IMPORT_CONSUMED_MODEL_VERIFIED_NO_NEW_FIT",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -67943,9 +67943,9 @@
     "native_model_changed": false
   },
   "market_state_ta_m5_equal_weight_import_20261109_001": {
-    "status": "ADMITTED",
-    "decision": "ADMITTED",
-    "ta_m5_import_authorized": true,
+    "status": "CONSUMED_NATIVE_PASS_CONTROLLER_FAILED",
+    "decision": "MODEL_ARTIFACTS_INDEPENDENTLY_VERIFIED",
+    "ta_m5_import_authorized": false,
     "scope": "Strict original FINAL restore and dedicated migration; import four verified equal-weight M5 tensors; six full forwards on fixed32TRAIN rows, full cached-head baseline, strict checkpoint roundtrip, zero backwards/updates.",
     "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_WEIGHT_IMPORT_20261109_001/RUNTIME",
     "recipe": {
@@ -67953,7 +67953,7 @@
       "sha256": "5d07910b5fe4ef5fcc16f68c4656f3a06f4001a02a768f104c3f04302e885aa1"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
+    "claimed_invocations": 1,
     "completed_invocations": 0,
     "relaunch_allowed": false,
     "fold_id": 1,
@@ -67994,11 +67994,11 @@
     "optimizer_migration": "fresh_empty_AdamW_cursor0",
     "standing_authorization_source": "Active direction-only goal and standing local zero-cost work authorization; verified equal-weight coefficients.",
     "limitation": "Full native encoder baseline covers32TRAIN rows; every-row head baseline reuses exact original representations. Later TRAIN is reused development; F still loses frozen prior. No new fit or full-encoder-population qualification.",
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "campaign_preparation_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "campaign_preparation_authorized": false,
     "genuine_predictor_fit_authorized": false,
     "broker_access_allowed": false,
     "test_authorized": false,
@@ -68013,6 +68013,47 @@
     "training_enabled": false,
     "native_training_enabled": false,
     "native_launch_authorized": false,
-    "synthetic_test_execution_authorized": false
+    "synthetic_test_execution_authorized": false,
+    "native_completed_invocations": 1,
+    "campaign_outcome": "CONTROLLER_FAILED_NO_CAMPAIGN_RECEIPT",
+    "model_outcome": "PASS_TA_M5_EQUAL_WEIGHT_IMPORT",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_WEIGHT_IMPORT_20261109_001/RESULT.json",
+      "sha256": "46e94426529cb37384109cc9af32bfeaadbfd8eb07c3f6b0d0fa5a7a28a786de"
+    },
+    "native_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_WEIGHT_IMPORT_20261109_001/TERMINAL.json",
+      "sha256": "5b1d89fdf6bf7d46968d64d2064aa29b09aa2c1005f9aecf95621c5616682efc"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_WEIGHT_IMPORT_20261109_001/REVIEW.json",
+      "sha256": "b683ad03d535d1c5ddb1d4ecfa5c2a692c231d86c60892de24025772ca67342b"
+    },
+    "artifact_verification": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_WEIGHT_IMPORT_20261109_001/ARTIFACT_VERIFICATION.json",
+      "sha256": "acd0c3be92a6dc7d0ee32e42b3b3dfa7ee2c3406d62736080524c73f870ef44c"
+    },
+    "imported_checkpoint": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_WEIGHT_IMPORT_20261109_001/RUNTIME/private-research/IMPORTED_M5_STATE.pt",
+      "sha256": "616a22e467ebf35bded61705e00f99531d28420db90c30b8d755d447c612679f"
+    },
+    "imported_model_state_sha256": "ae772fd755cbfa07b1b7bcca8bccd2c8a8889806989a289ddb8267972c281b37",
+    "task_disabled_receipt": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_WEIGHT_IMPORT_20261109_001/TASK_DISABLED_RECEIPT.json",
+      "sha256": "1d81eb09dea69d9d5bbbbafc4868d4131e1f92265bb985f90a275e9066519061"
+    },
+    "observer_reproduction": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_WEIGHT_IMPORT_20261109_001/OBSERVER_REPRODUCTION.json",
+      "sha256": "e2415330be6827f2ebafa9b20d85c8128551648be7e4af1857428da9e2724c51"
+    },
+    "observer_fix_tests": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_WEIGHT_IMPORT_20261109_001/OBSERVER_FIX_TESTS.json",
+      "sha256": "44055929c8eb99be0c2abc96a96c5e3ee514968e720c5155a3033b90cf6fd2d9"
+    },
+    "elapsed_native_seconds": 128.22742942999997,
+    "original_active_marker_preserved": true,
+    "bit_exact_resume": true,
+    "model_import_verified": true,
+    "native_training_loss_changed": false
   }
 }
