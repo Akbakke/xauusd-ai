@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T04:56:42.252697+00:00",
-  "status": "TA_M5_EQUAL_OBSERVATION_LOSS_SYNTHETIC_PASS_AUDIT_PENDING",
+  "observed_utc": "2026-11-09T05:05:01.504326+00:00",
+  "status": "TA_M5_EQUAL_OBSERVATION_SAVED_LOSS_AUDIT_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Review and admit one bounded saved-FIT raw-logit loss/gradient audit for the implemented equal-observation M5 opt-in. Reuse imported checkpoint and completed evidence. No genuine model/optimizer/fit, later arrays or TEST are admitted by source validation. Native warmstart must explicitly rebind the verified empty-AdamW imported state before any future fit.",
+  "next_action": "Run the exact once-only saved-FIT loss/gradient audit; no native/model/optimizer or fit. Preserve source while running.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -68057,7 +68057,7 @@
     "native_training_loss_changed": false
   },
   "market_state_ta_m5_equal_observation_loss_20261109_001": {
-    "status": "SOURCE_SYNTHETIC_PASS_GENUINE_AUDIT_PENDING",
+    "status": "SAVED_LOGIT_AUDIT_ADMITTED",
     "scope": "Minimum M5 side-weight correction only; fixed fold1 TRAIN q/N. Other task/TF gradients and legacy defaults retained.",
     "source_validation": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_OBSERVATION_LOSS_20261109_001/SOURCE_VALIDATION.json",
@@ -68065,10 +68065,20 @@
     },
     "training_enabled": false,
     "native_launch_authorized": false,
-    "genuine_audit_authorized": false,
+    "genuine_audit_authorized": true,
     "physical_power_limit_w": 250,
     "new_genuine_model_calls": 0,
     "new_optimizer_updates": 0,
-    "new_idea_status": "Historical same-line event case/control study discussed; not implemented or admitted. Must establish conditional directional information on later data before a new model design."
+    "new_idea_status": "Historical same-line event case/control study discussed; not implemented or admitted. Must establish conditional directional information on later data before a new model design.",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_OBSERVATION_LOSS_20261109_001/PLAN.json",
+      "sha256": "f87d329fcfdf3da620ed9fb69e3a740b0ddc9ba63bbda6d1228955cd85cfa702"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "raw_logit_autograd_calls_authorized": 3698,
+    "admission": "Standing zero-cost local direction-only authorization; one saved-FIT CPU audit, no model/optimizer/fit."
   }
 }

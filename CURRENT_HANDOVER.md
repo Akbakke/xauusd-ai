@@ -15,7 +15,12 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_EQUAL_OBSERVATION_LOSS_SYNTHETIC_PASS_AUDIT_PENDING.
+Policystatus: TA_M5_EQUAL_OBSERVATION_SAVED_LOSS_AUDIT_ADMITTED.
+
+Én ny CPU-kontroll er nå innrømmet av PLAN.json i samme loss-rot:
+alle1849lagrede FIT-batcher,3698rålogit-autogradkall,0modell/optimizersteg.
+S/F-normalisering, full uavhengig taps-/gradientformel og uendrede øvrige
+koordinater kontrolleres.4GiB/512MiB/én tråd/900s. Ingen senere arrays.
 
 M5-sidevektingen er nå implementert som eksplisitt opt-in med fast fold1
 TRAIN-binding. Hver kjent M5-observasjon får q/N før eksisterende TF-divisor;
@@ -29,8 +34,7 @@ Dette er ennå ikke prøvd gjennom alle lagrede FIT-logiter eller native fit.
 Neste nødvendige kontroll er én avgrenset CPU-kontroll på lagrede FIT-logiter,
 uten modell/optimizer eller senere data. Ny varmstart må eksplisitt binde
 det verifiserte importerte checkpointet til den nye tapskontrakten; eksisterende
-streng gammel restore må ikke omgås. Ingen fit eller ny genuine kjøring er
-innrømmet. AdamW er uendret; Newton med koblet L2 fra readout-forsøket er
+streng gammel restore må ikke omgås. Ingen fit er innrømmet; kun den avgrensede lagrede-logit-kontrollen ovenfor. AdamW er uendret; Newton med koblet L2 fra readout-forsøket er
 ikke gjenskapt av denne vektingsrettelsen.
 
 
