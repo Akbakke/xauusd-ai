@@ -15,43 +15,55 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_FIXED_READOUT_TRANSFER_AUDIT_ADMITTED.
+Policystatus: TA_M5_READOUT_RANKING_AND_UPSTREAM_CALIBRATION_DRIFT_LOCALIZED.
 
-Eksakt engangsaudit er innrommet: gamle/nye lagrede M5 F-koeffisienter
-krysses med gammel/ny representasjon. Fire faste armer, TRAIN og alle tre
-senere maneder, ingen fit, nativekall eller utvalg. CPU audit4G, maks120s.
-PLAN: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_READOUT_TRANSFER_20261109_001/PLAN.json
-SHA d951d5575c93975cd66cd12d317c0ad67aadf29d4526e9a2169046d130c2792c.
-Metadata/preflight bestatt; original FP64-prognose skal reproduseres innen1e-12.
-training_enabled=false; ingen ny modelltrening er innrommet.
+Den faste 2×2-krysskontrollen er COMPLETE/konsumert: gamle/nye M5 F-hoder
+på gammel/ny representasjon, uten fit eller nativekall. Beregning 5.074 s;
+hele capped CPU-kommandoen 7.058 s. Ingen sammenliknbar native speedup.
+Alle 25 scoreceller er uavhengig regnet om med nullavvik. Begge opprinnelige
+FP64-prognoser reproduseres bitlikt; alternativ matrisemultiplikasjon avviker
+maks 6.25e-17. Uke-/bootstrapresultater er eksakt kontrollert.
 
-Den kausale M5-historikkplanen er COMPLETE/konsumert. To faste F-hodefits
-tok5.253s; hele capped CPUkommandoen tok7.288s inkludert oppsett/kontroller.
-Dette er ingen sammenliknbar speedup av full native trening. Nullnativekall.
-November brukte14484 kjente utfall før november,desember16802 før desember;
-eksakte kutt,fasiter,priorer og låste koeffisienter er uavhengig kontrollert.
-26scoreceller har nullavvik; uke-/CI-avvik under1.8e-18.
+Desember AUC (gammel/ny representasjon × gammelt/nytt hode):
+gammel/gammelt 0.502702; gammel/nytt 0.493803;
+ny/gammelt 0.502190; ny/nytt 0.494426.
+Rangeringstapet følger altså det nye hodet på begge representasjoner.
+Den nye representasjonen øker samtidig gjennomsnittlig OPP-sannsynlighet:
+gammelt hode 0.520864→0.543080; nytt hode 0.506274→0.528521,
+mens observert OPP-andel er 0.502201.
+Dette er to ulike feil: rangering i hodet og sannsynlighetsforskyvning
+oppstrøms. Det er utfallsattribusjon på lagrede koordinater, ikke bevis for
+én bestemt optimizerårsak eller at representasjonen har mistet informasjon.
 
-TRAIN-tilpasningen ble bedre,men begge senere månedsprognoser ble svakere
-enn det faste M5-hodet. Samlet senereBrier: kausal0.249952,
-fast0.249874,frystprior0.249833. Forskjell kausal-minus-fast+0.00007747,
-95%UTC-ukeblokkintervall[+0.00000904,+0.00016060].
-Dette avviser denne konkrete månedlige oppdateringen på fryst representasjon;
-det er ingen generell dom over flere år eller lengre native læring.
+Ingen krysskombinasjon løser senere retningspresisjon. Samlet senere Brier:
+gammel/gammelt 0.249856; gammel/nytt 0.250111;
+ny/gammelt 0.250290; ny/nytt 0.249874; fryst prior 0.249833.
+Ny/nytt minus gammel/gammelt er +0.00001837, ukeblokkintervall
+[-0.00026375,+0.00029686]; bare 4 av 14 uker forbedres.
+På TRAIN forbedrer ny/nytt fortsatt Brier fra 0.249327 til 0.249076.
+Ingen arm er valgt, importert eller promotert.
 
-Fast M5 F-AUC varierer: oktober0.531483,november0.523795,desember0.494426.
-Tidligere import har desember0.502702. Mer kausalt kjent historikk retter
-ikke desemberfallet; ny desemberAUC0.492399. Korte riktige rangeringer
-overføres altså ikke stabilt gjennom denne senere perioden.
+RESULT: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_READOUT_TRANSFER_20261109_001/RESULT.json
+SHA 0011322e3a920f640dc3702f7f5ce1c6a2bf9b9735674a862520d90271a0c454.
+REVIEW i samme rot, SHA 2913476a9ee97f2614ccdf1159db3de6928ef20914e3906c0ca85ac9efcc3bc2.
+training_enabled=false; ingen aktivjobb eller ny kjøring innrømmet.
+
+Neste direkte spørsmål bruker bare allerede lagrede TRAIN-prognoser:
+Hjelper hodeendringen stabilt gjennom mai–september, eller konsentreres
+forbedringen i ett regime? Avklar dette før ny læringsendring. Ingen ny fit,
+nativekoding, senere periodevalg, tilbakeføring eller horisontjakt er vedtatt.
+Den fullførte 2×2-kontrollen og historikkplanen skal gjenbrukes.
+
+Den kausale M5-historikkplanen er også COMPLETE/konsumert. November- og
+desemberfit brukte henholdsvis 14484/16802 kjente utfall før prognosemåneden.
+Hele kjøringen tok 7.288 s. Begge senere månedsprognoser ble svakere enn
+det faste hodet: samlet Brier 0.249952 mot 0.249874, fryst prior 0.249833.
+Kausal-minus-fast +0.00007747, ukeblokkintervall
+[+0.00000904,+0.00016060]. 26 scoreceller er uavhengig kontrollert.
+Det avviser denne konkrete kumulative hodeoppdateringen, ikke flere år
+eller lengre native læring generelt.
 REVIEW: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CAUSAL_HISTORY_READOUT_20261109_001/REVIEW.json
-SHAe26f87c562c0ee8c2af52b543fd63670eb5dbbff2924ff110d7a589b387d5866.
-training_enabled=false; begge nye planer er konsumert,ingen aktivjobb.
-
-Neste direkte M5-spørsmål kan besvares uten fit: bruk eksisterende gammel/ny
-FINAL-representasjon og allerede låste gamle/nye globale F-koeffisienter
-i en2×2krysskontroll påTRAIN og hver senere måned. Avgrens desemberfallet
-til endret avlesning versus oppstrømsrepresentasjon. Ingen nye koeffisienter,
-nativekall,terskelsøk eller horisontseleksjon. Eksakt avgrenset audit er bundet over; kan kjøres én gang.
+SHA e26f87c562c0ee8c2af52b543fd63670eb5dbbff2924ff110d7a589b387d5866.
 
 Fire faste F-hoder på bevart FINAL-cache fullførte på5.792s,0nativekall.
 Alle fire TRAIN-Brier slår frystprior: M15/H1/H4/D1

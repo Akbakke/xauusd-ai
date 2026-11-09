@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-09T11:55:49.497560+00:00",
-  "status": "TA_M5_FIXED_READOUT_TRANSFER_AUDIT_ADMITTED",
+  "status": "TA_M5_READOUT_RANKING_AND_UPSTREAM_CALIBRATION_DRIFT_LOCALIZED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Execute the exact admitted zero-fit2x2 M5 F transfer audit once; all four fixed arms on matched TRAIN and each later month. No training/native execution/selection.",
+  "next_action": "Use only already-saved TRAIN predictions and fixed old/new coefficient projections to localize whether the head change helps consistently across May-September or concentrates in one regime; distinguish TRAIN temporal inconsistency from later-only drift before any new learning change. No new fit, native encoding, later-period selection, rollback or horizon search admitted. Reuse completed2x2 and monthly-history evidence.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1702,11 +1702,11 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "Two causal cumulative monthly M5 F readout fits; no native model work.",
+    "latest_terminal_role": "Fixed zero-fit M5 F readout/representation2x2 transfer; no training or native calls.",
     "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_SHARED_OBJECTIVE_20261108_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CAUSAL_HISTORY_READOUT_20261109_001/TERMINAL.json",
-      "sha256": "bc29778ab20877df4b0e1c2b5bc8092ce1405f7d429f96890c693194faf94613"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_READOUT_TRANSFER_20261109_001/TERMINAL.json",
+      "sha256": "3b0fa71fe0718066c847c05e6704c8bf5d36f2c36e20ec8381d967580bc1e6bb"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -1726,7 +1726,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Corrected M5 head fitsTRAIN, but later ranking remains unstable. Need distinguish readout retuning from learned upstream representation drift on existing saved arrays.",
+    "current_blocker": "December ranking loss follows new readout on either representation; newer upstream representation also shifts UP probability. Neither cross-combination beats frozen prior in aggregate Brier; no simple rollback qualified.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9197,7 +9197,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute the exact admitted zero-fit2x2 M5 F transfer audit once; all four fixed arms on matched TRAIN and each later month. No training/native execution/selection.",
+    "next_action": "Use only already-saved TRAIN predictions and fixed old/new coefficient projections to localize whether the head change helps consistently across May-September or concentrates in one regime; distinguish TRAIN temporal inconsistency from later-only drift before any new learning change. No new fit, native encoding, later-period selection, rollback or horizon search admitted. Reuse completed2x2 and monthly-history evidence.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17664,7 +17664,7 @@
         "Originals preserved; unusedwindows3/4revoked. No new epoch,HPO,checkpoint/threshold selection,normalization refit,trading,broker,Exit or promotion."
       ]
     },
-    "latest_terminal_evidence_scope": "November14484/December16802 known prefix outcomes strictly before respectivecutoffs;26scorecells exactly recalculated; October forecasts reusedbitexact; laterrefits weaker thanstatic.",
+    "latest_terminal_evidence_scope": "All25scorecells independently recomputed exactly; originalFP64diagonals bitexact, independent projections within6.25e-17, weekly resampling exact.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -18889,7 +18889,7 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "Closed; only fixed saved-output audit admitted, no fit.",
+    "current_training_scope": "Closed; finite transfer audit consumed, no fit or new execution admitted.",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -19014,8 +19014,8 @@
     },
     "feature_potential_exhausted": false,
     "latest_terminal_receipt": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CAUSAL_HISTORY_READOUT_20261109_001/TERMINAL.json",
-      "sha256": "bc29778ab20877df4b0e1c2b5bc8092ce1405f7d429f96890c693194faf94613"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_READOUT_TRANSFER_20261109_001/TERMINAL.json",
+      "sha256": "3b0fa71fe0718066c847c05e6704c8bf5d36f2c36e20ec8381d967580bc1e6bb"
     },
     "latest_broad_direction_review": {
       "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/SYNTHESIS.json",
@@ -19035,7 +19035,7 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_READOUT_COMPARISON_20261108_001/TERMINAL.json",
       "sha256": "ffd6757329a659536c020b5068f429e25a80fc444c641d7424d7017dc5c423f1"
     },
-    "terminal_exit_code_origin": "Private readout comparison TERMINAL exit0; native recovery remains separately recorded.",
+    "terminal_exit_code_origin": "Zero-fit transfer TERMINAL exit0; native controller failure remains recorded separately.",
     "latest_throughput_measurement_design": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_THROUGHPUT_MEASUREMENT_DESIGN_001.json",
       "sha256": "572bcbe54cb67e7d477c40272c3bde3ff179d9b349499643849d09493c1f4684"
@@ -24660,7 +24660,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-09T12:03:18.828409+00:00",
+  "updated_utc": "2026-11-09T12:05:58.537167+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -68944,7 +68944,7 @@
     "full_native_training_speedup_demonstrated": false
   },
   "market_state_ta_m5_readout_transfer_20261109_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_READOUT_TRANSFER_20261109_001/PLAN.json",
       "sha256": "d951d5575c93975cd66cd12d317c0ad67aadf29d4526e9a2169046d130c2792c"
@@ -68954,12 +68954,12 @@
       "sha256": "9d66138546cc25612cea17e7c32c48b2a427b5b071fd4460f4911ae90236c282"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "training_authorized": false,
     "readout_fits": 0,
     "native_forwards": 0,
@@ -68970,6 +68970,70 @@
     "selection": false,
     "test_data_used": false,
     "scope": "Does the saved M5 F later ranking loss arise from changed readout or upstream representation? Fixed 2x2 matrix, TRAIN and each later month, no fitting or selection.",
-    "standing_authorization": "Active direction-only goal: finite zero-fit comparison reusing completed caches and locked heads; local zero-cost audit."
+    "standing_authorization": "Active direction-only goal: finite zero-fit comparison reusing completed caches and locked heads; local zero-cost audit.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_READOUT_TRANSFER_20261109_001/RESULT.json",
+      "sha256": "0011322e3a920f640dc3702f7f5ce1c6a2bf9b9735674a862520d90271a0c454"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_READOUT_TRANSFER_20261109_001/TERMINAL.json",
+      "sha256": "3b0fa71fe0718066c847c05e6704c8bf5d36f2c36e20ec8381d967580bc1e6bb"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_READOUT_TRANSFER_20261109_001/REVIEW.json",
+      "sha256": "2913476a9ee97f2614ccdf1159db3de6928ef20914e3906c0ca85ac9efcc3bc2"
+    },
+    "timing": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_READOUT_TRANSFER_20261109_001/WALL_TIMING.json",
+      "sha256": "94f433c16dbf986aba127ad5a37612a82c47690e9a598f23066e3763407eaa1c"
+    },
+    "actual_readout_fits": 0,
+    "elapsed_seconds": 5.074159762000363,
+    "wrapper_wall_seconds": 7.05765206299975,
+    "original_fp64_diagonals_bitexact": true,
+    "reviewed_score_cells": 25,
+    "december_auc": {
+      "frozen_prior": 0.5,
+      "newX_newB": 0.4944256786863091,
+      "newX_oldB": 0.5021895106515373,
+      "oldX_newB": 0.4938026503501435,
+      "oldX_oldB": 0.5027017267338825
+    },
+    "december_brier": {
+      "frozen_prior": 0.2500747851590206,
+      "newX_newB": 0.25102254898432064,
+      "newX_oldB": 0.25206374684450417,
+      "oldX_newB": 0.25030982460783474,
+      "oldX_oldB": 0.2506069207059439
+    },
+    "later_all_brier": {
+      "frozen_prior": 0.249833416409301,
+      "newX_newB": 0.24987416459157985,
+      "newX_oldB": 0.2502898191516112,
+      "oldX_newB": 0.25011050809704255,
+      "oldX_oldB": 0.24985579123410726
+    },
+    "december_output_attribution": {
+      "auc": {
+        "head_order_averaged": -0.008331454174483582,
+        "interaction": 0.0011352444185108723,
+        "representation_order_averaged": 5.5406126910212405e-05,
+        "total_new_minus_old": -0.00827604804757337
+      },
+      "brier": {
+        "head_order_averaged": -0.0006691469791463567,
+        "interaction": -0.0007441017620743451,
+        "representation_order_averaged": 0.0010847752575230685,
+        "total_new_minus_old": 0.0004156282783767118
+      },
+      "log": {
+        "head_order_averaged": -0.0013477314993015077,
+        "interaction": -0.0015038572145876783,
+        "representation_order_averaged": 0.0021829580614002864,
+        "total_new_minus_old": 0.0008352265620987787
+      }
+    },
+    "full_native_training_speedup_demonstrated": false,
+    "conclusion": "December ranking deterioration follows the newer locked readout on both coordinate sets; new representation raises UP probabilities on both heads. Neither cross-arm beats the frozen prior in aggregate Brier. Diagnostic output attribution only; no native change or candidate selection qualified."
   }
 }
