@@ -15,7 +15,7 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_EQUAL_LOSS_FULLFIT_SOURCE_QUALIFIED_ADMISSION_PENDING.
+Policystatus: TA_M5_EQUAL_LOSS_FULLFIT_ADMITTED_ONCE.
 
 Fullfit001 ble stoppet i siste metadatagate: integrator satte feil
 training_module i policy. Eksisterende authority.MODULE er
@@ -24,8 +24,8 @@ invocation, modell eller update startet; kun forberedte planfiler finnes.
 Original001 og PREPARATION_FAILURE.json bevares, ingen relansering.
 Minste rettelse er korrekt policy-entrypoint og ny eksakt stage/root002.
 59beståtte tester og native4stegs-/lossbevis gjenbrukes; modell, numerikk,
-runner og kvalifisert helper er uendret. Ny002metadata/admisjon gjenstår,
-training_enabled=false. Én full29574INITIAL,1849updates,fullFINAL og17753senereTRAIN
+runner og kvalifisert helper er uendret. Ny002metadata og transport er kontrollert; én ny fullfit er innrømmet.
+training_enabled=true kun for002; materialisering og fersk boot gjenstår. Én full29574INITIAL,1849updates,fullFINAL og17753senereTRAIN
 med250W beholdes; fullbaseline for imported ae772fd7 er fortsatt ubevist.
 
 Den nye [native equal-loss-kvalifikasjonen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_MECHANICAL_20261109_001/REVIEW.json)
