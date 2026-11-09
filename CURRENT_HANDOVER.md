@@ -15,7 +15,18 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_FULLPASS_TRAJECTORY_COMPLETE_NO_CORRECTION_QUALIFIED.
+Policystatus: TA_M5_CACHED_HEAD_REP_ATTRIBUTION_ADMITTED.
+
+Ny kontroll er innrømmet én gang:50 NumPy-affine kombinasjoner fra ni lagrede
+192TRAIN-representasjoner og fire M5-hodetensorer per checkpoint.18 diagonaler
+må gjenskape opprinnelige råprognoser før32 krysskombinasjoner.0modeller,
+0backboneforwards/fit/backward/optimizer; audit4G/512M,én tråd,maks120s.
+Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_TRAJECTORY_HEAD_REP_ATTRIBUTION_20261109_001
+PLAN SHA0478dbd44be326d6a0a43e1ef57689851f9840ddda92405383d397b280e03f50.
+Source-PASS bekrefter direkte head-input, korrekt bias/interaksjon/Shapley.
+Tidligere fullTRAIN HEAD_DRIFT endepunktfunn gjenbrukes; ingen gamle fits
+eller fullcache gjentas. Kjøringen er ennå ikke startet ved innrømmelse.
+Bare cachedkontrollen er tillatt; alle treningsporter er stengt.
 
 Ni bevarte fullpass-tilstander er nå kontrollert på de samme192 TRAIN-radene:
 0:64,14272:14336,29504:29568. INITIAL ble gjenbrukt; åtte andre målt én gang.
@@ -51,7 +62,7 @@ Ingen senereTRAIN eller TEST. Alle launch-/treningsporter er stengt.
 Neste direkte steg: isoler det sentrerte M5F-feilleddet fra allerede lagrede
 representasjoner/prognoser og bundne headvekter før ny fit eller modellendring.
 Ikke gjenta ni-checkpoint-kjøringen eller beståtte featurekontroller.
-Ingen ny kjøring er innrømmet.
+Kun den nye cachedkontrollen ovenfor er innrømmet; ingen ny modellkjøring.
 
 Brukerens all-feature-kontroll er fullført i
 [docs/TA_FORWARD_SEMANTICS_REVIEW.json](docs/TA_FORWARD_SEMANTICS_REVIEW.json):

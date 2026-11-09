@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T21:25:39.221787+00:00",
-  "status": "TA_M5_FULLPASS_TRAJECTORY_COMPLETE_NO_CORRECTION_QUALIFIED",
+  "observed_utc": "2026-11-09T21:38:05.574715+00:00",
+  "status": "TA_M5_CACHED_HEAD_REP_ATTRIBUTION_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Use only saved trajectory predictions/representations and bound head weights to isolate the centered M5F error increase, before any new fit or permanent model change. First saved256update state already worsensF; P024576 has almost matching mean yet much worseBrier. Do not select a checkpoint, repeat nine forwards, or infer cause from last16labelmix. No new model run admitted.",
+  "next_action": "Run exactly one admitted cached affine attribution, independently replay its saved arithmetic, then close execution. No model training or fullforward, later data, checkpoint selection or permanent code change.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -66323,7 +66323,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "Nine original full-pass states independently scored on fixed192TRAIN: all8noninitial F states worse thanINITIAL andprior; near-correct mean atP024576 still worse centered error. Last16mix correlations S.062/F.348 over8points not causal. No correction or later improvement qualified.",
+    "latest_progress": "Directheadprehook route confirmed; prior fullTRAIN head-only negative result reused. New50cachedaffine combinations admitted to separate head/upstream contributions across original9states; no fit.",
     "user_clarification_20261109": {
       "scope": "Correct direction for short sniper and longer long/shorttrends; separate forecasts and targets at M5 cadence.",
       "existing_future_horizons_minutes": [
@@ -71241,5 +71241,67 @@
       "later_generalization_measured": false
     },
     "aggregate_report": "docs/TA_M5_FULLPASS_TRAJECTORY_REVIEW.json"
+  },
+  "market_state_ta_m5_trajectory_head_rep_attribution_20261109_001": {
+    "status": "ADMITTED",
+    "execution_authorized": true,
+    "training_authorized": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_TRAJECTORY_HEAD_REP_ATTRIBUTION_20261109_001/PLAN.json",
+      "sha256": "0478dbd44be326d6a0a43e1ef57689851f9840ddda92405383d397b280e03f50"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_TRAJECTORY_HEAD_REP_ATTRIBUTION_20261109_001/probe.py",
+      "sha256": "11180ebb1a5a3d91c5b4c340e270f431cecb1ab0a21f5f8cd0484c7021fa934f"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_TRAJECTORY_HEAD_REP_ATTRIBUTION_20261109_001/PREFLIGHT.log",
+      "sha256": "bed31602994bb47de047f45ab136523441c449f970db6188d8cde850085e7078"
+    },
+    "controller_source": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_TRAJECTORY_HEAD_REP_ATTRIBUTION_20261109_001/controller.py",
+      "sha256": "77f009aabd6d7a84665d6685453e49cf9a9d46eb580d77efee41efe439ab75aa"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "max_checkpoint_decodes": 9,
+    "linear_combinations": 50,
+    "max_backbone_forwards": 0,
+    "max_updates": 0,
+    "max_model_constructions": 0,
+    "max_backwards": 0,
+    "max_optimizer_constructions": 0,
+    "wall_seconds": 120,
+    "memory_max": "4G",
+    "swap_max": "512M",
+    "numerical_threads": 1,
+    "test_data_used": false,
+    "later_arrays_allowed": false,
+    "native_self_parity": {
+      "raw_atol": 2e-06,
+      "raw_rtol": 1e-06,
+      "probability_atol": 1e-06,
+      "block_score_atol": 1e-06,
+      "block_metrics": [
+        "brier",
+        "log",
+        "mean_up_probability"
+      ]
+    },
+    "source_review": {
+      "status": "PASS",
+      "agent": "/root/ta_formula_audit",
+      "direct_head_input_route_review": "/root/loss_training_route",
+      "worker": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_TRAJECTORY_HEAD_REP_ATTRIBUTION_20261109_001/probe.py",
+        "sha256": "11180ebb1a5a3d91c5b4c340e270f431cecb1ab0a21f5f8cd0484c7021fa934f"
+      }
+    },
+    "scope": "Same192TRAIN9states; heads from sealed checkpoints and exact cached Linear inputs. 18 native diagonals must pass before32 crossed affine calculations; explicit Brier/log Shapley, centered decomposition and descriptive AUC. No checkpoint selected or model transplanted.",
+    "reuse": "Existing fullTRAIN HEAD_DRIFT endpoint aggregates retained without rerun; new7intermediate states and opposite representation-only leg require new cached arithmetic. No oldfullcache or rawtargets.",
+    "interpretation": "Counterfactual attribution can locate error in head versus complete upstream representation; it does not isolate the optimizer/training cause or prove improvement."
   }
 }
