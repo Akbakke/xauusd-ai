@@ -15,12 +15,30 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_EQUAL_OBSERVATION_SAVED_LOSS_AUDIT_ADMITTED.
+Policystatus: TA_M5_EQUAL_LOSS_NATIVE_SOURCE_QUALIFIED_PENDING_PREPARATION.
 
-Én ny CPU-kontroll er nå innrømmet av PLAN.json i samme loss-rot:
-alle1849lagrede FIT-batcher,3698rålogit-autogradkall,0modell/optimizersteg.
-S/F-normalisering, full uavhengig taps-/gradientformel og uendrede øvrige
-koordinater kontrolleres.4GiB/512MiB/én tråd/900s. Ingen senere arrays.
+Ny avgrenset native-rute er implementert: strict gammel restore av importert
+checkpoint616a22… og ny capture av samme modell/optimizer/RNG/order med
+equal-observation-loss. Ingen ny vektkopiering; gammel restore/capture-kode
+er byteidentisk bevart. Privat2mot1+resume1 bruker3modeller/3optimizere,
+6forwards/4backwards/4steg, separat ny recipe/runtime/cursor og250W.
+110fokuserte tester består. Første forsøk hadde24oppsettsfeil i én historisk
+testfixture som blandet gammel oppskrift og dagens kilde; fixture er rettet
+til sin erklærte historiske kilde og kun disse24kjørt om. Produksjonsvakten
+er uendret. Faktisk metadata/view/importbinding med85kildefiler består.
+[Kildekontroll](/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_MECHANICAL_20261109_001/SOURCE_VALIDATION.json).
+Ingen nativeprøve eller ny fit er kjørt. Neste steg er eksakt klargjøring
+og engangsadmission med eksisterende vakter/fersk boot før nativekvalifikasjon.
+
+Den innrømmede [lagrede-logit-kontrollen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_OBSERVATION_LOSS_20261109_001/REVIEW.json)
+er COMPLETE og konsumert:1849FIT-batcher,3698rålogit-autogradkall,213,206s.
+Alle aktivitetsgradienter og øvrige TF-gradienter/tap er bitlike. Uavhengig
+FP64-formel bekrefter alle gradienter (maks2,19e-8) og batchtap (maks3,62e-7).
+Sidekjente S10010/F11909 får hver q/(5N); total M5-masse beholdes.
+50/5 tomme sidebatcher og siste6rader følger samme regel. Masker/counts/skips
+og gamle standardkontrakter er uendret.0modell/optimizersteg; ingen senere
+arrays eller representasjoner åpnet. NPZ-filene er i sin helhet hashkontrollert.
+Kilde269d9004 var uendret. Ingen ny retningsforbedring følger av en tapskontroll.
 
 M5-sidevektingen er nå implementert som eksplisitt opt-in med fast fold1
 TRAIN-binding. Hver kjent M5-observasjon får q/N før eksisterende TF-divisor;
@@ -30,12 +48,11 @@ standardkontrakter beholdes. Siste batch på seks rader behandles likt.
 forward, gamle/nye state-rundturer og avvist kryss-restore. Syntaks består.
 [Kildekontroll](/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_OBSERVATION_LOSS_20261109_001/SOURCE_VALIDATION.json).
 
-Dette er ennå ikke prøvd gjennom alle lagrede FIT-logiter eller native fit.
-Neste nødvendige kontroll er én avgrenset CPU-kontroll på lagrede FIT-logiter,
-uten modell/optimizer eller senere data. Ny varmstart må eksplisitt binde
-det verifiserte importerte checkpointet til den nye tapskontrakten; eksisterende
-streng gammel restore må ikke omgås. Ingen fit er innrømmet; kun den avgrensede lagrede-logit-kontrollen ovenfor. AdamW er uendret; Newton med koblet L2 fra readout-forsøket er
-ikke gjenskapt av denne vektingsrettelsen.
+Native fit med rettelsen er ikke kjørt. Neste nødvendige kobling er streng
+nativekontroll av den nå implementerte bindingen fra verifisert importcheckpoint.
+Den nye grenen unngår den gamle legacy-varmstarten som ville klonet gamle hoder.
+Ingen fit er innrømmet. AdamW er uendret; Newton med koblet L2 fra
+readout-forsøket er ikke gjenskapt av denne vektingsrettelsen.
 
 
 Den nye [nullstegsimporten](/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_WEIGHT_IMPORT_20261109_001/REVIEW.json)
@@ -83,8 +100,8 @@ Original Windows-kilde er bevart i den installerte speilingen; rettet observer
 er testet separat. En framtidig eksakt plan må binde og installere riktige bytes.
 
 **Direkte neste steg:** Korrigert M5-vektingsloss er implementert og syntetisk
-kontrollert som beskrevet øverst. Verifiser på lagrede FIT-logiter før eventuell
-native varmstart/fit. Ingen ny fit er innrømmet.
+kontrollert som beskrevet øverst. Full lagret-FIT-kontroll består; bind nå det importerte checkpointet
+korrekt før eventuell native kvalifikasjon/fit. Ingen ny fit er innrømmet.
 Det verifiserte importerte checkpointet og alle ferdige bevis skal gjenbrukes.
 GC/TEST/Entry/Exit/handel forblir stengt; F-priorgrensen gjenstår.
 

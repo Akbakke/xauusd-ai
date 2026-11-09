@@ -657,9 +657,13 @@ def build_cursor(*, recipe_ref: Mapping[str, str], outcome: str,
                  optimizer_updates: int, parent_cursor: int,
                  parent_order_sha256: str, full_state: Mapping[str, str] | None,
                  result: Mapping[str, str], ta_sf: bool = False,
-                 dedicated_m5_side: bool = False) -> dict:
+                 dedicated_m5_side: bool = False,
+                 m5_equal_observation: bool = False) -> dict:
     _need(type(dedicated_m5_side) is bool and (not dedicated_m5_side or ta_sf is True), 'TA_M5_CURSOR_MODE')
-    schema = TA_M5_CURSOR_SCHEMA if dedicated_m5_side else TA_CURSOR_SCHEMA if ta_sf else CURSOR_SCHEMA
+    _need(type(m5_equal_observation) is bool and (not m5_equal_observation or (
+        ta_sf is True and dedicated_m5_side is True)), 'TA_M5_EQUAL_LOSS_CURSOR_MODE')
+    schema = (TA_M5_EQUAL_LOSS_CURSOR_SCHEMA if m5_equal_observation
+              else TA_M5_CURSOR_SCHEMA if dedicated_m5_side else TA_CURSOR_SCHEMA if ta_sf else CURSOR_SCHEMA)
     value = {'schema_version': schema, 'recipe': dict(recipe_ref),
              'outcome': outcome, 'optimizer_updates': optimizer_updates,
              'parent_cursor': parent_cursor,
@@ -676,9 +680,14 @@ def require_cursor(value: Any, *, expected_recipe: Mapping[str, str],
     fields = {'schema_version', 'recipe', 'outcome', 'optimizer_updates',
               'parent_cursor', 'parent_order_sha256', 'full_state',
               'result', 'test_data_used'}
-    dedicated = isinstance(value, Mapping) and value.get('schema_version') == TA_M5_CURSOR_SCHEMA
-    ta_sf = isinstance(value, Mapping) and value.get('schema_version') in (TA_CURSOR_SCHEMA, TA_M5_CURSOR_SCHEMA)
-    schema = TA_M5_CURSOR_SCHEMA if dedicated else TA_CURSOR_SCHEMA if ta_sf else CURSOR_SCHEMA
+    equal_loss = isinstance(value, Mapping) and value.get('schema_version') == TA_M5_EQUAL_LOSS_CURSOR_SCHEMA
+    if equal_loss or expected_recipe.get('path') == str(TA_M5_EQUAL_LOSS_RECIPE_PATH):
+        _need(equal_loss and expected_recipe.get('path') == str(TA_M5_EQUAL_LOSS_RECIPE_PATH),
+              'TA_M5_EQUAL_LOSS_CURSOR_RECIPE_PATH')
+    dedicated = isinstance(value, Mapping) and value.get('schema_version') in (TA_M5_CURSOR_SCHEMA, TA_M5_EQUAL_LOSS_CURSOR_SCHEMA)
+    ta_sf = isinstance(value, Mapping) and value.get('schema_version') in (TA_CURSOR_SCHEMA, TA_M5_CURSOR_SCHEMA, TA_M5_EQUAL_LOSS_CURSOR_SCHEMA)
+    schema = (TA_M5_EQUAL_LOSS_CURSOR_SCHEMA if equal_loss else TA_M5_CURSOR_SCHEMA
+              if dedicated else TA_CURSOR_SCHEMA if ta_sf else CURSOR_SCHEMA)
     result = _identity(value, fields, schema, 'cursor_sha256')
     _need(batch_size == BATCH_SIZE and result['recipe'] == expected_recipe
           and result['outcome'] in {'COMPLETE', 'FAILED'}
@@ -701,7 +710,7 @@ def require_cursor(value: Any, *, expected_recipe: Mapping[str, str],
     if verify_files:
         report = campaign.read_bound_json(Path(result['result']['path']),
                                           result['result']['sha256'])
-        _need(report.get('schema_version') == (TA_M5_RESULT_SCHEMA if dedicated else TA_RESULT_SCHEMA if ta_sf else RESULT_SCHEMA)
+        _need(report.get('schema_version') == (TA_M5_EQUAL_LOSS_RESULT_SCHEMA if equal_loss else TA_M5_RESULT_SCHEMA if dedicated else TA_RESULT_SCHEMA if ta_sf else RESULT_SCHEMA)
               and report.get('recipe') == expected_recipe
               and report.get('parent_order_sha256') == result['parent_order_sha256']
               and report.get('parent_cursor') == result['parent_cursor']
@@ -709,7 +718,7 @@ def require_cursor(value: Any, *, expected_recipe: Mapping[str, str],
               and report.get('final_state') == result['full_state']
               and report.get('test_data_used') is False
               and (result['outcome'] != 'COMPLETE' or
-                   report.get('decision') == ('PASS_TA_M5_MECHANICAL' if dedicated else 'PASS_TA_SF_MECHANICAL' if ta_sf else 'PASS_NATIVE_F_PRIVATE_RESUME')
+                   report.get('decision') == ('PASS_TA_M5_EQUAL_LOSS_MECHANICAL' if equal_loss else 'PASS_TA_M5_MECHANICAL' if dedicated else 'PASS_TA_SF_MECHANICAL' if ta_sf else 'PASS_NATIVE_F_PRIVATE_RESUME')
                    and report.get('bit_exact_resume') is True),
               'CURSOR_RESULT')
     return result
@@ -879,3 +888,238 @@ def require_ta_m5_import_cursor(value, *, expected_recipe, verify_files=True, ba
                    report['decision'] == 'PASS_TA_M5_EQUAL_WEIGHT_IMPORT'
                    and report['bit_exact_resume'] is True), 'M5_IMPORT_CURSOR_RESULT')
     return value
+
+
+# New-loss resume qualification starts from the independently verified imported
+# predictor; it never reclones the old shared head or replays the import plan.
+TA_M5_EQUAL_LOSS_STAGE = 'market_state_ta_m5_equal_loss_mechanical_20261109_001'
+TA_M5_EQUAL_LOSS_SCOPE = 'market_state_ta_m5_equal_loss_mechanical_v1'
+TA_M5_EQUAL_LOSS_ROOT = Path('/home/andre2/GX1_RUNS') / TA_M5_EQUAL_LOSS_STAGE.upper()
+TA_M5_EQUAL_LOSS_RUNTIME_ROOT = TA_M5_EQUAL_LOSS_ROOT / 'RUNTIME'
+TA_M5_EQUAL_LOSS_RECIPE_PATH = TA_M5_EQUAL_LOSS_ROOT / 'RECIPE.json'
+TA_M5_EQUAL_LOSS_RECIPE_SCHEMA = 'gx1_market_state_ta_m5_equal_loss_mechanical_recipe_v1'
+TA_M5_EQUAL_LOSS_CURSOR_SCHEMA = 'gx1_market_state_ta_m5_equal_loss_mechanical_cursor_v1'
+TA_M5_EQUAL_LOSS_RESULT_SCHEMA = 'gx1_market_state_ta_m5_equal_loss_mechanical_result_v1'
+TA_M5_EQUAL_LOSS_IMPORT_COMMIT = '338f8b3f16d3621dd5cd8d4d31942ae8424d9c78'
+TA_M5_EQUAL_LOSS_AUDIT_COMMIT = '269d9004005fe488be822f1c5ae51c7464d15182'
+TA_M5_EQUAL_LOSS_MODEL_SHA256 = 'ae772fd755cbfa07b1b7bcca8bccd2c8a8889806989a289ddb8267972c281b37'
+TA_M5_EQUAL_LOSS_RNG_SHA256 = 'eff47232fb6c3273f3ce779d5089a9c1ea1ad6e3c43506a2e9e8b55f91be57bf'
+TA_M5_EQUAL_LOSS_ORDER_SHA256 = 'db8e77282a7318873530888a2a636a728b1db109405da3f59c16b74aa9f4c3fb'
+_TA_M5_EQUAL_LOSS_AUDIT_ROOT = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_OBSERVATION_LOSS_20261109_001')
+TA_M5_EQUAL_LOSS_FIXED_REFS = {
+    'import_recipe': {'path': str(TA_M5_IMPORT_RECIPE_PATH), 'sha256': '5d07910b5fe4ef5fcc16f68c4656f3a06f4001a02a768f104c3f04302e885aa1'},
+    'import_result': {'path': str(TA_M5_IMPORT_ROOT / 'RESULT.json'), 'sha256': '46e94426529cb37384109cc9af32bfeaadbfd8eb07c3f6b0d0fa5a7a28a786de'},
+    'import_terminal': {'path': str(TA_M5_IMPORT_ROOT / 'TERMINAL.json'), 'sha256': '5b1d89fdf6bf7d46968d64d2064aa29b09aa2c1005f9aecf95621c5616682efc'},
+    'import_verification': {'path': str(TA_M5_IMPORT_ROOT / 'ARTIFACT_VERIFICATION.json'), 'sha256': 'acd0c3be92a6dc7d0ee32e42b3b3dfa7ee2c3406d62736080524c73f870ef44c'},
+    'import_review': {'path': str(TA_M5_IMPORT_ROOT / 'REVIEW.json'), 'sha256': 'b683ad03d535d1c5ddb1d4ecfa5c2a692c231d86c60892de24025772ca67342b'},
+    'imported_checkpoint': {'path': str(TA_M5_IMPORT_RUNTIME_ROOT / 'private-research/IMPORTED_M5_STATE.pt'), 'sha256': '616a22e467ebf35bded61705e00f99531d28420db90c30b8d755d447c612679f'},
+    'saved_loss_review': {'path': str(_TA_M5_EQUAL_LOSS_AUDIT_ROOT / 'REVIEW.json'), 'sha256': '651e4aa6b44da41a0570a0b06fe32ef83d93dfd2b305dcd8a631a46e66c7caca'},
+}
+TA_M5_EQUAL_LOSS_ORCHESTRATION_PATHS = frozenset({
+    'gx1/contracts/market_state_native_F_private_campaign_v1.py',
+    'gx1/contracts/entry_native_direction_research_campaign_v1.py',
+    'gx1/scripts/materialize_market_state_time_query_fold1_fit_campaign_v1.py',
+    'gx1/scripts/run_entry_native_direction_research_window_v1.py',
+    'gx1/scripts/run_market_state_native_F_private_window_v1.py',
+})
+TA_M5_EQUAL_LOSS_AUDITED_PATHS = frozenset({
+    'gx1/contracts/market_state_time_query_fold1_fit_state_v1.py',
+    'gx1/contracts/market_state_time_query_fold1_fit_v1.py',
+    'gx1/contracts/market_state_time_query_native_F_batch_v1.py',
+    'gx1/contracts/market_state_time_query_native_F_objective_v1.py',
+    'gx1/contracts/market_state_time_query_side_normalized_loss_v1.py',
+    'gx1/scripts/run_market_state_time_query_fold1_fit_window_v1.py',
+})
+
+
+def _ta_m5_equal_loss_import_origin(refs, imported, checked, review, terminal):
+    head = imported.get('head_import', {})
+    checkpoint = refs['imported_checkpoint']
+    _need(imported.get('schema_version') == TA_M5_IMPORT_RESULT_SCHEMA
+          and imported.get('decision') == 'PASS_TA_M5_EQUAL_WEIGHT_IMPORT'
+          and imported.get('recipe') == refs['import_recipe']
+          and imported.get('final_state') == checkpoint
+          and imported.get('source_commit') == TA_M5_EQUAL_LOSS_IMPORT_COMMIT
+          and imported.get('source_unchanged') is True
+          and imported.get('error') is None and imported.get('test_data_used') is False
+          and imported.get('bit_exact_resume') is True
+          and type(imported.get('physical_optimizer_updates')) is int
+          and imported['physical_optimizer_updates'] == 0
+          and type(imported.get('parent_cursor')) is int and imported['parent_cursor'] == 0
+          and imported.get('parent_order_sha256') == TA_M5_EQUAL_LOSS_ORDER_SHA256
+          and head.get('model_state_sha256') == TA_M5_EQUAL_LOSS_MODEL_SHA256
+          and head.get('rng_state_sha256') == TA_M5_EQUAL_LOSS_RNG_SHA256,
+          'M5_EQUAL_LOSS_IMPORTED_ORIGIN')
+    _need(checked.get('status') == 'PASS_INDEPENDENT_MODEL_ARTIFACTS_CAMPAIGN_CONTROLLER_FAILED'
+          and checked.get('result') == refs['import_result']
+          and checked.get('checkpoint') == checkpoint
+          and checked.get('imported_model_state_sha256') == TA_M5_EQUAL_LOSS_MODEL_SHA256
+          and checked.get('unchanged_buffers_optimizer_rng_modes_parent_order') is True
+          and checked.get('coefficient_tensors_bit_equal') is True
+          and checked.get('original_campaign_receipt_present') is False
+          and checked.get('test_data_used') is False
+          and review.get('status') == 'MODEL_IMPORT_VERIFIED_CAMPAIGN_CONTROLLER_FAILED_CONSUMED'
+          and review.get('result') == refs['import_result']
+          and review.get('artifact_verification') == refs['import_verification']
+          and review.get('native_terminal') == refs['import_terminal']
+          and review.get('imported_checkpoint') == checkpoint
+          and review.get('imported_model_state_sha256') == TA_M5_EQUAL_LOSS_MODEL_SHA256
+          and review.get('checkpoint_resume_bit_exact') is True
+          and review.get('test_data_used') is False
+          and terminal.get('status') == 'COMPLETE' and terminal.get('exit_code') == 0
+          and terminal.get('result') == refs['import_result']
+          and terminal.get('recipe') == refs['import_recipe']
+          and terminal.get('no_relaunch_under_this_plan') is True
+          and terminal.get('test_data_used') is False,
+          'M5_EQUAL_LOSS_IMPORTED_PROOF')
+    return {'imported_checkpoint': dict(checkpoint),
+            'source_commit': TA_M5_EQUAL_LOSS_IMPORT_COMMIT,
+            'model_state_sha256': TA_M5_EQUAL_LOSS_MODEL_SHA256,
+            'rng_state_sha256': TA_M5_EQUAL_LOSS_RNG_SHA256,
+            'parent_order_sha256': TA_M5_EQUAL_LOSS_ORDER_SHA256}
+
+
+def _ta_m5_equal_loss_metadata():
+    from gx1.contracts import market_state_time_query_fold1_fit_v1 as full
+    base_refs = ta_m5_input_refs()
+    view, _, _, _ = _require_ta_m5_input_proof(base_refs)
+    refs = {name: dict(ref) for name, ref in base_refs.items()}
+    refs.update({name: dict(ref) for name, ref in TA_M5_EQUAL_LOSS_FIXED_REFS.items()})
+    original = _read(refs['import_recipe'], 'M5 equal-loss original import recipe')
+    imported = _read(refs['import_result'], 'M5 equal-loss imported result')
+    origin = _ta_m5_equal_loss_import_origin(refs, imported,
+        _read(refs['import_verification'], 'M5 equal-loss imported verification'),
+        _read(refs['import_review'], 'M5 equal-loss imported review'),
+        _read(refs['import_terminal'], 'M5 equal-loss imported native terminal'))
+    numerical = full.ta_sf_numerical_recipe(dedicated_m5_side=True, m5_equal_observation=True)
+    _need(original.get('numerical_recipe') == full.ta_sf_numerical_recipe(dedicated_m5_side=True)
+          and original.get('expected_view_sha256') == view['contract_sha256']
+          and original.get('expected_model_contract_sha256') == numerical['research_objective_sha256']
+          and all(original['input_refs'][name] == ref for name, ref in base_refs.items()),
+          'M5_EQUAL_LOSS_UNCHANGED_INPUTS_AND_MODEL')
+    review = _read(refs['saved_loss_review'], 'M5 equal-loss saved-logit review')
+    refs.update({name: dict(review[key]) for name, key in (
+        ('saved_loss_result', 'result'), ('saved_loss_terminal', 'terminal'),
+        ('saved_loss_plan', 'plan'))})
+    result = _read(refs['saved_loss_result'], 'M5 equal-loss full saved-logit result')
+    terminal = _read(refs['saved_loss_terminal'], 'M5 equal-loss saved-logit terminal')
+    plan = _read(refs['saved_loss_plan'], 'M5 equal-loss saved-logit plan')
+    refs['saved_loss_source_validation'] = dict(plan['inputs']['source_validation'])
+    validation = _read(refs['saved_loss_source_validation'], 'M5 equal-loss audited source')
+    _need(review.get('status') == 'PASS' and review.get('actual_exit_code') == 0
+          and review.get('native_training_authorized') is False
+          and terminal.get('status') == 'COMPLETE' and terminal.get('exit_code') == 0
+          and terminal.get('result') == refs['saved_loss_result']
+          and result.get('status') == 'COMPLETE'
+          and result.get('plan') == refs['saved_loss_plan']
+          and result.get('execution_head') == TA_M5_EQUAL_LOSS_AUDIT_COMMIT
+          and result.get('batches') == 1849 and result.get('raw_logit_autograd_calls') == 3698
+          and all(result.get(key) is True for key in (
+              'activity_gradients_bitexact', 'other_TF_gradients_and_losses_bitexact',
+              'masks_counts_skips_unchanged', 'unknown_M5_side_gradients_zero',
+              'default_contracts_unchanged', 'source_unchanged'))
+          and all(result.get(key) == 0 for key in (
+              'native_model_constructions', 'model_forwards', 'model_backwards', 'optimizer_steps'))
+          and result.get('test_data_used') is False
+          and plan.get('weighting_profile') == numerical['m5_side_weighting_profile'],
+          'M5_EQUAL_LOSS_SAVED_AUDIT')
+    for task in ('state', 'future'):
+        counts = numerical['m5_side_weighting_profile'][task]
+        summary = result['summaries'][task]
+        _need(summary['known_rows'] == counts['known_side_rows']
+              and summary['nonempty_batches'] == counts['nonempty_batches']
+              and summary['tail_rows'] == 6, 'M5_EQUAL_LOSS_AUDITED_COUNTS')
+    return refs, view, origin, original, validation, numerical
+
+
+def _ta_m5_equal_loss_expected():
+    refs, view, origin, original, validation, numerical = _ta_m5_equal_loss_metadata()
+    value = {
+        'schema_version': TA_M5_EQUAL_LOSS_RECIPE_SCHEMA,
+        'source_repo': str(CANONICAL_REPO), 'runtime_root': str(TA_M5_EQUAL_LOSS_RUNTIME_ROOT),
+        'admission_stage': TA_M5_EQUAL_LOSS_STAGE, 'run_scope': TA_M5_EQUAL_LOSS_SCOPE,
+        'fold_id': 1, 'parent_selection': TA_PARENT_SELECTION,
+        'parent_order_rows': 29574, 'selected_fit_rows': 32, 'pass_index': 0,
+        'numerical_recipe': numerical, 'input_manifest': refs['mature_plan'], 'input_refs': refs,
+        'expected_view_sha256': view['contract_sha256'],
+        'expected_model_contract_sha256': numerical['research_objective_sha256'],
+        'expected_loss_contract_sha256': numerical['native_F_loss_contract_sha256'],
+        'expected_initial_model_state_sha256': TA_M5_EQUAL_LOSS_MODEL_SHA256,
+        'imported_origin': origin,
+        'execution_binding_path': str(TA_M5_EQUAL_LOSS_RUNTIME_ROOT / 'EXECUTION_BINDING.json'),
+        'source_base_commit': TA_M5_EQUAL_LOSS_AUDIT_COMMIT,
+        'max_private_updates': 4, 'max_backwards': 4, 'max_forwards': 6,
+        'max_model_constructions': 3, 'max_optimizer_constructions': 3,
+        'max_checkpoint_bytes': MAX_CHECKPOINT_BYTES,
+        'max_published_json_bytes': MAX_PUBLISHED_JSON_BYTES,
+        'training_enabled': True, 'full_epoch_training_allowed': False,
+        'fresh_initial_baseline_required': True, 'full_TRAIN_encoder_baseline_qualified': False,
+        'qualification_weights_for_main_fit': False, 'test_data_used': False,
+        'predictive_value_claimed': False,
+    }
+    return value, original, validation
+
+
+def build_ta_m5_equal_loss_mechanical_recipe(*, source_commit):
+    from gx1.contracts import market_state_time_query_fold1_fit_v1 as full
+    value, _, _ = _ta_m5_equal_loss_expected()
+    value['source_owners'] = {name: {'path': str(CANONICAL_REPO / name),
+        'sha256': campaign.file_sha256(CANONICAL_REPO / name)}
+        for name in sorted(full.required_source_paths(ta_sf=True))}
+    value['recipe_sha256'] = campaign.canonical_sha256(value)
+    return require_ta_m5_equal_loss_mechanical_recipe(value,
+        source_repo=CANONICAL_REPO, source_commit=source_commit)
+
+
+def require_ta_m5_equal_loss_mechanical_recipe(value, *, source_repo, source_commit, verify_files=True):
+    import subprocess
+    from gx1.contracts import market_state_time_query_fold1_fit_v1 as full
+    _need(verify_files and source_repo == CANONICAL_REPO, 'M5_EQUAL_LOSS_PHYSICAL_SOURCE')
+    expected, original, validation = _ta_m5_equal_loss_expected()
+    value = _identity(value, set(expected) | {'source_owners'},
+                      TA_M5_EQUAL_LOSS_RECIPE_SCHEMA, 'recipe_sha256')
+    _need(all(value[k] == v and type(value[k]) is type(v) for k, v in expected.items()),
+          'M5_EQUAL_LOSS_RECIPE_SCOPE')
+    _need(isinstance(source_commit, str) and campaign._COMMIT.fullmatch(source_commit)
+          and subprocess.run(['git', 'merge-base', '--is-ancestor', TA_M5_EQUAL_LOSS_AUDIT_COMMIT,
+                              source_commit], cwd=CANONICAL_REPO, capture_output=True).returncode == 0,
+          'M5_EQUAL_LOSS_SOURCE_ANCESTRY')
+    owners = value['source_owners']
+    _need(set(owners) == set(original['source_owners']) == full.required_source_paths(ta_sf=True)
+          and len(owners) == 85, 'M5_EQUAL_LOSS_OWNER_SET')
+    audited = {name: ref for name, ref in validation['source_files'].items() if name.startswith('gx1/')}
+    _need(set(audited) == TA_M5_EQUAL_LOSS_AUDITED_PATHS, 'M5_EQUAL_LOSS_AUDITED_OWNER_SET')
+    state_path = 'gx1/contracts/market_state_time_query_fold1_fit_state_v1.py'
+    for name, ref in owners.items():
+        campaign.require_binding(ref, label='M5 equal-loss source ' + name, verify_file=True)
+        _need(ref['path'] == str(CANONICAL_REPO / name), 'M5_EQUAL_LOSS_SOURCE_PATH')
+        if name in TA_M5_EQUAL_LOSS_ORCHESTRATION_PATHS:
+            continue  # New routing bytes are bound to the clean one-shot campaign.
+        if name == state_path:
+            old = subprocess.check_output(['git', 'show', TA_M5_EQUAL_LOSS_AUDIT_COMMIT + ':' + name],
+                                          cwd=CANONICAL_REPO)
+            _need(hashlib.sha256(old).hexdigest() == audited[name]['sha256']
+                  and (CANONICAL_REPO / name).read_bytes().startswith(old),
+                  'M5_EQUAL_LOSS_OLD_STATE_METHODS_CHANGED')
+            continue
+        expected_ref = audited[name] if name in audited else original['source_owners'][name]
+        _need(ref == expected_ref, 'M5_EQUAL_LOSS_UNREVIEWED_DRIFT:' + name)
+    for name, ref in value['input_refs'].items():
+        campaign.require_binding(ref, label='M5 equal-loss input ' + name, verify_file=True)
+    return value
+
+
+def require_ta_m5_equal_loss_mechanical_gate(gate, recipe):
+    expected = {
+        'decision': 'ADMITTED', 'status': 'ADMITTED', 'ta_m5_equal_loss_mechanical_authorized': True,
+        'fold_id': 1, 'parent_selection': TA_PARENT_SELECTION, 'selected_fit_rows': 32,
+        'model_constructions_authorized': 3, 'optimizer_constructions_authorized': 3,
+        'model_forwards_authorized': 6, 'backward_calls_authorized': 4,
+        'optimizer_steps_authorized': 4, 'training_enabled': True,
+        'native_training_enabled': True, 'genuine_predictor_fit_authorized': False,
+        'genuine_updates_authorized': True, 'genuine_backward_authorized': True,
+        'test_data_used': False,
+    }
+    _need(isinstance(gate, Mapping) and all(gate.get(k) == v and type(gate[k]) is type(v)
+          for k, v in expected.items()) and recipe['run_scope'] == TA_M5_EQUAL_LOSS_SCOPE
+          and recipe['admission_stage'] == TA_M5_EQUAL_LOSS_STAGE, 'M5_EQUAL_LOSS_POLICY_GATE')

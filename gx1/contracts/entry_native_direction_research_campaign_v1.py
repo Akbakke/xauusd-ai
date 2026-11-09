@@ -35,6 +35,7 @@ NATIVE_F_PRIVATE_SCOPE = 'market_state_native_F_private_4step_v1'
 TA_SF_MECHANICAL_SCOPE = 'market_state_ta_sf_mechanical_v1'
 TA_M5_MECHANICAL_SCOPE = 'market_state_ta_dedicated_m5_mechanical_v1'
 TA_M5_IMPORT_SCOPE = 'market_state_ta_m5_equal_weight_import_v1'
+TA_M5_EQUAL_LOSS_SCOPE = 'market_state_ta_m5_equal_loss_mechanical_v1'
 FAMILY_EXTRA_SOURCE_PATHS = ('gx1/contracts/entry_direction_family_intervention_v1.py',)
 FAMILY_PROTOCOL_PATH = '/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_ADDED_VALUE_PROTOCOL_20261030.json'
 DECIMAL_INPUT_AUDIT = {'path':'/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_BOUND_INPUT_ACTUAL_20261028_001.json',
@@ -175,12 +176,24 @@ def _is_ta_m5_import_recipe_ref(binding):
     return isinstance(binding, Mapping) and binding.get('path') == str(TA_M5_IMPORT_RECIPE_PATH)
 
 
+def _is_ta_m5_equal_loss_recipe_ref(binding):
+    from gx1.contracts.market_state_native_F_private_campaign_v1 import TA_M5_EQUAL_LOSS_RECIPE_PATH
+    return isinstance(binding, Mapping) and binding.get('path') == str(TA_M5_EQUAL_LOSS_RECIPE_PATH)
+
+
 def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: Path,
         source_commit: str, verify_files: bool = True) -> dict[str, Any]:
     """Verify metadata and source bytes; never import Torch or grant training."""
     ref = campaign.require_binding(binding, label='direction research recipe', verify_file=verify_files)
     _require(verify_files, 'RECIPE_REQUIRES_PHYSICAL_METADATA')
     value = campaign.read_bound_json(Path(ref['path']), ref['sha256'])
+    equal_loss_mode = _is_ta_m5_equal_loss_recipe_ref(ref)
+    if equal_loss_mode or value.get('run_scope') == TA_M5_EQUAL_LOSS_SCOPE:
+        _require(equal_loss_mode and value.get('run_scope') == TA_M5_EQUAL_LOSS_SCOPE,
+                 'M5_EQUAL_LOSS_RECIPE_PATH')
+        from gx1.contracts.market_state_native_F_private_campaign_v1 import require_ta_m5_equal_loss_mechanical_recipe
+        return require_ta_m5_equal_loss_mechanical_recipe(value, source_repo=source_repo,
+            source_commit=source_commit, verify_files=verify_files)
     import_mode = _is_ta_m5_import_recipe_ref(ref)
     if import_mode or value.get('run_scope') == TA_M5_IMPORT_SCOPE:
         _require(import_mode and value.get('run_scope') == TA_M5_IMPORT_SCOPE,
@@ -582,7 +595,7 @@ def guarded_research_power_limit(recipe):
             and recipe.get('numerical_recipe', {}).get('batch_size') == 16,
             'M5_IMPORT_POWER_SCOPE')
         return 250
-    if recipe.get('run_scope') in (NATIVE_F_PRIVATE_SCOPE, TA_SF_MECHANICAL_SCOPE, TA_M5_MECHANICAL_SCOPE):
+    if recipe.get('run_scope') in (NATIVE_F_PRIVATE_SCOPE, TA_SF_MECHANICAL_SCOPE, TA_M5_MECHANICAL_SCOPE, TA_M5_EQUAL_LOSS_SCOPE):
         _require(recipe.get('fold_id') == 1
             and recipe.get('training_enabled') is True
             and recipe.get('test_data_used') is False
@@ -695,7 +708,7 @@ def require_research_plan(value: Any, *, verify_files: bool = True) -> dict[str,
         from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
         if policy_recipe['run_scope'] in (DYNAMIC_STATE_PRIVATE_SCOPE, december.PRIVATE_SCOPE,
                                           october.roles.PRIVATE_SCOPE, TIME_QUERY_PRIVATE_SCOPE,
-                                          NATIVE_F_PRIVATE_SCOPE, TA_SF_MECHANICAL_SCOPE, TA_M5_MECHANICAL_SCOPE, TA_M5_IMPORT_SCOPE):
+                                          NATIVE_F_PRIVATE_SCOPE, TA_SF_MECHANICAL_SCOPE, TA_M5_MECHANICAL_SCOPE, TA_M5_IMPORT_SCOPE, TA_M5_EQUAL_LOSS_SCOPE):
             _require('family_same_boot' not in result, 'STATE_FRESH_BOOT_REQUIRED')
             expected_policy['physical_power_limit_w'] = 250
     _require(campaign.canonical_sha256(result['policy']) == campaign.canonical_sha256(expected_policy)
@@ -779,6 +792,9 @@ def require_native_direction_research_readiness(repo: Path, *, window_path: Path
     if recipe['run_scope'] == TA_M5_IMPORT_SCOPE:
         from gx1.contracts.market_state_native_F_private_campaign_v1 import require_ta_m5_import_gate
         require_ta_m5_import_gate(gate, recipe)
+    if recipe['run_scope'] == TA_M5_EQUAL_LOSS_SCOPE:
+        from gx1.contracts.market_state_native_F_private_campaign_v1 import require_ta_m5_equal_loss_mechanical_gate
+        require_ta_m5_equal_loss_mechanical_gate(gate, recipe)
     if recipe['run_scope'] == TA_M5_MECHANICAL_SCOPE:
         from gx1.contracts.market_state_native_F_private_campaign_v1 import require_ta_m5_mechanical_gate
         require_ta_m5_mechanical_gate(gate, recipe)
@@ -841,6 +857,9 @@ def build_research_cursor(*, recipe_ref, outcome, optimizer_updates, parent_curs
     if _is_ta_m5_import_recipe_ref(recipe_ref):
         from gx1.contracts.market_state_native_F_private_campaign_v1 import TA_M5_IMPORT_CURSOR_SCHEMA
         schema = TA_M5_IMPORT_CURSOR_SCHEMA
+    if _is_ta_m5_equal_loss_recipe_ref(recipe_ref):
+        from gx1.contracts.market_state_native_F_private_campaign_v1 import TA_M5_EQUAL_LOSS_CURSOR_SCHEMA
+        schema = TA_M5_EQUAL_LOSS_CURSOR_SCHEMA
     value = _seal({'schema_version':schema,'recipe':dict(recipe_ref),'outcome':outcome,
         'optimizer_updates':optimizer_updates,'parent_cursor':parent_cursor,'parent_order_sha256':parent_order_sha256,
         'full_state':full_state,'result':result,'test_data_used':False}, 'cursor_sha256')
@@ -849,6 +868,12 @@ def build_research_cursor(*, recipe_ref, outcome, optimizer_updates, parent_curs
 
 def require_research_cursor(value, *, expected_recipe, verify_files=True, batch_size=2) -> dict[str, Any]:
     from gx1.contracts import market_state_native_F_private_campaign_v1 as mechanical
+    equal_loss_mode = _is_ta_m5_equal_loss_recipe_ref(expected_recipe)
+    if equal_loss_mode or (isinstance(value, Mapping)
+                          and value.get('schema_version') == mechanical.TA_M5_EQUAL_LOSS_CURSOR_SCHEMA):
+        _require(equal_loss_mode, 'M5_EQUAL_LOSS_RECIPE_PATH')
+        return mechanical.require_cursor(value, expected_recipe=expected_recipe,
+            verify_files=verify_files, batch_size=batch_size)
     import_mode = _is_ta_m5_import_recipe_ref(expected_recipe)
     if import_mode or (isinstance(value, Mapping)
                        and value.get('schema_version') == mechanical.TA_M5_IMPORT_CURSOR_SCHEMA):

@@ -486,3 +486,103 @@ def import_equal_weight_m5_side_heads(model, coefficients, *,
         'optimizer_steps_performed': 0,
         'fresh_actual_output_baseline_required': True,
     }
+
+
+def rebind_m5_equal_observation_initial_state(saved, model, optimizer, *,
+                                              expected_model_state_sha256,
+                                              new_numerical_recipe,
+                                              feature_view_identity,
+                                              parent_order, source_commit,
+                                              new_source_commit, device):
+    """Strictly restore the old dedicated-M5 zero-step state, then rebind loss.
+
+    The caller binds the checkpoint file, old source and expected model digest
+    and owns execution admission. This performs no weight migration, optimizer
+    reset or update: unchanged strict restore loads the old state, and unchanged
+    capture records the same objects under the exact opt-in numerical recipe.
+    """
+    torch, old, _, _, _, _ = _deps()
+    from gx1.contracts.market_state_time_query_fold1_fit_v1 import ta_sf_numerical_recipe
+
+    _need(_is_ta_sf(model) and model.state_model._dedicated_m5_side is True,
+          'M5_LOSS_REBIND_MODE')
+    _require_model_binding(model)
+    old_recipe = ta_sf_numerical_recipe(dedicated_m5_side=True)
+    expected_new = ta_sf_numerical_recipe(
+        dedicated_m5_side=True, m5_equal_observation=True)
+    _need(isinstance(new_numerical_recipe, Mapping)
+          and dict(new_numerical_recipe) == expected_new,
+          'M5_LOSS_REBIND_NEW_NUMERICAL')
+    new_recipe = _numerical(new_numerical_recipe, model)
+    _need(type(new_source_commit) is str
+          and _COMMIT.fullmatch(new_source_commit) is not None,
+          'M5_LOSS_REBIND_NEW_SOURCE')
+    _need(type(expected_model_state_sha256) is str
+          and re.fullmatch(r'[0-9a-f]{64}', expected_model_state_sha256) is not None
+          and isinstance(saved, Mapping)
+          and saved.get('model_state_sha256') == expected_model_state_sha256,
+          'M5_LOSS_REBIND_MODEL_DIGEST')
+    _need(isinstance(saved.get('binding'), Mapping)
+          and saved['binding'].get('numerical_recipe') == old_recipe,
+          'M5_LOSS_REBIND_OLD_NUMERICAL')
+    counters = ('cursor', 'optimizer_updates', 'skipped_batches')
+    _need(all(type(saved.get(key)) is int and saved[key] == 0 for key in counters),
+          'M5_LOSS_REBIND_ZERO_PROGRESS')
+    _need(type(optimizer) is torch.optim.AdamW and not optimizer.state
+          and isinstance(saved.get('optimizer_state'), Mapping)
+          and isinstance(saved['optimizer_state'].get('state'), Mapping)
+          and not saved['optimizer_state']['state'],
+          'M5_LOSS_REBIND_EMPTY_OPTIMIZER')
+    old._no_partial_gradients(model)
+    identities = [(name, id(parameter), parameter.requires_grad)
+                  for name, parameter in model.named_parameters(remove_duplicate=False)]
+    buffer_ids = [(name, id(buffer)) for name, buffer in model.named_buffers()]
+
+    # All original source, seal, tensor, optimizer, order and RNG checks apply.
+    restored = restore_fold1_fit_state(
+        saved, model, optimizer, numerical_recipe=old_recipe,
+        feature_view_identity=feature_view_identity, parent_order=parent_order,
+        source_commit=source_commit, device=device)
+    rebound = capture_fold1_fit_state(
+        model, optimizer, numerical_recipe=new_recipe,
+        feature_view_identity=feature_view_identity, parent_order=parent_order,
+        cursor=0, optimizer_updates=0, skipped_batches=0,
+        source_commit=new_source_commit, device=device)
+
+    digests = ('model_state_sha256', 'buffer_state_sha256',
+               'optimizer_state_sha256', 'rng_state_sha256')
+    _need(restored == {key: 0 for key in counters}
+          and all(rebound[key] == saved[key] for key in digests)
+          and all(rebound[key] == saved[key] for key in (
+              'schema_version', 'fold_id', 'feature_view_sha256',
+              'module_training', *counters))
+          and torch.equal(rebound['parent_order'], saved['parent_order'].detach().cpu()),
+          'M5_LOSS_REBIND_PRESERVED_STATE')
+    excluded = {'numerical_recipe', 'contract_sha256'}
+    _need({key: value for key, value in rebound['binding'].items() if key not in excluded}
+          == {key: value for key, value in saved['binding'].items() if key not in excluded},
+          'M5_LOSS_REBIND_PRESERVED_BINDING')
+    _need([(name, id(parameter), parameter.requires_grad)
+           for name, parameter in model.named_parameters(remove_duplicate=False)] == identities
+          and [(name, id(buffer)) for name, buffer in model.named_buffers()] == buffer_ids
+          and not optimizer.state, 'M5_LOSS_REBIND_OBJECT_IDENTITY')
+    evidence = {
+        'schema_version': 'gx1_ta_m5_equal_observation_initial_rebinding_v1',
+        'source_state_sha256': saved['contract_sha256'],
+        'state_sha256': rebound['contract_sha256'],
+        'source_commit': source_commit, 'new_source_commit': new_source_commit,
+        'old_numerical_recipe_sha256': old_recipe['contract_sha256'],
+        'new_numerical_recipe_sha256': new_recipe['contract_sha256'],
+        **{key: rebound[key] for key in digests},
+        'parent_order_sha256': old._tree_sha(rebound['parent_order']),
+        'module_training': copy.deepcopy(rebound['module_training']),
+        'optimizer_group_parameter_names': copy.deepcopy(
+            rebound['binding']['optimizer_group_parameter_names']),
+        **restored,
+        'parameter_identity_unchanged': True, 'buffer_identity_unchanged': True,
+        'optimizer_steps_performed': 0,
+        'changed_state_fields': [key for key in ('binding', 'source_commit', 'contract_sha256')
+                                 if rebound[key] != saved[key]],
+        'changed_binding_fields': ['numerical_recipe', 'contract_sha256'],
+    }
+    return rebound, evidence

@@ -18,22 +18,26 @@ def _need(ok, reason):
 
 
 def _publish_terminal(*, output, progress_path, window, plan, invocation,
-                      payload, counters, maximum, ta_sf=False, dedicated_m5_side=False):
+                      payload, counters, maximum, ta_sf=False, dedicated_m5_side=False,
+                      m5_equal_observation=False):
     from gx1.contracts import entry_native_direction_research_campaign_v1 as authority
     from gx1.scripts import run_entry_native_direction_research_window_v1 as common
-    pass_decision = ('PASS_TA_M5_MECHANICAL' if dedicated_m5_side else
+    pass_decision = ('PASS_TA_M5_EQUAL_LOSS_MECHANICAL' if m5_equal_observation else
+                     'PASS_TA_M5_MECHANICAL' if dedicated_m5_side else
                      'PASS_TA_SF_MECHANICAL' if ta_sf else 'PASS_NATIVE_F_PRIVATE_RESUME')
     outcome = 'COMPLETE' if payload['decision'] == pass_decision else 'FAILED'
     _need(payload['recipe'] == window['recipe']
           and payload['test_data_used'] is False
           and (outcome != 'COMPLETE' or payload['final_state'] is not None),
           'TERMINAL_PAYLOAD')
-    result_root = scope.TA_M5_ROOT if dedicated_m5_side else scope.TA_ROOT if ta_sf else output
+    result_root = (scope.TA_M5_EQUAL_LOSS_ROOT if m5_equal_observation else
+                   scope.TA_M5_ROOT if dedicated_m5_side else scope.TA_ROOT if ta_sf else output)
     result_path = result_root / 'RESULT.json'
     result = common._json(result_path, payload, counters, maximum)
     if ta_sf:
         common._json(result_root / 'TERMINAL.json', {
-            'schema_version': (scope.TA_M5_RESULT_SCHEMA if dedicated_m5_side else scope.TA_RESULT_SCHEMA) + '_terminal',
+            'schema_version': (scope.TA_M5_EQUAL_LOSS_RESULT_SCHEMA if m5_equal_observation else
+                               scope.TA_M5_RESULT_SCHEMA if dedicated_m5_side else scope.TA_RESULT_SCHEMA) + '_terminal',
             'status': outcome, 'exit_code': 0 if outcome == 'COMPLETE' else 1,
             'result': result, 'recipe': window['recipe'], 'test_data_used': False,
             'no_relaunch_under_this_plan': True}, counters, maximum)
@@ -43,7 +47,8 @@ def _publish_terminal(*, output, progress_path, window, plan, invocation,
             parent_cursor=payload['parent_cursor'],
             parent_order_sha256=payload['parent_order_sha256'],
             full_state=payload['final_state'], result=result, ta_sf=ta_sf,
-            dedicated_m5_side=dedicated_m5_side),
+            dedicated_m5_side=dedicated_m5_side,
+            **({'m5_equal_observation': True} if m5_equal_observation else {})),
         counters, maximum)
     progress = authority.build_research_progress(
         window=window, plan=plan, invocation=invocation,
@@ -60,7 +65,8 @@ def _publish_terminal(*, output, progress_path, window, plan, invocation,
 
 def run_private_window(*, policy_path: Path, policy_file_sha256: str,
                        progress_path: Path, ta_sf: bool = False,
-                       dedicated_m5_side: bool = False) -> dict:
+                       dedicated_m5_side: bool = False,
+                       m5_equal_observation: bool = False) -> dict:
     from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_trainer_execution
     limits = require_guarded_cuda_trainer_execution()
     from gx1.contracts import entry_native_direction_research_campaign_v1 as authority
@@ -68,10 +74,14 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
         authority.require_native_direction_research_context(
             policy_path, policy_file_sha256, progress_path))
     from gx1.contracts import market_state_time_query_fold1_fit_v1 as full_scope
-    expected_scope = scope.TA_M5_SCOPE if dedicated_m5_side else scope.TA_SCOPE if ta_sf else scope.SCOPE
-    expected_numerical = (full_scope.ta_sf_numerical_recipe(dedicated_m5_side=dedicated_m5_side)
+    expected_scope = (scope.TA_M5_EQUAL_LOSS_SCOPE if m5_equal_observation else
+                      scope.TA_M5_SCOPE if dedicated_m5_side else scope.TA_SCOPE if ta_sf else scope.SCOPE)
+    expected_numerical = (full_scope.ta_sf_numerical_recipe(dedicated_m5_side=dedicated_m5_side,
+                          m5_equal_observation=m5_equal_observation)
                           if ta_sf else scope.numerical_recipe())
     _need(type(ta_sf) is bool and type(dedicated_m5_side) is bool
+          and type(m5_equal_observation) is bool
+          and (not m5_equal_observation or (ta_sf and dedicated_m5_side))
           and (not dedicated_m5_side or ta_sf) and recipe['run_scope'] == expected_scope
           and recipe['numerical_recipe'] == expected_numerical
           and (recipe.get('parent_selection') == scope.TA_PARENT_SELECTION if ta_sf
@@ -100,8 +110,10 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
     device = torch.device('cuda', 0)
     numerical = recipe['numerical_recipe']
     expected_model = model_contract(ta_only=ta_sf, dedicated_m5_side=dedicated_m5_side)['contract_sha256']
-    expected_loss = loss_contract(ta_only=ta_sf, dedicated_m5_side=dedicated_m5_side)['contract_sha256']
-    _need(numerical == (full_scope.ta_sf_numerical_recipe(dedicated_m5_side=dedicated_m5_side)
+    expected_loss = loss_contract(ta_only=ta_sf, dedicated_m5_side=dedicated_m5_side,
+                                  m5_equal_observation=m5_equal_observation)['contract_sha256']
+    _need(numerical == (full_scope.ta_sf_numerical_recipe(dedicated_m5_side=dedicated_m5_side,
+                          m5_equal_observation=m5_equal_observation)
                           if ta_sf else state.numerical_recipe())
           and recipe['expected_model_contract_sha256'] == expected_model
           and recipe['expected_loss_contract_sha256'] == expected_loss
@@ -125,7 +137,8 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
     initial_sha = reference_sha = None
     parent_cursor = 0
     initial_baseline, steps, timings = [], [], {}
-    migration_reports, baseline_parity = [], []
+    migration_reports, baseline_parity, loss_rebindings = [], [], []
+    imported_state = None
     legacy_model = legacy_rng = legacy_import = None
     source_unchanged = bit_exact = False
     error = None
@@ -160,7 +173,8 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
                                              dedicated_m5_side=dedicated_m5_side)
             state_bound = state_targets.load_bound_time_query_targets()
             raw_batches, batch_reports, provider, provider_plan, full_order = (
-                _load_ta_train_batches(receipts, view, np=np))
+                _load_ta_train_batches(receipts, view, np=np,
+                    **({'m5_equal_observation': True} if m5_equal_observation else {})))
             order = torch.from_numpy(full_order)
             order_sha = tree_sha(order)
             selected_parent_rows = full_order[:scope.TA_SELECTED_FIT_ROWS].tolist()
@@ -185,7 +199,12 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
                    for raw, rows, issue in raw_batches]
         del raw_batches
         torch.cuda.reset_peak_memory_stats(device)
-        if dedicated_m5_side:
+        if m5_equal_observation:
+            origin = recipe['imported_origin']
+            _need(tree_sha(order) == origin['parent_order_sha256'], 'IMPORTED_PARENT_ORDER')
+            imported_state = common._load_state(origin['imported_checkpoint'], torch=torch,
+                maximum=recipe['max_checkpoint_bytes'], counters=counters)
+        elif dedicated_m5_side:
             legacy_model, legacy_rng, legacy_import = _restore_m5_legacy_origin(
                 origin=recipe['warmstart_origin'], receipts=receipts, order=order,
                 device=device, counters=counters, maximum=recipe['max_checkpoint_bytes'])
@@ -218,17 +237,33 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
             if dedicated_m5_side:
                 _need({'state_model.m5_side_head.weight', 'future_m5_side_head.weight'}
                       <= set(binding['active_parameter_names']), 'DEDICATED_M5_HEADS_ACTIVE')
-                migration_reports.append(full_state_owner.copy_legacy_weights_to_dedicated_m5(
-                    legacy_model, model, expected_legacy_model_sha256=
-                    recipe['warmstart_origin']['model_state_sha256']))
-                _need(not optimizer.state and all(module.training for module in model.modules()),
-                      'WARMSTART_FRESH_OPTIMIZER_AND_TRAIN_MODES')
-                trainer._restore_attended_session_rng_state(legacy_rng, device=device)
-                _need(tree_sha(trainer._attended_session_rng_state(device=device))
-                      == legacy_import['rng_state_sha256'], 'WARMSTART_RNG_PARITY')
+                if m5_equal_observation:
+                    rebound, proof = full_state_owner.rebind_m5_equal_observation_initial_state(
+                        imported_state, model, optimizer,
+                        expected_model_state_sha256=origin['model_state_sha256'],
+                        new_numerical_recipe=numerical,
+                        feature_view_identity=model.state_model.feature_view_identity,
+                        parent_order=order, source_commit=origin['source_commit'],
+                        new_source_commit=plan['source_commit'], device=device)
+                    _need(rebound['model_state_sha256'] == recipe['expected_initial_model_state_sha256']
+                          and rebound['rng_state_sha256'] == origin['rng_state_sha256'],
+                          'IMPORTED_MODEL_AND_RNG')
+                    _need(not optimizer.state and all(module.training for module in model.modules()),
+                          'IMPORTED_EMPTY_OPTIMIZER_AND_TRAIN_MODES')
+                    loss_rebindings.append(proof)
+                    del rebound
+                else:
+                    migration_reports.append(full_state_owner.copy_legacy_weights_to_dedicated_m5(
+                        legacy_model, model, expected_legacy_model_sha256=
+                        recipe['warmstart_origin']['model_state_sha256']))
+                    _need(not optimizer.state and all(module.training for module in model.modules()),
+                          'WARMSTART_FRESH_OPTIMIZER_AND_TRAIN_MODES')
+                    trainer._restore_attended_session_rng_state(legacy_rng, device=device)
+                    _need(tree_sha(trainer._attended_session_rng_state(device=device))
+                          == legacy_import['rng_state_sha256'], 'WARMSTART_RNG_PARITY')
             return model, optimizer, binding
 
-        def evaluate(model, batch, *, baseline):
+        def evaluate(model, batch, *, baseline, batch_start):
             clock_guard()
             features, rows, issue = batch
             counters['forwards'] += 1
@@ -242,10 +277,12 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
                     return evaluate_fit_batch(
                         model, features, state_bound, future_bound,
                         rows, issue, fold_id=1, pass_index=scope.PASS_INDEX,
-                        seed=numerical['seed'], future_weight=numerical['future_weight'])
+                        seed=numerical['seed'], future_weight=numerical['future_weight'],
+                        **({'m5_equal_observation': True, 'fit_batch_start': batch_start}
+                           if m5_equal_observation else {}))
                 if baseline:
                     with torch.no_grad():
-                        if dedicated_m5_side:
+                        if dedicated_m5_side and not m5_equal_observation:
                             outcome, parity = _m5_baseline_parity(model, call,
                                 atol=recipe['m5_side_parity_atol'],
                                 rtol=recipe['m5_side_parity_rtol'])
@@ -266,7 +303,7 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
 
         def update(model, optimizer, binding, batch, trajectory, index):
             optimizer.zero_grad(set_to_none=True)
-            outcome, forward_seconds = evaluate(model, batch, baseline=False)
+            outcome, forward_seconds = evaluate(model, batch, baseline=False, batch_start=index * scope.BATCH_SIZE)
             counters['backwards'] += 1
             _need(counters['backwards'] <= scope.MAX_BACKWARDS, 'BACKWARD_BUDGET')
             torch.cuda.synchronize()
@@ -322,8 +359,9 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
             if initial_sha is None:
                 initial_sha = fresh_sha
                 model.eval()
-                for batch in batches:
-                    outcome, elapsed = evaluate(model, batch, baseline=True)
+                for batch_index, batch in enumerate(batches):
+                    outcome, elapsed = evaluate(model, batch, baseline=True,
+                                                batch_start=batch_index * scope.BATCH_SIZE)
                     initial_baseline.append({
                         'parent_rows': batch[1].tolist(),
                         'loss': float(outcome['loss'].detach()),
@@ -383,7 +421,7 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
             torch.cuda.empty_cache()
         _need(counters['model_constructions']
               == counters['model_construction_returns']
-              == counters['optimizer_constructions'] == (4 if dedicated_m5_side else 3)
+              == counters['optimizer_constructions'] == (3 if m5_equal_observation else 4 if dedicated_m5_side else 3)
               and counters['forwards'] == counters['forward_returns'] == 6
               and counters['backwards'] == counters['backward_returns'] == 4
               and counters['optimizer_step_calls'] == counters['optimizer_updates'] == 4
@@ -393,7 +431,13 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
                   == counters['resume_state_load_returns'] == (2 if dedicated_m5_side else 1)
               and parent_cursor == len(scope.PARENT_ROWS) and bit_exact,
               'EXACT_PRIVATE_WORK')
-        if dedicated_m5_side:
+        if m5_equal_observation:
+            _need(len(loss_rebindings) == 3 and not migration_reports and not baseline_parity
+                  and all(item == loss_rebindings[0] for item in loss_rebindings)
+                  and all(any(step['dedicated_m5_gradient_nonzero'][name] for step in steps)
+                          for name in ('state_model.m5_side_head.weight', 'future_m5_side_head.weight')),
+                  'EQUAL_LOSS_REBINDING_AND_GRADIENTS')
+        elif dedicated_m5_side:
             _need(len(migration_reports) == 3 and len(baseline_parity) == 2
                   and len({r['model_state_sha256'] for r in migration_reports}) == 1
                   and all(any(step['dedicated_m5_gradient_nonzero'][name] for step in steps)
@@ -414,9 +458,11 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
                 'reserved_bytes': int(torch.cuda.max_memory_reserved(device))}
     passed = bit_exact and source_unchanged and error is None
     payload = {
-        'schema_version': (scope.TA_M5_RESULT_SCHEMA if dedicated_m5_side else
+        'schema_version': (scope.TA_M5_EQUAL_LOSS_RESULT_SCHEMA if m5_equal_observation else
+                           scope.TA_M5_RESULT_SCHEMA if dedicated_m5_side else
                            scope.TA_RESULT_SCHEMA if ta_sf else scope.RESULT_SCHEMA),
-        'decision': ('PASS_TA_M5_MECHANICAL' if dedicated_m5_side else
+        'decision': ('PASS_TA_M5_EQUAL_LOSS_MECHANICAL' if m5_equal_observation else
+                     'PASS_TA_M5_MECHANICAL' if dedicated_m5_side else
                      'PASS_TA_SF_MECHANICAL' if ta_sf else 'PASS_NATIVE_F_PRIVATE_RESUME')
                     if passed else 'FAILED',
         'recipe': window['recipe'],
@@ -451,7 +497,11 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
             parent_order_rows=full_scope.FIT_ROWS,
             parent_selection=scope.TA_PARENT_SELECTION,
             qualification_weights_for_main_fit=False)
-    if dedicated_m5_side:
+    if m5_equal_observation:
+        payload.update(imported_origin=recipe['imported_origin'],
+            loss_rebindings=loss_rebindings, m5_equal_observation=True,
+            full_TRAIN_initialbaseline_qualified=False, native_fit_authorized=False)
+    elif dedicated_m5_side:
         payload.update(warmstart_origin=recipe['warmstart_origin'],
             legacy_import=legacy_import, weight_migrations=migration_reports,
             baseline_output_parity=baseline_parity, full_TRAIN_initialbaseline_qualified=False,
@@ -461,16 +511,18 @@ def run_private_window(*, policy_path: Path, policy_file_sha256: str,
         window=window, plan=plan, invocation=invocation,
         payload=payload, counters=counters,
         maximum=recipe['max_published_json_bytes'], ta_sf=ta_sf,
-        dedicated_m5_side=dedicated_m5_side)
+        dedicated_m5_side=dedicated_m5_side,
+        **({'m5_equal_observation': True} if m5_equal_observation else {}))
     previous._bookend(recipe, plan, policy_path, policy_file_sha256)
     if not passed:
         raise RuntimeError('NATIVE_F_PRIVATE_WINDOW_FAILED:' + str(error))
-    return {'decision': ('PASS_TA_M5_MECHANICAL' if dedicated_m5_side else
+    return {'decision': ('PASS_TA_M5_EQUAL_LOSS_MECHANICAL' if m5_equal_observation else
+                         'PASS_TA_M5_MECHANICAL' if dedicated_m5_side else
                          'PASS_TA_SF_MECHANICAL' if ta_sf else 'PASS_NATIVE_F_PRIVATE_RESUME'),
             **published, 'counts': counters}
 
 
-def _load_ta_train_batches(receipts, view, *, np):
+def _load_ta_train_batches(receipts, view, *, np, m5_equal_observation=False):
     """Use the full-fit provider/order/gather for the first two actual batches."""
     from gx1.scripts import run_market_state_time_query_fold1_fit_window_v1 as full
     from gx1.audit import qualify_market_state_mature_prefix_normalization_v1 as base
@@ -478,6 +530,9 @@ def _load_ta_train_batches(receipts, view, *, np):
         receipts, view, np=np)
     try:
         _need(len(parents) == 29574 and len(issues) == 29574, 'TA_FULL_ORDER')
+        if m5_equal_observation:
+            from gx1.contracts.market_state_time_query_native_F_objective_v1 import require_m5_equal_observation_axes
+            require_m5_equal_observation_axes(parents, issues)
         batches, reports = [], []
         for left in (0, scope.BATCH_SIZE):
             raw, rows, issue = full._feature_batch(
@@ -500,6 +555,13 @@ def run_ta_m5_mechanical(*, policy_path: Path, policy_file_sha256: str,
     return run_private_window(policy_path=policy_path,
         policy_file_sha256=policy_file_sha256, progress_path=progress_path,
         ta_sf=True, dedicated_m5_side=True)
+
+
+def run_ta_m5_equal_loss_mechanical(*, policy_path: Path, policy_file_sha256: str,
+                                   progress_path: Path) -> dict:
+    return run_private_window(policy_path=policy_path,
+        policy_file_sha256=policy_file_sha256, progress_path=progress_path,
+        ta_sf=True, dedicated_m5_side=True, m5_equal_observation=True)
 
 
 def _restore_m5_legacy_origin(*, origin, receipts, order, device, counters, maximum):

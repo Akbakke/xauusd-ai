@@ -33,6 +33,9 @@ def metadata():
     historical = {name: scope._ta_m5_git_source_sha(scope.TA_M5_REVIEWED_COMMIT, name)
                   for name in paths if not name.startswith(".venv/")
                   and name not in scope.TA_M5_ORCHESTRATION_SOURCE_PATHS}
+    # This fixture models the historical admitted recipe, not a relaunch from
+    # today's changed loss owners. Keep its declared source epoch consistent.
+    current.update(historical)
     return refs, docs, current, historical
 
 

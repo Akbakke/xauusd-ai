@@ -648,6 +648,10 @@ def run_native_direction_research_window(*, policy_path: Path, policy_file_sha25
         from gx1.scripts.run_market_state_native_F_private_window_v1 import run_private_window
         return run_private_window(policy_path=policy_path,
             policy_file_sha256=policy_file_sha256, progress_path=progress_path)
+    if launch["run_scope"] == authority.TA_M5_EQUAL_LOSS_SCOPE:
+        from gx1.scripts.run_market_state_native_F_private_window_v1 import run_ta_m5_equal_loss_mechanical
+        return run_ta_m5_equal_loss_mechanical(policy_path=policy_path,
+            policy_file_sha256=policy_file_sha256, progress_path=progress_path)
     if launch["run_scope"] == authority.TA_M5_IMPORT_SCOPE:
         from gx1.scripts.run_market_state_native_F_private_window_v1 import run_ta_m5_import
         return run_ta_m5_import(policy_path=policy_path,
