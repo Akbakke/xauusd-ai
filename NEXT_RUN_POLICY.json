@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T21:07:56.754622+00:00",
-  "status": "TA_M5_TRAJECTORY_INITIAL_PARITY_FAILED_NO_TRAINING",
+  "observed_utc": "2026-11-09T21:17:40.683341+00:00",
+  "status": "TA_M5_FULLPASS_TRAJECTORY_CONTINUATION_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Review preserved INITIAL CPU/cache discrepancy without rerunning model. Native logits pass2e-5 but M5 representation2.5034e-5 exceeds2e-5. Original failed plan consumed; all execution/training closed. No midpoint or later evaluation yet.",
+  "next_action": "Execute exactly one newly admitted002 remaining8checkpoint/96forward trajectory; reuse INITIAL. Preserve001 failure, independently verify all9 cached scores and close execution. No new fit, later scoring or checkpoint selection.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -66323,7 +66323,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "Trajectory stopped after INITIAL12forwards/onecheckpoint before midpoints. CPU/cache internal representation tolerance failed; native logits passed. Cached numeric/source diagnosis only, no new fit.",
+    "latest_progress": "Cached CPU/CUDA diagnostic bounds INITIAL M5 probability differences below3.113e-7; new output gate for weights-only trajectory, original hidden gate remains failed. INITIAL reused; eight remaining states admitted, no fit.",
     "user_clarification_20261109": {
       "scope": "Correct direction for short sniper and longer long/shorttrends; separate forecasts and targets at M5 cadence.",
       "existing_future_horizons_minutes": [
@@ -71037,6 +71037,129 @@
       "checkpoint_writes": 0,
       "resume_state_load_calls": 1,
       "resume_state_load_returns": 1
+    },
+    "parity_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_001/PARITY_REVIEW.json",
+      "sha256": "ba692acdcca93335bedbe0b1697dfb549c30896a116e27a1065a71e8364f8fbe"
+    },
+    "parity_review_worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_001/parity_review.py",
+      "sha256": "9df55a99dcba997563da91fd08b58a5d2638913e0ef1287a852ae11a8bc45769"
+    },
+    "parity_review_controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_001/PARITY_REVIEW_CONTROLLER.json",
+      "sha256": "778bf2e16647eaee4160324626e9af6daa8e30dc5d4ea8bce40ed0e40276b40b"
     }
+  },
+  "market_state_ta_m5_fullpass_trajectory_20261109_002": {
+    "status": "ADMITTED",
+    "execution_authorized": true,
+    "training_authorized": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_002/PLAN.json",
+      "sha256": "a82e18305c38e492b0ff779d6a3531b9605d642474e28b75fb56ea2d5baa02fd"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_002/probe.py",
+      "sha256": "9980577df1f40c5d0372d8d977788e2438a17a9e0e70c9cbc47f6e4d6091361b"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_002/PREFLIGHT.log",
+      "sha256": "69e35936fbf3f35b384e6ce6690914d401abf6c84bd2b7f02439920a6e8004ea"
+    },
+    "controller_source": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_002/controller.py",
+      "sha256": "ba5b139beeeccf14bfc80bf6a9994c67f2b9d7473ab3f0f219f9cc7e9e676e7f"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "max_forwards": 96,
+    "max_checkpoint_loads": 8,
+    "max_model_constructions": 1,
+    "max_updates": 0,
+    "max_backwards": 0,
+    "max_optimizer_constructions": 0,
+    "max_checkpoint_writes": 0,
+    "wall_seconds": 600,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "numerical_threads": 1,
+    "test_data_used": false,
+    "score_partition_allowed": false,
+    "fit_eval_ranges": [
+      [
+        0,
+        64
+      ],
+      [
+        14272,
+        14336
+      ],
+      [
+        29504,
+        29568
+      ]
+    ],
+    "output_parity_criteria": {
+      "exact_rows_masks_and_queries": true,
+      "all_five_tf_raw_atol": 2e-05,
+      "m5_probability_atol": 1e-06,
+      "m5_block_metric_atol": 1e-06,
+      "m5_block_metrics": [
+        "brier",
+        "log",
+        "mean_up_probability"
+      ],
+      "representation_role": "diagnostic_only_no_transplant"
+    },
+    "reused_initial": {
+      "original_plan": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_001/PLAN.json",
+        "sha256": "8d23047e66550eed42a8960f85dfef1594d78898ec49d8ede609933f4a5c6806"
+      },
+      "original_worker": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_001/probe.py",
+        "sha256": "c1a1384d871d19568063f2cc45f3940eb8fc6eb5d9e3cbee0e90c329bbbaaf2d"
+      },
+      "original_terminal": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_001/TERMINAL.json",
+        "sha256": "4cde46b9c7631d3217410095ac562f4e9059c7dafc20c562525a2c8824c2f533"
+      },
+      "original_controller": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_001/CONTROLLER.json",
+        "sha256": "9eff2f8bbc3a62f554bb07aa0124bb79b14f9b810b0f7d587b60602a552533a9"
+      },
+      "initial_measurement": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_001/INITIAL_TRAIN.json",
+        "sha256": "6ee23ca371003f58957bb0aaa2f374b6d7d8400090d19a1e9024f20b4d49c2c1"
+      },
+      "initial_capture": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_001/INITIAL_M5_READOUT.npz",
+        "sha256": "821a93d52269dec040073069842254f34d32a3725838952e929711820e381904"
+      },
+      "initial_parity": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_001/INITIAL_PARITY.json",
+        "sha256": "52d0d089ab2abf503413a8846bcad16b9e8e90362fdff24c231abb344245d0c8"
+      },
+      "parity_review": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_001/PARITY_REVIEW.json",
+        "sha256": "ba692acdcca93335bedbe0b1697dfb549c30896a116e27a1065a71e8364f8fbe"
+      }
+    },
+    "source_review": {
+      "status": "PASS",
+      "agent": "/root/ta_formula_audit",
+      "worker": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_002/probe.py",
+        "sha256": "9980577df1f40c5d0372d8d977788e2438a17a9e0e70c9cbc47f6e4d6091361b"
+      },
+      "scope": "Minimal frozen001 continuation; original failure preserved, reused INITIAL revalidated before model, exact8remaining checkpoints/96forwards; same192rows/RNG/order and strict model/buffer identities. No optimizer or RNG restore."
+    },
+    "rationale": "New output-focused cross-device validation for weights-only trajectory, not relaxation of canonical model/import tolerances. Original hidden absolute2e-5 gate remains failed. Cached INITIAL actual M5 probability error<=3.113e-7 and Brier/log error<=1.635e-7. No representation transplant, model or target change; internal representation delta retained as diagnostic.",
+    "interpretation": "All9 observations reported including reused INITIAL; no checkpoint selection/refit/later scoring. Last16 original consumed batches only descriptive, final starts29328.",
+    "no_automatic_training": true
   }
 }

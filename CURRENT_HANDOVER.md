@@ -15,65 +15,42 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_TRAJECTORY_INITIAL_PARITY_FAILED_NO_TRAINING.
+Policystatus: TA_M5_FULLPASS_TRAJECTORY_CONTINUATION_ADMITTED.
 
-Brukerens nye prioritet er gjennomgått: framoverbetydning og korrekt
-modellkonsum for hele den aktive TA-flaten på alle fem tidsrammer.
-Feltvis kilde-/matematikkontroll og metadata er samlet i
-[docs/TA_FORWARD_SEMANTICS_REVIEW.json](docs/TA_FORWARD_SEMANTICS_REVIEW.json).
-Privat rot: /home/andre2/GX1_RUNS/TA_FORWARD_SEMANTICS_AUDIT_20261109_001
-RESULT SHA2f7bb87db26edbb818a033b132b32092ab50c30aada9c9d4ae3858fbcdcda06e.
+Retningskontrollen fortsetter med åtte bevarte fullpass-checkpoints på samme
+192TRAIN-rader:0:64,14272:14336,29504:29568. INITIAL gjenbrukes direkte.
+Ny rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_002
+PLAN SHAa82e18305c38e492b0ff779d6a3531b9605d642474e28b75fb56ea2d5baa02fd.
+Én CPU-modell,8loads/96forwards,0fit/backward/optimizer/checkpointwrites;
+capped producer12G/512M,én tråd,600s. Ingen senereTRAIN eller TEST.
+Metadata-preflight PASS6,324s; uavhengig kildekontroll PASS. Alle85 bundne
+kildefiler er uendret. Kjøringen er ikke startet ved denne innrømmelsen.
 
-Dekning: 315 lokale signaler, 132 contextfelt, session_id og 253 MTF-felt
-på hver av M5/M15/H1/H4/D1. 701 feltdefinisjoner, 59 semantikkgrupper,
-ingen hull, ekstra felt eller dobbelte eiere. De132 contextfeltene finnes
-også som temporalaliaser; dette er ikke uavhengige indikatorer.
-Alle åtte familier og61 D1/makrofelt beholdes; GC er ekskludert.
-Gjenbrukt fysisk kontroll dekker29574TRAIN +17753senereTRAIN;
-den faktiske familie-forward-kontrollen brukte to rader, ikke hele datasettet.
-Aktuell inputruting, backbone og normalisering er koblet til dette beviset.
-Ingen nye modellkall, tensorlesinger, fits eller numeriske fullsuiter.
-Metadataextractor v2 tok5,363s etter en bevart feil: MTF har ikke
-observed_fit_counts; det rapporteres UNKNOWN, uten å oppfinne tellinger.
+001 er fortsatt FAILED_CONSUMED og kan ikke relanseres. Den stoppet etter
+INITIAL12forwards/énload på en ny absolutt hidden-grense:2,503395e-5>2e-5.
+Worker109,239s,helkommando112,231s. Rålogitter passer den gamle2e-5-porten.
+Cached review SHAba692acdcca93335bedbe0b1697dfb549c30896a116e27a1065a71e8364f8fbe
+viser M5-sannsynlighetsavvik<=3,113e-7 og blokkvis Brier/logavvik<=1,635e-7.
+Referansen er CUDA; ny måling CPU. Konkret kernelårsak er ikke isolert.
 
-Konkrete grenser:
-- De fleste features er kjent nåtilstand/historikk; S/F har framtidige mål.
-  Det finnes ikke en egen framtidsprognose for hver indikator.
-- HTF-linjer gjelder siste lukkede egen bar. Aktuell M5-pris sammenliknes
-  ikke eksplisitt med samme HTF-linje forlenget til aktuell M5-klokke/t+h.
-- Linjer krever tredje bekreftede pivot før ACTIVE; nærmeste over/under
-  oppsummeres. Hele linjeobjekter/ankere/identiteter leveres ikke separat.
-- Hold/reaction er observerte hendelser. S/F har ikke et eget mål for
-  kontakt/sprett/brudd på en bestemt linje. F under0,5ATR trener FLAT/
-  aktivitet, ikke fortegnet på små nettobevegelser.
-- Aktive squeeze-felt er filtrert tilstand/alder, ingen forecast-hazarder.
-  HMM-/linjeparametrenes fit sluttet2013, før den aktuelle2024-folden.
-- Historisk faktisk COT-publisering/vintage i2024 og full makrovintage er
-  ikke kvalifisert. Deklarert asof-lag alene er ikke historisk versjonsbevis.
+002 bruker en eksplisitt outputport for denne weights-only sammenlikningen:
+samme rader/masker/query; alle5TF rålogitter<=2e-5; M5-sannsynlighet og
+blokkvis Brier/log/meanP<=1e-6. Internrepresentasjon rapporteres som diagnostikk.
+Ingen hidden-transplant, endret modell eller endring av kanoniske importtester.
+INITIAL revalideres fra lagrede tall før modellen bygges; ingen ny start-forward.
+Alle ni tilstander rapporteres. Ingen checkpoint velges. Siste16 konsumerte
+B16-batcher beskrives fra lagrede mål; eventuell samvariasjon er ikke årsaksbevis.
 
-Ingen ny konkret produsentfeil/frakobling eller fungerende retningsrettelse
-er påvist. Per-felt prediktiv nytte og lærte framtidsreaksjoner er ubevist.
-Modell-/targetkode er uendret; alle treningsporter er stengt.
-Neste direkte steg er innrømmet én gang: ni originale fullpass-checkpoints
-på de samme192 TRAIN-observasjonene, posisjoner0:64,14272:14336,29504:29568.
-CPU laster bare modell/buffere; ingen optimizer, RNG-restore, fit eller senere
-TRAIN-scoring. Maks108 forwards,600s,12G/512M ogén numerisk tråd gjennom
-capped producer. INITIAL/FINAL må samsvare med bevarte råprognoser.
-Alle ni rapporteres; ingen checkpoint velges. Siste16 konsumerte B16-batcher
-beskrives fra lagrede mål; eventuell samvariasjon er ikke årsaksbevis.
-Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_001
-PLAN SHA8d23047e66550eed42a8960f85dfef1594d78898ec49d8ede609933f4a5c6806.
-Metadata-preflight PASS7,284s; ingen modell eller checkpoint dekodet.
-En konkret kontrollskriptfeil ble rettet før kjøring: GPU RNG valideres separat
-fra CPU-delsettet uten å restaurere RNG. Modell-/treningskode er uendret.
-Ikke gjenta bestått featurekontroll eller konsumerte moment-/rekkefølgeprøver.
-Peer-kontroll av den rettede worker er PASS. Kjøringen er nå FAILED_CONSUMED:
-INITIAL12forwards/én checkpoint; ingen mellomcheckpoint, fit eller senere scoring.
-CPU/cache rålogits S1,33514e-5/F5,60284e-6 passer2e-5. M5-representasjon
-2,503395e-5 overstiger2e-5; derfor stopp før de resterende åtte tilstandene.
-Worker109,239s, helkommando112,231s. Originale captures/kvitteringer er bevart.
-Execution/training stengt. Neste steg: avklar kun lagret tallavvik og cachekilde;
-den konsumerte planen kan ikke relanseres.
+Brukerens all-feature-kontroll er fullført i
+[docs/TA_FORWARD_SEMANTICS_REVIEW.json](docs/TA_FORWARD_SEMANTICS_REVIEW.json):
+701feltdefinisjoner/59grupper,8familier+61D1/makrofelt,ingen dekningshull.
+Gjenbrukt konsumkontroll er bundet til uendrede aktive kilder. De fleste
+features er nåtilstand/historikk; S/F gir framtidige mål. HTF-linjer er ikke
+eksplisitt forlenget til aktuell M5-klokke/t+h, og linjespesifikke
+kontakt/sprett/bruddmål mangler. F under0,5ATR trener aktivitet/FLAT, ikke side.
+Historisk COT/makrovintage er fortsatt UNKNOWN. Ingen ny produsentfeil eller
+fungerende retningsrettelse ble påvist. Ikke gjenta beståtte featurekontroller.
+Alle treningsporter er stengt; bare den ene avgrensede evalueringen er tillatt.
 
 Siste læringsbevis beholdes: full29574 TRAIN fryst eval-tap1,948957162→
 2,021683248; alle10sidekomponenter verre, aktivitet bedre. M5 Brier S
