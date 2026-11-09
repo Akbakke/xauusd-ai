@@ -15,7 +15,23 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_NEXT_NATIVE_PASS_SOURCE_QUALIFIED.
+Policystatus: TA_M5_NEXT_NATIVE_PASS_FINITE_ADMISSION.
+
+Én ny, konkret passering er innrømmet: 29574 TRAIN-rader, 1849 steg, batch16,
+samme numerikk og genuine input/targets. Start er korrigert FINAL-import,
+SHA f33a9b3a2438d863925060d683291433a3827c9d313a276e9bd48197dd9a8ec1.
+RECIPE: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_NATIVE_PASS_20261109_001/RECIPE.json
+SHA 2470fa82e2a6f6eefd5b90b0e62323be8895ac4f0dc48a9bae125cc70d617fdc.
+Ny Windows-deployment er kopiert/verifisert; gammel frossen speiling beholdes.
+Forberedt boot630, ny boot kreves. GPU er kontrollert på250W.
+
+training_enabled=true gjelder bare denne engangsplanen; ingen jobb er startet
+ved dette vedtaket. Materialisering, taskinstallasjon og guarded fersk boot
+gjenstår. RUNTIME-prosess/CLAIM/terminal overstyrer denne teksten under kjøring;
+ingen kilde-/policyendring under fryst jobb. Kontroller stabil jobb hver15–30min.
+Etter terminal skal samme faste alpha0.01 M5 S/F-hodekontroll utføres på lagrede
+representasjoner med separat admisjon. Ingen inline readoutfit/import nå.
+Forseglet TEST, Entry/Exit, handel og videre passeringer er fortsatt stengt.
 
 Kilden for én ekstra native passering er kvalifisert. 80 fokuserte tester
 består: passiv capture, bitlike prognoser/RNG/state, komplett-only publisering,
@@ -35,7 +51,7 @@ SHA ee95497cfee657394819d0d4a9c46af3a48d9e8f44ccb71f699d1fbd71b33fef.
 Neste konkrete steg: bind ny recipe/campaign fra denne kilden, legg kvalifisert
 Windows-observatør i ny deployment, kontroller ledig vert og fersk boot via
 eksisterende vakter. Deretter én passering med 1849 steg og full ny initial.
-Ingen ny fit/campaign er innrømmet ennå; training_enabled=false.
+Eksakt ny engangsplan er nå innrømmet som beskrevet øverst.
 Beståtte tester og metadata skal gjenbrukes.
 
 TRAIN-månedskontrollen er COMPLETE/konsumert. Kun åtte eksisterende fit-arrays
@@ -70,7 +86,7 @@ uten ekstra forwards eller endret modellfunksjon. Da kan en separat
 encoder-cachepassering (tidligere 2616.234 s) unngås. Paritet, telling,
 minnegrense og recipe må kvalifiseres før bruk; ingen speedup er ennå målt.
 Den nødvendige capture-/innlastingskoden er nå kvalifisert som beskrevet øverst.
-Ingen ny kjøring er innrømmet; forberedelsens eksakte krav står i NEXT_RUN_POLICY.
+Bare den eksakte nye engangsplanen over er innrømmet; kravene står i NEXT_RUN_POLICY.
 
 Den faste 2×2-krysskontrollen er COMPLETE/konsumert: gamle/nye M5 F-hoder
 på gammel/ny representasjon, uten fit eller nativekall. Beregning 5.074 s;
