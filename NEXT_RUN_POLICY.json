@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T03:14:20.704120+00:00",
-  "status": "TA_DIRECTION_FIXED_L2_HEAD_CONTROL_ADMITTED",
+  "observed_utc": "2026-11-09T03:18:30.162372+00:00",
+  "status": "TA_DIRECTION_FIXED_L2_TRAIN_PRIOR_BEATEN_LATER_PRIOR_UNBEATEN",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Execute exactly two fixed-L2 cached M5 head fits to convergence; score both in FP32 B16 on identical TRAIN and reused later TRAIN. Close gate and review; no native transfer/fit authorized.",
+  "next_action": "Choose any next regularization using chronological inner TRAIN only, with target-maturity/purge checked and frozen encoder history disclosed; one later-TRAIN report after selection. Reuse this fixed-alpha solver and caches. Do not tune on repeated later scores or launch native training while cached direction still loses prior.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1632,6 +1632,10 @@
     "latest_cached_m5_order_control": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_BATCH_ORDER_20261109_001/REVIEW.json",
       "sha256": "541cabf69776730732571dd57bc5ff8797a3614b09510c6c0218df573f37923f"
+    },
+    "latest_private_fixed_l2_m5_control": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_REGULARIZED_HEAD_20261109_001/REVIEW.json",
+      "sha256": "c0c86f66eaf8547d704c131d690f23452df2ca87905d6047a2fdf0830502eace"
     }
   },
   "current_work": {
@@ -40169,7 +40173,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "market_state_ta_direction_regularized_head_20261109_001",
+  "training_enabled_scope": "NONE_FIXED_L2_HEAD_COMPLETE_SAVED_EVIDENCE_REVIEW_ONLY",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -67611,19 +67615,19 @@
     "finding": "Fixed double-reference raw tolerance fails3of4partitions, maximum3.78e-6; Brier difference under4e-9. Raw feature condition~2473/2322 and head norms~38. Native transfer is not qualified; no tolerance changed."
   },
   "market_state_ta_direction_regularized_head_20261109_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_REGULARIZED_HEAD_20261109_001/PLAN.json",
       "sha256": "64708d146fc46721061f750128d8d539ea129b14eb7f58542fc211de57bce033"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
-    "execution_authorized": true,
-    "training_authorized": true,
-    "data_reads_authorized": true,
-    "readout_fits": 2,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "data_reads_authorized": false,
+    "readout_fits": 0,
     "new_native_forwards": 0,
     "new_native_parameter_updates": 0,
     "test_data_used": false,
@@ -67633,6 +67637,79 @@
     "synthetic_check": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_REGULARIZED_HEAD_20261109_001/SYNTHETIC_CHECK.log",
       "sha256": "7fb2bf6a8d2cd033fd8f4c045617ce481c4a3cc1c54ccaee5fd21e5815e13068"
-    }
+    },
+    "observed_readout_fits": 2,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_REGULARIZED_HEAD_20261109_001/RESULT.json",
+      "sha256": "4bc4e7a8c646340ef8e9a1d0df41afcaee5090624e9286ea8739f0a4eacbebae"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_REGULARIZED_HEAD_20261109_001/TERMINAL.json",
+      "sha256": "dc43e261f8b3ac7de78ea5538c2587d4e97d3dd4465ffc984d7051ea2d1ec1ea"
+    },
+    "elapsed_seconds": 4.032908183999098,
+    "verification": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_REGULARIZED_HEAD_20261109_001/VERIFICATION.json",
+      "sha256": "3549526d23d592d5af9578c06917503864d35a0ae9bfb3f82084d4f4f9e20bc9"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_REGULARIZED_HEAD_20261109_001/REVIEW.json",
+      "sha256": "c0c86f66eaf8547d704c131d690f23452df2ca87905d6047a2fdf0830502eace"
+    },
+    "train_prior_beaten": true,
+    "later_prior_beaten": false,
+    "native_transfer_authorized": false,
+    "native_model_changed": false,
+    "m5_scores": {
+      "fit": {
+        "future": {
+          "brier": 0.2483869697750978,
+          "prior_brier": 0.24987621125676626,
+          "brier_minus_prior": -0.0014892414816684574,
+          "unregularized_brier": 0.24718817030370363,
+          "brier_change_from_unregularized": 0.001198799471394174,
+          "log": 0.6899149852544509,
+          "log_minus_prior": -0.002984597383444254,
+          "auc": 0.5437887011853827,
+          "mean_p": 0.5147196268471721
+        },
+        "state": {
+          "brier": 0.2472726008380958,
+          "prior_brier": 0.24965100834625317,
+          "brier_minus_prior": -0.0023784075081573763,
+          "unregularized_brier": 0.2461256949748635,
+          "brier_change_from_unregularized": 0.0011469058632322948,
+          "log": 0.6876689237503576,
+          "log_minus_prior": -0.004780111017807842,
+          "auc": 0.5547247225830716,
+          "mean_p": 0.5256802796495619
+        }
+      },
+      "score": {
+        "future": {
+          "brier": 0.2508406444580071,
+          "prior_brier": 0.249833416409301,
+          "brier_minus_prior": 0.0010072280487060659,
+          "unregularized_brier": 0.2538534206845416,
+          "brier_change_from_unregularized": -0.003012776226534508,
+          "log": 0.6948536832588937,
+          "log_minus_prior": 0.0020397044421023303,
+          "auc": 0.5098157476739424,
+          "mean_p": 0.5196523898144422
+        },
+        "state": {
+          "brier": 0.2509932034759647,
+          "prior_brier": 0.2498279877882917,
+          "brier_minus_prior": 0.001165215687672999,
+          "unregularized_brier": 0.2546222652724795,
+          "brier_change_from_unregularized": -0.0036290617965147876,
+          "log": 0.6951867671469383,
+          "log_minus_prior": 0.0023836087175761467,
+          "auc": 0.5153264342574269,
+          "mean_p": 0.5301879925014729
+        }
+      }
+    },
+    "finding": "Fixed explicit coupled-L2 converged M5 heads beat frozen prior on identical TRAIN and reduce later error versus unregularized readouts, but both later heads remain worse than frozen prior. This demonstrates a regularized TRAIN solution and reduced overfit at the fixed original representation, not a repaired native training trajectory or qualified direction edge."
   }
 }

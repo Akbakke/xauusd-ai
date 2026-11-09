@@ -15,15 +15,36 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_DIRECTION_FIXED_L2_HEAD_CONTROL_ADMITTED.
+Policystatus: TA_DIRECTION_FIXED_L2_TRAIN_PRIOR_BEATEN_LATER_PRIOR_UNBEATEN.
 
-Den [faste L2-kontrollen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_REGULARIZED_HEAD_20261109_001/PLAN.json)
-er innrømmet én gang: to konvergerte M5-hoder på eksisterende originalcache.
-Alle128 koordinater beholdes. Eksakt B16-/5-sideobjektiv pluss koblet L2 på
-vekt+bias; alpha1e-4 hentes fra eksisterende oppskrift og tunes ikke.
+Den [faste L2-kontrollen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_REGULARIZED_HEAD_20261109_001/REVIEW.json)
+er COMPLETE og konsumert: to M5-hoder på eksisterende originalcache,
+alle128 koordinater, eksakt B16-/5-sideobjektiv pluss koblet L2 på vekt+bias.
+Alpha1e-4 ble hentet fra eksisterende oppskrift før kjøring og ikke tunet.
 Dette er et nytt eksplisitt mål, ikke matematisk ekvivalens med AdamW decay.
-To syntetiske matematikktester og separat lesende kontroll består.
-CPU12G/512M, én numerisk tråd, maks900s; ingen nativefit/-overføring autorisert.
+Begge løste mål konvergerte etter2/3 Newton-steg; hele kontrollen tok4,033s.
+Hodenormer inkludert bias er nå S2,018/F1,662 mot uregulariserte vektnormer~38.
+
+FP32 B16 M5 Brier, lavere er bedre:
+TRAIN S0,247272601 mot prior0,249651008; F0,248386970 mot0,249876211.
+Senere S0,250993203 mot prior0,249827988; F0,250840644 mot0,249833416.
+Begge slår altså TRAIN-prior, men taper fortsatt på senere TRAIN.
+Senere feil er lavere enn uregularisert S0,254622/F0,253853; senere AUC
+S0,515326/F0,509816. Ingen statistisk kvalifisert generalisering eller edge.
+Dette er en fungerende regularisert TRAIN-løsning ved frossen representasjon;
+full native treningsbane er ikke rettet eller bevist forklart av kontrollen.
+
+Alle16 scoreceller er rekalkulert fra originale cachemål (maks2,23e-16),
+batchmålet (maks1,28e-15), hele L2-objektivet (0), gradientene og alle FP32
+B16-prediksjoner (bitlike) er kontrollert. To syntetiske matematikktester,
+separat lesende review og commitvakter bestod. Kilde9df21b20 var uendret.
+CPU-porten er lukket; ingen nativevekt, modellkode eller ONLINE-funksjon er endret.
+
+Neste direkte steg er å velge eventuell videre regularisering utelukkende
+på kronologiske indre TRAIN-splitt, etter kontroll av targetmodning/purge.
+Den frosne encoderens TRAIN-historikk må oppgis; indre måling er ikke uavhengig
+encoder-OOF. Gjenbruk denne løseren og cachene, og rapporter senere TRAIN først
+etter låst valg. Ingen tuning på gjentatte senere skårer eller ny nativefit.
 
 [Overføringsauditen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_READOUT_TRANSFER_AUDIT_20261109_001/RESULT.json)
 tok2,413s uten fit/modell/checkpoint. Uregulariserte hodenormer er~38,
