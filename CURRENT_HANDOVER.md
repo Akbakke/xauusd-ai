@@ -15,47 +15,35 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: ANALYTIC_M5_HEAD_FIRST_MOMENT_INTERFERENCE_VERIFIED_PAIRED_PROBE_REQUIRED.
+Policystatus: PAIRED_EIGHT_STEP_M5_HEAD_MOMENT_RESET_ADMITTED.
 
-POST16-diagnosen er COMPLETE/konsumert og uavhengig verifisert. Ingen jobb
-kjører; alle treningsporter er stengt. 6 forwards/21 autograd, 0 oppdateringer.
-Hel kommando 230.352 s, worker 226.823 s, peakRSS 7.230 GB.
-Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_POST16_SHARED_GRADIENT_20261109_001
-RESULT SHAdc67c521a92e1d42870f995257741993e94891e7dda49513c6a4cabca41414ba.
-REVIEW SHAc826b065e8febfd1a870184080ad250b8cced330e6feed7076a597a76831b009.
-Review 4.563 s gjenskaper alle fem gradientpartisjoner, også neste AdamW
-med lagret momenthistorikk; maksavvik 3.417e-13. Alle 570 parameter-ID/navn,
-weights, m/v og steg16 matcher checkpointet eksakt. Samme48observasjoner,
-queries/supports ogCPUdropoutstart/slutt som INITIAL; baseline ikke gjentatt.
+Én kort CPU-test er innrømmet; ingen hel epoke eller større trening er åpnet.
+CONTROL og RESET starter fra samme fullstendige FINAL16-checkpoint og trener
+de samme neste åtte batchene hver (128 rader, cursor256→384). Totalt16nye
+oppdateringer, maksimalt64forwards/16backwards/600s,12G/512M/tråd1.
+Bare RESET nuller første moment (exp_avg) i fire M5-hodeparametre én gang;
+vekter, andre moment, steg, øvrige momenter og RNG er like ved start.
+Originalcheckpointet bevares. Global training_enabled gjelder bare denne
+eksakte engangsplanen; native/GPU/full_epoch er fortsatt stengt.
 
-Andre mål har fortsatt gunstig fersk gradientretning for M5-backbone i alle
-tre batcher. Samlet lokal eval-BCE-effekt fra fersk AdamW:
-S −0.000688662 / F −0.000574168.
-Med faktisk lagret momenthistorikk: −0.000039635 / −0.000031867.
-Backbone-bidraget er fortsatt gunstig, men M5-hodene bidrar ugunstig:
-+0.000047086 / +0.000044446. Dette gjelder samlet og to av tre batcher;
-S totalretning er ugunstig i midterste batch (+0.000014484).
+Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_MOMENT_RESET_20261109_001
+PLAN SHA ebaeab98e82bd6a600cd9e528cca89fcffe2d3ccd1072dd538ed6faf89078af6.
+Worker SHA ab0d7e5dc813e686e5d276ff5b260e07eaa37e160d91f165fd45003e722f7d93.
+Metadata-preflight PASS på13inputs/85kildeeiere, uten modell/payload.
+Uavhengig statisk review PASS; små tester av faktisk gate/report-AST beviser
+PASS/FAIL-grener og64/40forwards. Tidligere kontroller gjenbrukes.
 
-En avgrenset analytisk kontroll nuller KUN exp_avg for de fire M5-hode-
-parametrene. Andre moment, steg16, klipping, vekter og øvrige momenter er
-uendret. Da blir hodebidraget −0.000007431 / −0.000006802 og totalen
-−0.000094152 / −0.000083114. Fortegnsforskjellen er dermed isolert til
-første-momenthistorikken i denne lokale beregningen. Ingen faktisk
-oppdatering, Briergevinst eller generell optimizerårsak er bevist.
+POST16-analysen målte at lagret første moment i M5-hodene ga ugunstig lokalt
+BCE-bidrag samlet og i to av tre batcher. Kun nulling av de fire momentene
+snudde det beregnede bidraget gunstig; faktisk retningsforbedring er ubevist.
+Denne parede testen avgjør om endringen forbedrer resultatet sammenlignet
+med å fortsette normalt. Samme192TRAIN-rader og lagret POST16baseline brukes.
+RESET må slå CONTROL, POST16baseline og fryst prior i begge S/F Brier,
+uten dårligere logloss, før begge armer scores på192senere TRAIN-rader.
+Senere TRAIN er gjenbrukt utvikling, ikke fersk generalisering.
 
-Neste konkrete test er to korte, parede videreføringer fra FINAL16:
-CONTROL nøyaktig full CPU-resume og RESET samme resume med kun de fire
-M5 exp_avg-bufferne nullet én gang. Hver arm får de samme neste8steg/
-128rader (starts256..368), identisk RNG, kanonisk modell/loss/AdamW/klipping.
-Originalcheckpoint beholdes; resetprovenans og faktisk start-/sluttstate
-lagres. Hver sluttstate har cursor384/updates24; det er16nye steg totalt.
-
-Worker er under implementasjon, men ingen ny fit er innrømmet.
-Maks16backwards/64forwards/600s/12G/tråd1. Gjenbruk identisk ONLINE-
-POST16baseline og de samme192TRAIN-radene. RESET må forbedre begge
-S/F mot CONTROL, POST16baseline og prior før begge armer scores på192
-forhåndsbestemte senere TRAIN-rader. Senere TRAIN er gjenbrukt utvikling.
-Ingen endring i tapsvekter, betaer, andre optimizerfelt, TEST eller handel.
+Neste steg: kjør planen én gang, steng alle porter etter terminal, kontroller
+lagrede resultater. Ingen automatisk fortsettelse. TEST/Entry/Exit/handel stengt.
 
 Hidden-kontrollen er COMPLETE/konsumert og numerisk verifisert; ingen jobb
 kjører og alle porter er stengt.24encoderforwards,0optimizer/backwards/fit/

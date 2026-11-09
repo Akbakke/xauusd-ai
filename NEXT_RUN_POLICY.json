@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-09T17:07:12.629858+00:00",
-  "status": "ANALYTIC_M5_HEAD_FIRST_MOMENT_INTERFERENCE_VERIFIED_PAIRED_PROBE_REQUIRED",
+  "status": "PAIRED_EIGHT_STEP_M5_HEAD_MOMENT_RESET_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Implement/qualify one paired8+8-update CPU continuation from immutable FINAL16. CONTROL exactresume versus RESET exactresume with only four dedicatedM5-head exp_avg buffers zeroed once before fit; v,steps,weights,kwargs,allothermoments andRNG remain unchanged. Same next128rows atstarts256..368. Reuse identicalONLINE POST16baseline; evaluate fixed192TRAIN. Only if predeterminedRESET beatsCONTROL,POST16baseline andprior in bothS/F Brier and no worse logloss, scorebothfixed192laterTRAIN. Max16newupdates/16backwards/64forwards/600s; no fit admitted yet. This tests the actual effect of the isolated analytic first-moment sign reversal, not a general optimizer change.",
+  "next_action": "Execute exactly the admitted paired8+8CPU continuation once, max600s. Reuse FINAL16 and POST16baseline. Close all fit gates at terminal and review immutable paired captures/counts. No larger run or continuation is authorized.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -40200,7 +40200,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "CLOSED_NO_AUTOMATIC_RELAUNCH",
+  "training_enabled_scope": "market_state_ta_m5_head_moment_reset_20261109_001",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -69876,7 +69876,7 @@
       "sha256": "c826b065e8febfd1a870184080ad250b8cced330e6feed7076a597a76831b009"
     },
     "next_head_moment_reset_scope": {
-      "status": "MEASURED_NEED_WORKER_IN_PROGRESS_NOT_ADMITTED",
+      "status": "ADMITTED_ONE_INVOCATION",
       "source_checkpoint": {
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/FINAL_CPU_STATE.pt",
         "sha256": "ba77633c365fadbdfe1b2d8073dbcbfc181b95fe013c4691214197c24490fc44"
@@ -69932,11 +69932,19 @@
           17744
         ]
       ],
-      "training_authorized": false,
-      "execution_authorized": false,
+      "training_authorized": true,
+      "execution_authorized": true,
       "automatic_continuation": false,
       "gate": "Both S/F RESET Brier improves>1e-6 againstCONTROL,POST16baseline andfrozenprior; logloss no worse thanCONTROL orPOST16baseline+1e-8. Locked gate beforeworker later scoring. Separate correctedINITIAL0 reference retained.",
-      "scope": "Paired identicaldata/RNG/canonicaloptimizer/loss, genuine5TF; onlydeclaredfirstmomentstateintervention. Fulltargettape validation upfront acknowledged. No TEST/trading orpromotion."
+      "scope": "Paired identicaldata/RNG/canonicaloptimizer/loss, genuine5TF; onlydeclaredfirstmomentstateintervention. Fulltargettape validation upfront acknowledged. No TEST/trading orpromotion.",
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_MOMENT_RESET_20261109_001/PLAN.json",
+        "sha256": "ebaeab98e82bd6a600cd9e528cca89fcffe2d3ccd1072dd538ed6faf89078af6"
+      },
+      "worker": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_MOMENT_RESET_20261109_001/probe.py",
+        "sha256": "ab0d7e5dc813e686e5d276ff5b260e07eaa37e160d91f165fd45003e722f7d93"
+      }
     }
   },
   "market_state_ta_m5_short_accumulation_20261109_001": {
@@ -70298,6 +70306,49 @@
     "review": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_POST16_SHARED_GRADIENT_20261109_001/REVIEW.json",
       "sha256": "c826b065e8febfd1a870184080ad250b8cced330e6feed7076a597a76831b009"
+    }
+  },
+  "market_state_ta_m5_head_moment_reset_20261109_001": {
+    "status": "ADMITTED",
+    "execution_authorized": true,
+    "training_authorized": true,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_MOMENT_RESET_20261109_001/PLAN.json",
+      "sha256": "ebaeab98e82bd6a600cd9e528cca89fcffe2d3ccd1072dd538ed6faf89078af6"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_MOMENT_RESET_20261109_001/probe.py",
+      "sha256": "ab0d7e5dc813e686e5d276ff5b260e07eaa37e160d91f165fd45003e722f7d93"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_MOMENT_RESET_20261109_001/PREFLIGHT.json",
+      "sha256": "7e229bb94eb7b1c8874aa4b3f4d2c9a0fb2bcc4961de0aa286b7e5f543bc5d7a"
+    },
+    "controller_source": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_MOMENT_RESET_20261109_001/controller.py",
+      "sha256": "6f1ac6f410bff830ac853bd7bb0b72ee846d58b380bdd359a449498e329e7a66"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "max_updates": 16,
+    "max_backwards": 16,
+    "max_forwards": 64,
+    "wall_seconds": 600,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "numerical_threads": 1,
+    "test_data_used": false,
+    "source_review": {
+      "status": "PASS",
+      "agent": "/root/ta_formula_audit",
+      "worker": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_MOMENT_RESET_20261109_001/probe.py",
+        "sha256": "ab0d7e5dc813e686e5d276ff5b260e07eaa37e160d91f165fd45003e722f7d93"
+      },
+      "scope": "Canonical deepcopy restore/capture; only four exp_avg buffers reset once, identical data/RNG,16newupdates. Tiny actual-AST PASS/FAIL/report tests verified64/40forwards,4/2restores and conditional later branch; incorrect counts rejected. No model/payload/import. Root reviewed complete frozen worker."
     }
   }
 }
