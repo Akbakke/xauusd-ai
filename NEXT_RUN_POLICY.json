@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-09T17:07:12.629858+00:00",
-  "status": "EARLY_BACKBONE_DRIFT_VERIFIED_POST16_GRADIENT_COMPARISON_REQUIRED",
+  "status": "POST16_SHARED_GRADIENT_AND_ADAMW_HISTORY_ADMITTED_NO_FIT",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Qualify one zero-update shared-gradient diagnostic at saved FINAL16 on the exact same3TRAIN batches [0,14272,29552] and same CPU dropout/query recipe as the completed INITIAL diagnostic. Reuse INITIAL gradients/result/review; do not repeat baseline. Measure whether other genuine objectives now oppose M5 in actual shared backbone/query parameters. Max6forwards/21autograd,0optimizer/updates,600s/12G/thread1. No job is admitted yet. Do not freeze modules or alter loss based only on frozen-combination attribution; no one of eight combinations beats Fprior on the fixed192rows.",
+  "next_action": "Run the newly qualified POST16 frozen-point diagnostic once, max6forwards/21autograd/600s/12G/thread1,0optimizer/updates. Reuse INITIAL baseline and match its observation/query/dropout control. Compare fresh loss gradients and analytic nextAdamW direction from actual saved moments; no training/candidate selection/later scoring. Close admission after terminal and independently recompute saved numeric evidence.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -69817,7 +69817,7 @@
       "sha256": "a08b267d6f286f210d030fd7807e69e7e91f65ceb2fbb4f378c5512e2a9891c0"
     },
     "next_post16_gradient_scope": {
-      "status": "MEASURED_NEED_NOT_IMPLEMENTED_NOT_ADMITTED",
+      "status": "SOURCE_AND_METADATA_QUALIFIED_ADMITTED",
       "checkpoint": {
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/FINAL_CPU_STATE.pt",
         "sha256": "ba77633c365fadbdfe1b2d8073dbcbfc181b95fe013c4691214197c24490fc44"
@@ -69846,9 +69846,18 @@
       "wall_seconds": 600,
       "memory_max": "12G",
       "numerical_threads": 1,
-      "execution_authorized": false,
+      "execution_authorized": true,
       "training_authorized": false,
-      "comparison": "Same genuine observations, queries, weighting, CPU dropout recipe and active parameter partitions as INITIAL; only checkpoint changes. Reuse old baseline artifacts. Full shared encoder parameter gradients required, not detached hidden-only proxy."
+      "comparison": "Same genuine observations, queries, weighting, CPU dropout recipe and active parameter partitions as INITIAL; only checkpoint changes. Reuse old baseline artifacts. Full shared encoder parameter gradients required, not detached hidden-only proxy.",
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_POST16_SHARED_GRADIENT_20261109_001/PLAN.json",
+        "sha256": "f6deea3d29120ca2ca8aca30fbaff90535f859fb67ed29c6d326996cf6ea3478"
+      },
+      "worker": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_POST16_SHARED_GRADIENT_20261109_001/probe.py",
+        "sha256": "d49e96244a966f7d0640b356fee3eda69463bbe2a60850e2de01677769c0ff8f"
+      },
+      "saved_moment_analytic_next_direction": true
     }
   },
   "market_state_ta_m5_short_accumulation_20261109_001": {
@@ -70154,5 +70163,41 @@
     },
     "review_seconds": 2.262437809999028,
     "runtime_route_qualified": true
+  },
+  "market_state_ta_m5_post16_shared_gradient_20261109_001": {
+    "status": "ADMITTED",
+    "execution_authorized": true,
+    "training_authorized": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_POST16_SHARED_GRADIENT_20261109_001/PLAN.json",
+      "sha256": "f6deea3d29120ca2ca8aca30fbaff90535f859fb67ed29c6d326996cf6ea3478"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_POST16_SHARED_GRADIENT_20261109_001/PREFLIGHT.log",
+      "sha256": "7ed150e9da328ccb199f50eb829e352a6fb400b8552ba4c0008f20a1e9906cb5"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "optimizer_updates_authorized": 0,
+    "optimizer_constructions_authorized": 0,
+    "max_forwards": 6,
+    "max_autograd_calls": 21,
+    "wall_seconds": 600,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "numerical_threads": 1,
+    "test_data_used": false,
+    "source_review": {
+      "status": "PASS",
+      "agent": "/root/ta_formula_audit",
+      "worker": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_POST16_SHARED_GRADIENT_20261109_001/probe.py",
+        "sha256": "d49e96244a966f7d0640b356fee3eda69463bbe2a60850e2de01677769c0ff8f"
+      },
+      "scope": "Static nextAdamW formula, parameter mapping, controls and loop limits. Root reviewed installedAdamW source and complete worker; runtime/numeric evidence pending."
+    }
   }
 }

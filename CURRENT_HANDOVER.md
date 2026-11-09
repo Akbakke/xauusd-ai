@@ -15,7 +15,19 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: EARLY_BACKBONE_DRIFT_VERIFIED_POST16_GRADIENT_COMPARISON_REQUIRED.
+Policystatus: POST16_SHARED_GRADIENT_AND_ADAMW_HISTORY_ADMITTED_NO_FIT.
+
+Én ny POST16-gradientdiagnose er kvalifisert/innrømmet; trening er stengt.
+Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_POST16_SHARED_GRADIENT_20261109_001
+PLAN SHAf6deea3d29120ca2ca8aca30fbaff90535f859fb67ed29c6d326996cf6ea3478.
+Worker SHAd49e96244a966f7d0640b356fee3eda69463bbe2a60850e2de01677769c0ff8f.
+Preflight85kildeeiere og separat kildekontroll PASS.6forwards/21autograd,
+0optimizer/updates,600s/12G/tråd1. INITIAL-diagnosen gjenbrukes uten rerun.
+Samme48TRAIN-rader,queries og CPUdropoutstart/slutt skal matche.
+Ny måling inkluderer FP64-analytisk nesteAdamW fra faktisk570parametertilstander
+medstep16 i énparamgruppe, i tillegg til gammel first-AdamW-sammenligning.
+Dette er lokal BCE-retning, ikke anvendtTorchsteg eller Briergevinst.
+Lukk engangsadmisjonen etter terminal; ingen automatisk viderejobb.
 
 Hidden-kontrollen er COMPLETE/konsumert og numerisk verifisert; ingen jobb
 kjører og alle porter er stengt.24encoderforwards,0optimizer/backwards/fit/
