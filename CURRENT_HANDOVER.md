@@ -15,23 +15,31 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_EQUAL_LOSS_NATIVE_MECHANICAL_ADMITTED.
+Policystatus: TA_M5_EQUAL_LOSS_NATIVE_QUALIFIED_DIRECTION_FIT_PENDING.
 
-Ny avgrenset native-rute er implementert: strict gammel restore av importert
-checkpoint616a22… og ny capture av samme modell/optimizer/RNG/order med
-equal-observation-loss. Ingen ny vektkopiering; gammel restore/capture-kode
-er byteidentisk bevart. Privat2mot1+resume1 bruker3modeller/3optimizere,
-6forwards/4backwards/4steg, separat ny recipe/runtime/cursor og250W.
-110fokuserte tester består. Første forsøk hadde24oppsettsfeil i én historisk
-testfixture som blandet gammel oppskrift og dagens kilde; fixture er rettet
-til sin erklærte historiske kilde og kun disse24kjørt om. Produksjonsvakten
-er uendret. Faktisk metadata/view/importbinding med85kildefiler består.
-[Kildekontroll](/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_MECHANICAL_20261109_001/SOURCE_VALIDATION.json).
-Ingen nativeprøve eller ny fit er kjørt. Ny recipe93693fff… og faktisk
-preflight57218ae8… består; én4-stegs nativekvalifikasjon er nå innrømmet.
-Kun denne avgrensede prøven har training_enabled=true.250W og fersk boot
-kreves. Ingen full predictor-fit er innrømmet. Neste steg er materialisering
-og engangskjøring gjennom eksisterende vakter.
+Den nye [native equal-loss-kvalifikasjonen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_MECHANICAL_20261109_001/REVIEW.json)
+er COMPLETE og konsumert:3modeller/3optimizere,6forwards/4backwards/4steg.
+Strict gammel restore av importcheckpoint616a22… og ny capture bevarte faktisk
+modell/buffere/tomAdamW/RNG/modes/order bitlikt. Bare tapsbinding, source og
+samlet seal endret. NyINITIAL5f91d264… er kontrollert direkte mot originalfilen.
+2steg direkte mot1+lagring+resume1 ga bitlik fullstate; begge M5-hoder fikk
+gradient. FINAL_PRIVATE e6751982… har2logiske steg og skal IKKE brukes i fit.
+Gjenbruk originalimporten616a22… som startpunkt.
+
+Trener/observer/signedguard og Windows-task avsluttet0; full campaign-receipt
+finnes. Boot628,250W beholdt, maks46°C/minne52°C. Task er deaktivert og ingen
+ny trening er innrømmet. Kilde619c79da var uendret gjennom kjøringen.
+Native155,619s; hele kampanjen175,810s mot tidligere171,595s (+2,46prosent).
+Ingen målt speedup; dette er én workflow-sammenligning med ulik start/loss,
+ikke isolert ytelsesbenchmark eller fullfit. Source/routing er kvalifisert
+med110fokuserte tester og faktisk85-owner metadata. Én historisk testfixture
+ble rettet til sin erklærte kildeversjon; produksjonsvaktene er uendret.
+
+**Neste direkte steg:** Bind én ny full fold1-fit til originalimporten og
+den kvalifiserte rebind-helperen. Gjenbruk tapskontrollen og native4stegsbeviset,
+ikke kjør dem om. Full matchet TRAIN INITIAL/FINAL og separat senere TRAIN
+må fortsatt måles. Denne prøven har32initialrader og beviser ingen ny
+retningsgevinst eller fullbaseline. F taper fortsatt svakt mot senere prior.
 
 Den innrømmede [lagrede-logit-kontrollen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_OBSERVATION_LOSS_20261109_001/REVIEW.json)
 er COMPLETE og konsumert:1849FIT-batcher,3698rålogit-autogradkall,213,206s.
@@ -53,7 +61,7 @@ forward, gamle/nye state-rundturer og avvist kryss-restore. Syntaks består.
 
 Native fit med rettelsen er ikke kjørt. Neste nødvendige kobling er streng
 nativekontroll av den nå implementerte bindingen fra verifisert importcheckpoint.
-Den nye grenen unngår den gamle legacy-varmstarten som ville klonet gamle hoder.
+Den kvalifiserte nye grenen unngår den gamle legacy-varmstarten som ville klonet gamle hoder.
 Ingen fit er innrømmet. AdamW er uendret; Newton med koblet L2 fra
 readout-forsøket er ikke gjenskapt av denne vektingsrettelsen.
 
@@ -612,7 +620,7 @@ Ett pass og én fold er ingen generell dom over lengre læring eller historikk.
 
 Den tidligere [GC-registerplanen](configs/research/MARKET_STATE_GC_SIDE_MAX_REGISTRY_20261108_001.json)
 forblir bevart, men er utsatt og uklamet etter brukerens nye prioritering.
-`training_enabled=true` gjelder bare den nye firestegs kvalifikasjonen ovenfor; koblingskontrollen og alle tidligere
+`training_enabled=false` stenger ny trening; firestegs kvalifikasjonen, koblingskontrollen og alle tidligere
 retningsdiagnoser, input-kontrollen, den konvekse M5-planen, cacheplanen
 og native fitplanene er konsumert.
 

@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T05:33:07.608721+00:00",
-  "status": "TA_M5_EQUAL_LOSS_NATIVE_MECHANICAL_ADMITTED",
+  "observed_utc": "2026-11-09T05:50:08.766633+00:00",
+  "status": "TA_M5_EQUAL_LOSS_NATIVE_QUALIFIED_DIRECTION_FIT_PENDING",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Materialize and execute the newly admitted250W/fresh-boot4-update native equal-loss checkpoint/resume qualification once. No full predictor fit, GC, TEST, Entry/Exit or trading.",
+  "next_action": "New one-pass fold1 fit recipe/runner must reuse original imported checkpoint and qualified rebinding helper. Reuse actual saved-FIT loss and native4-step controls; do not rerun them. Matched full TRAIN initial/final and separate later TRAIN scoring remain required.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -24653,7 +24653,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-09T05:28:25.122261+00:00",
+  "updated_utc": "2026-11-09T05:50:08.766633+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -35439,7 +35439,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -40181,7 +40181,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "market_state_ta_m5_equal_loss_mechanical_20261109_001",
+  "training_enabled_scope": "NONE_EQUAL_LOSS_MECHANICAL_CONSUMED",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -66300,7 +66300,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "Full saved-FIT loss audit verified. Strict same-state old-to-new loss rebinding and native private route implemented;110 focused synthetic cases and actual85-owner metadata pass. Native2vs1+resume1 still pending."
+    "latest_progress": "All1849 saved-FIT batches and actual250W native4-step qualification pass. Old-to-new binding preserves actual saved model/buffers/emptyoptimizer/RNG/order, strict2vs1+resume1 is bitexact; controller/observer/guard0 and taskdisabled. Next is one matched full fit from original imported checkpoint, not privateupdatedweights. LaterF prior remains unbeaten."
   },
   "market_state_ta_direction_weight_diagnostic_20261108_001": {
     "status": "COMPLETE_CONSUMED",
@@ -68095,28 +68095,28 @@
     }
   },
   "market_state_ta_m5_equal_loss_mechanical_20261109_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "source_validation": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_MECHANICAL_20261109_001/SOURCE_VALIDATION.json",
       "sha256": "05927400c977bebbcdfec296ec8bed03e19679069817cb5b48df93a9cfa8da97"
     },
     "scope": "One planned equal-loss imported-state strict-rebinding and2versus1plusresume1 qualification; no full predictor fit.",
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "execution_authorized": true,
-    "ta_m5_equal_loss_mechanical_authorized": true,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "execution_authorized": false,
+    "ta_m5_equal_loss_mechanical_authorized": false,
     "physical_power_limit_w": 250,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
-    "decision": "ADMITTED",
-    "campaign_preparation_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
+    "decision": "COMPLETE",
+    "campaign_preparation_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
     "genuine_predictor_fit_authorized": false,
     "native_launch_authorized": false,
     "normalization_fit_authorized": false,
@@ -68154,6 +68154,33 @@
       "sha256": "57218ae8c708b45a5ff0347f4d936f1d7d3baa710671b4af4f2f78b350c4c5c6"
     },
     "fresh_windows_boot_required": true,
-    "admission": "Standing zero-cost local direction-only authority; new exact once-only4-update mechanical qualification, no predictor fit. All old plans remain consumed."
+    "admission": "Standing zero-cost local direction-only authority; new exact once-only4-update mechanical qualification, no predictor fit. All old plans remain consumed.",
+    "remaining_invocations": 0,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_MECHANICAL_20261109_001/RESULT.json",
+      "sha256": "58fa9767f531f458c95e375d3f86e7c8efd956c58970bc0b976f743483277ef7"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_MECHANICAL_20261109_001/TERMINAL.json",
+      "sha256": "6eac64d7b0eddb8aa330e434133350ef099edebce994347017610d9a9bb3ccac"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_MECHANICAL_20261109_001/REVIEW.json",
+      "sha256": "c2d0114a1375c82e35b15231be195f1ff2e14d1831fdd6d1ae2ffc88ff978e4d"
+    },
+    "campaign_receipt": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_MECHANICAL_20261109_001/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "683261526b538366d4ba1589d625c0bea918cbb9e1805a3bd289d46255b80869"
+    },
+    "artifact_verification": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_MECHANICAL_20261109_001/ARTIFACT_VERIFICATION.json",
+      "sha256": "e84a33f7cffe489b5fa43d0f519a29d2db8f8f5608a2dff20e41eb57ab3de18a"
+    },
+    "actual_optimizer_steps": 4,
+    "windows_task_disabled": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_MECHANICAL_20261109_001/WINDOWS_TASK_DISABLED.json",
+      "sha256": "559c738694abb972091d0c7552642d1e310e050f92e9093a1552780c3304143c"
+    },
+    "predictive_value_demonstrated": false
   }
 }
