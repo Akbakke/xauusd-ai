@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T22:44:16.807160+00:00",
-  "status": "TA_M5_ORIGINAL_MODE_CONTRAST_COMPLETE_NO_MODE_EXPLANATION",
+  "observed_utc": "2026-11-09T23:00:10.242090+00:00",
+  "status": "TA_M5_ORIGINAL_GRADIENT_ADMITTED_ZERO_UPDATES",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "No dropout or inference-path correction is supported. The next distinct mechanistic question is whether auxiliary-task gradients or the saved AdamW update at the ORIGINAL fullpass states oppose M5 direction on the same fixed TRAIN rows. Reuse the original E/T captures for exact function parity; any zero-update gradient plan must be separately bounded before execution. Do not repeat the later-INITIAL0 gradient study, reset/sampler sweeps, mode contrast, or full fit.",
+  "next_action": "Execute the exact original ae772/23ff frozen-gradient comparison once, then close admission and independently verify saved gradient/moment geometry. No fit, optimizer instance, parameter update, later data or automatic continuation.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -71545,5 +71545,61 @@
     "worker_seconds": 187.34293720000278,
     "review_whole_seconds": 0.42111822000151733,
     "direction_improvement_established": false
+  },
+  "market_state_ta_m5_original_shared_gradient_20261109_001": {
+    "status": "ADMITTED",
+    "execution_authorized": true,
+    "training_authorized": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/PLAN.json",
+      "sha256": "b145d9d8fafeda17c82d3f5e0d93ec01a278bd2aac7ab2fd01576facec62a482"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/probe.py",
+      "sha256": "293c7bc23c992e43546f005f65eadfbf74eb94aea244a54011296f3ad10093c8"
+    },
+    "controller_source": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/controller.py",
+      "sha256": "24ceb9df6be7e73fc3256f00eaa5282532404f0b22ed03cb4e10a82e5948f42a"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/PREFLIGHT.json",
+      "sha256": "2301b0a07a37b9e2b9f2d72069bc602a76ba8ccbdb2083b74cd257ea8672da57"
+    },
+    "preflight_log": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/PREFLIGHT.log",
+      "sha256": "6d0804cc07d393596fe123019537dedef58e8a86492044578609e2da1dc350fe"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "max_forwards": 12,
+    "max_autograd_calls": 42,
+    "max_updates": 0,
+    "max_backwards": 0,
+    "max_checkpoint_loads": 2,
+    "max_model_constructions": 1,
+    "max_optimizer_constructions": 0,
+    "max_checkpoint_writes": 0,
+    "max_gradient_array_bytes": 536870912,
+    "wall_seconds": 600,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "numerical_threads": 1,
+    "test_data_used": false,
+    "score_partition_allowed": false,
+    "source_review": {
+      "status": "PASS",
+      "agent": "/root/ta_formula_audit",
+      "worker": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/probe.py",
+        "sha256": "293c7bc23c992e43546f005f65eadfbf74eb94aea244a54011296f3ad10093c8"
+      },
+      "scope": "Root read all559lines; independent review of exact original states, Egrad/T parity to qualified MODE captures/RNG,42derivatives including6full-gradient-sum checks, immutable state, strictloader AST reuse and actual perparameter moments/step/None-skip."
+    },
+    "standing_authorization_source": "GX1_RULES_20261105_local_zero_spend_read_only_research_and_active_direction_goal",
+    "scope": "One frozen-point originalINITIAL/FINAL comparison on48fixedTRAIN rows. Four train components and two evalM5 components; joint/M5-only gradient and fresh versus persisted-moment AdamW analytic local effects. Actualmoments, hypotheticalupdates only. Two privateaggregateNPZs under512MiB each; no perbatchfullgradientdump."
   }
 }
