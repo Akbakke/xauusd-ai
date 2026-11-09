@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T15:49:34.436527+00:00",
-  "status": "TA_M5_NEXT_PASS_FIXED_READOUT_FINITE_ADMISSION",
+  "observed_utc": "2026-11-09T16:12:42.742401+00:00",
+  "status": "DIRECTION_FAST_DIAGNOSTICS_ONLY_AFTER_LATER_DETERIORATION",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Run the exact two fixed CPU M5 readouts once; validate captures and lock both coefficients before later arrays. Then independently recompute prediction metrics and gradients; no further native epoch, no later selection, no TEST.",
+  "next_action": "Use existing cached forecasts/representations to isolate native M5 head change versus representation drift with a fixed small read-only comparison. No new native training or full-population encoder scoring. A native probe may be admitted only for a measured remaining blocker under the short budget and preserved causal/genuine MTF guards.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1436,7 +1436,7 @@
     "entry_learning_demonstrated": false,
     "current_evidence_scope": "Nativefullfit weakened all10TRAIN and later side scores; converged M5 head correction improves matched TRAIN but laterF remains below frozen prior. Native four-tensor import verified; controller receipt missing.",
     "component_learning_measured": true,
-    "component_learning_result": "ADDITIONAL_NATIVE_PASS_WEAKENED_MATCHED_TRAIN_AND_LATER_M5",
+    "component_learning_result": "NATIVE_M5_WEAKENS; FIXED_READOUT_IMPROVES_TRAIN_BUT_WEAKENS_LATER",
     "primary_entry_quality_qualified": false,
     "paired_learning_review": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/PAIRED_LEARNING_REVIEW.json",
@@ -1673,6 +1673,10 @@
     "latest_m5_direction_native_review": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SCORE_RECOVERY_20261109_002/NATIVE_REVIEW.json",
       "sha256": "57d70457fb7513afccb5bd61697d67b01b6095d4903db1a7131bf2e2ff168107"
+    },
+    "latest_m5_direction_readout_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_PASS_READOUT_20261109_001/REVIEW.json",
+      "sha256": "2f61baa1b56d1c777ee1683f42a3865b2eeae34c2df836d0539920be66852118"
     }
   },
   "current_work": {
@@ -40196,7 +40200,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "market_state_ta_m5_next_pass_readout_20261109_001",
+  "training_enabled_scope": "NONE_CACHED_DIAGNOSTICS_FIRST",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -69580,8 +69584,8 @@
     }
   },
   "market_state_ta_m5_next_pass_readout_20261109_001": {
-    "status": "ADMITTED",
-    "decision": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_INDEPENDENTLY_VERIFIED",
+    "decision": "COMPLETE",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_PASS_READOUT_20261109_001/PLAN.json",
       "sha256": "1dd262a6f2d9873f87858d49df07bd55e35a8303a4cc41883162cf5ff933f339"
@@ -69594,13 +69598,13 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_PASS_READOUT_20261109_001/SOURCE_REVIEW.json",
       "sha256": "f04cd5bab8780db786003d8cd83c5ebbed578d8d21d74ac5169a8153ca58c77f"
     },
-    "execution_authorized": true,
-    "training_authorized": true,
+    "execution_authorized": false,
+    "training_authorized": false,
     "training_scope": "Only two fixed alpha0.01 TRAIN M5 linear readouts on captured actual FINAL representations.",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "readout_fits": 2,
     "alpha": 0.01,
@@ -69613,6 +69617,60 @@
     "cpu_affinity": "0-7",
     "numerical_threads": 1,
     "wall_seconds": 300,
-    "test_data_used": false
+    "test_data_used": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_PASS_READOUT_20261109_001/RESULT.json",
+      "sha256": "686d489261fc787d9b8f52ec808449a1c52c00c00b5a7497f19273785d042b41"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_PASS_READOUT_20261109_001/TERMINAL.json",
+      "sha256": "7fc9c47e2f8d8bb7d8fcc67b84b4c04be90239573d3a09c0cf718eab90f66308"
+    },
+    "controller_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_PASS_READOUT_20261109_001/CONTROLLER_TERMINAL.json",
+      "sha256": "0d54145d2e5ecdd4ac75e88296a167becd1f246b363dd6ed59cecdfa87e68c97"
+    },
+    "independent_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_PASS_READOUT_20261109_001/REVIEW.json",
+      "sha256": "2f61baa1b56d1c777ee1683f42a3865b2eeae34c2df836d0539920be66852118"
+    },
+    "short_screen_plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_PASS_READOUT_20261109_001/SHORT_SCREEN_PLAN.json",
+      "sha256": "bb9b3b82e5e00074fa2fa98ece501e9460d83e22bd5757cd7f0368d396cd9928"
+    },
+    "short_screen_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_PASS_READOUT_20261109_001/SHORT_SCREEN_RESULT.json",
+      "sha256": "4e564176f518c75c124ba76ac0bc9551a788c49be7b66bad8349111c61130589"
+    }
+  },
+  "direction_fast_diagnostic_policy_20261109": {
+    "operator_request": "First establish whether there is direction signal with short tests; stop spending hours on full-year runs at this stage.",
+    "default": "Reuse qualified checkpoints, input/capture arrays and passed controls. No native pass to repeat an answer available in saved arrays.",
+    "cached_diagnostic_budget_seconds": 60,
+    "native_probe_admission_constraints": {
+      "max_optimizer_updates": 64,
+      "max_model_execution_seconds": 600,
+      "max_initial_train_eval_rows": 1536,
+      "max_final_train_eval_rows": 1536,
+      "max_later_eval_rows": 1536,
+      "selection": "Small fixed chronological blocks declared before inspecting their outcomes; same initial/final observations and separate later observations.",
+      "checkpoint_reuse_required": true,
+      "all_genuine_features_and_five_timeframes_required": true,
+      "causal_target_maturity_and_existing_hardware_guards_required": true,
+      "physical_power_limit_w": 250,
+      "no_automatic_continuation_or_full_epoch": true,
+      "runtime_route_qualified": false,
+      "qualification_note": "Admission constraints for a future measured need. No short native job is implemented/admitted by these policy values alone; current native training remains closed."
+    },
+    "large_native_training_enabled": false,
+    "larger_run_requires": "Predeclared short directional comparison improves on identical TRAIN and separate later observations against initial and frozen reference; technical PASS alone does not open larger work. Separate finite admission required.",
+    "short_screen_is_not_general_project_verdict": true,
+    "short_screen_is_not_edge_or_profit_proof": true,
+    "retrospective_short_screen": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_PASS_READOUT_20261109_001/SHORT_SCREEN_RESULT.json",
+      "sha256": "4e564176f518c75c124ba76ac0bc9551a788c49be7b66bad8349111c61130589"
+    },
+    "current_screen_limit": "Six fixed1024-row slices from already completed forecasts; no short training was rerun or qualified.",
+    "test_entry_exit_trading_closed": true
   }
 }
