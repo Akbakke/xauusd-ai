@@ -15,7 +15,21 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_DIRECTION_DRIFT_LOCALIZED_NO_TRAINING_ADMITTED.
+Policystatus: TA_M5_IMPORTED_EQUAL_LOSS_ORDER_CONTRAST_ADMITTED.
+
+Én ny CPU-kontrast er innrømmet: samme importerte FP32 M5-hoder,
+korrigert q/(5N)-tap,AdamW og lagrede genuine representasjoner; bare intakte
+batchers rekkefølge endres. Kronologisk/reversert er kontroller; én fast
+seed20260911-permutasjon av1848fulleB16blokker er forhåndsvalgt kandidat,
+hale6 beholdes sist.3privateoptimizere/6småhoder,5547updates,0nativeforward.
+12G/512M,énnumerisktråd,300s. Gamle planer relanseres ikke.
+SenereTRAIN-arrays åpnes bare dersom kandidaten først forbedrer Brier
+mot både importinitial og prior på beggeM5mål med>1e-6,uten svakere logtap.
+TRAIN-beslutningen lagres før senerearrays;ingen valg mellom armer på senere.
+Gammel eval-representasjon og privat tohode-clipping er ikke fullnative
+treningsmodus/bevegeligrepresentasjon/globalclipping. Ingen nativefiks kvalifiseres.
+PLAN: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_ORDER_20261109_001/PLAN.json.
+training_enabled=true kun for denne CPU-kontrasten;native/fullfit fortsatt stengt.
 
 Den avgrensede FIT-head-kontrollen er COMPLETE/konsumert på3.256s:
 7396B16-lineærprojeksjoner,2checkpointlesinger,0fit/fullmodellforward/updates.
@@ -35,7 +49,7 @@ ulik kalibrering ved kronologisk/reversert rekkefølge,men brukte gamle hoder/ta
 og ingen variant slo prior. Ikke relanser den eller trekk konklusjon om nytt
 tap fra den. Isoler minste nødvendige optimizer-kontrast før kode/fleretrinn.
 Originalimport616a22… beholdes; fullfitFINAL er diagnose,ikke forbedret kandidat.
-training_enabled=false; ingen ny trening eller plan er innrømmet.
+Ingen ny nativefit er innrømmet; den avgrensede CPU-kontrasten står øverst.
 
 Fullfit002 er COMPLETE og konsumert; én modell/optimizer,6657forwards og1849updates,
 ingen skips. Full29574INITIAL/FINAL og17753senereTRAIN målt. TRAIN S/F Brier
@@ -69,8 +83,8 @@ gradient. FINAL_PRIVATE e6751982… har2logiske steg og skal IKKE brukes i fit.
 Gjenbruk originalimporten616a22… som startpunkt.
 
 Trener/observer/signedguard og Windows-task avsluttet0; full campaign-receipt
-finnes. Boot628,250W beholdt, maks46°C/minne52°C. Den gamle tasken er deaktivert; ny fullfit er separat
-innrømmet ovenfor. Kilde619c79da var uendret gjennom kjøringen.
+finnes. Boot628,250W beholdt, maks46°C/minne52°C. Den gamle tasken er deaktivert; den senere fullfit er også
+konsumert som oppsummert ovenfor. Kilde619c79da var uendret gjennom kjøringen.
 Native155,619s; hele kampanjen175,810s mot tidligere171,595s (+2,46prosent).
 Ingen målt speedup; dette er én workflow-sammenligning med ulik start/loss,
 ikke isolert ytelsesbenchmark eller fullfit. Source/routing er kvalifisert

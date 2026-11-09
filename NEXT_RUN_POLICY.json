@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T08:50:57.299335+00:00",
-  "status": "TA_M5_DIRECTION_DRIFT_LOCALIZED_NO_TRAINING_ADMITTED",
+  "observed_utc": "2026-11-09T09:05:28.709863+00:00",
+  "status": "TA_M5_IMPORTED_EQUAL_LOSS_ORDER_CONTRAST_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Use existing order-only evidence and new head/upstream attribution to isolate optimizer drift from imported equal-loss start before any minimal correction or more epochs. No new training/admission. Preserve original import; fullfitFINAL is diagnostic only.",
+  "next_action": "Run exact once-only CPU order contrast: original/reversed controls and one preselected full-block permutation. Same importedheads/AdamW/equal-loss/frozenrepresentation. Score later only if preselectedcandidate improves bothTRAIN Brier versus initial/prior and log doesnot worsen. No native launch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -40181,7 +40181,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "NONE_CACHED_HEAD_AUDIT_ONLY",
+  "training_enabled_scope": "market_state_ta_m5_equal_loss_order_20261109_001",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -66300,7 +66300,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "Full native equal-loss pass worsened all10TRAIN direction outputs andall10later outputs lose prior.3.256s FIT-only cached attribution shows both newM5heads and changedupstreamrepresentation worsen M5. Existing order-only comparison is relevant but has oldhead/loss; optimizer cause still not isolated. No new training admitted.",
+    "latest_progress": "Head/upstream drift localized. Reuse oldorder result but oldhead/loss cannot answer currentcause. New exact3-arm CPU contrast isolates intactbatch order at importedheads/equal-loss; preselectedpermutation must firstpass bothTRAIN before laterreadout.",
     "user_clarification_20261109": {
       "scope": "Correct direction for short sniper and longer long/shorttrends; separate forecasts and targets at M5 cadence.",
       "existing_future_horizons_minutes": [
@@ -68473,5 +68473,38 @@
     "actual_cached_linear_batch_calls": 7396,
     "actual_checkpoint_loads": 2,
     "elapsed_seconds": 3.2556589180003357
+  },
+  "market_state_ta_m5_equal_loss_order_20261109_001": {
+    "status": "ADMITTED",
+    "decision": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_ORDER_20261109_001/PLAN.json",
+      "sha256": "eade4bc886e2583eb73ba4944043d1e0643830743c2b8c28f96cbdace4ed4a64"
+    },
+    "scope": "One CPU-only imported-head/equal-loss order contrast on frozen qualified representations; three private two-head fits, each1849steps.",
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "training_authorized": true,
+    "training_enabled": true,
+    "native_training_enabled": false,
+    "native_launch_authorized": false,
+    "full_epoch_training_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "private_optimizers": 3,
+    "private_heads": 6,
+    "max_private_updates": 5547,
+    "native_forwards": 0,
+    "native_parameter_updates": 0,
+    "preselected_candidate": "permuted",
+    "later_arrays_only_after_both_TRAIN_targets_improve": true,
+    "test_data_used": false,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "wall_seconds": 300,
+    "standing_authorization": "Active direction goal: isolate measured calibration drift before minimal fix; reuse existing checkpoints/cache, no fullnative fit."
   }
 }
