@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T16:12:42.742401+00:00",
-  "status": "SHORT_M5_ACCUMULATION_CONTROL_ADMITTED",
+  "observed_utc": "2026-11-09T16:34:58.762294+00:00",
+  "status": "DIRECTION_SHORT_CONTROLS_COMPLETE_NO_NATIVE_FIX_QUALIFIED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Run only the fixed60s cached M5 accumulation comparison. Reuse all qualified inputs; no native launch or repeat of negative order/L2 controls.",
+  "next_action": "Qualify a tiny zero-update gradient attribution through the actual shared encoder at the corrected INITIAL checkpoint: at most3 fixed TRAIN batches/600s, unchanged production S/F losses and genuine5TF inputs. The earlier diagnostic detached the backbone. No new native fit, full-population scoring, or repetition of failed L2/order/accumulation controls.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -40200,7 +40200,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "market_state_ta_m5_short_accumulation_20261109_001",
+  "training_enabled_scope": "NONE_CACHED_DIAGNOSTICS_FIRST",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -69683,20 +69683,30 @@
     "latest_cached_attribution_review": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_PASS_READOUT_20261109_001/NATIVE_HEAD_ATTRIBUTION_REVIEW.json",
       "sha256": "9c3ea1e85f7b04269ccec31f1264b58a666dc158eba2ea821923dd9fe4177846"
-    }
+    },
+    "latest_short_training_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_ACCUMULATION_20261109_001/RESULT.json",
+      "sha256": "89a4b82fda6ce073e418620bc187c0c88c5b552125377dc1bf02ec0826bbf919"
+    },
+    "latest_short_training_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_ACCUMULATION_20261109_001/REVIEW.json",
+      "sha256": "f175d3032925bcc4509f9aea1d1637f68edb33e8270e4ada5512f0e8907cf2ec"
+    },
+    "native_accumulation_change_qualified": false,
+    "next_measured_coverage_gap": "Earlier decoder diagnostic used detached backbone. Shared encoder gradients from M5side versus other genuine objectives have not been measured in this corrected model. Tiny zero-update diagnostic requires separate finite qualification; not admitted by this note."
   },
   "market_state_ta_m5_short_accumulation_20261109_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_INDEPENDENTLY_VERIFIED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_ACCUMULATION_20261109_001/PLAN.json",
       "sha256": "b1fd20580db9dee323767ad476c0736721bb94a4cfac5d9453b90bdd289523ea"
     },
-    "execution_authorized": true,
-    "training_authorized": true,
-    "data_reads_authorized": true,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "data_reads_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "private_heads": 4,
     "private_optimizers": 2,
@@ -69705,6 +69715,28 @@
     "native_forwards": 0,
     "native_parameter_updates": 0,
     "test_data_used": false,
-    "scope": "One64microbatch fixed-cache comparison, identical1024-row exposure; all actual native training remains closed."
+    "scope": "One64microbatch fixed-cache comparison, identical1024-row exposure; all actual native training remains closed.",
+    "remaining_invocations": 0,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_ACCUMULATION_20261109_001/RESULT.json",
+      "sha256": "89a4b82fda6ce073e418620bc187c0c88c5b552125377dc1bf02ec0826bbf919"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_ACCUMULATION_20261109_001/TERMINAL.json",
+      "sha256": "f106139f18112da723b12107f19d2b96f3a314dfb47d8e31cec322d708b60513"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_ACCUMULATION_20261109_001/CONTROLLER.json",
+      "sha256": "d91871698a9861a06ea34c04825aa70c9a9a9193e7bf92a8f362528e46ffc3c4"
+    },
+    "fit_gate_passed": false,
+    "later_arrays_consumed": false,
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_ACCUMULATION_20261109_001/REVIEW.json",
+      "sha256": "f175d3032925bcc4509f9aea1d1637f68edb33e8270e4ada5512f0e8907cf2ec"
+    },
+    "actual_private_updates": 72,
+    "whole_command_seconds": 7.167179755999314,
+    "native_correction_qualified": false
   }
 }

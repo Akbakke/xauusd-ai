@@ -15,31 +15,48 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: SHORT_M5_ACCUMULATION_CONTROL_ADMITTED.
+Policystatus: DIRECTION_SHORT_CONTROLS_COMPLETE_NO_NATIVE_FIX_QUALIFIED.
 
-Ny null-fit2×2-kontroll er COMPLETE og uavhengig PASS på6.258s/2.842s.
-På de faste små TRAIN-utvalgene forklarer hodeendringen71.0%S/65.6%F av
-Brier-svekkelsen; representasjonsendringen forklarer resten. Begge bidrar også
-negativt senere. Interaksjonen er halvfordelt, ikke et ekstra additivt bidrag.
-Dette lokaliserer effekt, men beviser ingen optimizerårsak.
-NATIVE_HEAD_ATTRIBUTION_RESULT/REVIEW ligger i forrige readoutrot.
+Brukerens føring er korte tester først. training_enabled=false; native
+launch/full-epoch er stengt. Gjenbruk checkpoint, lagrede arrays og beståtte
+kontroller. CPU-diagnostikk har60s budsjett. En eventuell nødvendig native
+prøve må kvalifiseres separat, med høyst64updates/600s og små forhåndsbundne
+initial/final/later-utvalg. Alle genuine features, femTF, kausalitet og
+maskinvarevakter beholdes; fysisk GPU-grense250W. Kort native treningsrute er
+ennå ikke implementert/kvalifisert. Ingen teknisk PASS åpner større trening.
 
-Kun én ny60s CPU-kontroll er innrømmet:
-MARKET_STATE_TA_M5_SHORT_ACCUMULATION_20261109_001. Samme1024observasjoner,
-samme korrigerte INITIAL-hoder, uendret AdamW/tap og frosne representasjoner:
-64vanlige steg mot8steg med gradientgjennomsnitt over8batcher. Kandidaten er
-forhåndsvalgt; senere faste utvalg leses bare etter forbedring for både S/F
-mot initial og prior på TRAIN. Dette er ikke en native treningsrute.
+To korte kontroller er nå fullført og uavhengig verifisert:
+1. Faktiske INITIAL/FINAL M5-hoder krysset med gammel/ny representasjon på
+   seks faste1024utvalg:6.258s beregning,2.842s review. Hodeendringen forklarer
+   71.0%S/65.6%F av TRAIN-Brier-svekkelsen i disse utsnittene; resten følger
+   representasjonen. Begge bidrar negativt senere. Interaksjonen er
+   halvfordelt, ikke et ekstra additivt bidrag. Dette beviser ikke mekanismen.
+   NATIVE_HEAD_ATTRIBUTION_RESULT/REVIEW i NEXT_PASS_READOUT_20261109_001.
+2. Fast akkumuleringstest på lagrede INITIAL-representasjoner:5.035s worker,
+   7.167s hel capped kommando. Samme64batcher/1024rader og samme AdamW/tap:
+   vanlig64steg mot8steg med gradientgjennomsnitt over8batcher.
+   TRAIN S Brier initial/vanlig/akkumulert:
+   0.248652496 /0.248810289 /0.248686972.
+   TRAIN F:0.249660644 /0.249802785 /0.249691001.
+   Akkumulering demper svekkelsen omtrent78%, men begge mål er fortsatt
+   svakere enn INITIAL. TRAIN-gaten feiler; ingen senerearrays dekodet.
+   Dette kvalifiserer ingen native akkumulering eller lengre fit.
 
-Brukerens nye føring: korte tester først for å se retningssignal; ingen flere
-timevis lange kjøringer som første kontroll. Kun den navngitte korte CPU-fit
-er åpen; all native launch/full-epoch er stengt. Gjenbruk checkpoint, lagrede arrays og
-beståtte kontroller. Default CPU-diagnostikk har60s budsjett.
-En eventuell senere native prøve må begrenses til64 oppdateringer/600s
-modellarbeid og små, forhåndsbundne initial/final/later-utvalg; alle genuine
-features, fem TF, målmodning og vakter beholdes,250W. Den korte native ruten
-er ennå ikke implementert/kvalifisert eller innrømmet. Ingen stor kjøring
-åpnes av en teknisk PASS eller av disse policyverdiene alene.
+Akkumulering: MARKET_STATE_TA_M5_SHORT_ACCUMULATION_20261109_001.
+RESULT SHA89a4b82fda6ce073e418620bc187c0c88c5b552125377dc1bf02ec0826bbf919.
+REVIEW SHAf175d3032925bcc4509f9aea1d1637f68edb33e8270e4ada5512f0e8907cf2ec.
+Review1.072s: åtte scoreceller med nullavvik, head-projeksjon maks7.45e-8.
+64/8updates og lossdeling er kilde-/kvitteringsbevis, ikke optimizerreplay.
+Færre optimizersteg inngår i kontrasten. Frossen representasjon og privat
+tohodeklipping er ikke native bevegelig encoder eller helmodellklipping.
+
+Neste direkte hull er faktisk delt encodergradient. Den eldre
+DIRECTION_DECODER_DIAGNOSTIC_20261108_001 brukte detached-backbone derivatives,
+og besvarer derfor ikke om andre mål motvirker M5-side i felles modell.
+Kvalifiser høyst3 faste TRAIN-batcher/600s med null updates fra korrigert
+INITIAL og uendrede produksjonstap/inputs. Ingen slik jobb er innrømmet ennå.
+Ikke gjenta negative L2-, intakt-batch-rekkefølge- eller akkumuleringstester.
+Ingen retningsedge eller ferdig native rettelse er dokumentert.
 
 Den ekstra native passeringen er fullført, og null-fit recovery002 er
 COMPLETE/konsumert:2959 forwards,0 nye steg/INITIAL-forwards og bitlik full
@@ -81,10 +98,8 @@ UTC og worker-monotonic avviker; ingen identisk ende-til-ende speedup er bevist.
 Det dokumenterte arbeidsbesparende grepet er capture i nødvendig scoring,
 som unngår separat encoderpassering. Fullpresise tider/evidens står i REVIEW.
 
-Neste direkte spørsmål er hvordan endringen i selve native M5-hodene og
-endringen i representasjonen hver bidrar til TRAIN-svekkelsen. Bruk lagrede
-arrays og en fast, liten null-fit-sammenligning før noen ny native hypotese.
-GC, TEST, Entry/Exit, broker, handel og spending forblir stengt.
+Den planlagte hode-/representasjonskontrollen er nå fullført som beskrevet
+øverst. GC, TEST, Entry/Exit, broker, handel og spending forblir stengt.
 
 TRAIN-månedskontrollen er COMPLETE/konsumert. Kun åtte eksisterende fit-arrays
 ble lest; ingen senere arrays, fit eller nativekall. Hele capped kjøringen tok
