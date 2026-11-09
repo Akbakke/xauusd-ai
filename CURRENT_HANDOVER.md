@@ -15,7 +15,19 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_DIRECTION_FIXED_L2_TRAIN_PRIOR_BEATEN_LATER_PRIOR_UNBEATEN.
+Policystatus: TA_DIRECTION_CHRONOLOGICAL_INNER_L2_ADMITTED.
+
+Den [indre L2-planen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_INNER_L2_20261109_001/PLAN.json)
+er innrømmet én gang: fem faste styrker, tre ekspanderende indre TRAIN-splitt,
+30 små fits og høyst2 fullTRAIN-fits. Felles alpha velges bare på likvektet
+S/F-poolet FP32-logloss. Valget fryses før senere cache åpnes; ved1e-4
+gjenbrukes ferdige fullfit/prediksjoner. Samme løser og128 koordinater beholdes.
+M5 S/F-modning er strengt issue+5min<cutoff, bekreftet i aktive kontrakter.
+Én hel B16 purges før hver scoregrense, og også scoremodning kontrolleres.
+FullTRAIN-encoder/normalisering gir betinget head-valg, ikke encoder-OOF.
+Nye split-/valgtester og lesende review er ferdige. En overstreng
+testforventning ble rettet; en standardmodul-navnekollisjon ble fjernet før
+planbinding. CPU12G/512M, én numerisk tråd, maks900s. Native porter er stengt.
 
 Den [faste L2-kontrollen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_REGULARIZED_HEAD_20261109_001/REVIEW.json)
 er COMPLETE og konsumert: to M5-hoder på eksisterende originalcache,

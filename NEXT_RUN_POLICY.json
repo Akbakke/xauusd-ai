@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T03:18:30.162372+00:00",
-  "status": "TA_DIRECTION_FIXED_L2_TRAIN_PRIOR_BEATEN_LATER_PRIOR_UNBEATEN",
+  "observed_utc": "2026-11-09T03:28:23.514518+00:00",
+  "status": "TA_DIRECTION_CHRONOLOGICAL_INNER_L2_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Choose any next regularization using chronological inner TRAIN only, with target-maturity/purge checked and frozen encoder history disclosed; one later-TRAIN report after selection. Reuse this fixed-alpha solver and caches. Do not tune on repeated later scores or launch native training while cached direction still loses prior.",
+  "next_action": "Run the one-use30inner/atmost2final cached M5 head fits, freeze common alpha from chronological inner TRAIN before later score, reuse fixed1e-4fullfit if selected; close scope and independently review. No native launch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -40173,7 +40173,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "NONE_FIXED_L2_HEAD_COMPLETE_SAVED_EVIDENCE_REVIEW_ONLY",
+  "training_enabled_scope": "market_state_ta_direction_inner_l2_20261109_001",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -67711,5 +67711,38 @@
       }
     },
     "finding": "Fixed explicit coupled-L2 converged M5 heads beat frozen prior on identical TRAIN and reduce later error versus unregularized readouts, but both later heads remain worse than frozen prior. This demonstrates a regularized TRAIN solution and reduced overfit at the fixed original representation, not a repaired native training trajectory or qualified direction edge."
+  },
+  "market_state_ta_direction_inner_l2_20261109_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_INNER_L2_20261109_001/PLAN.json",
+      "sha256": "8ceb1158ac418a622e3c41b3905e19783cc1de8a50f128688666e32ec3862a8f"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_authorized": true,
+    "training_authorized": true,
+    "data_reads_authorized": true,
+    "max_readout_fits": 32,
+    "new_native_forwards": 0,
+    "new_native_parameter_updates": 0,
+    "test_data_used": false,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "wall_seconds": 900,
+    "synthetic_checks": [
+      {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_INNER_L2_20261109_001/SYNTHETIC_CHECK.log",
+        "sha256": "8de5940185a6fecd326b6eb10c7b690eed4c3545b9a3d337a654722e30ee1220"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_INNER_L2_20261109_001/SELECTION_CHECK_CORRECTED.log",
+        "sha256": "ddee09a55f921ee7812032bec659fca951f4107a6bc2d02a5675f51391b7dc43"
+      }
+    ],
+    "synthetic_note": "Maturity checks passed; initial exact dictionary equality assertion was overstrict for1.11e-16FP64 aggregation roundoff. Corrected selection/tie checks pass without worker math changes.",
+    "prelaunch_review": "One concrete import collision corrected by renaming select.py to choose_l2.py before plan binding; dataflow review otherwise passed."
   }
 }
