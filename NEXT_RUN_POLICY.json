@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-09T17:07:12.629858+00:00",
-  "status": "EARLY_REPRESENTATION_DRIFT_LOCALIZED_BACKBONE_QUERY_SPLIT_REQUIRED",
+  "status": "HIDDEN_BACKBONE_QUERY_SPLIT_ADMITTED_NO_FIT",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Qualify one bounded zero-update CPU probe that captures INITIAL/FINAL16 hidden vectors on the existing fixed192TRAIN rows. The observed pre-head representation drift, not the M5head change, causes the last-block loss after16steps. Representation is backbone hidden followed by shared query_projection(Linear+GELU); current captures only store the latter. Reuse the two CPU checkpoints and passed input/target checks. At most24encoder forwards,0backwards/optimizer/fit,later/test closed,600s,12G,thread1. Cross old/new hidden with old/new query projection and existing heads to isolate the measured cause. No probe launch is admitted yet; do not freeze heads/change loss or repeat previous contrasts.",
+  "next_action": "Run the qualified one-shot192-row INITIAL/FINAL16 hidden split:24encoderforwards maximum,0optimizer/backwards/fit,target-tape loads or later scoring,600s/12G/thread1. Reuse actual labels and frozenprior; retain captures before postanalysis. Then close admission, review frozen eight-combination attribution, and only act on measured cause.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -69758,7 +69758,7 @@
       "sha256": "2bf702b63a8780b9831122a16a89a69576ed6c79a8caa3ca292ac861f83b425d"
     },
     "next_zero_update_scope": {
-      "status": "MEASURED_NEED_NOT_IMPLEMENTED_NOT_ADMITTED",
+      "status": "SOURCE_AND_METADATA_QUALIFIED_ADMITTED",
       "question": "Is the16-step pre-head representation damage caused by backbone hidden changes or shared Linear+GELU query projection changes?",
       "initial_checkpoint": {
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/INITIAL_CPU_STATE.pt",
@@ -69788,9 +69788,17 @@
       "max_wall_seconds": 600,
       "max_memory": "12G",
       "numerical_threads": 1,
-      "native_or_cpu_execution_authorized": false,
+      "native_or_cpu_execution_authorized": true,
       "later_scoring_authorized": false,
-      "causal_boundary": "All existing genuine5TF inputs; frozen checkpoint counterfactual attribution only. No rawtarget reload needed when saved matched labels/masks are reused. No candidate selection/promotion."
+      "causal_boundary": "All existing genuine5TF inputs; frozen checkpoint counterfactual attribution only. No rawtarget reload needed when saved matched labels/masks are reused. No candidate selection/promotion.",
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HIDDEN_SPLIT_20261109_001/PLAN.json",
+        "sha256": "8d9df494ac1a2c42ff5807b588767aa7e287e1d0cd94a081468d0198b9db53e6"
+      },
+      "worker": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HIDDEN_SPLIT_20261109_001/probe.py",
+        "sha256": "b6d18fe6c4ef9da4c29069121c3dbeea4741dec4923b222b1862c69592dd35f0"
+      }
     }
   },
   "market_state_ta_m5_short_accumulation_20261109_001": {
@@ -70038,5 +70046,41 @@
     "review_seconds": 2.355103526999301,
     "worker_seconds": 3.032169972000702,
     "whole_command_seconds": 6.111372393999773
+  },
+  "market_state_ta_m5_hidden_split_20261109_001": {
+    "status": "ADMITTED",
+    "execution_authorized": true,
+    "training_authorized": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HIDDEN_SPLIT_20261109_001/PLAN.json",
+      "sha256": "8d9df494ac1a2c42ff5807b588767aa7e287e1d0cd94a081468d0198b9db53e6"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HIDDEN_SPLIT_20261109_001/PREFLIGHT.log",
+      "sha256": "ff8436643cd35ad45a3aeff4aa4da40de6baed6c64fe6f85fcbc9ded48cb161d"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "max_encoder_forwards": 24,
+    "max_updates": 0,
+    "max_backwards": 0,
+    "max_optimizer_constructions": 0,
+    "wall_seconds": 600,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "numerical_threads": 1,
+    "test_data_used": false,
+    "source_review": {
+      "status": "PASS",
+      "agent": "/root/loss_training_route",
+      "worker": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HIDDEN_SPLIT_20261109_001/probe.py",
+        "sha256": "b6d18fe6c4ef9da4c29069121c3dbeea4741dec4923b222b1862c69592dd35f0"
+      },
+      "scope": "Static reviewed state/capture/cube route only; runtime and actual numerical parity remain unproven. Root independently read execution flow."
+    }
   }
 }

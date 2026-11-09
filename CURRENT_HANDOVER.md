@@ -15,7 +15,20 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: EARLY_REPRESENTATION_DRIFT_LOCALIZED_BACKBONE_QUERY_SPLIT_REQUIRED.
+Policystatus: HIDDEN_BACKBONE_QUERY_SPLIT_ADMITTED_NO_FIT.
+
+Én ny zero-update hidden-kontroll er kilde-/metadatakvalifisert og innrømmet.
+Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HIDDEN_SPLIT_20261109_001
+PLAN SHA8d9df494ac1a2c42ff5807b588767aa7e287e1d0cd94a081468d0198b9db53e6.
+Worker SHAb6d18fe6c4ef9da4c29069121c3dbeea4741dec4923b222b1862c69592dd35f0.
+85kildeeiere uendret;preflight og separat kildekontroll PASS.
+Kjør én gang:24encoderforwards,192sammeTRAIN-rader fraINITIAL/FINAL16,
+0optimizer/backwards/fit/targettapes,600s/12G/tråd1. Hidden lagres straks
+percheckpoint;8frosne backbone/query/head-kombinasjoner følger med3faktor-
+Shapley ogfrystprior. Faktiske scorer må matche den avsluttede kontrasten;
+rekonstruksjon må bestå2e-5. Ingen kandidatutvelging eller senere scoring.
+Alle treningsporter forblir stengt. Lukk denne engangsadmisjonen etter
+terminal; ingen relansering ved analysefeil, gjenbruk lagret hidden.
 
 Den lagrede kontrasten er COMPLETE/konsumert og numerisk verifisert.
 CONTRAST_V2_RESULT SHA57c407854940af56eb5c3c49ffb5cdd3a5a24cdf0787359f69902e128c59d2e2.
@@ -55,8 +68,8 @@ Kilde: market_state_time_query_model_v2.py og native_F_model_v1.py.
 Kvalifiser maks24encoderforwards på de samme192TRAIN-radene,0updates/
 backwards/optimizer,600s/12G/tråd1 fra de to lagrede CPU-checkpointene.
 Lagre hidden og kryss gammel/ny hidden med gammel/ny queryprojeksjon;
-gjenbruk lagrede labels/masker og tidligere paritet. Ingen slik kjøring
-er implementert eller innrømmet ennå. Ikke endre tap/frys hoder nå.
+gjenbruk lagrede labels/masker og tidligere paritet. Denne eksakte kjøringen
+er nå kvalifisert/innrømmet ovenfor. Ikke endre tap/frys hoder nå.
 
 Originalkontrasten feilet/konsumerte på representasjons-allclose.
 Målt CPU/GPU-avvik2.927e-5 i én av24576koordinater, RMS3.939e-6;
