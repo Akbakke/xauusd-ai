@@ -15,19 +15,41 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_FUTURE_HORIZON_FIXED_READOUT_ADMITTED_ONCE.
+Policystatus: TA_M5_CAUSAL_HISTORY_READOUT_ADMITTED_ONCE.
 
-Én fast privat sammenlikning er innrømmet i
-/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUTURE_HORIZON_READOUT_20261109_001.
-Fire F-hoder(+15/+60/+240/+1440min),samme128Dbasis/alpha0.01/solver som
-M5,29574TRAIN og17753senereTRAIN. Alle fire koeffisientsett låses før senere
-arrays. M5-resultatet gjenbrukes. Ingen nativeforward eller modelloppdatering.
-8fokuserte kontrolltilfeller og faktisk hash-/mål-/inputpreflight består.
-300s/12GiB CPUproducer,én invokasjon. training_enabled=true KUN for denne
-private planen; native trening,TEST/Entry/Exit/handel er fortsatt stengt.
-Kilde/policy fryses under kjøringen. Alle horisonter rapporteres separat;
-ingen beste-horisont-seleksjon. UTC-ukeblokkintervall er beskrivende utviklingsbevis.
+Én eksakt CPU-plan med to kausale M5F-hodetilpasninger er innrømmet:
+MARKET_STATE_TA_M5_CAUSAL_HISTORY_READOUT_20261109_001 under GX1_RUNS.
+November:35897rader/14484kjente sider. Desember:41591/16802.
+Mål må være ferdig observert strengt før månedens start; seks kontrolltilfeller
+og faktiske prefikser består. Samme128D/alpha0.01/solver; oktober gjenbrukes.
+Månedskoeffisient låses før prognose, ingen senere mål i den aktuelle fitten.
+300s/12GiB/én invokasjon; nullnativecalls. training_enabled=true kun for denne
+private planen; native trening/TEST/Entry/Exit/handel stengt.
 
+
+Fire faste F-hoder på bevart FINAL-cache fullførte på5.792s,0nativekall.
+Alle fire TRAIN-Brier slår frystprior: M15/H1/H4/D1
+0.248130/0.243525/0.231724/0.183697.
+Senere Brier kandidat/prior:
+M15 0.250136/0.249922; H1 0.250619/0.249393;
+H4 0.253275/0.247974; D1 0.252789/0.255529.
+D1 er bedre i gjennomsnitt,men bare7/14uker og ukeblokkintervall for
+forskjellen[-0.040376,+0.048217]. Alle fire intervaller inkluderer null.
+Ingen horisont er valgt/promotert. D1treff59.89% mot alltidLONG56.69%
+gjelder kun6063framtidig sidekjente halvtATR-rader,ikke valgte handler.
+Kandidaten predikererLONG på5609 av disse; separatSHORTpresisjon71.37%
+på454 overlappende rader er diagnostikk,ikke uavhengige handler.
+40scoreceller er uavhengig regnet om mednullavvik; kalenderuker/CI innen8.4e-17.
+REVIEW: /home/andre2/GX1_RUNS/MARKET_STATE_TA_FUTURE_HORIZON_READOUT_20261109_001/REVIEW.json
+SHA877257893561d2d21e94da1066a0831c0f0b8cef1b65f6f091a563da7b1b0e40.
+Planen er konsumert; training_enabled=false; ingen aktivjobb.
+
+Neste direkte M5-spørsmål: forbedrer mer kausalt tilgjengelig historikk
+det samme faste F-hodet? Forbered kun to månedlige oppdateringer fra
+eksisterende FIT/SCORE-cache: november bruker modne utfall før november,
+desember modne utfall før desember. Samme solver/alpha,fast M5-kontroll
+og priorer fra hvert treningsprefiks. Ingen ny enkoding,data eller parametersøk.
+Den eksakte kausale månedsplanen er innrømmet øverst.
 
 Den faktiske FINAL-modellen har nå de kvalifiserte globale M5-hodene.
 Native kontroll:129.644s,3modeller/optimizere,6fullforwards,5918cachede
@@ -760,8 +782,8 @@ tidssekvensmodellen, samme-linje-reaksjonsverdi, Entry-verdi og økonomisk edge
 er ubevist. 61 makrofelt mangler uavhengig formelorakel; COTs faktiske
 historiske publisering og vintage er fortsatt UNKNOWN.
 
-**Neste steg:** Kjør og kontroller den eksakte fire-horisont-sammenlikningen
-øverst. Målet er aktivt; senere retningsverdi er ubevist.
+**Neste steg:** Fullfør og kontroller den eksakte kausale M5-historikksammenlikningen øverst.
+Målet er aktivt; senere retningsverdi er ubevist.
 Brukerens spørsmål om 30 epoker og fem år er fortsatt åpne hypoteser.
 Denne fitten dekker omtrent mai–september2024, senere score oktober–desember2024.
 Ett pass og én fold er ingen generell dom over lengre læring eller historikk.

@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T11:38:19.696817+00:00",
-  "status": "TA_FUTURE_HORIZON_FIXED_READOUT_ADMITTED_ONCE",
+  "observed_utc": "2026-11-09T11:50:23.214904+00:00",
+  "status": "TA_M5_CAUSAL_HISTORY_READOUT_ADMITTED_ONCE",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Run exact four fixed private F-horizon heads once under capped CPUproducer, no native model call. Lock all coefficients before laterTRAIN scoring; report all horizons, priors, alwaysLONG accuracy and paired UTCweek variation. No horizon selection or retraining.",
+  "next_action": "Execute exact two causal monthlyM5 fits once under cappedCPUproducer; record complete wrapper walltime. Six causal/input checks pass. No newencoder, newdata, hyperparameter selection, oldplan relaunch or extra fit.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1665,7 +1665,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Exact once-only four-horizon F readout comparison admitted on cached FINAL, no native model work.",
+    "current_activity": "Two causal monthly M5 F head fits admitted on cached representations; source/policy frozen for one invocation.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1694,14 +1694,14 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "Native zero-update M5 FINAL head import; native PASS, campaign controller FAILED.",
+    "latest_terminal_role": "Four fixed F horizon heads on actualFINAL cache; no native calls.",
     "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_SHARED_OBJECTIVE_20261108_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_IMPORT_20261109_001/TERMINAL.json",
-      "sha256": "91c6bcbb19dec014b2a436dfe4515caad567e36f411659268eae1c9446361d8e"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUTURE_HORIZON_READOUT_20261109_001/TERMINAL.json",
+      "sha256": "27bdb3bb66031244a091a628f9f42ec9544dd383a534330b5f02f0a0751c028f"
     },
     "terminal_exit_code": 0,
-    "source_unchanged_at_terminal": null,
+    "source_unchanged_at_terminal": true,
     "full_benchmark_completed": false,
     "sampler_selection_measured": true,
     "selected_sampler_published": true,
@@ -1718,7 +1718,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "M5 later direction remains near prior after TRAIN calibration/readout correction. Separate longer-horizon direction needs a predeclared comparison; no further fit admitted.",
+    "current_blocker": "TRAIN readout corrected, later direction unstable. Need isolate whether additional causally available history improves M5 head on the same preserved representation.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -10318,10 +10318,9 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "No original campaign receipt; exact observer path defect reproduced and source-corrected; task disabled.",
-      "No full-population fresh encoder baseline for corrected checkpoint.",
-      "LaterF loses frozen prior and both later scores worse previous import.",
-      "No fresh generalization, favorable-path Entry or economic edge."
+      "Only one reuseddevelopment fold.",
+      "All later14week intervals include zero; no stable laterdirection advantage.",
+      "Conditional future-known halfATR labels do not qualify event selection, favorable path or Entry."
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -17657,7 +17656,7 @@
         "Originals preserved; unusedwindows3/4revoked. No new epoch,HPO,checkpoint/threshold selection,normalization refit,trading,broker,Exit or promotion."
       ]
     },
-    "latest_terminal_evidence_scope": "Only4headtensors changed; unchanged buffers/RNG/modes/order; emptycandidate optimizer; full32row parity and29574/17753cachedheadscores; strict checkpoint roundtrip.",
+    "latest_terminal_evidence_scope": "40savedscorecells exact; independent UTCweek aggregation/intervals within8.4e-17; coefficients locked before later scoring.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -19007,8 +19006,8 @@
     },
     "feature_potential_exhausted": false,
     "latest_terminal_receipt": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_IMPORT_20261109_001/TERMINAL.json",
-      "sha256": "91c6bcbb19dec014b2a436dfe4515caad567e36f411659268eae1c9446361d8e"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUTURE_HORIZON_READOUT_20261109_001/TERMINAL.json",
+      "sha256": "27bdb3bb66031244a091a628f9f42ec9544dd383a534330b5f02f0a0751c028f"
     },
     "latest_broad_direction_review": {
       "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/SYNTHESIS.json",
@@ -19190,8 +19189,8 @@
       "sha256": "c30946767a52650ec071f0457ea8b127d0d7bd38c556922b34d139897edc040e"
     },
     "latest_terminal_review": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_IMPORT_20261109_001/REVIEW.json",
-      "sha256": "5325057a27641c06460e1234593147aa8d804a78a97d109751fd03a85be47acd"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUTURE_HORIZON_READOUT_20261109_001/REVIEW.json",
+      "sha256": "877257893561d2d21e94da1066a0831c0f0b8cef1b65f6f091a563da7b1b0e40"
     },
     "frozen_partition_completed_units": {
       "terminal_later_full": {
@@ -40181,7 +40180,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "market_state_ta_future_horizon_readout_20261109_001",
+  "training_enabled_scope": "market_state_ta_m5_causal_history_readout_20261109_001",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -66300,7 +66299,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "NativeM5 TRAIN correction qualified but laterF loses prior. Existing longer F target/source/cache axes bound;8focused metadata/numerical checks pass. Four fixed readouts newly admitted to distinguish horizon-specific direction information.",
+    "latest_progress": "Longerhorizon TRAIN readouts recover but laterdirection unstable. ExactM5 history contrast ready: November14484resolvedside outcomes,December16802; excludes validity at/aftercutoff. Two fixed fits newly admitted.",
     "user_clarification_20261109": {
       "scope": "Correct direction for short sniper and longer long/shorttrends; separate forecasts and targets at M5 cadence.",
       "existing_future_horizons_minutes": [
@@ -68832,7 +68831,7 @@
     "source_unchanged_at_native_terminal": true
   },
   "market_state_ta_future_horizon_readout_20261109_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUTURE_HORIZON_READOUT_20261109_001/PLAN.json",
       "sha256": "7a26acc2c855908e6ab3a9045f65c6ff3f98f807c8dbe48a28048077d296ecde"
@@ -68842,13 +68841,13 @@
       "sha256": "e6b31556a4363f9c1b39fc8a311ac37ab1038e1e763b5596da25079f72a6d14d"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
-    "execution_authorized": true,
-    "training_authorized": true,
-    "data_reads_authorized": true,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "data_reads_authorized": false,
     "readout_fits": 4,
     "native_forwards": 0,
     "native_parameter_updates": 0,
@@ -68859,6 +68858,57 @@
     "selection": false,
     "test_data_used": false,
     "scope": "Four private fixed-method F+15/+60/+240/+1440 readouts on preserved actualFINAL representations. AllTRAIN fits locked before later arrays. NativeM5 result reused, no encoder/model update.",
-    "standing_authorization": "Active direction-only goal, explicit short and long separate forecasts, standing zero-cost local research authorization."
+    "standing_authorization": "Active direction-only goal, explicit short and long separate forecasts, standing zero-cost local research authorization.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUTURE_HORIZON_READOUT_20261109_001/RESULT.json",
+      "sha256": "a14af7c88b6211cf7575b734c7afb787ccc13f5292d5f67ed09211ca9179ccc6"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUTURE_HORIZON_READOUT_20261109_001/REVIEW.json",
+      "sha256": "877257893561d2d21e94da1066a0831c0f0b8cef1b65f6f091a563da7b1b0e40"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUTURE_HORIZON_READOUT_20261109_001/TERMINAL.json",
+      "sha256": "27bdb3bb66031244a091a628f9f42ec9544dd383a534330b5f02f0a0751c028f"
+    },
+    "elapsed_seconds": 5.791749785000093,
+    "actual_readout_fits": 4,
+    "later_beats_frozen_prior": {
+      "M15": false,
+      "H1": false,
+      "H4": false,
+      "D1": true
+    },
+    "all_later_week_intervals_include_zero": true
+  },
+  "market_state_ta_m5_causal_history_readout_20261109_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CAUSAL_HISTORY_READOUT_20261109_001/PLAN.json",
+      "sha256": "cb0fcd9be38b0d692a9880841572452f0d1cc866f27b180d558f26441c0ae20a"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CAUSAL_HISTORY_READOUT_20261109_001/SOURCE_REVIEW.json",
+      "sha256": "8fa61eb30b1be301963fb7bf7bed8652eef17d95c32e1206cec800e95f1dc2e4"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "execution_authorized": true,
+    "training_authorized": true,
+    "data_reads_authorized": true,
+    "readout_fits": 2,
+    "native_forwards": 0,
+    "native_parameter_updates": 0,
+    "wall_seconds": 300,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "alpha": 0.01,
+    "selection": false,
+    "test_data_used": false,
+    "scope": "Two causal November/December M5 F head fits on preserved representations, using only prior resolved labels. Static October reuse; staticreadout,prior and originalimport references; no native encoder or parameter search.",
+    "standing_authorization": "Active direction-only goal and request to reuse checkpoint/completedwork, optimize unnecessary runs and evaluate more history; exact zero-cost local comparison."
   }
 }
