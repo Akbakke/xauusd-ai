@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T23:31:51.401249+00:00",
-  "status": "TA_M5_ORIGINAL_APPLIED_STEP_COMPLETE_LOCAL_IMPROVEMENT_ONLY",
+  "observed_utc": "2026-11-09T23:57:00.644239+00:00",
+  "status": "TA_M5_HEAD_UPDATE_FREEZE_PAIRED_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "The canonical actual step improves pooled M5 loss locally; no update-sign or rounding correction is supported. The unresolved problem is cumulative full-pass deterioration and later-direction value. Reuse the existing original trajectory and period/head-representation evidence to identify a specific loss-of-learning mechanism before proposing a different bounded training contrast. Do not repeat mode, frozen-gradient or same-point applied-step probes, optimizer reset/sampler sweeps or fullfit. All training gates remain closed.",
+  "next_action": "Run the exact one-use paired24 head-update contrast after clean pushed admission; close on terminal and review saved states/captures without model replay. No fullfit, sampler/reset sweep, additional arm or automatic continuation. Negative comparison is a completed result.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1685,7 +1685,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Causal M5 history contrast consumed negatively; remaining failure localized to later ranking instability, especially December.",
+    "current_activity": "Preparing exact paired original-ae772 M5 head-update freeze contrast; metadata/source review passed.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1714,11 +1714,11 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "TRAIN-only calendar disaggregation of saved M5 F forecasts; no fits or native calls.",
-    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_SHARED_OBJECTIVE_20261108_001",
+    "latest_terminal_role": "Two independent actual original-state steps using saved48-row gradients; no sequential training.",
+    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_UPDATE_FREEZE_NATIVE_20261110_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_TRAIN_MONTHS_20261109_001/TERMINAL.json",
-      "sha256": "e0cd2c8bf8921b39aa9e1e09f19f3cf75ca4a4e2677e62c3e334ea78072fe280"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_APPLIED_STEP_20261110_001/TERMINAL.json",
+      "sha256": "e9d2f7060ee6730ea01b0cae755bd784040ffd9bdf23575e5f8ed43affa90e74"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -1738,7 +1738,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Exact native pass admitted; guarded campaign/fresh-boot launch pending. Later predictive gain remains unproven.",
+    "current_blocker": "Fullpass deterioration and later directional improvement unresolved. One exact paired contrast admitted; no general training permission.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -10338,9 +10338,8 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "Only a fixed encoder/head method and one reuseddevelopment quarter; not a general rejection of more years or longer native training.",
-      "December static ranking below0.5; extra resolvedhistory does not repair it.",
-      "Future-known halfATR subset does not qualify ex-ante selection, favorable path, Entry or economics."
+      "All48 rows contributed to the applied gradient.",
+      "Cumulative fullpass deterioration and later direction remain unresolved."
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -17676,7 +17675,7 @@
         "Originals preserved; unusedwindows3/4revoked. No new epoch,HPO,checkpoint/threshold selection,normalization refit,trading,broker,Exit or promotion."
       ]
     },
-    "latest_terminal_evidence_scope": "30scorecells and exact original aggregate independently reproduced; all5TRAIN months improveBrier/AUC and beatprior. Only8fit_arrays read; laterarrays untouched.",
+    "latest_terminal_evidence_scope": "Both original states improve pooled same-panel M5 S/F locally. No fullpass correction or later gain.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -19209,8 +19208,8 @@
       "sha256": "c30946767a52650ec071f0457ea8b127d0d7bd38c556922b34d139897edc040e"
     },
     "latest_terminal_review": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CAUSAL_HISTORY_READOUT_20261109_001/REVIEW.json",
-      "sha256": "e26f87c562c0ee8c2af52b543fd63670eb5dbbff2924ff110d7a589b387d5866"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_APPLIED_STEP_20261110_001/REVIEW.json",
+      "sha256": "33fb32ca507b5b7a426b91ee2177ebc4e71b2fdf2e22ba2da26b84f9d38d1b95"
     },
     "frozen_partition_completed_units": {
       "terminal_later_full": {
@@ -40204,7 +40203,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "CLOSED_NO_AUTOMATIC_RELAUNCH",
+  "training_enabled_scope": "market_state_ta_m5_head_update_freeze_native_20261110_001",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -71752,5 +71751,65 @@
     "local_same_panel_improvement_established": true,
     "full_train_correction_qualified": false,
     "later_direction_improvement_established": false
+  },
+  "market_state_ta_m5_head_update_freeze_native_20261110_001": {
+    "status": "ADMITTED",
+    "execution_authorized": true,
+    "training_authorized": true,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_UPDATE_FREEZE_NATIVE_20261110_001/PLAN.json",
+      "sha256": "1be71c9a9f675f9b471a6d566267f5110369aad9605e92c5da6444d8bcf9abc4"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_UPDATE_FREEZE_NATIVE_20261110_001/probe.py",
+      "sha256": "fbd19ebf35d98f979e7384c704bc78774354fc1b4ec6007d6595308275bc95b6"
+    },
+    "controller_source": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_UPDATE_FREEZE_NATIVE_20261110_001/controller.py",
+      "sha256": "f4cd1e3746fa4056996ae3b2f30a4cd0ba3960edaf6f5b800497650a513f946d"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_UPDATE_FREEZE_NATIVE_20261110_001/PREFLIGHT.json",
+      "sha256": "51e08a87eb2283d99949689b5001c2f12b9b08fd41e28518d5f9eab99ac272cb"
+    },
+    "preflight_log": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_UPDATE_FREEZE_NATIVE_20261110_001/PREFLIGHT.log",
+      "sha256": "2b5433d1bf98acc2c486059d626b06cf714481a23f8f1dcf62f57c414b0c6fd7"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "max_forwards": 96,
+    "max_backwards": 48,
+    "max_updates": 48,
+    "max_optimizer_steps": 48,
+    "max_model_constructions": 1,
+    "max_optimizer_constructions": 2,
+    "max_checkpoint_loads": 1,
+    "max_full_state_restores": 2,
+    "max_checkpoint_writes": 3,
+    "max_checkpoint_bytes": 1073741824,
+    "max_checkpoint_total_bytes": 3221225472,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "numerical_threads": 1,
+    "wall_seconds": 900,
+    "test_data_used": false,
+    "evaluate_later_unconditionally": true,
+    "automatic_resume_allowed": false,
+    "promotion_allowed": false,
+    "scope": "One paired24-update original-ae772 native contrast: CONTROL versus only four M5-head gradients masked after global clipping before AdamW. Both192-row TRAIN/later panels always scored. Fresh identical CPU RNG/empty AdamW; no historical CUDA replay.",
+    "source_review": {
+      "status": "PASS",
+      "agent": "/root/ta_formula_audit",
+      "worker": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_UPDATE_FREEZE_NATIVE_20261110_001/probe.py",
+        "sha256": "fbd19ebf35d98f979e7384c704bc78774354fc1b4ec6007d6595308275bc95b6"
+      },
+      "scope": "Root full source read and independent baseline/fullrestore/upstream-gradient/global-clip/mask/RNG/gate review. Exact optimizer state IDs/names/step24 and first-step equality guarded. No core or ONLINE changes."
+    },
+    "standing_authorization_source": "GX1_RULES_20261105_zero_spend_local_work_and_active_direction_goal_exact_technical_admission"
   }
 }

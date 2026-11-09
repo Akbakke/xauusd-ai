@@ -15,37 +15,41 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_ORIGINAL_APPLIED_STEP_COMPLETE_LOCAL_IMPROVEMENT_ONLY.
+Policystatus: TA_M5_HEAD_UPDATE_FREEZE_PAIRED_ADMITTED.
 
-To faktiske tekniske originalsteg er ferdige og uavhengig verifisert:
+Én ny, avgrenset sammenligning er klar:24 native oppdateringer fra samme
+originale INITIALae772 i hver av to armer. CONTROL oppdaterer alle570 parametere;
+HEADS_FIXED holder fire M5-utgangstensorer faste. Gradientene fra M5 beholdes
+gjennom backward og global klipping; bare disse fire oppdateringene utelates
+rett før AdamW. Resten av modellen lærer fortsatt fra M5. Ingen core/ONLINE-endring.
+
+Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_UPDATE_FREEZE_NATIVE_20261110_001
+PLAN SHA1be71c9a9f675f9b471a6d566267f5110369aad9605e92c5da6444d8bcf9abc4.
+Worker SHAfbd19ebf35d98f979e7384c704bc78774354fc1b4ec6007d6595308275bc95b6.
+Metadata-preflight4,656s og root/uavhengig kildekontroll PASS; ingen modell kjørt.
+96 forwards,48 backward/oppdateringer,1 modell,2 optimizere,1 originaldekoding,
+2 felles CPU-restores og3 private states.12G/512M/én tråd/900s, én capped jobb.
+
+Samme384 SPREAD-rader, tom AdamW og identisk fersk CPU-RNG i begge armer.
+Dette gjenopptar ikke historisk CUDA-RNG. TRAIN192 og senereTRAIN192 måles
+uansett resultat. Startmålinger gjenbrukes; senere start er kvalifisert original
+cached-head, ikke ny CPU-encoderbaseline. Begge paneler er gjenbrukt utvikling.
+Kandidaten må bedre Brier OG logtap mot INITIAL, CONTROL og frystprior
+i alle fire S/F×TRAIN/senere-celler. Negativt utfall avsluttes og bevares.
+
+Begrunnelse fra eksisterende originaltrajektorie: tidlig/midtre rangering
+bedres samtidig som gjennomsnittlig OPP-sannsynlighet driver og Brier svekkes.
+Siste periode bedres før nativepasset besøker den; enkel glemming er ikke bevist.
+Originale utgangsvekter er allerede TRAIN-tilpasset. Dette prøver den nye
+kausale kontrasten faste utganger mens resten lærer; tidligere etterpå-bytte
+av hoder/representasjoner er ikke samme forsøk.
+
+Forløperens faktiske originalsteg bedret begge samlede M5-mål lokalt:
 [rapport](docs/TA_M5_ORIGINAL_APPLIED_STEP_REVIEW.json).
-Ett steg fra INITIALae772 og ett separat fra FINAL23ff; gradientene fra samme
-48TRAIN-rader er gjenbrukt.12 forwards,2 AdamW-steg,0 backward/autograd eller
-nye checkpoints. Originalmodellene er satt tilbake. Alle treningsporter er stengt.
-Helkommando139,071s, etterkontroll8,597s; forberedelse ikke medregnet.
-
-Samlet M5 S/F vektet BCE, Brier og logtap bedres ved begge originalpunkter.
-INITIAL F-Brier0,249765→0,248838; FINAL0,261376→0,261217.
-INITIAL S-Brier0,251103→0,249851; FINAL0,259977→0,259763.
-Alle fire samlede tapsendringer samsvarer med den beregnede lokale retningen.
-Fra INITIAL forverres siste16-radersperiode litt for begge mål; FINAL bedrer
-begge i alle tre perioder. Alle perioder bidro til gradienten; dette er in-sample.
-FINAL er fortsatt verre enn frystprior og originalINITIAL. Ingen senere gevinst.
-
-Uavhengig NumPy-kontroll verifiserer tildelt/klippet gradient, faktisk delta,
-momenter/step/ID og forhåndsbundne avrundingsgrenser. Største målingsavvik2,67e-14.
-Original theta/momenter gjenbruker tidligere checkpointbevis; ingen modeller
-eller nye checkpointdekodinger i review. Full restore/buffer/RNG er produsentbevis.
-Ingen feil i lokalt steg eller konkret modellrettelse er påvist. Problemet med
-kumulativ fullTRAIN-forverring og senere retning er fortsatt uløst.
-
-Neste arbeid skal bruke eksisterende originaltrajektorie og periode-/head-
-representasjonsbevis til en konkret forklaring før ny treningskontrast.
-Ingen gjentakelse av modus-/gradient-/samme-punkt-stegprøver, nye reset-/
-sampler-sveip eller fullfit. Engangsplanen er konsumert.
-
-Forløper: [originalgradienter](docs/TA_M5_ORIGINAL_SHARED_GRADIENT_REVIEW.json)
-ga lokal retning; denne prøven målte faktisk anvendt oppdatering på samme rader.
+Ingen fortegns-/avrundingsfeil påvist. Fullpassårsaken og senere verdi er uløst.
+Bare denne engangsporten er åpen; øvrig native/fullfit, TEST, GC, Entry/Exit
+og handel er stengt. Ingen ny arm, relansering eller automatisk fortsettelse.
+Etter terminal stenges porten og lagrede states/captures kontrolleres uavhengig.
 
 MIX24 er fullført og uavhengig verifisert:
 [docs/TA_M5_MIXED_BATCH_NATIVE_REVIEW.json](docs/TA_M5_MIXED_BATCH_NATIVE_REVIEW.json).
