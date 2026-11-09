@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T02:43:24.048566+00:00",
-  "status": "TA_DIRECTION_DEDICATED_M5_FIT_COMPLETE_IMPROVED_PRIOR_UNBEATEN",
+  "observed_utc": "2026-11-09T02:55:52.099139+00:00",
+  "status": "TA_DIRECTION_BATCH_ORDER_CPU_CONTROL_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Use saved corrected TA caches and completed readout evidence to isolate remaining TRAIN optimization deficit before any further native fit. Assess exact-objective whole-batch order/convergence control without new GPU encodings;do not repeat older nonmatching order audit.",
+  "next_action": "Execute the single admitted cached CPU M5 original/reversed intact-batch AdamW contrast, then close scope and review matched TRAIN/later-TRAIN evidence. No native fit admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -40165,7 +40165,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "NONE_NATIVE_FIT_COMPLETE_SAVED_EVIDENCE_ANALYSIS_ONLY",
+  "training_enabled_scope": "market_state_ta_direction_batch_order_20261109_001",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -67512,5 +67512,32 @@
     "source_unchanged": true,
     "terminal_exit_code": 0,
     "completed_utc": "2026-11-09T02:29:28.433637+00:00"
+  },
+  "market_state_ta_direction_batch_order_20261109_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_BATCH_ORDER_20261109_001/PLAN.json",
+      "sha256": "66ef8e504352a0299db3b2aa632b16aa47d54a6b0ed7e5e8bc6bb6726efafd81"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_authorized": true,
+    "training_authorized": true,
+    "data_reads_authorized": true,
+    "private_optimizers": 2,
+    "private_side_heads": 4,
+    "private_updates": 3698,
+    "new_native_forwards": 0,
+    "new_native_parameter_updates": 0,
+    "test_data_used": false,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "wall_seconds": 900,
+    "synthetic_check": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_BATCH_ORDER_20261109_001/SYNTHETIC_CHECK.log",
+      "sha256": "811bcb4f3396114bf53a97e8f419bf0cae4dfe7fb656e3f348d1eaa76adb5a6a"
+    }
   }
 }

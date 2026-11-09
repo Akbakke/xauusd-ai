@@ -15,7 +15,7 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_DIRECTION_DEDICATED_M5_FIT_COMPLETE_IMPROVED_PRIOR_UNBEATEN.
+Policystatus: TA_DIRECTION_BATCH_ORDER_CPU_CONTROL_ADMITTED.
 
 Den nye [M5-fit-kjøringen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DEDICATED_M5_FOLD1_FIT_20261109_001/TERMINAL.json)
 er COMPLETE og konsumert: original FINAL varmstartet til egne M5-sidehoder,
@@ -62,8 +62,12 @@ rålogitparitet mot cache må bestå før privateupdates. Gjenbruk konvergert re
 Dette isolerer rekkefølge i readout-kontrollen, ikke effekten i en bevegelig
 nativebackbone med global gradientklipping. Gammel training_order_audit_20261029_001
 gjelder andre hoder/input og endret halebatch; ingen identisk kontroll er fullført.
-Én ekstern compare.py/PLAN og særskilt engangsgate er tilstrekkelig; ingen ny
-GPU-cache eller produksjonsendring foreslås. Kontrollplanen er ennå ikke innrømmet.
+Den konkrete [CPU-planen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_BATCH_ORDER_20261109_001/PLAN.json)
+er nå innrømmet én gang: to private AdamW-armer, 3698 samlede små updates,
+12G/512M, én numerisk tråd, maks900s gjennom eksisterende capped runner.
+Syntetisk taps-/gradientkontroll, tomstøttesteg og bevart batchmedlemskap består.
+Separat leser fant to metadatafeil; checkpoint-/cache-/oppskrift-/referansebinding
+ble rettet før planfrysing. Ingen produksjonskode endres. Native porter er stengt.
 Retningsmålet er fortsatt aktivt; GC, TEST, Entry/Exit og handel er stengt.
 
 Den fulle [koblingskontrollen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_SHARED_OBJECTIVE_20261108_001/RESULT.json)
