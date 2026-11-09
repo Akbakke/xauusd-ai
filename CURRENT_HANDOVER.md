@@ -15,7 +15,19 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_FINAL_READOUT_NATIVE_VERIFIED_LATER_EDGE_UNQUALIFIED.
+Policystatus: TA_FUTURE_HORIZON_FIXED_READOUT_ADMITTED_ONCE.
+
+Én fast privat sammenlikning er innrømmet i
+/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUTURE_HORIZON_READOUT_20261109_001.
+Fire F-hoder(+15/+60/+240/+1440min),samme128Dbasis/alpha0.01/solver som
+M5,29574TRAIN og17753senereTRAIN. Alle fire koeffisientsett låses før senere
+arrays. M5-resultatet gjenbrukes. Ingen nativeforward eller modelloppdatering.
+8fokuserte kontrolltilfeller og faktisk hash-/mål-/inputpreflight består.
+300s/12GiB CPUproducer,én invokasjon. training_enabled=true KUN for denne
+private planen; native trening,TEST/Entry/Exit/handel er fortsatt stengt.
+Kilde/policy fryses under kjøringen. Alle horisonter rapporteres separat;
+ingen beste-horisont-seleksjon. UTC-ukeblokkintervall er beskrivende utviklingsbevis.
+
 
 Den faktiske FINAL-modellen har nå de kvalifiserte globale M5-hodene.
 Native kontroll:129.644s,3modeller/optimizere,6fullforwards,5918cachede
@@ -50,9 +62,8 @@ alle cachede hoder er kontrollert. Ingen ny encoderfit/cache.
 
 Neste direkte spørsmål er separat retningsinformasjon ved de allerede
 eksisterende lengre F-horisontene+15/+60/+240/+1440min i samme FINAL-cache.
-Forbered én fast TRAIN-fit/senere-score-sammenlikning med låste koeffisienter
-før senere data,eksakte mål/masker og fryste priorer. Ingen ny kjøring er
-innrømmet ennå. Begge kort/langt skal måles hver for seg,ingen beste-horisont-
+Den eksakte faste TRAIN-fit/senere-score-sammenlikningen er nå innrømmet
+øverst,med låste koeffisienter før senere data,eksakte mål/masker og fryste priorer. Begge kort/langt skal måles hver for seg,ingen beste-horisont-
 seleksjon fra senere data. SenereTRAIN er gjenbrukt utvikling,ikke fersk TEST.
 
 L2-kontrollen er COMPLETE/konsumert på6.009s. Isolert coupledL2 erstattet
@@ -749,9 +760,8 @@ tidssekvensmodellen, samme-linje-reaksjonsverdi, Entry-verdi og økonomisk edge
 er ubevist. 61 makrofelt mangler uavhengig formelorakel; COTs faktiske
 historiske publisering og vintage er fortsatt UNKNOWN.
 
-**Neste steg:** Forbered den avgrensede sammenlikningen av separate lengre
-retningsmål med eksisterende cache, som beskrevet øverst. Ingen ny fit
-innrømmet. Målet er aktivt; senere retningsverdi er ubevist.
+**Neste steg:** Kjør og kontroller den eksakte fire-horisont-sammenlikningen
+øverst. Målet er aktivt; senere retningsverdi er ubevist.
 Brukerens spørsmål om 30 epoker og fem år er fortsatt åpne hypoteser.
 Denne fitten dekker omtrent mai–september2024, senere score oktober–desember2024.
 Ett pass og én fold er ingen generell dom over lengre læring eller historikk.
