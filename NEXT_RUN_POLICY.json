@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T10:28:12.016690+00:00",
-  "status": "TA_M5_FINAL_READOUT_ADMITTED",
+  "observed_utc": "2026-11-09T10:32:29.785330+00:00",
+  "status": "TA_M5_FINAL_READOUT_RECOVERS_TRAIN_LATER_F_EDGE_UNPROVED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Execute two fixed-alpha cached FINAL M5 readouts,compare same TRAIN and laterTRAIN versus imported and nativeFINAL and prior. No native fit.",
+  "next_action": "Use saved logits to isolate final-output calibration drift versus feature-dependent readout before minimum native correction. Do not repeat cache/native fit. No new fit admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1644,11 +1644,15 @@
     "latest_private_equal_weight_m5_control": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_EQUAL_WEIGHT_20261109_001/REVIEW.json",
       "sha256": "1b8e3192394e6eeb25eb2ceca0f74195b619c7e15ca53bf9a243128b032f1b78"
+    },
+    "latest_final_representation_readout_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_20261109_001/REVIEW.json",
+      "sha256": "deff9b4774ad68e6306d598d2073f43e36b126cc29069122965b5319d4ef310d"
     }
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Qualified actualFINAL cache complete; two private fixed-method CPU readouts admitted, zero native updates.",
+    "current_activity": "ActualFINAL cache and fixed readouts consumed. Better recovered TRAIN for bothM5targets; later both worse than imported reference,F still loses prior.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1677,11 +1681,11 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "Imported equal-loss frozen-representation batch-order contrast.",
+    "latest_terminal_role": "Two fixed-alpha M5 readouts on actualFINAL representation,paired to saved imported/nativeFINAL/prior.",
     "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_SHARED_OBJECTIVE_20261108_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_ORDER_20261109_001/TERMINAL.json",
-      "sha256": "2934554ae683c1367ac1afa56822855b9ec55ce30f9331b88d9c00be0d399ce4"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_20261109_001/TERMINAL.json",
+      "sha256": "b66a762a2f78a5fe8dcec4c9dba393f60a8f59ccfe836d7484893c5baa78387a"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -1701,7 +1705,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Full native TRAIN deterioration remains; actualFINAL information content versus readout mismatch must be separated.",
+    "current_blocker": "Native optimization produces poor readout calibration despite recoverable TRAIN signal; longer-run F predictive value remains unproved.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -10301,9 +10305,10 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "Frozen representation/heads-only clip does not reproduce moving native backbone or dropout.",
-      "Order changes calibration but no correction qualified.",
-      "Information loss versus readout mismatch unresolved; later generalization and economic edge unproved."
+      "No native checkpoint modified; trained native readout remains degraded.",
+      "Both recovered later scores worse than old imported reference; F loses frozenprior.",
+      "FixedL2 depends on basis geometry; cannot infer all information content.",
+      "No fresh generalization, calibrated trading confidence or economic edge."
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -17639,7 +17644,7 @@
         "Originals preserved; unusedwindows3/4revoked. No new epoch,HPO,checkpoint/threshold selection,normalization refit,trading,broker,Exit or promotion."
       ]
     },
-    "latest_terminal_evidence_scope": "3private two-head fits/5547updates,all6 TRAIN endpoints worse initial; later arrays not consumed.",
+    "latest_terminal_evidence_scope": "Same29574TRAIN/17753laterTRAIN,2privatefits,0nativeupdates; saved metrics independently recomputed withzero discrepancy.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -24641,7 +24646,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-09T10:28:12.016690+00:00",
+  "updated_utc": "2026-11-09T10:32:29.785330+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -68565,7 +68570,7 @@
     "maximum_conditional_side_mean_delta": 0
   },
   "market_state_ta_m5_final_readout_20261109_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_20261109_001/PLAN.json",
       "sha256": "fe5bbbd7b6faba84335b47b3d3e4525f5566ea1dc04359e4f7ed04b4188b8972"
@@ -68575,12 +68580,12 @@
       "sha256": "c1d02c93827c43f73ef5e236979c7f667abced69d8cd88a635ee28949d07a111"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
-    "execution_authorized": true,
-    "training_authorized": true,
-    "data_reads_authorized": true,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "data_reads_authorized": false,
     "readout_fits": 2,
     "native_forwards": 0,
     "native_parameter_updates": 0,
@@ -68591,6 +68596,25 @@
     "selection": false,
     "test_data_used": false,
     "scope": "Two private fixed-method M5 readouts on actualFINAL. Original readouts reused. TRAIN fit first; later predictions scored once after both readouts locked.",
-    "standing_authorization": "Active direction-only goal and standing zero-cost local research authorization."
+    "standing_authorization": "Active direction-only goal and standing zero-cost local research authorization.",
+    "remaining_invocations": 0,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_20261109_001/RESULT.json",
+      "sha256": "623e66c9baba2a3cf6910ffb10a11ba2e14a4c2e514e3660a83528c361c16ae6"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_20261109_001/REVIEW.json",
+      "sha256": "deff9b4774ad68e6306d598d2073f43e36b126cc29069122965b5319d4ef310d"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_20261109_001/TERMINAL.json",
+      "sha256": "b66a762a2f78a5fe8dcec4c9dba393f60a8f59ccfe836d7484893c5baa78387a"
+    },
+    "actual_readout_fits": 2,
+    "elapsed_seconds": 5.38280729699909,
+    "later_beats_frozen_prior": {
+      "future": false,
+      "state": true
+    }
   }
 }
