@@ -105,6 +105,32 @@ TA_M5_NEXT_NATIVE_PASS_CHANGED_SOURCE_PATHS = TA_M5_FIT_CHANGED_SOURCE_PATHS | f
     'gx1/contracts/market_state_time_query_native_F_batch_v1.py',
 })
 
+TA_M5_SCORE_RECOVERY_STAGE = 'market_state_ta_m5_score_recovery_20261109_001'
+TA_M5_SCORE_RECOVERY_SCOPE = 'market_state_ta_m5_score_recovery_v1'
+TA_M5_SCORE_RECOVERY_ROOT = Path('/home/andre2/GX1_RUNS') / TA_M5_SCORE_RECOVERY_STAGE.upper()
+TA_M5_SCORE_RECOVERY_RUNTIME_ROOT = TA_M5_SCORE_RECOVERY_ROOT / 'RUNTIME'
+TA_M5_SCORE_RECOVERY_RECIPE_PATH = TA_M5_SCORE_RECOVERY_ROOT / 'RECIPE.json'
+TA_M5_SCORE_RECOVERY_MAX_WINDOWS = 1
+TA_M5_SCORE_RECOVERY_ORIGIN_SCHEMA = 'gx1_market_state_ta_m5_score_recovery_origin_v1'
+TA_M5_SCORE_RECOVERY_SOURCE_COMMIT = 'ad83bccf2ae0c13f0bf107daef439e55d3dd03d3'
+TA_M5_SCORE_RECOVERY_CHANGED_SOURCE_PATHS = TA_M5_NEXT_NATIVE_PASS_CHANGED_SOURCE_PATHS
+TA_M5_SCORE_RECOVERY_REFS = {
+    name: {'path': str(TA_M5_NEXT_NATIVE_PASS_ROOT / path), 'sha256': sha}
+    for name, path, sha in (
+        ('original_recipe', 'RECIPE.json', '2470fa82e2a6f6eefd5b90b0e62323be8895ac4f0dc48a9bae125cc70d617fdc'),
+        ('original_plan', 'CAMPAIGN/CAMPAIGN_PLAN.json', 'a8e2beda4c8d927ed0794713d1cfb48e7b3023730a4d2e0ab8fc2c8a65b1d42b'),
+        ('failed_result', 'RUNTIME/prefix-fit/window-0001/RESULT.json', 'ca78b1c649096b567b2a60b2a8af82999bbfa23e0ba829f637de141d343dde40'),
+        ('failed_cursor', 'RUNTIME/prefix-cursor/RESUME_CURSOR.json', '91fd2e2b6d6761fa611c7d5b59d6b21bd339dda1c24ada617e012b4f5ba71e91'),
+        ('failed_receipt', 'RUNTIME/receipts/invocation-0001.json', '52d72768b825756508ad24faaa5cdd579dbd212c7d56d061167ac9372957be6c'),
+        ('final_checkpoint', 'RUNTIME/prefix-fit/states/FINAL_FOLD1_FIT_STATE.pt',
+         '9ff96ca98cd81f7750564fc9b73965ea7312bd400171829faaae30f569520db5'),
+        ('initial_state', 'RUNTIME/prefix-fit/states/INITIAL_FOLD1_STATE.pt',
+         'fca22ae9c4084362a183fcbd1f435a4461fcbb3d44f1b4390a3cdd5fb6ec3866'),
+        ('initial_measurement', 'RUNTIME/prefix-fit/window-0001/INITIAL_TRAIN.json',
+         '049453420c984e4aa61b1a1bbbec8d4fb0f232c50c97f9abf5d70429b5f39470'),
+    )
+}
+
 TA_RECOVERY_ORIGIN_SCHEMA = 'gx1_market_state_ta_fold1_recovery_origin_v1'
 TA_RECOVERY_SOURCE_COMMIT = 'c7c1f4f5a5f21e1b8ac5255d65e1646b7ea99410'
 TA_RECOVERY_PARENT_CURSOR = 4096
@@ -218,13 +244,13 @@ def require_checkpoint_view(value: Any, *, recipe: Mapping[str, Any] | None = No
     """Require the exact matured fold-1 feature and normalization identity."""
     _need(type(dedicated_m5_side) is bool, 'TA_M5_VIEW_MODE')
     if recipe is not None:
-        m5_recipe = recipe.get('run_scope') in (TA_M5_FIT_SCOPE, TA_M5_EQUAL_LOSS_FIT_SCOPE, TA_M5_NEXT_NATIVE_PASS_SCOPE)
+        m5_recipe = recipe.get('run_scope') in (TA_M5_FIT_SCOPE, TA_M5_EQUAL_LOSS_FIT_SCOPE, TA_M5_NEXT_NATIVE_PASS_SCOPE, TA_M5_SCORE_RECOVERY_SCOPE)
         _need(not dedicated_m5_side or m5_recipe, 'TA_M5_VIEW_RECIPE_MODE')
         dedicated_m5_side = m5_recipe
         if m5_recipe:
             _need(recipe.get('numerical_recipe') == ta_sf_numerical_recipe(
                 dedicated_m5_side=True,
-                m5_equal_observation=recipe.get('run_scope') in (TA_M5_EQUAL_LOSS_FIT_SCOPE, TA_M5_NEXT_NATIVE_PASS_SCOPE)),
+                m5_equal_observation=recipe.get('run_scope') in (TA_M5_EQUAL_LOSS_FIT_SCOPE, TA_M5_NEXT_NATIVE_PASS_SCOPE, TA_M5_SCORE_RECOVERY_SCOPE)),
                 'TA_M5_VIEW_NUMERICAL')
     if ta_sf or dedicated_m5_side or (recipe is not None and recipe.get("run_scope") in (TA_SF_SCOPE, TA_RECOVERY_SCOPE)):
         return _require_ta_checkpoint_view(value, recipe=recipe, verify_files=verify_files,
@@ -282,6 +308,9 @@ def require_launch_recipe(value: Any, *, source_repo: Path,
                           source_commit: str,
                           verify_files: bool = True) -> dict[str, Any]:
     """Validate a distinct fit admission without the legacy prefix fold registry."""
+    if isinstance(value, Mapping) and value.get("run_scope") == TA_M5_SCORE_RECOVERY_SCOPE:
+        return _require_ta_m5_score_recovery_launch_recipe(value, source_repo=source_repo,
+            source_commit=source_commit, verify_files=verify_files)
     if isinstance(value, Mapping) and value.get("run_scope") == TA_M5_NEXT_NATIVE_PASS_SCOPE:
         return _require_ta_m5_next_native_pass_launch_recipe(value, source_repo=source_repo,
             source_commit=source_commit, verify_files=verify_files)
@@ -470,7 +499,7 @@ def _require_ta_checkpoint_view(value: Any, *, recipe=None, verify_files=True,
         and prefix['unobserved_units_profile_sha256'] == PROFILE_SHA256,
         'TA_VIEW_NORMALIZATION')
     if recipe is not None:
-        _need(recipe.get('run_scope') in (TA_SF_SCOPE, TA_RECOVERY_SCOPE, TA_M5_FIT_SCOPE, TA_M5_EQUAL_LOSS_FIT_SCOPE, TA_M5_NEXT_NATIVE_PASS_SCOPE)
+        _need(recipe.get('run_scope') in (TA_SF_SCOPE, TA_RECOVERY_SCOPE, TA_M5_FIT_SCOPE, TA_M5_EQUAL_LOSS_FIT_SCOPE, TA_M5_NEXT_NATIVE_PASS_SCOPE, TA_M5_SCORE_RECOVERY_SCOPE)
             and recipe.get('expected_view_sha256') == value['contract_sha256'],
             'TA_CHECKPOINT_RECIPE_VIEW')
     return prefix_fit._view_identity(value, verify_files=verify_files,
@@ -1192,3 +1221,168 @@ def _require_ta_m5_next_native_pass_launch_recipe(value, *, source_repo, source_
     for name, ref in refs.items():
         campaign.require_binding(ref, label='next native pass input ' + name, verify_file=True)
     return recipe
+
+def _ta_m5_score_recovery_qualification():
+    """Bind only the observed capture failure after a fully durable native pass."""
+    from gx1.contracts import market_state_native_F_private_campaign_v1 as sf
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix
+    refs = {name: dict(ref) for name, ref in TA_M5_SCORE_RECOVERY_REFS.items()}
+    original, plan, result, cursor, receipt, initial = (
+        sf._read(refs[name], 'M5 score recovery ' + name) for name in (
+            'original_recipe', 'original_plan', 'failed_result', 'failed_cursor',
+            'failed_receipt', 'initial_measurement'))
+    input_refs, qualified = _ta_m5_next_native_pass_qualification()
+    expected = _ta_m5_next_native_pass_recipe_fields(input_refs, qualified)
+    original = _identity(original, set(expected) | {'source_owners'})
+    _need(all(original[k] == v and type(original[k]) is type(v) for k, v in expected.items()),
+          'M5_SCORE_RECOVERY_ORIGINAL_RECIPE')
+    _need(plan.get('source_commit') == TA_M5_SCORE_RECOVERY_SOURCE_COMMIT
+          and plan.get('recipe') == refs['original_recipe']
+          and plan.get('runtime_root') == str(TA_M5_NEXT_NATIVE_PASS_RUNTIME_ROOT)
+          and plan.get('plan_sha256') == campaign.canonical_sha256({
+              k: v for k, v in plan.items() if k != 'plan_sha256'})
+          and receipt.get('schema_version') == campaign.RECEIPT_SCHEMA
+          and receipt.get('plan_sha256') == plan['plan_sha256']
+          and receipt.get('invocation_number') == 1
+          and receipt.get('outcome') == receipt.get('guard_decision') == 'FAILED'
+          and receipt.get('trainer_guard_exit_code') == 1
+          and receipt.get('progress_observer_exit_code') == 0
+          and receipt.get('checkpoint_pointer_after') == refs['failed_cursor']
+          and plan.get('test_data_used') is receipt.get('test_data_used') is False,
+          'M5_SCORE_RECOVERY_FAILED_TERMINAL')
+    cursor = prefix.require_prefix_fit_cursor(cursor, expected_recipe=refs['original_recipe'],
+        expected_fold=FOLD, verify_files=False)
+    _need(result.get('schema_version') == RESULT_SCHEMA
+          and result.get('source_commit') == TA_M5_SCORE_RECOVERY_SOURCE_COMMIT
+          and result.get('source_unchanged') is True and result.get('test_data_used') is False
+          and result.get('error') == 'RuntimeError:NATIVE_F_M5_CAPTURE_INPUT'
+          and result.get('skipped_batches') == 0
+          and result.get('oof_measurement') is None
+          and cursor.get('result') == refs['failed_result']
+          and all(result.get(k) == cursor.get(k) == v for k, v in {
+              'recipe': refs['original_recipe'], 'outcome': 'FAILED', 'phase_state': 'SCORING',
+              'parent_cursor': FIT_ROWS, 'optimizer_updates': MAX_UPDATES, 'oof_cursor': 0,
+              'full_state': refs['final_checkpoint'], 'own_initial_state': refs['initial_state'],
+              'initial_measurement': refs['initial_measurement'], 'final_train_measurement': None,
+          }.items())
+          and result.get('feature_view_identity') == cursor['feature_view_identity'],
+          'M5_SCORE_RECOVERY_COMPLETED_FIT')
+    require_checkpoint_view(cursor['feature_view_identity'], recipe=original, ta_sf=True)
+    measured = initial.get('measurement', {})
+    _need(initial.get('schema_version') == 'gx1_market_state_ta_sf_fold1_evaluation_v1'
+          and initial.get('evaluated_checkpoint') == refs['initial_state']
+          and initial.get('evaluated_model_state_sha256') == original['expected_initial_model_state_sha256']
+          and initial.get('optimizer_updates') == 0 and initial.get('test_data_used') is False
+          and measured.get('rows') == FIT_ROWS and measured.get('batches') == MAX_UPDATES
+          and measured.get('partition') == 'fit'
+          and measured.get('feature_view_sha256') == original['expected_view_sha256']
+          and measured.get('model_contract_sha256') == original['expected_model_contract_sha256'],
+          'M5_SCORE_RECOVERY_REUSED_INITIAL')
+    origin = {
+        'schema_version': TA_M5_SCORE_RECOVERY_ORIGIN_SCHEMA,
+        'source_commit': TA_M5_SCORE_RECOVERY_SOURCE_COMMIT, **refs,
+    }
+    return {
+        'origin': origin, 'original_recipe': original, 'original_plan': plan,
+        'result': result, 'cursor': cursor, 'receipt': receipt,
+        'initial_measurement': refs['initial_measurement'], 'initial_payload': initial,
+    }
+
+
+def read_ta_m5_score_recovery_origin(recipe):
+    recovered = _ta_m5_score_recovery_qualification()
+    _need(isinstance(recipe, Mapping)
+          and recipe.get('run_scope') == TA_M5_SCORE_RECOVERY_SCOPE
+          and recipe.get('scoring_recovery_origin') == recovered['origin'],
+          'M5_SCORE_RECOVERY_ORIGIN')
+    return recovered
+
+
+def _require_ta_m5_score_recovery_sources(owners, qualified, *, source_commit):
+    import subprocess
+    from gx1.contracts import market_state_native_F_private_campaign_v1 as sf
+    paths = required_source_paths(ta_sf=True)
+    _need(isinstance(owners, Mapping) and isinstance(qualified, Mapping)
+          and set(owners) == set(qualified) == paths and len(paths) == 85,
+          'M5_SCORE_RECOVERY_SOURCE_SET')
+    _need(subprocess.run(['git', 'merge-base', '--is-ancestor',
+        TA_M5_SCORE_RECOVERY_SOURCE_COMMIT, source_commit], cwd=CANONICAL_REPO,
+        capture_output=True).returncode == 0, 'M5_SCORE_RECOVERY_SOURCE_ANCESTRY')
+    for name, ref in owners.items():
+        current = campaign.require_binding(ref, label='score recovery current source', verify_file=True)
+        old = campaign.require_binding(qualified[name], label='completed fit source', verify_file=False)
+        _need(current['path'] == old['path'] == str(CANONICAL_REPO / name),
+              'M5_SCORE_RECOVERY_SOURCE_PATH:' + name)
+        if name in TA_M5_SCORE_RECOVERY_CHANGED_SOURCE_PATHS:
+            _need(old['sha256'] == sf._ta_m5_git_source_sha(TA_M5_SCORE_RECOVERY_SOURCE_COMMIT, name),
+                  'M5_SCORE_RECOVERY_HISTORICAL_SOURCE:' + name)
+        else:
+            _need(current == old, 'M5_SCORE_RECOVERY_UNQUALIFIED_SOURCE:' + name)
+
+
+def _ta_m5_score_recovery_recipe_fields(recovered):
+    original = recovered['original_recipe']
+    value = {k: v for k, v in original.items() if k not in ('source_owners', 'recipe_sha256')}
+    value.update(
+        runtime_root=str(TA_M5_SCORE_RECOVERY_RUNTIME_ROOT),
+        run_id=TA_M5_SCORE_RECOVERY_STAGE, admission_stage=TA_M5_SCORE_RECOVERY_STAGE,
+        run_scope=TA_M5_SCORE_RECOVERY_SCOPE, max_windows=TA_M5_SCORE_RECOVERY_MAX_WINDOWS,
+        execution_binding_path=str(TA_M5_SCORE_RECOVERY_RUNTIME_ROOT / 'EXECUTION_BINDING.json'),
+        scoring_recovery_origin=recovered['origin'],
+        input_refs={**original['input_refs'], **{
+            'score_recovery_' + name: ref for name, ref in TA_M5_SCORE_RECOVERY_REFS.items()}},
+        measurement_scope={'initial_fit_rows': 0, 'reused_initial_fit_rows': FIT_ROWS,
+                           'final_fit_rows': FIT_ROWS, 'later_train_rows': SCORE_ROWS,
+                           'matched_initial_final': True},
+        max_model_constructions=1, max_optimizer_constructions=1,
+        max_forwards=(FIT_ROWS + BATCH_SIZE - 1) // BATCH_SIZE
+                     + (SCORE_ROWS + BATCH_SIZE - 1) // BATCH_SIZE,
+        max_backwards=0, max_optimizer_updates=0, max_initial_forwards=0,
+        training_enabled=False, full_epoch_training_allowed=False)
+    return value
+
+
+def build_ta_m5_score_recovery_launch_recipe(*, source_commit: str):
+    recovered = _ta_m5_score_recovery_qualification()
+    value = _ta_m5_score_recovery_recipe_fields(recovered)
+    value['source_owners'] = {name: {'path': str(CANONICAL_REPO / name),
+        'sha256': campaign.file_sha256(CANONICAL_REPO / name)}
+        for name in sorted(required_source_paths(ta_sf=True))}
+    value['recipe_sha256'] = campaign.canonical_sha256(value)
+    return _require_ta_m5_score_recovery_launch_recipe(value, source_repo=CANONICAL_REPO,
+        source_commit=source_commit, verify_files=True)
+
+
+def _require_ta_m5_score_recovery_launch_recipe(value, *, source_repo, source_commit, verify_files):
+    _need(verify_files, 'M5_SCORE_RECOVERY_PHYSICAL_METADATA_REQUIRED')
+    recovered = _ta_m5_score_recovery_qualification()
+    expected = _ta_m5_score_recovery_recipe_fields(recovered)
+    recipe = _identity(value, set(expected) | {'source_owners'})
+    _need(source_repo == CANONICAL_REPO and isinstance(source_commit, str)
+          and campaign._COMMIT.fullmatch(source_commit) is not None
+          and all(recipe[k] == v and type(recipe[k]) is type(v) for k, v in expected.items()),
+          'M5_SCORE_RECOVERY_RECIPE_SCOPE')
+    _require_ta_m5_score_recovery_sources(recipe['source_owners'],
+        recovered['original_recipe']['source_owners'], source_commit=source_commit)
+    for name, ref in recipe['input_refs'].items():
+        campaign.require_binding(ref, label='M5 score recovery input ' + name, verify_file=True)
+    return recipe
+
+
+def require_ta_m5_score_recovery_gate(gate, recipe):
+    _need(isinstance(gate, Mapping)
+          and recipe.get('run_scope') == TA_M5_SCORE_RECOVERY_SCOPE
+          and recipe.get('admission_stage') == TA_M5_SCORE_RECOVERY_STAGE
+          and gate.get('decision') == gate.get('status') == 'ADMITTED'
+          and all(gate.get(k) is True for k in (
+              'ta_m5_score_recovery_authorized', 'checkpoint_reads_authorized',
+              'zero_update_scoring_recovery_authorized', 'capture_m5_readout'))
+          and gate.get('scoring_recovery_origin') == recipe['scoring_recovery_origin']
+          and gate.get('physical_power_limit_w') == 250
+          and gate.get('fit_rows') == FIT_ROWS and gate.get('score_rows') == SCORE_ROWS
+          and gate.get('max_optimizer_updates') == gate.get('max_initial_forwards') == 0
+          and all(gate.get(k) is False for k in (
+              'training_enabled', 'native_training_enabled', 'full_epoch_training_allowed',
+              'genuine_backward_authorized', 'genuine_updates_authorized',
+              'genuine_predictor_fit_authorized', 'test_data_used')),
+          'M5_SCORE_RECOVERY_POLICY')

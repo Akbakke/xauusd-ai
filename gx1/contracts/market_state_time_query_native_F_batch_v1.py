@@ -141,11 +141,14 @@ def _m5_readout_hooks(model, rows):
         def hook(_module, inputs):
             if not (name not in captured and len(inputs) == 1
                     and isinstance(inputs[0], torch.Tensor)
-                    and inputs[0].shape == (rows, 128)
+                    and inputs[0].shape == (
+                        (rows, 1, 128) if name == 'state_representation' else (rows, 128))
                     and inputs[0].dtype == torch.float32
                     and bool(torch.isfinite(inputs[0]).all())):
                 raise RuntimeError('NATIVE_F_M5_CAPTURE_INPUT')
-            captured[name] = inputs[0].detach().cpu().numpy().copy()
+            # S decodes a singleton query grid; F decodes the native endpoints directly.
+            value = inputs[0][:, 0, :] if name == 'state_representation' else inputs[0]
+            captured[name] = value.detach().cpu().numpy().copy()
         return hook
     try:
         for name, head in heads.items():

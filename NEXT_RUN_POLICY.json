@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T11:55:49.497560+00:00",
-  "status": "TA_M5_NEXT_NATIVE_PASS_FINITE_ADMISSION",
+  "observed_utc": "2026-11-09T14:29:03.000339+00:00",
+  "status": "TA_M5_SCORE_RECOVERY_ZERO_UPDATE_FINITE_ADMISSION",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
-  "full_epoch_training_allowed": true,
+  "training_enabled": false,
+  "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Materialize this exact fresh campaign once, install the new qualified Windows deployment, verify idle machine, prepare/confirm fresh boot through existing capped controller and allow only invocation0001. Observe runtime progress at15-30min. Do not edit frozen source/policy, relaunch old plans, or start parallel heavy work. After terminal, verify full matched initial/final and captured arrays, then execute separately admitted fixed S/F readout control.",
+  "next_action": "Materialize the new score-only campaign once from clean committed source, reuse verified Windows guard scripts, prepare fresh boot and score preserved FINAL on29574+17753rows with passive M5 capture. Zero fit/initial forwards; no old-plan relaunch. Observe stable native work at15-30min.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -35450,7 +35450,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -40192,7 +40192,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "ONLY_MARKET_STATE_TA_M5_NEXT_NATIVE_PASS_20261109_001",
+  "training_enabled_scope": "NO_FIT_ONLY_SCORE_RECOVERY_20261109_001",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -69216,8 +69216,8 @@
     }
   },
   "market_state_ta_m5_next_native_pass_20261109_001": {
-    "status": "ADMITTED",
-    "decision": "ADMITTED",
+    "status": "FAILED_CONSUMED",
+    "decision": "FAILED",
     "scope": "One additional native pass from corrected FINAL import, fixed equal-loss numerical recipe. Full matched initial/final TRAIN and same later TRAIN, passive FINAL/OOF M5 capture, fixed converged readout control afterward.",
     "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_NATIVE_PASS_20261109_001/RUNTIME",
     "recipe": {
@@ -69225,17 +69225,17 @@
       "sha256": "2470fa82e2a6f6eefd5b90b0e62323be8895ac4f0dc48a9bae125cc70d617fdc"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
+    "claimed_invocations": 1,
     "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "fold_id": 1,
     "fit_rows": 29574,
     "score_rows": 17753,
     "train_passes": 1,
     "max_optimizer_updates": 1849,
-    "time_query_fold1_fit_authorized": true,
-    "ta_sf_fold1_fit_authorized": true,
+    "time_query_fold1_fit_authorized": false,
+    "ta_sf_fold1_fit_authorized": false,
     "input_audit": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001/RESULT.json",
       "sha256": "107c95312f3decce4c00bbe75ccf467363853d0377c448599bed7c673b871dc0"
@@ -69298,19 +69298,19 @@
     "broker_access_allowed": false,
     "full_val_allowed": false,
     "spending_allowed": false,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
-    "genuine_predictor_fit_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "genuine_predictor_fit_authorized": false,
     "training_enabled": true,
     "native_training_enabled": true,
     "full_epoch_training_allowed": true,
-    "native_launch_authorized": true,
-    "campaign_preparation_authorized": true,
-    "ta_m5_next_native_pass_authorized": true,
+    "native_launch_authorized": false,
+    "campaign_preparation_authorized": false,
+    "ta_m5_next_native_pass_authorized": false,
     "import_review": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_IMPORT_20261109_001/REVIEW.json",
       "sha256": "5325057a27641c06460e1234593147aa8d804a78a97d109751fd03a85be47acd"
@@ -69320,7 +69320,7 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_NATIVE_PASS_20261109_001/WINDOWS_DEPLOYMENT.json",
       "sha256": "f5a94cf892f2684f9cb9eb4eb38108b41635a14e03f4d0c6aa7ed0d7d72930e8"
     },
-    "additional_native_passes_authorized": 1,
+    "additional_native_passes_authorized": false,
     "readout_fits_authorized_in_native_job": 0,
     "fixed_followup_readout": {
       "tasks": [
@@ -69336,6 +69336,124 @@
       "native_import_authorized": false,
       "later_fit_allowed": false,
       "parameter_search_allowed": false
-    }
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_NATIVE_PASS_20261109_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+      "sha256": "ca78b1c649096b567b2a60b2a8af82999bbfa23e0ba829f637de141d343dde40"
+    },
+    "receipt": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_NATIVE_PASS_20261109_001/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "52d72768b825756508ad24faaa5cdd579dbd212c7d56d061167ac9372957be6c"
+    },
+    "final_checkpoint": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_NATIVE_PASS_20261109_001/RUNTIME/prefix-fit/states/FINAL_FOLD1_FIT_STATE.pt",
+      "sha256": "9ff96ca98cd81f7750564fc9b73965ea7312bd400171829faaae30f569520db5"
+    },
+    "initial_measurement": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_NATIVE_PASS_20261109_001/RUNTIME/prefix-fit/window-0001/INITIAL_TRAIN.json",
+      "sha256": "049453420c984e4aa61b1a1bbbec8d4fb0f232c50c97f9abf5d70429b5f39470"
+    },
+    "optimizer_updates_completed": 1849,
+    "fit_rows_completed": 29574,
+    "skipped_batches": 0,
+    "final_measurement_complete": false,
+    "later_measurement_complete": false,
+    "error": "RuntimeError:NATIVE_F_M5_CAPTURE_INPUT"
+  },
+  "market_state_ta_m5_score_recovery_20261109_001": {
+    "status": "ADMITTED",
+    "decision": "ADMITTED",
+    "scope": "Only recover FINAL/later TRAIN scoring from the exact preserved completed checkpoint; zero fitting and zero initial forwards.",
+    "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SCORE_RECOVERY_20261109_001/RUNTIME",
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SCORE_RECOVERY_20261109_001/RECIPE.json",
+      "sha256": "f0d8571b202d088145b8e50d39a6baf137cb3ca6b4157763b5a89817a3267fed"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "prepared_boot": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SCORE_RECOVERY_20261109_001/PREPARED_WINDOWS_BOOT.json",
+      "sha256": "510fa369d8831e35605c42d84b9e209aea23c7e8db966c797c3b87b4d1cf6720"
+    },
+    "guard_template": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_RECOVERY_20261108_001/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "sha256": "20b313d6678bc08af6bc0468d4055ee9ca8810dda5c9ba5c6c9b5837161b30c6"
+    },
+    "materializer": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_market_state_time_query_fold1_fit_campaign_v1.py",
+      "sha256": "1c38e1bbc6cc6f8f94a949108cd3978bf2dfa73173f84824fb9005e675d565b8"
+    },
+    "source_validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SCORE_RECOVERY_20261109_001/SOURCE_REVIEW.json",
+      "sha256": "a38ded0dee7452fb8685c3e45d4e80e5db0f530b12b159b692047aed22af607a"
+    },
+    "scoring_recovery_origin": {
+      "schema_version": "gx1_market_state_ta_m5_score_recovery_origin_v1",
+      "source_commit": "ad83bccf2ae0c13f0bf107daef439e55d3dd03d3",
+      "original_recipe": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_NATIVE_PASS_20261109_001/RECIPE.json",
+        "sha256": "2470fa82e2a6f6eefd5b90b0e62323be8895ac4f0dc48a9bae125cc70d617fdc"
+      },
+      "original_plan": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_NATIVE_PASS_20261109_001/CAMPAIGN/CAMPAIGN_PLAN.json",
+        "sha256": "a8e2beda4c8d927ed0794713d1cfb48e7b3023730a4d2e0ab8fc2c8a65b1d42b"
+      },
+      "failed_result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_NATIVE_PASS_20261109_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+        "sha256": "ca78b1c649096b567b2a60b2a8af82999bbfa23e0ba829f637de141d343dde40"
+      },
+      "failed_cursor": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_NATIVE_PASS_20261109_001/RUNTIME/prefix-cursor/RESUME_CURSOR.json",
+        "sha256": "91fd2e2b6d6761fa611c7d5b59d6b21bd339dda1c24ada617e012b4f5ba71e91"
+      },
+      "failed_receipt": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_NATIVE_PASS_20261109_001/RUNTIME/receipts/invocation-0001.json",
+        "sha256": "52d72768b825756508ad24faaa5cdd579dbd212c7d56d061167ac9372957be6c"
+      },
+      "final_checkpoint": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_NATIVE_PASS_20261109_001/RUNTIME/prefix-fit/states/FINAL_FOLD1_FIT_STATE.pt",
+        "sha256": "9ff96ca98cd81f7750564fc9b73965ea7312bd400171829faaae30f569520db5"
+      },
+      "initial_state": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_NATIVE_PASS_20261109_001/RUNTIME/prefix-fit/states/INITIAL_FOLD1_STATE.pt",
+        "sha256": "fca22ae9c4084362a183fcbd1f435a4461fcbb3d44f1b4390a3cdd5fb6ec3866"
+      },
+      "initial_measurement": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_NATIVE_PASS_20261109_001/RUNTIME/prefix-fit/window-0001/INITIAL_TRAIN.json",
+        "sha256": "049453420c984e4aa61b1a1bbbec8d4fb0f232c50c97f9abf5d70429b5f39470"
+      }
+    },
+    "physical_power_limit_w": 250,
+    "fit_rows": 29574,
+    "score_rows": 17753,
+    "max_optimizer_updates": 0,
+    "max_initial_forwards": 0,
+    "max_backwards": 0,
+    "max_forwards": 2959,
+    "memory_max": "20G",
+    "swap_max": "512M",
+    "native_window_seconds": 12000,
+    "outer_guard_seconds": 13800,
+    "fresh_windows_boot_required": true,
+    "campaign_preparation_authorized": true,
+    "ta_m5_score_recovery_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "zero_update_scoring_recovery_authorized": true,
+    "capture_m5_readout": true,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "native_launch_authorized": true,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "test_data_used": false
   }
 }

@@ -334,6 +334,8 @@ def _ta_endpoint_measurement(*, model, prepared, view, receipts, rows, issues,
                        for key, value in captured.items()},
             'additional_forward_calls': 0, 'test_data_used': False,
         }
+        measured = objective._seal({
+            key: value for key, value in measured.items() if key != 'contract_sha256'})
     return measured
 
 
@@ -390,6 +392,41 @@ def _ta_restore_recovery(*, recovery, fresh, model, optimizer, numerical,
     return restored
 
 
+
+def _ta_m5_restore_scoring_checkpoint(*, launch, model, optimizer, view_identity,
+                                       order, device, counters):
+    """Restore the completed original FINAL bit exactly, without fit or reinitialization."""
+    import torch
+    from gx1.contracts import market_state_time_query_fold1_fit_state_v1 as state
+    from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+    origin = launch['scoring_recovery_origin']
+    loaded = common._load_state(origin['final_checkpoint'], torch=torch,
+        maximum=launch['max_checkpoint_bytes'], counters=counters)
+    _need(loaded.get('cursor') == scope.FIT_ROWS
+          and loaded.get('optimizer_updates') == scope.MAX_UPDATES
+          and loaded.get('skipped_batches') == 0, 'M5_SCORE_RECOVERY_FULL_PROGRESS')
+    identities = [id(parameter) for parameter in model.parameters()]
+    restored = state.restore_fold1_fit_state(
+        loaded, model, optimizer, numerical_recipe=launch['numerical_recipe'],
+        feature_view_identity=view_identity, parent_order=order,
+        source_commit=origin['source_commit'], device=device)
+    captured = state.capture_fold1_fit_state(
+        model, optimizer, numerical_recipe=launch['numerical_recipe'],
+        feature_view_identity=view_identity, parent_order=order,
+        source_commit=origin['source_commit'], device=device, **restored)
+    _need(captured['contract_sha256'] == loaded['contract_sha256']
+          and identities == [id(parameter) for parameter in model.parameters()],
+          'M5_SCORE_RECOVERY_FULL_STATE_CHANGED')
+    return {**restored, 'checkpoint': origin['final_checkpoint'],
+            'source_commit': origin['source_commit'],
+            'contract_sha256': captured['contract_sha256'],
+            'model_state_sha256': captured['model_state_sha256'],
+            'rng_state_sha256': captured['rng_state_sha256'],
+            'optimizer_state_sha256': captured['optimizer_state_sha256'],
+            'all_state_unchanged': True, 'optimizer_steps_performed': 0,
+            'initial_forward_calls': 0, 'test_data_used': False}
+
+
 def _ta_m5_apply_warmstart(*, model, optimizer, legacy_model, legacy_rng, origin, device):
     """Copy qualified original weights, keep new AdamW empty and restore original RNG."""
     from gx1.contracts import market_state_time_query_fold1_fit_state_v1 as state
@@ -442,7 +479,7 @@ def _publish_terminal(*, work: Path, progress_path: Path,
     from gx1.scripts import run_entry_native_direction_research_window_v1 as common
     payload = {
         'schema_version': (scope.TA_RESULT_SCHEMA if launch['run_scope'] in (scope.TA_SF_SCOPE, scope.TA_RECOVERY_SCOPE, scope.TA_M5_FIT_SCOPE,
-            scope.TA_M5_EQUAL_LOSS_FIT_SCOPE)
+            scope.TA_M5_EQUAL_LOSS_FIT_SCOPE, scope.TA_M5_SCORE_RECOVERY_SCOPE)
                            else scope.RESULT_SCHEMA),
         'outcome': outcome, 'phase_state': phase_state,
         'recipe': window['recipe'], 'fold': fold,
@@ -476,6 +513,11 @@ def _publish_terminal(*, work: Path, progress_path: Path,
         payload['imported_origin'] = launch['imported_origin']
         payload['dedicated_m5_side'] = True
         payload['m5_equal_observation'] = True
+    if launch['run_scope'] == scope.TA_M5_SCORE_RECOVERY_SCOPE:
+        payload['scoring_recovery_origin'] = launch['scoring_recovery_origin']
+        payload['initial_measurement_reused'] = True
+        payload['historical_optimizer_updates'] = updates
+        payload['physical_optimizer_updates'] = counts['optimizer_updates']
     result = common._json(
         work / 'RESULT.json', payload, counters,
         launch['max_published_json_bytes'])
@@ -530,25 +572,27 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
     )
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
 
+    score_recovery_run = launch['run_scope'] == scope.TA_M5_SCORE_RECOVERY_SCOPE
     next_native_pass = launch['run_scope'] == scope.TA_M5_NEXT_NATIVE_PASS_SCOPE
+    capture_m5 = next_native_pass or score_recovery_run
     recovery_run = launch['run_scope'] == scope.TA_RECOVERY_SCOPE
     ta_sf = launch['run_scope'] in (scope.TA_SF_SCOPE, scope.TA_RECOVERY_SCOPE, scope.TA_M5_FIT_SCOPE,
-            scope.TA_M5_EQUAL_LOSS_FIT_SCOPE, scope.TA_M5_NEXT_NATIVE_PASS_SCOPE)
+            scope.TA_M5_EQUAL_LOSS_FIT_SCOPE, scope.TA_M5_NEXT_NATIVE_PASS_SCOPE, scope.TA_M5_SCORE_RECOVERY_SCOPE)
     equal_loss_run = launch['run_scope'] in (
-        scope.TA_M5_EQUAL_LOSS_FIT_SCOPE, scope.TA_M5_NEXT_NATIVE_PASS_SCOPE)
+        scope.TA_M5_EQUAL_LOSS_FIT_SCOPE, scope.TA_M5_NEXT_NATIVE_PASS_SCOPE, scope.TA_M5_SCORE_RECOVERY_SCOPE)
     dedicated_m5_side = launch['run_scope'] in (
-        scope.TA_M5_FIT_SCOPE, scope.TA_M5_EQUAL_LOSS_FIT_SCOPE, scope.TA_M5_NEXT_NATIVE_PASS_SCOPE)
+        scope.TA_M5_FIT_SCOPE, scope.TA_M5_EQUAL_LOSS_FIT_SCOPE, scope.TA_M5_NEXT_NATIVE_PASS_SCOPE, scope.TA_M5_SCORE_RECOVERY_SCOPE)
     m5_equal_observation = launch['numerical_recipe'].get('m5_equal_observation', False)
     expected_recipe = (scope.ta_sf_numerical_recipe(dedicated_m5_side=dedicated_m5_side,
                            m5_equal_observation=m5_equal_observation)
                        if ta_sf else scope.fold1_numerical_recipe())
     _need(launch['run_scope'] in {scope.SCOPE, scope.TA_SF_SCOPE, scope.TA_RECOVERY_SCOPE, scope.TA_M5_FIT_SCOPE,
-            scope.TA_M5_EQUAL_LOSS_FIT_SCOPE, scope.TA_M5_NEXT_NATIVE_PASS_SCOPE}
+            scope.TA_M5_EQUAL_LOSS_FIT_SCOPE, scope.TA_M5_NEXT_NATIVE_PASS_SCOPE, scope.TA_M5_SCORE_RECOVERY_SCOPE}
           and m5_equal_observation == equal_loss_run
           and ((launch.get('capture_m5_readout') is True
                 and launch.get('m5_readout_capture_measurements') == ['FINAL_TRAIN', 'OOF']
                 and launch.get('max_m5_readout_array_bytes') == 40 * 1024**2)
-               if next_native_pass else 'capture_m5_readout' not in launch)
+               if capture_m5 else 'capture_m5_readout' not in launch)
           and launch['fold'] == scope.FOLD
           and launch['numerical_recipe'] == expected_recipe
           and launch['reference_result'] == (
@@ -607,6 +651,8 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
              'invocation_number': number, 'limits': limits,
              'test_data_used': False},
             counters, launch['max_published_json_bytes'])
+        if score_recovery_run:
+            recovery = scope.read_ta_m5_score_recovery_origin(launch)
         if recovery_run:
             recovery = scope.read_ta_recovery_origin(launch['recovery_origin'],
                 expected_view_sha256=launch['expected_view_sha256'])
@@ -675,7 +721,7 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
         optimizer, _ = state.build_fold1_fit_optimizer(
             model, numerical_recipe=numerical)
         counters['optimizer_constructions'] += 1
-        if equal_loss_run:
+        if equal_loss_run and not score_recovery_run:
             importer = _ta_m5_restore_final_import if next_native_pass else _ta_m5_rebind_import
             proof = importer(
                 launch=launch, model=model, optimizer=optimizer,
@@ -689,7 +735,7 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
                 'fresh_full_initialbaseline_required': True,
                 'qualification_weights_for_main_fit': False, 'test_data_used': False},
                 counters, launch['max_published_json_bytes'])
-        elif dedicated_m5_side:
+        elif dedicated_m5_side and not score_recovery_run:
             migration = _ta_m5_apply_warmstart(
                 model=model, optimizer=optimizer, legacy_model=legacy_model,
                 legacy_rng=legacy_rng, origin=launch['warmstart_origin'], device=device)
@@ -706,134 +752,153 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
         timings['fresh_model_seconds'] = time.monotonic() - tic
 
         tic = time.monotonic()
-        initial_source_commit = (
-            recovery['origin']['source_commit'] if recovery_run else plan['source_commit'])
-        fresh = state.capture_fold1_fit_state(
-            model, optimizer, numerical_recipe=numerical,
-            feature_view_identity=view_identity, parent_order=order,
-            cursor=0, optimizer_updates=0, skipped_batches=0,
-            source_commit=initial_source_commit, device=device)
-        if dedicated_m5_side:
-            _need(fresh['model_state_sha256'] == launch['expected_initial_model_state_sha256']
-                  and fresh['rng_state_sha256'] == (
-                      launch['imported_origin']['rng_state_sha256'] if equal_loss_run
-                      else legacy_import['rng_state_sha256']),
-                  'M5_QUALIFIED_INITIAL_MODEL_AND_RNG')
-        if number == 1 and recovery_run:
+        if score_recovery_run:
+            _need(number == 1 and launch['max_optimizer_updates'] == 0
+                  and launch['max_initial_forwards'] == 0, 'M5_SCORE_RECOVERY_ZERO_FIT')
+            proof = _ta_m5_restore_scoring_checkpoint(
+                launch=launch, model=model, optimizer=optimizer,
+                view_identity=view_identity, order=order, device=device, counters=counters)
             initial_ref = recovery['origin']['initial_state']
             initial_measurement = recovery['origin']['initial_measurement']
-            def load_original(ref):
-                return common._load_state(ref, torch=torch,
-                    maximum=launch['max_checkpoint_bytes'], counters=counters)
-            restored = _ta_restore_recovery(
-                recovery=recovery, fresh=fresh, model=model, optimizer=optimizer,
-                numerical=numerical, view_identity=view_identity, order=order, device=device,
-                load_state=load_original, restore_state=state.restore_fold1_fit_state)
-            cursor, updates, skipped = (restored[key] for key in (
+            full_state = recovery['origin']['final_checkpoint']
+            cursor, updates, skipped = (proof[key] for key in (
                 'cursor', 'optimizer_updates', 'skipped_batches'))
-            full_state, imported_seal, imported_model_sha = _save_snapshot(
-                state_dir / f'RECOVERY_IMPORTED_p{cursor:06d}.pt',
-                model, optimizer, numerical=numerical, view_identity=view_identity,
-                order=order, cursor=cursor, updates=updates, skipped=skipped,
-                source_commit=plan['source_commit'], device=device, launch=launch,
-                counters=counters, state_dir=state_dir)
-            _need(imported_model_sha == recovery['checkpoint_metadata']['model_state_sha256'],
-                  'TA_RECOVERY_IMPORTED_MODEL')
-            durable = {'state': full_state, 'cursor': cursor,
-                       'updates': updates, 'skipped': skipped,
-                       'phase': 'TRAINING', 'final_measurement': None}
-            common._json(work / 'RECOVERY_IMPORT.json', {
-                'schema_version': 'gx1_market_state_ta_fold1_recovery_import_v1',
-                'recovery_origin': recovery['origin'],
-                'fresh_initial_state_sha256': fresh['contract_sha256'],
-                'source_commit': plan['source_commit'], 'imported_state': full_state,
-                'imported_state_sha256': imported_seal,
-                'imported_model_state_sha256': imported_model_sha,
-                'parent_order_sha256': order_sha, **restored,
-                'initial_measurement_reused': True, 'test_data_used': False},
+            phase = 'SCORING'
+            common._json(work / 'SCORING_IMPORT.json', {
+                'schema_version': 'gx1_ta_m5_score_recovery_import_v1',
+                'scoring_recovery_origin': recovery['origin'], **proof,
+                'initial_measurement_reused': True,
+                'execution_source_commit': plan['source_commit']},
                 counters, launch['max_published_json_bytes'])
-        elif number == 1:
-            initial_ref = common._save_state(
-                state_dir / 'INITIAL_FOLD1_STATE.pt', fresh, torch=torch,
-                maximum=launch['max_checkpoint_bytes'], counters=counters)
-            if ta_sf:
-                measured = _ta_endpoint_measurement(
-                    model=model, prepared=prepared, view=view, receipts=receipts,
-                    rows=fit_rows, issues=issues, partition='fit',
-                    endpoint_bound=endpoint_bound, future_bound=future_bound,
-                    frozen_priors=frozen_priors, device=device, deadline=deadline,
-                    counters=counters)
-                initial_measurement = common._json(work / 'INITIAL_TRAIN.json',
-                    _ta_measurement_payload(measured, checkpoint=initial_ref,
-                        model_state_sha256=fresh['model_state_sha256'],
-                        optimizer_updates=0),
-                    counters, launch['max_published_json_bytes'])
-                after_initial = state.capture_fold1_fit_state(
-                    model, optimizer, numerical_recipe=numerical,
-                    feature_view_identity=view_identity, parent_order=order,
-                    cursor=0, optimizer_updates=0, skipped_batches=0,
-                    source_commit=plan['source_commit'], device=device)
-                _need(after_initial['contract_sha256'] == fresh['contract_sha256'],
-                      'TA_INITIAL_EVAL_MUTATED_FULL_STATE')
-                del after_initial
-            else:
-                initial_measurement = common._json(
-                    work / 'INITIAL_TRAIN.json',
-                {'schema_version': 'gx1_market_state_time_query_fold1_initial_v1',
-                 'fold_id': 1, 'fit_rows': scope.FIT_ROWS,
-                 'view_sha256': scope.VIEW_SHA256,
-                 'fresh_state_sha256': fresh['contract_sha256'],
-                 'fresh_model_state_sha256': fresh['model_state_sha256'],
-                 'forwards': 0, 'optimizer_updates': 0,
-                 'test_data_used': False},
-                counters, launch['max_published_json_bytes'])
-            full_state = initial_ref
         else:
-            prior_ref = {
-                'path': window['campaign_cursor_path'],
-                'sha256': marker['pointer_before_sha256'],
-            }
-            prior_raw = authority.campaign.read_bound_json(
-                Path(prior_ref['path']), prior_ref['sha256'])
-            prior = authority.require_prefix_fit_cursor(
-                prior_raw, expected_recipe=window['recipe'],
-                expected_fold=fold, verify_files=True)
-            score_only_resume = _require_prior_cursor(
-                prior, order_sha=order_sha, view_identity=view_identity, ta_sf=ta_sf)
-            initial_ref = prior['own_initial_state']
-            initial_measurement = prior['initial_measurement']
-            if recovery_run:
-                _need(initial_ref == recovery['origin']['initial_state']
-                      and initial_measurement == recovery['origin']['initial_measurement'],
-                      'TA_RECOVERY_RESUME_ORIGIN')
-            initial_loaded = common._load_state(
-                initial_ref, torch=torch,
-                maximum=launch['max_checkpoint_bytes'], counters=counters)
-            _need(initial_loaded['contract_sha256'] == fresh['contract_sha256'],
-                  'FRESH_INITIAL_BASELINE')
-            del initial_loaded
-            loaded = common._load_state(
-                prior['full_state'], torch=torch,
-                maximum=launch['max_checkpoint_bytes'], counters=counters)
-            restored = state.restore_fold1_fit_state(
-                loaded, model, optimizer, numerical_recipe=numerical,
+            initial_source_commit = (
+                recovery['origin']['source_commit'] if recovery_run else plan['source_commit'])
+            fresh = state.capture_fold1_fit_state(
+                model, optimizer, numerical_recipe=numerical,
                 feature_view_identity=view_identity, parent_order=order,
-                source_commit=plan['source_commit'], device=device)
-            cursor = restored['cursor']
-            updates = restored['optimizer_updates']
-            skipped = restored['skipped_batches']
-            _need(cursor == prior['parent_cursor']
-                  and updates == prior['optimizer_updates']
-                  and (not score_only_resume
-                       or (cursor == scope.FIT_ROWS
-                           and Path(prior['full_state']['path']).name
-                               == 'FINAL_FOLD1_FIT_STATE.pt')),
-                  'RESUME_EXACT_PROGRESS')
-            full_state = prior['full_state']
-            final_measurement = prior['final_train_measurement']
-            phase = prior['phase_state']
-            del loaded
-        del fresh
+                cursor=0, optimizer_updates=0, skipped_batches=0,
+                source_commit=initial_source_commit, device=device)
+            if dedicated_m5_side:
+                _need(fresh['model_state_sha256'] == launch['expected_initial_model_state_sha256']
+                      and fresh['rng_state_sha256'] == (
+                          launch['imported_origin']['rng_state_sha256'] if equal_loss_run
+                          else legacy_import['rng_state_sha256']),
+                      'M5_QUALIFIED_INITIAL_MODEL_AND_RNG')
+            if number == 1 and recovery_run:
+                initial_ref = recovery['origin']['initial_state']
+                initial_measurement = recovery['origin']['initial_measurement']
+                def load_original(ref):
+                    return common._load_state(ref, torch=torch,
+                        maximum=launch['max_checkpoint_bytes'], counters=counters)
+                restored = _ta_restore_recovery(
+                    recovery=recovery, fresh=fresh, model=model, optimizer=optimizer,
+                    numerical=numerical, view_identity=view_identity, order=order, device=device,
+                    load_state=load_original, restore_state=state.restore_fold1_fit_state)
+                cursor, updates, skipped = (restored[key] for key in (
+                    'cursor', 'optimizer_updates', 'skipped_batches'))
+                full_state, imported_seal, imported_model_sha = _save_snapshot(
+                    state_dir / f'RECOVERY_IMPORTED_p{cursor:06d}.pt',
+                    model, optimizer, numerical=numerical, view_identity=view_identity,
+                    order=order, cursor=cursor, updates=updates, skipped=skipped,
+                    source_commit=plan['source_commit'], device=device, launch=launch,
+                    counters=counters, state_dir=state_dir)
+                _need(imported_model_sha == recovery['checkpoint_metadata']['model_state_sha256'],
+                      'TA_RECOVERY_IMPORTED_MODEL')
+                durable = {'state': full_state, 'cursor': cursor,
+                           'updates': updates, 'skipped': skipped,
+                           'phase': 'TRAINING', 'final_measurement': None}
+                common._json(work / 'RECOVERY_IMPORT.json', {
+                    'schema_version': 'gx1_market_state_ta_fold1_recovery_import_v1',
+                    'recovery_origin': recovery['origin'],
+                    'fresh_initial_state_sha256': fresh['contract_sha256'],
+                    'source_commit': plan['source_commit'], 'imported_state': full_state,
+                    'imported_state_sha256': imported_seal,
+                    'imported_model_state_sha256': imported_model_sha,
+                    'parent_order_sha256': order_sha, **restored,
+                    'initial_measurement_reused': True, 'test_data_used': False},
+                    counters, launch['max_published_json_bytes'])
+            elif number == 1:
+                initial_ref = common._save_state(
+                    state_dir / 'INITIAL_FOLD1_STATE.pt', fresh, torch=torch,
+                    maximum=launch['max_checkpoint_bytes'], counters=counters)
+                if ta_sf:
+                    measured = _ta_endpoint_measurement(
+                        model=model, prepared=prepared, view=view, receipts=receipts,
+                        rows=fit_rows, issues=issues, partition='fit',
+                        endpoint_bound=endpoint_bound, future_bound=future_bound,
+                        frozen_priors=frozen_priors, device=device, deadline=deadline,
+                        counters=counters)
+                    initial_measurement = common._json(work / 'INITIAL_TRAIN.json',
+                        _ta_measurement_payload(measured, checkpoint=initial_ref,
+                            model_state_sha256=fresh['model_state_sha256'],
+                            optimizer_updates=0),
+                        counters, launch['max_published_json_bytes'])
+                    after_initial = state.capture_fold1_fit_state(
+                        model, optimizer, numerical_recipe=numerical,
+                        feature_view_identity=view_identity, parent_order=order,
+                        cursor=0, optimizer_updates=0, skipped_batches=0,
+                        source_commit=plan['source_commit'], device=device)
+                    _need(after_initial['contract_sha256'] == fresh['contract_sha256'],
+                          'TA_INITIAL_EVAL_MUTATED_FULL_STATE')
+                    del after_initial
+                else:
+                    initial_measurement = common._json(
+                        work / 'INITIAL_TRAIN.json',
+                    {'schema_version': 'gx1_market_state_time_query_fold1_initial_v1',
+                     'fold_id': 1, 'fit_rows': scope.FIT_ROWS,
+                     'view_sha256': scope.VIEW_SHA256,
+                     'fresh_state_sha256': fresh['contract_sha256'],
+                     'fresh_model_state_sha256': fresh['model_state_sha256'],
+                     'forwards': 0, 'optimizer_updates': 0,
+                     'test_data_used': False},
+                    counters, launch['max_published_json_bytes'])
+                full_state = initial_ref
+            else:
+                prior_ref = {
+                    'path': window['campaign_cursor_path'],
+                    'sha256': marker['pointer_before_sha256'],
+                }
+                prior_raw = authority.campaign.read_bound_json(
+                    Path(prior_ref['path']), prior_ref['sha256'])
+                prior = authority.require_prefix_fit_cursor(
+                    prior_raw, expected_recipe=window['recipe'],
+                    expected_fold=fold, verify_files=True)
+                score_only_resume = _require_prior_cursor(
+                    prior, order_sha=order_sha, view_identity=view_identity, ta_sf=ta_sf)
+                initial_ref = prior['own_initial_state']
+                initial_measurement = prior['initial_measurement']
+                if recovery_run:
+                    _need(initial_ref == recovery['origin']['initial_state']
+                          and initial_measurement == recovery['origin']['initial_measurement'],
+                          'TA_RECOVERY_RESUME_ORIGIN')
+                initial_loaded = common._load_state(
+                    initial_ref, torch=torch,
+                    maximum=launch['max_checkpoint_bytes'], counters=counters)
+                _need(initial_loaded['contract_sha256'] == fresh['contract_sha256'],
+                      'FRESH_INITIAL_BASELINE')
+                del initial_loaded
+                loaded = common._load_state(
+                    prior['full_state'], torch=torch,
+                    maximum=launch['max_checkpoint_bytes'], counters=counters)
+                restored = state.restore_fold1_fit_state(
+                    loaded, model, optimizer, numerical_recipe=numerical,
+                    feature_view_identity=view_identity, parent_order=order,
+                    source_commit=plan['source_commit'], device=device)
+                cursor = restored['cursor']
+                updates = restored['optimizer_updates']
+                skipped = restored['skipped_batches']
+                _need(cursor == prior['parent_cursor']
+                      and updates == prior['optimizer_updates']
+                      and (not score_only_resume
+                           or (cursor == scope.FIT_ROWS
+                               and Path(prior['full_state']['path']).name
+                                   == 'FINAL_FOLD1_FIT_STATE.pt')),
+                      'RESUME_EXACT_PROGRESS')
+                full_state = prior['full_state']
+                final_measurement = prior['final_train_measurement']
+                phase = prior['phase_state']
+                del loaded
+            del fresh
         timings['initial_or_resume_seconds'] = time.monotonic() - tic
         durable = {'state': full_state, 'cursor': cursor,
                    'updates': updates, 'skipped': skipped,
@@ -845,7 +910,7 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
         fit_started = block_started = time.monotonic()
         block_cursor, block_updates, block_skipped = cursor, updates, skipped
         timings['fit_blocks'] = []
-        while cursor < scope.FIT_ROWS and time.monotonic() < deadline - 120:
+        while not score_recovery_run and cursor < scope.FIT_ROWS and time.monotonic() < deadline - 120:
             left = cursor
             right = min(left + scope.BATCH_SIZE, scope.FIT_ROWS)
             raw, rows, batch_issues = _feature_batch(
@@ -981,7 +1046,7 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
                                 frozen_priors=frozen_priors, device=device, deadline=deadline,
                                 counters=counters,
                                 **({'capture_path': work / 'FINAL_M5_READOUT.npz'}
-                                   if next_native_pass else {}))
+                                   if capture_m5 else {}))
                         finally:
                             timings['final_train_measurement_seconds'] = time.monotonic() - tic
                         initial_payload = authority.campaign.read_bound_json(
@@ -1011,7 +1076,7 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
                             frozen_priors=frozen_priors, device=device, deadline=deadline,
                             counters=counters,
                             **({'capture_path': work / 'OOF_M5_READOUT.npz'}
-                               if next_native_pass else {}))
+                               if capture_m5 else {}))
                     finally:
                         timings['later_train_score_seconds'] = time.monotonic() - tic
                     oof_measurement = common._json(work / 'OOF.json',
@@ -1102,6 +1167,25 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
             durable = {'state': full_state, 'cursor': cursor,
                        'updates': updates, 'skipped': skipped,
                        'phase': phase, 'final_measurement': None}
+        if score_recovery_run:
+            after_score = state.capture_fold1_fit_state(
+                model, optimizer, numerical_recipe=numerical,
+                feature_view_identity=view_identity, parent_order=order,
+                cursor=cursor, optimizer_updates=updates, skipped_batches=skipped,
+                source_commit=recovery['origin']['source_commit'], device=device)
+            _need(after_score['contract_sha256'] == proof['contract_sha256']
+                  and counters['backward_calls'] == counters['optimizer_step_calls']
+                      == counters['optimizer_updates'] == 0
+                  and counters['forward_calls'] <= launch['max_forwards'],
+                  'M5_SCORE_RECOVERY_MUTATED_STATE_OR_FIT')
+            common._json(work / 'SCORING_STATE_PARITY.json', {
+                'schema_version': 'gx1_ta_m5_score_recovery_parity_v1',
+                'checkpoint': full_state, 'full_state_sha256': proof['contract_sha256'],
+                'all_state_unchanged': True, 'physical_optimizer_updates': 0,
+                'initial_forward_calls': 0, 'forward_calls': counters['forward_calls'],
+                'historical_optimizer_updates': updates, 'test_data_used': False},
+                counters, launch['max_published_json_bytes'])
+            del after_score
         tic = time.monotonic()
         _bookend(launch, plan, *_window_binding(invocation))
         timings['terminal_bookend_seconds'] = time.monotonic() - tic

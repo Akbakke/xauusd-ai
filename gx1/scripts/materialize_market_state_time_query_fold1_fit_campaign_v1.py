@@ -58,28 +58,34 @@ def materialize(binding_path: Path) -> dict:
     ta_mechanical = ta_m5_equal_loss or ta_import or ta_m5 or binding_path == mechanical.TA_ROOT / 'PREPARATION_EXECUTION_BINDING.json'
     ta_sf = binding_path == fold1.TA_SF_RUNTIME_ROOT.parent / 'PREPARATION_EXECUTION_BINDING.json'
     ta_recovery = binding_path == fold1.TA_RECOVERY_RUNTIME_ROOT.parent / 'PREPARATION_EXECUTION_BINDING.json'
+    ta_score_recovery = binding_path == fold1.TA_M5_SCORE_RECOVERY_ROOT / 'PREPARATION_EXECUTION_BINDING.json'
     ta_next_native_pass = binding_path == fold1.TA_M5_NEXT_NATIVE_PASS_ROOT / 'PREPARATION_EXECUTION_BINDING.json'
     ta_m5_equal_loss_fit = binding_path == fold1.TA_M5_EQUAL_LOSS_FIT_ROOT / 'PREPARATION_EXECUTION_BINDING.json'
     ta_m5_fit = binding_path == fold1.TA_M5_FIT_ROOT / 'PREPARATION_EXECUTION_BINDING.json'
-    runtime = (fold1.TA_M5_NEXT_NATIVE_PASS_RUNTIME_ROOT if ta_next_native_pass
+    runtime = (fold1.TA_M5_SCORE_RECOVERY_RUNTIME_ROOT if ta_score_recovery
+               else fold1.TA_M5_NEXT_NATIVE_PASS_RUNTIME_ROOT if ta_next_native_pass
                else fold1.TA_M5_EQUAL_LOSS_FIT_RUNTIME_ROOT if ta_m5_equal_loss_fit
                else fold1.TA_M5_FIT_RUNTIME_ROOT if ta_m5_fit else fold1.TA_RECOVERY_RUNTIME_ROOT if ta_recovery
                else fold1.TA_SF_RUNTIME_ROOT if ta_sf else fold1.RUNTIME_ROOT)
     root = runtime.parent
-    recipe_path = (fold1.TA_M5_NEXT_NATIVE_PASS_RECIPE_PATH if ta_next_native_pass
+    recipe_path = (fold1.TA_M5_SCORE_RECOVERY_RECIPE_PATH if ta_score_recovery
+                   else fold1.TA_M5_NEXT_NATIVE_PASS_RECIPE_PATH if ta_next_native_pass
                    else fold1.TA_M5_EQUAL_LOSS_FIT_RECIPE_PATH if ta_m5_equal_loss_fit
                    else fold1.TA_M5_FIT_RECIPE_PATH if ta_m5_fit else fold1.TA_RECOVERY_RECIPE_PATH if ta_recovery
                    else fold1.TA_SF_RECIPE_PATH if ta_sf else fold1.RECIPE_PATH)
-    stage = (fold1.TA_M5_NEXT_NATIVE_PASS_STAGE if ta_next_native_pass
+    stage = (fold1.TA_M5_SCORE_RECOVERY_STAGE if ta_score_recovery
+             else fold1.TA_M5_NEXT_NATIVE_PASS_STAGE if ta_next_native_pass
              else fold1.TA_M5_EQUAL_LOSS_FIT_STAGE if ta_m5_equal_loss_fit
              else fold1.TA_M5_FIT_STAGE if ta_m5_fit else fold1.TA_RECOVERY_STAGE if ta_recovery
              else fold1.TA_SF_STAGE if ta_sf else fold1.STAGE)
-    run_scope = (fold1.TA_M5_NEXT_NATIVE_PASS_SCOPE if ta_next_native_pass
+    run_scope = (fold1.TA_M5_SCORE_RECOVERY_SCOPE if ta_score_recovery
+                 else fold1.TA_M5_NEXT_NATIVE_PASS_SCOPE if ta_next_native_pass
                  else fold1.TA_M5_EQUAL_LOSS_FIT_SCOPE if ta_m5_equal_loss_fit
                  else fold1.TA_M5_FIT_SCOPE if ta_m5_fit else fold1.TA_RECOVERY_SCOPE if ta_recovery
                  else fold1.TA_SF_SCOPE if ta_sf else fold1.SCOPE)
     authority = prefix
-    windows_count = (fold1.TA_M5_NEXT_NATIVE_PASS_MAX_WINDOWS if ta_next_native_pass
+    windows_count = (fold1.TA_M5_SCORE_RECOVERY_MAX_WINDOWS if ta_score_recovery
+                     else fold1.TA_M5_NEXT_NATIVE_PASS_MAX_WINDOWS if ta_next_native_pass
                      else fold1.TA_M5_EQUAL_LOSS_FIT_MAX_WINDOWS if ta_m5_equal_loss_fit else fold1.MAX_WINDOWS)
     cursor_directory, output_directory = 'prefix-cursor', 'prefix-fit'
     if ta_mechanical:
@@ -144,6 +150,8 @@ def materialize(binding_path: Path) -> dict:
          else mechanical.require_ta_m5_import_gate if ta_import
          else mechanical.require_ta_m5_mechanical_gate if ta_m5
          else mechanical.require_ta_sf_mechanical_gate)(gate, recipe)
+    elif ta_score_recovery:
+        fold1.require_ta_m5_score_recovery_gate(gate, recipe)
     else:
         fold1.require_fit_gate(gate, recipe)
     boot = campaign.require_boot_identity(campaign.read_bound_json(
@@ -194,9 +202,9 @@ def materialize(binding_path: Path) -> dict:
             'kind': authority.KIND, 'batch_size': fold1.BATCH_SIZE,
             'epoch_index': None, 'window_index': number - 1,
             'window_count': windows_count,
-            'optimizer_step_budget': (0 if ta_import else mechanical.MAX_PRIVATE_UPDATES if ta_mechanical
+            'optimizer_step_budget': (0 if ta_import or ta_score_recovery else mechanical.MAX_PRIVATE_UPDATES if ta_mechanical
                                       else recipe['numerical_recipe']['max_updates']),
-            'expected_success_outcome': 'COMPLETE' if ta_mechanical else 'RESUMABLE_OR_COMPLETE',
+            'expected_success_outcome': 'COMPLETE' if ta_mechanical or ta_score_recovery else 'RESUMABLE_OR_COMPLETE',
             'source_commit': head, 'execution_manifest': execution_ref,
             'launcher_argv': argv,
             'launcher_argv_sha256': campaign.canonical_sha256(argv),
