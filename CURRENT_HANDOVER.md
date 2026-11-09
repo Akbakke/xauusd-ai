@@ -15,18 +15,31 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_FINAL_CALIBRATION_ADMITTED.
+Policystatus: TA_M5_COUPLED_L2_CONTROL_ADMITTED.
 
-Ny avgrenset kalibreringskontroll er innrømmet én gang på lagrede logits:
-S/F×offset/affin=4små fits,ingen features/checkpoint/nativeforward/updates.
-Affin er forhåndsvalgt kandidat;offset isolerer ren bias. Uvektet kjent-side
-TRAIN-logloss,ingenL2 eller hyperparametersøk. Alle koeffisienter låses før
-senereTRAIN scores én gang;positiv helning kreves for rangbevarende kandidat.
-Gjenbruk eksisterende Newton-innstillinger;syntetiske analytiske fasiter,
-gradient/Hessian,rapportering og faktisk import/metadata-preflight består.
-PLAN: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_CALIBRATION_20261109_001/PLAN.json.
-training_enabled gjelder kun denne private CPU-kontrollen,12G/512M/300s.
-Native trening/TEST/handel er stengt.
+Kalibreringskontrollen er COMPLETE/konsumert på2.759s:4små fits,0native.
+Positiv affinekorreksjon fjerner99.81%S/99.59%F av TRAIN-Brierforverringen
+mot importinitial. TRAIN-S/F Brier0.248478/0.249346;senere0.249765/0.249965.
+SenereS slår prior svakt,F taper fortsatt. AUC er eksakt uendret av korreksjonen.
+Det er overkonfidens/OPP-bias,ikke ny retningsinformasjon. Nativekode endres ikke.
+REVIEW: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_CALIBRATION_20261109_001/REVIEW.json.
+
+Full-FIT-gradientkontroll uten fit viser at importhodene er stasjonære for
+BCE+coupledL2alpha0.01(maxgradient8.1e-10/2.1e-11),men ikke nativeBCE med
+AdamWdecay0.0001. UtenL2 er globalBCE-gradient motsatt beta(cos≈-1).
+En beregnet første global AdamW-oppdatering øker koeffisientnormen.
+Dette isolerer et objektivavvik;det kvantifiserer ikke faktisk batchrekkefølge,
+helmodellklipping eller bevegelig representasjon.
+OBJECTIVE_ALIGNMENT.json ligger i samme rot.
+
+Én privat2-head/1849stegs CPU-kontroll er innrømmet:erstatt decoupleddecay
+med akkurat samme coupledL2alpha0.01 som importen;samme start,data,tapvekt,
+kronologiskeB16batcher og øvrigAdamW. Gammel kronologisk kontroll gjenbrukes.
+Senerearrays åpnes bare hvis begge TRAIN-mål bevares og kontrollen forbedres.
+Faktisk import/metadata og syntetiskL2-gradient/rapportering består.
+PLAN: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COUPLED_L2_CONTROL_20261109_001/PLAN.json.
+training_enabled gjelder kun denne private12G/512M/300s-kontrollen.
+Native trening,TEST og handel er stengt.
 
 Ny fast avlesning av faktiskFINAL er COMPLETE/konsumert på5.383s:
 2private128D-hoder,alpha0.01,like observasjonsvekter,samme Newton-eier;
@@ -56,7 +69,7 @@ Alle20partisjon×oppgave×TF-sidemålinger er eksakt like lagret nativekjøring;
 kilde136a8ca2 og modell er uendret. Controller2616.234s mot gammelcache2584.765s:
 31.469s tregere,ingen målt speedup. Peak52°C/minne56°C,250W.
 REVIEW: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FINAL_CACHE_20261109_001/REVIEW.json.
-Cache-/readoutplanene er konsumert;kun den nye kalibreringskontrollen øverst er innrømmet.
+Cache/readout/kalibrering er konsumert;kun den nye private optimizerkontrollen øverst er innrømmet.
 
 Ny import/equal-loss-rekkefølgekontroll er COMPLETE/konsumert på10.914s:
 3privateoptimizere/6småhoder,5547updates,0nativeforward. Samme start,data,tap
