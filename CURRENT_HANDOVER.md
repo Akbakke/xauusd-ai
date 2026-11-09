@@ -15,7 +15,23 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_FINAL_REPRESENTATION_CACHE_ADMITTED.
+Policystatus: TA_M5_FINAL_READOUT_ADMITTED.
+
+Faktisk FINAL-cache er COMPLETE/konsumert:2959enkodinger,1modell,0backward/updates.
+Alle20partisjon×oppgave×TF-sidemålinger er eksakt like lagret nativekjøring;
+kilde136a8ca2 og modell er uendret. Controller2616.234s mot gammelcache2584.765s:
+31.469s tregere,ingen målt speedup. Peak52°C/minne56°C,250W.
+REVIEW: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FINAL_CACHE_20261109_001/REVIEW.json.
+
+To private CPU-avlesninger er innrømmet én gang på ny cache,med uendret
+alpha0.01,like observasjonsvekter,rå128D-basis og samme Newton-eier.
+Gamle avlesninger gjenbrukes; kun nyrepresentasjonen tilpasses påTRAIN.
+Begge hoder låses før senereTRAIN scores; ingen ny hyperparameterseleksjon.
+PLAN: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_20261109_001/PLAN.json,
+SHA fe5bbbd7b6faba84335b47b3d3e4525f5566ea1dc04359e4f7ed04b4188b8972.
+Faktisk metadata/import og syntetisk suksess-/feilpublisering består.
+training_enabled gjelder kun disse to private readouts under12G/512M/300s;
+native trening/launch,TEST og handel er stengt.
 
 Ny import/equal-loss-rekkefølgekontroll er COMPLETE/konsumert på10.914s:
 3privateoptimizere/6småhoder,5547updates,0nativeforward. Samme start,data,tap
@@ -35,15 +51,14 @@ read-only ekstraksjon fra faktiskFINAL142aa2… og samme29574/17753rader, før
 samme avlesningsmetode brukes uten ny hyperparametertilpasning.
 Minste nødvendige kildearbeid er eksakt ny checkpoint/view/root-binding i
 eksisterende cache-rute, med250W og uendrede øvrige vakter. Modell/tap endres ikke.
-Eksakt cacheplan er nå innrømmet én gang:
+Cacheplanen ovenfor er nå fullført og konsumert:
 /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FINAL_CACHE_20261109_001/PLAN.json,
 SHA e110be51a3b2a3f119110a3144714fda19365fcda1341b6c160f314a3727785f.
 Fem fokuserte tester, syntaks og faktisk metadata-preflight består.
 84/85 recipe-eiere er byteuendret; bare eksisterende capped-rute får ny eksakt sti.
 Cache-eieren binder eget nytt kildeavtrykk; modell/tap/dispatcher er uendret.
 2959 GPU-enkodinger, null backward/optimizer,12G/512M,250W,3600s.
-Ny cache må gjenskape alle10 native sidemålinger før avlesningskontrollen.
-training_enabled=false; ingen ny fit er innrømmet.
+Cachepariteten består. Kun den separate private avlesningsplanen øverst er innrømmet.
 
 Den avgrensede FIT-head-kontrollen er COMPLETE/konsumert på3.256s:
 7396B16-lineærprojeksjoner,2checkpointlesinger,0fit/fullmodellforward/updates.
@@ -672,9 +687,9 @@ tidssekvensmodellen, samme-linje-reaksjonsverdi, Entry-verdi og økonomisk edge
 er ubevist. 61 makrofelt mangler uavhengig formelorakel; COTs faktiske
 historiske publisering og vintage er fortsatt UNKNOWN.
 
-**Neste steg:** Kjør den innrømmede lesende FINAL-cachekontrollen øverst,
-og skill representasjonens retningsinformasjon fra hodets avlesningsfeil.
-Ingen ny native fit er innrømmet. Målet er aktivt.
+**Neste steg:** Kjør den innrømmede private avlesningskontrollen øverst.
+Skill mulig avlesningsfeil fra svakere informasjon; fastL2 er også følsom for
+representasjonens geometri. Ingen ny native fit. Målet er aktivt.
 Brukerens spørsmål om 30 epoker og fem år er fortsatt åpne hypoteser.
 Denne fitten dekker omtrent mai–september2024, senere score oktober–desember2024.
 Ett pass og én fold er ingen generell dom over lengre læring eller historikk.
