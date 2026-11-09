@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T22:15:10.297777+00:00",
-  "status": "TA_M5_MATCHED_MIX24_COMPLETE_NO_IMPROVEMENT",
+  "observed_utc": "2026-11-09T22:32:38.887830+00:00",
+  "status": "TA_M5_ORIGINAL_MODE_CONTRAST_ADMITTED_ZERO_UPDATES",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "No repeated sampler or optimizer sweep. Use the completed feature/target audit to specify a distinct falsifiable retningsintervention aligned with sniper and sustained-trend objectives before any next fit. Underlying native TRAIN deterioration remains unresolved.",
+  "next_action": "Run exact36-forward original INITIAL/FINAL E/T0/T4 mode contrast once, then close admission and verify cached outputs. No optimizer, backward, new fit or later data.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -71449,5 +71449,59 @@
     "source_unchanged": true,
     "worker_seconds": 338.39761102699777,
     "review_whole_seconds": 4.939358682000602
+  },
+  "market_state_ta_m5_original_mode_contrast_20261109_001": {
+    "status": "ADMITTED",
+    "execution_authorized": true,
+    "training_authorized": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_MODE_CONTRAST_20261109_001/PLAN.json",
+      "sha256": "def178c3f78001c2839ce426a5f4270be2217b953c56a50aec3d03c5af45cd1d"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_MODE_CONTRAST_20261109_001/probe.py",
+      "sha256": "b1a8c4e1f7e68994d63c4371c87a40512a34d6f6ec1ec6cdcaccbec185a2ffcb"
+    },
+    "controller_source": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_MODE_CONTRAST_20261109_001/controller.py",
+      "sha256": "79ded07d651f17386fb1cf404f37c5d10a46645e4092c52111fcbd717aa8c485"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_MODE_CONTRAST_20261109_001/PREFLIGHT.json",
+      "sha256": "5fb4506d9758620bb1e0ec4f5b959e68a2ae056c454abce8f291fa55c6b8e585"
+    },
+    "preflight_log": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_MODE_CONTRAST_20261109_001/PREFLIGHT.log",
+      "sha256": "ef53faad1de14e422e770e2e72bb3dc4ef2d80d8996e54177819a0ed5326aea1"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "max_forwards": 36,
+    "max_updates": 0,
+    "max_backwards": 0,
+    "max_checkpoint_loads": 2,
+    "max_model_constructions": 1,
+    "max_optimizer_constructions": 0,
+    "max_checkpoint_writes": 0,
+    "wall_seconds": 600,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "numerical_threads": 1,
+    "test_data_used": false,
+    "score_partition_allowed": false,
+    "source_review": {
+      "status": "PASS",
+      "agent": "/root/ta_formula_audit",
+      "worker": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_MODE_CONTRAST_20261109_001/probe.py",
+        "sha256": "b1a8c4e1f7e68994d63c4371c87a40512a34d6f6ec1ec6cdcaccbec185a2ffcb"
+      },
+      "scope": "Root and independent full-worker source review; genuine E/nohooks and T/T0 grad-enabled routes, Dropout/MHA toggles, immutable state/RNG/mode parity, exact2originalstates and36forwards, same targets, one-source bridge."
+    },
+    "standing_authorization_source": "GX1_RULES_20261105_local_zero_spend_read_only_research_and_active_direction_goal",
+    "scope": "Original ae772INITIAL and23ffFINAL only, fixed three B16 TRAIN batches. E eval/inference, T0 all dropout0 with genuine grad-enabled train route, four paired CPUdropout draws. No optimizer/backward or selection. Not historical CUDA replay; only48observations."
   }
 }
