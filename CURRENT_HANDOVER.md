@@ -15,15 +15,40 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: CACHED_PAIRED_PROBABILITY_SHIFT_AND_RANK_ATTRIBUTION_ADMITTED.
+Policystatus: CONSUMED_PREFIX_DIRECTION_TARGET_AUDIT_ADMITTED.
 
-Én lagret tallkontroll er innrømmet:0forwards/updates/checkpoints/refits,
-maks60s/4G/tråd1. Del Brier-endringen i gjennomsnittsforskyvning og sentrert
-endring; kontroller samme sum med varians/kovarians og mål direktepar-AUC.
-Alle tre forhåndsbestemte blokker og samlet utvalg inngår. Ingen kalibrator
-tilpasses og ingen ny modell velges. Metadata/syntetisk preflight PASS.
-Plan: samme parede artefaktrot nedenfor, SHIFT_RANK_PLAN.json,
-SHA1b00e6c9b0308d120b9ded3e6e1736cb85f1b691240eb6f0cd197ebe54f9b2fe.
+Én cachekontroll av de24konsumerte batchenes M5-sidefasiter/vekter er
+innrømmet, maks60s/4G/tråd1,0modell/updates/checkpoints/targettapes.
+PREFIX_TARGET_PLAN.json SHA151782d5d99cfb1b25360950dfde88922bf013d7c1454c9b1e6e13f67962b280.
+Metadata/syntetisk preflight PASS. Kildefølging viser M5 sampletS k=1;
+cache likhet og faktiske tellinger kontrolleres. Lagrede INITIAL0-logits
+brukes bare som fast evalreferanse, aldri som faktisk dropout-train-gradient.
+
+Lagret shift/rank-kontroll COMPLETE/konsumert:0.135s,0forwards/updates/
+checkpoints/refits. Alternativ skalar/rank-sum-kontroll0.029s,56scoreceller/
+48kontraster, maksavvik1.11e-16. Alle tre faste blokker inngår.
+Samme parede rot nedenfor: SHIFT_RANK_RESULT.json
+SHA94dfc72a441b47bae539dffc9fa86a21d71ce9d2096c136a85e434422c688255.
+SHIFT_RANK_REVIEW.json bevarer kontrollen. Ingen jobb kjører.
+
+Senere CONTROL vs INITIAL0, eksakt Brier-dekomponering:
+S total+0.003090357 = gjennomsnitt+0.003723185 + sentrert−0.000632828.
+F total+0.000050424 = gjennomsnitt+0.000598355 + sentrert−0.000547931.
+Gjennomsnittlig P(OPP) faller2.391/1.376prosentpoeng. RESET skyver videre
+0.269/0.356prosentpoeng ned; samlet senere tap kommer også her fra dette
+gjennomsnittsleddet. TRAIN-utvalget har45.33/47.67%OPP; senere58.46/53.33%.
+Dette forklarer skåren algebraisk, ikke den unike årsaken i treningskoden.
+
+Samlet senere AUC øker med CONTROL, S0.642300→0.663743,
+F0.586429→0.592143. Dette er IKKE jevn forbedring innad i periodene:
+S faller i2av3blokker og er lik i siste; F faller i første og øker i to.
+Parvektet innen-blokk-AUC er S0.669211→0.659033 og F0.615711→0.622081.
+Ingen kalibrator er tilpasset, ingen terskel eller ny modell valgt.
+
+Neste konkrete spørsmål: tell faktisk konsumerte M5 S/F-sidefasiter og
+deres tapsvekter i24batchene, ikke anta at nativeendpoint-OPP-andelen er
+lik tilfeldig sampletS-trainmål. Rutesjekken er fullført; den avgrensede cachetellingen er innrømmet
+ovenfor. Ingen ny fit eller målkontraktendring er innrømmet. Alle treningsporter er stengt.
 
 Den parede testen er COMPLETE/konsumert. Prosessen er bekreftet avsluttet;
 alle trenings-/launchporter er stengt. Hel kommando353.792s (5m53.79s),
@@ -61,9 +86,8 @@ er gjenbrukt utvikling; dette er ikke uavhengig generalisering eller edge.
 
 Konklusjon: den målte momentintervensjonen forbedrer TRAIN, men gevinsten
 overføres ikke til det senere utvalget. Ingen permanent momentreset eller
-større trening begrunnes av resultatet. Neste direkte retningsspørsmål er
-sannsynlighetsforskyvning versus rangering i de lagrede parede prognosene;
-det kan undersøkes uten nye forwards/fit. Ikke gjenta de konsumerte armene.
+større trening begrunnes av resultatet. Shift/rank-spørsmålet er nå tallfestet ovenfor.
+Ikke gjenta de konsumerte armene.
 Målet om bedre retningsprediksjon er fortsatt uoppnådd. TEST/handel stengt.
 
 Hidden-kontrollen er COMPLETE/konsumert og numerisk verifisert; ingen jobb

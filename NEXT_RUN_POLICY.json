@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-09T17:07:12.629858+00:00",
-  "status": "CACHED_PAIRED_PROBABILITY_SHIFT_AND_RANK_ATTRIBUTION_ADMITTED",
+  "status": "CONSUMED_PREFIX_DIRECTION_TARGET_AUDIT_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Run admitted cached shift/rank arithmetic once,0model/updates/checkpoints. Decompose paired Brier delta into mean-probability and centered terms, reproduce via variance/covariance identity; direct-pairAUC for all threefixedblocks andaggregate. No calibrated candidate or selection. Allfitgates remainclosed.",
+  "next_action": "Run one admitted cached24batch M5 target/weight count and frozenINITIAL0 residual diagnostic. Source trace proves sampledS M5k1 equals native; actualcache must verify. No model/targettape replay ortraining. FrozenINITIAL0 residual is an analytic reference, not actual dropout/dynamic training gradient.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -69693,7 +69693,7 @@
       "sha256": "1cfb6be1e258df9a51a0e67d06ef8bcb85e451e749829319f93ba6af6614c341"
     },
     "native_accumulation_change_qualified": false,
-    "next_measured_coverage_gap": "Actual intervention confirms four M5head first-moment buffers affect TRAIN quality, but TRAIN gain reverses on later observations. Momentreset is not a demonstrated general correction and is not retained for larger training. Next direction question must distinguish probability shift from ranking changes using saved paired captures; no new model execution required for that question.",
+    "next_measured_coverage_gap": "Later aggregateBrier loss vsINITIAL0 is dominated by a downward meanP shift, while centeredcovariance terms improve. AggregateAUC improves, but within-blockS AUC worsens in2blocks and ties1; F mixed. This is not uniform ranking improvement and no free globalcalibration fix is established. Need exact consumed S/F query-target evidence and lossweights, distinct from nativeendpointlabelcounts.",
     "head_trajectory": {
       "status": "COMPLETE_CONSUMED_NUMERICALLY_VERIFIED",
       "plan": {
@@ -69961,6 +69961,31 @@
     "latest_paired_moment_reset_review": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_MOMENT_RESET_20261109_001/REVIEW.json",
       "sha256": "8617526a2ee26f0ce3ad42e292446b1d7d415c9ebea0601cf7ca9dd227a64a3a"
+    },
+    "latest_paired_shift_rank_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_MOMENT_RESET_20261109_001/SHIFT_RANK_RESULT.json",
+      "sha256": "94dfc72a441b47bae539dffc9fa86a21d71ce9d2096c136a85e434422c688255"
+    },
+    "latest_paired_shift_rank_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_MOMENT_RESET_20261109_001/SHIFT_RANK_REVIEW.json",
+      "sha256": "581b57abac3eb77a66de8a5f20488af2ff961f89304534dd54c93c734986d8b7"
+    },
+    "paired_shift_rank_findings": {
+      "within_block_pair_weighted_auc": {
+        "state": {
+          "INITIAL0": 0.6692111959287532,
+          "CONTROL": 0.6590330788804071,
+          "RESET": 0.6590330788804071
+        },
+        "future": {
+          "INITIAL0": 0.6157112526539278,
+          "CONTROL": 0.6220806794055201,
+          "RESET": 0.6199575371549894
+        }
+      },
+      "reference": "INITIAL0 vs CONTROL/RESET; descriptive only",
+      "ranking_improvement_uniform": false,
+      "global_probability_recalibration_authorized": false
     }
   },
   "market_state_ta_m5_short_accumulation_20261109_001": {
@@ -70388,8 +70413,8 @@
     }
   },
   "market_state_ta_m5_paired_shift_rank_20261109_001": {
-    "status": "ADMITTED",
-    "execution_authorized": true,
+    "status": "COMPLETE_CONSUMED_NUMERICALLY_VERIFIED",
+    "execution_authorized": false,
     "training_authorized": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_MOMENT_RESET_20261109_001/SHIFT_RANK_PLAN.json",
@@ -70400,6 +70425,42 @@
       "sha256": "03dbb94474eb2e96b627807a30272a87ada8984c6aa2a51cc05d8239e040c979"
     },
     "max_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
+    "relaunch_allowed": false,
+    "max_forwards": 0,
+    "max_updates": 0,
+    "checkpoint_loads": 0,
+    "refits": 0,
+    "wall_seconds": 60,
+    "memory_max": "4G",
+    "swap_max": "512M",
+    "numerical_threads": 1,
+    "test_data_used": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_MOMENT_RESET_20261109_001/SHIFT_RANK_RESULT.json",
+      "sha256": "94dfc72a441b47bae539dffc9fa86a21d71ce9d2096c136a85e434422c688255"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_MOMENT_RESET_20261109_001/SHIFT_RANK_REVIEW.json",
+      "sha256": "581b57abac3eb77a66de8a5f20488af2ff961f89304534dd54c93c734986d8b7"
+    },
+    "worker_seconds": 0.13455398899895954
+  },
+  "market_state_ta_m5_consumed_prefix_targets_20261109_001": {
+    "status": "ADMITTED",
+    "execution_authorized": true,
+    "training_authorized": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_MOMENT_RESET_20261109_001/PREFIX_TARGET_PLAN.json",
+      "sha256": "151782d5d99cfb1b25360950dfde88922bf013d7c1454c9b1e6e13f67962b280"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_MOMENT_RESET_20261109_001/PREFIX_TARGET_PREFLIGHT.log",
+      "sha256": "dc0b0cdb3ad0dc7e9ed8bb8b30bbde52500ca6706d0b5a056ab27eda4808beca"
+    },
+    "max_invocations": 1,
     "claimed_invocations": 0,
     "completed_invocations": 0,
     "remaining_invocations": 1,
@@ -70407,7 +70468,7 @@
     "max_forwards": 0,
     "max_updates": 0,
     "checkpoint_loads": 0,
-    "refits": 0,
+    "target_tape_loads": 0,
     "wall_seconds": 60,
     "memory_max": "4G",
     "swap_max": "512M",
