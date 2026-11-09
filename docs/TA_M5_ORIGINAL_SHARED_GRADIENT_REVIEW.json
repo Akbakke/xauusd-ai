@@ -1,0 +1,1816 @@
+{
+  "schema_version": "gx1_original_fullpass_shared_gradient_integrated_review_v1",
+  "status": "COMPLETE_VERIFIED_NO_NET_GRADIENT_REVERSAL_ON_FIXED_PANEL",
+  "observed_utc": "2026-11-09T23:09:26.981761+00:00",
+  "source_head": "228242bcd870393ce081438203f6d07457a1e59b",
+  "scope": "Original fullpass INITIAL ae772 and FINAL23ff;three fixed B16 TRAIN batches;Egrad and one paired CPU train-mode dropout stream. Zero applied updates.",
+  "question": "Do auxiliary-task gradients or actual saved AdamW moments oppose M5 direction at the original fullpass states?",
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/PLAN.json",
+    "sha256": "b145d9d8fafeda17c82d3f5e0d93ec01a278bd2aac7ab2fd01576facec62a482"
+  },
+  "worker": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/probe.py",
+    "sha256": "293c7bc23c992e43546f005f65eadfbf74eb94aea244a54011296f3ad10093c8"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/RESULT.json",
+    "sha256": "6ea495323cd516c2fd1373893a3036f506c79b1279782a5c5f5918d1acc4cf44"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/TERMINAL.json",
+    "sha256": "6df3c91f150d7fe7e701fae41a17b3d98676dd812d4070edaa8a23533d0599fa"
+  },
+  "controller": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/CONTROLLER.json",
+    "sha256": "6c2292e62a32de77d3427f3e3f15e2ff7ed81b7d6d0b230a77587cb4fadb3d9c"
+  },
+  "review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/REVIEW.json",
+    "sha256": "89825602572db539264119493464833443b4b13dc563a7b3c0b618a1a3431b4c"
+  },
+  "reviewer": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/review.py",
+    "sha256": "4a9432353da4e8a435dfddb6105bd389ee653c3ddf57cecc92f5db0da3ace4ad"
+  },
+  "review_command": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/REVIEW_COMMAND.json",
+    "sha256": "f3f7f2f7efa5b4392276802503d059f4252371f7ed22579426c4f2df2fa898d0"
+  },
+  "preflight": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/PREFLIGHT.json",
+    "sha256": "2301b0a07a37b9e2b9f2d72069bc602a76ba8ccbdb2083b74cd257ea8672da57"
+  },
+  "mode_result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_MODE_CONTRAST_20261109_001/RESULT.json",
+    "sha256": "4b0e3ab66fef4278f747030fb65b9e3706a5b60915a1650fb876fd52303c1988"
+  },
+  "mode_review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_MODE_CONTRAST_20261109_001/REVIEW.json",
+    "sha256": "d31398f57721e2ba234a43578e20f3c7512500b51a2fa3c6653bb796cc919419"
+  },
+  "counts": {
+    "model_constructions": 1,
+    "checkpoint_loads": 2,
+    "forwards": 12,
+    "autograd_calls": 42,
+    "backwards": 0,
+    "optimizer_constructions": 0,
+    "optimizer_updates": 0,
+    "checkpoint_writes": 0,
+    "resume_state_load_calls": 2,
+    "resume_state_load_returns": 2
+  },
+  "group_order": [
+    "train_m5_state",
+    "train_m5_future",
+    "train_other_tf_side",
+    "train_all_activity",
+    "eval_m5_state",
+    "eval_m5_future"
+  ],
+  "parameter_tensors": 570,
+  "parameter_coordinates": 6949721,
+  "sign_convention": "Each pair is [eval M5 state,eval M5 future]. Negative gradient dot analytic update means a local decrease in weighted BCE. Plain directions omit learning-rate scaling; AdamW deltas include the bound lr1e-4 and decay1e-4. Not measured Brier changes.",
+  "states": [
+    {
+      "label": "INITIAL",
+      "checkpoint_identity": {
+        "source_commit": "84f0f47c4e0c02b9c5287b1930ffb30bbdf98e81",
+        "cursor": 0,
+        "optimizer_updates": 0,
+        "skipped_batches": 0,
+        "model_state_sha256": "ae772fd755cbfa07b1b7bcca8bccd2c8a8889806989a289ddb8267972c281b37",
+        "buffer_state_sha256": "c46c39ecda970ff41b661dd3a1414f0eba459b5fb96c55f009bb5e70def13a8a",
+        "optimizer_state_sha256": "9bb22734103774ba43bc7d822acf493b558e551b5606be63b3d63e1043a723c3",
+        "rng_state_sha256": "eff47232fb6c3273f3ce779d5089a9c1ea1ad6e3c43506a2e9e8b55f91be57bf",
+        "contract_sha256": "9e182672068c0375f89b6b5460bc1cef7d7854511c228d4492ca6b977a9c20de",
+        "checkpoint": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FOLD1_FIT_20261109_002/RUNTIME/prefix-fit/states/INITIAL_FOLD1_STATE.pt",
+          "sha256": "80fc8029200c8076bc2faa38014bfd24c75ee71632fb1f45138249ccaca8d484"
+        },
+        "parent_order_sha256": "db8e77282a7318873530888a2a636a728b1db109405da3f59c16b74aa9f4c3fb",
+        "checkpoint_module_modes_sha256": "f61615b786e0f3acdbbca7273986cf6a8807aa99e2ef1463aa1b4ce97ca8fbd9",
+        "load_kind": "CPU_MODEL_AND_BUFFERS_ONLY_NO_OPTIMIZER_OR_RNG_RESTORE"
+      },
+      "measurement": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/INITIAL_GRADIENT.json",
+        "sha256": "9186288f81e72686aa6d2b55a942c39d01e7cc7a709226a1b7be59a70404c01d"
+      },
+      "private_gradients": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/INITIAL_AGGREGATE_GRADIENTS.npz",
+        "sha256": "f9e80f02bbe26cd5dcb8de75bb1e44295f8e0d33007214f28aae25168051a26a"
+      },
+      "array_bytes": 291905652,
+      "optimizer_state_present": 0,
+      "optimizer_step_range": [
+        0,
+        0
+      ],
+      "aggregate_eval_m5_local_directions": {
+        "all": {
+          "plain_joint_gradient_loss_direction": [
+            -0.11056544835907953,
+            -0.05498914729545653
+          ],
+          "plain_m5_only_gradient_loss_direction": [
+            -0.08081118466512653,
+            -0.03518473714293025
+          ],
+          "plain_auxiliary_gradient_loss_direction": [
+            -0.029754263693952985,
+            -0.019804410152526278
+          ],
+          "joint_first_AdamW_loss_delta": [
+            -0.000803016115421469,
+            -0.0005519985924637052
+          ],
+          "m5_only_first_AdamW_loss_delta": [
+            -0.001704772524099036,
+            -0.0010120542506979273
+          ],
+          "joint_next_AdamW_loss_delta": [
+            -0.000803016115421469,
+            -0.0005519985924637052
+          ],
+          "other_tf_side_plain_loss_direction": [
+            -0.02902713571340191,
+            -0.02171165579113581
+          ],
+          "activity_plain_loss_direction": [
+            -0.0007271279805510747,
+            0.0019072456386095328
+          ]
+        },
+        "backbone": {
+          "plain_joint_gradient_loss_direction": [
+            -0.012702524443376545,
+            -0.00797903458801478
+          ],
+          "plain_m5_only_gradient_loss_direction": [
+            -0.002056677328227623,
+            -0.0011936426994151798
+          ],
+          "plain_auxiliary_gradient_loss_direction": [
+            -0.010645847115148922,
+            -0.006785391888599602
+          ],
+          "joint_first_AdamW_loss_delta": [
+            -0.0005516731650307422,
+            -0.0003692163998629766
+          ],
+          "m5_only_first_AdamW_loss_delta": [
+            -0.0013161594598126356,
+            -0.0007907342529178356
+          ],
+          "joint_next_AdamW_loss_delta": [
+            -0.0005516731650307422,
+            -0.0003692163998629766
+          ],
+          "other_tf_side_plain_loss_direction": [
+            -0.010800298374369738,
+            -0.007505302682361722
+          ],
+          "activity_plain_loss_direction": [
+            0.00015445125922081712,
+            0.0007199107937621203
+          ]
+        },
+        "query_projection": {
+          "plain_joint_gradient_loss_direction": [
+            -0.0229812531596576,
+            -0.015095244311993512
+          ],
+          "plain_m5_only_gradient_loss_direction": [
+            -0.0038728365808535416,
+            -0.0020762260480668366
+          ],
+          "plain_auxiliary_gradient_loss_direction": [
+            -0.01910841657880406,
+            -0.013019018263926674
+          ],
+          "joint_first_AdamW_loss_delta": [
+            -6.552628034840273e-05,
+            -5.4495859937029685e-05
+          ],
+          "m5_only_first_AdamW_loss_delta": [
+            -0.00020279603858591434,
+            -9.303338326260198e-05
+          ],
+          "joint_next_AdamW_loss_delta": [
+            -6.552628034840273e-05,
+            -5.4495859937029685e-05
+          ],
+          "other_tf_side_plain_loss_direction": [
+            -0.01822683733903217,
+            -0.014206353108774087
+          ],
+          "activity_plain_loss_direction": [
+            -0.0008815792397718919,
+            0.0011873348448474125
+          ]
+        },
+        "m5_heads": {
+          "plain_joint_gradient_loss_direction": [
+            -0.07488167075604538,
+            -0.031914868395448236
+          ],
+          "plain_m5_only_gradient_loss_direction": [
+            -0.07488167075604538,
+            -0.031914868395448236
+          ],
+          "plain_auxiliary_gradient_loss_direction": [
+            -0.0,
+            -0.0
+          ],
+          "joint_first_AdamW_loss_delta": [
+            -0.00018581667004232398,
+            -0.00012828633266369886
+          ],
+          "m5_only_first_AdamW_loss_delta": [
+            -0.00018581702570048635,
+            -0.00012828661451748965
+          ],
+          "joint_next_AdamW_loss_delta": [
+            -0.00018581667004232398,
+            -0.00012828633266369886
+          ],
+          "other_tf_side_plain_loss_direction": [
+            -0.0,
+            -0.0
+          ],
+          "activity_plain_loss_direction": [
+            -0.0,
+            -0.0
+          ]
+        },
+        "other_heads": {
+          "plain_joint_gradient_loss_direction": [
+            -0.0,
+            -0.0
+          ],
+          "plain_m5_only_gradient_loss_direction": [
+            -0.0,
+            -0.0
+          ],
+          "plain_auxiliary_gradient_loss_direction": [
+            -0.0,
+            -0.0
+          ],
+          "joint_first_AdamW_loss_delta": [
+            0.0,
+            0.0
+          ],
+          "m5_only_first_AdamW_loss_delta": [
+            0.0,
+            0.0
+          ],
+          "joint_next_AdamW_loss_delta": [
+            0.0,
+            0.0
+          ],
+          "other_tf_side_plain_loss_direction": [
+            -0.0,
+            -0.0
+          ],
+          "activity_plain_loss_direction": [
+            -0.0,
+            -0.0
+          ]
+        }
+      },
+      "global_clip_scales": [
+        0.2740474793893301,
+        1.0
+      ],
+      "none_coordinates_skipping_decay": 0,
+      "batches": [
+        {
+          "start": 0,
+          "supports": {
+            "state": {
+              "informative": [
+                16,
+                15,
+                13,
+                2,
+                2
+              ],
+              "known_side": [
+                8,
+                7,
+                2,
+                0,
+                0
+              ]
+            },
+            "future": {
+              "informative": [
+                16,
+                16,
+                16,
+                16,
+                16
+              ],
+              "known_side": [
+                9,
+                4,
+                4,
+                4,
+                16
+              ]
+            }
+          },
+          "eval_m5_local_directions": {
+            "all": {
+              "plain_joint_gradient_loss_direction": [
+                -0.3580429241752854,
+                -0.38083470936263075
+              ],
+              "joint_first_AdamW_loss_delta": [
+                -0.0012875356842674567,
+                -0.0009784975537425289
+              ],
+              "m5_only_first_AdamW_loss_delta": [
+                -0.0024022732219325443,
+                -0.0017860852095112683
+              ],
+              "joint_next_AdamW_loss_delta": [
+                -0.0012875356842674567,
+                -0.0009784975537425287
+              ],
+              "plain_m5_only_gradient_loss_direction": [
+                -0.2070430815814091,
+                -0.2615648755222322
+              ],
+              "plain_auxiliary_gradient_loss_direction": [
+                -0.15099984259387156,
+                -0.11926983384039194
+              ],
+              "other_tf_side_plain_loss_direction": [
+                -0.1457220802453187,
+                -0.1144421091247264
+              ],
+              "activity_plain_loss_direction": [
+                -0.005277762348555684,
+                -0.004827724715667196
+              ]
+            },
+            "backbone": {
+              "plain_joint_gradient_loss_direction": [
+                -0.06292973285010578,
+                -0.04048813743145706
+              ],
+              "joint_first_AdamW_loss_delta": [
+                -0.0008906945708436102,
+                -0.000531022827393826
+              ],
+              "m5_only_first_AdamW_loss_delta": [
+                -0.0018176969191177122,
+                -0.001227163177651698
+              ],
+              "joint_next_AdamW_loss_delta": [
+                -0.0008906945708436103,
+                -0.000531022827393826
+              ],
+              "plain_m5_only_gradient_loss_direction": [
+                -0.007003117740497433,
+                -0.004714805224449301
+              ],
+              "plain_auxiliary_gradient_loss_direction": [
+                -0.05592661510960422,
+                -0.03577333220700021
+              ],
+              "other_tf_side_plain_loss_direction": [
+                -0.05446723074786164,
+                -0.03430147099965385
+              ],
+              "activity_plain_loss_direction": [
+                -0.0014593843617447093,
+                -0.001471861207348985
+              ]
+            },
+            "query_projection": {
+              "plain_joint_gradient_loss_direction": [
+                -0.10907150099306241,
+                -0.09541612501895538
+              ],
+              "joint_first_AdamW_loss_delta": [
+                -0.00010513865705443256,
+                -0.00011770303020351624
+              ],
+              "m5_only_first_AdamW_loss_delta": [
+                -0.0002928731549323946,
+                -0.00022914963676973245
+              ],
+              "joint_next_AdamW_loss_delta": [
+                -0.00010513865705443252,
+                -0.0001177030302035162
+              ],
+              "plain_m5_only_gradient_loss_direction": [
+                -0.013998273508794956,
+                -0.011919623385564248
+              ],
+              "plain_auxiliary_gradient_loss_direction": [
+                -0.095073227484268,
+                -0.0834965016333914
+              ],
+              "other_tf_side_plain_loss_direction": [
+                -0.09125484949745705,
+                -0.08014063812507255
+              ],
+              "activity_plain_loss_direction": [
+                -0.0038183779868109667,
+                -0.003355863508318208
+              ]
+            },
+            "m5_heads": {
+              "plain_joint_gradient_loss_direction": [
+                -0.18604169033211682,
+                -0.24493044691221857
+              ],
+              "joint_first_AdamW_loss_delta": [
+                -0.0002917024563694109,
+                -0.0003297716961451867
+              ],
+              "m5_only_first_AdamW_loss_delta": [
+                -0.00029170314788243377,
+                -0.00032977239508983605
+              ],
+              "joint_next_AdamW_loss_delta": [
+                -0.0002917024563694109,
+                -0.0003297716961451867
+              ],
+              "plain_m5_only_gradient_loss_direction": [
+                -0.18604169033211682,
+                -0.24493044691221857
+              ],
+              "plain_auxiliary_gradient_loss_direction": [
+                0.0,
+                0.0
+              ],
+              "other_tf_side_plain_loss_direction": [
+                -0.0,
+                -0.0
+              ],
+              "activity_plain_loss_direction": [
+                -0.0,
+                -0.0
+              ]
+            },
+            "other_heads": {
+              "plain_joint_gradient_loss_direction": [
+                0.0,
+                0.0
+              ],
+              "joint_first_AdamW_loss_delta": [
+                0.0,
+                0.0
+              ],
+              "m5_only_first_AdamW_loss_delta": [
+                0.0,
+                0.0
+              ],
+              "joint_next_AdamW_loss_delta": [
+                0.0,
+                0.0
+              ],
+              "plain_m5_only_gradient_loss_direction": [
+                0.0,
+                0.0
+              ],
+              "plain_auxiliary_gradient_loss_direction": [
+                0.0,
+                0.0
+              ],
+              "other_tf_side_plain_loss_direction": [
+                -0.0,
+                -0.0
+              ],
+              "activity_plain_loss_direction": [
+                -0.0,
+                -0.0
+              ]
+            }
+          },
+          "full_gradient_sum_max_abs": 1.210719347000122e-07
+        },
+        {
+          "start": 14272,
+          "supports": {
+            "state": {
+              "informative": [
+                16,
+                16,
+                16,
+                16,
+                11
+              ],
+              "known_side": [
+                13,
+                10,
+                10,
+                0,
+                6
+              ]
+            },
+            "future": {
+              "informative": [
+                16,
+                16,
+                16,
+                16,
+                0
+              ],
+              "known_side": [
+                13,
+                7,
+                11,
+                1,
+                0
+              ]
+            }
+          },
+          "eval_m5_local_directions": {
+            "all": {
+              "plain_joint_gradient_loss_direction": [
+                -0.49625455971674987,
+                -0.09492779218836037
+              ],
+              "joint_first_AdamW_loss_delta": [
+                -0.0016314782911717556,
+                -0.0010096811828124107
+              ],
+              "m5_only_first_AdamW_loss_delta": [
+                -0.004008015617112111,
+                -0.0018294269407924902
+              ],
+              "joint_next_AdamW_loss_delta": [
+                -0.0016314782911717553,
+                -0.0010096811828124107
+              ],
+              "plain_m5_only_gradient_loss_direction": [
+                -0.4488244315489091,
+                -0.05752307005289878
+              ],
+              "plain_auxiliary_gradient_loss_direction": [
+                -0.04743012816783635,
+                -0.03740472213546336
+              ],
+              "other_tf_side_plain_loss_direction": [
+                -0.05866135198217204,
+                -0.05008542312683906
+              ],
+              "activity_plain_loss_direction": [
+                0.011231223814335053,
+                0.012680700991370475
+              ]
+            },
+            "backbone": {
+              "plain_joint_gradient_loss_direction": [
+                -0.04317417669087294,
+                -0.032245273606392906
+              ],
+              "joint_first_AdamW_loss_delta": [
+                -0.00111474535979719,
+                -0.0008089917615840895
+              ],
+              "m5_only_first_AdamW_loss_delta": [
+                -0.003120856309514372,
+                -0.0015500277591421385
+              ],
+              "joint_next_AdamW_loss_delta": [
+                -0.00111474535979719,
+                -0.0008089917615840895
+              ],
+              "plain_m5_only_gradient_loss_direction": [
+                -0.012542545053702893,
+                -0.005871813600490237
+              ],
+              "plain_auxiliary_gradient_loss_direction": [
+                -0.030631631637166274,
+                -0.026373460005904605
+              ],
+              "other_tf_side_plain_loss_direction": [
+                -0.0347797139819944,
+                -0.032115623891116246
+              ],
+              "activity_plain_loss_direction": [
+                0.004148082344827802,
+                0.005742163885206493
+              ]
+            },
+            "query_projection": {
+              "plain_joint_gradient_loss_direction": [
+                -0.037741806543474934,
+                -0.017759138908143037
+              ],
+              "joint_first_AdamW_loss_delta": [
+                -0.00010054126861226955,
+                -4.9238225318057356e-05
+              ],
+              "m5_only_first_AdamW_loss_delta": [
+                -0.00047096711530899627,
+                -0.0001279474895842377
+              ],
+              "joint_next_AdamW_loss_delta": [
+                -0.00010054126861226952,
+                -4.923822531805735e-05
+              ],
+              "plain_m5_only_gradient_loss_direction": [
+                -0.020943310012804726,
+                -0.00672787677858421
+              ],
+              "plain_auxiliary_gradient_loss_direction": [
+                -0.016798496530670504,
+                -0.01103126212955882
+              ],
+              "other_tf_side_plain_loss_direction": [
+                -0.0238816380001777,
+                -0.017969799235722807
+              ],
+              "activity_plain_loss_direction": [
+                0.007083141469507263,
+                0.006938537106163974
+              ]
+            },
+            "m5_heads": {
+              "plain_joint_gradient_loss_direction": [
+                -0.4153385764824013,
+                -0.044923379673824426
+              ],
+              "joint_first_AdamW_loss_delta": [
+                -0.00041619166276230294,
+                -0.00015145119591026342
+              ],
+              "m5_only_first_AdamW_loss_delta": [
+                -0.00041619219228874636,
+                -0.0001514516920661019
+              ],
+              "joint_next_AdamW_loss_delta": [
+                -0.000416191662762303,
+                -0.00015145119591026336
+              ],
+              "plain_m5_only_gradient_loss_direction": [
+                -0.4153385764824013,
+                -0.044923379673824426
+              ],
+              "plain_auxiliary_gradient_loss_direction": [
+                0.0,
+                0.0
+              ],
+              "other_tf_side_plain_loss_direction": [
+                -0.0,
+                -0.0
+              ],
+              "activity_plain_loss_direction": [
+                -0.0,
+                -0.0
+              ]
+            },
+            "other_heads": {
+              "plain_joint_gradient_loss_direction": [
+                0.0,
+                0.0
+              ],
+              "joint_first_AdamW_loss_delta": [
+                0.0,
+                0.0
+              ],
+              "m5_only_first_AdamW_loss_delta": [
+                0.0,
+                0.0
+              ],
+              "joint_next_AdamW_loss_delta": [
+                0.0,
+                0.0
+              ],
+              "plain_m5_only_gradient_loss_direction": [
+                0.0,
+                0.0
+              ],
+              "plain_auxiliary_gradient_loss_direction": [
+                0.0,
+                0.0
+              ],
+              "other_tf_side_plain_loss_direction": [
+                -0.0,
+                -0.0
+              ],
+              "activity_plain_loss_direction": [
+                -0.0,
+                -0.0
+              ]
+            }
+          },
+          "full_gradient_sum_max_abs": 1.1920928955078125e-07
+        },
+        {
+          "start": 29552,
+          "supports": {
+            "state": {
+              "informative": [
+                16,
+                16,
+                16,
+                16,
+                15
+              ],
+              "known_side": [
+                5,
+                0,
+                3,
+                16,
+                7
+              ]
+            },
+            "future": {
+              "informative": [
+                16,
+                16,
+                16,
+                16,
+                16
+              ],
+              "known_side": [
+                6,
+                1,
+                0,
+                16,
+                16
+              ]
+            }
+          },
+          "eval_m5_local_directions": {
+            "all": {
+              "plain_joint_gradient_loss_direction": [
+                -0.04572394287837807,
+                -0.011664216881573843
+              ],
+              "joint_first_AdamW_loss_delta": [
+                -0.0003706093358152264,
+                -0.0002770748399893324
+              ],
+              "m5_only_first_AdamW_loss_delta": [
+                -0.001715235027818225,
+                -0.0008655288597101544
+              ],
+              "joint_next_AdamW_loss_delta": [
+                -0.00037060933581522636,
+                -0.0002770748399893324
+              ],
+              "plain_m5_only_gradient_loss_direction": [
+                -0.048621309495578316,
+                -0.009015381224512701
+              ],
+              "plain_auxiliary_gradient_loss_direction": [
+                0.002897366617200193,
+                -0.0026488356570604165
+              ],
+              "other_tf_side_plain_loss_direction": [
+                -0.00016945339744534074,
+                -0.0012432825695364762
+              ],
+              "activity_plain_loss_direction": [
+                0.0030668200146453956,
+                -0.0014055530875242725
+              ]
+            },
+            "backbone": {
+              "plain_joint_gradient_loss_direction": [
+                -0.0035670445177686657,
+                -0.0035760254733872045
+              ],
+              "joint_first_AdamW_loss_delta": [
+                -0.00022795039944255004,
+                -0.0002118703128992373
+              ],
+              "m5_only_first_AdamW_loss_delta": [
+                -0.001420420877531926,
+                -0.0007610615416438819
+              ],
+              "joint_next_AdamW_loss_delta": [
+                -0.00022795039944254996,
+                -0.00021187031289923727
+              ],
+              "plain_m5_only_gradient_loss_direction": [
+                -0.002505590068436822,
+                -0.0013191369682625561
+              ],
+              "plain_auxiliary_gradient_loss_direction": [
+                -0.0010614544493319225,
+                -0.00225688850512393
+              ],
+              "other_tf_side_plain_loss_direction": [
+                -0.0024048180961670114,
+                -0.001352560831815032
+              ],
+              "activity_plain_loss_direction": [
+                0.0013433636468349408,
+                -0.0009043276733092266
+              ]
+            },
+            "query_projection": {
+              "plain_joint_gradient_loss_direction": [
+                0.001226240077975221,
+                -0.0012927561731006527
+              ],
+              "joint_first_AdamW_loss_delta": [
+                -1.0773911515728247e-05,
+                -1.121887012111835e-05
+              ],
+              "m5_only_first_AdamW_loss_delta": [
+                -0.0001629290013151706,
+                -5.04815633420526e-05
+              ],
+              "joint_next_AdamW_loss_delta": [
+                -1.077391151572825e-05,
+                -1.121887012111835e-05
+              ],
+              "plain_m5_only_gradient_loss_direction": [
+                -0.0027325809885569334,
+                -0.0009008090211641691
+              ],
+              "plain_auxiliary_gradient_loss_direction": [
+                0.003958821066532125,
+                -0.00039194715193649086
+              ],
+              "other_tf_side_plain_loss_direction": [
+                0.002235364698721668,
+                0.00010927826227855632
+              ],
+              "activity_plain_loss_direction": [
+                0.0017234563678104557,
+                -0.0005012254142150456
+              ]
+            },
+            "m5_heads": {
+              "plain_joint_gradient_loss_direction": [
+                -0.04338313843858457,
+                -0.006795435235085992
+              ],
+              "joint_first_AdamW_loss_delta": [
+                -0.0001318850248569462,
+                -5.3985656968978295e-05
+              ],
+              "m5_only_first_AdamW_loss_delta": [
+                -0.00013188514897113693,
+                -5.39857547242153e-05
+              ],
+              "joint_next_AdamW_loss_delta": [
+                -0.00013188502485694616,
+                -5.398565696897829e-05
+              ],
+              "plain_m5_only_gradient_loss_direction": [
+                -0.04338313843858457,
+                -0.006795435235085992
+              ],
+              "plain_auxiliary_gradient_loss_direction": [
+                0.0,
+                0.0
+              ],
+              "other_tf_side_plain_loss_direction": [
+                -0.0,
+                -0.0
+              ],
+              "activity_plain_loss_direction": [
+                -0.0,
+                -0.0
+              ]
+            },
+            "other_heads": {
+              "plain_joint_gradient_loss_direction": [
+                0.0,
+                0.0
+              ],
+              "joint_first_AdamW_loss_delta": [
+                0.0,
+                0.0
+              ],
+              "m5_only_first_AdamW_loss_delta": [
+                0.0,
+                0.0
+              ],
+              "joint_next_AdamW_loss_delta": [
+                0.0,
+                0.0
+              ],
+              "plain_m5_only_gradient_loss_direction": [
+                0.0,
+                0.0
+              ],
+              "plain_auxiliary_gradient_loss_direction": [
+                0.0,
+                0.0
+              ],
+              "other_tf_side_plain_loss_direction": [
+                -0.0,
+                -0.0
+              ],
+              "activity_plain_loss_direction": [
+                -0.0,
+                -0.0
+              ]
+            }
+          },
+          "full_gradient_sum_max_abs": 2.3435859475284815e-08
+        }
+      ]
+    },
+    {
+      "label": "FINAL",
+      "checkpoint_identity": {
+        "source_commit": "84f0f47c4e0c02b9c5287b1930ffb30bbdf98e81",
+        "cursor": 29574,
+        "optimizer_updates": 1849,
+        "skipped_batches": 0,
+        "model_state_sha256": "23ff344b183a2256f2c8a1a8e32b811ed14f10c1cb1423becca14b36d5340d5b",
+        "buffer_state_sha256": "c46c39ecda970ff41b661dd3a1414f0eba459b5fb96c55f009bb5e70def13a8a",
+        "optimizer_state_sha256": "2ecf7ea0d75208d28a9c83c64c746e5047d9b770553695846af9056b306d1eba",
+        "rng_state_sha256": "1c1d81738f411be466df82bc5d055d2e166b245e370cb4786a87c954127324d1",
+        "contract_sha256": "6b8df9f1dec4e26a275a70c3c1ff7aa9d6f6836db565c29dbe5409435041f3ab",
+        "checkpoint": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FOLD1_FIT_20261109_002/RUNTIME/prefix-fit/states/FINAL_FOLD1_FIT_STATE.pt",
+          "sha256": "142aa2ea4649b5380f224f670fafb214e67879ab616a6acca132a7ba5d8e1fb8"
+        },
+        "parent_order_sha256": "db8e77282a7318873530888a2a636a728b1db109405da3f59c16b74aa9f4c3fb",
+        "checkpoint_module_modes_sha256": "f61615b786e0f3acdbbca7273986cf6a8807aa99e2ef1463aa1b4ce97ca8fbd9",
+        "load_kind": "CPU_MODEL_AND_BUFFERS_ONLY_NO_OPTIMIZER_OR_RNG_RESTORE"
+      },
+      "measurement": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/FINAL_GRADIENT.json",
+        "sha256": "31ee20239a82d525d4a6275468517590ebac68800456775d5ba9fbee0f775b28"
+      },
+      "private_gradients": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/FINAL_AGGREGATE_GRADIENTS.npz",
+        "sha256": "2a66ee9879acdf333b089d79b748148a7531a57c5d83a07d274efe432e7975b7"
+      },
+      "array_bytes": 291905652,
+      "optimizer_state_present": 570,
+      "optimizer_step_range": [
+        1849,
+        1849
+      ],
+      "aggregate_eval_m5_local_directions": {
+        "all": {
+          "plain_joint_gradient_loss_direction": [
+            -0.31687471601058625,
+            -0.24366588238640127
+          ],
+          "plain_m5_only_gradient_loss_direction": [
+            -0.20209700629008526,
+            -0.14519873530387148
+          ],
+          "plain_auxiliary_gradient_loss_direction": [
+            -0.11477770972050103,
+            -0.09846714708252981
+          ],
+          "joint_first_AdamW_loss_delta": [
+            -0.0018202307906807307,
+            -0.0013975048794214705
+          ],
+          "m5_only_first_AdamW_loss_delta": [
+            -0.0026594698588975423,
+            -0.002010002970879982
+          ],
+          "joint_next_AdamW_loss_delta": [
+            -0.0001366438661923159,
+            -9.400154260991467e-05
+          ],
+          "other_tf_side_plain_loss_direction": [
+            -0.11256826744158377,
+            -0.10123156667865117
+          ],
+          "activity_plain_loss_direction": [
+            -0.002209442278917256,
+            0.0027644195961213586
+          ]
+        },
+        "backbone": {
+          "plain_joint_gradient_loss_direction": [
+            -0.04943622813258746,
+            -0.03897155307260763
+          ],
+          "plain_m5_only_gradient_loss_direction": [
+            -0.006244950264334366,
+            -0.004714492622077716
+          ],
+          "plain_auxiliary_gradient_loss_direction": [
+            -0.043191277868253095,
+            -0.03425706045052991
+          ],
+          "joint_first_AdamW_loss_delta": [
+            -0.0013844548351536316,
+            -0.0010152145515465246
+          ],
+          "m5_only_first_AdamW_loss_delta": [
+            -0.0020995011511191018,
+            -0.0015429298007307258
+          ],
+          "joint_next_AdamW_loss_delta": [
+            -0.00011120774485944353,
+            -6.705619536087608e-05
+          ],
+          "other_tf_side_plain_loss_direction": [
+            -0.04418508949688893,
+            -0.03679822071667893
+          ],
+          "activity_plain_loss_direction": [
+            0.000993811628635835,
+            0.002541160266149022
+          ]
+        },
+        "query_projection": {
+          "plain_joint_gradient_loss_direction": [
+            -0.08187930432429867,
+            -0.07241893084476272
+          ],
+          "plain_m5_only_gradient_loss_direction": [
+            -0.010292872472050737,
+            -0.008208844212762809
+          ],
+          "plain_auxiliary_gradient_loss_direction": [
+            -0.07158643185224793,
+            -0.06421008663199991
+          ],
+          "joint_first_AdamW_loss_delta": [
+            -0.0001546051347046726,
+            -0.00013865984775611028
+          ],
+          "m5_only_first_AdamW_loss_delta": [
+            -0.0002787974380120703,
+            -0.00022344225353482006
+          ],
+          "joint_next_AdamW_loss_delta": [
+            -3.138984740406789e-05,
+            -3.534057024453403e-05
+          ],
+          "other_tf_side_plain_loss_direction": [
+            -0.06838317794469484,
+            -0.06443334596197224
+          ],
+          "activity_plain_loss_direction": [
+            -0.003203253907553091,
+            0.00022325932997233655
+          ]
+        },
+        "m5_heads": {
+          "plain_joint_gradient_loss_direction": [
+            -0.18555918355370016,
+            -0.13227539846903094
+          ],
+          "plain_m5_only_gradient_loss_direction": [
+            -0.18555918355370016,
+            -0.13227539846903094
+          ],
+          "plain_auxiliary_gradient_loss_direction": [
+            -0.0,
+            -0.0
+          ],
+          "joint_first_AdamW_loss_delta": [
+            -0.00028117082082242665,
+            -0.00024363048011883558
+          ],
+          "m5_only_first_AdamW_loss_delta": [
+            -0.0002811712697663703,
+            -0.0002436309166144362
+          ],
+          "joint_next_AdamW_loss_delta": [
+            5.9537260711954855e-06,
+            8.395222995495443e-06
+          ],
+          "other_tf_side_plain_loss_direction": [
+            -0.0,
+            -0.0
+          ],
+          "activity_plain_loss_direction": [
+            -0.0,
+            -0.0
+          ]
+        },
+        "other_heads": {
+          "plain_joint_gradient_loss_direction": [
+            -0.0,
+            -0.0
+          ],
+          "plain_m5_only_gradient_loss_direction": [
+            -0.0,
+            -0.0
+          ],
+          "plain_auxiliary_gradient_loss_direction": [
+            -0.0,
+            -0.0
+          ],
+          "joint_first_AdamW_loss_delta": [
+            0.0,
+            0.0
+          ],
+          "m5_only_first_AdamW_loss_delta": [
+            0.0,
+            0.0
+          ],
+          "joint_next_AdamW_loss_delta": [
+            0.0,
+            0.0
+          ],
+          "other_tf_side_plain_loss_direction": [
+            -0.0,
+            -0.0
+          ],
+          "activity_plain_loss_direction": [
+            -0.0,
+            -0.0
+          ]
+        }
+      },
+      "global_clip_scales": [
+        0.22223841629543803,
+        1.0
+      ],
+      "none_coordinates_skipping_decay": 0,
+      "batches": [
+        {
+          "start": 0,
+          "supports": {
+            "state": {
+              "informative": [
+                16,
+                15,
+                13,
+                2,
+                2
+              ],
+              "known_side": [
+                8,
+                7,
+                2,
+                0,
+                0
+              ]
+            },
+            "future": {
+              "informative": [
+                16,
+                16,
+                16,
+                16,
+                16
+              ],
+              "known_side": [
+                9,
+                4,
+                4,
+                4,
+                16
+              ]
+            }
+          },
+          "eval_m5_local_directions": {
+            "all": {
+              "plain_joint_gradient_loss_direction": [
+                -0.9271389493552264,
+                -1.1343292441225776
+              ],
+              "joint_first_AdamW_loss_delta": [
+                -0.0023148182835292163,
+                -0.0024791845572754347
+              ],
+              "m5_only_first_AdamW_loss_delta": [
+                -0.0031386456242680737,
+                -0.003180856188413452
+              ],
+              "joint_next_AdamW_loss_delta": [
+                -0.0002650301976795839,
+                -0.00029287794581955764
+              ],
+              "plain_m5_only_gradient_loss_direction": [
+                -0.5051982676865439,
+                -0.6821153743010435
+              ],
+              "plain_auxiliary_gradient_loss_direction": [
+                -0.42194068166861165,
+                -0.45221386982147244
+              ],
+              "other_tf_side_plain_loss_direction": [
+                -0.4256439640114386,
+                -0.468610300253841
+              ],
+              "activity_plain_loss_direction": [
+                0.003703282342743612,
+                0.01639643043226364
+              ]
+            },
+            "backbone": {
+              "plain_joint_gradient_loss_direction": [
+                -0.17268339382588974,
+                -0.17634126807637973
+              ],
+              "joint_first_AdamW_loss_delta": [
+                -0.0016235329110404686,
+                -0.0016704081024964373
+              ],
+              "m5_only_first_AdamW_loss_delta": [
+                -0.0022360833340339704,
+                -0.0021965940872262775
+              ],
+              "joint_next_AdamW_loss_delta": [
+                -0.00017688042648992438,
+                -0.00017967681384293448
+              ],
+              "plain_m5_only_gradient_loss_direction": [
+                -0.016147743385199555,
+                -0.015915061336334795
+              ],
+              "plain_auxiliary_gradient_loss_direction": [
+                -0.15653565044062023,
+                -0.1604262067399797
+              ],
+              "other_tf_side_plain_loss_direction": [
+                -0.1656891667545429,
+                -0.1753089456610804
+              ],
+              "activity_plain_loss_direction": [
+                0.00915351631384005,
+                0.014882738920993989
+              ]
+            },
+            "query_projection": {
+              "plain_joint_gradient_loss_direction": [
+                -0.30178313661961303,
+                -0.33043466895853046
+              ],
+              "joint_first_AdamW_loss_delta": [
+                -0.00024393134776436585,
+                -0.0002883347262646046
+              ],
+              "m5_only_first_AdamW_loss_delta": [
+                -0.00045520755115673164,
+                -0.0004638194933707285
+              ],
+              "joint_next_AdamW_loss_delta": [
+                -8.709938574878699e-05,
+                -9.939445142041436e-05
+              ],
+              "plain_m5_only_gradient_loss_direction": [
+                -0.036378105391622534,
+                -0.03864700587704152
+              ],
+              "plain_auxiliary_gradient_loss_direction": [
+                -0.2654050312279935,
+                -0.29178766308149146
+              ],
+              "other_tf_side_plain_loss_direction": [
+                -0.2599547972568957,
+                -0.2933013545927608
+              ],
+              "activity_plain_loss_direction": [
+                -0.0054502339710964425,
+                0.0015136915112696403
+              ]
+            },
+            "m5_heads": {
+              "plain_joint_gradient_loss_direction": [
+                -0.4526724189097218,
+                -0.6275533070876671
+              ],
+              "joint_first_AdamW_loss_delta": [
+                -0.00044735402472437865,
+                -0.0005204417285143854
+              ],
+              "m5_only_first_AdamW_loss_delta": [
+                -0.00044735473907736925,
+                -0.0005204426078164388
+              ],
+              "joint_next_AdamW_loss_delta": [
+                -1.0503854408721918e-06,
+                -1.3806680556208745e-05
+              ],
+              "plain_m5_only_gradient_loss_direction": [
+                -0.4526724189097218,
+                -0.6275533070876671
+              ],
+              "plain_auxiliary_gradient_loss_direction": [
+                0.0,
+                0.0
+              ],
+              "other_tf_side_plain_loss_direction": [
+                -0.0,
+                -0.0
+              ],
+              "activity_plain_loss_direction": [
+                -0.0,
+                -0.0
+              ]
+            },
+            "other_heads": {
+              "plain_joint_gradient_loss_direction": [
+                0.0,
+                0.0
+              ],
+              "joint_first_AdamW_loss_delta": [
+                0.0,
+                0.0
+              ],
+              "m5_only_first_AdamW_loss_delta": [
+                0.0,
+                0.0
+              ],
+              "joint_next_AdamW_loss_delta": [
+                0.0,
+                0.0
+              ],
+              "plain_m5_only_gradient_loss_direction": [
+                0.0,
+                0.0
+              ],
+              "plain_auxiliary_gradient_loss_direction": [
+                0.0,
+                0.0
+              ],
+              "other_tf_side_plain_loss_direction": [
+                -0.0,
+                -0.0
+              ],
+              "activity_plain_loss_direction": [
+                -0.0,
+                -0.0
+              ]
+            }
+          },
+          "full_gradient_sum_max_abs": 1.1920928955078125e-07
+        },
+        {
+          "start": 14272,
+          "supports": {
+            "state": {
+              "informative": [
+                16,
+                16,
+                16,
+                16,
+                11
+              ],
+              "known_side": [
+                13,
+                10,
+                10,
+                0,
+                6
+              ]
+            },
+            "future": {
+              "informative": [
+                16,
+                16,
+                16,
+                16,
+                0
+              ],
+              "known_side": [
+                13,
+                7,
+                11,
+                1,
+                0
+              ]
+            }
+          },
+          "eval_m5_local_directions": {
+            "all": {
+              "plain_joint_gradient_loss_direction": [
+                -1.1636874853950931,
+                -0.4208317265487363
+              ],
+              "joint_first_AdamW_loss_delta": [
+                -0.0043498963376406114,
+                -0.00260389981899673
+              ],
+              "m5_only_first_AdamW_loss_delta": [
+                -0.006267146651293857,
+                -0.003770905564344838
+              ],
+              "joint_next_AdamW_loss_delta": [
+                -0.0003994936136236454,
+                -0.00025547924209004584
+              ],
+              "plain_m5_only_gradient_loss_direction": [
+                -0.8499017473127701,
+                -0.23408834912754234
+              ],
+              "plain_auxiliary_gradient_loss_direction": [
+                -0.3137857380822162,
+                -0.1867433774212049
+              ],
+              "other_tf_side_plain_loss_direction": [
+                -0.3136248395407464,
+                -0.20031219393767216
+              ],
+              "activity_plain_loss_direction": [
+                -0.0001608985415565222,
+                0.013568816516437768
+              ]
+            },
+            "backbone": {
+              "plain_joint_gradient_loss_direction": [
+                -0.20536741783881735,
+                -0.12775266579931463
+              ],
+              "joint_first_AdamW_loss_delta": [
+                -0.0035375036709562597,
+                -0.0021689850171732125
+              ],
+              "m5_only_first_AdamW_loss_delta": [
+                -0.00516786093660994,
+                -0.0032420172682730733
+              ],
+              "joint_next_AdamW_loss_delta": [
+                -0.0003693182507667794,
+                -0.0002482201065050238
+              ],
+              "plain_m5_only_gradient_loss_direction": [
+                -0.03730703676730038,
+                -0.023163402782729766
+              ],
+              "plain_auxiliary_gradient_loss_direction": [
+                -0.1680603810714124,
+                -0.10458926301659527
+              ],
+              "other_tf_side_plain_loss_direction": [
+                -0.16980876443685372,
+                -0.11250074230073126
+              ],
+              "activity_plain_loss_direction": [
+                0.0017483833653555204,
+                0.007911479284104904
+              ]
+            },
+            "query_projection": {
+              "plain_joint_gradient_loss_direction": [
+                -0.18453109635226658,
+                -0.10174504662108137
+              ],
+              "joint_first_AdamW_loss_delta": [
+                -0.0002622394969667124,
+                -0.00015956905026264854
+              ],
+              "m5_only_first_AdamW_loss_delta": [
+                -0.0005491319192787293,
+                -0.00025354201927880906
+              ],
+              "joint_next_AdamW_loss_delta": [
+                -2.54884781365868e-05,
+                -2.4309784663935383e-05
+              ],
+              "plain_m5_only_gradient_loss_direction": [
+                -0.03880573934146264,
+                -0.01959093221647345
+              ],
+              "plain_auxiliary_gradient_loss_direction": [
+                -0.145725357010805,
+                -0.0821541144046073
+              ],
+              "other_tf_side_plain_loss_direction": [
+                -0.14381607510389252,
+                -0.08781145163694085
+              ],
+              "activity_plain_loss_direction": [
+                -0.001909281906912052,
+                0.005657337232332872
+              ]
+            },
+            "m5_heads": {
+              "plain_joint_gradient_loss_direction": [
+                -0.7737889712040069,
+                -0.19133401412833934
+              ],
+              "joint_first_AdamW_loss_delta": [
+                -0.0005501531697176354,
+                -0.0002753457515608554
+              ],
+              "m5_only_first_AdamW_loss_delta": [
+                -0.0005501537954052035,
+                -0.00027534627679293676
+              ],
+              "joint_next_AdamW_loss_delta": [
+                -4.686884720280294e-06,
+                1.705064907891248e-05
+              ],
+              "plain_m5_only_gradient_loss_direction": [
+                -0.7737889712040069,
+                -0.19133401412833934
+              ],
+              "plain_auxiliary_gradient_loss_direction": [
+                0.0,
+                0.0
+              ],
+              "other_tf_side_plain_loss_direction": [
+                -0.0,
+                -0.0
+              ],
+              "activity_plain_loss_direction": [
+                -0.0,
+                -0.0
+              ]
+            },
+            "other_heads": {
+              "plain_joint_gradient_loss_direction": [
+                0.0,
+                0.0
+              ],
+              "joint_first_AdamW_loss_delta": [
+                0.0,
+                0.0
+              ],
+              "m5_only_first_AdamW_loss_delta": [
+                0.0,
+                0.0
+              ],
+              "joint_next_AdamW_loss_delta": [
+                0.0,
+                0.0
+              ],
+              "plain_m5_only_gradient_loss_direction": [
+                0.0,
+                0.0
+              ],
+              "plain_auxiliary_gradient_loss_direction": [
+                0.0,
+                0.0
+              ],
+              "other_tf_side_plain_loss_direction": [
+                -0.0,
+                -0.0
+              ],
+              "activity_plain_loss_direction": [
+                -0.0,
+                -0.0
+              ]
+            }
+          },
+          "full_gradient_sum_max_abs": 1.1920928955078125e-07
+        },
+        {
+          "start": 29552,
+          "supports": {
+            "state": {
+              "informative": [
+                16,
+                16,
+                16,
+                16,
+                15
+              ],
+              "known_side": [
+                5,
+                0,
+                3,
+                16,
+                7
+              ]
+            },
+            "future": {
+              "informative": [
+                16,
+                16,
+                16,
+                16,
+                16
+              ],
+              "known_side": [
+                6,
+                1,
+                0,
+                16,
+                16
+              ]
+            }
+          },
+          "eval_m5_local_directions": {
+            "all": {
+              "plain_joint_gradient_loss_direction": [
+                -0.03825826691753332,
+                -0.01408378649740932
+              ],
+              "joint_first_AdamW_loss_delta": [
+                -0.00030724972212619396,
+                -0.00022454139119761657
+              ],
+              "m5_only_first_AdamW_loss_delta": [
+                -0.0018200050970640818,
+                -0.001181772661573649
+              ],
+              "joint_next_AdamW_loss_delta": [
+                -0.0001731061739217823,
+                -5.5550082177935275e-05
+              ],
+              "plain_m5_only_gradient_loss_direction": [
+                -0.04547750227287986,
+                -0.012561555337696921
+              ],
+              "plain_auxiliary_gradient_loss_direction": [
+                0.007219235355350104,
+                -0.0015222311597080254
+              ],
+              "other_tf_side_plain_loss_direction": [
+                0.0020467714943583105,
+                -0.001914847381720344
+              ],
+              "activity_plain_loss_direction": [
+                0.005172463860991836,
+                0.00039261622201234913
+              ]
+            },
+            "backbone": {
+              "plain_joint_gradient_loss_direction": [
+                -0.0009347009061651827,
+                -0.0018815027232164537
+              ],
+              "joint_first_AdamW_loss_delta": [
+                -0.0001718416433710994,
+                -0.0001339016076323986
+              ],
+              "m5_only_first_AdamW_loss_delta": [
+                -0.0015275715419453989,
+                -0.0010344492949770604
+              ],
+              "joint_next_AdamW_loss_delta": [
+                -0.00014123636747340933,
+                -3.6713193695960996e-05
+              ],
+              "plain_m5_only_gradient_loss_direction": [
+                -0.0036380511915243114,
+                -0.0023631348571396334
+              ],
+              "plain_auxiliary_gradient_loss_direction": [
+                0.0027033502853627046,
+                0.00048163213392753677
+              ],
+              "other_tf_side_plain_loss_direction": [
+                -0.0006655588309407131,
+                -0.0005774297787780104
+              ],
+              "activity_plain_loss_direction": [
+                0.0033689091163034658,
+                0.0010590619127055702
+              ]
+            },
+            "query_projection": {
+              "plain_joint_gradient_loss_direction": [
+                0.0013973974480985982,
+                -0.0035999516042854113
+              ],
+              "joint_first_AdamW_loss_delta": [
+                -9.61601167143884e-06,
+                -2.578247677350381e-05
+              ],
+              "m5_only_first_AdamW_loss_delta": [
+                -0.0001666413098854556,
+                -8.246589333848814e-05
+              ],
+              "joint_next_AdamW_loss_delta": [
+                -9.586160868484767e-06,
+                -9.408542366533241e-06
+              ],
+              "plain_m5_only_gradient_loss_direction": [
+                -0.0031184876218887866,
+                -0.0015960883106498776
+              ],
+              "plain_auxiliary_gradient_loss_direction": [
+                0.004515885069987408,
+                -0.002003863293635568
+              ],
+              "other_tf_side_plain_loss_direction": [
+                0.002712330325299025,
+                -0.0013374176029423343
+              ],
+              "activity_plain_loss_direction": [
+                0.0018035547446883689,
+                -0.0006664456906932218
+              ]
+            },
+            "m5_heads": {
+              "plain_joint_gradient_loss_direction": [
+                -0.03872096345946673,
+                -0.00860233216990742
+              ],
+              "joint_first_AdamW_loss_delta": [
+                -0.00012579206708365496,
+                -6.485730679171574e-05
+              ],
+              "m5_only_first_AdamW_loss_delta": [
+                -0.00012579224523322455,
+                -6.485747325809427e-05
+              ],
+              "joint_next_AdamW_loss_delta": [
+                -2.2283645579888105e-05,
+                -9.428346115441065e-06
+              ],
+              "plain_m5_only_gradient_loss_direction": [
+                -0.03872096345946673,
+                -0.00860233216990742
+              ],
+              "plain_auxiliary_gradient_loss_direction": [
+                0.0,
+                0.0
+              ],
+              "other_tf_side_plain_loss_direction": [
+                -0.0,
+                -0.0
+              ],
+              "activity_plain_loss_direction": [
+                -0.0,
+                -0.0
+              ]
+            },
+            "other_heads": {
+              "plain_joint_gradient_loss_direction": [
+                0.0,
+                0.0
+              ],
+              "joint_first_AdamW_loss_delta": [
+                0.0,
+                0.0
+              ],
+              "m5_only_first_AdamW_loss_delta": [
+                0.0,
+                0.0
+              ],
+              "joint_next_AdamW_loss_delta": [
+                0.0,
+                0.0
+              ],
+              "plain_m5_only_gradient_loss_direction": [
+                0.0,
+                0.0
+              ],
+              "plain_auxiliary_gradient_loss_direction": [
+                0.0,
+                0.0
+              ],
+              "other_tf_side_plain_loss_direction": [
+                -0.0,
+                -0.0
+              ],
+              "activity_plain_loss_direction": [
+                -0.0,
+                -0.0
+              ]
+            }
+          },
+          "full_gradient_sum_max_abs": 2.9802322387695312e-08
+        }
+      ]
+    }
+  ],
+  "independent_validation": {
+    "status": "PASS_INDEPENDENT_ORIGINAL_SHARED_GRADIENT_REVIEW",
+    "max_aggregate_abs_error": 4.547473508864641e-13,
+    "max_fp64_vs_fp32_loss_error": 3.803263837198756e-07,
+    "max_report_error": 1.1102230246251565e-16,
+    "checkpoint_payloads_loaded": 2,
+    "checkpoint_weights_only": true,
+    "max_all_tf_raw_difference_from_MODE": 9.5367431640625e-07,
+    "max_m5_probability_difference_from_MODE": 2.7902820165515152e-08,
+    "max_full_gradient_sum_abs_error": 1.210719347000122e-07,
+    "aggregate_vectors_weights_moments_steps_ids_checked": true,
+    "per_batch_vectors_independently_checked": false,
+    "model_and_buffers_unchanged": true,
+    "source_unchanged": true
+  },
+  "timing": {
+    "whole_command_seconds": 352.2580150979993,
+    "worker_seconds": 349.0382365049991,
+    "phases": {
+      "qualification_seconds": 1.7912201379986072,
+      "setup_seconds": 79.49386871100069
+    },
+    "review_whole_seconds": 10.994910846002313,
+    "review_worker_seconds": 8.041393324998353,
+    "peak_rss_bytes": 7319060480,
+    "preparation_included": false,
+    "training_speedup_established": false
+  },
+  "findings": [
+    "At both original states, aggregate joint plain-gradient, fresh-moment AdamW and actual-saved-moment hypothetical AdamW updates point toward lower M5 S and F eval weighted BCE.",
+    "Aggregate auxiliary-only plain-gradient contribution is beneficial for both M5 tasks at both states. This does not prove every auxiliary component or period is beneficial.",
+    "All12 state-by-batch-by-M5 combinations have beneficial total joint plain/fresh/saved local directions. Auxiliary-only S opposes in the last batch at both states; at FINAL its backbone contribution opposes both S and F.",
+    "FINAL saved AdamW history gives harmful head-only aggregate local contributions (+5.953726e-6 S,+8.395223e-6 F), but the complete-model directions remain beneficial (-1.366439e-4 S,-9.400154e-5 F). These are hypothetical updates of averaged frozen gradients, not historical sequential steps.",
+    "M5-only fresh AdamW has a larger predicted local loss decrease than joint fresh AdamW on this panel. No M5-only step or later improvement was measured; removing genuine auxiliary targets is not justified.",
+    "Actual checkpoint inspection found INITIAL no moments; FINAL all570 active parameter tensors at step1849. No missing or mismapped optimizer state was found.",
+    "No net gradient sign error or corrective training change established on this panel. Original fullTRAIN deterioration remains unexplained."
+  ],
+  "limits": [
+    "Two original frozen states and three fixed TRAIN batches only; one paired CPU dropout draw, not historical CUDA replay.",
+    "Six saved aggregate gradient vectors per state, theta, moments, steps and parameter IDs are independently checked; no model gradient or applied optimizer step is replayed.",
+    "Per-batch full gradient vectors were not persisted. Their scalar geometry and full-loss gradient-sum parity remain source/producer witnesses, not independent vector checks.",
+    "Positive eval-gradient dot analytic delta means local increase of the weighted BCE, not an applied step, Brier change, generalization or causal proof. Actual saved moments are used in a hypothetical next step on the mean frozen gradient, not sequential training.",
+    "Only26S and28F known sides; no fullTRAIN expected gradient or historical CUDA replay.",
+    "The first imported original M5 heads were already fullTRAIN fitted; INITIAL is not an untrained readout.",
+    "No loss, Brier or direction improvement from an applied step, later generalization, economic edge, TEST, Entry, Exit or trading evidence."
+  ],
+  "model_code_changed": false,
+  "training_cause_established": false,
+  "direction_improvement_established": false,
+  "training_enabled": false,
+  "next_direct_step": "No auxiliary-loss or optimizer reset is qualified by this frozen-gradient result. Before changing training, use one bounded actual-update check at an original saved state to determine whether the locally beneficial analytic update really reduces the same fixed M5 loss and whether it transfers across the three periods. Reuse current gradients/captures/checkpoints; no fullfit, reset/sampler sweep or repeat gradient probe. Any update experiment needs its own explicit bounded admission; current training gates remain closed."
+}

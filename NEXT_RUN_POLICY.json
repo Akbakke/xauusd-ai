@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T23:00:10.242090+00:00",
-  "status": "TA_M5_ORIGINAL_GRADIENT_ADMITTED_ZERO_UPDATES",
+  "observed_utc": "2026-11-09T23:09:26.981761+00:00",
+  "status": "TA_M5_ORIGINAL_GRADIENT_COMPLETE_NO_NET_REVERSAL",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Execute the exact original ae772/23ff frozen-gradient comparison once, then close admission and independently verify saved gradient/moment geometry. No fit, optimizer instance, parameter update, later data or automatic continuation.",
+  "next_action": "No auxiliary-loss or optimizer reset is qualified by this frozen-gradient result. Before changing training, use one bounded actual-update check at an original saved state to determine whether the locally beneficial analytic update really reduces the same fixed M5 loss and whether it transfers across the three periods. Reuse current gradients/captures/checkpoints; no fullfit, reset/sampler sweep or repeat gradient probe. Any update experiment needs its own explicit bounded admission; current training gates remain closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -71547,8 +71547,8 @@
     "direction_improvement_established": false
   },
   "market_state_ta_m5_original_shared_gradient_20261109_001": {
-    "status": "ADMITTED",
-    "execution_authorized": true,
+    "status": "COMPLETE_VERIFIED_NO_NET_GRADIENT_REVERSAL_ON_FIXED_PANEL",
+    "execution_authorized": false,
     "training_authorized": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/PLAN.json",
@@ -71571,9 +71571,9 @@
       "sha256": "6d0804cc07d393596fe123019537dedef58e8a86492044578609e2da1dc350fe"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "max_forwards": 12,
     "max_autograd_calls": 42,
@@ -71600,6 +71600,50 @@
       "scope": "Root read all559lines; independent review of exact original states, Egrad/T parity to qualified MODE captures/RNG,42derivatives including6full-gradient-sum checks, immutable state, strictloader AST reuse and actual perparameter moments/step/None-skip."
     },
     "standing_authorization_source": "GX1_RULES_20261105_local_zero_spend_read_only_research_and_active_direction_goal",
-    "scope": "One frozen-point originalINITIAL/FINAL comparison on48fixedTRAIN rows. Four train components and two evalM5 components; joint/M5-only gradient and fresh versus persisted-moment AdamW analytic local effects. Actualmoments, hypotheticalupdates only. Two privateaggregateNPZs under512MiB each; no perbatchfullgradientdump."
+    "scope": "One frozen-point originalINITIAL/FINAL comparison on48fixedTRAIN rows. Four train components and two evalM5 components; joint/M5-only gradient and fresh versus persisted-moment AdamW analytic local effects. Actualmoments, hypotheticalupdates only. Two privateaggregateNPZs under512MiB each; no perbatchfullgradientdump.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/RESULT.json",
+      "sha256": "6ea495323cd516c2fd1373893a3036f506c79b1279782a5c5f5918d1acc4cf44"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/TERMINAL.json",
+      "sha256": "6df3c91f150d7fe7e701fae41a17b3d98676dd812d4070edaa8a23533d0599fa"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/CONTROLLER.json",
+      "sha256": "6c2292e62a32de77d3427f3e3f15e2ff7ed81b7d6d0b230a77587cb4fadb3d9c"
+    },
+    "actual_counts": {
+      "model_constructions": 1,
+      "checkpoint_loads": 2,
+      "forwards": 12,
+      "autograd_calls": 42,
+      "backwards": 0,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "checkpoint_writes": 0,
+      "resume_state_load_calls": 2,
+      "resume_state_load_returns": 2
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/REVIEW.json",
+      "sha256": "89825602572db539264119493464833443b4b13dc563a7b3c0b618a1a3431b4c"
+    },
+    "reviewer": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/review.py",
+      "sha256": "4a9432353da4e8a435dfddb6105bd389ee653c3ddf57cecc92f5db0da3ace4ad"
+    },
+    "review_command": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/REVIEW_COMMAND.json",
+      "sha256": "f3f7f2f7efa5b4392276802503d059f4252371f7ed22579426c4f2df2fa898d0"
+    },
+    "integrated_report": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_ORIGINAL_SHARED_GRADIENT_REVIEW.json",
+      "sha256": "f47a7d5fd7ae1306d1f00e29b74acabf08e8d43091e863935dbe42bd033840e6"
+    },
+    "whole_command_seconds": 352.2580150979993,
+    "independent_review_passed": true,
+    "training_cause_established": false,
+    "direction_improvement_established": false
   }
 }

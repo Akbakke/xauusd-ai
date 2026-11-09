@@ -15,31 +15,34 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_ORIGINAL_GRADIENT_ADMITTED_ZERO_UPDATES.
+Policystatus: TA_M5_ORIGINAL_GRADIENT_COMPLETE_NO_NET_REVERSAL.
 
-Én nullstegsprøve av ORIGINALfullpass-gradientene er innrømmet:
- /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/PLAN.json
-SHA b145d9d8fafeda17c82d3f5e0d93ec01a278bd2aac7ab2fd01576facec62a482.
-Original INITIAL ae772fd7 og FINAL23ff344b, tre B16-startposisjoner
-[0,14272,29552]. 12 forwards,42autograd-beregninger,2checkpoint-dekodinger.
-0optimizer-instans/vektoppdateringer/nyfit; alle treningsporter er fortsatt stengt.
-CPU12GiB/512MiB,1tråd,600s. Private aggregategradienter under512MiB perstate.
+Original INITIAL/FINAL-gradientkontroll er ferdig og uavhengig verifisert:
+[rapport](docs/TA_M5_ORIGINAL_SHARED_GRADIENT_REVIEW.json).
+Samme48TRAIN-rader,12 forwards,42 autograd-beregninger,0 optimizer/oppdateringer.
+Helkommando352,258s; uavhengig kontroll10,995s. Ingen hastighetsbenchmark.
+Seks aggregategradienter per tilstand og faktiske vekter/momenter/step/ID
+er kontrollert mot begge originalcheckpoints; største regneavvik4,55e-13.
+Alle570 aktive FINAL-parametertensorer har faktisk optimizerstep1849.
+Perbatch-fullgradienter er ikke lagret; deres geometri er produsentbevis.
 
-Spørsmålet er om hjelpeoppgavenes gradienter eller lagret AdamW-tilstand
-motarbeider M5 i de riktige originalpunktene. De tidligere gradientkontrollene
-gjaldt en senere korrigert INITIAL0. Seks komponenter måles, med seks direkte
-kontroller av totalgradient mot komponentsum. Egrad og T må matche de lagrede
-MODE E/T_DRAW0-prognosene på alle fem TF og samme CPU-RNG-strøm.
-Faktisk θ/m/v/step/parameter-ID leses fra samme to dekodinger. Analytiske
-oppdateringer er hypotetiske lokale BCE-effekter, ikke anvendte steg eller
-historisk CUDA-replay. En gunstig lokal derivert beviser ingen Brier-/seneregevinst.
-Ingen modellkode er endret. Kvalifiserte beregningsfunksjoner/laster gjenbrukes;
-metadata-preflight og uavhengig kildekontroll består. Kun denne engangsplanen.
+Samlet gradient og hypotetisk AdamW-steg peker mot lavere M5 S/F-tap
+ved både INITIAL og FINAL, også i alle tre enkeltbatcher. Hjelpeoppgavene
+motarbeider enkelte lokale bidrag, men ingen samlet fortegnsreversering er påvist.
+FINALs lagrede momenter gir isolert skadelig headbidrag (+5,95e-6/+8,40e-6);
+samlet modellbidrag er fortsatt gunstig (-1,366e-4/-9,400e-5).
+Dette er lokale vektede BCE-deriverte, ikke anvendte steg, Brier-forbedring,
+fullTRAIN-forventning, historisk CUDA-replay eller generalisering.
+Ingen modellrettelse er kvalifisert; fullTRAIN-forverringen er fortsatt uforklart.
+Planen er konsumert; alle treningsporter er stengt. Ingen automatisk omkjøring.
 
-Ferdig forløper: [moduskontrast](docs/TA_M5_ORIGINAL_MODE_CONTRAST_REVIEW.json)
-viste original FINAL verre både med/uten dropout på de samme48radene;
-E/T0 M5-sannsynlighet avvek bare2,80e-8. Ingen dropout-rettelse er begrunnet.
-Modusprøven er konsumert og skal ikke gjentas. Dens captures gjenbrukes her.
+Neste avgrensede spørsmål: blir den beregnede lokale forbedringen også
+en faktisk forbedring når steget anvendes, og overføres den mellom de tre
+periodene? Gjenbruk gradienter/captures/checkpoints; ingen fullfit eller nye
+reset-/sampler-sveip. Et slikt forsøk må ha egen begrenset innrømmelse.
+
+Forløper: [moduskontrast](docs/TA_M5_ORIGINAL_MODE_CONTRAST_REVIEW.json)
+viste original FINAL verre både med/uten dropout; denne prøven gjenbrukte captures.
 
 MIX24 er fullført og uavhengig verifisert:
 [docs/TA_M5_MIXED_BATCH_NATIVE_REVIEW.json](docs/TA_M5_MIXED_BATCH_NATIVE_REVIEW.json).
