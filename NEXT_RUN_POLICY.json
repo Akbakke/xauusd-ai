@@ -1688,7 +1688,7 @@
       "sha256": "b66a762a2f78a5fe8dcec4c9dba393f60a8f59ccfe836d7484893c5baa78387a"
     },
     "terminal_exit_code": 0,
-    "source_unchanged_at_terminal": true,
+    "source_unchanged_at_terminal": null,
     "full_benchmark_completed": false,
     "sampler_selection_measured": true,
     "selected_sampler_published": true,
@@ -18869,7 +18869,7 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "Strict original FINAL restore,dedicated M5 weights-only migration,first32 mature TRAIN baseline parity and2 versus1+resume1 updates;no predictor fit.",
+    "current_training_scope": "Closed: two private fixed-alpha readouts only; no running or admitted fit.",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -18994,13 +18994,12 @@
     },
     "feature_potential_exhausted": false,
     "latest_terminal_receipt": {
-      "status": "COMPLETE",
       "exit_code": 0,
       "result": {
-        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DEDICATED_M5_FOLD1_FIT_20261109_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
-        "sha256": "35239fcfc71fbae2a3d914232ae6bc021b1787f9a2148078c4db0f60f4c4b8ac"
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_20261109_001/RESULT.json",
+        "sha256": "623e66c9baba2a3cf6910ffb10a11ba2e14a4c2e514e3660a83528c361c16ae6"
       },
-      "source_unchanged": true,
+      "status": "COMPLETE",
       "test_data_used": false
     },
     "latest_broad_direction_review": {
@@ -19183,8 +19182,8 @@
       "sha256": "c30946767a52650ec071f0457ea8b127d0d7bd38c556922b34d139897edc040e"
     },
     "latest_terminal_review": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_READOUT_COMPARISON_20261108_001/RESULT.json",
-      "sha256": "cb9c02a6ae2183b191127ac48975db0a25bea07db9dc220d2438d227c82acfe7"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_20261109_001/REVIEW.json",
+      "sha256": "deff9b4774ad68e6306d598d2073f43e36b126cc29069122965b5319d4ef310d"
     },
     "frozen_partition_completed_units": {
       "terminal_later_full": {
@@ -19289,7 +19288,7 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_001/UNEXPECTED_INTERRUPTION_INTEGRITY_001.json",
       "sha256": "a24c10b0873f8c94ea086c8c79083d390092521a9aabf77523c3624e2ecfe020"
     },
-    "current_native_launch_scope": "ONE_DEDICATED_M5_MECHANICAL_002_AFTER_FRESH_BOOT",
+    "current_native_launch_scope": "NONE",
     "current_host_interruption": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/CONNECTION_LOSS_OBSERVATION_001.json",
       "sha256": "b399a59dc7af1e8b0af84c8c135d5b4efe96ac3eaa74aa4f7fb54ee8a3ce9882"
@@ -22082,7 +22081,8 @@
     "latest_dedicated_m5_fit_preflight": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DEDICATED_M5_FOLD1_FIT_20261109_001/PREFLIGHT.json",
       "sha256": "9c86d96a64816c7ff660a2afe47bf378b708006187cd1c8792cf2fbf9c586bee"
-    }
+    },
+    "source_unchanged_evidence_location": "RESULT.json and REVIEW.json verify source_unchanged=true; original TERMINAL.json omits this field."
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
