@@ -383,7 +383,9 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
     recovery_run = launch['run_scope'] == scope.TA_RECOVERY_SCOPE
     ta_sf = launch['run_scope'] in (scope.TA_SF_SCOPE, scope.TA_RECOVERY_SCOPE, scope.TA_M5_FIT_SCOPE)
     dedicated_m5_side = launch['run_scope'] == scope.TA_M5_FIT_SCOPE
-    expected_recipe = (scope.ta_sf_numerical_recipe(dedicated_m5_side=dedicated_m5_side)
+    m5_equal_observation = launch['numerical_recipe'].get('m5_equal_observation', False)
+    expected_recipe = (scope.ta_sf_numerical_recipe(dedicated_m5_side=dedicated_m5_side,
+                           m5_equal_observation=m5_equal_observation)
                        if ta_sf else scope.fold1_numerical_recipe())
     _need(launch['run_scope'] in {scope.SCOPE, scope.TA_SF_SCOPE, scope.TA_RECOVERY_SCOPE, scope.TA_M5_FIT_SCOPE}
           and launch['fold'] == scope.FOLD
@@ -474,6 +476,8 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
         provider, provider_plan, prepared, fit_rows, issues = _prepared_fold1(
             receipts, view, np=np)
         if ta_sf:
+            if m5_equal_observation:
+                sf_objective.require_m5_equal_observation_axes(fit_rows, issues)
             exact_priors = sf_objective.fit_endpoint_priors(
                 endpoint_bound, future_bound, axes={
                     'fit_parent_rows': fit_rows, 'fit_decision_ns': issues},
@@ -681,7 +685,9 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
                     report = evaluate_fit_batch(
                         model, features, bound, future_bound, rows, batch_issues,
                         fold_id=1, pass_index=scope.PASS_INDEX,
-                        seed=numerical['seed'], future_weight=numerical['future_weight'])
+                        seed=numerical['seed'], future_weight=numerical['future_weight'],
+                        **({'m5_equal_observation': True, 'fit_batch_start': left}
+                           if m5_equal_observation else {}))
                     report['count'] = report['state_count'] + report['future_count']
                     report['per_tf_counts'] = {
                         task + ':' + tf: count

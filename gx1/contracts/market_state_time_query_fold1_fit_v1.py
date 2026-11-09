@@ -338,7 +338,8 @@ def require_fit_gate(gate: Any, recipe: Mapping[str, Any]) -> None:
           'POLICY_GATE')
 
 
-def ta_sf_numerical_recipe(*, dedicated_m5_side: bool = False) -> dict[str, Any]:
+def ta_sf_numerical_recipe(*, dedicated_m5_side: bool = False,
+                           m5_equal_observation: bool = False) -> dict[str, Any]:
     """Same mature one-pass optimizer; explicitly bind corrected TA S/F."""
     from gx1.contracts.market_state_time_query_native_F_model_v1 import contract as model_contract
     from gx1.contracts.market_state_time_query_native_F_objective_v1 import contract as loss_contract
@@ -346,8 +347,14 @@ def ta_sf_numerical_recipe(*, dedicated_m5_side: bool = False) -> dict[str, Any]
     base.pop('contract_sha256')
     base.update(schema_version=TA_NUMERICAL_SCHEMA,
         research_objective_sha256=model_contract(ta_only=True, dedicated_m5_side=dedicated_m5_side)['contract_sha256'],
-        native_F_loss_contract_sha256=loss_contract(ta_only=True, dedicated_m5_side=dedicated_m5_side)['contract_sha256'],
+        native_F_loss_contract_sha256=loss_contract(ta_only=True,
+            dedicated_m5_side=dedicated_m5_side,
+            m5_equal_observation=m5_equal_observation)['contract_sha256'],
         future_weight=1.0)
+    if m5_equal_observation:
+        from gx1.contracts.market_state_time_query_native_F_objective_v1 import m5_equal_observation_profile
+        base.update(m5_equal_observation=True,
+                    m5_side_weighting_profile=m5_equal_observation_profile())
     return {**base, 'contract_sha256': campaign.canonical_sha256(base)}
 
 

@@ -24,9 +24,55 @@ NATIVE_QUERY = np.asarray(NATIVE_K, dtype=np.int64)[None, :]
 METRICS = ('activity', 'conditional_side', 'three_class')
 
 
-def contract(*, ta_only: bool = False, dedicated_m5_side: bool = False) -> dict:
+def m5_equal_observation_profile() -> dict:
+    """Fixed fold-1 TRAIN population from the verified paired weight contrast."""
+    value = {
+        'schema_version': 'gx1_ta_fold1_m5_equal_observation_weighting_v1',
+        'fold_id': 1, 'pass_index': 0, 'seed': 20260911,
+        'batch_size': 16, 'fit_rows': 29574, 'fit_batches': 1849,
+        'parent_axis_sha256': '1c5a8c36a94b8fa39d613f0bc122cf869dc9fa3c2f87dc64c0506acd2f55a90f',
+        'issue_axis_sha256': 'ebb3489c45b01b6fd8e77bf27529d650beb6883ba84b57ee936dc549ec74e427',
+        'feature_view_sha256': '72b650198f5044d809957a7805b9f1d9160a1400f7026487d63c5bb78979bbb2',
+        'fit_cache_sha256': 'e8a562314d81b5821931df0ff78ff563b0968015eac0eaa141e909c80d6fc22f',
+        'weight_result_sha256': '4d0189738896d76a7a459f74a0c1a262ce5cf16f19432f3513015c9bd45fef5c',
+        'weight_verification_sha256': '85482fd6fabd6d97ec14769a50f44b47e95d9b4102f0d9c4a06e6b5ae4a3c9fe',
+        'state': {'known_side_rows': 10010, 'nonempty_batches': 1799},
+        'future': {'known_side_rows': 11909, 'nonempty_batches': 1844},
+        'S_observations': 'sampled_pass0_query_M5_k1_equal_native_M5',
+        'F_observations': 'native_M5_k1',
+        'known_side_mask': 'eligible_and_mature_and_allowed_in_1_4',
+        'batch_side_term_before_TF_divisor': 'sum_known_side_BCE_times_q_over_N',
+        'mass_preserved_over_mean_of_fit_batches': 'q_over_5B',
+        'later_data_used_for_normalization': False,
+    }
+    return _seal(value)
+
+
+def require_m5_equal_observation_axes(parent_rows, issue_ns) -> dict:
+    """Verify the complete immutable fit order once, before any fit forward."""
+    from gx1.audit.qualify_market_state_mature_prefix_normalization_v1 import _axis_sha
+    profile = m5_equal_observation_profile()
+    if not (isinstance(parent_rows, np.ndarray) and isinstance(issue_ns, np.ndarray)
+            and parent_rows.dtype == issue_ns.dtype == np.dtype('int64')
+            and parent_rows.shape == issue_ns.shape == (profile['fit_rows'],)
+            and _axis_sha(parent_rows) == profile['parent_axis_sha256']
+            and _axis_sha(issue_ns) == profile['issue_axis_sha256']):
+        raise ValueError('M5_EQUAL_OBSERVATION_FIT_AXES')
+    return profile
+
+
+def _m5_training_profile(ta_only, dedicated_m5_side, enabled):
+    if type(enabled) is not bool or (enabled and (
+            ta_only is not True or dedicated_m5_side is not True)):
+        raise ValueError('NATIVE_F_M5_EQUAL_OBSERVATION_MODE')
+    return m5_equal_observation_profile() if enabled else None
+
+
+def contract(*, ta_only: bool = False, dedicated_m5_side: bool = False,
+             m5_equal_observation: bool = False) -> dict:
     if type(ta_only) is not bool:
         raise ValueError('NATIVE_F_OBJECTIVE_PROFILE')
+    profile = _m5_training_profile(ta_only, dedicated_m5_side, m5_equal_observation)
     value = {
         'schema_version': 'gx1_market_state_native_F_objective_candidate_v1',
         'role': 'research_only_no_fit_or_trade_authority',
@@ -41,6 +87,14 @@ def contract(*, ta_only: bool = False, dedicated_m5_side: bool = False) -> dict:
         'S_scoring': 'existing_v2_scorer_unchanged',
         'F_target_as_forward_input': False,
     }
+    if profile is not None:
+        value['m5_equal_observation'] = True
+        value['m5_side_weighting_profile'] = profile
+        value['S_loss_contract_sha256'] = state_loss.contract(
+            m5_side_normalization=profile['state'])['contract_sha256']
+        value['F_loss_contract_sha256'] = state_loss.contract(
+            m5_side_normalization=profile['future'])['contract_sha256']
+        value['combined_loss'] = 'M5_equal_observation_S_loss_plus_prebound_positive_weight_times_M5_equal_observation_F_loss'
     raw = json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
     return {**value, 'contract_sha256': hashlib.sha256(raw).hexdigest()}
 
@@ -48,8 +102,10 @@ def contract(*, ta_only: bool = False, dedicated_m5_side: bool = False) -> dict:
 def combined_loss(*, state_raw: torch.Tensor, future_raw: torch.Tensor,
                   state_truth: dict, future_truth: dict,
                   state_query_k: torch.Tensor, future_weight: float,
-                  ta_only: bool = False, dedicated_m5_side: bool = False) -> dict:
+                  ta_only: bool = False, dedicated_m5_side: bool = False,
+                  m5_equal_observation: bool = False) -> dict:
     """Reuse v2 masked loss on two distinct heads; weight is plan-owned."""
+    profile = _m5_training_profile(ta_only, dedicated_m5_side, m5_equal_observation)
     if not (type(future_weight) is float and np.isfinite(future_weight)
             and 0 < future_weight <= 1
             and isinstance(state_raw, torch.Tensor)
@@ -72,18 +128,21 @@ def combined_loss(*, state_raw: torch.Tensor, future_raw: torch.Tensor,
     s = state_loss.allowed_set_loss(
         state_raw, tensor(state_truth['allowed'], 'uint8'),
         tensor(state_truth['eligible'], 'bool'),
-        tensor(state_truth['mature'], 'bool'), state_query_k)
+        tensor(state_truth['mature'], 'bool'), state_query_k,
+        m5_side_normalization=profile['state'] if profile is not None else None)
     f = state_loss.allowed_set_loss(
         future_raw, tensor(future_truth['allowed'], 'uint8'),
         tensor(future_truth['eligible'], 'bool'),
-        tensor(future_truth['mature'], 'bool'), native)
+        tensor(future_truth['mature'], 'bool'), native,
+        m5_side_normalization=profile['future'] if profile is not None else None)
     total = s['loss'] + future_weight * f['loss']
     if not bool(torch.isfinite(total)):
         raise ValueError('NATIVE_F_LOSS_NONFINITE')
     return {'loss': total, 'state': s, 'future': f,
             'skip_update': s['skip_update'] and f['skip_update'],
             'future_weight': future_weight,
-            'contract_sha256': contract(ta_only=ta_only, dedicated_m5_side=dedicated_m5_side)['contract_sha256']}
+            'contract_sha256': contract(ta_only=ta_only, dedicated_m5_side=dedicated_m5_side,
+                m5_equal_observation=m5_equal_observation)['contract_sha256']}
 
 
 def _weeks(issues: np.ndarray) -> np.ndarray:

@@ -39,7 +39,11 @@ def evaluate_fit_batch(model: NativeFutureDualModel, features: Mapping,
                        future_bound: BoundFutureDisplacement,
                        parent_rows: np.ndarray, issue_ns: np.ndarray, *,
                        fold_id: int, pass_index: int, seed: int,
-                       future_weight: float) -> dict:
+                       future_weight: float, m5_equal_observation: bool = False,
+                       fit_batch_start: int | None = None) -> dict:
+    if type(m5_equal_observation) is not bool or (
+            not m5_equal_observation and fit_batch_start is not None):
+        raise ValueError('NATIVE_F_M5_EQUAL_OBSERVATION_MODE')
     if not (type(model) is NativeFutureDualModel
             and type(state_bound) is BoundTimeQueryTargets
             and type(future_bound) is BoundFutureDisplacement
@@ -52,6 +56,24 @@ def evaluate_fit_batch(model: NativeFutureDualModel, features: Mapping,
             and features['seq_x'].shape[0] == len(issue_ns)
             and type(fold_id) is int and 1 <= fold_id <= 5):
         raise ValueError('NATIVE_F_BATCH_INPUT')
+    if m5_equal_observation:
+        from gx1.contracts.market_state_time_query_native_F_objective_v1 import m5_equal_observation_profile
+        profile = m5_equal_observation_profile()
+        if not (_ta_only(model)
+                and getattr(model.state_model, '_dedicated_m5_side', False) is True
+                and fold_id == profile['fold_id'] and pass_index == profile['pass_index']
+                and seed == profile['seed'] and type(fit_batch_start) is int
+                and 0 <= fit_batch_start < profile['fit_rows']
+                and fit_batch_start % profile['batch_size'] == 0
+                and len(parent_rows) == min(profile['batch_size'],
+                                            profile['fit_rows'] - fit_batch_start)):
+            raise ValueError('NATIVE_F_M5_EQUAL_OBSERVATION_BATCH')
+        stop = fit_batch_start + len(parent_rows)
+        # Alignment is a position in the bound axis, never parent-ID modulo B.
+        for bound in (state_bound, future_bound):
+            if not (np.array_equal(parent_rows, bound.parent_rows[fit_batch_start:stop])
+                    and np.array_equal(issue_ns, bound.decision_ns[fit_batch_start:stop])):
+                raise ValueError('NATIVE_F_M5_EQUAL_OBSERVATION_AXIS')
     query_np = sampled_query_k(issue_ns, pass_index=pass_index, seed=seed)
     device = model.state_model.query_native_k.device
     query = torch.from_numpy(query_np).to(device=device)
@@ -87,7 +109,8 @@ def evaluate_fit_batch(model: NativeFutureDualModel, features: Mapping,
         future_raw=output['future_activity_side_logits'],
         state_truth=state_truth, future_truth=future_truth,
         state_query_k=query, future_weight=future_weight, ta_only=_ta_only(model),
-        dedicated_m5_side=getattr(model.state_model, '_dedicated_m5_side', False))
+        dedicated_m5_side=getattr(model.state_model, '_dedicated_m5_side', False),
+        m5_equal_observation=m5_equal_observation)
     return {**output, 'loss': report['loss'],
             'state_count': report['state']['count'],
             'future_count': report['future']['count'],
