@@ -15,35 +15,48 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: PAIRED_EIGHT_STEP_M5_HEAD_MOMENT_RESET_ADMITTED.
+Policystatus: PAIRED_MOMENT_RESET_TRAIN_GAIN_LATER_REGRESSION_VERIFIED.
 
-Én kort CPU-test er innrømmet; ingen hel epoke eller større trening er åpnet.
-CONTROL og RESET starter fra samme fullstendige FINAL16-checkpoint og trener
-de samme neste åtte batchene hver (128 rader, cursor256→384). Totalt16nye
-oppdateringer, maksimalt64forwards/16backwards/600s,12G/512M/tråd1.
-Bare RESET nuller første moment (exp_avg) i fire M5-hodeparametre én gang;
-vekter, andre moment, steg, øvrige momenter og RNG er like ved start.
-Originalcheckpointet bevares. Global training_enabled gjelder bare denne
-eksakte engangsplanen; native/GPU/full_epoch er fortsatt stengt.
+Den parede testen er COMPLETE/konsumert. Prosessen er bekreftet avsluttet;
+alle trenings-/launchporter er stengt. Hel kommando353.792s (5m53.79s),
+worker350.398s,peakRSS5.723GB. Ingen større kjøring er innrømmet.
+
+CONTROL/RESET gjenopptok samme FINAL16 og trente de samme neste8batchene
+hver:128rader, cursor256→384,16nye oppdateringer totalt,0skips.
+64forwards,16backwards,4fullrestores; modell/optimizer bygget én gang.
+Kun RESET nuller fire M5-hode exp_avg én gang. RNG er identisk ved start
+og slutt. Originalcheckpoint og begge sluttstates/captures er bevart.
+Alle genuine fem TF og kanonisk loss/optimizer er uendret.
 
 Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_MOMENT_RESET_20261109_001
-PLAN SHA ebaeab98e82bd6a600cd9e528cca89fcffe2d3ccd1072dd538ed6faf89078af6.
-Worker SHA ab0d7e5dc813e686e5d276ff5b260e07eaa37e160d91f165fd45003e722f7d93.
-Metadata-preflight PASS på13inputs/85kildeeiere, uten modell/payload.
-Uavhengig statisk review PASS; små tester av faktisk gate/report-AST beviser
-PASS/FAIL-grener og64/40forwards. Tidligere kontroller gjenbrukes.
+RESULT SHA375b372e66dcc66d6c10902152e9bacd438937f3ddbc96e253d5784f1b376b79.
+Uavhengig kontroll PASS på3.481s, uten modellforward/refit. Fire momentfelt,
+øvrig startstate, faktisk RNG og tellinger er kontrollert fra lagrede states.
+M5 Brier/log reprodusert med maksavvik3.331e-16.
+REVIEW SHA8617526a2ee26f0ce3ad42e292446b1d7d415c9ebea0601cf7ca9dd227a64a3a.
 
-POST16-analysen målte at lagret første moment i M5-hodene ga ugunstig lokalt
-BCE-bidrag samlet og i to av tre batcher. Kun nulling av de fire momentene
-snudde det beregnede bidraget gunstig; faktisk retningsforbedring er ubevist.
-Denne parede testen avgjør om endringen forbedrer resultatet sammenlignet
-med å fortsette normalt. Samme192TRAIN-rader og lagret POST16baseline brukes.
-RESET må slå CONTROL, POST16baseline og fryst prior i begge S/F Brier,
-uten dårligere logloss, før begge armer scores på192senere TRAIN-rader.
-Senere TRAIN er gjenbrukt utvikling, ikke fersk generalisering.
+Brier (lavere er bedre),192TRAIN-rader med75S/86Fkjente sider:
+S CONTROL0.250043408 → RESET0.249541961, prior0.252092094.
+F CONTROL0.250848535 → RESET0.250518353, prior0.250641150.
+RESET slår også POST16 og INITIAL0 og forbedrer logloss for begge.
+Den forhåndsbestemte TRAIN-porten bestod; deretter ble begge armer målt
+på192senere TRAIN-rader, med65S/75Fkjente sider.
 
-Neste steg: kjør planen én gang, steng alle porter etter terminal, kontroller
-lagrede resultater. Ingen automatisk fortsettelse. TEST/Entry/Exit/handel stengt.
+Senere Brier:
+S CONTROL0.244100787 → RESET0.244557725; INITIAL0=0.241010430,
+prior0.247188030.
+F CONTROL0.247039903 → RESET0.247192453; INITIAL0=0.246989478,
+prior0.249382136.
+RESET er altså dårligere enn CONTROL og INITIAL0 i begge senere mål,
+også logloss. Begge armer slår prior i dette lille utvalget. Senere TRAIN
+er gjenbrukt utvikling; dette er ikke uavhengig generalisering eller edge.
+
+Konklusjon: den målte momentintervensjonen forbedrer TRAIN, men gevinsten
+overføres ikke til det senere utvalget. Ingen permanent momentreset eller
+større trening begrunnes av resultatet. Neste direkte retningsspørsmål er
+sannsynlighetsforskyvning versus rangering i de lagrede parede prognosene;
+det kan undersøkes uten nye forwards/fit. Ikke gjenta de konsumerte armene.
+Målet om bedre retningsprediksjon er fortsatt uoppnådd. TEST/handel stengt.
 
 Hidden-kontrollen er COMPLETE/konsumert og numerisk verifisert; ingen jobb
 kjører og alle porter er stengt.24encoderforwards,0optimizer/backwards/fit/
