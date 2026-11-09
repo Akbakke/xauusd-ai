@@ -15,17 +15,36 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_CAUSAL_HISTORY_READOUT_ADMITTED_ONCE.
+Policystatus: TA_M5_CAUSAL_HISTORY_NEGATIVE_DECEMBER_RANKING_LOCALIZED.
 
-Én eksakt CPU-plan med to kausale M5F-hodetilpasninger er innrømmet:
-MARKET_STATE_TA_M5_CAUSAL_HISTORY_READOUT_20261109_001 under GX1_RUNS.
-November:35897rader/14484kjente sider. Desember:41591/16802.
-Mål må være ferdig observert strengt før månedens start; seks kontrolltilfeller
-og faktiske prefikser består. Samme128D/alpha0.01/solver; oktober gjenbrukes.
-Månedskoeffisient låses før prognose, ingen senere mål i den aktuelle fitten.
-300s/12GiB/én invokasjon; nullnativecalls. training_enabled=true kun for denne
-private planen; native trening/TEST/Entry/Exit/handel stengt.
+Den kausale M5-historikkplanen er COMPLETE/konsumert. To faste F-hodefits
+tok5.253s; hele capped CPUkommandoen tok7.288s inkludert oppsett/kontroller.
+Dette er ingen sammenliknbar speedup av full native trening. Nullnativekall.
+November brukte14484 kjente utfall før november,desember16802 før desember;
+eksakte kutt,fasiter,priorer og låste koeffisienter er uavhengig kontrollert.
+26scoreceller har nullavvik; uke-/CI-avvik under1.8e-18.
 
+TRAIN-tilpasningen ble bedre,men begge senere månedsprognoser ble svakere
+enn det faste M5-hodet. Samlet senereBrier: kausal0.249952,
+fast0.249874,frystprior0.249833. Forskjell kausal-minus-fast+0.00007747,
+95%UTC-ukeblokkintervall[+0.00000904,+0.00016060].
+Dette avviser denne konkrete månedlige oppdateringen på fryst representasjon;
+det er ingen generell dom over flere år eller lengre native læring.
+
+Fast M5 F-AUC varierer: oktober0.531483,november0.523795,desember0.494426.
+Tidligere import har desember0.502702. Mer kausalt kjent historikk retter
+ikke desemberfallet; ny desemberAUC0.492399. Korte riktige rangeringer
+overføres altså ikke stabilt gjennom denne senere perioden.
+REVIEW: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CAUSAL_HISTORY_READOUT_20261109_001/REVIEW.json
+SHAe26f87c562c0ee8c2af52b543fd63670eb5dbbff2924ff110d7a589b387d5866.
+training_enabled=false; begge nye planer er konsumert,ingen aktivjobb.
+
+Neste direkte M5-spørsmål kan besvares uten fit: bruk eksisterende gammel/ny
+FINAL-representasjon og allerede låste gamle/nye globale F-koeffisienter
+i en2×2krysskontroll påTRAIN og hver senere måned. Avgrens desemberfallet
+til endret avlesning versus oppstrømsrepresentasjon. Ingen nye koeffisienter,
+nativekall,terskelsøk eller horisontseleksjon. Ny avgrenset audit må bindes;
+ingen ny kjøring innrømmet ennå.
 
 Fire faste F-hoder på bevart FINAL-cache fullførte på5.792s,0nativekall.
 Alle fire TRAIN-Brier slår frystprior: M15/H1/H4/D1
@@ -44,12 +63,7 @@ REVIEW: /home/andre2/GX1_RUNS/MARKET_STATE_TA_FUTURE_HORIZON_READOUT_20261109_00
 SHA877257893561d2d21e94da1066a0831c0f0b8cef1b65f6f091a563da7b1b0e40.
 Planen er konsumert; training_enabled=false; ingen aktivjobb.
 
-Neste direkte M5-spørsmål: forbedrer mer kausalt tilgjengelig historikk
-det samme faste F-hodet? Forbered kun to månedlige oppdateringer fra
-eksisterende FIT/SCORE-cache: november bruker modne utfall før november,
-desember modne utfall før desember. Samme solver/alpha,fast M5-kontroll
-og priorer fra hvert treningsprefiks. Ingen ny enkoding,data eller parametersøk.
-Den eksakte kausale månedsplanen er innrømmet øverst.
+Den kausale månedsplanen er nå fullført negativt, som beskrevet øverst.
 
 Den faktiske FINAL-modellen har nå de kvalifiserte globale M5-hodene.
 Native kontroll:129.644s,3modeller/optimizere,6fullforwards,5918cachede
@@ -84,8 +98,8 @@ alle cachede hoder er kontrollert. Ingen ny encoderfit/cache.
 
 Neste direkte spørsmål er separat retningsinformasjon ved de allerede
 eksisterende lengre F-horisontene+15/+60/+240/+1440min i samme FINAL-cache.
-Den eksakte faste TRAIN-fit/senere-score-sammenlikningen er nå innrømmet
-øverst,med låste koeffisienter før senere data,eksakte mål/masker og fryste priorer. Begge kort/langt skal måles hver for seg,ingen beste-horisont-
+Den eksakte faste TRAIN-fit/senere-score-sammenlikningen er nå fullført
+som beskrevet øverst,med låste koeffisienter før senere data og fryste priorer. Begge kort/langt skal måles hver for seg,ingen beste-horisont-
 seleksjon fra senere data. SenereTRAIN er gjenbrukt utvikling,ikke fersk TEST.
 
 L2-kontrollen er COMPLETE/konsumert på6.009s. Isolert coupledL2 erstattet
@@ -782,7 +796,7 @@ tidssekvensmodellen, samme-linje-reaksjonsverdi, Entry-verdi og økonomisk edge
 er ubevist. 61 makrofelt mangler uavhengig formelorakel; COTs faktiske
 historiske publisering og vintage er fortsatt UNKNOWN.
 
-**Neste steg:** Fullfør og kontroller den eksakte kausale M5-historikksammenlikningen øverst.
+**Neste steg:** Bind null-fit-krysskontrollen av M5-hode/representasjon øverst.
 Målet er aktivt; senere retningsverdi er ubevist.
 Brukerens spørsmål om 30 epoker og fem år er fortsatt åpne hypoteser.
 Denne fitten dekker omtrent mai–september2024, senere score oktober–desember2024.

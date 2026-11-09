@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T11:50:23.214904+00:00",
-  "status": "TA_M5_CAUSAL_HISTORY_READOUT_ADMITTED_ONCE",
+  "observed_utc": "2026-11-09T11:55:49.497560+00:00",
+  "status": "TA_M5_CAUSAL_HISTORY_NEGATIVE_DECEMBER_RANKING_LOCALIZED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Execute exact two causal monthlyM5 fits once under cappedCPUproducer; record complete wrapper walltime. Six causal/input checks pass. No newencoder, newdata, hyperparameter selection, oldplan relaunch or extra fit.",
+  "next_action": "DirectM5 diagnosis: use existing old/new FINAL representations and already-locked old/new converged F coefficients for a zero-fit2x2 transfer attribution, separately TRAIN and each later month. Localize December ranking loss to readout versus upstream representation; no new training, native call, threshold search or horizonselection. Prepare exact bounded audit; no run admitted yet.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1661,11 +1661,19 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_IMPORT_20261109_001/REVIEW.json",
       "sha256": "5325057a27641c06460e1234593147aa8d804a78a97d109751fd03a85be47acd"
     },
-    "corrected_FINAL_full_population_encoder_baseline_qualified": false
+    "corrected_FINAL_full_population_encoder_baseline_qualified": false,
+    "latest_causal_m5_history_readout_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CAUSAL_HISTORY_READOUT_20261109_001/REVIEW.json",
+      "sha256": "e26f87c562c0ee8c2af52b543fd63670eb5dbbff2924ff110d7a589b387d5866"
+    },
+    "latest_separate_future_horizon_readout_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUTURE_HORIZON_READOUT_20261109_001/REVIEW.json",
+      "sha256": "877257893561d2d21e94da1066a0831c0f0b8cef1b65f6f091a563da7b1b0e40"
+    }
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Two causal monthly M5 F head fits admitted on cached representations; source/policy frozen for one invocation.",
+    "current_activity": "Causal M5 history contrast consumed negatively; remaining failure localized to later ranking instability, especially December.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1694,11 +1702,11 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "Four fixed F horizon heads on actualFINAL cache; no native calls.",
+    "latest_terminal_role": "Two causal cumulative monthly M5 F readout fits; no native model work.",
     "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_SHARED_OBJECTIVE_20261108_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUTURE_HORIZON_READOUT_20261109_001/TERMINAL.json",
-      "sha256": "27bdb3bb66031244a091a628f9f42ec9544dd383a534330b5f02f0a0751c028f"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CAUSAL_HISTORY_READOUT_20261109_001/TERMINAL.json",
+      "sha256": "bc29778ab20877df4b0e1c2b5bc8092ce1405f7d429f96890c693194faf94613"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -1718,7 +1726,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "TRAIN readout corrected, later direction unstable. Need isolate whether additional causally available history improves M5 head on the same preserved representation.",
+    "current_blocker": "Corrected M5 head fitsTRAIN, but later ranking remains unstable. Need distinguish readout retuning from learned upstream representation drift on existing saved arrays.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -10318,9 +10326,9 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "Only one reuseddevelopment fold.",
-      "All later14week intervals include zero; no stable laterdirection advantage.",
-      "Conditional future-known halfATR labels do not qualify event selection, favorable path or Entry."
+      "Only a fixed encoder/head method and one reuseddevelopment quarter; not a general rejection of more years or longer native training.",
+      "December static ranking below0.5; extra resolvedhistory does not repair it.",
+      "Future-known halfATR subset does not qualify ex-ante selection, favorable path, Entry or economics."
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -17656,7 +17664,7 @@
         "Originals preserved; unusedwindows3/4revoked. No new epoch,HPO,checkpoint/threshold selection,normalization refit,trading,broker,Exit or promotion."
       ]
     },
-    "latest_terminal_evidence_scope": "40savedscorecells exact; independent UTCweek aggregation/intervals within8.4e-17; coefficients locked before later scoring.",
+    "latest_terminal_evidence_scope": "November14484/December16802 known prefix outcomes strictly before respectivecutoffs;26scorecells exactly recalculated; October forecasts reusedbitexact; laterrefits weaker thanstatic.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -19006,8 +19014,8 @@
     },
     "feature_potential_exhausted": false,
     "latest_terminal_receipt": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUTURE_HORIZON_READOUT_20261109_001/TERMINAL.json",
-      "sha256": "27bdb3bb66031244a091a628f9f42ec9544dd383a534330b5f02f0a0751c028f"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CAUSAL_HISTORY_READOUT_20261109_001/TERMINAL.json",
+      "sha256": "bc29778ab20877df4b0e1c2b5bc8092ce1405f7d429f96890c693194faf94613"
     },
     "latest_broad_direction_review": {
       "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/SYNTHESIS.json",
@@ -19189,8 +19197,8 @@
       "sha256": "c30946767a52650ec071f0457ea8b127d0d7bd38c556922b34d139897edc040e"
     },
     "latest_terminal_review": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUTURE_HORIZON_READOUT_20261109_001/REVIEW.json",
-      "sha256": "877257893561d2d21e94da1066a0831c0f0b8cef1b65f6f091a563da7b1b0e40"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CAUSAL_HISTORY_READOUT_20261109_001/REVIEW.json",
+      "sha256": "e26f87c562c0ee8c2af52b543fd63670eb5dbbff2924ff110d7a589b387d5866"
     },
     "frozen_partition_completed_units": {
       "terminal_later_full": {
@@ -66299,7 +66307,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "Longerhorizon TRAIN readouts recover but laterdirection unstable. ExactM5 history contrast ready: November14484resolvedside outcomes,December16802; excludes validity at/aftercutoff. Two fixed fits newly admitted.",
+    "latest_progress": "LongerF readouts recoverTRAIN but laterunstable. Causal M5 extra-history contrast completed:two fits5.253s,whole cappedcommand7.288s;TRAIN improves but both subsequent months worsen versusstatic.26scorecells independently exact; cutoffstrictlycausal. FixedM5 AUC Oct.53148,Nov.52380,Dec.49443; oldimportDec.50270. Nextzero-fithead/representation attribution; no newfitadmitted.",
     "user_clarification_20261109": {
       "scope": "Correct direction for short sniper and longer long/shorttrends; separate forecasts and targets at M5 cadence.",
       "existing_future_horizons_minutes": [
@@ -68882,7 +68890,7 @@
     "all_later_week_intervals_include_zero": true
   },
   "market_state_ta_m5_causal_history_readout_20261109_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CAUSAL_HISTORY_READOUT_20261109_001/PLAN.json",
       "sha256": "cb0fcd9be38b0d692a9880841572452f0d1cc866f27b180d558f26441c0ae20a"
@@ -68892,13 +68900,13 @@
       "sha256": "8fa61eb30b1be301963fb7bf7bed8652eef17d95c32e1206cec800e95f1dc2e4"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
-    "execution_authorized": true,
-    "training_authorized": true,
-    "data_reads_authorized": true,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "data_reads_authorized": false,
     "readout_fits": 2,
     "native_forwards": 0,
     "native_parameter_updates": 0,
@@ -68909,6 +68917,30 @@
     "selection": false,
     "test_data_used": false,
     "scope": "Two causal November/December M5 F head fits on preserved representations, using only prior resolved labels. Static October reuse; staticreadout,prior and originalimport references; no native encoder or parameter search.",
-    "standing_authorization": "Active direction-only goal and request to reuse checkpoint/completedwork, optimize unnecessary runs and evaluate more history; exact zero-cost local comparison."
+    "standing_authorization": "Active direction-only goal and request to reuse checkpoint/completedwork, optimize unnecessary runs and evaluate more history; exact zero-cost local comparison.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CAUSAL_HISTORY_READOUT_20261109_001/RESULT.json",
+      "sha256": "b7084b93fdb108c7a143ab310a3bcec4ed8231b91ee0461e4be93af82c867f87"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CAUSAL_HISTORY_READOUT_20261109_001/TERMINAL.json",
+      "sha256": "bc29778ab20877df4b0e1c2b5bc8092ce1405f7d429f96890c693194faf94613"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CAUSAL_HISTORY_READOUT_20261109_001/REVIEW.json",
+      "sha256": "e26f87c562c0ee8c2af52b543fd63670eb5dbbff2924ff110d7a589b387d5866"
+    },
+    "timing": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CAUSAL_HISTORY_READOUT_20261109_001/WALL_TIMING.json",
+      "sha256": "dce88766977fac35def5edf3c6f2ca048e1733ce16fad421650e0c18fb00ff30"
+    },
+    "actual_readout_fits": 2,
+    "elapsed_seconds": 5.253151932999799,
+    "wrapper_wall_seconds": 7.28820060399994,
+    "monthly_refit_worse_than_static": {
+      "2024-11": true,
+      "2024-12": true
+    },
+    "full_native_training_speedup_demonstrated": false
   }
 }
