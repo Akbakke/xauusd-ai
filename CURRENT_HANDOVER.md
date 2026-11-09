@@ -15,7 +15,7 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_EQUAL_LOSS_FULLFIT_SOURCE_QUALIFIED_ADMISSION_PENDING.
+Policystatus: TA_M5_EQUAL_LOSS_FULLFIT_ADMITTED_ONCE.
 
 Fullfit-koblingen er implementert med59fokuserte beståtte tester og separat
 lesereview. Ny scope bruker originalimport616a22… og kvalifisert rebind direkte:
@@ -24,7 +24,10 @@ lesereview. Ny scope bruker originalimport616a22… og kvalifisert rebind direkt
 Eksisterende checkpoint/RESUMABLE og250W beholdes; ingen automatisk ny window.
 State/loss/private-runner er byteidentiske med kvalifisert native619c79da.
 Kildekontroll: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FOLD1_FIT_20261109_001/SOURCE_VALIDATION.json.
-Ny recipe/metadata/admisjon gjenstår; training_enabled=false. Fullbaseline
+Faktisk85-owner/inputmetadata og transportpreflight består. Én ny fullfit er
+innrømmet i /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FOLD1_FIT_20261109_001.
+training_enabled=true kun for denne planen; alle gamle planer forblir konsumert.
+Materialisering, fersk Windows-boot og250W gjenstår. Fullbaseline
 for imported ae772fd7 mangler; gammel71278ead-baseline er kun historikk.
 
 Den nye [native equal-loss-kvalifikasjonen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_MECHANICAL_20261109_001/REVIEW.json)
@@ -37,15 +40,15 @@ gradient. FINAL_PRIVATE e6751982… har2logiske steg og skal IKKE brukes i fit.
 Gjenbruk originalimporten616a22… som startpunkt.
 
 Trener/observer/signedguard og Windows-task avsluttet0; full campaign-receipt
-finnes. Boot628,250W beholdt, maks46°C/minne52°C. Task er deaktivert og ingen
-ny trening er innrømmet. Kilde619c79da var uendret gjennom kjøringen.
+finnes. Boot628,250W beholdt, maks46°C/minne52°C. Den gamle tasken er deaktivert; ny fullfit er separat
+innrømmet ovenfor. Kilde619c79da var uendret gjennom kjøringen.
 Native155,619s; hele kampanjen175,810s mot tidligere171,595s (+2,46prosent).
 Ingen målt speedup; dette er én workflow-sammenligning med ulik start/loss,
 ikke isolert ytelsesbenchmark eller fullfit. Source/routing er kvalifisert
 med110fokuserte tester og faktisk85-owner metadata. Én historisk testfixture
 ble rettet til sin erklærte kildeversjon; produksjonsvaktene er uendret.
 
-**Neste direkte steg:** Bind én ny full fold1-fit til originalimporten og
+**Neste direkte steg:** Kjør den nye eksakte fullfit-planen fra originalimporten og
 den kvalifiserte rebind-helperen. Gjenbruk tapskontrollen og native4stegsbeviset,
 ikke kjør dem om. Full matchet TRAIN INITIAL/FINAL og separat senere TRAIN
 må fortsatt måles. Denne prøven har32initialrader og beviser ingen ny
@@ -72,7 +75,7 @@ forward, gamle/nye state-rundturer og avvist kryss-restore. Syntaks består.
 Native fullfit med rettelsen er ikke kjørt. Bindingen fra verifisert
 importcheckpoint er nå kvalifisert med native4steg; fullfit er neste steg.
 Den kvalifiserte nye grenen unngår den gamle legacy-varmstarten som ville klonet gamle hoder.
-Ingen fit er innrømmet. AdamW er uendret; Newton med koblet L2 fra
+Den nye fullfit-planen er innrømmet separat. AdamW er uendret; Newton med koblet L2 fra
 readout-forsøket er ikke gjenskapt av denne vektingsrettelsen.
 
 
