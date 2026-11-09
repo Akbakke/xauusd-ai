@@ -42,10 +42,12 @@ Ny kilde er kvalifisert med72 aktuelle testtilfeller og25 beståtte relevante
 regresjonskontroller. Ekte S/F-dekodere, strict fitted-state restore og hele
 measurement-hashen inklcapture er kontrollert. Opprinnelige metadata er fysisk
 hashbundet. 85 kildeeiere:79 uendret og seks eksplisitte capture/recovery-eiere.
-SOURCE_REVIEW og RECIPE ligger i MARKET_STATE_TA_M5_SCORE_RECOVERY_20261109_001.
+SOURCE_REVIEW og RECIPE ligger i MARKET_STATE_TA_M5_SCORE_RECOVERY_20261109_002.
 Kun ny invocation0001,2959 måleforwards,null fit/null initial,250W med eksisterende
 vakter. Materialisering og fersk guarded boot gjenstår ved dette vedtaket.
 Ingen endring av fryst kilde etter start. Native capture er fortsatt ubevist.
+
+Forberedelse001 er konsumert etter manglende eksplisitt normalization_fit_authorized=false. Ingen modelljobb startet.002 setter alle eksisterende lukkede porter og kontrollerer readiness før materialisering. Originalkvitteringer og beståtte tester gjenbrukes.
 
 Selve fitten tok2713.573s; native forsøk inkludert initialmåling og feil tok
 4543.308s. Samlet recoverykostnad og eventuell netto tidsgevinst er ennå ukjent.

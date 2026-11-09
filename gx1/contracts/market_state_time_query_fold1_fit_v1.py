@@ -105,7 +105,7 @@ TA_M5_NEXT_NATIVE_PASS_CHANGED_SOURCE_PATHS = TA_M5_FIT_CHANGED_SOURCE_PATHS | f
     'gx1/contracts/market_state_time_query_native_F_batch_v1.py',
 })
 
-TA_M5_SCORE_RECOVERY_STAGE = 'market_state_ta_m5_score_recovery_20261109_001'
+TA_M5_SCORE_RECOVERY_STAGE = 'market_state_ta_m5_score_recovery_20261109_002'
 TA_M5_SCORE_RECOVERY_SCOPE = 'market_state_ta_m5_score_recovery_v1'
 TA_M5_SCORE_RECOVERY_ROOT = Path('/home/andre2/GX1_RUNS') / TA_M5_SCORE_RECOVERY_STAGE.upper()
 TA_M5_SCORE_RECOVERY_RUNTIME_ROOT = TA_M5_SCORE_RECOVERY_ROOT / 'RUNTIME'
