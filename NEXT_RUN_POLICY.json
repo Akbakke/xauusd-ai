@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T23:09:26.981761+00:00",
-  "status": "TA_M5_ORIGINAL_GRADIENT_COMPLETE_NO_NET_REVERSAL",
+  "observed_utc": "2026-11-09T23:26:15.034126+00:00",
+  "status": "TA_M5_ORIGINAL_APPLIED_STEP_ADMITTED_TWO_TECHNICAL_UPDATES",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "No auxiliary-loss or optimizer reset is qualified by this frozen-gradient result. Before changing training, use one bounded actual-update check at an original saved state to determine whether the locally beneficial analytic update really reduces the same fixed M5 loss and whether it transfers across the three periods. Reuse current gradients/captures/checkpoints; no fullfit, reset/sampler sweep or repeat gradient probe. Any update experiment needs its own explicit bounded admission; current training gates remain closed.",
+  "next_action": "Run only this exact two-update original-state technical comparison once. Close training immediately after terminal; independently review saved applied deltas/moments and M5 score differences. No sequential fit, later data or automatic continuation.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -40204,7 +40204,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "CLOSED_NO_AUTOMATIC_RELAUNCH",
+  "training_enabled_scope": "market_state_ta_m5_original_applied_step_20261110_001",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -71645,5 +71645,64 @@
     "independent_review_passed": true,
     "training_cause_established": false,
     "direction_improvement_established": false
+  },
+  "market_state_ta_m5_original_applied_step_20261110_001": {
+    "status": "ADMITTED",
+    "execution_authorized": true,
+    "training_authorized": true,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_APPLIED_STEP_20261110_001/PLAN.json",
+      "sha256": "6970a704bb3af61f6366cba76a56697e7ad6421b42e6c8e9a1e084d102e81a99"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_APPLIED_STEP_20261110_001/probe.py",
+      "sha256": "8f69c6ccec79fefbdf01d0965aa9c1700df99df3430e1f053d7132d9a5f28f64"
+    },
+    "controller_source": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_APPLIED_STEP_20261110_001/controller.py",
+      "sha256": "443fc6ecb22828503f7a6d701a2c5d43c4401bc59d5ae8ecf7fd7b41fd53315f"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_APPLIED_STEP_20261110_001/PREFLIGHT.json",
+      "sha256": "49797e988b48bdce4ce9f40e8144e7484f1655d61692c053dd3b69d54e90b5aa"
+    },
+    "preflight_log": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_APPLIED_STEP_20261110_001/PREFLIGHT.log",
+      "sha256": "6780b9745a9f86348fd9445748e5ef3f5581e72932b1b5b4580e6fb6958af0e1"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "max_forwards": 12,
+    "max_updates": 2,
+    "max_optimizer_steps": 2,
+    "max_optimizer_constructions": 2,
+    "max_model_constructions": 1,
+    "max_checkpoint_loads": 2,
+    "max_backwards": 0,
+    "max_autograd_calls": 0,
+    "max_checkpoint_writes": 0,
+    "max_state_array_bytes": 268435456,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "numerical_threads": 1,
+    "wall_seconds": 600,
+    "test_data_used": false,
+    "score_partition_allowed": false,
+    "technical_updates_only": true,
+    "qualification_weights_retained": false,
+    "scope": "Exactly one independent actual canonical AdamW technical step per original INITIAL/FINAL using saved48-row mean gradients. No new backward, sequential fit, later arrays or updated checkpoint.",
+    "source_review": {
+      "status": "PASS",
+      "agent": "/root/ta_formula_audit",
+      "worker": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_APPLIED_STEP_20261110_001/probe.py",
+        "sha256": "8f69c6ccec79fefbdf01d0965aa9c1700df99df3430e1f053d7132d9a5f28f64"
+      },
+      "scope": "Root read all505lines; independent review of original theta/moment/state restore, exact assigned/clipped gradients, full canonical step, in-sample scoring, arithmetic bounds, counts and no retained qualification checkpoints."
+    },
+    "standing_authorization_source": "GX1_RULES_20261105_zero_spend_local_work_and_active_direction_goal_exact_technical_admission"
   }
 }
