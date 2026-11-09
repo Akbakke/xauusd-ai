@@ -15,36 +15,48 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: SHORT_NATIVE_CPU_16_UPDATE_PROBE_ADMITTED.
+Policystatus: SHORT_NATIVE_16_UPDATES_VERIFIED_MIXED_TRAIN_DIRECTION.
 
-Én ny kort CPU-prøve er kilde-/metadatakvalifisert og innrømmet; ingen
-fit er ennå startet. training_enabled gjelder bare den nye stage
-market_state_ta_m5_short_native_20261109_001. Native GPU-launch/full-epoch
-forblir stengt. Ingen rettelse gir ennå bedre M5-retning både på identisk
-TRAIN og senere TRAIN mot prior.
+Den nye korte CPU-prøven er COMPLETE/konsumert; controllerexit0 og PID95085
+er avsluttet. Alle treningsporter er stengt igjen. Ingen automatisk
+fortsettelse eller relansering. Uavhengig resultatkontroll PASS på3.031s.
 
-Plan: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/PLAN.json
-SHA126c9fb6b1059576870145ec9fe5ce652dd7791f5a39964665e438d65e79b15e.
-Worker SHA167e8e11675df0762a7dd91803243b82e610fe916b5542b34997bcd6332c77da.
-Uavhengig kildekontroll PASS;85kildeeiere og11inputreferanser kvalifisert.
-Ingen produksjonsmodellkode er endret.
+Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001
+PLAN SHA126c9fb6b1059576870145ec9fe5ce652dd7791f5a39964665e438d65e79b15e.
+RESULT SHA11937f7a4d180d88e06e298aa0ed368e5529a398d7ab8df51f8801c19e426376.
+Kilde931021de;85kanoniske kildeeiere uendret.
+16faktiske optimizersteg/256rader,40forwards,16backwards,0skips.
+INITIAL_CPU_STATE og FINAL_CPU_STATE bevares med sann cursor0/256.
+Ny CPU-RNG, ikke CUDA-replay; uendret modell/loss/AdamW/klipping.
 
-Neste steg: kjør nøyaktig én CPU-prøve gjennom capped producer12G/512M,
-én numerisk tråd, ytre hardgrense600s.16kanoniske updates/256rader fra
-korrigertINITIAL; samme modell, loss, AdamW og klipping. Frisk CPU-RNG
-deklareres; det er ikke full CUDA-RNG-resume. Tilstand lagres med faktisk
-cursor256 på opprinnelig29574-raders orden, aldri som ferdig fullfit.
+Hel capped kommando289.5665s (4m49.57s),worker286.1096s,under600s.
+Dette er vesentlig mindre arbeid enn fullpass, ikke en identisk-workload
+speedup.192faste TRAIN-rader er målt ferskt før/etter:
+S Brier0.252926351→0.250048769,prior0.252092094 (PASS).
+F Brier0.253125394→0.251207498,prior0.250641150 (FAIL).
+Begge forbedres mot INITIAL; F slår ennå ikke referansen. Derfor samlet
+TRAIN-gateFAIL og ingen senere score-arrays/worker-score-gather/forward.
+Kanoniske loadere dekoder hele TRAIN-targetbåndet for eksisterende
+validering; dette er ikke senere modellscoring. TEST er ikke åpnet.
 
-192faste TRAIN-rader måles ferskt før/etter. Begge M5S/F må forbedre Brier
-mot INITIAL og prior, uten dårligere logloss, før192senere TRAIN-rader
-scores. Maks40/52forwards og16backwards. Arbeideren åpner ingen senere
-score-arrays eller score-partition-gather før låst TRAIN-PASS; kanoniske
-loadere dekoder likevel hele TRAIN-targetbåndet og validerer endpointparitet.
-Dette er små utvalg og gjenbrukt utviklings-TRAIN, ikke fersk generalisering.
+REVIEW SHA1cfb6be1e258df9a51a0e67d06ef8bcb85e451e749829319f93ba6af6614c341.
+Uavhengig capture-regning har maks2.22e-16 metrikkavvik. Faktiske
+CPU-checkpointseals, cursor/updates,29574-raders orden og AdamW er kontrollert;
+ingen ny modellforward, fit eller senerearrays. Optimizerhistorien er ikke
+replayet; kildekontroll og lagret sluttstate underbygger stegtellingen.
 
-Logg hel kommandotid, lukk treningsgaten etter terminal og kontroller
-lagret state/capture/score. Ingen automatisk fortsettelse eller relansering.
-Faktisk gjennomføring innen600s er fortsatt ubevist.
+Begge mål forbedres i første og midtre64-raders TRAIN-blokk, men begge
+svekkes i siste64. S Brier før→etter:
+0.255763→0.247873(n23),0.257462→0.254431(n35),0.239750→0.243970(n17).
+F:0.258842→0.252083(n32),0.249267→0.248161(n32),0.250423→0.254366(n22).
+Begge slårprior i første/midtre blokk, taper i siste. Dette er en liten
+tidskontrast innen TRAIN, ikke bevis for en generell regimesammenheng.
+
+Neste direkte spørsmål er hva i de lagrede prognosene/representasjonene
+som skiller den siste blokken fra de to første. Gjenbruk småcaptures og
+eksisterende fullfit-bevis; ingen ny modellkjøring trengs for denne
+inspeksjonen. Ingen større fit er innrømmet. Kortløpet beviser ikke global
+TRAIN-forbedring, generaliserbar retning eller økonomisk edge.
 
 Den lagrede hodebanen er allerede COMPLETE og numerisk kontrollert:
 15.692s,9checkpointlesinger,0forward/fit. Alle8lagrede hoder etterINITIAL
@@ -86,13 +98,13 @@ manglet allow_unused for adskilteS/F-logits; rettet før genuineclaim.
 Kildekontroll fant trådoverstyring og manglende originalplan i sluttkontroll;
 begge er rettet før launch. Ingen produksjonsmodellkode er endret.
 
-Brukerens føring er korte tester først. Bare den nye CPU-prøven ovenfor
-er innrømmet; native GPU-launch/full-epoch er stengt. Gjenbruk checkpoint, lagrede arrays og beståtte
+Brukerens føring er korte tester først. Den nye CPU-prøven ovenfor er
+fullført/konsumert; native GPU-launch/full-epoch er stengt. Gjenbruk checkpoint, lagrede arrays og beståtte
 kontroller. CPU-diagnostikk har60s budsjett. En eventuell nødvendig native
 prøve må kvalifiseres separat, med høyst64updates/600s og små forhåndsbundne
 initial/final/later-utvalg. Alle genuine features, femTF, kausalitet og
-maskinvarevakter beholdes; fysisk GPU-grense250W. Den korte CPU-ruten er kildekvalifisert;
-faktisk gjennomføring gjenstår. Ingen teknisk PASS åpner større trening.
+maskinvarevakter beholdes; fysisk GPU-grense250W. Den korte CPU-ruten er gjennomført innen600s;
+resultatkontroll PASS. Ingen teknisk PASS åpner større trening.
 
 To korte kontroller er nå fullført og uavhengig verifisert:
 1. Faktiske INITIAL/FINAL M5-hoder krysset med gammel/ny representasjon på
