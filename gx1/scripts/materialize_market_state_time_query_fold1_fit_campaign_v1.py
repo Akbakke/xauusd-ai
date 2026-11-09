@@ -50,7 +50,10 @@ def materialize(binding_path: Path) -> dict:
     from gx1.contracts import market_state_native_F_private_campaign_v1 as mechanical
     repo = fold1.CANONICAL_REPO
     ta_m5_equal_loss = binding_path == mechanical.TA_M5_EQUAL_LOSS_ROOT / 'PREPARATION_EXECUTION_BINDING.json'
-    ta_import = binding_path == mechanical.TA_M5_IMPORT_ROOT / 'PREPARATION_EXECUTION_BINDING.json'
+    ta_final_import = binding_path == mechanical.TA_M5_FINAL_IMPORT_ROOT / 'PREPARATION_EXECUTION_BINDING.json'
+    ta_import = ta_final_import or binding_path == mechanical.TA_M5_IMPORT_ROOT / 'PREPARATION_EXECUTION_BINDING.json'
+    import_stage = mechanical.TA_M5_FINAL_IMPORT_STAGE if ta_final_import else mechanical.TA_M5_IMPORT_STAGE
+    import_root, import_runtime, import_recipe_path = mechanical.ta_m5_import_paths(import_stage)
     ta_m5 = binding_path == mechanical.TA_M5_ROOT / 'PREPARATION_EXECUTION_BINDING.json'
     ta_mechanical = ta_m5_equal_loss or ta_import or ta_m5 or binding_path == mechanical.TA_ROOT / 'PREPARATION_EXECUTION_BINDING.json'
     ta_sf = binding_path == fold1.TA_SF_RUNTIME_ROOT.parent / 'PREPARATION_EXECUTION_BINDING.json'
@@ -75,13 +78,13 @@ def materialize(binding_path: Path) -> dict:
     cursor_directory, output_directory = 'prefix-cursor', 'prefix-fit'
     if ta_mechanical:
         runtime, root = ((mechanical.TA_M5_EQUAL_LOSS_RUNTIME_ROOT, mechanical.TA_M5_EQUAL_LOSS_ROOT) if ta_m5_equal_loss
-            else (mechanical.TA_M5_IMPORT_RUNTIME_ROOT, mechanical.TA_M5_IMPORT_ROOT) if ta_import
+            else (import_runtime, import_root) if ta_import
             else (mechanical.TA_M5_RUNTIME_ROOT, mechanical.TA_M5_ROOT) if ta_m5
             else (mechanical.TA_RUNTIME_ROOT, mechanical.TA_ROOT))
         recipe_path, stage, run_scope = (
             (mechanical.TA_M5_EQUAL_LOSS_RECIPE_PATH, mechanical.TA_M5_EQUAL_LOSS_STAGE, mechanical.TA_M5_EQUAL_LOSS_SCOPE)
             if ta_m5_equal_loss else
-            (mechanical.TA_M5_IMPORT_RECIPE_PATH, mechanical.TA_M5_IMPORT_STAGE, mechanical.TA_M5_IMPORT_SCOPE)
+            (import_recipe_path, import_stage, mechanical.TA_M5_IMPORT_SCOPE)
             if ta_import else (mechanical.TA_M5_RECIPE_PATH, mechanical.TA_M5_STAGE, mechanical.TA_M5_SCOPE)
             if ta_m5 else (mechanical.TA_RECIPE_PATH, mechanical.TA_STAGE, mechanical.TA_SCOPE))
         authority, windows_count = research, 1

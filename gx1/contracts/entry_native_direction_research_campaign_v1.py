@@ -172,8 +172,9 @@ def _path(value: Any, label: str) -> str:
 
 
 def _is_ta_m5_import_recipe_ref(binding):
-    from gx1.contracts.market_state_native_F_private_campaign_v1 import TA_M5_IMPORT_RECIPE_PATH
-    return isinstance(binding, Mapping) and binding.get('path') == str(TA_M5_IMPORT_RECIPE_PATH)
+    from gx1.contracts import market_state_native_F_private_campaign_v1 as mechanical
+    return isinstance(binding, Mapping) and binding.get('path') in (
+        str(mechanical.TA_M5_IMPORT_RECIPE_PATH), str(mechanical.TA_M5_FINAL_IMPORT_RECIPE_PATH))
 
 
 def _is_ta_m5_equal_loss_recipe_ref(binding):
@@ -198,8 +199,10 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
     if import_mode or value.get('run_scope') == TA_M5_IMPORT_SCOPE:
         _require(import_mode and value.get('run_scope') == TA_M5_IMPORT_SCOPE,
                  'M5_IMPORT_RECIPE_PATH')
-        from gx1.contracts.market_state_native_F_private_campaign_v1 import require_ta_m5_import_recipe
-        return require_ta_m5_import_recipe(value, source_repo=source_repo,
+        from gx1.contracts import market_state_native_F_private_campaign_v1 as mechanical
+        _, _, expected_path = mechanical.ta_m5_import_paths(value.get('admission_stage'))
+        _require(ref['path'] == str(expected_path), 'M5_IMPORT_RECIPE_PATH')
+        return mechanical.require_ta_m5_import_recipe(value, source_repo=source_repo,
             source_commit=source_commit, verify_files=verify_files)
     if value.get('run_scope') == TIME_QUERY_PRIVATE_SCOPE:
         from gx1.contracts.market_state_time_query_private_campaign_v1 import require_time_query_private_recipe
@@ -587,8 +590,8 @@ def guarded_research_power_limit(recipe):
     _require(isinstance(recipe, Mapping), 'POWER_RECIPE')
     if recipe.get('run_scope') == TA_M5_IMPORT_SCOPE:
         from gx1.contracts import market_state_native_F_private_campaign_v1 as mechanical
-        _require(recipe.get('admission_stage') == mechanical.TA_M5_IMPORT_STAGE
-            and recipe.get('runtime_root') == str(mechanical.TA_M5_IMPORT_RUNTIME_ROOT)
+        _, runtime, _ = mechanical.ta_m5_import_paths(recipe.get('admission_stage'))
+        _require(recipe.get('runtime_root') == str(runtime)
             and recipe.get('fold_id') == 1 and recipe.get('training_enabled') is False
             and recipe.get('max_private_updates') == recipe.get('max_backwards') == 0
             and recipe.get('test_data_used') is False

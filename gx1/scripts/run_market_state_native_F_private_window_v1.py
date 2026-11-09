@@ -564,7 +564,8 @@ def run_ta_m5_equal_loss_mechanical(*, policy_path: Path, policy_file_sha256: st
         ta_sf=True, dedicated_m5_side=True, m5_equal_observation=True)
 
 
-def _restore_m5_legacy_origin(*, origin, receipts, order, device, counters, maximum):
+def _restore_m5_legacy_origin(*, origin, receipts, order, device, counters, maximum,
+                              final_readout=False):
     """Strictly restore the original full checkpoint before any weight transfer."""
     import copy
     from gx1.contracts import entry_native_direction_feature_view_v1 as views
@@ -577,10 +578,16 @@ def _restore_m5_legacy_origin(*, origin, receipts, order, device, counters, maxi
         _dynamic_m5_technical_tree_sha256 as tree_sha,
     )
     old_recipe = scope._read(origin['original_recipe'], 'M5 warmstart original recipe')
-    old_view = scope._read(origin['original_candidate_view'], 'M5 warmstart original view')
-    numerical = full.ta_sf_numerical_recipe()
+    _need(type(final_readout) is bool, 'FINAL_IMPORT_MODE')
+    if final_readout:
+        from gx1.audit import verify_market_state_time_query_zero_step_v1 as input_owner
+        old_view = input_owner._bind_ta_view(receipts, dedicated_m5_side=True)
+    else:
+        old_view = scope._read(origin['original_candidate_view'], 'M5 warmstart original view')
+    numerical = full.ta_sf_numerical_recipe(
+        dedicated_m5_side=final_readout, m5_equal_observation=final_readout)
     _need(old_recipe['numerical_recipe'] == numerical
-          and old_view.get('dedicated_m5_side', False) is False
+          and old_view.get('dedicated_m5_side', False) is final_readout
           and old_view['contract_sha256'] == old_recipe['expected_view_sha256']
           and tree_sha(order) == origin['parent_order_sha256'], 'LEGACY_ORIGIN_BINDING')
     trainer._set_deterministic(numerical['seed'], device, numerical['precision_policy'])
@@ -683,8 +690,12 @@ def _publish_m5_import(*, output, progress_path, window, plan, invocation, paylo
     from gx1.scripts import run_entry_native_direction_research_window_v1 as common
     maximum = scope.MAX_PUBLISHED_JSON_BYTES
     outcome = 'COMPLETE' if payload['decision'] == 'PASS_TA_M5_EQUAL_WEIGHT_IMPORT' else 'FAILED'
-    result = common._json(scope.TA_M5_IMPORT_ROOT / 'RESULT.json', payload, counters, maximum)
-    common._json(scope.TA_M5_IMPORT_ROOT / 'TERMINAL.json', {
+    recipe_path = Path(window['recipe']['path'])
+    _need(recipe_path in (scope.TA_M5_IMPORT_RECIPE_PATH, scope.TA_M5_FINAL_IMPORT_RECIPE_PATH),
+          'IMPORT_PUBLICATION_ROOT')
+    root = recipe_path.parent
+    result = common._json(root / 'RESULT.json', payload, counters, maximum)
+    common._json(root / 'TERMINAL.json', {
         'status': outcome, 'exit_code': 0 if outcome == 'COMPLETE' else 1,
         'recipe': window['recipe'], 'result': result, 'test_data_used': False,
         'no_relaunch_under_this_plan': True}, counters, maximum)
@@ -714,6 +725,10 @@ def run_ta_m5_import(*, policy_path: Path, policy_file_sha256: str, progress_pat
     _need(recipe['run_scope'] == scope.TA_M5_IMPORT_SCOPE
           and recipe['training_enabled'] is False and recipe['max_private_updates'] == 0,
           'IMPORT_SCOPE')
+    final_readout = recipe.get('final_readout_import', False)
+    _need(final_readout == (recipe['admission_stage'] == scope.TA_M5_FINAL_IMPORT_STAGE),
+          'IMPORT_ORIGIN_MODE')
+    prediction_suffix = 'final_readout_fp32' if final_readout else 'equal_observation_fp32'
     import numpy as np
     import torch
     from gx1.audit import verify_market_state_time_query_zero_step_v1 as input_owner
@@ -817,10 +832,30 @@ def run_ta_m5_import(*, policy_path: Path, policy_file_sha256: str, progress_pat
         del raw_batches
         legacy, rng, legacy_evidence = _restore_m5_legacy_origin(
             origin=recipe['warmstart_origin'], receipts=receipts, order=order, device=device,
-            counters=counters, maximum=recipe['max_checkpoint_bytes'])
+            counters=counters, maximum=recipe['max_checkpoint_bytes'],
+            **({'final_readout': True} if final_readout else {}))
         model, optimizer = fresh()
-        migration = state.copy_legacy_weights_to_dedicated_m5(legacy, model,
-            expected_legacy_model_sha256=recipe['warmstart_origin']['model_state_sha256'])
+        if final_readout:
+            # The source already owns dedicated M5 heads. Preserve all trained
+            # tensors and nonpersistent buffers, then import only four tensors.
+            model.load_state_dict(legacy.state_dict(), strict=True)
+            old_buffers = dict(legacy.named_buffers())
+            _need(set(old_buffers) == set(dict(model.named_buffers())), 'FINAL_IMPORT_BUFFER_KEYS')
+            with torch.no_grad():
+                for name, buffer in model.named_buffers():
+                    source = old_buffers[name]
+                    _need(buffer.shape == source.shape and buffer.dtype == source.dtype,
+                          'FINAL_IMPORT_BUFFER_LAYOUT')
+                    buffer.copy_(source)
+            _need(tree_sha(dict(model.named_buffers())) == tree_sha(old_buffers),
+                  'FINAL_IMPORT_BUFFER_COPY')
+            migration = {'kind': 'exact_dedicated_FINAL_weights_and_buffers',
+                'source_model_sha256': recipe['warmstart_origin']['model_state_sha256'],
+                'buffer_sha256': tree_sha(old_buffers),
+                'optimizer_history_transferred_to_candidate': False}
+        else:
+            migration = state.copy_legacy_weights_to_dedicated_m5(legacy, model,
+                expected_legacy_model_sha256=recipe['warmstart_origin']['model_state_sha256'])
         del legacy
         trainer._restore_attended_session_rng_state(rng, device=device)
         initial = capture(model, optimizer)
@@ -829,6 +864,12 @@ def run_ta_m5_import(*, policy_path: Path, policy_file_sha256: str, progress_pat
         with np.load(refs['fit_cache']['path'], allow_pickle=False) as fit_cache:
             model.eval()
             before = [forward(model, b, i * 16, fit_cache) for i, b in enumerate(batches)]
+            if final_readout:
+                for i, values in enumerate(before):
+                    for j, task in enumerate(('state', 'future')):
+                        expected = torch.from_numpy(fit_cache[f'native_{j}_original_raw'][i*16:(i+1)*16])
+                        _need(torch.equal(values[task + '_activity_side_logits'], expected),
+                              'FINAL_IMPORT_BASELINE_NATIVE_LOGITS')
             model.train()
             _need(capture(model, optimizer)['contract_sha256'] == initial['contract_sha256'],
                   'IMPORT_BEFORE_MUTATION')
@@ -855,7 +896,7 @@ def run_ta_m5_import(*, policy_path: Path, policy_file_sha256: str, progress_pat
                               and torch.equal(old[name][:, 1:], new[name][:, 1:])
                               and torch.equal(old[task + '_log_probs'][:, 1:], new[task + '_log_probs'][:, 1:]),
                               'IMPORT_OTHER_OUTPUTS_CHANGED')
-                        expected = torch.from_numpy(coefficients['fit_' + task + '_equal_observation_fp32'][i*16:(i+1)*16])
+                        expected = torch.from_numpy(coefficients['fit_' + task + '_' + prediction_suffix][i*16:(i+1)*16])
                         actual = new[name][:, 0, 1].double()
                         _need(torch.allclose(actual, expected, atol=recipe['output_parity_atol'],
                                              rtol=recipe['output_parity_rtol']), 'IMPORT_ACTUAL_READOUT_PARITY')
@@ -884,7 +925,7 @@ def run_ta_m5_import(*, policy_path: Path, policy_file_sha256: str, progress_pat
                                     counters['cached_head_calls'] += 1
                             z = np.concatenate(pieces).astype(np.float64)
                             key = partition + '_' + task
-                            expected = coefficients[key + '_equal_observation_fp32']
+                            expected = coefficients[key + '_' + prediction_suffix]
                             _need(np.allclose(z, expected, atol=recipe['output_parity_atol'],
                                                rtol=recipe['output_parity_rtol']), 'IMPORT_ALL_HEAD_PARITY')
                             allowed = cache[prefix + '_allowed'][:, 0]
@@ -896,9 +937,13 @@ def run_ta_m5_import(*, policy_path: Path, policy_file_sha256: str, progress_pat
                             cache_scores[partition][task] = {
                                 'measurement': measured,
                                 'frozen_prior': _m5_import_score(coefficients[key + '_frozen_prior'], known, y),
-                                'original': _m5_import_score(coefficients[key + '_original'], known, y),
+                                'original': _m5_import_score(coefficients[
+                                    key + ('_final_native' if final_readout else '_original')], known, y),
                                 'max_abs_cpu_reference_error': float(np.max(np.abs(z - expected))),
                                 'rows': len(x), 'head_batches': len(pieces)}
+                            if final_readout:
+                                cache_scores[partition][task]['previous_imported_reference'] = _m5_import_score(
+                                    coefficients[key + '_original_imported'], known, y)
                 model.train()
                 _need(capture(model, optimizer)['contract_sha256'] == candidate['contract_sha256'],
                       'IMPORT_AFTER_MUTATION')
@@ -941,6 +986,7 @@ def run_ta_m5_import(*, policy_path: Path, policy_file_sha256: str, progress_pat
         'physical_optimizer_updates': 0, 'final_state': final_ref,
         'initial_model_state_sha256': initial_model_sha,
         'legacy_restore': legacy_evidence, 'migration': migration, 'head_import': imported,
+        'final_readout_import': final_readout,
         'fresh_full_forward_baseline': full_forward_checks, 'cached_head_baseline': cache_scores,
         'full_TRAIN_encoder_baseline_qualified': False,
         'bit_exact_resume': bit_exact_resume, 'counts': dict(counters),

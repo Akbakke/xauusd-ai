@@ -13,20 +13,23 @@ def _ref(path):
     return {'path': str(path), 'sha256': 'a' * 64}
 
 
-def _recipe():
+def _recipe(final_readout=False):
+    stage = scope.TA_M5_FINAL_IMPORT_STAGE if final_readout else scope.TA_M5_IMPORT_STAGE
+    _, runtime, _ = scope.ta_m5_import_paths(stage)
     return {
-        'run_scope': scope.TA_M5_IMPORT_SCOPE, 'admission_stage': scope.TA_M5_IMPORT_STAGE,
-        'runtime_root': str(scope.TA_M5_IMPORT_RUNTIME_ROOT), 'fold_id': 1,
+        'run_scope': scope.TA_M5_IMPORT_SCOPE, 'admission_stage': stage,
+        'runtime_root': str(runtime), 'fold_id': 1,
         'numerical_recipe': {'batch_size': 16}, 'recipe_sha256': 'b' * 64,
         'training_enabled': False, 'test_data_used': False,
         'max_private_updates': 0, 'max_backwards': 0,
     }
 
 
-def _gate(recipe_ref):
+def _gate(recipe_ref, final_readout=False):
+    runtime = scope.TA_M5_FINAL_IMPORT_RUNTIME_ROOT if final_readout else scope.TA_M5_IMPORT_RUNTIME_ROOT
     return {
         'decision': 'ADMITTED', 'status': 'ADMITTED', 'ta_m5_import_authorized': True,
-        'recipe': recipe_ref, 'run_root': str(scope.TA_M5_IMPORT_RUNTIME_ROOT),
+        'recipe': recipe_ref, 'run_root': str(runtime),
         'max_invocations': 1, 'claimed_invocations': 0, 'completed_invocations': 0,
         'relaunch_allowed': False, 'fold_id': 1, 'parent_selection': scope.TA_PARENT_SELECTION,
         'selected_fit_rows': 32, 'model_constructions_authorized': 3,
@@ -199,24 +202,27 @@ def test_import_250w_scope_and_guarded_dispatch(monkeypatch):
     assert calls == [args]
 
 
-def test_materializer_emits_one_zero_step_invocation_with_training_closed(tmp_path, monkeypatch):
+@pytest.mark.parametrize('final_readout', [False, True])
+def test_materializer_emits_one_zero_step_invocation_with_training_closed(tmp_path, monkeypatch, final_readout):
     from gx1.scripts import materialize_market_state_time_query_fold1_fit_campaign_v1 as materializer
     root, runtime = tmp_path, tmp_path / 'RUNTIME'
-    monkeypatch.setattr(scope, 'TA_M5_IMPORT_ROOT', root)
-    monkeypatch.setattr(scope, 'TA_M5_IMPORT_RUNTIME_ROOT', runtime)
-    monkeypatch.setattr(scope, 'TA_M5_IMPORT_RECIPE_PATH', root / 'RECIPE.json')
+    prefix = 'TA_M5_FINAL_IMPORT' if final_readout else 'TA_M5_IMPORT'
+    stage = scope.TA_M5_FINAL_IMPORT_STAGE if final_readout else scope.TA_M5_IMPORT_STAGE
+    monkeypatch.setattr(scope, prefix + '_ROOT', root)
+    monkeypatch.setattr(scope, prefix + '_RUNTIME_ROOT', runtime)
+    monkeypatch.setattr(scope, prefix + '_RECIPE_PATH', root / 'RECIPE.json')
     binding_path = root / 'PREPARATION_EXECUTION_BINDING.json'
     binding = {'materializer': _ref(scope.CANONICAL_REPO /
         'gx1/scripts/materialize_market_state_time_query_fold1_fit_campaign_v1.py'),
         'recipe': _ref(root / 'RECIPE.json'), 'policy': _ref(scope.CANONICAL_REPO / 'NEXT_RUN_POLICY.json'),
         'prepared_boot': _ref(root / 'PREPARED_WINDOWS_BOOT.json'),
         'guard_template': _ref(root / 'GUARD_TEMPLATE.json'), 'source_head': 'e' * 40}
-    recipe = _recipe()
-    gate = {**_gate(binding['recipe']), 'campaign_preparation_authorized': True,
+    recipe = _recipe(final_readout)
+    gate = {**_gate(binding['recipe'], final_readout), 'campaign_preparation_authorized': True,
             **{key: binding[key] for key in ('prepared_boot', 'guard_template', 'materializer')}}
     objects = {str(binding_path): binding,
         binding['policy']['path']: {'training_enabled': False, 'native_training_enabled': False,
-                                   scope.TA_M5_IMPORT_STAGE: gate},
+                                   stage: gate},
         binding['prepared_boot']['path']: {'synthetic_boot': True},
         binding['guard_template']['path']: {'phase': outer.PHASE, 'test_data_used': False,
             'gpu_uuid': 'GPU-synthetic', 'signed_guard_sources': {}, 'controller_sources': {}}}
@@ -252,3 +258,35 @@ def test_materializer_emits_one_zero_step_invocation_with_training_closed(tmp_pa
     assert invocation['checkpoint']['pointer_path'] == str(runtime / 'research-cursor/RESUME_CURSOR.json')
     assert plan['policy']['physical_power_limit_w'] == 250
     assert result['decision'] == 'PASS_METADATA_PREPARED_REBOOT_REQUIRED'
+
+
+def test_final_import_exact_recipe_stage_and_250w(monkeypatch):
+    value = _recipe(True)
+    path = scope.TA_M5_FINAL_IMPORT_RECIPE_PATH
+    monkeypatch.setattr(campaign, 'require_binding', lambda value, **kwargs: value)
+    monkeypatch.setattr(campaign, 'read_bound_json', lambda *args: value)
+    monkeypatch.setattr(scope, 'require_ta_m5_import_recipe', lambda value, **kwargs: value)
+    args = dict(source_repo=scope.CANONICAL_REPO, source_commit='e' * 40)
+    assert outer.require_research_launch_recipe(_ref(path), **args) is value
+    assert outer.guarded_research_power_limit(value) == 250
+    scope.require_ta_m5_import_gate(_gate(_ref(path), True), value)
+    with pytest.raises(Exception, match='M5_IMPORT_RECIPE_PATH'):
+        outer.require_research_launch_recipe(_ref(scope.TA_M5_IMPORT_RECIPE_PATH), **args)
+    with pytest.raises(Exception, match='M5_IMPORT_POWER_SCOPE'):
+        outer.guarded_research_power_limit({**value, 'runtime_root': str(scope.TA_M5_IMPORT_RUNTIME_ROOT)})
+    with pytest.raises(Exception, match='M5_IMPORT_POWER_SCOPE'):
+        outer.guarded_research_power_limit({**value, 'max_private_updates': 1})
+    with pytest.raises(Exception, match='M5_IMPORT_POLICY_GATE'):
+        scope.require_ta_m5_import_gate({**_gate(_ref(path), True), 'training_enabled': True}, value)
+
+
+def test_final_import_cursor_has_no_training_progress():
+    recipe = _ref(scope.TA_M5_FINAL_IMPORT_RECIPE_PATH)
+    kwargs = dict(recipe_ref=recipe, outcome='COMPLETE', optimizer_updates=0,
+        parent_cursor=0, parent_order_sha256='e' * 64, full_state=_ref('/synthetic/state.pt'),
+        result=_ref('/synthetic/result.json'), batch_size=16)
+    cursor = outer.build_research_cursor(**kwargs)
+    assert cursor['recipe'] == recipe and cursor['optimizer_updates'] == cursor['parent_cursor'] == 0
+    for key in ('optimizer_updates', 'parent_cursor'):
+        with pytest.raises(Exception, match='M5_IMPORT_CURSOR_SCOPE'):
+            outer.build_research_cursor(**{**kwargs, key: 1})

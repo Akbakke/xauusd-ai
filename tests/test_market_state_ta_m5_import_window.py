@@ -44,9 +44,11 @@ def test_import_gate_never_grants_training(key):
         scope.require_ta_m5_import_gate(gate, recipe)
 
 
+@pytest.mark.parametrize('final_readout', [False, True])
 @pytest.mark.parametrize('success', [False, True])
-def test_result_cursor_accepts_honest_success_or_failure(tmp_path, success):
-    recipe = dict(path=str(scope.TA_M5_IMPORT_RECIPE_PATH), sha256='a' * 64)
+def test_result_cursor_accepts_honest_success_or_failure(tmp_path, success, final_readout):
+    path = scope.TA_M5_FINAL_IMPORT_RECIPE_PATH if final_readout else scope.TA_M5_IMPORT_RECIPE_PATH
+    recipe = dict(path=str(path), sha256='a' * 64)
     checkpoint = tmp_path / 'STATE.pt'
     checkpoint.write_bytes(b'synthetic-state')
     final = dict(path=str(checkpoint), sha256=scope.campaign.file_sha256(checkpoint)) if success else None

@@ -413,11 +413,14 @@ def require_invocation(
                 or result["window_count"] != 1 or result["window_index"] != 0):
             raise RandomAccessCampaignError("checkpoint diagnostic zero-step window invalid")
     elif kind == "native_direction_research_window" and type(budget) is int and budget == 0:
-        from gx1.contracts.market_state_native_F_private_campaign_v1 import TA_M5_IMPORT_RUNTIME_ROOT
+        from gx1.contracts.market_state_native_F_private_campaign_v1 import (
+            TA_M5_IMPORT_RUNTIME_ROOT, TA_M5_FINAL_IMPORT_RUNTIME_ROOT)
         if (number != 1 or batch_size != 16
                 or result["expected_success_outcome"] != "COMPLETE"
                 or result["window_count"] != 1 or result["window_index"] != 0
-                or result.get("checkpoint", {}).get("pointer_path") != str(TA_M5_IMPORT_RUNTIME_ROOT / "research-cursor/RESUME_CURSOR.json")):
+                or result.get("checkpoint", {}).get("pointer_path") not in (
+                    str(root / "research-cursor/RESUME_CURSOR.json")
+                    for root in (TA_M5_IMPORT_RUNTIME_ROOT, TA_M5_FINAL_IMPORT_RUNTIME_ROOT))):
             raise RandomAccessCampaignError("M5 import zero-step window invalid")
         # The bound research recipe and readiness gates also require zero
         # backwards/updates and training_enabled=False before any execution.

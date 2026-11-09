@@ -743,6 +743,104 @@ TA_M5_IMPORT_FIXED_REFS = {
 }
 
 
+
+TA_M5_FINAL_IMPORT_STAGE = 'market_state_ta_m5_final_readout_import_20261109_001'
+TA_M5_FINAL_IMPORT_ROOT = Path('/home/andre2/GX1_RUNS') / TA_M5_FINAL_IMPORT_STAGE.upper()
+TA_M5_FINAL_IMPORT_RUNTIME_ROOT = TA_M5_FINAL_IMPORT_ROOT / 'RUNTIME'
+TA_M5_FINAL_IMPORT_RECIPE_PATH = TA_M5_FINAL_IMPORT_ROOT / 'RECIPE.json'
+TA_M5_FINAL_IMPORT_BASE_COMMIT = '3e504a5d93e0fcadc3966aa51709217f6e93c9b9'
+TA_M5_FINAL_IMPORT_CHANGED_SOURCES = frozenset({
+    'gx1/contracts/market_state_native_F_private_campaign_v1.py',
+    'gx1/contracts/entry_native_direction_research_campaign_v1.py',
+    'gx1/contracts/local_random_access_campaign_v2.py',
+    'gx1/scripts/run_market_state_native_F_private_window_v1.py',
+    'gx1/scripts/materialize_market_state_time_query_fold1_fit_campaign_v1.py',
+})
+_FINAL_READOUT_ROOT = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_20261109_001')
+TA_M5_FINAL_IMPORT_FIXED_REFS = {
+    'equal_plan': {'path': str(_FINAL_READOUT_ROOT / 'PLAN.json'), 'sha256': 'fe5bbbd7b6faba84335b47b3d3e4525f5566ea1dc04359e4f7ed04b4188b8972'},
+    'equal_result': {'path': str(_FINAL_READOUT_ROOT / 'RESULT.json'), 'sha256': '623e66c9baba2a3cf6910ffb10a11ba2e14a4c2e514e3660a83528c361c16ae6'},
+    'equal_verification': {'path': str(_FINAL_READOUT_ROOT / 'REVIEW.json'), 'sha256': 'deff9b4774ad68e6306d598d2073f43e36b126cc29069122965b5319d4ef310d'},
+}
+
+
+def ta_m5_import_paths(stage):
+    if stage == TA_M5_IMPORT_STAGE:
+        return TA_M5_IMPORT_ROOT, TA_M5_IMPORT_RUNTIME_ROOT, TA_M5_IMPORT_RECIPE_PATH
+    _need(stage == TA_M5_FINAL_IMPORT_STAGE, 'M5_IMPORT_STAGE')
+    return TA_M5_FINAL_IMPORT_ROOT, TA_M5_FINAL_IMPORT_RUNTIME_ROOT, TA_M5_FINAL_IMPORT_RECIPE_PATH
+
+
+def _ta_m5_final_import_metadata():
+    """Bind the completed dedicated FINAL and fixed readouts without tensor loading."""
+    from gx1.contracts import market_state_time_query_fold1_fit_v1 as full
+    from gx1.audit import verify_market_state_time_query_zero_step_v1 as zero
+    fixed = {k: dict(v) for k, v in TA_M5_FINAL_IMPORT_FIXED_REFS.items()}
+    fitted = _read(fixed['equal_result'], 'FINAL readout result')
+    checked = _read(fixed['equal_verification'], 'FINAL readout independent check')
+    readout_plan = _read(fixed['equal_plan'], 'FINAL readout plan')
+    _need(fitted['status'] == 'COMPLETE' and fitted['source_unchanged'] is True
+          and fitted['plan'] == fixed['equal_plan']
+          and fitted['alpha'] == readout_plan['alpha'] == 0.01
+          and fitted['readout_fits'] == 2 and all(v['converged'] for v in fitted['solvers'].values())
+          and fitted['native_forwards'] == fitted['native_parameter_updates'] == 0
+          and fitted['test_data_used'] is False
+          and checked['status'] == 'COMPLETE_CONSUMED_READOUT_RECOVERS_TRAIN_NOT_LATER_EDGE'
+          and checked['result'] == fixed['equal_result']
+          and checked['independent_saved_prediction_metric_max_error'] == 0
+          and checked['test_data_used'] is False, 'FINAL_IMPORT_READOUT_PROVENANCE')
+    cached = _read(readout_plan['inputs']['new_cache_result'], 'dedicated FINAL cache')
+    cache_plan = _read(cached['plan'], 'dedicated FINAL cache plan')
+    original = _read(cache_plan['recipe'], 'dedicated FINAL recipe')
+    result = _read(cache_plan['result'], 'dedicated FINAL native result')
+    measurement = _read(result['final_train_measurement'], 'dedicated FINAL measurement')
+    numerical = full.ta_sf_numerical_recipe(dedicated_m5_side=True, m5_equal_observation=True)
+    _need(cache_plan['recipe']['path'] == str(full.TA_M5_EQUAL_LOSS_FIT_RECIPE_PATH)
+          and original['numerical_recipe'] == numerical
+          and result['recipe'] == cache_plan['recipe']
+          and result['outcome'] == result['phase_state'] == 'COMPLETE'
+          and result['source_unchanged'] is True and result['test_data_used'] is False
+          and result['dedicated_m5_side'] is True and result['m5_equal_observation'] is True
+          and result['parent_cursor'] == 29574 and result['optimizer_updates'] == 1849
+          and result['skipped_batches'] == 0
+          and cached['status'] == 'COMPLETE' and cached['model_state_unchanged'] is True
+          and cached['source_unchanged'] is True and cached['test_data_used'] is False
+          and cached['checkpoint']['checkpoint'] == result['full_state']
+          and cached['checkpoint']['source_commit'] == result['source_commit']
+          and measurement['evaluated_checkpoint'] == result['full_state']
+          and measurement['evaluated_model_state_sha256'] == cached['checkpoint']['model_sha256'],
+          'FINAL_IMPORT_ORIGIN')
+    refs = dict(original['input_refs'], **fixed)
+    refs.update(equal_coefficients=fitted['private_outputs'],
+        original_recipe=cache_plan['recipe'], original_result=cache_plan['result'],
+        original_checkpoint=result['full_state'], original_measurement=result['final_train_measurement'],
+        original_candidate_view=original['input_refs']['ta_candidate_view'],
+        cache_result=readout_plan['inputs']['new_cache_result'], cache_plan=cached['plan'])
+    for part in ('fit', 'score'):
+        refs[part + '_cache'] = readout_plan['inputs']['new_' + part + '_cache']
+        _need(cached['cache_partitions'][part]['artifact'] == refs[part + '_cache']
+              and cached['cache_partitions'][part]['partial'] is False
+              and cached['cache_partitions'][part]['rows'] == (29574 if part == 'fit' else 17753),
+              'FINAL_IMPORT_CACHE_PARTITION')
+    current = {name: campaign.file_sha256(CANONICAL_REPO / name)
+               for name in full.required_source_paths(ta_sf=True)}
+    receipts = zero.load_ta_input_receipts(current_source_owners=current)
+    view = zero._bind_ta_view(receipts, dedicated_m5_side=True)
+    _need(view['contract_sha256'] == original['expected_view_sha256'] == cached['view_sha256'],
+          'FINAL_IMPORT_ACTUAL_VIEW')
+    full.require_checkpoint_view(result['feature_view_identity'], recipe=original, ta_sf=True)
+    origin = dict(original_recipe=refs['original_recipe'],
+        original_candidate_view=refs['original_candidate_view'],
+        original_checkpoint=refs['original_checkpoint'], source_commit=result['source_commit'],
+        model_state_sha256=cached['checkpoint']['model_sha256'],
+        parent_order_sha256=result['parent_order_sha256'],
+        cursor=result['parent_cursor'], optimizer_updates=result['optimizer_updates'],
+        skipped_batches=result['skipped_batches'])
+    for name, ref in refs.items():
+        campaign.require_binding(ref, label='FINAL import ' + name, verify_file=True)
+    return refs, view, origin, numerical
+
+
 def _ta_m5_import_metadata():
     """Reuse completed physical metadata proofs, without loading tensor payload."""
     from gx1.contracts import market_state_time_query_fold1_fit_v1 as full
@@ -774,20 +872,25 @@ def _ta_m5_import_metadata():
     return refs, view, origin, full.ta_sf_numerical_recipe(dedicated_m5_side=True)
 
 
-def _ta_m5_import_expected():
-    refs, view, origin, numerical = _ta_m5_import_metadata()
-    return {
+def _ta_m5_import_expected(*, final_readout=False):
+    _need(type(final_readout) is bool, 'FINAL_IMPORT_MODE')
+    refs, view, origin, numerical = (_ta_m5_final_import_metadata() if final_readout
+                                    else _ta_m5_import_metadata())
+    stage = TA_M5_FINAL_IMPORT_STAGE if final_readout else TA_M5_IMPORT_STAGE
+    _, runtime, _ = ta_m5_import_paths(stage)
+    value = {
         'schema_version': TA_M5_IMPORT_RECIPE_SCHEMA,
-        'source_repo': str(CANONICAL_REPO), 'runtime_root': str(TA_M5_IMPORT_RUNTIME_ROOT),
-        'admission_stage': TA_M5_IMPORT_STAGE, 'run_scope': TA_M5_IMPORT_SCOPE,
+        'source_repo': str(CANONICAL_REPO), 'runtime_root': str(runtime),
+        'admission_stage': stage, 'run_scope': TA_M5_IMPORT_SCOPE,
         'fold_id': 1, 'parent_selection': TA_PARENT_SELECTION,
         'parent_order_rows': 29574, 'selected_fit_rows': 32, 'pass_index': 0,
         'numerical_recipe': numerical, 'input_manifest': refs['mature_plan'],
         'input_refs': refs, 'expected_view_sha256': view['contract_sha256'],
         'expected_model_contract_sha256': numerical['research_objective_sha256'],
         'expected_loss_contract_sha256': numerical['native_F_loss_contract_sha256'],
-        'warmstart_origin': origin, 'initial_model_state_sha256': TA_M5_IMPORT_INITIAL_SHA,
-        'execution_binding_path': str(TA_M5_IMPORT_RUNTIME_ROOT / 'EXECUTION_BINDING.json'),
+        'warmstart_origin': origin, 'initial_model_state_sha256': (
+            origin['model_state_sha256'] if final_readout else TA_M5_IMPORT_INITIAL_SHA),
+        'execution_binding_path': str(runtime / 'EXECUTION_BINDING.json'),
         'max_private_updates': 0, 'max_backwards': 0, 'max_forwards': 6,
         'max_model_constructions': 3, 'max_optimizer_constructions': 3,
         'cached_head_rows': {'fit': 29574, 'score': 17753},
@@ -797,13 +900,16 @@ def _ta_m5_import_expected():
         'training_enabled': False, 'full_epoch_training_allowed': False,
         'test_data_used': False, 'predictive_value_claimed': False,
         'full_TRAIN_encoder_baseline_qualified': False,
-        'source_base_commit': TA_M5_IMPORT_BASE_COMMIT,
+        'source_base_commit': TA_M5_FINAL_IMPORT_BASE_COMMIT if final_readout else TA_M5_IMPORT_BASE_COMMIT,
     }
+    if final_readout:
+        value['final_readout_import'] = True
+    return value
 
 
-def build_ta_m5_import_recipe(*, source_commit):
+def build_ta_m5_import_recipe(*, source_commit, final_readout=False):
     from gx1.contracts import market_state_time_query_fold1_fit_v1 as full
-    value = _ta_m5_import_expected()
+    value = _ta_m5_import_expected(final_readout=final_readout)
     value['source_owners'] = {name: {'path': str(CANONICAL_REPO / name),
         'sha256': campaign.file_sha256(CANONICAL_REPO / name)}
         for name in sorted(full.required_source_paths(ta_sf=True))}
@@ -816,13 +922,14 @@ def require_ta_m5_import_recipe(value, *, source_repo, source_commit, verify_fil
     import subprocess
     from gx1.contracts import market_state_time_query_fold1_fit_v1 as full
     _need(verify_files and source_repo == CANONICAL_REPO, 'M5_IMPORT_PHYSICAL_SOURCE')
-    expected = _ta_m5_import_expected()
+    final_readout = value.get('admission_stage') == TA_M5_FINAL_IMPORT_STAGE
+    expected = _ta_m5_import_expected(final_readout=final_readout)
     value = _identity(value, set(expected) | {'source_owners'},
                       TA_M5_IMPORT_RECIPE_SCHEMA, 'recipe_sha256')
     _need(all(value[k] == v and type(value[k]) is type(v) for k, v in expected.items()),
           'M5_IMPORT_RECIPE_SCOPE')
     _need(isinstance(source_commit, str) and campaign._COMMIT.fullmatch(source_commit)
-          and subprocess.run(['git', 'merge-base', '--is-ancestor', TA_M5_IMPORT_BASE_COMMIT,
+          and subprocess.run(['git', 'merge-base', '--is-ancestor', expected['source_base_commit'],
                               source_commit], cwd=CANONICAL_REPO, capture_output=True).returncode == 0,
           'M5_IMPORT_SOURCE_ANCESTRY')
     owners = value['source_owners']
@@ -831,6 +938,15 @@ def require_ta_m5_import_recipe(value, *, source_repo, source_commit, verify_fil
     for name, ref in owners.items():
         campaign.require_binding(ref, label='M5 import source ' + name, verify_file=True)
         _need(ref['path'] == str(CANONICAL_REPO / name), 'M5_IMPORT_SOURCE_PATH')
+        if final_readout:
+            if name not in TA_M5_FINAL_IMPORT_CHANGED_SOURCES:
+                if name.startswith('.venv/'):
+                    original = _read(value['input_refs']['original_recipe'], 'FINAL installed runtime')
+                    expected_sha = original['source_owners'][name]['sha256']
+                else:
+                    expected_sha = _ta_m5_git_source_sha(TA_M5_FINAL_IMPORT_BASE_COMMIT, name)
+                _need(ref['sha256'] == expected_sha, 'FINAL_IMPORT_UNREVIEWED_DRIFT:' + name)
+            continue
         if name in TA_M5_ORCHESTRATION_SOURCE_PATHS | {'gx1/contracts/local_random_access_campaign_v2.py'}:
             continue  # Exact new routing bytes are bound by the clean campaign.
         if name == state_path:
@@ -858,14 +974,14 @@ def require_ta_m5_import_gate(gate, recipe):
     }
     _need(isinstance(gate, Mapping) and all(gate.get(k) == v and type(gate[k]) is type(v)
           for k, v in expected.items()) and recipe['run_scope'] == TA_M5_IMPORT_SCOPE
-          and recipe['admission_stage'] == TA_M5_IMPORT_STAGE, 'M5_IMPORT_POLICY_GATE')
+          and recipe['admission_stage'] in (TA_M5_IMPORT_STAGE, TA_M5_FINAL_IMPORT_STAGE), 'M5_IMPORT_POLICY_GATE')
 
 
 def require_ta_m5_import_cursor(value, *, expected_recipe, verify_files=True, batch_size=16):
     fields = {'schema_version', 'recipe', 'outcome', 'optimizer_updates', 'parent_cursor',
               'parent_order_sha256', 'full_state', 'result', 'test_data_used'}
     value = _identity(value, fields, TA_M5_IMPORT_CURSOR_SCHEMA, 'cursor_sha256')
-    _need(expected_recipe['path'] == str(TA_M5_IMPORT_RECIPE_PATH)
+    _need(expected_recipe['path'] in (str(TA_M5_IMPORT_RECIPE_PATH), str(TA_M5_FINAL_IMPORT_RECIPE_PATH))
           and value['recipe'] == expected_recipe and type(batch_size) is int and batch_size == 16
           and value['outcome'] in ('COMPLETE', 'FAILED') and value['test_data_used'] is False
           and type(value['optimizer_updates']) is int and value['optimizer_updates'] == 0
