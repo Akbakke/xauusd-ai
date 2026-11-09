@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T10:32:29.785330+00:00",
-  "status": "TA_M5_FINAL_READOUT_RECOVERS_TRAIN_LATER_F_EDGE_UNPROVED",
+  "observed_utc": "2026-11-09T10:37:16.240201+00:00",
+  "status": "TA_M5_FINAL_CALIBRATION_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Use saved logits to isolate final-output calibration drift versus feature-dependent readout before minimum native correction. Do not repeat cache/native fit. No new fit admitted.",
+  "next_action": "Execute cached-logit bias/scale attribution and fixed affine calibration; no native forward/update or later selection.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1652,7 +1652,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "ActualFINAL cache and fixed readouts consumed. Better recovered TRAIN for bothM5targets; later both worse than imported reference,F still loses prior.",
+    "current_activity": "Four tiny cached-logit calibration fits admitted; no native model work.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -24646,7 +24646,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-09T10:32:29.785330+00:00",
+  "updated_utc": "2026-11-09T10:37:16.240201+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -40174,7 +40174,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "market_state_ta_m5_final_readout_20261109_001",
+  "training_enabled_scope": "market_state_ta_m5_final_calibration_20261109_001",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -68616,5 +68616,34 @@
       "future": false,
       "state": true
     }
+  },
+  "market_state_ta_m5_final_calibration_20261109_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_CALIBRATION_20261109_001/PLAN.json",
+      "sha256": "aa70a1c05a2cff1c7e94c199654009c2264d760ba64fc208767ea7a01b28d6ed"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_CALIBRATION_20261109_001/PREFLIGHT.json",
+      "sha256": "2edb29a430895131bba761ede5235af4dc259887637c890fdd0d2a66c6756e19"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_authorized": true,
+    "training_authorized": true,
+    "data_reads_authorized": true,
+    "fits": 4,
+    "candidate": "affine",
+    "native_forwards": 0,
+    "native_parameter_updates": 0,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "wall_seconds": 300,
+    "test_data_used": false,
+    "selection": false,
+    "scope": "Offset-only attribution plus preselected positive-slope affine calibration of saved nativeFINAL M5S/F logits; fitTRAIN,lockall,scorelater once.",
+    "standing_authorization": "Active direction goal and zero-cost local research; isolate measured final-output bias before minimal correction."
   }
 }
