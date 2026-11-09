@@ -1,0 +1,1555 @@
+{
+  "schema_version": "gx1_ta_m5_fixed_train_trajectory_review_v1",
+  "status": "COMPLETE_NO_DIRECTION_CORRECTION_QUALIFIED",
+  "observed_utc": "2026-11-09T21:25:39.221787+00:00",
+  "question": "When does original full-pass M5 direction deteriorate on the same fixed192TRAIN observations?",
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_002/RESULT.json",
+    "sha256": "02b686f0ae9a864892f9ac9500f1dd54110a654c708bc3d484ffbdac4a4df113"
+  },
+  "review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_002/REVIEW.json",
+    "sha256": "cc7a642c965e8e388b6f1f89ec6b865b0c3c99d4ea3e54e3e3c8af6f7eca0992"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_002/TERMINAL.json",
+    "sha256": "91e77eae279058685ee0b60924ae99ac5092f3848c5c7c06b7dec099f6cc94fe"
+  },
+  "controller": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_002/CONTROLLER.json",
+    "sha256": "e90c4996c4deaf70ab2065e61185ba5bc4cd65e4f9607a943978fca649d134e9"
+  },
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_002/PLAN.json",
+    "sha256": "a82e18305c38e492b0ff779d6a3531b9605d642474e28b75fb56ea2d5baa02fd"
+  },
+  "worker": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_002/probe.py",
+    "sha256": "9980577df1f40c5d0372d8d977788e2438a17a9e0e70c9cbc47f6e4d6091361b"
+  },
+  "reviewer": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_002/review.py",
+    "sha256": "71a833cbb68d7c5645764ae7585a603a226eebd3410997d240fa3bc3078e5f5f"
+  },
+  "original_failed_terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_001/TERMINAL.json",
+    "sha256": "4cde46b9c7631d3217410095ac562f4e9059c7dafc20c562525a2c8824c2f533"
+  },
+  "initial_numeric_review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_001/PARITY_REVIEW.json",
+    "sha256": "ba692acdcca93335bedbe0b1697dfb549c30896a116e27a1065a71e8364f8fbe"
+  },
+  "original_source": "84f0f47c4e0c02b9c5287b1930ffb30bbdf98e81",
+  "fit_ranges": [
+    [
+      0,
+      64
+    ],
+    [
+      14272,
+      14336
+    ],
+    [
+      29504,
+      29568
+    ]
+  ],
+  "rows": 192,
+  "known_m5_side_counts": {
+    "state": 75,
+    "future": 86
+  },
+  "reused_initial": true,
+  "new_counts": {
+    "model_constructions": 1,
+    "checkpoint_loads": 8,
+    "forwards": 96,
+    "backwards": 0,
+    "optimizer_constructions": 0,
+    "optimizer_updates": 0,
+    "checkpoint_writes": 0,
+    "resume_state_load_calls": 8,
+    "resume_state_load_returns": 8
+  },
+  "combined_new_forwards_across001_and002": 108,
+  "combined_checkpoint_loads": 9,
+  "new_fits": 0,
+  "output_parity_criteria": {
+    "exact_rows_masks_and_queries": true,
+    "all_five_tf_raw_atol": 2e-05,
+    "m5_probability_atol": 1e-06,
+    "m5_block_metric_atol": 1e-06,
+    "m5_block_metrics": [
+      "brier",
+      "log",
+      "mean_up_probability"
+    ],
+    "representation_role": "diagnostic_only_no_transplant"
+  },
+  "original_hidden_gate_remains_failed": true,
+  "max_independent_score_error": 2.220446049250313e-16,
+  "times": {
+    "continuation_worker_seconds": 297.15661600199746,
+    "continuation_whole_command_seconds": 300.09006349899937,
+    "original_stopped_whole_command_seconds": 112.23065044899704,
+    "both_producer_commands_seconds": 412.3207139479964,
+    "cached_review_whole_command_seconds": 3.013856472000043,
+    "initial_cached_numeric_review_whole_command_seconds": 1.535626193999633,
+    "initial_preflight_seconds": 7.283543200999702,
+    "continuation_preflight_seconds": 6.32427491099952,
+    "preparation_and_source_review_time_included": false,
+    "no_like_for_like_training_speedup_measured": true
+  },
+  "peak_rss_bytes": 5726277632,
+  "findings": {
+    "future_all_saved_noninitial_checkpoints_worse_than_initial": true,
+    "future_no_checkpoint_beats_prior": true,
+    "first_saved_deterioration_cursor": 4096,
+    "first_saved_deterioration_updates": 256,
+    "earlier_than_first_checkpoint_not_localized": true,
+    "mean_only_explanation_insufficient": {
+      "label": "P024576",
+      "model": {
+        "count": 86,
+        "up_count": 41,
+        "brier": 0.26466392774315534,
+        "log": 0.722698397730413,
+        "mean_up_probability": 0.47479780380749753
+      },
+      "decomposition": {
+        "observed_up_fraction": 0.47674418604651164,
+        "squared_mean_error": 3.7884038203495823e-06,
+        "centered_squared_error": 0.26466013933933497
+      },
+      "initial": {
+        "count": 86,
+        "up_count": 41,
+        "brier": 0.25217624585221293,
+        "log": 0.6975053267272607,
+        "mean_up_probability": 0.514413105702951
+      }
+    },
+    "recent16_descriptive_correlations": {
+      "state": {
+        "n": 8,
+        "pearson": 0.06216265213786032
+      },
+      "future": {
+        "n": 8,
+        "pearson": 0.3484175785701859
+      }
+    },
+    "exact_cause_isolated": false,
+    "direction_correction_qualified": false,
+    "later_generalization_measured": false
+  },
+  "trajectory": [
+    {
+      "label": "INITIAL",
+      "cursor": 0,
+      "optimizer_updates": 0,
+      "blocks": {
+        "all": {
+          "state": {
+            "model": {
+              "count": 75,
+              "up_count": 34,
+              "brier": 0.25460541015796584,
+              "log": 0.7023848081319856,
+              "mean_up_probability": 0.5324667999635628
+            },
+            "prior": {
+              "count": 75,
+              "up_count": 34,
+              "brier": 0.2520920936958483,
+              "log": 0.697333478245525,
+              "mean_up_probability": 0.5186775868957253
+            }
+          },
+          "future": {
+            "model": {
+              "count": 86,
+              "up_count": 41,
+              "brier": 0.25217624585221293,
+              "log": 0.6975053267272607,
+              "mean_up_probability": 0.514413105702951
+            },
+            "prior": {
+              "count": 86,
+              "up_count": 41,
+              "brier": 0.25064115047825425,
+              "log": 0.6944297135800547,
+              "mean_up_probability": 0.5111241709344304
+            }
+          }
+        },
+        "early": {
+          "state": {
+            "model": {
+              "count": 23,
+              "up_count": 10,
+              "brier": 0.2556191877182669,
+              "log": 0.704400551288939,
+              "mean_up_probability": 0.5465410588944943
+            },
+            "prior": {
+              "count": 23,
+              "up_count": 10,
+              "brier": 0.25278505923864625,
+              "log": 0.6987200545182944,
+              "mean_up_probability": 0.5186775868957252
+            }
+          },
+          "future": {
+            "model": {
+              "count": 32,
+              "up_count": 12,
+              "brier": 0.2579718141673229,
+              "log": 0.7091107631808273,
+              "mean_up_probability": 0.530973645513021
+            },
+            "prior": {
+              "count": 32,
+              "up_count": 12,
+              "brier": 0.252904789912586,
+              "log": 0.6989577396546303,
+              "mean_up_probability": 0.5111241709344304
+            }
+          }
+        },
+        "middle": {
+          "state": {
+            "model": {
+              "count": 35,
+              "up_count": 12,
+              "brier": 0.25979234272087554,
+              "log": 0.7127998318260754,
+              "mean_up_probability": 0.5332043211953774
+            },
+            "prior": {
+              "count": 35,
+              "up_count": 12,
+              "brier": 0.2562189509909039,
+              "log": 0.7055910351556797,
+              "mean_up_probability": 0.5186775868957253
+            }
+          },
+          "future": {
+            "model": {
+              "count": 32,
+              "up_count": 14,
+              "brier": 0.2490234903999399,
+              "log": 0.6911929753588345,
+              "mean_up_probability": 0.5095032842605521
+            },
+            "prior": {
+              "count": 32,
+              "up_count": 14,
+              "brier": 0.25151426854578224,
+              "log": 0.6961762379231053,
+              "mean_up_probability": 0.5111241709344304
+            }
+          }
+        },
+        "late": {
+          "state": {
+            "model": {
+              "count": 17,
+              "up_count": 12,
+              "brier": 0.24255484994686213,
+              "log": 0.6782149303729813,
+              "mean_up_probability": 0.5119067294620966
+            },
+            "prior": {
+              "count": 17,
+              "up_count": 12,
+              "brier": 0.24265808117753696,
+              "log": 0.6784566696496948,
+              "mean_up_probability": 0.5186775868957252
+            }
+          },
+          "future": {
+            "model": {
+              "count": 22,
+              "up_count": 15,
+              "brier": 0.24833215441535958,
+              "log": 0.6898062938761473,
+              "mean_up_probability": 0.4974666062590654
+            },
+            "prior": {
+              "count": 22,
+              "up_count": 15,
+              "brier": 0.2460785941119128,
+              "log": 0.6853030947907798,
+              "mean_up_probability": 0.5111241709344303
+            }
+          }
+        }
+      },
+      "mean_error_decomposition": {
+        "state": {
+          "observed_up_fraction": 0.4533333333333333,
+          "squared_mean_error": 0.006262105540917649,
+          "centered_squared_error": 0.24834330461704818
+        },
+        "future": {
+          "observed_up_fraction": 0.47674418604651164,
+          "squared_mean_error": 0.0014189475080832801,
+          "centered_squared_error": 0.25075729834412963
+        }
+      }
+    },
+    {
+      "label": "P004096",
+      "cursor": 4096,
+      "optimizer_updates": 256,
+      "blocks": {
+        "all": {
+          "state": {
+            "model": {
+              "count": 75,
+              "up_count": 34,
+              "brier": 0.25815287838524287,
+              "log": 0.7096141003566121,
+              "mean_up_probability": 0.5604631155343356
+            },
+            "prior": {
+              "count": 75,
+              "up_count": 34,
+              "brier": 0.2520920936958483,
+              "log": 0.697333478245525,
+              "mean_up_probability": 0.5186775868957253
+            }
+          },
+          "future": {
+            "model": {
+              "count": 86,
+              "up_count": 41,
+              "brier": 0.25441956496543666,
+              "log": 0.7020480609546693,
+              "mean_up_probability": 0.5398550644058503
+            },
+            "prior": {
+              "count": 86,
+              "up_count": 41,
+              "brier": 0.25064115047825425,
+              "log": 0.6944297135800547,
+              "mean_up_probability": 0.5111241709344304
+            }
+          }
+        },
+        "early": {
+          "state": {
+            "model": {
+              "count": 23,
+              "up_count": 10,
+              "brier": 0.2606286784778685,
+              "log": 0.7145307959867364,
+              "mean_up_probability": 0.5729232864856819
+            },
+            "prior": {
+              "count": 23,
+              "up_count": 10,
+              "brier": 0.25278505923864625,
+              "log": 0.6987200545182944,
+              "mean_up_probability": 0.5186775868957252
+            }
+          },
+          "future": {
+            "model": {
+              "count": 32,
+              "up_count": 12,
+              "brier": 0.2676449313663415,
+              "log": 0.7286379907880214,
+              "mean_up_probability": 0.5607841442261381
+            },
+            "prior": {
+              "count": 32,
+              "up_count": 12,
+              "brier": 0.252904789912586,
+              "log": 0.6989577396546303,
+              "mean_up_probability": 0.5111241709344304
+            }
+          }
+        },
+        "middle": {
+          "state": {
+            "model": {
+              "count": 35,
+              "up_count": 12,
+              "brier": 0.2699105929478163,
+              "log": 0.733344723108003,
+              "mean_up_probability": 0.5613087403440846
+            },
+            "prior": {
+              "count": 35,
+              "up_count": 12,
+              "brier": 0.2562189509909039,
+              "log": 0.7055910351556797,
+              "mean_up_probability": 0.5186775868957253
+            }
+          },
+          "future": {
+            "model": {
+              "count": 32,
+              "up_count": 14,
+              "brier": 0.2506687413969927,
+              "log": 0.6944752318702689,
+              "mean_up_probability": 0.5322081744812761
+            },
+            "prior": {
+              "count": 32,
+              "up_count": 14,
+              "brier": 0.25151426854578224,
+              "log": 0.6961762379231053,
+              "mean_up_probability": 0.5111241709344304
+            }
+          }
+        },
+        "late": {
+          "state": {
+            "model": {
+              "count": 17,
+              "up_count": 12,
+              "brier": 0.23059620710168663,
+              "log": 0.6541049358982864,
+              "mean_up_probability": 0.5418642449330303
+            },
+            "prior": {
+              "count": 17,
+              "up_count": 12,
+              "brier": 0.24265808117753696,
+              "log": 0.6784566696496948,
+              "mean_up_probability": 0.5186775868957252
+            }
+          },
+          "future": {
+            "model": {
+              "count": 22,
+              "up_count": 15,
+              "brier": 0.24063841175458434,
+              "log": 0.6743868235016488,
+              "mean_up_probability": 0.5205355154666306
+            },
+            "prior": {
+              "count": 22,
+              "up_count": 15,
+              "brier": 0.2460785941119128,
+              "log": 0.6853030947907798,
+              "mean_up_probability": 0.5111241709344303
+            }
+          }
+        }
+      },
+      "mean_error_decomposition": {
+        "state": {
+          "observed_up_fraction": 0.4533333333333333,
+          "squared_mean_error": 0.011476790234434184,
+          "centered_squared_error": 0.2466760881508087
+        },
+        "future": {
+          "observed_up_fraction": 0.47674418604651164,
+          "squared_mean_error": 0.003982982967287239,
+          "centered_squared_error": 0.25043658199814944
+        }
+      }
+    },
+    {
+      "label": "P008192",
+      "cursor": 8192,
+      "optimizer_updates": 512,
+      "blocks": {
+        "all": {
+          "state": {
+            "model": {
+              "count": 75,
+              "up_count": 34,
+              "brier": 0.258375375040389,
+              "log": 0.7100482437813649,
+              "mean_up_probability": 0.5669971641699633
+            },
+            "prior": {
+              "count": 75,
+              "up_count": 34,
+              "brier": 0.2520920936958483,
+              "log": 0.697333478245525,
+              "mean_up_probability": 0.5186775868957253
+            }
+          },
+          "future": {
+            "model": {
+              "count": 86,
+              "up_count": 41,
+              "brier": 0.25530280594037735,
+              "log": 0.703783475775985,
+              "mean_up_probability": 0.501819203332001
+            },
+            "prior": {
+              "count": 86,
+              "up_count": 41,
+              "brier": 0.25064115047825425,
+              "log": 0.6944297135800547,
+              "mean_up_probability": 0.5111241709344304
+            }
+          }
+        },
+        "early": {
+          "state": {
+            "model": {
+              "count": 23,
+              "up_count": 10,
+              "brier": 0.2596028232810278,
+              "log": 0.7124858659114846,
+              "mean_up_probability": 0.5730546351811967
+            },
+            "prior": {
+              "count": 23,
+              "up_count": 10,
+              "brier": 0.25278505923864625,
+              "log": 0.6987200545182944,
+              "mean_up_probability": 0.5186775868957252
+            }
+          },
+          "future": {
+            "model": {
+              "count": 32,
+              "up_count": 12,
+              "brier": 0.26137328216609756,
+              "log": 0.7159698102036565,
+              "mean_up_probability": 0.5434361319311439
+            },
+            "prior": {
+              "count": 32,
+              "up_count": 12,
+              "brier": 0.252904789912586,
+              "log": 0.6989577396546303,
+              "mean_up_probability": 0.5111241709344304
+            }
+          }
+        },
+        "middle": {
+          "state": {
+            "model": {
+              "count": 35,
+              "up_count": 12,
+              "brier": 0.2737543071923924,
+              "log": 0.7410195727406057,
+              "mean_up_probability": 0.5689387284105903
+            },
+            "prior": {
+              "count": 35,
+              "up_count": 12,
+              "brier": 0.2562189509909039,
+              "log": 0.7055910351556797,
+              "mean_up_probability": 0.5186775868957253
+            }
+          },
+          "future": {
+            "model": {
+              "count": 32,
+              "up_count": 14,
+              "brier": 0.24528695117706734,
+              "log": 0.6837096347866682,
+              "mean_up_probability": 0.4833268113986436
+            },
+            "prior": {
+              "count": 32,
+              "up_count": 14,
+              "brier": 0.25151426854578224,
+              "log": 0.6961762379231053,
+              "mean_up_probability": 0.5111241709344304
+            }
+          }
+        },
+        "late": {
+          "state": {
+            "model": {
+              "count": 17,
+              "up_count": 12,
+              "brier": 0.22505220240187068,
+              "log": 0.6429857836304124,
+              "mean_up_probability": 0.5548044240711208
+            },
+            "prior": {
+              "count": 17,
+              "up_count": 12,
+              "brier": 0.24265808117753696,
+              "log": 0.6784566696496948,
+              "mean_up_probability": 0.5186775868957252
+            }
+          },
+          "future": {
+            "model": {
+              "count": 22,
+              "up_count": 15,
+              "brier": 0.26104153835868965,
+              "log": 0.7152562125929234,
+              "mean_up_probability": 0.4681835136363128
+            },
+            "prior": {
+              "count": 22,
+              "up_count": 15,
+              "brier": 0.2460785941119128,
+              "log": 0.6853030947907798,
+              "mean_up_probability": 0.5111241709344303
+            }
+          }
+        }
+      },
+      "mean_error_decomposition": {
+        "state": {
+          "observed_up_fraction": 0.4533333333333333,
+          "squared_mean_error": 0.01291946644045803,
+          "centered_squared_error": 0.24545590859993097
+        },
+        "future": {
+          "observed_up_fraction": 0.47674418604651164,
+          "squared_mean_error": 0.0006287564918675915,
+          "centered_squared_error": 0.25467404944850974
+        }
+      }
+    },
+    {
+      "label": "P012288",
+      "cursor": 12288,
+      "optimizer_updates": 768,
+      "blocks": {
+        "all": {
+          "state": {
+            "model": {
+              "count": 75,
+              "up_count": 34,
+              "brier": 0.2547685656985489,
+              "log": 0.70275055845627,
+              "mean_up_probability": 0.5541878120621971
+            },
+            "prior": {
+              "count": 75,
+              "up_count": 34,
+              "brier": 0.2520920936958483,
+              "log": 0.697333478245525,
+              "mean_up_probability": 0.5186775868957253
+            }
+          },
+          "future": {
+            "model": {
+              "count": 86,
+              "up_count": 41,
+              "brier": 0.2526524289617343,
+              "log": 0.6984465454800272,
+              "mean_up_probability": 0.49081050357129
+            },
+            "prior": {
+              "count": 86,
+              "up_count": 41,
+              "brier": 0.25064115047825425,
+              "log": 0.6944297135800547,
+              "mean_up_probability": 0.5111241709344304
+            }
+          }
+        },
+        "early": {
+          "state": {
+            "model": {
+              "count": 23,
+              "up_count": 10,
+              "brier": 0.2530080645325326,
+              "log": 0.6991376413007895,
+              "mean_up_probability": 0.5548958271790836
+            },
+            "prior": {
+              "count": 23,
+              "up_count": 10,
+              "brier": 0.25278505923864625,
+              "log": 0.6987200545182944,
+              "mean_up_probability": 0.5186775868957252
+            }
+          },
+          "future": {
+            "model": {
+              "count": 32,
+              "up_count": 12,
+              "brier": 0.2562084201446664,
+              "log": 0.7055844896414794,
+              "mean_up_probability": 0.5301263246839367
+            },
+            "prior": {
+              "count": 32,
+              "up_count": 12,
+              "brier": 0.252904789912586,
+              "log": 0.6989577396546303,
+              "mean_up_probability": 0.5111241709344304
+            }
+          }
+        },
+        "middle": {
+          "state": {
+            "model": {
+              "count": 35,
+              "up_count": 12,
+              "brier": 0.26879349146559683,
+              "log": 0.7309713196191382,
+              "mean_up_probability": 0.5577148806344504
+            },
+            "prior": {
+              "count": 35,
+              "up_count": 12,
+              "brier": 0.2562189509909039,
+              "log": 0.7055910351556797,
+              "mean_up_probability": 0.5186775868957253
+            }
+          },
+          "future": {
+            "model": {
+              "count": 32,
+              "up_count": 14,
+              "brier": 0.24346884368399155,
+              "log": 0.6800464692970101,
+              "mean_up_probability": 0.47043265937603507
+            },
+            "prior": {
+              "count": 32,
+              "up_count": 14,
+              "brier": 0.25151426854578224,
+              "log": 0.6961762379231053,
+              "mean_up_probability": 0.5111241709344304
+            }
+          }
+        },
+        "late": {
+          "state": {
+            "model": {
+              "count": 17,
+              "up_count": 12,
+              "brier": 0.22827557304982524,
+              "log": 0.6495370557430744,
+              "mean_up_probability": 0.5459682974905944
+            },
+            "prior": {
+              "count": 17,
+              "up_count": 12,
+              "brier": 0.24265808117753696,
+              "log": 0.6784566696496948,
+              "mean_up_probability": 0.5186775868957252
+            }
+          },
+          "future": {
+            "model": {
+              "count": 22,
+              "up_count": 15,
+              "brier": 0.260838020372368,
+              "log": 0.7148278284204852,
+              "mean_up_probability": 0.46326435532781135
+            },
+            "prior": {
+              "count": 22,
+              "up_count": 15,
+              "brier": 0.2460785941119128,
+              "log": 0.6853030947907798,
+              "mean_up_probability": 0.5111241709344303
+            }
+          }
+        }
+      },
+      "mean_error_decomposition": {
+        "state": {
+          "observed_up_fraction": 0.4533333333333333,
+          "squared_mean_error": 0.010171625879670847,
+          "centered_squared_error": 0.24459693981887803
+        },
+        "future": {
+          "observed_up_fraction": 0.47674418604651164,
+          "squared_mean_error": 0.00019786128870788743,
+          "centered_squared_error": 0.2524545676730264
+        }
+      }
+    },
+    {
+      "label": "P016384",
+      "cursor": 16384,
+      "optimizer_updates": 1024,
+      "blocks": {
+        "all": {
+          "state": {
+            "model": {
+              "count": 75,
+              "up_count": 34,
+              "brier": 0.24913204783338913,
+              "log": 0.6913582390137949,
+              "mean_up_probability": 0.5111340851342173
+            },
+            "prior": {
+              "count": 75,
+              "up_count": 34,
+              "brier": 0.2520920936958483,
+              "log": 0.697333478245525,
+              "mean_up_probability": 0.5186775868957253
+            }
+          },
+          "future": {
+            "model": {
+              "count": 86,
+              "up_count": 41,
+              "brier": 0.2562241198769316,
+              "log": 0.7056581898551075,
+              "mean_up_probability": 0.4793511678164077
+            },
+            "prior": {
+              "count": 86,
+              "up_count": 41,
+              "brier": 0.25064115047825425,
+              "log": 0.6944297135800547,
+              "mean_up_probability": 0.5111241709344304
+            }
+          }
+        },
+        "early": {
+          "state": {
+            "model": {
+              "count": 23,
+              "up_count": 10,
+              "brier": 0.2461278678004796,
+              "log": 0.685255084101146,
+              "mean_up_probability": 0.5385711144244785
+            },
+            "prior": {
+              "count": 23,
+              "up_count": 10,
+              "brier": 0.25278505923864625,
+              "log": 0.6987200545182944,
+              "mean_up_probability": 0.5186775868957252
+            }
+          },
+          "future": {
+            "model": {
+              "count": 32,
+              "up_count": 12,
+              "brier": 0.2552028579832506,
+              "log": 0.7035531276231969,
+              "mean_up_probability": 0.5299470767872738
+            },
+            "prior": {
+              "count": 32,
+              "up_count": 12,
+              "brier": 0.252904789912586,
+              "log": 0.6989577396546303,
+              "mean_up_probability": 0.5111241709344304
+            }
+          }
+        },
+        "middle": {
+          "state": {
+            "model": {
+              "count": 35,
+              "up_count": 12,
+              "brier": 0.24983469823834145,
+              "log": 0.6928189843018353,
+              "mean_up_probability": 0.5061700060852597
+            },
+            "prior": {
+              "count": 35,
+              "up_count": 12,
+              "brier": 0.2562189509909039,
+              "log": 0.7055910351556797,
+              "mean_up_probability": 0.5186775868957253
+            }
+          },
+          "future": {
+            "model": {
+              "count": 32,
+              "up_count": 14,
+              "brier": 0.2430980183269858,
+              "log": 0.679269253912671,
+              "mean_up_probability": 0.4614930881032878
+            },
+            "prior": {
+              "count": 32,
+              "up_count": 14,
+              "brier": 0.25151426854578224,
+              "log": 0.6961762379231053,
+              "mean_up_probability": 0.5111241709344304
+            }
+          }
+        },
+        "late": {
+          "state": {
+            "model": {
+              "count": 17,
+              "up_count": 12,
+              "brier": 0.2517498935147767,
+              "log": 0.6966080318320008,
+              "mean_up_probability": 0.48423356119524685
+            },
+            "prior": {
+              "count": 17,
+              "up_count": 12,
+              "brier": 0.24265808117753696,
+              "log": 0.6784566696496948,
+              "mean_up_probability": 0.5186775868957252
+            }
+          },
+          "future": {
+            "model": {
+              "count": 22,
+              "up_count": 15,
+              "brier": 0.27680210306766173,
+              "log": 0.7471040053814307,
+              "mean_up_probability": 0.43173250707786753
+            },
+            "prior": {
+              "count": 22,
+              "up_count": 15,
+              "brier": 0.2460785941119128,
+              "log": 0.6853030947907798,
+              "mean_up_probability": 0.5111241709344303
+            }
+          }
+        }
+      },
+      "mean_error_decomposition": {
+        "state": {
+          "observed_up_fraction": 0.4533333333333333,
+          "squared_mean_error": 0.003340926908747396,
+          "centered_squared_error": 0.24579112092464173
+        },
+        "future": {
+          "observed_up_fraction": 0.47674418604651164,
+          "squared_mean_error": 6.79635394857031e-06,
+          "centered_squared_error": 0.25621732352298304
+        }
+      }
+    },
+    {
+      "label": "P020480",
+      "cursor": 20480,
+      "optimizer_updates": 1280,
+      "blocks": {
+        "all": {
+          "state": {
+            "model": {
+              "count": 75,
+              "up_count": 34,
+              "brier": 0.2518810743905151,
+              "log": 0.6969424343650134,
+              "mean_up_probability": 0.5348047116840839
+            },
+            "prior": {
+              "count": 75,
+              "up_count": 34,
+              "brier": 0.2520920936958483,
+              "log": 0.697333478245525,
+              "mean_up_probability": 0.5186775868957253
+            }
+          },
+          "future": {
+            "model": {
+              "count": 86,
+              "up_count": 41,
+              "brier": 0.2558912244931357,
+              "log": 0.7050412394177837,
+              "mean_up_probability": 0.5259866071247095
+            },
+            "prior": {
+              "count": 86,
+              "up_count": 41,
+              "brier": 0.25064115047825425,
+              "log": 0.6944297135800547,
+              "mean_up_probability": 0.5111241709344304
+            }
+          }
+        },
+        "early": {
+          "state": {
+            "model": {
+              "count": 23,
+              "up_count": 10,
+              "brier": 0.2596896129371455,
+              "log": 0.7126272299323458,
+              "mean_up_probability": 0.568978108286268
+            },
+            "prior": {
+              "count": 23,
+              "up_count": 10,
+              "brier": 0.25278505923864625,
+              "log": 0.6987200545182944,
+              "mean_up_probability": 0.5186775868957252
+            }
+          },
+          "future": {
+            "model": {
+              "count": 32,
+              "up_count": 12,
+              "brier": 0.27182711385009106,
+              "log": 0.737143372082315,
+              "mean_up_probability": 0.5732735563437709
+            },
+            "prior": {
+              "count": 32,
+              "up_count": 12,
+              "brier": 0.252904789912586,
+              "log": 0.6989577396546303,
+              "mean_up_probability": 0.5111241709344304
+            }
+          }
+        },
+        "middle": {
+          "state": {
+            "model": {
+              "count": 35,
+              "up_count": 12,
+              "brier": 0.2534680641591518,
+              "log": 0.7001247003854874,
+              "mean_up_probability": 0.5229882520706796
+            },
+            "prior": {
+              "count": 35,
+              "up_count": 12,
+              "brier": 0.2562189509909039,
+              "log": 0.7055910351556797,
+              "mean_up_probability": 0.5186775868957253
+            }
+          },
+          "future": {
+            "model": {
+              "count": 32,
+              "up_count": 14,
+              "brier": 0.24571407012556185,
+              "log": 0.6845682778979663,
+              "mean_up_probability": 0.507600078094663
+            },
+            "prior": {
+              "count": 32,
+              "up_count": 14,
+              "brier": 0.25151426854578224,
+              "log": 0.6961762379231053,
+              "mean_up_probability": 0.5111241709344304
+            }
+          }
+        },
+        "late": {
+          "state": {
+            "model": {
+              "count": 17,
+              "up_count": 12,
+              "brier": 0.2380492491861162,
+              "log": 0.6691701044376468,
+              "mean_up_probability": 0.51289812136755
+            },
+            "prior": {
+              "count": 17,
+              "up_count": 12,
+              "brier": 0.24265808117753696,
+              "log": 0.6784566696496948,
+              "mean_up_probability": 0.5186775868957252
+            }
+          },
+          "future": {
+            "model": {
+              "count": 22,
+              "up_count": 15,
+              "brier": 0.24751488269039942,
+              "log": 0.6881260813891097,
+              "mean_up_probability": 0.4839496323043242
+            },
+            "prior": {
+              "count": 22,
+              "up_count": 15,
+              "brier": 0.2460785941119128,
+              "log": 0.6853030947907798,
+              "mean_up_probability": 0.5111241709344303
+            }
+          }
+        }
+      },
+      "mean_error_decomposition": {
+        "state": {
+          "observed_up_fraction": 0.4533333333333333,
+          "squared_mean_error": 0.006637585490371159,
+          "centered_squared_error": 0.24524348890014394
+        },
+        "future": {
+          "observed_up_fraction": 0.47674418604651164,
+          "squared_mean_error": 0.002424816033642541,
+          "centered_squared_error": 0.2534664084594932
+        }
+      }
+    },
+    {
+      "label": "P024576",
+      "cursor": 24576,
+      "optimizer_updates": 1536,
+      "blocks": {
+        "all": {
+          "state": {
+            "model": {
+              "count": 75,
+              "up_count": 34,
+              "brier": 0.24937024134358765,
+              "log": 0.691787911266045,
+              "mean_up_probability": 0.49307658664248116
+            },
+            "prior": {
+              "count": 75,
+              "up_count": 34,
+              "brier": 0.2520920936958483,
+              "log": 0.697333478245525,
+              "mean_up_probability": 0.5186775868957253
+            }
+          },
+          "future": {
+            "model": {
+              "count": 86,
+              "up_count": 41,
+              "brier": 0.26466392774315534,
+              "log": 0.722698397730413,
+              "mean_up_probability": 0.47479780380749753
+            },
+            "prior": {
+              "count": 86,
+              "up_count": 41,
+              "brier": 0.25064115047825425,
+              "log": 0.6944297135800547,
+              "mean_up_probability": 0.5111241709344304
+            }
+          }
+        },
+        "early": {
+          "state": {
+            "model": {
+              "count": 23,
+              "up_count": 10,
+              "brier": 0.2625829169987878,
+              "log": 0.7185086382585277,
+              "mean_up_probability": 0.5778392054853895
+            },
+            "prior": {
+              "count": 23,
+              "up_count": 10,
+              "brier": 0.25278505923864625,
+              "log": 0.6987200545182944,
+              "mean_up_probability": 0.5186775868957252
+            }
+          },
+          "future": {
+            "model": {
+              "count": 32,
+              "up_count": 12,
+              "brier": 0.27714830285350156,
+              "log": 0.7480579097977782,
+              "mean_up_probability": 0.5866789082570276
+            },
+            "prior": {
+              "count": 32,
+              "up_count": 12,
+              "brier": 0.252904789912586,
+              "log": 0.6989577396546303,
+              "mean_up_probability": 0.5111241709344304
+            }
+          }
+        },
+        "middle": {
+          "state": {
+            "model": {
+              "count": 35,
+              "up_count": 12,
+              "brier": 0.2358582519786801,
+              "log": 0.6645556801351475,
+              "mean_up_probability": 0.4540384159584138
+            },
+            "prior": {
+              "count": 35,
+              "up_count": 12,
+              "brier": 0.2562189509909039,
+              "log": 0.7055910351556797,
+              "mean_up_probability": 0.5186775868957253
+            }
+          },
+          "future": {
+            "model": {
+              "count": 32,
+              "up_count": 14,
+              "brier": 0.24148520274373653,
+              "log": 0.6757900774716928,
+              "mean_up_probability": 0.40761962957725695
+            },
+            "prior": {
+              "count": 32,
+              "up_count": 14,
+              "brier": 0.25151426854578224,
+              "log": 0.6961762379231053,
+              "mean_up_probability": 0.5111241709344304
+            }
+          }
+        },
+        "late": {
+          "state": {
+            "model": {
+              "count": 17,
+              "up_count": 12,
+              "brier": 0.2593130700319501,
+              "log": 0.7117026976633571,
+              "mean_up_probability": 0.4587704537339791
+            },
+            "prior": {
+              "count": 17,
+              "up_count": 12,
+              "brier": 0.24265808117753696,
+              "log": 0.6784566696496948,
+              "mean_up_probability": 0.5186775868957252
+            }
+          },
+          "future": {
+            "model": {
+              "count": 22,
+              "up_count": 15,
+              "brier": 0.28021934576362484,
+              "log": 0.7540421187360201,
+              "mean_up_probability": 0.409775359852167
+            },
+            "prior": {
+              "count": 22,
+              "up_count": 15,
+              "brier": 0.2460785941119128,
+              "log": 0.6853030947907798,
+              "mean_up_probability": 0.5111241709344303
+            }
+          }
+        }
+      },
+      "mean_error_decomposition": {
+        "state": {
+          "observed_up_fraction": 0.4533333333333333,
+          "squared_mean_error": 0.0015795261835950918,
+          "centered_squared_error": 0.24779071515999257
+        },
+        "future": {
+          "observed_up_fraction": 0.47674418604651164,
+          "squared_mean_error": 3.7884038203495823e-06,
+          "centered_squared_error": 0.26466013933933497
+        }
+      }
+    },
+    {
+      "label": "P028672",
+      "cursor": 28672,
+      "optimizer_updates": 1792,
+      "blocks": {
+        "all": {
+          "state": {
+            "model": {
+              "count": 75,
+              "up_count": 34,
+              "brier": 0.2582828261521029,
+              "log": 0.709913276508511,
+              "mean_up_probability": 0.5546577905759694
+            },
+            "prior": {
+              "count": 75,
+              "up_count": 34,
+              "brier": 0.2520920936958483,
+              "log": 0.697333478245525,
+              "mean_up_probability": 0.5186775868957253
+            }
+          },
+          "future": {
+            "model": {
+              "count": 86,
+              "up_count": 41,
+              "brier": 0.26474758949935834,
+              "log": 0.7232235405934471,
+              "mean_up_probability": 0.5766516525283386
+            },
+            "prior": {
+              "count": 86,
+              "up_count": 41,
+              "brier": 0.25064115047825425,
+              "log": 0.6944297135800547,
+              "mean_up_probability": 0.5111241709344304
+            }
+          }
+        },
+        "early": {
+          "state": {
+            "model": {
+              "count": 23,
+              "up_count": 10,
+              "brier": 0.2684706258478114,
+              "log": 0.7305766247945075,
+              "mean_up_probability": 0.5975729106363371
+            },
+            "prior": {
+              "count": 23,
+              "up_count": 10,
+              "brier": 0.25278505923864625,
+              "log": 0.6987200545182944,
+              "mean_up_probability": 0.5186775868957252
+            }
+          },
+          "future": {
+            "model": {
+              "count": 32,
+              "up_count": 12,
+              "brier": 0.2898175504548547,
+              "log": 0.7744065828917235,
+              "mean_up_probability": 0.6144451722806741
+            },
+            "prior": {
+              "count": 32,
+              "up_count": 12,
+              "brier": 0.252904789912586,
+              "log": 0.6989577396546303,
+              "mean_up_probability": 0.5111241709344304
+            }
+          }
+        },
+        "middle": {
+          "state": {
+            "model": {
+              "count": 35,
+              "up_count": 12,
+              "brier": 0.2622991997105505,
+              "log": 0.718009173403297,
+              "mean_up_probability": 0.5470503469066964
+            },
+            "prior": {
+              "count": 35,
+              "up_count": 12,
+              "brier": 0.2562189509909039,
+              "log": 0.7055910351556797,
+              "mean_up_probability": 0.5186775868957253
+            }
+          },
+          "future": {
+            "model": {
+              "count": 32,
+              "up_count": 14,
+              "brier": 0.25815408602376144,
+              "log": 0.7095325605698835,
+              "mean_up_probability": 0.5744012797668069
+            },
+            "prior": {
+              "count": 32,
+              "up_count": 14,
+              "brier": 0.25151426854578224,
+              "log": 0.6961762379231053,
+              "mean_up_probability": 0.5111241709344304
+            }
+          }
+        },
+        "late": {
+          "state": {
+            "model": {
+              "count": 17,
+              "up_count": 12,
+              "brier": 0.23623032806110503,
+              "log": 0.665288958749957,
+              "mean_up_probability": 0.5122585415780927
+            },
+            "prior": {
+              "count": 17,
+              "up_count": 12,
+              "brier": 0.24265808117753696,
+              "log": 0.6784566696496948,
+              "mean_up_probability": 0.5186775868957252
+            }
+          },
+          "future": {
+            "model": {
+              "count": 22,
+              "up_count": 15,
+              "brier": 0.23787274225586835,
+              "log": 0.6686896318302282,
+              "mean_up_probability": 0.524952529632624
+            },
+            "prior": {
+              "count": 22,
+              "up_count": 15,
+              "brier": 0.2460785941119128,
+              "log": 0.6853030947907798,
+              "mean_up_probability": 0.5111241709344303
+            }
+          }
+        }
+      },
+      "mean_error_decomposition": {
+        "state": {
+          "observed_up_fraction": 0.4533333333333333,
+          "squared_mean_error": 0.010266645635514793,
+          "centered_squared_error": 0.2480161805165881
+        },
+        "future": {
+          "observed_up_fraction": 0.47674418604651164,
+          "squared_mean_error": 0.009981501858817379,
+          "centered_squared_error": 0.254766087640541
+        }
+      }
+    },
+    {
+      "label": "FINAL",
+      "cursor": 29574,
+      "optimizer_updates": 1849,
+      "blocks": {
+        "all": {
+          "state": {
+            "model": {
+              "count": 75,
+              "up_count": 34,
+              "brier": 0.26463155517157283,
+              "log": 0.7229876646900958,
+              "mean_up_probability": 0.5819216998038539
+            },
+            "prior": {
+              "count": 75,
+              "up_count": 34,
+              "brier": 0.2520920936958483,
+              "log": 0.697333478245525,
+              "mean_up_probability": 0.5186775868957253
+            }
+          },
+          "future": {
+            "model": {
+              "count": 86,
+              "up_count": 41,
+              "brier": 0.26627611694581693,
+              "log": 0.7264129337105286,
+              "mean_up_probability": 0.5822294510676357
+            },
+            "prior": {
+              "count": 86,
+              "up_count": 41,
+              "brier": 0.25064115047825425,
+              "log": 0.6944297135800547,
+              "mean_up_probability": 0.5111241709344304
+            }
+          }
+        },
+        "early": {
+          "state": {
+            "model": {
+              "count": 23,
+              "up_count": 10,
+              "brier": 0.2750436366974999,
+              "log": 0.7442582720935442,
+              "mean_up_probability": 0.6176428277953295
+            },
+            "prior": {
+              "count": 23,
+              "up_count": 10,
+              "brier": 0.25278505923864625,
+              "log": 0.6987200545182944,
+              "mean_up_probability": 0.5186775868957252
+            }
+          },
+          "future": {
+            "model": {
+              "count": 32,
+              "up_count": 12,
+              "brier": 0.29260940463392815,
+              "log": 0.7803169898348523,
+              "mean_up_probability": 0.6208689265620746
+            },
+            "prior": {
+              "count": 32,
+              "up_count": 12,
+              "brier": 0.252904789912586,
+              "log": 0.6989577396546303,
+              "mean_up_probability": 0.5111241709344304
+            }
+          }
+        },
+        "middle": {
+          "state": {
+            "model": {
+              "count": 35,
+              "up_count": 12,
+              "brier": 0.27550305522639307,
+              "log": 0.7449693181121554,
+              "mean_up_probability": 0.5799597743773298
+            },
+            "prior": {
+              "count": 35,
+              "up_count": 12,
+              "brier": 0.2562189509909039,
+              "log": 0.7055910351556797,
+              "mean_up_probability": 0.5186775868957253
+            }
+          },
+          "future": {
+            "model": {
+              "count": 32,
+              "up_count": 14,
+              "brier": 0.2592061502967177,
+              "log": 0.7116677893603651,
+              "mean_up_probability": 0.5829866100588297
+            },
+            "prior": {
+              "count": 32,
+              "up_count": 14,
+              "brier": 0.25151426854578224,
+              "log": 0.6961762379231053,
+              "mean_up_probability": 0.5111241709344304
+            }
+          }
+        },
+        "late": {
+          "state": {
+            "model": {
+              "count": 17,
+              "up_count": 12,
+              "brier": 0.2281621212295121,
+              "log": 0.6489534388047193,
+              "mean_up_probability": 0.5376323731052894
+            },
+            "prior": {
+              "count": 17,
+              "up_count": 12,
+              "brier": 0.24265808117753696,
+              "log": 0.6784566696496948,
+              "mean_up_probability": 0.5186775868957252
+            }
+          },
+          "future": {
+            "model": {
+              "count": 22,
+              "up_count": 15,
+              "brier": 0.23825674088907214,
+              "log": 0.6694545165844772,
+              "mean_up_probability": 0.5249252554521697
+            },
+            "prior": {
+              "count": 22,
+              "up_count": 15,
+              "brier": 0.2460785941119128,
+              "log": 0.6853030947907798,
+              "mean_up_probability": 0.5111241709344303
+            }
+          }
+        }
+      },
+      "mean_error_decomposition": {
+        "state": {
+          "observed_up_fraction": 0.4533333333333333,
+          "squared_mean_error": 0.0165349679915569,
+          "centered_squared_error": 0.24809658718001593
+        },
+        "future": {
+          "observed_up_fraction": 0.47674418604651164,
+          "squared_mean_error": 0.011127141136576776,
+          "centered_squared_error": 0.2551489758092402
+        }
+      }
+    }
+  ],
+  "derivation": "For fixed labels: Brier = squared(mean predicted probability - observed up fraction) + mean centered squared error. Computed from independently verified scores, no new predictions or fitting.",
+  "no_checkpoint_selected": true,
+  "test_data_used": false,
+  "production_code_changed": false,
+  "limits": [
+    "192 reused TRAIN observations, only75S/86Fknown-side labels; no population-wide or later generalization conclusion from this panel.",
+    "First saved intermediate is256updates; the precise first harmful update is not localized.",
+    "Mean bias is insufficient to explain deterioration; centered error mixes probability dispersion and alignment, not a direct standalone ranking diagnosis.",
+    "Last16batch Pearson over8points is descriptive and neither proves nor rules out a broader chronological-regime mechanism.",
+    "Original001 remains failed under its hidden absolute criterion;002 uses explicit output validation and never transplants representations.",
+    "Technical verification does not establish directional edge or profit."
+  ]
+}

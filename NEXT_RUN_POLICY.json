@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T21:17:40.683341+00:00",
-  "status": "TA_M5_FULLPASS_TRAJECTORY_CONTINUATION_ADMITTED",
+  "observed_utc": "2026-11-09T21:25:39.221787+00:00",
+  "status": "TA_M5_FULLPASS_TRAJECTORY_COMPLETE_NO_CORRECTION_QUALIFIED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Execute exactly one newly admitted002 remaining8checkpoint/96forward trajectory; reuse INITIAL. Preserve001 failure, independently verify all9 cached scores and close execution. No new fit, later scoring or checkpoint selection.",
+  "next_action": "Use only saved trajectory predictions/representations and bound head weights to isolate the centered M5F error increase, before any new fit or permanent model change. First saved256update state already worsensF; P024576 has almost matching mean yet much worseBrier. Do not select a checkpoint, repeat nine forwards, or infer cause from last16labelmix. No new model run admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -66323,7 +66323,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "Cached CPU/CUDA diagnostic bounds INITIAL M5 probability differences below3.113e-7; new output gate for weights-only trajectory, original hidden gate remains failed. INITIAL reused; eight remaining states admitted, no fit.",
+    "latest_progress": "Nine original full-pass states independently scored on fixed192TRAIN: all8noninitial F states worse thanINITIAL andprior; near-correct mean atP024576 still worse centered error. Last16mix correlations S.062/F.348 over8points not causal. No correction or later improvement qualified.",
     "user_clarification_20261109": {
       "scope": "Correct direction for short sniper and longer long/shorttrends; separate forecasts and targets at M5 cadence.",
       "existing_future_horizons_minutes": [
@@ -71052,8 +71052,8 @@
     }
   },
   "market_state_ta_m5_fullpass_trajectory_20261109_002": {
-    "status": "ADMITTED",
-    "execution_authorized": true,
+    "status": "COMPLETE_CONSUMED_INDEPENDENTLY_VERIFIED_NO_DIRECTION_CORRECTION",
+    "execution_authorized": false,
     "training_authorized": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_002/PLAN.json",
@@ -71072,9 +71072,9 @@
       "sha256": "ba5b139beeeccf14bfc80bf6a9994c67f2b9d7473ab3f0f219f9cc7e9e676e7f"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "max_forwards": 96,
     "max_checkpoint_loads": 8,
@@ -71160,6 +71160,86 @@
     },
     "rationale": "New output-focused cross-device validation for weights-only trajectory, not relaxation of canonical model/import tolerances. Original hidden absolute2e-5 gate remains failed. Cached INITIAL actual M5 probability error<=3.113e-7 and Brier/log error<=1.635e-7. No representation transplant, model or target change; internal representation delta retained as diagnostic.",
     "interpretation": "All9 observations reported including reused INITIAL; no checkpoint selection/refit/later scoring. Last16 original consumed batches only descriptive, final starts29328.",
-    "no_automatic_training": true
+    "no_automatic_training": true,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_002/RESULT.json",
+      "sha256": "02b686f0ae9a864892f9ac9500f1dd54110a654c708bc3d484ffbdac4a4df113"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_002/TERMINAL.json",
+      "sha256": "91e77eae279058685ee0b60924ae99ac5092f3848c5c7c06b7dec099f6cc94fe"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_002/CONTROLLER.json",
+      "sha256": "e90c4996c4deaf70ab2065e61185ba5bc4cd65e4f9607a943978fca649d134e9"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_002/REVIEW.json",
+      "sha256": "cc7a642c965e8e388b6f1f89ec6b865b0c3c99d4ea3e54e3e3c8af6f7eca0992"
+    },
+    "review_worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_002/review.py",
+      "sha256": "71a833cbb68d7c5645764ae7585a603a226eebd3410997d240fa3bc3078e5f5f"
+    },
+    "review_controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_002/REVIEW_CONTROLLER.json",
+      "sha256": "5a9dd84e11db98734479d56c911edb32edd5a7ecf89b8807f199038c3ca6ce84"
+    },
+    "actual_counts": {
+      "model_constructions": 1,
+      "checkpoint_loads": 8,
+      "forwards": 96,
+      "backwards": 0,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "checkpoint_writes": 0,
+      "resume_state_load_calls": 8,
+      "resume_state_load_returns": 8
+    },
+    "worker_seconds": 297.15661600199746,
+    "whole_command_seconds": 300.09006349899937,
+    "findings": {
+      "future_all_saved_noninitial_checkpoints_worse_than_initial": true,
+      "future_no_checkpoint_beats_prior": true,
+      "first_saved_deterioration_cursor": 4096,
+      "first_saved_deterioration_updates": 256,
+      "earlier_than_first_checkpoint_not_localized": true,
+      "mean_only_explanation_insufficient": {
+        "label": "P024576",
+        "model": {
+          "count": 86,
+          "up_count": 41,
+          "brier": 0.26466392774315534,
+          "log": 0.722698397730413,
+          "mean_up_probability": 0.47479780380749753
+        },
+        "decomposition": {
+          "observed_up_fraction": 0.47674418604651164,
+          "squared_mean_error": 3.7884038203495823e-06,
+          "centered_squared_error": 0.26466013933933497
+        },
+        "initial": {
+          "count": 86,
+          "up_count": 41,
+          "brier": 0.25217624585221293,
+          "log": 0.6975053267272607,
+          "mean_up_probability": 0.514413105702951
+        }
+      },
+      "recent16_descriptive_correlations": {
+        "state": {
+          "n": 8,
+          "pearson": 0.06216265213786032
+        },
+        "future": {
+          "n": 8,
+          "pearson": 0.3484175785701859
+        }
+      },
+      "exact_cause_isolated": false,
+      "direction_correction_qualified": false,
+      "later_generalization_measured": false
+    },
+    "aggregate_report": "docs/TA_M5_FULLPASS_TRAJECTORY_REVIEW.json"
   }
 }

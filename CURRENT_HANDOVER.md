@@ -15,31 +15,43 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_FULLPASS_TRAJECTORY_CONTINUATION_ADMITTED.
+Policystatus: TA_M5_FULLPASS_TRAJECTORY_COMPLETE_NO_CORRECTION_QUALIFIED.
 
-Retningskontrollen fortsetter med åtte bevarte fullpass-checkpoints på samme
-192TRAIN-rader:0:64,14272:14336,29504:29568. INITIAL gjenbrukes direkte.
-Ny rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_002
-PLAN SHAa82e18305c38e492b0ff779d6a3531b9605d642474e28b75fb56ea2d5baa02fd.
-Én CPU-modell,8loads/96forwards,0fit/backward/optimizer/checkpointwrites;
-capped producer12G/512M,én tråd,600s. Ingen senereTRAIN eller TEST.
-Metadata-preflight PASS6,324s; uavhengig kildekontroll PASS. Alle85 bundne
-kildefiler er uendret. Kjøringen er ikke startet ved denne innrømmelsen.
+Ni bevarte fullpass-tilstander er nå kontrollert på de samme192 TRAIN-radene:
+0:64,14272:14336,29504:29568. INITIAL ble gjenbrukt; åtte andre målt én gang.
+Resultat og uavhengig kontroll:
+[docs/TA_M5_FULLPASS_TRAJECTORY_REVIEW.json](docs/TA_M5_FULLPASS_TRAJECTORY_REVIEW.json).
+Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_002
+RESULT SHA02b686f0ae9a864892f9ac9500f1dd54110a654c708bc3d484ffbdac4a4df113.
+REVIEW SHAcc7a642c965e8e388b6f1f89ec6b865b0c3c99d4ea3e54e3e3c8af6f7eca0992.
+Scorer regnet uavhengig fra NPZ; største tallavvik2,22e-16. Outputparitet
+INITIAL/FINAL består ny privat CPU/CUDA-port. Original001hidden-port er
+fortsatt FAILED; internrepresentasjoner ble aldri transplantert.
 
-001 er fortsatt FAILED_CONSUMED og kan ikke relanseres. Den stoppet etter
-INITIAL12forwards/énload på en ny absolutt hidden-grense:2,503395e-5>2e-5.
-Worker109,239s,helkommando112,231s. Rålogitter passer den gamle2e-5-porten.
-Cached review SHAba692acdcca93335bedbe0b1697dfb549c30896a116e27a1065a71e8364f8fbe
-viser M5-sannsynlighetsavvik<=3,113e-7 og blokkvis Brier/logavvik<=1,635e-7.
-Referansen er CUDA; ny måling CPU. Konkret kernelårsak er ikke isolert.
+F på dette utvalget: INITIAL Brier0,252176→første mellompunkt etter256updates
+0,254420→FINAL0,266276; fryst prior0,250641. Alle åtte senere lagrede F-punkter
+er verre enn INITIAL og prior. S forbedres enkelte steder, men ender verre.
+Dette lokaliserer ikke de første skadelige oppdateringene før checkpoint256.
+Kun75S/86Fknown-side mål av192; ingen checkpoint er valgt.
 
-002 bruker en eksplisitt outputport for denne weights-only sammenlikningen:
-samme rader/masker/query; alle5TF rålogitter<=2e-5; M5-sannsynlighet og
-blokkvis Brier/log/meanP<=1e-6. Internrepresentasjon rapporteres som diagnostikk.
-Ingen hidden-transplant, endret modell eller endring av kanoniske importtester.
-INITIAL revalideres fra lagrede tall før modellen bygges; ingen ny start-forward.
-Alle ni tilstander rapporteres. Ingen checkpoint velges. Siste16 konsumerte
-B16-batcher beskrives fra lagrede mål; eventuell samvariasjon er ikke årsaksbevis.
+Bare gjennomsnittlig OPP-skjevhet forklarer ikke feilen: P024576 har F-mean
+0,474798 mot faktisk oppandel41/86=0,476744, men Brier0,264664. Det sentrerte
+feilleddet er derfor også svekket. Dette er ikke alene et rent rankingbevis.
+Siste16batchers oppandel versus fastpanel-mean har Pearson S0,062/F0,348
+overåtte punkter: beskrivende, ingen isolert årsak eller avvisning av alle
+tidsregimeforklaringer. Ingen rettelse eller senere forbedring er kvalifisert.
+
+002 worker297,157s,helkommando300,090s; setup77,018s,peakRSS5,726GB.
+001 stoppet etter INITIAL,helkommando112,231s; begge modellkommandoer
+tilsammen412,321s(6m52,3s). Cachedreviews1,536s+3,014s. Forberedelse er ikke
+med i disse tidene; dette er ingen sammenliknbar trenings-speedupmåling.
+00296forwards/8loads +gjenbrukt00112/1 =108/9;0fits/backwards/optimizer.
+Ingen senereTRAIN eller TEST. Alle launch-/treningsporter er stengt.
+
+Neste direkte steg: isoler det sentrerte M5F-feilleddet fra allerede lagrede
+representasjoner/prognoser og bundne headvekter før ny fit eller modellendring.
+Ikke gjenta ni-checkpoint-kjøringen eller beståtte featurekontroller.
+Ingen ny kjøring er innrømmet.
 
 Brukerens all-feature-kontroll er fullført i
 [docs/TA_FORWARD_SEMANTICS_REVIEW.json](docs/TA_FORWARD_SEMANTICS_REVIEW.json):
@@ -50,7 +62,7 @@ eksplisitt forlenget til aktuell M5-klokke/t+h, og linjespesifikke
 kontakt/sprett/bruddmål mangler. F under0,5ATR trener aktivitet/FLAT, ikke side.
 Historisk COT/makrovintage er fortsatt UNKNOWN. Ingen ny produsentfeil eller
 fungerende retningsrettelse ble påvist. Ikke gjenta beståtte featurekontroller.
-Alle treningsporter er stengt; bare den ene avgrensede evalueringen er tillatt.
+Alle launch- og treningsporter er stengt.
 
 Siste læringsbevis beholdes: full29574 TRAIN fryst eval-tap1,948957162→
 2,021683248; alle10sidekomponenter verre, aktivitet bedre. M5 Brier S
