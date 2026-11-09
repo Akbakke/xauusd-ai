@@ -15,18 +15,36 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_EQUAL_LOSS_FULLFIT_ADMITTED_ONCE.
+Policystatus: TA_M5_EQUAL_LOSS_FULLFIT_NEGATIVE_HEAD_DRIFT_AUDIT_ADMITTED.
 
-Fullfit001 ble stoppet i siste metadatagate: integrator satte feil
-training_module i policy. Eksisterende authority.MODULE er
-gx1.scripts.run_unified_exit_native_candidate_window_v1. Ingen native
-invocation, modell eller update startet; kun forberedte planfiler finnes.
-Original001 og PREPARATION_FAILURE.json bevares, ingen relansering.
-Minste rettelse er korrekt policy-entrypoint og ny eksakt stage/root002.
-59beståtte tester og native4stegs-/lossbevis gjenbrukes; modell, numerikk,
-runner og kvalifisert helper er uendret. Ny002metadata og transport er kontrollert; én ny fullfit er innrømmet.
-training_enabled=true kun for002; materialisering og fersk boot gjenstår. Én full29574INITIAL,1849updates,fullFINAL og17753senereTRAIN
-med250W beholdes; fullbaseline for imported ae772fd7 er fortsatt ubevist.
+Fullfit002 er COMPLETE og konsumert; én modell/optimizer,6657forwards og1849updates,
+ingen skips. Full29574INITIAL/FINAL og17753senereTRAIN målt. TRAIN S/F Brier
+0.248473/0.249327→0.251118/0.253904; senere0.254579/0.256591 mot
+prior0.249828/0.249833. Alle10TF×S/F-retningsskårer svekkes påTRAIN;
+alle10taper motprior senere. Vektingsrettelsen løste ikke læringsproblemet.
+Fullbaseline for imported ae772fd7 er nå kvalifisert; initial/final deler
+observasjonskjede, masker/counts og prior. Alle lagrede scoremeans er kontrollert.
+REVIEW: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FOLD1_FIT_20261109_002/REVIEW.json.
+
+Native7121.942s,controller7144.960s mot7171.361s:26.401s/0.368%kortere.
+Samme fulle måleomfang,men ulikt startmodell/loss;ingen vesentlig eller kontrollert
+speedup.250W,maks56°C/minne64°C. Trainer/observer/guard/task0;taskDisabled.
+Kilde84f0f47c var uendret. Originalcheckpoint og alle nativekvitteringer beholdes.
+001feilet kun metadataentrypoint før noen nativejobb;planen er konsumert og bevart.
+
+Neste og eneste innrømmede arbeid er én CPU-kontroll på lagret FIT-representasjon:
+originale og FINAL M5-hoder,0fit/fullmodellforward,2checkpointlesinger,
+7396B16-lineærprojeksjoner. Importkontrollen må gjenskape lagrede logits og native
+INITIAL. Dette skiller hodeendring på opprinnelig representasjon fra endret
+oppstrømsrepresentasjon med FINAL-hode fast. Oppstrøms inkluderer query-projeksjon;
+ikke en ren encoder-attribusjon. Ingen senere arrays. Ingen ny trening er innrømmet.
+PLAN: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_HEAD_DRIFT_20261109_001/PLAN.json.
+
+Brukeren har presisert begge: kort sniper og lengre long/shorttrend, med separate
+prognoser/mål og ny vurdering hvertM5. F-mål finnes allerede ved+5/+15/+60/+240/+1440min;
+S er framtidig lokal tilstand,F er nettopris fra beslutningen. Endpoint-side-score
+måler ikke gunstig bevegelse først, motbevegelse før gevinst eller touch/brudd/retest-
+rekkefølge. God M5-score er ikke i seg selv riktig inngang eller dokumentert økonomi.
 
 Den nye [native equal-loss-kvalifikasjonen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_MECHANICAL_20261109_001/REVIEW.json)
 er COMPLETE og konsumert:3modeller/3optimizere,6forwards/4backwards/4steg.
@@ -46,11 +64,8 @@ ikke isolert ytelsesbenchmark eller fullfit. Source/routing er kvalifisert
 med110fokuserte tester og faktisk85-owner metadata. Én historisk testfixture
 ble rettet til sin erklærte kildeversjon; produksjonsvaktene er uendret.
 
-**Neste direkte steg:** Kjør den nye eksakte fullfit-planen fra originalimporten og
-den kvalifiserte rebind-helperen. Gjenbruk tapskontrollen og native4stegsbeviset,
-ikke kjør dem om. Full matchet TRAIN INITIAL/FINAL og separat senere TRAIN
-må fortsatt måles. Denne prøven har32initialrader og beviser ingen ny
-retningsgevinst eller fullbaseline. F taper fortsatt svakt mot senere prior.
+Native4stegsbeviset nedenfor gjenbrukes. Fullfit er nå avsluttet negativt som
+oppsummert ovenfor; ingen ny fullfit eller mekanikkgjentakelse er innrømmet.
 
 Den innrømmede [lagrede-logit-kontrollen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_OBSERVATION_LOSS_20261109_001/REVIEW.json)
 er COMPLETE og konsumert:1849FIT-batcher,3698rålogit-autogradkall,213,206s.
@@ -70,10 +85,9 @@ standardkontrakter beholdes. Siste batch på seks rader behandles likt.
 forward, gamle/nye state-rundturer og avvist kryss-restore. Syntaks består.
 [Kildekontroll](/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_OBSERVATION_LOSS_20261109_001/SOURCE_VALIDATION.json).
 
-Native fullfit med rettelsen er ikke kjørt. Bindingen fra verifisert
-importcheckpoint er nå kvalifisert med native4steg; fullfit er neste steg.
+Native fullfit med rettelsen er nå kjørt og avsluttet negativt, se øverst.
 Den kvalifiserte nye grenen unngår den gamle legacy-varmstarten som ville klonet gamle hoder.
-Den nye fullfit-planen er innrømmet separat. AdamW er uendret; Newton med koblet L2 fra
+Fullfit-planen er nå konsumert. AdamW er uendret; Newton med koblet L2 fra
 readout-forsøket er ikke gjenskapt av denne vektingsrettelsen.
 
 

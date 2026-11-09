@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T06:15:55.566548+00:00",
-  "status": "TA_M5_EQUAL_LOSS_FULLFIT_ADMITTED_ONCE",
+  "observed_utc": "2026-11-09T08:43:12.397531+00:00",
+  "status": "TA_M5_EQUAL_LOSS_FULLFIT_NEGATIVE_HEAD_DRIFT_AUDIT_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
-  "full_epoch_training_allowed": true,
+  "training_enabled": false,
+  "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Materialize the exact new once-only plan, fresh Windows boot and250W. Full initial before1849updates, matched final/later scores. No extra windows or source changes while frozen.",
+  "next_action": "Run exact once-only CPU cached head attribution; no fit or full model forward. Native fullfit002 consumed and taskdisabled. Isolate head change versus upstream representation before any training correction.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1434,9 +1434,9 @@
     "profitability_demonstrated": false,
     "required_before_more_extensive_training": true,
     "entry_learning_demonstrated": false,
-    "current_evidence_scope": "Dedicated M5 warmstart continuation:1849updates,paired29574TRAIN and17753laterTRAIN. TRAIN S/F Brier.268542/.302930→.262282/.286293;later.270575/.316567→.268628/.300101;allpriorunbeaten.",
+    "current_evidence_scope": "Equal-loss fullfit1849updates from imported model:all10TRAIN side Briers deteriorated;all10later side Briers lose frozenprior.",
     "component_learning_measured": true,
-    "component_learning_result": "M5_S_F_IMPROVE_ON_MATCHED_TRAIN_AND_LATER_BUT_LOSE_FROZEN_PRIOR",
+    "component_learning_result": "FULLFIT_DIRECTION_DETERIORATED_ON_MATCHED_TRAIN_AND_LATER",
     "primary_entry_quality_qualified": false,
     "paired_learning_review": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/PAIRED_LEARNING_REVIEW.json",
@@ -1527,13 +1527,13 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_HISTORY_SAVED_MEASUREMENT_GUARD_20261023_226/SOURCE_QUALIFICATION_TERMINAL.json",
       "sha256": "a206d6460550afb869b64ae4c5b1a8f2fdb1827e13b157d156f8434c9eca6e51"
     },
-    "current_function_native_baseline_missing": true,
-    "current_function_native_baseline_qualified": false,
+    "current_function_native_baseline_missing": false,
+    "current_function_native_baseline_qualified": true,
     "latest_current_initial_measurement": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DEDICATED_M5_FOLD1_FIT_20261109_001/RUNTIME/prefix-fit/window-0001/INITIAL_TRAIN.json",
-      "sha256": "01d42e1528256dca5e1052f7a4c6bcf82b4efa6461c7707b647581e53fe7d09b"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FOLD1_FIT_20261109_002/RUNTIME/prefix-fit/window-0001/INITIAL_TRAIN.json",
+      "sha256": "e4998ab3686d17e1273ef80f56cd483a5ca486ce45698b45773f553ab90acd92"
     },
-    "current_function_native_baseline_qualification_scope": "Imported model ae772fd7 has native32-row initial and full cached M5 head scores; full native29574 initial pending in new fullfit. Existing latest_current_initial_measurement is historical dedicated model71278ead, not this imported model.",
+    "current_function_native_baseline_qualification_scope": "Imported ae772fd7 equal-loss full native29574 TRAIN initial atzero updates; matched full FINAL and17753later measured.",
     "latest_current_initial_state_audit": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_HISTORY_INITIAL_AUDIT_20261023_230/TERMINAL.json",
       "sha256": "4956438fc41dc9bc4c8d14aa2b72d141fb75527e78232cbd35d0a4d486d98054"
@@ -35439,7 +35439,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -40181,7 +40181,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "ONLY_MARKET_STATE_TA_M5_EQUAL_LOSS_FOLD1_FIT_20261109_002",
+  "training_enabled_scope": "NONE_CACHED_HEAD_AUDIT_ONLY",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -66300,7 +66300,19 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "59focused tests, read-only runner review and actual85-owner/input metadata pass. One full matched direction fit newly admitted from original import; completed loss/native mechanics reused."
+    "latest_progress": "Full native equal-loss fit complete:1849updates,6657forwards,allcontrols0,250W. M5 S/F TRAIN andlater worsen versus imported initial;all10TRAIN direction scores worsen andall10later lose prior. Next bounded cached-head attribution, no new fit.",
+    "user_clarification_20261109": {
+      "scope": "Correct direction for short sniper and longer long/shorttrends; separate forecasts and targets at M5 cadence.",
+      "existing_future_horizons_minutes": [
+        5,
+        15,
+        60,
+        240,
+        1440
+      ],
+      "existing_endpoint_scores_do_not_prove_favorable_path_or_precise_entry": true,
+      "no_new_trading_authority": true
+    }
   },
   "market_state_ta_direction_weight_diagnostic_20261108_001": {
     "status": "COMPLETE_CONSUMED",
@@ -68289,8 +68301,8 @@
     }
   },
   "market_state_ta_m5_equal_loss_fold1_fit_20261109_002": {
-    "status": "ADMITTED",
-    "decision": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
+    "decision": "COMPLETE_DIRECTION_DETERIORATED",
     "scope": "One full fold1 equal-observation M5 direction pass from original imported zero-step model; matched full TRAIN initial/final and later TRAIN.",
     "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FOLD1_FIT_20261109_002/RUNTIME",
     "recipe": {
@@ -68298,18 +68310,18 @@
       "sha256": "b52a8ac46b3bf7e4827024431e6bccec77542ce0be09ebe9680edda15266b697"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "fold_id": 1,
     "fit_rows": 29574,
     "score_rows": 17753,
     "train_passes": 1,
     "max_optimizer_updates": 1849,
-    "time_query_fold1_fit_authorized": true,
-    "ta_sf_fold1_fit_authorized": true,
-    "ta_m5_equal_loss_fold1_fit_authorized": true,
+    "time_query_fold1_fit_authorized": false,
+    "ta_sf_fold1_fit_authorized": false,
+    "ta_m5_equal_loss_fold1_fit_authorized": false,
     "input_audit": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_INPUT_COMPLETION_20261108_001/RESULT.json",
       "sha256": "107c95312f3decce4c00bbe75ccf467363853d0377c448599bed7c673b871dc0"
@@ -68363,7 +68375,7 @@
     },
     "qualification_weights_for_main_fit": false,
     "predictive_value_qualified": false,
-    "full_TRAIN_initialbaseline_qualified": false,
+    "full_TRAIN_initialbaseline_qualified": true,
     "epoch_history_expansion_authorized": false,
     "old_plan_relaunch_allowed": false,
     "standing_authorization_source": "Active user direction goal and explicit request to fix code,make a new plan,continue training,reuse checkpoint/completed checks and measure whole runtime;250W.",
@@ -68376,17 +68388,75 @@
     "broker_access_allowed": false,
     "full_val_allowed": false,
     "spending_allowed": false,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "native_launch_authorized": false,
+    "campaign_preparation_authorized": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FOLD1_FIT_20261109_002/RUNTIME/prefix-fit/window-0001/RESULT.json",
+      "sha256": "07fc4b631616e36fd7bc52a80375dfafe857eed51ca742965326886881844d55"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FOLD1_FIT_20261109_002/TERMINAL.json",
+      "sha256": "ef0f54f941849e4f8fd265654dd61a6c58f5525881a052c8528e9984cb3b71b0"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FOLD1_FIT_20261109_002/REVIEW.json",
+      "sha256": "10e39b6fba3666c24542f13845a72ef96c51452aa70d9fbbf8036fcdcfad0609"
+    },
+    "campaign_receipt": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FOLD1_FIT_20261109_002/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "2c2257f8d7711e9517fb69ddb332cbade8f600a9998b8ebac633269124af91ef"
+    },
+    "windows_task_disabled": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FOLD1_FIT_20261109_002/WINDOWS_TASK_DISABLED.json",
+      "sha256": "fc271889b58003ef1389349e3d3347fe6d75039857d52996b500e9a3b7418d2d"
+    },
+    "optimizer_updates": 1849,
+    "all_ten_TRAIN_direction_scores_deteriorated": true,
+    "all_ten_later_direction_scores_lose_prior": true,
+    "controller_wall_seconds": 7144.95998,
+    "controller_wall_delta_percent": -0.368141125164001,
+    "controlled_speedup_demonstrated": false,
+    "completed_utc": "2026-11-09T08:24:32.333299+00:00"
+  },
+  "market_state_ta_m5_equal_loss_head_drift_20261109_001": {
+    "status": "ADMITTED",
+    "decision": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_HEAD_DRIFT_20261109_001/PLAN.json",
+      "sha256": "2ae60a2624d48cf4ad1f4318da0876df9e3f4d4abbf3576fd649413f9ad784d7"
+    },
+    "scope": "One FIT-only cached projection: original and FINAL M5 heads on original representation; imported control and native initial parity required.",
     "execution_authorized": true,
     "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
-    "genuine_predictor_fit_authorized": true,
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "full_epoch_training_allowed": true,
-    "native_launch_authorized": true,
-    "campaign_preparation_authorized": true
+    "checkpoint_reads_authorized": true,
+    "cached_readout_audit_authorized": true,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "native_launch_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "max_checkpoint_loads": 2,
+    "max_cached_linear_batch_calls": 7396,
+    "max_model_constructions": 0,
+    "max_full_model_forwards": 0,
+    "max_optimizer_updates": 0,
+    "test_data_used": false,
+    "later_arrays_consumed": false,
+    "memory_max": "4G",
+    "swap_max": "512M"
   }
 }
