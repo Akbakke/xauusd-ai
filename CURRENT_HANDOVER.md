@@ -15,33 +15,43 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: EARLY_M5_HEAD_DRIFT_VERIFIED_SHORT_NATIVE_PROBE_REQUIRED.
+Policystatus: SHORT_NATIVE_CPU_16_UPDATE_PROBE_ADMITTED.
 
-Alle kontroller i denne bølgen er ferdige/konsumert; ingen jobb kjører og
-training_enabled=false. Målet er ikke oppnådd: ingen verifisert rettelse
-gir ennå bedre M5-retning på både identisk TRAIN og senere TRAIN mot prior.
+Én ny kort CPU-prøve er kilde-/metadatakvalifisert og innrømmet; ingen
+fit er ennå startet. training_enabled gjelder bare den nye stage
+market_state_ta_m5_short_native_20261109_001. Native GPU-launch/full-epoch
+forblir stengt. Ingen rettelse gir ennå bedre M5-retning både på identisk
+TRAIN og senere TRAIN mot prior.
 
-Den nye lagrede hodebanen er COMPLETE:15.692s,9checkpointlesinger,
-0modellforward/fit, bareTRAIN. Alle8lagrede hoder etterINITIAL er svakere
-på samme gamle representasjon. Allerede ved256updates:
+Plan: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/PLAN.json
+SHA126c9fb6b1059576870145ec9fe5ce652dd7791f5a39964665e438d65e79b15e.
+Worker SHA167e8e11675df0762a7dd91803243b82e610fe916b5542b34997bcd6332c77da.
+Uavhengig kildekontroll PASS;85kildeeiere og11inputreferanser kvalifisert.
+Ingen produksjonsmodellkode er endret.
+
+Neste steg: kjør nøyaktig én CPU-prøve gjennom capped producer12G/512M,
+én numerisk tråd, ytre hardgrense600s.16kanoniske updates/256rader fra
+korrigertINITIAL; samme modell, loss, AdamW og klipping. Frisk CPU-RNG
+deklareres; det er ikke full CUDA-RNG-resume. Tilstand lagres med faktisk
+cursor256 på opprinnelig29574-raders orden, aldri som ferdig fullfit.
+
+192faste TRAIN-rader måles ferskt før/etter. Begge M5S/F må forbedre Brier
+mot INITIAL og prior, uten dårligere logloss, før192senere TRAIN-rader
+scores. Maks40/52forwards og16backwards. Arbeideren åpner ingen senere
+score-arrays eller score-partition-gather før låst TRAIN-PASS; kanoniske
+loadere dekoder likevel hele TRAIN-targetbåndet og validerer endpointparitet.
+Dette er små utvalg og gjenbrukt utviklings-TRAIN, ikke fersk generalisering.
+
+Logg hel kommandotid, lukk treningsgaten etter terminal og kontroller
+lagret state/capture/score. Ingen automatisk fortsettelse eller relansering.
+Faktisk gjennomføring innen600s er fortsatt ubevist.
+
+Den lagrede hodebanen er allerede COMPLETE og numerisk kontrollert:
+15.692s,9checkpointlesinger,0forward/fit. Alle8lagrede hoder etterINITIAL
+er svakere på samme gamle representasjon; ved256updates:
 S Brier0.248201726→0.248591188;F0.249076427→0.250124852.
-Ved1849updates:0.248994557/0.252247640.
-F meanOPP0.511068→0.541871 ved256 og0.558459 ved1849.
 Dette lokaliserer tidlig hodedrift, ikke faktisk mellomliggende
-helmodellscore eller én bevist optimizerårsak.
-HEAD_TRAJECTORY_RESULT SHA66c2caa3d6256004fc761bfe43c81becdf86faafc87570810a6145efbfa5a863.
-Separat NumPyFP64-regning kontrollerer108celler på5.571s:
-maksproper-score/meanavvik1.819e-9,AUC9.768e-7. Dette er uavhengig
-beregningsmåte av samme integrator, ikke en ny agentreview.
-
-Neste nødvendige kodearbeid er en reell kort nativeCPU-prøve:16updates
-(256rader) fra korrigertINITIAL,hard600s og små faste TRAIN/later-utvalg.
-Gjenbruk probe.py:strict_load, kanonisk inputforberedelse, produksjonstap
-og optimizer; bevar sann cursor/RNG/state. Kvalifiser før én ny finite plan.
-Ingen fit er innrømmet ennå. Dagens native treningsrute er fortsatt ikke
-implementert/kvalifisert for dette korte løpet.
-Ikke endre tapsvekter/dropout ut fra gradientnormer: testen nedenfor
-støtter ikke en slik rettelse. Ingen ny fullpassering eller kildeopprydding.
+helmodellscore eller én bevist optimizerårsak. Ikke gjenta kontrollen.
 
 Null-update gradientdiagnosen er COMPLETE og uavhengig PASS.
 220.756s worker/224.259s hel kommando,peakRSS7.316GB;6forwards/21autograd,
@@ -76,13 +86,13 @@ manglet allow_unused for adskilteS/F-logits; rettet før genuineclaim.
 Kildekontroll fant trådoverstyring og manglende originalplan i sluttkontroll;
 begge er rettet før launch. Ingen produksjonsmodellkode er endret.
 
-Brukerens føring er korte tester først. training_enabled=false; native
-launch/full-epoch er stengt. Gjenbruk checkpoint, lagrede arrays og beståtte
+Brukerens føring er korte tester først. Bare den nye CPU-prøven ovenfor
+er innrømmet; native GPU-launch/full-epoch er stengt. Gjenbruk checkpoint, lagrede arrays og beståtte
 kontroller. CPU-diagnostikk har60s budsjett. En eventuell nødvendig native
 prøve må kvalifiseres separat, med høyst64updates/600s og små forhåndsbundne
 initial/final/later-utvalg. Alle genuine features, femTF, kausalitet og
-maskinvarevakter beholdes; fysisk GPU-grense250W. Kort native treningsrute er
-ennå ikke implementert/kvalifisert. Ingen teknisk PASS åpner større trening.
+maskinvarevakter beholdes; fysisk GPU-grense250W. Den korte CPU-ruten er kildekvalifisert;
+faktisk gjennomføring gjenstår. Ingen teknisk PASS åpner større trening.
 
 To korte kontroller er nå fullført og uavhengig verifisert:
 1. Faktiske INITIAL/FINAL M5-hoder krysset med gammel/ny representasjon på

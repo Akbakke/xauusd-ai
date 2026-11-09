@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-09T17:07:12.629858+00:00",
-  "status": "EARLY_M5_HEAD_DRIFT_VERIFIED_SHORT_NATIVE_PROBE_REQUIRED",
+  "status": "SHORT_NATIVE_CPU_16_UPDATE_PROBE_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Qualify a real short native CPU training probe using the existing prepared inputs, strict corrected-INITIAL loader and unchanged production S/F loss/optimizer. Start with16updates (256rows), hard600s, fixed small matched TRAIN score and separate later score only after the TRAIN gate. Preserve genuine5TF and prior baselines; reuse qualified initial/cached controls. No fit is admitted yet. Do not change loss weights or dropout: current gradient evidence does not justify it.",
+  "next_action": "Run the newly qualified one-shot16-update CPU probe once, with600s outer timeout. Score192 matched TRAIN rows before/after; only score192 later TRAIN rows after the frozen gate passes. Record command time, close training after terminal, independently check saved evidence. No automatic continuation/full fit.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -40200,7 +40200,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "NONE_SOURCE_QUALIFICATION_ONLY",
+  "training_enabled_scope": "market_state_ta_m5_short_native_20261109_001",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -69693,7 +69693,7 @@
       "sha256": "f175d3032925bcc4509f9aea1d1637f68edb33e8270e4ada5512f0e8907cf2ec"
     },
     "native_accumulation_change_qualified": false,
-    "next_measured_coverage_gap": "Earlier decoder diagnostic used detached backbone. Shared encoder gradients from M5side versus other genuine objectives have not been measured in this corrected model. Tiny zero-update diagnostic requires separate finite qualification; not admitted by this note.",
+    "next_measured_coverage_gap": "Actual full-model direction after16updates has not yet been measured; shared-gradient and saved-head trajectory checks are complete and not to be repeated.",
     "head_trajectory": {
       "status": "COMPLETE_CONSUMED_NUMERICALLY_VERIFIED",
       "plan": {
@@ -69725,7 +69725,7 @@
       "sha256": "221b1030e9c1c336e5dbeb8fca1570946ee6398f26ef4561c71758cc8926527d"
     },
     "next_short_native_source_scope": {
-      "status": "NEED_IDENTIFIED_NOT_IMPLEMENTED_NOT_ADMITTED",
+      "status": "SOURCE_AND_METADATA_QUALIFIED_FINITE_CPU_PROBE_ADMITTED",
       "initial_optimizer_updates": 16,
       "max_model_execution_seconds": 600,
       "concrete_blocker": "Production loop currently exposes quality after1849updates; actual saved heads already drift by256. Need early actual full-model feedback, not another complete pass.",
@@ -69734,7 +69734,16 @@
       "unchanged_loss_owner": "gx1/contracts/market_state_time_query_native_F_batch_v1.py:evaluate_fit_batch",
       "unchanged_optimizer_owner": "gx1/contracts/market_state_time_query_fold1_fit_state_v1.py:build_fold1_fit_optimizer",
       "state_boundary": "Use genuine cursor/progress for consumed prefix and actual CPU RNG/optimizer state; never label a partial run as completedfullfit or silently reinterpret GPU state.",
-      "native_or_cpu_fit_authorized": false
+      "native_or_cpu_fit_authorized": true,
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/PLAN.json",
+        "sha256": "126c9fb6b1059576870145ec9fe5ce652dd7791f5a39964665e438d65e79b15e"
+      },
+      "worker": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/probe.py",
+        "sha256": "167e8e11675df0762a7dd91803243b82e610fe916b5542b34997bcd6332c77da"
+      },
+      "runtime_route_qualified": false
     }
   },
   "market_state_ta_m5_short_accumulation_20261109_001": {
@@ -69833,6 +69842,48 @@
     "review": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHARED_GRADIENT_20261109_001/REVIEW.json",
       "sha256": "221b1030e9c1c336e5dbeb8fca1570946ee6398f26ef4561c71758cc8926527d"
+    }
+  },
+  "market_state_ta_m5_short_native_20261109_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/PLAN.json",
+      "sha256": "126c9fb6b1059576870145ec9fe5ce652dd7791f5a39964665e438d65e79b15e"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/PREFLIGHT_FINAL.log",
+      "sha256": "683cbc2ddb63743cce890d17adfa769b0e6c3ccc21cd098e9f6ab29e4a91b7b1"
+    },
+    "training_authorized": true,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "max_updates": 16,
+    "max_forwards": 52,
+    "max_backwards": 16,
+    "wall_seconds": 600,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "numerical_threads": 1,
+    "device": "cpu",
+    "train_rows": 256,
+    "fit_eval_rows": 192,
+    "later_eval_rows_max": 192,
+    "test_data_used": false,
+    "scope": "One unchanged canonical CPU training prefix from corrected INITIAL. Fresh CPU RNG, true partialcursor256; no GPU-state resume. Later worker scoring requires immutable paired TRAIN PASS. No production source modification or larger fit.",
+    "source_review": {
+      "agent": "/root/loss_training_route",
+      "status": "PASS",
+      "worker": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/probe.py",
+        "sha256": "167e8e11675df0762a7dd91803243b82e610fe916b5542b34997bcd6332c77da"
+      },
+      "limit": "Static source review only; actual runtime/numerics unproven. Outer timeout required."
     }
   }
 }
