@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-09T17:07:12.629858+00:00",
-  "status": "PAIRED_MOMENT_RESET_TRAIN_GAIN_LATER_REGRESSION_VERIFIED",
+  "status": "CACHED_PAIRED_PROBABILITY_SHIFT_AND_RANK_ATTRIBUTION_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Use saved paired captures to distinguish probability shift from ranking changes across TRAIN/later; no new model execution required. Do not rerun eitherarm or increase training: pairedRESET fails later comparison againstCONTROL andcorrectedINITIAL0. No permanent momentreset or larger run is qualified.",
+  "next_action": "Run admitted cached shift/rank arithmetic once,0model/updates/checkpoints. Decompose paired Brier delta into mean-probability and centered terms, reproduce via variance/covariance identity; direct-pairAUC for all threefixedblocks andaggregate. No calibrated candidate or selection. Allfitgates remainclosed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -70386,5 +70386,32 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_MOMENT_RESET_20261109_001/REVIEW.json",
       "sha256": "8617526a2ee26f0ce3ad42e292446b1d7d415c9ebea0601cf7ca9dd227a64a3a"
     }
+  },
+  "market_state_ta_m5_paired_shift_rank_20261109_001": {
+    "status": "ADMITTED",
+    "execution_authorized": true,
+    "training_authorized": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_MOMENT_RESET_20261109_001/SHIFT_RANK_PLAN.json",
+      "sha256": "1b00e6c9b0308d120b9ded3e6e1736cb85f1b691240eb6f0cd197ebe54f9b2fe"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_MOMENT_RESET_20261109_001/SHIFT_RANK_PREFLIGHT.log",
+      "sha256": "03dbb94474eb2e96b627807a30272a87ada8984c6aa2a51cc05d8239e040c979"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "max_forwards": 0,
+    "max_updates": 0,
+    "checkpoint_loads": 0,
+    "refits": 0,
+    "wall_seconds": 60,
+    "memory_max": "4G",
+    "swap_max": "512M",
+    "numerical_threads": 1,
+    "test_data_used": false
   }
 }

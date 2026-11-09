@@ -15,7 +15,15 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: PAIRED_MOMENT_RESET_TRAIN_GAIN_LATER_REGRESSION_VERIFIED.
+Policystatus: CACHED_PAIRED_PROBABILITY_SHIFT_AND_RANK_ATTRIBUTION_ADMITTED.
+
+Én lagret tallkontroll er innrømmet:0forwards/updates/checkpoints/refits,
+maks60s/4G/tråd1. Del Brier-endringen i gjennomsnittsforskyvning og sentrert
+endring; kontroller samme sum med varians/kovarians og mål direktepar-AUC.
+Alle tre forhåndsbestemte blokker og samlet utvalg inngår. Ingen kalibrator
+tilpasses og ingen ny modell velges. Metadata/syntetisk preflight PASS.
+Plan: samme parede artefaktrot nedenfor, SHIFT_RANK_PLAN.json,
+SHA1b00e6c9b0308d120b9ded3e6e1736cb85f1b691240eb6f0cd197ebe54f9b2fe.
 
 Den parede testen er COMPLETE/konsumert. Prosessen er bekreftet avsluttet;
 alle trenings-/launchporter er stengt. Hel kommando353.792s (5m53.79s),
