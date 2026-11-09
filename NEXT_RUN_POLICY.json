@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T02:59:30.970921+00:00",
-  "status": "TA_DIRECTION_BATCH_ORDER_COMPLETE_ORDER_EFFECT_PRIOR_UNBEATEN",
+  "observed_utc": "2026-11-09T03:14:20.704120+00:00",
+  "status": "TA_DIRECTION_FIXED_L2_HEAD_CONTROL_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "The exact converged frozen-head objective already beats TRAIN prior, while one-pass AdamW remains worse. Use this established convergence target to define the minimum optimization correction; do not select reverse order from reused later TRAIN or launch another full native fit.",
+  "next_action": "Execute exactly two fixed-L2 cached M5 head fits to convergence; score both in FP32 B16 on identical TRAIN and reused later TRAIN. Close gate and review; no native transfer/fit authorized.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -40169,7 +40169,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "NONE_CPU_BATCH_ORDER_COMPLETE_SAVED_EVIDENCE_REVIEW_ONLY",
+  "training_enabled_scope": "market_state_ta_direction_regularized_head_20261109_001",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -67599,5 +67599,40 @@
       }
     },
     "finding": "Batch order causally changes the fitted frozen M5 heads: reversing intact batches reduces UP bias and improves Brier/log for both tasks in TRAIN and reused later TRAIN. Both arms remain worse than frozen prior; TRAIN AUC changes below0.0004. This is principally probability-level change, not demonstrated direction discrimination."
+  },
+  "market_state_ta_direction_readout_transfer_audit_20261109_001": {
+    "status": "COMPLETE_READ_ONLY",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_READOUT_TRANSFER_AUDIT_20261109_001/RESULT.json",
+      "sha256": "34de21d60dcd095290b4f2e80fcede287347f6adb80468ca3218afbd547fd49d"
+    },
+    "strict_fp64_to_fp32_parity_qualified": false,
+    "native_transfer_authorized": false,
+    "finding": "Fixed double-reference raw tolerance fails3of4partitions, maximum3.78e-6; Brier difference under4e-9. Raw feature condition~2473/2322 and head norms~38. Native transfer is not qualified; no tolerance changed."
+  },
+  "market_state_ta_direction_regularized_head_20261109_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_REGULARIZED_HEAD_20261109_001/PLAN.json",
+      "sha256": "64708d146fc46721061f750128d8d539ea129b14eb7f58542fc211de57bce033"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_authorized": true,
+    "training_authorized": true,
+    "data_reads_authorized": true,
+    "readout_fits": 2,
+    "new_native_forwards": 0,
+    "new_native_parameter_updates": 0,
+    "test_data_used": false,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "wall_seconds": 900,
+    "synthetic_check": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_REGULARIZED_HEAD_20261109_001/SYNTHETIC_CHECK.log",
+      "sha256": "7fb2bf6a8d2cd033fd8f4c045617ce481c4a3cc1c54ccaee5fd21e5815e13068"
+    }
   }
 }

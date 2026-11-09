@@ -15,7 +15,22 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_DIRECTION_BATCH_ORDER_COMPLETE_ORDER_EFFECT_PRIOR_UNBEATEN.
+Policystatus: TA_DIRECTION_FIXED_L2_HEAD_CONTROL_ADMITTED.
+
+Den [faste L2-kontrollen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_REGULARIZED_HEAD_20261109_001/PLAN.json)
+er innrømmet én gang: to konvergerte M5-hoder på eksisterende originalcache.
+Alle128 koordinater beholdes. Eksakt B16-/5-sideobjektiv pluss koblet L2 på
+vekt+bias; alpha1e-4 hentes fra eksisterende oppskrift og tunes ikke.
+Dette er et nytt eksplisitt mål, ikke matematisk ekvivalens med AdamW decay.
+To syntetiske matematikktester og separat lesende kontroll består.
+CPU12G/512M, én numerisk tråd, maks900s; ingen nativefit/-overføring autorisert.
+
+[Overføringsauditen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_READOUT_TRANSFER_AUDIT_20261109_001/RESULT.json)
+tok2,413s uten fit/modell/checkpoint. Uregulariserte hodenormer er~38,
+kondisjonstall~2473/2322. Streng double→FP32-råparitet feiler3av4partisjoner
+(maks3,78e-6); Brier-endring er under4e-9. Den gamle toleransen er bevart,
+og ingen nativevekt er endret. Helmatrise-CPU-paritet er ikke native B16/CUDA.
+Den kjente senere-prior-svikten gjør regularisering til neste konkrete spørsmål.
 
 Den [nye CPU-kontrollen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_BATCH_ORDER_20261109_001/REVIEW.json)
 er COMPLETE og konsumert. Samme originale FINAL-sidevekter, tom AdamW,
