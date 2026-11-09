@@ -15,27 +15,39 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_DIRECTION_DEDICATED_M5_MECHANICAL_ADMITTED_AWAITING_FRESH_BOOT.
+Policystatus: TA_DIRECTION_DEDICATED_M5_FOLD1_FIT_ADMITTED_AWAITING_FRESH_BOOT.
 
-Én ny, avgrenset M5-mekanikk er innrømmet:
-[engangsrecipe](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DEDICATED_M5_MECHANICAL_20261109_002/RECIPE.json).
-Faktisk metadatapreflight og50 fokuserte tester består. Den skal strict-restaurere
-opprinnelig FINAL med full AdamW/RNG-validering, kopiere vekter til tre nye
-kandidatbaner og bruke ny tom AdamW. Fire modell-/optimizerkonstruksjoner,
-seks forwards og fire fysiske updates på de første32 modne TRAIN-radene.
-M5-output sammenlignes ved fast FP32-toleranse; uendrede koordinater bitlikt.
-To steg mot ett+gjenopptatt ett må gi identisk full tilstand.
+Den faktiske [M5-mekanikken](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DEDICATED_M5_MECHANICAL_20261109_002/RESULT.json)
+er COMPLETE. Original FINAL er strict-restaurert med full AdamW/RNG-kontroll.
+Tre nye kandidatbaner kopierer vektene og bruker tom AdamW. Begge M5-hoder
+har ikke-null gradienter i alle fire oppdateringer; uendrede utganger er bitlike.
+Største M5-avvik ved varmstart er 2,384e-7, innen fast FP32-toleranse.
+To steg og ett+gjenopptatt ett gir bitlik full sluttilstand.
 
-Første klargjøring001 stoppet før GPU fordi generell native_launch_authorized
-var åpnet; denne private ruten krever den stengt og eksplisitt
-synthetic_test_execution_authorized=False. Original claim/plan er bevart og
-konsumert. Erstatning002 retter disse policyfeltene; modellkode og budsjett
-er uendret. De50 fokuserte testene gjenbrukes; faktisk metadata er kontrollert på nytt.
+Fire konstruksjoner, seks forwards, fire fysiske updates; 147,861 s native
+og 171,595 s kontroller. Topp-RSS5,75GB, GPU-allokert1,79GB.
+Guard/observer/trener avsluttet med0, kilde uendret; boot625 og250W.
+Windows-oppgaven er deaktivert, aktiv markør og prosjektlås er borte.
+Engangsplan002 er konsumert; oppdaterte kvalifikasjonsvekter brukes ikke i fit.
+Mislykket forberedelse001 er bevart og skal heller ikke relanseres.
 
-Kjøringen er ikke startet. Ny hashbundet plan materialiseres før maskinvid
-idle-kontroll og påkrevd fersk fysisk Windows-boot. Eksisterende vakter og
-250W beholdes. Global training_enabled=True gjelder kun denne engangskontrollen;
-full predictor-fit, GC, TEST, Entry/Exit og handel er fortsatt stengt.
+Den nye [engangsfit-planen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DEDICATED_M5_FOLD1_FIT_20261109_001/RECIPE.json)
+er innrømmet etter69 fokuserte tester og faktisk metadatakontroll. Bare fem
+rute-/bindingsfiler er endret; øvrige80 kildeeiere samsvarer med mekanikk002.
+Original FINAL brukes med kvalifisert M5-startmodell og tom AdamW; RNG og
+modellhash kontrolleres før fersk faktisk initialmåling på alle29574 TRAIN-rader.
+Deretter én passering med høyst1849 updates, samme29574 FINAL-rader og separat
+17753 senere TRAIN-rader mot frosne priorer. Fire mulige vinduer gjelder kun
+gjenopptakelse av samme passering; ingen automatisk ny epoch eller gammelt relaunch.
+Ingen mål, input, normalisering, tapsvekt eller modellmatematikk er endret.
+
+Start er ennå ikke utført. Ny source/policy/boot/guard-binding materialiseres
+etter ren commit, deretter maskinvid idle-kontroll og eksisterende fysisk omstart.
+250W og alle vakter beholdes. Tider måles separat for ny full INITIAL, fit,
+checkpoints, FINAL, senere TRAIN og total. Tidligere recovery hadde1593 nye
+updates og gjenbrukte INITIAL; totalsammenligning må oppgi denne forskjellen.
+[Preflight](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DEDICATED_M5_FOLD1_FIT_20261109_001/PREFLIGHT.json).
+Forbedret retning og generell verdi er fortsatt ubevist.
 
 Den fulle [koblingskontrollen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_SHARED_OBJECTIVE_20261108_001/RESULT.json)
 er COMPLETE og konsumert. Seks konvergerte readout-fits på samme frosne
@@ -65,8 +77,8 @@ normalisering og priortall.
 Varmstart kopierer alle gamle vekter og kloner de to sideradene; ny
 modellidentitet beholdes. Dagens statekontrakt tillater ikke gammel AdamW-
 historikk ved ny cursor0. Ny tom AdamW er derfor eksplisitt valgt; originalt
-checkpoint bevares. Faktisk CUDA-migrering/RNG/gjenopptakelse og fersk
-initialbaseline gjenstår før ny native fit. Ingen ny fit er innrømmet.
+checkpoint bevares. Faktisk CUDA-migrering/RNG/gjenopptakelse er kvalifisert ovenfor; fersk
+full initialbaseline utføres før første update i den nye innrømmede engangsfit-planen.
 Horisontspørsmålet står åpent; ingen target endres.
 
 Kontrollen på [opprinnelige indikatorinput](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_INPUT_CONTROL_20261108_001/RESULT.json)
@@ -91,7 +103,7 @@ Brukeren er spurt om hovedmålet er neste 5-minutters bevegelse, en lengre
 markedsreaksjon vurdert hvert 5.minutt, eller separate mål for begge.
 Det skiller prognosetakt fra forventet reaksjonshorisont. Ingen target- eller
 hovedmodellendring gjøres på grunnlag av en antagelse; gjeldende M5-fasit
-og alle øvrige TF-mål er bevart. Retningsmålet er aktivt, ny fit er stengt.
+og alle øvrige TF-mål er bevart. Retningsmålet er aktivt; bare den eksakte nye M5-fit-planen er innrømmet.
 
 Full frossen FINAL-utlesning er COMPLETE og konsumert: 29 574 TRAIN-rader
 og 17 753 senere TRAIN-rader, 2 959 enkodinger, null backward/optimizer.

@@ -1434,7 +1434,8 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
     from gx1.contracts import market_state_time_query_fold1_fit_v1 as time_query_fold1
     time_query_paths = {time_query_fold1.SCOPE: time_query_fold1.RECIPE_PATH,
                         time_query_fold1.TA_SF_SCOPE: time_query_fold1.TA_SF_RECIPE_PATH,
-                        time_query_fold1.TA_RECOVERY_SCOPE: time_query_fold1.TA_RECOVERY_RECIPE_PATH}
+                        time_query_fold1.TA_RECOVERY_SCOPE: time_query_fold1.TA_RECOVERY_RECIPE_PATH,
+                        time_query_fold1.TA_M5_FIT_SCOPE: time_query_fold1.TA_M5_FIT_RECIPE_PATH}
     if value.get('run_scope') in time_query_paths:
         _require(ref['path'] == str(time_query_paths[value['run_scope']]), 'TIME_QUERY_RECIPE_PATH')
         return time_query_fold1.require_launch_recipe(value, source_repo=source_repo,
@@ -1833,7 +1834,8 @@ def guarded_prefix_power_limit(recipe):
     from gx1.contracts import market_state_time_query_fold1_fit_v1 as time_query_fold1
     time_query_stages = {time_query_fold1.SCOPE: time_query_fold1.STAGE,
                          time_query_fold1.TA_SF_SCOPE: time_query_fold1.TA_SF_STAGE,
-                         time_query_fold1.TA_RECOVERY_SCOPE: time_query_fold1.TA_RECOVERY_STAGE}
+                         time_query_fold1.TA_RECOVERY_SCOPE: time_query_fold1.TA_RECOVERY_STAGE,
+                         time_query_fold1.TA_M5_FIT_SCOPE: time_query_fold1.TA_M5_FIT_STAGE}
     if scope in time_query_stages:
         _require(recipe.get('admission_stage') == time_query_stages[scope], 'TIME_QUERY_POWER_SCOPE')
         return 250
@@ -1917,7 +1919,8 @@ def require_prefix_fit_plan(value, *, verify_files=True):
     from gx1.contracts import market_state_time_query_fold1_fit_v1 as time_query_fold1
     if result['recipe']['path'] in (str(time_query_fold1.RECIPE_PATH),
                                     str(time_query_fold1.TA_SF_RECIPE_PATH),
-                                    str(time_query_fold1.TA_RECOVERY_RECIPE_PATH)):
+                                    str(time_query_fold1.TA_RECOVERY_RECIPE_PATH),
+                                    str(time_query_fold1.TA_M5_FIT_RECIPE_PATH)):
         _require('family_same_boot' not in result, 'TIME_QUERY_FRESH_BOOT_REQUIRED')
         expected_policy['physical_power_limit_w'] = 250
     from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
@@ -1998,7 +2001,7 @@ def require_native_direction_prefix_fit_readiness(repo, *, window_path, window_f
         _require(gate.get(key) is expected, 'READINESS_GATE:' + key)
     from gx1.contracts import market_state_time_query_fold1_fit_v1 as time_query_fold1
     if recipe['run_scope'] in (time_query_fold1.SCOPE, time_query_fold1.TA_SF_SCOPE,
-                               time_query_fold1.TA_RECOVERY_SCOPE):
+                               time_query_fold1.TA_RECOVERY_SCOPE, time_query_fold1.TA_M5_FIT_SCOPE):
         time_query_fold1.require_fit_gate(gate, recipe)
     if recipe['run_scope'] in (december.FIT_SCOPE, december.SCORE_SCOPE):
         december.require_phase_gate(gate, recipe)
@@ -2103,8 +2106,9 @@ def require_prefix_fit_cursor(value, *, expected_recipe, expected_fold=None, ver
     phases = {str(december.ROOTS[p].parent/'RECIPE.json'):p for p in ('fit','score')}
     phase = phases.get(expected_recipe['path'])
     from gx1.contracts import market_state_time_query_fold1_fit_v1 as time_query_fold1
+    ta_m5_fit = expected_recipe['path'] == str(time_query_fold1.TA_M5_FIT_RECIPE_PATH)
     ta_recovery_fit = expected_recipe['path'] == str(time_query_fold1.TA_RECOVERY_RECIPE_PATH)
-    ta_sf_fit = ta_recovery_fit or expected_recipe['path'] == str(time_query_fold1.TA_SF_RECIPE_PATH)
+    ta_sf_fit = ta_m5_fit or ta_recovery_fit or expected_recipe['path'] == str(time_query_fold1.TA_SF_RECIPE_PATH)
     time_query_fit = ta_sf_fit or expected_recipe['path'] == str(time_query_fold1.RECIPE_PATH)
     from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
     october_fit_arm = next((arm for arm, root in october.FIT_ROOTS.items()
@@ -2155,7 +2159,7 @@ def require_prefix_fit_cursor(value, *, expected_recipe, expected_fold=None, ver
     if result['feature_view_identity'] is not None:
         if time_query_fit:
             time_query_fold1.require_checkpoint_view(result['feature_view_identity'],
-                ta_sf=ta_sf_fit, verify_files=verify_files)
+                ta_sf=ta_sf_fit, dedicated_m5_side=ta_m5_fit, verify_files=verify_files)
         elif october_arm:
             _require(october.roles.identity.require_checkpoint_view(result['feature_view_identity']) == october_arm,
                      'OCTOBER_CURSOR_ARM')
@@ -2167,13 +2171,15 @@ def require_prefix_fit_cursor(value, *, expected_recipe, expected_fold=None, ver
             bound = result['feature_view_identity']['prefix_normalization']
             if time_query_fit:
                 time_query_fold1.require_checkpoint_view(result['feature_view_identity'],
-                    recipe=launch, ta_sf=ta_sf_fit, verify_files=verify_files)
-                expected_scope = (time_query_fold1.TA_RECOVERY_SCOPE if ta_recovery_fit
+                    recipe=launch, ta_sf=ta_sf_fit, dedicated_m5_side=ta_m5_fit, verify_files=verify_files)
+                expected_scope = (time_query_fold1.TA_M5_FIT_SCOPE if ta_m5_fit
+                    else time_query_fold1.TA_RECOVERY_SCOPE if ta_recovery_fit
                     else time_query_fold1.TA_SF_SCOPE if ta_sf_fit else time_query_fold1.SCOPE)
                 matches = launch.get('run_scope') == expected_scope
                 if ta_sf_fit:
                     # The view binds state-v2; the numerical recipe binds both S/F heads.
-                    matches = matches and launch.get('numerical_recipe') == time_query_fold1.ta_sf_numerical_recipe()
+                    matches = matches and launch.get('numerical_recipe') == time_query_fold1.ta_sf_numerical_recipe(
+                        dedicated_m5_side=ta_m5_fit)
             elif october_arm:
                 matches = (launch.get('run_scope') ==
                     (october.roles.FIT_SCOPE if october_fit_arm else october.roles.SCORE_SCOPE)
@@ -2257,7 +2263,8 @@ def require_prefix_fit_progress(value, *, plan_sha256, invocation, expected_sele
     from gx1.contracts import market_state_time_query_fold1_fit_v1 as time_query_fold1
     time_query_fit = recipe_path in (str(time_query_fold1.RECIPE_PATH),
                                    str(time_query_fold1.TA_SF_RECIPE_PATH),
-                                   str(time_query_fold1.TA_RECOVERY_RECIPE_PATH))
+                                   str(time_query_fold1.TA_RECOVERY_RECIPE_PATH),
+                                   str(time_query_fold1.TA_M5_FIT_RECIPE_PATH))
     dec_phase = next((p for p in ('fit','score') if recipe_path ==
         str(december.ROOTS[p].parent/'RECIPE.json')), None)
     from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october

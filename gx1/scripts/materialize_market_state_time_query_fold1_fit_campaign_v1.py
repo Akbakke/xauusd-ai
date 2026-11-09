@@ -53,13 +53,16 @@ def materialize(binding_path: Path) -> dict:
     ta_mechanical = ta_m5 or binding_path == mechanical.TA_ROOT / 'PREPARATION_EXECUTION_BINDING.json'
     ta_sf = binding_path == fold1.TA_SF_RUNTIME_ROOT.parent / 'PREPARATION_EXECUTION_BINDING.json'
     ta_recovery = binding_path == fold1.TA_RECOVERY_RUNTIME_ROOT.parent / 'PREPARATION_EXECUTION_BINDING.json'
-    runtime = (fold1.TA_RECOVERY_RUNTIME_ROOT if ta_recovery
+    ta_m5_fit = binding_path == fold1.TA_M5_FIT_ROOT / 'PREPARATION_EXECUTION_BINDING.json'
+    runtime = (fold1.TA_M5_FIT_RUNTIME_ROOT if ta_m5_fit else fold1.TA_RECOVERY_RUNTIME_ROOT if ta_recovery
                else fold1.TA_SF_RUNTIME_ROOT if ta_sf else fold1.RUNTIME_ROOT)
     root = runtime.parent
-    recipe_path = (fold1.TA_RECOVERY_RECIPE_PATH if ta_recovery
+    recipe_path = (fold1.TA_M5_FIT_RECIPE_PATH if ta_m5_fit else fold1.TA_RECOVERY_RECIPE_PATH if ta_recovery
                    else fold1.TA_SF_RECIPE_PATH if ta_sf else fold1.RECIPE_PATH)
-    stage = fold1.TA_RECOVERY_STAGE if ta_recovery else fold1.TA_SF_STAGE if ta_sf else fold1.STAGE
-    run_scope = fold1.TA_RECOVERY_SCOPE if ta_recovery else fold1.TA_SF_SCOPE if ta_sf else fold1.SCOPE
+    stage = (fold1.TA_M5_FIT_STAGE if ta_m5_fit else fold1.TA_RECOVERY_STAGE if ta_recovery
+             else fold1.TA_SF_STAGE if ta_sf else fold1.STAGE)
+    run_scope = (fold1.TA_M5_FIT_SCOPE if ta_m5_fit else fold1.TA_RECOVERY_SCOPE if ta_recovery
+                 else fold1.TA_SF_SCOPE if ta_sf else fold1.SCOPE)
     authority = prefix
     windows_count = fold1.MAX_WINDOWS
     cursor_directory, output_directory = 'prefix-cursor', 'prefix-fit'

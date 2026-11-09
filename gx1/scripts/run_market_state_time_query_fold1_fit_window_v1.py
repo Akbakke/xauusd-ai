@@ -70,8 +70,9 @@ def _bookend(launch: dict, plan: dict, policy_path: Path,
               'INPUT_CHANGED:' + name)
     _need(campaign.file_sha256(Path(launch['reference_result']['path']))
           == launch['reference_result']['sha256'], 'REFERENCE_CHANGED')
-    if launch['run_scope'] == scope.TA_RECOVERY_SCOPE:
-        for name, ref in launch['recovery_origin'].items():
+    if launch['run_scope'] in (scope.TA_RECOVERY_SCOPE, scope.TA_M5_FIT_SCOPE):
+        origin = launch['warmstart_origin'] if launch['run_scope'] == scope.TA_M5_FIT_SCOPE else launch['recovery_origin']
+        for name, ref in origin.items():
             if isinstance(ref, dict):
                 campaign.require_binding(ref, label='TA recovery ' + name, verify_file=True)
 
@@ -244,6 +245,19 @@ def _ta_restore_recovery(*, recovery, fresh, model, optimizer, numerical,
     return restored
 
 
+def _ta_m5_apply_warmstart(*, model, optimizer, legacy_model, legacy_rng, origin, device):
+    """Copy qualified original weights, keep new AdamW empty and restore original RNG."""
+    from gx1.contracts import market_state_time_query_fold1_fit_state_v1 as state
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+    _need(not optimizer.state, 'M5_WARMSTART_REQUIRES_EMPTY_ADAMW')
+    report = state.copy_legacy_weights_to_dedicated_m5(
+        legacy_model, model,
+        expected_legacy_model_sha256=origin['model_state_sha256'])
+    trainer._restore_attended_session_rng_state(legacy_rng, device=device)
+    _need(not optimizer.state, 'M5_WARMSTART_CHANGED_ADAMW')
+    return report
+
+
 def _save_snapshot(path: Path, model, optimizer, *, numerical: dict,
                    view_identity: dict, order, cursor: int, updates: int,
                    skipped: int, source_commit: str, device, launch: dict,
@@ -282,7 +296,7 @@ def _publish_terminal(*, work: Path, progress_path: Path,
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
     from gx1.scripts import run_entry_native_direction_research_window_v1 as common
     payload = {
-        'schema_version': (scope.TA_RESULT_SCHEMA if launch['run_scope'] in (scope.TA_SF_SCOPE, scope.TA_RECOVERY_SCOPE)
+        'schema_version': (scope.TA_RESULT_SCHEMA if launch['run_scope'] in (scope.TA_SF_SCOPE, scope.TA_RECOVERY_SCOPE, scope.TA_M5_FIT_SCOPE)
                            else scope.RESULT_SCHEMA),
         'outcome': outcome, 'phase_state': phase_state,
         'recipe': window['recipe'], 'fold': fold,
@@ -309,6 +323,9 @@ def _publish_terminal(*, work: Path, progress_path: Path,
     }
     if launch['run_scope'] == scope.TA_RECOVERY_SCOPE:
         payload['recovery_origin'] = launch['recovery_origin']
+    if launch['run_scope'] == scope.TA_M5_FIT_SCOPE:
+        payload['warmstart_origin'] = launch['warmstart_origin']
+        payload['dedicated_m5_side'] = True
     result = common._json(
         work / 'RESULT.json', payload, counters,
         launch['max_published_json_bytes'])
@@ -364,9 +381,11 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
 
     recovery_run = launch['run_scope'] == scope.TA_RECOVERY_SCOPE
-    ta_sf = launch['run_scope'] in (scope.TA_SF_SCOPE, scope.TA_RECOVERY_SCOPE)
-    expected_recipe = scope.ta_sf_numerical_recipe() if ta_sf else scope.fold1_numerical_recipe()
-    _need(launch['run_scope'] in {scope.SCOPE, scope.TA_SF_SCOPE, scope.TA_RECOVERY_SCOPE}
+    ta_sf = launch['run_scope'] in (scope.TA_SF_SCOPE, scope.TA_RECOVERY_SCOPE, scope.TA_M5_FIT_SCOPE)
+    dedicated_m5_side = launch['run_scope'] == scope.TA_M5_FIT_SCOPE
+    expected_recipe = (scope.ta_sf_numerical_recipe(dedicated_m5_side=dedicated_m5_side)
+                       if ta_sf else scope.fold1_numerical_recipe())
+    _need(launch['run_scope'] in {scope.SCOPE, scope.TA_SF_SCOPE, scope.TA_RECOVERY_SCOPE, scope.TA_M5_FIT_SCOPE}
           and launch['fold'] == scope.FOLD
           and launch['numerical_recipe'] == expected_recipe
           and launch['reference_result'] == (
@@ -393,6 +412,8 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
         'skipped_batches', 'staged_state_load_calls',
         'staged_state_load_returns', 'resume_state_load_calls',
         'resume_state_load_returns', 'json_bytes')}
+    if dedicated_m5_side:
+        counters['model_construction_returns'] = 0
     timings = {}
     recovery = None
     provider = provider_plan = prepared = None
@@ -428,7 +449,7 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
                 expected_view_sha256=launch['expected_view_sha256'])
         if ta_sf:
             receipts = zero.load_ta_input_receipts()
-            view = zero._bind_ta_view(receipts)
+            view = zero._bind_ta_view(receipts, dedicated_m5_side=dedicated_m5_side)
             candidate_ref = launch['input_refs']['ta_candidate_view']
             candidate = authority.campaign.read_bound_json(
                 Path(candidate_ref['path']), candidate_ref['sha256'])
@@ -456,7 +477,7 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
             exact_priors = sf_objective.fit_endpoint_priors(
                 endpoint_bound, future_bound, axes={
                     'fit_parent_rows': fit_rows, 'fit_decision_ns': issues},
-                fold_id=1, ta_only=True)
+                fold_id=1, ta_only=True, dedicated_m5_side=dedicated_m5_side)
             _need(exact_priors == frozen_priors, 'TA_FROZEN_FIT_PRIORS')
         order = torch.from_numpy(fit_rows.copy())
         order_sha = tree_sha(order)
@@ -465,6 +486,11 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
 
         trainer._set_deterministic(
             numerical['seed'], device, numerical['precision_policy'])
+        if dedicated_m5_side:
+            from gx1.scripts.run_market_state_native_F_private_window_v1 import _restore_m5_legacy_origin
+            legacy_model, legacy_rng, legacy_import = _restore_m5_legacy_origin(
+                origin=launch['warmstart_origin'], receipts=receipts, order=order,
+                device=device, counters=counters, maximum=launch['max_checkpoint_bytes'])
         model = views.build_native_direction_research_model(
             view, prefix_normalization=receipts['fold1']['normal'],
             constructor_metadata=receipts['constructor'], device=device,
@@ -473,6 +499,8 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
             from gx1.contracts.market_state_time_query_native_F_model_v1 import NativeFutureDualModel
             model = NativeFutureDualModel(model).to(device)
         counters['model_constructions'] += 1
+        if dedicated_m5_side:
+            counters['model_construction_returns'] += 1
         actual_view = model.state_model.feature_view_identity if ta_sf else model.feature_view_identity
         _need(model.research_objective['contract_sha256']
               == launch['expected_model_contract_sha256']
@@ -482,6 +510,18 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
         optimizer, _ = state.build_fold1_fit_optimizer(
             model, numerical_recipe=numerical)
         counters['optimizer_constructions'] += 1
+        if dedicated_m5_side:
+            migration = _ta_m5_apply_warmstart(
+                model=model, optimizer=optimizer, legacy_model=legacy_model,
+                legacy_rng=legacy_rng, origin=launch['warmstart_origin'], device=device)
+            common._json(work / 'WARMSTART_IMPORT.json', {
+                'schema_version': 'gx1_market_state_ta_m5_fold1_warmstart_v1',
+                'legacy_import': legacy_import, 'weight_migration': migration,
+                'source_commit': plan['source_commit'],
+                'fresh_full_initialbaseline_required': True,
+                'qualification_weights_for_main_fit': False, 'test_data_used': False},
+                counters, launch['max_published_json_bytes'])
+            del legacy_model, legacy_rng
         view_identity = scope.require_checkpoint_view(
             actual_view, recipe=launch, verify_files=True, ta_sf=ta_sf)
         timings['fresh_model_seconds'] = time.monotonic() - tic
@@ -494,6 +534,10 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
             feature_view_identity=view_identity, parent_order=order,
             cursor=0, optimizer_updates=0, skipped_batches=0,
             source_commit=initial_source_commit, device=device)
+        if dedicated_m5_side:
+            _need(fresh['model_state_sha256'] == launch['expected_initial_model_state_sha256']
+                  and fresh['rng_state_sha256'] == legacy_import['rng_state_sha256'],
+                  'M5_QUALIFIED_INITIAL_MODEL_AND_RNG')
         if number == 1 and recovery_run:
             initial_ref = recovery['origin']['initial_state']
             initial_measurement = recovery['origin']['initial_measurement']
