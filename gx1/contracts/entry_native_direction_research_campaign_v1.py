@@ -34,6 +34,7 @@ TIME_QUERY_PRIVATE_SCOPE = 'market_state_time_query_private_4step_v1'
 NATIVE_F_PRIVATE_SCOPE = 'market_state_native_F_private_4step_v1'
 TA_SF_MECHANICAL_SCOPE = 'market_state_ta_sf_mechanical_v1'
 TA_M5_MECHANICAL_SCOPE = 'market_state_ta_dedicated_m5_mechanical_v1'
+TA_M5_IMPORT_SCOPE = 'market_state_ta_m5_equal_weight_import_v1'
 FAMILY_EXTRA_SOURCE_PATHS = ('gx1/contracts/entry_direction_family_intervention_v1.py',)
 FAMILY_PROTOCOL_PATH = '/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_ADDED_VALUE_PROTOCOL_20261030.json'
 DECIMAL_INPUT_AUDIT = {'path':'/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_BOUND_INPUT_ACTUAL_20261028_001.json',
@@ -169,12 +170,24 @@ def _path(value: Any, label: str) -> str:
     return str(path)
 
 
+def _is_ta_m5_import_recipe_ref(binding):
+    from gx1.contracts.market_state_native_F_private_campaign_v1 import TA_M5_IMPORT_RECIPE_PATH
+    return isinstance(binding, Mapping) and binding.get('path') == str(TA_M5_IMPORT_RECIPE_PATH)
+
+
 def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: Path,
         source_commit: str, verify_files: bool = True) -> dict[str, Any]:
     """Verify metadata and source bytes; never import Torch or grant training."""
     ref = campaign.require_binding(binding, label='direction research recipe', verify_file=verify_files)
     _require(verify_files, 'RECIPE_REQUIRES_PHYSICAL_METADATA')
     value = campaign.read_bound_json(Path(ref['path']), ref['sha256'])
+    import_mode = _is_ta_m5_import_recipe_ref(ref)
+    if import_mode or value.get('run_scope') == TA_M5_IMPORT_SCOPE:
+        _require(import_mode and value.get('run_scope') == TA_M5_IMPORT_SCOPE,
+                 'M5_IMPORT_RECIPE_PATH')
+        from gx1.contracts.market_state_native_F_private_campaign_v1 import require_ta_m5_import_recipe
+        return require_ta_m5_import_recipe(value, source_repo=source_repo,
+            source_commit=source_commit, verify_files=verify_files)
     if value.get('run_scope') == TIME_QUERY_PRIVATE_SCOPE:
         from gx1.contracts.market_state_time_query_private_campaign_v1 import require_time_query_private_recipe
         return require_time_query_private_recipe(value, source_repo=source_repo,
@@ -559,6 +572,16 @@ def guarded_research_power_limit(recipe):
     """Return the user-approved cap after the caller validates the bound recipe."""
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix
     _require(isinstance(recipe, Mapping), 'POWER_RECIPE')
+    if recipe.get('run_scope') == TA_M5_IMPORT_SCOPE:
+        from gx1.contracts import market_state_native_F_private_campaign_v1 as mechanical
+        _require(recipe.get('admission_stage') == mechanical.TA_M5_IMPORT_STAGE
+            and recipe.get('runtime_root') == str(mechanical.TA_M5_IMPORT_RUNTIME_ROOT)
+            and recipe.get('fold_id') == 1 and recipe.get('training_enabled') is False
+            and recipe.get('max_private_updates') == recipe.get('max_backwards') == 0
+            and recipe.get('test_data_used') is False
+            and recipe.get('numerical_recipe', {}).get('batch_size') == 16,
+            'M5_IMPORT_POWER_SCOPE')
+        return 250
     if recipe.get('run_scope') in (NATIVE_F_PRIVATE_SCOPE, TA_SF_MECHANICAL_SCOPE, TA_M5_MECHANICAL_SCOPE):
         _require(recipe.get('fold_id') == 1
             and recipe.get('training_enabled') is True
@@ -626,6 +649,7 @@ def require_research_invocation_execution(result: dict[str, Any], execution: Map
         source_repo: Path, source_commit: str) -> None:
     recipe_ref = campaign.require_binding(execution['prelaunch_manifest'], label='research recipe')
     recipe = require_research_launch_recipe(recipe_ref, source_repo=source_repo, source_commit=source_commit)
+    import_mode = _is_ta_m5_import_recipe_ref(recipe_ref)
     policy_ref = campaign.require_binding(execution['train_session_manifest'], label='research window')
     window = require_research_window_policy(campaign.read_bound_json(Path(policy_ref['path']),policy_ref['sha256']))
     _require(result['requires_fresh_windows_boot'] is True or recipe['run_scope'] == FAMILY_PRIVATE_SCOPE, 'FAMILY_ONLY_BOOT_MODE')
@@ -635,7 +659,7 @@ def require_research_invocation_execution(result: dict[str, Any], execution: Map
         '--progress-path',window['progress_path']], 'INVOCATION_ARGV')
     _require(result['kind'] == KIND and result['batch_size'] == recipe['numerical_recipe']['batch_size'] and result['epoch_index'] is None
         and result['invocation_number'] == 1 and result['window_index'] == 0 and result['window_count'] == 1
-        and type(result['optimizer_step_budget']) is int and result['optimizer_step_budget'] == 4
+        and type(result['optimizer_step_budget']) is int and result['optimizer_step_budget'] == (0 if import_mode else 4)
         and result['expected_success_outcome'] == 'COMPLETE' and result['maximum_wall_seconds'] == 13800
         and result['checkpoint'] == {'pointer_path':window['campaign_cursor_path'],'before_mode':'GENESIS',
             'predecessor_invocation_number':None,'write_mode':'ATOMIC_UPDATE'}
@@ -671,7 +695,7 @@ def require_research_plan(value: Any, *, verify_files: bool = True) -> dict[str,
         from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
         if policy_recipe['run_scope'] in (DYNAMIC_STATE_PRIVATE_SCOPE, december.PRIVATE_SCOPE,
                                           october.roles.PRIVATE_SCOPE, TIME_QUERY_PRIVATE_SCOPE,
-                                          NATIVE_F_PRIVATE_SCOPE, TA_SF_MECHANICAL_SCOPE, TA_M5_MECHANICAL_SCOPE):
+                                          NATIVE_F_PRIVATE_SCOPE, TA_SF_MECHANICAL_SCOPE, TA_M5_MECHANICAL_SCOPE, TA_M5_IMPORT_SCOPE):
             _require('family_same_boot' not in result, 'STATE_FRESH_BOOT_REQUIRED')
             expected_policy['physical_power_limit_w'] = 250
     _require(campaign.canonical_sha256(result['policy']) == campaign.canonical_sha256(expected_policy)
@@ -714,11 +738,13 @@ def require_native_direction_research_readiness(repo: Path, *, window_path: Path
     dirty = subprocess.check_output(['git','-C',str(repo),'status','--porcelain=v1','--untracked-files=all'],text=True)
     recipe = require_research_launch_recipe(window['recipe'],source_repo=repo,source_commit=head)
     gate = policy.get(recipe['admission_stage'])
+    import_mode = _is_ta_m5_import_recipe_ref(window['recipe'])
+    training_enabled = not import_mode
     _require(repo == CANONICAL_REPO and branch == 'work/gx1-current' and not dirty
         and policy.get('schema_version') == 'gx1_next_native_run_policy_v1'
         and policy.get('canonical_source_repo') == str(repo) and policy.get('canonical_branch') == branch
-        and policy.get('training_module') == MODULE and policy.get('training_enabled') is True
-        and policy.get('native_training_enabled') is True and policy.get('full_epoch_training_allowed') is False,
+        and policy.get('training_module') == MODULE and policy.get('training_enabled') is training_enabled
+        and policy.get('native_training_enabled') is training_enabled and policy.get('full_epoch_training_allowed') is False,
         'READINESS_GLOBAL')
     _require(isinstance(gate,Mapping) and gate.get('recipe') == window['recipe']
         and gate.get('run_root') == recipe['runtime_root'] and type(gate.get('max_invocations')) is int and gate['max_invocations'] == 1
@@ -726,9 +752,11 @@ def require_native_direction_research_readiness(repo: Path, *, window_path: Path
         and type(gate.get('completed_invocations')) is int and gate['completed_invocations'] == 0
         and gate.get('relaunch_allowed') is False, 'READINESS_ONCE')
     for key in ('execution_authorized','data_reads_authorized','genuine_constructor_authorized',
-            'genuine_forward_authorized','genuine_backward_authorized','genuine_updates_authorized',
-            'training_enabled','native_training_enabled'):
+            'genuine_forward_authorized'):
         _require(gate.get(key) is True, 'READINESS_GATE:' + key)
+    for key in ('genuine_backward_authorized','genuine_updates_authorized',
+            'training_enabled','native_training_enabled'):
+        _require(gate.get(key) is training_enabled, 'READINESS_GATE:' + key)
     for key in ('genuine_predictor_fit_authorized','native_launch_authorized','normalization_fit_authorized',
             'synthetic_test_execution_authorized','test_data_used','exit_evaluation','broker_access_allowed'):
         _require(gate.get(key) is False, 'READINESS_CLOSED_GATE:' + key)
@@ -748,6 +776,9 @@ def require_native_direction_research_readiness(repo: Path, *, window_path: Path
     if recipe['run_scope'] == NATIVE_F_PRIVATE_SCOPE:
         from gx1.contracts.market_state_native_F_private_campaign_v1 import require_gate
         require_gate(gate, recipe)
+    if recipe['run_scope'] == TA_M5_IMPORT_SCOPE:
+        from gx1.contracts.market_state_native_F_private_campaign_v1 import require_ta_m5_import_gate
+        require_ta_m5_import_gate(gate, recipe)
     if recipe['run_scope'] == TA_M5_MECHANICAL_SCOPE:
         from gx1.contracts.market_state_native_F_private_campaign_v1 import require_ta_m5_mechanical_gate
         require_ta_m5_mechanical_gate(gate, recipe)
@@ -759,7 +790,7 @@ def require_native_direction_research_readiness(repo: Path, *, window_path: Path
     return {'decision':'READY_FOR_EXISTING_BOUND_CAMPAIGN_GATES','blocked_reasons':[],
         'canonical_source_repo':str(repo),'source_commit':head,'policy_sha256':campaign.file_sha256(policy_path),
         'training_started':False,'native_invocation_seconds':12000,'outer_guard_seconds':13800,
-        'native_window_scope':{'research_only':True,'invocation_number':1,'optimizer_step_ceiling':4,
+        'native_window_scope':{'research_only':True,'invocation_number':1,'optimizer_step_ceiling':0 if import_mode else 4,
             'full_epoch_training_allowed':False,'window_policy_file_sha256':window_file_sha256}}
 
 
@@ -806,13 +837,24 @@ def require_native_direction_research_context(policy_path: Path, policy_file_sha
 
 def build_research_cursor(*, recipe_ref, outcome, optimizer_updates, parent_cursor,
         parent_order_sha256, full_state, result, batch_size=2) -> dict[str, Any]:
-    value = _seal({'schema_version':BPS_CURSOR_SCHEMA if batch_size == 16 else CURSOR_SCHEMA,'recipe':dict(recipe_ref),'outcome':outcome,
+    schema = BPS_CURSOR_SCHEMA if batch_size == 16 else CURSOR_SCHEMA
+    if _is_ta_m5_import_recipe_ref(recipe_ref):
+        from gx1.contracts.market_state_native_F_private_campaign_v1 import TA_M5_IMPORT_CURSOR_SCHEMA
+        schema = TA_M5_IMPORT_CURSOR_SCHEMA
+    value = _seal({'schema_version':schema,'recipe':dict(recipe_ref),'outcome':outcome,
         'optimizer_updates':optimizer_updates,'parent_cursor':parent_cursor,'parent_order_sha256':parent_order_sha256,
         'full_state':full_state,'result':result,'test_data_used':False}, 'cursor_sha256')
     return require_research_cursor(value,expected_recipe=recipe_ref,verify_files=False,batch_size=batch_size)
 
 
 def require_research_cursor(value, *, expected_recipe, verify_files=True, batch_size=2) -> dict[str, Any]:
+    from gx1.contracts import market_state_native_F_private_campaign_v1 as mechanical
+    import_mode = _is_ta_m5_import_recipe_ref(expected_recipe)
+    if import_mode or (isinstance(value, Mapping)
+                       and value.get('schema_version') == mechanical.TA_M5_IMPORT_CURSOR_SCHEMA):
+        _require(import_mode, 'M5_IMPORT_RECIPE_PATH')
+        return mechanical.require_ta_m5_import_cursor(value, expected_recipe=expected_recipe,
+            verify_files=verify_files, batch_size=batch_size)
     if isinstance(value, Mapping) and value.get('schema_version') in (
             'gx1_market_state_native_F_private_cursor_v1',
             'gx1_market_state_ta_sf_mechanical_cursor_v1',
@@ -844,9 +886,10 @@ def require_research_cursor(value, *, expected_recipe, verify_files=True, batch_
 def build_research_progress(*, window, plan, invocation, checkpoint_pointer,
         optimizer_updates, parent_cursor, parent_order_sha256, outcome) -> dict[str,Any]:
     from datetime import datetime, timezone
+    total_units = 0 if _is_ta_m5_import_recipe_ref(window['recipe']) else 4
     value = _seal({'schema_version':campaign.PROGRESS_SCHEMA,'plan_sha256':plan['plan_sha256'],
         'invocation_sha256':invocation['invocation_sha256'],'phase':KIND,'recipe':window['recipe'],
-        'completed_units':optimizer_updates,'total_units':4,'optimizer_updates':optimizer_updates,
+        'completed_units':optimizer_updates,'total_units':total_units,'optimizer_updates':optimizer_updates,
         'parent_cursor':parent_cursor,'parent_order_sha256':parent_order_sha256,
         'checkpoint_pointer':checkpoint_pointer,'terminal':True,'outcome':outcome,
         'observed_utc':datetime.now(timezone.utc).isoformat()},'progress_sha256')
@@ -868,8 +911,15 @@ def require_research_progress(value, *, plan_sha256, invocation,
     _require(type(batch_size) is int and batch_size in (2,16),'PROGRESS_BATCH_SIZE')
     for key in ('completed_units','total_units','optimizer_updates','parent_cursor'):
         _require(type(result[key]) is int and 0 <= result[key] <= (2*batch_size if key=='parent_cursor' else 4),'PROGRESS_COUNTER:' + key)
-    _require(result['total_units'] == 4 and result['completed_units'] == result['optimizer_updates']
-        and (result['outcome'] != 'COMPLETE' or result['optimizer_updates'] == 4 and result['parent_cursor'] == 2*batch_size), 'PROGRESS_COMPLETE')
+    if _is_ta_m5_import_recipe_ref(invocation['direction_research_recipe']):
+        _require(batch_size == 16 and type(invocation.get('optimizer_step_budget')) is int
+            and invocation['optimizer_step_budget'] == 0
+            and all(result[key] == 0 for key in
+                    ('total_units','completed_units','optimizer_updates','parent_cursor')),
+            'M5_IMPORT_PROGRESS_ZERO')
+    else:
+        _require(result['total_units'] == 4 and result['completed_units'] == result['optimizer_updates']
+            and (result['outcome'] != 'COMPLETE' or result['optimizer_updates'] == 4 and result['parent_cursor'] == 2*batch_size), 'PROGRESS_COMPLETE')
     campaign._sha(result['parent_order_sha256'],'parent order')
     ref = campaign.require_binding(result['checkpoint_pointer'],label='research cursor',verify_file=verify_file)
     _require(ref['path'] == invocation['checkpoint']['pointer_path'],'PROGRESS_CURSOR_PATH')

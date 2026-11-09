@@ -385,3 +385,102 @@ def copy_legacy_weights_to_dedicated_m5(legacy_model, model, *,
         'fresh_actual_initial_measurement_required': True,
         'prediction_parity_measured': False,
     }
+
+
+def import_equal_weight_m5_side_heads(model, coefficients, *,
+                                     expected_model_state_sha256,
+                                     coefficient_artifact, coefficient_recipe):
+    """Import four already-rounded FP32 tensors into a qualified TA M5 model.
+
+    The caller owns strict legacy restore/migration, artifact/recipe file binding
+    and execution admission. References here are provenance, not file reads.
+    No optimizer, progress, mode, requires-grad or RNG state is changed. A fresh
+    actual output baseline and checkpoint roundtrip remain the caller's work.
+    """
+    torch, old, private, _, digest, trainer = _deps()
+    _need(_is_ta_sf(model) and model.state_model._dedicated_m5_side is True,
+          'M5_IMPORT_MODE')
+    _require_model_binding(model)
+    old._no_partial_gradients(model)
+    view = _feature_view(model)
+    private._view(model.state_model, view)
+    names = (
+        'state_model.m5_side_head.weight', 'state_model.m5_side_head.bias',
+        'future_m5_side_head.weight', 'future_m5_side_head.bias',
+    )
+    _need(isinstance(coefficients, Mapping) and set(coefficients) == set(names),
+          'M5_IMPORT_COEFFICIENT_KEYS')
+    refs = {}
+    for label, ref in (('coefficient_artifact', coefficient_artifact),
+                       ('coefficient_recipe', coefficient_recipe)):
+        _need(isinstance(ref, Mapping) and set(ref) == {'path', 'sha256'}
+              and type(ref['path']) is str and ref['path'].startswith('/')
+              and type(ref['sha256']) is str
+              and re.fullmatch(r'[0-9a-f]{64}', ref['sha256']) is not None,
+              'M5_IMPORT_REFERENCE:' + label)
+        refs[label] = copy.deepcopy(dict(ref))
+    pairs = list(model.named_parameters(remove_duplicate=False))
+    _need(len({id(parameter) for _, parameter in pairs}) == len(pairs),
+          'M5_IMPORT_PARAMETER_ALIASES')
+    parameters = dict(pairs)
+    target = model.state_dict()
+    _need(digest(target) == expected_model_state_sha256, 'M5_IMPORT_SOURCE_DIGEST')
+    for name in names:
+        value = coefficients[name]
+        _need(name in parameters and isinstance(value, torch.Tensor)
+              and value.layout == torch.strided
+              and value.dtype == target[name].dtype == torch.float32
+              and value.shape == target[name].shape
+              and bool(torch.isfinite(value).all()), 'M5_IMPORT_TENSOR:' + name)
+    # Snapshot only the tiny imported tensors; hashes bind the unchanged state.
+    incoming = {name: coefficients[name].detach().clone() for name in names}
+    before = {name: target[name].detach().clone() for name in names}
+    unchanged_sha = digest({name: value for name, value in target.items() if name not in names})
+    buffer_sha = old._tree_sha(dict(model.named_buffers()))
+    modes = {name: bool(module.training) for name, module in model.named_modules()}
+    identities = [(name, id(parameter), parameter.requires_grad) for name, parameter in pairs]
+    device = parameters[names[0]].device
+    rng_sha = old._tree_sha(trainer._attended_session_rng_state(device=device))
+    with torch.no_grad():
+        for name in names:
+            parameters[name].copy_(incoming[name])
+    _require_model_binding(model)
+    old._no_partial_gradients(model)
+    after = model.state_dict()
+    _need(digest({name: value for name, value in after.items() if name not in names})
+          == unchanged_sha, 'M5_IMPORT_OTHER_STATE_MUTATED')
+    _need(old._tree_sha(dict(model.named_buffers())) == buffer_sha,
+          'M5_IMPORT_BUFFERS_MUTATED')
+    _need({name: bool(module.training) for name, module in model.named_modules()} == modes,
+          'M5_IMPORT_MODES_MUTATED')
+    _need([(name, id(parameter), parameter.requires_grad)
+           for name, parameter in model.named_parameters(remove_duplicate=False)] == identities,
+          'M5_IMPORT_PARAMETER_IDENTITY_MUTATED')
+    _need(old._tree_sha(trainer._attended_session_rng_state(device=device)) == rng_sha,
+          'M5_IMPORT_RNG_MUTATED')
+    changes = {}
+    for name in names:
+        source_sha = digest({name: incoming[name]})
+        after_sha = digest({name: after[name]})
+        _need(after_sha == source_sha, 'M5_IMPORT_COPY_PARITY:' + name)
+        delta = after[name].detach().double() - before[name].double()
+        changes[name] = {
+            'shape': list(after[name].shape), 'dtype': str(after[name].dtype),
+            'before_sha256': digest({name: before[name]}),
+            'after_sha256': after_sha, 'coefficient_sha256': source_sha,
+            'changed_elements': int((delta != 0).sum().item()),
+            'max_abs_change': float(delta.abs().max().item()),
+        }
+    return {
+        'schema_version': 'gx1_ta_m5_equal_weight_head_import_v1',
+        'source_model_state_sha256': expected_model_state_sha256,
+        'model_state_sha256': digest(after),
+        'model_contract_sha256': model.research_objective['contract_sha256'],
+        'feature_view_sha256': view['contract_sha256'],
+        **refs, 'tensor_changes': changes,
+        'unchanged_model_state_sha256': unchanged_sha,
+        'buffer_state_sha256': buffer_sha, 'rng_state_sha256': rng_sha,
+        'module_training': modes, 'parameter_identity_unchanged': True,
+        'optimizer_steps_performed': 0,
+        'fresh_actual_output_baseline_required': True,
+    }

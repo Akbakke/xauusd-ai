@@ -599,3 +599,295 @@ def _m5_baseline_parity(model, forward, *, atol, rtol):
             'm5_side_max_abs_error': float((actual[:, 0, 1] - shared[:, 0, 1]).abs().max()),
         }
     return outcome, report
+
+
+def _m5_import_score(logits, known, y):
+    """Unweighted conditional-side metrics on exactly the certified rows."""
+    import numpy as np
+    _need(logits.ndim == known.ndim == y.ndim == 1 and logits.shape == known.shape == y.shape
+          and known.dtype == np.bool_ and bool(known.any())
+          and bool(np.isfinite(logits).all()), 'IMPORT_SCORE_INPUT')
+    z, truth = logits[known].astype(np.float64), y[known].astype(np.float64)
+    _need(bool(np.isin(truth, (0., 1.)).all()), 'IMPORT_SCORE_TRUTH')
+    p = np.exp(-np.logaddexp(0., -z))
+    return {'count': len(z), 'up_count': int(truth.sum()),
+            'brier': float(np.mean((p - truth) ** 2)),
+            'log': float(np.mean(np.logaddexp(0., z) - truth * z)),
+            'mean_p': float(p.mean())}
+
+
+def _publish_m5_import(*, output, progress_path, window, plan, invocation, payload, counters):
+    from gx1.contracts import entry_native_direction_research_campaign_v1 as authority
+    from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+    maximum = scope.MAX_PUBLISHED_JSON_BYTES
+    outcome = 'COMPLETE' if payload['decision'] == 'PASS_TA_M5_EQUAL_WEIGHT_IMPORT' else 'FAILED'
+    result = common._json(scope.TA_M5_IMPORT_ROOT / 'RESULT.json', payload, counters, maximum)
+    common._json(scope.TA_M5_IMPORT_ROOT / 'TERMINAL.json', {
+        'status': outcome, 'exit_code': 0 if outcome == 'COMPLETE' else 1,
+        'recipe': window['recipe'], 'result': result, 'test_data_used': False,
+        'no_relaunch_under_this_plan': True}, counters, maximum)
+    cursor = {'schema_version': scope.TA_M5_IMPORT_CURSOR_SCHEMA, 'recipe': window['recipe'],
+              'outcome': outcome, 'optimizer_updates': 0, 'parent_cursor': 0,
+              'parent_order_sha256': payload['parent_order_sha256'],
+              'full_state': payload['final_state'], 'result': result, 'test_data_used': False}
+    cursor['cursor_sha256'] = scope.campaign.canonical_sha256(cursor)
+    scope.require_ta_m5_import_cursor(cursor, expected_recipe=window['recipe'])
+    pointer = common._json(Path(window['campaign_cursor_path']), cursor, counters, maximum)
+    progress = authority.build_research_progress(window=window, plan=plan, invocation=invocation,
+        checkpoint_pointer=pointer, optimizer_updates=0, parent_cursor=0,
+        parent_order_sha256=payload['parent_order_sha256'], outcome=outcome)
+    common._json(progress_path, progress, counters, maximum)
+    authority.require_research_progress(progress, plan_sha256=plan['plan_sha256'],
+        invocation=invocation, expected_selection_receipt_sha256=None, verify_file=True)
+    return {'result': result, 'checkpoint_pointer': pointer, 'progress_path': str(progress_path)}
+
+
+def run_ta_m5_import(*, policy_path: Path, policy_file_sha256: str, progress_path: Path):
+    """Import the fixed converged heads; six full forwards, zero updates."""
+    from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_trainer_execution
+    from gx1.contracts import entry_native_direction_research_campaign_v1 as authority
+    limits = require_guarded_cuda_trainer_execution()
+    window, plan, invocation, marker, recipe = authority.require_native_direction_research_context(
+        policy_path, policy_file_sha256, progress_path)
+    _need(recipe['run_scope'] == scope.TA_M5_IMPORT_SCOPE
+          and recipe['training_enabled'] is False and recipe['max_private_updates'] == 0,
+          'IMPORT_SCOPE')
+    import numpy as np
+    import torch
+    from gx1.audit import verify_market_state_time_query_zero_step_v1 as input_owner
+    from gx1.contracts import entry_native_direction_feature_view_v1 as views
+    from gx1.contracts import market_state_time_query_fold1_fit_state_v1 as state
+    from gx1.contracts.market_state_time_query_native_F_model_v1 import NativeFutureDualModel
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+    from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+    from gx1.scripts import run_market_state_time_query_private_window_v1 as previous
+    from gx1.scripts.run_unified_exit_random_access_full_train_v1 import (
+        _dynamic_m5_technical_tree_sha256 as tree_sha)
+    _need(torch.cuda.is_available(), 'IMPORT_CUDA')
+    device = torch.device('cuda', 0)
+    numerical, refs = recipe['numerical_recipe'], recipe['input_refs']
+    output = Path(window['output_directory'])
+    output.mkdir(parents=True)
+    counters = {k: 0 for k in ('model_constructions', 'model_construction_returns',
+        'optimizer_constructions', 'forwards', 'forward_returns', 'cached_head_calls',
+        'backwards', 'optimizer_step_calls', 'optimizer_updates',
+        'staged_state_load_calls', 'staged_state_load_returns',
+        'resume_state_load_calls', 'resume_state_load_returns', 'json_bytes')}
+    started = time.monotonic()
+    error = None
+    final_ref = None
+    order_sha = '0' * 64
+    legacy_evidence = migration = imported = None
+    initial_model_sha = None
+    full_forward_checks, cache_scores = [], {}
+    bit_exact_resume = source_unchanged = False
+
+    def clock_guard():
+        _need(time.monotonic() - started < window['max_invocation_seconds'] - 120,
+              'IMPORT_DEADLINE')
+
+    def capture(model, optimizer):
+        return state.capture_fold1_fit_state(model, optimizer, numerical_recipe=numerical,
+            feature_view_identity=model.state_model.feature_view_identity, parent_order=order,
+            cursor=0, optimizer_updates=0, skipped_batches=0,
+            source_commit=plan['source_commit'], device=device)
+
+    def fresh():
+        clock_guard()
+        trainer._set_deterministic(numerical['seed'], device, numerical['precision_policy'])
+        counters['model_constructions'] += 1
+        _need(counters['model_constructions'] <= recipe['max_model_constructions'], 'IMPORT_MODELS')
+        model = NativeFutureDualModel(views.build_native_direction_research_model(
+            view, prefix_normalization=receipts['fold1']['normal'],
+            constructor_metadata=receipts['constructor'], device=device,
+            unobserved_units_profile=receipts['fold1']['profile']))
+        counters['model_construction_returns'] += 1
+        model.train()
+        optimizer, _ = state.build_fold1_fit_optimizer(model, numerical_recipe=numerical)
+        counters['optimizer_constructions'] += 1
+        _need(counters['optimizer_constructions'] <= recipe['max_optimizer_constructions']
+              and not optimizer.state, 'IMPORT_EMPTY_OPTIMIZER')
+        return model, optimizer
+
+    def forward(model, batch, left, fit_cache):
+        clock_guard()
+        features, parents, issues = batch
+        _need(np.array_equal(parents, fit_cache['parents'][left:left + len(parents)])
+              and np.array_equal(issues, fit_cache['issues'][left:left + len(parents)]),
+              'IMPORT_ACTUAL_CACHE_AXIS')
+        query = torch.from_numpy(fit_cache['query_native'][left:left + len(parents)]).to(device)
+        seen = {}
+        def hook(task):
+            def record(module, inputs, output):
+                _need(task not in seen, 'IMPORT_SINGLE_HEAD_CALL')
+                seen[task] = inputs[0].detach().clone()
+            return record
+        handles = [model.state_model.query_head.register_forward_hook(hook('state')),
+                   model.future_head.register_forward_hook(hook('future'))]
+        counters['forwards'] += 1
+        _need(counters['forwards'] <= recipe['max_forwards'], 'IMPORT_FORWARD_BUDGET')
+        try:
+            with torch.inference_mode():
+                result = model(**features, query_k=query)
+        finally:
+            for handle in handles:
+                handle.remove()
+        counters['forward_returns'] += 1
+        for j, task in enumerate(('state', 'future')):
+            actual = seen[task][:, 0] if task == 'state' else seen[task]
+            expected = torch.from_numpy(fit_cache[f'native_{j}_representation'][left:left + len(parents)]).to(device)
+            _need(torch.equal(actual, expected), 'IMPORT_REPRESENTATION_CACHE_PARITY:' + task)
+        return {k: v.detach().cpu().clone() for k, v in result.items()}
+
+    try:
+        previous._bookend(recipe, plan, policy_path, policy_file_sha256)
+        previous._publish_claim(output=output, window=window, plan=plan, limits=limits,
+            counters=counters, maximum=recipe['max_published_json_bytes'])
+        receipts = input_owner.load_ta_input_receipts(current_source_owners={
+            name: ref['sha256'] for name, ref in recipe['source_owners'].items()})
+        view = input_owner._bind_ta_view(receipts, max_batch_rows=16, dedicated_m5_side=True)
+        _need(view['contract_sha256'] == recipe['expected_view_sha256'], 'IMPORT_VIEW')
+        raw_batches, batch_reports, _, _, full_order = _load_ta_train_batches(receipts, view, np=np)
+        order = torch.from_numpy(full_order)
+        order_sha = tree_sha(order)
+        batches = [({k: torch.from_numpy(v).to(device) for k, v in raw.items()}, rows, issues)
+                   for raw, rows, issues in raw_batches]
+        del raw_batches
+        legacy, rng, legacy_evidence = _restore_m5_legacy_origin(
+            origin=recipe['warmstart_origin'], receipts=receipts, order=order, device=device,
+            counters=counters, maximum=recipe['max_checkpoint_bytes'])
+        model, optimizer = fresh()
+        migration = state.copy_legacy_weights_to_dedicated_m5(legacy, model,
+            expected_legacy_model_sha256=recipe['warmstart_origin']['model_state_sha256'])
+        del legacy
+        trainer._restore_attended_session_rng_state(rng, device=device)
+        initial = capture(model, optimizer)
+        initial_model_sha = initial['model_state_sha256']
+        _need(initial_model_sha == recipe['initial_model_state_sha256'], 'IMPORT_EXACT_INITIAL')
+        with np.load(refs['fit_cache']['path'], allow_pickle=False) as fit_cache:
+            model.eval()
+            before = [forward(model, b, i * 16, fit_cache) for i, b in enumerate(batches)]
+            model.train()
+            _need(capture(model, optimizer)['contract_sha256'] == initial['contract_sha256'],
+                  'IMPORT_BEFORE_MUTATION')
+            with np.load(refs['equal_coefficients']['path'], allow_pickle=False) as coefficients:
+                tensors = {}
+                for task, prefix in (('state', 'state_model.m5_side_head'), ('future', 'future_m5_side_head')):
+                    beta = coefficients[task + '_beta_fp32']
+                    _need(beta.shape == (129,) and beta.dtype == np.float32, 'IMPORT_COEFFICIENT_LAYOUT')
+                    tensors[prefix + '.weight'] = torch.from_numpy(beta[1:].copy().reshape(1, 128))
+                    tensors[prefix + '.bias'] = torch.from_numpy(beta[:1].copy())
+                imported = state.import_equal_weight_m5_side_heads(model, tensors,
+                    expected_model_state_sha256=initial_model_sha,
+                    coefficient_artifact=refs['equal_coefficients'], coefficient_recipe=refs['equal_plan'])
+                candidate = capture(model, optimizer)
+                _need(not optimizer.state and candidate['rng_state_sha256'] == initial['rng_state_sha256'],
+                      'IMPORT_CANDIDATE_RNG_OPTIMIZER')
+                model.eval()
+                after = [forward(model, b, i * 16, fit_cache) for i, b in enumerate(batches)]
+                for i, (old, new) in enumerate(zip(before, after)):
+                    checks = {}
+                    for task in ('state', 'future'):
+                        name = task + '_activity_side_logits'
+                        _need(torch.equal(old[name][..., 0], new[name][..., 0])
+                              and torch.equal(old[name][:, 1:], new[name][:, 1:])
+                              and torch.equal(old[task + '_log_probs'][:, 1:], new[task + '_log_probs'][:, 1:]),
+                              'IMPORT_OTHER_OUTPUTS_CHANGED')
+                        expected = torch.from_numpy(coefficients['fit_' + task + '_equal_observation_fp32'][i*16:(i+1)*16])
+                        actual = new[name][:, 0, 1].double()
+                        _need(torch.allclose(actual, expected, atol=recipe['output_parity_atol'],
+                                             rtol=recipe['output_parity_rtol']), 'IMPORT_ACTUAL_READOUT_PARITY')
+                        checks[task] = {'other_outputs_bit_equal': True,
+                            'representation_cache_bit_equal': True,
+                            'm5_max_abs_error': float((actual - expected).abs().max())}
+                    full_forward_checks.append({'parent_rows': batches[i][1].tolist(), 'tasks': checks})
+                # Fresh native head-module baseline on every cached row. This
+                # does not claim a new full-population encoder execution.
+                for partition in ('fit', 'score'):
+                    cache_scores[partition] = {}
+                    with np.load(refs[partition + '_cache']['path'], allow_pickle=False) as cache:
+                        for j, task in enumerate(('state', 'future')):
+                            clock_guard()
+                            prefix = 'train_0' if partition == 'fit' and task == 'state' else f'native_{j}'
+                            x = cache[prefix + '_representation'][:, 0].copy()
+                            if partition == 'fit' and task == 'state':
+                                _need(np.array_equal(x, cache['native_0_representation'][:, 0]),
+                                      'IMPORT_S_M5_QUERY_PARITY')
+                            _need(len(x) == recipe['cached_head_rows'][partition], 'IMPORT_CACHE_ROWS')
+                            head = model.state_model.m5_side_head if task == 'state' else model.future_m5_side_head
+                            pieces = []
+                            with torch.no_grad():
+                                for left in range(0, len(x), 16):
+                                    pieces.append(head(torch.from_numpy(x[left:left+16]).to(device)).flatten().cpu().numpy())
+                                    counters['cached_head_calls'] += 1
+                            z = np.concatenate(pieces).astype(np.float64)
+                            key = partition + '_' + task
+                            expected = coefficients[key + '_equal_observation_fp32']
+                            _need(np.allclose(z, expected, atol=recipe['output_parity_atol'],
+                                               rtol=recipe['output_parity_rtol']), 'IMPORT_ALL_HEAD_PARITY')
+                            allowed = cache[prefix + '_allowed'][:, 0]
+                            known = cache[prefix + '_eligible'][:, 0] & cache[prefix + '_mature'][:, 0] & np.isin(allowed, (1, 4))
+                            y = (allowed == 4).astype(np.float64)
+                            _need(np.array_equal(known, coefficients[key + '_known'])
+                                  and np.array_equal(y, coefficients[key + '_y']), 'IMPORT_SCORE_MASKS')
+                            measured = _m5_import_score(z, known, y)
+                            cache_scores[partition][task] = {
+                                'measurement': measured,
+                                'frozen_prior': _m5_import_score(coefficients[key + '_frozen_prior'], known, y),
+                                'original': _m5_import_score(coefficients[key + '_original'], known, y),
+                                'max_abs_cpu_reference_error': float(np.max(np.abs(z - expected))),
+                                'rows': len(x), 'head_batches': len(pieces)}
+                model.train()
+                _need(capture(model, optimizer)['contract_sha256'] == candidate['contract_sha256'],
+                      'IMPORT_AFTER_MUTATION')
+                final_ref = common._save_state(output / 'IMPORTED_M5_STATE.pt', candidate,
+                    torch=torch, maximum=recipe['max_checkpoint_bytes'], counters=counters)
+            del model, optimizer
+            gc.collect()
+            resumed, resumed_optimizer = fresh()
+            loaded = common._load_state(final_ref, torch=torch,
+                maximum=recipe['max_checkpoint_bytes'], counters=counters)
+            restored = state.restore_fold1_fit_state(loaded, resumed, resumed_optimizer,
+                numerical_recipe=numerical, feature_view_identity=resumed.state_model.feature_view_identity,
+                parent_order=order, source_commit=plan['source_commit'], device=device)
+            _need(restored == {'cursor': 0, 'optimizer_updates': 0, 'skipped_batches': 0}
+                  and capture(resumed, resumed_optimizer)['contract_sha256'] == candidate['contract_sha256'],
+                  'IMPORT_CHECKPOINT_ROUNDTRIP')
+            resumed.eval()
+            repeated = [forward(resumed, b, i * 16, fit_cache) for i, b in enumerate(batches)]
+            _need(all(torch.equal(a[k], b[k]) for a, b in zip(after, repeated) for k in a),
+                  'IMPORT_RESUME_OUTPUT_PARITY')
+            resumed.train()
+            _need(capture(resumed, resumed_optimizer)['contract_sha256'] == candidate['contract_sha256'],
+                  'IMPORT_RESUME_MUTATION')
+            bit_exact_resume = True
+        _need(counters['model_constructions'] == counters['model_construction_returns']
+              == counters['optimizer_constructions'] == 3
+              and counters['forwards'] == counters['forward_returns'] == 6
+              and counters['cached_head_calls'] == 2 * (1849 + 1110)
+              and counters['backwards'] == counters['optimizer_step_calls'] == counters['optimizer_updates'] == 0,
+              'IMPORT_EXACT_WORK')
+        previous._bookend(recipe, plan, policy_path, policy_file_sha256)
+        source_unchanged = True
+    except BaseException as exc:
+        error = repr(exc)
+    payload = {
+        'schema_version': scope.TA_M5_IMPORT_RESULT_SCHEMA,
+        'decision': 'PASS_TA_M5_EQUAL_WEIGHT_IMPORT' if error is None else 'FAILED',
+        'recipe': window['recipe'], 'source_commit': plan['source_commit'],
+        'source_unchanged': source_unchanged, 'parent_order_sha256': order_sha, 'parent_cursor': 0,
+        'physical_optimizer_updates': 0, 'final_state': final_ref,
+        'initial_model_state_sha256': initial_model_sha,
+        'legacy_restore': legacy_evidence, 'migration': migration, 'head_import': imported,
+        'fresh_full_forward_baseline': full_forward_checks, 'cached_head_baseline': cache_scores,
+        'full_TRAIN_encoder_baseline_qualified': False,
+        'bit_exact_resume': bit_exact_resume, 'counts': dict(counters),
+        'elapsed_seconds': time.monotonic() - started, 'limits': limits,
+        'native_fit_authorized': False, 'predictive_value_qualified': False,
+        'test_data_used': False, 'error': error,
+    }
+    published = _publish_m5_import(output=output, progress_path=progress_path, window=window,
+        plan=plan, invocation=invocation, payload=payload, counters=counters)
+    if error is not None:
+        raise RuntimeError('TA_M5_IMPORT_FAILED:' + error)
+    return {'decision': payload['decision'], **published, 'counts': counters}

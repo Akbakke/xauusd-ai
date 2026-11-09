@@ -412,6 +412,15 @@ def require_invocation(
                 or result["expected_success_outcome"] != "COMPLETE"
                 or result["window_count"] != 1 or result["window_index"] != 0):
             raise RandomAccessCampaignError("checkpoint diagnostic zero-step window invalid")
+    elif kind == "native_direction_research_window" and type(budget) is int and budget == 0:
+        from gx1.contracts.market_state_native_F_private_campaign_v1 import TA_M5_IMPORT_RUNTIME_ROOT
+        if (number != 1 or batch_size != 16
+                or result["expected_success_outcome"] != "COMPLETE"
+                or result["window_count"] != 1 or result["window_index"] != 0
+                or result.get("checkpoint", {}).get("pointer_path") != str(TA_M5_IMPORT_RUNTIME_ROOT / "research-cursor/RESUME_CURSOR.json")):
+            raise RandomAccessCampaignError("M5 import zero-step window invalid")
+        # The bound research recipe and readiness gates also require zero
+        # backwards/updates and training_enabled=False before any execution.
     elif kind == "native_direction_prefix_fit_window" and type(budget) is int and budget == 0:
         # Structural admission only. The bound prefix recipe validator below
         # requires the explicit scoring recovery origin before actual execution.

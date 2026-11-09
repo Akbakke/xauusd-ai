@@ -15,7 +15,29 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_DIRECTION_EQUAL_WEIGHT_S_LATER_PRIOR_BEATEN_F_UNBEATEN.
+Policystatus: TA_M5_EQUAL_WEIGHT_IMPORT_ZERO_STEP_ADMITTED.
+
+Ny engangs nullstegskontroll er innrømmet i policy:
+MARKET_STATE_TA_M5_EQUAL_WEIGHT_IMPORT_20261109_001. Original FINAL
+restores strengt på CUDA, migreres gjennom eksisterende dedicated-eier, og
+bare fire FP32 M5-vekt-/bias-tensorer importeres fra verifisert likevekts-NPZ.
+Kropp, øvrige state/buffers, Parameter-identiteter, modes og RNG bevares.
+Før/etter/resume på de samme to B16-batchene gir seks fulle forwards.
+Begge native head-moduler må gjenskape alle29574/17753 lagrede prognoser;
+fersk full encoderbaseline gjelder bare32TRAIN-rader. Streng checkpoint-
+rundtur og bitlike resume-utganger kreves.0backwards/optimizersteg;250W.
+
+36fokuserte tester og faktisk input-/checkpoint-/cache-/visningsmetadata
+med85kildeeiere bestod. Også fysisk metadata-transport for ny nullstegs-
+invocation→execution→recipe/window er kontrollert før engangsclaim.
+Lesende review fant ulik MHA-evalueringskontekst; de seks frosne forwards
+bruker nå samme inference_mode som originalcache, med uendret bitparitetskrav.
+Gamle capture/restore/migration-metoder er byteidentiske; kun ny importhelper
+er lagt til. Ingen native kjøring er startet ved denne kodekvitteringen.
+Neste steg: eksisterende materializer, maskinvid idle-kontroll, fersk boot
+og den ene bundne kontrollen. training_enabled/native_training_enabled=false.
+TEST/GC/Entry/Exit/handel forblir stengt. Gammel4stegsplan gjenbrukes ikke.
+
 
 Den [parvise likevektskontrollen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_EQUAL_WEIGHT_20261109_001/REVIEW.json)
 er COMPLETE og konsumert. Kun vekten mellom kjente observasjoner ble endret:
@@ -53,15 +75,9 @@ avviket med bevart tapmasse S0,194591671/F0,199459167.
 Aktiv native rute er native_F_objective→side_normalized_loss_v1; den eldre
 loss_v2 er ikke siste side-normalisering. Native kode/vekter er fortsatt uendret.
 
-Minste neste steg er å kvalifisere de lagrede, konvergerte likevektskoeffisientene
-i eksisterende native M5-hoder med null optimizersteg. Bruk original FINAL
-som cachebasis, streng CUDA-restore, eksisterende dedicated-migrering og kun
-fire M5-tensorer. NPZ i REVIEW har state_beta_fp32/future_beta_fp32:
-bias først, deretter128 vekter. Siste native FINAL er feil representasjonsbasis.
-Ny modeldigest, fersk faktisk output-baseline, uendrede øvrige outputs/RNG og
-streng checkpoint-rundtur kreves. Gammel firestegsmekanikk kan ikke relanseres
-eller omtolkes. Cacheevaluering alene er ikke et nytt komplett encoderforløp.
-Ingen ny nativeplan/launch er innrømmet. F-priorgrensen er fortsatt uoppfylt.
+Likevektskoeffisientene og originalcache er grunnlaget for den nye
+nullstegsimporten øverst. Den siste native FINAL har en annen kropp og brukes
+ikke. F-priorgrensen er fortsatt uoppfylt.
 
 Den nye [M5-fit-kjøringen](/home/andre2/GX1_RUNS/MARKET_STATE_TA_DEDICATED_M5_FOLD1_FIT_20261109_001/TERMINAL.json)
 er COMPLETE og konsumert: original FINAL varmstartet til egne M5-sidehoder,
@@ -517,14 +533,12 @@ tidssekvensmodellen, samme-linje-reaksjonsverdi, Entry-verdi og økonomisk edge
 er ubevist. 61 makrofelt mangler uavhengig formelorakel; COTs faktiske
 historiske publisering og vintage er fortsatt UNKNOWN.
 
-**Neste steg:** Kvalifiser faktisk originalt FINAL-checkpoint → egen M5-side
-med ny tom AdamW, kontrollert RNG og eksisterende guarded native mekanikk.
-Kontroller faktisk output-paritet og gjenopptakelse; mål fersk initialbaseline
-før en ny avgrenset retningsfit. Fullpopulasjonskontrollen er ferdig og skal
-ikke gjentas. Avklar primær retningshorisont før en eventuell målendring.
-Gjenbruk ferdige input-/representasjonscacher og checkpoints. M5-tapet er
-målt, men full årsaksforklaring og kvalifisert senere forbedring mangler.
-Målet er aktivt; opt-in kilde er implementert og én4-stegs faktisk kvalifikasjon er innrømmet. Ny full fit er stengt.
+**Neste steg:** Fullfør kun den nye nullstegsimporten beskrevet øverst.
+Gjenbruk ferdige inputs, representasjonscacher, checkpoints og beståtte
+kontroller. Ingen fit er innrømmet; den native treningslossens batchvekting
+er fortsatt uendret. S har slått senere prior i den fryste head-kontrollen;
+F taper fortsatt svakt. Robust generalisering/edge er ikke bevist.
+Målet er aktivt. Avklar primær retningshorisont før eventuell målendring.
 Brukerens spørsmål om 30 epoker og fem år er fortsatt åpne hypoteser.
 Denne fitten dekker omtrent mai–september2024, senere score oktober–desember2024.
 Ett pass og én fold er ingen generell dom over lengre læring eller historikk.
