@@ -15,19 +15,47 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: POST16_SHARED_GRADIENT_AND_ADAMW_HISTORY_ADMITTED_NO_FIT.
+Policystatus: ANALYTIC_M5_HEAD_FIRST_MOMENT_INTERFERENCE_VERIFIED_PAIRED_PROBE_REQUIRED.
 
-Én ny POST16-gradientdiagnose er kvalifisert/innrømmet; trening er stengt.
+POST16-diagnosen er COMPLETE/konsumert og uavhengig verifisert. Ingen jobb
+kjører; alle treningsporter er stengt. 6 forwards/21 autograd, 0 oppdateringer.
+Hel kommando 230.352 s, worker 226.823 s, peakRSS 7.230 GB.
 Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_POST16_SHARED_GRADIENT_20261109_001
-PLAN SHAf6deea3d29120ca2ca8aca30fbaff90535f859fb67ed29c6d326996cf6ea3478.
-Worker SHAd49e96244a966f7d0640b356fee3eda69463bbe2a60850e2de01677769c0ff8f.
-Preflight85kildeeiere og separat kildekontroll PASS.6forwards/21autograd,
-0optimizer/updates,600s/12G/tråd1. INITIAL-diagnosen gjenbrukes uten rerun.
-Samme48TRAIN-rader,queries og CPUdropoutstart/slutt skal matche.
-Ny måling inkluderer FP64-analytisk nesteAdamW fra faktisk570parametertilstander
-medstep16 i énparamgruppe, i tillegg til gammel first-AdamW-sammenligning.
-Dette er lokal BCE-retning, ikke anvendtTorchsteg eller Briergevinst.
-Lukk engangsadmisjonen etter terminal; ingen automatisk viderejobb.
+RESULT SHAdc67c521a92e1d42870f995257741993e94891e7dda49513c6a4cabca41414ba.
+REVIEW SHAc826b065e8febfd1a870184080ad250b8cced330e6feed7076a597a76831b009.
+Review 4.563 s gjenskaper alle fem gradientpartisjoner, også neste AdamW
+med lagret momenthistorikk; maksavvik 3.417e-13. Alle 570 parameter-ID/navn,
+weights, m/v og steg16 matcher checkpointet eksakt. Samme48observasjoner,
+queries/supports ogCPUdropoutstart/slutt som INITIAL; baseline ikke gjentatt.
+
+Andre mål har fortsatt gunstig fersk gradientretning for M5-backbone i alle
+tre batcher. Samlet lokal eval-BCE-effekt fra fersk AdamW:
+S −0.000688662 / F −0.000574168.
+Med faktisk lagret momenthistorikk: −0.000039635 / −0.000031867.
+Backbone-bidraget er fortsatt gunstig, men M5-hodene bidrar ugunstig:
++0.000047086 / +0.000044446. Dette gjelder samlet og to av tre batcher;
+S totalretning er ugunstig i midterste batch (+0.000014484).
+
+En avgrenset analytisk kontroll nuller KUN exp_avg for de fire M5-hode-
+parametrene. Andre moment, steg16, klipping, vekter og øvrige momenter er
+uendret. Da blir hodebidraget −0.000007431 / −0.000006802 og totalen
+−0.000094152 / −0.000083114. Fortegnsforskjellen er dermed isolert til
+første-momenthistorikken i denne lokale beregningen. Ingen faktisk
+oppdatering, Briergevinst eller generell optimizerårsak er bevist.
+
+Neste konkrete test er to korte, parede videreføringer fra FINAL16:
+CONTROL nøyaktig full CPU-resume og RESET samme resume med kun de fire
+M5 exp_avg-bufferne nullet én gang. Hver arm får de samme neste8steg/
+128rader (starts256..368), identisk RNG, kanonisk modell/loss/AdamW/klipping.
+Originalcheckpoint beholdes; resetprovenans og faktisk start-/sluttstate
+lagres. Hver sluttstate har cursor384/updates24; det er16nye steg totalt.
+
+Worker er under implementasjon, men ingen ny fit er innrømmet.
+Maks16backwards/64forwards/600s/12G/tråd1. Gjenbruk identisk ONLINE-
+POST16baseline og de samme192TRAIN-radene. RESET må forbedre begge
+S/F mot CONTROL, POST16baseline og prior før begge armer scores på192
+forhåndsbestemte senere TRAIN-rader. Senere TRAIN er gjenbrukt utvikling.
+Ingen endring i tapsvekter, betaer, andre optimizerfelt, TEST eller handel.
 
 Hidden-kontrollen er COMPLETE/konsumert og numerisk verifisert; ingen jobb
 kjører og alle porter er stengt.24encoderforwards,0optimizer/backwards/fit/

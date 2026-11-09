@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-09T17:07:12.629858+00:00",
-  "status": "POST16_SHARED_GRADIENT_AND_ADAMW_HISTORY_ADMITTED_NO_FIT",
+  "status": "ANALYTIC_M5_HEAD_FIRST_MOMENT_INTERFERENCE_VERIFIED_PAIRED_PROBE_REQUIRED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Run the newly qualified POST16 frozen-point diagnostic once, max6forwards/21autograd/600s/12G/thread1,0optimizer/updates. Reuse INITIAL baseline and match its observation/query/dropout control. Compare fresh loss gradients and analytic nextAdamW direction from actual saved moments; no training/candidate selection/later scoring. Close admission after terminal and independently recompute saved numeric evidence.",
+  "next_action": "Implement/qualify one paired8+8-update CPU continuation from immutable FINAL16. CONTROL exactresume versus RESET exactresume with only four dedicatedM5-head exp_avg buffers zeroed once before fit; v,steps,weights,kwargs,allothermoments andRNG remain unchanged. Same next128rows atstarts256..368. Reuse identicalONLINE POST16baseline; evaluate fixed192TRAIN. Only if predeterminedRESET beatsCONTROL,POST16baseline andprior in bothS/F Brier and no worse logloss, scorebothfixed192laterTRAIN. Max16newupdates/16backwards/64forwards/600s; no fit admitted yet. This tests the actual effect of the isolated analytic first-moment sign reversal, not a general optimizer change.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -69693,7 +69693,7 @@
       "sha256": "1cfb6be1e258df9a51a0e67d06ef8bcb85e451e749829319f93ba6af6614c341"
     },
     "native_accumulation_change_qualified": false,
-    "next_measured_coverage_gap": "Early last-block harm comes mostly from backbone, with smaller query-projection harm. All8frozencombinations fail aggregateFprior. First256trainingrows have54.46%S/54.10%F UP, so downshift is not explained by a DOWN-majority class prior. Actual shared-gradient interaction after16updates is unmeasured; initial interaction was favorable on3fixedbatches.",
+    "next_measured_coverage_gap": "Fresh other-objective gradients remain favorable to M5backbone on all3sampled batches. ActualsavedAdamW firstmoment makes M5head contribution oppose aggregateevalM5 and2/3batches. Nulling only fourhead exp_avg flipsaggregatehead contribution favorable with v/step/clipping/weights heldfixed. This is localBCElinearization; actualpairedtraining/score/later effect remains unmeasured.",
     "head_trajectory": {
       "status": "COMPLETE_CONSUMED_NUMERICALLY_VERIFIED",
       "plan": {
@@ -69817,7 +69817,7 @@
       "sha256": "a08b267d6f286f210d030fd7807e69e7e91f65ceb2fbb4f378c5512e2a9891c0"
     },
     "next_post16_gradient_scope": {
-      "status": "SOURCE_AND_METADATA_QUALIFIED_ADMITTED",
+      "status": "COMPLETE_CONSUMED_INDEPENDENTLY_VERIFIED",
       "checkpoint": {
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/FINAL_CPU_STATE.pt",
         "sha256": "ba77633c365fadbdfe1b2d8073dbcbfc181b95fe013c4691214197c24490fc44"
@@ -69846,7 +69846,7 @@
       "wall_seconds": 600,
       "memory_max": "12G",
       "numerical_threads": 1,
-      "execution_authorized": true,
+      "execution_authorized": false,
       "training_authorized": false,
       "comparison": "Same genuine observations, queries, weighting, CPU dropout recipe and active parameter partitions as INITIAL; only checkpoint changes. Reuse old baseline artifacts. Full shared encoder parameter gradients required, not detached hidden-only proxy.",
       "plan": {
@@ -69857,7 +69857,86 @@
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_POST16_SHARED_GRADIENT_20261109_001/probe.py",
         "sha256": "d49e96244a966f7d0640b356fee3eda69463bbe2a60850e2de01677769c0ff8f"
       },
-      "saved_moment_analytic_next_direction": true
+      "saved_moment_analytic_next_direction": true,
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_POST16_SHARED_GRADIENT_20261109_001/RESULT.json",
+        "sha256": "dc67c521a92e1d42870f995257741993e94891e7dda49513c6a4cabca41414ba"
+      },
+      "review": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_POST16_SHARED_GRADIENT_20261109_001/REVIEW.json",
+        "sha256": "c826b065e8febfd1a870184080ad250b8cced330e6feed7076a597a76831b009"
+      }
+    },
+    "latest_post16_gradient_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_POST16_SHARED_GRADIENT_20261109_001/RESULT.json",
+      "sha256": "dc67c521a92e1d42870f995257741993e94891e7dda49513c6a4cabca41414ba"
+    },
+    "latest_post16_gradient_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_POST16_SHARED_GRADIENT_20261109_001/REVIEW.json",
+      "sha256": "c826b065e8febfd1a870184080ad250b8cced330e6feed7076a597a76831b009"
+    },
+    "next_head_moment_reset_scope": {
+      "status": "MEASURED_NEED_WORKER_IN_PROGRESS_NOT_ADMITTED",
+      "source_checkpoint": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/FINAL_CPU_STATE.pt",
+        "sha256": "ba77633c365fadbdfe1b2d8073dbcbfc181b95fe013c4691214197c24490fc44"
+      },
+      "intervention": "Zero exp_avg once for exactlystate_model.m5_side_head.weight/bias andfuture_m5_side_head.weight/bias after exact fullCPUrestore; preserveeveryotherstatefield. Originalcheckpointimmutable; explicitresetreceipt andderivedstartstate.",
+      "arm_order": [
+        "CONTROL",
+        "RESET"
+      ],
+      "train_batch_starts": [
+        256,
+        272,
+        288,
+        304,
+        320,
+        336,
+        352,
+        368
+      ],
+      "updates_per_arm": 8,
+      "max_total_new_updates": 16,
+      "max_backwards": 16,
+      "max_forwards": 64,
+      "wall_seconds": 600,
+      "memory_max": "12G",
+      "swap_max": "512M",
+      "numerical_threads": 1,
+      "fit_eval_ranges": [
+        [
+          0,
+          64
+        ],
+        [
+          14272,
+          14336
+        ],
+        [
+          29504,
+          29568
+        ]
+      ],
+      "later_eval_ranges": [
+        [
+          0,
+          64
+        ],
+        [
+          8352,
+          8416
+        ],
+        [
+          17680,
+          17744
+        ]
+      ],
+      "training_authorized": false,
+      "execution_authorized": false,
+      "automatic_continuation": false,
+      "gate": "Both S/F RESET Brier improves>1e-6 againstCONTROL,POST16baseline andfrozenprior; logloss no worse thanCONTROL orPOST16baseline+1e-8. Locked gate beforeworker later scoring. Separate correctedINITIAL0 reference retained.",
+      "scope": "Paired identicaldata/RNG/canonicaloptimizer/loss, genuine5TF; onlydeclaredfirstmomentstateintervention. Fulltargettape validation upfront acknowledged. No TEST/trading orpromotion."
     }
   },
   "market_state_ta_m5_short_accumulation_20261109_001": {
@@ -70165,8 +70244,8 @@
     "runtime_route_qualified": true
   },
   "market_state_ta_m5_post16_shared_gradient_20261109_001": {
-    "status": "ADMITTED",
-    "execution_authorized": true,
+    "status": "COMPLETE_CONSUMED_INDEPENDENTLY_VERIFIED",
+    "execution_authorized": false,
     "training_authorized": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_POST16_SHARED_GRADIENT_20261109_001/PLAN.json",
@@ -70177,9 +70256,9 @@
       "sha256": "7ed150e9da328ccb199f50eb829e352a6fb400b8552ba4c0008f20a1e9906cb5"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "optimizer_updates_authorized": 0,
     "optimizer_constructions_authorized": 0,
@@ -70198,6 +70277,27 @@
         "sha256": "d49e96244a966f7d0640b356fee3eda69463bbe2a60850e2de01677769c0ff8f"
       },
       "scope": "Static nextAdamW formula, parameter mapping, controls and loop limits. Root reviewed installedAdamW source and complete worker; runtime/numeric evidence pending."
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_POST16_SHARED_GRADIENT_20261109_001/RESULT.json",
+      "sha256": "dc67c521a92e1d42870f995257741993e94891e7dda49513c6a4cabca41414ba"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_POST16_SHARED_GRADIENT_20261109_001/TERMINAL.json",
+      "sha256": "8c76373e96d6233ec148d5f7fe5295d1bcaa34c537b811d33192384503af4adc"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_POST16_SHARED_GRADIENT_20261109_001/CONTROLLER.json",
+      "sha256": "9c275dc11ae10994166d12836c9a33d7942b5630dd6b545856c126a37ff1d194"
+    },
+    "actual_forwards": 6,
+    "actual_autograd_calls": 21,
+    "actual_updates": 0,
+    "worker_seconds": 226.82296140499966,
+    "whole_command_seconds": 230.35164250699927,
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_POST16_SHARED_GRADIENT_20261109_001/REVIEW.json",
+      "sha256": "c826b065e8febfd1a870184080ad250b8cced330e6feed7076a597a76831b009"
     }
   }
 }
