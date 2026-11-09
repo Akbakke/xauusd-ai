@@ -163,6 +163,154 @@ def test_bad_opt_in_batch_is_rejected_before_forward_or_target_read(monkeypatch,
     assert not events
 
 
+class _RowRecordingTA(_RecordingTA):
+    def __call__(self, **kwargs):
+        self.events.append('forward')
+        assert set(kwargs) == batch._feature_keys(self) | {'query_k'}
+        row = kwargs['seq_x'][:, 0, 0, None]
+        tf = torch.arange(5, dtype=torch.float32)[None, :]
+        query = kwargs['query_k'].to(torch.float32) / torch.tensor(NATIVE_K)
+        state_raw = torch.stack((row + tf / 10, .75 * row - tf / 7 + query), -1)
+        future_raw = torch.stack((-.5 * row + tf / 11, .25 - row + tf / 13), -1)
+        state_raw.requires_grad_()
+        future_raw.requires_grad_()
+        return {'state_activity_side_logits': state_raw,
+                'state_log_probs': factorized_log_probabilities(state_raw),
+                'future_activity_side_logits': future_raw,
+                'future_log_probs': factorized_log_probabilities(future_raw)}
+
+
+class _RowTargets(_Targets):
+    def _truth(self, parents, issues):
+        code = parents[:, None] // 3 + np.arange(5, dtype=np.int64)[None, :]
+        return {'parent_rows': parents.copy(), 'issue_ns': issues.copy(),
+                'allowed': np.array([1, 2, 4], np.uint8)[code % 3],
+                'eligible': code % 7 != 0, 'mature': code % 11 != 0}
+
+
+def _positions_case(monkeypatch, positions):
+    events, args, kwargs = _batch_case(monkeypatch, 0, len(positions))
+    args[0] = _RowRecordingTA(events)
+    for index in (2, 3):
+        args[index] = _RowTargets(args[index].parent_rows, args[index].decision_ns, events)
+    args[4] = args[2].parent_rows[positions].copy()
+    args[5] = args[2].decision_ns[positions].copy()
+    args[1]['seq_x'][:, 0, 0] = torch.from_numpy(args[4]).to(torch.float32) / 100000 - .5
+    monkeypatch.setattr(batch, 'NativeFutureDualModel', _RowRecordingTA)
+    monkeypatch.setattr(batch, 'BoundTimeQueryTargets', _RowTargets)
+    monkeypatch.setattr(batch, 'BoundFutureDisplacement', _RowTargets)
+    kwargs.pop('fit_batch_start')
+    kwargs['fit_batch_positions'] = positions.copy()
+    return events, args, kwargs
+
+
+def test_explicit_noncontiguous_positions_preserve_row_query_target_pairing(monkeypatch):
+    positions = np.array([29573, 0, 14272, 17, 4096, 83, 12288, 31,
+                          256, 20001, 9, 28672, 55, 16384, 1, 8192], np.int64)
+    events, args, kwargs = _positions_case(monkeypatch, positions)
+    axes_before = [(bound.parent_rows.copy(), bound.decision_ns.copy()) for bound in args[2:4]]
+    result = batch.evaluate_fit_batch(*args, **kwargs)
+    assert events == ['forward', 'S-targets', 'F-targets']
+    expected_query = sampled_query_k(args[5], pass_index=0, seed=20260911)
+    np.testing.assert_array_equal(result['state_query_k'], expected_query)
+    code = args[4][:, None] // 3 + np.arange(5, dtype=np.int64)[None, :]
+    for prefix in ('state', 'future'):
+        np.testing.assert_array_equal(result[prefix + '_allowed'],
+                                      np.array([1, 2, 4], np.uint8)[code % 3])
+        np.testing.assert_array_equal(result[prefix + '_mature'], code % 11 != 0)
+    torch.testing.assert_close(result['state_activity_side_logits'][:, 0, 0],
+                               args[1]['seq_x'][:, 0, 0], rtol=0, atol=0)
+    torch.testing.assert_close(result['future_activity_side_logits'][:, 0, 1],
+                               .25 - args[1]['seq_x'][:, 0, 0], rtol=0, atol=0)
+    assert torch.unique(result['state_activity_side_logits'][:, 0, 0]).numel() == 16
+    assert set(result['state_allowed'][:, 0]) == {1, 2, 4}
+    assert torch.isfinite(result['loss'])
+    for bound, (parents, issues) in zip(args[2:4], axes_before):
+        np.testing.assert_array_equal(bound.parent_rows, parents)
+        np.testing.assert_array_equal(bound.decision_ns, issues)
+    np.testing.assert_array_equal(kwargs['fit_batch_positions'], positions)
+
+
+def test_explicit_contiguous_positions_equal_original_start_outputs_and_gradients(monkeypatch):
+    events, args, kwargs = _positions_case(monkeypatch, np.arange(16, 32, dtype=np.int64))
+    original_kwargs = {k: v for k, v in kwargs.items() if k != 'fit_batch_positions'}
+    original_kwargs['fit_batch_start'] = 16
+    old = batch.evaluate_fit_batch(*args, **original_kwargs)
+    explicit = batch.evaluate_fit_batch(*args, **kwargs)
+    assert events == ['forward', 'S-targets', 'F-targets'] * 2
+    assert old.keys() == explicit.keys()
+    for key, value in old.items():
+        if isinstance(value, torch.Tensor):
+            assert torch.equal(value, explicit[key]), key
+        elif isinstance(value, np.ndarray):
+            np.testing.assert_array_equal(value, explicit[key], err_msg=key)
+        else:
+            assert value == explicit[key], key
+    heads = ('state_activity_side_logits', 'future_activity_side_logits')
+    old_grad = torch.autograd.grad(old['loss'], tuple(old[key] for key in heads))
+    explicit_grad = torch.autograd.grad(explicit['loss'], tuple(explicit[key] for key in heads))
+    for before, after in zip(old_grad, explicit_grad):
+        assert torch.equal(before, after)
+        assert torch.count_nonzero(before) > 0
+
+
+@pytest.mark.parametrize('fault', [
+    'float_dtype', 'int32_dtype', 'bool_dtype', 'list', 'rank2', 'duplicate',
+    'negative', 'past_end', 'short', 'long', 'empty', 'six_row_tail',
+    'both_selectors', 'without_opt_in', 'fold', 'pass', 'seed',
+    'no_dedicated', 'gc_profile', 'state_parent', 'future_parent',
+    'state_issue', 'future_issue', 'row_order', 'issue_order',
+])
+def test_bad_explicit_positions_reject_before_forward_or_targets(monkeypatch, fault):
+    positions = np.arange(0, 32, 2, dtype=np.int64)
+    if fault == 'six_row_tail':
+        positions = np.arange(29568, 29574, dtype=np.int64)
+    events, args, kwargs = _positions_case(monkeypatch, positions)
+    if fault in ('float_dtype', 'int32_dtype', 'bool_dtype'):
+        dtype = {'float_dtype': np.float64, 'int32_dtype': np.int32,
+                 'bool_dtype': bool}[fault]
+        kwargs['fit_batch_positions'] = positions.astype(dtype)
+    elif fault == 'list':
+        kwargs['fit_batch_positions'] = positions.tolist()
+    elif fault == 'rank2':
+        kwargs['fit_batch_positions'] = positions.reshape(4, 4)
+    elif fault == 'duplicate':
+        kwargs['fit_batch_positions'][1] = positions[0]
+    elif fault == 'negative':
+        kwargs['fit_batch_positions'][0] = -1
+    elif fault == 'past_end':
+        kwargs['fit_batch_positions'][-1] = 29574
+    elif fault == 'short':
+        kwargs['fit_batch_positions'] = positions[:-1]
+    elif fault == 'long':
+        kwargs['fit_batch_positions'] = np.append(positions, np.int64(32))
+    elif fault == 'empty':
+        kwargs['fit_batch_positions'] = np.array([], np.int64)
+    elif fault == 'both_selectors':
+        kwargs['fit_batch_start'] = 0
+    elif fault == 'without_opt_in':
+        kwargs['m5_equal_observation'] = False
+    elif fault in ('fold', 'pass', 'seed'):
+        kwargs[{'fold': 'fold_id', 'pass': 'pass_index', 'seed': 'seed'}[fault]] += 1
+    elif fault == 'no_dedicated':
+        args[0].state_model._dedicated_m5_side = False
+    elif fault == 'gc_profile':
+        args[0].backbone.entry_execution_profile = {'name': 'legacy-GC'}
+        args[1].update({key: torch.zeros((16, 1)) for key in
+                       batch._feature_keys(args[0]) - set(args[1])})
+    elif fault in ('state_parent', 'future_parent', 'state_issue', 'future_issue'):
+        bound = args[2 if fault.startswith('state_') else 3]
+        axis = bound.parent_rows if fault.endswith('_parent') else bound.decision_ns
+        axis[positions[2]] += 1
+    elif fault == 'row_order':
+        args[4] = args[4][::-1].copy()
+    elif fault == 'issue_order':
+        args[5] = args[5][::-1].copy()
+    with pytest.raises(ValueError, match='NATIVE_F_M5_EQUAL_OBSERVATION'):
+        batch.evaluate_fit_batch(*args, **kwargs)
+    assert not events
+
+
 @pytest.mark.parametrize('equal', [False, True])
 def test_state_roundtrip_preserves_each_exact_recipe_and_rejects_cross_restore(monkeypatch, equal):
     model = _model(monkeypatch, True)

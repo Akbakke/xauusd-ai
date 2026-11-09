@@ -15,7 +15,26 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_HEAD_REP_ATTRIBUTION_COMPLETE_NO_CORRECTION_QUALIFIED.
+Policystatus: TA_M5_MATCHED_MIX24_ADMITTED.
+
+Én kort, matchet MIX24 er innrømmet fra samme INITIAL0 og de samme 384
+observasjonene som ferdig SPREAD24. Ny PLAN:
+ /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_MIXED_BATCH_NATIVE_20261109_001/PLAN.json
+SHA c14dc33b9ed94a5b15be7baa301a3c713dee22d074b9078b3ac563333a73ea42.
+24 oppdateringer, 48 forwards, 600 s, CPU 12 GiB/512 MiB, én tråd.
+Begge faste 192-raders TRAIN/senere-TRAIN-paneler måles; kontroll og INITIAL
+gjenbrukes uten forwards. Fire referanser beholdes: INITIAL0, SPREAD24,
+CONTIGCONTROL24 og fryst prior. Ingen suffix eller automatisk videreføring.
+
+En konkret API-sperre tillot bare sammenhengende B16. Minste utvidelse
+fit_batch_positions binder 16 unike int64-posisjoner til originale S/F-akser
+med eksakt parent/tidspunkt. Gammel rute beholdt; query/forward/mål/tap er
+byteidentiske. 50 fokuserte tester består, metadata-preflight består.
+Bare denne kildeeieren har eksplisitt versjonsbro; 84 andre eiere uendret.
+Modellens numerikk og ONLINE-funksjon er uendret. Uavhengig statisk kontroll
+og root-gjennomgang bestått. Kilden fryses etter commit før engangskjøring.
+training_enabled gjelder kun denne eksakte planen; øvrige native-/TEST-/
+Entry-/Exit-/handelporter er stengt. Ingen forbedring er ennå påvist.
 
 Cached hode-/representasjonskontroll er COMPLETE og uavhengig verifisert:
 [docs/TA_M5_HEAD_REP_ATTRIBUTION_REVIEW.json](docs/TA_M5_HEAD_REP_ATTRIBUTION_REVIEW.json).
@@ -42,15 +61,10 @@ Tidligere fullTRAIN HEAD_DRIFT/FINAL_CALIBRATION/TRAIN_MONTHS er gjenbrukt:
 global affin kalibrering reparerer myeTRAIN, men kvalifiserer ikke senereF.
 TRAIN_MONTHS gjelder korrigertreadout, ikke nativeINITIAL/FINAL-periodedecomp.
 
-Neste konkrete prøve skal bruke ferdig SPREAD24-kontroll og eksakt samme
-384observasjoner/INITIAL0/24updates. Bare24x16-rekkefølgen transponeres slik
-at hver batch blander tidspunkter. Interne featurehistorikker forblir kronologiske;
-alle andre innstillinger og begge fasteTRAIN/senerepaneler/prior beholdes.
-Endret eksemplerekkefølge endrer også dropout-trekningenes tilordning; dette
-må ikke påstås å isolere bare gradientstøy. Designet er ikke en godkjent
-rettelse eller innrømmet fit: ny eksaktPLAN/policy og uendret kilde kreves.
-Alle launch-/treningsporter er stengt. Ikke gjenta full featurekontroll,
-ni-checkpoint-kjøringen, affine kalibrering eller gamle fits.
+MIX24-prøven ovenfor tester den avgrensede batchgrupperingshypotesen.
+Featurehistorikker forblir kronologiske. Grupperingen endrer også dropout-
+tilordning og aktivitets-/øvrige-TF-tapsvekting innen batch; den isolerer
+ikke bare gradientstøy. Ingen gammel engangsplan relanseres.
 
 Ni bevarte fullpass-tilstander er nå kontrollert på de samme192 TRAIN-radene:
 0:64,14272:14336,29504:29568. INITIAL ble gjenbrukt; åtte andre målt én gang.
@@ -83,7 +97,7 @@ med i disse tidene; dette er ingen sammenliknbar trenings-speedupmåling.
 00296forwards/8loads +gjenbrukt00112/1 =108/9;0fits/backwards/optimizer.
 Ingen senereTRAIN eller TEST. Alle launch-/treningsporter er stengt.
 
-Den planlagte cachedattribusjonen er nå fullført ovenfor. Ingen ny kjøring er innrømmet.
+Den tidligere cachedattribusjonen er fullført; bare MIX24 ovenfor er innrømmet.
 
 Brukerens all-feature-kontroll er fullført i
 [docs/TA_FORWARD_SEMANTICS_REVIEW.json](docs/TA_FORWARD_SEMANTICS_REVIEW.json):
@@ -1285,7 +1299,7 @@ tidssekvensmodellen, samme-linje-reaksjonsverdi, Entry-verdi og økonomisk edge
 er ubevist. 61 makrofelt mangler uavhengig formelorakel; COTs faktiske
 historiske publisering og vintage er fortsatt UNKNOWN.
 
-**Neste steg:** Følg den korte, lagrede retningsdiagnostikken øverst; ingen ny native passering.
+**Neste steg:** Kjør kun innrømmet MIX24 øverst, lukk portene etter terminal og kontroller lagrede resultater uavhengig.
 Målet er aktivt; senere retningsverdi er ubevist.
 Brukerens spørsmål om 30 epoker og fem år er fortsatt åpne hypoteser.
 Denne fitten dekker omtrent mai–september2024, senere score oktober–desember2024.
@@ -1293,7 +1307,7 @@ Ett pass og én fold er ingen generell dom over lengre læring eller historikk.
 
 Den tidligere [GC-registerplanen](configs/research/MARKET_STATE_GC_SIDE_MAX_REGISTRY_20261108_001.json)
 forblir bevart, men er utsatt og uklamet etter brukerens nye prioritering.
-`training_enabled=false` stenger ny trening; firestegs kvalifikasjonen, koblingskontrollen og alle tidligere
+training_enabled er nå avgrenset til den nye MIX24-planen; firestegs kvalifikasjonen, koblingskontrollen og alle tidligere
 retningsdiagnoser, input-kontrollen, den konvekse M5-planen, cacheplanen
 og native fitplanene er konsumert.
 
