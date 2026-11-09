@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-09T17:07:12.629858+00:00",
-  "status": "SPREAD_24_STEP_DIRECTION_COMPARISON_ADMITTED",
+  "status": "SPREAD24_NEGATIVE_DIRECTION_COMPARISON_INDEPENDENTLY_VERIFIED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Run exactly the admitted spread24 probe once with outer600s bound; reuseCONTROL24 andINITIAL0. Preserve bothfixed192TRAIN/lateroutputs, then close allfitgates and review actualorder/state/RNG/scores. No larger run or automatic continuation.",
+  "next_action": "Read-only compare saved all-TF activity/conditional-side component measurements and the exact optimized nativeobjective against primaryM5 scoring. Identify a specific objective/representation mechanism before any new modification. Do not rerun consumedmoment/order controls, adjust thresholds, increaseepochs orlaunchanotherfit. Directiongoalremainsunachieved; no permanentmodelcodechange qualified.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -40200,7 +40200,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "market_state_ta_m5_spread_native_20261109_001",
+  "training_enabled_scope": "CLOSED_NO_AUTOMATIC_RELAUNCH",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -69670,7 +69670,7 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_PASS_READOUT_20261109_001/SHORT_SCREEN_RESULT.json",
       "sha256": "4e564176f518c75c124ba76ac0bc9551a788c49be7b66bad8349111c61130589"
     },
-    "current_screen_limit": "Paired8+8 actualCPUupdates from FINAL16,192fixedTRAIN+192laterTRAIN,64forwards; TRAIN bothtasks improve withRESET, later both regress vsCONTROL andcorrectedINITIAL0, although bothbeatprior. Small reused development samples; no scaling admitted.",
+    "current_screen_limit": "One spread24B16 nativeprobe matched to preservedCONTROL24 fromidenticalINITIAL0/RNG. Bothfixed192TRAIN/later samples scored. AllfourcomparisoncellsFAIL; no larger run. TRAINsideknown75/86,later65/75. Small reused development samples,notgeneralprojectverdict.",
     "test_entry_exit_trading_closed": true,
     "current_cached_attribution_plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_PASS_READOUT_20261109_001/NATIVE_HEAD_ATTRIBUTION_PLAN.json",
@@ -69693,7 +69693,7 @@
       "sha256": "1cfb6be1e258df9a51a0e67d06ef8bcb85e451e749829319f93ba6af6614c341"
     },
     "native_accumulation_change_qualified": false,
-    "next_measured_coverage_gap": "No sampledM5query/weight/mask mismatch; first16 frozenINITIAL0 head-bias derivative favorsUP, next8favorsDOWN. This does not explain all sharedrepresentation DOWN drift. Short native updates coveronly384contiguousobservations across['2024-05-01T00:05:00+00:00', '2024-05-02T09:05:00+00:00']. Test whether full-native gradient exposure to predeclared temporallyspreadTRAIN batches improves directionat matched24updates, reusing savedCONTROL24. This is a hypothesis,not establishedcause orfix.",
+    "next_measured_coverage_gap": "Fourheadmomentreset and temporalspread atmatched24steps didnotfixlaterdirection. ActualS/F M5query/target/weightsarebound; globalmeanP drift explainsaggregate laterBrierlossbutwithin-blockrankingismixed. Neither a globalbiascorrection nor datasamplingchange is justifiedasfix. Next reconcile actualall-tasknativeobjective improvements withM5conditionalside changes using savedcomponentreceipts before changingloss/learningrate orstartingmorefits. Reuse passedgradientchecks; do not reinterpretthreeinitialgradientbatches as entiretrajectory proof.",
     "head_trajectory": {
       "status": "COMPLETE_CONSUMED_NUMERICALLY_VERIFIED",
       "plan": {
@@ -69996,7 +69996,7 @@
       "sha256": "fef19cce9388bd9669ac14b89afc6840a54be0dadfd32c69226fc910cf0bdd8f"
     },
     "next_spread_native_scope": {
-      "status": "ADMITTED_ONE_INVOCATION",
+      "status": "COMPLETE_CONSUMED_INDEPENDENTLY_VERIFIED_NEGATIVE",
       "question": "At matched24updates from exactINITIAL0, does temporallyspreadlabelblindTRAIN exposure improveM5direction vs contiguousCONTROL24,INITIAL0 andprior?",
       "original_batch_starts": [
         0,
@@ -70075,8 +70075,8 @@
       ],
       "scoring": "Bothfixedpartitionsscoredforonepredeclaredcandidate; no conditionalcandidatechoice. LaterTRAINisreuseddevelopment. Addedlater12fwneededtoanswertransferatmatchedbudget.",
       "gate": "BothS/F,bothpartitions:Brier improves>1e-6 againstINITIAL0,CONTROL24andprior;log<=all+1e-8. AllcellsreportedonFAIL;noautomaticcontinuation.",
-      "execution_authorized": true,
-      "training_authorized": true,
+      "execution_authorized": false,
+      "training_authorized": false,
       "automatic_continuation": false,
       "short_result": {
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/RESULT.json",
@@ -70089,7 +70089,25 @@
       "worker": {
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SPREAD_NATIVE_20261109_001/probe.py",
         "sha256": "89e746e02e4440c863401d17481969ff13c8231a8dd562c9267cd0cc7878c697"
-      }
+      },
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SPREAD_NATIVE_20261109_001/RESULT.json",
+        "sha256": "f0dd7678c6aed01a3add8c03ed19759c30be9e5bb3050ff0a09189f90224f35d"
+      },
+      "review": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SPREAD_NATIVE_20261109_001/REVIEW.json",
+        "sha256": "c6b4d07fcd7995edc64b5374f221aedeac042e837af921bf2832896b9a58b7de"
+      },
+      "matched_comparison": true,
+      "comparison_passed": false
+    },
+    "latest_spread_native_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SPREAD_NATIVE_20261109_001/RESULT.json",
+      "sha256": "f0dd7678c6aed01a3add8c03ed19759c30be9e5bb3050ff0a09189f90224f35d"
+    },
+    "latest_spread_native_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SPREAD_NATIVE_20261109_001/REVIEW.json",
+      "sha256": "c6b4d07fcd7995edc64b5374f221aedeac042e837af921bf2832896b9a58b7de"
     }
   },
   "market_state_ta_m5_short_accumulation_20261109_001": {
@@ -70589,9 +70607,9 @@
     "worker_seconds": 2.06433371300227
   },
   "market_state_ta_m5_spread_native_20261109_001": {
-    "status": "ADMITTED",
-    "execution_authorized": true,
-    "training_authorized": true,
+    "status": "COMPLETE_CONSUMED_INDEPENDENTLY_VERIFIED_NEGATIVE",
+    "execution_authorized": false,
+    "training_authorized": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SPREAD_NATIVE_20261109_001/PLAN.json",
       "sha256": "2a4e41d957dd0e1673bfe103f244e075d22a02e5249935daa5ec53d28bc8f51b"
@@ -70609,9 +70627,9 @@
       "sha256": "c9b2b72fba3330f38da0d520ad6e37fd24eaa13d3f1d4a110d98ec7defa7bd9c"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "max_updates": 24,
     "max_backwards": 24,
@@ -70630,6 +70648,28 @@
         "sha256": "89e746e02e4440c863401d17481969ff13c8231a8dd562c9267cd0cc7878c697"
       },
       "scope": "Canonicaloriginalrestore then onlyorder/source/seal derivation; originalfitstart forfeature/targetbinding;24steps48forwards. ActualAST PASS,FAILone latercell,FAILRNGmismatch; badforwardcountrejected.0payload/model. RootreviewedcompleteworkerandcanonicalstateAPI."
-    }
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SPREAD_NATIVE_20261109_001/RESULT.json",
+      "sha256": "f0dd7678c6aed01a3add8c03ed19759c30be9e5bb3050ff0a09189f90224f35d"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SPREAD_NATIVE_20261109_001/TERMINAL.json",
+      "sha256": "e2430223deba980f8e6e2c3e4313741b9816429ddc8f8090acf3f345b4909d04"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SPREAD_NATIVE_20261109_001/CONTROLLER.json",
+      "sha256": "3ab7e36f5f9cbb0f22d6a657f67c0bae4e9bae85e768ad7bc35e37c215539924"
+    },
+    "actual_updates": 24,
+    "actual_forwards": 48,
+    "worker_seconds": 339.896998461998,
+    "whole_command_seconds": 343.0509842240026,
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SPREAD_NATIVE_20261109_001/REVIEW.json",
+      "sha256": "c6b4d07fcd7995edc64b5374f221aedeac042e837af921bf2832896b9a58b7de"
+    },
+    "matched_comparison": true,
+    "comparison_passed": false
   }
 }
