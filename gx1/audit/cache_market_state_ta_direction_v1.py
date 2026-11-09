@@ -18,6 +18,8 @@ REPO = Path('/home/andre2/src/GX1_CURRENT')
 STAGE = 'market_state_ta_direction_full_cache_20261108_001'
 ROOT = Path('/home/andre2/GX1_RUNS') / STAGE.upper()
 SCHEMA = 'gx1_market_state_ta_direction_full_cache_plan_v1'
+FINAL_STAGE = 'market_state_ta_m5_equal_loss_final_cache_20261109_001'
+FINAL_ROOT = Path('/home/andre2/GX1_RUNS') / FINAL_STAGE.upper()
 WORKER = REPO / 'gx1/audit/cache_market_state_ta_direction_v1.py'
 DISPATCH = 'gx1/scripts/validate_entry_model_native_technical_checkpoint_v1.py'
 CAP_RUNNER = 'scripts/gx1_capped_run.sh'
@@ -45,11 +47,11 @@ def _ref(path):
     return {'path': str(path), 'sha256': campaign.file_sha256(path)}
 
 
-def _publish(name, value):
+def _publish(name, value, *, root=ROOT):
     from gx1.contracts.immutable_event_authority_v1 import _publish_bytes
-    _publish_bytes(ROOT / name, (json.dumps(value, sort_keys=True, indent=2,
+    _publish_bytes(root / name, (json.dumps(value, sort_keys=True, indent=2,
                                           allow_nan=False) + '\n').encode())
-    return _ref(ROOT / name)
+    return _ref(root / name)
 
 
 def _helper(ref):
@@ -73,9 +75,17 @@ def _helper(ref):
     return module
 
 
+def _cache_scope(plan_path, out_dir):
+    for stage, root, dedicated in ((STAGE, ROOT, False), (FINAL_STAGE, FINAL_ROOT, True)):
+        if Path(plan_path) == root / 'PLAN.json' and Path(out_dir) == root:
+            return stage, root, dedicated
+    _need(False, 'EXACT_CACHE_PATHS')
+
+
 def _inspect(plan_path, plan_sha256, out_dir, *, execute):
     from gx1.contracts import market_state_time_query_fold1_fit_v1 as scope
     from gx1.audit import verify_market_state_time_query_zero_step_v1 as zero
+    stage, root, dedicated = _cache_scope(plan_path, out_dir)
     plan_ref = {'path': str(Path(plan_path)), 'sha256': plan_sha256}
     plan = _read(plan_ref)
     keys = {'schema_version', 'stage', 'source_repo', 'source_base_commit',
@@ -83,9 +93,11 @@ def _inspect(plan_path, plan_sha256, out_dir, *, execute):
             'recipe', 'result', 'fit_rows', 'score_rows', 'batch_size', 'decoder_width',
             'include_sampled_S', 'max_backbone_encodings', 'device', 'wall_seconds',
             'training_enabled', 'test_data_used'}
-    _need(set(plan) == keys and plan['schema_version'] == SCHEMA and plan['stage'] == STAGE
-          and plan['source_repo'] == str(REPO) and Path(plan_path) == ROOT / 'PLAN.json'
-          and Path(out_dir) == ROOT and plan['fit_rows'] == FIT_ROWS
+    if dedicated:
+        keys.add('fullfit_review')
+    _need(set(plan) == keys and plan['schema_version'] == SCHEMA and plan['stage'] == stage
+          and plan['source_repo'] == str(REPO) and Path(plan_path) == root / 'PLAN.json'
+          and Path(out_dir) == root and plan['fit_rows'] == FIT_ROWS
           and plan['score_rows'] == SCORE_ROWS and plan['batch_size'] == BATCH_SIZE
           and plan['decoder_width'] == WIDTH and plan['include_sampled_S'] is True
           and plan['max_backbone_encodings'] == ENCODINGS and plan['device'] == 'cuda'
@@ -100,23 +112,42 @@ def _inspect(plan_path, plan_sha256, out_dir, *, execute):
     subprocess.run(['git', '-C', str(REPO), 'merge-base', '--is-ancestor',
                     plan['source_base_commit'], 'HEAD'], check=True)
     recipe, result = _read(plan['recipe']), _read(plan['result'])
-    _need(plan['recipe']['path'] == str(scope.TA_RECOVERY_RECIPE_PATH)
+    recipe_path = scope.TA_M5_EQUAL_LOSS_FIT_RECIPE_PATH if dedicated else scope.TA_RECOVERY_RECIPE_PATH
+    run_scope = scope.TA_M5_EQUAL_LOSS_FIT_SCOPE if dedicated else scope.TA_RECOVERY_SCOPE
+    runtime = scope.TA_M5_EQUAL_LOSS_FIT_RUNTIME_ROOT if dedicated else scope.TA_RECOVERY_RUNTIME_ROOT
+    _need(plan['recipe']['path'] == str(recipe_path)
           and recipe['recipe_sha256'] == campaign.canonical_sha256({
               k: v for k, v in recipe.items() if k != 'recipe_sha256'})
-          and recipe['run_scope'] == scope.TA_RECOVERY_SCOPE and recipe['fold'] == scope.FOLD
-          and recipe['numerical_recipe'] == scope.ta_sf_numerical_recipe()
+          and recipe['run_scope'] == run_scope and recipe['fold'] == scope.FOLD
+          and recipe['numerical_recipe'] == scope.ta_sf_numerical_recipe(
+              dedicated_m5_side=dedicated, m5_equal_observation=dedicated)
           and result['recipe'] == plan['recipe'] and result['source_commit'] == plan['historical_source_commit']
-          and plan['result']['path'] == str(scope.TA_RECOVERY_RUNTIME_ROOT / 'prefix-fit/window-0001/RESULT.json')
+          and plan['result']['path'] == str(runtime / 'prefix-fit/window-0001/RESULT.json')
           and result['outcome'] == result['phase_state'] == 'COMPLETE'
           and result['source_unchanged'] is True and result['test_data_used'] is False
           and result['parent_cursor'] == FIT_ROWS and result['optimizer_updates'] == 1849
           and result['skipped_batches'] == 0, 'HISTORICAL_RECIPE_RESULT')
+    if dedicated:
+        review = _read(plan['fullfit_review'])
+        _need(plan['fullfit_review']['path'] == str(scope.TA_M5_EQUAL_LOSS_FIT_ROOT / 'REVIEW.json')
+              and review['status'] == 'COMPLETE_CONSUMED_DIRECTION_DETERIORATED'
+              and review['native_source_commit'] == plan['historical_source_commit']
+              and review['result'] == plan['result'] and review['final_state'] == result['full_state']
+              and review['final_train_measurement'] == result['final_train_measurement']
+              and review['later_train_measurement'] == result['oof_measurement']
+              and review['matched_train_observations_verified'] is True
+              and review['score_means_recalculated'] is True
+              and review['source_unchanged'] is True and review['test_data_used'] is False
+              and result['dedicated_m5_side'] is True and result['m5_equal_observation'] is True,
+              'QUALIFIED_EQUAL_LOSS_FINAL')
     owners = recipe['source_owners']
     _need(set(owners) == scope.required_source_paths(ta_sf=True) and len(owners) == 85,
           'HISTORICAL_85_OWNER_SET')
     current = {}
     historical_git = installed = 0
-    replacements = {DISPATCH: plan['dispatch'], CAP_RUNNER: plan['cap_runner']}
+    replacements = {CAP_RUNNER: plan['cap_runner']}
+    if not dedicated:
+        replacements[DISPATCH] = plan['dispatch']
     for name, ref in owners.items():
         checked = campaign.require_binding(ref, label='historical owner', verify_file=False)
         _need(checked['path'] == str(REPO / name), 'HISTORICAL_OWNER_PATH')
@@ -137,9 +168,10 @@ def _inspect(plan_path, plan_sha256, out_dir, *, execute):
     for name, ref in recipe['input_refs'].items():
         campaign.require_binding(ref, label='reused input ' + name, verify_file=True)
     receipts = zero.load_ta_input_receipts(current_source_owners=current)
-    view = zero._bind_ta_view(receipts)
-    _need(view == _read(recipe['input_refs']['ta_candidate_view'])
-          and view['contract_sha256'] == recipe['expected_view_sha256'], 'ACTUAL_VIEW')
+    view = zero._bind_ta_view(receipts, dedicated_m5_side=dedicated)
+    if not dedicated:
+        _need(view == _read(recipe['input_refs']['ta_candidate_view']), 'LEGACY_CANDIDATE_VIEW')
+    _need(view['contract_sha256'] == recipe['expected_view_sha256'], 'ACTUAL_VIEW')
     scope.require_checkpoint_view(result['feature_view_identity'], recipe=recipe, ta_sf=True)
     baseline = {partition: _read(result[key]) for partition, key in (
         ('fit', 'final_train_measurement'), ('score', 'oof_measurement'))}
@@ -167,12 +199,13 @@ def _inspect(plan_path, plan_sha256, out_dir, *, execute):
                     'checkpoint_reads_authorized': True, 'backbone_encodings_authorized': ENCODINGS,
                     'backward_calls_authorized': 0, 'optimizer_steps_authorized': 0,
                     'training_authorized': False}
-        gate = policy.get(STAGE, {})
+        gate = policy.get(stage, {})
         _need(all(gate.get(k) == v for k, v in expected.items())
               and policy.get('training_enabled') is False
               and policy.get('full_epoch_training_allowed') is False, 'ADMITTED_POLICY')
-        _need(not (ROOT / 'CLAIM.json').exists() and not (ROOT / 'TERMINAL.json').exists(), 'CONSUMED')
-    return {'plan': plan, 'plan_ref': plan_ref, 'recipe': recipe, 'result': result,
+        _need(not (root / 'CLAIM.json').exists() and not (root / 'TERMINAL.json').exists(), 'CONSUMED')
+    return {'root': root, 'changed_owners': list(replacements),
+            'plan': plan, 'plan_ref': plan_ref, 'recipe': recipe, 'result': result,
             'receipts': receipts, 'view': view, 'baseline': baseline, 'helper': helper,
             'head': head, 'policy_ref': policy_ref, 'current_sources': current,
             'historical_git_owners': historical_git, 'installed_runtime_owners': installed}
@@ -184,8 +217,8 @@ def preflight_read_only(plan_path, plan_sha256, out_dir):
             'plan': checked['plan_ref'], 'view_sha256': checked['view']['contract_sha256'],
             'historical_git_owners': checked['historical_git_owners'],
             'installed_runtime_owners': checked['installed_runtime_owners'],
-            'unchanged_current_recipe_owners': 83,
-            'declared_changed_owners': [DISPATCH, CAP_RUNNER],
+            'unchanged_current_recipe_owners': len(checked['current_sources']) - len(checked['changed_owners']),
+            'declared_changed_owners': checked['changed_owners'],
             'model_constructions': 0, 'backbone_encodings': 0, 'test_data_used': False}
 
 
@@ -209,7 +242,7 @@ def _side_parity(scores, baseline):
     return report
 
 
-def _save_cache(partition, arrays, rows, *, partial=False):
+def _save_cache(partition, arrays, rows, *, partial=False, root=ROOT):
     import numpy as np
     from gx1.contracts.immutable_event_authority_v1 import _publish_bytes
     name = partition.upper() + ('_CACHE_PARTIAL.npz' if partial else '_CACHE.npz')
@@ -217,8 +250,8 @@ def _save_cache(partition, arrays, rows, *, partial=False):
     np.savez(stream, **{key: value[:rows] for key, value in arrays.items()})
     payload = stream.getvalue()
     _need(0 < len(payload) <= MAX_CACHE_BYTES, 'CACHE_BYTES')
-    _publish_bytes(ROOT / name, payload)
-    return {'artifact': _ref(ROOT / name), 'rows': rows, 'partial': partial,
+    _publish_bytes(root / name, payload)
+    return {'artifact': _ref(root / name), 'rows': rows, 'partial': partial,
             'arrays': {key: {'shape': [rows, *value.shape[1:]], 'dtype': str(value.dtype)}
                        for key, value in arrays.items()}}
 
@@ -251,9 +284,12 @@ def run(plan_path, plan_sha256, out_dir, *, device):
         _need(os.environ.get('GX1_TRAINER_GPU_' + key) == value, 'HARDWARE_GUARD:' + key)
     c = _inspect(plan_path, plan_sha256, out_dir, execute=True)
     recipe, result, receipts, view = (c[k] for k in ('recipe', 'result', 'receipts', 'view'))
+    root = c['root']
+    def publish(name, value):
+        return _publish(name, value, root=root)
     _need(not torch.cuda.is_initialized(), 'CUDA_INIT_ORDER')
     _need(signal.getitimer(signal.ITIMER_REAL) == (0., 0.), 'AMBIENT_TIMER')
-    claim = _publish('CLAIM.json', {'plan': c['plan_ref'], 'policy': c['policy_ref'],
+    claim = publish('CLAIM.json', {'plan': c['plan_ref'], 'policy': c['policy_ref'],
         'execution_head': c['head'], 'cap': cap, 'training_enabled': False, 'test_data_used': False})
     provider = prepared = model = None
     arrays, cache_refs, partitions, timings = {}, {}, {}, {}
@@ -271,6 +307,8 @@ def run(plan_path, plan_sha256, out_dir, *, device):
             'worker', 'dispatch', 'cap_runner', 'helper', 'recipe', 'result')],
             result['full_state'], result['final_train_measurement'], result['oof_measurement'],
             *recipe['input_refs'].values()]
+        if 'fullfit_review' in c['plan']:
+            refs.append(c['plan']['fullfit_review'])
         for ref in refs:
             campaign.require_binding(ref, label='cache bookend', verify_file=True)
         for name, digest in c['current_sources'].items():
@@ -393,7 +431,7 @@ def run(plan_path, plan_sha256, out_dir, *, device):
                         'backbone_encodings': counts['backbone_encodings'],
                         'elapsed_seconds': time.monotonic() - started}), flush=True)
                 del raw, features, hidden, sr, fr
-            cache_refs[partition] = _save_cache(partition, arrays, consumed)
+            cache_refs[partition] = _save_cache(partition, arrays, consumed, root=root)
             # Preserve the produced bytes even when their qualification fails.
             parity = _side_parity(scores, c['baseline'][partition]['measurement'])
             partitions[partition] = {'rows': consumed, 'batches': (consumed + 15) // 16,
@@ -406,7 +444,7 @@ def run(plan_path, plan_sha256, out_dir, *, device):
         base._release_pages(provider, prepared); prepared = None
         provider.validate_metadata(provider_plan)
         bookend()
-        result_ref = _publish('RESULT.json', {'status': 'COMPLETE', 'plan': c['plan_ref'],
+        result_ref = publish('RESULT.json', {'status': 'COMPLETE', 'plan': c['plan_ref'],
             'claim': claim, 'policy': c['policy_ref'], 'execution_head': c['head'],
             'historical_source_commit': c['plan']['historical_source_commit'],
             'checkpoint': loaded, 'view_sha256': view['contract_sha256'],
@@ -416,7 +454,7 @@ def run(plan_path, plan_sha256, out_dir, *, device):
             'model_state_unchanged': True, 'source_unchanged': True,
             'sampled_S_pass_index': 0, 'sampled_F_reuses_native_1': True,
             'test_data_used': False, 'predictive_value_claimed': False, 'promotion_authorized': False})
-        terminal = _publish('TERMINAL.json', {'status': 'COMPLETE', 'exit_code': 0,
+        terminal = publish('TERMINAL.json', {'status': 'COMPLETE', 'exit_code': 0,
             'plan': c['plan_ref'], 'result': result_ref, 'cache_partitions': cache_refs,
             'source_unchanged': True, 'no_relaunch_under_this_plan': True, 'test_data_used': False})
         return {'result': result_ref, 'terminal': terminal}
@@ -424,14 +462,14 @@ def run(plan_path, plan_sha256, out_dir, *, device):
         preservation_error = None
         if arrays and consumed and active_partition not in cache_refs:
             try:
-                cache_refs[active_partition] = _save_cache(active_partition, arrays, consumed, partial=True)
+                cache_refs[active_partition] = _save_cache(active_partition, arrays, consumed, partial=True, root=root)
             except Exception as secondary:
                 preservation_error = type(secondary).__name__ + ':' + str(secondary)
-        failure = _publish('FAILED.json', {'status': 'FAILED_CONSUMED', 'plan': c['plan_ref'],
+        failure = publish('FAILED.json', {'status': 'FAILED_CONSUMED', 'plan': c['plan_ref'],
             'claim': claim, 'error': type(exc).__name__ + ':' + str(exc),
             'cache_partitions': cache_refs, 'preservation_error': preservation_error,
             'counts': counts, 'elapsed_seconds': time.monotonic() - started, 'test_data_used': False})
-        _publish('TERMINAL.json', {'status': 'FAILED_CONSUMED', 'exit_code': 1,
+        publish('TERMINAL.json', {'status': 'FAILED_CONSUMED', 'exit_code': 1,
             'plan': c['plan_ref'], 'failure': failure, 'cache_partitions': cache_refs,
             'no_relaunch_under_this_plan': True, 'test_data_used': False})
         raise

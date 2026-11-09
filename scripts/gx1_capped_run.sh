@@ -321,7 +321,14 @@ validate_target_command() {
       fi
       if [[ "${3:-}" == "$TECHNICAL_VALIDATION_PRODUCER_MODULE" \
         && "${4:-}" == --market-state-ta-direction-cache-plan ]]; then
-        local ta_cache_root=/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_FULL_CACHE_20261108_001
+        local ta_cache_root
+        case "${5:-}" in
+          /home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_FULL_CACHE_20261108_001/PLAN.json)
+            ta_cache_root=/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_FULL_CACHE_20261108_001 ;;
+          /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FINAL_CACHE_20261109_001/PLAN.json)
+            ta_cache_root=/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FINAL_CACHE_20261109_001 ;;
+          *) echo "FATAL: unbound TA direction-cache plan" >&2; exit 75 ;;
+        esac
         if ! matches_bound_market_state_ta_direction_cache "$ta_cache_root/PLAN.json" "$ta_cache_root" "$@"; then
           echo "FATAL: TA direction-cache 250W scope is not exactly bound" >&2
           exit 75

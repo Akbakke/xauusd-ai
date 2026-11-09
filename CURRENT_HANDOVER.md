@@ -15,21 +15,35 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_IMPORTED_EQUAL_LOSS_ORDER_CONTRAST_ADMITTED.
+Policystatus: TA_M5_FINAL_REPRESENTATION_CACHE_ADMITTED.
 
-Én ny CPU-kontrast er innrømmet: samme importerte FP32 M5-hoder,
-korrigert q/(5N)-tap,AdamW og lagrede genuine representasjoner; bare intakte
-batchers rekkefølge endres. Kronologisk/reversert er kontroller; én fast
-seed20260911-permutasjon av1848fulleB16blokker er forhåndsvalgt kandidat,
-hale6 beholdes sist.3privateoptimizere/6småhoder,5547updates,0nativeforward.
-12G/512M,énnumerisktråd,300s. Gamle planer relanseres ikke.
-SenereTRAIN-arrays åpnes bare dersom kandidaten først forbedrer Brier
-mot både importinitial og prior på beggeM5mål med>1e-6,uten svakere logtap.
-TRAIN-beslutningen lagres før senerearrays;ingen valg mellom armer på senere.
-Gammel eval-representasjon og privat tohode-clipping er ikke fullnative
-treningsmodus/bevegeligrepresentasjon/globalclipping. Ingen nativefiks kvalifiseres.
-PLAN: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_ORDER_20261109_001/PLAN.json.
-training_enabled=true kun for denne CPU-kontrasten;native/fullfit fortsatt stengt.
+Ny import/equal-loss-rekkefølgekontroll er COMPLETE/konsumert på10.914s:
+3privateoptimizere/6småhoder,5547updates,0nativeforward. Samme start,data,tap
+ogoptimizer; bare intakte batchers rekkefølge endret. TRAIN Brier:
+S initial0.248473→kron0.248653/revers0.248480/permutert0.248977;
+F initial0.249327→kron0.250115/revers0.249366/permutert0.249442.
+Rekkefølgen påvirker kalibrering kausalt på fast representasjon,men alle
+sluttpunkter er svakere enn importinitial. Forhåndsvalgt permutasjon feilet
+TRAIN-porten; ingen senerearrays ble åpnet. Ingen native rekkefølgefiks kvalifisert.
+REVIEW: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_ORDER_20261109_001/REVIEW.json.
+
+Neste direkte spørsmål: inneholder faktiskFINAL-representasjon mindre
+retningsinformasjon,eller leser hodene den dårligere? Tidligere attribusjon
+beviser bare svakere prediksjon med endret representasjon og fast FINAL-hode;
+ikke mindre informasjon. Gjenbruk eksisterende fullcache-produsent for én
+read-only ekstraksjon fra faktiskFINAL142aa2… og samme29574/17753rader, før
+samme avlesningsmetode brukes uten ny hyperparametertilpasning.
+Minste nødvendige kildearbeid er eksakt ny checkpoint/view/root-binding i
+eksisterende cache-rute, med250W og uendrede øvrige vakter. Modell/tap endres ikke.
+Eksakt cacheplan er nå innrømmet én gang:
+/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FINAL_CACHE_20261109_001/PLAN.json,
+SHA e110be51a3b2a3f119110a3144714fda19365fcda1341b6c160f314a3727785f.
+Fem fokuserte tester, syntaks og faktisk metadata-preflight består.
+84/85 recipe-eiere er byteuendret; bare eksisterende capped-rute får ny eksakt sti.
+Cache-eieren binder eget nytt kildeavtrykk; modell/tap/dispatcher er uendret.
+2959 GPU-enkodinger, null backward/optimizer,12G/512M,250W,3600s.
+Ny cache må gjenskape alle10 native sidemålinger før avlesningskontrollen.
+training_enabled=false; ingen ny fit er innrømmet.
 
 Den avgrensede FIT-head-kontrollen er COMPLETE/konsumert på3.256s:
 7396B16-lineærprojeksjoner,2checkpointlesinger,0fit/fullmodellforward/updates.
@@ -43,13 +57,9 @@ faktiskOPP51.11%. Dette lokaliserer drift,men beviser ikke optimizerårsaken.
 Oppstrøms inkluderer encoder/query-projeksjon; attribusjonen er rekkefølgeavhengig.
 REVIEW: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_HEAD_DRIFT_20261109_001/REVIEW.json.
 
-Neste direkte spørsmål er hvorfor den gode importerte kalibreringen drives vekk
-under oppdateringer. Gjenbruk gammel rekkefølgekontroll c7c5114…: den viste
-ulik kalibrering ved kronologisk/reversert rekkefølge,men brukte gamle hoder/tap
-og ingen variant slo prior. Ikke relanser den eller trekk konklusjon om nytt
-tap fra den. Isoler minste nødvendige optimizer-kontrast før kode/fleretrinn.
 Originalimport616a22… beholdes; fullfitFINAL er diagnose,ikke forbedret kandidat.
-Ingen ny nativefit er innrømmet; den avgrensede CPU-kontrasten står øverst.
+Den nye rekkefølgekontrollen ovenfor avløser spørsmålet om en enkel
+omstokking som rettelse; ingen native rekkefølgeendring er kvalifisert.
 
 Fullfit002 er COMPLETE og konsumert; én modell/optimizer,6657forwards og1849updates,
 ingen skips. Full29574INITIAL/FINAL og17753senereTRAIN målt. TRAIN S/F Brier
@@ -662,10 +672,9 @@ tidssekvensmodellen, samme-linje-reaksjonsverdi, Entry-verdi og økonomisk edge
 er ubevist. 61 makrofelt mangler uavhengig formelorakel; COTs faktiske
 historiske publisering og vintage er fortsatt UNKNOWN.
 
-**Neste steg:** Kun den målte native M5-vektingsfeilen og kontrollen beskrevet øverst.
-Importert checkpoint er teknisk verifisert; rapporteringsfeilen skal ikke
-utløse omkjøring. Ingen fit er innrømmet. S har slått senere prior i den
-fryste head-kontrollen, F taper fortsatt svakt. Målet er aktivt.
+**Neste steg:** Kjør den innrømmede lesende FINAL-cachekontrollen øverst,
+og skill representasjonens retningsinformasjon fra hodets avlesningsfeil.
+Ingen ny native fit er innrømmet. Målet er aktivt.
 Brukerens spørsmål om 30 epoker og fem år er fortsatt åpne hypoteser.
 Denne fitten dekker omtrent mai–september2024, senere score oktober–desember2024.
 Ett pass og én fold er ingen generell dom over lengre læring eller historikk.

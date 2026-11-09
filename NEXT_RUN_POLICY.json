@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T09:05:28.709863+00:00",
-  "status": "TA_M5_IMPORTED_EQUAL_LOSS_ORDER_CONTRAST_ADMITTED",
+  "observed_utc": "2026-11-09T09:31:00.516602+00:00",
+  "status": "TA_M5_FINAL_REPRESENTATION_CACHE_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Run exact once-only CPU order contrast: original/reversed controls and one preselected full-block permutation. Same importedheads/AdamW/equal-loss/frozenrepresentation. Score later only if preselectedcandidate improves bothTRAIN Brier versus initial/prior and log doesnot worsen. No native launch.",
+  "next_action": "Run one read-only actual FINAL cache through existing250W guarded producer; require same full native scores before fixed-readout comparison. No fit admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1648,7 +1648,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Dedicated M5 native continuation COMPLETE;direction improved on matched TRAIN and later TRAIN but all M5 side scores remain worse than frozenprior.",
+    "current_activity": "Order contrast consumed: no arm improves imported initial. One read-only FINAL representation cache admitted; no training.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1677,11 +1677,11 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "Actual completed dedicatedM5 warmstart onepass and full paired TRAIN/laterTRAIN measurement.",
+    "latest_terminal_role": "Imported equal-loss frozen-representation batch-order contrast.",
     "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_SHARED_OBJECTIVE_20261108_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DEDICATED_M5_FOLD1_FIT_20261109_001/TERMINAL.json",
-      "sha256": "f3b4760fc5f1f7dcfca5684eba634000d729fca5aa6fc0e016854c3bae0a46c7"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_ORDER_20261109_001/TERMINAL.json",
+      "sha256": "2934554ae683c1367ac1afa56822855b9ec55ce30f9331b88d9c00be0d399ce4"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -1701,7 +1701,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Remaining native TRAIN-fit deficit despite converged fixed-representation M5 readouts beating TRAINprior. Causal role of optimization/order/backbone interference unresolved;later generalization unproved.",
+    "current_blocker": "Full native TRAIN deterioration remains; actualFINAL information content versus readout mismatch must be separated.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -3648,10 +3648,10 @@
     },
     "fresh_baseline_coordinates_published": false,
     "current_generation_initial_baseline": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_20261022_188/.gx1-candidate-training-session.BUNDLE/initial_measurement/RESULT.json",
-      "sha256": "a76b95e8952778ee71e1983936ebac17a772c2490d90f52bf34ccc64db62335e"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FOLD1_FIT_20261109_002/RUNTIME/prefix-fit/window-0001/INITIAL_TRAIN.json",
+      "sha256": "e4998ab3686d17e1273ef80f56cd483a5ca486ce45698b45773f553ab90acd92"
     },
-    "current_generation_acceptance": "TECHNICAL_COMPLETE_DIRECTION_NOT_QUALIFIED",
+    "current_generation_acceptance": "DIRECTION_DETERIORATED_ON_MATCHED_TRAIN_AND_LATER",
     "sampler_generation_scope": "Exact057outcome-blind ordered118249TRAINpopulation used once by108; not a sampler performance-selection claim.",
     "latest_manual_host_restart": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/POST_REBOOT.json",
@@ -3766,7 +3766,7 @@
       },
       "test_data_used": false
     },
-    "current_generation_initial_baseline_role": "Reused full INITIAL with fresh-initial parity and restored full state verified before recovery updates.",
+    "current_generation_initial_baseline_role": "Full matched29574TRAIN initial for imported model ae772fd7 and equal-observation loss.",
     "sampler_capacity_terminal_20261011": {
       "observed": true,
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/SAMPLER_BENCHMARK_001/TERMINAL.json",
@@ -10301,13 +10301,9 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "Seven of ten matched variants complete; chart geometry, price action/candle, macro and all54paired primary contrasts remain.",
-      "No useful direction, generalization or economic edge qualified; later Q1 remains reused development.",
-      "Saved prediction verification reuses the metric owner; independent metric algebra and raw target-source replay remain incomplete.",
-      "Initial256 and fullTRAIN47602 are different populations, not a matched before/after learning curve.",
-      "Quote-event age, macro publication/version provenance, H1 signed-flow coverage and cost-adjusted performance remain unresolved.",
-      "Original interrupted sessionW2 native exit is unknown; underlying Windows bugcheck cause remains unknown. Original artefacts preserved; recovery is a distinct completed scoring chain.",
-      "Generic producer OOF scope text says reused TRAIN development periods; explicit OOF role, fold and row count identify later Q1. No untouched-TEST claim."
+      "Frozen representation/heads-only clip does not reproduce moving native backbone or dropout.",
+      "Order changes calibration but no correction qualified.",
+      "Information loss versus readout mismatch unresolved; later generalization and economic edge unproved."
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -17643,7 +17639,7 @@
         "Originals preserved; unusedwindows3/4revoked. No new epoch,HPO,checkpoint/threshold selection,normalization refit,trading,broker,Exit or promotion."
       ]
     },
-    "latest_terminal_evidence_scope": "29574TRAIN/17753laterTRAIN,1849updates,0skips;M5S/F improve versus their own initial/oldlater but lose frozenpriors;no causal extra-training control or economic qualification.",
+    "latest_terminal_evidence_scope": "3private two-head fits/5547updates,all6 TRAIN endpoints worse initial; later arrays not consumed.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -17764,7 +17760,7 @@
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/ACCEPTANCE_REVIEW_001/RESULT.json",
       "sha256": "f67db984e0f6ca801abda2b33017287dea8da4926700f268926edd9eb2e04a8f"
     },
-    "current_generation_acceptance_scope": "TA inputs/mechanics/recovery and one-pass learning measurement complete; M5 direction deficit measured on TRAIN and later TRAIN.",
+    "current_generation_acceptance_scope": "Fullfit002 all10TRAIN side Briers deteriorate,all10later side Briers lose prior; no predictive qualification.",
     "gc_clock_numeric_reference_118": {
       "status": "COMPLETE_PASS_PUBLISHED_M1_TO_FIVE_TF_CLOCK_REFERENCE",
       "plan": {
@@ -18848,20 +18844,12 @@
         }
       }
     },
-    "current_training_started": true,
+    "current_training_started": false,
     "private_optimizer_qualification_admitted": false,
     "active_continuous_goal_thread_id": null,
     "current_generation_initial_baseline_is_current_function": true,
     "current_function_initial_baseline_required_after184": false,
     "current_generation_saved_state_audit_pending": false,
-    "current_generation_initial_measurement_audit": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_STATE_AUDIT_20261022_189/INITIAL_MEASUREMENT_AUDIT.json",
-      "sha256": "cee9fc3f0ad4b7f1b0816831606e34833d2276ee8f92c801886de8d9f7b0a485"
-    },
-    "current_generation_initial_state_audit_peer": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_STATE_AUDIT_20261022_189/ACTUAL_STATE_AUDIT_PEER_REVIEW.json",
-      "sha256": "ca247b85a3b85bafb4797867868395f57dbf1c66fe03807887f7d425337661f7"
-    },
     "training_active": false,
     "latest_decision": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_REFERENCE_20261024_252/DECISION.json",
@@ -18875,7 +18863,7 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_EXPLICIT_PREVIOUS_RETURN_REFERENCE_20261024_259/DECISION.json",
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
-    "current_native_launch_authorized": true,
+    "current_native_launch_authorized": false,
     "current_training_scope": "Strict original FINAL restore,dedicated M5 weights-only migration,first32 mature TRAIN baseline parity and2 versus1+resume1 updates;no predictor fit.",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
@@ -24653,7 +24641,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-09T05:50:08.766633+00:00",
+  "updated_utc": "2026-11-09T09:31:00.516602+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -40181,7 +40169,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "market_state_ta_m5_equal_loss_order_20261109_001",
+  "training_enabled_scope": "NONE_ORDER_CONTRAST_CONSUMED",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -66300,7 +66288,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "Head/upstream drift localized. Reuse oldorder result but oldhead/loss cannot answer currentcause. New exact3-arm CPU contrast isolates intactbatch order at importedheads/equal-loss; preselectedpermutation must firstpass bothTRAIN before laterreadout.",
+    "latest_progress": "Currentimport/equal-loss order contrast complete in10.914s:order changes calibration but all3endpoints worsen bothTRAIN targets; preselectedpermutation gate fails andno laterarrays consumed. Next distinguish predictiveinformation from readout mismatch on actualFINAL representation.",
     "user_clarification_20261109": {
       "scope": "Correct direction for short sniper and longer long/shorttrends; separate forecasts and targets at M5 cadence.",
       "existing_future_horizons_minutes": [
@@ -68475,24 +68463,24 @@
     "elapsed_seconds": 3.2556589180003357
   },
   "market_state_ta_m5_equal_loss_order_20261109_001": {
-    "status": "ADMITTED",
-    "decision": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
+    "decision": "NO_QUALIFIED_CORRECTION",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_ORDER_20261109_001/PLAN.json",
       "sha256": "eade4bc886e2583eb73ba4944043d1e0643830743c2b8c28f96cbdace4ed4a64"
     },
     "scope": "One CPU-only imported-head/equal-loss order contrast on frozen qualified representations; three private two-head fits, each1849steps.",
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "training_authorized": true,
-    "training_enabled": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "training_authorized": false,
+    "training_enabled": false,
     "native_training_enabled": false,
     "native_launch_authorized": false,
     "full_epoch_training_allowed": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "private_optimizers": 3,
     "private_heads": 6,
@@ -68505,6 +68493,51 @@
     "memory_max": "12G",
     "swap_max": "512M",
     "wall_seconds": 300,
-    "standing_authorization": "Active direction goal: isolate measured calibration drift before minimal fix; reuse existing checkpoints/cache, no fullnative fit."
+    "standing_authorization": "Active direction goal: isolate measured calibration drift before minimal fix; reuse existing checkpoints/cache, no fullnative fit.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_ORDER_20261109_001/RESULT.json",
+      "sha256": "663f02706c85d86dc4de211219f5479eb7ad4b539b179e9c664759763758955d"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_ORDER_20261109_001/TERMINAL.json",
+      "sha256": "2934554ae683c1367ac1afa56822855b9ec55ce30f9331b88d9c00be0d399ce4"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_ORDER_20261109_001/REVIEW.json",
+      "sha256": "777de722a003001fe6f5c747a2588b4d9dae658b98a8f926f2a0926245c74ff5"
+    },
+    "later_arrays_consumed": false,
+    "actual_private_updates": 5547
+  },
+  "market_state_ta_m5_equal_loss_final_cache_20261109_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FINAL_CACHE_20261109_001/PLAN.json",
+      "sha256": "e110be51a3b2a3f119110a3144714fda19365fcda1341b6c160f314a3727785f"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FINAL_CACHE_20261109_001/PREFLIGHT.json",
+      "sha256": "418aa44e4f822661cac2c15e21e907a3b5fd561e48d07ddcf8eb6753702629e5"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "backbone_encodings_authorized": 2959,
+    "backward_calls_authorized": 0,
+    "optimizer_steps_authorized": 0,
+    "training_authorized": false,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "wall_seconds": 3600,
+    "power_limit_w": 250,
+    "power_draw_guard_w": 170,
+    "scope": "Cache actual fullfitFINAL on identical29574FIT/17753laterTRAIN; all5TF S/F representations and sampledS. Zero parameter updates.",
+    "purpose": "Distinguish information loss from head/readout mismatch using unchanged fixed readout method after cache qualification.",
+    "standing_authorization": "Active direction goal and standing zero-cost local research authorization; one finite read-only extraction, no new training.",
+    "test_data_used": false
   }
 }

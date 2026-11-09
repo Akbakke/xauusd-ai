@@ -67,3 +67,53 @@ def test_dispatch_preflight_and_run_are_distinct(monkeypatch, tmp_path):
     with pytest.raises(SystemExit):
         validator.main(args[:4] + ['--device', 'cpu', '--out-dir', str(tmp_path)])
 
+
+
+def test_cache_paths_never_cross_original_and_equal_loss_roots():
+    from gx1.audit import cache_market_state_ta_direction_v1 as wrapper
+    for stage, root, dedicated in ((wrapper.STAGE, wrapper.ROOT, False),
+                                  (wrapper.FINAL_STAGE, wrapper.FINAL_ROOT, True)):
+        assert wrapper._cache_scope(root / 'PLAN.json', root) == (stage, root, dedicated)
+        other = wrapper.FINAL_ROOT if root == wrapper.ROOT else wrapper.ROOT
+        with pytest.raises(RuntimeError, match='EXACT_CACHE_PATHS'):
+            wrapper._cache_scope(root / 'PLAN.json', other)
+        with pytest.raises(RuntimeError, match='EXACT_CACHE_PATHS'):
+            wrapper._cache_scope(root / 'other.json', root)
+
+
+def test_success_failure_and_partial_outputs_use_selected_root(tmp_path):
+    import json
+    import numpy as np
+    from gx1.audit import cache_market_state_ta_direction_v1 as wrapper
+    from gx1.contracts.immutable_event_authority_v1 import ImmutableEventAuthorityError
+    root = tmp_path / 'new-final'
+    root.mkdir()
+    for name in ('RESULT.json', 'FAILED.json', 'TERMINAL.json'):
+        value = {'synthetic': True, 'artifact': name}
+        ref = wrapper._publish(name, value, root=root)
+        assert ref['path'] == str(root / name)
+        assert json.loads((root / name).read_text()) == value
+        with pytest.raises(ImmutableEventAuthorityError, match='already exists'):
+            wrapper._publish(name, value, root=root)
+    arrays = {'parents': np.arange(4), 'representation': np.zeros((4, 5, 128), np.float32)}
+    for partial, rows in ((False, 4), (True, 2)):
+        ref = wrapper._save_cache('fit', arrays, rows, partial=partial, root=root)
+        assert Path(ref['artifact']['path']).parent == root
+        assert ref['partial'] is partial
+        with np.load(ref['artifact']['path'], allow_pickle=False) as cache:
+            np.testing.assert_array_equal(cache['parents'], np.arange(rows))
+            assert cache['representation'].shape == (rows, 5, 128)
+
+
+def test_cached_scores_must_match_full_native_measurement():
+    import copy
+    from gx1.audit import cache_market_state_ta_direction_v1 as wrapper
+    from gx1.contracts.market_state_time_query_target_v1 import TIMEFRAMES
+    scores = {task: {tf: {'conditional_side': {
+        'count': 10, 'brier_sum': 2.4, 'log_sum': 6.8}} for tf in TIMEFRAMES}
+        for task in ('state', 'future')}
+    baseline = {'scores': {'model': copy.deepcopy(scores)}}
+    assert wrapper._side_parity(scores, baseline)['future']['M5']['brier']['absolute_difference'] == 0
+    baseline['scores']['model']['future']['M5']['conditional_side']['brier_sum'] += .1
+    with pytest.raises(RuntimeError, match='SIDE_PARITY:future:M5:brier_sum'):
+        wrapper._side_parity(scores, baseline)
