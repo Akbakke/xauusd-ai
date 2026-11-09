@@ -70,7 +70,8 @@ def _bookend(launch: dict, plan: dict, policy_path: Path,
               'INPUT_CHANGED:' + name)
     _need(campaign.file_sha256(Path(launch['reference_result']['path']))
           == launch['reference_result']['sha256'], 'REFERENCE_CHANGED')
-    if launch['run_scope'] == scope.TA_M5_EQUAL_LOSS_FIT_SCOPE:
+    if launch['run_scope'] in (scope.TA_M5_EQUAL_LOSS_FIT_SCOPE,
+                               scope.TA_M5_NEXT_NATIVE_PASS_SCOPE):
         campaign.require_binding(launch['imported_origin']['imported_checkpoint'],
             label='M5 equal-loss original import', verify_file=True)
     if launch['run_scope'] in (scope.TA_RECOVERY_SCOPE, scope.TA_M5_FIT_SCOPE):
@@ -106,6 +107,57 @@ def _ta_m5_rebind_import(*, launch, model, optimizer, view_identity,
     _need(not optimizer.state and all(module.training for module in model.modules()),
           'IMPORTED_EMPTY_OPTIMIZER_AND_TRAIN_MODES')
     return proof
+
+
+def _ta_m5_restore_final_import(*, launch, model, optimizer, view_identity,
+                              order, source_commit, device, counters):
+    """Strictly restore the already equal-loss zero-step FINAL import."""
+    import torch
+    from gx1.contracts import market_state_time_query_fold1_fit_state_v1 as state
+    from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+    from gx1.scripts.run_unified_exit_random_access_full_train_v1 import (
+        _dynamic_m5_technical_tree_sha256 as tree_sha,
+    )
+    origin = launch['imported_origin']
+    _need(tree_sha(order) == origin['parent_order_sha256'], 'FINAL_IMPORT_PARENT_ORDER')
+    saved = common._load_state(origin['imported_checkpoint'], torch=torch,
+        maximum=launch['max_checkpoint_bytes'], counters=counters)
+    keys = ('cursor', 'optimizer_updates', 'skipped_batches')
+    _need(all(type(saved.get(key)) is int and saved[key] == 0 for key in keys),
+          'FINAL_IMPORT_ZERO_PROGRESS')
+    _need(type(optimizer) is torch.optim.AdamW and not optimizer.state
+          and isinstance(saved.get('optimizer_state'), dict)
+          and saved['optimizer_state'].get('state') == {}, 'FINAL_IMPORT_EMPTY_OPTIMIZER')
+    _need(saved['model_state_sha256'] == origin['model_state_sha256']
+          == launch['expected_initial_model_state_sha256']
+          and saved['rng_state_sha256'] == origin['rng_state_sha256'],
+          'FINAL_IMPORT_MODEL_AND_RNG')
+    identities = [(name, id(parameter)) for name, parameter in model.named_parameters()]
+    restored = state.restore_fold1_fit_state(
+        saved, model, optimizer, numerical_recipe=launch['numerical_recipe'],
+        feature_view_identity=view_identity, parent_order=order,
+        source_commit=origin['source_commit'], device=device)
+    rebound = state.capture_fold1_fit_state(
+        model, optimizer, numerical_recipe=launch['numerical_recipe'],
+        feature_view_identity=view_identity, parent_order=order,
+        cursor=0, optimizer_updates=0, skipped_batches=0,
+        source_commit=source_commit, device=device)
+    _need(restored == {key: 0 for key in keys}
+          and set(rebound) == set(saved)
+          and all(tree_sha(rebound[key]) == tree_sha(saved[key])
+                  for key in saved if key not in ('source_commit', 'contract_sha256'))
+          and identities == [(name, id(parameter)) for name, parameter in model.named_parameters()]
+          and not optimizer.state and all(module.training for module in model.modules()),
+          'FINAL_IMPORT_STRICT_PRESERVATION')
+    return {'schema_version': 'gx1_ta_m5_final_import_strict_restore_v1',
+            'source_model_state_sha256': saved['model_state_sha256'],
+            'model_state_sha256': rebound['model_state_sha256'],
+            'source_state_sha256': saved['contract_sha256'],
+            'state_sha256': rebound['contract_sha256'],
+            'source_commit': origin['source_commit'], 'new_source_commit': source_commit,
+            'rng_state_sha256': rebound['rng_state_sha256'],
+            'optimizer_steps_performed': 0, 'numerical_recipe_unchanged': True,
+            'all_state_except_source_and_seal_unchanged': True}
 
 
 def _prepared_fold1(receipts: dict, view: dict, *, np):
@@ -181,10 +233,41 @@ def _feature_batch(prepared: dict, view: dict, receipts: dict,
 
 
 
+def _ta_m5_capture_layout(rows):
+    """Only two 128D M5 inputs plus the already measured endpoint arrays."""
+    import numpy as np
+    layout = {'parents': ((rows,), np.int64), 'issues': ((rows,), np.int64),
+              'query_native': ((rows, 5), np.int64)}
+    for task in ('state', 'future'):
+        layout[task + '_representation'] = ((rows, 128), np.float32)
+        layout[task + '_activity_side_logits'] = ((rows, 5, 2), np.float32)
+        for key, dtype in (('allowed', np.uint8), ('eligible', np.bool_), ('mature', np.bool_)):
+            layout[task + '_' + key] = ((rows, 5), dtype)
+    return layout
+
+
+def _ta_m5_capture_batch(arrays, batch, *, left, right, parents, issues):
+    import numpy as np
+    from gx1.contracts.market_state_time_query_target_v1 import NATIVE_K
+    _need(set(batch) == set(arrays), 'M5_CAPTURE_FIELDS')
+    _need(np.array_equal(batch['parents'], parents)
+          and np.array_equal(batch['issues'], issues)
+          and np.array_equal(batch['query_native'],
+              np.broadcast_to(np.asarray(NATIVE_K, np.int64), (right-left, 5))),
+          'M5_CAPTURE_AXES')
+    for key, target in arrays.items():
+        value = batch[key]
+        _need(isinstance(value, np.ndarray)
+              and value.shape == (right-left, *target.shape[1:])
+              and value.dtype == target.dtype
+              and bool(np.isfinite(value).all()), 'M5_CAPTURE_ARRAY:' + key)
+        arrays[key][left:right] = value
+
+
 def _ta_endpoint_measurement(*, model, prepared, view, receipts, rows, issues,
         partition, endpoint_bound, future_bound, frozen_priors, device, deadline,
-        counters):
-    """Evaluate every declared row once; never average unequal batch losses."""
+        counters, capture_path: Path | None = None):
+    """Evaluate each row once; optionally save M5 inputs from those same calls."""
     import numpy as np
     import torch
     from gx1.contracts.market_state_time_query_native_F_batch_v1 import evaluate_endpoint_batch
@@ -196,6 +279,15 @@ def _ta_endpoint_measurement(*, model, prepared, view, receipts, rows, issues,
     before_sha = canonical_model_state_sha256(model.state_dict())
     modes = {name: module.training for name, module in model.named_modules()}
     total = None
+    captured = None
+    if capture_path is not None:
+        _need(isinstance(capture_path, Path) and capture_path.is_absolute()
+              and capture_path.suffix == '.npz' and capture_path.parent.is_dir()
+              and not capture_path.exists(), 'M5_CAPTURE_DESTINATION')
+        captured = {key: np.empty(shape, dtype) for key, (shape, dtype)
+                    in _ta_m5_capture_layout(expected_rows).items()}
+        _need(sum(value.nbytes for value in captured.values()) <= 40 * 1024**2,
+              'M5_CAPTURE_MEMORY_BOUND')
     model.eval()
     try:
         for left in range(0, len(rows), scope.BATCH_SIZE):
@@ -208,8 +300,12 @@ def _ta_endpoint_measurement(*, model, prepared, view, receipts, rows, issues,
             counters['forward_calls'] += 1
             report = evaluate_endpoint_batch(model, features, endpoint_bound, future_bound,
                 parents, clocks, fold_id=1, partition=partition,
-                future_weight=1.0, frozen_priors=frozen_priors)
+                future_weight=1.0, frozen_priors=frozen_priors,
+                **({'capture_m5_readout': True} if captured is not None else {}))
             total = objective.merge_endpoint_measurements(total, report['measurement'])
+            if captured is not None:
+                _ta_m5_capture_batch(captured, report['m5_readout'], left=left, right=right,
+                                     parents=parents, issues=clocks)
             del raw, features, report
     finally:
         for name, module in model.named_modules():
@@ -220,6 +316,24 @@ def _ta_endpoint_measurement(*, model, prepared, view, receipts, rows, issues,
     _need(measured['rows'] == expected_rows
           and measured['batches'] == (expected_rows + scope.BATCH_SIZE - 1) // scope.BATCH_SIZE,
           'TA_MEASUREMENT_COMPLETE')
+    if captured is not None:
+        import io
+        from gx1.contracts.immutable_event_authority_v1 import _publish_bytes
+        from gx1.contracts.local_random_access_campaign_v2 import file_sha256
+        stream = io.BytesIO()
+        np.savez_compressed(stream, **captured)
+        _publish_bytes(capture_path, stream.getvalue())
+        measured['m5_readout_capture'] = {
+            'schema_version': 'gx1_ta_m5_endpoint_readout_capture_v1',
+            'artifact': {'path': str(capture_path), 'sha256': file_sha256(capture_path)},
+            'partition': partition, 'rows': expected_rows,
+            'model_state_sha256': before_sha,
+            'observation_chain_sha256': measured['observation_chain_sha256'],
+            'array_bytes': sum(value.nbytes for value in captured.values()),
+            'layout': {key: {'shape': list(value.shape), 'dtype': str(value.dtype)}
+                       for key, value in captured.items()},
+            'additional_forward_calls': 0, 'test_data_used': False,
+        }
     return measured
 
 
@@ -416,19 +530,25 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
     )
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
 
+    next_native_pass = launch['run_scope'] == scope.TA_M5_NEXT_NATIVE_PASS_SCOPE
     recovery_run = launch['run_scope'] == scope.TA_RECOVERY_SCOPE
     ta_sf = launch['run_scope'] in (scope.TA_SF_SCOPE, scope.TA_RECOVERY_SCOPE, scope.TA_M5_FIT_SCOPE,
-            scope.TA_M5_EQUAL_LOSS_FIT_SCOPE)
-    equal_loss_run = launch['run_scope'] == scope.TA_M5_EQUAL_LOSS_FIT_SCOPE
+            scope.TA_M5_EQUAL_LOSS_FIT_SCOPE, scope.TA_M5_NEXT_NATIVE_PASS_SCOPE)
+    equal_loss_run = launch['run_scope'] in (
+        scope.TA_M5_EQUAL_LOSS_FIT_SCOPE, scope.TA_M5_NEXT_NATIVE_PASS_SCOPE)
     dedicated_m5_side = launch['run_scope'] in (
-        scope.TA_M5_FIT_SCOPE, scope.TA_M5_EQUAL_LOSS_FIT_SCOPE)
+        scope.TA_M5_FIT_SCOPE, scope.TA_M5_EQUAL_LOSS_FIT_SCOPE, scope.TA_M5_NEXT_NATIVE_PASS_SCOPE)
     m5_equal_observation = launch['numerical_recipe'].get('m5_equal_observation', False)
     expected_recipe = (scope.ta_sf_numerical_recipe(dedicated_m5_side=dedicated_m5_side,
                            m5_equal_observation=m5_equal_observation)
                        if ta_sf else scope.fold1_numerical_recipe())
     _need(launch['run_scope'] in {scope.SCOPE, scope.TA_SF_SCOPE, scope.TA_RECOVERY_SCOPE, scope.TA_M5_FIT_SCOPE,
-            scope.TA_M5_EQUAL_LOSS_FIT_SCOPE}
+            scope.TA_M5_EQUAL_LOSS_FIT_SCOPE, scope.TA_M5_NEXT_NATIVE_PASS_SCOPE}
           and m5_equal_observation == equal_loss_run
+          and ((launch.get('capture_m5_readout') is True
+                and launch.get('m5_readout_capture_measurements') == ['FINAL_TRAIN', 'OOF']
+                and launch.get('max_m5_readout_array_bytes') == 40 * 1024**2)
+               if next_native_pass else 'capture_m5_readout' not in launch)
           and launch['fold'] == scope.FOLD
           and launch['numerical_recipe'] == expected_recipe
           and launch['reference_result'] == (
@@ -556,12 +676,14 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
             model, numerical_recipe=numerical)
         counters['optimizer_constructions'] += 1
         if equal_loss_run:
-            proof = _ta_m5_rebind_import(
+            importer = _ta_m5_restore_final_import if next_native_pass else _ta_m5_rebind_import
+            proof = importer(
                 launch=launch, model=model, optimizer=optimizer,
                 view_identity=actual_view, order=order,
                 source_commit=plan['source_commit'], device=device, counters=counters)
-            common._json(work / 'LOSS_REBINDING.json', {
-                'schema_version': 'gx1_market_state_ta_m5_equal_loss_fit_rebinding_v1',
+            common._json(work / ('INITIAL_IMPORT.json' if next_native_pass else 'LOSS_REBINDING.json'), {
+                'schema_version': ('gx1_market_state_ta_m5_final_import_restore_v1'
+                                   if next_native_pass else 'gx1_market_state_ta_m5_equal_loss_fit_rebinding_v1'),
                 'imported_origin': launch['imported_origin'],
                 'loss_rebinding': proof, 'source_commit': plan['source_commit'],
                 'fresh_full_initialbaseline_required': True,
@@ -857,7 +979,9 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
                                 rows=fit_rows, issues=issues, partition='fit',
                                 endpoint_bound=endpoint_bound, future_bound=future_bound,
                                 frozen_priors=frozen_priors, device=device, deadline=deadline,
-                                counters=counters)
+                                counters=counters,
+                                **({'capture_path': work / 'FINAL_M5_READOUT.npz'}
+                                   if next_native_pass else {}))
                         finally:
                             timings['final_train_measurement_seconds'] = time.monotonic() - tic
                         initial_payload = authority.campaign.read_bound_json(
@@ -885,7 +1009,9 @@ def run_market_state_time_query_fold1_fit_window(*, window: dict, plan: dict,
                             rows=score_rows, issues=score_issues, partition='score',
                             endpoint_bound=endpoint_bound, future_bound=future_bound,
                             frozen_priors=frozen_priors, device=device, deadline=deadline,
-                            counters=counters)
+                            counters=counters,
+                            **({'capture_path': work / 'OOF_M5_READOUT.npz'}
+                               if next_native_pass else {}))
                     finally:
                         timings['later_train_score_seconds'] = time.monotonic() - tic
                     oof_measurement = common._json(work / 'OOF.json',

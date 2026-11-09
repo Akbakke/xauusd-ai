@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-09T11:55:49.497560+00:00",
-  "status": "TA_M5_TRAIN_GAIN_ALL_MONTHS_LATER_TRANSFER_UNRESOLVED",
+  "status": "TA_M5_NEXT_NATIVE_PASS_SOURCE_QUALIFIED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Prepare one additional native pass from the existing corrected FINAL import checkpoint, with matched full initial/final TRAIN and unchanged later TRAIN; fixed alpha.01 equal-mass M5 S/F readout control on each resulting representation. First qualify minimal capture of M5 head inputs during existing endpoint measurement to avoid repeating encoder calls for a separate cache. Reuse existing fit/import/solver owners and completed guards; no new objective, features, hyperparameter sweep, native launch or training admitted yet.",
+  "next_action": "Bind one exact new native pass recipe/campaign to qualified current source and corrected FINAL checkpoint; stage current qualified Windows observer in a new deployment, verify idle host and fresh boot through existing guards, then run one1849step pass. Reuse passed80tests, input proofs and readout method. Capture FINAL/OOF M5 representations during existing measurements; no separate encoder extraction. Training remains closed until exact finite admission.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1726,7 +1726,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Matched TRAIN correction is consistent across all5months; later F ranking/calibration remain unstable. Need finite native continuation experiment with head convergence controlled, not more month-selected head tweaks.",
+    "current_blocker": "Remaining later F precision needs actual extra-pass result; new capture and strict same-loss import source are qualified, native campaign not admitted.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9197,7 +9197,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Prepare one additional native pass from the existing corrected FINAL import checkpoint, with matched full initial/final TRAIN and unchanged later TRAIN; fixed alpha.01 equal-mass M5 S/F readout control on each resulting representation. First qualify minimal capture of M5 head inputs during existing endpoint measurement to avoid repeating encoder calls for a separate cache. Reuse existing fit/import/solver owners and completed guards; no new objective, features, hyperparameter sweep, native launch or training admitted yet.",
+    "next_action": "Bind one exact new native pass recipe/campaign to qualified current source and corrected FINAL checkpoint; stage current qualified Windows observer in a new deployment, verify idle host and fresh boot through existing guards, then run one1849step pass. Reuse passed80tests, input proofs and readout method. Capture FINAL/OOF M5 representations during existing measurements; no separate encoder extraction. Training remains closed until exact finite admission.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -18889,7 +18889,7 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "Closed; TRAIN month audit consumed. Next native pass is design preparation only; no run admitted.",
+    "current_training_scope": "Closed; source for one additional native pass qualified, exact guard/campaign admission pending.",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -22096,6 +22096,10 @@
     "latest_dedicated_m5_fit_preflight": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DEDICATED_M5_FOLD1_FIT_20261109_001/PREFLIGHT.json",
       "sha256": "9c86d96a64816c7ff660a2afe47bf378b708006187cd1c8792cf2fbf9c586bee"
+    },
+    "latest_source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_NATIVE_PASS_20261109_001/SOURCE_REVIEW.json",
+      "sha256": "ee95497cfee657394819d0d4a9c46af3a48d9e8f44ccb71f699d1fbd71b33fef"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -24660,7 +24664,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-09T12:15:09.181065+00:00",
+  "updated_utc": "2026-11-09T12:33:34.261661+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -69118,7 +69122,7 @@
     }
   },
   "market_state_ta_m5_next_native_pass_preparation_20261109": {
-    "status": "DESIGN_PREPARATION_ONLY",
+    "status": "SOURCE_QUALIFIED_NO_RUN_ADMITTED",
     "execution_authorized": false,
     "training_authorized": false,
     "reason": "Corrected global M5 heads improve every TRAIN month; fixed monthly history/head-only variants did not improve later F. Test whether another full native pass learns transferable direction, separating representation learning from the already observed head convergence defect.",
@@ -69127,8 +69131,8 @@
       "sha256": "f33a9b3a2438d863925060d683291433a3827c9d313a276e9bd48197dd9a8ec1"
     },
     "source_review": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_IMPORT_20261109_001/REVIEW.json",
-      "sha256": "5325057a27641c06460e1234593147aa8d804a78a97d109751fd03a85be47acd"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_NATIVE_PASS_20261109_001/SOURCE_REVIEW.json",
+      "sha256": "ee95497cfee657394819d0d4a9c46af3a48d9e8f44ccb71f699d1fbd71b33fef"
     },
     "previous_fit_recipe": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FOLD1_FIT_20261109_002/RECIPE.json",
@@ -69173,6 +69177,17 @@
         "no extra forward or gradient calls",
         "bounded CPU array storage",
         "source-bound recipe and guard admission"
+      ],
+      "implemented": true,
+      "batch_owner": "gx1/contracts/market_state_time_query_native_F_batch_v1.py",
+      "max_array_bytes": 41943040,
+      "fit_array_bytes": 35193060,
+      "source_tests_passed": true,
+      "physical_gpu_capture_parity_qualified": false,
+      "complete_only_publication": true,
+      "paths": [
+        "FINAL_M5_READOUT.npz",
+        "OOF_M5_READOUT.npz"
       ]
     },
     "requirements": [
@@ -69186,7 +69201,10 @@
       "No claimed speedup until full comparable wall timing; old separate cache was2616.234s."
     ],
     "run_admitted": false,
-    "source_code_changed": false,
-    "test_data_used": false
+    "source_code_changed": true,
+    "test_data_used": false,
+    "focused_tests_passed": 80,
+    "actual_import_metadata_qualified": true,
+    "actual_source_bridge_qualified": true
   }
 }

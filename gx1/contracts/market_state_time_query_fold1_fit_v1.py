@@ -79,6 +79,32 @@ TA_M5_EQUAL_LOSS_FIT_MECHANICAL_REFS = {
 }
 TA_M5_EQUAL_LOSS_FIT_CHANGED_SOURCE_PATHS = TA_M5_FIT_CHANGED_SOURCE_PATHS
 
+TA_M5_NEXT_NATIVE_PASS_STAGE = 'market_state_ta_m5_next_native_pass_20261109_001'
+TA_M5_NEXT_NATIVE_PASS_SCOPE = 'market_state_ta_m5_next_native_pass_v1'
+TA_M5_NEXT_NATIVE_PASS_ROOT = Path('/home/andre2/GX1_RUNS') / TA_M5_NEXT_NATIVE_PASS_STAGE.upper()
+TA_M5_NEXT_NATIVE_PASS_RUNTIME_ROOT = TA_M5_NEXT_NATIVE_PASS_ROOT / 'RUNTIME'
+TA_M5_NEXT_NATIVE_PASS_RECIPE_PATH = TA_M5_NEXT_NATIVE_PASS_ROOT / 'RECIPE.json'
+TA_M5_NEXT_NATIVE_PASS_MAX_WINDOWS = 1
+TA_M5_NEXT_NATIVE_PASS_IMPORT_SOURCE_COMMIT = 'd54c62932af7fcf71554a9db021cd6dd009d625f'
+TA_M5_NEXT_NATIVE_PASS_MODEL_SHA256 = '51e0e8832bbc7079c5f00f30eef17de4a2ba7aecab2a982063483a241ab051ba'
+TA_M5_NEXT_NATIVE_PASS_RNG_SHA256 = '1c1d81738f411be466df82bc5d055d2e166b245e370cb4786a87c954127324d1'
+TA_M5_NEXT_NATIVE_PASS_IMPORT_ROOT = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_IMPORT_20261109_001')
+TA_M5_NEXT_NATIVE_PASS_IMPORT_REFS = {
+    name: {'path': str(TA_M5_NEXT_NATIVE_PASS_IMPORT_ROOT / path), 'sha256': sha}
+    for name, path, sha in (
+        ('next_import_recipe', 'RECIPE.json', 'e81c17012b4b77a599f0ae52556807f418316192bb48f3761d6a947f0c069824'),
+        ('next_import_result', 'RESULT.json', 'ad8bdd7970900ee20a8791fc1c2a7002c1d6b0889c9c4e1f20629725920d9c46'),
+        ('next_import_terminal', 'TERMINAL.json', '91c6bcbb19dec014b2a436dfe4515caad567e36f411659268eae1c9446361d8e'),
+        ('next_import_review', 'REVIEW.json', '5325057a27641c06460e1234593147aa8d804a78a97d109751fd03a85be47acd'),
+        ('next_imported_checkpoint', 'RUNTIME/private-research/IMPORTED_M5_STATE.pt',
+         'f33a9b3a2438d863925060d683291433a3827c9d313a276e9bd48197dd9a8ec1'),
+    )
+}
+# Same fit orchestration plus passive capture inside the existing endpoint call.
+TA_M5_NEXT_NATIVE_PASS_CHANGED_SOURCE_PATHS = TA_M5_FIT_CHANGED_SOURCE_PATHS | frozenset({
+    'gx1/contracts/market_state_time_query_native_F_batch_v1.py',
+})
+
 TA_RECOVERY_ORIGIN_SCHEMA = 'gx1_market_state_ta_fold1_recovery_origin_v1'
 TA_RECOVERY_SOURCE_COMMIT = 'c7c1f4f5a5f21e1b8ac5255d65e1646b7ea99410'
 TA_RECOVERY_PARENT_CURSOR = 4096
@@ -192,13 +218,13 @@ def require_checkpoint_view(value: Any, *, recipe: Mapping[str, Any] | None = No
     """Require the exact matured fold-1 feature and normalization identity."""
     _need(type(dedicated_m5_side) is bool, 'TA_M5_VIEW_MODE')
     if recipe is not None:
-        m5_recipe = recipe.get('run_scope') in (TA_M5_FIT_SCOPE, TA_M5_EQUAL_LOSS_FIT_SCOPE)
+        m5_recipe = recipe.get('run_scope') in (TA_M5_FIT_SCOPE, TA_M5_EQUAL_LOSS_FIT_SCOPE, TA_M5_NEXT_NATIVE_PASS_SCOPE)
         _need(not dedicated_m5_side or m5_recipe, 'TA_M5_VIEW_RECIPE_MODE')
         dedicated_m5_side = m5_recipe
         if m5_recipe:
             _need(recipe.get('numerical_recipe') == ta_sf_numerical_recipe(
                 dedicated_m5_side=True,
-                m5_equal_observation=recipe.get('run_scope') == TA_M5_EQUAL_LOSS_FIT_SCOPE),
+                m5_equal_observation=recipe.get('run_scope') in (TA_M5_EQUAL_LOSS_FIT_SCOPE, TA_M5_NEXT_NATIVE_PASS_SCOPE)),
                 'TA_M5_VIEW_NUMERICAL')
     if ta_sf or dedicated_m5_side or (recipe is not None and recipe.get("run_scope") in (TA_SF_SCOPE, TA_RECOVERY_SCOPE)):
         return _require_ta_checkpoint_view(value, recipe=recipe, verify_files=verify_files,
@@ -256,6 +282,9 @@ def require_launch_recipe(value: Any, *, source_repo: Path,
                           source_commit: str,
                           verify_files: bool = True) -> dict[str, Any]:
     """Validate a distinct fit admission without the legacy prefix fold registry."""
+    if isinstance(value, Mapping) and value.get("run_scope") == TA_M5_NEXT_NATIVE_PASS_SCOPE:
+        return _require_ta_m5_next_native_pass_launch_recipe(value, source_repo=source_repo,
+            source_commit=source_commit, verify_files=verify_files)
     if isinstance(value, Mapping) and value.get("run_scope") == TA_M5_EQUAL_LOSS_FIT_SCOPE:
         return _require_ta_m5_equal_loss_fit_launch_recipe(value, source_repo=source_repo,
             source_commit=source_commit, verify_files=verify_files)
@@ -334,6 +363,15 @@ def require_launch_recipe(value: Any, *, source_repo: Path,
 
 def require_fit_gate(gate: Any, recipe: Mapping[str, Any]) -> None:
     """Separate positive fit gate; the completed private probe remains closed."""
+    if recipe.get("run_scope") == TA_M5_NEXT_NATIVE_PASS_SCOPE:
+        _need(isinstance(gate, Mapping)
+              and gate.get("ta_m5_next_native_pass_authorized") is True
+              and recipe.get("admission_stage") == TA_M5_NEXT_NATIVE_PASS_STAGE
+              and gate.get("imported_origin") == recipe["imported_origin"]
+              and gate.get("import_review") == recipe["input_refs"]["next_import_review"]
+              and gate.get("capture_m5_readout") is True
+              and gate.get("physical_power_limit_w") == 250,
+              "M5_NEXT_NATIVE_PASS_POLICY")
     if recipe.get("run_scope") == TA_M5_EQUAL_LOSS_FIT_SCOPE:
         _need(isinstance(gate, Mapping)
               and gate.get("ta_m5_equal_loss_fold1_fit_authorized") is True
@@ -353,7 +391,7 @@ def require_fit_gate(gate: Any, recipe: Mapping[str, Any]) -> None:
               and gate.get("ta_sf_fold1_recovery_authorized") is True
               and gate.get("recovery_origin") == recipe["recovery_origin"],
               "TA_RECOVERY_POLICY")
-    if recipe.get("run_scope") in (TA_SF_SCOPE, TA_RECOVERY_SCOPE, TA_M5_FIT_SCOPE, TA_M5_EQUAL_LOSS_FIT_SCOPE):
+    if recipe.get("run_scope") in (TA_SF_SCOPE, TA_RECOVERY_SCOPE, TA_M5_FIT_SCOPE, TA_M5_EQUAL_LOSS_FIT_SCOPE, TA_M5_NEXT_NATIVE_PASS_SCOPE):
         _need(isinstance(gate, Mapping)
               and gate.get("ta_sf_fold1_fit_authorized") is True
               and gate.get("input_audit") == recipe["input_refs"]["ta_input_audit"]
@@ -432,7 +470,7 @@ def _require_ta_checkpoint_view(value: Any, *, recipe=None, verify_files=True,
         and prefix['unobserved_units_profile_sha256'] == PROFILE_SHA256,
         'TA_VIEW_NORMALIZATION')
     if recipe is not None:
-        _need(recipe.get('run_scope') in (TA_SF_SCOPE, TA_RECOVERY_SCOPE, TA_M5_FIT_SCOPE, TA_M5_EQUAL_LOSS_FIT_SCOPE)
+        _need(recipe.get('run_scope') in (TA_SF_SCOPE, TA_RECOVERY_SCOPE, TA_M5_FIT_SCOPE, TA_M5_EQUAL_LOSS_FIT_SCOPE, TA_M5_NEXT_NATIVE_PASS_SCOPE)
             and recipe.get('expected_view_sha256') == value['contract_sha256'],
             'TA_CHECKPOINT_RECIPE_VIEW')
     return prefix_fit._view_identity(value, verify_files=verify_files,
@@ -1000,4 +1038,157 @@ def _require_ta_m5_equal_loss_fit_launch_recipe(value, *, source_repo, source_co
                                         source_commit=source_commit)
     for name, ref in refs.items():
         campaign.require_binding(ref, label='equal-loss full-fit input ' + name, verify_file=True)
+    return recipe
+
+def _ta_m5_next_native_pass_qualification():
+    """Reuse unchanged input/loss proof; separately bind the corrected FINAL import."""
+    from gx1.contracts import market_state_native_F_private_campaign_v1 as sf
+    base_refs, base = _ta_m5_equal_loss_fit_qualification()
+    expected = sf._ta_m5_import_expected(final_readout=True)
+    # These four references describe the newly trained representation, not new inputs.
+    lineage = {'original_recipe', 'original_result', 'original_checkpoint', 'original_candidate_view'}
+    _need(expected['numerical_recipe'] == base['numerical_recipe']
+          and all(expected['input_refs'].get(k) == v for k, v in base_refs.items() if k not in lineage)
+          and all(expected[k] == base[k] for k in (
+              'expected_view_sha256', 'expected_model_contract_sha256', 'expected_loss_contract_sha256')),
+          'M5_NEXT_NATIVE_PASS_UNCHANGED_INPUTS')
+    refs = {**expected['input_refs'],
+            **{name: dict(ref) for name, ref in TA_M5_NEXT_NATIVE_PASS_IMPORT_REFS.items()}}
+    imported, report, terminal, review = (
+        sf._read(refs[name], name) for name in (
+            'next_import_recipe', 'next_import_result', 'next_import_terminal', 'next_import_review'))
+    imported = sf._identity(imported, set(expected) | {'source_owners'},
+                            sf.TA_M5_IMPORT_RECIPE_SCHEMA, 'recipe_sha256')
+    _need(all(imported[k] == v and type(imported[k]) is type(v) for k, v in expected.items()),
+          'M5_NEXT_NATIVE_PASS_IMPORT_RECIPE')
+    checkpoint = refs['next_imported_checkpoint']
+    head = report.get('head_import', {})
+    _need(report.get('schema_version') == sf.TA_M5_IMPORT_RESULT_SCHEMA
+          and report.get('decision') == 'PASS_TA_M5_EQUAL_WEIGHT_IMPORT'
+          and report.get('final_readout_import') is True
+          and report.get('recipe') == refs['next_import_recipe']
+          and report.get('final_state') == checkpoint
+          and report.get('source_commit') == TA_M5_NEXT_NATIVE_PASS_IMPORT_SOURCE_COMMIT
+          and report.get('source_unchanged') is True and report.get('bit_exact_resume') is True
+          and report.get('error') is None and report.get('test_data_used') is False
+          and all(type(report.get(k)) is int and report[k] == 0
+                  for k in ('physical_optimizer_updates', 'parent_cursor'))
+          and report.get('counts', {}).get('backwards') == 0
+          and report.get('counts', {}).get('optimizer_step_calls') == 0
+          and report.get('parent_order_sha256') == sf.TA_M5_EQUAL_LOSS_ORDER_SHA256
+          and head.get('model_state_sha256') == TA_M5_NEXT_NATIVE_PASS_MODEL_SHA256
+          and head.get('rng_state_sha256') == TA_M5_NEXT_NATIVE_PASS_RNG_SHA256
+          and head.get('source_model_state_sha256') == imported['warmstart_origin']['model_state_sha256']
+          and head.get('feature_view_sha256') == imported['expected_view_sha256']
+          and head.get('model_contract_sha256') == imported['expected_model_contract_sha256']
+          and head.get('coefficient_artifact') == refs['equal_coefficients']
+          and head.get('coefficient_recipe') == refs['equal_plan'],
+          'M5_NEXT_NATIVE_PASS_IMPORT_RESULT')
+    _need(terminal.get('status') == 'COMPLETE' and terminal.get('exit_code') == 0
+          and terminal.get('recipe') == refs['next_import_recipe']
+          and terminal.get('result') == refs['next_import_result']
+          and terminal.get('no_relaunch_under_this_plan') is True
+          and terminal.get('test_data_used') is False,
+          'M5_NEXT_NATIVE_PASS_IMPORT_TERMINAL')
+    names = {'future_m5_side_head.bias', 'future_m5_side_head.weight',
+             'state_model.m5_side_head.bias', 'state_model.m5_side_head.weight'}
+    changes = head.get('tensor_changes', {})
+    _need(review.get('status') == 'PASS_INDEPENDENT_MODEL_IMPORT_CONTROLLER_FAILED_CONSUMED'
+          and review.get('recipe') == refs['next_import_recipe']
+          and review.get('result') == refs['next_import_result']
+          and review.get('checkpoint') == checkpoint
+          and review.get('original_checkpoint') == refs['original_checkpoint']
+          and review.get('source_commit') == TA_M5_NEXT_NATIVE_PASS_IMPORT_SOURCE_COMMIT
+          and review.get('source_unchanged_at_native_terminal') is True
+          and review.get('imported_model_state_sha256') == TA_M5_NEXT_NATIVE_PASS_MODEL_SHA256
+          and review.get('fresh_empty_optimizer_verified') is True
+          and review.get('unchanged_buffers_rng_modes_parent_order') is True
+          and review.get('coefficient_tensors_bit_equal') is True
+          and set(review.get('exact_changed_tensors', [])) == set(changes) == names
+          and all(v.get('after_sha256') == v.get('coefficient_sha256') for v in changes.values())
+          and review.get('scores') == report.get('cached_head_baseline')
+          and review.get('original_campaign_receipt_present') is False
+          and review.get('original_campaign_outcome') == 'CONTROLLER_FAILED_CONSUMED'
+          and review.get('full_TRAIN_encoder_baseline_qualified') is False
+          and review.get('test_data_used') is False,
+          'M5_NEXT_NATIVE_PASS_IMPORT_REVIEW')
+    for part, rows in (('fit', FIT_ROWS), ('score', SCORE_ROWS)):
+        for task in ('state', 'future'):
+            score = report.get('cached_head_baseline', {}).get(part, {}).get(task, {})
+            _need(score.get('rows') == rows
+                  and score.get('head_batches') == (rows + BATCH_SIZE - 1) // BATCH_SIZE,
+                  'M5_NEXT_NATIVE_PASS_IMPORT_CACHE_ROWS')
+    origin = {
+        'imported_checkpoint': dict(checkpoint),
+        'source_commit': TA_M5_NEXT_NATIVE_PASS_IMPORT_SOURCE_COMMIT,
+        'model_state_sha256': TA_M5_NEXT_NATIVE_PASS_MODEL_SHA256,
+        'rng_state_sha256': TA_M5_NEXT_NATIVE_PASS_RNG_SHA256,
+        'parent_order_sha256': report['parent_order_sha256'],
+    }
+    return refs, {**imported, 'imported_origin': origin,
+                  'expected_initial_model_state_sha256': origin['model_state_sha256']}
+
+
+def _require_ta_m5_next_native_pass_sources(owners, qualified, *, source_commit):
+    """Bind unchanged FINAL-import owners and the six explicit capture/fit changes."""
+    import subprocess
+    from gx1.contracts import market_state_native_F_private_campaign_v1 as sf
+    paths = required_source_paths(ta_sf=True)
+    _need(isinstance(owners, Mapping) and isinstance(qualified, Mapping)
+          and set(owners) == set(qualified) == paths and len(paths) == 85
+          and TA_M5_NEXT_NATIVE_PASS_CHANGED_SOURCE_PATHS <= paths,
+          'M5_NEXT_NATIVE_PASS_SOURCE_SET')
+    _need(subprocess.run(['git', 'merge-base', '--is-ancestor',
+        TA_M5_NEXT_NATIVE_PASS_IMPORT_SOURCE_COMMIT, source_commit], cwd=CANONICAL_REPO,
+        capture_output=True).returncode == 0, 'M5_NEXT_NATIVE_PASS_SOURCE_ANCESTRY')
+    for name, ref in owners.items():
+        current = campaign.require_binding(ref, label='next native pass current source', verify_file=True)
+        old = campaign.require_binding(qualified[name], label='FINAL import source', verify_file=False)
+        _need(current['path'] == old['path'] == str(CANONICAL_REPO / name),
+              'M5_NEXT_NATIVE_PASS_SOURCE_PATH:' + name)
+        if name in TA_M5_NEXT_NATIVE_PASS_CHANGED_SOURCE_PATHS:
+            _need(old['sha256'] == sf._ta_m5_git_source_sha(TA_M5_NEXT_NATIVE_PASS_IMPORT_SOURCE_COMMIT, name),
+                  'M5_NEXT_NATIVE_PASS_HISTORICAL_SOURCE:' + name)
+        else:
+            _need(current == old, 'M5_NEXT_NATIVE_PASS_UNQUALIFIED_SOURCE:' + name)
+
+
+def _ta_m5_next_native_pass_recipe_fields(refs, qualified):
+    fields = _ta_m5_equal_loss_fit_recipe_fields(refs, qualified)
+    fields.update(
+        runtime_root=str(TA_M5_NEXT_NATIVE_PASS_RUNTIME_ROOT),
+        run_id=TA_M5_NEXT_NATIVE_PASS_STAGE, admission_stage=TA_M5_NEXT_NATIVE_PASS_STAGE,
+        run_scope=TA_M5_NEXT_NATIVE_PASS_SCOPE, max_windows=TA_M5_NEXT_NATIVE_PASS_MAX_WINDOWS,
+        execution_binding_path=str(TA_M5_NEXT_NATIVE_PASS_RUNTIME_ROOT / 'EXECUTION_BINDING.json'),
+        imported_origin=qualified['imported_origin'],
+        import_campaign_outcome='CONTROLLER_FAILED_CONSUMED',
+        capture_m5_readout=True, m5_readout_capture_measurements=['FINAL_TRAIN', 'OOF'],
+        max_m5_readout_array_bytes=41943040)
+    return fields
+
+
+def build_ta_m5_next_native_pass_launch_recipe(*, source_commit: str) -> dict[str, Any]:
+    refs, qualified = _ta_m5_next_native_pass_qualification()
+    value = _ta_m5_next_native_pass_recipe_fields(refs, qualified)
+    value['source_owners'] = {name: {'path': str(CANONICAL_REPO / name),
+        'sha256': campaign.file_sha256(CANONICAL_REPO / name)}
+        for name in sorted(required_source_paths(ta_sf=True))}
+    value['recipe_sha256'] = campaign.canonical_sha256(value)
+    return _require_ta_m5_next_native_pass_launch_recipe(value, source_repo=CANONICAL_REPO,
+        source_commit=source_commit, verify_files=True)
+
+
+def _require_ta_m5_next_native_pass_launch_recipe(value, *, source_repo, source_commit, verify_files):
+    _need(verify_files, 'M5_NEXT_NATIVE_PASS_PHYSICAL_METADATA_REQUIRED')
+    refs, qualified = _ta_m5_next_native_pass_qualification()
+    expected = _ta_m5_next_native_pass_recipe_fields(refs, qualified)
+    recipe = _identity(value, set(expected) | {'source_owners'})
+    _need(source_repo == CANONICAL_REPO and isinstance(source_commit, str)
+          and campaign._COMMIT.fullmatch(source_commit) is not None
+          and all(recipe[k] == v and type(recipe[k]) is type(v) for k, v in expected.items()),
+          'M5_NEXT_NATIVE_PASS_RECIPE_SCOPE')
+    _require_ta_m5_next_native_pass_sources(recipe['source_owners'], qualified['source_owners'],
+                                          source_commit=source_commit)
+    for name, ref in refs.items():
+        campaign.require_binding(ref, label='next native pass input ' + name, verify_file=True)
     return recipe

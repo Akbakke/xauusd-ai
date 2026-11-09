@@ -15,7 +15,28 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_TRAIN_GAIN_ALL_MONTHS_LATER_TRANSFER_UNRESOLVED.
+Policystatus: TA_M5_NEXT_NATIVE_PASS_SOURCE_QUALIFIED.
+
+Kilden for én ekstra native passering er kvalifisert. 80 fokuserte tester
+består: passiv capture, bitlike prognoser/RNG/state, komplett-only publisering,
+strict checkpointrestore og ny/gammel routing. Faktiske importmetadata og
+source-bro består: 85 eiere, 79 uendret, seks eksplisitte capture/fit-endringer.
+Gamle planer, numerikk, genuine inputs, mål og masker er uendret.
+
+Ny FINAL-import har allerede equal-loss-numerikken. Den gamle loss-rebind
+avvises derfor; ny init bruker strict restore og endrer bare source/seal.
+Det opprinnelige checkpointet og den gamle innlastingsruten bevares.
+Capture kjører bare under komplette FINAL/OOF-målinger, uten ekstra forwards.
+TRAIN-arrayene er 35193060 bytes, under hardgrensen 40 MiB. Avbrutt måling
+publiserer ingen cache. Native GPU-capture og faktisk tidsgevinst er ikke målt.
+
+SOURCE_REVIEW: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_NATIVE_PASS_20261109_001/SOURCE_REVIEW.json
+SHA ee95497cfee657394819d0d4a9c46af3a48d9e8f44ccb71f699d1fbd71b33fef.
+Neste konkrete steg: bind ny recipe/campaign fra denne kilden, legg kvalifisert
+Windows-observatør i ny deployment, kontroller ledig vert og fersk boot via
+eksisterende vakter. Deretter én passering med 1849 steg og full ny initial.
+Ingen ny fit/campaign er innrømmet ennå; training_enabled=false.
+Beståtte tester og metadata skal gjenbrukes.
 
 TRAIN-månedskontrollen er COMPLETE/konsumert. Kun åtte eksisterende fit-arrays
 ble lest; ingen senere arrays, fit eller nativekall. Hele capped kjøringen tok
@@ -48,8 +69,8 @@ representasjonene. Lagre M5-hodeinput der, med eksisterende akser/masker,
 uten ekstra forwards eller endret modellfunksjon. Da kan en separat
 encoder-cachepassering (tidligere 2616.234 s) unngås. Paritet, telling,
 minnegrense og recipe må kvalifiseres før bruk; ingen speedup er ennå målt.
-Ingen modell-/treningskode er endret eller ny kjøring innrømmet.
-training_enabled=false; forberedelsens eksakte krav står i NEXT_RUN_POLICY.
+Den nødvendige capture-/innlastingskoden er nå kvalifisert som beskrevet øverst.
+Ingen ny kjøring er innrømmet; forberedelsens eksakte krav står i NEXT_RUN_POLICY.
 
 Den faste 2×2-krysskontrollen er COMPLETE/konsumert: gamle/nye M5 F-hoder
 på gammel/ny representasjon, uten fit eller nativekall. Beregning 5.074 s;

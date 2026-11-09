@@ -127,16 +127,48 @@ def evaluate_fit_batch(model: NativeFutureDualModel, features: Mapping,
             'model_contract_sha256': model.research_objective['contract_sha256']}
 
 
+def _m5_readout_hooks(model, rows):
+    """Observe the existing M5 Linear inputs; never alter a forward argument."""
+    if not (_ta_only(model) and getattr(model.state_model, '_dedicated_m5_side', False)):
+        raise ValueError('NATIVE_F_M5_CAPTURE_REQUIRES_DEDICATED_TA')
+    heads = {'state_representation': model.state_model.m5_side_head,
+             'future_representation': model.future_m5_side_head}
+    if not all(type(head) is torch.nn.Linear and head.in_features == 128
+               and head.out_features == 1 for head in heads.values()):
+        raise ValueError('NATIVE_F_M5_CAPTURE_HEAD_SHAPE')
+    captured, handles = {}, []
+    def observe(name):
+        def hook(_module, inputs):
+            if not (name not in captured and len(inputs) == 1
+                    and isinstance(inputs[0], torch.Tensor)
+                    and inputs[0].shape == (rows, 128)
+                    and inputs[0].dtype == torch.float32
+                    and bool(torch.isfinite(inputs[0]).all())):
+                raise RuntimeError('NATIVE_F_M5_CAPTURE_INPUT')
+            captured[name] = inputs[0].detach().cpu().numpy().copy()
+        return hook
+    try:
+        for name, head in heads.items():
+            handles.append(head.register_forward_pre_hook(observe(name)))
+    except BaseException:
+        for handle in handles:
+            handle.remove()
+        raise
+    return captured, handles
+
+
 def evaluate_endpoint_batch(model: NativeFutureDualModel, features: Mapping,
                             state_endpoint_bound, future_bound: BoundFutureDisplacement,
                             parent_rows: np.ndarray, issue_ns: np.ndarray, *,
                             fold_id: int, partition: str, future_weight: float,
-                            frozen_priors: dict | None = None) -> dict:
-    """One eval-only S/F forward at the five existing native endpoints."""
+                            frozen_priors: dict | None = None,
+                            capture_m5_readout: bool = False) -> dict:
+    """One eval-only S/F forward, optionally retaining its existing M5 inputs."""
     from gx1.contracts.market_state_five_endpoint_target_binding_v1 import BoundFiveEndpointTargets
     from gx1.contracts.market_state_time_query_native_F_objective_v1 import endpoint_measurement_sums
     from gx1.contracts.market_state_time_query_target_v1 import NATIVE_K
-    if not (type(model) is NativeFutureDualModel
+    if not (type(capture_m5_readout) is bool
+            and type(model) is NativeFutureDualModel
             and type(state_endpoint_bound) is BoundFiveEndpointTargets
             and type(future_bound) is BoundFutureDisplacement
             and isinstance(features, Mapping) and set(features) == _feature_keys(model)
@@ -154,8 +186,17 @@ def evaluate_endpoint_batch(model: NativeFutureDualModel, features: Mapping,
     device = model.state_model.query_native_k.device
     query = torch.tensor(NATIVE_K, dtype=torch.int64, device=device)[None, :].expand(
         len(issue_ns), -1)
+    captured, handles = (_m5_readout_hooks(model, len(issue_ns))
+                         if capture_m5_readout else ({}, []))
     with torch.inference_mode():
-        output = model(**features, query_k=query)
+        try:
+            output = model(**features, query_k=query)
+        finally:
+            for handle in handles:
+                handle.remove()
+        if capture_m5_readout and set(captured) != {
+                'state_representation', 'future_representation'}:
+            raise RuntimeError('NATIVE_F_M5_CAPTURE_MISSING_HEAD')
         if not (set(output) == {'state_activity_side_logits', 'state_log_probs',
                                'future_activity_side_logits', 'future_log_probs'}
                 and all(isinstance(value, torch.Tensor) and value.device == device
@@ -185,6 +226,16 @@ def evaluate_endpoint_batch(model: NativeFutureDualModel, features: Mapping,
         feature_view_sha256=model.state_model.feature_view_identity['contract_sha256'],
         frozen_priors=frozen_priors, ta_only=_ta_only(model),
         dedicated_m5_side=getattr(model.state_model, '_dedicated_m5_side', False))
-    return {'measurement': measurement,
-            'state_activity_side_logits': state_raw,
-            'future_activity_side_logits': future_raw}
+    report = {'measurement': measurement,
+              'state_activity_side_logits': state_raw,
+              'future_activity_side_logits': future_raw}
+    if capture_m5_readout:
+        captured.update(parents=parent_rows.copy(), issues=issue_ns.copy(),
+                        query_native=query.cpu().numpy().copy(),
+                        state_activity_side_logits=state_raw.copy(),
+                        future_activity_side_logits=future_raw.copy())
+        for task, truth in (('state', s), ('future', f)):
+            for key in ('allowed', 'eligible', 'mature'):
+                captured[task + '_' + key] = truth[key].copy()
+        report['m5_readout'] = captured
+    return report
