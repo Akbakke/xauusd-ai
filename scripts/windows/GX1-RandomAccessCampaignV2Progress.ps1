@@ -52,7 +52,9 @@ function Test-Gx1M5ImportZeroTerminal {
     $recipe = $Value.PSObject.Properties['recipe']
     if ($null -eq $recipe -or $null -eq $recipe.Value -or
         $null -eq $recipe.Value.PSObject.Properties['path'] -or
-        $recipe.Value.path -cne '/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_WEIGHT_IMPORT_20261109_001/RECIPE.json') {
+        $recipe.Value.path -cnotin @(
+            '/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_WEIGHT_IMPORT_20261109_001/RECIPE.json',
+            '/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_IMPORT_20261109_001/RECIPE.json')) {
         return $false
     }
     foreach ($name in @('completed_units', 'total_units', 'optimizer_updates', 'parent_cursor')) {

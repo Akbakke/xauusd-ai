@@ -15,25 +15,45 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_FINAL_READOUT_IMPORT_ADMITTED_ONCE.
+Policystatus: TA_M5_FINAL_READOUT_NATIVE_VERIFIED_LATER_EDGE_UNQUALIFIED.
 
-28 fokuserte tester, syntaks, diffkontroll og faktisk metadata-/transportkontroll
-består. Ny eksakt plan binder85 kildeeiere, fullfitFINAL23ff344b og de allerede
-kvalifiserte globale M5-koeffisientene. Native modell/tap er uendret; fem eksisterende
-ruteeiere utvides til denne konkrete FINAL-importen. Den gamle planen er konsumert.
-SOURCE_VALIDATION/PREFLIGHT ligger i
-/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_IMPORT_20261109_001.
+Den faktiske FINAL-modellen har nå de kvalifiserte globale M5-hodene.
+Native kontroll:129.644s,3modeller/optimizere,6fullforwards,5918cachede
+hodekall,0backwards/oppdateringer og bitlik lagring/gjenopptakelse.
+Uavhengig checkpointkontroll bekrefter at kun fire hodetensorer er endret;
+buffere,RNG,moduser og parentrekkefølge er uendret. Kandidaten har tom
+optimizer/cursor0; originalfullfit med1849steg er bevart.
+16lagrede scoreceller samsvarer innen9.46e-11. Maks logitavvik1.3411e-7
+er innen forhåndsbundet absoluttgrense2e-6. Auditens gjenbrukte1e-7-sjekk
+var for streng og ble rettet til den opprinnelige grensen; nativegate uendret.
+Checkpoint: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_IMPORT_20261109_001/RUNTIME/private-research/IMPORTED_M5_STATE.pt
+SHA f33a9b3a2438d863925060d683291433a3827c9d313a276e9bd48197dd9a8ec1.
+REVIEW i samme rot, SHA5325057a27641c06460e1234593147aa8d804a78a97d109751fd03a85be47acd.
 
-Én ny nullstegsimport er innrømmet: strict fullstate-restore, kun fire
-hodetensorer erstattes, seks fullforwards på32TRAIN-rader, alle29574/17753
-cachede hodeprognoser og bitlik checkpointgjenopptakelse. Tre modeller/optimizere,
-null backwards/oppdateringer. Originalcheckpoint bevares; kandidaten får tom
-optimizer og cursor0. Første materialiseringsforsøk avviste feil guard-template-fase før claim/modell;
-referansen er rettet til eksisterende research-template. Materialisering og
-fersk idle-boundary Windows-boot
-gjenstår.250W og eksisterende vakter beholdes. training_enabled=false.
-Ingen ny encoderfit/cache. Kilde og policy fryses før kjøringen.
-Native paritet er ennå ikke kvalifisert, og senereF-edge er fortsatt ubevist.
+Kampanjekontrolleren FEILET: Windows-observatørens nullstegsregel bandt
+bare gammel importsti. Feilen ble reprodusert på den faktiske terminalen;
+minste rettelse tillater også eksakt ny sti.10faktiske PowerShell-tilfeller
+består,inkludert feil sti/tellere og gammel rute. Opprinnelig kampanjekvittering
+mangler; ACTIVE_INVOCATION og originalterminal beholdes. Ingen modellomkjøring
+eller syntetisk erstatningskvittering. Windows-task Disabled,result1.
+Rettet observatørkilde er kvalifisert,men ikke kopiert over fryst Windows-mirror.
+Trener/signedguard avsluttet0;250W,maks46°C/minne52°C/power130.99W.
+Ingen fullført kampanje-walltid eller speedup hevdes.28rutetester og obligatoriske
+commitkontroller besto. Planen er konsumert; training_enabled=false.
+
+TRAIN S/F Brier0.248202/0.249076 er bedre enn gammel import og nativeFINAL.
+Senere S/F0.249768/0.249874 mot prior0.249828/0.249833;F taper fortsatt,
+og begge senere skårer er svakere enn gammelimport. Rettelsen er derfor
+en verifisert TRAIN-/modellkoblingsforbedring,ikke dokumentert retningsedge.
+Full ny encoderbaseline for heleTRAIN er ikke kjørt;32fysiske rader pluss
+alle cachede hoder er kontrollert. Ingen ny encoderfit/cache.
+
+Neste direkte spørsmål er separat retningsinformasjon ved de allerede
+eksisterende lengre F-horisontene+15/+60/+240/+1440min i samme FINAL-cache.
+Forbered én fast TRAIN-fit/senere-score-sammenlikning med låste koeffisienter
+før senere data,eksakte mål/masker og fryste priorer. Ingen ny kjøring er
+innrømmet ennå. Begge kort/langt skal måles hver for seg,ingen beste-horisont-
+seleksjon fra senere data. SenereTRAIN er gjenbrukt utvikling,ikke fersk TEST.
 
 L2-kontrollen er COMPLETE/konsumert på6.009s. Isolert coupledL2 erstattet
 decoupled decay ved samme1849 kronologiske steg, men begge TRAIN-hoder ble
@@ -76,9 +96,9 @@ fra nyrepresentasjonen,selv om native sluttprognoser er svakere. Nyrepresentasjo
 har derfor ikke bare mistet all TRAIN-retningsinformasjon. Readout-tilpasningen
 er et konkret problem; generalisering består ikke. Fast råbasis-L2 påvirkes
 også av representasjonens geometri; dette er ikke et fullstendig informasjonsmål.
-Ingen nativecheckpoint er endret. Originalimporten beholdes som sterkere
+Den nye nativeimporten er nå verifisert som beskrevet øverst. Originalimporten beholdes som sterkere
 senere-referanse. Kalibreringsdriften er nå målt nedenfor/ovenfor; den eksakte nye
-nullstegsimporten er innrømmet øverst. Ingen ny fit er innrømmet.
+nullstegsimporten er konsumert som beskrevet øverst. Ingen ny fit er innrømmet.
 
 Faktisk FINAL-cache er COMPLETE/konsumert:2959enkodinger,1modell,0backward/updates.
 Alle20partisjon×oppgave×TF-sidemålinger er eksakt like lagret nativekjøring;
@@ -729,8 +749,9 @@ tidssekvensmodellen, samme-linje-reaksjonsverdi, Entry-verdi og økonomisk edge
 er ubevist. 61 makrofelt mangler uavhengig formelorakel; COTs faktiske
 historiske publisering og vintage er fortsatt UNKNOWN.
 
-**Neste steg:** Fullfør den eksakte native nullstegsimporten øverst.
-Ingen ny fit innrømmet. Målet er aktivt; senere retningsverdi er ubevist.
+**Neste steg:** Forbered den avgrensede sammenlikningen av separate lengre
+retningsmål med eksisterende cache, som beskrevet øverst. Ingen ny fit
+innrømmet. Målet er aktivt; senere retningsverdi er ubevist.
 Brukerens spørsmål om 30 epoker og fem år er fortsatt åpne hypoteser.
 Denne fitten dekker omtrent mai–september2024, senere score oktober–desember2024.
 Ett pass og én fold er ingen generell dom over lengre læring eller historikk.

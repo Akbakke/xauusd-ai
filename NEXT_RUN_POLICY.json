@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T11:10:35.203015+00:00",
-  "status": "TA_M5_FINAL_READOUT_IMPORT_ADMITTED_ONCE",
+  "observed_utc": "2026-11-09T11:30:33.788508+00:00",
+  "status": "TA_M5_FINAL_READOUT_NATIVE_VERIFIED_LATER_EDGE_UNQUALIFIED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Materialize exact once-only FINAL head import, fresh idle-boundary Windows boot,250W; verify original baseline, four tensors, full/cached output parity and checkpoint roundtrip. Zero optimizer updates; no repeat encoder fit/cache.",
+  "next_action": "Stay on direction: prepare one fixed, separately reported horizon comparison from existing FINAL caches for F+15/+60/+240/+1440 versus frozen TRAIN priors, with coefficients locked before reused later TRAIN scoring. Verify exact target/maturity/row bindings first. No new encoder fit/cache, no new run admitted, no import relaunch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1434,7 +1434,7 @@
     "profitability_demonstrated": false,
     "required_before_more_extensive_training": true,
     "entry_learning_demonstrated": false,
-    "current_evidence_scope": "Equal-loss fullfit1849updates from imported model:all10TRAIN side Briers deteriorated;all10later side Briers lose frozenprior.",
+    "current_evidence_scope": "Nativefullfit weakened all10TRAIN and later side scores; converged M5 head correction improves matched TRAIN but laterF remains below frozen prior. Native four-tensor import verified; controller receipt missing.",
     "component_learning_measured": true,
     "component_learning_result": "FULLFIT_DIRECTION_DETERIORATED_ON_MATCHED_TRAIN_AND_LATER",
     "primary_entry_quality_qualified": false,
@@ -1656,11 +1656,16 @@
     "latest_coupled_L2_control": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COUPLED_L2_CONTROL_20261109_001/REVIEW.json",
       "sha256": "426b7773f0ffee16a3c416cb993668a3e98672742840492e6fd6e3d142f20880"
-    }
+    },
+    "latest_native_m5_final_readout_import_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_IMPORT_20261109_001/REVIEW.json",
+      "sha256": "5325057a27641c06460e1234593147aa8d804a78a97d109751fd03a85be47acd"
+    },
+    "corrected_FINAL_full_population_encoder_baseline_qualified": false
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Preparing exact native FINAL head import with zero updates; all matched readout/calibration/L2 measurements reused.",
+    "current_activity": "Native FINAL head correction independently verified; consumed controller failure retained. Direction goal remains active; later predictive value unproved.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1689,14 +1694,14 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "One matched coupledL2 two-head frozen-representation optimizer contrast.",
+    "latest_terminal_role": "Native zero-update M5 FINAL head import; native PASS, campaign controller FAILED.",
     "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_SHARED_OBJECTIVE_20261108_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COUPLED_L2_CONTROL_20261109_001/TERMINAL.json",
-      "sha256": "fcac8ebc2d18e8a64acbedb65653fa31d8c4117d4741b490f706ce5662b629ef"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_IMPORT_20261109_001/TERMINAL.json",
+      "sha256": "91c6bcbb19dec014b2a436dfe4515caad567e36f411659268eae1c9446361d8e"
     },
     "terminal_exit_code": 0,
-    "source_unchanged_at_terminal": true,
+    "source_unchanged_at_terminal": null,
     "full_benchmark_completed": false,
     "sampler_selection_measured": true,
     "selected_sampler_published": true,
@@ -1713,7 +1718,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Native integration/output and checkpoint parity pending; later directional edge remains unqualified.",
+    "current_blocker": "M5 later direction remains near prior after TRAIN calibration/readout correction. Separate longer-horizon direction needs a predeclared comparison; no further fit admitted.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -10313,10 +10318,10 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "Frozen representation/two-head clip excludes native moving representation and full-model clipping.",
-      "L2 mismatch is real but correcting it alone does not preserve calibrated head performance.",
-      "Converged global readout improves TRAIN but laterF remains worse than prior; no native corrected checkpoint qualified.",
-      "No fresh generalization or economic edge."
+      "No original campaign receipt; exact observer path defect reproduced and source-corrected; task disabled.",
+      "No full-population fresh encoder baseline for corrected checkpoint.",
+      "LaterF loses frozen prior and both later scores worse previous import.",
+      "No fresh generalization, favorable-path Entry or economic edge."
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -17652,7 +17657,7 @@
         "Originals preserved; unusedwindows3/4revoked. No new epoch,HPO,checkpoint/threshold selection,normalization refit,trading,broker,Exit or promotion."
       ]
     },
-    "latest_terminal_evidence_scope": "1849updates,initial logits exact; both TRAIN endpoints worse initial; later arrays not opened; independent saved-score checks exact.",
+    "latest_terminal_evidence_scope": "Only4headtensors changed; unchanged buffers/RNG/modes/order; emptycandidate optimizer; full32row parity and29574/17753cachedheadscores; strict checkpoint roundtrip.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -19002,14 +19007,8 @@
     },
     "feature_potential_exhausted": false,
     "latest_terminal_receipt": {
-      "exit_code": 0,
-      "result": {
-        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COUPLED_L2_CONTROL_20261109_001/RESULT.json",
-        "sha256": "19da39dc2d6e3bb15e15a7c8da51c45f93347ee43345cbf2fda78a77b8c744bb"
-      },
-      "source_unchanged": true,
-      "status": "COMPLETE",
-      "test_data_used": false
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_IMPORT_20261109_001/TERMINAL.json",
+      "sha256": "91c6bcbb19dec014b2a436dfe4515caad567e36f411659268eae1c9446361d8e"
     },
     "latest_broad_direction_review": {
       "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/SYNTHESIS.json",
@@ -19191,8 +19190,8 @@
       "sha256": "c30946767a52650ec071f0457ea8b127d0d7bd38c556922b34d139897edc040e"
     },
     "latest_terminal_review": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COUPLED_L2_CONTROL_20261109_001/REVIEW.json",
-      "sha256": "426b7773f0ffee16a3c416cb993668a3e98672742840492e6fd6e3d142f20880"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_IMPORT_20261109_001/REVIEW.json",
+      "sha256": "5325057a27641c06460e1234593147aa8d804a78a97d109751fd03a85be47acd"
     },
     "frozen_partition_completed_units": {
       "terminal_later_full": {
@@ -66301,7 +66300,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "28focused route tests, actual85-owner checkpoint/input/coefficient metadata and zero-step transport PASS. Exact new zero-training import admitted for converged heads on actualFINAL; laterF still below prior.",
+    "latest_progress": "Native global M5 heads faithfully imported on actualFINAL:4tensors only,6fullforwards,5918cachedheadcalls,0updates,bitexactresume.16savedscore cells verified to9.46e-11. TRAIN corrected; laterF still loses prior. Controller failed due new-path observer allowlist; minimal fix passes10actualPS cases. Original plan consumed,taskDisabled.",
     "user_clarification_20261109": {
       "scope": "Correct direction for short sniper and longer long/shorttrends; separate forecasts and targets at M5 cadence.",
       "existing_future_horizons_minutes": [
@@ -68720,9 +68719,9 @@
     "elapsed_seconds": 6.009184218999508
   },
   "market_state_ta_m5_final_readout_import_20261109_001": {
-    "status": "ADMITTED",
-    "decision": "ADMITTED",
-    "ta_m5_import_authorized": true,
+    "status": "CONSUMED_NATIVE_PASS_CONTROLLER_FAILED",
+    "decision": "MODEL_ARTIFACTS_INDEPENDENTLY_VERIFIED",
+    "ta_m5_import_authorized": false,
     "scope": "Strict actual dedicated FINAL restore; import two globally converged M5 heads (four tensors), verify six full forwards on32TRAIN rows, all cached-head scores and checkpoint roundtrip; zero training.",
     "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_IMPORT_20261109_001/RUNTIME",
     "recipe": {
@@ -68730,9 +68729,9 @@
       "sha256": "e81c17012b4b77a599f0ae52556807f418316192bb48f3761d6a947f0c069824"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
+    "claimed_invocations": 1,
     "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "fold_id": 1,
     "parent_selection": "first_two_batches_of_exact_mature_fold1_order",
@@ -68776,11 +68775,11 @@
     "optimizer_migration": "fresh_empty_AdamW_cursor0_original_fullfit_preserved",
     "standing_authorization_source": "Active user direction-only goal; requested fix, new plan, checkpoint and completed-check reuse,250W. This exact new plan imports already-qualified fixed heads without another fit.",
     "limitation": "32fullencoder rows plus every cached head. Matched TRAIN correction known; laterF remains below prior and both later scores below original import. No new edge claim.",
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "campaign_preparation_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "campaign_preparation_authorized": false,
     "native_launch_authorized": false,
     "genuine_predictor_fit_authorized": false,
     "broker_access_allowed": false,
@@ -68796,6 +68795,40 @@
     "training_enabled": false,
     "native_training_enabled": false,
     "synthetic_test_execution_authorized": false,
-    "preclaim_metadata_correction": "Fullfit template phase differed from zero-step research phase; corrected to existing qualified research template before any preparation claim, native model or invocation."
+    "preclaim_metadata_correction": "Fullfit template phase differed from zero-step research phase; corrected to existing qualified research template before any preparation claim, native model or invocation.",
+    "native_completed_invocations": 1,
+    "model_outcome": "PASS_TA_M5_EQUAL_WEIGHT_IMPORT",
+    "campaign_outcome": "CONTROLLER_FAILED_NO_CAMPAIGN_RECEIPT",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_IMPORT_20261109_001/RESULT.json",
+      "sha256": "ad8bdd7970900ee20a8791fc1c2a7002c1d6b0889c9c4e1f20629725920d9c46"
+    },
+    "native_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_IMPORT_20261109_001/TERMINAL.json",
+      "sha256": "91c6bcbb19dec014b2a436dfe4515caad567e36f411659268eae1c9446361d8e"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_IMPORT_20261109_001/REVIEW.json",
+      "sha256": "5325057a27641c06460e1234593147aa8d804a78a97d109751fd03a85be47acd"
+    },
+    "imported_checkpoint": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_IMPORT_20261109_001/RUNTIME/private-research/IMPORTED_M5_STATE.pt",
+      "sha256": "f33a9b3a2438d863925060d683291433a3827c9d313a276e9bd48197dd9a8ec1"
+    },
+    "imported_model_state_sha256": "51e0e8832bbc7079c5f00f30eef17de4a2ba7aecab2a982063483a241ab051ba",
+    "model_import_verified": true,
+    "bit_exact_resume": true,
+    "original_active_marker_preserved": true,
+    "observer_defect_reproduced": true,
+    "observer_fix_tests": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_IMPORT_20261109_001/OBSERVER_REVIEW.json",
+      "sha256": "24e8d944d61a3c373dd3463ee15ba099635720dd3c62075dda8f5ac464145c1f"
+    },
+    "observer_fix_deployed_to_bound_windows_mirror": false,
+    "elapsed_native_seconds": 129.644344128,
+    "completed_campaign_wall_seconds": null,
+    "timing_limitation": "129.644s native vs128.227s previous import; different FINAL/coefficients. No whole-campaign speedup claim because controller failed. No encoderfit/cache repeated.",
+    "task_disabled": true,
+    "source_unchanged_at_native_terminal": true
   }
 }
