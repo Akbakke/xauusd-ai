@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T08:43:12.397531+00:00",
-  "status": "TA_M5_EQUAL_LOSS_FULLFIT_NEGATIVE_HEAD_DRIFT_AUDIT_ADMITTED",
+  "observed_utc": "2026-11-09T08:50:57.299335+00:00",
+  "status": "TA_M5_DIRECTION_DRIFT_LOCALIZED_NO_TRAINING_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Run exact once-only CPU cached head attribution; no fit or full model forward. Native fullfit002 consumed and taskdisabled. Isolate head change versus upstream representation before any training correction.",
+  "next_action": "Use existing order-only evidence and new head/upstream attribution to isolate optimizer drift from imported equal-loss start before any minimal correction or more epochs. No new training/admission. Preserve original import; fullfitFINAL is diagnostic only.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -66300,7 +66300,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "Full native equal-loss fit complete:1849updates,6657forwards,allcontrols0,250W. M5 S/F TRAIN andlater worsen versus imported initial;all10TRAIN direction scores worsen andall10later lose prior. Next bounded cached-head attribution, no new fit.",
+    "latest_progress": "Full native equal-loss pass worsened all10TRAIN direction outputs andall10later outputs lose prior.3.256s FIT-only cached attribution shows both newM5heads and changedupstreamrepresentation worsen M5. Existing order-only comparison is relevant but has oldhead/loss; optimizer cause still not isolated. No new training admitted.",
     "user_clarification_20261109": {
       "scope": "Correct direction for short sniper and longer long/shorttrends; separate forecasts and targets at M5 cadence.",
       "existing_future_horizons_minutes": [
@@ -68429,25 +68429,25 @@
     "completed_utc": "2026-11-09T08:24:32.333299+00:00"
   },
   "market_state_ta_m5_equal_loss_head_drift_20261109_001": {
-    "status": "ADMITTED",
-    "decision": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
+    "decision": "BOTH_HEAD_AND_UPSTREAM_DETERIORATE",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_HEAD_DRIFT_20261109_001/PLAN.json",
       "sha256": "2ae60a2624d48cf4ad1f4318da0876df9e3f4d4abbf3576fd649413f9ad784d7"
     },
     "scope": "One FIT-only cached projection: original and FINAL M5 heads on original representation; imported control and native initial parity required.",
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "cached_readout_audit_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "cached_readout_audit_authorized": false,
     "training_enabled": false,
     "native_training_enabled": false,
     "full_epoch_training_allowed": false,
     "native_launch_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "max_checkpoint_loads": 2,
     "max_cached_linear_batch_calls": 7396,
@@ -68457,6 +68457,21 @@
     "test_data_used": false,
     "later_arrays_consumed": false,
     "memory_max": "4G",
-    "swap_max": "512M"
+    "swap_max": "512M",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_HEAD_DRIFT_20261109_001/RESULT.json",
+      "sha256": "9bf85ec5fc79288cb34ec728989bece38fed92e3715095134b17ed72a9650264"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_HEAD_DRIFT_20261109_001/TERMINAL.json",
+      "sha256": "a109f338f54673215ff5819b2d6ce280f1ac4774e088d7d44c4625c34bc40867"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_HEAD_DRIFT_20261109_001/REVIEW.json",
+      "sha256": "7fcadd312168fc5814b9fb73e50951844c7c6b5923a4d65eb54580129e5b7cd5"
+    },
+    "actual_cached_linear_batch_calls": 7396,
+    "actual_checkpoint_loads": 2,
+    "elapsed_seconds": 3.2556589180003357
   }
 }

@@ -15,7 +15,27 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_EQUAL_LOSS_FULLFIT_NEGATIVE_HEAD_DRIFT_AUDIT_ADMITTED.
+Policystatus: TA_M5_DIRECTION_DRIFT_LOCALIZED_NO_TRAINING_ADMITTED.
+
+Den avgrensede FIT-head-kontrollen er COMPLETE/konsumert på3.256s:
+7396B16-lineærprojeksjoner,2checkpointlesinger,0fit/fullmodellforward/updates.
+Importkontrollen gjenskapte lagrede logits bitlikt og nativeINITIAL-score
+innen6.8e-12. Begge nyeM5hoder blir svakere på gammel representasjon, og
+faktiskFINAL blir ytterligere svakere når oppstrømsrepresentasjonen også endres.
+S Brierendring+0.002644=hodet+0.000329+oppstrøms+0.002315;
+F+0.004577=hodet+0.001989+oppstrøms+0.002588 (avrundet).
+F-hodets gjennomsnittligeOPP på gammel representasjon går51.10%→55.06%;
+faktiskOPP51.11%. Dette lokaliserer drift,men beviser ikke optimizerårsaken.
+Oppstrøms inkluderer encoder/query-projeksjon; attribusjonen er rekkefølgeavhengig.
+REVIEW: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_HEAD_DRIFT_20261109_001/REVIEW.json.
+
+Neste direkte spørsmål er hvorfor den gode importerte kalibreringen drives vekk
+under oppdateringer. Gjenbruk gammel rekkefølgekontroll c7c5114…: den viste
+ulik kalibrering ved kronologisk/reversert rekkefølge,men brukte gamle hoder/tap
+og ingen variant slo prior. Ikke relanser den eller trekk konklusjon om nytt
+tap fra den. Isoler minste nødvendige optimizer-kontrast før kode/fleretrinn.
+Originalimport616a22… beholdes; fullfitFINAL er diagnose,ikke forbedret kandidat.
+training_enabled=false; ingen ny trening eller plan er innrømmet.
 
 Fullfit002 er COMPLETE og konsumert; én modell/optimizer,6657forwards og1849updates,
 ingen skips. Full29574INITIAL/FINAL og17753senereTRAIN målt. TRAIN S/F Brier
@@ -32,13 +52,6 @@ speedup.250W,maks56°C/minne64°C. Trainer/observer/guard/task0;taskDisabled.
 Kilde84f0f47c var uendret. Originalcheckpoint og alle nativekvitteringer beholdes.
 001feilet kun metadataentrypoint før noen nativejobb;planen er konsumert og bevart.
 
-Neste og eneste innrømmede arbeid er én CPU-kontroll på lagret FIT-representasjon:
-originale og FINAL M5-hoder,0fit/fullmodellforward,2checkpointlesinger,
-7396B16-lineærprojeksjoner. Importkontrollen må gjenskape lagrede logits og native
-INITIAL. Dette skiller hodeendring på opprinnelig representasjon fra endret
-oppstrømsrepresentasjon med FINAL-hode fast. Oppstrøms inkluderer query-projeksjon;
-ikke en ren encoder-attribusjon. Ingen senere arrays. Ingen ny trening er innrømmet.
-PLAN: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_HEAD_DRIFT_20261109_001/PLAN.json.
 
 Brukeren har presisert begge: kort sniper og lengre long/shorttrend, med separate
 prognoser/mål og ny vurdering hvertM5. F-mål finnes allerede ved+5/+15/+60/+240/+1440min;
