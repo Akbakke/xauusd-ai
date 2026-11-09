@@ -15,18 +15,42 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_CACHED_HEAD_REP_ATTRIBUTION_ADMITTED.
+Policystatus: TA_M5_HEAD_REP_ATTRIBUTION_COMPLETE_NO_CORRECTION_QUALIFIED.
 
-Ny kontroll er innrømmet én gang:50 NumPy-affine kombinasjoner fra ni lagrede
-192TRAIN-representasjoner og fire M5-hodetensorer per checkpoint.18 diagonaler
-må gjenskape opprinnelige råprognoser før32 krysskombinasjoner.0modeller,
-0backboneforwards/fit/backward/optimizer; audit4G/512M,én tråd,maks120s.
+Cached hode-/representasjonskontroll er COMPLETE og uavhengig verifisert:
+[docs/TA_M5_HEAD_REP_ATTRIBUTION_REVIEW.json](docs/TA_M5_HEAD_REP_ATTRIBUTION_REVIEW.json).
 Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_TRAJECTORY_HEAD_REP_ATTRIBUTION_20261109_001
-PLAN SHA0478dbd44be326d6a0a43e1ef57689851f9840ddda92405383d397b280e03f50.
-Source-PASS bekrefter direkte head-input, korrekt bias/interaksjon/Shapley.
-Tidligere fullTRAIN HEAD_DRIFT endepunktfunn gjenbrukes; ingen gamle fits
-eller fullcache gjentas. Kjøringen er ennå ikke startet ved innrømmelse.
-Bare cachedkontrollen er tillatt; alle treningsporter er stengt.
+RESULT SHA31e1eb1b7cb07360910ec28c5851049b62da9f9787f9da299dd9056047f50f9d.
+REVIEW SHA30561999f3e18f82ba9ead35a7a98368ae468ce013b8209601def228636d6b91.
+50 NumPy-affine kombinasjoner fra9bevarte checkpoints ogsamme192TRAIN-rader.
+0modeller/backboneforwards/fits/backwards/optimizer. Ni headuttrekk, ikke
+nye checkpoints. Native rålogitparitet max8,145e-8; uavhengig replay med
+annen sumrekkefølge max2,776e-16,metrikker max3,331e-16. Helkommando15,909s,
+worker13,024s,review0,377s,peakRSS0,724GB. Forberedelse ikke medregnet.
+
+F-Brier Shapley er positiv for head8/8 og samlet oppstrøm7/8; P012288 har
+oppstrøm-0,000514. FINAL Brier:INITIAL0,252176,bare nyrepresentasjon0,254368,
+bare nytthead0,258727,begge0,266276;frystprior0,250641. Ingen enkelt
+tilbakebytte kvalifiserer. FINAL to-faktor Shapley:head+0,009230,
+representasjon+0,004870; dette er ikke optimizerårsak eller tapsandelbevis.
+Tre64-raders perioder:FINALF innenperiode sentrertfeil bedres0,002891,
+men vektet periodemiddelfeil forverres0,016991. P024576 har tilsvarende
+-0,003774/+0,016262. Dette er realisert liten TRAIN-statistikk, ikke sanne
+regime-sannsynligheter eller en deployerbar kalibrering. Ingen senereforbedring.
+
+Tidligere fullTRAIN HEAD_DRIFT/FINAL_CALIBRATION/TRAIN_MONTHS er gjenbrukt:
+global affin kalibrering reparerer myeTRAIN, men kvalifiserer ikke senereF.
+TRAIN_MONTHS gjelder korrigertreadout, ikke nativeINITIAL/FINAL-periodedecomp.
+
+Neste konkrete prøve skal bruke ferdig SPREAD24-kontroll og eksakt samme
+384observasjoner/INITIAL0/24updates. Bare24x16-rekkefølgen transponeres slik
+at hver batch blander tidspunkter. Interne featurehistorikker forblir kronologiske;
+alle andre innstillinger og begge fasteTRAIN/senerepaneler/prior beholdes.
+Endret eksemplerekkefølge endrer også dropout-trekningenes tilordning; dette
+må ikke påstås å isolere bare gradientstøy. Designet er ikke en godkjent
+rettelse eller innrømmet fit: ny eksaktPLAN/policy og uendret kilde kreves.
+Alle launch-/treningsporter er stengt. Ikke gjenta full featurekontroll,
+ni-checkpoint-kjøringen, affine kalibrering eller gamle fits.
 
 Ni bevarte fullpass-tilstander er nå kontrollert på de samme192 TRAIN-radene:
 0:64,14272:14336,29504:29568. INITIAL ble gjenbrukt; åtte andre målt én gang.
@@ -59,10 +83,7 @@ med i disse tidene; dette er ingen sammenliknbar trenings-speedupmåling.
 00296forwards/8loads +gjenbrukt00112/1 =108/9;0fits/backwards/optimizer.
 Ingen senereTRAIN eller TEST. Alle launch-/treningsporter er stengt.
 
-Neste direkte steg: isoler det sentrerte M5F-feilleddet fra allerede lagrede
-representasjoner/prognoser og bundne headvekter før ny fit eller modellendring.
-Ikke gjenta ni-checkpoint-kjøringen eller beståtte featurekontroller.
-Kun den nye cachedkontrollen ovenfor er innrømmet; ingen ny modellkjøring.
+Den planlagte cachedattribusjonen er nå fullført ovenfor. Ingen ny kjøring er innrømmet.
 
 Brukerens all-feature-kontroll er fullført i
 [docs/TA_FORWARD_SEMANTICS_REVIEW.json](docs/TA_FORWARD_SEMANTICS_REVIEW.json):

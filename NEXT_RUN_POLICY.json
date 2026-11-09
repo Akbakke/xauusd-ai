@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T21:38:05.574715+00:00",
-  "status": "TA_M5_CACHED_HEAD_REP_ATTRIBUTION_ADMITTED",
+  "observed_utc": "2026-11-09T21:47:38.210327+00:00",
+  "status": "TA_M5_HEAD_REP_ATTRIBUTION_COMPLETE_NO_CORRECTION_QUALIFIED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Run exactly one admitted cached affine attribution, independently replay its saved arithmetic, then close execution. No model training or fullforward, later data, checkpoint selection or permanent code change.",
+  "next_action": "Prepare one matched24update minibatch-grouping experiment against existing SPREAD24, using exactly its384selectedrows andINITIAL0, transpose24x16 row layout only. Reuse completed controls. Source/loss/features unchanged; no new fit admitted until exact new plan/policy. Do not repeat affine calibration, fullfeature audit or checkpoint trajectory.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -66323,7 +66323,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "Directheadprehook route confirmed; prior fullTRAIN head-only negative result reused. New50cachedaffine combinations admitted to separate head/upstream contributions across original9states; no fit.",
+    "latest_progress": "50cached combinations independently verified: Fhead contributionpositive8/8,upstream7/8; neither singlefactorrestore beatsprior. Period-mean error can grow while withinperiod centered error improves. Existing fullTRAIN calibration repairs muchTRAIN but notlater. Next question is same-data minibatch temporal mixing.",
     "user_clarification_20261109": {
       "scope": "Correct direction for short sniper and longer long/shorttrends; separate forecasts and targets at M5 cadence.",
       "existing_future_horizons_minutes": [
@@ -71243,8 +71243,8 @@
     "aggregate_report": "docs/TA_M5_FULLPASS_TRAJECTORY_REVIEW.json"
   },
   "market_state_ta_m5_trajectory_head_rep_attribution_20261109_001": {
-    "status": "ADMITTED",
-    "execution_authorized": true,
+    "status": "COMPLETE_CONSUMED_INDEPENDENTLY_VERIFIED_NO_CORRECTION",
+    "execution_authorized": false,
     "training_authorized": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_TRAJECTORY_HEAD_REP_ATTRIBUTION_20261109_001/PLAN.json",
@@ -71263,9 +71263,9 @@
       "sha256": "77f009aabd6d7a84665d6685453e49cf9a9d46eb580d77efee41efe439ab75aa"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "max_checkpoint_decodes": 9,
     "linear_combinations": 50,
@@ -71302,6 +71302,59 @@
     },
     "scope": "Same192TRAIN9states; heads from sealed checkpoints and exact cached Linear inputs. 18 native diagonals must pass before32 crossed affine calculations; explicit Brier/log Shapley, centered decomposition and descriptive AUC. No checkpoint selected or model transplanted.",
     "reuse": "Existing fullTRAIN HEAD_DRIFT endpoint aggregates retained without rerun; new7intermediate states and opposite representation-only leg require new cached arithmetic. No oldfullcache or rawtargets.",
-    "interpretation": "Counterfactual attribution can locate error in head versus complete upstream representation; it does not isolate the optimizer/training cause or prove improvement."
+    "interpretation": "Counterfactual attribution can locate error in head versus complete upstream representation; it does not isolate the optimizer/training cause or prove improvement.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_TRAJECTORY_HEAD_REP_ATTRIBUTION_20261109_001/RESULT.json",
+      "sha256": "31e1eb1b7cb07360910ec28c5851049b62da9f9787f9da299dd9056047f50f9d"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_TRAJECTORY_HEAD_REP_ATTRIBUTION_20261109_001/REVIEW.json",
+      "sha256": "30561999f3e18f82ba9ead35a7a98368ae468ce013b8209601def228636d6b91"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_TRAJECTORY_HEAD_REP_ATTRIBUTION_20261109_001/TERMINAL.json",
+      "sha256": "207f471d67d2d691bb344968c4e81fcdbc5d0e8c5f7650421fa31d955ccf8d62"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_TRAJECTORY_HEAD_REP_ATTRIBUTION_20261109_001/CONTROLLER.json",
+      "sha256": "596863875c5b4fad6c64ec903abd70835a66c18dae17c0a45840c0e305a1a84f"
+    },
+    "review_worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_TRAJECTORY_HEAD_REP_ATTRIBUTION_20261109_001/review.py",
+      "sha256": "5bc8fe46bf2fb389f2d81d23570cd01cb5eb86c21f7181f7b19042a5b8a786b3"
+    },
+    "review_controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_TRAJECTORY_HEAD_REP_ATTRIBUTION_20261109_001/REVIEW_CONTROLLER.json",
+      "sha256": "7ac703a31ee6f681c7cfce91e0028da37af6f730f7a5805b3f1e2318a1a479e0"
+    },
+    "actual_counts": {
+      "checkpoint_decodes": 9,
+      "model_constructions": 0,
+      "backbone_forwards": 0,
+      "fits": 0,
+      "backwards": 0,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "linear_combinations": 50,
+      "resume_state_load_calls": 9,
+      "resume_state_load_returns": 9
+    },
+    "worker_seconds": 13.024088494999887,
+    "whole_command_seconds": 15.908867752998049,
+    "findings": {
+      "future_positive_shapley_counts_out_of8": {
+        "head": 8,
+        "representation": 7
+      },
+      "future_no_native_or_single_factor_counterfactual_beats_prior": true,
+      "final_future_shapley": {
+        "representation": 0.004870211263506952,
+        "head": 0.009229659498746767,
+        "total_change": 0.014099870762253719
+      },
+      "training_cause_isolated": false,
+      "direction_correction_qualified": false
+    },
+    "aggregate_report": "docs/TA_M5_HEAD_REP_ATTRIBUTION_REVIEW.json"
   }
 }
