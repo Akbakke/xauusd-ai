@@ -68781,7 +68781,7 @@
     "genuine_constructor_authorized": true,
     "genuine_forward_authorized": true,
     "campaign_preparation_authorized": true,
-    "native_launch_authorized": true,
+    "native_launch_authorized": false,
     "genuine_predictor_fit_authorized": false,
     "broker_access_allowed": false,
     "test_authorized": false,
