@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-09T10:49:26.849359+00:00",
-  "status": "TA_M5_COUPLED_L2_CONTROL_ADMITTED",
+  "observed_utc": "2026-11-09T10:53:26.315040+00:00",
+  "status": "TA_M5_CALIBRATION_LOCALIZED_L2_ONLY_REJECTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Test whether objective-aligned L2 alone prevents measured frozen-head TRAIN drift. Reuse prior native-optimizer control; no native fit.",
+  "next_action": "Prepare minimal existing converged M5-head import on actualFINAL using qualified cached coefficients and preserved state. No repeat encoder fit/cache or native L2 tweak. Native route must be separately qualified; laterF edge remains unproved.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1648,11 +1648,19 @@
     "latest_final_representation_readout_review": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_20261109_001/REVIEW.json",
       "sha256": "deff9b4774ad68e6306d598d2073f43e36b126cc29069122965b5319d4ef310d"
+    },
+    "latest_calibration_attribution": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_CALIBRATION_20261109_001/REVIEW.json",
+      "sha256": "d418f906653cc07b7236266622254484e5b06e4db1b463e12f753806dfae017e"
+    },
+    "latest_coupled_L2_control": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COUPLED_L2_CONTROL_20261109_001/REVIEW.json",
+      "sha256": "426b7773f0ffee16a3c416cb993668a3e98672742840492e6fd6e3d142f20880"
     }
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Calibration explains almost all TRAIN Brier deterioration; isolated coupledL2 optimizer control admitted.",
+    "current_activity": "Calibration and isolated L2 control consumed. Native TRAIN degradation localized to poor head calibration/finite mini-batch optimization; L2 alone rejected.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1681,11 +1689,11 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "Frozen native-logit offset and affine calibration attribution.",
+    "latest_terminal_role": "One matched coupledL2 two-head frozen-representation optimizer contrast.",
     "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_SHARED_OBJECTIVE_20261108_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_CALIBRATION_20261109_001/TERMINAL.json",
-      "sha256": "68c03eb95b5822d59cb234f8aef5ec184cae2f796e96e1258705e0ba5e80b3c8"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COUPLED_L2_CONTROL_20261109_001/TERMINAL.json",
+      "sha256": "fcac8ebc2d18e8a64acbedb65653fa31d8c4117d4741b490f706ce5662b629ef"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -1705,7 +1713,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Native optimization produces poor readout calibration despite recoverable TRAIN signal; longer-run F predictive value remains unproved.",
+    "current_blocker": "Need minimal native integration/verification of proven global head refit; probability calibration recovery does not establish later directional discrimination.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -10305,10 +10313,10 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "No native checkpoint modified; trained native readout remains degraded.",
-      "Both recovered later scores worse than old imported reference; F loses frozenprior.",
-      "FixedL2 depends on basis geometry; cannot infer all information content.",
-      "No fresh generalization, calibrated trading confidence or economic edge."
+      "Frozen representation/two-head clip excludes native moving representation and full-model clipping.",
+      "L2 mismatch is real but correcting it alone does not preserve calibrated head performance.",
+      "Converged global readout improves TRAIN but laterF remains worse than prior; no native corrected checkpoint qualified.",
+      "No fresh generalization or economic edge."
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -17644,7 +17652,7 @@
         "Originals preserved; unusedwindows3/4revoked. No new epoch,HPO,checkpoint/threshold selection,normalization refit,trading,broker,Exit or promotion."
       ]
     },
-    "latest_terminal_evidence_scope": "4tiny TRAIN calibration fits; affine removes99.81percentS/99.59percentF TRAIN Brier deterioration,rank unchanged;laterF losesprior.",
+    "latest_terminal_evidence_scope": "1849updates,initial logits exact; both TRAIN endpoints worse initial; later arrays not opened; independent saved-score checks exact.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -18869,7 +18877,7 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "One private two-head frozen-representation optimizer control only; native closed.",
+    "current_training_scope": "Closed; no active or admitted fit.",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -18996,8 +19004,8 @@
     "latest_terminal_receipt": {
       "exit_code": 0,
       "result": {
-        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_CALIBRATION_20261109_001/RESULT.json",
-        "sha256": "cad67beb4a2ee271603f2aae692850c25c51b194d41f4b26857269ce36c34e8a"
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COUPLED_L2_CONTROL_20261109_001/RESULT.json",
+        "sha256": "19da39dc2d6e3bb15e15a7c8da51c45f93347ee43345cbf2fda78a77b8c744bb"
       },
       "source_unchanged": true,
       "status": "COMPLETE",
@@ -19183,8 +19191,8 @@
       "sha256": "c30946767a52650ec071f0457ea8b127d0d7bd38c556922b34d139897edc040e"
     },
     "latest_terminal_review": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_CALIBRATION_20261109_001/REVIEW.json",
-      "sha256": "d418f906653cc07b7236266622254484e5b06e4db1b463e12f753806dfae017e"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COUPLED_L2_CONTROL_20261109_001/REVIEW.json",
+      "sha256": "426b7773f0ffee16a3c416cb993668a3e98672742840492e6fd6e3d142f20880"
     },
     "frozen_partition_completed_units": {
       "terminal_later_full": {
@@ -22082,8 +22090,7 @@
     "latest_dedicated_m5_fit_preflight": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DEDICATED_M5_FOLD1_FIT_20261109_001/PREFLIGHT.json",
       "sha256": "9c86d96a64816c7ff660a2afe47bf378b708006187cd1c8792cf2fbf9c586bee"
-    },
-    "source_unchanged_evidence_location": "RESULT.json and REVIEW.json verify source_unchanged=true; original TERMINAL.json omits this field."
+    }
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -24647,7 +24654,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-09T10:49:26.849359+00:00",
+  "updated_utc": "2026-11-09T10:53:26.315040+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -68666,7 +68673,7 @@
     "actual_fits": 4
   },
   "market_state_ta_m5_coupled_l2_control_20261109_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COUPLED_L2_CONTROL_20261109_001/PLAN.json",
       "sha256": "b6fecbed88bc1b447e5335ab7b8ef32bbba77fb231cd78c2a78042df4c783e5e"
@@ -68676,12 +68683,12 @@
       "sha256": "b52e99137666fcba172aea3e9ea4379e9940fc59f6205fb1c1b95b8b4e149e38"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
-    "execution_authorized": true,
-    "training_authorized": true,
-    "data_reads_authorized": true,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "data_reads_authorized": false,
     "private_heads": 2,
     "private_optimizers": 1,
     "private_updates": 1849,
@@ -68693,6 +68700,23 @@
     "wall_seconds": 300,
     "test_data_used": false,
     "scope": "One chronological frozen-head pass with imported coupledL2 objective; reuse prior chronological control.",
-    "standing_authorization": "Active direction goal; smallest measured optimizer-objective contrast before any native code change."
+    "standing_authorization": "Active direction goal; smallest measured optimizer-objective contrast before any native code change.",
+    "remaining_invocations": 0,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COUPLED_L2_CONTROL_20261109_001/RESULT.json",
+      "sha256": "19da39dc2d6e3bb15e15a7c8da51c45f93347ee43345cbf2fda78a77b8c744bb"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COUPLED_L2_CONTROL_20261109_001/REVIEW.json",
+      "sha256": "426b7773f0ffee16a3c416cb993668a3e98672742840492e6fd6e3d142f20880"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COUPLED_L2_CONTROL_20261109_001/TERMINAL.json",
+      "sha256": "fcac8ebc2d18e8a64acbedb65653fa31d8c4117d4741b490f706ce5662b629ef"
+    },
+    "actual_private_updates": 1849,
+    "fit_gate_passed": false,
+    "later_arrays_consumed": false,
+    "elapsed_seconds": 6.009184218999508
   }
 }

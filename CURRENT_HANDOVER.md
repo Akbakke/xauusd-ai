@@ -15,7 +15,30 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_COUPLED_L2_CONTROL_ADMITTED.
+Policystatus: TA_M5_CALIBRATION_LOCALIZED_L2_ONLY_REJECTED.
+
+L2-kontrollen er COMPLETE/konsumert på6.009s:1privatoptimizer,2hoder,1849steg.
+Samme start/data/kronologiskeB16 og øvrigAdamW som lagret kontroll,men
+coupledL2alpha0.01 erstatter decoupleddecay0.0001.
+S/F TRAIN-Brier0.248665/0.250086 mot import0.248473/0.249327.
+S er også svakere enn gammel kronologisk kontroll,F bedres bare0.0000294.
+Porten feiler;senerearrays er ikke åpnet. Ingen nativeL2-endring kvalifisert.
+Lagrede mål er uavhengig kontrollert mednullavvik.
+REVIEW: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COUPLED_L2_CONTROL_20261109_001/REVIEW.json,
+SHA426b7773f0ffee16a3c416cb993668a3e98672742840492e6fd6e3d142f20880.
+
+Neste minste rettelse er å gjenbruke den kvalifiserte globale M5-avlesningen
+fra faktiskFINAL,ikke nye tilfeldige minibatch-/L2-justeringer.
+Eksisterende import_equal_weight_m5_side_heads i fold1_fit_state-eieren
+kan allerede erstatte kun fire FP32-tensorer og bevise uendret øvrigmodell,
+buffere,RNG og moduser. Den gamle native importruten er hardbundet til
+legacy-modell/gamle koeffisienter og konsumert;den relanseres ikke.
+Forbered eksakt ny faktiskFINAL-/koeffisientbinding i eksisterende eier,
+med nødvendig strictrestore,outputbaseline og checkpointkontroll før launch.
+Ingen ny encoderfit eller cache. Gamle import-/mekanikktester gjenbrukes
+innen dokumentert scope. Ingen ny native kode eller launch er innrømmet ennå.
+Det gir en korrekt TRAIN-avlesning;senereF-edge er fortsatt ubevist.
+training_enabled=false;alle aktuelle planer konsumert,ingen aktivjobb.
 
 Kalibreringskontrollen er COMPLETE/konsumert på2.759s:4små fits,0native.
 Positiv affinekorreksjon fjerner99.81%S/99.59%F av TRAIN-Brierforverringen
@@ -32,14 +55,8 @@ Dette isolerer et objektivavvik;det kvantifiserer ikke faktisk batchrekkefølge,
 helmodellklipping eller bevegelig representasjon.
 OBJECTIVE_ALIGNMENT.json ligger i samme rot.
 
-Én privat2-head/1849stegs CPU-kontroll er innrømmet:erstatt decoupleddecay
-med akkurat samme coupledL2alpha0.01 som importen;samme start,data,tapvekt,
-kronologiskeB16batcher og øvrigAdamW. Gammel kronologisk kontroll gjenbrukes.
-Senerearrays åpnes bare hvis begge TRAIN-mål bevares og kontrollen forbedres.
-Faktisk import/metadata og syntetiskL2-gradient/rapportering består.
-PLAN: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COUPLED_L2_CONTROL_20261109_001/PLAN.json.
-training_enabled gjelder kun denne private12G/512M/300s-kontrollen.
-Native trening,TEST og handel er stengt.
+Den isolerte L2-kontrollen ovenfor har fullført negativt. Hypotesen er testet,
+og skal ikke føre til ny nativefit eller gjentakelse.
 
 Ny fast avlesning av faktiskFINAL er COMPLETE/konsumert på5.383s:
 2private128D-hoder,alpha0.01,like observasjonsvekter,samme Newton-eier;
@@ -69,7 +86,7 @@ Alle20partisjon×oppgave×TF-sidemålinger er eksakt like lagret nativekjøring;
 kilde136a8ca2 og modell er uendret. Controller2616.234s mot gammelcache2584.765s:
 31.469s tregere,ingen målt speedup. Peak52°C/minne56°C,250W.
 REVIEW: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FINAL_CACHE_20261109_001/REVIEW.json.
-Cache/readout/kalibrering er konsumert;kun den nye private optimizerkontrollen øverst er innrømmet.
+Cache/readout/kalibrering/optimizerkontroller er konsumert;ingen ny kjøring innrømmet.
 
 Ny import/equal-loss-rekkefølgekontroll er COMPLETE/konsumert på10.914s:
 3privateoptimizere/6småhoder,5547updates,0nativeforward. Samme start,data,tap
@@ -713,8 +730,8 @@ tidssekvensmodellen, samme-linje-reaksjonsverdi, Entry-verdi og økonomisk edge
 er ubevist. 61 makrofelt mangler uavhengig formelorakel; COTs faktiske
 historiske publisering og vintage er fortsatt UNKNOWN.
 
-**Neste steg:** Isoler ren sluttkalibrering fra featureavlesning på lagrede
-logits,uten ny nativekjøring. Ingen ny fit er innrømmet. Målet er aktivt.
+**Neste steg:** Forbered minste native kobling til den allerede kvalifiserte
+globale M5-avlesningen, som beskrevet øverst. Ingen ny fit innrømmet. Målet er aktivt.
 Brukerens spørsmål om 30 epoker og fem år er fortsatt åpne hypoteser.
 Denne fitten dekker omtrent mai–september2024, senere score oktober–desember2024.
 Ett pass og én fold er ingen generell dom over lengre læring eller historikk.
