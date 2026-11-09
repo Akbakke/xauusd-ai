@@ -15,45 +15,42 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_SCORE_RECOVERY_ZERO_UPDATE_FINITE_ADMISSION.
+Policystatus: TA_M5_NEXT_PASS_FIXED_READOUT_FINITE_ADMISSION.
 
-Siste native pass er terminal FAILED/konsumert. Alle 29574 TRAIN-rader og
-1849 oppdateringer er fullført, ingen hoppede batcher. FINAL er lagret i
-MARKET_STATE_TA_M5_NEXT_NATIVE_PASS_20261109_001/RUNTIME/prefix-fit/states/FINAL_FOLD1_FIT_STATE.pt,
-SHA 9ff96ca98cd81f7750564fc9b73965ea7312bd400171829faaae30f569520db5.
-Original RESULT, cursor, kampanjekvittering og checkpoint beholdes uendret.
-Receipt viser FAILED, guard exit1 og observer exit0; PID936 er borte.
+Null-fit recovery002 er COMPLETE/konsumert, med2959 forwards,0 backward/
+optimizersteg/INITIAL-forwards og bitlik full modell/AdamW/RNG-tilstand.
+Begge målinger og M5-capture er lagret: FINAL29574 og senere TRAIN17753.
+Guard/observatør exit0, task Ready/result0 og PID935 borte. Kilden var uendret.
 
-Feilen kom ved første FINAL-måling: NATIVE_F_M5_CAPTURE_INPUT.
-Ekte S-hodeinput er [N,1,128], F er [N,128]. Den nye passive capturekoden
-krevde feilaktig [N,128] for begge. Tidligere syntetiske tester dekket ikke
-den ekte queryaksen. Minste rettelse godtar eksakt singleton S-akse og fjerner
-bare denne ved lagring; flere queryblokker avvises. Reelle dekoderfunksjoner
-inngår nå i den fokuserte testen. Native fysisk capture gjenstår.
+Den ekstra native passeringen svekket M5-sideprognosene igjen.
+TRAIN S Brier0.248201726→0.251408823; F0.249076427→0.256673792.
+Senere TRAIN S0.256891330 og F0.262610444 mot prior0.249827988/0.249833416.
+Initial/final har identiske akser, masker, tellinger og prior. Den tidligere
+cached korrigerte hodekontrollen er fortsatt bedre senere; dette er gjenbrukt
+utviklings-TRAIN, ikke ny generalisering eller handel.
 
-Ny score-only recovery kvalifiseres fra bevart FINAL med null nye
-treningssteg og null initialforwards. Full INITIAL på29574 rader gjenbrukes,
-SHA 049453420c984e4aa61b1a1bbbec8d4fb0f232c50c97f9abf5d70429b5f39470.
-Den nye planen skal måle FINAL29574 og senere TRAIN17753, lagre M5-representasjon
-under samme forwards og bevise uendret modell/AdamW/RNG. Ingen gammel plan
-relanseres. training_enabled=false; én ny null-fit-sluttmåling er innrømmet.
+NATIVE_REVIEW ligger i MARKET_STATE_TA_M5_SCORE_RECOVERY_20261109_002,
+SHA57d70457fb7513afccb5bd61697d67b01b6095d4903db1a7131bf2e2ff168107.
+RESULT SHA5e36605090d95a5dc05458f65a526af07f711a9ebc9073f96c2cf5dcbb9df1e1.
+Den opprinnelige native passeringen og recovery-forberedelse001 bevarer sine
+FAILED-kvitteringer. Ingen av dem relanseres.
 
-Ny kilde er kvalifisert med72 aktuelle testtilfeller og25 beståtte relevante
-regresjonskontroller. Ekte S/F-dekodere, strict fitted-state restore og hele
-measurement-hashen inklcapture er kontrollert. Opprinnelige metadata er fysisk
-hashbundet. 85 kildeeiere:79 uendret og seks eksplisitte capture/recovery-eiere.
-SOURCE_REVIEW og RECIPE ligger i MARKET_STATE_TA_M5_SCORE_RECOVERY_20261109_002.
-Kun ny invocation0001,2959 måleforwards,null fit/null initial,250W med eksisterende
-vakter. Materialisering og fersk guarded boot gjenstår ved dette vedtaket.
-Ingen endring av fryst kilde etter start. Native capture er fortsatt ubevist.
+Én avgrenset CPU-plan er innrømmet:
+MARKET_STATE_TA_M5_NEXT_PASS_READOUT_20261109_001/PLAN.json,
+SHA1dd262a6f2d9873f87858d49df07bd55e35a8303a4cc41883162cf5ff933f339.
+To M5 S/F-fit, samme tidligere alpha0.01, rå128D, lik kjent-observasjonsmasse,
+samme solver og L2 på vekter+bias. Begge hoder låses før senere arrayer.
+Kontrollen verifiserer faktisk capture mot checkpoint-hodene, tidligere
+akser/masker og alle20 native sideceller, uten ny encoderpassering.
+Kildegjennomgang og metadata-preflight består; numeriske fits/captureparitet
+gjenstår. training_enabled=true gjelder kun disse to CPU-fitene; native
+trening, flere epoker, GC, TEST, Entry/Exit og handel er stengt.
 
-Forberedelse001 er konsumert etter manglende eksplisitt normalization_fit_authorized=false. Ingen modelljobb startet.002 setter alle eksisterende lukkede porter og kontrollerer readiness før materialisering. Originalkvitteringer og beståtte tester gjenbrukes.
-
-Selve fitten tok2713.573s; native forsøk inkludert initialmåling og feil tok
-4543.308s. Samlet recoverykostnad og eventuell netto tidsgevinst er ennå ukjent.
-Checkpointet er ferdigtrent, men ny retningsforbedring er ikke målt.
-Etter sluttmålingene følger samme faste alpha0.01 S/F-readoutkontroll med
-separat avgrenset admisjon. TEST/Entry/Exit/handel og GC forblir stengt.
+Registrert UTC fra opprinnelig start til recovery-slutt er2t46m04.634s,
+inkludert stopp og retting. Worker-monotonic og receipt-UTC avviker, og den
+gamle cachejobben lagret flere representasjoner. Ingen sikker samlet
+hastighetsgevinst er kvalifisert. Det dokumenterte grepet er at M5-capture
+nå følger nødvendig scoring og unngår en separat encoder-passering.
 
 TRAIN-månedskontrollen er COMPLETE/konsumert. Kun åtte eksisterende fit-arrays
 ble lest; ingen senere arrays, fit eller nativekall. Hele capped kjøringen tok
@@ -884,7 +881,7 @@ tidssekvensmodellen, samme-linje-reaksjonsverdi, Entry-verdi og økonomisk edge
 er ubevist. 61 makrofelt mangler uavhengig formelorakel; COTs faktiske
 historiske publisering og vintage er fortsatt UNKNOWN.
 
-**Neste steg:** Fullfør rettelsen og ny null-fit-sluttmåling fra lagret FINAL som beskrevet øverst.
+**Neste steg:** Kjør den faste CPU-readoutkontrollen som beskrevet øverst.
 Målet er aktivt; senere retningsverdi er ubevist.
 Brukerens spørsmål om 30 epoker og fem år er fortsatt åpne hypoteser.
 Denne fitten dekker omtrent mai–september2024, senere score oktober–desember2024.
