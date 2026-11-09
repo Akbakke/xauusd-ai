@@ -15,7 +15,33 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TRAIN_ONLY_CACHED_HEAD_TRAJECTORY_ADMITTED.
+Policystatus: EARLY_M5_HEAD_DRIFT_VERIFIED_SHORT_NATIVE_PROBE_REQUIRED.
+
+Alle kontroller i denne bølgen er ferdige/konsumert; ingen jobb kjører og
+training_enabled=false. Målet er ikke oppnådd: ingen verifisert rettelse
+gir ennå bedre M5-retning på både identisk TRAIN og senere TRAIN mot prior.
+
+Den nye lagrede hodebanen er COMPLETE:15.692s,9checkpointlesinger,
+0modellforward/fit, bareTRAIN. Alle8lagrede hoder etterINITIAL er svakere
+på samme gamle representasjon. Allerede ved256updates:
+S Brier0.248201726→0.248591188;F0.249076427→0.250124852.
+Ved1849updates:0.248994557/0.252247640.
+F meanOPP0.511068→0.541871 ved256 og0.558459 ved1849.
+Dette lokaliserer tidlig hodedrift, ikke faktisk mellomliggende
+helmodellscore eller én bevist optimizerårsak.
+HEAD_TRAJECTORY_RESULT SHA66c2caa3d6256004fc761bfe43c81becdf86faafc87570810a6145efbfa5a863.
+Separat NumPyFP64-regning kontrollerer108celler på5.571s:
+maksproper-score/meanavvik1.819e-9,AUC9.768e-7. Dette er uavhengig
+beregningsmåte av samme integrator, ikke en ny agentreview.
+
+Neste nødvendige kodearbeid er en reell kort nativeCPU-prøve:16updates
+(256rader) fra korrigertINITIAL,hard600s og små faste TRAIN/later-utvalg.
+Gjenbruk probe.py:strict_load, kanonisk inputforberedelse, produksjonstap
+og optimizer; bevar sann cursor/RNG/state. Kvalifiser før én ny finite plan.
+Ingen fit er innrømmet ennå. Dagens native treningsrute er fortsatt ikke
+implementert/kvalifisert for dette korte løpet.
+Ikke endre tapsvekter/dropout ut fra gradientnormer: testen nedenfor
+støtter ikke en slik rettelse. Ingen ny fullpassering eller kildeopprydding.
 
 Null-update gradientdiagnosen er COMPLETE og uavhengig PASS.
 220.756s worker/224.259s hel kommando,peakRSS7.316GB;6forwards/21autograd,
@@ -28,11 +54,9 @@ RESULT SHAf9876403a6ebc6881df9cd6164f199623a238bd07de0b257a6a2474d1b9b104d,
 REVIEW SHA221b1030e9c1c336e5dbeb8fca1570946ee6398f26ef4561c71758cc8926527d.
 Review3.724s gjenskaper alle5aggregatepartisjoner med maks2.085e-13 avvik.
 
-Neste eksakte engangskontroll bruker bare lagrede checkpoints og TRAIN-cache:
-HEAD_TRAJECTORY_PLAN i samme rot,60s/4G. Ni faktiskeM5hoder projiseres på
-samme INITIAL-representasjon for å lokalisere når hodedriften oppstår.
-Ingen encoderforward,fit,senerearrays eller valg av bestecheckpoint.
-Dette er ikke de mellomliggende helmodellenes faktiske TRAIN-score.
+Den ovenfor avsluttede hodebanen brukte HEAD_TRAJECTORY_PLAN i samme rot,
+60s/4G. Ingen encoderforward,fit,senerearrays eller checkpointvalg.
+Planen er konsumert og kan ikke relanseres.
 
 Den fullførte null-update diagnosens konsumerte ramme:
 MARKET_STATE_TA_M5_SHARED_GRADIENT_20261109_001, PLAN
@@ -89,7 +113,7 @@ Neste direkte hull er faktisk delt encodergradient. Den eldre
 DIRECTION_DECODER_DIAGNOSTIC_20261108_001 brukte detached-backbone derivatives,
 og besvarer derfor ikke om andre mål motvirker M5-side i felles modell.
 Kvalifiser høyst3 faste TRAIN-batcher/600s med null updates fra korrigert
-INITIAL og uendrede produksjonstap/inputs. Den eksakte engangsdiagnosen er nå innrømmet ovenfor.
+INITIAL og uendrede produksjonstap/inputs. Den eksakte engangsdiagnosen er nå fullført/konsumert ovenfor.
 Ikke gjenta negative L2-, intakt-batch-rekkefølge- eller akkumuleringstester.
 Ingen retningsedge eller ferdig native rettelse er dokumentert.
 
