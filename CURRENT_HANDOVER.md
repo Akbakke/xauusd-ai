@@ -15,14 +15,36 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: CONSUMED_PREFIX_DIRECTION_TARGET_AUDIT_ADMITTED.
+Policystatus: CONSUMED_TARGETS_VERIFIED_SPREAD_ORDER_SOURCE_PREPARATION_NO_FIT_ADMITTED.
 
-Én cachekontroll av de24konsumerte batchenes M5-sidefasiter/vekter er
-innrømmet, maks60s/4G/tråd1,0modell/updates/checkpoints/targettapes.
-PREFIX_TARGET_PLAN.json SHA151782d5d99cfb1b25360950dfde88922bf013d7c1454c9b1e6e13f67962b280.
-Metadata/syntetisk preflight PASS. Kildefølging viser M5 sampletS k=1;
-cache likhet og faktiske tellinger kontrolleres. Lagrede INITIAL0-logits
-brukes bare som fast evalreferanse, aldri som faktisk dropout-train-gradient.
+M5-fasit/vekt-kontrollen er COMPLETE/konsumert,2.064s uten modell/targettape.
+Uavhengig54celle-kontroll1.158s PASS; maksavvik2.665e-15. FullTRAINN/q,
+sampletS k=1/native-likhet,24batcher og frosneINITIAL0-residualer stemmer.
+PREFIX_TARGET_RESULT SHA498a6f3b076f54f6b39cfe2025c39f380796c7742bc62abbd5985c481cf4a522.
+PREFIX_TARGET_REVIEW SHAfef19cce9388bd9669ac14b89afc6840a54be0dadfd32c69226fc910cf0bdd8f.
+De384konsumerte observasjonene dekker 2024-05-01T00:05:00+00:00 til 2024-05-02T09:05:00+00:00.
+
+Faktiske M5 OPP/side-kjent:
+første16: S55/101(54.46%),F66/122(54.10%);
+neste8: S18/38(47.37%),F21/52(40.38%);
+alle24: S73/139(52.52%),F87/174(50.00%).
+Koeffisient per kjent side S1799/(5×10010),F1844/(5×11909).
+FrossenINITIAL0-biasderivert er negativ(favorisererOPP) i første16 og
+positiv(favorisererNED) i neste8. Dette er evalreferanse, ikke replay av
+faktisk treningsdropout/gradient. Ingen query-, maske- eller vektbindingsfeil
+funnet; det forklarer ikke hele den delte representasjonens NED-forskyvning.
+
+Neste kildeoppgave: én24batch, labelblind og tidsmessig spredt nativevariant
+fra sammeINITIAL0; gjenbruk CONTROL24. Maks48fw/24back/24updates/600s.
+Kanonisk state krever29574rader. Bruk derfor en eksplisitt fullpermutasjon:
+de384valgte først i originalrekkefølge, resten ukonsumert. Strictrestore
+originalstate før egen avledetSTART; dokumenter kun ordre/binding/source/seal-
+endring. Ingen coreendring. Arbeiderfil er under implementering; ingen fit
+eller launch er innrømmet. Begge faste192-radersTRAIN/senere utvalg scores;
+samlet forbedringskrav motINITIAL0,CONTROL24ogprior er låst i policyscope.
+Dette er en testbar hypotese om gradientenes representativitet, ikke en
+påvist rettelse. Gamle09.11order/accumulation var frozen-head/0native;
+29.10nativeordretest brukte gammelt mål/kilde og avgjør ikke denne ruten.
 
 Lagret shift/rank-kontroll COMPLETE/konsumert:0.135s,0forwards/updates/
 checkpoints/refits. Alternativ skalar/rank-sum-kontroll0.029s,56scoreceller/
@@ -44,11 +66,6 @@ F0.586429→0.592143. Dette er IKKE jevn forbedring innad i periodene:
 S faller i2av3blokker og er lik i siste; F faller i første og øker i to.
 Parvektet innen-blokk-AUC er S0.669211→0.659033 og F0.615711→0.622081.
 Ingen kalibrator er tilpasset, ingen terskel eller ny modell valgt.
-
-Neste konkrete spørsmål: tell faktisk konsumerte M5 S/F-sidefasiter og
-deres tapsvekter i24batchene, ikke anta at nativeendpoint-OPP-andelen er
-lik tilfeldig sampletS-trainmål. Rutesjekken er fullført; den avgrensede cachetellingen er innrømmet
-ovenfor. Ingen ny fit eller målkontraktendring er innrømmet. Alle treningsporter er stengt.
 
 Den parede testen er COMPLETE/konsumert. Prosessen er bekreftet avsluttet;
 alle trenings-/launchporter er stengt. Hel kommando353.792s (5m53.79s),
