@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-09T17:07:12.629858+00:00",
-  "status": "SAVED_CONTRAST_CPU_GPU_REPRESENTATION_PARITY_BLOCKED",
+  "status": "SHORT_NATIVE16_SAVED_CONTRAST_V2_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Measure the exact CPU/GPU cached representation discrepancy and projected-logit effects from saved qualified artifacts. Do not blindly relax tolerance. Preserve failed one-shot receipts; no training/forward/later data authorized.",
+  "next_action": "Execute the new read-only60s contrast plan once. Original failed plan remains consumed. Measured CPU/GPU difference affects head logits <=2.67e-6; V2 records original representation comparison=false and requires already-qualified2e-5 logit bound. No model/fit/later data.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -69947,5 +69947,34 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/CONTRAST_CONTROLLER.json",
       "sha256": "264bfc9793605617994a4be16285cf149c94de14558f1c00fe317a620b0e98b4"
     }
+  },
+  "market_state_ta_m5_short_native16_contrast_20261109_002": {
+    "status": "ADMITTED",
+    "execution_authorized": true,
+    "training_authorized": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/CONTRAST_V2_PLAN.json",
+      "sha256": "86890061256ece4d17e0b8366b342172747dc5f9108bf134644564fcf4783042"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/CONTRAST_V2_PREFLIGHT.log",
+      "sha256": "9b363ff14d43162d059f1c4ce75a773be8493e63de082a4239cfb0e35ef43ea3"
+    },
+    "diagnostic": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/CONTRAST_REPR_PARITY_DIAGNOSTIC.json",
+      "sha256": "02567281080fb72e1fd8c9b91ec8938eececd9e4c0b06e6878191fb46cceff02"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "wall_seconds": 60,
+    "memory_max": "4G",
+    "swap_max": "512M",
+    "numerical_threads": 1,
+    "max_updates": 0,
+    "max_forwards": 0,
+    "test_data_used": false
   }
 }

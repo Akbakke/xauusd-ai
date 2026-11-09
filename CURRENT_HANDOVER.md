@@ -15,15 +15,17 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: SAVED_CONTRAST_CPU_GPU_REPRESENTATION_PARITY_BLOCKED.
+Policystatus: SHORT_NATIVE16_SAVED_CONTRAST_V2_ADMITTED.
 
-Den read-only kontrasten feilet/konsumerte på CPU/GPU-representasjons-
-allclose(atol2e-5,rtol1e-5) før sluttresultat. Controllerexit1,5.091s.
-CONTRAST_PLAN/CLAIM/TERMINAL beholdes; ingen relansering. Trening er stengt.
-Minste neste kontroll er faktisk max/RMS-avvik og projisert logitfeil for
-de samme lagrede INITIAL-representasjonene. Ikke øk toleransen blindt.
-Den allerede beståtte INITIAL-logitpariteten og native16-resultatet er
-uendret. Ingen ny modell/fit/senerearrays er brukt.
+Ny read-only CONTRAST_V2_PLAN er innrømmet,60s/4G/tråd1,0fit/forward.
+PLAN SHA86890061256ece4d17e0b8366b342172747dc5f9108bf134644564fcf4783042.
+Originalkontrast feilet/konsumerte på representasjons-allclose; kvitteringen
+bevares. Målt avvik er2.927e-5 i én av24576koordinater per oppgave,
+RMS3.939e-6. Begge faktiske hoder gir prognose-logitavvik <=2.67e-6.
+Minste rettelse beholder originalallclose=false, reproduserer målt avvik
+eksakt og krever den eksisterende2e-5-logitgrensen. Ingen ny løsere
+representasjonsgrense, modell-/scoreendring eller trening. Preflight PASS.
+Kjør bare den nye planen én gang; alle treningsporter forblir stengt.
 
 Den nye korte CPU-prøven er COMPLETE/konsumert; controllerexit0 og PID95085
 er avsluttet. Alle treningsporter er stengt igjen. Ingen automatisk
