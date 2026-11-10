@@ -15,56 +15,54 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_ACTIVITY_BACKBONE_ADAM_COMPLETE_LOCAL_SUPPORT.
+Policystatus: TA_M5_ACTIVITY_C_DETACH_NATIVE_ADMITTED.
 
-Den lesende aktivitet→C/AdamW-kontrollen er ferdig og uavhengig verifisert:
-[rapport](docs/TA_M5_ACTIVITY_BACKBONE_ADAM_REVIEW.json).
-Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_BACKBONE_ADAM_AUDIT_20261110_001
-RESULT SHAa9175e654e14b169dc5393a2e74dc22343fbbd203b9a2a850ca32cb6bedb0e2a.
-REVIEW SHA5e74f1a8c0ce7278b3670e1f5647f62667ebe35a28b4112634ba03cbd2c9ca6d.
-Alle trenings-/engangsporter er stengt. Ingen ekte oppdatering er utført.
+Én faktisk24-stegs aktivitet→C-detach-prøve er innrømmet.
+training_enabled=true gjelder BARE scope
+market_state_ta_m5_activity_c_detach_native_20261110_001.
+native_training_enabled/native_launch_authorized/full_epoch_training_allowed
+forblir false. Ingen generell trening, fullfit, ekstraarm eller automatisk resume.
 
-Begge originale tilstander bruker lagrede gjennomsnitt av tre B16 TRAIN-
-gradienter. Bare aktivitetens C/backbone-bidrag fjernes; alle S/F-sidegradienter
-og P-/headgradienter beholdes før globalclip1 og faktiske AdamW-momenter/steg.
-Aktivitet→P hjelper S lokalt og beholdes; dette er ingen full aktivitet-ablasjon.
-Eksakt kvalifisert NumPy-Adam-funksjon gjenbrukes via AST uten Torch-import.
-To gradientarkiver, null modeller/forwards/backward/optimizer/fits/checkpoints.
-Alle570 parametre har fortsatt brukt gradient; ingen blir aktivitet-alene None.
+Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_C_DETACH_NATIVE_20261110_001
+PLAN SHA0a0ada217410fa46e213a7a3e46682149ed5675b34b3fbb1ef6bfc1c35e173ec.
+Worker SHA5194dcaddd388850bb624aa5facaafe1c3be1a7db4733fde69522586251336a8.
+Metadata-preflight5,132s og root/uavhengig kildekontroll PASS.
+Capped producer12G/512M/én tråd/900s; én modell og én tom AdamW.
+48 nativeforwards:24TRAIN +12TRAIN-eval +12senere-eval.
+24backwards/updates, to første-batch autogradvitner,48 ekstra små decoderkall.
+Én eksisterende CPUcheckpoint-dekoding/strictrestore og én privatFINAL-skriving.
 
-Alle fire forhåndsvalgte alternative−joint retninger er gunstige:
-INITIAL S−3,296108589e-5/F−6,166930140e-5;
-FINAL S−3,889094691e-6/F−7,220725060e-6.
-Dette er lokale weighted-BCE-lineariseringer, ikke målt Brier eller presisjon.
-INITIAL jointS/F−0,000803016/−0,000551999 blir−0,000835977/−0,000613668.
-FINAL joint−0,000136644/−0,000094002 blir−0,000140533/−0,000101222.
-Støtteporten krevde alle fire<−1e-12, uavhengig av senere metodevalg.
+INITIAL_CPU_STATE.pt SHA4d7cfe73bcf7d7fff05ebfd87312b553db186c1626981e13f40ba9dbb2b1a659
+gjenbrukes uendret med ekte gamle source_head4310b752 og samme numeriskerecipe,
+featureview, order384 og CPU-RNG. Aktuell source/admission bindes separat.
+Kontrollkilden er ancestor til BASE72e5b7b5 uten endringer i gx1/ eller configs/.
+Ferdig HEAD_UPDATE_FREEZE CONTROL24 gjenbrukes; ingen kontrollomkjøring.
 
-Nesten hele ekstra forbedringen ligger i C. Norm INITIAL3,649002→3,635913
-og FINAL4,499671→4,497114; klippkoeffisienter0,274047→0,275034 og
-0,222238→0,222365. Effektive P/head-steg endres derfor litt til tross for
-uendrede rågradienter. Ingen påstand om identiske øvrige optimizersteg.
+Aktivitet bruker samme S/F-P/head-dekodere på ekte C.detach(); alle sideutganger
+bruker originalgrafen. Dette stopper bare aktivitetens gradient til backbone,
+mens P og aktivitetshoder lærer videre. SampletS-query bevares; F er native.
+Kandidatraw/logprobs må være bitlike det originale forwardet på hver batch,
+og ekstra dekodinger må bevare RNG. Første joint-loss→alle-parametre og
+side-only-loss→C vitner bindes til faktisk backward, None-masker og gradient-
+toleranse2e-6/3e-5 før eksisterende canonicalclip1. Ingen optimizerhookmutasjon.
+Første originalraw/loss/RNG matches motCONTROL; alle24 RNG-strømmer bevares.
+Bare C-capturehook brukes og fjernes i finally før native evaluering.
 
-Jointparitet mot eksisterende kontroll maks2,845e-16; uavhengig alternativ
-AdamW-formel og mask-/momentkontroll maks3,003e-17.
-Helkommando7,283s, worker7,003s; review5,528s, preflight1,426s.
-Kodearbeid/venting utenom. Ingen ny fulltrening eller målt treningsakselerasjon.
-Beviset gjelder to frosne punkter og48 TRAIN-rader, ikke historisk fullpass,
-sekvensiell læring, senere rader eller retningsedge.
+Begge192-raderspaneler måles uansett utfall. INITIAL-porten bruker den nye
+kvalifiserte CPU-native C/P/H-capturen på begge paneler; TRAIN er bitlik
+gammelbaseline. Gammel GPU-cached senere-INITIAL er kun historisk referanse,
+fordi dens CPU-avvik S-Brier1,754e-8/log3,534e-8 overstiger scoremarginen.
+Ingen nye baselineforwards. Før utfall er porten fast: allefire S/F×TRAIN/senere
+må bedre både Brier og log mot CPUINITIAL, CONTROL og prior med>1e-8.
+Negativt sammenligningsutfall er COMPLETE og gir ingen ny kjøring.
 
-Neste direkte steg er å klargjøre én matchet kort aktivitet→C-only læringsprøve:
-gjenbruk originalae772 CONTROL24, checkpoint, CPU-RNG, sampler384 og faste
-TRAIN192/senere192-paneler. Behold aktivitetens P/head-læring og alleTF-sider.
-Lavkost grafvalg undersøkes: ekstra små P/head-dekodere fra C.detach(), med
-bitlik forwardverdi og faktisk gradientparitet før eksisterende globalclip.
-Ingen kodevariant eller nativeplan er ennå innrømmet.
-GX1_RULES284–286 krever eksakt recipe/campaign og training_enabled=true
-for faktiske tekniske updates; den lesende støtteporten åpner ikke dette.
-
-Forrige [C/P/H-rapport](docs/TA_M5_QUERY_BACKBONE_ATTRIBUTION_REVIEW.json)
-er konsumert: P-restore bedrer3/4 småpanelmål, men svekker senereS;
-alle8 TRAIN-kombinasjoner er verre ennprior. Ingen P-alene rettelse.
-TEST, GC, Entry/Exit og handel er stengt. Originale bevis og checkpoints bevares.
+Begrunnelse: [lagret AdamW-kontroll](docs/TA_M5_ACTIVITY_BACKBONE_ADAM_REVIEW.json)
+ga gunstig lokal aktivitet→C-fjerning i allefire celler ved originalINITIAL/FINAL.
+Det beviser ikke sekvensiell læring, fullpassårsak, senere gevinst eller økonomi.
+Kandidaten er derfor en kort mekanismekontroll. PRIVATE FINAL er PLAN-bundet,
+uten produksjonsresume/promotion. Core/ONLINE-funksjonen endres ikke.
+Forrige C/P/H-tilbakebytte kvalifiserte ingen rettelse.
+TEST, GC, Entry/Exit og handel er stengt; originale bevis/checkpoints bevares.
 
 MIX24 er fullført og uavhengig verifisert:
 [docs/TA_M5_MIXED_BATCH_NATIVE_REVIEW.json](docs/TA_M5_MIXED_BATCH_NATIVE_REVIEW.json).
