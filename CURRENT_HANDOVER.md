@@ -15,11 +15,45 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_E3_FULL_TRAIN_COMPLETE_M5_TRANSFER_FAIL.
+Policystatus: TA_M5_FULL_REVERSE_ORDER_QUALIFIED_ADMITTED.
+
+[Ny fullrekkefølgetest](docs/TA_M5_FULL_REVERSE_ORDER_SCOPE_REVIEW.json) er
+kvalifisert og innrømmet én gang; ingen modell er startet ved kildefrysing.
+Samme originale ae772-initial, tom Adam/RNG og alle29574 TRAIN-rader.
+De1848 hele B16-batchene kjøres1847→0, med original B6-hale sist:
+1849 oppdateringer,3710 forwards. Originale batch-IDer/pass0, mål, loss,
+læringsrate, clipping, fem TF og FLAT-semantikk beholdes.
+Dropout-tilordning og påfølgende Adam-forløp inngår i rekkefølgeeffekten.
+
+Dette er en faktisk fullfit. Bare denne eksakte nye engangsplanen har
+full_epoch_training_allowed=true og genuine_predictor_fit_authorized=true;
+globale training/native/full-fit-porter er åpnet for den bundne kjøringen.
+Alle tidligere planer forblir konsumert, og portene lukkes ved terminal.
+Ingen automatisk ekstra epoke, utvalg, canonical resume eller handel.
+
+Historisk original FINAL og INITIAL/prior gjenbrukes. Full TRAIN29574 og
+samme senere192 vurderes ubetinget; ingen baselineforwards eller kontrollfit.
+102 fokuserte tester består på8,115s. Faktisk kilde-/kvitterings-/visnings-
+preflight består på14,580s uten genuine arrays, checkpoints eller modeller.
+Ny B6-, endpoint-, rapporterings- og cursorlogikk er kontrollert syntetisk;
+tidligere strict-restore/original256-stegsparitet gjenbrukes.
+Rotens worker-review og uavhengig kontrakt-/dispatch-review består.
+To feil i kontrollwrapperne (importsti og valgt CLI-modul) ble rettet før
+modell/claim; originalfeilene er bevart. Riktig CLI-import/hjelp består;
+direkte trainer-modul under audit avvises fortsatt med exit75.
+
+Eksisterende native250W/20G/512M-vakter beholdes, modeltak7200s og uendrede
+yttertak12000/13800s. Kjøringen krever trygg idle-grense og ny Windows-boot.
+Boot637 er observert og tidligere Windows-task er deaktivert.
+Neste steg er eksakt materialisering og guarded oppstart. Ingen retningseffekt
+eller hastighetsgevinst følger av teknisk kvalifikasjon; målet er uoppnådd.
+
+Forrige fullførte kontroll og dens begrensninger følger nedenfor.
+
 
 [Full002](docs/TA_M5_E3_FULL_TRAIN_002_REVIEW.json) er COMPLETE/konsumert.
 Worker, controller og wrapper er avsluttet med exit0; kilde og E3-tilstand
-var uendret. Alle treningsporter er false. 1593 CPU-forwards målte25478
+var uendret. Denne planens porter er stengt. 1593 CPU-forwards målte25478
 komplementrader; lagrede4096 GPU-prediksjoner ble gjenbrukt. Én modell og
 checkpointdekoding, null optimizer/backward/updates/checkpointskrivinger.
 
@@ -1729,7 +1763,7 @@ tidssekvensmodellen, samme-linje-reaksjonsverdi, Entry-verdi og økonomisk edge
 er ubevist. 61 makrofelt mangler uavhengig formelorakel; COTs faktiske
 historiske publisering og vintage er fortsatt UNKNOWN.
 
-**Neste steg:** Forbered den ene matchede fullrekkefølgetesten beskrevet øverst, med gjenbruk av originale kontrollresultater. Ingen ny fit er innrømmet.
+**Neste steg:** Materialiser og start kun den kvalifiserte fullrekkefølgetesten øverst gjennom eksisterende vakter. Alle tidligere planer er konsumert.
 Målet er aktivt; senere retningsverdi er ubevist.
 Brukerens spørsmål om 30 epoker og fem år er fortsatt åpne hypoteser.
 Denne fitten dekker omtrent mai–september2024, senere score oktober–desember2024.

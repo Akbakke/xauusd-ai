@@ -2305,3 +2305,228 @@ def require_ta_m5_repeated_pass_cursor(value, *, expected_recipe, verify_files=T
                   'REPEATED_PASS_EVIDENCE_PATH')
             campaign.require_binding(evidence, label='repeated pass private E3 evidence', verify_file=True)
     return cursor
+
+# One full-population order contrast, with the original six-row tail last.
+TA_M5_FULL_REVERSE_ORDER_STAGE = 'market_state_ta_m5_full_reverse_order_20261110_001'
+TA_M5_FULL_REVERSE_ORDER_SCOPE = 'market_state_ta_m5_full_reverse_order_v1'
+TA_M5_FULL_REVERSE_ORDER_ROOT = Path('/home/andre2/GX1_RUNS') / TA_M5_FULL_REVERSE_ORDER_STAGE.upper()
+TA_M5_FULL_REVERSE_ORDER_RUNTIME_ROOT = TA_M5_FULL_REVERSE_ORDER_ROOT / 'RUNTIME'
+TA_M5_FULL_REVERSE_ORDER_RECIPE_PATH = TA_M5_FULL_REVERSE_ORDER_ROOT / 'RECIPE.json'
+TA_M5_FULL_REVERSE_ORDER_RECIPE_SCHEMA = 'gx1_market_state_ta_m5_full_reverse_order_recipe_v1'
+TA_M5_FULL_REVERSE_ORDER_RESULT_SCHEMA = 'gx1_market_state_ta_m5_full_reverse_order_result_v1'
+TA_M5_FULL_REVERSE_ORDER_CURSOR_SCHEMA = 'gx1_market_state_ta_m5_full_reverse_order_cursor_v1'
+TA_M5_FULL_REVERSE_ORDER_WORKER = 'gx1/audit/run_market_state_ta_m5_full_reverse_order_v1.py'
+TA_M5_FULL_REVERSE_ORDER_BATCH_INDICES = list(range(1847, -1, -1)) + [1848]
+TA_M5_FULL_REVERSE_ORDER_COMPLETE_COUNTS = {
+    'model_constructions': 1, 'optimizer_constructions': 1, 'checkpoint_loads': 1,
+    'strict_full_state_restore_calls': 1, 'forwards': 3710, 'training_forwards': 1849,
+    'evaluation_forwards': 1861, 'backwards': 1849, 'optimizer_step_calls': 1849,
+    'optimizer_updates': 1849, 'checkpoint_writes': 0, 'candidate_evidence_writes': 1,
+}
+_TA_REVERSE_CACHE = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FINAL_CACHE_20261109_001')
+_TA_REVERSE_READOUT = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_20261109_001')
+TA_M5_FULL_REVERSE_ORDER_REFS = {
+    'initial_score_cache': {'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_FULL_CACHE_20261108_001/SCORE_CACHE.npz', 'sha256': '8cc964f1ff229bc3c1140a47ed66e256ce90b9ecfbc18c4c4509ba60f63bfee9'},
+    'final_fit_cache': {'path': str(_TA_REVERSE_CACHE / 'FIT_CACHE.npz'), 'sha256': 'b41874cd1c99d371f3899e4f017c06c1757f4b92dece140c34846bf8ba1772a4'},
+    'final_score_cache': {'path': str(_TA_REVERSE_CACHE / 'SCORE_CACHE.npz'), 'sha256': '299a279072cb139224190e93aeb190f167c9e047fce55b16a95e3438616147a0'},
+    'final_cache_result': {'path': str(_TA_REVERSE_CACHE / 'RESULT.json'), 'sha256': 'fb337666ed23ff4892f7c0362484e25c1fa49f7c8ed121c3ff2a65f035925687'},
+    'final_cache_review': {'path': str(_TA_REVERSE_CACHE / 'REVIEW.json'), 'sha256': '1638e131a6c092a1aa2157263f284fdf6e084343906f44a1e7abdf67e8add36b'},
+    'readout_plan': {'path': str(_TA_REVERSE_READOUT / 'PLAN.json'), 'sha256': 'fe5bbbd7b6faba84335b47b3d3e4525f5566ea1dc04359e4f7ed04b4188b8972'},
+    'readout_result': {'path': str(_TA_REVERSE_READOUT / 'RESULT.json'), 'sha256': '623e66c9baba2a3cf6910ffb10a11ba2e14a4c2e514e3660a83528c361c16ae6'},
+    'readout_review': {'path': str(_TA_REVERSE_READOUT / 'REVIEW.json'), 'sha256': 'deff9b4774ad68e6306d598d2073f43e36b126cc29069122965b5319d4ef310d'},
+    'paired_worker': dict(TA_M5_REPEATED_PASS_REFS['paired_worker']),
+}
+
+
+def read_ta_m5_full_reverse_order_origin(launch):
+    refs = launch['input_refs']
+    extra = TA_M5_FULL_REVERSE_ORDER_REFS
+    _need({key: refs.get(key) for key in extra} == extra, 'FULL_REVERSE_FIXED_REFS')
+    origin = read_ta_m5_paired_batch_order_origin(
+        {'input_refs': {key: ref for key, ref in refs.items() if key not in extra}})
+    for key, ref in extra.items():
+        campaign.require_binding(ref, label='full reverse ' + key, verify_file=True)
+    cached = _read(refs['final_cache_result'], 'full reverse chronological FINAL cache')
+    review = _read(refs['final_cache_review'], 'full reverse FINAL cache qualification')
+    _need(cached.get('status') == 'COMPLETE' and cached.get('source_unchanged') is True
+          and cached.get('model_state_unchanged') is True and cached.get('test_data_used') is False
+          and cached.get('sampled_S_pass_index') == 0 and cached.get('sampled_F_reuses_native_1') is True
+          and cached.get('checkpoint', {}).get('source_commit') == TA_M5_ORIGINAL_CUDA_PREFIX_SOURCE
+          and cached['checkpoint'].get('model_sha256') == '23ff344b183a2256f2c8a1a8e32b811ed14f10c1cb1423becca14b36d5340d5b'
+          and review.get('status') == 'COMPLETE_CONSUMED_CACHE_QUALIFIED'
+          and review.get('result') == refs['final_cache_result']
+          and review.get('source_unchanged') is True and review.get('test_data_used') is False
+          and review.get('all_twenty_partition_task_TF_pairs_identical') is True,
+          'FULL_REVERSE_FINAL_BASELINE')
+    for part, rows in (('fit', 29574), ('score', 17753)):
+        item = cached.get('cache_partitions', {}).get(part, {})
+        _need(item.get('artifact') == refs['final_' + part + '_cache']
+              and item.get('rows') == rows and item.get('partial') is False,
+              'FULL_REVERSE_FINAL_CACHE:' + part)
+    readout_plan = _read(refs['readout_plan'], 'full reverse baseline output plan')
+    readout = _read(refs['readout_result'], 'full reverse baseline outputs')
+    readout_review = _read(refs['readout_review'], 'full reverse baseline output qualification')
+    _need(readout.get('status') == 'COMPLETE' and readout.get('source_unchanged') is True
+          and readout.get('test_data_used') is False and readout.get('plan') == refs['readout_plan']
+          and readout.get('private_outputs') == refs['imported_predictions']
+          and readout_review.get('status') == 'COMPLETE_CONSUMED_READOUT_RECOVERS_TRAIN_NOT_LATER_EDGE'
+          and readout_review.get('result') == refs['readout_result']
+          and readout_review.get('source_unchanged') is True and readout_review.get('test_data_used') is False,
+          'FULL_REVERSE_READOUT_PROOF')
+    _need(all(readout_plan.get('inputs', {}).get(key) == refs[name] for key, name in (
+        ('old_fit_cache', 'initial_fit_cache'), ('old_score_cache', 'initial_score_cache'),
+        ('new_fit_cache', 'final_fit_cache'), ('new_score_cache', 'final_score_cache'),
+        ('new_cache_result', 'final_cache_result'), ('new_cache_review', 'final_cache_review'))),
+        'FULL_REVERSE_BASELINE_AXES_BINDING')
+    return {**origin, 'final_cache_result': cached, 'readout_result': readout, 'readout_plan': readout_plan}
+
+
+def _ta_m5_full_reverse_order_expected():
+    value, original, qualified = _ta_m5_paired_batch_order_expected()
+    value['input_refs'].update({key: dict(ref) for key, ref in TA_M5_FULL_REVERSE_ORDER_REFS.items()})
+    read_ta_m5_full_reverse_order_origin(value)
+    for key in ('arms', 'arm_batch_indices', 'arm_batch_order_sha256', 'updates_per_arm',
+                'both_arms_same_original_INITIAL_required', 'rng_stream_parity_required',
+                'same_selected_rows_required'):
+        value.pop(key)
+    value.update(
+        schema_version=TA_M5_FULL_REVERSE_ORDER_RECIPE_SCHEMA,
+        runtime_root=str(TA_M5_FULL_REVERSE_ORDER_RUNTIME_ROOT),
+        admission_stage=TA_M5_FULL_REVERSE_ORDER_STAGE, run_scope=TA_M5_FULL_REVERSE_ORDER_SCOPE,
+        execution_binding_path=str(TA_M5_FULL_REVERSE_ORDER_RUNTIME_ROOT / 'EXECUTION_BINDING.json'),
+        arm='REVERSED', batch_indices=list(TA_M5_FULL_REVERSE_ORDER_BATCH_INDICES),
+        batch_order_sha256=campaign.canonical_sha256(TA_M5_FULL_REVERSE_ORDER_BATCH_INDICES),
+        parent_selection='all_original_fold1_fit_rows_once',
+        parent_order_role='original_INITIAL_full_order_before_explicit_permutation',
+        selected_fit_rows=29574, original_complete_batches=1848, excluded_partial_batch_rows=0,
+        tail_batch_index=1848, tail_rows=6, tail_policy='original_tail_last',
+        max_private_updates=1849, max_backwards=1849, max_forwards=3710,
+        max_training_forwards=1849, max_evaluation_forwards=1861,
+        max_checkpoint_loads=1, max_full_state_restores=1, max_candidate_evidence_writes=1,
+        max_model_seconds=7200, max_invocation_seconds=12000,
+        initial_evaluation_forwards=0, selected_TRAIN_evaluation_forwards=1849,
+        later_evaluation_forwards=12,
+        primary_baselines='cached_original_chronological_FINAL_and_INITIAL_full_TRAIN_and_later192',
+        same_initial_full_state_required=True, all_original_rows_once_required=True,
+        tail6_preserved_required=True, original_chronological_control_replayed=False,
+        full_epoch_training_allowed=True, genuine_predictor_fit_authorized=True,
+        unchanged_query_pass_index=0, automatic_continuation=False)
+    return value, original, qualified
+
+
+def build_ta_m5_full_reverse_order_recipe(*, source_commit):
+    value, original, qualified = _ta_m5_full_reverse_order_expected()
+    owners = {name: {'path': str(CANONICAL_REPO / name),
+                     'sha256': campaign.file_sha256(CANONICAL_REPO / name)}
+              for name in original['source_owners']}
+    worker = CANONICAL_REPO / TA_M5_FULL_REVERSE_ORDER_WORKER
+    value.update(source_owners=owners,
+        trace_worker={'path': str(worker), 'sha256': campaign.file_sha256(worker)},
+        source_bridge=_ta_m5_original_cuda_prefix_sources(
+            owners, original, qualified, value['input_refs']['original_trace_helper'], paired_order_guard=True))
+    value['recipe_sha256'] = campaign.canonical_sha256(value)
+    return require_ta_m5_full_reverse_order_recipe(value, source_repo=CANONICAL_REPO, source_commit=source_commit)
+
+
+def require_ta_m5_full_reverse_order_recipe(value, *, source_repo, source_commit, verify_files=True):
+    import subprocess
+    _need(verify_files and source_repo == CANONICAL_REPO, 'FULL_REVERSE_PHYSICAL_SOURCE')
+    expected, original, qualified = _ta_m5_full_reverse_order_expected()
+    value = _identity(value, set(expected) | {'source_owners', 'trace_worker', 'source_bridge'},
+                      TA_M5_FULL_REVERSE_ORDER_RECIPE_SCHEMA, 'recipe_sha256')
+    _need(campaign.canonical_sha256({key: value[key] for key in expected})
+          == campaign.canonical_sha256(expected), 'FULL_REVERSE_RECIPE_SCOPE')
+    _need(isinstance(source_commit, str) and campaign._COMMIT.fullmatch(source_commit)
+          and subprocess.run(['git', 'merge-base', '--is-ancestor',
+              TA_M5_ORIGINAL_CUDA_PREFIX_REFERENCE_SOURCE, source_commit],
+              cwd=CANONICAL_REPO, capture_output=True).returncode == 0,
+          'FULL_REVERSE_SOURCE_ANCESTRY')
+    _need(value['trace_worker'].get('path') == str(CANONICAL_REPO / TA_M5_FULL_REVERSE_ORDER_WORKER),
+          'FULL_REVERSE_WORKER_PATH')
+    campaign.require_binding(value['trace_worker'], label='full reverse worker', verify_file=True)
+    expected_bridge = _ta_m5_original_cuda_prefix_sources(
+        value['source_owners'], original, qualified, value['input_refs']['original_trace_helper'], paired_order_guard=True)
+    _need(value['source_bridge'] == expected_bridge, 'FULL_REVERSE_SOURCE_BRIDGE')
+    return value
+
+
+def require_ta_m5_full_reverse_order_gate(gate, recipe):
+    expected = {
+        'decision': 'ADMITTED', 'status': 'ADMITTED', 'ta_m5_full_reverse_order_authorized': True,
+        'fold_id': 1, 'selected_fit_rows': 29574, 'arm': 'REVERSED', 'tail_rows': 6,
+        'model_constructions_authorized': 1, 'optimizer_constructions_authorized': 1,
+        'model_forwards_authorized': 3710, 'backward_calls_authorized': 1849,
+        'optimizer_steps_authorized': 1849, 'training_enabled': True, 'native_training_enabled': True,
+        'genuine_updates_authorized': True, 'genuine_backward_authorized': True,
+        'genuine_predictor_fit_authorized': True, 'full_epoch_training_allowed': True,
+        'canonical_resume_authority': False,
+        'candidate_selection': False, 'test_data_used': False,
+        'evaluate_both_panels_unconditionally': True, 'per_update_pareto_requirement': False,
+    }
+    _need(isinstance(gate, Mapping) and all(gate.get(k) == v and type(gate[k]) is type(v)
+          for k, v in expected.items()) and recipe['run_scope'] == TA_M5_FULL_REVERSE_ORDER_SCOPE
+          and recipe['admission_stage'] == TA_M5_FULL_REVERSE_ORDER_STAGE, 'FULL_REVERSE_POLICY_GATE')
+
+
+def build_ta_m5_full_reverse_order_cursor(*, recipe_ref, outcome, optimizer_updates,
+                                         parent_cursor, parent_order_sha256, result, batch_size=16):
+    value = dict(schema_version=TA_M5_FULL_REVERSE_ORDER_CURSOR_SCHEMA, recipe=recipe_ref,
+                 outcome=outcome, optimizer_updates=optimizer_updates, parent_cursor=parent_cursor,
+                 parent_order_sha256=parent_order_sha256, full_state=None,
+                 result=result, test_data_used=False, canonical_resume_authority=False)
+    value['cursor_sha256'] = campaign.canonical_sha256(value)
+    return require_ta_m5_full_reverse_order_cursor(
+        value, expected_recipe=recipe_ref, verify_files=False, batch_size=batch_size)
+
+
+def require_ta_m5_full_reverse_order_cursor(value, *, expected_recipe, verify_files=True, batch_size=16):
+    fields = {'recipe', 'outcome', 'optimizer_updates', 'parent_cursor', 'parent_order_sha256',
+              'full_state', 'result', 'test_data_used', 'canonical_resume_authority', 'schema_version'}
+    cursor = _identity(value, fields, TA_M5_FULL_REVERSE_ORDER_CURSOR_SCHEMA, 'cursor_sha256')
+    _need(type(batch_size) is int and batch_size == 16
+          and expected_recipe.get('path') == str(TA_M5_FULL_REVERSE_ORDER_RECIPE_PATH)
+          and cursor['recipe'] == expected_recipe and cursor['outcome'] in ('COMPLETE', 'FAILED')
+          and type(cursor['optimizer_updates']) is int and 0 <= cursor['optimizer_updates'] <= 1849
+          and type(cursor['parent_cursor']) is int
+          and cursor['parent_cursor'] == min(16 * cursor['optimizer_updates'], 29574)
+          and cursor['full_state'] is None and cursor['test_data_used'] is False
+          and cursor['canonical_resume_authority'] is False, 'FULL_REVERSE_CURSOR_SCOPE')
+    if cursor['parent_order_sha256'] is None:
+        _need(cursor['outcome'] == 'FAILED' and cursor['optimizer_updates'] == 0, 'FULL_REVERSE_MISSING_ORDER')
+    else:
+        campaign._sha(cursor['parent_order_sha256'], 'full reverse parent order')
+        _need(cursor['parent_order_sha256'] != TA_M5_EQUAL_LOSS_ORDER_SHA256, 'FULL_REVERSE_UNCHANGED_ORDER')
+    complete = cursor['outcome'] == 'COMPLETE'
+    _need(not complete or cursor['optimizer_updates'] == 1849, 'FULL_REVERSE_CURSOR_COMPLETE')
+    _need(cursor['result'].get('path') == str(TA_M5_FULL_REVERSE_ORDER_ROOT / 'RESULT.json'),
+          'FULL_REVERSE_RESULT_PATH')
+    campaign.require_binding(cursor['result'], label='full reverse result', verify_file=verify_files)
+    if verify_files:
+        report = _read(cursor['result'], 'full reverse result')
+        _need(report.get('schema_version') == TA_M5_FULL_REVERSE_ORDER_RESULT_SCHEMA
+              and report.get('recipe') == expected_recipe and report.get('outcome') == cursor['outcome']
+              and type(report.get('physical_optimizer_updates')) is int
+              and type(report.get('optimizer_updates')) is int
+              and report.get('physical_optimizer_updates') == report.get('optimizer_updates') == cursor['optimizer_updates']
+              and type(report.get('parent_cursor')) is int and report['parent_cursor'] == cursor['parent_cursor']
+              and report.get('parent_order_sha256') == cursor['parent_order_sha256']
+              and report.get('full_state') is None and report.get('final_state') is None
+              and report.get('canonical_resume_authority') is False
+              and report.get('checkpoint_writes') == 0 and report.get('test_data_used') is False,
+              'FULL_REVERSE_CURSOR_RESULT')
+        if complete:
+            _need(report.get('decision') == 'PASS_TA_M5_FULL_REVERSE_ORDER_TECHNICAL'
+                  and report.get('source_unchanged') is True and report.get('skipped_batches') == 0
+                  and all(report.get(key) is True for key in (
+                      'same_initial_state', 'same_training_queries', 'evaluation_state_unchanged',
+                      'all_panels_complete', 'all_original_rows_once', 'tail6_preserved'))
+                  and all(type(report.get('counts', {}).get(key)) is int
+                          and report['counts'][key] == count
+                          for key, count in TA_M5_FULL_REVERSE_ORDER_COMPLETE_COUNTS.items()),
+                  'FULL_REVERSE_TECHNICAL_COMPLETION')
+            evidence = report.get('candidate_evidence', {})
+            _need(isinstance(evidence, Mapping)
+                  and evidence.get('path') == str(TA_M5_FULL_REVERSE_ORDER_ROOT / 'REVERSED_EVIDENCE.pt'),
+                  'FULL_REVERSE_EVIDENCE_PATH')
+            campaign.require_binding(evidence, label='full reverse private evidence', verify_file=True)
+    return cursor
