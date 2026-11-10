@@ -15,7 +15,25 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_TRAINING_RETENTION_CACHE_AUDIT_ADMITTED.
+Policystatus: TA_M5_TRAINING_RETENTION_PATTERN_MEASURED_NO_FIX.
+
+[Cached treningsforløpskontroll](docs/TA_M5_TRAINING_RETENTION_REVIEW.json)
+er COMPLETE/konsumert:1,851s helkommando,1,591s worker. Toarkiver/tolvarrays,
+0modell/forwards/fit/checkpointdekoding/senerearrays. Globalparitet eksakt;
+uavhengig JSON-partisjonsregnskap max1,11e-16. Alle porter stengt.
+
+FINAL svekker S/F Brier og log i hver av de første sju4096-radersblokkene.
+Siste902rader bedres mot INITIAL og prior: S-Brier0,247228→0,244145,
+F0,249103→0,246959 (S308/F365known). Siste246rader bedres også,
+men er et nestet utvalg, ikke ny uavhengig bekreftelse.
+Dette er en nylighetsassosiasjon ved INITIAL/FINAL, ikke isolert glemselsårsak.
+Lagrede P28672→FINAL-paneler viser siste902updates svekker tidlig/midtre
+S/F, bedrer sen S og svekker sen F litt. Ikke påstå at begge sene mål
+bedres som umiddelbar følge av sin egen siste trening.
+
+Neste direkte spørsmål er skadelig oppdatering på tvers av perioder.
+Gjenbruk eksisterende gradienter og checkpoints; ingen gjentakelse av
+konsumerte MIX24/ACCUM3/koordinattester eller ny fullfit er innrømmet.
 
 Brukerpresisering10.11: Små/støyende bevegelser kan være FLATT; terskelen
 skal ikke behandles som feil. Lær pålitelige sannsynligheter med det vi har.
@@ -31,14 +49,8 @@ på29574rader/alle femmåneder står derimot fast.
 Samme middle-blokk bedres vedP16384/P24576 og svekkes igjen motFINAL.
 Dette viser reversering, men isolerer ikke den umiddelbare årsaken.
 
-Kun én liten cached-kontroll er innrømmet:
- /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_TRAINING_RETENTION_20261110_001
-OriginalINITIAL/FINAL/prior på faste4096-checkpointblokker, siste16updates,
-sistepartialbatch ogrest. Toarkiver/tolvarrays,0modell/forwards/fit/ckdecode;
-4G/512M/éntråd,60s. Alle TRAIN-blokker rapporteres, ingen scorevalgtegrenser.
-Spørsmål: Er de nyligst trente radene forbedret selv om eldre rader svekkes?
-Treningsporter er fortsatt stengt; dette er ikke en ny nativekjøring.
-
+Cached-kontrollen ovenfor er konsumert; planen kan ikke relanseres.
+Treningsporter er fortsatt stengt. Målet om bevist bedre retning er uoppnådd.
 
 [Den sentrerte koordinattesten](docs/TA_M5_CENTERED_HEAD_COORDINATES_REVIEW.json)
 er COMPLETE/konsumert på boot634, CUDA250W. Ingen retningsrettelse kvalifisert.

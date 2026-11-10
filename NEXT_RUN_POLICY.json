@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-10T06:24:29.729537+00:00",
-  "status": "TA_M5_TRAINING_RETENTION_CACHE_AUDIT_ADMITTED",
+  "observed_utc": "2026-11-10T06:29:23.781273+00:00",
+  "status": "TA_M5_TRAINING_RETENTION_PATTERN_MEASURED_NO_FIX",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "One cached INITIAL/FINAL chronology audit on fixed original optimizer/checkpoint boundaries. No model/fit/checkpoint load. Keep existing probabilistic S/F outputs and FLAT threshold; user accepts small noisy moves as FLAT. No forecast-per-feature rewrite or new target/architecture admitted.",
+  "next_action": "Retain existing probabilistic S/F outputs and FLAT threshold. Reuse saved actual/per-period gradients and checkpoint trajectory to isolate a distinct correction for harmful cross-period updates. Latest tail improves but all earlier checkpoint blocks worsen; this is not yet causal proof. Do not rerun consumed MIX24/ACCUM3/coordinate trials. No new fit or architecture admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -73298,16 +73298,16 @@
     "completed_utc": "2026-11-10T06:04:06.469427+00:00"
   },
   "market_state_ta_m5_training_retention_20261110_001": {
-    "status": "ADMITTED",
-    "execution_authorized": true,
+    "status": "COMPLETE_CONSUMED",
+    "execution_authorized": false,
     "training_authorized": false,
     "model_forwards": 0,
     "checkpoint_decodes": 0,
     "optimizer_steps": 0,
     "readout_fits": 0,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_TRAINING_RETENTION_20261110_001/PLAN.json",
@@ -73323,6 +73323,24 @@
     "memory_max": "4G",
     "swap_max": "512M",
     "numeric_threads": 1,
-    "test_data_used": false
+    "test_data_used": false,
+    "remaining_invocations": 0,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_TRAINING_RETENTION_20261110_001/RESULT.json",
+      "sha256": "269d06cdc860c2dce04c64f355cebd39e6139f8f80d042a6383e31f28630755f"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_TRAINING_RETENTION_20261110_001/TERMINAL.json",
+      "sha256": "d653c8ac7644c395b7dc2838585fe0834efd8df3094600291117b5260551dd70"
+    },
+    "process": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_TRAINING_RETENTION_20261110_001/PROCESS.json",
+      "sha256": "ce1971c591f1f089e9f8ec13088693782fddff1b07ac2d526bebc31f010633a8"
+    },
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_TRAINING_RETENTION_REVIEW.json",
+      "sha256": "a0df964cdd81d2df8a032c67772a6ec56b33b1536e1ca050439f1d8f4a9c3e6e"
+    },
+    "source_unchanged": true
   }
 }
