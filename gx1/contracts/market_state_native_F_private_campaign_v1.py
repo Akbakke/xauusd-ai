@@ -1743,3 +1743,293 @@ def require_ta_m5_centered_head_coordinates_cursor(value, *, expected_recipe, ve
                   'CENTERED_EVIDENCE_PATH')
             campaign.require_binding(evidence, label='private candidate evidence', verify_file=True)
     return cursor
+
+
+# One paired intact-batch order comparison; no legacy cursor or resume semantics.
+TA_M5_PAIRED_BATCH_ORDER_STAGE = 'market_state_ta_m5_paired_batch_order_20261110_001'
+TA_M5_PAIRED_BATCH_ORDER_SCOPE = 'market_state_ta_m5_paired_batch_order_v1'
+TA_M5_PAIRED_BATCH_ORDER_ROOT = Path('/home/andre2/GX1_RUNS') / TA_M5_PAIRED_BATCH_ORDER_STAGE.upper()
+TA_M5_PAIRED_BATCH_ORDER_RUNTIME_ROOT = TA_M5_PAIRED_BATCH_ORDER_ROOT / 'RUNTIME'
+TA_M5_PAIRED_BATCH_ORDER_RECIPE_PATH = TA_M5_PAIRED_BATCH_ORDER_ROOT / 'RECIPE.json'
+TA_M5_PAIRED_BATCH_ORDER_RECIPE_SCHEMA = 'gx1_market_state_ta_m5_paired_batch_order_recipe_v1'
+TA_M5_PAIRED_BATCH_ORDER_RESULT_SCHEMA = 'gx1_market_state_ta_m5_paired_batch_order_result_v1'
+TA_M5_PAIRED_BATCH_ORDER_CURSOR_SCHEMA = 'gx1_market_state_ta_m5_paired_batch_order_cursor_v1'
+TA_M5_PAIRED_BATCH_ORDER_WORKER = 'gx1/audit/run_market_state_ta_m5_paired_batch_order_v1.py'
+TA_M5_PAIRED_BATCH_ORDER_ARMS = ('CONTROL', 'INTERLEAVED')
+TA_M5_PAIRED_BATCH_ORDER_SCORE_RANGES = [[0, 64], [8352, 8416], [17680, 17744]]
+TA_M5_PAIRED_BATCH_ORDER_BATCH_INDICES = {
+    'CONTROL': [(i * 1847) // 255 for i in range(256)],
+    'INTERLEAVED': [((r * 16 + c) * 1847) // 255 for c in range(16) for r in range(16)],
+}
+TA_M5_PAIRED_BATCH_ORDER_COMPLETE_COUNTS = {
+    'model_constructions': 1, 'optimizer_constructions': 1, 'checkpoint_loads': 1,
+    'strict_full_state_restore_calls': 2, 'forwards': 1048, 'training_forwards': 512,
+    'evaluation_forwards': 536, 'backwards': 512, 'optimizer_step_calls': 512,
+    'optimizer_updates': 512, 'checkpoint_writes': 0, 'candidate_evidence_writes': 2,
+}
+_TA_PAIRED_OBJECTIVE = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_SF_OBJECTIVE_WEIGHT_AUDIT_20261109_001')
+TA_M5_PAIRED_BATCH_ORDER_REFS = {
+    key: dict(TA_M5_CENTERED_HEAD_COORDINATES_REFS[key]) for key in (
+        'original_prefix_recipe', 'original_prefix_result', 'original_prefix_terminal',
+        'original_trace', 'original_trace_helper', 'endpoint_priors')
+}
+TA_M5_PAIRED_BATCH_ORDER_REFS.update({
+    'objective_audit_plan': {'path': str(_TA_PAIRED_OBJECTIVE / 'PLAN.json'), 'sha256': '199f7c1f0d702cd47762d0db27ccf66bf2bf510304ba12ace2686afb0fe4597b'},
+    'objective_audit_result': {'path': str(_TA_PAIRED_OBJECTIVE / 'RESULT.json'), 'sha256': '59511a3f8cddc0afbc4e6dceef609419bf3a6b6bdf4463fff080fbc703879707'},
+    'objective_audit_review': {'path': str(_TA_PAIRED_OBJECTIVE / 'REVIEW.json'), 'sha256': '48586cc5feb9d9edfc2dfad3e23078747d6b15f3d3b45360cd443e09005b58f1'},
+    'initial_fit_cache': {'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_FULL_CACHE_20261108_001/FIT_CACHE.npz', 'sha256': 'e8a562314d81b5821931df0ff78ff563b0968015eac0eaa141e909c80d6fc22f'},
+    'imported_predictions': {'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_20261109_001/PRIVATE_READOUTS_AND_PREDICTIONS.npz', 'sha256': '317deaca134460b73e8ac200dff2741483c7729aa13d6d6870b4aeecf136846b'},
+    'centered_recipe': {'path': str(TA_M5_CENTERED_HEAD_COORDINATES_RECIPE_PATH), 'sha256': '5fd06f688bfc2e924a1d7e59755b6d8be6a4347b2d218e005edcdaa656a18a5d'},
+    'centered_result': {'path': str(TA_M5_CENTERED_HEAD_COORDINATES_ROOT / 'RESULT.json'), 'sha256': 'e2053949378c915de02dd916e1db7f3eac26a24b69e7bde2d27dc80b2ffdfadd'},
+    'centered_terminal': {'path': str(TA_M5_CENTERED_HEAD_COORDINATES_ROOT / 'TERMINAL.json'), 'sha256': 'c56c8ff988b584cb80a4717980c320c2767587f92dc63f0aecd604570df8a150'},
+    'centered_score_review': {'path': str(TA_M5_CENTERED_HEAD_COORDINATES_ROOT / 'CACHED_SCORE_REVIEW.json'), 'sha256': 'b21848b3ab4ea236e106bbc53bdf8c7e658346c766d46a8f4a0b71c9dbe66b5c'},
+    'initial_later_measurement': {'path': str(TA_M5_CENTERED_HEAD_COORDINATES_ROOT / 'INITIAL_LATER.json'), 'sha256': 'e1f5a1694bf571a55bc8daab8570abc60597f3d58e7e9421d4ab283f4310b6d9'},
+    'initial_later_capture': {'path': str(TA_M5_CENTERED_HEAD_COORDINATES_ROOT / 'INITIAL_LATER_READOUT.npz'), 'sha256': 'ad895e24f4f321b47c7077243b57e769a84eea32b043868271714604aba36b5b'},
+})
+
+
+def read_ta_m5_paired_batch_order_origin(launch):
+    refs = launch['input_refs']
+    extra = TA_M5_PAIRED_BATCH_ORDER_REFS
+    _need({key: refs.get(key) for key in extra} == extra, 'PAIRED_ORDER_FIXED_REFS')
+    origin = read_ta_m5_original_cuda_prefix_origin(
+        {'input_refs': {key: ref for key, ref in refs.items() if key not in extra}})
+    for key, ref in extra.items():
+        campaign.require_binding(ref, label='paired order ' + key, verify_file=True)
+    replay = _read(refs['original_prefix_result'], 'paired original replay')
+    terminal = _read(refs['original_prefix_terminal'], 'paired original replay terminal')
+    _need(replay.get('decision') == 'PASS_TA_M5_ORIGINAL_CUDA_PREFIX_TRACE'
+          and replay.get('recipe') == refs['original_prefix_recipe']
+          and replay.get('first_step_exact') is True and replay.get('final_full_state_exact') is True
+          and replay.get('physical_optimizer_updates') == 256 and replay.get('parent_cursor') == 4096
+          and replay.get('skipped_batches') == 0 and replay.get('source_unchanged') is True
+          and replay.get('trace') == refs['original_trace'] and replay.get('test_data_used') is False
+          and terminal.get('status') == 'COMPLETE' and terminal.get('exit_code') == 0
+          and terminal.get('result') == refs['original_prefix_result']
+          and terminal.get('no_relaunch_under_this_plan') is True
+          and terminal.get('test_data_used') is False, 'PAIRED_ORDER_ORIGINAL_REPLAY')
+    audit = _read(refs['objective_audit_result'], 'paired original TRAIN baseline proof')
+    review = _read(refs['objective_audit_review'], 'paired TRAIN baseline independent review')
+    _need(audit.get('status') == 'COMPLETE' and audit.get('source_unchanged') is True
+          and audit.get('test_data_used') is False and audit.get('later_arrays_consumed') is False
+          and audit.get('plan') == review.get('plan') == refs['objective_audit_plan']
+          and review.get('status') == 'PASS_INDEPENDENT_CACHED_OBJECTIVE_REVIEW'
+          and review.get('result') == refs['objective_audit_result']
+          and review.get('test_data_used') is False and review.get('later_arrays_consumed') is False
+          and review.get('rows') == 29574 and review.get('batches') == 1849
+          and review.get('last_batch_rows') == 6
+          and audit.get('baseline') == review.get('baseline')
+          and audit['baseline'].get('initial_model_sha256') == TA_M5_EQUAL_LOSS_MODEL_SHA256
+          and audit['baseline'].get('short_INITIAL0_used') is False
+          and audit.get('inputs', {}).get('old_fit_cache') == refs['initial_fit_cache']
+          and audit['inputs'].get('readout_outputs') == refs['imported_predictions']
+          and audit['inputs'].get('fullfit_recipe') == refs['original_recipe']
+          and audit['inputs'].get('initial_measurement') == refs['initial_measurement'],
+          'PAIRED_ORDER_TRAIN_BASELINE')
+    profile = audit.get('profile', {})
+    _need(profile.get('fit_rows') == 29574 and profile.get('fit_batches') == 1849
+          and profile.get('batch_size') == 16 and profile.get('pass_index') == 0
+          and profile.get('fit_cache_sha256') == refs['initial_fit_cache']['sha256']
+          and profile.get('later_data_used_for_normalization') is False,
+          'PAIRED_ORDER_TRAIN_PROFILE')
+    centered = _read(refs['centered_result'], 'paired original later CUDA baseline proof')
+    centered_terminal = _read(refs['centered_terminal'], 'paired CUDA baseline terminal')
+    centered_review = _read(refs['centered_score_review'], 'paired CUDA baseline score review')
+    later = _read(refs['initial_later_measurement'], 'paired original later measurement')
+    _need(centered.get('decision') == 'PASS_TA_M5_CENTERED_HEAD_COORDINATES_TECHNICAL'
+          and centered.get('recipe') == refs['centered_recipe']
+          and centered.get('source_unchanged') is True and centered.get('test_data_used') is False
+          and centered.get('evaluation_state_unchanged') is True
+          and centered.get('measurement_refs', {}).get('INITIAL_LATER') == refs['initial_later_measurement']
+          and centered.get('captures', {}).get('INITIAL_LATER') == refs['initial_later_capture']
+          and centered.get('restore_proofs', {}).get('INITIAL_BASELINE', {}).get('all_numerical_state_exact') is True
+          and centered_terminal.get('status') == 'COMPLETE' and centered_terminal.get('exit_code') == 0
+          and centered_terminal.get('result') == refs['centered_result']
+          and centered_terminal.get('no_relaunch_under_this_plan') is True
+          and centered_review.get('status') == 'PASS_INDEPENDENT_CACHED_SCORES_NEGATIVE_COMPARISON'
+          and centered_review.get('result') == refs['centered_result']
+          and centered_review.get('test_data_used') is False,
+          'PAIRED_ORDER_LATER_BASELINE_PROOF')
+    positions = [i for start, stop in TA_M5_PAIRED_BATCH_ORDER_SCORE_RANGES for i in range(start, stop)]
+    _need(later.get('evaluated_checkpoint') == refs['original_initial_checkpoint']
+          and later.get('evaluated_model_state_sha256') == TA_M5_EQUAL_LOSS_MODEL_SHA256
+          and later.get('capture') == refs['initial_later_capture']
+          and later.get('fixed_subset_positions') == positions and later.get('optimizer_updates') == 0
+          and later.get('fold_id') == 1 and later.get('test_data_used') is False,
+          'PAIRED_ORDER_LATER_BASELINE_IDENTITY')
+    return {**origin, 'input_refs': refs, 'original_prefix_result': replay,
+            'objective_audit_result': audit, 'objective_audit_review': review,
+            'initial_later_measurement': later, 'centered_result': centered}
+
+
+def _ta_m5_paired_batch_order_expected():
+    value, original, qualified = _ta_m5_original_cuda_prefix_expected()
+    value['input_refs'].update({key: dict(ref) for key, ref in TA_M5_PAIRED_BATCH_ORDER_REFS.items()})
+    read_ta_m5_paired_batch_order_origin(value)
+    value.pop('first_step_exact_required')
+    value.pop('final_full_state_exact_required')
+    value.update(
+        schema_version=TA_M5_PAIRED_BATCH_ORDER_RECIPE_SCHEMA,
+        runtime_root=str(TA_M5_PAIRED_BATCH_ORDER_RUNTIME_ROOT),
+        admission_stage=TA_M5_PAIRED_BATCH_ORDER_STAGE, run_scope=TA_M5_PAIRED_BATCH_ORDER_SCOPE,
+        execution_binding_path=str(TA_M5_PAIRED_BATCH_ORDER_RUNTIME_ROOT / 'EXECUTION_BINDING.json'),
+        parent_selection='256_intact_original_B16_indices_floor_i_times_1847_over_255',
+        arm_batch_indices={arm: list(indices) for arm, indices in TA_M5_PAIRED_BATCH_ORDER_BATCH_INDICES.items()},
+        arm_batch_order_sha256={arm: campaign.canonical_sha256(indices)
+                               for arm, indices in TA_M5_PAIRED_BATCH_ORDER_BATCH_INDICES.items()},
+        arms=list(TA_M5_PAIRED_BATCH_ORDER_ARMS), updates_per_arm=256, selected_fit_rows=4096,
+        original_complete_batches=1848, excluded_partial_batch_rows=6,
+        max_private_updates=512, max_backwards=512, max_forwards=1048,
+        max_training_forwards=512, max_evaluation_forwards=536,
+        max_checkpoint_loads=1, max_full_state_restores=2,
+        max_model_seconds=2400, max_invocation_seconds=3000,
+        max_candidate_evidence_writes=2, max_candidate_evidence_bytes=MAX_CHECKPOINT_BYTES,
+        initial_evaluation_forwards=0, later_evaluation_forwards=24,
+        selected_TRAIN_evaluation_forwards=512,
+        score_eval_ranges=TA_M5_PAIRED_BATCH_ORDER_SCORE_RANGES,
+        fit_evaluation_query_domain='original_pass0_sampled_S_and_native_F_same_intact_batches',
+        later_evaluation_query_domain='native_endpoints_all_five_timeframes',
+        primary_baselines='qualified_cached_original_INITIAL_same4096_and_CUDA_later192',
+        both_arms_same_original_INITIAL_required=True, same_training_queries_required=True,
+        same_selected_rows_required=True, rng_stream_parity_required=True,
+        evaluation_state_unchanged_required=True, evaluate_both_panels_unconditionally=True,
+        ordinary_optimizer_unchanged=True, per_update_pareto_requirement=False,
+        statistical_significance_claimed=False, canonical_resume_authority=False,
+        candidate_selection=False, predictive_value_claimed=False,
+        baseline_parity={'raw_atol': 2e-5, 'probability_atol': 1e-6, 'score_atol': 1e-6})
+    return value, original, qualified
+
+
+def build_ta_m5_paired_batch_order_recipe(*, source_commit):
+    value, original, qualified = _ta_m5_paired_batch_order_expected()
+    owners = {name: {'path': str(CANONICAL_REPO / name),
+                     'sha256': campaign.file_sha256(CANONICAL_REPO / name)}
+              for name in original['source_owners']}
+    worker = CANONICAL_REPO / TA_M5_PAIRED_BATCH_ORDER_WORKER
+    value.update(source_owners=owners,
+        trace_worker={'path': str(worker), 'sha256': campaign.file_sha256(worker)},
+        source_bridge=_ta_m5_original_cuda_prefix_sources(
+            owners, original, qualified, value['input_refs']['original_trace_helper']))
+    value['recipe_sha256'] = campaign.canonical_sha256(value)
+    return require_ta_m5_paired_batch_order_recipe(value, source_repo=CANONICAL_REPO,
+                                                 source_commit=source_commit)
+
+
+def require_ta_m5_paired_batch_order_recipe(value, *, source_repo, source_commit, verify_files=True):
+    import subprocess
+    _need(verify_files and source_repo == CANONICAL_REPO, 'PAIRED_ORDER_PHYSICAL_SOURCE')
+    expected, original, qualified = _ta_m5_paired_batch_order_expected()
+    value = _identity(value, set(expected) | {'source_owners', 'trace_worker', 'source_bridge'},
+                      TA_M5_PAIRED_BATCH_ORDER_RECIPE_SCHEMA, 'recipe_sha256')
+    _need(campaign.canonical_sha256({key: value[key] for key in expected})
+          == campaign.canonical_sha256(expected), 'PAIRED_ORDER_RECIPE_SCOPE')
+    _need(isinstance(source_commit, str) and campaign._COMMIT.fullmatch(source_commit)
+          and subprocess.run(['git', 'merge-base', '--is-ancestor',
+              TA_M5_ORIGINAL_CUDA_PREFIX_REFERENCE_SOURCE, source_commit],
+              cwd=CANONICAL_REPO, capture_output=True).returncode == 0,
+          'PAIRED_ORDER_SOURCE_ANCESTRY')
+    _need(value['trace_worker'].get('path') == str(CANONICAL_REPO / TA_M5_PAIRED_BATCH_ORDER_WORKER),
+          'PAIRED_ORDER_WORKER_PATH')
+    campaign.require_binding(value['trace_worker'], label='paired batch order worker', verify_file=True)
+    expected_bridge = _ta_m5_original_cuda_prefix_sources(
+        value['source_owners'], original, qualified, value['input_refs']['original_trace_helper'])
+    _need(value['source_bridge'] == expected_bridge, 'PAIRED_ORDER_SOURCE_BRIDGE')
+    return value
+
+
+def require_ta_m5_paired_batch_order_gate(gate, recipe):
+    expected = {
+        'decision': 'ADMITTED', 'status': 'ADMITTED', 'ta_m5_paired_batch_order_authorized': True,
+        'fold_id': 1, 'selected_fit_rows': 4096, 'arms': list(TA_M5_PAIRED_BATCH_ORDER_ARMS),
+        'model_constructions_authorized': 1, 'optimizer_constructions_authorized': 1,
+        'model_forwards_authorized': 1048, 'backward_calls_authorized': 512,
+        'optimizer_steps_authorized': 512, 'training_enabled': True, 'native_training_enabled': True,
+        'genuine_updates_authorized': True, 'genuine_backward_authorized': True,
+        'genuine_predictor_fit_authorized': False, 'canonical_resume_authority': False,
+        'candidate_selection': False, 'test_data_used': False,
+        'evaluate_both_panels_unconditionally': True, 'per_update_pareto_requirement': False,
+    }
+    _need(isinstance(gate, Mapping) and all(gate.get(k) == v and type(gate[k]) is type(v)
+          for k, v in expected.items()) and recipe['run_scope'] == TA_M5_PAIRED_BATCH_ORDER_SCOPE
+          and recipe['admission_stage'] == TA_M5_PAIRED_BATCH_ORDER_STAGE,
+          'PAIRED_ORDER_POLICY_GATE')
+
+
+def build_ta_m5_paired_batch_order_cursor(*, recipe_ref, outcome, optimizer_updates,
+                                         arm_progress, result, batch_size=16):
+    value = dict(schema_version=TA_M5_PAIRED_BATCH_ORDER_CURSOR_SCHEMA, recipe=recipe_ref,
+                 outcome=outcome, optimizer_updates=optimizer_updates, parent_cursor=None,
+                 parent_order_sha256=None, arm_progress=arm_progress, full_state=None,
+                 result=result, test_data_used=False, canonical_resume_authority=False)
+    value['cursor_sha256'] = campaign.canonical_sha256(value)
+    return require_ta_m5_paired_batch_order_cursor(
+        value, expected_recipe=recipe_ref, verify_files=False, batch_size=batch_size)
+
+
+def require_ta_m5_paired_batch_order_cursor(value, *, expected_recipe, verify_files=True, batch_size=16):
+    fields = {'recipe', 'outcome', 'optimizer_updates', 'parent_cursor', 'parent_order_sha256',
+              'arm_progress', 'full_state', 'result', 'test_data_used', 'canonical_resume_authority',
+              'schema_version'}
+    cursor = _identity(value, fields, TA_M5_PAIRED_BATCH_ORDER_CURSOR_SCHEMA, 'cursor_sha256')
+    _need(batch_size == 16 and expected_recipe.get('path') == str(TA_M5_PAIRED_BATCH_ORDER_RECIPE_PATH)
+          and cursor['recipe'] == expected_recipe and cursor['outcome'] in ('COMPLETE', 'FAILED')
+          and type(cursor['optimizer_updates']) is int and 0 <= cursor['optimizer_updates'] <= 512
+          and cursor['parent_cursor'] is None and cursor['parent_order_sha256'] is None
+          and cursor['full_state'] is None and cursor['test_data_used'] is False
+          and cursor['canonical_resume_authority'] is False, 'PAIRED_ORDER_CURSOR_SCOPE')
+    arms = cursor['arm_progress']
+    _need(isinstance(arms, Mapping) and set(arms) == set(TA_M5_PAIRED_BATCH_ORDER_ARMS),
+          'PAIRED_ORDER_CURSOR_ARMS')
+    for arm in TA_M5_PAIRED_BATCH_ORDER_ARMS:
+        progress = arms[arm]
+        _need(isinstance(progress, Mapping) and set(progress) == {
+            'optimizer_updates', 'parent_cursor', 'parent_order_sha256', 'batch_order_sha256'},
+            'PAIRED_ORDER_CURSOR_ARM_FIELDS')
+        updates = progress['optimizer_updates']
+        _need(type(updates) is int and 0 <= updates <= 256
+              and type(progress['parent_cursor']) is int and progress['parent_cursor'] == 16 * updates
+              and progress['batch_order_sha256'] == campaign.canonical_sha256(
+                  TA_M5_PAIRED_BATCH_ORDER_BATCH_INDICES[arm]), 'PAIRED_ORDER_CURSOR_ARM_PROGRESS')
+        if progress['parent_order_sha256'] is None:
+            _need(cursor['outcome'] == 'FAILED' and updates == 0, 'PAIRED_ORDER_CURSOR_MISSING_ORDER')
+        else:
+            campaign._sha(progress['parent_order_sha256'], 'paired ' + arm + ' parent order')
+    _need(cursor['optimizer_updates'] == sum(arm['optimizer_updates'] for arm in arms.values())
+          and (arms['INTERLEAVED']['optimizer_updates'] == 0 or arms['CONTROL']['optimizer_updates'] == 256),
+          'PAIRED_ORDER_CURSOR_PHYSICAL_COUNT')
+    complete = cursor['outcome'] == 'COMPLETE'
+    _need(not complete or (cursor['optimizer_updates'] == 512
+          and arms['CONTROL']['parent_order_sha256'] != arms['INTERLEAVED']['parent_order_sha256']),
+          'PAIRED_ORDER_CURSOR_COMPLETE')
+    _need(cursor['result'].get('path') == str(TA_M5_PAIRED_BATCH_ORDER_ROOT / 'RESULT.json'),
+          'PAIRED_ORDER_RESULT_PATH')
+    campaign.require_binding(cursor['result'], label='paired order result', verify_file=verify_files)
+    if verify_files:
+        report = _read(cursor['result'], 'paired order result')
+        _need(report.get('schema_version') == TA_M5_PAIRED_BATCH_ORDER_RESULT_SCHEMA
+              and report.get('recipe') == expected_recipe and report.get('outcome') == cursor['outcome']
+              and report.get('physical_optimizer_updates') == report.get('optimizer_updates') == cursor['optimizer_updates']
+              and report.get('arm_progress') == arms
+              and report.get('parent_cursor') is None and report.get('parent_order_sha256') is None
+              and report.get('full_state') is None and report.get('final_state') is None
+              and report.get('canonical_resume_authority') is False
+              and report.get('checkpoint_writes') == 0 and report.get('test_data_used') is False,
+              'PAIRED_ORDER_CURSOR_RESULT')
+        if complete:
+            _need(report.get('decision') == 'PASS_TA_M5_PAIRED_BATCH_ORDER_TECHNICAL'
+                  and report.get('source_unchanged') is True and report.get('skipped_batches') == 0
+                  and all(report.get(key) is True for key in (
+                      'same_selected_rows', 'same_initial_state', 'same_training_queries',
+                      'rng_stream_parity', 'evaluation_state_unchanged', 'all_panels_complete'))
+                  and all(type(report.get('counts', {}).get(key)) is int
+                          and report['counts'][key] == count
+                          for key, count in TA_M5_PAIRED_BATCH_ORDER_COMPLETE_COUNTS.items()),
+                  'PAIRED_ORDER_TECHNICAL_COMPLETION')
+            evidence = report.get('candidate_evidence', {})
+            _need(isinstance(evidence, Mapping) and set(evidence) == set(TA_M5_PAIRED_BATCH_ORDER_ARMS),
+                  'PAIRED_ORDER_EVIDENCE_ARMS')
+            for arm, ref in evidence.items():
+                _need(ref.get('path') == str(TA_M5_PAIRED_BATCH_ORDER_ROOT / (arm + '_EVIDENCE.pt')),
+                      'PAIRED_ORDER_EVIDENCE_PATH')
+                campaign.require_binding(ref, label='paired ' + arm + ' private evidence', verify_file=True)
+    return cursor

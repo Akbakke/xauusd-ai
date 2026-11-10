@@ -15,7 +15,43 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_COMMON_STEP_LOCAL_PASS_TRANSFER_AND_D1_FAIL.
+Policystatus: TA_M5_PAIRED_BATCH_ORDER_ADMITTED_AWAITING_FRESH_BOOT.
+
+Ny avgrenset sammenligning er kvalifisert i
+[scopekontrollen](docs/TA_M5_PAIRED_BATCH_ORDER_SCOPE_REVIEW.json).
+To armer bruker samme originale INITIAL/tomme Adam/RNG og samme4096TRAIN-rader:
+256 intakte B16-batcher fordelt over hele TRAIN. CONTROL viser dem kronologisk;
+INTERLEAVED veksler mellom periodene. Original query/pass0/fit_batch_start,
+batchvekter, alle genuine features/fem TF og optimizer beholdes.
+Dropout-tilordningen til radene endres med rekkefølgen og inngår i effekten.
+
+Én modell/optimizer/checkpointdekoding,to strict restores,512fysiske oppdateringer
+og1048forwards. Alle4096TRAIN-rader scores i original sampledS/nativeF-domene;
+senere192 scores separat med nativeendepunkter. Kvalifiserte INITIAL-baselines
+gjenbrukes:0nye baselineforwards. To private evidenskapsler,ingen canonicalresume.
+INITIAL-forbedring må overstige bundet scoretoleranse1e-6; CONTROL/prior1e-8.
+101 fokuserte tester og faktisk metadata-/syntetisk kontroll består.
+Ingen ny modellkjøring er startet ved denne overleveringen.
+
+Kun denne nye engangsporten åpner trening:250W,20G/512M,modell2400s,
+vindu3000s,ytre3300s. Fersk trygg fysisk Windows-boot og verifisert ledig vert
+kreves gjennom eksisterende vakter. Kilden må være ren og committed før
+materialisering. Alle gamle planer forblir konsumert; TEST/Entry/Exit/handel stengt.
+
+Tolkningen er korrigert: hvert SGD-steg trenger ikke forbedre hver periode/TF.
+Originalt fullTRAIN-loss ble faktisk dårligere1,948957→2,021683; alle ti
+S/F-sidekomponenter svekkes. Tidligere384-raders MIX24/ACCUM3 tester ikke denne
+matchede256-oppdateringssammenligningen. En senere hel nativepass fra en annen
+reimportert INITIAL er allerede kjørt og beviste ikke senere retningsforbedring.
+Resultater fra gamle forsøk skal ikke generaliseres utover sine faktiske utvalg.
+
+Bedre enn CONTROL alene er ingen rettelse hvis INITIAL fortsatt er bedre.
+Hvis CONTROL ikke gjenskaper svekkelsen,er den opprinnelige fullpassårsaken
+fortsatt uisolert. Selv samlet korttestPASS er ingen fullfold/urørtgeneralisering,
+kalibrering eller markedsedge. Ingen automatisk større trening er innrømmet.
+Små bevegelser kan fortsatt være FLATT; eksisterende S/F-sannsynligheter beholdes.
+
+Forrige fullførte kontroll følger nedenfor; dens engangsautorisasjon er stengt.
 
 [Endelig-steg-kontroll](docs/TA_M5_COMMON_STEP_FINITE_REVIEW.json)
 er COMPLETE/konsumert, med opprinnelige checkpoints bevart og gjenopprettet.
@@ -46,9 +82,9 @@ To uavhengige kildegjennomganger og separat JSON-regnekontroll består.
 
 Ikke bruk fellesvektene som produksjonskoeffisienter, fortsett Adam-momenter,
 relanser prøven eller start nye vekt-/optimizer-sveip.
-Neste læringsdesign må håndtere den målte konflikten mellom perioder og TF
-før eventuell ny eksakt fitadmisjon. Fullpass-årsak, samlet rettelse,
-kalibrering og markedspresisjon er fortsatt ubevist.
+Den lokale prøven er ikke et krav om at hvert enkelt SGD-steg skal forbedre
+alle perioder og TF. Ny eksakt paret rekkefølgetest er avgrenset øverst.
+Fullpass-årsak, samlet rettelse,kalibrering og markedspresisjon er fortsatt ubevist.
 
 [Felles lokal retning](docs/TA_M5_COMMON_STEP_REVIEW.json) er eksakt sertifisert
 fra lagrede skalartabeller: tre uavhengige Adam-forslag fra samme tilstand

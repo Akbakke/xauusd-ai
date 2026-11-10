@@ -640,6 +640,10 @@ def run_native_direction_research_window(*, policy_path: Path, policy_file_sha25
     from gx1.contracts import entry_native_direction_research_campaign_v1 as authority
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix_authority
     window,plan,invocation,marker,launch=authority.require_native_direction_research_context(policy_path,policy_file_sha256,progress_path)
+    if launch["run_scope"] == authority.TA_M5_PAIRED_BATCH_ORDER_SCOPE:
+        from gx1.audit.run_market_state_ta_m5_paired_batch_order_v1 import run_paired_batch_order
+        return run_paired_batch_order(policy_path=policy_path,
+            policy_file_sha256=policy_file_sha256, progress_path=progress_path)
     if launch["run_scope"] == authority.TA_M5_CENTERED_HEAD_COORDINATES_SCOPE:
         from gx1.audit.run_market_state_ta_m5_centered_head_coordinates_v1 import run_centered_head_coordinates
         return run_centered_head_coordinates(policy_path=policy_path,
