@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-10T00:34:51.016022+00:00",
-  "status": "TA_M5_CLIP_TRACE_COMPLETE_NO_DIRECTION_FIX",
+  "observed_utc": "2026-11-10T00:49:35.116889+00:00",
+  "status": "TA_M5_EQUAL_SNAPSHOT_BLEND_READONLY_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Do not launch a native clip/scale sweep or claim a head-only correction. A distinct explanation must account for both shared-representation learning and opposite TRAIN/later response; reuse existing component and period evidence before any further admission. All training and one-use audit gates are closed.",
+  "next_action": "Compute the one fixed probability blend on saved full TRAIN and later predictions, independently verify arithmetic/gates, then close the one-use audit. No fitting, weight search, new model training or promotion admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1685,7 +1685,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Recorded-gradient clipping/AdamW audit completed; full258-path producer parity and independent2-bias/16-score review passed. No native clipping change justified.",
+    "current_activity": "One fixed equal-probability combination of original and corrected FINAL M5 readouts admitted as a cached full-population direction check.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1715,7 +1715,7 @@
     "existing_indicator_surface_changed": false,
     "training_started": true,
     "latest_terminal_role": "Read-only24-step recorded-gradient AdamW reconstruction and fixed-representation arithmetic contrasts; zero model/optimizer updates.",
-    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001",
+    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/HANDOVER_TERMINAL.json",
       "sha256": "454a24dcfa71c02b6b3a459eed1d00b582c154d0b5684e674d4bf238f818c7df"
@@ -1738,7 +1738,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Raw-gradient head replay improves TRAIN but worsens both later targets on fixed representations. Fullpass/shared-representation deterioration and later predictive gain remain unresolved.",
+    "current_blocker": "Globally refitted FINAL heads improve TRAIN but not later versus original. Whether complementary errors permit one fixed blend to improve both panels is unmeasured; fullpass training cause still unresolved.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -71981,5 +71981,72 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/HANDOVER_TERMINAL.json",
       "sha256": "454a24dcfa71c02b6b3a459eed1d00b582c154d0b5684e674d4bf238f818c7df"
     }
+  },
+  "market_state_ta_m5_equal_snapshot_blend_20261110_001": {
+    "status": "ADMITTED",
+    "execution_authorized": true,
+    "training_authorized": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001/PLAN.json",
+      "sha256": "aa750fc13df891cb26f57966da31ebcfd5e31edbf063ec43e03a6c4f7e67ff7c"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001/audit.py",
+      "sha256": "e24d4eb7dfdaee57c432f38869aecc73ffc825eb1b4430b32ec689f67041cbf6"
+    },
+    "controller_source": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001/controller.py",
+      "sha256": "e2dc211d2dc9d5602c10fbc6aa228e03ed067a1e2fc5df2ce1201a2f1b5dd7a7"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001/PREFLIGHT.json",
+      "sha256": "a8c9711065254eb62a05332946201755e6126c82a9407cd5d1ecac6e7fcd1000"
+    },
+    "preflight_log": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001/PREFLIGHT.log",
+      "sha256": "acf7804c2751819e4f5d4733cc6fdab738614bcf35a3b1a0df7f1096d7d809ee"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "max_model_constructions": 0,
+    "max_forwards": 0,
+    "max_backwards": 0,
+    "max_optimizer_steps": 0,
+    "max_updates": 0,
+    "max_readout_fits": 0,
+    "max_checkpoint_decodes": 0,
+    "max_checkpoint_writes": 0,
+    "memory_max": 4294967296,
+    "swap_max": 536870912,
+    "numerical_threads": 1,
+    "wall_seconds": 120,
+    "review_authorized": true,
+    "review_scope": {
+      "max_invocations": 1,
+      "memory_max": 4294967296,
+      "swap_max": 536870912,
+      "numerical_threads": 1,
+      "wall_seconds": 120,
+      "max_model_constructions": 0,
+      "max_forwards": 0,
+      "max_fits": 0,
+      "max_checkpoint_decodes": 0
+    },
+    "review_completed_invocations": 0,
+    "test_data_used": false,
+    "scope": "One fixed50/50 conditional-UP probability average of original_imported ae772 and corrected FINAL readout; full29574TRAIN/17753later panels, no fitting, model, checkpoint or weight search.",
+    "source_review": {
+      "status": "PASS",
+      "agent": "/root/ta_formula_audit",
+      "worker": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001/audit.py",
+        "sha256": "e24d4eb7dfdaee57c432f38869aecc73ffc825eb1b4430b32ec689f67041cbf6"
+      },
+      "scope": "Root full230-line read and independent source review: exact component bindings, axes/masks/counts, stable mixture likelihood, Brier identity, per-row Jensen and all-four-cell gate with negative-outcome completion."
+    },
+    "standing_authorization_source": "GX1_RULES_20261105_zero_spend_local_work_and_active_direction_goal_exact_readonly_admission"
   }
 }
