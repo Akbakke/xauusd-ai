@@ -15,70 +15,46 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_ACTIVITY_C_DETACH_COMPLETE_INSUFFICIENT.
+Policystatus: TA_M5_ADAM_CROSS_PERIOD_ADMITTED.
 
-24-stegs aktivitet→C-detach er ferdig og uavhengig verifisert:
-[rapport](docs/TA_M5_ACTIVITY_C_DETACH_NATIVE_REVIEW.json).
-Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_C_DETACH_NATIVE_20261110_001
-RESULT SHAb8be3574910dd5cd2010f47c00f1ff832e0e4f7a129a4fa06f6ec10f6498c608.
-REVIEW SHAcc3035669e5ff9b7bd76c7f5f7fd13a7008248634bbb6a584fe4fe44c98bb720.
-Alle trenings-/engangsporter er stengt; training_enabled=false.
-Ingen fullfit, automatisk videreføring, styrkesveip eller promotion.
+Én ny read-only diagnose er kvalifisert, men ennå ikke kjørt:
+Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001
+PLAN SHA cb1e58d1a1a42157db6874943fd859d181a2e16fed7091e0f5ca4fb0087620fd.
+Worker SHA 9844c9833ca9c918b36010d7fcd30129be55a9197cf2cdc25b21885bacd6f9ea.
+Reviewer SHA cb21abb71f3c79c8580ef71965ae0f2784e24ed51ab378d76a60ead4a0157b6c.
+Root har lest hele worker/reviewer, og separat kildereview er bestått.
+Metadata-preflight bestått på 7,166 s uten modeller eller payloaddekoding.
 
-Én kandidat fra originalae772: samme384SPREAD/24steps/CPU-RNG/tomAdam som
-gjenbrukt CONTROL24. Aktivitetens P-/head-læring og alle femTF-sidegradienter
-beholdes; bare aktivitet→C stoppes før uendret canonicalglobalclip1/AdamW.
-Én model/optimizer/checkpointdekoding/strictrestore/FINAL-skriving.
-48 nativeforwards,48 ekstra smådecoderkall,24backwards/updates,
-to første-batch autogradvitner. Ingen baseline- eller kontrollomkjøring.
+Konkret spørsmål: gjør AdamW fra hver enkelt liten batch læringen ugunstig
+for andre perioder, selv om rågradienten og egen-batch-retningen er gunstig?
+Eksisterende Gram-data viser gunstig samlet plain-GD-kryssbidrag for S/F ved
+både original INITIAL og FINAL. Alle 12 fullmodell self-Adam-retninger er
+også gunstige. Dette beviser ikke kryss-Adam: Adam på middelgradienten er
+ikke middelverdien av tre uavhengige Adam-retninger.
 
-Første originalraw/loss/RNG og jointgradienthash matcher CONTROL bitlikt.
-Første faktiske gradient matcher direkte side-onlyC og jointP/heads:
-største avvik1,341e-7 innen forhåndsvalgt2e-6/3e-5, alleNone-masker like.
-Alle24 raw/logprob-pariteter og RNG-strømmer bestått.570 optimizerstatesstep24.
-Native initial/final/source/order/buffere/inaktiveparametre kontrollert.
-Gradvitnet er produsentens runtime/kildebevis, ikke uavhengig gradientreplay.
+Samme tre B16 TRAIN-batcher ved 0/14272/29552 og begge originale tilstander.
+Én modell, to checkpointlesinger, 12 forwards, 18 autograd, ingen optimizer,
+backward, parameteroppdatering eller checkpointskriving. Alle fem TF beholdes.
+Kanonisk totalgradient brukes; gammel komponentsum kontrolleres med allerede
+kvalifisert atol 2e-6/rtol 3e-5. Raw/query/RNG og vekter/momenter bindes.
+Matrisens rader er train-batch, kolonner eval-batch; alle ni par rapporteres.
+Global clipping skjer før parameterdeling. Alle hypotetiske Adam-retninger
+starter fra samme lagrede momenter/step. Bidrag fra någradient, gammelt moment
+og decay bruker samme sluttdominator. Ingen fortegns- eller utvalgsport.
 
-Brier kandidat / CONTROL / CPUINITIAL / prior:
-TRAIN S0,252740 /0,252419 /0,254605 /0,252092.
-TRAIN F0,250406 /0,250667 /0,252176 /0,250641.
-Senere S0,244175 /0,244365 /0,241456 /0,247188.
-Senere F0,247148 /0,247428 /0,246894 /0,249382.
-Logtap har samme portutfall. Bare TRAIN F består alle tre referanser.
-Tre av fire celler bedres motCONTROL, men begge senere er svakere ennINITIAL.
-Ingen samlet retningsrettelse eller fullpassårsak er kvalifisert.
+Produsent 12G/512M/én tråd/600s; to nye private gradientarkiver, maks 256MiB
+hver, gjenbruk av eksisterende vekter/momenter. Etter terminal: review
+4G/512M/én tråd/180s, ingen modeller eller checkpointdekoding.
+training_enabled=false og native/fullfit stengt. Bare eksakt execution gate
+er åpen én gang; ingen samtidig tung jobb eller kildeendring under kjøring.
+Resultatet er lokal BCE-geometri, ikke faktiske steg, Brier eller senere
+generalisering. Ingen ny treningsvariant er autorisert av denne diagnosen.
 
-Eksakt Brier-dekomponering fra verifiserte aggregater: sentrertBrier bedres
-motCONTROL i allefire celler. TRAIN S middelfeil²+0,000336901 overstyrer
-sentrertgevinst−0,000015943 og gir samlet+0,000320958.
-Dette er empirisk panelaritmetikk, ikke sann betinget bias eller ren AUC.
-Før utfallet ble INITIAL-porten bundet til kvalifisert CPU-native C/P/H-capture
-på beggepaneler; gammelGPU-senerebaseline brukes kun historisk.
-
-Helkommando359,350s (5m59s), worker356,050s; review5,189s, preflight5,132s.
-PeakRSS5,727GB. FINAL96,753MB, SHA2ffb659f8ab4640b4d6afbdda81207e5a3c5f9d2fe698714737f59ae3a599df8,
-modell635a07c3538f50c04c1c733341a56114ca169a8491d67cb5a86a9bdd1b43ade0.
-Uavhengig scoreavvik≤1,666e-16, M5-headprojeksjon≤3,949e-8.
-Kodearbeid/venting utenom. Gjenbruk sparer kontroll/baselineomkjøring;
-dette er ikke en målt akselerasjon av identisk treningsarbeid.
-
-Bare75/86 kjente S/F-sider i TRAIN192 og65/75 senere192, gjenbruktutvikling.
-PRIVATE FINAL er PLAN-bundet og har ingen native resume/promotion.
-[Forrige lagrede AdamW-støtte](docs/TA_M5_ACTIVITY_BACKBONE_ADAM_REVIEW.json)
-er fortsatt korrekt lokal evidens, men var ikke tilstrekkelig for denne4-celleporten.
-
-Gjenbrukte perbatch-gradientbevis er nå kontrollert: ved original INITIAL
-hjelper aktivitet→C noen av de tre periodene og skader andre. Ved original
-fullpass FINAL er alle seks lokale S/F-bidrag ugunstige. Full fjerning tar
-dermed også bort lokalt nyttige bidrag ved INITIAL. Dette er plain-GD/BCE-
-geometri, ikke AdamW/Brier-bevis eller forklaring på senere regresjon.
-Aggregatet inkluderer kryssbidrag og er ikke gjennomsnittet av periodene.
-
-Neste konkrete inngrep må bygge på gjenværende forskjell mot INITIAL og
-periodenes ulike respons. Gjenbruk lagrede outputs og captures for å isolere
-dette før en annen læringsmekanisme vurderes. Ikke relanser24prøven,
-forleng tilfullfit eller velg en maskestyrke etter dette negative hovedutfallet.
-TEST, GC, Entry/Exit og handel er stengt; originale bevis/checkpoints bevares.
+Siste fullførte prøve: [aktivitet→C-detach](docs/TA_M5_ACTIVITY_C_DETACH_NATIVE_REVIEW.json).
+Teknisk verifisert, men samlet sammenligning feilet: bare TRAIN F slo alle
+referanser; begge senere S/F slo CONTROL/prior, men var svakere enn INITIAL.
+Ingen fullfit, automatisk videreføring eller maskestyrkesveip følger.
+Originale bevis/checkpoints bevares. TEST, GC, Entry/Exit og handel er stengt.
 
 MIX24 er fullført og uavhengig verifisert:
 [docs/TA_M5_MIXED_BATCH_NATIVE_REVIEW.json](docs/TA_M5_MIXED_BATCH_NATIVE_REVIEW.json).

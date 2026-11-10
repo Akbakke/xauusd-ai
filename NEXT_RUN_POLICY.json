@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-10T02:13:20.957192+00:00",
-  "status": "TA_M5_ACTIVITY_C_DETACH_COMPLETE_INSUFFICIENT",
+  "status": "TA_M5_ADAM_CROSS_PERIOD_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1685,7 +1685,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Exact24-step activity-to-C detach completed and independently verified.3 of4 cells improve versusCONTROL; onlyTRAIN F beats allreferences. Both later cells remain worse than CPUINITIAL. No fullfit/correction qualified.",
+    "current_activity": "Read-only original INITIAL/FINAL Adam cross-period diagnostic admitted once:12 forwards/18 autograd, zero training or optimizer updates. Existing raw-gradient cross means and all self Adam directions are favorable; missing off-diagonal Adam contractions are the question.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1715,7 +1715,7 @@
     "existing_indicator_surface_changed": false,
     "training_started": true,
     "latest_terminal_role": "One24-update native candidate with48 fullforwards/48 extra small decoders; no baseline/control rerun. Source/value/RNG/gradient-route witnesses and independent saved-state/scores review passed.",
-    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_C_DETACH_NATIVE_20261110_001",
+    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_C_DETACH_NATIVE_20261110_001/TERMINAL.json",
       "sha256": "890e8f653284578a005d263fedec1cdf3c9af473792696da1be54047901c5e59"
@@ -1738,7 +1738,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Activity-to-C conflict is a real local and partial sequential contribution, but removing it does not fix matched TRAIN S or preserve laterINITIAL direction. The cause and correction of fullpass deterioration remain unresolved.",
+    "current_blocker": "Whether independently applied small-batch Adam directions oppose other periods is unmeasured; saved mean-gradient and self-only results cannot answer it. No causal training correction is qualified.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9209,7 +9209,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "No fullfit, promotion, automatic resume or strength sweep. Existing per-batch Gram review is complete and shows mixed INITIAL activity-to-C effects; this does not explain later regression. Reuse saved outputs and captures to isolate the remaining TRAIN/later mismatch before considering a distinct learning intervention.",
+    "next_action": "Execute this exact bounded read-only campaign once, preserve all matrix signs, then run its independently bound saved-array reviewer after terminal. Do not start a fit or select a variant from local derivatives alone.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -66325,7 +66325,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "Actual24-step activity-to-C detach verified: TRAIN F now beatsCONTROL/CPUINITIAL/prior, laterS/F beatCONTROL/prior but loseCPUINITIAL, TRAIN S worsensCONTROL. Allfour centeredBrier terms improve versusCONTROL; empirical mean shift offsetsTRAIN S. No fullfit or fixed-mask sweep follows.",
+    "latest_progress": "Existing Gram arithmetic rules out an adverse overall plain-GD cross mean and a fullmodel self-Adam reversal at the sampled states. One readonly3x3 native-gradient/Adam transfer diagnostic is admitted to fill the missing cross-pairs; no learning variant admitted.",
     "user_clarification_20261109": {
       "scope": "Correct direction for short sniper and longer long/shorttrends; separate forecasts and targets at M5 cadence.",
       "existing_future_horizons_minutes": [
@@ -72592,5 +72592,85 @@
     "training_cause_established": false,
     "native_execution_authorized": false,
     "next_action": "No fullfit, promotion, automatic resume or strength sweep. Existing per-batch Gram review is complete and shows mixed INITIAL activity-to-C effects; this does not explain later regression. Reuse saved outputs and captures to isolate the remaining TRAIN/later mismatch before considering a distinct learning intervention."
+  },
+  "market_state_ta_m5_adam_cross_period_20261110_001": {
+    "status": "ADMITTED",
+    "execution_authorized": true,
+    "training_authorized": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001/PLAN.json",
+      "sha256": "cb1e58d1a1a42157db6874943fd859d181a2e16fed7091e0f5ca4fb0087620fd"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001/probe.py",
+      "sha256": "9844c9833ca9c918b36010d7fcd30129be55a9197cf2cdc25b21885bacd6f9ea"
+    },
+    "controller_source": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001/controller.py",
+      "sha256": "2ec75bad3a5f10400f5b61ce3cdc057bdbbb42010ff420837ffcc32d72ae0b66"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001/PREFLIGHT.json",
+      "sha256": "10ea0e1f83df0bf717a48cbc08c5e38998e87faf390cefbd169307c71e132ad0"
+    },
+    "preflight_log": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001/PREFLIGHT.log",
+      "sha256": "816ba3a368318f5e12d614a55e5ede0c2734e5250c65c069124b6581db3364ad"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "automatic_resume_allowed": false,
+    "promotion_allowed": false,
+    "max_forwards": 12,
+    "max_autograd_calls": 18,
+    "max_checkpoint_loads": 2,
+    "max_model_constructions": 1,
+    "max_backwards": 0,
+    "max_optimizer_constructions": 0,
+    "max_updates": 0,
+    "max_checkpoint_writes": 0,
+    "max_gradient_array_bytes": 268435456,
+    "max_gradient_total_bytes": 536870912,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "numerical_threads": 1,
+    "wall_seconds": 600,
+    "reviewer": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001/review.py",
+      "sha256": "cb21abb71f3c79c8580ef71965ae0f2784e24ed51ab378d76a60ead4a0157b6c"
+    },
+    "review_authorized": true,
+    "review_completed_invocations": 0,
+    "review_only_after_terminal": true,
+    "review_scope": {
+      "memory_max": "4G",
+      "swap_max": "512M",
+      "numerical_threads": 1,
+      "wall_seconds": 180,
+      "models": 0,
+      "forwards": 0,
+      "checkpoint_decodes": 0,
+      "optimizer_updates": 0
+    },
+    "test_data_used": false,
+    "score_partition_allowed": false,
+    "candidate_selection": false,
+    "scope": "Do separate saved-state AdamW directions cause adverse cross-period M5 S/F loss transfer despite favorable plain gradients and self-directions? Distinguish Adam(mean gradient) from mean of independent batch Adam directions.",
+    "source_review": {
+      "status": "PASS",
+      "worker": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001/probe.py",
+        "sha256": "9844c9833ca9c918b36010d7fcd30129be55a9197cf2cdc25b21885bacd6f9ea"
+      },
+      "reviewer": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001/review.py",
+        "sha256": "cb21abb71f3c79c8580ef71965ae0f2784e24ed51ab378d76a60ead4a0157b6c"
+      },
+      "scope": "Root read all451 worker and188 reviewer lines; independent worker review. Qualified original state loader/moments reused. Native joint gradients, unchanged raw/query/RNG, globalclip before partitions, per-parameter None and step semantics, additive Adam decomposition with shared denominator; no parameter/optimizer update."
+    },
+    "standing_authorization_source": "GX1_RULES_20261105_zero_spend_local_work_and_active_direction_goal_exact_technical_admission"
   }
 }
