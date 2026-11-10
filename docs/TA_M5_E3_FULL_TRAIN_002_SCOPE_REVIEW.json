@@ -1,0 +1,115 @@
+{
+  "status": "QUALIFIED_FROZEN_E3_COMPLEMENT_WITH_REUSED_LIMITED_PARITY_NOT_EXECUTED",
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_002/PLAN.json",
+    "sha256": "e218f0eed06463b2e0b8845564b3e6aefd87d02e8326191c7e8ff508bda1b140"
+  },
+  "worker": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_002/probe.py",
+    "sha256": "6111deda0040a5817b51d3a9f9e8c679a6544dc4e63b912b3ee743cff8eba52b"
+  },
+  "controller": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_002/controller.py",
+    "sha256": "8672842b376d302b0a9c0e934684b7798ed0f0ce5691c373093cfa73440fae13"
+  },
+  "preflight": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_002/PREFLIGHT.log",
+    "sha256": "5d148c00fbfa5f1861ec21397370fbda1dcefab5566659f115600b272f33dde7"
+  },
+  "reporting_preflight": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_002/REPORTING_PREFLIGHT.log",
+    "sha256": "ca53e5364df3323eab9a4f9fd7de680d1a8320f3f442dbd0ba9d1d421bf5e44f"
+  },
+  "reporting_test": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_002/REPORTING_PREFLIGHT.py",
+    "sha256": "c3ea877e79e2b43419bc2773a01654fa3d223928ec6ee3bbddab2462bbaf85e1"
+  },
+  "numerical_review": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_E3_CPU_PARITY_REVIEW.json",
+    "sha256": "58fdd63493da6b1cc2beb8c5d418448257d95a09353492a9a8d45ce9bba36bf4"
+  },
+  "counts": {
+    "max_forwards": 1593,
+    "max_model_constructions": 1,
+    "max_checkpoint_loads": 1,
+    "max_optimizer_constructions": 0,
+    "max_backwards": 0,
+    "max_optimizer_updates": 0,
+    "max_checkpoint_writes": 0,
+    "max_wall_seconds": 5400,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "numeric_threads": 1,
+    "max_capture_bytes": 67108864
+  },
+  "source_review": {
+    "agent": "ta_formula_audit",
+    "status": "DIFF_PASS",
+    "unchanged_helpers": [
+      "load_e3",
+      "metrics",
+      "layout",
+      "batch_bounds",
+      "merge_losses",
+      "require_evidence_header"
+    ],
+    "scope": "Same numerical model/restore/features/targets; only cached32row parity, omitted repeat parity forwards, and analytically derived per-metric M5 decision criteria differ."
+  },
+  "actual_preflight": {
+    "status": "PASS",
+    "genuine_models": 0,
+    "genuine_array_decodes": 0,
+    "genuine_checkpoint_decodes": 0,
+    "tail_and_header_rejections": 4,
+    "derived_metric_margins": "PASS including too-small gains and no support",
+    "reporting": "PASS actual early failure and unchanged success reporting tail"
+  },
+  "primary": {
+    "population": "complement25478 originalTRAIN",
+    "M5_tasks": [
+      "state",
+      "future"
+    ],
+    "metrics": [
+      "brier",
+      "log"
+    ],
+    "references": [
+      "original_INITIAL",
+      "frozen_prior"
+    ]
+  },
+  "secondary": {
+    "population": "full29574",
+    "cached_GPU_rows": 4096,
+    "new_CPU_rows": 25478,
+    "original_FINAL": "reference only",
+    "later192": "cached reuse only"
+  },
+  "forward_contract": {
+    "complement_B16": 1592,
+    "tail_B6": 1,
+    "new_forwards": 1593,
+    "new_parity_forwards": 0,
+    "models": 1,
+    "checkpoint_decodes": 1,
+    "optimizer": 0,
+    "backwards": 0,
+    "updates": 0
+  },
+  "core_model_target_loss_changes": 0,
+  "global_cpu_cuda_bound_established": false,
+  "qualified_parity_rows": 32,
+  "conditional_M5_only": true,
+  "wall_seconds": 5400,
+  "outer_seconds": 5410,
+  "training_enabled": false,
+  "test_data_used": false,
+  "limits": [
+    "Numerical parity is qualified on32selected rows, not the full complement or B6tail.",
+    "Mixed cachedGPU/newCPU measurement, not exact CUDA-protocol evaluation.",
+    "Stronger M5 criteria are conservative decision margins, not a proven global error bound.",
+    "No automatically derived error bound for three-class scores or total loss.",
+    "Original fullpass training deterioration cause remains unisolated."
+  ]
+}

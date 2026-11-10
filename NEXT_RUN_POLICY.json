@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-10T11:11:25.414765+00:00",
-  "status": "TA_M5_E3_ONE_BATCH_CPU_PARITY_DIAGNOSIS_ADMITTED",
+  "observed_utc": "2026-11-10T11:24:37.967286+00:00",
+  "status": "TA_M5_E3_FROZEN_COMPLEMENT_LIMITED_PARITY_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1418,8 +1418,8 @@
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Only one frozen E3 CPU parity forward at original batch1847/start29552; zero optimizer/backward/updates and no tolerance change. Failed full evaluation is consumed. GC, TEST, Entry, Exit, broker, trading and further training closed.",
-  "next_action": "Execute the single qualified one-batch E3 CPU/GPU numerical diagnosis, persist raw/errors before old tolerance comparison, then choose the smallest evidence-based evaluation correction. Do not repeat the failed full-population plan.",
+  "rule": "Only frozen E3 originalTRAIN complement1593forwards, no new parity/model fitting/optimizer/updates. Reuse limited32row numerical qualification with stronger conditional-M5 margins. No global CPU/CUDA-bound claim. All consumed plans, GC, TEST, Entry, Exit, broker, trading and further training closed.",
+  "next_action": "Execute the one qualified full002 frozen complement evaluation and observe the actual process at15-30minute cadence. Reuse4096GPU predictions and later192; score25478CPU rows against originalINITIAL/prior with prebound stronger M5 margins. No extra fitting.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -64103,8 +64103,8 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "TA_M5_E3_ONE_BATCH_CPU_PARITY_DIAGNOSIS_ADMITTED",
-  "recorded_observed_utc": "2026-11-10T11:11:25.414765+00:00",
+  "recorded_status": "TA_M5_E3_FROZEN_COMPLEMENT_LIMITED_PARITY_ADMITTED",
+  "recorded_observed_utc": "2026-11-10T11:24:37.967286+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
     "decision": "BLOCK",
@@ -66333,7 +66333,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "FullCPU evaluator failed after2parityfw/0complement/0updates. One additional originalB16 measurement qualified to recover missing exact error; E3 loader and first batch evidence reused. No threshold/model/loss change.",
+    "latest_progress": "Numerical blocker measured and limited32row protocol mathematically qualified. Full002 admitted1593complementfw/0parityfw/0updates; exact restore and all genuine inputs/targets/loss preserved. Not yet executed at source freeze.",
     "user_clarification_20261109": {
       "scope": "Correct direction for short sniper and longer long/shorttrends; separate forecasts and targets at M5 cadence.",
       "existing_future_horizons_minutes": [
@@ -73923,8 +73923,8 @@
     }
   },
   "market_state_ta_m5_e3_cpu_parity_20261110_001": {
-    "status": "ADMITTED",
-    "execution_authorized": true,
+    "status": "COMPLETE_CONSUMED_NUMERICAL_DISCREPANCY_MEASURED",
+    "execution_authorized": false,
     "training_authorized": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_CPU_PARITY_20261110_001/PLAN.json",
@@ -73935,9 +73935,9 @@
       "sha256": "0b5bb5b147c3fc7873cfae068ffa81f6ef53852e57e620adca105f2df422f3a4"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "max_model_constructions": 1,
     "max_checkpoint_loads": 1,
@@ -73968,6 +73968,77 @@
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_E3_CPU_PARITY_SCOPE_REVIEW.json",
       "sha256": "c7940c4ec0d28f6c273176cbb644942a17ac7f08a4f6cee3c284344fba949d0f"
     },
-    "standing_authorization": "Active direction-only goal and standing zero-cost local work. One measured blocker, one frozen CPU forward; no fitting or threshold change."
+    "standing_authorization": "Active direction-only goal and standing zero-cost local work. One measured blocker, one frozen CPU forward; no fitting or threshold change.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_CPU_PARITY_20261110_001/RESULT.json",
+      "sha256": "7c5fea6b523a599847cd895a5f2879d6c258bb67614c5c3d5eff3bc10515cda8"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_CPU_PARITY_20261110_001/TERMINAL.json",
+      "sha256": "cdccf0af8412d9d2695af2c28b784bcb0cb462985a1f1d4c4a0be96bba8ee344"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_CPU_PARITY_20261110_001/CONTROLLER.json",
+      "sha256": "30fed91989a988f5a662c90962a38f0088ff808683f2dfc400ffbf05e888a227"
+    },
+    "measurement": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_CPU_PARITY_20261110_001/MEASUREMENT.json",
+      "sha256": "fc5521b1ae869b9294d6c868da57766eb32241e935609557da928b1475643185"
+    },
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_E3_CPU_PARITY_REVIEW.json",
+      "sha256": "58fdd63493da6b1cc2beb8c5d418448257d95a09353492a9a8d45ce9bba36bf4"
+    }
+  },
+  "market_state_ta_m5_e3_full_train_20261110_002": {
+    "status": "ADMITTED",
+    "execution_authorized": true,
+    "training_authorized": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_002/PLAN.json",
+      "sha256": "e218f0eed06463b2e0b8845564b3e6aefd87d02e8326191c7e8ff508bda1b140"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_002/probe.py",
+      "sha256": "6111deda0040a5817b51d3a9f9e8c679a6544dc4e63b912b3ee743cff8eba52b"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "max_forwards": 1593,
+    "max_model_constructions": 1,
+    "max_checkpoint_loads": 1,
+    "max_optimizer_constructions": 0,
+    "max_backwards": 0,
+    "max_optimizer_updates": 0,
+    "max_checkpoint_writes": 0,
+    "max_wall_seconds": 5400,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "numeric_threads": 1,
+    "max_capture_bytes": 67108864,
+    "test_data_used": false,
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_002/PREFLIGHT.log",
+      "sha256": "5d148c00fbfa5f1861ec21397370fbda1dcefab5566659f115600b272f33dde7"
+    },
+    "reporting_preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_002/REPORTING_PREFLIGHT.log",
+      "sha256": "ca53e5364df3323eab9a4f9fd7de680d1a8320f3f442dbd0ba9d1d421bf5e44f"
+    },
+    "controller_source": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_002/controller.py",
+      "sha256": "8672842b376d302b0a9c0e934684b7798ed0f0ce5691c373093cfa73440fae13"
+    },
+    "scope_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_E3_FULL_TRAIN_002_SCOPE_REVIEW.json",
+      "sha256": "af75b8c336d1095d09eaa39173be79cdb1ba55cdba06cf118a93f9f3e3ddd987"
+    },
+    "qualified_parity_rows": 32,
+    "new_parity_forwards": 0,
+    "global_cpu_cuda_bound_established": false,
+    "standing_authorization": "Active direction-only goal and zero-cost local work. New exact frozen evaluation after measured numerical-blocker qualification; consumed plans stay closed. No fit."
   }
 }

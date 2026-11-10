@@ -1,0 +1,219 @@
+{
+  "status": "QUALIFIED_LIMITED_32_ROW_CPU_PARITY",
+  "failed_full_result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_001/RESULT.json",
+    "sha256": "0a818a408c7b60027a45eb9e77b245c765ca7731158a80417955a3e0a122b56e"
+  },
+  "parity_result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_CPU_PARITY_20261110_001/RESULT.json",
+    "sha256": "7c5fea6b523a599847cd895a5f2879d6c258bb67614c5c3d5eff3bc10515cda8"
+  },
+  "parity_measurement": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_CPU_PARITY_20261110_001/MEASUREMENT.json",
+    "sha256": "fc5521b1ae869b9294d6c868da57766eb32241e935609557da928b1475643185"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_CPU_PARITY_20261110_001/TERMINAL.json",
+    "sha256": "cdccf0af8412d9d2695af2c28b784bcb0cb462985a1f1d4c4a0be96bba8ee344"
+  },
+  "controller": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_CPU_PARITY_20261110_001/CONTROLLER.json",
+    "sha256": "30fed91989a988f5a662c90962a38f0088ff808683f2dfc400ffbf05e888a227"
+  },
+  "raw": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_CPU_PARITY_20261110_001/RAW_COMPARISON.npz",
+    "sha256": "f5a13f27072db680547503733015e0ca2706cab7cea795f172b8257c09a03b2c"
+  },
+  "e3_evidence": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001/E3_EVIDENCE.pt",
+    "sha256": "90c8b814c814feb74b8baf010324a6a48e42e56ab34736cc5af59aed41e34f0f"
+  },
+  "e3_model_state_sha256": "5e031bd0a3c9d454a228b065ac787e79654bc9067a01fa33dfbe8c256cec702e",
+  "qualified_rows": 32,
+  "error_allowances": {
+    "raw_atol": 2e-05,
+    "m5_probability_atol": 5e-06,
+    "m5_brier_allowance": 1e-05,
+    "m5_log_allowance": 2e-05,
+    "initial_reference_allowance": 1e-06,
+    "improvement_margin": 1e-08
+  },
+  "global_cpu_cuda_bound_established": false,
+  "conditional_M5_only": true,
+  "test_data_used": false,
+  "measured": {
+    "original_parity_pass": false,
+    "first_batch": {
+      "future": {
+        "m5_probability_max_abs_error": 7.087063905730773e-07,
+        "raw_max_abs_error": 7.808208465576172e-06
+      },
+      "state": {
+        "m5_probability_max_abs_error": 7.12334902508438e-07,
+        "raw_max_abs_error": 1.0013580322265625e-05
+      }
+    },
+    "last_batch": {
+      "future": {
+        "M5_probability_max_abs_error": 1.036936053855353e-06,
+        "all_TF_raw_max_abs_error": 1.722574234008789e-05,
+        "per_TF": {
+          "D1": {
+            "activity_probability_max_abs_error": 9.597450419951414e-07,
+            "conditional_UP_probability_max_abs_error": 3.838805574918336e-06,
+            "raw_activity_max_abs_error": 4.649162292480469e-06,
+            "raw_max_abs_error": 1.6570091247558594e-05,
+            "raw_side_max_abs_error": 1.6570091247558594e-05
+          },
+          "H1": {
+            "activity_probability_max_abs_error": 1.1059143730784982e-06,
+            "conditional_UP_probability_max_abs_error": 3.949469763175895e-06,
+            "raw_activity_max_abs_error": 5.4836273193359375e-06,
+            "raw_max_abs_error": 1.722574234008789e-05,
+            "raw_side_max_abs_error": 1.722574234008789e-05
+          },
+          "H4": {
+            "activity_probability_max_abs_error": 1.0393149478815644e-06,
+            "conditional_UP_probability_max_abs_error": 3.8024284270132824e-06,
+            "raw_activity_max_abs_error": 5.125999450683594e-06,
+            "raw_max_abs_error": 1.6570091247558594e-05,
+            "raw_side_max_abs_error": 1.6570091247558594e-05
+          },
+          "M15": {
+            "activity_probability_max_abs_error": 9.43312541634711e-07,
+            "conditional_UP_probability_max_abs_error": 3.845747741482164e-06,
+            "raw_activity_max_abs_error": 4.5299530029296875e-06,
+            "raw_max_abs_error": 1.704692840576172e-05,
+            "raw_side_max_abs_error": 1.704692840576172e-05
+          },
+          "M5": {
+            "activity_probability_max_abs_error": 9.703127707982873e-07,
+            "conditional_UP_probability_max_abs_error": 1.036936053855353e-06,
+            "raw_activity_max_abs_error": 4.470348358154297e-06,
+            "raw_max_abs_error": 4.470348358154297e-06,
+            "raw_side_max_abs_error": 4.26173210144043e-06
+          }
+        }
+      },
+      "state": {
+        "M5_probability_max_abs_error": 9.413545736247642e-07,
+        "all_TF_raw_max_abs_error": 9.5367431640625e-06,
+        "per_TF": {
+          "D1": {
+            "activity_probability_max_abs_error": 5.000565617141461e-07,
+            "conditional_UP_probability_max_abs_error": 1.8969412037828093e-06,
+            "raw_activity_max_abs_error": 9.5367431640625e-06,
+            "raw_max_abs_error": 9.5367431640625e-06,
+            "raw_side_max_abs_error": 8.64267349243164e-06
+          },
+          "H1": {
+            "activity_probability_max_abs_error": 5.841885134527658e-07,
+            "conditional_UP_probability_max_abs_error": 1.927611018581743e-06,
+            "raw_activity_max_abs_error": 9.298324584960938e-06,
+            "raw_max_abs_error": 9.298324584960938e-06,
+            "raw_side_max_abs_error": 8.702278137207031e-06
+          },
+          "H4": {
+            "activity_probability_max_abs_error": 5.334386261601765e-07,
+            "conditional_UP_probability_max_abs_error": 1.9074892537718213e-06,
+            "raw_activity_max_abs_error": 9.5367431640625e-06,
+            "raw_max_abs_error": 9.5367431640625e-06,
+            "raw_side_max_abs_error": 8.702278137207031e-06
+          },
+          "M15": {
+            "activity_probability_max_abs_error": 5.311632308435676e-07,
+            "conditional_UP_probability_max_abs_error": 1.8826641484670503e-06,
+            "raw_activity_max_abs_error": 9.059906005859375e-06,
+            "raw_max_abs_error": 9.059906005859375e-06,
+            "raw_side_max_abs_error": 8.463859558105469e-06
+          },
+          "M5": {
+            "activity_probability_max_abs_error": 5.189940568417484e-07,
+            "conditional_UP_probability_max_abs_error": 9.413545736247642e-07,
+            "raw_activity_max_abs_error": 9.059906005859375e-06,
+            "raw_max_abs_error": 9.059906005859375e-06,
+            "raw_side_max_abs_error": 3.844499588012695e-06
+          }
+        }
+      }
+    },
+    "M5_conditional_side": {
+      "future": {
+        "CPU": {
+          "brier": 0.23701972816099548,
+          "log": 0.6667606835709803
+        },
+        "GPU": {
+          "brier": 0.23701978959496398,
+          "log": 0.6667607958171754
+        },
+        "count": 6,
+        "cpu_minus_gpu": {
+          "brier": -6.143396849567218e-08,
+          "log": -1.1224619511640554e-07
+        }
+      },
+      "state": {
+        "CPU": {
+          "brier": 0.24167619804815904,
+          "log": 0.6761366309411471
+        },
+        "GPU": {
+          "brier": 0.24167632852095106,
+          "log": 0.6761368847315725
+        },
+        "count": 5,
+        "cpu_minus_gpu": {
+          "brier": -1.304727920148352e-07,
+          "log": -2.5379042545292663e-07
+        }
+      }
+    },
+    "counts": {
+      "backwards": 0,
+      "capture_decodes": 1,
+      "checkpoint_loads": 1,
+      "checkpoint_writes": 0,
+      "extra_truth_gathers": 2,
+      "forward_returns": 1,
+      "forwards": 1,
+      "model_constructions": 1,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "resume_state_load_calls": 1,
+      "resume_state_load_returns": 1
+    },
+    "worker_seconds": 97.03911691699977,
+    "whole_command_seconds": 99.34097549099988
+  },
+  "derivation": {
+    "probability": "sigmoid derivative <=1/4, so abs(delta probability)<=abs(delta logit)/4",
+    "brier": "For y in {0,1} and p in [0,1], abs(d Brier/dp)<=2, hence abs(delta Brier)<=abs(delta logit)/2",
+    "log": "Binary logistic loss has abs(d loss/d logit)<=1, hence abs(delta log loss)<=abs(delta logit)"
+  },
+  "comparison_criteria": {
+    "INITIAL": {
+      "brier": 1.1000000000000001e-05,
+      "log": 2.1000000000000002e-05
+    },
+    "PRIOR": {
+      "brier": 1.001e-05,
+      "log": 2.0010000000000003e-05
+    }
+  },
+  "reference_roles": "INITIAL allowance reuses the predeclared reconstructed-reference numerical decision allowance. Prior1e-8 remains an improvement margin, not prior uncertainty.",
+  "independent_review": {
+    "agent": "ta_formula_audit",
+    "status": "PASS_LIMITED_PROTOCOL",
+    "scope": "Analytic conditional-M5 bounds and adding reference allowances; supports prebound limited CPU evaluation, not exact CUDA equivalence."
+  },
+  "JSON_arithmetic_check": "PASS exact per-TF maxima, M5 score differences and receipt/hash bindings; no additional model or array decode.",
+  "limits": [
+    "Only32selected rows qualified, not the full complement or B6tail.",
+    "Derived margins are conservative predeclared decision criteria; no global CPU/CUDA bound is proved.",
+    "No automatic bound for three-class metrics or total training objective.",
+    "Future full result mixes cachedGPU4096 with newCPU25478; not exact CUDA-protocol evaluation.",
+    "This isolates a numerical evaluation blocker, not the original TRAIN-direction cause."
+  ],
+  "next": "Prepare one new frozen complement-only evaluation, reuse both parity receipts, and require stronger per-metric M5 margins. No additional fitting."
+}

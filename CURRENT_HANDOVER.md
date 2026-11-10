@@ -15,28 +15,36 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_E3_ONE_BATCH_CPU_PARITY_DIAGNOSIS_ADMITTED.
+Policystatus: TA_M5_E3_FROZEN_COMPLEMENT_LIMITED_PARITY_ADMITTED.
 
-[Den frosne E3-kontrollen](docs/TA_M5_E3_FULL_TRAIN_REVIEW.json) er FAILED/konsumert.
-Prosess/controller er avsluttet. Kjøretid102,153s; worker99,908s, oppstart91,932s.
-Én modell/kapseldekoding, to paritetsforwards, null komplementforwards og null
-optimizer/backward/updates. E3-vekter og alle buffere ble gjenopprettet eksakt.
-Første batch bestod: M5-probabilitetsavvik S7,123e-7/F7,087e-7 og maksimalt
-råavvik S1,001e-5/F7,808e-6. Andre batch overskred en bundet paritetsgrense,
-men den konkrete feilverdien ble ikke lagret før stopp. Ingen fullTRAIN-kvalitet
-kan utledes. Source-bookend ble ikke nådd; root kontrollerte ren Git og uendret
-workerhash. Dette er ikke påvist kildeendring.
+[Én-batch-diagnosen](docs/TA_M5_E3_CPU_PARITY_REVIEW.json) er COMPLETE/konsumert:
+97,039s worker,99,341s samlet. Én modell/dekoding/forward, null updates; kilde,
+vekter, alle buffere, masker og RNG uendret. Den gamle paritetsporten feiler
+bare F-M5-sannsynlighet:1,036936e-6 mot1e-6. Alle råavvik består2e-5-grensen;
+maksF1,722574e-5. M5-skårforskjell CPU−GPU på denne batchen:
+S Brier−1,304728e-7/log−2,537904e-7(n5),F−6,143397e-8/−1,122462e-7(n6).
+Første batch gjenbrukes. [Fullkontrollen001](docs/TA_M5_E3_FULL_TRAIN_REVIEW.json)
+er fortsatt FAILED/konsumert etter2paritetsforwards og0komplementrader.
 
-[Én-batch-diagnosen](docs/TA_M5_E3_CPU_PARITY_SCOPE_REVIEW.json) er nå kvalifisert
-og innrømmet, ikke startet ved kildefrysingen. Den beregner bare originalbatch1847,
-start29552, og lagrer råprognoser/alleTF-avvik/M5-skårforskjeller før vurdering.
-Én CPU-forward, én modell/dekoding,12G/512M, én talltråd,600s; null updates.
-Actual metadata/syntetiske porter og success/failure-rapportering er bestått;
-uavhengig kildekontroll består. Første batch og genuin E3-loaderkontroll gjenbrukes.
-Et målt terskelbrudd kan gi ferdig diagnose med old_parity_pass=false; det åpner
-ingen full evaluering. Ingen terskel-, modell- eller lossendring er gjort.
-Den mislykkede fullevalueringsplanen er konsumert og relanseres ikke.
-Originalfullpassårsaken er fortsatt uisolert; alle treningsporter er stengt.
+Den uendrede rålogitgrensen2e-5 gir analytisk betinget-M5-grense5e-6 i
+sannsynlighet,1e-5 i Brier og2e-5 i logtap. De sterkere forbedringsmarginene
+adderer tidligere INITIAL-tillegg1e-6 eller priorens forbedringsmargin1e-8.
+Dette er en begrunnet avgrenset numerisk protokoll, ikke en global CUDA/CPU-
+feilgrense: bare32utvalgte rader er kvalifisert, ikke komplementet eller B6-halen.
+Treklasseskår og samlet loss får ingen automatisk slik grense.
+Uavhengig matematisk gjennomgang og JSON-/bindingskontroll består.
+
+[Full002](docs/TA_M5_E3_FULL_TRAIN_002_SCOPE_REVIEW.json) er nå kvalifisert og
+innrømmet én gang, ikke startet ved kildefrysingen. Den gjenbruker begge
+paritetskvitteringer:1593nye forwards på25478rader,0nyeparitetsforwards,
+én modell/dekoding og null optimizer/backward/updates. Samme ekte features,
+mål, normalisering, queries, tap og vekter. Actual metadata-preflight,
+nye margin-/avvisningskontroller, rapporteringskontroll og uavhengig diffreview
+består. Seks gjenbrukte numeriske/restorehjelpere er AST-identiske med001.
+12G/512M CPU-producer, én talltråd,5400s; stabil kontroll hver15.–30.minutt.
+Sammenslått resultat blander lagredeGPU-4096 og nyeCPU-25478; ingen påstand om
+eksakt CUDA-protokoll eller global feilgrense. Originalfullpassårsaken er uisolert.
+Alle treningsporter er false;001 og én-batch-diagnosen er konsumert.
 
 [Prøven med videre trening](docs/TA_M5_REPEATED_PASS_REVIEW.json) er COMPLETE/
 konsumert på boot637; guard/observer exit0, Windows-task deaktivert og alle
