@@ -15,7 +15,28 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_FULL_REVERSE_ORDER002_COMPLETE_DIRECTION_COMPARISON_FAILED.
+Policystatus: TA_M5_REVERSED_HEAD_FIXED_INITIAL_ADMITTED_CPU_ONLY.
+
+Én ny cached kontroll er innrømmet ved
+MARKET_STATE_TA_M5_REVERSED_HEAD_ON_INITIAL_REPR_20261110_001/PLAN.json.
+REVERSEDs fire M5-hodetensorer anvendes på de kvalifiserte INITIAL-
+representasjonene for samme29574 TRAIN og samme senere192. Gammelt
+ORIGINAL_FINAL-headkryss gjenbrukes; ingen tidligere plan relanseres.
+Dette måler en ordnet funksjonsdeling: headendring ved fast INITIAL-input,
+deretter samlet upstream/query-projeksjon/samspill under REVERSED-head.
+Ingen symmetrisk Shapley eller isolert trenings-/optimizerårsak påstås.
+
+Kildebro7c86→71278→ae772, direkte post-query128-input, k1, masker og
+bevarte baseline-skårer er kontrollert. Uavhengig kildegjennomgang består.
+Faktisk metadata/syntetisk preflight besto på1,298s uten payload/CLAIM.
+Grense120s/4G/512M/én tråd: én CPU-kapseldekoding, fire headtensorer,
+3722 små lineære B16-beregninger; null modeller, encoderforwards eller fit.
+FP32/FP64-avvik rapporteres; kontrollen gir ingen ny native CUDA-kvalifikasjon.
+Alle fem faste TRAIN-måneder beholdes, uten kalibrering eller kandidatvalg.
+Alle globale trenings-/native-/launchporter er fortsatt stengt.
+
+Siste fullførte native kontroll og dens begrensninger:
+
 
 [Fullrekkefølgetest002](docs/TA_M5_FULL_REVERSE_ORDER_002_REVIEW.json) er COMPLETE/konsumert: source2f493a25 var uendret,
 alle1849 updates og3710 forwards ble gjennomført. Guard/observer exit0,

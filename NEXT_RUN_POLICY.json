@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-10T13:07:55.209169+00:00",
-  "status": "TA_M5_FULL_REVERSE_ORDER002_COMPLETE_DIRECTION_COMPARISON_FAILED",
+  "status": "TA_M5_REVERSED_HEAD_FIXED_INITIAL_ADMITTED_CPU_ONLY",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only frozen E3 originalTRAIN complement1593forwards, no new parity/model fitting/optimizer/updates. Reuse limited32row numerical qualification with stronger conditional-M5 margins. No global CPU/CUDA-bound claim. All consumed plans, GC, TEST, Entry, Exit, broker, trading and further training closed.",
-  "next_action": "No next fit or common probability-calibration correction admitted. Choose the smallest existing-method diagnostic that addresses S level error and F scale/ranking error separately; any further genuine model work requires its own exact qualification. Reuse current captures and evidence.",
+  "next_action": "Run the one exact 120s/4G cached head-on-initial-representation diagnostic. One CPU capsule decode, four M5 tensors, 3722 cached affine batches, zero encoder forwards/models/fits. Then consume the plan and inspect ordered head/upstream score contributions before choosing a learning correction.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -64109,7 +64109,7 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "TA_M5_FULL_REVERSE_ORDER002_COMPLETE_DIRECTION_COMPARISON_FAILED",
+  "recorded_status": "TA_M5_REVERSED_HEAD_FIXED_INITIAL_ADMITTED_CPU_ONLY",
   "recorded_observed_utc": "2026-11-10T11:24:37.967286+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
@@ -74277,5 +74277,54 @@
       "sha256": "351623ff8dc4810297f52915af3a7151dc2d52fb9e796320c68fb95f723ab9ac"
     },
     "goal_complete": false
+  },
+  "market_state_ta_m5_reversed_head_on_initial_repr_20261110_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_HEAD_ON_INITIAL_REPR_20261110_001/PLAN.json",
+      "sha256": "8cd54be6ac5ee8f789504aa096d3619ecff14c14beff4ab691183b07db09d179"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_HEAD_ON_INITIAL_REPR_20261110_001/probe.py",
+      "sha256": "b084e52dce038bd6b6dae9282e8f3ba61b8d68ef43d944dfb0e5a463204c1d29"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_HEAD_ON_INITIAL_REPR_20261110_001/PREFLIGHT.json",
+      "sha256": "6fb6145d0a04d5ef7aca564539f9872e138272ee67976f612a1971451662135b"
+    },
+    "execution_authorized": true,
+    "training_authorized": false,
+    "relaunch_allowed": false,
+    "max_invocations": 1,
+    "remaining_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "backwards": 0,
+    "cached_linear_batch_calls": 3722,
+    "encoder_forwards": 0,
+    "fit_rows": 29574,
+    "fits": 0,
+    "head_tensors": 4,
+    "later_rows": 192,
+    "max_checkpoint_decodes": 1,
+    "max_private_npz_bytes": 8388608,
+    "max_seconds": 120,
+    "memory_max": 4294967296,
+    "model_constructions": 0,
+    "numerical_threads": 1,
+    "optimizer_constructions": 0,
+    "private_npz_writes": 1,
+    "swap_max": 536870912,
+    "updates": 0,
+    "scope": "One cached REVERSED-head/INITIAL-representation contrast on original TRAIN29574 and existing later192; ordered functional decomposition only.",
+    "independent_source_review": "PASS b084e52d worker: provenance, head input, masks, helper AST dependencies, counts and initial score parity reviewed without payload.",
+    "standing_authority": "Active direction-only goal and standing zero-cost local-work authority; new exact CPU algebra diagnostic, no consumed plan reused.",
+    "native_launch_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_encoder_forward_authorized": false,
+    "calibration_fit_authorized": false,
+    "broker_access_allowed": false,
+    "exit_evaluation": false,
+    "test_data_used": false
   }
 }
