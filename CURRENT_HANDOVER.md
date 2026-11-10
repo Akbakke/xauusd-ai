@@ -14,10 +14,12 @@ er input. Alle fem TF beholder egne framtidige mål. GC er utsatt; TEST,
 Entry/Exit, broker, ordre, handel, spending og promotion er stengt.
 
 Policystatus:
-TA_M5_FIXED_HEAD_CROSS_COMPLETE_TEMPORAL_DRIFT_AND_REGULARIZATION_BOUNDARY_IDENTIFIED.
+TA_M5_R1_TWO_ALPHA_BOUNDARY_HEAD_FIT_ADMITTED.
 FIXED_HEAD_ON_INITIAL_FULL_LATER001 er COMPLETE/konsumert,exit0,kilde83345450.
-Ingen modelljobb lever; ingen neste jobb innrømmet. Alle globale trenings- og
-native-launch-porter er false. Målet er fortsatt uoppnådd.
+Ingen modelljobb lever. Én ny cachebasert head-fit er separat innrømmet.
+training_enabled=true er avgrenset av training_enabled_scope til denne ene planen;
+native_training_enabled/native_launch_authorized/full_epoch_training_allowed er false.
+Målet er fortsatt uoppnådd.
 
 Det som er gjort:
 Den foregående native kontrollen kvalifiserte fire låste W2 M5-tensorer på
@@ -69,9 +71,10 @@ regularisering. Dette er ikke påvist implementasjonsfeil eller årsaksbevis.
 Ikke gjort / hindring:
 Full senere-retning slår ikke de forhåndsvalgte referansene. TRAIN-svekkelsen er
 fjernet med to readoutfits; stabil senere forbedring/profitt er fortsatt ubevist.
-Ingen ny encodertrening, kalibrator, alpha-valg eller kandidat er innrømmet nå.
+Ingen encodertrening, kalibrator eller native kandidatimport er innrømmet.
+Bare den nedenfor bundne to-alpha-kontrollen er nå innrømmet.
 
-Neste presise kontroll (ny avgrenset design, må bindes separat):
+Neste presise kontroll (ny avgrenset design, separat innrømmet):
 Sammenlikn barealpha.01 og.1 på R1 med dagens kvalifiserte equal-observationvekter,
 gjenbruk eksisterende tre TRAIN-splitter og solver.12 indre head-fits,0encoder.
 Fit-stop/score-start/score-stop:14768/14784/19712;
@@ -85,6 +88,13 @@ lås før senerecache åpnes, vurder samme fullTRAIN og hele senere motINITIAL/p
 Frossen encoder/normalisering så heleTRAIN inkl. indre scoreperioder: dette er
 betinget head-valg, IKKE encoder-OOF. Senere er gjenbrukt utvikling. Ingen nye
 alphaer, ny bølge eller native import følger automatisk av denne designen.
+
+
+PLANd7c507a8, workerae57a5d7. Uavhengig kildekontroll og metadata/syntetisk
+preflight består på1,177s med0payload/fit/claim. Eksakt én CPUproducer,
+12G/512MiB/én numerisk tråd/900s.12innerfits +høyst2fullfits,
+3700indre +høyst5918fullB16-affine kall;0modeller/checkpoints/encoderforwards.
+Ingen jobb startet ved denne overleveringen. Kilde og policy fryses under kjøringen.
 
 Siste fullførte kontroll:
 

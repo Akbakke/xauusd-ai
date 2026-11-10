@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-10T16:30:02.337192+00:00",
-  "status": "TA_M5_FIXED_HEAD_CROSS_COMPLETE_TEMPORAL_DRIFT_AND_REGULARIZATION_BOUNDARY_IDENTIFIED",
+  "status": "TA_M5_R1_TWO_ALPHA_BOUNDARY_HEAD_FIT_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed two fixed CPUreadouts are consumed and all training/launch flags closed. Frozen model capture is retained and qualified with original post-completion cleanup failure preserved. No native import, further fit/capture, GC, TEST, Entry, Exit, broker, trading or promotion admitted.",
-  "next_action": "Prepare a new bounded TRAIN-only alpha boundary comparison .01 versus .1 on the frozen R1 representations, using the existing3 chronological inner splits, solver and pooled FP32 logloss criterion with the current qualified equal-observation weights perprefix.12 inner fits; at most2 fullfits only if.1 selected; otherwise reuse all existing.01fits/native/later evidence. Old alpha selection usedr0 and batch-dependent weights and improved monotonically to gridmax.01. Not admitted yet; no new model/encoder or causal-prefix affine calibration.",
+  "next_action": "Execute once the scoped .01-versus-.1 cachedR1 head boundary plan.12 inner fits choose by pooledTRAIN FP32 logloss; atmost2fullfits onlyif.1wins, otherwise reuse all.01evidence. Noencoder or native training/launch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1698,7 +1698,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Prepare a new bounded TRAIN-only alpha boundary comparison .01 versus .1 on the frozen R1 representations, using the existing3 chronological inner splits, solver and pooled FP32 logloss criterion with the current qualified equal-observation weights perprefix.12 inner fits; at most2 fullfits only if.1 selected; otherwise reuse all existing.01fits/native/later evidence. Old alpha selection usedr0 and batch-dependent weights and improved monotonically to gridmax.01. Not admitted yet; no new model/encoder or causal-prefix affine calibration.",
+    "current_activity": "Execute once the scoped .01-versus-.1 cachedR1 head boundary plan.12 inner fits choose by pooledTRAIN FP32 logloss; atmost2fullfits onlyif.1wins, otherwise reuse all.01evidence. Noencoder or native training/launch.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1728,7 +1728,7 @@
     "existing_indicator_surface_changed": false,
     "training_started": false,
     "latest_terminal_role": "Cached full-later fixed-head contrast COMPLETE; temporal drift and prior regularization-selection boundary identified.",
-    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FIXED_HEAD_ON_INITIAL_FULL_LATER_20261110_001",
+    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_INNER_L2_BOUNDARY_20261110_001",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FIXED_HEAD_ON_INITIAL_FULL_LATER_20261110_001/TERMINAL.json",
       "sha256": "bdb3fc79e6b1149bcee6a87ad9e9b39d87b2e4fac8f744c47bb597065ba9664e"
@@ -1751,7 +1751,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Full later M5 direction still fails INITIAL/prior. Current alpha.01 was inherited from oldr0/batch-weighted selection at its maximum; stronger regularization on newR1/equalweights remains untested.",
+    "current_blocker": "New exact cached head-fit comparison admitted; strongerregularization benefit remains unmeasured.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -24696,7 +24696,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-10T17:49:55.034916+00:00",
+  "updated_utc": "2026-11-10T18:03:07.171849+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -40224,7 +40224,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "CLOSED_NO_AUTOMATIC_RELAUNCH",
+  "training_enabled_scope": "market_state_ta_m5_reversed_inner_l2_boundary_20261110_001",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -75234,5 +75234,55 @@
     "whole_command_seconds": 3.3711772059996292,
     "source_unchanged": true,
     "conclusion": "Along fixed W0r0-W2r0-W2r1 path, head replacement hurts full-later S/F and representation replacement under W2 helps both. Primary original native full-later failure remains; no new candidate or fit."
+  },
+  "market_state_ta_m5_reversed_inner_l2_boundary_20261110_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_INNER_L2_BOUNDARY_20261110_001/PLAN.json",
+      "sha256": "d7c507a8436191b1e59c71a6d06128959871525cdb518c3d42d4d2bca0dc3bf3"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_INNER_L2_BOUNDARY_20261110_001/probe.py",
+      "sha256": "ae57a5d7ed0d01bff2161fc377079aaeb78d3304074b433e529ecac19973ec6c"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_INNER_L2_BOUNDARY_20261110_001/PREFLIGHT.json",
+      "sha256": "c4e66eb0eed9ec34831d69a5b161e97377f7f9dabd67c9d927467f94d03efb47"
+    },
+    "max_invocations": 1,
+    "remaining_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "training_authorized": true,
+    "native_training_authorized": false,
+    "native_launch_authorized": false,
+    "backwards": 0,
+    "batch_size": 16,
+    "checkpoint_decodes": 0,
+    "encoder_forwards": 0,
+    "fit_rows": 29574,
+    "inner_fits": 12,
+    "later_rows": 17753,
+    "max_fits": 14,
+    "max_full_cached_linear_batch_calls": 5918,
+    "max_full_fits": 2,
+    "max_inner_cached_linear_batch_calls": 3700,
+    "max_private_npz_bytes": 8388608,
+    "max_seconds": 900,
+    "memory_max": 12884901888,
+    "model_constructions": 0,
+    "numerical_threads": 1,
+    "optimizer_constructions": 0,
+    "private_npz_writes": 1,
+    "swap_max": 536870912,
+    "updates": 0,
+    "test_data_used": false,
+    "goal_complete": false,
+    "independent_source_review": "PASS ae57a5d7ed0d01bff2161fc377079aaeb78d3304074b433e529ecac19973ec6c; solver, perprefix equalweights, purgedsplit proofs, choose30-to12 assertion adaptation, locking/reuse branches and primary margins verified.",
+    "scope": "Only twoalpha conditional M5 head selection on cached frozenR1:12 inner fits using .01/.1 and existing3 chronological splits, currentequal observationweights perprefix. If.01selected reuse qualifiedfullfits/scores; if.1selected atmost2fullfits and lockedCPUfullTRAIN/later evaluation. Noencoder/model/checkpoint/nativeupdate, newalpha or nativepromotion.",
+    "standing_authority": "Active direction-only goal and standing zero-cost local-work authority; new exact bounded cached head-fit plan independently reviewed and preflighted. training_enabled is opened only for this named stage; native training/launch/full epochs remain false."
   }
 }
