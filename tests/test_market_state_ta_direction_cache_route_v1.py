@@ -236,3 +236,27 @@ def test_reversed_partial_preserves_offending_batch_before_failure(tmp_path, mon
     with np.load(artifact['path'], allow_pickle=False) as saved:
         assert saved['state_representation'].shape == (6, 128)
         np.testing.assert_array_equal(saved['parents'], np.arange(6))
+
+
+
+@pytest.mark.parametrize('phase', ['before_provider', 'already_released', 'prepared'])
+def test_reversed_finalizer_uses_page_release_for_module_provider_only(phase):
+    """Exercise the production finally block without constructing a model."""
+    import ast
+    from types import ModuleType, SimpleNamespace
+    tree = ast.parse((REPO / 'gx1/audit/cache_market_state_ta_direction_v1.py').read_text())
+    worker = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == '_run_reversed')
+    final = next(node.finalbody for node in worker.body if isinstance(node, ast.Try) and node.finalbody)
+    cleanup = ast.fix_missing_locations(ast.Module(body=final, type_ignores=[]))
+    provider = None if phase == 'before_provider' else ModuleType('mature_prefix_input_provider')
+    prepared = {'synthetic_pages': object()} if phase == 'prepared' else None
+    releases, signals = [], []
+    saved_alarm = object()
+    namespace = dict(provider=provider, prepared=prepared, previous_alarm=saved_alarm,
+        base=SimpleNamespace(_release_pages=lambda owner, pages: releases.append((owner, pages))),
+        signal=SimpleNamespace(ITIMER_REAL=0, SIGALRM=14,
+            setitimer=lambda *args: signals.append(('timer', args)),
+            signal=lambda *args: signals.append(('handler', args))))
+    exec(compile(cleanup, '<reversed-cache-finalizer>', 'exec'), namespace)
+    assert releases == ([(provider, prepared)] if phase == 'prepared' else [])
+    assert signals == [('timer', (0, 0.)), ('handler', (14, saved_alarm))]

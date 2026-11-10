@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-10T15:48:29.122750+00:00",
-  "status": "TA_M5_REVERSED_REPR_CACHE_ADMITTED_FROZEN_NO_FIT",
+  "observed_utc": "2026-11-10T16:25:35.584192+00:00",
+  "status": "TA_M5_REVERSED_FIXED_READOUT_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Only the exact one-use frozen REVERSED fullTRAIN M5 representation capture is admitted. All training flags remain false. No readout fit yet; all consumed plans, GC, TEST, Entry, Exit, broker, trading and promotion closed.",
-  "next_action": "Run the one admitted frozen REVERSED fullTRAIN M5 representation capture (1849 forwards, zero updates). Require exact stored M5 raw/axis/mask parity. Then qualify exactly two existing alpha=.01 readout fits; no readout fit admitted yet. Preserve original-FINAL negative control.",
+  "rule": "Only two CPU cached readout fits under the exact current stage. Frozen GPU capture is consumed with preserved post-completion cleanup error and independently qualified retained arrays. No GPU rerun, further fit, GC, TEST, Entry, Exit, broker, trading or promotion.",
+  "next_action": "Run the two fixed existing M5 readout fits once, compare all four TRAIN/later192 cells with INITIAL, REVERSED and prior, independently check retained logits, then close the plan. No native correction or further model pass admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -24692,7 +24692,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-10T15:48:29.122750+00:00",
+  "updated_utc": "2026-11-10T16:25:35.584192+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -40220,7 +40220,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "CLOSED_NO_AUTOMATIC_RELAUNCH",
+  "training_enabled_scope": "market_state_ta_m5_reversed_fixed_readout_20261110_001",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -64109,8 +64109,8 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "TA_M5_REVERSED_REPR_CACHE_ADMITTED_FROZEN_NO_FIT",
-  "recorded_observed_utc": "2026-11-10T15:48:29.122750+00:00",
+  "recorded_status": "TA_M5_REVERSED_FIXED_READOUT_ADMITTED",
+  "recorded_observed_utc": "2026-11-10T16:25:35.584192+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
     "decision": "BLOCK",
@@ -74349,7 +74349,7 @@
     "goal_complete": false
   },
   "market_state_ta_m5_reversed_repr_cache_20261110_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CAPTURE_POST_COMPLETION_ERROR_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_REPR_CACHE_20261110_001/PLAN.json",
       "sha256": "882470b193f03403e284c40dde7bbf2cc19cda215e9a5a983084b2b788a5b2b8"
@@ -74363,11 +74363,11 @@
       "sha256": "5bf1a9bc3f93ba40af6bc2346478b11c0672ca867c4cf0e688e9ca469e91e529"
     },
     "max_invocations": 1,
-    "remaining_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "remaining_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
-    "execution_authorized": true,
+    "execution_authorized": false,
     "data_reads_authorized": true,
     "checkpoint_reads_authorized": true,
     "backbone_encodings_authorized": 1849,
@@ -74389,8 +74389,75 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_FIXED_READOUT_20261110_001/probe.py",
       "sha256": "d0a84f769564803a825dbf6700fd883bb80a6262c59d6734282abe35bc93d463"
     },
-    "next_readout_status": "SOURCE_REVIEWED_NOT_ADMITTED_NO_PLAN_UNTIL_CAPTURE_COMPLETES",
+    "next_readout_status": "SEPARATELY_ADMITTED_AFTER_CAPTURE_COMPLETION_REVIEW",
     "test_data_used": false,
-    "goal_complete": false
+    "goal_complete": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_REPR_CACHE_20261110_001/RESULT.json",
+      "sha256": "ba3767d638132a5056a106a479d6a37afe6e8c44be6e3ca71cb895188f4199b9"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_REPR_CACHE_20261110_001/TERMINAL.json",
+      "sha256": "0abb94a139396ece4e315c05ddd2a81f639c78183799b6f666aa577a7f55a386"
+    },
+    "controller_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_REPR_CACHE_20261110_001/CONTROLLER_TERMINAL.json",
+      "sha256": "ff6ef1e4b1096fee9eaf7c1140371225b8a1cb6397c176d4d35a2c0bb7f830e9"
+    },
+    "completion_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_REPR_CACHE_20261110_001/CAPTURE_COMPLETION_REVIEW.json",
+      "sha256": "3a5f79b70e3975752d2c0b91df91413058feded7e0d04c0b4109d7fa4a696486"
+    },
+    "artifact": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_REPR_CACHE_20261110_001/FIT_REPRESENTATIONS.npz",
+      "sha256": "6e99d89a9a1d67372b691959507f7e73bc623b5a5c1488cf1a77c5b87a95ef8c"
+    },
+    "worker_exit_code": 0,
+    "controller_exit_code": 1,
+    "original_receipts_preserved": true
+  },
+  "market_state_ta_m5_reversed_fixed_readout_20261110_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_FIXED_READOUT_20261110_001/PLAN.json",
+      "sha256": "1a8f270c81f72939e662a4e9cdc32e97a034deff75eec401b3d9c6b7a002b9dc"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_FIXED_READOUT_20261110_001/probe.py",
+      "sha256": "0bfec8aaa714b4cba3398f122a3f2fdf853c0432e27a18425dbeb184d0c3b348"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_FIXED_READOUT_20261110_001/PREFLIGHT.json",
+      "sha256": "2eefa80f7a35c3acebba500480cd3f78215ee337c912daf5f79529790be67592"
+    },
+    "execution_authorized": true,
+    "training_authorized": true,
+    "native_training_authorized": false,
+    "native_launch_authorized": false,
+    "max_invocations": 1,
+    "remaining_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "backwards": 0,
+    "cached_linear_batch_calls": 3722,
+    "checkpoint_decodes": 0,
+    "fit_rows": 29574,
+    "later_rows": 192,
+    "max_private_npz_bytes": 8388608,
+    "max_seconds": 300,
+    "memory_max": 12884901888,
+    "model_constructions": 0,
+    "native_forwards": 0,
+    "native_parameter_updates": 0,
+    "numerical_threads": 1,
+    "optimizer_constructions": 0,
+    "readout_fits": 2,
+    "swap_max": 536870912,
+    "scope": "Exactly two fixed alpha=.01 equal-observation M5 readout fits on frozen REVERSED fullTRAIN representations, locked before existing later192 is decoded. Same INITIAL solver/objective; originalFINAL negative control preserved. No native model/forward/checkpoint/optimizer/update, selection or promotion.",
+    "standing_authority": "Active direction-only goal and standing zero-cost local-work authority; separately qualified exact two-readout experiment.",
+    "independent_source_review": "Core math source PASS d0a84f...; minimal completion-review delta 0bfec8... inspected by integrator and exact metadata-preflight passed.",
+    "goal_complete": false,
+    "test_data_used": false
   }
 }

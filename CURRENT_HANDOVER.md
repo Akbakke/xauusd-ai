@@ -15,26 +15,35 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_REVERSED_REPR_CACHE_ADMITTED_FROZEN_NO_FIT.
+Policystatus: TA_M5_REVERSED_FIXED_READOUT_ADMITTED.
 
-Ny engangsplan MARKET_STATE_TA_M5_REVERSED_REPR_CACHE_20261110_001 er innrømmet
-for én frossen fullTRAIN-capture:29574 rader/1849 forwards,1 modell/kapsellasting,
-0 optimizer/backwards/updates/fits. Samme REVERSED174b beholdes; direkte128D-
-input til begge M5-hoder lagres. Alle M5-rålogits, akser og masker må samsvare
-eksakt med lagret REVERSED_TRAIN. Senere192 er allerede lagret og kjøres ikke.
-Dette måler manglende representasjoner før to faste readoutfits med INITIALs
-eksisterende alpha0,01/solver/vekter; disse fitene er ennå ikke innrømmet.
+GPU-capture001 er konsumert: alle29574 rader/1849 forwards ferdige, én modell/
+kapsellasting og0 updates. M5 rålogits er bitvis identiske med REVERSED_TRAIN;
+akser/masker er identiske. De to direkte128D head-inputene er bevart i
+FIT_REPRESENTATIONS.npz (35,2MB). Modell/buffere/RNG/kilde var uendret.
 
-Ti fokuserte tester og eksakt CLI-metadata-preflight består; preflight9,839s,
-0 modell/dekoding/forward/CLAIM. Én manglende loader-tellerinitialisering ble
-funnet og rettet før launch. Uavhengig kilde-review består. Eneste endrede
-opprinnelige runtimeeier er cap-skriptets eksakte nye plansti; alle85 eierne,
-ekte view/normalisering og originalrecipe er kontrollert. Eksisterende
-GPU-produsentrute beholder250W/170W draw/65–80C/12G/512M/3600s.
-Tidligere GPU-fit-capture1649s mot CPU-complement3286s for1593 batches
-begrunner GPU-valget; neste faktiske helkjøringstid er ikke målt ennå.
-Ingen kilde-/policyendring mens denne bundne jobben kjører. Alle trenings-
-porter er false. Målet er fortsatt uoppnådd.
+Etter publisert COMPLETE-resultat og workerterminal0 feilet den ugyldige
+provider.close()-linjen i finally; controller/guard avsluttet1. Dette er bevart
+som faktisk prosessfeil, ikke omskrevet til ren exit0. Bare denne oppryddingen
+er rettet til eksisterende page-release-mønster.13 fokuserte tester består.
+Uavhengig kontroll av alle13 lagrede arrayer, akser, M5-masker/rålogits og
+kjente tellinger10010/11909 består på0,277s; ingen ny modellkjøring.
+CAPTURE_COMPLETION_REVIEW.json kvalifiserer de komplette lagrede dataene
+med eksplisitt prosessfeil. Originalkvitteringer er urørt.
+
+Monotontid: helekommando1941,767s (32m22), worker1936,179s,
+capture1842,642s, setup90,277s. UTC-intervall er en annen klokke.
+GPU-grense250W; målt topp131,93W/57C core/62C memory. Ingen kontrollert
+heltrenings-speedup eller ny retningsgevinst er påstått.
+
+Ny engangsplan MARKET_STATE_TA_M5_REVERSED_FIXED_READOUT_20261110_001
+åpner kun to faste CPU-readoutfits: alpha0,01, samme INITIAL-solver/vekting/
+biasregularisering,29574 TRAIN og lagret senere192 etter fitlås.12G/512M,
+én tråd/300s,0 modeller/checkpointdekodinger/forwards/nativeupdates.
+Eksakt metadata-preflight består på3,600s med0 payload/fit/CLAIM.
+training_enabled er true bare for denne CPU-stagen; alle nativeporter er false.
+Tidligere negativ original-FINAL-readout-kontroll bevares. Ingen native
+import, mer modelltrening eller promotion er innrømmet. Målet er uoppnådd.
 
 Siste fullførte kontroll:
 

@@ -898,6 +898,5 @@ def _run_reversed(plan_path, plan_sha256, out_dir, *, device):
         raise
     finally:
         signal.setitimer(signal.ITIMER_REAL, 0.); signal.signal(signal.SIGALRM, previous_alarm)
-        if provider is not None:
-            if prepared is not None: base._release_pages(provider, prepared)
-            provider.close()
+        if prepared is not None:
+            base._release_pages(provider, prepared)
