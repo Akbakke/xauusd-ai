@@ -15,46 +15,56 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_ACTIVITY_BACKBONE_ADAM_READONLY_ADMITTED.
+Policystatus: TA_M5_ACTIVITY_BACKBONE_ADAM_COMPLETE_LOCAL_SUPPORT.
 
-Én lesende kontroll er innrømmet for original INITIALae772 og FINAL23ff:
-fjern bare aktivitetsgradientens C/backbone-bidrag i lagrede gradientvektorer,
-behold alle S/F-sidegradienter og P-/headgradienter før global klipping.
-Regn clip1 og AdamW på nytt med faktiske lagrede momenter og individuelle steg.
-Ingen modell, forward, backward, ekte optimizer, fit, checkpoint eller nye vekter.
-
+Den lesende aktivitet→C/AdamW-kontrollen er ferdig og uavhengig verifisert:
+[rapport](docs/TA_M5_ACTIVITY_BACKBONE_ADAM_REVIEW.json).
 Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_BACKBONE_ADAM_AUDIT_20261110_001
-PLAN SHA3225b5f9306cbb2477ef001f22262699995dd14df926e08f7f72422ddd04034f.
-Worker SHAf4886409c63a97bfb4539971fa7b55e637e935e1cd5e567f18327ae333200355.
-Metadata-preflight1,426s og root/uavhengig kildekontroll PASS.
-Capped audit4G/512M/én tråd/120s; to lagrede gradientarkiver dekodes.
-Uavhengig aritmetikk-review følger med samme grense og uten Torch/modell.
+RESULT SHAa9175e654e14b169dc5393a2e74dc22343fbbd203b9a2a850ca32cb6bedb0e2a.
+REVIEW SHA5e74f1a8c0ce7278b3670e1f5647f62667ebe35a28b4112634ba03cbd2c9ca6d.
+Alle trenings-/engangsporter er stengt. Ingen ekte oppdatering er utført.
 
-Begrunnelse fra eksisterende ORIGINAL_SHARED_GRADIENT, ikke en ny gradientjobb:
-Ren aktivitet→C gir lokal eval-S/F-BCE-retning INITIAL+0,000154/+0,000720
-og FINAL+0,000994/+0,002541. Aktivitet→P hjelper S på begge punkter og
-motvirker F; derfor ville et samlet C/P-kutt fjerne også et nyttig bidrag.
-Øvrige TF-sidegradienter oppveier C-konflikten lokalt i samletaux.
-Dette er tre faste B16-batcher og ikke bevis for historisk fullpassårsak.
+Begge originale tilstander bruker lagrede gjennomsnitt av tre B16 TRAIN-
+gradienter. Bare aktivitetens C/backbone-bidrag fjernes; alle S/F-sidegradienter
+og P-/headgradienter beholdes før globalclip1 og faktiske AdamW-momenter/steg.
+Aktivitet→P hjelper S lokalt og beholdes; dette er ingen full aktivitet-ablasjon.
+Eksakt kvalifisert NumPy-Adam-funksjon gjenbrukes via AST uten Torch-import.
+To gradientarkiver, null modeller/forwards/backward/optimizer/fits/checkpoints.
+Alle570 parametre har fortsatt brukt gradient; ingen blir aktivitet-alene None.
 
-Eksakt kvalifisert next_adam_delta-funksjon gjenbrukes via AST uten å importere
-Torch-modulen. Jointkontrollen må gjengi alle seks lokale tapretninger i hver
-av fem parametergrupper før alternativet tolkes. C er inventory-bundet til
-0:6931667; used-masken tar OR av beholdte sidekomponenter i C. En tilkoblet
-nullgradient beholder moment/decay; bare faktisk None hoppes over.
-Globalclip kan endre effektive P/head-steg selv med uendrede rågradienter.
+Alle fire forhåndsvalgte alternative−joint retninger er gunstige:
+INITIAL S−3,296108589e-5/F−6,166930140e-5;
+FINAL S−3,889094691e-6/F−7,220725060e-6.
+Dette er lokale weighted-BCE-lineariseringer, ikke målt Brier eller presisjon.
+INITIAL jointS/F−0,000803016/−0,000551999 blir−0,000835977/−0,000613668.
+FINAL joint−0,000136644/−0,000094002 blir−0,000140533/−0,000101222.
+Støtteporten krevde alle fire<−1e-12, uavhengig av senere metodevalg.
 
-Forhåndsvalgt støtteport: alternativ−joint må være<−1e-12 for evalS OG evalF
-ved BEGGE originalpunkter. Alle fire rapporteres. Negativ støtte er COMPLETE,
-og gir ingen aktivitet→C-nativefit. Selv støtte er bare lokal weighted-BCE-
-linearisering og krever en egen eksakt admisjon før eventuell nativeprøve.
+Nesten hele ekstra forbedringen ligger i C. Norm INITIAL3,649002→3,635913
+og FINAL4,499671→4,497114; klippkoeffisienter0,274047→0,275034 og
+0,222238→0,222365. Effektive P/head-steg endres derfor litt til tross for
+uendrede rågradienter. Ingen påstand om identiske øvrige optimizersteg.
+
+Jointparitet mot eksisterende kontroll maks2,845e-16; uavhengig alternativ
+AdamW-formel og mask-/momentkontroll maks3,003e-17.
+Helkommando7,283s, worker7,003s; review5,528s, preflight1,426s.
+Kodearbeid/venting utenom. Ingen ny fulltrening eller målt treningsakselerasjon.
+Beviset gjelder to frosne punkter og48 TRAIN-rader, ikke historisk fullpass,
+sekvensiell læring, senere rader eller retningsedge.
+
+Neste direkte steg er å klargjøre én matchet kort aktivitet→C-only læringsprøve:
+gjenbruk originalae772 CONTROL24, checkpoint, CPU-RNG, sampler384 og faste
+TRAIN192/senere192-paneler. Behold aktivitetens P/head-læring og alleTF-sider.
+Lavkost grafvalg undersøkes: ekstra små P/head-dekodere fra C.detach(), med
+bitlik forwardverdi og faktisk gradientparitet før eksisterende globalclip.
+Ingen kodevariant eller nativeplan er ennå innrømmet.
+GX1_RULES284–286 krever eksakt recipe/campaign og training_enabled=true
+for faktiske tekniske updates; den lesende støtteporten åpner ikke dette.
 
 Forrige [C/P/H-rapport](docs/TA_M5_QUERY_BACKBONE_ATTRIBUTION_REVIEW.json)
-er konsumert: P-restore bedrer3/4 småpanelmål, men svekker senereS; alle8
-TRAIN-kombinasjoner er verre ennprior. Alle faktorer øker panel-meanOPP.
-Ingen P-alene rettelse eller generell modellforbedring følger av det.
-Alle treningsporter er stengt. TEST, GC, Entry/Exit og handel er stengt;
-originale checkpoints og tidligere kvalifiserte kontroller bevares.
+er konsumert: P-restore bedrer3/4 småpanelmål, men svekker senereS;
+alle8 TRAIN-kombinasjoner er verre ennprior. Ingen P-alene rettelse.
+TEST, GC, Entry/Exit og handel er stengt. Originale bevis og checkpoints bevares.
 
 MIX24 er fullført og uavhengig verifisert:
 [docs/TA_M5_MIXED_BATCH_NATIVE_REVIEW.json](docs/TA_M5_MIXED_BATCH_NATIVE_REVIEW.json).

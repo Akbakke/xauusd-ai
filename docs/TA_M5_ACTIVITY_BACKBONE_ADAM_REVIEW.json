@@ -1,0 +1,378 @@
+{
+  "status": "COMPLETE_VERIFIED_LOCAL_ACTIVITY_C_SUPPORT_NATIVE_UNPROVEN",
+  "stage": "market_state_ta_m5_activity_backbone_adam_audit_20261110_001",
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_BACKBONE_ADAM_AUDIT_20261110_001/PLAN.json",
+    "sha256": "3225b5f9306cbb2477ef001f22262699995dd14df926e08f7f72422ddd04034f"
+  },
+  "worker": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_BACKBONE_ADAM_AUDIT_20261110_001/audit.py",
+    "sha256": "f4886409c63a97bfb4539971fa7b55e637e935e1cd5e567f18327ae333200355"
+  },
+  "controller": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_BACKBONE_ADAM_AUDIT_20261110_001/CONTROLLER.json",
+    "sha256": "5710eef1206360f31c70d050138677e26073178a7027c4a6291ab08a5ca7204b"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_BACKBONE_ADAM_AUDIT_20261110_001/RESULT.json",
+    "sha256": "a9175e654e14b169dc5393a2e74dc22343fbbd203b9a2a850ca32cb6bedb0e2a"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_BACKBONE_ADAM_AUDIT_20261110_001/TERMINAL.json",
+    "sha256": "2f40e00e4183d56d5a5671d03ab92a85eafe02bd4188780e844ad094dc8a3fe5"
+  },
+  "review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_BACKBONE_ADAM_AUDIT_20261110_001/REVIEW.json",
+    "sha256": "5e74f1a8c0ce7278b3670e1f5647f62667ebe35a28b4112634ba03cbd2c9ca6d"
+  },
+  "reviewer": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_BACKBONE_ADAM_AUDIT_20261110_001/review.py",
+    "sha256": "f9675ef64a73629cd7b6586e43a597cdb275f9b19b5e25da12e23a35b18ef27a"
+  },
+  "review_command": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_BACKBONE_ADAM_AUDIT_20261110_001/REVIEW_COMMAND.json",
+    "sha256": "1422305f78747adb377565bb2c48e731955250e4bed24a462feab6b2e009a2d1"
+  },
+  "source_base_commit": "7893128aba496f23ccbd169d5b82f4887bc9d315",
+  "admission_commit": "ad5558f3516663f34c9193375a3816bc5ea08a7c",
+  "source_unchanged_at_terminal": true,
+  "scope": "Two original frozen states; cached means of three B16 TRAIN gradients. Remove only activity G3 on C/backbone0:6931667, preserve all side gradients and P/head input gradients, recompute globalclip1 and saved-moment AdamW analytically.",
+  "counts": {
+    "gradient_archives": 2,
+    "model_constructions": 0,
+    "forwards": 0,
+    "backwards": 0,
+    "autograd_calls": 0,
+    "optimizer_constructions": 0,
+    "optimizer_updates": 0,
+    "checkpoint_decodes": 0,
+    "checkpoint_writes": 0,
+    "fits": 0
+  },
+  "support_gate": {
+    "passes": true,
+    "margin": 1e-12,
+    "alternative_minus_joint": {
+      "INITIAL": {
+        "state": -3.2961085890017726e-05,
+        "future": -6.166930139937029e-05
+      },
+      "FINAL": {
+        "state": -3.88909469121673e-06,
+        "future": -7.220725060036481e-06
+      }
+    },
+    "decision": "SUPPORTED_LOCAL_ACTIVITY_C_MECHANISM_ONLY",
+    "native_execution_authorized": false
+  },
+  "measurements": [
+    {
+      "label": "INITIAL",
+      "measurement_model_sha256": "ae772fd755cbfa07b1b7bcca8bccd2c8a8889806989a289ddb8267972c281b37",
+      "private_gradients": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/INITIAL_AGGREGATE_GRADIENTS.npz",
+        "sha256": "f9e80f02bbe26cd5dcb8de75bb1e44295f8e0d33007214f28aae25168051a26a"
+      },
+      "control_parity": {
+        "all": {
+          "passes": true,
+          "max_abs_error": 2.480654570646834e-16,
+          "atol": 1e-12
+        },
+        "backbone": {
+          "passes": true,
+          "max_abs_error": 2.706168622523819e-16,
+          "atol": 1e-12
+        },
+        "query_projection": {
+          "passes": true,
+          "max_abs_error": 2.42861286636753e-17,
+          "atol": 1e-12
+        },
+        "m5_heads": {
+          "passes": true,
+          "max_abs_error": 1.0842021724855044e-19,
+          "atol": 1e-12
+        },
+        "other_heads": {
+          "passes": true,
+          "max_abs_error": 4.336808689942018e-19,
+          "atol": 1e-12
+        }
+      },
+      "norm_clip": {
+        "joint": {
+          "global_norm": 3.6490017283897522,
+          "coefficient": 0.2740474793893301,
+          "used_parameters": 570,
+          "delta_l2": 0.22808902848619836
+        },
+        "activity_C_removed": {
+          "global_norm": 3.6359130098053023,
+          "coefficient": 0.27503400721337423,
+          "used_parameters": 570,
+          "delta_l2": 0.22884435625816088
+        }
+      },
+      "parts": {
+        "all": {
+          "joint_eval_S_F": [
+            -0.0008030161154214685,
+            -0.0005519985924637044
+          ],
+          "activity_C_removed_eval_S_F": [
+            -0.0008359772013114863,
+            -0.0006136678938630747
+          ],
+          "alternative_minus_joint_eval_S_F": [
+            -3.2961085890017726e-05,
+            -6.166930139937029e-05
+          ]
+        },
+        "backbone": {
+          "joint_eval_S_F": [
+            -0.0005516731650307422,
+            -0.00036921639986297656
+          ],
+          "activity_C_removed_eval_S_F": [
+            -0.0005846342461495893,
+            -0.0004308856980075952
+          ],
+          "alternative_minus_joint_eval_S_F": [
+            -3.296108111884707e-05,
+            -6.166929814461862e-05
+          ]
+        },
+        "query_projection": {
+          "joint_eval_S_F": [
+            -6.552628034840272e-05,
+            -5.449585993702971e-05
+          ],
+          "activity_C_removed_eval_S_F": [
+            -6.552628336228326e-05,
+            -5.449586179905261e-05
+          ],
+          "alternative_minus_joint_eval_S_F": [
+            -3.013880540535946e-12,
+            -1.862022898878584e-12
+          ]
+        },
+        "m5_heads": {
+          "joint_eval_S_F": [
+            -0.00018581667004232392,
+            -0.0001282863326636988
+          ],
+          "activity_C_removed_eval_S_F": [
+            -0.00018581667179961767,
+            -0.0001282863340564258
+          ],
+          "alternative_minus_joint_eval_S_F": [
+            -1.7572937462823068e-12,
+            -1.3927269981815066e-12
+          ]
+        },
+        "other_heads": {
+          "joint_eval_S_F": [
+            0.0,
+            0.0
+          ],
+          "activity_C_removed_eval_S_F": [
+            0.0,
+            0.0
+          ],
+          "alternative_minus_joint_eval_S_F": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "locally_more_favorable_eval_S_F": [
+        true,
+        true
+      ],
+      "removed_activity_C_gradient_l2": 0.38331582593378016,
+      "retained_P_heads_gradients_exact": true,
+      "used_parameters_lost_activity_only": [],
+      "status": "PASS_JOINT_PARITY_DIAGNOSTIC_COMPLETE"
+    },
+    {
+      "label": "FINAL",
+      "measurement_model_sha256": "23ff344b183a2256f2c8a1a8e32b811ed14f10c1cb1423becca14b36d5340d5b",
+      "private_gradients": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/FINAL_AGGREGATE_GRADIENTS.npz",
+        "sha256": "2a66ee9879acdf333b089d79b748148a7531a57c5d83a07d274efe432e7975b7"
+      },
+      "control_parity": {
+        "all": {
+          "passes": true,
+          "max_abs_error": 2.740863092043355e-16,
+          "atol": 1e-12
+        },
+        "backbone": {
+          "passes": true,
+          "max_abs_error": 2.8449465006019636e-16,
+          "atol": 1e-12
+        },
+        "query_projection": {
+          "passes": true,
+          "max_abs_error": 9.540979117872439e-18,
+          "atol": 1e-12
+        },
+        "m5_heads": {
+          "passes": true,
+          "max_abs_error": 1.6940658945086007e-21,
+          "atol": 1e-12
+        },
+        "other_heads": {
+          "passes": true,
+          "max_abs_error": 5.421010862427522e-20,
+          "atol": 1e-12
+        }
+      },
+      "norm_clip": {
+        "joint": {
+          "global_norm": 4.499671093912988,
+          "coefficient": 0.22223841629543803,
+          "used_parameters": 570,
+          "delta_l2": 0.07331488251685925
+        },
+        "activity_C_removed": {
+          "global_norm": 4.497113548289456,
+          "coefficient": 0.22236480509049178,
+          "used_parameters": 570,
+          "delta_l2": 0.07238553858616371
+        }
+      },
+      "parts": {
+        "all": {
+          "joint_eval_S_F": [
+            -0.0001366438661923155,
+            -9.400154260991529e-05
+          ],
+          "activity_C_removed_eval_S_F": [
+            -0.00014053296088353224,
+            -0.00010122226766995177
+          ],
+          "alternative_minus_joint_eval_S_F": [
+            -3.88909469121673e-06,
+            -7.220725060036481e-06
+          ]
+        },
+        "backbone": {
+          "joint_eval_S_F": [
+            -0.0001112077448594436,
+            -6.705619536087605e-05
+          ],
+          "activity_C_removed_eval_S_F": [
+            -0.00011507142737504491,
+            -7.425450924072753e-05
+          ],
+          "alternative_minus_joint_eval_S_F": [
+            -3.863682515601314e-06,
+            -7.19831387985148e-06
+          ]
+        },
+        "query_projection": {
+          "joint_eval_S_F": [
+            -3.138984740406788e-05,
+            -3.534057024453404e-05
+          ],
+          "activity_C_removed_eval_S_F": [
+            -3.140241574108447e-05,
+            -3.535163129200901e-05
+          ],
+          "alternative_minus_joint_eval_S_F": [
+            -1.2568337016587779e-08,
+            -1.1061047474974182e-08
+          ]
+        },
+        "m5_heads": {
+          "joint_eval_S_F": [
+            5.953726071195485e-06,
+            8.39522299549544e-06
+          ],
+          "activity_C_removed_eval_S_F": [
+            5.940882232597349e-06,
+            8.383872862784775e-06
+          ],
+          "alternative_minus_joint_eval_S_F": [
+            -1.284383859813581e-08,
+            -1.1350132710665257e-08
+          ]
+        },
+        "other_heads": {
+          "joint_eval_S_F": [
+            0.0,
+            0.0
+          ],
+          "activity_C_removed_eval_S_F": [
+            0.0,
+            0.0
+          ],
+          "alternative_minus_joint_eval_S_F": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "locally_more_favorable_eval_S_F": [
+        true,
+        true
+      ],
+      "removed_activity_C_gradient_l2": 0.35203160452808174,
+      "retained_P_heads_gradients_exact": true,
+      "used_parameters_lost_activity_only": [],
+      "status": "PASS_JOINT_PARITY_DIAGNOSTIC_COMPLETE"
+    }
+  ],
+  "independent_review": {
+    "status": "PASS_INDEPENDENT_ACTIVITY_C_ADAM_REVIEW",
+    "max_scalar_error": 3.003240017784847e-17,
+    "counts": {
+      "gradient_archives": 2,
+      "models": 0,
+      "forwards": 0,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "checkpoint_decodes": 0,
+      "fits": 0
+    }
+  },
+  "timing": {
+    "whole_command_seconds": 7.283251395005209,
+    "worker_seconds": 7.003341855001054,
+    "preflight_whole_seconds": 1.4259719860056066,
+    "review_whole_seconds": 5.5284081529971445,
+    "review_worker_seconds": 5.279940717999125,
+    "code_preparation_and_waiting_included": false
+  },
+  "findings": [
+    "The fixed all4-cell analytical support gate passes: removing only activity-to-C makes local evalS/F weighted-BCE deltas more negative at both original checkpoints.",
+    "INITIAL alternative-minus-joint: S-3.296108589e-5/F-6.166930140e-5. FINAL: S-3.889094691e-6/F-7.220725060e-6.",
+    "Nearly all additional favorable local effect comes from backbone. P and dedicated-head effective steps also change slightly because canonical global clipping is recomputed.",
+    "All570 parameters remain used in both alternatives; none became activity-only None. The implementation still preserves surviving-component None/zero semantics.",
+    "This is stronger evidence for the targeted activity-to-C mechanism than plain-gradient conflict alone, but it is neither an actual training outcome nor proof of fullpass cause or later improvement."
+  ],
+  "next_candidate_design_only": "A matched short actual activity-to-C-only learning comparison can now be prepared, reusing prior original-ae772 CONTROL24/checkpoint/RNG/sampler and both192-row panels. Preserve activity-to-P/heads and allTFside gradients. Exact new admission and training_enabled=true required for any actual updates.",
+  "full_train_correction_qualified": false,
+  "later_direction_improvement_established": false,
+  "training_cause_established": false,
+  "native_execution_authorized": false,
+  "test_data_used": false,
+  "training_authorized": false,
+  "candidate_selection": false,
+  "promotion_authorized": false,
+  "limits": [
+    "FP64 analytic AdamW directions on means of three fixed TRAIN gradients; no actual optimizer or parameter update.",
+    "Only train_all_activity is removed on backbone coordinates. All side gradients and P/head gradients are retained before clipping.",
+    "Global clipping is recomputed, so effective P/head steps can change even though their input gradients are identical.",
+    "None versus a used zero gradient retains distinct skip/decay behavior using the surviving component masks.",
+    "Local eval weighted-BCE derivatives are not Brier changes, sequential training, historical CUDA replay, later performance or causal proof.",
+    "Two original frozen states, one paired CPU dropout draw, no new model/gradient/target evaluation, no candidate selection or new weights.",
+    "All four local eval S/F contrasts must be below -1e-12 for mechanism support. Even PASS grants no native execution authority; a separate exact admission is required.",
+    "Independent alternative FP64 AdamW calculation uses surviving parameter-level masks, complete global clipping and saved perparameter moments/steps. No optimizer update or new gradient.",
+    "Original joint directions and archive-to-checkpoint equality reuse the bound independent original-gradient evidence; no checkpoint decode.",
+    "Dot effects are local weighted-BCE linearizations at two frozen points, not measured Brier, sequential behavior, later generalization or a historical training cause.",
+    "Technical review PASS accepts either support outcome; even local support authorizes no native follow-up."
+  ]
+}
