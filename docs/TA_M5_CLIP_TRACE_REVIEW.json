@@ -1,0 +1,373 @@
+{
+  "status": "COMPLETE_VERIFIED_CLIPPING_REWEIGHTS_TRACE_NO_DIRECTION_FIX",
+  "stage": "market_state_ta_m5_clip_trace_20261110_001",
+  "source_commit": "a9ca9dc00ac07c2f950a4199b3cfb24d6670c9db",
+  "source_unchanged": true,
+  "question": "Does clipping-induced gradient-sum reversal explain actual recorded AdamW head updates and directional score changes?",
+  "decision": "NO_NATIVE_SCALE_CHANGE_JUSTIFIED_BY_HEAD_TRACE",
+  "artifacts": {
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/PLAN.json",
+      "sha256": "0f3233b703d5df93b8019bbe8c4add8586099aa43f34513084400569bcc34467"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/audit.py",
+      "sha256": "879285a314ea72b6e5e8b0b5e81607fd104c0655416d10b6ac58ca942ec2f761"
+    },
+    "controller_source": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/controller.py",
+      "sha256": "b74731356fa2a528f4454c4051411dc68b7d2ccde403a1bb3925c786252b5b47"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/PREFLIGHT.json",
+      "sha256": "ca185c77c7e022228bbeba6f3fb6c83d33301690d52ef236b9019dd1479dd12f"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/RESULT.json",
+      "sha256": "f49ad28d1826a547129d892eb8231ecd74584f44760431bfa0dcc663bcb95809"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/TERMINAL.json",
+      "sha256": "5ea916276bfb3baea8bec33b981d175cbfeda14f3896b15c16e09750055519c2"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/CONTROLLER.json",
+      "sha256": "7616fe973e4a8b56f5bf9c13ba85dd747da3a8634bfef0f8297bd43e973b8b41"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/REVIEW.json",
+      "sha256": "f3eb388573d776260db310201a637371dca1eb91f92d1a68afb55d8d7602e874"
+    },
+    "reviewer": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/review.py",
+      "sha256": "d607e3c390bd6731cf2c9429bf16a596af2e196767e5729e93b9269b84ad3e9b"
+    },
+    "review_command": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/REVIEW_COMMAND.json",
+      "sha256": "a04799bf7e18c4825070229e8500601819c413d3cead9206b9ad4a2e377696b6"
+    }
+  },
+  "coverage": {
+    "recorded_steps": 24,
+    "producer_replayed_head_coordinates": 258,
+    "independently_replayed_bias_coordinates": 2,
+    "fixed_representation_score_cells": 16,
+    "producer_checkpoint_decodes": 1,
+    "review_checkpoint_decodes": 0,
+    "model_forwards": 0,
+    "backward_calls": 0,
+    "optimizer_constructions": 0,
+    "optimizer_updates": 0,
+    "checkpoint_writes": 0
+  },
+  "sign_scaling": {
+    "CONTROL": {
+      "norm_min": 1.2586710453033447,
+      "norm_max": 9.220571517944336,
+      "clipped_batches": 24,
+      "state_bias": {
+        "raw_sum": -0.12520354241132736,
+        "clipped_sum": -0.10623775228907562,
+        "scaled_raw_sum": -0.00782522140070796,
+        "signed_masses": {
+          "positive": {
+            "raw": 0.27275344356894493,
+            "clipped": 0.06562485445590482,
+            "retained": 0.24060137828953415
+          },
+          "negative": {
+            "raw": -0.3979569859802723,
+            "clipped": -0.17186260674498044,
+            "retained": 0.43186226853547455
+          }
+        }
+      },
+      "future_bias": {
+        "raw_sum": 0.15604026708751917,
+        "clipped_sum": -0.0440592753875535,
+        "scaled_raw_sum": 0.009752516692969948,
+        "signed_masses": {
+          "positive": {
+            "raw": 0.48178670555353165,
+            "clipped": 0.10942820308264345,
+            "retained": 0.22712997644241723
+          },
+          "negative": {
+            "raw": -0.3257464384660125,
+            "clipped": -0.15348747847019695,
+            "retained": 0.471186973503047
+          }
+        }
+      }
+    },
+    "HEADS_FIXED": {
+      "norm_min": 1.2563339471817017,
+      "norm_max": 9.221597671508789,
+      "clipped_batches": 24,
+      "state_bias": {
+        "raw_sum": -0.10375004447996616,
+        "clipped_sum": -0.09990732678124914,
+        "scaled_raw_sum": -0.006484377779997885,
+        "signed_masses": {
+          "positive": {
+            "raw": 0.28293905407190323,
+            "clipped": 0.06813735022296896,
+            "retained": 0.24081988414951452
+          },
+          "negative": {
+            "raw": -0.3866890985518694,
+            "clipped": -0.1680446770042181,
+            "retained": 0.4345730914927178
+          }
+        }
+      },
+      "future_bias": {
+        "raw_sum": 0.17677453812211752,
+        "clipped_sum": -0.03797291181399487,
+        "scaled_raw_sum": 0.011048408632632345,
+        "signed_masses": {
+          "positive": {
+            "raw": 0.49340737238526344,
+            "clipped": 0.11217795102857053,
+            "retained": 0.22735361753163974
+          },
+          "negative": {
+            "raw": -0.3166328342631459,
+            "clipped": -0.1501508628425654,
+            "retained": 0.47421128384234035
+          }
+        }
+      }
+    }
+  },
+  "replay_parity": {
+    "weight": {
+      "passes": true,
+      "max_abs_error": 1.5163259543815588e-08,
+      "atol": 2e-06
+    },
+    "exp_avg": {
+      "passes": true,
+      "max_abs_error": 2.2480568101501675e-09,
+      "atol": 2e-06
+    },
+    "exp_avg_sq": {
+      "passes": true,
+      "max_abs_error": 2.050940034394478e-11,
+      "atol": 2e-06
+    }
+  },
+  "metrics": {
+    "train": {
+      "state": {
+        "scores": {
+          "actual": {
+            "count": 75,
+            "up_count": 34,
+            "brier": 0.25241911939623113,
+            "log": 0.6979965264808314
+          },
+          "recorded_clipped_FP64": {
+            "count": 75,
+            "up_count": 34,
+            "brier": 0.2524191188438641,
+            "log": 0.6979965253692662
+          },
+          "recorded_raw_FP64": {
+            "count": 75,
+            "up_count": 34,
+            "brier": 0.2514909564165984,
+            "log": 0.6961325207803828
+          },
+          "recorded_scaled_1_over_16_FP64": {
+            "count": 75,
+            "up_count": 34,
+            "brier": 0.2514909650243736,
+            "log": 0.696132538049222
+          }
+        },
+        "differences_from_actual": {
+          "recorded_clipped_FP64": {
+            "brier": -5.523670409957049e-10,
+            "log": -1.1115652842619284e-09
+          },
+          "recorded_raw_FP64": {
+            "brier": -0.0009281629796327184,
+            "log": -0.0018640057004486454
+          },
+          "recorded_scaled_1_over_16_FP64": {
+            "brier": -0.0009281543718575036,
+            "log": -0.001863988431609398
+          }
+        }
+      },
+      "future": {
+        "scores": {
+          "actual": {
+            "count": 86,
+            "up_count": 41,
+            "brier": 0.2506672645305141,
+            "log": 0.694481219940584
+          },
+          "recorded_clipped_FP64": {
+            "count": 86,
+            "up_count": 41,
+            "brier": 0.25066726447863524,
+            "log": 0.6944812198373227
+          },
+          "recorded_raw_FP64": {
+            "count": 86,
+            "up_count": 41,
+            "brier": 0.2502312521829562,
+            "log": 0.693608507280452
+          },
+          "recorded_scaled_1_over_16_FP64": {
+            "count": 86,
+            "up_count": 41,
+            "brier": 0.2502312543766177,
+            "log": 0.6936085116668543
+          }
+        },
+        "differences_from_actual": {
+          "recorded_clipped_FP64": {
+            "brier": -5.18788345615917e-11,
+            "log": -1.032612884088735e-10
+          },
+          "recorded_raw_FP64": {
+            "brier": -0.000436012347557857,
+            "log": -0.0008727126601320023
+          },
+          "recorded_scaled_1_over_16_FP64": {
+            "brier": -0.0004360101538963823,
+            "log": -0.0008727082737296499
+          }
+        }
+      }
+    },
+    "later": {
+      "state": {
+        "scores": {
+          "actual": {
+            "count": 65,
+            "up_count": 38,
+            "brier": 0.2443651283202187,
+            "log": 0.6818607590699333
+          },
+          "recorded_clipped_FP64": {
+            "count": 65,
+            "up_count": 38,
+            "brier": 0.24436512919358042,
+            "log": 0.681860760827408
+          },
+          "recorded_raw_FP64": {
+            "count": 65,
+            "up_count": 38,
+            "brier": 0.2450941905078737,
+            "log": 0.6833186810220945
+          },
+          "recorded_scaled_1_over_16_FP64": {
+            "count": 65,
+            "up_count": 38,
+            "brier": 0.24509418580162554,
+            "log": 0.6833186716188415
+          }
+        },
+        "differences_from_actual": {
+          "recorded_clipped_FP64": {
+            "brier": 8.733617162803853e-10,
+            "log": 1.7574747213089381e-09
+          },
+          "recorded_raw_FP64": {
+            "brier": 0.0007290621876550052,
+            "log": 0.001457921952161212
+          },
+          "recorded_scaled_1_over_16_FP64": {
+            "brier": 0.0007290574814068362,
+            "log": 0.0014579125489082578
+          }
+        }
+      },
+      "future": {
+        "scores": {
+          "actual": {
+            "count": 75,
+            "up_count": 40,
+            "brier": 0.2474275051585086,
+            "log": 0.6879994370543062
+          },
+          "recorded_clipped_FP64": {
+            "count": 75,
+            "up_count": 40,
+            "brier": 0.24742750571572344,
+            "log": 0.6879994381707869
+          },
+          "recorded_raw_FP64": {
+            "count": 75,
+            "up_count": 40,
+            "brier": 0.2478265996910332,
+            "log": 0.6887958822136742
+          },
+          "recorded_scaled_1_over_16_FP64": {
+            "count": 75,
+            "up_count": 40,
+            "brier": 0.24782659498582135,
+            "log": 0.688795872818508
+          }
+        },
+        "differences_from_actual": {
+          "recorded_clipped_FP64": {
+            "brier": 5.572148575883062e-10,
+            "log": 1.1164806856811538e-09
+          },
+          "recorded_raw_FP64": {
+            "brier": 0.00039909453252462423,
+            "log": 0.0007964451593679422
+          },
+          "recorded_scaled_1_over_16_FP64": {
+            "brier": 0.0003990898273127652,
+            "log": 0.0007964357642017417
+          }
+        }
+      }
+    }
+  },
+  "epsilon_effect": {
+    "max_abs_final_head_difference_raw_vs_scaled": 4.110590026632898e-07,
+    "max_abs_final_head_difference_raw_vs_clipped": 0.0007881857828535158,
+    "independently_checked_bias_scaled_vs_raw_eps_times16_max_error": 0.0
+  },
+  "conclusions": [
+    "All24 recorded CONTROL batches clip, with raw global norm1.25867 to9.22057. Positive F-bias gradients retain22.71percent and negative gradients47.12percent by signed mass.",
+    "Clipping reverses the sum of recorded F-bias gradients, but actual AdamW final F-bias still decreases. A gradient-sum sign is not an optimizer-step direction.",
+    "FP64 reconstruction reproduces every stored head weight and moment over24steps within the predeclared bound. Independent scalar replay verifies both bias paths; other256coordinate paths are producer evidence.",
+    "On fixed CONTROL-final representations, raw and1/16 recorded-gradient counterfactual heads improve both TRAIN objectives and worsen both later objectives, in Brier and log.",
+    "Clipping materially changes temporal update weights, but this trace does not establish the cause or fix of the fullpass deterioration. It supplies no positive later-direction basis for a new native scaling run."
+  ],
+  "timing": {
+    "producer_command_seconds": 3.8222234659988317,
+    "producer_worker_seconds": 0.9268615920009324,
+    "preflight_command_seconds": 4.019615307995991,
+    "review_command_seconds": 0.2772624000062933,
+    "review_worker_seconds": 0.03380185599962715,
+    "measured_commands_total_seconds": 8.119101174001116,
+    "scope": "Measured commands only; source preparation, source review and waiting excluded."
+  },
+  "verification": {
+    "max_independent_scalar_metric_error": 1.1102230246251565e-16,
+    "max_actual_projection_error": 3.1162348146374086e-08,
+    "all_training_closed": true,
+    "no_core_changes": true
+  },
+  "limits": [
+    "Raw and1/16 replays keep CONTROL gradients from its actual parameter trajectory; alternate heads did not generate later gradients.",
+    "All score contrasts keep CONTROL-final representations fixed. They are off-policy arithmetic projections, not outcomes of adaptive model training.",
+    "Scaling by1/16 would mean effective original-gradient clipping16 and effective epsilon16eps with the original epsilon unchanged; the safety/function change must be declared, never described as identical clipping.",
+    "Original fullpass retained only first/last batch norms. This24-step trace does not reconstruct fullpass clipping history or shared-backbone trajectories.",
+    "Only75/86 known TRAIN and65/75 known later sides in reused192-row panels. No fresh generalization, tradable selection, economic edge or full-goal completion.",
+    "Source review found no new mask or class-weight defect. Aggregate other-TF plus activity plain-gradient contribution was locally beneficial; activity alone was harmful. These observations do not identify historical causal training effects."
+  ],
+  "next_action": "Do not launch a native clip/scale sweep or claim a head-only correction. A distinct explanation must account for both shared-representation learning and opposite TRAIN/later response; reuse existing component and period evidence before any further admission.",
+  "test_data_used": false,
+  "training_authorized": false,
+  "promotion_allowed": false
+}

@@ -15,43 +15,50 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_CLIP_TRACE_READONLY_ADMITTED.
+Policystatus: TA_M5_CLIP_TRACE_COMPLETE_NO_DIRECTION_FIX.
 
-Én lesende aritmetikkontroll er klar, uten modell eller ny trening.
+Den lesende klippe-/AdamW-kontrollen er ferdig og verifisert:
+[rapport](docs/TA_M5_CLIP_TRACE_REVIEW.json).
 Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001
-PLAN SHA0f3233b703d5df93b8019bbe8c4add8586099aa43f34513084400569bcc34467.
-Worker SHA879285a314ea72b6e5e8b0b5e81607fd104c0655416d10b6ac58ca942ec2f761.
-Metadata-preflight4,020s og root/uavhengig kildekontroll PASS.
-Én CPU-state-dekoding,258 M5-headkoordinater,24 lagrede CONTROL-gradienter.
+RESULT SHAf49ad28d1826a547129d892eb8231ecd74584f44760431bfa0dcc663bcb95809.
+REVIEW SHAf3eb388573d776260db310201a637371dca1eb91f92d1a68afb55d8d7602e874.
+Alle trenings- og engangsporter er stengt; ingen ny native-klippeendring vedtatt.
+
+Alle24 CONTROL-batcher klippes: norm1,25867–9,22057. Positive F-biasgradienter
+beholder22,71prosent av massen, negative47,12prosent. Råsummen+0,156040
+blir−0,044059 etter klipp. Likevel går faktisk AdamW-F-bias ned; gradientenes
+sum er ikke oppdateringens fortegn. Rekonstruksjon gjengir alle24 steg for258
+headkoordinater: maks vektavvik1,52e-8, m2,25e-9, v2,06e-11.
+Uavhengig review gjengir to biasbaner og16 scoreceller; hele258-banen er
+produsentbevis. Maks uavhengig scoreavvik1,12e-16.
+
+Ved faste CONTROL-sluttrepresentasjoner gir hypotetisk raw-replay bedre
+TRAIN S/F-Brier med0,000928/0,000436, men verre senere med0,000729/0,000399.
+Logtap har samme fortegn.1/16-replay gir praktisk samme resultat.
+Dette er lagrede gradienter fra CONTROLs forløp, ikke en ny adaptiv modell.
+Ingen grunn til ny native-skalering følger av disse head-resultatene.
+Klippingens temporale vekting er målt; årsaken til hele fullpasset er ikke bevist.
+
 0 modeller,forwards,backward,optimizere,updates eller nye checkpoints.
-Capped audit4G/512M/én tråd/120s; én avgrenset NumPy-etterkontroll uten Torch.
+Én CPU-state-dekoding i produsent;0 i review. Helkommando3,822s,
+worker0,927s; review0,277s, preflight4,020s. Kodearbeid/venting utenom.
+1/16 ville endre effektiv klipping til16 i originale gradientenheter
+og effektiv epsilon til16ε. Dette skal ikke omtales som uendret klipping.
+Originalfullpasset lagret bare første/siste norm; historisk fullpassklipp
+og kontrafaktiske backbonebaner kan ikke rekonstrueres av denne24trace.
 
-Bakgrunn: Alle24 batcher i siste parede prøve klippes, med ulik faktor.
-Foreløpig lagret-trace-observasjon viser F-biasgradientens sum skifter fortegn,
-mens faktisk AdamW-bias ikke følger den enkle summen. Derfor må alle24
-faktiske vekt-/momentsteg gjengis før hypotetiske raw- og1/16-forløp beregnes.
-Gradientene kommer fra CONTROLs opprinnelige parameterforløp; nye hoder
-har ikke produsert dem. Scores på CONTROLs faste sluttrepresentasjoner
-er etterpå-beregninger, ikke et nytt treningsutfall.
+Forløperen [head-freeze](docs/TA_M5_HEAD_UPDATE_FREEZE_REVIEW.json) er
+uavhengig negativ: Begge24-stegsarmer bedrer TRAIN fra originalINITIAL,
+men svekker begge senere-mål. Faste hoder alene løser ikke problemet.
+Ingen ny maske-/klassevektsfeil funnet. ØvrigeTF og aktivitet samlet ga
+gunstig lokal gjennomsnittsgradient; aktivitet alene kunne motvirke M5.
+Ingen av disse avgrensede bevisene begrunner å fjerne MTF-input eller mål.
 
-1/16 er en aritmetisk kontrast, ingen innført gradientskalering.
-En slik skalering ville endre effektiv klippegrense til16 i originale enheter
-og effektiv epsilon til16ε. Den skal aldri beskrives som uendret klipping.
-Ingen ny native-kontrast eller endret vakt er innrømmet. Alle treningsporter
-forblir stengt; kun denne lesende engangsporten er åpen.
-
-Forløperen [head-freeze](docs/TA_M5_HEAD_UPDATE_FREEZE_REVIEW.json) er ferdig
-og uavhengig negativ: Begge24-stegsarmer bedrer TRAIN fra originalINITIAL,
-men svekker begge senere-mål. HEADS_FIXED er verre enn CONTROL på TRAIN
-og litt bedre senere; allefire sammenligningsporter feiler.
-Helkommando592,436s;96forwards/48updates. Opprinnelige checkpoints beholdes.
+Neste forklaring må omfatte fellesrepresentasjonen og motsatt respons i
+TRAIN/senere. Gjenbruk eksisterende komponent-/periodebevis; ingen ny
+klippe-/skalering-/sampler-/reset-sveip eller samme-punkt/head-freeze-prøve.
 Ingen modellrettelse, fullpassforklaring, senere gevinst eller handelsedge bevist.
-Rågradientanalysen viste heller ingen samlet lokal motretning fra øvrigeTF
-og aktivitet; aktivitet alene kan motvirke M5, men samlet aux var gunstig.
-Dette er ingen begrunnelse for å fjerne genuine MTF-input eller mål.
-
-Etter aritmetikkontrollen stenges porten og resultat/tolkningsgrenser føres her.
-TEST, GC, Entry/Exit og handel er stengt; ingen automatisk relansering.
+Originale checkpoints/kvitteringer beholdes; TEST, GC, Entry/Exit og handel stengt.
 
 MIX24 er fullført og uavhengig verifisert:
 [docs/TA_M5_MIXED_BATCH_NATIVE_REVIEW.json](docs/TA_M5_MIXED_BATCH_NATIVE_REVIEW.json).

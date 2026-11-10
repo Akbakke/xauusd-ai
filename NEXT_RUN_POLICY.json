@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-10T00:29:41.909805+00:00",
-  "status": "TA_M5_CLIP_TRACE_READONLY_ADMITTED",
+  "observed_utc": "2026-11-10T00:34:51.016022+00:00",
+  "status": "TA_M5_CLIP_TRACE_COMPLETE_NO_DIRECTION_FIX",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Run exact recorded-gradient arithmetic audit and bounded independent NumPy review, then close the one-use audit gate. No new model training or effective clipping change admitted. Interpret gradient sums through actual AdamW replay first.",
+  "next_action": "Do not launch a native clip/scale sweep or claim a head-only correction. A distinct explanation must account for both shared-representation learning and opposite TRAIN/later response; reuse existing component and period evidence before any further admission. All training and one-use audit gates are closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1685,7 +1685,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Read-only recorded-gradient clipping/AdamW replay admitted after source and metadata checks.",
+    "current_activity": "Recorded-gradient clipping/AdamW audit completed; full258-path producer parity and independent2-bias/16-score review passed. No native clipping change justified.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1714,11 +1714,11 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "Paired24-update original-ae772 CONTROL versus HEADS_FIXED, both fixed TRAIN/later panels scored.",
+    "latest_terminal_role": "Read-only24-step recorded-gradient AdamW reconstruction and fixed-representation arithmetic contrasts; zero model/optimizer updates.",
     "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_UPDATE_FREEZE_NATIVE_20261110_001/TERMINAL.json",
-      "sha256": "d9f9600f4b9fc65730aff63bec74cfbff3428abe5116cbceed676e8505a4eac2"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/TERMINAL.json",
+      "sha256": "5ea916276bfb3baea8bec33b981d175cbfeda14f3896b15c16e09750055519c2"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -1738,7 +1738,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Clipping changes relative batch contributions, but gradient-sum reversal alone is not an AdamW or predictive causal explanation. Fullpass and later-direction deterioration unresolved.",
+    "current_blocker": "Raw-gradient head replay improves TRAIN but worsens both later targets on fixed representations. Fullpass/shared-representation deterioration and later predictive gain remain unresolved.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -10338,11 +10338,12 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "Only75/86 known S/F rows in TRAIN192 and65/75 in later192. Reused development panels are not fresh generalization.",
-      "Original INITIAL heads were already TRAIN-fitted. Later initial baseline is qualified cached-head output, not a new CPU full-encoder baseline.",
-      "Holding readouts fixed changes later upstream gradients and clipping; the paired intervention does not separately attribute each downstream consequence.",
-      "No fullpass correction, feature utility, ex-ante trade selection, economic edge or production resume qualified.",
-      "TEST, GC, Entry, Exit, broker and trading remain closed. No automatic extra arm, relaunch or fullfit."
+      "Raw and1/16 replays keep CONTROL gradients from its actual parameter trajectory; alternate heads did not generate later gradients.",
+      "All score contrasts keep CONTROL-final representations fixed. They are off-policy arithmetic projections, not outcomes of adaptive model training.",
+      "Scaling by1/16 would mean effective original-gradient clipping16 and effective epsilon16eps with the original epsilon unchanged; the safety/function change must be declared, never described as identical clipping.",
+      "Original fullpass retained only first/last batch norms. This24-step trace does not reconstruct fullpass clipping history or shared-backbone trajectories.",
+      "Only75/86 known TRAIN and65/75 known later sides in reused192-row panels. No fresh generalization, tradable selection, economic edge or full-goal completion.",
+      "Source review found no new mask or class-weight defect. Aggregate other-TF plus activity plain-gradient contribution was locally beneficial; activity alone was harmful. These observations do not identify historical causal training effects."
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -17678,7 +17679,7 @@
         "Originals preserved; unusedwindows3/4revoked. No new epoch,HPO,checkpoint/threshold selection,normalization refit,trading,broker,Exit or promotion."
       ]
     },
-    "latest_terminal_evidence_scope": "Exact state/optimizer/RNG/head-trace and metrics verified; candidate worse on TRAIN and slightly better later versus control, but later still worse than INITIAL.",
+    "latest_terminal_evidence_scope": "Clipping reweights batches, but gradient-sum reversal does not imply AdamW reversal. Raw/scaled head projections improve TRAIN and worsen later. No native scale change admitted.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -19211,8 +19212,8 @@
       "sha256": "c30946767a52650ec071f0457ea8b127d0d7bd38c556922b34d139897edc040e"
     },
     "latest_terminal_review": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_UPDATE_FREEZE_NATIVE_20261110_001/REVIEW.json",
-      "sha256": "32b4d65353bb8d7e905a3701bb24090528e28824760172f6defd3c0d8197c51f"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/REVIEW.json",
+      "sha256": "f3eb388573d776260db310201a637371dca1eb91f92d1a68afb55d8d7602e874"
     },
     "frozen_partition_completed_units": {
       "terminal_later_full": {
@@ -71865,8 +71866,8 @@
     "later_direction_improvement_established": false
   },
   "market_state_ta_m5_clip_trace_20261110_001": {
-    "status": "ADMITTED",
-    "execution_authorized": true,
+    "status": "COMPLETE_VERIFIED_TRACE_EFFECT_NO_DIRECTION_CORRECTION",
+    "execution_authorized": false,
     "training_authorized": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/PLAN.json",
@@ -71889,9 +71890,9 @@
       "sha256": "0be595f42a0949077375ea2acac563cd49e9d538498728bf2a9fec5744ae9717"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "max_checkpoint_bytes": 1073741824,
     "max_model_constructions": 0,
@@ -71907,7 +71908,7 @@
     "swap_max": 536870912,
     "numerical_threads": 1,
     "wall_seconds": 120,
-    "review_authorized": true,
+    "review_authorized": false,
     "review_scope": {
       "max_invocations": 1,
       "max_checkpoint_decodes": 0,
@@ -71919,7 +71920,7 @@
       "numerical_threads": 1,
       "wall_seconds": 120
     },
-    "review_completed_invocations": 0,
+    "review_completed_invocations": 1,
     "test_data_used": false,
     "scope": "Recorded-gradient FP64 AdamW replay of258M5head coordinates over24saved CONTROL steps. Actual clipped theta/m/v parity first; then raw and1/16 off-policy arithmetic and fixed-representation projections. One CPU-state decode, zero models/optimizers/new gradients.",
     "source_review": {
@@ -71931,6 +71932,50 @@
       },
       "scope": "Root full258-line source read; independent AdamW bias-correction/epsilon/decay/index/parity/source-scope review. Counterfactual is off-policy and not adaptive training."
     },
-    "standing_authorization_source": "GX1_RULES_20261105_zero_spend_local_work_and_active_direction_goal_exact_readonly_admission"
+    "standing_authorization_source": "GX1_RULES_20261105_zero_spend_local_work_and_active_direction_goal_exact_readonly_admission",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/RESULT.json",
+      "sha256": "f49ad28d1826a547129d892eb8231ecd74584f44760431bfa0dcc663bcb95809"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/TERMINAL.json",
+      "sha256": "5ea916276bfb3baea8bec33b981d175cbfeda14f3896b15c16e09750055519c2"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/CONTROLLER.json",
+      "sha256": "7616fe973e4a8b56f5bf9c13ba85dd747da3a8634bfef0f8297bd43e973b8b41"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/REVIEW.json",
+      "sha256": "f3eb388573d776260db310201a637371dca1eb91f92d1a68afb55d8d7602e874"
+    },
+    "reviewer": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/review.py",
+      "sha256": "d607e3c390bd6731cf2c9429bf16a596af2e196767e5729e93b9269b84ad3e9b"
+    },
+    "review_command": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/REVIEW_COMMAND.json",
+      "sha256": "a04799bf7e18c4825070229e8500601819c413d3cead9206b9ad4a2e377696b6"
+    },
+    "integrated_report": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_CLIP_TRACE_REVIEW.json",
+      "sha256": "1876070a99a59579e31373aaff3ed984196f360625444a3b0d825ed99ceef2d8"
+    },
+    "independent_review_passed": true,
+    "actual_counts": {
+      "model_constructions": 0,
+      "optimizer_constructions": 0,
+      "forwards": 0,
+      "backwards": 0,
+      "updates": 0,
+      "optimizer_steps": 0,
+      "checkpoint_decodes": 1,
+      "checkpoint_writes": 0,
+      "target_loader_calls": 0
+    },
+    "whole_command_seconds": 3.8222234659988317,
+    "native_scale_change_qualified": false,
+    "full_train_correction_qualified": false,
+    "later_direction_improvement_established": false
   }
 }
