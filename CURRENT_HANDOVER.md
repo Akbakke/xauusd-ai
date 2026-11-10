@@ -15,7 +15,7 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_ORIGINAL_CUDA_PREFIX_TRACE_SOURCE_READY.
+Policystatus: TA_M5_ORIGINAL_CUDA_PREFIX_TRACE_ADMITTED.
 
 [Original treningssporing](docs/TA_M5_ORIGINAL_TRACE_SCOPE_REVIEW.json):
 Kildekontrollen bekrefter samme M5-loss/score, men originalkjøringen bevarte
@@ -35,7 +35,10 @@ Koden er nå forberedt:39 fokuserte admissiontester, fysisk metadata-
 kontroll av28inputreferanser/85kildeeiere og uavhengig workerreviewPASS.
 50 eksisterende tester av uendret batchbro er gjenbrukt. Modellfunksjon,
 tap og optimizer er uendret; bare observer og eksakt scope/dispatch er nye.
-Fysisk CUDA-/P4096-paritet er ennå ikke målt. training_enabled=false.
+Fysisk CUDA-/P4096-paritet er ennå ikke målt. Én eksakt256-stegsdiagnose
+påCUDA250W er nå admitted; kun denne scope har training_enabled=true.
+Materialisering, trygg fersk fysisk boot og eksisterende launchvakter gjenstår.
+Ingen ny kandidat, fullfit eller relansering er autorisert.
 
 
 [Fullpopulasjonens månedsregnskap](docs/TA_M5_FULLPOP_MONTH_DECOMP_REVIEW.json)
