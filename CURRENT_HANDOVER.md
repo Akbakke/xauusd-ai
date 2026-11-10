@@ -15,7 +15,16 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_ORIGINAL_CUDA_PREFIX_TRACE_COMPLETE_NO_CORRECTION.
+Policystatus: TA_M5_HEAD_CENTERING_GEOMETRY_AUDIT_ADMITTED.
+
+Én cached TRAIN-kontroll er admitted for å måle koblingen mellom
+M5-headvekter og representasjonens gjennomsnitt. Kildekontroll viser at
+siste Linear→GELU går direkte til sidehodene uten TRAIN-middelsentrering.
+Fast mu0 beregnes fra original INITIALs29574TRAIN-representasjoner.
+Regnskapet skiller faktisk weight·mu0, bias og representasjonsbevegelse;
+alle identiteter/projeksjoner kontrolleres mot eksisterende bevis.
+0modeller/forwards/fit/checkpointdekodinger; ingen senereTRAIN-arrays.
+Ingen sentreringsrettelse eller nativekjøring er autorisert.
 
 [Original treningssporing](docs/TA_M5_ORIGINAL_TRACE_REVIEW.json):
 Fullført på fersk boot633, CUDA250W, eksakt256steg/4096rader.

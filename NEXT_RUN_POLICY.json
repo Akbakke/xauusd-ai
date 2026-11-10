@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-10T04:57:56.395535+00:00",
-  "status": "TA_M5_ORIGINAL_CUDA_PREFIX_TRACE_COMPLETE_NO_CORRECTION",
+  "observed_utc": "2026-11-10T05:11:27.527160+00:00",
+  "status": "TA_M5_HEAD_CENTERING_GEOMETRY_AUDIT_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Exact original trace and gradient/Adam reconstruction qualified. Local adverse head steps coexist with aggregate same-presentation improvement; they do not establish the full-population cause. Reuse exact trace and fixed-population attribution for a falsifiable correction; no new model run or optimizer/feature change admitted.",
+  "next_action": "Run only one cached TRAIN geometry accounting after source review; falsify fixed-mean head-coordinate coupling before any native intervention. Training remains disabled.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1685,7 +1685,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Exact historical CUDA replay plus cached gradient/Adam algebra reviewed and complete. No loss/sign/mask or Adam implementation defect found. Original direction deterioration remains unresolved; no predictive correction qualified.",
+    "current_activity": "One cached TRAIN mean/head-coordinate audit admitted; no native training or parameter intervention.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc\u2019en du, og lag deg et m\u00e5l som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -9209,7 +9209,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Exact original trace and gradient/Adam reconstruction qualified. Local adverse head steps coexist with aggregate same-presentation improvement; they do not establish the full-population cause. Reuse exact trace and fixed-population attribution for a falsifiable correction; no new model run or optimizer/feature change admitted.",
+    "next_action": "Run only one cached TRAIN geometry accounting after source review; falsify fixed-mean head-coordinate coupling before any native intervention. Training remains disabled.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -73070,6 +73070,44 @@
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_ORIGINAL_TRACE_REVIEW.json",
       "sha256": "3617a185187087ba77f3a1fbbfc5fc140fbd409b4bc895a196c6d5b16d156b09"
+    }
+  },
+  "market_state_ta_m5_head_centering_geometry_20261110_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_CENTERING_GEOMETRY_20261110_001/PLAN.json",
+      "sha256": "87c678f7b9f860b865a84438d752f2b1634380ee333dc13f3da0bda65556008f"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_CENTERING_GEOMETRY_20261110_001/audit.py",
+      "sha256": "a33484bb2b4a5ab5681e52800041abe37d5c861eaf2e364e60ac03fe7479af25"
+    },
+    "execution_authorized": true,
+    "training_authorized": false,
+    "relaunch_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "memory_max": "4G",
+    "swap_max": "512M",
+    "wall_seconds": 180,
+    "numerical_threads": 1,
+    "model_constructions": 0,
+    "model_forwards": 0,
+    "readout_fits": 0,
+    "optimizer_updates": 0,
+    "checkpoint_decodes": 0,
+    "later_arrays_consumed": false,
+    "test_data_used": false,
+    "descriptive_TRAIN_mean_estimates": 2,
+    "scope": "One cached initial/final fullTRAIN affine mean-logit decomposition and exact256-step head/gradient coordinate accounting. No alternate optimizer, predicted candidate or new native fit.",
+    "prelaunch_requirement": "Root fullsource review plus independent bounded source review; existing input/cache/head/trace qualification reused, exact bytes checked beforedecode.",
+    "source_review": {
+      "root_full_source": "PASS",
+      "independent_source": "PASS",
+      "array_or_model_execution_during_review": false,
+      "existing_input_head_trace_checks_reused": true
     }
   }
 }
