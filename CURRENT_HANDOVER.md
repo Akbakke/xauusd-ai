@@ -15,46 +15,61 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_ADAM_CROSS_PERIOD_ADMITTED.
+Policystatus: TA_M5_ADAM_CROSS_PERIOD_COMPLETE_LOCAL_INTERFERENCE.
 
-Én ny read-only diagnose er kvalifisert, men ennå ikke kjørt:
-Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001
-PLAN SHA cb1e58d1a1a42157db6874943fd859d181a2e16fed7091e0f5ca4fb0087620fd.
-Worker SHA 9844c9833ca9c918b36010d7fcd30129be55a9197cf2cdc25b21885bacd6f9ea.
-Reviewer SHA cb21abb71f3c79c8580ef71965ae0f2784e24ed51ab378d76a60ead4a0157b6c.
-Root har lest hele worker/reviewer, og separat kildereview er bestått.
-Metadata-preflight bestått på 7,166 s uten modeller eller payloaddekoding.
+[AdamW-kryssperiodekontrollen](docs/TA_M5_ADAM_CROSS_PERIOD_REVIEW.json)
+er fullført og uavhengig verifisert. Rot:
+ /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001
+RESULT SHA 4edf2bf660ef99ed99dc994a774b099d2a08968f710be2514512290eda3fbce0.
+REVIEW SHA f73924febb47c642b0f24ce4cf1b1d0cdb67489734d49219c66a244e0b431546.
+Alle engangs-/treningsporter er stengt; training_enabled=false.
 
-Konkret spørsmål: gjør AdamW fra hver enkelt liten batch læringen ugunstig
-for andre perioder, selv om rågradienten og egen-batch-retningen er gunstig?
-Eksisterende Gram-data viser gunstig samlet plain-GD-kryssbidrag for S/F ved
-både original INITIAL og FINAL. Alle 12 fullmodell self-Adam-retninger er
-også gunstige. Dette beviser ikke kryss-Adam: Adam på middelgradienten er
-ikke middelverdien av tre uavhengige Adam-retninger.
+Samme tre B16 TRAIN-batcher 0/14272/29552 ved original INITIAL og FINAL.
+Én modell, to checkpointlesinger, 12 forwards, 18 autograd, null optimizer,
+parameteroppdateringer og checkpointskrivinger. Alle fem TF beholdt.
+Råoutputs er bitlike opprinnelig kontroll. Middelgradient avviker maksimalt
+7,699e-8 mot gammel komponentsum; masker/vekter/momenter/step stemmer.
+Nye private gradientarkiver: 250208814 bytes hver. De gjør videre matrise-
+kontroll mulig uten ny modell-/gradientkjøring.
 
-Samme tre B16 TRAIN-batcher ved 0/14272/29552 og begge originale tilstander.
-Én modell, to checkpointlesinger, 12 forwards, 18 autograd, ingen optimizer,
-backward, parameteroppdatering eller checkpointskriving. Alle fem TF beholdes.
-Kanonisk totalgradient brukes; gammel komponentsum kontrolleres med allerede
-kvalifisert atol 2e-6/rtol 3e-5. Raw/query/RNG og vekter/momenter bindes.
-Matrisens rader er train-batch, kolonner eval-batch; alle ni par rapporteres.
-Global clipping skjer før parameterdeling. Alle hypotetiske Adam-retninger
-starter fra samme lagrede momenter/step. Bidrag fra någradient, gammelt moment
-og decay bruker samme sluttdominator. Ingen fortegns- eller utvalgsport.
+Positivt betyr lokal økning i eval-BCE. Kryssmiddel plain-GD / AdamW:
+INITIAL S: -0,01584460 / +0,0000174230.
+INITIAL F: -0,00124593 / +0,0000217804.
+FINAL S: -0,12046463 / +0,0000177238.
+FINAL F: -0,10395802 / +0,0000246642.
+Alle 12 self-Adam-celler og alle fire ni-cellersmiddel er fortsatt gunstige.
+Dette er lokal kryssperiode-interferens, ikke total optimeringssvikt.
 
-Produsent 12G/512M/én tråd/600s; to nye private gradientarkiver, maks 256MiB
-hver, gjenbruk av eksisterende vekter/momenter. Etter terminal: review
-4G/512M/én tråd/180s, ingen modeller eller checkpointdekoding.
-training_enabled=false og native/fullfit stengt. Bare eksakt execution gate
-er åpen én gang; ingen samtidig tung jobb eller kildeendring under kjøring.
-Resultatet er lokal BCE-geometri, ikke faktiske steg, Brier eller senere
-generalisering. Ingen ny treningsvariant er autorisert av denne diagnosen.
+INITIAL: batchavhengig klipping omvekter kryssmiddelet til ugunstig allerede
+før Adam. En positiv clipfaktor endrer aldri fortegnet til ett enkelt par.
+FINAL: aktuell gradients Adam-bidrag er gunstig (-2,518e-5/-2,200e-5), men
+gammelt første moment gir +4,290e-5/+4,666e-5 og snur totalen for S/F.
+Bidragene deler samme sluttdominator; dette er ikke en test av momentreset.
+M5-hoders kryssbidrag er ugunstig i alle fire celler; query-projeksjonen hjelper.
+Adam av middelgradienten hjelper mer enn midlet av tre uavhengige Adam-
+retninger. Dette beviser ikke en bestemt akkumulering eller historisk sekvens.
 
-Siste fullførte prøve: [aktivitet→C-detach](docs/TA_M5_ACTIVITY_C_DETACH_NATIVE_REVIEW.json).
-Teknisk verifisert, men samlet sammenligning feilet: bare TRAIN F slo alle
-referanser; begge senere S/F slo CONTROL/prior, men var svakere enn INITIAL.
-Ingen fullfit, automatisk videreføring eller maskestyrkesveip følger.
-Originale bevis/checkpoints bevares. TEST, GC, Entry/Exit og handel er stengt.
+Helkommando 217,560 s (3m38s), worker 214,221 s. Review 14,862 s,
+preflight 7,166 s. PeakRSS 6,560GB. Uavhengig skalaravvik maks 6,129e-14.
+Ingen modell/optimizer/checkpointdekoding i review. Forberedelse og venting
+er utenom; ingen målt akselerasjon av identisk arbeidsmengde.
+
+Tidligere akkumulering er nå avklart: frosne representasjoner fra corrected
+INITIAL 51e0e883, fire M5-headtensorer, samme 1024 rader/64 mikrobatcher.
+Ordinær 64 mot akkumulert 8 optimizersteg; begge forverret TRAIN fra INITIAL,
+akkumulering mindre. Senere TRAIN ble ikke lest. Ingen native backbone-
+gradienter eller global klipping over hele modellen ble testet der.
+
+Neste steg er én avgrenset, matchet native sammenligning av aggregering før
+global clipping/AdamW fra originaltilstanden, med samme TRAIN- og separat
+senere-TRAIN-målinger. Oppgi dataeksponering og optimizersteg hver for seg;
+gjenbruk bare kontroller som faktisk matcher aksene. Ingen ny gradient-
+innsamling, fullfit, clip-/momentumsveip, reset eller launch er gitt av denne
+brukte planen. Fullpass-årsak og faktisk retningsrettelse er fortsatt ubevist.
+
+Siste treningsprøve: [aktivitet→C-detach](docs/TA_M5_ACTIVITY_C_DETACH_NATIVE_REVIEW.json).
+Bare TRAIN F slo alle referanser; senere S/F var svakere enn INITIAL.
+Originale checkpoints bevares. TEST, GC, Entry/Exit og handel er stengt.
 
 MIX24 er fullført og uavhengig verifisert:
 [docs/TA_M5_MIXED_BATCH_NATIVE_REVIEW.json](docs/TA_M5_MIXED_BATCH_NATIVE_REVIEW.json).

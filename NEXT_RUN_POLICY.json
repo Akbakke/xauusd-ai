@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-10T02:13:20.957192+00:00",
-  "status": "TA_M5_ADAM_CROSS_PERIOD_ADMITTED",
+  "status": "TA_M5_ADAM_CROSS_PERIOD_COMPLETE_LOCAL_INTERFERENCE",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1685,7 +1685,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Read-only original INITIAL/FINAL Adam cross-period diagnostic admitted once:12 forwards/18 autograd, zero training or optimizer updates. Existing raw-gradient cross means and all self Adam directions are favorable; missing off-diagonal Adam contractions are the question.",
+    "current_activity": "Completed and independently verified frozen-point Adam cross-period diagnosis: all4 cross means switch from favorable raw gradients to adverse Adam, while all self and nine-cell means remain favorable. Zero optimizer updates.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1714,11 +1714,11 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "One24-update native candidate with48 fullforwards/48 extra small decoders; no baseline/control rerun. Source/value/RNG/gradient-route witnesses and independent saved-state/scores review passed.",
+    "latest_terminal_role": "Read-only12-forward18-autograd diagnostic completed; no training/optimizer/checkpoint write. Independent saved-array arithmetic PASS.",
     "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_C_DETACH_NATIVE_20261110_001/TERMINAL.json",
-      "sha256": "890e8f653284578a005d263fedec1cdf3c9af473792696da1be54047901c5e59"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001/TERMINAL.json",
+      "sha256": "bc8535fe687b1a0ca2cdcf8605d1789e616d841bcfc8f269104edfa189579eaa"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -1738,7 +1738,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Whether independently applied small-batch Adam directions oppose other periods is unmeasured; saved mean-gradient and self-only results cannot answer it. No causal training correction is qualified.",
+    "current_blocker": "Local cross-period interference is measured, but its contribution to the historical fullpass regression and a correction on matched TRAIN/later data remain unproved.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9209,7 +9209,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute this exact bounded read-only campaign once, preserve all matrix signs, then run its independently bound saved-array reviewer after terminal. Do not start a fit or select a variant from local derivatives alone.",
+    "next_action": "Define one bounded matched native comparison of aggregation before whole-model clipping/AdamW from the original state, preserving genuine5TF supervision and reporting both identical TRAIN and separate later TRAIN panels. Reuse existing control/checkpoint/output evidence where the data and execution axes truly match. Declare data exposure and optimizer-update count separately. Prior frozen-head accumulation was negative and is not native-backbone evidence. No sweep, fullfit, moment reset or launch is admitted by this completed diagnostic.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -66325,7 +66325,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "Existing Gram arithmetic rules out an adverse overall plain-GD cross mean and a fullmodel self-Adam reversal at the sampled states. One readonly3x3 native-gradient/Adam transfer diagnostic is admitted to fill the missing cross-pairs; no learning variant admitted.",
+    "latest_progress": "Verified local cross-period Adam interference in all4 state/task cells. INITIAL batch-specific clipping reweights the cross mean; FINAL old momentum flips favorable current-gradient cross means adverse. All self/nine-cell means stay favorable; no fullpass cause or correction yet. Reconcile prior accumulation/reset trials before any distinct native comparison. Prior accumulation scope verified: frozen51e0 cached heads only,64vs8 updates, bothTRAINworse and no later scoring; it does not test original native backbone aggregation.",
     "user_clarification_20261109": {
       "scope": "Correct direction for short sniper and longer long/shorttrends; separate forecasts and targets at M5 cadence.",
       "existing_future_horizons_minutes": [
@@ -72594,8 +72594,8 @@
     "next_action": "No fullfit, promotion, automatic resume or strength sweep. Existing per-batch Gram review is complete and shows mixed INITIAL activity-to-C effects; this does not explain later regression. Reuse saved outputs and captures to isolate the remaining TRAIN/later mismatch before considering a distinct learning intervention."
   },
   "market_state_ta_m5_adam_cross_period_20261110_001": {
-    "status": "ADMITTED",
-    "execution_authorized": true,
+    "status": "COMPLETE_VERIFIED_LOCAL_ADAM_CROSS_PERIOD_INTERFERENCE",
+    "execution_authorized": false,
     "training_authorized": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001/PLAN.json",
@@ -72618,9 +72618,9 @@
       "sha256": "816ba3a368318f5e12d614a55e5ede0c2734e5250c65c069124b6581db3364ad"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "automatic_resume_allowed": false,
     "promotion_allowed": false,
@@ -72642,8 +72642,8 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001/review.py",
       "sha256": "cb21abb71f3c79c8580ef71965ae0f2784e24ed51ab378d76a60ead4a0157b6c"
     },
-    "review_authorized": true,
-    "review_completed_invocations": 0,
+    "review_authorized": false,
+    "review_completed_invocations": 1,
     "review_only_after_terminal": true,
     "review_scope": {
       "memory_max": "4G",
@@ -72671,6 +72671,49 @@
       },
       "scope": "Root read all451 worker and188 reviewer lines; independent worker review. Qualified original state loader/moments reused. Native joint gradients, unchanged raw/query/RNG, globalclip before partitions, per-parameter None and step semantics, additive Adam decomposition with shared denominator; no parameter/optimizer update."
     },
-    "standing_authorization_source": "GX1_RULES_20261105_zero_spend_local_work_and_active_direction_goal_exact_technical_admission"
+    "standing_authorization_source": "GX1_RULES_20261105_zero_spend_local_work_and_active_direction_goal_exact_technical_admission",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001/RESULT.json",
+      "sha256": "4edf2bf660ef99ed99dc994a774b099d2a08968f710be2514512290eda3fbce0"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001/TERMINAL.json",
+      "sha256": "bc8535fe687b1a0ca2cdcf8605d1789e616d841bcfc8f269104edfa189579eaa"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001/CONTROLLER.json",
+      "sha256": "ef41aae4d745b00c7c234b95df7bb052850a780b7cc89cfece921d7ba53a0341"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001/REVIEW.json",
+      "sha256": "f73924febb47c642b0f24ce4cf1b1d0cdb67489734d49219c66a244e0b431546"
+    },
+    "review_command": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001/REVIEW_COMMAND.json",
+      "sha256": "4b72fb0846a354a1443035f356ec2785cabf78aa89c54edba58145561722c91b"
+    },
+    "integrated_report": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_ADAM_CROSS_PERIOD_REVIEW.json",
+      "sha256": "b6c0d28c699a1f7c3c99d51d372ee94195a8fa079f5a535ea3671a79152f46c0"
+    },
+    "actual_counts": {
+      "model_constructions": 1,
+      "checkpoint_loads": 2,
+      "forwards": 12,
+      "autograd_calls": 18,
+      "backwards": 0,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "checkpoint_writes": 0,
+      "resume_state_load_calls": 2,
+      "resume_state_load_returns": 2
+    },
+    "independent_review_passed": true,
+    "local_cross_period_mechanism_established": true,
+    "full_train_cause_established": false,
+    "full_train_correction_qualified": false,
+    "later_direction_improvement_established": false,
+    "native_execution_authorized": false,
+    "next_action": "Define one bounded matched native comparison of aggregation before whole-model clipping/AdamW from the original state, preserving genuine5TF supervision and reporting both identical TRAIN and separate later TRAIN panels. Reuse existing control/checkpoint/output evidence where the data and execution axes truly match. Declare data exposure and optimizer-update count separately. Prior frozen-head accumulation was negative and is not native-backbone evidence. No sweep, fullfit, moment reset or launch is admitted by this completed diagnostic."
   }
 }

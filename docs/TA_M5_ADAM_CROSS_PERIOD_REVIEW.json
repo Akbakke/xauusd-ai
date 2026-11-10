@@ -1,0 +1,683 @@
+{
+  "status": "COMPLETE_VERIFIED_LOCAL_ADAM_CROSS_PERIOD_INTERFERENCE",
+  "stage": "market_state_ta_m5_adam_cross_period_20261110_001",
+  "question": "Does saved-state AdamW change favorable cross-period gradient transfer into unfavorable M5 S/F directions?",
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001/PLAN.json",
+    "sha256": "cb1e58d1a1a42157db6874943fd859d181a2e16fed7091e0f5ca4fb0087620fd"
+  },
+  "worker": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001/probe.py",
+    "sha256": "9844c9833ca9c918b36010d7fcd30129be55a9197cf2cdc25b21885bacd6f9ea"
+  },
+  "controller": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001/CONTROLLER.json",
+    "sha256": "ef41aae4d745b00c7c234b95df7bb052850a780b7cc89cfece921d7ba53a0341"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001/RESULT.json",
+    "sha256": "4edf2bf660ef99ed99dc994a774b099d2a08968f710be2514512290eda3fbce0"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001/TERMINAL.json",
+    "sha256": "bc8535fe687b1a0ca2cdcf8605d1789e616d841bcfc8f269104edfa189579eaa"
+  },
+  "review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001/REVIEW.json",
+    "sha256": "f73924febb47c642b0f24ce4cf1b1d0cdb67489734d49219c66a244e0b431546"
+  },
+  "reviewer": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001/review.py",
+    "sha256": "cb21abb71f3c79c8580ef71965ae0f2784e24ed51ab378d76a60ead4a0157b6c"
+  },
+  "review_command": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001/REVIEW_COMMAND.json",
+    "sha256": "4b72fb0846a354a1443035f356ec2785cabf78aa89c54edba58145561722c91b"
+  },
+  "source_base_commit": "8603c0101319e5ee612bb4269bb7220fe151daa7",
+  "admission_commit": "a4de05c11a1f3a0fc2c2157aa1537ee4240ec92e",
+  "source_unchanged_at_terminal": true,
+  "counts": {
+    "model_constructions": 1,
+    "checkpoint_loads": 2,
+    "forwards": 12,
+    "autograd_calls": 18,
+    "backwards": 0,
+    "optimizer_constructions": 0,
+    "optimizer_updates": 0,
+    "checkpoint_writes": 0,
+    "resume_state_load_calls": 2,
+    "resume_state_load_returns": 2
+  },
+  "batch_starts": [
+    0,
+    14272,
+    29552
+  ],
+  "matrix_axes": [
+    "train_batch_i",
+    "eval_batch_j"
+  ],
+  "sign_convention": "Positive is increased local eval weighted BCE along the indicated hypothetical training direction. All steps start from identical saved state within each checkpoint.",
+  "cells": {
+    "INITIAL": {
+      "measurement": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001/INITIAL_TRANSFER.json",
+        "sha256": "0b5d4a5f40c26786db9e7e066f53dd7d3d0d35960187f1c6462e8db53bfe7612"
+      },
+      "private_gradients": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001/INITIAL_BATCH_GRADIENTS.npz",
+        "sha256": "97a48e7626ed12a689cc08f30659f9800038a402e71b7a1d027e82fb922a88d0"
+      },
+      "checkpoint_identity": {
+        "cursor": 0,
+        "optimizer_updates": 0,
+        "model_state_sha256": "ae772fd755cbfa07b1b7bcca8bccd2c8a8889806989a289ddb8267972c281b37",
+        "optimizer_state_sha256": "9bb22734103774ba43bc7d822acf493b558e551b5606be63b3d63e1043a723c3",
+        "checkpoint": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FOLD1_FIT_20261109_002/RUNTIME/prefix-fit/states/INITIAL_FOLD1_STATE.pt",
+          "sha256": "80fc8029200c8076bc2faa38014bfd24c75ee71632fb1f45138249ccaca8d484"
+        }
+      },
+      "gradient_parity": {
+        "train_mean_max_abs": 7.698933285338327e-08,
+        "eval_mean_max_abs": 2.7939677238464355e-09,
+        "atol": 2e-06,
+        "rtol": 3e-05,
+        "used_masks_exact": true,
+        "weights_moments_steps_exact": true,
+        "state_original_gradient_raw_max_abs": 0.0,
+        "future_original_gradient_raw_max_abs": 0.0
+      },
+      "batch_steps": [
+        {
+          "norm": 6.318787185714189,
+          "clip": 0.15825819296504456,
+          "decomposition_max_abs_error": 4.0657581468206416e-20,
+          "decomposition_bound": "16*float64_eps*sum_abs_contributions+16*minimum_subnormal",
+          "train_batch": 0,
+          "batch_start": 0,
+          "used_parameter_count": 570
+        },
+        {
+          "norm": 4.599966724073984,
+          "clip": 0.21739282968584506,
+          "decomposition_max_abs_error": 4.0657581468206416e-20,
+          "decomposition_bound": "16*float64_eps*sum_abs_contributions+16*minimum_subnormal",
+          "train_batch": 1,
+          "batch_start": 14272,
+          "used_parameter_count": 570
+        },
+        {
+          "norm": 1.9685292006240374,
+          "clip": 0.5079932223965846,
+          "decomposition_max_abs_error": 4.0657581468206416e-20,
+          "decomposition_bound": "16*float64_eps*sum_abs_contributions+16*minimum_subnormal",
+          "train_batch": 2,
+          "batch_start": 29552,
+          "used_parameter_count": 570
+        }
+      ],
+      "tasks": {
+        "state": {
+          "effects": {
+            "plain_GD": {
+              "diagonal_mean": -0.3000071392780905,
+              "cross_period_mean": -0.01584460177379288,
+              "all_mean": -0.11056544760855874
+            },
+            "clipped_GD": {
+              "diagonal_mean": -0.06259095337174181,
+              "cross_period_mean": 0.007503834041688171,
+              "all_mean": -0.015861095096121824
+            },
+            "Adam_total": {
+              "diagonal_mean": -0.001096540982605501,
+              "cross_period_mean": 1.7422990016466888e-05,
+              "all_mean": -0.0003538983341908557
+            },
+            "Adam_current_gradient": {
+              "diagonal_mean": -0.0010965408539126407,
+              "cross_period_mean": 1.742311870932884e-05,
+              "all_mean": -0.00035389820549799433
+            },
+            "Adam_old_moment": {
+              "diagonal_mean": 0.0,
+              "cross_period_mean": 0.0,
+              "all_mean": 0.0
+            },
+            "Adam_decay": {
+              "diagonal_mean": -1.286928617735825e-10,
+              "cross_period_mean": -1.286928617735825e-10,
+              "all_mean": -1.286928617735825e-10
+            }
+          },
+          "plain_matrix": [
+            [
+              -0.35804292452514946,
+              -0.2732689214733212,
+              0.10406734772368244
+            ],
+            [
+              -0.26646096945549835,
+              -0.49625455101617116,
+              0.1489766521342968
+            ],
+            [
+              0.06853353359864808,
+              0.12308474682943493,
+              -0.04572394229295073
+            ]
+          ],
+          "Adam_matrix": [
+            [
+              -0.0012875358140567452,
+              -0.0005595433409308216,
+              0.0002891240195862602
+            ],
+            [
+              -0.00043788880275657567,
+              -0.0016314779387645755,
+              0.00033411509867539555
+            ],
+            [
+              0.00015930911584250012,
+              0.00031942184968204273,
+              -0.00037060919499518215
+            ]
+          ],
+          "mean_Adam_vs_Adam_mean": {
+            "mean_of_independent_batch_Adam": -0.0003538983341908557,
+            "Adam_of_mean_native_joint_gradient": -0.0008030161251069988,
+            "difference": 0.0004491177909161431
+          },
+          "parameter_cross_contributions": {
+            "backbone": {
+              "Adam_total": -2.92252415061464e-05,
+              "Adam_current_gradient": -2.9225158205897116e-05,
+              "Adam_old_moment": 0.0,
+              "Adam_decay": -8.330024913735823e-11
+            },
+            "query_projection": {
+              "Adam_total": -8.842875886338792e-06,
+              "Adam_current_gradient": -8.842848331842283e-06,
+              "Adam_old_moment": 0.0,
+              "Adam_decay": -2.7554496486699794e-11
+            },
+            "m5_heads": {
+              "Adam_total": 5.549110740895208e-05,
+              "Adam_current_gradient": 5.549112524706824e-05,
+              "Adam_old_moment": 0.0,
+              "Adam_decay": -1.7838116149524503e-11
+            },
+            "other_heads": {
+              "Adam_total": 0.0,
+              "Adam_current_gradient": 0.0,
+              "Adam_old_moment": 0.0,
+              "Adam_decay": 0.0
+            }
+          }
+        },
+        "future": {
+          "effects": {
+            "plain_GD": {
+              "diagonal_mean": -0.16247556359186097,
+              "cross_period_mean": -0.0012459322897162347,
+              "all_mean": -0.05498914272376448
+            },
+            "clipped_GD": {
+              "diagonal_mean": -0.028944057527435302,
+              "cross_period_mean": 0.0004807429154064689,
+              "all_mean": -0.009327523898874122
+            },
+            "Adam_total": {
+              "diagonal_mean": -0.0007550844598285766,
+              "cross_period_mean": 2.178040146274946e-05,
+              "all_mean": -0.00023717455230102592
+            },
+            "Adam_current_gradient": {
+              "diagonal_mean": -0.0007550844605315362,
+              "cross_period_mean": 2.1780400759789854e-05,
+              "all_mean": -0.00023717455300398553
+            },
+            "Adam_old_moment": {
+              "diagonal_mean": 0.0,
+              "cross_period_mean": 0.0,
+              "all_mean": 0.0
+            },
+            "Adam_decay": {
+              "diagonal_mean": 7.029596074049226e-13,
+              "cross_period_mean": 7.029596074049268e-13,
+              "all_mean": 7.029596074049254e-13
+            }
+          },
+          "plain_matrix": [
+            [
+              -0.38083468847041463,
+              -0.016101375071343484,
+              0.034133692525734755
+            ],
+            [
+              -0.05621791716397646,
+              -0.0949277855711402,
+              0.011522377012235463
+            ],
+            [
+              0.022768242930224943,
+              -0.0035806139711726313,
+              -0.011664216734028069
+            ]
+          ],
+          "Adam_matrix": [
+            [
+              -0.0009784976297259336,
+              -7.5497164590391215e-06,
+              0.0001016099372356225
+            ],
+            [
+              -0.00021067118736174998,
+              -0.0010096809561346734,
+              0.00012168052174001575
+            ],
+            [
+              0.0001939806083724283,
+              -6.836775475078068e-05,
+              -0.000277074793625123
+            ]
+          ],
+          "mean_Adam_vs_Adam_mean": {
+            "mean_of_independent_batch_Adam": -0.00023717455230102592,
+            "Adam_of_mean_native_joint_gradient": -0.0005519985917786744,
+            "difference": 0.0003148240394776485
+          },
+          "parameter_cross_contributions": {
+            "backbone": {
+              "Adam_total": 5.930375153248906e-06,
+              "Adam_current_gradient": 5.9303725119432296e-06,
+              "Adam_old_moment": 0.0,
+              "Adam_decay": 2.6413057309551492e-12
+            },
+            "query_projection": {
+              "Adam_total": -9.855369016695403e-06,
+              "Adam_current_gradient": -9.855369208542916e-06,
+              "Adam_old_moment": 0.0,
+              "Adam_decay": 1.9184747304503427e-13
+            },
+            "m5_heads": {
+              "Adam_total": 2.5705395326195958e-05,
+              "Adam_current_gradient": 2.570539745638954e-05,
+              "Adam_old_moment": 0.0,
+              "Adam_decay": -2.1301935965952716e-12
+            },
+            "other_heads": {
+              "Adam_total": 0.0,
+              "Adam_current_gradient": 0.0,
+              "Adam_old_moment": 0.0,
+              "Adam_decay": 0.0
+            }
+          }
+        }
+      },
+      "array_bytes": 250208814
+    },
+    "FINAL": {
+      "measurement": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001/FINAL_TRANSFER.json",
+        "sha256": "53f5899bfb054305bcf2a9185db42db1ddb6f28792c3556d83a32846385ce694"
+      },
+      "private_gradients": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001/FINAL_BATCH_GRADIENTS.npz",
+        "sha256": "7d804dfdba4490b2da2ee00ecbc339c78372a9221e52b4d481372bc8acbe0f80"
+      },
+      "checkpoint_identity": {
+        "cursor": 29574,
+        "optimizer_updates": 1849,
+        "model_state_sha256": "23ff344b183a2256f2c8a1a8e32b811ed14f10c1cb1423becca14b36d5340d5b",
+        "optimizer_state_sha256": "2ecf7ea0d75208d28a9c83c64c746e5047d9b770553695846af9056b306d1eba",
+        "checkpoint": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FOLD1_FIT_20261109_002/RUNTIME/prefix-fit/states/FINAL_FOLD1_FIT_STATE.pt",
+          "sha256": "142aa2ea4649b5380f224f670fafb214e67879ab616a6acca132a7ba5d8e1fb8"
+        }
+      },
+      "gradient_parity": {
+        "train_mean_max_abs": 6.95387522009483e-08,
+        "eval_mean_max_abs": 4.967053740534411e-09,
+        "atol": 2e-06,
+        "rtol": 3e-05,
+        "used_masks_exact": true,
+        "weights_moments_steps_exact": true,
+        "state_original_gradient_raw_max_abs": 0.0,
+        "future_original_gradient_raw_max_abs": 0.0
+      },
+      "batch_steps": [
+        {
+          "norm": 7.595169175363809,
+          "clip": 0.1316626193898414,
+          "decomposition_max_abs_error": 1.0842021724855044e-19,
+          "decomposition_bound": "16*float64_eps*sum_abs_contributions+16*minimum_subnormal",
+          "train_batch": 0,
+          "batch_start": 0,
+          "used_parameter_count": 570
+        },
+        {
+          "norm": 6.030181209315373,
+          "clip": 0.16583246828847206,
+          "decomposition_max_abs_error": 1.0842021724855044e-19,
+          "decomposition_bound": "16*float64_eps*sum_abs_contributions+16*minimum_subnormal",
+          "train_batch": 1,
+          "batch_start": 14272,
+          "used_parameter_count": 570
+        },
+        {
+          "norm": 2.318792576791953,
+          "clip": 0.43125874161834543,
+          "decomposition_max_abs_error": 1.0842021724855044e-19,
+          "decomposition_bound": "16*float64_eps*sum_abs_contributions+16*minimum_subnormal",
+          "train_batch": 2,
+          "batch_start": 29552,
+          "used_parameter_count": 570
+        }
+      ],
+      "tasks": {
+        "state": {
+          "effects": {
+            "plain_GD": {
+              "diagonal_mean": -0.7096949104138313,
+              "cross_period_mean": -0.12046462647570344,
+              "all_mean": -0.31687472112174603
+            },
+            "clipped_GD": {
+              "diagonal_mean": -0.11051530897855344,
+              "cross_period_mean": -0.00801468771235476,
+              "all_mean": -0.042181561467754314
+            },
+            "Adam_total": {
+              "diagonal_mean": -0.00027920999833600007,
+              "cross_period_mean": 1.772384871021115e-05,
+              "all_mean": -8.125410030519258e-05
+            },
+            "Adam_current_gradient": {
+              "diagonal_mean": -0.00032254007669531504,
+              "cross_period_mean": -2.517790643488129e-05,
+              "all_mean": -0.00012429862985502586
+            },
+            "Adam_old_moment": {
+              "diagonal_mean": 4.3330509959073355e-05,
+              "cross_period_mean": 4.290218674485116e-05,
+              "all_mean": 4.30449611495919e-05
+            },
+            "Adam_decay": {
+              "diagonal_mean": -4.3159975866410683e-10,
+              "cross_period_mean": -4.3159975866410683e-10,
+              "all_mean": -4.315997586641068e-10
+            }
+          },
+          "plain_matrix": [
+            [
+              -0.9271389684982796,
+              -0.6533935360305367,
+              0.12435557302100703
+            ],
+            [
+              -0.6086430374549345,
+              -1.1636874957947003,
+              0.21259071935408924
+            ],
+            [
+              0.06961561462521593,
+              0.13268690763093835,
+              -0.03825826694851408
+            ]
+          ],
+          "Adam_matrix": [
+            [
+              -0.00026503020263075276,
+              9.06582616361664e-05,
+              -0.00011685890122393422
+            ],
+            [
+              -3.9060019972687657e-05,
+              -0.00039949361665563455,
+              -9.149936901436655e-05
+            ],
+            [
+              6.79596282684304e-05,
+              0.0001951434925676585,
+              -0.00017310617572161284
+            ]
+          ],
+          "mean_Adam_vs_Adam_mean": {
+            "mean_of_independent_batch_Adam": -8.125410030519258e-05,
+            "Adam_of_mean_native_joint_gradient": -0.0001366438687525701,
+            "difference": 5.538976844737753e-05
+          },
+          "parameter_cross_contributions": {
+            "backbone": {
+              "Adam_total": 4.317225154331587e-06,
+              "Adam_current_gradient": -1.9036684100436545e-05,
+              "Adam_old_moment": 2.3354106257811554e-05,
+              "Adam_decay": -1.9700304342088738e-10
+            },
+            "query_projection": {
+              "Adam_total": -1.5712352439276986e-05,
+              "Adam_current_gradient": -6.718823162721278e-06,
+              "Adam_old_moment": -8.993411484817833e-06,
+              "Adam_decay": -1.1779173780923074e-10
+            },
+            "m5_heads": {
+              "Adam_total": 2.9118975995156545e-05,
+              "Adam_current_gradient": 5.776008282765365e-07,
+              "Adam_old_moment": 2.854149197185744e-05,
+              "Adam_decay": -1.1680497743398868e-10
+            },
+            "other_heads": {
+              "Adam_total": 0.0,
+              "Adam_current_gradient": 0.0,
+              "Adam_old_moment": 0.0,
+              "Adam_decay": 0.0
+            }
+          }
+        },
+        "future": {
+          "effects": {
+            "plain_GD": {
+              "diagonal_mean": -0.5230815698510233,
+              "cross_period_mean": -0.1039580228466258,
+              "all_mean": -0.24366587184809166
+            },
+            "clipped_GD": {
+              "diagonal_mean": -0.07507002422588126,
+              "cross_period_mean": -0.0160084657508377,
+              "all_mean": -0.035695651909185555
+            },
+            "Adam_total": {
+              "diagonal_mean": -0.00020130242271731825,
+              "cross_period_mean": 2.466419658980487e-05,
+              "all_mean": -5.065800984590285e-05
+            },
+            "Adam_current_gradient": {
+              "diagonal_mean": -0.0002482139380181265,
+              "cross_period_mean": -2.199610598667844e-05,
+              "all_mean": -9.740204999716114e-05
+            },
+            "Adam_old_moment": {
+              "diagonal_mean": 4.691190419358311e-05,
+              "cross_period_mean": 4.6660691469258476e-05,
+              "all_mean": 4.674442904403336e-05
+            },
+            "Adam_decay": {
+              "diagonal_mean": -3.8889277513901617e-10,
+              "cross_period_mean": -3.8889277513901617e-10,
+              "all_mean": -3.8889277513901617e-10
+            }
+          },
+          "plain_matrix": [
+            [
+              -1.1343292093461845,
+              -0.3072343832961043,
+              0.043904490578581215
+            ],
+            [
+              -0.39473196749370815,
+              -0.42083171422143384,
+              0.04038337089917318
+            ],
+            [
+              0.006930302130070166,
+              -0.012999949897766877,
+              -0.01408378598545147
+            ]
+          ],
+          "Adam_matrix": [
+            [
+              -0.00029287794773340676,
+              4.709227796810504e-05,
+              -1.5964216298171822e-05
+            ],
+            [
+              -1.3992617247246666e-05,
+              -0.00025547923901755344,
+              -2.4371537981910704e-06
+            ],
+            [
+              6.179883823560211e-05,
+              7.148805067873161e-05,
+              -5.555008140099464e-05
+            ]
+          ],
+          "mean_Adam_vs_Adam_mean": {
+            "mean_of_independent_batch_Adam": -5.065800984590285e-05,
+            "Adam_of_mean_native_joint_gradient": -9.400154170995112e-05,
+            "difference": 4.334353186404827e-05
+          },
+          "parameter_cross_contributions": {
+            "backbone": {
+              "Adam_total": 2.1177189091164866e-05,
+              "Adam_current_gradient": -1.2732956667885628e-05,
+              "Adam_old_moment": 3.391030676190784e-05,
+              "Adam_decay": -1.6100285731014783e-10
+            },
+            "query_projection": {
+              "Adam_total": -2.1696323438481246e-05,
+              "Adam_current_gradient": -6.080915405657275e-06,
+              "Adam_old_moment": -1.561529798359404e-05,
+              "Adam_decay": -1.1004922994127226e-10
+            },
+            "m5_heads": {
+              "Adam_total": 2.5183330937121246e-05,
+              "Adam_current_gradient": -3.182233913135538e-06,
+              "Adam_old_moment": 2.8365682690944676e-05,
+              "Adam_decay": -1.1784068788759607e-10
+            },
+            "other_heads": {
+              "Adam_total": 0.0,
+              "Adam_current_gradient": 0.0,
+              "Adam_old_moment": 0.0,
+              "Adam_decay": 0.0
+            }
+          }
+        }
+      },
+      "array_bytes": 250208814
+    }
+  },
+  "independent_validation": {
+    "status": "PASS_INDEPENDENT_ADAM_CROSS_PERIOD_REVIEW",
+    "max_scalar_error": 6.128431095930864e-14,
+    "scalar_atol": 1e-12,
+    "scalar_rtol": 1e-11,
+    "counts": {
+      "new_gradient_archives": 2,
+      "reused_gradient_archives": 2,
+      "model_constructions": 0,
+      "forwards": 0,
+      "autograd_calls": 0,
+      "checkpoint_decodes": 0,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "fits": 0
+    }
+  },
+  "timing": {
+    "whole_command_seconds": 217.55988541700208,
+    "worker_seconds": 214.22100625700114,
+    "review_whole_seconds": 14.861553190996347,
+    "review_worker_seconds": 14.587397117000364,
+    "preflight_seconds": 7.165613627999846,
+    "peak_rss_bytes": 6559711232,
+    "review_peak_rss_bytes": 1663057920,
+    "code_preparation_and_waiting_included": false,
+    "identical_workload_speedup_measured": false
+  },
+  "findings": [
+    "All four fullmodel cross-period means are favorable for raw plain-GD and adverse for saved AdamW. All twelve self-Adam cells and all four nine-cell means remain favorable.",
+    "At INITIAL the cross mean already changes sign under batch-specific positive global clipping factors. Individual pair signs cannot change under scalar clipping. Old moments are zero; decay is negligible here.",
+    "At FINAL clipped-GD and Adam current-gradient contributions remain favorable on average across periods. The saved old-first-moment contribution outweighs them and makes total Adam cross mean adverse for S and F.",
+    "Adam(mean native gradient) remains favorable and is more favorable than mean of the three independent batch Adam directions on the same mean eval gradient. These are distinct hypothetical operations, not matched actual learning runs.",
+    "M5 heads have adverse Adam cross means in all four cells; query projection contributions are favorable. This is not a license for another freeze/reset.",
+    "New raw outputs are bit-identical to the qualified original gradient capture. Mean native-vs-component gradient errors are below7.699e-8 and masks/weights/moments/steps match.",
+    "The result identifies local cross-period interference in the optimizer route, not a complete cause or a verified correction of fullpass TRAIN deterioration."
+  ],
+  "local_cross_period_mechanism_established": true,
+  "full_train_cause_established": false,
+  "full_train_correction_qualified": false,
+  "later_direction_improvement_established": false,
+  "training_authorized": false,
+  "native_execution_authorized": false,
+  "candidate_selection": false,
+  "promotion_authorized": false,
+  "test_data_used": false,
+  "next_action": "Define one bounded matched native comparison of aggregation before whole-model clipping/AdamW from the original state, preserving genuine5TF supervision and reporting both identical TRAIN and separate later TRAIN panels. Reuse existing control/checkpoint/output evidence where the data and execution axes truly match. Declare data exposure and optimizer-update count separately. Prior frozen-head accumulation was negative and is not native-backbone evidence. No sweep, fullfit, moment reset or launch is admitted by this completed diagnostic.",
+  "limits": [
+    "Independent FP64 dot products and bias-corrected AdamW algebra use saved FP32 canonical-total gradients, exact named None masks, full-gradient clipping and qualified original moments. No gradient or optimizer replay.",
+    "New direct FP32 total gradients and old separately differentiated component gradients need not be bit-identical; mean parity uses predeclared atol 2e-6/rtol 3e-5. Old-self differences are reported, not outcome gates.",
+    "Checkpoint-to-archive identity is reused from the bound original independent review. Full-state/RNG/restoration and exact target/query-source parity are producer source/runtime evidence, not independently rerun here.",
+    "All hypothetical batch steps start from the same frozen moments. Cross terms are local weighted-BCE derivatives, not applied steps, Brier, historical sequence or heldout generalization. Contribution terms share one final denominator.",
+    "Technical PASS accepts any matrix sign and grants no training/variant/continuation authority.",
+    "Three reused B16 TRAIN periods at original INITIAL and fullpass FINAL. No later-period scoring or actual parameter update.",
+    "The average of six ordered cross-pairs mixes both time directions. The full matrices are retained; individual positive and negative pairs coexist.",
+    "An old-moment contribution with a common updated denominator is an additive description, not an independently applied reset or optimizer alternative.",
+    "No total descent failure is measured in this panel: the average including diagonal terms remains favorable. A sequence can change gradients/moments; this frozen-point diagnosis does not replay that sequence.",
+    "Private gradient captures are retained for reuse. Original checkpoints are unchanged."
+  ],
+  "prior_accumulation_scope_reconciliation": {
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_ACCUMULATION_20261109_001/PLAN.json",
+      "sha256": "b1fd20580db9dee323767ad476c0736721bb94a4cfac5d9453b90bdd289523ea"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_ACCUMULATION_20261109_001/RESULT.json",
+      "sha256": "89a4b82fda6ce073e418620bc187c0c88c5b552125377dc1bf02ec0826bbf919"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_ACCUMULATION_20261109_001/REVIEW.json",
+      "sha256": "f175d3032925bcc4509f9aea1d1637f68edb33e8270e4ada5512f0e8907cf2ec"
+    },
+    "initial_model": {
+      "cursor": 0,
+      "model_sha256": "51e0e8832bbc7079c5f00f30eef17de4a2ba7aecab2a982063483a241ab051ba",
+      "source_commit": "ad83bccf2ae0c13f0bf107daef439e55d3dd03d3",
+      "updates": 0
+    },
+    "counts": {
+      "ordinary": {
+        "microbatches": 64,
+        "optimizer_updates": 64,
+        "clipped_steps": 8,
+        "rows_seen": 1024
+      },
+      "accumulated": {
+        "microbatches": 64,
+        "optimizer_updates": 8,
+        "clipped_steps": 0,
+        "rows_seen": 1024
+      }
+    },
+    "scope": "Frozen cached representations, four M5-head tensors only; no activity loss or native shared-backbone gradients. Same1024 rows,64 microbatches; ordinary64 vs accumulated8 updates.",
+    "fit_gate_passed": false,
+    "later_arrays_consumed": false,
+    "native_forwards": 0,
+    "native_parameter_updates": 0,
+    "finding": "Accumulation harmed TRAIN less but both candidates worsened INITIAL. This does not qualify accumulation; it also does not test original ae772/fullmodel aggregation or whole-model clipping. Different update counts change moment/decay exposure."
+  }
+}
