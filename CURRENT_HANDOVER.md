@@ -15,60 +15,53 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_ADAM_CROSS_PERIOD_COMPLETE_LOCAL_INTERFERENCE.
+Policystatus: TA_M5_ACCUM3_NATIVE_ADMITTED.
 
-[AdamW-kryssperiodekontrollen](docs/TA_M5_ADAM_CROSS_PERIOD_REVIEW.json)
-er fullført og uavhengig verifisert. Rot:
- /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001
-RESULT SHA 4edf2bf660ef99ed99dc994a774b099d2a08968f710be2514512290eda3fbce0.
-REVIEW SHA f73924febb47c642b0f24ce4cf1b1d0cdb67489734d49219c66a244e0b431546.
-Alle engangs-/treningsporter er stengt; training_enabled=false.
+Én særskilt native ACCUM3-kandidat er kvalifisert, ennå ikke kjørt:
+ /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACCUM3_NATIVE_20261110_001
+PLAN SHA bc0234e61d56bdd5ebec8d27d0a12402c3cfcfd2cfb4537fb4255944670413cd.
+Worker SHA b9a874f62866574152c401a331421d93d8f772a19d8660b3cfd0ee74b6216cb3.
+Reviewer SHA f913e7dc3c8d9dfc1ba2e4dd5947a7800626056b324dabd47f824e2be72c311b.
+Root har lest alle408/180 linjer, separat kildereview og metadata-preflight
+bestått. Preflight 4,904s, ingen modell eller payloaddekoding.
 
-Samme tre B16 TRAIN-batcher 0/14272/29552 ved original INITIAL og FINAL.
-Én modell, to checkpointlesinger, 12 forwards, 18 autograd, null optimizer,
-parameteroppdateringer og checkpointskrivinger. Alle fem TF beholdt.
-Råoutputs er bitlike opprinnelig kontroll. Middelgradient avviker maksimalt
-7,699e-8 mot gammel komponentsum; masker/vekter/momenter/step stemmer.
-Nye private gradientarkiver: 250208814 bytes hver. De gjør videre matrise-
-kontroll mulig uten ny modell-/gradientkjøring.
+Samme original ae772 CPUINITIAL,384SPREAD24 mikrobatcher, ordre og CPU-RNG
+som gjenbrukt HEAD_UPDATE_FREEZE CONTROL24.24 separate genuine B16-loss
+beholdes; loss/3 backward og ett uendret globalclip1/AdamW-steg per triplet.
+Ingen aktivitet→C-detach, LR-/moment-/mask-/samplerendring eller coreendring.
+Lik dataeksponering,8 mot24 steg: momentklokke, decay og parameterbane endres.
+Påfølgende SPREAD-tripletter er ikke de tre vidt adskilte diagnosebatchene.
 
-Positivt betyr lokal økning i eval-BCE. Kryssmiddel plain-GD / AdamW:
-INITIAL S: -0,01584460 / +0,0000174230.
-INITIAL F: -0,00124593 / +0,0000217804.
-FINAL S: -0,12046463 / +0,0000177238.
-FINAL F: -0,10395802 / +0,0000246642.
-Alle 12 self-Adam-celler og alle fire ni-cellersmiddel er fortsatt gunstige.
-Dette er lokal kryssperiode-interferens, ikke total optimeringssvikt.
+Én modell/optimizer/INITIAL-dekoding/strictrestore,48 forwards,24 backwards,
+null ekstra autograd og8 optimizersteg. Første raw/loss og hele RNG-kjeden
+matcher CONTROL. Første triplets readonly parameterhooks observerer alle
+loss/3-gradientbidrag og verifiserer faktisk akkumulering/None før clipping;
+hooks fjernes før første steg. Maks256MiB privat vitne, ingen ny fullgrad-audit.
 
-INITIAL: batchavhengig klipping omvekter kryssmiddelet til ugunstig allerede
-før Adam. En positiv clipfaktor endrer aldri fortegnet til ett enkelt par.
-FINAL: aktuell gradients Adam-bidrag er gunstig (-2,518e-5/-2,200e-5), men
-gammelt første moment gir +4,290e-5/+4,666e-5 og snur totalen for S/F.
-Bidragene deler samme sluttdominator; dette er ikke en test av momentreset.
-M5-hoders kryssbidrag er ugunstig i alle fire celler; query-projeksjonen hjelper.
-Adam av middelgradienten hjelper mer enn midlet av tre uavhengige Adam-
-retninger. Dette beviser ikke en bestemt akkumulering eller historisk sekvens.
+Canonical checkpoint-kontrakt forutsetter accum1/ett steg per mikrobatch.
+INITIAL gjenbrukes under ekte gammel kilde og recipe1. FINAL beholdes kun
+i eget privat evidence-capsule-schema med faktisk24micro/384rows/8updates/
+pending0, theta/buffere/Adam/RNG/inventar og separat execution-route3.
+Ingen falsk cursor/skips, canonical resume eller promotion; ingen coreendring.
 
-Helkommando 217,560 s (3m38s), worker 214,221 s. Review 14,862 s,
-preflight 7,166 s. PeakRSS 6,560GB. Uavhengig skalaravvik maks 6,129e-14.
-Ingen modell/optimizer/checkpointdekoding i review. Forberedelse og venting
-er utenom; ingen målt akselerasjon av identisk arbeidsmengde.
+Begge faste192-raders TRAIN/senere-TRAIN-paneler evalueres ubetinget.
+CPU-native INITIAL og CONTROL24 gjenbrukes uten ny forward. Alle fire S/F-
+celler må slå CONTROL, INITIAL og frystprior i både Brier og logtap med1e-8.
+Negativt utfall er fullført diagnose, ikke tillatelse til sveip eller fullfit.
+Små gjenbrukte utviklingspaneler beviser ikke fullpopulasjon eller økonomi.
 
-Tidligere akkumulering er nå avklart: frosne representasjoner fra corrected
-INITIAL 51e0e883, fire M5-headtensorer, samme 1024 rader/64 mikrobatcher.
-Ordinær 64 mot akkumulert 8 optimizersteg; begge forverret TRAIN fra INITIAL,
-akkumulering mindre. Senere TRAIN ble ikke lest. Ingen native backbone-
-gradienter eller global klipping over hele modellen ble testet der.
+Produsent12G/512M/én tråd/900s. Review etter terminal4G/512M/én tråd/180s:
+to weights_only-dekodinger (INITIAL og privat FINAL), ingen modell/forward/
+optimizer, uavhengig vitnesum/headprojeksjon/score og faktisk steg-/RNG-binding.
+training_enabled=true gjelder KUN denne stage én gang; native/fullfit stengt.
+Ikke endre fryst kilde/policy eller start parallelle tunge jobber.
 
-Neste steg er én avgrenset, matchet native sammenligning av aggregering før
-global clipping/AdamW fra originaltilstanden, med samme TRAIN- og separat
-senere-TRAIN-målinger. Oppgi dataeksponering og optimizersteg hver for seg;
-gjenbruk bare kontroller som faktisk matcher aksene. Ingen ny gradient-
-innsamling, fullfit, clip-/momentumsveip, reset eller launch er gitt av denne
-brukte planen. Fullpass-årsak og faktisk retningsrettelse er fortsatt ubevist.
-
-Siste treningsprøve: [aktivitet→C-detach](docs/TA_M5_ACTIVITY_C_DETACH_NATIVE_REVIEW.json).
-Bare TRAIN F slo alle referanser; senere S/F var svakere enn INITIAL.
+[Forrige AdamW-kryssperiodekontroll](docs/TA_M5_ADAM_CROSS_PERIOD_REVIEW.json)
+viste ugunstig Adam-kryssmiddel i alle fire celler, mens self og samlet middel
+var gunstige. INITIAL klipping omvekter batchene; FINAL gammelt moment snur
+ellers gunstige gradientbidrag. Fullpass-årsak er fortsatt ubevist.
+Tidligere accum8-test var frosne51e0-heads; begge kandidater forverret TRAIN
+og senere TRAIN ble ikke lest. Den testet ingen native backboneakkumulering.
 Originale checkpoints bevares. TEST, GC, Entry/Exit og handel er stengt.
 
 MIX24 er fullført og uavhengig verifisert:
