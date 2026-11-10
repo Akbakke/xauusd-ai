@@ -45,6 +45,10 @@
     "review_command": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/REVIEW_COMMAND.json",
       "sha256": "a04799bf7e18c4825070229e8500601819c413d3cead9206b9ad4a2e377696b6"
+    },
+    "handover_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/HANDOVER_TERMINAL.json",
+      "sha256": "454a24dcfa71c02b6b3a459eed1d00b582c154d0b5684e674d4bf238f818c7df"
     }
   },
   "coverage": {
@@ -356,7 +360,9 @@
     "max_independent_scalar_metric_error": 1.1102230246251565e-16,
     "max_actual_projection_error": 3.1162348146374086e-08,
     "all_training_closed": true,
-    "no_core_changes": true
+    "no_core_changes": true,
+    "handover_original_terminal_missing_test_flag": true,
+    "handover_correction": "Bound derived receipt uses explicit false witnesses from RESULT, independent REVIEW and controller; original TERMINAL remains unchanged."
   },
   "limits": [
     "Raw and1/16 replays keep CONTROL gradients from its actual parameter trajectory; alternate heads did not generate later gradients.",

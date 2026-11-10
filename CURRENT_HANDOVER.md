@@ -23,6 +23,8 @@ Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001
 RESULT SHAf49ad28d1826a547129d892eb8231ecd74584f44760431bfa0dcc663bcb95809.
 REVIEW SHAf3eb388573d776260db310201a637371dca1eb91f92d1a68afb55d8d7602e874.
 Alle trenings- og engangsporter er stengt; ingen ny native-klippeendring vedtatt.
+Original TERMINAL mangler test_data_used. HANDOVER_TERMINAL binder den til
+RESULT/REVIEW/controller med eksplisitt false; originalkvitteringen er uendret.
 
 Alle24 CONTROL-batcher klippes: norm1,25867–9,22057. Positive F-biasgradienter
 beholder22,71prosent av massen, negative47,12prosent. Råsummen+0,156040

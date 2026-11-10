@@ -1717,8 +1717,8 @@
     "latest_terminal_role": "Read-only24-step recorded-gradient AdamW reconstruction and fixed-representation arithmetic contrasts; zero model/optimizer updates.",
     "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/TERMINAL.json",
-      "sha256": "5ea916276bfb3baea8bec33b981d175cbfeda14f3896b15c16e09750055519c2"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/HANDOVER_TERMINAL.json",
+      "sha256": "454a24dcfa71c02b6b3a459eed1d00b582c154d0b5684e674d4bf238f818c7df"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -71958,8 +71958,8 @@
       "sha256": "a04799bf7e18c4825070229e8500601819c413d3cead9206b9ad4a2e377696b6"
     },
     "integrated_report": {
-      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_CLIP_TRACE_REVIEW.json",
-      "sha256": "1876070a99a59579e31373aaff3ed984196f360625444a3b0d825ed99ceef2d8"
+      "path": "docs/TA_M5_CLIP_TRACE_REVIEW.json",
+      "sha256": "357a1754fca030e57239510c88570362d2d48a04bfaba5fc569aac94fecd44ca"
     },
     "independent_review_passed": true,
     "actual_counts": {
@@ -71976,6 +71976,10 @@
     "whole_command_seconds": 3.8222234659988317,
     "native_scale_change_qualified": false,
     "full_train_correction_qualified": false,
-    "later_direction_improvement_established": false
+    "later_direction_improvement_established": false,
+    "handover_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/HANDOVER_TERMINAL.json",
+      "sha256": "454a24dcfa71c02b6b3a459eed1d00b582c154d0b5684e674d4bf238f818c7df"
+    }
   }
 }
