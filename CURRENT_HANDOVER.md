@@ -13,9 +13,9 @@ M5 er prognosetakten; kausalt lukkede M15/H1/H4/D1 og genuine indikatorhistorikk
 er input. Alle fem TF beholder egne framtidige mål. GC er utsatt; TEST,
 Entry/Exit, broker, ordre, handel, spending og promotion er stengt.
 
-Policystatus: TA_M5_NATIVE_READOUT_RECOVERY_CONFIRMED_FULL_LATER_FAILED.
+Policystatus: TA_M5_FIXED_HEAD_FULL_LATER_CROSS_ADMITTED.
 FIXED_NATIVE_SCORE001 er COMPLETE/konsumert, worker/controller/guardexit0,
-kjørt på kilde772156d4. Ingen modelljobb lever. Ingen neste jobb innrømmet;
+kjørt på kilde772156d4. Ingen modelljobb lever. Én ny cachekontroll er innrømmet;
 alle globale trenings-/native-launch-porter er false. Målet er uoppnådd.
 
 Det som er gjort:
@@ -72,8 +72,12 @@ Bruk de samme LÅSTE W2-hodene på hele INITIALs lagrede senere-representasjoner
 Sammenlikn W2r0−W0r0 og W2r1−W2r0 for å skille headbyttet fra reprbyttet
 langs denne bestemte kryssbanen. Tidligere kryss brukte R1s nativehoder og
 bare senere192; dette er et annet, fullstendig spørsmål. Ingen ny kandidat
-eller kalibrering velges på senereutfall. Eksakt plan må bindes separat;
-ingen ny kjøring er innrømmet nå.
+eller kalibrering velges på senereutfall. Eksakt PLANa7fcebba er nå separat innrømmet, workerfdc86e95.
+Uavhengig kildekontroll og metadata-preflight består (0,611s,ingen payload/claim).
+2220 CPU-B16-affine kall inkl.B9,to FP64-kontroller;0 fit/modell/checkpoint/encoder.
+Én audit innen120s/4G/512M,én numerisk tråd,ett privat NPZ≤8MiB.
+Bare direkte CPU-runtimekilder og immutable bevis bindes; tidligere native
+modellkvalifikasjon gjenbrukes. Ingen kjøring startet ved denne overleveringen.
 
 Siste fullførte kontroll:
 
