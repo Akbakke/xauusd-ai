@@ -15,36 +15,56 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_E3_FROZEN_COMPLEMENT_LIMITED_PARITY_ADMITTED.
+Policystatus: TA_M5_E3_FULL_TRAIN_COMPLETE_M5_TRANSFER_FAIL.
 
-[Én-batch-diagnosen](docs/TA_M5_E3_CPU_PARITY_REVIEW.json) er COMPLETE/konsumert:
-97,039s worker,99,341s samlet. Én modell/dekoding/forward, null updates; kilde,
-vekter, alle buffere, masker og RNG uendret. Den gamle paritetsporten feiler
-bare F-M5-sannsynlighet:1,036936e-6 mot1e-6. Alle råavvik består2e-5-grensen;
-maksF1,722574e-5. M5-skårforskjell CPU−GPU på denne batchen:
-S Brier−1,304728e-7/log−2,537904e-7(n5),F−6,143397e-8/−1,122462e-7(n6).
-Første batch gjenbrukes. [Fullkontrollen001](docs/TA_M5_E3_FULL_TRAIN_REVIEW.json)
-er fortsatt FAILED/konsumert etter2paritetsforwards og0komplementrader.
+[Full002](docs/TA_M5_E3_FULL_TRAIN_002_REVIEW.json) er COMPLETE/konsumert.
+Worker, controller og wrapper er avsluttet med exit0; kilde og E3-tilstand
+var uendret. Alle treningsporter er false. 1593 CPU-forwards målte25478
+komplementrader; lagrede4096 GPU-prediksjoner ble gjenbrukt. Én modell og
+checkpointdekoding, null optimizer/backward/updates/checkpointskrivinger.
 
-Den uendrede rålogitgrensen2e-5 gir analytisk betinget-M5-grense5e-6 i
-sannsynlighet,1e-5 i Brier og2e-5 i logtap. De sterkere forbedringsmarginene
-adderer tidligere INITIAL-tillegg1e-6 eller priorens forbedringsmargin1e-8.
-Dette er en begrunnet avgrenset numerisk protokoll, ikke en global CUDA/CPU-
-feilgrense: bare32utvalgte rader er kvalifisert, ikke komplementet eller B6-halen.
-Treklasseskår og samlet loss får ingen automatisk slik grense.
-Uavhengig matematisk gjennomgang og JSON-/bindingskontroll består.
+Den primære komplementkontrollen feiler for begge M5-retningsmål.
+Brier INITIAL → E3 / prior (lavere er bedre):
+komplement S:0,248581→0,249753 /0,249696 (8607known);
+komplement F:0,249389→0,250461 /0,249892 (10274known).
+Full29574 S:0,248473→0,249259 /0,249651 (10010known);
+full F:0,249327→0,249917 /0,249876 (11909known).
+Logtap gir samme fortegn. E3 slår den svake originale FINAL, men feiler den
+forhåndsbundne sammenligningen mot INITIAL og prior. Selected4096 beholder
+sin tidligere S/F-gevinst; denne overføres ikke til komplementet.
 
-[Full002](docs/TA_M5_E3_FULL_TRAIN_002_SCOPE_REVIEW.json) er nå kvalifisert og
-innrømmet én gang, ikke startet ved kildefrysingen. Den gjenbruker begge
-paritetskvitteringer:1593nye forwards på25478rader,0nyeparitetsforwards,
-én modell/dekoding og null optimizer/backward/updates. Samme ekte features,
-mål, normalisering, queries, tap og vekter. Actual metadata-preflight,
-nye margin-/avvisningskontroller, rapporteringskontroll og uavhengig diffreview
-består. Seks gjenbrukte numeriske/restorehjelpere er AST-identiske med001.
-12G/512M CPU-producer, én talltråd,5400s; stabil kontroll hver15.–30.minutt.
-Sammenslått resultat blander lagredeGPU-4096 og nyeCPU-25478; ingen påstand om
-eksakt CUDA-protokoll eller global feilgrense. Originalfullpassårsaken er uisolert.
-Alle treningsporter er false;001 og én-batch-diagnosen er konsumert.
+INITIALs M5-readout var allerede tilpasset hele TRAIN. Komplementet er derfor
+ikke urørt holdout, og dette beviser ikke memorisering. E3 og originalpasset
+varierer fortsatt i dekning, antall oppdateringer og optimizerforløp.
+Original fullpassårsak og samlet retningsrettelse er uisolert.
+E1/E2-komplement er ikke målt; når svekkelsen oppsto er fortsatt ukjent.
+
+Fullt kanonisk batchtap INITIAL1,948957 → E3 1,894432; original FINAL2,021683.
+Lavere samlet tap sameksisterer dermed med svakere M5-retning i E3.
+Dette forklarer ikke originalpassets økning i både totaltap og alle sideledd.
+E3 bedrer20/30 fullTRAIN Brier-celler og18/30 log-celler. M5-aktivitet er
+svakere for begge mål; F-M5-treklasse og F-D1-retning er også svakere.
+Senere192 er gjenbrukt utvikling med de tidligere MTF-/treklassebegrensningene.
+
+Uavhengig cached kontroll består:5arkiver/57felt,270metric-countceller,
+maks skåravvik2,22e-16 og partisjonsavvik2,57e-16;3,188s og null modeller,
+forwards, checkpointdekoding eller updates. Selected-gjenbruk er eksakt.
+CPU/GPU-kvalifiseringen omfatter fortsatt bare32utvalgte rader, ikke en
+global feilgrense. Samlet måling blander GPU/CPU; de forhåndsbundne
+M5-marginene beviser ingen treklasse-/totalloss-feilgrense.
+
+Worker3382,086s, herav oppsett90,795s og komplement3286,497s.
+Controller monotontid3386,371s (~56m26s), UTC-intervall3185,695s;
+klokkene avviker200,675s. Ingen kontrollert helkjørings-speedup er målt.
+Ferdige baseline-, selected- og senereprediksjoner ble gjenbrukt.
+
+Neste direkte spørsmål er én matchet fullrekkefølgetest: samme originale
+ae772-initial, alle29574rader og1849Adamsteg, med én forhåndsbundet endring
+i rekkefølgen av intakte batcher. Gjenbruk historisk FINAL og ferdige
+baselines; behold opprinnelige batch-IDer/pass0, mål, loss og læringsrate.
+Ingen ny kortpilot eller automatisk flere epoker. Ny eksakt kvalifisert
+engangsplan må bindes før fit; denne rapporten åpner ingen trening.
+Målet er fortsatt ikke oppnådd.
 
 [Prøven med videre trening](docs/TA_M5_REPEATED_PASS_REVIEW.json) er COMPLETE/
 konsumert på boot637; guard/observer exit0, Windows-task deaktivert og alle
@@ -83,7 +103,7 @@ Gjenbrukte E1-arbeidsblokker tok tidligere615,620s; dette er unngått arbeid,
 ikke en kontrollert benchmark. Nye evaluerings- og fitblokkene er omtrent like
 raske som tidligere. Effektgrensen var250W.
 
-Spørsmålet om overføring utenfor4096 er nå bundet i den nye frosne kontrollen over.
+Spørsmålet om overføring utenfor4096 er nå målt og feiler i kontrollen øverst.
 Tidligere repeated-pass-plan er fortsatt konsumert. Målet er ikke oppnådd.
 
 [Oppdeling av tapsfunksjonen](docs/TA_M5_PAIRED_OBJECTIVE_DECOMP_REVIEW.json)
@@ -1709,7 +1729,7 @@ tidssekvensmodellen, samme-linje-reaksjonsverdi, Entry-verdi og økonomisk edge
 er ubevist. 61 makrofelt mangler uavhengig formelorakel; COTs faktiske
 historiske publisering og vintage er fortsatt UNKNOWN.
 
-**Neste steg:** Vurder matematisk målvalg for korte og lengre prisbevegelser i eksisterende modell. Koordinattesten er konsumert; ingen ny fit er innrømmet.
+**Neste steg:** Forbered den ene matchede fullrekkefølgetesten beskrevet øverst, med gjenbruk av originale kontrollresultater. Ingen ny fit er innrømmet.
 Målet er aktivt; senere retningsverdi er ubevist.
 Brukerens spørsmål om 30 epoker og fem år er fortsatt åpne hypoteser.
 Denne fitten dekker omtrent mai–september2024, senere score oktober–desember2024.

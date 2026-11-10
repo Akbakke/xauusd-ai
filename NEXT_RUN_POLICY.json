@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-10T11:24:37.967286+00:00",
-  "status": "TA_M5_E3_FROZEN_COMPLEMENT_LIMITED_PARITY_ADMITTED",
+  "observed_utc": "2026-11-10T12:26:20.944911+00:00",
+  "status": "TA_M5_E3_FULL_TRAIN_COMPLETE_M5_TRANSFER_FAIL",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only frozen E3 originalTRAIN complement1593forwards, no new parity/model fitting/optimizer/updates. Reuse limited32row numerical qualification with stronger conditional-M5 margins. No global CPU/CUDA-bound claim. All consumed plans, GC, TEST, Entry, Exit, broker, trading and further training closed.",
-  "next_action": "Execute the one qualified full002 frozen complement evaluation and observe the actual process at15-30minute cadence. Reuse4096GPU predictions and later192; score25478CPU rows against originalINITIAL/prior with prebound stronger M5 margins. No extra fitting.",
+  "next_action": "Prepare one matched full-population batch-order counterfactual using original ae772 initial state, all29574 rows and1849 Adam updates; reuse historical ORIGINAL_FINAL and existing baseline predictions. Hold targets, intact batches, original batch IDs/pass0, loss, learning rate and update budget fixed. No new short-cohort pilot, extra epochs or model/loss sweep. A new exact qualified admission is required before fitting; none is opened by this review.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1434,9 +1434,9 @@
     "profitability_demonstrated": false,
     "required_before_more_extensive_training": true,
     "entry_learning_demonstrated": false,
-    "current_evidence_scope": "Fixed4096 retained-Adam continuation improves M5 conditional direction on matched TRAIN and reused later192, with laterMTF/F-threeclass regressions. Original fullpass cause unresolved.",
+    "current_evidence_scope": "Retained-Adam continuation improves selected4096 and reused later192 conditional M5, but frozen originalTRAIN complement25478 and full29574 fail the INITIAL/prior comparison; MTF/activity/three-class limits remain.",
     "component_learning_measured": true,
-    "component_learning_result": "FIXED_COHORT_CONTINUATION_IMPROVES_M5_WITH_LATER_MTF_AND_THREE_CLASS_REGRESSIONS",
+    "component_learning_result": "SELECTED_M5_LEARNING_WITH_FAILED_ORIGINAL_TRAIN_COMPLEMENT_TRANSFER",
     "primary_entry_quality_qualified": false,
     "paired_learning_review": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/PAIRED_LEARNING_REVIEW.json",
@@ -1685,11 +1685,16 @@
     "latest_fixed_cohort_continuation_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_REPEATED_PASS_REVIEW.json",
       "sha256": "e0152d16be2a6b881dcd4e21ec2f108e875ba042a25b0f3d0d9b1ba044971987"
-    }
+    },
+    "latest_full_TRAIN_continuation_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_E3_FULL_TRAIN_002_REVIEW.json",
+      "sha256": "9c858657b98397f381187fa5e391f3af3531e46158d19537ba04e0326da72b3d"
+    },
+    "training_cause_established": false
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "E3 conditionalM5 gains independently verified; laterMTF and F-threeclass regressions remain. All training ports closed.",
+    "current_activity": "Frozen E3 full TRAIN coverage evaluation and independent cached scores complete. Selected4096 gain does not transfer to25478 complement; all training ports closed.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1718,11 +1723,11 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "Repeated fixed4096 retained-optimizer E3 COMPLETE; conditionalM5 gain, not a general correction.",
+    "latest_terminal_role": "Frozen E3 original-TRAIN evaluation COMPLETE; complement primary direction comparison fails.",
     "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001/TERMINAL.json",
-      "sha256": "96b13b4a40df15aac5827565a5e3554e12935760dccdb144d9842395eab700ff"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_002/TERMINAL.json",
+      "sha256": "660b36069a45c1c0319bb4c80de6712b54e8e1c916137b71fc7629d00faf6ab1"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -1742,7 +1747,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Original fullpass cause unresolved. Fixed-coverage training depth is the next bounded question.",
+    "current_blocker": "Original full-pass regression cause remains unisolated. Full coverage and matched update budget are required to distinguish order effect from cohort/training-length confounding.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -10342,7 +10347,8 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "Outer cached-audit terminal omits source_unchanged. Original receipt preserved; frozen source/policy bookend proof is in the bound RESULT, where source_unchanged=true."
+      "Mixed-device evaluation;32-row parity is not a global numerical bound.",
+      "Original causal explanation, full direction correction and untouched generalization remain unproved."
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -17678,7 +17684,7 @@
         "Originals preserved; unusedwindows3/4revoked. No new epoch,HPO,checkpoint/threshold selection,normalization refit,trading,broker,Exit or promotion."
       ]
     },
-    "latest_terminal_evidence_scope": "Both TRAIN objectives improve versus original/prior; laterS loses to original and laterF loses to prior. Metrics and Brier/Jensen arithmetic independently verified.",
+    "latest_terminal_evidence_scope": "All29574 original TRAIN rows scored: both full M5 conditional-side tasks worse than INITIAL; selected4096 improves and complement25478 worsens. Independent cached arithmetic verified. INITIAL had already used fullTRAIN.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -73991,8 +73997,8 @@
     }
   },
   "market_state_ta_m5_e3_full_train_20261110_002": {
-    "status": "ADMITTED",
-    "execution_authorized": true,
+    "status": "COMPLETE_CONSUMED",
+    "execution_authorized": false,
     "training_authorized": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_002/PLAN.json",
@@ -74003,9 +74009,9 @@
       "sha256": "6111deda0040a5817b51d3a9f9e8c679a6544dc4e63b912b3ee743cff8eba52b"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "max_forwards": 1593,
     "max_model_constructions": 1,
@@ -74039,6 +74045,28 @@
     "qualified_parity_rows": 32,
     "new_parity_forwards": 0,
     "global_cpu_cuda_bound_established": false,
-    "standing_authorization": "Active direction-only goal and zero-cost local work. New exact frozen evaluation after measured numerical-blocker qualification; consumed plans stay closed. No fit."
+    "standing_authorization": "Active direction-only goal and zero-cost local work. New exact frozen evaluation after measured numerical-blocker qualification; consumed plans stay closed. No fit.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_002/RESULT.json",
+      "sha256": "55402a16987f7cc92d61c644224e673edb46cb26dbf9440c7a0de73f306226c5"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_002/TERMINAL.json",
+      "sha256": "660b36069a45c1c0319bb4c80de6712b54e8e1c916137b71fc7629d00faf6ab1"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_002/CONTROLLER.json",
+      "sha256": "3e21dffeeb1f2267c65da4008680841160a6c1e81e55f04fcef5c2568ea0c578"
+    },
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_E3_FULL_TRAIN_002_REVIEW.json",
+      "sha256": "9c858657b98397f381187fa5e391f3af3531e46158d19537ba04e0326da72b3d"
+    },
+    "cached_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_002/CACHED_SCORE_REVIEW.json",
+      "sha256": "c9aa2e7ffb70f5152d8120454f9497ea480775c4b92e30a350b72d55a23647c4"
+    },
+    "primary_complement_decision": "FAIL_COMPARISON_NO_PROMOTION",
+    "full_direction_fix_qualified": false
   }
 }

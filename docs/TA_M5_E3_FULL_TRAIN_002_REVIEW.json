@@ -1,0 +1,485 @@
+{
+  "status": "COMPLETE_E3_SELECTED_GAIN_FAILS_ORIGINAL_TRAIN_COMPLEMENT",
+  "source_commit": "5b7abd965d80c610d5cdbf81ea07d86485c4ec97",
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_002/RESULT.json",
+    "sha256": "55402a16987f7cc92d61c644224e673edb46cb26dbf9440c7a0de73f306226c5"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_002/TERMINAL.json",
+    "sha256": "660b36069a45c1c0319bb4c80de6712b54e8e1c916137b71fc7629d00faf6ab1"
+  },
+  "controller": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_002/CONTROLLER.json",
+    "sha256": "3e21dffeeb1f2267c65da4008680841160a6c1e81e55f04fcef5c2568ea0c578"
+  },
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_002/PLAN.json",
+    "sha256": "e218f0eed06463b2e0b8845564b3e6aefd87d02e8326191c7e8ff508bda1b140"
+  },
+  "capture": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_002/FULL_TRAIN_READOUT.npz",
+    "sha256": "85ab77a4ede5cc0a490ba08a5bfa42899f84de7f6824aee0e76dbf1f2bf8cba7"
+  },
+  "cached_review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_002/CACHED_SCORE_REVIEW.json",
+    "sha256": "c9aa2e7ffb70f5152d8120454f9497ea480775c4b92e30a350b72d55a23647c4"
+  },
+  "counts": {
+    "backwards": 0,
+    "checkpoint_loads": 1,
+    "checkpoint_writes": 0,
+    "complement_forwards": 1593,
+    "extra_truth_gathers": 3186,
+    "forward_returns": 1593,
+    "forwards": 1593,
+    "model_constructions": 1,
+    "optimizer_constructions": 0,
+    "optimizer_updates": 0,
+    "parity_forwards": 0,
+    "resume_state_load_calls": 1,
+    "resume_state_load_returns": 1
+  },
+  "identity": {
+    "buffer_state_sha256": "c46c39ecda970ff41b661dd3a1414f0eba459b5fb96c55f009bb5e70def13a8a",
+    "canonical_resume_authority": false,
+    "cuda_rng_restored": false,
+    "cumulative_optimizer_updates": 768,
+    "evidence_sha256": "5521a3018f6be536dc0d9902af4dff130af8070056104f371ba6d4922228543a",
+    "load_kind": "CPU_WEIGHTS_AND_ALL_BUFFERS_ONLY",
+    "model_state_sha256": "5e031bd0a3c9d454a228b065ac787e79654bc9067a01fa33dfbe8c256cec702e",
+    "optimizer_state_restored": false,
+    "parameter_binding_sha256": "155d6db1f6b0e47e8c95abd0e00d7cd4f472549cd97ade339b597fa79f87c3a4"
+  },
+  "source_unchanged": true,
+  "populations": {
+    "selected": 4096,
+    "complement": 25478,
+    "full": 29574
+  },
+  "M5_conditional_side": {
+    "complement": {
+      "cells": {
+        "future": {
+          "E3": {
+            "brier": 0.25046089757781664,
+            "log": 0.6940981559155995
+          },
+          "count": 10274,
+          "differences": {
+            "FINAL": {
+              "brier": -0.003779861658658068,
+              "log": -0.007825691617843411
+            },
+            "INITIAL": {
+              "brier": 0.00107182567173561,
+              "log": 0.0021735887734628534
+            },
+            "PRIOR": {
+              "brier": 0.0005688588453992838,
+              "log": 0.0011669131019024226
+            }
+          },
+          "improves_initial_and_prior": false,
+          "margins": {
+            "FINAL": {
+              "brier": 1.1000000000000001e-05,
+              "log": 2.1000000000000002e-05
+            },
+            "INITIAL": {
+              "brier": 1.1000000000000001e-05,
+              "log": 2.1000000000000002e-05
+            },
+            "PRIOR": {
+              "brier": 1.001e-05,
+              "log": 2.0010000000000003e-05
+            }
+          },
+          "references": {
+            "FINAL": {
+              "brier": 0.2542407592364747,
+              "log": 0.701923847533443
+            },
+            "INITIAL": {
+              "brier": 0.24938907190608103,
+              "log": 0.6919245671421367
+            },
+            "PRIOR": {
+              "brier": 0.24989203873241736,
+              "log": 0.6929312428136971
+            }
+          }
+        },
+        "state": {
+          "E3": {
+            "brier": 0.249752796657645,
+            "log": 0.6926913050611642
+          },
+          "count": 8607,
+          "differences": {
+            "FINAL": {
+              "brier": -0.0017452240544781339,
+              "log": -0.0036266020330391058
+            },
+            "INITIAL": {
+              "brier": 0.0011713457602470223,
+              "log": 0.002385158654650943
+            },
+            "PRIOR": {
+              "brier": 5.712828545034743e-05,
+              "log": 0.00015290866029515904
+            }
+          },
+          "improves_initial_and_prior": false,
+          "margins": {
+            "FINAL": {
+              "brier": 1.1000000000000001e-05,
+              "log": 2.1000000000000002e-05
+            },
+            "INITIAL": {
+              "brier": 1.1000000000000001e-05,
+              "log": 2.1000000000000002e-05
+            },
+            "PRIOR": {
+              "brier": 1.001e-05,
+              "log": 2.0010000000000003e-05
+            }
+          },
+          "references": {
+            "FINAL": {
+              "brier": 0.2514980207121231,
+              "log": 0.6963179070942033
+            },
+            "INITIAL": {
+              "brier": 0.24858145089739797,
+              "log": 0.6903061464065132
+            },
+            "PRIOR": {
+              "brier": 0.24969566837219465,
+              "log": 0.692538396400869
+            }
+          }
+        }
+      },
+      "decision": "FAIL_COMPARISON_NO_PROMOTION",
+      "primary": true
+    },
+    "full": {
+      "cells": {
+        "future": {
+          "E3": {
+            "brier": 0.24991722861795598,
+            "log": 0.6930033254748863
+          },
+          "count": 11909,
+          "differences": {
+            "FINAL": {
+              "brier": -0.003986713533653069,
+              "log": -0.008229520455896866
+            },
+            "INITIAL": {
+              "brier": 0.0005902178744331688,
+              "log": 0.0012029973827647478
+            },
+            "PRIOR": {
+              "brier": 4.1017361189721324e-05,
+              "log": 0.00010374283699110531
+            }
+          },
+          "improves_initial_and_prior": false,
+          "margins": {
+            "FINAL": {
+              "brier": 1.1000000000000001e-05,
+              "log": 2.1000000000000002e-05
+            },
+            "INITIAL": {
+              "brier": 1.1000000000000001e-05,
+              "log": 2.1000000000000002e-05
+            },
+            "PRIOR": {
+              "brier": 1.001e-05,
+              "log": 2.0010000000000003e-05
+            }
+          },
+          "references": {
+            "FINAL": {
+              "brier": 0.25390394215160905,
+              "log": 0.7012328459307832
+            },
+            "INITIAL": {
+              "brier": 0.24932701074352281,
+              "log": 0.6918003280921216
+            },
+            "PRIOR": {
+              "brier": 0.24987621125676626,
+              "log": 0.6928995826378952
+            }
+          }
+        },
+        "state": {
+          "E3": {
+            "brier": 0.2492586937192466,
+            "log": 0.6916941297216953
+          },
+          "count": 10010,
+          "differences": {
+            "FINAL": {
+              "brier": -0.0018591403207646462,
+              "log": -0.0038512648114916725
+            },
+            "INITIAL": {
+              "brier": 0.0007853298963794442,
+              "log": 0.0016043145292380379
+            },
+            "PRIOR": {
+              "brier": -0.0003923146270065625,
+              "log": -0.0007549050464701335
+            }
+          },
+          "improves_initial_and_prior": false,
+          "margins": {
+            "FINAL": {
+              "brier": 1.1000000000000001e-05,
+              "log": 2.1000000000000002e-05
+            },
+            "INITIAL": {
+              "brier": 1.1000000000000001e-05,
+              "log": 2.1000000000000002e-05
+            },
+            "PRIOR": {
+              "brier": 1.001e-05,
+              "log": 2.0010000000000003e-05
+            }
+          },
+          "references": {
+            "FINAL": {
+              "brier": 0.25111783404001126,
+              "log": 0.695545394533187
+            },
+            "INITIAL": {
+              "brier": 0.24847336382286717,
+              "log": 0.6900898151924573
+            },
+            "PRIOR": {
+              "brier": 0.24965100834625317,
+              "log": 0.6924490347681654
+            }
+          }
+        }
+      },
+      "decision": "FAIL_COMPARISON_NO_PROMOTION",
+      "primary": false
+    },
+    "selected": {
+      "cells": {
+        "future": {
+          "E3": {
+            "brier": 0.24650092593073356,
+            "log": 0.686123638656606
+          },
+          "count": 1635,
+          "differences": {
+            "FINAL": {
+              "brier": -0.0052865277010526734,
+              "log": -0.010767096897585815
+            },
+            "INITIAL": {
+              "brier": -0.0024361053729584636,
+              "log": -0.0048959970808639675
+            },
+            "PRIOR": {
+              "brier": -0.003275828760381877,
+              "log": -0.006576998020318414
+            }
+          },
+          "improves_initial_and_prior": true,
+          "margins": {
+            "FINAL": {
+              "brier": 1.1000000000000001e-05,
+              "log": 2.1000000000000002e-05
+            },
+            "INITIAL": {
+              "brier": 1.1000000000000001e-05,
+              "log": 2.1000000000000002e-05
+            },
+            "PRIOR": {
+              "brier": 1.001e-05,
+              "log": 2.0010000000000003e-05
+            }
+          },
+          "references": {
+            "FINAL": {
+              "brier": 0.25178745363178623,
+              "log": 0.6968907355541918
+            },
+            "INITIAL": {
+              "brier": 0.24893703130369202,
+              "log": 0.6910196357374699
+            },
+            "PRIOR": {
+              "brier": 0.24977675469111543,
+              "log": 0.6927006366769244
+            }
+          }
+        },
+        "state": {
+          "E3": {
+            "brier": 0.24622751482345553,
+            "log": 0.6855767468658089
+          },
+          "count": 1403,
+          "differences": {
+            "FINAL": {
+              "brier": -0.0025579837305491626,
+              "log": -0.005229506104536097
+            },
+            "INITIAL": {
+              "brier": -0.001582765998352026,
+              "log": -0.003185938776128272
+            },
+            "PRIOR": {
+              "brier": -0.0031495171555288026,
+              "log": -0.006324080081487549
+            }
+          },
+          "improves_initial_and_prior": true,
+          "margins": {
+            "FINAL": {
+              "brier": 1.1000000000000001e-05,
+              "log": 2.1000000000000002e-05
+            },
+            "INITIAL": {
+              "brier": 1.1000000000000001e-05,
+              "log": 2.1000000000000002e-05
+            },
+            "PRIOR": {
+              "brier": 1.001e-05,
+              "log": 2.0010000000000003e-05
+            }
+          },
+          "references": {
+            "FINAL": {
+              "brier": 0.2487854985540047,
+              "log": 0.690806252970345
+            },
+            "INITIAL": {
+              "brier": 0.24781028082180756,
+              "log": 0.6887626856419372
+            },
+            "PRIOR": {
+              "brier": 0.24937703197898434,
+              "log": 0.6919008269472965
+            }
+          }
+        }
+      },
+      "decision": "PASS_BOTH_M5_TASKS",
+      "primary": false
+    }
+  },
+  "all_TF_better_than_INITIAL_out_of_30": {
+    "complement": {
+      "brier": 18,
+      "log": 17
+    },
+    "full": {
+      "brier": 20,
+      "log": 18
+    },
+    "selected": {
+      "brier": 26,
+      "log": 26
+    }
+  },
+  "mean_canonical_full_TRAIN_batch_loss": {
+    "INITIAL": 1.9489571622537984,
+    "ORIGINAL_FINAL": 2.0216832481253237,
+    "E3": 1.8944318332563805,
+    "original_reference": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SF_OBJECTIVE_WEIGHT_AUDIT_20261109_001/RESULT.json",
+      "sha256": "59511a3f8cddc0afbc4e6dceef609419bf3a6b6bdf4463fff080fbc703879707"
+    },
+    "original_reference_fields": [
+      "combined.full_train.initial_mean_loss",
+      "combined.full_train.final_mean_loss"
+    ],
+    "limits": "Original initial/final are qualified FP64 objective reconstructions from frozen evaluation FP32 logits; E3 combines cached256 GPU and1593 CPU batch losses. These are frozen evaluation objectives, not historical stochastic dropout-step losses."
+  },
+  "later192_reused": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001/E3_LATER.json",
+    "sha256": "00a8ad9516440817f97ae82fc926068dc3bbecbbbec76bac0f93ffd558fd370f"
+  },
+  "previous_continuation_review": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_REPEATED_PASS_REVIEW.json",
+    "sha256": "e0152d16be2a6b881dcd4e21ec2f108e875ba042a25b0f3d0d9b1ba044971987"
+  },
+  "important_limits": [
+    "Selected4096 improves both M5 conditional-side scores versus INITIAL and prior. Complement25478 fails both tasks; full29574 remains worse than INITIAL for both tasks. Full S beats prior; full F does not.",
+    "INITIAL M5 readout was already fitted using the full TRAIN population. Complement is original TRAIN, not untouched holdout. This does not prove row memorization or generalization failure.",
+    "Coverage, update count and optimizer path differ between E3(selected4096,768 cumulative updates) and original full pass29574/1849. Original full-pass cause is not isolated.",
+    "E3 full total objective decreases while both M5 side scores worsen. This endpoint tradeoff does not explain original full-pass total-objective increase and all-ten-side regression.",
+    "M5 activity is worse than INITIAL for S/F across selected, complement and full. Full F M5 three-class Brier rises0.5644545995706884 to0.5723707582707305; full F D1 conditional-side Brier rises0.2148682522689113 to0.21966636428606773.",
+    "Later192 conditional-M5 gains are reused development evidence with later MTF and F-three-class regressions; no new later arrays or forwards.",
+    "Selected predictions are reused GPU; complement predictions are CPU. Device qualification covers32 selected rows only, not a global bound. Prebound conditional-M5 margins do not establish a three-class or total-objective error bound.",
+    "No statistical independence, untouched generalization, native convergence, full direction correction, Entry/Exit decision value or trading economics is established.",
+    "Complement predictions were measured only at E3. E1/E2 complement were not measured, so the onset and progression of complement deterioration are unknown."
+  ],
+  "numerical_protocol": {
+    "qualified_rows": 32,
+    "global_cpu_cuda_bound_established": false,
+    "conditional_M5_decision_margins": {
+      "FINAL": {
+        "brier": 1.1000000000000001e-05,
+        "log": 2.1000000000000002e-05
+      },
+      "INITIAL": {
+        "brier": 1.1000000000000001e-05,
+        "log": 2.1000000000000002e-05
+      },
+      "PRIOR": {
+        "brier": 1.001e-05,
+        "log": 2.0010000000000003e-05
+      }
+    }
+  },
+  "cached_validation": {
+    "status": "PASS_INDEPENDENT_CACHED_SCORES",
+    "seconds": 3.1876280460001,
+    "decoded_archives": 5,
+    "decoded_array_members": 57,
+    "verified_metric_count_cells": 270,
+    "max_mean_score_abs_error": 2.220446049250313e-16,
+    "max_partition_weighted_mean_error": 2.5631301702129235e-16,
+    "selected_capture_exact": true,
+    "source_bookend_pass": true,
+    "forwards": 0,
+    "model_constructions": 0,
+    "checkpoint_decodes": 0,
+    "optimizer_updates": 0
+  },
+  "timing": {
+    "worker": {
+      "complement_seconds": 3286.4973381990003,
+      "elapsed_seconds": 3382.085781339999,
+      "setup_seconds": 90.79512170699945
+    },
+    "controller_monotonic_seconds": 3386.3709291819996,
+    "UTC_span_seconds": 3185.69548,
+    "clock_discrepancy_seconds": 200.67544918199974,
+    "whole_run_speedup_established": false,
+    "reuse": "Selected4096 predictions, later192 measurements and original INITIAL/FINAL/prior are reused; zero new baseline or later forwards. No controlled same-workload timing comparison."
+  },
+  "conclusions": {
+    "selected_cohort_learning_measured": true,
+    "complement_direction_improvement": false,
+    "full_TRAIN_direction_improvement_vs_INITIAL": false,
+    "original_full_pass_cause_isolated": false,
+    "full_direction_fix_qualified": false
+  },
+  "next_action": "Prepare one matched full-population batch-order counterfactual using original ae772 initial state, all29574 rows and1849 Adam updates; reuse historical ORIGINAL_FINAL and existing baseline predictions. Hold targets, intact batches, original batch IDs/pass0, loss, learning rate and update budget fixed. No new short-cohort pilot, extra epochs or model/loss sweep. A new exact qualified admission is required before fitting; none is opened by this review.",
+  "new_training_authorized": false,
+  "promotion_authorized": false,
+  "test_data_used": false,
+  "entry_exit_trading_authorized": false,
+  "goal_complete": false
+}
