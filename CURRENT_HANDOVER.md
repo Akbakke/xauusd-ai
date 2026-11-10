@@ -15,16 +15,24 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_PAIRED_OBJECTIVE_DECOMP_ADMITTED.
+Policystatus: TA_M5_PAIRED_OBJECTIVE_TRADEOFF_MEASURED_CAUSE_UNRESOLVED.
 
-Ny avgrenset cachedkontroll deler002CONTROL/INTERLEAVED sitt TRAIN-tap i20ledd.
-Kun to ferdigeTRAIN-arkiver/24arrays,256identiskeB16-batcher; eksisterende
-komponentfunksjoner gjenbrukes. 0modell/forwards/fit/vekt- eller targetdekoding,
-ingen senerearrays. Capped4G/512M,1tråd,60s. Metadata- og uavhengig
-kilde/matte-kontroll består. Kun auditporten er åpen; alle treningsporter stengt.
-Ny rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_OBJECTIVE_DECOMP_20261110_001
-Dette isolerer bidrag til sluttmålenes avveining,ikke historiskgradientårsak
-eller originalfullpassfeilen. Ingen modell-/lossendring er innrømmet.
+[Oppdeling av tapsfunksjonen](docs/TA_M5_PAIRED_OBJECTIVE_DECOMP_REVIEW.json)
+er COMPLETE/konsumert; uavhengig kilde- og regnekontroll består. På identiske
+4096 TRAIN-rader ble totaltapet 0,02123666 lavere i INTERLEAVED enn CONTROL:
+M5-aktivitet −0,00405091, øvrig aktivitet −0,00742633 og øvrig retning
+−0,00993436 oppveier svakere M5-retning (+0,00017495). Begge M5-retningsledd
+ble dårligere. To lagrede arkiver, ingen modell eller trening; hele kommandoen
+tok 0,439 s. FLAT-sonen og eksisterende sannsynligheter er uendret.
+
+Dette forklarer sluttmålenes avveining, ikke den opprinnelige fullpassfeilen
+(hvor også totaltapet økte). Ekstra fullpass er tidligere kjørt med korrigerte
+M5-hoder og nullstilte Adam-momenter. Sammenhengende gjentatte pass på samme
+representative utvalg er ikke målt; native konvergens er ikke dokumentert.
+Neste avgrensede spørsmål er treningsdybde med uendret utvalg og mål.
+Lagret CONTROL kan bare gjenbrukes til videre trening etter egen kvalifisering;
+evidenskapselen har ingen kanonisk resume-autoritet. Ingen ny trening,
+modell-/lossendring eller lansering er innrømmet. Alle treningsporter er stengt.
 
 [Paret rekkefølgeforsøk](docs/TA_M5_PAIRED_BATCH_ORDER_REVIEW.json) er COMPLETE/
 konsumert på boot636,CUDA250W. Alle trenings-/launchporter er stengt;

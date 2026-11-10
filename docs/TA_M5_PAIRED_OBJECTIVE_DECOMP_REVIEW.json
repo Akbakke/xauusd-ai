@@ -1,0 +1,151 @@
+{
+  "status": "COMPLETE_MATCHED_OBJECTIVE_TRADEOFF_EXPLAINED_ORIGINAL_CAUSE_UNRESOLVED",
+  "stage": "market_state_ta_m5_paired_objective_decomp_20261110_001",
+  "source_commit": "8c6373c79799ce5d9a6710a751ba981d14aa1ece",
+  "evidence": {
+    "PLAN.json": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_OBJECTIVE_DECOMP_20261110_001/PLAN.json",
+      "sha256": "42f7e2f376d7059b1f7afbee117dd49931ba9d0ab58b55d206fcffbd3cd9c27f"
+    },
+    "RESULT.json": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_OBJECTIVE_DECOMP_20261110_001/RESULT.json",
+      "sha256": "5847e5ba6f885160ec73be4590e38ca173770f1375c561baae5706a566e71f98"
+    },
+    "TERMINAL.json": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_OBJECTIVE_DECOMP_20261110_001/TERMINAL.json",
+      "sha256": "1def89073a2a2a754a5543be549f5f8c3366c59f7c6361704e665c59b6f3b752"
+    },
+    "CONTROLLER.json": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_OBJECTIVE_DECOMP_20261110_001/CONTROLLER.json",
+      "sha256": "afc393648727b9410762576fd08b1f1d25a9e19a378ffed5123f6c0ec11177de"
+    },
+    "CLAIM.json": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_OBJECTIVE_DECOMP_20261110_001/CLAIM.json",
+      "sha256": "ef6176123d2c24082dda588780e9ae342a67be214f8d5306e811035e3767c38f"
+    },
+    "probe.py": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_OBJECTIVE_DECOMP_20261110_001/probe.py",
+      "sha256": "56a02767235e266a490628212d703c7238360ff131ee01065d1fb16640af3a76"
+    }
+  },
+  "comparison": "INTERLEAVED minus CONTROL; frozen evaluation on identical 4096 TRAIN rows in 256 intact B16 batches.",
+  "loss_group_deltas": {
+    "M5_activity": -0.004050912886480157,
+    "M5_side": 0.00017494612955337718,
+    "other_TF_activity": -0.007426329719315228,
+    "other_TF_side": -0.009934363401519097,
+    "total": -0.021236659877761133
+  },
+  "component_deltas": {
+    "future": {
+      "D1": {
+        "activity": -0.0014025752892774107,
+        "side": 0.0016297815313683767
+      },
+      "H1": {
+        "activity": -0.0020051615685852398,
+        "side": -0.0024398839632463754
+      },
+      "H4": {
+        "activity": -0.0018901721015141537,
+        "side": -0.0008257065668438035
+      },
+      "M15": {
+        "activity": -0.0017629116545558182,
+        "side": -0.0036592461428757717
+      },
+      "M5": {
+        "activity": -0.0032465605483759097,
+        "side": 6.954458129493357e-05
+      }
+    },
+    "state": {
+      "D1": {
+        "activity": -0.0007800379274239336,
+        "side": -0.0008799824721535537
+      },
+      "H1": {
+        "activity": 0.0012770555888411278,
+        "side": -0.00011039480840112359
+      },
+      "H4": {
+        "activity": -0.000275545727477948,
+        "side": -0.0001482680511325496
+      },
+      "M15": {
+        "activity": -0.0005869810393218655,
+        "side": -0.0035006629282342827
+      },
+      "M5": {
+        "activity": -0.0008043523381042611,
+        "side": 0.00010540154825847137
+      }
+    }
+  },
+  "independent_source_and_arithmetic_review": "PASS",
+  "component_group_total_max_error": 4.163336342344337e-17,
+  "max_recorded_batch_FP64_FP32_error": 3.6714601492349175e-07,
+  "bound_batch_tolerance": 2e-06,
+  "M5_score_JSON_identity_max_error": 0.0,
+  "cost": {
+    "whole_command_seconds": 0.43880493000006027,
+    "worker_seconds": 0.16907803399999466,
+    "array_archives": 2,
+    "array_members": 24,
+    "models": 0,
+    "forwards": 0,
+    "backwards": 0,
+    "updates": 0,
+    "fits": 0,
+    "checkpoint_loads": 0
+  },
+  "findings": [
+    "Activity and other-timeframe side improvements outweigh worsening in both M5 side terms. Total loss is not a sufficient M5 direction improvement criterion.",
+    "No loss implementation error, optimal weighting or historical gradient cause is established by this endpoint accounting.",
+    "Original fullpass total objective increased; this lower-loss endpoint tradeoff does not by itself explain that regression.",
+    "Existing FLAT targets, probability factorization, genuine five-timeframe inputs and model/loss/optimizer are unchanged."
+  ],
+  "training_depth_evidence": {
+    "refs": {
+      "next_native_pass_recipe": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_NATIVE_PASS_20261109_001/RECIPE.json",
+        "sha256": "2470fa82e2a6f6eefd5b90b0e62323be8895ac4f0dc48a9bae125cc70d617fdc"
+      },
+      "next_native_pass_result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_NATIVE_PASS_20261109_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+        "sha256": "ca78b1c649096b567b2a60b2a8af82999bbfa23e0ba829f637de141d343dde40"
+      },
+      "final_readout_import_review": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_IMPORT_20261109_001/REVIEW.json",
+        "sha256": "5325057a27641c06460e1234593147aa8d804a78a97d109751fd03a85be47acd"
+      },
+      "score_recovery_review": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SCORE_RECOVERY_20261109_002/NATIVE_REVIEW.json",
+        "sha256": "57d70457fb7513afccb5bd61697d67b01b6095d4903db1a7131bf2e2ff168107"
+      },
+      "next_pass_readout_review": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_PASS_READOUT_20261109_001/REVIEW.json",
+        "sha256": "2f61baa1b56d1c777ee1683f42a3865b2eeae34c2df836d0539920be66852118"
+      }
+    },
+    "next_pass_initial_model_sha256": "51e0e8832bbc7079c5f00f30eef17de4a2ba7aecab2a982063483a241ab051ba",
+    "next_pass_initialized_from": "Previous FINAL plus four corrected M5 head tensors, fresh empty AdamW state and cursor0.",
+    "next_pass_rows": 29574,
+    "next_pass_updates": 1849,
+    "next_pass_query_index": 0,
+    "next_pass_not_continuous_optimizer_second_epoch": true,
+    "converged_readout_does_not_establish_native_convergence": true,
+    "paired_4096_each_arm_passes": 1,
+    "repeated_native_passes_on_same_representative_4096_not_measured": true,
+    "more_epochs_solution_established": false
+  },
+  "limitations": [
+    "TRAIN endpoint accounting only; no new later score.",
+    "Later paired panel is reused development data, not untouched generalization.",
+    "Conditional M5 side improvement does not establish three-class improvement, precise entry, market edge or profit.",
+    "No new training, optimizer, target, threshold or loss intervention admitted."
+  ],
+  "next_action": "Prepare a bounded same-population repeated-pass direction comparison, separating training depth from coverage and objective changes. Reuse saved CONTROL evidence only after explicit continuation qualification; its capsule has no canonical resume authority. No new training or model change is admitted.",
+  "training_authorized": false,
+  "test_data_used": false
+}

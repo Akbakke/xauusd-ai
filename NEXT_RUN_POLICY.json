@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-10T06:29:23.781273+00:00",
-  "status": "TA_M5_PAIRED_OBJECTIVE_DECOMP_ADMITTED",
+  "status": "TA_M5_PAIRED_OBJECTIVE_TRADEOFF_MEASURED_CAUSE_UNRESOLVED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Pairedexperiment andcachedreviewconsumed. Preserve genuine features,allTF,S/Fprobabilities andFLAT. No newfit,oldplanrelaunch,TEST,GC,Entry,Exit ortrading.",
-  "next_action": "Run one cached2archive decomposition of the20canonical TRAINloss terms on002matched4096rows; reuse qualifiedcomponentmath, no models ortraining. Distinguish endpointtradeoff fromunproved originalfullpasscause.",
+  "next_action": "Prepare a bounded same-population repeated-pass direction comparison, separating training depth from coverage and objective changes. Reuse saved CONTROL evidence only after explicit continuation qualification; its capsule has no canonical resume authority. No new training or model change is admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1685,7 +1685,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Exact cached objective decomposition admitted; preflight and independent source/math reviewPASS,0models.",
+    "current_activity": "Cached objective decomposition COMPLETE; independent arithmetic PASS. No training admitted; original fullpass cause and native convergence remain unresolved.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -9209,7 +9209,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Prepare one matched fixed-TRAIN-mean head-coordinate intervention from original INITIAL and original256-update control. No native launch before exact source/admission/panel/baseline checks. No optimizer, feature or LR sweep; all training remains disabled.",
+    "next_action": "Prepare a bounded same-population repeated-pass direction comparison, separating training depth from coverage and objective changes. Reuse saved CONTROL evidence only after explicit continuation qualification; its capsule has no canonical resume authority. No new training or model change is admitted.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -66329,7 +66329,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "Verified two finite common-step applications: all12 local M5 BCE/Brier/log cells improve. FINAL improves on otherTRAIN/laterM5, but INITIAL transfer is mixed, TRAIN remains below prior, and both states worsen laterD1. No general correction or optimizer continuation qualified. Wholecommand265.333s,48savedbaselineforwardsreused.",
+    "latest_progress": "Paired CONTROL learns M5 side locally; interleaving worsens all four matched M5 cells. Cached 20-component accounting shows activity and other-TF side gains mask M5-side loss deterioration. Fullpass cause remains unresolved; repeated representative native training with retained moments has not been tested.",
     "user_clarification_20261109": {
       "scope": "Correct direction for short sniper and longer long/shorttrends; separate forecasts and targets at M5 cadence.",
       "existing_future_horizons_minutes": [
@@ -66341,6 +66341,10 @@
       ],
       "existing_endpoint_scores_do_not_prove_favorable_path_or_precise_entry": true,
       "no_new_trading_authority": true
+    },
+    "latest_progress_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_PAIRED_OBJECTIVE_DECOMP_REVIEW.json",
+      "sha256": "2c5c65af874881fe9e02e5087783d15321afcd8002951335acb34789c3ea19c0"
     }
   },
   "market_state_ta_direction_weight_diagnostic_20261108_001": {
@@ -73665,13 +73669,13 @@
     "completed_utc": "2026-11-10T08:44:17.116403+00:00"
   },
   "market_state_ta_m5_paired_objective_decomp_20261110_001": {
-    "status": "ADMITTED",
-    "execution_authorized": true,
+    "status": "COMPLETE",
+    "execution_authorized": false,
     "training_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_OBJECTIVE_DECOMP_20261110_001",
     "plan": {
@@ -73698,6 +73702,22 @@
     "numeric_threads": 1,
     "wall_seconds": 60,
     "source_review": "PASS_INDEPENDENT_SOURCE_AND_MATH_REVIEW",
-    "preflight": "PASS_ACTUAL_METADATA_NO_ARRAYS"
+    "preflight": "PASS_ACTUAL_METADATA_NO_ARRAYS",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_OBJECTIVE_DECOMP_20261110_001/RESULT.json",
+      "sha256": "5847e5ba6f885160ec73be4590e38ca173770f1375c561baae5706a566e71f98"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_OBJECTIVE_DECOMP_20261110_001/TERMINAL.json",
+      "sha256": "1def89073a2a2a754a5543be549f5f8c3366c59f7c6361704e665c59b6f3b752"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_OBJECTIVE_DECOMP_20261110_001/CONTROLLER.json",
+      "sha256": "afc393648727b9410762576fd08b1f1d25a9e19a378ffed5123f6c0ec11177de"
+    },
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_PAIRED_OBJECTIVE_DECOMP_REVIEW.json",
+      "sha256": "2c5c65af874881fe9e02e5087783d15321afcd8002951335acb34789c3ea19c0"
+    }
   }
 }
