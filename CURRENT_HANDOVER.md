@@ -15,25 +15,46 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_REVERSED_HEAD_FIXED_INITIAL_ADMITTED_CPU_ONLY.
+Policystatus: TA_M5_REVERSED_HEAD_FIXED_INITIAL_COMPLETE_NO_CORRECTION.
 
-Én ny cached kontroll er innrømmet ved
-MARKET_STATE_TA_M5_REVERSED_HEAD_ON_INITIAL_REPR_20261110_001/PLAN.json.
-REVERSEDs fire M5-hodetensorer anvendes på de kvalifiserte INITIAL-
-representasjonene for samme29574 TRAIN og samme senere192. Gammelt
-ORIGINAL_FINAL-headkryss gjenbrukes; ingen tidligere plan relanseres.
-Dette måler en ordnet funksjonsdeling: headendring ved fast INITIAL-input,
-deretter samlet upstream/query-projeksjon/samspill under REVERSED-head.
-Ingen symmetrisk Shapley eller isolert trenings-/optimizerårsak påstås.
+[Cached M5-headkryss](docs/TA_M5_REVERSED_HEAD_INITIAL_REPR_REVIEW.json) er
+COMPLETE/konsumert, exit0. REVERSEDs fire M5-tensorer ble anvendt på samme
+INITIAL-representasjoner for29574 TRAIN og192 senere rader; ingen ny fit.
+Én CPU-kapseldekoding,3722 små lineære batchkall,0 modeller/encoderforwards/
+optimizer/updates. Private utgangslogits og fire tensorer er bevart.
+Alle trenings-/launchporter og denne engangsplanen er stengt.
 
-Kildebro7c86→71278→ae772, direkte post-query128-input, k1, masker og
-bevarte baseline-skårer er kontrollert. Uavhengig kildegjennomgang består.
-Faktisk metadata/syntetisk preflight besto på1,298s uten payload/CLAIM.
-Grense120s/4G/512M/én tråd: én CPU-kapseldekoding, fire headtensorer,
-3722 små lineære B16-beregninger; null modeller, encoderforwards eller fit.
-FP32/FP64-avvik rapporteres; kontrollen gir ingen ny native CUDA-kvalifikasjon.
-Alle fem faste TRAIN-måneder beholdes, uten kalibrering eller kandidatvalg.
-Alle globale trenings-/native-/launchporter er fortsatt stengt.
+Brier INITIAL → kryss → faktisk REVERSED:
+TRAIN S0,248473364→0,248712836→0,248502819 (10010known);
+TRAIN F0,249327011→0,249863557→0,249488559 (11909known);
+senere S0,241456184→0,238650075→0,238066630 (65known);
+senere F0,246893921→0,245821118→0,243229663 (75known).
+Logtap har samme fortegn. Headendringen ved fast INITIAL-input svekker begge
+TRAIN-mål; samlet upstream under REVERSED-head oppveier noe av svekkelsen.
+Begge ledd bedrer senere192. Upstream-leddet hjelper mai–juli på TRAIN,
+men skader august–september. Alle fem måneder er rapportert.
+
+Dette er en ordnet funksjonsdeling, ikke symmetrisk Shapley eller en isolert
+optimizer-/treningsårsak. INITIAL-hodene var allerede tilpasset disse
+TRAIN-representasjonene; svakere headkryss beviser ikke feil gradienter/Adam.
+Krysset kvalifiserer ingen rettelse og støtter ikke å bytte tilbake til INITIAL-
+representasjon med de allerede trente REVERSED-hodene. En ny trening med
+fryst enkoder er ikke testet. Gammelt ORIGINAL_FINAL-headkryss er gjenbrukt.
+
+Worker7,191s, helekommando7,775s, metadata-preflight1,298s.
+Uavhengig kontroll av56 skårceller/28 tellinger består på0,046s, maksavvik
+5,55e-17, uten nye matriseberegninger/modeller/kapseldekodinger. CPUFP32/F64
+maks logitavvik7,12e-8 og globalt skåravvik1,27e-9; ingen ny native
+CUDA-kvalifikasjon påstås. Ingen kontrollert helkjørings-speedup er målt.
+
+INITIALs M5-hoder var allerede konvergert med fast alpha0,01 og regulert BCE:
+begge brukte to Newton-steg, maksgradient S8,12e-10/F2,13e-11. Dette er ikke
+Brier-optimum eller samme regularisering som native AdamW. Neste avgrensede
+spørsmål er om samme eksisterende tilpasning fungerer bedre på REVERSEDs
+representasjoner. Senere192 er lagret; fullTRAIN-representasjoner mangler og
+krever1849 frosne forwards uten updates før to faste readoutfits. Bevar tidligere
+negativ original-FINAL-kontroll. Ingen ny fit eller native jobb er innrømmet.
+Målet er fortsatt uoppnådd.
 
 Siste fullførte native kontroll og dens begrensninger:
 
