@@ -1,74 +1,79 @@
 # CURRENT_HANDOVER — GX1
 
-Arbeidssted: `/home/andre2/src/GX1_CURRENT`, gren `work/gx1-current`. Les
-[GX1_RULES.md](GX1_RULES.md) før arbeid og kjør `bash scripts/gx1_handover.sh --check`.
-[NEXT_RUN_POLICY.json](NEXT_RUN_POLICY.json) er eneste maskinlesbare arbeidsstatus;
-terminalkvitteringer og faktiske prosesser overstyrer tekst her. Eldre arbeid,
-feil og kvitteringer finnes i Git og på sine opprinnelige artefaktstier. Åpne dem
-bare ved et konkret avvik eller en ny nødvendig gatekontroll.
+Arbeidssted: /home/andre2/src/GX1_CURRENT, gren work/gx1-current. Les
+[GX1_RULES.md](GX1_RULES.md) og kjør bash scripts/gx1_handover.sh --check.
+[NEXT_RUN_POLICY.json](NEXT_RUN_POLICY.json) er eneste maskinlesbare arbeidsstatus.
+Terminalkvitteringer og faktiske prosesser overstyrer tekst. Eldre arbeid åpnes
+bare ved konkret avvik eller nødvendig ny kontroll.
 
 ## Mål og gjeldende port
 
-Lær løpende framtidig OPP/NED/FLATT markedstilstand **før** Entry-plassering.
-M5 er prognosetakten; kausalt lukkede M15/H1/H4/D1 og eksisterende genuine
-indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
-forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
-er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
+Lær løpende framtidig OPP/NED/FLATT markedstilstand før Entry-plassering.
+M5 er prognosetakten; kausalt lukkede M15/H1/H4/D1 og genuine indikatorhistorikk
+er input. Alle fem TF beholder egne framtidige mål. GC er utsatt; TEST,
+Entry/Exit, broker, ordre, handel, spending og promotion er stengt.
 
-Policystatus: TA_M5_FIXED_NATIVE_AND_FULL_LATER_SCORE_ADMITTED.
+Policystatus: TA_M5_NATIVE_READOUT_RECOVERY_CONFIRMED_FULL_LATER_FAILED.
+FIXED_NATIVE_SCORE001 er COMPLETE/konsumert, worker/controller/guardexit0,
+kjørt på kilde772156d4. Ingen modelljobb lever. Ingen neste jobb innrømmet;
+alle globale trenings-/native-launch-porter er false. Målet er uoppnådd.
 
-To faste M5-readoutfits på frossen REVERSED174b er COMPLETE/konsumert, exit0.
-Samme raw128D, alpha0,01, solver, biasregularisering og q/(5BN)-vekting som
-INITIAL; ingen ny parameterseleksjon. Begge konvergerte på to Newton-steg,
-maksgradient S1,23e-9/F9,65e-11. Fitlåsen ble skrevet før senere192 ble dekodet.
-0 modeller/checkpointdekodinger/encoderforwards/optimizer/nativeupdates.
+Det som er gjort:
+Fire låste FP32 M5-tensorer fra fast readout e75974be ble overført til
+REVERSED174b. Kandidatmodell e94348ac. Faktisk CUDA-headkontroll på hele
+TRAIN29574 og senere192 består; R1-logits bitlike, kandidat mot CPU innen
+7,45e-8 rålogit /4,73e-10 logtap. Alle andre modellverdier/buffere/RNG/modi
+bevares. Faktisk privat weights-only-fil af2b8b78 dekodet og lastet strengt;
+row0-output/representasjon bitlik før/etter. Samme instans: ingen bevis for
+fresh-constructor restore, optimizer- eller canonical resume.
 
-M5 Brier INITIAL → REVERSED → fast readout / fryst prior (lavere bedre):
-TRAIN S n10010:0,248473364→0,248502819→0,248194763 /0,249651008.
-TRAIN F n11909:0,249327011→0,249488559→0,249065517 /0,249876211.
-Senere S n65:0,241456184→0,238066630→0,238271273 /0,247188030.
-Senere F n75:0,246893921→0,243229663→0,245805126 /0,249382136.
-Logtap har samme fortegn i alle sammenligninger. Begge fullTRAIN-mål og
-senere192 slår INITIAL/prior; senere192 er svakere enn REVERSED før refit.
+Full senere17753 er nå målt:192 rader gjenbrukt,17561 nye.
+1100 forwards=1098 manglende batcher inkl.B9+2 row0-kontroller.
+Én modell,to fildekodinger,7444 CUDA-headkall,2196 gamle-headkall,
+fire tensorimporter,én kandidatfil; ingen nye fits, backwards eller optimizeroppdateringer.
+R1 full-senere er192 lagrede native svar+17561 affine rekonstruksjoner på
+samme representasjoner; kandidat er192 faktiske GPU-heads+17561 native outputs.
 
-Dette viser at den frosne nye representasjonen støtter bedre TRAIN-retning
-enn INITIAL med den samme eksisterende readout-metoden. Den tidligere
-TRAIN-svekkelsen er ikke nødvendig når bare de to utgangshodene tilpasses på nytt.
-Det isolerer ingen Adam-implementasjonsfeil eller entydig treningsmekanisme:
-den regulerte readout-BCEen er ikke samme regularisering som native AdamW.
-Påstanden gjelder foreløpig cached CPU-affine prognoser, ikke kvalifisert
-native import. Senere192 er lite og gjenbrukt utvikling; tidligere ORIGINAL_FINAL
-full-senere-F-negativekontroll er bevart. Ingen generell edge er dokumentert.
+M5 Brier INITIAL / R1 / KANDIDAT / fryst prior (lavere bedre):
+TRAIN S n10010:0,248473364 /0,248502819 /0,248194763 /0,249651008.
+TRAIN F n11909:0,249327011 /0,249488559 /0,249065517 /0,249876211.
+Full senere S n6096:0,249652488 /0,250329120 /0,249822360 /0,249827988.
+Full senere F n7165:0,249855791 /0,250801719 /0,249942166 /0,249833416.
+Logtap gir samme fortegn: begge TRAIN-mål slår INITIAL/prior; senerebegge
+slår R1 men taperINITIAL, S slårprior så vidt og F taperprior.
+Primærport FAIL_INITIAL_PRIOR_COMPARISON; ingen avrundingsuklarhet observert.
 
-Selve fitworker3,376s, helekommando4,498s. Uavhengig kontroll av20 skårceller/
-90 numeriske felt og låste koeffisienter består på0,219s, maksavvik1,11e-16.
-Ingen nye matriseberegninger/modeller/fits i den kontrollen.
+Kandidatens AUC TRAIN S/F0,5421/0,5318 faller til senere0,5230/0,5107.
+Senere S Brier-minus-prior = varians0,001131186 − kovariansgevinst0,001199656
++ endret gjennomsnittsbias0,000062842 =−0,000005628.
+Senere F:0,000467112−0,000372113+0,000013751=+0,000108750.
+Dette er en eksakt beskrivelse av de lagrede svarene, ikke en ny kalibrator
+eller dokumentert markeds-edge. Den lille senere192 ga et for positivt bilde.
+OriginalFINALs eldre offset/affin-kalibrering cad67beb ga heller ingen løsning;
+det gjelder andre vekter og er ingen generell dom over nye kalibratorer.
 
-GPU-capture001 er konsumert:29574 rader/1849 forwards,1 modell/kapsellasting,
-0 updates; M5-rålogits/akser/masker eksakte, modell/buffere/RNG/kilde uendret.
-Direkte128D M5-headinputs er bevart i FIT_REPRESENTATIONS.npz (35,2MB).
-Etter publisert COMPLETE og workerterminal0 feilet provider.close() i finally;
-controller/guardexit1 bevares. Bare finally er rettet til eksisterende page-release;
-13 fokuserte tester og uavhengig13-arraykontroll på0,277s består. Ingen omkjøring.
-CAPTURE_COMPLETION_REVIEW.json kvalifiserer de komplette dataene med eksplisitt
-prosessfeil. Helekommando1941,767s (32m22), worker1936,179s,
-capture1842,642s/setup90,277s. UTC er en annen klokke.250W-grense,
-målt topp131,93W/57C core/62C memory. Ingen kontrollert heltrenings-speedup.
+RESULT e5be50b5, uavhengig NUMERIC_REVIEW42135ad7:24 skårceller/120 felt,
+maksavvik1,11e-16 på0,987s; eksakte akser/masker og gjenbrukte koordinater,
+ingen ny modell/fit/forward. Alle private outputs/vekter/originaler bevares.
+Helekommando1227,256s (20m27), worker1223,079s,
+setup/import/roundtrip103,491s, manglende senere1116,253s.
+250W-grense; guardtopp129,03W,54C core/58C memory,592MiB. Ingen kontrollert
+speedup for hele treningsløpet er etablert.24 fokuserte tester, syntaks,
+endret-kildescan og git diff --check bestod før kjøringen; ingen kildeendring under den.
 
-Neste bevis er nå separat innrømmet som én frossen producer: de fire låste
-M5-tensorene i faktisk modell og hele senereTRAIN17753 mot INITIAL/prior.
-PLAN279cbf0b, worker4e25ebf8.24 fokuserte tester og uavhengig kildekontroll består;
-eksakt metadata-preflight exit0 på10,242s,0 modeller/forwards/checkpointdekodinger.
-Gjenbruk29574 TRAIN-representasjoner og192 senere rader;1098 manglende senere
-forwards pluss2 row0-kontroller =1100.7444 faktiske CUDA-headkall,2196 gamle
-headkall for R1-referanse.Én modell,to fildekodinger,fire tensorimporter,
-én privat weights-only-fil; alle andre vekter/buffere/RNG/modi bevares.
-Roundtrip gjelder samme instans og vekter, ikke optimizer eller fresh constructor.
-TRAIN+full-senere S/F sammenlignes på samme observasjoner mot INITIAL/prior;
-R1 er diagnostisk. Ingen ny fit/alpha/utvalg.12G/512M,én numerisk tråd,
-3600s og eksisterende250W/170W draw/65C/80C-vakter. Originaler bevares.
-Ingen jobb startet ved denne overleveringen. Globale trenings-/native-launch-porter
-er false; bare den eksakte frosne produceren er innrømmet. Målet er uoppnådd.
+Ikke gjort / hindring:
+Full senere-retning slår ikke de forhåndsvalgte referansene. Ingen entydig
+Adam-implementasjonsfeil er påvist. TRAIN-svekkelsen er fjernet med to faste
+readoutfits, men stabil senere forbedring/generaliserbarhet/profitt er ubevist.
+
+Neste steg:
+Bruk de samme LÅSTE W2-hodene på hele INITIALs lagrede senere-representasjoner
+(SCORE_CACHE8cc964f1,17753 rader), uten fit/modell/encoder/checkpoint.
+Sammenlikn W2r0−W0r0 og W2r1−W2r0 for å skille headbyttet fra reprbyttet
+langs denne bestemte kryssbanen. Tidligere kryss brukte R1s nativehoder og
+bare senere192; dette er et annet, fullstendig spørsmål. Ingen ny kandidat
+eller kalibrering velges på senereutfall. Eksakt plan må bindes separat;
+ingen ny kjøring er innrømmet nå.
 
 Siste fullførte kontroll:
 

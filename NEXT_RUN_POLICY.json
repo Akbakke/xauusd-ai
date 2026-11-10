@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-10T16:30:02.337192+00:00",
-  "status": "TA_M5_FIXED_NATIVE_AND_FULL_LATER_SCORE_ADMITTED",
+  "status": "TA_M5_NATIVE_READOUT_RECOVERY_CONFIRMED_FULL_LATER_FAILED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed two fixed CPUreadouts are consumed and all training/launch flags closed. Frozen model capture is retained and qualified with original post-completion cleanup failure preserved. No native import, further fit/capture, GC, TEST, Entry, Exit, broker, trading or promotion admitted.",
-  "next_action": "Execute the one admitted frozen native four-tensor import and full later TRAIN17753 score plan. Reuse29574 TRAIN representations and192 later observations; exactly1098 missing later encodings plus2 row0 forward/weights-only roundtrip checks. No new fit, candidate selection or consumed-plan replay.",
+  "next_action": "Use the same locked W2 readout heads on full INITIAL laterTRAIN representations17753 to separate head-replacement versus representation-change contributions to the new full-later failure. Reuse caches only, zero fit/model/checkpoint/encoder. Prior native-R1-head cross covered other heads and onlylater192. Prepare and separately admit exact cached-only scope before execution; no next job is admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1434,9 +1434,9 @@
     "profitability_demonstrated": false,
     "required_before_more_extensive_training": true,
     "entry_learning_demonstrated": false,
-    "current_evidence_scope": "Fixed existing alpha=.01 M5 readout fit on frozen REVERSED fullfold1TRAIN29574 improves both side Brier/log versus INITIAL and prior, also on reused later192 (65/75known). Later192 is worse versus REVERSED. Native four-tensor import and full later17753 validation remain unqualified; no generalization or edge established.",
+    "current_evidence_scope": "Native four-tensor import and same-instance weights-only roundtrip qualified; both fullTRAIN S/F beat INITIAL/prior. Full later17753: both beat R1 but both lose INITIAL; S barely beatsprior and F losesprior. Conditional AUC S.5230/F.5107; no stable generalization or economic edge demonstrated.",
     "component_learning_measured": true,
-    "component_learning_result": "FULL_FOLD1_M5_FIXED_READOUT_RECOVERY_WITH_REUSED_LATER192_GAIN_VS_INITIAL_PRIOR",
+    "component_learning_result": "NATIVE_FULL_TRAIN_M5_READOUT_RECOVERY_CONFIRMED_FULL_LATER_GATE_FAILED",
     "primary_entry_quality_qualified": false,
     "paired_learning_review": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/PAIRED_LEARNING_REVIEW.json",
@@ -1698,7 +1698,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Execute the one admitted frozen native four-tensor import and full later TRAIN17753 score plan. Reuse29574 TRAIN representations and192 later observations; exactly1098 missing later encodings plus2 row0 forward/weights-only roundtrip checks. No new fit, candidate selection or consumed-plan replay.",
+    "current_activity": "Use the same locked W2 readout heads on full INITIAL laterTRAIN representations17753 to separate head-replacement versus representation-change contributions to the new full-later failure. Reuse caches only, zero fit/model/checkpoint/encoder. Prior native-R1-head cross covered other heads and onlylater192. Prepare and separately admit exact cached-only scope before execution; no next job is admitted.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1727,11 +1727,11 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "Frozen E3 original-TRAIN evaluation COMPLETE; complement primary direction comparison fails.",
+    "latest_terminal_role": "Frozen fixed M5 native score COMPLETE; full later direction comparison fails.",
     "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_FIXED_NATIVE_SCORE_20261110_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_002/TERMINAL.json",
-      "sha256": "660b36069a45c1c0319bb4c80de6712b54e8e1c916137b71fc7629d00faf6ab1"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_FIXED_NATIVE_SCORE_20261110_001/TERMINAL.json",
+      "sha256": "0058440f8a9fa9628fab2b39173ef3fa78497b24ef71ba8704aeafd4317ea6fe"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -1751,7 +1751,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Native four-tensor import and full later comparison remain unmeasured; exact frozen producer admitted.",
+    "current_blocker": "Full later TRAIN M5 side probabilities do not beat INITIAL for S or F; F also loses frozen prior. No next fit or model job admitted.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -24696,7 +24696,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-10T16:55:06.764124+00:00",
+  "updated_utc": "2026-11-10T17:20:29.697415+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -74563,10 +74563,15 @@
     },
     "all_four_cells_beat_INITIAL_and_prior": true,
     "later192_beats_REVERSED": false,
-    "native_import_qualified": false
+    "native_import_qualified": true,
+    "native_qualification_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_FIXED_NATIVE_SCORE_20261110_001/RESULT.json",
+      "sha256": "e5be50b5bb4eead295051bf8df6f694ecfc6ae46c33386e782e439d2a6007a8f"
+    },
+    "full_later_direction_gate_passed": false
   },
   "market_state_ta_m5_reversed_fixed_native_score_20261110_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_DIRECTION_GATE_FAILED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_FIXED_NATIVE_SCORE_20261110_001/PLAN.json",
       "sha256": "279cbf0bd77cfbe655c8c4414889f1aa9c62dfb25485ccf428df714d656ae6df"
@@ -74580,11 +74585,11 @@
       "sha256": "a9a2ab84b3b5b8ba0136e5d51e9053186aad2a2bc7f5badc18947fb7caa4a36e"
     },
     "max_invocations": 1,
-    "remaining_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "remaining_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
-    "execution_authorized": true,
+    "execution_authorized": false,
     "data_reads_authorized": true,
     "checkpoint_reads_authorized": true,
     "backbone_encodings_authorized": 1100,
@@ -74605,6 +74610,348 @@
     "focused_tests_passed": 24,
     "independent_source_review": "PASS numerical/native-interface source4e25ebf823e977601ed5e3a48811bea646ae8e2fb28464b9cd2691bec915f4de; root reviewed source bridge/admission and exact metadata preflight.",
     "test_data_used": false,
-    "goal_complete": false
+    "goal_complete": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_FIXED_NATIVE_SCORE_20261110_001/RESULT.json",
+      "sha256": "e5be50b5bb4eead295051bf8df6f694ecfc6ae46c33386e782e439d2a6007a8f"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_FIXED_NATIVE_SCORE_20261110_001/TERMINAL.json",
+      "sha256": "0058440f8a9fa9628fab2b39173ef3fa78497b24ef71ba8704aeafd4317ea6fe"
+    },
+    "controller_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_FIXED_NATIVE_SCORE_20261110_001/CONTROLLER_TERMINAL.json",
+      "sha256": "47e41cacc5da897787cf474e8410db73fb19cc53d31cded4174fa4a75884bd65"
+    },
+    "numeric_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_FIXED_NATIVE_SCORE_20261110_001/NUMERIC_REVIEW.json",
+      "sha256": "42135ad7288b66053abd76b107209670ef93eab17da4843493ec34fdb72f9d90"
+    },
+    "candidate_weights": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_FIXED_NATIVE_SCORE_20261110_001/CANDIDATE_WEIGHTS.pt",
+      "sha256": "af2b8b786de1e97d3550c2f375a0266eb6ff6a7a309b7a48b2cd8324ac43d51e"
+    },
+    "full_later": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_FIXED_NATIVE_SCORE_20261110_001/FULL_LATER_READOUT.npz",
+      "sha256": "2e9bc91f8cff9528d0a8821ef4ea0d565d6f921cc092d76112d594cadd3c3938"
+    },
+    "actual_counts": {
+      "backbone_encodings": 1100,
+      "backwards": 0,
+      "cached_head_calls": 7444,
+      "candidate_writes": 1,
+      "checkpoint_loads": 2,
+      "checkpoint_writes": 0,
+      "forward_returns": 1100,
+      "fresh_baseline_forwards": 2,
+      "head_tensor_imports": 4,
+      "missing_score_encodings": 1098,
+      "model_constructions": 1,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "published_npz_bytes": 21772990,
+      "reference_linear_calls": 2196,
+      "resume_state_load_calls": 2,
+      "resume_state_load_returns": 2
+    },
+    "score_summary": {
+      "LATER_192": {
+        "future": {
+          "CANDIDATE": {
+            "brier": 0.24580512633614204,
+            "count": 75,
+            "log": 0.6847502708968908,
+            "mean_p": 0.5236012053893084,
+            "up_count": 40
+          },
+          "INITIAL": {
+            "brier": 0.2468939209777233,
+            "count": 75,
+            "log": 0.6869284014463658,
+            "mean_p": 0.5166263503899186,
+            "up_count": 40
+          },
+          "PRIOR": {
+            "brier": 0.24938213578334975,
+            "count": 75,
+            "log": 0.6919112686014336,
+            "mean_p": 0.5111241709344304,
+            "up_count": 40
+          },
+          "R1": {
+            "brier": 0.24322966322678616,
+            "count": 75,
+            "log": 0.6795701493702863,
+            "mean_p": 0.5225721973692997,
+            "up_count": 40
+          }
+        },
+        "state": {
+          "CANDIDATE": {
+            "brier": 0.23827127234024265,
+            "count": 65,
+            "log": 0.6696235010066647,
+            "mean_p": 0.5250714379560536,
+            "up_count": 38
+          },
+          "INITIAL": {
+            "brier": 0.24145618356247409,
+            "count": 65,
+            "log": 0.6760178262626678,
+            "mean_p": 0.5195489938225082,
+            "up_count": 38
+          },
+          "PRIOR": {
+            "brier": 0.24718802985450922,
+            "count": 65,
+            "log": 0.6875207846228477,
+            "mean_p": 0.5186775868957252,
+            "up_count": 38
+          },
+          "R1": {
+            "brier": 0.23806663018479043,
+            "count": 65,
+            "log": 0.6691780809184976,
+            "mean_p": 0.5152272570826583,
+            "up_count": 38
+          }
+        }
+      },
+      "LATER_FULL": {
+        "future": {
+          "CANDIDATE": {
+            "brier": 0.24994216605754532,
+            "count": 7165,
+            "log": 0.6930317086725764,
+            "mean_p": 0.5172278634063887,
+            "up_count": 3676
+          },
+          "INITIAL": {
+            "brier": 0.249855791231191,
+            "count": 7165,
+            "log": 0.6928588080616984,
+            "mean_p": 0.5143581495898966,
+            "up_count": 3676
+          },
+          "PRIOR": {
+            "brier": 0.249833416409301,
+            "count": 7165,
+            "log": 0.6928139788167914,
+            "mean_p": 0.5111241709344305,
+            "up_count": 3676
+          },
+          "R1": {
+            "brier": 0.2508017185918948,
+            "count": 7165,
+            "log": 0.694758857651036,
+            "mean_p": 0.5193625561960762,
+            "up_count": 3676
+          }
+        },
+        "state": {
+          "CANDIDATE": {
+            "brier": 0.24982235964639452,
+            "count": 6096,
+            "log": 0.6927946077158498,
+            "mean_p": 0.5231768165669072,
+            "up_count": 3133
+          },
+          "INITIAL": {
+            "brier": 0.24965248806034565,
+            "count": 6096,
+            "log": 0.6924524133660842,
+            "mean_p": 0.522249243054054,
+            "up_count": 3133
+          },
+          "PRIOR": {
+            "brier": 0.2498279877882917,
+            "count": 6096,
+            "log": 0.6928031584293621,
+            "mean_p": 0.5186775868957252,
+            "up_count": 3133
+          },
+          "R1": {
+            "brier": 0.2503291199684259,
+            "count": 6096,
+            "log": 0.693816798782562,
+            "mean_p": 0.5157888757083424,
+            "up_count": 3133
+          }
+        }
+      },
+      "TRAIN": {
+        "future": {
+          "CANDIDATE": {
+            "brier": 0.24906551702929922,
+            "count": 11909,
+            "log": 0.691275530473675,
+            "mean_p": 0.5111616186522253,
+            "up_count": 6087
+          },
+          "INITIAL": {
+            "brier": 0.24932701074352281,
+            "count": 11909,
+            "log": 0.6918003280921216,
+            "mean_p": 0.5109712747092003,
+            "up_count": 6087
+          },
+          "PRIOR": {
+            "brier": 0.24987621125676626,
+            "count": 11909,
+            "log": 0.6928995826378952,
+            "mean_p": 0.5111241709344305,
+            "up_count": 6087
+          },
+          "R1": {
+            "brier": 0.24948855862415473,
+            "count": 11909,
+            "log": 0.6921237508123671,
+            "mean_p": 0.5142760381579943,
+            "up_count": 6087
+          }
+        },
+        "state": {
+          "CANDIDATE": {
+            "brier": 0.24819476254882736,
+            "count": 10010,
+            "log": 0.6895294604241756,
+            "mean_p": 0.5185863441866421,
+            "up_count": 5192
+          },
+          "INITIAL": {
+            "brier": 0.24847336382286717,
+            "count": 10010,
+            "log": 0.6900898151924573,
+            "mean_p": 0.5185591398769893,
+            "up_count": 5192
+          },
+          "PRIOR": {
+            "brier": 0.24965100834625317,
+            "count": 10010,
+            "log": 0.6924490347681654,
+            "mean_p": 0.5186775868957252,
+            "up_count": 5192
+          },
+          "R1": {
+            "brier": 0.2485028185972811,
+            "count": 10010,
+            "log": 0.6901469107533538,
+            "mean_p": 0.5101200720037729,
+            "up_count": 5192
+          }
+        }
+      }
+    },
+    "comparison": {
+      "R1_diagnostic_only": true,
+      "candidate_selection": false,
+      "cells": {
+        "LATER_FULL": {
+          "future": {
+            "INITIAL": {
+              "brier_delta": 8.637482635431848e-05,
+              "log_delta": 0.00017290061087793518,
+              "margin": 1e-06,
+              "passes": false
+            },
+            "PRIOR": {
+              "brier_delta": 0.00010874964824431066,
+              "log_delta": 0.00021772985578494275,
+              "margin": 1e-08,
+              "passes": false
+            },
+            "R1": {
+              "brier_delta": -0.0008595525343494947,
+              "log_delta": -0.0017271489784596028,
+              "margin": 1e-08,
+              "passes": true
+            }
+          },
+          "state": {
+            "INITIAL": {
+              "brier_delta": 0.0001698715860488642,
+              "log_delta": 0.00034219434976556773,
+              "margin": 1e-06,
+              "passes": false
+            },
+            "PRIOR": {
+              "brier_delta": -5.62814189719596e-06,
+              "log_delta": -8.550713512356367e-06,
+              "margin": 1e-08,
+              "passes": true
+            },
+            "R1": {
+              "brier_delta": -0.0005067603220313688,
+              "log_delta": -0.001022191066712197,
+              "margin": 1e-08,
+              "passes": true
+            }
+          }
+        },
+        "TRAIN": {
+          "future": {
+            "INITIAL": {
+              "brier_delta": -0.00026149371422359846,
+              "log_delta": -0.000524797618446593,
+              "margin": 1e-06,
+              "passes": true
+            },
+            "PRIOR": {
+              "brier_delta": -0.0008106942274670459,
+              "log_delta": -0.0016240521642202355,
+              "margin": 1e-08,
+              "passes": true
+            },
+            "R1": {
+              "brier_delta": -0.00042304159485551107,
+              "log_delta": -0.0008482203386921405,
+              "margin": 1e-08,
+              "passes": true
+            }
+          },
+          "state": {
+            "INITIAL": {
+              "brier_delta": -0.00027860127403980806,
+              "log_delta": -0.0005603547682816457,
+              "margin": 1e-06,
+              "passes": true
+            },
+            "PRIOR": {
+              "brier_delta": -0.0014562457974258147,
+              "log_delta": -0.002919574343989817,
+              "margin": 1e-08,
+              "passes": true
+            },
+            "R1": {
+              "brier_delta": -0.000308056048453742,
+              "log_delta": -0.0006174503291781486,
+              "margin": 1e-08,
+              "passes": true
+            }
+          }
+        }
+      },
+      "decision": "FAIL_INITIAL_PRIOR_COMPARISON",
+      "observed_rounding_ambiguity": []
+    },
+    "native_import_qualified": true,
+    "same_instance_weights_roundtrip_qualified": true,
+    "fresh_constructor_resume_qualified": false,
+    "optimizer_resume_qualified": false,
+    "full_train_direction_recovery_verified": true,
+    "full_later_direction_gate_passed": false,
+    "candidate_model_state_sha256": "e94348ac9a088e4114bcfadc1d2247469e44eca4bce307fd9ab385b21d9af474",
+    "whole_command_seconds": 1227.2562848569996,
+    "worker_timings": {
+      "elapsed_seconds": 1223.0788036209997,
+      "missing_later_seconds": 1116.2528716649995,
+      "setup_import_and_roundtrip_seconds": 103.49120278199916
+    },
+    "max_core_temp_c_observed": 54,
+    "max_memory_temp_c_observed": 58,
+    "max_power_draw_w_observed": 129.03,
+    "configured_power_limit_w": 250,
+    "max_gpu_memory_mib_observed": 592,
+    "original_receipts_preserved": true
   }
 }
