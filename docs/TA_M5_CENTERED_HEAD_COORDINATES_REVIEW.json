@@ -1,0 +1,269 @@
+{
+  "status": "COMPLETE_NEGATIVE_COMPARISON_NO_DIRECTION_FIX_QUALIFIED",
+  "observed_utc": "2026-11-10T06:11:05.915592+00:00",
+  "source_head": "1d999d68f0cd17c9ec62daff03cbd8ee7fa15f61",
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CENTERED_HEAD_COORDINATES_20261110_001/RESULT.json",
+    "sha256": "e2053949378c915de02dd916e1db7f3eac26a24b69e7bde2d27dc80b2ffdfadd"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CENTERED_HEAD_COORDINATES_20261110_001/TERMINAL.json",
+    "sha256": "c56c8ff988b584cb80a4717980c320c2767587f92dc63f0aecd604570df8a150"
+  },
+  "cached_review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CENTERED_HEAD_COORDINATES_20261110_001/CACHED_SCORE_REVIEW.json",
+    "sha256": "b21848b3ab4ea236e106bbc53bdf8c7e658346c766d46a8f4a0b71c9dbe66b5c"
+  },
+  "campaign_receipt": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CENTERED_HEAD_COORDINATES_20261110_001/RUNTIME/receipts/invocation-0001.json",
+    "sha256": "828624ff9ae3094ea1e0db497087482715b167fe49369667f9ab582bf375d2c8"
+  },
+  "windows_task_disabled": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CENTERED_HEAD_COORDINATES_20261110_001/WINDOWS_TASK_DISABLED.json",
+    "sha256": "2cc96db43e58082f245f41e17b5b71278d8540b205e16ebb537e867c353aa06b"
+  },
+  "counts": {
+    "backward_returns": 256,
+    "backwards": 256,
+    "candidate_evidence_writes": 1,
+    "checkpoint_loads": 2,
+    "checkpoint_writes": 0,
+    "evaluation_forwards": 72,
+    "forward_returns": 328,
+    "forwards": 328,
+    "json_bytes": 454390,
+    "model_construction_returns": 1,
+    "model_constructions": 1,
+    "optimizer_constructions": 1,
+    "optimizer_step_calls": 256,
+    "optimizer_step_returns": 256,
+    "optimizer_updates": 256,
+    "resume_state_load_calls": 2,
+    "resume_state_load_returns": 2,
+    "strict_full_state_restore_calls": 3,
+    "strict_full_state_restore_returns": 3,
+    "training_forwards": 256
+  },
+  "timing": {
+    "worker_seconds": 559.015832386,
+    "fit_seconds": 373.46369042899994,
+    "controller_seconds": 560.042627,
+    "original_replay_fit_seconds": 360.16791833,
+    "fit_percent_change": 3.691548142502188,
+    "controlled_overall_speedup_claimed": false,
+    "note": "Fresh baseline/control/candidate evaluation adds72 forwards. Preparation, commit checks and reboot are outside runtime figures."
+  },
+  "same_observation_comparisons": {
+    "TRAIN_state": {
+      "candidate": {
+        "brier": 0.2564751666518511,
+        "log": 0.7062021450238098
+      },
+      "references": {
+        "INITIAL": {
+          "brier": 0.2546054410863897,
+          "log": 0.7023848705094372
+        },
+        "CONTROL": {
+          "brier": 0.2581529614764846,
+          "log": 0.7096142696734827
+        },
+        "PRIOR": {
+          "brier": 0.2520920936958483,
+          "log": 0.697333478245525
+        }
+      },
+      "differences": {
+        "INITIAL": {
+          "brier": 0.0018697255654613887,
+          "log": 0.003817274514372637
+        },
+        "CONTROL": {
+          "brier": -0.0016777948246334828,
+          "log": -0.0034121246496728874
+        },
+        "PRIOR": {
+          "brier": 0.00438307295600282,
+          "log": 0.008868666778284795
+        }
+      },
+      "passed": false,
+      "known": 75
+    },
+    "TRAIN_future": {
+      "candidate": {
+        "brier": 0.2530454969965746,
+        "log": 0.6992704864330468
+      },
+      "references": {
+        "INITIAL": {
+          "brier": 0.2521762687580769,
+          "log": 0.6975053726630005
+        },
+        "CONTROL": {
+          "brier": 0.25441962407484414,
+          "log": 0.7020481801620972
+        },
+        "PRIOR": {
+          "brier": 0.25064115047825425,
+          "log": 0.6944297135800547
+        }
+      },
+      "differences": {
+        "INITIAL": {
+          "brier": 0.0008692282384976657,
+          "log": 0.0017651137700462893
+        },
+        "CONTROL": {
+          "brier": -0.0013741270782695603,
+          "log": -0.0027776937290504566
+        },
+        "PRIOR": {
+          "brier": 0.0024043465183203327,
+          "log": 0.004840772852992115
+        }
+      },
+      "passed": false,
+      "known": 86
+    },
+    "LATER_state": {
+      "candidate": {
+        "brier": 0.23912293424390227,
+        "log": 0.6712326057911456
+      },
+      "references": {
+        "INITIAL": {
+          "brier": 0.24145618356247409,
+          "log": 0.6760178262626678
+        },
+        "CONTROL": {
+          "brier": 0.23878053790890788,
+          "log": 0.6705033000529937
+        },
+        "PRIOR": {
+          "brier": 0.24718802985450922,
+          "log": 0.6875207846228477
+        }
+      },
+      "differences": {
+        "INITIAL": {
+          "brier": -0.0023332493185718173,
+          "log": -0.004785220471522189
+        },
+        "CONTROL": {
+          "brier": 0.00034239633499438815,
+          "log": 0.0007293057381518864
+        },
+        "PRIOR": {
+          "brier": -0.008065095610606948,
+          "log": -0.016288178831702083
+        }
+      },
+      "passed": false,
+      "known": 65
+    },
+    "LATER_future": {
+      "candidate": {
+        "brier": 0.2474102295970836,
+        "log": 0.6879381349873757
+      },
+      "references": {
+        "INITIAL": {
+          "brier": 0.2468939209777233,
+          "log": 0.6869284014463658
+        },
+        "CONTROL": {
+          "brier": 0.248028914560796,
+          "log": 0.6891711414244662
+        },
+        "PRIOR": {
+          "brier": 0.24938213578334975,
+          "log": 0.6919112686014336
+        }
+      },
+      "differences": {
+        "INITIAL": {
+          "brier": 0.0005163086193602784,
+          "log": 0.0010097335410098607
+        },
+        "CONTROL": {
+          "brier": -0.0006186849637124237,
+          "log": -0.001233006437090567
+        },
+        "PRIOR": {
+          "brier": -0.0019719061862661647,
+          "log": -0.003973133614057933
+        }
+      },
+      "passed": false,
+      "known": 75
+    }
+  },
+  "technical_parity": {
+    "first_forward_raw_gradient_exact": true,
+    "full_model_gradient_parity_claimed": false,
+    "control_p4096_restore_exact": true,
+    "function_equivalent_initial": true,
+    "evaluation_state_unchanged": true,
+    "all_panels_complete": true,
+    "source_unchanged": true
+  },
+  "historical_cpu_parity": {
+    "CONTROL": {
+      "future": {
+        "M5_probability_max_abs_error": 4.119845217198659e-07,
+        "M5_score_abs_errors": {
+          "brier": 5.910940753528493e-08,
+          "log": 1.1920742792881356e-07
+        },
+        "raw_max_abs_error": 1.0609626770019531e-05
+      },
+      "state": {
+        "M5_probability_max_abs_error": 4.7308868433848517e-07,
+        "M5_score_abs_errors": {
+          "brier": 8.309124172045657e-08,
+          "log": 1.693168704131054e-07
+        },
+        "raw_max_abs_error": 6.67572021484375e-06
+      }
+    },
+    "INITIAL": {
+      "future": {
+        "M5_probability_max_abs_error": 2.5084376070738656e-07,
+        "M5_score_abs_errors": {
+          "brier": 2.2905863927835668e-08,
+          "log": 4.593573987854427e-08
+        },
+        "raw_max_abs_error": 5.602836608886719e-06
+      },
+      "state": {
+        "M5_probability_max_abs_error": 3.1126197597153293e-07,
+        "M5_score_abs_errors": {
+          "brier": 3.092842398855211e-08,
+          "log": 6.23774515373654e-08
+        },
+        "raw_max_abs_error": 1.33514404296875e-05
+      }
+    }
+  },
+  "cached_max_score_error": 3.3306690738754696e-16,
+  "conclusion": "Three cells improve versus original P4096 control, but all four predeclared all-reference gates fail. Both TRAIN sides and later F remain worse than INITIAL; later S is slightly worse than CONTROL. The mean-coordinate mechanism is measurable but this intervention does not repair direction learning.",
+  "limits": [
+    "TRAIN panel192 has75S/86F known sides; later panel192 has65S/75F. Reused development, no untouched generalization.",
+    "Only256updates; no fullpopulation or fullfit claim.",
+    "Adam geometry and global clipping both change.",
+    "One private method-state capsule, no canonical resume or promotion.",
+    "No new optimizer/coordinate sweep qualified."
+  ],
+  "user_scope_clarification": "Lines are an illustration, not a requested requirement. Focus on mathematical forecasts of short and longer price movements.",
+  "next_design_assessment": {
+    "recommendation_not_implemented": "Retain causal MTF inputs and existing backbone. Assess direct conditional displacement distributions at multiple query horizons; retain signs of valid small moves rather than discarding them behind0.5ATR. Endpoint distributions alone do not identify path or order of excursions.",
+    "existing_targets": "S=future market state; F=native-horizon endpoint displacement classification with0.5nativeATR side threshold. Five future horizons already exist.",
+    "new_training_admitted": false,
+    "best_method_for_market_unproven": true
+  },
+  "test_data_used": false,
+  "goal_achieved": false,
+  "independent_source_and_report_review": "PASS; six-capture scoring source and result checked without additional array/checkpoint/model operations.",
+  "cached_review_launcher_note": "Initial python -m runpy file-path invocation rejected before worker/data; corrected invocation used runpy.run_path. Six captures decoded once by the successful review."
+}

@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-10T05:46:43.045066+00:00",
-  "status": "TA_M5_CENTERED_HEAD_COORDINATES_ADMITTED_ONCE",
+  "observed_utc": "2026-11-10T06:08:53.997692+00:00",
+  "status": "TA_M5_CENTERED_HEAD_COORDINATES_COMPLETE_COMPARISON_FAILED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Materialize and run exactly the admitted centered-coordinate 256-update CUDA pilot through existing fresh-boot campaign guards. Measure all four fixed TRAIN/later S/F cells against fresh INITIAL/P4096/prior. No fullfit or automatic retry.",
+  "next_action": "No further coordinate/optimizer sweep or fullfit. User asks mathematical forward prediction, not literal trendlines. Assess direct multi-horizon conditional price-displacement distributions against current S/F targets, preserving short-move direction and distinguishing endpoint from path. New design/code/fit is not admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -35468,7 +35468,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -40210,7 +40210,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "market_state_ta_m5_centered_head_coordinates_20261110_001",
+  "training_enabled_scope": "CLOSED_NO_AUTOMATIC_RELAUNCH",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -73188,20 +73188,20 @@
     "source_unchanged": true
   },
   "market_state_ta_m5_centered_head_coordinates_20261110_001": {
-    "status": "ADMITTED",
-    "decision": "ADMITTED",
-    "ta_m5_centered_head_coordinates_authorized": true,
+    "status": "COMPLETE_CONSUMED",
+    "decision": "FAIL_COMPARISON_NO_PROMOTION",
+    "ta_m5_centered_head_coordinates_authorized": false,
     "fold_id": 1,
     "selected_fit_rows": 4096,
-    "model_constructions_authorized": 1,
-    "optimizer_constructions_authorized": 1,
-    "model_forwards_authorized": 328,
-    "backward_calls_authorized": 256,
-    "optimizer_steps_authorized": 256,
+    "model_constructions_authorized": false,
+    "optimizer_constructions_authorized": false,
+    "model_forwards_authorized": false,
+    "backward_calls_authorized": false,
+    "optimizer_steps_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CENTERED_HEAD_COORDINATES_20261110_001",
     "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CENTERED_HEAD_COORDINATES_20261110_001/RUNTIME",
@@ -73231,15 +73231,15 @@
     "fresh_windows_boot_required": true,
     "model_wall_seconds": 900,
     "standing_authorization_source": "Active user direction-only goal; one bounded test of the measured W dot TRAIN mean coupling, with unchanged inputs/targets and original matched controls.",
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "campaign_preparation_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "campaign_preparation_authorized": false,
     "evaluate_both_panels_unconditionally": true,
     "genuine_predictor_fit_authorized": false,
     "native_launch_authorized": false,
@@ -73249,6 +73249,52 @@
     "exit_evaluation": false,
     "broker_access_allowed": false,
     "canonical_resume_authority": false,
-    "candidate_selection": false
+    "candidate_selection": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CENTERED_HEAD_COORDINATES_20261110_001/RESULT.json",
+      "sha256": "e2053949378c915de02dd916e1db7f3eac26a24b69e7bde2d27dc80b2ffdfadd"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CENTERED_HEAD_COORDINATES_20261110_001/TERMINAL.json",
+      "sha256": "c56c8ff988b584cb80a4717980c320c2767587f92dc63f0aecd604570df8a150"
+    },
+    "candidate_evidence": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CENTERED_HEAD_COORDINATES_20261110_001/CANDIDATE_EVIDENCE.pt",
+      "sha256": "d3241f6e41770179f0e60bc86100f8444eb2f37df0124788156593cd9023e7bb"
+    },
+    "campaign_receipt": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CENTERED_HEAD_COORDINATES_20261110_001/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "828624ff9ae3094ea1e0db497087482715b167fe49369667f9ab582bf375d2c8"
+    },
+    "windows_task_disabled": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CENTERED_HEAD_COORDINATES_20261110_001/WINDOWS_TASK_DISABLED.json",
+      "sha256": "2cc96db43e58082f245f41e17b5b71278d8540b205e16ebb537e867c353aa06b"
+    },
+    "cached_review": {
+      "authorized": false,
+      "max_capture_decodes": 6,
+      "max_checkpoint_decodes": 0,
+      "model_constructions": 0,
+      "forwards": 0,
+      "optimizer_steps": 0,
+      "memory_max": "4G",
+      "numeric_threads": 1,
+      "max_wall_seconds": 60,
+      "status": "COMPLETE_CONSUMED",
+      "capture_decodes": 6,
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CENTERED_HEAD_COORDINATES_20261110_001/CACHED_SCORE_REVIEW.json",
+        "sha256": "b21848b3ab4ea236e106bbc53bdf8c7e658346c766d46a8f4a0b71c9dbe66b5c"
+      },
+      "max_score_abs_error": 3.3306690738754696e-16,
+      "independent_source_and_report_review": "PASS_NO_NEW_ARRAY_DECODE"
+    },
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_CENTERED_HEAD_COORDINATES_REVIEW.json",
+      "sha256": "d337611c09961bc03268bd57712002e722a44ac233c05c91b58d0ef8aff0fce9"
+    },
+    "score_gate_pass": false,
+    "source_unchanged": true,
+    "completed_utc": "2026-11-10T06:04:06.469427+00:00"
   }
 }
