@@ -1,0 +1,110 @@
+{
+  "status": "PASS_MINIMAL_GATE_REPAIR_SOURCE_AND_METADATA;ACTUAL_READINESS_REQUIRED_BEFORE_CLAIM",
+  "source_base": "f39d65bea89c154aede0f4788a18d1231585f72d",
+  "prior_qualification": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_FULL_REVERSE_ORDER_SCOPE_REVIEW.json",
+    "sha256": "17cd7b10596d498c56fbcafe6a6db2cc9fd952ab8fbe789a2aa7338ab4eea518"
+  },
+  "failed_preparation001": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULL_REVERSE_ORDER_20261110_001/PREPARATION_FAILURE_REVIEW.json",
+    "sha256": "669660fe6ee7210b5924c571887e3bc96092946d85375d188ce1c7aab3a51e64"
+  },
+  "recipe": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULL_REVERSE_ORDER_20261110_002/RECIPE.json",
+    "sha256": "9f8cb54f927e0a52541be93cdbd2c821e9d461c6aff9c27f2def0d11daed14df"
+  },
+  "source_files": {
+    "gx1/contracts/market_state_native_F_private_campaign_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_native_F_private_campaign_v1.py",
+      "sha256": "b998fcea3bfaf8b5b01d8735038371ddd1ab72c1f2747b929f8991c5f55ec1ca"
+    },
+    "tests/test_market_state_ta_m5_full_reverse_order_campaign_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_market_state_ta_m5_full_reverse_order_campaign_v1.py",
+      "sha256": "f8dbc0304b1a25f79d4d0885608f9c159353a75c4634d7de13a7393c701aed6a"
+    },
+    "gx1/audit/run_market_state_ta_m5_full_reverse_order_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/run_market_state_ta_m5_full_reverse_order_v1.py",
+      "sha256": "19c7b811f50b7c7bc0d541956e086ddf34b02fd30fa123e49d93fd1d29464428"
+    }
+  },
+  "minimal_change": "New exact stage002; the existing six readiness-closed fields are also required explicitly false by the scope gate before preparation CLAIM. No worker, model, optimizer, loss, inputs, query, order, score, or resource-guard changes.",
+  "unchanged_design": {
+    "candidate": "REVERSED",
+    "rows": 29574,
+    "full_B16_batches": 1848,
+    "tail_rows": 6,
+    "batch_order": "1847..0 followed by original tail1848",
+    "updates": 1849,
+    "initial": "Exact original ae772 model, all buffers, empty Adam, RNG and modes restored from existing INITIAL checkpoint.",
+    "unchanged": [
+      "genuine five-TF inputs",
+      "normalization",
+      "S/F targets and FLAT semantics",
+      "original intact batch membership",
+      "original batch IDs and pass0 queries",
+      "loss",
+      "learning rate",
+      "optimizer and clipping",
+      "total update count"
+    ],
+    "intervention_limit": "Presentation order changes dropout-to-row assignment and the subsequent Adam trajectory; those mechanisms are not isolated separately.",
+    "baseline_reuse": "Qualified original INITIAL allTRAIN reconstruction; direct CUDA original FINAL FIT/SCORE caches; direct INITIAL later192. ORIGINAL_FINAL later192 reduced from saved SCORE_CACHE, no baseline forwards or repeated control fit.",
+    "panels": [
+      "all original TRAIN29574 sampledS/nativeF",
+      "existing laterTRAIN192 native endpoints"
+    ],
+    "primary_scores": "Both M5 conditional S/F Brier and log on both fixed panels versus INITIAL, ORIGINAL_FINAL and frozen prior; all five TF activity/side/three-class and full TRAIN objective reported.",
+    "margins": {
+      "INITIAL": 1e-06,
+      "ORIGINAL_FINAL": 1e-08,
+      "PRIOR": 1e-08
+    },
+    "counts": {
+      "model_constructions": 1,
+      "optimizer_constructions": 1,
+      "checkpoint_loads": 1,
+      "full_state_restores": 1,
+      "training_forwards": 1849,
+      "TRAIN_evaluation_forwards": 1849,
+      "later_evaluation_forwards": 12,
+      "forwards": 3710,
+      "backwards": 1849,
+      "optimizer_updates": 1849,
+      "baseline_forwards": 0,
+      "private_evidence_writes": 1,
+      "canonical_checkpoint_writes": 0
+    },
+    "true_full_fit": true,
+    "automatic_continuation": false,
+    "canonical_resume_authority": false
+  },
+  "validation": {
+    "reused_focused_tests": 102,
+    "new_targeted_gate_tests": 3,
+    "new_targeted_test_exit": 0,
+    "qualify_log": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULL_REVERSE_ORDER_20261110_002/QUALIFY.log",
+      "sha256": "723d514c41c3d6498649c949b59b7273892094077a4634d69c540648a66f59ea"
+    },
+    "metadata_view_preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULL_REVERSE_ORDER_20261110_002/METADATA_PREFLIGHT.json",
+      "sha256": "4335b0703dc67badd911c9f01b531d1b221e5c689d9f07eb3230d9d6f8fdc32b"
+    },
+    "metadata_seconds": 14.332009927999025,
+    "genuine_arrays_models_checkpoints": 0,
+    "worker_byte_unchanged": true,
+    "root_minimal_diff_review": "PASS",
+    "syntax": "PASS",
+    "diff_check": "PASS",
+    "actual_readiness_preclaim_required": true,
+    "actual_readiness_planned_artifact": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULL_REVERSE_ORDER_20261110_002/READINESS_PREFLIGHT_RESULT.json",
+    "actual_readiness_execution_completed_at_source_freeze": false
+  },
+  "admission_semantics": "Global training/native-training/full-epoch true only for this exact bounded full fit. Generic native_launch_authorized remains false globally and in the stage, matching the existing qualified research route. All consumed stages remain closed.",
+  "no_relaunch001": true,
+  "new_claims_at_source_freeze": 0,
+  "training_started": false,
+  "goal_complete": false,
+  "test_data_used": false,
+  "entry_exit_trading_authorized": false
+}

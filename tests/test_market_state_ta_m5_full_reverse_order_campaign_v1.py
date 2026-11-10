@@ -248,8 +248,22 @@ def test_exact_fullfit_gate_is_required(metadata):
         training_enabled=True, native_training_enabled=True, genuine_updates_authorized=True,
         genuine_backward_authorized=True, genuine_predictor_fit_authorized=True,
         full_epoch_training_allowed=True, canonical_resume_authority=False, candidate_selection=False,
-        test_data_used=False, evaluate_both_panels_unconditionally=True, per_update_pareto_requirement=False)
+        native_launch_authorized=False, normalization_fit_authorized=False,
+        synthetic_test_execution_authorized=False, test_data_used=False,
+        exit_evaluation=False, broker_access_allowed=False,
+        evaluate_both_panels_unconditionally=True, per_update_pareto_requirement=False)
     scope.require_ta_m5_full_reverse_order_gate(gate, launch)
+    assert launch['admission_stage'] == 'market_state_ta_m5_full_reverse_order_20261110_002'
+    for key in ('native_launch_authorized', 'normalization_fit_authorized',
+                'synthetic_test_execution_authorized', 'test_data_used', 'exit_evaluation',
+                'broker_access_allowed'):
+        missing = {name: value for name, value in gate.items() if name != key}
+        for invalid in ({**gate, key: True}, missing):
+            with pytest.raises(scope.campaign.RandomAccessCampaignError, match='FULL_REVERSE_POLICY_GATE'):
+                scope.require_ta_m5_full_reverse_order_gate(invalid, launch)
+    with pytest.raises(scope.campaign.RandomAccessCampaignError, match='FULL_REVERSE_POLICY_GATE'):
+        scope.require_ta_m5_full_reverse_order_gate(gate, {
+            **launch, 'admission_stage': 'market_state_ta_m5_full_reverse_order_20261110_001'})
     for key, bad in [('full_epoch_training_allowed', False), ('genuine_predictor_fit_authorized', False),
                      ('optimizer_steps_authorized', 1848), ('tail_rows', 0)]:
         with pytest.raises(scope.campaign.RandomAccessCampaignError, match='FULL_REVERSE_POLICY_GATE'):

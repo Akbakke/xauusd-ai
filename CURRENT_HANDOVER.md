@@ -15,38 +15,40 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_FULL_REVERSE_ORDER_QUALIFIED_ADMITTED.
+Policystatus: TA_M5_FULL_REVERSE_ORDER002_ADMITTED_READINESS_BEFORE_CLAIM.
 
-[Ny fullrekkefølgetest](docs/TA_M5_FULL_REVERSE_ORDER_SCOPE_REVIEW.json) er
-kvalifisert og innrømmet én gang; ingen modell er startet ved kildefrysing.
-Samme originale ae772-initial, tom Adam/RNG og alle29574 TRAIN-rader.
-De1848 hele B16-batchene kjøres1847→0, med original B6-hale sist:
-1849 oppdateringer,3710 forwards. Originale batch-IDer/pass0, mål, loss,
-læringsrate, clipping, fem TF og FLAT-semantikk beholdes.
-Dropout-tilordning og påfølgende Adam-forløp inngår i rekkefølgeeffekten.
+[Fullrekkefølgetest002](docs/TA_M5_FULL_REVERSE_ORDER_002_SCOPE_REVIEW.json)
+er innrømmet med samme worker og matematikk som den kvalifiserte001.
+Før enhver ny preparation-CLAIM skal root kjøre den faktiske readiness-eieren
+på en separat002-window-JSON med ren, fryst kilde. Den er ikke kjørt ved
+denne kildefrysingen; native modell/trening er ikke startet.
 
-Dette er en faktisk fullfit. Bare denne eksakte nye engangsplanen har
-full_epoch_training_allowed=true og genuine_predictor_fit_authorized=true;
-globale training/native/full-fit-porter er åpnet for den bundne kjøringen.
-Alle tidligere planer forblir konsumert, og portene lukkes ved terminal.
-Ingen automatisk ekstra epoke, utvalg, canonical resume eller handel.
+001 er FAILED_PREPARATION/konsumert med null native CLAIM/receipts/updates.
+Root hadde satt den generiske native_launch_authorized-porten true og
+utelatt synthetic_test_execution_authorized=false. Eksisterende readiness
+avviste dette etter preparation-CLAIM. Original logg, claim og ustartet plan
+er bevart. Ingen tidligere plan relanseres.
 
-Historisk original FINAL og INITIAL/prior gjenbrukes. Full TRAIN29574 og
-samme senere192 vurderes ubetinget; ingen baselineforwards eller kontrollfit.
-102 fokuserte tester består på8,115s. Faktisk kilde-/kvitterings-/visnings-
-preflight består på14,580s uten genuine arrays, checkpoints eller modeller.
-Ny B6-, endpoint-, rapporterings- og cursorlogikk er kontrollert syntetisk;
-tidligere strict-restore/original256-stegsparitet gjenbrukes.
-Rotens worker-review og uavhengig kontrakt-/dispatch-review består.
-To feil i kontrollwrapperne (importsti og valgt CLI-modul) ble rettet før
-modell/claim; originalfeilene er bevart. Riktig CLI-import/hjelp består;
-direkte trainer-modul under audit avvises fortsatt med exit75.
+Minste rettelse er ny002-ID og eksplisitt kontroll av de samme seks stengte
+readiness-portene i scope-gaten før CLAIM. Ny policy har dem alle false.
+Generic native_launch_authorized er false både globalt og i stage, som i den
+tidligere kvalifiserte research-ruten. Bare den eksakte002-fitens training,
+native_training og full_epoch-flagg er true; ingen generell videreføring.
 
-Eksisterende native250W/20G/512M-vakter beholdes, modeltak7200s og uendrede
-yttertak12000/13800s. Kjøringen krever trygg idle-grense og ny Windows-boot.
-Boot637 er observert og tidligere Windows-task er deaktivert.
-Neste steg er eksakt materialisering og guarded oppstart. Ingen retningseffekt
-eller hastighetsgevinst følger av teknisk kvalifikasjon; målet er uoppnådd.
+Samme originale ae772-initial/tomme Adam/RNG, alle29574 rader og1849 updates.
+1848 intakte B16 kjøres1847→0, original B6-hale sist. Originale batch-IDer,
+pass0, mål, FLAT, loss, læringsrate og fem TF beholdes.3710 forwards;
+historiske INITIAL/ORIGINAL_FINAL/prior og senere192-baselines gjenbrukes.
+Dropout-tilordning og påfølgende Adam-historikk inngår i rekkefølgeeffekten.
+
+De102 fokuserte testene og tidligere restore-/modellkontroller gjenbrukes.
+Tre målrettede gate-/readiness-regresjonstester består. Faktisk002-metadata/
+visningspreflight består på14,332s uten genuine arrays, modeller, checkpoints
+eller CLAIM. Worker er byteidentisk19c7b811; bare scope-gate/test er endret.
+Eksisterende250W/20G/512M, modeltak7200s og yttertak12000/13800s beholdes.
+Boot637 og deaktivert Windows-task er kontrollert på nytt. Trygg idle-grense
+og fersk fysisk boot kreves fortsatt før native oppstart. Ingen retningsgevinst
+eller hastighetsgevinst følger av teknisk PASS; målet er uoppnådd.
 
 Forrige fullførte kontroll og dens begrensninger følger nedenfor.
 
@@ -1763,7 +1765,7 @@ tidssekvensmodellen, samme-linje-reaksjonsverdi, Entry-verdi og økonomisk edge
 er ubevist. 61 makrofelt mangler uavhengig formelorakel; COTs faktiske
 historiske publisering og vintage er fortsatt UNKNOWN.
 
-**Neste steg:** Materialiser og start kun den kvalifiserte fullrekkefølgetesten øverst gjennom eksisterende vakter. Alle tidligere planer er konsumert.
+**Neste steg:** Kjør faktisk002-readiness før CLAIM; materialiser og start bare etter PASS, trygg idle-grense og eksisterende fersk-boot-vakter.
 Målet er aktivt; senere retningsverdi er ubevist.
 Brukerens spørsmål om 30 epoker og fem år er fortsatt åpne hypoteser.
 Denne fitten dekker omtrent mai–september2024, senere score oktober–desember2024.

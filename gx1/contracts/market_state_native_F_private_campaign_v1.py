@@ -2307,7 +2307,7 @@ def require_ta_m5_repeated_pass_cursor(value, *, expected_recipe, verify_files=T
     return cursor
 
 # One full-population order contrast, with the original six-row tail last.
-TA_M5_FULL_REVERSE_ORDER_STAGE = 'market_state_ta_m5_full_reverse_order_20261110_001'
+TA_M5_FULL_REVERSE_ORDER_STAGE = 'market_state_ta_m5_full_reverse_order_20261110_002'
 TA_M5_FULL_REVERSE_ORDER_SCOPE = 'market_state_ta_m5_full_reverse_order_v1'
 TA_M5_FULL_REVERSE_ORDER_ROOT = Path('/home/andre2/GX1_RUNS') / TA_M5_FULL_REVERSE_ORDER_STAGE.upper()
 TA_M5_FULL_REVERSE_ORDER_RUNTIME_ROOT = TA_M5_FULL_REVERSE_ORDER_ROOT / 'RUNTIME'
@@ -2459,8 +2459,10 @@ def require_ta_m5_full_reverse_order_gate(gate, recipe):
         'optimizer_steps_authorized': 1849, 'training_enabled': True, 'native_training_enabled': True,
         'genuine_updates_authorized': True, 'genuine_backward_authorized': True,
         'genuine_predictor_fit_authorized': True, 'full_epoch_training_allowed': True,
-        'canonical_resume_authority': False,
-        'candidate_selection': False, 'test_data_used': False,
+        'canonical_resume_authority': False, 'candidate_selection': False,
+        'native_launch_authorized': False, 'normalization_fit_authorized': False,
+        'synthetic_test_execution_authorized': False, 'test_data_used': False,
+        'exit_evaluation': False, 'broker_access_allowed': False,
         'evaluate_both_panels_unconditionally': True, 'per_update_pareto_requirement': False,
     }
     _need(isinstance(gate, Mapping) and all(gate.get(k) == v and type(gate[k]) is type(v)
