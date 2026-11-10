@@ -15,41 +15,49 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_EQUAL_SNAPSHOT_BLEND_READONLY_ADMITTED.
+Policystatus: TA_M5_EQUAL_SNAPSHOT_BLEND_COMPLETE_NEGATIVE.
 
-Én fast kombinasjon av to allerede lagrede M5-prognoser er klar for måling:
-50/50 aritmetisk middel av betinget OPP-sannsynlighet fra original_imported
-ae772 og final_readout_fp32 på FINAL-representasjonen. Ingen logit-/aktivitets-
-blanding, refit eller søk etter vekter. Alle29574 TRAIN- og17753 senere-rader
-brukes med identiske M5-akser/masker:10010/11909 kjente S/F på TRAIN,
-6096/7165 senere. Begge paneler måles uansett resultat.
-
+Den faste50/50-kombinasjonen er ferdig og uavhengig verifisert:
+[rapport](docs/TA_M5_EQUAL_SNAPSHOT_BLEND_REVIEW.json).
 Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001
-PLAN SHAaa750fc13df891cb26f57966da31ebcfd5e31edbf063ec43e03a6c4f7e67ff7c.
-Worker SHAe24d4eb7dfdaee57c432f38869aecc73ffc825eb1b4430b32ec689f67041cbf6.
-Metadata-preflight2,122s og root/uavhengig kildekontroll PASS.
-Én capped audit4G/512M/én tråd/120s, deretter avgrenset uavhengig regnekontroll.
-0 modeller/forwards/backward/updates/fits/checkpointdekodinger eller nye vekter.
+RESULT SHA096fe4e3f1f911b2901a98f11a0fa36f612e4558e7c1f0467eeea609fab0d7eb.
+REVIEW SHAa86f932b0f4df0c5929e0161f6449dfe42bb8efaefdc2caf921eafa2bc0bfeef.
+Alle trenings-/engangsporter er stengt. Ingen relansering eller vektjustering.
 
-Kandidaten må bedre Brier OG log med mer enn1e-8 mot originalimport,
-nativeFINAL og frystprior i allefire celler. Det nye enkelt-readoutet rapporteres
-separat; det kreves ikke at blandingen slår dette readoutets TRAIN-score.
-Brier-identiteten og Jensens ulikhet kontrollerer regningen, ikke retningsedge.
-Negativt utfall er COMPLETE. Ingen vektjustering eller automatisk ny kandidat.
+Én forhåndsvalgt blanding av betinget OPP-sannsynlighet fra originalimport
+ae772 og korrigert FINAL-readout, separat S/F. Hele29574TRAIN/17753senere
+rader;10010/11909 og6096/7165 kjente sider. Ingen modeller,forwards,fit,
+checkpointdekodinger eller nye vekter. Begge paneler målt uansettutfall.
 
-Begrunnelse: Eksisterende FINAL_READOUT viste at samme konvergerte lineære
-metode på FINAL gir bedre TRAIN enn originalrepresentasjonen: S0,248202 mot
-0,248473 og F0,249076 mot0,249327. NativeFINALs svakere resultater er derfor
-ikke bevis for tapt lineært utnyttbar TRAIN-informasjon. Senere ble de korrigerte
-readoutene litt svakere enn originalen, og F slo ikke prior. En fast blanding
-prøver komplementære prediksjonsfeil, ikke raskere head-læring eller en nyencoder.
+Begge TRAIN-celler består mot originalimport, nativeFINAL og prior, men
+er svakere enn korrigertFINAL alene. TRAIN S-Brier0,248323 og F0,249188.
+Senere S0,249692 slårprior0,249828, men taper motoriginal0,249652.
+Senere F0,249847 slårbeggekomponenter, men taper motprior0,249833.
+Logtap har samme portutfall. Beggesenereporter feiler; ingen rettelse kvalifisert.
 
-Forløperens [klippeaudit](docs/TA_M5_CLIP_TRACE_REVIEW.json) er konsumert:
-korrekt rekonstruerte oppdateringer; raw-gradient-heads på fast representasjon
-bedrer TRAIN men svekker senere. Ingen native klippe-/skaleringstest kvalifisert.
-Alle treningsporter forblir stengt. Dette nye forsøket åpner kun lesende scoring.
-En eventuell PASS gjelder gjenbrukt utvikling og løser ikke alene fullpassårsaken.
-TEST, GC, Entry/Exit og handel er stengt; originale checkpoints bevares.
+Brier-identiteten og perrad Jensen er kontrollert; uavhengig regneavvik≤1,78e-15.
+Helkommando4,925s, worker4,646s; review0,290s, preflight2,122s.
+Kodearbeid/venting utenom. Cacheakser/masker sjekkes av produsent, og
+review gjenbruker den bindingen mens alle4blend- og16referanseceller regnes om.
+
+Etterfølgende algebra fra de verifiserte skårene utelukker vektsøk for dette paret:
+B(a)=L0+a*(L1-L0-D)+a²D. SenereF har D=7,13782e-5 og negativ
+diskriminant−3,57879e-9 for B(a)−prior. Selv nedregrensen over alle reelle a
+er0,249845951, høyere ennprior0,249833416. Dermed kan ingen fastkonveks
+vekt mellom disse to prognosene slå denne prioren på disse radene.
+Ingen ekstra vekt er valgt/evaluert; dette er en matematisk grense, ikke nyfit.
+
+Eksisterende identiskregulariserte, konvergerte readouts påFINAL viste bedre
+TRAIN ennoriginalrepresentasjonen. Nativeforverringen er derfor ikke bevis
+for at all lineærtutnyttbar TRAIN-informasjon gikk tapt. Tidsmessig head-etterslep
+eller årsaken til nativeforløpet er fortsatt ikke isolert av etterpå-fit/blending.
+[Forrige klippeaudit](docs/TA_M5_CLIP_TRACE_REVIEW.json) er også konsumert og
+ga ingen grunn til svakere effektiv nativeklipping.
+
+Neste forsøk må ha en annen konkret lærings-/prediksjonsmekanisme.
+Ingen mer konstant blandingsvektsøk for dette paret, head-/optimizer-/sampler-
+sveip eller fullfit følger av dette. Gjenbrukte utviklingsrader er ikke fersk
+generalisering eller handelsedge. TEST,GC,Entry/Exit og handel er stengt.
 
 MIX24 er fullført og uavhengig verifisert:
 [docs/TA_M5_MIXED_BATCH_NATIVE_REVIEW.json](docs/TA_M5_MIXED_BATCH_NATIVE_REVIEW.json).

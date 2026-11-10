@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-10T00:49:35.116889+00:00",
-  "status": "TA_M5_EQUAL_SNAPSHOT_BLEND_READONLY_ADMITTED",
+  "observed_utc": "2026-11-10T00:54:31.314460+00:00",
+  "status": "TA_M5_EQUAL_SNAPSHOT_BLEND_COMPLETE_NEGATIVE",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Compute the one fixed probability blend on saved full TRAIN and later predictions, independently verify arithmetic/gates, then close the one-use audit. No fitting, weight search, new model training or promotion admitted.",
+  "next_action": "Do not tune constant weights of this same two-readout pair: its later F Brier cannot beat prior even under the unrestricted quadratic lower bound. Any further direction experiment needs a distinct measured learning or predictive mechanism; no new model fit or readout sweep is authorized by this consumed audit. All training and audit gates are closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1685,7 +1685,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "One fixed equal-probability combination of original and corrected FINAL M5 readouts admitted as a cached full-population direction check.",
+    "current_activity": "Full-population fixed50/50 M5 probability combination completed and independently verified. Both TRAIN cells pass, both later cells fail; analytic bound excludes any constant mixture of this pair beating later F prior Brier.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1714,11 +1714,11 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "Read-only24-step recorded-gradient AdamW reconstruction and fixed-representation arithmetic contrasts; zero model/optimizer updates.",
+    "latest_terminal_role": "Read-only one-candidate probability blend on all29574TRAIN/17753later rows, zero models or fits.",
     "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/HANDOVER_TERMINAL.json",
-      "sha256": "454a24dcfa71c02b6b3a459eed1d00b582c154d0b5684e674d4bf238f818c7df"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001/TERMINAL.json",
+      "sha256": "e82bce795c839a8a0ef593a55d39e588196622941d8bf5feb7133bdc204063c7"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -1738,7 +1738,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Globally refitted FINAL heads improve TRAIN but not later versus original. Whether complementary errors permit one fixed blend to improve both panels is unmeasured; fullpass training cause still unresolved.",
+    "current_blocker": "Existing representations/readouts carry recoverable TRAIN signal, but later-direction improvement remains unqualified. Fixed averaging cannot repair later F versus prior for this pair.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -10338,12 +10338,11 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "Raw and1/16 replays keep CONTROL gradients from its actual parameter trajectory; alternate heads did not generate later gradients.",
-      "All score contrasts keep CONTROL-final representations fixed. They are off-policy arithmetic projections, not outcomes of adaptive model training.",
-      "Scaling by1/16 would mean effective original-gradient clipping16 and effective epsilon16eps with the original epsilon unchanged; the safety/function change must be declared, never described as identical clipping.",
-      "Original fullpass retained only first/last batch norms. This24-step trace does not reconstruct fullpass clipping history or shared-backbone trajectories.",
-      "Only75/86 known TRAIN and65/75 known later sides in reused192-row panels. No fresh generalization, tradable selection, economic edge or full-goal completion.",
-      "Source review found no new mask or class-weight defect. Aggregate other-TF plus activity plain-gradient contribution was locally beneficial; activity alone was harmful. These observations do not identify historical causal training effects."
+      "One preselected50/50 probability mixture. No coefficient sweep or later-label fit performed.",
+      "Both constituent readouts were trained on the fit rows. TRAIN gains are in-sample; later rows are reused development, not untouched confirmation.",
+      "Comparison does not alter or validate a native ensemble implementation, joint activity prediction, trade selection or economic edge.",
+      "The post-result quadratic bound is a root analytic derivation from independently verified scalar inputs; no second blend candidate was selected or evaluated.",
+      "No causal native fullpass explanation or fix is established, and no full-goal completion is claimed."
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -17679,7 +17678,7 @@
         "Originals preserved; unusedwindows3/4revoked. No new epoch,HPO,checkpoint/threshold selection,normalization refit,trading,broker,Exit or promotion."
       ]
     },
-    "latest_terminal_evidence_scope": "Clipping reweights batches, but gradient-sum reversal does not imply AdamW reversal. Raw/scaled head projections improve TRAIN and worsen later. No native scale change admitted.",
+    "latest_terminal_evidence_scope": "Both TRAIN objectives improve versus original/prior; laterS loses to original and laterF loses to prior. Metrics and Brier/Jensen arithmetic independently verified.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -19212,8 +19211,8 @@
       "sha256": "c30946767a52650ec071f0457ea8b127d0d7bd38c556922b34d139897edc040e"
     },
     "latest_terminal_review": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/REVIEW.json",
-      "sha256": "f3eb388573d776260db310201a637371dca1eb91f92d1a68afb55d8d7602e874"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001/REVIEW.json",
+      "sha256": "a86f932b0f4df0c5929e0161f6449dfe42bb8efaefdc2caf921eafa2bc0bfeef"
     },
     "frozen_partition_completed_units": {
       "terminal_later_full": {
@@ -71983,8 +71982,8 @@
     }
   },
   "market_state_ta_m5_equal_snapshot_blend_20261110_001": {
-    "status": "ADMITTED",
-    "execution_authorized": true,
+    "status": "COMPLETE_VERIFIED_NEGATIVE_BOTH_LATER_GATES_FAIL",
+    "execution_authorized": false,
     "training_authorized": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001/PLAN.json",
@@ -72007,9 +72006,9 @@
       "sha256": "acf7804c2751819e4f5d4733cc6fdab738614bcf35a3b1a0df7f1096d7d809ee"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "max_model_constructions": 0,
     "max_forwards": 0,
@@ -72023,7 +72022,7 @@
     "swap_max": 536870912,
     "numerical_threads": 1,
     "wall_seconds": 120,
-    "review_authorized": true,
+    "review_authorized": false,
     "review_scope": {
       "max_invocations": 1,
       "memory_max": 4294967296,
@@ -72035,7 +72034,7 @@
       "max_fits": 0,
       "max_checkpoint_decodes": 0
     },
-    "review_completed_invocations": 0,
+    "review_completed_invocations": 1,
     "test_data_used": false,
     "scope": "One fixed50/50 conditional-UP probability average of original_imported ae772 and corrected FINAL readout; full29574TRAIN/17753later panels, no fitting, model, checkpoint or weight search.",
     "source_review": {
@@ -72047,6 +72046,50 @@
       },
       "scope": "Root full230-line read and independent source review: exact component bindings, axes/masks/counts, stable mixture likelihood, Brier identity, per-row Jensen and all-four-cell gate with negative-outcome completion."
     },
-    "standing_authorization_source": "GX1_RULES_20261105_zero_spend_local_work_and_active_direction_goal_exact_readonly_admission"
+    "standing_authorization_source": "GX1_RULES_20261105_zero_spend_local_work_and_active_direction_goal_exact_readonly_admission",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001/RESULT.json",
+      "sha256": "096fe4e3f1f911b2901a98f11a0fa36f612e4558e7c1f0467eeea609fab0d7eb"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001/TERMINAL.json",
+      "sha256": "e82bce795c839a8a0ef593a55d39e588196622941d8bf5feb7133bdc204063c7"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001/CONTROLLER.json",
+      "sha256": "6d40b778e7f0245b0bd9967535fd0aeef331661abfffe70967f93138342c8531"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001/REVIEW.json",
+      "sha256": "a86f932b0f4df0c5929e0161f6449dfe42bb8efaefdc2caf921eafa2bc0bfeef"
+    },
+    "reviewer": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001/review.py",
+      "sha256": "ce564040972f6921b3a31277d71fbe2a009081c74f4c6fa7322de45e7d5e1410"
+    },
+    "review_command": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001/REVIEW_COMMAND.json",
+      "sha256": "78850c36e46fdcfe1ae3e335bdfe36856b248719217cb61ab71618e62fe20f7f"
+    },
+    "integrated_report": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_EQUAL_SNAPSHOT_BLEND_REVIEW.json",
+      "sha256": "772995ad4fb6b3f7e9339e8e346cd7fcc2206732dae143d50313abed636ad2e6"
+    },
+    "independent_review_passed": true,
+    "actual_counts": {
+      "model_constructions": 0,
+      "forwards": 0,
+      "backwards": 0,
+      "optimizer_steps": 0,
+      "updates": 0,
+      "readout_fits": 0,
+      "checkpoint_decodes": 0,
+      "checkpoint_writes": 0
+    },
+    "whole_command_seconds": 4.924943878999329,
+    "comparison_decision": "FAIL_COMPARISON_NO_CONTINUATION",
+    "later_F_same_pair_constant_blend_cannot_beat_prior_brier": true,
+    "full_train_correction_qualified": false,
+    "later_direction_improvement_established": false
   }
 }

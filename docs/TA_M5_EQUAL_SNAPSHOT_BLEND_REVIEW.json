@@ -1,0 +1,434 @@
+{
+  "status": "COMPLETE_VERIFIED_EQUAL_BLEND_NEGATIVE",
+  "stage": "market_state_ta_m5_equal_snapshot_blend_20261110_001",
+  "source_commit": "dd13bade916a8d3e3567fd94a55992e5d016ab0e",
+  "source_unchanged": true,
+  "question": "Can one preselected equal-probability combination of original and corrected FINAL M5 readouts improve matched full TRAIN and later TRAIN?",
+  "decision": "FAIL_COMPARISON_NO_CONTINUATION",
+  "artifacts": {
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001/PLAN.json",
+      "sha256": "aa750fc13df891cb26f57966da31ebcfd5e31edbf063ec43e03a6c4f7e67ff7c"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001/audit.py",
+      "sha256": "e24d4eb7dfdaee57c432f38869aecc73ffc825eb1b4430b32ec689f67041cbf6"
+    },
+    "controller_source": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001/controller.py",
+      "sha256": "e2dc211d2dc9d5602c10fbc6aa228e03ed067a1e2fc5df2ce1201a2f1b5dd7a7"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001/PREFLIGHT.json",
+      "sha256": "a8c9711065254eb62a05332946201755e6126c82a9407cd5d1ecac6e7fcd1000"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001/RESULT.json",
+      "sha256": "096fe4e3f1f911b2901a98f11a0fa36f612e4558e7c1f0467eeea609fab0d7eb"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001/TERMINAL.json",
+      "sha256": "e82bce795c839a8a0ef593a55d39e588196622941d8bf5feb7133bdc204063c7"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001/CONTROLLER.json",
+      "sha256": "6d40b778e7f0245b0bd9967535fd0aeef331661abfffe70967f93138342c8531"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001/REVIEW.json",
+      "sha256": "a86f932b0f4df0c5929e0161f6449dfe42bb8efaefdc2caf921eafa2bc0bfeef"
+    },
+    "reviewer": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001/review.py",
+      "sha256": "ce564040972f6921b3a31277d71fbe2a009081c74f4c6fa7322de45e7d5e1410"
+    },
+    "review_command": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001/REVIEW_COMMAND.json",
+      "sha256": "78850c36e46fdcfe1ae3e335bdfe36856b248719217cb61ab71618e62fe20f7f"
+    }
+  },
+  "design": {
+    "probability_weights": [
+      0.5,
+      0.5
+    ],
+    "components": [
+      "original_imported ae772",
+      "corrected FINAL final_readout_fp32"
+    ],
+    "conditional_UP_only": true,
+    "fit_rows": 29574,
+    "later_rows": 17753,
+    "known_rows": {
+      "fit": {
+        "state": 10010,
+        "future": 11909
+      },
+      "score": {
+        "state": 6096,
+        "future": 7165
+      }
+    },
+    "primary_references": [
+      "original_imported",
+      "final_native",
+      "frozen_prior"
+    ],
+    "required_brier_and_log_margin": 1e-08,
+    "final_readout_reported_but_not_required_to_beat_on_TRAIN": true,
+    "both_panels_scored_unconditionally": true,
+    "models": 0,
+    "forwards": 0,
+    "fits": 0,
+    "checkpoint_decodes": 0,
+    "checkpoint_writes": 0,
+    "trained_weights_changed": false
+  },
+  "scores": {
+    "fit": {
+      "state": {
+        "candidate": {
+          "count": 10010,
+          "up_count": 5192,
+          "brier": 0.24832324909127748,
+          "log": 0.6897882463622169,
+          "mean_p": 0.5187130546907225
+        },
+        "references": {
+          "original_imported": {
+            "count": 10010,
+            "up_count": 5192,
+            "brier": 0.24847336382286717,
+            "log": 0.6900898151924573,
+            "mean_p": 0.5185591398769893
+          },
+          "final_readout_fp32": {
+            "count": 10010,
+            "up_count": 5192,
+            "brier": 0.24820172596717846,
+            "log": 0.6895436772555427,
+            "mean_p": 0.5188669695044555
+          },
+          "final_native": {
+            "count": 10010,
+            "up_count": 5192,
+            "brier": 0.25111783404001126,
+            "log": 0.695545394533187,
+            "mean_p": 0.5660938907447868
+          },
+          "frozen_prior": {
+            "count": 10010,
+            "up_count": 5192,
+            "brier": 0.24965100834625317,
+            "log": 0.6924490347681654,
+            "mean_p": 0.5186775868957252
+          }
+        },
+        "primary_gate": {
+          "differences": {
+            "original_imported": {
+              "brier": -0.00015011473158968447,
+              "log": -0.00030156883024035075
+            },
+            "final_native": {
+              "brier": -0.002794584948733775,
+              "log": -0.005757148170970061
+            },
+            "frozen_prior": {
+              "brier": -0.0013277592549756911,
+              "log": -0.002660788405948522
+            }
+          },
+          "passes": true
+        },
+        "difference_vs_final_readout": {
+          "brier": 0.00012152312409902111,
+          "log": 0.0002445691066742528
+        },
+        "disagreement_D": 5.718321498118073e-05,
+        "brier_identity": 0.2483232490912775,
+        "brier_identity_abs_error": 2.7755575615628914e-17,
+        "jensen_log_gap": 2.8499861782993463e-05,
+        "max_per_row_jensen_violation": -3.5638159090467525e-14,
+        "known_mask_sha256": "e5decb18314d20441d5e324f02dfe34722d54fcf7978970f33938ca4e234d9c8",
+        "up_truth_sha256": "7462626e7392cf04ca4ae118ad75688171638990ba92f2ea0eccf91f745d4c2a"
+      },
+      "future": {
+        "candidate": {
+          "count": 11909,
+          "up_count": 6087,
+          "brier": 0.24918783290319602,
+          "log": 0.6915213360846278,
+          "mean_p": 0.5110196618377951
+        },
+        "references": {
+          "original_imported": {
+            "count": 11909,
+            "up_count": 6087,
+            "brier": 0.24932701074352281,
+            "log": 0.6918003280921216,
+            "mean_p": 0.5109712747092003
+          },
+          "final_readout_fp32": {
+            "count": 11909,
+            "up_count": 6087,
+            "brier": 0.24907642655997628,
+            "log": 0.6912977609660991,
+            "mean_p": 0.5110680489663899
+          },
+          "final_native": {
+            "count": 11909,
+            "up_count": 6087,
+            "brier": 0.25390394215160905,
+            "log": 0.7012328459307832,
+            "mean_p": 0.5726465040944269
+          },
+          "frozen_prior": {
+            "count": 11909,
+            "up_count": 6087,
+            "brier": 0.24987621125676626,
+            "log": 0.6928995826378952,
+            "mean_p": 0.5111241709344305
+          }
+        },
+        "primary_gate": {
+          "differences": {
+            "original_imported": {
+              "brier": -0.00013917784032679847,
+              "log": -0.0002789920074937058
+            },
+            "final_native": {
+              "brier": -0.004716109248413036,
+              "log": -0.00971150984615532
+            },
+            "frozen_prior": {
+              "brier": -0.0006883783535702459,
+              "log": -0.0013782465532673482
+            }
+          },
+          "passes": true
+        },
+        "difference_vs_final_readout": {
+          "brier": 0.00011140634321973875,
+          "log": 0.00022357511852877376
+        },
+        "disagreement_D": 5.554299421404956e-05,
+        "brier_identity": 0.24918783290319604,
+        "brier_identity_abs_error": 2.7755575615628914e-17,
+        "jensen_log_gap": 2.770844448252152e-05,
+        "max_per_row_jensen_violation": -1.887379141862766e-15,
+        "known_mask_sha256": "15827c23369ae1e1ad966e130db9fc44be9c93aebe6a3eb3a941f2ca8a67b56e",
+        "up_truth_sha256": "08b054d3b44b68117f1d0e04d548b25d6df4c5967ea51ea915b6d48e9b3cba07"
+      }
+    },
+    "score": {
+      "state": {
+        "candidate": {
+          "count": 6096,
+          "up_count": 3133,
+          "brier": 0.2496917794908783,
+          "log": 0.6925315261259111,
+          "mean_p": 0.5239086239812845
+        },
+        "references": {
+          "original_imported": {
+            "count": 6096,
+            "up_count": 3133,
+            "brier": 0.24965248806034565,
+            "log": 0.6924524133660842,
+            "mean_p": 0.522249243054054
+          },
+          "final_readout_fp32": {
+            "count": 6096,
+            "up_count": 3133,
+            "brier": 0.24976777162783,
+            "log": 0.6926847716458294,
+            "mean_p": 0.5255680049085151
+          },
+          "final_native": {
+            "count": 6096,
+            "up_count": 3133,
+            "brier": 0.2545791834928509,
+            "log": 0.7025956302949291,
+            "mean_p": 0.5789694046270435
+          },
+          "frozen_prior": {
+            "count": 6096,
+            "up_count": 3133,
+            "brier": 0.2498279877882917,
+            "log": 0.6928031584293621,
+            "mean_p": 0.5186775868957252
+          }
+        },
+        "primary_gate": {
+          "differences": {
+            "original_imported": {
+              "brier": 3.929143053266193e-05,
+              "log": 7.911275982686039e-05
+            },
+            "final_native": {
+              "brier": -0.004887404001972601,
+              "log": -0.01006410416901804
+            },
+            "frozen_prior": {
+              "brier": -0.00013620829741339824,
+              "log": -0.0002716323034510637
+            }
+          },
+          "passes": false
+        },
+        "difference_vs_final_readout": {
+          "brier": -7.599213695169693e-05,
+          "log": -0.00015324551991835467
+        },
+        "disagreement_D": 7.340141283815438e-05,
+        "brier_identity": 0.24969177949087829,
+        "brier_identity_abs_error": 2.7755575615628914e-17,
+        "jensen_log_gap": 3.706638004574714e-05,
+        "max_per_row_jensen_violation": -3.6637359812630166e-15,
+        "known_mask_sha256": "a8cb1032bce3297706173fb8f6e6db60d7f496afb978b6ab1fb5a64633306ef8",
+        "up_truth_sha256": "22150fe63d1e0deccf0a14badce779f6ade6d420cc3ab7030c41a84ee347e616"
+      },
+      "future": {
+        "candidate": {
+          "count": 7165,
+          "up_count": 3676,
+          "brier": 0.2498471333644268,
+          "log": 0.6928417905626154,
+          "mean_p": 0.5160593644269206
+        },
+        "references": {
+          "original_imported": {
+            "count": 7165,
+            "up_count": 3676,
+            "brier": 0.249855791231191,
+            "log": 0.6928588080616984,
+            "mean_p": 0.5143581495898966
+          },
+          "final_readout_fp32": {
+            "count": 7165,
+            "up_count": 3676,
+            "brier": 0.24987416459758888,
+            "log": 0.6928965749068406,
+            "mean_p": 0.5177605792639447
+          },
+          "final_native": {
+            "count": 7165,
+            "up_count": 3676,
+            "brier": 0.2565906514853523,
+            "log": 0.7067659131661769,
+            "mean_p": 0.5872809733733227
+          },
+          "frozen_prior": {
+            "count": 7165,
+            "up_count": 3676,
+            "brier": 0.249833416409301,
+            "log": 0.6928139788167914,
+            "mean_p": 0.5111241709344305
+          }
+        },
+        "primary_gate": {
+          "differences": {
+            "original_imported": {
+              "brier": -8.657866764211208e-06,
+              "log": -1.7017499083005205e-05
+            },
+            "final_native": {
+              "brier": -0.0067435181209255235,
+              "log": -0.013924122603561462
+            },
+            "frozen_prior": {
+              "brier": 1.3716955125780972e-05,
+              "log": 2.7811745824002365e-05
+            }
+          },
+          "passes": false
+        },
+        "difference_vs_final_readout": {
+          "brier": -2.7031233162083668e-05,
+          "log": -5.4784344225233816e-05
+        },
+        "disagreement_D": 7.137819985254243e-05,
+        "brier_identity": 0.2498471333644268,
+        "brier_identity_abs_error": 0.0,
+        "jensen_log_gap": 3.590092165417502e-05,
+        "max_per_row_jensen_violation": -6.354028414534696e-12,
+        "known_mask_sha256": "d4fa95d111b9af12dcc209af84fcc1d01e3e15514a5717729364880043ebdc39",
+        "up_truth_sha256": "297aa9523aca2297a4a76f9968127e6f1970e227a2dda66adbff854c7760832f"
+      }
+    }
+  },
+  "axes": {
+    "fit": {
+      "rows": 29574,
+      "sha256": {
+        "parents": "1c5a8c36a94b8fa39d613f0bc122cf869dc9fa3c2f87dc64c0506acd2f55a90f",
+        "issues": "ebb3489c45b01b6fd8e77bf27529d650beb6883ba84b57ee936dc549ec74e427",
+        "query_native": "8947f6c4680c488dd8ebfcf80a76e8fbf5041eacc829e16faa78ac64060c4639"
+      }
+    },
+    "score": {
+      "rows": 17753,
+      "sha256": {
+        "parents": "afa02322eca78c7c1161f969d94d1693bba99cb9565626dcfe2efa81992eabf7",
+        "issues": "22a1b7282f908836380755186c919ec01a5061cd681e9723e5655078c7d6fe6c",
+        "query_native": "ff7c926f0ac0cbcaa387cdf80635494e4c6111482b2155d12ae13b6c475d6ab7"
+      }
+    }
+  },
+  "findings": [
+    "Both TRAIN cells beat original import, native FINAL and frozen prior in Brier/log, but remain worse than the corrected FINAL single readout.",
+    "Later S beats native FINAL and prior but is worse than original import.",
+    "Later F improves over both component readouts but remains worse than frozen prior. Both later cells fail the declared gate.",
+    "Error complementarity exists but is too small for this fixed blend to meet the direction criterion.",
+    "The existing matched global readout comparison demonstrates recoverable TRAIN direction on FINAL representations; it does not isolate temporal head lag or prove a native training correction."
+  ],
+  "post_result_analytic_bound": {
+    "status": "NO_CONSTANT_CONVEX_WEIGHT_CAN_BEAT_LATER_F_PRIOR_BRIER_ON_THESE_ROWS",
+    "formula": "For p(a)=(1-a)*p_original+a*p_final, Brier(a)=L0+a*(L1-L0-D)+a*a*D. D=mean((p_original-p_final)^2).",
+    "derivation": "Positive curvature D and negative discriminant of Brier(a)-prior prove positive excess for every real a, hence for all a in[0,1]. This is an analytic lower bound, not selection or evaluation of another blend candidate.",
+    "D": 7.137819985254243e-05,
+    "L0": 0.249855791231191,
+    "L1": 0.24987416459758888,
+    "prior": 0.249833416409301,
+    "linear_coefficient": -5.300483345466997e-05,
+    "constant_excess": 2.237482188999218e-05,
+    "discriminant": -3.578785664558311e-09,
+    "unrestricted_quadratic_brier_lower_bound": 0.24984595099854517,
+    "lower_bound_excess_over_prior": 1.2534589244161953e-05,
+    "inputs": "Independently verified RESULT/REVIEW score.future component Briers and disagreement_D.",
+    "scope": "Only these two fixed probability vectors and these7165 known later F rows. No statement about other models, time-varying weights or future data.",
+    "selected_weight": null,
+    "new_candidates_evaluated": 0,
+    "new_fits": 0
+  },
+  "verification": {
+    "independent_review": true,
+    "independent_blend_cells": 4,
+    "independent_baseline_cells": 16,
+    "max_scalar_metric_error": 1.7763568394002505e-15,
+    "brier_identity_checked": true,
+    "per_row_Jensen_checked": true,
+    "axis_and_mask_scope": "Producer checks matching old/new caches and output masks; reviewer recomputes output/mask arithmetic and reuses qualified cache provenance."
+  },
+  "timing": {
+    "whole_command_seconds": 4.924943878999329,
+    "worker_seconds": 4.646192628999415,
+    "preflight_seconds": 2.1216754909983138,
+    "review_command_seconds": 0.2901155200015637,
+    "review_worker_seconds": 0.04438839299837127,
+    "measured_commands_total_seconds": 7.336734889999207,
+    "scope": "Measured commands only; source preparation, review writing and waiting excluded."
+  },
+  "limits": [
+    "One preselected50/50 probability mixture. No coefficient sweep or later-label fit performed.",
+    "Both constituent readouts were trained on the fit rows. TRAIN gains are in-sample; later rows are reused development, not untouched confirmation.",
+    "Comparison does not alter or validate a native ensemble implementation, joint activity prediction, trade selection or economic edge.",
+    "The post-result quadratic bound is a root analytic derivation from independently verified scalar inputs; no second blend candidate was selected or evaluated.",
+    "No causal native fullpass explanation or fix is established, and no full-goal completion is claimed."
+  ],
+  "next_action": "Do not tune constant weights of this same two-readout pair: its later F Brier cannot beat prior even under the unrestricted quadratic lower bound. Any further direction experiment needs a distinct measured learning or predictive mechanism; no new model fit or readout sweep is authorized by this consumed audit.",
+  "test_data_used": false,
+  "training_authorized": false,
+  "promotion_authorized": false
+}
