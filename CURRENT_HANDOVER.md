@@ -15,7 +15,29 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_REVERSED_HEAD_FIXED_INITIAL_COMPLETE_NO_CORRECTION.
+Policystatus: TA_M5_REVERSED_REPR_CACHE_ADMITTED_FROZEN_NO_FIT.
+
+Ny engangsplan MARKET_STATE_TA_M5_REVERSED_REPR_CACHE_20261110_001 er innrømmet
+for én frossen fullTRAIN-capture:29574 rader/1849 forwards,1 modell/kapsellasting,
+0 optimizer/backwards/updates/fits. Samme REVERSED174b beholdes; direkte128D-
+input til begge M5-hoder lagres. Alle M5-rålogits, akser og masker må samsvare
+eksakt med lagret REVERSED_TRAIN. Senere192 er allerede lagret og kjøres ikke.
+Dette måler manglende representasjoner før to faste readoutfits med INITIALs
+eksisterende alpha0,01/solver/vekter; disse fitene er ennå ikke innrømmet.
+
+Ti fokuserte tester og eksakt CLI-metadata-preflight består; preflight9,839s,
+0 modell/dekoding/forward/CLAIM. Én manglende loader-tellerinitialisering ble
+funnet og rettet før launch. Uavhengig kilde-review består. Eneste endrede
+opprinnelige runtimeeier er cap-skriptets eksakte nye plansti; alle85 eierne,
+ekte view/normalisering og originalrecipe er kontrollert. Eksisterende
+GPU-produsentrute beholder250W/170W draw/65–80C/12G/512M/3600s.
+Tidligere GPU-fit-capture1649s mot CPU-complement3286s for1593 batches
+begrunner GPU-valget; neste faktiske helkjøringstid er ikke målt ennå.
+Ingen kilde-/policyendring mens denne bundne jobben kjører. Alle trenings-
+porter er false. Målet er fortsatt uoppnådd.
+
+Siste fullførte kontroll:
+
 
 [Cached M5-headkryss](docs/TA_M5_REVERSED_HEAD_INITIAL_REPR_REVIEW.json) er
 COMPLETE/konsumert, exit0. REVERSEDs fire M5-tensorer ble anvendt på samme
