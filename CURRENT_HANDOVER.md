@@ -15,7 +15,16 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_PAIRED_ORDER_CONTROL_LOCAL_GAIN_WITH_MTF_REGRESSIONS.
+Policystatus: TA_M5_PAIRED_OBJECTIVE_DECOMP_ADMITTED.
+
+Ny avgrenset cachedkontroll deler002CONTROL/INTERLEAVED sitt TRAIN-tap i20ledd.
+Kun to ferdigeTRAIN-arkiver/24arrays,256identiskeB16-batcher; eksisterende
+komponentfunksjoner gjenbrukes. 0modell/forwards/fit/vekt- eller targetdekoding,
+ingen senerearrays. Capped4G/512M,1tråd,60s. Metadata- og uavhengig
+kilde/matte-kontroll består. Kun auditporten er åpen; alle treningsporter stengt.
+Ny rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_OBJECTIVE_DECOMP_20261110_001
+Dette isolerer bidrag til sluttmålenes avveining,ikke historiskgradientårsak
+eller originalfullpassfeilen. Ingen modell-/lossendring er innrømmet.
 
 [Paret rekkefølgeforsøk](docs/TA_M5_PAIRED_BATCH_ORDER_REVIEW.json) er COMPLETE/
 konsumert på boot636,CUDA250W. Alle trenings-/launchporter er stengt;

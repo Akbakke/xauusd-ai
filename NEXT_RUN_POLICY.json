@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-10T06:29:23.781273+00:00",
-  "status": "TA_M5_PAIRED_ORDER_CONTROL_LOCAL_GAIN_WITH_MTF_REGRESSIONS",
+  "status": "TA_M5_PAIRED_OBJECTIVE_DECOMP_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Pairedexperiment andcachedreviewconsumed. Preserve genuine features,allTF,S/Fprobabilities andFLAT. No newfit,oldplanrelaunch,TEST,GC,Entry,Exit ortrading.",
-  "next_action": "Separate timecoverage/traininglength from order and align declaredM5direction with totalobjective. Reuse savedcaptures andstates; no newtraining without exact boundeddesign. Do not repeat this consumedordercontrast.",
+  "next_action": "Run one cached2archive decomposition of the20canonical TRAINloss terms on002matched4096rows; reuse qualifiedcomponentmath, no models ortraining. Distinguish endpointtradeoff fromunproved originalfullpasscause.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1685,7 +1685,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Paired order trial and independent180cellcachedreview complete. CONTROL improves M5conditionalS/F onbothpanels; interleavingworse; D1 andFthreeclass regress.",
+    "current_activity": "Exact cached objective decomposition admitted; preflight and independent source/math reviewPASS,0models.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1715,7 +1715,7 @@
     "existing_indicator_surface_changed": false,
     "training_started": false,
     "latest_terminal_role": "Complete pairedorder trial with localM5gain,failedinterleaving andMTFtradeoffs.",
-    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002",
+    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_OBJECTIVE_DECOMP_20261110_001",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/TERMINAL.json",
       "sha256": "6df60cb3966721d71e0d72f654c5268d0ddb2a15215db1c63c8a9f36ac3d2b3a"
@@ -24682,7 +24682,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-10T09:03:17.251858+00:00",
+  "updated_utc": "2026-11-10T09:19:33.446091+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -73663,5 +73663,41 @@
     "full_direction_fix_qualified": false,
     "source_unchanged": true,
     "completed_utc": "2026-11-10T08:44:17.116403+00:00"
+  },
+  "market_state_ta_m5_paired_objective_decomp_20261110_001": {
+    "status": "ADMITTED",
+    "execution_authorized": true,
+    "training_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_OBJECTIVE_DECOMP_20261110_001",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_OBJECTIVE_DECOMP_20261110_001/PLAN.json",
+      "sha256": "42f7e2f376d7059b1f7afbee117dd49931ba9d0ab58b55d206fcffbd3cd9c27f"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_OBJECTIVE_DECOMP_20261110_001/probe.py",
+      "sha256": "56a02767235e266a490628212d703c7238360ff131ee01065d1fb16640af3a76"
+    },
+    "max_array_archives": 2,
+    "max_array_members": 24,
+    "max_models": 0,
+    "max_forwards": 0,
+    "max_backwards": 0,
+    "max_updates": 0,
+    "max_fits": 0,
+    "max_checkpoint_loads": 0,
+    "max_target_loads": 0,
+    "later_arrays_consumed": false,
+    "test_data_used": false,
+    "memory_max": "4G",
+    "swap_max": "512M",
+    "numeric_threads": 1,
+    "wall_seconds": 60,
+    "source_review": "PASS_INDEPENDENT_SOURCE_AND_MATH_REVIEW",
+    "preflight": "PASS_ACTUAL_METADATA_NO_ARRAYS"
   }
 }
