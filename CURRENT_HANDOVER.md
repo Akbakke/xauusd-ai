@@ -15,25 +15,28 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_E3_FULL_TRAIN_FROZEN_EVALUATION_ADMITTED.
+Policystatus: TA_M5_E3_ONE_BATCH_CPU_PARITY_DIAGNOSIS_ADMITTED.
 
-[Frossen E3-kontroll](docs/TA_M5_E3_FULL_TRAIN_SCOPE_REVIEW.json) er kvalifisert og
-innrømmet én gang; ikke startet ved denne kildefrysingen. Primært måles de25478
-originale TRAIN-radene utenfor de4096 gjentatte radene, deretter hele29574 samlet.
-1592 intakte B16 + originalhale6 gir1593 nye forwards; to CPU/GPU-paritetsbatcher
-gir1595 totalt. Én modell og privat E3-dekoding; null optimizer/backward/updates.
-De4096 ferdige E3-prognosene, INITIAL/FINAL/prior og senere192 gjenbrukes.
-CPU-producer12G/512M, én talltråd og5400s workergrense; ingen modell-/mål-/losskode
-endres. Alle treningsporter forblir false. Faktisk metadata-preflight, fire
-syntetiske avvisninger og success/failure-rapportering er bestått uten ekte
-arrays/checkpoints/modeller. Uavhengig kildekontroll består.
-CPU-tiden er foreløpig usikker, omtrent én time. Tidligere fullcache1633s var
-CUDA og er ikke et CPU-estimat. Blandingen av cached GPU og nye CPU-prognoser
-krever bundet paritet; den er ikke bitidentisk full-CPU-måling.
-Komplementet er fortsatt TRAIN med tidligere ancestry, ikke urørt generalisering.
-Neste steg er den ene kvalifiserte kjøringen og kontroll omtrent hver15.–30.minutt.
-Originalfullpassårsaken er fortsatt uisolert; ingen mer fit er innrømmet.
+[Den frosne E3-kontrollen](docs/TA_M5_E3_FULL_TRAIN_REVIEW.json) er FAILED/konsumert.
+Prosess/controller er avsluttet. Kjøretid102,153s; worker99,908s, oppstart91,932s.
+Én modell/kapseldekoding, to paritetsforwards, null komplementforwards og null
+optimizer/backward/updates. E3-vekter og alle buffere ble gjenopprettet eksakt.
+Første batch bestod: M5-probabilitetsavvik S7,123e-7/F7,087e-7 og maksimalt
+råavvik S1,001e-5/F7,808e-6. Andre batch overskred en bundet paritetsgrense,
+men den konkrete feilverdien ble ikke lagret før stopp. Ingen fullTRAIN-kvalitet
+kan utledes. Source-bookend ble ikke nådd; root kontrollerte ren Git og uendret
+workerhash. Dette er ikke påvist kildeendring.
 
+[Én-batch-diagnosen](docs/TA_M5_E3_CPU_PARITY_SCOPE_REVIEW.json) er nå kvalifisert
+og innrømmet, ikke startet ved kildefrysingen. Den beregner bare originalbatch1847,
+start29552, og lagrer råprognoser/alleTF-avvik/M5-skårforskjeller før vurdering.
+Én CPU-forward, én modell/dekoding,12G/512M, én talltråd,600s; null updates.
+Actual metadata/syntetiske porter og success/failure-rapportering er bestått;
+uavhengig kildekontroll består. Første batch og genuin E3-loaderkontroll gjenbrukes.
+Et målt terskelbrudd kan gi ferdig diagnose med old_parity_pass=false; det åpner
+ingen full evaluering. Ingen terskel-, modell- eller lossendring er gjort.
+Den mislykkede fullevalueringsplanen er konsumert og relanseres ikke.
+Originalfullpassårsaken er fortsatt uisolert; alle treningsporter er stengt.
 
 [Prøven med videre trening](docs/TA_M5_REPEATED_PASS_REVIEW.json) er COMPLETE/
 konsumert på boot637; guard/observer exit0, Windows-task deaktivert og alle

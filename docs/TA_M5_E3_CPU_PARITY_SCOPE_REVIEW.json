@@ -1,0 +1,64 @@
+{
+  "status": "QUALIFIED_ONE_FROZEN_E3_CPU_PARITY_FORWARD_NOT_EXECUTED",
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_CPU_PARITY_20261110_001/PLAN.json",
+    "sha256": "42a97737a0a88b11b933be8282c5365bbf406baa05c1313a5fb95e8eea1cba38"
+  },
+  "worker": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_CPU_PARITY_20261110_001/probe.py",
+    "sha256": "0b5bb5b147c3fc7873cfae068ffa81f6ef53852e57e620adca105f2df422f3a4"
+  },
+  "controller": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_CPU_PARITY_20261110_001/controller.py",
+    "sha256": "e13465cb1d8d5f1b847da86b7cdf6fb8543b22c84267d5e554fdea70c7feaeab"
+  },
+  "preflight": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_CPU_PARITY_20261110_001/PREFLIGHT.log",
+    "sha256": "7ac3c0eb822aa051c8b381c9b2cfce03581fc60f2c33feb702f42ab7327b9c2e"
+  },
+  "reporting_preflight": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_CPU_PARITY_20261110_001/REPORTING_PREFLIGHT.log",
+    "sha256": "607f83bf32ab2eadfedb02886f34d394340f07e2af5c3b13895effae459c7d29"
+  },
+  "reporting_test": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_CPU_PARITY_20261110_001/REPORTING_PREFLIGHT.py",
+    "sha256": "1004075bad99a741a4c1aa53bf48730acbf0aa66c62ae64eb59245c836210327"
+  },
+  "source_review": {
+    "agent": "ta_formula_audit",
+    "status": "PASS",
+    "scope": "One exact original batch; same E3 identity, native queries/masks; durable raw/errors before unchanged threshold; no fitting."
+  },
+  "reason": "Failed full-population evaluator did not persist second parity-batch error before stopping. Quantify this one observed numerical blocker without relaxing bounds or repeating first batch/full evaluation.",
+  "batch_index": 1847,
+  "original_fit_start": 29552,
+  "rows": 16,
+  "bounds": {
+    "max_model_constructions": 1,
+    "max_checkpoint_loads": 1,
+    "max_forwards": 1,
+    "max_optimizer_constructions": 0,
+    "max_backwards": 0,
+    "max_optimizer_updates": 0,
+    "max_checkpoint_writes": 0,
+    "max_wall_seconds": 600,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "numeric_threads": 1,
+    "max_output_bytes": 1048576
+  },
+  "measurement": "All five TF S/F raw and sigmoid errors; exact M5 conditional Brier/log differences and counts; no threshold change.",
+  "completed_checks": {
+    "metadata_and_actual_view": "PASS",
+    "synthetic_gate_success": 1,
+    "synthetic_gate_failures": 2,
+    "early_failure_and_success_reporting": "PASS",
+    "genuine_arrays_models_checkpoints": 0
+  },
+  "reuse": "Exact weights/buffers-only loader already passed on genuine E3 capsule in failed evaluation; first batch parity reused from FAILED receipt.",
+  "reporting_limit": "Success reporting test exercises unchanged reporting tail, not a simulated numerical model run.",
+  "test_data_used": false,
+  "training_updates": 0,
+  "full_population_evaluation_authorized": false,
+  "original_fullpass_cause_isolated": false
+}

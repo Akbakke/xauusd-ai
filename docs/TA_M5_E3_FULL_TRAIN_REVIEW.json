@@ -1,0 +1,80 @@
+{
+  "status": "FAILED_CONSUMED_OUTPUT_PARITY_BEFORE_COMPLEMENT",
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_001/RESULT.json",
+    "sha256": "0a818a408c7b60027a45eb9e77b245c765ca7731158a80417955a3e0a122b56e"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_001/TERMINAL.json",
+    "sha256": "58710fb2a988a80437aa9c93b2dce9240bde1b97a3617c378f1c20600d6a75f9"
+  },
+  "controller": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_001/CONTROLLER.json",
+    "sha256": "69fa38dd8b97754e1038b82aae19ef79f2194e09f1d65576935097b099c9a7f4"
+  },
+  "worker": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_001/probe.py",
+    "sha256": "9cd8533e12a2db38df9690c65381c175b256ddba5da4637640b406391ee2b8f9"
+  },
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_001/PLAN.json",
+    "sha256": "fdbbd7075e4eced710dfa8f4d3a648454a187e0ac2c7ea18c0538f089e79ea2d"
+  },
+  "counts": {
+    "backwards": 0,
+    "checkpoint_loads": 1,
+    "checkpoint_writes": 0,
+    "complement_forwards": 0,
+    "extra_truth_gathers": 4,
+    "forward_returns": 2,
+    "forwards": 2,
+    "model_constructions": 1,
+    "optimizer_constructions": 0,
+    "optimizer_updates": 0,
+    "parity_forwards": 2,
+    "resume_state_load_calls": 1,
+    "resume_state_load_returns": 1
+  },
+  "identity": {
+    "buffer_state_sha256": "c46c39ecda970ff41b661dd3a1414f0eba459b5fb96c55f009bb5e70def13a8a",
+    "canonical_resume_authority": false,
+    "cuda_rng_restored": false,
+    "cumulative_optimizer_updates": 768,
+    "evidence_sha256": "5521a3018f6be536dc0d9902af4dff130af8070056104f371ba6d4922228543a",
+    "load_kind": "CPU_WEIGHTS_AND_ALL_BUFFERS_ONLY",
+    "model_state_sha256": "5e031bd0a3c9d454a228b065ac787e79654bc9067a01fa33dfbe8c256cec702e",
+    "optimizer_state_restored": false,
+    "parameter_binding_sha256": "155d6db1f6b0e47e8c95abd0e00d7cd4f472549cd97ade339b597fa79f87c3a4"
+  },
+  "parity": {
+    "0": {
+      "future": {
+        "m5_probability_max_abs_error": 7.087063905730773e-07,
+        "raw_max_abs_error": 7.808208465576172e-06
+      },
+      "state": {
+        "m5_probability_max_abs_error": 7.12334902508438e-07,
+        "raw_max_abs_error": 1.0013580322265625e-05
+      }
+    }
+  },
+  "error": "RuntimeError: E3_FULL_TRAIN_CPU_GPU_OUTPUT_PARITY",
+  "timings": {
+    "elapsed_seconds": 99.90808796100009,
+    "setup_seconds": 91.9319671610001
+  },
+  "whole_command_seconds": 102.15269614199997,
+  "source": {
+    "recorded_bookend_reached": false,
+    "current_git_clean": true,
+    "source_head": "38194032af2600c9292d0a9e4a96efd420ce45cd",
+    "note": "False source_unchanged records skipped closing bookend after parity exception; it is not evidence of changed source. Root verified clean source and exact worker bytes."
+  },
+  "incomplete_evidence": "Failing final selected B16 exceeded raw or M5 probability tolerance; exact failing errors were not persisted before raise.",
+  "next_question": "One fresh CPU forward at original batch1847/start29552; record all errors before comparison. Reuse successful first batch result. No tolerance change or full-population rerun.",
+  "training_updates": 0,
+  "complement_rows_measured": 0,
+  "full_train_quality_measured": false,
+  "test_data_used": false,
+  "goal_complete": false
+}
