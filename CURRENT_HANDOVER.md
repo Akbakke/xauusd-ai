@@ -15,19 +15,31 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_HEAD_CENTERING_GEOMETRY_002_ADMITTED.
+Policystatus: TA_M5_HEAD_COORDINATE_GEOMETRY_COMPLETE_INTERVENTION_UNTESTED.
 
-Én cached TRAIN-kontroll er admitted for å måle koblingen mellom
-M5-headvekter og representasjonens gjennomsnitt. Kildekontroll viser at
-siste Linear→GELU går direkte til sidehodene uten TRAIN-middelsentrering.
-Fast mu0 beregnes fra original INITIALs29574TRAIN-representasjoner.
-Regnskapet skiller faktisk weight·mu0, bias og representasjonsbevegelse;
-alle identiteter/projeksjoner kontrolleres mot eksisterende bevis.
-0modeller/forwards/fit/checkpointdekodinger; ingen senereTRAIN-arrays.
-Ingen sentreringsrettelse eller nativekjøring er autorisert.
-001 stoppet før import/claim/data grunnet manglende gx1-importsti.
-Ny002 har kun eksakt kildeimport og scope/base-litteraler rettet;
-direkte worker-bootstrap gjennom samme CPUvakt PASS. Ingen vakter endret.
+[Head-koordinatkontrollen](docs/TA_M5_HEAD_COORDINATE_GEOMETRY_REVIEW.json)
+er COMPLETE på3,303s total;0modeller/forwards/fit/checkpointdekodinger.
+Faktisk dekning er29574TRAIN-rader,
+S10010/F11909known. Alle lagrede logits gjenskapes innen1,10e-7.
+To deskriptive FP64mu0 beregnes på alle INITIAL-TRAIN-rader; ingen senerearrays.
+
+F known-meanlogit øker0,251474: weight·fastmu0 bidrar0,156273,
+bias0,002114, midtpunktsrest0,022217 og representasjon0,070870.
+S øker0,194193: tilsvarende0,062444/0,002061/0,015502/0,114185.
+Vekt–middel-koblingen er derfor materiell forF; forS er upstream større.
+INITIAL mean-energyandelen80,15% er uvektet geometri, ikke forklart varians.
+I original256-trace kommer omtrent98,5% av fast-mu-headbevegelsen fra
+vektene. Både sentrert og lokasjonsterm har likevel gunstig summert lokalt
+gradient–steg-produkt. Dette er ikke bevis for skadelig Adam eller en rettelse.
+001 importfeil førclaim/data er bevart;002 fikset kun import/bootstrap.
+Uavhengig kilde-/JSONreviewPASS, uten ny arraydekoding. Alle porter stengt.
+
+Neste konkrete testdesign er funksjonsekvivalente sentrerte M5-headkoordinater
+med fastTRAINmu0, originalINITIAL/tomAdam og original256-stegskontroll.
+SammeTF/features/loss/data/RNG/250W; ingen shuffle/LR/moment-/feature-sweep.
+Fersk initialparitet og identiske forhåndsbundne TRAIN/senereTRAIN-paneler
+motINITIAL/P4096/prior kreves. Kilde og launch er ennå ikke admitted.
+Positiv korttest er bare en port til bredere verifikasjon; målet er uoppnådd.
 
 [Original treningssporing](docs/TA_M5_ORIGINAL_TRACE_REVIEW.json):
 Fullført på fersk boot633, CUDA250W, eksakt256steg/4096rader.

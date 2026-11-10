@@ -1,0 +1,218 @@
+{
+  "status": "COMPLETE_CACHED_GEOMETRY_RELEVANT_INTERVENTION_NOT_TESTED",
+  "source_commit": "3345cafb63eda1189cce4bedb9f14a68970d16bd",
+  "source": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_CENTERING_GEOMETRY_20261110_002/audit.py",
+    "sha256": "1ebc9eaa06934e1673b8de83761a3e0a23dca0b62b2c53fb27f457ba14869ade"
+  },
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_CENTERING_GEOMETRY_20261110_002/PLAN.json",
+    "sha256": "20c6a23597f35abd0fdfe056a459d8318bb2f2a81eac3afa56f9c9604cad95c8"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_CENTERING_GEOMETRY_20261110_002/RESULT.json",
+    "sha256": "2d24a83a27b486228c783c7803f5c88a7f6a0686f8b797e1768ac85db10e674e"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_CENTERING_GEOMETRY_20261110_002/TERMINAL.json",
+    "sha256": "d8a861bc4c7a251d5d6478344df9abdab593ab88328e7772729680f84d1b2b6d"
+  },
+  "process_receipt": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_CENTERING_GEOMETRY_20261110_002/PROCESS_RECEIPT.json",
+    "sha256": "8cd606b38734b50651632d9a8d87522a0c3f988657b1b1d7e760475f606705d9"
+  },
+  "means": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_CENTERING_GEOMETRY_20261110_002/MEANS.npz",
+    "sha256": "1a20692cf7319f14ef216dd9d5828038bd1b20096e64e9eb7517e9e89e38a71f"
+  },
+  "source_finding": "M5 S/F heads consume shared Linear->GELU output directly. No per-feature TRAIN mean subtraction precedes these linear heads. Backbone LayerNorm is not population centering.",
+  "sources": [
+    "gx1/contracts/market_state_time_query_model_v2.py:126",
+    "gx1/contracts/market_state_time_query_model_v2.py:265",
+    "gx1/contracts/market_state_time_query_native_F_model_v1.py:121"
+  ],
+  "mu0_scope": "Two FP64 descriptive mean estimates on all29574 INITIAL TRAIN rows. S/F labels do not select mean rows. Later arrays not consumed. No online normalization applied.",
+  "tasks": {
+    "future": {
+      "initial_geometry": {
+        "centered_feature_rms": 0.4032463718241503,
+        "centered_variance_sum": 20.81377745783563,
+        "mean_energy": 84.06078596946188,
+        "mean_energy_fraction": 0.801536456718941,
+        "mean_l1": 57.75466947444195,
+        "mean_norm": 9.168466936705498
+      },
+      "final_geometry": {
+        "centered_feature_rms": 0.44034221799637574,
+        "centered_variance_sum": 24.819362425595866,
+        "mean_energy": 81.44519600667333,
+        "mean_energy_fraction": 0.7664380034909267,
+        "mean_l1": 57.55010070606516,
+        "mean_norm": 9.024699219734325
+      },
+      "fullpass": {
+        "all_rows": {
+          "count": 29574,
+          "delta_mean_z": 0.25071334392010425,
+          "final_mean_p": 0.5725677780031942,
+          "final_mean_z": 0.29501686820300377,
+          "identity_error": 0.0,
+          "initial_mean_p": 0.5110647164897131,
+          "initial_mean_z": 0.04430352428289951,
+          "terms": {
+            "bias_change": 0.002114188624545932,
+            "midpoint_weight_times_representation_change": 0.07193049879583514,
+            "weight_at_fixed_mu0": 0.1562728595949781,
+            "weight_at_midpoint_minus_mu0": 0.020395796904745085
+          }
+        },
+        "known_side": {
+          "count": 11909,
+          "delta_mean_z": 0.2514743860061852,
+          "final_mean_p": 0.5726465040944269,
+          "final_mean_z": 0.29540400876616135,
+          "identity_error": 0.0,
+          "initial_mean_p": 0.5109712747092003,
+          "initial_mean_z": 0.04392962275997616,
+          "terms": {
+            "bias_change": 0.002114188624545932,
+            "midpoint_weight_times_representation_change": 0.07086986211404732,
+            "weight_at_fixed_mu0": 0.1562728595949781,
+            "weight_at_midpoint_minus_mu0": 0.02221747567261386
+          }
+        }
+      },
+      "projection_max_abs_error": [
+        3.969359457789423e-08,
+        1.0936041938691687e-07
+      ],
+      "original_256_step_sums": {
+        "bias_change": 0.000771939055994153,
+        "centered_gradient_loss_dot": -0.0018319168779315704,
+        "fixed_mu0_mean_head_change": 0.05302094576763704,
+        "offset_gradient_loss_dot": -0.004075906173831825,
+        "raw_gradient_loss_dot": -0.005907823051763396,
+        "weight_at_mu0_change": 0.052249006711642884
+      },
+      "weight_fraction_of_fixed_mu_head_change": 0.9854408659668736,
+      "max_dot_identity_error": 5.421010862427522e-20,
+      "telescoping_error": 6.938893903907228e-18,
+      "algebraic_weight_at_mu0_share_of_known_mean_logit_change": 0.6214265479552039
+    },
+    "state": {
+      "initial_geometry": {
+        "centered_feature_rms": 0.4032463718241503,
+        "centered_variance_sum": 20.81377745783563,
+        "mean_energy": 84.06078596946188,
+        "mean_energy_fraction": 0.801536456718941,
+        "mean_l1": 57.75466947444195,
+        "mean_norm": 9.168466936705498
+      },
+      "final_geometry": {
+        "centered_feature_rms": 0.44034221799637574,
+        "centered_variance_sum": 24.819362425595866,
+        "mean_energy": 81.44519600667333,
+        "mean_energy_fraction": 0.7664380034909267,
+        "mean_l1": 57.55010070606516,
+        "mean_norm": 9.024699219734325
+      },
+      "fullpass": {
+        "all_rows": {
+          "count": 29574,
+          "delta_mean_z": 0.19545881827928485,
+          "final_mean_p": 0.5660190027491181,
+          "final_mean_z": 0.26818051794023384,
+          "identity_error": -2.7755575615628914e-17,
+          "initial_mean_p": 0.5181290490854854,
+          "initial_mean_z": 0.072721699660949,
+          "terms": {
+            "bias_change": 0.0020612275693565607,
+            "midpoint_weight_times_representation_change": 0.11165705134289723,
+            "weight_at_fixed_mu0": 0.062444352875953214,
+            "weight_at_midpoint_minus_mu0": 0.019296186491077876
+          }
+        },
+        "known_side": {
+          "count": 10010,
+          "delta_mean_z": 0.19419271627971835,
+          "final_mean_p": 0.5660938907447868,
+          "final_mean_z": 0.2686529526381539,
+          "identity_error": -5.551115123125783e-17,
+          "initial_mean_p": 0.5185591398769893,
+          "initial_mean_z": 0.07446023635843556,
+          "terms": {
+            "bias_change": 0.0020612275693565607,
+            "midpoint_weight_times_representation_change": 0.11418476612998077,
+            "weight_at_fixed_mu0": 0.062444352875953214,
+            "weight_at_midpoint_minus_mu0": 0.015502369704427863
+          }
+        }
+      },
+      "projection_max_abs_error": [
+        5.978355646640843e-08,
+        1.0571342778931125e-07
+      ],
+      "original_256_step_sums": {
+        "bias_change": 0.0006452305242419243,
+        "centered_gradient_loss_dot": -0.0016803098763316007,
+        "fixed_mu0_mean_head_change": 0.04151277319025182,
+        "offset_gradient_loss_dot": -0.0039397962704162326,
+        "raw_gradient_loss_dot": -0.005620106146747832,
+        "weight_at_mu0_change": 0.04086754266600989
+      },
+      "weight_fraction_of_fixed_mu_head_change": 0.9844570604501691,
+      "max_dot_identity_error": 5.421010862427522e-20,
+      "telescoping_error": 6.938893903907228e-18,
+      "algebraic_weight_at_mu0_share_of_known_mean_logit_change": 0.3215586767219804
+    }
+  },
+  "interpretation": [
+    "The weight-at-fixed-mean term is material, especially for F, and is not cancelled by the scalar bias change.",
+    "For S, representation movement (backbone plus query projection) is larger than the fixed-mean weight term; a head-only explanation is incomplete.",
+    "Mean energy fraction is unweighted representation geometry, not explained variance or predictive cause.",
+    "The actual256-step centered and location gradient-step terms both sum negative. Large offset motion alone does not prove harmful updates.",
+    "The evidence justifies a paired coordinate intervention, not a claim that centering repairs direction learning."
+  ],
+  "counts": {
+    "model_constructions": 0,
+    "model_forwards": 0,
+    "readout_fits": 0,
+    "optimizer_updates": 0,
+    "checkpoint_decodes": 0,
+    "mean_estimates": 2,
+    "later_arrays_consumed": false,
+    "test_data_used": false
+  },
+  "timing_seconds": {
+    "worker": 3.036733314999765,
+    "whole_command": 3.302532876999976
+  },
+  "independent_review": {
+    "scope": "source-diff and result JSON only; no extra arrays decoded",
+    "decision": "PASS",
+    "source_math_unchanged_after_bootstrap_fix": true,
+    "all_projection_and_identity_assertions_passed_in_worker": true
+  },
+  "predecessor_failure": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_CENTERING_GEOMETRY_20261110_001/TERMINAL.json",
+    "sha256": "adbb9ba1d6d6d4d85dd63a1588b403e48d874f914f691813e17c4dbd4fdf5f7e"
+  },
+  "next_intervention_design": {
+    "status": "DESIGN_FOR_SOURCE_PREPARATION_ONLY_NOT_ADMITTED",
+    "name": "Fixed TRAIN mean coordinates for both dedicated M5 side heads",
+    "identity": "h_centered=h-mu0; centered_bias=b+w dot mu0. Preserve original forward function; coordinate gradient is gw-mu0*gb and gb.",
+    "implementation_candidate": "Only during the AdamW step, express head bias in centered coordinates, transform head weight gradients, use existing global clipping/AdamW, then restore ordinary bias coordinates. Uniform decay is retained. No model forward/features/targets/architecture change.",
+    "frozen_mu": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_CENTERING_GEOMETRY_20261110_002/MEANS.npz",
+      "sha256": "1a20692cf7319f14ef216dd9d5828038bd1b20096e64e9eb7517e9e89e38a71f"
+    },
+    "start": "Original INITIAL ae772 with empty Adam, not a transformed FINAL optimizer.",
+    "matched_prefix": "Same original256 chronological B16 updates/4096rows; exact original source/input/checkpoint/RNG ancestry; existing250W guarded research route.",
+    "comparators": "Original INITIAL and saved P4096, frozen prior, same predeclared TRAIN192 and laterTRAIN192 panels; qualify exact panel bindings and evaluate same device before use. Reuse complete controls where physically equivalent.",
+    "success_gate": "Both M5 S/F Brier and logloss improve versus INITIAL, original P4096 and prior on each identical panel. Report all4 task/panel cells regardless. No candidate selection or hyperparameter sweep.",
+    "limits": "A positive short panel is only a gate to broader matched evidence; it does not satisfy full-population correction or prove edge. Later TRAIN is reused development data, not untouched generalization.",
+    "interaction": "Coordinate change alters Adam and potentially the existing global clip factor, so this is not an isolated bias-only intervention.",
+    "baseline": "Require fresh exact FP32 initial-output/control parity before interpreting a candidate; preserve all five TF, eight families and macro inputs.",
+    "new_model_run_admitted": false
+  }
+}

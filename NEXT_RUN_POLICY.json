@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-10T05:15:37.334484+00:00",
-  "status": "TA_M5_HEAD_CENTERING_GEOMETRY_002_ADMITTED",
+  "observed_utc": "2026-11-10T05:21:18.212263+00:00",
+  "status": "TA_M5_HEAD_COORDINATE_GEOMETRY_COMPLETE_INTERVENTION_UNTESTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Run fresh geometry002 once after exact direct-worker import/CPU-guard preflight passed. Preserve consumed001 import failure. No native model, training, optimizer or later-array work.",
+  "next_action": "Prepare one matched fixed-TRAIN-mean head-coordinate intervention from original INITIAL and original256-update control. No native launch before exact source/admission/panel/baseline checks. No optimizer, feature or LR sweep; all training remains disabled.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1685,7 +1685,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Geometry001 stopped before import/data. Fresh002 fixes only canonical package import; directworker --help preflight and CPUguard PASS. Original reviewed algebra unchanged.",
+    "current_activity": "Cached geometry measured material fixed-mean head-weight drift, especially F, with larger upstream contribution for S. Source/report review PASS. This is a falsifiable intervention rationale, not a demonstrated correction.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc\u2019en du, og lag deg et m\u00e5l som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1714,11 +1714,11 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "Exact original training trajectory observer; no predictive improvement claimed.",
-    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_CUDA_PREFIX_20261110_001",
+    "latest_terminal_role": "Cached head-coordinate accounting;0models/forwards/fits/checkpointdecodes.",
+    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_CENTERING_GEOMETRY_20261110_002",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_CUDA_PREFIX_20261110_001/TERMINAL.json",
-      "sha256": "b0fbce5386dcbed5b694d9654e09ff72e3d25e67490ab6c46522fcca3b1c83f2"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_CENTERING_GEOMETRY_20261110_002/TERMINAL.json",
+      "sha256": "d8a861bc4c7a251d5d6478344df9abdab593ab88328e7772729680f84d1b2b6d"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -9209,7 +9209,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run fresh geometry002 once after exact direct-worker import/CPU-guard preflight passed. Preserve consumed001 import failure. No native model, training, optimizer or later-array work.",
+    "next_action": "Prepare one matched fixed-TRAIN-mean head-coordinate intervention from original INITIAL and original256-update control. No native launch before exact source/admission/panel/baseline checks. No optimizer, feature or LR sweep; all training remains disabled.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22114,6 +22114,10 @@
     "latest_original_cuda_trace_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_ORIGINAL_TRACE_REVIEW.json",
       "sha256": "3617a185187087ba77f3a1fbbfc5fc140fbd409b4bc895a196c6d5b16d156b09"
+    },
+    "latest_head_coordinate_geometry_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_HEAD_COORDINATE_GEOMETRY_REVIEW.json",
+      "sha256": "f7af8f3078b9a07a78512347498c8a6f5d6821ded547d2967378bd47e9d266be"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -73118,7 +73122,7 @@
     "reason": "Private entrypoint lacked canonical Python package path; no qualification/claim/data/model began."
   },
   "market_state_ta_m5_head_centering_geometry_20261110_002": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_GEOMETRY_NOT_A_PREDICTIVE_CORRECTION",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_CENTERING_GEOMETRY_20261110_002/PLAN.json",
       "sha256": "20c6a23597f35abd0fdfe056a459d8318bb2f2a81eac3afa56f9c9604cad95c8"
@@ -73127,13 +73131,13 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_CENTERING_GEOMETRY_20261110_002/audit.py",
       "sha256": "1ebc9eaa06934e1673b8de83761a3e0a23dca0b62b2c53fb27f457ba14869ade"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "training_authorized": false,
     "relaunch_allowed": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "memory_max": "4G",
     "swap_max": "512M",
     "wall_seconds": 180,
@@ -73154,7 +73158,7 @@
       "array_or_model_execution_during_review": false,
       "existing_input_head_trace_checks_reused": true
     },
-    "attempted_invocations": 0,
+    "attempted_invocations": 1,
     "array_reads": 0,
     "predecessor_failure": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_CENTERING_GEOMETRY_20261110_001/TERMINAL.json",
@@ -73164,6 +73168,23 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_CENTERING_GEOMETRY_20261110_002/BOOTSTRAP_PREFLIGHT.json",
       "sha256": "354453538856e80b693c3ae50e01a9751bb14d441e2b3807ddc3b406296ac545"
     },
-    "minimal_source_difference": "Only stage/base literals and explicit canonical import path before gx1 imports; reviewed math unchanged. No environment/shell-wrapper or hardware-guard changes."
+    "minimal_source_difference": "Only stage/base literals and explicit canonical import path before gx1 imports; reviewed math unchanged. No environment/shell-wrapper or hardware-guard changes.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_CENTERING_GEOMETRY_20261110_002/RESULT.json",
+      "sha256": "2d24a83a27b486228c783c7803f5c88a7f6a0686f8b797e1768ac85db10e674e"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_CENTERING_GEOMETRY_20261110_002/TERMINAL.json",
+      "sha256": "d8a861bc4c7a251d5d6478344df9abdab593ab88328e7772729680f84d1b2b6d"
+    },
+    "integrated_report": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_HEAD_COORDINATE_GEOMETRY_REVIEW.json",
+      "sha256": "f7af8f3078b9a07a78512347498c8a6f5d6821ded547d2967378bd47e9d266be"
+    },
+    "means": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_CENTERING_GEOMETRY_20261110_002/MEANS.npz",
+      "sha256": "1a20692cf7319f14ef216dd9d5828038bd1b20096e64e9eb7517e9e89e38a71f"
+    },
+    "source_unchanged": true
   }
 }
