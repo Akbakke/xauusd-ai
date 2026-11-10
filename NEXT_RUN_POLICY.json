@@ -44,7 +44,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-10T04:35:18.423158+00:00",
+  "observed_utc": "2026-11-10T04:36:35.529719+00:00",
   "status": "TA_M5_ORIGINAL_CUDA_PREFIX_TRACE_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
@@ -73010,8 +73010,8 @@
       "sha256": "b1038c22b48f9ef955bb85ebfa1dd363cc4b22f80b21a679239680dafb240c5e"
     },
     "guard_template": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_RECOVERY_20261108_001/CAMPAIGN/CAMPAIGN_PLAN.json",
-      "sha256": "20b313d6678bc08af6bc0468d4055ee9ca8810dda5c9ba5c6c9b5837161b30c6"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_MECHANICAL_20261109_001/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "sha256": "905dd8efd3cd7fae95f2dc90457b710d673f5a23399a61831eea9063516fcd9d"
     },
     "physical_power_limit_w": 250,
     "memory_max": "20G",
@@ -73019,6 +73019,10 @@
     "fresh_windows_boot_required": true,
     "model_wall_seconds": 720,
     "max_trace_bytes": 67108864,
-    "standing_authorization_source": "Active user direction goal: isolate measured cause before minimal correction, reuse checkpoints and finished controls. This admission is one exact original trajectory observer, not a new candidate fit."
+    "standing_authorization_source": "Active user direction goal: isolate measured cause before minimal correction, reuse checkpoints and finished controls. This admission is one exact original trajectory observer, not a new candidate fit.",
+    "preparation_rejection": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_CUDA_PREFIX_20261110_001/PREPARATION_REJECTION.json",
+      "sha256": "e4986789e44872a78d9c7e30fd33b8e46e562e967bd3701d2928df9c97f6080b"
+    }
   }
 }

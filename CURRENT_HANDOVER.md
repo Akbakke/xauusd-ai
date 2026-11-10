@@ -39,6 +39,9 @@ Fysisk CUDA-/P4096-paritet er ennå ikke målt. Én eksakt256-stegsdiagnose
 påCUDA250W er nå admitted; kun denne scope har training_enabled=true.
 Materialisering, trygg fersk fysisk boot og eksisterende launchvakter gjenstår.
 Ingen ny kandidat, fullfit eller relansering er autorisert.
+Første materialisering ble avvist før claim: feil fase på guardmalen.
+Referansen er rettet til eksisterende forskningsmal; binding/avvisning er
+bevart privat. Ingen modell eller optimizer ble konstruert.
 
 
 [Fullpopulasjonens månedsregnskap](docs/TA_M5_FULLPOP_MONTH_DECOMP_REVIEW.json)
