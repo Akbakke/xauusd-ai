@@ -1,0 +1,293 @@
+{
+  "schema_version": "gx1_ta_m5_paired_batch_order_review_v1",
+  "status": "COMPLETE_CONTROL_LOCAL_M5_GAIN_INTERLEAVING_REJECTED_WITH_MTF_REGRESSIONS",
+  "source_commit": "5984522542cb524b104e4831facc79e5e8e2a8ed",
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/RESULT.json",
+    "sha256": "b11a1932c924b22555bf9e848c8dea7507291c5584d0e7626de1a0f660840438"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/TERMINAL.json",
+    "sha256": "6df60cb3966721d71e0d72f654c5268d0ddb2a15215db1c63c8a9f36ac3d2b3a"
+  },
+  "campaign_receipt": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/RUNTIME/receipts/invocation-0001.json",
+    "sha256": "f131d17d3d3e7f2ae19ae605dee27119ebf6d95233e650eeb43f4aa0207fa872"
+  },
+  "independent_cached_review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/CACHED_SCORE_REVIEW_002.json",
+    "sha256": "5635c3b7bcbfe6169e4b3766f8c093d3a9c29a6e5d8638a8adb9f2f0e961a3f9"
+  },
+  "independent_JSON_review": "PASS_WITH_MTF_AND_THREE_CLASS_LIMITS",
+  "original_aborted_launch": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_001/BOOTSTRAP_FAILURE.json",
+    "sha256": "e4e85416760274131b5b2bf985cb0b6c403a595464e66d5581b3952d178f096e"
+  },
+  "earlier_failed_cached_review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/CACHED_SCORE_REVIEW_FAILURE.json",
+    "sha256": "bba26c385bf25bbc307777c332d4d2941ce36ddb01eb2946afbac3e9bb96d0de"
+  },
+  "selected_fit_rows": 4096,
+  "later_development_rows": 192,
+  "M5_conditional_side": {
+    "TRAIN_state": {
+      "INITIAL": {
+        "brier": 0.24781028082180756,
+        "log": 0.6887626856419372
+      },
+      "CONTROL": {
+        "brier": 0.24756634838204353,
+        "log": 0.6882776321354028
+      },
+      "INTERLEAVED": {
+        "brier": 0.24783402957250877,
+        "log": 0.6888126917878217
+      },
+      "PRIOR": {
+        "brier": 0.24937703197898434,
+        "log": 0.6919008269472965
+      },
+      "known": 1403
+    },
+    "TRAIN_future": {
+      "INITIAL": {
+        "brier": 0.24893703130369202,
+        "log": 0.6910196357374699
+      },
+      "CONTROL": {
+        "brier": 0.24845820029294566,
+        "log": 0.6900598233779134
+      },
+      "INTERLEAVED": {
+        "brier": 0.2486335088489821,
+        "log": 0.6904114403971116
+      },
+      "PRIOR": {
+        "brier": 0.24977675469111543,
+        "log": 0.6927006366769244
+      },
+      "known": 1635
+    },
+    "LATER_state": {
+      "INITIAL": {
+        "brier": 0.24145618356247409,
+        "log": 0.6760178262626679
+      },
+      "CONTROL": {
+        "brier": 0.23709963115879862,
+        "log": 0.6672263919317665
+      },
+      "INTERLEAVED": {
+        "brier": 0.24053993907664706,
+        "log": 0.6741450206845999
+      },
+      "PRIOR": {
+        "brier": 0.24718802985450922,
+        "log": 0.6875207846228478
+      },
+      "known": 65
+    },
+    "LATER_future": {
+      "INITIAL": {
+        "brier": 0.24689392097772336,
+        "log": 0.6869284014463657
+      },
+      "CONTROL": {
+        "brier": 0.24342824326914728,
+        "log": 0.679973331928478
+      },
+      "INTERLEAVED": {
+        "brier": 0.24404551033190017,
+        "log": 0.6812091255584382
+      },
+      "PRIOR": {
+        "brier": 0.24938213578334975,
+        "log": 0.6919112686014333
+      },
+      "known": 75
+    }
+  },
+  "mean_canonical_selected_TRAIN_batch_loss": {
+    "CONTROL": 1.8699820628389716,
+    "INITIAL": 1.9298637807369232,
+    "INTERLEAVED": 1.8487454182468355
+  },
+  "conclusions": [
+    "CONTROL beats originalINITIAL and frozenprior for bothM5S/F on selected4096TRAIN and reused192laterdevelopment, Brier andlog.",
+    "INTERLEAVED isworse thanCONTROL in allfourM5cells. Itslower totalTRAINloss shows an objective/direction tradeoff on this selected population.",
+    "CONTROL improves TRAINside9of10TF/taskcells but lateronly4of10. LaterD1side materiallydeteriorates forbothS/F; interleaving worsensfurther.",
+    "CONTROL M5conditional gain doesnot imply fullDOWN/FLAT/UPgain. F M5threeclass worsens onbothpanels; FLATthreshold isnotchanged or blamed.",
+    "CONTROL doesnot reproduce originalfullpass deterioration. Datacoverage and traininglength remain confounded relative to thatoriginalpass.",
+    "No fullfoldfix, newuntouchedgeneralization, reliablecalibration or economicedge established. No automaticfit,selection orcanonicalresume."
+  ],
+  "later_D1_conditional_delta": {
+    "state_D1_conditional_side": {
+      "CONTROL": {
+        "brier": 0.028470188512018935,
+        "log": 0.05685327040912008
+      },
+      "INTERLEAVED": {
+        "brier": 0.07013970749866585,
+        "log": 0.14671948546119612
+      }
+    },
+    "future_D1_conditional_side": {
+      "CONTROL": {
+        "brier": 0.08886289688166273,
+        "log": 0.1959099172036063
+      },
+      "INTERLEAVED": {
+        "brier": 0.1295534126983396,
+        "log": 0.28150756870325855
+      }
+    }
+  },
+  "M5_activity_and_three_class_delta": {
+    "TRAIN": {
+      "future_M5_activity": {
+        "CONTROL": {
+          "brier": 0.0033513765423685005,
+          "log": 0.009781642879534425
+        },
+        "INTERLEAVED": {
+          "brier": -0.003224772116642627,
+          "log": -0.006451159862345124
+        }
+      },
+      "future_M5_three_class": {
+        "CONTROL": {
+          "brier": 0.00492353586599048,
+          "log": 0.009398514654955559
+        },
+        "INTERLEAVED": {
+          "brier": -0.0049143806622048425,
+          "log": -0.006693933148840814
+        }
+      },
+      "state_M5_activity": {
+        "CONTROL": {
+          "brier": 0.0014507104560280148,
+          "log": 0.00301940774103876
+        },
+        "INTERLEAVED": {
+          "brier": 0.00010357096715712943,
+          "log": -0.0009898941415932283
+        }
+      },
+      "state_M5_three_class": {
+        "CONTROL": {
+          "brier": -0.005940815195827676,
+          "log": -0.02663074537773258
+        },
+        "INTERLEAVED": {
+          "brier": -0.004946809607895619,
+          "log": -0.02106820691005029
+        }
+      }
+    },
+    "LATER": {
+      "future_M5_activity": {
+        "CONTROL": {
+          "brier": 0.0073401452570848735,
+          "log": 0.018565100961574377
+        },
+        "INTERLEAVED": {
+          "brier": -5.007543611598719e-05,
+          "log": 0.00038792496807071863
+        }
+      },
+      "future_M5_three_class": {
+        "CONTROL": {
+          "brier": 0.010398751024172315,
+          "log": 0.01584827693114932
+        },
+        "INTERLEAVED": {
+          "brier": -0.0007780819035729802,
+          "log": -0.0018461671756505593
+        }
+      },
+      "state_M5_activity": {
+        "CONTROL": {
+          "brier": 0.005084855945658596,
+          "log": 0.025341770016984344
+        },
+        "INTERLEAVED": {
+          "brier": 0.0037046364287924745,
+          "log": 0.021206474794434188
+        }
+      },
+      "state_M5_three_class": {
+        "CONTROL": {
+          "brier": -0.004693870255657706,
+          "log": -0.007260390240326542
+        },
+        "INTERLEAVED": {
+          "brier": -0.0030216883116692683,
+          "log": -0.009443881471744242
+        }
+      }
+    }
+  },
+  "technical_counts": {
+    "backward_returns": 512,
+    "backwards": 512,
+    "cached_baseline_loss_batches": 256,
+    "candidate_evidence_writes": 2,
+    "checkpoint_loads": 1,
+    "checkpoint_writes": 0,
+    "evaluation_forwards": 536,
+    "extra_truth_gathers": 1024,
+    "forward_returns": 1048,
+    "forwards": 1048,
+    "json_bytes": 103264,
+    "model_construction_returns": 1,
+    "model_constructions": 1,
+    "optimizer_constructions": 1,
+    "optimizer_step_calls": 512,
+    "optimizer_step_returns": 512,
+    "optimizer_updates": 512,
+    "resume_state_load_calls": 1,
+    "resume_state_load_returns": 1,
+    "strict_full_state_restore_calls": 2,
+    "strict_full_state_restore_returns": 2,
+    "training_forwards": 512
+  },
+  "actual_fit_seconds": {
+    "CONTROL_fit_seconds": 372.386446559,
+    "INTERLEAVED_fit_seconds": 374.13247673499995
+  },
+  "timing": {
+    "worker_monotonic_seconds": 1362.914596619,
+    "controller_UTC_interval_seconds": 1339.068152,
+    "interleaved_fit_change_percent": 0.4688758659542991,
+    "baseline_forwards_reused": 256,
+    "clock_boundary": "UTC controller interval is shorter than internal monotonicworker interval; do not combine these into an exactwholejobbenchmark. No clockcause inferred.",
+    "whole_run_speedup_demonstrated": false,
+    "matched_fit_speedup_demonstrated": false,
+    "preparation_reboot_review_wait_outside_worker_timer": true
+  },
+  "qualification": {
+    "same_selected_rows": true,
+    "same_initial_state": true,
+    "same_queries": true,
+    "rng_stream_parity": true,
+    "evaluation_state_unchanged": true,
+    "source_unchanged": true,
+    "counts_verified": 180,
+    "M5_prior_cells_verified": 12,
+    "max_score_abs_error": 4.440892098500626e-16
+  },
+  "physical_power_limit_w": 250,
+  "peak_core_temperature_c": 57,
+  "peak_memory_temperature_c": 64,
+  "peak_power_draw_w": 133.72,
+  "windows_task_disabled": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/WINDOWS_TASK_DISABLED.json",
+    "sha256": "dc3c28ed57126dd4aa1c7a90a8fe3e7e1e501554b27be82268b25168f6b0602b"
+  },
+  "goal_complete": false,
+  "test_data_used": false,
+  "trading_authorized": false,
+  "training_enabled": false,
+  "next_direct_question": "Separate timecoverage/traininglength from order and align declaredM5direction with totalobjective. Reuse savedcaptures andstates; no newtraining without exact boundeddesign. Do not repeat this consumedordercontrast."
+}

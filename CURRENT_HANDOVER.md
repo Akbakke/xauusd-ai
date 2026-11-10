@@ -15,48 +15,62 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_PAIRED_BATCH_ORDER_ADMITTED_AWAITING_FRESH_BOOT.
+Policystatus: TA_M5_PAIRED_ORDER_CONTROL_LOCAL_GAIN_WITH_MTF_REGRESSIONS.
 
-001 ble claimet på boot635, men stoppet før modell/guardlog fordi capped-starten
-kun godtok12000s. Originalmarker og feilkvittering er bevart;001 er konsumert,
-Windows-task deaktivert og ingen oppdateringer utført. Minste rettelse tillater
-3000s bare for eksakt002-recipe etter readiness og setter ytre grense3300s.
-Seks faktiske parsertilfeller og to ytre-grensekontroller består; gammel
-12000→13800 er bevart. Ingen modell-/mål-/optimizerendring.
+[Paret rekkefølgeforsøk](docs/TA_M5_PAIRED_BATCH_ORDER_REVIEW.json) er COMPLETE/
+konsumert på boot636,CUDA250W. Alle trenings-/launchporter er stengt;
+training_enabled=false og Windows-task deaktivert. Originale checkpoints bevart.
+001 stoppet før modell fordi startvakten krevde12000s; marker/feilkvittering bevart.
+002 rettet kun eksakt3000s/3300s-binding og kvalifisert guard-kildebro.
+Ingen gammel plan ble relansert,ingen modell-/mål-/optimizerendring.
 
-Ny, separat002-sammenligning er kvalifisert i
-[scopekontrollen](docs/TA_M5_PAIRED_BATCH_ORDER_SCOPE_REVIEW_002.json).
-To armer bruker samme originale INITIAL/tomme Adam/RNG og samme4096TRAIN-rader:
-256 intakte B16-batcher fordelt over hele TRAIN. CONTROL viser dem kronologisk;
-INTERLEAVED veksler mellom periodene. Original query/pass0/fit_batch_start,
-batchvekter, alle genuine features/fem TF og optimizer beholdes.
-Dropout-tilordningen til radene endres med rekkefølgen og inngår i effekten.
+CONTROL og INTERLEAVED bruker samme originale INITIAL/tommeAdam/RNG og samme
+4096 tidsfordelte TRAIN-rader,256 intakteB16-batcher perarm. Originalequeries,
+fit_batch_start,loss og femTF beholdt. Innenbatchmedlemskap uendret;
+dropout-tilordning til rader endres med rekkefølgen og inngår i effekten.
+Én modell/optimizer/checkpointdekoding,to strict restores,512oppdateringer,
+1048forwards,0nye baselineforwards,2private evidenskapsler,ingen canonicalresume.
 
-Én modell/optimizer/checkpointdekoding,to strict restores,512fysiske oppdateringer
-og1048forwards. Alle4096TRAIN-rader scores i original sampledS/nativeF-domene;
-senere192 scores separat med nativeendepunkter. Kvalifiserte INITIAL-baselines
-gjenbrukes:0nye baselineforwards. To private evidenskapsler,ingen canonicalresume.
-INITIAL-forbedring må overstige bundet scoretoleranse1e-6; CONTROL/prior1e-8.
-101 fokuserte tester og faktisk metadata-/syntetisk kontroll består.
-Ingen ny modellkjøring er startet ved denne overleveringen.
+Positivt avgrenset funn: CONTROL bedrer M5betingetS/F mot bådeINITIAL og
+frystprior på alle4096TRAIN-radene og separat gjenbrukt senere192-panel.
+Brier(laverebedre), INITIAL → CONTROL → INTERLEAVED / prior:
+TRAIN S:0,247810→0,247566→0,247834 /0,249377 (1403known).
+TRAIN F:0,248937→0,248458→0,248634 /0,249777 (1635known).
+Senere S:0,241456→0,237100→0,240540 /0,247188 (65known).
+Senere F:0,246894→0,243428→0,244046 /0,249382 (75known).
+Logtap har samme fortegn. INTERLEAVED taper motCONTROL i allefire;
+allefire forhåndsbundne interleavingporter feiler.
 
-Kun denne nye engangsporten åpner trening:250W,20G/512M,modell2400s,
-vindu3000s,ytre3300s. Fersk trygg fysisk Windows-boot og verifisert ledig vert
-kreves gjennom eksisterende vakter. Kilden må være ren og committed før
-materialisering. Alle gamle planer forblir konsumert; TEST/Entry/Exit/handel stengt.
+Samlet kanonisk TRAIN-loss faller1,929864→1,869982CONTROL/
+1,848745INTERLEAVED. Lavere totalobjektiv gir altså svakereM5 ennCONTROL.
+Dette er en målt avveining i dette utvalget,ikke isolert originalfullpassårsak:
+CONTROL gjenskaper ikke den opprinneligeM5-forverringen. Datadekning og
+treningslengde varierer fortsatt sammen sammenlignet med originalpasset.
 
-Tolkningen er korrigert: hvert SGD-steg trenger ikke forbedre hver periode/TF.
-Originalt fullTRAIN-loss ble faktisk dårligere1,948957→2,021683; alle ti
-S/F-sidekomponenter svekkes. Tidligere384-raders MIX24/ACCUM3 tester ikke denne
-matchede256-oppdateringssammenligningen. En senere hel nativepass fra en annen
-reimportert INITIAL er allerede kjørt og beviste ikke senere retningsforbedring.
-Resultater fra gamle forsøk skal ikke generaliseres utover sine faktiske utvalg.
+FemTF/helprobabilitet begrenser funnet: CONTROL bedrer TRAIN-side9/10celler,
+men senerebare4/10. Senere D1 ΔBrier motINITIAL: S+0,028470/F+0,088863
+(64/55known); interleaving svekker enda mer. CONTROL F M5-treklassescore
+svekkes bådeTRAIN(+0,004924) ogsenere(+0,010399). Bedre betingetUP/DOWN
+er derfor ikke generelt bedreDOWN/FLAT/UP. SmåbevegelsersFLAT beholdes.
+TRAIN bruker sampledS/nativeF; senere nativeS/F. AndreS-TF er ulikt querydomene.
 
-Bedre enn CONTROL alene er ingen rettelse hvis INITIAL fortsatt er bedre.
-Hvis CONTROL ikke gjenskaper svekkelsen,er den opprinnelige fullpassårsaken
-fortsatt uisolert. Selv samlet korttestPASS er ingen fullfold/urørtgeneralisering,
-kalibrering eller markedsedge. Ingen automatisk større trening er innrømmet.
-Små bevegelser kan fortsatt være FLATT; eksisterende S/F-sannsynligheter beholdes.
+UavhengigFP64cachedreview:180metric-countceller og12M5priorceller,
+maxscoreavvik4,44e-16;6capturer,0modeller/forwards/checkpointdekoding.
+Første review feilet fordi modellavhengigrepresentation ble behandlet som
+observasjonsakse; bevart/konsumert. Nyreview sammenlignet bare ekte
+akser/queries/truth og består. UavhengigJSON-review bekrefter konklusjonen.
+
+Workerens monotontid1362,915s(~22m43s); CONTROLfit372,386s,
+INTERLEAVEDfit374,132s:0,47%lengre,ingen hastighetsgevinst.
+KampanjensUTC-intervall1339,068s er kortere enn internmonotontid;
+ikke bland disse til en eksakt helkjøringsbenchmark. Årsaken er ikke undersøkt.
+256baselineforwards gjenbrukt;forberedelse/reboot/review/venting er utenom.
+MaksGPU57°C/minne64°C,effektgrense250W,makstrekk133,72W.
+
+Ingen fullfoldrettelse,urørtgeneralisering,kalibrering eller økonomiskedge
+er bevist. Målet er uoppnådd. Gjenbruk lagredeprognoser/tilstander for neste
+presise spørsmål om datadekning/treningslengde og samsvar mellom totalobjektiv
+ogM5-retning. Ingen nyfit eller gjentattrekkefølgetest er innrømmet.
 
 Forrige fullførte kontroll følger nedenfor; dens engangsautorisasjon er stengt.
 

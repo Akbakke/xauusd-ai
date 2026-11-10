@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-10T06:29:23.781273+00:00",
-  "status": "TA_M5_PAIRED_BATCH_ORDER_ADMITTED_AWAITING_FRESH_BOOT",
+  "status": "TA_M5_PAIRED_ORDER_CONTROL_LOCAL_GAIN_WITH_MTF_REGRESSIONS",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Only one exact paired256update TRAIN order experiment through existing250W capped guards; genuinefeatures,targets,probabilities unchanged. Old consumed plans stayclosed. NoTEST,GC,Entry,Exit,trading.",
-  "next_action": "Materialize exact paired campaign from clean committed source, verify whole-host idle, perform required safe freshboot and run once. Score identical4096TRAIN and separately192laterdevelopment. Consume authorization regardless of directional outcome.",
+  "rule": "Pairedexperiment andcachedreviewconsumed. Preserve genuine features,allTF,S/Fprobabilities andFLAT. No newfit,oldplanrelaunch,TEST,GC,Entry,Exit ortrading.",
+  "next_action": "Separate timecoverage/traininglength from order and align declaredM5direction with totalobjective. Reuse savedcaptures andstates; no newtraining without exact boundeddesign. Do not repeat this consumedordercontrast.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1685,7 +1685,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Matched intact-batch order experiment qualified;101focused tests and actualmetadata preflightPASS. No new model process yet.",
+    "current_activity": "Paired order trial and independent180cellcachedreview complete. CONTROL improves M5conditionalS/F onbothpanels; interleavingworse; D1 andFthreeclass regress.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1714,11 +1714,11 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "Previous two finite applications completed with localM5gains but mixedtransfer and D1side regressions.",
+    "latest_terminal_role": "Complete pairedorder trial with localM5gain,failedinterleaving andMTFtradeoffs.",
     "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COMMON_STEP_FINITE_20261110_001/TERMINAL.json",
-      "sha256": "14d4aa3d774f7426fab549ddf3ceab0691d31340626575e27202c7f1c2367f1a"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/TERMINAL.json",
+      "sha256": "6df60cb3966721d71e0d72f654c5268d0ddb2a15215db1c63c8a9f36ac3d2b3a"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -1738,7 +1738,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Cause of original fullpass deterioration unisolated. Paired order effect is next bounded question, not a proven remedy.",
+    "current_blocker": "Originalfullpasscause and common M5/MTF probability correction remainunproven. CONTROLdoesnotreproduceoriginalregression; coverage/traininglength stillconfounded.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -24682,7 +24682,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-10T08:13:38.150900+00:00",
+  "updated_utc": "2026-11-10T09:03:17.251858+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -35468,7 +35468,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -73522,24 +73522,24 @@
     }
   },
   "market_state_ta_m5_paired_batch_order_20261110_002": {
-    "status": "ADMITTED",
-    "decision": "ADMITTED",
-    "ta_m5_paired_batch_order_authorized": true,
+    "status": "COMPLETE_CONSUMED_CONTROL_LOCAL_GAIN_WITH_MTF_REGRESSIONS",
+    "decision": "FAIL_COMPARISON_NO_PROMOTION",
+    "ta_m5_paired_batch_order_authorized": false,
     "fold_id": 1,
     "selected_fit_rows": 4096,
     "arms": [
       "CONTROL",
       "INTERLEAVED"
     ],
-    "model_constructions_authorized": 1,
-    "optimizer_constructions_authorized": 1,
-    "model_forwards_authorized": 1048,
-    "backward_calls_authorized": 512,
-    "optimizer_steps_authorized": 512,
+    "model_constructions_authorized": false,
+    "optimizer_constructions_authorized": false,
+    "model_forwards_authorized": false,
+    "backward_calls_authorized": false,
+    "optimizer_steps_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002",
     "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/RUNTIME",
@@ -73571,15 +73571,15 @@
     "window_seconds": 3000,
     "outer_seconds": 3300,
     "standing_authorization_source": "Active user direction-only goal and bounded local testing authority. Newly qualified paired representative256update order intervention; no old one-shot plan reused.",
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "campaign_preparation_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "campaign_preparation_authorized": false,
     "evaluate_both_panels_unconditionally": true,
     "per_update_pareto_requirement": false,
     "genuine_predictor_fit_authorized": false,
@@ -73590,6 +73590,78 @@
     "exit_evaluation": false,
     "broker_access_allowed": false,
     "canonical_resume_authority": false,
-    "candidate_selection": false
+    "candidate_selection": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/RESULT.json",
+      "sha256": "b11a1932c924b22555bf9e848c8dea7507291c5584d0e7626de1a0f660840438"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/TERMINAL.json",
+      "sha256": "6df60cb3966721d71e0d72f654c5268d0ddb2a15215db1c63c8a9f36ac3d2b3a"
+    },
+    "campaign_receipt": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "f131d17d3d3e7f2ae19ae605dee27119ebf6d95233e650eeb43f4aa0207fa872"
+    },
+    "windows_task_disabled": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/WINDOWS_TASK_DISABLED.json",
+      "sha256": "dc3c28ed57126dd4aa1c7a90a8fe3e7e1e501554b27be82268b25168f6b0602b"
+    },
+    "candidate_evidence": {
+      "CONTROL": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/CONTROL_EVIDENCE.pt",
+        "sha256": "6780622d9bc81204e046e4670d0b7091b4630864997def74420e19d21259ec9f"
+      },
+      "INTERLEAVED": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/INTERLEAVED_EVIDENCE.pt",
+        "sha256": "fb0be9b954d1635e3d431887222cb7ad073fd0176ddbbb13043d630e192c4bac"
+      }
+    },
+    "cached_review": {
+      "authorized": false,
+      "max_capture_decodes": 6,
+      "checkpoint_decodes": 0,
+      "model_constructions": 0,
+      "forwards": 0,
+      "optimizer_steps": 0,
+      "memory_max": "4G",
+      "numeric_threads": 1,
+      "max_wall_seconds": 60,
+      "status": "FAILED_CONSUMED",
+      "failure": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/CACHED_SCORE_REVIEW_FAILURE.json",
+        "sha256": "bba26c385bf25bbc307777c332d4d2941ce36ddb01eb2946afbac3e9bb96d0de"
+      },
+      "capture_decodes": 6
+    },
+    "cached_review_002": {
+      "authorized": false,
+      "max_capture_decodes": 6,
+      "checkpoint_decodes": 0,
+      "model_constructions": 0,
+      "forwards": 0,
+      "optimizer_steps": 0,
+      "memory_max": "4G",
+      "numeric_threads": 1,
+      "max_wall_seconds": 60,
+      "correction": "Compare only explicit immutable axes/queries/truth,not learned representations.",
+      "status": "COMPLETE_CONSUMED",
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/CACHED_SCORE_REVIEW_002.json",
+        "sha256": "5635c3b7bcbfe6169e4b3766f8c093d3a9c29a6e5d8638a8adb9f2f0e961a3f9"
+      },
+      "capture_decodes": 6,
+      "max_score_abs_error": 4.440892098500626e-16,
+      "independent_JSON_review": "PASS"
+    },
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_PAIRED_BATCH_ORDER_REVIEW.json",
+      "sha256": "9032dd7210754555549e69cf57c9708d8ec452eca5b1d2cde1196e6db3fbfea4"
+    },
+    "score_gate_pass": false,
+    "control_all_four_M5_vs_INITIAL_prior_pass": true,
+    "full_direction_fix_qualified": false,
+    "source_unchanged": true,
+    "completed_utc": "2026-11-10T08:44:17.116403+00:00"
   }
 }
