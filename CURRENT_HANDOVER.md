@@ -15,57 +15,46 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_QUERY_BACKBONE_ATTRIBUTION_COMPLETE_NO_FIX.
+Policystatus: TA_M5_ACTIVITY_BACKBONE_ADAM_READONLY_ADMITTED.
 
-Oppdelingen C/P/H er ferdig og uavhengig verifisert:
-[rapport](docs/TA_M5_QUERY_BACKBONE_ATTRIBUTION_REVIEW.json).
-Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_QUERY_BACKBONE_ATTRIBUTION_20261110_001
-RESULT SHAe8dc20a9ceea4986016fdfc389afc10026d90c2b4040d8e627b561e764e21653.
-REVIEW SHAd91b603a460391cf4c18476f7e2009f6eaafbf8cb46c01e7e92f9a2eea2d9ad6.
-Alle trenings-/engangsporter er stengt. Ingen ny modellendring eller kandidatfit.
+Én lesende kontroll er innrømmet for original INITIALae772 og FINAL23ff:
+fjern bare aktivitetsgradientens C/backbone-bidrag i lagrede gradientvektorer,
+behold alle S/F-sidegradienter og P-/headgradienter før global klipping.
+Regn clip1 og AdamW på nytt med faktiske lagrede momenter og individuelle steg.
+Ingen modell, forward, backward, ekte optimizer, fit, checkpoint eller nye vekter.
 
-C er faktisk entry_q_joint_hidden; P delt Linear(134,128)+GELU; H dedikerte
-M5 S/F-hoder. Original INITIALae772 og FINAL23ff; samme192 TRAIN/192senere.
-Én modell, to strictloads,48 nativeevalforwards,4 funksjonelle P-/16 H-projeksjoner.
-Ingen backward, optimizer, oppdateringer, treningsmodus eller checkpointskriving.
-Private C- og parameterkopier er bevart for gjenbruk; alle åtte kombinasjoner
-rapporteres, uten bestevalg. Dette skiller tidligere sammenslåtte C og P.
+Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_BACKBONE_ADAM_AUDIT_20261110_001
+PLAN SHA3225b5f9306cbb2477ef001f22262699995dd14df926e08f7f72422ddd04034f.
+Worker SHAf4886409c63a97bfb4539971fa7b55e637e935e1cd5e567f18327ae333200355.
+Metadata-preflight1,426s og root/uavhengig kildekontroll PASS.
+Capped audit4G/512M/én tråd/120s; to lagrede gradientarkiver dekodes.
+Uavhengig aritmetikk-review følger med samme grense og uten Torch/modell.
 
-Forhåndsvalgt101−111 (INITIAL P ved FINAL C/H) gir Brierendring:
-TRAIN S−0,002982/F−0,003512; senere S+0,000935/F−0,001344.
-Logtap har samme fortegn. Tre celler bedres, senereS forverres.
-Ingen samlet P-tilbakebytte-rettelse. Alle åtte TRAIN-kombinasjoner er minst
-like dårlige som INITIAL og verre enn frystprior, både Brier og log.
+Begrunnelse fra eksisterende ORIGINAL_SHARED_GRADIENT, ikke en ny gradientjobb:
+Ren aktivitet→C gir lokal eval-S/F-BCE-retning INITIAL+0,000154/+0,000720
+og FINAL+0,000994/+0,002541. Aktivitet→P hjelper S på begge punkter og
+motvirker F; derfor ville et samlet C/P-kutt fjerne også et nyttig bidrag.
+Øvrige TF-sidegradienter oppveier C-konflikten lokalt i samletaux.
+Dette er tre faste B16-batcher og ikke bevis for historisk fullpassårsak.
 
-Alle12 enkeltfaktorbytter øker gjennomsnittlig OPP i hver av de fire cellene.
-TRAIN faktiskOPP45,33/47,67prosent; FINALmean58,19/58,22prosent.
-Senere faktiskOPP58,46/53,33prosent; FINALmean56,91/58,53prosent.
-Dette er et empirisk oppoverskift på småpanelene, ikke sann betinget bias
-eller historisk treningsårsak. TRAIN F-Brier Shapley:
-C+0,002801/P+0,002149/H+0,009150. P er ett bidrag, ikke hele forklaringen.
-Funksjonelle bytter kan bryte samtilpasning; samspill er ikke optimizerårsak.
-101−111 endrer både empirisk middelfeil² og sentrert Brier i samme retning
-for alle fire celler. Dette er derfor ikke bare et konstant middelskift;
-sentrert Brier er heller ikke ren rangering/AUC. Regnet fra eksisterende aggregater.
+Eksakt kvalifisert next_adam_delta-funksjon gjenbrukes via AST uten å importere
+Torch-modulen. Jointkontrollen må gjengi alle seks lokale tapretninger i hver
+av fem parametergrupper før alternativet tolkes. C er inventory-bundet til
+0:6931667; used-masken tar OR av beholdte sidekomponenter i C. En tilkoblet
+nullgradient beholder moment/decay; bare faktisk None hoppes over.
+Globalclip kan endre effektive P/head-steg selv med uendrede rågradienter.
 
-000/111 gjengir native M5-side bitlikt. Uavhengig NumPy/math.erf gjengir
-alle8 kombinasjoner: største råavvik1,591e-7, sannsynlighet3,860e-8.
-32 scoreceller, Shapley og101−111 verifisert; største scoreavvik2,221e-16.
-Helkommando187,398s, worker184,199s; review0,345s, preflight5,539s.
-PeakRSS5,744GB; private nye artefakter1,318MB. Kodearbeid/venting utenom.
-Dette er en mindre evaluering, ikke målt akselerasjon av samme fulltrening.
+Forhåndsvalgt støtteport: alternativ−joint må være<−1e-12 for evalS OG evalF
+ved BEGGE originalpunkter. Alle fire rapporteres. Negativ støtte er COMPLETE,
+og gir ingen aktivitet→C-nativefit. Selv støtte er bare lokal weighted-BCE-
+linearisering og krever en egen eksakt admisjon før eventuell nativeprøve.
 
-Bare75/86 kjente S/F-sider på TRAIN og65/75 senere. SenereS-småpanelet
-bedres fra INITIAL til FINAL, mens eksisterende fullpopulasjon ble svakere.
-Småpanelet erstatter ikke fullpopulasjonens konklusjon. Ingen fersk
-generalisering, handelsbane, økonomisk edge eller native rettelse er påvist.
-
-Neste konkrete læringsinngrep må forklare oppoverskiftet og ulik respons
-mellom perioder. Gjenbruk disse C/P/H-outputene og eksisterende gradientbevis.
-Ingen P-alene frys/tilbakebytte-trening, klipp-/optimizer-/sampler-sveip eller
-fullfit følger av denne attribusjonen. Forrige faste blanding er konsumert;
-ingen konstant vekt mellom det paret kan slå senereF-prior på hele panelet.
-TEST, GC, Entry/Exit og handel er stengt; originale checkpoints bevares.
+Forrige [C/P/H-rapport](docs/TA_M5_QUERY_BACKBONE_ATTRIBUTION_REVIEW.json)
+er konsumert: P-restore bedrer3/4 småpanelmål, men svekker senereS; alle8
+TRAIN-kombinasjoner er verre ennprior. Alle faktorer øker panel-meanOPP.
+Ingen P-alene rettelse eller generell modellforbedring følger av det.
+Alle treningsporter er stengt. TEST, GC, Entry/Exit og handel er stengt;
+originale checkpoints og tidligere kvalifiserte kontroller bevares.
 
 MIX24 er fullført og uavhengig verifisert:
 [docs/TA_M5_MIXED_BATCH_NATIVE_REVIEW.json](docs/TA_M5_MIXED_BATCH_NATIVE_REVIEW.json).

@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-10T01:24:30.134860+00:00",
-  "status": "TA_M5_QUERY_BACKBONE_ATTRIBUTION_COMPLETE_NO_FIX",
+  "observed_utc": "2026-11-10T01:39:48.521218+00:00",
+  "status": "TA_M5_ACTIVITY_BACKBONE_ADAM_READONLY_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "The preselected query-projection restore is not a shared TRAIN/later fix. Reuse saved C/P/H outputs and existing gradient evidence to explain the common upward shift before any distinct learning intervention; no P-only freeze/restore training, sweep, fullfit or automatic followup is admitted.",
+  "next_action": "Complete the one saved-gradient activity-to-C AdamW contrast and independent arithmetic review. All4 local evalS/F differences must be below-1e-12 to support this mechanism. No native training follows automatically.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1685,7 +1685,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "C/P/H functional attribution completed and independently verified. INITIAL P at FINAL C/H improves3 of4 cells but worsens later S; all8 TRAIN combinations remain worse than frozen panel prior.",
+    "current_activity": "One read-only FP64 saved-gradient AdamW contrast at original INITIAL/FINAL: remove only activity gradient into backbone C, retain all side gradients and P/head gradients; recompute global clip and actual saved moments. No model, fit or new weights.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1715,7 +1715,7 @@
     "existing_indicator_surface_changed": false,
     "training_started": true,
     "latest_terminal_role": "48 evalforwards/2 original checkpoint loads, no training; all8 C/P/H combinations scored and independent NumPy/erf reconstruction passed.",
-    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_QUERY_BACKBONE_ATTRIBUTION_20261110_001",
+    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_BACKBONE_ADAM_AUDIT_20261110_001",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_QUERY_BACKBONE_ATTRIBUTION_20261110_001/TERMINAL.json",
       "sha256": "97bb3bfdcb06deb7461a02bfc53650f4a600ba0021ecc9413eac09c574cd5896"
@@ -1738,7 +1738,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "All C/P/H replacements increase panel mean-UP; P is one contributor but no single restore qualifies. Historical cause of native TRAIN deterioration and later direction improvement remain unresolved.",
+    "current_blocker": "Plain activity-to-C gradients locally oppose M5 S/F, while activity-to-P helps S. Whether removing only C activity remains favorable after global clipping and actual AdamW moments is unmeasured.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -66325,7 +66325,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "Separated C and shared P from M5 heads: P-restore improves TRAIN S/F and later F, worsens later S. All8 TRAIN combinations remain below prior; allfactorchanges raise mean-UP. Technical parity and independent arithmetic pass, no training cause or fix established.",
+    "latest_progress": "C/P/H attribution narrowed the upward shift. Existing gradient evidence distinguishes harmful local activity-to-C from helpful S activity-to-P; now checking the exact C-only mask with saved AdamW moments before any native intervention.",
     "user_clarification_20261109": {
       "scope": "Correct direction for short sniper and longer long/shorttrends; separate forecasts and targets at M5 cadence.",
       "existing_future_horizons_minutes": [
@@ -72214,5 +72214,79 @@
     "full_train_correction_qualified": false,
     "later_direction_improvement_established": false,
     "training_cause_established": false
+  },
+  "market_state_ta_m5_activity_backbone_adam_audit_20261110_001": {
+    "status": "ADMITTED",
+    "execution_authorized": true,
+    "training_authorized": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_BACKBONE_ADAM_AUDIT_20261110_001/PLAN.json",
+      "sha256": "3225b5f9306cbb2477ef001f22262699995dd14df926e08f7f72422ddd04034f"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_BACKBONE_ADAM_AUDIT_20261110_001/audit.py",
+      "sha256": "f4886409c63a97bfb4539971fa7b55e637e935e1cd5e567f18327ae333200355"
+    },
+    "controller_source": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_BACKBONE_ADAM_AUDIT_20261110_001/controller.py",
+      "sha256": "fb44b01e9d27884b4d1f13768e50e9439876a510ded1eba4414330f3b59e2599"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_BACKBONE_ADAM_AUDIT_20261110_001/PREFLIGHT.json",
+      "sha256": "af78a490a844d93e76fdb31cd99da0b58da9ccd4f39789cf1d77c51324caeca3"
+    },
+    "preflight_log": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_BACKBONE_ADAM_AUDIT_20261110_001/PREFLIGHT.log",
+      "sha256": "f100964b71623f3c3195552f3c72bbf2804f84f7638e01671c07e4041d2b3a07"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "max_gradient_archives": 2,
+    "max_model_constructions": 0,
+    "max_forwards": 0,
+    "max_backwards": 0,
+    "max_autograd_calls": 0,
+    "max_optimizer_constructions": 0,
+    "max_optimizer_updates": 0,
+    "max_checkpoint_decodes": 0,
+    "max_checkpoint_writes": 0,
+    "max_fits": 0,
+    "memory_max": 4294967296,
+    "swap_max": 536870912,
+    "numerical_threads": 1,
+    "wall_seconds": 120,
+    "review_authorized": true,
+    "review_scope": {
+      "max_invocations": 1,
+      "memory_max": 4294967296,
+      "swap_max": 536870912,
+      "numerical_threads": 1,
+      "wall_seconds": 120,
+      "max_gradient_archives": 2,
+      "max_model_constructions": 0,
+      "max_forwards": 0,
+      "max_fits": 0,
+      "max_checkpoint_decodes": 0
+    },
+    "review_completed_invocations": 0,
+    "test_data_used": false,
+    "scope": "One read-only FP64 saved-gradient AdamW contrast at original INITIAL/FINAL: remove only activity gradient into backbone C, retain all side gradients and P/head gradients; recompute global clip and actual saved moments. No model, fit or new weights.",
+    "support_rule": "all_four_eval_S_F_alternative_minus_joint_below_minus_margin",
+    "support_margin": 1e-12,
+    "automatic_resume_allowed": false,
+    "promotion_allowed": false,
+    "source_review": {
+      "status": "PASS",
+      "agent": "/root/ta_formula_audit",
+      "worker": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_BACKBONE_ADAM_AUDIT_20261110_001/audit.py",
+        "sha256": "f4886409c63a97bfb4539971fa7b55e637e935e1cd5e567f18327ae333200355"
+      },
+      "scope": "Root full253-line read and independent source review: inventory-bound C, surviving-component used/None mask, all-side and P/head gradient preservation, exact qualified NumPy Adam function, global clipping, perparameter moments/steps and joint parity before the fixed4-cell support gate."
+    },
+    "standing_authorization_source": "GX1_RULES_20261105_zero_spend_local_work_and_active_direction_goal_exact_readonly_admission"
   }
 }
