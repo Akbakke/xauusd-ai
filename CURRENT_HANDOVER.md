@@ -15,34 +15,33 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_ORIGINAL_CUDA_PREFIX_TRACE_ADMITTED.
+Policystatus: TA_M5_ORIGINAL_CUDA_PREFIX_TRACE_COMPLETE_NO_CORRECTION.
 
-[Original treningssporing](docs/TA_M5_ORIGINAL_TRACE_SCOPE_REVIEW.json):
-Kildekontrollen bekrefter samme M5-loss/score, men originalkjøringen bevarte
-ingen stegserie for rå retning, headgradienter eller aktiveringer.
-Biasparameterens endring kan alene forklare høyst0,73-1,09prosent av den
-målte endringen i gjennomsnittlig OPP-sannsynlighet. Vekt/representasjon
-må derfor undersøkes; ingen enkel biasrettelse eller optimizerendring er valgt.
+[Original treningssporing](docs/TA_M5_ORIGINAL_TRACE_REVIEW.json):
+Fullført på fersk boot633, CUDA250W, eksakt256steg/4096rader.
+Første loss/norm og alle model-/buffer-/Adam-/RNG-statehasher matcher
+originalP4096 eksakt. Samme numeriske treningsforløp er dermed gjenskapt;
+ny kildeidentitet og serialiserte checkpointbytes påstås ikke like.
+Én modell/optimizer,256forwards/backward/updates,2checkpointdekodinger,
+0nye checkpoints/ekstra evalueringer. Original initialevaluering gjenbrukt.
+TRACE.npz er bevart med faktiske gradienter, headaktiveringer og Adam-momenter.
+Retningsforbedring eller årsaksrettelse er ennå ikke demonstrert.
 
-Originalen kjørteCUDA/250W. Tidligere korteCPU/SPREAD-kontraster er ikke
-eksakt historisk replay. INITIAL er bevist uendret av initialevalueringen,
-inklusive heleRNG-tilstanden; denne evalueringen trenger ikke gjentas.
-Et nytt observerende256-stegsprefix forberedes mot originalP004096.
-Første loss/norm og hele slutt-state må samsvare; ingen ekstra forwards,
-ny optimizer eller fulltrening inngår. Originalblokken tok360,7s.
-Ny scope/dispatch er nødvendig gjennom eksisterende hardwarevakter.
-Koden er nå forberedt:39 fokuserte admissiontester, fysisk metadata-
-kontroll av28inputreferanser/85kildeeiere og uavhengig workerreviewPASS.
-50 eksisterende tester av uendret batchbro er gjenbrukt. Modellfunksjon,
-tap og optimizer er uendret; bare observer og eksakt scope/dispatch er nye.
-Fysisk CUDA-/P4096-paritet er ennå ikke målt. Én eksakt256-stegsdiagnose
-påCUDA250W er nå admitted; kun denne scope har training_enabled=true.
-Materialisering, trygg fersk fysisk boot og eksisterende launchvakter gjenstår.
-Ingen ny kandidat, fullfit eller relansering er autorisert.
-Første materialisering ble avvist før claim: feil fase på guardmalen.
-Referansen er rettet til eksisterende forskningsmal; binding/avvisning er
-bevart privat. Ingen modell eller optimizer ble konstruert.
-
+Worker451,395s, treningsblokk360,168s, kontroller470,229s.
+Originalblokk360,693s: ingen materiell kontrollert hastighetsgevinst.
+Topptemperatur53°C/minne60°C; effektgrense250W, makstrekk130,46W.
+Begge exitkoder0, source_unchanged=true. Windows-task deaktivert.
+Engangsplanen er konsumert; alle treningsporter stengt.
+Cached algebrakontroll fullført på0,090s;0modeller/forwards/fit.
+Gradienter gjenskapes fra faktiske logits/mål/representasjoner innen5,5e-8,
+AdamW-parametersteg innen2,4e-9. Ingen fortegns-/maske-/optimizerkodefeil.
+Head-only BCE på samme fryste før-representasjon svekkes i60/250S- og
+78/255F-steg; gammelt moment er ugunstig i alle disse. Summert head-effekt
+på de skiftende treningsbatchene er likevel gunstig for begge mål.
+Dette forklarer ikke fullmodellens forverring på et fast datasett og
+kvalifiserer ikke fjerning av momentum eller ny optimizer.
+Uavhengig kilde-/rapportreviewPASS; ingen ekstra NPZ-dekoding.
+Ingen ny modellkjøring eller rettelse er admitted.
 
 [Fullpopulasjonens månedsregnskap](docs/TA_M5_FULLPOP_MONTH_DECOMP_REVIEW.json)
 er fullført med gjenbrukte prognoser på29574 TRAIN og17753 senere TRAIN.

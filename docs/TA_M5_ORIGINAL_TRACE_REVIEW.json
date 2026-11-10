@@ -1,0 +1,294 @@
+{
+  "decision": "EXACT_ORIGINAL_TRAJECTORY_REPRODUCED_NO_CORRECTION_YET",
+  "purpose": "Observe the actual first256 original CUDA updates that precede measured fixed-panel direction deterioration; preserve the original numerical trajectory.",
+  "source_commit": "1204fe463383be75c8b30640591cd1dbf3d4c262",
+  "scope_review": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_ORIGINAL_TRACE_SCOPE_REVIEW.json",
+    "sha256": "66938cf50fffd28da0948b44af8561e0a38e54a8487b94b0d3c03ecc0c800689"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_CUDA_PREFIX_20261110_001/RESULT.json",
+    "sha256": "c82c5723ac47af260234eca3ee6a08f62ef0358861c3d39fc19f31e8a7243483"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_CUDA_PREFIX_20261110_001/TERMINAL.json",
+    "sha256": "b0fbce5386dcbed5b694d9654e09ff72e3d25e67490ab6c46522fcca3b1c83f2"
+  },
+  "campaign_receipt": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_CUDA_PREFIX_20261110_001/RUNTIME/receipts/invocation-0001.json",
+    "sha256": "56dbca7934512071a992a87178de2197a91d24af146eb1a417964f11672ed038"
+  },
+  "trace": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_CUDA_PREFIX_20261110_001/TRACE.npz",
+    "sha256": "486ed93b763539d606749bb4511f9c004c5d0cfe42cc645c0cf155f04e2118b8"
+  },
+  "trace_algebra_review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_CUDA_PREFIX_20261110_001/TRACE_ALGEBRA_REVIEW.json",
+    "sha256": "b3e96b42c51db5acb77a30e65a99f0796c0defb48d692704dc177187d7500471"
+  },
+  "trace_algebra_source": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_CUDA_PREFIX_20261110_001/REVIEW_TRACE.py",
+    "sha256": "b5c9d3b15660d326e4dac6c9292fe2e32403314de54db6a455b36a6bc71e6ce6"
+  },
+  "windows_task_disabled": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_CUDA_PREFIX_20261110_001/WINDOWS_TASK_DISABLED.json",
+    "sha256": "3f29a3f73458f1ef5b3e758d866d86d16ce87052d0d4d47b41fba6b480dbefee"
+  },
+  "parity": {
+    "original_first_loss_and_gradient_norm_exact": true,
+    "initial_model_optimizer_RNG_exact": true,
+    "final_P4096_model_buffers_optimizer_RNG_order_progress_modes_exact": true,
+    "source_identity_and_checkpoint_file_byte_parity_claimed": false
+  },
+  "counts": {
+    "backward_returns": 256,
+    "backwards": 256,
+    "checkpoint_loads": 2,
+    "checkpoint_writes": 0,
+    "extra_target_gathers": 512,
+    "forward_returns": 256,
+    "forwards": 256,
+    "json_bytes": 1515,
+    "model_construction_returns": 1,
+    "model_constructions": 1,
+    "optimizer_constructions": 1,
+    "optimizer_step_calls": 256,
+    "optimizer_updates": 256,
+    "resume_state_load_calls": 2,
+    "resume_state_load_returns": 2,
+    "strict_full_state_restore_calls": 1,
+    "strict_full_state_restore_returns": 1
+  },
+  "new_checkpoint_writes": 0,
+  "extra_evaluation_forwards": 0,
+  "trace_review_counts": {
+    "model_constructions": 0,
+    "forwards": 0,
+    "autograd": 0,
+    "checkpoint_decodes": 0,
+    "optimizer_steps": 0,
+    "trace_decodes": 1
+  },
+  "observations": {
+    "gradient_formula": {
+      "state_weight": 0.03594405594405595,
+      "future_weight": 0.030968175329582667,
+      "formula": "weight * sum_known (sigmoid(raw_M5_side)-UP_label) * [head_input,1]",
+      "raw_side_index": [
+        0,
+        1
+      ],
+      "known_mask": "eligible & mature & allowed in {1,4}"
+    },
+    "actual_gradient_formula_max_abs_error": 5.492416293995106e-08,
+    "actual_AdamW_step_reconstruction_max_abs_error": 2.3199996515348255e-09,
+    "tasks": {
+      "state": {
+        "known": 1378,
+        "up": 719,
+        "up_rate": 0.5217706821480407,
+        "observed_mean_p_up": 0.5049344461261589,
+        "eligible_steps": 250,
+        "no_known_side_steps": 6,
+        "unanimous_known_label_steps": 32,
+        "logit_reconstruction_max_abs_error": 5.752364723443648e-08,
+        "gradient_reconstruction_max_abs_error": 5.492416293995106e-08,
+        "clip_max_abs_error": 1.620777503874571e-08,
+        "adam_moment_max_abs_error": 1.4901161138336505e-09,
+        "adam_variance_max_abs_error": 5.858067459937888e-11,
+        "adam_update_max_abs_error": 2.248905027326032e-09,
+        "head_step_local_first_order_adverse": 60,
+        "head_step_frozen_rep_BCE_adverse": 60,
+        "adverse_steps_with_old_momentum_adverse": 60,
+        "old_momentum_adverse_steps": 126,
+        "current_gradient_first_order_positive_max": 0.0,
+        "current_gradient_loss_direction_dot_sum": -0.007149909682693561,
+        "old_momentum_loss_direction_dot_sum": 0.0015298031975921325,
+        "actual_delta_loss_direction_dot_sum": -0.005620106146747833,
+        "same_batch_frozen_rep_BCE_delta_sum": -0.005611719099291465,
+        "probability_residual_and_head_mean_step_same_sign": 77,
+        "first_head_bias": 0.0023774898145347834,
+        "last_head_bias": 0.0030227203387767076,
+        "max_abs_head_parameter_delta": 0.0026661227457225323,
+        "blocks": [
+          {
+            "updates": [
+              1,
+              64
+            ],
+            "known": 343,
+            "up": 173,
+            "up_rate": 0.5043731778425656,
+            "observed_mean_p_up": 0.5023265518623722,
+            "frozen_rep_head_bce_worsened_steps": 16,
+            "mean_head_delta_logit_on_current_known": 0.0001364665956762973,
+            "current_known_target_up_brier": 0.2488450516319157
+          },
+          {
+            "updates": [
+              65,
+              128
+            ],
+            "known": 348,
+            "up": 185,
+            "up_rate": 0.5316091954022989,
+            "observed_mean_p_up": 0.4964501187419036,
+            "frozen_rep_head_bce_worsened_steps": 14,
+            "mean_head_delta_logit_on_current_known": 0.00029789785889608613,
+            "current_known_target_up_brier": 0.25070615106616734
+          },
+          {
+            "updates": [
+              129,
+              192
+            ],
+            "known": 342,
+            "up": 174,
+            "up_rate": 0.5087719298245614,
+            "observed_mean_p_up": 0.5067364443590113,
+            "frozen_rep_head_bce_worsened_steps": 14,
+            "mean_head_delta_logit_on_current_known": 5.2552797865936264e-05,
+            "current_known_target_up_brier": 0.24742931784845748
+          },
+          {
+            "updates": [
+              193,
+              256
+            ],
+            "known": 345,
+            "up": 187,
+            "up_rate": 0.5420289855072464,
+            "observed_mean_p_up": 0.5142989976234462,
+            "frozen_rep_head_bce_worsened_steps": 16,
+            "mean_head_delta_logit_on_current_known": 0.00014481823808853308,
+            "current_known_target_up_brier": 0.24721309239221623
+          }
+        ]
+      },
+      "future": {
+        "known": 1644,
+        "up": 845,
+        "up_rate": 0.5139902676399026,
+        "observed_mean_p_up": 0.5088112962411112,
+        "eligible_steps": 255,
+        "no_known_side_steps": 1,
+        "unanimous_known_label_steps": 19,
+        "logit_reconstruction_max_abs_error": 3.2413641049000574e-08,
+        "gradient_reconstruction_max_abs_error": 5.4631212664801865e-08,
+        "clip_max_abs_error": 1.5065356850918477e-08,
+        "adam_moment_max_abs_error": 1.4901161138336505e-09,
+        "adam_variance_max_abs_error": 3.082543964007256e-11,
+        "adam_update_max_abs_error": 2.3199996515348255e-09,
+        "head_step_local_first_order_adverse": 78,
+        "head_step_frozen_rep_BCE_adverse": 78,
+        "adverse_steps_with_old_momentum_adverse": 78,
+        "old_momentum_adverse_steps": 138,
+        "current_gradient_first_order_positive_max": 0.0,
+        "current_gradient_loss_direction_dot_sum": -0.0071889895521530835,
+        "old_momentum_loss_direction_dot_sum": 0.0012811655952368569,
+        "actual_delta_loss_direction_dot_sum": -0.005907823051763395,
+        "same_batch_frozen_rep_BCE_delta_sum": -0.005895493715874653,
+        "probability_residual_and_head_mean_step_same_sign": 95,
+        "first_head_bias": 0.003086932236328721,
+        "last_head_bias": 0.003858871292322874,
+        "max_abs_head_parameter_delta": 0.004071359988301992,
+        "blocks": [
+          {
+            "updates": [
+              1,
+              64
+            ],
+            "known": 418,
+            "up": 215,
+            "up_rate": 0.5143540669856459,
+            "observed_mean_p_up": 0.504611983094269,
+            "frozen_rep_head_bce_worsened_steps": 18,
+            "mean_head_delta_logit_on_current_known": 0.00046049778637400794,
+            "current_known_target_up_brier": 0.24996626207807313
+          },
+          {
+            "updates": [
+              65,
+              128
+            ],
+            "known": 410,
+            "up": 222,
+            "up_rate": 0.5414634146341464,
+            "observed_mean_p_up": 0.5127757771335845,
+            "frozen_rep_head_bce_worsened_steps": 20,
+            "mean_head_delta_logit_on_current_known": 0.0007176306026040708,
+            "current_known_target_up_brier": 0.24916302720379366
+          },
+          {
+            "updates": [
+              129,
+              192
+            ],
+            "known": 397,
+            "up": 198,
+            "up_rate": 0.4987405541561713,
+            "observed_mean_p_up": 0.5139278389235299,
+            "frozen_rep_head_bce_worsened_steps": 18,
+            "mean_head_delta_logit_on_current_known": -0.00022162689862614818,
+            "current_known_target_up_brier": 0.2493799864859847
+          },
+          {
+            "updates": [
+              193,
+              256
+            ],
+            "known": 419,
+            "up": 210,
+            "up_rate": 0.5011933174224343,
+            "observed_mean_p_up": 0.5042733685192632,
+            "frozen_rep_head_bce_worsened_steps": 22,
+            "mean_head_delta_logit_on_current_known": -0.0002310837511149722,
+            "current_known_target_up_brier": 0.2483786922193113
+          }
+        ]
+      }
+    },
+    "head_update_same_batch_BCE_total_improves_both": true,
+    "old_momentum_contributes_to_observed_adverse_head_only_steps": true,
+    "optimizer_bug_or_full_population_cause_proven": false,
+    "mode_mismatch_not_reopened": "Previous matched original INITIAL/FINAL CPU mode contrast on48rows found all4training draws worsen like eval. Moving-batch trace averages cannot reverse that result.",
+    "weighting_sign_masks_prior_or_query_defect_found": false
+  },
+  "timing_seconds": {
+    "elapsed_seconds": 451.394896594,
+    "fit_seconds": 360.16791833,
+    "input_setup_seconds": 73.612577945,
+    "model_and_restore_seconds": 12.223194403999997,
+    "controller_wall_seconds": 470.229427,
+    "cached_trace_review_seconds": 0.09025695899993025,
+    "original_block256_with_checkpoint": 360.69347400799984
+  },
+  "timing_limits": "Controller excludes source preparation, installation and physical reboot. Original block includes checkpoint write; replay adds trace hooks and no checkpoint write. No controlled speedup claim.",
+  "hardware": {
+    "physical_limit_w": 250,
+    "peak_power_draw_w": 130.46,
+    "peak_core_c": 53,
+    "peak_memory_c": 60,
+    "peak_gpu_memory_mib": 2172,
+    "boot_id": 633
+  },
+  "training_enabled": false,
+  "remaining_invocations": 0,
+  "relaunch_allowed": false,
+  "limitations": [
+    "Rows and representations change each step. These are observed training presentations, not fixed-model or held-out scores.",
+    "Frozen-representation head effects omit concurrent representation updates.",
+    "First-order gradient/step alignment and Adam decomposition do not prove a corrective candidate will generalize.",
+    "No new predictive candidate or fixed-panel score was produced. Earlier P4096 scores are reused through exact numerical parity.",
+    "Earlier hypothesis about scalar head bias alone remains ruled out only by the sigmoid Lipschitz bound, not by this trace."
+  ],
+  "next_action": "Reuse this exact trace and previous fixed-population attribution to isolate a falsifiable correction. Do not infer that removing Adam momentum, new LR, reshuffling, longer training or new features is qualified. No next model run admitted.",
+  "independent_review": {
+    "decision": "PASS_SOURCE_AND_REPORT_REVIEW",
+    "reviewer": "ta_formula_audit",
+    "new_array_decode": false,
+    "reviewed_report_before_annotation_sha256": "cc2da45631c4013c61bad5b817ee601d548ef885de5751dfb00c84e67a9b41fd",
+    "source_and_trace_result_binding_verified": true,
+    "no_calculation_defect_or_causal_overstatement_found": true
+  }
+}
