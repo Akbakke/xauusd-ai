@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-10T00:54:31.314460+00:00",
-  "status": "TA_M5_EQUAL_SNAPSHOT_BLEND_COMPLETE_NEGATIVE",
+  "observed_utc": "2026-11-10T01:15:33.843114+00:00",
+  "status": "TA_M5_QUERY_BACKBONE_ATTRIBUTION_READONLY_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Do not tune constant weights of this same two-readout pair: its later F Brier cannot beat prior even under the unrestricted quadratic lower bound. Any further direction experiment needs a distinct measured learning or predictive mechanism; no new model fit or readout sweep is authorized by this consumed audit. All training and audit gates are closed.",
+  "next_action": "Execute the one bounded C/P/H evaluation and independently verify all8 score combinations and preselected101-minus111 contrast. No native training, layer changes, new candidate or automatic followup admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1685,7 +1685,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Full-population fixed50/50 M5 probability combination completed and independently verified. Both TRAIN cells pass, both later cells fail; analytic bound excludes any constant mixture of this pair beating later F prior Brier.",
+    "current_activity": "One fixed original INITIAL/FINAL C/P/H factorial on reused192 TRAIN and192 later rows: capture actual backbone hidden C, shared query projection P and dedicated M5 heads H. Preselected101-minus111 contrast; all8 combinations reported. Evaluation only, no candidate selection or historical training-cause claim.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1715,7 +1715,7 @@
     "existing_indicator_surface_changed": false,
     "training_started": true,
     "latest_terminal_role": "Read-only one-candidate probability blend on all29574TRAIN/17753later rows, zero models or fits.",
-    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001",
+    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_QUERY_BACKBONE_ATTRIBUTION_20261110_001",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001/TERMINAL.json",
       "sha256": "e82bce795c839a8a0ef593a55d39e588196622941d8bf5feb7133bdc204063c7"
@@ -1738,7 +1738,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Existing representations/readouts carry recoverable TRAIN signal, but later-direction improvement remains unqualified. Fixed averaging cannot repair later F versus prior for this pair.",
+    "current_blocker": "Previous attribution merged backbone C and learned query projection P; functional contributions remain unidentified. No shared TRAIN/later direction fix established.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -66325,7 +66325,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "50cached combinations independently verified: Fhead contributionpositive8/8,upstream7/8; neither singlefactorrestore beatsprior. Period-mean error can grow while withinperiod centered error improves. Existing fullTRAIN calibration repairs muchTRAIN but notlater. Next question is same-data minibatch temporal mixing.",
+    "latest_progress": "Fixed50/50 blend rejected; same-pair constant weights cannot beat later F prior. Next distinct measured question separates backbone, shared query projection and M5 heads without training.",
     "user_clarification_20261109": {
       "scope": "Correct direction for short sniper and longer long/shorttrends; separate forecasts and targets at M5 cadence.",
       "existing_future_horizons_minutes": [
@@ -72091,5 +72091,79 @@
     "later_F_same_pair_constant_blend_cannot_beat_prior_brier": true,
     "full_train_correction_qualified": false,
     "later_direction_improvement_established": false
+  },
+  "market_state_ta_m5_query_backbone_attribution_20261110_001": {
+    "status": "ADMITTED",
+    "execution_authorized": true,
+    "training_authorized": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_QUERY_BACKBONE_ATTRIBUTION_20261110_001/PLAN.json",
+      "sha256": "694c8189f89a5edb0ca34d2d837b8f1adac1a8f7c03ca3d28abe45d3dfe506c9"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_QUERY_BACKBONE_ATTRIBUTION_20261110_001/probe.py",
+      "sha256": "3338c700b9379046c1ae5ce1886af5dc3815bd529d166b33fc964f459a375933"
+    },
+    "controller_source": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_QUERY_BACKBONE_ATTRIBUTION_20261110_001/controller.py",
+      "sha256": "a0c14f76c132db38cfd2f61c189a0ab1688baea7da2cebbd9e3126f345bb2ef5"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_QUERY_BACKBONE_ATTRIBUTION_20261110_001/PREFLIGHT.json",
+      "sha256": "1dccea4f7aea45ced6a7cf39597b0b7801a2b62ecb2a005b4b94cdbb7507ef87"
+    },
+    "preflight_log": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_QUERY_BACKBONE_ATTRIBUTION_20261110_001/PREFLIGHT.log",
+      "sha256": "bbd1150e0db0f4472ea23946f2a0979cdd11307e33bf52d37779da459cbac3ad"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "max_artifact_bytes": 4194304,
+    "max_artifact_total_bytes": 8388608,
+    "max_model_constructions": 1,
+    "max_checkpoint_loads": 2,
+    "max_forwards": 48,
+    "max_backwards": 0,
+    "max_autograd_calls": 0,
+    "max_optimizer_constructions": 0,
+    "max_optimizer_updates": 0,
+    "max_checkpoint_writes": 0,
+    "max_functional_query_projections": 4,
+    "max_functional_head_projections": 16,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "numerical_threads": 1,
+    "wall_seconds": 600,
+    "review_authorized": true,
+    "review_scope": {
+      "max_invocations": 1,
+      "memory_max": "4G",
+      "swap_max": "512M",
+      "numerical_threads": 1,
+      "wall_seconds": 120,
+      "max_model_constructions": 0,
+      "max_forwards": 0,
+      "max_fits": 0,
+      "max_checkpoint_decodes": 0
+    },
+    "review_completed_invocations": 0,
+    "test_data_used": false,
+    "scope": "One fixed original INITIAL/FINAL C/P/H factorial on reused192 TRAIN and192 later rows: capture actual backbone hidden C, shared query projection P and dedicated M5 heads H. Preselected101-minus111 contrast; all8 combinations reported. Evaluation only, no candidate selection or historical training-cause claim.",
+    "evaluate_later_unconditionally": true,
+    "automatic_resume_allowed": false,
+    "promotion_allowed": false,
+    "source_review": {
+      "status": "PASS",
+      "agent": "/root/ta_formula_audit",
+      "worker": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_QUERY_BACKBONE_ATTRIBUTION_20261110_001/probe.py",
+        "sha256": "3338c700b9379046c1ae5ce1886af5dc3815bd529d166b33fc964f459a375933"
+      },
+      "scope": "Root full360-line read and independent source review: parent C hook, exact M5 query coordinates and GELU, private P/H copies, original endpoint references,48 native/4 P/16 H counts, unchanged eval state and fixed101-minus111 contrast."
+    },
+    "standing_authorization_source": "GX1_RULES_20261105_zero_spend_local_work_and_active_direction_goal_exact_readonly_admission"
   }
 }
