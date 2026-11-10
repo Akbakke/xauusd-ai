@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-10T06:29:23.781273+00:00",
-  "status": "TA_M5_PAIRED_OBJECTIVE_TRADEOFF_MEASURED_CAUSE_UNRESOLVED",
+  "status": "TA_M5_REPEATED_PASS_ADMITTED_AWAITING_FRESH_BOOT",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Pairedexperiment andcachedreviewconsumed. Preserve genuine features,allTF,S/Fprobabilities andFLAT. No newfit,oldplanrelaunch,TEST,GC,Entry,Exit ortrading.",
-  "next_action": "Prepare a bounded same-population repeated-pass direction comparison, separating training depth from coverage and objective changes. Reuse saved CONTROL evidence only after explicit continuation qualification; its capsule has no canonical resume authority. No new training or model change is admitted.",
+  "rule": "Only this retained-optimizer fixed4096 direction experiment through250W guarded campaign; genuine inputs/targets/loss unchanged. No TEST,GC,Entry,Exit,trading or automatic further epochs.",
+  "next_action": "Materialize this exact repeated-pass campaign from clean committed source, verify host idle, complete required fresh boot and run once. Reuse E1; score fixed E2/E3 on TRAIN4096 and later192. Consume admission regardless of score.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1685,7 +1685,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Cached objective decomposition COMPLETE; independent arithmetic PASS. No training admitted; original fullpass cause and native convergence remain unresolved.",
+    "current_activity": "Repeated-pass source,84focused tests and actualmetadata preflightPASS; no native job started.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1715,7 +1715,7 @@
     "existing_indicator_surface_changed": false,
     "training_started": false,
     "latest_terminal_role": "Complete pairedorder trial with localM5gain,failedinterleaving andMTFtradeoffs.",
-    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_OBJECTIVE_DECOMP_20261110_001",
+    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/TERMINAL.json",
       "sha256": "6df60cb3966721d71e0d72f654c5268d0ddb2a15215db1c63c8a9f36ac3d2b3a"
@@ -1738,7 +1738,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Originalfullpasscause and common M5/MTF probability correction remainunproven. CONTROLdoesnotreproduceoriginalregression; coverage/traininglength stillconfounded.",
+    "current_blocker": "Original fullpass cause unresolved. Fixed-coverage training depth is the next bounded question.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9209,7 +9209,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Prepare a bounded same-population repeated-pass direction comparison, separating training depth from coverage and objective changes. Reuse saved CONTROL evidence only after explicit continuation qualification; its capsule has no canonical resume authority. No new training or model change is admitted.",
+    "next_action": "Materialize this exact repeated-pass campaign from clean committed source, verify host idle, complete required fresh boot and run once. Reuse E1; score fixed E2/E3 on TRAIN4096 and later192. Consume admission regardless of score.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -24682,7 +24682,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-10T09:19:33.446091+00:00",
+  "updated_utc": "2026-11-10T09:55:02.663628+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -35468,7 +35468,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -73719,5 +73719,78 @@
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_PAIRED_OBJECTIVE_DECOMP_REVIEW.json",
       "sha256": "2c5c65af874881fe9e02e5087783d15321afcd8002951335acb34789c3ea19c0"
     }
+  },
+  "market_state_ta_m5_repeated_pass_20261110_001": {
+    "status": "ADMITTED",
+    "decision": "ADMITTED",
+    "ta_m5_repeated_pass_authorized": true,
+    "fold_id": 1,
+    "selected_fit_rows": 4096,
+    "passes": [
+      2,
+      3
+    ],
+    "starting_optimizer_updates": 256,
+    "final_optimizer_updates": 768,
+    "model_constructions_authorized": 1,
+    "optimizer_constructions_authorized": 1,
+    "model_forwards_authorized": 1050,
+    "backward_calls_authorized": 512,
+    "optimizer_steps_authorized": 512,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001",
+    "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001/RUNTIME",
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001/RECIPE.json",
+      "sha256": "8b1a64602174f704685e6365b56a3485df5274177b0ceefa310cfc96774ee855"
+    },
+    "prepared_boot": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001/PREPARED_WINDOWS_BOOT.json",
+      "sha256": "835146b48d406c39da9ab45709f7af90c0bcd01fb4bfa9f66512f97e1d23835e"
+    },
+    "materializer": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_market_state_time_query_fold1_fit_campaign_v1.py",
+      "sha256": "a6333eb09cad2641939bb6bad23771b7c60c0186ddaf0fba25360ab9c45f5451"
+    },
+    "guard_template": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_MECHANICAL_20261109_001/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "sha256": "905dd8efd3cd7fae95f2dc90457b710d673f5a23399a61831eea9063516fcd9d"
+    },
+    "scope_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_REPEATED_PASS_SCOPE_REVIEW.json",
+      "sha256": "ec1416f270316fc20ad7db859b3b564aa4d776eb68e3809e209b189f188c2d2c"
+    },
+    "physical_power_limit_w": 250,
+    "memory_max": "20G",
+    "swap_max": "512M",
+    "fresh_windows_boot_required": true,
+    "model_wall_seconds": 2400,
+    "window_seconds": 12000,
+    "outer_seconds": 13800,
+    "standing_authorization_source": "Active direction-only goal and explicit zero-cost local-work authority in GX1_RULES. Newly qualified fixed-population retained-optimizer continuation; no consumed plan reused.",
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "campaign_preparation_authorized": true,
+    "evaluate_both_panels_unconditionally": true,
+    "per_update_pareto_requirement": false,
+    "genuine_predictor_fit_authorized": false,
+    "native_launch_authorized": false,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "canonical_resume_authority": false,
+    "candidate_selection": false
   }
 }

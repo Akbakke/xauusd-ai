@@ -2039,3 +2039,269 @@ def require_ta_m5_paired_batch_order_cursor(value, *, expected_recipe, verify_fi
                       'PAIRED_ORDER_EVIDENCE_PATH')
                 campaign.require_binding(ref, label='paired ' + arm + ' private evidence', verify_file=True)
     return cursor
+# Two fixed additional passes over the already-qualified CONTROL population.
+TA_M5_REPEATED_PASS_STAGE = 'market_state_ta_m5_repeated_pass_20261110_001'
+TA_M5_REPEATED_PASS_SCOPE = 'market_state_ta_m5_repeated_pass_v1'
+TA_M5_REPEATED_PASS_ROOT = Path('/home/andre2/GX1_RUNS') / TA_M5_REPEATED_PASS_STAGE.upper()
+TA_M5_REPEATED_PASS_RUNTIME_ROOT = TA_M5_REPEATED_PASS_ROOT / 'RUNTIME'
+TA_M5_REPEATED_PASS_RECIPE_PATH = TA_M5_REPEATED_PASS_ROOT / 'RECIPE.json'
+TA_M5_REPEATED_PASS_RECIPE_SCHEMA = 'gx1_market_state_ta_m5_repeated_pass_recipe_v1'
+TA_M5_REPEATED_PASS_RESULT_SCHEMA = 'gx1_market_state_ta_m5_repeated_pass_result_v1'
+TA_M5_REPEATED_PASS_CURSOR_SCHEMA = 'gx1_market_state_ta_m5_repeated_pass_cursor_v1'
+TA_M5_REPEATED_PASS_WORKER = 'gx1/audit/run_market_state_ta_m5_repeated_pass_v1.py'
+TA_M5_REPEATED_PASS_COMPLETE_COUNTS = {
+    'model_constructions': 1, 'optimizer_constructions': 1, 'checkpoint_loads': 1,
+    'strict_full_state_restore_calls': 1, 'forwards': 1050, 'training_forwards': 512,
+    'evaluation_forwards': 538, 'backwards': 512, 'optimizer_step_calls': 512,
+    'optimizer_updates': 512, 'checkpoint_writes': 0, 'candidate_evidence_writes': 1,
+}
+TA_M5_REPEATED_PASS_REFS = {
+    'paired_recipe': {'path': str(TA_M5_PAIRED_BATCH_ORDER_RECIPE_PATH), 'sha256': 'e503cf1f17a58391b7286b51ee5423f90fb47fe45d06a860f47553b9f1d8d667'},
+    'paired_result': {'path': str(TA_M5_PAIRED_BATCH_ORDER_ROOT / 'RESULT.json'), 'sha256': 'b11a1932c924b22555bf9e848c8dea7507291c5584d0e7626de1a0f660840438'},
+    'paired_terminal': {'path': str(TA_M5_PAIRED_BATCH_ORDER_ROOT / 'TERMINAL.json'), 'sha256': '6df60cb3966721d71e0d72f654c5268d0ddb2a15215db1c63c8a9f36ac3d2b3a'},
+    'paired_review': {'path': str(TA_M5_PAIRED_BATCH_ORDER_ROOT / 'CACHED_SCORE_REVIEW_002.json'), 'sha256': '5635c3b7bcbfe6169e4b3766f8c093d3a9c29a6e5d8638a8adb9f2f0e961a3f9'},
+    'paired_worker': {'path': str(CANONICAL_REPO / TA_M5_PAIRED_BATCH_ORDER_WORKER), 'sha256': 'd8f42bb3133e7ca33d026699a07bc178f3e110827398d99b36e8c0ca7f3b5cc8'},
+    'control_evidence': {'path': str(TA_M5_PAIRED_BATCH_ORDER_ROOT / 'CONTROL_EVIDENCE.pt'), 'sha256': '6780622d9bc81204e046e4670d0b7091b4630864997def74420e19d21259ec9f'},
+    'initial_train_measurement': {'path': str(TA_M5_PAIRED_BATCH_ORDER_ROOT / 'INITIAL_TRAIN.json'), 'sha256': '56eb106742bb2336747dfbd26cfa6d81aca78c18b7214b033158f1e8aad51d84'},
+    'initial_train_capture': {'path': str(TA_M5_PAIRED_BATCH_ORDER_ROOT / 'INITIAL_TRAIN_READOUT.npz'), 'sha256': '5f205ecea562be6315f8bddbfea4da7f6fbec672ef8983b028cd3220d132cac7'},
+    'control_train_measurement': {'path': str(TA_M5_PAIRED_BATCH_ORDER_ROOT / 'CONTROL_TRAIN.json'), 'sha256': 'fc42a5786d94785254df833de44934a498840c7bedee42daf6ed8b4458219c22'},
+    'control_train_capture': {'path': str(TA_M5_PAIRED_BATCH_ORDER_ROOT / 'CONTROL_TRAIN_READOUT.npz'), 'sha256': 'cfe978111848add3eeecc2b0d01716ef3c58412edddd782032a228413d7bd8ed'},
+    'control_later_measurement': {'path': str(TA_M5_PAIRED_BATCH_ORDER_ROOT / 'CONTROL_LATER.json'), 'sha256': '94d695306dc6691cf4578dac1420e70ee7c99ced9eaa656df46745c480ea6e36'},
+    'control_later_capture': {'path': str(TA_M5_PAIRED_BATCH_ORDER_ROOT / 'CONTROL_LATER_READOUT.npz'), 'sha256': '4e79d0fa588dcfa07d47e307bec28fa3286aa149381f5d5e55707ff76bcd5839'},
+}
+
+
+def read_ta_m5_repeated_pass_origin(launch):
+    refs = launch['input_refs']
+    extra = TA_M5_REPEATED_PASS_REFS
+    _need({key: refs.get(key) for key in extra} == extra, 'REPEATED_PASS_FIXED_REFS')
+    base_refs = {key: ref for key, ref in refs.items() if key not in extra}
+    origin = read_ta_m5_paired_batch_order_origin({'input_refs': base_refs})
+    for key, ref in extra.items():
+        campaign.require_binding(ref, label='repeated pass ' + key, verify_file=True)
+    paired = _read(refs['paired_recipe'], 'repeated pass qualified paired recipe')
+    report = _read(refs['paired_result'], 'repeated pass qualified paired result')
+    terminal = _read(refs['paired_terminal'], 'repeated pass qualified paired terminal')
+    review = _read(refs['paired_review'], 'repeated pass cached scores review')
+    _need(paired.get('schema_version') == TA_M5_PAIRED_BATCH_ORDER_RECIPE_SCHEMA
+          and paired.get('run_scope') == TA_M5_PAIRED_BATCH_ORDER_SCOPE
+          and paired.get('admission_stage') == TA_M5_PAIRED_BATCH_ORDER_STAGE
+          and paired.get('input_refs') == base_refs
+          and paired.get('numerical_recipe') == origin['original_recipe']['numerical_recipe']
+          and paired.get('trace_worker') == refs['paired_worker']
+          and paired.get('arm_batch_indices') == TA_M5_PAIRED_BATCH_ORDER_BATCH_INDICES
+          and paired.get('pass_index') == 0 and paired.get('canonical_resume_authority') is False,
+          'REPEATED_PASS_PAIRED_RECIPE')
+    _need(report.get('schema_version') == TA_M5_PAIRED_BATCH_ORDER_RESULT_SCHEMA
+          and report.get('recipe') == refs['paired_recipe'] and report.get('outcome') == 'COMPLETE'
+          and report.get('decision') == 'PASS_TA_M5_PAIRED_BATCH_ORDER_TECHNICAL'
+          and report.get('physical_optimizer_updates') == report.get('optimizer_updates') == 512
+          and report.get('checkpoint_writes') == 0 and report.get('skipped_batches') == 0
+          and report.get('source_unchanged') is True and report.get('test_data_used') is False
+          and report.get('canonical_resume_authority') is False
+          and report.get('candidate_evidence', {}).get('CONTROL') == refs['control_evidence']
+          and all(report.get(key) is True for key in (
+              'same_selected_rows', 'same_initial_state', 'same_training_queries',
+              'rng_stream_parity', 'evaluation_state_unchanged', 'all_panels_complete'))
+          and all(type(report.get('counts', {}).get(key)) is int and report['counts'][key] == count
+                  for key, count in TA_M5_PAIRED_BATCH_ORDER_COMPLETE_COUNTS.items()),
+          'REPEATED_PASS_PAIRED_COMPLETION')
+    _need(terminal.get('status') == 'COMPLETE' and terminal.get('exit_code') == 0
+          and terminal.get('recipe') == refs['paired_recipe']
+          and terminal.get('result') == refs['paired_result']
+          and terminal.get('source_unchanged') is True
+          and terminal.get('no_relaunch_under_this_plan') is True
+          and terminal.get('test_data_used') is False
+          and review.get('status') == 'PASS_INDEPENDENT_CACHED_SCORES_CONTROL_LOCAL_GAIN_ORDER_CHANGE_FAIL'
+          and review.get('result') == refs['paired_result']
+          and review.get('matched_immutable_axes_queries_truth') is True
+          and review.get('test_data_used') is False, 'REPEATED_PASS_PAIRED_REVIEW')
+    progress = report.get('arm_progress', {}).get('CONTROL', {})
+    _need(progress.get('optimizer_updates') == 256 and progress.get('parent_cursor') == 4096
+          and progress.get('batch_order_sha256') == campaign.canonical_sha256(
+              TA_M5_PAIRED_BATCH_ORDER_BATCH_INDICES['CONTROL']), 'REPEATED_PASS_CONTROL_PROGRESS')
+    campaign._sha(progress.get('parent_order_sha256'), 'repeated CONTROL parent order')
+    measurements = {}
+    for label in ('INITIAL_TRAIN', 'INITIAL_LATER', 'CONTROL_TRAIN', 'CONTROL_LATER'):
+        key = label.lower()
+        value = _read(refs[key + '_measurement'], 'repeated ' + label)
+        measure = value.get('measurement', {})
+        is_train, is_control = label.endswith('TRAIN'), label.startswith('CONTROL')
+        _need(report.get('measurement_refs', {}).get(label) == refs[key + '_measurement']
+              and report.get('captures', {}).get(label) == refs[key + '_capture']
+              and value.get('capture') == refs[key + '_capture']
+              and value.get('optimizer_updates') == (256 if is_control else 0)
+              and value.get('test_data_used') is False
+              and measure.get('rows') == (4096 if is_train else 192)
+              and measure.get('batches') == (256 if is_train else 12)
+              and measure.get('feature_view_sha256') == paired['expected_view_sha256']
+              and measure.get('model_contract_sha256') == paired['expected_model_contract_sha256'],
+              'REPEATED_PASS_MEASUREMENT:' + label)
+        if is_train:
+            _need(measure.get('pass_index') == 0 and measure.get('seed') == 20260911
+                  and measure.get('query_domain') == {'state': 'sampled_pass0', 'future': 'native_endpoints'}
+                  and measure.get('loss_contract_sha256') == paired['expected_loss_contract_sha256'],
+                  'REPEATED_PASS_TRAIN_QUERY:' + label)
+        if not is_control:
+            _need(value.get('evaluated_model_state_sha256') == TA_M5_EQUAL_LOSS_MODEL_SHA256,
+                  'REPEATED_PASS_INITIAL_MODEL')
+        measurements[label] = value
+    control_model = measurements['CONTROL_TRAIN'].get('evaluated_model_state_sha256')
+    campaign._sha(control_model, 'repeated CONTROL model')
+    _need(measurements['CONTROL_LATER'].get('evaluated_model_state_sha256') == control_model,
+          'REPEATED_PASS_CONTROL_MODEL')
+    return {**origin, 'paired_recipe': paired, 'paired_result': report, 'measurements': measurements}
+
+
+def _ta_m5_repeated_pass_expected():
+    value, original, qualified = _ta_m5_paired_batch_order_expected()
+    value['input_refs'].update({key: dict(ref) for key, ref in TA_M5_REPEATED_PASS_REFS.items()})
+    origin = read_ta_m5_repeated_pass_origin(value)
+    for key in ('arms', 'arm_batch_indices', 'arm_batch_order_sha256', 'updates_per_arm',
+                'both_arms_same_original_INITIAL_required', 'rng_stream_parity_required'):
+        value.pop(key)
+    value.update(
+        schema_version=TA_M5_REPEATED_PASS_RECIPE_SCHEMA,
+        runtime_root=str(TA_M5_REPEATED_PASS_RUNTIME_ROOT),
+        admission_stage=TA_M5_REPEATED_PASS_STAGE, run_scope=TA_M5_REPEATED_PASS_SCOPE,
+        execution_binding_path=str(TA_M5_REPEATED_PASS_RUNTIME_ROOT / 'EXECUTION_BINDING.json'),
+        expected_initial_model_state_sha256=origin['measurements']['CONTROL_TRAIN']['evaluated_model_state_sha256'],
+        parent_order_sha256=origin['paired_result']['arm_progress']['CONTROL']['parent_order_sha256'],
+        batch_indices=list(TA_M5_PAIRED_BATCH_ORDER_BATCH_INDICES['CONTROL']),
+        batch_order_sha256=campaign.canonical_sha256(TA_M5_PAIRED_BATCH_ORDER_BATCH_INDICES['CONTROL']),
+        passes=[2, 3], updates_per_pass=256, starting_optimizer_updates=256, final_optimizer_updates=768,
+        max_private_updates=512, max_backwards=512, max_forwards=1050,
+        max_training_forwards=512, max_evaluation_forwards=538,
+        max_checkpoint_loads=1, max_full_state_restores=1, max_candidate_evidence_writes=1,
+        max_model_seconds=2400, max_invocation_seconds=12000,
+        initial_evaluation_forwards=0, baseline_parity_forwards=2,
+        selected_TRAIN_evaluation_forwards=512, later_evaluation_forwards=24,
+        primary_baselines='qualified_cached_original_INITIAL_and_CONTROL_E1_same4096_and_later192',
+        strict_control_restore_required=True, optimizer_state_continued_required=True,
+        rng_state_continued_required=True, unchanged_query_pass_index=0,
+        unselected_suffix_consumed=False, automatic_continuation=False)
+    return value, original, qualified
+
+
+def build_ta_m5_repeated_pass_recipe(*, source_commit):
+    value, original, qualified = _ta_m5_repeated_pass_expected()
+    owners = {name: {'path': str(CANONICAL_REPO / name),
+                     'sha256': campaign.file_sha256(CANONICAL_REPO / name)}
+              for name in original['source_owners']}
+    worker = CANONICAL_REPO / TA_M5_REPEATED_PASS_WORKER
+    value.update(source_owners=owners,
+        trace_worker={'path': str(worker), 'sha256': campaign.file_sha256(worker)},
+        source_bridge=_ta_m5_original_cuda_prefix_sources(
+            owners, original, qualified, value['input_refs']['original_trace_helper'], paired_order_guard=True))
+    value['recipe_sha256'] = campaign.canonical_sha256(value)
+    return require_ta_m5_repeated_pass_recipe(value, source_repo=CANONICAL_REPO, source_commit=source_commit)
+
+
+def require_ta_m5_repeated_pass_recipe(value, *, source_repo, source_commit, verify_files=True):
+    import subprocess
+    _need(verify_files and source_repo == CANONICAL_REPO, 'REPEATED_PASS_PHYSICAL_SOURCE')
+    expected, original, qualified = _ta_m5_repeated_pass_expected()
+    value = _identity(value, set(expected) | {'source_owners', 'trace_worker', 'source_bridge'},
+                      TA_M5_REPEATED_PASS_RECIPE_SCHEMA, 'recipe_sha256')
+    _need(campaign.canonical_sha256({key: value[key] for key in expected})
+          == campaign.canonical_sha256(expected), 'REPEATED_PASS_RECIPE_SCOPE')
+    _need(isinstance(source_commit, str) and campaign._COMMIT.fullmatch(source_commit)
+          and subprocess.run(['git', 'merge-base', '--is-ancestor',
+              TA_M5_ORIGINAL_CUDA_PREFIX_REFERENCE_SOURCE, source_commit],
+              cwd=CANONICAL_REPO, capture_output=True).returncode == 0,
+          'REPEATED_PASS_SOURCE_ANCESTRY')
+    _need(value['trace_worker'].get('path') == str(CANONICAL_REPO / TA_M5_REPEATED_PASS_WORKER),
+          'REPEATED_PASS_WORKER_PATH')
+    campaign.require_binding(value['trace_worker'], label='repeated pass worker', verify_file=True)
+    expected_bridge = _ta_m5_original_cuda_prefix_sources(
+        value['source_owners'], original, qualified, value['input_refs']['original_trace_helper'], paired_order_guard=True)
+    _need(value['source_bridge'] == expected_bridge, 'REPEATED_PASS_SOURCE_BRIDGE')
+    return value
+
+
+def require_ta_m5_repeated_pass_gate(gate, recipe):
+    expected = {
+        'decision': 'ADMITTED', 'status': 'ADMITTED', 'ta_m5_repeated_pass_authorized': True,
+        'fold_id': 1, 'selected_fit_rows': 4096, 'passes': [2, 3],
+        'starting_optimizer_updates': 256, 'final_optimizer_updates': 768,
+        'model_constructions_authorized': 1, 'optimizer_constructions_authorized': 1,
+        'model_forwards_authorized': 1050, 'backward_calls_authorized': 512,
+        'optimizer_steps_authorized': 512, 'training_enabled': True, 'native_training_enabled': True,
+        'genuine_updates_authorized': True, 'genuine_backward_authorized': True,
+        'genuine_predictor_fit_authorized': False, 'canonical_resume_authority': False,
+        'candidate_selection': False, 'test_data_used': False,
+        'evaluate_both_panels_unconditionally': True, 'per_update_pareto_requirement': False,
+    }
+    _need(isinstance(gate, Mapping) and all(gate.get(k) == v and type(gate[k]) is type(v)
+          for k, v in expected.items()) and recipe['run_scope'] == TA_M5_REPEATED_PASS_SCOPE
+          and recipe['admission_stage'] == TA_M5_REPEATED_PASS_STAGE, 'REPEATED_PASS_POLICY_GATE')
+
+
+def build_ta_m5_repeated_pass_cursor(*, recipe_ref, outcome, optimizer_updates,
+                                    current_pass, batch_index, cumulative_optimizer_updates,
+                                    result, batch_size=16):
+    value = dict(schema_version=TA_M5_REPEATED_PASS_CURSOR_SCHEMA, recipe=recipe_ref,
+                 outcome=outcome, optimizer_updates=optimizer_updates, current_pass=current_pass,
+                 batch_index=batch_index, cumulative_optimizer_updates=cumulative_optimizer_updates,
+                 parent_cursor=None, parent_order_sha256=None, full_state=None,
+                 result=result, test_data_used=False, canonical_resume_authority=False)
+    value['cursor_sha256'] = campaign.canonical_sha256(value)
+    return require_ta_m5_repeated_pass_cursor(
+        value, expected_recipe=recipe_ref, verify_files=False, batch_size=batch_size)
+
+
+def require_ta_m5_repeated_pass_cursor(value, *, expected_recipe, verify_files=True, batch_size=16):
+    fields = {'recipe', 'outcome', 'optimizer_updates', 'current_pass', 'batch_index',
+              'cumulative_optimizer_updates', 'parent_cursor', 'parent_order_sha256', 'full_state',
+              'result', 'test_data_used', 'canonical_resume_authority', 'schema_version'}
+    cursor = _identity(value, fields, TA_M5_REPEATED_PASS_CURSOR_SCHEMA, 'cursor_sha256')
+    _need(type(batch_size) is int and batch_size == 16
+          and expected_recipe.get('path') == str(TA_M5_REPEATED_PASS_RECIPE_PATH)
+          and cursor['recipe'] == expected_recipe and cursor['outcome'] in ('COMPLETE', 'FAILED')
+          and type(cursor['optimizer_updates']) is int and 0 <= cursor['optimizer_updates'] <= 512
+          and cursor['parent_cursor'] is None and cursor['parent_order_sha256'] is None
+          and cursor['full_state'] is None and cursor['test_data_used'] is False
+          and cursor['canonical_resume_authority'] is False, 'REPEATED_PASS_CURSOR_SCOPE')
+    _need(type(cursor['current_pass']) is int and cursor['current_pass'] in (2, 3)
+          and type(cursor['batch_index']) is int and 0 <= cursor['batch_index'] <= 256
+          and type(cursor['cumulative_optimizer_updates']) is int
+          and cursor['optimizer_updates'] == (cursor['current_pass'] - 2) * 256 + cursor['batch_index']
+          and cursor['cumulative_optimizer_updates'] == 256 + cursor['optimizer_updates'],
+          'REPEATED_PASS_CURSOR_PROGRESS')
+    complete = cursor['outcome'] == 'COMPLETE'
+    _need(not complete or (cursor['current_pass'] == 3 and cursor['batch_index'] == 256
+          and cursor['optimizer_updates'] == 512 and cursor['cumulative_optimizer_updates'] == 768),
+          'REPEATED_PASS_CURSOR_COMPLETE')
+    _need(cursor['result'].get('path') == str(TA_M5_REPEATED_PASS_ROOT / 'RESULT.json'),
+          'REPEATED_PASS_RESULT_PATH')
+    campaign.require_binding(cursor['result'], label='repeated pass result', verify_file=verify_files)
+    if verify_files:
+        report = _read(cursor['result'], 'repeated pass result')
+        _need(report.get('schema_version') == TA_M5_REPEATED_PASS_RESULT_SCHEMA
+              and report.get('recipe') == expected_recipe and report.get('outcome') == cursor['outcome']
+              and type(report.get('physical_optimizer_updates')) is int
+              and type(report.get('optimizer_updates')) is int
+              and report.get('physical_optimizer_updates') == report.get('optimizer_updates') == cursor['optimizer_updates']
+              and all(report.get(key) == cursor[key] and type(report.get(key)) is int for key in (
+                  'current_pass', 'batch_index', 'cumulative_optimizer_updates'))
+              and report.get('parent_cursor') is None and report.get('parent_order_sha256') is None
+              and report.get('full_state') is None and report.get('final_state') is None
+              and report.get('canonical_resume_authority') is False
+              and report.get('checkpoint_writes') == 0 and report.get('test_data_used') is False,
+              'REPEATED_PASS_CURSOR_RESULT')
+        if complete:
+            _need(report.get('decision') == 'PASS_TA_M5_REPEATED_PASS_TECHNICAL'
+                  and report.get('source_unchanged') is True and report.get('skipped_batches') == 0
+                  and all(report.get(key) is True for key in (
+                      'control_restore_exact', 'baseline_output_parity', 'evaluation_state_unchanged',
+                      'all_measurements_complete', 'optimizer_state_continued'))
+                  and all(type(report.get('counts', {}).get(key)) is int
+                          and report['counts'][key] == count
+                          for key, count in TA_M5_REPEATED_PASS_COMPLETE_COUNTS.items()),
+                  'REPEATED_PASS_TECHNICAL_COMPLETION')
+            evidence = report.get('candidate_evidence', {})
+            _need(isinstance(evidence, Mapping)
+                  and evidence.get('path') == str(TA_M5_REPEATED_PASS_ROOT / 'E3_EVIDENCE.pt'),
+                  'REPEATED_PASS_EVIDENCE_PATH')
+            campaign.require_binding(evidence, label='repeated pass private E3 evidence', verify_file=True)
+    return cursor

@@ -15,7 +15,23 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_PAIRED_OBJECTIVE_TRADEOFF_MEASURED_CAUSE_UNRESOLVED.
+Policystatus: TA_M5_REPEATED_PASS_ADMITTED_AWAITING_FRESH_BOOT.
+
+[Den avgrensede treningsdybdeprøven](docs/TA_M5_REPEATED_PASS_SCOPE_REVIEW.json)
+har bestått 84 fokuserte tester, faktisk metadata-/visningskontroll på 11,627 s
+og uavhengig kildegjennomgang. Modellen er ikke kjørt på nytt ennå.
+Ny engangsplan fortsetter CONTROL etter 256 oppdateringer med bevarte
+Adam-momenter/RNG. To nye pass bruker samme 4096 TRAIN-rader, intakte batcher,
+opprinnelige pass0-queries, fem TF, features, mål, FLAT-sone, loss og optimizer.
+Hele TRAIN4096 og samme senere192 måles fast etter pass 2 og 3.
+Pass3 mot lagret pass1 er primær; pass2 velges ikke hvis det ser bedre ut.
+To baseline-batcher og eksakt full restore skal bestå før oppdateringer.
+512 nye/768 kumulative steg, 1050 forwards, én modell/optimizer/kapseldekoding/
+strict restore og én privat E3-kapsel; ingen kanonisk resume-autoritet.
+250 W, 20G/512M, modellgrense 2400 s; eksisterende vindu12000/ytre13800 beholdes.
+Eksakt kampanjematerialisering, fersk trygg boot og native readiness gjenstår.
+Dette tester treningsdybde ved fast dekning; originalfullpassårsaken, konvergens,
+urørt generalisering og markedspresisjon er fortsatt ubevist.
 
 [Oppdeling av tapsfunksjonen](docs/TA_M5_PAIRED_OBJECTIVE_DECOMP_REVIEW.json)
 er COMPLETE/konsumert; uavhengig kilde- og regnekontroll består. På identiske
