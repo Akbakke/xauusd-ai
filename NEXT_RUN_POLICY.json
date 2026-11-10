@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-10T06:29:23.781273+00:00",
-  "status": "TA_M5_COMMON_DIRECTION_CERTIFIED_FINITE_EFFECT_UNPROVEN",
+  "status": "TA_M5_COMMON_STEP_FINITE_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Prepare one bounded finite application of the shared certified combination using saved original gradients/moments and exact CPU baselines. Report constraint48, other144 TRAIN and later192 separately. No repeated baseline forwards, no optimizer continuation or full fit. Existing FLAT and probabilistic S/F semantics retained.",
+  "next_action": "Execute the single admitted common-step finite diagnostic through capped CPU producer; two genuine parameter applications, 48 candidate eval forwards, no baseline forwards or backward. Score all fixed panels unconditionally, then close scope. No optimizer continuation or full fit.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -40210,7 +40210,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "CLOSED_NO_AUTOMATIC_RELAUNCH",
+  "training_enabled_scope": "market_state_ta_m5_common_step_finite_20261110_001",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -73360,6 +73360,49 @@
     "parameter_applications": 0,
     "checkpoint_decodes": 0,
     "npz_decodes": 0,
+    "test_data_used": false
+  },
+  "market_state_ta_m5_common_step_finite_20261110_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COMMON_STEP_FINITE_20261110_001/PLAN.json",
+      "sha256": "31439844ecb5738c6cb0d6dd68c24876f6f80942144973a0af2f0ebc0f13c101"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COMMON_STEP_FINITE_20261110_001/probe.py",
+      "sha256": "a34cf1d2293bc8a1bf287ecdb3b9a551396b6fa6e85217a92f1041b4cd24ed63"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COMMON_STEP_FINITE_20261110_001/controller.py",
+      "sha256": "970eea804cf4535601054b2091b6ee058a2b37a3312915e7ad32267607d75bc8"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COMMON_STEP_FINITE_20261110_001/PREFLIGHT.json",
+      "sha256": "833283abb9f24e718f2a7f1f8f733833126e0e680dd5fd5a2eb85838f235fa4f"
+    },
+    "execution_authorized": true,
+    "training_authorized": true,
+    "native_training_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "automatic_continuation": false,
+    "baseline_forwards": 0,
+    "max_model_constructions": 1,
+    "max_checkpoint_loads": 2,
+    "max_parameter_applications": 2,
+    "max_updates": 2,
+    "max_forwards": 48,
+    "max_backwards": 0,
+    "max_autograd_calls": 0,
+    "max_optimizer_constructions": 0,
+    "max_optimizer_updates": 0,
+    "max_checkpoint_writes": 0,
+    "max_artifact_bytes": 134217728,
+    "max_artifact_total_bytes": 268435456,
+    "question": "Do the fixed shared weights applied once at alpha1 yield finite descent for all six M5 BCE constraints at each original state? Measure other144 TRAIN and later192 separately without baseline reruns.",
+    "inference_boundary": "Constraint48 fit diagnostic only. OtherTRAIN144 and laterTRAIN192 are reused development, not untouched generalization. One application does not qualify an optimizer continuation, calibration or edge.",
     "test_data_used": false
   }
 }
