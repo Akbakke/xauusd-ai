@@ -15,14 +15,36 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_FULLPOP_MONTH_DECOMP_ADMITTED.
+Policystatus: TA_M5_FULLPOP_MONTH_DECOMP_COMPLETE_NO_FIX.
 
-En avgrenset cached månedsdekomponering er innrømmet: alle lagrede
-INITIAL/native FINAL/korrigert readout/prior-prognoser på29574 TRAIN og17753
-senere TRAIN. Kun statistikk, alle måneder og begge M5-sidemål; ingen nye
-prognoser, tilpasning eller utvalg. Én CPU-audit,4G/512M/180s; trening stengt.
-Plan: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPOP_MONTH_DECOMP_20261110_001/PLAN.json
-SHA ab0620771a836a0c19911ad690bdcd40e8b754f6eb116365ca86b7993dda45f3.
+[Fullpopulasjonens månedsregnskap](docs/TA_M5_FULLPOP_MONTH_DECOMP_REVIEW.json)
+er fullført med gjenbrukte prognoser på29574 TRAIN og17753 senere TRAIN.
+Ingen modeller, forwards, tilpasninger, optimizersteg eller checkpointdekoding.
+Helkommando2,092s, statistikk0,113s; forberedelse utenom, ingen målt
+hastighetsgevinst for identisk arbeidsmengde. Alle porter stengt.
+
+Native FINAL er svakere enn original INITIAL i alle16 måned/mål-celler.
+Månedsvis middelavvik utgjør omtrent88-91prosent av økt Brier-feil i de
+fire samlede S/F x TRAIN/senere-kombinasjonene. Økt spredning av
+sannsynlighetene oppveies bare delvis av bedre samvariasjon med retningen.
+Dette er feilregnskap, ikke årsaksandeler eller en modellrettelse.
+
+Senere F: meanUP0,587281 mot observert0,513050; original0,514358.
+Brier0,249856→0,256591, AUC0,508323→0,507775. S-ranking svekkes ikke samlet.
+Korrigert readout gjenoppretter mye av sannsynlighetskvaliteten, men senere
+F taper fortsatt mot prior. Denne readout-rettelsen var allerede målt.
+
+Alle gamle globale scores/counts gjenskapes innen1e-12; alle måneders
+vektede dekomponeringer består. Root har lest kilden; ingen separat ny
+array-replay eller urørt generalisering påstås.
+Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPOP_MONTH_DECOMP_20261110_001
+RESULT SHA5ff8f93766d8c1d95225d69309f3e31ca521d9f51574bce70d03eb3ed4d3f03c.
+
+Ikke gjenta fullpopulasjonsscoring, månedsregnskap, affin kalibrering eller
+de mislykkede optimizervariantene. Ingen ny modellkjøring innrømmet.
+Årsaken til oppdriften og en senere retningsforbedring er fortsatt uavklart.
+Featurekontrollens manglende eksplisitte linjeprojeksjon/reaksjonsmål er et
+separat designgap, ikke en påvist forklaring på denne treningsfeilen.
 
 [ACCUM3 native-prøven](docs/TA_M5_ACCUM3_NATIVE_REVIEW.json) er fullført og
 uavhengig verifisert; alle fire resultatporter feiler. Rot:

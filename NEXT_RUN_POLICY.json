@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-10T03:39:26.095627+00:00",
-  "status": "TA_M5_FULLPOP_MONTH_DECOMP_ADMITTED",
+  "observed_utc": "2026-11-10T03:41:13.011682+00:00",
+  "status": "TA_M5_FULLPOP_MONTH_DECOMP_COMPLETE_NO_FIX",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Execute the bound cached month decomposition once under audit caps; verify identical stored global scores and exact weighted decomposition, then close the stage. No model run, fit, calibration or selection.",
+  "next_action": "Do not repeat full-population scoring, monthly decomposition, affine calibration or failed optimizer variants. Training remains closed. A new intervention requires a distinct mechanism for the measured UP-probability drift; the separately documented missing line projection/reaction supervision remains an untested design gap, not an established explanation.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1685,7 +1685,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Cached full-population month decomposition admitted; no model or training.",
+    "current_activity": "Cached full-population decomposition complete. All16 month/task native scores worsen; monthly mean-probability error accounts for about88-91percent of aggregate Brier degradation. No causal training fix or later edge established.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1714,14 +1714,14 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "Matched384-row ACCUM3 technical training completed:48forwards24backwards8updates, one private evidence capsule. Independent accumulation/state/projection/score review PASS; comparison FAIL.",
-    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACCUM3_NATIVE_20261110_001",
+    "latest_terminal_role": "Cached statistics only: zero models, forwards, fitting or checkpoint decoding.",
+    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPOP_MONTH_DECOMP_20261110_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACCUM3_NATIVE_20261110_001/TERMINAL.json",
-      "sha256": "4cbb62b520621ffb0cce244798ec3d965eaf7ffcddf31f7c6bc992632f367be9"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPOP_MONTH_DECOMP_20261110_001/TERMINAL.json",
+      "sha256": "14cc1b98061e778c2b8bef217dd176390026159da1391154d316ff1e289e7cc0"
     },
     "terminal_exit_code": 0,
-    "source_unchanged_at_terminal": true,
+    "source_unchanged_at_terminal": null,
     "full_benchmark_completed": false,
     "sampler_selection_measured": true,
     "selected_sampler_published": true,
@@ -1738,7 +1738,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Local optimizer interference is measured, but accumulation3 did not produce a shared TRAIN/later improvement. Historical fullpass cause and correction remain unresolved.",
+    "current_blocker": "Native training creates a strong UP-probability drift with increased dispersion. The producing update mechanism and a correction that improves later F remain unqualified.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9209,7 +9209,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute the bound cached month decomposition once under audit caps; verify identical stored global scores and exact weighted decomposition, then close the stage. No model run, fit, calibration or selection.",
+    "next_action": "Do not repeat full-population scoring, monthly decomposition, affine calibration or failed optimizer variants. Training remains closed. A new intervention requires a distinct mechanism for the measured UP-probability drift; the separately documented missing line projection/reaction supervision remains an untested design gap, not an established explanation.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -10338,11 +10338,7 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "One preselected50/50 probability mixture. No coefficient sweep or later-label fit performed.",
-      "Both constituent readouts were trained on the fit rows. TRAIN gains are in-sample; later rows are reused development, not untouched confirmation.",
-      "Comparison does not alter or validate a native ensemble implementation, joint activity prediction, trade selection or economic edge.",
-      "The post-result quadratic bound is a root analytic derivation from independently verified scalar inputs; no second blend candidate was selected or evaluated.",
-      "No causal native fullpass explanation or fix is established, and no full-goal completion is claimed."
+      "Outer cached-audit terminal omits source_unchanged. Original receipt preserved; frozen source/policy bookend proof is in the bound RESULT, where source_unchanged=true."
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -22114,6 +22110,10 @@
     "latest_source_qualification": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_NATIVE_PASS_20261109_001/SOURCE_REVIEW.json",
       "sha256": "ee95497cfee657394819d0d4a9c46af3a48d9e8f44ccb71f699d1fbd71b33fef"
+    },
+    "source_unchanged_result_evidence": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPOP_MONTH_DECOMP_20261110_001/RESULT.json",
+      "sha256": "5ff8f93766d8c1d95225d69309f3e31ca521d9f51574bce70d03eb3ed4d3f03c"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -66325,7 +66325,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "Actual native ACCUM3 verified, all4 gatesfail: weakerTRAINfit andlesslaterregression vsCONTROL, bothlaterstillworseCPUINITIAL. No accumulation-size/LR/momentum sweep follows. Retained originalfullpopulation andreadout evidence must isolate remaining loss before another intervention.",
+    "latest_progress": "Full-population cached month accounting complete: all16 native month/task Brier scores worsen; monthly mean-probability drift accounts for about88-91percent of aggregate degradation. Ranking changes are small; nativeUPbias is measured, but producing mechanism and laterF correction remain unresolved. No new model run admitted.",
     "user_clarification_20261109": {
       "scope": "Correct direction for short sniper and longer long/shorttrends; separate forecasts and targets at M5 cadence.",
       "existing_future_horizons_minutes": [
@@ -72874,7 +72874,7 @@
     "next_action": "No ACCUM3 continuation, fullfit or accumulation-size/LR/momentum sweep. Use retained original full-population INITIAL/FINAL and converged-readout evidence to check whether the fullpass loss is primarily period-level mean drift, probability dispersion or lost target alignment; first verify which native monthly decomposition already exists and reuse it. No new model run is admitted until a distinct mechanism is isolated."
   },
   "market_state_ta_m5_fullpop_month_decomp_20261110_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CACHED_FULLPOP_MONTH_ACCOUNTING_NO_FIX",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPOP_MONTH_DECOMP_20261110_001/PLAN.json",
       "sha256": "ab0620771a836a0c19911ad690bdcd40e8b754f6eb116365ca86b7993dda45f3"
@@ -72883,13 +72883,13 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPOP_MONTH_DECOMP_20261110_001/audit.py",
       "sha256": "bb2bca25accf831462ccf0076334724a49740135363358154a6d88d30b388dff"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "training_authorized": false,
     "relaunch_allowed": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "memory_max": "4G",
     "swap_max": "512M",
     "wall_seconds": 180,
@@ -72898,6 +72898,19 @@
     "fits": 0,
     "checkpoint_decodes": 0,
     "test_data_used": false,
-    "scope": "One cached full-population calendar-month decomposition of all four retained arms and both M5 side tasks, all months. No new predictions, fitting, calibration or selection."
+    "scope": "One cached full-population calendar-month decomposition of all four retained arms and both M5 side tasks, all months. No new predictions, fitting, calibration or selection.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPOP_MONTH_DECOMP_20261110_001/RESULT.json",
+      "sha256": "5ff8f93766d8c1d95225d69309f3e31ca521d9f51574bce70d03eb3ed4d3f03c"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPOP_MONTH_DECOMP_20261110_001/TERMINAL.json",
+      "sha256": "14cc1b98061e778c2b8bef217dd176390026159da1391154d316ff1e289e7cc0"
+    },
+    "integrated_report": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_FULLPOP_MONTH_DECOMP_REVIEW.json",
+      "sha256": "ed826555b5e62fa66fa5c75838f20cc43bccbd98af1f454aadd119055044fff1"
+    },
+    "next_action": "Do not repeat full-population scoring, monthly decomposition, affine calibration or failed optimizer variants. Training remains closed. A new intervention requires a distinct mechanism for the measured UP-probability drift; the separately documented missing line projection/reaction supervision remains an untested design gap, not an established explanation."
   }
 }

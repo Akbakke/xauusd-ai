@@ -1,0 +1,562 @@
+{
+  "status": "COMPLETE_CACHED_FULLPOP_MONTH_ACCOUNTING_NO_FIX",
+  "stage": "market_state_ta_m5_fullpop_month_decomp_20261110_001",
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPOP_MONTH_DECOMP_20261110_001/PLAN.json",
+    "sha256": "ab0620771a836a0c19911ad690bdcd40e8b754f6eb116365ca86b7993dda45f3"
+  },
+  "worker": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPOP_MONTH_DECOMP_20261110_001/audit.py",
+    "sha256": "bb2bca25accf831462ccf0076334724a49740135363358154a6d88d30b388dff"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPOP_MONTH_DECOMP_20261110_001/RESULT.json",
+    "sha256": "5ff8f93766d8c1d95225d69309f3e31ca521d9f51574bce70d03eb3ed4d3f03c"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPOP_MONTH_DECOMP_20261110_001/TERMINAL.json",
+    "sha256": "14cc1b98061e778c2b8bef217dd176390026159da1391154d316ff1e289e7cc0"
+  },
+  "source_head": "0d3b9342ee442bcbcdd3ab5f28dc7056f945f98d",
+  "question": "Is the original full-pass degradation mainly period mean-probability drift, within-period dispersion, or lost association with direction?",
+  "scope": "All retained M5 conditional-side predictions; original INITIAL, native FINAL, converged final readout and frozen prior. No new predictions or fitting.",
+  "cells": {
+    "fit_future": {
+      "row_count": 29574,
+      "known_side_count": 11909,
+      "global_scores": {
+        "final_native": {
+          "auc": 0.5255760159695183,
+          "brier": 0.25390394215160905,
+          "count": 11909,
+          "identity_error": 5.551115123125783e-17,
+          "log": 0.7012328459307832,
+          "mean_error_squared": 0.0037847676094306952,
+          "mean_p": 0.5726465040944269,
+          "mean_y": 0.5111260391300697,
+          "minus_2_cov": -0.0023435880089042755,
+          "up_count": 6087,
+          "var_p": 0.0025865512978064517,
+          "var_y": 0.24987621125327614
+        },
+        "final_readout_fp32": {
+          "auc": 0.5333902403469852,
+          "brier": 0.24907642655997628,
+          "count": 11909,
+          "identity_error": 5.551115123125783e-17,
+          "log": 0.6912977609660991,
+          "mean_error_squared": 3.3628590836099603e-09,
+          "mean_p": 0.5110680489663899,
+          "mean_y": 0.5111260391300697,
+          "minus_2_cov": -0.0012878141939938396,
+          "up_count": 6087,
+          "var_p": 0.0004880261378348643,
+          "var_y": 0.24987621125327614
+        },
+        "frozen_prior": {
+          "auc": 0.5,
+          "brier": 0.24987621125676626,
+          "count": 11909,
+          "identity_error": -2.7755575615628914e-17,
+          "log": 0.6928995826378952,
+          "mean_error_squared": 3.490154946279183e-12,
+          "mean_p": 0.5111241709344305,
+          "mean_y": 0.5111260391300697,
+          "minus_2_cov": -9.60490647888544e-33,
+          "up_count": 6087,
+          "var_p": 1.232595164407831e-32,
+          "var_y": 0.24987621125327614
+        },
+        "original_imported": {
+          "auc": 0.5273157192764911,
+          "brier": 0.24932701074352281,
+          "count": 11909,
+          "identity_error": 2.7755575615628914e-17,
+          "log": 0.6918003280921216,
+          "mean_error_squared": 2.3952025967031122e-08,
+          "mean_p": 0.5109712747092003,
+          "mean_y": 0.5111260391300697,
+          "minus_2_cov": -0.0008675897485006239,
+          "up_count": 6087,
+          "var_p": 0.0003183652867213183,
+          "var_y": 0.24987621125327614
+        }
+      },
+      "native_minus_original_weighted_month_components": {
+        "brier": 0.004576931408086182,
+        "mean_error_squared": 0.004016294802032986,
+        "var_p": 0.002054871533296089,
+        "var_y": 0.0,
+        "minus_2_cov": -0.0014942349272428638
+      },
+      "month_mean_error_descriptive_share_of_brier_increase": 0.8775081913915719,
+      "native_minus_original_by_month": {
+        "2024-05": {
+          "auc": 0.007652440759888024,
+          "brier": 0.004336936084564091,
+          "log": 0.008946276263915087,
+          "mean_error_squared": 0.004311660763738184,
+          "mean_p": 0.061014998198392956,
+          "mean_y": 0.0,
+          "minus_2_cov": -0.0026179542944565915,
+          "var_p": 0.002643229615282491,
+          "var_y": 0.0
+        },
+        "2024-06": {
+          "auc": -0.007073163159090234,
+          "brier": 0.008557257474539337,
+          "log": 0.01764149630888434,
+          "mean_error_squared": 0.007729956255136728,
+          "mean_p": 0.0779016511580104,
+          "mean_y": 0.0,
+          "minus_2_cov": -0.0003164493984667471,
+          "var_p": 0.0011437506178693596,
+          "var_y": 0.0
+        },
+        "2024-07": {
+          "auc": -0.007672306452794264,
+          "brier": 0.005927161573837381,
+          "log": 0.012192899870635321,
+          "mean_error_squared": 0.004667381067830704,
+          "mean_p": 0.06752712265251593,
+          "mean_y": 0.0,
+          "minus_2_cov": -0.0008005331661832415,
+          "var_p": 0.0020603136721899806,
+          "var_y": 0.0
+        },
+        "2024-08": {
+          "auc": -0.001243350026859824,
+          "brier": 0.0017063615251597108,
+          "log": 0.0035166044615129177,
+          "mean_error_squared": 0.0019543804436276306,
+          "mean_p": 0.048636982689266195,
+          "mean_y": 0.0,
+          "minus_2_cov": -0.0024548997189365613,
+          "var_p": 0.0022068808004686706,
+          "var_y": 0.0
+        },
+        "2024-09": {
+          "auc": 0.0013680592909945943,
+          "brier": 0.002370483436282128,
+          "log": 0.00489592774202352,
+          "mean_error_squared": 0.0014434976916135084,
+          "mean_p": 0.053323754307971094,
+          "mean_y": 0.0,
+          "minus_2_cov": -0.0012082891338646379,
+          "var_p": 0.002135274878533262,
+          "var_y": 0.0
+        }
+      },
+      "month_known_side_counts": {
+        "2024-05": 2487,
+        "2024-06": 2213,
+        "2024-07": 2603,
+        "2024-08": 2354,
+        "2024-09": 2252
+      }
+    },
+    "fit_state": {
+      "row_count": 29574,
+      "known_side_count": 10010,
+      "global_scores": {
+        "final_native": {
+          "auc": 0.5382090889582658,
+          "brier": 0.25111783404001126,
+          "count": 10010,
+          "identity_error": -1.1102230246251565e-16,
+          "log": 0.695545394533187,
+          "mean_error_squared": 0.002247951989673551,
+          "mean_p": 0.5660938907447868,
+          "mean_y": 0.5186813186813187,
+          "minus_2_cov": -0.003705007971221161,
+          "up_count": 5192,
+          "var_p": 0.0029238816892318414,
+          "var_y": 0.2496510083323271
+        },
+        "final_readout_fp32": {
+          "auc": 0.5422863734544507,
+          "brier": 0.24820172596717846,
+          "count": 10010,
+          "identity_error": -5.551115123125783e-17,
+          "log": 0.6895436772555427,
+          "mean_error_squared": 3.4466228131378124e-08,
+          "mean_p": 0.5188669695044555,
+          "mean_y": 0.5186813186813187,
+          "minus_2_cov": -0.0025268463885042207,
+          "up_count": 5192,
+          "var_p": 0.0010775295571275345,
+          "var_y": 0.2496510083323271
+        },
+        "frozen_prior": {
+          "auc": 0.5,
+          "brier": 0.24965100834625317,
+          "count": 10010,
+          "identity_error": -1.3877787807814457e-16,
+          "log": 0.6924490347681654,
+          "mean_error_squared": 1.3926223716163746e-11,
+          "mean_p": 0.5186775868957252,
+          "mean_y": 0.5186813186813187,
+          "minus_2_cov": -0.0,
+          "up_count": 5192,
+          "var_p": 0.0,
+          "var_y": 0.2496510083323271
+        },
+        "original_imported": {
+          "auc": 0.5381870822116089,
+          "brier": 0.24847336382286717,
+          "count": 10010,
+          "identity_error": -5.551115123125783e-17,
+          "log": 0.6900898151924573,
+          "mean_error_squared": 1.492766022736406e-08,
+          "mean_p": 0.5185591398769893,
+          "mean_y": 0.5186813186813187,
+          "minus_2_cov": -0.0020287254514944667,
+          "up_count": 5192,
+          "var_p": 0.0008510660143743902,
+          "var_y": 0.2496510083323271
+        }
+      },
+      "native_minus_original_weighted_month_components": {
+        "brier": 0.0026444702171440904,
+        "mean_error_squared": 0.002351298668978529,
+        "var_p": 0.0019195179081328841,
+        "var_y": 0.0,
+        "minus_2_cov": -0.0016263463599673319
+      },
+      "month_mean_error_descriptive_share_of_brier_increase": 0.8891378899770052,
+      "native_minus_original_by_month": {
+        "2024-05": {
+          "auc": -0.0003236932584758101,
+          "brier": 0.0020204388127782746,
+          "log": 0.004173209222825935,
+          "mean_error_squared": 0.0019007257050223589,
+          "mean_p": 0.04730515868349083,
+          "mean_y": 0.0,
+          "minus_2_cov": -0.0021645962938265846,
+          "var_p": 0.0022843094015824656,
+          "var_y": 0.0
+        },
+        "2024-06": {
+          "auc": 0.0013432843000490413,
+          "brier": 0.004469615893665485,
+          "log": 0.009254961549738927,
+          "mean_error_squared": 0.004104957194496412,
+          "mean_p": 0.06145764942754661,
+          "mean_y": 0.0,
+          "minus_2_cov": -0.0008382494022502653,
+          "var_p": 0.0012029081014192887,
+          "var_y": 0.0
+        },
+        "2024-07": {
+          "auc": -0.0019940577080300725,
+          "brier": 0.0036317998330183954,
+          "log": 0.007469038995788213,
+          "mean_error_squared": 0.0031648480382061553,
+          "mean_p": 0.05148377048268127,
+          "mean_y": 0.0,
+          "minus_2_cov": -0.0013414197750630658,
+          "var_p": 0.001808371569875309,
+          "var_y": 0.0
+        },
+        "2024-08": {
+          "auc": 0.0056120291116379395,
+          "brier": 0.0012202735709719026,
+          "log": 0.0025230868534490414,
+          "mean_error_squared": 0.0015933054489266534,
+          "mean_p": 0.03785362603429576,
+          "mean_y": 0.0,
+          "minus_2_cov": -0.002687535384910737,
+          "var_p": 0.0023145035069560027,
+          "var_y": 0.0
+        },
+        "2024-09": {
+          "auc": -0.005092693729837561,
+          "brier": 0.001943614977112762,
+          "log": 0.003992084870109269,
+          "mean_error_squared": 0.0010053329802215635,
+          "mean_p": 0.040008498559436445,
+          "mean_y": 0.0,
+          "minus_2_cov": -0.0009736571554908365,
+          "var_p": 0.0019119391523820476,
+          "var_y": 0.0
+        }
+      },
+      "month_known_side_counts": {
+        "2024-05": 2103,
+        "2024-06": 1826,
+        "2024-07": 2195,
+        "2024-08": 2024,
+        "2024-09": 1862
+      }
+    },
+    "score_future": {
+      "row_count": 17753,
+      "known_side_count": 7165,
+      "global_scores": {
+        "final_native": {
+          "auc": 0.5077747847969882,
+          "brier": 0.2565906514853523,
+          "count": 7165,
+          "identity_error": 0.0,
+          "log": 0.7067659131661769,
+          "mean_error_squared": 0.00551030474958404,
+          "mean_p": 0.5872809733733227,
+          "mean_y": 0.513049546406141,
+          "minus_2_cov": -0.0005926060495889188,
+          "up_count": 3676,
+          "var_p": 0.0018432434467632482,
+          "var_y": 0.24982970933859397
+        },
+        "final_readout_fp32": {
+          "auc": 0.5085650424417982,
+          "brier": 0.24987416459758888,
+          "count": 7165,
+          "identity_error": 5.551115123125783e-17,
+          "log": 0.6928965749068406,
+          "mean_error_squared": 2.2193830587306292e-05,
+          "mean_p": 0.5177605792639447,
+          "mean_y": 0.513049546406141,
+          "minus_2_cov": -0.0003777181513150909,
+          "up_count": 3676,
+          "var_p": 0.0003999795797226612,
+          "var_y": 0.24982970933859397
+        },
+        "frozen_prior": {
+          "auc": 0.5,
+          "brier": 0.249833416409301,
+          "count": 7165,
+          "identity_error": -2.7755575615628914e-17,
+          "log": 0.6928139788167914,
+          "mean_error_squared": 3.7070707070642587e-06,
+          "mean_p": 0.5111241709344305,
+          "mean_y": 0.513049546406141,
+          "minus_2_cov": 2.972678917092438e-33,
+          "up_count": 3676,
+          "var_p": 1.232595164407831e-32,
+          "var_y": 0.24982970933859397
+        },
+        "original_imported": {
+          "auc": 0.5083225969633772,
+          "brier": 0.249855791231191,
+          "count": 7165,
+          "identity_error": 2.7755575615628914e-17,
+          "log": 0.6928588080616984,
+          "mean_error_squared": 1.712442292535255e-06,
+          "mean_p": 0.5143581495898966,
+          "mean_y": 0.513049546406141,
+          "minus_2_cov": -0.00025142830483739745,
+          "up_count": 3676,
+          "var_p": 0.00027579775514188727,
+          "var_y": 0.24982970933859397
+        }
+      },
+      "native_minus_original_weighted_month_components": {
+        "brier": 0.00673486025416134,
+        "mean_error_squared": 0.006123046865949059,
+        "var_p": 0.00125303229407286,
+        "var_y": 0.0,
+        "minus_2_cov": -0.0006412189058605752
+      },
+      "month_mean_error_descriptive_share_of_brier_increase": 0.9091572259670491,
+      "native_minus_original_by_month": {
+        "2024-10": {
+          "auc": 0.001219438392641048,
+          "brier": 0.0011799898941831088,
+          "log": 0.0024378541426500755,
+          "mean_error_squared": 0.0007712490638256202,
+          "mean_p": 0.05553120835184411,
+          "mean_y": 0.0,
+          "minus_2_cov": -0.0013443425698518733,
+          "var_p": 0.0017530834002093749,
+          "var_y": 0.0
+        },
+        "2024-11": {
+          "auc": -0.0027974162804117464,
+          "brier": 0.008453830717623678,
+          "log": 0.017447652634925093,
+          "mean_error_squared": 0.007990139045718919,
+          "mean_p": 0.08094571437510378,
+          "mean_y": 0.0,
+          "minus_2_cov": -0.0006461520208737076,
+          "var_p": 0.0011098436927784202,
+          "var_y": 0.0
+        },
+        "2024-12": {
+          "auc": -0.0037335205517985415,
+          "brier": 0.011276769427857769,
+          "log": 0.02329369491571609,
+          "mean_error_squared": 0.010283680522534148,
+          "mean_p": 0.0844485057133626,
+          "mean_y": 0.0,
+          "minus_2_cov": 0.00016070820478116508,
+          "var_p": 0.0008323807005424842,
+          "var_y": 0.0
+        }
+      },
+      "month_known_side_counts": {
+        "2024-10": 2575,
+        "2024-11": 2318,
+        "2024-12": 2272
+      }
+    },
+    "score_state": {
+      "row_count": 17753,
+      "known_side_count": 6096,
+      "global_scores": {
+        "final_native": {
+          "auc": 0.5241390275791039,
+          "brier": 0.2545791834928509,
+          "count": 6096,
+          "identity_error": -5.551115123125783e-17,
+          "log": 0.7025956302949291,
+          "mean_error_squared": 0.004228359226971907,
+          "mean_p": 0.5789694046270435,
+          "mean_y": 0.5139435695538058,
+          "minus_2_cov": -0.0018119164580108241,
+          "up_count": 3133,
+          "var_p": 0.0023571638557916635,
+          "var_y": 0.2498055768680982
+        },
+        "final_readout_fp32": {
+          "auc": 0.5227933533690707,
+          "brier": 0.24976777162783,
+          "count": 6096,
+          "identity_error": -2.7755575615628914e-17,
+          "log": 0.6926847716458294,
+          "mean_error_squared": 0.00013512749731581437,
+          "mean_p": 0.5255680049085151,
+          "mean_y": 0.5139435695538058,
+          "minus_2_cov": -0.001143443314222665,
+          "up_count": 3133,
+          "var_p": 0.000970510576638693,
+          "var_y": 0.2498055768680982
+        },
+        "frozen_prior": {
+          "auc": 0.5,
+          "brier": 0.2498279877882917,
+          "count": 6096,
+          "identity_error": -8.326672684688674e-17,
+          "log": 0.6928031584293621,
+          "mean_error_squared": 2.2410920193593253e-05,
+          "mean_p": 0.5186775868957252,
+          "mean_y": 0.5139435695538058,
+          "minus_2_cov": -0.0,
+          "up_count": 3133,
+          "var_p": 0.0,
+          "var_y": 0.2498055768680982
+        },
+        "original_imported": {
+          "auc": 0.5219430966816074,
+          "brier": 0.24965248806034565,
+          "count": 6096,
+          "identity_error": -2.7755575615628914e-17,
+          "log": 0.6924524133660842,
+          "mean_error_squared": 6.898421229272409e-05,
+          "mean_p": 0.522249243054054,
+          "mean_y": 0.5139435695538058,
+          "minus_2_cov": -0.001047412573767385,
+          "up_count": 3133,
+          "var_p": 0.000825339553722159,
+          "var_y": 0.2498055768680982
+        }
+      },
+      "native_minus_original_weighted_month_components": {
+        "brier": 0.004926695432505235,
+        "mean_error_squared": 0.004506247626891576,
+        "var_p": 0.0012594513008536154,
+        "var_y": 0.0,
+        "minus_2_cov": -0.0008390034952399327
+      },
+      "month_mean_error_descriptive_share_of_brier_increase": 0.9146592657545586,
+      "native_minus_original_by_month": {
+        "2024-10": {
+          "auc": 0.004968933950433185,
+          "brier": 0.0023324995472934484,
+          "log": 0.004773231294033398,
+          "mean_error_squared": 0.0015149938427229306,
+          "mean_p": 0.04130493357049925,
+          "mean_y": 0.0,
+          "minus_2_cov": -0.0009982019729532672,
+          "var_p": 0.0018157076775237924,
+          "var_y": 0.0
+        },
+        "2024-11": {
+          "auc": 0.001845208990203795,
+          "brier": 0.004422894798216531,
+          "log": 0.0091139368659654,
+          "mean_error_squared": 0.004455487922243401,
+          "mean_p": 0.06395206033150191,
+          "mean_y": 0.0,
+          "minus_2_cov": -0.0011721972181454052,
+          "var_p": 0.0011396040941185053,
+          "var_y": 0.0
+        },
+        "2024-12": {
+          "auc": 0.0015796467764059852,
+          "brier": 0.008408041667868571,
+          "log": 0.017335889971333396,
+          "mean_error_squared": 0.007985345609403647,
+          "mean_p": 0.0670861616860402,
+          "mean_y": 0.0,
+          "minus_2_cov": -0.00032026996039366247,
+          "var_p": 0.0007429660188586323,
+          "var_y": 0.0
+        }
+      },
+      "month_known_side_counts": {
+        "2024-10": 2214,
+        "2024-11": 1950,
+        "2024-12": 1932
+      }
+    }
+  },
+  "native_month_task_cells_worse_than_original": 16,
+  "total_month_task_cells": 16,
+  "validation": {
+    "root_full_source_review": true,
+    "AST_passed": true,
+    "all_three_npz_sha_bound_before_decode": true,
+    "saved_global_score_count_parity_atol": 1e-12,
+    "exact_weighted_decomposition_max_error": 1.6653345369377348e-16,
+    "all_months_included": true,
+    "new_independent_array_replay": false
+  },
+  "counts": {
+    "models": 0,
+    "forwards": 0,
+    "fits": 0,
+    "optimizer_updates": 0,
+    "checkpoint_decodes": 0
+  },
+  "timing": {
+    "whole_command_seconds": 2.0924253600023803,
+    "worker_seconds": 1.8060889699991094,
+    "statistics_seconds": 0.11301061799895251,
+    "preparation_included": false,
+    "identical_workload_speedup_measured": false
+  },
+  "findings": [
+    "Native FINAL Brier deteriorates in every one of16 calendar-month/task cells.",
+    "Weighted monthly mean-probability error contributes about88-91percent of the total Brier increase across the four population/task combinations; this is an accounting identity, not a causal share.",
+    "Within-month probability dispersion also increases; improved covariance partly offsets this, leaving positive residual degradation in every aggregate cell.",
+    "Global S AUC changes little on TRAIN and improves on later TRAIN; F AUC declines slightly in both. This is not wholesale loss of directional ordering.",
+    "Native FINAL is biased toward UP on both populations. The converged readout reduces the distortion, but later F still fails frozen prior; this is reused evidence, not a new calibration fix."
+  ],
+  "full_train_cause_established": false,
+  "full_train_correction_qualified": false,
+  "later_direction_improvement_established": false,
+  "training_authorized": false,
+  "native_execution_authorized": false,
+  "candidate_selection": false,
+  "promotion_authorized": false,
+  "test_data_used": false,
+  "limits": [
+    "Descriptive decomposition of saved conditional-side probabilities; no causal attribution or candidate selection.",
+    "TRAIN scores are in-sample; later TRAIN has been reused for development and is not untouched generalization.",
+    "No model, hidden representation, checkpoint, fitting, calibration, TEST, promotion or economic evidence.",
+    "Empirical monthly means are descriptive; neither true market probabilities nor deployable month calibrations.",
+    "AUC has no uncertainty test here and does not establish tradable edge.",
+    "This decomposition does not identify which optimizer or shared-task update caused the drift."
+  ],
+  "next_action": "Do not repeat full-population scoring, monthly decomposition, affine calibration or failed optimizer variants. Training remains closed. A new intervention requires a distinct mechanism for the measured UP-probability drift; the separately documented missing line projection/reaction supervision remains an untested design gap, not an established explanation."
+}
