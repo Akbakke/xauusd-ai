@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-10T02:13:20.957192+00:00",
-  "status": "TA_M5_ACCUM3_NATIVE_ADMITTED",
+  "observed_utc": "2026-11-10T03:32:34.902948+00:00",
+  "status": "TA_M5_ACCUM3_NATIVE_COMPLETE_INSUFFICIENT",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "No fullfit, promotion, automatic resume or strength sweep follows. Reuse captures and existing per-batch gradient evidence to understand why the blanket activity-to-C stop helps3 of4 versusCONTROL but cannot preserve laterINITIAL quality before considering a distinct learning intervention.",
+  "next_action": "No ACCUM3 continuation, fullfit or accumulation-size/LR/momentum sweep. Use retained original full-population INITIAL/FINAL and converged-readout evidence to check whether the fullpass loss is primarily period-level mean drift, probability dispersion or lost target alignment; first verify which native monthly decomposition already exists and reuse it. No new model run is admitted until a distinct mechanism is isolated.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1685,7 +1685,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "One bounded native accumulation contrast admitted: same384SPREAD as reusedCONTROL24, average3 B16 losses then canonicalclip/Adam ->8updates. First-triplet readonly accumulation witness and distinct private final evidence capsule; no core change.",
+    "current_activity": "ACCUM3 native contrast complete and independently verified: all4 gates fail. BothTRAINtasks improve less thanCONTROL; bothlater tasks regress less but remain worse thanCPUINITIAL.24backwards/8steps, no correction qualified.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1714,11 +1714,11 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "Read-only12-forward18-autograd diagnostic completed; no training/optimizer/checkpoint write. Independent saved-array arithmetic PASS.",
+    "latest_terminal_role": "Matched384-row ACCUM3 technical training completed:48forwards24backwards8updates, one private evidence capsule. Independent accumulation/state/projection/score review PASS; comparison FAIL.",
     "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACCUM3_NATIVE_20261110_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ADAM_CROSS_PERIOD_20261110_001/TERMINAL.json",
-      "sha256": "bc8535fe687b1a0ca2cdcf8605d1789e616d841bcfc8f269104edfa189579eaa"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACCUM3_NATIVE_20261110_001/TERMINAL.json",
+      "sha256": "4cbb62b520621ffb0cce244798ec3d965eaf7ffcddf31f7c6bc992632f367be9"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -1738,7 +1738,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Local cross-period Adam interference is measured, but actual aggregation benefit on identical TRAIN and later TRAIN is unmeasured. Prior frozen51e0-head accumulation does not answer this native original-state contrast.",
+    "current_blocker": "Local optimizer interference is measured, but accumulation3 did not produce a shared TRAIN/later improvement. Historical fullpass cause and correction remain unresolved.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9209,7 +9209,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute this exact candidate once under caps; score both panels regardless of outcome, then run the bound saved-state/witness reviewer after terminal. Preserve true8-update capsule accounting and close all gates; no automatic fullfit or sweep.",
+    "next_action": "No ACCUM3 continuation, fullfit or accumulation-size/LR/momentum sweep. Use retained original full-population INITIAL/FINAL and converged-readout evidence to check whether the fullpass loss is primarily period-level mean drift, probability dispersion or lost target alignment; first verify which native monthly decomposition already exists and reuse it. No new model run is admitted until a distinct mechanism is isolated.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -40206,7 +40206,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "market_state_ta_m5_accum3_native_20261110_001",
+  "training_enabled_scope": "CLOSED_NO_AUTOMATIC_RELAUNCH",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -66325,7 +66325,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "Qualified one matched native ACCUM3 candidate after measured Adam cross-period interference. CONTROL24/CPUINITIAL and all384 presentations/order/RNG are reused.48forwards24backwards8updates, no core change; actual generalization remains unproved.",
+    "latest_progress": "Actual native ACCUM3 verified, all4 gatesfail: weakerTRAINfit andlesslaterregression vsCONTROL, bothlaterstillworseCPUINITIAL. No accumulation-size/LR/momentum sweep follows. Retained originalfullpopulation andreadout evidence must isolate remaining loss before another intervention.",
     "user_clarification_20261109": {
       "scope": "Correct direction for short sniper and longer long/shorttrends; separate forecasts and targets at M5 cadence.",
       "existing_future_horizons_minutes": [
@@ -72717,9 +72717,9 @@
     "next_action": "Define one bounded matched native comparison of aggregation before whole-model clipping/AdamW from the original state, preserving genuine5TF supervision and reporting both identical TRAIN and separate later TRAIN panels. Reuse existing control/checkpoint/output evidence where the data and execution axes truly match. Declare data exposure and optimizer-update count separately. Prior frozen-head accumulation was negative and is not native-backbone evidence. No sweep, fullfit, moment reset or launch is admitted by this completed diagnostic."
   },
   "market_state_ta_m5_accum3_native_20261110_001": {
-    "status": "ADMITTED",
-    "execution_authorized": true,
-    "training_authorized": true,
+    "status": "COMPLETE_VERIFIED_ACCUM3_INSUFFICIENT",
+    "execution_authorized": false,
+    "training_authorized": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACCUM3_NATIVE_20261110_001/PLAN.json",
       "sha256": "bc0234e61d56bdd5ebec8d27d0a12402c3cfcfd2cfb4537fb4255944670413cd"
@@ -72741,9 +72741,9 @@
       "sha256": "32c8a19e783291dfd9ec6fd0e982b8095b67036f7eb209159496fd36951acfab"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "automatic_resume_allowed": false,
     "promotion_allowed": false,
@@ -72770,8 +72770,8 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACCUM3_NATIVE_20261110_001/review.py",
       "sha256": "f913e7dc3c8d9dfc1ba2e4dd5947a7800626056b324dabd47f824e2be72c311b"
     },
-    "review_authorized": true,
-    "review_completed_invocations": 0,
+    "review_authorized": false,
+    "review_completed_invocations": 1,
     "review_only_after_terminal": true,
     "review_scope": {
       "memory_max": "4G",
@@ -72823,6 +72823,54 @@
       },
       "scope": "Root full408-line worker and180-line reviewer plus independent worker review. Strict true-old INITIAL restore; genuine loss/3 accumulation and readonly first-triplet hooks; no intermediate clip/step/zero. Eight canonical steps. Distinct final evidence capsule binds actual24micro/384rows/8updates/pending0 without changing canonical core state or claiming resume."
     },
-    "standing_authorization_source": "GX1_RULES_20261105_zero_spend_local_work_and_active_direction_goal_exact_technical_admission"
+    "standing_authorization_source": "GX1_RULES_20261105_zero_spend_local_work_and_active_direction_goal_exact_technical_admission",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACCUM3_NATIVE_20261110_001/RESULT.json",
+      "sha256": "a6c3f6f3b492359a9960cfcad4fbf81a6341f97c7bc7a43bd15b22f65ac536cc"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACCUM3_NATIVE_20261110_001/TERMINAL.json",
+      "sha256": "4cbb62b520621ffb0cce244798ec3d965eaf7ffcddf31f7c6bc992632f367be9"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACCUM3_NATIVE_20261110_001/CONTROLLER.json",
+      "sha256": "cb70f4d2393cf05b329f60c34d449f0a0623abca9bfd50135ed39aefcfa614b1"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACCUM3_NATIVE_20261110_001/REVIEW.json",
+      "sha256": "d2390b037057aa35831460629c504c6b00dfe342471c745a166aa67b6b2b70dc"
+    },
+    "review_command": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACCUM3_NATIVE_20261110_001/REVIEW_COMMAND.json",
+      "sha256": "0e3cbf539a1c2ff5af43dd62fc176adff0e1c5a0d3cbf5b16b815c38fa6a3541"
+    },
+    "integrated_report": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_ACCUM3_NATIVE_REVIEW.json",
+      "sha256": "e6bc5841cea6082ab7a03570ca231b66ae12872fe99b0eb98de4b9d270461fb7"
+    },
+    "actual_counts": {
+      "model_constructions": 1,
+      "optimizer_constructions": 1,
+      "checkpoint_loads": 1,
+      "full_state_restores": 1,
+      "forwards": 48,
+      "backwards": 24,
+      "autograd_calls": 0,
+      "optimizer_step_calls": 8,
+      "optimizer_updates": 8,
+      "step_pre_hook_calls": 8,
+      "checkpoint_writes": 0,
+      "evidence_capsule_writes": 1,
+      "resume_state_load_calls": 1,
+      "resume_state_load_returns": 1
+    },
+    "independent_review_passed": true,
+    "comparison_decision": "FAIL_COMPARISON_NO_CONTINUATION",
+    "passed_cells": [],
+    "full_train_cause_established": false,
+    "full_train_correction_qualified": false,
+    "later_direction_improvement_established": false,
+    "native_execution_authorized": false,
+    "next_action": "No ACCUM3 continuation, fullfit or accumulation-size/LR/momentum sweep. Use retained original full-population INITIAL/FINAL and converged-readout evidence to check whether the fullpass loss is primarily period-level mean drift, probability dispersion or lost target alignment; first verify which native monthly decomposition already exists and reuse it. No new model run is admitted until a distinct mechanism is isolated."
   }
 }

@@ -1,0 +1,408 @@
+{
+  "status": "COMPLETE_VERIFIED_ACCUM3_INSUFFICIENT",
+  "stage": "market_state_ta_m5_accum3_native_20261110_001",
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACCUM3_NATIVE_20261110_001/PLAN.json",
+    "sha256": "bc0234e61d56bdd5ebec8d27d0a12402c3cfcfd2cfb4537fb4255944670413cd"
+  },
+  "worker": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACCUM3_NATIVE_20261110_001/probe.py",
+    "sha256": "b9a874f62866574152c401a331421d93d8f772a19d8660b3cfd0ee74b6216cb3"
+  },
+  "controller": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACCUM3_NATIVE_20261110_001/CONTROLLER.json",
+    "sha256": "cb70f4d2393cf05b329f60c34d449f0a0623abca9bfd50135ed39aefcfa614b1"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACCUM3_NATIVE_20261110_001/RESULT.json",
+    "sha256": "a6c3f6f3b492359a9960cfcad4fbf81a6341f97c7bc7a43bd15b22f65ac536cc"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACCUM3_NATIVE_20261110_001/TERMINAL.json",
+    "sha256": "4cbb62b520621ffb0cce244798ec3d965eaf7ffcddf31f7c6bc992632f367be9"
+  },
+  "review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACCUM3_NATIVE_20261110_001/REVIEW.json",
+    "sha256": "d2390b037057aa35831460629c504c6b00dfe342471c745a166aa67b6b2b70dc"
+  },
+  "reviewer": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACCUM3_NATIVE_20261110_001/review.py",
+    "sha256": "f913e7dc3c8d9dfc1ba2e4dd5947a7800626056b324dabd47f824e2be72c311b"
+  },
+  "review_command": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACCUM3_NATIVE_20261110_001/REVIEW_COMMAND.json",
+    "sha256": "0e3cbf539a1c2ff5af43dd62fc176adff0e1c5a0d3cbf5b16b815c38fa6a3541"
+  },
+  "source_base_commit": "0e094da1c52becc2b831000f538ea62f66bb67e0",
+  "admission_commit": "fe6e7215df8b2cf03c997e9925a7878f4faf371c",
+  "source_unchanged_at_terminal": true,
+  "execution_recipe": {
+    "run_scope": "market_state_ta_m5_accum3_native_20261110_001",
+    "training_enabled": true,
+    "execution_route": "mean_three_consecutive_SPREAD_B16_before_global_clip_AdamW",
+    "optimizer_and_loss_reference": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SCORE_RECOVERY_20261109_002/RECIPE.json",
+      "sha256": "4fc09408227deddfa3f73256d1a458e9b61d606995633e0aa4c6c1afdb73c120"
+    },
+    "reference_numerical_contract_sha256": "5085579ff8ad90257412ad1d42406c6c481a1d272f0cf2849ae293da87974361",
+    "grad_accum_steps": 3,
+    "microbatch_size": 16,
+    "microbatches": 24,
+    "consumed_rows": 384,
+    "optimizer_steps": 8,
+    "loss_divisor": 3.0,
+    "initial_checkpoint": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_UPDATE_FREEZE_NATIVE_20261110_001/INITIAL_CPU_STATE.pt",
+      "sha256": "4d7cfe73bcf7d7fff05ebfd87312b553db186c1626981e13f40ba9dbb2b1a659"
+    },
+    "parent_order_sha256": "cfb363deac7d5e7b2e6aa3c1fcb1fcc1ccb5c1be7b5adb6e670222e093bdd6d3"
+  },
+  "numerical_reference": {
+    "source_recipe": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SCORE_RECOVERY_20261109_002/RECIPE.json",
+      "sha256": "4fc09408227deddfa3f73256d1a458e9b61d606995633e0aa4c6c1afdb73c120"
+    },
+    "contract_sha256": "5085579ff8ad90257412ad1d42406c6c481a1d272f0cf2849ae293da87974361",
+    "grad_accum_steps": 1,
+    "role": "INITIAL_RESTORE_AND_OPTIMIZER_LOSS_REFERENCE_ONLY"
+  },
+  "scope": "One original-ae772 ACCUM3 candidate, same384SPREAD24 parents/order/CPU-RNG/canonical B16 losses as reused CONTROL24.8 updates versus24, same data exposure but different moment/decay and parameter trajectory. Both192-row panels always evaluated.",
+  "counts": {
+    "model_constructions": 1,
+    "optimizer_constructions": 1,
+    "checkpoint_loads": 1,
+    "full_state_restores": 1,
+    "forwards": 48,
+    "backwards": 24,
+    "autograd_calls": 0,
+    "optimizer_step_calls": 8,
+    "optimizer_updates": 8,
+    "step_pre_hook_calls": 8,
+    "checkpoint_writes": 0,
+    "evidence_capsule_writes": 1,
+    "resume_state_load_calls": 1,
+    "resume_state_load_returns": 1
+  },
+  "initial_checkpoint": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_UPDATE_FREEZE_NATIVE_20261110_001/INITIAL_CPU_STATE.pt",
+    "sha256": "4d7cfe73bcf7d7fff05ebfd87312b553db186c1626981e13f40ba9dbb2b1a659"
+  },
+  "initial_source_commit": "4310b752c3ff511a7e380dfad189d1eb7f3280d9",
+  "cpu_initial_baseline": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_QUERY_BACKBONE_ATTRIBUTION_20261110_001/INITIAL_HIDDEN_AND_PARAMETERS.npz",
+    "sha256": "24972681dd2ac505765924d93f52911325719d9c3e35e59492e666438e3ceb5c"
+  },
+  "final_evidence_capsule": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACCUM3_NATIVE_20261110_001/FINAL_EVIDENCE_CAPSULE.pt",
+    "sha256": "5444a64eb69538018c61f875a0fa870b490eaf5e4d7e4a72723c20a90bf7adbd"
+  },
+  "capsule_schema": "gx1_private_ta_m5_accum3_evidence_capsule_v1",
+  "capsule_bytes": 96715226,
+  "final_model_state_sha256": "5be0bbc49fe399b04d82fa0c87d072500331f1a3f05d78af895a61ece22ff77c",
+  "final_optimizer_state_sha256": "4249776034ba06bb24321ab7476030db3dfcdcdfb7445c037f8423606ad28a8b",
+  "consumed_microbatches": 24,
+  "consumed_parent_rows": 384,
+  "optimizer_updates": 8,
+  "pending_microbatches": 0,
+  "scores": {
+    "TRAIN": {
+      "state": {
+        "candidate": {
+          "count": 75,
+          "up_count": 34,
+          "brier": 0.2529803876791197,
+          "log": 0.6991193608311518,
+          "mean_up_probability": 0.5246610933831394
+        },
+        "control": {
+          "count": 75,
+          "up_count": 34,
+          "brier": 0.25241911928061056,
+          "log": 0.6979965262484084,
+          "mean_up_probability": 0.521921133724309
+        },
+        "cpu_initial": {
+          "count": 75,
+          "up_count": 34,
+          "brier": 0.2546054101579659,
+          "log": 0.7023848081319856,
+          "mean_up_probability": 0.5324667999635628
+        },
+        "prior": {
+          "count": 75,
+          "up_count": 34,
+          "brier": 0.2520920936958483,
+          "log": 0.697333478245525,
+          "mean_up_probability": 0.5186775868957253
+        },
+        "comparison": {
+          "differences": {
+            "CONTROL": {
+              "brier": 0.0005612683985091182,
+              "log": 0.001122834582743426
+            },
+            "CPU_INITIAL": {
+              "brier": -0.0016250224788462164,
+              "log": -0.003265447300833779
+            },
+            "PRIOR": {
+              "brier": 0.0008882939832713932,
+              "log": 0.0017858825856267302
+            }
+          },
+          "passes": false
+        }
+      },
+      "future": {
+        "candidate": {
+          "count": 86,
+          "up_count": 41,
+          "brier": 0.25124083568679706,
+          "log": 0.695629586216648,
+          "mean_up_probability": 0.5061765869318275
+        },
+        "control": {
+          "count": 86,
+          "up_count": 41,
+          "brier": 0.2506672646446568,
+          "log": 0.694481220169846,
+          "mean_up_probability": 0.502255621208216
+        },
+        "cpu_initial": {
+          "count": 86,
+          "up_count": 41,
+          "brier": 0.25217624585221293,
+          "log": 0.6975053267272607,
+          "mean_up_probability": 0.514413105702951
+        },
+        "prior": {
+          "count": 86,
+          "up_count": 41,
+          "brier": 0.25064115047825425,
+          "log": 0.6944297135800547,
+          "mean_up_probability": 0.5111241709344304
+        },
+        "comparison": {
+          "differences": {
+            "CONTROL": {
+              "brier": 0.0005735710421402862,
+              "log": 0.0011483660468020185
+            },
+            "CPU_INITIAL": {
+              "brier": -0.0009354101654158731,
+              "log": -0.0018757405106126779
+            },
+            "PRIOR": {
+              "brier": 0.0005996852085428106,
+              "log": 0.0011998726365933798
+            }
+          },
+          "passes": false
+        }
+      }
+    },
+    "OOF": {
+      "state": {
+        "candidate": {
+          "count": 65,
+          "up_count": 38,
+          "brier": 0.24318951737246625,
+          "log": 0.6795041868968774,
+          "mean_up_probability": 0.50673629750139
+        },
+        "control": {
+          "count": 65,
+          "up_count": 38,
+          "brier": 0.24436512891200463,
+          "log": 0.6818607602558663,
+          "mean_up_probability": 0.500710412376971
+        },
+        "cpu_initial": {
+          "count": 65,
+          "up_count": 38,
+          "brier": 0.24145620095282527,
+          "log": 0.6760178613018074,
+          "mean_up_probability": 0.5195488507402641
+        },
+        "prior": {
+          "count": 65,
+          "up_count": 38,
+          "brier": 0.24718802985450922,
+          "log": 0.6875207846228477,
+          "mean_up_probability": 0.5186775868957252
+        },
+        "comparison": {
+          "differences": {
+            "CONTROL": {
+              "brier": -0.0011756115395383793,
+              "log": -0.002356573358988867
+            },
+            "CPU_INITIAL": {
+              "brier": 0.0017333164196409734,
+              "log": 0.0034863255950700056
+            },
+            "PRIOR": {
+              "brier": -0.003998512482042971,
+              "log": -0.008016597725970298
+            }
+          },
+          "passes": false
+        }
+      },
+      "future": {
+        "candidate": {
+          "count": 75,
+          "up_count": 40,
+          "brier": 0.24711147359832636,
+          "log": 0.6873669505685928,
+          "mean_up_probability": 0.5066567814524179
+        },
+        "control": {
+          "count": 75,
+          "up_count": 40,
+          "brier": 0.24742750521330203,
+          "log": 0.6879994371642197,
+          "mean_up_probability": 0.5013455748111245
+        },
+        "cpu_initial": {
+          "count": 75,
+          "up_count": 40,
+          "brier": 0.24689391721992052,
+          "log": 0.686928394005984,
+          "mean_up_probability": 0.5166262474208
+        },
+        "prior": {
+          "count": 75,
+          "up_count": 40,
+          "brier": 0.24938213578334975,
+          "log": 0.6919112686014336,
+          "mean_up_probability": 0.5111241709344304
+        },
+        "comparison": {
+          "differences": {
+            "CONTROL": {
+              "brier": -0.0003160316149756759,
+              "log": -0.0006324865956269798
+            },
+            "CPU_INITIAL": {
+              "brier": 0.00021755637840584208,
+              "log": 0.00043855656260871623
+            },
+            "PRIOR": {
+              "brier": -0.002270662185023392,
+              "log": -0.004544318032840833
+            }
+          },
+          "passes": false
+        }
+      }
+    }
+  },
+  "comparison_decision": "FAIL_COMPARISON_NO_CONTINUATION",
+  "passed_cells": [],
+  "first_triplet_witness": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACCUM3_NATIVE_20261110_001/FIRST_TRIPLET_WITNESS.json",
+    "sha256": "baaba69c5ab22a016eb2db806448011bfc8aea9842b96cb2cf1db652b965a5ed"
+  },
+  "independent_first_triplet_validation": {
+    "witness": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACCUM3_NATIVE_20261110_001/FIRST_TRIPLET_WITNESS.json",
+      "sha256": "baaba69c5ab22a016eb2db806448011bfc8aea9842b96cb2cf1db652b965a5ed"
+    },
+    "arrays": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACCUM3_NATIVE_20261110_001/FIRST_TRIPLET_GRADIENTS.npz",
+      "sha256": "997821c4d52c1be83bbd96c182a72e410638df62f4750a99505f8ec9f66d262a"
+    },
+    "max_abs_accumulation_error": 2.9802322387695312e-08,
+    "max_normalized_accumulation_error": 0.002222384898821363,
+    "none_mask_exact": true,
+    "hook_calls_total": 1710,
+    "max_hook_calls_per_parameter": 1,
+    "independent_preclip_norm_fp64": 3.0645113830299007,
+    "reported_preclip_norm_fp32": 3.064509630203247,
+    "preclip_norm_abs_error": 1.7528266536004367e-06,
+    "preclip_norm_atol": 1e-07,
+    "preclip_norm_rtol": 0.0001,
+    "scope": "Independent sum of actual loss/3 hook contributions and stored accumulated gradient; not an independently differentiated unscaled-loss oracle."
+  },
+  "optimizer_preclip_norms": [
+    3.064509630203247,
+    1.002769112586975,
+    4.138487339019775,
+    1.8263500928878784,
+    5.599540710449219,
+    1.658845067024231,
+    2.1017699241638184,
+    1.5342015027999878
+  ],
+  "clip_steps": 8,
+  "updated_parameter_tensors_per_step": [
+    570,
+    570,
+    570,
+    570,
+    570,
+    570,
+    570,
+    570
+  ],
+  "independent_validation": {
+    "status": "PASS_INDEPENDENT_ACCUM3_NATIVE_REVIEW",
+    "max_score_error": 1.1102230246251565e-16,
+    "max_head_projection_abs_error": 4.713588300231386e-08,
+    "counts": {
+      "state_payload_decodes": 2,
+      "initial_checkpoint_decodes": 1,
+      "evidence_capsule_decodes": 1,
+      "weights_only": true,
+      "models": 0,
+      "forwards": 0,
+      "optimizers": 0,
+      "optimizer_steps": 0,
+      "backwards": 0,
+      "autograd_calls": 0,
+      "target_loader_calls": 0
+    }
+  },
+  "timing": {
+    "whole_command_seconds": 357.25610851899546,
+    "worker_seconds": 353.6550878439957,
+    "review_whole_seconds": 7.271680713995011,
+    "review_worker_seconds": 5.360726204002276,
+    "preflight_seconds": 4.903674711997155,
+    "peak_rss_bytes": 5725454336,
+    "initial_baseline_forwards": 0,
+    "control_rerun_forwards": 0,
+    "code_preparation_and_waiting_included": false,
+    "identical_workload_speedup_measured": false
+  },
+  "findings": [
+    "All four gates fail. TRAIN S/F improve from CPU INITIAL, but improve less than CONTROL and remain worse than the frozen prior in Brier and log loss.",
+    "Both later S/F improve versus CONTROL and beat prior, but remain worse than CPU INITIAL. This is reduced later regression with weaker TRAIN adaptation, not a shared direction correction.",
+    "The test changes accumulation and update/moment/decay exposure together. It does not establish that aggregation alone caused either result.",
+    "All8 accumulated steps are still clipped. No clipping threshold, learning rate or group-size sweep follows.",
+    "First triplet has1710 parameter hook calls, one per active parameter per backward. Actual FP32 accumulation matches the sum of observed loss/3 gradients within2.980232239e-8; None masks and all8 genuine optimizer steps are verified.",
+    "FINAL is retained honestly as a distinct private evidence capsule with24micro/384rows/8updates/pending0. Canonical INITIAL remains unchanged; no canonical resume authority is claimed.",
+    "The prior analytic cross-period interference remains real local evidence, but this native intervention does not qualify it as the complete cause or a fix of the fullpass failure."
+  ],
+  "full_train_cause_established": false,
+  "full_train_correction_qualified": false,
+  "later_direction_improvement_established": false,
+  "canonical_resume_authority": false,
+  "training_authorized": false,
+  "native_execution_authorized": false,
+  "candidate_selection": false,
+  "promotion_authorized": false,
+  "test_data_used": false,
+  "next_action": "No ACCUM3 continuation, fullfit or accumulation-size/LR/momentum sweep. Use retained original full-population INITIAL/FINAL and converged-readout evidence to check whether the fullpass loss is primarily period-level mean drift, probability dispersion or lost target alignment; first verify which native monthly decomposition already exists and reuse it. No new model run is admitted until a distinct mechanism is isolated.",
+  "limits": [
+    "Canonical INITIAL and distinct diagnostic FINAL seals, named parameter/optimizer/RNG/order bindings and actual24micro/384rows/8updates/pending0 checked; no canonical resume claim or optimizer replay.",
+    "First-triplet observed loss/3 contributions independently summed; division3 is source evidence, not a separately differentiated unscaled-gradient oracle. Later preclip norms/step timing remain producer witnesses.",
+    "M5 head projections, axes/masks and primary scores independently recalculated from saved CPU captures using qualified reader/math; CONTROL state/forward provenance is reused.",
+    "Same data presentations but fewer updates alter moment/decay/parameter history. Two reused192-row development panels are not untouched generalization or full-population qualification. Either gate outcome is a valid technical completion.",
+    "Same24 selected chronological SPREAD microbatches, not the three widely separated batches of the analytic diagnosis.",
+    "Only75/86 known S/F sides in TRAIN192 and65/75 in later192. These reused development panels are not untouched confirmation or full-population evidence.",
+    "First-triplet hooks qualify accumulation of actual scaled-loss gradients; division3 and later step timing rely on bound producer code/runtime, not a second independent backward pass.",
+    "Control and CPU baseline were reused; elapsed time is the candidate command, not an identical-workload speedup or end-to-end project time."
+  ]
+}

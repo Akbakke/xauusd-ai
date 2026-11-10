@@ -15,53 +15,63 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_ACCUM3_NATIVE_ADMITTED.
+Policystatus: TA_M5_ACCUM3_NATIVE_COMPLETE_INSUFFICIENT.
 
-Én særskilt native ACCUM3-kandidat er kvalifisert, ennå ikke kjørt:
+[ACCUM3 native-prøven](docs/TA_M5_ACCUM3_NATIVE_REVIEW.json) er fullført og
+uavhengig verifisert; alle fire resultatporter feiler. Rot:
  /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACCUM3_NATIVE_20261110_001
-PLAN SHA bc0234e61d56bdd5ebec8d27d0a12402c3cfcfd2cfb4537fb4255944670413cd.
-Worker SHA b9a874f62866574152c401a331421d93d8f772a19d8660b3cfd0ee74b6216cb3.
-Reviewer SHA f913e7dc3c8d9dfc1ba2e4dd5947a7800626056b324dabd47f824e2be72c311b.
-Root har lest alle408/180 linjer, separat kildereview og metadata-preflight
-bestått. Preflight 4,904s, ingen modell eller payloaddekoding.
+RESULT SHA a6c3f6f3b492359a9960cfcad4fbf81a6341f97c7bc7a43bd15b22f65ac536cc.
+REVIEW SHA d2390b037057aa35831460629c504c6b00dfe342471c745a166aa67b6b2b70dc.
+Alle trenings-/engangsporter stengt; training_enabled=false.
 
-Samme original ae772 CPUINITIAL,384SPREAD24 mikrobatcher, ordre og CPU-RNG
-som gjenbrukt HEAD_UPDATE_FREEZE CONTROL24.24 separate genuine B16-loss
-beholdes; loss/3 backward og ett uendret globalclip1/AdamW-steg per triplet.
-Ingen aktivitet→C-detach, LR-/moment-/mask-/samplerendring eller coreendring.
-Lik dataeksponering,8 mot24 steg: momentklokke, decay og parameterbane endres.
-Påfølgende SPREAD-tripletter er ikke de tre vidt adskilte diagnosebatchene.
+Samme original ae772 CPUINITIAL og384SPREAD24-rader/order/RNG som CONTROL24.
+24 canonical B16-loss/3-backwards,8 globalclip1/AdamW-steg. Alle fem TFs
+side- og aktivitetslæring beholdt. Ingen core-/input-/mål-/samplerendring.
+8 mot24 steg endrer også moment/decay/parameterbane; ingen ren
+akkumuleringsårsak er isolert. Påfølgende SPREAD-tripletter er ikke de tre
+vidt adskilte batchene i den tidligere gradientdiagnosen.
+
+Brier kandidat / CONTROL / CPUINITIAL / prior:
+TRAIN S 0,252980 /0,252419 /0,254605 /0,252092.
+TRAIN F 0,251241 /0,250667 /0,252176 /0,250641.
+Senere S 0,243190 /0,244365 /0,241456 /0,247188.
+Senere F 0,247111 /0,247428 /0,246894 /0,249382.
+Logtap gir samme konklusjon. TRAIN bedres mindre enn CONTROL og slår ikke
+prior. Senere bedres mot CONTROL/prior, men er svakere enn CPUINITIAL.
+Dette er mindre senere regresjon mot svakere TRAIN-tilpasning, ingen
+kvalifisert felles retningsrettelse. Bare75/86 og65/75 kjente S/F-sider i
+de to gjenbrukte192-panelene; ingen fullpopulasjon eller urørt generalisering.
 
 Én modell/optimizer/INITIAL-dekoding/strictrestore,48 forwards,24 backwards,
-null ekstra autograd og8 optimizersteg. Første raw/loss og hele RNG-kjeden
-matcher CONTROL. Første triplets readonly parameterhooks observerer alle
-loss/3-gradientbidrag og verifiserer faktisk akkumulering/None før clipping;
-hooks fjernes før første steg. Maks256MiB privat vitne, ingen ny fullgrad-audit.
+0 ekstra autograd,8 step-callbacks og8 ekte oppdateringer. Alle570 parametre
+oppdatert8 ganger. Alle8 akkumulerte steg er fortsatt klippet.
+Første raw/loss og hele RNG-kjeden matcher CONTROL.
+Første triplet:1710 readonly hooks, én per parameter/backward; None-mask
+eksakt og gradientakkumulering avviker maksimalt2,980e-8. Hooks fjernet før
+første steg. Divisjon3 er kildebevis, ikke en ekstra uskalert gradientoracle.
 
-Canonical checkpoint-kontrakt forutsetter accum1/ett steg per mikrobatch.
-INITIAL gjenbrukes under ekte gammel kilde og recipe1. FINAL beholdes kun
-i eget privat evidence-capsule-schema med faktisk24micro/384rows/8updates/
-pending0, theta/buffere/Adam/RNG/inventar og separat execution-route3.
-Ingen falsk cursor/skips, canonical resume eller promotion; ingen coreendring.
+FINAL beholdes i eget privat evidence-capsule-schema:24micro/384rows/
+8updates/pending0, faktiske theta/buffere/Adam/RNG/inventar.96,715MB,
+SHA5444a64eb69538018c61f875a0fa870b490eaf5e4d7e4a72723c20a90bf7adbd.
+Modell5be0bbc49fe399b04d82fa0c87d072500331f1a3f05d78af895a61ece22ff77c.
+Canonical recipe1 brukes bare som ekte INITIAL-/optimizer-loss-referanse;
+egen execution-route3. Ingen canonical resume eller promotion.
 
-Begge faste192-raders TRAIN/senere-TRAIN-paneler evalueres ubetinget.
-CPU-native INITIAL og CONTROL24 gjenbrukes uten ny forward. Alle fire S/F-
-celler må slå CONTROL, INITIAL og frystprior i både Brier og logtap med1e-8.
-Negativt utfall er fullført diagnose, ikke tillatelse til sveip eller fullfit.
-Små gjenbrukte utviklingspaneler beviser ikke fullpopulasjon eller økonomi.
+Helkommando357,256s (5m57s), worker353,655s; review7,272s, preflight4,904s.
+PeakRSS5,725GB. Ingen baseline-/kontrollforward kjørt på nytt.
+To weights_only-dekodinger i review, ingen modell/forward/optimizer.
+Uavhengig scoreavvik1,111e-16. Forberedelse/venting utenom; ingen målt
+akselerasjon av identisk arbeidsmengde.
 
-Produsent12G/512M/én tråd/900s. Review etter terminal4G/512M/én tråd/180s:
-to weights_only-dekodinger (INITIAL og privat FINAL), ingen modell/forward/
-optimizer, uavhengig vitnesum/headprojeksjon/score og faktisk steg-/RNG-binding.
-training_enabled=true gjelder KUN denne stage én gang; native/fullfit stengt.
-Ikke endre fryst kilde/policy eller start parallelle tunge jobber.
+Ingen ACCUM3-videreføring, fullfit eller accum-/LR-/momentumsveip.
+Neste steg bruker lagrede original INITIAL/FINAL-fullpopulasjonsoutputs og
+konvergert readout-bevis: avklar hva som allerede er målt per måned, og skill
+periodevis middelavvik fra sannsynlighetsspredning og måltilpasning.
+Ingen ny modellkjøring før en særskilt gjenværende mekanisme er isolert.
 
-[Forrige AdamW-kryssperiodekontroll](docs/TA_M5_ADAM_CROSS_PERIOD_REVIEW.json)
-viste ugunstig Adam-kryssmiddel i alle fire celler, mens self og samlet middel
-var gunstige. INITIAL klipping omvekter batchene; FINAL gammelt moment snur
-ellers gunstige gradientbidrag. Fullpass-årsak er fortsatt ubevist.
-Tidligere accum8-test var frosne51e0-heads; begge kandidater forverret TRAIN
-og senere TRAIN ble ikke lest. Den testet ingen native backboneakkumulering.
+[AdamW-kryssperiodekontrollen](docs/TA_M5_ADAM_CROSS_PERIOD_REVIEW.json)
+er fortsatt korrekt lokal evidens, men denne native prøven kvalifiserte
+ingen fullpass-årsak eller retningsrettelse.
 Originale checkpoints bevares. TEST, GC, Entry/Exit og handel er stengt.
 
 MIX24 er fullført og uavhengig verifisert:
