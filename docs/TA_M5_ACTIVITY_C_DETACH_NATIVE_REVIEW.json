@@ -1,0 +1,419 @@
+{
+  "status": "COMPLETE_VERIFIED_ACTIVITY_C_DETACH_INSUFFICIENT",
+  "stage": "market_state_ta_m5_activity_c_detach_native_20261110_001",
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_C_DETACH_NATIVE_20261110_001/PLAN.json",
+    "sha256": "0a0ada217410fa46e213a7a3e46682149ed5675b34b3fbb1ef6bfc1c35e173ec"
+  },
+  "worker": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_C_DETACH_NATIVE_20261110_001/probe.py",
+    "sha256": "5194dcaddd388850bb624aa5facaafe1c3be1a7db4733fde69522586251336a8"
+  },
+  "controller": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_C_DETACH_NATIVE_20261110_001/CONTROLLER.json",
+    "sha256": "8f19edc9235003dfff6b3c09461da600b2a39aa63b6415562292f9aac61ecc68"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_C_DETACH_NATIVE_20261110_001/RESULT.json",
+    "sha256": "b8be3574910dd5cd2010f47c00f1ff832e0e4f7a129a4fa06f6ec10f6498c608"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_C_DETACH_NATIVE_20261110_001/TERMINAL.json",
+    "sha256": "890e8f653284578a005d263fedec1cdf3c9af473792696da1be54047901c5e59"
+  },
+  "review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_C_DETACH_NATIVE_20261110_001/REVIEW.json",
+    "sha256": "cc3035669e5ff9b7bd76c7f5f7fd13a7008248634bbb6a584fe4fe44c98bb720"
+  },
+  "reviewer": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_C_DETACH_NATIVE_20261110_001/review.py",
+    "sha256": "9468a69620ee8777b6f88ab46b5c850c4c7bca87ba1072decb77230e09a11e9e"
+  },
+  "review_command": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_C_DETACH_NATIVE_20261110_001/REVIEW_COMMAND.json",
+    "sha256": "972feefd38f16813bf50744b8ed8e5be242999e35ba61c192a0bf83c75333d7a"
+  },
+  "source_base_commit": "72e5b7b50d61b473349e46be98bb826549345435",
+  "admission_commit": "edea5b62a5d9ae73325f17c980f247249f21efdc",
+  "source_unchanged_at_terminal": true,
+  "scope": "One original-ae77224-update activity-to-C-only detach candidate; qualified CONTROL24 reused. Same384 spread rows, CPU-state/RNG/order/emptyAdam and genuine5TF input/side supervision. Both192-row panels always scored.",
+  "initial_checkpoint": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_UPDATE_FREEZE_NATIVE_20261110_001/INITIAL_CPU_STATE.pt",
+    "sha256": "4d7cfe73bcf7d7fff05ebfd87312b553db186c1626981e13f40ba9dbb2b1a659"
+  },
+  "initial_source_commit": "4310b752c3ff511a7e380dfad189d1eb7f3280d9",
+  "cpu_initial_baseline": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_QUERY_BACKBONE_ATTRIBUTION_20261110_001/INITIAL_HIDDEN_AND_PARAMETERS.npz",
+    "sha256": "24972681dd2ac505765924d93f52911325719d9c3e35e59492e666438e3ceb5c"
+  },
+  "final_checkpoint": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_C_DETACH_NATIVE_20261110_001/CANDIDATE_FINAL_STATE.pt",
+    "sha256": "2ffb659f8ab4640b4d6afbdda81207e5a3c5f9d2fe698714737f59ae3a599df8"
+  },
+  "final_model_state_sha256": "635a07c3538f50c04c1c733341a56114ca169a8491d67cb5a86a9bdd1b43ade0",
+  "counts": {
+    "model_constructions": 1,
+    "optimizer_constructions": 1,
+    "checkpoint_loads": 1,
+    "full_state_restores": 1,
+    "forwards": 48,
+    "extra_decoder_calls": 48,
+    "backwards": 24,
+    "autograd_calls": 2,
+    "optimizer_step_calls": 24,
+    "optimizer_updates": 24,
+    "checkpoint_writes": 1,
+    "checkpoint_bytes": 96753498,
+    "backbone_hook_calls": 24,
+    "resume_state_load_calls": 1,
+    "resume_state_load_returns": 1
+  },
+  "scores": {
+    "TRAIN": {
+      "state": {
+        "candidate": {
+          "count": 75,
+          "up_count": 34,
+          "brier": 0.25274007706235013,
+          "log": 0.6986455662224108,
+          "mean_up_probability": 0.5243346544618478
+        },
+        "control": {
+          "count": 75,
+          "up_count": 34,
+          "brier": 0.25241911928061056,
+          "log": 0.6979965262484084,
+          "mean_up_probability": 0.521921133724309
+        },
+        "cpu_initial": {
+          "count": 75,
+          "up_count": 34,
+          "brier": 0.2546054101579659,
+          "log": 0.7023848081319856,
+          "mean_up_probability": 0.5324667999635628
+        },
+        "prior": {
+          "count": 75,
+          "up_count": 34,
+          "brier": 0.2520920936958483,
+          "log": 0.697333478245525,
+          "mean_up_probability": 0.5186775868957253
+        },
+        "comparison": {
+          "differences": {
+            "CONTROL": {
+              "brier": 0.00032095778173957257,
+              "log": 0.0006490399740024522
+            },
+            "CPU_INITIAL": {
+              "brier": -0.001865333095615762,
+              "log": -0.003739241909574753
+            },
+            "PRIOR": {
+              "brier": 0.0006479833665018475,
+              "log": 0.0013120879768857563
+            }
+          },
+          "passes": false
+        }
+      },
+      "future": {
+        "candidate": {
+          "count": 86,
+          "up_count": 41,
+          "brier": 0.25040551715463905,
+          "log": 0.6939571172888058,
+          "mean_up_probability": 0.5053104980414077
+        },
+        "control": {
+          "count": 86,
+          "up_count": 41,
+          "brier": 0.2506672646446568,
+          "log": 0.694481220169846,
+          "mean_up_probability": 0.502255621208216
+        },
+        "cpu_initial": {
+          "count": 86,
+          "up_count": 41,
+          "brier": 0.25217624585221293,
+          "log": 0.6975053267272607,
+          "mean_up_probability": 0.514413105702951
+        },
+        "prior": {
+          "count": 86,
+          "up_count": 41,
+          "brier": 0.25064115047825425,
+          "log": 0.6944297135800547,
+          "mean_up_probability": 0.5111241709344304
+        },
+        "comparison": {
+          "differences": {
+            "CONTROL": {
+              "brier": -0.00026174749001772746,
+              "log": -0.0005241028810402115
+            },
+            "CPU_INITIAL": {
+              "brier": -0.0017707286975738867,
+              "log": -0.003548209438454908
+            },
+            "PRIOR": {
+              "brier": -0.00023563332361520306,
+              "log": -0.00047259629124885016
+            }
+          },
+          "passes": true
+        }
+      }
+    },
+    "OOF": {
+      "state": {
+        "candidate": {
+          "count": 65,
+          "up_count": 38,
+          "brier": 0.24417487524592524,
+          "log": 0.6814821377445373,
+          "mean_up_probability": 0.5007420804870901
+        },
+        "control": {
+          "count": 65,
+          "up_count": 38,
+          "brier": 0.24436512891200463,
+          "log": 0.6818607602558663,
+          "mean_up_probability": 0.500710412376971
+        },
+        "cpu_initial": {
+          "count": 65,
+          "up_count": 38,
+          "brier": 0.24145620095282527,
+          "log": 0.6760178613018074,
+          "mean_up_probability": 0.5195488507402641
+        },
+        "prior": {
+          "count": 65,
+          "up_count": 38,
+          "brier": 0.24718802985450922,
+          "log": 0.6875207846228477,
+          "mean_up_probability": 0.5186775868957252
+        },
+        "comparison": {
+          "differences": {
+            "CONTROL": {
+              "brier": -0.00019025366607938743,
+              "log": -0.0003786225113290298
+            },
+            "CPU_INITIAL": {
+              "brier": 0.0027186742930999652,
+              "log": 0.005464276442729843
+            },
+            "PRIOR": {
+              "brier": -0.003013154608583979,
+              "log": -0.006038646878310461
+            }
+          },
+          "passes": false
+        }
+      },
+      "future": {
+        "candidate": {
+          "count": 75,
+          "up_count": 40,
+          "brier": 0.24714808438486305,
+          "log": 0.6874406803716264,
+          "mean_up_probability": 0.5029758041970187
+        },
+        "control": {
+          "count": 75,
+          "up_count": 40,
+          "brier": 0.24742750521330203,
+          "log": 0.6879994371642197,
+          "mean_up_probability": 0.5013455748111245
+        },
+        "cpu_initial": {
+          "count": 75,
+          "up_count": 40,
+          "brier": 0.24689391721992052,
+          "log": 0.686928394005984,
+          "mean_up_probability": 0.5166262474208
+        },
+        "prior": {
+          "count": 75,
+          "up_count": 40,
+          "brier": 0.24938213578334975,
+          "log": 0.6919112686014336,
+          "mean_up_probability": 0.5111241709344304
+        },
+        "comparison": {
+          "differences": {
+            "CONTROL": {
+              "brier": -0.0002794208284389865,
+              "log": -0.0005587567925933179
+            },
+            "CPU_INITIAL": {
+              "brier": 0.00025416716494253144,
+              "log": 0.0005122863656423782
+            },
+            "PRIOR": {
+              "brier": -0.0022340513984867028,
+              "log": -0.004470588229807171
+            }
+          },
+          "passes": false
+        }
+      }
+    }
+  },
+  "comparison_decision": "FAIL_COMPARISON_NO_CONTINUATION",
+  "passed_cells": [
+    [
+      "TRAIN",
+      "future"
+    ]
+  ],
+  "first_gradient_witness": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ACTIVITY_C_DETACH_NATIVE_20261110_001/FIRST_GRADIENT_WITNESS.json",
+    "sha256": "9e1d81984da65c990903f739c55d9f0128cfd1cecd25621dbb12860b75c45f46"
+  },
+  "producer_first_gradient_witness_max_abs_error": 1.341104507446289e-07,
+  "independent_review": {
+    "status": "PASS_INDEPENDENT_ACTIVITY_C_DETACH_NATIVE_REVIEW",
+    "first_joint_gradient_hash_matches_prior_control": true,
+    "max_score_error": 1.6653345369377348e-16,
+    "max_head_projection_abs_error": 3.948958754440568e-08,
+    "counts": {
+      "checkpoint_decodes": 2,
+      "checkpoint_weights_only": true,
+      "models": 0,
+      "forwards": 0,
+      "optimizers": 0,
+      "optimizer_steps": 0,
+      "backwards": 0,
+      "target_loader_calls": 0
+    }
+  },
+  "root_derived_candidate_minus_CONTROL_Brier_decomposition": {
+    "TRAIN": {
+      "state": {
+        "delta_brier": 0.00032095778173957257,
+        "delta_empirical_mean_error_squared": 0.0003369012395221067,
+        "delta_centered_brier": -1.5943457782534136e-05
+      },
+      "future": {
+        "delta_brier": -0.00026174749001772746,
+        "delta_empirical_mean_error_squared": 0.00016520085697989807,
+        "delta_centered_brier": -0.00042694834699762553
+      }
+    },
+    "OOF": {
+      "state": {
+        "delta_brier": -0.00019025366607938743,
+        "delta_empirical_mean_error_squared": -5.313220931576698e-06,
+        "delta_centered_brier": -0.00018494044514781073
+      },
+      "future": {
+        "delta_brier": -0.0002794208284389865,
+        "delta_empirical_mean_error_squared": -0.0001016371200129512,
+        "delta_centered_brier": -0.00017778370842603532
+      }
+    }
+  },
+  "timing": {
+    "whole_command_seconds": 359.3502618979983,
+    "worker_seconds": 356.050316877001,
+    "preflight_whole_seconds": 5.13241480999568,
+    "review_whole_seconds": 5.188954874996853,
+    "review_worker_seconds": 3.322150126004999,
+    "peak_rss_bytes": 5726588928,
+    "code_preparation_and_waiting_included": false,
+    "control_rerun_forwards": 0,
+    "initial_baseline_forwards": 0,
+    "identical_workload_speedup_measured": false
+  },
+  "findings": [
+    "Candidate beats matchedCONTROL in TRAIN F and both later cells, but worsens TRAIN S. Brier/log agree in all4 cells.",
+    "Only TRAIN F beats all3 predeclared references. Both later cells beat frozenprior and CONTROL, but remain worse than CPUINITIAL.",
+    "Direct activity-to-C routing has a measured effect under sequential updates, yet its complete removal does not satisfy the requested shared TRAIN/later correction.",
+    "First native joint-gradient hash matchesCONTROL; candidate first-gradient witness matches side-onlyC and jointP/heads within1.341104507e-7. All24 raw/logprob andRNG checks pass; actual globalclip1 andAdamW remain canonical.",
+    "Centered Brier versusCONTROL improves in all4 cells, while TRAIN empirical mean-error squared increases. TRAIN S total deterioration is attributable arithmetically to the larger mean-error term; this is not true conditional bias, AUC or historical fullpass cause.",
+    "CPU-native INITIAL replaces the earlier GPU-cached INITIAL for primary comparison before any outcome was seen; no additional baseline model execution.",
+    "Existing original per-batch C Gram evidence has mixed activity-to-side signs at INITIAL, while all three sampled FINAL batches are adverse for both sides. Blanket removal therefore also discards locally helpful INITIAL contributions; this limits the intervention but does not establish the cause of later regression or qualify a new variant."
+  ],
+  "next_action": "No fullfit, promotion, automatic resume or strength sweep. Existing per-batch Gram review is complete and shows mixed INITIAL activity-to-C effects; this does not explain later regression. Reuse saved outputs and captures to isolate the remaining TRAIN/later mismatch before considering a distinct learning intervention.",
+  "full_train_correction_qualified": false,
+  "later_direction_improvement_established": false,
+  "training_cause_established": false,
+  "native_execution_authorized": false,
+  "test_data_used": false,
+  "training_authorized": false,
+  "candidate_selection": false,
+  "promotion_authorized": false,
+  "limits": [
+    "One predeclared activity-to-C detach route. All five TF side gradients and activity-to-P/heads remain; global clip and AdamW unchanged. Decoder values/log probabilities bit-equal every TRAIN batch. Same qualified ae772 CPU state/order/RNG, not historical GPU RNG replay. Reused CPU-native INITIAL192 per panel and CONTROL24; no control/baseline rerun. Later panel is reused development, not untouched confirmation. Final state is private diagnostic evidence, PLAN-bound, with no production resume/promotion authority. Negative comparison remains COMPLETE.",
+    "State seals, exact restored order/RNG and final optimizer IDs/steps independently checked; no optimizer replay or model execution.",
+    "M5 projections and all primary scores independently recalculated using qualified saved-data reader/math; fresh CPU-native INITIAL is primary, old GPU later reference is descriptive only.",
+    "Perbatch detach/gradient-route and first-backward comparisons remain bound source/runtime witnesses; no full gradients were saved for independent replay.",
+    "One fixed24-update contrast and reused small development panels; no full-TRAIN, untouched generalization, native resume or promotion qualification.",
+    "Only75/86 known S/F sides in TRAIN192 and65/75 in later192; these reused development panels do not establish full-population generalization or trading value.",
+    "The first gradient-route witness is producer runtime/source evidence; the independent review checks its metadata, state lineage, scores and projections without gradient replay."
+  ],
+  "existing_per_batch_activity_C_geometry": {
+    "scope": "Read-only extraction from existing qualified ORIGINAL_SHARED_GRADIENT JSON; no arrays, models, fits or new gradient computation.",
+    "definition": "negative Gram[eval_M5_S_or_F, train_all_activity] on backbone C; positive means increasing local eval BCE along negative activity gradient",
+    "points": {
+      "INITIAL": {
+        "source": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/INITIAL_GRADIENT.json",
+          "sha256": "9186288f81e72686aa6d2b55a942c39d01e7cc7a709226a1b7be59a70404c01d"
+        },
+        "per_batch": [
+          {
+            "batch_start": 0,
+            "state": -0.0014593843617447093,
+            "future": -0.001471861207348985
+          },
+          {
+            "batch_start": 14272,
+            "state": 0.004148082344827802,
+            "future": 0.005742163885206493
+          },
+          {
+            "batch_start": 29552,
+            "state": 0.0013433636468349408,
+            "future": -0.0009043276733092266
+          }
+        ],
+        "aggregate": {
+          "state": 0.0001544512592208176,
+          "future": 0.000719910793762123
+        }
+      },
+      "FINAL": {
+        "source": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_SHARED_GRADIENT_20261109_001/FINAL_GRADIENT.json",
+          "sha256": "31ee20239a82d525d4a6275468517590ebac68800456775d5ba9fbee0f775b28"
+        },
+        "per_batch": [
+          {
+            "batch_start": 0,
+            "state": 0.00915351631384005,
+            "future": 0.014882738920993989
+          },
+          {
+            "batch_start": 14272,
+            "state": 0.0017483833653555204,
+            "future": 0.007911479284104904
+          },
+          {
+            "batch_start": 29552,
+            "state": 0.0033689091163034658,
+            "future": 0.0010590619127055702
+          }
+        ],
+        "aggregate": {
+          "state": 0.0009938116286358307,
+          "future": 0.0025411602661490136
+        }
+      }
+    },
+    "limits": "Local plain-GD/BCE geometry, not AdamW/Brier effect or proof of the cause of later regression. Aggregate includes cross-batch terms and is not the mean of per-batch rows. These are original INITIAL/fullpass FINAL states, not the candidate24 FINAL."
+  }
+}
