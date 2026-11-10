@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-10T00:12:07.790111+00:00",
-  "status": "TA_M5_HEAD_UPDATE_FREEZE_COMPLETE_NEGATIVE",
+  "observed_utc": "2026-11-10T00:29:41.909805+00:00",
+  "status": "TA_M5_CLIP_TRACE_READONLY_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Reuse this negative causal contrast. Do not repeat head-freeze, sampler/reset or same-point-step probes. Any further experiment must identify a distinct measured directional mechanism first. All training gates are closed; cumulative fullpass deterioration and later-direction value remain unresolved.",
+  "next_action": "Run exact recorded-gradient arithmetic audit and bounded independent NumPy review, then close the one-use audit gate. No new model training or effective clipping change admitted. Interpret gradient sums through actual AdamW replay first.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1685,7 +1685,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Paired original M5 head-update freeze completed and independently verified; all four comparison gates fail.",
+    "current_activity": "Read-only recorded-gradient clipping/AdamW replay admitted after source and metadata checks.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1715,7 +1715,7 @@
     "existing_indicator_surface_changed": false,
     "training_started": true,
     "latest_terminal_role": "Paired24-update original-ae772 CONTROL versus HEADS_FIXED, both fixed TRAIN/later panels scored.",
-    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_UPDATE_FREEZE_NATIVE_20261110_001",
+    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_UPDATE_FREEZE_NATIVE_20261110_001/TERMINAL.json",
       "sha256": "d9f9600f4b9fc65730aff63bec74cfbff3428abe5116cbceed676e8505a4eac2"
@@ -1738,7 +1738,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Both arms learn locally on TRAIN but worsen later direction versus original INITIAL. Holding only M5 heads fixed is insufficient; no source correction qualified.",
+    "current_blocker": "Clipping changes relative batch contributions, but gradient-sum reversal alone is not an AdamW or predictive causal explanation. Fullpass and later-direction deterioration unresolved.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -71863,5 +71863,74 @@
     "whole_command_seconds": 592.4361233890013,
     "full_train_correction_qualified": false,
     "later_direction_improvement_established": false
+  },
+  "market_state_ta_m5_clip_trace_20261110_001": {
+    "status": "ADMITTED",
+    "execution_authorized": true,
+    "training_authorized": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/PLAN.json",
+      "sha256": "0f3233b703d5df93b8019bbe8c4add8586099aa43f34513084400569bcc34467"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/audit.py",
+      "sha256": "879285a314ea72b6e5e8b0b5e81607fd104c0655416d10b6ac58ca942ec2f761"
+    },
+    "controller_source": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/controller.py",
+      "sha256": "b74731356fa2a528f4454c4051411dc68b7d2ccde403a1bb3925c786252b5b47"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/PREFLIGHT.json",
+      "sha256": "ca185c77c7e022228bbeba6f3fb6c83d33301690d52ef236b9019dd1479dd12f"
+    },
+    "preflight_log": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/PREFLIGHT.log",
+      "sha256": "0be595f42a0949077375ea2acac563cd49e9d538498728bf2a9fec5744ae9717"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "max_checkpoint_bytes": 1073741824,
+    "max_model_constructions": 0,
+    "max_optimizer_constructions": 0,
+    "max_forwards": 0,
+    "max_backwards": 0,
+    "max_updates": 0,
+    "max_optimizer_steps": 0,
+    "max_checkpoint_decodes": 1,
+    "max_checkpoint_writes": 0,
+    "max_target_loader_calls": 0,
+    "memory_max": 4294967296,
+    "swap_max": 536870912,
+    "numerical_threads": 1,
+    "wall_seconds": 120,
+    "review_authorized": true,
+    "review_scope": {
+      "max_invocations": 1,
+      "max_checkpoint_decodes": 0,
+      "max_models": 0,
+      "max_forwards": 0,
+      "max_optimizer_steps": 0,
+      "memory_max": 4294967296,
+      "swap_max": 536870912,
+      "numerical_threads": 1,
+      "wall_seconds": 120
+    },
+    "review_completed_invocations": 0,
+    "test_data_used": false,
+    "scope": "Recorded-gradient FP64 AdamW replay of258M5head coordinates over24saved CONTROL steps. Actual clipped theta/m/v parity first; then raw and1/16 off-policy arithmetic and fixed-representation projections. One CPU-state decode, zero models/optimizers/new gradients.",
+    "source_review": {
+      "status": "PASS",
+      "agent": "/root/ta_formula_audit",
+      "worker": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CLIP_TRACE_20261110_001/audit.py",
+        "sha256": "879285a314ea72b6e5e8b0b5e81607fd104c0655416d10b6ac58ca942ec2f761"
+      },
+      "scope": "Root full258-line source read; independent AdamW bias-correction/epsilon/decay/index/parity/source-scope review. Counterfactual is off-policy and not adaptive training."
+    },
+    "standing_authorization_source": "GX1_RULES_20261105_zero_spend_local_work_and_active_direction_goal_exact_readonly_admission"
   }
 }
