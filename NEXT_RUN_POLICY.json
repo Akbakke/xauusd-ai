@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-10T16:30:02.337192+00:00",
-  "status": "TA_M5_FIXED_HEAD_FULL_LATER_CROSS_ADMITTED",
+  "status": "TA_M5_FIXED_HEAD_CROSS_COMPLETE_TEMPORAL_DRIFT_AND_REGULARIZATION_BOUNDARY_IDENTIFIED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed two fixed CPUreadouts are consumed and all training/launch flags closed. Frozen model capture is retained and qualified with original post-completion cleanup failure preserved. No native import, further fit/capture, GC, TEST, Entry, Exit, broker, trading or promotion admitted.",
-  "next_action": "Execute once the admitted cached full-later cross with locked W2 heads on INITIAL representations. Measure whether the observed later regression comes with head replacement or representation replacement along the fixed ordered path. No new model/fit/checkpoint/encoder.",
+  "next_action": "Prepare a new bounded TRAIN-only alpha boundary comparison .01 versus .1 on the frozen R1 representations, using the existing3 chronological inner splits, solver and pooled FP32 logloss criterion with the current qualified equal-observation weights perprefix.12 inner fits; at most2 fullfits only if.1 selected; otherwise reuse all existing.01fits/native/later evidence. Old alpha selection usedr0 and batch-dependent weights and improved monotonically to gridmax.01. Not admitted yet; no new model/encoder or causal-prefix affine calibration.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1434,7 +1434,7 @@
     "profitability_demonstrated": false,
     "required_before_more_extensive_training": true,
     "entry_learning_demonstrated": false,
-    "current_evidence_scope": "Native four-tensor import and same-instance weights-only roundtrip qualified; both fullTRAIN S/F beat INITIAL/prior. Full later17753: both beat R1 but both lose INITIAL; S barely beatsprior and F losesprior. Conditional AUC S.5230/F.5107; no stable generalization or economic edge demonstrated.",
+    "current_evidence_scope": "Native fullTRAIN readout recovery qualified, full later gate failed. New full-later fixed-head cross shows head replacement onr0 hurts and r1 helps underW2; no optimizer-cause proof. F improvesINITIAL Oct/Nov but December has near-zero ordering (AUC.5028), negative probability-truth covariance and risingmeanUP. Rise also present onall rows, not onlyknown-side selection. No generalization or edge proven.",
     "component_learning_measured": true,
     "component_learning_result": "NATIVE_FULL_TRAIN_M5_READOUT_RECOVERY_CONFIRMED_FULL_LATER_GATE_FAILED",
     "primary_entry_quality_qualified": false,
@@ -1698,7 +1698,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Execute once the admitted cached full-later cross with locked W2 heads on INITIAL representations. Measure whether the observed later regression comes with head replacement or representation replacement along the fixed ordered path. No new model/fit/checkpoint/encoder.",
+    "current_activity": "Prepare a new bounded TRAIN-only alpha boundary comparison .01 versus .1 on the frozen R1 representations, using the existing3 chronological inner splits, solver and pooled FP32 logloss criterion with the current qualified equal-observation weights perprefix.12 inner fits; at most2 fullfits only if.1 selected; otherwise reuse all existing.01fits/native/later evidence. Old alpha selection usedr0 and batch-dependent weights and improved monotonically to gridmax.01. Not admitted yet; no new model/encoder or causal-prefix affine calibration.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1727,11 +1727,11 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "Frozen fixed M5 native score COMPLETE; full later direction comparison fails.",
+    "latest_terminal_role": "Cached full-later fixed-head contrast COMPLETE; temporal drift and prior regularization-selection boundary identified.",
     "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FIXED_HEAD_ON_INITIAL_FULL_LATER_20261110_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_FIXED_NATIVE_SCORE_20261110_001/TERMINAL.json",
-      "sha256": "0058440f8a9fa9628fab2b39173ef3fa78497b24ef71ba8704aeafd4317ea6fe"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FIXED_HEAD_ON_INITIAL_FULL_LATER_20261110_001/TERMINAL.json",
+      "sha256": "bdb3fc79e6b1149bcee6a87ad9e9b39d87b2e4fac8f744c47bb597065ba9664e"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -1751,7 +1751,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Native full-later comparison failed. The new exact cached-only cross is ready; no next fitting or model job admitted.",
+    "current_blocker": "Full later M5 direction still fails INITIAL/prior. Current alpha.01 was inherited from oldr0/batch-weighted selection at its maximum; stronger regularization on newR1/equalweights remains untested.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -24696,7 +24696,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-10T17:31:24.025430+00:00",
+  "updated_utc": "2026-11-10T17:49:55.034916+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -74955,7 +74955,7 @@
     "original_receipts_preserved": true
   },
   "market_state_ta_m5_fixed_head_on_initial_full_later_20261110_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FIXED_HEAD_ON_INITIAL_FULL_LATER_20261110_001/PLAN.json",
       "sha256": "a7fcebba30b2788c25bb07a73ebed2e6c14153380062c3807d6e108ead1ecf3d"
@@ -74969,11 +74969,11 @@
       "sha256": "f101527ea5dd75ea53aa973b5c662cce6cc3393470c79e10c7c36e4bc88f1686"
     },
     "max_invocations": 1,
-    "remaining_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "remaining_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
-    "execution_authorized": true,
+    "execution_authorized": false,
     "data_reads_authorized": true,
     "training_authorized": false,
     "native_training_authorized": false,
@@ -75004,6 +75004,235 @@
     "goal_complete": false,
     "independent_source_review": "PASS fdc86e95800da9981e9e7187b6a37b51a2b14d583275b95e7b7e813bd4cfb0f4; full source plus actual fp32/metrics/auc helpers checked; no numerical/interface blocker.",
     "scope": "Locked W2 heads on full INITIAL later17753 representations, existing FP32 affine helper plus FP64 arithmetic diagnostic on same rounded coefficients. Ordered W0r0-W2r0-W2r1 contrast only. No fitting, selection, encoder, model or checkpoint.",
-    "standing_authority": "Active direction-only goal and standing zero-cost local-work authority; new exact cached-only audit admitted after source review and metadata preflight. No consumed plan replay."
+    "standing_authority": "Active direction-only goal and standing zero-cost local-work authority; new exact cached-only audit admitted after source review and metadata preflight. No consumed plan replay.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FIXED_HEAD_ON_INITIAL_FULL_LATER_20261110_001/RESULT.json",
+      "sha256": "28f778227e9efc1550f7dfa88097d608d95b021a209aadb36159addaff79a809"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FIXED_HEAD_ON_INITIAL_FULL_LATER_20261110_001/TERMINAL.json",
+      "sha256": "bdb3fc79e6b1149bcee6a87ad9e9b39d87b2e4fac8f744c47bb597065ba9664e"
+    },
+    "process_receipt": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FIXED_HEAD_ON_INITIAL_FULL_LATER_20261110_001/PROCESS_RECEIPT.json",
+      "sha256": "d491ec8f11c8271bbd6da0bc05be11009bf38c7c8d87c85dd04e434b783898a6"
+    },
+    "numeric_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FIXED_HEAD_ON_INITIAL_FULL_LATER_20261110_001/NUMERIC_REVIEW.json",
+      "sha256": "dc4a8d536860ee2215d54be13db2ea0a860a35872609b3b843000f9e7a93a3d2"
+    },
+    "monthly_rank_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FIXED_HEAD_ON_INITIAL_FULL_LATER_20261110_001/MONTHLY_RANK_REVIEW.json",
+      "sha256": "b02a73771d61ed7721e8fc7e3a1abb34f21b909ff26a65ca539aa012e239905c"
+    },
+    "all_row_mean_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FIXED_HEAD_ON_INITIAL_FULL_LATER_20261110_001/ALL_ROW_MEAN_REVIEW.json",
+      "sha256": "f006682cfdb0360ef946b3bdd498c57604914387a20e563bb82912b1b17c5255"
+    },
+    "private_outputs": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FIXED_HEAD_ON_INITIAL_FULL_LATER_20261110_001/PRIVATE_CROSS_OUTPUTS.npz",
+      "sha256": "39747aa8d05eb085af515ad19a7ad582055132205b78e58d1005290d58906f55"
+    },
+    "actual_counts": {
+      "backwards": 0,
+      "cached_linear_batch_calls": 2220,
+      "checkpoint_decodes": 0,
+      "decoded_archives": 4,
+      "encoder_forwards": 0,
+      "fits": 0,
+      "fp64_matmul_calls": 2,
+      "model_constructions": 0,
+      "optimizer_constructions": 0,
+      "private_npz_writes": 1,
+      "updates": 0
+    },
+    "measurements": {
+      "future": {
+        "CANDIDATE": {
+          "auc": 0.5107477534711145,
+          "brier": 0.24994216605754532,
+          "count": 7165,
+          "log": 0.6930317086725764,
+          "mean_p": 0.5172278634063887,
+          "predicted_up_share": 0.7871598046057222,
+          "prob_std": 0.02161276570464287,
+          "up_count": 3676
+        },
+        "CROSS_FP32": {
+          "auc": 0.5071192190846344,
+          "brier": 0.25095583024471785,
+          "count": 7165,
+          "log": 0.695075407774474,
+          "mean_p": 0.5356803916712086,
+          "predicted_up_share": 0.8625261688764829,
+          "prob_std": 0.02953191324495642,
+          "up_count": 3676
+        },
+        "CROSS_FP64": {
+          "auc": 0.5071191411153537,
+          "brier": 0.2509558303158719,
+          "count": 7165,
+          "log": 0.6950754079193988,
+          "mean_p": 0.5356803921690954,
+          "predicted_up_share": 0.8625261688764829,
+          "prob_std": 0.029531913854546916,
+          "up_count": 3676
+        },
+        "INITIAL": {
+          "auc": 0.5083225969633772,
+          "brier": 0.249855791231191,
+          "count": 7165,
+          "log": 0.6928588080616984,
+          "mean_p": 0.5143581495898966,
+          "predicted_up_share": 0.8015352407536637,
+          "prob_std": 0.016607159755415348,
+          "up_count": 3676
+        },
+        "PRIOR": {
+          "auc": 0.5,
+          "brier": 0.249833416409301,
+          "count": 7165,
+          "log": 0.6928139788167914,
+          "mean_p": 0.5111241709344305,
+          "predicted_up_share": 1.0,
+          "prob_std": 1.1102230246251565e-16,
+          "up_count": 3676
+        }
+      },
+      "state": {
+        "CANDIDATE": {
+          "auc": 0.523043324310824,
+          "brier": 0.2498223596463945,
+          "count": 6096,
+          "log": 0.6927946077158498,
+          "mean_p": 0.5231768165669072,
+          "predicted_up_share": 0.7403215223097113,
+          "prob_std": 0.03363310216428472,
+          "up_count": 3133
+        },
+        "CROSS_FP32": {
+          "auc": 0.5202962293006448,
+          "brier": 0.2499820002288631,
+          "count": 6096,
+          "log": 0.6931151172918111,
+          "mean_p": 0.5310401743616625,
+          "predicted_up_share": 0.8466207349081365,
+          "prob_std": 0.02708108086991819,
+          "up_count": 3133
+        },
+        "CROSS_FP64": {
+          "auc": 0.5202960138548859,
+          "brier": 0.24998200025501063,
+          "count": 6096,
+          "log": 0.6931151173441403,
+          "mean_p": 0.5310401751787769,
+          "predicted_up_share": 0.8466207349081365,
+          "prob_std": 0.02708108130849896,
+          "up_count": 3133
+        },
+        "INITIAL": {
+          "auc": 0.5219430966816074,
+          "brier": 0.24965248806034565,
+          "count": 6096,
+          "log": 0.6924524133660842,
+          "mean_p": 0.522249243054054,
+          "predicted_up_share": 0.7659120734908137,
+          "prob_std": 0.02872872349621819,
+          "up_count": 3133
+        },
+        "PRIOR": {
+          "auc": 0.5,
+          "brier": 0.2498279877882917,
+          "count": 6096,
+          "log": 0.6928031584293621,
+          "mean_p": 0.5186775868957252,
+          "predicted_up_share": 1.0,
+          "prob_std": 0.0,
+          "up_count": 3133
+        }
+      }
+    },
+    "ordered_contrasts": {
+      "future": {
+        "CPU_FP32": {
+          "brier": {
+            "candidate_minus_cross": -0.001013664187172525,
+            "candidate_minus_initial": 8.637482635431848e-05,
+            "candidate_minus_prior": 0.00010874964824431066,
+            "cross_minus_initial": 0.0011000390135268434,
+            "cross_minus_prior": 0.0011224138354168356,
+            "identity_error": 0.0
+          },
+          "log": {
+            "candidate_minus_cross": -0.0020436991018976114,
+            "candidate_minus_initial": 0.00017290061087793518,
+            "candidate_minus_prior": 0.00021772985578494275,
+            "cross_minus_initial": 0.0022165997127755466,
+            "cross_minus_prior": 0.002261428957682554,
+            "identity_error": 0.0
+          }
+        },
+        "FP64": {
+          "brier": {
+            "candidate_minus_cross": -0.001013664258326552,
+            "candidate_minus_initial": 8.637482635431848e-05,
+            "candidate_minus_prior": 0.00010874964824431066,
+            "cross_minus_initial": 0.0011000390846808705,
+            "cross_minus_prior": 0.0011224139065708627,
+            "identity_error": 0.0
+          },
+          "log": {
+            "candidate_minus_cross": -0.0020436992468224613,
+            "candidate_minus_initial": 0.00017290061087793518,
+            "candidate_minus_prior": 0.00021772985578494275,
+            "cross_minus_initial": 0.0022165998577003965,
+            "cross_minus_prior": 0.002261429102607404,
+            "identity_error": 0.0
+          }
+        }
+      },
+      "state": {
+        "CPU_FP32": {
+          "brier": {
+            "candidate_minus_cross": -0.00015964058246861756,
+            "candidate_minus_initial": 0.00016987158604883645,
+            "candidate_minus_prior": -5.628141897223715e-06,
+            "cross_minus_initial": 0.000329512168517454,
+            "cross_minus_prior": 0.00015401244057139385,
+            "identity_error": 0.0
+          },
+          "log": {
+            "candidate_minus_cross": -0.00032050957596130303,
+            "candidate_minus_initial": 0.00034219434976556773,
+            "candidate_minus_prior": -8.550713512356367e-06,
+            "cross_minus_initial": 0.0006627039257268708,
+            "cross_minus_prior": 0.00031195886244894666,
+            "identity_error": 0.0
+          }
+        },
+        "FP64": {
+          "brier": {
+            "candidate_minus_cross": -0.00015964060861614615,
+            "candidate_minus_initial": 0.00016987158604883645,
+            "candidate_minus_prior": -5.628141897223715e-06,
+            "cross_minus_initial": 0.0003295121946649826,
+            "cross_minus_prior": 0.00015401246671892244,
+            "identity_error": 0.0
+          },
+          "log": {
+            "candidate_minus_cross": -0.00032050962829055507,
+            "candidate_minus_initial": 0.00034219434976556773,
+            "candidate_minus_prior": -8.550713512356367e-06,
+            "cross_minus_initial": 0.0006627039780561228,
+            "cross_minus_prior": 0.0003119589147781987,
+            "identity_error": 0.0
+          }
+        }
+      }
+    },
+    "worker_seconds": 2.8639753879997443,
+    "whole_command_seconds": 3.3711772059996292,
+    "source_unchanged": true,
+    "conclusion": "Along fixed W0r0-W2r0-W2r1 path, head replacement hurts full-later S/F and representation replacement under W2 helps both. Primary original native full-later failure remains; no new candidate or fit."
   }
 }

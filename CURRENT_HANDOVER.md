@@ -13,71 +13,78 @@ M5 er prognosetakten; kausalt lukkede M15/H1/H4/D1 og genuine indikatorhistorikk
 er input. Alle fem TF beholder egne framtidige mål. GC er utsatt; TEST,
 Entry/Exit, broker, ordre, handel, spending og promotion er stengt.
 
-Policystatus: TA_M5_FIXED_HEAD_FULL_LATER_CROSS_ADMITTED.
-FIXED_NATIVE_SCORE001 er COMPLETE/konsumert, worker/controller/guardexit0,
-kjørt på kilde772156d4. Ingen modelljobb lever. Én ny cachekontroll er innrømmet;
-alle globale trenings-/native-launch-porter er false. Målet er uoppnådd.
+Policystatus:
+TA_M5_FIXED_HEAD_CROSS_COMPLETE_TEMPORAL_DRIFT_AND_REGULARIZATION_BOUNDARY_IDENTIFIED.
+FIXED_HEAD_ON_INITIAL_FULL_LATER001 er COMPLETE/konsumert,exit0,kilde83345450.
+Ingen modelljobb lever; ingen neste jobb innrømmet. Alle globale trenings- og
+native-launch-porter er false. Målet er fortsatt uoppnådd.
 
 Det som er gjort:
-Fire låste FP32 M5-tensorer fra fast readout e75974be ble overført til
-REVERSED174b. Kandidatmodell e94348ac. Faktisk CUDA-headkontroll på hele
-TRAIN29574 og senere192 består; R1-logits bitlike, kandidat mot CPU innen
-7,45e-8 rålogit /4,73e-10 logtap. Alle andre modellverdier/buffere/RNG/modi
-bevares. Faktisk privat weights-only-fil af2b8b78 dekodet og lastet strengt;
-row0-output/representasjon bitlik før/etter. Samme instans: ingen bevis for
-fresh-constructor restore, optimizer- eller canonical resume.
+Den foregående native kontrollen kvalifiserte fire låste W2 M5-tensorer på
+REVERSED174b og kandidatmodell e94348ac. Kun disse tensorene endret; alle øvrige
+modellverdier/buffere/RNG/modi bevart. Faktisk samme-instans weights-only
+diskroundtrip og row0-paritet består; fresh constructor/optimizer-resume er utestet.
+Begge fullTRAIN-mål slår INITIAL/prior. Full senere17753 slår R1 men taperINITIAL
+for begge mål; S slårprior så vidt og F taperprior. RESULT e5be50b5.
+Helekommando1227,256s,worker1223,079s;0 nye fits/optimizeroppdateringer.
+250W-grense,guardtopp129,03W/54Ccore/58Cmemory. Ingen kontrollert heltrenings-speedup.
 
-Full senere17753 er nå målt:192 rader gjenbrukt,17561 nye.
-1100 forwards=1098 manglende batcher inkl.B9+2 row0-kontroller.
-Én modell,to fildekodinger,7444 CUDA-headkall,2196 gamle-headkall,
-fire tensorimporter,én kandidatfil; ingen nye fits, backwards eller optimizeroppdateringer.
-R1 full-senere er192 lagrede native svar+17561 affine rekonstruksjoner på
-samme representasjoner; kandidat er192 faktiske GPU-heads+17561 native outputs.
+Den nye kontrollen anvendte de SAMME låste W2-hodene på hele INITIALs
+lagrede senere-representasjoner r0. Ingen fit,modell,encoder,checkpoint eller
+parameterendring.2220 CPU-B16-affine kall inkl.B9,to FP64-kontroller på samme
+avrundede vekter. Alle17753 akser/queryer/TF-masker eksakte,knownS6096/F7165.
+RESULT28f77822,PRIVATE_CROSS_OUTPUTS39747aa8. Worker2,864s,helekommando3,371s.
 
-M5 Brier INITIAL / R1 / KANDIDAT / fryst prior (lavere bedre):
-TRAIN S n10010:0,248473364 /0,248502819 /0,248194763 /0,249651008.
-TRAIN F n11909:0,249327011 /0,249488559 /0,249065517 /0,249876211.
-Full senere S n6096:0,249652488 /0,250329120 /0,249822360 /0,249827988.
-Full senere F n7165:0,249855791 /0,250801719 /0,249942166 /0,249833416.
-Logtap gir samme fortegn: begge TRAIN-mål slår INITIAL/prior; senerebegge
-slår R1 men taperINITIAL, S slårprior så vidt og F taperprior.
-Primærport FAIL_INITIAL_PRIOR_COMPARISON; ingen avrundingsuklarhet observert.
+M5 Brier INITIAL W0r0 → kryss W2r0 → faktisk kandidat W2r1 / fryst prior:
+S:0,249652488→0,249982000→0,249822360 /0,249827988.
+F:0,249855791→0,250955830→0,249942166 /0,249833416.
+Headbyttet pår0 svekkerS/F med+0,000329512/+0,001100039.
+Reprbyttet underW2 forbedrer med−0,000159641/−0,001013664.
+Logtap har samme fortegn. Alle ordnede identiteter stemmer. Dette er én fast
+funksjonell kryssbane, ikke Shapley, unik optimizerårsak eller bevis på at en
+latent koordinat svarer til en bestemt råTAfeature. Kryss er CPU,ikke ny nativeCUDA.
+Uavhengig10-cellers/70-felts kontroll: maksavvik1,11e-16 på0,058s,ingen matriser
+eller modeller omberegnet. FP32/FP64-scoreavvik≤1,45e-10 forlogtap.
 
-Kandidatens AUC TRAIN S/F0,5421/0,5318 faller til senere0,5230/0,5107.
-Senere S Brier-minus-prior = varians0,001131186 − kovariansgevinst0,001199656
-+ endret gjennomsnittsbias0,000062842 =−0,000005628.
-Senere F:0,000467112−0,000372113+0,000013751=+0,000108750.
-Dette er en eksakt beskrivelse av de lagrede svarene, ikke en ny kalibrator
-eller dokumentert markeds-edge. Den lille senere192 ga et for positivt bilde.
-OriginalFINALs eldre offset/affin-kalibrering cad67beb ga heller ingen løsning;
-det gjelder andre vekter og er ingen generell dom over nye kalibratorer.
+Kalendermåneder (hele utviklingsutvalget01.10–31.12.2024,ingen utvalgsseleksjon):
+F-kandidaten slårINITIAL i oktober/november, men desember forklarer fulltapet.
+F AUC:0,5253/0,5273/0,5028. DesemberINITIAL har også AUC0,5027.
+DesemberF:2Cov(p,y)=−0,00005755,var(p)=0,00048029,meanbias²=0,00049608.
+S AUC:0,5191/0,5398/0,5140; S taperINITIAL i alle tre måneder.
+F kjent-side meanUP:0,50858/0,51973/0,52447, mens observertUP er
+0,52816/0,50690/0,50220. ALL-rad meanUP:0,50814/0,51970/0,52503.
+Driften finnes altså også uten known-masken; dette er ikke bare utvalgsvekting.
+MONTHLY_RANK_REVIEW og ALL_ROW_MEAN_REVIEW beholder de aggregerte bevisene.
+En positiv affin kalibrator kan ikke tilføre rangering; en oktobertilpasning
+ville lære motsatt mean-korreksjon av behovet i nov/des. Ingen slik fit er startet.
 
-RESULT e5be50b5, uavhengig NUMERIC_REVIEW42135ad7:24 skårceller/120 felt,
-maksavvik1,11e-16 på0,987s; eksakte akser/masker og gjenbrukte koordinater,
-ingen ny modell/fit/forward. Alle private outputs/vekter/originaler bevares.
-Helekommando1227,256s (20m27), worker1223,079s,
-setup/import/roundtrip103,491s, manglende senere1116,253s.
-250W-grense; guardtopp129,03W,54C core/58C memory,592MiB. Ingen kontrollert
-speedup for hele treningsløpet er etablert.24 fokuserte tester, syntaks,
-endret-kildescan og git diff --check bestod før kjøringen; ingen kildeendring under den.
+Konkret metodegrense funnet:
+Nåværendealpha0,01 ble arvet fra INNER_L2 på gamle r0 og gamle batch-known-vekter.
+choose_l2.py:106/135 brukte h.weights; dagens equal-observation q/N var ikke brukt.
+Gammel pooled indrelogloss for alpha1e-6,1e-5,1e-4,.001,.01:
+.708618,.701479,.695375,.692566,.692015. Kurven bedret seg helt til ØVRE
+gridgrense. Å gjenta hele gamle gridet ville bare undersøke samme eller svakere
+regularisering. Dette er ikke påvist implementasjonsfeil eller årsaksbevis.
 
 Ikke gjort / hindring:
-Full senere-retning slår ikke de forhåndsvalgte referansene. Ingen entydig
-Adam-implementasjonsfeil er påvist. TRAIN-svekkelsen er fjernet med to faste
-readoutfits, men stabil senere forbedring/generaliserbarhet/profitt er ubevist.
+Full senere-retning slår ikke de forhåndsvalgte referansene. TRAIN-svekkelsen er
+fjernet med to readoutfits; stabil senere forbedring/profitt er fortsatt ubevist.
+Ingen ny encodertrening, kalibrator, alpha-valg eller kandidat er innrømmet nå.
 
-Neste steg:
-Bruk de samme LÅSTE W2-hodene på hele INITIALs lagrede senere-representasjoner
-(SCORE_CACHE8cc964f1,17753 rader), uten fit/modell/encoder/checkpoint.
-Sammenlikn W2r0−W0r0 og W2r1−W2r0 for å skille headbyttet fra reprbyttet
-langs denne bestemte kryssbanen. Tidligere kryss brukte R1s nativehoder og
-bare senere192; dette er et annet, fullstendig spørsmål. Ingen ny kandidat
-eller kalibrering velges på senereutfall. Eksakt PLANa7fcebba er nå separat innrømmet, workerfdc86e95.
-Uavhengig kildekontroll og metadata-preflight består (0,611s,ingen payload/claim).
-2220 CPU-B16-affine kall inkl.B9,to FP64-kontroller;0 fit/modell/checkpoint/encoder.
-Én audit innen120s/4G/512M,én numerisk tråd,ett privat NPZ≤8MiB.
-Bare direkte CPU-runtimekilder og immutable bevis bindes; tidligere native
-modellkvalifikasjon gjenbrukes. Ingen kjøring startet ved denne overleveringen.
+Neste presise kontroll (ny avgrenset design, må bindes separat):
+Sammenlikn barealpha.01 og.1 på R1 med dagens kvalifiserte equal-observationvekter,
+gjenbruk eksisterende tre TRAIN-splitter og solver.12 indre head-fits,0encoder.
+Fit-stop/score-start/score-stop:14768/14784/19712;
+19696/19712/24640;24624/24640/29574. B16-purge og issue+5min<cutoff beholdes.
+Vekter og normaliseringsmasse beregnes separat i hvert fitprefix.
+Velg laveste likevektede S/F-gjennomsnitt av pooled FP32-logtap; sterkestealpha
+innen1e-12 vinner. Alle128vekter+bias har samme kobledeL2, samme Newtonsolver.
+Hvis.01 vinner: gjenbruk nåværende låste fullfits og alle native/laterkontroller,
+ingen ny fullfit/scoring. Hvis.1 vinner: maksimaltto nye fullTRAIN-headfits,
+lås før senerecache åpnes, vurder samme fullTRAIN og hele senere motINITIAL/prior.
+Frossen encoder/normalisering så heleTRAIN inkl. indre scoreperioder: dette er
+betinget head-valg, IKKE encoder-OOF. Senere er gjenbrukt utvikling. Ingen nye
+alphaer, ny bølge eller native import følger automatisk av denne designen.
 
 Siste fullførte kontroll:
 
