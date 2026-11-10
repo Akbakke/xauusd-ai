@@ -15,7 +15,7 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_FIXED_READOUT_RECOVERY_MEASURED_NATIVE_AND_FULL_LATER_UNQUALIFIED.
+Policystatus: TA_M5_FIXED_NATIVE_AND_FULL_LATER_SCORE_ADMITTED.
 
 To faste M5-readoutfits på frossen REVERSED174b er COMPLETE/konsumert, exit0.
 Samme raw128D, alpha0,01, solver, biasregularisering og q/(5BN)-vekting som
@@ -55,10 +55,20 @@ prosessfeil. Helekommando1941,767s (32m22), worker1936,179s,
 capture1842,642s/setup90,277s. UTC er en annen klokke.250W-grense,
 målt topp131,93W/57C core/62C memory. Ingen kontrollert heltrenings-speedup.
 
-Neste nødvendige bevis: de fire låste head-tensorene i faktisk native modell,
-og hele senereTRAIN17753 mot INITIAL/prior, med gjenbruk av ferdige observasjoner.
-Ingen ny fit/alpha/utvalg eller native jobb er innrømmet. Alle porter er false.
-Målet er fortsatt uoppnådd.
+Neste bevis er nå separat innrømmet som én frossen producer: de fire låste
+M5-tensorene i faktisk modell og hele senereTRAIN17753 mot INITIAL/prior.
+PLAN279cbf0b, worker4e25ebf8.24 fokuserte tester og uavhengig kildekontroll består;
+eksakt metadata-preflight exit0 på10,242s,0 modeller/forwards/checkpointdekodinger.
+Gjenbruk29574 TRAIN-representasjoner og192 senere rader;1098 manglende senere
+forwards pluss2 row0-kontroller =1100.7444 faktiske CUDA-headkall,2196 gamle
+headkall for R1-referanse.Én modell,to fildekodinger,fire tensorimporter,
+én privat weights-only-fil; alle andre vekter/buffere/RNG/modi bevares.
+Roundtrip gjelder samme instans og vekter, ikke optimizer eller fresh constructor.
+TRAIN+full-senere S/F sammenlignes på samme observasjoner mot INITIAL/prior;
+R1 er diagnostisk. Ingen ny fit/alpha/utvalg.12G/512M,én numerisk tråd,
+3600s og eksisterende250W/170W draw/65C/80C-vakter. Originaler bevares.
+Ingen jobb startet ved denne overleveringen. Globale trenings-/native-launch-porter
+er false; bare den eksakte frosne produceren er innrømmet. Målet er uoppnådd.
 
 Siste fullførte kontroll:
 

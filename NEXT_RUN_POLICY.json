@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-10T16:30:02.337192+00:00",
-  "status": "TA_M5_FIXED_READOUT_RECOVERY_MEASURED_NATIVE_AND_FULL_LATER_UNQUALIFIED",
+  "status": "TA_M5_FIXED_NATIVE_AND_FULL_LATER_SCORE_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed two fixed CPUreadouts are consumed and all training/launch flags closed. Frozen model capture is retained and qualified with original post-completion cleanup failure preserved. No native import, further fit/capture, GC, TEST, Entry, Exit, broker, trading or promotion admitted.",
-  "next_action": "Qualify the four locked M5 head tensors in the actual frozen native model and evaluate the full later TRAIN panel17753 against INITIAL and frozen prior. Reuse available representations/outputs; no new fit, alpha choice or consumed capture replay. Smaller later192 improves versus INITIAL/prior but worsens versus REVERSED. No next model job admitted yet.",
+  "next_action": "Execute the one admitted frozen native four-tensor import and full later TRAIN17753 score plan. Reuse29574 TRAIN representations and192 later observations; exactly1098 missing later encodings plus2 row0 forward/weights-only roundtrip checks. No new fit, candidate selection or consumed-plan replay.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1698,7 +1698,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Minimal gate repair qualified;002 admitted with actual readiness required before preparation CLAIM. Worker and all model mathematics unchanged; no native model started.",
+    "current_activity": "Execute the one admitted frozen native four-tensor import and full later TRAIN17753 score plan. Reuse29574 TRAIN representations and192 later observations; exactly1098 missing later encodings plus2 row0 forward/weights-only roundtrip checks. No new fit, candidate selection or consumed-plan replay.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1728,7 +1728,7 @@
     "existing_indicator_surface_changed": false,
     "training_started": false,
     "latest_terminal_role": "Frozen E3 original-TRAIN evaluation COMPLETE; complement primary direction comparison fails.",
-    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001",
+    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_FIXED_NATIVE_SCORE_20261110_001",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_002/TERMINAL.json",
       "sha256": "660b36069a45c1c0319bb4c80de6712b54e8e1c916137b71fc7629d00faf6ab1"
@@ -1751,7 +1751,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Original direction cause unresolved. Actual readiness/guarded launch of002 remains;001 preparation is consumed withzero native updates.",
+    "current_blocker": "Native four-tensor import and full later comparison remain unmeasured; exact frozen producer admitted.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -24696,7 +24696,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-10T16:30:02.337192+00:00",
+  "updated_utc": "2026-11-10T16:55:06.764124+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -74564,5 +74564,47 @@
     "all_four_cells_beat_INITIAL_and_prior": true,
     "later192_beats_REVERSED": false,
     "native_import_qualified": false
+  },
+  "market_state_ta_m5_reversed_fixed_native_score_20261110_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_FIXED_NATIVE_SCORE_20261110_001/PLAN.json",
+      "sha256": "279cbf0bd77cfbe655c8c4414889f1aa9c62dfb25485ccf428df714d656ae6df"
+    },
+    "worker": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/cache_market_state_ta_direction_v1.py",
+      "sha256": "4e25ebf823e977601ed5e3a48811bea646ae8e2fb28464b9cd2691bec915f4de"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_FIXED_NATIVE_SCORE_20261110_001/PREFLIGHT.json",
+      "sha256": "a9a2ab84b3b5b8ba0136e5d51e9053186aad2a2bc7f5badc18947fb7caa4a36e"
+    },
+    "max_invocations": 1,
+    "remaining_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "backbone_encodings_authorized": 1100,
+    "head_tensor_imports_authorized": 4,
+    "candidate_weights_writes_authorized": 1,
+    "backward_calls_authorized": 0,
+    "optimizer_steps_authorized": 0,
+    "training_authorized": false,
+    "native_training_authorized": false,
+    "native_launch_authorized": false,
+    "readout_fits_authorized": 0,
+    "max_seconds": 3600,
+    "memory_max": 12884901888,
+    "swap_max": 536870912,
+    "numerical_threads": 1,
+    "scope": "Frozen REVERSED174b; import only four locked FP32 M5 head tensors. Actual CUDA heads on all29574 TRAIN and192 later cached inputs before/after import,1098 missing later native encodings,2 row0 forwards and one actual same-instance weights-only file roundtrip. Global S/F Brier/log against INITIAL/prior; R1 diagnostic only. No new fit, alpha, candidate choice or promotion.",
+    "standing_authority": "Active direction-only goal and standing zero-cost local-work authority; separately qualified exact frozen producer. No consumed plan replay; training remains closed.",
+    "focused_tests_passed": 24,
+    "independent_source_review": "PASS numerical/native-interface source4e25ebf823e977601ed5e3a48811bea646ae8e2fb28464b9cd2691bec915f4de; root reviewed source bridge/admission and exact metadata preflight.",
+    "test_data_used": false,
+    "goal_complete": false
   }
 }

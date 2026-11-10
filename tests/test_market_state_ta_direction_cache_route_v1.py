@@ -239,13 +239,14 @@ def test_reversed_partial_preserves_offending_batch_before_failure(tmp_path, mon
 
 
 
+@pytest.mark.parametrize('worker_name', ['_run_reversed', '_run_fixed_score'])
 @pytest.mark.parametrize('phase', ['before_provider', 'already_released', 'prepared'])
-def test_reversed_finalizer_uses_page_release_for_module_provider_only(phase):
+def test_reversed_finalizer_uses_page_release_for_module_provider_only(phase, worker_name):
     """Exercise the production finally block without constructing a model."""
     import ast
     from types import ModuleType, SimpleNamespace
     tree = ast.parse((REPO / 'gx1/audit/cache_market_state_ta_direction_v1.py').read_text())
-    worker = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == '_run_reversed')
+    worker = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == worker_name)
     final = next(node.finalbody for node in worker.body if isinstance(node, ast.Try) and node.finalbody)
     cleanup = ast.fix_missing_locations(ast.Module(body=final, type_ignores=[]))
     provider = None if phase == 'before_provider' else ModuleType('mature_prefix_input_provider')
@@ -260,3 +261,179 @@ def test_reversed_finalizer_uses_page_release_for_module_provider_only(phase):
     exec(compile(cleanup, '<reversed-cache-finalizer>', 'exec'), namespace)
     assert releases == ([(provider, prepared)] if phase == 'prepared' else [])
     assert signals == [('timer', (0, 0.)), ('handler', (14, saved_alarm))]
+
+
+def fixed_score_plan():
+    from gx1.audit import cache_market_state_ta_direction_v1 as wrapper
+    ref = lambda path: {'path': str(path), 'sha256': 'a' * 64}
+    return dict(schema_version=wrapper.SCORE_SCHEMA, stage=wrapper.SCORE_STAGE,
+        source_repo=str(wrapper.REPO), source_base_commit='a' * 40,
+        worker=ref(wrapper.WORKER), dispatch=ref(wrapper.REPO / wrapper.DISPATCH),
+        cap_runner=ref(wrapper.REPO / wrapper.CAP_RUNNER), runtime_source_override={},
+        inputs=wrapper.SCORE_REFS, **wrapper.SCORE_BOUNDS)
+
+
+def test_fixed_score_plan_rejects_fits_counts_extra_baselines_and_consumed_roots():
+    from gx1.audit import cache_market_state_ta_direction_v1 as wrapper
+    plan = fixed_score_plan()
+    path, root = wrapper.SCORE_ROOT / 'PLAN.json', wrapper.SCORE_ROOT
+    assert wrapper._fixed_score_plan(plan, path, root) == plan
+    for key, value in [('fit_rows', 4096), ('score_rows', 192), ('reused_score_rows', 0),
+                       ('max_backbone_encodings', 1110), ('fresh_baseline_forwards', 0),
+                       ('max_missing_score_encodings', 1110), ('max_model_constructions', 2),
+                       ('max_checkpoint_loads', 1), ('head_tensor_imports', 0),
+                       ('max_optimizer_updates', 1), ('max_backwards', 1),
+                       ('training_enabled', True), ('batch_size', 16.0), ('device', 'cpu')]:
+        with pytest.raises(RuntimeError, match='FIXED_SCORE_EXACT_PLAN'):
+            wrapper._fixed_score_plan({**plan, key: value}, path, root)
+    for old in (wrapper.ROOT, wrapper.FINAL_ROOT, wrapper.REVERSED_ROOT):
+        with pytest.raises(RuntimeError, match='FIXED_SCORE_EXACT_PLAN'):
+            wrapper._fixed_score_plan(plan, old / 'PLAN.json', root)
+        with pytest.raises(RuntimeError, match='FIXED_SCORE_EXACT_PLAN'):
+            wrapper._fixed_score_plan(plan, path, old)
+    with pytest.raises(RuntimeError, match='FIXED_SCORE_EXACT_PLAN'):
+        wrapper._fixed_score_plan({**plan, 'inputs': wrapper.REVERSED_REFS}, path, root)
+    with pytest.raises(RuntimeError, match='FIXED_SCORE_SOURCE_BASE'):
+        wrapper._fixed_score_plan({**plan, 'source_base_commit': 'main'}, path, root)
+
+
+def test_fixed_score_dispatch_never_enters_consumed_cache_paths(monkeypatch):
+    from gx1.audit import cache_market_state_ta_direction_v1 as wrapper
+    calls = []
+    monkeypatch.setattr(wrapper, '_inspect_fixed_score', lambda *args, **kwargs:
+        calls.append(('inspect', args, kwargs)) or dict(plan_ref={'path': 'bound', 'sha256': 'a' * 64},
+            view={'contract_sha256': 'b' * 64}, current_sources={str(i): 'c' * 64 for i in range(85)}))
+    monkeypatch.setattr(wrapper, '_run_fixed_score',
+        lambda *args, **kwargs: calls.append(('run', args, kwargs)) or {'status': 'synthetic'})
+    for name in ('_inspect', '_inspect_reversed', '_run_reversed'):
+        monkeypatch.setattr(wrapper, name, lambda *args, **kwargs: pytest.fail('consumed scope entered'))
+    path, root = wrapper.SCORE_ROOT / 'PLAN.json', wrapper.SCORE_ROOT
+    assert wrapper.preflight_read_only(path, 'a' * 64, root)['backbone_encodings'] == 0
+    assert wrapper.run(path, 'a' * 64, root, device='cuda') == {'status': 'synthetic'}
+    assert calls[0][2] == {'execute': False} and calls[1][2] == {'device': 'cuda'}
+
+
+def test_fixed_score_reuses_exact_twelve_batches_and_scores_tail_nine_once():
+    from gx1.audit import cache_market_state_ta_direction_v1 as wrapper
+    reused, missing = wrapper._fixed_score_layout()
+    assert reused == list(range(0, 64)) + list(range(8352, 8416)) + list(range(17680, 17744))
+    new_rows = [row for batch in missing for row in range(16 * batch, min(16 * batch + 16, 17753))]
+    assert len(missing) == 1098 and missing[-1] == 1109
+    assert new_rows[-9:] == list(range(17744, 17753))
+    assert len(new_rows) == 17561 and not set(reused).intersection(new_rows)
+    assert sorted(reused + new_rows) == list(range(17753))
+    assert 2 * (1849 + 12) * 2 == wrapper.SCORE_BOUNDS['max_cached_head_calls']
+    assert 2 * len(missing) == wrapper.SCORE_BOUNDS['max_reference_linear_calls']
+
+
+def test_fixed_score_four_coefficients_are_exact_locked_fp32_rounding():
+    import numpy as np
+    import torch
+    from gx1.audit import cache_market_state_ta_direction_v1 as wrapper
+    archive, lock = {}, {'beta_fp64_sha256': {}}
+    for task, offset in (('state', 0.), ('future', 1.)):
+        beta = np.linspace(-.13, .17, 129, dtype=np.float64) + offset
+        archive[task + '_beta_fp64'] = beta
+        archive[task + '_beta_fp32'] = beta.astype(np.float32)
+        lock['beta_fp64_sha256'][task] = hashlib.sha256(beta.tobytes()).hexdigest()
+    tensors = wrapper._fixed_coefficients(archive, lock, np=np, torch=torch)
+    assert len(tensors) == 4
+    for task, name in (('state', 'state_model.m5_side_head'), ('future', 'future_m5_side_head')):
+        assert tensors[name + '.weight'].shape == (1, 128)
+        assert tensors[name + '.bias'].shape == (1,)
+        assert tensors[name + '.weight'].dtype == torch.float32
+        np.testing.assert_array_equal(tensors[name + '.weight'].numpy()[0], archive[task + '_beta_fp32'][1:])
+        np.testing.assert_array_equal(tensors[name + '.bias'].numpy(), archive[task + '_beta_fp32'][:1])
+    archive['state_beta_fp32'][0] = np.nextafter(archive['state_beta_fp32'][0], np.float32(1))
+    with pytest.raises(RuntimeError, match='FIXED_SCORE_COEFFICIENT_LOCK:state'):
+        wrapper._fixed_coefficients(archive, lock, np=np, torch=torch)
+    archive['state_beta_fp32'] = archive['state_beta_fp64'].astype(np.float32)
+    lock['beta_fp64_sha256']['future'] = '0' * 64
+    with pytest.raises(RuntimeError, match='FIXED_SCORE_COEFFICIENT_LOCK:future'):
+        wrapper._fixed_coefficients(archive, lock, np=np, torch=torch)
+
+
+def fixed_score_values():
+    import copy
+    value = lambda b, log: dict(count=10, up_count=6, brier=b, log=log, mean_p=.55)
+    cell = dict(CANDIDATE=value(.20, .60), INITIAL=value(.21, .61),
+                PRIOR=value(.22, .62), R1=value(.19, .59))
+    return {panel: {task: copy.deepcopy(cell) for task in ('state', 'future')}
+            for panel in ('TRAIN', 'LATER_FULL')}
+
+
+def test_fixed_score_requires_both_primary_references_in_all_four_cells():
+    from gx1.audit import cache_market_state_ta_direction_v1 as wrapper
+    scores = fixed_score_values()
+    result = wrapper._fixed_score_decision(scores)
+    assert result['decision'] == 'PASS_ALL_FOUR_INITIAL_PRIOR_CELLS'
+    assert result['R1_diagnostic_only'] and not result['candidate_selection']
+    assert all(not result['cells'][p][t]['R1']['passes'] for p in scores for t in scores[p])
+    for panel in scores:
+        for task in scores[panel]:
+            for reference, margin in (('INITIAL', 1e-6), ('PRIOR', 1e-8)):
+                for metric in ('brier', 'log'):
+                    candidate = scores[panel][task]['CANDIDATE']
+                    saved = candidate[metric]
+                    candidate[metric] = scores[panel][task][reference][metric] - margin / 2
+                    assert wrapper._fixed_score_decision(scores)['decision'] == 'FAIL_INITIAL_PRIOR_COMPARISON'
+                    candidate[metric] = saved
+    scores['LATER_FULL']['future']['PRIOR']['up_count'] = 5
+    with pytest.raises(RuntimeError, match='FIXED_SCORE_COMPARISON_OBSERVATIONS'):
+        wrapper._fixed_score_decision(scores)
+
+
+def candidate_weights_fixture():
+    import copy
+    import torch
+    from gx1.audit import cache_market_state_ta_direction_v1 as wrapper
+    from gx1.contracts import entry_native_direction_research_state_v1 as old
+    from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
+    model = torch.nn.Linear(2, 1)
+    model.register_buffer('persistent_probe', torch.tensor([3.]))
+    model.register_buffer('nonpersistent_probe', torch.tensor([4.]), persistent=False)
+    saved = dict(schema_version=wrapper.SCORE_WEIGHTS_SCHEMA, canonical_resume_authority=False,
+        optimizer_state_included=False, model_state=copy.deepcopy(model.state_dict()),
+        buffer_state=copy.deepcopy(dict(model.named_buffers())))
+    saved['model_state_sha256'] = canonical_model_state_sha256(saved['model_state'])
+    saved['buffer_state_sha256'] = old._tree_sha(saved['buffer_state'])
+    saved['weights_sha256'] = old._tree_sha(saved)
+    return model, saved
+
+
+def test_fixed_score_roundtrip_actually_decodes_and_restores_all_buffers(tmp_path):
+    import torch
+    from gx1.audit import cache_market_state_ta_direction_v1 as wrapper
+    from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+    model, expected = candidate_weights_fixture()
+    path = tmp_path / 'CANDIDATE_WEIGHTS.pt'
+    torch.save(expected, path)
+    ref = {'path': str(path), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+    counts = dict(resume_state_load_calls=0, resume_state_load_returns=0)
+    saved = common._load_state(ref, torch=torch, maximum=65536, counters=counts)
+    assert counts == dict(resume_state_load_calls=1, resume_state_load_returns=1)
+    assert saved is not expected and saved['model_state']['weight'] is not expected['model_state']['weight']
+    with torch.no_grad():
+        model.weight.fill_(8.)
+        for value in model.buffers(): value.fill_(9.)
+    wrapper._require_candidate_weights(saved, expected=expected, model=model, torch=torch)
+    assert all(torch.equal(value, expected['model_state'][name]) for name, value in model.state_dict().items())
+    assert all(torch.equal(value, expected['buffer_state'][name]) for name, value in model.named_buffers())
+
+
+@pytest.mark.parametrize('field', ['model_state_sha256', 'buffer_state_sha256'])
+def test_fixed_score_roundtrip_rejects_false_tensor_or_buffer_hash(field):
+    import copy
+    import torch
+    from gx1.audit import cache_market_state_ta_direction_v1 as wrapper
+    from gx1.contracts import entry_native_direction_research_state_v1 as old
+    model, expected = candidate_weights_fixture()
+    saved = copy.deepcopy(expected)
+    saved[field] = '0' * 64
+    saved['weights_sha256'] = old._tree_sha({k: v for k, v in saved.items() if k != 'weights_sha256'})
+    # Exercise the tensor-digest check independently of the enclosing tree seal.
+    expected['weights_sha256'] = saved['weights_sha256']
+    before = {name: value.clone() for name, value in model.state_dict().items()}
+    with pytest.raises(RuntimeError, match='FIXED_SCORE_ROUNDTRIP_DIGEST'):
+        wrapper._require_candidate_weights(saved, expected=expected, model=model, torch=torch)
+    assert all(torch.equal(value, before[name]) for name, value in model.state_dict().items())

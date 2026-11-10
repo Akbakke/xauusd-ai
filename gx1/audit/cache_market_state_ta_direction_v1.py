@@ -212,6 +212,13 @@ def _inspect(plan_path, plan_sha256, out_dir, *, execute):
 
 
 def preflight_read_only(plan_path, plan_sha256, out_dir):
+    if Path(plan_path) == SCORE_ROOT / 'PLAN.json' or Path(out_dir) == SCORE_ROOT:
+        checked = _inspect_fixed_score(plan_path, plan_sha256, out_dir, execute=False)
+        return dict(status='READY_NO_CLAIM_NO_MODEL_NO_CHECKPOINT_DESERIALIZATION',
+            plan=checked['plan_ref'], view_sha256=checked['view']['contract_sha256'],
+            source_model_state_sha256=REVERSED_MODEL, model_constructions=0, backbone_encodings=0,
+            current_source_owners=len(checked['current_sources']), changed_owners=[CAP_RUNNER],
+            test_data_used=False)
     if Path(plan_path) == REVERSED_ROOT / 'PLAN.json' or Path(out_dir) == REVERSED_ROOT:
         checked = _inspect_reversed(plan_path, plan_sha256, out_dir, execute=False)
         return dict(status='READY_NO_CLAIM_NO_MODEL_NO_CHECKPOINT_DESERIALIZATION',
@@ -264,6 +271,8 @@ def _save_cache(partition, arrays, rows, *, partial=False, root=ROOT):
 
 
 def run(plan_path, plan_sha256, out_dir, *, device):
+    if Path(plan_path) == SCORE_ROOT / 'PLAN.json' or Path(out_dir) == SCORE_ROOT:
+        return _run_fixed_score(plan_path, plan_sha256, out_dir, device=device)
     if Path(plan_path) == REVERSED_ROOT / 'PLAN.json' or Path(out_dir) == REVERSED_ROOT:
         return _run_reversed(plan_path, plan_sha256, out_dir, device=device)
     import numpy as np
@@ -548,21 +557,11 @@ def _reversed_sources(plan, recipe):
     return current
 
 
-def _inspect_reversed(plan_path, plan_sha256, out_dir, *, execute):
+def _qualify_reversed_origin(plan, bound_refs):
     from gx1.audit import verify_market_state_time_query_zero_step_v1 as zero
     from gx1.contracts import market_state_time_query_fold1_fit_v1 as fit
     from gx1.contracts import market_state_native_F_private_campaign_v1 as reverse
     from gx1.contracts import market_state_time_query_native_F_objective_v1 as objective
-    plan_ref = {'path': str(plan_path), 'sha256': plan_sha256}
-    plan = _reversed_plan(_read(plan_ref), plan_path, out_dir)
-    bound_refs = [plan_ref]
-    for key, path in (('worker', WORKER), ('dispatch', REPO / DISPATCH), ('cap_runner', REPO / CAP_RUNNER)):
-        _need(plan[key]['path'] == str(path), 'REVERSED_SOURCE_PATH:' + key)
-        campaign.require_binding(plan[key], label=key, verify_file=True)
-        bound_refs.append(plan[key])
-    for key, ref in plan['inputs'].items():
-        campaign.require_binding(ref, label='reversed input ' + key, verify_file=True)
-        bound_refs.append(ref)
     recipe, result, terminal, measure = (_read(plan['inputs'][k]) for k in (
         'reverse_recipe', 'reverse_result', 'reverse_terminal', 'train_measurement'))
     _read(plan['inputs']['reverse_review'])
@@ -608,6 +607,25 @@ def _inspect_reversed(plan_path, plan_sha256, out_dir, *, execute):
         recipe=origin['original_recipe'], verify_files=True, ta_sf=True)
     priors = _read(recipe['input_refs']['endpoint_priors'])
     objective.require_endpoint_priors(priors, fold_id=1, ta_only=True, dedicated_m5_side=True)
+    return dict(recipe=recipe, result=result, measurement=measure, current_sources=current,
+                origin=origin, receipts=receipts, view=view, priors=priors)
+
+
+def _inspect_reversed(plan_path, plan_sha256, out_dir, *, execute):
+    plan_ref = {'path': str(plan_path), 'sha256': plan_sha256}
+    plan = _reversed_plan(_read(plan_ref), plan_path, out_dir)
+    bound_refs = [plan_ref]
+    for key, path in (('worker', WORKER), ('dispatch', REPO / DISPATCH), ('cap_runner', REPO / CAP_RUNNER)):
+        _need(plan[key]['path'] == str(path), 'REVERSED_SOURCE_PATH:' + key)
+        campaign.require_binding(plan[key], label=key, verify_file=True)
+        bound_refs.append(plan[key])
+    for key, ref in plan['inputs'].items():
+        campaign.require_binding(ref, label='reversed input ' + key, verify_file=True)
+        bound_refs.append(ref)
+    qualified = _qualify_reversed_origin(plan, bound_refs)
+    recipe, result, measure, current, origin, receipts, view, priors = (
+        qualified[k] for k in ('recipe', 'result', 'measurement', 'current_sources',
+                               'origin', 'receipts', 'view', 'priors'))
     head = _git('rev-parse', 'HEAD')
     subprocess.run(['git', '-C', str(REPO), 'merge-base', '--is-ancestor',
                     plan['source_base_commit'], head], check=True)
@@ -895,6 +913,541 @@ def _run_reversed(plan_path, plan_sha256, out_dir, *, device):
             source_unchanged=source_unchanged, training_enabled=False, test_data_used=False))
         publish('TERMINAL.json', dict(status='FAILED', exit_code=1, plan=checked['plan_ref'], result=result,
             artifact=artifact, source_unchanged=source_unchanged, no_relaunch_under_this_plan=True, test_data_used=False))
+        raise
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0.); signal.signal(signal.SIGALRM, previous_alarm)
+        if prepared is not None:
+            base._release_pages(provider, prepared)
+
+# A separately admitted, frozen native import plus the missing later TRAIN rows.
+SCORE_STAGE = 'market_state_ta_m5_reversed_fixed_native_score_20261110_001'
+SCORE_ROOT = Path('/home/andre2/GX1_RUNS') / SCORE_STAGE.upper()
+SCORE_SCHEMA = 'gx1_market_state_ta_m5_reversed_fixed_native_score_plan_v1'
+SCORE_WEIGHTS_SCHEMA = 'gx1_ta_m5_fixed_native_weights_only_v1'
+_FIXED = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_FIXED_READOUT_20261110_001')
+SCORE_REFS = {
+    **REVERSED_REFS,
+    'capture_result': {'path': str(REVERSED_ROOT / 'RESULT.json'), 'sha256': 'ba3767d638132a5056a106a479d6a37afe6e8c44be6e3ca71cb895188f4199b9'},
+    'capture_plan': {'path': str(REVERSED_ROOT / 'PLAN.json'), 'sha256': '882470b193f03403e284c40dde7bbf2cc19cda215e9a5a983084b2b788a5b2b8'},
+    'capture_completion_review': {'path': str(REVERSED_ROOT / 'CAPTURE_COMPLETION_REVIEW.json'), 'sha256': '3a5f79b70e3975752d2c0b91df91413058feded7e0d04c0b4109d7fa4a696486'},
+    'capture_controller_terminal': {'path': str(REVERSED_ROOT / 'CONTROLLER_TERMINAL.json'), 'sha256': 'ff6ef1e4b1096fee9eaf7c1140371225b8a1cb6397c176d4d35a2c0bb7f830e9'},
+    'fit_representations': {'path': str(REVERSED_ROOT / 'FIT_REPRESENTATIONS.npz'), 'sha256': '6e99d89a9a1d67372b691959507f7e73bc623b5a5c1488cf1a77c5b87a95ef8c'},
+    'readout_plan': {'path': str(_FIXED / 'PLAN.json'), 'sha256': '1a8f270c81f72939e662a4e9cdc32e97a034deff75eec401b3d9c6b7a002b9dc'},
+    'readout_result': {'path': str(_FIXED / 'RESULT.json'), 'sha256': '62e596192f628a05bd09b59675a3522044bf6b643a07076aa7c239e5da0d7f40'},
+    'readout_terminal': {'path': str(_FIXED / 'TERMINAL.json'), 'sha256': '349f15e5aa62ac986bd0b1bdca4dd6ee15260faaafe6ed02e702e1e367ad0a94'},
+    'readout_review': {'path': str(_FIXED / 'NUMERIC_REVIEW.json'), 'sha256': 'f8b952c4257d40ea493a9f40d30f2f2c501d6723ad3f6db35844b33bdb3160a3'},
+    'readout_lock': {'path': str(_FIXED / 'READOUT_LOCK.json'), 'sha256': '1908c69e30318605634c2b1be8f0cb4747f8125e8db98f9cf6d1527509e40510'},
+    'readout_outputs': {'path': str(_FIXED / 'PRIVATE_READOUTS_AND_PREDICTIONS.npz'), 'sha256': 'e75974bee5eb111aa4e23f2135832d9dfc796a7152a9dd8906710edcae8d4a73'},
+    'later_capture': {'path': str(_REVERSED_ORIGIN / 'REVERSED_LATER_READOUT.npz'), 'sha256': 'aedb5f3e0e0ac901eb8066d018363d2721ab46e2ebe33ca3d838c43615582acb'},
+    'later_measurement': {'path': str(_REVERSED_ORIGIN / 'REVERSED_LATER.json'), 'sha256': '1eb538c636835f7641341f1266250971851c21391aef7724311c5ffeca2cc694'},
+    'initial_score_cache': {'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_DIRECTION_FULL_CACHE_20261108_001/SCORE_CACHE.npz', 'sha256': '8cc964f1ff229bc3c1140a47ed66e256ce90b9ecfbc18c4c4509ba60f63bfee9'},
+    'original_imported_outputs': {'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FINAL_READOUT_20261109_001/PRIVATE_READOUTS_AND_PREDICTIONS.npz', 'sha256': '317deaca134460b73e8ac200dff2741483c7729aa13d6d6870b4aeecf136846b'},
+}
+SCORE_BOUNDS = dict(fit_rows=29574, score_rows=17753, reused_score_rows=192, batch_size=16,
+    decoder_width=128, max_backbone_encodings=1100, max_missing_score_encodings=1098,
+    fresh_baseline_forwards=2, max_model_constructions=1, max_checkpoint_loads=2,
+    max_candidate_writes=1, max_candidate_bytes=1073741824, max_cache_bytes=67108864,
+    max_cached_head_calls=7444, max_reference_linear_calls=2196, head_tensor_imports=4,
+    max_optimizer_constructions=0, max_backwards=0, max_optimizer_updates=0,
+    max_checkpoint_writes=0, device='cuda', wall_seconds=3600, training_enabled=False,
+    test_data_used=False)
+SCORE_RANGES = ((0, 64), (8352, 8416), (17680, 17744))
+
+
+def _fixed_score_plan(plan, plan_path, out_dir):
+    fields = {'schema_version', 'stage', 'source_repo', 'source_base_commit', 'worker',
+              'dispatch', 'cap_runner', 'runtime_source_override', 'inputs'} | set(SCORE_BOUNDS)
+    _need(set(plan) == fields and plan['schema_version'] == SCORE_SCHEMA
+          and plan['stage'] == SCORE_STAGE and plan['source_repo'] == str(REPO)
+          and Path(plan_path) == SCORE_ROOT / 'PLAN.json' and Path(out_dir) == SCORE_ROOT
+          and plan['inputs'] == SCORE_REFS
+          and all(type(plan[k]) is type(v) and plan[k] == v for k, v in SCORE_BOUNDS.items()),
+          'FIXED_SCORE_EXACT_PLAN')
+    _need(isinstance(plan['source_base_commit'], str)
+          and campaign._COMMIT.fullmatch(plan['source_base_commit']), 'FIXED_SCORE_SOURCE_BASE')
+    return plan
+
+
+def _inspect_fixed_score(plan_path, plan_sha256, out_dir, *, execute):
+    plan_ref = {'path': str(plan_path), 'sha256': plan_sha256}
+    plan = _fixed_score_plan(_read(plan_ref), plan_path, out_dir)
+    refs = plan['inputs']; bound_refs = [plan_ref]
+    for key, path in (('worker', WORKER), ('dispatch', REPO / DISPATCH), ('cap_runner', REPO / CAP_RUNNER)):
+        _need(plan[key]['path'] == str(path), 'FIXED_SCORE_SOURCE_PATH:' + key)
+        campaign.require_binding(plan[key], label=key, verify_file=True); bound_refs.append(plan[key])
+    for key, ref in refs.items():
+        campaign.require_binding(ref, label='fixed score input ' + key, verify_file=True); bound_refs.append(ref)
+    q = _qualify_reversed_origin(plan, bound_refs)
+    capture, completion, readout, fit_plan, lock, review, terminal, later = (
+        _read(refs[k]) for k in ('capture_result', 'capture_completion_review', 'readout_result',
+            'readout_plan', 'readout_lock', 'readout_review', 'readout_terminal', 'later_measurement'))
+    _need(capture['status'] == 'COMPLETE' and capture['plan'] == refs['capture_plan']
+          and capture['artifact'] == refs['fit_representations'] and capture['model_state_sha256'] == REVERSED_MODEL
+          and capture['M5_raw_bitexact'] is True and capture['exact_M5_axes_masks'] is True
+          and capture['source_unchanged'] is True and capture['test_data_used'] is False
+          and completion['status'] == 'QUALIFIED_CAPTURE_WITH_POST_COMPLETION_CLEANUP_ERROR'
+          and completion['result'] == refs['capture_result'] and completion['artifact'] == refs['fit_representations']
+          and completion['controller_terminal'] == refs['capture_controller_terminal']
+          and completion['worker_exit_code'] == 0 and completion['controller_exit_code'] == 1
+          and completion['numeric_checks']['rows'] == FIT_ROWS
+          and completion['numeric_checks']['M5_raw_bitexact'] is True,
+          'FIXED_SCORE_CAPTURE_QUALIFICATION')
+    _need(readout['status'] == 'COMPLETE' and readout['plan'] == refs['readout_plan']
+          and readout['readout_lock'] == refs['readout_lock'] and readout['private_outputs'] == refs['readout_outputs']
+          and readout['source_unchanged'] is True and readout['test_data_used'] is False
+          and readout['selection'] is False and readout['counts']['readout_fits'] == 2
+          and lock['plan'] == refs['readout_plan'] and lock['readout_fits'] == 2
+          and lock['later_arrays_decoded'] is False and lock['alpha'] == fit_plan['alpha'] == readout['alpha'] == .01
+          and all(lock['solvers'][task]['converged'] is True for task in ('state', 'future'))
+          and review['status'] == 'PASS_INDEPENDENT_RETAINED_LOGIT_ARITHMETIC'
+          and review['result'] == refs['readout_result'] and review['readout_lock'] == refs['readout_lock']
+          and review['private_outputs'] == refs['readout_outputs'] and review['test_data_used'] is False
+          and terminal['status'] == 'COMPLETE' and terminal['exit_code'] == 0
+          and terminal['plan'] == refs['readout_plan'] and terminal['result'] == refs['readout_result'],
+          'FIXED_SCORE_LOCKED_READOUT')
+    _need(fit_plan['inputs']['fit_representations'] == refs['fit_representations']
+          and fit_plan['inputs']['REVERSED_LATER_capture'] == refs['later_capture']
+          and fit_plan['inputs']['capture_completion_review'] == refs['capture_completion_review']
+          and later['evaluated_model_state_sha256'] == REVERSED_MODEL and later['capture'] == refs['later_capture']
+          and later['measurement']['rows'] == 192 and later['test_data_used'] is False
+          and q['result']['captures']['REVERSED_LATER'] == refs['later_capture']
+          and q['recipe']['input_refs']['initial_score_cache'] == refs['initial_score_cache']
+          and q['recipe']['input_refs']['imported_predictions'] == refs['original_imported_outputs'],
+          'FIXED_SCORE_MATCHED_INPUTS')
+    head = _git('rev-parse', 'HEAD')
+    subprocess.run(['git', '-C', str(REPO), 'merge-base', '--is-ancestor', plan['source_base_commit'], head], check=True)
+    policy_ref = _ref(REPO / 'NEXT_RUN_POLICY.json'); policy = _read(policy_ref); bound_refs.append(policy_ref)
+    if execute:
+        gate = policy.get(SCORE_STAGE, {})
+        expected = dict(status='ADMITTED', plan=plan_ref, max_invocations=1, claimed_invocations=0,
+            completed_invocations=0, relaunch_allowed=False, execution_authorized=True, data_reads_authorized=True,
+            checkpoint_reads_authorized=True, backbone_encodings_authorized=1100,
+            head_tensor_imports_authorized=4, candidate_weights_writes_authorized=1,
+            backward_calls_authorized=0, optimizer_steps_authorized=0, training_authorized=False)
+        _need(all(type(gate.get(k)) is type(v) and gate[k] == v for k, v in expected.items())
+              and all(policy.get(k) is False for k in ('training_enabled', 'native_training_enabled',
+                  'native_launch_authorized', 'full_epoch_training_allowed')), 'FIXED_SCORE_ADMISSION')
+        _need(_git('branch', '--show-current') == 'work/gx1-current', 'FIXED_SCORE_BRANCH')
+        campaign.require_clean_source(dict(source_repo=str(REPO), source_commit=head))
+        _need(not any((SCORE_ROOT / k).exists() for k in ('CLAIM.json', 'RESULT.json', 'TERMINAL.json',
+                                                       'CANDIDATE_WEIGHTS.pt')), 'FIXED_SCORE_CONSUMED')
+    return dict(q, plan=plan, plan_ref=plan_ref, readout=readout, lock=lock, head=head,
+                policy_ref=policy_ref, bound_refs=bound_refs)
+
+
+def _fixed_score_layout():
+    reused = [i for left, right in SCORE_RANGES for i in range(left, right)]
+    cached_batches = {left // 16 + j for left, right in SCORE_RANGES for j in range((right - left) // 16)}
+    missing = [i for i in range((SCORE_ROWS + 15) // 16) if i not in cached_batches]
+    _need(len(reused) == len(set(reused)) == 192 and len(cached_batches) == 12
+          and len(missing) == 1098 and missing[-1] == 1109, 'FIXED_SCORE_PARTITION')
+    return reused, missing
+
+
+def _fixed_coefficients(archive, lock, *, np, torch):
+    tensors = {}
+    for task, prefix in (('state', 'state_model.m5_side_head'), ('future', 'future_m5_side_head')):
+        beta, rounded = archive[task + '_beta_fp64'], archive[task + '_beta_fp32']
+        _need(beta.dtype == np.float64 and rounded.dtype == np.float32 and beta.shape == rounded.shape == (129,)
+              and np.isfinite(beta).all() and np.isfinite(rounded).all()
+              and hashlib.sha256(beta.tobytes()).hexdigest() == lock['beta_fp64_sha256'][task]
+              and np.array_equal(beta.astype(np.float32).view(np.uint32), rounded.view(np.uint32)),
+              'FIXED_SCORE_COEFFICIENT_LOCK:' + task)
+        tensors[prefix + '.weight'] = torch.from_numpy(rounded[1:].copy().reshape(1, 128))
+        tensors[prefix + '.bias'] = torch.from_numpy(rounded[:1].copy())
+    return tensors
+
+
+def _fixed_score_decision(scores):
+    cells = {}
+    for panel in ('TRAIN', 'LATER_FULL'):
+        cells[panel] = {}
+        for task in ('state', 'future'):
+            values = scores[panel][task]; got = values['CANDIDATE']
+            comparisons = {}
+            for name, margin in (('INITIAL', 1e-6), ('PRIOR', 1e-8), ('R1', 1e-8)):
+                other = values[name]
+                _need(got['count'] == other['count'] and got['up_count'] == other['up_count'],
+                      'FIXED_SCORE_COMPARISON_OBSERVATIONS')
+                comparisons[name] = dict(margin=margin,
+                    brier_delta=got['brier']-other['brier'], log_delta=got['log']-other['log'],
+                    passes=got['brier'] < other['brier']-margin and got['log'] < other['log']-margin)
+            cells[panel][task] = comparisons
+    passed = all(cells[p][t][r]['passes'] for p in cells for t in cells[p] for r in ('INITIAL', 'PRIOR'))
+    return dict(decision='PASS_ALL_FOUR_INITIAL_PRIOR_CELLS' if passed else 'FAIL_INITIAL_PRIOR_COMPARISON',
+                cells=cells, R1_diagnostic_only=True, candidate_selection=False)
+
+
+def _require_candidate_weights(saved, *, expected, model, torch):
+    """Validate the actual decoded private artifact before same-instance loading."""
+    from gx1.contracts import entry_native_direction_research_state_v1 as old
+    from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256 as model_sha
+    _need(isinstance(saved, dict) and set(saved) == set(expected)
+          and saved['schema_version'] == SCORE_WEIGHTS_SCHEMA
+          and saved['canonical_resume_authority'] is False and saved['optimizer_state_included'] is False
+          and saved['weights_sha256'] == old._tree_sha({k: v for k, v in saved.items() if k != 'weights_sha256'})
+          and saved['weights_sha256'] == expected['weights_sha256'], 'FIXED_SCORE_ROUNDTRIP_SEAL')
+    _need(model_sha(saved['model_state']) == saved['model_state_sha256'] == expected['model_state_sha256']
+          and old._tree_sha(saved['buffer_state']) == saved['buffer_state_sha256'] == expected['buffer_state_sha256'],
+          'FIXED_SCORE_ROUNDTRIP_DIGEST')
+    old._tensor_map(saved['model_state'], model.state_dict(), 'FIXED_CANDIDATE_MODEL')
+    old._tensor_map(saved['buffer_state'], dict(model.named_buffers()), 'FIXED_CANDIDATE_BUFFERS')
+    for name, value in saved['model_state'].items():
+        _need(torch.equal(value.cpu(), expected['model_state'][name].cpu()), 'FIXED_SCORE_ROUNDTRIP_TENSOR:' + name)
+    for name, value in saved['buffer_state'].items():
+        _need(torch.equal(value.cpu(), expected['buffer_state'][name].cpu()), 'FIXED_SCORE_ROUNDTRIP_BUFFER:' + name)
+    model.load_state_dict(saved['model_state'], strict=True)
+    with torch.no_grad():
+        for name, value in model.named_buffers(): value.copy_(saved['buffer_state'][name])
+
+
+
+def _run_fixed_score(plan_path, plan_sha256, out_dir, *, device):
+    import copy
+    import numpy as np
+    import torch
+    from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_producer_execution, require_capped_lock_ancestry
+    from gx1.audit import qualify_market_state_mature_prefix_normalization_v1 as base
+    from gx1.audit.run_market_state_ta_m5_full_reverse_order_v1 import build_reverse_order
+    from gx1.contracts import entry_native_direction_feature_view_v1 as views
+    from gx1.contracts import entry_native_direction_research_state_v1 as old
+    from gx1.contracts import market_state_time_query_fold1_fit_state_v1 as state
+    from gx1.contracts import market_state_time_query_fold1_fit_v1 as fit
+    from gx1.contracts import market_state_native_F_private_campaign_v1 as private
+    from gx1.contracts.market_state_time_query_native_F_model_v1 import NativeFutureDualModel
+    from gx1.contracts.market_state_five_endpoint_target_binding_v1 import load_bound_five_endpoint_targets
+    from gx1.contracts.market_state_future_displacement_candidate_v1 import load_bound_future_displacement
+    from gx1.contracts.market_state_time_query_native_F_batch_v1 import evaluate_endpoint_batch
+    from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256 as model_sha
+    from gx1.scripts import run_market_state_time_query_fold1_fit_window_v1 as runner
+    from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+    from gx1.scripts.run_market_state_native_F_private_window_v1 import _m5_import_score
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+    from gx1.contracts.immutable_event_authority_v1 import _publish_bytes
+    started = time.monotonic()
+    _need(device == 'cuda', 'FIXED_SCORE_GPU_ONLY')
+    cap = require_guarded_cuda_producer_execution(); cap['lock'] = require_capped_lock_ancestry()
+    _need(cap['cgroup_path'] == '/sys/fs/cgroup' + cap['lock']['scope']
+          and cap['memory_max'] == cap['memory_high'] == 12 * 1024**3
+          and cap['swap'] == 512 * 1024**2, 'FIXED_SCORE_CAP')
+    for key, value in (('MAX_POWER_LIMIT_W', '250'), ('MAX_POWER_DRAW_W', '170'), ('MAX_CORE_TEMP_C', '65'), ('MAX_MEMORY_TEMP_C', '80')):
+        _need(os.environ.get('GX1_TRAINER_GPU_' + key) == value, 'FIXED_SCORE_HARDWARE:' + key)
+    q = _inspect_fixed_score(plan_path, plan_sha256, out_dir, execute=True)
+    _need(not torch.cuda.is_initialized() and signal.getitimer(signal.ITIMER_REAL) == (0., 0.), 'FIXED_SCORE_INIT_ORDER')
+    publish = lambda name, value: _publish(name, value, root=SCORE_ROOT)
+    claim = publish('CLAIM.json', dict(plan=q['plan_ref'], policy=q['policy_ref'], source_commit=q['head'],
+        cap=cap, head_tensor_imports_authorized=4, optimizer_updates=0, test_data_used=False))
+    counts = dict(model_constructions=0, checkpoint_loads=0, backbone_encodings=0, forward_returns=0,
+        missing_score_encodings=0, fresh_baseline_forwards=0, cached_head_calls=0, reference_linear_calls=0,
+        head_tensor_imports=0, candidate_writes=0, optimizer_constructions=0, optimizer_updates=0,
+        backwards=0, checkpoint_writes=0, resume_state_load_calls=0, resume_state_load_returns=0,
+        published_npz_bytes=0)
+    provider = prepared = model = None
+    arrays = {}; complete = np.zeros(SCORE_ROWS, bool); r1_raw = {}; artifacts = {}
+    import_proof = {}; head_parity = {}; baseline_proof = {}; roundtrip = {}; scores = {}; timings = {}
+    previous_alarm = signal.getsignal(signal.SIGALRM)
+    def timeout(*unused): raise TimeoutError('Fixed native score 3600-second bound')
+    signal.signal(signal.SIGALRM, timeout)
+    signal.setitimer(signal.ITIMER_REAL, max(1., WALL_SECONDS - 60 - (time.monotonic() - started)))
+    def bookend():
+        campaign.require_clean_source(dict(source_repo=str(REPO), source_commit=q['head']))
+        for ref in q['bound_refs']: campaign.require_binding(ref, label='fixed score bookend', verify_file=True)
+        for name, digest in q['current_sources'].items():
+            _need(campaign.file_sha256(REPO / name) == digest, 'FIXED_SCORE_SOURCE_BOOKEND:' + name)
+    def save_arrays(name, values):
+        stream = io.BytesIO(); np.savez(stream, **values)
+        counts['published_npz_bytes'] += stream.tell()
+        _need(counts['published_npz_bytes'] <= SCORE_BOUNDS['max_cache_bytes'], 'FIXED_SCORE_OUTPUT_BYTES')
+        _publish_bytes(SCORE_ROOT / name, stream.getvalue())
+        return _ref(SCORE_ROOT / name)
+    def exact(a, b):
+        return a.shape == b.shape and a.dtype == b.dtype and a.tobytes() == b.tobytes()
+    try:
+        recipe, receipts, view = (q[k] for k in ('recipe', 'receipts', 'view'))
+        refs, numerical, cuda = q['plan']['inputs'], recipe['numerical_recipe'], torch.device('cuda')
+        trainer._set_deterministic(numerical['seed'], cuda, numerical['precision_policy'])
+        torch.set_num_threads(1); torch.set_num_interop_threads(1)
+        _need(torch.get_num_threads() == torch.get_num_interop_threads() == 1, 'FIXED_SCORE_THREADS')
+        provider, provider_plan, prepared, fit_rows, fit_issues = runner._prepared_fold1(receipts, view, np=np)
+        endpoint, future = load_bound_five_endpoint_targets(), load_bound_future_displacement()
+        axes = endpoint.mature_oof_axes(fold_id=1)
+        later_rows, later_issues = axes['score_parent_rows'], axes['score_decision_ns']
+        fold = q['origin']['original_recipe']['fold']
+        section = slice(fold['oof_start_row'], fold['oof_end_row'])
+        _need(len(later_rows) == SCORE_ROWS and np.array_equal(fit_rows, axes['fit_parent_rows'])
+              and np.array_equal(fit_issues, axes['fit_decision_ns'])
+              and np.array_equal(later_rows, prepared['axes']['parent_rows'][section])
+              and np.array_equal(later_issues, prepared['axes']['decision_ns'][section]), 'FIXED_SCORE_AXES')
+        reused, missing = _fixed_score_layout(); reused = np.asarray(reused, np.int64)
+        layout = runner._ta_m5_capture_layout(FIT_ROWS)
+        panels = {}
+        for panel, name in (('TRAIN', 'fit_representations'), ('LATER_192', 'later_capture')):
+            with np.load(refs[name]['path'], allow_pickle=False) as archive:
+                panels[panel] = {key: archive[key].copy() for key in layout}
+        _need(np.array_equal(panels['TRAIN']['parents'], fit_rows)
+              and np.array_equal(panels['TRAIN']['issues'], fit_issues)
+              and np.array_equal(panels['LATER_192']['parents'], later_rows[reused])
+              and np.array_equal(panels['LATER_192']['issues'], later_issues[reused]), 'FIXED_SCORE_CACHED_AXES')
+        with np.load(refs['readout_outputs']['path'], allow_pickle=False) as archive:
+            locked = {key: archive[key].copy() for key in archive.files}
+        coefficients = _fixed_coefficients(locked, q['lock'], np=np, torch=torch)
+        for panel, data in panels.items():
+            prefix = 'TRAIN' if panel == 'TRAIN' else 'LATER'
+            _need(np.array_equal(data['parents'], locked[prefix+'_parents'])
+                  and np.array_equal(data['issues'], locked[prefix+'_issues']), 'FIXED_SCORE_READOUT_AXIS')
+            for task in ('state', 'future'):
+                allowed = data[task+'_allowed'][:, 0]
+                known = data[task+'_eligible'][:, 0] & data[task+'_mature'][:, 0] & np.isin(allowed, (1, 4))
+                _need(np.array_equal(known, locked[prefix+'_'+task+'_known'])
+                      and np.array_equal((allowed == 4).astype(np.float64), locked[prefix+'_'+task+'_y']),
+                      'FIXED_SCORE_READOUT_MASKS')
+        with np.load(refs['initial_score_cache']['path'], allow_pickle=False) as archive:
+            initial_axes = {k: archive[k].copy() for k in ('parents', 'issues')}
+            initial_truth = {task: {key: archive['native_'+str(index)+'_'+key].copy()
+                for key in ('allowed', 'eligible', 'mature')} for index, task in enumerate(('state', 'future'))}
+        _need(np.array_equal(initial_axes['parents'], later_rows) and np.array_equal(initial_axes['issues'], later_issues),
+              'FIXED_SCORE_INITIAL_FULL_AXIS')
+        with np.load(refs['original_imported_outputs']['path'], allow_pickle=False) as archive:
+            initial_logits = {task: archive['score_'+task+'_original_imported'].copy() for task in ('state', 'future')}
+            for task in ('state', 'future'):
+                truth = initial_truth[task]
+                known = truth['eligible'][:, 0] & truth['mature'][:, 0] & np.isin(truth['allowed'][:, 0], (1, 4))
+                _need(np.array_equal(known, archive['score_'+task+'_known'])
+                      and np.array_equal((truth['allowed'][:, 0] == 4).astype(np.float64), archive['score_'+task+'_y']),
+                      'FIXED_SCORE_INITIAL_FULL_MASKS')
+        counts['model_constructions'] += 1
+        backbone = views.build_native_direction_research_model(view,
+            prefix_normalization=receipts['fold1']['normal'], constructor_metadata=receipts['constructor'],
+            device=torch.device('cpu'), unobserved_units_profile=receipts['fold1']['profile'])
+        model = NativeFutureDualModel(backbone)
+        fit.require_checkpoint_view(model.state_model.feature_view_identity,
+            recipe=q['origin']['original_recipe'], verify_files=True, ta_sf=True)
+        _need(model.research_objective['contract_sha256'] == recipe['expected_model_contract_sha256'], 'FIXED_SCORE_MODEL_CONTRACT')
+        order, _ = build_reverse_order(fit_rows, recipe['batch_indices'])
+        counts['checkpoint_loads'] += 1
+        saved = common._load_state(refs['reversed_evidence'], torch=torch,
+            maximum=recipe['max_checkpoint_bytes'], counters=counts)
+        source_identity = _load_reversed_weights(model, saved, q, torch.from_numpy(order.copy()), torch=torch)
+        del saved
+        model.to(cuda)
+        heads = {'state': model.state_model.m5_side_head, 'future': model.future_m5_side_head}
+        old_heads = {task: (head.weight.detach().clone(), head.bias.detach().clone()) for task, head in heads.items()}
+        def signature():
+            return dict(model=model_sha(model.state_dict()), buffers=old._tree_sha(dict(model.named_buffers())),
+                rng=old._tree_sha(trainer._attended_session_rng_state(device=cuda)),
+                modes={n: bool(m.training) for n, m in model.named_modules()},
+                trainability={n: p.requires_grad for n, p in model.named_parameters()})
+        original_signature = signature()
+        _need(original_signature['model'] == REVERSED_MODEL and not any(original_signature['trainability'].values()),
+              'FIXED_SCORE_FROZEN_SOURCE')
+        atol, rtol = private.TA_M5_PARITY_ATOL, private.TA_M5_PARITY_RTOL
+        cached = {}
+        def cached_heads(label):
+            head_parity[label] = {}
+            for panel, data in panels.items():
+                prefix = 'TRAIN' if panel == 'TRAIN' else 'LATER'
+                head_parity[label][panel] = {}
+                for task, head in heads.items():
+                    pieces = []
+                    with torch.inference_mode():
+                        for left in range(0, len(data['parents']), 16):
+                            x = torch.from_numpy(data[task+'_representation'][left:left+16]).to(cuda)
+                            pieces.append(head(x).flatten().cpu().numpy().copy()); counts['cached_head_calls'] += 1
+                    z = np.concatenate(pieces)
+                    expected = (data[task+'_activity_side_logits'][:, 0, 1] if label == 'R1'
+                                else locked[prefix+'_'+task+'_readout_fp32'])
+                    known, y = locked[prefix+'_'+task+'_known'], locked[prefix+'_'+task+'_y']
+                    got_score, reference_score = _m5_import_score(z, known, y), _m5_import_score(expected, known, y)
+                    p = lambda values: np.exp(-np.logaddexp(0., -values.astype(np.float64)))
+                    head_parity[label][panel][task] = dict(
+                        raw_allclose=bool(np.allclose(z, expected, atol=atol, rtol=rtol)),
+                        max_abs_raw_error=float(np.max(np.abs(z.astype(np.float64)-expected.astype(np.float64)))),
+                        max_abs_probability_error=float(np.max(np.abs(p(z)-p(expected)))),
+                        score_delta={k: got_score[k]-reference_score[k] for k in ('brier', 'log', 'mean_p')},
+                        observed_score=got_score, reference_score=reference_score)
+                    cached[label+'_'+panel+'_'+task] = z
+        cached_heads('R1')
+        _need(signature() == original_signature, 'FIXED_SCORE_SOURCE_HEAD_EVAL_MUTATED')
+        import_proof = state.import_equal_weight_m5_side_heads(model, coefficients,
+            expected_model_state_sha256=REVERSED_MODEL, coefficient_artifact=refs['readout_outputs'],
+            coefficient_recipe=refs['readout_plan'])
+        counts['head_tensor_imports'] = 4
+        candidate_signature = signature()
+        _need(candidate_signature['model'] != REVERSED_MODEL
+              and all(candidate_signature[k] == original_signature[k] for k in ('buffers', 'rng', 'modes', 'trainability')),
+              'FIXED_SCORE_IMPORT_STATE')
+        cached_heads('CANDIDATE')
+        _need(signature() == candidate_signature, 'FIXED_SCORE_CANDIDATE_HEAD_EVAL_MUTATED')
+        artifacts['cached_heads'] = save_arrays('CACHED_HEAD_OUTPUTS.npz', cached)
+        _need(all(v['raw_allclose'] for phase in head_parity.values() for panel in phase.values() for v in panel.values()),
+              'FIXED_SCORE_ALL_CACHED_HEAD_PARITY')
+        scores = {}
+        for panel in panels:
+            prefix = 'TRAIN' if panel == 'TRAIN' else 'LATER'
+            scores[panel] = {}
+            for task in heads:
+                known, y = locked[prefix+'_'+task+'_known'], locked[prefix+'_'+task+'_y']
+                values = dict(CANDIDATE=cached['CANDIDATE_'+panel+'_'+task],
+                    R1=locked[prefix+'_'+task+'_REVERSED'], INITIAL=locked[prefix+'_'+task+'_INITIAL'],
+                    PRIOR=locked[prefix+'_'+task+'_PRIOR'])
+                scores[panel][task] = {name: _m5_import_score(z, known, y) for name, z in values.items()}
+        def actual_forward(left, right, baseline=False):
+            raw, parents, clocks = runner._feature_batch(prepared, view, receipts,
+                later_rows, later_issues, left, right, np=np)
+            features = {key: torch.from_numpy(value).to(cuda) for key, value in raw.items()}
+            _need(counts['backbone_encodings'] < 1100, 'FIXED_SCORE_FORWARD_CAP')
+            counts['backbone_encodings'] += 1
+            counts['fresh_baseline_forwards' if baseline else 'missing_score_encodings'] += 1
+            report = evaluate_endpoint_batch(model, features, endpoint, future, parents, clocks,
+                fold_id=1, partition='score', future_weight=1., frozen_priors=q['priors'], capture_m5_readout=True)
+            counts['forward_returns'] += 1
+            return report['m5_readout']
+        first = actual_forward(0, 16, baseline=True)
+        old_first = {key: value[:16] for key, value in panels['LATER_192'].items()}
+        for key in ('parents', 'issues', 'query_native', 'state_representation', 'future_representation'):
+            _need(exact(first[key], old_first[key]), 'FIXED_SCORE_FRESH_BASELINE_REP:' + key)
+        for task in heads:
+            name = task+'_activity_side_logits'
+            _need(exact(first[name][..., 0], old_first[name][..., 0])
+                  and exact(first[name][:, 1:], old_first[name][:, 1:])
+                  and np.allclose(first[name][:, 0, 1], cached['CANDIDATE_LATER_192_'+task][:16], atol=atol, rtol=rtol),
+                  'FIXED_SCORE_FRESH_BASELINE_OUTPUT:' + task)
+            for key in ('allowed', 'eligible', 'mature'):
+                _need(exact(first[task+'_'+key], old_first[task+'_'+key]), 'FIXED_SCORE_BASELINE_TRUTH')
+        _need(signature() == candidate_signature, 'FIXED_SCORE_BASELINE_MUTATED')
+        artifacts['fresh_baseline'] = save_arrays('FRESH_CANDIDATE_BASELINE.npz', first)
+        weights = dict(schema_version=SCORE_WEIGHTS_SCHEMA, plan=q['plan_ref'], source_commit=q['head'],
+            original_capsule=refs['reversed_evidence'], readout_lock=refs['readout_lock'],
+            readout_outputs=refs['readout_outputs'], canonical_resume_authority=False,
+            optimizer_state_included=False, model_state=copy.deepcopy(model.state_dict()),
+            buffer_state=copy.deepcopy(dict(model.named_buffers())),
+            model_state_sha256=candidate_signature['model'], buffer_state_sha256=candidate_signature['buffers'],
+            feature_view_identity=copy.deepcopy(model.state_model.feature_view_identity),
+            research_objective=copy.deepcopy(model.research_objective),
+            module_training=candidate_signature['modes'], trainability=candidate_signature['trainability'],
+            test_data_used=False)
+        weights['weights_sha256'] = old._tree_sha(weights)
+        stream = io.BytesIO(); torch.save(weights, stream)
+        _need(0 < stream.tell() <= SCORE_BOUNDS['max_candidate_bytes'], 'FIXED_SCORE_CANDIDATE_BYTES')
+        _publish_bytes(SCORE_ROOT/'CANDIDATE_WEIGHTS.pt', stream.getvalue()); counts['candidate_writes'] += 1
+        artifacts['candidate_weights'] = _ref(SCORE_ROOT/'CANDIDATE_WEIGHTS.pt')
+        counts['checkpoint_loads'] += 1
+        decoded = common._load_state(artifacts['candidate_weights'], torch=torch,
+            maximum=SCORE_BOUNDS['max_candidate_bytes'], counters=counts)
+        _require_candidate_weights(decoded, expected=weights, model=model, torch=torch)
+        state._require_model_binding(model); model.backbone.require_input_normalization_state()
+        _need(signature() == candidate_signature, 'FIXED_SCORE_ROUNDTRIP_STATE')
+        second = actual_forward(0, 16, baseline=True)
+        _need(set(first) == set(second) and all(exact(first[k], second[k]) for k in first)
+              and signature() == candidate_signature, 'FIXED_SCORE_ROUNDTRIP_FORWARD')
+        roundtrip = dict(actual_file_decode=True, same_instance=True, all_model_tensors_exact=True,
+            all_buffers_exact=True, raw_outputs_exact=True, representations_exact=True,
+            RNG_modes_trainability_unchanged=True, fresh_constructor_tested=False,
+            optimizer_restore=False, canonical_resume_authority=False, checkpoint_loads=counts['checkpoint_loads'])
+        baseline_proof = dict(rows=16, artifact=artifacts['fresh_baseline'],
+            candidate_model_state_sha256=candidate_signature['model'], representations_match_R1_exact=True,
+            non_M5_outputs_match_R1_exact=True, candidate_cached_head_parity=True,
+            full_population_encoder_baseline=False)
+        del weights, decoded, stream, first, second
+        arrays = {key: np.empty(shape, dtype) for key, (shape, dtype) in runner._ta_m5_capture_layout(SCORE_ROWS).items()}
+        for key, value in panels['LATER_192'].items(): arrays[key][reused] = value
+        for task in heads:
+            arrays[task+'_activity_side_logits'][reused, 0, 1] = cached['CANDIDATE_LATER_192_'+task]
+            r1_raw[task] = np.empty(SCORE_ROWS, np.float32)
+            r1_raw[task][reused] = panels['LATER_192'][task+'_activity_side_logits'][:, 0, 1]
+        complete[reused] = True
+        timings['setup_import_and_roundtrip_seconds'] = time.monotonic()-started
+        tick = time.monotonic()
+        for n, index in enumerate(missing):
+            left, right = 16*index, min(16*index+16, SCORE_ROWS)
+            captured = actual_forward(left, right)
+            runner._ta_m5_capture_batch(arrays, captured, left=left, right=right,
+                parents=later_rows[left:right], issues=later_issues[left:right])
+            with torch.inference_mode():
+                for task in heads:
+                    x = torch.from_numpy(captured[task+'_representation']).to(cuda)
+                    if task == 'state': x = x[:, None, :]
+                    r1_raw[task][left:right] = torch.nn.functional.linear(
+                        x, old_heads[task][0], old_heads[task][1]).flatten().cpu().numpy()
+                    counts['reference_linear_calls'] += 1
+            complete[left:right] = True
+            if (n+1) % 256 == 0:
+                print(json.dumps(dict(status='PROGRESS', missing_batches=n+1, rows=int(complete.sum()),
+                    elapsed_seconds=time.monotonic()-started)), flush=True)
+        timings['missing_later_seconds'] = time.monotonic()-tick
+        _need(complete.all() and signature() == candidate_signature and all(p.grad is None for p in model.parameters()),
+              'FIXED_SCORE_FINAL_UNCHANGED')
+        artifacts['full_later'] = save_arrays('FULL_LATER_READOUT.npz',
+            {**arrays, **{task+'_R1_M5_raw': value for task, value in r1_raw.items()}})
+        scores['LATER_FULL'] = {}
+        for task in heads:
+            _need(all(np.array_equal(arrays[task+'_'+key], initial_truth[task][key])
+                      for key in ('allowed', 'eligible', 'mature')), 'FIXED_SCORE_FULL_MASKS')
+            allowed = arrays[task+'_allowed'][:, 0]
+            known = arrays[task+'_eligible'][:, 0] & arrays[task+'_mature'][:, 0] & np.isin(allowed, (1, 4))
+            y = (allowed == 4).astype(np.float64)
+            _need(int(known.sum()) == {'state': 6096, 'future': 7165}[task], 'FIXED_SCORE_FULL_COUNTS')
+            values = dict(CANDIDATE=arrays[task+'_activity_side_logits'][:, 0, 1],
+                R1=r1_raw[task], INITIAL=initial_logits[task],
+                PRIOR=np.full(SCORE_ROWS, float(q['priors']['tasks'][task]['raw_logits'][0][1])))
+            scores['LATER_FULL'][task] = {name: _m5_import_score(z, known, y) for name, z in values.items()}
+        decision = _fixed_score_decision(scores)
+        ambiguous = []
+        for panel, local in (('TRAIN', 'TRAIN'), ('LATER_FULL', 'LATER_192')):
+            for task in heads:
+                error = head_parity['CANDIDATE'][local][task]['score_delta']
+                for reference in ('INITIAL', 'PRIOR'):
+                    cell = decision['cells'][panel][task][reference]
+                    if cell['passes'] and any(abs(cell[key+'_delta']) <= abs(error[key]) for key in ('brier', 'log')):
+                        ambiguous.append(dict(panel=panel, task=task, reference=reference))
+        decision['observed_rounding_ambiguity'] = ambiguous
+        if ambiguous and decision['decision'].startswith('PASS'):
+            decision['decision'] = 'NUMERICALLY_UNCLEAR'
+        expected = dict(model_constructions=1, checkpoint_loads=2, backbone_encodings=1100, forward_returns=1100,
+            missing_score_encodings=1098, fresh_baseline_forwards=2, cached_head_calls=7444,
+            reference_linear_calls=2196, head_tensor_imports=4, candidate_writes=1,
+            optimizer_constructions=0, optimizer_updates=0, backwards=0, checkpoint_writes=0,
+            resume_state_load_calls=2, resume_state_load_returns=2)
+        _need(all(counts[k] == v for k, v in expected.items()), 'FIXED_SCORE_EXACT_COUNTS')
+        base._release_pages(provider, prepared); prepared = None
+        provider.validate_metadata(provider_plan); bookend()
+        result = publish('RESULT.json', dict(status='COMPLETE', plan=q['plan_ref'], claim=claim,
+            source_commit=q['head'], artifacts=artifacts, counts=counts, source_identity=source_identity,
+            candidate_model_state_sha256=candidate_signature['model'], import_proof=import_proof,
+            head_parity=head_parity, fresh_candidate_baseline=baseline_proof, roundtrip=roundtrip,
+            scores=scores, comparison=decision, later_reused_rows=192, later_new_rows=17561,
+            later_total_rows=SCORE_ROWS, reused_positions=reused.tolist(),
+            candidate_later_provenance='192 actual GPU-head outputs on retained R1 inputs plus17561 actual full native outputs',
+            R1_later_provenance='192 retained native outputs plus17561 reconstructed affine outputs on the same newly captured inputs',
+            prior_ORIGINAL_FINAL_full_later_context=q['readout']['prior_ORIGINAL_FINAL_full_later_context'],
+            negative_control_recomputed=False, source_unchanged=True, evaluation_state_unchanged=True,
+            head_tensor_imports=4, optimizer_updates=0, training_enabled=False, test_data_used=False,
+            canonical_resume_authority=False, candidate_selection=False, promotion_authorized=False,
+            limits='Fixed heads only; same-instance weights-only roundtrip, no fresh constructor or optimizer resume. Later TRAIN reused development. R1 and CPU/GPU differences are diagnostic, not a formal global floating-point error bound.',
+            timings={**timings, 'elapsed_seconds': time.monotonic()-started}))
+        terminal = publish('TERMINAL.json', dict(status='COMPLETE', exit_code=0, plan=q['plan_ref'],
+            result=result, artifacts=artifacts, source_unchanged=True,
+            no_relaunch_under_this_plan=True, test_data_used=False))
+        return dict(result=result, terminal=terminal)
+    except BaseException as exc:
+        preservation_error = None
+        if arrays and complete.any() and 'full_later' not in artifacts:
+            try:
+                positions = np.flatnonzero(complete)
+                artifacts['partial_later'] = save_arrays('PARTIAL_LATER_READOUT.npz',
+                    {'score_positions': positions, **{k: v[positions] for k, v in arrays.items()},
+                     **{task+'_R1_M5_raw': v[positions] for task, v in r1_raw.items()}})
+            except Exception as secondary: preservation_error = repr(secondary)
+        source_unchanged = False
+        try: bookend(); source_unchanged = True
+        except Exception as secondary: preservation_error = (preservation_error or '')+';bookend:'+repr(secondary)
+        result = publish('RESULT.json', dict(status='FAILED_CONSUMED', plan=q['plan_ref'], claim=claim,
+            artifacts=artifacts, counts=counts, rows=int(complete.sum()), import_proof=import_proof,
+            head_parity=head_parity, fresh_candidate_baseline=baseline_proof, roundtrip=roundtrip,
+            error=type(exc).__name__+':'+str(exc), preservation_error=preservation_error,
+            source_unchanged=source_unchanged, test_data_used=False, canonical_resume_authority=False))
+        publish('TERMINAL.json', dict(status='FAILED', exit_code=1, plan=q['plan_ref'], result=result,
+            source_unchanged=source_unchanged, no_relaunch_under_this_plan=True, test_data_used=False))
         raise
     finally:
         signal.setitimer(signal.ITIMER_REAL, 0.); signal.signal(signal.SIGALRM, previous_alarm)
