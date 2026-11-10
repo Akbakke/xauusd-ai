@@ -1,0 +1,925 @@
+{
+  "status": "COMPLETE_CONSUMED_TECHNICAL_PASS_DIRECTION_COMPARISON_FAIL",
+  "source_commit_during_native_run": "2f493a251479484b5876d9fa7b0d0a8ffbd069f4",
+  "scope_review": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_FULL_REVERSE_ORDER_002_SCOPE_REVIEW.json",
+    "sha256": "1885c58effdf7470bc7df03e1dc3945b112786b8480e28850a835bb9f0b17f3e"
+  },
+  "evidence": {
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULL_REVERSE_ORDER_20261110_002/RESULT.json",
+      "sha256": "be7a403c827e5a2883d7ae6c29ccd345c2ce4feb599da402ec41e601e001347d"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULL_REVERSE_ORDER_20261110_002/TERMINAL.json",
+      "sha256": "40a284e6ee0648c46165e85e28e56494e9378b3e9f0e6457ad93da67d1dcf2fe"
+    },
+    "controller_receipt": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULL_REVERSE_ORDER_20261110_002/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "11ea31e16842028a8f280b85e3bcecef6ae075420d821b7f4b6ba291088a71fb"
+    },
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULL_REVERSE_ORDER_20261110_002/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "sha256": "6b0a6ae17ecf63a4ce977ad043e98693ab7b4d4392ac329f2e1c48b1cdd8cde4"
+    },
+    "actual_readiness_before_claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULL_REVERSE_ORDER_20261110_002/READINESS_PREFLIGHT_RESULT.json",
+      "sha256": "346e804a414df42f88e225ab2aea14e1aee0af9aad1d98d97fbe4d6ca16ac43d"
+    },
+    "materialize_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULL_REVERSE_ORDER_20261110_002/MATERIALIZE_RESULT.json",
+      "sha256": "c69903c950809ee66cfd5ad8a054d15014df2c8e4f7e2f64387d958a2b8d94fa"
+    },
+    "task_disabled": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULL_REVERSE_ORDER_20261110_002/WINDOWS_TASK_DISABLED.json",
+      "sha256": "4f6c840343ac22f32fb8918e41ae40dbc667f406a8f6a9485985fff6aabe74db"
+    },
+    "cached_score_check": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULL_REVERSE_ORDER_20261110_002/CACHED_SCORE_VERIFY.json",
+      "sha256": "9dd705200089c8e4820b9e95b0e30ab000bf5b198318f3316c0aac5186f8a547"
+    },
+    "cached_month_diagnostic": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULL_REVERSE_ORDER_20261110_002/CACHED_MONTH_DIAGNOSTIC.json",
+      "sha256": "351623ff8dc4810297f52915af3a7151dc2d52fb9e796320c68fb95f723ab9ac"
+    },
+    "score_check_worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULL_REVERSE_ORDER_20261110_002/CACHED_SCORE_VERIFY.py",
+      "sha256": "7c74abd30602342a92ae7543d7f49445ec42594fab9e317fa373279935d20a78"
+    },
+    "month_diagnostic_worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULL_REVERSE_ORDER_20261110_002/CACHED_MONTH_DIAGNOSTIC.py",
+      "sha256": "2da3b2cb1cd02964a4bac14b781925b3c65ea41c20119f857d0b6c7a339796ea"
+    }
+  },
+  "experiment": {
+    "candidate": "REVERSED",
+    "rows": 29574,
+    "full_B16_batches": 1848,
+    "tail_rows": 6,
+    "batch_order": "1847..0 followed by original tail1848",
+    "updates": 1849,
+    "initial": "Exact original ae772 model, all buffers, empty Adam, RNG and modes restored from existing INITIAL checkpoint.",
+    "unchanged": [
+      "genuine five-TF inputs",
+      "normalization",
+      "S/F targets and FLAT semantics",
+      "original intact batch membership",
+      "original batch IDs and pass0 queries",
+      "loss",
+      "learning rate",
+      "optimizer and clipping",
+      "total update count"
+    ],
+    "intervention_limit": "Presentation order changes dropout-to-row assignment and the subsequent Adam trajectory; those mechanisms are not isolated separately.",
+    "baseline_reuse": "Qualified original INITIAL allTRAIN reconstruction; direct CUDA original FINAL FIT/SCORE caches; direct INITIAL later192. ORIGINAL_FINAL later192 reduced from saved SCORE_CACHE, no baseline forwards or repeated control fit.",
+    "panels": [
+      "all original TRAIN29574 sampledS/nativeF",
+      "existing laterTRAIN192 native endpoints"
+    ],
+    "primary_scores": "Both M5 conditional S/F Brier and log on both fixed panels versus INITIAL, ORIGINAL_FINAL and frozen prior; all five TF activity/side/three-class and full TRAIN objective reported.",
+    "margins": {
+      "INITIAL": 1e-06,
+      "ORIGINAL_FINAL": 1e-08,
+      "PRIOR": 1e-08
+    },
+    "counts": {
+      "model_constructions": 1,
+      "optimizer_constructions": 1,
+      "checkpoint_loads": 1,
+      "full_state_restores": 1,
+      "training_forwards": 1849,
+      "TRAIN_evaluation_forwards": 1849,
+      "later_evaluation_forwards": 12,
+      "forwards": 3710,
+      "backwards": 1849,
+      "optimizer_updates": 1849,
+      "baseline_forwards": 0,
+      "private_evidence_writes": 1,
+      "canonical_checkpoint_writes": 0
+    },
+    "true_full_fit": true,
+    "automatic_continuation": false,
+    "canonical_resume_authority": false
+  },
+  "execution": {
+    "boot_id": 638,
+    "guard_exit": 0,
+    "observer_exit": 0,
+    "same_initial_state": true,
+    "same_training_queries": true,
+    "all_original_rows_once": true,
+    "tail6_preserved": true,
+    "skipped_batches": 0,
+    "evaluation_state_unchanged": true,
+    "counts": {
+      "backward_returns": 1849,
+      "backwards": 1849,
+      "cached_baseline_loss_batches": 3698,
+      "candidate_evidence_writes": 1,
+      "checkpoint_loads": 1,
+      "checkpoint_writes": 0,
+      "evaluation_forwards": 1861,
+      "extra_truth_gathers": 3698,
+      "forward_returns": 3710,
+      "forwards": 3710,
+      "json_bytes": 226038,
+      "model_construction_returns": 1,
+      "model_constructions": 1,
+      "optimizer_constructions": 1,
+      "optimizer_step_calls": 1849,
+      "optimizer_step_returns": 1849,
+      "optimizer_updates": 1849,
+      "resume_state_load_calls": 1,
+      "resume_state_load_returns": 1,
+      "strict_full_state_restore_calls": 1,
+      "strict_full_state_restore_returns": 1,
+      "training_forwards": 1849
+    },
+    "source_unchanged_during_run": true,
+    "native_process_finished": true,
+    "windows_task_disabled": true,
+    "training_enabled_after_consumption": false
+  },
+  "primary_m5_comparison": {
+    "baseline_score_atol": 1e-06,
+    "cells": {
+      "LATER_future": {
+        "REVERSED": {
+          "brier": 0.2432296632267861,
+          "log": 0.6795701493702863
+        },
+        "count": 75,
+        "differences": {
+          "INITIAL": {
+            "brier": -0.003664257750937261,
+            "log": -0.00735825207607943
+          },
+          "ORIGINAL_FINAL": {
+            "brier": -0.0055976985003450275,
+            "log": -0.011130118064249905
+          },
+          "PRIOR": {
+            "brier": -0.0061524725565636484,
+            "log": -0.012341119231147002
+          }
+        },
+        "passed": true,
+        "references": {
+          "INITIAL": {
+            "brier": 0.24689392097772336,
+            "log": 0.6869284014463657
+          },
+          "ORIGINAL_FINAL": {
+            "brier": 0.24882736172713113,
+            "log": 0.6907002674345362
+          },
+          "PRIOR": {
+            "brier": 0.24938213578334975,
+            "log": 0.6919112686014333
+          }
+        }
+      },
+      "LATER_state": {
+        "REVERSED": {
+          "brier": 0.23806663018479043,
+          "log": 0.6691780809184976
+        },
+        "count": 65,
+        "differences": {
+          "INITIAL": {
+            "brier": -0.0033895533776836517,
+            "log": -0.0068397453441703115
+          },
+          "ORIGINAL_FINAL": {
+            "brier": 0.0030056788295585446,
+            "log": 0.006378592711753117
+          },
+          "PRIOR": {
+            "brier": -0.009121399669718783,
+            "log": -0.018342703704350205
+          }
+        },
+        "passed": false,
+        "references": {
+          "INITIAL": {
+            "brier": 0.24145618356247409,
+            "log": 0.6760178262626679
+          },
+          "ORIGINAL_FINAL": {
+            "brier": 0.2350609513552319,
+            "log": 0.6627994882067445
+          },
+          "PRIOR": {
+            "brier": 0.24718802985450922,
+            "log": 0.6875207846228478
+          }
+        }
+      },
+      "TRAIN_future": {
+        "REVERSED": {
+          "brier": 0.24948855862415473,
+          "log": 0.6921237508123671
+        },
+        "count": 11909,
+        "differences": {
+          "INITIAL": {
+            "brier": 0.0001615478806319126,
+            "log": 0.0003234227202455475
+          },
+          "ORIGINAL_FINAL": {
+            "brier": -0.004415383527454325,
+            "log": -0.009109095118416066
+          },
+          "PRIOR": {
+            "brier": -0.0003876526326115348,
+            "log": -0.0007758318255280949
+          }
+        },
+        "passed": false,
+        "references": {
+          "INITIAL": {
+            "brier": 0.24932701074352281,
+            "log": 0.6918003280921216
+          },
+          "ORIGINAL_FINAL": {
+            "brier": 0.25390394215160905,
+            "log": 0.7012328459307832
+          },
+          "PRIOR": {
+            "brier": 0.24987621125676626,
+            "log": 0.6928995826378952
+          }
+        }
+      },
+      "TRAIN_state": {
+        "REVERSED": {
+          "brier": 0.2485028185972811,
+          "log": 0.6901469107533538
+        },
+        "count": 10010,
+        "differences": {
+          "INITIAL": {
+            "brier": 2.945477441393396e-05,
+            "log": 5.709556089650292e-05
+          },
+          "ORIGINAL_FINAL": {
+            "brier": -0.0026150154427301564,
+            "log": -0.0053984837798332075
+          },
+          "PRIOR": {
+            "brier": -0.0011481897489720727,
+            "log": -0.0023021240148116684
+          }
+        },
+        "passed": false,
+        "references": {
+          "INITIAL": {
+            "brier": 0.24847336382286717,
+            "log": 0.6900898151924573
+          },
+          "ORIGINAL_FINAL": {
+            "brier": 0.25111783404001126,
+            "log": 0.695545394533187
+          },
+          "PRIOR": {
+            "brier": 0.24965100834625317,
+            "log": 0.6924490347681654
+          }
+        }
+      }
+    },
+    "decision": "FAIL_COMPARISON_NO_PROMOTION",
+    "reference_margins": {
+      "INITIAL": 1e-06,
+      "ORIGINAL_FINAL": 1e-08,
+      "PRIOR": 1e-08
+    }
+  },
+  "all_TF_improvement_counts_out_of_10_from_bound_measurements": {
+    "LATER": {
+      "INITIAL": {
+        "activity": {
+          "brier": 9,
+          "log": 9
+        },
+        "conditional_side": {
+          "brier": 5,
+          "log": 5
+        },
+        "three_class": {
+          "brier": 8,
+          "log": 8
+        }
+      },
+      "ORIGINAL_FINAL": {
+        "activity": {
+          "brier": 9,
+          "log": 9
+        },
+        "conditional_side": {
+          "brier": 5,
+          "log": 6
+        },
+        "three_class": {
+          "brier": 8,
+          "log": 8
+        }
+      }
+    },
+    "TRAIN": {
+      "INITIAL": {
+        "activity": {
+          "brier": 10,
+          "log": 7
+        },
+        "conditional_side": {
+          "brier": 7,
+          "log": 7
+        },
+        "three_class": {
+          "brier": 9,
+          "log": 9
+        }
+      },
+      "ORIGINAL_FINAL": {
+        "activity": {
+          "brier": 6,
+          "log": 7
+        },
+        "conditional_side": {
+          "brier": 9,
+          "log": 9
+        },
+        "three_class": {
+          "brier": 9,
+          "log": 9
+        }
+      }
+    }
+  },
+  "combined_losses_from_bound_measurements": {
+    "LATER": {
+      "INITIAL": 2.2597677616548646,
+      "ORIGINAL_FINAL": 2.406754107666102,
+      "REVERSED": 2.2680730662545634
+    },
+    "TRAIN": {
+      "INITIAL": 1.948957213619195,
+      "ORIGINAL_FINAL": 2.021683300940522,
+      "REVERSED": 1.8834233823307402
+    }
+  },
+  "m5_counts_and_probability_means_from_independent_capture_check": {
+    "LATER": {
+      "future": {
+        "INITIAL": {
+          "brier": 0.2468939209777233,
+          "count": 75,
+          "log": 0.6869284014463658,
+          "meanP": 0.5166263503899186,
+          "up_count": 40
+        },
+        "ORIGINAL_FINAL": {
+          "brier": 0.24882736172713105,
+          "count": 75,
+          "log": 0.6907002674345362,
+          "meanP": 0.5852623622854638,
+          "up_count": 40
+        },
+        "PRIOR": {
+          "brier": 0.24938213578334975,
+          "count": 75,
+          "log": 0.6919112686014336,
+          "meanP": 0.5111241709344304,
+          "up_count": 40
+        },
+        "REVERSED": {
+          "brier": 0.24322966322678616,
+          "count": 75,
+          "log": 0.6795701493702863,
+          "meanP": 0.5225721973692997,
+          "up_count": 40
+        }
+      },
+      "state": {
+        "INITIAL": {
+          "brier": 0.24145618356247409,
+          "count": 65,
+          "log": 0.6760178262626678,
+          "meanP": 0.5195489938225082,
+          "up_count": 38
+        },
+        "ORIGINAL_FINAL": {
+          "brier": 0.23506095135523192,
+          "count": 65,
+          "log": 0.6627994882067445,
+          "meanP": 0.5690840282219214,
+          "up_count": 38
+        },
+        "PRIOR": {
+          "brier": 0.24718802985450922,
+          "count": 65,
+          "log": 0.6875207846228477,
+          "meanP": 0.5186775868957252,
+          "up_count": 38
+        },
+        "REVERSED": {
+          "brier": 0.23806663018479043,
+          "count": 65,
+          "log": 0.6691780809184976,
+          "meanP": 0.5152272570826583,
+          "up_count": 38
+        }
+      }
+    },
+    "TRAIN": {
+      "future": {
+        "INITIAL": {
+          "brier": 0.24932701074352281,
+          "count": 11909,
+          "log": 0.6918003280921216,
+          "meanP": 0.5109712747092003,
+          "up_count": 6087
+        },
+        "ORIGINAL_FINAL": {
+          "brier": 0.25390394215160905,
+          "count": 11909,
+          "log": 0.7012328459307832,
+          "meanP": 0.5726465040944269,
+          "up_count": 6087
+        },
+        "PRIOR": {
+          "brier": 0.24987621125676626,
+          "count": 11909,
+          "log": 0.6928995826378952,
+          "meanP": 0.5111241709344305,
+          "up_count": 6087
+        },
+        "REVERSED": {
+          "brier": 0.24948855862415473,
+          "count": 11909,
+          "log": 0.6921237508123671,
+          "meanP": 0.5142760381579943,
+          "up_count": 6087
+        }
+      },
+      "state": {
+        "INITIAL": {
+          "brier": 0.24847336382286717,
+          "count": 10010,
+          "log": 0.6900898151924573,
+          "meanP": 0.5185591398769893,
+          "up_count": 5192
+        },
+        "ORIGINAL_FINAL": {
+          "brier": 0.25111783404001126,
+          "count": 10010,
+          "log": 0.695545394533187,
+          "meanP": 0.5660938907447868,
+          "up_count": 5192
+        },
+        "PRIOR": {
+          "brier": 0.24965100834625317,
+          "count": 10010,
+          "log": 0.6924490347681654,
+          "meanP": 0.5186775868957252,
+          "up_count": 5192
+        },
+        "REVERSED": {
+          "brier": 0.2485028185972811,
+          "count": 10010,
+          "log": 0.6901469107533538,
+          "meanP": 0.5101200720037729,
+          "up_count": 5192
+        }
+      }
+    }
+  },
+  "monthly_train_diagnostic": {
+    "future": {
+      "global": {
+        "INITIAL": {
+          "auc": 0.5273157192764911,
+          "brier": 0.24932701074352281,
+          "count": 11909,
+          "identity_error": 2.7755575615628914e-17,
+          "log": 0.6918003280921216,
+          "mean_error_squared": 2.3952025967031122e-08,
+          "mean_p": 0.5109712747092003,
+          "mean_y": 0.5111260391300697,
+          "minus_2_cov": -0.0008675897485006239,
+          "up_count": 6087,
+          "var_p": 0.0003183652867213183,
+          "var_y": 0.24987621125327614
+        },
+        "ORIGINAL_FINAL": {
+          "auc": 0.5255760159695183,
+          "brier": 0.25390394215160905,
+          "count": 11909,
+          "identity_error": 5.551115123125783e-17,
+          "log": 0.7012328459307832,
+          "mean_error_squared": 0.0037847676094306952,
+          "mean_p": 0.5726465040944269,
+          "mean_y": 0.5111260391300697,
+          "minus_2_cov": -0.0023435880089042755,
+          "up_count": 6087,
+          "var_p": 0.0025865512978064517,
+          "var_y": 0.24987621125327614
+        },
+        "REVERSED": {
+          "auc": 0.5256132635809729,
+          "brier": 0.24948855862415473,
+          "count": 11909,
+          "identity_error": 0.0,
+          "log": 0.6921237508123671,
+          "mean_error_squared": 9.92249387592571e-06,
+          "mean_p": 0.5142760381579943,
+          "mean_y": 0.5111260391300697,
+          "minus_2_cov": -0.0015708602906792492,
+          "up_count": 6087,
+          "var_p": 0.001173285167681914,
+          "var_y": 0.24987621125327614
+        }
+      },
+      "within_month_pair_weighted_auc": {
+        "INITIAL": 0.529241962208389,
+        "ORIGINAL_FINAL": 0.5278635148776302,
+        "REVERSED": 0.526441490280653
+      },
+      "reversed_minus_initial": {
+        "global_centered_delta": 0.00015164933878195394,
+        "global_delta": {
+          "auc": -0.0017024556955181902,
+          "brier": 0.0001615478806319126,
+          "log": 0.0003234227202455475,
+          "mean_error_squared": 9.89854184995868e-06,
+          "mean_p": 0.003304763448793935,
+          "mean_y": 0.0,
+          "minus_2_cov": -0.0007032705421786253,
+          "var_p": 0.0008549198809605957,
+          "var_y": 0.0
+        },
+        "global_mean_bias_delta": 9.89854184995868e-06,
+        "months": {
+          "2024-05": {
+            "delta": {
+              "auc": 0.006969995704800835,
+              "brier": -0.00040133138567835513,
+              "centered_brier": -0.0004356676156645573,
+              "log": -0.0008045258338209571,
+              "mean_error_squared": 3.433622998620218e-05,
+              "mean_p": 0.002765469164022538,
+              "mean_y": 0.0,
+              "minus_2_cov": -0.0014006811014517534,
+              "var_p": 0.0009650134857871874,
+              "var_y": 0.0
+            },
+            "known_weight": 0.20883365521874211,
+            "weighted_brier_contribution": -8.381150022521363e-05,
+            "weighted_centered_contribution": -9.098206063966361e-05,
+            "weighted_mean_bias_contribution": 7.1705604144499805e-06
+          },
+          "2024-06": {
+            "delta": {
+              "auc": 0.0002835147991456788,
+              "brier": 0.00031353803968603433,
+              "centered_brier": 0.0002662108851675783,
+              "log": 0.0006296544285273598,
+              "mean_error_squared": 4.732715451845603e-05,
+              "mean_p": 0.002026673205062668,
+              "mean_y": 0.0,
+              "minus_2_cov": -0.000716403635742377,
+              "var_p": 0.0009826145209099596,
+              "var_y": 0.0
+            },
+            "known_weight": 0.18582584599882443,
+            "weighted_brier_contribution": 5.826347147747032e-05,
+            "weighted_centered_contribution": 4.946886295036114e-05,
+            "weighted_mean_bias_contribution": 8.794608527109178e-06
+          },
+          "2024-07": {
+            "delta": {
+              "auc": -0.004069766068192537,
+              "brier": 0.00028015645978501924,
+              "centered_brier": 0.00026680830730990365,
+              "log": 0.0005614133114199005,
+              "mean_error_squared": 1.3348152475115617e-05,
+              "mean_p": 0.0029434208310910037,
+              "mean_y": 0.0,
+              "minus_2_cov": -0.0005682150238396178,
+              "var_p": 0.0008350233311495656,
+              "var_y": 0.0
+            },
+            "known_weight": 0.21857418758921823,
+            "weighted_brier_contribution": 6.123497059538206e-05,
+            "weighted_centered_contribution": 5.831740901231667e-05,
+            "weighted_mean_bias_contribution": 2.9175615830654086e-06
+          },
+          "2024-08": {
+            "delta": {
+              "auc": -0.014006821818265847,
+              "brier": 0.00039923200136596226,
+              "centered_brier": 0.0004170494895986643,
+              "log": 0.0007966276141290196,
+              "mean_error_squared": -1.7817488232702062e-05,
+              "mean_p": 0.004450409340466477,
+              "mean_y": 0.0,
+              "minus_2_cov": -0.00044579770128604286,
+              "var_p": 0.000862847190884711,
+              "var_y": 0.0
+            },
+            "known_weight": 0.19766563103535142,
+            "weighted_brier_contribution": 7.891444547950921e-05,
+            "weighted_centered_contribution": 8.243635053449121e-05,
+            "weighted_mean_bias_contribution": -3.5219050549820017e-06
+          },
+          "2024-09": {
+            "delta": {
+              "auc": -0.0037558440696762174,
+              "brier": 0.00024826189554463807,
+              "centered_brier": 0.0003440042982200815,
+              "log": 0.0004984242542187545,
+              "mean_error_squared": -9.574240267544342e-05,
+              "mean_p": 0.00437641664616828,
+              "mean_y": 0.0,
+              "minus_2_cov": -0.0003275584385595791,
+              "var_p": 0.0006715627367796624,
+              "var_y": 0.0
+            },
+            "known_weight": 0.1891006801578638,
+            "weighted_brier_contribution": 4.694649330477159e-05,
+            "weighted_centered_contribution": 6.505144677064603e-05,
+            "weighted_mean_bias_contribution": -1.810495346587443e-05
+          }
+        },
+        "reconciliation": {
+          "weighted_brier_contribution": 0.00016154788063191955,
+          "weighted_centered_contribution": 0.00016429200862815143,
+          "weighted_mean_bias_contribution": -2.744127996231866e-06
+        }
+      },
+      "reversed_minus_original_final_month_reconciliation": {
+        "weighted_brier_contribution": -0.004415383527454272,
+        "weighted_centered_contribution": -0.00039634459742505493,
+        "weighted_mean_bias_contribution": -0.004019038930029218
+      },
+      "better_original_final_all_five_months_brier_and_log": true
+    },
+    "state": {
+      "global": {
+        "INITIAL": {
+          "auc": 0.5381870822116089,
+          "brier": 0.24847336382286717,
+          "count": 10010,
+          "identity_error": -5.551115123125783e-17,
+          "log": 0.6900898151924573,
+          "mean_error_squared": 1.492766022736406e-08,
+          "mean_p": 0.5185591398769893,
+          "mean_y": 0.5186813186813187,
+          "minus_2_cov": -0.0020287254514944667,
+          "up_count": 5192,
+          "var_p": 0.0008510660143743902,
+          "var_y": 0.2496510083323271
+        },
+        "ORIGINAL_FINAL": {
+          "auc": 0.5382090889582658,
+          "brier": 0.25111783404001126,
+          "count": 10010,
+          "identity_error": -1.1102230246251565e-16,
+          "log": 0.695545394533187,
+          "mean_error_squared": 0.002247951989673551,
+          "mean_p": 0.5660938907447868,
+          "mean_y": 0.5186813186813187,
+          "minus_2_cov": -0.003705007971221161,
+          "up_count": 5192,
+          "var_p": 0.0029238816892318414,
+          "var_y": 0.2496510083323271
+        },
+        "REVERSED": {
+          "auc": 0.5403987702446079,
+          "brier": 0.2485028185972811,
+          "count": 10010,
+          "identity_error": -1.1102230246251565e-16,
+          "log": 0.6901469107533538,
+          "mean_error_squared": 7.329494467379029e-05,
+          "mean_p": 0.5101200720037729,
+          "mean_y": 0.5186813186813187,
+          "minus_2_cov": -0.0032075128522326773,
+          "up_count": 5192,
+          "var_p": 0.0019860281725129804,
+          "var_y": 0.2496510083323271
+        }
+      },
+      "within_month_pair_weighted_auc": {
+        "INITIAL": 0.5384202380762926,
+        "ORIGINAL_FINAL": 0.5383604603975365,
+        "REVERSED": 0.5404642169422474
+      },
+      "reversed_minus_initial": {
+        "global_centered_delta": -4.3825242599628965e-05,
+        "global_delta": {
+          "auc": 0.002211688032998982,
+          "brier": 2.945477441393396e-05,
+          "log": 5.709556089650292e-05,
+          "mean_error_squared": 7.328001701356292e-05,
+          "mean_p": -0.008439067873216466,
+          "mean_y": 0.0,
+          "minus_2_cov": -0.0011787874007382106,
+          "var_p": 0.00113496215813859,
+          "var_y": 0.0
+        },
+        "global_mean_bias_delta": 7.328001701356292e-05,
+        "months": {
+          "2024-05": {
+            "delta": {
+              "auc": 0.009040743642192983,
+              "brier": -0.0009180279314356388,
+              "centered_brier": -0.0010169900134159378,
+              "log": -0.0018417134972790183,
+              "mean_error_squared": 9.896208198029898e-05,
+              "mean_p": -0.007004099858986201,
+              "mean_y": 0.0,
+              "minus_2_cov": -0.0022975358308719913,
+              "var_p": 0.0012805458174560544,
+              "var_y": 0.0
+            },
+            "known_weight": 0.2100899100899101,
+            "weighted_brier_contribution": -0.0001928684055753395,
+            "weighted_centered_contribution": -0.00021365934048089085,
+            "weighted_mean_bias_contribution": 2.0790934905551324e-05
+          },
+          "2024-06": {
+            "delta": {
+              "auc": 0.0076736769190806076,
+              "brier": 0.0002360298945303374,
+              "centered_brier": 0.00022051977550192406,
+              "log": 0.0004699800741903015,
+              "mean_error_squared": 1.5510119028413328e-05,
+              "mean_p": -0.007424627429480135,
+              "mean_y": 0.0,
+              "minus_2_cov": -0.0011461224094244846,
+              "var_p": 0.0013666421849263637,
+              "var_y": 0.0
+            },
+            "known_weight": 0.1824175824175824,
+            "weighted_brier_contribution": 4.3056002738501106e-05,
+            "weighted_centered_contribution": 4.0226684322329005e-05,
+            "weighted_mean_bias_contribution": 2.8293184161721015e-06
+          },
+          "2024-07": {
+            "delta": {
+              "auc": -0.0004054584006327744,
+              "brier": 0.00016267457618318604,
+              "centered_brier": 0.0001656776152483685,
+              "log": 0.0003227311548977818,
+              "mean_error_squared": -3.00303906518246e-06,
+              "mean_p": -0.009678688420861059,
+              "mean_y": 0.0,
+              "minus_2_cov": -0.0009569872967847537,
+              "var_p": 0.0011226649120331747,
+              "var_y": 0.0
+            },
+            "known_weight": 0.2192807192807193,
+            "weighted_brier_contribution": 3.56713980741352e-05,
+            "weighted_centered_contribution": 3.6329906640376514e-05,
+            "weighted_mean_bias_contribution": -6.585085662413086e-07
+          },
+          "2024-08": {
+            "delta": {
+              "auc": -0.0038514021037661106,
+              "brier": 0.00028146926926514437,
+              "centered_brier": 0.00026250024067474764,
+              "log": 0.0005636439653847747,
+              "mean_error_squared": 1.896902859039672e-05,
+              "mean_p": -0.00696217972779789,
+              "mean_y": 0.0,
+              "minus_2_cov": -0.0007587133143532568,
+              "var_p": 0.0010212135550280103,
+              "var_y": 0.0
+            },
+            "known_weight": 0.2021978021978022,
+            "weighted_brier_contribution": 5.691246763163359e-05,
+            "weighted_centered_contribution": 5.3076971740828095e-05,
+            "weighted_mean_bias_contribution": 3.835495890805491e-06
+          },
+          "2024-09": {
+            "delta": {
+              "auc": -0.0019025360597623164,
+              "brier": 0.0004660042688321431,
+              "centered_brier": 0.0001739524800834289,
+              "log": 0.0009330054580777292,
+              "mean_error_squared": 0.00029205178874871417,
+              "mean_p": -0.011198659972268987,
+              "mean_y": 0.0,
+              "minus_2_cov": -0.0006644429834249321,
+              "var_p": 0.0008383954635083977,
+              "var_y": 0.0
+            },
+            "known_weight": 0.18601398601398603,
+            "weighted_brier_contribution": 8.668331154500004e-05,
+            "weighted_centered_contribution": 3.235759419733713e-05,
+            "weighted_mean_bias_contribution": 5.432571734766292e-05
+          }
+        },
+        "reconciliation": {
+          "weighted_brier_contribution": 2.945477441393045e-05,
+          "weighted_centered_contribution": -5.16681835800201e-05,
+          "weighted_mean_bias_contribution": 8.112295799395053e-05
+        }
+      },
+      "reversed_minus_original_final_month_reconciliation": {
+        "weighted_brier_contribution": -0.0026150154427301616,
+        "weighted_centered_contribution": -0.00034483973174558263,
+        "weighted_mean_bias_contribution": -0.0022701757109845786
+      },
+      "better_original_final_all_five_months_brier_and_log": true
+    }
+  },
+  "independent_checks": {
+    "score": {
+      "status": "PASS_INDEPENDENT_SAVED_OUTPUT_ARITHMETIC",
+      "seconds": 2.924076270000114,
+      "archives": 10,
+      "members": 110,
+      "max_score_abs_error": 3.3306690738754696e-16,
+      "exact_baseline_source_arrays": true,
+      "models": 0,
+      "forwards": 0,
+      "updates": 0,
+      "checkpoint_decodes": 0,
+      "all_TF_metrics_independently_recomputed": false,
+      "limits": "M5 raw scores and supports recomputed independently. All-five-TF improvement counts and combined losses use bound recorded measurements; TRAIN loss-vector mean checked, not a fresh loss replay. TRAIN sampledS/pass0 versus later nativeS; M5 query1 matches. Reused later192 is development. Order intervention includes dropout assignment and Adam path. No economic/generalization or isolated optimization-cause claim."
+    },
+    "month": {
+      "status": "PASS_CACHED_MONTH_DIAGNOSTIC",
+      "seconds": 0.2134222740005498,
+      "archives": 3,
+      "members": 32,
+      "max_identity_error": 1.4051260155412137e-16,
+      "masked_support_equal": true,
+      "all_months_reported": true,
+      "baseline_statistics_reused": true,
+      "models": 0,
+      "forwards": 0,
+      "fits": 0,
+      "calibration_fits": 0,
+      "later_arrays_consumed": false,
+      "limits": "In-sample TRAIN output decomposition. Mean error is not full calibration error; centered Brier mixes scale and covariance. Rank/period changes cannot prove forgetting or isolate dropout from Adam. No new predictive qualification."
+    }
+  },
+  "probability_learning": {
+    "already_present_before_this_experiment": true,
+    "mapping": "P(DOWN)=a*(1-u); P(FLAT)=1-a; P(UP)=a*u; a=sigmoid(activity), u=sigmoid(conditional_UP)",
+    "training": "Existing masked activity and conditional-side binary cross-entropy, S plus prebound F weight; original M5 observation weighting.",
+    "loss_changed_in_this_experiment": false,
+    "FLAT_changed": false,
+    "calibration_proven": false,
+    "source_refs": [
+      {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_time_query_model_v2.py",
+        "sha256": "b68301bd1c5299a49886d0e7616f3ade8c519287db123e371e230bbaadd339bc"
+      },
+      {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_time_query_side_normalized_loss_v1.py",
+        "sha256": "b9c6884f08d73f35212be625926467df0977a76cb71b443ebf1f4e7398742532"
+      },
+      {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_time_query_native_F_objective_v1.py",
+        "sha256": "a3612b3e85be6d476612ef0056a71b7792a885fbba652402c1c6aa7e7e5bb2ae"
+      }
+    ]
+  },
+  "timing": {
+    "worker_monotonic_seconds": {
+      "elapsed_seconds": 4712.282053202,
+      "evaluation_seconds": 1693.2168391250002,
+      "fit_seconds": 2678.860870067,
+      "input_setup_seconds": 77.654580077
+    },
+    "controller_UTC_interval_seconds": 4540.366045,
+    "worker_minus_controller_UTC_seconds": 171.91600820199983,
+    "controlled_whole_run_speedup_established": false,
+    "baseline_model_forwards_reused_without_recomputation": true,
+    "comparison_limit": "Different workload from earlier short or frozen-CPU experiments; no matched end-to-end benchmark. Do not mix WSL monotonic durations with UTC differences."
+  },
+  "findings": [
+    "The matched full-cohort order intervention materially improves M5 TRAIN relative to original chronological FINAL, but neither S nor F beats INITIAL on TRAIN.",
+    "Both M5 later192 scores beat INITIAL and frozen prior; later S remains worse than original FINAL, so the prebound four-cell gate fails.",
+    "The order intervention includes dropout-to-row assignment and the subsequent Adam trajectory. It does not separately identify forgetting, dropout or Adam as the sole cause.",
+    "Both TRAIN targets improve in May relative to INITIAL, but worsen in June through September; both beat original FINAL in all five months.",
+    "Remaining S regression has worse monthly mean-error contribution offset by improved centered Brier and ranking. Remaining F regression has slightly improved monthly mean-error contribution but worse centered Brier and ranking. A common mean-bias-only explanation is rejected.",
+    "TRAIN total loss decreases while both M5 conditional-side scores remain slightly worse than INITIAL. This is an endpoint tradeoff in this path, not proof of a gradient mechanism.",
+    "F-D1 conditional direction worsens relative to INITIAL on both TRAIN and later192. Later combined loss is still worse than INITIAL."
+  ],
+  "limits": [
+    "Same TRAIN includes the observations used to fit the initial M5 readout; no untouched holdout claim.",
+    "Later192 is reused development, with only65/75 M5 known-side observations; not independent generalization evidence.",
+    "TRAIN S uses sampled pass0 queries and later S native endpoints; M5 k1 matches, other S horizons need domain distinction.",
+    "No new probability calibration, general MTF fix, realized trading precision, economic edge or promotion established.",
+    "All original001 preparation and002 execution evidence/checkpoints remain preserved; neither plan may be relaunched."
+  ],
+  "next_action": "No next fit or common probability-calibration correction admitted. Choose the smallest existing-method diagnostic that addresses S level error and F scale/ranking error separately; any further genuine model work requires its own exact qualification. Reuse current captures and evidence.",
+  "goal_complete": false,
+  "test_data_used": false,
+  "entry_exit_trading_authorized": false
+}

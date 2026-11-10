@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-10T13:07:55.209169+00:00",
-  "status": "TA_M5_FULL_REVERSE_ORDER002_ADMITTED_READINESS_BEFORE_CLAIM",
+  "status": "TA_M5_FULL_REVERSE_ORDER002_COMPLETE_DIRECTION_COMPARISON_FAILED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
-  "full_epoch_training_allowed": true,
+  "training_enabled": false,
+  "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only frozen E3 originalTRAIN complement1593forwards, no new parity/model fitting/optimizer/updates. Reuse limited32row numerical qualification with stronger conditional-M5 margins. No global CPU/CUDA-bound claim. All consumed plans, GC, TEST, Entry, Exit, broker, trading and further training closed.",
-  "next_action": "After clean source commit, require actual bound readiness on002 preview window before any preparation claim. Only after PASS materialize the unchanged3710-forward/1849-update full reverse-order experiment, then verified idle and fresh boot via existing250W guards. Never relaunch consumed001.",
+  "next_action": "No next fit or common probability-calibration correction admitted. Choose the smallest existing-method diagnostic that addresses S level error and F scale/ranking error separately; any further genuine model work requires its own exact qualification. Reuse current captures and evidence.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -35478,7 +35478,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -64109,7 +64109,7 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "TA_M5_E3_FROZEN_COMPLEMENT_LIMITED_PARITY_ADMITTED",
+  "recorded_status": "TA_M5_FULL_REVERSE_ORDER002_COMPLETE_DIRECTION_COMPARISON_FAILED",
   "recorded_observed_utc": "2026-11-10T11:24:37.967286+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
@@ -74144,9 +74144,9 @@
     }
   },
   "market_state_ta_m5_full_reverse_order_20261110_002": {
-    "status": "ADMITTED",
-    "decision": "ADMITTED",
-    "ta_m5_full_reverse_order_authorized": true,
+    "status": "COMPLETE_CONSUMED",
+    "decision": "PASS_TECHNICAL_FAIL_DIRECTION_COMPARISON",
+    "ta_m5_full_reverse_order_authorized": false,
     "fold_id": 1,
     "selected_fit_rows": 29574,
     "arm": "REVERSED",
@@ -74157,9 +74157,9 @@
     "backward_calls_authorized": 1849,
     "optimizer_steps_authorized": 1849,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULL_REVERSE_ORDER_20261110_002",
     "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULL_REVERSE_ORDER_20261110_002/RUNTIME",
@@ -74191,18 +74191,18 @@
     "window_seconds": 12000,
     "outer_seconds": 13800,
     "standing_authorization_source": "Active direction-only goal and zero-cost local-work authority in GX1_RULES; newly qualified exact full-cohort order counterfactual. No consumed plan reused.",
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "full_epoch_training_allowed": true,
-    "genuine_predictor_fit_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "genuine_predictor_fit_authorized": false,
     "native_launch_authorized": false,
-    "campaign_preparation_authorized": true,
+    "campaign_preparation_authorized": false,
     "evaluate_both_panels_unconditionally": true,
     "per_update_pareto_requirement": false,
     "normalization_fit_authorized": false,
@@ -74214,6 +74214,68 @@
     "automatic_continuation": false,
     "synthetic_test_execution_authorized": false,
     "actual_readiness_preflight_required_before_preparation_claim": true,
-    "actual_readiness_preflight_path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULL_REVERSE_ORDER_20261110_002/READINESS_PREFLIGHT_RESULT.json"
+    "actual_readiness_preflight_path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULL_REVERSE_ORDER_20261110_002/READINESS_PREFLIGHT_RESULT.json",
+    "full_direction_fix_qualified": false,
+    "score_gate_decision": "FAIL_COMPARISON_NO_PROMOTION",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULL_REVERSE_ORDER_20261110_002/RESULT.json",
+      "sha256": "be7a403c827e5a2883d7ae6c29ccd345c2ce4feb599da402ec41e601e001347d"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULL_REVERSE_ORDER_20261110_002/TERMINAL.json",
+      "sha256": "40a284e6ee0648c46165e85e28e56494e9378b3e9f0e6457ad93da67d1dcf2fe"
+    },
+    "windows_task_disabled": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULL_REVERSE_ORDER_20261110_002/WINDOWS_TASK_DISABLED.json",
+      "sha256": "4f6c840343ac22f32fb8918e41ae40dbc667f406a8f6a9485985fff6aabe74db"
+    },
+    "controller_receipt": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULL_REVERSE_ORDER_20261110_002/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "11ea31e16842028a8f280b85e3bcecef6ae075420d821b7f4b6ba291088a71fb"
+    },
+    "measured_counts": {
+      "backward_returns": 1849,
+      "backwards": 1849,
+      "cached_baseline_loss_batches": 3698,
+      "candidate_evidence_writes": 1,
+      "checkpoint_loads": 1,
+      "checkpoint_writes": 0,
+      "evaluation_forwards": 1861,
+      "extra_truth_gathers": 3698,
+      "forward_returns": 3710,
+      "forwards": 3710,
+      "json_bytes": 226038,
+      "model_construction_returns": 1,
+      "model_constructions": 1,
+      "optimizer_constructions": 1,
+      "optimizer_step_calls": 1849,
+      "optimizer_step_returns": 1849,
+      "optimizer_updates": 1849,
+      "resume_state_load_calls": 1,
+      "resume_state_load_returns": 1,
+      "strict_full_state_restore_calls": 1,
+      "strict_full_state_restore_returns": 1,
+      "training_forwards": 1849
+    },
+    "measured_timings": {
+      "elapsed_seconds": 4712.282053202,
+      "evaluation_seconds": 1693.2168391250002,
+      "fit_seconds": 2678.860870067,
+      "input_setup_seconds": 77.654580077
+    },
+    "independent_cached_review_status": "PASS",
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_FULL_REVERSE_ORDER_002_REVIEW.json",
+      "sha256": "07a82392f2291979b98887f2b8cf73ff5935f31389ff00385e7bf32870fd82eb"
+    },
+    "cached_score_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULL_REVERSE_ORDER_20261110_002/CACHED_SCORE_VERIFY.json",
+      "sha256": "9dd705200089c8e4820b9e95b0e30ab000bf5b198318f3316c0aac5186f8a547"
+    },
+    "cached_month_diagnostic": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULL_REVERSE_ORDER_20261110_002/CACHED_MONTH_DIAGNOSTIC.json",
+      "sha256": "351623ff8dc4810297f52915af3a7151dc2d52fb9e796320c68fb95f723ab9ac"
+    },
+    "goal_complete": false
   }
 }

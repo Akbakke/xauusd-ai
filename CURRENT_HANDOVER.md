@@ -15,43 +15,66 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_FULL_REVERSE_ORDER002_ADMITTED_READINESS_BEFORE_CLAIM.
+Policystatus: TA_M5_FULL_REVERSE_ORDER002_COMPLETE_DIRECTION_COMPARISON_FAILED.
 
-[Fullrekkefølgetest002](docs/TA_M5_FULL_REVERSE_ORDER_002_SCOPE_REVIEW.json)
-er innrømmet med samme worker og matematikk som den kvalifiserte001.
-Før enhver ny preparation-CLAIM skal root kjøre den faktiske readiness-eieren
-på en separat002-window-JSON med ren, fryst kilde. Den er ikke kjørt ved
-denne kildefrysingen; native modell/trening er ikke startet.
+[Fullrekkefølgetest002](docs/TA_M5_FULL_REVERSE_ORDER_002_REVIEW.json) er COMPLETE/konsumert: source2f493a25 var uendret,
+alle1849 updates og3710 forwards ble gjennomført. Guard/observer exit0,
+Windows-task er deaktivert og alle trenings-/launchporter er stengt.
+Modell-/optimizer-/RNG-/buffer-initial ble gjenopprettet eksakt fra ae772.
+Samme29574 rader,1848 intakte B16 i revers og opprinnelig B6-hale sist;
+mål, FLAT, queries, loss, læringsrate og fem TF er uendret.
 
-001 er FAILED_PREPARATION/konsumert med null native CLAIM/receipts/updates.
-Root hadde satt den generiske native_launch_authorized-porten true og
-utelatt synthetic_test_execution_authorized=false. Eksisterende readiness
-avviste dette etter preparation-CLAIM. Original logg, claim og ustartet plan
-er bevart. Ingen tidligere plan relanseres.
+M5 betinget retnings-Brier (lavere bedre), INITIAL → original FINAL → REVERSED:
+TRAIN S:0,248473364 →0,251117834 →0,248502819 (10010known).
+TRAIN F:0,249327011 →0,253903942 →0,249488559 (11909known).
+Senere S:0,241456184 →0,235060951 →0,238066630 (65known).
+Senere F:0,246893921 →0,248827362 →0,243229663 (75known).
+REVERSED slår fryst prior i alle fire celler. Logtap har samme fortegn.
+Den forhåndsbundne sammenligningen feiler: begge TRAIN-sideledd er fortsatt
+svakere enn INITIAL, og senere S er svakere enn original FINAL.
 
-Minste rettelse er ny002-ID og eksplisitt kontroll av de samme seks stengte
-readiness-portene i scope-gaten før CLAIM. Ny policy har dem alle false.
-Generic native_launch_authorized er false både globalt og i stage, som i den
-tidligere kvalifiserte research-ruten. Bare den eksakte002-fitens training,
-native_training og full_epoch-flagg er true; ingen generell videreføring.
+Rekkefølgeinngrepet bedrer dermed original fullpass kraftig på M5 TRAIN,
+men gir ingen full retningsrettelse. Dropout-tilordning og Adam-historikk
+inngår i inngrepet; ren kronologisk glemming er ikke separat isolert.
+Samlet kanonisk TRAIN-loss INITIAL1,948957214/original2,021683301 blir
+1,883423382. Lavere totaltap er fortsatt ikke bedre M5-retning enn INITIAL.
+Senere192 er gjenbrukt utvikling, ikke urørt VAL/TEST. F-D1-retning svekkes
+både på TRAIN og senere; ingen generell MTF-forbedring eller økonomisk edge.
 
-Samme originale ae772-initial/tomme Adam/RNG, alle29574 rader og1849 updates.
-1848 intakte B16 kjøres1847→0, original B6-hale sist. Originale batch-IDer,
-pass0, mål, FLAT, loss, læringsrate og fem TF beholdes.3710 forwards;
-historiske INITIAL/ORIGINAL_FINAL/prior og senere192-baselines gjenbrukes.
-Dropout-tilordning og påfølgende Adam-historikk inngår i rekkefølgeeffekten.
+Modellen brukte allerede faktorisert aktivitet/retning og faktisk
+sannsynlighetstap før denne testen: P(DOWN)=a(1-u), P(FLAT)=1-a, P(UP)=a*u.
+Ingen ny sannsynlighetsmodell eller tapsfunksjon er innført i denne bølgen.
+Brier/log måler prognosekvalitet; faktisk sannsynlighetskalibrering er ikke bevist.
 
-De102 fokuserte testene og tidligere restore-/modellkontroller gjenbrukes.
-Tre målrettede gate-/readiness-regresjonstester består. Faktisk002-metadata/
-visningspreflight består på14,332s uten genuine arrays, modeller, checkpoints
-eller CLAIM. Worker er byteidentisk19c7b811; bare scope-gate/test er endret.
-Eksisterende250W/20G/512M, modeltak7200s og yttertak12000/13800s beholdes.
-Boot637 og deaktivert Windows-task er kontrollert på nytt. Trygg idle-grense
-og fersk fysisk boot kreves fortsatt før native oppstart. Ingen retningsgevinst
-eller hastighetsgevinst følger av teknisk PASS; målet er uoppnådd.
+Workerens monotontid4712,282s (~78m32s), fit2678,861s og evaluering1693,217s.
+Controllerens UTC-intervall4540,366s er en annen klokke; ikke bland dem til
+en nøyaktig hastighetsgevinst. Ferdige baselines gjenbrukes med null nye
+baseline-forwards. Én modell/optimizer/checkpointdekoding/restore, én privat
+evidenskapsel og null kanoniske checkpointskrivinger. Effektgrensen var250W.
+Ingen kontrollert helkjørings-speedup er målt.
 
-Forrige fullførte kontroll og dens begrensninger følger nedenfor.
+Uavhengig M5-kontroll består:10arkiver/110felt, maks skåravvik3,33e-16,
+2,924s og null modeller/checkpoints/forwards/fit. All-TF-aggregater er fra
+bundne målinger: TRAIN7/10 bedre sideledd, senere5/10, mot INITIAL.
+Senere totaltap2,268073 er fortsatt svakere enn INITIAL2,259768.
 
+Månedsdekomponeringen består på0,213s med gjenbrukte baseline-statistikker.
+Alle fem UTC-måneder mai–september rapporteres; støtte/rekonsiliering består
+med maksavvik1,41e-16. Begge M5-mål slår INITIAL bare i mai, ikke juni–september.
+Begge slår original FINAL i alle fem måneder. Restfeilen mot INITIAL er:
+S ΔBrier+0,000029455 = månedsmiddelavvik+0,000081123 og sentrert−0,000051668;
+F ΔBrier+0,000161548 = månedsmiddelavvik−0,000002744 og sentrert+0,000164292.
+Innenmåned-AUC S0,538420→0,540464, F0,529242→0,526441.
+En felles ren nivå-/biasforklaring er avkreftet. Sentrert Brier omfatter både
+skala og kovarians; mai-gevinsten er ingen isolert glemselsmekanisme.
+
+Ingen ny fit eller felles kalibreringsrettelse er innrømmet. Neste minste
+metodespørsmål må skille S-nivåfeil fra F-skala/rangering og bruke eksisterende
+metode/capturer før eventuell særskilt kvalifisert modelljobb.
+001s feilede klargjøring og002s originalresultater er bevart; ingen relansering.
+Målet er fortsatt ikke oppnådd.
+
+## Tidligere bevis — konsumert, ingen kjøreautorisasjon
 
 [Full002](docs/TA_M5_E3_FULL_TRAIN_002_REVIEW.json) er COMPLETE/konsumert.
 Worker, controller og wrapper er avsluttet med exit0; kilde og E3-tilstand
