@@ -15,7 +15,26 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_HEAD_COORDINATE_GEOMETRY_COMPLETE_INTERVENTION_UNTESTED.
+Policystatus: TA_M5_CENTERED_HEAD_COORDINATES_ADMITTED_ONCE.
+
+Én avgrenset koordinattest er innrømmet, ikke kjørt:
+[scope og kildekontroll](docs/TA_M5_CENTERED_HEAD_COORDINATES_SCOPE_REVIEW.json).
+Original INITIAL/tom Adam, samme 4096 rader og 256 B16-steg.
+Kun M5-hodenes optimizerkoordinater endres med fast INITIAL-TRAIN-middel.
+Alle features, fem TF, mål og loss beholdes. Fryst kilde under kjøringen.
+Ferske CUDA-målinger av INITIAL, original P4096 og kandidat på identiske
+TRAIN192/senere TRAIN192 kreves; alle fire S/F-celler rapporteres ubetinget.
+Brier og log må slå begge modeller og fryst prior med 1e-8 i hver celle.
+328 forwards/256 updates, én modell/optimizer, 2 checkpointdekodinger,
+3 strict restores og én privat evidenskapsel; ingen canonical resume.
+900s modellbudsjett, 250W/20G/512M og eksisterende fresh-boot-vakter.
+
+41 fokuserte tester består (36 gjenbrukt, fem fixturefeil rettet og kontrollert).
+Uavhengig kildekontroll og fysisk metadata-preflight består.
+Historisk CPU-paritet kontrollerer rålogits, M5-sannsynlighet og Brier/log;
+primær sammenligning bruker ferske CUDA-målinger. Ingen retningsgevinst er
+ennå målt. Klipping og Adam-geometri påvirkes også av koordinatbyttet.
+Ingen større fit, sweep, TEST, GC, Entry/Exit eller handel er innrømmet.
 
 [Head-koordinatkontrollen](docs/TA_M5_HEAD_COORDINATE_GEOMETRY_REVIEW.json)
 er COMPLETE på3,303s total;0modeller/forwards/fit/checkpointdekodinger.
@@ -38,7 +57,7 @@ Neste konkrete testdesign er funksjonsekvivalente sentrerte M5-headkoordinater
 med fastTRAINmu0, originalINITIAL/tomAdam og original256-stegskontroll.
 SammeTF/features/loss/data/RNG/250W; ingen shuffle/LR/moment-/feature-sweep.
 Fersk initialparitet og identiske forhåndsbundne TRAIN/senereTRAIN-paneler
-motINITIAL/P4096/prior kreves. Kilde og launch er ennå ikke admitted.
+motINITIAL/P4096/prior kreves. Kilden og den ene avgrensede testen er nå admitted som beskrevet øverst.
 Positiv korttest er bare en port til bredere verifikasjon; målet er uoppnådd.
 
 [Original treningssporing](docs/TA_M5_ORIGINAL_TRACE_REVIEW.json):
@@ -1448,7 +1467,7 @@ tidssekvensmodellen, samme-linje-reaksjonsverdi, Entry-verdi og økonomisk edge
 er ubevist. 61 makrofelt mangler uavhengig formelorakel; COTs faktiske
 historiske publisering og vintage er fortsatt UNKNOWN.
 
-**Neste steg:** Fullfør kun innrømmet originalgradientprøve og kontroller lagrede resultater uavhengig. Ingen fit er innrømmet.
+**Neste steg:** Fullfør kun den nye innrømmede koordinattesten og kontroller lagrede sammenligninger. Ingen fullfit er innrømmet.
 Målet er aktivt; senere retningsverdi er ubevist.
 Brukerens spørsmål om 30 epoker og fem år er fortsatt åpne hypoteser.
 Denne fitten dekker omtrent mai–september2024, senere score oktober–desember2024.

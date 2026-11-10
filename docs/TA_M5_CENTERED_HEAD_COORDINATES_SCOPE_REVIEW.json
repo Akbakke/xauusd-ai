@@ -1,0 +1,65 @@
+{
+  "status": "PASS_SOURCE_AND_FOCUSED_TESTS_NATIVE_COMPARISON_UNTESTED",
+  "purpose": "One measured M5 mean-coordinate intervention; no feature/optimizer/LR sweep.",
+  "worker": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/run_market_state_ta_m5_centered_head_coordinates_v1.py",
+    "sha256": "63b11d44bfce03460e0ec8a694e12363c9657c83a9b4042257af0c4345fab786"
+  },
+  "focused_tests_passed": 41,
+  "tests_first_attempt": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CENTERED_HEAD_COORDINATES_20261110_001/ADMISSION_TESTS.json",
+    "sha256": "26e45ac5807fb1fc21416316fe54520b88fcae980768985fd3f70b4ee49ea2cb"
+  },
+  "fixture_recheck": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CENTERED_HEAD_COORDINATES_20261110_001/FIXTURE_RECHECK.json",
+    "sha256": "5cba7b53c7116ad3c328c3e287cc0197dc085f5a0a1e411faa09ffb535345e6b"
+  },
+  "physical_metadata_preflight": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CENTERED_HEAD_COORDINATES_20261110_001/SOURCE_PREFLIGHT.json",
+    "sha256": "da95fce0dca3590842d0024bca18ef5c6d680a24624df2e4b3caabfaf04c7836"
+  },
+  "root_source_review": true,
+  "independent_source_review": true,
+  "review_fix": "Enforce recipe raw/probability/Brier/log historical TRAIN parity without extra forwards; raw gradient parity covers exactly the four M5 head parameters.",
+  "coordinates": "Forward remains ordinary W,b. AdamW uses W,beta=b+Wmu, gradient gw-mu*gb. Fixed mu from INITIAL TRAIN only. All model gradients are clipped after transform.",
+  "unchanged": [
+    "INITIAL model/RNG/empty Adam",
+    "256 chronological B16 updates",
+    "all five TF and genuine features",
+    "canonical targets/loss/hyperparameters",
+    "250W and existing guards"
+  ],
+  "comparisons": {
+    "states": [
+      "fresh CUDA INITIAL",
+      "fresh CUDA original P4096",
+      "centered candidate"
+    ],
+    "panels": [
+      "fixed TRAIN192",
+      "fixed later TRAIN192"
+    ],
+    "gate": "Both Brier and log must beat INITIAL, P4096 and frozen prior by1e-8 in all S/F x TRAIN/later cells; all panels unconditional."
+  },
+  "limits": [
+    "Tiny reused development panels, not untouched generalization",
+    "Coordinate transform also changes global clipping and Adam geometry",
+    "One private method-state capsule, no canonical resume",
+    "No edge, trading, TEST, GC or fullfit authority"
+  ],
+  "maxima": {
+    "models": 1,
+    "optimizers": 1,
+    "forwards": 328,
+    "training_forwards": 256,
+    "evaluation_forwards": 72,
+    "backwards": 256,
+    "updates": 256,
+    "checkpoint_decodes": 2,
+    "strict_restores": 3,
+    "canonical_checkpoint_writes": 0,
+    "private_capsules": 1,
+    "model_seconds": 900
+  },
+  "test_data_used": false
+}

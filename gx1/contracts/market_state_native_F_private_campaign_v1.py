@@ -1517,3 +1517,229 @@ def require_ta_m5_original_cuda_prefix_cursor(value, *, expected_recipe, verify_
                   and all(type(counts.get(k)) is int and counts[k] == v for k, v in exact.items()),
                   'ORIGINAL_PREFIX_CURSOR_PARITY')
     return cursor
+
+
+# One fixed-mean coordinate intervention; all legacy plans retain their scopes.
+TA_M5_CENTERED_HEAD_COORDINATES_STAGE = 'market_state_ta_m5_centered_head_coordinates_20261110_001'
+TA_M5_CENTERED_HEAD_COORDINATES_SCOPE = 'market_state_ta_m5_centered_head_coordinates_v1'
+TA_M5_CENTERED_HEAD_COORDINATES_ROOT = Path('/home/andre2/GX1_RUNS') / TA_M5_CENTERED_HEAD_COORDINATES_STAGE.upper()
+TA_M5_CENTERED_HEAD_COORDINATES_RUNTIME_ROOT = TA_M5_CENTERED_HEAD_COORDINATES_ROOT / 'RUNTIME'
+TA_M5_CENTERED_HEAD_COORDINATES_RECIPE_PATH = TA_M5_CENTERED_HEAD_COORDINATES_ROOT / 'RECIPE.json'
+TA_M5_CENTERED_HEAD_COORDINATES_RECIPE_SCHEMA = 'gx1_market_state_ta_m5_centered_head_coordinates_recipe_v1'
+TA_M5_CENTERED_HEAD_COORDINATES_RESULT_SCHEMA = 'gx1_market_state_ta_m5_centered_head_coordinates_result_v1'
+TA_M5_CENTERED_HEAD_COORDINATES_CURSOR_SCHEMA = 'gx1_market_state_ta_m5_centered_head_coordinates_cursor_v1'
+TA_M5_CENTERED_HEAD_COORDINATES_WORKER = 'gx1/audit/run_market_state_ta_m5_centered_head_coordinates_v1.py'
+TA_M5_CENTERED_HEAD_COORDINATES_TRAIN_RANGES = [[0, 64], [14272, 14336], [29504, 29568]]
+TA_M5_CENTERED_HEAD_COORDINATES_SCORE_RANGES = [[0, 64], [8352, 8416], [17680, 17744]]
+TA_M5_CENTERED_HEAD_COORDINATES_REFS = {
+    'original_prefix_recipe': {'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_CUDA_PREFIX_20261110_001/RECIPE.json', 'sha256': '696ec0baa96a8d719cf1de8fadcf44f36d5ce3da985637e03dd1c06a77088f69'},
+    'original_prefix_result': {'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_CUDA_PREFIX_20261110_001/RESULT.json', 'sha256': 'c82c5723ac47af260234eca3ee6a08f62ef0358861c3d39fc19f31e8a7243483'},
+    'original_prefix_terminal': {'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_CUDA_PREFIX_20261110_001/TERMINAL.json', 'sha256': 'b0fbce5386dcbed5b694d9654e09ff72e3d25e67490ab6c46522fcca3b1c83f2'},
+    'original_trace': {'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_CUDA_PREFIX_20261110_001/TRACE.npz', 'sha256': '486ed93b763539d606749bb4511f9c004c5d0cfe42cc645c0cf155f04e2118b8'},
+    'original_trace_helper': {'path': '/home/andre2/src/GX1_CURRENT/gx1/audit/trace_market_state_ta_m5_original_cuda_prefix_v1.py', 'sha256': '593e3e17e235acd3e6ee09d63aa7478c9eacb15523765a6322af99e30a3294dc'},
+    'geometry_plan': {'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_CENTERING_GEOMETRY_20261110_002/PLAN.json', 'sha256': '20c6a23597f35abd0fdfe056a459d8318bb2f2a81eac3afa56f9c9604cad95c8'},
+    'geometry_result': {'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_CENTERING_GEOMETRY_20261110_002/RESULT.json', 'sha256': '2d24a83a27b486228c783c7803f5c88a7f6a0686f8b797e1768ac85db10e674e'},
+    'geometry_terminal': {'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_CENTERING_GEOMETRY_20261110_002/TERMINAL.json', 'sha256': 'd8a861bc4c7a251d5d6478344df9abdab593ab88328e7772729680f84d1b2b6d'},
+    'frozen_means': {'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_CENTERING_GEOMETRY_20261110_002/MEANS.npz', 'sha256': '1a20692cf7319f14ef216dd9d5828038bd1b20096e64e9eb7517e9e89e38a71f'},
+    'short_panel_plan': {'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/PLAN.json', 'sha256': '126c9fb6b1059576870145ec9fe5ce652dd7791f5a39964665e438d65e79b15e'},
+    'short_panel_helper': {'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SHORT_NATIVE_20261109_001/probe.py', 'sha256': '167e8e11675df0762a7dd91803243b82e610fe916b5542b34997bcd6332c77da'},
+    'trajectory_plan': {'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_002/PLAN.json', 'sha256': 'a82e18305c38e492b0ff779d6a3531b9605d642474e28b75fb56ea2d5baa02fd'},
+    'trajectory_result': {'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_002/RESULT.json', 'sha256': '02b686f0ae9a864892f9ac9500f1dd54110a654c708bc3d484ffbdac4a4df113'},
+    'trajectory_review': {'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_002/REVIEW.json', 'sha256': 'cc7a642c965e8e388b6f1f89ec6b865b0c3c99d4ea3e54e3e3c8af6f7eca0992'},
+    'panel_initial_measurement': {'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_001/INITIAL_TRAIN.json', 'sha256': '6ee23ca371003f58957bb0aaa2f374b6d7d8400090d19a1e9024f20b4d49c2c1'},
+    'panel_initial_capture': {'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_001/INITIAL_M5_READOUT.npz', 'sha256': '821a93d52269dec040073069842254f34d32a3725838952e929711820e381904'},
+    'panel_p4096_measurement': {'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_002/P004096_TRAIN.json', 'sha256': '025344e9897a5a7f59453a0ccf3df4f0d09cac2e8a7a5a0493e47a727349a031'},
+    'panel_p4096_capture': {'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_002/P004096_M5_READOUT.npz', 'sha256': 'a888aae1e973a067f58c549b541e46a53690e855e4ba61c046eb5cf1f1253943'},
+    'endpoint_priors': {'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_DEDICATED_M5_SOURCE_20261109_001/ENDPOINT_PRIORS.json', 'sha256': '9f2cc89f5abc886fa4a89a1c3b0d0f9c39f877d8ab1374af651aee678c7a425c'},
+}
+
+def read_ta_m5_centered_head_coordinates_origin(launch):
+    refs = launch['input_refs']
+    extra = TA_M5_CENTERED_HEAD_COORDINATES_REFS
+    _need({key: refs.get(key) for key in extra} == extra, 'CENTERED_FIXED_REFS')
+    original_refs = {key: value for key, value in refs.items() if key not in extra}
+    origin = read_ta_m5_original_cuda_prefix_origin({'input_refs': original_refs})
+    for key, ref in extra.items():
+        campaign.require_binding(ref, label='centered ' + key, verify_file=True)
+    replay = _read(refs['original_prefix_result'], 'qualified original prefix replay')
+    terminal = _read(refs['original_prefix_terminal'], 'qualified original prefix terminal')
+    _need(replay.get('decision') == 'PASS_TA_M5_ORIGINAL_CUDA_PREFIX_TRACE'
+          and replay.get('recipe') == refs['original_prefix_recipe']
+          and replay.get('first_step_exact') is True and replay.get('final_full_state_exact') is True
+          and replay.get('physical_optimizer_updates') == 256 and replay.get('parent_cursor') == 4096
+          and replay.get('skipped_batches') == 0 and replay.get('source_unchanged') is True
+          and replay.get('trace') == refs['original_trace'] and replay.get('test_data_used') is False
+          and terminal.get('status') == 'COMPLETE' and terminal.get('exit_code') == 0
+          and terminal.get('result') == refs['original_prefix_result']
+          and terminal.get('no_relaunch_under_this_plan') is True
+          and terminal.get('test_data_used') is False, 'CENTERED_ORIGINAL_CONTROL')
+    geometry = _read(refs['geometry_result'], 'qualified fixed TRAIN means')
+    geometry_terminal = _read(refs['geometry_terminal'], 'qualified fixed TRAIN mean terminal')
+    _need(geometry.get('status') == 'COMPLETE' and geometry.get('source_unchanged') is True
+          and geometry.get('means') == refs['frozen_means']
+          and geometry.get('mean_population') == 'all29574initialTRAINrows;neverlabelconditioned'
+          and geometry.get('mean_dtype') == 'float64' and geometry.get('mean_estimates') == 2
+          and geometry.get('later_arrays_consumed') is False
+          and geometry.get('test_data_used') is False
+          and geometry_terminal.get('status') == 'COMPLETE' and geometry_terminal.get('exit_code') == 0
+          and geometry_terminal.get('result') == refs['geometry_result'],
+          'CENTERED_MEAN_POPULATION')
+    panels = _read(refs['short_panel_plan'], 'fixed panel definition only')
+    _need(panels.get('fit_eval_ranges') == TA_M5_CENTERED_HEAD_COORDINATES_TRAIN_RANGES
+          and panels.get('score_eval_ranges') == TA_M5_CENTERED_HEAD_COORDINATES_SCORE_RANGES
+          and panels.get('worker') == refs['short_panel_helper'], 'CENTERED_PANEL_DEFINITION')
+    trajectory = _read(refs['trajectory_result'], 'original fixed TRAIN panel baselines')
+    _need(trajectory.get('status') == 'COMPLETE' and trajectory.get('source_unchanged') is True
+          and trajectory.get('test_data_used') is False, 'CENTERED_TRAJECTORY_STATUS')
+    for index, prefix, cursor in ((0, 'initial', 0), (1, 'p4096', 4096)):
+        entry = trajectory['trajectory'][index]
+        identity = entry['checkpoint_identity']
+        checkpoint = refs['original_initial_checkpoint' if index == 0 else 'original_p4096_checkpoint']
+        _need(entry['measurement'] == refs['panel_' + prefix + '_measurement']
+              and entry['capture'] == refs['panel_' + prefix + '_capture']
+              and identity['checkpoint'] == checkpoint and identity['cursor'] == cursor
+              and identity['optimizer_updates'] == cursor // 16
+              and identity['source_commit'] == TA_M5_ORIGINAL_CUDA_PREFIX_SOURCE,
+              'CENTERED_ORIGINAL_PANEL_BINDING')
+    return {**origin, 'geometry_result': geometry, 'trajectory_result': trajectory}
+
+
+def _ta_m5_centered_head_coordinates_expected():
+    value, original, qualified = _ta_m5_original_cuda_prefix_expected()
+    value['input_refs'].update({key: dict(ref) for key, ref in TA_M5_CENTERED_HEAD_COORDINATES_REFS.items()})
+    read_ta_m5_centered_head_coordinates_origin(value)
+    value.pop('first_step_exact_required')
+    value.pop('final_full_state_exact_required')
+    value.update(
+        schema_version=TA_M5_CENTERED_HEAD_COORDINATES_RECIPE_SCHEMA,
+        runtime_root=str(TA_M5_CENTERED_HEAD_COORDINATES_RUNTIME_ROOT),
+        admission_stage=TA_M5_CENTERED_HEAD_COORDINATES_STAGE,
+        run_scope=TA_M5_CENTERED_HEAD_COORDINATES_SCOPE,
+        execution_binding_path=str(TA_M5_CENTERED_HEAD_COORDINATES_RUNTIME_ROOT / 'EXECUTION_BINDING.json'),
+        max_forwards=328, max_training_forwards=256, max_evaluation_forwards=72,
+        max_full_state_restores=3, max_model_seconds=900,
+        max_candidate_evidence_writes=1, max_candidate_evidence_bytes=MAX_CHECKPOINT_BYTES,
+        initial_evaluation_forwards=24, later_evaluation_forwards=36,
+        first_forward_raw_gradient_parity_required=True, control_p4096_restore_parity_required=True,
+        function_equivalent_initial_required=True, evaluation_state_unchanged_required=True,
+        fit_eval_ranges=TA_M5_CENTERED_HEAD_COORDINATES_TRAIN_RANGES,
+        score_eval_ranges=TA_M5_CENTERED_HEAD_COORDINATES_SCORE_RANGES,
+        evaluation_states=['original_initial', 'original_p4096', 'centered_candidate'],
+        evaluate_both_panels_unconditionally=True,
+        primary_baselines='fresh_CUDA_original_INITIAL_and_P4096_same_fixed_panels',
+        historical_panel_parity={'raw_atol': 2e-5, 'probability_atol': 1e-6, 'score_atol': 1e-6},
+        head_coordinate_intervention={
+            'kind': 'fixed_initial_TRAIN_mean_head_coordinate_AdamW',
+            'mean_reference': value['input_refs']['frozen_means'],
+            'mean_population': 'all29574initialTRAINrows;neverlabelconditioned',
+            'heads': ['state_model.m5_side_head', 'future_m5_side_head'],
+            'centered_intercept': 'beta=b+w_dot_mu',
+            'centered_weight_gradient': 'g_w_centered=g_w-g_b_times_mu',
+            'optimizer_moments': 'centered_weight_and_beta_coordinates',
+            'global_clipping': 'canonical_norm_after_coordinate_gradient_transform',
+            'mean_updates': 0, 'loss_and_architecture_unchanged': True,
+        })
+    return value, original, qualified
+
+
+def build_ta_m5_centered_head_coordinates_recipe(*, source_commit):
+    value, original, qualified = _ta_m5_centered_head_coordinates_expected()
+    owners = {name: {'path': str(CANONICAL_REPO / name),
+                     'sha256': campaign.file_sha256(CANONICAL_REPO / name)}
+              for name in original['source_owners']}
+    worker = CANONICAL_REPO / TA_M5_CENTERED_HEAD_COORDINATES_WORKER
+    value.update(source_owners=owners,
+        trace_worker={'path': str(worker), 'sha256': campaign.file_sha256(worker)},
+        source_bridge=_ta_m5_original_cuda_prefix_sources(
+            owners, original, qualified, value['input_refs']['original_trace_helper']))
+    value['recipe_sha256'] = campaign.canonical_sha256(value)
+    return require_ta_m5_centered_head_coordinates_recipe(
+        value, source_repo=CANONICAL_REPO, source_commit=source_commit)
+
+
+def require_ta_m5_centered_head_coordinates_recipe(value, *, source_repo, source_commit, verify_files=True):
+    import subprocess
+    _need(verify_files and source_repo == CANONICAL_REPO, 'CENTERED_PHYSICAL_SOURCE')
+    expected, original, qualified = _ta_m5_centered_head_coordinates_expected()
+    value = _identity(value, set(expected) | {'source_owners', 'trace_worker', 'source_bridge'},
+                      TA_M5_CENTERED_HEAD_COORDINATES_RECIPE_SCHEMA, 'recipe_sha256')
+    _need(all(value[k] == v and type(value[k]) is type(v) for k, v in expected.items()),
+          'CENTERED_RECIPE_SCOPE')
+    _need(isinstance(source_commit, str) and campaign._COMMIT.fullmatch(source_commit)
+          and subprocess.run(['git', 'merge-base', '--is-ancestor',
+              TA_M5_ORIGINAL_CUDA_PREFIX_REFERENCE_SOURCE, source_commit],
+              cwd=CANONICAL_REPO, capture_output=True).returncode == 0,
+          'CENTERED_SOURCE_ANCESTRY')
+    _need(value['trace_worker'].get('path') == str(CANONICAL_REPO / TA_M5_CENTERED_HEAD_COORDINATES_WORKER),
+          'CENTERED_WORKER_PATH')
+    campaign.require_binding(value['trace_worker'], label='centered coordinate worker', verify_file=True)
+    expected_bridge = _ta_m5_original_cuda_prefix_sources(
+        value['source_owners'], original, qualified, value['input_refs']['original_trace_helper'])
+    _need(value['source_bridge'] == expected_bridge, 'CENTERED_SOURCE_BRIDGE')
+    return value
+
+
+def require_ta_m5_centered_head_coordinates_gate(gate, recipe):
+    expected = {
+        'decision': 'ADMITTED', 'status': 'ADMITTED', 'ta_m5_centered_head_coordinates_authorized': True,
+        'fold_id': 1, 'selected_fit_rows': 4096,
+        'model_constructions_authorized': 1, 'optimizer_constructions_authorized': 1,
+        'model_forwards_authorized': 328, 'backward_calls_authorized': 256,
+        'optimizer_steps_authorized': 256, 'training_enabled': True, 'native_training_enabled': True,
+        'genuine_updates_authorized': True, 'genuine_backward_authorized': True,
+        'genuine_predictor_fit_authorized': False, 'canonical_resume_authority': False,
+        'candidate_selection': False, 'test_data_used': False,
+        'evaluate_both_panels_unconditionally': True,
+    }
+    _need(isinstance(gate, Mapping) and all(gate.get(k) == v and type(gate[k]) is type(v)
+          for k, v in expected.items()) and recipe['run_scope'] == TA_M5_CENTERED_HEAD_COORDINATES_SCOPE
+          and recipe['admission_stage'] == TA_M5_CENTERED_HEAD_COORDINATES_STAGE,
+          'CENTERED_POLICY_GATE')
+
+
+def require_ta_m5_centered_head_coordinates_cursor(value, *, expected_recipe, verify_files=True, batch_size=16):
+    fields = {'recipe', 'outcome', 'optimizer_updates', 'parent_cursor', 'parent_order_sha256',
+              'full_state', 'result', 'test_data_used', 'canonical_resume_authority', 'schema_version'}
+    cursor = _identity(value, fields, TA_M5_CENTERED_HEAD_COORDINATES_CURSOR_SCHEMA, 'cursor_sha256')
+    _need(batch_size == 16 and expected_recipe.get('path') == str(TA_M5_CENTERED_HEAD_COORDINATES_RECIPE_PATH)
+          and cursor['recipe'] == expected_recipe and cursor['outcome'] in ('COMPLETE', 'FAILED')
+          and type(cursor['optimizer_updates']) is int and 0 <= cursor['optimizer_updates'] <= 256
+          and type(cursor['parent_cursor']) is int and cursor['parent_cursor'] == 16 * cursor['optimizer_updates']
+          and cursor['parent_order_sha256'] == TA_M5_EQUAL_LOSS_ORDER_SHA256
+          and cursor['test_data_used'] is False and cursor['canonical_resume_authority'] is False
+          and cursor['full_state'] is None, 'CENTERED_CURSOR_SCOPE')
+    complete = cursor['outcome'] == 'COMPLETE'
+    _need(not complete or cursor['optimizer_updates'] == 256, 'CENTERED_CURSOR_COMPLETE')
+    _need(cursor['result'].get('path') == str(TA_M5_CENTERED_HEAD_COORDINATES_ROOT / 'RESULT.json'),
+          'CENTERED_RESULT_PATH')
+    campaign.require_binding(cursor['result'], label='centered result', verify_file=verify_files)
+    if verify_files:
+        report = _read(cursor['result'], 'centered result')
+        _need(report.get('schema_version') == TA_M5_CENTERED_HEAD_COORDINATES_RESULT_SCHEMA
+              and report.get('recipe') == expected_recipe
+              and report.get('parent_cursor') == cursor['parent_cursor']
+              and report.get('physical_optimizer_updates') == cursor['optimizer_updates']
+              and report.get('parent_order_sha256') == cursor['parent_order_sha256']
+              and report.get('final_state') is None and report.get('canonical_resume_authority') is False
+              and report.get('checkpoint_writes') == 0 and report.get('test_data_used') is False,
+              'CENTERED_CURSOR_RESULT')
+        if complete:
+            exact = {'model_constructions': 1, 'optimizer_constructions': 1,
+                     'forwards': 328, 'training_forwards': 256, 'evaluation_forwards': 72,
+                     'backwards': 256, 'optimizer_step_calls': 256, 'optimizer_updates': 256,
+                     'checkpoint_loads': 2, 'strict_full_state_restore_calls': 3,
+                     'checkpoint_writes': 0, 'candidate_evidence_writes': 1}
+            _need(report.get('decision') == 'PASS_TA_M5_CENTERED_HEAD_COORDINATES_TECHNICAL'
+                  and report.get('first_forward_raw_gradient_exact') is True
+                  and report.get('control_p4096_restore_exact') is True
+                  and report.get('function_equivalent_initial') is True
+                  and report.get('evaluation_state_unchanged') is True
+                  and report.get('all_panels_complete') is True and report.get('skipped_batches') == 0
+                  and all(type(report.get('counts', {}).get(k)) is int
+                          and report['counts'][k] == v for k, v in exact.items()),
+                  'CENTERED_TECHNICAL_COMPLETION')
+            evidence = report.get('candidate_evidence', {})
+            _need(evidence.get('path') == str(TA_M5_CENTERED_HEAD_COORDINATES_ROOT / 'CANDIDATE_EVIDENCE.pt'),
+                  'CENTERED_EVIDENCE_PATH')
+            campaign.require_binding(evidence, label='private candidate evidence', verify_file=True)
+    return cursor
