@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-10T06:29:23.781273+00:00",
-  "status": "TA_M5_REPEATED_PASS_ADMITTED_AWAITING_FRESH_BOOT",
+  "status": "TA_M5_REPEATED_PASS_LOCAL_GAIN_ORIGINAL_CAUSE_UNRESOLVED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only this retained-optimizer fixed4096 direction experiment through250W guarded campaign; genuine inputs/targets/loss unchanged. No TEST,GC,Entry,Exit,trading or automatic further epochs.",
-  "next_action": "Materialize this exact repeated-pass campaign from clean committed source, verify host idle, complete required fresh boot and run once. Reuse E1; score fixed E2/E3 on TRAIN4096 and later192. Consume admission regardless of score.",
+  "next_action": "Qualify one frozen-E3 evaluation on the original TRAIN rows outside the selected4096, reusing their finished E3 predictions. This tests whether the local gain extends to the original TRAIN population before any more fitting. Original fullpass cause remains unresolved; no model/loss change or extra epochs admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1434,9 +1434,9 @@
     "profitability_demonstrated": false,
     "required_before_more_extensive_training": true,
     "entry_learning_demonstrated": false,
-    "current_evidence_scope": "Nativefullfit weakened all10TRAIN and later side scores; converged M5 head correction improves matched TRAIN but laterF remains below frozen prior. Native four-tensor import verified; controller receipt missing.",
+    "current_evidence_scope": "Fixed4096 retained-Adam continuation improves M5 conditional direction on matched TRAIN and reused later192, with laterMTF/F-threeclass regressions. Original fullpass cause unresolved.",
     "component_learning_measured": true,
-    "component_learning_result": "NATIVE_M5_WEAKENS; FIXED_READOUT_IMPROVES_TRAIN_BUT_WEAKENS_LATER",
+    "component_learning_result": "FIXED_COHORT_CONTINUATION_IMPROVES_M5_WITH_LATER_MTF_AND_THREE_CLASS_REGRESSIONS",
     "primary_entry_quality_qualified": false,
     "paired_learning_review": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/PAIRED_LEARNING_REVIEW.json",
@@ -1681,11 +1681,15 @@
     "latest_cached_full_train_objective_review": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SF_OBJECTIVE_WEIGHT_AUDIT_20261109_001/REVIEW.json",
       "sha256": "48586cc5feb9d9edfc2dfad3e23078747d6b15f3d3b45360cd443e09005b58f1"
+    },
+    "latest_fixed_cohort_continuation_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_REPEATED_PASS_REVIEW.json",
+      "sha256": "e0152d16be2a6b881dcd4e21ec2f108e875ba042a25b0f3d0d9b1ba044971987"
     }
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Repeated-pass source,84focused tests and actualmetadata preflightPASS; no native job started.",
+    "current_activity": "E3 conditionalM5 gains independently verified; laterMTF and F-threeclass regressions remain. All training ports closed.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1714,11 +1718,11 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "Complete pairedorder trial with localM5gain,failedinterleaving andMTFtradeoffs.",
+    "latest_terminal_role": "Repeated fixed4096 retained-optimizer E3 COMPLETE; conditionalM5 gain, not a general correction.",
     "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/TERMINAL.json",
-      "sha256": "6df60cb3966721d71e0d72f654c5268d0ddb2a15215db1c63c8a9f36ac3d2b3a"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001/TERMINAL.json",
+      "sha256": "96b13b4a40df15aac5827565a5e3554e12935760dccdb144d9842395eab700ff"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -9209,7 +9213,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Materialize this exact repeated-pass campaign from clean committed source, verify host idle, complete required fresh boot and run once. Reuse E1; score fixed E2/E3 on TRAIN4096 and later192. Consume admission regardless of score.",
+    "next_action": "Qualify one frozen-E3 evaluation on the original TRAIN rows outside the selected4096, reusing their finished E3 predictions. This tests whether the local gain extends to the original TRAIN population before any more fitting. Original fullpass cause remains unresolved; no model/loss change or extra epochs admitted.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -35468,7 +35472,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -66329,7 +66333,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "Paired CONTROL learns M5 side locally; interleaving worsens all four matched M5 cells. Cached 20-component accounting shows activity and other-TF side gains mask M5-side loss deterioration. Fullpass cause remains unresolved; repeated representative native training with retained moments has not been tested.",
+    "latest_progress": "At fixed4096 TRAIN coverage, two additional passes with retained AdamW/RNG improve M5 S/F Brier and log against E1,INITIAL and prior on identical TRAIN and reused later192. Native convergence is not established. The original29574-row chronological fullpass cause is not isolated by this population-limited experiment.",
     "user_clarification_20261109": {
       "scope": "Correct direction for short sniper and longer long/shorttrends; separate forecasts and targets at M5 cadence.",
       "existing_future_horizons_minutes": [
@@ -66343,8 +66347,8 @@
       "no_new_trading_authority": true
     },
     "latest_progress_review": {
-      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_PAIRED_OBJECTIVE_DECOMP_REVIEW.json",
-      "sha256": "2c5c65af874881fe9e02e5087783d15321afcd8002951335acb34789c3ea19c0"
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_REPEATED_PASS_REVIEW.json",
+      "sha256": "e0152d16be2a6b881dcd4e21ec2f108e875ba042a25b0f3d0d9b1ba044971987"
     }
   },
   "market_state_ta_direction_weight_diagnostic_20261108_001": {
@@ -73721,9 +73725,9 @@
     }
   },
   "market_state_ta_m5_repeated_pass_20261110_001": {
-    "status": "ADMITTED",
-    "decision": "ADMITTED",
-    "ta_m5_repeated_pass_authorized": true,
+    "status": "COMPLETE_CONSUMED_M5_GAIN_WITH_MTF_REGRESSIONS",
+    "decision": "PASS_ALL_FOUR_M5_CELLS_NOT_GENERAL_FIX",
+    "ta_m5_repeated_pass_authorized": false,
     "fold_id": 1,
     "selected_fit_rows": 4096,
     "passes": [
@@ -73732,15 +73736,15 @@
     ],
     "starting_optimizer_updates": 256,
     "final_optimizer_updates": 768,
-    "model_constructions_authorized": 1,
-    "optimizer_constructions_authorized": 1,
-    "model_forwards_authorized": 1050,
-    "backward_calls_authorized": 512,
-    "optimizer_steps_authorized": 512,
+    "model_constructions_authorized": false,
+    "optimizer_constructions_authorized": false,
+    "model_forwards_authorized": false,
+    "backward_calls_authorized": false,
+    "optimizer_steps_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001",
     "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001/RUNTIME",
@@ -73772,15 +73776,15 @@
     "window_seconds": 12000,
     "outer_seconds": 13800,
     "standing_authorization_source": "Active direction-only goal and explicit zero-cost local-work authority in GX1_RULES. Newly qualified fixed-population retained-optimizer continuation; no consumed plan reused.",
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "campaign_preparation_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "campaign_preparation_authorized": false,
     "evaluate_both_panels_unconditionally": true,
     "per_update_pareto_requirement": false,
     "genuine_predictor_fit_authorized": false,
@@ -73791,6 +73795,67 @@
     "exit_evaluation": false,
     "broker_access_allowed": false,
     "canonical_resume_authority": false,
-    "candidate_selection": false
+    "candidate_selection": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001/RESULT.json",
+      "sha256": "183dc20c603d82f453321d44145c93ac104632fb6b0493570be55860a06822ea"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001/TERMINAL.json",
+      "sha256": "96b13b4a40df15aac5827565a5e3554e12935760dccdb144d9842395eab700ff"
+    },
+    "campaign_receipt": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "9048d694525d9b3f40776ff1c10fa918afc35428c9e74aada1e08d015501bbec"
+    },
+    "windows_task_disabled": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001/WINDOWS_TASK_DISABLED.json",
+      "sha256": "11f2c66ac0c87e07a855552ab84fe22137d4cab38a455c67c337a61d3c50003f"
+    },
+    "candidate_evidence": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001/E3_EVIDENCE.pt",
+      "sha256": "90c8b814c814feb74b8baf010324a6a48e42e56ab34736cc5af59aed41e34f0f"
+    },
+    "source_unchanged": true,
+    "score_gate_pass": true,
+    "full_direction_fix_qualified": false,
+    "completed_utc": "2026-11-10T10:26:22.692737+00:00",
+    "cached_review": {
+      "authorized": false,
+      "status": "COMPLETE_CONSUMED",
+      "max_invocations": 1,
+      "remaining_invocations": 0,
+      "worker": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001/CACHED_SCORE_REVIEW.py",
+        "sha256": "7e6bce89e3f8f2f37c3879728c57703f1aef5246699cfce371e2ea1d97616edd"
+      },
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001/RESULT.json",
+        "sha256": "183dc20c603d82f453321d44145c93ac104632fb6b0493570be55860a06822ea"
+      },
+      "max_capture_decodes": 6,
+      "max_array_members": 65,
+      "checkpoint_decodes": 0,
+      "model_constructions": 0,
+      "forwards": 0,
+      "optimizer_steps": 0,
+      "memory_max": "4G",
+      "swap_max": "512M",
+      "numeric_threads": 1,
+      "max_wall_seconds": 60,
+      "test_data_used": false,
+      "claimed_invocations": 1,
+      "completed_invocations": 1,
+      "review": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001/CACHED_SCORE_REVIEW.json",
+        "sha256": "a7b4942d077bff5cd1aae791b4af1f356ed04c95afce5fb4618a5697a331a114"
+      },
+      "max_score_abs_error": 4.440892098500626e-16,
+      "capture_decodes": 6
+    },
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_REPEATED_PASS_REVIEW.json",
+      "sha256": "e0152d16be2a6b881dcd4e21ec2f108e875ba042a25b0f3d0d9b1ba044971987"
+    }
   }
 }

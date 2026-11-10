@@ -15,23 +15,50 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_REPEATED_PASS_ADMITTED_AWAITING_FRESH_BOOT.
+Policystatus: TA_M5_REPEATED_PASS_LOCAL_GAIN_ORIGINAL_CAUSE_UNRESOLVED.
 
-[Den avgrensede treningsdybdeprøven](docs/TA_M5_REPEATED_PASS_SCOPE_REVIEW.json)
-har bestått 84 fokuserte tester, faktisk metadata-/visningskontroll på 11,627 s
-og uavhengig kildegjennomgang. Modellen er ikke kjørt på nytt ennå.
-Ny engangsplan fortsetter CONTROL etter 256 oppdateringer med bevarte
-Adam-momenter/RNG. To nye pass bruker samme 4096 TRAIN-rader, intakte batcher,
-opprinnelige pass0-queries, fem TF, features, mål, FLAT-sone, loss og optimizer.
-Hele TRAIN4096 og samme senere192 måles fast etter pass 2 og 3.
-Pass3 mot lagret pass1 er primær; pass2 velges ikke hvis det ser bedre ut.
-To baseline-batcher og eksakt full restore skal bestå før oppdateringer.
-512 nye/768 kumulative steg, 1050 forwards, én modell/optimizer/kapseldekoding/
-strict restore og én privat E3-kapsel; ingen kanonisk resume-autoritet.
-250 W, 20G/512M, modellgrense 2400 s; eksisterende vindu12000/ytre13800 beholdes.
-Eksakt kampanjematerialisering, fersk trygg boot og native readiness gjenstår.
-Dette tester treningsdybde ved fast dekning; originalfullpassårsaken, konvergens,
-urørt generalisering og markedspresisjon er fortsatt ubevist.
+[Prøven med videre trening](docs/TA_M5_REPEATED_PASS_REVIEW.json) er COMPLETE/
+konsumert på boot637; guard/observer exit0, Windows-task deaktivert og alle
+treningsporter stengt. Kilde66d18e2b var uendret. Hele CONTROL-tilstanden ble
+gjenopprettet eksakt, og to baseline-batcher hadde null logitavvik.
+512 nye/768 kumulative oppdateringer på samme4096 unike TRAIN-rader,
+1050 forwards, én modell/optimizer/kapseldekoding/restore, én privat E3-kapsel.
+Ingen kanonisk resume eller automatisk videre trening.
+
+E3 er det forhåndsvalgte primære målepunktet. Både E2 og E3 slår E1,INITIAL
+og fryst prior i M5 S/F Brier og log på identiske TRAIN4096 og senere192.
+Brier INITIAL → E1 → E2 → E3 / prior:
+TRAIN S:0,247810→0,247566→0,247064→0,246228 /0,249377 (1403known).
+TRAIN F:0,248937→0,248458→0,247700→0,246501 /0,249777 (1635known).
+Senere S:0,241456→0,237100→0,235965→0,236068 /0,247188 (65known).
+Senere F:0,246894→0,243428→0,241942→0,240317 /0,249382 (75known).
+Senere S er litt svakere E3 enn E2; ingen beste-passering velges.
+TRAIN-total faller1,929864→1,869982→1,849255→1,822472.
+
+Begrensninger: M5-aktivitet er svakere enn INITIAL i begge oppgaver/paneler.
+F-M5-treklasse er fortsatt svakere enn INITIAL: TRAIN Brier0,565301→0,568023,
+senere0,559569→0,568995. Senere F-D1-side svekkes fra0,087819INITIAL/
+0,176682E1 til0,251760E3 (55known), motprior0,110962.
+E3 bedrer26/30TRAIN Brier/log-celler motINITIAL, men bare13/30Brier og
+14/30log senere. Senere samlet endpoint-tap øker2,259768→2,311795.
+TRAIN sampledS/pass0 og senere nativeS har ulike querydomener.
+Ingen konvergens, originalfullpassårsak, generell fler-TF-rettelse eller
+urørt generalisering er bevist. Senere192 er gjenbrukt utvikling.
+
+Uavhengig cachedkontroll består på0,121s:6arkiver/65felt,120metric/count-
+celler og8M5priorceller, maxavvik4,44e-16. CONTROL bruker bare akser/masker;
+ingen gammelbaseline-score, modell, checkpoint eller forward er kjørt igjen.
+Worker monotontid1351,453s (~22m31s); controller UTC-intervall1313,073s.
+Klokkene avviker38,380s. Ingen eksakt helkjørings-speedup er dokumentert.
+Gjenbrukte E1-arbeidsblokker tok tidligere615,620s; dette er unngått arbeid,
+ikke en kontrollert benchmark. Nye evaluerings- og fitblokkene er omtrent like
+raske som tidligere. Effektgrensen var250W.
+
+Neste direkte spørsmål: Holder E3-forbedringen på de opprinnelige TRAIN-
+radene utenfor de valgte4096? Kvalifiser én frossen E3-måling og gjenbruk
+ferdige delprediksjoner før eventuell mer fit. Ingen slik modellkjøring er
+innrømmet ennå; neste plan må ha egen eksakt admisjon. Originalfullpassårsaken
+forblir uisolert, og målet er ikke oppnådd.
 
 [Oppdeling av tapsfunksjonen](docs/TA_M5_PAIRED_OBJECTIVE_DECOMP_REVIEW.json)
 er COMPLETE/konsumert; uavhengig kilde- og regnekontroll består. På identiske

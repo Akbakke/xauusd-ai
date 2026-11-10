@@ -1,0 +1,542 @@
+{
+  "status": "COMPLETE_M5_CONTINUATION_GAIN_WITH_LATER_MTF_AND_THREE_CLASS_REGRESSIONS",
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001/RESULT.json",
+    "sha256": "183dc20c603d82f453321d44145c93ac104632fb6b0493570be55860a06822ea"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001/TERMINAL.json",
+    "sha256": "96b13b4a40df15aac5827565a5e3554e12935760dccdb144d9842395eab700ff"
+  },
+  "campaign_receipt": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001/RUNTIME/receipts/invocation-0001.json",
+    "sha256": "9048d694525d9b3f40776ff1c10fa918afc35428c9e74aada1e08d015501bbec"
+  },
+  "cached_review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001/CACHED_SCORE_REVIEW.json",
+    "sha256": "a7b4942d077bff5cd1aae791b4af1f356ed04c95afce5fb4618a5697a331a114"
+  },
+  "candidate_evidence": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001/E3_EVIDENCE.pt",
+    "sha256": "90c8b814c814feb74b8baf010324a6a48e42e56ab34736cc5af59aed41e34f0f"
+  },
+  "task_disabled": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001/WINDOWS_TASK_DISABLED.json",
+    "sha256": "11f2c66ac0c87e07a855552ab84fe22137d4cab38a455c67c337a61d3c50003f"
+  },
+  "source_commit": "66d18e2b43c4df9605c035bb14556b8e08a52692",
+  "measurement_refs": {
+    "CONTROL_LATER": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/CONTROL_LATER.json",
+      "sha256": "94d695306dc6691cf4578dac1420e70ee7c99ced9eaa656df46745c480ea6e36"
+    },
+    "CONTROL_TRAIN": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/CONTROL_TRAIN.json",
+      "sha256": "fc42a5786d94785254df833de44934a498840c7bedee42daf6ed8b4458219c22"
+    },
+    "E2_LATER": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001/E2_LATER.json",
+      "sha256": "dd77a23ec1532432daa628076d92f08de5cce3e9adce80207686711423b8c938"
+    },
+    "E2_TRAIN": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001/E2_TRAIN.json",
+      "sha256": "0d6e9a719ba99e63d04c5fec8bd3ff89eb0208d3838b8b4721170fc83f2fb07f"
+    },
+    "E3_LATER": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001/E3_LATER.json",
+      "sha256": "00a8ad9516440817f97ae82fc926068dc3bbecbbbec76bac0f93ffd558fd370f"
+    },
+    "E3_TRAIN": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REPEATED_PASS_20261110_001/E3_TRAIN.json",
+      "sha256": "d83412c0695af336b6c8e4ba222f3cb6e2a52f6fe2ad1a461b17c627a8b4048a"
+    },
+    "INITIAL_LATER": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CENTERED_HEAD_COORDINATES_20261110_001/INITIAL_LATER.json",
+      "sha256": "e1f5a1694bf571a55bc8daab8570abc60597f3d58e7e9421d4ab283f4310b6d9"
+    },
+    "INITIAL_TRAIN": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/INITIAL_TRAIN.json",
+      "sha256": "56eb106742bb2336747dfbd26cfa6d81aca78c18b7214b033158f1e8aad51d84"
+    }
+  },
+  "counts": {
+    "backward_returns": 512,
+    "backwards": 512,
+    "candidate_evidence_writes": 1,
+    "checkpoint_loads": 1,
+    "checkpoint_writes": 0,
+    "evaluation_forwards": 538,
+    "extra_truth_gathers": 1026,
+    "forward_returns": 1050,
+    "forwards": 1050,
+    "json_bytes": 84148,
+    "model_construction_returns": 1,
+    "model_constructions": 1,
+    "optimizer_constructions": 1,
+    "optimizer_step_calls": 512,
+    "optimizer_step_returns": 512,
+    "optimizer_updates": 512,
+    "resume_state_load_calls": 1,
+    "resume_state_load_returns": 1,
+    "strict_full_state_restore_calls": 1,
+    "strict_full_state_restore_returns": 1,
+    "training_forwards": 512
+  },
+  "gates": {
+    "E2": "PASS_ALL_FOUR_CELLS",
+    "E3": "PASS_ALL_FOUR_CELLS"
+  },
+  "qualification": {
+    "control_restore_exact": true,
+    "baseline_parity": {
+      "LATER": {
+        "future": {
+          "M5_probability_max_abs_error": 0.0,
+          "raw_max_abs_error": 0.0
+        },
+        "state": {
+          "M5_probability_max_abs_error": 0.0,
+          "raw_max_abs_error": 0.0
+        }
+      },
+      "TRAIN": {
+        "future": {
+          "M5_probability_max_abs_error": 0.0,
+          "raw_max_abs_error": 0.0
+        },
+        "state": {
+          "M5_probability_max_abs_error": 0.0,
+          "raw_max_abs_error": 0.0
+        }
+      }
+    },
+    "evaluation_state_unchanged": true,
+    "source_unchanged": true,
+    "independent_JSON_gate_arithmetic": "PASS_EXACT",
+    "independent_cached_scores": "PASS",
+    "cached_max_abs_error": 4.440892098500626e-16
+  },
+  "M5_conditional_side": {
+    "TRAIN_state": {
+      "known": 1403,
+      "measurements": {
+        "INITIAL": {
+          "brier": 0.24781028082180756,
+          "log": 0.6887626856419372
+        },
+        "CONTROL": {
+          "brier": 0.24756634838204353,
+          "log": 0.6882776321354028
+        },
+        "E2": {
+          "brier": 0.2470644960232683,
+          "log": 0.6872687501988441
+        },
+        "E3": {
+          "brier": 0.24622751482345553,
+          "log": 0.6855767468658089
+        }
+      },
+      "prior": {
+        "brier": 0.24937703197898434,
+        "log": 0.6919008269472965
+      }
+    },
+    "TRAIN_future": {
+      "known": 1635,
+      "measurements": {
+        "INITIAL": {
+          "brier": 0.24893703130369202,
+          "log": 0.6910196357374699
+        },
+        "CONTROL": {
+          "brier": 0.24845820029294566,
+          "log": 0.6900598233779134
+        },
+        "E2": {
+          "brier": 0.24770019032000873,
+          "log": 0.6885373177888989
+        },
+        "E3": {
+          "brier": 0.24650092593073356,
+          "log": 0.686123638656606
+        }
+      },
+      "prior": {
+        "brier": 0.24977675469111543,
+        "log": 0.6927006366769244
+      }
+    },
+    "LATER_state": {
+      "known": 65,
+      "measurements": {
+        "INITIAL": {
+          "brier": 0.24145618356247409,
+          "log": 0.6760178262626679
+        },
+        "CONTROL": {
+          "brier": 0.23709963115879862,
+          "log": 0.6672263919317665
+        },
+        "E2": {
+          "brier": 0.23596454341969067,
+          "log": 0.664911872875261
+        },
+        "E3": {
+          "brier": 0.23606751589191535,
+          "log": 0.6650958510726646
+        }
+      },
+      "prior": {
+        "brier": 0.24718802985450922,
+        "log": 0.6875207846228478
+      }
+    },
+    "LATER_future": {
+      "known": 75,
+      "measurements": {
+        "INITIAL": {
+          "brier": 0.24689392097772336,
+          "log": 0.6869284014463657
+        },
+        "CONTROL": {
+          "brier": 0.24342824326914728,
+          "log": 0.679973331928478
+        },
+        "E2": {
+          "brier": 0.24194186288722733,
+          "log": 0.6769676123842239
+        },
+        "E3": {
+          "brier": 0.240316541348943,
+          "log": 0.6736612990987095
+        }
+      },
+      "prior": {
+        "brier": 0.24938213578334975,
+        "log": 0.6919112686014333
+      }
+    }
+  },
+  "all_TF_score_counts": {
+    "TRAIN": {
+      "E3_vs_INITIAL": {
+        "brier": {
+          "better": 26,
+          "worse": 4,
+          "equal": 0
+        },
+        "log": {
+          "better": 26,
+          "worse": 4,
+          "equal": 0
+        }
+      },
+      "E3_vs_CONTROL": {
+        "brier": {
+          "better": 28,
+          "worse": 2,
+          "equal": 0
+        },
+        "log": {
+          "better": 29,
+          "worse": 1,
+          "equal": 0
+        }
+      }
+    },
+    "LATER": {
+      "E3_vs_INITIAL": {
+        "brier": {
+          "better": 13,
+          "worse": 17,
+          "equal": 0
+        },
+        "log": {
+          "better": 14,
+          "worse": 16,
+          "equal": 0
+        }
+      },
+      "E3_vs_CONTROL": {
+        "brier": {
+          "better": 20,
+          "worse": 10,
+          "equal": 0
+        },
+        "log": {
+          "better": 19,
+          "worse": 11,
+          "equal": 0
+        }
+      }
+    }
+  },
+  "important_limits": {
+    "TRAIN_future_M5_three_class": {
+      "count": 4096,
+      "measurements": {
+        "INITIAL": {
+          "brier": 0.5653013731096507,
+          "log": 0.9579554134932009
+        },
+        "CONTROL": {
+          "brier": 0.5702249089756412,
+          "log": 0.9673539281481565
+        },
+        "E2": {
+          "brier": 0.5702908340285485,
+          "log": 0.9675832425732493
+        },
+        "E3": {
+          "brier": 0.568022610296983,
+          "log": 0.9636982543973391
+        }
+      }
+    },
+    "LATER_future_M5_three_class": {
+      "count": 192,
+      "measurements": {
+        "INITIAL": {
+          "brier": 0.5595686254380104,
+          "log": 0.9493832325491516
+        },
+        "CONTROL": {
+          "brier": 0.5699673764621828,
+          "log": 0.9652315094803009
+        },
+        "E2": {
+          "brier": 0.572032576192102,
+          "log": 0.968186658663118
+        },
+        "E3": {
+          "brier": 0.5689952602160685,
+          "log": 0.9627255004015333
+        }
+      }
+    },
+    "LATER_future_D1_conditional_side": {
+      "count": 55,
+      "measurements": {
+        "INITIAL": {
+          "brier": 0.08781868109350503,
+          "log": 0.3416283897178012
+        },
+        "CONTROL": {
+          "brier": 0.17668157797516776,
+          "log": 0.5375383069214075
+        },
+        "E2": {
+          "brier": 0.2129714416314023,
+          "log": 0.6129479192907872
+        },
+        "E3": {
+          "brier": 0.25176003278214537,
+          "log": 0.6965283171829668
+        }
+      }
+    },
+    "LATER_future_D1_three_class": {
+      "count": 128,
+      "measurements": {
+        "INITIAL": {
+          "brier": 0.5805209984147518,
+          "log": 0.891242961709917
+        },
+        "CONTROL": {
+          "brier": 0.6033499548089649,
+          "log": 0.978231314852611
+        },
+        "E2": {
+          "brier": 0.6007538272440907,
+          "log": 0.9937365567492066
+        },
+        "E3": {
+          "brier": 0.5985242919509962,
+          "log": 1.011266151546679
+        }
+      }
+    },
+    "LATER_state_M15_conditional_side": {
+      "count": 67,
+      "measurements": {
+        "INITIAL": {
+          "brier": 0.2701211544284246,
+          "log": 0.7399406011555196
+        },
+        "CONTROL": {
+          "brier": 0.28919792159522567,
+          "log": 0.7832620136943206
+        },
+        "E2": {
+          "brier": 0.2955106016082101,
+          "log": 0.7988895341366123
+        },
+        "E3": {
+          "brier": 0.29603163816337713,
+          "log": 0.7999718977295384
+        }
+      }
+    },
+    "LATER_state_H1_conditional_side": {
+      "count": 55,
+      "measurements": {
+        "INITIAL": {
+          "brier": 0.23895724403310956,
+          "log": 0.6757176301344281
+        },
+        "CONTROL": {
+          "brier": 0.27062688119322936,
+          "log": 0.7433443032484697
+        },
+        "E2": {
+          "brier": 0.28205981229130894,
+          "log": 0.7696453692099201
+        },
+        "E3": {
+          "brier": 0.2876761698391725,
+          "log": 0.7851121942372863
+        }
+      }
+    },
+    "LATER_state_H4_conditional_side": {
+      "count": 64,
+      "measurements": {
+        "INITIAL": {
+          "brier": 0.3505279070320125,
+          "log": 0.9121632148481942
+        },
+        "CONTROL": {
+          "brier": 0.36198816360772046,
+          "log": 0.9395582366532307
+        },
+        "E2": {
+          "brier": 0.37581975115599986,
+          "log": 0.972177252701126
+        },
+        "E3": {
+          "brier": 0.3918543992842246,
+          "log": 1.0125180622875947
+        }
+      }
+    },
+    "LATER_state_D1_conditional_side": {
+      "count": 64,
+      "measurements": {
+        "INITIAL": {
+          "brier": 0.12620169950673646,
+          "log": 0.4362153379898917
+        },
+        "CONTROL": {
+          "brier": 0.1546718880187554,
+          "log": 0.4930686083990118
+        },
+        "E2": {
+          "brier": 0.15279412513349044,
+          "log": 0.4880661722935026
+        },
+        "E3": {
+          "brier": 0.15300719546327493,
+          "log": 0.48886131624905516
+        }
+      }
+    }
+  },
+  "mean_canonical_TRAIN_batch_loss": {
+    "INITIAL": 1.9298637807369232,
+    "CONTROL": 1.8699820628389716,
+    "E2": 1.8492546379566193,
+    "E3": 1.8224716014228761
+  },
+  "timing": {
+    "worker_monotonic_seconds": 1351.4533220189999,
+    "parts": {
+      "E2_evaluation_seconds": 247.67714693100004,
+      "E2_fit_seconds": 375.46892934999994,
+      "E3_evaluation_seconds": 248.44895048099988,
+      "E3_fit_seconds": 374.9339864880001,
+      "elapsed_seconds": 1351.4533220189999,
+      "input_setup_seconds": 78.32017659299999
+    },
+    "controller_UTC_elapsed_seconds": 1313.073377,
+    "clock_disagreement_seconds": 38.37994501899993,
+    "exact_whole_run_speedup_established": false,
+    "cached_score_seconds": 0.12113632899990989,
+    "reused_E1_updates": 256,
+    "reused_E1_evaluation_forwards": 268,
+    "new_baseline_parity_forwards": 2,
+    "historical_E1_fit_and_evaluation_seconds_avoided": 615.620447408,
+    "avoidance_is_not_a_controlled_whole_run_benchmark": true
+  },
+  "conclusions": [
+    "At fixed4096 TRAIN coverage, two additional passes with retained AdamW/RNG improve M5 S/F Brier and log against E1,INITIAL and prior on identical TRAIN and reused later192.",
+    "E3 is the prebound primary point. E2 is not selected despite slightly better laterS.",
+    "Native convergence is not established. The original29574-row chronological fullpass cause is not isolated by this population-limited experiment.",
+    "Full futureM5 DOWN/FLAT/UP remains worse than INITIAL in Brier and log; M5 activity remains worse than INITIAL in both tasks and panels.",
+    "Later multi-timeframe performance is mixed, with marked F-D1 side deterioration. ConditionalM5 PASS is not a general all-timeframe or whole-probability correction.",
+    "Later192 is repeatedly used development data with65S/75F knownM5 sides, not untouched generalization or economic evidence."
+  ],
+  "next_action": "Qualify one frozen-E3 evaluation on the original TRAIN rows outside the selected4096, reusing their finished E3 predictions. This tests whether the local gain extends to the original TRAIN population before any more fitting. Original fullpass cause remains unresolved; no model/loss change or extra epochs admitted.",
+  "full_direction_fix_qualified": false,
+  "goal_complete": false,
+  "new_training_authorized": false,
+  "test_data_used": false,
+  "entry_exit_trading_authorized": false,
+  "later_native_endpoint_loss": {
+    "INITIAL": {
+      "model": {
+        "combined": 2.2597677616548646,
+        "future": 1.2778873628311984,
+        "state": 0.9818803988236663
+      },
+      "prior": {
+        "combined": 2.2226124282978255,
+        "future": 1.2842458222303095,
+        "state": 0.9383666060675158
+      }
+    },
+    "CONTROL": {
+      "model": {
+        "combined": 2.2854620787893336,
+        "future": 1.2774005673725952,
+        "state": 1.0080615114167384
+      },
+      "prior": {
+        "combined": 2.2226124282978255,
+        "future": 1.2842458222303095,
+        "state": 0.9383666060675158
+      }
+    },
+    "E2": {
+      "model": {
+        "combined": 2.2988558010530875,
+        "future": 1.2841959045584943,
+        "state": 1.014659896494593
+      },
+      "prior": {
+        "combined": 2.2226124282978255,
+        "future": 1.2842458222303095,
+        "state": 0.9383666060675158
+      }
+    },
+    "E3": {
+      "model": {
+        "combined": 2.3117946177358357,
+        "future": 1.2914322654883075,
+        "state": 1.020362352247528
+      },
+      "prior": {
+        "combined": 2.2226124282978255,
+        "future": 1.2842458222303095,
+        "state": 0.9383666060675158
+      }
+    }
+  },
+  "hardware_max_observed": {
+    "core_temp_c": 56.0,
+    "memory_temp_c": 64.0,
+    "power_draw_w": 127.47,
+    "power_limit_w": 250.0,
+    "memory_used_mib": 2168.0
+  }
+}
