@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-10T06:29:23.781273+00:00",
-  "status": "TA_M5_COMMON_STEP_FINITE_ADMITTED",
+  "status": "TA_M5_COMMON_STEP_LOCAL_PASS_TRANSFER_AND_D1_FAIL",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Execute the single admitted common-step finite diagnostic through capped CPU producer; two genuine parameter applications, 48 candidate eval forwards, no baseline forwards or backward. Score all fixed panels unconditionally, then close scope. No optimizer continuation or full fit.",
+  "next_action": "Retain original checkpoints and probabilistic S/F with FLAT. Do not deploy shared weights, continue optimizer moments, rerun this consumed probe or sweep variants. A next learning design must address measured retention across periods and all five timeframes before any new fit; current one-step local success does not establish a fullpass cause or later directional improvement.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -24682,7 +24682,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-09T12:38:52.501764+00:00",
+  "updated_utc": "2026-11-10T07:17:30.952051+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -40210,7 +40210,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "market_state_ta_m5_common_step_finite_20261110_001",
+  "training_enabled_scope": "CLOSED_NO_AUTOMATIC_RELAUNCH",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -66329,7 +66329,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "Cached cross-period derivatives admit a strict common descent combination for twelve M5 S/F losses across original INITIAL and FINAL; independent exact primal/dual certificate passes. No parameter application or better prediction yet. Training-retention findings remain associative, not an isolated full-pass cause.",
+    "latest_progress": "Verified two finite common-step applications: all12 local M5 BCE/Brier/log cells improve. FINAL improves on otherTRAIN/laterM5, but INITIAL transfer is mixed, TRAIN remains below prior, and both states worsen laterD1. No general correction or optimizer continuation qualified. Wholecommand265.333s,48savedbaselineforwardsreused.",
     "user_clarification_20261109": {
       "scope": "Correct direction for short sniper and longer long/shorttrends; separate forecasts and targets at M5 cadence.",
       "existing_future_horizons_minutes": [
@@ -73363,7 +73363,7 @@
     "test_data_used": false
   },
   "market_state_ta_m5_common_step_finite_20261110_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_LOCAL_PASS_TRANSFER_AND_D1_FAIL",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COMMON_STEP_FINITE_20261110_001/PLAN.json",
       "sha256": "31439844ecb5738c6cb0d6dd68c24876f6f80942144973a0af2f0ebc0f13c101"
@@ -73380,12 +73380,12 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COMMON_STEP_FINITE_20261110_001/PREFLIGHT.json",
       "sha256": "833283abb9f24e718f2a7f1f8f733833126e0e680dd5fd5a2eb85838f235fa4f"
     },
-    "execution_authorized": true,
-    "training_authorized": true,
+    "execution_authorized": false,
+    "training_authorized": false,
     "native_training_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "automatic_continuation": false,
     "baseline_forwards": 0,
@@ -73403,6 +73403,43 @@
     "max_artifact_total_bytes": 268435456,
     "question": "Do the fixed shared weights applied once at alpha1 yield finite descent for all six M5 BCE constraints at each original state? Measure other144 TRAIN and later192 separately without baseline reruns.",
     "inference_boundary": "Constraint48 fit diagnostic only. OtherTRAIN144 and laterTRAIN192 are reused development, not untouched generalization. One application does not qualify an optimizer continuation, calibration or edge.",
-    "test_data_used": false
+    "test_data_used": false,
+    "remaining_invocations": 0,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COMMON_STEP_FINITE_20261110_001/RESULT.json",
+      "sha256": "1d895daeefc887c27d353ac2836f0ac34584fb0431b416e6e442144785286cd1"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COMMON_STEP_FINITE_20261110_001/REVIEW.json",
+      "sha256": "7bbc97cc9aa75f6b1a3f2a1ffa1840c42fc65a4154f79acba916af68afb1b023"
+    },
+    "report": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_COMMON_STEP_FINITE_REVIEW.json",
+      "sha256": "0f3b1b38ae656c89031b32e0b8bc9137ef16e400fc90879a9dd4421b2a7b52c1"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COMMON_STEP_FINITE_20261110_001/TERMINAL.json",
+      "sha256": "14d4aa3d774f7426fab549ddf3ceab0691d31340626575e27202c7f1c2367f1a"
+    },
+    "process": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COMMON_STEP_FINITE_20261110_001/CONTROLLER.json",
+      "sha256": "eae943fba002e748b874cc185c4da2f59974321d04681937f15543d467392cf4"
+    },
+    "source_unchanged": true,
+    "counts": {
+      "autograd_calls": 0,
+      "backwards": 0,
+      "checkpoint_loads": 2,
+      "checkpoint_writes": 0,
+      "forwards": 48,
+      "model_constructions": 1,
+      "model_restores": 2,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "parameter_applications": 2,
+      "resume_state_load_calls": 2,
+      "resume_state_load_returns": 2
+    },
+    "whole_command_seconds": 265.33254496100017
   }
 }

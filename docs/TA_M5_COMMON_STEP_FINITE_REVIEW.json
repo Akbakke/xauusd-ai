@@ -1,0 +1,476 @@
+{
+  "status": "COMPLETE_VERIFIED_LOCAL_DESCENT_TRANSFER_MIXED_D1_REGRESSION",
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COMMON_STEP_FINITE_20261110_001/RESULT.json",
+    "sha256": "1d895daeefc887c27d353ac2836f0ac34584fb0431b416e6e442144785286cd1"
+  },
+  "review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COMMON_STEP_FINITE_20261110_001/REVIEW.json",
+    "sha256": "7bbc97cc9aa75f6b1a3f2a1ffa1840c42fc65a4154f79acba916af68afb1b023"
+  },
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COMMON_STEP_FINITE_20261110_001/PLAN.json",
+    "sha256": "31439844ecb5738c6cb0d6dd68c24876f6f80942144973a0af2f0ebc0f13c101"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COMMON_STEP_FINITE_20261110_001/TERMINAL.json",
+    "sha256": "14d4aa3d774f7426fab549ddf3ceab0691d31340626575e27202c7f1c2367f1a"
+  },
+  "controller": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COMMON_STEP_FINITE_20261110_001/CONTROLLER.json",
+    "sha256": "eae943fba002e748b874cc185c4da2f59974321d04681937f15543d467392cf4"
+  },
+  "source_head": "1225bfec17e5c8b82822fc91c3f625dc9ddc163c",
+  "source_unchanged": true,
+  "counts": {
+    "autograd_calls": 0,
+    "backwards": 0,
+    "checkpoint_loads": 2,
+    "checkpoint_writes": 0,
+    "forwards": 48,
+    "model_constructions": 1,
+    "model_restores": 2,
+    "optimizer_constructions": 0,
+    "optimizer_updates": 0,
+    "parameter_applications": 2,
+    "resume_state_load_calls": 2,
+    "resume_state_load_returns": 2
+  },
+  "whole_command_seconds": 265.33254496100017,
+  "worker_seconds": 230.9787425280001,
+  "whole_command_includes_metadata_qualification": true,
+  "preparation_and_review_excluded": true,
+  "review_seconds": 0.5940249369996309,
+  "baseline_forwards_reused": 48,
+  "baseline_speedup_measured": false,
+  "peer_source_review": "ta_input_route and ta_formula_audit PASS at worker a34cf1d2 after correcting report seal, clip-runtime binding and dimension-aware FP64 reduction error bound.",
+  "peer_json_review": "ta_formula_audit: exact M5 score deltas and q/N/5 weighted-BCE agree; twelve constraint cells improve; later D1 conditional sides regress in both states.",
+  "independent_score_review": {
+    "conditional_side_counts": 280,
+    "m5_signs": 56,
+    "max_error": {
+      "brier": 2.220446049250313e-16,
+      "log": 3.3306690738754696e-16
+    },
+    "new_models": 0,
+    "new_forwards": 0,
+    "parameter_arrays_decoded": 0
+  },
+  "constraints_improved": 12,
+  "measurements": {
+    "INITIAL": {
+      "m5": {
+        "CONSTRAINT48": {
+          "state": {
+            "count": 26,
+            "brier": {
+              "after": 0.25068288189555554,
+              "before": 0.2511034716853947,
+              "change": -0.0004205897898391653,
+              "decreased": true
+            },
+            "log": {
+              "after": 0.6945053910036563,
+              "before": 0.6953479137041261,
+              "change": -0.0008425227004698055,
+              "decreased": true
+            },
+            "prior": {
+              "brier": 0.253222327159282,
+              "log": 0.6995949974788763
+            }
+          },
+          "future": {
+            "count": 28,
+            "brier": {
+              "after": 0.24942364978204148,
+              "before": 0.2497648588190538,
+              "change": -0.00034120903701231886,
+              "decreased": true
+            },
+            "log": {
+              "after": 0.6919914620148602,
+              "before": 0.6926746926863862,
+              "change": -0.0006832306715259806,
+              "decreased": true
+            },
+            "prior": {
+              "brier": 0.2517129144553256,
+              "log": 0.6965735953133231
+            }
+          }
+        },
+        "TRAIN_ALL": {
+          "state": {
+            "count": 75,
+            "brier": {
+              "after": 0.2543683500948581,
+              "before": 0.2546054101579658,
+              "change": -0.0002370600631076969,
+              "decreased": true
+            },
+            "log": {
+              "after": 0.7019085720760931,
+              "before": 0.7023848081319857,
+              "change": -0.0004762360558925316,
+              "decreased": true
+            },
+            "prior": {
+              "brier": 0.2520920936958483,
+              "log": 0.697333478245525
+            }
+          },
+          "future": {
+            "count": 86,
+            "brier": {
+              "after": 0.25206747999330525,
+              "before": 0.252176245852213,
+              "change": -0.00010876585890773338,
+              "decreased": true
+            },
+            "log": {
+              "after": 0.6972873285913535,
+              "before": 0.6975053267272606,
+              "change": -0.00021799813590717143,
+              "decreased": true
+            },
+            "prior": {
+              "brier": 0.25064115047825425,
+              "log": 0.6944297135800547
+            }
+          }
+        },
+        "OTHER_TRAIN144": {
+          "state": {
+            "count": 49,
+            "brier": {
+              "after": 0.2563239046495901,
+              "before": 0.2564635815923913,
+              "change": -0.00013967694280120346,
+              "decreased": true
+            },
+            "log": {
+              "after": 0.7058367906043252,
+              "before": 0.706118670481462,
+              "change": -0.0002818798771367925,
+              "decreased": true
+            },
+            "prior": {
+              "brier": 0.251492377980557,
+              "log": 0.6961334884482365
+            }
+          },
+          "future": {
+            "count": 58,
+            "brier": {
+              "after": 0.2533438118194326,
+              "before": 0.2533403637302899,
+              "change": 3.44808914271022e-06,
+              "decreased": false
+            },
+            "log": {
+              "after": 0.6998439538351777,
+              "before": 0.6998373569538898,
+              "change": 6.596881287901368e-06,
+              "decreased": false
+            },
+            "prior": {
+              "brier": 0.25012374717897845,
+              "log": 0.6933947361915801
+            }
+          }
+        },
+        "LATER192": {
+          "state": {
+            "count": 65,
+            "brier": {
+              "after": 0.24160994711954834,
+              "before": 0.24145620095282527,
+              "change": 0.00015374616672306218,
+              "decreased": false
+            },
+            "log": {
+              "after": 0.6763269519096484,
+              "before": 0.6760178613018075,
+              "change": 0.0003090906078409006,
+              "decreased": false
+            },
+            "prior": {
+              "brier": 0.24718802985450922,
+              "log": 0.6875207846228478
+            }
+          },
+          "future": {
+            "count": 75,
+            "brier": {
+              "after": 0.24688123833625383,
+              "before": 0.24689391721992052,
+              "change": -1.2678883666683571e-05,
+              "decreased": true
+            },
+            "log": {
+              "after": 0.6869031308433867,
+              "before": 0.6869283940059839,
+              "change": -2.5263162597211064e-05,
+              "decreased": true
+            },
+            "prior": {
+              "brier": 0.24938213578334975,
+              "log": 0.6919112686014333
+            }
+          }
+        }
+      },
+      "later_D1": {
+        "state": {
+          "count": 64,
+          "before": {
+            "brier": 0.12620168659950082,
+            "log": 0.43621530395637004
+          },
+          "after": {
+            "brier": 0.13044532177175178,
+            "log": 0.44553620560644014
+          },
+          "change": {
+            "brier": 0.004243635172250959,
+            "log": 0.009320901650070101
+          },
+          "metric": "conditional_side"
+        },
+        "future": {
+          "count": 55,
+          "before": {
+            "brier": 0.08781881140582938,
+            "log": 0.34162875010978855
+          },
+          "after": {
+            "brier": 0.09540410129097451,
+            "log": 0.3595960967134195
+          },
+          "change": {
+            "brier": 0.007585289885145133,
+            "log": 0.017967346603630974
+          },
+          "metric": "conditional_side"
+        }
+      },
+      "actual_derivatives_all_negative": true
+    },
+    "FINAL": {
+      "m5": {
+        "CONSTRAINT48": {
+          "state": {
+            "count": 26,
+            "brier": {
+              "after": 0.2598799094777313,
+              "before": 0.2599767635856836,
+              "change": -9.685410795229332e-05,
+              "decreased": true
+            },
+            "log": {
+              "after": 0.7133062189735503,
+              "before": 0.7135030561566535,
+              "change": -0.00019683718310326004,
+              "decreased": true
+            },
+            "prior": {
+              "brier": 0.253222327159282,
+              "log": 0.6995949974788763
+            }
+          },
+          "future": {
+            "count": 28,
+            "brier": {
+              "after": 0.2613191518962728,
+              "before": 0.2613760042110024,
+              "change": -5.685231472957186e-05,
+              "decreased": true
+            },
+            "log": {
+              "after": 0.7162971085874371,
+              "before": 0.7164095884324062,
+              "change": -0.00011247984496909336,
+              "decreased": true
+            },
+            "prior": {
+              "brier": 0.2517129144553256,
+              "log": 0.6965735953133231
+            }
+          }
+        },
+        "TRAIN_ALL": {
+          "state": {
+            "count": 75,
+            "brier": {
+              "after": 0.264489571708035,
+              "before": 0.26463155517157283,
+              "change": -0.00014198346353783142,
+              "decreased": true
+            },
+            "log": {
+              "after": 0.7226972826371899,
+              "before": 0.7229876646900958,
+              "change": -0.0002903820529058798,
+              "decreased": true
+            },
+            "prior": {
+              "brier": 0.2520920936958483,
+              "log": 0.697333478245525
+            }
+          },
+          "future": {
+            "count": 86,
+            "brier": {
+              "after": 0.26608507674840814,
+              "before": 0.26627611694581693,
+              "change": -0.0001910401974087872,
+              "decreased": true
+            },
+            "log": {
+              "after": 0.7260246531391128,
+              "before": 0.7264129337105286,
+              "change": -0.0003882805714158222,
+              "decreased": true
+            },
+            "prior": {
+              "brier": 0.25064115047825425,
+              "log": 0.6944297135800547
+            }
+          }
+        },
+        "OTHER_TRAIN144": {
+          "state": {
+            "count": 49,
+            "brier": {
+              "after": 0.26693551493227774,
+              "before": 0.26710144458449364,
+              "change": -0.0001659296522159015,
+              "decreased": true
+            },
+            "log": {
+              "after": 0.7276802960097334,
+              "before": 0.728020314116004,
+              "change": -0.0003400181062706009,
+              "decreased": true
+            },
+            "prior": {
+              "brier": 0.251492377980557,
+              "log": 0.6961334884482365
+            }
+          },
+          "future": {
+            "count": 58,
+            "brier": {
+              "after": 0.26838586805633546,
+              "before": 0.26864168861089976,
+              "change": -0.0002558205545643011,
+              "decreased": true
+            },
+            "log": {
+              "after": 0.7307207091295767,
+              "before": 0.7312421348792774,
+              "change": -0.0005214257497007102,
+              "decreased": true
+            },
+            "prior": {
+              "brier": 0.25012374717897845,
+              "log": 0.6933947361915801
+            }
+          }
+        },
+        "LATER192": {
+          "state": {
+            "count": 65,
+            "brier": {
+              "after": 0.23503405139931693,
+              "before": 0.2350609839272527,
+              "change": -2.6932527935757955e-05,
+              "decreased": true
+            },
+            "log": {
+              "after": 0.6627477064444746,
+              "before": 0.6627995544319011,
+              "change": -5.184798742652319e-05,
+              "decreased": true
+            },
+            "prior": {
+              "brier": 0.24718802985450922,
+              "log": 0.6875207846228478
+            }
+          },
+          "future": {
+            "count": 75,
+            "brier": {
+              "after": 0.2487735649529321,
+              "before": 0.2488273709360695,
+              "change": -5.380598313739493e-05,
+              "decreased": true
+            },
+            "log": {
+              "after": 0.690590539432419,
+              "before": 0.690700285944536,
+              "change": -0.00010974651211703712,
+              "decreased": true
+            },
+            "prior": {
+              "brier": 0.24938213578334975,
+              "log": 0.6919112686014333
+            }
+          }
+        }
+      },
+      "later_D1": {
+        "state": {
+          "count": 64,
+          "before": {
+            "brier": 0.11136000531753659,
+            "log": 0.39779996217196434
+          },
+          "after": {
+            "brier": 0.11898915944172903,
+            "log": 0.4152706082965194
+          },
+          "change": {
+            "brier": 0.007629154124192433,
+            "log": 0.017470646124555067
+          },
+          "metric": "conditional_side"
+        },
+        "future": {
+          "count": 55,
+          "before": {
+            "brier": 0.08194873745916915,
+            "log": 0.31719945632571983
+          },
+          "after": {
+            "brier": 0.08496854388135353,
+            "log": 0.3246037261338224
+          },
+          "change": {
+            "brier": 0.0030198064221843707,
+            "log": 0.007404269808102548
+          },
+          "metric": "conditional_side"
+        }
+      },
+      "actual_derivatives_all_negative": true
+    }
+  },
+  "user_semantics": "Existing probabilistic DOWN/FLAT/UP S/F outputs and accepted FLAT noise band unchanged. All genuine five-timeframe inputs remain in the learned path.",
+  "conclusion": "The local common descent exists and survives a real FP32 application at both saved states. It does not qualify a general training correction: INITIAL transfer is mixed, all four TRAIN scores still lose to prior, and later D1 sides regress at both states.",
+  "limitations": [
+    "Two states and three small constraint batches; only26/28 known M5 S/F sides among48 rows. Changes are measured paired differences, not statistical evidence of market edge.",
+    "Other144 TRAIN and later192 are reused development panels, not untouched generalization. No fullpopulation scoring.",
+    "Both later FINAL M5 scores improve against their own baseline, but later FINAL future remains worse than original INITIAL.",
+    "No continuation of Adam moments, optimizer implementation, new native learning sequence, calibration or trading performance is qualified.",
+    "All other timeframes have endpoint measurements; this does not cover every sampled future state query.",
+    "One parameter application from each state is not a fullpass causal explanation. Original checkpoints and state restored and preserved.",
+    "48 baseline forwards reused; no matched whole-workload timing comparison establishes a speedup.",
+    "The twelve constraint cells reuse the same observations at two states; they are not twelve independent confirmations.",
+    "Later D1 conditional direction regresses, but not every D1 probability metric: FINAL future activity Brier improves0.00188736 and three-class Brier improves0.00232390. Activity has128 observations; three-class has64state/128future."
+  ],
+  "training_authorized": false,
+  "test_data_used": false,
+  "promotion_authorized": false
+}

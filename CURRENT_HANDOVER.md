@@ -15,20 +15,40 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_COMMON_STEP_FINITE_ADMITTED.
+Policystatus: TA_M5_COMMON_STEP_LOCAL_PASS_TRANSFER_AND_D1_FAIL.
 
-Én eksakt endelig-steg-kontroll er nå innrømmet:
-MARKET_STATE_TA_M5_COMMON_STEP_FINITE_20261110_001.
-Metadata-/kilde-/viewkontroll og faktisk syntetisk score-rute består;
-to uavhengige kildegjennomganger består etter rettet rapportforsegling og
-dimensjonsavhengig avrundingsgrense.
-Capped CPU producer,12G/512M,én numerisk tråd,maks600s.
-Én modell,to originale checkpointdekodinger,to reelle parameterpåføringer,
-48 kandidatforwards,0 baselineforwards/backwards/optimizer/checkpointskrivinger.
-Bare denne parameterprøven har training_enabled=true; native/fullfit er stengt.
-Alle faste utvalg scores uansett fortegn; ingen automatisk videreføring.
-Kandidaten og faktisk FP32-delta bevares som private NPZ-bevis, uten resumeautoritet.
+[Endelig-steg-kontroll](docs/TA_M5_COMMON_STEP_FINITE_REVIEW.json)
+er COMPLETE/konsumert, med opprinnelige checkpoints bevart og gjenopprettet.
+Alle trenings-/native-/launchporter er stengt; training_enabled=false.
+Helkommando265,333s (4m25s), worker230,979s. Forberedelse/review er utenom.
+Én modell,to checkpointdekodinger,to reelle parameterpåføringer,48candidateforwards;
+0baselineforwards/backwards/optimizer/checkpointskrivinger.
+48 ferdige baselineforwards gjenbrukt; ingen kontrollert hastighetsgevinst på
+identisk helarbeidsmengde er målt.
 
+Alle tolv lokale M5 S/F-celler bedres i faktisk BCE,Brier og log.
+Dette omfatter bare26/28kjente S/F-sider i48anker-rader.
+FINAL bedrer begge M5mål også på øvrige144TRAIN og senere192.
+INITIAL svekker derimot øvrig-TRAIN F-Brier med3,448e-6 og senere S med1,537e-4.
+Alle fire TRAIN192-scorene er fortsatt svakere enn fryst prior.
+Senere FINAL F-Brier0,248774 er fortsatt svakere enn originalINITIAL0,246894.
+
+Viktig fem-TF-grense: senere betinget D1-retning svekkes i S/F fra begge tilstander.
+INITIAL D1 S/F ΔBrier +0,004244/+0,007585;
+FINAL +0,007629/+0,003020 (S64/F55known).
+Dette gjelder betinget side; FINAL F-aktivitet og F-treklasse bedres samtidig.
+De tolv ankercellene deler observasjoner og er ikke uavhengige bekreftelser.
+Ingen generell retensjonsrettelse er kvalifisert.
+De senere panelene er gjenbrukt utvikling, ikke urørt generalisering.
+Uavhengig cached FP64-scorekontroll0,594s:280side-countceller og56M5fortegn
+består; maxBrier/logavvik2,22e-16/3,33e-16. Ingen ny modell/vektdekoding.
+To uavhengige kildegjennomganger og separat JSON-regnekontroll består.
+
+Ikke bruk fellesvektene som produksjonskoeffisienter, fortsett Adam-momenter,
+relanser prøven eller start nye vekt-/optimizer-sveip.
+Neste læringsdesign må håndtere den målte konflikten mellom perioder og TF
+før eventuell ny eksakt fitadmisjon. Fullpass-årsak, samlet rettelse,
+kalibrering og markedspresisjon er fortsatt ubevist.
 
 [Felles lokal retning](docs/TA_M5_COMMON_STEP_REVIEW.json) er eksakt sertifisert
 fra lagrede skalartabeller: tre uavhengige Adam-forslag fra samme tilstand
@@ -43,11 +63,8 @@ Dette beviser bare lokal førsteordensretning innen de tre eksisterende forslage
 ikke bedre Brier, endelig stegeffekt, kalibrering eller senere generalisering.
 Ingen produksjonskoeffisient eller videreføring av Adam-momenter er valgt.
 
-Neste avgrensede spørsmål er ett endelig FP32-steg fra hvert originalcheckpoint.
-Gjenbruk ferdige CPU-baseliner; skill de 48 gradientradene, øvrige 144 TRAIN-rader
-og 192 senere TRAIN-rader. Den separate, eksakte finite-admisjonen over er nå kvalifisert;
-metadataresultatet alene åpnet ingen modellkjøring. Ingen ny epoke
-eller gjentakelse av gamle planer.
+Den separate finite-prøven er nå fullført og konsumert som beskrevet øverst.
+Ingen ny epoke eller gjentakelse av gamle planer er innrømmet.
 
 
 [Cached treningsforløpskontroll](docs/TA_M5_TRAINING_RETENTION_REVIEW.json)
