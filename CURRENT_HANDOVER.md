@@ -15,7 +15,14 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_ACCUM3_NATIVE_COMPLETE_INSUFFICIENT.
+Policystatus: TA_M5_FULLPOP_MONTH_DECOMP_ADMITTED.
+
+En avgrenset cached månedsdekomponering er innrømmet: alle lagrede
+INITIAL/native FINAL/korrigert readout/prior-prognoser på29574 TRAIN og17753
+senere TRAIN. Kun statistikk, alle måneder og begge M5-sidemål; ingen nye
+prognoser, tilpasning eller utvalg. Én CPU-audit,4G/512M/180s; trening stengt.
+Plan: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPOP_MONTH_DECOMP_20261110_001/PLAN.json
+SHA ab0620771a836a0c19911ad690bdcd40e8b754f6eb116365ca86b7993dda45f3.
 
 [ACCUM3 native-prøven](docs/TA_M5_ACCUM3_NATIVE_REVIEW.json) er fullført og
 uavhengig verifisert; alle fire resultatporter feiler. Rot:

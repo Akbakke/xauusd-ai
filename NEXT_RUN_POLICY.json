@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-10T03:32:34.902948+00:00",
-  "status": "TA_M5_ACCUM3_NATIVE_COMPLETE_INSUFFICIENT",
+  "observed_utc": "2026-11-10T03:39:26.095627+00:00",
+  "status": "TA_M5_FULLPOP_MONTH_DECOMP_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "No ACCUM3 continuation, fullfit or accumulation-size/LR/momentum sweep. Use retained original full-population INITIAL/FINAL and converged-readout evidence to check whether the fullpass loss is primarily period-level mean drift, probability dispersion or lost target alignment; first verify which native monthly decomposition already exists and reuse it. No new model run is admitted until a distinct mechanism is isolated.",
+  "next_action": "Execute the bound cached month decomposition once under audit caps; verify identical stored global scores and exact weighted decomposition, then close the stage. No model run, fit, calibration or selection.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1685,7 +1685,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "ACCUM3 native contrast complete and independently verified: all4 gates fail. BothTRAINtasks improve less thanCONTROL; bothlater tasks regress less but remain worse thanCPUINITIAL.24backwards/8steps, no correction qualified.",
+    "current_activity": "Cached full-population month decomposition admitted; no model or training.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -9209,7 +9209,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "No ACCUM3 continuation, fullfit or accumulation-size/LR/momentum sweep. Use retained original full-population INITIAL/FINAL and converged-readout evidence to check whether the fullpass loss is primarily period-level mean drift, probability dispersion or lost target alignment; first verify which native monthly decomposition already exists and reuse it. No new model run is admitted until a distinct mechanism is isolated.",
+    "next_action": "Execute the bound cached month decomposition once under audit caps; verify identical stored global scores and exact weighted decomposition, then close the stage. No model run, fit, calibration or selection.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -72872,5 +72872,32 @@
     "later_direction_improvement_established": false,
     "native_execution_authorized": false,
     "next_action": "No ACCUM3 continuation, fullfit or accumulation-size/LR/momentum sweep. Use retained original full-population INITIAL/FINAL and converged-readout evidence to check whether the fullpass loss is primarily period-level mean drift, probability dispersion or lost target alignment; first verify which native monthly decomposition already exists and reuse it. No new model run is admitted until a distinct mechanism is isolated."
+  },
+  "market_state_ta_m5_fullpop_month_decomp_20261110_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPOP_MONTH_DECOMP_20261110_001/PLAN.json",
+      "sha256": "ab0620771a836a0c19911ad690bdcd40e8b754f6eb116365ca86b7993dda45f3"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPOP_MONTH_DECOMP_20261110_001/audit.py",
+      "sha256": "bb2bca25accf831462ccf0076334724a49740135363358154a6d88d30b388dff"
+    },
+    "execution_authorized": true,
+    "training_authorized": false,
+    "relaunch_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "memory_max": "4G",
+    "swap_max": "512M",
+    "wall_seconds": 180,
+    "numerical_threads": 1,
+    "model_forwards": 0,
+    "fits": 0,
+    "checkpoint_decodes": 0,
+    "test_data_used": false,
+    "scope": "One cached full-population calendar-month decomposition of all four retained arms and both M5 side tasks, all months. No new predictions, fitting, calibration or selection."
   }
 }
