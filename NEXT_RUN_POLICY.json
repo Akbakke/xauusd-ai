@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-10T06:08:53.997692+00:00",
-  "status": "TA_M5_CENTERED_HEAD_COORDINATES_COMPLETE_COMPARISON_FAILED",
+  "observed_utc": "2026-11-10T06:24:29.729537+00:00",
+  "status": "TA_M5_TRAINING_RETENTION_CACHE_AUDIT_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "No further coordinate/optimizer sweep or fullfit. User asks mathematical forward prediction, not literal trendlines. Assess direct multi-horizon conditional price-displacement distributions against current S/F targets, preserving short-move direction and distinguishing endpoint from path. New design/code/fit is not admitted.",
+  "next_action": "One cached INITIAL/FINAL chronology audit on fixed original optimizer/checkpoint boundaries. No model/fit/checkpoint load. Keep existing probabilistic S/F outputs and FLAT threshold; user accepts small noisy moves as FLAT. No forecast-per-feature rewrite or new target/architecture admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -73296,5 +73296,33 @@
     "score_gate_pass": false,
     "source_unchanged": true,
     "completed_utc": "2026-11-10T06:04:06.469427+00:00"
+  },
+  "market_state_ta_m5_training_retention_20261110_001": {
+    "status": "ADMITTED",
+    "execution_authorized": true,
+    "training_authorized": false,
+    "model_forwards": 0,
+    "checkpoint_decodes": 0,
+    "optimizer_steps": 0,
+    "readout_fits": 0,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_TRAINING_RETENTION_20261110_001/PLAN.json",
+      "sha256": "2972fc3d4ebeb9b6043f053b86cf467dd48de6d2eebee9f7c1b1b6a2229c2697"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_TRAINING_RETENTION_20261110_001/audit.py",
+      "sha256": "36fb80fc15005616bc58908aad9ecdfd313191659b7ff27f9e9044ea49f877f2"
+    },
+    "max_npz_archives": 2,
+    "max_array_members": 12,
+    "max_wall_seconds": 60,
+    "memory_max": "4G",
+    "swap_max": "512M",
+    "numeric_threads": 1,
+    "test_data_used": false
   }
 }

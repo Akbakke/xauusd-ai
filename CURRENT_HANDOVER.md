@@ -15,7 +15,30 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_CENTERED_HEAD_COORDINATES_COMPLETE_COMPARISON_FAILED.
+Policystatus: TA_M5_TRAINING_RETENTION_CACHE_AUDIT_ADMITTED.
+
+Brukerpresisering10.11: Små/støyende bevegelser kan være FLATT; terskelen
+skal ikke behandles som feil. Lær pålitelige sannsynligheter med det vi har.
+Aktiv kode gir allerede sammenhengende DOWN/FLAT/UP-sannsynligheter:
+DOWN=a*(1-u), FLAT=1-a, UP=a*u. S og F er separate fremtidsmål.
+Ingen ny sannsynlighetsarkitektur eller feature-for-feature-prognose er innrømmet.
+
+Ny presisering av eksisterende treningsbevis: Ved P4096 var bare64/192
+faste panelrader besøkt i nativepasset (S23/75, F32/86 known). De øvrige
+128radene og nyligtrent område4032:4096 er ikke en måling av nettopp lært
+tilpasning. INITIAL var allerede TRAIN-tilpasset. Hele passets forverring
+på29574rader/alle femmåneder står derimot fast.
+Samme middle-blokk bedres vedP16384/P24576 og svekkes igjen motFINAL.
+Dette viser reversering, men isolerer ikke den umiddelbare årsaken.
+
+Kun én liten cached-kontroll er innrømmet:
+ /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_TRAINING_RETENTION_20261110_001
+OriginalINITIAL/FINAL/prior på faste4096-checkpointblokker, siste16updates,
+sistepartialbatch ogrest. Toarkiver/tolvarrays,0modell/forwards/fit/ckdecode;
+4G/512M/éntråd,60s. Alle TRAIN-blokker rapporteres, ingen scorevalgtegrenser.
+Spørsmål: Er de nyligst trente radene forbedret selv om eldre rader svekkes?
+Treningsporter er fortsatt stengt; dette er ikke en ny nativekjøring.
+
 
 [Den sentrerte koordinattesten](docs/TA_M5_CENTERED_HEAD_COORDINATES_REVIEW.json)
 er COMPLETE/konsumert på boot634, CUDA250W. Ingen retningsrettelse kvalifisert.
@@ -44,10 +67,9 @@ generalisering eller fullpopulasjon. Windows-task er deaktivert,
 treningsporter stengt og engangsplanen konsumert.
 
 Brukeren presiserer at linjer bare var et eksempel på å se fremover.
-Neste vurdering gjelder direkte sannsynlighetsfordelinger for prisbevegelse
-på flere horisonter med eksisterende MTF-modell. Dagens S/F har allerede
-fremtidige mål; F under0,5nativeATR lærer FLATT og mister direkte sidetilsyn.
-Sluttpunkt og prisforløpet underveis må holdes atskilt. Ingen ny arkitektur,
+Dagens S/F har allerede fremtidige sannsynlighetsmål. F under0,5nativeATR
+lærer FLATT; brukeren godtar et slikt støyområde. Dette er ingen påvist feil.
+Sluttpunkt og prisforløpet underveis holdes atskilt. Ingen ny arkitektur,
 målendring eller fit er innrømmet; ingen metode er dokumentert best.
 Ikke kjør flere koordinat-/optimizer-varianter på bakgrunn av dette forsøket.
 
