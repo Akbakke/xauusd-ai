@@ -1239,3 +1239,281 @@ def require_ta_m5_equal_loss_mechanical_gate(gate, recipe):
     _need(isinstance(gate, Mapping) and all(gate.get(k) == v and type(gate[k]) is type(v)
           for k, v in expected.items()) and recipe['run_scope'] == TA_M5_EQUAL_LOSS_SCOPE
           and recipe['admission_stage'] == TA_M5_EQUAL_LOSS_STAGE, 'M5_EQUAL_LOSS_POLICY_GATE')
+
+
+# One exact historical CUDA prefix replay. The old four-step and import scopes
+# remain immutable; this scope observes unchanged original training numerics.
+TA_M5_ORIGINAL_CUDA_PREFIX_STAGE = 'market_state_ta_m5_original_cuda_prefix_20261110_001'
+TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE = 'market_state_ta_m5_original_cuda_prefix_v1'
+TA_M5_ORIGINAL_CUDA_PREFIX_ROOT = Path('/home/andre2/GX1_RUNS') / TA_M5_ORIGINAL_CUDA_PREFIX_STAGE.upper()
+TA_M5_ORIGINAL_CUDA_PREFIX_RUNTIME_ROOT = TA_M5_ORIGINAL_CUDA_PREFIX_ROOT / 'RUNTIME'
+TA_M5_ORIGINAL_CUDA_PREFIX_RECIPE_PATH = TA_M5_ORIGINAL_CUDA_PREFIX_ROOT / 'RECIPE.json'
+TA_M5_ORIGINAL_CUDA_PREFIX_RECIPE_SCHEMA = 'gx1_market_state_ta_m5_original_cuda_prefix_recipe_v1'
+TA_M5_ORIGINAL_CUDA_PREFIX_RESULT_SCHEMA = 'gx1_market_state_ta_m5_original_cuda_prefix_result_v1'
+TA_M5_ORIGINAL_CUDA_PREFIX_CURSOR_SCHEMA = 'gx1_market_state_ta_m5_original_cuda_prefix_cursor_v1'
+TA_M5_ORIGINAL_CUDA_PREFIX_SOURCE = '84f0f47c4e0c02b9c5287b1930ffb30bbdf98e81'
+TA_M5_ORIGINAL_CUDA_PREFIX_REFERENCE_SOURCE = 'b02fc5d46191d550f7b3f4682e65c098515c7ddf'
+TA_M5_ORIGINAL_CUDA_PREFIX_WORKER = 'gx1/audit/trace_market_state_ta_m5_original_cuda_prefix_v1.py'
+TA_M5_ORIGINAL_CUDA_PREFIX_ROUTING_PATHS = frozenset({
+    'gx1/contracts/market_state_native_F_private_campaign_v1.py',
+    'gx1/contracts/entry_native_direction_research_campaign_v1.py',
+    'gx1/scripts/run_entry_native_direction_research_window_v1.py',
+    'gx1/scripts/materialize_market_state_time_query_fold1_fit_campaign_v1.py',
+})
+_TA_ORIGINAL_FIT = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FOLD1_FIT_20261109_002')
+_TA_ORIGINAL_MIX = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_MIXED_BATCH_NATIVE_20261109_001')
+TA_M5_ORIGINAL_CUDA_PREFIX_REFS = {
+    'original_recipe': {'path': str(_TA_ORIGINAL_FIT / 'RECIPE.json'), 'sha256': 'b52a8ac46b3bf7e4827024431e6bccec77542ce0be09ebe9680edda15266b697'},
+    'original_result': {'path': str(_TA_ORIGINAL_FIT / 'RUNTIME/prefix-fit/window-0001/RESULT.json'), 'sha256': '07fc4b631616e36fd7bc52a80375dfafe857eed51ca742965326886881844d55'},
+    'initial_measurement': {'path': str(_TA_ORIGINAL_FIT / 'RUNTIME/prefix-fit/window-0001/INITIAL_TRAIN.json'), 'sha256': 'e4998ab3686d17e1273ef80f56cd483a5ca486ce45698b45773f553ab90acd92'},
+    'original_initial_checkpoint': {'path': str(_TA_ORIGINAL_FIT / 'RUNTIME/prefix-fit/states/INITIAL_FOLD1_STATE.pt'), 'sha256': '80fc8029200c8076bc2faa38014bfd24c75ee71632fb1f45138249ccaca8d484'},
+    'original_p4096_checkpoint': {'path': str(_TA_ORIGINAL_FIT / 'RUNTIME/prefix-fit/states/w0001_p004096.pt'), 'sha256': '2a8fb565228212f029c45712e0ad20484fdb1bacd6f9a6afead4d70af59a1497'},
+    'source_reference_recipe': {'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SCORE_RECOVERY_20261109_002/RECIPE.json', 'sha256': '4fc09408227deddfa3f73256d1a458e9b61d606995633e0aa4c6c1afdb73c120'},
+    'contiguous_batch_review': {'path': str(CANONICAL_REPO / 'docs/TA_M5_MIXED_BATCH_NATIVE_REVIEW.json'), 'sha256': '972ede64bf9063e7e06bfd127411af968ed2635ee293715b7af6ba4e406a46af'},
+    'contiguous_batch_tests': {'path': str(_TA_ORIGINAL_MIX / 'BATCH_API_TESTS.json'), 'sha256': '78da9219c574b6bbdc3bcef21176a497c574a8f610d730952bbc4b8a84eb6d60'},
+    'mixed_plan': {'path': str(_TA_ORIGINAL_MIX / 'PLAN.json'), 'sha256': 'c14dc33b9ed94a5b15be7baa301a3c713dee22d074b9078b3ac563333a73ea42'},
+    'mixed_result': {'path': str(_TA_ORIGINAL_MIX / 'RESULT.json'), 'sha256': '6895ee933974dae209c04251719033ffdff0ab70dbe1179e529a80cc60767cea'},
+    'mixed_review': {'path': str(_TA_ORIGINAL_MIX / 'REVIEW.json'), 'sha256': 'd4a3bbcd3c9fdce924f6400b76944f141d8227a01e1dcf7bed9a7b87ca73fdfb'},
+}
+TA_M5_ORIGINAL_CUDA_PREFIX_CONSUMED_REF_KEYS = (
+    'candidate_tape', 'F_tape', 'F_result', 'F_terminal',
+    'mature_plan', 'fold1_plan', 'fold1_claim', 'fold1_result', 'fold1_terminal',
+    'fold1_qualification', 'fold1_normalization', 'constructor', 'base_view',
+    'ta_candidate_view', 'ta_input_audit', 'ta_input_terminal',
+)
+_TA_PREFIX_BATCH_PATH = 'gx1/contracts/market_state_time_query_native_F_batch_v1.py'
+_TA_PREFIX_BATCH_OLD = '1167021db3c87d7b24a7d5f912267814b8dcc1640f81674ba9f6c6880cbca97b'
+_TA_PREFIX_BATCH_CURRENT = 'ec62b841a866960c273fdbbacae2598d675d427339cfcd5c6942630c2b739fb5'
+
+
+def _ta_m5_original_cuda_prefix_input_refs(original):
+    refs = {key: dict(value) for key, value in TA_M5_ORIGINAL_CUDA_PREFIX_REFS.items()}
+    refs.update({'original_input_' + key: dict(original['input_refs'][key])
+                 for key in TA_M5_ORIGINAL_CUDA_PREFIX_CONSUMED_REF_KEYS})
+    refs['original_input_manifest'] = dict(original['input_manifest'])
+    return refs
+
+
+def read_ta_m5_original_cuda_prefix_origin(launch):
+    refs = launch['input_refs']
+    _need({key: refs.get(key) for key in TA_M5_ORIGINAL_CUDA_PREFIX_REFS}
+          == TA_M5_ORIGINAL_CUDA_PREFIX_REFS, 'ORIGINAL_PREFIX_FIXED_REFS')
+    original = _read(refs['original_recipe'], 'original prefix recipe')
+    _need(refs == _ta_m5_original_cuda_prefix_input_refs(original),
+          'ORIGINAL_PREFIX_CONSUMED_INPUT_REFS')
+    # Explicit original bindings are checked before decoding and automatically
+    # included in the worker's existing input_refs bookend. No unused weights.
+    for key, ref in refs.items():
+        if key.startswith('original_input_'):
+            campaign.require_binding(ref, label=key, verify_file=True)
+    result = _read(refs['original_result'], 'original prefix result')
+    initial = _read(refs['initial_measurement'], 'original prefix initial measurement')
+    qualified = _read(refs['source_reference_recipe'], 'original prefix source reference')
+    _need(result.get('source_commit') == TA_M5_ORIGINAL_CUDA_PREFIX_SOURCE
+          and result.get('outcome') == result.get('phase_state') == 'COMPLETE'
+          and result.get('source_unchanged') is True and result.get('test_data_used') is False
+          and result.get('optimizer_updates') == 1849 and result.get('parent_cursor') == 29574
+          and result.get('skipped_batches') == 0
+          and result.get('recipe') == refs['original_recipe']
+          and result.get('own_initial_state') == refs['original_initial_checkpoint']
+          and result.get('initial_measurement') == refs['initial_measurement']
+          and result.get('parent_order_sha256') == TA_M5_EQUAL_LOSS_ORDER_SHA256,
+          'ORIGINAL_PREFIX_ORIGIN')
+    _need(initial.get('evaluated_checkpoint') == refs['original_initial_checkpoint']
+          and initial.get('evaluated_model_state_sha256') == TA_M5_EQUAL_LOSS_MODEL_SHA256
+          and initial.get('optimizer_updates') == 0 and initial.get('test_data_used') is False,
+          'ORIGINAL_PREFIX_INITIAL')
+    numerical = original.get('numerical_recipe', {})
+    _need(numerical.get('contract_sha256') == '5085579ff8ad90257412ad1d42406c6c481a1d272f0cf2849ae293da87974361'
+          and numerical.get('max_updates') == 1849 and numerical.get('batch_size') == 16
+          and numerical.get('grad_accum_steps') == 1 and numerical.get('m5_equal_observation') is True
+          and original.get('expected_initial_model_state_sha256') == TA_M5_EQUAL_LOSS_MODEL_SHA256,
+          'ORIGINAL_PREFIX_UNCHANGED_NUMERICAL')
+    for key in ('expected_view_sha256', 'expected_model_contract_sha256', 'expected_loss_contract_sha256'):
+        _need(original[key] == qualified[key], 'ORIGINAL_PREFIX_REFERENCE_IDENTITY:' + key)
+    _need(original['input_refs']['ta_candidate_view'] == qualified['input_refs']['ta_candidate_view'],
+          'ORIGINAL_PREFIX_REFERENCE_VIEW')
+    return {'original_recipe': original, 'original_result': result,
+            'initial_measurement': initial, 'source_reference_recipe': qualified}
+
+
+def _ta_m5_original_cuda_prefix_sources(owners, original, qualified, trace_worker):
+    _need(isinstance(owners, Mapping) and set(owners) == set(original['source_owners'])
+          == set(qualified['source_owners']) and len(owners) == 85, 'ORIGINAL_PREFIX_OWNER_SET')
+    historical, current = {}, {}
+    for name, ref in owners.items():
+        old, base = original['source_owners'][name], qualified['source_owners'][name]
+        expected_path = str(CANONICAL_REPO / name)
+        _need(ref.get('path') == old.get('path') == base.get('path') == expected_path,
+              'ORIGINAL_PREFIX_OWNER_PATH')
+        campaign.require_binding(ref, label='original prefix source ' + name, verify_file=True)
+        if name.startswith('.venv/'):
+            _need(ref == old == base, 'ORIGINAL_PREFIX_INSTALLED_RUNTIME_CHANGED:' + name)
+        else:
+            _need(_ta_m5_git_source_sha(TA_M5_ORIGINAL_CUDA_PREFIX_SOURCE, name) == old['sha256']
+                  and _ta_m5_git_source_sha(TA_M5_ORIGINAL_CUDA_PREFIX_REFERENCE_SOURCE, name) == base['sha256'],
+                  'ORIGINAL_PREFIX_HISTORICAL_SOURCE:' + name)
+        if name == _TA_PREFIX_BATCH_PATH:
+            _need(base['sha256'] == _TA_PREFIX_BATCH_OLD and ref['sha256'] == _TA_PREFIX_BATCH_CURRENT,
+                  'ORIGINAL_PREFIX_BATCH_PAIR')
+        elif name not in TA_M5_ORIGINAL_CUDA_PREFIX_ROUTING_PATHS:
+            _need(ref == base, 'ORIGINAL_PREFIX_UNREVIEWED_SOURCE:' + name)
+        if old != base:
+            historical[name] = {'original': old, 'qualified': base}
+        if ref != base:
+            current[name] = {'qualified': base, 'current': dict(ref)}
+    _need(trace_worker.get('path') == str(CANONICAL_REPO / TA_M5_ORIGINAL_CUDA_PREFIX_WORKER),
+          'ORIGINAL_PREFIX_WORKER_PATH')
+    campaign.require_binding(trace_worker, label='original prefix trace worker', verify_file=True)
+    return {'original_source_commit': TA_M5_ORIGINAL_CUDA_PREFIX_SOURCE,
+            'qualified_source_commit': TA_M5_ORIGINAL_CUDA_PREFIX_REFERENCE_SOURCE,
+            'historical_changes': historical, 'current_changes': current}
+
+
+def _ta_m5_original_cuda_prefix_expected():
+    original = _read(TA_M5_ORIGINAL_CUDA_PREFIX_REFS['original_recipe'], 'original prefix recipe')
+    refs = _ta_m5_original_cuda_prefix_input_refs(original)
+    origin = read_ta_m5_original_cuda_prefix_origin({'input_refs': refs})
+    original, qualified = origin['original_recipe'], origin['source_reference_recipe']
+    for key in ('original_initial_checkpoint', 'original_p4096_checkpoint'):
+        campaign.require_binding(refs[key], label=key, verify_file=True)
+    review = _read(refs['contiguous_batch_review'], 'qualified contiguous batch review')
+    tests = _read(refs['contiguous_batch_tests'], 'qualified contiguous batch tests')
+    mixed_plan = _read(refs['mixed_plan'], 'qualified mixed plan')
+    _read(refs['mixed_result'], 'qualified mixed result')
+    _read(refs['mixed_review'], 'qualified mixed review')
+    override = {'original_ref': {'path': str(CANONICAL_REPO / _TA_PREFIX_BATCH_PATH), 'sha256': _TA_PREFIX_BATCH_OLD},
+                'current_ref': {'path': str(CANONICAL_REPO / _TA_PREFIX_BATCH_PATH), 'sha256': _TA_PREFIX_BATCH_CURRENT}}
+    proof = review.get('source_change', {})
+    _need(review.get('plan') == refs['mixed_plan'] and review.get('result') == refs['mixed_result']
+          and review.get('review') == refs['mixed_review']
+          and review.get('focused_tests') == refs['contiguous_batch_tests']
+          and proof.get('focused_tests_passed') == 50
+          and proof.get('legacy_contiguous_route_preserved') is True
+          and proof.get('query_forward_targets_loss_suffix_byte_identical') is True
+          and proof.get('runtime_source_override') == mixed_plan.get('runtime_source_override') == override
+          and tests.get('exit_code') == 0 and tests.get('source') == override['current_ref']
+          and tests.get('query_forward_targets_loss_suffix_byte_identical') is True,
+          'ORIGINAL_PREFIX_CONTIGUOUS_BATCH_PROOF')
+    value = {
+        'schema_version': TA_M5_ORIGINAL_CUDA_PREFIX_RECIPE_SCHEMA,
+        'source_repo': str(CANONICAL_REPO), 'runtime_root': str(TA_M5_ORIGINAL_CUDA_PREFIX_RUNTIME_ROOT),
+        'admission_stage': TA_M5_ORIGINAL_CUDA_PREFIX_STAGE, 'run_scope': TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE,
+        'execution_binding_path': str(TA_M5_ORIGINAL_CUDA_PREFIX_RUNTIME_ROOT / 'EXECUTION_BINDING.json'),
+        'original_source_commit': TA_M5_ORIGINAL_CUDA_PREFIX_SOURCE,
+        'input_refs': refs, 'input_manifest': original['input_manifest'],
+        'numerical_recipe': original['numerical_recipe'],
+        'expected_view_sha256': original['expected_view_sha256'],
+        'expected_model_contract_sha256': original['expected_model_contract_sha256'],
+        'expected_loss_contract_sha256': original['expected_loss_contract_sha256'],
+        'expected_initial_model_state_sha256': TA_M5_EQUAL_LOSS_MODEL_SHA256,
+        'parent_order_sha256': TA_M5_EQUAL_LOSS_ORDER_SHA256,
+        'fold_id': 1, 'pass_index': 0, 'parent_order_rows': 29574,
+        'selected_fit_rows': 4096, 'parent_selection': 'original_chronological_fit_prefix_0_4096',
+        'device': 'cuda', 'max_private_updates': 256, 'max_forwards': 256, 'max_backwards': 256,
+        'max_model_constructions': 1, 'max_optimizer_constructions': 1,
+        'max_checkpoint_loads': 2, 'max_full_state_restores': 1, 'max_checkpoint_writes': 0,
+        'max_model_seconds': 720, 'max_trace_bytes': 67108864,
+        'max_checkpoint_bytes': MAX_CHECKPOINT_BYTES, 'max_published_json_bytes': MAX_PUBLISHED_JSON_BYTES,
+        'first_step_exact_required': True, 'final_full_state_exact_required': True,
+        'initial_evaluation_forwards': 0, 'later_evaluation_forwards': 0,
+        'training_enabled': True, 'full_epoch_training_allowed': False,
+        'canonical_resume_authority': False, 'candidate_selection': False,
+        'test_data_used': False, 'predictive_value_claimed': False,
+    }
+    return value, original, qualified
+
+
+def build_ta_m5_original_cuda_prefix_recipe(*, source_commit):
+    value, original, qualified = _ta_m5_original_cuda_prefix_expected()
+    owners = {name: {'path': str(CANONICAL_REPO / name),
+                     'sha256': campaign.file_sha256(CANONICAL_REPO / name)}
+              for name in original['source_owners']}
+    worker = {'path': str(CANONICAL_REPO / TA_M5_ORIGINAL_CUDA_PREFIX_WORKER),
+              'sha256': campaign.file_sha256(CANONICAL_REPO / TA_M5_ORIGINAL_CUDA_PREFIX_WORKER)}
+    value.update(source_owners=owners, trace_worker=worker,
+                 source_bridge=_ta_m5_original_cuda_prefix_sources(owners, original, qualified, worker))
+    value['recipe_sha256'] = campaign.canonical_sha256(value)
+    return require_ta_m5_original_cuda_prefix_recipe(value, source_repo=CANONICAL_REPO,
+                                                     source_commit=source_commit)
+
+
+def require_ta_m5_original_cuda_prefix_recipe(value, *, source_repo, source_commit, verify_files=True):
+    import subprocess
+    _need(verify_files and source_repo == CANONICAL_REPO, 'ORIGINAL_PREFIX_PHYSICAL_SOURCE')
+    expected, original, qualified = _ta_m5_original_cuda_prefix_expected()
+    value = _identity(value, set(expected) | {'source_owners', 'trace_worker', 'source_bridge'},
+                      TA_M5_ORIGINAL_CUDA_PREFIX_RECIPE_SCHEMA, 'recipe_sha256')
+    _need(all(value[k] == v and type(value[k]) is type(v) for k, v in expected.items()),
+          'ORIGINAL_PREFIX_RECIPE_SCOPE')
+    _need(isinstance(source_commit, str) and campaign._COMMIT.fullmatch(source_commit)
+          and subprocess.run(['git', 'merge-base', '--is-ancestor',
+              TA_M5_ORIGINAL_CUDA_PREFIX_REFERENCE_SOURCE, source_commit],
+              cwd=CANONICAL_REPO, capture_output=True).returncode == 0,
+          'ORIGINAL_PREFIX_SOURCE_ANCESTRY')
+    expected_bridge = _ta_m5_original_cuda_prefix_sources(
+        value['source_owners'], original, qualified, value['trace_worker'])
+    _need(value['source_bridge'] == expected_bridge, 'ORIGINAL_PREFIX_SOURCE_BRIDGE')
+    return value
+
+
+def require_ta_m5_original_cuda_prefix_gate(gate, recipe):
+    expected = {
+        'decision': 'ADMITTED', 'status': 'ADMITTED', 'ta_m5_original_cuda_prefix_authorized': True,
+        'fold_id': 1, 'selected_fit_rows': 4096,
+        'model_constructions_authorized': 1, 'optimizer_constructions_authorized': 1,
+        'model_forwards_authorized': 256, 'backward_calls_authorized': 256,
+        'optimizer_steps_authorized': 256, 'training_enabled': True, 'native_training_enabled': True,
+        'genuine_updates_authorized': True, 'genuine_backward_authorized': True,
+        'genuine_predictor_fit_authorized': False, 'canonical_resume_authority': False,
+        'candidate_selection': False, 'test_data_used': False,
+    }
+    _need(isinstance(gate, Mapping) and all(gate.get(k) == v and type(gate[k]) is type(v)
+          for k, v in expected.items()) and recipe['run_scope'] == TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE
+          and recipe['admission_stage'] == TA_M5_ORIGINAL_CUDA_PREFIX_STAGE,
+          'ORIGINAL_PREFIX_POLICY_GATE')
+
+
+def require_ta_m5_original_cuda_prefix_cursor(value, *, expected_recipe, verify_files=True, batch_size=16):
+    fields = {'recipe', 'outcome', 'optimizer_updates', 'parent_cursor', 'parent_order_sha256',
+              'full_state', 'result', 'test_data_used', 'canonical_resume_authority', 'schema_version'}
+    cursor = _identity(value, fields, TA_M5_ORIGINAL_CUDA_PREFIX_CURSOR_SCHEMA, 'cursor_sha256')
+    _need(batch_size == 16 and expected_recipe.get('path') == str(TA_M5_ORIGINAL_CUDA_PREFIX_RECIPE_PATH)
+          and cursor['recipe'] == expected_recipe and cursor['outcome'] in ('COMPLETE', 'FAILED')
+          and type(cursor['optimizer_updates']) is int and 0 <= cursor['optimizer_updates'] <= 256
+          and type(cursor['parent_cursor']) is int and cursor['parent_cursor'] == 16 * cursor['optimizer_updates']
+          and cursor['parent_order_sha256'] == TA_M5_EQUAL_LOSS_ORDER_SHA256
+          and cursor['test_data_used'] is False and cursor['canonical_resume_authority'] is False,
+          'ORIGINAL_PREFIX_CURSOR_SCOPE')
+    complete = cursor['outcome'] == 'COMPLETE'
+    target = TA_M5_ORIGINAL_CUDA_PREFIX_REFS['original_p4096_checkpoint']
+    _need(cursor['full_state'] == (target if complete else None)
+          and (not complete or cursor['optimizer_updates'] == 256),
+          'ORIGINAL_PREFIX_CURSOR_COMPLETE')
+    _need(cursor['result'].get('path') == str(TA_M5_ORIGINAL_CUDA_PREFIX_ROOT / 'RESULT.json'),
+          'ORIGINAL_PREFIX_RESULT_PATH')
+    campaign.require_binding(cursor['result'], label='original prefix result', verify_file=verify_files)
+    if complete:
+        campaign.require_binding(target, label='original prefix reference checkpoint', verify_file=verify_files)
+    if verify_files:
+        report = _read(cursor['result'], 'original prefix completed result')
+        _need(report.get('schema_version') == TA_M5_ORIGINAL_CUDA_PREFIX_RESULT_SCHEMA
+              and report.get('recipe') == expected_recipe
+              and report.get('parent_cursor') == cursor['parent_cursor']
+              and report.get('physical_optimizer_updates') == cursor['optimizer_updates']
+              and report.get('parent_order_sha256') == cursor['parent_order_sha256']
+              and report.get('final_state') == cursor['full_state']
+              and report.get('canonical_resume_authority') is False
+              and report.get('checkpoint_writes') == 0 and report.get('test_data_used') is False,
+              'ORIGINAL_PREFIX_CURSOR_RESULT')
+        if complete:
+            counts = report.get('counts', {})
+            exact = {'model_constructions': 1, 'optimizer_constructions': 1,
+                     'forwards': 256, 'backwards': 256, 'optimizer_step_calls': 256,
+                     'optimizer_updates': 256, 'checkpoint_loads': 2,
+                     'strict_full_state_restore_calls': 1, 'checkpoint_writes': 0}
+            _need(report.get('decision') == 'PASS_TA_M5_ORIGINAL_CUDA_PREFIX_TRACE'
+                  and report.get('first_step_exact') is True and report.get('final_full_state_exact') is True
+                  and all(type(counts.get(k)) is int and counts[k] == v for k, v in exact.items()),
+                  'ORIGINAL_PREFIX_CURSOR_PARITY')
+    return cursor

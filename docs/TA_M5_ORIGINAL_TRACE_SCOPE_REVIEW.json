@@ -1,0 +1,175 @@
+{
+  "status": "SOURCE_PREPARED_QUALIFIED_NOT_ADMITTED",
+  "previous_goal_turn": "PROGRESS: completed full-population month decomposition, closed negative ACCUM3 and published matched evidence; no learning fix claimed.",
+  "original_result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FOLD1_FIT_20261109_002/RUNTIME/prefix-fit/window-0001/RESULT.json",
+    "sha256": "07fc4b631616e36fd7bc52a80375dfafe857eed51ca742965326886881844d55"
+  },
+  "original_initial": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FOLD1_FIT_20261109_002/RUNTIME/prefix-fit/states/INITIAL_FOLD1_STATE.pt",
+    "sha256": "80fc8029200c8076bc2faa38014bfd24c75ee71632fb1f45138249ccaca8d484"
+  },
+  "original_target_checkpoint": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FOLD1_FIT_20261109_002/RUNTIME/prefix-fit/states/w0001_p004096.pt",
+    "sha256": "2a8fb565228212f029c45712e0ad20484fdb1bacd6f9a6afead4d70af59a1497"
+  },
+  "original_source_commit": "84f0f47c4e0c02b9c5287b1930ffb30bbdf98e81",
+  "original_execution": {
+    "device": "cuda:0",
+    "gpu_power_limit_w": 250,
+    "training_updates": 1849,
+    "first_256_updates_seconds_including_checkpoint": 360.69347400799984,
+    "reference_first_loss": 2.7037248611450195,
+    "reference_first_gradient_norm": 6.401226997375488
+  },
+  "original_trace_retained": {
+    "first_batch": true,
+    "last_batch": true,
+    "timing_blocks": true,
+    "fullstate_checkpoints": 9,
+    "per_step_logits_gradients_head_inputs": false,
+    "per_step_side_and_activity_losses": false,
+    "per_step_known_side_and_up_counts": false
+  },
+  "original_trace_source": "Original84f0 runner729-790 retains first/last only;900-918 publishes accumulated fit loss/counts only for non-TA.",
+  "initial_evaluation_rng_proof": "Original84f0 runner649-655 requires whole fullstate contract SHA before/after INITIAL_TRAIN identical. State capture180-224 includes model/buffers/Adam/modes/order/progress and all RNG. Successful original receipt qualifies baseline reuse before strict original CUDArestore; no new seeding after restore.",
+  "first_256_existing_eval": {
+    "state": {
+      "initial": {
+        "count": 75,
+        "up_count": 34,
+        "brier": 0.25460541015796584,
+        "log": 0.7023848081319856,
+        "mean_up_probability": 0.5324667999635628
+      },
+      "P004096": {
+        "count": 75,
+        "up_count": 34,
+        "brier": 0.25815287838524287,
+        "log": 0.7096141003566121,
+        "mean_up_probability": 0.5604631155343356
+      }
+    },
+    "future": {
+      "initial": {
+        "count": 86,
+        "up_count": 41,
+        "brier": 0.25217624585221293,
+        "log": 0.6975053267272607,
+        "mean_up_probability": 0.514413105702951
+      },
+      "P004096": {
+        "count": 86,
+        "up_count": 41,
+        "brier": 0.25441956496543666,
+        "log": 0.7020480609546693,
+        "mean_up_probability": 0.5398550644058503
+      }
+    }
+  },
+  "loss_score_reconciliation": {
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SF_OBJECTIVE_WEIGHT_AUDIT_20261109_001/RESULT.json",
+      "sha256": "59511a3f8cddc0afbc4e6dceef609419bf3a6b6bdf4463fff080fbc703879707"
+    },
+    "conclusion": "M5 training raw side logit/BCE, mask, positive class and q/(5N) weighting match measured conditional-side logloss; no new formula/mask/prior mismatch found. Frozen fullobjective worsens, but does not retain actual historical per-step dropout/Adam trace."
+  },
+  "head_bias_bound": {
+    "head_drift_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_HEAD_DRIFT_20261109_001/RESULT.json",
+      "sha256": "9bf85ec5fc79288cb34ec728989bece38fed92e3715095134b17ed72a9650264"
+    },
+    "fullpop_report": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_FULLPOP_MONTH_DECOMP_REVIEW.json",
+      "sha256": "ed826555b5e62fa66fa5c75838f20cc43bccbd98af1f454aadd119055044fff1"
+    },
+    "identity": "sigmoid is globally 1/4-Lipschitz, so changing only b by db alters every probability by at most abs(db)/4, for any fixed weights and hidden input. This is a bound, not an additive causal share.",
+    "cells": {
+      "fit_state": {
+        "initial_bias": 0.0023774898145347834,
+        "final_bias": 0.004438717383891344,
+        "bias_delta": 0.0020612275693565607,
+        "observed_mean_up_probability_change": 0.04753475086779746,
+        "max_probability_effect_from_bias_delta_alone": 0.0005153068923391402,
+        "max_fraction_of_observed_probability_change": 0.010840635175985243
+      },
+      "score_state": {
+        "initial_bias": 0.0023774898145347834,
+        "final_bias": 0.004438717383891344,
+        "bias_delta": 0.0020612275693565607,
+        "observed_mean_up_probability_change": 0.056720161572989536,
+        "max_probability_effect_from_bias_delta_alone": 0.0005153068923391402,
+        "max_fraction_of_observed_probability_change": 0.009085074478781673
+      },
+      "fit_future": {
+        "initial_bias": 0.003086932236328721,
+        "final_bias": 0.005201120860874653,
+        "bias_delta": 0.002114188624545932,
+        "observed_mean_up_probability_change": 0.061675229385226515,
+        "max_probability_effect_from_bias_delta_alone": 0.000528547156136483,
+        "max_fraction_of_observed_probability_change": 0.008569844999442992
+      },
+      "score_future": {
+        "initial_bias": 0.003086932236328721,
+        "final_bias": 0.005201120860874653,
+        "bias_delta": 0.002114188624545932,
+        "observed_mean_up_probability_change": 0.07292282378342618,
+        "max_probability_effect_from_bias_delta_alone": 0.000528547156136483,
+        "max_fraction_of_observed_probability_change": 0.0072480346853574604
+      }
+    },
+    "conclusion": "Direct scalar bias change alone is at most0.73-1.09percent of observed mean-probability drift; it cannot explain the large UPshift. Weight/representation effects remain material."
+  },
+  "earlier_small_native_trials": "CPU with fresh CPU RNG and/or SPREAD order. Valid finite contrasts, not exact reproduction of original chronological CUDA optimizer trajectory. No equivalent original256step replay found.",
+  "next_scope": {
+    "stage": "market_state_ta_m5_original_cuda_prefix_20261110_001",
+    "role": "Exact observer-only diagnostic replay of first256 original optimizer updates; genuine training authority required before launch.",
+    "max_updates": 256,
+    "parent_rows": 4096,
+    "first_step_loss_and_gradient_norm_parity_required": true,
+    "final_fullstate_content_parity_required": true,
+    "no_extra_model_forwards_or_autograd": true,
+    "initial_eval_reused": true,
+    "max_trace_bytes": 67108864,
+    "model_wall_seconds": 720,
+    "new_prediction_or_optimizer_design": false,
+    "source_preparation_only": true
+  },
+  "limits": [
+    "No new arrays, checkpoints or models decoded by this source/metadata review.",
+    "No training cause isolated, correction qualified, later direction improvement or economic edge established.",
+    "Bit-identical observer replay remains unproven until performed and compared with original P004096."
+  ],
+  "training_authorized": false,
+  "native_launch_authorized": false,
+  "test_data_used": false,
+  "source_preparation": {
+    "worker": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/trace_market_state_ta_m5_original_cuda_prefix_v1.py",
+      "sha256": "593e3e17e235acd3e6ee09d63aa7478c9eacb15523765a6322af99e30a3294dc"
+    },
+    "root_full_worker_and_routing_review": true,
+    "independent_worker_source_review_passed": true,
+    "review_fixes": [
+      "Use model compact qualified feature-view identity for restore/capture.",
+      "Include final parity and bookend in model deadline.",
+      "Count constructor attempts before calls and returns afterward.",
+      "Explicitly verify/bookend 17 consumed original input bindings."
+    ],
+    "admission_tests": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_CUDA_PREFIX_20261110_001/ADMISSION_TESTS.json",
+      "sha256": "7d0707726c57a928262a97fd3b50d73573112c708de16c2369e10b50ddfdc246"
+    },
+    "focused_tests_passed": 39,
+    "physical_metadata_preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_CUDA_PREFIX_20261110_001/SOURCE_PREFLIGHT.json",
+      "sha256": "876b5bcb8a9cb05371b0356c12e10eaa6cadaf123b535b64cbc89767fd2d6fa6"
+    },
+    "existing_contiguous_batch_tests_reused": 50,
+    "source_owners": 85,
+    "unchanged_installed_runtime_owners": 8,
+    "consumed_input_refs": 28,
+    "new_online_function": false,
+    "physical_cuda_parity_proven": false
+  }
+}

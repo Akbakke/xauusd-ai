@@ -15,7 +15,28 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_FULLPOP_MONTH_DECOMP_COMPLETE_NO_FIX.
+Policystatus: TA_M5_ORIGINAL_CUDA_PREFIX_TRACE_SOURCE_READY.
+
+[Original treningssporing](docs/TA_M5_ORIGINAL_TRACE_SCOPE_REVIEW.json):
+Kildekontrollen bekrefter samme M5-loss/score, men originalkjøringen bevarte
+ingen stegserie for rå retning, headgradienter eller aktiveringer.
+Biasparameterens endring kan alene forklare høyst0,73-1,09prosent av den
+målte endringen i gjennomsnittlig OPP-sannsynlighet. Vekt/representasjon
+må derfor undersøkes; ingen enkel biasrettelse eller optimizerendring er valgt.
+
+Originalen kjørteCUDA/250W. Tidligere korteCPU/SPREAD-kontraster er ikke
+eksakt historisk replay. INITIAL er bevist uendret av initialevalueringen,
+inklusive heleRNG-tilstanden; denne evalueringen trenger ikke gjentas.
+Et nytt observerende256-stegsprefix forberedes mot originalP004096.
+Første loss/norm og hele slutt-state må samsvare; ingen ekstra forwards,
+ny optimizer eller fulltrening inngår. Originalblokken tok360,7s.
+Ny scope/dispatch er nødvendig gjennom eksisterende hardwarevakter.
+Koden er nå forberedt:39 fokuserte admissiontester, fysisk metadata-
+kontroll av28inputreferanser/85kildeeiere og uavhengig workerreviewPASS.
+50 eksisterende tester av uendret batchbro er gjenbrukt. Modellfunksjon,
+tap og optimizer er uendret; bare observer og eksakt scope/dispatch er nye.
+Fysisk CUDA-/P4096-paritet er ennå ikke målt. training_enabled=false.
+
 
 [Fullpopulasjonens månedsregnskap](docs/TA_M5_FULLPOP_MONTH_DECOMP_REVIEW.json)
 er fullført med gjenbrukte prognoser på29574 TRAIN og17753 senere TRAIN.

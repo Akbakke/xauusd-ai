@@ -36,6 +36,7 @@ TA_SF_MECHANICAL_SCOPE = 'market_state_ta_sf_mechanical_v1'
 TA_M5_MECHANICAL_SCOPE = 'market_state_ta_dedicated_m5_mechanical_v1'
 TA_M5_IMPORT_SCOPE = 'market_state_ta_m5_equal_weight_import_v1'
 TA_M5_EQUAL_LOSS_SCOPE = 'market_state_ta_m5_equal_loss_mechanical_v1'
+TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE = 'market_state_ta_m5_original_cuda_prefix_v1'
 FAMILY_EXTRA_SOURCE_PATHS = ('gx1/contracts/entry_direction_family_intervention_v1.py',)
 FAMILY_PROTOCOL_PATH = '/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_ADDED_VALUE_PROTOCOL_20261030.json'
 DECIMAL_INPUT_AUDIT = {'path':'/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_BOUND_INPUT_ACTUAL_20261028_001.json',
@@ -182,12 +183,24 @@ def _is_ta_m5_equal_loss_recipe_ref(binding):
     return isinstance(binding, Mapping) and binding.get('path') == str(TA_M5_EQUAL_LOSS_RECIPE_PATH)
 
 
+def _is_ta_m5_original_cuda_prefix_recipe_ref(binding):
+    from gx1.contracts.market_state_native_F_private_campaign_v1 import TA_M5_ORIGINAL_CUDA_PREFIX_RECIPE_PATH
+    return isinstance(binding, Mapping) and binding.get('path') == str(TA_M5_ORIGINAL_CUDA_PREFIX_RECIPE_PATH)
+
+
 def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: Path,
         source_commit: str, verify_files: bool = True) -> dict[str, Any]:
     """Verify metadata and source bytes; never import Torch or grant training."""
     ref = campaign.require_binding(binding, label='direction research recipe', verify_file=verify_files)
     _require(verify_files, 'RECIPE_REQUIRES_PHYSICAL_METADATA')
     value = campaign.read_bound_json(Path(ref['path']), ref['sha256'])
+    prefix_trace = _is_ta_m5_original_cuda_prefix_recipe_ref(ref)
+    if prefix_trace or value.get('run_scope') == TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE:
+        _require(prefix_trace and value.get('run_scope') == TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE,
+                 'ORIGINAL_CUDA_PREFIX_RECIPE_PATH')
+        from gx1.contracts.market_state_native_F_private_campaign_v1 import require_ta_m5_original_cuda_prefix_recipe
+        return require_ta_m5_original_cuda_prefix_recipe(value, source_repo=source_repo,
+            source_commit=source_commit, verify_files=verify_files)
     equal_loss_mode = _is_ta_m5_equal_loss_recipe_ref(ref)
     if equal_loss_mode or value.get('run_scope') == TA_M5_EQUAL_LOSS_SCOPE:
         _require(equal_loss_mode and value.get('run_scope') == TA_M5_EQUAL_LOSS_SCOPE,
@@ -598,7 +611,7 @@ def guarded_research_power_limit(recipe):
             and recipe.get('numerical_recipe', {}).get('batch_size') == 16,
             'M5_IMPORT_POWER_SCOPE')
         return 250
-    if recipe.get('run_scope') in (NATIVE_F_PRIVATE_SCOPE, TA_SF_MECHANICAL_SCOPE, TA_M5_MECHANICAL_SCOPE, TA_M5_EQUAL_LOSS_SCOPE):
+    if recipe.get('run_scope') in (NATIVE_F_PRIVATE_SCOPE, TA_SF_MECHANICAL_SCOPE, TA_M5_MECHANICAL_SCOPE, TA_M5_EQUAL_LOSS_SCOPE, TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE):
         _require(recipe.get('fold_id') == 1
             and recipe.get('training_enabled') is True
             and recipe.get('test_data_used') is False
@@ -675,7 +688,7 @@ def require_research_invocation_execution(result: dict[str, Any], execution: Map
         '--progress-path',window['progress_path']], 'INVOCATION_ARGV')
     _require(result['kind'] == KIND and result['batch_size'] == recipe['numerical_recipe']['batch_size'] and result['epoch_index'] is None
         and result['invocation_number'] == 1 and result['window_index'] == 0 and result['window_count'] == 1
-        and type(result['optimizer_step_budget']) is int and result['optimizer_step_budget'] == (0 if import_mode else 4)
+        and type(result['optimizer_step_budget']) is int and result['optimizer_step_budget'] == (0 if import_mode else 256 if _is_ta_m5_original_cuda_prefix_recipe_ref(recipe_ref) else 4)
         and result['expected_success_outcome'] == 'COMPLETE' and result['maximum_wall_seconds'] == 13800
         and result['checkpoint'] == {'pointer_path':window['campaign_cursor_path'],'before_mode':'GENESIS',
             'predecessor_invocation_number':None,'write_mode':'ATOMIC_UPDATE'}
@@ -711,7 +724,7 @@ def require_research_plan(value: Any, *, verify_files: bool = True) -> dict[str,
         from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
         if policy_recipe['run_scope'] in (DYNAMIC_STATE_PRIVATE_SCOPE, december.PRIVATE_SCOPE,
                                           october.roles.PRIVATE_SCOPE, TIME_QUERY_PRIVATE_SCOPE,
-                                          NATIVE_F_PRIVATE_SCOPE, TA_SF_MECHANICAL_SCOPE, TA_M5_MECHANICAL_SCOPE, TA_M5_IMPORT_SCOPE, TA_M5_EQUAL_LOSS_SCOPE):
+                                          NATIVE_F_PRIVATE_SCOPE, TA_SF_MECHANICAL_SCOPE, TA_M5_MECHANICAL_SCOPE, TA_M5_IMPORT_SCOPE, TA_M5_EQUAL_LOSS_SCOPE, TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE):
             _require('family_same_boot' not in result, 'STATE_FRESH_BOOT_REQUIRED')
             expected_policy['physical_power_limit_w'] = 250
     _require(campaign.canonical_sha256(result['policy']) == campaign.canonical_sha256(expected_policy)
@@ -795,6 +808,9 @@ def require_native_direction_research_readiness(repo: Path, *, window_path: Path
     if recipe['run_scope'] == TA_M5_IMPORT_SCOPE:
         from gx1.contracts.market_state_native_F_private_campaign_v1 import require_ta_m5_import_gate
         require_ta_m5_import_gate(gate, recipe)
+    if recipe['run_scope'] == TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE:
+        from gx1.contracts.market_state_native_F_private_campaign_v1 import require_ta_m5_original_cuda_prefix_gate
+        require_ta_m5_original_cuda_prefix_gate(gate, recipe)
     if recipe['run_scope'] == TA_M5_EQUAL_LOSS_SCOPE:
         from gx1.contracts.market_state_native_F_private_campaign_v1 import require_ta_m5_equal_loss_mechanical_gate
         require_ta_m5_equal_loss_mechanical_gate(gate, recipe)
@@ -863,14 +879,25 @@ def build_research_cursor(*, recipe_ref, outcome, optimizer_updates, parent_curs
     if _is_ta_m5_equal_loss_recipe_ref(recipe_ref):
         from gx1.contracts.market_state_native_F_private_campaign_v1 import TA_M5_EQUAL_LOSS_CURSOR_SCHEMA
         schema = TA_M5_EQUAL_LOSS_CURSOR_SCHEMA
+    if _is_ta_m5_original_cuda_prefix_recipe_ref(recipe_ref):
+        from gx1.contracts.market_state_native_F_private_campaign_v1 import TA_M5_ORIGINAL_CUDA_PREFIX_CURSOR_SCHEMA
+        schema = TA_M5_ORIGINAL_CUDA_PREFIX_CURSOR_SCHEMA
     value = _seal({'schema_version':schema,'recipe':dict(recipe_ref),'outcome':outcome,
         'optimizer_updates':optimizer_updates,'parent_cursor':parent_cursor,'parent_order_sha256':parent_order_sha256,
         'full_state':full_state,'result':result,'test_data_used':False}, 'cursor_sha256')
+    if _is_ta_m5_original_cuda_prefix_recipe_ref(recipe_ref):
+        value = _seal({**{k: v for k, v in value.items() if k != 'cursor_sha256'},
+                       'canonical_resume_authority': False}, 'cursor_sha256')
     return require_research_cursor(value,expected_recipe=recipe_ref,verify_files=False,batch_size=batch_size)
 
 
 def require_research_cursor(value, *, expected_recipe, verify_files=True, batch_size=2) -> dict[str, Any]:
     from gx1.contracts import market_state_native_F_private_campaign_v1 as mechanical
+    prefix_trace = _is_ta_m5_original_cuda_prefix_recipe_ref(expected_recipe)
+    if prefix_trace or (isinstance(value, Mapping) and value.get('schema_version') == mechanical.TA_M5_ORIGINAL_CUDA_PREFIX_CURSOR_SCHEMA):
+        _require(prefix_trace, 'ORIGINAL_CUDA_PREFIX_RECIPE_PATH')
+        return mechanical.require_ta_m5_original_cuda_prefix_cursor(value, expected_recipe=expected_recipe,
+            verify_files=verify_files, batch_size=batch_size)
     equal_loss_mode = _is_ta_m5_equal_loss_recipe_ref(expected_recipe)
     if equal_loss_mode or (isinstance(value, Mapping)
                           and value.get('schema_version') == mechanical.TA_M5_EQUAL_LOSS_CURSOR_SCHEMA):
@@ -914,7 +941,8 @@ def require_research_cursor(value, *, expected_recipe, verify_files=True, batch_
 def build_research_progress(*, window, plan, invocation, checkpoint_pointer,
         optimizer_updates, parent_cursor, parent_order_sha256, outcome) -> dict[str,Any]:
     from datetime import datetime, timezone
-    total_units = 0 if _is_ta_m5_import_recipe_ref(window['recipe']) else 4
+    total_units = (0 if _is_ta_m5_import_recipe_ref(window['recipe']) else
+                   256 if _is_ta_m5_original_cuda_prefix_recipe_ref(window['recipe']) else 4)
     value = _seal({'schema_version':campaign.PROGRESS_SCHEMA,'plan_sha256':plan['plan_sha256'],
         'invocation_sha256':invocation['invocation_sha256'],'phase':KIND,'recipe':window['recipe'],
         'completed_units':optimizer_updates,'total_units':total_units,'optimizer_updates':optimizer_updates,
@@ -937,14 +965,22 @@ def require_research_progress(value, *, plan_sha256, invocation,
     campaign._utc(result['observed_utc'],'research progress')
     batch_size=invocation['batch_size']
     _require(type(batch_size) is int and batch_size in (2,16),'PROGRESS_BATCH_SIZE')
+    prefix_trace = _is_ta_m5_original_cuda_prefix_recipe_ref(invocation['direction_research_recipe'])
     for key in ('completed_units','total_units','optimizer_updates','parent_cursor'):
-        _require(type(result[key]) is int and 0 <= result[key] <= (2*batch_size if key=='parent_cursor' else 4),'PROGRESS_COUNTER:' + key)
+        maximum = (4096 if key == 'parent_cursor' else 256) if prefix_trace else (2*batch_size if key=='parent_cursor' else 4)
+        _require(type(result[key]) is int and 0 <= result[key] <= maximum,'PROGRESS_COUNTER:' + key)
     if _is_ta_m5_import_recipe_ref(invocation['direction_research_recipe']):
         _require(batch_size == 16 and type(invocation.get('optimizer_step_budget')) is int
             and invocation['optimizer_step_budget'] == 0
             and all(result[key] == 0 for key in
                     ('total_units','completed_units','optimizer_updates','parent_cursor')),
             'M5_IMPORT_PROGRESS_ZERO')
+    elif prefix_trace:
+        _require(batch_size == 16 and invocation.get('optimizer_step_budget') == 256
+            and result['total_units'] == 256 and result['completed_units'] == result['optimizer_updates']
+            and result['parent_cursor'] == 16 * result['optimizer_updates']
+            and (result['outcome'] != 'COMPLETE' or result['optimizer_updates'] == 256),
+            'ORIGINAL_CUDA_PREFIX_PROGRESS')
     else:
         _require(result['total_units'] == 4 and result['completed_units'] == result['optimizer_updates']
             and (result['outcome'] != 'COMPLETE' or result['optimizer_updates'] == 4 and result['parent_cursor'] == 2*batch_size), 'PROGRESS_COMPLETE')

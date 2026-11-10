@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-10T03:41:13.011682+00:00",
-  "status": "TA_M5_FULLPOP_MONTH_DECOMP_COMPLETE_NO_FIX",
+  "observed_utc": "2026-11-10T04:29:54.441225+00:00",
+  "status": "TA_M5_ORIGINAL_CUDA_PREFIX_TRACE_SOURCE_READY",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Do not repeat full-population scoring, monthly decomposition, affine calibration or failed optimizer variants. Training remains closed. A new intervention requires a distinct mechanism for the measured UP-probability drift; the separately documented missing line projection/reaction supervision remains an untested design gap, not an established explanation.",
+  "next_action": "Prepare and validate one exact original CUDA first256-step observer replay through existing guarded research scope; reuseINITIAL and originalP4096. Do not launch before source/admission checks; no new optimizer, feature, calibration or fullfit trial.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1685,7 +1685,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Cached full-population decomposition complete. All16 month/task native scores worsen; monthly mean-probability error accounts for about88-91percent of aggregate Brier degradation. No causal training fix or later edge established.",
+    "current_activity": "ExactCUDAprefixobserver source prepared;39admissiontests,physical28input/85sourceowner metadata and independent source review PASS. No model run yet; training stillfalse untiloneexactadmission.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1738,7 +1738,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Native training creates a strong UP-probability drift with increased dispersion. The producing update mechanism and a correction that improves later F remain unqualified.",
+    "current_blocker": "Original actual training trajectory lacks per-step direction/gradient trace; prior CPU/SPREAD contrasts are not originalCUDA replay. New scoped observer and bit-parity qualification are needed before causal attribution.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9209,7 +9209,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Do not repeat full-population scoring, monthly decomposition, affine calibration or failed optimizer variants. Training remains closed. A new intervention requires a distinct mechanism for the measured UP-probability drift; the separately documented missing line projection/reaction supervision remains an untested design gap, not an established explanation.",
+    "next_action": "Prepare and validate one exact original CUDA first256-step observer replay through existing guarded research scope; reuseINITIAL and originalP4096. Do not launch before source/admission checks; no new optimizer, feature, calibration or fullfit trial.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -66325,7 +66325,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "Full-population cached month accounting complete: all16 native month/task Brier scores worsen; monthly mean-probability drift accounts for about88-91percent of aggregate degradation. Ranking changes are small; nativeUPbias is measured, but producing mechanism and laterF correction remain unresolved. No new model run admitted.",
+    "latest_progress": "Verifiedoriginaltrainingtrace missing and scalarbiasaloneinsufficient. Added exactCUDA256step observer+boundedresearchrouting;39focusedtests/physicalmetadata/sourcepeerPASS. Numericalmodel/loss/optimizerunchanged, originalINITIAL reused; actualP4096paritynotyetmeasured.",
     "user_clarification_20261109": {
       "scope": "Correct direction for short sniper and longer long/shorttrends; separate forecasts and targets at M5 cadence.",
       "existing_future_horizons_minutes": [
@@ -72912,5 +72912,64 @@
       "sha256": "ed826555b5e62fa66fa5c75838f20cc43bccbd98af1f454aadd119055044fff1"
     },
     "next_action": "Do not repeat full-population scoring, monthly decomposition, affine calibration or failed optimizer variants. Training remains closed. A new intervention requires a distinct mechanism for the measured UP-probability drift; the separately documented missing line projection/reaction supervision remains an untested design gap, not an established explanation."
+  },
+  "market_state_ta_m5_original_cuda_prefix_20261110_001": {
+    "status": "SOURCE_PREPARED_NOT_ADMITTED",
+    "execution_authorized": false,
+    "training_authorized": false,
+    "native_launch_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 0,
+    "relaunch_allowed": false,
+    "scope_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_ORIGINAL_TRACE_SCOPE_REVIEW.json",
+      "sha256": "66938cf50fffd28da0948b44af8561e0a38e54a8487b94b0d3c03ecc0c800689"
+    },
+    "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_CUDA_PREFIX_20261110_001",
+    "scope": {
+      "stage": "market_state_ta_m5_original_cuda_prefix_20261110_001",
+      "role": "Exact observer-only diagnostic replay of first256 original optimizer updates; genuine training authority required before launch.",
+      "max_updates": 256,
+      "parent_rows": 4096,
+      "first_step_loss_and_gradient_norm_parity_required": true,
+      "final_fullstate_content_parity_required": true,
+      "no_extra_model_forwards_or_autograd": true,
+      "initial_eval_reused": true,
+      "max_trace_bytes": 67108864,
+      "model_wall_seconds": 720,
+      "new_prediction_or_optimizer_design": false,
+      "source_preparation_only": true
+    },
+    "source_preparation": {
+      "worker": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/trace_market_state_ta_m5_original_cuda_prefix_v1.py",
+        "sha256": "593e3e17e235acd3e6ee09d63aa7478c9eacb15523765a6322af99e30a3294dc"
+      },
+      "root_full_worker_and_routing_review": true,
+      "independent_worker_source_review_passed": true,
+      "review_fixes": [
+        "Use model compact qualified feature-view identity for restore/capture.",
+        "Include final parity and bookend in model deadline.",
+        "Count constructor attempts before calls and returns afterward.",
+        "Explicitly verify/bookend 17 consumed original input bindings."
+      ],
+      "admission_tests": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_CUDA_PREFIX_20261110_001/ADMISSION_TESTS.json",
+        "sha256": "7d0707726c57a928262a97fd3b50d73573112c708de16c2369e10b50ddfdc246"
+      },
+      "focused_tests_passed": 39,
+      "physical_metadata_preflight": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_CUDA_PREFIX_20261110_001/SOURCE_PREFLIGHT.json",
+        "sha256": "876b5bcb8a9cb05371b0356c12e10eaa6cadaf123b535b64cbc89767fd2d6fa6"
+      },
+      "existing_contiguous_batch_tests_reused": 50,
+      "source_owners": 85,
+      "unchanged_installed_runtime_owners": 8,
+      "consumed_input_refs": 28,
+      "new_online_function": false,
+      "physical_cuda_parity_proven": false
+    }
   }
 }
