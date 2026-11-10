@@ -1,0 +1,326 @@
+{
+  "status": "COMPLETE_VERIFIED_HEAD_FREEZE_INSUFFICIENT",
+  "stage": "market_state_ta_m5_head_update_freeze_native_20261110_001",
+  "question": "Does freezing only the original M5 readout updates while preserving upstream supervision improve both fixed TRAIN and later TRAIN direction?",
+  "decision": "FAIL_ALL_FOUR_COMPARISON_CELLS_NO_MODEL_CORRECTION",
+  "source_commit": "4310b752c3ff511a7e380dfad189d1eb7f3280d9",
+  "source_unchanged": true,
+  "core_source_changed": false,
+  "online_function_changed": false,
+  "artifacts": {
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_UPDATE_FREEZE_NATIVE_20261110_001/PLAN.json",
+      "sha256": "1be71c9a9f675f9b471a6d566267f5110369aad9605e92c5da6444d8bcf9abc4"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_UPDATE_FREEZE_NATIVE_20261110_001/probe.py",
+      "sha256": "fbd19ebf35d98f979e7384c704bc78774354fc1b4ec6007d6595308275bc95b6"
+    },
+    "controller_source": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_UPDATE_FREEZE_NATIVE_20261110_001/controller.py",
+      "sha256": "f4cd1e3746fa4056996ae3b2f30a4cd0ba3960edaf6f5b800497650a513f946d"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_UPDATE_FREEZE_NATIVE_20261110_001/PREFLIGHT.json",
+      "sha256": "51e08a87eb2283d99949689b5001c2f12b9b08fd41e28518d5f9eab99ac272cb"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_UPDATE_FREEZE_NATIVE_20261110_001/RESULT.json",
+      "sha256": "eeb2706b9d1d3bb890b63132209f1317691bb67809c09861f6cda5fb81ebbf4b"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_UPDATE_FREEZE_NATIVE_20261110_001/TERMINAL.json",
+      "sha256": "d9f9600f4b9fc65730aff63bec74cfbff3428abe5116cbceed676e8505a4eac2"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_UPDATE_FREEZE_NATIVE_20261110_001/CONTROLLER.json",
+      "sha256": "c54c8423cf5d837fddc818f1742f3b1c3b49fbe0923a3d083fe9aa92eb6e5d24"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_UPDATE_FREEZE_NATIVE_20261110_001/REVIEW.json",
+      "sha256": "32b4d65353bb8d7e905a3701bb24090528e28824760172f6defd3c0d8197c51f"
+    },
+    "reviewer": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_UPDATE_FREEZE_NATIVE_20261110_001/review.py",
+      "sha256": "da91cdd5b69c3d153529e037d568ede57272e12625bac9cc2312272d27080bb6"
+    },
+    "review_command": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_UPDATE_FREEZE_NATIVE_20261110_001/REVIEW_COMMAND.json",
+      "sha256": "7bc758259132c936677f00daff6ffeeb15d7204b93cf1ac9802ae2fce6ebbf37"
+    }
+  },
+  "design": {
+    "original_model": "ae772fd755cbfa07b1b7bcca8bccd2c8a8889806989a289ddb8267972c281b37",
+    "variants": [
+      "CONTROL",
+      "HEADS_FIXED"
+    ],
+    "updates_per_variant": 24,
+    "train_rows_per_variant": 384,
+    "train_subset": "Existing SPREAD24 selection",
+    "fit_panel_rows": 192,
+    "later_panel_rows": 192,
+    "mask_timing": "after_global_clip_before_AdamW",
+    "optimizer_members": 570,
+    "updated_parameter_tensors": {
+      "CONTROL": 570,
+      "HEADS_FIXED": 566
+    },
+    "original_head_scalar_coordinates": 258,
+    "identical_cpu_rng": true,
+    "initial_optimizer": "empty",
+    "upstream_m5_supervision_preserved": true,
+    "baseline_forwards_reused": true
+  },
+  "observed": {
+    "model_constructions": 1,
+    "optimizer_constructions": 2,
+    "checkpoint_loads": 1,
+    "full_state_restores": 2,
+    "forwards": 96,
+    "backwards": 48,
+    "optimizer_step_calls": 48,
+    "optimizer_updates": 48,
+    "checkpoint_writes": 3,
+    "checkpoint_bytes": 234174190,
+    "skipped_batches": 0,
+    "step_pre_hook_calls": 48,
+    "resume_state_load_calls": 1,
+    "resume_state_load_returns": 1
+  },
+  "metrics": {
+    "TRAIN": {
+      "state": {
+        "initial": {
+          "count": 75,
+          "up_count": 34,
+          "brier": 0.25460541015796584,
+          "log": 0.7023848081319856,
+          "mean_up_probability": 0.5324667999635629
+        },
+        "prior": {
+          "count": 75,
+          "up_count": 34,
+          "brier": 0.25209209369584823,
+          "log": 0.697333478245525,
+          "mean_up_probability": 0.5186775868957253
+        },
+        "control": {
+          "count": 75,
+          "up_count": 34,
+          "brier": 0.25241911928061056,
+          "log": 0.6979965262484084,
+          "mean_up_probability": 0.521921133724309
+        },
+        "heads_fixed": {
+          "count": 75,
+          "up_count": 34,
+          "brier": 0.2526994222648215,
+          "log": 0.6985599616862705,
+          "mean_up_probability": 0.5230843075600888
+        },
+        "comparison": {
+          "differences": {
+            "CONTROL": {
+              "brier": 0.000280302984210945,
+              "log": 0.000563435437862192
+            },
+            "INITIAL": {
+              "brier": -0.0019059878931443897,
+              "log": -0.0038248464457150133
+            },
+            "PRIOR": {
+              "brier": 0.00060732856897322,
+              "log": 0.001226483440745496
+            }
+          },
+          "passes": false
+        }
+      },
+      "future": {
+        "initial": {
+          "count": 86,
+          "up_count": 41,
+          "brier": 0.252176245852213,
+          "log": 0.6975053267272607,
+          "mean_up_probability": 0.514413105702951
+        },
+        "prior": {
+          "count": 86,
+          "up_count": 41,
+          "brier": 0.2506411504782543,
+          "log": 0.6944297135800547,
+          "mean_up_probability": 0.5111241709344304
+        },
+        "control": {
+          "count": 86,
+          "up_count": 41,
+          "brier": 0.2506672646446568,
+          "log": 0.694481220169846,
+          "mean_up_probability": 0.502255621208216
+        },
+        "heads_fixed": {
+          "count": 86,
+          "up_count": 41,
+          "brier": 0.25076217813045054,
+          "log": 0.6946712503853464,
+          "mean_up_probability": 0.5048809714847129
+        },
+        "comparison": {
+          "differences": {
+            "CONTROL": {
+              "brier": 9.491348579376835e-05,
+              "log": 0.0001900302155003475
+            },
+            "INITIAL": {
+              "brier": -0.001414067721762391,
+              "log": -0.002834076341914349
+            },
+            "PRIOR": {
+              "brier": 0.00012102765219629275,
+              "log": 0.00024153680529170884
+            }
+          },
+          "passes": false
+        }
+      }
+    },
+    "OOF": {
+      "state": {
+        "initial": {
+          "count": 65,
+          "up_count": 38,
+          "brier": 0.24145618341248318,
+          "log": 0.6760178259594137,
+          "mean_up_probability": 0.5195489936895316
+        },
+        "prior": {
+          "count": 65,
+          "up_count": 38,
+          "brier": 0.24718802985450922,
+          "log": 0.6875207846228477,
+          "mean_up_probability": 0.5186775868957252
+        },
+        "control": {
+          "count": 65,
+          "up_count": 38,
+          "brier": 0.24436512891200463,
+          "log": 0.6818607602558663,
+          "mean_up_probability": 0.500710412376971
+        },
+        "heads_fixed": {
+          "count": 65,
+          "up_count": 38,
+          "brier": 0.24424667645500855,
+          "log": 0.6816231045319242,
+          "mean_up_probability": 0.501530147902833
+        },
+        "comparison": {
+          "differences": {
+            "CONTROL": {
+              "brier": -0.00011845245699607099,
+              "log": -0.00023765572394207624
+            },
+            "INITIAL": {
+              "brier": 0.0027904930425253494,
+              "log": 0.005605278572510475
+            },
+            "PRIOR": {
+              "brier": -0.0029413533995006624,
+              "log": -0.005897680090923507
+            }
+          },
+          "passes": false
+        }
+      },
+      "future": {
+        "initial": {
+          "count": 75,
+          "up_count": 40,
+          "brier": 0.24689392046793684,
+          "log": 0.6869284004239916,
+          "mean_up_probability": 0.5166263504364235
+        },
+        "prior": {
+          "count": 75,
+          "up_count": 40,
+          "brier": 0.24938213578334975,
+          "log": 0.6919112686014336,
+          "mean_up_probability": 0.5111241709344304
+        },
+        "control": {
+          "count": 75,
+          "up_count": 40,
+          "brier": 0.24742750521330203,
+          "log": 0.6879994371642197,
+          "mean_up_probability": 0.5013455748111245
+        },
+        "heads_fixed": {
+          "count": 75,
+          "up_count": 40,
+          "brier": 0.24729815719244944,
+          "log": 0.6877406192967191,
+          "mean_up_probability": 0.5034914298197919
+        },
+        "comparison": {
+          "differences": {
+            "CONTROL": {
+              "brier": -0.00012934802085259878,
+              "log": -0.00025881786750059366
+            },
+            "INITIAL": {
+              "brier": 0.00040423672451261883,
+              "log": 0.0008122188727275326
+            },
+            "PRIOR": {
+              "brier": -0.002083978590900315,
+              "log": -0.004170649304714447
+            }
+          },
+          "passes": false
+        }
+      }
+    }
+  },
+  "findings": [
+    "Both arms improve pooled TRAIN S/F relative to original INITIAL but both remain worse than the frozen prior on TRAIN.",
+    "HEADS_FIXED is worse than matched CONTROL on both TRAIN objectives and slightly better on both later objectives, in both Brier and log.",
+    "Both trained arms worsen both later objectives relative to original INITIAL. All four strict gates fail.",
+    "Freezing the four M5 head updates therefore does not repair the measured transfer deterioration. The result does not isolate upstream learning, global clipping or other objectives as the sole cause.",
+    "Earlier original local-step evidence and this24-update contrast show local TRAIN learning; cumulative fullpass deterioration remains unresolved."
+  ],
+  "timing": {
+    "whole_paired_command_seconds": 592.4361233890013,
+    "worker_seconds": 589.0722725720043,
+    "preflight_seconds": 4.6558936270012055,
+    "review_command_seconds": 7.557583697001974,
+    "review_worker_seconds": 4.508406366003328,
+    "preflight_plus_run_plus_review_seconds": 604.6496007130045,
+    "peak_rss_bytes": 5729763328,
+    "scope": "Measured commands only; source preparation, review writing and waiting excluded. Reduced workload is not a measured full-training throughput speedup."
+  },
+  "verification": {
+    "independent_review": true,
+    "max_score_error": 1.1102230246251565e-16,
+    "max_head_projection_abs_error": 4.0971505410603015e-08,
+    "max_head_clip_error_to_bound": 0.24737544983997747,
+    "all_new_cpu_state_decodes": 3,
+    "review_models": 0,
+    "review_forwards": 0,
+    "review_optimizer_steps": 0,
+    "exact_optimizer_names_and_steps": true,
+    "first_step_and_rng_matched": true
+  },
+  "limits": [
+    "Only75/86 known S/F rows in TRAIN192 and65/75 in later192. Reused development panels are not fresh generalization.",
+    "Original INITIAL heads were already TRAIN-fitted. Later initial baseline is qualified cached-head output, not a new CPU full-encoder baseline.",
+    "Holding readouts fixed changes later upstream gradients and clipping; the paired intervention does not separately attribute each downstream consequence.",
+    "No fullpass correction, feature utility, ex-ante trade selection, economic edge or production resume qualified.",
+    "TEST, GC, Entry, Exit, broker and trading remain closed. No automatic extra arm, relaunch or fullfit."
+  ],
+  "next_action": "Reuse this negative causal contrast. Do not repeat head-freeze, sampler/reset or same-point-step probes. Any further experiment must identify a distinct measured directional mechanism first.",
+  "test_data_used": false,
+  "training_authorized": false,
+  "automatic_resume_allowed": false,
+  "promotion_allowed": false
+}
