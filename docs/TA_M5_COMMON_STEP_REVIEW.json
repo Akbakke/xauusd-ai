@@ -1,0 +1,67 @@
+{
+  "status": "PASS_EXACT_METADATA_CERTIFICATE_NO_FINITE_IMPROVEMENT_PROVEN",
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COMMON_STEP_METADATA_20261110_001/RESULT.json",
+    "sha256": "1a3ec56e6084cb6316daef8997da4058a40d8f7bf91391fe439f256f6e867a03"
+  },
+  "evidence_class": "Exact arithmetic on previously measured scalar derivatives, independently reviewed.",
+  "checked": [
+    "Coefficient orientation matches eval columns of hashbound TRANSFER matrices.",
+    "Nonnegative rational weights sum exactly to one; all primal constraints satisfied.",
+    "Nonnegative dual multipliers, stationarity and complementarity, exact zero primal-dual gap.",
+    "INITIAL uniform mean has unfavorable late-state derivative; FINAL uniform mean has six favorable derivatives."
+  ],
+  "cases": {
+    "INITIAL": {
+      "weights": [
+        0.2323238643450157,
+        0.12522656627508877,
+        0.6424495693798955
+      ],
+      "margin": 0.0001290872216798583,
+      "all_derivatives_strictly_negative": true,
+      "uniform_all_strictly_negative": false
+    },
+    "FINAL": {
+      "weights": [
+        0.18452282910334253,
+        0.34598094171401683,
+        0.4694962291826406
+      ],
+      "margin": 2.9869524870512116e-05,
+      "all_derivatives_strictly_negative": true,
+      "uniform_all_strictly_negative": true
+    },
+    "SHARED_WEIGHTS_BOTH_STATES": {
+      "weights": [
+        0.16667865080363747,
+        0.3373763351513814,
+        0.4959450140449812
+      ],
+      "margin": 2.2888453407675373e-05,
+      "all_derivatives_strictly_negative": true,
+      "uniform_all_strictly_negative": false
+    }
+  },
+  "source_head": "80cae0088c7c3a28ad21b539e9f01a777b03b304",
+  "source_unchanged": true,
+  "numerical_seconds": 0.15658687600034682,
+  "models": 0,
+  "forwards": 0,
+  "npz_decodes": 0,
+  "checkpoint_decodes": 0,
+  "parameter_applications": 0,
+  "independent_review": "ta_formula_audit repeated rational certificate and source-coefficient checks without arrays/models.",
+  "limits": [
+    "Finite JSON coefficient precision inherited from independently checked derivative tables; exact rational certificates apply to those published coefficients.",
+    "All predictions remain unchanged. Strict negative derivatives prove a nonzero first-order common direction only within the three-proposal span.",
+    "These are weighted M5 BCE local derivatives, not Brier, finite-step improvements, other-TF safety, calibrated probabilities or later generalization.",
+    "Each proposal starts from the same saved Adam moments; no next-step moment policy or native learning method is admitted. Shared weights are an existence witness, not chosen deployment parameters.",
+    "Shared coefficients define a different parameter delta at each model state; they are not one identical parameter vector.",
+    "Calculation time is not whole-workflow time or a measured speedup on identical work."
+  ],
+  "next_question": "Does one finite FP32 application of the common convex step improve the six constraint losses and separate saved TRAIN/later-TRAIN panels? No continuation optimizer is defined.",
+  "user_semantics": "Keep existing S/F factorized probabilities and accepted FLAT noise band; no feature-by-feature future extrapolation or new probability architecture.",
+  "training_authorized": false,
+  "test_data_used": false
+}

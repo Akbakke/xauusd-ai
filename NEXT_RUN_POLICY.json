@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-10T06:29:23.781273+00:00",
-  "status": "TA_M5_TRAINING_RETENTION_PATTERN_MEASURED_NO_FIX",
+  "status": "TA_M5_COMMON_DIRECTION_CERTIFIED_FINITE_EFFECT_UNPROVEN",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Retain existing probabilistic S/F outputs and FLAT threshold. Reuse saved actual/per-period gradients and checkpoint trajectory to isolate a distinct correction for harmful cross-period updates. Latest tail improves but all earlier checkpoint blocks worsen; this is not yet causal proof. Do not rerun consumed MIX24/ACCUM3/coordinate trials. No new fit or architecture admitted.",
+  "next_action": "Prepare one bounded finite application of the shared certified combination using saved original gradients/moments and exact CPU baselines. Report constraint48, other144 TRAIN and later192 separately. No repeated baseline forwards, no optimizer continuation or full fit. Existing FLAT and probabilistic S/F semantics retained.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -66329,7 +66329,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "Verifiedoriginaltrainingtrace missing and scalarbiasaloneinsufficient. Added exactCUDA256step observer+boundedresearchrouting;39focusedtests/physicalmetadata/sourcepeerPASS. Numericalmodel/loss/optimizerunchanged, originalINITIAL reused; actualP4096paritynotyetmeasured.",
+    "latest_progress": "Cached cross-period derivatives admit a strict common descent combination for twelve M5 S/F losses across original INITIAL and FINAL; independent exact primal/dual certificate passes. No parameter application or better prediction yet. Training-retention findings remain associative, not an isolated full-pass cause.",
     "user_clarification_20261109": {
       "scope": "Correct direction for short sniper and longer long/shorttrends; separate forecasts and targets at M5 cadence.",
       "existing_future_horizons_minutes": [
@@ -73342,5 +73342,24 @@
       "sha256": "a0df964cdd81d2df8a032c67772a6ec56b33b1536e1ca050439f1d8f4a9c3e6e"
     },
     "source_unchanged": true
+  },
+  "market_state_ta_m5_common_step_metadata_20261110_001": {
+    "status": "COMPLETE_CONSUMED_EXACT_CERTIFICATE",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_COMMON_STEP_METADATA_20261110_001/RESULT.json",
+      "sha256": "1a3ec56e6084cb6316daef8997da4058a40d8f7bf91391fe439f256f6e867a03"
+    },
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_COMMON_STEP_REVIEW.json",
+      "sha256": "0ba8045b9c347f7e5be8baf238d6e74b3192201435a1715d4c3ea08a9cbe0b92"
+    },
+    "execution_authorized": false,
+    "training_authorized": false,
+    "relaunch_allowed": false,
+    "model_forwards": 0,
+    "parameter_applications": 0,
+    "checkpoint_decodes": 0,
+    "npz_decodes": 0,
+    "test_data_used": false
   }
 }

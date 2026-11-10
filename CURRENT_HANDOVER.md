@@ -15,7 +15,26 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_TRAINING_RETENTION_PATTERN_MEASURED_NO_FIX.
+Policystatus: TA_M5_COMMON_DIRECTION_CERTIFIED_FINITE_EFFECT_UNPROVEN.
+
+[Felles lokal retning](docs/TA_M5_COMMON_STEP_REVIEW.json) er eksakt sertifisert
+fra lagrede skalartabeller: tre uavhengige Adam-forslag fra samme tilstand
+kan kombineres med vektene 0,166679 / 0,337376 / 0,495945.
+Alle tolv lokale S/F-derivater (tre perioder ved INITIAL og FINAL) er negative.
+Minste sertifiserte margin er 2,28885e-5. Vanlig gjennomsnitt feiler sen S ved
+INITIAL. Uavhengig rasjonell primal-/dual-kontroll har eksakt null gap.
+Felles vekter betyr forskjellige parametersteg ved de to modelltilstandene.
+
+Beregningen tok 0,157s, med 0 modeller/arrays/checkpoints/forwards/oppdateringer.
+Dette beviser bare lokal førsteordensretning innen de tre eksisterende forslagene,
+ikke bedre Brier, endelig stegeffekt, kalibrering eller senere generalisering.
+Ingen produksjonskoeffisient eller videreføring av Adam-momenter er valgt.
+
+Neste avgrensede spørsmål er ett endelig FP32-steg fra hvert originalcheckpoint.
+Gjenbruk ferdige CPU-baseliner; skill de 48 gradientradene, øvrige 144 TRAIN-rader
+og 192 senere TRAIN-rader. Forberedelse pågår; ingen ny modellkjøring er
+innrømmet av metadataresultatet. Ingen ny epoke eller gjentakelse av gamle planer.
+
 
 [Cached treningsforløpskontroll](docs/TA_M5_TRAINING_RETENTION_REVIEW.json)
 er COMPLETE/konsumert:1,851s helkommando,1,591s worker. Toarkiver/tolvarrays,
