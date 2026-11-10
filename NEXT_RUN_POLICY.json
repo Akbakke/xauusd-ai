@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-10T16:25:35.584192+00:00",
-  "status": "TA_M5_REVERSED_FIXED_READOUT_ADMITTED",
+  "observed_utc": "2026-11-10T16:30:02.337192+00:00",
+  "status": "TA_M5_FIXED_READOUT_RECOVERY_MEASURED_NATIVE_AND_FULL_LATER_UNQUALIFIED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Only two CPU cached readout fits under the exact current stage. Frozen GPU capture is consumed with preserved post-completion cleanup error and independently qualified retained arrays. No GPU rerun, further fit, GC, TEST, Entry, Exit, broker, trading or promotion.",
-  "next_action": "Run the two fixed existing M5 readout fits once, compare all four TRAIN/later192 cells with INITIAL, REVERSED and prior, independently check retained logits, then close the plan. No native correction or further model pass admitted.",
+  "rule": "Completed two fixed CPUreadouts are consumed and all training/launch flags closed. Frozen model capture is retained and qualified with original post-completion cleanup failure preserved. No native import, further fit/capture, GC, TEST, Entry, Exit, broker, trading or promotion admitted.",
+  "next_action": "Qualify the four locked M5 head tensors in the actual frozen native model and evaluate the full later TRAIN panel17753 against INITIAL and frozen prior. Reuse available representations/outputs; no new fit, alpha choice or consumed capture replay. Smaller later192 improves versus INITIAL/prior but worsens versus REVERSED. No next model job admitted yet.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1434,9 +1434,9 @@
     "profitability_demonstrated": false,
     "required_before_more_extensive_training": true,
     "entry_learning_demonstrated": false,
-    "current_evidence_scope": "Retained-Adam continuation improves selected4096 and reused later192 conditional M5, but frozen originalTRAIN complement25478 and full29574 fail the INITIAL/prior comparison; MTF/activity/three-class limits remain.",
+    "current_evidence_scope": "Fixed existing alpha=.01 M5 readout fit on frozen REVERSED fullfold1TRAIN29574 improves both side Brier/log versus INITIAL and prior, also on reused later192 (65/75known). Later192 is worse versus REVERSED. Native four-tensor import and full later17753 validation remain unqualified; no generalization or edge established.",
     "component_learning_measured": true,
-    "component_learning_result": "SELECTED_M5_LEARNING_WITH_FAILED_ORIGINAL_TRAIN_COMPLEMENT_TRANSFER",
+    "component_learning_result": "FULL_FOLD1_M5_FIXED_READOUT_RECOVERY_WITH_REUSED_LATER192_GAIN_VS_INITIAL_PRIOR",
     "primary_entry_quality_qualified": false,
     "paired_learning_review": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/PAIRED_LEARNING_REVIEW.json",
@@ -1690,7 +1690,11 @@
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_E3_FULL_TRAIN_002_REVIEW.json",
       "sha256": "9c858657b98397f381187fa5e391f3af3531e46158d19537ba04e0326da72b3d"
     },
-    "training_cause_established": false
+    "training_cause_established": false,
+    "latest_fixed_readout_recovery": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_FIXED_READOUT_20261110_001/RESULT.json",
+      "sha256": "62e596192f628a05bd09b59675a3522044bf6b643a07076aa7c239e5da0d7f40"
+    }
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
@@ -24692,7 +24696,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-10T16:25:35.584192+00:00",
+  "updated_utc": "2026-11-10T16:30:02.337192+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -40220,7 +40224,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "market_state_ta_m5_reversed_fixed_readout_20261110_001",
+  "training_enabled_scope": "CLOSED_NO_AUTOMATIC_RELAUNCH",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -64109,8 +64113,8 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "TA_M5_REVERSED_FIXED_READOUT_ADMITTED",
-  "recorded_observed_utc": "2026-11-10T16:25:35.584192+00:00",
+  "recorded_status": "TA_M5_FIXED_READOUT_RECOVERY_MEASURED_NATIVE_AND_FULL_LATER_UNQUALIFIED",
+  "recorded_observed_utc": "2026-11-10T16:30:02.337192+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
     "decision": "BLOCK",
@@ -74417,7 +74421,7 @@
     "original_receipts_preserved": true
   },
   "market_state_ta_m5_reversed_fixed_readout_20261110_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_FIXED_READOUT_20261110_001/PLAN.json",
       "sha256": "1a8f270c81f72939e662a4e9cdc32e97a034deff75eec401b3d9c6b7a002b9dc"
@@ -74430,14 +74434,14 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_FIXED_READOUT_20261110_001/PREFLIGHT.json",
       "sha256": "2eefa80f7a35c3acebba500480cd3f78215ee337c912daf5f79529790be67592"
     },
-    "execution_authorized": true,
-    "training_authorized": true,
+    "execution_authorized": false,
+    "training_authorized": false,
     "native_training_authorized": false,
     "native_launch_authorized": false,
     "max_invocations": 1,
-    "remaining_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "remaining_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "backwards": 0,
     "cached_linear_batch_calls": 3722,
@@ -74458,6 +74462,107 @@
     "standing_authority": "Active direction-only goal and standing zero-cost local-work authority; separately qualified exact two-readout experiment.",
     "independent_source_review": "Core math source PASS d0a84f...; minimal completion-review delta 0bfec8... inspected by integrator and exact metadata-preflight passed.",
     "goal_complete": false,
-    "test_data_used": false
+    "test_data_used": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_FIXED_READOUT_20261110_001/RESULT.json",
+      "sha256": "62e596192f628a05bd09b59675a3522044bf6b643a07076aa7c239e5da0d7f40"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_FIXED_READOUT_20261110_001/TERMINAL.json",
+      "sha256": "349f15e5aa62ac986bd0b1bdca4dd6ee15260faaafe6ed02e702e1e367ad0a94"
+    },
+    "process_receipt": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_FIXED_READOUT_20261110_001/PROCESS_RECEIPT.json",
+      "sha256": "a19376e56c2539d6ed1ed75644fade3c3e59c760a4ebd8a0cc71eee2bf823e2f"
+    },
+    "numeric_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_FIXED_READOUT_20261110_001/NUMERIC_REVIEW.json",
+      "sha256": "f8b952c4257d40ea493a9f40d30f2f2c501d6723ad3f6db35844b33bdb3160a3"
+    },
+    "readout_lock": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_FIXED_READOUT_20261110_001/READOUT_LOCK.json",
+      "sha256": "1908c69e30318605634c2b1be8f0cb4747f8125e8db98f9cf6d1527509e40510"
+    },
+    "private_outputs": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_FIXED_READOUT_20261110_001/PRIVATE_READOUTS_AND_PREDICTIONS.npz",
+      "sha256": "e75974bee5eb111aa4e23f2135832d9dfc796a7152a9dd8906710edcae8d4a73"
+    },
+    "score_summary": {
+      "LATER_future": {
+        "count": 75,
+        "brier": {
+          "INITIAL": 0.2468939209777233,
+          "PRIOR": 0.24938213578334975,
+          "REVERSED": 0.2432296632267861,
+          "readout_fp32": 0.24580512636526927
+        },
+        "log": {
+          "INITIAL": 0.6869284014463658,
+          "PRIOR": 0.6919112686014336,
+          "REVERSED": 0.6795701493702863,
+          "readout_fp32": 0.6847502709515981
+        }
+      },
+      "LATER_state": {
+        "count": 65,
+        "brier": {
+          "INITIAL": 0.24145618356247409,
+          "PRIOR": 0.24718802985450922,
+          "REVERSED": 0.23806663018479043,
+          "readout_fp32": 0.23827127257689446
+        },
+        "log": {
+          "INITIAL": 0.6760178262626678,
+          "PRIOR": 0.6875207846228477,
+          "REVERSED": 0.6691780809184976,
+          "readout_fp32": 0.66962350147944
+        }
+      },
+      "TRAIN_future": {
+        "count": 11909,
+        "brier": {
+          "INITIAL": 0.24932701074352281,
+          "PRIOR": 0.24987621125676626,
+          "REVERSED": 0.24948855862415473,
+          "readout_fp32": 0.24906551702488225
+        },
+        "log": {
+          "INITIAL": 0.6918003280921216,
+          "PRIOR": 0.6928995826378952,
+          "REVERSED": 0.6921237508123671,
+          "readout_fp32": 0.6912755304649314
+        }
+      },
+      "TRAIN_state": {
+        "count": 10010,
+        "brier": {
+          "INITIAL": 0.24847336382286717,
+          "PRIOR": 0.24965100834625317,
+          "REVERSED": 0.2485028185972811,
+          "readout_fp32": 0.2481947625046478
+        },
+        "log": {
+          "INITIAL": 0.6900898151924573,
+          "PRIOR": 0.6924490347681654,
+          "REVERSED": 0.6901469107533538,
+          "readout_fp32": 0.6895294603355206
+        }
+      }
+    },
+    "actual_counts": {
+      "array_archive_decodes": 6,
+      "backwards": 0,
+      "cached_linear_batch_calls": 3722,
+      "checkpoint_decodes": 0,
+      "model_constructions": 0,
+      "native_forwards": 0,
+      "native_parameter_updates": 0,
+      "optimizer_constructions": 0,
+      "readout_fit_attempts": 2,
+      "readout_fits": 2
+    },
+    "all_four_cells_beat_INITIAL_and_prior": true,
+    "later192_beats_REVERSED": false,
+    "native_import_qualified": false
   }
 }
