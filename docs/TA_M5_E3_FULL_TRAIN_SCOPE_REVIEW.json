@@ -1,0 +1,97 @@
+{
+  "status": "QUALIFIED_FROZEN_E3_FULL_TRAIN_EVALUATION_NOT_EXECUTED",
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_001/PLAN.json",
+    "sha256": "fdbbd7075e4eced710dfa8f4d3a648454a187e0ac2c7ea18c0538f089e79ea2d"
+  },
+  "worker": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_001/probe.py",
+    "sha256": "9cd8533e12a2db38df9690c65381c175b256ddba5da4637640b406391ee2b8f9"
+  },
+  "controller": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_001/controller.py",
+    "sha256": "a1e41b85b33df00f23b14b9866439776eb5663610efd6a8af31acc1025a5642a"
+  },
+  "preflight": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_001/PREFLIGHT_001.log",
+    "sha256": "687a7666eceff98afd2419b10ad7e47489aa7be4459d192489e001cb9d6596b3"
+  },
+  "reporting_preflight": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_001/REPORTING_PREFLIGHT.log",
+    "sha256": "8cf6b7a7f5d19d73099eae2ee45f7a6b137af5f55571b7fc42b456a12ec58e63"
+  },
+  "reporting_test_source": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_E3_FULL_TRAIN_20261110_001/REPORTING_PREFLIGHT.py",
+    "sha256": "88089289a1ab1e8e751c96199a379e99377b24cc33b70830d38bc8052faa88e8"
+  },
+  "concrete_question": "Does fixed4096 retained-state M5 improvement extend to remaining original TRAIN rows without any additional fitting?",
+  "source_reviews": {
+    "ta_input_route": "PASS baseline axes queries masks tail6 scoring and reuse",
+    "ta_formula_audit": "PASS explicit private E3 weights/buffers restore and guarded zero-update scope"
+  },
+  "counts": {
+    "max_forwards": 1595,
+    "max_model_constructions": 1,
+    "max_checkpoint_loads": 1,
+    "max_optimizer_constructions": 0,
+    "max_backwards": 0,
+    "max_optimizer_updates": 0,
+    "max_checkpoint_writes": 0,
+    "max_wall_seconds": 5400,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "numeric_threads": 1,
+    "max_capture_bytes": 67108864
+  },
+  "primary_population": {
+    "rows": 25478,
+    "comparison": "M5 S/F Brier and log versus original INITIAL and frozen prior"
+  },
+  "secondary_population": {
+    "rows": 29574,
+    "reused_rows": 4096,
+    "original_FINAL": "reference only"
+  },
+  "batch_contract": {
+    "complement_full_B16": 1592,
+    "original_tail_rows": 6,
+    "complement_forwards": 1593,
+    "parity_forwards": 2,
+    "total_forwards": 1595,
+    "query_pass_index": 0,
+    "seed": 20260911
+  },
+  "cross_device": {
+    "raw_atol": 2e-05,
+    "m5_probability_atol": 1e-06,
+    "score_atol": 1e-06
+  },
+  "genuine_preflight_counts": {
+    "model_constructions": 0,
+    "array_decodes": 0,
+    "checkpoint_decodes": 0
+  },
+  "reporting_test_limit": "Actual early-failure path and unchanged success reporting tail; not a simulated numerical full run.",
+  "source_model_target_loss_changes": 0,
+  "optimizer_updates": 0,
+  "later_forwards": 0,
+  "test_data_used": false,
+  "runtime_basis": {
+    "device": "CPU",
+    "reference": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULLPASS_TRAJECTORY_20261109_002/RESULT.json",
+      "sha256": "02b686f0ae9a864892f9ac9500f1dd54110a654c708bc3d484ffbdac4a4df113"
+    },
+    "reference_forwards": 96,
+    "reference_seconds": 297.15661600199746,
+    "reference_setup_seconds": 77.01808548899862,
+    "worker_limit_seconds": 5400,
+    "outer_limit_seconds": 5410,
+    "correction": "Historical fullcache fit1633s was CUDA, not CPU. It does not establish this CPU duration. About one hour is an uncertain estimate."
+  },
+  "limits": [
+    "Original TRAIN complement has earlier normalization/model/readout ancestry; not untouched generalization.",
+    "Mixed cached CUDA and new CPU predictions, subject to two declared output parity batches; not a bit-identical full CPU measurement.",
+    "Original fullpass cause remains unisolated; no model/loss change or further training admitted."
+  ]
+}

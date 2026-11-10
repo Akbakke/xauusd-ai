@@ -15,7 +15,25 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_REPEATED_PASS_LOCAL_GAIN_ORIGINAL_CAUSE_UNRESOLVED.
+Policystatus: TA_M5_E3_FULL_TRAIN_FROZEN_EVALUATION_ADMITTED.
+
+[Frossen E3-kontroll](docs/TA_M5_E3_FULL_TRAIN_SCOPE_REVIEW.json) er kvalifisert og
+innrømmet én gang; ikke startet ved denne kildefrysingen. Primært måles de25478
+originale TRAIN-radene utenfor de4096 gjentatte radene, deretter hele29574 samlet.
+1592 intakte B16 + originalhale6 gir1593 nye forwards; to CPU/GPU-paritetsbatcher
+gir1595 totalt. Én modell og privat E3-dekoding; null optimizer/backward/updates.
+De4096 ferdige E3-prognosene, INITIAL/FINAL/prior og senere192 gjenbrukes.
+CPU-producer12G/512M, én talltråd og5400s workergrense; ingen modell-/mål-/losskode
+endres. Alle treningsporter forblir false. Faktisk metadata-preflight, fire
+syntetiske avvisninger og success/failure-rapportering er bestått uten ekte
+arrays/checkpoints/modeller. Uavhengig kildekontroll består.
+CPU-tiden er foreløpig usikker, omtrent én time. Tidligere fullcache1633s var
+CUDA og er ikke et CPU-estimat. Blandingen av cached GPU og nye CPU-prognoser
+krever bundet paritet; den er ikke bitidentisk full-CPU-måling.
+Komplementet er fortsatt TRAIN med tidligere ancestry, ikke urørt generalisering.
+Neste steg er den ene kvalifiserte kjøringen og kontroll omtrent hver15.–30.minutt.
+Originalfullpassårsaken er fortsatt uisolert; ingen mer fit er innrømmet.
+
 
 [Prøven med videre trening](docs/TA_M5_REPEATED_PASS_REVIEW.json) er COMPLETE/
 konsumert på boot637; guard/observer exit0, Windows-task deaktivert og alle
@@ -54,11 +72,8 @@ Gjenbrukte E1-arbeidsblokker tok tidligere615,620s; dette er unngått arbeid,
 ikke en kontrollert benchmark. Nye evaluerings- og fitblokkene er omtrent like
 raske som tidligere. Effektgrensen var250W.
 
-Neste direkte spørsmål: Holder E3-forbedringen på de opprinnelige TRAIN-
-radene utenfor de valgte4096? Kvalifiser én frossen E3-måling og gjenbruk
-ferdige delprediksjoner før eventuell mer fit. Ingen slik modellkjøring er
-innrømmet ennå; neste plan må ha egen eksakt admisjon. Originalfullpassårsaken
-forblir uisolert, og målet er ikke oppnådd.
+Spørsmålet om overføring utenfor4096 er nå bundet i den nye frosne kontrollen over.
+Tidligere repeated-pass-plan er fortsatt konsumert. Målet er ikke oppnådd.
 
 [Oppdeling av tapsfunksjonen](docs/TA_M5_PAIRED_OBJECTIVE_DECOMP_REVIEW.json)
 er COMPLETE/konsumert; uavhengig kilde- og regnekontroll består. På identiske
