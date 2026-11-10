@@ -1,0 +1,562 @@
+{
+  "status": "COMPLETE_VERIFIED_FUNCTIONAL_ATTRIBUTION_NO_FIX",
+  "stage": "market_state_ta_m5_query_backbone_attribution_20261110_001",
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_QUERY_BACKBONE_ATTRIBUTION_20261110_001/PLAN.json",
+    "sha256": "694c8189f89a5edb0ca34d2d837b8f1adac1a8f7c03ca3d28abe45d3dfe506c9"
+  },
+  "worker": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_QUERY_BACKBONE_ATTRIBUTION_20261110_001/probe.py",
+    "sha256": "3338c700b9379046c1ae5ce1886af5dc3815bd529d166b33fc964f459a375933"
+  },
+  "controller": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_QUERY_BACKBONE_ATTRIBUTION_20261110_001/CONTROLLER.json",
+    "sha256": "b5deb6afae51feb82f84d5989b64588dda68932e97e77e2766388052bbd1adb4"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_QUERY_BACKBONE_ATTRIBUTION_20261110_001/RESULT.json",
+    "sha256": "e8dc20a9ceea4986016fdfc389afc10026d90c2b4040d8e627b561e764e21653"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_QUERY_BACKBONE_ATTRIBUTION_20261110_001/TERMINAL.json",
+    "sha256": "97bb3bfdcb06deb7461a02bfc53650f4a600ba0021ecc9413eac09c574cd5896"
+  },
+  "review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_QUERY_BACKBONE_ATTRIBUTION_20261110_001/REVIEW.json",
+    "sha256": "d91b603a460391cf4c18476f7e2009f6eaafbf8cb46c01e7e92f9a2eea2d9ad6"
+  },
+  "reviewer": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_QUERY_BACKBONE_ATTRIBUTION_20261110_001/review.py",
+    "sha256": "f548743df4303980089789875879d2fc408ea854231ed840461e33969d5291ff"
+  },
+  "review_command": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_QUERY_BACKBONE_ATTRIBUTION_20261110_001/REVIEW_COMMAND.json",
+    "sha256": "5158c05ff69265f1eb24a2d530ee5b76a433054eadd6549411f11307aefcad11"
+  },
+  "source_base_commit": "762560239e335379c671c2b3bb4d6edd40757530",
+  "admission_commit": "a3e0224e14020292cc05bbd026e3de0589b61d85",
+  "source_unchanged_at_terminal": true,
+  "scope": "Original INITIAL/FINAL C/P/H factorial on fixed192 TRAIN and192 later development rows. C actual backbone entry_q_joint_hidden; P shared Linear(134,128)+GELU; H dedicated M5 S/F heads.",
+  "cube_axes": [
+    "backbone_hidden",
+    "query_projection",
+    "M5_heads"
+  ],
+  "primary_contrast": {
+    "alternative": "101",
+    "reference": "111"
+  },
+  "counts": {
+    "model_constructions": 1,
+    "checkpoint_loads": 2,
+    "forwards": 48,
+    "backwards": 0,
+    "autograd_calls": 0,
+    "optimizer_constructions": 0,
+    "optimizer_updates": 0,
+    "checkpoint_writes": 0,
+    "functional_query_projections": 4,
+    "functional_head_projections": 16,
+    "resume_state_load_calls": 2,
+    "resume_state_load_returns": 2,
+    "backbone_hook_calls": 48
+  },
+  "scores": {
+    "TRAIN": {
+      "state": {
+        "000": {
+          "count": 75,
+          "up_count": 34,
+          "brier": 0.2546054101579659,
+          "log": 0.7023848081319856,
+          "mean_up_probability": 0.5324667999635628
+        },
+        "001": {
+          "count": 75,
+          "up_count": 34,
+          "brier": 0.25637190768012325,
+          "log": 0.7059718668622239,
+          "mean_up_probability": 0.5479588620602752
+        },
+        "010": {
+          "count": 75,
+          "up_count": 34,
+          "brier": 0.2553147453962376,
+          "log": 0.7038177541240136,
+          "mean_up_probability": 0.5377915071377031
+        },
+        "011": {
+          "count": 75,
+          "up_count": 34,
+          "brier": 0.2582238864045865,
+          "log": 0.7097488605978964,
+          "mean_up_probability": 0.5571105853302282
+        },
+        "100": {
+          "count": 75,
+          "up_count": 34,
+          "brier": 0.25656909258010135,
+          "log": 0.706383957804096,
+          "mean_up_probability": 0.5479078406529718
+        },
+        "101": {
+          "count": 75,
+          "up_count": 34,
+          "brier": 0.2616493954589424,
+          "log": 0.7167835192683868,
+          "mean_up_probability": 0.571206181379625
+        },
+        "110": {
+          "count": 75,
+          "up_count": 34,
+          "brier": 0.2580399523423226,
+          "log": 0.709385114827776,
+          "mean_up_probability": 0.5545962406242612
+        },
+        "111": {
+          "count": 75,
+          "up_count": 34,
+          "brier": 0.26463155517157283,
+          "log": 0.7229876646900958,
+          "mean_up_probability": 0.5819216998038539
+        }
+      },
+      "future": {
+        "000": {
+          "count": 86,
+          "up_count": 41,
+          "brier": 0.25217624585221293,
+          "log": 0.6975053267272607,
+          "mean_up_probability": 0.514413105702951
+        },
+        "001": {
+          "count": 86,
+          "up_count": 41,
+          "brier": 0.2587269546304948,
+          "log": 0.7108174414318157,
+          "mean_up_probability": 0.5549211350326345
+        },
+        "010": {
+          "count": 86,
+          "up_count": 41,
+          "brier": 0.25311935408207753,
+          "log": 0.6994016401737205,
+          "mean_up_probability": 0.5204677315775655
+        },
+        "011": {
+          "count": 86,
+          "up_count": 41,
+          "brier": 0.26137986902459914,
+          "log": 0.7163066342915123,
+          "mean_up_probability": 0.5664018561163572
+        },
+        "100": {
+          "count": 86,
+          "up_count": 41,
+          "brier": 0.25304023336651466,
+          "log": 0.6992421263444082,
+          "mean_up_probability": 0.5223000112620321
+        },
+        "101": {
+          "count": 86,
+          "up_count": 41,
+          "brier": 0.26276379716041065,
+          "log": 0.7190662914938967,
+          "mean_up_probability": 0.5701934992848099
+        },
+        "110": {
+          "count": 86,
+          "up_count": 41,
+          "brier": 0.2543675059906546,
+          "log": 0.7019180921090334,
+          "mean_up_probability": 0.5290327045672881
+        },
+        "111": {
+          "count": 86,
+          "up_count": 41,
+          "brier": 0.2662761169458169,
+          "log": 0.7264129337105286,
+          "mean_up_probability": 0.5822294510676357
+        }
+      }
+    },
+    "LATER": {
+      "state": {
+        "000": {
+          "count": 65,
+          "up_count": 38,
+          "brier": 0.24145620095282527,
+          "log": 0.6760178613018074,
+          "mean_up_probability": 0.5195488507402641
+        },
+        "001": {
+          "count": 65,
+          "up_count": 38,
+          "brier": 0.2381460924688047,
+          "log": 0.6693167159405169,
+          "mean_up_probability": 0.5413900557736969
+        },
+        "010": {
+          "count": 65,
+          "up_count": 38,
+          "brier": 0.24014653870437797,
+          "log": 0.6733682703272414,
+          "mean_up_probability": 0.5265018554932467
+        },
+        "011": {
+          "count": 65,
+          "up_count": 38,
+          "brier": 0.23694949292891754,
+          "log": 0.6668452475070479,
+          "mean_up_probability": 0.5517853859172083
+        },
+        "100": {
+          "count": 65,
+          "up_count": 38,
+          "brier": 0.23878169395285465,
+          "log": 0.6705663110451409,
+          "mean_up_probability": 0.5334998494413498
+        },
+        "101": {
+          "count": 65,
+          "up_count": 38,
+          "brier": 0.23599637813164825,
+          "log": 0.6648167845497499,
+          "mean_up_probability": 0.5581856397896002
+        },
+        "110": {
+          "count": 65,
+          "up_count": 38,
+          "brier": 0.23757064154601107,
+          "log": 0.6680674838523644,
+          "mean_up_probability": 0.5406965854219182
+        },
+        "111": {
+          "count": 65,
+          "up_count": 38,
+          "brier": 0.23506098392725266,
+          "log": 0.6627995544319011,
+          "mean_up_probability": 0.5690839933741844
+        }
+      },
+      "future": {
+        "000": {
+          "count": 75,
+          "up_count": 40,
+          "brier": 0.24689391721992052,
+          "log": 0.686928394005984,
+          "mean_up_probability": 0.5166262474208
+        },
+        "001": {
+          "count": 75,
+          "up_count": 40,
+          "brier": 0.24696106046718755,
+          "log": 0.6869885465120079,
+          "mean_up_probability": 0.5640336846644306
+        },
+        "010": {
+          "count": 75,
+          "up_count": 40,
+          "brier": 0.2466044678024602,
+          "log": 0.6863426352443571,
+          "mean_up_probability": 0.523956727871474
+        },
+        "011": {
+          "count": 75,
+          "up_count": 40,
+          "brier": 0.24788815423186325,
+          "log": 0.6888440391845873,
+          "mean_up_probability": 0.5763496245179308
+        },
+        "100": {
+          "count": 75,
+          "up_count": 40,
+          "brier": 0.24654211513426877,
+          "log": 0.6862139292059897,
+          "mean_up_probability": 0.5227807099412014
+        },
+        "101": {
+          "count": 75,
+          "up_count": 40,
+          "brier": 0.24748356596312832,
+          "log": 0.6879937954280047,
+          "mean_up_probability": 0.5721013210036882
+        },
+        "110": {
+          "count": 75,
+          "up_count": 40,
+          "brier": 0.24637846566854923,
+          "log": 0.6858726469195695,
+          "mean_up_probability": 0.5307221666518097
+        },
+        "111": {
+          "count": 75,
+          "up_count": 40,
+          "brier": 0.24882737093606952,
+          "log": 0.690700285944536,
+          "mean_up_probability": 0.5852623127353302
+        }
+      }
+    }
+  },
+  "shapley_FINAL_minus_INITIAL": {
+    "TRAIN": {
+      "state": {
+        "brier": {
+          "backbone_hidden": 0.00412423285052462,
+          "query_projection": 0.0017843047314147948,
+          "M5_heads": 0.004117607431667522
+        },
+        "log": {
+          "backbone_hidden": 0.008475820106424153,
+          "query_projection": 0.003675388931137761,
+          "M5_heads": 0.008451647520548314
+        }
+      },
+      "future": {
+        "brier": {
+          "backbone_hidden": 0.0028009108849219775,
+          "query_projection": 0.002148507174797661,
+          "M5_heads": 0.009150453033884304
+        },
+        "log": {
+          "backbone_hidden": 0.005741916678286903,
+          "query_projection": 0.004441844991750895,
+          "M5_heads": 0.01872384531323009
+        }
+      }
+    },
+    "LATER": {
+      "state": {
+        "brier": {
+          "backbone_hidden": -0.0023086072497990563,
+          "query_projection": -0.0011496274754027546,
+          "M5_heads": -0.002936982300370798
+        },
+        "log": {
+          "backbone_hidden": -0.004799200754878459,
+          "query_projection": -0.0023839896351791805,
+          "M5_heads": -0.006035116479848686
+        }
+      },
+      "future": {
+        "brier": {
+          "backbone_hidden": 0.0002452220998564736,
+          "query_projection": 0.000478692568319658,
+          "M5_heads": 0.0012095390479728713
+        },
+        "log": {
+          "backbone_hidden": 0.00046980408518632055,
+          "query_projection": 0.0009592789826613488,
+          "M5_heads": 0.002342808870704316
+        }
+      }
+    }
+  },
+  "preselected_101_minus_111": {
+    "TRAIN": {
+      "state": {
+        "brier": -0.002982159712630439,
+        "log": -0.006204145421708995,
+        "mean_up_probability": -0.01071551842422891
+      },
+      "future": {
+        "brier": -0.003512319785406226,
+        "log": -0.007346642216631949,
+        "mean_up_probability": -0.012035951782825793
+      }
+    },
+    "LATER": {
+      "state": {
+        "brier": 0.0009353942043955898,
+        "log": 0.0020172301178488228,
+        "mean_up_probability": -0.01089835358458413
+      },
+      "future": {
+        "brier": -0.0013438049729412038,
+        "log": -0.002706490516531379,
+        "mean_up_probability": -0.013160991731642091
+      }
+    }
+  },
+  "frozen_panel_priors": {
+    "TRAIN": {
+      "state": {
+        "count": 75,
+        "up_count": 34,
+        "brier": 0.2520920936958483,
+        "log": 0.697333478245525,
+        "mean_up_probability": 0.5186775868957253
+      },
+      "future": {
+        "count": 86,
+        "up_count": 41,
+        "brier": 0.25064115047825425,
+        "log": 0.6944297135800547,
+        "mean_up_probability": 0.5111241709344304
+      }
+    },
+    "LATER": {
+      "state": {
+        "count": 65,
+        "up_count": 38,
+        "brier": 0.24718802985450922,
+        "log": 0.6875207846228477,
+        "mean_up_probability": 0.5186775868957252
+      },
+      "future": {
+        "count": 75,
+        "up_count": 40,
+        "brier": 0.24938213578334975,
+        "log": 0.6919112686014336,
+        "mean_up_probability": 0.5111241709344304
+      }
+    }
+  },
+  "panel_prior_source": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_HEAD_UPDATE_FREEZE_NATIVE_20261110_001/INITIAL_REFERENCES.json",
+    "sha256": "f50995b5171f634bb5cdbcd5fbbf02e7e089664e71de5f29d979f6357e1bd636"
+  },
+  "root_derived_checks": {
+    "all_eight_TRAIN_cells_at_least_as_bad_as_INITIAL_and_worse_than_prior_for_Brier_and_log": true,
+    "mean_up_shift": {
+      "TRAIN": {
+        "state": {
+          "actual_up_fraction": 0.4533333333333333,
+          "initial_mean_up": 0.5324667999635628,
+          "final_mean_up": 0.5819216998038539,
+          "all_12_edges_increase_mean_up": true,
+          "minimum_edge_increase": 0.005324707174140242
+        },
+        "future": {
+          "actual_up_fraction": 0.47674418604651164,
+          "initial_mean_up": 0.514413105702951,
+          "final_mean_up": 0.5822294510676357,
+          "all_12_edges_increase_mean_up": true,
+          "minimum_edge_increase": 0.006054625874614583
+        }
+      },
+      "LATER": {
+        "state": {
+          "actual_up_fraction": 0.5846153846153846,
+          "initial_mean_up": 0.5195488507402641,
+          "final_mean_up": 0.5690839933741844,
+          "all_12_edges_increase_mean_up": true,
+          "minimum_edge_increase": 0.00695300475298255
+        },
+        "future": {
+          "actual_up_fraction": 0.5333333333333333,
+          "initial_mean_up": 0.5166262474208,
+          "final_mean_up": 0.5852623127353302,
+          "all_12_edges_increase_mean_up": true,
+          "minimum_edge_increase": 0.006154462520401416
+        }
+      }
+    },
+    "preselected_Brier_decomposition_101_minus_111": {
+      "TRAIN": {
+        "state": {
+          "delta_brier": -0.002982159712630439,
+          "delta_empirical_mean_error_squared": -0.002640959685012734,
+          "delta_centered_brier": -0.00034120002761769963
+        },
+        "future": {
+          "delta_brier": -0.003512319785406226,
+          "delta_empirical_mean_error_squared": -0.002394366991867191,
+          "delta_centered_brier": -0.0011179527935390454
+        }
+      },
+      "LATER": {
+        "state": {
+          "delta_brier": 0.0009353942043955898,
+          "delta_empirical_mean_error_squared": 0.0004573072976688452,
+          "delta_centered_brier": 0.0004780869067267657
+        },
+        "future": {
+          "delta_brier": -0.0013438049729412038,
+          "delta_empirical_mean_error_squared": -0.0011936620337242366,
+          "delta_centered_brier": -0.00015014293921694621
+        }
+      }
+    }
+  },
+  "corner_parity": {
+    "000": {
+      "state": {
+        "raw_max_abs_error": 0.0,
+        "probability_max_abs_error": 0.0
+      },
+      "future": {
+        "raw_max_abs_error": 0.0,
+        "probability_max_abs_error": 0.0
+      }
+    },
+    "111": {
+      "state": {
+        "raw_max_abs_error": 0.0,
+        "probability_max_abs_error": 0.0
+      },
+      "future": {
+        "raw_max_abs_error": 0.0,
+        "probability_max_abs_error": 0.0
+      }
+    }
+  },
+  "independent_review": {
+    "status": "PASS_INDEPENDENT_QUERY_BACKBONE_ATTRIBUTION_REVIEW",
+    "max_scalar_metric_error": 2.220446049250313e-16,
+    "max_affine_GELU_raw_error": 1.5910020711995543e-07,
+    "max_affine_GELU_probability_error": 3.859842123699053e-08,
+    "counts": {
+      "models": 0,
+      "native_forwards": 0,
+      "checkpoint_decodes": 0,
+      "fit": 0,
+      "optimizer_updates": 0,
+      "numpy_query_projections": 4,
+      "numpy_head_projections": 16,
+      "score_cells": 32
+    }
+  },
+  "timing": {
+    "whole_command_seconds": 187.39811074700265,
+    "worker_seconds": 184.19936540199706,
+    "preflight_whole_seconds": 5.5392451739971875,
+    "review_whole_seconds": 0.3447450840030797,
+    "review_worker_seconds": 0.09081737599626649,
+    "peak_rss_bytes": 5744148480,
+    "artifact_bytes": 1318048,
+    "code_preparation_and_waiting_included": false
+  },
+  "findings": [
+    "Restoring INITIAL P at FINAL C/H lowers both TRAIN scores and later F, but worsens later S. No uniform P-restore improvement and no P-only correction qualified.",
+    "All8 TRAIN combinations have Brier and logloss at least as high as INITIAL; INITIAL is itself worse than the frozen panel prior. No cube combination repairs TRAIN against prior.",
+    "Every factor replacement increases mean UP in every fixed panel/task context. This is an empirical functional shift, not proof of historical training causation or true conditional bias.",
+    "P is one contribution rather than the sole deterioration source. TRAIN F Brier Shapley is C+.002800911/P+.002148507/H+.009150453.",
+    "The small later S panel improves from INITIAL to FINAL, while full-population earlier evaluation worsened. This reused panel must not replace the full-population generalization conclusion.",
+    "For101-minus111, empirical mean-error squared and centered Brier move in the same direction in all4 cells. The effect is not only a constant mean shift; centered Brier is not pure ranking quality."
+  ],
+  "decision": "NO_UNIFORM_P_RESTORE_IMPROVEMENT_NO_NATIVE_CHANGE_ADMITTED",
+  "full_train_correction_qualified": false,
+  "later_direction_improvement_established": false,
+  "training_cause_established": false,
+  "test_data_used": false,
+  "training_authorized": false,
+  "candidate_selection": false,
+  "promotion_authorized": false,
+  "limits": [
+    "Two original model states and fixed reused development panels; no fit, optimizer, checkpoint write or TEST.",
+    "C is the actual entry_q_joint_hidden backbone output. P includes its Linear plus GELU, H the two dedicated M5 heads.",
+    "Cross-state combinations are functional attributions, potentially off-manifold; they do not establish historical training causation.",
+    "101 minus111 is preselected. No best combination, candidate selection, promotion or new signal/edge claim.",
+    "INITIAL later reference is a qualified imported GPU cached head; FINAL later reference is the qualified GPU cache, not earlier CPU encoder evaluations.",
+    "Actual CPU eval uses all five genuine feature timeframes; canonical loaders validate full TRAIN target tapes. No training-mode forward or RNG resume.",
+    "Checkpoint-to-parameter and native reference provenance reuse the bound producer strict loads and existing endpoint evidence; no checkpoint or historical cache reload.",
+    "FP64 affine/GELU reconstruction is checked against every saved FP32 cube output with the predeclared raw/probability tolerances; scores use saved FP32 outputs.",
+    "All eight fixed C/P/H combinations and 101-minus111 reported; no outcome-sign gate, candidate selection or new fitted model.",
+    "Functional attribution includes coadaptation/interactions on two small reused development panels; not historical training causation or untouched generalization.",
+    "Root-derived prior comparisons and12-edge mean-UP checks use already verified aggregate score cells; they do not introduce candidate selection or a new fitted estimator.",
+    "Only75/86 known S/F sides on TRAIN and65/75 later. No untouched evaluation, trading-path or economic evidence.",
+    "Empirical mean-error decomposition is exact aggregate arithmetic on reused labels; empirical prevalence is not the true conditional probability and centered Brier is not AUC."
+  ]
+}

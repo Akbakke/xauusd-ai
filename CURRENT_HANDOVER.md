@@ -15,37 +15,56 @@ indikatorhistorikk er input. Alle fem TF har egne framtidige mål. Nåværende
 forskningsfokus er SMC og teknisk analyse etter brukerens vedtak 08.11; GC-planen
 er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er stengt.
 
-Policystatus: TA_M5_QUERY_BACKBONE_ATTRIBUTION_READONLY_ADMITTED.
+Policystatus: TA_M5_QUERY_BACKBONE_ATTRIBUTION_COMPLETE_NO_FIX.
 
-Én avgrenset evaluering skiller tre ledd i original INITIAL ae772 og FINAL23ff:
-C = faktisk entry_q_joint_hidden fra backbone, P = delt Linear(134,128)+GELU,
-H = de to dedikerte M5-hodene. Tidligere attribusjon slo C og P sammen.
-De undersøkte cache-writerne lagrer bare post-P; C må derfor fanges på nytt.
-
+Oppdelingen C/P/H er ferdig og uavhengig verifisert:
+[rapport](docs/TA_M5_QUERY_BACKBONE_ATTRIBUTION_REVIEW.json).
 Rot: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_QUERY_BACKBONE_ATTRIBUTION_20261110_001
-PLAN SHA694c8189f89a5edb0ca34d2d837b8f1adac1a8f7c03ca3d28abe45d3dfe506c9.
-Worker SHA3338c700b9379046c1ae5ce1886af5dc3815bd529d166b33fc964f459a375933.
-Metadata-preflight5,539s og root/uavhengig kildekontroll PASS.
+RESULT SHAe8dc20a9ceea4986016fdfc389afc10026d90c2b4040d8e627b561e764e21653.
+REVIEW SHAd91b603a460391cf4c18476f7e2009f6eaafbf8cb46c01e7e92f9a2eea2d9ad6.
+Alle trenings-/engangsporter er stengt. Ingen ny modellendring eller kandidatfit.
 
-Samme192 TRAIN- og192 senere-rader som kvalifiserte småpaneler.
-Én modell, to originale strictloads,48 native evalforwards; deretter4 funksjonelle
-P- og16 H-projeksjoner fra private kopier. Ingen optimizer, backward, fit,
-checkpointskriving eller treningsmodus.12G/512M,én tråd,600s ytre grense.
-Hooken returnerer None; modelldigest, buffers, RNG, modi og native svar bevares.
-000/111 må matche originalnative svar: råavvik≤2e-5, sannsynlighet≤1e-6.
-Native svar kontrolleres også mot tidligere kvalifiserte CPU/GPU-referanser.
+C er faktisk entry_q_joint_hidden; P delt Linear(134,128)+GELU; H dedikerte
+M5 S/F-hoder. Original INITIALae772 og FINAL23ff; samme192 TRAIN/192senere.
+Én modell, to strictloads,48 nativeevalforwards,4 funksjonelle P-/16 H-projeksjoner.
+Ingen backward, optimizer, oppdateringer, treningsmodus eller checkpointskriving.
+Private C- og parameterkopier er bevart for gjenbruk; alle åtte kombinasjoner
+rapporteres, uten bestevalg. Dette skiller tidligere sammenslåtte C og P.
 
-Alle åtte C/P/H-kombinasjoner rapporteres for S/F på begge paneler.
-Forhåndsvalgt kontrast101−111 spør om INITIAL P med FINAL C/H endrer feilen.
-Ingen bestevalg eller ny kandidat. Funksjonelle bytter kan bryte samtilpasning;
-de beviser ikke historisk treningsårsak. Uavhengig aritmetikk-review følger.
-Alle treningsporter forblir stengt; denne planen tillater bare evaluering.
+Forhåndsvalgt101−111 (INITIAL P ved FINAL C/H) gir Brierendring:
+TRAIN S−0,002982/F−0,003512; senere S+0,000935/F−0,001344.
+Logtap har samme fortegn. Tre celler bedres, senereS forverres.
+Ingen samlet P-tilbakebytte-rettelse. Alle åtte TRAIN-kombinasjoner er minst
+like dårlige som INITIAL og verre enn frystprior, både Brier og log.
 
-Forrige [faste50/50-blanding](docs/TA_M5_EQUAL_SNAPSHOT_BLEND_REVIEW.json)
-er konsumert og negativ på begge senere-porter. For akkurat dette paret
-utelukker Brier-kvadratikken alle konstante blandingsvekter mot senereF-prior.
-Ingen mer vektsøk, klipp-/optimizer-/sampler-sveip eller fullfit følger av dette.
-Gjenbrukte utviklingsrader er ikke fersk generalisering eller handelsedge.
+Alle12 enkeltfaktorbytter øker gjennomsnittlig OPP i hver av de fire cellene.
+TRAIN faktiskOPP45,33/47,67prosent; FINALmean58,19/58,22prosent.
+Senere faktiskOPP58,46/53,33prosent; FINALmean56,91/58,53prosent.
+Dette er et empirisk oppoverskift på småpanelene, ikke sann betinget bias
+eller historisk treningsårsak. TRAIN F-Brier Shapley:
+C+0,002801/P+0,002149/H+0,009150. P er ett bidrag, ikke hele forklaringen.
+Funksjonelle bytter kan bryte samtilpasning; samspill er ikke optimizerårsak.
+101−111 endrer både empirisk middelfeil² og sentrert Brier i samme retning
+for alle fire celler. Dette er derfor ikke bare et konstant middelskift;
+sentrert Brier er heller ikke ren rangering/AUC. Regnet fra eksisterende aggregater.
+
+000/111 gjengir native M5-side bitlikt. Uavhengig NumPy/math.erf gjengir
+alle8 kombinasjoner: største råavvik1,591e-7, sannsynlighet3,860e-8.
+32 scoreceller, Shapley og101−111 verifisert; største scoreavvik2,221e-16.
+Helkommando187,398s, worker184,199s; review0,345s, preflight5,539s.
+PeakRSS5,744GB; private nye artefakter1,318MB. Kodearbeid/venting utenom.
+Dette er en mindre evaluering, ikke målt akselerasjon av samme fulltrening.
+
+Bare75/86 kjente S/F-sider på TRAIN og65/75 senere. SenereS-småpanelet
+bedres fra INITIAL til FINAL, mens eksisterende fullpopulasjon ble svakere.
+Småpanelet erstatter ikke fullpopulasjonens konklusjon. Ingen fersk
+generalisering, handelsbane, økonomisk edge eller native rettelse er påvist.
+
+Neste konkrete læringsinngrep må forklare oppoverskiftet og ulik respons
+mellom perioder. Gjenbruk disse C/P/H-outputene og eksisterende gradientbevis.
+Ingen P-alene frys/tilbakebytte-trening, klipp-/optimizer-/sampler-sveip eller
+fullfit følger av denne attribusjonen. Forrige faste blanding er konsumert;
+ingen konstant vekt mellom det paret kan slå senereF-prior på hele panelet.
 TEST, GC, Entry/Exit og handel er stengt; originale checkpoints bevares.
 
 MIX24 er fullført og uavhengig verifisert:

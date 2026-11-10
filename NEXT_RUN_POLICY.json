@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-10T01:15:33.843114+00:00",
-  "status": "TA_M5_QUERY_BACKBONE_ATTRIBUTION_READONLY_ADMITTED",
+  "observed_utc": "2026-11-10T01:24:30.134860+00:00",
+  "status": "TA_M5_QUERY_BACKBONE_ATTRIBUTION_COMPLETE_NO_FIX",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-only goal. Three direct diagnostics consumed; no main model change or fullfit admitted. Reuse frozen weights, qualified input path and cached decoder representations. No TEST, GC, Entry, Exit or trading.",
-  "next_action": "Execute the one bounded C/P/H evaluation and independently verify all8 score combinations and preselected101-minus111 contrast. No native training, layer changes, new candidate or automatic followup admitted.",
+  "next_action": "The preselected query-projection restore is not a shared TRAIN/later fix. Reuse saved C/P/H outputs and existing gradient evidence to explain the common upward shift before any distinct learning intervention; no P-only freeze/restore training, sweep, fullfit or automatic followup is admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1685,7 +1685,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "One fixed original INITIAL/FINAL C/P/H factorial on reused192 TRAIN and192 later rows: capture actual backbone hidden C, shared query projection P and dedicated M5 heads H. Preselected101-minus111 contrast; all8 combinations reported. Evaluation only, no candidate selection or historical training-cause claim.",
+    "current_activity": "C/P/H functional attribution completed and independently verified. INITIAL P at FINAL C/H improves3 of4 cells but worsens later S; all8 TRAIN combinations remain worse than frozen panel prior.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1714,11 +1714,11 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "Read-only one-candidate probability blend on all29574TRAIN/17753later rows, zero models or fits.",
+    "latest_terminal_role": "48 evalforwards/2 original checkpoint loads, no training; all8 C/P/H combinations scored and independent NumPy/erf reconstruction passed.",
     "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_QUERY_BACKBONE_ATTRIBUTION_20261110_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001/TERMINAL.json",
-      "sha256": "e82bce795c839a8a0ef593a55d39e588196622941d8bf5feb7133bdc204063c7"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_QUERY_BACKBONE_ATTRIBUTION_20261110_001/TERMINAL.json",
+      "sha256": "97bb3bfdcb06deb7461a02bfc53650f4a600ba0021ecc9413eac09c574cd5896"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -1738,7 +1738,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Previous attribution merged backbone C and learned query projection P; functional contributions remain unidentified. No shared TRAIN/later direction fix established.",
+    "current_blocker": "All C/P/H replacements increase panel mean-UP; P is one contributor but no single restore qualifies. Historical cause of native TRAIN deterioration and later direction improvement remain unresolved.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -66325,7 +66325,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "Fixed50/50 blend rejected; same-pair constant weights cannot beat later F prior. Next distinct measured question separates backbone, shared query projection and M5 heads without training.",
+    "latest_progress": "Separated C and shared P from M5 heads: P-restore improves TRAIN S/F and later F, worsens later S. All8 TRAIN combinations remain below prior; allfactorchanges raise mean-UP. Technical parity and independent arithmetic pass, no training cause or fix established.",
     "user_clarification_20261109": {
       "scope": "Correct direction for short sniper and longer long/shorttrends; separate forecasts and targets at M5 cadence.",
       "existing_future_horizons_minutes": [
@@ -72093,8 +72093,8 @@
     "later_direction_improvement_established": false
   },
   "market_state_ta_m5_query_backbone_attribution_20261110_001": {
-    "status": "ADMITTED",
-    "execution_authorized": true,
+    "status": "COMPLETE_VERIFIED_FUNCTIONAL_ATTRIBUTION_NO_FIX",
+    "execution_authorized": false,
     "training_authorized": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_QUERY_BACKBONE_ATTRIBUTION_20261110_001/PLAN.json",
@@ -72117,9 +72117,9 @@
       "sha256": "bbd1150e0db0f4472ea23946f2a0979cdd11307e33bf52d37779da459cbac3ad"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "max_artifact_bytes": 4194304,
     "max_artifact_total_bytes": 8388608,
@@ -72137,7 +72137,7 @@
     "swap_max": "512M",
     "numerical_threads": 1,
     "wall_seconds": 600,
-    "review_authorized": true,
+    "review_authorized": false,
     "review_scope": {
       "max_invocations": 1,
       "memory_max": "4G",
@@ -72149,7 +72149,7 @@
       "max_fits": 0,
       "max_checkpoint_decodes": 0
     },
-    "review_completed_invocations": 0,
+    "review_completed_invocations": 1,
     "test_data_used": false,
     "scope": "One fixed original INITIAL/FINAL C/P/H factorial on reused192 TRAIN and192 later rows: capture actual backbone hidden C, shared query projection P and dedicated M5 heads H. Preselected101-minus111 contrast; all8 combinations reported. Evaluation only, no candidate selection or historical training-cause claim.",
     "evaluate_later_unconditionally": true,
@@ -72164,6 +72164,55 @@
       },
       "scope": "Root full360-line read and independent source review: parent C hook, exact M5 query coordinates and GELU, private P/H copies, original endpoint references,48 native/4 P/16 H counts, unchanged eval state and fixed101-minus111 contrast."
     },
-    "standing_authorization_source": "GX1_RULES_20261105_zero_spend_local_work_and_active_direction_goal_exact_readonly_admission"
+    "standing_authorization_source": "GX1_RULES_20261105_zero_spend_local_work_and_active_direction_goal_exact_readonly_admission",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_QUERY_BACKBONE_ATTRIBUTION_20261110_001/RESULT.json",
+      "sha256": "e8dc20a9ceea4986016fdfc389afc10026d90c2b4040d8e627b561e764e21653"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_QUERY_BACKBONE_ATTRIBUTION_20261110_001/TERMINAL.json",
+      "sha256": "97bb3bfdcb06deb7461a02bfc53650f4a600ba0021ecc9413eac09c574cd5896"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_QUERY_BACKBONE_ATTRIBUTION_20261110_001/CONTROLLER.json",
+      "sha256": "b5deb6afae51feb82f84d5989b64588dda68932e97e77e2766388052bbd1adb4"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_QUERY_BACKBONE_ATTRIBUTION_20261110_001/REVIEW.json",
+      "sha256": "d91b603a460391cf4c18476f7e2009f6eaafbf8cb46c01e7e92f9a2eea2d9ad6"
+    },
+    "reviewer": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_QUERY_BACKBONE_ATTRIBUTION_20261110_001/review.py",
+      "sha256": "f548743df4303980089789875879d2fc408ea854231ed840461e33969d5291ff"
+    },
+    "review_command": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_QUERY_BACKBONE_ATTRIBUTION_20261110_001/REVIEW_COMMAND.json",
+      "sha256": "5158c05ff69265f1eb24a2d530ee5b76a433054eadd6549411f11307aefcad11"
+    },
+    "integrated_report": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_QUERY_BACKBONE_ATTRIBUTION_REVIEW.json",
+      "sha256": "a3194e4a0ca7fe40c3e30ff6b9fd3f3d660eb8681fd0f9161e1e9de774f41c30"
+    },
+    "independent_review_passed": true,
+    "actual_counts": {
+      "model_constructions": 1,
+      "checkpoint_loads": 2,
+      "forwards": 48,
+      "backwards": 0,
+      "autograd_calls": 0,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "checkpoint_writes": 0,
+      "functional_query_projections": 4,
+      "functional_head_projections": 16,
+      "resume_state_load_calls": 2,
+      "resume_state_load_returns": 2,
+      "backbone_hook_calls": 48
+    },
+    "whole_command_seconds": 187.39811074700265,
+    "comparison_decision": "NO_UNIFORM_P_RESTORE_IMPROVEMENT_NO_NATIVE_CHANGE_ADMITTED",
+    "full_train_correction_qualified": false,
+    "later_direction_improvement_established": false,
+    "training_cause_established": false
   }
 }
