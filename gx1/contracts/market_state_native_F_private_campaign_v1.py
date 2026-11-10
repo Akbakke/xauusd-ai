@@ -1337,7 +1337,7 @@ def read_ta_m5_original_cuda_prefix_origin(launch):
             'initial_measurement': initial, 'source_reference_recipe': qualified}
 
 
-def _ta_m5_original_cuda_prefix_sources(owners, original, qualified, trace_worker):
+def _ta_m5_original_cuda_prefix_sources(owners, original, qualified, trace_worker, *, paired_order_guard=False):
     _need(isinstance(owners, Mapping) and set(owners) == set(original['source_owners'])
           == set(qualified['source_owners']) and len(owners) == 85, 'ORIGINAL_PREFIX_OWNER_SET')
     historical, current = {}, {}
@@ -1356,6 +1356,10 @@ def _ta_m5_original_cuda_prefix_sources(owners, original, qualified, trace_worke
         if name == _TA_PREFIX_BATCH_PATH:
             _need(base['sha256'] == _TA_PREFIX_BATCH_OLD and ref['sha256'] == _TA_PREFIX_BATCH_CURRENT,
                   'ORIGINAL_PREFIX_BATCH_PAIR')
+        elif paired_order_guard and name == 'scripts/gx1_capped_run.sh':
+            _need(base['sha256'] == TA_M5_PAIRED_BATCH_ORDER_GUARD_OLD_SHA256
+                  and ref['sha256'] == TA_M5_PAIRED_BATCH_ORDER_GUARD_CURRENT_SHA256,
+                  'PAIRED_ORDER_GUARD_SOURCE_PAIR')
         elif name not in TA_M5_ORIGINAL_CUDA_PREFIX_ROUTING_PATHS:
             _need(ref == base, 'ORIGINAL_PREFIX_UNREVIEWED_SOURCE:' + name)
         if old != base:
@@ -1746,7 +1750,9 @@ def require_ta_m5_centered_head_coordinates_cursor(value, *, expected_recipe, ve
 
 
 # One paired intact-batch order comparison; no legacy cursor or resume semantics.
-TA_M5_PAIRED_BATCH_ORDER_STAGE = 'market_state_ta_m5_paired_batch_order_20261110_001'
+TA_M5_PAIRED_BATCH_ORDER_GUARD_OLD_SHA256 = '30e1f89dfcaeb9ea72c821031b9ca8b452020aa754d0ba23c1efdb68e3e1ba89'
+TA_M5_PAIRED_BATCH_ORDER_GUARD_CURRENT_SHA256 = 'f6c2e2c8de55af14047ed2377c44736f7612edd71f8686b47ecc2771f1056ae7'
+TA_M5_PAIRED_BATCH_ORDER_STAGE = 'market_state_ta_m5_paired_batch_order_20261110_002'
 TA_M5_PAIRED_BATCH_ORDER_SCOPE = 'market_state_ta_m5_paired_batch_order_v1'
 TA_M5_PAIRED_BATCH_ORDER_ROOT = Path('/home/andre2/GX1_RUNS') / TA_M5_PAIRED_BATCH_ORDER_STAGE.upper()
 TA_M5_PAIRED_BATCH_ORDER_RUNTIME_ROOT = TA_M5_PAIRED_BATCH_ORDER_ROOT / 'RUNTIME'
@@ -1909,7 +1915,7 @@ def build_ta_m5_paired_batch_order_recipe(*, source_commit):
     value.update(source_owners=owners,
         trace_worker={'path': str(worker), 'sha256': campaign.file_sha256(worker)},
         source_bridge=_ta_m5_original_cuda_prefix_sources(
-            owners, original, qualified, value['input_refs']['original_trace_helper']))
+            owners, original, qualified, value['input_refs']['original_trace_helper'], paired_order_guard=True))
     value['recipe_sha256'] = campaign.canonical_sha256(value)
     return require_ta_m5_paired_batch_order_recipe(value, source_repo=CANONICAL_REPO,
                                                  source_commit=source_commit)
@@ -1932,7 +1938,7 @@ def require_ta_m5_paired_batch_order_recipe(value, *, source_repo, source_commit
           'PAIRED_ORDER_WORKER_PATH')
     campaign.require_binding(value['trace_worker'], label='paired batch order worker', verify_file=True)
     expected_bridge = _ta_m5_original_cuda_prefix_sources(
-        value['source_owners'], original, qualified, value['input_refs']['original_trace_helper'])
+        value['source_owners'], original, qualified, value['input_refs']['original_trace_helper'], paired_order_guard=True)
     _need(value['source_bridge'] == expected_bridge, 'PAIRED_ORDER_SOURCE_BRIDGE')
     return value
 

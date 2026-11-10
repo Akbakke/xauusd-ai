@@ -1,0 +1,114 @@
+{
+  "schema_version": "gx1_ta_m5_paired_batch_order_scope_review_v1",
+  "status": "PASS_SOURCE_AND_METADATA_ONLY",
+  "observed_utc": "2026-11-10T08:13:38.150900+00:00",
+  "source_base": "1bf7eca03dde268ffc14ea62aed35ec22401cf7f",
+  "recipe": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/RECIPE.json",
+    "sha256": "e503cf1f17a58391b7286b51ee5423f90fb47fe45d06a860f47553b9f1d8d667"
+  },
+  "prior_aborted_attempt": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_001/BOOTSTRAP_FAILURE.json",
+    "sha256": "e4e85416760274131b5b2bf985cb0b6c403a595464e66d5581b3952d178f096e"
+  },
+  "source_files": {
+    "gx1/audit/run_market_state_ta_m5_paired_batch_order_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/run_market_state_ta_m5_paired_batch_order_v1.py",
+      "sha256": "d8f42bb3133e7ca33d026699a07bc178f3e110827398d99b36e8c0ca7f3b5cc8"
+    },
+    "gx1/contracts/entry_native_direction_research_campaign_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_campaign_v1.py",
+      "sha256": "d047edcbf216981cdcbd37fbc59d1d4ff1f74569c9e5d500e56a92234a21c472"
+    },
+    "gx1/contracts/market_state_native_F_private_campaign_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_native_F_private_campaign_v1.py",
+      "sha256": "bca0e05a3300e5d32c4e2686e6a3cb1f4c7b856b0a2c78fe67cb12cde1966290"
+    },
+    "gx1/scripts/materialize_market_state_time_query_fold1_fit_campaign_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_market_state_time_query_fold1_fit_campaign_v1.py",
+      "sha256": "2979dd19aa17c63869b901e44936d6bb41bf3a65e757fab1a6f47d02c23462a4"
+    },
+    "gx1/scripts/run_entry_native_direction_research_window_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_research_window_v1.py",
+      "sha256": "6f236f5088d222391df82accd3e12921acd0e34a07cc9830a6c571497c79ee77"
+    },
+    "tests/test_ta_m5_paired_batch_order.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_ta_m5_paired_batch_order.py",
+      "sha256": "180c189f3eadda7b4eb87224b796801f5246ed41ce30645c9c769660a9a5a54d"
+    },
+    "scripts/gx1_capped_run.sh": {
+      "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_capped_run.sh",
+      "sha256": "f6c2e2c8de55af14047ed2377c44736f7612edd71f8686b47ecc2771f1056ae7"
+    }
+  },
+  "question": "Does intact-batch presentation order change learned M5 probabilities on the same representative4096TRAIN rows after256updates from the same INITIAL?",
+  "rationale": [
+    "Original full frozenTRAIN objective worsens1.9489571623to2.0216832481; all10 S/F sidecomponents worsen. Activitygain does not compensate.",
+    "Tail902retention differs from earlier7blocks; chronology association is measured, cause unisolated.",
+    "MIX24 used different SHORTINITIAL and384rows/24updates; ACCUM3 used384rows/8updates. Neither excludes this matched256update order effect.",
+    "Every stochastic step need not improve every period orTF. The previous local Pareto constraint was stronger than the population learning objective.",
+    "A later native pass from a different recalibrated INITIAL already exists and did not establish later directional improvement; this is not an invented first additional epoch."
+  ],
+  "design": {
+    "arms": [
+      "CONTROL",
+      "INTERLEAVED"
+    ],
+    "selected_train_rows": 4096,
+    "updates_per_arm": 256,
+    "selection": "256 intact original B16 indices floor(i*1847/255),i=0..255; no labels consulted",
+    "interleaving": "16x16 transpose of selected batch indices; withinbatch membership unchanged",
+    "frozen": "original ae772 INITIAL,emptyAdam,RNG,features,normalization,targets,pass0query,original fit_batch_start,loss,optimizer",
+    "dropout": "same random stream; dropout-to-row assignment changes with order and is part of the intervention",
+    "total_counts": {
+      "model_constructions": 1,
+      "optimizer_constructions": 1,
+      "checkpoint_loads": 1,
+      "strict_full_state_restore_calls": 2,
+      "forwards": 1048,
+      "training_forwards": 512,
+      "evaluation_forwards": 536,
+      "backwards": 512,
+      "optimizer_step_calls": 512,
+      "optimizer_updates": 512,
+      "checkpoint_writes": 0,
+      "candidate_evidence_writes": 2
+    },
+    "baseline": "Reuse qualified cached INITIAL TRAIN reconstruction and actual CUDA192laterINITIAL.0baselineforwards.",
+    "train_scoring": "all4096same rows, original sampledS/nativeF; all5TF reported in actual query domain",
+    "later_scoring": "same reused192development rows,nativeS/nativeF; not untouched generalization",
+    "pass_margin": {
+      "INITIAL": 1e-06,
+      "CONTROL": 1e-08,
+      "PRIOR": 1e-08
+    },
+    "result_limits": "BeatingCONTROL while losingINITIAL is order effect,notfix. IfCONTROLdoesnotreplicate deterioration,originalfullpasscause remainsunisolated. AllfourM5cells againstINITIAL/CONTROL/prior required for boundedscorePASS; noautomatic fullfit."
+  },
+  "validation": {
+    "reused_focused_tests": 101,
+    "new_exact_capped_parser_cases": 6,
+    "new_outer_limit_cases": 2,
+    "failures": 0,
+    "metadata_preflight": "PASS_ACTUAL_BINDINGS_AND_SYNTHETIC_SCORE_TOLERANCE",
+    "model_constructions": 0,
+    "independent_worker_review": "PASS_AFTER_BOUND_INITIAL_MARGIN_FIX",
+    "independent_routing_review": "PASS",
+    "syntax": "PASS",
+    "diff_check": "PASS"
+  },
+  "limits": {
+    "physical_power_limit_w": 250,
+    "memory_max": "20G",
+    "swap_max": "512M",
+    "model_seconds": 2400,
+    "window_seconds": 3000,
+    "outer_seconds": 3300,
+    "fresh_windows_boot_required": true,
+    "max_invocations": 1
+  },
+  "user_semantics": "Small/noisy moves may beFLAT. Existing coherentprobabilities DOWN=a*(1-u),FLAT=1-a,UP=a*u retained; S/F remain separate.",
+  "predictive_value_proven": false,
+  "goal_complete": false,
+  "test_data_used": false,
+  "entry_exit_trading_authorized": false
+}

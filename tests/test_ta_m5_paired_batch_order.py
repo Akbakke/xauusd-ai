@@ -75,7 +75,7 @@ def metadata(monkeypatch):
         'source_reference_recipe': original})
     monkeypatch.setattr(scope, '_read', lambda ref, label:
         deepcopy(next(value for key, value in documents.items() if refs[key] == ref)))
-    monkeypatch.setattr(scope, '_ta_m5_original_cuda_prefix_sources', lambda *args: {'qualified': True})
+    monkeypatch.setattr(scope, '_ta_m5_original_cuda_prefix_sources', lambda *args, **kwargs: {'qualified': True})
     monkeypatch.setattr(scope.campaign, 'require_binding', checked)
     monkeypatch.setattr(scope.campaign, 'file_sha256', lambda path: SHA)
     monkeypatch.setattr(subprocess, 'run', lambda *args, **kwargs: SimpleNamespace(returncode=0))

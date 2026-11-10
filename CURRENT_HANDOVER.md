@@ -17,8 +17,15 @@ er utsatt. Entry, Exit, ordre, broker, handel, spending og forseglet TEST er ste
 
 Policystatus: TA_M5_PAIRED_BATCH_ORDER_ADMITTED_AWAITING_FRESH_BOOT.
 
-Ny avgrenset sammenligning er kvalifisert i
-[scopekontrollen](docs/TA_M5_PAIRED_BATCH_ORDER_SCOPE_REVIEW.json).
+001 ble claimet på boot635, men stoppet før modell/guardlog fordi capped-starten
+kun godtok12000s. Originalmarker og feilkvittering er bevart;001 er konsumert,
+Windows-task deaktivert og ingen oppdateringer utført. Minste rettelse tillater
+3000s bare for eksakt002-recipe etter readiness og setter ytre grense3300s.
+Seks faktiske parsertilfeller og to ytre-grensekontroller består; gammel
+12000→13800 er bevart. Ingen modell-/mål-/optimizerendring.
+
+Ny, separat002-sammenligning er kvalifisert i
+[scopekontrollen](docs/TA_M5_PAIRED_BATCH_ORDER_SCOPE_REVIEW_002.json).
 To armer bruker samme originale INITIAL/tomme Adam/RNG og samme4096TRAIN-rader:
 256 intakte B16-batcher fordelt over hele TRAIN. CONTROL viser dem kronologisk;
 INTERLEAVED veksler mellom periodene. Original query/pass0/fit_batch_start,
