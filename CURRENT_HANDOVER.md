@@ -10,7 +10,7 @@ terminalkvitteringer/prosesser overstyrer prosa. Historikken finnes i Git.
 Lær framtidig OPP/NED/FLATT før Entry. M5 er prognosetakten, kausalt lukket
 M15/H1/H4/D1 og genuine indikatorer beholdes; alle fem TF har egne mål.
 GC er på pause; TEST, Entry/Exit, broker, handel og promotion stengt.
-TA_M5_INNER_PRIOR_SHRINK_PASSED_CACHED_NATIVE_UNQUALIFIED.
+TA_M5_LOCKED_SHRINK_NATIVE_QUALIFICATION_ADMITTED.
 Alle trenings-/launchporter false; training_enabled_scope=null.
 Ingen modelljobb lever ved lukking. Konsumerte planer relanseres aldri.
 Målet er fortsatt aktivt: native rettelse og fersk generalisering ubevist.
@@ -80,4 +80,18 @@ Kontroller FP32-avrunding og faktisk head-regning på gjenbrukte
 TRAIN/later-representasjoner før eventuell native import. Full senere-cache
 har allerede state/future_representation; ingen ny encoderfangst behøves.
 Bevar alle andre modellfelt og samme primære sammenligning.
-Ny eksakt kvalifisert plan trengs; ingen ny kjøring/nativeimport er innrømmet.
+Én separat frossen native kontroll er nå innrømmet:
+MARKET_STATE_TA_M5_LOCKED_SHRINK_NATIVE_20261111_001, PLANc6ca851b.
+Worker895dd461, cap2cf2abe4, preflight9,793s med0modell/fit/forward/claim.
+28 fokuserte tester består; uavhengig kilde- og faktisk JSON-skjema er kontrollert.
+Kun ny eksakt cap-sti, samme250W/170Wdraw/65Ccore/80Cmemory-vakter.
+12G/512MiB, én numerisk tråd,900s workergrense. Modellen gjenopprettes fra R1,
+de låste slopes foldes fra W2s FP32-vekter via FP64 til én FP32-avrunding.
+Eksisterende importer endrer kun fire M5-tensorer.5918faktiskeCUDAheadkall
+på begge fulle populasjoner; to ekte row0-forwards for fersk kandidatbaseline
+og faktisk weights-only diskroundtrip. Én modell/to kapseldekodinger/én
+privat weights-skriving;0fits/optimizer/backward/treningssteg.
+Alle øvrige modellfelt/buffere/RNG/modi beholdes. Faktiske avrundede skårer
+og fullpopulasjonens målte avrundingsavvik avgjør de uendrede marginene.
+Ingen full encoderfangst, fresh constructor, optimizer-resume eller
+fersk generalisering påstås. Kilde/policy fryses under kjøringen.

@@ -437,3 +437,100 @@ def test_fixed_score_roundtrip_rejects_false_tensor_or_buffer_hash(field):
     with pytest.raises(RuntimeError, match='FIXED_SCORE_ROUNDTRIP_DIGEST'):
         wrapper._require_candidate_weights(saved, expected=expected, model=model, torch=torch)
     assert all(torch.equal(value, before[name]) for name, value in model.state_dict().items())
+
+
+def shrink_plan():
+    from gx1.audit import cache_market_state_ta_direction_v1 as wrapper
+    ref = lambda path: {'path': str(path), 'sha256': 'a' * 64}
+    return dict(schema_version=wrapper.SHRINK_SCHEMA, stage=wrapper.SHRINK_STAGE,
+        source_repo=str(wrapper.REPO), source_base_commit='a' * 40,
+        worker=ref(wrapper.WORKER), dispatch=ref(wrapper.REPO / wrapper.DISPATCH),
+        cap_runner=ref(wrapper.REPO / wrapper.CAP_RUNNER), runtime_source_override={},
+        inputs=wrapper.SHRINK_REFS, **wrapper.SHRINK_BOUNDS)
+
+
+def shrink_inputs():
+    import torch
+    coefficients = {}
+    for prefix, bias, offset in (('state_model.m5_side_head', .19012347, 0.),
+                                 ('future_m5_side_head', -.27098765, .173)):
+        coefficients[prefix + '.weight'] = (torch.linspace(-.37, .91, 128, dtype=torch.float32) + offset).reshape(1, 128)
+        coefficients[prefix + '.bias'] = torch.tensor([bias], dtype=torch.float32)
+    lock = {'slopes': {'state': {'slope': .371234567890123}, 'future': {'slope': .819876543210987}}}
+    priors = {'tasks': {'state': {'raw_logits': [[0., 1.23456789012345]]},
+                        'future': {'raw_logits': [[0., -.876543210987654]]}}}
+    return coefficients, lock, priors
+
+
+def test_shrink_plan_is_exact_and_cannot_expand_encodings_or_updates():
+    from gx1.audit import cache_market_state_ta_direction_v1 as wrapper
+    plan = shrink_plan()
+    path, root = wrapper.SHRINK_ROOT / 'PLAN.json', wrapper.SHRINK_ROOT
+    assert wrapper.SHRINK_STAGE == 'market_state_ta_m5_locked_shrink_native_20261111_001'
+    assert wrapper._shrink_plan(plan, path, root) == plan
+    for key, value in (('max_backbone_encodings', plan['max_backbone_encodings'] + 1),
+                       ('max_optimizer_updates', 1), ('training_enabled', True),
+                       ('inputs', wrapper.SCORE_REFS), ('stage', wrapper.SCORE_STAGE)):
+        with pytest.raises(RuntimeError):
+            wrapper._shrink_plan({**plan, key: value}, path, root)
+    for old in (wrapper.ROOT, wrapper.FINAL_ROOT, wrapper.REVERSED_ROOT, wrapper.SCORE_ROOT):
+        with pytest.raises(RuntimeError):
+            wrapper._shrink_plan(plan, old / 'PLAN.json', root)
+        with pytest.raises(RuntimeError):
+            wrapper._shrink_plan(plan, path, old)
+
+
+def test_shrink_dispatch_keeps_preflight_and_run_out_of_consumed_routes(monkeypatch):
+    from gx1.audit import cache_market_state_ta_direction_v1 as wrapper
+    calls = []
+    monkeypatch.setattr(wrapper, '_inspect_shrink_score', lambda *args, **kwargs:
+        calls.append(('inspect', args, kwargs)) or dict(plan_ref={'path': 'bound', 'sha256': 'a' * 64},
+            view={'contract_sha256': 'b' * 64}, current_sources={str(i): 'c' * 64 for i in range(85)}))
+    monkeypatch.setattr(wrapper, '_run_shrink_score',
+        lambda *args, **kwargs: calls.append(('run', args, kwargs)) or {'status': 'synthetic'})
+    for name in ('_inspect', '_inspect_reversed', '_run_reversed', '_inspect_fixed_score', '_run_fixed_score'):
+        monkeypatch.setattr(wrapper, name, lambda *args, **kwargs: pytest.fail('consumed route entered'))
+    path, root = wrapper.SHRINK_ROOT / 'PLAN.json', wrapper.SHRINK_ROOT
+    assert wrapper.preflight_read_only(path, 'a' * 64, root)['backbone_encodings'] == 0
+    assert wrapper.run(path, 'a' * 64, root, device='cuda') == {'status': 'synthetic'}
+    assert calls == [('inspect', (path, 'a' * 64, root), {'execute': False}),
+                     ('run', (path, 'a' * 64, root), {'device': 'cuda'})]
+
+
+def test_shrink_folds_prior_centered_fp32_source_once_without_mutating_it():
+    import numpy as np
+    import torch
+    from gx1.audit import cache_market_state_ta_direction_v1 as wrapper
+    original, lock, priors = shrink_inputs()
+    before = {key: value.clone() for key, value in original.items()}
+    got = wrapper._shrink_coefficients(original, lock, priors, torch=torch)
+    assert set(got) == set(original) and len(got) == 4
+    for task, prefix in (('state', 'state_model.m5_side_head'), ('future', 'future_m5_side_head')):
+        slope = lock['slopes'][task]['slope']
+        prior = priors['tasks'][task]['raw_logits'][0][1]
+        weight = before[prefix + '.weight'].numpy().astype(np.float64)
+        bias = before[prefix + '.bias'].numpy().astype(np.float64)
+        expected = {prefix + '.weight': (slope * weight).astype(np.float32),
+                    prefix + '.bias': (prior + slope * (bias - prior)).astype(np.float32)}
+        for key, value in expected.items():
+            assert got[key].dtype == torch.float32 and got[key].shape == before[key].shape
+            np.testing.assert_array_equal(got[key].detach().cpu().numpy().view(np.uint32), value.view(np.uint32))
+    assert all(torch.equal(original[key], value) for key, value in before.items())
+    identity = wrapper._shrink_coefficients(original,
+        {'slopes': {task: {'slope': 1.} for task in ('state', 'future')}}, priors, torch=torch)
+    assert all(torch.equal(identity[key], value) for key, value in before.items())
+
+
+def test_shrink_rejects_zero_expansion_negative_and_nonfinite_slopes():
+    import copy
+    import torch
+    from gx1.audit import cache_market_state_ta_direction_v1 as wrapper
+    original, lock, priors = shrink_inputs()
+    before = {key: value.clone() for key, value in original.items()}
+    for task in ('state', 'future'):
+        for slope in (0., -.1, 1.000001, float('nan'), float('inf'), float('-inf')):
+            invalid = copy.deepcopy(lock)
+            invalid['slopes'][task]['slope'] = slope
+            with pytest.raises(RuntimeError):
+                wrapper._shrink_coefficients(original, invalid, priors, torch=torch)
+    assert all(torch.equal(original[key], value) for key, value in before.items())

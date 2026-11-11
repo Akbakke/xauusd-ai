@@ -212,6 +212,13 @@ def _inspect(plan_path, plan_sha256, out_dir, *, execute):
 
 
 def preflight_read_only(plan_path, plan_sha256, out_dir):
+    if Path(plan_path) == SHRINK_ROOT / 'PLAN.json' or Path(out_dir) == SHRINK_ROOT:
+        checked = _inspect_shrink_score(plan_path, plan_sha256, out_dir, execute=False)
+        return dict(status='READY_NO_CLAIM_NO_MODEL_NO_CHECKPOINT_DESERIALIZATION',
+            plan=checked['plan_ref'], view_sha256=checked['view']['contract_sha256'],
+            source_model_state_sha256=REVERSED_MODEL, model_constructions=0, backbone_encodings=0,
+            current_source_owners=len(checked['current_sources']), changed_owners=[CAP_RUNNER],
+            scalar_fits=0, test_data_used=False)
     if Path(plan_path) == SCORE_ROOT / 'PLAN.json' or Path(out_dir) == SCORE_ROOT:
         checked = _inspect_fixed_score(plan_path, plan_sha256, out_dir, execute=False)
         return dict(status='READY_NO_CLAIM_NO_MODEL_NO_CHECKPOINT_DESERIALIZATION',
@@ -271,6 +278,8 @@ def _save_cache(partition, arrays, rows, *, partial=False, root=ROOT):
 
 
 def run(plan_path, plan_sha256, out_dir, *, device):
+    if Path(plan_path) == SHRINK_ROOT / 'PLAN.json' or Path(out_dir) == SHRINK_ROOT:
+        return _run_shrink_score(plan_path, plan_sha256, out_dir, device=device)
     if Path(plan_path) == SCORE_ROOT / 'PLAN.json' or Path(out_dir) == SCORE_ROOT:
         return _run_fixed_score(plan_path, plan_sha256, out_dir, device=device)
     if Path(plan_path) == REVERSED_ROOT / 'PLAN.json' or Path(out_dir) == REVERSED_ROOT:
@@ -1453,3 +1462,325 @@ def _run_fixed_score(plan_path, plan_sha256, out_dir, *, device):
         signal.setitimer(signal.ITIMER_REAL, 0.); signal.signal(signal.SIGALRM, previous_alarm)
         if prepared is not None:
             base._release_pages(provider, prepared)
+
+
+# Locked inner-TRAIN confidence correction; all full representations already exist.
+SHRINK_STAGE = 'market_state_ta_m5_locked_shrink_native_20261111_001'
+SHRINK_ROOT = Path('/home/andre2/GX1_RUNS') / SHRINK_STAGE.upper()
+SHRINK_SCHEMA = 'gx1_ta_m5_locked_shrink_native_plan_v1'
+_SHRINK = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_INNER_PRIOR_SHRINK_20261111_002')
+SHRINK_REFS = {
+    **SCORE_REFS,
+    'native_plan': {'path': str(SCORE_ROOT/'PLAN.json'), 'sha256': '279cbf0bd77cfbe655c8c4414889f1aa9c62dfb25485ccf428df714d656ae6df'},
+    'native_result': {'path': str(SCORE_ROOT/'RESULT.json'), 'sha256': 'e5be50b5bb4eead295051bf8df6f694ecfc6ae46c33386e782e439d2a6007a8f'},
+    'native_review': {'path': str(SCORE_ROOT/'NUMERIC_REVIEW.json'), 'sha256': '42135ad7288b66053abd76b107209670ef93eab17da4843493ec34fdb72f9d90'},
+    'native_later': {'path': str(SCORE_ROOT/'FULL_LATER_READOUT.npz'), 'sha256': '2e9bc91f8cff9528d0a8821ef4ea0d565d6f921cc092d76112d594cadd3c3938'},
+    'shrink_plan': {'path': str(_SHRINK/'PLAN.json'), 'sha256': '476eb63cba3915110c20a8ff935dc754243ea01e66bdd7b18b098ee7cdaaedce'},
+    'shrink_result': {'path': str(_SHRINK/'RESULT.json'), 'sha256': '8e127f550d2fce718120c01fa9c6bafe6029742361fd36789ea4c67fc93ff5d0'},
+    'shrink_review': {'path': str(_SHRINK/'NUMERIC_REVIEW.json'), 'sha256': '57cba25787986bcbe6b95bd6605c818d93f2e674f995ad2858dac9cee6ffa903'},
+    'shrink_lock': {'path': str(_SHRINK/'SLOPE_LOCK.json'), 'sha256': 'b4bd90037482bcb72e2731c4e3a858eaa478bd14103de85d15995673f71913e7'},
+    'shrink_outputs': {'path': str(_SHRINK/'PRIVATE_OUTPUTS.npz'), 'sha256': '9b63da8478b411048ce7f4bd0780a36b89b061357fb5866b1ce6055b65dff57b'},
+}
+SHRINK_BOUNDS = dict(fit_rows=29574, score_rows=17753, batch_size=16, decoder_width=128,
+    max_backbone_encodings=2, max_model_constructions=1, max_checkpoint_loads=2,
+    max_candidate_writes=1, max_candidate_bytes=1073741824, max_cache_bytes=16777216,
+    max_cached_head_calls=5918, head_tensor_imports=4, max_optimizer_constructions=0,
+    max_backwards=0, max_optimizer_updates=0, max_checkpoint_writes=0,
+    scalar_fits=0, device='cuda', wall_seconds=900, training_enabled=False, test_data_used=False)
+
+
+def _shrink_plan(plan, plan_path, out_dir):
+    fields = {'schema_version', 'stage', 'source_repo', 'source_base_commit', 'worker',
+              'dispatch', 'cap_runner', 'runtime_source_override', 'inputs'} | set(SHRINK_BOUNDS)
+    _need(set(plan) == fields and plan['schema_version'] == SHRINK_SCHEMA
+          and plan['stage'] == SHRINK_STAGE and plan['source_repo'] == str(REPO)
+          and Path(plan_path) == SHRINK_ROOT/'PLAN.json' and Path(out_dir) == SHRINK_ROOT
+          and plan['inputs'] == SHRINK_REFS
+          and all(type(plan[k]) is type(v) and plan[k] == v for k, v in SHRINK_BOUNDS.items()),
+          'SHRINK_EXACT_PLAN')
+    _need(isinstance(plan['source_base_commit'], str)
+          and campaign._COMMIT.fullmatch(plan['source_base_commit']), 'SHRINK_SOURCE_BASE')
+    return plan
+
+
+def _shrink_coefficients(original_coefficients, slope_lock, priors, *, torch):
+    result = {}
+    expected = {prefix+suffix for prefix in ('state_model.m5_side_head', 'future_m5_side_head')
+                for suffix in ('.weight', '.bias')}
+    _need(set(original_coefficients) == expected, 'SHRINK_COEFFICIENT_KEYS')
+    for task, prefix in (('state', 'state_model.m5_side_head'), ('future', 'future_m5_side_head')):
+        a = slope_lock['slopes'][task]['slope']
+        b = priors['tasks'][task]['raw_logits'][0][1]
+        _need(type(a) is float and 0. < a <= 1. and type(b) in (int, float)
+              and float('-inf') < b < float('inf'), 'SHRINK_SLOPE_PRIOR:' + task)
+        for suffix, shape in (('.weight', (1, 128)), ('.bias', (1,))):
+            value = original_coefficients[prefix+suffix]
+            _need(isinstance(value, torch.Tensor) and value.dtype == torch.float32
+                  and tuple(value.shape) == shape and bool(torch.isfinite(value).all()),
+                  'SHRINK_COEFFICIENT:' + task + suffix)
+            x = value.detach().double()
+            folded = a*x if suffix == '.weight' else b+a*(x-b)
+            result[prefix+suffix] = folded.float()
+    return result
+
+
+def _inspect_shrink_score(plan_path, plan_sha256, out_dir, *, execute):
+    pr = {'path': str(plan_path), 'sha256': plan_sha256}
+    plan = _shrink_plan(_read(pr), plan_path, out_dir); refs = plan['inputs']; bound = [pr]
+    for key, path in (('worker', WORKER), ('dispatch', REPO/DISPATCH), ('cap_runner', REPO/CAP_RUNNER)):
+        _need(plan[key]['path'] == str(path), 'SHRINK_SOURCE_PATH:' + key)
+        campaign.require_binding(plan[key], label=key, verify_file=True); bound.append(plan[key])
+    for key, ref in refs.items():
+        campaign.require_binding(ref, label='shrink input '+key, verify_file=True); bound.append(ref)
+    q = _qualify_reversed_origin(plan, bound)
+    native, native_plan, native_review, shrink, shrink_plan, shrink_review, lock, readout_lock = (
+        _read(refs[k]) for k in ('native_result', 'native_plan', 'native_review', 'shrink_result',
+            'shrink_plan', 'shrink_review', 'shrink_lock', 'readout_lock'))
+    _need(native['status'] == 'COMPLETE' and native['source_unchanged'] and native['evaluation_state_unchanged']
+          and native['plan'] == refs['native_plan'] and native['artifacts']['full_later'] == refs['native_later']
+          and native_plan['inputs']['fit_representations'] == refs['fit_representations']
+          and native_plan['inputs']['readout_outputs'] == refs['readout_outputs']
+          and native_plan['inputs']['readout_lock'] == refs['readout_lock']
+          and native_review['status'] == 'PASS_INDEPENDENT_RETAINED_LOGIT_ARITHMETIC'
+          and native_review['result'] == refs['native_result'] and native_review['exact_full_later_axes_masks'],
+          'SHRINK_NATIVE_CACHE_LINEAGE')
+    _need(shrink['status'] == 'COMPLETE' and shrink['source_unchanged']
+          and shrink['plan'] == refs['shrink_plan'] and shrink['slope_lock'] == refs['shrink_lock']
+          and shrink['private_outputs'] == refs['shrink_outputs']
+          and shrink['comparison']['decision'] == 'PASS_ALL_FOUR_INITIAL_PRIOR_CELLS'
+          and shrink_review['status'] == 'PASS_INDEPENDENT_RETAINED_LOGIT_ARITHMETIC'
+          and shrink_review['result'] == refs['shrink_result'] and shrink_review['primary_comparison_pass']
+          and lock['plan'] == refs['shrink_plan'] and lock['slopes'] == shrink['slopes']
+          and lock['later_arrays_decoded'] is False and lock['scalar_fits'] == shrink['counts']['scalar_fits'] == 2
+          and shrink['encoder_oof'] is False and shrink_plan['inputs']['native_result'] == refs['native_result']
+          and shrink_plan['inputs']['native_later'] == refs['native_later']
+          and readout_lock['plan'] == refs['readout_plan'] and readout_lock['alpha'] == .01,
+          'SHRINK_LOCKED_TRANSFORM')
+    for task in ('state', 'future'):
+        _need(type(lock['slopes'][task]['slope']) is float and 0 < lock['slopes'][task]['slope'] <= 1,
+              'SHRINK_NONCOLLAPSED_SLOPE')
+    _need(all(x['test_data_used'] is False for x in (native, native_review, shrink, shrink_review)), 'SHRINK_TEST')
+    head = _git('rev-parse', 'HEAD')
+    subprocess.run(['git','-C',str(REPO),'merge-base','--is-ancestor',plan['source_base_commit'],head], check=True)
+    policy_ref = _ref(REPO/'NEXT_RUN_POLICY.json'); policy = _read(policy_ref); bound.append(policy_ref)
+    _need(all(policy.get(k) is False for k in ('training_enabled','native_training_enabled',
+          'native_launch_authorized','full_epoch_training_allowed')), 'SHRINK_NO_TRAINING')
+    if execute:
+        gate = policy.get(SHRINK_STAGE, {})
+        expected = dict(status='ADMITTED', plan=pr, max_invocations=1, remaining_invocations=1,
+            claimed_invocations=0, completed_invocations=0, relaunch_allowed=False, execution_authorized=True,
+            data_reads_authorized=True, checkpoint_reads_authorized=True, backbone_encodings_authorized=2,
+            head_tensor_imports_authorized=4, candidate_weights_writes_authorized=1,
+            backward_calls_authorized=0, optimizer_steps_authorized=0, training_authorized=False)
+        _need(all(type(gate.get(k)) is type(v) and gate[k] == v for k,v in expected.items())
+              and all(type(gate.get(k)) is type(v) and gate[k] == v for k,v in SHRINK_BOUNDS.items()),
+              'SHRINK_ADMISSION')
+        _need(_git('branch','--show-current') == 'work/gx1-current', 'SHRINK_BRANCH')
+        campaign.require_clean_source(dict(source_repo=str(REPO),source_commit=head))
+        _need(not any((SHRINK_ROOT/n).exists() for n in ('CLAIM.json','RESULT.json','TERMINAL.json',
+              'CANDIDATE_WEIGHTS.pt','FOLDED_COEFFICIENTS.npz')), 'SHRINK_CONSUMED')
+    return dict(q, plan=plan, plan_ref=pr, head=head, policy_ref=policy_ref, bound_refs=bound,
+                native=native, shrink=shrink, slope_lock=lock, readout_lock=readout_lock)
+
+
+def _run_shrink_score(plan_path, plan_sha256, out_dir, *, device):
+    import copy
+    import numpy as np
+    import torch
+    from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_producer_execution, require_capped_lock_ancestry
+    from gx1.audit import qualify_market_state_mature_prefix_normalization_v1 as base
+    from gx1.audit.run_market_state_ta_m5_full_reverse_order_v1 import build_reverse_order
+    from gx1.contracts import entry_native_direction_feature_view_v1 as views
+    from gx1.contracts import entry_native_direction_research_state_v1 as old
+    from gx1.contracts import market_state_time_query_fold1_fit_state_v1 as state
+    from gx1.contracts import market_state_time_query_fold1_fit_v1 as fit
+    from gx1.contracts import market_state_native_F_private_campaign_v1 as private
+    from gx1.contracts.market_state_time_query_native_F_model_v1 import NativeFutureDualModel
+    from gx1.contracts.market_state_five_endpoint_target_binding_v1 import load_bound_five_endpoint_targets
+    from gx1.contracts.market_state_future_displacement_candidate_v1 import load_bound_future_displacement
+    from gx1.contracts.market_state_time_query_native_F_batch_v1 import evaluate_endpoint_batch
+    from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256 as model_sha
+    from gx1.scripts import run_market_state_time_query_fold1_fit_window_v1 as runner
+    from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+    from gx1.scripts.run_market_state_native_F_private_window_v1 import _m5_import_score
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+    from gx1.contracts.immutable_event_authority_v1 import _publish_bytes
+    started = time.monotonic(); _need(device == 'cuda', 'SHRINK_CUDA_ONLY')
+    cap = require_guarded_cuda_producer_execution(); cap['lock'] = require_capped_lock_ancestry()
+    _need(cap['cgroup_path'] == '/sys/fs/cgroup'+cap['lock']['scope']
+          and cap['memory_max'] == cap['memory_high'] == 12*1024**3 and cap['swap'] == 512*1024**2,
+          'SHRINK_CAP')
+    for key,value in (('MAX_POWER_LIMIT_W','250'),('MAX_POWER_DRAW_W','170'),('MAX_CORE_TEMP_C','65'),('MAX_MEMORY_TEMP_C','80')):
+        _need(os.environ.get('GX1_TRAINER_GPU_'+key) == value, 'SHRINK_HARDWARE:'+key)
+    q = _inspect_shrink_score(plan_path,plan_sha256,out_dir,execute=True)
+    _need(not torch.cuda.is_initialized() and signal.getitimer(signal.ITIMER_REAL) == (0.,0.), 'SHRINK_INIT_ORDER')
+    publish = lambda name,value: _publish(name,value,root=SHRINK_ROOT)
+    claim = publish('CLAIM.json',dict(plan=q['plan_ref'],policy=q['policy_ref'],source_commit=q['head'],cap=cap,
+                    head_tensor_imports_authorized=4,optimizer_updates=0,test_data_used=False))
+    counts = dict(model_constructions=0,checkpoint_loads=0,backbone_encodings=0,forward_returns=0,
+        cached_head_calls=0,head_tensor_imports=0,candidate_writes=0,optimizer_constructions=0,
+        optimizer_updates=0,backwards=0,checkpoint_writes=0,resume_state_load_calls=0,
+        resume_state_load_returns=0,published_npz_bytes=0,scalar_fits=0)
+    provider = prepared = None; artifacts = {}; import_proof = {}; scores = {}; parity = {}; roundtrip = {}
+    previous_alarm = signal.getsignal(signal.SIGALRM)
+    def timeout(*unused): raise TimeoutError('Locked shrink native 900-second bound')
+    signal.signal(signal.SIGALRM,timeout);signal.setitimer(signal.ITIMER_REAL,max(1.,900-(time.monotonic()-started)))
+    def bookend():
+        campaign.require_clean_source(dict(source_repo=str(REPO),source_commit=q['head']))
+        for ref in q['bound_refs']:campaign.require_binding(ref,label='shrink bookend',verify_file=True)
+        for name,digest in q['current_sources'].items():
+            _need(campaign.file_sha256(REPO/name)==digest,'SHRINK_OWNER_BOOKEND:'+name)
+    def save_arrays(name,values):
+        buf=io.BytesIO();np.savez(buf,**values);counts['published_npz_bytes']+=buf.tell()
+        _need(counts['published_npz_bytes']<=SHRINK_BOUNDS['max_cache_bytes'],'SHRINK_OUTPUT_BYTES')
+        _publish_bytes(SHRINK_ROOT/name,buf.getvalue());return _ref(SHRINK_ROOT/name)
+    def exact(a,b):return a.shape==b.shape and a.dtype==b.dtype and a.tobytes()==b.tobytes()
+    try:
+        recipe,receipts,view=(q[k] for k in ('recipe','receipts','view'));refs=q['plan']['inputs']
+        numerical=recipe['numerical_recipe'];cuda=torch.device('cuda')
+        trainer._set_deterministic(numerical['seed'],cuda,numerical['precision_policy'])
+        torch.set_num_threads(1);torch.set_num_interop_threads(1)
+        _need(torch.get_num_threads()==torch.get_num_interop_threads()==1,'SHRINK_THREADS')
+        provider,provider_plan,prepared,fit_rows,fit_issues=runner._prepared_fold1(receipts,view,np=np)
+        endpoint,future=load_bound_five_endpoint_targets(),load_bound_future_displacement()
+        axes=endpoint.mature_oof_axes(fold_id=1);later_rows,later_issues=axes['score_parent_rows'],axes['score_decision_ns']
+        _need(np.array_equal(fit_rows,axes['fit_parent_rows']) and np.array_equal(fit_issues,axes['fit_decision_ns'])
+              and len(fit_rows)==FIT_ROWS and len(later_rows)==SCORE_ROWS,'SHRINK_AXES')
+        panels={}
+        for panel,name,n in (('TRAIN','fit_representations',FIT_ROWS),('LATER_FULL','native_later',SCORE_ROWS)):
+            with np.load(refs[name]['path'],allow_pickle=False) as z:
+                panels[panel]={k:z[k].copy() for k in runner._ta_m5_capture_layout(n)}
+        with np.load(refs['shrink_outputs']['path'],allow_pickle=False) as z:
+            ideal={k:z[k].copy() for k in z.files if k.startswith(('TRAIN_','LATER_FULL_'))}
+        with np.load(refs['readout_outputs']['path'],allow_pickle=False) as z:
+            original=_fixed_coefficients(z,q['readout_lock'],np=np,torch=torch)
+        coefficients=_shrink_coefficients(original,q['slope_lock'],q['priors'],torch=torch)
+        artifacts['folded_coefficients']=save_arrays('FOLDED_COEFFICIENTS.npz',
+            {name:value.cpu().numpy().copy() for name,value in coefficients.items()})
+        for panel,data in panels.items():
+            rows,issues=(fit_rows,fit_issues) if panel=='TRAIN' else (later_rows,later_issues)
+            for key,expected in (('parents',rows),('issues',issues)):
+                _need(exact(data[key],expected) and exact(data[key],ideal[panel+'_'+key]),'SHRINK_ORDERED_AXIS')
+            for task in ('state','future'):
+                allowed=data[task+'_allowed'][:,0]
+                k=data[task+'_eligible'][:,0]&data[task+'_mature'][:,0]&np.isin(allowed,(1,4))
+                _need(exact(k,ideal[panel+'_'+task+'_known'])
+                      and exact((allowed==4).astype(np.float64),ideal[panel+'_'+task+'_y']),'SHRINK_TRUTH')
+                _need(np.all(ideal[panel+'_'+task+'_PRIOR']==q['priors']['tasks'][task]['raw_logits'][0][1]),'SHRINK_PRIOR')
+        counts['model_constructions']+=1
+        backbone=views.build_native_direction_research_model(view,prefix_normalization=receipts['fold1']['normal'],
+            constructor_metadata=receipts['constructor'],device=torch.device('cpu'),unobserved_units_profile=receipts['fold1']['profile'])
+        model=NativeFutureDualModel(backbone)
+        fit.require_checkpoint_view(model.state_model.feature_view_identity,recipe=q['origin']['original_recipe'],verify_files=True,ta_sf=True)
+        _need(model.research_objective['contract_sha256']==recipe['expected_model_contract_sha256'],'SHRINK_MODEL_CONTRACT')
+        order,_=build_reverse_order(fit_rows,recipe['batch_indices']);counts['checkpoint_loads']+=1
+        saved=common._load_state(refs['reversed_evidence'],torch=torch,maximum=recipe['max_checkpoint_bytes'],counters=counts)
+        source_identity=_load_reversed_weights(model,saved,q,torch.from_numpy(order.copy()),torch=torch);del saved
+        model.to(cuda)
+        def signature():
+            return dict(model=model_sha(model.state_dict()),buffers=old._tree_sha(dict(model.named_buffers())),
+                rng=old._tree_sha(trainer._attended_session_rng_state(device=cuda)),
+                modes={n:bool(m.training) for n,m in model.named_modules()},
+                trainability={n:p.requires_grad for n,p in model.named_parameters()})
+        before=signature()
+        _need(before['model']==REVERSED_MODEL and not any(before['trainability'].values()),'SHRINK_FROZEN_SOURCE')
+        import_proof=state.import_equal_weight_m5_side_heads(model,coefficients,expected_model_state_sha256=REVERSED_MODEL,
+            coefficient_artifact=artifacts['folded_coefficients'],coefficient_recipe=q['plan_ref'])
+        counts['head_tensor_imports']=4;candidate=signature()
+        _need(candidate['model']!=REVERSED_MODEL and all(candidate[k]==before[k] for k in ('buffers','rng','modes','trainability')),
+              'SHRINK_IMPORT_STATE')
+        heads={'state':model.state_model.m5_side_head,'future':model.future_m5_side_head};cached={}
+        for panel,data in panels.items():
+            scores[panel]={};parity[panel]={}
+            for task,head in heads.items():
+                pieces=[]
+                with torch.inference_mode():
+                    for left in range(0,len(data['parents']),16):
+                        x=torch.from_numpy(data[task+'_representation'][left:left+16]).to(cuda)
+                        pieces.append(head(x).flatten().cpu().numpy().copy());counts['cached_head_calls']+=1
+                z=np.concatenate(pieces);prefix=panel+'_'+task+'_';k=ideal[prefix+'known'];y=ideal[prefix+'y']
+                expected=ideal[prefix+'CANDIDATE'];p=lambda v:np.exp(-np.logaddexp(0.,-v.astype(np.float64)))
+                values={'CANDIDATE':z,**{arm:ideal[prefix+arm] for arm in ('INITIAL','PRIOR','R1','W2')},'IDEAL':expected}
+                scores[panel][task]={arm:_m5_import_score(v,k,y) for arm,v in values.items()}
+                parity[panel][task]=dict(raw_allclose=bool(np.allclose(z,expected,atol=private.TA_M5_PARITY_ATOL,rtol=private.TA_M5_PARITY_RTOL)),
+                    max_abs_raw_error=float(np.max(np.abs(z.astype(np.float64)-expected))),
+                    max_abs_probability_error=float(np.max(np.abs(p(z)-p(expected)))),
+                    score_delta={m:scores[panel][task]['CANDIDATE'][m]-scores[panel][task]['IDEAL'][m] for m in ('brier','log','mean_p')})
+                _need(parity[panel][task]['raw_allclose'],'SHRINK_ALL_ROW_PARITY')
+                cached[prefix+'CANDIDATE']=z
+        _need(counts['cached_head_calls']==5918 and signature()==candidate,'SHRINK_HEAD_EVALUATION_STATE')
+        artifacts['cached_heads']=save_arrays('CACHED_HEAD_OUTPUTS.npz',cached)
+        def actual_forward():
+            _need(counts['backbone_encodings']<2,'SHRINK_FORWARD_LIMIT')
+            raw,parents,clocks=runner._feature_batch(prepared,view,receipts,later_rows,later_issues,0,16,np=np)
+            features={k:torch.from_numpy(v).to(cuda) for k,v in raw.items()};counts['backbone_encodings']+=1
+            report=evaluate_endpoint_batch(model,features,endpoint,future,parents,clocks,fold_id=1,partition='score',
+                future_weight=1.,frozen_priors=q['priors'],capture_m5_readout=True)
+            counts['forward_returns']+=1;return report['m5_readout']
+        first=actual_forward();previous={k:v[:16] for k,v in panels['LATER_FULL'].items()}
+        for key in ('parents','issues','query_native','state_representation','future_representation'):
+            _need(exact(first[key],previous[key]),'SHRINK_FRESH_BASELINE:'+key)
+        for task in heads:
+            key=task+'_activity_side_logits'
+            _need(exact(first[key][...,0],previous[key][...,0]) and exact(first[key][:,1:],previous[key][:,1:])
+                and np.allclose(first[key][:,0,1],cached['LATER_FULL_'+task+'_CANDIDATE'][:16],
+                    atol=private.TA_M5_PARITY_ATOL,rtol=private.TA_M5_PARITY_RTOL),'SHRINK_BASELINE_OUTPUT')
+            for name in ('allowed','eligible','mature'):_need(exact(first[task+'_'+name],previous[task+'_'+name]),'SHRINK_BASELINE_TRUTH')
+        _need(signature()==candidate,'SHRINK_BASELINE_STATE')
+        artifacts['fresh_baseline']=save_arrays('FRESH_CANDIDATE_BASELINE.npz',first)
+        weights=dict(schema_version=SCORE_WEIGHTS_SCHEMA,plan=q['plan_ref'],source_commit=q['head'],
+            original_capsule=refs['reversed_evidence'],slope_lock=refs['shrink_lock'],folded_coefficients=artifacts['folded_coefficients'],
+            canonical_resume_authority=False,optimizer_state_included=False,model_state=copy.deepcopy(model.state_dict()),
+            buffer_state=copy.deepcopy(dict(model.named_buffers())),model_state_sha256=candidate['model'],buffer_state_sha256=candidate['buffers'],
+            feature_view_identity=copy.deepcopy(model.state_model.feature_view_identity),research_objective=copy.deepcopy(model.research_objective),
+            module_training=candidate['modes'],trainability=candidate['trainability'],test_data_used=False)
+        weights['weights_sha256']=old._tree_sha(weights);stream=io.BytesIO();torch.save(weights,stream)
+        _need(0<stream.tell()<=SHRINK_BOUNDS['max_candidate_bytes'],'SHRINK_WEIGHTS_BYTES')
+        _publish_bytes(SHRINK_ROOT/'CANDIDATE_WEIGHTS.pt',stream.getvalue());counts['candidate_writes']+=1
+        artifacts['candidate_weights']=_ref(SHRINK_ROOT/'CANDIDATE_WEIGHTS.pt');counts['checkpoint_loads']+=1
+        decoded=common._load_state(artifacts['candidate_weights'],torch=torch,maximum=SHRINK_BOUNDS['max_candidate_bytes'],counters=counts)
+        _require_candidate_weights(decoded,expected=weights,model=model,torch=torch)
+        state._require_model_binding(model);model.backbone.require_input_normalization_state()
+        _need(signature()==candidate,'SHRINK_ROUNDTRIP_STATE')
+        second=actual_forward()
+        _need(set(first)==set(second) and all(exact(first[k],second[k]) for k in first) and signature()==candidate,'SHRINK_ROUNDTRIP_OUTPUT')
+        roundtrip=dict(actual_file_decode=True,same_instance=True,all_model_tensors_exact=True,all_buffers_exact=True,
+            raw_outputs_exact=True,representations_exact=True,RNG_modes_trainability_unchanged=True,
+            fresh_constructor_tested=False,optimizer_restore=False,canonical_resume_authority=False)
+        decision=_fixed_score_decision(scores);ambiguous=[]
+        for panel in scores:
+            for task in heads:
+                for reference in ('INITIAL','PRIOR'):
+                    cell=decision['cells'][panel][task][reference]
+                    if cell['passes'] and any(-cell[m+'_delta']-cell['margin']<=abs(parity[panel][task]['score_delta'][m]) for m in ('brier','log')):
+                        ambiguous.append(dict(panel=panel,task=task,reference=reference))
+        decision['all_row_rounding_boundary_ambiguity']=ambiguous
+        if ambiguous and decision['decision'].startswith('PASS'):decision['decision']='NUMERICALLY_UNCLEAR'
+        expected=dict(model_constructions=1,checkpoint_loads=2,backbone_encodings=2,forward_returns=2,
+            cached_head_calls=5918,head_tensor_imports=4,candidate_writes=1,optimizer_constructions=0,
+            optimizer_updates=0,backwards=0,checkpoint_writes=0,resume_state_load_calls=2,resume_state_load_returns=2,scalar_fits=0)
+        _need(all(counts[k]==v for k,v in expected.items()),'SHRINK_EXACT_COUNTS')
+        base._release_pages(provider,prepared);prepared=None;provider.validate_metadata(provider_plan);bookend()
+        result=publish('RESULT.json',dict(status='COMPLETE',plan=q['plan_ref'],claim=claim,source_commit=q['head'],counts=counts,
+            artifacts=artifacts,source_identity=source_identity,import_proof=import_proof,candidate_model_state_sha256=candidate['model'],
+            scores=scores,comparison=decision,all_row_numeric_parity=parity,roundtrip=roundtrip,
+            fresh_candidate_baseline=dict(rows=16,artifact=artifacts['fresh_baseline'],representations_and_non_M5_outputs_unchanged=True),
+            source_unchanged=True,evaluation_state_unchanged=True,scalar_fits=0,training_enabled=False,test_data_used=False,
+            canonical_resume_authority=False,promotion_authorized=False,elapsed_seconds=time.monotonic()-started,
+            limits='Actual native CUDA heads on every qualified cached representation plus two full row0 forwards. No all-row fresh encoder, fresh constructor, optimizer resume, untouched generalization or economic-edge claim.'))
+        terminal=publish('TERMINAL.json',dict(status='COMPLETE',exit_code=0,plan=q['plan_ref'],result=result,
+            source_unchanged=True,no_relaunch_under_this_plan=True,test_data_used=False))
+        return dict(result=result,terminal=terminal)
+    except BaseException as exc:
+        changed=None
+        try:bookend()
+        except Exception as other:changed=repr(other)
+        result=publish('RESULT.json',dict(status='FAILED_CONSUMED',plan=q['plan_ref'],claim=claim,counts=counts,artifacts=artifacts,
+            import_proof=import_proof,scores=scores,all_row_numeric_parity=parity,roundtrip=roundtrip,
+            error=type(exc).__name__+':'+str(exc),source_unchanged=changed is None,bookend_error=changed,test_data_used=False))
+        publish('TERMINAL.json',dict(status='FAILED',exit_code=1,plan=q['plan_ref'],result=result,
+            source_unchanged=changed is None,no_relaunch_under_this_plan=True,test_data_used=False))
+        raise
+    finally:
+        signal.setitimer(signal.ITIMER_REAL,0.);signal.signal(signal.SIGALRM,previous_alarm)
+        if prepared is not None:base._release_pages(provider,prepared)
