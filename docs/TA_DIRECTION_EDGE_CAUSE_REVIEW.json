@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_MATCHED_INITIAL_OBSERVATION_QUALIFIED",
+  "status": "ACTIVE_MATCHED_FUSION_DIAGNOSIS_COMPLETE_PREDICTIVE_PROBE_NEXT",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -49,27 +49,25 @@
           "sha256": "8fc8b00e761bdab569a418ac3c3e3deaceba4e996f85526b53acd6fd245b318a"
         }
       ]
+    },
+    {
+      "id": "matched_fusion_change",
+      "evidence_class": "MEASURED_REAL_DATA_SCOPED",
+      "finding": "Matched warm-start versus trained capture shows less volatility-gate dominance and more MTF total/rest variance, with a much stronger dominant axis. This does not establish a general representation collapse or a unique cause of weak ranking.",
+      "evidence": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_INITIAL_OBSERVATION_20261111_001/MATCHED_INTERPRETATION_REVIEW.json",
+        "sha256": "1cb6defc291209d1912ff7c5adfa561c3b435600589688fc92266df9efe79c38"
+      }
     }
   ],
   "next_measurement": {
-    "status": "ADMITTED_ONCE_NO_TRAINING",
-    "question": "Was the observed MTF/context concentration already present at the preserved INITIAL checkpoint, or did it arise during the short learned run?",
-    "method": "Reuse exactly the same parents/batches and passive observation fields with the preserved bound INITIAL state. Compare pre-residual MTF pool, all joint blocks and hidden; no training or new model selection.",
-    "fit_steps": 0,
-    "model_source_changes": false,
-    "predictive_loss_claimed": false,
-    "plan": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_INITIAL_OBSERVATION_20261111_001/PLAN.json",
-      "sha256": "178013d74c69076b6c46973507b9037a803d2a759055a51df25113ab4ba35f1d"
-    },
-    "preflight": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_INITIAL_OBSERVATION_20261111_001/PREFLIGHT.log",
-      "sha256": "bd09070c7138e3f8c16231959f026800075a1bba2fe9d7b4e4b74f12c8722e36"
-    },
-    "focused_tests_passed": 60,
-    "diagnostic_rows": 512,
-    "backbone_forwards": 33,
-    "independence_limit": "16intactB16groups perpartition;512rows are not512independent observations."
+    "status": "NOT_YET_QUALIFIED_OR_ADMITTED",
+    "question": "Does the qualified predictor benefit from row-dependent dedicated MTF residual and pooled-MTF variation on these fixed diagnostic groups?",
+    "method": "Keep local representation and global context. Replace only joint after-MTF minus base residual and the direct MTF pool with fixed TRAIN-panel means. Recompute unchanged joint/query/output layers; first require bit-identical original baseline. Compare existing native S/F direction losses using unchanged masks and paired B16 groups.",
+    "new_backbone_forwards": 0,
+    "new_predictor_fits": 0,
+    "model_change_authorized": false,
+    "limitations": "Diagnostic intervention also affects joint normalization and breaks some natural feature relationships. A gain would require confirmation on a broader locked development axis before any model change; unchanged scores may reflect redundant routes."
   },
   "not_established": [
     "Unique historical optimizer cause",
@@ -216,9 +214,109 @@
       "All observed routes remain nonzero. Local specialist weights are one mixing path, not feature importance; family context also has direct routes.",
       "Raw cross-row joint variance is88.9-89.2percent global context. Joint LayerNorm operates within each row; this is not a share of decision influence.",
       "MTF pooling is already strongly concentrated before its residual projection. No predictive information loss is proven.",
-      "Three residual projections have zero-initialized weights/bias. INITIAL residual output zero is expected; compare pre-projection MTF pool and joint blocks, not residual rank alone.",
       "The only exactly constant feature multiplier is D1/session_change_flag=1.0 in both panels, an open neutral gate rather than a disconnected route.",
-      "Independent read-only review confirmed arithmetic definitions, FP32 residual reconstruction and source interpretation; it did not independently rerun arrays."
+      "Independent read-only review confirmed arithmetic definitions, FP32 residual reconstruction and source interpretation; it did not independently rerun arrays.",
+      "Constructor residual projections start at zero, but preserved INITIAL is imported and has nonzero residual outputs. The matched comparison supersedes the previous expected-zero INITIAL interpretation."
+    ]
+  },
+  "matched_initial_comparison": {
+    "status": "COMPLETE",
+    "interpretation_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_INITIAL_OBSERVATION_20261111_001/MATCHED_INTERPRETATION_REVIEW.json",
+      "sha256": "1cb6defc291209d1912ff7c5adfa561c3b435600589688fc92266df9efe79c38"
+    },
+    "numeric_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_INITIAL_OBSERVATION_20261111_001/MATCHED_NUMERIC_REVIEW.json",
+      "sha256": "80cab84841953f7743c86c5493c78d6f71ad68ccc24562fc9af219da070f2f4a"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_INITIAL_OBSERVATION_20261111_001/RESULT.json",
+      "sha256": "5b2556f83db1840a9987ebe88e8fac6db9fdb2b44d7de9d01e4ea3551598fcb6"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_INITIAL_OBSERVATION_20261111_001/TERMINAL.json",
+      "sha256": "b4891571e4a12829953ae72290a5b953b9f1c4900b747335c414374c6cb999cb"
+    },
+    "controller_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_INITIAL_OBSERVATION_20261111_001/CONTROLLER_TERMINAL.json",
+      "sha256": "f8218d251645177b07710ffcf7c128f0d1c37c4e25b989a80a37e7aa1b19cda6"
+    },
+    "source_commit": "fa88595007765c5362233fca87cea036f59c49b2",
+    "counts": {
+      "archive_decodes": 3,
+      "backbone_encodings": 33,
+      "backwards": 0,
+      "candidate_writes": 0,
+      "checkpoint_loads": 1,
+      "checkpoint_writes": 0,
+      "forward_returns": 33,
+      "head_tensor_imports": 0,
+      "instrumented_forwards": 32,
+      "model_constructions": 1,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "published_npz_bytes": 5702814,
+      "resume_state_load_calls": 1,
+      "resume_state_load_returns": 1,
+      "sampled_rows": 512,
+      "scalar_fits": 0
+    },
+    "passivity": {
+      "instrumented_matches_bound_baseline": true,
+      "instrumented_matches_uninstrumented": true,
+      "uninstrumented_matches_bound_baseline": true
+    },
+    "matched_observations": {
+      "LATER": true,
+      "TRAIN": true
+    },
+    "elapsed_seconds": 127.26726288600184,
+    "warm_start_correction": "Earlier prose incorrectly applied constructor zero initialization to the preserved INITIAL checkpoint. INITIAL is an imported warm-start; all three observed residual outputs are nonzero. Preserve original numeric records; this interpretation supersedes that one limitation sentence and the earlier expected-zero inference.",
+    "partitions": {
+      "TRAIN": {
+        "rows": 256,
+        "same_input_target_identity": true,
+        "initial_residual_outputs_all_zero": false,
+        "volatility_local_gate_initial": 0.9733730312436819,
+        "volatility_local_gate_trained": 0.059008113561503706,
+        "mtf_centered_rms_initial": 0.01119648255412485,
+        "mtf_centered_rms_trained": 0.03195030513133836,
+        "mtf_first_axis_fraction_initial": 0.4770667892891213,
+        "mtf_first_axis_fraction_trained": 0.9343471460285483,
+        "mtf_total_variance_ratio": 8.143044436551824,
+        "mtf_first_axis_variance_ratio": 15.948354612177448,
+        "mtf_remaining_variance_ratio": 1.0223372628202774,
+        "state_effective_variance_dimensions_initial": 2.8922144430839234,
+        "state_effective_variance_dimensions_trained": 3.1211931130542196,
+        "global_context_raw_joint_variance_fraction_initial": 0.8339251267825544,
+        "global_context_raw_joint_variance_fraction_trained": 0.8917170923129483
+      },
+      "LATER": {
+        "rows": 256,
+        "same_input_target_identity": true,
+        "initial_residual_outputs_all_zero": false,
+        "volatility_local_gate_initial": 0.9750700644217432,
+        "volatility_local_gate_trained": 0.09344088209945767,
+        "mtf_centered_rms_initial": 0.012537174899665483,
+        "mtf_centered_rms_trained": 0.055922937328369046,
+        "mtf_first_axis_fraction_initial": 0.6130624516012515,
+        "mtf_first_axis_fraction_trained": 0.9744201996874261,
+        "mtf_total_variance_ratio": 19.896678382040793,
+        "mtf_first_axis_variance_ratio": 31.624388790254706,
+        "mtf_remaining_variance_ratio": 1.3153364464169834,
+        "state_effective_variance_dimensions_initial": 2.5238174273915956,
+        "state_effective_variance_dimensions_trained": 2.7926170062285243,
+        "global_context_raw_joint_variance_fraction_initial": 0.8262492514405166,
+        "global_context_raw_joint_variance_fraction_trained": 0.8885685697861031
+      }
+    },
+    "interpretation": [
+      "The original warm-start local gate concentrated97percent on volatility. The later gate is more distributed; this is route use, not feature importance.",
+      "MTF total variance and variance outside its first axis both increase. The larger first-axis share is predominantly a growing dominant direction, not measured destruction of residual variance.",
+      "Principal directions may rotate. Neither predictive preservation nor predictive loss follows from variance arithmetic.",
+      "The final state representation has slightly more effective variance dimensions on both panels; no general collapse explanation is supported.",
+      "No unique cause of weak ranking or actual model change is justified by this diagnostic alone. Family predictive value, sufficient-training capacity and untouched generalization remain open.",
+      "16intactB16groups perpartition;512matched rows are not512independent observations."
     ]
   }
 }
