@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-11T15:41:27.251651+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_C171_SHORT_LEARNING_002_ADMITTED_BOOT_PENDING",
+  "status": "TA_DIRECTION_EDGE_CAUSE_C171_SHORT_LEARNING_REVIEW_COMPLETE",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,7 +1415,7 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
@@ -1698,7 +1698,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Exact replacement002 admitted after measured cap integration repair; campaign/physical reboot pending, no model started.",
+    "current_activity": "Short native learning and independent retained-output review complete; no active job or training authority.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1751,7 +1751,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Short-run learning response from c171 remains unmeasured. Consumed001 cap rejection corrected and directly tested.",
+    "current_blocker": "Actual ordinary updates mostly shifted output level/amplitude and had mixed direction scores. Exact cause and broader fit/generalization remain unproved.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9222,7 +9222,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Materialize new002, recheck actual bound-window cap and3900 mapping before claim, verify machine-wide idle and physical reboot, execute one256-update check. Preserve001 as consumed; no relaunch or automatic continuation. Inspect matched before/after panel including3 exposed and13 other historically usedTRAIN groups, then close gates.",
+    "next_action": "Inspect retained trace/head update metadata and existing chronological batch-composition evidence to localize the common output shift. Reuse existing outputs first; admit a new minimal counterfactual only after a concrete unresolved distinction is specified. No run is admitted now.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22137,11 +22137,23 @@
     },
     "direction_edge_cause_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "a1a7d3a74bba56b8c5a3ba5e3a71a45850b7eb01ff2303877bddb39743e51830"
+      "sha256": "2e5849e1cc33b44833cf38f783b2332a325a401903c8ebd401edab40faefca01"
     },
     "latest_c171_startup_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_C171_SHORT_LEARNING_STARTUP_REVIEW.json",
       "sha256": "8a4a83a33a24865536206ed18a98530ca1292b28d79623ce76eeb6e721e86f6e"
+    },
+    "latest_c171_short_learning_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_002/RESULT.json",
+      "sha256": "1b25f095c3f610fc9c42325840f6f683cf3e9a50006fcd6249250e07e753724a"
+    },
+    "latest_c171_short_learning_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_002/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "974a79f7f4b2fb9e9eab97814c9dda32ed5a7858ec6121a6bbbd435efe0e96d7"
+    },
+    "latest_c171_short_learning_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_C171_SHORT_LEARNING_REVIEW.json",
+      "sha256": "16da7c4ad10fb536302aab4c541fdd1cf497d79afaf69b0765f6395bb6294a5f"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -35492,7 +35504,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -75481,24 +75493,24 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_BOUNDED_NATIVE_LEARNING_002_ADMITTED",
+    "status": "ACTIVE_SHORT_LEARNING_MEASURED_CAUSE_NOT_UNIQUE",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
     "training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "a1a7d3a74bba56b8c5a3ba5e3a71a45850b7eb01ff2303877bddb39743e51830"
+      "sha256": "2e5849e1cc33b44833cf38f783b2332a325a401903c8ebd401edab40faefca01"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": true,
-    "training_enabled": true,
+    "model_or_data_run_admitted": false,
+    "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Materialize new002, recheck actual bound-window cap and3900 mapping before claim, verify machine-wide idle and physical reboot, execute one256-update check. Preserve001 as consumed; no relaunch or automatic continuation. Inspect matched before/after panel including3 exposed and13 other historically usedTRAIN groups, then close gates.",
+    "next_action": "Inspect retained trace/head update metadata and existing chronological batch-composition evidence to localize the common output shift. Reuse existing outputs first; admit a new minimal counterfactual only after a concrete unresolved distinction is specified. No run is admitted now.",
     "active_stage": "market_state_ta_m5_c171_short_learning_20261111_002",
     "previous_goal_turn_classification": "PROGRESS: retained MTFintervention andinputsupport review ruledout an unsupported harmful-MTF or generalnormalization-collapse change; nextactualboundarymeasurement identified.",
-    "last_goal_turn_classification": "PROGRESS: consumed001 pre-model startup failure reproduced, closed and fixed by exact002 duration exception only;38 affected focused tests and actual embedded cap check passed. No model/loss/guard changes or model result yet."
+    "last_goal_turn_classification": "PROGRESS: actual unchanged-loss256-update response measured; probability shift dominates small panel ranking changes. Full and3/13 output arithmetic independently reconciled. Startup cap blocker corrected; all plans consumed and gates closed. Historical learning cause remains unresolved."
   },
   "market_state_ta_fusion_observation_20261111_001": {
     "status": "COMPLETE",
@@ -76199,20 +76211,20 @@
   },
   "active_stage": "market_state_ta_m5_c171_short_learning_20261111_002",
   "market_state_ta_m5_c171_short_learning_20261111_002": {
-    "decision": "ADMITTED",
-    "status": "ADMITTED",
-    "ta_m5_c171_short_learning_authorized": true,
+    "decision": "CLOSED",
+    "status": "COMPLETE_CONSUMED",
+    "ta_m5_c171_short_learning_authorized": false,
     "fold_id": 1,
     "selected_fit_rows": 4096,
-    "model_constructions_authorized": 1,
-    "optimizer_constructions_authorized": 1,
-    "model_forwards_authorized": 288,
-    "backward_calls_authorized": 256,
-    "optimizer_steps_authorized": 256,
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "genuine_updates_authorized": true,
-    "genuine_backward_authorized": true,
+    "model_constructions_authorized": 0,
+    "optimizer_constructions_authorized": 0,
+    "model_forwards_authorized": 0,
+    "backward_calls_authorized": 0,
+    "optimizer_steps_authorized": 0,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "genuine_updates_authorized": false,
+    "genuine_backward_authorized": false,
     "genuine_predictor_fit_authorized": false,
     "canonical_resume_authority": false,
     "candidate_selection": false,
@@ -76244,17 +76256,17 @@
       "sha256": "fbb2fd9bf6bb8ae6f20cc97b3c820249707f688da71af1aafed202cb78743bcc"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
-    "campaign_preparation_authorized": true,
-    "execution_authorized": true,
-    "training_authorized": true,
-    "data_reads_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "data_reads_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
     "native_launch_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_test_execution_authorized": false,
@@ -76289,6 +76301,27 @@
     ],
     "automatic_continuation": false,
     "admission_basis": "Current explicit edge-cause goal and standing local0USD authority. Exact new002 replaces consumed pre-model001 after actual cap duration repair; all original001 evidence preserved. Source/input/readiness and physical boot remain mandatory.",
-    "consumed_predecessor_stage": "market_state_ta_m5_c171_short_learning_20261111_001"
+    "consumed_predecessor_stage": "market_state_ta_m5_c171_short_learning_20261111_001",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_002/RESULT.json",
+      "sha256": "1b25f095c3f610fc9c42325840f6f683cf3e9a50006fcd6249250e07e753724a"
+    },
+    "campaign_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_002/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "974a79f7f4b2fb9e9eab97814c9dda32ed5a7858ec6121a6bbbd435efe0e96d7"
+    },
+    "task_disabled": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_002/WINDOWS_TASK_DISABLED.json",
+      "sha256": "7c4b6ddaba306a3d5df59986108ebecffc7016b42513f6e5c5e37ba119cdca94"
+    },
+    "actual_optimizer_updates": 256,
+    "actual_parent_cursor": 4096,
+    "initial_model_state_sha256": "c171736d2de79396dd86a79ad895f8bf2226e5ad8d996abf1dd7f52055e4a467",
+    "final_model_state_sha256": "5f54bbe47df0f84c60e475d0e9fcf83ad70b8c569d6ebea6ac802aebda655c82",
+    "learning_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_C171_SHORT_LEARNING_REVIEW.json",
+      "sha256": "16da7c4ad10fb536302aab4c541fdd1cf497d79afaf69b0765f6395bb6294a5f"
+    },
+    "interpretation": "Mixed matched TRAIN response, no later edge claim and no candidate promotion."
   }
 }

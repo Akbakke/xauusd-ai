@@ -1,0 +1,324 @@
+{
+  "schema_version": "gx1_ta_m5_c171_short_learning_review_v1",
+  "status": "COMPLETE_SCOPED_MIXED_TRAIN_RESPONSE",
+  "stage": "market_state_ta_m5_c171_short_learning_20261111_002",
+  "source_commit": "9de7e20b210c599f14565a31ba9b91638855d673",
+  "source_unchanged_at_terminal": true,
+  "question": "What does corrected c171 actually learn from256 ordinary native chronological updates with unchanged loss?",
+  "evidence": {
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_002/RECIPE.json",
+      "sha256": "7e66e231594358e72ad5b6efc8d88e62053bdf24dd8cf4131d3c65d571357b20"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_002/RESULT.json",
+      "sha256": "1b25f095c3f610fc9c42325840f6f683cf3e9a50006fcd6249250e07e753724a"
+    },
+    "campaign_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_002/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "974a79f7f4b2fb9e9eab97814c9dda32ed5a7858ec6121a6bbbd435efe0e96d7"
+    },
+    "matched_output_arithmetic": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_002/MATCHED_LEARNING_RESPONSE_REVIEW.json",
+      "sha256": "f147b2dd452d84356d257b6d16163370a676d1fc973800b6af3ace96c36d615b"
+    },
+    "independent_rank_arithmetic": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_002/RETAINED_DIRECTION_RANK_REVIEW.json",
+      "sha256": "c414f74324415a59b8e2f90f104e76c3384e7b3698cfb72880a9e31aec905315"
+    },
+    "disabled_task": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_002/WINDOWS_TASK_DISABLED.json",
+      "sha256": "7c4b6ddaba306a3d5df59986108ebecffc7016b42513f6e5c5e37ba119cdca94"
+    },
+    "actual_bound_cap": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_002/ACTUAL_BOUND_WINDOW_CAP_GATE.json",
+      "sha256": "6a85ba5d478c0a36edbd8fcd9c8c7afb8a749ede0fa9d213b703f023804cc743"
+    }
+  },
+  "consumed_predecessor_failure_review": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_C171_SHORT_LEARNING_STARTUP_REVIEW.json",
+    "sha256": "8a4a83a33a24865536206ed18a98530ca1292b28d79623ce76eeb6e721e86f6e"
+  },
+  "counts": {
+    "archive_decodes": 1,
+    "backward_returns": 256,
+    "backwards": 256,
+    "checkpoint_loads": 2,
+    "checkpoint_writes": 2,
+    "evaluation_forwards": 32,
+    "extra_target_gathers": 576,
+    "forward_returns": 288,
+    "forwards": 288,
+    "head_tensor_imports": 4,
+    "json_bytes": 44278,
+    "loss_component_owner_calls": 32,
+    "model_construction_returns": 1,
+    "model_constructions": 1,
+    "optimizer_constructions": 1,
+    "optimizer_step_calls": 256,
+    "optimizer_updates": 256,
+    "published_panel_bytes": 51418,
+    "resume_state_load_calls": 2,
+    "resume_state_load_returns": 2,
+    "staged_state_load_calls": 2,
+    "staged_state_load_returns": 2,
+    "strict_full_state_restore_calls": 1,
+    "strict_full_state_restore_returns": 1,
+    "training_forwards": 256
+  },
+  "timings": {
+    "elapsed_seconds": 513.873535856,
+    "fit_seconds": 365.98963799499995,
+    "input_setup_seconds": 73.91961860100001,
+    "model_and_restore_seconds": 44.290355527
+  },
+  "initial_model_state_sha256": "c171736d2de79396dd86a79ad895f8bf2226e5ad8d996abf1dd7f52055e4a467",
+  "final_model_state_sha256": "5f54bbe47df0f84c60e475d0e9fcf83ad70b8c569d6ebea6ac802aebda655c82",
+  "optimizer_initialization": "fresh_adamw_empty_state",
+  "fresh_initial_restore_exact": true,
+  "evaluation_state_unchanged": true,
+  "canonical_loss_unchanged": true,
+  "sample": {
+    "new_training_rows": 4096,
+    "new_training_updates": 256,
+    "matched_panel_rows": 256,
+    "intact_B16_groups": 16,
+    "new_step_exposed_panel_groups": 3,
+    "new_step_exposed_panel_rows": 48,
+    "other_previously_used_TRAIN_panel_groups": 13,
+    "other_previously_used_TRAIN_panel_rows": 208,
+    "later_evaluation_rows": 0,
+    "independent_256_observations_claimed": false,
+    "heldout_claimed": false
+  },
+  "measurements": {
+    "ALL_MATCHED_TRAIN": {
+      "panel_rows": 256,
+      "intact_groups": 16,
+      "original_total_loss_initial": 1.87501659989357,
+      "original_total_loss_final": 1.8922636657953262,
+      "M5_conditional_side": {
+        "state": {
+          "known_sides": 91,
+          "up_sides": 53,
+          "down_sides": 38,
+          "initial": {
+            "brier": 0.24630136647287332,
+            "log": 0.6857363147379196,
+            "auc": 0.5357497517378351
+          },
+          "final": {
+            "brier": 0.2437967698228332,
+            "log": 0.6806649256531903,
+            "auc": 0.5412115193644489
+          },
+          "known_side_mean_up_probability_initial": 0.5198094565711477,
+          "known_side_mean_up_probability_final": 0.5448647568438414,
+          "all_row_mean_probability_change": 0.02570104753226104,
+          "known_side_mean_probability_change": 0.025055300272693766,
+          "uniform_component_fraction_of_known_side_squared_probability_change": 0.8624513011048887
+        },
+        "future": {
+          "known_sides": 104,
+          "up_sides": 49,
+          "down_sides": 55,
+          "initial": {
+            "brier": 0.2517295607517684,
+            "log": 0.6966099605471919,
+            "auc": 0.46938775510204084
+          },
+          "final": {
+            "brier": 0.25456812987505983,
+            "log": 0.7023310202451054,
+            "auc": 0.47680890538033394
+          },
+          "known_side_mean_up_probability_initial": 0.5117681891067943,
+          "known_side_mean_up_probability_final": 0.533699126946215,
+          "all_row_mean_probability_change": 0.02218658030685411,
+          "known_side_mean_probability_change": 0.021930937839420718,
+          "uniform_component_fraction_of_known_side_squared_probability_change": 0.7145028723912324
+        }
+      },
+      "original_loss_component_delta_final_minus_initial": {
+        "state": {
+          "M5": 0.0036066964268684385,
+          "M15": -0.00449263472110033,
+          "H1": -0.005880310758948326,
+          "H4": 0.005091598839499056,
+          "D1": -0.010141525976359844
+        },
+        "future": {
+          "M5": 0.0047488555312156676,
+          "M15": 0.013205573707818986,
+          "H1": 0.022033427283167838,
+          "H4": 0.012108080834150315,
+          "D1": -0.02303270101547241
+        }
+      }
+    },
+    "NEW_STEP_EXPOSED_TRAIN_3_GROUPS": {
+      "panel_rows": 48,
+      "intact_groups": 3,
+      "original_total_loss_initial": 1.831282138824463,
+      "original_total_loss_final": 1.8776641686757405,
+      "M5_conditional_side": {
+        "state": {
+          "known_sides": 19,
+          "up_sides": 10,
+          "down_sides": 9,
+          "initial": {
+            "brier": 0.26496691215562285,
+            "log": 0.7231437651287691,
+            "auc": 0.4111111111111111
+          },
+          "final": {
+            "brier": 0.2681878373059458,
+            "log": 0.7297538726707229,
+            "auc": 0.4
+          },
+          "known_side_mean_up_probability_initial": 0.5128762549578588,
+          "known_side_mean_up_probability_final": 0.5323809914827112,
+          "all_row_mean_probability_change": 0.01992675225219598,
+          "known_side_mean_probability_change": 0.019504736524852326,
+          "uniform_component_fraction_of_known_side_squared_probability_change": 0.7596219076462642
+        },
+        "future": {
+          "known_sides": 23,
+          "up_sides": 12,
+          "down_sides": 11,
+          "initial": {
+            "brier": 0.25620724565142877,
+            "log": 0.7055747236033846,
+            "auc": 0.30303030303030304
+          },
+          "final": {
+            "brier": 0.2605982890606035,
+            "log": 0.7144546343298859,
+            "auc": 0.3409090909090909
+          },
+          "known_side_mean_up_probability_initial": 0.5045558468146201,
+          "known_side_mean_up_probability_final": 0.5212534536871442,
+          "all_row_mean_probability_change": 0.016509022354974593,
+          "known_side_mean_probability_change": 0.01669760687252423,
+          "uniform_component_fraction_of_known_side_squared_probability_change": 0.47976954571592806
+        }
+      },
+      "original_loss_component_delta_final_minus_initial": {
+        "state": {
+          "M5": 0.00012391408284506689,
+          "M15": -0.004876522223154689,
+          "H1": 0.010617236296335864,
+          "H4": -0.0005856451888879121,
+          "D1": -0.0001254191001256344
+        },
+        "future": {
+          "M5": -0.0003527959187825669,
+          "M15": 0.03333859443664551,
+          "H1": 0.033413124084472653,
+          "H4": 0.003653673330942775,
+          "D1": -0.028824106852213538
+        }
+      }
+    },
+    "OTHER_HISTORICAL_TRAIN_13_GROUPS": {
+      "panel_rows": 208,
+      "intact_groups": 13,
+      "original_total_loss_initial": 1.8851091678325946,
+      "original_total_loss_final": 1.8956327805152307,
+      "M5_conditional_side": {
+        "state": {
+          "known_sides": 72,
+          "up_sides": 43,
+          "down_sides": 29,
+          "initial": {
+            "brier": 0.2413757363621477,
+            "log": 0.6758649042181122,
+            "auc": 0.623897353648757
+          },
+          "final": {
+            "brier": 0.23736023812590062,
+            "log": 0.6677108979680081,
+            "auc": 0.6230954290296712
+          },
+          "known_side_mean_up_probability_initial": 0.5216390514413211,
+          "known_side_mean_up_probability_final": 0.5481590838141397,
+          "all_row_mean_probability_change": 0.027033577212276054,
+          "known_side_mean_probability_change": 0.02652003237281859,
+          "uniform_component_fraction_of_known_side_squared_probability_change": 0.8927449284238735
+        },
+        "future": {
+          "known_sides": 81,
+          "up_sides": 37,
+          "down_sides": 44,
+          "initial": {
+            "brier": 0.2504581193605068,
+            "log": 0.6940644105435817,
+            "auc": 0.5288697788697788
+          },
+          "final": {
+            "brier": 0.25285586245200425,
+            "log": 0.6988885125420196,
+            "auc": 0.5362407862407862
+          },
+          "known_side_mean_up_probability_initial": 0.5138161381527202,
+          "known_side_mean_up_probability_final": 0.5372330835506425,
+          "all_row_mean_probability_change": 0.02349678598805707,
+          "known_side_mean_probability_change": 0.02341694539792219,
+          "uniform_component_fraction_of_known_side_squared_probability_change": 0.784173678195656
+        }
+      },
+      "original_loss_component_delta_final_minus_initial": {
+        "state": {
+          "M5": 0.004410415429335379,
+          "M15": -0.004404045297549319,
+          "H1": -0.009687437002475452,
+          "H4": 0.006401732076819111,
+          "D1": -0.012452935255490816
+        },
+        "future": {
+          "M5": 0.005926159711984491,
+          "M15": 0.008559492001166725,
+          "H1": 0.01940734340594368,
+          "H4": 0.01405909795027509,
+          "D1": -0.02169622274545522
+        }
+      }
+    }
+  },
+  "confirmed_findings": [
+    "All256 genuine optimizer updates completed, zero skipped batches; actual parameter learning from c171 is verified. This is a fresh empty AdamW check, not a continuous epoch.",
+    "Pooled M5 state-side Brier/log improved; future-side Brier/log and original total loss worsened. Both M5-side probability scores worsened in the3 measured groups included in the new updates.",
+    "Both M5 outputs shifted mean up-probability upward. The common mean component dominates squared probability change; that is an arithmetic decomposition, not causal attribution or a share of loss change.",
+    "Pooled AUC changed only modestly. State-side AUC fell in both exposure partitions but rose when cross-partition pairs were included; future-side AUC rose modestly while probability scores worsened.",
+    "Other timeframes also respond differently. Original activity-plus-side components are preserved and their sums reconcile with total loss; these are not isolated M5-side/rest gradients."
+  ],
+  "not_established": [
+    "Unique cause among optimizer initialization, chronological exposure, objective interaction and representation learning.",
+    "Full4096-row mean fit change; only3 small measured groups come from that prefix.",
+    "Later generalization, sufficient-training convergence, individual-family predictive contribution or trading edge.",
+    "A new loss weight, architecture intervention, candidate selection or further run is justified by this small dependent panel alone."
+  ],
+  "next_step": "Inspect retained trace/head update metadata and existing chronological batch-composition evidence to localize the common output shift. Reuse existing outputs first; admit a new minimal counterfactual only after a concrete unresolved distinction is specified. No run is admitted now.",
+  "guard_exit_code": 0,
+  "observer_exit_code": 0,
+  "physical_windows_boot_id": 640,
+  "guard_peaks": {
+    "core_temp_c": 53,
+    "memory_temp_c": 62,
+    "power_draw_w": 129.71,
+    "memory_used_mib": 2172
+  },
+  "validation": {
+    "previous_focused_tests_passed": 187,
+    "after_exact_cap_repair_focused_tests_passed": 38,
+    "actual_bound_window_gate": "3600 window /3900 guard /3900 model guard",
+    "independent_score_max_absolute_difference": 0,
+    "fresh_cursor_real_bindings_validated": true,
+    "old001_remains_consumed_and_rejected": true
+  },
+  "training_authorized": false,
+  "canonical_resume_authority": false,
+  "candidate_selection": false,
+  "test_data_used": false,
+  "promotion_authorized": false
+}

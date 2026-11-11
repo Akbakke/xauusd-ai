@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_BOUNDED_NATIVE_LEARNING_PREPARATION",
+  "status": "ACTIVE_SHORT_LEARNING_MEASURED_CAUSE_NOT_UNIQUE",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -103,33 +103,28 @@
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MIXING_GRADIENT_OBSERVATION_20261111_001/INTERPRETATION_REVIEW.json",
         "sha256": "e4c9a1d57885f4a4a7ed4030c21a4ea1bf3db4ec6406ef9676f3fce8dc04fbac"
       }
+    },
+    {
+      "id": "c171_short_actual_learning_response",
+      "evidence_class": "MATCHED_RETAINED_NATIVE_TRAIN_BEFORE_AFTER",
+      "finding": "256 unchanged-loss updates moved both M5 probabilities upward with small pooled rank changes. S-side pooled probability score improved, F-side and total worsened; both sides worsened on the3 exposed measured groups. The historical cause and full-fit behavior remain unresolved.",
+      "evidence": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_C171_SHORT_LEARNING_REVIEW.json",
+        "sha256": "16da7c4ad10fb536302aab4c541fdd1cf497d79afaf69b0765f6395bb6294a5f"
+      }
     }
   ],
   "next_measurement": {
-    "status": "SOURCE_SCOPING_NOT_ADMITTED",
-    "question": "How does the current c171 candidate actually learn during a short bounded sequence of ordinary native updates with unchanged loss?",
-    "method": "Reuse the existing native model/state/optimizer owners. First bind a compatible c171 initial state and explicitly declared optimizer initialization; predeclare a small update budget and fixed before/after TRAIN measurements for S/M5, F/M5 and remaining tasks. Preserve every genuine feature/timeframe and all guards. Do not infer a loss weight from the 256-row local gradient result.",
-    "prior_exact_identity_check": {
-      "refs": {
-        "next_native_pass_recipe": {
-          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_NATIVE_PASS_20261109_001/RECIPE.json",
-          "sha256": "2470fa82e2a6f6eefd5b90b0e62323be8895ac4f0dc48a9bae125cc70d617fdc"
-        },
-        "next_native_pass_result": {
-          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_NATIVE_PASS_20261109_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
-          "sha256": "ca78b1c649096b567b2a60b2a8af82999bbfa23e0ba829f637de141d343dde40"
-        }
-      },
-      "prior_initial_model_sha256": "51e0e8832bbc7079c5f00f30eef17de4a2ba7aecab2a982063483a241ab051ba",
-      "prior_updates": 1849,
-      "current_candidate_model_sha256": "c171736d2de79396dd86a79ad895f8bf2226e5ad8d996abf1dd7f52055e4a467",
-      "same_initial": false,
-      "scope": "The directly relevant prior next-pass receipt was checked; this is not a claim of an exhaustive unrelated-run search."
-    },
+    "status": "RETAINED_EVIDENCE_FIRST_NO_RUN_ADMITTED",
+    "question": "Which retained update evidence explains common probability shift versus signal-dependent direction learning under this unchanged-loss check?",
+    "method": "Inspect retained trace/head update metadata and existing chronological batch-composition evidence to localize the common output shift. Reuse existing outputs first; admit a new minimal counterfactual only after a concrete unresolved distinction is specified. No run is admitted now.",
     "model_change_authorized": false,
     "training_authorized": false,
     "broad_training_authorized": false,
-    "interpretation": "A future short native diagnostic is not admitted yet. The earlier relevant next-pass run started from 51e0e883, not c171; do not relaunch that consumed plan or call new optimizer initialization a continuous epoch."
+    "completed_predecessor": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_C171_SHORT_LEARNING_REVIEW.json",
+      "sha256": "16da7c4ad10fb536302aab4c541fdd1cf497d79afaf69b0765f6395bb6294a5f"
+    }
   },
   "not_established": [
     "Unique historical optimizer cause",
@@ -1192,5 +1187,18 @@
       }
     },
     "model_change_recommended": false
+  },
+  "c171_short_learning": {
+    "status": "COMPLETE_CONSUMED",
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_C171_SHORT_LEARNING_REVIEW.json",
+      "sha256": "16da7c4ad10fb536302aab4c541fdd1cf497d79afaf69b0765f6395bb6294a5f"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_002/RESULT.json",
+      "sha256": "1b25f095c3f610fc9c42325840f6f683cf3e9a50006fcd6249250e07e753724a"
+    },
+    "training_authorized": false,
+    "future_resume_authorized": false
   }
 }
