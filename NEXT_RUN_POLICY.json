@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-11T15:41:27.251651+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_C171_SHORT_LEARNING_REVIEW_COMPLETE",
+  "status": "TA_DIRECTION_EDGE_CAUSE_SHORT_HEAD_CAPTURE_PREPARATION",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1698,7 +1698,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Short native learning and independent retained-output review complete; no active job or training authority.",
+    "current_activity": "Minimal initial-head observer implemented; no active model job or training authority.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1751,7 +1751,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Actual ordinary updates mostly shifted output level/amplitude and had mixed direction scores. Exact cause and broader fit/generalization remain unproved.",
+    "current_blocker": "Head weights and upstream head inputs both changed; the short initial evaluation did not retain its head inputs.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9222,7 +9222,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Inspect retained trace/head update metadata and existing chronological batch-composition evidence to localize the common output shift. Reuse existing outputs first; admit a new minimal counterfactual only after a concrete unresolved distinction is specified. No run is admitted now.",
+    "next_action": "Qualify and admit one new read-only16-forward exact-mode capture of the existing256-row initial TRAIN panel; require complete original initial bit-parity before ordered head/representation arithmetic. No training or later data.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -75493,7 +75493,7 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_SHORT_LEARNING_MEASURED_CAUSE_NOT_UNIQUE",
+    "status": "ACTIVE_SHORT_HEAD_INPUT_GAP_MEASURED",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
@@ -75507,8 +75507,8 @@
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Inspect retained trace/head update metadata and existing chronological batch-composition evidence to localize the common output shift. Reuse existing outputs first; admit a new minimal counterfactual only after a concrete unresolved distinction is specified. No run is admitted now.",
-    "active_stage": "market_state_ta_m5_c171_short_learning_20261111_002",
+    "next_action": "Qualify and admit one new read-only16-forward exact-mode capture of the existing256-row initial TRAIN panel; require complete original initial bit-parity before ordered head/representation arithmetic. No training or later data.",
+    "active_stage": "market_state_ta_c171_short_initial_heads_20261111_001",
     "previous_goal_turn_classification": "PROGRESS: retained MTFintervention andinputsupport review ruledout an unsupported harmful-MTF or generalnormalization-collapse change; nextactualboundarymeasurement identified.",
     "last_goal_turn_classification": "PROGRESS: actual unchanged-loss256-update response measured; probability shift dominates small panel ranking changes. Full and3/13 output arithmetic independently reconciled. Startup cap blocker corrected; all plans consumed and gates closed. Historical learning cause remains unresolved."
   },
@@ -76209,7 +76209,7 @@
     "unresolved_campaign_marker_preserved": true,
     "standard_campaign_receipt_available": false
   },
-  "active_stage": "market_state_ta_m5_c171_short_learning_20261111_002",
+  "active_stage": "market_state_ta_c171_short_initial_heads_20261111_001",
   "market_state_ta_m5_c171_short_learning_20261111_002": {
     "decision": "CLOSED",
     "status": "COMPLETE_CONSUMED",
@@ -76323,5 +76323,21 @@
       "sha256": "16da7c4ad10fb536302aab4c541fdd1cf497d79afaf69b0765f6395bb6294a5f"
     },
     "interpretation": "Mixed matched TRAIN response, no later edge claim and no candidate promotion."
+  },
+  "market_state_ta_c171_short_initial_heads_20261111_001": {
+    "status": "PREPARED_NOT_ADMITTED",
+    "execution_authorized": false,
+    "training_authorized": false,
+    "remaining_invocations": 0,
+    "relaunch_allowed": false,
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_SHORT_HEAD_ATTRIBUTION_REVIEW.json",
+      "sha256": "447935dc6fdb445a00e5d4f2edc232ac1db4d2dc0137808679e57b65913052d0"
+    },
+    "reason": "Head weights and upstream head inputs both changed; the short initial evaluation did not retain its head inputs.",
+    "previous_trace_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_002/TRACE_ALGEBRA_REVIEW.json",
+      "sha256": "09d5e8dc3b03892e1b6fa72adb68f85bc26afce625fa8390cddb279d272819fb"
+    }
   }
 }

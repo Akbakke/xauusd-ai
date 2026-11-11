@@ -6,12 +6,13 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_C171_SHORT_LEARNING_REVIEW_COMPLETE.
+TA_DIRECTION_EDGE_CAUSE_SHORT_HEAD_CAPTURE_PREPARATION.
 Målet fra11.11 er aktivt: finn målte årsaker til svak retningsverdi i indikatorer,
 sammensetting og læring. [Samlet årsaksstatus](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json).
 Korte runder er feilsøking, ikke kapasitetsdom. Full kvalifisert TRAIN-historikk
 og30–40epoker er senere skalering, ikke et krav ved hver rettelse.
-Alle gjeldende engangsplaner er konsumert. Training/native_training/native_launch/
+Alle tidligere engangsplaner er konsumert; ny lesende observasjon er bare klargjort.
+Training/native_training/native_launch/
 full_epoch er false; ingen aktiv modelljobb. Begge c171-Windowsoppgaver er Disabled.
 GC er på pause; TEST, Entry/Exit, broker, handel og promotion er stengt.
 Alle genuine indikatorer og M5/M15/H1/H4/D1-input beholdes.
@@ -73,11 +74,21 @@ materialisert vindusgate bestod; tidligere187-testers kvalifisering er gjenbrukt
 Native-vakter uendret:20GiB host/512MiB swap,12288MiB GPU-minne,250W konfigurert,
 310W draw,85C kjerne,80C minne. Observerte topper:129,71W/53C/62C/2172MiB.
 
-## Ikke avklart og neste steg
+## Ny avgrensning av nivåskiftet og neste steg
 
-Unik årsak til nivå-/amplitudeskiftet, fullprefix-fit, familiers prediktive bidrag,
-senere generalisering og kapasitet etter tilstrekkelig trening er ikke avklart.
-Neste: les eksisterende trace-/headoppdateringsmetadata og allerede beholdt
-kronologisk batchsammensetting for å skille felles outputforskyvning fra læring
-som skiller markedssituasjoner. Gjenbruk eksisterende evidens først. Ny minimal
-kontrafaktisk kontroll må ha et konkret uløst skille; ingen ny kjøring er innrømmet.
+[Trace og planlagt hodekontroll](docs/TA_C171_SHORT_HEAD_ATTRIBUTION_REVIEW.json).
+Retained TRACE_ALGEBRA_REVIEW09d5e8dc: originale gradient-/AdamW-formler
+matcher256 faktiske hodeoppdateringer. Direkte biasendring er negativ for S/F;
+positivt felles logitnivå kommer derfor fra hodevekter og/eller representasjoner.
+Summert lokal hodeoppdatering på hvert stegs faste input er gunstig for begge;
+ingen generell optimizerfeil eller begrunnelse for ny sentrering er påvist.
+
+Gamle fullcache-inputs har en annen numerisk eval-kontekst enn short002; like
+sluttlogits beviser ikke like128D hodeinputs. Ny observer er klargjort, ikke
+innrømmet: samme16B16 TRAIN-grupper,16forwards,0gradient/oppdatering/checkpointskriv.
+Før tolkning kreves bitlikhet mot alle initiale akser/masker/råoutput og16tap.
+Deretter skilles hodeparameterendring ved fast initialinput fra residualen som
+omfatter endret representasjon. Ingen bestemt encoderårsak følger av dette.
+Neste er eksakt metadata-preflight, cap-gate og kildebundet engangsadmisjon.
+Fullprefix-fit, familiers nytte, senere generalisering og kapasitet er fortsatt
+uavklart. Alle numeriske modell-/loss-/featureeiere er uendret.

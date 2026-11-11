@@ -207,6 +207,22 @@ matches_bound_market_state_ta_direction_cache() {
   [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$7" ]]
 }
 
+# Exact read-only capture of the short c171 initial TRAIN head inputs.
+matches_bound_market_state_ta_c171_short_heads() {
+  local expected_plan="$1" expected_output="$2"
+  shift 2
+  [[ $# -eq 11 ]] || return 1
+  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \
+    && "$3" == "$TECHNICAL_VALIDATION_PRODUCER_MODULE" \
+    && "$4" == --market-state-ta-c171-short-heads-plan && "$5" == "$expected_plan" \
+    && "$6" == --market-state-ta-c171-short-heads-plan-sha256 && "$7" =~ ^[0-9a-f]{64}$ \
+    && "$8" == --device && "$9" == cuda && "${10}" == --out-dir \
+    && "${11}" == "$expected_output" && "$expected_plan" == /* && "$expected_output" == /* ]] || return 1
+  [[ -f "$expected_plan" && ! -L "$expected_plan" \
+    && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1
+  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$7" ]]
+}
+
 validate_target_command() {
   local executable_basename="${1##*/}" target_arg module
   local trainer_reference=false hardware_smoke_reference=false
@@ -350,6 +366,17 @@ validate_target_command() {
           exit 75
         fi
         TRAINER_GPU_MAX_POWER_LIMIT_W=250
+      fi
+      if [[ "${3:-}" == "$TECHNICAL_VALIDATION_PRODUCER_MODULE" \
+        && "${4:-}" == --market-state-ta-c171-short-heads-plan ]]; then
+        local ta_heads_root=/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_001
+        if ! matches_bound_market_state_ta_c171_short_heads "$ta_heads_root/PLAN.json" "$ta_heads_root" "$@"; then
+          echo "FATAL: c171 initial-head observation is not exactly bound" >&2
+          exit 75
+        fi
+        TRAINER_GPU_MAX_POWER_LIMIT_W=250
+        TRAINER_MAX_WALL_SECONDS=1200
+        TRAINER_MODEL_MAX_WALL_SECONDS=1200
       fi
       if [[ "${3:-}" == "$TECHNICAL_VALIDATION_PRODUCER_MODULE" \
         && "${4:-}" == --direction-m5-momentum-intervention-plan ]]; then

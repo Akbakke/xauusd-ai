@@ -1,0 +1,63 @@
+{
+  "schema_version": "gx1_ta_c171_short_head_attribution_review_v1",
+  "status": "CAPTURE_PREPARED_NOT_ADMITTED",
+  "objective": "Separate the measured short-run M5 output shift into final-head parameter changes at exact initial head inputs and a residual representation contribution.",
+  "retained_trace_review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_002/TRACE_ALGEBRA_REVIEW.json",
+    "sha256": "09d5e8dc3b03892e1b6fa72adb68f85bc26afce625fa8390cddb279d272819fb"
+  },
+  "retained_trace_analysis": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_002/REVIEW_TRACE.py",
+    "sha256": "f1d80734cceda3d9f2403fc3a89c0a96b9ac143b5578eae6ce0e80087c3b9de6"
+  },
+  "confirmed": [
+    "All 256 head updates reconcile with the original gradient and AdamW formulas; maximum errors below 6.2e-8 and 2.2e-9 respectively.",
+    "Direct bias changes are negative for both tasks; they cannot explain the positive mean raw-logit shift.",
+    "The sum of local head-only fixed-current-representation BCE changes is favorable for both tasks. This does not establish the full-population or historical cause.",
+    "The previous retained representation cache used eval/inference mode without the short-run explicit MHA-fastpath-false context. Exact output parity alone would not establish equality of its 128D head inputs."
+  ],
+  "unresolved": "Head weights and upstream head inputs both changed; the short initial evaluation did not retain its head inputs.",
+  "capture": {
+    "stage": "market_state_ta_c171_short_initial_heads_20261111_001",
+    "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_001",
+    "partition": "TRAIN",
+    "panel_batch_indices": [
+      0,
+      123,
+      246,
+      369,
+      492,
+      615,
+      738,
+      861,
+      985,
+      1108,
+      1231,
+      1354,
+      1477,
+      1600,
+      1723,
+      1847
+    ],
+    "rows": 256,
+    "forwards": 16,
+    "models": 1,
+    "checkpoint_reads": 1,
+    "head_tensor_imports": 4,
+    "backwards": 0,
+    "updates": 0,
+    "checkpoint_writes": 0,
+    "mode": "eval/no_grad/deterministic_fp32/training_mha_fastpath_false",
+    "prerequisite": "Bitexact parents, issues, all-TF sampled queries/raw outputs/masks and all 16 original initial losses; unchanged model, buffers, RNG, modes, trainability, identities and hooks.",
+    "bounds": "900 seconds worker, 1200 seconds guard; 12 GiB host / 512 MiB swap; configured250W / actual170W /65C core /80C memory;2MiB arrays,1MiB JSON."
+  },
+  "planned_arithmetic": "delta_z = delta_w dot h_initial + delta_bias + residual; residual includes final_head dot delta_h and FP rounding. Also compare original, head-only and factual-final Brier/log scores on identical known masks and the fixed3/13 partitions.",
+  "limitations": [
+    "A diagnostic ordered decomposition, not identification of a responsible upstream encoder or predictive edge.",
+    "Small dependent historically trained TRAIN panel; no heldout or full4096-row fit claim.",
+    "Previously consumed centering trial is not revived; no new fit, loss weight or model change."
+  ],
+  "training_authorized": false,
+  "test_data_used": false,
+  "promotion_authorized": false
+}
