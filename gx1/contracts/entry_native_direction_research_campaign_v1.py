@@ -37,6 +37,7 @@ TA_M5_MECHANICAL_SCOPE = 'market_state_ta_dedicated_m5_mechanical_v1'
 TA_M5_IMPORT_SCOPE = 'market_state_ta_m5_equal_weight_import_v1'
 TA_M5_EQUAL_LOSS_SCOPE = 'market_state_ta_m5_equal_loss_mechanical_v1'
 TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE = 'market_state_ta_m5_original_cuda_prefix_v1'
+TA_M5_C171_SHORT_LEARNING_SCOPE = 'market_state_ta_m5_c171_short_learning_v1'
 TA_M5_CENTERED_HEAD_COORDINATES_SCOPE = 'market_state_ta_m5_centered_head_coordinates_v1'
 TA_M5_PAIRED_BATCH_ORDER_SCOPE = 'market_state_ta_m5_paired_batch_order_v1'
 TA_M5_REPEATED_PASS_SCOPE = 'market_state_ta_m5_repeated_pass_v1'
@@ -212,12 +213,22 @@ def _is_ta_m5_full_reverse_order_recipe_ref(binding):
     return isinstance(binding, Mapping) and binding.get('path') == str(TA_M5_FULL_REVERSE_ORDER_RECIPE_PATH)
 
 
+def _is_ta_m5_c171_short_learning_recipe_ref(binding):
+    from gx1.contracts.market_state_ta_m5_short_learning_v1 import RECIPE_PATH
+    return isinstance(binding, Mapping) and binding.get('path') == str(RECIPE_PATH)
+
+
 def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: Path,
         source_commit: str, verify_files: bool = True) -> dict[str, Any]:
     """Verify metadata and source bytes; never import Torch or grant training."""
     ref = campaign.require_binding(binding, label='direction research recipe', verify_file=verify_files)
     _require(verify_files, 'RECIPE_REQUIRES_PHYSICAL_METADATA')
     value = campaign.read_bound_json(Path(ref['path']), ref['sha256'])
+    short_learning = _is_ta_m5_c171_short_learning_recipe_ref(ref)
+    if short_learning or value.get('run_scope') == TA_M5_C171_SHORT_LEARNING_SCOPE:
+        _require(short_learning and value.get('run_scope') == TA_M5_C171_SHORT_LEARNING_SCOPE, 'SHORT_LEARNING_RECIPE_PATH')
+        from gx1.contracts.market_state_ta_m5_short_learning_v1 import require_recipe
+        return require_recipe(value,source_repo=source_repo,source_commit=source_commit,verify_files=verify_files)
     full_reverse = _is_ta_m5_full_reverse_order_recipe_ref(ref)
     if full_reverse or value.get('run_scope') == TA_M5_FULL_REVERSE_ORDER_SCOPE:
         _require(full_reverse and value.get('run_scope') == TA_M5_FULL_REVERSE_ORDER_SCOPE, 'FULL_REVERSE_RECIPE_PATH')
@@ -660,7 +671,7 @@ def guarded_research_power_limit(recipe):
             and recipe.get('numerical_recipe', {}).get('batch_size') == 16,
             'M5_IMPORT_POWER_SCOPE')
         return 250
-    if recipe.get('run_scope') in (NATIVE_F_PRIVATE_SCOPE, TA_SF_MECHANICAL_SCOPE, TA_M5_MECHANICAL_SCOPE, TA_M5_EQUAL_LOSS_SCOPE, TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE, TA_M5_CENTERED_HEAD_COORDINATES_SCOPE, TA_M5_PAIRED_BATCH_ORDER_SCOPE, TA_M5_REPEATED_PASS_SCOPE, TA_M5_FULL_REVERSE_ORDER_SCOPE):
+    if recipe.get('run_scope') in (NATIVE_F_PRIVATE_SCOPE, TA_SF_MECHANICAL_SCOPE, TA_M5_MECHANICAL_SCOPE, TA_M5_EQUAL_LOSS_SCOPE, TA_M5_C171_SHORT_LEARNING_SCOPE, TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE, TA_M5_CENTERED_HEAD_COORDINATES_SCOPE, TA_M5_PAIRED_BATCH_ORDER_SCOPE, TA_M5_REPEATED_PASS_SCOPE, TA_M5_FULL_REVERSE_ORDER_SCOPE):
         _require(recipe.get('fold_id') == 1
             and recipe.get('training_enabled') is True
             and recipe.get('test_data_used') is False
@@ -715,7 +726,7 @@ def require_research_window_policy(value: Any, *, verify_files: bool = True) -> 
         'progress_path', 'campaign_cursor_path', 'output_directory', 'test_data_used'}
     result = _identity(value, fields, WINDOW_SCHEMA, 'policy_sha256')
     _require(type(result['invocation_number']) is int and result['invocation_number'] == 1
-        and type(result['max_invocation_seconds']) is int and result['max_invocation_seconds'] == (3000 if _is_ta_m5_paired_batch_order_recipe_ref(result['recipe']) else 12000)
+        and type(result['max_invocation_seconds']) is int and result['max_invocation_seconds'] == (3600 if _is_ta_m5_c171_short_learning_recipe_ref(result['recipe']) else 3000 if _is_ta_m5_paired_batch_order_recipe_ref(result['recipe']) else 12000)
         and result['test_data_used'] is False, 'WINDOW_SCOPE')
     campaign.require_binding(result['recipe'], label='research window recipe', verify_file=verify_files)
     paths = [_path(result[k], k) for k in ('progress_path', 'campaign_cursor_path', 'output_directory')]
@@ -737,8 +748,8 @@ def require_research_invocation_execution(result: dict[str, Any], execution: Map
         '--progress-path',window['progress_path']], 'INVOCATION_ARGV')
     _require(result['kind'] == KIND and result['batch_size'] == recipe['numerical_recipe']['batch_size'] and result['epoch_index'] is None
         and result['invocation_number'] == 1 and result['window_index'] == 0 and result['window_count'] == 1
-        and type(result['optimizer_step_budget']) is int and result['optimizer_step_budget'] == (0 if import_mode else 1849 if _is_ta_m5_full_reverse_order_recipe_ref(recipe_ref) else 512 if (_is_ta_m5_paired_batch_order_recipe_ref(recipe_ref) or _is_ta_m5_repeated_pass_recipe_ref(recipe_ref)) else 256 if (_is_ta_m5_original_cuda_prefix_recipe_ref(recipe_ref) or _is_ta_m5_centered_head_coordinates_recipe_ref(recipe_ref)) else 4)
-        and result['expected_success_outcome'] == 'COMPLETE' and result['maximum_wall_seconds'] == (3300 if _is_ta_m5_paired_batch_order_recipe_ref(recipe_ref) else 13800)
+        and type(result['optimizer_step_budget']) is int and result['optimizer_step_budget'] == (0 if import_mode else 1849 if _is_ta_m5_full_reverse_order_recipe_ref(recipe_ref) else 512 if (_is_ta_m5_paired_batch_order_recipe_ref(recipe_ref) or _is_ta_m5_repeated_pass_recipe_ref(recipe_ref)) else 256 if (_is_ta_m5_c171_short_learning_recipe_ref(recipe_ref) or _is_ta_m5_original_cuda_prefix_recipe_ref(recipe_ref) or _is_ta_m5_centered_head_coordinates_recipe_ref(recipe_ref)) else 4)
+        and result['expected_success_outcome'] == 'COMPLETE' and result['maximum_wall_seconds'] == (3900 if _is_ta_m5_c171_short_learning_recipe_ref(recipe_ref) else 3300 if _is_ta_m5_paired_batch_order_recipe_ref(recipe_ref) else 13800)
         and result['checkpoint'] == {'pointer_path':window['campaign_cursor_path'],'before_mode':'GENESIS',
             'predecessor_invocation_number':None,'write_mode':'ATOMIC_UPDATE'}
         and result['progress_path'] == window['progress_path']
@@ -773,7 +784,7 @@ def require_research_plan(value: Any, *, verify_files: bool = True) -> dict[str,
         from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
         if policy_recipe['run_scope'] in (DYNAMIC_STATE_PRIVATE_SCOPE, december.PRIVATE_SCOPE,
                                           october.roles.PRIVATE_SCOPE, TIME_QUERY_PRIVATE_SCOPE,
-                                          NATIVE_F_PRIVATE_SCOPE, TA_SF_MECHANICAL_SCOPE, TA_M5_MECHANICAL_SCOPE, TA_M5_IMPORT_SCOPE, TA_M5_EQUAL_LOSS_SCOPE, TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE, TA_M5_CENTERED_HEAD_COORDINATES_SCOPE, TA_M5_PAIRED_BATCH_ORDER_SCOPE, TA_M5_REPEATED_PASS_SCOPE, TA_M5_FULL_REVERSE_ORDER_SCOPE):
+                                          NATIVE_F_PRIVATE_SCOPE, TA_SF_MECHANICAL_SCOPE, TA_M5_MECHANICAL_SCOPE, TA_M5_IMPORT_SCOPE, TA_M5_EQUAL_LOSS_SCOPE, TA_M5_C171_SHORT_LEARNING_SCOPE, TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE, TA_M5_CENTERED_HEAD_COORDINATES_SCOPE, TA_M5_PAIRED_BATCH_ORDER_SCOPE, TA_M5_REPEATED_PASS_SCOPE, TA_M5_FULL_REVERSE_ORDER_SCOPE):
             _require('family_same_boot' not in result, 'STATE_FRESH_BOOT_REQUIRED')
             expected_policy['physical_power_limit_w'] = 250
     _require(campaign.canonical_sha256(result['policy']) == campaign.canonical_sha256(expected_policy)
@@ -873,6 +884,9 @@ def require_native_direction_research_readiness(repo: Path, *, window_path: Path
     if recipe['run_scope'] == TA_M5_CENTERED_HEAD_COORDINATES_SCOPE:
         from gx1.contracts.market_state_native_F_private_campaign_v1 import require_ta_m5_centered_head_coordinates_gate
         require_ta_m5_centered_head_coordinates_gate(gate, recipe)
+    if recipe['run_scope'] == TA_M5_C171_SHORT_LEARNING_SCOPE:
+        from gx1.contracts.market_state_ta_m5_short_learning_v1 import require_gate
+        require_gate(gate, recipe)
     if recipe['run_scope'] == TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE:
         from gx1.contracts.market_state_native_F_private_campaign_v1 import require_ta_m5_original_cuda_prefix_gate
         require_ta_m5_original_cuda_prefix_gate(gate, recipe)
@@ -889,9 +903,9 @@ def require_native_direction_research_readiness(repo: Path, *, window_path: Path
     _require(clock == policy['gpu_clock_launcher'], 'READINESS_CLOCK')
     return {'decision':'READY_FOR_EXISTING_BOUND_CAMPAIGN_GATES','blocked_reasons':[],
         'canonical_source_repo':str(repo),'source_commit':head,'policy_sha256':campaign.file_sha256(policy_path),
-        'training_started':False,'native_invocation_seconds':3000 if recipe['run_scope'] == TA_M5_PAIRED_BATCH_ORDER_SCOPE else 12000,
-        'outer_guard_seconds':3300 if recipe['run_scope'] == TA_M5_PAIRED_BATCH_ORDER_SCOPE else 13800,
-        'native_window_scope':{'research_only':True,'invocation_number':1,'optimizer_step_ceiling':0 if import_mode else 1849 if full_fit else 512 if recipe['run_scope'] in (TA_M5_PAIRED_BATCH_ORDER_SCOPE, TA_M5_REPEATED_PASS_SCOPE) else 256 if recipe['run_scope'] in (TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE, TA_M5_CENTERED_HEAD_COORDINATES_SCOPE) else 4,
+        'training_started':False,'native_invocation_seconds':3600 if recipe['run_scope'] == TA_M5_C171_SHORT_LEARNING_SCOPE else 3000 if recipe['run_scope'] == TA_M5_PAIRED_BATCH_ORDER_SCOPE else 12000,
+        'outer_guard_seconds':3900 if recipe['run_scope'] == TA_M5_C171_SHORT_LEARNING_SCOPE else 3300 if recipe['run_scope'] == TA_M5_PAIRED_BATCH_ORDER_SCOPE else 13800,
+        'native_window_scope':{'research_only':True,'invocation_number':1,'optimizer_step_ceiling':0 if import_mode else 1849 if full_fit else 512 if recipe['run_scope'] in (TA_M5_PAIRED_BATCH_ORDER_SCOPE, TA_M5_REPEATED_PASS_SCOPE) else 256 if recipe['run_scope'] in (TA_M5_C171_SHORT_LEARNING_SCOPE, TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE, TA_M5_CENTERED_HEAD_COORDINATES_SCOPE) else 4,
             'full_epoch_training_allowed':full_fit,'window_policy_file_sha256':window_file_sha256}}
 
 
@@ -939,6 +953,12 @@ def require_native_direction_research_context(policy_path: Path, policy_file_sha
 def build_research_cursor(*, recipe_ref, outcome, optimizer_updates, parent_cursor,
         parent_order_sha256, full_state, result, batch_size=2, arm_progress=None,
         repeated_progress=None) -> dict[str, Any]:
+    if _is_ta_m5_c171_short_learning_recipe_ref(recipe_ref):
+        _require(arm_progress is repeated_progress is None,'SHORT_LEARNING_NO_EXTRA_PROGRESS')
+        from gx1.contracts.market_state_ta_m5_short_learning_v1 import build_cursor
+        return build_cursor(recipe_ref=recipe_ref,outcome=outcome,optimizer_updates=optimizer_updates,
+            parent_cursor=parent_cursor,parent_order_sha256=parent_order_sha256,
+            full_state=full_state,result=result,batch_size=batch_size)
     if _is_ta_m5_full_reverse_order_recipe_ref(recipe_ref):
         _require(full_state is arm_progress is repeated_progress is None, 'FULL_REVERSE_NO_CANONICAL_STATE')
         from gx1.contracts.market_state_native_F_private_campaign_v1 import build_ta_m5_full_reverse_order_cursor
@@ -983,6 +1003,11 @@ def build_research_cursor(*, recipe_ref, outcome, optimizer_updates, parent_curs
 
 
 def require_research_cursor(value, *, expected_recipe, verify_files=True, batch_size=2) -> dict[str, Any]:
+    from gx1.contracts import market_state_ta_m5_short_learning_v1 as short
+    short_learning = _is_ta_m5_c171_short_learning_recipe_ref(expected_recipe)
+    if short_learning or (isinstance(value,Mapping) and value.get('schema_version') == short.CURSOR_SCHEMA):
+        _require(short_learning,'SHORT_LEARNING_RECIPE_PATH')
+        return short.require_cursor(value,expected_recipe=expected_recipe,verify_files=verify_files,batch_size=batch_size)
     from gx1.contracts import market_state_native_F_private_campaign_v1 as mechanical
     full_reverse = _is_ta_m5_full_reverse_order_recipe_ref(expected_recipe)
     if full_reverse or (isinstance(value, Mapping) and value.get('schema_version') == mechanical.TA_M5_FULL_REVERSE_ORDER_CURSOR_SCHEMA):
@@ -1055,7 +1080,7 @@ def build_research_progress(*, window, plan, invocation, checkpoint_pointer,
     total_units = (0 if _is_ta_m5_import_recipe_ref(window['recipe']) else
                    1849 if _is_ta_m5_full_reverse_order_recipe_ref(window['recipe']) else
                    512 if (_is_ta_m5_paired_batch_order_recipe_ref(window['recipe']) or _is_ta_m5_repeated_pass_recipe_ref(window['recipe'])) else
-                   256 if (_is_ta_m5_original_cuda_prefix_recipe_ref(window['recipe']) or _is_ta_m5_centered_head_coordinates_recipe_ref(window['recipe'])) else 4)
+                   256 if (_is_ta_m5_c171_short_learning_recipe_ref(window['recipe']) or _is_ta_m5_original_cuda_prefix_recipe_ref(window['recipe']) or _is_ta_m5_centered_head_coordinates_recipe_ref(window['recipe'])) else 4)
     value = _seal({'schema_version':campaign.PROGRESS_SCHEMA,'plan_sha256':plan['plan_sha256'],
         'invocation_sha256':invocation['invocation_sha256'],'phase':KIND,'recipe':window['recipe'],
         'completed_units':optimizer_updates,'total_units':total_units,'optimizer_updates':optimizer_updates,
@@ -1079,7 +1104,8 @@ def require_research_progress(value, *, plan_sha256, invocation,
     batch_size=invocation['batch_size']
     _require(type(batch_size) is int and batch_size in (2,16),'PROGRESS_BATCH_SIZE')
     full_reverse = _is_ta_m5_full_reverse_order_recipe_ref(invocation['direction_research_recipe'])
-    prefix_trace = (_is_ta_m5_original_cuda_prefix_recipe_ref(invocation['direction_research_recipe'])
+    prefix_trace = (_is_ta_m5_c171_short_learning_recipe_ref(invocation['direction_research_recipe'])
+                    or _is_ta_m5_original_cuda_prefix_recipe_ref(invocation['direction_research_recipe'])
                     or _is_ta_m5_centered_head_coordinates_recipe_ref(invocation['direction_research_recipe']))
     paired = (_is_ta_m5_paired_batch_order_recipe_ref(invocation['direction_research_recipe'])
               or _is_ta_m5_repeated_pass_recipe_ref(invocation['direction_research_recipe']))

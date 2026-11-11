@@ -6,7 +6,7 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_LOCAL_GRADIENT_MEASURED_SHORT_LEARNING_NEXT.
+TA_DIRECTION_EDGE_CAUSE_C171_SHORT_LEARNING_IMPLEMENTED_TRAINING_CLOSED.
 Målet fra 11.11 er aktivt: isoler målte årsaker til svak retningslæring i
 indikatorer, sammensetting og læring. [Årsaksstatus](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json).
 Korte runder er feilsøking, ikke kapasitetsdom. Full kvalifisert TRAIN-historikk
@@ -100,9 +100,19 @@ mot dagens R1. Den direkte relevante tidligere next-pass-oppskriften er sjekket:
 1849 updates fra 51e0e883, ikke c171. Den gamle planen er konsumert og skal ikke
 relanseres. En ny optimizerinitialisering må ikke omtales som kontinuerlig epoch.
 
-Neste arbeid er en kort faktisk læringskontroll fra dagens c171 med uendret tap.
-Gjenbruk native modell-/state-/optimizereierne, bind kompatibel initialtilstand
-og eksplisitt optimizerinitialisering, og lås lite oppdateringsbudsjett samt fast
-før/etter-TRAIN-panel for S/M5, F/M5 og resten. Denne kjøringen er ikke innrømmet.
-Alle genuine features/TF og vakter beholdes. Ingen bred trening, ny tapsvekt,
-arkitekturendring eller senere-datavalg følger av den lokale gradientmålingen.
+Neste kontroll er konkret bundet til dagens c171 og uendret tap:
+MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_001. Eksisterende native
+256-stegs prefiksløkke gjenbrukes, med alle aktive parametere, de første4096
+kronologiske TRAIN-radene og fersk tom AdamW. Dette er ikke en fortsatt epoch.
+R1 + fire låste heads importeres; fersk full initial lagres og gjenopprettes
+strengt før trening. Samme16 intakte B16-grupper fordelt over TRAIN måles før
+og etter: 288forwards totalt, 256backward/updates, ingen senere/OOF-skåring.
+Mål samlet originaltap og S/F M5 conditional-side Brier/log hver for seg.
+Per-TF tapsledd omfatter aktivitet+side, ikke isolert M5-side/rest.
+
+Native kampanje, kilde-/inputbinding, fysisk Windows-boot og alle eksisterende
+vakter beholdes. Faktisk kilde-/input-/visningskontroll, oppstartsimport, syntaks og187
+fokuserte tester bestod. Suksess/feilrapportering er kontrollert syntetisk;
+uavhengig kildekontroll fant ingen gjenværende kritiske integrasjonsfunn.
+Denne planen er ennå ikke innrømmet eller claimet. Ingen bred trening, ny
+lossvekt, arkitekturendring, senere-datavalg eller automatisk fortsettelse.

@@ -1,7 +1,8 @@
-"""Observer-only replay of the original CUDA fold-1 prefix through update 256.
+"""Original CUDA prefix replay and one separately admitted c171 short fit.
 
-Called only by the admitted native research dispatcher. Original checkpoints
-are read-only; a successful result references P4096 and grants no resume right.
+Both use the same native256-step loop. The legacy replay is read-only and
+requires original P4096 parity; the c171 branch binds a fresh optimizer and
+matched TRAIN measurements. Neither grants future resume or selection rights.
 """
 from __future__ import annotations
 
@@ -63,8 +64,125 @@ def _bookend(recipe, plan, policy_path, policy_sha):
         campaign.require_binding(value, label='original CUDA prefix bookend', verify_file=True)
 
 
+def _require_execution_bounds(recipe, *, short_learning):
+    """Keep the consumed replay separate from the one admitted c171 experiment."""
+    _need(type(short_learning) is bool, 'SHORT_MODE')
+    if short_learning:
+        from gx1.contracts import market_state_ta_m5_short_learning_v1 as short
+        _need(recipe['run_scope'] == short.SCOPE
+              and recipe['max_private_updates'] == recipe['max_backwards'] == UPDATES
+              and recipe['max_training_forwards'] == UPDATES
+              and recipe['max_evaluation_forwards'] == 32 and recipe['max_forwards'] == 288
+              and recipe['max_model_seconds'] == 1800
+              and recipe['max_checkpoint_writes'] == 2
+              and recipe['panel_batch_indices'] == [(i * 1847) // 15 for i in range(16)]
+              and recipe['optimizer_initialization'] == 'fresh_adamw_empty_state',
+              'SHORT_ADMITTED_BOUNDS')
+    else:
+        _need(recipe['run_scope'] == scope.TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE
+              and recipe['max_private_updates'] == recipe['max_forwards']
+              == recipe['max_backwards'] == UPDATES
+              and recipe['max_model_seconds'] == 720
+              and recipe['max_checkpoint_writes'] == 0, 'ADMITTED_BOUNDS')
+    _need(recipe['max_trace_bytes'] == 64 * 1024**2
+          and recipe['max_checkpoint_loads'] == 2
+          and recipe['max_full_state_restores'] == 1, 'ADMITTED_STATE_BOUNDS')
+
+
+def _short_loss_components(report, truths, *, torch):
+    """Read unchanged owner terms; these are activity+side, before the TF divisor."""
+    from gx1.contracts import market_state_time_query_native_F_objective_v1 as objective
+    raw = report['state_activity_side_logits']
+    checked = objective.combined_loss(
+        state_raw=raw, future_raw=report['future_activity_side_logits'],
+        state_truth=truths['state'], future_truth=truths['future'],
+        state_query_k=torch.from_numpy(report['state_query_k']).to(raw.device),
+        future_weight=1.0, ta_only=True, dedicated_m5_side=True,
+        m5_equal_observation=True)
+    _need(torch.equal(checked['loss'], report['loss'])
+          and checked['contract_sha256'] == report['loss_contract_sha256'],
+          'SHORT_ORIGINAL_LOSS_PARITY')
+    return dict(total=float(report['loss']), **{
+        task + '_per_tf_activity_plus_side_before_divisor': {
+            tf: float(value) for tf, value in checked[task]['per_tf_mean_loss'].items()}
+        for task in ('state', 'future')})
+
+
+def _short_train_panel(model, *, recipe, counters, evaluate, gather_truth, capture,
+                       tree_sha, priors, clock_guard, np, torch):
+    """Measure the fixed TRAIN panel without altering complete native state."""
+    from gx1.audit.run_market_state_ta_m5_paired_batch_order_v1 import sampled_fit_measurement
+    from gx1.contracts.market_state_time_query_target_v1 import NATIVE_K
+    before = capture()
+    before_sha = tree_sha(before)
+    modules, parameters = dict(model.named_modules()), list(model.named_parameters())
+    modes = {name: module.training for name, module in modules.items()}
+    identities = [(name, id(value), value.requires_grad) for name, value in parameters]
+    hooks = {name: (tuple(module._forward_pre_hooks.items()), tuple(module._forward_hooks.items()))
+             for name, module in modules.items()}
+    _need(all(value.grad is None for _, value in parameters), 'SHORT_PANEL_PENDING_GRADIENT')
+    pieces, losses, components = [], [], []
+    model.eval()
+    try:
+        with torch.no_grad():
+            for index in recipe['panel_batch_indices']:
+                clock_guard()
+                _need(counters['forwards'] < recipe['max_forwards']
+                      and counters['evaluation_forwards'] < recipe['max_evaluation_forwards'],
+                      'SHORT_PANEL_FORWARD_BUDGET')
+                counters['forwards'] += 1
+                counters['evaluation_forwards'] += 1
+                report, parents, issues = evaluate(16 * index)
+                counters['forward_returns'] += 1
+                _need(report['model_contract_sha256'] == recipe['expected_model_contract_sha256']
+                      and report['loss_contract_sha256'] == recipe['expected_loss_contract_sha256']
+                      and report['skip_update'] is False and bool(torch.isfinite(report['loss'])),
+                      'SHORT_PANEL_LOSS')
+                truths = gather_truth(parents, issues)
+                counters['extra_target_gathers'] += 2
+                block = dict(parents=parents.copy(), issues=issues.copy(),
+                    state_query=report['state_query_k'].copy(),
+                    future_query=np.broadcast_to(report['future_native_k'], (16, 5)).copy())
+                _need(parents.shape == issues.shape == (16,)
+                      and parents.dtype == issues.dtype == np.int64, 'SHORT_PANEL_ROWS')
+                for task in ('state', 'future'):
+                    truth = truths[task]
+                    _need(np.array_equal(truth['parent_rows'], parents)
+                          and np.array_equal(truth['issue_ns'], issues)
+                          and (np.array_equal(truth['query_k'], block['state_query']) if task == 'state'
+                               else np.array_equal(report['future_native_k'], np.asarray(NATIVE_K, np.int64))),
+                          'SHORT_PANEL_AXES')
+                    for name in ('allowed', 'mature'):
+                        _need(np.array_equal(truth[name], report[task + '_' + name]),
+                              'SHORT_PANEL_TARGET_PARITY')
+                    for name in ('allowed', 'eligible', 'mature'):
+                        block[task + '_' + name] = truth[name].copy()
+                    block[task + '_raw'] = report[task + '_activity_side_logits'].detach().cpu().numpy().copy()
+                components.append(_short_loss_components(report, truths, torch=torch))
+                counters['loss_component_owner_calls'] += 1
+                pieces.append(block)
+                losses.append(float(report['loss']))
+    finally:
+        for name, module in modules.items():
+            module.training = modes[name]
+        _need(tree_sha(capture()) == before_sha
+              and identities == [(name, id(value), value.requires_grad)
+                                 for name, value in model.named_parameters()]
+              and hooks == {name: (tuple(module._forward_pre_hooks.items()), tuple(module._forward_hooks.items()))
+                            for name, module in model.named_modules()}
+              and all(value.grad is None for _, value in model.named_parameters()),
+              'SHORT_PANEL_CHANGED_STATE')
+    _need(len(pieces) == 16, 'SHORT_PANEL_COMPLETE')
+    arrays = {name: np.concatenate([block[name] for block in pieces], axis=0) for name in pieces[0]}
+    measurement = sampled_fit_measurement(arrays, losses, priors,
+        model_contract_sha256=recipe['expected_model_contract_sha256'],
+        loss_contract_sha256=recipe['expected_loss_contract_sha256'],
+        feature_view_sha256=recipe['expected_view_sha256'])
+    return measurement, arrays, components, before['model_state_sha256']
+
+
 def run_original_cuda_prefix(*, policy_path: Path, policy_file_sha256: str,
-                             progress_path: Path) -> dict:
+                             progress_path: Path, short_learning: bool = False) -> dict:
     from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_trainer_execution
     from gx1.contracts import entry_native_direction_research_campaign_v1 as authority
     from gx1.scripts import run_entry_native_direction_research_window_v1 as common
@@ -72,15 +190,12 @@ def run_original_cuda_prefix(*, policy_path: Path, policy_file_sha256: str,
     limits = require_guarded_cuda_trainer_execution()
     window, plan, invocation, marker, recipe = authority.require_native_direction_research_context(
         policy_path, policy_file_sha256, progress_path)
-    _need(recipe['run_scope'] == scope.TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE
-          and recipe['max_private_updates'] == recipe['max_forwards']
-          == recipe['max_backwards'] == UPDATES
-          and recipe['max_model_seconds'] == 720
-          and recipe['max_trace_bytes'] == 64 * 1024**2
-          and recipe['max_checkpoint_loads'] == 2
-          and recipe['max_full_state_restores'] == 1
-          and recipe['max_checkpoint_writes'] == 0, 'ADMITTED_BOUNDS')
-    origin = scope.read_ta_m5_original_cuda_prefix_origin(recipe)
+    _require_execution_bounds(recipe, short_learning=short_learning)
+    if short_learning:
+        from gx1.contracts import market_state_ta_m5_short_learning_v1 as short
+        origin = short.read_origin(recipe)
+    else:
+        origin = scope.read_ta_m5_original_cuda_prefix_origin(recipe)
     original = origin['original_recipe']
     _need(recipe['numerical_recipe'] == original['numerical_recipe']
           and recipe['numerical_recipe']['grad_accum_steps'] == 1
@@ -89,11 +204,12 @@ def run_original_cuda_prefix(*, policy_path: Path, policy_file_sha256: str,
           and recipe['numerical_recipe']['m5_equal_observation'] is True,
           'UNCHANGED_NUMERICAL_RECIPE')
     refs = recipe['input_refs']
-    initial_ref = refs['original_initial_checkpoint']
-    target_ref = refs['original_p4096_checkpoint']
+    initial_ref = None if short_learning else refs['original_initial_checkpoint']
+    target_ref = None if short_learning else refs['original_p4096_checkpoint']
+    source_ref = recipe['candidate_inputs']['reversed_evidence'] if short_learning else initial_ref
     output = Path(window['output_directory'])
     output.mkdir(parents=True)
-    root = scope.TA_M5_ORIGINAL_CUDA_PREFIX_ROOT
+    root = short.ROOT if short_learning else scope.TA_M5_ORIGINAL_CUDA_PREFIX_ROOT
     _need(not any((root / name).exists() for name in ('TRACE.npz', 'RESULT.json', 'TERMINAL.json')),
           'OUTPUT_EXISTS')
     counters = {key: 0 for key in (
@@ -103,6 +219,10 @@ def run_original_cuda_prefix(*, policy_path: Path, policy_file_sha256: str,
         'resume_state_load_calls', 'resume_state_load_returns',
         'strict_full_state_restore_calls', 'strict_full_state_restore_returns',
         'checkpoint_writes', 'extra_target_gathers', 'json_bytes')}
+    if short_learning:
+        counters.update({key: 0 for key in ('training_forwards', 'evaluation_forwards',
+            'staged_state_load_calls', 'staged_state_load_returns', 'head_tensor_imports',
+            'loss_component_owner_calls', 'archive_decodes', 'published_panel_bytes')})
     started = time.monotonic()
     model_started = None
     provider = prepared = model = optimizer = initial_saved = target_saved = None
@@ -113,6 +233,9 @@ def run_original_cuda_prefix(*, policy_path: Path, policy_file_sha256: str,
     cursor = 0
     timings = {}
     current = {}
+    measurements, measurement_refs, panel_captures, import_proof = {}, {}, {}, {}
+    initial_restore_exact = evaluation_state_unchanged = False
+    final_state_ref = None
 
     def clock_guard():
         now = time.monotonic()
@@ -125,7 +248,8 @@ def run_original_cuda_prefix(*, policy_path: Path, policy_file_sha256: str,
         common._json(output / 'CLAIM.json', {
             'recipe': window['recipe'], 'plan_sha256': plan['plan_sha256'],
             'source_commit': plan['source_commit'], 'original_source_commit': recipe['original_source_commit'],
-            'checkpoint_inputs': [initial_ref, target_ref], 'limits': limits, 'test_data_used': False,
+            'checkpoint_inputs': [source_ref] if short_learning else [initial_ref, target_ref],
+            'limits': limits, 'test_data_used': False,
         }, counters, recipe['max_published_json_bytes'])
         import numpy as np
         import torch
@@ -149,9 +273,9 @@ def run_original_cuda_prefix(*, policy_path: Path, policy_file_sha256: str,
 
         _need(torch.cuda.is_available(), 'CUDA_REQUIRED')
         device, numerical = torch.device('cuda', 0), recipe['numerical_recipe']
-        receipts = zero.load_ta_input_receipts(
-            current_source_owners={name: value['sha256'] for name, value in recipe['source_owners'].items()})
-        view = zero._bind_ta_view(receipts, dedicated_m5_side=True)
+        receipts = (origin['receipts'] if short_learning else zero.load_ta_input_receipts(
+            current_source_owners={name: value['sha256'] for name, value in recipe['source_owners'].items()}))
+        view = origin['view'] if short_learning else zero._bind_ta_view(receipts, dedicated_m5_side=True)
         view_ref = original['input_refs']['ta_candidate_view']
         _need(view == authority.campaign.read_bound_json(Path(view_ref['path']), view_ref['sha256'])
               and view['contract_sha256'] == recipe['expected_view_sha256'], 'EXACT_ORIGINAL_VIEW')
@@ -170,18 +294,56 @@ def run_original_cuda_prefix(*, policy_path: Path, policy_file_sha256: str,
         counters['model_constructions'] += 1
         backbone = views.build_native_direction_research_model(
             view, prefix_normalization=receipts['fold1']['normal'],
-            constructor_metadata=receipts['constructor'], device=device,
+            constructor_metadata=receipts['constructor'], device=torch.device('cpu') if short_learning else device,
             unobserved_units_profile=receipts['fold1']['profile'])
-        model = NativeFutureDualModel(backbone).to(device)
+        model = NativeFutureDualModel(backbone)
+        if not short_learning:
+            model.to(device)
         counters['model_construction_returns'] += 1
         view_identity = full_scope.require_checkpoint_view(
             model.state_model.feature_view_identity, recipe=original,
             verify_files=True, ta_sf=True)
         _need(model.research_objective['contract_sha256'] == recipe['expected_model_contract_sha256'],
               'EXACT_MODEL_CONTRACT')
+        if short_learning:
+            from gx1.audit import cache_market_state_ta_direction_v1 as cache
+            from gx1.audit.run_market_state_ta_m5_full_reverse_order_v1 import build_reverse_order
+            saved = common._load_state(source_ref, torch=torch,
+                maximum=recipe['max_checkpoint_bytes'], counters=counters)
+            counters['checkpoint_loads'] += 1
+            reversed_order = torch.from_numpy(build_reverse_order(rows, origin['recipe']['batch_indices'])[0].copy())
+            source_identity = cache._load_reversed_weights(model, saved, origin, reversed_order, torch=torch)
+            del saved, reversed_order
+            candidate_refs = recipe['candidate_inputs']
+            with np.load(candidate_refs['folded_coefficients']['path'], allow_pickle=False) as archive:
+                _need(set(archive.files) == set(HEAD_NAMES), 'SHORT_HEAD_KEYS')
+                coefficients = {name: torch.from_numpy(archive[name].copy()) for name in archive.files}
+            counters['archive_decodes'] += 1
+            import_proof = state.import_equal_weight_m5_side_heads(model, coefficients,
+                expected_model_state_sha256=cache.REVERSED_MODEL,
+                coefficient_artifact=candidate_refs['folded_coefficients'],
+                coefficient_recipe=candidate_refs['candidate_plan'])
+            counters['head_tensor_imports'] = 4
+            _need(model_sha(model.state_dict()) == recipe['expected_initial_model_state_sha256'],
+                  'SHORT_EXACT_C171')
+            import_proof = dict(weights=source_identity, heads=import_proof,
+                rng_policy='declared_seed_and_constructor_rng_no_R1_rng_restore',
+                optimizer_initialization=recipe['optimizer_initialization'])
+            del coefficients
+            model.to(device)
         model.train()
         counters['optimizer_constructions'] += 1
         optimizer, binding = state.build_fold1_fit_optimizer(model, numerical_recipe=numerical)
+        if short_learning:
+            _need(not optimizer.state, 'SHORT_FRESH_EMPTY_ADAMW')
+            fresh = state.capture_fold1_fit_state(
+                model, optimizer, numerical_recipe=numerical, feature_view_identity=view_identity,
+                parent_order=order, cursor=0, optimizer_updates=0, skipped_batches=0,
+                source_commit=plan['source_commit'], device=device)
+            initial_ref = common._save_state(output / 'INITIAL_C171_STATE.pt', fresh,
+                torch=torch, maximum=recipe['max_checkpoint_bytes'], counters=counters)
+            counters['checkpoint_writes'] += 1
+            del fresh
         initial_saved = common._load_state(initial_ref, torch=torch,
             maximum=recipe['max_checkpoint_bytes'], counters=counters)
         counters['checkpoint_loads'] += 1
@@ -189,7 +351,7 @@ def run_original_cuda_prefix(*, policy_path: Path, policy_file_sha256: str,
         restored = state.restore_fold1_fit_state(
             initial_saved, model, optimizer, numerical_recipe=numerical,
             feature_view_identity=view_identity, parent_order=order,
-            source_commit=recipe['original_source_commit'], device=device)
+            source_commit=plan['source_commit'] if short_learning else recipe['original_source_commit'], device=device)
         counters['strict_full_state_restore_returns'] += 1
         _need(restored == {'cursor': 0, 'optimizer_updates': 0, 'skipped_batches': 0}
               and initial_saved['model_state_sha256'] == recipe['expected_initial_model_state_sha256']
@@ -199,8 +361,57 @@ def run_original_cuda_prefix(*, policy_path: Path, policy_file_sha256: str,
             parent_order=order, cursor=0, optimizer_updates=0, skipped_batches=0,
             source_commit=plan['source_commit'], device=device)
         state_proofs['initial'] = _same_full_state(initial_saved, fresh,
-            source=recipe['original_source_commit'], tree_sha=tree_sha, model_sha=model_sha)
+            source=plan['source_commit'] if short_learning else recipe['original_source_commit'],
+            tree_sha=tree_sha, model_sha=model_sha)
+        initial_restore_exact = True
         del fresh
+
+        def measure_short_train(label):
+            def capture():
+                return state.capture_fold1_fit_state(model, optimizer, numerical_recipe=numerical,
+                    feature_view_identity=view_identity, parent_order=order, cursor=cursor,
+                    optimizer_updates=counters['optimizer_updates'], skipped_batches=0,
+                    source_commit=plan['source_commit'], device=device)
+            def evaluate(left):
+                raw, parents, clocks = runner._feature_batch(prepared, view, receipts,
+                    rows, issues, left, left + 16, np=np)
+                features = {name: torch.from_numpy(value).to(device) for name, value in raw.items()}
+                with trainer._training_mha_fastpath_context(model.backbone), \
+                     trainer._training_autocast_context(), trainer._training_model_finite_check_context():
+                    report = evaluate_fit_batch(model, features, bound, future_bound, parents, clocks,
+                        fold_id=1, pass_index=0, seed=numerical['seed'], future_weight=1.0,
+                        m5_equal_observation=True, fit_batch_start=left)
+                return report, parents, clocks
+            def gather(parents, clocks):
+                return dict(state=bound.gather_fit_sampled(parents, clocks, fold_id=1,
+                    pass_index=0, seed=numerical['seed']),
+                    future=future_bound.gather(parents, clocks, fold_id=1, partition='fit'))
+            measured, arrays, components, digest = _short_train_panel(model, recipe=recipe,
+                counters=counters, evaluate=evaluate, gather_truth=gather, capture=capture,
+                tree_sha=tree_sha, priors=origin['priors'], clock_guard=clock_guard, np=np, torch=torch)
+            if measurements:
+                _need(measured['observation_chain_sha256'] == measurements['INITIAL_TRAIN']['observation_chain_sha256'],
+                      'SHORT_MATCHED_PANEL')
+            stream = io.BytesIO()
+            np.savez_compressed(stream, **arrays)
+            _need(sum(value.nbytes for value in arrays.values()) <= recipe['max_trace_bytes']
+                  and stream.tell() + counters['published_panel_bytes'] <= recipe['max_trace_bytes'],
+                  'SHORT_PANEL_BYTES')
+            _publish_bytes(root / (label + '.npz'), stream.getvalue())
+            counters['published_panel_bytes'] += stream.tell()
+            panel_captures[label] = common._hash_file(root / (label + '.npz'))
+            measurements[label] = measured
+            measurement_refs[label] = common._json(root / (label + '.json'), {
+                'schema_version': 'gx1_ta_m5_c171_short_train_measurement_v1',
+                'measurement': measured, 'capture': panel_captures[label],
+                'evaluated_model_state_sha256': digest, 'optimizer_updates': counters['optimizer_updates'],
+                'panel_batch_indices': recipe['panel_batch_indices'], 'canonical_loss_components': components,
+                'component_definition': 'Each per-TF component is activity plus side, before the existing divisor5; future_weight1. No isolated M5-side or rest loss is claimed.',
+                'evaluation_state_unchanged': True, 'test_data_used': False},
+                counters, recipe['max_published_json_bytes'])
+
+        if short_learning:
+            measure_short_train('INITIAL_TRAIN')
         head_params = [(name, dict(model.named_parameters())[name]) for name in HEAD_NAMES]
         _need([tuple(value.shape) for _, value in head_params] == [(1,128),(1,),(1,128),(1,)]
               and all(value.requires_grad and value.dtype == torch.float32 for _, value in head_params),
@@ -264,6 +475,13 @@ def run_original_cuda_prefix(*, policy_path: Path, policy_file_sha256: str,
             features = {name: torch.from_numpy(value).to(device) for name, value in raw.items()}
             optimizer.zero_grad(set_to_none=True)
             current['head_before'], _ = vector()
+            if short_learning:
+                _need(counters['forwards'] < recipe['max_forwards']
+                      and counters['training_forwards'] < recipe['max_training_forwards']
+                      and counters['backwards'] < recipe['max_backwards']
+                      and counters['optimizer_step_calls'] < recipe['max_private_updates'],
+                      'SHORT_TRAIN_BUDGET')
+                counters['training_forwards'] += 1
             counters['forwards'] += 1
             with trainer._training_mha_fastpath_context(model.backbone), \
                  trainer._training_autocast_context(), \
@@ -325,7 +543,7 @@ def run_original_cuda_prefix(*, policy_path: Path, policy_file_sha256: str,
             optimizer.zero_grad(set_to_none=True)
             cursor = left + 16
             state._progress(cursor,counters['optimizer_updates'],0,order,numerical)
-            if left == 0:
+            if left == 0 and not short_learning:
                 first_step_exact = loss == FIRST_LOSS and float(norm) == FIRST_NORM
                 _need(first_step_exact, 'ORIGINAL_FIRST_STEP')
             del report, features, raw, truths
@@ -335,22 +553,39 @@ def run_original_cuda_prefix(*, policy_path: Path, policy_file_sha256: str,
         handles.clear()
         clock_guard()
         _need(cursor == ROWS and counters['optimizer_updates'] == UPDATES, 'PREFIX_COMPLETE')
-        target_saved = common._load_state(target_ref, torch=torch,
-            maximum=recipe['max_checkpoint_bytes'], counters=counters)
-        counters['checkpoint_loads'] += 1
-        _need((target_saved['cursor'],target_saved['optimizer_updates'],target_saved['skipped_batches'])
-              == (ROWS,UPDATES,0), 'ORIGINAL_P4096_PROGRESS')
+        if short_learning:
+            measure_short_train('FINAL_TRAIN')
+            evaluation_state_unchanged = True
+        else:
+            target_saved = common._load_state(target_ref, torch=torch,
+                maximum=recipe['max_checkpoint_bytes'], counters=counters)
+            counters['checkpoint_loads'] += 1
+            _need((target_saved['cursor'],target_saved['optimizer_updates'],target_saved['skipped_batches'])
+                  == (ROWS,UPDATES,0), 'ORIGINAL_P4096_PROGRESS')
         actual = state.capture_fold1_fit_state(
             model,optimizer,numerical_recipe=numerical,feature_view_identity=view_identity,parent_order=order,
             cursor=cursor,optimizer_updates=UPDATES,skipped_batches=0,
             source_commit=plan['source_commit'],device=device)
-        state_proofs['P004096'] = _same_full_state(target_saved,actual,
-            source=recipe['original_source_commit'],tree_sha=tree_sha,model_sha=model_sha)
+        if short_learning:
+            final_state_ref = common._save_state(output / 'FINAL_C171_SHORT_STATE.pt', actual,
+                torch=torch, maximum=recipe['max_checkpoint_bytes'], counters=counters)
+            counters['checkpoint_writes'] += 1
+            state_proofs['final'] = _state_identity(actual)
+        else:
+            state_proofs['P004096'] = _same_full_state(target_saved,actual,
+                source=recipe['original_source_commit'],tree_sha=tree_sha,model_sha=model_sha)
         final_exact = True
         expected_counts = {'model_constructions':1,'optimizer_constructions':1,
             'forwards':UPDATES,'backwards':UPDATES,'optimizer_step_calls':UPDATES,
             'optimizer_updates':UPDATES,'checkpoint_loads':2,
             'strict_full_state_restore_calls':1,'checkpoint_writes':0}
+        if short_learning:
+            expected_counts.update(forwards=288,forward_returns=288,backward_returns=UPDATES,
+                model_construction_returns=1,training_forwards=256,evaluation_forwards=32,
+                checkpoint_writes=2,staged_state_load_calls=2,staged_state_load_returns=2,
+                resume_state_load_calls=2,resume_state_load_returns=2,
+                strict_full_state_restore_returns=1,head_tensor_imports=4,
+                archive_decodes=1,loss_component_owner_calls=32)
         _need(all(counters[key] == value for key,value in expected_counts.items()),
               'EXACT_EXECUTION_COUNTS')
         _need(initial_saved['contract_sha256'] == tree_sha({
@@ -374,7 +609,7 @@ def run_original_cuda_prefix(*, policy_path: Path, policy_file_sha256: str,
         prepared = provider = model = optimizer = initial_saved = target_saved = None
         gc.collect()
 
-    # Retain completed observed steps even on a parity failure; no weights are published.
+    # Preserve completed observations on failure. The legacy route never writes weights.
     try:
         if records:
             import numpy as np
@@ -383,13 +618,14 @@ def run_original_cuda_prefix(*, policy_path: Path, policy_file_sha256: str,
             _need(sum(value.nbytes for value in arrays.values()) <= recipe['max_trace_bytes'], 'TRACE_RAW_BYTES')
             stream = io.BytesIO()
             np.savez_compressed(stream,**arrays)
-            _need(stream.tell() <= recipe['max_trace_bytes'], 'TRACE_FILE_BYTES')
+            _need(stream.tell() + counters.get('published_panel_bytes', 0) <= recipe['max_trace_bytes'], 'TRACE_FILE_BYTES')
             _publish_bytes(root/'TRACE.npz',stream.getvalue())
             trace_ref = common._hash_file(root/'TRACE.npz')
     except BaseException as exc:
         error = (error + '; ' if error else '') + 'trace publication: ' + type(exc).__name__ + ': ' + str(exc)
-    outcome = 'COMPLETE' if first_step_exact and final_exact and source_unchanged and error is None else 'FAILED'
-    final_ref = target_ref if outcome == 'COMPLETE' else None
+    initial_ok = initial_restore_exact if short_learning else first_step_exact
+    outcome = 'COMPLETE' if initial_ok and final_exact and source_unchanged and error is None else 'FAILED'
+    final_ref = (final_state_ref if short_learning else target_ref) if outcome == 'COMPLETE' else None
     payload = {
         'schema_version':scope.TA_M5_ORIGINAL_CUDA_PREFIX_RESULT_SCHEMA,
         'outcome':outcome,
@@ -411,11 +647,35 @@ def run_original_cuda_prefix(*, policy_path: Path, policy_file_sha256: str,
         'qualification_weights_for_main_fit':False, 'predictive_value_claimed':False,
         'scope_limit':'Observer-only original CUDA prefix replay. COMPLETE requires full P4096 numerical-state parity; source metadata and serialization bytes are not claimed identical. No new checkpoint, selection, later scoring or promotion.',
     }
+    if short_learning:
+        for key in ('targetref','first_step_exact','final_full_state_exact','first_step_reference',
+                    'initial_evaluation_replayed','intermediate_evaluation_forwards'):
+            payload.pop(key)
+        payload.update(schema_version=short.RESULT_SCHEMA,
+            decision='PASS_TA_M5_C171_SHORT_LEARNING' if outcome == 'COMPLETE' else 'FAIL_TA_M5_C171_SHORT_LEARNING',
+            initial_restore_exact=initial_restore_exact,
+            final_state_validated=final_exact, retained_final_state=final_state_ref,
+            initial_model_state_sha256=state_proofs.get('initial', {}).get('replayed', {}).get('model_state_sha256'),
+            final_model_state_sha256=state_proofs.get('final', {}).get('model_state_sha256'),
+            evaluation_state_unchanged=evaluation_state_unchanged,
+            optimizer_initialization=recipe['optimizer_initialization'], import_proof=import_proof,
+            checkpoint_writes=counters['checkpoint_writes'], panel_batch_indices=recipe['panel_batch_indices'],
+            measurement_refs=measurement_refs, measurements=measurements, panel_captures=panel_captures,
+            all_panels_complete=set(measurements) == {'INITIAL_TRAIN','FINAL_TRAIN'},
+            canonical_loss_unchanged=source_unchanged, candidate_selection=False, later_evaluation_forwards=0,
+            parameter_change_observed=(state_proofs['final']['model_state_sha256']
+                != recipe['expected_initial_model_state_sha256']) if 'final' in state_proofs else None,
+            scope_limit='One unchanged-loss 256-update chronological TRAIN prefix from c171 with fresh empty AdamW; all active parameters and genuine features retained. Same16 intact B16 TRAIN groups before/after, not256 independent samples or held-out generalization. Fresh initial and final states are evidence only; no canonical future resume, selection or predictive-value authority.')
     result = common._json(root/'RESULT.json',payload,counters,recipe['max_published_json_bytes'])
     common._json(root/'TERMINAL.json', {
         'status':outcome,'exit_code':0 if outcome=='COMPLETE' else 1,'result':result,
         'recipe':window['recipe'],'source_unchanged':source_unchanged,'test_data_used':False,
-        'no_relaunch_under_this_plan':True},counters,recipe['max_published_json_bytes'])
+        'no_relaunch_under_this_plan':True,
+        **({'initial_state': initial_ref, 'final_state': final_ref, 'measurement_refs': measurement_refs,
+            'optimizer_initialization': recipe['optimizer_initialization'],
+            'initial_restore_exact': initial_restore_exact,
+            'evaluation_state_unchanged': evaluation_state_unchanged} if short_learning else {})},
+        counters,recipe['max_published_json_bytes'])
     cursor_ref = common._json(Path(window['campaign_cursor_path']),authority.build_research_cursor(
         recipe_ref=window['recipe'],outcome=outcome,optimizer_updates=counters['optimizer_updates'],
         parent_cursor=cursor,parent_order_sha256=order_sha,full_state=final_ref,result=result,batch_size=16),

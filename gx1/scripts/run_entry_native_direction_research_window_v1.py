@@ -656,6 +656,10 @@ def run_native_direction_research_window(*, policy_path: Path, policy_file_sha25
         from gx1.audit.run_market_state_ta_m5_centered_head_coordinates_v1 import run_centered_head_coordinates
         return run_centered_head_coordinates(policy_path=policy_path,
             policy_file_sha256=policy_file_sha256, progress_path=progress_path)
+    if launch["run_scope"] == authority.TA_M5_C171_SHORT_LEARNING_SCOPE:
+        from gx1.audit.trace_market_state_ta_m5_original_cuda_prefix_v1 import run_original_cuda_prefix
+        return run_original_cuda_prefix(policy_path=policy_path,
+            policy_file_sha256=policy_file_sha256, progress_path=progress_path, short_learning=True)
     if launch["run_scope"] == authority.TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE:
         from gx1.audit.trace_market_state_ta_m5_original_cuda_prefix_v1 import run_original_cuda_prefix
         return run_original_cuda_prefix(policy_path=policy_path,

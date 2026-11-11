@@ -871,6 +871,10 @@ def _reversed_sources(plan, recipe):
     """Only the exact new cap selector differs from the consumed 85-owner recipe."""
     from gx1.contracts import market_state_time_query_fold1_fit_v1 as fit
     owners = recipe['source_owners']
+    if plan.get('native_learning_scope') is not None:
+        from gx1.contracts import market_state_ta_m5_short_learning_v1 as short
+        _need(plan['native_learning_scope'] == short.SCOPE, 'REVERSED_NATIVE_LEARNING_SCOPE')
+        return short.current_source_bridge(owners, plan['native_learning_source_owners'])
     _need(set(owners) == fit.required_source_paths(ta_sf=True) and len(owners) == 85,
           'REVERSED_OWNER_SET')
     override = plan['runtime_source_override']
@@ -924,8 +928,17 @@ def _qualify_reversed_origin(plan, bound_refs):
     current = _reversed_sources(plan, recipe)
     # Reuse the native preflight's input/view/prior seams. Its old cap-byte check
     # is replaced only here; the consumed recipe and its validators stay unchanged.
-    origin = reverse.read_ta_m5_full_reverse_order_origin(recipe)
-    for ref in recipe['input_refs'].values():
+    native_short = plan.get('native_learning_scope') is not None
+    if native_short:
+        from gx1.contracts import market_state_ta_m5_short_learning_v1 as short
+        _need(plan['native_learning_scope'] == short.SCOPE, 'REVERSED_NATIVE_LEARNING_SCOPE')
+        origin = short.read_reversed_upstream(recipe)
+    else:
+        origin = reverse.read_ta_m5_full_reverse_order_origin(recipe)
+    for name, ref in recipe['input_refs'].items():
+        if native_short and name == 'original_trace_helper':
+            short.require_historical_trace(ref)
+            continue
         campaign.require_binding(ref, label='reversed reused input', verify_file=True)
         bound_refs.append(ref)
     campaign.require_binding(recipe['trace_worker'], label='reversed capsule producer', verify_file=True)

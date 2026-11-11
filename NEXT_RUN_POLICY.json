@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-11T15:41:27.251651+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_LOCAL_GRADIENT_MEASURED_SHORT_LEARNING_NEXT",
+  "status": "TA_DIRECTION_EDGE_CAUSE_C171_SHORT_LEARNING_IMPLEMENTED_TRAINING_CLOSED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1698,7 +1698,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Local gradient observation complete and consumed. Preparing a bounded native learning check; no live job or unconsumed plan.",
+    "current_activity": "One c171 native256-update scope qualified:187 focused tests, exact actual source/input/normalization preflight and startup import passed. Independent integration review found no remaining critical blocker. Training remains closed pending exact one-use admission and safe physical reboot.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -9222,7 +9222,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Reuse the existing native model/state/optimizer owners. First bind a compatible c171 initial state and explicitly declared optimizer initialization; predeclare a small update budget and fixed before/after TRAIN measurements for S/M5, F/M5 and remaining tasks. Preserve every genuine feature/timeframe and all guards. Do not infer a loss weight from the 256-row local gradient result.",
+    "next_action": "Qualify one c171 short native prefix using the existing256-update loop, fresh empty AdamW and exact initial-state restore. Same16 intact B16 TRAIN batches before/after; original sampled-S/native-F queries and loss, all active parameters/features/TF retained. Finish source/receipt/reporting preflight, then exact one-use native admission and required safe Windows restart. No full training, OOF, TEST, loss change or automatic continuation.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -75477,7 +75477,7 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_BOUNDED_NATIVE_LEARNING_PREPARATION",
+    "status": "ACTIVE_BOUNDED_NATIVE_LEARNING_QUALIFICATION",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
@@ -75491,7 +75491,7 @@
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Reuse the existing native model/state/optimizer owners. First bind a compatible c171 initial state and explicitly declared optimizer initialization; predeclare a small update budget and fixed before/after TRAIN measurements for S/M5, F/M5 and remaining tasks. Preserve every genuine feature/timeframe and all guards. Do not infer a loss weight from the 256-row local gradient result.",
+    "next_action": "Qualify one c171 short native prefix using the existing256-update loop, fresh empty AdamW and exact initial-state restore. Same16 intact B16 TRAIN batches before/after; original sampled-S/native-F queries and loss, all active parameters/features/TF retained. Finish source/receipt/reporting preflight, then exact one-use native admission and required safe Windows restart. No full training, OOF, TEST, loss change or automatic continuation.",
     "active_stage": null,
     "previous_goal_turn_classification": "PROGRESS: retained MTFintervention andinputsupport review ruledout an unsupported harmful-MTF or generalnormalization-collapse change; nextactualboundarymeasurement identified.",
     "last_goal_turn_classification": "PROGRESS: completed exact-loss local gradient observation at c171 and independent geometry/bit-parity review. Mean-gradient F conflict is not general per-batch harm, so no speculative loss change; next step shifted to a short actual unchanged-loss learning check. Prior next-pass initial identity is different and its consumed plan stays closed."

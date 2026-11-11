@@ -48,7 +48,9 @@ def _seal(value: dict, key: str) -> dict:
 def materialize(binding_path: Path) -> dict:
     from gx1.contracts import entry_native_direction_research_campaign_v1 as research
     from gx1.contracts import market_state_native_F_private_campaign_v1 as mechanical
+    from gx1.contracts import market_state_ta_m5_short_learning_v1 as short
     repo = fold1.CANONICAL_REPO
+    ta_short = binding_path == short.ROOT / 'PREPARATION_EXECUTION_BINDING.json'
     ta_full_reverse = binding_path == mechanical.TA_M5_FULL_REVERSE_ORDER_ROOT / 'PREPARATION_EXECUTION_BINDING.json'
     ta_repeated = binding_path == mechanical.TA_M5_REPEATED_PASS_ROOT / 'PREPARATION_EXECUTION_BINDING.json'
     ta_paired = binding_path == mechanical.TA_M5_PAIRED_BATCH_ORDER_ROOT / 'PREPARATION_EXECUTION_BINDING.json'
@@ -60,7 +62,7 @@ def materialize(binding_path: Path) -> dict:
     import_stage = mechanical.TA_M5_FINAL_IMPORT_STAGE if ta_final_import else mechanical.TA_M5_IMPORT_STAGE
     import_root, import_runtime, import_recipe_path = mechanical.ta_m5_import_paths(import_stage)
     ta_m5 = binding_path == mechanical.TA_M5_ROOT / 'PREPARATION_EXECUTION_BINDING.json'
-    ta_mechanical = ta_full_reverse or ta_repeated or ta_paired or ta_centered or ta_original_prefix or ta_m5_equal_loss or ta_import or ta_m5 or binding_path == mechanical.TA_ROOT / 'PREPARATION_EXECUTION_BINDING.json'
+    ta_mechanical = ta_short or ta_full_reverse or ta_repeated or ta_paired or ta_centered or ta_original_prefix or ta_m5_equal_loss or ta_import or ta_m5 or binding_path == mechanical.TA_ROOT / 'PREPARATION_EXECUTION_BINDING.json'
     ta_sf = binding_path == fold1.TA_SF_RUNTIME_ROOT.parent / 'PREPARATION_EXECUTION_BINDING.json'
     ta_recovery = binding_path == fold1.TA_RECOVERY_RUNTIME_ROOT.parent / 'PREPARATION_EXECUTION_BINDING.json'
     ta_score_recovery = binding_path == fold1.TA_M5_SCORE_RECOVERY_ROOT / 'PREPARATION_EXECUTION_BINDING.json'
@@ -94,7 +96,8 @@ def materialize(binding_path: Path) -> dict:
                      else fold1.TA_M5_EQUAL_LOSS_FIT_MAX_WINDOWS if ta_m5_equal_loss_fit else fold1.MAX_WINDOWS)
     cursor_directory, output_directory = 'prefix-cursor', 'prefix-fit'
     if ta_mechanical:
-        runtime, root = ((mechanical.TA_M5_FULL_REVERSE_ORDER_RUNTIME_ROOT, mechanical.TA_M5_FULL_REVERSE_ORDER_ROOT) if ta_full_reverse
+        runtime, root = ((short.RUNTIME_ROOT, short.ROOT) if ta_short
+            else (mechanical.TA_M5_FULL_REVERSE_ORDER_RUNTIME_ROOT, mechanical.TA_M5_FULL_REVERSE_ORDER_ROOT) if ta_full_reverse
             else (mechanical.TA_M5_REPEATED_PASS_RUNTIME_ROOT, mechanical.TA_M5_REPEATED_PASS_ROOT) if ta_repeated
             else (mechanical.TA_M5_PAIRED_BATCH_ORDER_RUNTIME_ROOT, mechanical.TA_M5_PAIRED_BATCH_ORDER_ROOT) if ta_paired
             else (mechanical.TA_M5_CENTERED_HEAD_COORDINATES_RUNTIME_ROOT, mechanical.TA_M5_CENTERED_HEAD_COORDINATES_ROOT) if ta_centered
@@ -104,6 +107,7 @@ def materialize(binding_path: Path) -> dict:
             else (mechanical.TA_M5_RUNTIME_ROOT, mechanical.TA_M5_ROOT) if ta_m5
             else (mechanical.TA_RUNTIME_ROOT, mechanical.TA_ROOT))
         recipe_path, stage, run_scope = (
+            (short.RECIPE_PATH,short.STAGE,short.SCOPE) if ta_short else
             (mechanical.TA_M5_FULL_REVERSE_ORDER_RECIPE_PATH, mechanical.TA_M5_FULL_REVERSE_ORDER_STAGE, mechanical.TA_M5_FULL_REVERSE_ORDER_SCOPE)
             if ta_full_reverse else
             (mechanical.TA_M5_REPEATED_PASS_RECIPE_PATH, mechanical.TA_M5_REPEATED_PASS_STAGE, mechanical.TA_M5_REPEATED_PASS_SCOPE)
@@ -166,7 +170,7 @@ def materialize(binding_path: Path) -> dict:
           and recipe['runtime_root'] == str(runtime)
           and (ta_mechanical or recipe['max_windows'] == windows_count), 'RECIPE')
     if ta_mechanical:
-        (mechanical.require_ta_m5_full_reverse_order_gate if ta_full_reverse
+        (short.require_gate if ta_short else mechanical.require_ta_m5_full_reverse_order_gate if ta_full_reverse
          else mechanical.require_ta_m5_repeated_pass_gate if ta_repeated
          else mechanical.require_ta_m5_paired_batch_order_gate if ta_paired
          else mechanical.require_ta_m5_centered_head_coordinates_gate if ta_centered
@@ -196,7 +200,7 @@ def materialize(binding_path: Path) -> dict:
     for number in range(1, windows_count + 1):
         window = _seal({
             'schema_version': authority.WINDOW_SCHEMA, 'recipe': binding['recipe'],
-            'invocation_number': number, 'max_invocation_seconds': 3000 if ta_paired else 12000,
+            'invocation_number': number, 'max_invocation_seconds': 3600 if ta_short else 3000 if ta_paired else 12000,
             'progress_path': str(runtime / 'progress' / f'invocation-{number:04d}.json'),
             'campaign_cursor_path': str(runtime / cursor_directory / 'RESUME_CURSOR.json'),
             'output_directory': str(runtime / output_directory), 'test_data_used': False,
@@ -227,7 +231,7 @@ def materialize(binding_path: Path) -> dict:
             'kind': authority.KIND, 'batch_size': fold1.BATCH_SIZE,
             'epoch_index': None, 'window_index': number - 1,
             'window_count': windows_count,
-            'optimizer_step_budget': (0 if ta_import or ta_score_recovery else 1849 if ta_full_reverse else 512 if ta_paired or ta_repeated else 256 if ta_original_prefix or ta_centered
+            'optimizer_step_budget': (0 if ta_import or ta_score_recovery else 1849 if ta_full_reverse else 512 if ta_paired or ta_repeated else 256 if ta_short or ta_original_prefix or ta_centered
                                        else mechanical.MAX_PRIVATE_UPDATES if ta_mechanical
                                       else recipe['numerical_recipe']['max_updates']),
             'expected_success_outcome': 'COMPLETE' if ta_mechanical or ta_score_recovery else 'RESUMABLE_OR_COMPLETE',
@@ -241,7 +245,7 @@ def materialize(binding_path: Path) -> dict:
                            'before_mode': 'GENESIS' if number == 1 else 'PREVIOUS_RECEIPT_AFTER',
                            'predecessor_invocation_number': None if number == 1 else number - 1,
                            'write_mode': 'ATOMIC_UPDATE'},
-            'maximum_wall_seconds': 3300 if ta_paired else 13800, 'requires_fresh_windows_boot': True,
+            'maximum_wall_seconds': 3900 if ta_short else 3300 if ta_paired else 13800, 'requires_fresh_windows_boot': True,
             'signed_guard_only': True, 'test_data_used': False,
         }, 'invocation_sha256')
         invocations.append(_publish(out / f'INVOCATION_{number:04d}.json', invocation))
