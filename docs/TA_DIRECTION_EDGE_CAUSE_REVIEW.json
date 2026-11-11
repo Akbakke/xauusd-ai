@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_NON_M5_SHORT_SOURCE_QUALIFIED_FRESH_BOOT_REQUIRED",
+  "status": "ACTIVE_NON_M5_MATCHED_SHORT_LEARNING_ADMITTED_RESULT_PENDING",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -265,7 +265,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Keep global training closed through safe machine-wide idle reboot. On a verified fresh boot, qualify exact one-use policy and source, materialize the new campaign, then run only this256-update comparison via existing signed native controls.",
+  "next_measurement": "Materialize exactly market_state_ta_non_m5_short_learning_20261112_001 from clean committed source; verify actual WINDOW bytes against canonical preflight; register/start GX1NonM5ShortLearning001 once on verified freshboot641 with preparedboot640. Run only256updates/4096TRAINrows and full4096INITIAL/FINAL observations. Preserve all old consumed plans and all signed guards. Review everyS/F/TF against immutable original fullprefix reference; no automatic continuation or broad training.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -277,7 +277,7 @@
     "historical intermediate-vector identity; family-specificpredictiveutility"
   ],
   "test_data_used": false,
-  "training_authorized": false,
+  "training_authorized": true,
   "promotion_authorized": false,
   "fusion_observation": {
     "status": "COMPLETE",
@@ -1707,7 +1707,7 @@
   },
   "non_m5_side_decoder_repair": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_SIDE_DECODER_REPAIR.json",
-    "sha256": "1baceb7e779ae01649a0b3984f13dab7fa6e2351fcaf4d25185d57639e849518"
+    "sha256": "9ba0008a2070859d067c1d202a3c7bcef83118d5ee1ab649afda9bd16c969a58"
   },
   "non_m5_initial_parity": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_INITIAL_PARITY_REVIEW.json",
@@ -1715,6 +1715,7 @@
   },
   "non_m5_short_learning": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_SHORT_LEARNING_REVIEW.json",
-    "sha256": "b37d229061773b408e0ca766187bafe4f1ba1e50b0838baefc083d3f81486698"
-  }
+    "sha256": "48a5404b5ad267474e948c0e493c7e5762dd05416ebde3f41963f5a1c6fb0c63"
+  },
+  "training_authorized_scope": "market_state_ta_non_m5_short_learning_20261112_001"
 }

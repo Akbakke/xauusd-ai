@@ -6,14 +6,15 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_NON_M5_SHORT_SOURCE_QUALIFIED_FRESH_BOOT_REQUIRED.
+TA_DIRECTION_EDGE_CAUSE_NON_M5_MATCHED_SHORT_LEARNING_ADMITTED_RESULT_PENDING.
 Målet 11.11 er aktivt: avklar målte årsaker til svak retningsverdi i indikatorer,
 sammensetting og læring. [Samlet status](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json).
 Korte runder er feilsøking, ikke kapasitetsdom. Full kvalifisert TRAIN-historikk
 og 30–40 epoker er senere skalering, ikke et krav ved hver rettelse.
 Alle tidligere modellplaner og siste lesende initialparitetskontroll er konsumert.
-Ingen ny modellkjøring eller trening er innrømmet.
-Training/native_training/native_launch/full_epoch/full_val er false. Begge gamle
+Én ny eksakt nonM5kort sammenligning er innrømmet etter verifisert boot641; ennå ikke startet.
+Training/native_training er true kun for den nye256update-planen; generell native_launch,
+full_epoch/full_val er fortsatt false. Begge gamle
 c171 Windowsoppgaver er Disabled. GC er på pause; TEST, Entry/Exit, broker,
 handel, spending og promotion er stengt. Sluttcheckpoint er evidens, ikke promotion.
 
@@ -211,8 +212,8 @@ Læringseffekt, senere generalisering og økonomisk edge er fortsatt ubevist.
 
 ## Neste avklaring
 
-[Den nye korte sammenligningen](docs/TA_NON_M5_SHORT_LEARNING_REVIEW.json) er kildekvalifisert,
-men ikke innrømmet til native kjøring.348fokuserte tester består; kilde uendret under test.
+[Den nye korte sammenligningen](docs/TA_NON_M5_SHORT_LEARNING_REVIEW.json) er innrømmet én gang
+etter kildekvalifisering og trygg boot640→641.348fokuserte tester består; kilde uendret under test.
 Eksakt oppskrift,92kildeeiere, faktisk feature-/normaliseringsidentitet og capens
 3600/3900sekunders mapping er kontrollert. Kanonisk modul/argument-oppstart stopper
 som forventet i audit-vakten før claim/modell; signert native miljø kontrolleres ved launch.
@@ -230,10 +231,15 @@ Dette bruker uendret kanonisk trainer fra short002:20GiB/512MiB,CPU0–18/pids12
 GPU-minne12288MiB,250Wlimit/310Wdraw/85Ccore;1800smodell/3600svindu/3900sytrevakt.
 Det er en annen eksisterende profil enn de lesende produsentkontrollene over; ingen vakt er økt.
 
-Global training/native_training/native_launch/full_epoch/full_val er fortsatt false.
-Prepared boot er640; mål maskinbred idle og gjør trygg fysisk omstart først. Etter ny boot:
-innrøm kun den nye eksakte engangsplanen, commit ren kilde/policy, materialiser gjennom
-eksisterende capped materializer og bruk signert Windows-kontroll. Ingen gammel plan relanseres.
+Global training/native_training er true kun for denne eksakte engangsplanen; generell
+native_launch/full_epoch/full_val er false. Trygg fysisk boot641 er verifisert, med alle92
+kildeeiere og artefakter intakte.11gamle active-markører tilhører tidligere boot504–639;
+de er bevart, ingen jobb var aktiv. Prepared boot640 beholdes. En ad-hoc preflight-fixture
+manglet kanonisk newline; rettet med eksisterende serialisering før plan/claim, ingen kildeendring.
+Materialiser nå fra ren committed kilde/policy gjennom eksisterende capped materializer;
+krev byteidentisk WINDOW mot CANONICAL_PREFLIGHT_WINDOW. Installer deretter ny
+GX1NonM5ShortLearning001 og start én gang på fersk boot641 gjennom signert kontroll.
+Ingen gammel plan relanseres.
 Analyser beggeS/F og alle5TF på hele bruktperioden: originaltap/komponenter,AUC,Brier,logtap,
 P(UP),kronologiske kvartaler og felles nonM5endring. Rapporter også forverringer.
 Dette er fortsatt bruktTRAIN, ikke senere generalisering eller økonomisk edge.

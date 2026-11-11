@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_non_m5_side_decoder_repair_v1",
-  "status": "IMPLEMENTED_MECHANICALLY_AND_NATIVE_INITIAL_VERIFIED_LEARNING_AND_EDGE_UNPROVED",
+  "status": "IMPLEMENTED_NATIVE_INITIAL_VERIFIED_BOUNDED_LEARNING_ADMITTED_RESULT_PENDING",
   "reason": "Measured near-parallel side sensitivity and output ranking across M15/H1/H4/D1, plus opposite task pressure and fullusedprefix calibration deterioration, justify testing independent adaptation at the smallest output boundary.",
   "evidence": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_DECODER_CONDITIONING_REVIEW.json",
@@ -23,11 +23,11 @@
   "native_function_qualified": true,
   "direction_improvement_measured": false,
   "model_variant_default_active": false,
-  "native_run_authorized": false,
-  "training_authorized": false,
+  "native_run_authorized": true,
+  "training_authorized": true,
   "promotion_authorized": false,
   "test_data_used": false,
-  "next_action": "Qualify one new bounded independent-non-M5 learning comparison at the original256updates/4096chronologicalTRAINrows. Reuse originalshort002 and full-used-prefix references; keep all features/targets/loss weights and AdamW settings. Start from the measured cloned2a3847d0 initial weights, fresh empty optimizer and explicitly matched original initial training RNG. Measure the full used4096-row period before/after so the small48-row panel overlap cannot decide the result. Bind new numerical/model/view identities separately; old plans stay consumed. This closure admits no further model run or training. Full history and30-40epochs remain later.",
+  "next_action": "Materialize exactly market_state_ta_non_m5_short_learning_20261112_001 from clean committed source; verify actual WINDOW bytes against canonical preflight; register/start GX1NonM5ShortLearning001 once on verified freshboot641 with preparedboot640. Run only256updates/4096TRAINrows and full4096INITIAL/FINAL observations. Preserve all old consumed plans and all signed guards. Review everyS/F/TF against immutable original fullprefix reference; no automatic continuation or broad training.",
   "mechanical_review": {
     "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SIDE_MECHANICAL_20261111_001/MECHANICAL_REVIEW.json",
     "sha256": "2e4579f1fd66fd00609ae062430d50396dbec95f7e36313f4de9da0d23128ff1"
@@ -70,5 +70,10 @@
   },
   "native_function_qualification_scope": "Original16B16 historicalTRAIN panel only; two independent models and one actual initial checkpoint. No full-population, learning or heldout qualification.",
   "full_population_initial_baseline_qualified": false,
-  "learning_effect_measured": false
+  "learning_effect_measured": false,
+  "training_authorized_scope": "market_state_ta_non_m5_short_learning_20261112_001",
+  "non_m5_short_learning": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_SHORT_LEARNING_REVIEW.json",
+    "sha256": "48a5404b5ad267474e948c0e493c7e5762dd05416ebde3f41963f5a1c6fb0c63"
+  }
 }

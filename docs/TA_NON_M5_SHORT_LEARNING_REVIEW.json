@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_non_m5_short_learning_review_v1",
-  "status": "PREPARED_348_TESTS_PASS_NO_NATIVE_ADMISSION",
+  "status": "ADMITTED_ONCE_ON_VERIFIED_FRESH_BOOT_RESULT_PENDING",
   "base_source_commit": "5e2f17a749ea5eb6dd3d1b4bafe4e184dd561b45",
   "stage": "market_state_ta_non_m5_short_learning_20261112_001",
   "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001",
@@ -49,12 +49,12 @@
     "sha256": "eb12a402b4faed5a7a2048e478dda9fa22fb1399c4959621c6b220553846af11"
   },
   "actual_cap_gate": {
-    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/ACTUAL_PREFLIGHT_CAP_GATE.json",
-    "sha256": "86571a1bf3500f122e74a821bd424c84a5829dca4f8c63cd2aabc6eb27a04a7e"
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/CANONICAL_ACTUAL_PREFLIGHT_CAP_GATE.json",
+    "sha256": "d9309db47cb780ddc690fa38af27a09cd1ca6bf775647a7adeb563c6fc6663de"
   },
   "startup_import_smoke": {
-    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/STARTUP_IMPORT_SMOKE.json",
-    "sha256": "08f07d9165c91b35b663f86584ab964f86934b09f00b7496429a7bdab462dcfd"
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/CANONICAL_STARTUP_IMPORT_SMOKE.json",
+    "sha256": "26ea32ba0eb4e2665e3fac0567ca599590b9d961d0b8a30a1c68e02cca5f4e13"
   },
   "startup_smoke_review_failure": {
     "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/STARTUP_SMOKE_REVIEW_ASSERTION_FAILURE.json",
@@ -107,9 +107,27 @@
     "interpretation": "Report improvements and regressions for every horizon and task. Compare matched changes with immutable original endpoints; no threshold search, candidate selection or promotion."
   },
   "native_run_started": false,
-  "training_authorized": false,
+  "training_authorized": true,
   "test_data_used": false,
   "later_generalization_proven": false,
   "economic_edge_proven": false,
-  "next_action": "Keep global training closed through safe machine-wide idle reboot. On a verified fresh boot, qualify exact one-use policy and source, materialize the new campaign, then run only this256-update comparison via existing signed native controls."
+  "next_action": "Materialize exactly market_state_ta_non_m5_short_learning_20261112_001 from clean committed source; verify actual WINDOW bytes against canonical preflight; register/start GX1NonM5ShortLearning001 once on verified freshboot641 with preparedboot640. Run only256updates/4096TRAINrows and full4096INITIAL/FINAL observations. Preserve all old consumed plans and all signed guards. Review everyS/F/TF against immutable original fullprefix reference; no automatic continuation or broad training.",
+  "qualified_source_commit": "9aaf7f640ae6bfe967fe199f9499fffb9b87558d",
+  "training_authorized_scope": "market_state_ta_non_m5_short_learning_20261112_001",
+  "post_boot_verification": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/POST_BOOT_VERIFICATION.json",
+    "sha256": "ee8c911c50ba51a2acc0196c9604e127b6367712634c310d78642bc6a8085ba1"
+  },
+  "post_boot_preflight": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/POST_BOOT_PREFLIGHT.json",
+    "sha256": "879a70748edc3e9a1b4d7a7033dab315f1f9cd32e0e2dac0307a814dc1df0144"
+  },
+  "canonical_window": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/CANONICAL_PREFLIGHT_WINDOW.json",
+    "sha256": "6ecf43c21ab53a28789db8983bd7764cbfe956df2eecb7acf261404fca051b58"
+  },
+  "prefight_fixture_serialization_correction": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/PREFLIGHT_WINDOW_SERIALIZATION_REVIEW.json",
+    "sha256": "4bad5dc9c9db6c6d6899427d9be9fb38f6730d31caa185b760f8b738dd57abcb"
+  }
 }
