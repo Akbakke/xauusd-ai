@@ -135,6 +135,183 @@ def observe_ta_fusion_once(backbone, *, batch_rows, max_bytes, torch):
             handle.remove()
 
 
+def _temporal_methods(backbone):
+    return dict(timeframes=['m5','m15','h1','h4','d1'], families=list(backbone._mtf_specialist_names),
+        temporal_lengths=[16,64,96,96,252], batch_equal_length_mtf_eval=False,
+        grid_axes=['parent','timeframe','family','channel'], cross_tf_axes=['parent','timeframe','channel'],
+        moment_axes=['parent','timeframe','family','moment'],
+        moment_channels=['raw_rms','within_window_centered_rms'],
+        moments='sqrt(mean(x64**2)); sqrt(mean((x64-mean_time(x64))**2)); cast once to float32',
+        readout='FP32 mean_time(output) + output_last, then trained family/timeframe identity',
+        moments_average_over=['time','channel'], native_means_and_last_dtype='float32',
+        persisted_dtype='float32', hooks='parent TransformerEncoder only; no layer hooks',
+        family_axis_input_reconstruction='bitexact FP32 output_mean + output_last + trained identity',
+        timeframe_axis_input_reconstruction='bitexact preceding family_axis_output',
+        input_interpretation='Projected features include context-conditioned gates, embeddings and positional encoding.',
+        variance_interpretation='Within-window activation variation and variation between decisions are distinct; neither proves predictive utility.')
+
+
+@contextmanager
+def observe_ta_temporal_once(backbone, *, batch_rows, max_bytes, counts, torch):
+    """Observe the exact unmerged 40-route eval; never replace inputs/outputs.
+
+    Temporal inputs already include projection, context gates, embeddings and PE.
+    FP64 window RMS is descriptive activation energy, not predictive information.
+    Only parent encoders are hooked so child Transformer fastpaths stay intact.
+    """
+    from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
+        _BATCH_EQUAL_LENGTH_MTF_EVAL, TF_INPUT_SCALE_NAMES)
+    _need(type(batch_rows) is int and batch_rows > 0 and type(max_bytes) is int
+          and max_bytes > 0, 'TEMPORAL_BOUNDS')
+    _need(_BATCH_EQUAL_LENGTH_MTF_EVAL.get() is False, 'TEMPORAL_BATCH_MODE')
+    timeframes = ('m5','m15','h1','h4','d1'); lengths = (16,64,96,96,252)
+    families = tuple(backbone._mtf_specialist_names); cfg = backbone.cfg
+    width = cfg.d_model; identity = backbone.family_tf_token_identity
+    family_modules = backbone.mtf_family_encoder
+    axis_names = ('family_axis_attn','timeframe_axis_attn','cross_tf_attn')
+    axes = [getattr(backbone,name) for name in axis_names]
+    modules = [family_modules[name] for name in families] + axes
+    _need(tuple(TF_INPUT_SCALE_NAMES) == timeframes and len(families) == len(set(families)) == 8
+          and tuple(family_modules) == families and type(width) is int and width > 0
+          and tuple(getattr(cfg,name+'_seq_len') for name in timeframes) == lengths
+          and all(type(getattr(cfg,name+'_seq_len')) is int for name in timeframes)
+          and all(isinstance(m,torch.nn.TransformerEncoder) for m in modules)
+          and len({id(m) for m in modules}) == 11 and not backbone.training
+          and not any(m.training for parent in modules for m in parent.modules()), 'TEMPORAL_LAYOUT')
+    _need(isinstance(identity,torch.Tensor) and identity.dtype == torch.float32
+          and identity.device.type != 'meta' and tuple(identity.shape) == (1,5,8,width)
+          and bool(torch.isfinite(identity.detach()).all().item()), 'TEMPORAL_IDENTITY')
+    device = identity.device
+    shapes = {name:(batch_rows,5,8,width) for name in (
+        'temporal_input_mean','temporal_input_last','temporal_output_mean','temporal_output_last',
+        'family_axis_output','timeframe_axis_output')}
+    shapes.update({name:(batch_rows,5,8,2) for name in ('temporal_input_moments','temporal_output_moments')})
+    shapes.update({name:(batch_rows,5,width) for name in ('cross_tf_input','cross_tf_output')})
+    _need(4*sum(math.prod(shape) for shape in shapes.values()) <= max_bytes, 'TEMPORAL_BYTE_LIMIT')
+    limits = dict(temporal_family_encoder_calls=1280,temporal_family_axis_calls=32,
+        temporal_timeframe_axis_calls=32,temporal_cross_tf_calls=32,temporal_observed_forwards=32)
+    _need(all(type(counts.get(k)) is int and 0 <= counts[k] < limit for k,limit in limits.items()),
+          'TEMPORAL_COUNTERS')
+    captured = {name:torch.empty(shape,dtype=torch.float32,device=device) for name,shape in shapes.items()}
+    handles = []; completed = 0; pending = None; stage = 0; failed = False
+
+    def count(name):
+        counts[name] += 1
+        _need(counts[name] <= limits[name], 'TEMPORAL_CALL_LIMIT:'+name)
+
+    def tensor(value, shape, name):
+        _need(isinstance(value,torch.Tensor) and value.dtype == torch.float32
+              and value.device == device and tuple(value.shape) == shape, 'TEMPORAL_TENSOR:'+name)
+        value = value.detach()
+        _need(bool(torch.isfinite(value).all().item()), 'TEMPORAL_NONFINITE:'+name)
+        return value
+
+    def input_tensor(args, kwargs, shape, name):
+        _need(_BATCH_EQUAL_LENGTH_MTF_EVAL.get() is False, 'TEMPORAL_BATCH_MODE')
+        _need(not torch.is_grad_enabled() and not backbone.training, 'TEMPORAL_EVAL_ONLY')
+        _need(len(args) == 1 and set(kwargs) <= {'src_key_padding_mask'}
+              and all(value is None for value in kwargs.values()), 'TEMPORAL_CALL_SIGNATURE:'+name)
+        return tensor(args[0],shape,name)
+
+    def exact(actual, expected, name):
+        _need(torch.equal(actual.contiguous().view(torch.int32), expected.contiguous().view(torch.int32)),
+              'TEMPORAL_BIT_PARITY:'+name)
+
+    def summarize(value, prefix, tf, family):
+        # The native readout also uses FP32 mean and last; FP64 here is only for RMS.
+        captured[prefix+'_mean'][:,tf,family].copy_(value.mean(dim=1))
+        captured[prefix+'_last'][:,tf,family].copy_(value[:,-1,:])
+        wide = value.to(torch.float64)
+        rms = wide.square().mean(dim=(1,2)).sqrt()
+        centered = (wide-wide.mean(dim=1,keepdim=True)).square().mean(dim=(1,2)).sqrt()
+        moments = torch.stack((rms,centered),dim=1).to(torch.float32)
+        _need(bool(torch.isfinite(moments).all().item()), 'TEMPORAL_MOMENTS_NONFINITE')
+        captured[prefix+'_moments'][:,tf,family].copy_(moments)
+
+    def guarded(callback):
+        def hook(*args):
+            nonlocal failed
+            try:
+                callback(*args)
+            except BaseException:
+                failed = True
+                raise
+        return hook
+
+    def family_pre(family):
+        def observe(_module, args, kwargs):
+            nonlocal pending
+            count('temporal_family_encoder_calls')
+            _need(stage == 0 and pending is None and completed < 40 and completed % 8 == family,
+                  'TEMPORAL_ROUTE_ORDER')
+            tf = completed // 8
+            value = input_tensor(args,kwargs,(batch_rows,lengths[tf],width),'family_input')
+            summarize(value,'temporal_input',tf,family)
+            pending = (tf,family)
+        return guarded(observe)
+
+    def family_post(family):
+        def observe(_module, _args, _kwargs, output):
+            nonlocal completed, pending
+            _need(pending == (completed//8,family) and completed % 8 == family, 'TEMPORAL_ROUTE_PAIR')
+            tf = completed // 8
+            summarize(tensor(output,(batch_rows,lengths[tf],width),'family_output'),
+                      'temporal_output',tf,family)
+            completed += 1; pending = None
+        return guarded(observe)
+
+    axis_shapes = ((batch_rows*8,5,width),(batch_rows*5,8,width),(batch_rows,5,width))
+    axis_counts = ('temporal_family_axis_calls','temporal_timeframe_axis_calls','temporal_cross_tf_calls')
+    def axis_pre(index):
+        def observe(_module, args, kwargs):
+            nonlocal stage
+            count(axis_counts[index])
+            _need(completed == 40 and pending is None and stage == 2*index, 'TEMPORAL_AXIS_ORDER')
+            value = input_tensor(args,kwargs,axis_shapes[index],axis_names[index]+'_input')
+            if index == 0:
+                grid = captured['temporal_output_mean'] + captured['temporal_output_last'] + identity.detach()
+                expected = grid.permute(0,2,1,3).reshape(axis_shapes[index])
+                exact(value,expected,'family_axis_input')
+            elif index == 1:
+                exact(value,captured['family_axis_output'].reshape(axis_shapes[index]),'timeframe_axis_input')
+            else:
+                captured['cross_tf_input'].copy_(value)
+            stage += 1
+        return guarded(observe)
+
+    def axis_post(index):
+        def observe(_module, _args, _kwargs, output):
+            nonlocal stage
+            _need(stage == 2*index+1, 'TEMPORAL_AXIS_PAIR')
+            value = tensor(output,axis_shapes[index],axis_names[index]+'_output')
+            if index == 0:
+                captured['family_axis_output'].copy_(value.reshape(batch_rows,8,5,width).permute(0,2,1,3))
+            elif index == 1:
+                captured['timeframe_axis_output'].copy_(value.reshape(batch_rows,5,8,width))
+            else:
+                captured['cross_tf_output'].copy_(value)
+            stage += 1
+        return guarded(observe)
+
+    try:
+        for index,name in enumerate(families):
+            handles.append(family_modules[name].register_forward_pre_hook(family_pre(index),with_kwargs=True))
+            handles.append(family_modules[name].register_forward_hook(family_post(index),with_kwargs=True))
+        for index,module in enumerate(axes):
+            handles.append(module.register_forward_pre_hook(axis_pre(index),with_kwargs=True))
+            handles.append(module.register_forward_hook(axis_post(index),with_kwargs=True))
+        yield captured
+        _need(not failed and completed == 40 and pending is None and stage == 6, 'TEMPORAL_INCOMPLETE')
+        _need(all(bool(torch.isfinite(value).all().item()) for value in captured.values()), 'TEMPORAL_CAPTURE_NONFINITE')
+        count('temporal_observed_forwards')
+    except BaseException:
+        captured.clear()
+        raise
+    finally:
+        for handle in reversed(handles):
+            handle.remove()
+
+
 def _git(*args):
     return subprocess.check_output(['git', '-C', str(REPO), *args], text=True).strip()
 
@@ -313,6 +490,12 @@ def _inspect(plan_path, plan_sha256, out_dir, *, execute):
 
 
 def preflight_read_only(plan_path, plan_sha256, out_dir):
+    if Path(plan_path) == TEMPORAL_ROOT/'PLAN.json' or Path(out_dir) == TEMPORAL_ROOT:
+        checked = _inspect_fusion_observation(plan_path, plan_sha256, out_dir, execute=False, temporal=True)
+        return dict(status='READY_NO_CLAIM_NO_MODEL_NO_ARRAY_DESERIALIZATION',plan=checked['plan_ref'],
+            view_sha256=checked['view']['contract_sha256'],model_constructions=0,backbone_encodings=0,
+            archive_decodes=0,current_source_owners=len(checked['current_sources']),changed_owners=[CAP_RUNNER],
+            scalar_fits=0,test_data_used=False)
     if Path(plan_path) == MTF_RETAINED_ROOT/'PLAN.json' or Path(out_dir) == MTF_RETAINED_ROOT:
         checked = _inspect_fusion_observation(plan_path, plan_sha256, out_dir, execute=False, retained=True)
         return dict(status='READY_NO_CLAIM_NO_MODEL_NO_ARRAY_DESERIALIZATION',
@@ -403,6 +586,8 @@ def _save_cache(partition, arrays, rows, *, partial=False, root=ROOT):
 
 
 def run(plan_path, plan_sha256, out_dir, *, device):
+    if Path(plan_path) == TEMPORAL_ROOT/'PLAN.json' or Path(out_dir) == TEMPORAL_ROOT:
+        return _run_fusion_observation(plan_path, plan_sha256, out_dir, device=device, temporal=True)
     if Path(plan_path) == MTF_RETAINED_ROOT/'PLAN.json' or Path(out_dir) == MTF_RETAINED_ROOT:
         return _run_fusion_observation(plan_path, plan_sha256, out_dir, device=device, retained=True)
     if Path(plan_path) == FUSION_INITIAL_ROOT / 'PLAN.json' or Path(out_dir) == FUSION_INITIAL_ROOT:
@@ -1996,9 +2181,21 @@ MTF_RETAINED_BOUNDS = dict(FUSION_BOUNDS, max_backbone_encodings=0,
     baseline_parity='bitexact_joint_hidden_m5_representations_all_native_logits')
 
 
-def _fusion_plan(plan, plan_path, out_dir, *, initial=False, retained=False):
-    _need(type(initial) is bool and type(retained) is bool and not (initial and retained), 'FUSION_MODE')
-    if retained:
+TEMPORAL_STAGE = 'market_state_ta_temporal_boundary_observation_20261111_001'
+TEMPORAL_ROOT = Path('/home/andre2/GX1_RUNS') / TEMPORAL_STAGE.upper()
+TEMPORAL_REFS = dict(MTF_RETAINED_REFS)
+TEMPORAL_BOUNDS = dict(FUSION_BOUNDS,max_cache_bytes=64*1024**2,
+    batch_equal_length_mtf_eval=False,temporal_lengths=[16,64,96,96,252],
+    max_temporal_family_encoder_calls=1280,max_temporal_family_axis_calls=32,
+    max_temporal_timeframe_axis_calls=32,max_temporal_cross_tf_calls=32,
+    temporal_capture_layout='fp32_mean_last_and_axis_vectors_fp64_window_moments_v1')
+
+
+def _fusion_plan(plan, plan_path, out_dir, *, initial=False, retained=False, temporal=False):
+    _need(all(type(v) is bool for v in (initial,retained,temporal)) and sum((initial,retained,temporal)) <= 1, 'FUSION_MODE')
+    if temporal:
+        stage, root, refs, bounds = TEMPORAL_STAGE, TEMPORAL_ROOT, TEMPORAL_REFS, TEMPORAL_BOUNDS
+    elif retained:
         stage, root, refs, bounds = MTF_RETAINED_STAGE, MTF_RETAINED_ROOT, MTF_RETAINED_REFS, MTF_RETAINED_BOUNDS
     elif initial:
         stage, root, refs, bounds = FUSION_INITIAL_STAGE, FUSION_INITIAL_ROOT, FUSION_INITIAL_REFS, FUSION_INITIAL_BOUNDS
@@ -2010,7 +2207,8 @@ def _fusion_plan(plan, plan_path, out_dir, *, initial=False, retained=False):
           and plan['stage'] == stage and plan['source_repo'] == str(REPO)
           and Path(plan_path) == root/'PLAN.json' and Path(out_dir) == root
           and plan['inputs'] == refs
-          and all(type(plan[k]) is type(v) and plan[k] == v for k, v in bounds.items()),
+          and all(type(plan[k]) is type(v) and plan[k] == v for k, v in bounds.items())
+          and (not temporal or all(type(v) is int for v in plan['temporal_lengths'])),
           'FUSION_EXACT_PLAN')
     _need(isinstance(plan['source_base_commit'], str)
           and campaign._COMMIT.fullmatch(plan['source_base_commit']), 'FUSION_SOURCE_BASE')
@@ -2081,10 +2279,10 @@ def _qualify_fusion_trained_panels(refs):
           'FUSION_INITIAL_MATCHED_TRAINED_METADATA')
 
 
-def _inspect_fusion_observation(plan_path, plan_sha256, out_dir, *, execute, initial=False, retained=False):
+def _inspect_fusion_observation(plan_path, plan_sha256, out_dir, *, execute, initial=False, retained=False, temporal=False):
     pr = {'path': str(plan_path), 'sha256': plan_sha256}
-    plan = _fusion_plan(_read(pr), plan_path, out_dir, initial=initial, retained=retained); refs = plan['inputs']; bound = [pr]
-    bounds = MTF_RETAINED_BOUNDS if retained else FUSION_INITIAL_BOUNDS if initial else FUSION_BOUNDS; root = Path(out_dir)
+    plan = _fusion_plan(_read(pr), plan_path, out_dir, initial=initial, retained=retained, temporal=temporal); refs = plan['inputs']; bound = [pr]
+    bounds = TEMPORAL_BOUNDS if temporal else MTF_RETAINED_BOUNDS if retained else FUSION_INITIAL_BOUNDS if initial else FUSION_BOUNDS; root = Path(out_dir)
     for key, path in (('worker', WORKER), ('dispatch', REPO/DISPATCH), ('cap_runner', REPO/CAP_RUNNER)):
         _need(plan[key]['path'] == str(path), 'FUSION_SOURCE_PATH:' + key)
         campaign.require_binding(plan[key], label=key, verify_file=True); bound.append(plan[key])
@@ -2116,7 +2314,7 @@ def _inspect_fusion_observation(plan_path, plan_sha256, out_dir, *, execute, ini
               and terminal['plan'] == refs['candidate_plan'] and terminal['no_relaunch_under_this_plan'] is True
               and all(x['test_data_used'] is False for x in (candidate, review, terminal)),
               'FUSION_QUALIFIED_CANDIDATE')
-    if retained:
+    if retained or temporal:
         _qualify_fusion_trained_panels(refs)
     head = _git('rev-parse', 'HEAD')
     subprocess.run(['git','-C',str(REPO),'merge-base','--is-ancestor',plan['source_base_commit'],head], check=True)
@@ -2148,15 +2346,20 @@ def _fusion_exact_arrays(actual, expected):
         for k in expected)
 
 
-def _save_fusion_arrays(name, arrays, counts, *, np, root=None):
+def _save_fusion_arrays(name, arrays, counts, *, np, root=None, max_bytes=None):
     root = FUSION_ROOT if root is None else root
+    max_bytes = FUSION_BOUNDS['max_cache_bytes'] if max_bytes is None else max_bytes
+    _need(max_bytes != 64*1024**2 or root == TEMPORAL_ROOT, 'FUSION_TEMPORAL_BYTE_ROOT')
+    _need(type(max_bytes) is int and max_bytes in (FUSION_BOUNDS['max_cache_bytes'],64*1024**2), 'FUSION_BYTE_BOUND')
     from gx1.contracts.immutable_event_authority_v1 import _publish_bytes
     _need(name in ('UNINSTRUMENTED_LATER_ROW0.npz','TRAIN_FUSION.npz','LATER_FUSION.npz',
                    'TRAIN_FUSION_PARTIAL.npz','LATER_FUSION_PARTIAL.npz','TRAIN_MTF_MEANS.npz',
                    'TRAIN_INTERVENTION.npz','LATER_INTERVENTION.npz','TRAIN_INTERVENTION_PARTIAL.npz',
-                   'LATER_INTERVENTION_PARTIAL.npz','BASELINE_PARITY_FAILURE.npz') and bool(arrays), 'FUSION_ARTIFACT_NAME')
+                   'LATER_INTERVENTION_PARTIAL.npz','BASELINE_PARITY_FAILURE.npz',
+                   'TRAIN_TEMPORAL_BOUNDARY.npz','LATER_TEMPORAL_BOUNDARY.npz',
+                   'TRAIN_TEMPORAL_BOUNDARY_PARTIAL.npz','LATER_TEMPORAL_BOUNDARY_PARTIAL.npz') and bool(arrays), 'FUSION_ARTIFACT_NAME')
     buf = io.BytesIO(); np.savez(buf, **arrays)
-    _need(0 < buf.tell() and counts['published_npz_bytes'] + buf.tell() <= FUSION_BOUNDS['max_cache_bytes'],
+    _need(0 < buf.tell() and counts['published_npz_bytes'] + buf.tell() <= max_bytes,
           'FUSION_OUTPUT_BYTES')
     _publish_bytes(root/name, buf.getvalue())
     counts['published_npz_bytes'] += buf.tell()
@@ -2176,7 +2379,7 @@ def _publish_fusion_outcome(plan_ref, payload, *, complete, root=None):
     return dict(result=result, terminal=terminal)
 
 
-def _run_fusion_observation(plan_path, plan_sha256, out_dir, *, device, initial=False, retained=False):
+def _run_fusion_observation(plan_path, plan_sha256, out_dir, *, device, initial=False, retained=False, temporal=False):
     import numpy as np
     import torch
     from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_producer_execution, require_capped_lock_ancestry
@@ -2201,7 +2404,7 @@ def _run_fusion_observation(plan_path, plan_sha256, out_dir, *, device, initial=
           'FUSION_CAP')
     for key,value in (('MAX_POWER_LIMIT_W','250'),('MAX_POWER_DRAW_W','170'),('MAX_CORE_TEMP_C','65'),('MAX_MEMORY_TEMP_C','80')):
         _need(os.environ.get('GX1_TRAINER_GPU_'+key) == value, 'FUSION_HARDWARE:'+key)
-    q = _inspect_fusion_observation(plan_path,plan_sha256,out_dir,execute=True,initial=initial,retained=retained)
+    q = _inspect_fusion_observation(plan_path,plan_sha256,out_dir,execute=True,initial=initial,retained=retained,temporal=temporal)
     root, bounds = Path(out_dir), q['plan']
     _need(not torch.cuda.is_initialized() and signal.getitimer(signal.ITIMER_REAL) == (0.,0.), 'FUSION_INIT_ORDER')
     claim = _publish('CLAIM.json',dict(plan=q['plan_ref'],policy=q['policy_ref'],source_commit=q['head'],
@@ -2210,6 +2413,9 @@ def _run_fusion_observation(plan_path, plan_sha256, out_dir, *, device, initial=
         instrumented_forwards=0,archive_decodes=0,head_tensor_imports=0,candidate_writes=0,
         optimizer_constructions=0,optimizer_updates=0,backwards=0,checkpoint_writes=0,
         resume_state_load_calls=0,resume_state_load_returns=0,published_npz_bytes=0,scalar_fits=0,sampled_rows=0)
+    if temporal:
+        counts.update(temporal_family_encoder_calls=0,temporal_family_axis_calls=0,
+            temporal_timeframe_axis_calls=0,temporal_cross_tf_calls=0,temporal_observed_forwards=0)
     if retained:
         counts.update(joint_calls=0,joint_linear_calls=0,state_decoder_calls=0,state_decoder_returns=0,
             future_decoder_calls=0,future_decoder_returns=0,query_projection_calls=0,native_head_calls=0,
@@ -2228,6 +2434,9 @@ def _run_fusion_observation(plan_path, plan_sha256, out_dir, *, device, initial=
     try:
         recipe,receipts,view=(q[k] for k in ('recipe','receipts','view')); refs=q['plan']['inputs']
         numerical=recipe['numerical_recipe']; cuda=torch.device('cuda')
+        if temporal:
+            from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import _BATCH_EQUAL_LENGTH_MTF_EVAL
+            _need(_BATCH_EQUAL_LENGTH_MTF_EVAL.get() is False, 'TEMPORAL_BATCH_MODE')
         trainer._set_deterministic(numerical['seed'],cuda,numerical['precision_policy'])
         torch.set_num_threads(1); torch.set_num_interop_threads(1)
         _need(torch.get_num_threads()==torch.get_num_interop_threads()==1,'FUSION_THREADS')
@@ -2302,26 +2511,43 @@ def _run_fusion_observation(plan_path, plan_sha256, out_dir, *, device, initial=
                 if not instrumented: return evaluate(),{}
                 with observe_ta_fusion_once(model.backbone,batch_rows=BATCH_SIZE,
                         max_bytes=bounds['max_cache_bytes'],torch=torch) as captured:
-                    readout=evaluate()
+                    if temporal:
+                        with observe_ta_temporal_once(model.backbone,batch_rows=BATCH_SIZE,
+                                max_bytes=bounds['max_cache_bytes'],counts=counts,torch=torch) as boundary:
+                            readout=evaluate()
+                    else:
+                        boundary={};readout=evaluate()
                 counts['instrumented_forwards']+=1
-                return readout,{k:v.cpu().numpy().copy() for k,v in captured.items()}
+                return readout,{**{k:v.cpu().numpy().copy() for k,v in captured.items()},
+                    **{'boundary_'+k:v.cpu().numpy().copy() for k,v in boundary.items()}}
             uninstrumented,_=forward(later_rows,later_issues,0,'score',instrumented=False)
-            artifacts['uninstrumented']=_save_fusion_arrays('UNINSTRUMENTED_LATER_ROW0.npz',uninstrumented,counts,np=np,root=root)
+            artifacts['uninstrumented']=_save_fusion_arrays('UNINSTRUMENTED_LATER_ROW0.npz',uninstrumented,counts,np=np,root=root,max_bytes=bounds['max_cache_bytes'])
             passivity['uninstrumented_matches_bound_baseline']=_fusion_exact_arrays(uninstrumented,baseline)
             _need(passivity['uninstrumented_matches_bound_baseline'],'FUSION_BOUND_BASELINE_PARITY')
             for panel,rows,issues,partition in (('TRAIN',fit_rows,fit_issues,'fit'),('LATER',later_rows,later_issues,'score')):
                 active=panel;pieces={}; matched = None
-                if initial:
+                if initial or temporal:
                     with np.load(refs['trained_'+panel.lower()]['path'],allow_pickle=False) as z:
-                        matched={key:z[key].copy() for key in FUSION_MATCH_KEYS}
+                        matched={key:z[key].copy() for key in (z.files if temporal else FUSION_MATCH_KEYS)}
                     counts['archive_decodes']+=1
                     positions=np.asarray([i*BATCH_SIZE+j for i in _fusion_batch_indices(len(rows))
                                           for j in range(BATCH_SIZE)],dtype=np.int64)
                     _need(_fusion_exact_arrays({'parents':rows[positions],'issues':issues[positions]},
                         {k:matched[k] for k in ('parents','issues')}),'FUSION_MATCHED_PARENT_AXES')
-                for batch_index in _fusion_batch_indices(len(rows)):
+                for group,batch_index in enumerate(_fusion_batch_indices(len(rows))):
                     readout,captured=forward(rows,issues,batch_index*BATCH_SIZE,partition,instrumented=True)
-                    values={**readout,**{'capture_'+k:v for k,v in captured.items()}}
+                    values={**readout,**{'capture_'+k:v for k,v in captured.items() if not k.startswith('boundary_')}}
+                    if temporal:
+                        expected_group={k:v[group*BATCH_SIZE:(group+1)*BATCH_SIZE] for k,v in matched.items()}
+                        exact=_fusion_exact_arrays(values,expected_group)
+                        passivity[panel+'_all_retained_fields_bitexact']=passivity.get(panel+'_all_retained_fields_bitexact',True) and exact
+                        if not exact:
+                            artifacts['baseline_parity_failure']=_save_fusion_arrays('BASELINE_PARITY_FAILURE.npz',
+                                {**{'actual_'+k:v for k,v in values.items()},**{'expected_'+k:v for k,v in expected_group.items()}},
+                                counts,np=np,root=root,max_bytes=bounds['max_cache_bytes'])
+                            _need(False,'TEMPORAL_RETAINED_PARITY:'+panel+':'+str(group))
+                        values={**{k:readout[k] for k in ('parents','issues','query_native')},
+                                **{k:v for k,v in captured.items() if k.startswith('boundary_')}}
                     for name,value in values.items(): pieces.setdefault(name,[]).append(value)
                     counts['sampled_rows']+=BATCH_SIZE
                     if panel=='LATER' and batch_index==0:
@@ -2333,7 +2559,7 @@ def _run_fusion_observation(plan_path, plan_sha256, out_dir, *, device, initial=
                 if initial:
                     matched_observations[panel]=_fusion_exact_arrays({k:combined[k] for k in FUSION_MATCH_KEYS},matched)
                     _need(matched_observations[panel],'FUSION_MATCHED_OBSERVATIONS')
-                artifacts[panel]=_save_fusion_arrays(panel+'_FUSION.npz',combined,counts,np=np,root=root)
+                artifacts[panel]=_save_fusion_arrays(panel+('_TEMPORAL_BOUNDARY.npz' if temporal else '_FUSION.npz'),combined,counts,np=np,root=root,max_bytes=bounds['max_cache_bytes'])
                 pieces={}
         _need(signature()==candidate and all(p.grad is None for p in model.parameters()),'FUSION_STATE_UNCHANGED')
         expected=dict(model_constructions=1,checkpoint_loads=1,backbone_encodings=33,forward_returns=33,
@@ -2345,6 +2571,9 @@ def _run_fusion_observation(plan_path, plan_sha256, out_dir, *, device, initial=
                 joint_calls=64,joint_linear_calls=64,state_decoder_calls=64,state_decoder_returns=64,
                 future_decoder_calls=64,future_decoder_returns=64,query_projection_calls=128,
                 native_head_calls=128,m5_head_calls=128,mean_vector_estimates=2,predictor_fits=0)
+        if temporal:
+            expected.update(archive_decodes=4,temporal_family_encoder_calls=1280,temporal_family_axis_calls=32,
+                temporal_timeframe_axis_calls=32,temporal_cross_tf_calls=32,temporal_observed_forwards=32)
         _need(all(counts[k]==v for k,v in expected.items()) and all(passivity.values()),'FUSION_EXACT_COUNTS')
         if prepared is not None:
             release=prepared;prepared=None;base._release_pages(provider,release)
@@ -2354,25 +2583,29 @@ def _run_fusion_observation(plan_path, plan_sha256, out_dir, *, device, initial=
             source_commit=q['head'],source_identity=source_identity,import_proof=import_proof,
             candidate_model_state_sha256=candidate['model'],passivity=passivity,**retained_summary,
             **(dict(matched_observations=matched_observations,trained_result=refs['trained_result']) if initial else {}),
+            **(dict(temporal_methods=_temporal_methods(model.backbone),trained_result=refs['trained_result'],
+                observed_calls_exclude_one_uninstrumented_baseline=True) if temporal else {}),
             batch_indices={p:list(_fusion_batch_indices(n)) for p,n in (('TRAIN',FIT_ROWS),('LATER',SCORE_ROWS))},
             source_unchanged=True,evaluation_state_unchanged=True,elapsed_seconds=time.monotonic()-started,
             limitations=['512 rows in 16 intact B16 groups per partition are diagnostic, not 512 independent samples or a quality threshold.',
                 'Gate weights and representation variation do not establish predictive utility.',
                 'Residual scales and joint LayerNorm must be included in component-size comparisons.'] +
                 (['Fixed mean replacement changes normalization and dependence between components; sensitivity is not unique information or edge.',
-                  'M5 S/F are predeclared primary; other timeframes are descriptive only, without selection.'] if retained else [])),complete=True,root=root)
+                  'M5 S/F are predeclared primary; other timeframes are descriptive only, without selection.'] if retained else []) +
+                (['Temporal encoder inputs include learned projection, context-conditioned gates, embeddings and positional encoding.',
+                  'Within-window activation variance is distinct from variation between decisions; neither proves predictive utility.'] if temporal else [])),complete=True,root=root)
     except BaseException as exc:
         preservation_error=changed=None
         if pieces and active not in artifacts:
             try:
-                artifacts[active+'_partial']=_save_fusion_arrays(active+'_FUSION_PARTIAL.npz',
-                    {k:np.concatenate(v,axis=0) for k,v in pieces.items()},counts,np=np,root=root)
+                artifacts[active+'_partial']=_save_fusion_arrays(active+('_TEMPORAL_BOUNDARY_PARTIAL.npz' if temporal else '_FUSION_PARTIAL.npz'),
+                    {k:np.concatenate(v,axis=0) for k,v in pieces.items()},counts,np=np,root=root,max_bytes=bounds['max_cache_bytes'])
             except Exception as other: preservation_error=repr(other)
         try:bookend()
         except Exception as other:changed=repr(other)
         _publish_fusion_outcome(q['plan_ref'],dict(claim=claim,counts=counts,artifacts=artifacts,
             import_proof=import_proof,passivity=passivity,matched_observations=matched_observations,
-            **(dict(evaluation_state_unchanged=signature()==candidate) if retained and candidate is not None else {}),
+            **(dict(evaluation_state_unchanged=signature()==candidate) if (retained or temporal) and candidate is not None else {}),
             error=type(exc).__name__+':'+str(exc),
             source_unchanged=changed is None,bookend_error=changed,preservation_error=preservation_error,
             elapsed_seconds=time.monotonic()-started),complete=False,root=root)

@@ -741,14 +741,15 @@ def test_fusion_dispatch_keeps_preflight_and_run_separate(monkeypatch):
     assert calls==[('inspect',{'execute':False}),('run',{'device':'cuda'})]
 
 
-@pytest.mark.parametrize('retained',[False,True])
-def test_fusion_preflight_checks_actual_candidate_schema_without_array_decode(monkeypatch,retained):
+@pytest.mark.parametrize('mode',['fusion','retained','temporal'])
+def test_fusion_preflight_checks_actual_candidate_schema_without_array_decode(monkeypatch,mode):
     import copy
     import numpy as np
     import torch
     from gx1.audit import cache_market_state_ta_direction_v1 as w
-    plan=retained_mtf_plan() if retained else fusion_plan();refs=plan['inputs']
-    root=w.MTF_RETAINED_ROOT if retained else w.FUSION_ROOT;path=root/'PLAN.json';seen=[]
+    retained,temporal = mode=='retained',mode=='temporal'
+    plan=temporal_boundary_plan() if temporal else retained_mtf_plan() if retained else fusion_plan();refs=plan['inputs']
+    root=w.TEMPORAL_ROOT if temporal else w.MTF_RETAINED_ROOT if retained else w.FUSION_ROOT;path=root/'PLAN.json';seen=[]
     policy_ref={'path':str(w.REPO/'NEXT_RUN_POLICY.json'),'sha256':'d'*64}
     candidate=dict(status='COMPLETE',source_unchanged=True,evaluation_state_unchanged=True,
         plan=refs['candidate_plan'],candidate_model_state_sha256=w.FUSION_BOUNDS['candidate_model_state_sha256'],
@@ -776,15 +777,15 @@ def test_fusion_preflight_checks_actual_candidate_schema_without_array_decode(mo
         seen.append('trained_panel_qualifier') if r==w.MTF_RETAINED_REFS else pytest.fail('wrong trained refs'))
     monkeypatch.setattr(np,'load',lambda *a,**k:pytest.fail('preflight decoded arrays'))
     monkeypatch.setattr(torch,'load',lambda *a,**k:pytest.fail('preflight decoded checkpoint'))
-    checked=w._inspect_fusion_observation(path,'a'*64,root,execute=False,retained=retained)
+    checked=w._inspect_fusion_observation(path,'a'*64,root,execute=False,retained=retained,temporal=temporal)
     assert checked['plan']==plan and 'same_reversed_qualifier' in seen
-    assert ('trained_panel_qualifier' in seen) is retained
+    assert ('trained_panel_qualifier' in seen) is (retained or temporal)
     assert refs['folded_coefficients']['path'] in seen and refs['candidate_baseline']['path'] in seen
     for mutation in [('candidate_model_state_sha256','0'*64),('evaluation_state_unchanged',False)]:
         bad=copy.deepcopy(candidate);bad[mutation[0]]=mutation[1]
         docs[refs['candidate_result']['path']]=bad
         with pytest.raises(RuntimeError,match='FUSION_QUALIFIED_CANDIDATE'):
-            w._inspect_fusion_observation(path,'a'*64,root,execute=False,retained=retained)
+            w._inspect_fusion_observation(path,'a'*64,root,execute=False,retained=retained,temporal=temporal)
 
 
 def test_fusion_private_arrays_and_success_failure_terminals(tmp_path,monkeypatch):
@@ -1270,3 +1271,227 @@ def test_retained_panels_lock_means_before_later_and_stop_on_bit_mismatch(tmp_pa
         assert all((tmp_path/(p+'_INTERVENTION.npz')).exists() for p in ('TRAIN','LATER'))
     assert counts['backbone_encodings']==0 and _fusion_hook_inventory(model)==inventory
     assert torch.equal(rng,torch.get_rng_state())
+
+
+def temporal_boundary_plan():
+    from gx1.audit import cache_market_state_ta_direction_v1 as w
+    return dict(fusion_plan(),stage=w.TEMPORAL_STAGE,inputs=w.TEMPORAL_REFS,**w.TEMPORAL_BOUNDS)
+
+
+def test_temporal_exact_plan_bounds_and_metadata_only_dispatch(monkeypatch):
+    from gx1.audit import cache_market_state_ta_direction_v1 as w
+    plan=temporal_boundary_plan();root=w.TEMPORAL_ROOT;path=root/'PLAN.json'
+    assert w._fusion_plan(plan,path,root,temporal=True)==plan
+    for key,value in [('max_backbone_encodings',32),('batch_equal_length_mtf_eval',True),
+                      ('temporal_lengths',[16,64,96,96,251]),('temporal_lengths',[16.,64,96,96,252]),
+                      ('max_temporal_family_encoder_calls',1281),
+                      ('max_temporal_family_axis_calls',33),('max_cache_bytes',128*1024**2),
+                      ('head_tensor_imports',0),('max_optimizer_updates',1)]:
+        with pytest.raises(RuntimeError,match='FUSION_EXACT_PLAN'):
+            w._fusion_plan({**plan,key:value},path,root,temporal=True)
+    with pytest.raises(RuntimeError,match='FUSION_EXACT_PLAN'):
+        w._fusion_plan(plan,w.FUSION_ROOT/'PLAN.json',w.FUSION_ROOT,temporal=True)
+    with pytest.raises(RuntimeError,match='FUSION_MODE'):
+        w._fusion_plan(plan,path,root,temporal=True,retained=True)
+    calls=[]
+    monkeypatch.setattr(w,'_inspect_fusion_observation',lambda *a,**kw:
+        calls.append(('inspect',kw)) or dict(plan_ref={},view={'contract_sha256':'a'*64},current_sources={}))
+    monkeypatch.setattr(w,'_run_fusion_observation',lambda *a,**kw:calls.append(('run',kw)) or {'synthetic':True})
+    report=w.preflight_read_only(path,'a'*64,root)
+    assert report['archive_decodes']==report['backbone_encodings']==report['model_constructions']==0
+    assert w.run(path,'a'*64,root,device='cuda')=={'synthetic':True}
+    assert calls==[('inspect',{'execute':False,'temporal':True}),('run',{'device':'cuda','temporal':True})]
+
+
+def _temporal_test_counts():
+    return dict(temporal_family_encoder_calls=0,temporal_family_axis_calls=0,
+        temporal_timeframe_axis_calls=0,temporal_cross_tf_calls=0,temporal_observed_forwards=0)
+
+
+def _synthetic_temporal_backbone(torch):
+    """Small actual TransformerEncoder parents; no native model or real data."""
+    from types import SimpleNamespace
+    class Backbone(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self._mtf_specialist_names=tuple('f'+str(i) for i in range(8))
+            self.cfg=SimpleNamespace(d_model=4,m5_seq_len=16,m15_seq_len=64,h1_seq_len=96,h4_seq_len=96,d1_seq_len=252)
+            def encoder():
+                return torch.nn.TransformerEncoder(torch.nn.TransformerEncoderLayer(
+                    d_model=4,nhead=2,dim_feedforward=8,dropout=.2,batch_first=True,activation='gelu',norm_first=True),
+                    num_layers=1,norm=torch.nn.LayerNorm(4,elementwise_affine=False),enable_nested_tensor=False)
+            self.mtf_family_encoder=torch.nn.ModuleDict({name:encoder() for name in self._mtf_specialist_names})
+            self.family_axis_attn=encoder();self.timeframe_axis_attn=encoder();self.cross_tf_attn=encoder()
+            self.family_tf_token_identity=torch.nn.Parameter(torch.arange(160).reshape(1,5,8,4).float()/301)
+            self.fault=None;self.record={}
+
+        def forward(self,x):
+            batch=len(x);grids=[];self.record={}
+            for tf,length in enumerate((16,64,96,96,252)):
+                vectors=[]
+                order=list(range(8))
+                if self.fault=='order' and tf==0:order[:2]=[1,0]
+                for family in order:
+                    value=x[:,None,:]+torch.arange(length).float()[None,:,None]/19+family/11
+                    if tf==family==0:
+                        if self.fault=='shape':value=value[:,:-1]
+                        elif self.fault=='dtype':value=value.double()
+                        elif self.fault=='nonfinite':value[0,0,0]=float('nan')
+                    output=self.mtf_family_encoder[self._mtf_specialist_names[family]](value,src_key_padding_mask=None)
+                    self.record[tf,family]=(value.detach().clone(),output.detach().clone())
+                    vectors.append(output.mean(dim=1)+output[:,-1,:])
+                grids.append(torch.stack(vectors,dim=1))
+            grid=torch.stack(grids,dim=1)+self.family_tf_token_identity
+            family_input=grid.permute(0,2,1,3).reshape(batch*8,5,4)
+            if self.fault=='family_parity':family_input[0,0,0]+=1e-3
+            family_output=self.family_axis_attn(family_input,src_key_padding_mask=None)
+            grid=family_output.reshape(batch,8,5,4).permute(0,2,1,3)
+            self.record['family_axis_output']=grid.detach().clone()
+            timeframe_input=grid.reshape(batch*5,8,4)
+            if self.fault=='timeframe_parity':timeframe_input[0,0,0]+=1e-3
+            grid=self.timeframe_axis_attn(timeframe_input).reshape(batch,5,8,4)
+            self.record['timeframe_axis_output']=grid.detach().clone()
+            tokens=grid.mean(dim=2)
+            self.record['cross_tf_input']=tokens.detach().clone()
+            output=tokens if self.fault=='missing' else self.cross_tf_attn(tokens)
+            self.record['cross_tf_output']=output.detach().clone()
+            return output
+    return Backbone().eval().requires_grad_(False)
+
+
+def test_temporal_parent_hooks_preserve_fp32_output_rng_state_and_fastpath_children():
+    import torch
+    from gx1.audit import cache_market_state_ta_direction_v1 as w
+    with torch.random.fork_rng(devices=[]):
+        torch.manual_seed(71);model=_synthetic_temporal_backbone(torch)
+        x=torch.arange(8).reshape(2,4).float()/7
+        state={k:v.detach().clone() for k,v in model.state_dict().items()}
+        parameters=[(id(p),p.requires_grad,p.grad) for p in model.parameters()]
+        modes=[m.training for m in model.modules()]
+        hooks=_fusion_hook_inventory(model);rng=torch.get_rng_state().clone();counts=_temporal_test_counts()
+        with torch.inference_mode():
+            expected=model(x)
+            with w.observe_ta_temporal_once(model,batch_rows=2,max_bytes=9280,counts=counts,torch=torch) as captured:
+                actual=model(x)
+                # Only parent encoders are touched; layer hook inventory is unchanged.
+                for m in model.modules():
+                    if not isinstance(m,torch.nn.TransformerEncoder):
+                        assert (tuple(m._forward_hooks),tuple(m._forward_pre_hooks))==hooks[id(m)]
+        assert torch.equal(actual.view(torch.int32),expected.view(torch.int32))
+        assert len(captured)==10 and sum(t.numel()*t.element_size() for t in captured.values())==9280
+        assert counts==dict(temporal_family_encoder_calls=40,temporal_family_axis_calls=1,
+            temporal_timeframe_axis_calls=1,temporal_cross_tf_calls=1,temporal_observed_forwards=1)
+        for tf in range(5):
+            for family in range(8):
+                for index,label in enumerate(('input','output')):
+                    value=model.record[tf,family][index];wide=value.double();prefix='temporal_'+label
+                    assert torch.equal(captured[prefix+'_mean'][:,tf,family],value.mean(dim=1))
+                    assert torch.equal(captured[prefix+'_last'][:,tf,family],value[:,-1])
+                    moments=torch.stack((wide.square().mean((1,2)).sqrt(),
+                        (wide-wide.mean(1,keepdim=True)).square().mean((1,2)).sqrt()),dim=1).float()
+                    assert torch.equal(captured[prefix+'_moments'][:,tf,family],moments)
+        for key in ('family_axis_output','timeframe_axis_output','cross_tf_input','cross_tf_output'):
+            assert torch.equal(captured[key],model.record[key])
+            assert captured[key].data_ptr()!=model.record[key].data_ptr()
+        assert all(not t.requires_grad and t.grad_fn is None for t in captured.values())
+        assert torch.equal(torch.get_rng_state(),rng) and _fusion_hook_inventory(model)==hooks
+        assert all(torch.equal(v,state[k]) for k,v in model.state_dict().items())
+        assert [(id(p),p.requires_grad,p.grad) for p in model.parameters()]==parameters
+        assert [m.training for m in model.modules()]==modes
+
+
+def test_temporal_readout_uses_native_fp32_mean_not_fp64_mean(monkeypatch):
+    import torch
+    from gx1.audit import cache_market_state_ta_direction_v1 as w
+    model=_synthetic_temporal_backbone(torch)
+    def cancellation(src,**kwargs):
+        result=torch.zeros_like(src)
+        result[:,0,:]=2**24;result[:,1,:]=1;result[:,2,:]=-(2**24)
+        return result
+    monkeypatch.setattr(model.mtf_family_encoder['f0'],'forward',cancellation)
+    with torch.inference_mode(),w.observe_ta_temporal_once(
+            model,batch_rows=2,max_bytes=9280,counts=_temporal_test_counts(),torch=torch) as captured:
+        model(torch.ones(2,4))
+    source=model.record[0,0][1]
+    assert not torch.equal(source.mean(1),source.double().mean(1).float())
+    assert torch.equal(captured['temporal_output_mean'][:,0,0],source.mean(1))
+
+
+@pytest.mark.parametrize('fault,error',[
+    ('order','TEMPORAL_ROUTE_ORDER'),('shape','TEMPORAL_TENSOR:family_input'),
+    ('dtype','TEMPORAL_TENSOR:family_input'),('nonfinite','TEMPORAL_NONFINITE:family_input'),
+    ('family_parity','TEMPORAL_BIT_PARITY:family_axis_input'),
+    ('timeframe_parity','TEMPORAL_BIT_PARITY:timeframe_axis_input'),('missing','TEMPORAL_INCOMPLETE')])
+def test_temporal_rejects_wrong_order_shape_values_or_axis_parity_and_cleans_hooks(fault,error):
+    import torch
+    from gx1.audit import cache_market_state_ta_direction_v1 as w
+    model=_synthetic_temporal_backbone(torch);model.fault=fault;hooks=_fusion_hook_inventory(model)
+    with pytest.raises(RuntimeError,match=error):
+        with torch.inference_mode(),w.observe_ta_temporal_once(
+                model,batch_rows=2,max_bytes=9280,counts=_temporal_test_counts(),torch=torch) as captured:
+            model(torch.ones(2,4))
+    assert captured=={} and _fusion_hook_inventory(model)==hooks
+
+
+def test_temporal_rejects_merged_mode_lengths_bytes_and_call_limit_before_hooks():
+    import torch
+    from gx1.audit import cache_market_state_ta_direction_v1 as w
+    from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import _BATCH_EQUAL_LENGTH_MTF_EVAL
+    model=_synthetic_temporal_backbone(torch);hooks=_fusion_hook_inventory(model)
+    for fault,error in [('merged','TEMPORAL_BATCH_MODE'),('length','TEMPORAL_LAYOUT'),
+                        ('bytes','TEMPORAL_BYTE_LIMIT'),('counter','TEMPORAL_COUNTERS')]:
+        counts=_temporal_test_counts();limit=9279 if fault=='bytes' else 9280
+        if fault=='counter':counts['temporal_family_encoder_calls']=1280
+        if fault=='length':model.cfg.h1_seq_len=97
+        token=_BATCH_EQUAL_LENGTH_MTF_EVAL.set(fault=='merged')
+        try:
+            with pytest.raises(RuntimeError,match=error):
+                with w.observe_ta_temporal_once(model,batch_rows=2,max_bytes=limit,counts=counts,torch=torch):
+                    pytest.fail('invalid temporal layout admitted')
+        finally:
+            _BATCH_EQUAL_LENGTH_MTF_EVAL.reset(token);model.cfg.h1_seq_len=96
+        assert _fusion_hook_inventory(model)==hooks
+
+
+def test_temporal_cleans_partial_registration_caller_and_swallowed_hook_errors(monkeypatch):
+    import torch
+    from gx1.audit import cache_market_state_ta_direction_v1 as w
+    model=_synthetic_temporal_backbone(torch);hooks=_fusion_hook_inventory(model)
+    def reject(*args,**kwargs):raise RuntimeError('registration failed')
+    with monkeypatch.context() as patch:
+        patch.setattr(model.mtf_family_encoder['f1'],'register_forward_hook',reject)
+        with pytest.raises(RuntimeError,match='registration failed'):
+            with w.observe_ta_temporal_once(model,batch_rows=2,max_bytes=9280,counts=_temporal_test_counts(),torch=torch):
+                pytest.fail('partial registration admitted')
+    assert _fusion_hook_inventory(model)==hooks
+    for swallowed in (False,True):
+        with pytest.raises(RuntimeError,match='TEMPORAL_INCOMPLETE' if swallowed else 'caller failed'):
+            with torch.inference_mode(),w.observe_ta_temporal_once(
+                    model,batch_rows=2,max_bytes=9280,counts=_temporal_test_counts(),torch=torch) as captured:
+                model(torch.ones(2,4))
+                if swallowed:
+                    with pytest.raises(RuntimeError,match='TEMPORAL_ROUTE_ORDER'):model(torch.ones(2,4))
+                else:raise RuntimeError('caller failed')
+        assert captured=={} and _fusion_hook_inventory(model)==hooks
+
+
+def test_temporal_npz_aggregate_cap_is_explicit_and_does_not_expand_old_route(tmp_path,monkeypatch):
+    import numpy as np
+    from gx1.audit import cache_market_state_ta_direction_v1 as w
+    root=tmp_path/'temporal';root.mkdir();monkeypatch.setattr(w,'TEMPORAL_ROOT',root)
+    arrays={'parents':np.arange(2,dtype=np.int64),'boundary_temporal_input_mean':np.zeros((2,5,8,4),np.float32)}
+    counts={'published_npz_bytes':w.FUSION_BOUNDS['max_cache_bytes']}
+    with pytest.raises(RuntimeError,match='FUSION_OUTPUT_BYTES'):
+        w._save_fusion_arrays('TRAIN_TEMPORAL_BOUNDARY.npz',arrays,counts,np=np,root=root)
+    for name in ('TRAIN_TEMPORAL_BOUNDARY.npz','LATER_TEMPORAL_BOUNDARY_PARTIAL.npz'):
+        ref=w._save_fusion_arrays(name,arrays,counts,np=np,root=root,max_bytes=64*1024**2)
+        with np.load(ref['path'],allow_pickle=False) as z:
+            assert w._fusion_exact_arrays({k:z[k] for k in z.files},arrays)
+    with pytest.raises(RuntimeError,match='FUSION_TEMPORAL_BYTE_ROOT'):
+        w._save_fusion_arrays('TRAIN_FUSION.npz',arrays,counts,np=np,root=tmp_path,max_bytes=64*1024**2)
+    counts['published_npz_bytes']=64*1024**2
+    with pytest.raises(RuntimeError,match='FUSION_OUTPUT_BYTES'):
+        w._save_fusion_arrays('LATER_TEMPORAL_BOUNDARY.npz',arrays,counts,np=np,root=root,max_bytes=64*1024**2)
+    # Exact 512-row tensor budget leaves room for axes, NPZ headers and row0 baseline.
+    tensor_bytes=4*512*(250*128+160)
+    assert tensor_bytes==65_863_680 and 64*1024**2-tensor_bytes>1024**2

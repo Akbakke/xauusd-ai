@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_RETAINED_MTF_SENSITIVITY_COMPLETE_TEMPORAL_BOUNDARY_NEXT",
+  "status": "ACTIVE_TEMPORAL_BOUNDARY_OBSERVATION_ADMITTED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -79,12 +79,46 @@
     }
   ],
   "next_measurement": {
-    "status": "SOURCE_QUALIFICATION_PENDING_NO_RUN_ADMITTED",
+    "status": "ADMITTED_ONCE_NOT_YET_EXECUTED",
     "question": "Where does temporal indicator variation become weak between genuine input histories, temporal readout and final timeframe pooling?",
-    "method": "Reuse the same frozen candidate and declared parents. Qualify passive statistics at temporal readout and final TF pooling, distinguishing within-window temporal variation from variation between decision rows, with exact retained-output parity. Reuse existing raw census and TRAIN transformed supports; no extra ablation or predictor fit.",
+    "method": "Passive parent-encoder hooks capture FP32 input/output temporal mean+last and FP64-derived window RMS statistics; capture family-axis/timeframe-axis outputs and cross-TF inputs/outputs. Validate actual chaining and all retained fusion/nativeoutputs bitexact. No rawsequence dumps.",
     "model_change_authorized": false,
     "predictor_fits": 0,
-    "interpretation": "Variability is not predictivevalue. This locates an information-flow observation gap before deciding on any model correction."
+    "interpretation": "Inputtokens include context-conditioned gates/scales, categoricalembeddings andpositionencodings. Within-window activation variation differsfrom cross-decision variation and predictiveinformation. One bounded measurement; no modelcorrection justified byvariance alone.",
+    "families": 8,
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ],
+    "window_lengths": [
+      16,
+      64,
+      96,
+      96,
+      252
+    ],
+    "batch_equal_length_mtf_eval": false,
+    "batch_scope_changed": false,
+    "capture_bytes_bound": 67108864,
+    "expected_instrumented_forwards": 32,
+    "expected_total_forwards": 33,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TEMPORAL_BOUNDARY_OBSERVATION_20261111_001/PLAN.json",
+      "sha256": "22fbc40780b9a97b9da39abb80fcc582af5e798d7044611e987f71deb9181402"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TEMPORAL_BOUNDARY_OBSERVATION_20261111_001/PREFLIGHT.log",
+      "sha256": "0953e70e69b70d6c2b2f30cd58c82b236d0298b02b17e6cf3db099cd54f7f5a2"
+    },
+    "retained_analysis": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TEMPORAL_BOUNDARY_OBSERVATION_20261111_001/ANALYZE_BOUNDARIES.py",
+      "sha256": "f5d33178772504a407aed27240967207c56059845e07f9b875aedd3f61c4d846"
+    },
+    "focused_tests_passed": 81,
+    "final_temporal_tests_passed": 14
   },
   "not_established": [
     "Unique historical optimizer cause",

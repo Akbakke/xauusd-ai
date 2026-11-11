@@ -6,13 +6,14 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_RETAINED_MTF_SENSITIVITY_COMPLETE.
+TA_DIRECTION_EDGE_CAUSE_TEMPORAL_BOUNDARY_ADMITTED.
 Mål11.11 er aktivt: isoler målte årsaker til svak retningslæring i indikatorer,
 sammensetting og læring. [Årsaksstatus](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json).
 Korte runder er feilsøking, ikke kapasitetsdom. Full kvalifisert TRAIN-historikk
 og30–40epoker er senere skalering, ikke et krav ved hver rettelse.
 Alle trenings-/launchporter false; training_enabled_scope=null. Ingen jobb lever.
-Tre diagnostiske planer er COMPLETE/konsumert. Ingen ny kjøring er innrømmet.
+Tre tidligere diagnostiske planer er COMPLETE/konsumert. Én ny passiv
+observasjon er innrømmet; trening er fortsatt stengt.
 GC er på pause; TEST, Entry/Exit, broker, handel og promotion er stengt.
 Alle genuine indikatorer og M5/M15/H1/H4/D1-input beholdes.
 
@@ -59,4 +60,13 @@ Neste avgrensede arbeid er passiv måling ved temporal readout og siste TF-
 pooling på de samme frosne radene. Skill variasjon innen vinduer fra variasjon
 mellom beslutningsrader; krev eksakt outputparitet og gjenbruk inputkvitteringene.
 Ingen ny ablasjon, predictorfit eller arkitekturendring nå. Målingen må
-kildekvalifiseres og bindes i en ny engangsplan før kjøring.
+kjøres én gang gjennom den nye kildebundne engangsplanen.
+
+Aktuell avgrensning: alle8familier×5TF, samme512rader; tidsvinduer16/64/96/96/252.
+Bare parent-encoder-hooks, faktisk batchscopefalse beholdes; annenmodus feiler.
+Kompakte mean/last- og RMS-målinger samt etterfølgende attentiongrenser,
+maks64MiB. Inputtokens inkluderer posisjon/kontekstgater; varians er ikke
+prediktiv verdi.33 forwards / 32 instrumenterte / 0 fit er innrømmet én gang.
+PLAN 22fbc407, metadata-preflight 0953e70e. 81 fokuserte tester bestod;
+etter siste avgrensede justering bestod 14 temporal-tester.
+ANALYZE_BOUNDARIES f5d33178 er bundet før kjøring.

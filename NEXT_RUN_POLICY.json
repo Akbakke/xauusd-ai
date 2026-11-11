@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-11T14:18:33.307755+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_RETAINED_MTF_SENSITIVITY_COMPLETE",
+  "observed_utc": "2026-11-11T14:48:31.268403+00:00",
+  "status": "TA_DIRECTION_EDGE_CAUSE_TEMPORAL_BOUNDARY_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Qualify passive temporal-readout and final TF-pooling dispersion on the same frozen rows, separating within-window from between-decision variation. Reuse retained raw census/TRAIN support; no additional ablation or fit. No new run admitted.",
+  "next_action": "Run the single admitted passive temporal-boundary observation, then analyze retained outputs without fitting.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1698,7 +1698,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Retained MTFintervention COMPLETE andconsumed; currentcandidate preserved. Inputvariation census/support reviewed.",
+    "current_activity": "One passive temporal-boundary observation is admitted and not yet claimed.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1751,7 +1751,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "DedicatedMTF directional influence is small; temporal versus cross-row variation through encoders/pooling is unmeasured. No unique cause or modelcorrection established.",
+    "current_blocker": "Directional information loss is not established; observe exact temporal and pooling boundaries without changing predictions.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9222,7 +9222,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute the single qualified frozen fusion observation once;33nativeforwards/512diagnostic rows,0updates. Then analyze retained route/variation evidence without fitting.",
+    "next_action": "Run the single admitted passive temporal-boundary observation, then analyze retained outputs without fitting.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22137,7 +22137,7 @@
     },
     "direction_edge_cause_review": {
       "path": "docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "07f178bac21df8046061274446d90f28d4e54edd8e5dcd2361fce374eb40a653"
+      "sha256": "44cb34842be0e983fb457f41fa42c3c1f16364a498bc71a8fcc418329ac0be3b"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -75477,23 +75477,23 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_TEMPORAL_REPRESENTATION_BOUNDARY_PREPARATION",
+    "status": "ACTIVE_TEMPORAL_BOUNDARY_OBSERVATION_ADMITTED",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
     "training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
     "review": {
       "path": "docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "07f178bac21df8046061274446d90f28d4e54edd8e5dcd2361fce374eb40a653"
+      "sha256": "44cb34842be0e983fb457f41fa42c3c1f16364a498bc71a8fcc418329ac0be3b"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": false,
+    "model_or_data_run_admitted": true,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Qualify passive temporal-readout and final TF-pooling dispersion on the same frozen rows, separating within-window from between-decision variation. Reuse retained raw census/TRAIN support; no additional ablation or fit. No new run admitted.",
-    "active_stage": null,
-    "previous_goal_turn_classification": "PROGRESS: completed two passive matched observations, corrected warm-start interpretation, and narrowed the next question to predictive contribution.",
+    "next_action": "Run the single admitted passive temporal-boundary observation, then analyze retained outputs without fitting.",
+    "active_stage": "market_state_ta_temporal_boundary_observation_20261111_001",
+    "previous_goal_turn_classification": "PROGRESS: retained MTFintervention andinputsupport review ruledout an unsupported harmful-MTF or generalnormalization-collapse change; nextactualboundarymeasurement identified.",
     "last_goal_turn_classification": "PROGRESS: completed fixed predictive intervention, independent scoring and retained input-variation support review; narrowed next measurement without unsupported modelchange."
   },
   "market_state_ta_fusion_observation_20261111_001": {
@@ -75804,5 +75804,76 @@
     },
     "source_unchanged_at_terminal": true,
     "evaluation_state_unchanged": true
+  },
+  "market_state_ta_temporal_boundary_observation_20261111_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TEMPORAL_BOUNDARY_OBSERVATION_20261111_001/PLAN.json",
+      "sha256": "22fbc40780b9a97b9da39abb80fcc582af5e798d7044611e987f71deb9181402"
+    },
+    "max_invocations": 1,
+    "remaining_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "backbone_encodings_authorized": 33,
+    "head_tensor_imports_authorized": 4,
+    "candidate_weights_writes_authorized": 0,
+    "backward_calls_authorized": 0,
+    "optimizer_steps_authorized": 0,
+    "training_authorized": false,
+    "batch_equal_length_mtf_eval": false,
+    "batch_selection": "uniform_complete_batches_floor_i_times_last_over_15",
+    "batch_size": 16,
+    "batches_per_partition": 16,
+    "candidate_model_state_sha256": "c171736d2de79396dd86a79ad895f8bf2226e5ad8d996abf1dd7f52055e4a467",
+    "decoder_width": 128,
+    "device": "cuda",
+    "fit_rows": 29574,
+    "head_tensor_imports": 4,
+    "max_backbone_encodings": 33,
+    "max_backwards": 0,
+    "max_cache_bytes": 67108864,
+    "max_candidate_writes": 0,
+    "max_checkpoint_loads": 1,
+    "max_checkpoint_writes": 0,
+    "max_model_constructions": 1,
+    "max_optimizer_constructions": 0,
+    "max_optimizer_updates": 0,
+    "max_temporal_cross_tf_calls": 32,
+    "max_temporal_family_axis_calls": 32,
+    "max_temporal_family_encoder_calls": 1280,
+    "max_temporal_timeframe_axis_calls": 32,
+    "sampled_rows_per_partition": 256,
+    "scalar_fits": 0,
+    "score_rows": 17753,
+    "temporal_capture_layout": "fp32_mean_last_and_axis_vectors_fp64_window_moments_v1",
+    "temporal_lengths": [
+      16,
+      64,
+      96,
+      96,
+      252
+    ],
+    "test_data_used": false,
+    "training_enabled": false,
+    "wall_seconds": 900,
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TEMPORAL_BOUNDARY_OBSERVATION_20261111_001/PREFLIGHT.log",
+      "sha256": "0953e70e69b70d6c2b2f30cd58c82b236d0298b02b17e6cf3db099cd54f7f5a2"
+    },
+    "focused_tests_passed": 81,
+    "final_temporal_tests_passed": 14,
+    "retained_output_arithmetic_authorized": true,
+    "retained_output_fit_authorized": false,
+    "retained_analysis": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TEMPORAL_BOUNDARY_OBSERVATION_20261111_001/ANALYZE_BOUNDARIES.py",
+      "sha256": "f5d33178772504a407aed27240967207c56059845e07f9b875aedd3f61c4d846"
+    },
+    "scope": "One passive boundary observation on the same 512 frozen rows, eight families and five timeframes. Require bit-exact parity with all retained native and fusion outputs. No fit, intervention, optimizer or model change.",
+    "standing_authority": "Explicit 11 November direction-edge cause goal and standing local-work authority; exact single-use guarded diagnostic only."
   }
 }
