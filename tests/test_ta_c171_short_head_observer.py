@@ -12,20 +12,19 @@ SHA='a'*64
 COMMIT='b'*40
 
 
-def arrays(rows=16, heads=True, boundaries=False):
-    result={k:np.zeros(shape,dtype) for k,(shape,dtype) in worker._layout(rows,np=np,boundaries=boundaries).items()}
+def arrays(rows=16, prefix=False):
+    result={k:np.zeros(shape,dtype) for k,(shape,dtype) in worker._layout(rows,np=np,prefix=prefix).items()}
     result['parents']=np.arange(rows,dtype=np.int64)
     result['issues']=np.arange(rows,dtype=np.int64)*300_000_000_000
     result['state_query'][:]=[1,2,3,4,5]
     result['future_query'][:]=[1,3,12,48,288]
     for task in ('state','future'):
         result[task+'_raw'][:]=np.arange(rows*10,dtype=np.float32).reshape(rows,5,2)/100
-        result[task+'_representation'][:]=np.arange(rows*128,dtype=np.float32).reshape(rows,128)/100
         result[task+'_allowed'][:]=4
         result[task+'_eligible'][:]=True
         result[task+'_mature'][:]=True
-    if boundaries:result['phase'][256:]=1
-    return result if heads else {k:v for k,v in result.items() if k in worker.BASE_KEYS}
+    if prefix:result['phase'][4096:]=1
+    return result
 
 
 def plan():
@@ -33,15 +32,12 @@ def plan():
         source_base_commit=COMMIT,worker={'path':str(worker.WORKER),'sha256':SHA},
         dispatch={'path':str(worker.WORKER),'sha256':SHA},
         cap_runner={'path':str(worker.REPO/worker.cache.CAP_RUNNER),'sha256':SHA},
-        boundary_helper={'path':str(worker.HELPER),'sha256':SHA},
         source_owners={},inputs=deepcopy(worker.INPUTS),**deepcopy(worker.BOUNDS))
 
 
-def test_layout_is_only_two_heads_plus_original_panel():
+def test_layout_is_only_original_panel_without_extra_representations():
     value=arrays(256)
-    assert set(value)==set(worker.BASE_KEYS)|set(worker.HEAD_KEYS)
-    assert value['state_representation'].shape==(256,128)
-    assert value['future_representation'].shape==(256,128)
+    assert set(value)==set(worker.BASE_KEYS)
     assert sum(x.nbytes for x in value.values())<2*1024**2
     worker._require_arrays(value,256,np=np)
 
@@ -53,8 +49,6 @@ def test_only_intact_bounded_groups(rows):
 
 def test_exact_parity_preserves_full_axes_not_only_logits():
     actual=arrays();baseline={k:actual[k].copy() for k in worker.BASE_KEYS}
-    worker._require_parity(actual,baseline,1.25,1.25,np=np)
-    actual['state_representation']+=17  # No old representation is claimed as a baseline.
     worker._require_parity(actual,baseline,1.25,1.25,np=np)
     actual['parents']=actual['parents'][::-1].copy()
     with pytest.raises(RuntimeError,match='INITIAL_ARRAY_PARITY'):
@@ -83,16 +77,16 @@ def test_signed_zero_and_loss_are_not_approximately_equal():
 @pytest.mark.parametrize('change', ['shape','dtype','nan','field'])
 def test_invalid_capture_layout_rejected(change):
     value=arrays()
-    if change=='shape':value['state_representation']=value['state_representation'][:,:127]
-    if change=='dtype':value['future_representation']=value['future_representation'].astype(np.float64)
-    if change=='nan':value['future_representation'][0,0]=np.nan
+    if change=='shape':value['state_query']=value['state_query'][:,:4]
+    if change=='dtype':value['future_raw']=value['future_raw'].astype(np.float64)
+    if change=='nan':value['future_raw'][0,0,0]=np.nan
     if change=='field':value['unexpected']=np.zeros(16)
     with pytest.raises(RuntimeError,match='ARRAY'):
         worker._require_arrays(value,16,np=np)
 
 
 def test_serialized_bound_is_enforced_before_immutable_publish(monkeypatch):
-    value=arrays(boundaries=True)
+    value=arrays(prefix=True)
     monkeypatch.setitem(worker.BOUNDS,'max_cache_bytes',sum(x.nbytes for x in value.values()))
     called=[]
     monkeypatch.setattr(worker.cache,'_save_fusion_arrays',lambda *a,**k:called.append(a))
@@ -102,7 +96,7 @@ def test_serialized_bound_is_enforced_before_immutable_publish(monkeypatch):
 
 
 def test_partial_capture_keeps_actual_batch_order_and_existing_writer(monkeypatch):
-    one,two=arrays(boundaries=True),arrays(boundaries=True);two['parents']+=1000
+    one,two=arrays(prefix=True),arrays(prefix=True);two['parents']+=1000
     captured={}
     def save(name,values,counts,**kwargs):
         captured.update(name=name,arrays=values,kwargs=kwargs)
@@ -251,46 +245,73 @@ def test_existing_partition_changes_only_flags_without_optimizer_or_gradients():
         worker._short_parameter_partition(model,owner)
 
 
-@pytest.mark.parametrize('key',worker.HEAD_KEYS)
-def test_paired_initial_observation_requires_both_matched_head_inputs(key):
-    value=arrays();baseline={k:v.copy() for k,v in value.items()}
-    worker._require_parity(value,baseline,1.25,1.25,np=np,match_heads=True)
-    value[key][0,0]=np.nextafter(value[key][0,0],np.float32(1))
-    with pytest.raises(RuntimeError,match='INITIAL_ARRAY_PARITY'):
-        worker._require_parity(value,baseline,1.25,1.25,np=np,match_heads=True)
-
-
-def test_combined_boundary_capture_retains_both_phases_and_all_original_fields(monkeypatch):
-    value=arrays(512,boundaries=True)
-    assert value['joint_source'].shape==(512,512) and value['joint_hidden'].shape==(512,128)
-    worker._require_arrays(value,512,np=np,boundaries=True)
+def test_full_prefix_capture_retains_both_phases_and_all_original_fields(monkeypatch):
+    value=arrays(8192,prefix=True)
+    assert set(value)==set(worker.BASE_KEYS)|{'phase'}
+    worker._require_arrays(value,8192,np=np,prefix=True)
     published={}
     def save(name,values,counts,**kwargs):
         published.update(name=name,values=values);return {'path':'synthetic','sha256':SHA}
     monkeypatch.setattr(worker.cache,'_save_fusion_arrays',save)
-    parts=[{k:v[i:i+16] for k,v in value.items()} for i in range(0,512,16)]
+    parts=[{k:v[i:i+16] for k,v in value.items()} for i in range(0,8192,16)]
     worker._save(parts,{'published_npz_bytes':0},partial=False,np=np)
     assert published['name']=='TRAIN_FUSION.npz'
     assert all(np.array_equal(v,published['values'][k]) for k,v in value.items())
-    assert sum(v.nbytes for v in value.values())<worker.BOUNDS['max_cache_bytes']
+    assert sum(v.nbytes for v in value.values())==1695744
 
 
-@pytest.mark.parametrize('failure',['phase','source_shape','hidden_dtype','nan'])
-def test_boundary_artifact_rejects_phase_reordering_and_corruption(failure):
-    value=arrays(512,boundaries=True)
-    if failure=='phase':value['phase'][256]=0
-    if failure=='source_shape':value['joint_source']=value['joint_source'][:,:511]
-    if failure=='hidden_dtype':value['joint_hidden']=value['joint_hidden'].astype(np.float64)
-    if failure=='nan':value['joint_source'][0,0]=np.nan
+@pytest.mark.parametrize('failure',['phase','raw_shape','query_dtype','nan'])
+def test_prefix_artifact_rejects_phase_reordering_and_corruption(failure):
+    value=arrays(8192,prefix=True)
+    if failure=='phase':value['phase'][4096]=0
+    if failure=='raw_shape':value['state_raw']=value['state_raw'][:,:,:1]
+    if failure=='query_dtype':value['state_query']=value['state_query'].astype(np.float64)
+    if failure=='nan':value['state_raw'][0,0,0]=np.nan
     with pytest.raises(RuntimeError,match='PHASE_ORDER|ARRAY'):
-        worker._require_arrays(value,512,np=np,boundaries=True)
+        worker._require_arrays(value,8192,np=np,prefix=True)
 
 
 def test_final_piece_uses_explicit_phase_and_cannot_masquerade_as_initial():
-    value=arrays(boundaries=True);value['phase'][:]=1
-    worker._require_arrays(value,16,np=np,boundaries=True,phase=1)
+    value=arrays(prefix=True);value['phase'][:]=1
+    worker._require_arrays(value,16,np=np,prefix=True,phase=1)
     with pytest.raises(RuntimeError,match='PHASE_ORDER'):
-        worker._require_arrays(value,16,np=np,boundaries=True,phase=0)
+        worker._require_arrays(value,16,np=np,prefix=True,phase=0)
+
+
+def trace_fixture():
+    value=arrays(4096,prefix=True)
+    trace={k:value[k].reshape((256,16,*value[k].shape[1:])).copy() for k in worker.TRACE_KEYS}
+    for task in ('state','future'):
+        known=trace[task+'_eligible'] & trace[task+'_mature'] & np.isin(trace[task+'_allowed'],(1,4))
+        trace[task+'_known_count']=known.sum(1,dtype=np.int64)
+        trace[task+'_up_count']=(known & (trace[task+'_allowed']==4)).sum(1,dtype=np.int64)
+    return value,trace
+
+
+def test_trace_binding_uses_chronological_group_positions_and_exact_targets():
+    value,trace=trace_fixture();worker._require_trace(trace,np=np)
+    for index in (0,123,246,255):
+        piece={k:v[16*index:16*(index+1)] for k,v in value.items()}
+        worker._require_trace_batch(piece,trace,index,np=np)
+        with pytest.raises(RuntimeError,match='TRACE_FIXED_AXES_PARITY'):
+            worker._require_trace_batch(piece,trace,(index+1)%256,np=np)
+
+
+@pytest.mark.parametrize('field',['state_query','future_mature','state_known_count','future_up_count'])
+def test_trace_binding_rejects_a_changed_fixed_query_mask_or_count(field):
+    value,trace=trace_fixture();index=123
+    piece={k:v[16*index:16*(index+1)] for k,v in value.items()}
+    target=trace[field][index].reshape(-1)
+    target[0]=not target[0] if target.dtype==np.bool_ else target[0]+1
+    with pytest.raises(RuntimeError,match='TRACE_FIXED_AXES_PARITY'):
+        worker._require_trace_batch(piece,trace,index,np=np)
+
+
+def test_trace_layout_and_chronology_fail_before_model_construction():
+    _,trace=trace_fixture();trace['parents'][123,0]=trace['parents'][122,-1]
+    with pytest.raises(RuntimeError,match='TRACE_CHRONOLOGY'):worker._require_trace(trace,np=np)
+    _,trace=trace_fixture();trace['state_up_count']=trace['state_up_count'].astype(np.int32)
+    with pytest.raises(RuntimeError,match='TRACE_LAYOUT'):worker._require_trace(trace,np=np)
 
 
 def final_metadata():

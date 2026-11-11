@@ -6,12 +6,12 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_PAIRED_SOURCE_CHANGE_MEASURED_FULL_PREFIX_UNMEASURED.
+TA_DIRECTION_EDGE_CAUSE_FULL_USED_PREFIX_READ_ONLY_ADMITTED.
 Målet 11.11 er aktivt: mål årsaker til svak retningsverdi i indikatorer,
 sammensetting og læring. [Samlet status](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json).
 Korte runder er feilsøking, ikke kapasitetsdom. Full kvalifisert TRAIN-historikk
 og 30–40 epoker er senere skalering, ikke et krav ved hver rettelse.
-Alle modellplaner er konsumert. Ingen ny kjøring er innrømmet nå.
+Tidligere modellplaner er konsumert. Én ny lesende fullprefix-evaluering er innrømmet; ingen ny trening.
 Training/native_training/native_launch/full_epoch/full_val er false. Begge gamle
 c171 Windowsoppgaver er Disabled. GC er på pause; TEST, Entry/Exit, broker,
 handel, spending og promotion er stengt. Sluttcheckpoint er evidens, ikke promotion.
@@ -85,14 +85,18 @@ Ingen generell frysing, featurefjerning eller ny tapsvekt er begrunnet av panele
 
 ## Neste konkrete avklaring
 
-Forbered én lesende før/etter-evaluering av akkurat de 4096 TRAIN-radene short002
-faktisk oppdaterte. Gjenbruk initial/final-checkpoints, original kronologisk B16-orden,
-queries, targets og tap. TRACE har alle 4096 foreldrerader/tider/queries/masker:
-bind disse eksakt, men bruk ikke dens skiftende pre-update-logits som fast baseline.
-Mål total-/deltap og M5 Brier/log/AUC på hele brukt prefix.
-De tre eksisterende kontrollgruppene i prefixet må matche lagrede felt og tap.
-Høyst 512 fullforwards, ingen optimizer/autograd/ny trening. Kvalifiser metadata og
-ressurs-/tidsgrenser før en eksakt ny engangsplan innrømmes; ingen plan er klar nå.
-Dette skiller egen prefix-fit fra overføring/samtilpasning før noen modellrettelse.
-Unik historisk årsak, familiers prediktive nytte, fullprefix-fit, senere generalisering
-og kapasitet ved tilstrekkelig trening er uavklart. Ingen ny edge er påvist.
+[Full brukt-prefix-kontroll](docs/TA_C171_FULL_USED_PREFIX_REVIEW.json) er ADMITTED.
+ROOT: /home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001.
+Én modell, to beholdte vektsett, 256 B16-grupper per fase: høyst512forwards.
+Alle4096brukte rader/tider/queries/masker og støttecounts bindes byteeksakt til TRACE.
+TRACE sine pre-update-logits kommer fra skiftende vekter og brukes ikke som baseline.
+Kontrollgruppene0/123/246 må matche gamle panelposisjoner0/1/2 i begge faser.
+Original evaluate_fit_batch og _short_loss_components gjenbrukes uendret; ingen hooks.
+Bare original12felt+phase lagres, cirka1,70MB under2MiB. 0optimizer/autograd/fit.
+68fokustester, metadata-preflight og faktisk cap-selektor bestod. Uavhengig
+kildereview fant ingen konkret blokkering. Numeriske eiere er uendret.
+16-/32-forward-observerne gir et lineært512-forward-estimat på cirka743sekunder,
+men fullprefix-varighet er ikke bevist. Behold900sworker/1200sguard og alle vakter.
+Ved feil beholdes partial/FAILED_CONSUMED; ingen relansering av denne planen.
+Kjør bare eksakt innrømmet plan, avslutt scopet og sammenlign komplett egen-prefix-fit
+før valg av modellrettelse. Senere generalisering og ny edge er fortsatt ubevist.

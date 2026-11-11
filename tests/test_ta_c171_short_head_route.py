@@ -9,7 +9,7 @@ import pytest
 REPO = Path(__file__).resolve().parents[1]
 MODULE = 'gx1.audit.observe_market_state_ta_c171_short_heads_v1'
 FLAG = '--market-state-ta-c171-short-heads-plan'
-ROOT = '/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_JOINT_BOUNDARIES_20261111_001'
+ROOT = '/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001'
 
 
 def gate(tmp_path, changes=None, extra=()):
@@ -58,6 +58,7 @@ def test_actual_exact_observer_route_preserves_draw_and_temperature_stops(tmp_pa
     ({4:'/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_001/PLAN.json'},()),
     ({4:'/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_002/PLAN.json'},()),
     ({4:'/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_QUERY_PROJECTION_GRADIENT_20261111_001/PLAN.json'},()),
+    ({4:'/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_JOINT_BOUNDARIES_20261111_001/PLAN.json'},()),
     ({3:'--unrelated-plan'},()),
     ({4:'$ROOT/other.json'},()),
     ({6:'0'*64},()),
