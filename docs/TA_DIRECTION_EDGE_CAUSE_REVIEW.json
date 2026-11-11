@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_TEMPORAL_BOUNDARY_OBSERVATION_ADMITTED",
+  "status": "ACTIVE_ENCODER_RUNTIME_LEARNING_AUDIT_ADMITTED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -76,49 +76,30 @@
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MTF_RETAINED_INTERVENTION_20261111_001/INPUT_VARIATION_REVIEW.json",
         "sha256": "f684c1df0583e9cb643cecd16cb3822005ce855a1932d46d7a54ca43d0f0cb31"
       }
+    },
+    {
+      "id": "temporal_boundary_localization",
+      "evidence_class": "MEASURED_REAL_DATA_SCOPED_PASSIVE_PARITY",
+      "finding": "Temporal mean+last is not a systematic cancellation. Main comparable-scale attenuation is inside family/timeframe and cross-timeframe mixing; final pooling does not contract variation generally. All 11 encoders are source-trainable; per-encoder runtime learning and predictive harm remain unproved.",
+      "evidence": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TEMPORAL_BOUNDARY_OBSERVATION_20261111_001/INTERPRETATION_REVIEW.json",
+        "sha256": "2092517aae90839764c5dca6743b65ad2e9a4dccdcfba364ec5b464eea17b07c"
+      }
     }
   ],
   "next_measurement": {
     "status": "ADMITTED_ONCE_NOT_YET_EXECUTED",
-    "question": "Where does temporal indicator variation become weak between genuine input histories, temporal readout and final timeframe pooling?",
-    "method": "Passive parent-encoder hooks capture FP32 input/output temporal mean+last and FP64-derived window RMS statistics; capture family-axis/timeframe-axis outputs and cross-TF inputs/outputs. Validate actual chaining and all retained fusion/nativeoutputs bitexact. No rawsequence dumps.",
+    "question": "Does the executed learning path actually update the 11 encoders, and how does shared learning serve M5 direction versus other task terms?",
+    "method": "Reuse exact warm-start and R1 checkpoint receipts first for a bounded per-module delta check without model construction, feature reads or fitting. Only an unresolved measured learning-path question can justify a new TRAIN-only gradient diagnostic; no repeat of routing or fusion captures.",
     "model_change_authorized": false,
     "predictor_fits": 0,
-    "interpretation": "Inputtokens include context-conditioned gates/scales, categoricalembeddings andpositionencodings. Within-window activation variation differsfrom cross-decision variation and predictiveinformation. One bounded measurement; no modelcorrection justified byvariance alone.",
-    "families": 8,
-    "timeframes": [
-      "M5",
-      "M15",
-      "H1",
-      "H4",
-      "D1"
-    ],
-    "window_lengths": [
-      16,
-      64,
-      96,
-      96,
-      252
-    ],
-    "batch_equal_length_mtf_eval": false,
-    "batch_scope_changed": false,
-    "capture_bytes_bound": 67108864,
-    "expected_instrumented_forwards": 32,
-    "expected_total_forwards": 33,
+    "training_authorized": false,
+    "interpretation": "Source trainability is not evidence of nonzero runtime learning. Parameter change, if found, still does not prove useful learning. A short run is not a capacity verdict.",
     "plan": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TEMPORAL_BOUNDARY_OBSERVATION_20261111_001/PLAN.json",
-      "sha256": "22fbc40780b9a97b9da39abb80fcc582af5e798d7044611e987f71deb9181402"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ENCODER_DELTA_20261111_001/PLAN.json",
+      "sha256": "2bdbd32a1aebcfb8aa31d75633beba9792de31d52ab0d56f078c8e177dd123c4"
     },
-    "preflight": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TEMPORAL_BOUNDARY_OBSERVATION_20261111_001/PREFLIGHT.log",
-      "sha256": "0953e70e69b70d6c2b2f30cd58c82b236d0298b02b17e6cf3db099cd54f7f5a2"
-    },
-    "retained_analysis": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TEMPORAL_BOUNDARY_OBSERVATION_20261111_001/ANALYZE_BOUNDARIES.py",
-      "sha256": "f5d33178772504a407aed27240967207c56059845e07f9b875aedd3f61c4d846"
-    },
-    "focused_tests_passed": 81,
-    "final_temporal_tests_passed": 14
+    "scope": "Read two existing sealed checkpoints once. Compare all eight temporal and three axis encoder tensors; inspect retained Adam second moments from empty initial optimizer. No restoration, model construction, feature reads, fit, backward or updates."
   },
   "not_established": [
     "Unique historical optimizer cause",
@@ -724,6 +705,281 @@
       "Rawunion includes laterrows and hasconstantcounts0/1/1/3/2. TRAINtransformedcounts are0/1/3/3/2; the populationdifference is expected, not a mismatch.",
       "Only512rows in16intactB16groups perpartition; later is reuseddevelopment. No statisticaledge, convergence or economics claim."
     ],
+    "model_change_recommended": false
+  },
+  "temporal_boundary_observation": {
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TEMPORAL_BOUNDARY_OBSERVATION_20261111_001/PLAN.json",
+      "sha256": "22fbc40780b9a97b9da39abb80fcc582af5e798d7044611e987f71deb9181402"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TEMPORAL_BOUNDARY_OBSERVATION_20261111_001/RESULT.json",
+      "sha256": "b89942e594656526573d38ea1b31236f231eaddf1149472d75205a6849b41420"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TEMPORAL_BOUNDARY_OBSERVATION_20261111_001/TERMINAL.json",
+      "sha256": "ba677e42b145efa7b6e3b98af908a038c26243fd8695b3bf1062cfffa3f01753"
+    },
+    "controller_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TEMPORAL_BOUNDARY_OBSERVATION_20261111_001/CONTROLLER_TERMINAL.json",
+      "sha256": "505656a5bfb0da914915492f0b983f4004e443e91646516e7235dedd68dac5a9"
+    },
+    "numeric_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TEMPORAL_BOUNDARY_OBSERVATION_20261111_001/INDEPENDENT_BOUNDARY_REVIEW.json",
+      "sha256": "e5aafc7989e6efa53fedd94ccd35b26494f63d3e1457991a5f2db3b80f4a2dad"
+    },
+    "interpretation_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TEMPORAL_BOUNDARY_OBSERVATION_20261111_001/INTERPRETATION_REVIEW.json",
+      "sha256": "2092517aae90839764c5dca6743b65ad2e9a4dccdcfba364ec5b464eea17b07c"
+    },
+    "source_commit": "d3dc09eeaff2694de438eb3a8550d07341f5d088",
+    "counts": {
+      "archive_decodes": 4,
+      "backbone_encodings": 33,
+      "backwards": 0,
+      "candidate_writes": 0,
+      "checkpoint_loads": 1,
+      "checkpoint_writes": 0,
+      "forward_returns": 33,
+      "head_tensor_imports": 4,
+      "instrumented_forwards": 32,
+      "model_constructions": 1,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "published_npz_bytes": 65922130,
+      "resume_state_load_calls": 1,
+      "resume_state_load_returns": 1,
+      "sampled_rows": 512,
+      "scalar_fits": 0,
+      "temporal_cross_tf_calls": 32,
+      "temporal_family_axis_calls": 32,
+      "temporal_family_encoder_calls": 1280,
+      "temporal_observed_forwards": 32,
+      "temporal_timeframe_axis_calls": 32
+    },
+    "passivity": {
+      "LATER_all_retained_fields_bitexact": true,
+      "TRAIN_all_retained_fields_bitexact": true,
+      "instrumented_matches_bound_baseline": true,
+      "instrumented_matches_uninstrumented": true,
+      "uninstrumented_matches_bound_baseline": true
+    },
+    "aggregate": {
+      "TRAIN": {
+        "aggregate_stages": {
+          "temporal_input_mean": {
+            "width": 5120,
+            "raw_rms": 0.6702423839142998,
+            "between_decision_centered_rms": 0.2282144885145285,
+            "centered_energy_fraction": 0.11593715796780678,
+            "exactly_constant_columns": 0
+          },
+          "temporal_input_last": {
+            "width": 5120,
+            "raw_rms": 0.9339262451720215,
+            "between_decision_centered_rms": 0.5229154111533166,
+            "centered_energy_fraction": 0.31350012803117366,
+            "exactly_constant_columns": 0
+          },
+          "temporal_output_mean": {
+            "width": 5120,
+            "raw_rms": 0.9447625323345897,
+            "between_decision_centered_rms": 0.1766888207668095,
+            "centered_energy_fraction": 0.03497621592124269,
+            "exactly_constant_columns": 0
+          },
+          "temporal_output_last": {
+            "width": 5120,
+            "raw_rms": 0.9999990690097511,
+            "between_decision_centered_rms": 0.29310520283852404,
+            "centered_energy_fraction": 0.08591081989520906,
+            "exactly_constant_columns": 0
+          },
+          "family_axis_output": {
+            "width": 5120,
+            "raw_rms": 0.9999994948857064,
+            "between_decision_centered_rms": 0.15735397798296688,
+            "centered_energy_fraction": 0.024760299400619988,
+            "exactly_constant_columns": 0
+          },
+          "timeframe_axis_output": {
+            "width": 5120,
+            "raw_rms": 0.9999994495392265,
+            "between_decision_centered_rms": 0.06226834386259644,
+            "centered_energy_fraction": 0.003877350916048546,
+            "exactly_constant_columns": 0
+          },
+          "temporal_input_readout": {
+            "width": 5120,
+            "raw_rms": 1.466449205125328,
+            "between_decision_centered_rms": 0.6414811335637356,
+            "centered_energy_fraction": 0.1913523177556915,
+            "exactly_constant_columns": 0
+          },
+          "temporal_output_readout": {
+            "width": 5120,
+            "raw_rms": 1.9154560762438202,
+            "between_decision_centered_rms": 0.41274633887324264,
+            "centered_energy_fraction": 0.046432499670484316,
+            "exactly_constant_columns": 0
+          },
+          "cross_tf_input": {
+            "width": 640,
+            "raw_rms": 0.9996820501682934,
+            "between_decision_centered_rms": 0.09417379985016808,
+            "centered_energy_fraction": 0.008874346875284201,
+            "exactly_constant_columns": 0
+          },
+          "cross_tf_output": {
+            "width": 640,
+            "raw_rms": 0.9999995722534456,
+            "between_decision_centered_rms": 0.03198101092106002,
+            "centered_energy_fraction": 0.0010227859345190917,
+            "exactly_constant_columns": 0
+          },
+          "native_mtf_pool": {
+            "width": 128,
+            "raw_rms": 0.9992443740878463,
+            "between_decision_centered_rms": 0.03195030513133836,
+            "centered_energy_fraction": 0.0010223664674335333,
+            "exactly_constant_columns": 0
+          }
+        },
+        "final_pool": {
+          "native": {
+            "width": 128,
+            "raw_rms": 0.9992443740878463,
+            "between_decision_centered_rms": 0.03195030513133836,
+            "centered_energy_fraction": 0.0010223664674335333,
+            "exactly_constant_columns": 0,
+            "first_axis_variance_fraction": 0.9343471460285483,
+            "effective_variance_dimensions": 1.1446017672684878
+          },
+          "reconstruction_fp64_max_absolute_error": 5.12630528248792e-07,
+          "component_centered_energy_sum": 0.008102584362937083,
+          "pooled_centered_energy_fp64": 0.0010208220047174493,
+          "cross_tf_covariance_contribution": -0.007081762358219633,
+          "pool_to_component_energy_ratio": 0.12598721086902875
+        },
+        "mean_last_positive_covariance_cells": 40,
+        "mean_last_cell_count": 40,
+        "readout_to_last_variance_range": [
+          1.0060919180273098,
+          3.641983508452018
+        ],
+        "within_window_output_rms_range": [
+          0.1561738606662849,
+          0.654079767064548
+        ]
+      },
+      "LATER": {
+        "aggregate_stages": {
+          "temporal_input_mean": {
+            "width": 5120,
+            "raw_rms": 0.6790675046370898,
+            "between_decision_centered_rms": 0.24340973644535635,
+            "centered_energy_fraction": 0.1284842799020187,
+            "exactly_constant_columns": 0
+          },
+          "temporal_input_last": {
+            "width": 5120,
+            "raw_rms": 0.939760666262333,
+            "between_decision_centered_rms": 0.5273792604907768,
+            "centered_energy_fraction": 0.3149282112888301,
+            "exactly_constant_columns": 0
+          },
+          "temporal_output_mean": {
+            "width": 5120,
+            "raw_rms": 0.9459578489291749,
+            "between_decision_centered_rms": 0.19826483233112713,
+            "centered_energy_fraction": 0.04392864465828003,
+            "exactly_constant_columns": 0
+          },
+          "temporal_output_last": {
+            "width": 5120,
+            "raw_rms": 0.9999990681241013,
+            "between_decision_centered_rms": 0.3030921100859165,
+            "centered_energy_fraction": 0.09186499840980945,
+            "exactly_constant_columns": 0
+          },
+          "family_axis_output": {
+            "width": 5120,
+            "raw_rms": 0.9999994957415755,
+            "between_decision_centered_rms": 0.17104938813310042,
+            "centered_energy_fraction": 0.02925792268780859,
+            "exactly_constant_columns": 0
+          },
+          "timeframe_axis_output": {
+            "width": 5120,
+            "raw_rms": 0.9999994437393261,
+            "between_decision_centered_rms": 0.07532839054289112,
+            "centered_energy_fraction": 0.005674372734641373,
+            "exactly_constant_columns": 0
+          },
+          "temporal_input_readout": {
+            "width": 5120,
+            "raw_rms": 1.4751984435233252,
+            "between_decision_centered_rms": 0.6440681700972168,
+            "centered_energy_fraction": 0.19061750583761808,
+            "exactly_constant_columns": 0
+          },
+          "temporal_output_readout": {
+            "width": 5120,
+            "raw_rms": 1.9154290756451133,
+            "between_decision_centered_rms": 0.44065249496306264,
+            "centered_energy_fraction": 0.052924932849909206,
+            "exactly_constant_columns": 0
+          },
+          "cross_tf_input": {
+            "width": 640,
+            "raw_rms": 0.9988720212407473,
+            "between_decision_centered_rms": 0.13756032300658855,
+            "centered_energy_fraction": 0.018965603931837813,
+            "exactly_constant_columns": 0
+          },
+          "cross_tf_output": {
+            "width": 640,
+            "raw_rms": 0.9999995623269096,
+            "between_decision_centered_rms": 0.049511856041226036,
+            "centered_energy_fraction": 0.0024514260344930382,
+            "exactly_constant_columns": 0
+          },
+          "native_mtf_pool": {
+            "width": 128,
+            "raw_rms": 0.9983360999321651,
+            "between_decision_centered_rms": 0.055922937328369046,
+            "centered_energy_fraction": 0.0031378082308679434,
+            "exactly_constant_columns": 0
+          }
+        },
+        "final_pool": {
+          "native": {
+            "width": 128,
+            "raw_rms": 0.9983360999321651,
+            "between_decision_centered_rms": 0.055922937328369046,
+            "centered_energy_fraction": 0.0031378082308679434,
+            "exactly_constant_columns": 0,
+            "first_axis_variance_fraction": 0.9744201996874261,
+            "effective_variance_dimensions": 1.0530191815531322
+          },
+          "reconstruction_fp64_max_absolute_error": 5.28902667440434e-07,
+          "component_centered_energy_sum": 0.011233521875821748,
+          "pooled_centered_energy_fp64": 0.0031273749681749712,
+          "cross_tf_covariance_contribution": -0.008106146907646777,
+          "pool_to_component_energy_ratio": 0.278396659813884
+        },
+        "mean_last_positive_covariance_cells": 38,
+        "mean_last_cell_count": 40,
+        "readout_to_last_variance_range": [
+          0.9926083179638153,
+          3.5617017181975448
+        ],
+        "within_window_output_rms_range": [
+          0.15534491304832893,
+          0.6358998754449952
+        ]
+      }
+    },
     "model_change_recommended": false
   }
 }
