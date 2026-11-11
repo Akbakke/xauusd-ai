@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-11T15:41:27.251651+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_SHORT_HEAD_PROFILE_MATCH_ADMITTED",
+  "status": "TA_DIRECTION_EDGE_CAUSE_SHORT_HEAD_REPRESENTATION_REVIEW_COMPLETE",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1698,7 +1698,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Read-only002 matches known short-runtime thread and gradflag settings; source/feature preflight and exact cap selector passed.",
+    "current_activity": "Matched initial capture and independent retained-output arithmetic complete; all observation/native launch gates closed.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1751,7 +1751,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "First16-row group: all parents/issues/queries/masks and scalar loss match exactly, but94/160 state and102/160 future raw logits differ; max7.152557e-7/2.384186e-7. Both M5 side maxima2.980232e-8. No attribution inference is admitted from the failed capture.",
+    "current_blocker": "The remaining common output movement is associated with the representation path in the reconstructed-input diagnostic; unique encoder/loss cause and broader fit/generalization remain unproved.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9222,7 +9222,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute one new exact002 plan with unchanged bit-parity gate; if qualified, run the bound retained-array ordered head/representation analysis.",
+    "next_action": "Localize whether and how differing short/long-timeframe objectives move the shared representation toward a common upward level, using the existing matched outputs, trace and source first. The H4/D1 class marginals identify a concrete hypothesis, not proof of harmful gradient transfer. Preserve every feature/timeframe; no loss weight/model change or new fit is admitted solely from these marginals.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22137,7 +22137,7 @@
     },
     "direction_edge_cause_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "2e5849e1cc33b44833cf38f783b2332a325a401903c8ebd401edab40faefca01"
+      "sha256": "896d6479cffbc7422265e7c7ee24ac1955ef33d4a4dcec498dd1bdf8992cc3c2"
     },
     "latest_c171_startup_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_C171_SHORT_LEARNING_STARTUP_REVIEW.json",
@@ -22154,6 +22154,10 @@
     "latest_c171_short_learning_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_C171_SHORT_LEARNING_REVIEW.json",
       "sha256": "16da7c4ad10fb536302aab4c541fdd1cf497d79afaf69b0765f6395bb6294a5f"
+    },
+    "latest_c171_head_attribution_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_SHORT_HEAD_ATTRIBUTION_REVIEW.json",
+      "sha256": "eeb7af81a68ee32bc55217ff4b137e0720090af2118a3674195dc93648a917c5"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -75493,24 +75497,24 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_MATCHED_THREAD_AND_PARAMETER_PROFILE_CAPTURE_ADMITTED",
+    "status": "ACTIVE_SHORT_OUTPUT_SHIFT_LOCALIZED_TO_REMAINING_REPRESENTATION_PATH",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
     "training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "2e5849e1cc33b44833cf38f783b2332a325a401903c8ebd401edab40faefca01"
+      "sha256": "896d6479cffbc7422265e7c7ee24ac1955ef33d4a4dcec498dd1bdf8992cc3c2"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": true,
+    "model_or_data_run_admitted": false,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Execute one new exact002 plan with unchanged bit-parity gate; if qualified, run the bound retained-array ordered head/representation analysis.",
+    "next_action": "Localize whether and how differing short/long-timeframe objectives move the shared representation toward a common upward level, using the existing matched outputs, trace and source first. The H4/D1 class marginals identify a concrete hypothesis, not proof of harmful gradient transfer. Preserve every feature/timeframe; no loss weight/model change or new fit is admitted solely from these marginals.",
     "active_stage": "market_state_ta_c171_short_initial_heads_20261111_002",
     "previous_goal_turn_classification": "PROGRESS: retained MTFintervention andinputsupport review ruledout an unsupported harmful-MTF or generalnormalization-collapse change; nextactualboundarymeasurement identified.",
-    "last_goal_turn_classification": "PROGRESS: actual unchanged-loss256-update response measured; probability shift dominates small panel ranking changes. Full and3/13 output arithmetic independently reconciled. Startup cap blocker corrected; all plans consumed and gates closed. Historical learning cause remains unresolved."
+    "last_goal_turn_classification": "PROGRESS: retained M5 head gradients/AdamW reconcile; direct biases move opposite to the observed common upward shift. Reproduced initial16B16panel qualified after concrete observer-profile correction. Ordered head/rest analysis independently checked; long-timeframe prefix marginals define next isolated question. No predictive edge or unique upstream cause claimed."
   },
   "market_state_ta_fusion_observation_20261111_001": {
     "status": "COMPLETE",
@@ -76493,17 +76497,17 @@
     "interop_policy": "process_default_unchanged_like_short002",
     "max_published_json_bytes": 1048576,
     "max_model_constructions": 1,
-    "status": "ADMITTED",
+    "status": "COMPLETE",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_002/PLAN.json",
       "sha256": "a9dcdf7ab38f6c192d77eb72e0894f752667067b5f0c01507349f07fd876073c"
     },
     "max_invocations": 1,
-    "remaining_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "remaining_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
-    "execution_authorized": true,
+    "execution_authorized": false,
     "data_reads_authorized": true,
     "checkpoint_reads_authorized": true,
     "backbone_encodings_authorized": 16,
@@ -76516,7 +76520,7 @@
     "retained_output_fit_authorized": false,
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_SHORT_HEAD_ATTRIBUTION_REVIEW.json",
-      "sha256": "8894959ab02d3e9f183f7631590cd3d82a0afe5b34bc6b22d5e0273d590c8e1e"
+      "sha256": "eeb7af81a68ee32bc55217ff4b137e0720090af2118a3674195dc93648a917c5"
     },
     "preflight": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_002/PREFLIGHT.json",
@@ -76535,6 +76539,51 @@
       "sha256": "db4a3cabde9274fd2f8501a42e2288060e4839cb86f2ab0f725a44a333947716"
     },
     "focused_tests_passed": 52,
-    "standing_authority": "Explicit11November edge-cause goal, one minimal new read-only observation after a measured runtime-profile mismatch.001remains consumed; no training, later data or spending."
+    "standing_authority": "Explicit11November edge-cause goal, one minimal new read-only observation after a measured runtime-profile mismatch.001remains consumed; no training, later data or spending.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_002/RESULT.json",
+      "sha256": "f6e0c8a3edf50a2f10ad52417f1d73f597594fd1cf26124fac1f49f652184ed7"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_002/TERMINAL.json",
+      "sha256": "49493bedccdde014026a68d5190b48914ff03d96deec4749a208af63d5f0ca37"
+    },
+    "controller_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_002/CONTROLLER_TERMINAL.json",
+      "sha256": "3e2e13d9a70fc1eb8e4e9faef56741f5259cafbcd1e0b0413eceb0a45a617d89"
+    },
+    "actual_counts": {
+      "archive_decodes": 2,
+      "autograd_grad_calls": 0,
+      "backbone_encodings": 16,
+      "backwards": 0,
+      "candidate_writes": 0,
+      "checkpoint_loads": 1,
+      "checkpoint_writes": 0,
+      "extra_target_gathers": 32,
+      "forward_returns": 16,
+      "head_capture_returns": 32,
+      "head_tensor_imports": 4,
+      "matched_batches": 16,
+      "model_constructions": 1,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "published_npz_bytes": 318504,
+      "resume_state_load_calls": 1,
+      "resume_state_load_returns": 1,
+      "sampled_rows": 256
+    },
+    "source_unchanged_at_terminal": true,
+    "evaluation_state_unchanged": true,
+    "ordered_arithmetic_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_002/HEAD_ATTRIBUTION_REVIEW.json",
+      "sha256": "9b8f49f3ff1a91e050a643756ca9b04ff7fb1305ef6ea1797143704e755fb3e0"
+    },
+    "independent_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_002/INDEPENDENT_HEAD_ATTRIBUTION_REVIEW.json",
+      "sha256": "03743bb1a44be67fe4108655305095274bb243034532a3890d9cf55f66553fa9"
+    },
+    "historical_hidden_input_identity_proved": false,
+    "unique_historical_cause_proved": false
   }
 }

@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_SHORT_LEARNING_MEASURED_CAUSE_NOT_UNIQUE",
+  "status": "ACTIVE_SHORT_OUTPUT_SHIFT_LOCALIZED_TO_REMAINING_REPRESENTATION_PATH",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -112,18 +112,21 @@
         "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_C171_SHORT_LEARNING_REVIEW.json",
         "sha256": "16da7c4ad10fb536302aab4c541fdd1cf497d79afaf69b0765f6395bb6294a5f"
       }
-    }
+    },
+    "All256 reconstructed c171 initial panel fields and16 losses are bitexact after matching the actual short-run numerical threads and parameter flags;0gradients/optimizer updates, complete state unchanged.",
+    "On the reproduced initial inputs, final M5 head parameters alone change mean known-side p_up by-0.03676pp(S)/+0.22419pp(F), versus actual+2.50553/+2.19309pp. This is an ordered diagnostic, not proof of historical128D identity or unique upstream causality.",
+    "The actual4096-row prefix has future known-UP fractions51.399%M5,62.926%H4,78.280%D1. Predictions are from successive pre-update states; these marginals do not by themselves prove cross-task harm."
   ],
   "next_measurement": {
     "status": "RETAINED_EVIDENCE_FIRST_NO_RUN_ADMITTED",
-    "question": "Which retained update evidence explains common probability shift versus signal-dependent direction learning under this unchanged-loss check?",
-    "method": "Inspect retained trace/head update metadata and existing chronological batch-composition evidence to localize the common output shift. Reuse existing outputs first; admit a new minimal counterfactual only after a concrete unresolved distinction is specified. No run is admitted now.",
+    "question": "Does the remaining common upward shift arise from shared short/long-timeframe learning, and where does that interaction enter the M5 representation?",
+    "method": "Localize whether and how differing short/long-timeframe objectives move the shared representation toward a common upward level, using the existing matched outputs, trace and source first. The H4/D1 class marginals identify a concrete hypothesis, not proof of harmful gradient transfer. Preserve every feature/timeframe; no loss weight/model change or new fit is admitted solely from these marginals.",
     "model_change_authorized": false,
     "training_authorized": false,
     "broad_training_authorized": false,
     "completed_predecessor": {
-      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_C171_SHORT_LEARNING_REVIEW.json",
-      "sha256": "16da7c4ad10fb536302aab4c541fdd1cf497d79afaf69b0765f6395bb6294a5f"
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_SHORT_HEAD_ATTRIBUTION_REVIEW.json",
+      "sha256": "eeb7af81a68ee32bc55217ff4b137e0720090af2118a3674195dc93648a917c5"
     }
   },
   "not_established": [
@@ -131,7 +134,9 @@
     "Family-specific predictive added value under the current S/F objective",
     "Predictive cost of trendline identity loss",
     "Native convergence or capacity after sufficient training",
-    "Untouched generalization and trading economics"
+    "Untouched generalization and trading economics",
+    "Equality to unrecorded historical128D initial head inputs",
+    "Unique short-run upstream cause or harmful H4/D1-to-M5 transfer"
   ],
   "test_data_used": false,
   "training_authorized": false,
@@ -1197,6 +1202,31 @@
     "result": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_002/RESULT.json",
       "sha256": "1b25f095c3f610fc9c42325840f6f683cf3e9a50006fcd6249250e07e753724a"
+    },
+    "training_authorized": false,
+    "future_resume_authorized": false
+  },
+  "c171_head_representation_review": {
+    "status": "COMPLETE_NO_TRAINING",
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_SHORT_HEAD_ATTRIBUTION_REVIEW.json",
+      "sha256": "eeb7af81a68ee32bc55217ff4b137e0720090af2118a3674195dc93648a917c5"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_002/RESULT.json",
+      "sha256": "f6e0c8a3edf50a2f10ad52417f1d73f597594fd1cf26124fac1f49f652184ed7"
+    },
+    "ordered_arithmetic": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_002/HEAD_ATTRIBUTION_REVIEW.json",
+      "sha256": "9b8f49f3ff1a91e050a643756ca9b04ff7fb1305ef6ea1797143704e755fb3e0"
+    },
+    "independent_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_002/INDEPENDENT_HEAD_ATTRIBUTION_REVIEW.json",
+      "sha256": "03743bb1a44be67fe4108655305095274bb243034532a3890d9cf55f66553fa9"
+    },
+    "prefix_task_balance": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_002/PREFIX_TASK_BALANCE_REVIEW.json",
+      "sha256": "2ba4453ab3a4600ecafcfa2cd1df83c5e29af62802d9fac152e27306c7ce61df"
     },
     "training_authorized": false,
     "future_resume_authorized": false

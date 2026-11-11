@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_c171_short_head_attribution_review_v1",
-  "status": "REPLACEMENT_CAPTURE_002_ADMITTED",
+  "status": "COMPLETE_ORDERED_RECONSTRUCTED_HEAD_REVIEW",
   "objective": "Separate the measured short-run M5 output shift into final-head parameter changes at exact initial head inputs and a residual representation contribution.",
   "retained_trace_review": {
     "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_002/TRACE_ALGEBRA_REVIEW.json",
@@ -57,7 +57,8 @@
   "limitations": [
     "A diagnostic ordered decomposition, not identification of a responsible upstream encoder or predictive edge.",
     "Small dependent historically trained TRAIN panel; no heldout or full4096-row fit claim.",
-    "Previously consumed centering trial is not revived; no new fit, loss weight or model change."
+    "Previously consumed centering trial is not revived; no new fit, loss weight or model change.",
+    "Scalar forward-error bounds validate only w0 dot reconstructed_h0 plus b0, not historical128D equality or a bound on delta_w dot historical reconstruction error."
   ],
   "training_authorized": false,
   "test_data_used": false,
@@ -69,7 +70,7 @@
     "correction": "Restore that dispatcher byte-for-byte; use the observer own exact guarded CLI. No old numerical-source bridge was relaxed.",
     "plans_or_claims_consumed": 0
   },
-  "next_action": "Execute one new exact002 plan with unchanged bit-parity gate; if qualified, run the bound retained-array ordered head/representation analysis.",
+  "next_action": "Localize whether and how differing short/long-timeframe objectives move the shared representation toward a common upward level, using the existing matched outputs, trace and source first. The H4/D1 class marginals identify a concrete hypothesis, not proof of harmful gradient transfer. Preserve every feature/timeframe; no loss weight/model change or new fit is admitted solely from these marginals.",
   "failed_capture_001": {
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_001/PLAN.json",
@@ -144,5 +145,291 @@
   "arithmetic_source": {
     "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_002/REVIEW_HEAD_ATTRIBUTION.py",
     "sha256": "501da2a63a395e80be3047fbc67177e247a97e9b631b2fb23833ecdc5d5adcf5"
-  }
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_002/RESULT.json",
+    "sha256": "f6e0c8a3edf50a2f10ad52417f1d73f597594fd1cf26124fac1f49f652184ed7"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_002/TERMINAL.json",
+    "sha256": "49493bedccdde014026a68d5190b48914ff03d96deec4749a208af63d5f0ca37"
+  },
+  "controller_terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_002/CONTROLLER_TERMINAL.json",
+    "sha256": "3e2e13d9a70fc1eb8e4e9faef56741f5259cafbcd1e0b0413eceb0a45a617d89"
+  },
+  "actual_counts": {
+    "archive_decodes": 2,
+    "autograd_grad_calls": 0,
+    "backbone_encodings": 16,
+    "backwards": 0,
+    "candidate_writes": 0,
+    "checkpoint_loads": 1,
+    "checkpoint_writes": 0,
+    "extra_target_gathers": 32,
+    "forward_returns": 16,
+    "head_capture_returns": 32,
+    "head_tensor_imports": 4,
+    "matched_batches": 16,
+    "model_constructions": 1,
+    "optimizer_constructions": 0,
+    "optimizer_updates": 0,
+    "published_npz_bytes": 318504,
+    "resume_state_load_calls": 1,
+    "resume_state_load_returns": 1,
+    "sampled_rows": 256
+  },
+  "source_at_capture": "446fcd42f204f1e2090c416872262e824d737647",
+  "source_unchanged": true,
+  "model_signature_unchanged": true,
+  "passivity": {
+    "all_initial_arrays_and_batch_losses_bitexact": true,
+    "complete_signature_unchanged": true,
+    "no_parameter_gradients": true
+  },
+  "numeric_runtime": {
+    "interop_threads": 10,
+    "intra_threads": 8,
+    "thread_environment": {
+      "BLIS_NUM_THREADS": "8",
+      "MKL_NUM_THREADS": "8",
+      "NUMEXPR_NUM_THREADS": "8",
+      "OMP_NUM_THREADS": "8",
+      "OPENBLAS_NUM_THREADS": "8",
+      "VECLIB_MAXIMUM_THREADS": "8"
+    }
+  },
+  "parameter_partition": {
+    "active_tensors": 570,
+    "inactive_tensors": 179,
+    "profile": "original_fold1_fit_active_true_inactive_false"
+  },
+  "elapsed_seconds": 116.1351328539995,
+  "retained_head_inputs": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_002/TRAIN_FUSION.npz",
+    "sha256": "ead6516a52299ccaa228e54735a290a7f54140e57f46b28b0aebd6cca9ee8db4"
+  },
+  "ordered_arithmetic_review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_002/HEAD_ATTRIBUTION_REVIEW.json",
+    "sha256": "9b8f49f3ff1a91e050a643756ca9b04ff7fb1305ef6ea1797143704e755fb3e0"
+  },
+  "independent_review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_002/INDEPENDENT_HEAD_ATTRIBUTION_REVIEW.json",
+    "sha256": "03743bb1a44be67fe4108655305095274bb243034532a3890d9cf55f66553fa9"
+  },
+  "independent_float_fields_checked": 242,
+  "independent_count_fields_checked": 48,
+  "maximum_independent_difference": 1.1102230246251565e-16,
+  "reconstructed_initial_diagnostic": {
+    "state": {
+      "known_rows": 91,
+      "head_only_mean_p_up_change_pp": -0.03675770555433555,
+      "actual_mean_p_up_change_pp": 2.505530027269365,
+      "ordered_remaining_mean_p_up_change_pp": 2.5422877328237004,
+      "scores": {
+        "initial": {
+          "count": 91,
+          "up": 53,
+          "mean_p_up": 0.5198094565711477,
+          "brier": 0.24630136647287332,
+          "log": 0.6857363147379196,
+          "auc": 0.5357497517378351
+        },
+        "head_parameters_only": {
+          "count": 91,
+          "up": 53,
+          "mean_p_up": 0.5194418795156044,
+          "brier": 0.24629207776341444,
+          "log": 0.6857143342906155,
+          "auc": 0.5397219463753724
+        },
+        "factual_final": {
+          "count": 91,
+          "up": 53,
+          "mean_p_up": 0.5448647568438414,
+          "brier": 0.2437967698228332,
+          "log": 0.6806649256531903,
+          "auc": 0.5412115193644489
+        }
+      },
+      "all_rows_mean_raw_logit_changes": {
+        "actual": 0.10376098629421904,
+        "head_parameters": -0.003534726529604859,
+        "representation_residual": 0.1072957128238239
+      }
+    },
+    "future": {
+      "known_rows": 104,
+      "head_only_mean_p_up_change_pp": 0.22419302043340528,
+      "actual_mean_p_up_change_pp": 2.1930937839420794,
+      "ordered_remaining_mean_p_up_change_pp": 1.9689007635086742,
+      "scores": {
+        "initial": {
+          "count": 104,
+          "up": 49,
+          "mean_p_up": 0.5117681891067942,
+          "brier": 0.25172956075176844,
+          "log": 0.6966099605471919,
+          "auc": 0.46938775510204084
+        },
+        "head_parameters_only": {
+          "count": 104,
+          "up": 49,
+          "mean_p_up": 0.5140101193111283,
+          "brier": 0.25202699634901043,
+          "log": 0.6972076164142857,
+          "auc": 0.48608534322820035
+        },
+        "factual_final": {
+          "count": 104,
+          "up": 49,
+          "mean_p_up": 0.533699126946215,
+          "brier": 0.25456812987505983,
+          "log": 0.7023310202451054,
+          "auc": 0.47680890538033394
+        }
+      },
+      "all_rows_mean_raw_logit_changes": {
+        "actual": 0.08928780953283422,
+        "head_parameters": 0.009101352741396895,
+        "representation_residual": 0.08018645679143732
+      }
+    }
+  },
+  "prefix_task_balance": {
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_002/PREFIX_TASK_BALANCE_REVIEW.json",
+      "sha256": "2ba4453ab3a4600ecafcfa2cd1df83c5e29af62802d9fac152e27306c7ce61df"
+    },
+    "source": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_002/REVIEW_PREFIX_TASK_BALANCE.py",
+      "sha256": "e0cf81c70f850efa41315d2834979aa240e7ddec2a64f8a0c0e22e6dde98a779"
+    },
+    "tasks": {
+      "state": {
+        "M5": {
+          "known": 1378,
+          "up": 719,
+          "up_fraction": 0.5217706821480407,
+          "mean_observed_p_up": 0.5095471827365313,
+          "nonempty_batches": 250,
+          "mean_known_row_probability_minus_truth": -0.012223499411509292,
+          "mean_nonempty_batch_probability_minus_truth": -0.012912934087825236,
+          "batches_with_upward_side_offset_descent": 131,
+          "batches_with_downward_side_offset_descent": 119
+        },
+        "M15": {
+          "known": 1486,
+          "up": 760,
+          "up_fraction": 0.5114401076716016,
+          "mean_observed_p_up": 0.5976780960619255,
+          "nonempty_batches": 213,
+          "mean_known_row_probability_minus_truth": 0.0862379883903239,
+          "mean_nonempty_batch_probability_minus_truth": 0.05586185706595229,
+          "batches_with_upward_side_offset_descent": 90,
+          "batches_with_downward_side_offset_descent": 123
+        },
+        "H1": {
+          "known": 1501,
+          "up": 806,
+          "up_fraction": 0.5369753497668222,
+          "mean_observed_p_up": 0.6098827434647083,
+          "nonempty_batches": 166,
+          "mean_known_row_probability_minus_truth": 0.07290739369788611,
+          "mean_nonempty_batch_probability_minus_truth": 0.06691449865537209,
+          "batches_with_upward_side_offset_descent": 80,
+          "batches_with_downward_side_offset_descent": 86
+        },
+        "H4": {
+          "known": 1691,
+          "up": 1102,
+          "up_fraction": 0.651685393258427,
+          "mean_observed_p_up": 0.620310374744315,
+          "nonempty_batches": 177,
+          "mean_known_row_probability_minus_truth": -0.03137501851411192,
+          "mean_nonempty_batch_probability_minus_truth": -0.061953484051193386,
+          "batches_with_upward_side_offset_descent": 111,
+          "batches_with_downward_side_offset_descent": 66
+        },
+        "D1": {
+          "known": 1130,
+          "up": 778,
+          "up_fraction": 0.6884955752212389,
+          "mean_observed_p_up": 0.6343521618114807,
+          "nonempty_batches": 147,
+          "mean_known_row_probability_minus_truth": -0.05414341340975822,
+          "mean_nonempty_batch_probability_minus_truth": -0.051695736527124045,
+          "batches_with_upward_side_offset_descent": 95,
+          "batches_with_downward_side_offset_descent": 52
+        }
+      },
+      "future": {
+        "M5": {
+          "known": 1644,
+          "up": 845,
+          "up_fraction": 0.5139902676399026,
+          "mean_observed_p_up": 0.5087598444906833,
+          "nonempty_batches": 255,
+          "mean_known_row_probability_minus_truth": -0.005230423149219385,
+          "mean_nonempty_batch_probability_minus_truth": -0.010582869846277085,
+          "batches_with_upward_side_offset_descent": 122,
+          "batches_with_downward_side_offset_descent": 133
+        },
+        "M15": {
+          "known": 1440,
+          "up": 750,
+          "up_fraction": 0.5208333333333334,
+          "mean_observed_p_up": 0.5475875555918363,
+          "nonempty_batches": 241,
+          "mean_known_row_probability_minus_truth": 0.026754222258502935,
+          "mean_nonempty_batch_probability_minus_truth": 0.013909551843593278,
+          "batches_with_upward_side_offset_descent": 117,
+          "batches_with_downward_side_offset_descent": 124
+        },
+        "H1": {
+          "known": 1436,
+          "up": 775,
+          "up_fraction": 0.5396935933147632,
+          "mean_observed_p_up": 0.5506579584631577,
+          "nonempty_batches": 207,
+          "mean_known_row_probability_minus_truth": 0.010964365148394386,
+          "mean_nonempty_batch_probability_minus_truth": 0.02508435462642568,
+          "batches_with_upward_side_offset_descent": 103,
+          "batches_with_downward_side_offset_descent": 104
+        },
+        "H4": {
+          "known": 1408,
+          "up": 886,
+          "up_fraction": 0.6292613636363636,
+          "mean_observed_p_up": 0.5658531584831078,
+          "nonempty_batches": 166,
+          "mean_known_row_probability_minus_truth": -0.06340820515325585,
+          "mean_nonempty_batch_probability_minus_truth": -0.06785728654899845,
+          "batches_with_upward_side_offset_descent": 105,
+          "batches_with_downward_side_offset_descent": 61
+        },
+        "D1": {
+          "known": 1151,
+          "up": 901,
+          "up_fraction": 0.7827975673327541,
+          "mean_observed_p_up": 0.5548374616018781,
+          "nonempty_batches": 93,
+          "mean_known_row_probability_minus_truth": -0.22796010573087602,
+          "mean_nonempty_batch_probability_minus_truth": -0.18814938811320306,
+          "batches_with_upward_side_offset_descent": 70,
+          "batches_with_downward_side_offset_descent": 23
+        }
+      }
+    },
+    "limitations": [
+      "Actual pre-update predictions from256 different successive model states and first4096 chronological TRAIN rows, not one fixed model or a full dataset.",
+      "Unweighted known-row and nonempty-batch residuals only, not actual parameter gradients or total weighted loss. Negative residual would favor increasing a hypothetical constant side-logit offset.",
+      "Class marginals and scalar offset tendencies do not prove harmful cross-task transfer, an upstream cause or an appropriate loss change.",
+      "No additional training, later population, candidate choice or trading inference."
+    ]
+  },
+  "interpretation": "At the reproduced initial inputs, final head parameters alone explain little of the mean upward probability movement. The remaining change is associated with the rest of the model in this ordered diagnostic. It does not prove equality to unrecorded historical128D internals or identify a unique upstream encoder/loss cause.",
+  "historical_hidden_input_identity_proved": false,
+  "unique_historical_cause_proved": false,
+  "new_model_fit_authorized": false
 }
