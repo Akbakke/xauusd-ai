@@ -6,7 +6,7 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_QUERY_TRANSFER_MEASURED_CAUSE_UNRESOLVED.
+TA_DIRECTION_EDGE_CAUSE_RETAINED_TAIL_CHANGE_MEASURED_SOURCE_INPUT_GAP.
 Målet 11.11 er aktivt: mål årsaker til svak retningsverdi i indikatorer,
 sammensetting og læring. [Samlet status](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json).
 Korte runder er feilsøking, ikke kapasitetsdom. Full kvalifisert TRAIN-historikk
@@ -85,14 +85,46 @@ er gunstig i snitt, F/M5 ugunstig; begge er ugunstige i de 3 nyeksponerte gruppe
 ACTUAL_PROJECTION_DELTA_REVIEW f1da121c; uavhengig c7d83c9f kontrollerte 1104
 tallfelt/516 tellefelt, maksavvik 7,11e-15 og begge hele modellhasher.
 
+## Fullført gjenbruk av beholdte inputs
+
+CPU-beregningene FINITE_QUERY_REPLAY_REVIEW 39b1acd1 og FINITE_JOINT_REPLAY_REVIEW
+f355212c er komplette; kilde 10749744 uendret. Ingen fullmodell/backbone/gradient/
+optimizer/trening. Fire forhåndsvalgte query-/sluttlagkombinasjoner og åtte
+joint-/query-/sluttlagkombinasjoner bruker faktiske initial/final-vekter på fast
+beholdt input. Originale B16-former og S-query-fraksjoner er bevart.
+
+Eldre c171-cache er ikke bitlik matched002: headinput-avvik maks 1,84774e-5;
+query-replay M5-råavvik maks 1,78814e-6 S/1,16229e-6 F. Ingen toleranse ble innført
+for å skjule dette. Selv likt headinput ville ikke bevist historisk inputidentitet.
+
+Ved fast beholdt 128D-hidden gir bare final query-projeksjon råmiddelendring
++0,012374 S/+0,009247 F; query+sluttlag gir +0,011449/+0,022075.
+Ved fast beholdt 512D-source gir final joint-LayerNorm/linear + query + sluttlag
++0,042509/+0,045919, mot faktisk endring med alle parametere +0,103761/+0,089288.
+Det ordnede joint-leddet etter final query/sluttlag er +0,031060/+0,023843.
+Dette er betingede finite effekter, ikke historiske årsaksandeler. Differansen
+mot faktisk endring er ikke en ren upstream-rest. Brier er blandet; begge M5-tap
+blir dårligere i de 3 nyeksponerte gruppene i den hypotetiske all-tail-varianten.
+Ingen kandidat er valgt, og ingen generell frysing/fjerning er begrunnet.
+
+Uavhengige kontroller f35eb8ce og 70883132 bekrefter henholdsvis 290/543 tallfelt
+og 188/259 eksakte felt; største numeriske avvik 2,66e-15/1,78e-15. Begge bruker
+4 GiB/512 MiB og CPU 0–7. Første query-kontroll feilet etter regningen ved lesing
+av en manglende cpuset-kvitteringsfil; originalfeilen er bevart, minste rettelse
+til os.sched_getaffinity(0) bestod. Ingen modellkjøring inngikk i noen forsøk.
+Alle fullrapporter og kildebindinger er lenket fra samlet årsaksrapport.
+
 ## Neste konkrete avklaring
 
-Gjenbruk c171 TRAIN-fusjonscachens capture_entry_q_joint_hidden og de faktiske
-initial/final-checkpointene. Kontroller først rad-/query-samsvar og rekonstruksjon
-mot short002s initialpanel: den eldre fusjonscachen brukte en annen numerisk
-profil. Kvalifisert input kan deretter avgrense endelig projeksjonsendring ved
-fast initial hidden-input. Ved mismatch beholdes avviket og minste manglende
-capture spesifiseres. Ingen ny native fit eller modell-/lossendring er innrømmet.
+Forbered én ny passiv måling av de samme 16 B16 TRAIN-gruppene ved begge faktiske
+endepunkter: 512D entry_q_joint_source, 128D entry_q_joint_hidden og M5-headinput.
+Gjenbruk native modell/loader og den verifiserte profilen med 8 numeriske tråder,
+opprinnelige gradflagg og deaktivert MHA-fastpath. Krev alle 12 historiske felt
+og 16 tap bitlike per endepunkt, samt initialparitet mot matched002s 14 felt.
+Én modell, høyst 32 fullforwards, ingen optimizer/autograd/updates. Gjeldende
+kilde, eksakt ny plan og cap må kvalifiseres før launch; ingen plan er innrømmet nå.
+Da kan de fire kildeblokkene før joint skilles fra endringer i joint/query/sluttlag
+uten å bruke den eldre cachen som historisk fasit. Gamle planer forblir konsumert.
 Unik historisk årsak, familiers prediktive nytte, fullprefix-fit, senere
 generalisering og kapasitet ved tilstrekkelig trening er fortsatt uavklart.
-Ingen ny edge er påvist; ingen kontroll bruker TEST eller etablerer handelsøkonomi.
+Ingen ny edge er påvist; TEST og handelsøkonomi er ikke brukt.

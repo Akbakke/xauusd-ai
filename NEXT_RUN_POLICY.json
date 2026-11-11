@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-11T18:59:47.452108+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_QUERY_TRANSFER_MEASURED_CAUSE_UNRESOLVED",
+  "observed_utc": "2026-11-11T19:22:47.449865+00:00",
+  "status": "TA_DIRECTION_EDGE_CAUSE_RETAINED_TAIL_CHANGE_MEASURED_SOURCE_INPUT_GAP",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Reuse the retained c171 TRAIN fusion hidden inputs and the actual initial/final checkpoints to test finite query-projection change at fixed initial hidden input. First qualify row/query alignment and numerical reconstruction against the matched short002 initial panel; the older fusion capture used a different numerical profile. If that qualification fails, retain the mismatch and specify the smallest missing capture. No new native fit, feature removal, loss weight or model change is admitted by the local gradient evidence.",
+  "next_action": "Prepare the smallest new passive paired boundary observation: the same16B16 TRAIN groups at reconstructed c171 initial and actual short002 final states, recording the512D entry_q_joint_source and128D entry_q_joint_hidden plus original outputs and both M5head inputs. Require all12historical fields and16batch losses bitexact per endpoint, plus initial14field parity to matched002. Keep the verified8-thread, original trainability and disabled-MHA-fastpath profile; no optimizer/autograd/training. One model and at most32full forwards; qualify current source, exact new plan and cap before any launch. Only then separate changes in the four pre-joint source blocks from changes in joint/query/head weights. Consumed plans remain closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1434,7 +1434,7 @@
     "profitability_demonstrated": false,
     "required_before_more_extensive_training": true,
     "entry_learning_demonstrated": false,
-    "current_evidence_scope": "Earlier bounded M5 readout/amplitude correction has matched reused-development probability-score gains, with weak direction ranking. New bitexact initial query-component gradients and retained endpoint displacement localize an output-shift route; no finite historical cause, generalization or economic edge established.",
+    "current_evidence_scope": "Earlier bounded M5 probability-score correction retains weak ranking. Component gradients and actual finite tail changes now localize conditional upward movement; older input profile mismatch and missing paired pre-joint sources prevent historical attribution. No generalization or economic edge established.",
     "component_learning_measured": true,
     "component_learning_result": "NATIVE_M5_BOUNDED_READOUT_AMPLITUDE_CORRECTION_VERIFIED_EDGE_UNPROVED",
     "primary_entry_quality_qualified": false,
@@ -1698,7 +1698,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Completed and consumed the shared-query gradient observation and independent retained-vector/actual-endpoint arithmetic.",
+    "current_activity": "Completed independent retained query/head and joint/query/head finite arithmetic; no native model or training run.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1751,7 +1751,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Local derivatives and endpoint displacement do not yet identify the finite projection effect or the remaining upstream source of the common M5 shift.",
+    "current_blocker": "Older cached input is not bitlike to matched short-run internals and no final512Djoint-source capture exists. Finite historical source-block attribution requires the paired boundary observation.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9222,7 +9222,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Reuse the retained c171 TRAIN fusion hidden inputs and the actual initial/final checkpoints to test finite query-projection change at fixed initial hidden input. First qualify row/query alignment and numerical reconstruction against the matched short002 initial panel; the older fusion capture used a different numerical profile. If that qualification fails, retain the mismatch and specify the smallest missing capture. No new native fit, feature removal, loss weight or model change is admitted by the local gradient evidence.",
+    "next_action": "Prepare the smallest new passive paired boundary observation: the same16B16 TRAIN groups at reconstructed c171 initial and actual short002 final states, recording the512D entry_q_joint_source and128D entry_q_joint_hidden plus original outputs and both M5head inputs. Require all12historical fields and16batch losses bitexact per endpoint, plus initial14field parity to matched002. Keep the verified8-thread, original trainability and disabled-MHA-fastpath profile; no optimizer/autograd/training. One model and at most32full forwards; qualify current source, exact new plan and cap before any launch. Only then separate changes in the four pre-joint source blocks from changes in joint/query/head weights. Consumed plans remain closed.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22137,7 +22137,7 @@
     },
     "direction_edge_cause_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "d3524e59b22af278ed91eadfead5b5c33e9df289e24090634bee9ea22f09e982"
+      "sha256": "3e518b5dbe30aeb3b7906d7e323569dfc6f5838b2d779675384e9caff1df77a2"
     },
     "latest_c171_startup_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_C171_SHORT_LEARNING_STARTUP_REVIEW.json",
@@ -22162,6 +22162,24 @@
     "latest_c171_query_projection_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_QUERY_PROJECTION_GRADIENT_REVIEW.json",
       "sha256": "7ac7223a0b7eb0fe50a04246cc7ac93d66878c778eaf3af02f71fa3ab52e1f52"
+    },
+    "latest_c171_retained_finite_replay": {
+      "query_replay": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_QUERY_PROJECTION_GRADIENT_20261111_001/FINITE_QUERY_REPLAY_REVIEW.json",
+        "sha256": "39b1acd1a7b4515bea42c3f0e37b0b930d41a051ef3fd0bcf26598d593de024f"
+      },
+      "independent_query_replay": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_QUERY_PROJECTION_GRADIENT_20261111_001/INDEPENDENT_FINITE_QUERY_REPLAY_REVIEW.json",
+        "sha256": "f35eb8cecbd0d7177925574799c588a3c8eeb58efe3bd77b51ccf52ec13dda16"
+      },
+      "joint_replay": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_QUERY_PROJECTION_GRADIENT_20261111_001/FINITE_JOINT_REPLAY_REVIEW.json",
+        "sha256": "f355212c90ab4773b60a36557ace0cfe7c42ff05638d437143b1b6fa4cb98f00"
+      },
+      "independent_joint_replay": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_QUERY_PROJECTION_GRADIENT_20261111_001/INDEPENDENT_FINITE_JOINT_REPLAY_REVIEW.json",
+        "sha256": "7088313226da10b91fb8cd37de7e371746546e48d5986940dd3128aa60d7e66d"
+      }
     }
   },
   "gc_order_flow_research_20261006": {
@@ -24726,7 +24744,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-11T18:59:47.452108+00:00",
+  "updated_utc": "2026-11-11T19:22:47.449865+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -75500,24 +75518,24 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_QUERY_TRANSFER_MEASURED_FINITE_CAUSE_UNRESOLVED",
+    "status": "ACTIVE_RETAINED_TAIL_CHANGE_MEASURED_PAIRED_SOURCE_INPUT_MISSING",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
     "training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "d3524e59b22af278ed91eadfead5b5c33e9df289e24090634bee9ea22f09e982"
+      "sha256": "3e518b5dbe30aeb3b7906d7e323569dfc6f5838b2d779675384e9caff1df77a2"
     },
     "integrator": "root",
     "model_or_data_run_admitted": false,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Reuse the retained c171 TRAIN fusion hidden inputs and the actual initial/final checkpoints to test finite query-projection change at fixed initial hidden input. First qualify row/query alignment and numerical reconstruction against the matched short002 initial panel; the older fusion capture used a different numerical profile. If that qualification fails, retain the mismatch and specify the smallest missing capture. No new native fit, feature removal, loss weight or model change is admitted by the local gradient evidence.",
-    "active_stage": "market_state_ta_c171_query_projection_gradient_20261111_001",
+    "next_action": "Prepare the smallest new passive paired boundary observation: the same16B16 TRAIN groups at reconstructed c171 initial and actual short002 final states, recording the512D entry_q_joint_source and128D entry_q_joint_hidden plus original outputs and both M5head inputs. Require all12historical fields and16batch losses bitexact per endpoint, plus initial14field parity to matched002. Keep the verified8-thread, original trainability and disabled-MHA-fastpath profile; no optimizer/autograd/training. One model and at most32full forwards; qualify current source, exact new plan and cap before any launch. Only then separate changes in the four pre-joint source blocks from changes in joint/query/head weights. Consumed plans remain closed.",
+    "active_stage": "market_state_ta_c171_retained_finite_replay_20261111_001",
     "previous_goal_turn_classification": "PROGRESS: retained MTFintervention andinputsupport review ruledout an unsupported harmful-MTF or generalnormalization-collapse change; nextactualboundarymeasurement identified.",
-    "last_goal_turn_classification": "PROGRESS: component gradient path and TF-negativecontrol independently reconciled; actual endpoint displacement points upward locally. Mixed M5-loss effects reject blanket D1-harm inference. Finite projection versus upstream cause remains unresolved; no new edge or broad training."
+    "last_goal_turn_classification": "PROGRESS: independent finite query/head and joint/query/head replay completed on retained TRAIN inputs. Concrete numerical-profile mismatch measured and retained. Actual tail weight changes partly reproduce common output movement conditional on stored input, but paired initial/final512Dsource is missing. Next minimum passive capture is specified; no new fit or model change."
   },
   "market_state_ta_fusion_observation_20261111_001": {
     "status": "COMPLETE",
@@ -76216,7 +76234,7 @@
     "unresolved_campaign_marker_preserved": true,
     "standard_campaign_receipt_available": false
   },
-  "active_stage": "market_state_ta_c171_query_projection_gradient_20261111_001",
+  "active_stage": "market_state_ta_c171_retained_finite_replay_20261111_001",
   "market_state_ta_m5_c171_short_learning_20261111_002": {
     "decision": "CLOSED",
     "status": "COMPLETE_CONSUMED",
@@ -76746,5 +76764,46 @@
       "sha256": "c7d83c9ffff0497c3575f7fefffd83bbc9e2138d8fbda53d064d28337afba54e"
     },
     "next_action": "Reuse the retained c171 TRAIN fusion hidden inputs and the actual initial/final checkpoints to test finite query-projection change at fixed initial hidden input. First qualify row/query alignment and numerical reconstruction against the matched short002 initial panel; the older fusion capture used a different numerical profile. If that qualification fails, retain the mismatch and specify the smallest missing capture. No new native fit, feature removal, loss weight or model change is admitted by the local gradient evidence."
+  },
+  "market_state_ta_c171_retained_finite_replay_20261111_001": {
+    "status": "COMPLETE_RETAINED_ARITHMETIC",
+    "reports": {
+      "query_replay": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_QUERY_PROJECTION_GRADIENT_20261111_001/FINITE_QUERY_REPLAY_REVIEW.json",
+        "sha256": "39b1acd1a7b4515bea42c3f0e37b0b930d41a051ef3fd0bcf26598d593de024f"
+      },
+      "independent_query_replay": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_QUERY_PROJECTION_GRADIENT_20261111_001/INDEPENDENT_FINITE_QUERY_REPLAY_REVIEW.json",
+        "sha256": "f35eb8cecbd0d7177925574799c588a3c8eeb58efe3bd77b51ccf52ec13dda16"
+      },
+      "joint_replay": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_QUERY_PROJECTION_GRADIENT_20261111_001/FINITE_JOINT_REPLAY_REVIEW.json",
+        "sha256": "f355212c90ab4773b60a36557ace0cfe7c42ff05638d437143b1b6fa4cb98f00"
+      },
+      "independent_joint_replay": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_QUERY_PROJECTION_GRADIENT_20261111_001/INDEPENDENT_FINITE_JOINT_REPLAY_REVIEW.json",
+        "sha256": "7088313226da10b91fb8cd37de7e371746546e48d5986940dd3128aa60d7e66d"
+      }
+    },
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
+      "sha256": "3e518b5dbe30aeb3b7906d7e323569dfc6f5838b2d779675384e9caff1df77a2"
+    },
+    "full_model_constructions": 0,
+    "native_model_forwards": 0,
+    "backbone_forwards": 0,
+    "optimizer_updates": 0,
+    "autograd": 0,
+    "checkpoint_writes": 0,
+    "candidate_writes": 0,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "model_change_authorized": false,
+    "test_data_used": false,
+    "historical_hidden_identity_proven": false,
+    "exact_initial_reconstruction": false,
+    "retained_output_arithmetic_authorized": true,
+    "retained_output_fit_authorized": false,
+    "next_action": "Prepare the smallest new passive paired boundary observation: the same16B16 TRAIN groups at reconstructed c171 initial and actual short002 final states, recording the512D entry_q_joint_source and128D entry_q_joint_hidden plus original outputs and both M5head inputs. Require all12historical fields and16batch losses bitexact per endpoint, plus initial14field parity to matched002. Keep the verified8-thread, original trainability and disabled-MHA-fastpath profile; no optimizer/autograd/training. One model and at most32full forwards; qualify current source, exact new plan and cap before any launch. Only then separate changes in the four pre-joint source blocks from changes in joint/query/head weights. Consumed plans remain closed."
   }
 }
