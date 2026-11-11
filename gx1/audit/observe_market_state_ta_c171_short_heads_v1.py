@@ -1,10 +1,11 @@
-"""One read-only c171 initial/final evaluation of its exact 4096 used TRAIN rows.
+"""One read-only c171 initial/final train-mode observation with bound RNG streams.
 
 No numerical model, feature transform, loss, fit or checkpoint writer lives here.
 A retained native/fastpath cache is not assumed to equal these short-mode inputs.
 """
 from __future__ import annotations
 
+import copy
 import io
 import os
 from pathlib import Path
@@ -17,14 +18,18 @@ from gx1.contracts import local_random_access_campaign_v2 as campaign
 from gx1.contracts import market_state_ta_m5_short_learning_v1 as short
 
 REPO = cache.REPO
-STAGE = 'market_state_ta_c171_full_used_prefix_20261111_001'
+STAGE = 'market_state_ta_c171_matched_train_mode_20261111_001'
 ROOT = Path('/home/andre2/GX1_RUNS') / STAGE.upper()
-SCHEMA = 'gx1_ta_c171_full_used_prefix_plan_v1'
+SCHEMA = 'gx1_ta_c171_matched_train_mode_plan_v1'
 WORKER = REPO / 'gx1/audit/observe_market_state_ta_c171_short_heads_v1.py'
 SHORT_ROOT = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_002')
 FINAL_MODEL_SHA256 = '5f54bbe47df0f84c60e475d0e9fcf83ad70b8c569d6ebea6ac802aebda655c82'
+INITIAL_RNG_SHA256 = '67daad3d6238c809023f066b4599c7634db931c73d9229990a3f76a1845289ae'
+FINAL_RNG_SHA256 = 'b06f3644120220289779083e7591cd3b066fa048c0b55d389c834855c0986a60'
 INPUTS = {
     **cache.FUSION_REFS,
+    'short_initial_checkpoint': {'path': str(SHORT_ROOT/'RUNTIME/private-research/INITIAL_C171_STATE.pt'), 'sha256': '60f13b07832a2da6a236426ed2d88858eb4f5cb2d55668acea06127a8cccee6b'},
+    'zero_update_mode_review': {'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001/TRACE_ZERO_UPDATE_MODE_REVIEW.json', 'sha256': '11734549fab2b03d44526a1b8b63f44efa1c347b7a8c62b644175a625afb2bca'},
     'short_recipe': {'path': str(SHORT_ROOT/'RECIPE.json'), 'sha256': '7e66e231594358e72ad5b6efc8d88e62053bdf24dd8cf4131d3c65d571357b20'},
     'short_result': {'path': str(SHORT_ROOT/'RESULT.json'), 'sha256': '1b25f095c3f610fc9c42325840f6f683cf3e9a50006fcd6249250e07e753724a'},
     'short_initial_measurement': {'path': str(SHORT_ROOT/'INITIAL_TRAIN.json'), 'sha256': '5b20a6fbe2885b5f9ad1998a66852f6773300003c290016e2b40bf2eaf18c099'},
@@ -36,16 +41,17 @@ INPUTS = {
 }
 BOUNDS = dict(fit_rows=29574, batch_size=16, used_prefix_rows=4096,
     panel_batch_indices=list(short.PANEL_BATCH_INDICES), evaluation_batch_indices=list(range(256)),
-    control_batch_indices=[0,123,246], sampled_rows=8192, unique_rows=4096,
-    phases=['INITIAL_TRAIN','FINAL_TRAIN'], max_backbone_encodings=512,
-    max_model_constructions=1, max_checkpoint_loads=2, head_tensor_imports=4,
-    max_checkpoint_weight_transitions=1, max_autograd_grad_calls=0, max_backwards=0,
+    control_batch_indices=[0], sampled_rows=8192, unique_rows=4096,
+    phases=['INITIAL_TRAIN_MODE','FINAL_TRAIN_MODE'], max_backbone_encodings=512,
+    max_model_constructions=1, max_checkpoint_loads=2, head_tensor_imports=0,
+    max_checkpoint_weight_transitions=2, max_rng_restores=2, max_grad_enabled_forwards=512, max_autograd_grad_calls=0, max_backwards=0,
     max_optimizer_constructions=0, max_optimizer_updates=0, max_checkpoint_writes=0,
     max_candidate_writes=0, max_cache_bytes=2*1024**2, max_published_json_bytes=1024**2,
     wall_seconds=900, device='cuda', candidate_model_state_sha256=short.MODEL_SHA256,
     final_model_state_sha256=FINAL_MODEL_SHA256,
-    numerical_mode='eval_no_grad_deterministic_fp32_training_mha_fastpath_false',
-    prefix_evaluation_authorized=True,
+    numerical_mode='original_train_enable_grad_deterministic_fp32_mha_fastpath_false_no_backward',
+    initial_rng_state_sha256=INITIAL_RNG_SHA256, terminal_rng_state_sha256=FINAL_RNG_SHA256,
+    original_dropout=0.05, matched_train_mode_observation_authorized=True,
     numerical_threads=8, interop_policy='process_default_unchanged_like_short002',
     thread_environment={name:'8' for name in ('OMP_NUM_THREADS','MKL_NUM_THREADS','OPENBLAS_NUM_THREADS',
         'NUMEXPR_NUM_THREADS','VECLIB_MAXIMUM_THREADS','BLIS_NUM_THREADS')},
@@ -94,6 +100,7 @@ def _qualify_short(transient, result, measurement, original):
     _need(result['schema_version']==short.RESULT_SCHEMA and result['outcome']=='COMPLETE'
         and result['recipe']==INPUTS['short_recipe'] and result['source_unchanged'] is True
         and result['test_data_used'] is False and result['initial_restore_exact'] is True
+        and result['initial_state']==INPUTS['short_initial_checkpoint']
         and result['initial_model_state_sha256']==short.MODEL_SHA256
         and result['optimizer_updates']==256 and result['parent_cursor']==4096
         and result['skipped_batches']==0 and result['all_panels_complete'] is True
@@ -156,6 +163,14 @@ def _inspect(plan_path, plan_sha, out_dir, *, execute):
     _qualify_short(transient,result,measurement,original)
     final_measurement=cache._read(INPUTS['short_final_measurement'])
     _qualify_final(transient,result,final_measurement)
+    mode=cache._read(INPUTS['zero_update_mode_review'])
+    _need(mode['status']=='COMPLETE_RETAINED_ZERO_UPDATE_MODE_COMPARISON'
+        and mode['short_result']==INPUTS['short_result']
+        and mode['zero_update']['updates']==0 and mode['zero_update']['loss_bitexact'] is False
+        and mode['checkpoint_metadata']['INITIAL']['checkpoint']==INPUTS['short_initial_checkpoint']
+        and mode['checkpoint_metadata']['FINAL']['checkpoint']==INPUTS['short_final_checkpoint']
+        and mode['checkpoint_metadata']['INITIAL']['rng_sha256']==INITIAL_RNG_SHA256
+        and mode['checkpoint_metadata']['FINAL']['rng_sha256']==FINAL_RNG_SHA256, 'MODE_GAP_BINDING')
     _need(q['view']['contract_sha256']==transient['expected_view_sha256']
         and q['recipe']['numerical_recipe']==transient['numerical_recipe']
         and transient['numerical_recipe']['precision_policy']=='deterministic_fp32', 'VIEW_NUMERICS')
@@ -169,7 +184,7 @@ def _inspect(plan_path, plan_sha, out_dir, *, execute):
         expected = dict(status='ADMITTED',plan=ref,max_invocations=1,remaining_invocations=1,
             claimed_invocations=0,completed_invocations=0,relaunch_allowed=False,execution_authorized=True,
             data_reads_authorized=True,checkpoint_reads_authorized=True,backbone_encodings_authorized=512,
-            head_tensor_imports_authorized=4,candidate_weights_writes_authorized=0,
+            head_tensor_imports_authorized=0,candidate_weights_writes_authorized=0,
             backward_calls_authorized=0,optimizer_steps_authorized=0,training_authorized=False)
         _need(all(type(gate.get(k)) is type(v) and gate[k]==v for k,v in {**BOUNDS,**expected}.items()), 'ADMISSION')
         _need(cache._git('branch','--show-current')=='work/gx1-current','BRANCH')
@@ -278,6 +293,12 @@ def _short_parameter_partition(model, state):
     return expected
 
 
+def _require_phase_signature(before, after):
+    _need(set(before)==set(after) and 'rng' in before
+        and before['rng']==INITIAL_RNG_SHA256 and after['rng']==FINAL_RNG_SHA256
+        and all(after[k]==before[k] for k in before if k!='rng'), 'PHASE_STATE_AND_RNG')
+
+
 def _runtime_cap():
     from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_producer_execution, require_capped_lock_ancestry
     cap=require_guarded_cuda_producer_execution();cap['lock']=require_capped_lock_ancestry()
@@ -295,7 +316,6 @@ def run(plan_path, plan_sha, out_dir, device='cuda'):
     import numpy as np
     import torch
     from gx1.audit import qualify_market_state_mature_prefix_normalization_v1 as base
-    from gx1.audit.run_market_state_ta_m5_full_reverse_order_v1 import build_reverse_order
     from gx1.contracts import entry_native_direction_feature_view_v1 as views
     from gx1.contracts import entry_native_direction_research_state_v1 as old
     from gx1.contracts import market_state_time_query_fold1_fit_state_v1 as state
@@ -319,11 +339,12 @@ def run(plan_path, plan_sha, out_dir, device='cuda'):
         optimizer_constructions=0,optimizer_updates=0,checkpoint_writes=0,candidate_writes=0,
         resume_state_load_calls=0,resume_state_load_returns=0,published_npz_bytes=0,
         sampled_rows=0,matched_batches=0,trace_matched_batches=0,extra_target_gathers=0,
-        checkpoint_weight_transitions=0,loss_component_owner_calls=0)
+        checkpoint_weight_transitions=0,loss_component_owner_calls=0,rng_restores=0,
+        grad_enabled_forwards=0,paired_rng_batches=0)
     provider=prepared=model=None;parts=[];artifacts={};records=[];candidate=None;passivity={};runtime={};trainability={}
     phase_states={};transition={};active_phase=None
     previous_alarm=signal.getsignal(signal.SIGALRM)
-    def timeout(*unused):raise TimeoutError('Full used prefix 900-second bound')
+    def timeout(*unused):raise TimeoutError('Matched train-mode 900-second bound')
     def bookend():
         campaign.require_clean_source(dict(source_repo=str(REPO),source_commit=q['head']))
         for ref in q['bound_refs']:campaign.require_binding(ref,label='short heads bookend',verify_file=True)
@@ -334,20 +355,17 @@ def run(plan_path, plan_sha, out_dir, device='cuda'):
         trainer._set_deterministic(numerical['seed'],cuda,numerical['precision_policy'])
         runtime=_runtime_profile(torch);_require_runtime_profile(runtime)
         _need(_BATCH_EQUAL_LENGTH_MTF_EVAL.get() is False,'RUNTIME')
-        baselines={}
-        for phase,key in [('INITIAL_TRAIN','short_initial_capture'),('FINAL_TRAIN','short_final_capture')]:
-            with np.load(INPUTS[key]['path'],allow_pickle=False) as z:
-                expected_keys=BASE_KEYS
-                _need(set(z.files)==set(expected_keys),'PANEL_FIELDS')
-                baselines[phase]={k:z[k].copy() for k in expected_keys}
-            counts['archive_decodes']+=1
-            _require_arrays(baselines[phase],256,np=np)
-        _need(all(cache._fusion_exact_arrays({k:baselines['INITIAL_TRAIN'][k]},
-            {k:baselines['FINAL_TRAIN'][k]}) for k in BASE_KEYS if not k.endswith('_raw')), 'PAIRED_PANEL_AXES')
         with np.load(INPUTS['short_trace']['path'],allow_pickle=False) as z:
-            _need(set(TRACE_KEYS+TRACE_COUNTS)<=set(z.files),'TRACE_FIXED_FIELDS')
-            trace={k:z[k].copy() for k in TRACE_KEYS+TRACE_COUNTS}
-        counts['archive_decodes']+=1;_require_trace(trace,np=np)
+            trace_keys=BASE_KEYS+TRACE_COUNTS+('loss',)
+            _need(set(trace_keys)<=set(z.files),'TRACE_FIELDS')
+            trace={k:z[k].copy() for k in trace_keys}
+        counts['archive_decodes']+=1
+        _require_trace({k:trace[k] for k in TRACE_KEYS+TRACE_COUNTS},np=np)
+        _need(trace['loss'].shape==(256,) and trace['loss'].dtype==np.float64
+            and bool(np.isfinite(trace['loss']).all()),'TRACE_LOSSES')
+        for key in ('state_raw','future_raw'):
+            _need(trace[key].shape==(256,16,5,2) and trace[key].dtype==np.float32
+                and bool(np.isfinite(trace[key]).all()),'TRACE_RAW')
 
         provider,provider_plan,prepared,rows,issues=runner._prepared_fold1(receipts,view,np=np)
         require_m5_equal_observation_axes(rows,issues)
@@ -358,18 +376,26 @@ def run(plan_path, plan_sha, out_dir, device='cuda'):
         model=NativeFutureDualModel(backbone)
         fit.require_checkpoint_view(model.state_model.feature_view_identity,recipe=q['origin']['original_recipe'],verify_files=True,ta_sf=True)
         counts['checkpoint_loads']+=1
-        saved=common._load_state(INPUTS['reversed_evidence'],torch=torch,maximum=recipe['max_checkpoint_bytes'],counters=counts)
-        order=torch.from_numpy(build_reverse_order(rows,recipe['batch_indices'])[0].copy())
-        source_identity=cache._load_reversed_weights(model,saved,q,order,torch=torch);del saved,order
-        with np.load(INPUTS['folded_coefficients']['path'],allow_pickle=False) as z:
-            expected={prefix+suffix for prefix in ('state_model.m5_side_head','future_m5_side_head') for suffix in ('.weight','.bias')}
-            _need(set(z.files)==expected,'COEFFICIENT_KEYS');coefficients={name:torch.from_numpy(z[name].copy()) for name in z.files}
-        counts['archive_decodes']+=1
-        import_proof=state.import_equal_weight_m5_side_heads(model,coefficients,expected_model_state_sha256=cache.REVERSED_MODEL,
-            coefficient_artifact=INPUTS['folded_coefficients'],coefficient_recipe=INPUTS['candidate_plan'])
-        counts['head_tensor_imports']=4;del coefficients
+        saved=common._load_state(INPUTS['short_initial_checkpoint'],torch=torch,
+            maximum=recipe['max_checkpoint_bytes'],counters=counts)
+        _need(saved['model_state_sha256']==short.MODEL_SHA256
+            and model_sha(saved['model_state'])==short.MODEL_SHA256
+            and (saved['cursor'],saved['optimizer_updates'],saved['skipped_batches'])==(0,0,0)
+            and old._tree_sha(saved['rng_state'])==saved['rng_state_sha256']==INITIAL_RNG_SHA256,
+            'INITIAL_CHECKPOINT_IDENTITY')
+        initial_rng=copy.deepcopy(saved['rng_state']);original_modes=copy.deepcopy(saved['module_training'])
+        counts['checkpoint_weight_transitions']+=1
+        model.load_state_dict(saved['model_state'],strict=True);del saved
         model.to(cuda)
+        _need(set(original_modes)==set(dict(model.named_modules()))
+            and all(type(v) is bool for v in original_modes.values()),'ORIGINAL_MODES')
+        for name,module in model.named_modules():module.training=original_modes[name]
         trainability=_short_parameter_partition(model,state)
+        old._rng(initial_rng,device=cuda,seed=numerical['seed'])
+        source_identity=dict(source=INPUTS['short_initial_checkpoint'],model_state_sha256=short.MODEL_SHA256,
+            optimizer_or_rng_restored_by_checkpoint_loader=False,checkpoint_weights_only=True)
+        import_proof=dict(actual_initial_weights_only=True,head_tensor_imports=0,
+            optimizer_state_not_imported=True,original_module_modes=True)
         def signature():
             return dict(model=model_sha(model.state_dict()),buffers=old._tree_sha(dict(model.named_buffers())),
                 rng=old._tree_sha(trainer._attended_session_rng_state(device=cuda)),
@@ -383,19 +409,22 @@ def run(plan_path, plan_sha, out_dir, device='cuda'):
                     for n,m in model.named_modules()},mha_fastpath=torch.backends.mha.get_fastpath_enabled(),
                 numeric_runtime=_runtime_profile(torch))
         candidate=signature()
-        _need(candidate['model']==short.MODEL_SHA256 and not any(candidate['modes'].values())
+        _need(candidate['model']==short.MODEL_SHA256 and candidate['modes']==original_modes
+            and model.training and model.state_model.training and model.backbone.training
             and candidate['trainability']==trainability and all(p.grad is None for p in model.parameters()),'C171_INITIAL_PROFILE')
         for phase_number,phase in enumerate(BOUNDS['phases']):
             active_phase=phase
             if phase_number:
                 before=signature()
-                _need(before==candidate, 'INITIAL_BOOKEND_BEFORE_TRANSITION')
+                _require_phase_signature(candidate,before)
                 counts['checkpoint_loads']+=1
                 saved=common._load_state(INPUTS['short_final_checkpoint'],torch=torch,
                     maximum=recipe['max_checkpoint_bytes'],counters=counts)
                 _need(saved['model_state_sha256']==FINAL_MODEL_SHA256
                     and model_sha(saved['model_state'])==FINAL_MODEL_SHA256
-                    and (saved['cursor'],saved['optimizer_updates'],saved['skipped_batches'])==(4096,256,0),
+                    and (saved['cursor'],saved['optimizer_updates'],saved['skipped_batches'])==(4096,256,0)
+                    and saved['module_training']==original_modes
+                    and old._tree_sha(saved['rng_state'])==saved['rng_state_sha256']==FINAL_RNG_SHA256,
                     'FINAL_CHECKPOINT_IDENTITY')
                 counts['checkpoint_weight_transitions']+=1
                 model.load_state_dict(saved['model_state'],strict=True);del saved
@@ -405,26 +434,33 @@ def run(plan_path, plan_sha, out_dir, device='cuda'):
                     'EXPLICIT_FINAL_WEIGHT_TRANSITION')
                 transition=dict(source=INPUTS['short_final_checkpoint'],from_model=short.MODEL_SHA256,
                     to_model=candidate['model'],nonnumerical_signature_unchanged=True,
-                    optimizer_or_rng_restored=False,checkpoint_weights_only=True)
-            phase_states[phase]=dict(model=candidate['model'],buffers=candidate['buffers'])
-            baseline=baselines[phase]
-            measurement=q['initial_measurement' if phase_number==0 else 'final_measurement']['measurement']
+                    optimizer_or_rng_restored_by_checkpoint_loader=False,checkpoint_weights_only=True)
+            before_reset=signature()
+            _need(counts['rng_restores']<BOUNDS['max_rng_restores'],'RNG_RESTORE_BOUND')
+            counts['rng_restores']+=1
+            trainer._restore_attended_session_rng_state(initial_rng,device=cuda)
+            candidate=signature()
+            _need(candidate['rng']==INITIAL_RNG_SHA256
+                and all(candidate[k]==before_reset[k] for k in candidate if k!='rng'),'EXPLICIT_RNG_RESET')
+            phase_states[phase]=dict(model=candidate['model'],buffers=candidate['buffers'],initial_rng=candidate['rng'])
             for index in BOUNDS['evaluation_batch_indices']:
                 left=index*16
                 raw,parents,clocks=runner._feature_batch(prepared,view,receipts,rows,issues,left,left+16,np=np)
                 _need(np.array_equal(parents,trace['parents'][index])
                     and np.array_equal(clocks,trace['issues'][index]),'PREFIX_ROWS')
                 features={k:torch.from_numpy(v).to(cuda) for k,v in raw.items()}
-                with torch.no_grad(),trainer._training_mha_fastpath_context(model.backbone),trainer._training_autocast_context(),trainer._training_model_finite_check_context():
-                    _need(not torch.is_grad_enabled() and torch.backends.mha.get_fastpath_enabled() is False
+                rng_before=old._tree_sha(trainer._attended_session_rng_state(device=cuda))
+                with torch.enable_grad(),trainer._training_mha_fastpath_context(model.backbone),trainer._training_autocast_context(),trainer._training_model_finite_check_context():
+                    _need(torch.is_grad_enabled() and model.training and torch.backends.mha.get_fastpath_enabled() is False
                         and _BATCH_EQUAL_LENGTH_MTF_EVAL.get() is False
                         and counts['backbone_encodings']<BOUNDS['max_backbone_encodings'],'FORWARD_PROFILE')
-                    counts['backbone_encodings']+=1
+                    counts['backbone_encodings']+=1;counts['grad_enabled_forwards']+=1
                     report=evaluate_fit_batch(model,features,bound,future,parents,clocks,fold_id=1,pass_index=0,
                         seed=numerical['seed'],future_weight=1.,m5_equal_observation=True,fit_batch_start=left)
                     counts['forward_returns']+=1
                 _need(report['skip_update'] is False and report['model_contract_sha256']==short_recipe['expected_model_contract_sha256']
                     and report['loss_contract_sha256']==short_recipe['expected_loss_contract_sha256']
+                    and report['loss'].requires_grad and report['loss'].grad_fn is not None
                     and bool(torch.isfinite(report['loss'])),'REPORT_CONTRACT')
                 truths=dict(state=bound.gather_fit_sampled(parents,clocks,fold_id=1,pass_index=0,seed=numerical['seed']),
                     future=future.gather(parents,clocks,fold_id=1,partition='fit'))
@@ -438,34 +474,44 @@ def run(plan_path, plan_sha, out_dir, device='cuda'):
                 _require_arrays(piece,16,np=np,prefix=True,phase=phase_number)
                 parts.append(piece);counts['sampled_rows']+=16
                 loss=float(report['loss'].detach())
+                rng_after=old._tree_sha(trainer._attended_session_rng_state(device=cuda))
                 records.append(dict(phase=phase,batch_index=index,rows=16,loss=loss,trace_parity=False,
-                    control_parity=None))
+                    control_parity=None,rng_before=rng_before,rng_after=rng_after))
                 _require_trace_batch(piece,trace,index,np=np)
                 counts['trace_matched_batches']+=1;records[-1]['trace_parity']=True
                 with torch.no_grad():components=_short_loss_components(report,truths,torch=torch)
                 counts['loss_component_owner_calls']+=1;records[-1]['loss_components']=components
-                if index in BOUNDS['control_batch_indices']:
-                    group=BOUNDS['panel_batch_indices'].index(index)
-                    expected={k:v[group*16:(group+1)*16] for k,v in baseline.items()}
-                    _require_parity({k:piece[k] for k in BASE_KEYS},expected,loss,
-                        measurement['canonical_batch_losses'][group],np=np)
+                if phase_number==0 and index==0:
+                    expected={k:trace[k][0] for k in BASE_KEYS}
+                    _require_parity({k:piece[k] for k in BASE_KEYS},expected,loss,float(trace['loss'][0]),np=np)
                     records[-1]['control_parity']=True;counts['matched_batches']+=1
+                if phase_number==1:
+                    previous=records[index]
+                    _need(previous['phase']==BOUNDS['phases'][0] and previous['batch_index']==index
+                        and (previous['rng_before'],previous['rng_after'])==(rng_before,rng_after),'PAIRED_RNG_STREAM')
+                    counts['paired_rng_batches']+=1
                 _need(all(p.grad is None for p in model.parameters()),'NO_GRADIENTS')
                 del report,features,raw
-            passivity[phase+'_complete_signature_unchanged']=signature()==candidate
-            passivity[phase+'_control_arrays_and_losses_bitexact']=all(v['control_parity'] is True for v in records
-                if v['phase']==phase and v['batch_index'] in BOUNDS['control_batch_indices'])
+            terminal_signature=signature()
+            _require_phase_signature(candidate,terminal_signature)
+            phase_states[phase]['terminal_rng']=terminal_signature['rng']
+            passivity[phase+'_nonrng_signature_unchanged']=all(terminal_signature[k]==candidate[k]
+                for k in candidate if k!='rng')
+            passivity[phase+'_rng_matches_original_terminal']=terminal_signature['rng']==FINAL_RNG_SHA256
             passivity[phase+'_all_used_rows_match_trace_fixed_fields']=all(v['trace_parity'] for v in records if v['phase']==phase)
             _need(all(passivity.values()),'PHASE_PASSIVITY')
+        passivity['initial_zero_update_arrays_and_loss_bitexact']=records[0]['control_parity'] is True
+        passivity['all256paired_batch_rng_boundaries_bitexact']=counts['paired_rng_batches']==256
         passivity['no_parameter_gradients']=all(p.grad is None for p in model.parameters())
         passivity['explicit_transition_preserved_nonnumerical_state']=transition['nonnumerical_signature_unchanged']
         _need(all(passivity.values()),'PASSIVITY')
         exact=dict(model_constructions=1,checkpoint_loads=2,backbone_encodings=512,forward_returns=512,
-            head_tensor_imports=4,archive_decodes=4,resume_state_load_calls=2,resume_state_load_returns=2,
-            sampled_rows=8192,matched_batches=6,trace_matched_batches=512,extra_target_gathers=1024,
-            checkpoint_weight_transitions=1,loss_component_owner_calls=512,autograd_grad_calls=0,backwards=0)
+            head_tensor_imports=0,archive_decodes=1,resume_state_load_calls=2,resume_state_load_returns=2,
+            sampled_rows=8192,matched_batches=1,trace_matched_batches=512,extra_target_gathers=1024,
+            checkpoint_weight_transitions=2,loss_component_owner_calls=512,autograd_grad_calls=0,backwards=0,
+            rng_restores=2,grad_enabled_forwards=512,paired_rng_batches=256)
         _need(all(counts[k]==v for k,v in exact.items()),'COUNTS')
-        artifacts['paired_used_prefix']=_save(parts,counts,partial=False,np=np)
+        artifacts['paired_train_mode_prefix']=_save(parts,counts,partial=False,np=np)
         release=prepared;prepared=None;base._release_pages(provider,release);provider.validate_metadata(provider_plan);bookend()
         return cache._publish_fusion_outcome(q['plan_ref'],dict(claim=claim,counts=counts,artifacts=artifacts,
             source_commit=q['head'],source_identity=source_identity,import_proof=import_proof,
@@ -475,13 +521,14 @@ def run(plan_path, plan_sha, out_dir, device='cuda'):
             passivity=passivity,numeric_runtime=runtime,
             parameter_partition=dict(profile=BOUNDS['parameter_partition'],active_tensors=sum(trainability.values()),
                 inactive_tensors=len(trainability)-sum(trainability.values())),
-            source_unchanged=True,evaluation_state_unchanged=True,
+            source_unchanged=True,nonnumerical_state_unchanged_except_declared_rng=True,
             original_initial_measurement=INPUTS['short_initial_measurement'],
             original_final_measurement=INPUTS['short_final_measurement'],elapsed_seconds=time.monotonic()-started,
-            limitations=['Exact4096dependent TRAIN rows actually updated by short002, at both retained endpoints; no heldout/edge claim.',
-                'TRACE fixes axes/queries/masks/counts only; its changing pre-update logits are not a fixed baseline.',
-                'Explicit checkpoint-weight transition is read-only research; no optimizer/RNG restore, fitting or candidate write.',
-                'The three overlapping original panel groups match their saved arrays and losses; other prefix outputs are newly measured.']),
+            limitations=['Exact4096dependent TRAINrows at two fixed weights with originaltrainmode and one paired RNGrealization; no fitting or edge claim.',
+                'INITIALbatch0 matches actualTRACE before any update. Both phases share all256batch RNGboundaries and end at originalFINAL RNG.',
+                'Originalperbatch RNGstates/masks were not retained. Matching endpoints and source paths do not independently prove all historical masks.',
+                'Originaldropout remains0.05; enable_grad constructs discarded graphs, but no backward, parameter gradients or optimizer exists.',
+                'This is not an expectation over dropout masks or a replay of the historical changing-weight path.']),
             complete=True,root=ROOT,json_bytes_bound=BOUNDS['max_published_json_bytes'])
     except BaseException as exc:
         counts['backwards']=counts['autograd_grad_calls']

@@ -6,12 +6,13 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_FULL_PREFIX_M5_GAIN_TEMPORAL_AND_TASK_TRADEOFFS_MEASURED.
+TA_DIRECTION_EDGE_CAUSE_MATCHED_TRAIN_MODE_OBSERVATION_ADMITTED.
 Målet 11.11 er aktivt: avklar målte årsaker til svak retningsverdi i indikatorer,
 sammensetting og læring. [Samlet status](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json).
 Korte runder er feilsøking, ikke kapasitetsdom. Full kvalifisert TRAIN-historikk
 og 30–40 epoker er senere skalering, ikke et krav ved hver rettelse.
-Alle modellplaner er konsumert; ingen ny modellkjøring er innrømmet.
+Tidligere modellplaner er konsumert. Én ny lesende kontroll av original treningsmodus
+og RNG-strøm er innrømmet, uten optimizer/backward/updates.
 Training/native_training/native_launch/full_epoch/full_val er false. Begge gamle
 c171 Windowsoppgaver er Disabled. GC er på pause; TEST, Entry/Exit, broker,
 handel, spending og promotion er stengt. Sluttcheckpoint er evidens, ikke promotion.
@@ -88,13 +89,26 @@ Tidligere paret source/tail-måling viste betinget rangfall ved sourcebytte med 
 fast og stort middelskift fra kontekst. [Avgrensningen](docs/TA_C171_PAIRED_JOINT_BOUNDARY_REVIEW.json)
 består; den er ikke bevis for generell svekkelse av fullprefix-læring eller informasjonstap.
 
-## Neste konkrete avklaring
+## Målt modusforskjell og neste kontroll
 
-Gjenbruk bare original TRACE og de komplette, faste initial/final-endepunktene.
-Kvalifiser først sammenlignbarhet mellom train/eval ved samme initialtilstand; TRACE
-inneholder skiftende pre-update-vekter, ikke en fast baseline. Sammenlign originaltap
-og retning/aktivitet per oppgave/tidsramme gjennom eksponeringsrekkefølgen for å skille
-mulig nylighetseffekt fra avveininger i den felles tapsfunksjonen. Ingen utvalg av beste
-undergruppe, ny tapsvekt, modellkjøring, gradient eller trening er innrømmet nå.
-Familienes prediktive tilleggsverdi, unik historisk årsak, senere generalisering og
-kapasitet ved tilstrekkelig trening er fortsatt uavklart. Ingen ny handelsedge er påvist.
+[Ny kontroll](docs/TA_C171_MATCHED_TRAIN_MODE_REVIEW.json) er ADMITTED.
+TRACE_ZERO_UPDATE_MODE_REVIEW 11734549: samme initialvekter og første 16 rader,
+men train/eval-tap 2,142327/2,142007 og maks råforskjell S0,114820/F0,035089 før updates.
+Bundet constructor/view har aktiv dropout0,05. Den direkte TRACE-minus-eval-sammenligningen
+kan derfor ikke tolkes som ren læring/glemsel. Det er ingen påvist dropoutfeil;
+den allerede kvalifiserte eval INITIAL/FINAL-sammenligningen står uendret.
+
+ROOT: /home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_MATCHED_TRAIN_MODE_20261111_001.
+Gjenbruk én modell, faktiske INITIAL/FINAL-vekter og original module_training/gradflagg.
+Begge faser starter fra original INITIAL-RNG 67daad3d. Original train/enable_grad og
+0,05-dropout beholdes; grafen kastes etter hver batch. 0backward/optimizer/updates.
+INITIAL-batch0 må bitmatche TRACE i alle12felt/tap. Alle256RNG-grenser sammenlignes
+mellom fasene, og begge sluttstrømmer må matche originalFINAL b06f3644. Vekter,
+buffere, modus, identiteter og hooks skal ellers være passive; alle .grad forblir None.
+79fokustester, faktisk metadata-preflight/cap-selektor og uavhengig kildereview bestod.
+Høyst512forwards; samme900sworker/1200sguard og øvrige12GiB/effekt-/temperaturvakter.
+Ingen numeriske eiere er endret. Ny profilvarighet og historisk maskeidentitet er ubevist.
+Slutt-RNG alene beviser ikke identiske historiske masker; originale perbatch-RNGer finnes
+ikke. Målingen er én paret dropout-realisasjon, ikke et gjennomsnitt over alle masker.
+Kjør bare eksakt ny plan; bevar partial/FAILED_CONSUMED ved feil og ikke relanser.
+Ingen ny handelsedge eller kapasitet ved full trening er påvist.

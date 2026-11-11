@@ -339,3 +339,33 @@ def test_final_qualification_binds_actual_endpoint_and_original_measurement():
     contracts,result,measurement=deepcopy(final_metadata());result['final_state']=worker.INPUTS['short_recipe']
     with pytest.raises(RuntimeError,match='SHORT_FINAL_RESULT'):
         worker._qualify_final(contracts,result,measurement)
+
+
+def phase_signatures():
+    before=dict(model='fixed_weights',buffers='fixed_buffers',rng=worker.INITIAL_RNG_SHA256,
+        modes={'root':True},trainability={'weight':True},parameter_identity={'weight':123},
+        hooks={},numeric_runtime={'intra_threads':8})
+    after=deepcopy(before);after['rng']=worker.FINAL_RNG_SHA256
+    return before,after
+
+
+def test_train_mode_phase_allows_only_the_bound_rng_advance():
+    before,after=phase_signatures()
+    worker._require_phase_signature(before,after)
+    assert before['rng']==worker.INITIAL_RNG_SHA256 and after['rng']==worker.FINAL_RNG_SHA256
+
+
+@pytest.mark.parametrize('key',['model','buffers','modes','trainability','parameter_identity','hooks','numeric_runtime','rng'])
+def test_train_mode_phase_rejects_any_nonrng_change_or_wrong_terminal_rng(key):
+    before,after=phase_signatures();after[key]='changed'
+    with pytest.raises(RuntimeError,match='PHASE_STATE_AND_RNG'):
+        worker._require_phase_signature(before,after)
+
+
+def test_train_mode_phase_rejects_wrong_initial_rng_or_missing_field():
+    before,after=phase_signatures();before['rng']='wrong_initial'
+    with pytest.raises(RuntimeError,match='PHASE_STATE_AND_RNG'):
+        worker._require_phase_signature(before,after)
+    before,after=phase_signatures();del after['modes']
+    with pytest.raises(RuntimeError,match='PHASE_STATE_AND_RNG'):
+        worker._require_phase_signature(before,after)

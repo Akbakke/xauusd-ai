@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_FULL_PREFIX_MEASURED_TEMPORAL_AND_TASK_TRADEOFFS",
+  "status": "ACTIVE_ZERO_UPDATE_MODE_GAP_MEASURED_MATCHED_OBSERVATION_ADMITTED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -200,18 +200,28 @@
         "sha256": "68ccd418635482209e0b27aaea7f8408c41d8ef4d6b3554f6067bc38bbc19ab9"
       },
       "quality_claim": "Consistent withrecency; not uniquely proved forgetting or regime causality."
+    },
+    {
+      "id": "zero_update_trace_eval_mode_gap",
+      "evidence_class": "RETAINED_ZERO_UPDATE_AND_BOUND_SOURCE_QUALIFICATION",
+      "finding": "At identical initialweights and first16rows/queries/targets, TRACEtrain differs from evalbefore any update: loss+0.000320196; max rawdiff S0.114820/F0.035089. Active dropout is0.05. Direct later TRACE-minus-eval is not a pure learning/forgetting difference. Existing evalINITIAL/FINAL gains remain valid.",
+      "evidence": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001/TRACE_ZERO_UPDATE_MODE_REVIEW.json",
+        "sha256": "11734549fab2b03d44526a1b8b63f44efa1c347b7a8c62b644175a625afb2bca"
+      },
+      "quality_claim": "Correction to comparison method, not evidence that dropout is a model bug or should be removed."
     }
   ],
   "next_measurement": {
-    "status": "RETAINED_TRACE_EXPOSURE_COMPARISON_NO_NEW_RUN_ADMITTED",
-    "question": "How does the actual chronological update path relate to gains in late rows and degradation in early rows and selected auxiliary horizons?",
-    "method": "Use only the retained short002 TRACE and the now-complete initial/final4096used-prefix endpoints to distinguish chronological recency from cross-timeframe objective tradeoffs. First qualify train/eval comparison at the same initial state; TRACE logits/losses are changing pre-update observations, never a fixed baseline. Compare original batch losses and task/timeframe direction/activity by ordered exposure without selecting weights or subsets. No new model evaluation, optimizer, gradients, training or relaunch is admitted.",
-    "completed_predecessor": {
-      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_FULL_USED_PREFIX_REVIEW.json",
-      "sha256": "b0b61e693864da4e6757ef0d126e076032bbb3026024535c6fbbabc6ed290c02"
+    "status": "MATCHED_TRAIN_MODE_READ_ONLY_ADMITTED",
+    "question": "Can fixed INITIAL/FINAL weights be compared with original training mode and a qualified paired RNGstream before attributing the trajectory?",
+    "method": "Execute only matched-train-mode001: one model, two actual retained weight states, original module modes and grad-enabled forward with discarded graphs, two resets to original INITIAL-RNG, 512forwards at most. Require INITIALbatch0all12fields/loss bitexact to TRACE, all256paired perbatch RNGboundaries equal, originalFINALterminalRNG at both endpoints and non-RNGpassivity. No backward/optimizer/update or numerical model change. Preserve partials and consume failure; no relaunch. Then compare retained mode-matched endpoints and changing TRACE with stated historical-mask limits.",
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_MATCHED_TRAIN_MODE_REVIEW.json",
+      "sha256": "ea43aad9385fbb00c677466adb840eb0bc0803b85ed4bebb06bfe0fc94b1bb51"
     },
-    "model_change_authorized": false,
     "training_authorized": false,
+    "model_change_authorized": false,
     "test_data_used": false
   },
   "not_established": [
@@ -1640,5 +1650,9 @@
   "full_used_prefix_evaluation": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_FULL_USED_PREFIX_REVIEW.json",
     "sha256": "b0b61e693864da4e6757ef0d126e076032bbb3026024535c6fbbabc6ed290c02"
+  },
+  "matched_train_mode_observation": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_MATCHED_TRAIN_MODE_REVIEW.json",
+    "sha256": "ea43aad9385fbb00c677466adb840eb0bc0803b85ed4bebb06bfe0fc94b1bb51"
   }
 }

@@ -370,7 +370,7 @@ validate_target_command() {
         TRAINER_GPU_MAX_POWER_LIMIT_W=250
       fi
       if [[ "${3:-}" == "$TA_C171_HEAD_PRODUCER_MODULE" ]]; then
-        local ta_heads_root=/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001
+        local ta_heads_root=/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_MATCHED_TRAIN_MODE_20261111_001
         if ! matches_bound_market_state_ta_c171_short_heads "$ta_heads_root/PLAN.json" "$ta_heads_root" "$@"; then
           echo "FATAL: c171 initial-head observation is not exactly bound" >&2
           exit 75
