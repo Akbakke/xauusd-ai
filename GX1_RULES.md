@@ -158,6 +158,17 @@ aktive instrukser; bevar originale målinger og kvitteringer med eksakt omfang.
 Ingen måling omskrives til positivt resultat. Inputkonsistens, kapasitet til
 TRAIN-fit, generalisering og nettoøkonomi kontrolleres hver for seg.
 
+Operatørpresisering11.11.2026: korte kjøringer brukes bevisst til å kontrollere
+mekanikk, finne feil og kvalifisere rettelser. Det kreves ikke trening på hele
+historikken ved hver rettelse. Svak score etter slike runder beviser verken
+ferdig trening, modellens kapasitetsgrense eller manglende markedssignal.
+Når input, mål, sammensetting og læringsforløp er kvalifisert, er retningen
+trening på alle tilgjengelige kvalifiserte TRAIN-år og eventuelt30–40epoker.
+Dette er senere skalering, ikke en garanti om edge eller en umiddelbar
+kjøringsordre. TEST-forsegling og en eksakt ny treningsadmisjon består.
+Aktivt arbeid skal isolere målte årsaker til svak retningslæring med minst
+nødvendig kontroll og rettelse, med gjenbruk av eksisterende evidens.
+
 Bruk eksisterende fungerende eiere og beståtte kontroller. Rett målte
 blokkeringer og vedtatte designgap fortløpende med minst nødvendig endring;
 ikke bruk tid på kosmetisk ombygging. Dobbeltsjekk utført arbeid. Usikre

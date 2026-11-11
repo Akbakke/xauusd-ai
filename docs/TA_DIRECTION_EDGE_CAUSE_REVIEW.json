@@ -1,0 +1,83 @@
+{
+  "schema_version": "gx1_ta_direction_edge_cause_review_v1",
+  "status": "ACTIVE_PASSIVE_OBSERVATION_QUALIFIED",
+  "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
+  "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
+  "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
+  "confirmed_findings": [
+    {
+      "id": "routing",
+      "evidence_class": "PROVEN_FROM_SOURCE_AND_PRIOR_REAL_INPUT_QUALIFICATION",
+      "finding": "All eight TA families and five timeframes are routed; exact snapshot/context aliases are not duplicated in the generic snapshot. Macro remains61 session/regime-owned fields; GC is paused.",
+      "quality_claim": false
+    },
+    {
+      "id": "readout_amplitude",
+      "evidence_class": "MEASURED_REAL_DATA",
+      "finding": "Frozen-representation head replacement repairs TRAIN; locked TRAIN-only slope correction yields small matched TRAIN/later probability-score gains. Ranking remains weak.",
+      "evidence": "docs/TA_M5_LOCKED_SHRINK_NATIVE_REVIEW.json"
+    },
+    {
+      "id": "objective_tradeoff",
+      "evidence_class": "MEASURED_REAL_DATA_SCOPED",
+      "finding": "On the previously fixed4096 TRAIN panel, total loss fell0.021236659877761133 while the two M5-side terms together worsened0.00017494612955337718. Other activity/TF terms dominated this contrast. This is endpoint accounting, not proof of the historical optimizer cause.",
+      "evidence": "docs/TA_M5_PAIRED_OBJECTIVE_DECOMP_REVIEW.json"
+    },
+    {
+      "id": "line_identity",
+      "evidence_class": "PROVEN_FROM_SOURCE",
+      "finding": "Nearest trendline slots lack persistent line identity/anchors/change marker; aggregate events cannot unambiguously encode a same-line sequence.",
+      "predictive_cost": "UNKNOWN"
+    },
+    {
+      "id": "fusion_observation",
+      "evidence_class": "PROVEN_FROM_SOURCE",
+      "finding": "Backbone already returns four learned gates, but the active S/F encoder wrapper forwards only joint hidden. Actual route concentration and before/after-fusion variation are not recorded in the standard S/F cache.",
+      "predictive_bottleneck": "UNPROVED"
+    },
+    {
+      "id": "existing_simple_references",
+      "evidence_class": "MEASURED_REAL_DATA_SCOPED",
+      "finding": "Existing five-fold M5 EMA50/200 side reference improved Brier over prior in2of5folds, pooled gain -0.00005421592375464362. Causal side persistence wrong-rate was0.5136974929437158 on12046known M5 sides. These narrow references do not establish absent nonlinear or temporal information. Reuse them rather than rerun.",
+      "evidence": [
+        {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_EMA_SIDE_REFERENCE_20261107_001/RESULT.json",
+          "sha256": "b22d4e18ec62c806a445e17bf8652cd148d970f39fb5462d41cec8d35064917c"
+        },
+        {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_CAUSAL_PERSISTENCE_REFERENCE_20261107_001/RESULT.json",
+          "sha256": "8fc8b00e761bdab569a418ac3c3e3deaceba4e996f85526b53acd6fd245b318a"
+        }
+      ]
+    }
+  ],
+  "next_measurement": {
+    "status": "ADMITTED_ONCE_NO_TRAINING",
+    "question": "Does the qualified frozen candidate show route suppression or loss of cross-row variation at fusion on declared TRAIN/development rows?",
+    "method": "Passive hooks on existing modules and returned gates; unchanged model outputs, RNG, modes and parameters required. Reuse original targets, representations and checkpoints.",
+    "fit_steps": 0,
+    "model_source_changes": false,
+    "interpretation": "Gate magnitude and representation variance are diagnostics, not family added value or proof of lost predictive information. Any subsequent prediction probe requires its own fixed comparison.",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_OBSERVATION_20261111_001/PLAN.json",
+      "sha256": "a6fb8f98c9e4f1d57a480d0ce99827e3d7c04d7ab7100481704dbd0c9aa42647"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_OBSERVATION_20261111_001/PREFLIGHT.log",
+      "sha256": "8a65918667b066b58b8b9e282a4e5d3415b9d1e24fcdff866de5ffd937abb3b1"
+    },
+    "focused_tests_passed": 45,
+    "diagnostic_rows": 512,
+    "backbone_forwards": 33
+  },
+  "not_established": [
+    "Unique historical optimizer cause",
+    "Family-specific predictive added value under the current S/F objective",
+    "Predictive cost of trendline identity loss",
+    "Native convergence or capacity after sufficient training",
+    "Untouched generalization and trading economics"
+  ],
+  "test_data_used": false,
+  "training_authorized": false,
+  "promotion_authorized": false
+}

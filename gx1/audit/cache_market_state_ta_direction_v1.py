@@ -1,10 +1,13 @@
 """One admitted frozen FINAL pass caching exact mature fold-1 TA representations."""
 from __future__ import annotations
 
+from contextlib import contextmanager
+
 import hashlib
 import importlib.util
 import io
 import json
+import math
 import os
 from pathlib import Path
 import resource
@@ -32,6 +35,104 @@ MAX_CACHE_BYTES = 1024**3
 def _need(ok, reason):
     if not ok:
         raise RuntimeError('TA_DIRECTION_CACHE_' + reason)
+
+
+@contextmanager
+def observe_ta_fusion_once(backbone, *, batch_rows, max_bytes, torch):
+    """Capture one unchanged representation-only forward; no run admission.
+
+    Clones stay on their original device. Gates and representation variation
+    describe routing, not predictive utility. Residual coefficients and the
+    joint LayerNorm must be accounted for before comparing component sizes.
+    """
+    _need(type(batch_rows) is int and batch_rows > 0
+          and type(max_bytes) is int and max_bytes > 0, 'FUSION_BOUNDS')
+    names = ('fuse', 'specialist_out', 'cross_tf_out',
+             'family_tf_cooperation_out', 'entry_q_joint_norm')
+    modules = {name: getattr(backbone, name, None) for name in names}
+    projection = getattr(backbone, 'entry_q_joint_in', None)
+    _need(isinstance(backbone, torch.nn.Module)
+          and all(isinstance(m, torch.nn.Module) for m in modules.values())
+          and len({id(m) for m in modules.values()} | {id(backbone)}) == len(names) + 1
+          and isinstance(projection, torch.nn.Linear)
+          and isinstance(modules['entry_q_joint_norm'], torch.nn.LayerNorm), 'FUSION_MODULES')
+    width = projection.out_features
+    families = len(backbone._specialist_names)
+    mtf_families = len(backbone._mtf_specialist_names)
+    timeframes = backbone.tf_gate_logits.numel()
+    feature_width = backbone._mtf_feature_gate_width
+    _need(width > 0 and families > 0 and mtf_families > 0 and timeframes > 0
+          and type(feature_width) is int and feature_width > 0
+          and projection.in_features == 4 * width
+          and tuple(modules['entry_q_joint_norm'].normalized_shape) == (4 * width,),
+          'FUSION_LAYOUT')
+    device = projection.weight.device
+    _need(device.type != 'meta' and projection.weight.dtype == torch.float32,
+          'FUSION_DEVICE_DTYPE')
+    shapes = {name: (batch_rows, width) for name in names[:-1]}
+    shapes.update(entry_q_joint_source=(batch_rows, 4 * width),
+                  entry_q_joint_hidden=(batch_rows, width),
+                  specialist_gate=(batch_rows, families), tf_gate=(batch_rows, timeframes),
+                  family_tf_cooperation_gate=(batch_rows, timeframes * mtf_families),
+                  family_tf_feature_gate=(batch_rows, timeframes, feature_width))
+    sizes = {name: 4 * math.prod(shape) for name, shape in shapes.items()}
+    _need(sum(sizes.values()) <= max_bytes, 'FUSION_BYTE_LIMIT')
+    captured, handles, seen = {}, [], set()
+    failed = False
+
+    def record(name, value):
+        nonlocal failed
+        try:
+            _need(name not in seen, 'FUSION_DUPLICATE:' + name)
+            seen.add(name)
+            _need(isinstance(value, torch.Tensor) and value.dtype == torch.float32
+                  and value.device == device and tuple(value.shape) == shapes[name],
+                  'FUSION_TENSOR:' + name)
+            detached = value.detach()
+            _need(bool(torch.isfinite(detached).all().item()), 'FUSION_NONFINITE:' + name)
+            _need(value.numel() * value.element_size() == sizes[name], 'FUSION_BYTES:' + name)
+            captured[name] = detached.clone()
+        except BaseException:
+            failed = True
+            raise
+
+    def output_hook(name):
+        def hook(_module, _inputs, output):
+            record(name, output)
+        return hook
+
+    def joint_input_hook(_module, inputs):
+        nonlocal failed
+        if len(inputs) != 1:
+            failed = True
+            _need(False, 'FUSION_JOINT_INPUT')
+        record('entry_q_joint_source', inputs[0])
+
+    output_names = ('entry_q_joint_hidden', 'specialist_gate', 'tf_gate',
+                    'family_tf_cooperation_gate', 'family_tf_feature_gate')
+
+    def backbone_hook(_module, _inputs, output):
+        nonlocal failed
+        if not isinstance(output, dict) or set(output) != set(output_names):
+            failed = True
+            _need(False, 'FUSION_OUTPUT_KEYS')
+        for name in output_names:
+            record(name, output[name])
+
+    try:
+        for name in names[:-1]:
+            handles.append(modules[name].register_forward_hook(output_hook(name)))
+        handles.append(modules['entry_q_joint_norm'].register_forward_pre_hook(joint_input_hook))
+        handles.append(backbone.register_forward_hook(backbone_hook))
+        yield captured
+        _need(not failed and seen == set(shapes) and set(captured) == set(shapes),
+              'FUSION_INCOMPLETE')
+    except BaseException:
+        captured.clear()
+        raise
+    finally:
+        for handle in reversed(handles):
+            handle.remove()
 
 
 def _git(*args):
@@ -212,6 +313,14 @@ def _inspect(plan_path, plan_sha256, out_dir, *, execute):
 
 
 def preflight_read_only(plan_path, plan_sha256, out_dir):
+    if Path(plan_path) == FUSION_ROOT / 'PLAN.json' or Path(out_dir) == FUSION_ROOT:
+        checked = _inspect_fusion_observation(plan_path, plan_sha256, out_dir, execute=False)
+        return dict(status='READY_NO_CLAIM_NO_MODEL_NO_ARRAY_DESERIALIZATION',
+            plan=checked['plan_ref'], view_sha256=checked['view']['contract_sha256'],
+            candidate_model_state_sha256=FUSION_BOUNDS['candidate_model_state_sha256'],
+            model_constructions=0, backbone_encodings=0, archive_decodes=0,
+            current_source_owners=len(checked['current_sources']), changed_owners=[CAP_RUNNER],
+            scalar_fits=0, test_data_used=False)
     if Path(plan_path) == SHRINK_ROOT / 'PLAN.json' or Path(out_dir) == SHRINK_ROOT:
         checked = _inspect_shrink_score(plan_path, plan_sha256, out_dir, execute=False)
         return dict(status='READY_NO_CLAIM_NO_MODEL_NO_CHECKPOINT_DESERIALIZATION',
@@ -278,6 +387,8 @@ def _save_cache(partition, arrays, rows, *, partial=False, root=ROOT):
 
 
 def run(plan_path, plan_sha256, out_dir, *, device):
+    if Path(plan_path) == FUSION_ROOT / 'PLAN.json' or Path(out_dir) == FUSION_ROOT:
+        return _run_fusion_observation(plan_path, plan_sha256, out_dir, device=device)
     if Path(plan_path) == SHRINK_ROOT / 'PLAN.json' or Path(out_dir) == SHRINK_ROOT:
         return _run_shrink_score(plan_path, plan_sha256, out_dir, device=device)
     if Path(plan_path) == SCORE_ROOT / 'PLAN.json' or Path(out_dir) == SCORE_ROOT:
@@ -1780,6 +1891,295 @@ def _run_shrink_score(plan_path, plan_sha256, out_dir, *, device):
             error=type(exc).__name__+':'+str(exc),source_unchanged=changed is None,bookend_error=changed,test_data_used=False))
         publish('TERMINAL.json',dict(status='FAILED',exit_code=1,plan=q['plan_ref'],result=result,
             source_unchanged=changed is None,no_relaunch_under_this_plan=True,test_data_used=False))
+        raise
+    finally:
+        signal.setitimer(signal.ITIMER_REAL,0.);signal.signal(signal.SIGALRM,previous_alarm)
+        if prepared is not None:base._release_pages(provider,prepared)
+
+
+# Passive observation of the already-qualified candidate; no fit or model change.
+FUSION_STAGE = 'market_state_ta_fusion_observation_20261111_001'
+FUSION_ROOT = Path('/home/andre2/GX1_RUNS') / FUSION_STAGE.upper()
+FUSION_SCHEMA = 'gx1_ta_fusion_observation_plan_v1'
+FUSION_REFS = {
+    **REVERSED_REFS,
+    'candidate_plan': {'path': str(SHRINK_ROOT/'PLAN.json'), 'sha256': 'c6ca851b1ed048c7d3f9604687a7c063c071cbda897d6dac2b1de57ff2c000c5'},
+    'candidate_result': {'path': str(SHRINK_ROOT/'RESULT.json'), 'sha256': 'd8a4ef4de35df2a0c78bc5efdd45c57d901e4b1ff98ef16fe11187076bdfa612'},
+    'candidate_review': {'path': str(SHRINK_ROOT/'NUMERIC_REVIEW.json'), 'sha256': '0464e73f00f06426269f74f01a09d0b6dd276f675a053478062a145dbd2bc73a'},
+    'candidate_terminal': {'path': str(SHRINK_ROOT/'TERMINAL.json'), 'sha256': 'ccd02a8a1e79ec4d4dfb11629e2e3dd54499a638bbb6d9cb6a088e2a7312167c'},
+    'folded_coefficients': {'path': str(SHRINK_ROOT/'FOLDED_COEFFICIENTS.npz'), 'sha256': 'd3e7461f7907b74978c1037e07e26c27c9a5a44b85e83f213c8e7524496fce3d'},
+    'candidate_baseline': {'path': str(SHRINK_ROOT/'FRESH_CANDIDATE_BASELINE.npz'), 'sha256': '8e00069eb8afea6385f8f31180f7a8299435da63723d16cd4a6593d517c353d4'},
+}
+FUSION_BOUNDS = dict(fit_rows=29574, score_rows=17753, batch_size=16, decoder_width=128,
+    batches_per_partition=16, sampled_rows_per_partition=256,
+    batch_selection='uniform_complete_batches_floor_i_times_last_over_15',
+    max_backbone_encodings=33, max_model_constructions=1, max_checkpoint_loads=1,
+    head_tensor_imports=4, max_candidate_writes=0, max_optimizer_constructions=0,
+    max_backwards=0, max_optimizer_updates=0, max_checkpoint_writes=0, scalar_fits=0,
+    max_cache_bytes=16777216, device='cuda', wall_seconds=900,
+    candidate_model_state_sha256='c171736d2de79396dd86a79ad895f8bf2226e5ad8d996abf1dd7f52055e4a467',
+    training_enabled=False, test_data_used=False)
+
+
+def _fusion_plan(plan, plan_path, out_dir):
+    fields = {'schema_version', 'stage', 'source_repo', 'source_base_commit', 'worker',
+              'dispatch', 'cap_runner', 'runtime_source_override', 'inputs'} | set(FUSION_BOUNDS)
+    _need(isinstance(plan, dict) and set(plan) == fields and plan['schema_version'] == FUSION_SCHEMA
+          and plan['stage'] == FUSION_STAGE and plan['source_repo'] == str(REPO)
+          and Path(plan_path) == FUSION_ROOT/'PLAN.json' and Path(out_dir) == FUSION_ROOT
+          and plan['inputs'] == FUSION_REFS
+          and all(type(plan[k]) is type(v) and plan[k] == v for k, v in FUSION_BOUNDS.items()),
+          'FUSION_EXACT_PLAN')
+    _need(isinstance(plan['source_base_commit'], str)
+          and campaign._COMMIT.fullmatch(plan['source_base_commit']), 'FUSION_SOURCE_BASE')
+    return plan
+
+
+def _fusion_batch_indices(rows):
+    _need(type(rows) is int and rows in (FIT_ROWS, SCORE_ROWS), 'FUSION_POPULATION')
+    count, batch = FUSION_BOUNDS['batches_per_partition'], FUSION_BOUNDS['batch_size']
+    last = rows // batch - 1
+    indices = tuple(i * last // (count - 1) for i in range(count))
+    _need(len(set(indices)) == count and indices[0] == 0 and indices[-1] == last
+          and all((i + 1) * batch <= rows for i in indices), 'FUSION_BATCH_SELECTION')
+    return indices
+
+
+def _inspect_fusion_observation(plan_path, plan_sha256, out_dir, *, execute):
+    pr = {'path': str(plan_path), 'sha256': plan_sha256}
+    plan = _fusion_plan(_read(pr), plan_path, out_dir); refs = plan['inputs']; bound = [pr]
+    for key, path in (('worker', WORKER), ('dispatch', REPO/DISPATCH), ('cap_runner', REPO/CAP_RUNNER)):
+        _need(plan[key]['path'] == str(path), 'FUSION_SOURCE_PATH:' + key)
+        campaign.require_binding(plan[key], label=key, verify_file=True); bound.append(plan[key])
+    for key, ref in refs.items():
+        campaign.require_binding(ref, label='fusion input '+key, verify_file=True); bound.append(ref)
+    q = _qualify_reversed_origin(plan, bound)
+    candidate_plan, candidate, review, terminal = (_read(refs[k]) for k in (
+        'candidate_plan', 'candidate_result', 'candidate_review', 'candidate_terminal'))
+    _need(candidate_plan['inputs']['reverse_recipe'] == refs['reverse_recipe']
+          and candidate_plan['inputs']['reversed_evidence'] == refs['reversed_evidence']
+          and candidate['status'] == 'COMPLETE' and candidate['source_unchanged'] is True
+          and candidate['evaluation_state_unchanged'] is True and candidate['plan'] == refs['candidate_plan']
+          and candidate['candidate_model_state_sha256'] == FUSION_BOUNDS['candidate_model_state_sha256']
+          and candidate['artifacts']['folded_coefficients'] == refs['folded_coefficients']
+          and candidate['artifacts']['fresh_baseline'] == refs['candidate_baseline']
+          and candidate['fresh_candidate_baseline']['rows'] == BATCH_SIZE
+          and candidate['fresh_candidate_baseline']['artifact'] == refs['candidate_baseline']
+          and candidate['counts']['head_tensor_imports'] == 4 and candidate['counts']['scalar_fits'] == 0
+          and candidate['comparison']['decision'] == 'PASS_ALL_FOUR_INITIAL_PRIOR_CELLS'
+          and review['status'] == 'PASS_INDEPENDENT_RETAINED_LOGIT_ARITHMETIC'
+          and review['result'] == refs['candidate_result'] and review['plan'] == refs['candidate_plan']
+          and review['actual_row0_outputs_bitexact_cached_heads'] is True
+          and review['folded_coefficients_exact_from_original_FP32_and_locked_slopes'] is True
+          and review['primary_comparison_pass'] is True and terminal['status'] == 'COMPLETE'
+          and terminal['exit_code'] == 0 and terminal['result'] == refs['candidate_result']
+          and terminal['plan'] == refs['candidate_plan'] and terminal['no_relaunch_under_this_plan'] is True
+          and all(x['test_data_used'] is False for x in (candidate, review, terminal)),
+          'FUSION_QUALIFIED_CANDIDATE')
+    head = _git('rev-parse', 'HEAD')
+    subprocess.run(['git','-C',str(REPO),'merge-base','--is-ancestor',plan['source_base_commit'],head], check=True)
+    policy_ref = _ref(REPO/'NEXT_RUN_POLICY.json'); policy = _read(policy_ref); bound.append(policy_ref)
+    _need(all(policy.get(k) is False for k in ('training_enabled','native_training_enabled',
+          'native_launch_authorized','full_epoch_training_allowed')), 'FUSION_NO_TRAINING')
+    if execute:
+        gate = policy.get(FUSION_STAGE, {})
+        expected = dict(status='ADMITTED', plan=pr, max_invocations=1, remaining_invocations=1,
+            claimed_invocations=0, completed_invocations=0, relaunch_allowed=False, execution_authorized=True,
+            data_reads_authorized=True, checkpoint_reads_authorized=True, backbone_encodings_authorized=33,
+            head_tensor_imports_authorized=4, candidate_weights_writes_authorized=0,
+            backward_calls_authorized=0, optimizer_steps_authorized=0, training_authorized=False)
+        _need(all(type(gate.get(k)) is type(v) and gate[k] == v for k,v in expected.items())
+              and all(type(gate.get(k)) is type(v) and gate[k] == v for k,v in FUSION_BOUNDS.items()),
+              'FUSION_ADMISSION')
+        _need(_git('branch','--show-current') == 'work/gx1-current', 'FUSION_BRANCH')
+        campaign.require_clean_source(dict(source_repo=str(REPO),source_commit=head))
+        _need(not any(FUSION_ROOT.glob('*.npz')) and not any((FUSION_ROOT/n).exists()
+              for n in ('CLAIM.json','RESULT.json','TERMINAL.json')), 'FUSION_CONSUMED')
+    return dict(q, plan=plan, plan_ref=pr, head=head, policy_ref=policy_ref, bound_refs=bound)
+
+
+def _fusion_exact_arrays(actual, expected):
+    return set(actual) == set(expected) and all(actual[k].shape == expected[k].shape
+        and actual[k].dtype == expected[k].dtype and actual[k].tobytes() == expected[k].tobytes()
+        for k in expected)
+
+
+def _save_fusion_arrays(name, arrays, counts, *, np):
+    from gx1.contracts.immutable_event_authority_v1 import _publish_bytes
+    _need(name in ('UNINSTRUMENTED_LATER_ROW0.npz','TRAIN_FUSION.npz','LATER_FUSION.npz',
+                   'TRAIN_FUSION_PARTIAL.npz','LATER_FUSION_PARTIAL.npz') and bool(arrays), 'FUSION_ARTIFACT_NAME')
+    buf = io.BytesIO(); np.savez(buf, **arrays)
+    _need(0 < buf.tell() and counts['published_npz_bytes'] + buf.tell() <= FUSION_BOUNDS['max_cache_bytes'],
+          'FUSION_OUTPUT_BYTES')
+    _publish_bytes(FUSION_ROOT/name, buf.getvalue())
+    counts['published_npz_bytes'] += buf.tell()
+    return _ref(FUSION_ROOT/name)
+
+
+def _publish_fusion_outcome(plan_ref, payload, *, complete):
+    _need(type(complete) is bool, 'FUSION_OUTCOME_TYPE')
+    status = 'COMPLETE' if complete else 'FAILED_CONSUMED'
+    result = _publish('RESULT.json', dict(payload, status=status, plan=plan_ref,
+        training_enabled=False, test_data_used=False, predictive_value_claimed=False,
+        promotion_authorized=False, canonical_resume_authority=False), root=FUSION_ROOT)
+    terminal = _publish('TERMINAL.json', dict(status=status, exit_code=0 if complete else 1,
+        plan=plan_ref, result=result, source_unchanged=payload['source_unchanged'],
+        no_relaunch_under_this_plan=True, test_data_used=False), root=FUSION_ROOT)
+    return dict(result=result, terminal=terminal)
+
+
+def _run_fusion_observation(plan_path, plan_sha256, out_dir, *, device):
+    import numpy as np
+    import torch
+    from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_producer_execution, require_capped_lock_ancestry
+    from gx1.audit import qualify_market_state_mature_prefix_normalization_v1 as base
+    from gx1.audit.run_market_state_ta_m5_full_reverse_order_v1 import build_reverse_order
+    from gx1.contracts import entry_native_direction_feature_view_v1 as views
+    from gx1.contracts import entry_native_direction_research_state_v1 as old
+    from gx1.contracts import market_state_time_query_fold1_fit_state_v1 as state
+    from gx1.contracts import market_state_time_query_fold1_fit_v1 as fit
+    from gx1.contracts.market_state_time_query_native_F_model_v1 import NativeFutureDualModel
+    from gx1.contracts.market_state_five_endpoint_target_binding_v1 import load_bound_five_endpoint_targets
+    from gx1.contracts.market_state_future_displacement_candidate_v1 import load_bound_future_displacement
+    from gx1.contracts.market_state_time_query_native_F_batch_v1 import evaluate_endpoint_batch
+    from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256 as model_sha
+    from gx1.scripts import run_market_state_time_query_fold1_fit_window_v1 as runner
+    from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+    started = time.monotonic(); _need(device == 'cuda', 'FUSION_CUDA_ONLY')
+    cap = require_guarded_cuda_producer_execution(); cap['lock'] = require_capped_lock_ancestry()
+    _need(cap['cgroup_path'] == '/sys/fs/cgroup'+cap['lock']['scope']
+          and cap['memory_max'] == cap['memory_high'] == 12*1024**3 and cap['swap'] == 512*1024**2,
+          'FUSION_CAP')
+    for key,value in (('MAX_POWER_LIMIT_W','250'),('MAX_POWER_DRAW_W','170'),('MAX_CORE_TEMP_C','65'),('MAX_MEMORY_TEMP_C','80')):
+        _need(os.environ.get('GX1_TRAINER_GPU_'+key) == value, 'FUSION_HARDWARE:'+key)
+    q = _inspect_fusion_observation(plan_path,plan_sha256,out_dir,execute=True)
+    _need(not torch.cuda.is_initialized() and signal.getitimer(signal.ITIMER_REAL) == (0.,0.), 'FUSION_INIT_ORDER')
+    claim = _publish('CLAIM.json',dict(plan=q['plan_ref'],policy=q['policy_ref'],source_commit=q['head'],
+        cap=cap,optimizer_updates=0,test_data_used=False),root=FUSION_ROOT)
+    counts = dict(model_constructions=0,checkpoint_loads=0,backbone_encodings=0,forward_returns=0,
+        instrumented_forwards=0,archive_decodes=0,head_tensor_imports=0,candidate_writes=0,
+        optimizer_constructions=0,optimizer_updates=0,backwards=0,checkpoint_writes=0,
+        resume_state_load_calls=0,resume_state_load_returns=0,published_npz_bytes=0,scalar_fits=0,sampled_rows=0)
+    provider = prepared = None; artifacts = {}; pieces = {}; active = None
+    passivity = {}; import_proof = {}; candidate = None
+    previous_alarm = signal.getsignal(signal.SIGALRM)
+    def timeout(*unused): raise TimeoutError('Passive TA fusion observation 900-second bound')
+    signal.signal(signal.SIGALRM,timeout)
+    signal.setitimer(signal.ITIMER_REAL,max(1.,FUSION_BOUNDS['wall_seconds']-(time.monotonic()-started)))
+    def bookend():
+        campaign.require_clean_source(dict(source_repo=str(REPO),source_commit=q['head']))
+        for ref in q['bound_refs']: campaign.require_binding(ref,label='fusion bookend',verify_file=True)
+        for name,digest in q['current_sources'].items():
+            _need(campaign.file_sha256(REPO/name)==digest,'FUSION_OWNER_BOOKEND:'+name)
+    try:
+        recipe,receipts,view=(q[k] for k in ('recipe','receipts','view')); refs=q['plan']['inputs']
+        numerical=recipe['numerical_recipe']; cuda=torch.device('cuda')
+        trainer._set_deterministic(numerical['seed'],cuda,numerical['precision_policy'])
+        torch.set_num_threads(1); torch.set_num_interop_threads(1)
+        _need(torch.get_num_threads()==torch.get_num_interop_threads()==1,'FUSION_THREADS')
+        provider,provider_plan,prepared,fit_rows,fit_issues=runner._prepared_fold1(receipts,view,np=np)
+        endpoint,future=load_bound_five_endpoint_targets(),load_bound_future_displacement()
+        axes=endpoint.mature_oof_axes(fold_id=1);later_rows,later_issues=axes['score_parent_rows'],axes['score_decision_ns']
+        _need(np.array_equal(fit_rows,axes['fit_parent_rows']) and np.array_equal(fit_issues,axes['fit_decision_ns'])
+              and len(fit_rows)==FIT_ROWS and len(later_rows)==SCORE_ROWS,'FUSION_AXES')
+        counts['model_constructions']+=1
+        backbone=views.build_native_direction_research_model(view,prefix_normalization=receipts['fold1']['normal'],
+            constructor_metadata=receipts['constructor'],device=torch.device('cpu'),unobserved_units_profile=receipts['fold1']['profile'])
+        model=NativeFutureDualModel(backbone)
+        fit.require_checkpoint_view(model.state_model.feature_view_identity,recipe=q['origin']['original_recipe'],verify_files=True,ta_sf=True)
+        _need(model.research_objective['contract_sha256']==recipe['expected_model_contract_sha256'],'FUSION_MODEL_CONTRACT')
+        order,_=build_reverse_order(fit_rows,recipe['batch_indices']);counts['checkpoint_loads']+=1
+        saved=common._load_state(refs['reversed_evidence'],torch=torch,maximum=recipe['max_checkpoint_bytes'],counters=counts)
+        source_identity=_load_reversed_weights(model,saved,q,torch.from_numpy(order.copy()),torch=torch);del saved
+        model.to(cuda)
+        def signature():
+            return dict(model=model_sha(model.state_dict()),buffers=old._tree_sha(dict(model.named_buffers())),
+                rng=old._tree_sha(trainer._attended_session_rng_state(device=cuda)),
+                modes={n:bool(m.training) for n,m in model.named_modules()},
+                trainability={n:p.requires_grad for n,p in model.named_parameters()},
+                parameter_identity={n:id(p) for n,p in model.named_parameters()},
+                hooks={n:(tuple(m._forward_hooks),tuple(m._forward_pre_hooks)) for n,m in model.named_modules()})
+        before=signature()
+        _need(before['model']==REVERSED_MODEL and not any(before['trainability'].values()),'FUSION_FROZEN_SOURCE')
+        with np.load(refs['folded_coefficients']['path'],allow_pickle=False) as z:
+            expected={prefix+suffix for prefix in ('state_model.m5_side_head','future_m5_side_head') for suffix in ('.weight','.bias')}
+            _need(set(z.files)==expected,'FUSION_COEFFICIENT_KEYS')
+            coefficients={name:torch.from_numpy(z[name].copy()) for name in z.files}
+        counts['archive_decodes']+=1
+        import_proof=state.import_equal_weight_m5_side_heads(model,coefficients,expected_model_state_sha256=REVERSED_MODEL,
+            coefficient_artifact=refs['folded_coefficients'],coefficient_recipe=refs['candidate_plan'])
+        counts['head_tensor_imports']=4;candidate=signature()
+        _need(candidate['model']==FUSION_BOUNDS['candidate_model_state_sha256']
+              and all(candidate[k]==before[k] for k in before if k!='model'),'FUSION_EXACT_CANDIDATE')
+        with np.load(refs['candidate_baseline']['path'],allow_pickle=False) as z:
+            baseline={name:z[name].copy() for name in z.files}
+        counts['archive_decodes']+=1
+        def forward(rows,issues,left,partition,*,instrumented):
+            _need(counts['backbone_encodings']<FUSION_BOUNDS['max_backbone_encodings'],'FUSION_FORWARD_LIMIT')
+            raw,parents,clocks=runner._feature_batch(prepared,view,receipts,rows,issues,left,left+BATCH_SIZE,np=np)
+            _need(len(parents)==len(clocks)==BATCH_SIZE,'FUSION_INTACT_BATCH')
+            features={k:torch.from_numpy(v).to(cuda) for k,v in raw.items()}
+            counts['backbone_encodings']+=1
+            def evaluate():
+                report=evaluate_endpoint_batch(model,features,endpoint,future,parents,clocks,fold_id=1,
+                    partition=partition,future_weight=numerical['future_weight'],frozen_priors=q['priors'],capture_m5_readout=True)
+                counts['forward_returns']+=1
+                return report['m5_readout']
+            if not instrumented: return evaluate(),{}
+            with observe_ta_fusion_once(model.backbone,batch_rows=BATCH_SIZE,
+                    max_bytes=FUSION_BOUNDS['max_cache_bytes'],torch=torch) as captured:
+                readout=evaluate()
+            counts['instrumented_forwards']+=1
+            return readout,{k:v.cpu().numpy().copy() for k,v in captured.items()}
+        uninstrumented,_=forward(later_rows,later_issues,0,'score',instrumented=False)
+        artifacts['uninstrumented']=_save_fusion_arrays('UNINSTRUMENTED_LATER_ROW0.npz',uninstrumented,counts,np=np)
+        passivity['uninstrumented_matches_bound_baseline']=_fusion_exact_arrays(uninstrumented,baseline)
+        _need(passivity['uninstrumented_matches_bound_baseline'],'FUSION_BOUND_BASELINE_PARITY')
+        for panel,rows,issues,partition in (('TRAIN',fit_rows,fit_issues,'fit'),('LATER',later_rows,later_issues,'score')):
+            active=panel;pieces={}
+            for batch_index in _fusion_batch_indices(len(rows)):
+                readout,captured=forward(rows,issues,batch_index*BATCH_SIZE,partition,instrumented=True)
+                values={**readout,**{'capture_'+k:v for k,v in captured.items()}}
+                for name,value in values.items(): pieces.setdefault(name,[]).append(value)
+                counts['sampled_rows']+=BATCH_SIZE
+                if panel=='LATER' and batch_index==0:
+                    passivity['instrumented_matches_uninstrumented']=_fusion_exact_arrays(readout,uninstrumented)
+                    passivity['instrumented_matches_bound_baseline']=_fusion_exact_arrays(readout,baseline)
+                    _need(all(passivity.values()),'FUSION_INSTRUMENTED_PARITY')
+            combined={k:np.concatenate(v,axis=0) for k,v in pieces.items()}
+            _need(all(len(v)==FUSION_BOUNDS['sampled_rows_per_partition'] for v in combined.values()),'FUSION_PANEL_ROWS')
+            artifacts[panel]=_save_fusion_arrays(panel+'_FUSION.npz',combined,counts,np=np)
+            pieces={}
+        _need(signature()==candidate and all(p.grad is None for p in model.parameters()),'FUSION_STATE_UNCHANGED')
+        expected=dict(model_constructions=1,checkpoint_loads=1,backbone_encodings=33,forward_returns=33,
+            instrumented_forwards=32,archive_decodes=2,head_tensor_imports=4,candidate_writes=0,
+            optimizer_constructions=0,optimizer_updates=0,backwards=0,checkpoint_writes=0,
+            resume_state_load_calls=1,resume_state_load_returns=1,scalar_fits=0,sampled_rows=512)
+        _need(all(counts[k]==v for k,v in expected.items()) and all(passivity.values()),'FUSION_EXACT_COUNTS')
+        release=prepared;prepared=None;base._release_pages(provider,release)
+        provider.validate_metadata(provider_plan);bookend()
+        return _publish_fusion_outcome(q['plan_ref'],dict(claim=claim,counts=counts,artifacts=artifacts,
+            source_commit=q['head'],source_identity=source_identity,import_proof=import_proof,
+            candidate_model_state_sha256=candidate['model'],passivity=passivity,
+            batch_indices={p:list(_fusion_batch_indices(n)) for p,n in (('TRAIN',FIT_ROWS),('LATER',SCORE_ROWS))},
+            source_unchanged=True,evaluation_state_unchanged=True,elapsed_seconds=time.monotonic()-started,
+            limitations=['512 rows are a fixed diagnostic sample, not a generalization or quality threshold.',
+                'Gate weights and representation variation do not establish predictive utility.',
+                'Residual scales and joint LayerNorm must be included in component-size comparisons.']),complete=True)
+    except BaseException as exc:
+        preservation_error=changed=None
+        if pieces and active not in artifacts:
+            try:
+                artifacts[active+'_partial']=_save_fusion_arrays(active+'_FUSION_PARTIAL.npz',
+                    {k:np.concatenate(v,axis=0) for k,v in pieces.items()},counts,np=np)
+            except Exception as other: preservation_error=repr(other)
+        try:bookend()
+        except Exception as other:changed=repr(other)
+        _publish_fusion_outcome(q['plan_ref'],dict(claim=claim,counts=counts,artifacts=artifacts,
+            import_proof=import_proof,passivity=passivity,error=type(exc).__name__+':'+str(exc),
+            source_unchanged=changed is None,bookend_error=changed,preservation_error=preservation_error,
+            elapsed_seconds=time.monotonic()-started),complete=False)
         raise
     finally:
         signal.setitimer(signal.ITIMER_REAL,0.);signal.signal(signal.SIGALRM,previous_alarm)

@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-10T16:30:02.337192+00:00",
-  "status": "TA_M5_DIRECTION_TRAIN_CORRECTION_GOAL_COMPLETE_NATIVE_VERIFIED",
+  "observed_utc": "2026-11-11T12:56:28.411987+00:00",
+  "status": "TA_DIRECTION_EDGE_CAUSE_FROZEN_FUSION_OBSERVATION_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1418,8 +1418,8 @@
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Completed two fixed CPUreadouts are consumed and all training/launch flags closed. Frozen model capture is retained and qualified with original post-completion cleanup failure preserved. No native import, further fit/capture, GC, TEST, Entry, Exit, broker, trading or promotion admitted.",
-  "next_action": "No further run required for the completed M5 TRAIN-correction goal. Preserve qualified c171736d candidate and original checkpoints; broader generalization remains unproved and no new run is admitted.",
+  "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
+  "next_action": "Execute the single qualified frozen fusion observation once;33nativeforwards/512diagnostic rows,0updates. Then analyze retained route/variation evidence without fitting.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1434,9 +1434,9 @@
     "profitability_demonstrated": false,
     "required_before_more_extensive_training": true,
     "entry_learning_demonstrated": false,
-    "current_evidence_scope": "Native fullTRAIN readout recovery qualified, full later gate failed. New full-later fixed-head cross shows head replacement onr0 hurts and r1 helps underW2; no optimizer-cause proof. F improvesINITIAL Oct/Nov but December has near-zero ordering (AUC.5028), negative probability-truth covariance and risingmeanUP. Rise also present onall rows, not onlyknown-side selection. No generalization or edge proven.",
+    "current_evidence_scope": "Bounded native M5 readout/amplitude correction verified on matched fullTRAIN/later reused development. Direction ranking remains weak. New cause diagnosis is active; no generalization or economic edge established.",
     "component_learning_measured": true,
-    "component_learning_result": "NATIVE_FULL_TRAIN_M5_READOUT_RECOVERY_CONFIRMED_FULL_LATER_GATE_FAILED",
+    "component_learning_result": "NATIVE_M5_BOUNDED_READOUT_AMPLITUDE_CORRECTION_VERIFIED_EDGE_UNPROVED",
     "primary_entry_quality_qualified": false,
     "paired_learning_review": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/PAIRED_LEARNING_REVIEW.json",
@@ -1698,7 +1698,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Bounded M5 TRAIN-deterioration goal completed: native four-tensor correction and matched fullTRAIN/later improvements independently verified.",
+    "current_activity": "Qualified one passive fusion observation of preserved candidate c171736d; source/policy freeze during execution.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1751,7 +1751,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No remaining blocker for this bounded correction goal. Fresh generalization, economic edge and optimizer continuation remain outside its proved scope.",
+    "current_blocker": "Actual family/TF gate distributions and pre/post-fusion variation remain unmeasured; exact observation now admitted.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9222,7 +9222,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "No further run required for the completed M5 TRAIN-correction goal. Preserve qualified c171736d candidate and original checkpoints; broader generalization remains unproved and no new run is admitted.",
+    "next_action": "Execute the single qualified frozen fusion observation once;33nativeforwards/512diagnostic rows,0updates. Then analyze retained route/variation evidence without fitting.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22134,6 +22134,10 @@
     "latest_head_coordinate_geometry_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_HEAD_COORDINATE_GEOMETRY_REVIEW.json",
       "sha256": "f7af8f3078b9a07a78512347498c8a6f5d6821ded547d2967378bd47e9d266be"
+    },
+    "direction_edge_cause_review": {
+      "path": "docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
+      "sha256": "c9af366b118c83e123bf00b4777d9ecf3fc68969e0243a6290b6d2a7a34c570d"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -75471,5 +75475,76 @@
       "sha256": "8f02405954730e4e9cf62da45131d7ae2c1fe76f2501b4f63cb2667147b13bab"
     },
     "comparison_pass": true
+  },
+  "direction_edge_cause_goal_20261111": {
+    "status": "ACTIVE_EXACT_FROZEN_OBSERVATION_ADMITTED",
+    "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
+    "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
+    "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
+    "training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
+    "review": {
+      "path": "docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
+      "sha256": "c9af366b118c83e123bf00b4777d9ecf3fc68969e0243a6290b6d2a7a34c570d"
+    },
+    "integrator": "root",
+    "model_or_data_run_admitted": true,
+    "training_enabled": false,
+    "test_data_used": false,
+    "broad_training_now": false,
+    "next_action": "Execute the single qualified frozen fusion observation once;33nativeforwards/512diagnostic rows,0updates. Then analyze retained route/variation evidence without fitting.",
+    "active_stage": "market_state_ta_fusion_observation_20261111_001"
+  },
+  "market_state_ta_fusion_observation_20261111_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_OBSERVATION_20261111_001/PLAN.json",
+      "sha256": "a6fb8f98c9e4f1d57a480d0ce99827e3d7c04d7ab7100481704dbd0c9aa42647"
+    },
+    "max_invocations": 1,
+    "remaining_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "backbone_encodings_authorized": 33,
+    "head_tensor_imports_authorized": 4,
+    "candidate_weights_writes_authorized": 0,
+    "backward_calls_authorized": 0,
+    "optimizer_steps_authorized": 0,
+    "training_authorized": false,
+    "fit_rows": 29574,
+    "score_rows": 17753,
+    "batch_size": 16,
+    "decoder_width": 128,
+    "batches_per_partition": 16,
+    "sampled_rows_per_partition": 256,
+    "batch_selection": "uniform_complete_batches_floor_i_times_last_over_15",
+    "max_backbone_encodings": 33,
+    "max_model_constructions": 1,
+    "max_checkpoint_loads": 1,
+    "head_tensor_imports": 4,
+    "max_candidate_writes": 0,
+    "max_optimizer_constructions": 0,
+    "max_backwards": 0,
+    "max_optimizer_updates": 0,
+    "max_checkpoint_writes": 0,
+    "scalar_fits": 0,
+    "max_cache_bytes": 16777216,
+    "device": "cuda",
+    "wall_seconds": 900,
+    "candidate_model_state_sha256": "c171736d2de79396dd86a79ad895f8bf2226e5ad8d996abf1dd7f52055e4a467",
+    "training_enabled": false,
+    "test_data_used": false,
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_OBSERVATION_20261111_001/PREFLIGHT.log",
+      "sha256": "8a65918667b066b58b8b9e282a4e5d3415b9d1e24fcdff866de5ffd937abb3b1"
+    },
+    "focused_tests_passed": 45,
+    "retained_output_arithmetic_authorized": true,
+    "retained_output_fit_authorized": false,
+    "scope": "One passive frozen-candidate observation on512declared rows/33forwards, unchanged outputs/state/RNG required. Inspect retained aggregates without fit; gates/variance do not establish predictive value.",
+    "standing_authority": "Explicit11November direction-edge cause goal plus existing0USD local-work authority; exact single-use guarded observation only."
   }
 }

@@ -534,3 +534,279 @@ def test_shrink_rejects_zero_expansion_negative_and_nonfinite_slopes():
             with pytest.raises(RuntimeError):
                 wrapper._shrink_coefficients(original, invalid, priors, torch=torch)
     assert all(torch.equal(original[key], value) for key, value in before.items())
+
+
+
+def _synthetic_fusion_backbone(torch):
+    """Small synthetic layout only; never constructs the native model."""
+    class Backbone(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self._specialist_names = ('a', 'b', 'c')
+            self._mtf_specialist_names = ('a', 'b', 'c')
+            self._mtf_feature_gate_width = 5
+            self.tf_gate_logits = torch.nn.Parameter(torch.zeros(2))
+            self.register_buffer('fixture_buffer', torch.ones(1))
+            self.fuse = torch.nn.Sequential(torch.nn.Linear(4, 4), torch.nn.Dropout(.2))
+            self.specialist_out = torch.nn.Linear(4, 4)
+            self.cross_tf_out = torch.nn.Linear(4, 4)
+            self.family_tf_cooperation_out = torch.nn.Linear(4, 4)
+            self.entry_q_joint_norm = torch.nn.LayerNorm(16)
+            self.entry_q_joint_in = torch.nn.Linear(16, 4)
+            self.fault = None
+
+        def forward(self, x):
+            base = self.fuse(x)
+            if self.fault == 'duplicate':
+                self.fuse(x)
+            specialist = (torch.zeros_like(base) if self.fault == 'missing'
+                          else self.specialist_out(base))
+            local = base + specialist
+            mtf = self.cross_tf_out(local)
+            cooperation = self.family_tf_cooperation_out(local)
+            joint = torch.cat((local, local + mtf + cooperation, mtf, x), dim=1)
+            hidden = torch.nn.functional.gelu(self.entry_q_joint_in(self.entry_q_joint_norm(joint)))
+            output = dict(entry_q_joint_hidden=hidden,
+                specialist_gate=torch.softmax(hidden[:, :3], dim=1),
+                tf_gate=torch.softmax(hidden[:, :2] + self.tf_gate_logits, dim=1),
+                family_tf_cooperation_gate=torch.softmax(hidden[:, :1].expand(-1, 6), dim=1),
+                family_tf_feature_gate=hidden[:, :1, None].expand(-1, 2, 5))
+            if self.fault == 'nonfinite':
+                output['tf_gate'] = output['tf_gate'] * float('nan')
+            elif self.fault == 'dtype':
+                output['entry_q_joint_hidden'] = hidden.double()
+            elif self.fault == 'shape':
+                output['entry_q_joint_hidden'] = hidden[:, :1]
+            elif self.fault == 'keys':
+                output['extra'] = hidden
+            return output
+    return Backbone()
+
+
+def _fusion_hook_inventory(model):
+    return {id(m): (tuple(m._forward_hooks), tuple(m._forward_pre_hooks))
+            for m in model.modules()}
+
+
+def test_passive_fusion_preserves_outputs_rng_parameters_modes_and_graph():
+    import torch
+    from gx1.audit.cache_market_state_ta_direction_v1 import observe_ta_fusion_once
+    with torch.random.fork_rng(devices=[]):
+        torch.manual_seed(71)
+        model = _synthetic_fusion_backbone(torch).train()
+        model.specialist_out.eval()
+        model.specialist_out.weight.requires_grad_(False)
+        x = torch.arange(8, dtype=torch.float32).reshape(2, 4).requires_grad_()
+        state = {k: v.detach().clone() for k, v in model.state_dict().items()}
+        parameters = [(id(p), p.requires_grad) for p in model.parameters()]
+        modes = [m.training for m in model.modules()]
+        existing = model.fuse.register_forward_hook(lambda *args: None)
+        hooks = _fusion_hook_inventory(model)
+        rng = torch.get_rng_state().clone()
+        expected = model(x)
+        expected_rng = torch.get_rng_state().clone()
+        expected_gradient, = torch.autograd.grad(expected['entry_q_joint_hidden'].sum(), x)
+        torch.set_rng_state(rng)
+        # 57 float32 scalars per row, two rows: exact successful byte boundary.
+        with observe_ta_fusion_once(model, batch_rows=2, max_bytes=456, torch=torch) as captured:
+            actual = model(x)
+        assert len(captured) == 10 and sum(t.numel() * t.element_size() for t in captured.values()) == 456
+        for name in expected:
+            assert torch.equal(actual[name], expected[name])
+            assert torch.equal(captured[name], actual[name])
+            assert not captured[name].requires_grad and captured[name].grad_fn is None
+            assert captured[name].data_ptr() != actual[name].data_ptr()
+        gradient, = torch.autograd.grad(actual['entry_q_joint_hidden'].sum(), x)
+        assert torch.equal(gradient, expected_gradient)
+        assert torch.equal(torch.get_rng_state(), expected_rng)
+        assert all(torch.equal(v, state[k]) for k, v in model.state_dict().items())
+        assert [(id(p), p.requires_grad) for p in model.parameters()] == parameters
+        assert [m.training for m in model.modules()] == modes
+        assert _fusion_hook_inventory(model) == hooks
+        existing.remove()
+
+
+@pytest.mark.parametrize('fault,error', [
+    ('duplicate', 'FUSION_DUPLICATE:fuse'), ('missing', 'FUSION_INCOMPLETE'),
+    ('nonfinite', 'FUSION_NONFINITE:tf_gate'), ('dtype', 'FUSION_TENSOR:entry_q_joint_hidden'),
+    ('shape', 'FUSION_TENSOR:entry_q_joint_hidden'), ('keys', 'FUSION_OUTPUT_KEYS'),
+])
+def test_passive_fusion_rejects_incomplete_or_invalid_capture_and_removes_hooks(fault, error):
+    import torch
+    from gx1.audit.cache_market_state_ta_direction_v1 import observe_ta_fusion_once
+    model = _synthetic_fusion_backbone(torch)
+    model.fault = fault
+    hooks = _fusion_hook_inventory(model)
+    with pytest.raises(RuntimeError, match=error):
+        with observe_ta_fusion_once(model, batch_rows=2, max_bytes=456, torch=torch) as captured:
+            model(torch.ones(2, 4))
+    assert captured == {} and _fusion_hook_inventory(model) == hooks
+
+
+@pytest.mark.parametrize('rows,limit,error', [
+    (0, 456, 'FUSION_BOUNDS'), (True, 456, 'FUSION_BOUNDS'),
+    (2, True, 'FUSION_BOUNDS'), (2, 455, 'FUSION_BYTE_LIMIT'),
+])
+def test_passive_fusion_rejects_bounds_before_registering_hooks(rows, limit, error):
+    import torch
+    from gx1.audit.cache_market_state_ta_direction_v1 import observe_ta_fusion_once
+    model = _synthetic_fusion_backbone(torch)
+    hooks = _fusion_hook_inventory(model)
+    with pytest.raises(RuntimeError, match=error):
+        with observe_ta_fusion_once(model, batch_rows=rows, max_bytes=limit, torch=torch):
+            pytest.fail('invalid bound admitted')
+    assert _fusion_hook_inventory(model) == hooks
+
+
+def test_passive_fusion_removes_hooks_after_registration_or_user_failure(monkeypatch):
+    import torch
+    from gx1.audit.cache_market_state_ta_direction_v1 import observe_ta_fusion_once
+    model = _synthetic_fusion_backbone(torch)
+    hooks = _fusion_hook_inventory(model)
+    def reject(*args, **kwargs):
+        raise RuntimeError('registration failed')
+    with monkeypatch.context() as patch:
+        patch.setattr(model.specialist_out, 'register_forward_hook', reject)
+        with pytest.raises(RuntimeError, match='registration failed'):
+            with observe_ta_fusion_once(model, batch_rows=2, max_bytes=456, torch=torch):
+                pytest.fail('failed registration admitted')
+    assert _fusion_hook_inventory(model) == hooks
+    with pytest.raises(ValueError, match='caller failed'):
+        with observe_ta_fusion_once(model, batch_rows=2, max_bytes=456, torch=torch) as captured:
+            model(torch.ones(2, 4))
+            raise ValueError('caller failed')
+    assert captured == {} and _fusion_hook_inventory(model) == hooks
+
+
+def test_passive_fusion_rejects_wrong_batch_and_swallowed_duplicate():
+    import torch
+    from gx1.audit.cache_market_state_ta_direction_v1 import observe_ta_fusion_once
+    model = _synthetic_fusion_backbone(torch)
+    hooks = _fusion_hook_inventory(model)
+    with pytest.raises(RuntimeError, match='FUSION_TENSOR:fuse'):
+        with observe_ta_fusion_once(model, batch_rows=2, max_bytes=456, torch=torch):
+            model(torch.ones(3, 4))
+    assert _fusion_hook_inventory(model) == hooks
+    with pytest.raises(RuntimeError, match='FUSION_INCOMPLETE'):
+        with observe_ta_fusion_once(model, batch_rows=2, max_bytes=456, torch=torch) as captured:
+            model(torch.ones(2, 4))
+            with pytest.raises(RuntimeError, match='FUSION_DUPLICATE:fuse'):
+                model(torch.ones(2, 4))
+    assert captured == {} and _fusion_hook_inventory(model) == hooks
+
+
+
+def fusion_plan():
+    from gx1.audit import cache_market_state_ta_direction_v1 as w
+    ref=lambda path: {'path':str(path),'sha256':'a'*64}
+    return dict(schema_version=w.FUSION_SCHEMA,stage=w.FUSION_STAGE,source_repo=str(w.REPO),
+        source_base_commit='b'*40,worker=ref(w.WORKER),dispatch=ref(w.REPO/w.DISPATCH),
+        cap_runner=ref(w.REPO/w.CAP_RUNNER),runtime_source_override={},inputs=w.FUSION_REFS,**w.FUSION_BOUNDS)
+
+
+def test_fusion_exact_plan_and_fixed_complete_batch_selection():
+    from gx1.audit import cache_market_state_ta_direction_v1 as w
+    plan=fusion_plan();path=w.FUSION_ROOT/'PLAN.json'
+    assert w._fusion_plan(plan,path,w.FUSION_ROOT)==plan
+    for key,value in [('fit_rows',512),('batches_per_partition',32),('max_backbone_encodings',34),
+                      ('training_enabled',True),('scalar_fits',1),('max_cache_bytes',2**30),
+                      ('max_candidate_writes',1),('batch_size',16.),('batch_selection','random')]:
+        with pytest.raises(RuntimeError,match='FUSION_EXACT_PLAN'):
+            w._fusion_plan({**plan,key:value},path,w.FUSION_ROOT)
+    for wrong_path,wrong_root in ((w.SHRINK_ROOT/'PLAN.json',w.FUSION_ROOT),(path,w.SHRINK_ROOT)):
+        with pytest.raises(RuntimeError,match='FUSION_EXACT_PLAN'):
+            w._fusion_plan(plan,wrong_path,wrong_root)
+    for rows in (29574,17753):
+        indices=w._fusion_batch_indices(rows)
+        assert len(indices)==len(set(indices))==16
+        assert indices==tuple(i*(rows//16-1)//15 for i in range(16))
+        assert indices[0]==0 and (indices[-1]+1)*16<=rows
+    with pytest.raises(RuntimeError,match='FUSION_POPULATION'):
+        w._fusion_batch_indices(512)
+
+
+def test_fusion_dispatch_keeps_preflight_and_run_separate(monkeypatch):
+    from gx1.audit import cache_market_state_ta_direction_v1 as w
+    calls=[]
+    monkeypatch.setattr(w,'_inspect_fusion_observation',lambda *args,**kw:
+        calls.append(('inspect',kw)) or dict(plan_ref={'path':'bound','sha256':'a'*64},
+            view={'contract_sha256':'b'*64},current_sources={str(i):'c'*64 for i in range(85)}))
+    monkeypatch.setattr(w,'_run_fusion_observation',lambda *args,**kw:
+        calls.append(('run',kw)) or {'synthetic':True})
+    monkeypatch.setattr(w,'_inspect_shrink_score',lambda *a,**k:pytest.fail('consumed shrink entered'))
+    path=w.FUSION_ROOT/'PLAN.json'
+    report=w.preflight_read_only(path,'a'*64,w.FUSION_ROOT)
+    assert report['archive_decodes']==report['backbone_encodings']==report['model_constructions']==0
+    assert w.run(path,'a'*64,w.FUSION_ROOT,device='cuda')=={'synthetic':True}
+    assert calls==[('inspect',{'execute':False}),('run',{'device':'cuda'})]
+
+
+def test_fusion_preflight_checks_actual_candidate_schema_without_array_decode(monkeypatch):
+    import copy
+    import numpy as np
+    import torch
+    from gx1.audit import cache_market_state_ta_direction_v1 as w
+    plan=fusion_plan();refs=plan['inputs'];path=w.FUSION_ROOT/'PLAN.json';seen=[]
+    policy_ref={'path':str(w.REPO/'NEXT_RUN_POLICY.json'),'sha256':'d'*64}
+    candidate=dict(status='COMPLETE',source_unchanged=True,evaluation_state_unchanged=True,
+        plan=refs['candidate_plan'],candidate_model_state_sha256=w.FUSION_BOUNDS['candidate_model_state_sha256'],
+        artifacts={'folded_coefficients':refs['folded_coefficients'],'fresh_baseline':refs['candidate_baseline']},
+        fresh_candidate_baseline={'rows':16,'artifact':refs['candidate_baseline']},
+        counts={'head_tensor_imports':4,'scalar_fits':0},comparison={'decision':'PASS_ALL_FOUR_INITIAL_PRIOR_CELLS'},
+        test_data_used=False)
+    docs={str(path):plan,refs['candidate_plan']['path']:{'inputs':refs},
+        refs['candidate_result']['path']:candidate,
+        refs['candidate_review']['path']:dict(status='PASS_INDEPENDENT_RETAINED_LOGIT_ARITHMETIC',
+            result=refs['candidate_result'],plan=refs['candidate_plan'],actual_row0_outputs_bitexact_cached_heads=True,
+            folded_coefficients_exact_from_original_FP32_and_locked_slopes=True,primary_comparison_pass=True,test_data_used=False),
+        refs['candidate_terminal']['path']:dict(status='COMPLETE',exit_code=0,result=refs['candidate_result'],
+            plan=refs['candidate_plan'],no_relaunch_under_this_plan=True,test_data_used=False),
+        policy_ref['path']:{k:False for k in ('training_enabled','native_training_enabled',
+                                             'native_launch_authorized','full_epoch_training_allowed')}}
+    monkeypatch.setattr(w,'_read',lambda ref:copy.deepcopy(docs[ref['path']]))
+    monkeypatch.setattr(w,'_ref',lambda path:policy_ref)
+    monkeypatch.setattr(w,'_git',lambda *args:'b'*40)
+    monkeypatch.setattr(w.subprocess,'run',lambda *a,**k:None)
+    monkeypatch.setattr(w.campaign,'require_binding',lambda ref,**kw:seen.append(ref['path']) or ref)
+    monkeypatch.setattr(w,'_qualify_reversed_origin',lambda p,b:
+        seen.append('same_reversed_qualifier') or {'view':{'contract_sha256':'c'*64},'current_sources':{}})
+    monkeypatch.setattr(np,'load',lambda *a,**k:pytest.fail('preflight decoded arrays'))
+    monkeypatch.setattr(torch,'load',lambda *a,**k:pytest.fail('preflight decoded checkpoint'))
+    checked=w._inspect_fusion_observation(path,'a'*64,w.FUSION_ROOT,execute=False)
+    assert checked['plan']==plan and 'same_reversed_qualifier' in seen
+    assert refs['folded_coefficients']['path'] in seen and refs['candidate_baseline']['path'] in seen
+    for mutation in [('candidate_model_state_sha256','0'*64),('evaluation_state_unchanged',False)]:
+        bad=copy.deepcopy(candidate);bad[mutation[0]]=mutation[1]
+        docs[refs['candidate_result']['path']]=bad
+        with pytest.raises(RuntimeError,match='FUSION_QUALIFIED_CANDIDATE'):
+            w._inspect_fusion_observation(path,'a'*64,w.FUSION_ROOT,execute=False)
+
+
+def test_fusion_private_arrays_and_success_failure_terminals(tmp_path,monkeypatch):
+    import json
+    import numpy as np
+    from gx1.audit import cache_market_state_ta_direction_v1 as w
+    arrays={'parents':np.arange(16,dtype=np.int64),'capture_fuse':np.ones((16,4),np.float32)}
+    assert w._fusion_exact_arrays(arrays,{k:v.copy() for k,v in arrays.items()})
+    changed={k:v.copy() for k,v in arrays.items()};changed['parents'][0]=17
+    assert not w._fusion_exact_arrays(arrays,changed)
+    for complete in (True,False):
+        root=tmp_path/str(complete);root.mkdir();monkeypatch.setattr(w,'FUSION_ROOT',root)
+        counts={'published_npz_bytes':0}
+        name='TRAIN_FUSION.npz' if complete else 'TRAIN_FUSION_PARTIAL.npz'
+        artifact=w._save_fusion_arrays(name,arrays,counts,np=np)
+        with np.load(artifact['path'],allow_pickle=False) as z:
+            assert w._fusion_exact_arrays({k:z[k] for k in z.files},arrays)
+        assert counts['published_npz_bytes']==Path(artifact['path']).stat().st_size
+        refs=w._publish_fusion_outcome({'path':'synthetic','sha256':'a'*64},
+            {'source_unchanged':True,'counts':counts,'artifacts':{'TRAIN':artifact}},complete=complete)
+        result=json.loads(Path(refs['result']['path']).read_text())
+        terminal=json.loads(Path(refs['terminal']['path']).read_text())
+        assert result['status']==('COMPLETE' if complete else 'FAILED_CONSUMED')
+        assert result['predictive_value_claimed'] is result['training_enabled'] is False
+        assert terminal['no_relaunch_under_this_plan'] and terminal['exit_code']==(0 if complete else 1)
+        assert terminal['result']==refs['result']
+        counts['published_npz_bytes']=w.FUSION_BOUNDS['max_cache_bytes']-1
+        with pytest.raises(RuntimeError,match='FUSION_OUTPUT_BYTES'):
+            w._save_fusion_arrays('LATER_FUSION_PARTIAL.npz',arrays,counts,np=np)
+        assert not (root/'LATER_FUSION_PARTIAL.npz').exists()

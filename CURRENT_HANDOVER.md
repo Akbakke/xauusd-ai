@@ -7,10 +7,12 @@ terminalkvitteringer/prosesser overstyrer tekst. Historikken finnes i Git.
 
 ## Gjeldende status og omfang
 
-TA_M5_DIRECTION_TRAIN_CORRECTION_GOAL_COMPLETE_NATIVE_VERIFIED.
+TA_DIRECTION_EDGE_CAUSE_FROZEN_FUSION_OBSERVATION_ADMITTED.
 Det avgrensede målet om å isolere/reparere M5 TRAIN-svekkelsen og verifisere
 sammeTRAIN + separat senereTRAIN er fullført. Det større prosjektet med
-robust retningsverdi og senere trading er ikke fullført.
+robust retningsverdi og senere trading er ikke fullført. Nytt aktivt mål11.11:
+isoler målte svakheter i indikatorrepresentasjon, sammensetting og læring.
+[Årsaksstatus](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json) binder neste kontroll.
 Alle trenings-/launchporter false; training_enabled_scope=null.
 Ingen CURRENT-jobb lever ved lukking. Ingen konsumert plan relanseres.
 GC er på pause; TEST, Entry/Exit, broker, handel og promotion forblir stengt.
@@ -85,5 +87,12 @@ Unik optimizerårsak, fresh constructor og kanonisk optimizer-resume er ikke
 kvalifisert og var ikke krav for denne avgrensede rettelsen.
 Fullpopulasjonen brukte faktiske native hoder på kvalifiserte representasjoner;
 bare to fullstendige encoderforwards ble gjort.
-Bevar den kvalifiserte kandidaten. Videre generalisering eller trening krever
-egen begrunnet og kvalifisert plan; ingen slik kjøring er nå innrømmet.
+Bevar den kvalifiserte kandidaten. Neste arbeid er en passiv observasjon av
+gater og representasjoner før/etter sammensetting. Én eksakt kontroll er
+innrømmet: MARKET_STATE_TA_FUSION_OBSERVATION_20261111_001, PLANa6fb8f98.
+512deklarerte rader/33forwards,0updates.45fokuserte tester og faktisk
+metadata-preflight består;85modell-/treningseiere beholdes med kun ny
+cap-sti. Modellen, prognosene og RNG skal være uendret. Kilde/policy fryses.
+Korte runder er bevisst feilsøking. Full kvalifisert TRAIN-historikk og30–40
+epoker er senere skalering når grunnlaget er klart, ikke et krav ved rettelser.
+Ingen kort test avgjør endelig kapasitet eller garanterer senere edge.
