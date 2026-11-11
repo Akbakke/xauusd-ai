@@ -6,62 +6,57 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_RETAINED_MTF_INTERVENTION_ADMITTED.
+TA_DIRECTION_EDGE_CAUSE_RETAINED_MTF_SENSITIVITY_COMPLETE.
 Mål11.11 er aktivt: isoler målte årsaker til svak retningslæring i indikatorer,
 sammensetting og læring. [Årsaksstatus](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json).
-Korte kjøringer er bevisst feilsøking, ikke en kapasitetsdom. Full kvalifisert
-TRAIN-historikk og30–40epoker er senere skalering, ikke et krav ved hver rettelse.
+Korte runder er feilsøking, ikke kapasitetsdom. Full kvalifisert TRAIN-historikk
+og30–40epoker er senere skalering, ikke et krav ved hver rettelse.
 Alle trenings-/launchporter false; training_enabled_scope=null. Ingen jobb lever.
-Begge passive planer er COMPLETE/konsumert. Én retained-MTF-kontroll er innrømmet.
+Tre diagnostiske planer er COMPLETE/konsumert. Ingen ny kjøring er innrømmet.
 GC er på pause; TEST, Entry/Exit, broker, handel og promotion er stengt.
-Genuine M5/M15/H1/H4/D1-input beholdes.
+Alle genuine indikatorer og M5/M15/H1/H4/D1-input beholdes.
 
 ## Gjort og målt
 
-Tidligere M5 TRAIN-rettelse er fullført; det større edge-målet er aktivt.
-Faste readouts og TRAIN-låst sannsynlighetsdemping bedret Brier/logtap svakt.
-Senere AUC S=.523043378/F=.510747753 er ikke treffprosenter. Kandidatc171736d.
-[Opprinnelig evidens](docs/TA_M5_LOCKED_SHRINK_NATIVE_REVIEW.json).
-Senere oktober–desember2024 er gjenbrukt utvikling, ikke urørt generalisering.
+Bevar kvalifisert kandidatc171736d. Tidligere avgrenset readout-/sannsynlighets-
+rettelse er fullført; robust retningsverdi og programmet som helhet er ikke ferdig.
+[Opprinnelig resultatevidens](docs/TA_M5_LOCKED_SHRINK_NATIVE_REVIEW.json).
+INITIAL i den matchede studien er et importert warm-start, ikke en fersk
+constructor. Aktuell MTF-varians økte under runden; generell kollaps er ubevist.
 
-Passiv trent observasjon: MARKET_STATE_TA_FUSION_OBSERVATION_20261111_001,
-PLANa6fb8f98/RESULT071c2976,129,1sekunder. INITIAL-sammenligning:
-MARKET_STATE_TA_FUSION_INITIAL_OBSERVATION_20261111_001,PLAN178013d7,
-MATCHED_NUMERIC_REVIEW80cab848,127,3sekunder. Begge worker/controller exit0.
-Hver brukte512rader/33forwards/1checkpoint/0fit/backward/optimizer/updates.
-Originale utdata, modelltilstand, RNG, modi og parametre var uendret.
-Foreldre/tidsstempel/query/masker samsvarer eksakt mellom modelltilstandene.
-16intakte B16-grupper perpartisjon er ikke512uavhengige observasjoner.
-60fokuserte tester, metadata-preflight og faktisk CUDA-baselineparitet består.
-Ingen modell-/treningskode er endret; observasjon og kvalifisering er lagt til.
+MARKET_STATE_TA_MTF_RETAINED_INTERVENTION_20261111_001 er COMPLETE/konsumert:
+PLAN85d140d3/RESULT3c682a01/TERMINAL27ab3bce. Kilded6d256d6 uendret.
+Controller38,39sekunder, exit0.1modell/1checkpoint/4låsteheadimporter,
+64joint/64S/64F,128query/128native-head/128M5-head,0encoder/fit/updates.
+To FP64→FP32 TRAIN-gjennomsnitt ble låst før senerefangsten ble åpnet.
+Baselinens joint-hidden, M5-representasjoner og alle native logits er bitlike;
+modell/RNG/buffere/modi/parameteridentitet er uendret.67fokuserte tester består.
 
-Alle observerte ruter har positiv vekt. D1/session_change_flag har nøytral
-konstant gate1.0. Rå joint-varians er83/83prosent kontekst i INITIAL og89/89
-etter runden; dette er ikke beslutningspåvirkning etter joint-LayerNorm.
-INITIAL er et importert warm-start, ikke fersk constructor: målte residualer
-er ikke null. Tidligere forventning om null var feil; opprinnelige råmålinger
-er bevart og separat MATCHED_INTERPRETATION_REVIEW korrigerer tolkningen.
+Gjennomsnittlig absolutt senereM5-retningssannsynlighetsendring over256rader
+ved fast MTF-bidrag: S0,01786/F0,01313prosentpoeng. Dette er lav følsomhet
+for akkurat denne intervensjonen, ikke unik informasjonsverdi.
+M5Brier intervensjon minus original: TRAIN S−1,0385e−5/F+3,9634e−6;
+senere S+1,0215e−6/F−1,5313e−6. Senere AUCendring S0/F−0,0007465.
+Senere kjente mål:80S/104F. Grupper viser blandede fortegn; ingen modellendring
+begrunnet. D1/F bedre Brier men svakere AUC er kun sekundær observasjon.
+INDEPENDENT_NUMERIC_REVIEWd1bdf87d:1360countfelt/1968flyttallsfelt,
+maksavvik4,44e−16, inkludert alle20pooledceller og alle16grupper i hver.
+512rader i16intakte B16-grupper perpartisjon er ikke512uavhengige observasjoner.
+Senere2024 er gjenbrukt utvikling, ikke urørt generalisering eller økonomi.
 
-Volatilitetsfamiliens lokale gjennomsnittsvekt faller fra97,3/97,5prosent til
-5,9/9,3prosent. MTF-variansen øker8,14/19,90ganger; varians utenfor første
-akse øker1,02/1,32ganger. Første aksens andel øker47,7/61,3 til93,4/97,4
-prosent. Dette er særlig en voksende dominerende akse, ikke påvist generell
-utsletting av variasjon. Sluttrepresentasjonens effektive variansdimensjoner
-øker litt. Disse målene er ikke matriserang eller prediktiv merverdi.
+## Inputavklaring og neste steg
 
-## Ikke bevist og neste steg
+Beholdt rå census:0numerisk manglende MTF-verdier; konstante felt0/1/1/3/2
+for M5/M15/H1/H4/D1. D1session_change_flag er0 på425konsumerte rader;
+andre konstanter er presence/observed-flagg på1. Dette er ikke frakoblede familier.
+TRAIN-normalisering har konstante felt0/1/3/3/2 på en annen populasjon.
+Alle øvrige felt beholder transformspenn minst0,5604M5/0,8813andreTF.
+Syv runtime-normaliseringsflater har eksakt0avvik i tidligere inputkontroll.
+Dette viser dekning og ikke-konstant støtte, ikke typisk temporal spredning.
+Makropublikasjon/vintage og prediktiv merverdi er ikke bevist av numerisk dekning.
 
-Ingen unik årsak, tapt prediktiv informasjon eller arkitekturendring er begrunnet.
-Familievis merverdi, tilstrekkelig trening, urørt generalisering og økonomi er åpne.
-Bevar kandidaten. Neste avgrensede kontroll bruker eksisterende fangster:
-frys lokal representasjon/kontekst, erstatt bare særskilt MTF-residual og
-MTF-pool med faste TRAIN-panelgjennomsnitt, og gjenberegn uendrede decoderlag.
-Krev først bitlik baseline; sammenlign eksisterende S/F-retningsloss og parede
-B16-grupper.0nyebackbonekall/0predictorfit. Intervensjonen påvirker også
-normaliseringen og må tolkes smalt. Ruten er kildekvalifisert og bundet i PLAN85d140d3 under
-MARKET_STATE_TA_MTF_RETAINED_INTERVENTION_20261111_001.67fokuserte tester
-og metadata-preflight består. Kilde/policy fryses gjennom kjøringen.
-Eksakt joint/query/M5-head-vei er bekreftet i eksisterende kilde. Krev bitlik
-joint-hidden, M5-representasjoner og native logits før intervensjonen.
-TRAIN-referansene beregnes én gang i FP64, avrundes til FP32 og låses før
-senerefangsten åpnes. Beregningsbudsjett64joint/64S/64F/128M5-headkall.
+Neste avgrensede arbeid er passiv måling ved temporal readout og siste TF-
+pooling på de samme frosne radene. Skill variasjon innen vinduer fra variasjon
+mellom beslutningsrader; krev eksakt outputparitet og gjenbruk inputkvitteringene.
+Ingen ny ablasjon, predictorfit eller arkitekturendring nå. Målingen må
+kildekvalifiseres og bindes i en ny engangsplan før kjøring.

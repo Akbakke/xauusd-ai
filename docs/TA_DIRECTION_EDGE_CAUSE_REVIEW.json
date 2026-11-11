@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_RETAINED_MTF_INTERVENTION_QUALIFIED",
+  "status": "ACTIVE_RETAINED_MTF_SENSITIVITY_COMPLETE_TEMPORAL_BOUNDARY_NEXT",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -58,40 +58,33 @@
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_INITIAL_OBSERVATION_20261111_001/MATCHED_INTERPRETATION_REVIEW.json",
         "sha256": "1cb6defc291209d1912ff7c5adfa561c3b435600589688fc92266df9efe79c38"
       }
+    },
+    {
+      "id": "retained_mtf_direction_sensitivity",
+      "evidence_class": "MEASURED_REAL_DATA_SCOPED_FIXED_INTERVENTION",
+      "finding": "The qualified frozen predictor has low sensitivity ofM5conditional direction to the tested row-varying dedicatedMTF residual/pool. Later probability deltas are mixed and rank does not improve. No modelchange justified.",
+      "evidence": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MTF_RETAINED_INTERVENTION_20261111_001/INTERPRETATION_REVIEW.json",
+        "sha256": "6af1d08011c2d5fce5d49bb7fecb06559ec080a77e8555be598c1acefb6be85c"
+      }
+    },
+    {
+      "id": "input_variation_support",
+      "evidence_class": "RETAINED_REAL_INPUT_CENSUS_AND_TRAIN_NORMALIZATION",
+      "finding": "Genuine MTFfield coverage and nonconstant transformedTRAINsupports are retained. Existing evidence does not contain std/quantiles or within-window/postencoder dispersion.",
+      "evidence": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MTF_RETAINED_INTERVENTION_20261111_001/INPUT_VARIATION_REVIEW.json",
+        "sha256": "f684c1df0583e9cb643cecd16cb3822005ce855a1932d46d7a54ca43d0f0cb31"
+      }
     }
   ],
   "next_measurement": {
-    "status": "ADMITTED_ONCE_NO_TRAINING",
-    "question": "Does the qualified predictor benefit from row-dependent dedicated MTF residual and pooled-MTF variation on these fixed diagnostic groups?",
-    "method": "Keep local representation and global context. Replace only joint after-MTF minus base residual and the direct MTF pool with fixed TRAIN-panel means. Recompute unchanged joint/query/output layers; first require bit-identical original baseline. Compare existing native S/F direction losses using unchanged masks and paired B16 groups.",
-    "new_backbone_forwards": 0,
-    "new_predictor_fits": 0,
+    "status": "SOURCE_QUALIFICATION_PENDING_NO_RUN_ADMITTED",
+    "question": "Where does temporal indicator variation become weak between genuine input histories, temporal readout and final timeframe pooling?",
+    "method": "Reuse the same frozen candidate and declared parents. Qualify passive statistics at temporal readout and final TF pooling, distinguishing within-window temporal variation from variation between decision rows, with exact retained-output parity. Reuse existing raw census and TRAIN transformed supports; no extra ablation or predictor fit.",
     "model_change_authorized": false,
-    "limitations": "Diagnostic intervention also affects joint normalization and breaks some natural feature relationships. A gain would require confirmation on a broader locked development axis before any model change; unchanged scores may reflect redundant routes.",
-    "mean_recipe": "FP64 TRAIN joint blocks; mean(after_mtf-base) and mean(mtf_pool) over all256declared TRAIN rows; cast onceFP32 and lock before later archive decode. No predictive fit or tuning.",
-    "reference_mean_vectors": 2,
-    "baseline_parity": "Bit-identical joint hidden, state/future M5 representations, and native logits required before intervention.",
-    "expected_joint_layer_calls": 64,
-    "expected_state_decoder_calls": 64,
-    "expected_future_decoder_calls": 64,
-    "expected_m5_head_calls": 128,
-    "expected_checkpoint_loads": 1,
-    "expected_candidate_head_tensor_imports": 4,
-    "plan": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MTF_RETAINED_INTERVENTION_20261111_001/PLAN.json",
-      "sha256": "85d140d3cbb7362f21f6fd13e0b986eaf94fd3a13f285579e9c817b1e7806147"
-    },
-    "preflight": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MTF_RETAINED_INTERVENTION_20261111_001/PREFLIGHT.log",
-      "sha256": "025eca5cb7c1da1440a531e0829b09164fba4c0123b3f07b8099743382dacef3"
-    },
-    "focused_tests_passed": 67,
-    "diagnostic_rows": 512,
-    "primary_metrics": "M5 S/F conditional Brier and logloss; bothTRAIN/later. AllotherTF/AUC descriptive withoutselection.",
-    "independent_numeric_check": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MTF_RETAINED_INTERVENTION_20261111_001/ANALYZE_RETAINED.py",
-      "sha256": "7ec973ca847f52b5700cbc226d635ad6632ecaca495216abb282dc05a05b181a"
-    }
+    "predictor_fits": 0,
+    "interpretation": "Variability is not predictivevalue. This locates an information-flow observation gap before deciding on any model correction."
   },
   "not_established": [
     "Unique historical optimizer cause",
@@ -342,5 +335,361 @@
       "No unique cause of weak ranking or actual model change is justified by this diagnostic alone. Family predictive value, sufficient-training capacity and untouched generalization remain open.",
       "16intactB16groups perpartition;512matched rows are not512independent observations."
     ]
+  },
+  "retained_mtf_intervention": {
+    "status": "COMPLETE",
+    "interpretation_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MTF_RETAINED_INTERVENTION_20261111_001/INTERPRETATION_REVIEW.json",
+      "sha256": "6af1d08011c2d5fce5d49bb7fecb06559ec080a77e8555be598c1acefb6be85c"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MTF_RETAINED_INTERVENTION_20261111_001/RESULT.json",
+      "sha256": "3c682a010b4b8a50e6b48b67f091cd2b157975f58dadcf6438ea85446b1e1eb2"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MTF_RETAINED_INTERVENTION_20261111_001/TERMINAL.json",
+      "sha256": "27ab3bce85a2ba4376845ceab9c0d8f7b597f7ccff7d568f12d9f4b6612ae6cc"
+    },
+    "controller_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MTF_RETAINED_INTERVENTION_20261111_001/CONTROLLER_TERMINAL.json",
+      "sha256": "09dce9dbc918f172e9bdc1a848cfe6afaaabf97c15bf12da9b6575628ba40573"
+    },
+    "numeric_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MTF_RETAINED_INTERVENTION_20261111_001/INDEPENDENT_NUMERIC_REVIEW.json",
+      "sha256": "d1bdf87d8f701f2b43089822be2e7e0710a82cfb1fcd51b0ccbe914c6bbcbffb"
+    },
+    "channel_sensitivity": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MTF_RETAINED_INTERVENTION_20261111_001/CHANNEL_SENSITIVITY_REVIEW.json",
+      "sha256": "15883051da2b7dc26574698cda4fa40395cc564310ef076efea844a92d2d8cfa"
+    },
+    "input_variation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MTF_RETAINED_INTERVENTION_20261111_001/INPUT_VARIATION_REVIEW.json",
+      "sha256": "f684c1df0583e9cb643cecd16cb3822005ce855a1932d46d7a54ca43d0f0cb31"
+    },
+    "normalization_support": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MTF_RETAINED_INTERVENTION_20261111_001/NORMALIZATION_SUPPORT_REVIEW.json",
+      "sha256": "4a2e91a5d5e87a80b5fe26b00b8ca30a6b675c2f8c8853d9c650e29d1945aa7e"
+    },
+    "source_commit": "d6d256d644d2962209efb8cb9d4f487146cc863c",
+    "elapsed_seconds": 38.39230011300242,
+    "counts": {
+      "archive_decodes": 3,
+      "backbone_encodings": 0,
+      "backwards": 0,
+      "candidate_writes": 0,
+      "checkpoint_loads": 1,
+      "checkpoint_writes": 0,
+      "forward_returns": 0,
+      "future_decoder_calls": 64,
+      "future_decoder_returns": 64,
+      "head_tensor_imports": 4,
+      "instrumented_forwards": 0,
+      "joint_calls": 64,
+      "joint_linear_calls": 64,
+      "m5_head_calls": 128,
+      "mean_vector_estimates": 2,
+      "model_constructions": 1,
+      "native_head_calls": 128,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "predictor_fits": 0,
+      "published_npz_bytes": 134622,
+      "query_projection_calls": 128,
+      "resume_state_load_calls": 1,
+      "resume_state_load_returns": 1,
+      "sampled_rows": 512,
+      "scalar_fits": 0,
+      "state_decoder_calls": 64,
+      "state_decoder_returns": 64
+    },
+    "baseline_parity": {
+      "capture_entry_q_joint_hidden_bitexact": true,
+      "future_activity_side_logits_bitexact": true,
+      "future_representation_bitexact": true,
+      "state_activity_side_logits_bitexact": true,
+      "state_representation_bitexact": true
+    },
+    "worker_numeric_agreement": {
+      "verified_count_fields": 1360,
+      "verified_non_null_float_fields": 1968,
+      "max_absolute_difference": 4.440892098500626e-16,
+      "scope": "Allpooled andall16groupcells forbothpartitions/tasks/all5timeframes; arithmeticagreementonly."
+    },
+    "primary": {
+      "TRAIN": {
+        "state": {
+          "original": {
+            "count": 91,
+            "up_count": 53,
+            "brier": 0.24630137339933272,
+            "log": 0.6857363285715079,
+            "mean_p": 0.5198094092979734,
+            "auc": 0.5357497517378351
+          },
+          "intervention": {
+            "count": 91,
+            "up_count": 53,
+            "brier": 0.24629098818190545,
+            "log": 0.6857155901436743,
+            "mean_p": 0.5198135133442111,
+            "auc": 0.535253227408143
+          },
+          "delta": {
+            "brier": -1.0385217427272275e-05,
+            "log": -2.0738427833566497e-05,
+            "mean_p": 4.104046237740633e-06,
+            "auc": -0.0004965243296921606
+          },
+          "group_delta_counts": {
+            "brier": {
+              "lower": 8,
+              "equal": 0,
+              "higher": 8
+            },
+            "log": {
+              "lower": 8,
+              "equal": 0,
+              "higher": 8
+            }
+          },
+          "zero_known_groups": 0
+        },
+        "future": {
+          "original": {
+            "count": 104,
+            "up_count": 49,
+            "brier": 0.2517295537226847,
+            "log": 0.6966099464513884,
+            "mean_p": 0.5117681068886096,
+            "auc": 0.46938775510204084
+          },
+          "intervention": {
+            "count": 104,
+            "up_count": 49,
+            "brier": 0.25173351707845776,
+            "log": 0.6966179381476092,
+            "mean_p": 0.511790347594684,
+            "auc": 0.46938775510204084
+          },
+          "delta": {
+            "brier": 3.963355773073385e-06,
+            "log": 7.991696220788214e-06,
+            "mean_p": 2.224070607437234e-05,
+            "auc": 0.0
+          },
+          "group_delta_counts": {
+            "brier": {
+              "lower": 9,
+              "equal": 0,
+              "higher": 7
+            },
+            "log": {
+              "lower": 9,
+              "equal": 0,
+              "higher": 7
+            }
+          },
+          "zero_known_groups": 0
+        }
+      },
+      "LATER": {
+        "state": {
+          "original": {
+            "count": 80,
+            "up_count": 40,
+            "brier": 0.2470983776941381,
+            "log": 0.687339724304952,
+            "mean_p": 0.5189992572363531,
+            "auc": 0.57625
+          },
+          "intervention": {
+            "count": 80,
+            "up_count": 40,
+            "brier": 0.247099399192374,
+            "log": 0.6873417364613565,
+            "mean_p": 0.5190169019080033,
+            "auc": 0.57625
+          },
+          "delta": {
+            "brier": 1.0214982359146862e-06,
+            "log": 2.012156404496146e-06,
+            "mean_p": 1.764467165021877e-05,
+            "auc": 0.0
+          },
+          "group_delta_counts": {
+            "brier": {
+              "lower": 9,
+              "equal": 0,
+              "higher": 7
+            },
+            "log": {
+              "lower": 9,
+              "equal": 0,
+              "higher": 7
+            }
+          },
+          "zero_known_groups": 0
+        },
+        "future": {
+          "original": {
+            "count": 104,
+            "up_count": 57,
+            "brier": 0.24971815943904804,
+            "log": 0.6925848975182228,
+            "mean_p": 0.5140233265756898,
+            "auc": 0.48450914520343413
+          },
+          "intervention": {
+            "count": 104,
+            "up_count": 57,
+            "brier": 0.24971662809046113,
+            "log": 0.6925818220791032,
+            "mean_p": 0.5140741377785871,
+            "auc": 0.48376259798432253
+          },
+          "delta": {
+            "brier": -1.5313485869083987e-06,
+            "log": -3.075439119593071e-06,
+            "mean_p": 5.081120289729402e-05,
+            "auc": -0.000746547219111604
+          },
+          "group_delta_counts": {
+            "brier": {
+              "lower": 8,
+              "equal": 0,
+              "higher": 8
+            },
+            "log": {
+              "lower": 8,
+              "equal": 0,
+              "higher": 8
+            }
+          },
+          "zero_known_groups": 0
+        }
+      }
+    },
+    "secondary": {
+      "TRAIN": {
+        "state": {
+          "M15": {
+            "known": 85,
+            "brier_delta": 6.679476429166664e-05,
+            "log_delta": 0.00015347409140620272,
+            "auc_delta": -0.0005555555555555314
+          },
+          "H1": {
+            "known": 80,
+            "brier_delta": 7.759903106285826e-05,
+            "log_delta": 0.00018190388049665884,
+            "auc_delta": 0.0
+          },
+          "H4": {
+            "known": 112,
+            "brier_delta": -6.137696277275229e-06,
+            "log_delta": -1.4542486073021443e-05,
+            "auc_delta": 0.001194743130226994
+          },
+          "D1": {
+            "known": 40,
+            "brier_delta": -4.2508856239353854e-05,
+            "log_delta": -9.223856372697625e-05,
+            "auc_delta": 0.002604166666666685
+          }
+        },
+        "future": {
+          "M15": {
+            "known": 92,
+            "brier_delta": -0.00021171837531111515,
+            "log_delta": -0.00043535115819082204,
+            "auc_delta": 0.0019047619047618536
+          },
+          "H1": {
+            "known": 91,
+            "brier_delta": -0.0004946755536958114,
+            "log_delta": -0.001005569338891732,
+            "auc_delta": 0.0014534883720930258
+          },
+          "H4": {
+            "known": 90,
+            "brier_delta": 0.0003723463096619861,
+            "log_delta": 0.0008028223064113771,
+            "auc_delta": -0.002488800398208091
+          },
+          "D1": {
+            "known": 80,
+            "brier_delta": -0.0007634561385243266,
+            "log_delta": -0.0015433842770099515,
+            "auc_delta": 0.0048828125
+          }
+        }
+      },
+      "LATER": {
+        "state": {
+          "M15": {
+            "known": 90,
+            "brier_delta": 4.0154920512514014e-05,
+            "log_delta": 9.585361933117653e-05,
+            "auc_delta": 0.0
+          },
+          "H1": {
+            "known": 71,
+            "brier_delta": 2.1660517391386414e-06,
+            "log_delta": 8.602235828880644e-06,
+            "auc_delta": -0.0008547008547008517
+          },
+          "H4": {
+            "known": 88,
+            "brier_delta": -8.497151082392795e-06,
+            "log_delta": -2.139119937516476e-05,
+            "auc_delta": 0.0
+          },
+          "D1": {
+            "known": 95,
+            "brier_delta": -3.083141042700688e-05,
+            "log_delta": -9.038360757940289e-05,
+            "auc_delta": 0.0
+          }
+        },
+        "future": {
+          "M15": {
+            "known": 89,
+            "brier_delta": -0.0003233685369015693,
+            "log_delta": -0.0006841019232963763,
+            "auc_delta": 0.0010319917440660409
+          },
+          "H1": {
+            "known": 69,
+            "brier_delta": 5.306131607346609e-05,
+            "log_delta": 0.00010935783337107097,
+            "auc_delta": 0.000945179584120992
+          },
+          "H4": {
+            "known": 100,
+            "brier_delta": 5.405572844935369e-05,
+            "log_delta": 5.7723942264997774e-05,
+            "auc_delta": 0.0
+          },
+          "D1": {
+            "known": 95,
+            "brier_delta": -0.000843277093469541,
+            "log_delta": -0.0019230200116844287,
+            "auc_delta": -0.0013297872340425898
+          }
+        }
+      }
+    },
+    "interpretation": [
+      "Original joint-hidden, M5representations andallnative5x2logits reproduce bitexact before fixed intervention. Model/RNG/buffers/modes/parameteridentity remain unchanged.",
+      "Fixed TRAINmean substitution has low M5conditional-direction sensitivity in this panel. Later S becomes marginally worse while F becomes marginally better in probabilityscores; rank does not improve.",
+      "No uniform gain across both tasks/partitions orB16groups supports a harmful-MTF explanation or a modelchange.",
+      "OtherTF are descriptive: laterD1/F probabilityscores improve butAUC worsens; this is not a rank/edge gain or basis for selection.",
+      "Mean absolute laterM5 sideprobability changes over all256rows are0.0001786274(S) and0.0001312642(F), or0.01786/0.01313percentagepoints. Activity changes are larger in absolute units; original channel variances differ, so preferential learning is not established.",
+      "Existing raw census has no numerical missingvalues in the consumed MTFunion. Constantfields are valid presence/observed flags andD1session_change_flag=0; this is not missinggenuinefamilies.",
+      "All nonconstant TRAINtransformed fields retain supportspan>=0.5604M5 or>=0.8813otherTF. This rejects general constant-making by normalization, but does not measure typical temporal/row variation.",
+      "Rawunion includes laterrows and hasconstantcounts0/1/1/3/2. TRAINtransformedcounts are0/1/3/3/2; the populationdifference is expected, not a mismatch.",
+      "Only512rows in16intactB16groups perpartition; later is reuseddevelopment. No statisticaledge, convergence or economics claim."
+    ],
+    "model_change_recommended": false
   }
 }
