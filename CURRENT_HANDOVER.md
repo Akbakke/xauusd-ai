@@ -6,13 +6,13 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_MATCHED_TRAIN_MODE_OBSERVATION_ADMITTED.
+TA_DIRECTION_EDGE_CAUSE_MATCHED_MODE_SHARED_HORIZON_PRESSURE_MEASURED.
 Målet 11.11 er aktivt: avklar målte årsaker til svak retningsverdi i indikatorer,
 sammensetting og læring. [Samlet status](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json).
 Korte runder er feilsøking, ikke kapasitetsdom. Full kvalifisert TRAIN-historikk
 og 30–40 epoker er senere skalering, ikke et krav ved hver rettelse.
-Tidligere modellplaner er konsumert. Én ny lesende kontroll av original treningsmodus
-og RNG-strøm er innrømmet, uten optimizer/backward/updates.
+Tidligere modellplaner og siste lesende kontroll er konsumert. Ingen ny native
+modellkjøring er innrømmet. Neste arbeid bruker allerede beholdte mellomresultater.
 Training/native_training/native_launch/full_epoch/full_val er false. Begge gamle
 c171 Windowsoppgaver er Disabled. GC er på pause; TEST, Entry/Exit, broker,
 handel, spending og promotion er stengt. Sluttcheckpoint er evidens, ikke promotion.
@@ -89,26 +89,49 @@ Tidligere paret source/tail-måling viste betinget rangfall ved sourcebytte med 
 fast og stort middelskift fra kontekst. [Avgrensningen](docs/TA_C171_PAIRED_JOINT_BOUNDARY_REVIEW.json)
 består; den er ikke bevis for generell svekkelse av fullprefix-læring eller informasjonstap.
 
-## Målt modusforskjell og neste kontroll
+## Kontrollert treningsmodus og målt samvariasjon mellom horisonter
 
-[Ny kontroll](docs/TA_C171_MATCHED_TRAIN_MODE_REVIEW.json) er ADMITTED.
-TRACE_ZERO_UPDATE_MODE_REVIEW 11734549: samme initialvekter og første 16 rader,
-men train/eval-tap 2,142327/2,142007 og maks råforskjell S0,114820/F0,035089 før updates.
-Bundet constructor/view har aktiv dropout0,05. Den direkte TRACE-minus-eval-sammenligningen
-kan derfor ikke tolkes som ren læring/glemsel. Det er ingen påvist dropoutfeil;
-den allerede kvalifiserte eval INITIAL/FINAL-sammenligningen står uendret.
+[Kontrollen](docs/TA_C171_MATCHED_TRAIN_MODE_REVIEW.json) er COMPLETE/CONSUMED.
+TRACE_ZERO_UPDATE_MODE_REVIEW 11734549 viste råforskjeller før første update med
+samme vekter og rader: S0,114820/F0,035089. Original dropout0,05 er aktiv; dette er
+modusforskjell, ingen påvist dropoutfeil. Tidligere paret eval-måling står uendret.
 
 ROOT: /home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_MATCHED_TRAIN_MODE_20261111_001.
-Gjenbruk én modell, faktiske INITIAL/FINAL-vekter og original module_training/gradflagg.
-Begge faser starter fra original INITIAL-RNG 67daad3d. Original train/enable_grad og
-0,05-dropout beholdes; grafen kastes etter hver batch. 0backward/optimizer/updates.
-INITIAL-batch0 må bitmatche TRACE i alle12felt/tap. Alle256RNG-grenser sammenlignes
-mellom fasene, og begge sluttstrømmer må matche originalFINAL b06f3644. Vekter,
-buffere, modus, identiteter og hooks skal ellers være passive; alle .grad forblir None.
-79fokustester, faktisk metadata-preflight/cap-selektor og uavhengig kildereview bestod.
-Høyst512forwards; samme900sworker/1200sguard og øvrige12GiB/effekt-/temperaturvakter.
-Ingen numeriske eiere er endret. Ny profilvarighet og historisk maskeidentitet er ubevist.
-Slutt-RNG alene beviser ikke identiske historiske masker; originale perbatch-RNGer finnes
-ikke. Målingen er én paret dropout-realisasjon, ikke et gjennomsnitt over alle masker.
-Kjør bare eksakt ny plan; bevar partial/FAILED_CONSUMED ved feil og ikke relanser.
-Ingen ny handelsedge eller kapasitet ved full trening er påvist.
+Kilde a6ece68d uendret; RESULT 3f637f8c, TERMINAL 236bdfb7, controller c812725d/exit0.
+676,92 s worker / 680,52 s controller, 512 forwards og 0 backward/optimizer/updates.
+Faktiske INITIAL/FINAL-vekter, original module_training/gradflagg og train/enable_grad;
+grafen kastes etter hver batch. Begge faser starter original INITIAL-RNG 67daad3d.
+INITIAL batch0 matcher TRACE i alle12felt/tap. Alle256parede RNG-grenser er bitlike,
+og begge faser ender på original FINAL-RNG b06f3644. Alle øvrige passivitetskrav består.
+79 fokustester, preflight, cap-selektor og uavhengig kildereview bestod. Samme12GiB,
+CPU0–7, effekt-/temperaturvakter og900sworker/1200sguard; ingen numeriske eiere endret.
+Originale historiske perbatch-masker finnes ikke. Dette er én paret dropout-realisasjon.
+
+MATCHED_MODE_TRAJECTORY_REVIEW 2804f842: originalt gjennomsnittstap INITIAL1,877814,
+TRACE1,883131 og FINAL1,891130. Svekkelsen består med lik treningsmodus. De tidlige
+kvartalene blir dårligere; de sene bedre. Første kvartal er også dårligere allerede ved
+TRACE pre-update enn med faste initialvekter: ikke uniform læring etterfulgt av glemsel.
+INDEPENDENT_MODE_TRAJECTORY_CHECK f08a779f bekrefter alle3×256tap bitlikt og179
+flyttallsfelt innen2,22e−16. Ingen ny modellkjøring var nødvendig for dette regnskapet.
+
+F/M15 gjennomsnittlig P(UP) øker til70,144% mot faktisk52,083%; F/H1 til71,109% mot
+53,969%. Deres Brier/log-tap blir dårligere. F/H4 og F/D1 forbedres i samme korte TRAIN.
+SHARED_SIDE_PRESSURE_REVIEW de17a2dc: 99,971% av kvadrert F-endringsenergi på de
+fire ikke-M5-horisontene er felles endring innen hver rad; S99,924%. Dette gjelder
+endringer i logits, ikke identiske prognoser eller bevist informasjonstap.
+Analytisk derivert av det faktiske TRACE-tapet viser motsatt fortegn mellom horisonter
+mot samme side-bias i103/256 F-batcher og129/256 S-batcher. F/H4 og F/D1 trekker samlet
+oppover på dette koordinatet, M15/H1 nedover; D1 trekker ikke alltid oppover, heller ikke
+i siste kvartal. Sentraldifferanse bekrefter derivatet innen1,27e−11. Dette er ett
+bias-koordinat, ikke full parametergradient, Adam-attribusjon eller vedtatt tapsendring.
+
+## Neste avklaring
+
+Gjenbruk beholdte joint_hidden/source og faktiske INITIAL/FINAL-dekodertensorer fra
+[paret boundary-kontroll](docs/TA_C171_PAIRED_JOINT_BOUNDARY_REVIEW.json).
+Utvid eksisterende endelig tail-replay til alle5tidsrammer for S/F og originale
+ALL16/UPDATED3/OTHER13. Skill sluttlag, queryprojection og input; kontroller endepunktsrest,
+begge rekkefølger og interaksjoner. Ingen ny native modell/fit/gradientprobe er innrømmet.
+Panelet har256rader og bare48fra brukt-prefixet: ingen full4096kausalandel eller
+kapasitetsdom. Sluttlag-/tapsendring velges først når denne lokaliseringen er kjent.
+Ingen ny handelsedge, senere generalisering eller kapasitet ved full trening er påvist.

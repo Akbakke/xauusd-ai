@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_ZERO_UPDATE_MODE_GAP_MEASURED_MATCHED_OBSERVATION_ADMITTED",
+  "status": "ACTIVE_MATCHED_MODE_TRAJECTORY_AND_SHARED_HORIZON_OUTPUT_PRESSURE_MEASURED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -209,16 +209,47 @@
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001/TRACE_ZERO_UPDATE_MODE_REVIEW.json",
         "sha256": "11734549fab2b03d44526a1b8b63f44efa1c347b7a8c62b644175a625afb2bca"
       },
-      "quality_claim": "Correction to comparison method, not evidence that dropout is a model bug or should be removed."
+      "quality_claim": "Correction to comparison method, not evidence that dropout is a model bug or should be removed.",
+      "followup": "Qualified matched-train-mode endpoint observation now complete; see latest matched_train_mode_observation. No dropout/model change was made."
+    },
+    {
+      "id": "matched_mode_prefix_trajectory",
+      "evidence_class": "PASSIVE_STOCHASTIC_MODE_ENDPOINT_AND_RETAINED_TRACE_ACCOUNTING",
+      "finding": "512grad-enabled forwards withoriginaldropout and0backward/optimizer/update reproduce firstTRACEbatch bitexact and all256paired RNGboundaries; bothfinalRNGhashes matchoriginalFINAL. Totalinitial/trace/final1.8778144/1.8831309/1.8911302. Matchedmode preserves early-half deterioration andlate-half improvement.",
+      "evidence": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_MATCHED_TRAIN_MODE_REVIEW.json",
+        "sha256": "ba8fa2a5e3278626558395abdad9df8081ffe998ee48390e94db357a3c9a7a80"
+      },
+      "quality_claim": "One paired realization andqualified historical-stream basis; no universal maskexpectation or economic edge."
+    },
+    {
+      "id": "near_parallel_nonm5_output_change",
+      "evidence_class": "IDENTICAL_ROW_CROSS_TIMEFRAME_OUTPUT_GEOMETRY",
+      "finding": "Over4096identicalrows the non-M5side rawchange is99.9710%F/99.9236%S common acrosshorizons withinrow. F/M15/H1meanPUP becomes70.14%/71.11%against52.08%/53.97%actualUP; D1improves while these shorter horizons worsen.",
+      "evidence": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_MATCHED_TRAIN_MODE_20261111_001/SHARED_SIDE_PRESSURE_REVIEW.json",
+        "sha256": "de17a2dcca7fae1652766b1b276ba8a343b8bb33d5f3cbd7a19b128171a81836"
+      },
+      "quality_claim": "Measured cross-horizon coupling inthis update, not proof of missing timeframe input or insufficient ultimatecapacity."
+    },
+    {
+      "id": "actual_trace_shared_side_offset_pressure",
+      "evidence_class": "RETAINED_ANALYTIC_ORIGINAL_LOSS_DERIVATIVE",
+      "finding": "The original shared non-M5side-bias coordinate sees opposing timeframe derivative signs in129S/103F of256actualTRACEbatches. FULL-F M15/H1mean derivatives +.002619/+.004057 opposeH4/D1 -.008800/-.013670; mean total -.015795. M5direct derivative to these sharedsidebiases iszero. Centraldifference agrees within1.27e-11.",
+      "evidence": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_MATCHED_TRAIN_MODE_20261111_001/SHARED_SIDE_PRESSURE_REVIEW.json",
+        "sha256": "de17a2dcca7fae1652766b1b276ba8a343b8bb33d5f3cbd7a19b128171a81836"
+      },
+      "quality_claim": "One parametercoordinate only; not full-gradient or Adam/finite-output causal attribution. No headsplit/feature removal/lossweight change selected."
     }
   ],
   "next_measurement": {
-    "status": "MATCHED_TRAIN_MODE_READ_ONLY_ADMITTED",
-    "question": "Can fixed INITIAL/FINAL weights be compared with original training mode and a qualified paired RNGstream before attributing the trajectory?",
-    "method": "Execute only matched-train-mode001: one model, two actual retained weight states, original module modes and grad-enabled forward with discarded graphs, two resets to original INITIAL-RNG, 512forwards at most. Require INITIALbatch0all12fields/loss bitexact to TRACE, all256paired perbatch RNGboundaries equal, originalFINALterminalRNG at both endpoints and non-RNGpassivity. No backward/optimizer/update or numerical model change. Preserve partials and consume failure; no relaunch. Then compare retained mode-matched endpoints and changing TRACE with stated historical-mask limits.",
-    "review": {
+    "status": "RETAINED_ALL_TIMEFRAME_TAIL_DECOMPOSITION_NO_NATIVE_RUN_ADMITTED",
+    "question": "Does common horizon output movement originate in the shared readout or earlier query/latent changes?",
+    "method": "Use retained paired joint-hidden/source observations and actual INITIAL/FINAL decoder tensors to localize the common non-M5 timeframe output change. Reuse finite tail replay, now report all5TF for S/F and the original all16/updated3/other13 partitions. Separate shared readout changes from queryprojection and input changes with endpoint replay residuals and order-dependent interactions. No new native model, fit, gradient probe or selected head/loss change. The256row panel cannot assign full4096prefix causal shares; preserve that limit before choosing a correction.",
+    "completed_predecessor": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_MATCHED_TRAIN_MODE_REVIEW.json",
-      "sha256": "ea43aad9385fbb00c677466adb840eb0bc0803b85ed4bebb06bfe0fc94b1bb51"
+      "sha256": "ba8fa2a5e3278626558395abdad9df8081ffe998ee48390e94db357a3c9a7a80"
     },
     "training_authorized": false,
     "model_change_authorized": false,
@@ -1653,6 +1684,6 @@
   },
   "matched_train_mode_observation": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_MATCHED_TRAIN_MODE_REVIEW.json",
-    "sha256": "ea43aad9385fbb00c677466adb840eb0bc0803b85ed4bebb06bfe0fc94b1bb51"
+    "sha256": "ba8fa2a5e3278626558395abdad9df8081ffe998ee48390e94db357a3c9a7a80"
   }
 }
