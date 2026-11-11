@@ -32,6 +32,7 @@ def plan():
         source_base_commit=COMMIT,worker={'path':str(worker.WORKER),'sha256':SHA},
         dispatch={'path':str(worker.WORKER),'sha256':SHA},
         cap_runner={'path':str(worker.REPO/worker.cache.CAP_RUNNER),'sha256':SHA},
+        gradient_helper={'path':str(worker.HELPER),'sha256':SHA},
         source_owners={},inputs=deepcopy(worker.INPUTS),**deepcopy(worker.BOUNDS))
 
 
@@ -247,3 +248,31 @@ def test_existing_partition_changes_only_flags_without_optimizer_or_gradients():
     model.weight.grad=torch.zeros_like(model.weight)
     with pytest.raises(RuntimeError,match='PENDING_GRADIENT'):
         worker._short_parameter_partition(model,owner)
+
+
+@pytest.mark.parametrize('key',worker.HEAD_KEYS)
+def test_gradient_observation_requires_both_matched_head_inputs(key):
+    value=arrays();baseline={k:v.copy() for k,v in value.items()}
+    worker._require_parity(value,baseline,1.25,1.25,np=np,match_heads=True)
+    value[key][0,0]=np.nextafter(value[key][0,0],np.float32(1))
+    with pytest.raises(RuntimeError,match='INITIAL_ARRAY_PARITY'):
+        worker._require_parity(value,baseline,1.25,1.25,np=np,match_heads=True)
+
+
+def test_retained_gradient_vectors_use_fixed_layout_and_intact_batch_order(monkeypatch):
+    from gx1.audit.ta_c171_query_projection_gradient_v1 import ARMS
+    one={name:np.full(17280,i,np.float32) for i,name in enumerate(ARMS)}
+    two={name:value+10 for name,value in one.items()};seen={}
+    def publish(name,values,counts,**kwargs):
+        seen.update(name=name,arrays=values,kwargs=kwargs);return {'path':'synthetic','sha256':SHA}
+    monkeypatch.setattr(worker.cache,'_save_fusion_arrays',publish)
+    worker._save_gradients([one,two],{'published_npz_bytes':318504},[0,123],np=np)
+    assert seen['name']=='TRAIN_GRADIENT_FORWARD.npz'
+    assert np.array_equal(seen['arrays']['batch_indices'],[0,123])
+    for name in ARMS:
+        assert np.array_equal(seen['arrays'][name],np.stack([one[name],two[name]]))
+    assert seen['kwargs']['max_bytes']==16*1024**2
+    before=dict(seen)
+    with pytest.raises(RuntimeError,match='GRADIENT_BYTES'):
+        worker._save_gradients([one],{'published_npz_bytes':16*1024**2},[0],np=np)
+    assert seen==before

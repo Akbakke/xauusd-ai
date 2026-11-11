@@ -1,0 +1,83 @@
+{
+  "schema_version": "gx1_ta_c171_query_projection_gradient_review_v1",
+  "status": "ADMITTED_NOT_RUN",
+  "question": "At the first shared query projection, do H4/D1 original-loss gradients locally move M5 mean logits upward, and do they help or hurt the M5 side loss?",
+  "reason": "Retained M5/rest gradients aggregate H4/D1 with medium side and all activity losses; they cannot identify a D1 contribution. Prefix class marginals and the reconstructed-head remainder alone do not identify harmful transfer.",
+  "prior_gradient_result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MIXING_GRADIENT_OBSERVATION_20261111_001/RESULT.json",
+    "sha256": "dbdd04d875ce81949741158fc0c37efe4f556744d95bdd521928088ea2ddb7e1"
+  },
+  "prior_head_review": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_SHORT_HEAD_ATTRIBUTION_REVIEW.json",
+    "sha256": "eeb7af81a68ee32bc55217ff4b137e0720090af2118a3674195dc93648a917c5"
+  },
+  "source_boundary": {
+    "parameter": "state_model.query_projection.0",
+    "weight_shape": [
+      128,
+      134
+    ],
+    "bias_shape": [
+      128
+    ],
+    "elements": 17280,
+    "shared": "All S/F output timeframes use this projection of128 hidden coordinates plus5 TF-one-hot columns plus1 query fraction. M5 has separate final side heads; other side/activity heads do not share M5-side bias parameters.",
+    "groups": [
+      "hidden_weight",
+      "timeframe_weight",
+      "query_fraction_weight",
+      "bias"
+    ]
+  },
+  "method": "Original scalar loss supplies raw-logit derivative seeds. Eight disjoint loss VJPs and two all-row mean-M5-logit VJPs plus direct total give11autograd calls per intact batch. No loss reimplementation or optimizer.",
+  "loss_arms": [
+    "state_m5_side",
+    "future_m5_side",
+    "state_h4_side",
+    "state_d1_side",
+    "future_h4_side",
+    "future_d1_side",
+    "medium_side",
+    "activity"
+  ],
+  "bounds": {
+    "models": 1,
+    "forwards": 16,
+    "autograd_grad_calls": 176,
+    "parameter_tensors": 2,
+    "rows": 256,
+    "updates": 0,
+    "checkpoint_writes": 0,
+    "wall_seconds": 900,
+    "guard_seconds": 1200,
+    "head_npz_bytes": 2097152,
+    "gradient_npz_bytes": 14680064,
+    "aggregate_npz_bytes": 16777216,
+    "retained_gradient_memory_bytes": 67108864,
+    "json_bytes": 1048576
+  },
+  "required_parity": "All original raw outputs/axes/masks/losses and both newly retained M5head inputs must match completed headcapture002 bitwise before each gradient measurement. Complete model/buffers/RNG/modes/identities/hooks unchanged and all parameter.grad None.",
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_QUERY_PROJECTION_GRADIENT_20261111_001/PLAN.json",
+    "sha256": "a0c2513a15d9593cb715c90323ac8180adce3444601c8d6204597ecf1bd1bd3d"
+  },
+  "preflight": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_QUERY_PROJECTION_GRADIENT_20261111_001/PREFLIGHT.json",
+    "sha256": "a706984dd9a86ff6cf7933cf4a6d88fb781ddc2c938499cab77c50d0b50e9402"
+  },
+  "actual_cap_gate": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_QUERY_PROJECTION_GRADIENT_20261111_001/CAP_GATE.json",
+    "sha256": "f6f5b8228f6441fddf725802531e61a9c995b62279f06483615a4aec0b06d9ed"
+  },
+  "focused_helper_tests": 12,
+  "focused_worker_and_route_tests": 56,
+  "review_protocol": "Recompute geometry from retained vectors; report both mean of within-batch dots and dot of mean vectors, all16/first3/other13 fixed groups. A negative mean-logit dot component-loss gradient predicts an infinitesimal ordinary-gradient increase in that logit, not an AdamW trajectory.",
+  "limitations": [
+    "Initial frozen c171 and small dependent historical TRAIN panel only; not the full4096 training path or a generalization population.",
+    "Two shared projection tensors only; no general whole-model interference claim.",
+    "Class imbalance, gradient norm and mean-dot conflict alone do not authorize changing loss weights, removing features or training.",
+    "No candidate model, optimizer, later data, TEST, broker or trading authority."
+  ],
+  "training_authorized": false,
+  "test_data_used": false
+}

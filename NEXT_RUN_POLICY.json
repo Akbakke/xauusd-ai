@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-11T15:41:27.251651+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_SHORT_HEAD_REPRESENTATION_REVIEW_COMPLETE",
+  "status": "TA_DIRECTION_EDGE_CAUSE_QUERY_PROJECTION_GRADIENT_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1698,7 +1698,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Matched initial capture and independent retained-output arithmetic complete; all observation/native launch gates closed.",
+    "current_activity": "One read-only gradient observation of the first shared S/F query projection admitted after focused source, feature and cap qualification.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1751,7 +1751,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "The remaining common output movement is associated with the representation path in the reconstructed-input diagnostic; unique encoder/loss cause and broader fit/generalization remain unproved.",
+    "current_blocker": "Retained M5/rest gradients aggregate H4/D1 with medium side and all activity losses; they cannot identify a D1 contribution. Prefix class marginals and the reconstructed-head remainder alone do not identify harmful transfer.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9222,7 +9222,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Localize whether and how differing short/long-timeframe objectives move the shared representation toward a common upward level, using the existing matched outputs, trace and source first. The H4/D1 class marginals identify a concrete hypothesis, not proof of harmful gradient transfer. Preserve every feature/timeframe; no loss weight/model change or new fit is admitted solely from these marginals.",
+    "next_action": "Execute the sole admitted shared-query projection gradient observation and independently reconcile its retained vectors. Keep mean-logit movement separate from M5 loss effects and per-batch geometry separate from mean-gradient geometry.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -75497,7 +75497,7 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_SHORT_OUTPUT_SHIFT_LOCALIZED_TO_REMAINING_REPRESENTATION_PATH",
+    "status": "ACTIVE_QUERY_PROJECTION_COMPONENT_GRADIENT_ADMITTED",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
@@ -75507,12 +75507,12 @@
       "sha256": "896d6479cffbc7422265e7c7ee24ac1955ef33d4a4dcec498dd1bdf8992cc3c2"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": false,
+    "model_or_data_run_admitted": true,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Localize whether and how differing short/long-timeframe objectives move the shared representation toward a common upward level, using the existing matched outputs, trace and source first. The H4/D1 class marginals identify a concrete hypothesis, not proof of harmful gradient transfer. Preserve every feature/timeframe; no loss weight/model change or new fit is admitted solely from these marginals.",
-    "active_stage": "market_state_ta_c171_short_initial_heads_20261111_002",
+    "next_action": "Execute the sole admitted shared-query projection gradient observation and independently reconcile its retained vectors. Keep mean-logit movement separate from M5 loss effects and per-batch geometry separate from mean-gradient geometry.",
+    "active_stage": "market_state_ta_c171_query_projection_gradient_20261111_001",
     "previous_goal_turn_classification": "PROGRESS: retained MTFintervention andinputsupport review ruledout an unsupported harmful-MTF or generalnormalization-collapse change; nextactualboundarymeasurement identified.",
     "last_goal_turn_classification": "PROGRESS: retained M5 head gradients/AdamW reconcile; direct biases move opposite to the observed common upward shift. Reproduced initial16B16panel qualified after concrete observer-profile correction. Ordered head/rest analysis independently checked; long-timeframe prefix marginals define next isolated question. No predictive edge or unique upstream cause claimed."
   },
@@ -76213,7 +76213,7 @@
     "unresolved_campaign_marker_preserved": true,
     "standard_campaign_receipt_available": false
   },
-  "active_stage": "market_state_ta_c171_short_initial_heads_20261111_002",
+  "active_stage": "market_state_ta_c171_query_projection_gradient_20261111_001",
   "market_state_ta_m5_c171_short_learning_20261111_002": {
     "decision": "CLOSED",
     "status": "COMPLETE_CONSUMED",
@@ -76585,5 +76585,102 @@
     },
     "historical_hidden_input_identity_proved": false,
     "unique_historical_cause_proved": false
+  },
+  "market_state_ta_c171_query_projection_gradient_20261111_001": {
+    "gradient_elements": 17280,
+    "wall_seconds": 900,
+    "thread_environment": {
+      "BLIS_NUM_THREADS": "8",
+      "MKL_NUM_THREADS": "8",
+      "NUMEXPR_NUM_THREADS": "8",
+      "OMP_NUM_THREADS": "8",
+      "OPENBLAS_NUM_THREADS": "8",
+      "VECLIB_MAXIMUM_THREADS": "8"
+    },
+    "numerical_threads": 8,
+    "autograd_calls_per_batch": 11,
+    "max_checkpoint_loads": 1,
+    "parameter_tensors": 2,
+    "max_candidate_writes": 0,
+    "max_backbone_encodings": 16,
+    "interop_policy": "process_default_unchanged_like_short002",
+    "max_retained_gradient_bytes": 67108864,
+    "max_optimizer_updates": 0,
+    "gradient_observations_authorized": true,
+    "max_autograd_grad_calls": 176,
+    "parameter_partition": "original_fold1_fit_active_true_inactive_false",
+    "fit_rows": 29574,
+    "max_cache_bytes": 2097152,
+    "projection_path": "state_model.query_projection.0",
+    "decoder_width": 128,
+    "device": "cuda",
+    "max_total_npz_bytes": 16777216,
+    "candidate_model_state_sha256": "c171736d2de79396dd86a79ad895f8bf2226e5ad8d996abf1dd7f52055e4a467",
+    "numerical_mode": "eval_grad_deterministic_fp32_training_mha_fastpath_false",
+    "max_optimizer_constructions": 0,
+    "panel_batch_indices": [
+      0,
+      123,
+      246,
+      369,
+      492,
+      615,
+      738,
+      861,
+      985,
+      1108,
+      1231,
+      1354,
+      1477,
+      1600,
+      1723,
+      1847
+    ],
+    "sampled_rows": 256,
+    "max_gradient_npz_bytes": 14680064,
+    "max_backwards": 176,
+    "max_published_json_bytes": 1048576,
+    "max_model_constructions": 1,
+    "training_enabled": false,
+    "batch_size": 16,
+    "head_tensor_imports": 4,
+    "max_checkpoint_writes": 0,
+    "test_data_used": false,
+    "closure_relative_l2_limit": 0.0001,
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_QUERY_PROJECTION_GRADIENT_20261111_001/PLAN.json",
+      "sha256": "a0c2513a15d9593cb715c90323ac8180adce3444601c8d6204597ecf1bd1bd3d"
+    },
+    "max_invocations": 1,
+    "remaining_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "backbone_encodings_authorized": 16,
+    "head_tensor_imports_authorized": 4,
+    "candidate_weights_writes_authorized": 0,
+    "backward_calls_authorized": 176,
+    "optimizer_steps_authorized": 0,
+    "training_authorized": false,
+    "retained_output_arithmetic_authorized": true,
+    "retained_output_fit_authorized": false,
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_QUERY_PROJECTION_GRADIENT_REVIEW.json",
+      "sha256": "e86a38005af31a7f9b813b8d0e4f75c2c626ecd329f6777b0a85c9ce0be27a1d"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_QUERY_PROJECTION_GRADIENT_20261111_001/PREFLIGHT.json",
+      "sha256": "a706984dd9a86ff6cf7933cf4a6d88fb781ddc2c938499cab77c50d0b50e9402"
+    },
+    "actual_cap_gate": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_QUERY_PROJECTION_GRADIENT_20261111_001/CAP_GATE.json",
+      "sha256": "f6f5b8228f6441fddf725802531e61a9c995b62279f06483615a4aec0b06d9ed"
+    },
+    "focused_tests_passed": 68,
+    "standing_authority": "Explicit11November direction-edge cause goal. One new bounded frozen-model gradient observation to resolve a concrete retained-evidence gap; no optimizer, updates, later-data reads or spending."
   }
 }

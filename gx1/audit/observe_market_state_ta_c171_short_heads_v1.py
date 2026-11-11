@@ -1,4 +1,4 @@
-"""One frozen c171 TRAIN head-input capture in the exact short002 eval mode.
+"""One read-only c171 shared-query projection gradient observation on TRAIN.
 
 No numerical model, feature transform, loss, fit or checkpoint writer lives here.
 A retained native/fastpath cache is not assumed to equal these short-mode inputs.
@@ -17,13 +17,17 @@ from gx1.contracts import local_random_access_campaign_v2 as campaign
 from gx1.contracts import market_state_ta_m5_short_learning_v1 as short
 
 REPO = cache.REPO
-STAGE = 'market_state_ta_c171_short_initial_heads_20261111_002'
+STAGE = 'market_state_ta_c171_query_projection_gradient_20261111_001'
 ROOT = Path('/home/andre2/GX1_RUNS') / STAGE.upper()
-SCHEMA = 'gx1_ta_c171_short_initial_heads_plan_v1'
+SCHEMA = 'gx1_ta_c171_query_projection_gradient_plan_v1'
 WORKER = REPO / 'gx1/audit/observe_market_state_ta_c171_short_heads_v1.py'
+HELPER = REPO / 'gx1/audit/ta_c171_query_projection_gradient_v1.py'
+MATCHED_ROOT = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_002')
 SHORT_ROOT = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_002')
 INPUTS = {
     **cache.FUSION_REFS,
+    'matched_initial_heads': {'path': str(MATCHED_ROOT/'TRAIN_FUSION.npz'), 'sha256': 'ead6516a52299ccaa228e54735a290a7f54140e57f46b28b0aebd6cca9ee8db4'},
+    'matched_initial_result': {'path': str(MATCHED_ROOT/'RESULT.json'), 'sha256': 'f6e0c8a3edf50a2f10ad52417f1d73f597594fd1cf26124fac1f49f652184ed7'},
     'short_recipe': {'path': str(SHORT_ROOT/'RECIPE.json'), 'sha256': '7e66e231594358e72ad5b6efc8d88e62053bdf24dd8cf4131d3c65d571357b20'},
     'short_result': {'path': str(SHORT_ROOT/'RESULT.json'), 'sha256': '1b25f095c3f610fc9c42325840f6f683cf3e9a50006fcd6249250e07e753724a'},
     'short_initial_measurement': {'path': str(SHORT_ROOT/'INITIAL_TRAIN.json'), 'sha256': '5b20a6fbe2885b5f9ad1998a66852f6773300003c290016e2b40bf2eaf18c099'},
@@ -33,11 +37,16 @@ INPUTS = {
 BOUNDS = dict(fit_rows=29574, batch_size=16, decoder_width=128,
     panel_batch_indices=list(short.PANEL_BATCH_INDICES), sampled_rows=256,
     max_backbone_encodings=16, max_model_constructions=1, max_checkpoint_loads=1,
-    head_tensor_imports=4, max_autograd_grad_calls=0, max_backwards=0,
+    head_tensor_imports=4, max_autograd_grad_calls=176, max_backwards=176,
     max_optimizer_constructions=0, max_optimizer_updates=0, max_checkpoint_writes=0,
     max_candidate_writes=0, max_cache_bytes=2*1024**2, max_published_json_bytes=1024**2,
     wall_seconds=900, device='cuda', candidate_model_state_sha256=short.MODEL_SHA256,
-    numerical_mode='eval_no_grad_deterministic_fp32_training_mha_fastpath_false',
+    numerical_mode='eval_grad_deterministic_fp32_training_mha_fastpath_false',
+    parameter_tensors=2, gradient_elements=17280, autograd_calls_per_batch=11,
+    projection_path='state_model.query_projection.0',
+    max_retained_gradient_bytes=64*1024**2, max_gradient_npz_bytes=14*1024**2,
+    max_total_npz_bytes=16*1024**2, closure_relative_l2_limit=1e-4,
+    gradient_observations_authorized=True,
     numerical_threads=8, interop_policy='process_default_unchanged_like_short002',
     thread_environment={name:'8' for name in ('OMP_NUM_THREADS','MKL_NUM_THREADS','OPENBLAS_NUM_THREADS',
         'NUMEXPR_NUM_THREADS','VECLIB_MAXIMUM_THREADS','BLIS_NUM_THREADS')},
@@ -59,12 +68,13 @@ def build_plan(source_commit):
     return dict(schema_version=SCHEMA, stage=STAGE, source_repo=str(REPO),
         source_base_commit=source_commit, worker=cache._ref(WORKER),
         dispatch=cache._ref(WORKER), cap_runner=cache._ref(REPO/cache.CAP_RUNNER),
+        gradient_helper=cache._ref(HELPER),
         source_owners=recipe['source_owners'], inputs=INPUTS, **BOUNDS)
 
 
 def _require_plan(plan, plan_path, out_dir):
     fields = {'schema_version','stage','source_repo','source_base_commit','worker',
-              'dispatch','cap_runner','source_owners','inputs'} | set(BOUNDS)
+              'dispatch','cap_runner','gradient_helper','source_owners','inputs'} | set(BOUNDS)
     _need(isinstance(plan,dict) and set(plan)==fields and plan['schema_version']==SCHEMA
         and plan['stage']==STAGE and plan['source_repo']==str(REPO)
         and Path(plan_path)==ROOT/'PLAN.json' and Path(out_dir)==ROOT
@@ -110,7 +120,7 @@ def _inspect(plan_path, plan_sha, out_dir, *, execute):
     ref = dict(path=str(plan_path),sha256=plan_sha)
     plan = _require_plan(cache._read(ref),plan_path,out_dir)
     bound = [ref]
-    for key,path in (('worker',WORKER),('dispatch',WORKER),('cap_runner',REPO/cache.CAP_RUNNER)):
+    for key,path in (('worker',WORKER),('dispatch',WORKER),('cap_runner',REPO/cache.CAP_RUNNER),('gradient_helper',HELPER)):
         _need(plan[key]['path']==str(path), 'SOURCE_PATH:'+key)
         campaign.require_binding(plan[key],label='short heads '+key,verify_file=True);bound.append(plan[key])
     for key,value in plan['inputs'].items():
@@ -125,6 +135,12 @@ def _inspect(plan_path, plan_sha, out_dir, *, execute):
     original,result,measurement = (cache._read(INPUTS[k]) for k in
         ('short_recipe','short_result','short_initial_measurement'))
     _qualify_short(transient,result,measurement,original)
+    matched=cache._read(INPUTS['matched_initial_result'])
+    _need(matched['status']=='COMPLETE' and matched['source_unchanged'] is True
+        and all(matched['passivity'].values()) and matched['counts']['matched_batches']==16
+        and matched['candidate_model_state_sha256']==short.MODEL_SHA256
+        and matched['artifacts']['head_inputs']==INPUTS['matched_initial_heads']
+        and matched['original_initial_measurement']==INPUTS['short_initial_measurement'], 'MATCHED_HEAD_BASELINE')
     _need(q['view']['contract_sha256']==transient['expected_view_sha256']
         and q['recipe']['numerical_recipe']==transient['numerical_recipe']
         and transient['numerical_recipe']['precision_policy']=='deterministic_fp32', 'VIEW_NUMERICS')
@@ -139,7 +155,7 @@ def _inspect(plan_path, plan_sha, out_dir, *, execute):
             claimed_invocations=0,completed_invocations=0,relaunch_allowed=False,execution_authorized=True,
             data_reads_authorized=True,checkpoint_reads_authorized=True,backbone_encodings_authorized=16,
             head_tensor_imports_authorized=4,candidate_weights_writes_authorized=0,
-            backward_calls_authorized=0,optimizer_steps_authorized=0,training_authorized=False)
+            backward_calls_authorized=176,optimizer_steps_authorized=0,training_authorized=False)
         _need(all(type(gate.get(k)) is type(v) and gate[k]==v for k,v in {**BOUNDS,**expected}.items()), 'ADMISSION')
         _need(cache._git('branch','--show-current')=='work/gx1-current','BRANCH')
         campaign.require_clean_source(dict(source_repo=str(REPO),source_commit=head))
@@ -178,10 +194,11 @@ def _require_arrays(arrays, rows, *, np, heads=True):
     _need(sum(x.nbytes for x in arrays.values()) <= BOUNDS['max_cache_bytes'], 'ARRAY_BYTES')
 
 
-def _require_parity(actual, baseline, loss, expected_loss, *, np):
+def _require_parity(actual, baseline, loss, expected_loss, *, np, match_heads=False):
     _require_arrays(actual,16,np=np)
-    _require_arrays(baseline,16,np=np,heads=False)
-    _need(cache._fusion_exact_arrays({k:actual[k] for k in BASE_KEYS},baseline), 'INITIAL_ARRAY_PARITY')
+    _require_arrays(baseline,16,np=np,heads=match_heads)
+    keys=BASE_KEYS+HEAD_KEYS if match_heads else BASE_KEYS
+    _need(cache._fusion_exact_arrays({k:actual[k] for k in keys},baseline), 'INITIAL_ARRAY_PARITY')
     # JSON retained the exact Python float conversion of each original FP32 loss.
     _need(type(expected_loss) is float and float(loss)==expected_loss, 'INITIAL_LOSS_PARITY')
 
@@ -196,6 +213,21 @@ def _save(parts, counts, *, partial, np):
     return cache._save_fusion_arrays('TRAIN_FUSION_PARTIAL.npz' if partial else 'TRAIN_FUSION.npz',
         arrays,counts,np=np,root=ROOT)
 
+
+
+def _save_gradients(parts, counts, batch_indices, *, np):
+    from gx1.audit.ta_c171_query_projection_gradient_v1 import ARMS
+    _need(0<len(parts)<=16 and len(batch_indices)==len(parts), 'GRADIENT_ROWS')
+    arrays={arm:np.stack([part[arm] for part in parts]) for arm in ARMS}
+    _need(all(set(part)==set(ARMS) for part in parts)
+        and all(v.shape==(len(parts),17280) and v.dtype==np.float32 and np.isfinite(v).all()
+                for v in arrays.values()), 'GRADIENT_ARRAYS')
+    arrays['batch_indices']=np.asarray(batch_indices,np.int64)
+    buf=io.BytesIO();np.savez(buf,**arrays)
+    _need(buf.tell()<=BOUNDS['max_gradient_npz_bytes']
+        and counts['published_npz_bytes']+buf.tell()<=BOUNDS['max_total_npz_bytes'], 'GRADIENT_BYTES')
+    return cache._save_fusion_arrays('TRAIN_GRADIENT_FORWARD.npz',arrays,counts,np=np,root=ROOT,
+        max_bytes=BOUNDS['max_total_npz_bytes'])
 
 
 def _runtime_profile(torch):
@@ -251,6 +283,7 @@ def run(plan_path, plan_sha, out_dir, device='cuda'):
     from gx1.scripts import run_market_state_time_query_fold1_fit_window_v1 as runner
     from gx1.scripts import run_entry_native_direction_research_window_v1 as common
     from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+    from gx1.audit import ta_c171_query_projection_gradient_v1 as gradient
     from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import _BATCH_EQUAL_LENGTH_MTF_EVAL
     _need(not torch.cuda.is_initialized() and signal.getitimer(signal.ITIMER_REAL)==(0.,0.),'INIT_ORDER')
     claim=cache._publish('CLAIM.json',dict(plan=q['plan_ref'],source_commit=q['head'],cap=cap,
@@ -259,8 +292,9 @@ def run(plan_path, plan_sha, out_dir, device='cuda'):
         head_tensor_imports=0,archive_decodes=0,autograd_grad_calls=0,backwards=0,
         optimizer_constructions=0,optimizer_updates=0,checkpoint_writes=0,candidate_writes=0,
         resume_state_load_calls=0,resume_state_load_returns=0,published_npz_bytes=0,
-        sampled_rows=0,matched_batches=0,head_capture_returns=0,extra_target_gathers=0)
+        sampled_rows=0,matched_batches=0,head_capture_returns=0,extra_target_gathers=0,gradient_batches=0)
     provider=prepared=model=None;parts=[];artifacts={};records=[];candidate=None;passivity={};runtime={};trainability={}
+    gradient_parts=[];gradient_sums={}
     previous_alarm=signal.getsignal(signal.SIGALRM)
     def timeout(*unused):raise TimeoutError('Short initial heads 900-second bound')
     def bookend():
@@ -273,10 +307,13 @@ def run(plan_path, plan_sha, out_dir, device='cuda'):
         trainer._set_deterministic(numerical['seed'],cuda,numerical['precision_policy'])
         runtime=_runtime_profile(torch);_require_runtime_profile(runtime)
         _need(_BATCH_EQUAL_LENGTH_MTF_EVAL.get() is False,'RUNTIME')
-        with np.load(INPUTS['short_initial_capture']['path'],allow_pickle=False) as z:
-            _need(set(z.files)==set(BASE_KEYS),'INITIAL_FIELDS')
-            baseline={k:z[k].copy() for k in BASE_KEYS}
-        counts['archive_decodes']+=1;_require_arrays(baseline,256,np=np,heads=False)
+        _need(gradient.ELEMENTS==BOUNDS['gradient_elements'] and gradient.CALLS_PER_BATCH==BOUNDS['autograd_calls_per_batch']
+            and gradient.CLOSURE_RELATIVE_L2_LIMIT==BOUNDS['closure_relative_l2_limit'], 'GRADIENT_HELPER_BOUNDS')
+        with np.load(INPUTS['matched_initial_heads']['path'],allow_pickle=False) as z:
+            _need(set(z.files)==set(BASE_KEYS+HEAD_KEYS),'INITIAL_FIELDS')
+            baseline={k:z[k].copy() for k in BASE_KEYS+HEAD_KEYS}
+        counts['archive_decodes']+=1;_require_arrays(baseline,256,np=np)
+
         provider,provider_plan,prepared,rows,issues=runner._prepared_fold1(receipts,view,np=np)
         require_m5_equal_observation_axes(rows,issues)
         bound,future=load_bound_time_query_targets(),load_bound_future_displacement()
@@ -321,8 +358,8 @@ def run(plan_path, plan_sha, out_dir, device='cuda'):
             features={k:torch.from_numpy(v).to(cuda) for k,v in raw.items()}
             captured,handles=_m5_readout_hooks(model,16)
             try:
-                with torch.no_grad(),trainer._training_mha_fastpath_context(model.backbone),trainer._training_autocast_context(),trainer._training_model_finite_check_context():
-                    _need(not torch.is_grad_enabled() and torch.backends.mha.get_fastpath_enabled() is False
+                with torch.enable_grad(),trainer._training_mha_fastpath_context(model.backbone),trainer._training_autocast_context(),trainer._training_model_finite_check_context():
+                    _need(torch.is_grad_enabled() and torch.backends.mha.get_fastpath_enabled() is False
                         and _BATCH_EQUAL_LENGTH_MTF_EVAL.get() is False and counts['backbone_encodings']<16,'FORWARD_PROFILE')
                     counts['backbone_encodings']+=1
                     report=evaluate_fit_batch(model,features,bound,future,parents,clocks,fold_id=1,pass_index=0,
@@ -345,8 +382,20 @@ def run(plan_path, plan_sha, out_dir, device='cuda'):
                 for name in ('allowed','eligible','mature'):piece[task+'_'+name]=truths[task][name].copy()
             _require_arrays(piece,16,np=np);parts.append(piece);counts['sampled_rows']+=16
             loss=float(report['loss'].detach());records.append(dict(batch_index=index,rows=16,loss=loss,parity=False))
-            _require_parity(piece,expected,loss,q['initial_measurement']['measurement']['canonical_batch_losses'][group],np=np)
+            _require_parity(piece,expected,loss,q['initial_measurement']['measurement']['canonical_batch_losses'][group],np=np,match_heads=True)
             records[-1]['parity']=True;counts['matched_batches']+=1
+            _need(counts['autograd_grad_calls']+11<=BOUNDS['max_autograd_grad_calls'], 'GRADIENT_BUDGET')
+            with torch.enable_grad():
+                measured,vectors=gradient.measure_query_projection_partition(report,model.state_model.query_projection[0],counts=counts,torch=torch)
+            counts['backwards']=counts['autograd_grad_calls'];counts['gradient_batches']+=1
+            records[-1]['gradient']=measured
+            gradient_parts.append({name:value.to(dtype=torch.float32).numpy().copy() for name,value in vectors.items()})
+            for name,value in vectors.items():
+                if name not in gradient_sums:gradient_sums[name]=value.clone()
+                else:gradient_sums[name].add_(value)
+            retained=sum(v.nbytes for part in gradient_parts for v in part.values())+sum(v.numel()*v.element_size() for values in (vectors,gradient_sums) for v in values.values())
+            _need(retained<=BOUNDS['max_retained_gradient_bytes'] and all(p.grad is None for p in model.parameters()), 'GRADIENT_PASSIVITY')
+            del measured,vectors
             del report,features,raw
         passivity['complete_signature_unchanged']=signature()==candidate
         passivity['all_initial_arrays_and_batch_losses_bitexact']=counts['matched_batches']==16
@@ -354,28 +403,42 @@ def run(plan_path, plan_sha, out_dir, device='cuda'):
         _need(all(passivity.values()),'PASSIVITY')
         exact=dict(model_constructions=1,checkpoint_loads=1,backbone_encodings=16,forward_returns=16,
             head_tensor_imports=4,archive_decodes=2,resume_state_load_calls=1,resume_state_load_returns=1,
-            sampled_rows=256,matched_batches=16,head_capture_returns=32,extra_target_gathers=32)
+            sampled_rows=256,matched_batches=16,head_capture_returns=32,extra_target_gathers=32,
+            gradient_batches=16,autograd_grad_calls=176,backwards=176)
         _need(all(counts[k]==v for k,v in exact.items()),'COUNTS')
         artifacts['head_inputs']=_save(parts,counts,partial=False,np=np)
+        artifacts['gradients']=_save_gradients(gradient_parts,counts,BOUNDS['panel_batch_indices'],np=np)
         release=prepared;prepared=None;base._release_pages(provider,release);provider.validate_metadata(provider_plan);bookend()
         return cache._publish_fusion_outcome(q['plan_ref'],dict(claim=claim,counts=counts,artifacts=artifacts,
             source_commit=q['head'],source_identity=source_identity,import_proof=import_proof,
             candidate_model_state_sha256=candidate['model'],batch_indices=BOUNDS['panel_batch_indices'],
             batch_records=records,passivity=passivity,numeric_runtime=runtime,
+            mean_gradient_geometry=gradient.summarize({name:value/16 for name,value in gradient_sums.items()}),
+            gradient_layout=dict(elements=17280,weight_shape=[128,134],bias_shape=[128],arms=list(gradient.ARMS)),
+            side_readout_weight_l2={name:float(value.detach().cpu().double().norm()) for name,value in (
+                ('state_m5_side',model.state_model.m5_side_head.weight),
+                ('future_m5_side',model.future_m5_side_head.weight),
+                ('state_other_side',model.state_model.query_head.weight[1]),
+                ('future_other_side',model.future_head.weight[1]))},
             parameter_partition=dict(profile=BOUNDS['parameter_partition'],active_tensors=sum(trainability.values()),
                 inactive_tensors=len(trainability)-sum(trainability.values())),
             source_unchanged=True,evaluation_state_unchanged=True,
             original_initial_measurement=INPUTS['short_initial_measurement'],elapsed_seconds=time.monotonic()-started,
             limitations=['16 intact B16 groups from dependent, historically trained TRAIN rows; no heldout/edge claim.',
-                'Actual short eval/no_grad/fastpath-false head inputs only; no causal attribution or parameter update.',
+                'Original loss split into8 logit-seed arms at the shared query projection only; local infinitesimal ordinary-gradient geometry, not AdamW/clipping or historical causality.',
+                'Per-batch dot averages and dot of mean gradients answer different questions; neither is edge or a fitted intervention.',
                 'Matching known thread and gradient-flag differences does not establish the cause of consumed001 parity failure.']),
             complete=True,root=ROOT,json_bytes_bound=BOUNDS['max_published_json_bytes'])
     except BaseException as exc:
+        counts['backwards']=counts['autograd_grad_calls']
         signal.setitimer(signal.ITIMER_REAL,0)
         changed=save_error=None
         if parts and not artifacts:
             try:artifacts['partial_head_inputs']=_save(parts,counts,partial=True,np=np)
             except Exception as other:save_error=repr(other)
+        if gradient_parts and 'gradients' not in artifacts:
+            try:artifacts['partial_gradients']=_save_gradients(gradient_parts,counts,BOUNDS['panel_batch_indices'][:len(gradient_parts)],np=np)
+            except Exception as other:save_error=(save_error or '')+';gradients:'+repr(other)
         if candidate is not None:
             try:passivity['complete_signature_unchanged']=signature()==candidate
             except Exception as other:passivity['signature_error']=repr(other)
@@ -384,7 +447,7 @@ def run(plan_path, plan_sha, out_dir, device='cuda'):
         result=cache._publish_fusion_outcome(q['plan_ref'],dict(claim=claim,counts=counts,artifacts=artifacts,
             batch_records=records,passivity=passivity,numeric_runtime=runtime,error=type(exc).__name__+':'+str(exc),
             source_unchanged=changed is None,bookend_error=changed,partial_save_error=save_error,
-            interpretation_authorized=False),complete=False,root=ROOT,json_bytes_bound=BOUNDS['max_published_json_bytes'])
+            interpretation_authorized=False,closure_failure=getattr(exc,'report_json',None)),complete=False,root=ROOT,json_bytes_bound=BOUNDS['max_published_json_bytes'])
         raise RuntimeError('TA_C171_SHORT_HEADS_FAILED_CONSUMED:'+str(result)) from exc
     finally:
         signal.setitimer(signal.ITIMER_REAL,0);signal.signal(signal.SIGALRM,previous_alarm)

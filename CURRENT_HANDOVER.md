@@ -6,12 +6,13 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_SHORT_HEAD_REPRESENTATION_REVIEW_COMPLETE.
+TA_DIRECTION_EDGE_CAUSE_QUERY_PROJECTION_GRADIENT_ADMITTED.
 Målet11.11 er aktivt: mål årsaker til svak retningsverdi i indikatorer,
 sammensetting og læring. [Samlet status](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json).
 Korte runder er feilsøking, ikke kapasitetsdom. Full kvalifisert TRAIN-historikk
 og30–40epoker er senere skalering, ikke et krav ved hver rettelse.
-Alle engangsplaner er konsumert; ingen ny kjøring er innrømmet eller aktiv.
+Alle tidligere planer er konsumert; én ny lesende gradientobservasjon er
+innrømmet, ennå ikke startet.
 Training/native_training/native_launch/full_epoch er false. Begge gamle c171
 Windowsoppgaver er Disabled. GC er på pause; TEST, Entry/Exit, broker, handel,
 spending og promotion er stengt. Alle genuine indikatorer og fem TF beholdes.
@@ -81,3 +82,17 @@ mot et felles oppnivå, med allerede beholdte målinger og kode først. Bevar al
 features/TF; ingen ny fit eller loss-/modellendring følger bare av marginalene.
 Unik upstream-årsak, fullprefix-fit, familiers nytte, senere generalisering og
 kapasitet ved tilstrekkelig trening er fortsatt uavklart. Ingen ny edge er påvist.
+
+## Eksakt neste observasjon
+
+[Avgrensning](docs/TA_C171_QUERY_PROJECTION_GRADIENT_REVIEW.json).
+Gamle gradienter har bare S/M5,F/M5,rest,total; rest kan ikke splittes tilD1.
+Første felles parametersted er query_projection[0] for alleS/F-outputtidsrammer.
+Ny001 måler bare weight[128,134]+bias[128],17280elementer i4koordinatgrupper.
+Originaltapets H4/D1-sidebidrag skilles fra M5,medium-side og aktivitet. To prober
+måler rå M5-logitmiddel.16sammeB16 TRAIN-grupper;176autograd-kall,0updates/
+optimizer/checkpointskriv. Alle14 tidligere panelfelt og16tap kreves bitlike før
+VJP; full tilstand uendret. Alle11vektorer perbatch beholdes utenforrepo for gjenbruk.
+PLANa0c2513a, preflighta706984d, faktisk cap-gate og68 fokustester består.
+Modelleiere/loss/inputs/TF og maskinvaregrenser uendret. Begge slags dot-middel
+rapporteres; små lokale gradienter er ikke historiskAdamW-årsak eller edge.
