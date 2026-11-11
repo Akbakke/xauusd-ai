@@ -6,7 +6,7 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_SHARED_HORIZON_SHIFT_LOCALIZED_BEFORE_READOUT.
+TA_DIRECTION_EDGE_CAUSE_NON_M5_SIDE_MECHANICS_PASS_NATIVE_BASELINE_REQUIRED.
 Målet 11.11 er aktivt: avklar målte årsaker til svak retningsverdi i indikatorer,
 sammensetting og læring. [Samlet status](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json).
 Korte runder er feilsøking, ikke kapasitetsdom. Full kvalifisert TRAIN-historikk
@@ -25,7 +25,8 @@ prediktiv familienytte. Alle 11 temporal-/akse-encodere og 228 undersøkte tenso
 hadde vektendring og Adam-andremomenter. Mean+last kansellerer ikke systematisk;
 tidligere fast MTF-intervensjon ga ingen bedre rangering. Trendlinjeslots mangler
 entydig samme-linje-identitet/ankere/endringsmarkør; prediktiv kostnad er UNKNOWN.
-Alle genuine features og tidsrammer er bevart. Ingen modell-/tapsendring er valgt.
+Alle genuine features og tidsrammer er bevart. En eksplisitt opt-in sidehead-rettelse
+er mekanisk kontrollert; tapsformler og vekter beholdes. Standardmodellen er uendret.
 
 Siste native trening er fortsatt short002: 256 updates, 4096 kronologiske TRAIN-rader,
 0 skips, fersk tom AdamW og samme c171-initial/originaltap. Kilde 9de7e20b.
@@ -147,12 +148,44 @@ Dette er256avhengige TRAIN-rader, bare48nyoppdaterte. De208andre er ikke heldout
 Tre enkeltklasseceller har korrekt null AUC. Ingen kausalandel for hele4096prefixet,
 fullkapasitet, senere generalisering eller økonomisk edge er fastslått.
 
+## Målt tidsrammekondisjonering og minste valgte forsøk
+
+[Beholdt følsomhetskontroll](docs/TA_C171_DECODER_CONDITIONING_REVIEW.json) er COMPLETE.
+DECODER_CONDITIONING_REVIEW e8c16451: én NPZ/to CPU-checkpoints, ingen native modell,
+forwards, autograd eller updates; audit4GiB/512MiB. Originalt16B16-panel, begge endepunkter,
+S/F, alle5TF og begge råkanaler. Analytisk Linear/GELU-Jacobian bekreftes med bundet
+sentraldifferanse i to retninger; maksavvik3,17e−10. Originale endepunktsrester og tidligere
+finite H-effekter stemmer. Nullvektorer, normer, parvise cosinus og støtter er rapportert.
+
+Felles nonM5-sidefølsomhet er S99,804%→99,840%, F99,760%→99,832% i hele panelet;
+alle tre partisjoner overstiger99,7%. Rangeringene mellom nonM5horisontene er også nesten
+identiske. Like querykoordinater gir like nonM5utganger ved konstruksjon; denne kontrollen
+må ikke brukes som ekstra prediktivt bevis. M5 har separate hoder og andre retninger.
+Ingen kapasitetsdom, unikt treningsårsakbevis eller full4096kausalandel følger av dette.
+
+[Valgt opt-in rettelse](docs/TA_NON_M5_SIDE_DECODER_REPAIR.json): fire uavhengige
+nonM5-sidehoder perS/F, klonet fra dagens delte siderad med eksisterende RNG-bevarende
+helper.16tensorer/1032parametre. M5, aktivitet, query/backbone, alle features/TF og
+originalt tap beholdes. StandardFalse og gamle kontrakter skal være identiske.
+Smal weights-only-migrasjon bevarer M5, modus, gradflagg og normalisering; ingen
+optimizer-/cursorhistorie arves. Nye modeller avvises av gamle numeriske oppskrifter før AdamW-konstruksjon.
+
+167fokuserte CPU-tester bestod, exit0, kilde uendret under testen. Ny opt-in kloner
+uavhengige16tensorer uten RNG-forskyvning; gammel default bevarer kontrakter/statekeys/
+output. M5 og aktivitet er bitlike i decoderfixtures; nonM5startparitet innen1e−6.
+PerTFside-perturbasjon og backward treffer bare valgt readout; sharedrepresentasjon får
+fortsatt gradient. Originalt masket/vektet tap og rålogitgradient er identiske.
+Migrering bevarer source, M5, modus, gradflagg og normalisering; feil avvises før mutasjon.
+Gamle statefixture-tester bruker syntetisk optimizerhistorie; ingen markedstrening kjørt.
+ROOT: /home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SIDE_MECHANICAL_20261111_001.
+SOURCE_BINDING9b4514d0, FOCUSED_TESTS.log0edd42ee; MECHANICAL_REVIEW har samlet kvittering.
+
 ## Neste avklaring
 
-Mål tidsrammekondisjonering fra de samme beholdte joint_hidden og faktiske query-/
-readouttensorene: analytisk Linear/GELU-sensitivitet og endelige query-koordinatkontroller
-skal skille felles respons på markedssignaler fra reell TF-spesifikk respons. Behold
-alle5TF, beggeS/F, ALL16/UPDATED3/OTHER13 og endepunktsrester. Avklar delt readout som
-læringskobling før minste rettelse velges. Kun beholdt CPU-regning gjennom auditcap;
-ingen native modell/forward, autograd, optimizer, kandidat, TEST eller trening.
-Ingen nye fullprefix-captures trengs for dette steget. Full trening vurderes senere.
+Forbered minste eksakte lesende native initialparitet fra faktisk c171 INITIAL og
+originalt16B16 TRAIN-panel. Gjenbruk eksisterende guardedobservasjon/migrering, bind
+ny modell/view/objective, bevar features/targets/tap og kontroller uendrede koordinater
+samt klonede FP32-utganger mot beholdte originaler. Ingen gammel plan relanseres;
+ingen ny nativejobb eller trening er innrømmet av denne forberedelsen.
+Ny variant trenger fersk faktisk initialbaseline og særskilt kvalifisert kort
+læringssammenligning. Mekanikkpass er ikke bedre edge. Full trening vurderes senere.

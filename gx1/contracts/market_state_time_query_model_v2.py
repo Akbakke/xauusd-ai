@@ -33,11 +33,15 @@ from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import EntryV10CtxHyb
 
 def factorized_time_query_model_contract(
     *, ta_only: bool = False, dedicated_m5_side: bool = False,
+    dedicated_non_m5_side: bool = False,
 ) -> dict:
     if type(ta_only) is not bool:
         raise ValueError("TIME_QUERY_TA_MODE")
     if type(dedicated_m5_side) is not bool or (dedicated_m5_side and not ta_only):
         raise ValueError("TIME_QUERY_DEDICATED_M5_SIDE_MODE")
+    if type(dedicated_non_m5_side) is not bool or (
+            dedicated_non_m5_side and not dedicated_m5_side):
+        raise ValueError("TIME_QUERY_DEDICATED_NON_M5_SIDE_MODE")
     value = {
         "schema_version": "gx1_market_state_time_query_model_v2",
         "role": "research_only_no_entry_exit_or_trade_authority",
@@ -64,6 +68,11 @@ def factorized_time_query_model_contract(
             "shared_Linear_hidden_plus_6_to_hidden_GELU_then_Linear_hidden_to_2"
             "_with_dedicated_M5_conditional_side_Linear_hidden_to_1")
         value["M5_side_initialization"] = "clone_shared_side_row_preserving_CPU_and_active_CUDA_RNG"
+    if dedicated_non_m5_side:
+        value["dedicated_non_m5_side"] = True
+        value["non_M5_side_timeframes"] = list(TIMEFRAMES[1:])
+        value["head"] += "_and_independent_non_M5_conditional_side_Linear_hidden_to_1"
+        value["non_M5_side_initialization"] = "clone_shared_side_row_preserving_existing_M5_and_CPU_and_active_CUDA_RNG"
     if ta_only:
         profile = compile_full_ta_entry_execution_profile()
         value["input_profile"] = {key: profile[key] for key in ("name", "contract_sha256")}
@@ -107,7 +116,8 @@ class FactorizedTimeQueryMarketStateModel(TimeQueryMarketStateModel):
     """The v1 causal encoding and query domain with a distinct two-logit head."""
 
     def __init__(self, backbone: EntryV10CtxHybridTransformer, *,
-                 dedicated_m5_side: bool = False):
+                 dedicated_m5_side: bool = False,
+                 dedicated_non_m5_side: bool = False):
         # Build the distinct v2 head directly; do not instantiate an unused v1
         # three-logit head or consume its initialization randomness.
         nn.Module.__init__(self)
@@ -119,6 +129,10 @@ class FactorizedTimeQueryMarketStateModel(TimeQueryMarketStateModel):
                  and (not dedicated_m5_side or self._ta_only),
                  "DEDICATED_M5_SIDE_MODE")
         self._dedicated_m5_side = dedicated_m5_side
+        _require(type(dedicated_non_m5_side) is bool
+                 and (not dedicated_non_m5_side or dedicated_m5_side),
+                 "DEDICATED_NON_M5_SIDE_MODE")
+        self._dedicated_non_m5_side = dedicated_non_m5_side
         self._require_input_profile(backbone)
         self.backbone = backbone
         self._hidden_width = width
@@ -129,6 +143,10 @@ class FactorizedTimeQueryMarketStateModel(TimeQueryMarketStateModel):
         self.query_head = nn.Linear(width, 2, device=device, dtype=torch.float32)
         if self._dedicated_m5_side:
             self.m5_side_head = _clone_side_head(self.query_head)
+        if self._dedicated_non_m5_side:
+            self.non_m5_side_heads = nn.ModuleDict({
+                timeframe: _clone_side_head(self.query_head)
+                for timeframe in TIMEFRAMES[1:]})
         self.register_buffer("query_tf_coordinates", torch.eye(
             len(TIMEFRAMES), device=device, dtype=torch.float32))
         self.register_buffer("query_native_k", torch.tensor(
@@ -140,7 +158,8 @@ class FactorizedTimeQueryMarketStateModel(TimeQueryMarketStateModel):
     @property
     def research_objective(self) -> dict:
         return factorized_time_query_model_contract(
-            ta_only=self._ta_only, dedicated_m5_side=self._dedicated_m5_side)
+            ta_only=self._ta_only, dedicated_m5_side=self._dedicated_m5_side,
+            dedicated_non_m5_side=self._dedicated_non_m5_side)
 
     def _require_input_profile(self, backbone) -> None:
         if self._ta_only:
@@ -160,6 +179,11 @@ class FactorizedTimeQueryMarketStateModel(TimeQueryMarketStateModel):
                  "DEDICATED_M5_SIDE_MODE")
         _require(hasattr(self, "m5_side_head") == self._dedicated_m5_side,
                  "M5_SIDE_HEAD_BINDING")
+        _require(type(self._dedicated_non_m5_side) is bool
+                 and (not self._dedicated_non_m5_side or self._dedicated_m5_side),
+                 "DEDICATED_NON_M5_SIDE_MODE")
+        _require(hasattr(self, "non_m5_side_heads") == self._dedicated_non_m5_side,
+                 "NON_M5_SIDE_HEAD_BINDING")
         width = _backbone_width(self.backbone)
         _require(width == self._hidden_width, "HIDDEN_WIDTH")
         self._require_input_profile(self.backbone)
@@ -187,6 +211,11 @@ class FactorizedTimeQueryMarketStateModel(TimeQueryMarketStateModel):
         ]
         if self._dedicated_m5_side:
             layers.append((self.m5_side_head, width, 1))
+        if self._dedicated_non_m5_side:
+            _require(type(self.non_m5_side_heads) is nn.ModuleDict
+                     and tuple(self.non_m5_side_heads) == tuple(TIMEFRAMES[1:]),
+                     "NON_M5_SIDE_HEAD_BINDING")
+            layers.extend((head, width, 1) for head in self.non_m5_side_heads.values())
         for layer, inputs, outputs in layers:
             _require(type(layer) is nn.Linear and layer.in_features == inputs
                      and layer.out_features == outputs and layer.weight.shape == (outputs, inputs)
@@ -195,6 +224,11 @@ class FactorizedTimeQueryMarketStateModel(TimeQueryMarketStateModel):
                      and layer.weight.device == layer.bias.device == device
                      and bool(torch.isfinite(layer.weight).all())
                      and bool(torch.isfinite(layer.bias).all()), "HEAD_BINDING")
+        if self._dedicated_non_m5_side:
+            storages = [parameter.untyped_storage().data_ptr()
+                        for layer, _, _ in layers
+                        for parameter in (layer.weight, layer.bias)]
+            _require(len(set(storages)) == len(storages), "NON_M5_SIDE_HEAD_ALIASES")
 
     def encode_features(
         self, seq_x: torch.Tensor, snap_x: torch.Tensor, *,
@@ -263,6 +297,10 @@ class FactorizedTimeQueryMarketStateModel(TimeQueryMarketStateModel):
         if self._dedicated_m5_side:
             raw = raw.clone()
             raw[..., 0, 1] = self.m5_side_head(representation[..., 0, :]).squeeze(-1)
+        if self._dedicated_non_m5_side:
+            for index, timeframe in enumerate(TIMEFRAMES[1:], start=1):
+                raw[..., index, 1] = self.non_m5_side_heads[timeframe](
+                    representation[..., index, :]).squeeze(-1)
         _require(raw.shape == (batch, blocks, len(TIMEFRAMES), 2)
                  and bool(torch.isfinite(raw).all()), "LOGITS")
         return raw

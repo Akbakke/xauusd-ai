@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-11T21:40:33.284839+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_SHARED_HORIZON_SHIFT_LOCALIZED_BEFORE_READOUT",
+  "observed_utc": "2026-11-11T22:08:13.544618+00:00",
+  "status": "TA_DIRECTION_EDGE_CAUSE_NON_M5_SIDE_MECHANICS_PASS_NATIVE_BASELINE_REQUIRED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Measure decoder timeframe conditioning using only retained joint_hidden and bound initial/final query/readout tensors: quantify horizon-specific response to the same hidden coordinates with analytic Linear/GELU sensitivity and finite query-coordinate controls. Keep all5TF, both S/F, original ALL16/UPDATED3/OTHER13 and all endpoint residuals. Distinguish direct readout-parameter movement from structural shared-readout coupling before selecting the smallest correction. CPU retained arithmetic only, through existing audit cap; no native model/forward, autograd, optimizer, candidate, new training or TEST. No more full-prefix captures are needed for this step.",
+  "next_action": "Prepare the smallest exact read-only native initial-parity qualification for the independent non-M5 side variant using the actual c171 INITIAL checkpoint and original16B16 TRAIN panel. Reuse the existing guarded observation/migration path, bind the new model/view/objective identities, keep original features/targets/losses, verify allunchanged coordinates and cloneFP32tolerance against retainedoriginal outputs. No old plan may relaunch; this preparation admits no native job or training. A separately sealed new read-only scope and freshactualinitialbaseline must precede any bounded learning comparison; fullhistory training remains later.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1434,7 +1434,7 @@
     "profitability_demonstrated": false,
     "required_before_more_extensive_training": true,
     "entry_learning_demonstrated": false,
-    "current_evidence_scope": "Full4096used TRAIN-prefix shows small M5 gains with combinedobjective regression. Matchedtrainmode confirms nonM5horizoncommonshift. Retained256row allTF H/Q/R replay localizes mostfinite shift before readout, independently verified. Thisdoesnot exonerate structuralsharedheadcoupling or assign fullprefixcausalshares. Later generalization, fullcapacity andeconomic edge remainunproved.",
+    "current_evidence_scope": "SmallM5 TRAINgain and combinedobjective regression verified on4096usedrows. Retained256row decoderanalysis shows nearlyparallel nonM5local response and ranks. Minimal opt-in separate nonM5sideheads implemented;167syntheticCPUmechanical checks pass, including unchangeddefaults/loss and oldrecipe rejection. Newvariant actualnativebaseline, boundedlearningcomparison, generalization andeconomic edge remainunproved.",
     "component_learning_measured": true,
     "component_learning_result": "NATIVE_M5_BOUNDED_READOUT_AMPLITUDE_CORRECTION_VERIFIED_EDGE_UNPROVED",
     "primary_entry_quality_qualified": false,
@@ -1698,7 +1698,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Retained H/Q/R factorization complete and independently verified; next localize timeframe conditioning using the same saved tensors, no native model/training.",
+    "current_activity": "Opt-in non-M5 side decoder repair mechanically verified by167focusedCPUtests; native initial-parity preparation next, no native run/training admitted.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -9222,7 +9222,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Measure decoder timeframe conditioning using only retained joint_hidden and bound initial/final query/readout tensors: quantify horizon-specific response to the same hidden coordinates with analytic Linear/GELU sensitivity and finite query-coordinate controls. Keep all5TF, both S/F, original ALL16/UPDATED3/OTHER13 and all endpoint residuals. Distinguish direct readout-parameter movement from structural shared-readout coupling before selecting the smallest correction. CPU retained arithmetic only, through existing audit cap; no native model/forward, autograd, optimizer, candidate, new training or TEST. No more full-prefix captures are needed for this step.",
+    "next_action": "Prepare the smallest exact read-only native initial-parity qualification for the independent non-M5 side variant using the actual c171 INITIAL checkpoint and original16B16 TRAIN panel. Reuse the existing guarded observation/migration path, bind the new model/view/objective identities, keep original features/targets/losses, verify allunchanged coordinates and cloneFP32tolerance against retainedoriginal outputs. No old plan may relaunch; this preparation admits no native job or training. A separately sealed new read-only scope and freshactualinitialbaseline must precede any bounded learning comparison; fullhistory training remains later.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22137,7 +22137,7 @@
     },
     "direction_edge_cause_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "ff21328a95b9716b2c1efcf2ae17977d28b443298102713ddbe5efea451a803a"
+      "sha256": "5ed49eaf3707ed12a8b245a15525b338d6cbeb5e10e04f400b749e279be009be"
     },
     "latest_c171_startup_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_C171_SHORT_LEARNING_STARTUP_REVIEW.json",
@@ -22196,6 +22196,14 @@
     "latest_c171_all_tf_tail_factor_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_ALL_TF_TAIL_FACTOR_REVIEW.json",
       "sha256": "5da978f765b0ad1ac001023501be7665989270d8353d768b801b9e1b29406c0f"
+    },
+    "latest_decoder_conditioning_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_DECODER_CONDITIONING_REVIEW.json",
+      "sha256": "b05019003f93669db4266e8b038d438d5b85f8140bbeffa4120aa93f147429ba"
+    },
+    "latest_non_m5_side_decoder_repair": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_SIDE_DECODER_REPAIR.json",
+      "sha256": "5bee4559edad5ea6d21523b5c6e7d1e98f8c17d3f470f17778e83e925cdeeaaa"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -75535,27 +75543,35 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_SHARED_HORIZON_SHIFT_LOCALIZED_ON_RETAINED_PANEL",
+    "status": "ACTIVE_NON_M5_SIDE_OPT_IN_MECHANICS_PASS_NATIVE_BASELINE_REQUIRED",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
     "training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "ff21328a95b9716b2c1efcf2ae17977d28b443298102713ddbe5efea451a803a"
+      "sha256": "5ed49eaf3707ed12a8b245a15525b338d6cbeb5e10e04f400b749e279be009be"
     },
     "integrator": "root",
     "model_or_data_run_admitted": false,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Measure decoder timeframe conditioning using only retained joint_hidden and bound initial/final query/readout tensors: quantify horizon-specific response to the same hidden coordinates with analytic Linear/GELU sensitivity and finite query-coordinate controls. Keep all5TF, both S/F, original ALL16/UPDATED3/OTHER13 and all endpoint residuals. Distinguish direct readout-parameter movement from structural shared-readout coupling before selecting the smallest correction. CPU retained arithmetic only, through existing audit cap; no native model/forward, autograd, optimizer, candidate, new training or TEST. No more full-prefix captures are needed for this step.",
+    "next_action": "Prepare the smallest exact read-only native initial-parity qualification for the independent non-M5 side variant using the actual c171 INITIAL checkpoint and original16B16 TRAIN panel. Reuse the existing guarded observation/migration path, bind the new model/view/objective identities, keep original features/targets/losses, verify allunchanged coordinates and cloneFP32tolerance against retainedoriginal outputs. No old plan may relaunch; this preparation admits no native job or training. A separately sealed new read-only scope and freshactualinitialbaseline must precede any bounded learning comparison; fullhistory training remains later.",
     "active_stage": "market_state_ta_c171_matched_train_mode_20261111_001",
     "previous_goal_turn_classification": "PROGRESS: retained MTFintervention andinputsupport review ruledout an unsupported harmful-MTF or generalnormalization-collapse change; nextactualboundarymeasurement identified.",
-    "last_goal_turn_classification": "RETAINED_ALL_TIMEFRAME_HIDDEN_QUERY_READOUT_LOCALIZATION_NO_MODEL_CHANGE",
+    "last_goal_turn_classification": "PROGRESS_MEASURED_NEAR_PARALLEL_DECODER_SENSITIVITY_AND_IMPLEMENTED_INDEPENDENT_SIDE_READOUTS_167_TESTS_PASS",
     "latest_tail_factor_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_ALL_TF_TAIL_FACTOR_REVIEW.json",
       "sha256": "5da978f765b0ad1ac001023501be7665989270d8353d768b801b9e1b29406c0f"
+    },
+    "decoder_conditioning_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_DECODER_CONDITIONING_REVIEW.json",
+      "sha256": "b05019003f93669db4266e8b038d438d5b85f8140bbeffa4120aa93f147429ba"
+    },
+    "non_m5_side_decoder_repair": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_SIDE_DECODER_REPAIR.json",
+      "sha256": "5bee4559edad5ea6d21523b5c6e7d1e98f8c17d3f470f17778e83e925cdeeaaa"
     }
   },
   "market_state_ta_fusion_observation_20261111_001": {
@@ -76808,7 +76824,7 @@
     },
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "ff21328a95b9716b2c1efcf2ae17977d28b443298102713ddbe5efea451a803a"
+      "sha256": "5ed49eaf3707ed12a8b245a15525b338d6cbeb5e10e04f400b749e279be009be"
     },
     "full_model_constructions": 0,
     "native_model_forwards": 0,
@@ -77769,5 +77785,28 @@
     "optimizer_updates": 0,
     "test_data_used": false,
     "next_action": "Measure decoder timeframe conditioning using only retained joint_hidden and bound initial/final query/readout tensors: quantify horizon-specific response to the same hidden coordinates with analytic Linear/GELU sensitivity and finite query-coordinate controls. Keep all5TF, both S/F, original ALL16/UPDATED3/OTHER13 and all endpoint residuals. Distinguish direct readout-parameter movement from structural shared-readout coupling before selecting the smallest correction. CPU retained arithmetic only, through existing audit cap; no native model/forward, autograd, optimizer, candidate, new training or TEST. No more full-prefix captures are needed for this step."
+  },
+  "market_state_ta_non_m5_side_decoder_repair_20261111_001": {
+    "status": "COMPLETE_SYNTHETIC_CPU_MECHANICS_NATIVE_BASELINE_REQUIRED",
+    "model_change_scope": "Opt-in sideheads only; old default and all existing run admissions unchanged",
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_SIDE_DECODER_REPAIR.json",
+      "sha256": "5bee4559edad5ea6d21523b5c6e7d1e98f8c17d3f470f17778e83e925cdeeaaa"
+    },
+    "synthetic_cpu_decoder_checks_authorized": true,
+    "synthetic_routing_backward_authorized": true,
+    "native_model_run_authorized": false,
+    "training_authorized": false,
+    "fresh_actual_initial_baseline_required": true,
+    "new_training_recipe_admitted": false,
+    "test_data_used": false,
+    "mechanical_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SIDE_MECHANICAL_20261111_001/MECHANICAL_REVIEW.json",
+      "sha256": "2e4579f1fd66fd00609ae062430d50396dbec95f7e36313f4de9da0d23128ff1"
+    },
+    "focused_tests_passed": 167,
+    "synthetic_fixture_optimizer_state_checks_authorized": true,
+    "native_optimizer_updates_authorized": false,
+    "next_action": "Prepare the smallest exact read-only native initial-parity qualification for the independent non-M5 side variant using the actual c171 INITIAL checkpoint and original16B16 TRAIN panel. Reuse the existing guarded observation/migration path, bind the new model/view/objective identities, keep original features/targets/losses, verify allunchanged coordinates and cloneFP32tolerance against retainedoriginal outputs. No old plan may relaunch; this preparation admits no native job or training. A separately sealed new read-only scope and freshactualinitialbaseline must precede any bounded learning comparison; fullhistory training remains later."
   }
 }

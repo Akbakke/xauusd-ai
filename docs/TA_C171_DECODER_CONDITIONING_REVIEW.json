@@ -1,0 +1,739 @@
+{
+  "schema_version": "gx1_ta_c171_decoder_conditioning_review_v1",
+  "status": "COMPLETE_RETAINED_SENSITIVITY_WITH_FINITE_DIFFERENCE_CHECK",
+  "source_commit": "718b1894b8f269b12f7951b3cda66b2061dc1c5f",
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_JOINT_BOUNDARIES_20261111_001/DECODER_CONDITIONING_REVIEW.json",
+    "sha256": "e8c1645106634b44f8cd73195c86f994a51ae67fcaf11cd73a52719f29bc0729"
+  },
+  "script": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_JOINT_BOUNDARIES_20261111_001/REVIEW_DECODER_CONDITIONING.py",
+    "sha256": "dd8078dfa2321482b5ff507bc41601f669571adc10e00d0a9378f138a6322911"
+  },
+  "counts": {
+    "npz_decodes": 1,
+    "checkpoint_decodes": 2,
+    "model_constructions": 0,
+    "native_forwards": 0,
+    "backbone_forwards": 0,
+    "autograd_calls": 0,
+    "optimizer_updates": 0,
+    "candidate_writes": 0,
+    "checkpoint_writes": 0,
+    "functional_query_batches": 576,
+    "functional_shared_readout_batches": 576,
+    "functional_m5_readout_batches": 576,
+    "analytic_jacobian_arrays": 4,
+    "finite_difference_directions": 8,
+    "finite_query_controls": 12
+  },
+  "source_unchanged": true,
+  "cuda_not_initialized": true,
+  "method": "Closed-form Jacobian of each raw logit to retained joint_hidden: J=(readout_row*GELUprime(query_preactivation))@Q_hidden. Original allTF/readoutM5 override and S FP32 fraction retained. Centraldifference in two predeclared directions verifies it. Native/onehot-common-M15/nativefraction1/both finite controls use fixedweights and hidden, no targetbasedselection. Each endpoint additionally swaps only retained H and reconciles previous finiteH effects.",
+  "maximum_central_difference_error": 3.166144152411121e-10,
+  "side_summary": {
+    "initial": {
+      "state": {
+        "endpoint_error": {
+          "mean": -8.656521997790322e-09,
+          "rms": 1.4176905606530565e-07,
+          "max_abs": 7.769782444100315e-07
+        },
+        "central_difference_errors": {
+          "fixed_sin_cos": {
+            "mean": -1.9636061821003348e-13,
+            "rms": 4.851608262248841e-11,
+            "max_abs": 2.7507500444112765e-10
+          },
+          "observed_hidden_change_unit": {
+            "mean": 1.5644497174972185e-12,
+            "rms": 5.025276024549911e-11,
+            "max_abs": 2.7910564137645366e-10
+          }
+        },
+        "partitions": {
+          "ALL_16": {
+            "rows": 256,
+            "nonM5_common_jacobian_fraction": 0.9980432370682456,
+            "nonM5_pair_mean_cosine_range": [
+              0.9968653292654677,
+              0.9983286134170286
+            ],
+            "nonM5_minimum_row_pair_cosine": 0.9928808951999825,
+            "nonM5_spearman_range": [
+              0.9993877317463951,
+              0.9997324902723735
+            ],
+            "M5_pair_mean_cosines": {
+              "M5__M15": -0.32919282249419163,
+              "M5__H1": -0.33820434824287016,
+              "M5__H4": -0.3349499333016136,
+              "M5__D1": -0.33424741142238373
+            }
+          },
+          "UPDATED_3": {
+            "rows": 48,
+            "nonM5_common_jacobian_fraction": 0.9981385090861996,
+            "nonM5_pair_mean_cosine_range": [
+              0.9967239129337582,
+              0.9983126512870406
+            ],
+            "nonM5_minimum_row_pair_cosine": 0.9928808951999825,
+            "nonM5_spearman_range": [
+              0.9984802431610944,
+              0.999457229700391
+            ],
+            "M5_pair_mean_cosines": {
+              "M5__M15": -0.3132669855827632,
+              "M5__H1": -0.3198525090439083,
+              "M5__H4": -0.3183177505286723,
+              "M5__D1": -0.31799577966570197
+            }
+          },
+          "OTHER_13": {
+            "rows": 208,
+            "nonM5_common_jacobian_fraction": 0.998021462433798,
+            "nonM5_pair_mean_cosine_range": [
+              0.9968979638035544,
+              0.9983322969854874
+            ],
+            "nonM5_minimum_row_pair_cosine": 0.993317810170647,
+            "nonM5_spearman_range": [
+              0.9991478772943305,
+              0.999646615779339
+            ],
+            "M5_pair_mean_cosines": {
+              "M5__M15": -0.3328680156275982,
+              "M5__H1": -0.34243938805801516,
+              "M5__H4": -0.33878812932613844,
+              "M5__D1": -0.33799778798161806
+            }
+          }
+        }
+      },
+      "future": {
+        "endpoint_error": {
+          "mean": -1.6085581579699864e-09,
+          "rms": 5.348196142807802e-08,
+          "max_abs": 2.0428941982508775e-07
+        },
+        "central_difference_errors": {
+          "fixed_sin_cos": {
+            "mean": 7.77937636356873e-13,
+            "rms": 1.8150542384503314e-11,
+            "max_abs": 7.36981638910228e-11
+          },
+          "observed_hidden_change_unit": {
+            "mean": -1.7648481124839578e-14,
+            "rms": 1.825489172993915e-11,
+            "max_abs": 8.710587806604053e-11
+          }
+        },
+        "partitions": {
+          "ALL_16": {
+            "rows": 256,
+            "nonM5_common_jacobian_fraction": 0.997602161809043,
+            "nonM5_pair_mean_cosine_range": [
+              0.9956082638567333,
+              0.9975614464457918
+            ],
+            "nonM5_minimum_row_pair_cosine": 0.9923163707930642,
+            "nonM5_spearman_range": [
+              0.9993026150148775,
+              0.999840495536736
+            ],
+            "M5_pair_mean_cosines": {
+              "M5__M15": 0.4681714426525816,
+              "M5__H1": 0.47315034504354103,
+              "M5__H4": 0.4801165175216576,
+              "M5__D1": 0.4878905075521584
+            }
+          },
+          "UPDATED_3": {
+            "rows": 48,
+            "nonM5_common_jacobian_fraction": 0.9977044920742579,
+            "nonM5_pair_mean_cosine_range": [
+              0.9953833495571507,
+              0.9977060975994959
+            ],
+            "nonM5_minimum_row_pair_cosine": 0.9932583540595967,
+            "nonM5_spearman_range": [
+              0.9990230134607037,
+              0.9997828918801566
+            ],
+            "M5_pair_mean_cosines": {
+              "M5__M15": 0.47999828746394063,
+              "M5__H1": 0.48430033242433196,
+              "M5__H4": 0.4920086717287697,
+              "M5__D1": 0.5005620193068375
+            }
+          },
+          "OTHER_13": {
+            "rows": 208,
+            "nonM5_common_jacobian_fraction": 0.9975782788676466,
+            "nonM5_pair_mean_cosine_range": [
+              0.9956601671566369,
+              0.9975351713263992
+            ],
+            "nonM5_minimum_row_pair_cosine": 0.9923163707930642,
+            "nonM5_spearman_range": [
+              0.9990571975697835,
+              0.9998079723480182
+            ],
+            "M5_pair_mean_cosines": {
+              "M5__M15": 0.4654421707730372,
+              "M5__H1": 0.47057727103258923,
+              "M5__H4": 0.4773721742430933,
+              "M5__D1": 0.4849663125318478
+            }
+          }
+        }
+      }
+    },
+    "final": {
+      "state": {
+        "endpoint_error": {
+          "mean": -2.477505702936744e-08,
+          "rms": 1.7961451496318165e-07,
+          "max_abs": 1.0008139383899106e-06
+        },
+        "central_difference_errors": {
+          "fixed_sin_cos": {
+            "mean": -2.2570696480174512e-12,
+            "rms": 5.812842324198109e-11,
+            "max_abs": 2.929348534574938e-10
+          },
+          "observed_hidden_change_unit": {
+            "mean": 6.207368382215659e-13,
+            "rms": 5.8031812387334926e-11,
+            "max_abs": 3.166144152411121e-10
+          }
+        },
+        "partitions": {
+          "ALL_16": {
+            "rows": 256,
+            "nonM5_common_jacobian_fraction": 0.9983990172810558,
+            "nonM5_pair_mean_cosine_range": [
+              0.9973745037811822,
+              0.9985501198672573
+            ],
+            "nonM5_minimum_row_pair_cosine": 0.9927425207378144,
+            "nonM5_spearman_range": [
+              0.9991166456855115,
+              0.9996151865415427
+            ],
+            "M5_pair_mean_cosines": {
+              "M5__M15": -0.3220062506497131,
+              "M5__H1": -0.3281999159084982,
+              "M5__H4": -0.3252185889125046,
+              "M5__D1": -0.3238030428134253
+            }
+          },
+          "UPDATED_3": {
+            "rows": 48,
+            "nonM5_common_jacobian_fraction": 0.9981301151871629,
+            "nonM5_pair_mean_cosine_range": [
+              0.9966581737276966,
+              0.9983116336068975
+            ],
+            "nonM5_minimum_row_pair_cosine": 0.9927425207378144,
+            "nonM5_spearman_range": [
+              0.99880590534086,
+              0.9998914459400784
+            ],
+            "M5_pair_mean_cosines": {
+              "M5__M15": -0.3337372625811559,
+              "M5__H1": -0.3387854085420458,
+              "M5__H4": -0.3369697160450124,
+              "M5__D1": -0.33429502769415187
+            }
+          },
+          "OTHER_13": {
+            "rows": 208,
+            "nonM5_common_jacobian_fraction": 0.9984555436210972,
+            "nonM5_pair_mean_cosine_range": [
+              0.9975398107166019,
+              0.9986051551581097
+            ],
+            "nonM5_minimum_row_pair_cosine": 0.9940903939287035,
+            "nonM5_spearman_range": [
+              0.998746486160674,
+              0.9993972465368348
+            ],
+            "M5_pair_mean_cosines": {
+              "M5__M15": -0.3192990940501494,
+              "M5__H1": -0.325757109916141,
+              "M5__H4": -0.3225067903434643,
+              "M5__D1": -0.32138181553325773
+            }
+          }
+        }
+      },
+      "future": {
+        "endpoint_error": {
+          "mean": 6.105697281933701e-10,
+          "rms": 7.845899456699833e-08,
+          "max_abs": 4.3450322229077187e-07
+        },
+        "central_difference_errors": {
+          "fixed_sin_cos": {
+            "mean": -2.419729561084644e-12,
+            "rms": 2.8318088214766005e-11,
+            "max_abs": 1.6632096741520108e-10
+          },
+          "observed_hidden_change_unit": {
+            "mean": -2.401976197981818e-13,
+            "rms": 2.8819927129490404e-11,
+            "max_abs": 1.7534569629606978e-10
+          }
+        },
+        "partitions": {
+          "ALL_16": {
+            "rows": 256,
+            "nonM5_common_jacobian_fraction": 0.9983176487162955,
+            "nonM5_pair_mean_cosine_range": [
+              0.9970195553098704,
+              0.9983174390531947
+            ],
+            "nonM5_minimum_row_pair_cosine": 0.994547083965563,
+            "nonM5_spearman_range": [
+              0.9990823128862439,
+              0.9998419260700389
+            ],
+            "M5_pair_mean_cosines": {
+              "M5__M15": 0.5893522063435025,
+              "M5__H1": 0.592527025567505,
+              "M5__H4": 0.5957957042717593,
+              "M5__D1": 0.6000430605087508
+            }
+          },
+          "UPDATED_3": {
+            "rows": 48,
+            "nonM5_common_jacobian_fraction": 0.9982148560803661,
+            "nonM5_pair_mean_cosine_range": [
+              0.9965158837046445,
+              0.9983370123023659
+            ],
+            "nonM5_minimum_row_pair_cosine": 0.9955180512823097,
+            "nonM5_spearman_range": [
+              0.9993486756404691,
+              1.0000000000000002
+            ],
+            "M5_pair_mean_cosines": {
+              "M5__M15": 0.6093100308889002,
+              "M5__H1": 0.6123287370859459,
+              "M5__H4": 0.617570035412658,
+              "M5__D1": 0.6210691720609355
+            }
+          },
+          "OTHER_13": {
+            "rows": 208,
+            "nonM5_common_jacobian_fraction": 0.9983412062450074,
+            "nonM5_pair_mean_cosine_range": [
+              0.9971357872187687,
+              0.9983129221495399
+            ],
+            "nonM5_minimum_row_pair_cosine": 0.994547083965563,
+            "nonM5_spearman_range": [
+              0.9987544873128399,
+              0.9998213076016281
+            ],
+            "M5_pair_mean_cosines": {
+              "M5__M15": 0.5847465545253339,
+              "M5__H1": 0.5879573998324802,
+              "M5__H4": 0.5907708586238596,
+              "M5__D1": 0.5951908809197851
+            }
+          }
+        }
+      }
+    }
+  },
+  "target_support": {
+    "state": {
+      "ALL_16": {
+        "known_by_tf": {
+          "M5": 91,
+          "M15": 81,
+          "H1": 75,
+          "H4": 93,
+          "D1": 55
+        },
+        "pairs": {
+          "M5__M15": {
+            "both_known": 45,
+            "discordant": 14,
+            "discordance_fraction": 0.3111111111111111
+          },
+          "M5__H1": {
+            "both_known": 34,
+            "discordant": 11,
+            "discordance_fraction": 0.3235294117647059
+          },
+          "M5__H4": {
+            "both_known": 34,
+            "discordant": 14,
+            "discordance_fraction": 0.4117647058823529
+          },
+          "M5__D1": {
+            "both_known": 13,
+            "discordant": 5,
+            "discordance_fraction": 0.38461538461538464
+          },
+          "M15__H1": {
+            "both_known": 40,
+            "discordant": 14,
+            "discordance_fraction": 0.35
+          },
+          "M15__H4": {
+            "both_known": 35,
+            "discordant": 14,
+            "discordance_fraction": 0.4
+          },
+          "M15__D1": {
+            "both_known": 9,
+            "discordant": 4,
+            "discordance_fraction": 0.4444444444444444
+          },
+          "H1__H4": {
+            "both_known": 36,
+            "discordant": 12,
+            "discordance_fraction": 0.3333333333333333
+          },
+          "H1__D1": {
+            "both_known": 5,
+            "discordant": 1,
+            "discordance_fraction": 0.2
+          },
+          "H4__D1": {
+            "both_known": 28,
+            "discordant": 13,
+            "discordance_fraction": 0.4642857142857143
+          }
+        }
+      },
+      "UPDATED_3": {
+        "known_by_tf": {
+          "M5": 19,
+          "M15": 15,
+          "H1": 8,
+          "H4": 7,
+          "D1": 12
+        },
+        "pairs": {
+          "M5__M15": {
+            "both_known": 12,
+            "discordant": 3,
+            "discordance_fraction": 0.25
+          },
+          "M5__H1": {
+            "both_known": 4,
+            "discordant": 1,
+            "discordance_fraction": 0.25
+          },
+          "M5__H4": {
+            "both_known": 2,
+            "discordant": 1,
+            "discordance_fraction": 0.5
+          },
+          "M5__D1": {
+            "both_known": 5,
+            "discordant": 1,
+            "discordance_fraction": 0.2
+          },
+          "M15__H1": {
+            "both_known": 4,
+            "discordant": 2,
+            "discordance_fraction": 0.5
+          },
+          "M15__H4": {
+            "both_known": 1,
+            "discordant": 0,
+            "discordance_fraction": 0.0
+          },
+          "M15__D1": {
+            "both_known": 4,
+            "discordant": 0,
+            "discordance_fraction": 0.0
+          },
+          "H1__H4": {
+            "both_known": 0,
+            "discordant": 0,
+            "discordance_fraction": null
+          },
+          "H1__D1": {
+            "both_known": 0,
+            "discordant": 0,
+            "discordance_fraction": null
+          },
+          "H4__D1": {
+            "both_known": 5,
+            "discordant": 0,
+            "discordance_fraction": 0.0
+          }
+        }
+      },
+      "OTHER_13": {
+        "known_by_tf": {
+          "M5": 72,
+          "M15": 66,
+          "H1": 67,
+          "H4": 86,
+          "D1": 43
+        },
+        "pairs": {
+          "M5__M15": {
+            "both_known": 33,
+            "discordant": 11,
+            "discordance_fraction": 0.3333333333333333
+          },
+          "M5__H1": {
+            "both_known": 30,
+            "discordant": 10,
+            "discordance_fraction": 0.3333333333333333
+          },
+          "M5__H4": {
+            "both_known": 32,
+            "discordant": 13,
+            "discordance_fraction": 0.40625
+          },
+          "M5__D1": {
+            "both_known": 8,
+            "discordant": 4,
+            "discordance_fraction": 0.5
+          },
+          "M15__H1": {
+            "both_known": 36,
+            "discordant": 12,
+            "discordance_fraction": 0.3333333333333333
+          },
+          "M15__H4": {
+            "both_known": 34,
+            "discordant": 14,
+            "discordance_fraction": 0.4117647058823529
+          },
+          "M15__D1": {
+            "both_known": 5,
+            "discordant": 4,
+            "discordance_fraction": 0.8
+          },
+          "H1__H4": {
+            "both_known": 36,
+            "discordant": 12,
+            "discordance_fraction": 0.3333333333333333
+          },
+          "H1__D1": {
+            "both_known": 5,
+            "discordant": 1,
+            "discordance_fraction": 0.2
+          },
+          "H4__D1": {
+            "both_known": 23,
+            "discordant": 13,
+            "discordance_fraction": 0.5652173913043478
+          }
+        }
+      }
+    },
+    "future": {
+      "ALL_16": {
+        "known_by_tf": {
+          "M5": 104,
+          "M15": 92,
+          "H1": 91,
+          "H4": 90,
+          "D1": 80
+        },
+        "pairs": {
+          "M5__M15": {
+            "both_known": 47,
+            "discordant": 3,
+            "discordance_fraction": 0.06382978723404255
+          },
+          "M5__H1": {
+            "both_known": 45,
+            "discordant": 15,
+            "discordance_fraction": 0.3333333333333333
+          },
+          "M5__H4": {
+            "both_known": 34,
+            "discordant": 11,
+            "discordance_fraction": 0.3235294117647059
+          },
+          "M5__D1": {
+            "both_known": 34,
+            "discordant": 17,
+            "discordance_fraction": 0.5
+          },
+          "M15__H1": {
+            "both_known": 45,
+            "discordant": 9,
+            "discordance_fraction": 0.2
+          },
+          "M15__H4": {
+            "both_known": 36,
+            "discordant": 9,
+            "discordance_fraction": 0.25
+          },
+          "M15__D1": {
+            "both_known": 23,
+            "discordant": 12,
+            "discordance_fraction": 0.5217391304347826
+          },
+          "H1__H4": {
+            "both_known": 35,
+            "discordant": 1,
+            "discordance_fraction": 0.02857142857142857
+          },
+          "H1__D1": {
+            "both_known": 37,
+            "discordant": 7,
+            "discordance_fraction": 0.1891891891891892
+          },
+          "H4__D1": {
+            "both_known": 47,
+            "discordant": 15,
+            "discordance_fraction": 0.3191489361702128
+          }
+        }
+      },
+      "UPDATED_3": {
+        "known_by_tf": {
+          "M5": 23,
+          "M15": 15,
+          "H1": 11,
+          "H4": 23,
+          "D1": 16
+        },
+        "pairs": {
+          "M5__M15": {
+            "both_known": 9,
+            "discordant": 1,
+            "discordance_fraction": 0.1111111111111111
+          },
+          "M5__H1": {
+            "both_known": 6,
+            "discordant": 1,
+            "discordance_fraction": 0.16666666666666666
+          },
+          "M5__H4": {
+            "both_known": 10,
+            "discordant": 3,
+            "discordance_fraction": 0.3
+          },
+          "M5__D1": {
+            "both_known": 9,
+            "discordant": 6,
+            "discordance_fraction": 0.6666666666666666
+          },
+          "M15__H1": {
+            "both_known": 8,
+            "discordant": 0,
+            "discordance_fraction": 0.0
+          },
+          "M15__H4": {
+            "both_known": 9,
+            "discordant": 1,
+            "discordance_fraction": 0.1111111111111111
+          },
+          "M15__D1": {
+            "both_known": 4,
+            "discordant": 4,
+            "discordance_fraction": 1.0
+          },
+          "H1__H4": {
+            "both_known": 8,
+            "discordant": 0,
+            "discordance_fraction": 0.0
+          },
+          "H1__D1": {
+            "both_known": 4,
+            "discordant": 4,
+            "discordance_fraction": 1.0
+          },
+          "H4__D1": {
+            "both_known": 4,
+            "discordant": 4,
+            "discordance_fraction": 1.0
+          }
+        }
+      },
+      "OTHER_13": {
+        "known_by_tf": {
+          "M5": 81,
+          "M15": 77,
+          "H1": 80,
+          "H4": 67,
+          "D1": 64
+        },
+        "pairs": {
+          "M5__M15": {
+            "both_known": 38,
+            "discordant": 2,
+            "discordance_fraction": 0.05263157894736842
+          },
+          "M5__H1": {
+            "both_known": 39,
+            "discordant": 14,
+            "discordance_fraction": 0.358974358974359
+          },
+          "M5__H4": {
+            "both_known": 24,
+            "discordant": 8,
+            "discordance_fraction": 0.3333333333333333
+          },
+          "M5__D1": {
+            "both_known": 25,
+            "discordant": 11,
+            "discordance_fraction": 0.44
+          },
+          "M15__H1": {
+            "both_known": 37,
+            "discordant": 9,
+            "discordance_fraction": 0.24324324324324326
+          },
+          "M15__H4": {
+            "both_known": 27,
+            "discordant": 8,
+            "discordance_fraction": 0.2962962962962963
+          },
+          "M15__D1": {
+            "both_known": 19,
+            "discordant": 8,
+            "discordance_fraction": 0.42105263157894735
+          },
+          "H1__H4": {
+            "both_known": 27,
+            "discordant": 1,
+            "discordance_fraction": 0.037037037037037035
+          },
+          "H1__D1": {
+            "both_known": 33,
+            "discordant": 3,
+            "discordance_fraction": 0.09090909090909091
+          },
+          "H4__D1": {
+            "both_known": 43,
+            "discordant": 11,
+            "discordance_fraction": 0.2558139534883721
+          }
+        }
+      }
+    }
+  },
+  "conclusions": [
+    "Actual non-M5 local side responses to retained128Dhidden are nearlyparallel in both initial and final checkpoints. Common-Jacobian energy exceeds99.7% on allthreepanels for bothS/F. This is measured geometry, not a modelcapacity or edge verdict.",
+    "The non-M5 output rankings are also nearlyidentical across horizons in these256dependentTRAINrows, while some known labels disagree. Supports vary; pairwise discordance is not a wholepopulationrate.",
+    "Making token/fraction identical yields identical non-M5 decoderinputs byconstruction. This is an implementation identity, not additional evidence of weaktimeframelearning.",
+    "M5 has its own sideheads and different Jacobian directions. This doesnot prove independent non-M5 readouts will improve M5edge; it motivates a controlled minimal intervention."
+  ],
+  "limitations": [
+    "256 dependent historicalTRAIN panel rows, only48 from updatedprefix; other208notheldout. Eval reconstructed intermediate observations, not originaltrainingtrajectory orfull4096causal attribution.",
+    "Jacobian alignment is localoutputresponse geometry, not a fullparameter/optimizer gradient, learned indicator utility, a unique learning cause or absenceofcapacity.",
+    "TFtoken/fraction controls are diagnostic primitive arithmetic, not admissible nativeinputs or promotedcandidates; no feature removed fromactualmodel.",
+    "Independent TFreadouts may decouple directreadoutupdates but preserve initiallyshared encoder gradients; a mechanical decoupling is not improved edge."
+  ],
+  "next_action": "Prepare the smallest exact read-only native initial-parity qualification for the independent non-M5 side variant using the actual c171 INITIAL checkpoint and original16B16 TRAIN panel. Reuse the existing guarded observation/migration path, bind the new model/view/objective identities, keep original features/targets/losses, verify allunchanged coordinates and cloneFP32tolerance against retainedoriginal outputs. No old plan may relaunch; this preparation admits no native job or training. A separately sealed new read-only scope and freshactualinitialbaseline must precede any bounded learning comparison; fullhistory training remains later.",
+  "training_authorized": false,
+  "test_data_used": false
+}

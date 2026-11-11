@@ -19,16 +19,21 @@ from gx1.contracts.market_state_time_query_model_v2 import (
 from gx1.contracts.market_state_time_query_target_v1 import NATIVE_K, TIMEFRAMES
 
 
-def contract(*, ta_only: bool = False, dedicated_m5_side: bool = False) -> dict:
+def contract(*, ta_only: bool = False, dedicated_m5_side: bool = False,
+             dedicated_non_m5_side: bool = False) -> dict:
     if type(ta_only) is not bool:
         raise ValueError('NATIVE_F_TA_MODE')
     if type(dedicated_m5_side) is not bool or (dedicated_m5_side and not ta_only):
         raise ValueError('NATIVE_F_DEDICATED_M5_SIDE_MODE')
+    if type(dedicated_non_m5_side) is not bool or (
+            dedicated_non_m5_side and not dedicated_m5_side):
+        raise ValueError('NATIVE_F_DEDICATED_NON_M5_SIDE_MODE')
     value = {
         'schema_version': 'gx1_market_state_native_F_dual_model_candidate_v1',
         'role': 'research_only_no_fit_or_trade_authority',
         'S_model_contract_sha256': factorized_time_query_model_contract(
-            ta_only=ta_only, dedicated_m5_side=dedicated_m5_side)['contract_sha256'],
+            ta_only=ta_only, dedicated_m5_side=dedicated_m5_side,
+            dedicated_non_m5_side=dedicated_non_m5_side)['contract_sha256'],
         'F_target_contract_sha256': future_contract()['contract_sha256'],
         'encoder': 'one_existing_v2_causal_native_backbone_encode_features_call',
         'S': 'unchanged_v2_sampled_query_projection_and_state_head',
@@ -44,6 +49,12 @@ def contract(*, ta_only: bool = False, dedicated_m5_side: bool = False) -> dict:
             'fixed_native_k_per_TF_shared_projection_distinct_two_logit_head'
             '_with_dedicated_M5_conditional_side_Linear_hidden_to_1')
         value['M5_side_initialization'] = 'clone_each_task_shared_side_row_preserving_CPU_and_active_CUDA_RNG'
+    if dedicated_non_m5_side:
+        value['dedicated_non_m5_side'] = True
+        value['non_M5_side_timeframes'] = list(TIMEFRAMES[1:])
+        value['S'] += '_and_independent_non_M5_conditional_side_heads'
+        value['F'] += '_and_independent_non_M5_conditional_side_heads'
+        value['non_M5_side_initialization'] = 'clone_each_task_shared_side_row_preserving_existing_M5_and_CPU_and_active_CUDA_RNG'
     raw = json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
     return {**value, 'contract_sha256': hashlib.sha256(raw).hexdigest()}
 
@@ -62,6 +73,10 @@ class NativeFutureDualModel(nn.Module):
         self.future_head = nn.Linear(width, 2, device=device, dtype=torch.float32)
         if state_model._dedicated_m5_side:
             self.future_m5_side_head = _clone_side_head(self.future_head)
+        if state_model._dedicated_non_m5_side:
+            self.future_non_m5_side_heads = nn.ModuleDict({
+                timeframe: _clone_side_head(self.future_head)
+                for timeframe in TIMEFRAMES[1:]})
         self.register_buffer('native_F_objective_sha256', torch.tensor(
             list(bytes.fromhex(self.research_objective['contract_sha256'])),
             device=device, dtype=torch.uint8))
@@ -69,7 +84,8 @@ class NativeFutureDualModel(nn.Module):
     @property
     def research_objective(self) -> dict:
         return contract(ta_only=self.state_model._ta_only,
-                        dedicated_m5_side=self.state_model._dedicated_m5_side)
+                        dedicated_m5_side=self.state_model._dedicated_m5_side,
+                        dedicated_non_m5_side=self.state_model._dedicated_non_m5_side)
 
     @property
     def backbone(self) -> nn.Module:
@@ -89,11 +105,17 @@ class NativeFutureDualModel(nn.Module):
                 and self.native_F_objective_sha256.device == device
                 and not self.native_F_objective_sha256.requires_grad
                 and torch.equal(self.native_F_objective_sha256, reference)
-                and hasattr(self, 'future_m5_side_head') == self.state_model._dedicated_m5_side):
+                and hasattr(self, 'future_m5_side_head') == self.state_model._dedicated_m5_side
+                and hasattr(self, 'future_non_m5_side_heads') == self.state_model._dedicated_non_m5_side):
             raise RuntimeError('NATIVE_F_HEAD_BINDING')
         heads = [(self.future_head, 2)]
         if self.state_model._dedicated_m5_side:
             heads.append((self.future_m5_side_head, 1))
+        if self.state_model._dedicated_non_m5_side:
+            if not (type(self.future_non_m5_side_heads) is nn.ModuleDict
+                    and tuple(self.future_non_m5_side_heads) == tuple(TIMEFRAMES[1:])):
+                raise RuntimeError("NATIVE_F_NON_M5_SIDE_HEAD_BINDING")
+            heads.extend((head, 1) for head in self.future_non_m5_side_heads.values())
         for head, outputs in heads:
             if not (type(head) is nn.Linear and head.in_features == width
                     and head.out_features == outputs and head.weight.shape == (outputs, width)
@@ -103,6 +125,12 @@ class NativeFutureDualModel(nn.Module):
                     and bool(torch.isfinite(head.weight).all())
                     and bool(torch.isfinite(head.bias).all())):
                 raise RuntimeError('NATIVE_F_HEAD_BINDING')
+        if self.state_model._dedicated_non_m5_side:
+            storages = [parameter.untyped_storage().data_ptr()
+                        for head, _ in heads
+                        for parameter in (head.weight, head.bias)]
+            if len(set(storages)) != len(storages):
+                raise RuntimeError('NATIVE_F_NON_M5_SIDE_HEAD_ALIASES')
 
     def decode_native_F_raw(self, hidden: torch.Tensor) -> torch.Tensor:
         self._require_binding()
@@ -124,6 +152,10 @@ class NativeFutureDualModel(nn.Module):
         if self.state_model._dedicated_m5_side:
             raw = raw.clone()
             raw[:, 0, 1] = self.future_m5_side_head(representation[:, 0, :]).squeeze(-1)
+        if self.state_model._dedicated_non_m5_side:
+            for index, timeframe in enumerate(TIMEFRAMES[1:], start=1):
+                raw[:, index, 1] = self.future_non_m5_side_heads[timeframe](
+                    representation[:, index, :]).squeeze(-1)
         if not (raw.shape == (batch, len(TIMEFRAMES), 2)
                 and bool(torch.isfinite(raw).all())):
             raise RuntimeError('NATIVE_F_LOGITS')

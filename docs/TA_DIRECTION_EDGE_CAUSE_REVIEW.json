@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_SHARED_HORIZON_OUTPUT_CHANGE_LOCALIZED_BEFORE_READOUT_ON_RETAINED_PANEL",
+  "status": "ACTIVE_TIMEFRAME_COUPLING_MINIMAL_OPT_IN_REPAIR_MECHANICALLY_VERIFIED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -254,15 +254,27 @@
         "sha256": "7e240502d7187eb4f6a21c7a5ce84afe627eec40e2b91ea6f48d68624adcb6ea"
       },
       "scope": "ALL16/UPDATED3/OTHER13,256/48/208dependenthistoricalTRAINrows; exactendpointresiduals retained,all6orders/interactionsreported. No full4096causalshare,modelcapacity,generalizationoreconomicedgeclaim."
+    },
+    {
+      "id": "near_parallel_native_decoder_timeframe_sensitivity",
+      "finding": "Onactualretained INITIAL/FINAL evalobservations, over99.7% of nonM5side hidden-Jacobian energy is commonwithinrow in allthreepartitions. NonM5rankings almostidentical despite distinct horizons. NativeTF/fractioncontrols and centraldifferences verify arithmetic; no capacity/edge inference.",
+      "evidence": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_DECODER_CONDITIONING_REVIEW.json",
+        "sha256": "b05019003f93669db4266e8b038d438d5b85f8140bbeffa4120aa93f147429ba"
+      },
+      "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
   "next_measurement": {
-    "status": "RETAINED_DECODER_TIMEFRAME_CONDITIONING_NO_NATIVE_RUN_ADMITTED",
-    "question": "How much does timeframe conditioning change response to the same hidden market representation, rather than merely move outputs together?",
-    "method": "Measure decoder timeframe conditioning using only retained joint_hidden and bound initial/final query/readout tensors: quantify horizon-specific response to the same hidden coordinates with analytic Linear/GELU sensitivity and finite query-coordinate controls. Keep all5TF, both S/F, original ALL16/UPDATED3/OTHER13 and all endpoint residuals. Distinguish direct readout-parameter movement from structural shared-readout coupling before selecting the smallest correction. CPU retained arithmetic only, through existing audit cap; no native model/forward, autograd, optimizer, candidate, new training or TEST. No more full-prefix captures are needed for this step.",
+    "status": "PREPARE_EXACT_NATIVE_INITIAL_PARITY_NO_RUN_ADMITTED",
+    "method": "Prepare the smallest exact read-only native initial-parity qualification for the independent non-M5 side variant using the actual c171 INITIAL checkpoint and original16B16 TRAIN panel. Reuse the existing guarded observation/migration path, bind the new model/view/objective identities, keep original features/targets/losses, verify allunchanged coordinates and cloneFP32tolerance against retainedoriginal outputs. No old plan may relaunch; this preparation admits no native job or training. A separately sealed new read-only scope and freshactualinitialbaseline must precede any bounded learning comparison; fullhistory training remains later.",
     "completed_predecessor": {
-      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_ALL_TF_TAIL_FACTOR_REVIEW.json",
-      "sha256": "5da978f765b0ad1ac001023501be7665989270d8353d768b801b9e1b29406c0f"
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_DECODER_CONDITIONING_REVIEW.json",
+      "sha256": "b05019003f93669db4266e8b038d438d5b85f8140bbeffa4120aa93f147429ba"
+    },
+    "implementation": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_SIDE_DECODER_REPAIR.json",
+      "sha256": "5bee4559edad5ea6d21523b5c6e7d1e98f8c17d3f470f17778e83e925cdeeaaa"
     },
     "training_authorized": false,
     "native_run_authorized": false,
@@ -1702,5 +1714,13 @@
   "all_tf_tail_factor_review": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_ALL_TF_TAIL_FACTOR_REVIEW.json",
     "sha256": "5da978f765b0ad1ac001023501be7665989270d8353d768b801b9e1b29406c0f"
+  },
+  "decoder_conditioning_review": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_DECODER_CONDITIONING_REVIEW.json",
+    "sha256": "b05019003f93669db4266e8b038d438d5b85f8140bbeffa4120aa93f147429ba"
+  },
+  "non_m5_side_decoder_repair": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_SIDE_DECODER_REPAIR.json",
+    "sha256": "5bee4559edad5ea6d21523b5c6e7d1e98f8c17d3f470f17778e83e925cdeeaaa"
   }
 }

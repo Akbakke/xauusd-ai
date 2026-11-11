@@ -1,0 +1,67 @@
+{
+  "schema_version": "gx1_ta_non_m5_side_decoder_repair_v1",
+  "status": "IMPLEMENTED_MECHANICALLY_VERIFIED_NATIVE_BASELINE_AND_EDGE_UNPROVED",
+  "reason": "Measured near-parallel side sensitivity and output ranking across M15/H1/H4/D1, plus opposite task pressure and fullusedprefix calibration deterioration, justify testing independent adaptation at the smallest output boundary.",
+  "evidence": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_DECODER_CONDITIONING_REVIEW.json",
+    "sha256": "b05019003f93669db4266e8b038d438d5b85f8140bbeffa4120aa93f147429ba"
+  },
+  "design": {
+    "flag": "dedicated_non_m5_side=True",
+    "requires": "TA profile and dedicated_m5_side=True",
+    "new_parameters": 1032,
+    "new_parameter_tensors": 16,
+    "heads": "4 Linear128to1 per S/F, keyed M15/H1/H4/D1, cloned from that tasks shared side row with existing RNG-preserving helper",
+    "changed_coordinates": "only raw side outputs for M15/H1/H4/D1 when opt-in is true",
+    "preserved": "M5 heads, allactivity outputs, sharedquery/backbone, allgenuinefeatures/timeframes, targets, masks, lossweights/formulas",
+    "default": "False; preserve prior hashes/statekeys/RNG/output and existing launchroutes",
+    "migration": "strict source restored first; weights/buffers/modes/gradflags only, keep source unchanged and retain existing M5. Two new objective identities and16 new cloned tensors; no inherited optimizer or progress.",
+    "numerical_loss": "same side-normalized BCE, masks and M5equal-observation; metadatahash changes because modelidentity changes",
+    "mechanical_scope": "focused CPU decoder fixtures only; synthetic backward for routing and fixed perturbations, no training optimizer/nativebackbone/data run"
+  },
+  "fresh_actual_initial_baseline_required": true,
+  "native_function_qualified": false,
+  "direction_improvement_measured": false,
+  "model_variant_default_active": false,
+  "native_run_authorized": false,
+  "training_authorized": false,
+  "promotion_authorized": false,
+  "test_data_used": false,
+  "next_action": "Prepare the smallest exact read-only native initial-parity qualification for the independent non-M5 side variant using the actual c171 INITIAL checkpoint and original16B16 TRAIN panel. Reuse the existing guarded observation/migration path, bind the new model/view/objective identities, keep original features/targets/losses, verify allunchanged coordinates and cloneFP32tolerance against retainedoriginal outputs. No old plan may relaunch; this preparation admits no native job or training. A separately sealed new read-only scope and freshactualinitialbaseline must precede any bounded learning comparison; fullhistory training remains later.",
+  "mechanical_review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SIDE_MECHANICAL_20261111_001/MECHANICAL_REVIEW.json",
+    "sha256": "2e4579f1fd66fd00609ae062430d50396dbec95f7e36313f4de9da0d23128ff1"
+  },
+  "focused_tests": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SIDE_MECHANICAL_20261111_001/FOCUSED_TESTS.json",
+    "sha256": "7e4b74ba6ae9f5194b473dc5eca11afadafe3deb7b4cbe8c8612b2052b2b9041"
+  },
+  "tests_passed": 167,
+  "mechanical_check_failures": 0,
+  "synthetic_initial_parity_verified": true,
+  "separate_side_parameter_routing_verified": true,
+  "unchanged_loss_and_raw_gradient_verified": true,
+  "legacy_run_rejection_verified": true,
+  "source_owners": [
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_time_query_model_v2.py",
+      "sha256": "a4409f6f0b660dbde8bdf9be52f4b8b5a6abbdb392ba4a5161129875da94ed73"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_time_query_native_F_model_v1.py",
+      "sha256": "a3e98202ace14f6b51b91a92c4ea823eddeb94582099baf4eee7de647676e071"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_time_query_native_F_objective_v1.py",
+      "sha256": "c887adc6bd2b935edd2b8d2a53428133bd53e682da6b454720a494cc3eaea80b"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_time_query_fold1_fit_state_v1.py",
+      "sha256": "83bd03f76f171a248ce8fd05f2e2a1291b43891adc92958bf1643ed50995c3c9"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_market_state_time_query_non_m5_side_v1.py",
+      "sha256": "cec467130b1dec4048ebebaeef938c9ba2ba305f8955fe23108e894bf6ec61ba"
+    }
+  ]
+}
