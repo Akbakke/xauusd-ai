@@ -6,93 +6,93 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_QUERY_PROJECTION_GRADIENT_ADMITTED.
-Målet11.11 er aktivt: mål årsaker til svak retningsverdi i indikatorer,
+TA_DIRECTION_EDGE_CAUSE_QUERY_TRANSFER_MEASURED_CAUSE_UNRESOLVED.
+Målet 11.11 er aktivt: mål årsaker til svak retningsverdi i indikatorer,
 sammensetting og læring. [Samlet status](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json).
 Korte runder er feilsøking, ikke kapasitetsdom. Full kvalifisert TRAIN-historikk
-og30–40epoker er senere skalering, ikke et krav ved hver rettelse.
-Alle tidligere planer er konsumert; én ny lesende gradientobservasjon er
-innrømmet, ennå ikke startet.
-Training/native_training/native_launch/full_epoch er false. Begge gamle c171
-Windowsoppgaver er Disabled. GC er på pause; TEST, Entry/Exit, broker, handel,
-spending og promotion er stengt. Alle genuine indikatorer og fem TF beholdes.
+og 30–40 epoker er senere skalering, ikke et krav ved hver rettelse.
+Alle modellplaner er konsumert. Siste gradientobservasjon er COMPLETE; ingen
+ny modellkjøring er innrømmet. Training/native_training/native_launch/full_epoch
+og full_val er false. Begge gamle c171 Windowsoppgaver er Disabled. GC er på
+pause; TEST, Entry/Exit, broker, handel, spending og promotion er stengt.
 
-## Indikatorer og sammensetting
+## Indikatorer og faktisk læring
 
 Åtte TA-familier og M5/M15/H1/H4/D1 når faktisk modellkonsum. Numerisk dekning
 og ikke-konstante TRAIN-støtter er bekreftet; det beviser ikke prediktiv nytte.
-Alle11 temporal-/akse-encodere og228 undersøkte tensorer hadde vektendring og
+Alle 11 temporal-/akse-encodere og 228 undersøkte tensorer hadde vektendring og
 Adam-andremomenter. En generell frakoblet læringsvei er avkreftet.
 Mean+last kansellerer ikke systematisk. Variasjonsfall i blandingen er ikke
 påvist prediktiv skade; tidligere fast MTF-intervensjon ga ingen bedre rangering.
 Nærmeste trendlinjeslots mangler entydig samme-linje-identitet/ankere/endringsmarkør;
-prediktiv kostnad er UNKNOWN. Ingen spekulativ feature-/modellendring er utført.
-Låst head-/sannsynlighetsrettelse ga tidligere liten Brier/log-forbedring, med
-svak rangering. [Native evidens](docs/TA_M5_LOCKED_SHRINK_NATIVE_REVIEW.json).
+prediktiv kostnad er UNKNOWN. Alle genuine features og tidsrammer beholdes.
+Låst M5-sluttlag og sannsynlighetsjustering ga tidligere liten Brier/log-forbedring,
+med svak rangering. [Native evidens](docs/TA_M5_LOCKED_SHRINK_NATIVE_REVIEW.json).
 
-## Siste faktiske læring og det målte nivåskiftet
-
-Native short002 er COMPLETE/konsumert:256updates over4096 kronologiske TRAIN-rader,
-0skips,288forwards,256backward, fersk tom AdamW og samme c171-initial/originaltap.
-RESULT1b25f095; kilde9de7e20b uendret;513,87s worker/365,99s fit;guard/observer0.
+Native short002 er COMPLETE/konsumert: 256 updates over 4096 kronologiske
+TRAIN-rader, 0 skips, fersk tom AdamW og samme c171-initial/originaltap.
+RESULT 1b25f095; kilde 9de7e20b uendret. Samme 16 B16-grupper før/etter;
+3 grupper/48 rader fikk nye updates, 13/208 er andre historisk brukte TRAIN-rader,
+ikke heldout. Kjent side S91/F104; radene er avhengige.
+Totaltap 1,875017→1,892264; S/M5 Brier 0,246301→0,243797; F 0,251730→0,254568.
+Begge M5-sidetap ble dårligere i de 3 nyeksponerte målte gruppene; dette er ikke
+full evaluering av de 4096 fit-radene. Pooled AUC 0,53575→0,54121 / 0,46939→0,47681.
+Gjennomsnittlig opp-sannsynlighet på kjent støtte steg 2,50553/2,19309 prosentpoeng.
 [Kontroll og begrensninger](docs/TA_M5_C171_SHORT_LEARNING_REVIEW.json).
-Samme16B16 grupper før/etter;3grupper/48rader fikk nye updates,13/208 er andre
-historisk brukte TRAIN-rader, ikke heldout. Kjent side S91/F104, avhengige rader.
-Totaltap1,875017→1,892264; S/M5Brier0,246301→0,243797;F0,251730→0,254568.
-Begge M5-sidetap ble dårligere i de3 nyeksponerte målte gruppene; dette er ikke
-full4096-raders fit-evaluering. Pooled AUC0,53575→0,54121 /0,46939→0,47681.
-Faktisk gjennomsnittlig opp-sannsynlighet på kjent støtte steg2,50553/2,19309pp.
 
-## Ny hode-/representasjonsavgrensning
+## Nivåskiftet er avgrenset, ikke ferdig forklart
 
-[Samlet ny evidens](docs/TA_C171_SHORT_HEAD_ATTRIBUTION_REVIEW.json).
-Beholdt TRACE_ALGEBRA_REVIEW09d5e8dc gjenskaper256 M5-hodegradienter ogAdamW-steg;
-direkte biasendringer er negative. Lokal summert head-only BCE-endring var gunstig
-for begge. Dette beviser ingen generell optimizerfeil eller sentreringsrettelse.
-
-Lesende headobserver001 stoppet etter1forward: akser/masker/tap like, men små
-FP32råavvik; original feil og partial beholdt, aldri relansert. Kildekontrollen
-fant1-versus8 numeriske tråder og ulike gradflagg. Egen002 matcher kjent original-
-profil uten optimizer/autograd. Kilde446fcd42 uendret;RESULTf6e0c8a3,terminal49493bed,
-controller0.16forwards/256rader,0gradient/oppdatering/checkpointskriv;116,14s.
-Alle12 initialfelt og16tap er bitlike. Model/buffers/RNG/modus/hooks uendret.
-Faktisk8 intra/10 defaultinterop;570 aktive/179 inaktive gradflagg, alle grad=None.
-Producer-vakter:12GiB/512MiB,CPU0-7/pids64,250Wlimit/170Wdraw/65C/80C.
-52 fokustester og faktiske metadata-/cap-gater består; alle numeriske eiere uendret.
-
+[Sluttlag og representasjon](docs/TA_C171_SHORT_HEAD_ATTRIBUTION_REVIEW.json).
+Beholdte gradienter og alle 256 AdamW-steg i M5-sluttlaget lar seg gjenskape;
+direkte biasendringer er negative. Ingen generell optimizerfeil er påvist.
 På gjenskapt initialinput gir sluttlagets parameterendring alene opp-sannsynlighet
-−0,03676pp S/+0,22419pp F, mot faktisk+2,50553/+2,19309pp. Head-onlyBrier er
-0,246292/0,252027. Resten er gjenstående logitendring etter dette beregnede
-hodeleddet; det peker mot representasjonsbanen, ikke en bestemt encoderårsak.
-HEAD_ATTRIBUTION_REVIEW9b8f49f3 er uavhengig kontrollert:242float-/48tellefelt,
-maksavvik1,11e-16;INDEPENDENT_REVIEW03743bb1. Gjenskapt128Dinput er ikke historisk
-registrert128Dinput; skalarparitet beviser ikke skjult historisk vektoridentitet.
+−0,03676/+0,22419 prosentpoeng, mot faktisk +2,50553/+2,19309. Det peker mot
+representasjonsbanen, men identifiserer ingen bestemt encoderårsak.
 
-## Ikke avklart og neste steg
+Observer001s FP32-avvik er bevart, konsumert og ikke relansert. Observer002
+matcher kjent originalprofil: 8 numeriske tråder og opprinnelige gradflagg.
+Alle initialfelt og tap er bitlike; gjenskapt skjult vektor er likevel ikke et
+historisk registrert skjult input. Denne begrensningen gjelder videre analyser.
 
-Beholdt faktisk4096-prefix har framtidig kjent-UP51,399%M5,62,926%H4,78,280%D1;
-løpende pre-update p_up var50,876/56,585/55,484%. PREFIX_TASK_BALANCE2ba4453a.
-Dette er ulike modelltilstander og marginaler, ikke målte delte parametergradienter
-eller bevis for skadelig overføring. Tidligere konflikt mellom gjennomsnitts-
-gradienter hadde samtidig positiv gjennomsnittlig batch-dot; ingen generell
-lossvektendring er begrunnet. Gamle4096-kontrast var INTERLEAVED−CONTROL, ikke
-INITIAL−R1. Gammel sentreringsplan er konsumert/FAIL_COMPARISON_NO_PROMOTION.
-Neste: isoler om og hvor korte/lange TF-oppgaver flytter fellesrepresentasjonen
-mot et felles oppnivå, med allerede beholdte målinger og kode først. Bevar alle
-features/TF; ingen ny fit eller loss-/modellendring følger bare av marginalene.
-Unik upstream-årsak, fullprefix-fit, familiers nytte, senere generalisering og
-kapasitet ved tilstrekkelig trening er fortsatt uavklart. Ingen ny edge er påvist.
+## Fullført observasjon av felles query-projeksjon
 
-## Eksakt neste observasjon
+[Resultat, tall og grenser](docs/TA_C171_QUERY_PROJECTION_GRADIENT_REVIEW.json).
+ROOT: /home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_QUERY_PROJECTION_GRADIENT_20261111_001.
+Kilde 091c5985 uendret; RESULT 26886d10, TERMINAL b4afccfa, controller exit 0.
+16 forwards, 256 rader, 176 autograd-kall; 0 optimizer/updates/checkpointskriv.
+Alle 14 initialfelt og 16 tap er bitlike; modell/buffers/RNG/modus/hooks og
+trainability er uendret, alle parameter.grad er None. 68 fokustester bestod.
+Produservakter: 12 GiB/512 MiB, CPU 0–7/pids64, 250 W limit/170 W draw/65 C/80 C.
 
-[Avgrensning](docs/TA_C171_QUERY_PROJECTION_GRADIENT_REVIEW.json).
-Gamle gradienter har bare S/M5,F/M5,rest,total; rest kan ikke splittes tilD1.
-Første felles parametersted er query_projection[0] for alleS/F-outputtidsrammer.
-Ny001 måler bare weight[128,134]+bias[128],17280elementer i4koordinatgrupper.
-Originaltapets H4/D1-sidebidrag skilles fra M5,medium-side og aktivitet. To prober
-måler rå M5-logitmiddel.16sammeB16 TRAIN-grupper;176autograd-kall,0updates/
-optimizer/checkpointskriv. Alle14 tidligere panelfelt og16tap kreves bitlike før
-VJP; full tilstand uendret. Alle11vektorer perbatch beholdes utenforrepo for gjenbruk.
-PLANa0c2513a, preflighta706984d, faktisk cap-gate og68 fokustester består.
-Modelleiere/loss/inputs/TF og maskinvaregrenser uendret. Begge slags dot-middel
-rapporteres; små lokale gradienter er ikke historiskAdamW-årsak eller edge.
+Åtte originale tapsbidrag er målt i query_projection[0], weight[128,134]+bias[128].
+H4/D1 kan lokalt flytte M5 via delte hidden-vekter, bias og query-fraksjon.
+TF-onehot-kolonnene er eksakt disjunkte mot M5: 560 negative kontroller.
+F/D1 er aktiv i 6/16 grupper: lokalt oppdriv i F/M5-middellogit i 5, samtidig
+økning av F/M5-tap i 2 (batchindices 0 og 1108). Fire aktive grupper hjelper tapet.
+Gjennomsnittlig batch-dot for samlet gradient er positiv mot begge M5-tap i
+alle 16, første 3 og øvrige 13 grupper. Dot av gjennomsnittsvektorer kan ha motsatt
+fortegn. Dette begrunner ingen generell D1-fjerning eller ny tapsvekt.
+Uavhengig kontroll e0bd316c: 4805 tallfelt/2487 tellefelt; maksavvik 8,88e-16,
+maks relativ closure 4,22e-8. Alle gradientvektorer er bevart utenfor repoet.
+
+Faktisk initial→final parameterendring i projeksjonen er også kontrollert fra
+de to beholdte checkpointene, uten modell/forward. Dot mot initialderivatene
+gir lokal M5-middellogitendring +0,012190 S/+0,009118 F, positiv i alle 16 grupper,
+hovedsakelig via hidden-vektene. Faktisk endring med alle parametere er
++0,103761/+0,089288. Dette er ikke en eksakt finite-change-dekomponering;
+differansen er ikke en ren upstream-årsak. Originaltapets lokale S/M5-endring
+er gunstig i snitt, F/M5 ugunstig; begge er ugunstige i de 3 nyeksponerte gruppene.
+ACTUAL_PROJECTION_DELTA_REVIEW f1da121c; uavhengig c7d83c9f kontrollerte 1104
+tallfelt/516 tellefelt, maksavvik 7,11e-15 og begge hele modellhasher.
+
+## Neste konkrete avklaring
+
+Gjenbruk c171 TRAIN-fusjonscachens capture_entry_q_joint_hidden og de faktiske
+initial/final-checkpointene. Kontroller først rad-/query-samsvar og rekonstruksjon
+mot short002s initialpanel: den eldre fusjonscachen brukte en annen numerisk
+profil. Kvalifisert input kan deretter avgrense endelig projeksjonsendring ved
+fast initial hidden-input. Ved mismatch beholdes avviket og minste manglende
+capture spesifiseres. Ingen ny native fit eller modell-/lossendring er innrømmet.
+Unik historisk årsak, familiers prediktive nytte, fullprefix-fit, senere
+generalisering og kapasitet ved tilstrekkelig trening er fortsatt uavklart.
+Ingen ny edge er påvist; ingen kontroll bruker TEST eller etablerer handelsøkonomi.

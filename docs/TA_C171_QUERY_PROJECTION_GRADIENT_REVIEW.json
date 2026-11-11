@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_c171_query_projection_gradient_review_v1",
-  "status": "ADMITTED_NOT_RUN",
+  "status": "COMPLETE_CONSUMED_LOCAL_TRANSFER_MEASURED_CAUSE_UNRESOLVED",
   "question": "At the first shared query projection, do H4/D1 original-loss gradients locally move M5 mean logits upward, and do they help or hurt the M5 side loss?",
   "reason": "Retained M5/rest gradients aggregate H4/D1 with medium side and all activity losses; they cannot identify a D1 contribution. Prefix class marginals and the reconstructed-head remainder alone do not identify harmful transfer.",
   "prior_gradient_result": {
@@ -76,8 +76,443 @@
     "Initial frozen c171 and small dependent historical TRAIN panel only; not the full4096 training path or a generalization population.",
     "Two shared projection tensors only; no general whole-model interference claim.",
     "Class imbalance, gradient norm and mean-dot conflict alone do not authorize changing loss weights, removing features or training.",
-    "No candidate model, optimizer, later data, TEST, broker or trading authority."
+    "No candidate model, optimizer, later data, TEST, broker or trading authority.",
+    "Local first-order approximation at the reconstructed initial state only; not an exact finite-change decomposition.",
+    "Actual256-update AdamW displacement contains all tasks and changing representations; its individual historical task causes are not identified.",
+    "All other parameters also changed; actual-minus-linear is not a unique upstream or nonlinear causal share.",
+    "First3groups overlap new updates; other13 are historical TRAIN, not heldout. No AUC, generalization or trading-edge inference."
   ],
   "training_authorized": false,
-  "test_data_used": false
+  "test_data_used": false,
+  "execution_authorized": false,
+  "remaining_invocations": 0,
+  "relaunch_allowed": false,
+  "source_commit": "091c598551402cd82910e4e2325d71aaa4436af4",
+  "source_unchanged_at_terminal": true,
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_QUERY_PROJECTION_GRADIENT_20261111_001/RESULT.json",
+    "sha256": "26886d10f20d5b469240db028d4492bc7203e5a20a2b096db7cf85a82b8d7af7"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_QUERY_PROJECTION_GRADIENT_20261111_001/TERMINAL.json",
+    "sha256": "b4afccfa5dee8c29169543b832db19b9bdd1574f05d5baf4cc4d2062a3ca1f44"
+  },
+  "controller_terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_QUERY_PROJECTION_GRADIENT_20261111_001/CONTROLLER_TERMINAL.json",
+    "sha256": "fb1a9237f68b6968ea40656ef524cb90bb11cdb6e4a5550b4404f07eceb4c0c4"
+  },
+  "actual_counts": {
+    "archive_decodes": 2,
+    "autograd_grad_calls": 176,
+    "backbone_encodings": 16,
+    "backwards": 176,
+    "candidate_writes": 0,
+    "checkpoint_loads": 1,
+    "checkpoint_writes": 0,
+    "extra_target_gathers": 32,
+    "forward_returns": 16,
+    "gradient_batches": 16,
+    "head_capture_returns": 32,
+    "head_tensor_imports": 4,
+    "matched_batches": 16,
+    "model_constructions": 1,
+    "optimizer_constructions": 0,
+    "optimizer_updates": 0,
+    "published_npz_bytes": 12486872,
+    "resume_state_load_calls": 1,
+    "resume_state_load_returns": 1,
+    "sampled_rows": 256
+  },
+  "passivity": {
+    "all_initial_arrays_and_batch_losses_bitexact": true,
+    "complete_signature_unchanged": true,
+    "no_parameter_gradients": true
+  },
+  "retained_geometry_review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_QUERY_PROJECTION_GRADIENT_20261111_001/RETAINED_GEOMETRY_REVIEW.json",
+    "sha256": "7665b36b512326063e56385851bc614037f376061f7d7e918e3937a11b1d1428"
+  },
+  "independent_geometry_review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_QUERY_PROJECTION_GRADIENT_20261111_001/INDEPENDENT_GEOMETRY_REVIEW.json",
+    "sha256": "e0bd316c2966685dbf74cab208be6b13f206065a336ad3633cdc8ac75693a7cd"
+  },
+  "actual_projection_delta_review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_QUERY_PROJECTION_GRADIENT_20261111_001/ACTUAL_PROJECTION_DELTA_REVIEW.json",
+    "sha256": "f1da121c63de3a37d259d7f8628f20087cb3bbd8c502563bb785a7a8df9f76ff"
+  },
+  "independent_actual_delta_review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_QUERY_PROJECTION_GRADIENT_20261111_001/INDEPENDENT_ACTUAL_DELTA_REVIEW.json",
+    "sha256": "c7d83c9ffff0497c3575f7fefffd83bbc9e2138d8fbda53d064d28337afba54e"
+  },
+  "scalar_reconciliation": {
+    "checked_float_fields": 4805,
+    "checked_count_fields": 2487,
+    "maximum_absolute_difference": 8.881784197001252e-16,
+    "maximum_closure_relative_l2": 4.2163908145589714e-08,
+    "long_timeframe_onehot_negative_control": {
+      "status": "EXACT_ZERO",
+      "checks": 560,
+      "group": "timeframe_weight",
+      "long_timeframe_arms": [
+        "state_h4_side",
+        "state_d1_side",
+        "future_h4_side",
+        "future_d1_side"
+      ],
+      "m5_anchors": [
+        "state_m5_side",
+        "future_m5_side",
+        "state_m5_mean_logit",
+        "future_m5_mean_logit"
+      ]
+    }
+  },
+  "local_geometry": {
+    "ALL_16": {
+      "batch_indices": [
+        0,
+        123,
+        246,
+        369,
+        492,
+        615,
+        738,
+        861,
+        985,
+        1108,
+        1231,
+        1354,
+        1477,
+        1600,
+        1723,
+        1847
+      ],
+      "future_d1": {
+        "state_m5_side": {
+          "dot_of_means": 0.0004001655270892185,
+          "mean_within_batch_dot": 1.0866102349971055e-06,
+          "negative_batches": 5,
+          "positive_batches": 1,
+          "zero_batches": 10
+        },
+        "future_m5_side": {
+          "dot_of_means": -0.0002581452433528331,
+          "mean_within_batch_dot": -0.00014523709729836814,
+          "negative_batches": 2,
+          "positive_batches": 4,
+          "zero_batches": 10
+        },
+        "state_m5_mean_logit": {
+          "dot_of_means": -0.031056279114989677,
+          "mean_within_batch_dot": -0.034615955272028216,
+          "negative_batches": 5,
+          "positive_batches": 1,
+          "zero_batches": 10
+        },
+        "future_m5_mean_logit": {
+          "dot_of_means": -0.03249477703930017,
+          "mean_within_batch_dot": -0.035060999201697765,
+          "negative_batches": 5,
+          "positive_batches": 1,
+          "zero_batches": 10
+        }
+      },
+      "total": {
+        "state_m5_side": {
+          "dot_of_means": 0.0006928379855153804,
+          "mean_within_batch_dot": 0.010150681222406057,
+          "negative_batches": 5,
+          "positive_batches": 11,
+          "zero_batches": 0
+        },
+        "future_m5_side": {
+          "dot_of_means": -0.00012775733888209105,
+          "mean_within_batch_dot": 0.010414173397696045,
+          "negative_batches": 3,
+          "positive_batches": 13,
+          "zero_batches": 0
+        },
+        "state_m5_mean_logit": {
+          "dot_of_means": -0.05147224804624757,
+          "mean_within_batch_dot": -0.08394837032990453,
+          "negative_batches": 9,
+          "positive_batches": 7,
+          "zero_batches": 0
+        },
+        "future_m5_mean_logit": {
+          "dot_of_means": -0.034293536756599435,
+          "mean_within_batch_dot": -0.04850790553630321,
+          "negative_batches": 7,
+          "positive_batches": 9,
+          "zero_batches": 0
+        }
+      }
+    },
+    "UPDATED_3": {
+      "batch_indices": [
+        0,
+        123,
+        246
+      ],
+      "future_d1": {
+        "state_m5_side": {
+          "dot_of_means": -0.0004306503489283059,
+          "mean_within_batch_dot": -0.0018056043893861194,
+          "negative_batches": 1,
+          "positive_batches": 0,
+          "zero_batches": 2
+        },
+        "future_m5_side": {
+          "dot_of_means": -0.00029659577883395797,
+          "mean_within_batch_dot": -0.0020808920340427703,
+          "negative_batches": 1,
+          "positive_batches": 0,
+          "zero_batches": 2
+        },
+        "state_m5_mean_logit": {
+          "dot_of_means": -0.027027133040672967,
+          "mean_within_batch_dot": -0.04032381283999173,
+          "negative_batches": 1,
+          "positive_batches": 0,
+          "zero_batches": 2
+        },
+        "future_m5_mean_logit": {
+          "dot_of_means": -0.0299701306726018,
+          "mean_within_batch_dot": -0.04205962938056615,
+          "negative_batches": 1,
+          "positive_batches": 0,
+          "zero_batches": 2
+        }
+      },
+      "total": {
+        "state_m5_side": {
+          "dot_of_means": 0.006305542490724226,
+          "mean_within_batch_dot": 0.021035419027404564,
+          "negative_batches": 1,
+          "positive_batches": 2,
+          "zero_batches": 0
+        },
+        "future_m5_side": {
+          "dot_of_means": 0.005983962032583941,
+          "mean_within_batch_dot": 0.02927982003652327,
+          "negative_batches": 0,
+          "positive_batches": 3,
+          "zero_batches": 0
+        },
+        "state_m5_mean_logit": {
+          "dot_of_means": -0.0840359731487428,
+          "mean_within_batch_dot": -0.14145795767957772,
+          "negative_batches": 2,
+          "positive_batches": 1,
+          "zero_batches": 0
+        },
+        "future_m5_mean_logit": {
+          "dot_of_means": -0.12621360748238392,
+          "mean_within_batch_dot": -0.1657274219220521,
+          "negative_batches": 2,
+          "positive_batches": 1,
+          "zero_batches": 0
+        }
+      }
+    },
+    "OTHER_13": {
+      "batch_indices": [
+        369,
+        492,
+        615,
+        738,
+        861,
+        985,
+        1108,
+        1231,
+        1354,
+        1477,
+        1600,
+        1723,
+        1847
+      ],
+      "future_d1": {
+        "state_m5_side": {
+          "dot_of_means": 0.00043063048469954817,
+          "mean_within_batch_dot": 0.0004180153024552547,
+          "negative_batches": 4,
+          "positive_batches": 1,
+          "zero_batches": 8
+        },
+        "future_m5_side": {
+          "dot_of_means": -0.00036241774599132223,
+          "mean_within_batch_dot": 0.00030145250348880155,
+          "negative_batches": 1,
+          "positive_batches": 4,
+          "zero_batches": 8
+        },
+        "state_m5_mean_logit": {
+          "dot_of_means": -0.03199009334394464,
+          "mean_within_batch_dot": -0.033298757371728945,
+          "negative_batches": 4,
+          "positive_batches": 1,
+          "zero_batches": 8
+        },
+        "future_m5_mean_logit": {
+          "dot_of_means": -0.03316399192171254,
+          "mean_within_batch_dot": -0.03344593069888199,
+          "negative_batches": 4,
+          "positive_batches": 1,
+          "zero_batches": 8
+        }
+      },
+      "total": {
+        "state_m5_side": {
+          "dot_of_means": 0.0007129213579644718,
+          "mean_within_batch_dot": 0.007638818652021788,
+          "negative_batches": 4,
+          "positive_batches": 9,
+          "zero_batches": 0
+        },
+        "future_m5_side": {
+          "dot_of_means": -0.0001097141439375193,
+          "mean_within_batch_dot": 0.006060562634889763,
+          "negative_batches": 3,
+          "positive_batches": 10,
+          "zero_batches": 0
+        },
+        "state_m5_mean_logit": {
+          "dot_of_means": -0.04910908300556817,
+          "mean_within_batch_dot": -0.07067692709536455,
+          "negative_batches": 7,
+          "positive_batches": 6,
+          "zero_batches": 0
+        },
+        "future_m5_mean_logit": {
+          "dot_of_means": -0.017378215499656288,
+          "mean_within_batch_dot": -0.021457247908822703,
+          "negative_batches": 5,
+          "positive_batches": 8,
+          "zero_batches": 0
+        }
+      }
+    }
+  },
+  "actual_endpoint_projection": {
+    "ALL_16": {
+      "actual_all_parameter_mean_logit_change": {
+        "state_m5_mean_logit": 0.10376098629421904,
+        "future_m5_mean_logit": 0.08928780953283422
+      },
+      "local_first_order_mean_logit_change": {
+        "state_m5_mean_logit": 0.012189903517240195,
+        "future_m5_mean_logit": 0.009117650042993194
+      },
+      "local_first_order_original_m5_side_loss_change": {
+        "state_m5_side": -0.0001989484296966579,
+        "future_m5_side": 8.379666566062373e-05
+      },
+      "positive_mean_logit_batches": {
+        "state_m5_mean_logit": 16,
+        "future_m5_mean_logit": 16
+      },
+      "hidden_weight_mean_logit_component": {
+        "state_m5_mean_logit": 0.01180335306883681,
+        "future_m5_mean_logit": 0.008804319553096226
+      },
+      "not_exact_finite_change_or_unique_historical_cause": true
+    },
+    "UPDATED_3": {
+      "actual_all_parameter_mean_logit_change": {
+        "state_m5_mean_logit": 0.08067971671698615,
+        "future_m5_mean_logit": 0.06649588021294524
+      },
+      "local_first_order_mean_logit_change": {
+        "state_m5_mean_logit": 0.011761318021190875,
+        "future_m5_mean_logit": 0.008897236569450365
+      },
+      "local_first_order_original_m5_side_loss_change": {
+        "state_m5_side": 0.00030008515214460053,
+        "future_m5_side": 0.0001753434438227866
+      },
+      "positive_mean_logit_batches": {
+        "state_m5_mean_logit": 3,
+        "future_m5_mean_logit": 3
+      },
+      "hidden_weight_mean_logit_component": {
+        "state_m5_mean_logit": 0.01141041124232562,
+        "future_m5_mean_logit": 0.00859556399288886
+      },
+      "not_exact_finite_change_or_unique_historical_cause": true
+    },
+    "OTHER_13": {
+      "actual_all_parameter_mean_logit_change": {
+        "state_m5_mean_logit": 0.10908743311973432,
+        "future_m5_mean_logit": 0.09454748552973168
+      },
+      "local_first_order_mean_logit_change": {
+        "state_m5_mean_logit": 0.012288807862482348,
+        "future_m5_mean_logit": 0.009168514690733848
+      },
+      "local_first_order_original_m5_side_loss_change": {
+        "state_m5_side": -0.0003141100255061791,
+        "future_m5_side": 6.267048608473999e-05
+      },
+      "positive_mean_logit_batches": {
+        "state_m5_mean_logit": 13,
+        "future_m5_mean_logit": 13
+      },
+      "hidden_weight_mean_logit_component": {
+        "state_m5_mean_logit": 0.011894031951877852,
+        "future_m5_mean_logit": 0.008852493913144079
+      },
+      "not_exact_finite_change_or_unique_historical_cause": true
+    }
+  },
+  "parameter_displacement": {
+    "all": {
+      "initial_l2": 6.676999040123864,
+      "delta_l2": 0.29790425703476997,
+      "relative_l2": 0.04461648942055915,
+      "nonzero_elements": 17280,
+      "elements": 17280,
+      "max_abs_change": 0.01089082658290863
+    },
+    "hidden_weight": {
+      "initial_l2": 6.407958738895509,
+      "delta_l2": 0.2785702321726559,
+      "relative_l2": 0.043472538373533744,
+      "nonzero_elements": 16384,
+      "elements": 16384,
+      "max_abs_change": 0.008782130666077137
+    },
+    "timeframe_weight": {
+      "initial_l2": 1.6929993037003142,
+      "delta_l2": 0.10086401896079118,
+      "relative_l2": 0.05957711780526851,
+      "nonzero_elements": 640,
+      "elements": 640,
+      "max_abs_change": 0.01089082658290863
+    },
+    "query_fraction_weight": {
+      "initial_l2": 0.599536440981817,
+      "delta_l2": 0.02330135304439987,
+      "relative_l2": 0.03886561591859362,
+      "nonzero_elements": 128,
+      "elements": 128,
+      "max_abs_change": 0.005512524396181107
+    },
+    "bias": {
+      "initial_l2": 0.5428539361861334,
+      "delta_l2": 0.02071397431900204,
+      "relative_l2": 0.03815754651155306,
+      "nonzero_elements": 128,
+      "elements": 128,
+      "max_abs_change": 0.005144630558788776
+    }
+  },
+  "findings": [
+    "H4/D1 original side losses have a measurable local route to M5 through shared hidden weights, query fraction and bias. Long-timeframe side/M5 derivatives are exactly disjoint on TF-onehot columns.",
+    "F/D1 is active in6of16groups. It locally raises F/M5 mean logit in5 and raises F/M5 side loss in2; both adverse signs coincide only in batchindices0and1108. Four active groups locally help F/M5 side loss.",
+    "Mean within-batch total-gradient dot is positive for both M5 side losses in all16,first3andother13partitions. Dot of mean vectors can have the opposite sign. No blanket D1-harm or loss-weight change follows.",
+    "Actual endpoint displacement of this projection gives a positive first-order mean-logit change in all16groups for bothM5tasks. The all-group projections are0.012189903517240195(S)and0.009117650042993194(F), versus actual all-parameter raw changes0.10376098629421904and0.08928780953283422. These are different quantities, not an additive historical causal share.",
+    "The projection alone has mixed local loss effects: average original S/M5-side loss falls while F/M5-side loss rises; both rise on the3measured newlyupdated groups. Finite nonlinear effects and changing upstream inputs remain unresolved.",
+    "No numerical model, objective, genuine feature, timeframe or training code was changed. The measured instrument retains gradients and qualifies numerical parity; no new edge is established."
+  ],
+  "next_action": "Reuse the retained c171 TRAIN fusion hidden inputs and the actual initial/final checkpoints to test finite query-projection change at fixed initial hidden input. First qualify row/query alignment and numerical reconstruction against the matched short002 initial panel; the older fusion capture used a different numerical profile. If that qualification fails, retain the mismatch and specify the smallest missing capture. No new native fit, feature removal, loss weight or model change is admitted by the local gradient evidence."
 }

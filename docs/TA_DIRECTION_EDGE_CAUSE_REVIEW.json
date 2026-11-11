@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_SHORT_OUTPUT_SHIFT_LOCALIZED_TO_REMAINING_REPRESENTATION_PATH",
+  "status": "ACTIVE_SHARED_QUERY_TRANSFER_MEASURED_FINITE_CAUSE_UNRESOLVED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -115,18 +115,36 @@
     },
     "All256 reconstructed c171 initial panel fields and16 losses are bitexact after matching the actual short-run numerical threads and parameter flags;0gradients/optimizer updates, complete state unchanged.",
     "On the reproduced initial inputs, final M5 head parameters alone change mean known-side p_up by-0.03676pp(S)/+0.22419pp(F), versus actual+2.50553/+2.19309pp. This is an ordered diagnostic, not proof of historical128D identity or unique upstream causality.",
-    "The actual4096-row prefix has future known-UP fractions51.399%M5,62.926%H4,78.280%D1. Predictions are from successive pre-update states; these marginals do not by themselves prove cross-task harm."
+    "The actual4096-row prefix has future known-UP fractions51.399%M5,62.926%H4,78.280%D1. Predictions are from successive pre-update states; these marginals do not by themselves prove cross-task harm.",
+    {
+      "id": "query_projection_component_transfer",
+      "evidence_class": "MATCHED_INITIAL_LOCAL_PARTIAL_DERIVATIVES",
+      "finding": "H4/D1 can locally move M5 through shared query coordinates. F/D1 simultaneously raises F/M5 mean and loss in2of6active groups, not generally; total-gradient mean within-batch dots help both M5 losses in all3fixed partitions. TF-onehot negativecontrol exactlyzero. No loss-weight change justified.",
+      "evidence": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_QUERY_PROJECTION_GRADIENT_REVIEW.json",
+        "sha256": "7ac7223a0b7eb0fe50a04246cc7ac93d66878c778eaf3af02f71fa3ab52e1f52"
+      }
+    },
+    {
+      "id": "actual_query_projection_endpoint_direction",
+      "evidence_class": "RETAINED_ACTUAL_PARAMETER_DISPLACEMENT_FIRST_ORDER_INITIAL_PROJECTION",
+      "finding": "Actual256-update query-projection displacement points to higher M5 mean logits in all16groups. Initial local projection gives+0.01219S/+0.00912F versus actual all-parameter mean shifts+0.10376/+0.08929. This local derivative is not an exact finite-change or historical task attribution.",
+      "evidence": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_QUERY_PROJECTION_GRADIENT_20261111_001/ACTUAL_PROJECTION_DELTA_REVIEW.json",
+        "sha256": "f1da121c63de3a37d259d7f8628f20087cb3bbd8c502563bb785a7a8df9f76ff"
+      }
+    }
   ],
   "next_measurement": {
-    "status": "RETAINED_EVIDENCE_FIRST_NO_RUN_ADMITTED",
-    "question": "Does the remaining common upward shift arise from shared short/long-timeframe learning, and where does that interaction enter the M5 representation?",
-    "method": "Localize whether and how differing short/long-timeframe objectives move the shared representation toward a common upward level, using the existing matched outputs, trace and source first. The H4/D1 class marginals identify a concrete hypothesis, not proof of harmful gradient transfer. Preserve every feature/timeframe; no loss weight/model change or new fit is admitted solely from these marginals.",
+    "status": "RETAINED_EVIDENCE_FIRST_NO_NEW_NATIVE_RUN_ADMITTED",
+    "question": "How much finite M5 output change comes from the shared query projection at fixed initial hidden input, and how much remains associated with changing upstream inputs?",
+    "method": "Reuse the retained c171 TRAIN fusion hidden inputs and the actual initial/final checkpoints to test finite query-projection change at fixed initial hidden input. First qualify row/query alignment and numerical reconstruction against the matched short002 initial panel; the older fusion capture used a different numerical profile. If that qualification fails, retain the mismatch and specify the smallest missing capture. No new native fit, feature removal, loss weight or model change is admitted by the local gradient evidence.",
     "model_change_authorized": false,
     "training_authorized": false,
     "broad_training_authorized": false,
     "completed_predecessor": {
-      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_SHORT_HEAD_ATTRIBUTION_REVIEW.json",
-      "sha256": "eeb7af81a68ee32bc55217ff4b137e0720090af2118a3674195dc93648a917c5"
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_QUERY_PROJECTION_GRADIENT_REVIEW.json",
+      "sha256": "7ac7223a0b7eb0fe50a04246cc7ac93d66878c778eaf3af02f71fa3ab52e1f52"
     }
   },
   "not_established": [
@@ -136,7 +154,7 @@
     "Native convergence or capacity after sufficient training",
     "Untouched generalization and trading economics",
     "Equality to unrecorded historical128D initial head inputs",
-    "Unique short-run upstream cause or harmful H4/D1-to-M5 transfer"
+    "Unique historical cause, full finite-change contribution, or generally harmful H4/D1-to-M5 transfer"
   ],
   "test_data_used": false,
   "training_authorized": false,
@@ -1230,5 +1248,29 @@
     },
     "training_authorized": false,
     "future_resume_authorized": false
+  },
+  "c171_query_projection_review": {
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_QUERY_PROJECTION_GRADIENT_REVIEW.json",
+      "sha256": "7ac7223a0b7eb0fe50a04246cc7ac93d66878c778eaf3af02f71fa3ab52e1f52"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_QUERY_PROJECTION_GRADIENT_20261111_001/RESULT.json",
+      "sha256": "26886d10f20d5b469240db028d4492bc7203e5a20a2b096db7cf85a82b8d7af7"
+    },
+    "gradient_geometry": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_QUERY_PROJECTION_GRADIENT_20261111_001/INDEPENDENT_GEOMETRY_REVIEW.json",
+      "sha256": "e0bd316c2966685dbf74cab208be6b13f206065a336ad3633cdc8ac75693a7cd"
+    },
+    "actual_endpoint_projection": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_QUERY_PROJECTION_GRADIENT_20261111_001/ACTUAL_PROJECTION_DELTA_REVIEW.json",
+      "sha256": "f1da121c63de3a37d259d7f8628f20087cb3bbd8c502563bb785a7a8df9f76ff"
+    },
+    "independent_actual_endpoint_projection": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_QUERY_PROJECTION_GRADIENT_20261111_001/INDEPENDENT_ACTUAL_DELTA_REVIEW.json",
+      "sha256": "c7d83c9ffff0497c3575f7fefffd83bbc9e2138d8fbda53d064d28337afba54e"
+    },
+    "test_data_used": false,
+    "training_authorized": false
   }
 }
