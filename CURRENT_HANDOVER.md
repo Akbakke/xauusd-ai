@@ -6,15 +6,14 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_C171_SHORT_LEARNING_ADMITTED_BOOT_PENDING.
-Målet fra 11.11 er aktivt: isoler målte årsaker til svak retningslæring i
-indikatorer, sammensetting og læring. [Årsaksstatus](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json).
-Korte runder er feilsøking, ikke kapasitetsdom. Full kvalifisert TRAIN-historikk
-og 30–40 epoker er senere skalering, ikke et krav ved hver rettelse.
-Seks diagnostiske planer er COMPLETE og konsumert. Én eksakt kort native
-læringskontroll er innrømmet nedenfor; kampanje og trygg fysisk omstart gjenstår.
-Training/native_training er true bare for denne engangsruten; bred native launch
-og full_epoch er false. Ingen modelljobb har startet.
+TA_DIRECTION_EDGE_CAUSE_C171_STARTUP_FAILURE_CLOSED_REPAIR_REQUIRED.
+Målet fra11.11 er aktivt: isoler målte årsaker til svak retningslæring i
+indikatorer, sammensetting og læring. Korte runder er feilsøking, ikke
+kapasitetsdom. Full kvalifisert TRAIN-historikk og30–40epoker er senere skalering.
+Seks diagnostiske planer er COMPLETE/konsumert. Den korte native planen001
+ble CLAIMED av kampanjen, men feilet før modellstart; den er konsumert.
+Training/native_training/native_launch/full_epoch er false. Windows-oppgaven
+for001 er Disabled; ingen aktiv native jobb. Ingen modellresultater fra001.
 GC er på pause; TEST, Entry/Exit, broker, handel og promotion er stengt.
 Alle genuine indikatorer og M5/M15/H1/H4/D1-input beholdes.
 
@@ -102,24 +101,31 @@ mot dagens R1. Den direkte relevante tidligere next-pass-oppskriften er sjekket:
 1849 updates fra 51e0e883, ikke c171. Den gamle planen er konsumert og skal ikke
 relanseres. En ny optimizerinitialisering må ikke omtales som kontinuerlig epoch.
 
-Neste kontroll er konkret bundet til dagens c171 og uendret tap:
-MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_001. Eksisterende native
-256-stegs prefiksløkke gjenbrukes, med alle aktive parametere, de første4096
-kronologiske TRAIN-radene og fersk tom AdamW. Dette er ikke en fortsatt epoch.
-R1 + fire låste heads importeres; fersk full initial lagres og gjenopprettes
-strengt før trening. Samme16 intakte B16-grupper fordelt over TRAIN måles før
-og etter: 288forwards totalt, 256backward/updates, ingen senere/OOF-skåring.
-Mål samlet originaltap og S/F M5 conditional-side Brier/log hver for seg.
-Per-TF tapsledd omfatter aktivitet+side, ikke isolert M5-side/rest.
+Neste læringskontroll beholder c171 og uendret tap. Den eksisterende native
+256-stegs prefiksløkken bruker alle aktive parametere, de første4096
+kronologiske TRAIN-radene og fersk tom AdamW; dette er ikke en fortsatt epoch.
+R1 + fire låste heads importeres. Fersk full initial skal lagres/gjenopprettes
+strengt. Samme16 intakte B16-grupper måles før/etter:288forwards totalt,
+256backward/updates, ingen senere/OOF-skåring. Mål originaltap og S/F M5
+conditional-side Brier/log hver for seg; per-TF aktivitet+side er ikke isolert side.
 
-Native kampanje, kilde-/inputbinding, fysisk Windows-boot og alle eksisterende
-vakter beholdes. Faktisk kilde-/input-/visningskontroll, oppstartsimport, syntaks og187
-fokuserte tester bestod. Suksess/feilrapportering er kontrollert syntetisk;
-uavhengig kildekontroll fant ingen gjenværende kritiske integrasjonsfunn.
-RECIPE 69cce2bb, kvalifisert mekanisk kilde af4727d1. Én ny policyadmisjon
-åpner bare denne kjøringen; ingen CLAIM eller modelljobb ennå. Eksisterende
-native-profil er20GiB host/512MiB swap, GPU-tak12288MiB og250W konfigurert
-med170W faktisk-draw-vakt. Forberedt fysisk Windows-boot638 må erstattes.
-Ingen bred trening, ny lossvekt, arkitekturendring, senere-datavalg eller
-automatisk fortsettelse. Neste: materialiser, bekreft maskinvid idle, omstart
-og én bevoktet kjøring; les terminal/begge målinger og lukk porter etterpå.
+## Konkret oppstartsfeil og minste rettelse
+
+MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_001 er konsumert uten modellstart.
+Fysisk Windows-boot639 og kampanje-CLAIM er bevart. Windows viser guard-exit75;
+den faktiske cap-assertionen avviser3600sekunder. Dette er reprodusert direkte
+uten launcher/modell. RESULT, worker-TERMINAL, progress og checkpoint finnes ikke.
+Normal kampanjekvittering kunne derfor ikke skrives; ACTIVE_INVOCATION bevares
+som feilspor, ikke som tegn på levende jobb. Ingen falsk terminal konstrueres.
+[Feil og evidens](docs/TA_M5_C171_SHORT_LEARNING_STARTUP_REVIEW.json).
+
+187 fokuserte tester og readiness bestod, men de dekket ikke faktisk cap-parser.
+Det var en integrasjonsfeil i kvalifiseringen. Kun en NY002-oppskrift kan åpnes
+etter eksakt schema/path/3600-tillatelse og3900 ytre veggklokke. Gammel001 forblir
+avvist. Kjør den faktiske parseren og shell-mappingen før ny CLAIM; ingen ny
+modell/loss/indikatorendring eller fulltrening følger av oppstartsfeilen.
+Eksisterende native-vakter er20GiB host/512MiB swap,12288MiB GPU-minne,
+250W konfigurert,310W draw,85C kjerne og80C minnetemperatur. Tidligere170W-
+opplysning i overleveringen gjaldt standardprofilen og var feil for native-ruten.
+Ingen vaktgrense endres. Neste: kvalifiser minste rettelse, bind ny002 og fysisk
+omstart, kjør én kontroll, les begge målinger og lukk portene ved terminal.

@@ -1,0 +1,55 @@
+{
+  "schema_version": "gx1_c171_short_learning_startup_review_v1",
+  "status": "CONSUMED_BEFORE_MODEL_CAP_DURATION_FAILURE",
+  "stage": "market_state_ta_m5_c171_short_learning_20261111_001",
+  "source_head": "94deebdef50ac89db0f54a7994ea0adc3ee48b02",
+  "evidence": {
+    "reproduction": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_001/PREMODEL_CAP_FAILURE_REPRODUCTION.json",
+      "sha256": "24469ee6a9ea2e2d201d3a4d982a8a5974543562d4a665c2e0320bb107131ac4"
+    },
+    "windows_events": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_001/WINDOWS_PREMODEL_FAILURE_EVENTS.json",
+      "sha256": "57df8ebcc1969c78c602f63c76a7fefae37c007405fb5ef5148d522c04819cd0"
+    },
+    "disabled_task": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_001/WINDOWS_TASK_DISABLED.json",
+      "sha256": "5c30d070f8a8eadadc224656dd04fc6bd69afe2eb6211d4420f2145dc1e92b1d"
+    },
+    "active_claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_001/RUNTIME/ACTIVE_INVOCATION.json",
+      "sha256": "66924323ef2112043e16cae41ea4468c1f045fbf0684e846b88950646722e4a8"
+    },
+    "campaign_plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_001/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "sha256": "7049313e081829e07e773d999b33ca4db90d9282b05b8a10f00782dfd60e23d1"
+    }
+  },
+  "actual_failure": "Actual capped_run native_seconds assertion rejected3600 and exited75 before guard/model startup. Campaign begin had already claimed invocation1. Controller could not record normal receipt without worker progress/checkpoint. Original marker remains preserved.",
+  "causal_reproduction_exit": 1,
+  "guard_exit_code": 75,
+  "campaign_invocations_claimed": 1,
+  "campaign_invocations_completed": 0,
+  "model_started": false,
+  "optimizer_updates": 0,
+  "model_results_available": false,
+  "worker_terminal_available": false,
+  "standard_campaign_terminal_receipt_available": false,
+  "old_plan_relaunch_authorized": false,
+  "task_disabled": true,
+  "qualification_gap": "187 focused tests and readiness passed but did not exercise actual shell native duration gate. This was an orchestration integration error, not a model learning failure.",
+  "smallest_correction": "Only exact002 research recipe may admit3600 with outer3900. Keep001 rejected and every legacy path/guard. Execute actual embedded duration selector and wall mapping in focused tests and on new bound window before claim.",
+  "native_existing_guard_limits": {
+    "configured_power_w": 250,
+    "max_actual_power_draw_w": 310,
+    "max_core_temp_c": 85,
+    "max_memory_temp_c": 80,
+    "gpu_memory_max_mib": 12288,
+    "host_memory": "20G",
+    "host_swap": "512M"
+  },
+  "guard_limits_changed": false,
+  "replacement_stage": "market_state_ta_m5_c171_short_learning_20261111_002",
+  "replacement_admitted": false,
+  "scientific_conclusion": "No new evidence about model learning or edge from this aborted startup."
+}

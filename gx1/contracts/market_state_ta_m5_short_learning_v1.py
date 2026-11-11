@@ -10,7 +10,7 @@ from gx1.contracts import local_random_access_campaign_v2 as campaign
 from gx1.contracts import market_state_native_F_private_campaign_v1 as legacy
 
 REPO = legacy.CANONICAL_REPO
-STAGE = 'market_state_ta_m5_c171_short_learning_20261111_001'
+STAGE = 'market_state_ta_m5_c171_short_learning_20261111_002'
 SCOPE = 'market_state_ta_m5_c171_short_learning_v1'
 ROOT = Path('/home/andre2/GX1_RUNS') / STAGE.upper()
 RUNTIME_ROOT = ROOT / 'RUNTIME'
