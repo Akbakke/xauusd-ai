@@ -6,14 +6,15 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_C171_STARTUP_FAILURE_CLOSED_REPAIR_REQUIRED.
+TA_DIRECTION_EDGE_CAUSE_C171_SHORT_LEARNING_002_ADMITTED_BOOT_PENDING.
 Målet fra11.11 er aktivt: isoler målte årsaker til svak retningslæring i
 indikatorer, sammensetting og læring. Korte runder er feilsøking, ikke
 kapasitetsdom. Full kvalifisert TRAIN-historikk og30–40epoker er senere skalering.
 Seks diagnostiske planer er COMPLETE/konsumert. Den korte native planen001
 ble CLAIMED av kampanjen, men feilet før modellstart; den er konsumert.
-Training/native_training/native_launch/full_epoch er false. Windows-oppgaven
-for001 er Disabled; ingen aktiv native jobb. Ingen modellresultater fra001.
+Training/native_training er true bare for ny002; native_launch/full_epoch er
+false. Windows-oppgaven for001 er Disabled; ingen aktiv native jobb.
+Ingen modellresultater fra001. Ny002 er innrømmet, men ikke CLAIMED.
 GC er på pause; TEST, Entry/Exit, broker, handel og promotion er stengt.
 Alle genuine indikatorer og M5/M15/H1/H4/D1-input beholdes.
 
@@ -129,3 +130,11 @@ Eksisterende native-vakter er20GiB host/512MiB swap,12288MiB GPU-minne,
 opplysning i overleveringen gjaldt standardprofilen og var feil for native-ruten.
 Ingen vaktgrense endres. Neste: kvalifiser minste rettelse, bind ny002 og fysisk
 omstart, kjør én kontroll, les begge målinger og lukk portene ved terminal.
+
+Rettelsen er nå kvalifisert på kilde26772663:38 berørte fokuserte tester,
+obligatorisk commit-vakt, syntaks og diff består. Actual cap-gate på002-oppskrift
+returnerer3600/3900/3900; gammel001 avvises fortsatt. RECIPE7e66e231,
+QUALIFICATION8b3cad03. Eksakt002 er innrømmet; forberedt fysisk boot639 må
+skiftes. Samlet panel er matchet samme-panelrespons, ikke fullprefix-fitmål:
+3grupper/48rader brukes i nye steg;13grupper/208rader er andre tidligere brukte
+TRAIN-rader. Ingen av disse skal omtales som heldout eller TEST.
