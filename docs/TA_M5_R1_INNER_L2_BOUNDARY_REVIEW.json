@@ -1,0 +1,323 @@
+{
+  "comparison": {
+    "R1_diagnostic_only": true,
+    "candidate_selection": false,
+    "cells": {
+      "LATER_FULL": {
+        "future": {
+          "INITIAL": {
+            "brier_delta": 7.060971830402663e-05,
+            "log_delta": 0.0001410724858629253,
+            "margin": 1e-06,
+            "passes": false
+          },
+          "PRIOR": {
+            "brier_delta": 9.29845401940188e-05,
+            "log_delta": 0.00018590173076993288,
+            "margin": 1e-08,
+            "passes": false
+          },
+          "R1": {
+            "brier_delta": -0.0008753176423997866,
+            "log_delta": -0.0017589771034746127,
+            "margin": 1e-08,
+            "passes": true
+          }
+        },
+        "state": {
+          "INITIAL": {
+            "brier_delta": 1.8708307625514564e-05,
+            "log_delta": 3.748039037165807e-05,
+            "margin": 1e-06,
+            "passes": false
+          },
+          "PRIOR": {
+            "brier_delta": -0.0001567914203205456,
+            "log_delta": -0.00031326467290626603,
+            "margin": 1e-08,
+            "passes": true
+          },
+          "R1": {
+            "brier_delta": -0.0006579236004547184,
+            "log_delta": -0.0013269050261061066,
+            "margin": 1e-08,
+            "passes": true
+          }
+        }
+      },
+      "TRAIN": {
+        "future": {
+          "INITIAL": {
+            "brier_delta": 9.15101228072257e-05,
+            "log_delta": 0.00018320164863205868,
+            "margin": 1e-06,
+            "passes": false
+          },
+          "PRIOR": {
+            "brier_delta": -0.00045769039043622173,
+            "log_delta": -0.0009160528971415838,
+            "margin": 1e-08,
+            "passes": true
+          },
+          "R1": {
+            "brier_delta": -7.003775782468691e-05,
+            "log_delta": -0.00014022107161348885,
+            "margin": 1e-08,
+            "passes": true
+          }
+        },
+        "state": {
+          "INITIAL": {
+            "brier_delta": 4.277386012482842e-05,
+            "log_delta": 8.563647999904056e-05,
+            "margin": 1e-06,
+            "passes": false
+          },
+          "PRIOR": {
+            "brier_delta": -0.0011348706632611782,
+            "log_delta": -0.0022735830957091308,
+            "margin": 1e-08,
+            "passes": true
+          },
+          "R1": {
+            "brier_delta": 1.3319085710894463e-05,
+            "log_delta": 2.8540919102537643e-05,
+            "margin": 1e-08,
+            "passes": false
+          }
+        }
+      }
+    },
+    "decision": "FAIL_INITIAL_PRIOR_COMPARISON",
+    "fp32_fp64_boundary_ambiguity": []
+  },
+  "conclusion": "Alpha .1 selected by inner TRAIN logloss, but worse than INITIAL on both full TRAIN and later tasks; F later also worse than frozen prior. Mean calibration alone is not the remaining defect.",
+  "counts": {
+    "array_archive_decodes": 5,
+    "backwards": 0,
+    "checkpoint_decodes": 0,
+    "encoder_forwards": 0,
+    "full_cached_linear_batch_calls": 5918,
+    "full_fits": 2,
+    "inner_cached_linear_batch_calls": 3700,
+    "inner_fits": 12,
+    "model_constructions": 0,
+    "optimizer_constructions": 0,
+    "private_npz_writes": 1,
+    "readout_fit_attempts": 14,
+    "readout_fits": 14,
+    "updates": 0
+  },
+  "goal_complete": false,
+  "limits": [
+    "Conditional head selection, not encoder OOF. Encoder and normalization saw inner score periods.",
+    "Later TRAIN is reused development, not untouched generalization.",
+    "No causal optimizer bug, native import or economic edge established."
+  ],
+  "native_import_authorized": false,
+  "next_question": "Qualify one rank-preserving shrink to prefix prior, fit only on existing inner TRAIN .01 predictions. No new run admitted.",
+  "numeric_review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_INNER_L2_BOUNDARY_20261110_001/NUMERIC_REVIEW.json",
+    "sha256": "474fcbf68e1536866ca597f4ba89b834c8c211e8f2b0e23907c0b970439b5ead"
+  },
+  "process_receipt": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_INNER_L2_BOUNDARY_20261110_001/PROCESS_RECEIPT.json",
+    "sha256": "58daf20e7cf50e1ad555dbb89a7e8586d4d852feacf55704f1e480798eed1a61"
+  },
+  "readout_lock": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_INNER_L2_BOUNDARY_20261110_001/READOUT_LOCK.json",
+    "sha256": "9c04ef9b9174a1f4a7b5f5259a715d16cd5caf7ad619d5430b50830cd553649a"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_INNER_L2_BOUNDARY_20261110_001/RESULT.json",
+    "sha256": "4c4a9703851a4d0a5b79534bf0b68651f04dec05a1e5730c9a60f9b294e479cd"
+  },
+  "scores": {
+    "LATER_FULL": {
+      "future": {
+        "CANDIDATE": {
+          "auc": 0.5055573774377485,
+          "brier": 0.24992640094949503,
+          "count": 7165,
+          "log": 0.6929998805475613,
+          "mean_p": 0.5129875367044859,
+          "up_count": 3676
+        },
+        "FP64": {
+          "auc": 0.5055574164223889,
+          "brier": 0.24992640095818147,
+          "count": 7165,
+          "log": 0.6929998805649957,
+          "mean_p": 0.5129875369159388,
+          "up_count": 3676
+        },
+        "INITIAL": {
+          "auc": 0.5083225969633772,
+          "brier": 0.249855791231191,
+          "count": 7165,
+          "log": 0.6928588080616984,
+          "mean_p": 0.5143581495898966,
+          "up_count": 3676
+        },
+        "PRIOR": {
+          "auc": 0.5,
+          "brier": 0.249833416409301,
+          "count": 7165,
+          "log": 0.6928139788167914,
+          "mean_p": 0.5111241709344305,
+          "up_count": 3676
+        },
+        "R1": {
+          "auc": 0.5057290268092693,
+          "brier": 0.2508017185918948,
+          "count": 7165,
+          "log": 0.694758857651036,
+          "mean_p": 0.5193625561960762,
+          "up_count": 3676
+        }
+      },
+      "state": {
+        "CANDIDATE": {
+          "auc": 0.5193587170808306,
+          "brier": 0.24967119636797117,
+          "count": 6096,
+          "log": 0.6924898937564559,
+          "mean_p": 0.5207025595809427,
+          "up_count": 3133
+        },
+        "FP64": {
+          "auc": 0.5193587170808306,
+          "brier": 0.24967119635358695,
+          "count": 6096,
+          "log": 0.6924898937278254,
+          "mean_p": 0.5207025601802607,
+          "up_count": 3133
+        },
+        "INITIAL": {
+          "auc": 0.5219430966816074,
+          "brier": 0.24965248806034565,
+          "count": 6096,
+          "log": 0.6924524133660842,
+          "mean_p": 0.522249243054054,
+          "up_count": 3133
+        },
+        "PRIOR": {
+          "auc": 0.5,
+          "brier": 0.2498279877882917,
+          "count": 6096,
+          "log": 0.6928031584293621,
+          "mean_p": 0.5186775868957252,
+          "up_count": 3133
+        },
+        "R1": {
+          "auc": 0.5205637052103079,
+          "brier": 0.2503291199684259,
+          "count": 6096,
+          "log": 0.693816798782562,
+          "mean_p": 0.5157888757083424,
+          "up_count": 3133
+        }
+      }
+    },
+    "TRAIN": {
+      "future": {
+        "CANDIDATE": {
+          "auc": 0.5259896619818766,
+          "brier": 0.24941852086633004,
+          "count": 11909,
+          "log": 0.6919835297407536,
+          "mean_p": 0.5101437322598315,
+          "up_count": 6087
+        },
+        "FP64": {
+          "auc": 0.5259896619818766,
+          "brier": 0.24941852086262595,
+          "count": 11909,
+          "log": 0.6919835297332598,
+          "mean_p": 0.5101437324317675,
+          "up_count": 6087
+        },
+        "INITIAL": {
+          "auc": 0.5273157192764911,
+          "brier": 0.24932701074352281,
+          "count": 11909,
+          "log": 0.6918003280921216,
+          "mean_p": 0.5109712747092003,
+          "up_count": 6087
+        },
+        "PRIOR": {
+          "auc": 0.5,
+          "brier": 0.24987621125676626,
+          "count": 11909,
+          "log": 0.6928995826378952,
+          "mean_p": 0.5111241709344305,
+          "up_count": 6087
+        },
+        "R1": {
+          "auc": 0.5256132635809729,
+          "brier": 0.24948855862415473,
+          "count": 11909,
+          "log": 0.6921237508123671,
+          "mean_p": 0.5142760381579943,
+          "up_count": 6087
+        }
+      },
+      "state": {
+        "CANDIDATE": {
+          "auc": 0.539359656040746,
+          "brier": 0.248516137682992,
+          "count": 10010,
+          "log": 0.6901754516724563,
+          "mean_p": 0.517684480906383,
+          "up_count": 5192
+        },
+        "FP64": {
+          "auc": 0.5393596960166709,
+          "brier": 0.24851613767934902,
+          "count": 10010,
+          "log": 0.6901754516649399,
+          "mean_p": 0.5176844814843586,
+          "up_count": 5192
+        },
+        "INITIAL": {
+          "auc": 0.5381870822116089,
+          "brier": 0.24847336382286717,
+          "count": 10010,
+          "log": 0.6900898151924573,
+          "mean_p": 0.5185591398769893,
+          "up_count": 5192
+        },
+        "PRIOR": {
+          "auc": 0.5,
+          "brier": 0.24965100834625317,
+          "count": 10010,
+          "log": 0.6924490347681654,
+          "mean_p": 0.5186775868957252,
+          "up_count": 5192
+        },
+        "R1": {
+          "auc": 0.5403987702446079,
+          "brier": 0.2485028185972811,
+          "count": 10010,
+          "log": 0.6901469107533538,
+          "mean_p": 0.510120072003773,
+          "up_count": 5192
+        }
+      }
+    }
+  },
+  "selected_alpha": 0.1,
+  "selection": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_INNER_L2_BOUNDARY_20261110_001/SELECTION.json",
+    "sha256": "33194ec99207953e98e34f378522c9b58c7880b4d96b1c5d89bfe9a707ff7043"
+  },
+  "stage": "market_state_ta_m5_reversed_inner_l2_boundary_20261110_001",
+  "status": "COMPLETE_DIRECTION_COMPARISON_FAILED",
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_INNER_L2_BOUNDARY_20261110_001/TERMINAL.json",
+    "sha256": "771d7ab873fd542000e25e13cabd9bccf4d726258a568c89633c471b2f7228af"
+  },
+  "test_data_used": false,
+  "training_authorized": false,
+  "whole_command_seconds": 4.696702135999658
+}

@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-10T16:30:02.337192+00:00",
-  "status": "TA_M5_R1_TWO_ALPHA_BOUNDARY_HEAD_FIT_ADMITTED",
+  "status": "TA_M5_R1_TWO_ALPHA_COMPLETE_DIRECTION_COMPARISON_FAILED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,7 +1415,7 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed two fixed CPUreadouts are consumed and all training/launch flags closed. Frozen model capture is retained and qualified with original post-completion cleanup failure preserved. No native import, further fit/capture, GC, TEST, Entry, Exit, broker, trading or promotion admitted.",
@@ -1698,7 +1698,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Execute once the scoped .01-versus-.1 cachedR1 head boundary plan.12 inner fits choose by pooledTRAIN FP32 logloss; atmost2fullfits onlyif.1wins, otherwise reuse all.01evidence. Noencoder or native training/launch.",
+    "current_activity": "Two-alpha cached head comparison complete and independently verified. No training admission remains.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1727,11 +1727,11 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "Cached full-later fixed-head contrast COMPLETE; temporal drift and prior regularization-selection boundary identified.",
+    "latest_terminal_role": "R1 two-alpha cached head comparison COMPLETE, consumed; direction gate failed.",
     "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_INNER_L2_BOUNDARY_20261110_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FIXED_HEAD_ON_INITIAL_FULL_LATER_20261110_001/TERMINAL.json",
-      "sha256": "bdb3fc79e6b1149bcee6a87ad9e9b39d87b2e4fac8f744c47bb597065ba9664e"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_INNER_L2_BOUNDARY_20261110_001/TERMINAL.json",
+      "sha256": "771d7ab873fd542000e25e13cabd9bccf4d726258a568c89633c471b2f7228af"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -1751,7 +1751,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "New exact cached head-fit comparison admitted; strongerregularization benefit remains unmeasured.",
+    "current_blocker": "Alpha .1 selected by inner TRAIN logloss, but worse than INITIAL on both full TRAIN and later tasks; F later also worse than frozen prior. Mean calibration alone is not the remaining defect.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9222,7 +9222,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Qualify one frozen-E3 evaluation on the original TRAIN rows outside the selected4096, reusing their finished E3 predictions. This tests whether the local gain extends to the original TRAIN population before any more fitting. Original fullpass cause remains unresolved; no model/loss change or extra epochs admitted.",
+    "next_action": "Qualify one rank-preserving shrink to prefix prior, fit only on existing inner TRAIN .01 predictions. No new run admitted.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -10351,8 +10351,9 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "Mixed-device evaluation;32-row parity is not a global numerical bound.",
-      "Original causal explanation, full direction correction and untouched generalization remain unproved."
+      "Conditional head selection, not encoder OOF. Encoder and normalization saw inner score periods.",
+      "Later TRAIN is reused development, not untouched generalization.",
+      "No causal optimizer bug, native import or economic edge established."
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -17688,7 +17689,7 @@
         "Originals preserved; unusedwindows3/4revoked. No new epoch,HPO,checkpoint/threshold selection,normalization refit,trading,broker,Exit or promotion."
       ]
     },
-    "latest_terminal_evidence_scope": "All29574 original TRAIN rows scored: both full M5 conditional-side tasks worse than INITIAL; selected4096 improves and complement25478 worsens. Independent cached arithmetic verified. INITIAL had already used fullTRAIN.",
+    "latest_terminal_evidence_scope": "12 inner and 2 full cached readout fits; independent 32-cell/192-field verification.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -19038,8 +19039,8 @@
     },
     "feature_potential_exhausted": false,
     "latest_terminal_receipt": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_TRAIN_MONTHS_20261109_001/TERMINAL.json",
-      "sha256": "e0cd2c8bf8921b39aa9e1e09f19f3cf75ca4a4e2677e62c3e334ea78072fe280"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_INNER_L2_BOUNDARY_20261110_001/TERMINAL.json",
+      "sha256": "771d7ab873fd542000e25e13cabd9bccf4d726258a568c89633c471b2f7228af"
     },
     "latest_broad_direction_review": {
       "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/SYNTHESIS.json",
@@ -19221,8 +19222,8 @@
       "sha256": "c30946767a52650ec071f0457ea8b127d0d7bd38c556922b34d139897edc040e"
     },
     "latest_terminal_review": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_SNAPSHOT_BLEND_20261110_001/REVIEW.json",
-      "sha256": "a86f932b0f4df0c5929e0161f6449dfe42bb8efaefdc2caf921eafa2bc0bfeef"
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_R1_INNER_L2_BOUNDARY_REVIEW.json",
+      "sha256": "eed1df25aba917f2eb1a7bd161c156d35b18e75352ac06f5d536264b9dbcc531"
     },
     "frozen_partition_completed_units": {
       "terminal_later_full": {
@@ -40224,7 +40225,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "market_state_ta_m5_reversed_inner_l2_boundary_20261110_001",
+  "training_enabled_scope": null,
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -64113,8 +64114,8 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "TA_M5_FIXED_READOUT_RECOVERY_MEASURED_NATIVE_AND_FULL_LATER_UNQUALIFIED",
-  "recorded_observed_utc": "2026-11-10T16:30:02.337192+00:00",
+  "recorded_status": "TA_M5_R1_TWO_ALPHA_COMPLETE_DIRECTION_COMPARISON_FAILED",
+  "recorded_observed_utc": "2026-11-11T09:54:40.552808+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
     "decision": "BLOCK",
@@ -66343,7 +66344,7 @@
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "ACTIVE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "Numerical blocker measured and limited32row protocol mathematically qualified. Full002 admitted1593complementfw/0parityfw/0updates; exact restore and all genuine inputs/targets/loss preserved. Not yet executed at source freeze.",
+    "latest_progress": "Alpha .1 selected by inner TRAIN logloss, but worse than INITIAL on both full TRAIN and later tasks; F later also worse than frozen prior. Mean calibration alone is not the remaining defect.",
     "user_clarification_20261109": {
       "scope": "Correct direction for short sniper and longer long/shorttrends; separate forecasts and targets at M5 cadence.",
       "existing_future_horizons_minutes": [
@@ -66357,8 +66358,8 @@
       "no_new_trading_authority": true
     },
     "latest_progress_review": {
-      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_REPEATED_PASS_REVIEW.json",
-      "sha256": "e0152d16be2a6b881dcd4e21ec2f108e875ba042a25b0f3d0d9b1ba044971987"
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_R1_INNER_L2_BOUNDARY_REVIEW.json",
+      "sha256": "eed1df25aba917f2eb1a7bd161c156d35b18e75352ac06f5d536264b9dbcc531"
     }
   },
   "market_state_ta_direction_weight_diagnostic_20261108_001": {
@@ -75236,7 +75237,7 @@
     "conclusion": "Along fixed W0r0-W2r0-W2r1 path, head replacement hurts full-later S/F and representation replacement under W2 helps both. Primary original native full-later failure remains; no new candidate or fit."
   },
   "market_state_ta_m5_reversed_inner_l2_boundary_20261110_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_INNER_L2_BOUNDARY_20261110_001/PLAN.json",
       "sha256": "d7c507a8436191b1e59c71a6d06128959871525cdb518c3d42d4d2bca0dc3bf3"
@@ -75250,13 +75251,13 @@
       "sha256": "c4e66eb0eed9ec34831d69a5b161e97377f7f9dabd67c9d927467f94d03efb47"
     },
     "max_invocations": 1,
-    "remaining_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "remaining_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "training_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "training_authorized": false,
     "native_training_authorized": false,
     "native_launch_authorized": false,
     "backwards": 0,
@@ -75283,6 +75284,28 @@
     "goal_complete": false,
     "independent_source_review": "PASS ae57a5d7ed0d01bff2161fc377079aaeb78d3304074b433e529ecac19973ec6c; solver, perprefix equalweights, purgedsplit proofs, choose30-to12 assertion adaptation, locking/reuse branches and primary margins verified.",
     "scope": "Only twoalpha conditional M5 head selection on cached frozenR1:12 inner fits using .01/.1 and existing3 chronological splits, currentequal observationweights perprefix. If.01selected reuse qualifiedfullfits/scores; if.1selected atmost2fullfits and lockedCPUfullTRAIN/later evaluation. Noencoder/model/checkpoint/nativeupdate, newalpha or nativepromotion.",
-    "standing_authority": "Active direction-only goal and standing zero-cost local-work authority; new exact bounded cached head-fit plan independently reviewed and preflighted. training_enabled is opened only for this named stage; native training/launch/full epochs remain false."
+    "standing_authority": "Active direction-only goal and standing zero-cost local-work authority; new exact bounded cached head-fit plan independently reviewed and preflighted. training_enabled is opened only for this named stage; native training/launch/full epochs remain false.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_INNER_L2_BOUNDARY_20261110_001/RESULT.json",
+      "sha256": "4c4a9703851a4d0a5b79534bf0b68651f04dec05a1e5730c9a60f9b294e479cd"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_INNER_L2_BOUNDARY_20261110_001/TERMINAL.json",
+      "sha256": "771d7ab873fd542000e25e13cabd9bccf4d726258a568c89633c471b2f7228af"
+    },
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_R1_INNER_L2_BOUNDARY_REVIEW.json",
+      "sha256": "eed1df25aba917f2eb1a7bd161c156d35b18e75352ac06f5d536264b9dbcc531"
+    },
+    "numeric_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_INNER_L2_BOUNDARY_20261110_001/NUMERIC_REVIEW.json",
+      "sha256": "474fcbf68e1536866ca597f4ba89b834c8c211e8f2b0e23907c0b970439b5ead"
+    },
+    "process_receipt": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_INNER_L2_BOUNDARY_20261110_001/PROCESS_RECEIPT.json",
+      "sha256": "58daf20e7cf50e1ad555dbb89a7e8586d4d852feacf55704f1e480798eed1a61"
+    },
+    "selected_alpha": 0.1,
+    "comparison_pass": false
   }
 }
