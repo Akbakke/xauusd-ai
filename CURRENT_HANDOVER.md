@@ -6,13 +6,13 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_RETAINED_TAIL_CHANGE_MEASURED_SOURCE_INPUT_GAP.
+TA_DIRECTION_EDGE_CAUSE_PAIRED_JOINT_BOUNDARY_ADMITTED.
 Målet 11.11 er aktivt: mål årsaker til svak retningsverdi i indikatorer,
 sammensetting og læring. [Samlet status](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json).
 Korte runder er feilsøking, ikke kapasitetsdom. Full kvalifisert TRAIN-historikk
 og 30–40 epoker er senere skalering, ikke et krav ved hver rettelse.
-Alle modellplaner er konsumert. Siste gradientobservasjon er COMPLETE; ingen
-ny modellkjøring er innrømmet. Training/native_training/native_launch/full_epoch
+Alle tidligere modellplaner er konsumert. Én ny passiv måling av begge
+endepunkter er innrømmet etter fokuserte tester og faktisk preflight; ikke startet. Training/native_training/native_launch/full_epoch
 og full_val er false. Begge gamle c171 Windowsoppgaver er Disabled. GC er på
 pause; TEST, Entry/Exit, broker, handel, spending og promotion er stengt.
 
@@ -114,17 +114,27 @@ av en manglende cpuset-kvitteringsfil; originalfeilen er bevart, minste rettelse
 til os.sched_getaffinity(0) bestod. Ingen modellkjøring inngikk i noen forsøk.
 Alle fullrapporter og kildebindinger er lenket fra samlet årsaksrapport.
 
-## Neste konkrete avklaring
+## Eksakt innrømmet observasjon
 
-Forbered én ny passiv måling av de samme 16 B16 TRAIN-gruppene ved begge faktiske
-endepunkter: 512D entry_q_joint_source, 128D entry_q_joint_hidden og M5-headinput.
-Gjenbruk native modell/loader og den verifiserte profilen med 8 numeriske tråder,
-opprinnelige gradflagg og deaktivert MHA-fastpath. Krev alle 12 historiske felt
-og 16 tap bitlike per endepunkt, samt initialparitet mot matched002s 14 felt.
-Én modell, høyst 32 fullforwards, ingen optimizer/autograd/updates. Gjeldende
-kilde, eksakt ny plan og cap må kvalifiseres før launch; ingen plan er innrømmet nå.
-Da kan de fire kildeblokkene før joint skilles fra endringer i joint/query/sluttlag
-uten å bruke den eldre cachen som historisk fasit. Gamle planer forblir konsumert.
-Unik historisk årsak, familiers prediktive nytte, fullprefix-fit, senere
-generalisering og kapasitet ved tilstrekkelig trening er fortsatt uavklart.
-Ingen ny edge er påvist; TEST og handelsøkonomi er ikke brukt.
+[Plan og grenser](docs/TA_C171_PAIRED_JOINT_BOUNDARY_REVIEW.json).
+Ny ROOT: /home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_JOINT_BOUNDARIES_20261111_001.
+PLAN c3ab604a, preflight c1a88f7e, faktisk cap-gate afa3d6e0. 29 hooktester og
+63 worker-/rutetester består; uavhengig kildereview fant ingen konkret blokkering.
+Én modell, 32 forwards over samme 16 B16-grupper ved initial og faktisk final;
+512 evalueringsrader/256 unike TRAIN-rader. Én eksplisitt last av finalvektene,
+ingen optimizer/RNG-restore, gradient, trening, checkpoint- eller kandidatskriving.
+Originale 12 felt og 16 tap kreves bitlike per fase, initialt også begge headinputs.
+Alle interne tilstander/identiteter/hooks skal være passive innen hver fase.
+Faktisk 512D-source og 128D-hidden kopieres med to midlertidige pre-hooks; ingen
+rekonstruksjon i hookene. Initial/final lagres som fase0/1 i samme TRAIN_FUSION.npz,
+maks 2 MiB. 900 s worker/1200 s guard, samme 12 GiB/512 MiB, CPU 0–7/pids64,
+250 W limit/170 W draw/65 C/80 C og 8 numeriske tråder som kvalifisert tidligere.
+
+Første PLAN-publisering manglet foreldremappen og feilet før PLAN/CLAIM. Det er
+bevart i PRE_PLAN_PUBLICATION_FAILURE; bare den nye mappen ble opprettet. Ingen
+modellplan var da opprettet eller kjørt. Faktisk preflight og cap-valg bestod etterpå.
+Etter terminal: kontroller paritet/passivitet og gjenbruk den parede fangsten for
+å skille de fire kildeblokkene før joint fra joint/query/sluttlagets vektendringer.
+Ingen modell-/lossendring eller full trening følger automatisk av observasjonen.
+Unik historisk årsak, familiers prediktive nytte, senere generalisering og kapasitet
+ved tilstrekkelig trening er fortsatt uavklart. TEST og handelsøkonomi er stengt.

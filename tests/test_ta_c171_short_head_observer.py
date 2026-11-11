@@ -12,8 +12,8 @@ SHA='a'*64
 COMMIT='b'*40
 
 
-def arrays(rows=16, heads=True):
-    result={k:np.zeros(shape,dtype) for k,(shape,dtype) in worker._layout(rows,np=np).items()}
+def arrays(rows=16, heads=True, boundaries=False):
+    result={k:np.zeros(shape,dtype) for k,(shape,dtype) in worker._layout(rows,np=np,boundaries=boundaries).items()}
     result['parents']=np.arange(rows,dtype=np.int64)
     result['issues']=np.arange(rows,dtype=np.int64)*300_000_000_000
     result['state_query'][:]=[1,2,3,4,5]
@@ -24,6 +24,7 @@ def arrays(rows=16, heads=True):
         result[task+'_allowed'][:]=4
         result[task+'_eligible'][:]=True
         result[task+'_mature'][:]=True
+    if boundaries:result['phase'][256:]=1
     return result if heads else {k:v for k,v in result.items() if k in worker.BASE_KEYS}
 
 
@@ -32,7 +33,7 @@ def plan():
         source_base_commit=COMMIT,worker={'path':str(worker.WORKER),'sha256':SHA},
         dispatch={'path':str(worker.WORKER),'sha256':SHA},
         cap_runner={'path':str(worker.REPO/worker.cache.CAP_RUNNER),'sha256':SHA},
-        gradient_helper={'path':str(worker.HELPER),'sha256':SHA},
+        boundary_helper={'path':str(worker.HELPER),'sha256':SHA},
         source_owners={},inputs=deepcopy(worker.INPUTS),**deepcopy(worker.BOUNDS))
 
 
@@ -91,7 +92,7 @@ def test_invalid_capture_layout_rejected(change):
 
 
 def test_serialized_bound_is_enforced_before_immutable_publish(monkeypatch):
-    value=arrays()
+    value=arrays(boundaries=True)
     monkeypatch.setitem(worker.BOUNDS,'max_cache_bytes',sum(x.nbytes for x in value.values()))
     called=[]
     monkeypatch.setattr(worker.cache,'_save_fusion_arrays',lambda *a,**k:called.append(a))
@@ -101,7 +102,7 @@ def test_serialized_bound_is_enforced_before_immutable_publish(monkeypatch):
 
 
 def test_partial_capture_keeps_actual_batch_order_and_existing_writer(monkeypatch):
-    one,two=arrays(),arrays();two['parents']+=1000
+    one,two=arrays(boundaries=True),arrays(boundaries=True);two['parents']+=1000
     captured={}
     def save(name,values,counts,**kwargs):
         captured.update(name=name,arrays=values,kwargs=kwargs)
@@ -251,7 +252,7 @@ def test_existing_partition_changes_only_flags_without_optimizer_or_gradients():
 
 
 @pytest.mark.parametrize('key',worker.HEAD_KEYS)
-def test_gradient_observation_requires_both_matched_head_inputs(key):
+def test_paired_initial_observation_requires_both_matched_head_inputs(key):
     value=arrays();baseline={k:v.copy() for k,v in value.items()}
     worker._require_parity(value,baseline,1.25,1.25,np=np,match_heads=True)
     value[key][0,0]=np.nextafter(value[key][0,0],np.float32(1))
@@ -259,20 +260,61 @@ def test_gradient_observation_requires_both_matched_head_inputs(key):
         worker._require_parity(value,baseline,1.25,1.25,np=np,match_heads=True)
 
 
-def test_retained_gradient_vectors_use_fixed_layout_and_intact_batch_order(monkeypatch):
-    from gx1.audit.ta_c171_query_projection_gradient_v1 import ARMS
-    one={name:np.full(17280,i,np.float32) for i,name in enumerate(ARMS)}
-    two={name:value+10 for name,value in one.items()};seen={}
-    def publish(name,values,counts,**kwargs):
-        seen.update(name=name,arrays=values,kwargs=kwargs);return {'path':'synthetic','sha256':SHA}
-    monkeypatch.setattr(worker.cache,'_save_fusion_arrays',publish)
-    worker._save_gradients([one,two],{'published_npz_bytes':318504},[0,123],np=np)
-    assert seen['name']=='TRAIN_GRADIENT_FORWARD.npz'
-    assert np.array_equal(seen['arrays']['batch_indices'],[0,123])
-    for name in ARMS:
-        assert np.array_equal(seen['arrays'][name],np.stack([one[name],two[name]]))
-    assert seen['kwargs']['max_bytes']==16*1024**2
-    before=dict(seen)
-    with pytest.raises(RuntimeError,match='GRADIENT_BYTES'):
-        worker._save_gradients([one],{'published_npz_bytes':16*1024**2},[0],np=np)
-    assert seen==before
+def test_combined_boundary_capture_retains_both_phases_and_all_original_fields(monkeypatch):
+    value=arrays(512,boundaries=True)
+    assert value['joint_source'].shape==(512,512) and value['joint_hidden'].shape==(512,128)
+    worker._require_arrays(value,512,np=np,boundaries=True)
+    published={}
+    def save(name,values,counts,**kwargs):
+        published.update(name=name,values=values);return {'path':'synthetic','sha256':SHA}
+    monkeypatch.setattr(worker.cache,'_save_fusion_arrays',save)
+    parts=[{k:v[i:i+16] for k,v in value.items()} for i in range(0,512,16)]
+    worker._save(parts,{'published_npz_bytes':0},partial=False,np=np)
+    assert published['name']=='TRAIN_FUSION.npz'
+    assert all(np.array_equal(v,published['values'][k]) for k,v in value.items())
+    assert sum(v.nbytes for v in value.values())<worker.BOUNDS['max_cache_bytes']
+
+
+@pytest.mark.parametrize('failure',['phase','source_shape','hidden_dtype','nan'])
+def test_boundary_artifact_rejects_phase_reordering_and_corruption(failure):
+    value=arrays(512,boundaries=True)
+    if failure=='phase':value['phase'][256]=0
+    if failure=='source_shape':value['joint_source']=value['joint_source'][:,:511]
+    if failure=='hidden_dtype':value['joint_hidden']=value['joint_hidden'].astype(np.float64)
+    if failure=='nan':value['joint_source'][0,0]=np.nan
+    with pytest.raises(RuntimeError,match='PHASE_ORDER|ARRAY'):
+        worker._require_arrays(value,512,np=np,boundaries=True)
+
+
+def test_final_piece_uses_explicit_phase_and_cannot_masquerade_as_initial():
+    value=arrays(boundaries=True);value['phase'][:]=1
+    worker._require_arrays(value,16,np=np,boundaries=True,phase=1)
+    with pytest.raises(RuntimeError,match='PHASE_ORDER'):
+        worker._require_arrays(value,16,np=np,boundaries=True,phase=0)
+
+
+def final_metadata():
+    contracts={'expected_view_sha256':'view','expected_model_contract_sha256':'model','expected_loss_contract_sha256':'loss'}
+    measurement={'capture':worker.INPUTS['short_final_capture'],'evaluated_model_state_sha256':worker.FINAL_MODEL_SHA256,
+        'evaluation_state_unchanged':True,'optimizer_updates':256,'test_data_used':False,
+        'panel_batch_indices':worker.BOUNDS['panel_batch_indices'],
+        'measurement':{'rows':256,'batches':16,'canonical_batch_losses':[1.]*16,
+            'feature_view_sha256':'view','model_contract_sha256':'model','loss_contract_sha256':'loss'}}
+    result={'final_model_state_sha256':worker.FINAL_MODEL_SHA256,
+        'final_state':worker.INPUTS['short_final_checkpoint'],'retained_final_state':worker.INPUTS['short_final_checkpoint'],
+        'final_state_validated':True,'measurement_refs':{'FINAL_TRAIN':worker.INPUTS['short_final_measurement']},
+        'panel_captures':{'FINAL_TRAIN':worker.INPUTS['short_final_capture']},
+        'measurements':{'FINAL_TRAIN':measurement['measurement']}}
+    return contracts,result,measurement
+
+
+def test_final_qualification_binds_actual_endpoint_and_original_measurement():
+    worker._qualify_final(*final_metadata())
+    for key,value in [('optimizer_updates',0),('evaluated_model_state_sha256',worker.short.MODEL_SHA256),
+                      ('evaluation_state_unchanged',False),('test_data_used',True)]:
+        contracts,result,measurement=deepcopy(final_metadata());measurement[key]=value
+        with pytest.raises(RuntimeError,match='SHORT_FINAL'):
+            worker._qualify_final(contracts,result,measurement)
+    contracts,result,measurement=deepcopy(final_metadata());result['final_state']=worker.INPUTS['short_recipe']
+    with pytest.raises(RuntimeError,match='SHORT_FINAL_RESULT'):
+        worker._qualify_final(contracts,result,measurement)

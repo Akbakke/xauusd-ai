@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_RETAINED_TAIL_CHANGE_MEASURED_PAIRED_SOURCE_INPUT_MISSING",
+  "status": "ACTIVE_PAIRED_JOINT_BOUNDARY_OBSERVATION_ADMITTED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -154,9 +154,9 @@
     }
   ],
   "next_measurement": {
-    "status": "PAIRED_BOUNDARY_PREPARATION_REQUIRED_NO_NATIVE_RUN_ADMITTED",
+    "status": "ONE_PASSIVE_PAIRED_BOUNDARY_OBSERVATION_ADMITTED",
     "question": "Which changes in the pre-joint base/residual/MTF-pool/global-context blocks account for the remaining output movement when both endpoint inputs are captured in the matched numerical profile?",
-    "method": "Prepare the smallest new passive paired boundary observation: the same16B16 TRAIN groups at reconstructed c171 initial and actual short002 final states, recording the512D entry_q_joint_source and128D entry_q_joint_hidden plus original outputs and both M5head inputs. Require all12historical fields and16batch losses bitexact per endpoint, plus initial14field parity to matched002. Keep the verified8-thread, original trainability and disabled-MHA-fastpath profile; no optimizer/autograd/training. One model and at most32full forwards; qualify current source, exact new plan and cap before any launch. Only then separate changes in the four pre-joint source blocks from changes in joint/query/head weights. Consumed plans remain closed.",
+    "method": "Execute the exact qualified paired boundary plan once, require original endpoint parity and within-phase passivity, then reconcile retained source/joint/query/head changes without a new fit.",
     "max_proposed_full_model_forwards": 32,
     "max_proposed_model_constructions": 1,
     "optimizer_updates": 0,
@@ -1566,6 +1566,20 @@
       "published_artifacts": 0,
       "correction": "Use os.sched_getaffinity(0) for actual process affinity; retained arithmetic scope unchanged."
     },
+    "training_authorized": false,
+    "test_data_used": false
+  },
+  "c171_paired_joint_boundary_observation": {
+    "status": "ADMITTED_NOT_RUN",
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_PAIRED_JOINT_BOUNDARY_REVIEW.json",
+      "sha256": "8483cad5ac393ed1a8736d2f1c931bfc631656c594ccac8e3ecdddf1bfbe0f51"
+    },
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_JOINT_BOUNDARIES_20261111_001/PLAN.json",
+      "sha256": "c3ab604ac1c6e583be42a9df9d1791b781bdea11db97937244491378b539277e"
+    },
+    "model_change_authorized": false,
     "training_authorized": false,
     "test_data_used": false
   }

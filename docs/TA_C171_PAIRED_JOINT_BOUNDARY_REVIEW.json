@@ -1,0 +1,133 @@
+{
+  "schema_version": "gx1_ta_c171_paired_joint_boundary_review_v1",
+  "status": "ADMITTED_NOT_RUN",
+  "reason": "Earlier retained c171 joint inputs differ numerically from the matched short-run head inputs, and final512Dpre-joint inputs were not retained. Conditional finite replays do not identify the remaining historical boundary change.",
+  "question": "What changes in the512Dpre-joint source and128Djoint hidden occur between the actual initial/final short-run weight states when both reproduce historical outputs and losses?",
+  "source_base_commit": "ba1fcd302b0aa7be9be44f08f2491dcceee8b0ac",
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_JOINT_BOUNDARIES_20261111_001/PLAN.json",
+    "sha256": "c3ab604ac1c6e583be42a9df9d1791b781bdea11db97937244491378b539277e"
+  },
+  "preflight": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_JOINT_BOUNDARIES_20261111_001/PREFLIGHT.json",
+    "sha256": "c1a88f7e270ca21085129cdb1b0861d4ff3b68f2357e4f265f7352e0ae234735"
+  },
+  "actual_cap_gate": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_JOINT_BOUNDARIES_20261111_001/CAP_GATE.json",
+    "sha256": "afa3d6e09b57e769f6182521e715c68f254074555db41f39aa26ddf8d963366e"
+  },
+  "pre_plan_publisher_failure": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_JOINT_BOUNDARIES_20261111_001/PRE_PLAN_PUBLICATION_FAILURE.json",
+    "sha256": "452806be7082ffe19f6a825446d96bf88ed33dbb520e9e23534f1e85bbc147ba"
+  },
+  "helper": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/ta_c171_joint_boundary_capture_v1.py",
+    "sha256": "791c4283b021d9ff071119e3292a8134c80e7696f4aade310a8e5afb049d1094"
+  },
+  "method": "Reuse one native model, the existing TRAIN loader and original objective. Initial state is reconstructed from the already qualified reversed checkpoint and four locked M5head tensors. Load only the bound actual final model-state tensors for the second phase; do not construct or restore an optimizer or restore RNG. Temporary pre-hooks copy actual joint-norm input and the actual hidden prefix entering both query decoders.",
+  "output_layout": {
+    "artifact": "TRAIN_FUSION.npz",
+    "phase0": "INITIAL_TRAIN rows0:256",
+    "phase1": "FINAL_TRAIN rows256:512",
+    "original_panel_fields": 12,
+    "m5_head_inputs": 2,
+    "joint_source_shape": [
+      512,
+      512
+    ],
+    "joint_hidden_shape": [
+      512,
+      128
+    ],
+    "phase_dtype": "uint8",
+    "phase_values": [
+      0,
+      1
+    ]
+  },
+  "required_parity": [
+    "All12original arrays and all16canonical batch losses bitexact independently at each endpoint.",
+    "Both initial128DM5head inputs bitexact to matched002 as well.",
+    "Full model/buffers/RNG/modes/flags/identities/hooks unchanged within each phase; all parameter.grad remainNone.",
+    "The sole explicit initial-to-final weight load preserves RNG/modes/flags/identities/hooks and reaches the bound final whole-model digest."
+  ],
+  "bounds": {
+    "fit_rows": 29574,
+    "batch_size": 16,
+    "decoder_width": 128,
+    "joint_source_width": 512,
+    "panel_batch_indices": [
+      0,
+      123,
+      246,
+      369,
+      492,
+      615,
+      738,
+      861,
+      985,
+      1108,
+      1231,
+      1354,
+      1477,
+      1600,
+      1723,
+      1847
+    ],
+    "sampled_rows": 512,
+    "unique_rows": 256,
+    "phases": [
+      "INITIAL_TRAIN",
+      "FINAL_TRAIN"
+    ],
+    "max_backbone_encodings": 32,
+    "max_model_constructions": 1,
+    "max_checkpoint_loads": 2,
+    "head_tensor_imports": 4,
+    "max_checkpoint_weight_transitions": 1,
+    "max_autograd_grad_calls": 0,
+    "max_backwards": 0,
+    "max_optimizer_constructions": 0,
+    "max_optimizer_updates": 0,
+    "max_checkpoint_writes": 0,
+    "max_candidate_writes": 0,
+    "max_cache_bytes": 2097152,
+    "max_published_json_bytes": 1048576,
+    "wall_seconds": 900,
+    "device": "cuda",
+    "candidate_model_state_sha256": "c171736d2de79396dd86a79ad895f8bf2226e5ad8d996abf1dd7f52055e4a467",
+    "final_model_state_sha256": "5f54bbe47df0f84c60e475d0e9fcf83ad70b8c569d6ebea6ac802aebda655c82",
+    "numerical_mode": "eval_no_grad_deterministic_fp32_training_mha_fastpath_false",
+    "boundary_observations_authorized": true,
+    "numerical_threads": 8,
+    "interop_policy": "process_default_unchanged_like_short002",
+    "thread_environment": {
+      "OMP_NUM_THREADS": "8",
+      "MKL_NUM_THREADS": "8",
+      "OPENBLAS_NUM_THREADS": "8",
+      "NUMEXPR_NUM_THREADS": "8",
+      "VECLIB_MAXIMUM_THREADS": "8",
+      "BLIS_NUM_THREADS": "8"
+    },
+    "parameter_partition": "original_fold1_fit_active_true_inactive_false",
+    "training_enabled": false,
+    "test_data_used": false
+  },
+  "source_owner_entries": 89,
+  "changed_declared_orchestration_owner_keys": [
+    "scripts/gx1_capped_run.sh"
+  ],
+  "focused_tests": {
+    "hook_helper_passed": 29,
+    "worker_and_actual_cap_route_passed": 63,
+    "total_passed": 92
+  },
+  "independent_source_review": "No concrete blocking defect found in the two-phase loop, strict endpoint import, parity, counts, artifact bound or exact cap selector.",
+  "limitations": [
+    "Same256dependent historical TRAIN rows evaluated twice; only3groups overlap new updates. No heldout/generalization or edge claim.",
+    "Intermediate vectors are reconstructed observations, not retroactively recorded historical internals; scalar/head parity alone does not prove historical pre-joint identity.",
+    "No optimizer, autograd, checkpoint/candidate write, new fit, feature removal, loss weighting, TEST or trading authority."
+  ],
+  "training_authorized": false,
+  "test_data_used": false
+}
