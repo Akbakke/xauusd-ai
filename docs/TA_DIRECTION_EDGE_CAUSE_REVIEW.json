@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_PAIRED_JOINT_BOUNDARY_OBSERVATION_ADMITTED",
+  "status": "ACTIVE_PAIRED_SOURCE_RANK_DEGRADATION_FULL_USED_PREFIX_UNMEASURED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -151,21 +151,39 @@
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_QUERY_PROJECTION_GRADIENT_20261111_001/FINITE_JOINT_REPLAY_REVIEW.json",
         "sha256": "f355212c90ab4773b60a36557ace0cfe7c42ff05638d437143b1b6fa4cb98f00"
       }
+    },
+    {
+      "id": "paired_joint_boundary_exact_endpoint_reconstruction",
+      "evidence_class": "NATIVE_PASSIVE_PAIRED_CHECKPOINT_OBSERVATION",
+      "finding": "One model32forwards reconstructs both original16B16panels bitexact in raw outputs/masks/queries/losses, andinitialheadinputs. Paired512Dsource/128Dhidden are retained with within-phase passivity. No optimizer/autograd/update.",
+      "evidence": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_PAIRED_JOINT_BOUNDARY_REVIEW.json",
+        "sha256": "33529336fa1a09e0561d8777d273bfb8e7cc0c8720dc7bdee11e8f7533c84139"
+      }
+    },
+    {
+      "id": "paired_source_update_at_fixed_final_tail",
+      "evidence_class": "PAIRED_RETAINED_BOUNDARY_CONDITIONAL_FINITE_EFFECT",
+      "finding": "Replacing initial by finalpre-jointsource withfinaltailfixed lowersbothM5AUCs inall16/updated3/other13partitions. Context haslargestpositive single-block mean-logit effect; base replacement accounts formuchrankdrop inALL/OTHER13. MTFdelta geometry ismostlycommonmean. No uniquehistoricaltaskcause, representationalinformationloss orfull-prefixfitverdict is established.",
+      "evidence": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_JOINT_BOUNDARIES_20261111_001/PAIRED_BOUNDARY_EFFECT_REVIEW.json",
+        "sha256": "587650d3d5ca439a31c20655678caa723fe37bcd6290be332f579323975477f2"
+      }
     }
   ],
   "next_measurement": {
-    "status": "ONE_PASSIVE_PAIRED_BOUNDARY_OBSERVATION_ADMITTED",
-    "question": "Which changes in the pre-joint base/residual/MTF-pool/global-context blocks account for the remaining output movement when both endpoint inputs are captured in the matched numerical profile?",
-    "method": "Execute the exact qualified paired boundary plan once, require original endpoint parity and within-phase passivity, then reconcile retained source/joint/query/head changes without a new fit.",
-    "max_proposed_full_model_forwards": 32,
+    "status": "COMPLETE_USED_PREFIX_COMPARISON_PREPARATION_NO_RUN_ADMITTED",
+    "question": "Do the256original updates improve M5 fitting on the actual4096used TRAIN rows, or does the observed fixed-decoder degradation also dominate their own complete fit cohort?",
+    "method": "Prepare one bounded read-only initial/final evaluation of the exact4096TRAINrows actually updated by short002, reusing its retained checkpoints and original chronological B16order/query/target/loss owners. Existing initial/final reports contain only256sampled rows and only48overlap that prefix. Bind every row, issue, query and allowed/eligible/mature mask to the retained TRACE fixed fields; its pre-update logits come fromchanging states and are not a fixed endpoint baseline. Measure original total/task losses and M5conditional Brier/log/AUC on the complete used prefix; require the3existing in-prefix panel groups to match their saved fields/losses. At most512full forwards, no optimizer/autograd/newtraining. First qualify metadata and the existing resource/wall bounds, then admit an exact new one-use plan. This resolves within-prefix fitting versus transfer/coadaptation before any feature freezing, architecture or loss-weight change.",
+    "max_proposed_full_model_forwards": 512,
     "max_proposed_model_constructions": 1,
     "optimizer_updates": 0,
     "autograd_calls": 0,
     "training_authorized": false,
     "model_change_authorized": false,
     "completed_predecessor": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_QUERY_PROJECTION_GRADIENT_20261111_001/FINITE_JOINT_REPLAY_REVIEW.json",
-      "sha256": "f355212c90ab4773b60a36557ace0cfe7c42ff05638d437143b1b6fa4cb98f00"
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_PAIRED_JOINT_BOUNDARY_REVIEW.json",
+      "sha256": "33529336fa1a09e0561d8777d273bfb8e7cc0c8720dc7bdee11e8f7533c84139"
     }
   },
   "not_established": [
@@ -176,7 +194,7 @@
     "Untouched generalization and trading economics",
     "Equality to unrecorded historical128D initial head inputs",
     "Unique historical cause, full finite-change contribution, or generally harmful H4/D1-to-M5 transfer",
-    "Matched512Dpre-joint and128Djoint input captures at both short-run endpoints; exact finite block attribution and family-specific predictive utility"
+    "Full4096used-prefixbefore/afterfit; historical intermediate-vector identity; family-specificpredictiveutility"
   ],
   "test_data_used": false,
   "training_authorized": false,
@@ -1570,14 +1588,22 @@
     "test_data_used": false
   },
   "c171_paired_joint_boundary_observation": {
-    "status": "ADMITTED_NOT_RUN",
+    "status": "COMPLETE_CONSUMED",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_PAIRED_JOINT_BOUNDARY_REVIEW.json",
-      "sha256": "8483cad5ac393ed1a8736d2f1c931bfc631656c594ccac8e3ecdddf1bfbe0f51"
+      "sha256": "33529336fa1a09e0561d8777d273bfb8e7cc0c8720dc7bdee11e8f7533c84139"
     },
-    "plan": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_JOINT_BOUNDARIES_20261111_001/PLAN.json",
-      "sha256": "c3ab604ac1c6e583be42a9df9d1791b781bdea11db97937244491378b539277e"
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_JOINT_BOUNDARIES_20261111_001/RESULT.json",
+      "sha256": "0cf0a2dc3ae5ce4475568f591f8369c00bb30a82cfd47696002f2380ccd6fc99"
+    },
+    "retained_effect_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_JOINT_BOUNDARIES_20261111_001/PAIRED_BOUNDARY_EFFECT_REVIEW.json",
+      "sha256": "587650d3d5ca439a31c20655678caa723fe37bcd6290be332f579323975477f2"
+    },
+    "independent_effect_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_JOINT_BOUNDARIES_20261111_001/INDEPENDENT_PAIRED_BOUNDARY_EFFECT_REVIEW.json",
+      "sha256": "2f5f045d43e55f77da639d04a00d6e707c2ffc68581bf567de177abaff0392ae"
     },
     "model_change_authorized": false,
     "training_authorized": false,

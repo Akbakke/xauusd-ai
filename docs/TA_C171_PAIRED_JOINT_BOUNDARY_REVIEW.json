@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_c171_paired_joint_boundary_review_v1",
-  "status": "ADMITTED_NOT_RUN",
+  "status": "COMPLETE_CONSUMED_PAIRED_SOURCE_EFFECT_MEASURED",
   "reason": "Earlier retained c171 joint inputs differ numerically from the matched short-run head inputs, and final512Dpre-joint inputs were not retained. Conditional finite replays do not identify the remaining historical boundary change.",
   "question": "What changes in the512Dpre-joint source and128Djoint hidden occur between the actual initial/final short-run weight states when both reproduce historical outputs and losses?",
   "source_base_commit": "ba1fcd302b0aa7be9be44f08f2491dcceee8b0ac",
@@ -126,8 +126,278 @@
   "limitations": [
     "Same256dependent historical TRAIN rows evaluated twice; only3groups overlap new updates. No heldout/generalization or edge claim.",
     "Intermediate vectors are reconstructed observations, not retroactively recorded historical internals; scalar/head parity alone does not prove historical pre-joint identity.",
-    "No optimizer, autograd, checkpoint/candidate write, new fit, feature removal, loss weighting, TEST or trading authority."
+    "No optimizer, autograd, checkpoint/candidate write, new fit, feature removal, loss weighting, TEST or trading authority.",
+    "The effectiveMTFresidual is postMTF-minus-base and includes both MTF andcooperation additions. Base substitutions change bothfirstinputblocks; all4paths are dependent.",
+    "Single-block effects do not add exactly because of normalization/nonlinear interactions; neither they nor the order-dependent source/tail split uniquely identify historical optimization causes.",
+    "A fixed-decoder rank decline does not prove loss of representational information. Full used-prefix fitting and later generalization must be separated before corrective design."
   ],
   "training_authorized": false,
-  "test_data_used": false
+  "test_data_used": false,
+  "execution_authorized": false,
+  "remaining_invocations": 0,
+  "relaunch_allowed": false,
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_JOINT_BOUNDARIES_20261111_001/RESULT.json",
+    "sha256": "0cf0a2dc3ae5ce4475568f591f8369c00bb30a82cfd47696002f2380ccd6fc99"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_JOINT_BOUNDARIES_20261111_001/TERMINAL.json",
+    "sha256": "a621aac09208c996b2cd4113fe9ee3b8ee108c34a5faf8f3b6b3a5c34c8f8007"
+  },
+  "controller_terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_JOINT_BOUNDARIES_20261111_001/CONTROLLER_TERMINAL.json",
+    "sha256": "68d021bfa01ad5d93272eb1056fb2327b029022f580ac54bc2442d1470c83a74"
+  },
+  "source_commit": "69eb8abc6d8b1161cd4d9be13f0b703f67f3e27c",
+  "source_unchanged_at_terminal": true,
+  "actual_counts": {
+    "archive_decodes": 3,
+    "autograd_grad_calls": 0,
+    "backbone_encodings": 32,
+    "backwards": 0,
+    "candidate_writes": 0,
+    "checkpoint_loads": 2,
+    "checkpoint_weight_transitions": 1,
+    "checkpoint_writes": 0,
+    "extra_target_gathers": 64,
+    "forward_returns": 32,
+    "head_capture_returns": 64,
+    "head_tensor_imports": 4,
+    "joint_hidden_captures": 32,
+    "joint_source_captures": 32,
+    "matched_batches": 32,
+    "model_constructions": 1,
+    "optimizer_constructions": 0,
+    "optimizer_updates": 0,
+    "published_npz_bytes": 1945370,
+    "query_input_observations": 64,
+    "resume_state_load_calls": 2,
+    "resume_state_load_returns": 2,
+    "sampled_rows": 512
+  },
+  "passivity": {
+    "FINAL_TRAIN_complete_signature_unchanged": true,
+    "FINAL_TRAIN_original_arrays_and_losses_bitexact": true,
+    "INITIAL_TRAIN_complete_signature_unchanged": true,
+    "INITIAL_TRAIN_original_arrays_and_losses_bitexact": true,
+    "explicit_transition_preserved_nonnumerical_state": true,
+    "no_parameter_gradients": true
+  },
+  "checkpoint_transition": {
+    "checkpoint_weights_only": true,
+    "from_model": "c171736d2de79396dd86a79ad895f8bf2226e5ad8d996abf1dd7f52055e4a467",
+    "nonnumerical_signature_unchanged": true,
+    "optimizer_or_rng_restored": false,
+    "source": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_002/RUNTIME/private-research/FINAL_C171_SHORT_STATE.pt",
+      "sha256": "5b4bffaeb10ff296fbb8ece944def51b1087584c52b355c23edaa256f10f3f6b"
+    },
+    "to_model": "5f54bbe47df0f84c60e475d0e9fcf83ad70b8c569d6ebea6ac802aebda655c82"
+  },
+  "retained_effect_review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_JOINT_BOUNDARIES_20261111_001/PAIRED_BOUNDARY_EFFECT_REVIEW.json",
+    "sha256": "587650d3d5ca439a31c20655678caa723fe37bcd6290be332f579323975477f2"
+  },
+  "independent_effect_review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_JOINT_BOUNDARIES_20261111_001/INDEPENDENT_PAIRED_BOUNDARY_EFFECT_REVIEW.json",
+    "sha256": "2f5f045d43e55f77da639d04a00d6e707c2ffc68581bf567de177abaff0392ae"
+  },
+  "independent_check_summary": {
+    "floating_fields_compared": 580,
+    "exact_fields_compared": 132,
+    "maximum_absolute_numeric_difference": 1.4921397450962104e-13,
+    "scope": "All published numeric/count fields in counts, endpoints, source_coordinates and tasks; elapsed_seconds is runtime provenance. Historical raw/head/axis parity remains bitexact and is not relaxed by arithmetic comparisons.",
+    "exact_mismatch_count": 0
+  },
+  "source_coordinate_changes": {
+    "base": {
+      "delta_l2": 94.45023988550078,
+      "initial_l2": 188.5782811238703,
+      "mean_delta_l2": 4.883123711424136,
+      "mean_component_energy_fraction": 0.6842728186082797,
+      "changed_elements": 32768,
+      "elements": 32768
+    },
+    "effective_mtf_residual": {
+      "delta_l2": 15.688038225222085,
+      "initial_l2": 49.299264975572676,
+      "mean_delta_l2": 0.9784961736504448,
+      "mean_component_energy_fraction": 0.995911967212179,
+      "changed_elements": 32768,
+      "elements": 32768
+    },
+    "mtf_pool": {
+      "delta_l2": 36.331417438874176,
+      "initial_l2": 180.88255960360988,
+      "mean_delta_l2": 2.231282525610091,
+      "mean_component_energy_fraction": 0.9655714369170401,
+      "changed_elements": 32768,
+      "elements": 32768
+    },
+    "global_context": {
+      "delta_l2": 126.45956241615639,
+      "initial_l2": 418.13218548602305,
+      "mean_delta_l2": 4.874094560028398,
+      "mean_component_energy_fraction": 0.38029841629538524,
+      "changed_elements": 32620,
+      "elements": 32768
+    }
+  },
+  "effects_summary": {
+    "state": {
+      "ALL_16": {
+        "rows": 256,
+        "known": 91,
+        "raw_mean_effects": {
+          "actual": 0.10376098629421904,
+          "tail_at_initial_source": 0.04250914985829572,
+          "source_at_final_tail": 0.06125183600598105,
+          "source_at_initial_tail": 0.03937365693547061,
+          "tail_at_final_source": 0.06438732892880616,
+          "tail_source_interaction": 0.021878179070510453,
+          "base": 0.013404094971546062,
+          "effective_mtf_residual": 0.00442426300947717,
+          "mtf_pool": 0.008840087888034323,
+          "global_context": 0.03634870671941881,
+          "single_block_interaction": -0.0017653165824953149,
+          "endpoint_replay_error": 4.299422637775072e-10
+        },
+        "auc_final_tail_initial_source": 0.5486593843098312,
+        "auc_actual_final": 0.5412115193644489,
+        "auc_base_changed_only": 0.5382323733862959,
+        "auc_global_context_changed_only": 0.5506454816285998
+      },
+      "UPDATED_3": {
+        "rows": 48,
+        "known": 19,
+        "raw_mean_effects": {
+          "actual": 0.08067971671698615,
+          "tail_at_initial_source": 0.03321462869948161,
+          "source_at_final_tail": 0.04746508666806428,
+          "source_at_initial_tail": 0.03048707119393315,
+          "tail_at_final_source": 0.050192644173612744,
+          "tail_source_interaction": 0.01697801547413113,
+          "base": 0.010625413332687891,
+          "effective_mtf_residual": 0.0038078410731423235,
+          "mtf_pool": 0.007234909008389565,
+          "global_context": 0.024670295039730287,
+          "single_block_interaction": 0.001126628214114208,
+          "endpoint_replay_error": 1.3494402637777177e-09
+        },
+        "auc_final_tail_initial_source": 0.4222222222222222,
+        "auc_actual_final": 0.4,
+        "auc_base_changed_only": 0.4,
+        "auc_global_context_changed_only": 0.4222222222222222
+      },
+      "OTHER_13": {
+        "rows": 208,
+        "known": 72,
+        "raw_mean_effects": {
+          "actual": 0.10908743311973432,
+          "tail_at_initial_source": 0.0446540393564836,
+          "source_at_final_tail": 0.0644333935455003,
+          "source_at_initial_tail": 0.04142440749121002,
+          "tail_at_final_source": 0.06766302541077389,
+          "tail_source_interaction": 0.023008986054290297,
+          "base": 0.01404532919589795,
+          "effective_mtf_residual": 0.004566514225554443,
+          "mtf_pool": 0.009210513783336958,
+          "global_context": 0.03904372479934693,
+          "single_block_interaction": -0.002432688458635974,
+          "endpoint_replay_error": 2.177504176236125e-10
+        },
+        "auc_final_tail_initial_source": 0.6367281475541299,
+        "auc_actual_final": 0.6230954290296712,
+        "auc_base_changed_only": 0.623897353648757,
+        "auc_global_context_changed_only": 0.6359262229350441
+      }
+    },
+    "future": {
+      "ALL_16": {
+        "rows": 256,
+        "known": 104,
+        "raw_mean_effects": {
+          "actual": 0.08928780953283422,
+          "tail_at_initial_source": 0.04591879229419828,
+          "source_at_final_tail": 0.04336901700220285,
+          "source_at_initial_tail": 0.020817840324495518,
+          "tail_at_final_source": 0.0684699689719056,
+          "tail_source_interaction": 0.022551176677707334,
+          "base": 0.006089251149552376,
+          "effective_mtf_residual": 0.0026772378392330137,
+          "mtf_pool": 0.0066640773030765856,
+          "global_context": 0.028676075553389396,
+          "single_block_interaction": -0.0007376248430485195,
+          "endpoint_replay_error": 2.3643308036218336e-10
+        },
+        "auc_final_tail_initial_source": 0.48645640074211505,
+        "auc_actual_final": 0.47680890538033394,
+        "auc_base_changed_only": 0.47606679035250465,
+        "auc_global_context_changed_only": 0.4868274582560297
+      },
+      "UPDATED_3": {
+        "rows": 48,
+        "known": 23,
+        "raw_mean_effects": {
+          "actual": 0.06649588021294524,
+          "tail_at_initial_source": 0.036913246115856384,
+          "source_at_final_tail": 0.0295826360649305,
+          "source_at_initial_tail": 0.013179452267837843,
+          "tail_at_final_source": 0.05331642991294905,
+          "tail_source_interaction": 0.016403183797092658,
+          "base": 0.0016335041552575085,
+          "effective_mtf_residual": 0.0021823183435763977,
+          "mtf_pool": 0.0045473172348973285,
+          "global_context": 0.020223022970617188,
+          "single_block_interaction": 0.0009964733605820812,
+          "endpoint_replay_error": -1.9678416474808746e-09
+        },
+        "auc_final_tail_initial_source": 0.3712121212121212,
+        "auc_actual_final": 0.3409090909090909,
+        "auc_base_changed_only": 0.3712121212121212,
+        "auc_global_context_changed_only": 0.3409090909090909
+      },
+      "OTHER_13": {
+        "rows": 208,
+        "known": 81,
+        "raw_mean_effects": {
+          "actual": 0.09454748552973168,
+          "tail_at_initial_source": 0.047996995258431034,
+          "source_at_final_tail": 0.04655048952618878,
+          "source_at_initial_tail": 0.022580545260647292,
+          "tail_at_final_source": 0.07196693952397251,
+          "tail_source_interaction": 0.023969944265541485,
+          "base": 0.0071175004559281135,
+          "effective_mtf_residual": 0.002791450030538387,
+          "mtf_pool": 0.007152560395733337,
+          "global_context": 0.0306267799955676,
+          "single_block_interaction": -0.0011378013515786582,
+          "endpoint_replay_error": 7.451118637105814e-10
+        },
+        "auc_final_tail_initial_source": 0.5485257985257985,
+        "auc_actual_final": 0.5362407862407862,
+        "auc_base_changed_only": 0.5337837837837838,
+        "auc_global_context_changed_only": 0.5522113022113022
+      }
+    }
+  },
+  "maximum_cpu_m5_endpoint_reconstruction_error": {
+    "initial": {
+      "state": 5.8548078940567905e-08,
+      "future": 3.7289947719953975e-08
+    },
+    "final": {
+      "state": 6.490999326924651e-08,
+      "future": 4.351295562754487e-08
+    }
+  },
+  "findings": [
+    "All32original batch losses and both endpoints12fields reproduce bitwise, as do the initial2headinputs. Both within-phase signatures are passive. Final model weights are imported explicitly once; no optimizer or RNG restore.",
+    "In the specified tail-first ordered decomposition, all-row mean raw change is0.04250915tail+0.06125184source forS and0.04591879tail+0.04336902source forF, with observed mean endpoint reconstruction residuals below5e-10. Reverse order differs, and the interaction is retained.",
+    "With finaltail held fixed, replacing initial source by finalsource lowers M5AUC for bothS/F in all16,updated3andother13groups. This is conditional decoder sensitivity on dependent historicalTRAIN, not proof of information loss, generalization failure or a freeze decision.",
+    "Global context is the largest positive mean-logit effect among the4predeclared single semantic-coordinate changes. Base replacement produces much of the AUC decrease onALL/OTHER13; inupdated3F, base leaves rank unchanged andcontext lowers it.",
+    "Squared effectiveMTFresidual/pool changes have common-mean fractions0.995912/0.965571 onthis panel. These are representation-change geometry, not forecast contribution or feature usefulness percentages.",
+    "Original before/after evaluation covers only256sampled rows;48overlap the4096actual updated rows. Complete used-prefix before/after fitting remains unmeasured."
+  ],
+  "next_action": "Prepare one bounded read-only initial/final evaluation of the exact4096TRAINrows actually updated by short002, reusing its retained checkpoints and original chronological B16order/query/target/loss owners. Existing initial/final reports contain only256sampled rows and only48overlap that prefix. Bind every row, issue, query and allowed/eligible/mature mask to the retained TRACE fixed fields; its pre-update logits come fromchanging states and are not a fixed endpoint baseline. Measure original total/task losses and M5conditional Brier/log/AUC on the complete used prefix; require the3existing in-prefix panel groups to match their saved fields/losses. At most512full forwards, no optimizer/autograd/newtraining. First qualify metadata and the existing resource/wall bounds, then admit an exact new one-use plan. This resolves within-prefix fitting versus transfer/coadaptation before any feature freezing, architecture or loss-weight change."
 }
