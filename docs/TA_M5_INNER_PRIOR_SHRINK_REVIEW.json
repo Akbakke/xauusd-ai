@@ -1,0 +1,387 @@
+{
+  "comparison": {
+    "R1_diagnostic_only": true,
+    "candidate_selection": false,
+    "cells": {
+      "LATER_FULL": {
+        "future": {
+          "INITIAL": {
+            "brier_delta": -6.934378641823558e-05,
+            "log_delta": -0.0001391793334598601,
+            "margin": 1e-06,
+            "passes": true
+          },
+          "PRIOR": {
+            "brier_delta": -4.6968964528243395e-05,
+            "log_delta": -9.435008855285254e-05,
+            "margin": 1e-08,
+            "passes": true
+          },
+          "R1": {
+            "brier_delta": -0.0010152711471220488,
+            "log_delta": -0.002039228922797398,
+            "margin": 1e-08,
+            "passes": true
+          }
+        },
+        "state": {
+          "INITIAL": {
+            "brier_delta": -1.4007769987389729e-05,
+            "log_delta": -2.8270203712654762e-05,
+            "margin": 1e-06,
+            "passes": true
+          },
+          "PRIOR": {
+            "brier_delta": -0.0001895074979334499,
+            "log_delta": -0.00037901526699057886,
+            "margin": 1e-08,
+            "passes": true
+          },
+          "R1": {
+            "brier_delta": -0.0006906396780676227,
+            "log_delta": -0.0013926556201904194,
+            "margin": 1e-08,
+            "passes": true
+          }
+        }
+      },
+      "TRAIN": {
+        "future": {
+          "INITIAL": {
+            "brier_delta": -8.653120702106776e-05,
+            "log_delta": -0.0001733933442243929,
+            "margin": 1e-06,
+            "passes": true
+          },
+          "PRIOR": {
+            "brier_delta": -0.0006357317202645152,
+            "log_delta": -0.0012726478899980354,
+            "margin": 1e-08,
+            "passes": true
+          },
+          "R1": {
+            "brier_delta": -0.00024807908765298037,
+            "log_delta": -0.0004968160644699404,
+            "margin": 1e-08,
+            "passes": true
+          }
+        },
+        "state": {
+          "INITIAL": {
+            "brier_delta": -0.0001727319453147247,
+            "log_delta": -0.0003468381412657928,
+            "margin": 1e-06,
+            "passes": true
+          },
+          "PRIOR": {
+            "brier_delta": -0.0013503764687007314,
+            "log_delta": -0.002706057716973964,
+            "margin": 1e-08,
+            "passes": true
+          },
+          "R1": {
+            "brier_delta": -0.00020218671972865865,
+            "log_delta": -0.00040393370216229574,
+            "margin": 1e-08,
+            "passes": true
+          }
+        }
+      }
+    },
+    "decision": "PASS_ALL_FOUR_INITIAL_PRIOR_CELLS"
+  },
+  "conclusion": "Two inner-TRAIN-fitted confidence slopes preserve ranking and beat INITIAL/frozen prior in Brier and logloss on both full TRAIN and later tasks. Measured amplitude defect is correctable; unique native training cause and fresh generalization remain unproved.",
+  "counts": {
+    "archive_decodes": 4,
+    "backwards": 0,
+    "checkpoint_decodes": 0,
+    "encoder_forwards": 0,
+    "model_constructions": 0,
+    "private_npz_writes": 1,
+    "scalar_fits": 2,
+    "updates": 0
+  },
+  "goal_complete": false,
+  "limits": [
+    "Prefix-to-full head transfer must be measured.",
+    "Inner labels fit calibration; encoder saw wholeTRAIN.",
+    "Later TRAIN reused development. Positive slope cannot create ranking information.",
+    "Slope0 is prior collapse, not edge.",
+    "Cached FP64 transformation only; folded native coefficient rounding/import not yet qualified.",
+    "Small mean score gains; no sampling-uncertainty or economic-edge claim."
+  ],
+  "native_import_authorized": false,
+  "next_question": "Fold the two locked slopes into the existing four M5 side tensors, then qualify exact cached-representation arithmetic/native parity without refit or new encoder forwards.",
+  "numeric_review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_INNER_PRIOR_SHRINK_20261111_002/NUMERIC_REVIEW.json",
+    "sha256": "57cba25787986bcbe6b95bd6605c818d93f2e674f995ad2858dac9cee6ffa903"
+  },
+  "process_receipt": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_INNER_PRIOR_SHRINK_20261111_002/PROCESS_RECEIPT.json",
+    "sha256": "51e1f491f9a1fc48999a150ff6df347f5f167a80b4fd9b3bec18e9fbebd7007a"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_INNER_PRIOR_SHRINK_20261111_002/RESULT.json",
+    "sha256": "8e127f550d2fce718120c01fa9c6bafe6029742361fd36789ea4c67fc93ff5d0"
+  },
+  "scores": {
+    "LATER_FULL": {
+      "future": {
+        "CANDIDATE": {
+          "auc": 0.5107477534711145,
+          "brier": 0.24978644744477277,
+          "count": 7165,
+          "log": 0.6927196287282386,
+          "mean_p": 0.5150292368132389,
+          "up_count": 3676
+        },
+        "FP64": {
+          "auc": 0.5107477534711145,
+          "brier": 0.24978644744477277,
+          "count": 7165,
+          "log": 0.6927196287282386,
+          "mean_p": 0.5150292368132389,
+          "up_count": 3676
+        },
+        "INITIAL": {
+          "auc": 0.5083225969633772,
+          "brier": 0.249855791231191,
+          "count": 7165,
+          "log": 0.6928588080616984,
+          "mean_p": 0.5143581495898966,
+          "up_count": 3676
+        },
+        "PRIOR": {
+          "auc": 0.5,
+          "brier": 0.249833416409301,
+          "count": 7165,
+          "log": 0.6928139788167914,
+          "mean_p": 0.5111241709344305,
+          "up_count": 3676
+        },
+        "R1": {
+          "auc": 0.5057290268092693,
+          "brier": 0.2508017185918948,
+          "count": 7165,
+          "log": 0.694758857651036,
+          "mean_p": 0.5193625561960762,
+          "up_count": 3676
+        },
+        "W2": {
+          "auc": 0.5107477534711145,
+          "brier": 0.24994216605754532,
+          "count": 7165,
+          "log": 0.6930317086725764,
+          "mean_p": 0.5172278634063887,
+          "up_count": 3676
+        }
+      },
+      "state": {
+        "CANDIDATE": {
+          "auc": 0.523043324310824,
+          "brier": 0.24963848029035826,
+          "count": 6096,
+          "log": 0.6924241431623716,
+          "mean_p": 0.522278802299782,
+          "up_count": 3133
+        },
+        "FP64": {
+          "auc": 0.523043324310824,
+          "brier": 0.24963848029035826,
+          "count": 6096,
+          "log": 0.6924241431623716,
+          "mean_p": 0.522278802299782,
+          "up_count": 3133
+        },
+        "INITIAL": {
+          "auc": 0.5219430966816074,
+          "brier": 0.24965248806034565,
+          "count": 6096,
+          "log": 0.6924524133660842,
+          "mean_p": 0.522249243054054,
+          "up_count": 3133
+        },
+        "PRIOR": {
+          "auc": 0.5,
+          "brier": 0.2498279877882917,
+          "count": 6096,
+          "log": 0.6928031584293621,
+          "mean_p": 0.5186775868957252,
+          "up_count": 3133
+        },
+        "R1": {
+          "auc": 0.5205637052103079,
+          "brier": 0.2503291199684259,
+          "count": 6096,
+          "log": 0.693816798782562,
+          "mean_p": 0.5157888757083424,
+          "up_count": 3133
+        },
+        "W2": {
+          "auc": 0.523043324310824,
+          "brier": 0.2498223596463945,
+          "count": 6096,
+          "log": 0.6927946077158498,
+          "mean_p": 0.5231768165669072,
+          "up_count": 3133
+        }
+      }
+    },
+    "TRAIN": {
+      "future": {
+        "CANDIDATE": {
+          "auc": 0.5317957745067979,
+          "brier": 0.24924047953650175,
+          "count": 11909,
+          "log": 0.6916269347478972,
+          "mean_p": 0.5111509676959963,
+          "up_count": 6087
+        },
+        "FP64": {
+          "auc": 0.5317957745067979,
+          "brier": 0.24924047953650175,
+          "count": 11909,
+          "log": 0.6916269347478972,
+          "mean_p": 0.5111509676959963,
+          "up_count": 6087
+        },
+        "INITIAL": {
+          "auc": 0.5273157192764911,
+          "brier": 0.24932701074352281,
+          "count": 11909,
+          "log": 0.6918003280921216,
+          "mean_p": 0.5109712747092003,
+          "up_count": 6087
+        },
+        "PRIOR": {
+          "auc": 0.5,
+          "brier": 0.24987621125676626,
+          "count": 11909,
+          "log": 0.6928995826378952,
+          "mean_p": 0.5111241709344305,
+          "up_count": 6087
+        },
+        "R1": {
+          "auc": 0.5256132635809729,
+          "brier": 0.24948855862415473,
+          "count": 11909,
+          "log": 0.6921237508123671,
+          "mean_p": 0.5142760381579943,
+          "up_count": 6087
+        },
+        "W2": {
+          "auc": 0.5317957745067979,
+          "brier": 0.24906551702929916,
+          "count": 11909,
+          "log": 0.691275530473675,
+          "mean_p": 0.5111616186522253,
+          "up_count": 6087
+        }
+      },
+      "state": {
+        "CANDIDATE": {
+          "auc": 0.5420671854582296,
+          "brier": 0.24830063187755244,
+          "count": 10010,
+          "log": 0.6897429770511915,
+          "mean_p": 0.5186099414704651,
+          "up_count": 5192
+        },
+        "FP64": {
+          "auc": 0.5420671854582296,
+          "brier": 0.24830063187755244,
+          "count": 10010,
+          "log": 0.6897429770511915,
+          "mean_p": 0.5186099414704651,
+          "up_count": 5192
+        },
+        "INITIAL": {
+          "auc": 0.5381870822116089,
+          "brier": 0.24847336382286717,
+          "count": 10010,
+          "log": 0.6900898151924573,
+          "mean_p": 0.5185591398769893,
+          "up_count": 5192
+        },
+        "PRIOR": {
+          "auc": 0.5,
+          "brier": 0.24965100834625317,
+          "count": 10010,
+          "log": 0.6924490347681654,
+          "mean_p": 0.5186775868957252,
+          "up_count": 5192
+        },
+        "R1": {
+          "auc": 0.5403987702446079,
+          "brier": 0.2485028185972811,
+          "count": 10010,
+          "log": 0.6901469107533538,
+          "mean_p": 0.510120072003773,
+          "up_count": 5192
+        },
+        "W2": {
+          "auc": 0.5420671854582296,
+          "brier": 0.24819476254882736,
+          "count": 10010,
+          "log": 0.6895294604241756,
+          "mean_p": 0.5185863441866421,
+          "up_count": 5192
+        }
+      }
+    }
+  },
+  "slope_lock": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_INNER_PRIOR_SHRINK_20261111_002/SLOPE_LOCK.json",
+    "sha256": "b4bd90037482bcb72e2731c4e3a858eaa478bd14103de85d15995673f71913e7"
+  },
+  "slopes": {
+    "future": {
+      "bisections": 53,
+      "boundary": "INTERIOR",
+      "bracket": [
+        0.6385367563238673,
+        0.6385367563238674
+      ],
+      "derivative_at_one": 0.0009586681601156268,
+      "derivative_at_solution": -7.454913712440198e-20,
+      "derivative_at_zero": -0.0017000076812998038,
+      "known_count": 5957,
+      "log_at_one": 0.6924823648905284,
+      "log_at_solution": 0.6923089719647869,
+      "log_at_zero": 0.6928515263403084,
+      "mean_absolute_original_deviation": 0.0804128102115151,
+      "mean_absolute_shrunk_deviation": 0.051346534999347604,
+      "slope": 0.6385367563238673,
+      "up_count": 3054
+    },
+    "state": {
+      "bisections": 53,
+      "boundary": "INTERIOR",
+      "bracket": [
+        0.7981812905830987,
+        0.7981812905830988
+      ],
+      "derivative_at_one": 0.0011013432094233073,
+      "derivative_at_solution": -2.862534573607107e-19,
+      "derivative_at_zero": -0.004379616012529096,
+      "known_count": 5042,
+      "log_at_one": 0.6909789531247941,
+      "log_at_solution": 0.690867746090485,
+      "log_at_zero": 0.6926143360860261,
+      "mean_absolute_original_deviation": 0.12403186111416195,
+      "mean_absolute_shrunk_deviation": 0.09899991097752546,
+      "slope": 0.7981812905830987,
+      "up_count": 2605
+    }
+  },
+  "stage": "market_state_ta_m5_inner_prior_shrink_20261111_002",
+  "status": "COMPLETE_CACHED_DIRECTION_COMPARISON_PASSED",
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_INNER_PRIOR_SHRINK_20261111_002/TERMINAL.json",
+    "sha256": "4693039bcabb285c7fc0d0aa395ffd0beddd55a58cfc2a8426c27527c23f2e29"
+  },
+  "test_data_used": false,
+  "training_authorized": false,
+  "whole_command_seconds": 1.432540030000382,
+  "worker_seconds": 0.6735069040005328
+}
