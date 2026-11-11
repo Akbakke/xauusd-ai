@@ -741,12 +741,14 @@ def test_fusion_dispatch_keeps_preflight_and_run_separate(monkeypatch):
     assert calls==[('inspect',{'execute':False}),('run',{'device':'cuda'})]
 
 
-def test_fusion_preflight_checks_actual_candidate_schema_without_array_decode(monkeypatch):
+@pytest.mark.parametrize('retained',[False,True])
+def test_fusion_preflight_checks_actual_candidate_schema_without_array_decode(monkeypatch,retained):
     import copy
     import numpy as np
     import torch
     from gx1.audit import cache_market_state_ta_direction_v1 as w
-    plan=fusion_plan();refs=plan['inputs'];path=w.FUSION_ROOT/'PLAN.json';seen=[]
+    plan=retained_mtf_plan() if retained else fusion_plan();refs=plan['inputs']
+    root=w.MTF_RETAINED_ROOT if retained else w.FUSION_ROOT;path=root/'PLAN.json';seen=[]
     policy_ref={'path':str(w.REPO/'NEXT_RUN_POLICY.json'),'sha256':'d'*64}
     candidate=dict(status='COMPLETE',source_unchanged=True,evaluation_state_unchanged=True,
         plan=refs['candidate_plan'],candidate_model_state_sha256=w.FUSION_BOUNDS['candidate_model_state_sha256'],
@@ -770,16 +772,19 @@ def test_fusion_preflight_checks_actual_candidate_schema_without_array_decode(mo
     monkeypatch.setattr(w.campaign,'require_binding',lambda ref,**kw:seen.append(ref['path']) or ref)
     monkeypatch.setattr(w,'_qualify_reversed_origin',lambda p,b:
         seen.append('same_reversed_qualifier') or {'view':{'contract_sha256':'c'*64},'current_sources':{}})
+    monkeypatch.setattr(w,'_qualify_fusion_trained_panels',lambda r:
+        seen.append('trained_panel_qualifier') if r==w.MTF_RETAINED_REFS else pytest.fail('wrong trained refs'))
     monkeypatch.setattr(np,'load',lambda *a,**k:pytest.fail('preflight decoded arrays'))
     monkeypatch.setattr(torch,'load',lambda *a,**k:pytest.fail('preflight decoded checkpoint'))
-    checked=w._inspect_fusion_observation(path,'a'*64,w.FUSION_ROOT,execute=False)
+    checked=w._inspect_fusion_observation(path,'a'*64,root,execute=False,retained=retained)
     assert checked['plan']==plan and 'same_reversed_qualifier' in seen
+    assert ('trained_panel_qualifier' in seen) is retained
     assert refs['folded_coefficients']['path'] in seen and refs['candidate_baseline']['path'] in seen
     for mutation in [('candidate_model_state_sha256','0'*64),('evaluation_state_unchanged',False)]:
         bad=copy.deepcopy(candidate);bad[mutation[0]]=mutation[1]
         docs[refs['candidate_result']['path']]=bad
         with pytest.raises(RuntimeError,match='FUSION_QUALIFIED_CANDIDATE'):
-            w._inspect_fusion_observation(path,'a'*64,w.FUSION_ROOT,execute=False)
+            w._inspect_fusion_observation(path,'a'*64,root,execute=False,retained=retained)
 
 
 def test_fusion_private_arrays_and_success_failure_terminals(tmp_path,monkeypatch):
@@ -1062,3 +1067,206 @@ def test_initial_fusion_explicit_root_preserves_original_outputs(tmp_path,monkey
         terminal=json.loads(Path(published['terminal']['path']).read_text())
         assert terminal['exit_code']==(0 if complete else 1) and terminal['no_relaunch_under_this_plan']
         assert Path(artifact['path']).parent==initial and (original/'RESULT.json').read_text()=='sealed'
+
+
+def retained_mtf_plan():
+    from gx1.audit import cache_market_state_ta_direction_v1 as w
+    return dict(fusion_plan(),stage=w.MTF_RETAINED_STAGE,inputs=w.MTF_RETAINED_REFS,**w.MTF_RETAINED_BOUNDS)
+
+
+def test_retained_mtf_exact_scope_and_dispatch(monkeypatch):
+    from gx1.audit import cache_market_state_ta_direction_v1 as w
+    plan=retained_mtf_plan();root=w.MTF_RETAINED_ROOT;path=root/'PLAN.json'
+    assert w._fusion_plan(plan,path,root,retained=True)==plan
+    for key,value in [('max_backbone_encodings',1),('max_joint_calls',65),('mean_vector_estimates',3),
+                      ('predictor_fits',1),('head_tensor_imports',0),('mean_arithmetic','float32'),
+                      ('baseline_parity','allclose'),('max_checkpoint_writes',1)]:
+        with pytest.raises(RuntimeError,match='FUSION_EXACT_PLAN'):
+            w._fusion_plan({**plan,key:value},path,root,retained=True)
+    with pytest.raises(RuntimeError,match='FUSION_EXACT_PLAN'):
+        w._fusion_plan(plan,w.FUSION_ROOT/'PLAN.json',w.FUSION_ROOT,retained=True)
+    with pytest.raises(RuntimeError,match='FUSION_MODE'):
+        w._fusion_plan(plan,path,root,retained=True,initial=True)
+    calls=[]
+    monkeypatch.setattr(w,'_inspect_fusion_observation',lambda *a,**kw:
+        calls.append(('inspect',kw)) or dict(plan_ref={},view={'contract_sha256':'a'*64},current_sources={}))
+    monkeypatch.setattr(w,'_run_fusion_observation',lambda *a,**kw:calls.append(('run',kw)) or {'synthetic':True})
+    report=w.preflight_read_only(path,'a'*64,root)
+    assert report['archive_decodes']==report['backbone_encodings']==report['model_constructions']==report['joint_calls']==0
+    assert w.run(path,'a'*64,root,device='cuda')=={'synthetic':True}
+    assert calls==[('inspect',{'execute':False,'retained':True}),('run',{'device':'cuda','retained':True})]
+
+
+def test_retained_mtf_means_are_fp64_then_fp32_and_preserve_other_blocks():
+    import numpy as np
+    from gx1.audit import cache_market_state_ta_direction_v1 as w
+    source=np.zeros((256,512),np.float32)
+    pattern=np.tile(np.asarray([1e8,1.,-1e8,1.],np.float32),64)
+    source[:,128:256]=pattern[:,None];source[:,256:384]=pattern[:,None]
+    source[0,0]=np.float32(-0.);source[:,384:]=np.arange(128,dtype=np.float32)
+    original=source.copy();means=w._retained_mtf_means(source,np=np)
+    assert all(v.dtype==np.float32 and np.array_equal(v,np.full(128,.5,np.float32)) for v in means.values())
+    altered=w._retained_mtf_intervention(source[:16],means,np=np)
+    assert source.tobytes()==original.tobytes()
+    assert altered[:,:128].tobytes()==source[:16,:128].tobytes()
+    assert altered[:,384:].tobytes()==source[:16,384:].tobytes()
+    assert np.array_equal(altered[:,128:256],source[:16,:128]+means['mean_mtf_residual'])
+    assert np.array_equal(altered[:,256:384],np.broadcast_to(means['mean_mtf_pool'],(16,128)))
+    with pytest.raises(RuntimeError,match='RETAINED_TRAIN_MEAN_SOURCE'):
+        w._retained_mtf_means(source[:16],np=np)
+    with pytest.raises(RuntimeError,match='RETAINED_INTERVENTION_INPUT'):
+        w._retained_mtf_intervention(source[:16].astype(np.float64),means,np=np)
+
+
+def test_retained_scores_keep_zero_known_groups_and_pool_by_observations():
+    import numpy as np
+    from gx1.audit import cache_market_state_ta_direction_v1 as w
+    arrays={}
+    for task in ('state','future'):
+        arrays[task+'_allowed']=np.ones((256,5),np.uint8);arrays[task+'_allowed'][0,0]=4
+        arrays[task+'_eligible']=np.zeros((256,5),np.bool_);arrays[task+'_mature']=np.ones((256,5),np.bool_)
+        arrays[task+'_eligible'][0,0]=True;arrays[task+'_eligible'][16:32,0]=True
+        arrays['original_'+task+'_activity_side_logits']=np.zeros((256,5,2),np.float32)
+        arrays['intervention_'+task+'_activity_side_logits']=np.ones((256,5,2),np.float32)
+    scores=w._retained_conditional_scores(arrays,np=np)
+    for task in ('state','future'):
+        s=scores[task]['M5'];p=1/(1+np.exp(-1.))
+        assert s['role']=='PRIMARY_M5' and s['original']['count']==17 and s['original']['up_count']==1
+        assert s['original']['brier']==.25
+        assert s['intervention']['brier']==pytest.approx(((p-1)**2+16*p*p)/17)
+        assert len(s['groups'])==16 and [g['group'] for g in s['groups']]==list(range(16))
+        assert s['groups'][2]['original']==dict(count=0,up_count=0,brier=None,log=None,mean_p=None)
+        assert s['groups'][2]['delta']=={'brier':None,'log':None}
+        assert s['delta']['brier']==pytest.approx(sum(g['original']['count']*g['delta']['brier']
+            for g in s['groups'] if g['original']['count'])/17)
+        assert scores[task]['D1']['role']=='DESCRIPTIVE_SECONDARY' and scores[task]['D1']['delta']['log'] is None
+
+
+def _retained_test_counts():
+    return dict(backbone_encodings=0,joint_calls=0,joint_linear_calls=0,query_projection_calls=0,
+        native_head_calls=0,m5_head_calls=0,state_decoder_calls=0,state_decoder_returns=0,
+        future_decoder_calls=0,future_decoder_returns=0,archive_decodes=1,mean_vector_estimates=0,
+        predictor_fits=0,published_npz_bytes=0,sampled_rows=0)
+
+
+def _retained_test_model(monkeypatch):
+    import torch
+    from gx1.contracts import market_state_time_query_native_F_batch_v1 as batch
+    monkeypatch.setattr(batch,'_ta_only',lambda m:True)
+    class Backbone(torch.nn.Module):
+        def __init__(self):
+            super().__init__();self.entry_q_joint_norm=torch.nn.LayerNorm(512);self.entry_q_joint_in=torch.nn.Linear(512,128)
+        def forward(self,*a,**k): raise AssertionError('toy backbone must never execute')
+    class State(torch.nn.Module):
+        def __init__(self):
+            super().__init__();self.backbone=Backbone();self._dedicated_m5_side=True
+            self.query_projection=torch.nn.Sequential(torch.nn.Linear(128,128),torch.nn.GELU())
+            self.query_head=torch.nn.Linear(128,2);self.m5_side_head=torch.nn.Linear(128,1)
+            self.register_buffer('query_native_k',torch.tensor([1,3,12,48,288],dtype=torch.int64))
+        def decode_raw_query_grid(self,h,q):
+            assert q.shape==(16,1,5) and torch.equal(q[:,0],self.query_native_k.expand(16,-1))
+            rep=self.query_projection(h[:,None,None,:].expand(-1,1,5,-1))
+            out=self.query_head(rep).clone();out[...,0,1]=self.m5_side_head(rep[...,0,:]).squeeze(-1);return out
+    class Model(torch.nn.Module):
+        def __init__(self):
+            super().__init__();self.state_model=State();self.future_head=torch.nn.Linear(128,2)
+            self.future_m5_side_head=torch.nn.Linear(128,1);self.fail_future=False
+        @property
+        def backbone(self):return self.state_model.backbone
+        def decode_native_F_raw(self,h):
+            if self.fail_future:raise RuntimeError('synthetic future failure')
+            rep=self.state_model.query_projection(h[:,None,:].expand(-1,5,-1))
+            out=self.future_head(rep).clone();out[:,0,1]=self.future_m5_side_head(rep[:,0,:]).squeeze(-1);return out
+    model=Model().eval()
+    for p in model.parameters():p.requires_grad_(False)
+    return model
+
+
+def test_retained_decoder_hooks_count_pure_calls_reject_backbone_and_cleanup(monkeypatch):
+    import torch
+    from gx1.audit import cache_market_state_ta_direction_v1 as w
+    model=_retained_test_model(monkeypatch);counts=_retained_test_counts();inventory=_fusion_hook_inventory(model)
+    source=torch.arange(16*512,dtype=torch.float32).reshape(16,512)/1000
+    query=model.state_model.query_native_k.expand(16,-1)
+    rng=torch.get_rng_state().clone();state={k:v.clone() for k,v in model.state_dict().items()}
+    with w._retained_decoder_hooks(model,counts):
+        one=w._decode_retained_joint(model,source,query,counts,torch=torch)
+        two=w._decode_retained_joint(model,source,query,counts,torch=torch)
+    assert w._fusion_exact_arrays(one,two) and torch.equal(rng,torch.get_rng_state())
+    assert all(torch.equal(v,state[k]) for k,v in model.state_dict().items())
+    assert counts['backbone_encodings']==0 and counts['joint_calls']==counts['joint_linear_calls']==2
+    assert counts['state_decoder_calls']==counts['future_decoder_calls']==2
+    assert counts['query_projection_calls']==counts['native_head_calls']==counts['m5_head_calls']==4
+    assert _fusion_hook_inventory(model)==inventory
+    for failure in ('backbone','future','limit'):
+        counts=_retained_test_counts();model.fail_future=failure=='future'
+        if failure=='limit':counts['joint_calls']=64
+        with pytest.raises(RuntimeError,match={'backbone':'BACKBONE_CALL_FORBIDDEN','future':'synthetic future failure','limit':'CALL_LIMIT'}[failure]):
+            with w._retained_decoder_hooks(model,counts):
+                if failure=='backbone':model.backbone(source)
+                else:w._decode_retained_joint(model,source,query,counts,torch=torch)
+        assert _fusion_hook_inventory(model)==inventory
+
+
+@pytest.mark.parametrize('mismatch',[False,True])
+def test_retained_panels_lock_means_before_later_and_stop_on_bit_mismatch(tmp_path,monkeypatch,mismatch):
+    import json
+    import numpy as np
+    import torch
+    from gx1.audit import cache_market_state_ta_direction_v1 as w
+    from gx1.scripts.run_market_state_time_query_fold1_fit_window_v1 import _ta_m5_capture_layout
+    model=_retained_test_model(monkeypatch);inventory=_fusion_hook_inventory(model);panels={}
+    reference_counts=_retained_test_counts()
+    with w._retained_decoder_hooks(model,reference_counts):
+        for index,panel in enumerate(('TRAIN','LATER')):
+            arrays={k:np.zeros(shape,dtype) for k,(shape,dtype) in _ta_m5_capture_layout(256).items()}
+            arrays['parents']=np.arange(256,dtype=np.int64)+index*1000
+            arrays['issues']=arrays['parents']+10000
+            arrays['query_native']=np.broadcast_to(np.array([1,3,12,48,288],np.int64),(256,5)).copy()
+            source=(np.arange(256*512,dtype=np.float32).reshape(256,512)%101)/100+np.float32(index/10)
+            arrays['capture_entry_q_joint_source']=source;parts={}
+            for left in range(0,256,16):
+                decoded=w._decode_retained_joint(model,torch.from_numpy(source[left:left+16]),
+                    torch.from_numpy(arrays['query_native'][left:left+16]),reference_counts,torch=torch)
+                for k,v in decoded.items():parts.setdefault(k,[]).append(v)
+            arrays.update({k:np.concatenate(v) for k,v in parts.items()})
+            for task in ('state','future'):
+                arrays[task+'_allowed'][:]=1;arrays[task+'_eligible'][:]=True;arrays[task+'_mature'][:]=True
+            panels[panel]=arrays
+    if mismatch:
+        a=panels['TRAIN']['state_activity_side_logits'];a[16,0,1]=np.nextafter(a[16,0,1],np.float32(np.inf))
+    class Archive:
+        def __init__(self,value):self.value=value;self.files=list(value)
+        def __getitem__(self,k):return self.value[k]
+        def __enter__(self):return self
+        def __exit__(self,*a):return False
+    opened=[]
+    def load(path,**kw):
+        panel='TRAIN' if path=='synthetic_train' else 'LATER';opened.append(panel)
+        if panel=='LATER':
+            receipt=json.loads((tmp_path/'TRAIN_MTF_MEANS.json').read_text())
+            assert receipt['later_archive_opened'] is False and receipt['mean_vector_estimates']==2
+            assert (tmp_path/'TRAIN_MTF_MEANS.npz').exists()
+        return Archive(panels[panel])
+    monkeypatch.setattr(np,'load',load)
+    refs={'trained_train':{'path':'synthetic_train','sha256':'a'*64},
+          'trained_later':{'path':'synthetic_later','sha256':'b'*64},'trained_result':{'path':'synthetic_result','sha256':'c'*64}}
+    checked={'plan_ref':{'path':str(tmp_path/'PLAN.json'),'sha256':'d'*64},'plan':{'inputs':refs}}
+    counts=_retained_test_counts();artifacts={};passivity={};rng=torch.get_rng_state().clone()
+    if mismatch:
+        with pytest.raises(RuntimeError,match='RETAINED_BASELINE_PARITY:state_activity_side_logits'):
+            w._run_retained_mtf_panels(model,checked,counts,artifacts,passivity,np=np,torch=torch)
+        assert opened==['TRAIN'] and counts['sampled_rows']==16 and counts['joint_calls']==3
+        assert 'baseline_parity_failure' in artifacts and 'TRAIN_partial' in artifacts
+        assert json.loads((tmp_path/'BASELINE_PARITY_FAILURE.json').read_text())['tolerance_fallback'] is False
+    else:
+        report=w._run_retained_mtf_panels(model,checked,counts,artifacts,passivity,np=np,torch=torch)
+        assert opened==['TRAIN','LATER'] and counts['sampled_rows']==512 and counts['archive_decodes']==3
+        assert counts['joint_calls']==counts['state_decoder_calls']==counts['future_decoder_calls']==64
+        assert counts['native_head_calls']==counts['query_projection_calls']==counts['m5_head_calls']==128
+        assert counts['mean_vector_estimates']==2 and counts['predictor_fits']==0 and all(passivity.values())
+        assert report['baseline_tolerance_fallback'] is report['model_change_recommended'] is False
+        assert report['conditional_scores']['LATER']['state']['M5']['original']['count']==256
+        assert all((tmp_path/(p+'_INTERVENTION.npz')).exists() for p in ('TRAIN','LATER'))
+    assert counts['backbone_encodings']==0 and _fusion_hook_inventory(model)==inventory
+    assert torch.equal(rng,torch.get_rng_state())

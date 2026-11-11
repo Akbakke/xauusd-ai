@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-11T13:35:53.062745+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_MATCHED_FUSION_DIAGNOSIS_COMPLETE",
+  "observed_utc": "2026-11-11T13:59:24.228486+00:00",
+  "status": "TA_DIRECTION_EDGE_CAUSE_RETAINED_MTF_INTERVENTION_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Qualify one fixed retained-representation MTF intervention through unchanged decoder layers; require exact baseline, zero backbone calls and no predictor fit. No new run admitted yet; broad training remains closed.",
+  "next_action": "Execute the single qualified retained MTF intervention, then independently recompute all pooled/group direction scores. Do not change candidate or infer broad edge from this diagnostic.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1698,7 +1698,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Both passive fusion observations COMPLETE and consumed. Predictive contribution remains unmeasured; prepare one fixed decoder-only comparison.",
+    "current_activity": "Qualified one retained MTF intervention; source and policy freeze during execution.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1751,7 +1751,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No unique source of weak ranking is established. Geometry alone does not measure MTF predictive contribution.",
+    "current_blocker": "Dedicated MTF variation effect on paired native direction predictions is not yet measured.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -22137,7 +22137,7 @@
     },
     "direction_edge_cause_review": {
       "path": "docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "98640a3c5d8aa8d3c64c5843f97ed8739dafd60c0ef0b54771ee2112a424e01e"
+      "sha256": "8ed1ee4ebb4ded93dac69c9d3e83513d19c5066d74baebf2aed56cc7694e1ae0"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -75477,22 +75477,23 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_PREDICTIVE_CONTRIBUTION_PROBE_PREPARATION",
+    "status": "ACTIVE_EXACT_RETAINED_MTF_INTERVENTION_ADMITTED",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
     "training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
     "review": {
       "path": "docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "98640a3c5d8aa8d3c64c5843f97ed8739dafd60c0ef0b54771ee2112a424e01e"
+      "sha256": "8ed1ee4ebb4ded93dac69c9d3e83513d19c5066d74baebf2aed56cc7694e1ae0"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": false,
+    "model_or_data_run_admitted": true,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Qualify one fixed retained-representation MTF intervention through unchanged decoder layers; require exact baseline, zero backbone calls and no predictor fit. No new run admitted yet; broad training remains closed.",
-    "active_stage": null
+    "next_action": "Execute the single qualified retained MTF intervention, then independently recompute all pooled/group direction scores. Do not change candidate or infer broad edge from this diagnostic.",
+    "active_stage": "market_state_ta_mtf_retained_intervention_20261111_001",
+    "previous_goal_turn_classification": "PROGRESS: completed two passive matched observations, corrected warm-start interpretation, and narrowed the next question to predictive contribution."
   },
   "market_state_ta_fusion_observation_20261111_001": {
     "status": "COMPLETE",
@@ -75681,5 +75682,74 @@
     },
     "source_unchanged_at_terminal": true,
     "evaluation_state_unchanged": true
+  },
+  "market_state_ta_mtf_retained_intervention_20261111_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MTF_RETAINED_INTERVENTION_20261111_001/PLAN.json",
+      "sha256": "85d140d3cbb7362f21f6fd13e0b986eaf94fd3a13f285579e9c817b1e7806147"
+    },
+    "max_invocations": 1,
+    "remaining_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "backbone_encodings_authorized": 0,
+    "pure_joint_decodes_authorized": 64,
+    "head_tensor_imports_authorized": 4,
+    "candidate_weights_writes_authorized": 0,
+    "backward_calls_authorized": 0,
+    "optimizer_steps_authorized": 0,
+    "training_authorized": false,
+    "fit_rows": 29574,
+    "score_rows": 17753,
+    "batch_size": 16,
+    "decoder_width": 128,
+    "batches_per_partition": 16,
+    "sampled_rows_per_partition": 256,
+    "batch_selection": "uniform_complete_batches_floor_i_times_last_over_15",
+    "max_backbone_encodings": 0,
+    "max_model_constructions": 1,
+    "max_checkpoint_loads": 1,
+    "head_tensor_imports": 4,
+    "max_candidate_writes": 0,
+    "max_optimizer_constructions": 0,
+    "max_backwards": 0,
+    "max_optimizer_updates": 0,
+    "max_checkpoint_writes": 0,
+    "scalar_fits": 0,
+    "max_cache_bytes": 16777216,
+    "device": "cuda",
+    "wall_seconds": 900,
+    "candidate_model_state_sha256": "c171736d2de79396dd86a79ad895f8bf2226e5ad8d996abf1dd7f52055e4a467",
+    "training_enabled": false,
+    "test_data_used": false,
+    "max_joint_calls": 64,
+    "max_state_decoder_calls": 64,
+    "max_future_decoder_calls": 64,
+    "max_query_projection_calls": 128,
+    "max_native_head_calls": 128,
+    "max_m5_head_calls": 128,
+    "mean_vector_estimates": 2,
+    "predictor_fits": 0,
+    "intervention": "replace_mtf_row_variation_with_fixed_train_panel_means_v1",
+    "mean_arithmetic": "float64_after_minus_base_and_means_cast_once_float32",
+    "baseline_parity": "bitexact_joint_hidden_m5_representations_all_native_logits",
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MTF_RETAINED_INTERVENTION_20261111_001/PREFLIGHT.log",
+      "sha256": "025eca5cb7c1da1440a531e0829b09164fba4c0123b3f07b8099743382dacef3"
+    },
+    "focused_tests_passed": 67,
+    "retained_output_arithmetic_authorized": true,
+    "retained_output_fit_authorized": false,
+    "retained_analysis": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MTF_RETAINED_INTERVENTION_20261111_001/ANALYZE_RETAINED.py",
+      "sha256": "7ec973ca847f52b5700cbc226d635ad6632ecaca495216abb282dc05a05b181a"
+    },
+    "scope": "OnefixedTRAIN-mean MTFintervention oncompleted512rowcaptures throughunchangedjoint/query/headlayers; originalparityrequired. No newbackbone/feature/targetread/fit/update. M5Brier/log primary;otherTF/AUCdescriptive; preserveall16groups including0known.",
+    "standing_authority": "Explicit11November direction-edge causegoal andstanding0USDlocal-workauthority; exactsingle-useguardeddiagnostic only."
   }
 }

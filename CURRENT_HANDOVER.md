@@ -6,13 +6,13 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_MATCHED_FUSION_DIAGNOSIS_COMPLETE.
+TA_DIRECTION_EDGE_CAUSE_RETAINED_MTF_INTERVENTION_ADMITTED.
 Mål11.11 er aktivt: isoler målte årsaker til svak retningslæring i indikatorer,
 sammensetting og læring. [Årsaksstatus](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json).
 Korte kjøringer er bevisst feilsøking, ikke en kapasitetsdom. Full kvalifisert
 TRAIN-historikk og30–40epoker er senere skalering, ikke et krav ved hver rettelse.
 Alle trenings-/launchporter false; training_enabled_scope=null. Ingen jobb lever.
-Begge passive planer er COMPLETE/konsumert. Ingen ny kjøring er innrømmet.
+Begge passive planer er COMPLETE/konsumert. Én retained-MTF-kontroll er innrømmet.
 GC er på pause; TEST, Entry/Exit, broker, handel og promotion er stengt.
 Genuine M5/M15/H1/H4/D1-input beholdes.
 
@@ -58,5 +58,10 @@ frys lokal representasjon/kontekst, erstatt bare særskilt MTF-residual og
 MTF-pool med faste TRAIN-panelgjennomsnitt, og gjenberegn uendrede decoderlag.
 Krev først bitlik baseline; sammenlign eksisterende S/F-retningsloss og parede
 B16-grupper.0nyebackbonekall/0predictorfit. Intervensjonen påvirker også
-normaliseringen og må tolkes smalt. Ruten må kildekvalifiseres og bindes i en
-ny engangsplan før kjøring; ingen slik ny plan er innrømmet nå.
+normaliseringen og må tolkes smalt. Ruten er kildekvalifisert og bundet i PLAN85d140d3 under
+MARKET_STATE_TA_MTF_RETAINED_INTERVENTION_20261111_001.67fokuserte tester
+og metadata-preflight består. Kilde/policy fryses gjennom kjøringen.
+Eksakt joint/query/M5-head-vei er bekreftet i eksisterende kilde. Krev bitlik
+joint-hidden, M5-representasjoner og native logits før intervensjonen.
+TRAIN-referansene beregnes én gang i FP64, avrundes til FP32 og låses før
+senerefangsten åpnes. Beregningsbudsjett64joint/64S/64F/128M5-headkall.

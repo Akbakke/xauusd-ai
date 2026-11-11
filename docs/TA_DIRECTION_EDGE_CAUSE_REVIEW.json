@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_MATCHED_FUSION_DIAGNOSIS_COMPLETE_PREDICTIVE_PROBE_NEXT",
+  "status": "ACTIVE_RETAINED_MTF_INTERVENTION_QUALIFIED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -61,13 +61,37 @@
     }
   ],
   "next_measurement": {
-    "status": "NOT_YET_QUALIFIED_OR_ADMITTED",
+    "status": "ADMITTED_ONCE_NO_TRAINING",
     "question": "Does the qualified predictor benefit from row-dependent dedicated MTF residual and pooled-MTF variation on these fixed diagnostic groups?",
     "method": "Keep local representation and global context. Replace only joint after-MTF minus base residual and the direct MTF pool with fixed TRAIN-panel means. Recompute unchanged joint/query/output layers; first require bit-identical original baseline. Compare existing native S/F direction losses using unchanged masks and paired B16 groups.",
     "new_backbone_forwards": 0,
     "new_predictor_fits": 0,
     "model_change_authorized": false,
-    "limitations": "Diagnostic intervention also affects joint normalization and breaks some natural feature relationships. A gain would require confirmation on a broader locked development axis before any model change; unchanged scores may reflect redundant routes."
+    "limitations": "Diagnostic intervention also affects joint normalization and breaks some natural feature relationships. A gain would require confirmation on a broader locked development axis before any model change; unchanged scores may reflect redundant routes.",
+    "mean_recipe": "FP64 TRAIN joint blocks; mean(after_mtf-base) and mean(mtf_pool) over all256declared TRAIN rows; cast onceFP32 and lock before later archive decode. No predictive fit or tuning.",
+    "reference_mean_vectors": 2,
+    "baseline_parity": "Bit-identical joint hidden, state/future M5 representations, and native logits required before intervention.",
+    "expected_joint_layer_calls": 64,
+    "expected_state_decoder_calls": 64,
+    "expected_future_decoder_calls": 64,
+    "expected_m5_head_calls": 128,
+    "expected_checkpoint_loads": 1,
+    "expected_candidate_head_tensor_imports": 4,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MTF_RETAINED_INTERVENTION_20261111_001/PLAN.json",
+      "sha256": "85d140d3cbb7362f21f6fd13e0b986eaf94fd3a13f285579e9c817b1e7806147"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MTF_RETAINED_INTERVENTION_20261111_001/PREFLIGHT.log",
+      "sha256": "025eca5cb7c1da1440a531e0829b09164fba4c0123b3f07b8099743382dacef3"
+    },
+    "focused_tests_passed": 67,
+    "diagnostic_rows": 512,
+    "primary_metrics": "M5 S/F conditional Brier and logloss; bothTRAIN/later. AllotherTF/AUC descriptive withoutselection.",
+    "independent_numeric_check": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MTF_RETAINED_INTERVENTION_20261111_001/ANALYZE_RETAINED.py",
+      "sha256": "7ec973ca847f52b5700cbc226d635ad6632ecaca495216abb282dc05a05b181a"
+    }
   },
   "not_established": [
     "Unique historical optimizer cause",

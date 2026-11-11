@@ -313,6 +313,14 @@ def _inspect(plan_path, plan_sha256, out_dir, *, execute):
 
 
 def preflight_read_only(plan_path, plan_sha256, out_dir):
+    if Path(plan_path) == MTF_RETAINED_ROOT/'PLAN.json' or Path(out_dir) == MTF_RETAINED_ROOT:
+        checked = _inspect_fusion_observation(plan_path, plan_sha256, out_dir, execute=False, retained=True)
+        return dict(status='READY_NO_CLAIM_NO_MODEL_NO_ARRAY_DESERIALIZATION',
+            plan=checked['plan_ref'], view_sha256=checked['view']['contract_sha256'],
+            candidate_model_state_sha256=MTF_RETAINED_BOUNDS['candidate_model_state_sha256'],
+            model_constructions=0, backbone_encodings=0, archive_decodes=0, joint_calls=0,
+            current_source_owners=len(checked['current_sources']), changed_owners=[CAP_RUNNER],
+            scalar_fits=0, predictor_fits=0, test_data_used=False)
     if Path(plan_path) == FUSION_INITIAL_ROOT / 'PLAN.json' or Path(out_dir) == FUSION_INITIAL_ROOT:
         checked = _inspect_fusion_observation(plan_path, plan_sha256, out_dir, execute=False, initial=True)
         return dict(status='READY_NO_CLAIM_NO_MODEL_NO_ARRAY_DESERIALIZATION',
@@ -395,6 +403,8 @@ def _save_cache(partition, arrays, rows, *, partial=False, root=ROOT):
 
 
 def run(plan_path, plan_sha256, out_dir, *, device):
+    if Path(plan_path) == MTF_RETAINED_ROOT/'PLAN.json' or Path(out_dir) == MTF_RETAINED_ROOT:
+        return _run_fusion_observation(plan_path, plan_sha256, out_dir, device=device, retained=True)
     if Path(plan_path) == FUSION_INITIAL_ROOT / 'PLAN.json' or Path(out_dir) == FUSION_INITIAL_ROOT:
         return _run_fusion_observation(plan_path, plan_sha256, out_dir, device=device, initial=True)
     if Path(plan_path) == FUSION_ROOT / 'PLAN.json' or Path(out_dir) == FUSION_ROOT:
@@ -1974,8 +1984,26 @@ FUSION_MATCH_KEYS = ('parents','issues','query_native', *(
     task+'_'+key for task in ('state','future') for key in ('allowed','eligible','mature')))
 
 
-def _fusion_plan(plan, plan_path, out_dir, *, initial=False):
-    stage, root, refs, bounds = (FUSION_INITIAL_STAGE, FUSION_INITIAL_ROOT, FUSION_INITIAL_REFS, FUSION_INITIAL_BOUNDS) if initial else (FUSION_STAGE, FUSION_ROOT, FUSION_REFS, FUSION_BOUNDS)
+MTF_RETAINED_STAGE = 'market_state_ta_mtf_retained_intervention_20261111_001'
+MTF_RETAINED_ROOT = Path('/home/andre2/GX1_RUNS') / MTF_RETAINED_STAGE.upper()
+MTF_RETAINED_REFS = {**FUSION_REFS, **{k:v for k,v in FUSION_INITIAL_REFS.items() if k.startswith('trained_')}}
+MTF_RETAINED_BOUNDS = dict(FUSION_BOUNDS, max_backbone_encodings=0,
+    max_joint_calls=64, max_state_decoder_calls=64, max_future_decoder_calls=64,
+    max_query_projection_calls=128, max_native_head_calls=128, max_m5_head_calls=128,
+    mean_vector_estimates=2, predictor_fits=0,
+    intervention='replace_mtf_row_variation_with_fixed_train_panel_means_v1',
+    mean_arithmetic='float64_after_minus_base_and_means_cast_once_float32',
+    baseline_parity='bitexact_joint_hidden_m5_representations_all_native_logits')
+
+
+def _fusion_plan(plan, plan_path, out_dir, *, initial=False, retained=False):
+    _need(type(initial) is bool and type(retained) is bool and not (initial and retained), 'FUSION_MODE')
+    if retained:
+        stage, root, refs, bounds = MTF_RETAINED_STAGE, MTF_RETAINED_ROOT, MTF_RETAINED_REFS, MTF_RETAINED_BOUNDS
+    elif initial:
+        stage, root, refs, bounds = FUSION_INITIAL_STAGE, FUSION_INITIAL_ROOT, FUSION_INITIAL_REFS, FUSION_INITIAL_BOUNDS
+    else:
+        stage, root, refs, bounds = FUSION_STAGE, FUSION_ROOT, FUSION_REFS, FUSION_BOUNDS
     fields = {'schema_version', 'stage', 'source_repo', 'source_base_commit', 'worker',
               'dispatch', 'cap_runner', 'runtime_source_override', 'inputs'} | set(bounds)
     _need(isinstance(plan, dict) and set(plan) == fields and plan['schema_version'] == FUSION_SCHEMA
@@ -2020,6 +2048,10 @@ def _qualify_fusion_initial(plan, qualified):
           and baseline['measurement']['model_contract_sha256'] == recipe['expected_model_contract_sha256']
           and baseline['measurement']['feature_view_sha256'] == recipe['expected_view_sha256'],
           'FUSION_INITIAL_BASELINE_METADATA')
+    _qualify_fusion_trained_panels(refs)
+
+
+def _qualify_fusion_trained_panels(refs):
     trained, terminal, review = (_read(refs[k]) for k in ('trained_result','trained_terminal','trained_review'))
     indices = {p:list(_fusion_batch_indices(n)) for p,n in (('TRAIN',FIT_ROWS),('LATER',SCORE_ROWS))}
     expected_counts = dict(model_constructions=1,checkpoint_loads=1,backbone_encodings=33,forward_returns=33,
@@ -2049,10 +2081,10 @@ def _qualify_fusion_initial(plan, qualified):
           'FUSION_INITIAL_MATCHED_TRAINED_METADATA')
 
 
-def _inspect_fusion_observation(plan_path, plan_sha256, out_dir, *, execute, initial=False):
+def _inspect_fusion_observation(plan_path, plan_sha256, out_dir, *, execute, initial=False, retained=False):
     pr = {'path': str(plan_path), 'sha256': plan_sha256}
-    plan = _fusion_plan(_read(pr), plan_path, out_dir, initial=initial); refs = plan['inputs']; bound = [pr]
-    bounds = FUSION_INITIAL_BOUNDS if initial else FUSION_BOUNDS; root = Path(out_dir)
+    plan = _fusion_plan(_read(pr), plan_path, out_dir, initial=initial, retained=retained); refs = plan['inputs']; bound = [pr]
+    bounds = MTF_RETAINED_BOUNDS if retained else FUSION_INITIAL_BOUNDS if initial else FUSION_BOUNDS; root = Path(out_dir)
     for key, path in (('worker', WORKER), ('dispatch', REPO/DISPATCH), ('cap_runner', REPO/CAP_RUNNER)):
         _need(plan[key]['path'] == str(path), 'FUSION_SOURCE_PATH:' + key)
         campaign.require_binding(plan[key], label=key, verify_file=True); bound.append(plan[key])
@@ -2084,6 +2116,8 @@ def _inspect_fusion_observation(plan_path, plan_sha256, out_dir, *, execute, ini
               and terminal['plan'] == refs['candidate_plan'] and terminal['no_relaunch_under_this_plan'] is True
               and all(x['test_data_used'] is False for x in (candidate, review, terminal)),
               'FUSION_QUALIFIED_CANDIDATE')
+    if retained:
+        _qualify_fusion_trained_panels(refs)
     head = _git('rev-parse', 'HEAD')
     subprocess.run(['git','-C',str(REPO),'merge-base','--is-ancestor',plan['source_base_commit'],head], check=True)
     policy_ref = _ref(REPO/'NEXT_RUN_POLICY.json'); policy = _read(policy_ref); bound.append(policy_ref)
@@ -2093,9 +2127,11 @@ def _inspect_fusion_observation(plan_path, plan_sha256, out_dir, *, execute, ini
         gate = policy.get(plan['stage'], {})
         expected = dict(status='ADMITTED', plan=pr, max_invocations=1, remaining_invocations=1,
             claimed_invocations=0, completed_invocations=0, relaunch_allowed=False, execution_authorized=True,
-            data_reads_authorized=True, checkpoint_reads_authorized=True, backbone_encodings_authorized=33,
+            data_reads_authorized=True, checkpoint_reads_authorized=True, backbone_encodings_authorized=bounds['max_backbone_encodings'],
             head_tensor_imports_authorized=bounds['head_tensor_imports'], candidate_weights_writes_authorized=0,
             backward_calls_authorized=0, optimizer_steps_authorized=0, training_authorized=False)
+        if retained:
+            expected['pure_joint_decodes_authorized'] = 64
         _need(all(type(gate.get(k)) is type(v) and gate[k] == v for k,v in expected.items())
               and all(type(gate.get(k)) is type(v) and gate[k] == v for k,v in bounds.items()),
               'FUSION_ADMISSION')
@@ -2116,7 +2152,9 @@ def _save_fusion_arrays(name, arrays, counts, *, np, root=None):
     root = FUSION_ROOT if root is None else root
     from gx1.contracts.immutable_event_authority_v1 import _publish_bytes
     _need(name in ('UNINSTRUMENTED_LATER_ROW0.npz','TRAIN_FUSION.npz','LATER_FUSION.npz',
-                   'TRAIN_FUSION_PARTIAL.npz','LATER_FUSION_PARTIAL.npz') and bool(arrays), 'FUSION_ARTIFACT_NAME')
+                   'TRAIN_FUSION_PARTIAL.npz','LATER_FUSION_PARTIAL.npz','TRAIN_MTF_MEANS.npz',
+                   'TRAIN_INTERVENTION.npz','LATER_INTERVENTION.npz','TRAIN_INTERVENTION_PARTIAL.npz',
+                   'LATER_INTERVENTION_PARTIAL.npz','BASELINE_PARITY_FAILURE.npz') and bool(arrays), 'FUSION_ARTIFACT_NAME')
     buf = io.BytesIO(); np.savez(buf, **arrays)
     _need(0 < buf.tell() and counts['published_npz_bytes'] + buf.tell() <= FUSION_BOUNDS['max_cache_bytes'],
           'FUSION_OUTPUT_BYTES')
@@ -2138,7 +2176,7 @@ def _publish_fusion_outcome(plan_ref, payload, *, complete, root=None):
     return dict(result=result, terminal=terminal)
 
 
-def _run_fusion_observation(plan_path, plan_sha256, out_dir, *, device, initial=False):
+def _run_fusion_observation(plan_path, plan_sha256, out_dir, *, device, initial=False, retained=False):
     import numpy as np
     import torch
     from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_producer_execution, require_capped_lock_ancestry
@@ -2163,7 +2201,7 @@ def _run_fusion_observation(plan_path, plan_sha256, out_dir, *, device, initial=
           'FUSION_CAP')
     for key,value in (('MAX_POWER_LIMIT_W','250'),('MAX_POWER_DRAW_W','170'),('MAX_CORE_TEMP_C','65'),('MAX_MEMORY_TEMP_C','80')):
         _need(os.environ.get('GX1_TRAINER_GPU_'+key) == value, 'FUSION_HARDWARE:'+key)
-    q = _inspect_fusion_observation(plan_path,plan_sha256,out_dir,execute=True,initial=initial)
+    q = _inspect_fusion_observation(plan_path,plan_sha256,out_dir,execute=True,initial=initial,retained=retained)
     root, bounds = Path(out_dir), q['plan']
     _need(not torch.cuda.is_initialized() and signal.getitimer(signal.ITIMER_REAL) == (0.,0.), 'FUSION_INIT_ORDER')
     claim = _publish('CLAIM.json',dict(plan=q['plan_ref'],policy=q['policy_ref'],source_commit=q['head'],
@@ -2172,8 +2210,12 @@ def _run_fusion_observation(plan_path, plan_sha256, out_dir, *, device, initial=
         instrumented_forwards=0,archive_decodes=0,head_tensor_imports=0,candidate_writes=0,
         optimizer_constructions=0,optimizer_updates=0,backwards=0,checkpoint_writes=0,
         resume_state_load_calls=0,resume_state_load_returns=0,published_npz_bytes=0,scalar_fits=0,sampled_rows=0)
+    if retained:
+        counts.update(joint_calls=0,joint_linear_calls=0,state_decoder_calls=0,state_decoder_returns=0,
+            future_decoder_calls=0,future_decoder_returns=0,query_projection_calls=0,native_head_calls=0,
+            m5_head_calls=0,mean_vector_estimates=0,predictor_fits=0)
     provider = prepared = None; artifacts = {}; pieces = {}; active = None
-    passivity = {}; import_proof = {}; candidate = None; matched_observations = {}
+    passivity = {}; import_proof = {}; candidate = None; matched_observations = {}; retained_summary = {}
     previous_alarm = signal.getsignal(signal.SIGALRM)
     def timeout(*unused): raise TimeoutError('Passive TA fusion observation 900-second bound')
     signal.signal(signal.SIGALRM,timeout)
@@ -2189,22 +2231,31 @@ def _run_fusion_observation(plan_path, plan_sha256, out_dir, *, device, initial=
         trainer._set_deterministic(numerical['seed'],cuda,numerical['precision_policy'])
         torch.set_num_threads(1); torch.set_num_interop_threads(1)
         _need(torch.get_num_threads()==torch.get_num_interop_threads()==1,'FUSION_THREADS')
-        provider,provider_plan,prepared,fit_rows,fit_issues=runner._prepared_fold1(receipts,view,np=np)
-        endpoint,future=load_bound_five_endpoint_targets(),load_bound_future_displacement()
-        axes=endpoint.mature_oof_axes(fold_id=1);later_rows,later_issues=axes['score_parent_rows'],axes['score_decision_ns']
-        _need(np.array_equal(fit_rows,axes['fit_parent_rows']) and np.array_equal(fit_issues,axes['fit_decision_ns'])
-              and len(fit_rows)==FIT_ROWS and len(later_rows)==SCORE_ROWS,'FUSION_AXES')
+        if not retained:
+            provider,provider_plan,prepared,fit_rows,fit_issues=runner._prepared_fold1(receipts,view,np=np)
+            endpoint,future=load_bound_five_endpoint_targets(),load_bound_future_displacement()
+            axes=endpoint.mature_oof_axes(fold_id=1);later_rows,later_issues=axes['score_parent_rows'],axes['score_decision_ns']
+            _need(np.array_equal(fit_rows,axes['fit_parent_rows']) and np.array_equal(fit_issues,axes['fit_decision_ns'])
+                  and len(fit_rows)==FIT_ROWS and len(later_rows)==SCORE_ROWS,'FUSION_AXES')
         counts['model_constructions']+=1
         backbone=views.build_native_direction_research_model(view,prefix_normalization=receipts['fold1']['normal'],
             constructor_metadata=receipts['constructor'],device=torch.device('cpu'),unobserved_units_profile=receipts['fold1']['profile'])
         model=NativeFutureDualModel(backbone)
         fit.require_checkpoint_view(model.state_model.feature_view_identity,recipe=q['origin']['original_recipe'],verify_files=True,ta_sf=True)
         _need(model.research_objective['contract_sha256']==recipe['expected_model_contract_sha256'],'FUSION_MODEL_CONTRACT')
-        order = fit_rows.copy() if initial else build_reverse_order(fit_rows,recipe['batch_indices'])[0]
         counts['checkpoint_loads']+=1
         checkpoint = refs['initial_checkpoint' if initial else 'reversed_evidence']
         saved=common._load_state(checkpoint,torch=torch,maximum=recipe['max_checkpoint_bytes'],counters=counts)
-        source_identity=_load_reversed_weights(model,saved,q,torch.from_numpy(order.copy()),torch=torch,initial=initial);del saved
+        if retained:
+            _need(isinstance(saved.get('parent_order'),torch.Tensor)
+                  and saved['parent_order'].dtype == torch.int64 and saved['parent_order'].shape == (FIT_ROWS,),
+                  'RETAINED_CHECKPOINT_PARENT_ORDER')
+            # The loader checks this complete order against the immutable result digest,
+            # original batch order and method_state; no raw feature/target axis is read.
+            order = saved['parent_order'].detach().clone()
+        else:
+            order = torch.from_numpy((fit_rows.copy() if initial else build_reverse_order(fit_rows,recipe['batch_indices'])[0]).copy())
+        source_identity=_load_reversed_weights(model,saved,q,order,torch=torch,initial=initial);del saved
         model.to(cuda)
         def signature():
             return dict(model=model_sha(model.state_dict()),buffers=old._tree_sha(dict(model.named_buffers())),
@@ -2228,76 +2279,88 @@ def _run_fusion_observation(plan_path, plan_sha256, out_dir, *, device, initial=
         candidate=signature()
         _need(candidate['model']==bounds['candidate_model_state_sha256']
               and all(candidate[k]==before[k] for k in before if k!='model'),'FUSION_EXACT_CANDIDATE')
-        with np.load(refs['initial_baseline' if initial else 'candidate_baseline']['path'],allow_pickle=False) as z:
-            baseline={name:z[name].copy() for name in z.files}
-        counts['archive_decodes']+=1
-        if initial:
-            _need(all(len(v)==192 for v in baseline.values()),'FUSION_INITIAL_BASELINE_ROWS')
-            baseline={name:value[:BATCH_SIZE].copy() for name,value in baseline.items()}
-        def forward(rows,issues,left,partition,*,instrumented):
-            _need(counts['backbone_encodings']<bounds['max_backbone_encodings'],'FUSION_FORWARD_LIMIT')
-            raw,parents,clocks=runner._feature_batch(prepared,view,receipts,rows,issues,left,left+BATCH_SIZE,np=np)
-            _need(len(parents)==len(clocks)==BATCH_SIZE,'FUSION_INTACT_BATCH')
-            features={k:torch.from_numpy(v).to(cuda) for k,v in raw.items()}
-            counts['backbone_encodings']+=1
-            def evaluate():
-                report=evaluate_endpoint_batch(model,features,endpoint,future,parents,clocks,fold_id=1,
-                    partition=partition,future_weight=numerical['future_weight'],frozen_priors=q['priors'],capture_m5_readout=True)
-                counts['forward_returns']+=1
-                return report['m5_readout']
-            if not instrumented: return evaluate(),{}
-            with observe_ta_fusion_once(model.backbone,batch_rows=BATCH_SIZE,
-                    max_bytes=bounds['max_cache_bytes'],torch=torch) as captured:
-                readout=evaluate()
-            counts['instrumented_forwards']+=1
-            return readout,{k:v.cpu().numpy().copy() for k,v in captured.items()}
-        uninstrumented,_=forward(later_rows,later_issues,0,'score',instrumented=False)
-        artifacts['uninstrumented']=_save_fusion_arrays('UNINSTRUMENTED_LATER_ROW0.npz',uninstrumented,counts,np=np,root=root)
-        passivity['uninstrumented_matches_bound_baseline']=_fusion_exact_arrays(uninstrumented,baseline)
-        _need(passivity['uninstrumented_matches_bound_baseline'],'FUSION_BOUND_BASELINE_PARITY')
-        for panel,rows,issues,partition in (('TRAIN',fit_rows,fit_issues,'fit'),('LATER',later_rows,later_issues,'score')):
-            active=panel;pieces={}; matched = None
+        if retained:
+            retained_summary = _run_retained_mtf_panels(model,q,counts,artifacts,passivity,np=np,torch=torch)
+        else:
+            with np.load(refs['initial_baseline' if initial else 'candidate_baseline']['path'],allow_pickle=False) as z:
+                baseline={name:z[name].copy() for name in z.files}
+            counts['archive_decodes']+=1
             if initial:
-                with np.load(refs['trained_'+panel.lower()]['path'],allow_pickle=False) as z:
-                    matched={key:z[key].copy() for key in FUSION_MATCH_KEYS}
-                counts['archive_decodes']+=1
-                positions=np.asarray([i*BATCH_SIZE+j for i in _fusion_batch_indices(len(rows))
-                                      for j in range(BATCH_SIZE)],dtype=np.int64)
-                _need(_fusion_exact_arrays({'parents':rows[positions],'issues':issues[positions]},
-                    {k:matched[k] for k in ('parents','issues')}),'FUSION_MATCHED_PARENT_AXES')
-            for batch_index in _fusion_batch_indices(len(rows)):
-                readout,captured=forward(rows,issues,batch_index*BATCH_SIZE,partition,instrumented=True)
-                values={**readout,**{'capture_'+k:v for k,v in captured.items()}}
-                for name,value in values.items(): pieces.setdefault(name,[]).append(value)
-                counts['sampled_rows']+=BATCH_SIZE
-                if panel=='LATER' and batch_index==0:
-                    passivity['instrumented_matches_uninstrumented']=_fusion_exact_arrays(readout,uninstrumented)
-                    passivity['instrumented_matches_bound_baseline']=_fusion_exact_arrays(readout,baseline)
-                    _need(all(passivity.values()),'FUSION_INSTRUMENTED_PARITY')
-            combined={k:np.concatenate(v,axis=0) for k,v in pieces.items()}
-            _need(all(len(v)==bounds['sampled_rows_per_partition'] for v in combined.values()),'FUSION_PANEL_ROWS')
-            if initial:
-                matched_observations[panel]=_fusion_exact_arrays({k:combined[k] for k in FUSION_MATCH_KEYS},matched)
-                _need(matched_observations[panel],'FUSION_MATCHED_OBSERVATIONS')
-            artifacts[panel]=_save_fusion_arrays(panel+'_FUSION.npz',combined,counts,np=np,root=root)
-            pieces={}
+                _need(all(len(v)==192 for v in baseline.values()),'FUSION_INITIAL_BASELINE_ROWS')
+                baseline={name:value[:BATCH_SIZE].copy() for name,value in baseline.items()}
+            def forward(rows,issues,left,partition,*,instrumented):
+                _need(counts['backbone_encodings']<bounds['max_backbone_encodings'],'FUSION_FORWARD_LIMIT')
+                raw,parents,clocks=runner._feature_batch(prepared,view,receipts,rows,issues,left,left+BATCH_SIZE,np=np)
+                _need(len(parents)==len(clocks)==BATCH_SIZE,'FUSION_INTACT_BATCH')
+                features={k:torch.from_numpy(v).to(cuda) for k,v in raw.items()}
+                counts['backbone_encodings']+=1
+                def evaluate():
+                    report=evaluate_endpoint_batch(model,features,endpoint,future,parents,clocks,fold_id=1,
+                        partition=partition,future_weight=numerical['future_weight'],frozen_priors=q['priors'],capture_m5_readout=True)
+                    counts['forward_returns']+=1
+                    return report['m5_readout']
+                if not instrumented: return evaluate(),{}
+                with observe_ta_fusion_once(model.backbone,batch_rows=BATCH_SIZE,
+                        max_bytes=bounds['max_cache_bytes'],torch=torch) as captured:
+                    readout=evaluate()
+                counts['instrumented_forwards']+=1
+                return readout,{k:v.cpu().numpy().copy() for k,v in captured.items()}
+            uninstrumented,_=forward(later_rows,later_issues,0,'score',instrumented=False)
+            artifacts['uninstrumented']=_save_fusion_arrays('UNINSTRUMENTED_LATER_ROW0.npz',uninstrumented,counts,np=np,root=root)
+            passivity['uninstrumented_matches_bound_baseline']=_fusion_exact_arrays(uninstrumented,baseline)
+            _need(passivity['uninstrumented_matches_bound_baseline'],'FUSION_BOUND_BASELINE_PARITY')
+            for panel,rows,issues,partition in (('TRAIN',fit_rows,fit_issues,'fit'),('LATER',later_rows,later_issues,'score')):
+                active=panel;pieces={}; matched = None
+                if initial:
+                    with np.load(refs['trained_'+panel.lower()]['path'],allow_pickle=False) as z:
+                        matched={key:z[key].copy() for key in FUSION_MATCH_KEYS}
+                    counts['archive_decodes']+=1
+                    positions=np.asarray([i*BATCH_SIZE+j for i in _fusion_batch_indices(len(rows))
+                                          for j in range(BATCH_SIZE)],dtype=np.int64)
+                    _need(_fusion_exact_arrays({'parents':rows[positions],'issues':issues[positions]},
+                        {k:matched[k] for k in ('parents','issues')}),'FUSION_MATCHED_PARENT_AXES')
+                for batch_index in _fusion_batch_indices(len(rows)):
+                    readout,captured=forward(rows,issues,batch_index*BATCH_SIZE,partition,instrumented=True)
+                    values={**readout,**{'capture_'+k:v for k,v in captured.items()}}
+                    for name,value in values.items(): pieces.setdefault(name,[]).append(value)
+                    counts['sampled_rows']+=BATCH_SIZE
+                    if panel=='LATER' and batch_index==0:
+                        passivity['instrumented_matches_uninstrumented']=_fusion_exact_arrays(readout,uninstrumented)
+                        passivity['instrumented_matches_bound_baseline']=_fusion_exact_arrays(readout,baseline)
+                        _need(all(passivity.values()),'FUSION_INSTRUMENTED_PARITY')
+                combined={k:np.concatenate(v,axis=0) for k,v in pieces.items()}
+                _need(all(len(v)==bounds['sampled_rows_per_partition'] for v in combined.values()),'FUSION_PANEL_ROWS')
+                if initial:
+                    matched_observations[panel]=_fusion_exact_arrays({k:combined[k] for k in FUSION_MATCH_KEYS},matched)
+                    _need(matched_observations[panel],'FUSION_MATCHED_OBSERVATIONS')
+                artifacts[panel]=_save_fusion_arrays(panel+'_FUSION.npz',combined,counts,np=np,root=root)
+                pieces={}
         _need(signature()==candidate and all(p.grad is None for p in model.parameters()),'FUSION_STATE_UNCHANGED')
         expected=dict(model_constructions=1,checkpoint_loads=1,backbone_encodings=33,forward_returns=33,
             instrumented_forwards=32,archive_decodes=3 if initial else 2,head_tensor_imports=bounds['head_tensor_imports'],candidate_writes=0,
             optimizer_constructions=0,optimizer_updates=0,backwards=0,checkpoint_writes=0,
             resume_state_load_calls=1,resume_state_load_returns=1,scalar_fits=0,sampled_rows=512)
+        if retained:
+            expected.update(backbone_encodings=0,forward_returns=0,instrumented_forwards=0,archive_decodes=3,
+                joint_calls=64,joint_linear_calls=64,state_decoder_calls=64,state_decoder_returns=64,
+                future_decoder_calls=64,future_decoder_returns=64,query_projection_calls=128,
+                native_head_calls=128,m5_head_calls=128,mean_vector_estimates=2,predictor_fits=0)
         _need(all(counts[k]==v for k,v in expected.items()) and all(passivity.values()),'FUSION_EXACT_COUNTS')
-        release=prepared;prepared=None;base._release_pages(provider,release)
-        provider.validate_metadata(provider_plan);bookend()
+        if prepared is not None:
+            release=prepared;prepared=None;base._release_pages(provider,release)
+            provider.validate_metadata(provider_plan)
+        bookend()
         return _publish_fusion_outcome(q['plan_ref'],dict(claim=claim,counts=counts,artifacts=artifacts,
             source_commit=q['head'],source_identity=source_identity,import_proof=import_proof,
-            candidate_model_state_sha256=candidate['model'],passivity=passivity,
+            candidate_model_state_sha256=candidate['model'],passivity=passivity,**retained_summary,
             **(dict(matched_observations=matched_observations,trained_result=refs['trained_result']) if initial else {}),
             batch_indices={p:list(_fusion_batch_indices(n)) for p,n in (('TRAIN',FIT_ROWS),('LATER',SCORE_ROWS))},
             source_unchanged=True,evaluation_state_unchanged=True,elapsed_seconds=time.monotonic()-started,
             limitations=['512 rows in 16 intact B16 groups per partition are diagnostic, not 512 independent samples or a quality threshold.',
                 'Gate weights and representation variation do not establish predictive utility.',
-                'Residual scales and joint LayerNorm must be included in component-size comparisons.']),complete=True,root=root)
+                'Residual scales and joint LayerNorm must be included in component-size comparisons.'] +
+                (['Fixed mean replacement changes normalization and dependence between components; sensitivity is not unique information or edge.',
+                  'M5 S/F are predeclared primary; other timeframes are descriptive only, without selection.'] if retained else [])),complete=True,root=root)
     except BaseException as exc:
         preservation_error=changed=None
         if pieces and active not in artifacts:
@@ -2308,10 +2371,202 @@ def _run_fusion_observation(plan_path, plan_sha256, out_dir, *, device, initial=
         try:bookend()
         except Exception as other:changed=repr(other)
         _publish_fusion_outcome(q['plan_ref'],dict(claim=claim,counts=counts,artifacts=artifacts,
-            import_proof=import_proof,passivity=passivity,matched_observations=matched_observations,error=type(exc).__name__+':'+str(exc),
+            import_proof=import_proof,passivity=passivity,matched_observations=matched_observations,
+            **(dict(evaluation_state_unchanged=signature()==candidate) if retained and candidate is not None else {}),
+            error=type(exc).__name__+':'+str(exc),
             source_unchanged=changed is None,bookend_error=changed,preservation_error=preservation_error,
             elapsed_seconds=time.monotonic()-started),complete=False,root=root)
         raise
     finally:
         signal.setitimer(signal.ITIMER_REAL,0.);signal.signal(signal.SIGALRM,previous_alarm)
         if prepared is not None:base._release_pages(provider,prepared)
+
+
+def _retained_mtf_means(source, *, np):
+    _need(source.shape == (256,512) and source.dtype == np.float32 and bool(np.isfinite(source).all()),
+          'RETAINED_TRAIN_MEAN_SOURCE')
+    base, after, pool, _ = np.split(source.astype(np.float64),4,axis=1)
+    return dict(mean_mtf_residual=np.mean(after-base,axis=0).astype(np.float32),
+                mean_mtf_pool=np.mean(pool,axis=0).astype(np.float32))
+
+
+def _retained_mtf_intervention(source, means, *, np):
+    _need(source.shape == (16,512) and source.dtype == np.float32 and bool(np.isfinite(source).all())
+          and set(means) == {'mean_mtf_residual','mean_mtf_pool'}
+          and all(v.shape == (128,) and v.dtype == np.float32 and bool(np.isfinite(v).all()) for v in means.values()),
+          'RETAINED_INTERVENTION_INPUT')
+    changed = source.copy()
+    changed[:,128:256] = source[:,:128] + means['mean_mtf_residual']
+    changed[:,256:384] = means['mean_mtf_pool']
+    _need(bool(np.isfinite(changed).all()) and changed[:,:128].tobytes() == source[:,:128].tobytes()
+          and changed[:,384:].tobytes() == source[:,384:].tobytes(), 'RETAINED_PRESERVED_BLOCKS')
+    return changed
+
+
+@contextmanager
+def _retained_decoder_hooks(model, counts):
+    """Observe actual child-module calls; reject every backbone invocation."""
+    handles = []
+    def count(name, limit):
+        def hook(_module, _inputs):
+            counts[name] += 1
+            _need(counts[name] <= limit, 'RETAINED_CALL_LIMIT:' + name)
+        return hook
+    def no_backbone(_module, _inputs):
+        counts['backbone_encodings'] += 1
+        _need(False, 'RETAINED_BACKBONE_CALL_FORBIDDEN')
+    modules = (
+        (model.backbone.entry_q_joint_norm,'joint_calls',64),
+        (model.backbone.entry_q_joint_in,'joint_linear_calls',64),
+        (model.state_model.query_projection,'query_projection_calls',128),
+        (model.state_model.query_head,'native_head_calls',128),
+        (model.future_head,'native_head_calls',128),
+        (model.state_model.m5_side_head,'m5_head_calls',128),
+        (model.future_m5_side_head,'m5_head_calls',128))
+    try:
+        handles.append(model.backbone.register_forward_pre_hook(no_backbone))
+        for module,name,limit in modules:
+            handles.append(module.register_forward_pre_hook(count(name,limit)))
+        yield
+    finally:
+        for handle in handles: handle.remove()
+
+
+def _decode_retained_joint(model, source, query, counts, *, torch):
+    from gx1.contracts.market_state_time_query_native_F_batch_v1 import _m5_readout_hooks
+    _need(source.shape == (16,512) and source.dtype == torch.float32
+          and query.shape == (16,5) and query.dtype == torch.int64
+          and not any(m.training for m in model.modules()), 'RETAINED_DECODE_INPUT')
+    captured, handles = _m5_readout_hooks(model,16)
+    try:
+        with torch.inference_mode():
+            hidden = torch.nn.functional.gelu(model.backbone.entry_q_joint_in(
+                model.backbone.entry_q_joint_norm(source)))
+            counts['state_decoder_calls'] += 1
+            _need(counts['state_decoder_calls'] <= 64, 'RETAINED_STATE_DECODE_LIMIT')
+            state = model.state_model.decode_raw_query_grid(hidden,query[:,None,:])[:,0]
+            counts['state_decoder_returns'] += 1
+            counts['future_decoder_calls'] += 1
+            _need(counts['future_decoder_calls'] <= 64, 'RETAINED_FUTURE_DECODE_LIMIT')
+            future = model.decode_native_F_raw(hidden)
+            counts['future_decoder_returns'] += 1
+            _need(set(captured) == {'state_representation','future_representation'}
+                  and hidden.shape == (16,128) and state.shape == future.shape == (16,5,2)
+                  and all(v.dtype == torch.float32 and bool(torch.isfinite(v).all()) for v in (hidden,state,future)),
+                  'RETAINED_DECODE_OUTPUT')
+            return dict(captured,capture_entry_q_joint_hidden=hidden.detach().cpu().numpy().copy(),
+                state_activity_side_logits=state.detach().cpu().numpy().copy(),
+                future_activity_side_logits=future.detach().cpu().numpy().copy())
+    finally:
+        for handle in handles: handle.remove()
+
+
+def _load_retained_panel(ref, counts, *, np):
+    from gx1.scripts.run_market_state_time_query_fold1_fit_window_v1 import _ta_m5_capture_layout
+    from gx1.contracts.market_state_time_query_target_v1 import NATIVE_K
+    layout = dict(_ta_m5_capture_layout(256),capture_entry_q_joint_source=((256,512),np.float32),
+                  capture_entry_q_joint_hidden=((256,128),np.float32))
+    _need(counts['archive_decodes'] < 3, 'RETAINED_ARCHIVE_LIMIT')
+    counts['archive_decodes'] += 1
+    with np.load(ref['path'],allow_pickle=False) as z:
+        _need(set(layout) <= set(z.files), 'RETAINED_PANEL_KEYS')
+        arrays = {k:z[k].copy() for k in layout}
+    _need(all(arrays[k].shape == shape and arrays[k].dtype == dtype and bool(np.isfinite(arrays[k]).all())
+              for k,(shape,dtype) in layout.items())
+          and len(np.unique(arrays['parents'])) == 256 and bool((np.diff(arrays['parents']) > 0).all())
+          and bool((np.diff(arrays['issues']) > 0).all())
+          and np.array_equal(arrays['query_native'],np.broadcast_to(np.asarray(NATIVE_K,dtype=np.int64),(256,5))),
+          'RETAINED_PANEL_LAYOUT_AXES')
+    return arrays
+
+
+def _retained_conditional_scores(arrays, *, np):
+    from gx1.scripts.run_market_state_native_F_private_window_v1 import _m5_import_score
+    from gx1.contracts.market_state_time_query_target_v1 import TIMEFRAMES
+    def empty(): return dict(count=0,up_count=0,brier=None,log=None,mean_p=None)
+    def pooled(groups, arm):
+        count = sum(g[arm]['count'] for g in groups)
+        if count == 0: return empty()
+        return dict(count=count,up_count=sum(g[arm]['up_count'] for g in groups),**{
+            key:sum(g[arm]['count']*g[arm][key] for g in groups if g[arm]['count'])/count
+            for key in ('brier','log','mean_p')})
+    def delta(original, changed):
+        return {k:None if not original['count'] else changed[k]-original[k] for k in ('brier','log')}
+    output = {}
+    for task in ('state','future'):
+        output[task] = {}
+        for tf_index,tf in enumerate(TIMEFRAMES):
+            allowed = arrays[task+'_allowed'][:,tf_index]
+            known = arrays[task+'_eligible'][:,tf_index] & arrays[task+'_mature'][:,tf_index] & np.isin(allowed,(1,4))
+            y = allowed == 4; groups = []
+            for group in range(16):
+                sl = slice(group*16,(group+1)*16); scores = {}
+                for arm in ('original','intervention'):
+                    logits = arrays[arm+'_'+task+'_activity_side_logits'][sl,tf_index,1]
+                    scores[arm] = _m5_import_score(logits,known[sl],y[sl]) if bool(known[sl].any()) else empty()
+                groups.append(dict(group=group,**scores,delta=delta(scores['original'],scores['intervention'])))
+            original, changed = pooled(groups,'original'), pooled(groups,'intervention')
+            output[task][tf] = dict(role='PRIMARY_M5' if tf_index == 0 else 'DESCRIPTIVE_SECONDARY',
+                original=original,intervention=changed,delta=delta(original,changed),groups=groups)
+    return output
+
+
+def _run_retained_mtf_panels(model, checked, counts, artifacts, passivity, *, np, torch):
+    """One fixed retained-input intervention; the shared runner owns guards/state."""
+    root = Path(checked['plan_ref']['path']).parent; refs = checked['plan']['inputs']
+    arrays = _load_retained_panel(refs['trained_train'],counts,np=np)
+    _need(counts['mean_vector_estimates'] == 0 and counts['archive_decodes'] == 2, 'RETAINED_TRAIN_MEAN_ORDER')
+    means = _retained_mtf_means(arrays['capture_entry_q_joint_source'],np=np)
+    for value in means.values(): value.flags.writeable = False
+    counts['mean_vector_estimates'] = 2
+    artifacts['train_means'] = _save_fusion_arrays('TRAIN_MTF_MEANS.npz',means,counts,np=np,root=root)
+    artifacts['train_mean_lock'] = _publish('TRAIN_MTF_MEANS.json',dict(plan=checked['plan_ref'],
+        source=refs['trained_train'],artifact=artifacts['train_means'],rows=256,
+        arithmetic=MTF_RETAINED_BOUNDS['mean_arithmetic'],mean_vector_estimates=2,predictor_fits=0,
+        later_archive_opened=False,training_enabled=False,test_data_used=False),root=root)
+    conditional_scores = {}
+    with _retained_decoder_hooks(model,counts):
+        for panel in ('TRAIN','LATER'):
+            pieces = {}
+            try:
+                if panel == 'LATER':
+                    campaign.require_binding(artifacts['train_means'],label='locked TRAIN means',verify_file=True)
+                    campaign.require_binding(artifacts['train_mean_lock'],label='locked TRAIN mean receipt',verify_file=True)
+                    arrays = _load_retained_panel(refs['trained_later'],counts,np=np)
+                for group in range(16):
+                    left,right = group*16,(group+1)*16
+                    original = arrays['capture_entry_q_joint_source'][left:right]
+                    query = torch.from_numpy(arrays['query_native'][left:right].copy()).to(model.state_model.query_native_k.device)
+                    decoded = _decode_retained_joint(model,torch.from_numpy(original.copy()).to(query.device),query,counts,torch=torch)
+                    parity = {k:_fusion_exact_arrays({k:v},{k:arrays[k][left:right]}) for k,v in decoded.items()}
+                    for k,ok in parity.items(): passivity[k+'_bitexact'] = passivity.get(k+'_bitexact',True) and ok
+                    if not all(parity.values()):
+                        failure = {**{k:arrays[k][left:right] for k in FUSION_MATCH_KEYS},
+                            **{'actual_'+k:v for k,v in decoded.items()},
+                            **{'expected_'+k:arrays[k][left:right] for k in decoded}}
+                        artifacts['baseline_parity_failure'] = _save_fusion_arrays('BASELINE_PARITY_FAILURE.npz',failure,counts,np=np,root=root)
+                        artifacts['baseline_parity_failure_metadata'] = _publish('BASELINE_PARITY_FAILURE.json',
+                            dict(plan=checked['plan_ref'],panel=panel,group=group,source=refs['trained_'+panel.lower()],
+                                 parity=parity,artifact=artifacts['baseline_parity_failure'],tolerance_fallback=False),root=root)
+                        _need(False,'RETAINED_BASELINE_PARITY:' + ','.join(k for k,ok in parity.items() if not ok))
+                    changed = _retained_mtf_intervention(original,means,np=np)
+                    altered = _decode_retained_joint(model,torch.from_numpy(changed).to(query.device),query,counts,torch=torch)
+                    values = {k:arrays[k][left:right].copy() for k in FUSION_MATCH_KEYS}
+                    for task in ('state','future'):
+                        name = task+'_activity_side_logits'
+                        values['original_'+name],values['intervention_'+name] = decoded[name],altered[name]
+                    for k,v in values.items(): pieces.setdefault(k,[]).append(v)
+                    counts['sampled_rows'] += 16
+                combined = {k:np.concatenate(v,axis=0) for k,v in pieces.items()}
+                _need(all(len(v) == 256 for v in combined.values()),'RETAINED_PANEL_ROWS')
+                conditional_scores[panel] = _retained_conditional_scores(combined,np=np)
+                artifacts[panel] = _save_fusion_arrays(panel+'_INTERVENTION.npz',combined,counts,np=np,root=root)
+            except BaseException:
+                if pieces and panel not in artifacts:
+                    artifacts[panel+'_partial'] = _save_fusion_arrays(panel+'_INTERVENTION_PARTIAL.npz',
+                        {k:np.concatenate(v,axis=0) for k,v in pieces.items()},counts,np=np,root=root)
+                raise
+    return dict(conditional_scores=conditional_scores,trained_result=refs['trained_result'],
+        primary_cells=['TRAIN/state/M5','TRAIN/future/M5','LATER/state/M5','LATER/future/M5'],
+        intervention=MTF_RETAINED_BOUNDS['intervention'],mean_arithmetic=MTF_RETAINED_BOUNDS['mean_arithmetic'],
+        baseline_tolerance_fallback=False,backbone_tripwire_installed=True,model_change_recommended=False)
