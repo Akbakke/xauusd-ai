@@ -44,6 +44,7 @@ ATTENDED_HARDWARE_SMOKE_MODULE=gx1.scripts.attended_model_native_hardware_smoke_
 CUDA_PRODUCER_MODULE=gx1.scripts.evaluate_entry_candidate_selective_edge_v1
 TECHNICAL_VALIDATION_PRODUCER_MODULE=gx1.scripts.validate_entry_model_native_technical_checkpoint_v1
 TA_C171_HEAD_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_c171_short_heads_v1
+TA_NON_M5_INITIAL_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_non_m5_initial_v1
 RUNNER_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
 REPO_ROOT="$(cd "$(dirname "$RUNNER_PATH")/.." && pwd -P)"
 CANONICAL_TRAINER_PYTHON="$REPO_ROOT/.venv/bin/python"
@@ -224,6 +225,22 @@ matches_bound_market_state_ta_c171_short_heads() {
   [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$7" ]]
 }
 
+# Exact read-only initial comparison for independent non-M5 side heads.
+matches_bound_market_state_ta_non_m5_initial() {
+  local expected_plan="$1" expected_output="$2"
+  shift 2
+  [[ $# -eq 11 ]] || return 1
+  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \
+    && "$3" == "$TA_NON_M5_INITIAL_PRODUCER_MODULE" \
+    && "$4" == --market-state-ta-non-m5-initial-plan && "$5" == "$expected_plan" \
+    && "$6" == --market-state-ta-non-m5-initial-plan-sha256 && "$7" =~ ^[0-9a-f]{64}$ \
+    && "$8" == --device && "$9" == cuda && "${10}" == --out-dir \
+    && "${11}" == "$expected_output" && "$expected_plan" == /* && "$expected_output" == /* ]] || return 1
+  [[ -f "$expected_plan" && ! -L "$expected_plan" \
+    && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1
+  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$7" ]]
+}
+
 validate_target_command() {
   local executable_basename="${1##*/}" target_arg module
   local trainer_reference=false hardware_smoke_reference=false
@@ -271,7 +288,8 @@ validate_target_command() {
       if ! is_direct_python "$1" || [[ "${2:-}" != "-m" ]] \
         || { [[ "${3:-}" != "$CUDA_PRODUCER_MODULE" ]] \
           && [[ "${3:-}" != "$TECHNICAL_VALIDATION_PRODUCER_MODULE" ]] \
-          && [[ "${3:-}" != "$TA_C171_HEAD_PRODUCER_MODULE" ]]; }; then
+          && [[ "${3:-}" != "$TA_C171_HEAD_PRODUCER_MODULE" ]] \
+          && [[ "${3:-}" != "$TA_NON_M5_INITIAL_PRODUCER_MODULE" ]]; }; then
         echo "FATAL: --cuda-producer is reserved for an allow-listed TRAIN/VAL-only evidence producer" >&2
         exit 75
       fi
@@ -373,6 +391,19 @@ validate_target_command() {
         local ta_heads_root=/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_MATCHED_TRAIN_MODE_20261111_001
         if ! matches_bound_market_state_ta_c171_short_heads "$ta_heads_root/PLAN.json" "$ta_heads_root" "$@"; then
           echo "FATAL: c171 initial-head observation is not exactly bound" >&2
+          exit 75
+        fi
+        # Match the original deterministic_fp32 evaluation's numerical threads.
+        # Affinity, TasksMax and every hardware/memory stop remain unchanged.
+        NUMERICAL_THREAD_COUNT=8
+        TRAINER_GPU_MAX_POWER_LIMIT_W=250
+        TRAINER_MAX_WALL_SECONDS=1200
+        TRAINER_MODEL_MAX_WALL_SECONDS=1200
+      fi
+      if [[ "${3:-}" == "$TA_NON_M5_INITIAL_PRODUCER_MODULE" ]]; then
+        local ta_non_m5_root=/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_INITIAL_PARITY_20261111_001
+        if ! matches_bound_market_state_ta_non_m5_initial "$ta_non_m5_root/PLAN.json" "$ta_non_m5_root" "$@"; then
+          echo "FATAL: non-M5 initial comparison is not exactly bound" >&2
           exit 75
         fi
         # Match the original deterministic_fp32 evaluation's numerical threads.

@@ -6,13 +6,13 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_NON_M5_SIDE_MECHANICS_PASS_NATIVE_BASELINE_REQUIRED.
+TA_DIRECTION_EDGE_CAUSE_NON_M5_INITIAL_PARITY_ADMITTED_READ_ONLY.
 Målet 11.11 er aktivt: avklar målte årsaker til svak retningsverdi i indikatorer,
 sammensetting og læring. [Samlet status](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json).
 Korte runder er feilsøking, ikke kapasitetsdom. Full kvalifisert TRAIN-historikk
 og 30–40 epoker er senere skalering, ikke et krav ved hver rettelse.
-Tidligere modellplaner og siste lesende kontroll er konsumert. Ingen ny native
-modellkjøring er innrømmet. Neste arbeid bruker allerede beholdte mellomresultater.
+Tidligere modellplaner og siste lesende kontroll er konsumert. Bare den nye
+lesende initialparitetskontrollen nedenfor er innrømmet:32forwards og0updates.
 Training/native_training/native_launch/full_epoch/full_val er false. Begge gamle
 c171 Windowsoppgaver er Disabled. GC er på pause; TEST, Entry/Exit, broker,
 handel, spending og promotion er stengt. Sluttcheckpoint er evidens, ikke promotion.
@@ -180,12 +180,25 @@ Gamle statefixture-tester bruker syntetisk optimizerhistorie; ingen markedstreni
 ROOT: /home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SIDE_MECHANICAL_20261111_001.
 SOURCE_BINDING9b4514d0, FOCUSED_TESTS.log0edd42ee; MECHANICAL_REVIEW har samlet kvittering.
 
-## Neste avklaring
+## Ny lesende initialparitetskontroll
 
-Forbered minste eksakte lesende native initialparitet fra faktisk c171 INITIAL og
-originalt16B16 TRAIN-panel. Gjenbruk eksisterende guardedobservasjon/migrering, bind
-ny modell/view/objective, bevar features/targets/tap og kontroller uendrede koordinater
-samt klonede FP32-utganger mot beholdte originaler. Ingen gammel plan relanseres;
-ingen ny nativejobb eller trening er innrømmet av denne forberedelsen.
-Ny variant trenger fersk faktisk initialbaseline og særskilt kvalifisert kort
-læringssammenligning. Mekanikkpass er ikke bedre edge. Full trening vurderes senere.
+[Plan og grenser](docs/TA_NON_M5_INITIAL_PARITY_REVIEW.json).
+ROOT: /home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_INITIAL_PARITY_20261111_001.
+PLAN e828f7dd; PREFLIGHT dc719d25.211fokuserte CPU-tester bestod på70,19s,
+kilde uendret. Uavhengig kildereview fant ingen gjenværende konkret blokkering.
+Et feil tilleggskrav om historisk view-kilde ble fjernet før kjøring: denne kilden
+finnes ikke blant prefixets25eiere. Den opprinnelige normaliseringsporten er uendret.
+
+Kun én ny engangsplan er ADMITTED. Faktisk c171 INITIAL leses én gang; to modeller,
+originalt16B16 TRAIN-panel,32forwards,16klonede tensorer/1032parametre,0updates.
+Gammel modell må matche historiske12felt og16tap bitvis. Ny modell må bevare akser,
+targets, M5 og aktivitet bitvis; øvrige sider atol2e-6/rtol1e-6 og tapabs5e-6.
+Ingen optimizer/RNG-restaurering eller checkpoint-/kandidatlagring. Alle vakter består:
+12GiB/512MiB, CPU0–7/pids64,8tråder,250Wlimit/170Wdraw/65C/80C,900s/1200s.
+Begge tidligere cap-ruter er beholdt; ny route krever eksakt modul,sti,hash ogargumenter.
+
+Neste steg er å kjøre og konsumere denne planen én gang, også ved feil. Ingen gammel
+plan relanseres. Resultat foreligger ennå ikke. Dette kvalifiserer bare oppstarten;
+læringseffekt, senere generalisering og økonomisk edge er fortsatt ubevist.
+Først etter dette kan en kort kontrollert læringssammenligning kvalifiseres separat.
+Full historikk og30–40epoker vurderes senere; alle treningsflagg er fortsatt false.

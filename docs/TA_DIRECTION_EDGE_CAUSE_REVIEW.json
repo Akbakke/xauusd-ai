@@ -265,21 +265,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": {
-    "status": "PREPARE_EXACT_NATIVE_INITIAL_PARITY_NO_RUN_ADMITTED",
-    "method": "Prepare the smallest exact read-only native initial-parity qualification for the independent non-M5 side variant using the actual c171 INITIAL checkpoint and original16B16 TRAIN panel. Reuse the existing guarded observation/migration path, bind the new model/view/objective identities, keep original features/targets/losses, verify allunchanged coordinates and cloneFP32tolerance against retainedoriginal outputs. No old plan may relaunch; this preparation admits no native job or training. A separately sealed new read-only scope and freshactualinitialbaseline must precede any bounded learning comparison; fullhistory training remains later.",
-    "completed_predecessor": {
-      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_DECODER_CONDITIONING_REVIEW.json",
-      "sha256": "b05019003f93669db4266e8b038d438d5b85f8140bbeffa4120aa93f147429ba"
-    },
-    "implementation": {
-      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_SIDE_DECODER_REPAIR.json",
-      "sha256": "5bee4559edad5ea6d21523b5c6e7d1e98f8c17d3f470f17778e83e925cdeeaaa"
-    },
-    "training_authorized": false,
-    "native_run_authorized": false,
-    "test_data_used": false
-  },
+  "next_measurement": "Execute the separately sealed one-use read-only non-M5 initial-parity plan: actual c171 INITIAL checkpoint, current default versus cloned independent side heads, original16B16 TRAIN panel,32forwards and0updates. Require historical-default bit parity, unchanged M5/activity and fixedFP32 cloned-side tolerance. Consume even on failure; preserve originals. No training or old-plan relaunch; learning effect and edge remain unproved.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -1722,5 +1708,9 @@
   "non_m5_side_decoder_repair": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_SIDE_DECODER_REPAIR.json",
     "sha256": "5bee4559edad5ea6d21523b5c6e7d1e98f8c17d3f470f17778e83e925cdeeaaa"
+  },
+  "non_m5_initial_parity": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_INITIAL_PARITY_REVIEW.json",
+    "sha256": "e38a134e4ee32d01d15cedc234ff101a36f8db4f1e9130957a2000147954bb80"
   }
 }

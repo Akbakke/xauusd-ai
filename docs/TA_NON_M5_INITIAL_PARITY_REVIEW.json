@@ -1,0 +1,96 @@
+{
+  "schema_version": "gx1_ta_non_m5_initial_parity_review_v1",
+  "status": "ADMITTED_READ_ONLY_INITIAL_PARITY_NOT_YET_EXECUTED",
+  "observed_utc": "2026-11-11T22:40:20.437556+00:00",
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_INITIAL_PARITY_20261111_001/PLAN.json",
+    "sha256": "e828f7dda9c24c4d230c56059589f164d9b6d31caf920380e83fa2856005b0ef"
+  },
+  "preparation_review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_INITIAL_PARITY_20261111_001/PREPARATION_REVIEW.json",
+    "sha256": "c6c0785dc964f11493fe8ba9b0b9d4008e447818d522742433296a53ef1cbde1"
+  },
+  "preflight": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_INITIAL_PARITY_20261111_001/PREFLIGHT.json",
+    "sha256": "dc719d256acf87a7b6f49eff3b4a14131c453aba0ac1c865b797656be1c593f6"
+  },
+  "focused_test_count": 211,
+  "source_base_commit": "1989fab9eb6e17abfd422a9110b60927af36d78b",
+  "scope": {
+    "fit_rows": 29574,
+    "batch_size": 16,
+    "panel_batch_indices": [
+      0,
+      123,
+      246,
+      369,
+      492,
+      615,
+      738,
+      861,
+      985,
+      1108,
+      1231,
+      1354,
+      1477,
+      1600,
+      1723,
+      1847
+    ],
+    "sampled_rows": 512,
+    "unique_rows": 256,
+    "phases": [
+      "CURRENT_SHARED_INITIAL",
+      "NON_M5_SIDE_INITIAL"
+    ],
+    "max_model_constructions": 2,
+    "max_checkpoint_loads": 1,
+    "max_backbone_encodings": 32,
+    "max_optimizer_constructions": 0,
+    "max_optimizer_updates": 0,
+    "max_backwards": 0,
+    "max_autograd_grad_calls": 0,
+    "max_checkpoint_writes": 0,
+    "max_candidate_writes": 0,
+    "max_rng_restores": 0,
+    "max_cache_bytes": 2097152,
+    "max_published_json_bytes": 1048576,
+    "wall_seconds": 900,
+    "device": "cuda",
+    "initial_model_state_sha256": "c171736d2de79396dd86a79ad895f8bf2226e5ad8d996abf1dd7f52055e4a467",
+    "added_parameter_tensors": 16,
+    "added_parameters": 1032,
+    "cloned_side_atol": 2e-06,
+    "cloned_side_rtol": 1e-06,
+    "loss_atol": 5e-06,
+    "numerical_mode": "original_eval_no_grad_deterministic_fp32_mha_fastpath_false",
+    "numerical_threads": 8,
+    "interop_policy": "process_default_unchanged_like_short002",
+    "thread_environment": {
+      "OMP_NUM_THREADS": "8",
+      "MKL_NUM_THREADS": "8",
+      "OPENBLAS_NUM_THREADS": "8",
+      "NUMEXPR_NUM_THREADS": "8",
+      "VECLIB_MAXIMUM_THREADS": "8",
+      "BLIS_NUM_THREADS": "8"
+    },
+    "parameter_partition": "original_fold1_fit_active_true_inactive_false_new_sides_inherit_shared",
+    "training_enabled": false,
+    "test_data_used": false
+  },
+  "model_identity": {
+    "source_view_sha256": "c4fc78beada7b9d474705039f3035c7796856b7b08a4c3599027ddc566b77993",
+    "trial_view_sha256": "d189860771fc06f65489aedac9c97934a9c29b99fd9bb27edb062fe8bb32455d",
+    "source_model_contract_sha256": "b7066eba10673122ec94765be414134da11946052c1bf74b7901b0001c8a0300",
+    "trial_model_contract_sha256": "f5d7067a14574ec4d99155f0a2c1ada55356cbe5797a86a83874f8b69445e303",
+    "source_loss_contract_sha256": "38cf7894de7cbe7de405ed7db9a073113ecfeb8888114dbe5548e4d13356adc0",
+    "trial_loss_contract_sha256": "c611b6b700c3b7c946847b6ad29ce6cd16ec234bb7d80b68cc84289ff0f01709"
+  },
+  "native_initial_parity_measured": false,
+  "learning_effect_measured": false,
+  "edge_demonstrated": false,
+  "training_authorized": false,
+  "test_data_used": false,
+  "promotion_authorized": false,
+  "next_action": "Execute the separately sealed one-use read-only non-M5 initial-parity plan: actual c171 INITIAL checkpoint, current default versus cloned independent side heads, original16B16 TRAIN panel,32forwards and0updates. Require historical-default bit parity, unchanged M5/activity and fixedFP32 cloned-side tolerance. Consume even on failure; preserve originals. No training or old-plan relaunch; learning effect and edge remain unproved."
+}

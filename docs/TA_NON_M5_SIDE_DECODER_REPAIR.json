@@ -27,7 +27,7 @@
   "training_authorized": false,
   "promotion_authorized": false,
   "test_data_used": false,
-  "next_action": "Prepare the smallest exact read-only native initial-parity qualification for the independent non-M5 side variant using the actual c171 INITIAL checkpoint and original16B16 TRAIN panel. Reuse the existing guarded observation/migration path, bind the new model/view/objective identities, keep original features/targets/losses, verify allunchanged coordinates and cloneFP32tolerance against retainedoriginal outputs. No old plan may relaunch; this preparation admits no native job or training. A separately sealed new read-only scope and freshactualinitialbaseline must precede any bounded learning comparison; fullhistory training remains later.",
+  "next_action": "Execute the separately sealed one-use read-only non-M5 initial-parity plan: actual c171 INITIAL checkpoint, current default versus cloned independent side heads, original16B16 TRAIN panel,32forwards and0updates. Require historical-default bit parity, unchanged M5/activity and fixedFP32 cloned-side tolerance. Consume even on failure; preserve originals. No training or old-plan relaunch; learning effect and edge remain unproved.",
   "mechanical_review": {
     "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SIDE_MECHANICAL_20261111_001/MECHANICAL_REVIEW.json",
     "sha256": "2e4579f1fd66fd00609ae062430d50396dbec95f7e36313f4de9da0d23128ff1"
@@ -63,5 +63,9 @@
       "path": "/home/andre2/src/GX1_CURRENT/tests/test_market_state_time_query_non_m5_side_v1.py",
       "sha256": "cec467130b1dec4048ebebaeef938c9ba2ba305f8955fe23108e894bf6ec61ba"
     }
-  ]
+  ],
+  "non_m5_initial_parity": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_INITIAL_PARITY_REVIEW.json",
+    "sha256": "e38a134e4ee32d01d15cedc234ff101a36f8db4f1e9130957a2000147954bb80"
+  }
 }

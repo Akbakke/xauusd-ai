@@ -258,6 +258,7 @@ def _require_view(view, *, unobserved_units_profile=None):
     full = 'full_feature_profile' in view
     ta_only = 'full_ta_feature_profile' in view
     dedicated_m5_side = 'dedicated_m5_side' in view
+    dedicated_non_m5_side = 'dedicated_non_m5_side' in view
     dynamic_state = 'dynamic_state_supervision' in view
     five_endpoint = 'market_state_five_endpoint' in view
     current_state = 'current_state_first_loss_weight' in view
@@ -275,12 +276,14 @@ def _require_view(view, *, unobserved_units_profile=None):
     family = 'family_intervention' in view
     initialization = view.get('price_momentum_initialization', 'zero_residual')
     relative = 'gc_relative_coordinates_sha256' in view
-    _require(set(view) == VIEW_KEYS | ({'bps_scale'} if 'bps_scale' in view else set()) | ({'magnitude_weight_contract'} if 'magnitude_weight_contract' in view else set()) | ({'dense_minute_supervision'} if dense else set()) | ({'price_momentum_profile'} if price_momentum else set()) | ({'full_feature_profile'} if full else set()) | ({'full_ta_feature_profile'} if ta_only else set()) | ({'dedicated_m5_side'} if dedicated_m5_side else set()) | ({'five_minute_priority'} if five_priority else set()) | ({'dense_bps_scale'} if dense_bps else set()) | ({'m1_ofi_normalization'} if m1_ofi else set()) | ({'m1_ofi_coarsened'} if coarsened else set()) | ({'family_intervention'} if family else set()) | ({'price_momentum_initialization'} if initialization != 'zero_residual' else set()) | ({'gc_relative_coordinates_sha256'} if relative else set()) | ({'dynamic_state_supervision'} if dynamic_state else set()) | ({'market_state_five_endpoint'} if five_endpoint else set()) | ({'market_state_time_query'} if 'market_state_time_query' in view else set()) | ({'market_state_time_query_v2'} if time_query_v2 else set()) | ({'current_state_first_loss_weight'} if current_state else set()) | ({'confirmed_run_age_input'} if confirmed_age else set()) | ({'extended_forecast_minutes'} if extended_state else set()) | ({'first_flat_activity_weight'} if first_activity else set())
+    _require(set(view) == VIEW_KEYS | ({'bps_scale'} if 'bps_scale' in view else set()) | ({'magnitude_weight_contract'} if 'magnitude_weight_contract' in view else set()) | ({'dense_minute_supervision'} if dense else set()) | ({'price_momentum_profile'} if price_momentum else set()) | ({'full_feature_profile'} if full else set()) | ({'full_ta_feature_profile'} if ta_only else set()) | ({'dedicated_m5_side'} if dedicated_m5_side else set()) | ({'dedicated_non_m5_side'} if dedicated_non_m5_side else set()) | ({'five_minute_priority'} if five_priority else set()) | ({'dense_bps_scale'} if dense_bps else set()) | ({'m1_ofi_normalization'} if m1_ofi else set()) | ({'m1_ofi_coarsened'} if coarsened else set()) | ({'family_intervention'} if family else set()) | ({'price_momentum_initialization'} if initialization != 'zero_residual' else set()) | ({'gc_relative_coordinates_sha256'} if relative else set()) | ({'dynamic_state_supervision'} if dynamic_state else set()) | ({'market_state_five_endpoint'} if five_endpoint else set()) | ({'market_state_time_query'} if 'market_state_time_query' in view else set()) | ({'market_state_time_query_v2'} if time_query_v2 else set()) | ({'current_state_first_loss_weight'} if current_state else set()) | ({'confirmed_run_age_input'} if confirmed_age else set()) | ({'extended_forecast_minutes'} if extended_state else set()) | ({'first_flat_activity_weight'} if first_activity else set())
         | ({'native_endpoint_loss'} if endpoint else set()) | ({'zero_support_profile', 'reserved_observer_axes'} if masked_profile else set())
         | ({'unobserved_units_profile'} if units_profile else set()) | ({'october_observer_axes'} if scoped_october else set())
         and not (masked_profile and units_profile)
         and (not ta_only or (view['full_ta_feature_profile'] is True and full and time_query_v2))
         and (not dedicated_m5_side or (view['dedicated_m5_side'] is True and ta_only and time_query_v2))
+        and (not dedicated_non_m5_side or (view['dedicated_non_m5_side'] is True
+            and dedicated_m5_side and ta_only and time_query_v2))
         and not (time_query_v2 and 'market_state_time_query' in view)
         and (not scoped_october or (units_profile and not masked_profile))
         and (not units_profile or (full and ((dynamic_state and endpoint) or five_endpoint or time_query)))
@@ -318,7 +321,8 @@ def _require_view(view, *, unobserved_units_profile=None):
         and (not family or (dense and price_momentum and not five_priority and not dense_bps and not m1_ofi))
         and (not m1_ofi or dense) and (not coarsened or (m1_ofi and view['m1_ofi_coarsened'] is True)), 'VIEW_KEYS')
     if time_query_v2:
-        objective = factorized_time_query_model_contract(ta_only=ta_only, dedicated_m5_side=dedicated_m5_side)
+        objective = factorized_time_query_model_contract(ta_only=ta_only, dedicated_m5_side=dedicated_m5_side,
+            dedicated_non_m5_side=dedicated_non_m5_side)
     elif time_query:
         objective = time_query_model_contract()
     elif five_endpoint:
@@ -469,7 +473,7 @@ def family_reference_view(view):
 
 
 def bind_native_direction_feature_view(*, prefix_normalization, prefix_normalization_ref,
-    constructor_metadata, constructor_metadata_ref, source_bindings, max_batch_rows, expected=None, bps_scale=None, magnitude_weight_contract=None, dense_minutes=False, price_momentum=False, m1_ofi_normalization=None, m1_ofi_coarsened=False, five_minute_priority=False, dense_bps_scale=None, family_intervention=None, price_momentum_initialization='zero_residual', full_feature_profile=False, dynamic_state_supervision=False, market_state_five_endpoint=False, current_state_first_loss_weight=None, extended_forecast_minutes=None, first_flat_activity_weight=None, native_endpoint_loss=False, confirmed_run_age_input=False, zero_support_profile=None, unobserved_units_profile=None, october_observer_axes=None, market_state_time_query=False, market_state_time_query_v2=False, full_ta_feature_profile=False, dedicated_m5_side=False):
+    constructor_metadata, constructor_metadata_ref, source_bindings, max_batch_rows, expected=None, bps_scale=None, magnitude_weight_contract=None, dense_minutes=False, price_momentum=False, m1_ofi_normalization=None, m1_ofi_coarsened=False, five_minute_priority=False, dense_bps_scale=None, family_intervention=None, price_momentum_initialization='zero_residual', full_feature_profile=False, dynamic_state_supervision=False, market_state_five_endpoint=False, current_state_first_loss_weight=None, extended_forecast_minutes=None, first_flat_activity_weight=None, native_endpoint_loss=False, confirmed_run_age_input=False, zero_support_profile=None, unobserved_units_profile=None, october_observer_axes=None, market_state_time_query=False, market_state_time_query_v2=False, full_ta_feature_profile=False, dedicated_m5_side=False, dedicated_non_m5_side=False):
     """Bind verified metadata; ``expected`` requires exact reconstruction of a view.
 
     Plainrefs identify caller-verified files. Content seals bind their decoded
@@ -481,6 +485,9 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
     _require(type(dedicated_m5_side) is bool and (not dedicated_m5_side
              or (full_ta_feature_profile is True and market_state_time_query_v2 is True)),
              'DEDICATED_M5_SIDE_SCOPE')
+    _require(type(dedicated_non_m5_side) is bool and (not dedicated_non_m5_side
+             or (dedicated_m5_side is True and full_ta_feature_profile is True
+                 and market_state_time_query_v2 is True)), 'DEDICATED_NON_M5_SIDE_SCOPE')
     _require(type(full_ta_feature_profile) is bool
              and (not full_ta_feature_profile or (full_feature_profile is True
                   and market_state_time_query_v2 is True)), 'TA_PROFILE_SCOPE')
@@ -663,7 +670,8 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
         _require(reference['contract_sha256'] == intervention['contract_sha256'], 'FAMILY_NORMALIZATION_PROFILE_BINDING')
     _require(type(max_batch_rows) is int and max_batch_rows > 0, 'MAX_BATCH_ROWS')
     if market_state_time_query_v2:
-        objective = factorized_time_query_model_contract(ta_only=full_ta_feature_profile, dedicated_m5_side=dedicated_m5_side)
+        objective = factorized_time_query_model_contract(ta_only=full_ta_feature_profile, dedicated_m5_side=dedicated_m5_side,
+            dedicated_non_m5_side=dedicated_non_m5_side)
     elif market_state_time_query:
         objective = time_query_model_contract()
     elif market_state_five_endpoint:
@@ -728,6 +736,8 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
         value['market_state_time_query_v2'] = True
     if dedicated_m5_side:
         value['dedicated_m5_side'] = True
+    if dedicated_non_m5_side:
+        value['dedicated_non_m5_side'] = True
     if current_state_first_loss_weight is not None:
         value['current_state_first_loss_weight'] = current_state_first_loss_weight
     if confirmed_run_age_input:
@@ -913,6 +923,7 @@ def build_native_direction_research_model(
         full_feature_profile=view.get('full_feature_profile', False),
         full_ta_feature_profile=view.get('full_ta_feature_profile', False),
         dedicated_m5_side=view.get('dedicated_m5_side', False),
+        dedicated_non_m5_side=view.get('dedicated_non_m5_side', False),
         dynamic_state_supervision=view.get('dynamic_state_supervision', False),
         market_state_five_endpoint=view.get('market_state_five_endpoint', False),
         market_state_time_query=view.get('market_state_time_query', False),
@@ -953,7 +964,8 @@ def build_native_direction_research_model(
     backbone.require_input_normalization_state()
     if view.get('market_state_time_query_v2', False):
         wrapper = FactorizedTimeQueryMarketStateModel(
-            backbone, dedicated_m5_side=view.get('dedicated_m5_side', False))
+            backbone, dedicated_m5_side=view.get('dedicated_m5_side', False),
+            dedicated_non_m5_side=view.get('dedicated_non_m5_side', False))
     elif view.get('market_state_time_query', False):
         wrapper = TimeQueryMarketStateModel(backbone)
     elif view.get('market_state_five_endpoint', False):
