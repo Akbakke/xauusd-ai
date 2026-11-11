@@ -6,13 +6,15 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_C171_SHORT_LEARNING_IMPLEMENTED_TRAINING_CLOSED.
+TA_DIRECTION_EDGE_CAUSE_C171_SHORT_LEARNING_ADMITTED_BOOT_PENDING.
 Målet fra 11.11 er aktivt: isoler målte årsaker til svak retningslæring i
 indikatorer, sammensetting og læring. [Årsaksstatus](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json).
 Korte runder er feilsøking, ikke kapasitetsdom. Full kvalifisert TRAIN-historikk
 og 30–40 epoker er senere skalering, ikke et krav ved hver rettelse.
-Alle trenings-/launchporter er false. Ingen jobb lever. Seks diagnostiske
-planer er COMPLETE og konsumert. Ingen ny kjøring eller trening er innrømmet.
+Seks diagnostiske planer er COMPLETE og konsumert. Én eksakt kort native
+læringskontroll er innrømmet nedenfor; kampanje og trygg fysisk omstart gjenstår.
+Training/native_training er true bare for denne engangsruten; bred native launch
+og full_epoch er false. Ingen modelljobb har startet.
 GC er på pause; TEST, Entry/Exit, broker, handel og promotion er stengt.
 Alle genuine indikatorer og M5/M15/H1/H4/D1-input beholdes.
 
@@ -114,5 +116,10 @@ Native kampanje, kilde-/inputbinding, fysisk Windows-boot og alle eksisterende
 vakter beholdes. Faktisk kilde-/input-/visningskontroll, oppstartsimport, syntaks og187
 fokuserte tester bestod. Suksess/feilrapportering er kontrollert syntetisk;
 uavhengig kildekontroll fant ingen gjenværende kritiske integrasjonsfunn.
-Denne planen er ennå ikke innrømmet eller claimet. Ingen bred trening, ny
-lossvekt, arkitekturendring, senere-datavalg eller automatisk fortsettelse.
+RECIPE 69cce2bb, kvalifisert mekanisk kilde af4727d1. Én ny policyadmisjon
+åpner bare denne kjøringen; ingen CLAIM eller modelljobb ennå. Eksisterende
+native-profil er20GiB host/512MiB swap, GPU-tak12288MiB og250W konfigurert
+med170W faktisk-draw-vakt. Forberedt fysisk Windows-boot638 må erstattes.
+Ingen bred trening, ny lossvekt, arkitekturendring, senere-datavalg eller
+automatisk fortsettelse. Neste: materialiser, bekreft maskinvid idle, omstart
+og én bevoktet kjøring; les terminal/begge målinger og lukk porter etterpå.
