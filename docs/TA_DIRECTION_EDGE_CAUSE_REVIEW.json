@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_FULL_USED_PREFIX_READ_ONLY_ADMITTED",
+  "status": "ACTIVE_FULL_PREFIX_MEASURED_TEMPORAL_AND_TASK_TRADEOFFS",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -168,18 +168,49 @@
       "evidence": {
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_JOINT_BOUNDARIES_20261111_001/PAIRED_BOUNDARY_EFFECT_REVIEW.json",
         "sha256": "587650d3d5ca439a31c20655678caa723fe37bcd6290be332f579323975477f2"
-      }
+      },
+      "scope_update": "Complete4096used-prefix endpoints now show slight M5gains. The fixed-decoder panel effect is not a general fullprefix learning verdict."
+    },
+    {
+      "id": "complete_used_prefix_endpoints_and_m5_gain",
+      "evidence_class": "PASSIVE_FIXED_ENDPOINT_TRAIN_MEASUREMENT",
+      "finding": "All4096actually updated TRAINrows measured before/after without training. S/M5AUC0.546185→0.551466 andF/M5AUC0.546125→0.553079; both Brier/log slightlybetter. All512TRACEfixed-field comparisons and6savedpanelcontrols are byteexact. Independent954float/206exactfield audit agrees. AUC is ranking, not percentcorrect.",
+      "evidence": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_FULL_USED_PREFIX_REVIEW.json",
+        "sha256": "b0b61e693864da4e6757ef0d126e076032bbb3026024535c6fbbabc6ed290c02"
+      },
+      "quality_claim": "Small dependent TRAIN fit gain only; no new economic edge."
+    },
+    {
+      "id": "complete_prefix_original_loss_tradeoff",
+      "evidence_class": "RETAINED_ORIGINAL_LOSS_ACCOUNTING",
+      "finding": "Original total1.878003→1.892871 despite M5side gains. Activity andside contribute+0.007576757/+0.007291342 to objectivechange. F/M15/H1side andS/D1activity worsen whileF/D1/H4side improve. Retained arithmetic matches original perbatchcomponents within4.23e-7; no unique gradientcause established.",
+      "evidence": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001/FULL_USED_PREFIX_LOSS_ACCOUNTING.json",
+        "sha256": "68ccd418635482209e0b27aaea7f8408c41d8ef4d6b3554f6067bc38bbc19ab9"
+      },
+      "quality_claim": "Measured task/timeframe tradeoffs; no blanket feature removal or loss-weight change justified."
+    },
+    {
+      "id": "complete_prefix_chronological_exposure_pattern",
+      "evidence_class": "FIXED_CHRONOLOGICAL_QUARTER_ACCOUNTING",
+      "finding": "Fourfixed1024rowquarters have originaltotal final-minus-initial +0.045023,+0.077455,-0.006415,-0.056590. Early halfworsens, latehalfimproves; comparison to actual changing pre-updateTRACE remainsnext.",
+      "evidence": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001/FULL_USED_PREFIX_LOSS_ACCOUNTING.json",
+        "sha256": "68ccd418635482209e0b27aaea7f8408c41d8ef4d6b3554f6067bc38bbc19ab9"
+      },
+      "quality_claim": "Consistent withrecency; not uniquely proved forgetting or regime causality."
     }
   ],
   "next_measurement": {
-    "status": "ADMITTED_NOT_EXECUTED",
-    "question": "Do the actual256updates improve the complete4096used TRAINprefix at its original objective and M5conditional direction?",
-    "review": {
+    "status": "RETAINED_TRACE_EXPOSURE_COMPARISON_NO_NEW_RUN_ADMITTED",
+    "question": "How does the actual chronological update path relate to gains in late rows and degradation in early rows and selected auxiliary horizons?",
+    "method": "Use only the retained short002 TRACE and the now-complete initial/final4096used-prefix endpoints to distinguish chronological recency from cross-timeframe objective tradeoffs. First qualify train/eval comparison at the same initial state; TRACE logits/losses are changing pre-update observations, never a fixed baseline. Compare original batch losses and task/timeframe direction/activity by ordered exposure without selecting weights or subsets. No new model evaluation, optimizer, gradients, training or relaunch is admitted.",
+    "completed_predecessor": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_FULL_USED_PREFIX_REVIEW.json",
-      "sha256": "90d2567dd96f3abfc722ea4cf8ef8b51f0ecc2e7d4185c71a461737dcbf89f91"
+      "sha256": "b0b61e693864da4e6757ef0d126e076032bbb3026024535c6fbbabc6ed290c02"
     },
-    "stage": "market_state_ta_c171_full_used_prefix_20261111_001",
-    "action": "Execute exactly the admitted full-used-prefix001 read-only initial/final evaluation of4096original short002 TRAINrows (512forwards total). Preserve original queries/losses and TRACEfixed axes, six saved-panel parity controls, existing900sworker/1200sguard. No optimizer/autograd/newtraining. Close the consumed scope and compare complete-prefix fitting before selecting any model change.",
+    "model_change_authorized": false,
     "training_authorized": false,
     "test_data_used": false
   },
@@ -191,7 +222,7 @@
     "Untouched generalization and trading economics",
     "Equality to unrecorded historical128D initial head inputs",
     "Unique historical cause, full finite-change contribution, or generally harmful H4/D1-to-M5 transfer",
-    "Full4096used-prefixbefore/afterfit; historical intermediate-vector identity; family-specificpredictiveutility"
+    "historical intermediate-vector identity; family-specificpredictiveutility"
   ],
   "test_data_used": false,
   "training_authorized": false,
@@ -1608,6 +1639,6 @@
   },
   "full_used_prefix_evaluation": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_FULL_USED_PREFIX_REVIEW.json",
-    "sha256": "90d2567dd96f3abfc722ea4cf8ef8b51f0ecc2e7d4185c71a461737dcbf89f91"
+    "sha256": "b0b61e693864da4e6757ef0d126e076032bbb3026024535c6fbbabc6ed290c02"
   }
 }

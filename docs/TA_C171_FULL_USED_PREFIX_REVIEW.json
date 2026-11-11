@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_c171_full_used_prefix_review_v1",
-  "status": "ADMITTED_NOT_EXECUTED",
+  "status": "COMPLETE_CONSUMED_FULL_USED_PREFIX_MEASURED",
   "question": "Did the actual short002 update improve its complete4096used TRAINprefix at the original objective and M5conditional direction, or only the sampled cross-prefix panel?",
   "reason": "Only48of256existing endpoint-panel rows are in the4096updated prefix. Conditional paired-source rank degradation is not a complete own-prefix fit measurement.",
   "source_base_commit": "bdef9735f85fd6a3f209c4fb67f870997c5b3c52",
@@ -394,9 +394,304 @@
     "Dependent TRAIN fit only, not heldout generalization, full-training capacity, economic edge or promotion.",
     "No architecture, feature, loss-weight or training change is selected by admission."
   ],
-  "execution_authorized": true,
-  "remaining_invocations": 1,
+  "execution_authorized": false,
+  "remaining_invocations": 0,
   "relaunch_allowed": false,
   "training_authorized": false,
-  "test_data_used": false
+  "test_data_used": false,
+  "source_commit": "480addcaa0f267f3023385f753dc61e3a2055655",
+  "source_unchanged_at_terminal": true,
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001/RESULT.json",
+    "sha256": "23afd4e6807661854b938634275994a433448a0df0fc3e7131dcd517061dcfe2"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001/TERMINAL.json",
+    "sha256": "ccf476bf5d0c65fc3f9bf19bcde87b8dc89fa7492bdf276df2549fdf05a45204"
+  },
+  "controller_terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001/CONTROLLER_TERMINAL.json",
+    "sha256": "b3172bbf21d1967e85740eb32e6e8f4cf3df0334876c3ecaa65153672782d494"
+  },
+  "worker_elapsed_seconds": 647.4823902700009,
+  "controller_elapsed_seconds": 650.4334932290003,
+  "counts": {
+    "archive_decodes": 4,
+    "autograd_grad_calls": 0,
+    "backbone_encodings": 512,
+    "backwards": 0,
+    "candidate_writes": 0,
+    "checkpoint_loads": 2,
+    "checkpoint_weight_transitions": 1,
+    "checkpoint_writes": 0,
+    "extra_target_gathers": 1024,
+    "forward_returns": 512,
+    "head_tensor_imports": 4,
+    "loss_component_owner_calls": 512,
+    "matched_batches": 6,
+    "model_constructions": 1,
+    "optimizer_constructions": 0,
+    "optimizer_updates": 0,
+    "published_npz_bytes": 1699064,
+    "resume_state_load_calls": 2,
+    "resume_state_load_returns": 2,
+    "sampled_rows": 8192,
+    "trace_matched_batches": 512
+  },
+  "passivity": {
+    "FINAL_TRAIN_all_used_rows_match_trace_fixed_fields": true,
+    "FINAL_TRAIN_complete_signature_unchanged": true,
+    "FINAL_TRAIN_control_arrays_and_losses_bitexact": true,
+    "INITIAL_TRAIN_all_used_rows_match_trace_fixed_fields": true,
+    "INITIAL_TRAIN_complete_signature_unchanged": true,
+    "INITIAL_TRAIN_control_arrays_and_losses_bitexact": true,
+    "explicit_transition_preserved_nonnumerical_state": true,
+    "no_parameter_gradients": true
+  },
+  "phase_states": {
+    "FINAL_TRAIN": {
+      "buffers": "c46c39ecda970ff41b661dd3a1414f0eba459b5fb96c55f009bb5e70def13a8a",
+      "model": "5f54bbe47df0f84c60e475d0e9fcf83ad70b8c569d6ebea6ac802aebda655c82"
+    },
+    "INITIAL_TRAIN": {
+      "buffers": "c46c39ecda970ff41b661dd3a1414f0eba459b5fb96c55f009bb5e70def13a8a",
+      "model": "c171736d2de79396dd86a79ad895f8bf2226e5ad8d996abf1dd7f52055e4a467"
+    }
+  },
+  "numeric_runtime": {
+    "interop_threads": 10,
+    "intra_threads": 8,
+    "thread_environment": {
+      "BLIS_NUM_THREADS": "8",
+      "MKL_NUM_THREADS": "8",
+      "NUMEXPR_NUM_THREADS": "8",
+      "OMP_NUM_THREADS": "8",
+      "OPENBLAS_NUM_THREADS": "8",
+      "VECLIB_MAXIMUM_THREADS": "8"
+    }
+  },
+  "artifact_result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001/TRAIN_FUSION.npz",
+    "sha256": "9fbfbc662a4a3e730afcdc0ecf29df6d5ae455380b9958637708743bc899e5fe"
+  },
+  "retained_before_after_review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001/FULL_USED_PREFIX_EFFECT_REVIEW.json",
+    "sha256": "a2c88641aecb96357d1c58664d9b76ba023faccafff815c677fcac111c885e3f"
+  },
+  "independent_arithmetic_review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001/INDEPENDENT_FULL_USED_PREFIX_REVIEW.json",
+    "sha256": "473e69672148048e8bd8cf1f8547706d61da596f7dd3bdb9147f368815739080"
+  },
+  "loss_accounting": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001/FULL_USED_PREFIX_LOSS_ACCOUNTING.json",
+    "sha256": "68ccd418635482209e0b27aaea7f8408c41d8ef4d6b3554f6067bc38bbc19ab9"
+  },
+  "next_action": "Use only the retained short002 TRACE and the now-complete initial/final4096used-prefix endpoints to distinguish chronological recency from cross-timeframe objective tradeoffs. First qualify train/eval comparison at the same initial state; TRACE logits/losses are changing pre-update observations, never a fixed baseline. Compare original batch losses and task/timeframe direction/activity by ordered exposure without selecting weights or subsets. No new model evaluation, optimizer, gradients, training or relaunch is admitted.",
+  "aggregate_summary": {
+    "original_total_loss": {
+      "initial": 1.8780025839805603,
+      "final": 1.8928706916049123,
+      "final_minus_initial": 0.014868107624351978
+    },
+    "M5_full_used_prefix": {
+      "state": {
+        "rows": 4096,
+        "initial": {
+          "count": 1378,
+          "up_count": 719,
+          "up_fraction": 0.5217706821480407,
+          "mean_p": 0.5161939128167091,
+          "brier": 0.24799851168699283,
+          "log": 0.6891366964496172,
+          "auc": 0.5461851627513343
+        },
+        "final": {
+          "count": 1378,
+          "up_count": 719,
+          "up_fraction": 0.5217706821480407,
+          "mean_p": 0.5401743469558268,
+          "brier": 0.24792445454509277,
+          "log": 0.6889863544105531,
+          "auc": 0.5514656378674647
+        },
+        "final_minus_initial": {
+          "mean_p": 0.023980434139117657,
+          "brier": -7.405714190006352e-05,
+          "log": -0.0001503420390640553,
+          "auc": 0.00528047511613039
+        },
+        "mean_raw_delta": 0.09576938728355344,
+        "mean_probability_change_square": 0.0007527646544477143,
+        "common_mean_fraction_of_probability_change_energy": 0.7639322836198656,
+        "issue_first_utc": "2024-05-01T00:05:00.000000000",
+        "issue_last_utc": "2024-05-21T20:35:00.000000000"
+      },
+      "future": {
+        "rows": 4096,
+        "initial": {
+          "count": 1644,
+          "up_count": 845,
+          "up_fraction": 0.5139902676399026,
+          "mean_p": 0.5086802205239992,
+          "brier": 0.24878818914589323,
+          "log": 0.6907220094505501,
+          "auc": 0.5461249638971791
+        },
+        "final": {
+          "count": 1644,
+          "up_count": 845,
+          "up_fraction": 0.5139902676399026,
+          "mean_p": 0.5287548724446033,
+          "brier": 0.2481934226940675,
+          "log": 0.6895224164221014,
+          "auc": 0.5530789226177693
+        },
+        "final_minus_initial": {
+          "mean_p": 0.020074651920604092,
+          "brier": -0.0005947664518257401,
+          "log": -0.0011995930284486311,
+          "auc": 0.006953958720590125
+        },
+        "mean_raw_delta": 0.08206758946039372,
+        "mean_probability_change_square": 0.0006801008811867923,
+        "common_mean_fraction_of_probability_change_energy": 0.5925468719143285,
+        "issue_first_utc": "2024-05-01T00:05:00.000000000",
+        "issue_last_utc": "2024-05-21T20:35:00.000000000"
+      }
+    },
+    "independent_check": {
+      "floating_fields_compared": 954,
+      "exact_fields_compared": 206,
+      "maximum_absolute_difference": 4.547473508864641e-13,
+      "scope": "All numeric fields in both complete published measurements, all original loss/component means, all M5 whole-prefix and four-quarter scores/changes. Runtime elapsed_seconds is provenance, not a reproducible calculation."
+    },
+    "loss_accounting": {
+      "total": {
+        "actual_original": 0.014868107624351978,
+        "activity_contribution": 0.007576757127572853,
+        "side_contribution": 0.007291342332950946,
+        "replay_roundoff_residual": 8.163828179447163e-09
+      },
+      "by_task_timeframe_before_divisor": {
+        "state": {
+          "M5": {
+            "activity": -0.002249446047637771,
+            "side": -0.0001454409740121454,
+            "sum": -0.0023948870216500273
+          },
+          "M15": {
+            "activity": -0.0015187904901399207,
+            "side": -0.01448424405379245,
+            "sum": -0.01600303454393237
+          },
+          "H1": {
+            "activity": 0.001546738963250971,
+            "side": -0.010753095224712739,
+            "sum": -0.009206356261461712
+          },
+          "H4": {
+            "activity": 0.0031270507815366333,
+            "side": -0.00519641661919118,
+            "sum": -0.002069365837654602
+          },
+          "D1": {
+            "activity": 0.048875128047665306,
+            "side": 0.005908291413407152,
+            "sum": 0.05478341946107246
+          }
+        },
+        "future": {
+          "M5": {
+            "activity": 0.007460164313880524,
+            "side": -0.0011928378258733163,
+            "sum": 0.006267326488007097
+          },
+          "M15": {
+            "activity": 0.006019558746987341,
+            "side": 0.08894202510794469,
+            "sum": 0.09496158385493203
+          },
+          "H1": {
+            "activity": -0.007825382466950859,
+            "side": 0.06769164277653195,
+            "sum": 0.0598662603095812
+          },
+          "H4": {
+            "activity": -0.004465165647316471,
+            "side": -0.021686667499327072,
+            "sum": -0.02615183314664371
+          },
+          "D1": {
+            "activity": -0.01308607056341149,
+            "side": -0.07262654543622016,
+            "sum": -0.08571261599963165
+          }
+        }
+      },
+      "maximum_per_batch_component_replay_error": 4.228837857667145e-07,
+      "maximum_phase_mean_total_replay_error": 5.6923051827695303e-08
+    },
+    "fixed_chronological_quarter_original_losses": {
+      "CHRONOLOGICAL_Q1": {
+        "rows": 1024,
+        "batches": 64,
+        "initial_mean_original_loss": 1.866824697703123,
+        "final_mean_original_loss": 1.911847384646535,
+        "final_minus_initial": 0.04502268694341183,
+        "improved_batches": 29
+      },
+      "CHRONOLOGICAL_Q2": {
+        "rows": 1024,
+        "batches": 64,
+        "initial_mean_original_loss": 2.0015459805727005,
+        "final_mean_original_loss": 2.079000847414136,
+        "final_minus_initial": 0.07745486684143543,
+        "improved_batches": 23
+      },
+      "CHRONOLOGICAL_Q3": {
+        "rows": 1024,
+        "batches": 64,
+        "initial_mean_original_loss": 1.8047524355351925,
+        "final_mean_original_loss": 1.7983376793563366,
+        "final_minus_initial": -0.006414756178855896,
+        "improved_batches": 31
+      },
+      "CHRONOLOGICAL_Q4": {
+        "rows": 1024,
+        "batches": 64,
+        "initial_mean_original_loss": 1.8388872221112251,
+        "final_mean_original_loss": 1.7822968550026417,
+        "final_minus_initial": -0.05659036710858345,
+        "improved_batches": 42
+      }
+    }
+  },
+  "interpretation": [
+    "Both M5conditional Brier/log and AUC improve slightly on all4096used TRAINrows. The three old in-prefix controls alone were insufficient to conclude generally negative own-prefix learning.",
+    "The complete original objective worsens by0.0148681076. Retained accounting assigns+0.0075767571 to activity and+0.0072913423 to side, with8.16e-9 residual; these are objective components, not causal parameter-update shares.",
+    "Future M15/H1 side losses and state D1 activity worsen while future D1/H4 side improves. This measures a task/timeframe tradeoff, not proof that D1generallyharmsM5 or that weights should be changed.",
+    "First two chronological quarters worsen in the original total loss; last two improve. This is consistent with a recency effect but does not uniquely establish forgetting, a regime cause or training-mode equivalence.",
+    "Fixed-tail source degradation on the earlier256row panel remains a conditional observation; it is not general information loss or fullprefix capacity failure.",
+    "No numerical model/feature/objective change, new edge, heldout generalization or trading economics has been demonstrated."
+  ],
+  "retained_arithmetic_failures": [
+    {
+      "stage": "before GX1 imports or artifact decodes",
+      "error": "ModuleNotFoundError: No module named gx1",
+      "log": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001/REVIEW_FULL_USED_PREFIX_IMPORT_FAILURE.log",
+        "sha256": "7f053bbc28c6a8bdcdc01850e88f623b47ba9b2f4a1e0aaa21e9df5d6b249eb1"
+      },
+      "correction": "Set the one canonical repo import path for this external retained-arithmetic script; no native worker or model rerun."
+    },
+    {
+      "stage": "after two retained NPZ decodes, before scoring",
+      "error": "KeyError: endpoint_priors",
+      "log": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001/REVIEW_FULL_USED_PREFIX_PRIOR_LOOKUP_FAILURE.log",
+        "sha256": "dcc24a53cb24f6731178cf1696804333f1a824cff9101494bd54049a08236568"
+      },
+      "correction": "Read the original bound reverse-recipe endpoint_priors and require its contract equals both historical short measurements; no native rerun."
+    }
+  ]
 }

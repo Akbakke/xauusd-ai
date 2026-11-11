@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-11T20:11:05.975900+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_FULL_USED_PREFIX_READ_ONLY_ADMITTED",
+  "observed_utc": "2026-11-11T20:36:11.342324+00:00",
+  "status": "TA_DIRECTION_EDGE_CAUSE_FULL_PREFIX_M5_GAIN_TEMPORAL_AND_TASK_TRADEOFFS_MEASURED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Execute exactly the admitted full-used-prefix001 read-only initial/final evaluation of4096original short002 TRAINrows (512forwards total). Preserve original queries/losses and TRACEfixed axes, six saved-panel parity controls, existing900sworker/1200sguard. No optimizer/autograd/newtraining. Close the consumed scope and compare complete-prefix fitting before selecting any model change.",
+  "next_action": "Use only the retained short002 TRACE and the now-complete initial/final4096used-prefix endpoints to distinguish chronological recency from cross-timeframe objective tradeoffs. First qualify train/eval comparison at the same initial state; TRACE logits/losses are changing pre-update observations, never a fixed baseline. Compare original batch losses and task/timeframe direction/activity by ordered exposure without selecting weights or subsets. No new model evaluation, optimizer, gradients, training or relaunch is admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1698,7 +1698,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "One bounded read-only full-used-prefix endpoint evaluation prepared; native training remains disabled.",
+    "current_activity": "Complete used-prefix before/after and original loss composition measured; all model scopes consumed.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1727,11 +1727,11 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "Paired initial/final joint-boundary observation COMPLETE; original outputs/losses andinitialheadinputs bitexact; within-phase modelstatepassive.",
-    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_JOINT_BOUNDARIES_20261111_001",
+    "latest_terminal_role": "TA_C171_FULL_USED_PREFIX_READ_ONLY",
+    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_JOINT_BOUNDARIES_20261111_001/TERMINAL.json",
-      "sha256": "a621aac09208c996b2cd4113fe9ee3b8ee108c34a5faf8f3b6b3a5c34c8f8007"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001/TERMINAL.json",
+      "sha256": "ccf476bf5d0c65fc3f9bf19bcde87b8dc89fa7492bdf276df2549fdf05a45204"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -9222,7 +9222,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute exactly the admitted full-used-prefix001 read-only initial/final evaluation of4096original short002 TRAINrows (512forwards total). Preserve original queries/losses and TRACEfixed axes, six saved-panel parity controls, existing900sworker/1200sguard. No optimizer/autograd/newtraining. Close the consumed scope and compare complete-prefix fitting before selecting any model change.",
+    "next_action": "Use only the retained short002 TRACE and the now-complete initial/final4096used-prefix endpoints to distinguish chronological recency from cross-timeframe objective tradeoffs. First qualify train/eval comparison at the same initial state; TRACE logits/losses are changing pre-update observations, never a fixed baseline. Compare original batch losses and task/timeframe direction/activity by ordered exposure without selecting weights or subsets. No new model evaluation, optimizer, gradients, training or relaunch is admitted.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22137,7 +22137,7 @@
     },
     "direction_edge_cause_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "2421c6eaac380736429fb39254bffe39c16336f1b058373088dfe67892ad613b"
+      "sha256": "7219609215706fe946e79066ae0b90e1175f7469a2dc94cad27bade9ecfdb86a"
     },
     "latest_c171_startup_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_C171_SHORT_LEARNING_STARTUP_REVIEW.json",
@@ -22187,7 +22187,7 @@
     },
     "latest_c171_full_used_prefix_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_FULL_USED_PREFIX_REVIEW.json",
-      "sha256": "90d2567dd96f3abfc722ea4cf8ef8b51f0ecc2e7d4185c71a461737dcbf89f91"
+      "sha256": "b0b61e693864da4e6757ef0d126e076032bbb3026024535c6fbbabc6ed290c02"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -25395,25 +25395,26 @@
   "latest_terminal_receipt": {
     "schema_version": "gx1_verified_terminal_metadata_envelope_v1",
     "status": "COMPLETE",
-    "role": "TA_C171_PAIRED_JOINT_BOUNDARY_READ_ONLY",
-    "observed_utc": "2026-11-11T19:42:00.201622+00:00",
+    "role": "TA_C171_FULL_USED_PREFIX_READ_ONLY",
+    "observed_utc": "2026-11-11T20:23:23.171203+00:00",
     "actual_root_review": {
-      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_PAIRED_JOINT_BOUNDARY_REVIEW.json",
-      "sha256": "33529336fa1a09e0561d8777d273bfb8e7cc0c8720dc7bdee11e8f7533c84139"
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_FULL_USED_PREFIX_REVIEW.json",
+      "sha256": "b0b61e693864da4e6757ef0d126e076032bbb3026024535c6fbbabc6ed290c02"
     },
     "worker_result": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_JOINT_BOUNDARIES_20261111_001/RESULT.json",
-      "sha256": "0cf0a2dc3ae5ce4475568f591f8369c00bb30a82cfd47696002f2380ccd6fc99"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001/RESULT.json",
+      "sha256": "23afd4e6807661854b938634275994a433448a0df0fc3e7131dcd517061dcfe2"
     },
     "exit_code_source": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_JOINT_BOUNDARIES_20261111_001/CONTROLLER_TERMINAL.json",
-      "sha256": "68d021bfa01ad5d93272eb1056fb2327b029022f580ac54bc2442d1470c83a74"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001/CONTROLLER_TERMINAL.json",
+      "sha256": "b3172bbf21d1967e85740eb32e6e8f4cf3df0334876c3ecaa65153672782d494"
     },
     "exit_code": 0,
     "optimizer_updates": 0,
     "source_unchanged": true,
     "native_model_constructed": true,
-    "direction_improvement_measured": false,
+    "direction_improvement_measured": true,
+    "direction_improvement_scope": "Small M5conditional ranking/proper-score gain on dependent4096used TRAINrows; no heldout/economic edge.",
     "test_data_used": false
   },
   "trend_event_numeric_source_128": {
@@ -75526,24 +75527,24 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_FULL_USED_PREFIX_READ_ONLY_ADMITTED",
+    "status": "ACTIVE_FULL_PREFIX_EXPOSURE_AND_TASK_TRADEOFFS",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
     "training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "2421c6eaac380736429fb39254bffe39c16336f1b058373088dfe67892ad613b"
+      "sha256": "7219609215706fe946e79066ae0b90e1175f7469a2dc94cad27bade9ecfdb86a"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": true,
+    "model_or_data_run_admitted": false,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Execute exactly the admitted full-used-prefix001 read-only initial/final evaluation of4096original short002 TRAINrows (512forwards total). Preserve original queries/losses and TRACEfixed axes, six saved-panel parity controls, existing900sworker/1200sguard. No optimizer/autograd/newtraining. Close the consumed scope and compare complete-prefix fitting before selecting any model change.",
+    "next_action": "Use only the retained short002 TRACE and the now-complete initial/final4096used-prefix endpoints to distinguish chronological recency from cross-timeframe objective tradeoffs. First qualify train/eval comparison at the same initial state; TRACE logits/losses are changing pre-update observations, never a fixed baseline. Compare original batch losses and task/timeframe direction/activity by ordered exposure without selecting weights or subsets. No new model evaluation, optimizer, gradients, training or relaunch is admitted.",
     "active_stage": "market_state_ta_c171_full_used_prefix_20261111_001",
     "previous_goal_turn_classification": "PROGRESS: retained MTFintervention andinputsupport review ruledout an unsupported harmful-MTF or generalnormalization-collapse change; nextactualboundarymeasurement identified.",
-    "last_goal_turn_classification": "PROGRESS: exact paired endpoints captured with32passiveforwards. Independent finite replay localizes conditional source/tail changes; fixed-final-tail source update lowersbothM5AUCs acrossall3partitions, whilecontextdriveslargestmeanincrease. Complete4096used-prefixbefore/afterfitness is stillmissing; no loss/model change ortraining admitted."
+    "last_goal_turn_classification": "MEASURED_COMPLETE_USED_PREFIX_AND_RETAINED_LOSS_ACCOUNTING_NO_MODEL_CHANGE"
   },
   "market_state_ta_fusion_observation_20261111_001": {
     "status": "COMPLETE",
@@ -77279,7 +77280,7 @@
     "candidate_model_state_sha256": "c171736d2de79396dd86a79ad895f8bf2226e5ad8d996abf1dd7f52055e4a467",
     "final_model_state_sha256": "5f54bbe47df0f84c60e475d0e9fcf83ad70b8c569d6ebea6ac802aebda655c82",
     "numerical_mode": "eval_no_grad_deterministic_fp32_training_mha_fastpath_false",
-    "prefix_evaluation_authorized": true,
+    "prefix_evaluation_authorized": false,
     "numerical_threads": 8,
     "interop_policy": "process_default_unchanged_like_short002",
     "thread_environment": {
@@ -77293,17 +77294,17 @@
     "parameter_partition": "original_fold1_fit_active_true_inactive_false",
     "training_enabled": false,
     "test_data_used": false,
-    "status": "ADMITTED",
+    "status": "COMPLETE",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001/PLAN.json",
       "sha256": "d3fead91812937961fa6c21a35a4a53e4346a035927349fbbd45805fb516fd63"
     },
     "max_invocations": 1,
-    "remaining_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "remaining_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
-    "execution_authorized": true,
+    "execution_authorized": false,
     "data_reads_authorized": true,
     "checkpoint_reads_authorized": true,
     "backbone_encodings_authorized": 512,
@@ -77314,7 +77315,7 @@
     "training_authorized": false,
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_FULL_USED_PREFIX_REVIEW.json",
-      "sha256": "90d2567dd96f3abfc722ea4cf8ef8b51f0ecc2e7d4185c71a461737dcbf89f91"
+      "sha256": "b0b61e693864da4e6757ef0d126e076032bbb3026024535c6fbbabc6ed290c02"
     },
     "preflight": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001/PREFLIGHT.json",
@@ -77324,6 +77325,30 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001/CAP_GATE.json",
       "sha256": "32f5c015de1f25ac47848d703c8128bade57d8e2aa9f45223404bf9806af73e4"
     },
-    "next_action": "Execute exactly the admitted full-used-prefix001 read-only initial/final evaluation of4096original short002 TRAINrows (512forwards total). Preserve original queries/losses and TRACEfixed axes, six saved-panel parity controls, existing900sworker/1200sguard. No optimizer/autograd/newtraining. Close the consumed scope and compare complete-prefix fitting before selecting any model change."
+    "next_action": "Use only the retained short002 TRACE and the now-complete initial/final4096used-prefix endpoints to distinguish chronological recency from cross-timeframe objective tradeoffs. First qualify train/eval comparison at the same initial state; TRACE logits/losses are changing pre-update observations, never a fixed baseline. Compare original batch losses and task/timeframe direction/activity by ordered exposure without selecting weights or subsets. No new model evaluation, optimizer, gradients, training or relaunch is admitted.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001/RESULT.json",
+      "sha256": "23afd4e6807661854b938634275994a433448a0df0fc3e7131dcd517061dcfe2"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001/TERMINAL.json",
+      "sha256": "ccf476bf5d0c65fc3f9bf19bcde87b8dc89fa7492bdf276df2549fdf05a45204"
+    },
+    "controller_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001/CONTROLLER_TERMINAL.json",
+      "sha256": "b3172bbf21d1967e85740eb32e6e8f4cf3df0334876c3ecaa65153672782d494"
+    },
+    "retained_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001/FULL_USED_PREFIX_EFFECT_REVIEW.json",
+      "sha256": "a2c88641aecb96357d1c58664d9b76ba023faccafff815c677fcac111c885e3f"
+    },
+    "independent_arithmetic_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001/INDEPENDENT_FULL_USED_PREFIX_REVIEW.json",
+      "sha256": "473e69672148048e8bd8cf1f8547706d61da596f7dd3bdb9147f368815739080"
+    },
+    "loss_accounting": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001/FULL_USED_PREFIX_LOSS_ACCOUNTING.json",
+      "sha256": "68ccd418635482209e0b27aaea7f8408c41d8ef4d6b3554f6067bc38bbc19ab9"
+    }
   }
 }
