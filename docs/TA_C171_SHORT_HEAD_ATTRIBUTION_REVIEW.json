@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_c171_short_head_attribution_review_v1",
-  "status": "CAPTURE_FAILED_CONSUMED_RAW_FP32_PARITY",
+  "status": "REPLACEMENT_CAPTURE_002_ADMITTED",
   "objective": "Separate the measured short-run M5 output shift into final-head parameter changes at exact initial head inputs and a residual representation contribution.",
   "retained_trace_review": {
     "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_002/TRACE_ALGEBRA_REVIEW.json",
@@ -18,8 +18,8 @@
   ],
   "unresolved": "Head weights and upstream head inputs both changed; the short initial evaluation did not retain its head inputs.",
   "capture": {
-    "stage": "market_state_ta_c171_short_initial_heads_20261111_001",
-    "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_001",
+    "stage": "market_state_ta_c171_short_initial_heads_20261111_002",
+    "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_002",
     "partition": "TRAIN",
     "panel_batch_indices": [
       0,
@@ -49,7 +49,9 @@
     "checkpoint_writes": 0,
     "mode": "eval/no_grad/deterministic_fp32/training_mha_fastpath_false",
     "prerequisite": "Bitexact parents, issues, all-TF sampled queries/raw outputs/masks and all 16 original initial losses; unchanged model, buffers, RNG, modes, trainability, identities and hooks.",
-    "bounds": "900 seconds worker, 1200 seconds guard; 12 GiB host / 512 MiB swap; configured250W / actual170W /65C core /80C memory;2MiB arrays,1MiB JSON."
+    "bounds": "900 seconds worker, 1200 seconds guard; 12 GiB host / 512 MiB swap; configured250W / actual170W /65C core /80C memory;2MiB arrays,1MiB JSON.",
+    "numerical_threads": 8,
+    "parameter_partition": "original_fold1_fit_active_true_inactive_false"
   },
   "planned_arithmetic": "delta_z = delta_w dot h_initial + delta_bias + residual; residual includes final_head dot delta_h and FP rounding. Also compare original, head-only and factual-final Brier/log scores on identical known masks and the fixed3/13 partitions.",
   "limitations": [
@@ -60,64 +62,87 @@
   "training_authorized": false,
   "test_data_used": false,
   "promotion_authorized": false,
-  "plan": {
-    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_001/PLAN.json",
-    "sha256": "996f5af51f6d7253b789b094de9a92ce251e1c7feaeb1fda592c3983018dcdd0"
-  },
-  "preflight": {
-    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_001/PREFLIGHT.json",
-    "sha256": "bc038cac180abee6edd97ed345361164824a374556a91487ac17edb1167f0ef7"
-  },
-  "actual_cap_gate": {
-    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_001/CAP_GATE.json",
-    "sha256": "9603e53059aa4137cbeb870dbdef0c35731fffb924b798ad4b5ebb6f7057ec31"
-  },
-  "focused_observer_tests_passed": 38,
-  "focused_route_tests_passed": 10,
+  "focused_observer_tests_passed": 41,
+  "focused_route_tests_passed": 11,
   "observed_prelaunch_blocker": {
     "reason": "Existing technical dispatcher is a sealed numerical source owner in the old recipe; its proposed new flag failed NUMERICAL_SOURCE_CHANGED before PLAN/CLAIM.",
     "correction": "Restore that dispatcher byte-for-byte; use the observer own exact guarded CLI. No old numerical-source bridge was relaxed.",
     "plans_or_claims_consumed": 0
   },
-  "result": {
-    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_001/RESULT.json",
-    "sha256": "db4a3cabde9274fd2f8501a42e2288060e4839cb86f2ab0f725a44a333947716"
+  "next_action": "Execute one new exact002 plan with unchanged bit-parity gate; if qualified, run the bound retained-array ordered head/representation analysis.",
+  "failed_capture_001": {
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_001/PLAN.json",
+      "sha256": "996f5af51f6d7253b789b094de9a92ce251e1c7feaeb1fda592c3983018dcdd0"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_001/PREFLIGHT.json",
+      "sha256": "bc038cac180abee6edd97ed345361164824a374556a91487ac17edb1167f0ef7"
+    },
+    "actual_cap_gate": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_001/CAP_GATE.json",
+      "sha256": "9603e53059aa4137cbeb870dbdef0c35731fffb924b798ad4b5ebb6f7057ec31"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_001/RESULT.json",
+      "sha256": "db4a3cabde9274fd2f8501a42e2288060e4839cb86f2ab0f725a44a333947716"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_001/TERMINAL.json",
+      "sha256": "cd6b95b332ade857dfbb6371cf5d9ff5652c9a990816952ccf68ddd2c7ca77ce"
+    },
+    "controller_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_001/CONTROLLER_TERMINAL.json",
+      "sha256": "515dbda3f33e969f96178faa86da9cfd70baa6f14d255dd52b785e2b2ddee39d"
+    },
+    "retained_parity_failure_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_001/PARITY_FAILURE_REVIEW.json",
+      "sha256": "f39070d8f38bd37a81d7cfb301779d485281e6df564f5fcc952bc6210d2a2203"
+    },
+    "actual_counts": {
+      "archive_decodes": 2,
+      "autograd_grad_calls": 0,
+      "backbone_encodings": 1,
+      "backwards": 0,
+      "candidate_writes": 0,
+      "checkpoint_loads": 1,
+      "checkpoint_writes": 0,
+      "extra_target_gathers": 2,
+      "forward_returns": 1,
+      "head_capture_returns": 2,
+      "head_tensor_imports": 4,
+      "matched_batches": 0,
+      "model_constructions": 1,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "published_npz_bytes": 23304,
+      "resume_state_load_calls": 1,
+      "resume_state_load_returns": 1,
+      "sampled_rows": 16
+    },
+    "source_unchanged": true,
+    "model_signature_unchanged": true,
+    "failure": "First16-row group: all parents/issues/queries/masks and scalar loss match exactly, but94/160 state and102/160 future raw logits differ; max7.152557e-7/2.384186e-7. Both M5 side maxima2.980232e-8. No attribution inference is admitted from the failed capture."
   },
-  "terminal": {
-    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_001/TERMINAL.json",
-    "sha256": "cd6b95b332ade857dfbb6371cf5d9ff5652c9a990816952ccf68ddd2c7ca77ce"
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_002/PLAN.json",
+    "sha256": "a9dcdf7ab38f6c192d77eb72e0894f752667067b5f0c01507349f07fd876073c"
   },
-  "controller_terminal": {
-    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_001/CONTROLLER_TERMINAL.json",
-    "sha256": "515dbda3f33e969f96178faa86da9cfd70baa6f14d255dd52b785e2b2ddee39d"
+  "preflight": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_002/PREFLIGHT.json",
+    "sha256": "f5903003bb81c384170313b0ccd735e0e741e086a555420b6ef2c8c4f51d9e3f"
   },
-  "retained_parity_failure_review": {
-    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_001/PARITY_FAILURE_REVIEW.json",
-    "sha256": "f39070d8f38bd37a81d7cfb301779d485281e6df564f5fcc952bc6210d2a2203"
+  "actual_cap_gate": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_002/CAP_GATE.json",
+    "sha256": "ee1fb11c19b9725e12f3446549233e8e197ed054524441b04ba51ce2837cc9da"
   },
-  "actual_counts": {
-    "archive_decodes": 2,
-    "autograd_grad_calls": 0,
-    "backbone_encodings": 1,
-    "backwards": 0,
-    "candidate_writes": 0,
-    "checkpoint_loads": 1,
-    "checkpoint_writes": 0,
-    "extra_target_gathers": 2,
-    "forward_returns": 1,
-    "head_capture_returns": 2,
-    "head_tensor_imports": 4,
-    "matched_batches": 0,
-    "model_constructions": 1,
-    "optimizer_constructions": 0,
-    "optimizer_updates": 0,
-    "published_npz_bytes": 23304,
-    "resume_state_load_calls": 1,
-    "resume_state_load_returns": 1,
-    "sampled_rows": 16
+  "numerical_profile_repair": {
+    "observed_difference": "Short002 uses8 intra threads and8 numeric library environment values, with original active/inactive parameter flags. Observer001 forced1 intra/interop thread and froze all grad flags.",
+    "correction": "Match original8-thread policy, leave interop at process default, and set the exact original active/inactive flags without constructing an optimizer. All forwards remain eval/no_grad; values, gradients and complete state must remain unchanged.",
+    "unique_cause_of_001_difference_proved": false
   },
-  "source_unchanged": true,
-  "model_signature_unchanged": true,
-  "failure": "First16-row group: all parents/issues/queries/masks and scalar loss match exactly, but94/160 state and102/160 future raw logits differ; max7.152557e-7/2.384186e-7. Both M5 side maxima2.980232e-8. No attribution inference is admitted from the failed capture.",
-  "next_action": "Locate the execution-level difference using source and retained fields before defining any new minimal observation; the consumed plan is closed."
+  "arithmetic_source": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_002/REVIEW_HEAD_ATTRIBUTION.py",
+    "sha256": "501da2a63a395e80be3047fbc67177e247a97e9b631b2fb23833ecdc5d5adcf5"
+  }
 }

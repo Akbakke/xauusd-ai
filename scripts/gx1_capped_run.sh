@@ -370,11 +370,14 @@ validate_target_command() {
         TRAINER_GPU_MAX_POWER_LIMIT_W=250
       fi
       if [[ "${3:-}" == "$TA_C171_HEAD_PRODUCER_MODULE" ]]; then
-        local ta_heads_root=/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_001
+        local ta_heads_root=/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_002
         if ! matches_bound_market_state_ta_c171_short_heads "$ta_heads_root/PLAN.json" "$ta_heads_root" "$@"; then
           echo "FATAL: c171 initial-head observation is not exactly bound" >&2
           exit 75
         fi
+        # Match the original deterministic_fp32 evaluation's numerical threads.
+        # Affinity, TasksMax and every hardware/memory stop remain unchanged.
+        NUMERICAL_THREAD_COUNT=8
         TRAINER_GPU_MAX_POWER_LIMIT_W=250
         TRAINER_MAX_WALL_SECONDS=1200
         TRAINER_MODEL_MAX_WALL_SECONDS=1200

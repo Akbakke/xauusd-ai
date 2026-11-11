@@ -200,3 +200,50 @@ def test_standalone_cli_rejects_wrong_device_or_relative_output(monkeypatch,fiel
     monkeypatch.setattr(worker,'run',lambda **k:pytest.fail('invalid CLI reached run'))
     with pytest.raises(SystemExit) as error:worker.main(args)
     assert error.value.code==2
+
+
+def test_002_exact_plan_rejects_consumed_001():
+    value=plan()
+    old=worker.ROOT.with_name('MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_001')
+    with pytest.raises(RuntimeError,match='EXACT_PLAN'):
+        worker._require_plan(value,old/'PLAN.json',old)
+    assert value['numerical_threads']==8
+    assert value['parameter_partition']=='original_fold1_fit_active_true_inactive_false'
+
+
+def test_runtime_profile_observes_default_interop_without_setters(monkeypatch):
+    from types import SimpleNamespace
+    for name in worker.BOUNDS['thread_environment']:monkeypatch.setenv(name,'8')
+    fake=SimpleNamespace(get_num_threads=lambda:8,get_num_interop_threads=lambda:19)
+    value=worker._runtime_profile(fake)
+    worker._require_runtime_profile(value)
+    assert value['interop_threads']==19
+    monkeypatch.setenv('OMP_NUM_THREADS','1')
+    with pytest.raises(RuntimeError,match='RUNTIME_THREADS'):
+        worker._require_runtime_profile(worker._runtime_profile(fake))
+    monkeypatch.setenv('OMP_NUM_THREADS','8');fake.get_num_threads=lambda:1
+    with pytest.raises(RuntimeError,match='RUNTIME_THREADS'):
+        worker._require_runtime_profile(worker._runtime_profile(fake))
+
+
+def test_existing_partition_changes_only_flags_without_optimizer_or_gradients():
+    import torch
+    from types import SimpleNamespace
+    model=torch.nn.Linear(3,1)
+    model.weight.requires_grad_(False)
+    model.bias.requires_grad_(True)
+    before={name:p.detach().clone() for name,p in model.named_parameters()}
+    identities={name:id(p) for name,p in model.named_parameters()}
+    rng=torch.get_rng_state().clone();modes={name:m.training for name,m in model.named_modules()}
+    pairs=list(model.named_parameters())
+    owner=SimpleNamespace(_parameters=lambda actual:(pairs,[pairs[0]],[pairs[1]]))
+    expected=worker._short_parameter_partition(model,owner)
+    assert expected=={'weight':True,'bias':False}
+    assert {name:p.requires_grad for name,p in model.named_parameters()}==expected
+    assert all(torch.equal(before[name],p) and p.grad is None for name,p in model.named_parameters())
+    assert identities=={name:id(p) for name,p in model.named_parameters()}
+    assert torch.equal(rng,torch.get_rng_state())
+    assert modes=={name:m.training for name,m in model.named_modules()}
+    model.weight.grad=torch.zeros_like(model.weight)
+    with pytest.raises(RuntimeError,match='PENDING_GRADIENT'):
+        worker._short_parameter_partition(model,owner)

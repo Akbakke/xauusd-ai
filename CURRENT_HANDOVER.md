@@ -6,12 +6,12 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_SHORT_HEAD_PARITY_BLOCKER.
+TA_DIRECTION_EDGE_CAUSE_SHORT_HEAD_PROFILE_MATCH_ADMITTED.
 Målet fra11.11 er aktivt: finn målte årsaker til svak retningsverdi i indikatorer,
 sammensetting og læring. [Samlet årsaksstatus](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json).
 Korte runder er feilsøking, ikke kapasitetsdom. Full kvalifisert TRAIN-historikk
 og30–40epoker er senere skalering, ikke et krav ved hver rettelse.
-Alle engangsplaner er konsumert, også den nye lesende observasjonen.
+Alle tidligere planer er konsumert; én ny lesende002 er eksakt innrømmet.
 Training/native_training/native_launch/
 full_epoch er false; ingen aktiv modelljobb. Begge c171-Windowsoppgaver er Disabled.
 GC er på pause; TEST, Entry/Exit, broker, handel og promotion er stengt.
@@ -91,9 +91,14 @@ og kilden522a7462 var uendret. Ingen gradient/optimizer/checkpointskriv.
 RESULT/TERMINAL, controller exit1 og TRAIN_FUSION_PARTIAL.npz er bevart.
 Dette er en målt numerisk reproduksjonsbegrensning, ikke påvist edgefeil.
 Ingen hode-/representasjonsattribusjon er godkjent fra den mislykte fangsten.
-Neste er smal kilde-/retained-output-kontroll av utføringsavviket før eventuell
-ny avgrenset observasjon.001 relanseres aldri; ingen ny kjøring er innrømmet.
-48 fokustester og ekte metadata/cap-gate bestod; de beviste ikke modellparitet.
+Målt profilforskjell: original short bruker8 tråder og aktive/inaktive gradflagg;
+observer001 brukte1 intra/interop og alle gradflaggfalse. Minste rettelse i002
+matcher kjent originalprofil uten optimizer/autograd. Det beviser ikke unik årsak
+til001avviket.001 relanseres aldri. Ny002PLAN a9dcdf7a og metadata-preflight
+f5903003 er bundet; faktisk cap-gate og52 fokustester består. Alle bitparitetskrav
+står fast. Neste er én16-forward lesende002, så beholdt hode/residual-aritmetikk
+kun ved full kvalifikasjon.12GiB/512MiB,CPU0-7/pids64,250Wlimit/170Wdraw/65C/80C;
+8 numeriske tråder gjelder bare eksakt002, ingen øvrig guardgrense er endret.
 Historisk dispatcher er biteksakt gjenopprettet, ingen numerisk eiergate svekket.
 Fullprefix-fit, familiers nytte, senere generalisering og kapasitet er fortsatt
 uavklart. Alle numeriske modell-/loss-/featureeiere er uendret.

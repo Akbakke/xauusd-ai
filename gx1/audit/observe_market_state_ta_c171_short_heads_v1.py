@@ -17,7 +17,7 @@ from gx1.contracts import local_random_access_campaign_v2 as campaign
 from gx1.contracts import market_state_ta_m5_short_learning_v1 as short
 
 REPO = cache.REPO
-STAGE = 'market_state_ta_c171_short_initial_heads_20261111_001'
+STAGE = 'market_state_ta_c171_short_initial_heads_20261111_002'
 ROOT = Path('/home/andre2/GX1_RUNS') / STAGE.upper()
 SCHEMA = 'gx1_ta_c171_short_initial_heads_plan_v1'
 WORKER = REPO / 'gx1/audit/observe_market_state_ta_c171_short_heads_v1.py'
@@ -38,6 +38,10 @@ BOUNDS = dict(fit_rows=29574, batch_size=16, decoder_width=128,
     max_candidate_writes=0, max_cache_bytes=2*1024**2, max_published_json_bytes=1024**2,
     wall_seconds=900, device='cuda', candidate_model_state_sha256=short.MODEL_SHA256,
     numerical_mode='eval_no_grad_deterministic_fp32_training_mha_fastpath_false',
+    numerical_threads=8, interop_policy='process_default_unchanged_like_short002',
+    thread_environment={name:'8' for name in ('OMP_NUM_THREADS','MKL_NUM_THREADS','OPENBLAS_NUM_THREADS',
+        'NUMEXPR_NUM_THREADS','VECLIB_MAXIMUM_THREADS','BLIS_NUM_THREADS')},
+    parameter_partition='original_fold1_fit_active_true_inactive_false',
     training_enabled=False, test_data_used=False)
 BASE_KEYS = ('parents','issues','state_query','future_query','state_raw','future_raw',
     'state_allowed','state_eligible','state_mature','future_allowed','future_eligible','future_mature')
@@ -193,6 +197,29 @@ def _save(parts, counts, *, partial, np):
         arrays,counts,np=np,root=ROOT)
 
 
+
+def _runtime_profile(torch):
+    return dict(intra_threads=torch.get_num_threads(),interop_threads=torch.get_num_interop_threads(),
+        thread_environment={name:os.environ.get(name) for name in BOUNDS['thread_environment']})
+
+
+def _require_runtime_profile(value):
+    _need(value['intra_threads']==BOUNDS['numerical_threads']
+        and type(value['interop_threads']) is int and value['interop_threads']>0
+        and value['thread_environment']==BOUNDS['thread_environment'], 'RUNTIME_THREADS')
+
+
+def _short_parameter_partition(model, state):
+    """Same existing active/inactive flags as build_fold1_fit_optimizer; no optimizer."""
+    pairs,active,inactive=state._parameters(model)
+    _need(all(p.grad is None for _,p in pairs), 'PENDING_GRADIENT')
+    for _,parameter in active:parameter.requires_grad_(True)
+    for _,parameter in inactive:parameter.requires_grad_(False)
+    expected={name:True for name,_ in active};expected.update({name:False for name,_ in inactive})
+    _need({name:p.requires_grad for name,p in pairs}==expected,'PARAMETER_PARTITION')
+    return expected
+
+
 def _runtime_cap():
     from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_producer_execution, require_capped_lock_ancestry
     cap=require_guarded_cuda_producer_execution();cap['lock']=require_capped_lock_ancestry()
@@ -233,7 +260,7 @@ def run(plan_path, plan_sha, out_dir, device='cuda'):
         optimizer_constructions=0,optimizer_updates=0,checkpoint_writes=0,candidate_writes=0,
         resume_state_load_calls=0,resume_state_load_returns=0,published_npz_bytes=0,
         sampled_rows=0,matched_batches=0,head_capture_returns=0,extra_target_gathers=0)
-    provider=prepared=model=None;parts=[];artifacts={};records=[];candidate=None;passivity={}
+    provider=prepared=model=None;parts=[];artifacts={};records=[];candidate=None;passivity={};runtime={};trainability={}
     previous_alarm=signal.getsignal(signal.SIGALRM)
     def timeout(*unused):raise TimeoutError('Short initial heads 900-second bound')
     def bookend():
@@ -244,9 +271,8 @@ def run(plan_path, plan_sha, out_dir, device='cuda'):
         recipe,receipts,view=(q[k] for k in ('recipe','receipts','view'))
         short_recipe=q['transient_recipe'];numerical=short_recipe['numerical_recipe'];cuda=torch.device('cuda')
         trainer._set_deterministic(numerical['seed'],cuda,numerical['precision_policy'])
-        torch.set_num_threads(1);torch.set_num_interop_threads(1)
-        _need(torch.get_num_threads()==torch.get_num_interop_threads()==1
-            and _BATCH_EQUAL_LENGTH_MTF_EVAL.get() is False,'RUNTIME')
+        runtime=_runtime_profile(torch);_require_runtime_profile(runtime)
+        _need(_BATCH_EQUAL_LENGTH_MTF_EVAL.get() is False,'RUNTIME')
         with np.load(INPUTS['short_initial_capture']['path'],allow_pickle=False) as z:
             _need(set(z.files)==set(BASE_KEYS),'INITIAL_FIELDS')
             baseline={k:z[k].copy() for k in BASE_KEYS}
@@ -271,6 +297,7 @@ def run(plan_path, plan_sha, out_dir, device='cuda'):
             coefficient_artifact=INPUTS['folded_coefficients'],coefficient_recipe=INPUTS['candidate_plan'])
         counts['head_tensor_imports']=4;del coefficients
         model.to(cuda)
+        trainability=_short_parameter_partition(model,state)
         def signature():
             return dict(model=model_sha(model.state_dict()),buffers=old._tree_sha(dict(model.named_buffers())),
                 rng=old._tree_sha(trainer._attended_session_rng_state(device=cuda)),
@@ -281,10 +308,11 @@ def run(plan_path, plan_sha, out_dir, device='cuda'):
                 module_identity={n:id(m) for n,m in model.named_modules()},
                 hooks={n:{key:tuple((i,id(h)) for i,h in getattr(m,key).items()) for key in
                     ('_forward_hooks','_forward_pre_hooks','_backward_hooks','_backward_pre_hooks')}
-                    for n,m in model.named_modules()},mha_fastpath=torch.backends.mha.get_fastpath_enabled())
+                    for n,m in model.named_modules()},mha_fastpath=torch.backends.mha.get_fastpath_enabled(),
+                numeric_runtime=_runtime_profile(torch))
         candidate=signature()
         _need(candidate['model']==short.MODEL_SHA256 and not any(candidate['modes'].values())
-            and not any(candidate['trainability'].values()) and all(p.grad is None for p in model.parameters()),'FROZEN_C171')
+            and candidate['trainability']==trainability and all(p.grad is None for p in model.parameters()),'C171_INITIAL_PROFILE')
         for group,index in enumerate(BOUNDS['panel_batch_indices']):
             left=index*16
             raw,parents,clocks=runner._feature_batch(prepared,view,receipts,rows,issues,left,left+16,np=np)
@@ -333,10 +361,14 @@ def run(plan_path, plan_sha, out_dir, device='cuda'):
         return cache._publish_fusion_outcome(q['plan_ref'],dict(claim=claim,counts=counts,artifacts=artifacts,
             source_commit=q['head'],source_identity=source_identity,import_proof=import_proof,
             candidate_model_state_sha256=candidate['model'],batch_indices=BOUNDS['panel_batch_indices'],
-            batch_records=records,passivity=passivity,source_unchanged=True,evaluation_state_unchanged=True,
+            batch_records=records,passivity=passivity,numeric_runtime=runtime,
+            parameter_partition=dict(profile=BOUNDS['parameter_partition'],active_tensors=sum(trainability.values()),
+                inactive_tensors=len(trainability)-sum(trainability.values())),
+            source_unchanged=True,evaluation_state_unchanged=True,
             original_initial_measurement=INPUTS['short_initial_measurement'],elapsed_seconds=time.monotonic()-started,
             limitations=['16 intact B16 groups from dependent, historically trained TRAIN rows; no heldout/edge claim.',
-                'Actual short eval/no_grad/fastpath-false head inputs only; no causal attribution or parameter update.']),
+                'Actual short eval/no_grad/fastpath-false head inputs only; no causal attribution or parameter update.',
+                'Matching known thread and gradient-flag differences does not establish the cause of consumed001 parity failure.']),
             complete=True,root=ROOT,json_bytes_bound=BOUNDS['max_published_json_bytes'])
     except BaseException as exc:
         signal.setitimer(signal.ITIMER_REAL,0)
@@ -350,7 +382,7 @@ def run(plan_path, plan_sha, out_dir, device='cuda'):
         try:bookend()
         except Exception as other:changed=repr(other)
         result=cache._publish_fusion_outcome(q['plan_ref'],dict(claim=claim,counts=counts,artifacts=artifacts,
-            batch_records=records,passivity=passivity,error=type(exc).__name__+':'+str(exc),
+            batch_records=records,passivity=passivity,numeric_runtime=runtime,error=type(exc).__name__+':'+str(exc),
             source_unchanged=changed is None,bookend_error=changed,partial_save_error=save_error,
             interpretation_authorized=False),complete=False,root=ROOT,json_bytes_bound=BOUNDS['max_published_json_bytes'])
         raise RuntimeError('TA_C171_SHORT_HEADS_FAILED_CONSUMED:'+str(result)) from exc

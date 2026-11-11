@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-11T15:41:27.251651+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_SHORT_HEAD_PARITY_BLOCKER",
+  "status": "TA_DIRECTION_EDGE_CAUSE_SHORT_HEAD_PROFILE_MATCH_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1698,7 +1698,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Read-only capture stopped on the first raw-output bit-parity check; consumed gate closed, source and model signature unchanged.",
+    "current_activity": "Read-only002 matches known short-runtime thread and gradflag settings; source/feature preflight and exact cap selector passed.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -9222,7 +9222,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Locate the execution-level difference using source and retained fields before defining any new minimal observation; the consumed plan is closed.",
+    "next_action": "Execute one new exact002 plan with unchanged bit-parity gate; if qualified, run the bound retained-array ordered head/representation analysis.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -75493,7 +75493,7 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_SHORT_INITIAL_CAPTURE_NUMERIC_DIFFERENCE",
+    "status": "ACTIVE_MATCHED_THREAD_AND_PARAMETER_PROFILE_CAPTURE_ADMITTED",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
@@ -75503,12 +75503,12 @@
       "sha256": "2e5849e1cc33b44833cf38f783b2332a325a401903c8ebd401edab40faefca01"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": false,
+    "model_or_data_run_admitted": true,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Locate the execution-level difference using source and retained fields before defining any new minimal observation; the consumed plan is closed.",
-    "active_stage": "market_state_ta_c171_short_initial_heads_20261111_001",
+    "next_action": "Execute one new exact002 plan with unchanged bit-parity gate; if qualified, run the bound retained-array ordered head/representation analysis.",
+    "active_stage": "market_state_ta_c171_short_initial_heads_20261111_002",
     "previous_goal_turn_classification": "PROGRESS: retained MTFintervention andinputsupport review ruledout an unsupported harmful-MTF or generalnormalization-collapse change; nextactualboundarymeasurement identified.",
     "last_goal_turn_classification": "PROGRESS: actual unchanged-loss256-update response measured; probability shift dominates small panel ranking changes. Full and3/13 output arithmetic independently reconciled. Startup cap blocker corrected; all plans consumed and gates closed. Historical learning cause remains unresolved."
   },
@@ -76209,7 +76209,7 @@
     "unresolved_campaign_marker_preserved": true,
     "standard_campaign_receipt_available": false
   },
-  "active_stage": "market_state_ta_c171_short_initial_heads_20261111_001",
+  "active_stage": "market_state_ta_c171_short_initial_heads_20261111_002",
   "market_state_ta_m5_c171_short_learning_20261111_002": {
     "decision": "CLOSED",
     "status": "COMPLETE_CONSUMED",
@@ -76440,5 +76440,101 @@
     },
     "source_unchanged_at_terminal": true,
     "interpretation_authorized": false
+  },
+  "market_state_ta_c171_short_initial_heads_20261111_002": {
+    "max_checkpoint_loads": 1,
+    "numerical_mode": "eval_no_grad_deterministic_fp32_training_mha_fastpath_false",
+    "max_checkpoint_writes": 0,
+    "max_backwards": 0,
+    "device": "cuda",
+    "training_enabled": false,
+    "candidate_model_state_sha256": "c171736d2de79396dd86a79ad895f8bf2226e5ad8d996abf1dd7f52055e4a467",
+    "max_candidate_writes": 0,
+    "max_optimizer_updates": 0,
+    "head_tensor_imports": 4,
+    "parameter_partition": "original_fold1_fit_active_true_inactive_false",
+    "wall_seconds": 900,
+    "fit_rows": 29574,
+    "numerical_threads": 8,
+    "decoder_width": 128,
+    "sampled_rows": 256,
+    "test_data_used": false,
+    "max_autograd_grad_calls": 0,
+    "max_cache_bytes": 2097152,
+    "batch_size": 16,
+    "panel_batch_indices": [
+      0,
+      123,
+      246,
+      369,
+      492,
+      615,
+      738,
+      861,
+      985,
+      1108,
+      1231,
+      1354,
+      1477,
+      1600,
+      1723,
+      1847
+    ],
+    "thread_environment": {
+      "BLIS_NUM_THREADS": "8",
+      "MKL_NUM_THREADS": "8",
+      "NUMEXPR_NUM_THREADS": "8",
+      "OMP_NUM_THREADS": "8",
+      "OPENBLAS_NUM_THREADS": "8",
+      "VECLIB_MAXIMUM_THREADS": "8"
+    },
+    "max_backbone_encodings": 16,
+    "max_optimizer_constructions": 0,
+    "interop_policy": "process_default_unchanged_like_short002",
+    "max_published_json_bytes": 1048576,
+    "max_model_constructions": 1,
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_002/PLAN.json",
+      "sha256": "a9dcdf7ab38f6c192d77eb72e0894f752667067b5f0c01507349f07fd876073c"
+    },
+    "max_invocations": 1,
+    "remaining_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "backbone_encodings_authorized": 16,
+    "head_tensor_imports_authorized": 4,
+    "candidate_weights_writes_authorized": 0,
+    "backward_calls_authorized": 0,
+    "optimizer_steps_authorized": 0,
+    "training_authorized": false,
+    "retained_output_arithmetic_authorized": true,
+    "retained_output_fit_authorized": false,
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_SHORT_HEAD_ATTRIBUTION_REVIEW.json",
+      "sha256": "8894959ab02d3e9f183f7631590cd3d82a0afe5b34bc6b22d5e0273d590c8e1e"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_002/PREFLIGHT.json",
+      "sha256": "f5903003bb81c384170313b0ccd735e0e741e086a555420b6ef2c8c4f51d9e3f"
+    },
+    "actual_cap_gate": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_002/CAP_GATE.json",
+      "sha256": "ee1fb11c19b9725e12f3446549233e8e197ed054524441b04ba51ce2837cc9da"
+    },
+    "retained_arithmetic": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_002/REVIEW_HEAD_ATTRIBUTION.py",
+      "sha256": "501da2a63a395e80be3047fbc67177e247a97e9b631b2fb23833ecdc5d5adcf5"
+    },
+    "prior_failed_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_001/RESULT.json",
+      "sha256": "db4a3cabde9274fd2f8501a42e2288060e4839cb86f2ab0f725a44a333947716"
+    },
+    "focused_tests_passed": 52,
+    "standing_authority": "Explicit11November edge-cause goal, one minimal new read-only observation after a measured runtime-profile mismatch.001remains consumed; no training, later data or spending."
   }
 }
