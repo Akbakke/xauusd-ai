@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-11T21:25:15.685386+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_MATCHED_MODE_SHARED_HORIZON_PRESSURE_MEASURED",
+  "observed_utc": "2026-11-11T21:40:33.284839+00:00",
+  "status": "TA_DIRECTION_EDGE_CAUSE_SHARED_HORIZON_SHIFT_LOCALIZED_BEFORE_READOUT",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Use retained paired joint-hidden/source observations and actual INITIAL/FINAL decoder tensors to localize the common non-M5 timeframe output change. Reuse finite tail replay, now report all5TF for S/F and the original all16/updated3/other13 partitions. Separate shared readout changes from queryprojection and input changes with endpoint replay residuals and order-dependent interactions. No new native model, fit, gradient probe or selected head/loss change. The256row panel cannot assign full4096prefix causal shares; preserve that limit before choosing a correction.",
+  "next_action": "Measure decoder timeframe conditioning using only retained joint_hidden and bound initial/final query/readout tensors: quantify horizon-specific response to the same hidden coordinates with analytic Linear/GELU sensitivity and finite query-coordinate controls. Keep all5TF, both S/F, original ALL16/UPDATED3/OTHER13 and all endpoint residuals. Distinguish direct readout-parameter movement from structural shared-readout coupling before selecting the smallest correction. CPU retained arithmetic only, through existing audit cap; no native model/forward, autograd, optimizer, candidate, new training or TEST. No more full-prefix captures are needed for this step.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1434,7 +1434,7 @@
     "profitability_demonstrated": false,
     "required_before_more_extensive_training": true,
     "entry_learning_demonstrated": false,
-    "current_evidence_scope": "Complete4096used TRAIN-prefix fixed endpoints show small M5 ranking/Brier gains with worsened combined objective. Matched original train mode confirms the total regression and near-parallel non-M5 horizon output changes. Analytic actual-TRACE shared-side-bias pressure has opposing horizon signs. Retained256row paired-tail localization is next; fullparameter causal attribution, later generalization and economic edge remain unproved.",
+    "current_evidence_scope": "Full4096used TRAIN-prefix shows small M5 gains with combinedobjective regression. Matchedtrainmode confirms nonM5horizoncommonshift. Retained256row allTF H/Q/R replay localizes mostfinite shift before readout, independently verified. Thisdoesnot exonerate structuralsharedheadcoupling or assign fullprefixcausalshares. Later generalization, fullcapacity andeconomic edge remainunproved.",
     "component_learning_measured": true,
     "component_learning_result": "NATIVE_M5_BOUNDED_READOUT_AMPLITUDE_CORRECTION_VERIFIED_EDGE_UNPROVED",
     "primary_entry_quality_qualified": false,
@@ -1698,7 +1698,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Matched-mode observation consumed; common non-M5horizon changes and actual shared-output-axis derivative pressure measured.",
+    "current_activity": "Retained H/Q/R factorization complete and independently verified; next localize timeframe conditioning using the same saved tensors, no native model/training.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -9222,7 +9222,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Use retained paired joint-hidden/source observations and actual INITIAL/FINAL decoder tensors to localize the common non-M5 timeframe output change. Reuse finite tail replay, now report all5TF for S/F and the original all16/updated3/other13 partitions. Separate shared readout changes from queryprojection and input changes with endpoint replay residuals and order-dependent interactions. No new native model, fit, gradient probe or selected head/loss change. The256row panel cannot assign full4096prefix causal shares; preserve that limit before choosing a correction.",
+    "next_action": "Measure decoder timeframe conditioning using only retained joint_hidden and bound initial/final query/readout tensors: quantify horizon-specific response to the same hidden coordinates with analytic Linear/GELU sensitivity and finite query-coordinate controls. Keep all5TF, both S/F, original ALL16/UPDATED3/OTHER13 and all endpoint residuals. Distinguish direct readout-parameter movement from structural shared-readout coupling before selecting the smallest correction. CPU retained arithmetic only, through existing audit cap; no native model/forward, autograd, optimizer, candidate, new training or TEST. No more full-prefix captures are needed for this step.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22137,7 +22137,7 @@
     },
     "direction_edge_cause_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "b01446f5db1c0ed4a80e43e8b9d5f5842901e22753b30e0435262898aa0c86fd"
+      "sha256": "ff21328a95b9716b2c1efcf2ae17977d28b443298102713ddbe5efea451a803a"
     },
     "latest_c171_startup_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_C171_SHORT_LEARNING_STARTUP_REVIEW.json",
@@ -22192,6 +22192,10 @@
     "latest_c171_matched_train_mode_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_MATCHED_TRAIN_MODE_REVIEW.json",
       "sha256": "ba8fa2a5e3278626558395abdad9df8081ffe998ee48390e94db357a3c9a7a80"
+    },
+    "latest_c171_all_tf_tail_factor_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_ALL_TF_TAIL_FACTOR_REVIEW.json",
+      "sha256": "5da978f765b0ad1ac001023501be7665989270d8353d768b801b9e1b29406c0f"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -75531,24 +75535,28 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_MATCHED_MODE_SHARED_HORIZON_PRESSURE_MEASURED",
+    "status": "ACTIVE_SHARED_HORIZON_SHIFT_LOCALIZED_ON_RETAINED_PANEL",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
     "training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "b01446f5db1c0ed4a80e43e8b9d5f5842901e22753b30e0435262898aa0c86fd"
+      "sha256": "ff21328a95b9716b2c1efcf2ae17977d28b443298102713ddbe5efea451a803a"
     },
     "integrator": "root",
     "model_or_data_run_admitted": false,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Use retained paired joint-hidden/source observations and actual INITIAL/FINAL decoder tensors to localize the common non-M5 timeframe output change. Reuse finite tail replay, now report all5TF for S/F and the original all16/updated3/other13 partitions. Separate shared readout changes from queryprojection and input changes with endpoint replay residuals and order-dependent interactions. No new native model, fit, gradient probe or selected head/loss change. The256row panel cannot assign full4096prefix causal shares; preserve that limit before choosing a correction.",
+    "next_action": "Measure decoder timeframe conditioning using only retained joint_hidden and bound initial/final query/readout tensors: quantify horizon-specific response to the same hidden coordinates with analytic Linear/GELU sensitivity and finite query-coordinate controls. Keep all5TF, both S/F, original ALL16/UPDATED3/OTHER13 and all endpoint residuals. Distinguish direct readout-parameter movement from structural shared-readout coupling before selecting the smallest correction. CPU retained arithmetic only, through existing audit cap; no native model/forward, autograd, optimizer, candidate, new training or TEST. No more full-prefix captures are needed for this step.",
     "active_stage": "market_state_ta_c171_matched_train_mode_20261111_001",
     "previous_goal_turn_classification": "PROGRESS: retained MTFintervention andinputsupport review ruledout an unsupported harmful-MTF or generalnormalization-collapse change; nextactualboundarymeasurement identified.",
-    "last_goal_turn_classification": "MEASURED_MODE_QUALIFIED_TRAJECTORY_AND_SHARED_TIMEFRAME_OUTPUT_PRESSURE_NO_MODEL_CHANGE"
+    "last_goal_turn_classification": "RETAINED_ALL_TIMEFRAME_HIDDEN_QUERY_READOUT_LOCALIZATION_NO_MODEL_CHANGE",
+    "latest_tail_factor_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_ALL_TF_TAIL_FACTOR_REVIEW.json",
+      "sha256": "5da978f765b0ad1ac001023501be7665989270d8353d768b801b9e1b29406c0f"
+    }
   },
   "market_state_ta_fusion_observation_20261111_001": {
     "status": "COMPLETE",
@@ -76800,7 +76808,7 @@
     },
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "b01446f5db1c0ed4a80e43e8b9d5f5842901e22753b30e0435262898aa0c86fd"
+      "sha256": "ff21328a95b9716b2c1efcf2ae17977d28b443298102713ddbe5efea451a803a"
     },
     "full_model_constructions": 0,
     "native_model_forwards": 0,
@@ -77737,5 +77745,29 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_MATCHED_TRAIN_MODE_20261111_001/SHARED_SIDE_PRESSURE_REVIEW.json",
       "sha256": "de17a2dcca7fae1652766b1b276ba8a343b8bb33d5f3cbd7a19b128171a81836"
     }
+  },
+  "market_state_ta_c171_retained_tail_factors_20261111_001": {
+    "status": "COMPLETE_RETAINED_ARITHMETIC",
+    "source_commit": "c092780d91e920e5ddb1a47540a28297663ecc98",
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_ALL_TF_TAIL_FACTOR_REVIEW.json",
+      "sha256": "5da978f765b0ad1ac001023501be7665989270d8353d768b801b9e1b29406c0f"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_JOINT_BOUNDARIES_20261111_001/ALL_TF_TAIL_FACTOR_REVIEW.json",
+      "sha256": "f46e95098e400ffbd6be61fae47e03fc9651aec0d34736d54b0f7c7f68e37b5b"
+    },
+    "independent_check": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_JOINT_BOUNDARIES_20261111_001/INDEPENDENT_ALL_TF_TAIL_FACTOR_CHECK.json",
+      "sha256": "7e240502d7187eb4f6a21c7a5ce84afe627eec40e2b91ea6f48d68624adcb6ea"
+    },
+    "remaining_invocations": 0,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "native_model_constructed": false,
+    "native_model_forwards": 0,
+    "optimizer_updates": 0,
+    "test_data_used": false,
+    "next_action": "Measure decoder timeframe conditioning using only retained joint_hidden and bound initial/final query/readout tensors: quantify horizon-specific response to the same hidden coordinates with analytic Linear/GELU sensitivity and finite query-coordinate controls. Keep all5TF, both S/F, original ALL16/UPDATED3/OTHER13 and all endpoint residuals. Distinguish direct readout-parameter movement from structural shared-readout coupling before selecting the smallest correction. CPU retained arithmetic only, through existing audit cap; no native model/forward, autograd, optimizer, candidate, new training or TEST. No more full-prefix captures are needed for this step."
   }
 }

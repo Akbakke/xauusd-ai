@@ -6,7 +6,7 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_MATCHED_MODE_SHARED_HORIZON_PRESSURE_MEASURED.
+TA_DIRECTION_EDGE_CAUSE_SHARED_HORIZON_SHIFT_LOCALIZED_BEFORE_READOUT.
 Målet 11.11 er aktivt: avklar målte årsaker til svak retningsverdi i indikatorer,
 sammensetting og læring. [Samlet status](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json).
 Korte runder er feilsøking, ikke kapasitetsdom. Full kvalifisert TRAIN-historikk
@@ -125,13 +125,34 @@ oppover på dette koordinatet, M15/H1 nedover; D1 trekker ikke alltid oppover, h
 i siste kvartal. Sentraldifferanse bekrefter derivatet innen1,27e−11. Dette er ett
 bias-koordinat, ikke full parametergradient, Adam-attribusjon eller vedtatt tapsendring.
 
+## Lokalisert endring før sluttlaget
+
+[All-TF faktorregnskap](docs/TA_C171_ALL_TF_TAIL_FACTOR_REVIEW.json) er COMPLETE.
+ALL_TF_TAIL_FACTOR_REVIEW f46e9509, uavhengig kontroll7e240502. Kun én beholdt NPZ og
+to CPU-checkpointlesninger, 0modeller/nativeforwards/autograd/updates; audit4GiB/512MiB.
+Alle8kombinasjoner av faktisk beholdt joint_hidden(H), queryprojeksjon(Q) og sluttlag(R)
+ble beregnet. Alle5TF, beggeS/F og begge råkanaler er med. Seks rekkefølger og alle
+par-/treveisinteraksjoner er rapportert; originale partisjoner256/48/208rader beholdt.
+Endepunktsrest maks1,01e−6 i rålogits; identitetsrest under9e−16. Uavhengig NumPy/SciPy
+kontroll bekrefter5246flyttallsfelt og666eksaktefelt; faktor-/scoreavvik maks7,55e−15.
+
+På dette eval-panelet øker F/M15–D1 gjennomsnittlig0,958606–0,994707logits. Over alle
+seks rekkefølger bidrar H0,524105–0,703829, Q0,1854–0,3402 og R0,084487–0,126114.
+Intervallene er rekkefølgeavhengige og ytterpunkter skal ikke summeres. Felles F-sidebias
+endrer seg bare+0,002662: en ren biasforklaring av den store forskyvningen avkreftes her.
+Det meste av endelig endring ligger før sluttlaget. Liten direkte R-endring frikjenner
+ikke delt readout som strukturell kobling mellom oppgavene under læring.
+
+Dette er256avhengige TRAIN-rader, bare48nyoppdaterte. De208andre er ikke heldout.
+Tre enkeltklasseceller har korrekt null AUC. Ingen kausalandel for hele4096prefixet,
+fullkapasitet, senere generalisering eller økonomisk edge er fastslått.
+
 ## Neste avklaring
 
-Gjenbruk beholdte joint_hidden/source og faktiske INITIAL/FINAL-dekodertensorer fra
-[paret boundary-kontroll](docs/TA_C171_PAIRED_JOINT_BOUNDARY_REVIEW.json).
-Utvid eksisterende endelig tail-replay til alle5tidsrammer for S/F og originale
-ALL16/UPDATED3/OTHER13. Skill sluttlag, queryprojection og input; kontroller endepunktsrest,
-begge rekkefølger og interaksjoner. Ingen ny native modell/fit/gradientprobe er innrømmet.
-Panelet har256rader og bare48fra brukt-prefixet: ingen full4096kausalandel eller
-kapasitetsdom. Sluttlag-/tapsendring velges først når denne lokaliseringen er kjent.
-Ingen ny handelsedge, senere generalisering eller kapasitet ved full trening er påvist.
+Mål tidsrammekondisjonering fra de samme beholdte joint_hidden og faktiske query-/
+readouttensorene: analytisk Linear/GELU-sensitivitet og endelige query-koordinatkontroller
+skal skille felles respons på markedssignaler fra reell TF-spesifikk respons. Behold
+alle5TF, beggeS/F, ALL16/UPDATED3/OTHER13 og endepunktsrester. Avklar delt readout som
+læringskobling før minste rettelse velges. Kun beholdt CPU-regning gjennom auditcap;
+ingen native modell/forward, autograd, optimizer, kandidat, TEST eller trening.
+Ingen nye fullprefix-captures trengs for dette steget. Full trening vurderes senere.
