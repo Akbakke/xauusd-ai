@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_c171_short_head_attribution_review_v1",
-  "status": "READ_ONLY_CAPTURE_ADMITTED",
+  "status": "CAPTURE_FAILED_CONSUMED_RAW_FP32_PARITY",
   "objective": "Separate the measured short-run M5 output shift into final-head parameter changes at exact initial head inputs and a residual representation contribution.",
   "retained_trace_review": {
     "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_002/TRACE_ALGEBRA_REVIEW.json",
@@ -78,5 +78,46 @@
     "reason": "Existing technical dispatcher is a sealed numerical source owner in the old recipe; its proposed new flag failed NUMERICAL_SOURCE_CHANGED before PLAN/CLAIM.",
     "correction": "Restore that dispatcher byte-for-byte; use the observer own exact guarded CLI. No old numerical-source bridge was relaxed.",
     "plans_or_claims_consumed": 0
-  }
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_001/RESULT.json",
+    "sha256": "db4a3cabde9274fd2f8501a42e2288060e4839cb86f2ab0f725a44a333947716"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_001/TERMINAL.json",
+    "sha256": "cd6b95b332ade857dfbb6371cf5d9ff5652c9a990816952ccf68ddd2c7ca77ce"
+  },
+  "controller_terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_001/CONTROLLER_TERMINAL.json",
+    "sha256": "515dbda3f33e969f96178faa86da9cfd70baa6f14d255dd52b785e2b2ddee39d"
+  },
+  "retained_parity_failure_review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_001/PARITY_FAILURE_REVIEW.json",
+    "sha256": "f39070d8f38bd37a81d7cfb301779d485281e6df564f5fcc952bc6210d2a2203"
+  },
+  "actual_counts": {
+    "archive_decodes": 2,
+    "autograd_grad_calls": 0,
+    "backbone_encodings": 1,
+    "backwards": 0,
+    "candidate_writes": 0,
+    "checkpoint_loads": 1,
+    "checkpoint_writes": 0,
+    "extra_target_gathers": 2,
+    "forward_returns": 1,
+    "head_capture_returns": 2,
+    "head_tensor_imports": 4,
+    "matched_batches": 0,
+    "model_constructions": 1,
+    "optimizer_constructions": 0,
+    "optimizer_updates": 0,
+    "published_npz_bytes": 23304,
+    "resume_state_load_calls": 1,
+    "resume_state_load_returns": 1,
+    "sampled_rows": 16
+  },
+  "source_unchanged": true,
+  "model_signature_unchanged": true,
+  "failure": "First16-row group: all parents/issues/queries/masks and scalar loss match exactly, but94/160 state and102/160 future raw logits differ; max7.152557e-7/2.384186e-7. Both M5 side maxima2.980232e-8. No attribution inference is admitted from the failed capture.",
+  "next_action": "Locate the execution-level difference using source and retained fields before defining any new minimal observation; the consumed plan is closed."
 }

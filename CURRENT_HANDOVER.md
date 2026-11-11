@@ -6,12 +6,12 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_SHORT_HEAD_CAPTURE_ADMITTED.
+TA_DIRECTION_EDGE_CAUSE_SHORT_HEAD_PARITY_BLOCKER.
 Målet fra11.11 er aktivt: finn målte årsaker til svak retningsverdi i indikatorer,
 sammensetting og læring. [Samlet årsaksstatus](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json).
 Korte runder er feilsøking, ikke kapasitetsdom. Full kvalifisert TRAIN-historikk
 og30–40epoker er senere skalering, ikke et krav ved hver rettelse.
-Alle tidligere engangsplaner er konsumert; én ny lesende observasjon er eksakt innrømmet.
+Alle engangsplaner er konsumert, også den nye lesende observasjonen.
 Training/native_training/native_launch/
 full_epoch er false; ingen aktiv modelljobb. Begge c171-Windowsoppgaver er Disabled.
 GC er på pause; TEST, Entry/Exit, broker, handel og promotion er stengt.
@@ -83,15 +83,17 @@ positivt felles logitnivå kommer derfor fra hodevekter og/eller representasjone
 Summert lokal hodeoppdatering på hvert stegs faste input er gunstig for begge;
 ingen generell optimizerfeil eller begrunnelse for ny sentrering er påvist.
 
-Gamle fullcache-inputs har en annen numerisk eval-kontekst enn short002; like
-sluttlogits beviser ikke like128D hodeinputs. Ny observer er innrømmet som egen strengt avgrenset CLI: samme16B16 TRAIN-grupper,16forwards,0gradient/oppdatering/checkpointskriv.
-Før tolkning kreves bitlikhet mot alle initiale akser/masker/råoutput og16tap.
-Deretter skilles hodeparameterendring ved fast initialinput fra residualen som
-omfatter endret representasjon. Ingen bestemt encoderårsak følger av dette.
-Faktisk metadata-preflight bc038cac og cap-gate består; PLAN996f5af5.
-48 fokustester består. Historisk dispatcher er gjenopprettet biteksakt etter
-målt kildegatestopp før PLAN/CLAIM; ingen gamle numeriske eiergater er svekket.
-Neste er én frosset kjøring under producer-vakter og deretter beholdt aritmetikk.
-900s worker/1200s guard;12GiB/512MiB;250W konfigurert/170Wdraw/65C/80C.
+Gamle fullcache-inputs har en annen numerisk eval-kontekst enn short002.
+Ny001observer nå FAILED_CONSUMED etter1forward/16rader. Alle akser/queries/masker
+og første tap er bitlike. Bare rå FP32-output avviker: S94/160felt, maks7,15e-7;
+F102/160felt, maks2,38e-7. M5side begge maks2,98e-8. Hele modellsignaturen
+og kilden522a7462 var uendret. Ingen gradient/optimizer/checkpointskriv.
+RESULT/TERMINAL, controller exit1 og TRAIN_FUSION_PARTIAL.npz er bevart.
+Dette er en målt numerisk reproduksjonsbegrensning, ikke påvist edgefeil.
+Ingen hode-/representasjonsattribusjon er godkjent fra den mislykte fangsten.
+Neste er smal kilde-/retained-output-kontroll av utføringsavviket før eventuell
+ny avgrenset observasjon.001 relanseres aldri; ingen ny kjøring er innrømmet.
+48 fokustester og ekte metadata/cap-gate bestod; de beviste ikke modellparitet.
+Historisk dispatcher er biteksakt gjenopprettet, ingen numerisk eiergate svekket.
 Fullprefix-fit, familiers nytte, senere generalisering og kapasitet er fortsatt
 uavklart. Alle numeriske modell-/loss-/featureeiere er uendret.
