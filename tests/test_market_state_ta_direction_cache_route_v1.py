@@ -1495,3 +1495,59 @@ def test_temporal_npz_aggregate_cap_is_explicit_and_does_not_expand_old_route(tm
     # Exact 512-row tensor budget leaves room for axes, NPZ headers and row0 baseline.
     tensor_bytes=4*512*(250*128+160)
     assert tensor_bytes==65_863_680 and 64*1024**2-tensor_bytes>1024**2
+
+
+def test_mixing_gradient_exact_plan_and_dispatch(monkeypatch):
+    from gx1.audit import cache_market_state_ta_direction_v1 as w
+    plan=dict(fusion_plan(),stage=w.MIXING_GRADIENT_STAGE,inputs=w.MIXING_GRADIENT_REFS,
+        gradient_helper={'path':str(w.MIXING_GRADIENT_HELPER),'sha256':'a'*64},**w.MIXING_GRADIENT_BOUNDS)
+    root=w.MIXING_GRADIENT_ROOT;path=root/'PLAN.json'
+    assert w._fusion_plan(plan,path,root,gradient=True)==plan
+    for key,value in [('max_backbone_encodings',18),('max_autograd_grad_calls',65),
+            ('max_backwards',0),('max_optimizer_updates',1),('gradient_fit_authorized',True),
+            ('feature_partition','score'),('batch_equal_length_mtf_eval',True),
+            ('parameter_groups',['cross_tf_attn']),('closure_relative_tolerance',1e-3),
+            ('runtime_mode','train'),('head_tensor_imports',0)]:
+        with pytest.raises(RuntimeError,match='FUSION_EXACT_PLAN'):
+            w._fusion_plan({**plan,key:value},path,root,gradient=True)
+    with pytest.raises(RuntimeError,match='FUSION_EXACT_PLAN'):
+        w._fusion_plan(plan,w.FUSION_ROOT/'PLAN.json',w.FUSION_ROOT,gradient=True)
+    with pytest.raises(RuntimeError,match='FUSION_MODE'):
+        w._fusion_plan(plan,path,root,gradient=True,temporal=True)
+    calls=[]
+    monkeypatch.setattr(w,'_inspect_fusion_observation',lambda *a,**kw:
+        calls.append(('inspect',kw)) or dict(plan_ref={},view={'contract_sha256':'a'*64},current_sources={}))
+    monkeypatch.setattr(w,'_run_mixing_gradient_observation',lambda *a,**kw:calls.append(('run',kw)) or {'synthetic':True})
+    report=w.preflight_read_only(path,'a'*64,root)
+    assert report['archive_decodes']==report['backbone_encodings']==report['model_constructions']==report['autograd_grad_calls']==0
+    assert w.run(path,'a'*64,root,device='cuda')=={'synthetic':True}
+    assert calls==[('inspect',{'execute':False,'gradient':True}),('run',{'device':'cuda'})]
+
+
+def test_mixing_gradient_geometry_distinguishes_conflict_and_zero():
+    import torch
+    from gx1.audit import cache_market_state_ta_direction_v1 as w
+    make=lambda values:torch.tensor(values,dtype=torch.float64)
+    v=dict(state_m5_side=make([1.,0.]),future_m5_side=make([0.,0.]),
+        rest=make([-2.,1.]),total=make([-1.,1.]))
+    m=w._mixing_vector_summary(v,torch=torch)
+    assert m['combined_m5_dot_rest']==-2 and m['combined_m5_dot_total']==-1
+    assert m['cosine']['state_m5_side']['future_m5_side'] is None
+    assert m['combined_m5_norm']==1
+    with pytest.raises(RuntimeError,match='GRADIENT_VECTORS'):
+        w._mixing_vector_summary({**v,'rest':make([float('nan'),0.])},torch=torch)
+
+
+@pytest.mark.parametrize('complete',[True,False])
+def test_mixing_gradient_json_bound_covers_actual_success_and_failure_bytes(tmp_path,complete):
+    import json
+    from gx1.audit import cache_market_state_ta_direction_v1 as w
+    (tmp_path/'CLAIM.json').write_text('{}\n')
+    payload=dict(source_unchanged=True,diagnostic={'x':'long enough to expose pretty-print and wrapper overhead'})
+    with pytest.raises(RuntimeError,match='GRADIENT_JSON_BOUND'):
+        w._publish_fusion_outcome({},payload,complete=complete,root=tmp_path,json_bytes_bound=128)
+    assert not (tmp_path/'RESULT.json').exists() and not (tmp_path/'TERMINAL.json').exists()
+    w._publish_fusion_outcome({},payload,complete=complete,root=tmp_path,json_bytes_bound=4096)
+    actual=sum((tmp_path/n).stat().st_size for n in ('CLAIM.json','RESULT.json','TERMINAL.json'))
+    assert 128<actual<=4096
+    assert json.loads((tmp_path/'RESULT.json').read_text())['status']==('COMPLETE' if complete else 'FAILED_CONSUMED')

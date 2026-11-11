@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-11T15:05:17.259583+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_ENCODERS_UPDATED_SHARED_OBJECTIVE_NEXT",
+  "observed_utc": "2026-11-11T15:28:33.895003+00:00",
+  "status": "TA_DIRECTION_EDGE_CAUSE_MIXING_GRADIENT_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Inspect the existing exact loss/gradient owners and reuse the current immutable checkpoints, masks and queries. Prepare the smallest fixed TRAIN-only comparison of gradient contributions if existing evidence lacks it. No optimizer steps, model change, feature deletion, later-target selection or repeated routing/fusion captures.",
+  "next_action": "Execute the single admitted local mixing-gradient observation, then review saved geometry and fresh baseline parity without fitting.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1698,7 +1698,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Temporal boundary and encoder runtime-learning audits complete; no job or unconsumed plan.",
+    "current_activity": "Exact TRAIN-only mixing-gradient observation admitted once; no execution yet.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -9222,7 +9222,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Inspect the existing exact loss/gradient owners and reuse the current immutable checkpoints, masks and queries. Prepare the smallest fixed TRAIN-only comparison of gradient contributions if existing evidence lacks it. No optimizer steps, model change, feature deletion, later-target selection or repeated routing/fusion captures.",
+    "next_action": "Execute the single admitted local mixing-gradient observation, then review saved geometry and fresh baseline parity without fitting.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22137,7 +22137,7 @@
     },
     "direction_edge_cause_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "8b0ddff0c1dcb14c498677d6e4d92bd1c8cae659059c2b68357b4d72eee6056e"
+      "sha256": "1f1f92108488839b604e4604e5c226b44ae3b9d2421976aba76e5b4077176cd5"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -75477,22 +75477,22 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_SHARED_DIRECTION_LEARNING_DIAGNOSIS",
+    "status": "ACTIVE_MIXING_GRADIENT_OBSERVATION_ADMITTED",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
     "training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "8b0ddff0c1dcb14c498677d6e4d92bd1c8cae659059c2b68357b4d72eee6056e"
+      "sha256": "1f1f92108488839b604e4604e5c226b44ae3b9d2421976aba76e5b4077176cd5"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": false,
+    "model_or_data_run_admitted": true,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Inspect the existing exact loss/gradient owners and reuse the current immutable checkpoints, masks and queries. Prepare the smallest fixed TRAIN-only comparison of gradient contributions if existing evidence lacks it. No optimizer steps, model change, feature deletion, later-target selection or repeated routing/fusion captures.",
-    "active_stage": null,
+    "next_action": "Execute the single admitted local mixing-gradient observation, then review saved geometry and fresh baseline parity without fitting.",
+    "active_stage": "market_state_ta_mixing_gradient_observation_20261111_001",
     "previous_goal_turn_classification": "PROGRESS: retained MTFintervention andinputsupport review ruledout an unsupported harmful-MTF or generalnormalization-collapse change; nextactualboundarymeasurement identified.",
     "last_goal_turn_classification": "PROGRESS: passive 512-row temporal capture localized mixing-stage attenuation; a two-checkpoint CPU audit then proved actual updates and historical gradient flow in all 11 encoders / 228 tensors. Systematic mean/last cancellation and absent encoder updates ruled out; no model change or training justified solely by variance."
   },
@@ -75976,5 +75976,82 @@
       "predictor_fits": 0
     },
     "source_unchanged_at_terminal": true
+  },
+  "market_state_ta_mixing_gradient_observation_20261111_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MIXING_GRADIENT_OBSERVATION_20261111_001/PLAN.json",
+      "sha256": "daee8105bb54069817c67892c6f607b06cc6be845f131c1fd8840e3f9fcbaec3"
+    },
+    "max_invocations": 1,
+    "remaining_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "backbone_encodings_authorized": 17,
+    "head_tensor_imports_authorized": 4,
+    "candidate_weights_writes_authorized": 0,
+    "backward_calls_authorized": 64,
+    "optimizer_steps_authorized": 0,
+    "training_authorized": false,
+    "gradient_observations_authorized": true,
+    "later_feature_reads_authorized": false,
+    "batch_equal_length_mtf_eval": false,
+    "batch_selection": "uniform_complete_batches_floor_i_times_last_over_15",
+    "batch_size": 16,
+    "batches_per_partition": 16,
+    "candidate_model_state_sha256": "c171736d2de79396dd86a79ad895f8bf2226e5ad8d996abf1dd7f52055e4a467",
+    "closure_relative_tolerance": 0.0001,
+    "decoder_width": 128,
+    "device": "cuda",
+    "feature_partition": "fit",
+    "fit_rows": 29574,
+    "gradient_fit_authorized": false,
+    "head_tensor_imports": 4,
+    "max_archive_decodes": 1,
+    "max_autograd_grad_calls": 64,
+    "max_backbone_encodings": 17,
+    "max_backwards": 64,
+    "max_cache_bytes": 16777216,
+    "max_candidate_writes": 0,
+    "max_checkpoint_loads": 1,
+    "max_checkpoint_writes": 0,
+    "max_gradient_forwards": 16,
+    "max_model_constructions": 1,
+    "max_optimizer_constructions": 0,
+    "max_optimizer_updates": 0,
+    "max_published_json_bytes": 1048576,
+    "max_retained_gradient_bytes": 67108864,
+    "parameter_groups": [
+      "family_axis_attn",
+      "timeframe_axis_attn",
+      "cross_tf_attn"
+    ],
+    "parameter_tensors": 36,
+    "runtime_mode": "eval_fixed_sampled_training_queries",
+    "sampled_rows_per_partition": 256,
+    "scalar_fits": 0,
+    "score_rows": 17753,
+    "test_data_used": false,
+    "training_enabled": false,
+    "wall_seconds": 900,
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MIXING_GRADIENT_OBSERVATION_20261111_001/PREFLIGHT.log",
+      "sha256": "bd32b8c4799f36ff2cf8cc473b684de0a572ee2bdbd14eb17c6c399930b4ca8c"
+    },
+    "focused_route_tests_passed": 83,
+    "final_gradient_and_json_bound_tests_passed": 4,
+    "synthetic_gradient_tests_passed": 11,
+    "retained_output_arithmetic_authorized": true,
+    "retained_output_fit_authorized": false,
+    "retained_analysis": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MIXING_GRADIENT_OBSERVATION_20261111_001/REVIEW_PUBLISHED_GEOMETRY.py",
+      "sha256": "3274f54f34e1ba855bce74b8da1d055308f152815d83cbbd5e53fc94a8304d5c"
+    },
+    "scope": "One current-c171 local eval-mode gradient observation on 16 fixed intact B16 TRAIN groups. Reuse exact sampled-S/native-F loss; split original logit derivatives into S/M5 side, F/M5 side and rest. Four autograd calls per graph on only three shared axis encoders. Fresh no-grad/grad output bit-parity required. No optimizer or updates.",
+    "standing_authority": "Explicit 11 November direction-edge cause goal; one new source-bound diagnostic only, without training or later-feature access."
   }
 }

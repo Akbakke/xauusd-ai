@@ -6,13 +6,14 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_ENCODERS_UPDATED_SHARED_OBJECTIVE_NEXT.
+TA_DIRECTION_EDGE_CAUSE_MIXING_GRADIENT_ADMITTED.
 Målet fra 11.11 er aktivt: isoler målte årsaker til svak retningslæring i
 indikatorer, sammensetting og læring. [Årsaksstatus](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json).
 Korte runder er feilsøking, ikke kapasitetsdom. Full kvalifisert TRAIN-historikk
 og 30–40 epoker er senere skalering, ikke et krav ved hver rettelse.
 Alle trenings-/launchporter er false. Ingen jobb lever. Fem diagnostiske
-planer er COMPLETE og konsumert. Ingen ny kjøring er innrømmet.
+planer er COMPLETE og konsumert. Én gradientobservasjon er innrømmet,
+uten optimizersteg eller trening.
 GC er på pause; TEST, Entry/Exit, broker, handel og promotion er stengt.
 Alle genuine indikatorer og M5/M15/H1/H4/D1-input beholdes.
 
@@ -73,11 +74,25 @@ gradientflyt til hver tensor og faktisk parameterendring, ikke nyttig læring
 eller ikke-null gradient i hvert element ved hvert steg. Relativ L2-endring
 per encodergruppe er 4,11–8,31 prosent av initialnormen.
 
-Neste arbeid går direkte på delte læringsmål: den gamle 4096-raders kontrasten
-viste bedre samlet loss samtidig med dårligere M5-sideledd. Undersøk eksisterende
-loss-/gradienteiere og forbered ved behov den minste faste TRAIN-kontrollen av
-M5-retningens gradientbidrag mot resten av objective i de samme blandingslagene.
-Gjenbruk eksakte checkpoints, masker og queryer. Ingen optimizersteg, sletting
-av indikatorer eller arkitekturendring følger av disse funnene. Ingen ny kjøring
-er innrømmet; ingen gjentakelse av rute-, fusion- eller encoder-deltakontrollene.
-Endpointregnskap alene beviser ikke den historiske optimizerårsaken.
+Neste kontroll er innrømmet én gang:
+MARKET_STATE_TA_MIXING_GRADIENT_OBSERVATION_20261111_001.
+PLAN daee8105; metadata-preflight bd32b8c4. Samme c171-kandidat, eval-modus,
+16 tidligere faste intakte B16 TRAIN-grupper, originale sampled-S/native-F-queryer.
+17 forwards inkluderer én fersk no-grad-baseline, som må bli bitlik grad-forward.
+Original loss-gradient til logits deles i S/M5-side, F/M5-side og resten.
+Tre VJP-er pluss direkte totalgradient per graf gir 64 autograd-kall mot bare
+36 parametertensorer i family_axis/timeframe_axis/cross_tf. Ingen optimizer,
+parameteroppdatering, dropout eller senere featurelesing. Alle øvrige parametre
+forblir frosne; modelltilstand og midlertidig trainability kontrolleres ved slutt.
+
+83 rutetester og 11 gradienttester bestod. Etter eksakt JSON-bytebegrensning
+bestod 4 berørte tester. Maks 12 GiB, 900 sekunder, 64 MiB beholdte gradienter,
+1 MiB samlet CLAIM/RESULT/TERMINAL. Gradientvektorer publiseres ikke.
+Sum av gradientbidrag må stemme med direkte totalgradient innen den bundne
+FP32-grensen. Manglende derivat og eksakt null rapporteres atskilt.
+
+Presisering: den tidligere 4096-raders tapskontrasten var INTERLEAVED minus
+CONTROL, ikke INITIAL mot dagens R1. Den viste bedre samlet loss og dårligere
+M5-sideledd, men beviser ikke historisk optimizerårsak. Den nye kontrollen
+måler lokal gradientfordeling ved dagens korrigerte hoder. Den simulerer ikke
+AdamW og begrunner ingen modellendring eller sletting av indikatorer alene.

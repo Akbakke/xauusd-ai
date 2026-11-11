@@ -490,6 +490,12 @@ def _inspect(plan_path, plan_sha256, out_dir, *, execute):
 
 
 def preflight_read_only(plan_path, plan_sha256, out_dir):
+    if Path(plan_path) == MIXING_GRADIENT_ROOT/'PLAN.json' or Path(out_dir) == MIXING_GRADIENT_ROOT:
+        checked = _inspect_fusion_observation(plan_path, plan_sha256, out_dir, execute=False, gradient=True)
+        return dict(status='READY_NO_CLAIM_NO_MODEL_NO_ARRAY_DESERIALIZATION',plan=checked['plan_ref'],
+            view_sha256=checked['view']['contract_sha256'],model_constructions=0,backbone_encodings=0,
+            archive_decodes=0,autograd_grad_calls=0,current_source_owners=len(checked['current_sources']),
+            changed_owners=[CAP_RUNNER],scalar_fits=0,test_data_used=False)
     if Path(plan_path) == TEMPORAL_ROOT/'PLAN.json' or Path(out_dir) == TEMPORAL_ROOT:
         checked = _inspect_fusion_observation(plan_path, plan_sha256, out_dir, execute=False, temporal=True)
         return dict(status='READY_NO_CLAIM_NO_MODEL_NO_ARRAY_DESERIALIZATION',plan=checked['plan_ref'],
@@ -586,6 +592,8 @@ def _save_cache(partition, arrays, rows, *, partial=False, root=ROOT):
 
 
 def run(plan_path, plan_sha256, out_dir, *, device):
+    if Path(plan_path) == MIXING_GRADIENT_ROOT/'PLAN.json' or Path(out_dir) == MIXING_GRADIENT_ROOT:
+        return _run_mixing_gradient_observation(plan_path, plan_sha256, out_dir, device=device)
     if Path(plan_path) == TEMPORAL_ROOT/'PLAN.json' or Path(out_dir) == TEMPORAL_ROOT:
         return _run_fusion_observation(plan_path, plan_sha256, out_dir, device=device, temporal=True)
     if Path(plan_path) == MTF_RETAINED_ROOT/'PLAN.json' or Path(out_dir) == MTF_RETAINED_ROOT:
@@ -2191,9 +2199,23 @@ TEMPORAL_BOUNDS = dict(FUSION_BOUNDS,max_cache_bytes=64*1024**2,
     temporal_capture_layout='fp32_mean_last_and_axis_vectors_fp64_window_moments_v1')
 
 
-def _fusion_plan(plan, plan_path, out_dir, *, initial=False, retained=False, temporal=False):
-    _need(all(type(v) is bool for v in (initial,retained,temporal)) and sum((initial,retained,temporal)) <= 1, 'FUSION_MODE')
-    if temporal:
+MIXING_GRADIENT_STAGE = 'market_state_ta_mixing_gradient_observation_20261111_001'
+MIXING_GRADIENT_ROOT = Path('/home/andre2/GX1_RUNS') / MIXING_GRADIENT_STAGE.upper()
+MIXING_GRADIENT_HELPER = REPO/'gx1/audit/ta_direction_mixing_gradient_v1.py'
+MIXING_GRADIENT_REFS = dict(FUSION_REFS)
+MIXING_GRADIENT_BOUNDS = dict(FUSION_BOUNDS,max_backbone_encodings=17,max_backwards=64,
+    feature_partition='fit',max_archive_decodes=1,max_gradient_forwards=16,max_autograd_grad_calls=64,
+    parameter_groups=['family_axis_attn','timeframe_axis_attn','cross_tf_attn'],parameter_tensors=36,
+    max_retained_gradient_bytes=64*1024**2,max_published_json_bytes=1024**2,
+    batch_equal_length_mtf_eval=False,closure_relative_tolerance=1e-4,
+    runtime_mode='eval_fixed_sampled_training_queries',gradient_fit_authorized=False)
+
+
+def _fusion_plan(plan, plan_path, out_dir, *, initial=False, retained=False, temporal=False, gradient=False):
+    _need(all(type(v) is bool for v in (initial,retained,temporal,gradient)) and sum((initial,retained,temporal,gradient)) <= 1, 'FUSION_MODE')
+    if gradient:
+        stage, root, refs, bounds = MIXING_GRADIENT_STAGE, MIXING_GRADIENT_ROOT, MIXING_GRADIENT_REFS, MIXING_GRADIENT_BOUNDS
+    elif temporal:
         stage, root, refs, bounds = TEMPORAL_STAGE, TEMPORAL_ROOT, TEMPORAL_REFS, TEMPORAL_BOUNDS
     elif retained:
         stage, root, refs, bounds = MTF_RETAINED_STAGE, MTF_RETAINED_ROOT, MTF_RETAINED_REFS, MTF_RETAINED_BOUNDS
@@ -2202,7 +2224,7 @@ def _fusion_plan(plan, plan_path, out_dir, *, initial=False, retained=False, tem
     else:
         stage, root, refs, bounds = FUSION_STAGE, FUSION_ROOT, FUSION_REFS, FUSION_BOUNDS
     fields = {'schema_version', 'stage', 'source_repo', 'source_base_commit', 'worker',
-              'dispatch', 'cap_runner', 'runtime_source_override', 'inputs'} | set(bounds)
+              'dispatch', 'cap_runner', 'runtime_source_override', 'inputs'} | set(bounds) | ({'gradient_helper'} if gradient else set())
     _need(isinstance(plan, dict) and set(plan) == fields and plan['schema_version'] == FUSION_SCHEMA
           and plan['stage'] == stage and plan['source_repo'] == str(REPO)
           and Path(plan_path) == root/'PLAN.json' and Path(out_dir) == root
@@ -2279,13 +2301,16 @@ def _qualify_fusion_trained_panels(refs):
           'FUSION_INITIAL_MATCHED_TRAINED_METADATA')
 
 
-def _inspect_fusion_observation(plan_path, plan_sha256, out_dir, *, execute, initial=False, retained=False, temporal=False):
+def _inspect_fusion_observation(plan_path, plan_sha256, out_dir, *, execute, initial=False, retained=False, temporal=False, gradient=False):
     pr = {'path': str(plan_path), 'sha256': plan_sha256}
-    plan = _fusion_plan(_read(pr), plan_path, out_dir, initial=initial, retained=retained, temporal=temporal); refs = plan['inputs']; bound = [pr]
-    bounds = TEMPORAL_BOUNDS if temporal else MTF_RETAINED_BOUNDS if retained else FUSION_INITIAL_BOUNDS if initial else FUSION_BOUNDS; root = Path(out_dir)
+    plan = _fusion_plan(_read(pr), plan_path, out_dir, initial=initial, retained=retained, temporal=temporal, gradient=gradient); refs = plan['inputs']; bound = [pr]
+    bounds = MIXING_GRADIENT_BOUNDS if gradient else TEMPORAL_BOUNDS if temporal else MTF_RETAINED_BOUNDS if retained else FUSION_INITIAL_BOUNDS if initial else FUSION_BOUNDS; root = Path(out_dir)
     for key, path in (('worker', WORKER), ('dispatch', REPO/DISPATCH), ('cap_runner', REPO/CAP_RUNNER)):
         _need(plan[key]['path'] == str(path), 'FUSION_SOURCE_PATH:' + key)
         campaign.require_binding(plan[key], label=key, verify_file=True); bound.append(plan[key])
+    if gradient:
+        _need(plan['gradient_helper']['path'] == str(MIXING_GRADIENT_HELPER), 'GRADIENT_HELPER_PATH')
+        campaign.require_binding(plan['gradient_helper'],label='gradient helper',verify_file=True);bound.append(plan['gradient_helper'])
     for key, ref in refs.items():
         campaign.require_binding(ref, label='fusion input '+key, verify_file=True); bound.append(ref)
     q = _qualify_reversed_origin(plan, bound)
@@ -2330,6 +2355,9 @@ def _inspect_fusion_observation(plan_path, plan_sha256, out_dir, *, execute, ini
             backward_calls_authorized=0, optimizer_steps_authorized=0, training_authorized=False)
         if retained:
             expected['pure_joint_decodes_authorized'] = 64
+        if gradient:
+            expected.update(backward_calls_authorized=64,gradient_observations_authorized=True,
+                later_feature_reads_authorized=False)
         _need(all(type(gate.get(k)) is type(v) and gate[k] == v for k,v in expected.items())
               and all(type(gate.get(k)) is type(v) and gate[k] == v for k,v in bounds.items()),
               'FUSION_ADMISSION')
@@ -2356,6 +2384,7 @@ def _save_fusion_arrays(name, arrays, counts, *, np, root=None, max_bytes=None):
                    'TRAIN_FUSION_PARTIAL.npz','LATER_FUSION_PARTIAL.npz','TRAIN_MTF_MEANS.npz',
                    'TRAIN_INTERVENTION.npz','LATER_INTERVENTION.npz','TRAIN_INTERVENTION_PARTIAL.npz',
                    'LATER_INTERVENTION_PARTIAL.npz','BASELINE_PARITY_FAILURE.npz',
+                   'TRAIN_GRADIENT_BASELINE.npz','TRAIN_GRADIENT_FORWARD.npz',
                    'TRAIN_TEMPORAL_BOUNDARY.npz','LATER_TEMPORAL_BOUNDARY.npz',
                    'TRAIN_TEMPORAL_BOUNDARY_PARTIAL.npz','LATER_TEMPORAL_BOUNDARY_PARTIAL.npz') and bool(arrays), 'FUSION_ARTIFACT_NAME')
     buf = io.BytesIO(); np.savez(buf, **arrays)
@@ -2366,17 +2395,24 @@ def _save_fusion_arrays(name, arrays, counts, *, np, root=None, max_bytes=None):
     return _ref(root/name)
 
 
-def _publish_fusion_outcome(plan_ref, payload, *, complete, root=None):
+def _publish_fusion_outcome(plan_ref, payload, *, complete, root=None, json_bytes_bound=None):
     root = FUSION_ROOT if root is None else root
     _need(type(complete) is bool, 'FUSION_OUTCOME_TYPE')
     status = 'COMPLETE' if complete else 'FAILED_CONSUMED'
-    result = _publish('RESULT.json', dict(payload, status=status, plan=plan_ref,
-        training_enabled=False, test_data_used=False, predictive_value_claimed=False,
-        promotion_authorized=False, canonical_resume_authority=False), root=root)
-    terminal = _publish('TERMINAL.json', dict(status=status, exit_code=0 if complete else 1,
-        plan=plan_ref, result=result, source_unchanged=payload['source_unchanged'],
-        no_relaunch_under_this_plan=True, test_data_used=False), root=root)
-    return dict(result=result, terminal=terminal)
+    value = dict(payload,status=status,plan=plan_ref,training_enabled=False,test_data_used=False,
+        predictive_value_claimed=False,promotion_authorized=False,canonical_resume_authority=False)
+    def terminal_value(result):
+        return dict(status=status,exit_code=0 if complete else 1,plan=plan_ref,result=result,
+            source_unchanged=payload['source_unchanged'],no_relaunch_under_this_plan=True,test_data_used=False)
+    if json_bytes_bound is not None:
+        _need(type(json_bytes_bound) is int and json_bytes_bound > 0, 'GRADIENT_JSON_BOUND_TYPE')
+        encode=lambda data:(json.dumps(data,sort_keys=True,indent=2,allow_nan=False)+'\n').encode()
+        raw=encode(value);preview=dict(path=str(root/'RESULT.json'),sha256=hashlib.sha256(raw).hexdigest())
+        claim_bytes=(root/'CLAIM.json').stat().st_size
+        _need(claim_bytes+len(raw)+len(encode(terminal_value(preview))) <= json_bytes_bound,'GRADIENT_JSON_BOUND')
+    result = _publish('RESULT.json',value,root=root)
+    terminal = _publish('TERMINAL.json',terminal_value(result),root=root)
+    return dict(result=result,terminal=terminal)
 
 
 def _run_fusion_observation(plan_path, plan_sha256, out_dir, *, device, initial=False, retained=False, temporal=False):
@@ -2803,3 +2839,181 @@ def _run_retained_mtf_panels(model, checked, counts, artifacts, passivity, *, np
         primary_cells=['TRAIN/state/M5','TRAIN/future/M5','LATER/state/M5','LATER/future/M5'],
         intervention=MTF_RETAINED_BOUNDS['intervention'],mean_arithmetic=MTF_RETAINED_BOUNDS['mean_arithmetic'],
         baseline_tolerance_fallback=False,backbone_tripwire_installed=True,model_change_recommended=False)
+
+
+def _mixing_vector_summary(vectors, *, torch):
+    """FP64 geometry only; no optimizer or parameter update is simulated."""
+    names = ('state_m5_side','future_m5_side','rest','total')
+    _need(set(vectors) == set(names) and all(v.dtype == torch.float64 and v.device.type == 'cpu'
+          and v.ndim == 1 and bool(torch.isfinite(v).all()) for v in vectors.values()), 'GRADIENT_VECTORS')
+    norms = {n:float(torch.linalg.vector_norm(vectors[n])) for n in names}
+    dot = {a:{b:float(torch.dot(vectors[a],vectors[b])) for b in names} for a in names}
+    cosine = {a:{b:None if norms[a]*norms[b] == 0 else dot[a][b]/(norms[a]*norms[b]) for b in names} for a in names}
+    m5 = vectors['state_m5_side'] + vectors['future_m5_side'];m5norm = float(torch.linalg.vector_norm(m5))
+    return dict(norms=norms,dot=dot,cosine=cosine,combined_m5_norm=m5norm,
+        combined_m5_dot_rest=float(torch.dot(m5,vectors['rest'])),
+        combined_m5_dot_total=float(torch.dot(m5,vectors['total'])),
+        combined_m5_cosine_rest=None if m5norm*norms['rest']==0 else float(torch.dot(m5,vectors['rest']))/(m5norm*norms['rest']),
+        interpretation='Negative gradient dot products indicate local opposing Euclidean directions. They do not predict an AdamW step or establish a historical training cause.')
+
+
+def _run_mixing_gradient_observation(plan_path, plan_sha256, out_dir, *, device):
+    import numpy as np
+    import torch
+    from gx1.audit.ta_direction_mixing_gradient_v1 import measure_mixing_gradient_partition, CLOSURE_RELATIVE_L2_LIMIT
+    from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_producer_execution, require_capped_lock_ancestry
+    from gx1.audit import qualify_market_state_mature_prefix_normalization_v1 as base
+    from gx1.audit.run_market_state_ta_m5_full_reverse_order_v1 import build_reverse_order
+    from gx1.contracts import entry_native_direction_feature_view_v1 as views
+    from gx1.contracts import entry_native_direction_research_state_v1 as old
+    from gx1.contracts import market_state_time_query_fold1_fit_state_v1 as state
+    from gx1.contracts import market_state_time_query_fold1_fit_v1 as fit
+    from gx1.contracts.market_state_time_query_native_F_model_v1 import NativeFutureDualModel
+    from gx1.contracts.market_state_time_query_binding_v1 import load_bound_time_query_targets
+    from gx1.contracts.market_state_future_displacement_candidate_v1 import load_bound_future_displacement
+    from gx1.contracts.market_state_time_query_native_F_batch_v1 import evaluate_fit_batch
+    from gx1.contracts.market_state_time_query_native_F_objective_v1 import require_m5_equal_observation_axes
+    from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256 as model_sha
+    from gx1.scripts import run_market_state_time_query_fold1_fit_window_v1 as runner
+    from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+    from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import _BATCH_EQUAL_LENGTH_MTF_EVAL
+    started=time.monotonic();_need(device=='cuda','GRADIENT_CUDA_ONLY')
+    cap=require_guarded_cuda_producer_execution();cap['lock']=require_capped_lock_ancestry()
+    _need(cap['cgroup_path']=='/sys/fs/cgroup'+cap['lock']['scope'] and cap['memory_max']==cap['memory_high']==12*1024**3
+          and cap['swap']==512*1024**2,'GRADIENT_CAP')
+    for key,value in (('MAX_POWER_LIMIT_W','250'),('MAX_POWER_DRAW_W','170'),('MAX_CORE_TEMP_C','65'),('MAX_MEMORY_TEMP_C','80')):
+        _need(os.environ.get('GX1_TRAINER_GPU_'+key)==value,'GRADIENT_HARDWARE:'+key)
+    q=_inspect_fusion_observation(plan_path,plan_sha256,out_dir,execute=True,gradient=True)
+    root=Path(out_dir);bounds=q['plan'];refs=bounds['inputs']
+    _need(CLOSURE_RELATIVE_L2_LIMIT == bounds['closure_relative_tolerance'],'GRADIENT_CLOSURE_BINDING')
+    claim=_publish('CLAIM.json',dict(plan=q['plan_ref'],source_commit=q['head'],max_invocations=1,
+        no_relaunch_under_this_plan=True,test_data_used=False),root=root)
+    counts=dict(model_constructions=0,checkpoint_loads=0,backbone_encodings=0,forward_returns=0,
+        gradient_forwards=0,archive_decodes=0,head_tensor_imports=0,autograd_grad_calls=0,backwards=0,
+        optimizer_constructions=0,optimizer_updates=0,checkpoint_writes=0,candidate_writes=0,
+        resume_state_load_calls=0,resume_state_load_returns=0,published_npz_bytes=0,sampled_rows=0,scalar_fits=0)
+    provider=prepared=None;model=None;selected=[];artifacts={};records=[];sums={};candidate=None;passivity={}
+    previous_alarm=signal.getsignal(signal.SIGALRM)
+    def timeout(*unused):raise TimeoutError('Mixing gradient observation 900-second bound')
+    signal.signal(signal.SIGALRM,timeout);signal.setitimer(signal.ITIMER_REAL,max(1.,bounds['wall_seconds']-(time.monotonic()-started)))
+    def bookend():
+        campaign.require_clean_source(dict(source_repo=str(REPO),source_commit=q['head']))
+        for ref in q['bound_refs']:campaign.require_binding(ref,label='gradient bookend',verify_file=True)
+        for name,digest in q['current_sources'].items():_need(campaign.file_sha256(REPO/name)==digest,'GRADIENT_OWNER:'+name)
+    try:
+        recipe,receipts,view=(q[k] for k in ('recipe','receipts','view'));numerical=recipe['numerical_recipe'];cuda=torch.device('cuda')
+        trainer._set_deterministic(numerical['seed'],cuda,numerical['precision_policy'])
+        torch.set_num_threads(1);torch.set_num_interop_threads(1)
+        _need(torch.get_num_threads()==torch.get_num_interop_threads()==1 and _BATCH_EQUAL_LENGTH_MTF_EVAL.get() is False,'GRADIENT_RUNTIME')
+        provider,provider_plan,prepared,rows,issues=runner._prepared_fold1(receipts,view,np=np)
+        require_m5_equal_observation_axes(rows,issues)
+        bound,future=load_bound_time_query_targets(),load_bound_future_displacement()
+        counts['model_constructions']+=1
+        backbone=views.build_native_direction_research_model(view,prefix_normalization=receipts['fold1']['normal'],
+            constructor_metadata=receipts['constructor'],device=torch.device('cpu'),unobserved_units_profile=receipts['fold1']['profile'])
+        model=NativeFutureDualModel(backbone)
+        fit.require_checkpoint_view(model.state_model.feature_view_identity,recipe=q['origin']['original_recipe'],verify_files=True,ta_sf=True)
+        counts['checkpoint_loads']+=1
+        saved=common._load_state(refs['reversed_evidence'],torch=torch,maximum=recipe['max_checkpoint_bytes'],counters=counts)
+        order=torch.from_numpy(build_reverse_order(rows,recipe['batch_indices'])[0].copy())
+        source_identity=_load_reversed_weights(model,saved,q,order,torch=torch);del saved
+        model.to(cuda)
+        with np.load(refs['folded_coefficients']['path'],allow_pickle=False) as z:
+            expected={prefix+suffix for prefix in ('state_model.m5_side_head','future_m5_side_head') for suffix in ('.weight','.bias')}
+            _need(set(z.files)==expected,'GRADIENT_COEFFICIENT_KEYS');coefficients={name:torch.from_numpy(z[name].copy()) for name in z.files}
+        counts['archive_decodes']+=1
+        import_proof=state.import_equal_weight_m5_side_heads(model,coefficients,expected_model_state_sha256=REVERSED_MODEL,
+            coefficient_artifact=refs['folded_coefficients'],coefficient_recipe=refs['candidate_plan']);counts['head_tensor_imports']=4
+        def signature():
+            return dict(model=model_sha(model.state_dict()),buffers=old._tree_sha(dict(model.named_buffers())),
+                rng=old._tree_sha(trainer._attended_session_rng_state(device=cuda)),
+                modes={n:bool(m.training) for n,m in model.named_modules()},
+                trainability={n:p.requires_grad for n,p in model.named_parameters()},
+                parameter_identity={n:id(p) for n,p in model.named_parameters()},
+                hooks={n:(tuple(m._forward_hooks),tuple(m._forward_pre_hooks)) for n,m in model.named_modules()})
+        candidate=signature();_need(candidate['model']==bounds['candidate_model_state_sha256']
+            and not any(candidate['trainability'].values()) and not any(candidate['modes'].values()),'GRADIENT_FROZEN_CANDIDATE')
+        all_parameters=dict(model.named_parameters());groups={}
+        for group in bounds['parameter_groups']:
+            prefix='state_model.backbone.'+group+'.';groups[group]=[(n,p) for n,p in all_parameters.items() if n.startswith(prefix)]
+            _need(len(groups[group])==12,'GRADIENT_PARAMETER_GROUP:'+group)
+        selected=[p for values in groups.values() for _,p in values]
+        _need(len(selected)==len({id(p) for p in selected})==bounds['parameter_tensors'],'GRADIENT_PARAMETER_SCOPE')
+        for p in selected:p.requires_grad_(True)
+        def forward(left,gradient):
+            _need(counts['backbone_encodings']<bounds['max_backbone_encodings'] and _BATCH_EQUAL_LENGTH_MTF_EVAL.get() is False,'GRADIENT_FORWARD_BOUND')
+            raw,parents,clocks=runner._feature_batch(prepared,view,receipts,rows,issues,left,left+BATCH_SIZE,np=np)
+            _need(len(parents)==BATCH_SIZE and np.array_equal(parents,rows[left:left+BATCH_SIZE])
+                  and np.array_equal(clocks,issues[left:left+BATCH_SIZE]),'GRADIENT_INTACT_BATCH')
+            features={k:torch.from_numpy(v).to(cuda) for k,v in raw.items()};counts['backbone_encodings']+=1
+            with torch.set_grad_enabled(gradient),trainer._training_mha_fastpath_context(model.backbone),                 trainer._training_autocast_context(),trainer._training_model_finite_check_context():
+                _need(torch.backends.mha.get_fastpath_enabled() is False,'GRADIENT_FASTPATH_PROFILE')
+                report=evaluate_fit_batch(model,features,bound,future,parents,clocks,fold_id=1,pass_index=0,
+                    seed=numerical['seed'],future_weight=1.,m5_equal_observation=True,fit_batch_start=left)
+            counts['forward_returns']+=1
+            if gradient:counts['gradient_forwards']+=1
+            _need(report['model_contract_sha256']==recipe['expected_model_contract_sha256'] and report['loss_contract_sha256']==recipe['expected_loss_contract_sha256']
+                  and report['skip_update'] is False and bool(torch.isfinite(report['loss'])),'GRADIENT_CANONICAL_LOSS')
+            arrays={k:report[k].detach().cpu().numpy().copy() for k in ('state_activity_side_logits','future_activity_side_logits','state_log_probs','future_log_probs')}
+            arrays.update({k:report[k].copy() for k in ('state_query_k','future_native_k','state_allowed','future_allowed','state_mature','future_mature')})
+            arrays.update(parents=parents.copy(),issues=clocks.copy(),loss=np.asarray(float(report['loss'].detach()),dtype=np.float32))
+            return report,arrays
+        indices=_fusion_batch_indices(FIT_ROWS)
+        baseline_report,baseline=forward(indices[0]*BATCH_SIZE,False);del baseline_report
+        artifacts['baseline']=_save_fusion_arrays('TRAIN_GRADIENT_BASELINE.npz',baseline,counts,np=np,root=root)
+        for group_index,batch_index in enumerate(indices):
+            report,arrays=forward(batch_index*BATCH_SIZE,True)
+            if group_index==0:
+                artifacts['gradient_forward']=_save_fusion_arrays('TRAIN_GRADIENT_FORWARD.npz',arrays,counts,np=np,root=root)
+                passivity['fresh_no_grad_matches_gradient_forward_bitexact']=_fusion_exact_arrays(arrays,baseline)
+                _need(passivity['fresh_no_grad_matches_gradient_forward_bitexact'],'GRADIENT_FRESH_BASELINE_PARITY')
+            _need(counts['autograd_grad_calls']+4<=bounds['max_autograd_grad_calls'],'GRADIENT_AUTOGRAD_BOUND')
+            with torch.enable_grad():
+                measurement,vectors=measure_mixing_gradient_partition(report,groups,counts=counts,torch=torch)
+            counts['backwards']=counts['autograd_grad_calls'];counts['sampled_rows']+=BATCH_SIZE
+            geometry={group:_mixing_vector_summary(v,torch=torch) for group,v in vectors.items()}
+            for group,v in vectors.items():
+                if group not in sums:sums[group]={arm:x.clone() for arm,x in v.items()}
+                else:
+                    for arm,x in v.items():sums[group][arm].add_(x)
+            retained=sum(x.numel()*x.element_size() for collection in (vectors,sums) for values in collection.values() for x in values.values())
+            _need(retained<=bounds['max_retained_gradient_bytes'],'GRADIENT_RETAINED_BYTES')
+            records.append(dict(batch_index=batch_index,rows=BATCH_SIZE,loss=float(report['loss'].detach()),
+                state_per_tf_counts=report['state_per_tf_counts'],future_per_tf_counts=report['future_per_tf_counts'],
+                measurement=measurement,geometry=geometry))
+            del report,arrays,vectors,measurement
+            _need(all(p.grad is None for p in model.parameters()),'GRADIENT_NO_ACCUMULATED_GRAD')
+        means={group:{arm:x/len(indices) for arm,x in values.items()} for group,values in sums.items()}
+        aggregate={group:_mixing_vector_summary(v,torch=torch) for group,v in means.items()}
+        for p in selected:p.requires_grad_(False)
+        _need(signature()==candidate and all(p.grad is None for p in model.parameters()),'GRADIENT_MODEL_UNCHANGED')
+        expected=dict(model_constructions=1,checkpoint_loads=1,backbone_encodings=17,forward_returns=17,
+            gradient_forwards=16,archive_decodes=1,head_tensor_imports=4,autograd_grad_calls=64,backwards=64,
+            optimizer_constructions=0,optimizer_updates=0,checkpoint_writes=0,candidate_writes=0,
+            resume_state_load_calls=1,resume_state_load_returns=1,sampled_rows=256,scalar_fits=0)
+        _need(all(counts[k]==v for k,v in expected.items()),'GRADIENT_EXACT_COUNTS')
+        release=prepared;prepared=None;base._release_pages(provider,release);provider.validate_metadata(provider_plan);bookend()
+        payload=dict(claim=claim,counts=counts,artifacts=artifacts,source_commit=q['head'],source_identity=source_identity,
+            import_proof=import_proof,candidate_model_state_sha256=candidate['model'],passivity=passivity,
+            parameter_names={group:[n for n,_ in pairs] for group,pairs in groups.items()},batch_indices=list(indices),
+            batch_records=records,mean_gradient_geometry=aggregate,source_unchanged=True,evaluation_state_unchanged=True,
+            elapsed_seconds=time.monotonic()-started,limitations=['Local eval-mode gradient decomposition at the corrected c171 candidate on fixed TRAIN batches only.',
+                'Sampled-S/native-F query plan and exact original loss normalization retained. Three encoder groups only; no historical optimizer or whole-model conflict claim.',
+                'No dropout, clipping, AdamW, parameter update, predictor fit, feature intervention or later-target selection. Gradient geometry is not edge.'])
+        return _publish_fusion_outcome(q['plan_ref'],payload,complete=True,root=root,json_bytes_bound=bounds['max_published_json_bytes'])
+    except BaseException as exc:
+        counts['backwards']=counts['autograd_grad_calls']
+        for p in selected:p.requires_grad_(False)
+        changed=None
+        try:bookend()
+        except Exception as other:changed=repr(other)
+        result=_publish_fusion_outcome(q['plan_ref'],dict(claim=claim,counts=counts,artifacts=artifacts,batch_records=records,
+            passivity=passivity,failed_gradient_measurement=getattr(exc,'report_json',None),
+            error=type(exc).__name__+':'+str(exc),source_unchanged=changed is None,bookend_error=changed),
+            complete=False,root=root,json_bytes_bound=bounds['max_published_json_bytes'])
+        raise RuntimeError('TA_MIXING_GRADIENT_FAILED_CONSUMED:'+str(result)) from exc
+    finally:
+        for p in selected:p.requires_grad_(False)
+        if prepared is not None:base._release_pages(provider,prepared)
+        signal.setitimer(signal.ITIMER_REAL,0);signal.signal(signal.SIGALRM,previous_alarm)

@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_SHARED_DIRECTION_LEARNING_DIAGNOSIS",
+  "status": "ACTIVE_MIXING_GRADIENT_OBSERVATION_ADMITTED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -20,7 +20,7 @@
     {
       "id": "objective_tradeoff",
       "evidence_class": "MEASURED_REAL_DATA_SCOPED",
-      "finding": "On the previously fixed4096 TRAIN panel, total loss fell0.021236659877761133 while the two M5-side terms together worsened0.00017494612955337718. Other activity/TF terms dominated this contrast. This is endpoint accounting, not proof of the historical optimizer cause.",
+      "finding": "On the earlier fixed 4096-row INTERLEAVED-minus-CONTROL TRAIN comparison, total loss fell 0.021236659877761133 while the two M5-side terms together worsened 0.00017494612955337718. This is not an INITIAL-to-current-R1 contrast and does not establish the historical optimizer cause.",
       "evidence": "docs/TA_M5_PAIRED_OBJECTIVE_DECOMP_REVIEW.json"
     },
     {
@@ -97,13 +97,30 @@
     }
   ],
   "next_measurement": {
-    "status": "SOURCE_SCOPING_NOT_ADMITTED",
-    "question": "Do M5 direction and the remaining objective terms demand conflicting updates from the shared mixing layers on the same fixed TRAIN rows?",
-    "method": "Inspect the existing exact loss/gradient owners and reuse the current immutable checkpoints, masks and queries. Prepare the smallest fixed TRAIN-only comparison of gradient contributions if existing evidence lacks it. No optimizer steps, model change, feature deletion, later-target selection or repeated routing/fusion captures.",
-    "reason": "Total loss previously improved while M5 side loss worsened; encoders demonstrably received gradients, while dedicated MTF variation had low direction sensitivity. Endpoint loss accounting is not a historical optimizer-cause proof.",
+    "status": "ADMITTED_ONCE_NOT_YET_EXECUTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MIXING_GRADIENT_OBSERVATION_20261111_001/PLAN.json",
+      "sha256": "daee8105bb54069817c67892c6f607b06cc6be845f131c1fd8840e3f9fcbaec3"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MIXING_GRADIENT_OBSERVATION_20261111_001/PREFLIGHT.log",
+      "sha256": "bd32b8c4799f36ff2cf8cc473b684de0a572ee2bdbd14eb17c6c399930b4ca8c"
+    },
+    "retained_analysis": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MIXING_GRADIENT_OBSERVATION_20261111_001/REVIEW_PUBLISHED_GEOMETRY.py",
+      "sha256": "3274f54f34e1ba855bce74b8da1d055308f152815d83cbbd5e53fc94a8304d5c"
+    },
+    "question": "How do current M5 direction and remaining exact objective terms contribute to the same three mixing-encoder gradients?",
+    "method": "One current-c171 local eval-mode gradient observation on 16 fixed intact B16 TRAIN groups. Reuse exact sampled-S/native-F loss; split original logit derivatives into S/M5 side, F/M5 side and rest. Four autograd calls per graph on only three shared axis encoders. Fresh no-grad/grad output bit-parity required. No optimizer or updates.",
+    "parameter_groups": [
+      "family_axis_attn",
+      "timeframe_axis_attn",
+      "cross_tf_attn"
+    ],
     "model_change_authorized": false,
     "predictor_fits": 0,
-    "training_authorized": false
+    "training_authorized": false,
+    "interpretation": "Local partial derivatives at corrected c171 in eval mode; no dropout, clipping, AdamW, whole-model or historical-cause claim. The earlier endpoint loss contrast was INTERLEAVED versus CONTROL, not INITIAL versus current R1."
   },
   "not_established": [
     "Unique historical optimizer cause",
