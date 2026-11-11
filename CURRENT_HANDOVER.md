@@ -6,14 +6,13 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_ENCODER_DELTA_ADMITTED.
+TA_DIRECTION_EDGE_CAUSE_ENCODERS_UPDATED_SHARED_OBJECTIVE_NEXT.
 Målet fra 11.11 er aktivt: isoler målte årsaker til svak retningslæring i
 indikatorer, sammensetting og læring. [Årsaksstatus](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json).
 Korte runder er feilsøking, ikke kapasitetsdom. Full kvalifisert TRAIN-historikk
 og 30–40 epoker er senere skalering, ikke et krav ved hver rettelse.
-Alle trenings-/launchporter er false. Ingen jobb lever. Fire diagnostiske
-planer er COMPLETE og konsumert. Én ny CPU-kontroll av to eksisterende
-checkpoint er innrømmet, uten modellkonstruksjon eller trening.
+Alle trenings-/launchporter er false. Ingen jobb lever. Fem diagnostiske
+planer er COMPLETE og konsumert. Ingen ny kjøring er innrømmet.
 GC er på pause; TEST, Entry/Exit, broker, handel og promotion er stengt.
 Alle genuine indikatorer og M5/M15/H1/H4/D1-input beholdes.
 
@@ -59,15 +58,26 @@ mellom vektede TF-bidrag kan følge av normaliserte gatevekter rundt felles vekt
 Varians, konsentrasjon og teknisk paritet er ikke prediktiv informasjon eller edge.
 16 intakte B16-grupper per partisjon er avhengige; senere 2024 er gjenbrukt utvikling.
 
-## Gjenstående og neste steg
+## Faktisk encoderlæring og neste steg
 
-Eksakt R1-kilde inkluderer alle åtte temporal- og tre akse-encodere i aktiv
-parameterpartisjon og AdamW. Den gamle rapporten har bare samlet gradientnorm,
-ikke gradient eller parameterdelta per encoder. Før en ny læringsdiagnose
-brukes de to eksisterende warm-start/R1-checkpointene til en liten avgrenset
-kontroll av per-modul endring og lagrede Adam-andremomenter fra tom initial
-optimizer. Ingen modellkonstruksjon, featurelesing, forward, backward eller fit.
-Bundet engangsplan: MARKET_STATE_TA_ENCODER_DELTA_20261111_001,
-PLAN 2bdbd32a. Maks to CPU-dekodinger, 4 GiB, 300 sekunder.
-Manglende Adam-state rapporteres som funn. Ingen gjentakelse av rute-/fusionmålingene.
-Faktisk parameterendring vil heller ikke alene bevise nyttig retningslæring.
+MARKET_STATE_TA_ENCODER_DELTA_20261111_001 er COMPLETE og konsumert.
+PLAN 2bdbd32a / RESULT fe2c2df7. Kilde c729e0dd uendret.
+4,95 sekunder på CPU; to eksisterende checkpoints, ingen modell eller optimizer
+konstruert og ingen forward/backward/fit/updates. Begge modellhashene og de
+opprinnelige checkpoint-seglene er kontrollert.
+
+Alle åtte temporal- og tre akse-encodere har endrede vekter. Alle 228 undersøkte
+parametertensorer har ikke-null Adam-andremomenter og stegteller 1849;
+initial optimizer var tom. Ingen manglende Adam-state. Dette beviser historisk
+gradientflyt til hver tensor og faktisk parameterendring, ikke nyttig læring
+eller ikke-null gradient i hvert element ved hvert steg. Relativ L2-endring
+per encodergruppe er 4,11–8,31 prosent av initialnormen.
+
+Neste arbeid går direkte på delte læringsmål: den gamle 4096-raders kontrasten
+viste bedre samlet loss samtidig med dårligere M5-sideledd. Undersøk eksisterende
+loss-/gradienteiere og forbered ved behov den minste faste TRAIN-kontrollen av
+M5-retningens gradientbidrag mot resten av objective i de samme blandingslagene.
+Gjenbruk eksakte checkpoints, masker og queryer. Ingen optimizersteg, sletting
+av indikatorer eller arkitekturendring følger av disse funnene. Ingen ny kjøring
+er innrømmet; ingen gjentakelse av rute-, fusion- eller encoder-deltakontrollene.
+Endpointregnskap alene beviser ikke den historiske optimizerårsaken.

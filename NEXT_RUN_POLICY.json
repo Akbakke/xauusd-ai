@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-11T15:03:04.463633+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_ENCODER_DELTA_ADMITTED",
+  "observed_utc": "2026-11-11T15:05:17.259583+00:00",
+  "status": "TA_DIRECTION_EDGE_CAUSE_ENCODERS_UPDATED_SHARED_OBJECTIVE_NEXT",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Execute the exact once-only CPU checkpoint delta and retained Adam-moment audit; no model execution or training.",
+  "next_action": "Inspect the existing exact loss/gradient owners and reuse the current immutable checkpoints, masks and queries. Prepare the smallest fixed TRAIN-only comparison of gradient contributions if existing evidence lacks it. No optimizer steps, model change, feature deletion, later-target selection or repeated routing/fusion captures.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1698,7 +1698,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Temporal capture and interpretation complete; two-checkpoint CPU learning-path audit admitted once.",
+    "current_activity": "Temporal boundary and encoder runtime-learning audits complete; no job or unconsumed plan.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1751,7 +1751,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Weak direction ranking remains. Representation concentration is measured, but harmful fusion and per-encoder useful learning are not established.",
+    "current_blocker": "Weak direction ranking remains despite genuine routed inputs and actual encoder updates. Shared objective alignment is unresolved; neither variance concentration nor endpoint loss accounting proves the historical cause.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9222,7 +9222,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute the exact once-only CPU checkpoint delta and retained Adam-moment audit; no model execution or training.",
+    "next_action": "Inspect the existing exact loss/gradient owners and reuse the current immutable checkpoints, masks and queries. Prepare the smallest fixed TRAIN-only comparison of gradient contributions if existing evidence lacks it. No optimizer steps, model change, feature deletion, later-target selection or repeated routing/fusion captures.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22137,7 +22137,7 @@
     },
     "direction_edge_cause_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "5c278a82028497377ad1d1bdf4a85e1f69deeed835eaf793fda66ad629927319"
+      "sha256": "8b0ddff0c1dcb14c498677d6e4d92bd1c8cae659059c2b68357b4d72eee6056e"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -75477,24 +75477,24 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_ENCODER_RUNTIME_LEARNING_AUDIT_ADMITTED",
+    "status": "ACTIVE_SHARED_DIRECTION_LEARNING_DIAGNOSIS",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
     "training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "5c278a82028497377ad1d1bdf4a85e1f69deeed835eaf793fda66ad629927319"
+      "sha256": "8b0ddff0c1dcb14c498677d6e4d92bd1c8cae659059c2b68357b4d72eee6056e"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": true,
+    "model_or_data_run_admitted": false,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Execute the exact once-only CPU checkpoint delta and retained Adam-moment audit; no model execution or training.",
-    "active_stage": "market_state_ta_encoder_delta_20261111_001",
+    "next_action": "Inspect the existing exact loss/gradient owners and reuse the current immutable checkpoints, masks and queries. Prepare the smallest fixed TRAIN-only comparison of gradient contributions if existing evidence lacks it. No optimizer steps, model change, feature deletion, later-target selection or repeated routing/fusion captures.",
+    "active_stage": null,
     "previous_goal_turn_classification": "PROGRESS: retained MTFintervention andinputsupport review ruledout an unsupported harmful-MTF or generalnormalization-collapse change; nextactualboundarymeasurement identified.",
-    "last_goal_turn_classification": "PROGRESS: completed one passive 512-row boundary observation with exact parity; localized mixing-stage variation changes and eliminated systematic mean/last cancellation. Per-encoder runtime learning is the next unresolved source-to-execution boundary."
+    "last_goal_turn_classification": "PROGRESS: passive 512-row temporal capture localized mixing-stage attenuation; a two-checkpoint CPU audit then proved actual updates and historical gradient flow in all 11 encoders / 228 tensors. Systematic mean/last cancellation and absent encoder updates ruled out; no model change or training justified solely by variance."
   },
   "market_state_ta_fusion_observation_20261111_001": {
     "status": "COMPLETE",
@@ -75923,16 +75923,16 @@
     "evaluation_state_unchanged": true
   },
   "market_state_ta_encoder_delta_20261111_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ENCODER_DELTA_20261111_001/PLAN.json",
       "sha256": "2bdbd32a1aebcfb8aa31d75633beba9792de31d52ab0d56f078c8e177dd123c4"
     },
     "max_invocations": 1,
-    "remaining_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
+    "remaining_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
     "relaunch_allowed": false,
     "checkpoint_reads_authorized": true,
     "retained_optimizer_state_inspection_authorized": true,
@@ -75946,6 +75946,35 @@
     "checkpoint_writes_authorized": 0,
     "training_authorized": false,
     "source_review": "Independent static review complete; missing Adam state is preserved as a finding. AST and input hashes verified, no checkpoint decoded.",
-    "scope": "Read two existing sealed checkpoints once. Compare all eight temporal and three axis encoder tensors; inspect retained Adam second moments from empty initial optimizer. No restoration, model construction, feature reads, fit, backward or updates."
+    "scope": "Read two existing sealed checkpoints once. Compare all eight temporal and three axis encoder tensors; inspect retained Adam second moments from empty initial optimizer. No restoration, model construction, feature reads, fit, backward or updates.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ENCODER_DELTA_20261111_001/RESULT.json",
+      "sha256": "fe2c2df78fe58a6f2844c2b3942399b4f412761a1479977c6a21ab5b6ac02455"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ENCODER_DELTA_20261111_001/TERMINAL.json",
+      "sha256": "4136efe9cab44d3f1ad99fd2e340f8aa0fd48dbe0a8b7255d3370de664a5fdff"
+    },
+    "controller_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ENCODER_DELTA_20261111_001/CONTROLLER_TERMINAL.json",
+      "sha256": "017d0bfb63813671056724df01784b50090cf120033609ca73ff0ab186447b2b"
+    },
+    "interpretation_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ENCODER_DELTA_20261111_001/INTERPRETATION_REVIEW.json",
+      "sha256": "f28e87888771ead302b76159c488ebb17a00d6e5b7e02e61ed395fd67d98cd63"
+    },
+    "actual_counts": {
+      "checkpoint_loads": 2,
+      "resume_state_load_calls": 2,
+      "resume_state_load_returns": 2,
+      "model_constructions": 0,
+      "forward_calls": 0,
+      "backwards": 0,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "checkpoint_writes": 0,
+      "predictor_fits": 0
+    },
+    "source_unchanged_at_terminal": true
   }
 }
