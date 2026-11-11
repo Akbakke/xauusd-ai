@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-10T16:30:02.337192+00:00",
-  "status": "TA_M5_R1_TWO_ALPHA_COMPLETE_DIRECTION_COMPARISON_FAILED",
+  "status": "TA_M5_INNER_PRIOR_SHRINK_TWO_SCALARS_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,7 +1415,7 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed two fixed CPUreadouts are consumed and all training/launch flags closed. Frozen model capture is retained and qualified with original post-completion cleanup failure preserved. No native import, further fit/capture, GC, TEST, Entry, Exit, broker, trading or promotion admitted.",
@@ -1698,7 +1698,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Two-alpha cached head comparison complete and independently verified. No training admission remains.",
+    "current_activity": "Execute exactly once the qualified inner-only two-scalar confidence-shrink test.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1751,7 +1751,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Alpha .1 selected by inner TRAIN logloss, but worse than INITIAL on both full TRAIN and later tasks; F later also worse than frozen prior. Mean calibration alone is not the remaining defect.",
+    "current_blocker": "Rank-preserving amplitude correction has not been measured on fullTRAIN and later.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9222,7 +9222,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Qualify one rank-preserving shrink to prefix prior, fit only on existing inner TRAIN .01 predictions. No new run admitted.",
+    "next_action": "Fit two slopes only on stored inner TRAIN .01 predictions, lock before fullhead/later arrays, score identical TRAIN and full later. No extra fits or native import.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -18914,7 +18914,7 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "ONLY_MARKET_STATE_TA_M5_NEXT_NATIVE_PASS_20261109_001",
+    "current_training_scope": "market_state_ta_m5_inner_prior_shrink_20261111_002",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -40225,7 +40225,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": null,
+  "training_enabled_scope": "market_state_ta_m5_inner_prior_shrink_20261111_002",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -75307,5 +75307,65 @@
     },
     "selected_alpha": 0.1,
     "comparison_pass": false
+  },
+  "market_state_ta_m5_inner_prior_shrink_20261111_002": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_INNER_PRIOR_SHRINK_20261111_002/PLAN.json",
+      "sha256": "476eb63cba3915110c20a8ff935dc754243ea01e66bdd7b18b098ee7cdaaedce"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_INNER_PRIOR_SHRINK_20261111_002/probe.py",
+      "sha256": "a5c56f1e698c7f376120a7d3a62cb3cb7383382590f8046f45137c4121aade1a"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_INNER_PRIOR_SHRINK_20261111_002/PREFLIGHT.json",
+      "sha256": "8a21e987365b695413fb6cd8c64031be16675625047c8152c27791a0d8bd3fd4"
+    },
+    "max_invocations": 1,
+    "remaining_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "training_authorized": true,
+    "native_training_authorized": false,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "goal_complete": false,
+    "archive_decodes": 4,
+    "backwards": 0,
+    "checkpoint_decodes": 0,
+    "encoder_forwards": 0,
+    "max_seconds": 900,
+    "maximum_bisections_per_fit": 64,
+    "memory_max": 12884901888,
+    "model_constructions": 0,
+    "numerical_threads": 1,
+    "private_npz_writes": 1,
+    "scalar_fits": 2,
+    "swap_max": 536870912,
+    "updates": 0,
+    "independent_source_review": "PASS exact a5c56f1e: convex derivative/endpoint/bisection, pooled masked inner-only fit, lock before later/fullhead, original margins, bound private sources and failed receipts.",
+    "scope": "Per-task pooled equal-observation inner TRAIN logloss: z_new=b_prefix+a*(z_alpha01-b_prefix). Convex derivative endpoint or root. FP64 affine transform of retained native alpha.01 FP32 logits around frozen fullTRAIN prior. No tensor import or native parity.",
+    "standing_authority": "Active direction-only goal and standing zero-cost local work; one newly qualified exact cached two-scalar plan. No native training or extra candidate search."
+  },
+  "market_state_ta_m5_inner_prior_shrink_20261111_001": {
+    "status": "UNCLAIMED_PREPARATION_SUPERSEDED",
+    "execution_authorized": false,
+    "training_authorized": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_INNER_PRIOR_SHRINK_20261111_001/PLAN.json",
+      "sha256": "4a8c93f3811afa9803d0d6b90980a3c017bc99bb39a5807a56f909c4212aaea4"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_INNER_PRIOR_SHRINK_20261111_001/PREFLIGHT.json",
+      "sha256": "c4fd458c1171773a9f2ba6c141c3f1c271a9bfb566a0afce7ac93c6f99ca0fd5"
+    },
+    "genuine_fits": 0,
+    "claimed_invocations": 0,
+    "relaunch_allowed": false,
+    "reason": "Source review caught native metric schema mismatch and private-source bookend gaps before admission; preserved original preparation."
   }
 }

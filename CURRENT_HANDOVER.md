@@ -10,8 +10,9 @@ originale terminalkvitteringer overstyrer tekst. Historikken finnes i Git.
 Lær framtidig OPP/NED/FLATT markedstilstand før Entry. M5 er prognosetakten;
 kausalt lukket M15/H1/H4/D1 og genuine indikatorer beholdes. Alle fem TF har
 egne mål. GC er på pause; TEST, Entry/Exit, broker, handel og promotion stengt.
-TA_M5_R1_TWO_ALPHA_COMPLETE_DIRECTION_COMPARISON_FAILED.
-Alle trenings-/launchporter er false; training_enabled_scope=null.
+TA_M5_INNER_PRIOR_SHRINK_TWO_SCALARS_ADMITTED.
+training_enabled=true gjelder kun market_state_ta_m5_inner_prior_shrink_20261111_002.
+Native trening/launch/full epoke er false.
 Ingen CURRENT-jobb ved lukking. Konsumerte planer relanseres aldri.
 Målet er fortsatt uoppnådd.
 
@@ -67,5 +68,13 @@ avgrensede testen av amplitude, ikke rangering. Positiv slope bevarer rangering;
 slope0 er kollaps til prior. Prefixprognosene blir kalibrator-fitdata.
 Transfer fra prefixhoder til fullTRAIN-hode må måles, aldri antas.
 Den gamle FINAL-kalibratoren brukte in-sample fullTRAIN og er ikke samme test.
-Ingen ny fit/native import er innrømmet ennå; eksakt plan/preflight/admisjon
-kreves. Ingen automatisk videre alpha-søk eller encodertrening.
+Én eksakt to-scalar fit er nå separat innrømmet: PLAN476eb63c, workera5c56f1e.
+Uavhengig metode/kilde/diff og capped metadata/syntetisk preflight består.
+12G/512MiB/én numerisk tråd/900s. To slopes [0,1], pooled indre logtap,
+endepunktderivat eller maks64biseksjoner. Slope-lås før fullhead/senere arrays.
+Fire arkivåpninger, ingen encoder/modell/checkpoint/backward/nativeupdate.
+Kun FP64-transform av lagrede genuine native FP32-logits; ingen tensorimport
+eller påstått native avrundingsparitet. Samme eksisterende sammenligningsmarginer.
+001 var aldri innrømmet/claimet; kildekontroll fant skåreskjema-/bookend-feil.
+Original001-klargjøring er bevart;002 retter kun disse. Ingen payload/fit i001.
+Ingen automatisk videre alpha-søk, nativeimport eller encodertrening.
