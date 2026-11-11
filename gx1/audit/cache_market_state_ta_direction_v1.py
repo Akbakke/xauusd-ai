@@ -313,6 +313,14 @@ def _inspect(plan_path, plan_sha256, out_dir, *, execute):
 
 
 def preflight_read_only(plan_path, plan_sha256, out_dir):
+    if Path(plan_path) == FUSION_INITIAL_ROOT / 'PLAN.json' or Path(out_dir) == FUSION_INITIAL_ROOT:
+        checked = _inspect_fusion_observation(plan_path, plan_sha256, out_dir, execute=False, initial=True)
+        return dict(status='READY_NO_CLAIM_NO_MODEL_NO_ARRAY_DESERIALIZATION',
+            plan=checked['plan_ref'], view_sha256=checked['view']['contract_sha256'],
+            candidate_model_state_sha256=FUSION_INITIAL_BOUNDS['candidate_model_state_sha256'],
+            model_constructions=0, backbone_encodings=0, archive_decodes=0,
+            current_source_owners=len(checked['current_sources']), changed_owners=[CAP_RUNNER],
+            scalar_fits=0, test_data_used=False)
     if Path(plan_path) == FUSION_ROOT / 'PLAN.json' or Path(out_dir) == FUSION_ROOT:
         checked = _inspect_fusion_observation(plan_path, plan_sha256, out_dir, execute=False)
         return dict(status='READY_NO_CLAIM_NO_MODEL_NO_ARRAY_DESERIALIZATION',
@@ -387,6 +395,8 @@ def _save_cache(partition, arrays, rows, *, partial=False, root=ROOT):
 
 
 def run(plan_path, plan_sha256, out_dir, *, device):
+    if Path(plan_path) == FUSION_INITIAL_ROOT / 'PLAN.json' or Path(out_dir) == FUSION_INITIAL_ROOT:
+        return _run_fusion_observation(plan_path, plan_sha256, out_dir, device=device, initial=True)
     if Path(plan_path) == FUSION_ROOT / 'PLAN.json' or Path(out_dir) == FUSION_ROOT:
         return _run_fusion_observation(plan_path, plan_sha256, out_dir, device=device)
     if Path(plan_path) == SHRINK_ROOT / 'PLAN.json' or Path(out_dir) == SHRINK_ROOT:
@@ -772,8 +782,8 @@ def _inspect_reversed(plan_path, plan_sha256, out_dir, *, execute):
         bound_refs=bound_refs, current_sources=current)
 
 
-def _load_reversed_weights(model, ck, checked, order, *, torch):
-    """Validate the private evidence, copy weights/all buffers; no optimizer/RNG restore."""
+def _load_reversed_weights(model, ck, checked, order, *, torch, initial=False):
+    """Validate REVERSED or original INITIAL; copy weights/all buffers, never optimizer/RNG."""
     import copy
     from gx1.contracts import market_state_time_query_fold1_fit_state_v1 as state
     from gx1.contracts import entry_native_direction_research_state_v1 as old
@@ -784,27 +794,46 @@ def _load_reversed_weights(model, ck, checked, order, *, torch):
         'method_state model_state_sha256 buffer_state_sha256 optimizer_state_sha256 rng_state_sha256 '
         'test_data_used evidence_sha256').split())
     recipe, refs = checked['recipe'], checked['plan']['inputs']
-    _need(isinstance(ck, dict) and set(ck) == fields
-          and ck['schema_version'] == 'gx1_ta_m5_full_reverse_order_evidence_v1'
-          and ck['arm'] == 'REVERSED' and ck['recipe'] == refs['reverse_recipe']
-          and ck['source_commit'] == REVERSED_SOURCE
-          and ck['original_checkpoint'] == recipe['input_refs']['original_initial_checkpoint']
-          and ck['canonical_resume_authority'] is False and ck['test_data_used'] is False
-          and ck['physical_optimizer_updates'] == 1849 and ck['parent_cursor'] == FIT_ROWS
-          and ck['pending_gradients'] == 0 and ck['model_state_sha256'] == REVERSED_MODEL,
-          'REVERSED_EVIDENCE_HEADER')
-    _need(ck['evidence_sha256'] == old._tree_sha({k: v for k, v in ck.items() if k != 'evidence_sha256'}),
-          'REVERSED_EVIDENCE_SEAL')
+    expected_model = FUSION_INITIAL_BOUNDS['candidate_model_state_sha256'] if initial else REVERSED_MODEL
+    if initial:
+        _need(isinstance(ck, dict) and set(ck) == state._STATE_KEYS
+              and ck['schema_version'] == state.TA_STATE_SCHEMA
+              and ck['source_commit'] == checked['origin']['original_result']['source_commit']
+              and type(ck['fold_id']) is int and ck['fold_id'] == 1
+              and ck['feature_view_sha256'] == recipe['expected_view_sha256']
+              and all(type(ck[k]) is int and ck[k] == 0 for k in ('cursor','optimizer_updates','skipped_batches'))
+              and ck['model_state_sha256'] == recipe['expected_initial_model_state_sha256'] == expected_model,
+              'FUSION_INITIAL_STATE_HEADER')
+        _need(ck['contract_sha256'] == old._tree_sha({k:v for k,v in ck.items() if k != 'contract_sha256'}),
+              'FUSION_INITIAL_STATE_SEAL')
+    else:
+        _need(isinstance(ck, dict) and set(ck) == fields
+              and ck['schema_version'] == 'gx1_ta_m5_full_reverse_order_evidence_v1'
+              and ck['arm'] == 'REVERSED' and ck['recipe'] == refs['reverse_recipe']
+              and ck['source_commit'] == REVERSED_SOURCE
+              and ck['original_checkpoint'] == recipe['input_refs']['original_initial_checkpoint']
+              and ck['canonical_resume_authority'] is False and ck['test_data_used'] is False
+              and ck['physical_optimizer_updates'] == 1849 and ck['parent_cursor'] == FIT_ROWS
+              and ck['pending_gradients'] == 0 and ck['model_state_sha256'] == expected_model,
+              'REVERSED_EVIDENCE_HEADER')
+        _need(ck['evidence_sha256'] == old._tree_sha({k:v for k,v in ck.items() if k != 'evidence_sha256'}),
+              'REVERSED_EVIDENCE_SEAL')
     numerical = state._numerical(recipe['numerical_recipe'], model)
     order_sha = old._tree_sha(order)
-    _need(ck['original_numerical_recipe_reference'] == numerical
-          and ck['parent_order'].dtype == torch.int64 and torch.equal(ck['parent_order'], order)
-          and order_sha == checked['result']['parent_order_sha256']
-          and ck['method_state'] == dict(batch_indices=recipe['batch_indices'],
-              batch_order_sha256=recipe['batch_order_sha256'], full_order_sha256=order_sha,
-              original_fit_batch_starts=[16 * b for b in recipe['batch_indices']], pass_index=0,
-              all_original_rows_once=True, tail_policy='original_tail_last', loss_and_optimizer_unchanged=True),
-          'REVERSED_EVIDENCE_ORDER_NUMERICAL')
+    if initial:
+        _need(isinstance(ck['parent_order'], torch.Tensor) and ck['parent_order'].dtype == torch.int64
+              and torch.equal(ck['parent_order'], order)
+              and order_sha == checked['origin']['original_result']['parent_order_sha256'],
+              'FUSION_INITIAL_STATE_ORDER')
+    else:
+        _need(ck['original_numerical_recipe_reference'] == numerical
+              and ck['parent_order'].dtype == torch.int64 and torch.equal(ck['parent_order'], order)
+              and order_sha == checked['result']['parent_order_sha256']
+              and ck['method_state'] == dict(batch_indices=recipe['batch_indices'],
+                  batch_order_sha256=recipe['batch_order_sha256'], full_order_sha256=order_sha,
+                  original_fit_batch_starts=[16 * b for b in recipe['batch_indices']], pass_index=0,
+                  all_original_rows_once=True, tail_policy='original_tail_last', loss_and_optimizer_unchanged=True),
+              'REVERSED_EVIDENCE_ORDER_NUMERICAL')
     pairs, active, inactive = state._parameters(model)
     binding = dict(schema_version=state.TA_BINDING_SCHEMA, numerical_recipe=numerical,
         feature_view_identity=model.state_model.feature_view_identity, research_objective=model.research_objective,
@@ -813,10 +842,10 @@ def _load_reversed_weights(model, ck, checked, order, *, torch):
         optimizer_group_parameter_names=[[n for n, _ in active]], ema_created=False,
         scheduler_created=False, target_model_created=False)
     binding['contract_sha256'] = old._tree_sha(binding)
-    _need(ck['parameter_binding'] == binding, 'REVERSED_PARAMETER_BINDING')
+    _need(ck['binding' if initial else 'parameter_binding'] == binding, 'REVERSED_PARAMETER_BINDING')
     old._tensor_map(ck['model_state'], model.state_dict(), 'REVERSED_MODEL')
     old._tensor_map(ck['buffer_state'], dict(model.named_buffers()), 'REVERSED_BUFFERS')
-    _need(model_sha(ck['model_state']) == REVERSED_MODEL, 'REVERSED_MODEL_DIGEST')
+    _need(model_sha(ck['model_state']) == expected_model, 'REVERSED_MODEL_DIGEST')
     for key in ('buffer_state', 'optimizer_state', 'rng_state'):
         _need(old._tree_sha(ck[key]) == ck[key + '_sha256'], 'REVERSED_DIGEST:' + key)
     immutable = {'native_F_objective_sha256'} | {'state_model.' + n for n in old.IMMUTABLE_BUFFER_NAMES | state._QUERY_BUFFERS}
@@ -834,7 +863,8 @@ def _load_reversed_weights(model, ck, checked, order, *, torch):
     group = opt['param_groups'][0]
     _need(set(group) == set(kw) | {'params'} and group['params'] == list(range(len(active)))
           and old._tree_sha({k: group[k] for k in kw}) == old._tree_sha(kw)
-          and bool(opt['state']) and set(opt['state']) <= set(group['params']), 'REVERSED_OPTIMIZER_ORDER')
+          and isinstance(opt['state'], dict) and bool(opt['state']) is (not initial)
+          and set(opt['state']) <= set(group['params']), 'REVERSED_OPTIMIZER_ORDER')
     for index, item in opt['state'].items():
         _need(type(index) is int and set(item) == {'step', 'exp_avg', 'exp_avg_sq'}, 'REVERSED_ADAM_SCHEMA')
         step = item['step']
@@ -855,12 +885,14 @@ def _load_reversed_weights(model, ck, checked, order, *, torch):
     with torch.no_grad():
         for name, value in model.named_buffers(): value.copy_(ck['buffer_state'][name])
     state._require_model_binding(model); model.backbone.require_input_normalization_state()
-    _need(model_sha(model.state_dict()) == REVERSED_MODEL
+    _need(model_sha(model.state_dict()) == expected_model
           and old._tree_sha(dict(model.named_buffers())) == ck['buffer_state_sha256'], 'REVERSED_LOADED_EXACT')
     model.eval()
     for parameter in model.parameters(): parameter.requires_grad_(False)
-    return dict(model_state_sha256=REVERSED_MODEL, buffer_state_sha256=ck['buffer_state_sha256'],
-        evidence_sha256=ck['evidence_sha256'], parameter_binding_sha256=binding['contract_sha256'],
+    return dict(model_state_sha256=expected_model, buffer_state_sha256=ck['buffer_state_sha256'],
+        **(dict(checkpoint=refs['initial_checkpoint'], source_commit=ck['source_commit'],
+                state_seal=ck['contract_sha256']) if initial else dict(evidence_sha256=ck['evidence_sha256'])),
+        parameter_binding_sha256=binding['contract_sha256'],
         load_kind='WEIGHTS_AND_ALL_BUFFERS_ONLY', optimizer_state_restored=False,
         cuda_rng_restored=False, canonical_resume_authority=False)
 
@@ -1921,14 +1953,36 @@ FUSION_BOUNDS = dict(fit_rows=29574, score_rows=17753, batch_size=16, decoder_wi
     training_enabled=False, test_data_used=False)
 
 
-def _fusion_plan(plan, plan_path, out_dir):
+FUSION_INITIAL_STAGE = 'market_state_ta_fusion_initial_observation_20261111_001'
+FUSION_INITIAL_ROOT = Path('/home/andre2/GX1_RUNS') / FUSION_INITIAL_STAGE.upper()
+FUSION_INITIAL_BOUNDS = dict(FUSION_BOUNDS, head_tensor_imports=0,
+    candidate_model_state_sha256='ae772fd755cbfa07b1b7bcca8bccd2c8a8889806989a289ddb8267972c281b37')
+_INITIAL_ORIGIN = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_FOLD1_FIT_20261109_002')
+_INITIAL_BASELINE = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_CENTERED_HEAD_COORDINATES_20261110_001')
+FUSION_INITIAL_REFS = {
+    **REVERSED_REFS,
+    'initial_checkpoint': {'path': str(_INITIAL_ORIGIN/'RUNTIME/prefix-fit/states/INITIAL_FOLD1_STATE.pt'), 'sha256': '80fc8029200c8076bc2faa38014bfd24c75ee71632fb1f45138249ccaca8d484'},
+    'initial_baseline': {'path': str(_INITIAL_BASELINE/'INITIAL_LATER_READOUT.npz'), 'sha256': 'ad895e24f4f321b47c7077243b57e769a84eea32b043868271714604aba36b5b'},
+    'initial_measurement': {'path': str(_INITIAL_BASELINE/'INITIAL_LATER.json'), 'sha256': 'e1f5a1694bf571a55bc8daab8570abc60597f3d58e7e9421d4ab283f4310b6d9'},
+    'trained_result': {'path': str(FUSION_ROOT/'RESULT.json'), 'sha256': '071c2976e9bf26ec88207e3cecb44eda712fda6a2f908717d746ede7f5dcdea5'},
+    'trained_terminal': {'path': str(FUSION_ROOT/'TERMINAL.json'), 'sha256': '915bee4127ae296c3fdb10437d1e4406d19a56bd76c5172ba14dba7903191e1f'},
+    'trained_review': {'path': str(FUSION_ROOT/'NUMERIC_REVIEW.json'), 'sha256': 'dacc9eaa78a6f2dc8b0e1b1ab5f1140d82bc8415b8d62a705e5cf3d52834c0e2'},
+    'trained_train': {'path': str(FUSION_ROOT/'TRAIN_FUSION.npz'), 'sha256': 'fd2ea2971343971179fb2a6d1b86253c57bb8e7fd06c9b7aa53e633e369469e8'},
+    'trained_later': {'path': str(FUSION_ROOT/'LATER_FUSION.npz'), 'sha256': '43f423c297d80b4a09467e67e640245ccddb84f8b7c990ce5a6401a3b3184987'},
+}
+FUSION_MATCH_KEYS = ('parents','issues','query_native', *(
+    task+'_'+key for task in ('state','future') for key in ('allowed','eligible','mature')))
+
+
+def _fusion_plan(plan, plan_path, out_dir, *, initial=False):
+    stage, root, refs, bounds = (FUSION_INITIAL_STAGE, FUSION_INITIAL_ROOT, FUSION_INITIAL_REFS, FUSION_INITIAL_BOUNDS) if initial else (FUSION_STAGE, FUSION_ROOT, FUSION_REFS, FUSION_BOUNDS)
     fields = {'schema_version', 'stage', 'source_repo', 'source_base_commit', 'worker',
-              'dispatch', 'cap_runner', 'runtime_source_override', 'inputs'} | set(FUSION_BOUNDS)
+              'dispatch', 'cap_runner', 'runtime_source_override', 'inputs'} | set(bounds)
     _need(isinstance(plan, dict) and set(plan) == fields and plan['schema_version'] == FUSION_SCHEMA
-          and plan['stage'] == FUSION_STAGE and plan['source_repo'] == str(REPO)
-          and Path(plan_path) == FUSION_ROOT/'PLAN.json' and Path(out_dir) == FUSION_ROOT
-          and plan['inputs'] == FUSION_REFS
-          and all(type(plan[k]) is type(v) and plan[k] == v for k, v in FUSION_BOUNDS.items()),
+          and plan['stage'] == stage and plan['source_repo'] == str(REPO)
+          and Path(plan_path) == root/'PLAN.json' and Path(out_dir) == root
+          and plan['inputs'] == refs
+          and all(type(plan[k]) is type(v) and plan[k] == v for k, v in bounds.items()),
           'FUSION_EXACT_PLAN')
     _need(isinstance(plan['source_base_commit'], str)
           and campaign._COMMIT.fullmatch(plan['source_base_commit']), 'FUSION_SOURCE_BASE')
@@ -1945,55 +1999,109 @@ def _fusion_batch_indices(rows):
     return indices
 
 
-def _inspect_fusion_observation(plan_path, plan_sha256, out_dir, *, execute):
+def _qualify_fusion_initial(plan, qualified):
+    """Metadata-only original INITIAL/baseline and completed matched-panel bindings."""
+    refs, recipe = plan['inputs'], qualified['recipe']
+    for current, original in (('initial_checkpoint','original_initial_checkpoint'),
+                              ('initial_baseline','initial_later_capture'),
+                              ('initial_measurement','initial_later_measurement')):
+        _need(refs[current] == recipe['input_refs'][original], 'FUSION_INITIAL_ORIGIN:' + current)
+    baseline = _read(refs['initial_measurement'])
+    positions = [i for left in (0,8352,17680) for i in range(left,left+64)]
+    _need(recipe['expected_initial_model_state_sha256'] == plan['candidate_model_state_sha256']
+          and baseline['schema_version'] == 'gx1_market_state_ta_sf_fold1_evaluation_v1'
+          and baseline['evaluated_checkpoint'] == refs['initial_checkpoint']
+          and baseline['evaluated_model_state_sha256'] == plan['candidate_model_state_sha256']
+          and baseline['capture'] == refs['initial_baseline'] and baseline['optimizer_updates'] == 0
+          and baseline['fold_id'] == 1 and baseline['test_data_used'] is False
+          and baseline['full_population_evaluated'] is False and baseline['fixed_subset_positions'] == positions
+          and baseline['measurement']['rows'] == 192 and baseline['measurement']['batches'] == 12
+          and baseline['measurement']['partition'] == 'score'
+          and baseline['measurement']['model_contract_sha256'] == recipe['expected_model_contract_sha256']
+          and baseline['measurement']['feature_view_sha256'] == recipe['expected_view_sha256'],
+          'FUSION_INITIAL_BASELINE_METADATA')
+    trained, terminal, review = (_read(refs[k]) for k in ('trained_result','trained_terminal','trained_review'))
+    indices = {p:list(_fusion_batch_indices(n)) for p,n in (('TRAIN',FIT_ROWS),('LATER',SCORE_ROWS))}
+    expected_counts = dict(model_constructions=1,checkpoint_loads=1,backbone_encodings=33,forward_returns=33,
+        instrumented_forwards=32,archive_decodes=2,head_tensor_imports=4,candidate_writes=0,
+        optimizer_constructions=0,optimizer_updates=0,backwards=0,checkpoint_writes=0,
+        resume_state_load_calls=1,resume_state_load_returns=1,scalar_fits=0,sampled_rows=512)
+    _need(trained['status'] == terminal['status'] == review['status'] == 'COMPLETE'
+          and trained['source_unchanged'] is trained['evaluation_state_unchanged'] is True
+          and trained['candidate_model_state_sha256'] == FUSION_BOUNDS['candidate_model_state_sha256']
+          and trained['batch_indices'] == indices
+          and all(type(trained['counts'].get(k)) is int and trained['counts'][k] == v for k,v in expected_counts.items())
+          and trained['passivity'] == dict(uninstrumented_matches_bound_baseline=True,
+              instrumented_matches_uninstrumented=True,instrumented_matches_bound_baseline=True)
+          and trained['artifacts']['TRAIN'] == refs['trained_train']
+          and trained['artifacts']['LATER'] == refs['trained_later']
+          and trained['plan']['path'] == str(FUSION_ROOT/'PLAN.json')
+          and terminal['result'] == refs['trained_result'] and terminal['plan'] == trained['plan']
+          and terminal['exit_code'] == 0 and terminal['source_unchanged'] is True
+          and terminal['no_relaunch_under_this_plan'] is True
+          and review['schema_version'] == 'gx1_ta_fusion_observation_numeric_review_v1'
+          and review['result'] == refs['trained_result'] and review['terminal'] == refs['trained_terminal']
+          and review['source_commit'] == trained['source_commit']
+          and all(review['partitions'][p]['artifact'] == refs['trained_'+p.lower()]
+                  and review['partitions'][p]['rows'] == review['partitions'][p]['unique_parents'] == 256
+                  for p in ('TRAIN','LATER'))
+          and all(x['test_data_used'] is False for x in (trained,terminal,review)),
+          'FUSION_INITIAL_MATCHED_TRAINED_METADATA')
+
+
+def _inspect_fusion_observation(plan_path, plan_sha256, out_dir, *, execute, initial=False):
     pr = {'path': str(plan_path), 'sha256': plan_sha256}
-    plan = _fusion_plan(_read(pr), plan_path, out_dir); refs = plan['inputs']; bound = [pr]
+    plan = _fusion_plan(_read(pr), plan_path, out_dir, initial=initial); refs = plan['inputs']; bound = [pr]
+    bounds = FUSION_INITIAL_BOUNDS if initial else FUSION_BOUNDS; root = Path(out_dir)
     for key, path in (('worker', WORKER), ('dispatch', REPO/DISPATCH), ('cap_runner', REPO/CAP_RUNNER)):
         _need(plan[key]['path'] == str(path), 'FUSION_SOURCE_PATH:' + key)
         campaign.require_binding(plan[key], label=key, verify_file=True); bound.append(plan[key])
     for key, ref in refs.items():
         campaign.require_binding(ref, label='fusion input '+key, verify_file=True); bound.append(ref)
     q = _qualify_reversed_origin(plan, bound)
-    candidate_plan, candidate, review, terminal = (_read(refs[k]) for k in (
-        'candidate_plan', 'candidate_result', 'candidate_review', 'candidate_terminal'))
-    _need(candidate_plan['inputs']['reverse_recipe'] == refs['reverse_recipe']
-          and candidate_plan['inputs']['reversed_evidence'] == refs['reversed_evidence']
-          and candidate['status'] == 'COMPLETE' and candidate['source_unchanged'] is True
-          and candidate['evaluation_state_unchanged'] is True and candidate['plan'] == refs['candidate_plan']
-          and candidate['candidate_model_state_sha256'] == FUSION_BOUNDS['candidate_model_state_sha256']
-          and candidate['artifacts']['folded_coefficients'] == refs['folded_coefficients']
-          and candidate['artifacts']['fresh_baseline'] == refs['candidate_baseline']
-          and candidate['fresh_candidate_baseline']['rows'] == BATCH_SIZE
-          and candidate['fresh_candidate_baseline']['artifact'] == refs['candidate_baseline']
-          and candidate['counts']['head_tensor_imports'] == 4 and candidate['counts']['scalar_fits'] == 0
-          and candidate['comparison']['decision'] == 'PASS_ALL_FOUR_INITIAL_PRIOR_CELLS'
-          and review['status'] == 'PASS_INDEPENDENT_RETAINED_LOGIT_ARITHMETIC'
-          and review['result'] == refs['candidate_result'] and review['plan'] == refs['candidate_plan']
-          and review['actual_row0_outputs_bitexact_cached_heads'] is True
-          and review['folded_coefficients_exact_from_original_FP32_and_locked_slopes'] is True
-          and review['primary_comparison_pass'] is True and terminal['status'] == 'COMPLETE'
-          and terminal['exit_code'] == 0 and terminal['result'] == refs['candidate_result']
-          and terminal['plan'] == refs['candidate_plan'] and terminal['no_relaunch_under_this_plan'] is True
-          and all(x['test_data_used'] is False for x in (candidate, review, terminal)),
-          'FUSION_QUALIFIED_CANDIDATE')
+    if initial:
+        _qualify_fusion_initial(plan, q)
+    else:
+        candidate_plan, candidate, review, terminal = (_read(refs[k]) for k in (
+            'candidate_plan', 'candidate_result', 'candidate_review', 'candidate_terminal'))
+        _need(candidate_plan['inputs']['reverse_recipe'] == refs['reverse_recipe']
+              and candidate_plan['inputs']['reversed_evidence'] == refs['reversed_evidence']
+              and candidate['status'] == 'COMPLETE' and candidate['source_unchanged'] is True
+              and candidate['evaluation_state_unchanged'] is True and candidate['plan'] == refs['candidate_plan']
+              and candidate['candidate_model_state_sha256'] == FUSION_BOUNDS['candidate_model_state_sha256']
+              and candidate['artifacts']['folded_coefficients'] == refs['folded_coefficients']
+              and candidate['artifacts']['fresh_baseline'] == refs['candidate_baseline']
+              and candidate['fresh_candidate_baseline']['rows'] == BATCH_SIZE
+              and candidate['fresh_candidate_baseline']['artifact'] == refs['candidate_baseline']
+              and candidate['counts']['head_tensor_imports'] == 4 and candidate['counts']['scalar_fits'] == 0
+              and candidate['comparison']['decision'] == 'PASS_ALL_FOUR_INITIAL_PRIOR_CELLS'
+              and review['status'] == 'PASS_INDEPENDENT_RETAINED_LOGIT_ARITHMETIC'
+              and review['result'] == refs['candidate_result'] and review['plan'] == refs['candidate_plan']
+              and review['actual_row0_outputs_bitexact_cached_heads'] is True
+              and review['folded_coefficients_exact_from_original_FP32_and_locked_slopes'] is True
+              and review['primary_comparison_pass'] is True and terminal['status'] == 'COMPLETE'
+              and terminal['exit_code'] == 0 and terminal['result'] == refs['candidate_result']
+              and terminal['plan'] == refs['candidate_plan'] and terminal['no_relaunch_under_this_plan'] is True
+              and all(x['test_data_used'] is False for x in (candidate, review, terminal)),
+              'FUSION_QUALIFIED_CANDIDATE')
     head = _git('rev-parse', 'HEAD')
     subprocess.run(['git','-C',str(REPO),'merge-base','--is-ancestor',plan['source_base_commit'],head], check=True)
     policy_ref = _ref(REPO/'NEXT_RUN_POLICY.json'); policy = _read(policy_ref); bound.append(policy_ref)
     _need(all(policy.get(k) is False for k in ('training_enabled','native_training_enabled',
           'native_launch_authorized','full_epoch_training_allowed')), 'FUSION_NO_TRAINING')
     if execute:
-        gate = policy.get(FUSION_STAGE, {})
+        gate = policy.get(plan['stage'], {})
         expected = dict(status='ADMITTED', plan=pr, max_invocations=1, remaining_invocations=1,
             claimed_invocations=0, completed_invocations=0, relaunch_allowed=False, execution_authorized=True,
             data_reads_authorized=True, checkpoint_reads_authorized=True, backbone_encodings_authorized=33,
-            head_tensor_imports_authorized=4, candidate_weights_writes_authorized=0,
+            head_tensor_imports_authorized=bounds['head_tensor_imports'], candidate_weights_writes_authorized=0,
             backward_calls_authorized=0, optimizer_steps_authorized=0, training_authorized=False)
         _need(all(type(gate.get(k)) is type(v) and gate[k] == v for k,v in expected.items())
-              and all(type(gate.get(k)) is type(v) and gate[k] == v for k,v in FUSION_BOUNDS.items()),
+              and all(type(gate.get(k)) is type(v) and gate[k] == v for k,v in bounds.items()),
               'FUSION_ADMISSION')
         _need(_git('branch','--show-current') == 'work/gx1-current', 'FUSION_BRANCH')
         campaign.require_clean_source(dict(source_repo=str(REPO),source_commit=head))
-        _need(not any(FUSION_ROOT.glob('*.npz')) and not any((FUSION_ROOT/n).exists()
+        _need(not any(root.glob('*.npz')) and not any((root/n).exists()
               for n in ('CLAIM.json','RESULT.json','TERMINAL.json')), 'FUSION_CONSUMED')
     return dict(q, plan=plan, plan_ref=pr, head=head, policy_ref=policy_ref, bound_refs=bound)
 
@@ -2004,31 +2112,33 @@ def _fusion_exact_arrays(actual, expected):
         for k in expected)
 
 
-def _save_fusion_arrays(name, arrays, counts, *, np):
+def _save_fusion_arrays(name, arrays, counts, *, np, root=None):
+    root = FUSION_ROOT if root is None else root
     from gx1.contracts.immutable_event_authority_v1 import _publish_bytes
     _need(name in ('UNINSTRUMENTED_LATER_ROW0.npz','TRAIN_FUSION.npz','LATER_FUSION.npz',
                    'TRAIN_FUSION_PARTIAL.npz','LATER_FUSION_PARTIAL.npz') and bool(arrays), 'FUSION_ARTIFACT_NAME')
     buf = io.BytesIO(); np.savez(buf, **arrays)
     _need(0 < buf.tell() and counts['published_npz_bytes'] + buf.tell() <= FUSION_BOUNDS['max_cache_bytes'],
           'FUSION_OUTPUT_BYTES')
-    _publish_bytes(FUSION_ROOT/name, buf.getvalue())
+    _publish_bytes(root/name, buf.getvalue())
     counts['published_npz_bytes'] += buf.tell()
-    return _ref(FUSION_ROOT/name)
+    return _ref(root/name)
 
 
-def _publish_fusion_outcome(plan_ref, payload, *, complete):
+def _publish_fusion_outcome(plan_ref, payload, *, complete, root=None):
+    root = FUSION_ROOT if root is None else root
     _need(type(complete) is bool, 'FUSION_OUTCOME_TYPE')
     status = 'COMPLETE' if complete else 'FAILED_CONSUMED'
     result = _publish('RESULT.json', dict(payload, status=status, plan=plan_ref,
         training_enabled=False, test_data_used=False, predictive_value_claimed=False,
-        promotion_authorized=False, canonical_resume_authority=False), root=FUSION_ROOT)
+        promotion_authorized=False, canonical_resume_authority=False), root=root)
     terminal = _publish('TERMINAL.json', dict(status=status, exit_code=0 if complete else 1,
         plan=plan_ref, result=result, source_unchanged=payload['source_unchanged'],
-        no_relaunch_under_this_plan=True, test_data_used=False), root=FUSION_ROOT)
+        no_relaunch_under_this_plan=True, test_data_used=False), root=root)
     return dict(result=result, terminal=terminal)
 
 
-def _run_fusion_observation(plan_path, plan_sha256, out_dir, *, device):
+def _run_fusion_observation(plan_path, plan_sha256, out_dir, *, device, initial=False):
     import numpy as np
     import torch
     from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_producer_execution, require_capped_lock_ancestry
@@ -2053,20 +2163,21 @@ def _run_fusion_observation(plan_path, plan_sha256, out_dir, *, device):
           'FUSION_CAP')
     for key,value in (('MAX_POWER_LIMIT_W','250'),('MAX_POWER_DRAW_W','170'),('MAX_CORE_TEMP_C','65'),('MAX_MEMORY_TEMP_C','80')):
         _need(os.environ.get('GX1_TRAINER_GPU_'+key) == value, 'FUSION_HARDWARE:'+key)
-    q = _inspect_fusion_observation(plan_path,plan_sha256,out_dir,execute=True)
+    q = _inspect_fusion_observation(plan_path,plan_sha256,out_dir,execute=True,initial=initial)
+    root, bounds = Path(out_dir), q['plan']
     _need(not torch.cuda.is_initialized() and signal.getitimer(signal.ITIMER_REAL) == (0.,0.), 'FUSION_INIT_ORDER')
     claim = _publish('CLAIM.json',dict(plan=q['plan_ref'],policy=q['policy_ref'],source_commit=q['head'],
-        cap=cap,optimizer_updates=0,test_data_used=False),root=FUSION_ROOT)
+        cap=cap,optimizer_updates=0,test_data_used=False),root=root)
     counts = dict(model_constructions=0,checkpoint_loads=0,backbone_encodings=0,forward_returns=0,
         instrumented_forwards=0,archive_decodes=0,head_tensor_imports=0,candidate_writes=0,
         optimizer_constructions=0,optimizer_updates=0,backwards=0,checkpoint_writes=0,
         resume_state_load_calls=0,resume_state_load_returns=0,published_npz_bytes=0,scalar_fits=0,sampled_rows=0)
     provider = prepared = None; artifacts = {}; pieces = {}; active = None
-    passivity = {}; import_proof = {}; candidate = None
+    passivity = {}; import_proof = {}; candidate = None; matched_observations = {}
     previous_alarm = signal.getsignal(signal.SIGALRM)
     def timeout(*unused): raise TimeoutError('Passive TA fusion observation 900-second bound')
     signal.signal(signal.SIGALRM,timeout)
-    signal.setitimer(signal.ITIMER_REAL,max(1.,FUSION_BOUNDS['wall_seconds']-(time.monotonic()-started)))
+    signal.setitimer(signal.ITIMER_REAL,max(1.,bounds['wall_seconds']-(time.monotonic()-started)))
     def bookend():
         campaign.require_clean_source(dict(source_repo=str(REPO),source_commit=q['head']))
         for ref in q['bound_refs']: campaign.require_binding(ref,label='fusion bookend',verify_file=True)
@@ -2089,9 +2200,11 @@ def _run_fusion_observation(plan_path, plan_sha256, out_dir, *, device):
         model=NativeFutureDualModel(backbone)
         fit.require_checkpoint_view(model.state_model.feature_view_identity,recipe=q['origin']['original_recipe'],verify_files=True,ta_sf=True)
         _need(model.research_objective['contract_sha256']==recipe['expected_model_contract_sha256'],'FUSION_MODEL_CONTRACT')
-        order,_=build_reverse_order(fit_rows,recipe['batch_indices']);counts['checkpoint_loads']+=1
-        saved=common._load_state(refs['reversed_evidence'],torch=torch,maximum=recipe['max_checkpoint_bytes'],counters=counts)
-        source_identity=_load_reversed_weights(model,saved,q,torch.from_numpy(order.copy()),torch=torch);del saved
+        order = fit_rows.copy() if initial else build_reverse_order(fit_rows,recipe['batch_indices'])[0]
+        counts['checkpoint_loads']+=1
+        checkpoint = refs['initial_checkpoint' if initial else 'reversed_evidence']
+        saved=common._load_state(checkpoint,torch=torch,maximum=recipe['max_checkpoint_bytes'],counters=counts)
+        source_identity=_load_reversed_weights(model,saved,q,torch.from_numpy(order.copy()),torch=torch,initial=initial);del saved
         model.to(cuda)
         def signature():
             return dict(model=model_sha(model.state_dict()),buffers=old._tree_sha(dict(model.named_buffers())),
@@ -2101,22 +2214,28 @@ def _run_fusion_observation(plan_path, plan_sha256, out_dir, *, device):
                 parameter_identity={n:id(p) for n,p in model.named_parameters()},
                 hooks={n:(tuple(m._forward_hooks),tuple(m._forward_pre_hooks)) for n,m in model.named_modules()})
         before=signature()
-        _need(before['model']==REVERSED_MODEL and not any(before['trainability'].values()),'FUSION_FROZEN_SOURCE')
-        with np.load(refs['folded_coefficients']['path'],allow_pickle=False) as z:
-            expected={prefix+suffix for prefix in ('state_model.m5_side_head','future_m5_side_head') for suffix in ('.weight','.bias')}
-            _need(set(z.files)==expected,'FUSION_COEFFICIENT_KEYS')
-            coefficients={name:torch.from_numpy(z[name].copy()) for name in z.files}
-        counts['archive_decodes']+=1
-        import_proof=state.import_equal_weight_m5_side_heads(model,coefficients,expected_model_state_sha256=REVERSED_MODEL,
-            coefficient_artifact=refs['folded_coefficients'],coefficient_recipe=refs['candidate_plan'])
-        counts['head_tensor_imports']=4;candidate=signature()
-        _need(candidate['model']==FUSION_BOUNDS['candidate_model_state_sha256']
+        source_model = bounds['candidate_model_state_sha256'] if initial else REVERSED_MODEL
+        _need(before['model']==source_model and not any(before['trainability'].values()),'FUSION_FROZEN_SOURCE')
+        if not initial:
+            with np.load(refs['folded_coefficients']['path'],allow_pickle=False) as z:
+                expected={prefix+suffix for prefix in ('state_model.m5_side_head','future_m5_side_head') for suffix in ('.weight','.bias')}
+                _need(set(z.files)==expected,'FUSION_COEFFICIENT_KEYS')
+                coefficients={name:torch.from_numpy(z[name].copy()) for name in z.files}
+            counts['archive_decodes']+=1
+            import_proof=state.import_equal_weight_m5_side_heads(model,coefficients,expected_model_state_sha256=REVERSED_MODEL,
+                coefficient_artifact=refs['folded_coefficients'],coefficient_recipe=refs['candidate_plan'])
+            counts['head_tensor_imports']=4
+        candidate=signature()
+        _need(candidate['model']==bounds['candidate_model_state_sha256']
               and all(candidate[k]==before[k] for k in before if k!='model'),'FUSION_EXACT_CANDIDATE')
-        with np.load(refs['candidate_baseline']['path'],allow_pickle=False) as z:
+        with np.load(refs['initial_baseline' if initial else 'candidate_baseline']['path'],allow_pickle=False) as z:
             baseline={name:z[name].copy() for name in z.files}
         counts['archive_decodes']+=1
+        if initial:
+            _need(all(len(v)==192 for v in baseline.values()),'FUSION_INITIAL_BASELINE_ROWS')
+            baseline={name:value[:BATCH_SIZE].copy() for name,value in baseline.items()}
         def forward(rows,issues,left,partition,*,instrumented):
-            _need(counts['backbone_encodings']<FUSION_BOUNDS['max_backbone_encodings'],'FUSION_FORWARD_LIMIT')
+            _need(counts['backbone_encodings']<bounds['max_backbone_encodings'],'FUSION_FORWARD_LIMIT')
             raw,parents,clocks=runner._feature_batch(prepared,view,receipts,rows,issues,left,left+BATCH_SIZE,np=np)
             _need(len(parents)==len(clocks)==BATCH_SIZE,'FUSION_INTACT_BATCH')
             features={k:torch.from_numpy(v).to(cuda) for k,v in raw.items()}
@@ -2128,16 +2247,24 @@ def _run_fusion_observation(plan_path, plan_sha256, out_dir, *, device):
                 return report['m5_readout']
             if not instrumented: return evaluate(),{}
             with observe_ta_fusion_once(model.backbone,batch_rows=BATCH_SIZE,
-                    max_bytes=FUSION_BOUNDS['max_cache_bytes'],torch=torch) as captured:
+                    max_bytes=bounds['max_cache_bytes'],torch=torch) as captured:
                 readout=evaluate()
             counts['instrumented_forwards']+=1
             return readout,{k:v.cpu().numpy().copy() for k,v in captured.items()}
         uninstrumented,_=forward(later_rows,later_issues,0,'score',instrumented=False)
-        artifacts['uninstrumented']=_save_fusion_arrays('UNINSTRUMENTED_LATER_ROW0.npz',uninstrumented,counts,np=np)
+        artifacts['uninstrumented']=_save_fusion_arrays('UNINSTRUMENTED_LATER_ROW0.npz',uninstrumented,counts,np=np,root=root)
         passivity['uninstrumented_matches_bound_baseline']=_fusion_exact_arrays(uninstrumented,baseline)
         _need(passivity['uninstrumented_matches_bound_baseline'],'FUSION_BOUND_BASELINE_PARITY')
         for panel,rows,issues,partition in (('TRAIN',fit_rows,fit_issues,'fit'),('LATER',later_rows,later_issues,'score')):
-            active=panel;pieces={}
+            active=panel;pieces={}; matched = None
+            if initial:
+                with np.load(refs['trained_'+panel.lower()]['path'],allow_pickle=False) as z:
+                    matched={key:z[key].copy() for key in FUSION_MATCH_KEYS}
+                counts['archive_decodes']+=1
+                positions=np.asarray([i*BATCH_SIZE+j for i in _fusion_batch_indices(len(rows))
+                                      for j in range(BATCH_SIZE)],dtype=np.int64)
+                _need(_fusion_exact_arrays({'parents':rows[positions],'issues':issues[positions]},
+                    {k:matched[k] for k in ('parents','issues')}),'FUSION_MATCHED_PARENT_AXES')
             for batch_index in _fusion_batch_indices(len(rows)):
                 readout,captured=forward(rows,issues,batch_index*BATCH_SIZE,partition,instrumented=True)
                 values={**readout,**{'capture_'+k:v for k,v in captured.items()}}
@@ -2148,12 +2275,15 @@ def _run_fusion_observation(plan_path, plan_sha256, out_dir, *, device):
                     passivity['instrumented_matches_bound_baseline']=_fusion_exact_arrays(readout,baseline)
                     _need(all(passivity.values()),'FUSION_INSTRUMENTED_PARITY')
             combined={k:np.concatenate(v,axis=0) for k,v in pieces.items()}
-            _need(all(len(v)==FUSION_BOUNDS['sampled_rows_per_partition'] for v in combined.values()),'FUSION_PANEL_ROWS')
-            artifacts[panel]=_save_fusion_arrays(panel+'_FUSION.npz',combined,counts,np=np)
+            _need(all(len(v)==bounds['sampled_rows_per_partition'] for v in combined.values()),'FUSION_PANEL_ROWS')
+            if initial:
+                matched_observations[panel]=_fusion_exact_arrays({k:combined[k] for k in FUSION_MATCH_KEYS},matched)
+                _need(matched_observations[panel],'FUSION_MATCHED_OBSERVATIONS')
+            artifacts[panel]=_save_fusion_arrays(panel+'_FUSION.npz',combined,counts,np=np,root=root)
             pieces={}
         _need(signature()==candidate and all(p.grad is None for p in model.parameters()),'FUSION_STATE_UNCHANGED')
         expected=dict(model_constructions=1,checkpoint_loads=1,backbone_encodings=33,forward_returns=33,
-            instrumented_forwards=32,archive_decodes=2,head_tensor_imports=4,candidate_writes=0,
+            instrumented_forwards=32,archive_decodes=3 if initial else 2,head_tensor_imports=bounds['head_tensor_imports'],candidate_writes=0,
             optimizer_constructions=0,optimizer_updates=0,backwards=0,checkpoint_writes=0,
             resume_state_load_calls=1,resume_state_load_returns=1,scalar_fits=0,sampled_rows=512)
         _need(all(counts[k]==v for k,v in expected.items()) and all(passivity.values()),'FUSION_EXACT_COUNTS')
@@ -2162,24 +2292,25 @@ def _run_fusion_observation(plan_path, plan_sha256, out_dir, *, device):
         return _publish_fusion_outcome(q['plan_ref'],dict(claim=claim,counts=counts,artifacts=artifacts,
             source_commit=q['head'],source_identity=source_identity,import_proof=import_proof,
             candidate_model_state_sha256=candidate['model'],passivity=passivity,
+            **(dict(matched_observations=matched_observations,trained_result=refs['trained_result']) if initial else {}),
             batch_indices={p:list(_fusion_batch_indices(n)) for p,n in (('TRAIN',FIT_ROWS),('LATER',SCORE_ROWS))},
             source_unchanged=True,evaluation_state_unchanged=True,elapsed_seconds=time.monotonic()-started,
-            limitations=['512 rows are a fixed diagnostic sample, not a generalization or quality threshold.',
+            limitations=['512 rows in 16 intact B16 groups per partition are diagnostic, not 512 independent samples or a quality threshold.',
                 'Gate weights and representation variation do not establish predictive utility.',
-                'Residual scales and joint LayerNorm must be included in component-size comparisons.']),complete=True)
+                'Residual scales and joint LayerNorm must be included in component-size comparisons.']),complete=True,root=root)
     except BaseException as exc:
         preservation_error=changed=None
         if pieces and active not in artifacts:
             try:
                 artifacts[active+'_partial']=_save_fusion_arrays(active+'_FUSION_PARTIAL.npz',
-                    {k:np.concatenate(v,axis=0) for k,v in pieces.items()},counts,np=np)
+                    {k:np.concatenate(v,axis=0) for k,v in pieces.items()},counts,np=np,root=root)
             except Exception as other: preservation_error=repr(other)
         try:bookend()
         except Exception as other:changed=repr(other)
         _publish_fusion_outcome(q['plan_ref'],dict(claim=claim,counts=counts,artifacts=artifacts,
-            import_proof=import_proof,passivity=passivity,error=type(exc).__name__+':'+str(exc),
+            import_proof=import_proof,passivity=passivity,matched_observations=matched_observations,error=type(exc).__name__+':'+str(exc),
             source_unchanged=changed is None,bookend_error=changed,preservation_error=preservation_error,
-            elapsed_seconds=time.monotonic()-started),complete=False)
+            elapsed_seconds=time.monotonic()-started),complete=False,root=root)
         raise
     finally:
         signal.setitimer(signal.ITIMER_REAL,0.);signal.signal(signal.SIGALRM,previous_alarm)

@@ -810,3 +810,255 @@ def test_fusion_private_arrays_and_success_failure_terminals(tmp_path,monkeypatc
         with pytest.raises(RuntimeError,match='FUSION_OUTPUT_BYTES'):
             w._save_fusion_arrays('LATER_FUSION_PARTIAL.npz',arrays,counts,np=np)
         assert not (root/'LATER_FUSION_PARTIAL.npz').exists()
+
+
+def initial_fusion_plan():
+    from gx1.audit import cache_market_state_ta_direction_v1 as w
+    return dict(fusion_plan(),stage=w.FUSION_INITIAL_STAGE,inputs=w.FUSION_INITIAL_REFS,**{
+        k:v for k,v in w.FUSION_INITIAL_BOUNDS.items()})
+
+
+def test_initial_fusion_exact_plan_has_no_import_or_extra_forward_scope():
+    from gx1.audit import cache_market_state_ta_direction_v1 as w
+    plan=initial_fusion_plan();path=w.FUSION_INITIAL_ROOT/'PLAN.json'
+    assert w._fusion_plan(plan,path,w.FUSION_INITIAL_ROOT,initial=True)==plan
+    assert plan['head_tensor_imports']==0 and plan['max_backbone_encodings']==33
+    assert plan['candidate_model_state_sha256']=='ae772fd755cbfa07b1b7bcca8bccd2c8a8889806989a289ddb8267972c281b37'
+    for key,value in [('head_tensor_imports',4),('max_checkpoint_loads',2),('max_backbone_encodings',34),
+                      ('candidate_model_state_sha256',w.FUSION_BOUNDS['candidate_model_state_sha256']),
+                      ('max_optimizer_updates',1),('max_candidate_writes',1),('batch_size',16.)]:
+        with pytest.raises(RuntimeError,match='FUSION_EXACT_PLAN'):
+            w._fusion_plan({**plan,key:value},path,w.FUSION_INITIAL_ROOT,initial=True)
+    for p,r,initial in ((path,w.FUSION_INITIAL_ROOT,False),
+                        (w.FUSION_ROOT/'PLAN.json',w.FUSION_ROOT,True),
+                        (path,w.FUSION_ROOT,True)):
+        with pytest.raises(RuntimeError,match='FUSION_EXACT_PLAN'):
+            w._fusion_plan(plan,p,r,initial=initial)
+
+
+def test_initial_fusion_dispatch_reuses_observer_route(monkeypatch):
+    from gx1.audit import cache_market_state_ta_direction_v1 as w
+    calls=[]
+    monkeypatch.setattr(w,'_inspect_fusion_observation',lambda *a,**kw:
+        calls.append(('inspect',kw)) or dict(plan_ref={},view={'contract_sha256':'a'*64},current_sources={}))
+    monkeypatch.setattr(w,'_run_fusion_observation',lambda *a,**kw:calls.append(('run',kw)) or {'synthetic':True})
+    monkeypatch.setattr(w,'_inspect_shrink_score',lambda *a,**k:pytest.fail('wrong route'))
+    root=w.FUSION_INITIAL_ROOT;path=root/'PLAN.json'
+    report=w.preflight_read_only(path,'a'*64,root)
+    assert report['archive_decodes']==report['backbone_encodings']==report['model_constructions']==0
+    assert report['candidate_model_state_sha256']==w.FUSION_INITIAL_BOUNDS['candidate_model_state_sha256']
+    assert w.run(path,'a'*64,root,device='cuda')=={'synthetic':True}
+    assert calls==[('inspect',{'execute':False,'initial':True}),('run',{'device':'cuda','initial':True})]
+
+
+def test_initial_fusion_metadata_preflight_binds_baseline_and_matched_axes(tmp_path,monkeypatch):
+    import copy
+    import numpy as np
+    import torch
+    from gx1.audit import cache_market_state_ta_direction_v1 as w
+    monkeypatch.setattr(w,'FUSION_INITIAL_ROOT',tmp_path)
+    plan=initial_fusion_plan();refs=plan['inputs'];path=tmp_path/'PLAN.json';seen=[]
+    pr={'path':str(path),'sha256':'a'*64};policy_ref={'path':str(w.REPO/'NEXT_RUN_POLICY.json'),'sha256':'b'*64}
+    recipe=dict(input_refs={old:refs[new] for new,old in (
+        ('initial_checkpoint','original_initial_checkpoint'),('initial_baseline','initial_later_capture'),
+        ('initial_measurement','initial_later_measurement'))},
+        expected_initial_model_state_sha256=plan['candidate_model_state_sha256'],
+        expected_model_contract_sha256='c'*64,expected_view_sha256='d'*64)
+    baseline=dict(schema_version='gx1_market_state_ta_sf_fold1_evaluation_v1',
+        evaluated_checkpoint=refs['initial_checkpoint'],evaluated_model_state_sha256=plan['candidate_model_state_sha256'],
+        capture=refs['initial_baseline'],optimizer_updates=0,fold_id=1,test_data_used=False,full_population_evaluated=False,
+        fixed_subset_positions=[i for start in (0,8352,17680) for i in range(start,start+64)],
+        measurement=dict(rows=192,batches=12,partition='score',model_contract_sha256='c'*64,feature_view_sha256='d'*64))
+    trained_plan={'path':str(w.FUSION_ROOT/'PLAN.json'),'sha256':'e'*64}
+    trained=dict(status='COMPLETE',source_unchanged=True,evaluation_state_unchanged=True,source_commit='f'*40,
+        candidate_model_state_sha256=w.FUSION_BOUNDS['candidate_model_state_sha256'],plan=trained_plan,test_data_used=False,
+        artifacts={'TRAIN':refs['trained_train'],'LATER':refs['trained_later']},
+        batch_indices={p:list(w._fusion_batch_indices(n)) for p,n in (('TRAIN',29574),('LATER',17753))},
+        counts=dict(model_constructions=1,checkpoint_loads=1,backbone_encodings=33,forward_returns=33,
+            instrumented_forwards=32,archive_decodes=2,head_tensor_imports=4,candidate_writes=0,optimizer_constructions=0,
+            optimizer_updates=0,backwards=0,checkpoint_writes=0,resume_state_load_calls=1,resume_state_load_returns=1,
+            scalar_fits=0,sampled_rows=512),passivity=dict(uninstrumented_matches_bound_baseline=True,
+                instrumented_matches_uninstrumented=True,instrumented_matches_bound_baseline=True))
+    terminal=dict(status='COMPLETE',result=refs['trained_result'],plan=trained_plan,exit_code=0,
+        source_unchanged=True,no_relaunch_under_this_plan=True,test_data_used=False)
+    review=dict(status='COMPLETE',schema_version='gx1_ta_fusion_observation_numeric_review_v1',
+        result=refs['trained_result'],terminal=refs['trained_terminal'],source_commit='f'*40,test_data_used=False,
+        partitions={p:dict(artifact=refs['trained_'+p.lower()],rows=256,unique_parents=256) for p in ('TRAIN','LATER')})
+    gate=dict(status='ADMITTED',plan=pr,max_invocations=1,remaining_invocations=1,claimed_invocations=0,
+        completed_invocations=0,relaunch_allowed=False,execution_authorized=True,data_reads_authorized=True,
+        checkpoint_reads_authorized=True,backbone_encodings_authorized=33,head_tensor_imports_authorized=0,
+        candidate_weights_writes_authorized=0,backward_calls_authorized=0,optimizer_steps_authorized=0,
+        training_authorized=False,**w.FUSION_INITIAL_BOUNDS)
+    policy={k:False for k in ('training_enabled','native_training_enabled','native_launch_authorized','full_epoch_training_allowed')}
+    policy[w.FUSION_INITIAL_STAGE]=gate
+    docs={str(path):plan,refs['initial_measurement']['path']:baseline,refs['trained_result']['path']:trained,
+        refs['trained_terminal']['path']:terminal,refs['trained_review']['path']:review,policy_ref['path']:policy}
+    monkeypatch.setattr(w,'_read',lambda ref:copy.deepcopy(docs[ref['path']]))
+    monkeypatch.setattr(w,'_ref',lambda p:policy_ref)
+    monkeypatch.setattr(w,'_git',lambda *a:'work/gx1-current' if a[0]=='branch' else 'b'*40)
+    monkeypatch.setattr(w.subprocess,'run',lambda *a,**k:None)
+    monkeypatch.setattr(w.campaign,'require_binding',lambda ref,**kw:seen.append(ref['path']) or ref)
+    monkeypatch.setattr(w.campaign,'require_clean_source',lambda *a,**k:None)
+    monkeypatch.setattr(w,'_qualify_reversed_origin',lambda p,b:
+        seen.append('original_qualifier') or dict(recipe=recipe,view={'contract_sha256':'d'*64},current_sources={}))
+    monkeypatch.setattr(np,'load',lambda *a,**k:pytest.fail('metadata preflight decoded arrays'))
+    monkeypatch.setattr(torch,'load',lambda *a,**k:pytest.fail('metadata preflight decoded checkpoint'))
+    checked=w._inspect_fusion_observation(path,'a'*64,tmp_path,execute=False,initial=True)
+    assert checked['plan']==plan and 'original_qualifier' in seen
+    assert all(refs[k]['path'] in seen for k in ('initial_checkpoint','initial_baseline','trained_train','trained_later'))
+    assert not (tmp_path/'CLAIM.json').exists()
+    assert w._inspect_fusion_observation(path,'a'*64,tmp_path,execute=True,initial=True)['plan']==plan
+    for kind,mutate,reason in [
+        ('initial_measurement',lambda x:x.update(evaluated_model_state_sha256='0'*64),'BASELINE'),
+        ('initial_measurement',lambda x:x.update(optimizer_updates=1),'BASELINE'),
+        ('initial_measurement',lambda x:x['fixed_subset_positions'].__setitem__(0,1),'BASELINE'),
+        ('trained_result',lambda x:x['batch_indices']['TRAIN'].__setitem__(0,1),'MATCHED_TRAINED'),
+        ('trained_result',lambda x:x['passivity'].update(instrumented_matches_uninstrumented=False),'MATCHED_TRAINED'),
+        ('trained_terminal',lambda x:x.update(status='FAILED_CONSUMED'),'MATCHED_TRAINED'),
+        ('trained_review',lambda x:x['partitions']['LATER'].update(unique_parents=255),'MATCHED_TRAINED')]:
+        key=refs[kind]['path'];original=docs[key];bad=copy.deepcopy(original);mutate(bad);docs[key]=bad
+        with pytest.raises(RuntimeError,match='FUSION_INITIAL_'+reason):
+            w._inspect_fusion_observation(path,'a'*64,tmp_path,execute=False,initial=True)
+        docs[key]=original
+    gate['head_tensor_imports_authorized']=4
+    with pytest.raises(RuntimeError,match='FUSION_ADMISSION'):
+        w._inspect_fusion_observation(path,'a'*64,tmp_path,execute=True,initial=True)
+
+
+def _synthetic_fusion_checkpoint(monkeypatch, *, initial):
+    import copy
+    import torch
+    from gx1.audit import cache_market_state_ta_direction_v1 as w
+    from gx1.contracts import entry_native_direction_research_state_v1 as old
+    from gx1.contracts import market_state_time_query_fold1_fit_state_v1 as state
+    from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256 as model_sha
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+    class Backbone(torch.nn.Module):
+        def __init__(self):
+            super().__init__();self.linear=torch.nn.Linear(2,2)
+            self.register_buffer('dynamic',torch.ones(2),persistent=False)
+        def require_input_normalization_state(self): pass
+    class Model(torch.nn.Module):
+        def __init__(self):
+            super().__init__();self.state_model=torch.nn.Module();self.state_model.backbone=Backbone()
+            self.state_model.feature_view_identity={'contract_sha256':'a'*64}
+            self.research_objective={'contract_sha256':'b'*64}
+        @property
+        def backbone(self): return self.state_model.backbone
+    model=Model();pairs=list(model.named_parameters());order=torch.arange(4,dtype=torch.int64)
+    numerical={'seed':42,'optimizer':{'kwargs':{'lr':1e-4,'betas':[.9,.999]}}}
+    monkeypatch.setattr(state,'_parameters',lambda m:(list(m.named_parameters()),list(m.named_parameters()),[]))
+    monkeypatch.setattr(state,'_numerical',lambda n,m:copy.deepcopy(n))
+    monkeypatch.setattr(state,'_require_model_binding',lambda m:None)
+    monkeypatch.setattr(state,'build_fold1_fit_optimizer',lambda *a,**k:pytest.fail('optimizer constructed'))
+    monkeypatch.setattr(state,'restore_fold1_fit_state',lambda *a,**k:pytest.fail('full state restored'))
+    monkeypatch.setattr(trainer,'_restore_attended_session_rng_state',lambda *a,**k:pytest.fail('RNG restored'))
+    monkeypatch.setattr(torch,'load',lambda *a,**k:pytest.fail('fixture must not deserialize'))
+    binding=dict(schema_version=state.TA_BINDING_SCHEMA,numerical_recipe=numerical,
+        feature_view_identity=model.state_model.feature_view_identity,research_objective=model.research_objective,
+        active_parameter_names=[n for n,_ in pairs],inactive_parameter_names=[],
+        parameter_inventory=[dict(name=n,shape=list(p.shape),dtype=str(p.dtype)) for n,p in pairs],
+        optimizer_group_parameter_names=[[n for n,_ in pairs]],ema_created=False,scheduler_created=False,target_model_created=False)
+    binding['contract_sha256']=old._tree_sha(binding)
+    rng=copy.deepcopy(trainer._attended_session_rng_state(device=torch.device('cpu')))
+    rng['torch_cuda']=[torch.zeros(8,dtype=torch.uint8)]
+    ck=dict(model_state=copy.deepcopy(model.state_dict()),buffer_state=copy.deepcopy(dict(model.named_buffers())),
+        optimizer_state={'state':{},'param_groups':[dict(lr=1e-4,betas=(.9,.999),params=list(range(len(pairs))))]},
+        rng_state=rng,module_training={n:m.training for n,m in model.named_modules()},parent_order=order.clone())
+    digest=model_sha(ck['model_state'])
+    refs={'initial_checkpoint':{'path':'synthetic.pt','sha256':'c'*64},'reverse_recipe':{'path':'synthetic.json','sha256':'d'*64}}
+    recipe=dict(numerical_recipe=numerical,expected_view_sha256='a'*64,expected_initial_model_state_sha256=digest,
+        input_refs={'original_initial_checkpoint':refs['initial_checkpoint']},batch_indices=[0],batch_order_sha256='e'*64)
+    checked=dict(recipe=recipe,plan={'inputs':refs},origin={'original_result':{
+        'source_commit':'f'*40,'parent_order_sha256':old._tree_sha(order)}},result={'parent_order_sha256':old._tree_sha(order)})
+    if initial:
+        monkeypatch.setattr(w,'FUSION_INITIAL_BOUNDS',{**w.FUSION_INITIAL_BOUNDS,'candidate_model_state_sha256':digest})
+        ck.update(schema_version=state.TA_STATE_SCHEMA,source_commit='f'*40,fold_id=1,feature_view_sha256='a'*64,
+            binding=binding,cursor=0,optimizer_updates=0,skipped_batches=0)
+    else:
+        monkeypatch.setattr(w,'REVERSED_MODEL',digest)
+        ck.update(schema_version='gx1_ta_m5_full_reverse_order_evidence_v1',arm='REVERSED',recipe=refs['reverse_recipe'],
+            source_commit=w.REVERSED_SOURCE,original_checkpoint=refs['initial_checkpoint'],canonical_resume_authority=False,
+            parent_cursor=w.FIT_ROWS,physical_optimizer_updates=1849,pending_gradients=0,parameter_binding=binding,
+            original_numerical_recipe_reference=numerical,test_data_used=False,
+            method_state=dict(batch_indices=[0],batch_order_sha256='e'*64,full_order_sha256=old._tree_sha(order),
+                original_fit_batch_starts=[0],pass_index=0,all_original_rows_once=True,tail_policy='original_tail_last',
+                loss_and_optimizer_unchanged=True))
+        ck['optimizer_state']['state'][0]=dict(step=torch.tensor(1.),exp_avg=torch.zeros_like(pairs[0][1]),
+            exp_avg_sq=torch.zeros_like(pairs[0][1]))
+    def seal(value):
+        value['model_state_sha256']=model_sha(value['model_state'])
+        for key in ('buffer_state','optimizer_state','rng_state'): value[key+'_sha256']=old._tree_sha(value[key])
+        key='contract_sha256' if initial else 'evidence_sha256'
+        value[key]=old._tree_sha({k:v for k,v in value.items() if k!=key})
+    seal(ck)
+    with torch.no_grad():
+        for p in model.parameters(): p.add_(1.)
+        model.backbone.dynamic.add_(2.)
+    return model,ck,checked,order,seal
+
+
+@pytest.mark.parametrize('initial',[False,True])
+def test_fusion_weight_loader_preserves_rng_and_never_restores_optimizer(monkeypatch,initial):
+    import torch
+    from gx1.audit import cache_market_state_ta_direction_v1 as w
+    from gx1.contracts import entry_native_direction_research_state_v1 as old
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+    model,ck,checked,order,_=_synthetic_fusion_checkpoint(monkeypatch,initial=initial)
+    before=old._tree_sha(trainer._attended_session_rng_state(device=torch.device('cpu')))
+    saved=old._tree_sha(ck);ids={n:id(p) for n,p in model.named_parameters()}
+    result=w._load_reversed_weights(model,ck,checked,order,torch=torch,initial=initial)
+    assert result['model_state_sha256']==ck['model_state_sha256']
+    assert old._tree_sha(dict(model.named_buffers()))==ck['buffer_state_sha256']
+    assert result['optimizer_state_restored'] is result['cuda_rng_restored'] is False
+    assert old._tree_sha(trainer._attended_session_rng_state(device=torch.device('cpu')))==before
+    assert old._tree_sha(ck)==saved and {n:id(p) for n,p in model.named_parameters()}==ids
+    assert not any(m.training for m in model.modules()) and not any(p.requires_grad for p in model.parameters())
+
+
+@pytest.mark.parametrize('change,reason',[
+    ('cursor','INITIAL_STATE_HEADER'),('source','INITIAL_STATE_HEADER'),('extra','INITIAL_STATE_HEADER'),
+    ('seal','INITIAL_STATE_SEAL'),('order','INITIAL_STATE_ORDER'),('binding','PARAMETER_BINDING'),
+    ('history','OPTIMIZER_ORDER'),('mode','MODULE_MODES'),('buffer','REVERSED_BUFFERS_TENSOR')])
+def test_initial_fusion_loader_rejects_malformed_state_before_mutation(monkeypatch,change,reason):
+    import torch
+    from gx1.audit import cache_market_state_ta_direction_v1 as w
+    from gx1.contracts import entry_native_direction_research_state_v1 as old
+    model,ck,checked,order,seal=_synthetic_fusion_checkpoint(monkeypatch,initial=True)
+    before=old._tree_sha(dict(model=model.state_dict(),buffers=dict(model.named_buffers())))
+    if change=='cursor': ck['cursor']=False
+    elif change=='source': ck['source_commit']='0'*40
+    elif change=='extra': ck['unexpected']=True
+    elif change=='order': ck['parent_order']=ck['parent_order'].flip(0)
+    elif change=='binding': ck['binding']['active_parameter_names']=[]
+    elif change=='history': ck['optimizer_state']['state'][0]={}
+    elif change=='mode': ck['module_training'].pop('')
+    elif change=='buffer': ck['buffer_state']['state_model.backbone.dynamic'].fill_(float('nan'))
+    seal(ck)
+    if change=='seal': ck['contract_sha256']='0'*64
+    with pytest.raises(RuntimeError,match=reason):
+        w._load_reversed_weights(model,ck,checked,order,torch=torch,initial=True)
+    assert old._tree_sha(dict(model=model.state_dict(),buffers=dict(model.named_buffers())))==before
+    assert all(p.requires_grad for p in model.parameters()) and model.training
+
+
+def test_initial_fusion_explicit_root_preserves_original_outputs(tmp_path,monkeypatch):
+    import json
+    import numpy as np
+    from gx1.audit import cache_market_state_ta_direction_v1 as w
+    original=tmp_path/'trained';original.mkdir();(original/'RESULT.json').write_text('sealed')
+    monkeypatch.setattr(w,'FUSION_ROOT',original)
+    for complete in (True,False):
+        initial=tmp_path/str(complete);initial.mkdir();counts={'published_npz_bytes':0}
+        arrays={k:np.arange(16,dtype=np.int64) for k in w.FUSION_MATCH_KEYS}
+        assert w._fusion_exact_arrays(arrays,{k:v.copy() for k,v in arrays.items()})
+        for key in w.FUSION_MATCH_KEYS:
+            changed={k:v.copy() for k,v in arrays.items()};changed[key][0]+=1
+            assert not w._fusion_exact_arrays(arrays,changed)
+        name='TRAIN_FUSION.npz' if complete else 'TRAIN_FUSION_PARTIAL.npz'
+        artifact=w._save_fusion_arrays(name,arrays,counts,np=np,root=initial)
+        published=w._publish_fusion_outcome({'path':str(initial/'PLAN.json'),'sha256':'a'*64},
+            dict(source_unchanged=True,counts=counts,artifacts={'TRAIN':artifact}),complete=complete,root=initial)
+        terminal=json.loads(Path(published['terminal']['path']).read_text())
+        assert terminal['exit_code']==(0 if complete else 1) and terminal['no_relaunch_under_this_plan']
+        assert Path(artifact['path']).parent==initial and (original/'RESULT.json').read_text()=='sealed'

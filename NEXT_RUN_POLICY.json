@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-11T12:56:28.411987+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_FROZEN_FUSION_OBSERVATION_ADMITTED",
+  "observed_utc": "2026-11-11T13:25:15.181426+00:00",
+  "status": "TA_DIRECTION_EDGE_CAUSE_MATCHED_INITIAL_OBSERVATION_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Execute the single qualified frozen fusion observation once;33nativeforwards/512diagnostic rows,0updates. Then analyze retained route/variation evidence without fitting.",
+  "next_action": "Execute one qualified matched INITIAL passive observation, then compare retained INITIAL/TRAINED MTF pools and joint representations without fitting.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1697,8 +1697,8 @@
     }
   },
   "current_work": {
-    "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Qualified one passive fusion observation of preserved candidate c171736d; source/policy freeze during execution.",
+    "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
+    "current_activity": "Qualified matched INITIAL passive observation; freeze source/policy for one exact run.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1720,18 +1720,18 @@
       "stable_run_policy": "Brief status only during stable work; existing hardware guards own frequent telemetry. No minute-level model polling or filler jobs.",
       "thread_heartbeat_id": "gx1-fullf-r-m5-entry"
     },
-    "current_research_id": "direction_edge_research_goal_20261105",
+    "current_research_id": "direction_edge_cause_goal_20261111",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "Native locked-shrink correction COMPLETE and consumed; four primary direction cells pass.",
-    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_INNER_L2_BOUNDARY_20261110_001",
+    "latest_terminal_role": "Passive fusion observation COMPLETE and consumed; no model update or edge claim.",
+    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_OBSERVATION_20261111_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_LOCKED_SHRINK_NATIVE_20261111_001/TERMINAL.json",
-      "sha256": "ccd02a8a1e79ec4d4dfb11629e2e3dd54499a638bbb6d9cb6a088e2a7312167c"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_OBSERVATION_20261111_001/TERMINAL.json",
+      "sha256": "915bee4127ae296c3fdb10437d1e4406d19a56bd76c5172ba14dba7903191e1f"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -1751,7 +1751,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Actual family/TF gate distributions and pre/post-fusion variation remain unmeasured; exact observation now admitted.",
+    "current_blocker": "Initial versus learned origin of MTF/context concentration remains to be measured.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -22137,7 +22137,7 @@
     },
     "direction_edge_cause_review": {
       "path": "docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "c9af366b118c83e123bf00b4777d9ecf3fc68969e0243a6290b6d2a7a34c570d"
+      "sha256": "52874a29627e7dd2b740bac3b9628f81b2b4e5dc12fb551d55470464ab597efd"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -75477,35 +75477,35 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_EXACT_FROZEN_OBSERVATION_ADMITTED",
+    "status": "ACTIVE_EXACT_MATCHED_INITIAL_OBSERVATION_ADMITTED",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
     "training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
     "review": {
       "path": "docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "c9af366b118c83e123bf00b4777d9ecf3fc68969e0243a6290b6d2a7a34c570d"
+      "sha256": "52874a29627e7dd2b740bac3b9628f81b2b4e5dc12fb551d55470464ab597efd"
     },
     "integrator": "root",
     "model_or_data_run_admitted": true,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Execute the single qualified frozen fusion observation once;33nativeforwards/512diagnostic rows,0updates. Then analyze retained route/variation evidence without fitting.",
-    "active_stage": "market_state_ta_fusion_observation_20261111_001"
+    "next_action": "Execute one qualified matched INITIAL passive observation, then compare retained INITIAL/TRAINED MTF pools and joint representations without fitting.",
+    "active_stage": "market_state_ta_fusion_initial_observation_20261111_001"
   },
   "market_state_ta_fusion_observation_20261111_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_OBSERVATION_20261111_001/PLAN.json",
       "sha256": "a6fb8f98c9e4f1d57a480d0ce99827e3d7c04d7ab7100481704dbd0c9aa42647"
     },
     "max_invocations": 1,
-    "remaining_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "remaining_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
-    "execution_authorized": true,
+    "execution_authorized": false,
     "data_reads_authorized": true,
     "checkpoint_reads_authorized": true,
     "backbone_encodings_authorized": 33,
@@ -75545,6 +75545,100 @@
     "retained_output_arithmetic_authorized": true,
     "retained_output_fit_authorized": false,
     "scope": "One passive frozen-candidate observation on512declared rows/33forwards, unchanged outputs/state/RNG required. Inspect retained aggregates without fit; gates/variance do not establish predictive value.",
-    "standing_authority": "Explicit11November direction-edge cause goal plus existing0USD local-work authority; exact single-use guarded observation only."
+    "standing_authority": "Explicit11November direction-edge cause goal plus existing0USD local-work authority; exact single-use guarded observation only.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_OBSERVATION_20261111_001/RESULT.json",
+      "sha256": "071c2976e9bf26ec88207e3cecb44eda712fda6a2f908717d746ede7f5dcdea5"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_OBSERVATION_20261111_001/TERMINAL.json",
+      "sha256": "915bee4127ae296c3fdb10437d1e4406d19a56bd76c5172ba14dba7903191e1f"
+    },
+    "controller_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_OBSERVATION_20261111_001/CONTROLLER_TERMINAL.json",
+      "sha256": "860bc796864172569237df0a38c3a0de950124e437201b8f407cc6cef19b3a5d"
+    },
+    "numeric_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_OBSERVATION_20261111_001/NUMERIC_REVIEW.json",
+      "sha256": "dacc9eaa78a6f2dc8b0e1b1ab5f1140d82bc8415b8d62a705e5cf3d52834c0e2"
+    },
+    "actual_counts": {
+      "archive_decodes": 2,
+      "backbone_encodings": 33,
+      "backwards": 0,
+      "candidate_writes": 0,
+      "checkpoint_loads": 1,
+      "checkpoint_writes": 0,
+      "forward_returns": 33,
+      "head_tensor_imports": 4,
+      "instrumented_forwards": 32,
+      "model_constructions": 1,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "published_npz_bytes": 5702814,
+      "resume_state_load_calls": 1,
+      "resume_state_load_returns": 1,
+      "sampled_rows": 512,
+      "scalar_fits": 0
+    },
+    "source_unchanged_at_terminal": true,
+    "evaluation_state_unchanged": true
+  },
+  "market_state_ta_fusion_initial_observation_20261111_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_INITIAL_OBSERVATION_20261111_001/PLAN.json",
+      "sha256": "178013d74c69076b6c46973507b9037a803d2a759055a51df25113ab4ba35f1d"
+    },
+    "max_invocations": 1,
+    "remaining_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "backbone_encodings_authorized": 33,
+    "head_tensor_imports_authorized": 0,
+    "candidate_weights_writes_authorized": 0,
+    "backward_calls_authorized": 0,
+    "optimizer_steps_authorized": 0,
+    "training_authorized": false,
+    "fit_rows": 29574,
+    "score_rows": 17753,
+    "batch_size": 16,
+    "decoder_width": 128,
+    "batches_per_partition": 16,
+    "sampled_rows_per_partition": 256,
+    "batch_selection": "uniform_complete_batches_floor_i_times_last_over_15",
+    "max_backbone_encodings": 33,
+    "max_model_constructions": 1,
+    "max_checkpoint_loads": 1,
+    "head_tensor_imports": 0,
+    "max_candidate_writes": 0,
+    "max_optimizer_constructions": 0,
+    "max_backwards": 0,
+    "max_optimizer_updates": 0,
+    "max_checkpoint_writes": 0,
+    "scalar_fits": 0,
+    "max_cache_bytes": 16777216,
+    "device": "cuda",
+    "wall_seconds": 900,
+    "candidate_model_state_sha256": "ae772fd755cbfa07b1b7bcca8bccd2c8a8889806989a289ddb8267972c281b37",
+    "training_enabled": false,
+    "test_data_used": false,
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_INITIAL_OBSERVATION_20261111_001/PREFLIGHT.log",
+      "sha256": "bd09070c7138e3f8c16231959f026800075a1bba2fe9d7b4e4b74f12c8722e36"
+    },
+    "focused_tests_passed": 60,
+    "retained_output_arithmetic_authorized": true,
+    "retained_output_fit_authorized": false,
+    "retained_analysis": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_INITIAL_OBSERVATION_20261111_001/ANALYZE_MATCHED.py",
+      "sha256": "3bd2f75aefa208d97375efe0483941f24409aaf067062243c6edf392ac65d41f"
+    },
+    "scope": "One matched passive INITIAL observation on512declared rows/33forwards, zero updates. Compare retained TRAINED/INITIAL arrays without fitting. Same parents,queries,masks required. Variance is not predictive value.",
+    "standing_authority": "Explicit11November direction-edge cause goal and existing0USD local-work authority; exact single-use guarded observation only."
   }
 }

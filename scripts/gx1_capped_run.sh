@@ -335,6 +335,8 @@ validate_target_command() {
             ta_cache_root=/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_LOCKED_SHRINK_NATIVE_20261111_001 ;;
           /home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_OBSERVATION_20261111_001/PLAN.json)
             ta_cache_root=/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_OBSERVATION_20261111_001 ;;
+          /home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_INITIAL_OBSERVATION_20261111_001/PLAN.json)
+            ta_cache_root=/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_INITIAL_OBSERVATION_20261111_001 ;;
           *) echo "FATAL: unbound TA direction-cache plan" >&2; exit 75 ;;
         esac
         if ! matches_bound_market_state_ta_direction_cache "$ta_cache_root/PLAN.json" "$ta_cache_root" "$@"; then

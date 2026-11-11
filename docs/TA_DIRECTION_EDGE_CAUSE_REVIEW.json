@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_PASSIVE_OBSERVATION_QUALIFIED",
+  "status": "ACTIVE_MATCHED_INITIAL_OBSERVATION_QUALIFIED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -31,8 +31,8 @@
     },
     {
       "id": "fusion_observation",
-      "evidence_class": "PROVEN_FROM_SOURCE",
-      "finding": "Backbone already returns four learned gates, but the active S/F encoder wrapper forwards only joint hidden. Actual route concentration and before/after-fusion variation are not recorded in the standard S/F cache.",
+      "evidence_class": "MEASURED_REAL_DATA_SCOPED",
+      "finding": "Passive capture now records all four learned gates and pre/post-fusion representations. Measured concentration is localized before the MTF residual projection; predictive bottleneck remains unproved.",
       "predictive_bottleneck": "UNPROVED"
     },
     {
@@ -53,22 +53,23 @@
   ],
   "next_measurement": {
     "status": "ADMITTED_ONCE_NO_TRAINING",
-    "question": "Does the qualified frozen candidate show route suppression or loss of cross-row variation at fusion on declared TRAIN/development rows?",
-    "method": "Passive hooks on existing modules and returned gates; unchanged model outputs, RNG, modes and parameters required. Reuse original targets, representations and checkpoints.",
+    "question": "Was the observed MTF/context concentration already present at the preserved INITIAL checkpoint, or did it arise during the short learned run?",
+    "method": "Reuse exactly the same parents/batches and passive observation fields with the preserved bound INITIAL state. Compare pre-residual MTF pool, all joint blocks and hidden; no training or new model selection.",
     "fit_steps": 0,
     "model_source_changes": false,
-    "interpretation": "Gate magnitude and representation variance are diagnostics, not family added value or proof of lost predictive information. Any subsequent prediction probe requires its own fixed comparison.",
+    "predictive_loss_claimed": false,
     "plan": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_OBSERVATION_20261111_001/PLAN.json",
-      "sha256": "a6fb8f98c9e4f1d57a480d0ce99827e3d7c04d7ab7100481704dbd0c9aa42647"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_INITIAL_OBSERVATION_20261111_001/PLAN.json",
+      "sha256": "178013d74c69076b6c46973507b9037a803d2a759055a51df25113ab4ba35f1d"
     },
     "preflight": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_OBSERVATION_20261111_001/PREFLIGHT.log",
-      "sha256": "8a65918667b066b58b8b9e282a4e5d3415b9d1e24fcdff866de5ffd937abb3b1"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_INITIAL_OBSERVATION_20261111_001/PREFLIGHT.log",
+      "sha256": "bd09070c7138e3f8c16231959f026800075a1bba2fe9d7b4e4b74f12c8722e36"
     },
-    "focused_tests_passed": 45,
+    "focused_tests_passed": 60,
     "diagnostic_rows": 512,
-    "backbone_forwards": 33
+    "backbone_forwards": 33,
+    "independence_limit": "16intactB16groups perpartition;512rows are not512independent observations."
   },
   "not_established": [
     "Unique historical optimizer cause",
@@ -79,5 +80,145 @@
   ],
   "test_data_used": false,
   "training_authorized": false,
-  "promotion_authorized": false
+  "promotion_authorized": false,
+  "fusion_observation": {
+    "status": "COMPLETE",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_OBSERVATION_20261111_001/RESULT.json",
+      "sha256": "071c2976e9bf26ec88207e3cecb44eda712fda6a2f908717d746ede7f5dcdea5"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_OBSERVATION_20261111_001/TERMINAL.json",
+      "sha256": "915bee4127ae296c3fdb10437d1e4406d19a56bd76c5172ba14dba7903191e1f"
+    },
+    "controller_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_OBSERVATION_20261111_001/CONTROLLER_TERMINAL.json",
+      "sha256": "860bc796864172569237df0a38c3a0de950124e437201b8f407cc6cef19b3a5d"
+    },
+    "numeric_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FUSION_OBSERVATION_20261111_001/NUMERIC_REVIEW.json",
+      "sha256": "dacc9eaa78a6f2dc8b0e1b1ab5f1140d82bc8415b8d62a705e5cf3d52834c0e2"
+    },
+    "counts": {
+      "archive_decodes": 2,
+      "backbone_encodings": 33,
+      "backwards": 0,
+      "candidate_writes": 0,
+      "checkpoint_loads": 1,
+      "checkpoint_writes": 0,
+      "forward_returns": 33,
+      "head_tensor_imports": 4,
+      "instrumented_forwards": 32,
+      "model_constructions": 1,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "published_npz_bytes": 5702814,
+      "resume_state_load_calls": 1,
+      "resume_state_load_returns": 1,
+      "sampled_rows": 512,
+      "scalar_fits": 0
+    },
+    "passivity": {
+      "instrumented_matches_bound_baseline": true,
+      "instrumented_matches_uninstrumented": true,
+      "uninstrumented_matches_bound_baseline": true
+    },
+    "elapsed_seconds": 129.07587812899146,
+    "source_commit": "a414436c6788f213d72c49e9948beb67e7bee43b",
+    "evaluation_state_unchanged": true,
+    "partitions": {
+      "TRAIN": {
+        "rows": 256,
+        "local_specialist_mean_weights": {
+          "structure_swing_encoder": 0.11764733098971192,
+          "smc_liquidity_encoder": 0.2644343487918377,
+          "trend_ema_encoder": 0.02340577544964617,
+          "vol_compression_encoder": 0.059008113561503706,
+          "momentum_flow_encoder": 0.1861057290516328,
+          "session_regime_encoder": 0.0016267212415641552,
+          "chart_geometry_encoder": 0.22860660130390897,
+          "price_action_candle_encoder": 0.1191653799614869
+        },
+        "timeframe_mean_weights": {
+          "M5": 0.3752724741352722,
+          "M15": 0.06172328676620964,
+          "H1": 0.2955012026941404,
+          "H4": 0.18220994193688966,
+          "D1": 0.08529309606819879
+        },
+        "global_context_raw_joint_centered_variance_fraction": 0.8917170923129483,
+        "mtf_pool_first_axis_variance_fraction": 0.9343471460285483,
+        "mtf_residual_first_axis_variance_fraction": 0.9850275622742874,
+        "cooperation_residual_first_axis_variance_fraction": 0.9863533661917622,
+        "representation_centered_rms": {
+          "joint_block_base_after_specialists": 0.398828737459534,
+          "joint_block_after_mtf": 0.3987304843257483,
+          "joint_block_mtf_pool": 0.03195030513133836,
+          "joint_block_global_context": 1.6209789764546656,
+          "entry_q_joint_hidden": 0.7436823539858425,
+          "state_representation": 0.3200757163938643
+        },
+        "residual_reconstruction": {
+          "specialist_scale": 0.25,
+          "multi_tf_scale": 0.5,
+          "cooperation_scale": 0.25,
+          "base_max_abs_error": 0.0,
+          "mtf_max_abs_error": 0.0
+        },
+        "feature_gate_min": 0.5000956654548645,
+        "feature_gate_max": 1.9744749069213867,
+        "exactly_zero_gate_values": 0
+      },
+      "LATER": {
+        "rows": 256,
+        "local_specialist_mean_weights": {
+          "structure_swing_encoder": 0.1108695689617889,
+          "smc_liquidity_encoder": 0.2613418641849421,
+          "trend_ema_encoder": 0.020180435161819332,
+          "vol_compression_encoder": 0.09344088209945767,
+          "momentum_flow_encoder": 0.17439210024895146,
+          "session_regime_encoder": 0.0012082819073384599,
+          "chart_geometry_encoder": 0.21705497504444793,
+          "price_action_candle_encoder": 0.12151189107680693
+        },
+        "timeframe_mean_weights": {
+          "M5": 0.40092669264413416,
+          "M15": 0.06255482402048074,
+          "H1": 0.2875336274737492,
+          "H4": 0.16556531639071181,
+          "D1": 0.08341954070783686
+        },
+        "global_context_raw_joint_centered_variance_fraction": 0.8885685697861031,
+        "mtf_pool_first_axis_variance_fraction": 0.9744201996874261,
+        "mtf_residual_first_axis_variance_fraction": 0.9949695881761699,
+        "cooperation_residual_first_axis_variance_fraction": 0.9923679105756199,
+        "representation_centered_rms": {
+          "joint_block_base_after_specialists": 0.4039587886401172,
+          "joint_block_after_mtf": 0.4039985438369807,
+          "joint_block_mtf_pool": 0.055922937328369046,
+          "joint_block_global_context": 1.6210101740726157,
+          "entry_q_joint_hidden": 0.7609735340919811,
+          "state_representation": 0.3366021080544503
+        },
+        "residual_reconstruction": {
+          "specialist_scale": 0.25,
+          "multi_tf_scale": 0.5,
+          "cooperation_scale": 0.25,
+          "base_max_abs_error": 0.0,
+          "mtf_max_abs_error": 0.0
+        },
+        "feature_gate_min": 0.49293211102485657,
+        "feature_gate_max": 1.9741642475128174,
+        "exactly_zero_gate_values": 0
+      }
+    },
+    "interpretation": [
+      "All observed routes remain nonzero. Local specialist weights are one mixing path, not feature importance; family context also has direct routes.",
+      "Raw cross-row joint variance is88.9-89.2percent global context. Joint LayerNorm operates within each row; this is not a share of decision influence.",
+      "MTF pooling is already strongly concentrated before its residual projection. No predictive information loss is proven.",
+      "Three residual projections have zero-initialized weights/bias. INITIAL residual output zero is expected; compare pre-projection MTF pool and joint blocks, not residual rank alone.",
+      "The only exactly constant feature multiplier is D1/session_change_flag=1.0 in both panels, an open neutral gate rather than a disconnected route.",
+      "Independent read-only review confirmed arithmetic definitions, FP32 residual reconstruction and source interpretation; it did not independently rerun arrays."
+    ]
+  }
 }
