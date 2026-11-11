@@ -1241,36 +1241,6 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         print(json.dumps(_safe_json(report), indent=2, sort_keys=True, allow_nan=False))
         return 0
-    ta_head_options = (
-        "--market-state-ta-c171-short-heads-plan",
-        "--market-state-ta-c171-short-heads-plan-sha256",
-    )
-    if any(value.partition("=")[0] in ta_head_options for value in supplied):
-        head_parser = argparse.ArgumentParser(
-            description="Read-only matched c171 initial TRAIN head inputs",
-            allow_abbrev=False, add_help=False,
-        )
-        head_parser.add_argument(ta_head_options[0], type=Path, required=True)
-        head_parser.add_argument(ta_head_options[1], required=True)
-        head_parser.add_argument("--device", choices=("cuda",), required=True)
-        head_parser.add_argument("--out-dir", type=Path, required=True)
-        head_parser.add_argument("--preflight", action="store_true")
-        for option in (*ta_head_options, "--device", "--out-dir", "--preflight"):
-            if sum(value.partition("=")[0] == option for value in supplied) > 1:
-                head_parser.error(f"duplicate flag: {option}")
-        head_args = head_parser.parse_args(supplied)
-        if not head_args.out_dir.is_absolute():
-            head_parser.error("--out-dir must be an absolute path")
-        from gx1.audit.observe_market_state_ta_c171_short_heads_v1 import (
-            preflight as head_preflight, run as head_run,
-        )
-        kwargs = dict(plan_path=head_args.market_state_ta_c171_short_heads_plan,
-                      plan_sha=str(head_args.market_state_ta_c171_short_heads_plan_sha256),
-                      out_dir=head_args.out_dir)
-        report = head_preflight(**kwargs) if head_args.preflight else head_run(
-            **kwargs, device="cuda")
-        print(json.dumps(_safe_json(report), indent=2, sort_keys=True, allow_nan=False))
-        return 0
     ta_cache_options = (
         "--market-state-ta-direction-cache-plan",
         "--market-state-ta-direction-cache-plan-sha256",

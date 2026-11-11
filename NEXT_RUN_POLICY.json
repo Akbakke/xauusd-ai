@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-11T15:41:27.251651+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_SHORT_HEAD_CAPTURE_PREPARATION",
+  "status": "TA_DIRECTION_EDGE_CAUSE_SHORT_HEAD_CAPTURE_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1698,7 +1698,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Minimal initial-head observer implemented; no active model job or training authority.",
+    "current_activity": "One read-only initial-head capture admitted; actual feature/source preflight and exact cap selector passed. No training authority.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -9222,7 +9222,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Qualify and admit one new read-only16-forward exact-mode capture of the existing256-row initial TRAIN panel; require complete original initial bit-parity before ordered head/representation arithmetic. No training or later data.",
+    "next_action": "Execute the sole admitted16-forward frozen c171 initial TRAIN head capture through the unchanged CUDA producer guards; require original initial bit-parity, then ordered retained-array head/representation decomposition. No training or later data.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -75493,7 +75493,7 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_SHORT_HEAD_INPUT_GAP_MEASURED",
+    "status": "ACTIVE_MATCHED_INITIAL_HEAD_CAPTURE_ADMITTED",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
@@ -75503,11 +75503,11 @@
       "sha256": "2e5849e1cc33b44833cf38f783b2332a325a401903c8ebd401edab40faefca01"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": false,
+    "model_or_data_run_admitted": true,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Qualify and admit one new read-only16-forward exact-mode capture of the existing256-row initial TRAIN panel; require complete original initial bit-parity before ordered head/representation arithmetic. No training or later data.",
+    "next_action": "Execute the sole admitted16-forward frozen c171 initial TRAIN head capture through the unchanged CUDA producer guards; require original initial bit-parity, then ordered retained-array head/representation decomposition. No training or later data.",
     "active_stage": "market_state_ta_c171_short_initial_heads_20261111_001",
     "previous_goal_turn_classification": "PROGRESS: retained MTFintervention andinputsupport review ruledout an unsupported harmful-MTF or generalnormalization-collapse change; nextactualboundarymeasurement identified.",
     "last_goal_turn_classification": "PROGRESS: actual unchanged-loss256-update response measured; probability shift dominates small panel ranking changes. Full and3/13 output arithmetic independently reconciled. Startup cap blocker corrected; all plans consumed and gates closed. Historical learning cause remains unresolved."
@@ -76325,19 +76325,80 @@
     "interpretation": "Mixed matched TRAIN response, no later edge claim and no candidate promotion."
   },
   "market_state_ta_c171_short_initial_heads_20261111_001": {
-    "status": "PREPARED_NOT_ADMITTED",
-    "execution_authorized": false,
-    "training_authorized": false,
-    "remaining_invocations": 0,
+    "batch_size": 16,
+    "candidate_model_state_sha256": "c171736d2de79396dd86a79ad895f8bf2226e5ad8d996abf1dd7f52055e4a467",
+    "decoder_width": 128,
+    "device": "cuda",
+    "fit_rows": 29574,
+    "head_tensor_imports": 4,
+    "max_autograd_grad_calls": 0,
+    "max_backbone_encodings": 16,
+    "max_backwards": 0,
+    "max_cache_bytes": 2097152,
+    "max_candidate_writes": 0,
+    "max_checkpoint_loads": 1,
+    "max_checkpoint_writes": 0,
+    "max_model_constructions": 1,
+    "max_optimizer_constructions": 0,
+    "max_optimizer_updates": 0,
+    "max_published_json_bytes": 1048576,
+    "numerical_mode": "eval_no_grad_deterministic_fp32_training_mha_fastpath_false",
+    "panel_batch_indices": [
+      0,
+      123,
+      246,
+      369,
+      492,
+      615,
+      738,
+      861,
+      985,
+      1108,
+      1231,
+      1354,
+      1477,
+      1600,
+      1723,
+      1847
+    ],
+    "sampled_rows": 256,
+    "test_data_used": false,
+    "training_enabled": false,
+    "wall_seconds": 900,
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_001/PLAN.json",
+      "sha256": "996f5af51f6d7253b789b094de9a92ce251e1c7feaeb1fda592c3983018dcdd0"
+    },
+    "max_invocations": 1,
+    "remaining_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
     "relaunch_allowed": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "backbone_encodings_authorized": 16,
+    "head_tensor_imports_authorized": 4,
+    "candidate_weights_writes_authorized": 0,
+    "backward_calls_authorized": 0,
+    "optimizer_steps_authorized": 0,
+    "training_authorized": false,
+    "retained_output_arithmetic_authorized": true,
+    "retained_output_fit_authorized": false,
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_SHORT_HEAD_ATTRIBUTION_REVIEW.json",
-      "sha256": "447935dc6fdb445a00e5d4f2edc232ac1db4d2dc0137808679e57b65913052d0"
+      "sha256": "431c4666d2cf259d2b02e4a8a2199bd71354a2e7456e73ae5f41d8e5f43f9110"
     },
-    "reason": "Head weights and upstream head inputs both changed; the short initial evaluation did not retain its head inputs.",
-    "previous_trace_review": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_C171_SHORT_LEARNING_20261111_002/TRACE_ALGEBRA_REVIEW.json",
-      "sha256": "09d5e8dc3b03892e1b6fa72adb68f85bc26afce625fa8390cddb279d272819fb"
-    }
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_001/PREFLIGHT.json",
+      "sha256": "bc038cac180abee6edd97ed345361164824a374556a91487ac17edb1167f0ef7"
+    },
+    "actual_cap_gate": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_001/CAP_GATE.json",
+      "sha256": "9603e53059aa4137cbeb870dbdef0c35731fffb924b798ad4b5ebb6f7057ec31"
+    },
+    "standing_authority": "Explicit11November direction-edge cause goal; one minimal read-only matched initial TRAIN capture,0USD, no new training.",
+    "focused_tests_passed": 48
   }
 }

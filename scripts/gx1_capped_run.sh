@@ -43,6 +43,7 @@ ATTENDED_HARDWARE_SMOKE_MODULE=gx1.scripts.attended_model_native_hardware_smoke_
 # neither has an execution, promotion or TEST surface.
 CUDA_PRODUCER_MODULE=gx1.scripts.evaluate_entry_candidate_selective_edge_v1
 TECHNICAL_VALIDATION_PRODUCER_MODULE=gx1.scripts.validate_entry_model_native_technical_checkpoint_v1
+TA_C171_HEAD_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_c171_short_heads_v1
 RUNNER_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
 REPO_ROOT="$(cd "$(dirname "$RUNNER_PATH")/.." && pwd -P)"
 CANONICAL_TRAINER_PYTHON="$REPO_ROOT/.venv/bin/python"
@@ -213,7 +214,7 @@ matches_bound_market_state_ta_c171_short_heads() {
   shift 2
   [[ $# -eq 11 ]] || return 1
   [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \
-    && "$3" == "$TECHNICAL_VALIDATION_PRODUCER_MODULE" \
+    && "$3" == "$TA_C171_HEAD_PRODUCER_MODULE" \
     && "$4" == --market-state-ta-c171-short-heads-plan && "$5" == "$expected_plan" \
     && "$6" == --market-state-ta-c171-short-heads-plan-sha256 && "$7" =~ ^[0-9a-f]{64}$ \
     && "$8" == --device && "$9" == cuda && "${10}" == --out-dir \
@@ -269,7 +270,8 @@ validate_target_command() {
       }
       if ! is_direct_python "$1" || [[ "${2:-}" != "-m" ]] \
         || { [[ "${3:-}" != "$CUDA_PRODUCER_MODULE" ]] \
-          && [[ "${3:-}" != "$TECHNICAL_VALIDATION_PRODUCER_MODULE" ]]; }; then
+          && [[ "${3:-}" != "$TECHNICAL_VALIDATION_PRODUCER_MODULE" ]] \
+          && [[ "${3:-}" != "$TA_C171_HEAD_PRODUCER_MODULE" ]]; }; then
         echo "FATAL: --cuda-producer is reserved for an allow-listed TRAIN/VAL-only evidence producer" >&2
         exit 75
       fi
@@ -367,8 +369,7 @@ validate_target_command() {
         fi
         TRAINER_GPU_MAX_POWER_LIMIT_W=250
       fi
-      if [[ "${3:-}" == "$TECHNICAL_VALIDATION_PRODUCER_MODULE" \
-        && "${4:-}" == --market-state-ta-c171-short-heads-plan ]]; then
+      if [[ "${3:-}" == "$TA_C171_HEAD_PRODUCER_MODULE" ]]; then
         local ta_heads_root=/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_SHORT_INITIAL_HEADS_20261111_001
         if ! matches_bound_market_state_ta_c171_short_heads "$ta_heads_root/PLAN.json" "$ta_heads_root" "$@"; then
           echo "FATAL: c171 initial-head observation is not exactly bound" >&2

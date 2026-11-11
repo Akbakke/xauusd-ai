@@ -54,7 +54,7 @@ def build_plan(source_commit):
     recipe = short.build_recipe(source_commit=source_commit)
     return dict(schema_version=SCHEMA, stage=STAGE, source_repo=str(REPO),
         source_base_commit=source_commit, worker=cache._ref(WORKER),
-        dispatch=cache._ref(REPO/cache.DISPATCH), cap_runner=cache._ref(REPO/cache.CAP_RUNNER),
+        dispatch=cache._ref(WORKER), cap_runner=cache._ref(REPO/cache.CAP_RUNNER),
         source_owners=recipe['source_owners'], inputs=INPUTS, **BOUNDS)
 
 
@@ -106,7 +106,7 @@ def _inspect(plan_path, plan_sha, out_dir, *, execute):
     ref = dict(path=str(plan_path),sha256=plan_sha)
     plan = _require_plan(cache._read(ref),plan_path,out_dir)
     bound = [ref]
-    for key,path in (('worker',WORKER),('dispatch',REPO/cache.DISPATCH),('cap_runner',REPO/cache.CAP_RUNNER)):
+    for key,path in (('worker',WORKER),('dispatch',WORKER),('cap_runner',REPO/cache.CAP_RUNNER)):
         _need(plan[key]['path']==str(path), 'SOURCE_PATH:'+key)
         campaign.require_binding(plan[key],label='short heads '+key,verify_file=True);bound.append(plan[key])
     for key,value in plan['inputs'].items():
@@ -357,3 +357,34 @@ def run(plan_path, plan_sha, out_dir, device='cuda'):
     finally:
         signal.setitimer(signal.ITIMER_REAL,0);signal.signal(signal.SIGALRM,previous_alarm)
         if prepared is not None:base._release_pages(provider,prepared)
+
+
+def main(argv=None):
+    """Exact standalone observation route; the historical dispatcher stays sealed."""
+    import argparse
+    import json
+    import sys
+    supplied=list(sys.argv[1:] if argv is None else argv)
+    options=("--market-state-ta-c171-short-heads-plan",
+             "--market-state-ta-c171-short-heads-plan-sha256")
+    parser=argparse.ArgumentParser(description=__doc__,allow_abbrev=False,add_help=False)
+    parser.add_argument(options[0],type=Path,required=True)
+    parser.add_argument(options[1],required=True)
+    parser.add_argument("--device",choices=("cuda",),required=True)
+    parser.add_argument("--out-dir",type=Path,required=True)
+    parser.add_argument("--preflight",action="store_true")
+    for option in (*options,"--device","--out-dir","--preflight"):
+        if sum(value.partition("=")[0]==option for value in supplied)>1:
+            parser.error(f"duplicate flag: {option}")
+    args=parser.parse_args(supplied)
+    if not args.out_dir.is_absolute():
+        parser.error("--out-dir must be an absolute path")
+    kwargs=dict(plan_path=args.market_state_ta_c171_short_heads_plan,
+                plan_sha=args.market_state_ta_c171_short_heads_plan_sha256,out_dir=args.out_dir)
+    report=preflight(**kwargs) if args.preflight else run(**kwargs,device="cuda")
+    print(json.dumps(report,indent=2,sort_keys=True,allow_nan=False))
+    return 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

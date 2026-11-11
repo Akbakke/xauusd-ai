@@ -6,12 +6,12 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_SHORT_HEAD_CAPTURE_PREPARATION.
+TA_DIRECTION_EDGE_CAUSE_SHORT_HEAD_CAPTURE_ADMITTED.
 Målet fra11.11 er aktivt: finn målte årsaker til svak retningsverdi i indikatorer,
 sammensetting og læring. [Samlet årsaksstatus](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json).
 Korte runder er feilsøking, ikke kapasitetsdom. Full kvalifisert TRAIN-historikk
 og30–40epoker er senere skalering, ikke et krav ved hver rettelse.
-Alle tidligere engangsplaner er konsumert; ny lesende observasjon er bare klargjort.
+Alle tidligere engangsplaner er konsumert; én ny lesende observasjon er eksakt innrømmet.
 Training/native_training/native_launch/
 full_epoch er false; ingen aktiv modelljobb. Begge c171-Windowsoppgaver er Disabled.
 GC er på pause; TEST, Entry/Exit, broker, handel og promotion er stengt.
@@ -84,11 +84,14 @@ Summert lokal hodeoppdatering på hvert stegs faste input er gunstig for begge;
 ingen generell optimizerfeil eller begrunnelse for ny sentrering er påvist.
 
 Gamle fullcache-inputs har en annen numerisk eval-kontekst enn short002; like
-sluttlogits beviser ikke like128D hodeinputs. Ny observer er klargjort, ikke
-innrømmet: samme16B16 TRAIN-grupper,16forwards,0gradient/oppdatering/checkpointskriv.
+sluttlogits beviser ikke like128D hodeinputs. Ny observer er innrømmet som egen strengt avgrenset CLI: samme16B16 TRAIN-grupper,16forwards,0gradient/oppdatering/checkpointskriv.
 Før tolkning kreves bitlikhet mot alle initiale akser/masker/råoutput og16tap.
 Deretter skilles hodeparameterendring ved fast initialinput fra residualen som
 omfatter endret representasjon. Ingen bestemt encoderårsak følger av dette.
-Neste er eksakt metadata-preflight, cap-gate og kildebundet engangsadmisjon.
+Faktisk metadata-preflight bc038cac og cap-gate består; PLAN996f5af5.
+48 fokustester består. Historisk dispatcher er gjenopprettet biteksakt etter
+målt kildegatestopp før PLAN/CLAIM; ingen gamle numeriske eiergater er svekket.
+Neste er én frosset kjøring under producer-vakter og deretter beholdt aritmetikk.
+900s worker/1200s guard;12GiB/512MiB;250W konfigurert/170Wdraw/65C/80C.
 Fullprefix-fit, familiers nytte, senere generalisering og kapasitet er fortsatt
 uavklart. Alle numeriske modell-/loss-/featureeiere er uendret.

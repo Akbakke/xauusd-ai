@@ -30,7 +30,7 @@ def arrays(rows=16, heads=True):
 def plan():
     return dict(schema_version=worker.SCHEMA,stage=worker.STAGE,source_repo=str(worker.REPO),
         source_base_commit=COMMIT,worker={'path':str(worker.WORKER),'sha256':SHA},
-        dispatch={'path':str(worker.REPO/worker.cache.DISPATCH),'sha256':SHA},
+        dispatch={'path':str(worker.WORKER),'sha256':SHA},
         cap_runner={'path':str(worker.REPO/worker.cache.CAP_RUNNER),'sha256':SHA},
         source_owners={},inputs=deepcopy(worker.INPUTS),**deepcopy(worker.BOUNDS))
 
@@ -133,6 +133,7 @@ def test_build_uses_readonly_current_short_qualification(monkeypatch):
     assert seen==[{'source_commit':COMMIT}]
     assert value['source_owners']=={'x':{'path':'x','sha256':SHA}}
     assert value['inputs']['short_trace']==worker.INPUTS['short_trace']
+    assert value['dispatch']==value['worker']
     worker._require_plan(value,worker.ROOT/'PLAN.json',worker.ROOT)
 
 
@@ -160,3 +161,42 @@ def test_wrong_device_precedes_all_qualification(monkeypatch):
     monkeypatch.setattr(worker,'_inspect',lambda *a,**k:pytest.fail('must fail before inspect'))
     with pytest.raises(RuntimeError,match='CUDA_ONLY'):
         worker.run(worker.ROOT/'PLAN.json',SHA,worker.ROOT,device='cpu')
+
+
+def cli_args():
+    return ['--market-state-ta-c171-short-heads-plan',str(worker.ROOT/'PLAN.json'),
+        '--market-state-ta-c171-short-heads-plan-sha256',SHA,'--device','cuda',
+        '--out-dir',str(worker.ROOT)]
+
+
+@pytest.mark.parametrize('read_only',[False,True])
+def test_standalone_cli_dispatches_only_requested_mode(monkeypatch,capsys,read_only):
+    seen=[]
+    monkeypatch.setattr(worker,'preflight',lambda **kwargs:seen.append(('preflight',kwargs)) or {'status':'READ_ONLY'})
+    monkeypatch.setattr(worker,'run',lambda **kwargs:seen.append(('run',kwargs)) or {'status':'RUN'})
+    assert worker.main(cli_args()+(['--preflight'] if read_only else []))==0
+    expected=dict(plan_path=worker.ROOT/'PLAN.json',plan_sha=SHA,out_dir=worker.ROOT)
+    if not read_only:expected['device']='cuda'
+    assert seen==[('preflight' if read_only else 'run',expected)]
+    assert ('READ_ONLY' if read_only else 'RUN') in capsys.readouterr().out
+
+
+@pytest.mark.parametrize('extra',[
+    ['--device=cuda'],['--out-dir',str(worker.ROOT)],
+    ['--market-state-ta-c171-short-heads-plan='+str(worker.ROOT/'PLAN.json')],
+    ['--market-state-ta-c171-short-heads-plan-sha256',SHA],
+    ['--preflight','--preflight'],['--unknown'],['--market-state-ta-c171-short-heads-pl','x'],
+])
+def test_standalone_cli_rejects_duplicate_unknown_and_abbreviated_flags(monkeypatch,extra):
+    monkeypatch.setattr(worker,'preflight',lambda **k:pytest.fail('invalid CLI reached preflight'))
+    monkeypatch.setattr(worker,'run',lambda **k:pytest.fail('invalid CLI reached run'))
+    with pytest.raises(SystemExit) as error:worker.main(cli_args()+extra)
+    assert error.value.code==2
+
+
+@pytest.mark.parametrize('field,value',[('--device','cpu'),('--out-dir','relative')])
+def test_standalone_cli_rejects_wrong_device_or_relative_output(monkeypatch,field,value):
+    args=cli_args();args[args.index(field)+1]=value
+    monkeypatch.setattr(worker,'run',lambda **k:pytest.fail('invalid CLI reached run'))
+    with pytest.raises(SystemExit) as error:worker.main(args)
+    assert error.value.code==2
