@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_MIXING_GRADIENT_OBSERVATION_ADMITTED",
+  "status": "ACTIVE_BOUNDED_NATIVE_LEARNING_PREPARATION",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -94,33 +94,42 @@
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ENCODER_DELTA_20261111_001/INTERPRETATION_REVIEW.json",
         "sha256": "f28e87888771ead302b76159c488ebb17a00d6e5b7e02e61ed395fd67d98cd63"
       }
+    },
+    {
+      "id": "mixing_gradient_task_interaction",
+      "evidence_class": "MEASURED_LOCAL_TRAIN_PARTIAL_DERIVATIVES",
+      "finding": "Mean-gradient interaction opposes F/M5 in all three mixing groups, but most per-batch total-gradient directions support both M5 tasks. Dot of means differs from mean of dots. This does not prove historical AdamW cause or justify a loss-weight change.",
+      "evidence": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MIXING_GRADIENT_OBSERVATION_20261111_001/INTERPRETATION_REVIEW.json",
+        "sha256": "e4c9a1d57885f4a4a7ed4030c21a4ea1bf3db4ec6406ef9676f3fce8dc04fbac"
+      }
     }
   ],
   "next_measurement": {
-    "status": "ADMITTED_ONCE_NOT_YET_EXECUTED",
-    "plan": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MIXING_GRADIENT_OBSERVATION_20261111_001/PLAN.json",
-      "sha256": "daee8105bb54069817c67892c6f607b06cc6be845f131c1fd8840e3f9fcbaec3"
+    "status": "SOURCE_SCOPING_NOT_ADMITTED",
+    "question": "How does the current c171 candidate actually learn during a short bounded sequence of ordinary native updates with unchanged loss?",
+    "method": "Reuse the existing native model/state/optimizer owners. First bind a compatible c171 initial state and explicitly declared optimizer initialization; predeclare a small update budget and fixed before/after TRAIN measurements for S/M5, F/M5 and remaining tasks. Preserve every genuine feature/timeframe and all guards. Do not infer a loss weight from the 256-row local gradient result.",
+    "prior_exact_identity_check": {
+      "refs": {
+        "next_native_pass_recipe": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_NATIVE_PASS_20261109_001/RECIPE.json",
+          "sha256": "2470fa82e2a6f6eefd5b90b0e62323be8895ac4f0dc48a9bae125cc70d617fdc"
+        },
+        "next_native_pass_result": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_NEXT_NATIVE_PASS_20261109_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+          "sha256": "ca78b1c649096b567b2a60b2a8af82999bbfa23e0ba829f637de141d343dde40"
+        }
+      },
+      "prior_initial_model_sha256": "51e0e8832bbc7079c5f00f30eef17de4a2ba7aecab2a982063483a241ab051ba",
+      "prior_updates": 1849,
+      "current_candidate_model_sha256": "c171736d2de79396dd86a79ad895f8bf2226e5ad8d996abf1dd7f52055e4a467",
+      "same_initial": false,
+      "scope": "The directly relevant prior next-pass receipt was checked; this is not a claim of an exhaustive unrelated-run search."
     },
-    "preflight": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MIXING_GRADIENT_OBSERVATION_20261111_001/PREFLIGHT.log",
-      "sha256": "bd32b8c4799f36ff2cf8cc473b684de0a572ee2bdbd14eb17c6c399930b4ca8c"
-    },
-    "retained_analysis": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MIXING_GRADIENT_OBSERVATION_20261111_001/REVIEW_PUBLISHED_GEOMETRY.py",
-      "sha256": "3274f54f34e1ba855bce74b8da1d055308f152815d83cbbd5e53fc94a8304d5c"
-    },
-    "question": "How do current M5 direction and remaining exact objective terms contribute to the same three mixing-encoder gradients?",
-    "method": "One current-c171 local eval-mode gradient observation on 16 fixed intact B16 TRAIN groups. Reuse exact sampled-S/native-F loss; split original logit derivatives into S/M5 side, F/M5 side and rest. Four autograd calls per graph on only three shared axis encoders. Fresh no-grad/grad output bit-parity required. No optimizer or updates.",
-    "parameter_groups": [
-      "family_axis_attn",
-      "timeframe_axis_attn",
-      "cross_tf_attn"
-    ],
     "model_change_authorized": false,
-    "predictor_fits": 0,
     "training_authorized": false,
-    "interpretation": "Local partial derivatives at corrected c171 in eval mode; no dropout, clipping, AdamW, whole-model or historical-cause claim. The earlier endpoint loss contrast was INTERLEAVED versus CONTROL, not INITIAL versus current R1."
+    "broad_training_authorized": false,
+    "interpretation": "A future short native diagnostic is not admitted yet. The earlier relevant next-pass run started from 51e0e883, not c171; do not relaunch that consumed plan or call new optimizer initialization a continuous epoch."
   },
   "not_established": [
     "Unique historical optimizer cause",
@@ -1051,5 +1060,137 @@
       "predictor_fits": 0
     },
     "source_commit": "c729e0dd7d576b60b018d01215940019a6f8107d"
+  },
+  "mixing_gradient_observation": {
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MIXING_GRADIENT_OBSERVATION_20261111_001/PLAN.json",
+      "sha256": "daee8105bb54069817c67892c6f607b06cc6be845f131c1fd8840e3f9fcbaec3"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MIXING_GRADIENT_OBSERVATION_20261111_001/RESULT.json",
+      "sha256": "dbdd04d875ce81949741158fc0c37efe4f556744d95bdd521928088ea2ddb7e1"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MIXING_GRADIENT_OBSERVATION_20261111_001/TERMINAL.json",
+      "sha256": "ea99b83d896841d2febce4009bf1c7d163f410ce7a4ba472766806e2a066f0e3"
+    },
+    "controller_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MIXING_GRADIENT_OBSERVATION_20261111_001/CONTROLLER_TERMINAL.json",
+      "sha256": "9282703dde787894df8dc33ebc47b5090b11a55fd4e3bc36a778fceef4c60590"
+    },
+    "published_geometry_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MIXING_GRADIENT_OBSERVATION_20261111_001/PUBLISHED_GEOMETRY_REVIEW.json",
+      "sha256": "7837f0341833e1172ca85544426c7563747ee3684ab82a8149cd16e1ab30e13e"
+    },
+    "interpretation_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MIXING_GRADIENT_OBSERVATION_20261111_001/INTERPRETATION_REVIEW.json",
+      "sha256": "e4c9a1d57885f4a4a7ed4030c21a4ea1bf3db4ec6406ef9676f3fce8dc04fbac"
+    },
+    "source_commit": "3a69525b9c45a1fefbe0caf7efd36db1f935500b",
+    "counts": {
+      "archive_decodes": 1,
+      "autograd_grad_calls": 64,
+      "backbone_encodings": 17,
+      "backwards": 64,
+      "candidate_writes": 0,
+      "checkpoint_loads": 1,
+      "checkpoint_writes": 0,
+      "forward_returns": 17,
+      "gradient_forwards": 16,
+      "head_tensor_imports": 4,
+      "model_constructions": 1,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "published_npz_bytes": 15720,
+      "resume_state_load_calls": 1,
+      "resume_state_load_returns": 1,
+      "sampled_rows": 256,
+      "scalar_fits": 0
+    },
+    "passivity": {
+      "fresh_no_grad_matches_gradient_forward_bitexact": true
+    },
+    "maximum_closure_relative_l2": 1.1339574717545917e-07,
+    "summary": {
+      "cross_tf_attn": {
+        "tasks": {
+          "state_m5_side": {
+            "mean_gradient_dot_total": 1.2735803485797803e-06,
+            "mean_of_batch_dot_total": 3.584625460748643e-05,
+            "negative_batch_dot_total": 5
+          },
+          "future_m5_side": {
+            "mean_gradient_dot_total": -1.5120485569530214e-06,
+            "mean_of_batch_dot_total": 2.4949178276835607e-05,
+            "negative_batch_dot_total": 3
+          }
+        },
+        "combined_m5_dot_rest": -3.5468620211974843e-07,
+        "combined_m5_dot_total": -2.3846820837324295e-07,
+        "combined_m5_cosine_rest": -0.08242500166541854,
+        "state_future_mean_gradient_cosine": -0.7081306661395782,
+        "rest_over_combined_m5_mean_norm": 37.02646971967654,
+        "batch_counts": {
+          "total": 16,
+          "combined_m5_opposes_rest": 2,
+          "negative_total_gradient_would_increase_combined_m5": 2,
+          "state_opposes_future": 5,
+          "zero_combined_or_rest": 0
+        }
+      },
+      "family_axis_attn": {
+        "tasks": {
+          "state_m5_side": {
+            "mean_gradient_dot_total": 3.3056842777818456e-08,
+            "mean_of_batch_dot_total": 5.253671587184362e-07,
+            "negative_batch_dot_total": 4
+          },
+          "future_m5_side": {
+            "mean_gradient_dot_total": -9.366861694102953e-09,
+            "mean_of_batch_dot_total": 3.388458210346122e-07,
+            "negative_batch_dot_total": 2
+          }
+        },
+        "combined_m5_dot_rest": 2.2191222659481742e-08,
+        "combined_m5_dot_total": 2.3689981083715383e-08,
+        "combined_m5_cosine_rest": 0.29187198041508927,
+        "state_future_mean_gradient_cosine": -0.5786119198920656,
+        "rest_over_combined_m5_mean_norm": 50.72911035665405,
+        "batch_counts": {
+          "total": 16,
+          "combined_m5_opposes_rest": 1,
+          "negative_total_gradient_would_increase_combined_m5": 1,
+          "state_opposes_future": 4,
+          "zero_combined_or_rest": 0
+        }
+      },
+      "timeframe_axis_attn": {
+        "tasks": {
+          "state_m5_side": {
+            "mean_gradient_dot_total": 1.4954593867293292e-07,
+            "mean_of_batch_dot_total": 3.501949573327192e-06,
+            "negative_batch_dot_total": 5
+          },
+          "future_m5_side": {
+            "mean_gradient_dot_total": -8.387583094855127e-08,
+            "mean_of_batch_dot_total": 2.229439300808021e-06,
+            "negative_batch_dot_total": 3
+          }
+        },
+        "combined_m5_dot_rest": 5.2026060573605284e-08,
+        "combined_m5_dot_total": 6.567010772438175e-08,
+        "combined_m5_cosine_rest": 0.0962192540029848,
+        "state_future_mean_gradient_cosine": -0.6497142335884959,
+        "rest_over_combined_m5_mean_norm": 39.629268807983436,
+        "batch_counts": {
+          "total": 16,
+          "combined_m5_opposes_rest": 3,
+          "negative_total_gradient_would_increase_combined_m5": 2,
+          "state_opposes_future": 4,
+          "zero_combined_or_rest": 0
+        }
+      }
+    },
+    "model_change_recommended": false
   }
 }

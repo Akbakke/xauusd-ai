@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-11T15:28:33.895003+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_MIXING_GRADIENT_ADMITTED",
+  "observed_utc": "2026-11-11T15:41:27.251651+00:00",
+  "status": "TA_DIRECTION_EDGE_CAUSE_LOCAL_GRADIENT_MEASURED_SHORT_LEARNING_NEXT",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Execute the single admitted local mixing-gradient observation, then review saved geometry and fresh baseline parity without fitting.",
+  "next_action": "Reuse the existing native model/state/optimizer owners. First bind a compatible c171 initial state and explicitly declared optimizer initialization; predeclare a small update budget and fixed before/after TRAIN measurements for S/M5, F/M5 and remaining tasks. Preserve every genuine feature/timeframe and all guards. Do not infer a loss weight from the 256-row local gradient result.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1698,7 +1698,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Exact TRAIN-only mixing-gradient observation admitted once; no execution yet.",
+    "current_activity": "Local gradient observation complete and consumed. Preparing a bounded native learning check; no live job or unconsumed plan.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1751,7 +1751,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Weak direction ranking remains despite genuine routed inputs and actual encoder updates. Shared objective alignment is unresolved; neither variance concentration nor endpoint loss accounting proves the historical cause.",
+    "current_blocker": "Weak ranking remains. Inputs, encoder updates and local gradient routes work; historical learning cause and actual short-run behavior from corrected c171 remain unresolved.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9222,7 +9222,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute the single admitted local mixing-gradient observation, then review saved geometry and fresh baseline parity without fitting.",
+    "next_action": "Reuse the existing native model/state/optimizer owners. First bind a compatible c171 initial state and explicitly declared optimizer initialization; predeclare a small update budget and fixed before/after TRAIN measurements for S/M5, F/M5 and remaining tasks. Preserve every genuine feature/timeframe and all guards. Do not infer a loss weight from the 256-row local gradient result.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22137,7 +22137,7 @@
     },
     "direction_edge_cause_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "1f1f92108488839b604e4604e5c226b44ae3b9d2421976aba76e5b4077176cd5"
+      "sha256": "a1a7d3a74bba56b8c5a3ba5e3a71a45850b7eb01ff2303877bddb39743e51830"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -75477,24 +75477,24 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_MIXING_GRADIENT_OBSERVATION_ADMITTED",
+    "status": "ACTIVE_BOUNDED_NATIVE_LEARNING_PREPARATION",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
     "training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "1f1f92108488839b604e4604e5c226b44ae3b9d2421976aba76e5b4077176cd5"
+      "sha256": "a1a7d3a74bba56b8c5a3ba5e3a71a45850b7eb01ff2303877bddb39743e51830"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": true,
+    "model_or_data_run_admitted": false,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Execute the single admitted local mixing-gradient observation, then review saved geometry and fresh baseline parity without fitting.",
-    "active_stage": "market_state_ta_mixing_gradient_observation_20261111_001",
+    "next_action": "Reuse the existing native model/state/optimizer owners. First bind a compatible c171 initial state and explicitly declared optimizer initialization; predeclare a small update budget and fixed before/after TRAIN measurements for S/M5, F/M5 and remaining tasks. Preserve every genuine feature/timeframe and all guards. Do not infer a loss weight from the 256-row local gradient result.",
+    "active_stage": null,
     "previous_goal_turn_classification": "PROGRESS: retained MTFintervention andinputsupport review ruledout an unsupported harmful-MTF or generalnormalization-collapse change; nextactualboundarymeasurement identified.",
-    "last_goal_turn_classification": "PROGRESS: passive 512-row temporal capture localized mixing-stage attenuation; a two-checkpoint CPU audit then proved actual updates and historical gradient flow in all 11 encoders / 228 tensors. Systematic mean/last cancellation and absent encoder updates ruled out; no model change or training justified solely by variance."
+    "last_goal_turn_classification": "PROGRESS: completed exact-loss local gradient observation at c171 and independent geometry/bit-parity review. Mean-gradient F conflict is not general per-batch harm, so no speculative loss change; next step shifted to a short actual unchanged-loss learning check. Prior next-pass initial identity is different and its consumed plan stays closed."
   },
   "market_state_ta_fusion_observation_20261111_001": {
     "status": "COMPLETE",
@@ -75978,17 +75978,17 @@
     "source_unchanged_at_terminal": true
   },
   "market_state_ta_mixing_gradient_observation_20261111_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MIXING_GRADIENT_OBSERVATION_20261111_001/PLAN.json",
       "sha256": "daee8105bb54069817c67892c6f607b06cc6be845f131c1fd8840e3f9fcbaec3"
     },
     "max_invocations": 1,
-    "remaining_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "remaining_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
-    "execution_authorized": true,
+    "execution_authorized": false,
     "data_reads_authorized": true,
     "checkpoint_reads_authorized": true,
     "backbone_encodings_authorized": 17,
@@ -76052,6 +76052,48 @@
       "sha256": "3274f54f34e1ba855bce74b8da1d055308f152815d83cbbd5e53fc94a8304d5c"
     },
     "scope": "One current-c171 local eval-mode gradient observation on 16 fixed intact B16 TRAIN groups. Reuse exact sampled-S/native-F loss; split original logit derivatives into S/M5 side, F/M5 side and rest. Four autograd calls per graph on only three shared axis encoders. Fresh no-grad/grad output bit-parity required. No optimizer or updates.",
-    "standing_authority": "Explicit 11 November direction-edge cause goal; one new source-bound diagnostic only, without training or later-feature access."
+    "standing_authority": "Explicit 11 November direction-edge cause goal; one new source-bound diagnostic only, without training or later-feature access.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MIXING_GRADIENT_OBSERVATION_20261111_001/RESULT.json",
+      "sha256": "dbdd04d875ce81949741158fc0c37efe4f556744d95bdd521928088ea2ddb7e1"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MIXING_GRADIENT_OBSERVATION_20261111_001/TERMINAL.json",
+      "sha256": "ea99b83d896841d2febce4009bf1c7d163f410ce7a4ba472766806e2a066f0e3"
+    },
+    "controller_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MIXING_GRADIENT_OBSERVATION_20261111_001/CONTROLLER_TERMINAL.json",
+      "sha256": "9282703dde787894df8dc33ebc47b5090b11a55fd4e3bc36a778fceef4c60590"
+    },
+    "published_geometry_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MIXING_GRADIENT_OBSERVATION_20261111_001/PUBLISHED_GEOMETRY_REVIEW.json",
+      "sha256": "7837f0341833e1172ca85544426c7563747ee3684ab82a8149cd16e1ab30e13e"
+    },
+    "interpretation_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MIXING_GRADIENT_OBSERVATION_20261111_001/INTERPRETATION_REVIEW.json",
+      "sha256": "e4c9a1d57885f4a4a7ed4030c21a4ea1bf3db4ec6406ef9676f3fce8dc04fbac"
+    },
+    "actual_counts": {
+      "archive_decodes": 1,
+      "autograd_grad_calls": 64,
+      "backbone_encodings": 17,
+      "backwards": 64,
+      "candidate_writes": 0,
+      "checkpoint_loads": 1,
+      "checkpoint_writes": 0,
+      "forward_returns": 17,
+      "gradient_forwards": 16,
+      "head_tensor_imports": 4,
+      "model_constructions": 1,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "published_npz_bytes": 15720,
+      "resume_state_load_calls": 1,
+      "resume_state_load_returns": 1,
+      "sampled_rows": 256,
+      "scalar_fits": 0
+    },
+    "source_unchanged_at_terminal": true,
+    "evaluation_state_unchanged": true
   }
 }
