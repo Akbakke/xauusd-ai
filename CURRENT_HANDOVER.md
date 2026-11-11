@@ -6,7 +6,7 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_NON_M5_INITIAL_PARITY_PASS_BOUNDED_LEARNING_COMPARISON_REQUIRED.
+TA_DIRECTION_EDGE_CAUSE_NON_M5_SHORT_SOURCE_QUALIFIED_FRESH_BOOT_REQUIRED.
 Målet 11.11 er aktivt: avklar målte årsaker til svak retningsverdi i indikatorer,
 sammensetting og læring. [Samlet status](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json).
 Korte runder er feilsøking, ikke kapasitetsdom. Full kvalifisert TRAIN-historikk
@@ -211,13 +211,30 @@ Læringseffekt, senere generalisering og økonomisk edge er fortsatt ubevist.
 
 ## Neste avklaring
 
-Kvalifiser én ny kontrollert læringssammenligning med samme4096kronologiske TRAIN-rader
-og256updates som short002. Gjenbruk originalreferansen og de ferdige fullprefix-målingene.
-Bevar alle features/targets/tapsvekter og AdamW-innstillinger. Bruk målt klonet initial,
-fersk tom optimizer og eksplisitt matchet original INITIAL-trenings-RNG; ingen arvet
-optimizer-/cursorhistorie. Mål hele den brukte4096perioden før/etter, så48raders paneloverlapp
-ikke avgjør konklusjonen. Ny numerisk/modell/view-identitet må kvalifiseres særskilt;
-gamle oppskrifter avviser fortsatt forsøksvarianten. Foreløpig ingen ny modellkjøring.
-Relevante eiere: market_state_time_query_fold1_fit_v1.ta_sf_numerical_recipe,
-fold1_fit_state_v1.build_fold1_fit_optimizer, eksisterende c171 short/trace-worker.
-Full historikk og30–40epoker vurderes senere; alle treningsflagg er fortsatt false.
+[Den nye korte sammenligningen](docs/TA_NON_M5_SHORT_LEARNING_REVIEW.json) er kildekvalifisert,
+men ikke innrømmet til native kjøring.348fokuserte tester består; kilde uendret under test.
+Eksakt oppskrift,92kildeeiere, faktisk feature-/normaliseringsidentitet og capens
+3600/3900sekunders mapping er kontrollert. Kanonisk modul/argument-oppstart stopper
+som forventet i audit-vakten før claim/modell; signert native miljø kontrolleres ved launch.
+En feil forventet feiltekst i smoke-review er rettet uten prosjekt-/vaktendring; bevart kvittering.
+
+ROOT: /home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001.
+RECIPE0dfe1a15, PREFLIGHTbd03d7bd, FOCUSED_TESTS.log950fcd2c.
+Samme4096kronologiske TRAIN-rader/256updates som short002, alle features/targets/tapsvekter
+og AdamW-innstillinger beholdt.16klonede nye side-tensorer/1032parametre, fersk tom AdamW,
+original INITIAL-RNG eksplisitt importert og original FINAL-RNG kreves. Før første update
+må alle4096INITIAL-rader gjenskape den beholdte fullprefixreferansen; alle4096måles igjen
+etter læring.256initial+256train+256final=768forwards,2modellkonstruksjoner.
+
+Dette bruker uendret kanonisk trainer fra short002:20GiB/512MiB,CPU0–18/pids128,8tråder,
+GPU-minne12288MiB,250Wlimit/310Wdraw/85Ccore;1800smodell/3600svindu/3900sytrevakt.
+Det er en annen eksisterende profil enn de lesende produsentkontrollene over; ingen vakt er økt.
+
+Global training/native_training/native_launch/full_epoch/full_val er fortsatt false.
+Prepared boot er640; mål maskinbred idle og gjør trygg fysisk omstart først. Etter ny boot:
+innrøm kun den nye eksakte engangsplanen, commit ren kilde/policy, materialiser gjennom
+eksisterende capped materializer og bruk signert Windows-kontroll. Ingen gammel plan relanseres.
+Analyser beggeS/F og alle5TF på hele bruktperioden: originaltap/komponenter,AUC,Brier,logtap,
+P(UP),kronologiske kvartaler og felles nonM5endring. Rapporter også forverringer.
+Dette er fortsatt bruktTRAIN, ikke senere generalisering eller økonomisk edge.
+Full historikk og30–40epoker er senere skalering.

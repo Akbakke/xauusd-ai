@@ -871,6 +871,10 @@ def _reversed_sources(plan, recipe):
     """Only the exact new cap selector differs from the consumed 85-owner recipe."""
     from gx1.contracts import market_state_time_query_fold1_fit_v1 as fit
     owners = recipe['source_owners']
+    if plan.get('non_m5_learning_scope') is not None:
+        from gx1.contracts import market_state_ta_non_m5_short_learning_v1 as non_m5
+        _need(plan['non_m5_learning_scope'] == non_m5.SCOPE, 'NON_M5_LEARNING_SCOPE')
+        return non_m5.current_source_bridge(owners, plan['non_m5_learning_source_owners'])
     if plan.get('non_m5_initial_scope') is not None:
         from gx1.audit import observe_market_state_ta_non_m5_initial_v1 as non_m5
         _need(plan['non_m5_initial_scope'] == non_m5.SCOPE, 'NON_M5_INITIAL_SCOPE')
@@ -934,7 +938,14 @@ def _qualify_reversed_origin(plan, bound_refs):
     # is replaced only here; the consumed recipe and its validators stay unchanged.
     native_short = plan.get('native_learning_scope') is not None
     non_m5_initial = plan.get('non_m5_initial_scope') is not None
-    if non_m5_initial:
+    non_m5_learning = plan.get('non_m5_learning_scope') is not None
+    _need(sum((native_short, non_m5_initial, non_m5_learning)) <= 1, 'ONE_NATIVE_SCOPE')
+    if non_m5_learning:
+        from gx1.contracts import market_state_ta_non_m5_short_learning_v1 as non_m5
+        from gx1.contracts import market_state_ta_m5_short_learning_v1 as short
+        _need(plan['non_m5_learning_scope'] == non_m5.SCOPE, 'NON_M5_LEARNING_SCOPE')
+        origin = short.read_reversed_upstream(recipe)
+    elif non_m5_initial:
         from gx1.audit import observe_market_state_ta_non_m5_initial_v1 as non_m5
         from gx1.contracts import market_state_ta_m5_short_learning_v1 as short
         _need(plan['non_m5_initial_scope'] == non_m5.SCOPE, 'NON_M5_INITIAL_SCOPE')
@@ -946,7 +957,7 @@ def _qualify_reversed_origin(plan, bound_refs):
     else:
         origin = reverse.read_ta_m5_full_reverse_order_origin(recipe)
     for name, ref in recipe['input_refs'].items():
-        if (native_short or non_m5_initial) and name == 'original_trace_helper':
+        if (native_short or non_m5_initial or non_m5_learning) and name == 'original_trace_helper':
             short.require_historical_trace(ref)
             continue
         campaign.require_binding(ref, label='reversed reused input', verify_file=True)
@@ -956,7 +967,7 @@ def _qualify_reversed_origin(plan, bound_refs):
     receipts = zero.load_ta_input_receipts(current_source_owners=current)
     view = zero._bind_ta_view(receipts, dedicated_m5_side=True)
     historical_view = _read(origin['original_recipe']['input_refs']['ta_candidate_view'])
-    if non_m5_initial:
+    if non_m5_initial or non_m5_learning:
         non_m5.require_view_source_transition(historical_view, view, plan)
     else:
         _need(view == historical_view and view['contract_sha256'] == recipe['expected_view_sha256'],

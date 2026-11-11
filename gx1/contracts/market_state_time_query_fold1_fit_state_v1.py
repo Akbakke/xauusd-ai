@@ -93,10 +93,12 @@ def _numerical(value, model):
         _require_model_binding(model)
         _need(isinstance(value, Mapping) and dict(value) == ta_sf_numerical_recipe(
                   dedicated_m5_side=model.state_model._dedicated_m5_side,
+                  dedicated_non_m5_side=model.state_model._dedicated_non_m5_side,
                   m5_equal_observation=value.get('m5_equal_observation', False))
               and value['research_objective_sha256'] == model.research_objective['contract_sha256']
               and value['native_F_loss_contract_sha256'] == loss_contract(ta_only=True,
                   dedicated_m5_side=model.state_model._dedicated_m5_side,
+                  dedicated_non_m5_side=model.state_model._dedicated_non_m5_side,
                   m5_equal_observation=value.get('m5_equal_observation', False))['contract_sha256']
               and value['future_weight'] == 1.0
               and float(trainer._GRAD_CLIP_NORM) == value['grad_clip_norm'],

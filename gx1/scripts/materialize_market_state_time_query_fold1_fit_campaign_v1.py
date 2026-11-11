@@ -49,6 +49,9 @@ def materialize(binding_path: Path) -> dict:
     from gx1.contracts import entry_native_direction_research_campaign_v1 as research
     from gx1.contracts import market_state_native_F_private_campaign_v1 as mechanical
     from gx1.contracts import market_state_ta_m5_short_learning_v1 as short
+    from gx1.contracts import market_state_ta_non_m5_short_learning_v1 as non_m5
+    if binding_path == non_m5.ROOT / 'PREPARATION_EXECUTION_BINDING.json':
+        short = non_m5
     repo = fold1.CANONICAL_REPO
     ta_short = binding_path == short.ROOT / 'PREPARATION_EXECUTION_BINDING.json'
     ta_full_reverse = binding_path == mechanical.TA_M5_FULL_REVERSE_ORDER_ROOT / 'PREPARATION_EXECUTION_BINDING.json'

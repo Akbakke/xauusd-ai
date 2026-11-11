@@ -1,0 +1,115 @@
+{
+  "schema_version": "gx1_ta_non_m5_short_learning_review_v1",
+  "status": "PREPARED_348_TESTS_PASS_NO_NATIVE_ADMISSION",
+  "base_source_commit": "5e2f17a749ea5eb6dd3d1b4bafe4e184dd561b45",
+  "stage": "market_state_ta_non_m5_short_learning_20261112_001",
+  "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001",
+  "hypothesis": "The measured near-parallel non-M5 side responses and conflicting per-horizon loss directions may be partly caused by the shared side readout. Eight independent cloned side heads test that coupling without removing indicators or horizons.",
+  "design": {
+    "reference": "Original c171 short002, immutable full-used-prefix INITIAL/FINAL measurements",
+    "rows": 4096,
+    "batch_size": 16,
+    "optimizer_updates": 256,
+    "evaluation_rows_per_phase": 4096,
+    "evaluation_phases": [
+      "INITIAL_TRAIN",
+      "FINAL_TRAIN"
+    ],
+    "model_forwards": 768,
+    "fresh_empty_adamw": true,
+    "initial_training_rng_explicitly_matched": true,
+    "terminal_training_rng_must_match": true,
+    "all_original_features_targets_loss_weights_hyperparameters_preserved": true,
+    "new_independent_side_tensors": 16,
+    "new_independent_side_parameters": 1032,
+    "full_initial_reference_gate_before_first_update": true,
+    "full_initial_atol": 2e-06,
+    "full_initial_rtol": 1e-06,
+    "full_initial_loss_atol": 5e-06
+  },
+  "recipe": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/RECIPE.json",
+    "sha256": "0dfe1a1553afeb3e01d025f0b95aabbf16eb2df2f554a0f04762c5787ea04d2a"
+  },
+  "preflight": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/PREFLIGHT.json",
+    "sha256": "bd03d7bd9e6faa46be6eef4cf5f1596a199556fad4698270b7f2ef1cf6b53e71"
+  },
+  "focused_tests": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/FOCUSED_TESTS.json",
+    "sha256": "c54a3990d0c5f727307e9da0c8fd89fda9e3d61d85b5fe877f5a5b1b79868a00"
+  },
+  "focused_tests_log": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/FOCUSED_TESTS.log",
+    "sha256": "950fcd2c414ba51313e9cc060167017ef6e1d71b293aeaf602f0ed8fc016f37e"
+  },
+  "tests_passed": 348,
+  "source_binding": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/PREPARATION_SOURCE_BINDING.json",
+    "sha256": "eb12a402b4faed5a7a2048e478dda9fa22fb1399c4959621c6b220553846af11"
+  },
+  "actual_cap_gate": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/ACTUAL_PREFLIGHT_CAP_GATE.json",
+    "sha256": "86571a1bf3500f122e74a821bd424c84a5829dca4f8c63cd2aabc6eb27a04a7e"
+  },
+  "startup_import_smoke": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/STARTUP_IMPORT_SMOKE.json",
+    "sha256": "08f07d9165c91b35b663f86584ab964f86934b09f00b7496429a7bdab462dcfd"
+  },
+  "startup_smoke_review_failure": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/STARTUP_SMOKE_REVIEW_ASSERTION_FAILURE.json",
+    "sha256": "fa8f67c7f0158af5f06dd8f7ee27cc00b3b87fe179946be08b5c5412f067ee54"
+  },
+  "prepared_boot": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/PREPARED_WINDOWS_BOOT.json",
+    "sha256": "cc2c6549309e607b69dee5a1dca5a893b36bf751317cb1e95209c99f7921072c"
+  },
+  "native_guards": {
+    "route": "Existing canonical trainer, unchanged from originalshort002",
+    "host_memory_gib": 20,
+    "swap_mib": 512,
+    "cpu_affinity": "0-18",
+    "pids": 128,
+    "numerical_threads": 8,
+    "gpu_memory_max_mib": 12288,
+    "configured_power_limit_w": 250,
+    "actual_power_draw_guard_w": 310,
+    "core_temperature_guard_c": 85,
+    "model_wall_seconds": 1800,
+    "window_wall_seconds": 3600,
+    "outer_wall_seconds": 3900,
+    "fresh_physical_windows_boot_required": true,
+    "guard_limits_changed": false
+  },
+  "predeclared_comparison": {
+    "population": "Same4096usedTRAINrows, no heldout or economic claim",
+    "tasks": [
+      "S",
+      "F"
+    ],
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ],
+    "metrics": [
+      "original_total_loss",
+      "original_activity_and_side_loss_components",
+      "direction_AUC",
+      "direction_Brier",
+      "direction_log_loss",
+      "mean_P_UP_and_observed_UP_frequency",
+      "chronological_quarter_losses",
+      "non_M5_common_change_energy"
+    ],
+    "interpretation": "Report improvements and regressions for every horizon and task. Compare matched changes with immutable original endpoints; no threshold search, candidate selection or promotion."
+  },
+  "native_run_started": false,
+  "training_authorized": false,
+  "test_data_used": false,
+  "later_generalization_proven": false,
+  "economic_edge_proven": false,
+  "next_action": "Keep global training closed through safe machine-wide idle reboot. On a verified fresh boot, qualify exact one-use policy and source, materialize the new campaign, then run only this256-update comparison via existing signed native controls."
+}

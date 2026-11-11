@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_NON_M5_INITIAL_PARITY_PASS_BOUNDED_LEARNING_COMPARISON_REQUIRED",
+  "status": "ACTIVE_NON_M5_SHORT_SOURCE_QUALIFIED_FRESH_BOOT_REQUIRED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -265,7 +265,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Qualify one new bounded independent-non-M5 learning comparison at the original256updates/4096chronologicalTRAINrows. Reuse originalshort002 and full-used-prefix references; keep all features/targets/loss weights and AdamW settings. Start from the measured cloned2a3847d0 initial weights, fresh empty optimizer and explicitly matched original initial training RNG. Measure the full used4096-row period before/after so the small48-row panel overlap cannot decide the result. Bind new numerical/model/view identities separately; old plans stay consumed. This closure admits no further model run or training. Full history and30-40epochs remain later.",
+  "next_measurement": "Keep global training closed through safe machine-wide idle reboot. On a verified fresh boot, qualify exact one-use policy and source, materialize the new campaign, then run only this256-update comparison via existing signed native controls.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -1712,5 +1712,9 @@
   "non_m5_initial_parity": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_INITIAL_PARITY_REVIEW.json",
     "sha256": "6d79b798c9d378ac7a18173f8d232e90b337c06c0b264654ba2648d650044c07"
+  },
+  "non_m5_short_learning": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_SHORT_LEARNING_REVIEW.json",
+    "sha256": "b37d229061773b408e0ca766187bafe4f1ba1e50b0838baefc083d3f81486698"
   }
 }
