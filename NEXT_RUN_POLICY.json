@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-10T16:30:02.337192+00:00",
-  "status": "TA_M5_LOCKED_SHRINK_NATIVE_QUALIFICATION_ADMITTED",
+  "status": "TA_M5_DIRECTION_TRAIN_CORRECTION_GOAL_COMPLETE_NATIVE_VERIFIED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed two fixed CPUreadouts are consumed and all training/launch flags closed. Frozen model capture is retained and qualified with original post-completion cleanup failure preserved. No native import, further fit/capture, GC, TEST, Entry, Exit, broker, trading or promotion admitted.",
-  "next_action": "Execute once the scoped .01-versus-.1 cachedR1 head boundary plan.12 inner fits choose by pooledTRAIN FP32 logloss; atmost2fullfits onlyif.1wins, otherwise reuse all.01evidence. Noencoder or native training/launch.",
+  "next_action": "No further run required for the completed M5 TRAIN-correction goal. Preserve qualified c171736d candidate and original checkpoints; broader generalization remains unproved and no new run is admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1698,7 +1698,7 @@
   },
   "current_work": {
     "operator_request": "08.11: Bind explicit TA-only corrected native S/F learning; inspect EMA, ATR, SMC, OHLC and all genuine fields through actual model consumption. GC paused.",
-    "current_activity": "Execute one frozen native import and cached full-population qualification for the already-passing locked confidence correction.",
+    "current_activity": "Bounded M5 TRAIN-deterioration goal completed: native four-tensor correction and matched fullTRAIN/later improvements independently verified.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1727,11 +1727,11 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "Cached prior-shrink comparison COMPLETE and passed; no native import yet.",
+    "latest_terminal_role": "Native locked-shrink correction COMPLETE and consumed; four primary direction cells pass.",
     "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_INNER_L2_BOUNDARY_20261110_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_INNER_PRIOR_SHRINK_20261111_002/TERMINAL.json",
-      "sha256": "4693039bcabb285c7fc0d0aa395ffd0beddd55a58cfc2a8426c27527c23f2e29"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_LOCKED_SHRINK_NATIVE_20261111_001/TERMINAL.json",
+      "sha256": "ccd02a8a1e79ec4d4dfb11629e2e3dd54499a638bbb6d9cb6a088e2a7312167c"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -1751,7 +1751,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Actual rounded native outputs and fresh candidate baseline/diskroundtrip not measured yet.",
+    "current_blocker": "No remaining blocker for this bounded correction goal. Fresh generalization, economic edge and optimizer continuation remain outside its proved scope.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9222,7 +9222,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run exact new locked-shrink qualification once;5918actualCUDAheadcalls+2row0encoderforwards,0fits. No additional encoder capture.",
+    "next_action": "No further run required for the completed M5 TRAIN-correction goal. Preserve qualified c171736d candidate and original checkpoints; broader generalization remains unproved and no new run is admitted.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -10351,12 +10351,10 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "Prefix-to-full head transfer must be measured.",
-      "Inner labels fit calibration; encoder saw wholeTRAIN.",
-      "Later TRAIN reused development. Positive slope cannot create ranking information.",
-      "Slope0 is prior collapse, not edge.",
-      "Cached FP64 transformation only; folded native coefficient rounding/import not yet qualified.",
-      "Small mean score gains; no sampling-uncertainty or economic-edge claim."
+      "No claim of a unique historical Adam/joint-training cause.",
+      "Later TRAIN is reused development; small gains are not fresh generalization, statistical edge or profit.",
+      "No fresh constructor or canonical optimizer resume was qualified. No further training/promotion/trading authority.",
+      "All-row native heads were evaluated on qualified cached representations; only two fresh full encoder forwards were required."
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -17402,7 +17400,7 @@
         "path": "/home/andre2/src/GX1_CURRENT/docs/ORIGINAL_PROJECT_GOAL.md",
         "sha256": "da21eeb1ec9e712e3d5372140a8165e1d771f12df7ff8efdefd341bdf849454c"
       },
-      "current_phase": "Offline TA-only five-TF corrected S/F one-pass fit and later TRAIN score complete. M5 direction worsens already on TRAIN; no directional edge demonstrated. TEST, Entry, Exit and trading closed.",
+      "current_phase": "Offline TA-only market-state research. Bounded M5 TRAIN deterioration repaired and verified on matched fullTRAIN/later development; generalization/economic edge unproved. TEST,Entry,Exit,trading remain closed.",
       "entry_decision_cadence_seconds": 300,
       "future_outcome_queries": "Source-supported time/size domain for future local-state validity remains to be bound for each timeframe. Existing terminal/first-event/session-day targets are scoped historical evidence, not a ready dynamic-state contract.",
       "latest_operator_clarification_date": "2026-11-06",
@@ -17692,7 +17690,7 @@
         "Originals preserved; unusedwindows3/4revoked. No new epoch,HPO,checkpoint/threshold selection,normalization refit,trading,broker,Exit or promotion."
       ]
     },
-    "latest_terminal_evidence_scope": "Two slopes fit on inner TRAIN only, all29574TRAIN/17753later rows scored, independent24cell/144field arithmetic and strict convex optimality.",
+    "latest_terminal_evidence_scope": "Four preserved-state tensor changes;5918actualCUDAheadcalls on29574TRAIN/17753later representations;2freshrow0 forwards and actual diskroundtrip; independent24cells/120fields.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -19042,8 +19040,8 @@
     },
     "feature_potential_exhausted": false,
     "latest_terminal_receipt": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_INNER_PRIOR_SHRINK_20261111_002/TERMINAL.json",
-      "sha256": "4693039bcabb285c7fc0d0aa395ffd0beddd55a58cfc2a8426c27527c23f2e29"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_LOCKED_SHRINK_NATIVE_20261111_001/TERMINAL.json",
+      "sha256": "ccd02a8a1e79ec4d4dfb11629e2e3dd54499a638bbb6d9cb6a088e2a7312167c"
     },
     "latest_broad_direction_review": {
       "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/SYNTHESIS.json",
@@ -19225,8 +19223,8 @@
       "sha256": "c30946767a52650ec071f0457ea8b127d0d7bd38c556922b34d139897edc040e"
     },
     "latest_terminal_review": {
-      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_INNER_PRIOR_SHRINK_REVIEW.json",
-      "sha256": "70b099d24f9641d8032653084e1a477f61e453a792f8d0a66aae0826ff8ef031"
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_LOCKED_SHRINK_NATIVE_REVIEW.json",
+      "sha256": "8f02405954730e4e9cf62da45131d7ae2c1fe76f2501b4f63cb2667147b13bab"
     },
     "frozen_partition_completed_units": {
       "terminal_later_full": {
@@ -64117,8 +64115,8 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "TA_M5_INNER_PRIOR_SHRINK_PASSED_CACHED_NATIVE_UNQUALIFIED",
-  "recorded_observed_utc": "2026-11-11T10:04:17.905722+00:00",
+  "recorded_status": "TA_M5_DIRECTION_TRAIN_CORRECTION_GOAL_COMPLETE_NATIVE_VERIFIED",
+  "recorded_observed_utc": "2026-11-11T10:23:42.626649+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
     "decision": "BLOCK",
@@ -66345,9 +66343,9 @@
     "objective": "Isolate and correct M5 directional TRAIN deterioration, then verify matched TRAIN and later TRAIN direction against frozen prior.",
     "user_authorization": "08.11: lag deg et mål og jobb KUN direkte mot retningen",
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
-    "status": "ACTIVE",
+    "status": "COMPLETE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
-    "latest_progress": "Two inner-TRAIN-fitted confidence slopes preserve ranking and beat INITIAL/frozen prior in Brier and logloss on both full TRAIN and later tasks. Measured amplitude defect is correctable; unique native training cause and fresh generalization remain unproved.",
+    "latest_progress": "The bounded M5 TRAIN-deterioration correction goal is met: isolated readout deficiency plus excessive amplitude corrected with four native tensors, and matched fullTRAIN/later scores improve.",
     "user_clarification_20261109": {
       "scope": "Correct direction for short sniper and longer long/shorttrends; separate forecasts and targets at M5 cadence.",
       "existing_future_horizons_minutes": [
@@ -66361,8 +66359,13 @@
       "no_new_trading_authority": true
     },
     "latest_progress_review": {
-      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_INNER_PRIOR_SHRINK_REVIEW.json",
-      "sha256": "70b099d24f9641d8032653084e1a477f61e453a792f8d0a66aae0826ff8ef031"
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_LOCKED_SHRINK_NATIVE_REVIEW.json",
+      "sha256": "8f02405954730e4e9cf62da45131d7ae2c1fe76f2501b4f63cb2667147b13bab"
+    },
+    "completion_scope": "Exactly the stored bounded TRAIN-deterioration correction objective, not the wider trading/generalization project.",
+    "completion_requirements_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_LOCKED_SHRINK_NATIVE_REVIEW.json",
+      "sha256": "8f02405954730e4e9cf62da45131d7ae2c1fe76f2501b4f63cb2667147b13bab"
     }
   },
   "market_state_ta_direction_weight_diagnostic_20261108_001": {
@@ -75393,7 +75396,7 @@
     "reason": "Source review caught native metric schema mismatch and private-source bookend gaps before admission; preserved original preparation."
   },
   "market_state_ta_m5_locked_shrink_native_20261111_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_LOCKED_SHRINK_NATIVE_20261111_001/PLAN.json",
       "sha256": "c6ca851b1ed048c7d3f9604687a7c063c071cbda897d6dac2b1de57ff2c000c5"
@@ -75407,21 +75410,21 @@
       "sha256": "6ebae1e7a24c6ed0cd9b3f68763d4249d146647f2d204ec87ddba4dd8f2b414a"
     },
     "max_invocations": 1,
-    "remaining_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "remaining_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "backbone_encodings_authorized": 2,
-    "head_tensor_imports_authorized": 4,
-    "candidate_weights_writes_authorized": 1,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "backbone_encodings_authorized": 0,
+    "head_tensor_imports_authorized": 0,
+    "candidate_weights_writes_authorized": 0,
     "backward_calls_authorized": 0,
     "optimizer_steps_authorized": 0,
     "training_authorized": false,
     "native_launch_authorized": false,
-    "goal_complete": false,
+    "goal_complete": true,
     "fit_rows": 29574,
     "score_rows": 17753,
     "batch_size": 16,
@@ -75446,6 +75449,27 @@
     "independent_source_review": "PASS 895dd461/2cf2abe4: exact new cap route,85-owner cap-only source bridge, locked slopes from originalFP32 W2, four preserved-state tensor import,5918CUDAheadcalls,2actualbaseline/roundtrip forwards, real diskdecode and all-row primary rounding-boundary control.",
     "focused_tests": "28 tests passed in capped CPU audit; tests SHA16ab68ad7745b843c459b0ba3f490b392529e08528ab21259f9092c34b1199bb; AST/bash syntax/diff checks passed.",
     "standing_authority": "Active direction-only goal and standing zero-cost local execution. One exact frozen native correction qualification; no fitting, epoch, candidate selection or promotion.",
-    "scope": "Fold already-locked S/F confidence slopes into four existing M5 side tensors. Native GPU heads on all29574TRAIN/17753later cached inputs; only two genuine row0 encoderforwards. Preserve others and original artifacts; actual diskroundtrip; same primary margins."
+    "scope": "Fold already-locked S/F confidence slopes into four existing M5 side tensors. Native GPU heads on all29574TRAIN/17753later cached inputs; only two genuine row0 encoderforwards. Preserve others and original artifacts; actual diskroundtrip; same primary margins.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_LOCKED_SHRINK_NATIVE_20261111_001/RESULT.json",
+      "sha256": "d8a4ef4de35df2a0c78bc5efdd45c57d901e4b1ff98ef16fe11187076bdfa612"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_LOCKED_SHRINK_NATIVE_20261111_001/TERMINAL.json",
+      "sha256": "ccd02a8a1e79ec4d4dfb11629e2e3dd54499a638bbb6d9cb6a088e2a7312167c"
+    },
+    "controller_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_LOCKED_SHRINK_NATIVE_20261111_001/CONTROLLER_TERMINAL.json",
+      "sha256": "215526639fb0869a7b149d6ac6c76709d45f5c911d6a3a507a3cfba1c9bfc830"
+    },
+    "numeric_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_LOCKED_SHRINK_NATIVE_20261111_001/NUMERIC_REVIEW.json",
+      "sha256": "0464e73f00f06426269f74f01a09d0b6dd276f675a053478062a145dbd2bc73a"
+    },
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_LOCKED_SHRINK_NATIVE_REVIEW.json",
+      "sha256": "8f02405954730e4e9cf62da45131d7ae2c1fe76f2501b4f63cb2667147b13bab"
+    },
+    "comparison_pass": true
   }
 }

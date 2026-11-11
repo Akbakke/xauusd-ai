@@ -1,0 +1,493 @@
+{
+  "all_row_numeric_parity": {
+    "LATER_FULL": {
+      "future": {
+        "max_abs_probability_error": 8.887388047718048e-09,
+        "max_abs_raw_error": 3.570774573247171e-08,
+        "raw_allclose": true,
+        "score_delta": {
+          "brier": 1.8439305637940606e-11,
+          "log": 3.6891156796059477e-11,
+          "mean_p": 2.3024038231511668e-10
+        }
+      },
+      "state": {
+        "max_abs_probability_error": 1.3230939122088614e-08,
+        "max_abs_raw_error": 5.364968447274521e-08,
+        "raw_allclose": true,
+        "score_delta": {
+          "brier": -2.4465929282513343e-11,
+          "log": -4.940814424259088e-11,
+          "mean_p": 8.394890338436767e-10
+        }
+      }
+    },
+    "TRAIN": {
+      "future": {
+        "max_abs_probability_error": 1.0562548391490623e-08,
+        "max_abs_raw_error": 4.2288631714459957e-08,
+        "raw_allclose": true,
+        "score_delta": {
+          "brier": 5.006745018576453e-12,
+          "log": 9.904188580378559e-12,
+          "mean_p": 2.780324859230632e-10
+        }
+      },
+      "state": {
+        "max_abs_probability_error": 1.4086253719014508e-08,
+        "max_abs_raw_error": 5.725630525255099e-08,
+        "raw_allclose": true,
+        "score_delta": {
+          "brier": -3.026148776008597e-11,
+          "log": -6.094325044614379e-11,
+          "mean_p": 9.269881529050394e-10
+        }
+      }
+    }
+  },
+  "candidate_model_state_sha256": "c171736d2de79396dd86a79ad895f8bf2226e5ad8d996abf1dd7f52055e4a467",
+  "candidate_weights": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_LOCKED_SHRINK_NATIVE_20261111_001/CANDIDATE_WEIGHTS.pt",
+    "sha256": "ef218008ae569069dffbfc3f0572061686c9bab4b40183ad347e540212a9fd7d"
+  },
+  "comparison": {
+    "R1_diagnostic_only": true,
+    "all_row_rounding_boundary_ambiguity": [],
+    "candidate_selection": false,
+    "cells": {
+      "LATER_FULL": {
+        "future": {
+          "INITIAL": {
+            "brier_delta": -6.934376797892994e-05,
+            "log_delta": -0.00013917929656870331,
+            "margin": 1e-06,
+            "passes": true
+          },
+          "PRIOR": {
+            "brier_delta": -4.696894608893776e-05,
+            "log_delta": -9.435005166169574e-05,
+            "margin": 1e-08,
+            "passes": true
+          },
+          "R1": {
+            "brier_delta": -0.0010152711286827432,
+            "log_delta": -0.0020392288859062413,
+            "margin": 1e-08,
+            "passes": true
+          }
+        },
+        "state": {
+          "INITIAL": {
+            "brier_delta": -1.4007794453291256e-05,
+            "log_delta": -2.8270253120799005e-05,
+            "margin": 1e-06,
+            "passes": true
+          },
+          "PRIOR": {
+            "brier_delta": -0.00018950752239935142,
+            "log_delta": -0.0003790153163987231,
+            "margin": 1e-08,
+            "passes": true
+          },
+          "R1": {
+            "brier_delta": -0.0006906397025335242,
+            "log_delta": -0.0013926556695985637,
+            "margin": 1e-08,
+            "passes": true
+          }
+        }
+      },
+      "TRAIN": {
+        "future": {
+          "INITIAL": {
+            "brier_delta": -8.653120201432274e-05,
+            "log_delta": -0.00017339333432020432,
+            "margin": 1e-06,
+            "passes": true
+          },
+          "PRIOR": {
+            "brier_delta": -0.0006357317152577702,
+            "log_delta": -0.0012726478800938468,
+            "margin": 1e-08,
+            "passes": true
+          },
+          "R1": {
+            "brier_delta": -0.00024807908264623535,
+            "log_delta": -0.0004968160545657518,
+            "margin": 1e-08,
+            "passes": true
+          }
+        },
+        "state": {
+          "INITIAL": {
+            "brier_delta": -0.00017273197557621245,
+            "log_delta": -0.00034683820220904327,
+            "margin": 1e-06,
+            "passes": true
+          },
+          "PRIOR": {
+            "brier_delta": -0.0013503764989622191,
+            "log_delta": -0.0027060577779172146,
+            "margin": 1e-08,
+            "passes": true
+          },
+          "R1": {
+            "brier_delta": -0.0002021867499901464,
+            "log_delta": -0.0004039337631055462,
+            "margin": 1e-08,
+            "passes": true
+          }
+        }
+      }
+    },
+    "decision": "PASS_ALL_FOUR_INITIAL_PRIOR_CELLS"
+  },
+  "conclusion": "The bounded M5 TRAIN-deterioration correction goal is met: isolated readout deficiency plus excessive amplitude corrected with four native tensors, and matched fullTRAIN/later scores improve.",
+  "controller_terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_LOCKED_SHRINK_NATIVE_20261111_001/CONTROLLER_TERMINAL.json",
+    "sha256": "215526639fb0869a7b149d6ac6c76709d45f5c911d6a3a507a3cfba1c9bfc830"
+  },
+  "counts": {
+    "backbone_encodings": 2,
+    "backwards": 0,
+    "cached_head_calls": 5918,
+    "candidate_writes": 1,
+    "checkpoint_loads": 2,
+    "checkpoint_writes": 0,
+    "forward_returns": 2,
+    "head_tensor_imports": 4,
+    "model_constructions": 1,
+    "optimizer_constructions": 0,
+    "optimizer_updates": 0,
+    "published_npz_bytes": 404438,
+    "resume_state_load_calls": 2,
+    "resume_state_load_returns": 2,
+    "scalar_fits": 0
+  },
+  "folded_coefficients": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_LOCKED_SHRINK_NATIVE_20261111_001/FOLDED_COEFFICIENTS.npz",
+    "sha256": "d3e7461f7907b74978c1037e07e26c27c9a5a44b85e83f213c8e7524496fce3d"
+  },
+  "goal_complete": true,
+  "guard_log": {
+    "path": "/home/andre2/GX1_RUNS/.MARKET_STATE_TA_M5_LOCKED_SHRINK_NATIVE_20261111_001.guard.7s1biNJd.log",
+    "sha256": "19d472a6c9f5bb4c19c7e43d707feed888e3dcc85c4fe50aeba137710e91a2b7"
+  },
+  "hardware": {
+    "configured_power_limit_w": 250,
+    "peak_core_temp_c": 43,
+    "peak_memory_temp_c": 46,
+    "peak_memory_used_mib": 592,
+    "peak_power_draw_w": 128.16
+  },
+  "limitations": [
+    "No claim of a unique historical Adam/joint-training cause.",
+    "Later TRAIN is reused development; small gains are not fresh generalization, statistical edge or profit.",
+    "No fresh constructor or canonical optimizer resume was qualified. No further training/promotion/trading authority.",
+    "All-row native heads were evaluated on qualified cached representations; only two fresh full encoder forwards were required."
+  ],
+  "numeric_review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_LOCKED_SHRINK_NATIVE_20261111_001/NUMERIC_REVIEW.json",
+    "sha256": "0464e73f00f06426269f74f01a09d0b6dd276f675a053478062a145dbd2bc73a"
+  },
+  "promotion_authorized": false,
+  "requirements": [
+    {
+      "conclusion": "Replacing only the dedicated M5 readouts at frozenR1 inputs repairs both TRAIN targets. Locked TRAIN-only slopes then isolate excessive amplitude at fixed ranking. This does not prove a unique historical optimizer mechanism.",
+      "evidence": [
+        {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_FIXED_READOUT_20261110_001/RESULT.json",
+          "sha256": "62e596192f628a05bd09b59675a3522044bf6b643a07076aa7c239e5da0d7f40"
+        }
+      ],
+      "requirement": "Isolate a measurable cause at fixed representation before correction",
+      "status": "PROVEN_SCOPED"
+    },
+    {
+      "conclusion": "Exactly four existing M5 tensors imported; all other state, buffers, modes, RNG, parameter identity and inputs preserved. Actual native row0 outputs and same-instance weights-only diskroundtrip pass.",
+      "evidence": [
+        {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_LOCKED_SHRINK_NATIVE_20261111_001/RESULT.json",
+          "sha256": "d8a4ef4de35df2a0c78bc5efdd45c57d901e4b1ff98ef16fe11187076bdfa612"
+        },
+        {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_LOCKED_SHRINK_NATIVE_20261111_001/CANDIDATE_WEIGHTS.pt",
+          "sha256": "ef218008ae569069dffbfc3f0572061686c9bab4b40183ad347e540212a9fd7d"
+        },
+        {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_LOCKED_SHRINK_NATIVE_20261111_001/FOLDED_COEFFICIENTS.npz",
+          "sha256": "d3e7461f7907b74978c1037e07e26c27c9a5a44b85e83f213c8e7524496fce3d"
+        }
+      ],
+      "requirement": "Apply the smallest correction in the actual model",
+      "status": "PROVEN"
+    },
+    {
+      "conclusion": "All four M5 S/F x TRAIN/LATER_FULL cells improve both Brier and logloss against INITIAL and frozenprior beyond unchanged margins; no rounding-boundary ambiguity. Later is reused development.",
+      "evidence": [
+        {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_LOCKED_SHRINK_NATIVE_20261111_001/RESULT.json",
+          "sha256": "d8a4ef4de35df2a0c78bc5efdd45c57d901e4b1ff98ef16fe11187076bdfa612"
+        },
+        {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_LOCKED_SHRINK_NATIVE_20261111_001/NUMERIC_REVIEW.json",
+          "sha256": "0464e73f00f06426269f74f01a09d0b6dd276f675a053478062a145dbd2bc73a"
+        }
+      ],
+      "requirement": "Improve identical TRAIN and separate later TRAIN against frozen prior",
+      "status": "PROVEN_SCOPED"
+    },
+    {
+      "conclusion": "Qualified29574TRAIN/17753later representations reused. Only cap selector differs among85 bound model/training owners. Existing feature view, targets, priors and context remain unchanged; zero refits.",
+      "evidence": [
+        {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_LOCKED_SHRINK_NATIVE_20261111_001/PLAN.json",
+          "sha256": "c6ca851b1ed048c7d3f9604687a7c063c071cbda897d6dac2b1de57ff2c000c5"
+        },
+        {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_LOCKED_SHRINK_NATIVE_20261111_001/RESULT.json",
+          "sha256": "d8a4ef4de35df2a0c78bc5efdd45c57d901e4b1ff98ef16fe11187076bdfa612"
+        }
+      ],
+      "requirement": "Reuse artifacts/checkpoints and preserve causal genuine MTF",
+      "status": "PROVEN"
+    },
+    {
+      "conclusion": "One guarded12G/512MiB CUDA producer,250W configured cap, original thermal/draw limits; no training or prohibited access.",
+      "evidence": [
+        {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_LOCKED_SHRINK_NATIVE_20261111_001/PLAN.json",
+          "sha256": "c6ca851b1ed048c7d3f9604687a7c063c071cbda897d6dac2b1de57ff2c000c5"
+        },
+        {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_LOCKED_SHRINK_NATIVE_20261111_001/RESULT.json",
+          "sha256": "d8a4ef4de35df2a0c78bc5efdd45c57d901e4b1ff98ef16fe11187076bdfa612"
+        },
+        {
+          "path": "/home/andre2/GX1_RUNS/.MARKET_STATE_TA_M5_LOCKED_SHRINK_NATIVE_20261111_001.guard.7s1biNJd.log",
+          "sha256": "19d472a6c9f5bb4c19c7e43d707feed888e3dcc85c4fe50aeba137710e91a2b7"
+        }
+      ],
+      "requirement": "Preserve guards,GC pause,TEST/Entry/Exit/trading closure",
+      "status": "PROVEN"
+    },
+    {
+      "conclusion": "Existing cache owner and exact cap branch extended solely for locked-head numerical/native qualification;28focused tests passed.",
+      "evidence": [
+        {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_LOCKED_SHRINK_NATIVE_20261111_001/PLAN.json",
+          "sha256": "c6ca851b1ed048c7d3f9604687a7c063c071cbda897d6dac2b1de57ff2c000c5"
+        }
+      ],
+      "requirement": "No unrelated refactor or unexplained run",
+      "status": "PROVEN"
+    }
+  ],
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_LOCKED_SHRINK_NATIVE_20261111_001/RESULT.json",
+    "sha256": "d8a4ef4de35df2a0c78bc5efdd45c57d901e4b1ff98ef16fe11187076bdfa612"
+  },
+  "roundtrip": {
+    "RNG_modes_trainability_unchanged": true,
+    "actual_file_decode": true,
+    "all_buffers_exact": true,
+    "all_model_tensors_exact": true,
+    "canonical_resume_authority": false,
+    "fresh_constructor_tested": false,
+    "optimizer_restore": false,
+    "raw_outputs_exact": true,
+    "representations_exact": true,
+    "same_instance": true
+  },
+  "scores": {
+    "LATER_FULL": {
+      "future": {
+        "CANDIDATE": {
+          "brier": 0.24978644746321207,
+          "count": 7165,
+          "log": 0.6927196287651297,
+          "mean_p": 0.5150292370434792,
+          "up_count": 3676
+        },
+        "IDEAL": {
+          "brier": 0.24978644744477277,
+          "count": 7165,
+          "log": 0.6927196287282386,
+          "mean_p": 0.5150292368132389,
+          "up_count": 3676
+        },
+        "INITIAL": {
+          "brier": 0.249855791231191,
+          "count": 7165,
+          "log": 0.6928588080616984,
+          "mean_p": 0.5143581495898966,
+          "up_count": 3676
+        },
+        "PRIOR": {
+          "brier": 0.249833416409301,
+          "count": 7165,
+          "log": 0.6928139788167914,
+          "mean_p": 0.5111241709344305,
+          "up_count": 3676
+        },
+        "R1": {
+          "brier": 0.2508017185918948,
+          "count": 7165,
+          "log": 0.694758857651036,
+          "mean_p": 0.5193625561960762,
+          "up_count": 3676
+        },
+        "W2": {
+          "brier": 0.24994216605754532,
+          "count": 7165,
+          "log": 0.6930317086725764,
+          "mean_p": 0.5172278634063887,
+          "up_count": 3676
+        }
+      },
+      "state": {
+        "CANDIDATE": {
+          "brier": 0.24963848026589236,
+          "count": 6096,
+          "log": 0.6924241431129634,
+          "mean_p": 0.522278803139271,
+          "up_count": 3133
+        },
+        "IDEAL": {
+          "brier": 0.2496384802903583,
+          "count": 6096,
+          "log": 0.6924241431623716,
+          "mean_p": 0.522278802299782,
+          "up_count": 3133
+        },
+        "INITIAL": {
+          "brier": 0.24965248806034565,
+          "count": 6096,
+          "log": 0.6924524133660842,
+          "mean_p": 0.522249243054054,
+          "up_count": 3133
+        },
+        "PRIOR": {
+          "brier": 0.2498279877882917,
+          "count": 6096,
+          "log": 0.6928031584293621,
+          "mean_p": 0.5186775868957252,
+          "up_count": 3133
+        },
+        "R1": {
+          "brier": 0.2503291199684259,
+          "count": 6096,
+          "log": 0.693816798782562,
+          "mean_p": 0.5157888757083424,
+          "up_count": 3133
+        },
+        "W2": {
+          "brier": 0.24982235964639452,
+          "count": 6096,
+          "log": 0.6927946077158498,
+          "mean_p": 0.5231768165669072,
+          "up_count": 3133
+        }
+      }
+    },
+    "TRAIN": {
+      "future": {
+        "CANDIDATE": {
+          "brier": 0.2492404795415085,
+          "count": 11909,
+          "log": 0.6916269347578013,
+          "mean_p": 0.5111509679740288,
+          "up_count": 6087
+        },
+        "IDEAL": {
+          "brier": 0.24924047953650175,
+          "count": 11909,
+          "log": 0.6916269347478972,
+          "mean_p": 0.5111509676959963,
+          "up_count": 6087
+        },
+        "INITIAL": {
+          "brier": 0.24932701074352281,
+          "count": 11909,
+          "log": 0.6918003280921216,
+          "mean_p": 0.5109712747092003,
+          "up_count": 6087
+        },
+        "PRIOR": {
+          "brier": 0.24987621125676626,
+          "count": 11909,
+          "log": 0.6928995826378952,
+          "mean_p": 0.5111241709344305,
+          "up_count": 6087
+        },
+        "R1": {
+          "brier": 0.24948855862415473,
+          "count": 11909,
+          "log": 0.6921237508123671,
+          "mean_p": 0.5142760381579943,
+          "up_count": 6087
+        },
+        "W2": {
+          "brier": 0.24906551702929922,
+          "count": 11909,
+          "log": 0.691275530473675,
+          "mean_p": 0.5111616186522253,
+          "up_count": 6087
+        }
+      },
+      "state": {
+        "CANDIDATE": {
+          "brier": 0.24830063184729095,
+          "count": 10010,
+          "log": 0.6897429769902482,
+          "mean_p": 0.5186099423974533,
+          "up_count": 5192
+        },
+        "IDEAL": {
+          "brier": 0.24830063187755244,
+          "count": 10010,
+          "log": 0.6897429770511915,
+          "mean_p": 0.5186099414704651,
+          "up_count": 5192
+        },
+        "INITIAL": {
+          "brier": 0.24847336382286717,
+          "count": 10010,
+          "log": 0.6900898151924573,
+          "mean_p": 0.5185591398769893,
+          "up_count": 5192
+        },
+        "PRIOR": {
+          "brier": 0.24965100834625317,
+          "count": 10010,
+          "log": 0.6924490347681654,
+          "mean_p": 0.5186775868957252,
+          "up_count": 5192
+        },
+        "R1": {
+          "brier": 0.2485028185972811,
+          "count": 10010,
+          "log": 0.6901469107533538,
+          "mean_p": 0.5101200720037729,
+          "up_count": 5192
+        },
+        "W2": {
+          "brier": 0.24819476254882736,
+          "count": 10010,
+          "log": 0.6895294604241756,
+          "mean_p": 0.5185863441866421,
+          "up_count": 5192
+        }
+      }
+    }
+  },
+  "status": "COMPLETE_NATIVE_DIRECTION_CORRECTION_VERIFIED",
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_LOCKED_SHRINK_NATIVE_20261111_001/TERMINAL.json",
+    "sha256": "ccd02a8a1e79ec4d4dfb11629e2e3dd54499a638bbb6d9cb6a088e2a7312167c"
+  },
+  "test_data_used": false,
+  "training_authorized": false,
+  "whole_command_seconds": 104.60918491300254,
+  "worker_seconds": 100.60626211699855
+}
