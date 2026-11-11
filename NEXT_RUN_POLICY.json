@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-11T22:40:20.437556+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_NON_M5_INITIAL_PARITY_ADMITTED_READ_ONLY",
+  "observed_utc": "2026-11-11T22:53:26.085246+00:00",
+  "status": "TA_DIRECTION_EDGE_CAUSE_NON_M5_INITIAL_PARITY_PASS_BOUNDED_LEARNING_COMPARISON_REQUIRED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Execute the separately sealed one-use read-only non-M5 initial-parity plan: actual c171 INITIAL checkpoint, current default versus cloned independent side heads, original16B16 TRAIN panel,32forwards and0updates. Require historical-default bit parity, unchanged M5/activity and fixedFP32 cloned-side tolerance. Consume even on failure; preserve originals. No training or old-plan relaunch; learning effect and edge remain unproved.",
+  "next_action": "Qualify one new bounded independent-non-M5 learning comparison at the original256updates/4096chronologicalTRAINrows. Reuse originalshort002 and full-used-prefix references; keep all features/targets/loss weights and AdamW settings. Start from the measured cloned2a3847d0 initial weights, fresh empty optimizer and explicitly matched original initial training RNG. Measure the full used4096-row period before/after so the small48-row panel overlap cannot decide the result. Bind new numerical/model/view identities separately; old plans stay consumed. This closure admits no further model run or training. Full history and30-40epochs remain later.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1694,11 +1694,18 @@
     "latest_fixed_readout_recovery": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_REVERSED_FIXED_READOUT_20261110_001/RESULT.json",
       "sha256": "62e596192f628a05bd09b59675a3522044bf6b643a07076aa7c239e5da0d7f40"
+    },
+    "trial_non_m5_initial_baseline_qualified": true,
+    "trial_non_m5_initial_baseline_scope": "Original16B16 historicalTRAIN panel only; two independent models and one actual initial checkpoint. No full-population, learning or heldout qualification.",
+    "trial_non_m5_learning_measured": false,
+    "latest_trial_non_m5_initial_parity": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_INITIAL_PARITY_REVIEW.json",
+      "sha256": "6d79b798c9d378ac7a18173f8d232e90b337c06c0b264654ba2648d650044c07"
     }
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "211focusedCPUtests and actual metadata preflight PASS. One new read-only c171 initial comparison admitted,32forwards/0updates; no training.",
+    "current_activity": "Independent non-M5 initial parity verified on actualc171checkpoint/256TRAINpanel.211focusedtests plus32nativeforwards/0updates and independent retainedNPZ audit pass. All plans consumed.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1727,11 +1734,11 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "TA_C171_MATCHED_TRAIN_MODE_READ_ONLY",
+    "latest_terminal_role": "TA_NON_M5_INITIAL_PARITY_READ_ONLY",
     "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_INITIAL_PARITY_20261111_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_MATCHED_TRAIN_MODE_20261111_001/TERMINAL.json",
-      "sha256": "236bdfb7c5e99c5133fc47b316e136f2bb4d5da1fc8431f92900773a140021c5"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_INITIAL_PARITY_20261111_001/TERMINAL.json",
+      "sha256": "d5c1223df034a2014f4e2e5116214a41d969ffa5b472a8b3ad4e128e6ac36020"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -1751,7 +1758,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Actual initial parity of independent non-M5 side heads is not yet measured. Their bounded learning effect, later generalization and economic edge remain unproved.",
+    "current_blocker": "Independent horizon heads preserve the measured initial outputs; their bounded learning effect, later generalization and economic edge remain unproved. New numerical/optimizer binding and full-used-prefix comparison need qualification before another model run.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9222,7 +9229,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute the separately sealed one-use read-only non-M5 initial-parity plan: actual c171 INITIAL checkpoint, current default versus cloned independent side heads, original16B16 TRAIN panel,32forwards and0updates. Require historical-default bit parity, unchanged M5/activity and fixedFP32 cloned-side tolerance. Consume even on failure; preserve originals. No training or old-plan relaunch; learning effect and edge remain unproved.",
+    "next_action": "Qualify one new bounded independent-non-M5 learning comparison at the original256updates/4096chronologicalTRAINrows. Reuse originalshort002 and full-used-prefix references; keep all features/targets/loss weights and AdamW settings. Start from the measured cloned2a3847d0 initial weights, fresh empty optimizer and explicitly matched original initial training RNG. Measure the full used4096-row period before/after so the small48-row panel overlap cannot decide the result. Bind new numerical/model/view identities separately; old plans stay consumed. This closure admits no further model run or training. Full history and30-40epochs remain later.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -19329,7 +19336,7 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_001/UNEXPECTED_INTERRUPTION_INTEGRITY_001.json",
       "sha256": "a24c10b0873f8c94ea086c8c79083d390092521a9aabf77523c3624e2ecfe020"
     },
-    "current_native_launch_scope": "market_state_ta_non_m5_initial_parity_20261111_001",
+    "current_native_launch_scope": "NONE",
     "current_host_interruption": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/CONNECTION_LOSS_OBSERVATION_001.json",
       "sha256": "b399a59dc7af1e8b0af84c8c135d5b4efe96ac3eaa74aa4f7fb54ee8a3ce9882"
@@ -22137,7 +22144,7 @@
     },
     "direction_edge_cause_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "cba9701ecb0e03c18bb566c3fd8533341bd7e483a9db94027ea67b8649a3ee14"
+      "sha256": "9800bc8fa55b1758b98e24937089152b854eabacdee5880c0adae7954fd7f5e8"
     },
     "latest_c171_startup_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_C171_SHORT_LEARNING_STARTUP_REVIEW.json",
@@ -22203,11 +22210,11 @@
     },
     "latest_non_m5_side_decoder_repair": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_SIDE_DECODER_REPAIR.json",
-      "sha256": "36923aafb1e8da8081606e6e16cf2f2b7d4a5afd35a4faeaae60308b7a3e6d17"
+      "sha256": "1baceb7e779ae01649a0b3984f13dab7fa6e2351fcaf4d25185d57639e849518"
     },
     "latest_non_m5_initial_parity": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_INITIAL_PARITY_REVIEW.json",
-      "sha256": "e38a134e4ee32d01d15cedc234ff101a36f8db4f1e9130957a2000147954bb80"
+      "sha256": "6d79b798c9d378ac7a18173f8d232e90b337c06c0b264654ba2648d650044c07"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -64189,7 +64196,7 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "TA_DIRECTION_EDGE_CAUSE_NON_M5_INITIAL_PARITY_ADMITTED_READ_ONLY",
+  "recorded_status": "TA_DIRECTION_EDGE_CAUSE_NON_M5_INITIAL_PARITY_PASS_BOUNDED_LEARNING_COMPARISON_REQUIRED",
   "recorded_observed_utc": "2026-11-11T10:23:42.626649+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
@@ -75547,21 +75554,21 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_NON_M5_INITIAL_PARITY_ADMITTED_READ_ONLY",
+    "status": "ACTIVE_NON_M5_INITIAL_PARITY_PASS_LEARNING_COMPARISON_REQUIRED",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
     "training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "cba9701ecb0e03c18bb566c3fd8533341bd7e483a9db94027ea67b8649a3ee14"
+      "sha256": "9800bc8fa55b1758b98e24937089152b854eabacdee5880c0adae7954fd7f5e8"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": true,
+    "model_or_data_run_admitted": false,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Execute the separately sealed one-use read-only non-M5 initial-parity plan: actual c171 INITIAL checkpoint, current default versus cloned independent side heads, original16B16 TRAIN panel,32forwards and0updates. Require historical-default bit parity, unchanged M5/activity and fixedFP32 cloned-side tolerance. Consume even on failure; preserve originals. No training or old-plan relaunch; learning effect and edge remain unproved.",
+    "next_action": "Qualify one new bounded independent-non-M5 learning comparison at the original256updates/4096chronologicalTRAINrows. Reuse originalshort002 and full-used-prefix references; keep all features/targets/loss weights and AdamW settings. Start from the measured cloned2a3847d0 initial weights, fresh empty optimizer and explicitly matched original initial training RNG. Measure the full used4096-row period before/after so the small48-row panel overlap cannot decide the result. Bind new numerical/model/view identities separately; old plans stay consumed. This closure admits no further model run or training. Full history and30-40epochs remain later.",
     "active_stage": "market_state_ta_c171_matched_train_mode_20261111_001",
     "previous_goal_turn_classification": "PROGRESS: retained MTFintervention andinputsupport review ruledout an unsupported harmful-MTF or generalnormalization-collapse change; nextactualboundarymeasurement identified.",
     "last_goal_turn_classification": "PROGRESS_MEASURED_NEAR_PARALLEL_DECODER_SENSITIVITY_AND_IMPLEMENTED_INDEPENDENT_SIDE_READOUTS_167_TESTS_PASS",
@@ -75575,11 +75582,11 @@
     },
     "non_m5_side_decoder_repair": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_SIDE_DECODER_REPAIR.json",
-      "sha256": "5bee4559edad5ea6d21523b5c6e7d1e98f8c17d3f470f17778e83e925cdeeaaa"
+      "sha256": "1baceb7e779ae01649a0b3984f13dab7fa6e2351fcaf4d25185d57639e849518"
     },
     "non_m5_initial_parity": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_INITIAL_PARITY_REVIEW.json",
-      "sha256": "e38a134e4ee32d01d15cedc234ff101a36f8db4f1e9130957a2000147954bb80"
+      "sha256": "6d79b798c9d378ac7a18173f8d232e90b337c06c0b264654ba2648d650044c07"
     }
   },
   "market_state_ta_fusion_observation_20261111_001": {
@@ -76832,7 +76839,7 @@
     },
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "5ed49eaf3707ed12a8b245a15525b338d6cbeb5e10e04f400b749e279be009be"
+      "sha256": "9800bc8fa55b1758b98e24937089152b854eabacdee5880c0adae7954fd7f5e8"
     },
     "full_model_constructions": 0,
     "native_model_forwards": 0,
@@ -77795,11 +77802,11 @@
     "next_action": "Measure decoder timeframe conditioning using only retained joint_hidden and bound initial/final query/readout tensors: quantify horizon-specific response to the same hidden coordinates with analytic Linear/GELU sensitivity and finite query-coordinate controls. Keep all5TF, both S/F, original ALL16/UPDATED3/OTHER13 and all endpoint residuals. Distinguish direct readout-parameter movement from structural shared-readout coupling before selecting the smallest correction. CPU retained arithmetic only, through existing audit cap; no native model/forward, autograd, optimizer, candidate, new training or TEST. No more full-prefix captures are needed for this step."
   },
   "market_state_ta_non_m5_side_decoder_repair_20261111_001": {
-    "status": "COMPLETE_SYNTHETIC_CPU_MECHANICS_NATIVE_BASELINE_REQUIRED",
+    "status": "COMPLETE_MECHANICS_AND_NATIVE_INITIAL_PARITY_LEARNING_UNPROVED",
     "model_change_scope": "Opt-in sideheads only; old default and all existing run admissions unchanged",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_SIDE_DECODER_REPAIR.json",
-      "sha256": "36923aafb1e8da8081606e6e16cf2f2b7d4a5afd35a4faeaae60308b7a3e6d17"
+      "sha256": "1baceb7e779ae01649a0b3984f13dab7fa6e2351fcaf4d25185d57639e849518"
     },
     "synthetic_cpu_decoder_checks_authorized": true,
     "synthetic_routing_backward_authorized": true,
@@ -77815,7 +77822,7 @@
     "focused_tests_passed": 167,
     "synthetic_fixture_optimizer_state_checks_authorized": true,
     "native_optimizer_updates_authorized": false,
-    "next_action": "Execute the separately sealed one-use read-only non-M5 initial-parity plan: actual c171 INITIAL checkpoint, current default versus cloned independent side heads, original16B16 TRAIN panel,32forwards and0updates. Require historical-default bit parity, unchanged M5/activity and fixedFP32 cloned-side tolerance. Consume even on failure; preserve originals. No training or old-plan relaunch; learning effect and edge remain unproved."
+    "next_action": "Qualify one new bounded independent-non-M5 learning comparison at the original256updates/4096chronologicalTRAINrows. Reuse originalshort002 and full-used-prefix references; keep all features/targets/loss weights and AdamW settings. Start from the measured cloned2a3847d0 initial weights, fresh empty optimizer and explicitly matched original initial training RNG. Measure the full used4096-row period before/after so the small48-row panel overlap cannot decide the result. Bind new numerical/model/view identities separately; old plans stay consumed. This closure admits no further model run or training. Full history and30-40epochs remain later."
   },
   "market_state_ta_non_m5_initial_parity_20261111_001": {
     "fit_rows": 29574,
@@ -77878,7 +77885,7 @@
     "parameter_partition": "original_fold1_fit_active_true_inactive_false_new_sides_inherit_shared",
     "training_enabled": false,
     "test_data_used": false,
-    "status": "ADMITTED",
+    "status": "COMPLETE",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_INITIAL_PARITY_20261111_001/PLAN.json",
       "sha256": "e828f7dda9c24c4d230c56059589f164d9b6d31caf920380e83fa2856005b0ef"
@@ -77893,21 +77900,62 @@
     },
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_INITIAL_PARITY_REVIEW.json",
-      "sha256": "e38a134e4ee32d01d15cedc234ff101a36f8db4f1e9130957a2000147954bb80"
+      "sha256": "6d79b798c9d378ac7a18173f8d232e90b337c06c0b264654ba2648d650044c07"
     },
     "max_invocations": 1,
-    "remaining_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "remaining_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "backbone_encodings_authorized": 32,
-    "head_tensor_imports_authorized": 16,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "backbone_encodings_authorized": 0,
+    "head_tensor_imports_authorized": 0,
     "candidate_weights_writes_authorized": 0,
     "backward_calls_authorized": 0,
     "optimizer_steps_authorized": 0,
-    "training_authorized": false
+    "training_authorized": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_INITIAL_PARITY_20261111_001/RESULT.json",
+      "sha256": "a4a248d5228839af18ffb73c09871041edddda6af8aa07671448f397922748ed"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_INITIAL_PARITY_20261111_001/TERMINAL.json",
+      "sha256": "d5c1223df034a2014f4e2e5116214a41d969ffa5b472a8b3ad4e128e6ac36020"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_INITIAL_PARITY_20261111_001/CONTROLLER_RESULT.json",
+      "sha256": "c456075b81c65def9894006a0dbbed910c32cfdb44206459226c82f4cc69214e"
+    },
+    "independent_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_INITIAL_PARITY_20261111_001/INDEPENDENT_INITIAL_PARITY_REVIEW.json",
+      "sha256": "a6b5363586f87fa2c74664ec5e206abfb7a8caadd5575e308e13bdf3db3d9aa6"
+    },
+    "observed_counts": {
+      "archive_decodes": 1,
+      "autograd_grad_calls": 0,
+      "backbone_encodings": 32,
+      "backwards": 0,
+      "candidate_writes": 0,
+      "checkpoint_loads": 1,
+      "checkpoint_writes": 0,
+      "extra_target_gathers": 64,
+      "forward_returns": 32,
+      "head_tensor_imports": 16,
+      "matched_batches": 32,
+      "model_constructions": 2,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "published_npz_bytes": 109304,
+      "resume_state_load_calls": 1,
+      "resume_state_load_returns": 1,
+      "rng_restores": 0,
+      "sampled_rows": 512
+    },
+    "source_commit": "d30163ec834ae505a074c8407079a2024e521f64",
+    "source_unchanged": true,
+    "exit_code": 0,
+    "next_action": "Qualify one new bounded independent-non-M5 learning comparison at the original256updates/4096chronologicalTRAINrows. Reuse originalshort002 and full-used-prefix references; keep all features/targets/loss weights and AdamW settings. Start from the measured cloned2a3847d0 initial weights, fresh empty optimizer and explicitly matched original initial training RNG. Measure the full used4096-row period before/after so the small48-row panel overlap cannot decide the result. Bind new numerical/model/view identities separately; old plans stay consumed. This closure admits no further model run or training. Full history and30-40epochs remain later."
   }
 }

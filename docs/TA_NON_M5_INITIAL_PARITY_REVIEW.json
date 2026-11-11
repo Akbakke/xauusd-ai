@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_ta_non_m5_initial_parity_review_v1",
-  "status": "ADMITTED_READ_ONLY_INITIAL_PARITY_NOT_YET_EXECUTED",
-  "observed_utc": "2026-11-11T22:40:20.437556+00:00",
+  "status": "COMPLETE_INITIAL_PARITY_VERIFIED_LEARNING_AND_EDGE_UNPROVED",
+  "observed_utc": "2026-11-11T22:53:26.085246+00:00",
   "plan": {
     "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_INITIAL_PARITY_20261111_001/PLAN.json",
     "sha256": "e828f7dda9c24c4d230c56059589f164d9b6d31caf920380e83fa2856005b0ef"
@@ -86,11 +86,87 @@
     "source_loss_contract_sha256": "38cf7894de7cbe7de405ed7db9a073113ecfeb8888114dbe5548e4d13356adc0",
     "trial_loss_contract_sha256": "c611b6b700c3b7c946847b6ad29ce6cd16ec234bb7d80b68cc84289ff0f01709"
   },
-  "native_initial_parity_measured": false,
+  "native_initial_parity_measured": true,
   "learning_effect_measured": false,
   "edge_demonstrated": false,
   "training_authorized": false,
   "test_data_used": false,
   "promotion_authorized": false,
-  "next_action": "Execute the separately sealed one-use read-only non-M5 initial-parity plan: actual c171 INITIAL checkpoint, current default versus cloned independent side heads, original16B16 TRAIN panel,32forwards and0updates. Require historical-default bit parity, unchanged M5/activity and fixedFP32 cloned-side tolerance. Consume even on failure; preserve originals. No training or old-plan relaunch; learning effect and edge remain unproved."
+  "next_action": "Qualify one new bounded independent-non-M5 learning comparison at the original256updates/4096chronologicalTRAINrows. Reuse originalshort002 and full-used-prefix references; keep all features/targets/loss weights and AdamW settings. Start from the measured cloned2a3847d0 initial weights, fresh empty optimizer and explicitly matched original initial training RNG. Measure the full used4096-row period before/after so the small48-row panel overlap cannot decide the result. Bind new numerical/model/view identities separately; old plans stay consumed. This closure admits no further model run or training. Full history and30-40epochs remain later.",
+  "source_commit": "d30163ec834ae505a074c8407079a2024e521f64",
+  "source_unchanged": true,
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_INITIAL_PARITY_20261111_001/RESULT.json",
+    "sha256": "a4a248d5228839af18ffb73c09871041edddda6af8aa07671448f397922748ed"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_INITIAL_PARITY_20261111_001/TERMINAL.json",
+    "sha256": "d5c1223df034a2014f4e2e5116214a41d969ffa5b472a8b3ad4e128e6ac36020"
+  },
+  "controller": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_INITIAL_PARITY_20261111_001/CONTROLLER_RESULT.json",
+    "sha256": "c456075b81c65def9894006a0dbbed910c32cfdb44206459226c82f4cc69214e"
+  },
+  "independent_review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_INITIAL_PARITY_20261111_001/INDEPENDENT_INITIAL_PARITY_REVIEW.json",
+    "sha256": "a6b5363586f87fa2c74664ec5e206abfb7a8caadd5575e308e13bdf3db3d9aa6"
+  },
+  "capture": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_INITIAL_PARITY_20261111_001/TRAIN_FUSION.npz",
+    "sha256": "6ed85a582a4c3801a310f2224241688fa604ee9ecd50aa331cd16c7bc652cebb"
+  },
+  "counts": {
+    "archive_decodes": 1,
+    "autograd_grad_calls": 0,
+    "backbone_encodings": 32,
+    "backwards": 0,
+    "candidate_writes": 0,
+    "checkpoint_loads": 1,
+    "checkpoint_writes": 0,
+    "extra_target_gathers": 64,
+    "forward_returns": 32,
+    "head_tensor_imports": 16,
+    "matched_batches": 32,
+    "model_constructions": 2,
+    "optimizer_constructions": 0,
+    "optimizer_updates": 0,
+    "published_npz_bytes": 109304,
+    "resume_state_load_calls": 1,
+    "resume_state_load_returns": 1,
+    "rng_restores": 0,
+    "sampled_rows": 512
+  },
+  "elapsed_seconds": 127.7714705469989,
+  "controller_elapsed_seconds": 130.48173412300093,
+  "initial_state_sha256": {
+    "CURRENT_SHARED_INITIAL": "c171736d2de79396dd86a79ad895f8bf2226e5ad8d996abf1dd7f52055e4a467",
+    "NON_M5_SIDE_INITIAL": "2a3847d0adf85d8aade4a2ceed31cab39188ba99f14cb09773a6a79e873e0e1a"
+  },
+  "original12fields_and16losses_bitexact": true,
+  "trial_axes_targets_m5_activity_bitexact": true,
+  "max_non_m5_side_difference": {
+    "future": 2.384185791015625e-07,
+    "state": 2.384185791015625e-07
+  },
+  "max_loss_difference": 0.0,
+  "passivity": {
+    "CURRENT_SHARED_INITIAL_no_parameter_gradients": true,
+    "CURRENT_SHARED_INITIAL_signature_unchanged": true,
+    "NON_M5_SIDE_INITIAL_no_parameter_gradients": true,
+    "NON_M5_SIDE_INITIAL_signature_unchanged": true
+  },
+  "phase0_rows": 256,
+  "phase1_rows": 256,
+  "unique_train_rows": 256,
+  "previously_updated_panel_rows": 48,
+  "native_initial_qualification_scope": "Original16B16 historicalTRAIN panel only; two independent models and one actual initial checkpoint. No full-population, learning or heldout qualification.",
+  "no_relaunch_under_this_plan": true,
+  "remaining_invocations": 0,
+  "limitations": [
+    "Initial parity on 16 dependent B16 TRAIN groups, not full TRAIN or heldout validation.",
+    "Small non-M5 FP32 differences meet the predeclared tolerance; they are not bit-identical.",
+    "Loss values are independently compared as retained IEEE754 scalars, not reevaluated through an objective or model.",
+    "Counters and passivity are checked against sealed producer receipts; no checkpoint or live model state is independently inspected.",
+    "No learning, edge, later generalization, optimizer effect, promotion or run authority is established."
+  ]
 }

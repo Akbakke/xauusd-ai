@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_TIMEFRAME_COUPLING_MINIMAL_OPT_IN_REPAIR_MECHANICALLY_VERIFIED",
+  "status": "ACTIVE_NON_M5_INITIAL_PARITY_PASS_BOUNDED_LEARNING_COMPARISON_REQUIRED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -265,7 +265,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Execute the separately sealed one-use read-only non-M5 initial-parity plan: actual c171 INITIAL checkpoint, current default versus cloned independent side heads, original16B16 TRAIN panel,32forwards and0updates. Require historical-default bit parity, unchanged M5/activity and fixedFP32 cloned-side tolerance. Consume even on failure; preserve originals. No training or old-plan relaunch; learning effect and edge remain unproved.",
+  "next_measurement": "Qualify one new bounded independent-non-M5 learning comparison at the original256updates/4096chronologicalTRAINrows. Reuse originalshort002 and full-used-prefix references; keep all features/targets/loss weights and AdamW settings. Start from the measured cloned2a3847d0 initial weights, fresh empty optimizer and explicitly matched original initial training RNG. Measure the full used4096-row period before/after so the small48-row panel overlap cannot decide the result. Bind new numerical/model/view identities separately; old plans stay consumed. This closure admits no further model run or training. Full history and30-40epochs remain later.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -1707,10 +1707,10 @@
   },
   "non_m5_side_decoder_repair": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_SIDE_DECODER_REPAIR.json",
-    "sha256": "5bee4559edad5ea6d21523b5c6e7d1e98f8c17d3f470f17778e83e925cdeeaaa"
+    "sha256": "1baceb7e779ae01649a0b3984f13dab7fa6e2351fcaf4d25185d57639e849518"
   },
   "non_m5_initial_parity": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_INITIAL_PARITY_REVIEW.json",
-    "sha256": "e38a134e4ee32d01d15cedc234ff101a36f8db4f1e9130957a2000147954bb80"
+    "sha256": "6d79b798c9d378ac7a18173f8d232e90b337c06c0b264654ba2648d650044c07"
   }
 }

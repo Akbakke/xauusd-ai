@@ -6,13 +6,13 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_NON_M5_INITIAL_PARITY_ADMITTED_READ_ONLY.
+TA_DIRECTION_EDGE_CAUSE_NON_M5_INITIAL_PARITY_PASS_BOUNDED_LEARNING_COMPARISON_REQUIRED.
 Målet 11.11 er aktivt: avklar målte årsaker til svak retningsverdi i indikatorer,
 sammensetting og læring. [Samlet status](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json).
 Korte runder er feilsøking, ikke kapasitetsdom. Full kvalifisert TRAIN-historikk
 og 30–40 epoker er senere skalering, ikke et krav ved hver rettelse.
-Tidligere modellplaner og siste lesende kontroll er konsumert. Bare den nye
-lesende initialparitetskontrollen nedenfor er innrømmet:32forwards og0updates.
+Alle tidligere modellplaner og siste lesende initialparitetskontroll er konsumert.
+Ingen ny modellkjøring eller trening er innrømmet.
 Training/native_training/native_launch/full_epoch/full_val er false. Begge gamle
 c171 Windowsoppgaver er Disabled. GC er på pause; TEST, Entry/Exit, broker,
 handel, spending og promotion er stengt. Sluttcheckpoint er evidens, ikke promotion.
@@ -166,7 +166,8 @@ Ingen kapasitetsdom, unikt treningsårsakbevis eller full4096kausalandel følger
 [Valgt opt-in rettelse](docs/TA_NON_M5_SIDE_DECODER_REPAIR.json): fire uavhengige
 nonM5-sidehoder perS/F, klonet fra dagens delte siderad med eksisterende RNG-bevarende
 helper.16tensorer/1032parametre. M5, aktivitet, query/backbone, alle features/TF og
-originalt tap beholdes. StandardFalse og gamle kontrakter skal være identiske.
+originalt tap beholdes. StandardFalse bevarer modell-/tapskontrakter og vekter;
+dagens view-hash binder de nye kildebytene.
 Smal weights-only-migrasjon bevarer M5, modus, gradflagg og normalisering; ingen
 optimizer-/cursorhistorie arves. Nye modeller avvises av gamle numeriske oppskrifter før AdamW-konstruksjon.
 
@@ -180,25 +181,43 @@ Gamle statefixture-tester bruker syntetisk optimizerhistorie; ingen markedstreni
 ROOT: /home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SIDE_MECHANICAL_20261111_001.
 SOURCE_BINDING9b4514d0, FOCUSED_TESTS.log0edd42ee; MECHANICAL_REVIEW har samlet kvittering.
 
-## Ny lesende initialparitetskontroll
+## Faktisk initialparitet for uavhengige sidehoder er verifisert
 
-[Plan og grenser](docs/TA_NON_M5_INITIAL_PARITY_REVIEW.json).
+[Resultat og grenser](docs/TA_NON_M5_INITIAL_PARITY_REVIEW.json) er COMPLETE/CONSUMED.
 ROOT: /home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_INITIAL_PARITY_20261111_001.
-PLAN e828f7dd; PREFLIGHT dc719d25.211fokuserte CPU-tester bestod på70,19s,
-kilde uendret. Uavhengig kildereview fant ingen gjenværende konkret blokkering.
-Et feil tilleggskrav om historisk view-kilde ble fjernet før kjøring: denne kilden
-finnes ikke blant prefixets25eiere. Den opprinnelige normaliseringsporten er uendret.
+Kilde d30163ec834ae505a074c8407079a2024e521f64 uendret under kjøring.
+PLAN e828f7dd, PREFLIGHT dc719d25, RESULT a4a248d5, TERMINAL d5c1223d,
+controller c456075b/exit0.127,77s worker/130,48s controller.211fokuserte tester bestod,
+og repoets obligatoriske kontrakttester bestod før commit. Uavhengig kildereview er gjort.
 
-Kun én ny engangsplan er ADMITTED. Faktisk c171 INITIAL leses én gang; to modeller,
-originalt16B16 TRAIN-panel,32forwards,16klonede tensorer/1032parametre,0updates.
-Gammel modell må matche historiske12felt og16tap bitvis. Ny modell må bevare akser,
-targets, M5 og aktivitet bitvis; øvrige sider atol2e-6/rtol1e-6 og tapabs5e-6.
-Ingen optimizer/RNG-restaurering eller checkpoint-/kandidatlagring. Alle vakter består:
-12GiB/512MiB, CPU0–7/pids64,8tråder,250Wlimit/170Wdraw/65C/80C,900s/1200s.
-Begge tidligere cap-ruter er beholdt; ny route krever eksakt modul,sti,hash ogargumenter.
+Én faktisk c171 INITIAL-lesning, to modeller,32forwards,16klonede tensorer/1032parametre.
+Ingen optimizer, backward, RNG-restaurering, updates eller nye checkpoints/kandidatvekter.
+Originalt16B16-panel:256unike TRAIN-rader,512evalueringsrader; bare48tidligere nyoppdatert.
+Fase0 gjenskaper originale12felt og16tap byteeksakt. Fase1 bevarer alle akser/targets,
+M5 og aktivitet byteeksakt. Øvrige sideutganger avviker maksimalt2,384185791e-7 forS/F,
+innen forhåndsbundet atol2e-6/rtol1e-6. Alle16tap er også byteeksakt like, avvik0,0.
+Ny initial modellhash2a3847d0adf85d8aade4a2ceed31cab39188ba99f14cb09773a6a79e873e0e1a.
 
-Neste steg er å kjøre og konsumere denne planen én gang, også ved feil. Ingen gammel
-plan relanseres. Resultat foreligger ennå ikke. Dette kvalifiserer bare oppstarten;
-læringseffekt, senere generalisering og økonomisk edge er fortsatt ubevist.
-Først etter dette kan en kort kontrollert læringssammenligning kvalifiseres separat.
+Modell/buffere/RNG/modus/gradflagg/identiteter/hooks er passive. TRAIN_FUSION.npz
+6ed85a58 er109304byte. INDEPENDENT_INITIAL_PARITY_REVIEW a6b53635 bekrefter de
+beholdte arrayene og tapsskalarene uavhengig med to NPZ-lesninger,0modeller/checkpoints.
+Tellere/passivitet er kontrollert fra forseglet produsentkvittering, ikke et nytt liveobjekt.
+Vakter uendret:12GiB/512MiB, CPU0–7/pids64,8tråder,250Wlimit/170Wdraw/65C/80C,
+900sworker/1200sguard. Et feil prefix-view-tillegg ble rettet før kjøring; originalporten er uendret.
+
+Dette kvalifiserer native oppstart på det lille panelet, ikke fullpopulasjon eller læring.
+Den uavhengige headstrukturen er fortsatt opt-in; standardmodellen er uendret.
+Læringseffekt, senere generalisering og økonomisk edge er fortsatt ubevist.
+
+## Neste avklaring
+
+Kvalifiser én ny kontrollert læringssammenligning med samme4096kronologiske TRAIN-rader
+og256updates som short002. Gjenbruk originalreferansen og de ferdige fullprefix-målingene.
+Bevar alle features/targets/tapsvekter og AdamW-innstillinger. Bruk målt klonet initial,
+fersk tom optimizer og eksplisitt matchet original INITIAL-trenings-RNG; ingen arvet
+optimizer-/cursorhistorie. Mål hele den brukte4096perioden før/etter, så48raders paneloverlapp
+ikke avgjør konklusjonen. Ny numerisk/modell/view-identitet må kvalifiseres særskilt;
+gamle oppskrifter avviser fortsatt forsøksvarianten. Foreløpig ingen ny modellkjøring.
+Relevante eiere: market_state_time_query_fold1_fit_v1.ta_sf_numerical_recipe,
+fold1_fit_state_v1.build_fold1_fit_optimizer, eksisterende c171 short/trace-worker.
 Full historikk og30–40epoker vurderes senere; alle treningsflagg er fortsatt false.

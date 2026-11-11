@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_non_m5_side_decoder_repair_v1",
-  "status": "IMPLEMENTED_MECHANICALLY_VERIFIED_NATIVE_BASELINE_AND_EDGE_UNPROVED",
+  "status": "IMPLEMENTED_MECHANICALLY_AND_NATIVE_INITIAL_VERIFIED_LEARNING_AND_EDGE_UNPROVED",
   "reason": "Measured near-parallel side sensitivity and output ranking across M15/H1/H4/D1, plus opposite task pressure and fullusedprefix calibration deterioration, justify testing independent adaptation at the smallest output boundary.",
   "evidence": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_DECODER_CONDITIONING_REVIEW.json",
@@ -19,15 +19,15 @@
     "numerical_loss": "same side-normalized BCE, masks and M5equal-observation; metadatahash changes because modelidentity changes",
     "mechanical_scope": "focused CPU decoder fixtures only; synthetic backward for routing and fixed perturbations, no training optimizer/nativebackbone/data run"
   },
-  "fresh_actual_initial_baseline_required": true,
-  "native_function_qualified": false,
+  "fresh_actual_initial_baseline_required": false,
+  "native_function_qualified": true,
   "direction_improvement_measured": false,
   "model_variant_default_active": false,
   "native_run_authorized": false,
   "training_authorized": false,
   "promotion_authorized": false,
   "test_data_used": false,
-  "next_action": "Execute the separately sealed one-use read-only non-M5 initial-parity plan: actual c171 INITIAL checkpoint, current default versus cloned independent side heads, original16B16 TRAIN panel,32forwards and0updates. Require historical-default bit parity, unchanged M5/activity and fixedFP32 cloned-side tolerance. Consume even on failure; preserve originals. No training or old-plan relaunch; learning effect and edge remain unproved.",
+  "next_action": "Qualify one new bounded independent-non-M5 learning comparison at the original256updates/4096chronologicalTRAINrows. Reuse originalshort002 and full-used-prefix references; keep all features/targets/loss weights and AdamW settings. Start from the measured cloned2a3847d0 initial weights, fresh empty optimizer and explicitly matched original initial training RNG. Measure the full used4096-row period before/after so the small48-row panel overlap cannot decide the result. Bind new numerical/model/view identities separately; old plans stay consumed. This closure admits no further model run or training. Full history and30-40epochs remain later.",
   "mechanical_review": {
     "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SIDE_MECHANICAL_20261111_001/MECHANICAL_REVIEW.json",
     "sha256": "2e4579f1fd66fd00609ae062430d50396dbec95f7e36313f4de9da0d23128ff1"
@@ -66,6 +66,9 @@
   ],
   "non_m5_initial_parity": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_INITIAL_PARITY_REVIEW.json",
-    "sha256": "e38a134e4ee32d01d15cedc234ff101a36f8db4f1e9130957a2000147954bb80"
-  }
+    "sha256": "6d79b798c9d378ac7a18173f8d232e90b337c06c0b264654ba2648d650044c07"
+  },
+  "native_function_qualification_scope": "Original16B16 historicalTRAIN panel only; two independent models and one actual initial checkpoint. No full-population, learning or heldout qualification.",
+  "full_population_initial_baseline_qualified": false,
+  "learning_effect_measured": false
 }
