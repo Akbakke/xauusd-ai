@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-12T11:35:38.093430+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_FIXED_BENCHMARK_ADMITTED_PENDING_LAUNCH",
+  "observed_utc": "2026-11-12T13:41:36.228413+00:00",
+  "status": "TA_DIRECTION_EDGE_CAUSE_FIXED_BENCHMARK_COMPLETE_RETAINED_REVIEW_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Materialize this one new bound campaign, review machine-wide idle, use existing fresh-boot controller, complete both fixed arms and score pass3. No expansion or relaunch.",
+  "next_action": "Score the ten retained captures once with paired day/week uncertainty; no new model, fitting, checkpoint selection or native relaunch. Interpret pass3 and both M5 tasks jointly, then decide the next direct setup-alignment question from measured evidence.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1701,6 +1701,10 @@
     "latest_trial_non_m5_initial_parity": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_INITIAL_PARITY_REVIEW.json",
       "sha256": "6d79b798c9d378ac7a18173f8d232e90b337c06c0b264654ba2648d650044c07"
+    },
+    "latest_fixed_objective_benchmark_native_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001/RESULT.json",
+      "sha256": "069d4d7cbb088474016c78be2abcb0a1d1fb20f240413cc35e9d9003730b3a5d"
     }
   },
   "current_work": {
@@ -24914,7 +24918,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-12T05:15:29.864573+00:00",
+  "updated_utc": "2026-11-12T13:41:36.228413+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -35700,7 +35704,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -40442,7 +40446,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "market_state_ta_anchor_span_short_learning_20261112_002",
+  "training_enabled_scope": null,
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -64331,8 +64335,8 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "TA_DIRECTION_EDGE_CAUSE_FIXED_BENCHMARK_INPUTS_COMPLETE",
-  "recorded_observed_utc": "2026-11-11T10:23:42.626649+00:00",
+  "recorded_status": "TA_DIRECTION_EDGE_CAUSE_FIXED_BENCHMARK_COMPLETE_RETAINED_REVIEW_ADMITTED",
+  "recorded_observed_utc": "2026-11-12T13:41:36.228413+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
     "decision": "BLOCK",
@@ -75689,24 +75693,24 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_FIXED_OBJECTIVE_BENCHMARK_INTEGRATION",
+    "status": "ACTIVE_FIXED_BENCHMARK_RETAINED_REVIEW",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
     "training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "13ffc8fa173cdbf65ab4af65890e458bb507673e761eabb579f7366fbc25a2f3"
+      "sha256": "48a25f5303e9a16587e56aa2a735efd35a1904f308cecb330ee7c6739d19ead9"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": true,
-    "training_enabled": true,
+    "model_or_data_run_admitted": false,
+    "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Materialize this one new bound campaign, review machine-wide idle, use existing fresh-boot controller, complete both fixed arms and score pass3. No expansion or relaunch.",
+    "next_action": "Score the ten retained captures once with paired day/week uncertainty; no new model, fitting, checkpoint selection or native relaunch. Interpret pass3 and both M5 tasks jointly, then decide the next direct setup-alignment question from measured evidence.",
     "active_stage": "market_state_ta_m5_objective_benchmark_20261112_001",
     "previous_goal_turn_classification": "NO_PROGRESS_ADVISORY_METHOD_WITHOUT_EXECUTED_EXPERIMENT_OR_SOURCE_CHANGE",
-    "last_goal_turn_classification": "REAL_PROGRESS_FIXED_NATIVE_WORKER_AND_ROUTING_QUALIFIED_SETUP_LIMITS_RECORDED",
+    "last_goal_turn_classification": "REAL_PROGRESS_FIXED_NATIVE_COMPARISON_COMPLETE_MATCHED_EXECUTION",
     "latest_tail_factor_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_ALL_TF_TAIL_FACTOR_REVIEW.json",
       "sha256": "5da978f765b0ad1ac001023501be7665989270d8353d768b801b9e1b29406c0f"
@@ -75870,7 +75874,7 @@
       "new_order_run_admitted": false
     },
     "fixed_objective_benchmark_20261112": {
-      "status": "ADMITTED_PENDING_FRESH_BOOT_NATIVE_COMPARISON",
+      "status": "NATIVE_COMPLETE_RETAINED_REVIEW_ADMITTED",
       "question": "Does removal of the other loss components improve matched M5 directional learning and later development scores?",
       "arms": [
         "FULL_OBJECTIVE",
@@ -75912,8 +75916,8 @@
       "maximum_native_learning_arms": 2,
       "implementation_boundary": "Reuse paired restore/fit/eval and span replay/gather; no new general framework.",
       "new_gradient_diagnostic_workstream": false,
-      "training_enabled": true,
-      "native_training_enabled": true,
+      "training_enabled": false,
+      "native_training_enabled": false,
       "test_data_used": false,
       "started_utc": "2026-11-12T10:04:09.055596+00:00",
       "source_preparation": "M5 objective and qualified fixed later inputs reused. Worker/routing complete;44focused synthetic checks and actual metadata preflight passed. No genuine model run yet.",
@@ -75993,6 +75997,62 @@
       "preflight": {
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001/PREFLIGHT.json",
         "sha256": "312ada36f2a7103c1f6e630938f12e4adc753ec9718aae4a6daac60391f06682"
+      },
+      "native_training_started": true,
+      "native_comparisons_completed": 1,
+      "completed_evidence": {
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001/RESULT.json",
+          "sha256": "069d4d7cbb088474016c78be2abcb0a1d1fb20f240413cc35e9d9003730b3a5d"
+        },
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001/TERMINAL.json",
+          "sha256": "d137b42b51f818b66d789b3ede20abebe0492af5a780bf0fd28cccb885675333"
+        },
+        "campaign_receipt": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001/RUNTIME/receipts/invocation-0001.json",
+          "sha256": "b19473231ada083c0688a0057212aa346552093384680284f4336c466906365c"
+        },
+        "task_disabled": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001/TASK_DISABLED.json",
+          "sha256": "c228a511455ac876c30cdc6692df6bfb9d97426c3d38aefe727ec5ffdf7cc323"
+        },
+        "counts": {
+          "backward_returns": 1536,
+          "backwards": 1536,
+          "batch_visits": 1536,
+          "candidate_evidence_writes": 2,
+          "checkpoint_loads": 1,
+          "checkpoint_writes": 0,
+          "evaluation_forwards": 2560,
+          "extra_target_gathers": 2560,
+          "forward_returns": 4096,
+          "forwards": 4096,
+          "initial_rng_imports": 1,
+          "input_sidecar_archive_decodes": 12,
+          "json_bytes": 896218,
+          "loss_component_owner_calls": 1280,
+          "model_construction_returns": 1,
+          "model_constructions": 1,
+          "optimizer_constructions": 1,
+          "optimizer_step_calls": 1536,
+          "optimizer_step_returns": 1536,
+          "optimizer_updates": 1536,
+          "resume_state_load_calls": 1,
+          "resume_state_load_returns": 1,
+          "skipped_batches": 0,
+          "strict_full_state_restore_calls": 2,
+          "strict_full_state_restore_returns": 2,
+          "training_forwards": 1536
+        },
+        "source_commit": "071724aed76b6c088569f1583eea848e503fe172",
+        "initial_restore_exact": true,
+        "evaluation_state_unchanged": true,
+        "same_training_queries": true,
+        "rng_stream_parity": true,
+        "source_unchanged": true,
+        "independent_edge_demonstrated": false,
+        "retained_score_review_pending": true
       }
     },
     "setup_alignment_question_20261112": {
@@ -76732,7 +76792,7 @@
     "unresolved_campaign_marker_preserved": true,
     "standard_campaign_receipt_available": false
   },
-  "active_stage": "market_state_ta_m5_objective_later_inputs_20261112_001",
+  "active_stage": "market_state_ta_m5_objective_benchmark_20261112_001",
   "market_state_ta_m5_c171_short_learning_20261111_002": {
     "decision": "CLOSED",
     "status": "COMPLETE_CONSUMED",
@@ -81437,9 +81497,9 @@
     }
   },
   "market_state_ta_m5_objective_benchmark_20261112_001": {
-    "decision": "ADMITTED",
-    "status": "ADMITTED",
-    "ta_m5_objective_benchmark_authorized": true,
+    "decision": "CONSUMED",
+    "status": "COMPLETE_CONSUMED",
+    "ta_m5_objective_benchmark_authorized": false,
     "fold_id": 1,
     "selected_fit_rows": 4096,
     "selected_score_rows": 4096,
@@ -81449,10 +81509,10 @@
     "backward_calls_authorized": 1536,
     "optimizer_steps_authorized": 1536,
     "initial_rng_imports_authorized": 1,
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "genuine_updates_authorized": true,
-    "genuine_backward_authorized": true,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "genuine_updates_authorized": false,
+    "genuine_backward_authorized": false,
     "genuine_predictor_fit_authorized": false,
     "canonical_resume_authority": false,
     "candidate_selection": false,
@@ -81488,17 +81548,17 @@
       "sha256": "22c8b17cb06a76319f01d39cfe51d2a6515515a2cca9c0e7724cc9c910f18de0"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
-    "campaign_preparation_authorized": true,
-    "execution_authorized": true,
-    "training_authorized": true,
-    "data_reads_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "data_reads_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
     "native_launch_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_test_execution_authorized": false,
@@ -81514,6 +81574,92 @@
     "optimizer_initialization": "fresh_adamw_empty_state",
     "automatic_continuation": false,
     "admission_basis": "Standing05Nov local0USD authority and active edge-diagnosis goal. One newly bound fixed two-objective learning comparison after44focused cases and clean54b8bd7f actual metadata/startup preflight312ada36. No old plan is reopened.",
-    "next_action": "Materialize this one new bound campaign, review machine-wide idle, use existing fresh-boot controller, complete both fixed arms and score pass3. No expansion or relaunch."
+    "next_action": "Score the ten retained captures once with paired day/week uncertainty; no new model, fitting, checkpoint selection or native relaunch. Interpret pass3 and both M5 tasks jointly, then decide the next direct setup-alignment question from measured evidence.",
+    "completed_utc": "2026-11-12T13:29:05.961651+00:00",
+    "completed_evidence": {
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001/RESULT.json",
+        "sha256": "069d4d7cbb088474016c78be2abcb0a1d1fb20f240413cc35e9d9003730b3a5d"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001/TERMINAL.json",
+        "sha256": "d137b42b51f818b66d789b3ede20abebe0492af5a780bf0fd28cccb885675333"
+      },
+      "campaign_receipt": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001/RUNTIME/receipts/invocation-0001.json",
+        "sha256": "b19473231ada083c0688a0057212aa346552093384680284f4336c466906365c"
+      },
+      "task_disabled": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001/TASK_DISABLED.json",
+        "sha256": "c228a511455ac876c30cdc6692df6bfb9d97426c3d38aefe727ec5ffdf7cc323"
+      },
+      "counts": {
+        "backward_returns": 1536,
+        "backwards": 1536,
+        "batch_visits": 1536,
+        "candidate_evidence_writes": 2,
+        "checkpoint_loads": 1,
+        "checkpoint_writes": 0,
+        "evaluation_forwards": 2560,
+        "extra_target_gathers": 2560,
+        "forward_returns": 4096,
+        "forwards": 4096,
+        "initial_rng_imports": 1,
+        "input_sidecar_archive_decodes": 12,
+        "json_bytes": 896218,
+        "loss_component_owner_calls": 1280,
+        "model_construction_returns": 1,
+        "model_constructions": 1,
+        "optimizer_constructions": 1,
+        "optimizer_step_calls": 1536,
+        "optimizer_step_returns": 1536,
+        "optimizer_updates": 1536,
+        "resume_state_load_calls": 1,
+        "resume_state_load_returns": 1,
+        "skipped_batches": 0,
+        "strict_full_state_restore_calls": 2,
+        "strict_full_state_restore_returns": 2,
+        "training_forwards": 1536
+      },
+      "source_commit": "071724aed76b6c088569f1583eea848e503fe172",
+      "initial_restore_exact": true,
+      "evaluation_state_unchanged": true,
+      "same_training_queries": true,
+      "rng_stream_parity": true,
+      "source_unchanged": true,
+      "independent_edge_demonstrated": false,
+      "retained_score_review_pending": true
+    },
+    "retained_review": {
+      "status": "ADMITTED",
+      "execution_authorized": true,
+      "max_invocations": 1,
+      "claimed_invocations": 0,
+      "completed_invocations": 0,
+      "remaining_invocations": 1,
+      "relaunch_allowed": false,
+      "script": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001/REVIEW_FIXED_COMPARISON.py",
+        "sha256": "e97f1642791a40edb1775776e586565b7e92817af14147e2aa4bf900d46963e2"
+      },
+      "archive_reads": 10,
+      "bootstrap_replicates": 2000,
+      "bootstrap_seed": 20260911,
+      "bootstrap_week_seed": 20260912,
+      "primary_pass": 3,
+      "resource_cap": {
+        "class": "audit",
+        "memory": "4G",
+        "swap": "512M"
+      },
+      "scope": "Retained outputs only; exact score replay for all tasks/TF and paired UTC day/week M5 uncertainty. Existing verified scorer, no threshold/model/checkpoint selection.",
+      "model_constructions": 0,
+      "checkpoint_decodes": 0,
+      "forwards": 0,
+      "optimizer_updates": 0,
+      "training_enabled": false,
+      "test_data_used": false,
+      "admitted_utc": "2026-11-12T13:41:36.228413+00:00"
+    }
   }
 }

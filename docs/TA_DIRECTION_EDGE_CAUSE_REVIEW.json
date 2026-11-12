@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_ANCHOR_SPAN_COMPARISON_COMPLETE_NO_CONSISTENT_GAIN",
+  "status": "ACTIVE_FIXED_BENCHMARK_COMPLETE_RETAINED_REVIEW_PENDING",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -269,7 +269,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Return directly to composition/calibration: determine what existing retained traces already establish about M5-side versus other loss-channel contributions to shared-representation updates. Reuse the completed batch-order control; do not repeat general interleaving, expand inputs or launch a model job before one exact unresolved discriminator is specified.",
+  "next_measurement": "Score the ten retained captures once with paired day/week uncertainty; no new model, fitting, checkpoint selection or native relaunch. Interpret pass3 and both M5 tasks jointly, then decide the next direct setup-alignment question from measured evidence.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -2319,7 +2319,61 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_SOURCE_20261112_001/NATIVE_INTEGRATION_REVIEW.json",
       "sha256": "35bea5cc628fda811f840885cf48b9e5e6ef7becfb2de6a2839906108593d344"
     },
-    "native_training_started": false,
+    "native_training_started": true,
     "predictive_improvement_measured": false
+  },
+  "fixed_objective_benchmark_native_result": {
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001/RESULT.json",
+      "sha256": "069d4d7cbb088474016c78be2abcb0a1d1fb20f240413cc35e9d9003730b3a5d"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001/TERMINAL.json",
+      "sha256": "d137b42b51f818b66d789b3ede20abebe0492af5a780bf0fd28cccb885675333"
+    },
+    "campaign_receipt": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "b19473231ada083c0688a0057212aa346552093384680284f4336c466906365c"
+    },
+    "task_disabled": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001/TASK_DISABLED.json",
+      "sha256": "c228a511455ac876c30cdc6692df6bfb9d97426c3d38aefe727ec5ffdf7cc323"
+    },
+    "counts": {
+      "backward_returns": 1536,
+      "backwards": 1536,
+      "batch_visits": 1536,
+      "candidate_evidence_writes": 2,
+      "checkpoint_loads": 1,
+      "checkpoint_writes": 0,
+      "evaluation_forwards": 2560,
+      "extra_target_gathers": 2560,
+      "forward_returns": 4096,
+      "forwards": 4096,
+      "initial_rng_imports": 1,
+      "input_sidecar_archive_decodes": 12,
+      "json_bytes": 896218,
+      "loss_component_owner_calls": 1280,
+      "model_construction_returns": 1,
+      "model_constructions": 1,
+      "optimizer_constructions": 1,
+      "optimizer_step_calls": 1536,
+      "optimizer_step_returns": 1536,
+      "optimizer_updates": 1536,
+      "resume_state_load_calls": 1,
+      "resume_state_load_returns": 1,
+      "skipped_batches": 0,
+      "strict_full_state_restore_calls": 2,
+      "strict_full_state_restore_returns": 2,
+      "training_forwards": 1536
+    },
+    "source_commit": "071724aed76b6c088569f1583eea848e503fe172",
+    "initial_restore_exact": true,
+    "evaluation_state_unchanged": true,
+    "same_training_queries": true,
+    "rng_stream_parity": true,
+    "source_unchanged": true,
+    "independent_edge_demonstrated": false,
+    "retained_score_review_pending": true
   }
 }
