@@ -6,55 +6,71 @@ NEXT_RUN_POLICY.json eier arbeidsstatus; prosess og terminal overstyrer prosa.
 
 ## Aktivt mål og neste steg
 
-TA_DIRECTION_EDGE_CAUSE_FIXED_BENCHMARK_COMPLETE_RETAINED_REVIEW_ADMITTED.
+TA_DIRECTION_EDGE_CAUSE_FIXED_BENCHMARK_COMPLETE_NO_LATER_GAIN.
 Målet om å avklare og rette svak retningslæring er fortsatt aktivt og uoppnådd.
-Den avtalte FULL_OBJECTIVE mot M5_DIRECTION_ONLY er ferdig, ikke en ny launch.
-Bare én skåring av de ti lagrede captures er nå tillatt, med eksisterende skåringseier,
-alle task/TF-resultater og parret dag-/ukeusikkerhet for M5. Ingen ny modell eller fit.
-Stage: market_state_ta_m5_objective_benchmark_20261112_001, retained_review.
-4GiB/512MiB via scripts/gx1_capped_run.sh; én invokasjon, 2000 resamples per gruppering.
-Kjør REVIEW_FIXED_COMPARISON.py i benchmark-roten; avslutt admisjonen etter kvittering.
+Den avtalte FULL_OBJECTIVE mot M5_DIRECTION_ONLY og skåringen er ferdig/konsumert.
+Neste spørsmål er direkte brukerens: skiller modellen nyttige kausale støtte/motstand-
+oppsett med ATR, EMA og høyere tidsrammer fra ugunstige eller uinformative situasjoner?
+Knytt eksisterende situasjonsfelt til lagrede senere prediksjoner; spesifiser grupper
+og frosne referanser før gruppeutfall leses. Behold alle grupper, FLAT/uklare utfall og tellinger.
+Ingen ny modell, trening, terskelsøk eller arkitekturendring er admittert.
 
-## Faktisk fullført sammenligning
+## Målt resultat fra fast sammenligning
 
 ROOT /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001.
 Kilde071724ae, recipe690ae741, RESULT069d4d7c, TERMINALd137b42b.
-Campaign receiptb1947323 er COMPLETE, exit0. Windows boot645.
-Kontroller avsluttet; GX1M5ObjectiveBenchmark001 er Disabled med siste resultat0.
-Native scope er COMPLETE/CONSUMED: claimed1/completed1/remaining0, ingen relaunch.
-Global training/native_training, full epoch og fullVAL er false.
+FIXED_COMPARISONda37fcdd, review-terminalc7a44597. Samlet bevis og alle komponentavveininger:
+[TA_DIRECTION_EDGE_CAUSE_REVIEW.json](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json),
+fixed_objective_benchmark_result.
 
-Samme modell og genuine inputs, INITIAL, RNG, rekkefølge og queries i begge armer.
+Samme modell/genuine inputs, INITIAL, RNG, rekkefølge og queries i begge armer.
 TRAIN4096 over mai–september2024; senere4096 over oktober–desember2024.
-Tre passeringer per arm, måling0/1/3; pass3 er primært, pass1 er ingen checkpointseleksjon.
+Tre passeringer per arm, måling0/1/3; pass3 primært, ingen checkpointseleksjon.
 Én modell/optimizer,1536updates totalt,4096forwards,0skipped;768updates per arm.
 INITIAL-restore, per-pass RNG-likhet, passive evalueringer og uendret kilde besto.
-Alle genuine familier/femTF/D1 beholdt. Bare direkte tapsledd var forskjellen.
-Foreløpig viser publiserte Brier/log-tall bedre TRAIN-fit, men svakere senere skårer
-for M5-only enn FULL i begge M5-mål. FULL svekker også senere Brier/log fra INITIAL.
-AUC og parret usikkerhet gjenstår; ingen samlet retningsgevinst eller økonomi er bevist.
 
-## Brukerens spørsmål: støtte/motstand, ATR, EMA og høyere tidsrammer
+| M5 betinget retning | INITIAL | FULL pass3 | M5-only pass3 |
+| --- | ---: | ---: | ---: |
+| S TRAIN AUC | 0,549685 | 0,564880 | 0,636526 |
+| S senere AUC | 0,543411 | 0,548683 | 0,532370 |
+| F TRAIN AUC | 0,537196 | 0,571561 | 0,616656 |
+| F senere AUC | 0,511290 | 0,513672 | 0,495511 |
+| S senere Brier | 0,249426 | 0,250519 | 0,258705 |
+| F senere Brier | 0,249553 | 0,251796 | 0,257268 |
+
+M5-only lærer TRAIN sterkere, men begge senere Brier/log-skårer svekkes mot FULL/INITIAL.
+2000 parrede resamples over70UTC-dager og14uker: alle disse Brier/log-regresjonenes
+95prosentintervaller ligger over null. AUC-punktestimatene svekkes, men forskjellenes
+intervaller inkluderer null. Ingen konsistent senere gevinst; M5-only skal ikke promoteres.
+Større TRAIN-fit og senere sannsynlighetsfeil er forenlig med overtilpasning/svak overføring;
+den unike hovedårsaken er ikke bevist. Ingen generell dom over multitask eller kapasitet.
+S-sidestøtte er1403TRAIN/1414senere; F1635/1689 av4096. Dette er utfallsbetinget støtte,
+ikke selekterbar Entry-dekning. AUC er rangering, ikke treffprosent eller handelsresultat.
+Alle ti captures og publiserte task/TF-skårer ble kontrollert med gammel skåringseier;
+største skåringsavvik8,88e-16. Review brukte ingen modell/checkpoint/forward/fit og tok3,04s.
+
+## Brukerens spørsmål og uavklarte grenser
 
 Aktiv kilde bekrefter EMA-avstand/helning mot ATR, nivå-/trendlinjegeometri,
-åtte familier og femTF i den lærte sammensettingen. Konsum beviser ikke at modellen
-skiller nyttige oppsett fra ugunstige situasjoner. M5 S/F-målingene gjelder t+5min;
-dette er mål, ikke maksimal holdetid. FLAT-mål er ikke demonstrert selektiv Entry.
-To-arms-testen undersøker tapsinteraksjon, ikke lønnsomme oppsett eller økonomi.
-Før en påstand om oppsettforståelse kreves kausale, forhåndsdeklarerte situasjonsgrupper
-med alle utfall og tellinger på senere utviklingsdata. Ikke velg lønnsomme grupper etterpå.
-Kildebevis og uavklarte grenser: docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json,
-setup_alignment_question_20261112. Ingen ny input-/arkitekturkampanje følger automatisk.
+åtte genuine familier og femTF/D1 i den lærte sammensettingen. Konsum beviser ikke
+nyttig situasjonsforståelse. M5 S/F-målingene gjelder t+5min; dette er mål, ikke holderegler.
+FLAT som markedsmål beviser ikke at modellen kan avstå fra dårlige Entry-oppsett.
+To-arms-testen avkreftet ingen universell hypotese: å fjerne andre direkte tapsledd
+løste ikke senere M5-verdi i akkurat denne testen. Ikke fortsett med vilkårlig tapstuning.
+Situasjonsanalysen må skille faktisk informasjon i oppsett fra modellens evne til å bruke den.
+Ingen lønnsom gruppe velges etterpå. Senere data er gjenbrukt utvikling, ikke uavhengig bekreftelse.
 
-## Gjenbruk og grenser
+## Drift, gjenbruk og avgrensing
 
-Kvalifiserte span-inputs og normalisering, mekaniske tester og faktisk INITIAL gjenbrukes.
-Forrige to-spanfelt-kontroll er konsumert og viste ingen konsistent prediktiv gevinst.
-Eksisterende batchrekkefølge-kontroll bedret totaltap, men svekket M5 Brier; ikke gjenta.
-Originale resultater/checkpoints beholdes; eldre detaljer finnes i samlet review og Git.
+Campaign receiptb1947323 er COMPLETE/exit0. Windows boot645.
+Kontroller avsluttet; GX1M5ObjectiveBenchmark001 er Disabled med siste resultat0.
+Native og review er COMPLETE/CONSUMED: hver claimed1/completed1/remaining0, ingen relaunch.
+Global training/native_training, full epoch og fullVAL er false; ingen tung jobb kjører.
+Kvalifiserte inputs/normalisering, INITIAL og beståtte kontroller gjenbrukes.
+Spanfelt-kontrollen viste ingen konsistent gevinst; batchrekkefølge-kontrollen er allerede utført.
+Originale artefakter/checkpoints beholdes; eldre detaljer finnes i review og Git.
 
 Korte runder er bevisst feilsøking, ikke en dom over fullhistorikk-kapasitet.
 Kvalifisert full TRAIN-historikk og 30–40 epoker er senere skalering.
-Senere utviklingsdata er gjenbrukt, ikke uavhengig bekreftelse. AUC er ikke winrate.
 TEST, Entry/Exit-evaluering, broker, handel, spending og promotion er stengt; GC er på pause.
-Root eier policy, launch og samlet kontroll. Ingen andre tunge jobber er startet.
+Root eier policy, launch og samlet kontroll.

@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_FIXED_BENCHMARK_COMPLETE_RETAINED_REVIEW_PENDING",
+  "status": "ACTIVE_FIXED_BENCHMARK_COMPLETE_NO_LATER_GAIN",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -269,7 +269,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Score the ten retained captures once with paired day/week uncertainty; no new model, fitting, checkpoint selection or native relaunch. Interpret pass3 and both M5 tasks jointly, then decide the next direct setup-alignment question from measured evidence.",
+  "next_measurement": "Address setup alignment directly: map existing causal support/resistance, ATR, EMA and higher-TF fields to the retained development predictions. Specify situation groups and frozen references before viewing group outcomes, retain all groups and inactive/ambiguous outcomes, and reuse existing inputs. No new model, training, threshold search or architectural change is admitted.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -1723,11 +1723,13 @@
   },
   "training_authorized_scope": null,
   "latest_confirmed_findings": [
-    "M5 state-side AUC changed by+0.000004221; future-side AUC by-0.000014811. This is mixed and extremely small, not a consistent directional gain.",
-    "M5 state/future conditional-side Brier and log loss both worsened slightly. Side Brier/log also worsened in all ten task/timeframe cells; activity metrics were mixed.",
-    "Canonical total loss is1.884359341 versus original1.884324176, a deterioration of0.000035165. The original loss regression from INITIAL persists.",
-    "The second-anchor representation defect was real and repaired, but its repair did not resolve the observed short-run learning/calibration problem. This does not establish its utility across full history or later generalization.",
-    "As agreed, stop expanding this feature-repair experiment and return to the already observed composition/calibration problem. Choose the next discriminator from existing evidence before changing code."
+    "The fixed comparison completed with exact INITIAL restoration, matching per-pass RNG, same queries/order and passive evaluations; 768 updates per arm, no skips.",
+    "M5-only improves used-TRAIN side AUC and proper scores more than FULL, but both later M5 side AUC point estimates are lower than FULL and INITIAL. These paired AUC differences are uncertain under both day/week intervals.",
+    "M5-only later side Brier/log scores are worse than FULL and INITIAL for both S/F; all paired day/week 95percent intervals for these regressions are above zero. This is not merely a lower aggregate objective hiding M5 improvement.",
+    "For M5 future direction, TRAIN AUC is INITIAL0.537196, FULL0.571561, M5-only0.616656; later AUC is0.511290,0.513672,0.495511 respectively. AUC is ranking, not winrate.",
+    "M5-only later mean predicted UP probability is S0.563332 versus realized0.500707 and F0.547147 versus0.519242. Stronger TRAIN fitting accompanies larger later probability errors; this is consistent with overfitting/failed temporal transfer, not a proved unique root cause.",
+    "Removing the other direct losses did not solve later directional value in this fixed small experiment. Do not promote this variant or infer that auxiliary losses never interfere or that full-history capacity has been judged.",
+    "The unresolved question is whether existing causal SR/ATR/EMA/MTF situations carry later predictive information and whether the model distinguishes them. Indicator consumption and market-state FLAT do not demonstrate selective Entry quality."
   ],
   "activity_pressure_review": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ACTIVITY_PRESSURE_REVIEW.json",
@@ -2374,6 +2376,1615 @@
     "rng_stream_parity": true,
     "source_unchanged": true,
     "independent_edge_demonstrated": false,
-    "retained_score_review_pending": true
+    "retained_score_review_pending": false,
+    "retained_comparison": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001/FIXED_COMPARISON.json",
+      "sha256": "da37fcdd139751a76c3782befb3f05fc72c82c9327122ba6ce0902497586c2e7"
+    }
+  },
+  "fixed_objective_benchmark_result": {
+    "status": "COMPLETE_NO_LATER_GAIN",
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001/FIXED_COMPARISON.json",
+      "sha256": "da37fcdd139751a76c3782befb3f05fc72c82c9327122ba6ce0902497586c2e7"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001/RETAINED_REVIEW_TERMINAL.json",
+      "sha256": "c7a445973bd1d779e3d48f525f0b8aba48dd795c41dac40ef5ce68d23c1e4852"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001/RETAINED_REVIEW_CLAIM.json",
+      "sha256": "320a5267f71f55da49e334db774eac23feaa8602439f01a6cc22dc9dc6251612"
+    },
+    "script": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001/REVIEW_FIXED_COMPARISON.py",
+      "sha256": "e97f1642791a40edb1775776e586565b7e92817af14147e2aa4bf900d46963e2"
+    },
+    "native_source_commit": "071724aed76b6c088569f1583eea848e503fe172",
+    "primary_pass": 3,
+    "training_rows": 4096,
+    "later_development_rows": 4096,
+    "m5_scores": {
+      "FULL_OBJECTIVE_PASS1_LATER": {
+        "state": {
+          "activity": {
+            "active_count": 3857,
+            "active_fraction": 0.9418803418803419,
+            "auc": 0.6720793580590131,
+            "brier": 0.0548377324121833,
+            "count": 4095,
+            "flat_count": 238,
+            "log": 0.21743046787074918,
+            "logit_mean": 2.7489909460838606,
+            "logit_std": 0.9046389721091069,
+            "mean_p": 0.9166154738198228
+          },
+          "conditional_side": {
+            "auc": 0.545365791200525,
+            "brier": 0.25003243211846743,
+            "count": 1414,
+            "down_count": 706,
+            "log": 0.693214020653072,
+            "logit_mean": 0.1416506122282668,
+            "logit_std": 0.16422328473366268,
+            "mean_p": 0.5351920684614045,
+            "up_count": 708,
+            "up_fraction": 0.5007072135785007
+          },
+          "known_side_fraction": 0.34521484375,
+          "rows": 4096,
+          "unknown_side_rows": 2682
+        },
+        "future": {
+          "activity": {
+            "active_count": 1689,
+            "active_fraction": 0.412353515625,
+            "auc": 0.5619656306367136,
+            "brier": 0.2439984457002387,
+            "count": 4096,
+            "flat_count": 2407,
+            "log": 0.6819987204965561,
+            "logit_mean": -0.6244361139160901,
+            "logit_std": 0.35268501140287956,
+            "mean_p": 0.3529791128790047
+          },
+          "conditional_side": {
+            "auc": 0.5181850351905005,
+            "brier": 0.2497994123418605,
+            "count": 1689,
+            "down_count": 812,
+            "log": 0.6927443558465061,
+            "logit_mean": 0.12357902234390404,
+            "logit_std": 0.10396340108060098,
+            "mean_p": 0.5307890404500007,
+            "up_count": 877,
+            "up_fraction": 0.5192421551213736
+          },
+          "known_side_fraction": 0.412353515625,
+          "rows": 4096,
+          "unknown_side_rows": 2407
+        }
+      },
+      "FULL_OBJECTIVE_PASS1_TRAIN": {
+        "state": {
+          "activity": {
+            "active_count": 3808,
+            "active_fraction": 0.9310513447432763,
+            "auc": 0.6581943947791883,
+            "brier": 0.06455653035830836,
+            "count": 4090,
+            "flat_count": 282,
+            "log": 0.2470261390680577,
+            "logit_mean": 2.738423411886966,
+            "logit_std": 0.9379794039598888,
+            "mean_p": 0.914383823907632
+          },
+          "conditional_side": {
+            "auc": 0.5506866760396927,
+            "brier": 0.24693948303209845,
+            "count": 1403,
+            "down_count": 665,
+            "log": 0.687010895404695,
+            "logit_mean": 0.10208294176478643,
+            "logit_std": 0.16510802937544786,
+            "mean_p": 0.5253805208513829,
+            "up_count": 738,
+            "up_fraction": 0.5260156806842481
+          },
+          "known_side_fraction": 0.342529296875,
+          "rows": 4096,
+          "unknown_side_rows": 2693
+        },
+        "future": {
+          "activity": {
+            "active_count": 1635,
+            "active_fraction": 0.399169921875,
+            "auc": 0.5507492416871389,
+            "brier": 0.24179804567680152,
+            "count": 4096,
+            "flat_count": 2461,
+            "log": 0.6780759506705083,
+            "logit_mean": -0.6283774806961446,
+            "logit_std": 0.3688934279781559,
+            "mean_p": 0.35244828118099114
+          },
+          "conditional_side": {
+            "auc": 0.546405634039086,
+            "brier": 0.24828849889503074,
+            "count": 1635,
+            "down_count": 792,
+            "log": 0.6897139842552021,
+            "logit_mean": 0.09427609327918528,
+            "logit_std": 0.10793225399002061,
+            "mean_p": 0.5234976077897764,
+            "up_count": 843,
+            "up_fraction": 0.5155963302752293
+          },
+          "known_side_fraction": 0.399169921875,
+          "rows": 4096,
+          "unknown_side_rows": 2461
+        }
+      },
+      "FULL_OBJECTIVE_PASS3_LATER": {
+        "state": {
+          "activity": {
+            "active_count": 3857,
+            "active_fraction": 0.9418803418803419,
+            "auc": 0.68276384964149,
+            "brier": 0.05327684547724569,
+            "count": 4095,
+            "flat_count": 238,
+            "log": 0.21064850604639787,
+            "logit_mean": 2.8989128400117923,
+            "logit_std": 0.8101559257768592,
+            "mean_p": 0.9312409823821619
+          },
+          "conditional_side": {
+            "auc": 0.5486827995710696,
+            "brier": 0.2505191682544392,
+            "count": 1414,
+            "down_count": 706,
+            "log": 0.6942193507933894,
+            "logit_mean": 0.11439831255338401,
+            "logit_std": 0.2714893352991491,
+            "mean_p": 0.5284399736799126,
+            "up_count": 708,
+            "up_fraction": 0.5007072135785007
+          },
+          "known_side_fraction": 0.34521484375,
+          "rows": 4096,
+          "unknown_side_rows": 2682
+        },
+        "future": {
+          "activity": {
+            "active_count": 1689,
+            "active_fraction": 0.412353515625,
+            "auc": 0.5588323773442517,
+            "brier": 0.242446317458857,
+            "count": 4096,
+            "flat_count": 2407,
+            "log": 0.6781799472720759,
+            "logit_mean": -0.5533331375754642,
+            "logit_std": 0.2794720045185458,
+            "mean_p": 0.36739191278268507
+          },
+          "conditional_side": {
+            "auc": 0.5136717762636844,
+            "brier": 0.2517960023211566,
+            "count": 1689,
+            "down_count": 812,
+            "log": 0.6967996749398965,
+            "logit_mean": 0.11136862783719796,
+            "logit_std": 0.2249636627654328,
+            "mean_p": 0.5276404469239436,
+            "up_count": 877,
+            "up_fraction": 0.5192421551213736
+          },
+          "known_side_fraction": 0.412353515625,
+          "rows": 4096,
+          "unknown_side_rows": 2407
+        }
+      },
+      "FULL_OBJECTIVE_PASS3_TRAIN": {
+        "state": {
+          "activity": {
+            "active_count": 3808,
+            "active_fraction": 0.9310513447432763,
+            "auc": 0.673625700280112,
+            "brier": 0.06267179532079238,
+            "count": 4090,
+            "flat_count": 282,
+            "log": 0.2400562771789063,
+            "logit_mean": 2.9041838331881245,
+            "logit_std": 0.8278298877332813,
+            "mean_p": 0.9309540170266041
+          },
+          "conditional_side": {
+            "auc": 0.5648796788719767,
+            "brier": 0.24515462824022155,
+            "count": 1403,
+            "down_count": 665,
+            "log": 0.6833671685915577,
+            "logit_mean": 0.07879926748533951,
+            "logit_std": 0.25036108591041895,
+            "mean_p": 0.5196559809024326,
+            "up_count": 738,
+            "up_fraction": 0.5260156806842481
+          },
+          "known_side_fraction": 0.342529296875,
+          "rows": 4096,
+          "unknown_side_rows": 2693
+        },
+        "future": {
+          "activity": {
+            "active_count": 1635,
+            "active_fraction": 0.399169921875,
+            "auc": 0.5606727331695551,
+            "brier": 0.2384851912189467,
+            "count": 4096,
+            "flat_count": 2461,
+            "log": 0.6700993751867287,
+            "logit_mean": -0.5482312418434958,
+            "logit_std": 0.29091557334830187,
+            "mean_p": 0.3687733819095327
+          },
+          "conditional_side": {
+            "auc": 0.5715608037672094,
+            "brier": 0.24582737040146463,
+            "count": 1635,
+            "down_count": 792,
+            "log": 0.6847383028021936,
+            "logit_mean": 0.08057472395457167,
+            "logit_std": 0.21330889183031693,
+            "mean_p": 0.5200364026400207,
+            "up_count": 843,
+            "up_fraction": 0.5155963302752293
+          },
+          "known_side_fraction": 0.399169921875,
+          "rows": 4096,
+          "unknown_side_rows": 2461
+        }
+      },
+      "INITIAL_LATER": {
+        "state": {
+          "activity": {
+            "active_count": 3857,
+            "active_fraction": 0.9418803418803419,
+            "auc": 0.6625049293764693,
+            "brier": 0.05456338620326519,
+            "count": 4095,
+            "flat_count": 238,
+            "log": 0.21666178430696476,
+            "logit_mean": 2.660388991422269,
+            "logit_std": 0.7604926460865816,
+            "mean_p": 0.91702223021464
+          },
+          "conditional_side": {
+            "auc": 0.5434111970038892,
+            "brier": 0.24942597281922763,
+            "count": 1414,
+            "down_count": 706,
+            "log": 0.6919962758669147,
+            "logit_mean": 0.09457754425617539,
+            "logit_std": 0.10528934374550956,
+            "mean_p": 0.5235782851033016,
+            "up_count": 708,
+            "up_fraction": 0.5007072135785007
+          },
+          "known_side_fraction": 0.34521484375,
+          "rows": 4096,
+          "unknown_side_rows": 2682
+        },
+        "future": {
+          "activity": {
+            "active_count": 1689,
+            "active_fraction": 0.412353515625,
+            "auc": 0.5679460661289121,
+            "brier": 0.23963931868953514,
+            "count": 4096,
+            "flat_count": 2407,
+            "log": 0.6720698410818552,
+            "logit_mean": -0.48924769451059547,
+            "logit_std": 0.303503065277037,
+            "mean_p": 0.3828613991400342
+          },
+          "conditional_side": {
+            "auc": 0.5112901685661486,
+            "brier": 0.24955319813771973,
+            "count": 1689,
+            "down_count": 812,
+            "log": 0.6922523776654274,
+            "logit_mean": 0.06115116233192495,
+            "logit_std": 0.05350139599245069,
+            "mean_p": 0.5152734787588296,
+            "up_count": 877,
+            "up_fraction": 0.5192421551213736
+          },
+          "known_side_fraction": 0.412353515625,
+          "rows": 4096,
+          "unknown_side_rows": 2407
+        }
+      },
+      "INITIAL_TRAIN": {
+        "state": {
+          "activity": {
+            "active_count": 3808,
+            "active_fraction": 0.9310513447432763,
+            "auc": 0.650913157816318,
+            "brier": 0.06401503463709624,
+            "count": 4090,
+            "flat_count": 282,
+            "log": 0.24493707261701086,
+            "logit_mean": 2.6725162149131445,
+            "logit_std": 0.7542395213094049,
+            "mean_p": 0.9181218560760944
+          },
+          "conditional_side": {
+            "auc": 0.5496851885812091,
+            "brier": 0.24769556874763798,
+            "count": 1403,
+            "down_count": 665,
+            "log": 0.6885323031770056,
+            "logit_mean": 0.06601210152006795,
+            "logit_std": 0.10785393276092628,
+            "mean_p": 0.51646053575658,
+            "up_count": 738,
+            "up_fraction": 0.5260156806842481
+          },
+          "known_side_fraction": 0.342529296875,
+          "rows": 4096,
+          "unknown_side_rows": 2693
+        },
+        "future": {
+          "activity": {
+            "active_count": 1635,
+            "active_fraction": 0.399169921875,
+            "auc": 0.5463118222248732,
+            "brier": 0.23972779099216995,
+            "count": 4096,
+            "flat_count": 2461,
+            "log": 0.6729339112156303,
+            "logit_mean": -0.5039035792588038,
+            "logit_std": 0.30708312949909194,
+            "mean_p": 0.3795220377453328
+          },
+          "conditional_side": {
+            "auc": 0.5371958014306769,
+            "brier": 0.24900372824548575,
+            "count": 1635,
+            "down_count": 792,
+            "log": 0.6911526623046866,
+            "logit_mean": 0.042982254648404564,
+            "logit_std": 0.059154535147669454,
+            "mean_p": 0.5107361145904306,
+            "up_count": 843,
+            "up_fraction": 0.5155963302752293
+          },
+          "known_side_fraction": 0.399169921875,
+          "rows": 4096,
+          "unknown_side_rows": 2461
+        }
+      },
+      "M5_DIRECTION_ONLY_PASS1_LATER": {
+        "state": {
+          "activity": {
+            "active_count": 3857,
+            "active_fraction": 0.9418803418803419,
+            "auc": 0.6568293379057613,
+            "brier": 0.05400166452145141,
+            "count": 4095,
+            "flat_count": 238,
+            "log": 0.2146363615680671,
+            "logit_mean": 2.746863260053744,
+            "logit_std": 0.7171964570577934,
+            "mean_p": 0.9248018045463154
+          },
+          "conditional_side": {
+            "auc": 0.537811494694387,
+            "brier": 0.25167012088881896,
+            "count": 1414,
+            "down_count": 706,
+            "log": 0.6965391053653723,
+            "logit_mean": 0.20971162518673436,
+            "logit_std": 0.14475487605739795,
+            "mean_p": 0.5520209850124292,
+            "up_count": 708,
+            "up_fraction": 0.5007072135785007
+          },
+          "known_side_fraction": 0.34521484375,
+          "rows": 4096,
+          "unknown_side_rows": 2682
+        },
+        "future": {
+          "activity": {
+            "active_count": 1689,
+            "active_fraction": 0.412353515625,
+            "auc": 0.5667936645215025,
+            "brier": 0.24022656735735598,
+            "count": 4096,
+            "flat_count": 2407,
+            "log": 0.67334816635177,
+            "logit_mean": -0.5195011873902331,
+            "logit_std": 0.2820584179049788,
+            "mean_p": 0.3755037815767357
+          },
+          "conditional_side": {
+            "auc": 0.50036370070381,
+            "brier": 0.2503805122099181,
+            "count": 1689,
+            "down_count": 812,
+            "log": 0.6939166581329062,
+            "logit_mean": 0.14184633422700293,
+            "logit_std": 0.08800556572992105,
+            "mean_p": 0.5353434183636219,
+            "up_count": 877,
+            "up_fraction": 0.5192421551213736
+          },
+          "known_side_fraction": 0.412353515625,
+          "rows": 4096,
+          "unknown_side_rows": 2407
+        }
+      },
+      "M5_DIRECTION_ONLY_PASS1_TRAIN": {
+        "state": {
+          "activity": {
+            "active_count": 3808,
+            "active_fraction": 0.9310513447432763,
+            "auc": 0.6422471914297634,
+            "brier": 0.06339399245375112,
+            "count": 4090,
+            "flat_count": 282,
+            "log": 0.24410446164467123,
+            "logit_mean": 2.7880924730545735,
+            "logit_std": 0.7040214452047922,
+            "mean_p": 0.9278376151692814
+          },
+          "conditional_side": {
+            "auc": 0.5805285571652709,
+            "brier": 0.24571004258705734,
+            "count": 1403,
+            "down_count": 665,
+            "log": 0.6845297634878095,
+            "logit_mean": 0.17898551691642148,
+            "logit_std": 0.1406831959741147,
+            "mean_p": 0.5444480299720799,
+            "up_count": 738,
+            "up_fraction": 0.5260156806842481
+          },
+          "known_side_fraction": 0.342529296875,
+          "rows": 4096,
+          "unknown_side_rows": 2693
+        },
+        "future": {
+          "activity": {
+            "active_count": 1635,
+            "active_fraction": 0.399169921875,
+            "auc": 0.5498610122187471,
+            "brier": 0.2392982318079472,
+            "count": 4096,
+            "flat_count": 2461,
+            "log": 0.6720228552489633,
+            "logit_mean": -0.5137491393770688,
+            "logit_std": 0.2832885749474814,
+            "mean_p": 0.3768467742370416
+          },
+          "conditional_side": {
+            "auc": 0.5679960937968055,
+            "brier": 0.24774962738008063,
+            "count": 1635,
+            "down_count": 792,
+            "log": 0.6886316105995612,
+            "logit_mean": 0.11847029571629354,
+            "logit_std": 0.0871472573326589,
+            "mean_p": 0.5295340424809439,
+            "up_count": 843,
+            "up_fraction": 0.5155963302752293
+          },
+          "known_side_fraction": 0.399169921875,
+          "rows": 4096,
+          "unknown_side_rows": 2461
+        }
+      },
+      "M5_DIRECTION_ONLY_PASS3_LATER": {
+        "state": {
+          "activity": {
+            "active_count": 3857,
+            "active_fraction": 0.9418803418803419,
+            "auc": 0.6450870729416993,
+            "brier": 0.05447278357159803,
+            "count": 4095,
+            "flat_count": 238,
+            "log": 0.2165074258657292,
+            "logit_mean": 2.832046592948783,
+            "logit_std": 0.7132810162171032,
+            "mean_p": 0.930371497697593
+          },
+          "conditional_side": {
+            "auc": 0.5323698404314912,
+            "brier": 0.25870536813036404,
+            "count": 1414,
+            "down_count": 706,
+            "log": 0.7114495377457302,
+            "logit_mean": 0.2599317891413907,
+            "logit_std": 0.4290961027409832,
+            "mean_p": 0.5633316099119842,
+            "up_count": 708,
+            "up_fraction": 0.5007072135785007
+          },
+          "known_side_fraction": 0.34521484375,
+          "rows": 4096,
+          "unknown_side_rows": 2682
+        },
+        "future": {
+          "activity": {
+            "active_count": 1689,
+            "active_fraction": 0.412353515625,
+            "auc": 0.5576600516108656,
+            "brier": 0.24108719612722693,
+            "count": 4096,
+            "flat_count": 2407,
+            "log": 0.6752920888484617,
+            "logit_mean": -0.4362244895155527,
+            "logit_std": 0.3512155182128743,
+            "mean_p": 0.3960854632509287
+          },
+          "conditional_side": {
+            "auc": 0.4955106133201521,
+            "brier": 0.2572683551424179,
+            "count": 1689,
+            "down_count": 812,
+            "log": 0.7081057208560118,
+            "logit_mean": 0.1918359733004147,
+            "logit_std": 0.32259003143522963,
+            "mean_p": 0.5471467541354509,
+            "up_count": 877,
+            "up_fraction": 0.5192421551213736
+          },
+          "known_side_fraction": 0.412353515625,
+          "rows": 4096,
+          "unknown_side_rows": 2407
+        }
+      },
+      "M5_DIRECTION_ONLY_PASS3_TRAIN": {
+        "state": {
+          "activity": {
+            "active_count": 3808,
+            "active_fraction": 0.9310513447432763,
+            "auc": 0.6198256563263603,
+            "brier": 0.06382751629064794,
+            "count": 4090,
+            "flat_count": 282,
+            "log": 0.2475296793968806,
+            "logit_mean": 2.8575705926692283,
+            "logit_std": 0.6902368601901645,
+            "mean_p": 0.932477089472639
+          },
+          "conditional_side": {
+            "auc": 0.6365262750371865,
+            "brier": 0.2371461541738615,
+            "count": 1403,
+            "down_count": 665,
+            "log": 0.66685799990989,
+            "logit_mean": 0.21803396868407302,
+            "logit_std": 0.39555988156954835,
+            "mean_p": 0.5533291775909985,
+            "up_count": 738,
+            "up_fraction": 0.5260156806842481
+          },
+          "known_side_fraction": 0.342529296875,
+          "rows": 4096,
+          "unknown_side_rows": 2693
+        },
+        "future": {
+          "activity": {
+            "active_count": 1635,
+            "active_fraction": 0.399169921875,
+            "auc": 0.5479501010876711,
+            "brier": 0.24021646613595485,
+            "count": 4096,
+            "flat_count": 2461,
+            "log": 0.6742612209484071,
+            "logit_mean": -0.4219546242693468,
+            "logit_std": 0.3555501142691038,
+            "mean_p": 0.399483419844709
+          },
+          "conditional_side": {
+            "auc": 0.6166558826701175,
+            "brier": 0.24092740622978984,
+            "count": 1635,
+            "down_count": 792,
+            "log": 0.6747501019553752,
+            "logit_mean": 0.1532098207668336,
+            "logit_std": 0.29344723964186975,
+            "mean_p": 0.5377707417145777,
+            "up_count": 843,
+            "up_fraction": 0.5155963302752293
+          },
+          "known_side_fraction": 0.399169921875,
+          "rows": 4096,
+          "unknown_side_rows": 2461
+        }
+      }
+    },
+    "paired_uncertainty": {
+      "UTC_DAY": {
+        "future": {
+          "FULL_OBJECTIVE_PASS3_LATER_MINUS_INITIAL_LATER": {
+            "auc": {
+              "lower95": -0.017060352143293316,
+              "point_difference": 0.0023816076975358147,
+              "undefined_replicates": 0,
+              "upper95": 0.022436012901185975,
+              "valid_replicates": 2000
+            },
+            "brier": {
+              "lower95": -8.134997264087894e-06,
+              "point_difference": 0.0022428041834368917,
+              "undefined_replicates": 0,
+              "upper95": 0.0045621716943736665,
+              "valid_replicates": 2000
+            },
+            "log": {
+              "lower95": -1.9900809098424824e-05,
+              "point_difference": 0.00454729727446912,
+              "undefined_replicates": 0,
+              "upper95": 0.009246221992440792,
+              "valid_replicates": 2000
+            }
+          },
+          "M5_DIRECTION_ONLY_PASS3_LATER_MINUS_FULL_OBJECTIVE_PASS3_LATER": {
+            "auc": {
+              "lower95": -0.03966647968067495,
+              "point_difference": -0.018161162943532316,
+              "undefined_replicates": 0,
+              "upper95": 0.0026008091594078003,
+              "valid_replicates": 2000
+            },
+            "brier": {
+              "lower95": 0.002613532773004086,
+              "point_difference": 0.005472352821261295,
+              "undefined_replicates": 0,
+              "upper95": 0.008225840067090373,
+              "valid_replicates": 2000
+            },
+            "log": {
+              "lower95": 0.005449280846062005,
+              "point_difference": 0.011306045916115282,
+              "undefined_replicates": 0,
+              "upper95": 0.01695366663039659,
+              "valid_replicates": 2000
+            }
+          },
+          "M5_DIRECTION_ONLY_PASS3_LATER_MINUS_INITIAL_LATER": {
+            "auc": {
+              "lower95": -0.03430644958531958,
+              "point_difference": -0.0157795552459965,
+              "undefined_replicates": 0,
+              "upper95": 0.0027792548518959194,
+              "valid_replicates": 2000
+            },
+            "brier": {
+              "lower95": 0.004048773120462182,
+              "point_difference": 0.0077151570046981865,
+              "undefined_replicates": 0,
+              "upper95": 0.011392035620878918,
+              "valid_replicates": 2000
+            },
+            "log": {
+              "lower95": 0.008353343126946477,
+              "point_difference": 0.0158533431905844,
+              "undefined_replicates": 0,
+              "upper95": 0.02337527130566833,
+              "valid_replicates": 2000
+            }
+          }
+        },
+        "state": {
+          "FULL_OBJECTIVE_PASS3_LATER_MINUS_INITIAL_LATER": {
+            "auc": {
+              "lower95": -0.006714725669309088,
+              "point_difference": 0.0052716025671804,
+              "undefined_replicates": 0,
+              "upper95": 0.017784803725053592,
+              "valid_replicates": 2000
+            },
+            "brier": {
+              "lower95": -0.0015907198076080132,
+              "point_difference": 0.0010931954352115802,
+              "undefined_replicates": 0,
+              "upper95": 0.0039046370546568696,
+              "valid_replicates": 2000
+            },
+            "log": {
+              "lower95": -0.0032599131329313358,
+              "point_difference": 0.0022230749264746663,
+              "undefined_replicates": 0,
+              "upper95": 0.007969964117436022,
+              "valid_replicates": 2000
+            }
+          },
+          "M5_DIRECTION_ONLY_PASS3_LATER_MINUS_FULL_OBJECTIVE_PASS3_LATER": {
+            "auc": {
+              "lower95": -0.03762592489179436,
+              "point_difference": -0.01631295913957842,
+              "undefined_replicates": 0,
+              "upper95": 0.002099170362161189,
+              "valid_replicates": 2000
+            },
+            "brier": {
+              "lower95": 0.004804741556697708,
+              "point_difference": 0.008186199875924838,
+              "undefined_replicates": 0,
+              "upper95": 0.011416136010560067,
+              "valid_replicates": 2000
+            },
+            "log": {
+              "lower95": 0.010166798241677025,
+              "point_difference": 0.017230186952340798,
+              "undefined_replicates": 0,
+              "upper95": 0.023853058302312016,
+              "valid_replicates": 2000
+            }
+          },
+          "M5_DIRECTION_ONLY_PASS3_LATER_MINUS_INITIAL_LATER": {
+            "auc": {
+              "lower95": -0.030408302359946404,
+              "point_difference": -0.01104135657239802,
+              "undefined_replicates": 0,
+              "upper95": 0.007778938293639934,
+              "valid_replicates": 2000
+            },
+            "brier": {
+              "lower95": 0.004414696695133042,
+              "point_difference": 0.009279395311136418,
+              "undefined_replicates": 0,
+              "upper95": 0.013906700410865029,
+              "valid_replicates": 2000
+            },
+            "log": {
+              "lower95": 0.009418372093552212,
+              "point_difference": 0.019453261878815464,
+              "undefined_replicates": 0,
+              "upper95": 0.028994341849227348,
+              "valid_replicates": 2000
+            }
+          }
+        }
+      },
+      "UTC_MONDAY_WEEK": {
+        "future": {
+          "FULL_OBJECTIVE_PASS3_LATER_MINUS_INITIAL_LATER": {
+            "auc": {
+              "lower95": -0.019012497347816133,
+              "point_difference": 0.0023816076975358147,
+              "undefined_replicates": 0,
+              "upper95": 0.021236888961452503,
+              "valid_replicates": 2000
+            },
+            "brier": {
+              "lower95": 0.00024571200238289253,
+              "point_difference": 0.0022428041834368917,
+              "undefined_replicates": 0,
+              "upper95": 0.004298133639431871,
+              "valid_replicates": 2000
+            },
+            "log": {
+              "lower95": 0.0004977537428485502,
+              "point_difference": 0.00454729727446912,
+              "undefined_replicates": 0,
+              "upper95": 0.008707610091668845,
+              "valid_replicates": 2000
+            }
+          },
+          "M5_DIRECTION_ONLY_PASS3_LATER_MINUS_FULL_OBJECTIVE_PASS3_LATER": {
+            "auc": {
+              "lower95": -0.03614223117001844,
+              "point_difference": -0.018161162943532316,
+              "undefined_replicates": 0,
+              "upper95": 0.0021151218796308722,
+              "valid_replicates": 2000
+            },
+            "brier": {
+              "lower95": 0.0029339449975369705,
+              "point_difference": 0.005472352821261295,
+              "undefined_replicates": 0,
+              "upper95": 0.008174027048117871,
+              "valid_replicates": 2000
+            },
+            "log": {
+              "lower95": 0.00610321328764315,
+              "point_difference": 0.011306045916115282,
+              "undefined_replicates": 0,
+              "upper95": 0.01681112156797529,
+              "valid_replicates": 2000
+            }
+          },
+          "M5_DIRECTION_ONLY_PASS3_LATER_MINUS_INITIAL_LATER": {
+            "auc": {
+              "lower95": -0.040761577901142716,
+              "point_difference": -0.0157795552459965,
+              "undefined_replicates": 0,
+              "upper95": 0.007584812581523103,
+              "valid_replicates": 2000
+            },
+            "brier": {
+              "lower95": 0.004206233039132328,
+              "point_difference": 0.0077151570046981865,
+              "undefined_replicates": 0,
+              "upper95": 0.011821947936018075,
+              "valid_replicates": 2000
+            },
+            "log": {
+              "lower95": 0.00868997400929886,
+              "point_difference": 0.0158533431905844,
+              "undefined_replicates": 0,
+              "upper95": 0.024265431569850025,
+              "valid_replicates": 2000
+            }
+          }
+        },
+        "state": {
+          "FULL_OBJECTIVE_PASS3_LATER_MINUS_INITIAL_LATER": {
+            "auc": {
+              "lower95": -0.008502760218257027,
+              "point_difference": 0.0052716025671804,
+              "undefined_replicates": 0,
+              "upper95": 0.019152720929804606,
+              "valid_replicates": 2000
+            },
+            "brier": {
+              "lower95": -0.0020695014521695814,
+              "point_difference": 0.0010931954352115802,
+              "undefined_replicates": 0,
+              "upper95": 0.004243190756572333,
+              "valid_replicates": 2000
+            },
+            "log": {
+              "lower95": -0.00424214063688369,
+              "point_difference": 0.0022230749264746663,
+              "undefined_replicates": 0,
+              "upper95": 0.008626265201036048,
+              "valid_replicates": 2000
+            }
+          },
+          "M5_DIRECTION_ONLY_PASS3_LATER_MINUS_FULL_OBJECTIVE_PASS3_LATER": {
+            "auc": {
+              "lower95": -0.0415585345831092,
+              "point_difference": -0.01631295913957842,
+              "undefined_replicates": 0,
+              "upper95": 0.010672346885909807,
+              "valid_replicates": 2000
+            },
+            "brier": {
+              "lower95": 0.0029227924126912852,
+              "point_difference": 0.008186199875924838,
+              "undefined_replicates": 0,
+              "upper95": 0.013454207987416374,
+              "valid_replicates": 2000
+            },
+            "log": {
+              "lower95": 0.006307877882470283,
+              "point_difference": 0.017230186952340798,
+              "undefined_replicates": 0,
+              "upper95": 0.028261832213869468,
+              "valid_replicates": 2000
+            }
+          },
+          "M5_DIRECTION_ONLY_PASS3_LATER_MINUS_INITIAL_LATER": {
+            "auc": {
+              "lower95": -0.03447626124918843,
+              "point_difference": -0.01104135657239802,
+              "undefined_replicates": 0,
+              "upper95": 0.012814988173217379,
+              "valid_replicates": 2000
+            },
+            "brier": {
+              "lower95": 0.0030663678861984657,
+              "point_difference": 0.009279395311136418,
+              "undefined_replicates": 0,
+              "upper95": 0.015934940698738232,
+              "valid_replicates": 2000
+            },
+            "log": {
+              "lower95": 0.006525344081940665,
+              "point_difference": 0.019453261878815464,
+              "undefined_replicates": 0,
+              "upper95": 0.03320421402845899,
+              "valid_replicates": 2000
+            }
+          }
+        }
+      }
+    },
+    "cluster_groups": {
+      "UTC_DAY": {
+        "groups": 70,
+        "seed": 20260911
+      },
+      "UTC_MONDAY_WEEK": {
+        "groups": 14,
+        "seed": 20260912
+      }
+    },
+    "all_task_timeframe_tradeoffs": {
+      "FULL_OBJECTIVE_PASS3_TRAIN": [
+        {
+          "task": "state",
+          "timeframe": "M5",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": 0.015194490290767582,
+              "brier": -0.0025409405074164337,
+              "log": -0.0051651345854479835
+            },
+            "activity": {
+              "auc": 0.02271254246379406,
+              "brier": -0.0013432393163038542,
+              "log": -0.004880795438104574
+            }
+          }
+        },
+        {
+          "task": "state",
+          "timeframe": "M15",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": -0.0036720187172938346,
+              "brier": 0.0030403896095688165,
+              "log": 0.007997674187525505
+            },
+            "activity": {
+              "auc": 0.037585646956315055,
+              "brier": -0.0068091834817496505,
+              "log": -0.027587903124574154
+            }
+          }
+        },
+        {
+          "task": "state",
+          "timeframe": "H1",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": 0.012805811883420226,
+              "brier": -0.0065044948923738966,
+              "log": -0.013858826418767012
+            },
+            "activity": {
+              "auc": 0.07119668169050886,
+              "brier": -0.023253836012765372,
+              "log": -0.07019921497334708
+            }
+          }
+        },
+        {
+          "task": "state",
+          "timeframe": "H4",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": 0.04578466699801198,
+              "brier": -0.01156365109410204,
+              "log": -0.02529803895621996
+            },
+            "activity": {
+              "auc": 0.04105980213481686,
+              "brier": -0.003205757034376297,
+              "log": -0.01646802198935421
+            }
+          }
+        },
+        {
+          "task": "state",
+          "timeframe": "D1",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": 0.06898407714734245,
+              "brier": -0.02226669486635771,
+              "log": -0.04965548252355001
+            },
+            "activity": {
+              "auc": 0.041401494189263977,
+              "brier": -0.003209854838547438,
+              "log": -0.014858534506081461
+            }
+          }
+        },
+        {
+          "task": "future",
+          "timeframe": "M5",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": 0.0343650023365325,
+              "brier": -0.0031763578440211215,
+              "log": -0.006414359502493028
+            },
+            "activity": {
+              "auc": 0.014360910944681948,
+              "brier": -0.0012425997732232463,
+              "log": -0.002834536028901602
+            }
+          }
+        },
+        {
+          "task": "future",
+          "timeframe": "M15",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": 0.0771373161156047,
+              "brier": -0.007058355874587641,
+              "log": -0.009300748621511423
+            },
+            "activity": {
+              "auc": 0.018553994607634405,
+              "brier": -0.0031168807566827883,
+              "log": -0.007019376417239154
+            }
+          }
+        },
+        {
+          "task": "future",
+          "timeframe": "H1",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": 0.10312351406320552,
+              "brier": -0.019328049831180666,
+              "log": -0.03869073499746345
+            },
+            "activity": {
+              "auc": 0.0422878012702298,
+              "brier": -0.005556649945505615,
+              "log": -0.01511530484389323
+            }
+          }
+        },
+        {
+          "task": "future",
+          "timeframe": "H4",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": 0.06508889951505381,
+              "brier": -0.007168752660013683,
+              "log": -0.013027521562972488
+            },
+            "activity": {
+              "auc": 0.03247035134214771,
+              "brier": -0.0004998057371727038,
+              "log": -0.0003423639380301102
+            }
+          }
+        },
+        {
+          "task": "future",
+          "timeframe": "D1",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": 0.10684779224105068,
+              "brier": -0.02959699089997106,
+              "log": -0.06842498226799387
+            },
+            "activity": {
+              "auc": 0.0752169678175999,
+              "brier": -0.0034466040389161123,
+              "log": -0.00724918591110757
+            }
+          }
+        }
+      ],
+      "M5_DIRECTION_ONLY_PASS3_TRAIN": [
+        {
+          "task": "state",
+          "timeframe": "M5",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": 0.08684108645597743,
+              "brier": -0.010549414573776478,
+              "log": -0.021674303267115613
+            },
+            "activity": {
+              "auc": -0.031087501489957647,
+              "brier": -0.00018751834644829823,
+              "log": 0.0025926067798697217
+            }
+          }
+        },
+        {
+          "task": "state",
+          "timeframe": "M15",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": -0.05737350645639483,
+              "brier": 0.008923056079340352,
+              "log": 0.02098919889409734
+            },
+            "activity": {
+              "auc": -0.056448398946493006,
+              "brier": 0.004716377806352076,
+              "log": 0.021897370476318512
+            }
+          }
+        },
+        {
+          "task": "state",
+          "timeframe": "H1",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": -0.038203649141355656,
+              "brier": 0.004233495377307078,
+              "log": 0.009325730266993904
+            },
+            "activity": {
+              "auc": -0.05654625819234871,
+              "brier": 0.007553375125888787,
+              "log": 0.032820946039474
+            }
+          }
+        },
+        {
+          "task": "state",
+          "timeframe": "H4",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": 0.010358163518886743,
+              "brier": -0.0008698042477376378,
+              "log": -0.002733559834810051
+            },
+            "activity": {
+              "auc": -0.052949719222607605,
+              "brier": 0.0018493919705134254,
+              "log": 0.012538968861432076
+            }
+          }
+        },
+        {
+          "task": "state",
+          "timeframe": "D1",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": 0.023692790725757806,
+              "brier": -0.005648780662637215,
+              "log": -0.013391633332047848
+            },
+            "activity": {
+              "auc": -0.010180317284633866,
+              "brier": -0.0027207788511036182,
+              "log": -0.010220281793777514
+            }
+          }
+        },
+        {
+          "task": "future",
+          "timeframe": "M5",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": 0.0794600812394406,
+              "brier": -0.008076322015695914,
+              "log": -0.016402560349311424
+            },
+            "activity": {
+              "auc": 0.0016382788627978817,
+              "brier": 0.0004886751437848946,
+              "log": 0.001327309732776838
+            }
+          }
+        },
+        {
+          "task": "future",
+          "timeframe": "M15",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": 0.07709379877962252,
+              "brier": -0.0012433298451260955,
+              "log": 0.006517491052425828
+            },
+            "activity": {
+              "auc": -0.003446699146997134,
+              "brier": 0.0007943196759417903,
+              "log": 0.00208299109965826
+            }
+          }
+        },
+        {
+          "task": "future",
+          "timeframe": "H1",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": 0.046329261616779194,
+              "brier": 0.006483304726205397,
+              "log": 0.02521619486625548
+            },
+            "activity": {
+              "auc": -0.010993024420771658,
+              "brier": 0.0009634857643973649,
+              "log": 0.0023970698992371586
+            }
+          }
+        },
+        {
+          "task": "future",
+          "timeframe": "H4",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": -0.0341187233754523,
+              "brier": 0.035293042905266525,
+              "log": 0.09064870604086361
+            },
+            "activity": {
+              "auc": 0.00530048415036799,
+              "brier": -0.0017384245101627338,
+              "log": -0.0037429926307789296
+            }
+          }
+        },
+        {
+          "task": "future",
+          "timeframe": "D1",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": 0.0812620587901487,
+              "brier": -0.008181450459821521,
+              "log": -0.011369917746028135
+            },
+            "activity": {
+              "auc": -0.000343490965471982,
+              "brier": 0.0031230672822920302,
+              "log": 0.007474711812388013
+            }
+          }
+        }
+      ],
+      "FULL_OBJECTIVE_PASS3_LATER": [
+        {
+          "task": "state",
+          "timeframe": "M5",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": 0.0052716025671804,
+              "brier": 0.0010931954352115802,
+              "log": 0.0022230749264746663
+            },
+            "activity": {
+              "auc": 0.02025892026502063,
+              "brier": -0.0012865407260194972,
+              "log": -0.006013278260566884
+            }
+          }
+        },
+        {
+          "task": "state",
+          "timeframe": "M15",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": 0.0015588697553642339,
+              "brier": 0.014456220099277661,
+              "log": 0.03485572865794939
+            },
+            "activity": {
+              "auc": -7.070187279789586e-05,
+              "brier": 3.637602733841394e-05,
+              "log": -0.003304033786641375
+            }
+          }
+        },
+        {
+          "task": "state",
+          "timeframe": "H1",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": 0.0053080754057255874,
+              "brier": 0.011602630561655114,
+              "log": 0.02811221644550288
+            },
+            "activity": {
+              "auc": 0.004946692763576843,
+              "brier": 0.0025888167500590364,
+              "log": 0.0038862566930545905
+            }
+          }
+        },
+        {
+          "task": "state",
+          "timeframe": "H4",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": 0.0018811550508651687,
+              "brier": 0.011216374005594665,
+              "log": 0.028167155043008707
+            },
+            "activity": {
+              "auc": 0.007486300679082847,
+              "brier": 0.0004294785542253987,
+              "log": -0.0003100112509198949
+            }
+          }
+        },
+        {
+          "task": "state",
+          "timeframe": "D1",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": 0.013038060409047758,
+              "brier": 0.002815351243306674,
+              "log": 0.008747562050592683
+            },
+            "activity": {
+              "auc": 0.002728101549898332,
+              "brier": -0.0055761111765397706,
+              "log": -0.015366803922990585
+            }
+          }
+        },
+        {
+          "task": "future",
+          "timeframe": "M5",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": 0.0023816076975358147,
+              "brier": 0.0022428041834368917,
+              "log": 0.00454729727446912
+            },
+            "activity": {
+              "auc": -0.009113688784660345,
+              "brier": 0.002806998769321861,
+              "log": 0.006110106190220677
+            }
+          }
+        },
+        {
+          "task": "future",
+          "timeframe": "M15",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": 0.006718954205709671,
+              "brier": 0.03432904879748483,
+              "log": 0.09707969887431189
+            },
+            "activity": {
+              "auc": -0.004754617016223706,
+              "brier": 0.005618064599910461,
+              "log": 0.01479751898214865
+            }
+          }
+        },
+        {
+          "task": "future",
+          "timeframe": "H1",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": 0.002015354928226687,
+              "brier": 0.04199942854126276,
+              "log": 0.1182831725251654
+            },
+            "activity": {
+              "auc": 0.00303626216553321,
+              "brier": 0.011916631955669277,
+              "log": 0.03613918901013147
+            }
+          }
+        },
+        {
+          "task": "future",
+          "timeframe": "H4",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": 0.018818472869938596,
+              "brier": 0.03520125983772965,
+              "log": 0.09931433067525819
+            },
+            "activity": {
+              "auc": -0.0012542139515951956,
+              "brier": 0.006685894800922576,
+              "log": 0.01623736144670307
+            }
+          }
+        },
+        {
+          "task": "future",
+          "timeframe": "D1",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": 0.01598338225782381,
+              "brier": 0.0323107377265498,
+              "log": 0.09080637405396352
+            },
+            "activity": {
+              "auc": 0.022687186791265634,
+              "brier": 0.013577692392602647,
+              "log": 0.03552970209783479
+            }
+          }
+        }
+      ],
+      "M5_DIRECTION_ONLY_PASS3_LATER": [
+        {
+          "task": "state",
+          "timeframe": "M5",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": -0.01104135657239802,
+              "brier": 0.009279395311136418,
+              "log": 0.019453261878815464
+            },
+            "activity": {
+              "auc": -0.017417856434770007,
+              "brier": -9.06026316671582e-05,
+              "log": -0.0001543584412355692
+            }
+          }
+        },
+        {
+          "task": "state",
+          "timeframe": "M15",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": 0.006080303858594149,
+              "brier": 0.010307934938235175,
+              "log": 0.025750468076982336
+            },
+            "activity": {
+              "auc": -0.03040253418836436,
+              "brier": 0.0030543651188826154,
+              "log": 0.010685009090449088
+            }
+          }
+        },
+        {
+          "task": "state",
+          "timeframe": "H1",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": 0.00358999574433827,
+              "brier": 0.007670456640869572,
+              "log": 0.018393506620293598
+            },
+            "activity": {
+              "auc": -0.016878997066051005,
+              "brier": 0.0021125156190241884,
+              "log": 0.007372401781830629
+            }
+          }
+        },
+        {
+          "task": "state",
+          "timeframe": "H4",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": 0.013612196817201161,
+              "brier": -0.006386667716661687,
+              "log": -0.011208749130572015
+            },
+            "activity": {
+              "auc": -0.018177864250655595,
+              "brier": 0.000693620217680796,
+              "log": 0.0034664599476894042
+            }
+          }
+        },
+        {
+          "task": "state",
+          "timeframe": "D1",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": 0.014993904916700496,
+              "brier": -0.00034042673263104395,
+              "log": 0.0006323605489089168
+            },
+            "activity": {
+              "auc": -0.058969773476400866,
+              "brier": -0.00230453967269275,
+              "log": -0.005326827492447089
+            }
+          }
+        },
+        {
+          "task": "future",
+          "timeframe": "M5",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": -0.0157795552459965,
+              "brier": 0.0077151570046981865,
+              "log": 0.0158533431905844
+            },
+            "activity": {
+              "auc": -0.010286014518046449,
+              "brier": 0.0014478774376917858,
+              "log": 0.003222247766606512
+            }
+          }
+        },
+        {
+          "task": "future",
+          "timeframe": "M15",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": -0.013191535879835514,
+              "brier": 0.05786947117503577,
+              "log": 0.1624196703164581
+            },
+            "activity": {
+              "auc": -0.009716654486448428,
+              "brier": 0.0005372269329461665,
+              "log": 0.0009644287103687255
+            }
+          }
+        },
+        {
+          "task": "future",
+          "timeframe": "H1",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": -0.007293508513762259,
+              "brier": 0.05449546859937915,
+              "log": 0.16171882119454495
+            },
+            "activity": {
+              "auc": -0.010767631554847945,
+              "brier": 0.0007469439439601877,
+              "log": 0.001451536073998061
+            }
+          }
+        },
+        {
+          "task": "future",
+          "timeframe": "H4",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": -0.007932211858760807,
+              "brier": 0.056831861949417806,
+              "log": 0.1659009033106893
+            },
+            "activity": {
+              "auc": -0.010458797022423583,
+              "brier": 0.0015767899482027337,
+              "log": 0.003689583549024378
+            }
+          }
+        },
+        {
+          "task": "future",
+          "timeframe": "D1",
+          "changes_from_initial": {
+            "conditional_side": {
+              "auc": 0.011511766754564945,
+              "brier": 0.05524920147353496,
+              "log": 0.16237775228039653
+            },
+            "activity": {
+              "auc": -0.012935204611160933,
+              "brier": 0.0030771147633981144,
+              "log": 0.00804524011562957
+            }
+          }
+        }
+      ]
+    },
+    "maximum_published_score_replay_error": 8.881784197001252e-16,
+    "review_counts": {
+      "archive_decodes": 10,
+      "bootstrap_replicates": 2000,
+      "checkpoint_decodes": 0,
+      "forwards": 0,
+      "model_constructions": 0,
+      "optimizer_updates": 0
+    },
+    "findings": [
+      "The fixed comparison completed with exact INITIAL restoration, matching per-pass RNG, same queries/order and passive evaluations; 768 updates per arm, no skips.",
+      "M5-only improves used-TRAIN side AUC and proper scores more than FULL, but both later M5 side AUC point estimates are lower than FULL and INITIAL. These paired AUC differences are uncertain under both day/week intervals.",
+      "M5-only later side Brier/log scores are worse than FULL and INITIAL for both S/F; all paired day/week 95percent intervals for these regressions are above zero. This is not merely a lower aggregate objective hiding M5 improvement.",
+      "For M5 future direction, TRAIN AUC is INITIAL0.537196, FULL0.571561, M5-only0.616656; later AUC is0.511290,0.513672,0.495511 respectively. AUC is ranking, not winrate.",
+      "M5-only later mean predicted UP probability is S0.563332 versus realized0.500707 and F0.547147 versus0.519242. Stronger TRAIN fitting accompanies larger later probability errors; this is consistent with overfitting/failed temporal transfer, not a proved unique root cause.",
+      "Removing the other direct losses did not solve later directional value in this fixed small experiment. Do not promote this variant or infer that auxiliary losses never interfere or that full-history capacity has been judged.",
+      "The unresolved question is whether existing causal SR/ATR/EMA/MTF situations carry later predictive information and whether the model distinguishes them. Indicator consumption and market-state FLAT do not demonstrate selective Entry quality."
+    ],
+    "limitations": [
+      "All data are reused development, not sealed TEST or untouched confirmation.",
+      "Conditional-side support is known from realized labels; it does not establish selectable Entry coverage.",
+      "AUC is ranking, not accuracy or trading return. Small fixed-sample learning does not establish full-history capacity.",
+      "Day/week intervals describe these three development months and selected rows; no regime-wide or economic-edge claim."
+    ],
+    "test_data_used": false,
+    "predictive_improvement_established": false,
+    "setup_understanding_established": false,
+    "economic_edge_established": false,
+    "new_training_authorized": false,
+    "next_action": "Address setup alignment directly: map existing causal support/resistance, ATR, EMA and higher-TF fields to the retained development predictions. Specify situation groups and frozen references before viewing group outcomes, retain all groups and inactive/ambiguous outcomes, and reuse existing inputs. No new model, training, threshold search or architectural change is admitted."
   }
 }
