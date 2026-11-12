@@ -15,7 +15,7 @@ from gx1.contracts import market_state_ta_combined_decoder_benchmark_v1 as quali
 
 base, campaign, anchor, REPO = coverage.base, coverage.campaign, coverage.anchor, coverage.REPO
 BASE_COMMIT = 'edba13492c8a5cffe8ea205acac26c83a0a220bf'
-STAGE = 'market_state_ta_full_prefix_learning_20261112_001'
+STAGE = 'market_state_ta_full_prefix_learning_20261112_002'
 SCOPE = 'market_state_ta_full_prefix_learning_v1'
 ROOT = coverage.ROOT.parent / STAGE.upper()
 RUNTIME_ROOT, RECIPE_PATH = ROOT / 'RUNTIME', ROOT / 'RECIPE.json'
@@ -204,7 +204,10 @@ def gate_fields():
         initial_rng_imports_authorized=1, training_enabled=True, native_training_enabled=True,
         genuine_updates_authorized=True, genuine_backward_authorized=True,
         genuine_predictor_fit_authorized=False, canonical_resume_authority=False,
-        candidate_selection=False, test_data_used=False)
+        candidate_selection=False, test_data_used=False,
+        native_launch_authorized=False, normalization_fit_authorized=False,
+        synthetic_test_execution_authorized=False, full_epoch_training_allowed=False,
+        exit_evaluation=False, broker_access_allowed=False)
 
 
 def require_gate(gate, recipe):

@@ -5,9 +5,18 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_FULL_PREFIX_LEARNING_ADMITTED_AWAITING_FRESH_BOOT. Edge-målet er uoppnådd.
-Ingen native jobb er startet ved admisjon. Training/native er true bare for den nye
-avgrensede planen; full_epoch/fullVAL er false. Gamle planer forblir konsumert. Eksisterende modellarkitektur, inputfelt, fem TF og tap er uendret.
+TA_FULL_PREFIX_002_SOURCE_QUALIFIED_NATIVE_CLOSED. Edge-målet er uoppnådd.
+Ingen ny modell/trening eller omstart skjedde. Global training/native/full_epoch er false.
+Klargjøring001 skrev sin engangsmarkør og campaignfiler, men siste readiness avviste
+rootens native_launch_authorized=True; forskningsruten kreverFalse. Dessuten manglet
+synthetic_test_execution_authorized=False. Dette er policybinding, ikke en modellfeil.
+PREPARATION_TERMINAL.json i native001root bevarer feilen;001skal ikke relanseres.
+Rettelsen binder alle seks eksisterende lukkede flagg før klargjøringens claim.
+84fokuserte cases består, inkludert12true/missing-tilfeller og avvisning av gammel001.
+Bare den eksakte scopekontrakten er endret;101andre kildeeiere, modell og loss er uendret.
+GATE_CORRECTION_002.json i preparation-root binder rettelsen og testkvitteringen.
+Ny002plan beholder samme vitenskapelige oppsett, men må ha ny eksakt recipe/admisjon.
+Full draft-window-readiness skal bestå før den nye klargjøringen claimes.
 
 Neste forsøk er nå kildekvalifisert: samme bef35-INITIAL og samme29574TRAIN-foreldre fra
 mai–september2024 i to komplette, kronologiske gjennomganger. Alle rader beholdes, også
@@ -30,19 +39,16 @@ inkludert tail6, faktisk radregnskap, INITIAL-paritet før updates og slutt-/fei
 Det kanoniske numerikkfeltet max_updates1849 gjelder én-pass statekontrakten, brukt her
 bare ved nullsteg. Private3698updates har egne porter og gir ingen kanonisk resumeautoritet.
 
-Ny native root: /home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_001.
-RECIPE45ca582a og PREFLIGHT196b7485 er kvalifisert. Tidligere faktisk checkpointkontroll
-e34e34d2 gjenbrukes etter fersk bytehash og samsvar i ny recipe, normalisering, akserekkefølge
-og modelldigest. Null nye checkpointdekodinger/modeller/arraylesinger i denne preflighten;
-begge genuine INITIAL-paneler skal fortsatt være bitlike kontrollen før updates.
-Windowsboot647 er forberedelsesboot; native krever en ny fysisk boot. Fersk observasjon
-viser ingen prosjektjobb/writer/lås, synlig app eller GPU-beregning. Ingen jobb er stoppet.
+Den feilede001root er /home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_001.
+RECIPE45ca582a og PREFLIGHT196b7485 bevares som001bevis; ingen modell startet og ingen
+Windows-oppgave ble installert. Faktisk checkpointkontroll e34e34d2 kan gjenbrukes med
+fersk bytehash og kontroll av ny recipe/normalisering/akserekkefølge/modelldigest.
+De to INITIAL-panelene må fortsatt være bitlike kontrollen før genuine updates.
 
-Neste: materialiser eksakt campaign, kontroller oppstart/window uten claim, installer ny
-bootoppgave og kontroller lediggrensen på nytt før fysisk omstart. Én modell,3698updates,
-10500smodell-/12000sinvokasjons-/13800syttergrense; eksisterende20G/512M/250W-vakter.
-Ingen automatisk ekstra pass. Kilde/policy fryses under kjøring; prosess/terminal overstyrer
-admisjonsprosa. Stabil jobb kontrolleres15–30minutter, uten nye arbeidsspor i ventetiden.
+Neste: bind ny002recipe og faktisk draft-window-readiness uten å endre modell/tap,
+datarader eller antall pass. Fersk kilde/recipe/window/readiness og ledig fysisk omstart
+kreves før ny nativeadmisjon.219fokuserte kildecases er allerede dekket; kjør bare relevante
+nye gatechecks og pålagte hooks etter rettelsen. Gjør ikke gamle databygg eller fits på nytt.
 
 Siste ferdige modellresultat er fortsatt combined-benchmark31868249 og etterkontroll
 TRAJECTORY2f0ab03d (docs/TA_COMBINED_TF_DECODER_TRAJECTORY_REVIEW.json). Alle10senere S/F

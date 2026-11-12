@@ -140,6 +140,31 @@ def test_gate_is_new_exact_scope_without_reusing_old_permission():
     with pytest.raises(RuntimeError): scope.require_gate(scope.coverage.gate_fields(),recipe)
 
 
+@pytest.mark.parametrize('field', [
+    'native_launch_authorized', 'normalization_fit_authorized',
+    'synthetic_test_execution_authorized', 'full_epoch_training_allowed',
+    'exit_evaluation', 'broker_access_allowed',
+])
+@pytest.mark.parametrize('fault', ['true', 'missing'])
+def test_closed_readiness_fields_fail_before_materializer_claim(field, fault):
+    gate = scope.gate_fields()
+    assert gate[field] is False
+    if fault == 'true':
+        gate[field] = True
+    else:
+        del gate[field]
+    with pytest.raises(RuntimeError, match='TA_FULL_PREFIX_LEARNING_POLICY_GATE'):
+        scope.require_gate(gate, dict(run_scope=scope.SCOPE, admission_stage=scope.STAGE))
+
+
+def test_consumed_001_stage_is_not_the_new_permission():
+    assert scope.STAGE == 'market_state_ta_full_prefix_learning_20261112_002'
+    assert scope.ROOT.name == scope.STAGE.upper()
+    with pytest.raises(RuntimeError, match='TA_FULL_PREFIX_LEARNING_POLICY_GATE'):
+        scope.require_gate(scope.gate_fields(), dict(run_scope=scope.SCOPE,
+            admission_stage='market_state_ta_full_prefix_learning_20261112_001'))
+
+
 def cursor(*, visits=3698, updates=3698, outcome='COMPLETE'):
     return scope.build_cursor(recipe_ref=ref(scope.RECIPE_PATH),outcome=outcome,optimizer_updates=updates,
         parent_cursor=scope.cursor_from_batch_visits(visits),parent_order_sha256=None,full_state=None,
