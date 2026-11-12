@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-12T05:15:29.864573+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_ANCHOR_SPAN_SINGLE_COMPARISON_ADMITTED",
+  "status": "TA_DIRECTION_EDGE_CAUSE_ANCHOR_SPAN_IMPORT_FIXED_INITIAL_UNQUALIFIED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,7 +1415,7 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
@@ -1705,7 +1705,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Two missing trendline anchor-span fields source-implemented and synthetically qualified across localM5/allfiveTF. Old31 fields preserved byteexact on1340synthetic rows;185unique focused cases covered. Current expanded physical inputs, normalization and actual initial baseline remain unqualified.",
+    "current_activity": "Failed001 consumed before forward/update. Corrected S-versus-dual identity and numerical-recipe encoding;24affected synthetic import tests PASS. Actual INITIAL and predictive comparison remain unqualified.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1734,14 +1734,14 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "READ_ONLY_FULL_PREFIX_PAIRED_BOUNDARIES_COMPLETE_CONSUMED",
-    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_BOUNDARIES_20261112_001",
+    "latest_terminal_role": "ANCHOR_SPAN_COMPARISON_FAILED_BEFORE_FORWARD_CONSUMED",
+    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_BOUNDARIES_20261112_001/TERMINAL.json",
-      "sha256": "87551f40ede79a37df3641528699d799d1c36ab855e43f8ffa3893f24049b6b5"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_001/TERMINAL.json",
+      "sha256": "429e35b8250a9644d2898175a36dad5a252ef83af5fb4f4725c48cd95847f87d"
     },
-    "terminal_exit_code": 0,
-    "source_unchanged_at_terminal": true,
+    "terminal_exit_code": 1,
+    "source_unchanged_at_terminal": false,
     "full_benchmark_completed": false,
     "sampler_selection_measured": true,
     "selected_sampler_published": true,
@@ -1758,7 +1758,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No operational blocker; remaining cause attribution is substantive work, not missing user approval.",
+    "current_blocker": "No replacement plan admitted; repaired importer has synthetic coverage but actual INITIAL parity and the fixed learning comparison remain unmeasured.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -22103,8 +22103,8 @@
       "epoch_history_hypothesis": "Insufficient training/short history remain plausible. One pass on May-Sep2024 cannot establish that30epochs or5years fail; no expansion admitted."
     },
     "latest_campaign_receipt": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_ORIGINAL_CUDA_PREFIX_20261110_001/RUNTIME/receipts/invocation-0001.json",
-      "sha256": "56dbca7934512071a992a87178de2197a91d24af146eb1a417964f11672ed038"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_001/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "5d76890b159fecda12b1a898b4b627f80418fe601b8a609b7b430753a47fefe4"
     },
     "latest_performance_and_learning_review": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DEDICATED_M5_FOLD1_FIT_20261109_001/PERFORMANCE_AND_LEARNING_REVIEW.json",
@@ -22346,6 +22346,10 @@
     "latest_trendline_anchor_span_normalization_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_REVIEW.json",
       "sha256": "3663f051c3d35aeeb0957eb80d12556e1d851b557d3b511c1c7848a91a1b1afc"
+    },
+    "latest_anchor_span_short_learning_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_001/IMPORT_REPAIR_REVIEW.json",
+      "sha256": "0fdae8d78c6f4393bcdbed3bc0b6bd73ef6840060da6ffc530cb27696df05045"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -35696,7 +35700,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -75685,7 +75689,7 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_ANCHOR_SPAN_SINGLE_COMPARISON_ADMITTED",
+    "status": "ACTIVE_ANCHOR_SPAN_IMPORT_FIXED_INITIAL_UNQUALIFIED",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
@@ -75695,11 +75699,11 @@
       "sha256": "13ffc8fa173cdbf65ab4af65890e458bb507673e761eabb579f7366fbc25a2f3"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": true,
-    "training_enabled": true,
+    "model_or_data_run_admitted": false,
+    "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Complete clean-source canonical preflight and admit exactly the prepared single4096TRAIN/256update anchor-span comparison. Existing runner must first compose the qualified inputs, map old INITIAL weights by field name, restore original RNG and pass all4096INITIAL predictions/256losses within predeclared FP32 tolerances before any update. No additional research workstream, full-history expansion or altered metrics. Follow execution_contract_20261112 and its60minute preparation budget.",
+    "next_action": "Consumed001 must never relaunch. Two import-contract mismatches are source-corrected and24affected tests pass. Bind and preflight a distinct replacement only for the same uncompleted4096row/256update comparison; current training remains closed.",
     "active_stage": "market_state_ta_anchor_span_short_learning_20261112_001",
     "previous_goal_turn_classification": "PROGRESS_FULL_PAIRED_ENDPOINTS_EXACT_AND_M5_RANK_CALIBRATION_TRADEOFF_LOCALIZED",
     "last_goal_turn_classification": "PROGRESS_MATCHED_INITIAL_IMPORT_AND_EXISTING_SHORT_RUNNER_CONNECTED_METADATA_PREFLIGHT_PASS",
@@ -75805,7 +75809,7 @@
       "checkpoint": "The next implementation checkpoint must deliver the concrete comparison preflight or identify the exact remaining blocker. Do not open another preparatory workstream.",
       "scope_change_rule": "Report the measured blocker, smallest necessary deviation and effect on the agreed experiment before expanding scope. Routine fixes inside the agreed experiment do not require repeated approval.",
       "reporting_rule": "Report the experiment question, measured result and next decision. Counts of code, checks or documents are not evidence of improved edge.",
-      "current_authority": "No new numerical/model/training plan admitted yet; all existing closed scope and consumed-plan guards remain.",
+      "current_authority": "Failed001 consumed with zero forwards/updates. Two routine metadata corrections verified; no replacement run yet admitted. The original single-learning-comparison question, data, metrics and budgets remain unchanged.",
       "implementation_budget": {
         "active_work_minutes": 60,
         "start": "next implementation work after this operator correction",
@@ -75817,6 +75821,14 @@
         "checkpoint_utc": "2026-11-12T07:20:02.152572+00:00",
         "checkpoint_result": "PASS_CLEAN_SOURCE_CANONICAL_PREFLIGHT",
         "effective_wall_seconds_to_checkpoint": 1730.628762
+      },
+      "observed_blocker": {
+        "failure": "RuntimeError: TIME_QUERY_FOLD1_FIT_STATE_ANCHOR_SPAN_INITIAL_SOURCE_CONTRACTS",
+        "report": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_001/IMPORT_CONTRACT_MISMATCH.json",
+          "sha256": "129d370acb0f6d9df4d53ca454675d7de487fd737e8eb04df40fa9bd10d99ab3"
+        },
+        "minimal_deviation": "Correct two metadata identities and their synthetic fixtures; no architecture, optimizer, targets, metrics or training expansion."
       }
     },
     "anchor_span_comparison_preparation": {
@@ -80125,9 +80137,9 @@
     "actual_model_baseline_complete": false
   },
   "market_state_ta_anchor_span_short_learning_20261112_001": {
-    "decision": "ADMITTED",
-    "status": "ADMITTED",
-    "ta_anchor_span_short_learning_authorized": true,
+    "decision": "FAILED_CONSUMED",
+    "status": "FAILED",
+    "ta_anchor_span_short_learning_authorized": false,
     "fold_id": 1,
     "selected_fit_rows": 4096,
     "model_constructions_authorized": 1,
@@ -80136,10 +80148,10 @@
     "backward_calls_authorized": 256,
     "optimizer_steps_authorized": 256,
     "initial_rng_imports_authorized": 1,
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "genuine_updates_authorized": true,
-    "genuine_backward_authorized": true,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "genuine_updates_authorized": false,
+    "genuine_backward_authorized": false,
     "genuine_predictor_fit_authorized": false,
     "canonical_resume_authority": false,
     "candidate_selection": false,
@@ -80175,17 +80187,17 @@
       "sha256": "16a8b5d5d6b1efb22e5b8d708482338f7b25dd6aace2a709aa76f7352e190de8"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
-    "campaign_preparation_authorized": true,
-    "execution_authorized": true,
-    "training_authorized": true,
-    "data_reads_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "data_reads_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
     "native_launch_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_test_execution_authorized": false,
@@ -80459,6 +80471,54 @@
     ],
     "automatic_continuation": false,
     "admission_basis": "Standing0USD local GX1 authority and active edge-diagnosis goal, narrowed by execution_contract_20261112 to exactly one matched anchor-span comparison; no old plan reopened.",
-    "next_action": "Materialize one canonical campaign, perform safe fresh boot through existing controller, then actual matched INITIAL over4096rows before any of256updates. Stop on failure; no extra experiment."
+    "next_action": "Consumed001 must never relaunch. Two import-contract mismatches are source-corrected and24affected tests pass. Bind and preflight a distinct replacement only for the same uncompleted4096row/256update comparison; current training remains closed.",
+    "consumed": true,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_001/RESULT.json",
+      "sha256": "339de7a481a5fb9dca525ede7b5008dcb23ff87f5ea2b9c211a25e665b3ced59"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_001/TERMINAL.json",
+      "sha256": "429e35b8250a9644d2898175a36dad5a252ef83af5fb4f4725c48cd95847f87d"
+    },
+    "campaign_receipt": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_001/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "5d76890b159fecda12b1a898b4b627f80418fe601b8a609b7b430753a47fefe4"
+    },
+    "actual_counts": {
+      "archive_decodes": 0,
+      "backward_returns": 0,
+      "backwards": 0,
+      "checkpoint_loads": 1,
+      "checkpoint_writes": 0,
+      "evaluation_forwards": 0,
+      "extra_target_gathers": 0,
+      "forward_returns": 0,
+      "forwards": 0,
+      "head_tensor_imports": 0,
+      "initial_rng_imports": 0,
+      "input_sidecar_archive_decodes": 6,
+      "json_bytes": 1287,
+      "loss_component_owner_calls": 0,
+      "model_construction_returns": 1,
+      "model_constructions": 1,
+      "optimizer_constructions": 0,
+      "optimizer_step_calls": 0,
+      "optimizer_updates": 0,
+      "published_panel_bytes": 0,
+      "resume_state_load_calls": 1,
+      "resume_state_load_returns": 1,
+      "staged_state_load_calls": 0,
+      "staged_state_load_returns": 0,
+      "strict_full_state_restore_calls": 0,
+      "strict_full_state_restore_returns": 0,
+      "training_forwards": 0
+    },
+    "optimizer_updates": 0,
+    "error": "RuntimeError: TIME_QUERY_FOLD1_FIT_STATE_ANCHOR_SPAN_INITIAL_SOURCE_CONTRACTS",
+    "repair_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_001/IMPORT_REPAIR_REVIEW.json",
+      "sha256": "0fdae8d78c6f4393bcdbed3bc0b6bd73ef6840060da6ffc530cb27696df05045"
+    }
   }
 }

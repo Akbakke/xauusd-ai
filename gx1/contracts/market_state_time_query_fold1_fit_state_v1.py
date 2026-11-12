@@ -630,6 +630,7 @@ def import_anchor_span_activity_initial(saved, model, *, source_field_names,
     from gx1.contracts.market_state_time_query_model_v2 import factorized_time_query_model_contract
     from gx1.contracts.market_state_time_query_native_F_objective_v1 import contract as loss_contract
     from gx1.contracts.market_state_time_query_fold1_fit_v1 import ta_sf_numerical_recipe
+    from gx1.contracts.local_random_access_campaign_v2 import canonical_sha256 as campaign_sha256
     reason = 'ANCHOR_SPAN_INITIAL_'
     _need(_is_ta_sf(model) and model.state_model._ta_only is True
           and model.state_model._dedicated_m5_side is True
@@ -697,9 +698,10 @@ def import_anchor_span_activity_initial(saved, model, *, source_field_names,
     source_recipe = copy.deepcopy(current_recipe)
     source_recipe['research_objective_sha256'] = source_dual_contract['contract_sha256']
     source_recipe['native_F_loss_contract_sha256'] = source_loss_contract['contract_sha256']
-    source_recipe = reseal(source_recipe)
+    source_recipe['contract_sha256'] = campaign_sha256(
+        {key: value for key, value in source_recipe.items() if key != 'contract_sha256'})
     _need(binding['research_objective'] == source_dual_contract
-          and binding['feature_view_identity']['research_objective_sha256'] == source_dual_contract['contract_sha256']
+          and binding['feature_view_identity']['research_objective_sha256'] == source_s_contract['contract_sha256']
           and binding['numerical_recipe'] == source_recipe, reason + 'SOURCE_CONTRACTS')
     prefix = 'state_model.backbone.'
     profile_key = prefix + 'entry_execution_profile_contract_sha256'

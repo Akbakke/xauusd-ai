@@ -17,6 +17,7 @@ from gx1.contracts.market_state_time_query_model_v2 import factorized_time_query
 from gx1.contracts.market_state_time_query_native_F_model_v1 import contract as dual_contract
 from gx1.contracts.market_state_time_query_native_F_objective_v1 import contract as loss_contract
 from gx1.contracts.market_state_time_query_fold1_fit_v1 import ta_sf_numerical_recipe
+from gx1.contracts.local_random_access_campaign_v2 import canonical_sha256 as campaign_sha256
 
 PREFIX = 'state_model.backbone.'
 FAMILY = 'chart_geometry_encoder'
@@ -183,13 +184,13 @@ def _case(monkeypatch):
     recipe = ta_sf_numerical_recipe(dedicated_m5_side=True, dedicated_tf_activity=True, m5_equal_observation=True)
     recipe['research_objective_sha256'] = old_dual['contract_sha256']
     recipe['native_F_loss_contract_sha256'] = old_loss['contract_sha256']
-    recipe = contract_seal(recipe)
+    recipe['contract_sha256'] = campaign_sha256({k: v for k, v in recipe.items() if k != 'contract_sha256'})
     buffers['state_model.query_objective_sha256'] = _hash_tensor(old_s['contract_sha256'])
     buffers['native_F_objective_sha256'] = _hash_tensor(old_dual['contract_sha256'])
     source = {**parameters, **{name: value for name, value in buffers.items() if name in model.state_dict()}}
     names = list(parameters)
     binding = dict(schema_version=state.TA_BINDING_SCHEMA,
-        feature_view_identity={'contract_sha256': '6' * 64, 'research_objective_sha256': old_dual['contract_sha256']},
+        feature_view_identity={'contract_sha256': '6' * 64, 'research_objective_sha256': old_s['contract_sha256']},
         research_objective=old_dual,
         numerical_recipe=recipe, active_parameter_names=names, inactive_parameter_names=[],
         optimizer_group_parameter_names=[names], parameter_inventory=[dict(name=name, shape=list(value.shape), dtype=str(value.dtype))
@@ -257,6 +258,7 @@ def test_exact_named_import_zeroes_fourteen_expansions_and_preserves_target_cont
     'digest', 'seal', 'profile', 'field_order', 'field_missing', 'wrong_mode', 'nonempty_optimizer',
     'parameter_shape', 'parameter_extra', 'nonfinite', 'norm_value', 'signed_zero', 'routing', 'persistent_alias_routing',
     'mode_inventory', 'mode_type', 'partition', 'source_target_alias', 'partial_grad', 'loss_recipe',
+    'dual_view_identity', 'numerical_hash_encoding',
 ])
 def test_rejects_before_target_or_rng_mutation(monkeypatch, fault):
     model, saved, fields, _ = _case(monkeypatch)
@@ -284,6 +286,11 @@ def test_rejects_before_target_or_rng_mutation(monkeypatch, fault):
             saved['model_state'][key][0, 0] = float('nan')
     elif fault == 'loss_recipe':
         saved['binding']['numerical_recipe']['future_weight'] = 2.0
+    elif fault == 'dual_view_identity':
+        saved['binding']['feature_view_identity']['research_objective_sha256'] = saved['binding']['research_objective']['contract_sha256']
+    elif fault == 'numerical_hash_encoding':
+        recipe = saved['binding']['numerical_recipe']
+        recipe['contract_sha256'] = _canonical_sha256({k: v for k, v in recipe.items() if k != 'contract_sha256'})
     elif fault == 'parameter_extra':
         saved['model_state']['unexpected.weight'] = torch.ones(1)
     elif fault in ('norm_value', 'signed_zero'):

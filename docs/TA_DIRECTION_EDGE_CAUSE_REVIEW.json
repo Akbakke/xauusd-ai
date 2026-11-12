@@ -269,7 +269,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Prepare the smallest fresh causal input-extension qualification for the two anchor-span fields on the required TRAIN history: reuse original source clocks, frozen registry parameters, all unchanged features, targets and completed checks; replay the existing registry only where needed to recover the missing anchor spans. Require exact preservation of the original31 trendline fields, new physical field/normalization bindings and a fresh actual initial model baseline before any short learning comparison. No old cache or checkpoint is relabeled as the expanded function. No data/model/training invocation is admitted yet; full-history30-40epoch training remains later scaling.",
+  "next_measurement": "The fixed anchor-span comparison remains unmeasured. The failed001 launch is consumed; after the two localized import-contract corrections, any replacement must receive a new exact source/policy binding and pass the same actual INITIAL gate before the unchanged4096rows/256updates.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -1812,5 +1812,84 @@
   "trendline_anchor_span_repair": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TRENDLINE_ANCHOR_SPAN_REPAIR.json",
     "sha256": "5fe4db95d6324ac18e0badaebb3d2407719bd04f480633302b110274ef8a8ef5"
+  },
+  "anchor_span_short_learning": {
+    "status": "FAILED_BEFORE_FORWARD_CONSUMED_IMPORT_CONTRACTS_CORRECTED",
+    "source_commit_at_launch": "efec26e9c0e3ae9d5b6e6de95d7719709d4e40d6",
+    "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_001",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_001/RESULT.json",
+      "sha256": "339de7a481a5fb9dca525ede7b5008dcb23ff87f5ea2b9c211a25e665b3ced59"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_001/TERMINAL.json",
+      "sha256": "429e35b8250a9644d2898175a36dad5a252ef83af5fb4f4725c48cd95847f87d"
+    },
+    "campaign_receipt": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_001/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "5d76890b159fecda12b1a898b4b627f80418fe601b8a609b7b430753a47fefe4"
+    },
+    "task_disabled": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_001/TASK_DISABLED.json",
+      "sha256": "d5948dbbc3ca0aa7ae3d0c8892cf6f8e557597fc0833320ec7af3eac6aa6c189"
+    },
+    "actual_counts": {
+      "archive_decodes": 0,
+      "backward_returns": 0,
+      "backwards": 0,
+      "checkpoint_loads": 1,
+      "checkpoint_writes": 0,
+      "evaluation_forwards": 0,
+      "extra_target_gathers": 0,
+      "forward_returns": 0,
+      "forwards": 0,
+      "head_tensor_imports": 0,
+      "initial_rng_imports": 0,
+      "input_sidecar_archive_decodes": 6,
+      "json_bytes": 1287,
+      "loss_component_owner_calls": 0,
+      "model_construction_returns": 1,
+      "model_constructions": 1,
+      "optimizer_constructions": 0,
+      "optimizer_step_calls": 0,
+      "optimizer_updates": 0,
+      "published_panel_bytes": 0,
+      "resume_state_load_calls": 1,
+      "resume_state_load_returns": 1,
+      "staged_state_load_calls": 0,
+      "staged_state_load_returns": 0,
+      "strict_full_state_restore_calls": 0,
+      "strict_full_state_restore_returns": 0,
+      "training_forwards": 0
+    },
+    "failure": "TIME_QUERY_FOLD1_FIT_STATE_ANCHOR_SPAN_INITIAL_SOURCE_CONTRACTS",
+    "measured_contract_mismatch": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_001/IMPORT_CONTRACT_MISMATCH.json",
+      "sha256": "129d370acb0f6d9df4d53ca454675d7de487fd737e8eb04df40fa9bd10d99ab3"
+    },
+    "minimal_source_correction": [
+      "Feature-view research identity binds the S model, not the enclosing S/F dual model.",
+      "Numerical-recipe identity uses the existing campaign canonical encoding including its final newline; model/loss contracts retain their own encoding."
+    ],
+    "regression_before": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_001/IMPORT_CONTRACT_REGRESSION_BEFORE.xml",
+      "sha256": "fa06ff2e7520fb2a377b33ed5fa5fce14192b410299c1c340b70a5ada62f14d6"
+    },
+    "regression_before_expected_failure": true,
+    "regression_after": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_001/IMPORT_CONTRACT_REGRESSION_AFTER.xml",
+      "sha256": "5de3dcf3d9b623022f73103fe06fc9fc61338b7001c91991dd3da333adc69eac"
+    },
+    "affected_tests_passed": 24,
+    "synthetic_fixture_correction": "Fixtures now follow the existing feature-view factory and numerical-recipe owner; both incorrect forms are explicitly rejected.",
+    "source_unchanged_terminal_flag": false,
+    "independent_source_observation": "HEAD efec26e9 and clean git status observed after terminal and before repair. Original false terminal flag is preserved, not relabeled.",
+    "fresh_actual_initial_qualified": false,
+    "optimizer_updates": 0,
+    "predictive_comparison_completed": false,
+    "predictive_value_claimed": false,
+    "relaunch_allowed": false,
+    "training_authorized": false,
+    "test_data_used": false
   }
 }
