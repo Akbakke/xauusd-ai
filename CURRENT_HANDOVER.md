@@ -5,17 +5,19 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_COMBINED_DECODER_COMPLETE_NO_ESTABLISHED_LATER_DIRECTION_GAIN. Edge-målet er uoppnådd.
-Native jobb og retained review er COMPLETE/CONSUMED. Controller exit0; oppgaven deaktivert,
-aktive markører fjernet og prosessene avsluttet. Global training/native er false. Ingen ny jobb
-eller trening er admittert; gamle engangsplaner skal ikke relanseres.
+TA_COMBINED_TRAJECTORY_RETAINED_ADMITTED. Edge-målet er uoppnådd.
+Native jobb og pass3-review er COMPLETE/CONSUMED. Controller exit0; oppgaven deaktivert,
+aktive markører fjernet og prosessene avsluttet. Global training/native er false. Bare én
+åtte-arkiv etterkontroll er admittert; ingen modell/trening eller gammel plan gjenåpnes.
 
 Neste konkrete spørsmål: får combined en tidlig senere retningsgevinst ved pass1 som forsvinner,
 eller overføres TRAIN-bedringen heller ikke da? Bruk de åtte eksisterende pass1/pass3 TRAIN/LATER-
 arkivene for combined og COVERAGE til én avgrenset lesende forløpskontroll. Gjenbruk scorere,
 pass3-regnskap og INITIAL-JSON. Behold pass3 som primær; ingen checkpointutvelgelse.
 Parvis tidsforskjell krever de faktisk parede prognosene, ikke subtraksjon av ferdige CI-grenser.
-Det trengs separat eksakt auditadmisjon/preflight, ingen ny modell eller trening.
+Eksakt auditadmisjon er nå skrevet. Kjør metadata/helper/kontrast-preflight uten CLAIM/OUTPUT
+før den ene4G/512M-kjøringen (maks300s). Root: /home/andre2/GX1_RUNS/
+MARKET_STATE_TA_COMBINED_DECODER_TRAJECTORY_20261112_001; PLAN13a7e83a og script7db3297a.
 
 Publisert JSON viser allerede senere combined-loss2,350915→2,411408→2,360441 ved0/1/3.
 Det støtter ikke enkel monotont dårligere prognose ved mer trening. Pass1-AUC/meanP og paret

@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-12T20:38:10.526476+00:00",
-  "status": "TA_COMBINED_DECODER_COMPLETE_NO_ESTABLISHED_LATER_DIRECTION_GAIN",
+  "observed_utc": "2026-11-12T20:45:35.627032+00:00",
+  "status": "TA_COMBINED_TRAJECTORY_RETAINED_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Prepare one bounded retained trajectory review of the eight existing pass1/pass3 TRAIN/LATER prediction archives for COMBINED and COVERAGE. Reuse qualified scoring, pass3 comparisons and INITIAL JSON evidence. Keep pass3 as the declared primary result; measure paired temporal differences without selecting a checkpoint or claiming a unique optimizer/encoder cause. No new model, feature/checkpoint read or training; exact separate audit admission/preflight is still required.",
+  "next_action": "Run exact metadata/helper/contrast preflight, then the one8archive capped trajectory review. All arm/pass rows and masks must match; pass3 scores and three paired interval families must replay. Measure the paired pass1-to3 changes and difference of changes for every S/F timeframe, retaining pass3 primary and all limitations. Consume the audit; no new training or architecture change.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -64365,8 +64365,8 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "TA_COMBINED_DECODER_COMPLETE_NO_ESTABLISHED_LATER_DIRECTION_GAIN",
-  "recorded_observed_utc": "2026-11-12T20:38:10.526476+00:00",
+  "recorded_status": "TA_COMBINED_TRAJECTORY_RETAINED_ADMITTED",
+  "recorded_observed_utc": "2026-11-12T20:45:35.627032+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
     "decision": "BLOCK",
@@ -75723,7 +75723,7 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_COMBINED_DECODER_MEASURED_TRAJECTORY_QUESTION",
+    "status": "ACTIVE_COMBINED_DECODER_RETAINED_TRAJECTORY",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
@@ -75733,7 +75733,7 @@
       "sha256": "2682dca5680706f78396491b6f21392d1cca7ffcb051664aa11edfe73200a54a"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": false,
+    "model_or_data_run_admitted": true,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
@@ -76942,7 +76942,7 @@
     "unresolved_campaign_marker_preserved": true,
     "standard_campaign_receipt_available": false
   },
-  "active_stage": "market_state_ta_combined_decoder_benchmark_20261112_001",
+  "active_stage": "market_state_ta_combined_decoder_trajectory_20261112_001",
   "market_state_ta_m5_c171_short_learning_20261111_002": {
     "decision": "CLOSED",
     "status": "COMPLETE_CONSUMED",
@@ -82753,5 +82753,47 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_BENCHMARK_20261112_001/CHECKPOINT_CONTRACT_001_RESULT.json",
       "sha256": "e34e34d2c5f070346990ae9d0e2dc62097af9c915c3d0cbf1c4e10b426f08bd9"
     }
+  },
+  "market_state_ta_combined_decoder_trajectory_20261112_001": {
+    "status": "ADMITTED",
+    "execution_authorized": true,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "data_reads_authorized": true,
+    "read_scope": "Only eight bound retained prediction archives, associated JSON metadata and qualified helper source.",
+    "feature_payload_reads_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "model_execution_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_TRAJECTORY_20261112_001",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_TRAJECTORY_20261112_001/PLAN.json",
+      "sha256": "13a7e83a65ff1c5be39d8d4908ba038d75787cdc503dff1a9fddd4b33c3f7434"
+    },
+    "script": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_TRAJECTORY_20261112_001/REVIEW_TRAJECTORY.py",
+      "sha256": "7db3297a9d48b614f32f56146b2ce43acaf186613469be1a87837576ecd27527"
+    },
+    "archive_reads": 8,
+    "bootstrap_replicates": 2000,
+    "bootstrap_seed": 20260911,
+    "max_wall_seconds": 300,
+    "resource_cap": {
+      "run_class": "audit",
+      "memory": "4G",
+      "swap": "512M"
+    },
+    "model_constructions": 0,
+    "checkpoint_decodes": 0,
+    "forwards": 0,
+    "optimizer_updates": 0,
+    "primary_endpoint_pass": 3,
+    "checkpoint_selection": false,
+    "test_data_used": false,
+    "authorization_basis": "Standing local0USD diagnosis; new exact retained-only one-use admission. No model/training/TEST/trading authority."
   }
 }
