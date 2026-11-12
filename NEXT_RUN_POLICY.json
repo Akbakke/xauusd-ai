@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-12T15:38:22.532809+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_EXPOSURE_SOURCE_QUALIFIED",
+  "observed_utc": "2026-11-12T15:43:54.356372+00:00",
+  "status": "TA_DIRECTION_EDGE_CAUSE_EXPOSURE_ADMITTED_REBOOT_REQUIRED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Use the qualified source and metadata to prepare one exact local0USD guarded exposure-schedule admission:768actual updates on12288unique TRAIN rows, unchanged FULL objective/INITIAL/RNG and fixed4096TRAIN/LATER panels. Reuse the completed FULL control. First establish the existing machine-wide idle boundary and required fresh Windows boot; only then enable the exact training gate and materialize the single campaign. No model/data job is currently admitted and no consumed scope may be relaunched.",
+  "next_action": "Materialize the one exact coverage campaign from qualified source and policy, install its existing controller, and perform the machine-wide-idle prepare/confirm reboot transaction. Native execution remains gated on a newer physical Windows boot and unchanged source. Run exactly768updates with zero skips, retain all six panels and stop on any parity failure; no control relaunch or candidate selection.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -35718,7 +35718,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -75707,7 +75707,7 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_FIXED_EXPOSURE_EXACT_ADMISSION_PENDING",
+    "status": "ACTIVE_FIXED_EXPOSURE_GUARDED_LAUNCH",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "G\u00e5 direkte p\u00e5 problemene og lag deg et m\u00e5l for \u00e5 n\u00f8ste opp i hvorfor vi ikke f\u00e5r god Edge ut av markedsretningen.",
@@ -75721,7 +75721,7 @@
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Use the qualified source and metadata to prepare one exact local0USD guarded exposure-schedule admission:768actual updates on12288unique TRAIN rows, unchanged FULL objective/INITIAL/RNG and fixed4096TRAIN/LATER panels. Reuse the completed FULL control. First establish the existing machine-wide idle boundary and required fresh Windows boot; only then enable the exact training gate and materialize the single campaign. No model/data job is currently admitted and no consumed scope may be relaunched.",
+    "next_action": "Materialize the one exact coverage campaign from qualified source and policy, install its existing controller, and perform the machine-wide-idle prepare/confirm reboot transaction. Native execution remains gated on a newer physical Windows boot and unchanged source. Run exactly768updates with zero skips, retain all six panels and stop on any parity failure; no control relaunch or candidate selection.",
     "active_stage": "market_state_ta_coverage_preparation_20261112_001",
     "previous_goal_turn_classification": "PROGRESS_CURRENT_STATES_MATCHED_COMPLEMENT_MEASURED_WITH_EXPLICIT_THIRD_ARM_NUMERICAL_STOP",
     "last_goal_turn_classification": "PROGRESS_BOUND_ACTUAL_CONTROL_PREFIX_AND_FULL_TRAIN_INPUT_REUSE_FOR_FIXED_EXPOSURE_DESIGN",
@@ -82053,20 +82053,20 @@
     "test_data_used": false
   },
   "market_state_ta_coverage_benchmark_20261112_001": {
-    "status": "SOURCE_PREFLIGHT_QUALIFIED_MODEL_ADMISSION_PENDING",
+    "status": "ADMITTED",
     "run_scope": "market_state_ta_coverage_benchmark_v1",
     "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001",
     "design_result": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_PREPARATION_20261112_001/RESULT.json",
       "sha256": "394328000f4974e2f4409c3eadfa2db78d275487f00c8d7ab6d6b3351da2d721"
     },
-    "execution_authorized": false,
-    "training_enabled": false,
-    "native_training_enabled": false,
-    "max_invocations": 0,
+    "execution_authorized": true,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "max_invocations": 1,
     "claimed_invocations": 0,
     "completed_invocations": 0,
-    "remaining_invocations": 0,
+    "remaining_invocations": 1,
     "relaunch_allowed": false,
     "candidate_selection": false,
     "test_data_used": false,
@@ -82096,7 +82096,7 @@
       "independent_source_review": "PASS_NO_CONCRETE_INTEGRATION_DEFECT",
       "mandatory_precommit_checks": "PASS"
     },
-    "next_action": "Use the qualified source and metadata to prepare one exact local0USD guarded exposure-schedule admission:768actual updates on12288unique TRAIN rows, unchanged FULL objective/INITIAL/RNG and fixed4096TRAIN/LATER panels. Reuse the completed FULL control. First establish the existing machine-wide idle boundary and required fresh Windows boot; only then enable the exact training gate and materialize the single campaign. No model/data job is currently admitted and no consumed scope may be relaunched.",
+    "next_action": "Materialize the one exact coverage campaign from qualified source and policy, install its existing controller, and perform the machine-wide-idle prepare/confirm reboot transaction. Native execution remains gated on a newer physical Windows boot and unchanged source. Run exactly768updates with zero skips, retain all six panels and stop on any parity failure; no control relaunch or candidate selection.",
     "recipe": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001/RECIPE.json",
       "sha256": "673fcc4a2f8d8273324b935ec7078df637ebc7c8425eff62d0248bb0d4fea5ad"
@@ -82104,6 +82104,59 @@
     "source_preflight": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001/PREFLIGHT.json",
       "sha256": "24c7a149865f242ecdefee3dc25b02ea6beafbd73c2ae0a1e36d984924fdc290"
-    }
+    },
+    "decision": "ADMITTED",
+    "ta_coverage_benchmark_authorized": true,
+    "fold_id": 1,
+    "selected_fit_rows": 12288,
+    "selected_score_rows": 4096,
+    "model_constructions_authorized": 1,
+    "optimizer_constructions_authorized": 1,
+    "model_forwards_authorized": 2304,
+    "backward_calls_authorized": 768,
+    "optimizer_steps_authorized": 768,
+    "initial_rng_imports_authorized": 1,
+    "genuine_updates_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_predictor_fit_authorized": false,
+    "canonical_resume_authority": false,
+    "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001/RUNTIME",
+    "campaign_preparation_authorized": true,
+    "prepared_boot": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001/PREPARED_WINDOWS_BOOT.json",
+      "sha256": "4be020ad6d3ce052baa2e5cc36dcafece9b66aa93df5ff9a65b603c4055585c3"
+    },
+    "guard_template": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_MECHANICAL_20261109_001/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "sha256": "905dd8efd3cd7fae95f2dc90457b710d673f5a23399a61831eea9063516fcd9d"
+    },
+    "materializer": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_market_state_time_query_fold1_fit_campaign_v1.py",
+      "sha256": "223f47ab8fef70b4e656521d146cf7fc6bd5edccec9129fac9c2bbc2f886f08e"
+    },
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "native_launch_authorized": false,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "full_epoch_training_allowed": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "checkpoint_loads_authorized": 1,
+    "checkpoint_writes_authorized": 0,
+    "candidate_evidence_writes_authorized": 1,
+    "max_model_seconds": 6500,
+    "max_invocation_seconds": 12000,
+    "outer_guard_seconds": 13800,
+    "max_training_forwards": 768,
+    "max_evaluation_forwards": 1536,
+    "max_skipped_batches": 0,
+    "idle_before_admission": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001/IDLE_BEFORE_ADMISSION.json",
+      "sha256": "6b46bc31d6d3e1a9f9566cdcaa9f33eccb0e53acf7f4f44e8a177ecf7bce93cf"
+    },
+    "authorization_basis": "Standing05Nov local0USD work plus exact qualified one-use scope. Existing materializer requires the static admission before preparing the reboot transaction; actual native execution still requires confirmed newer physical Windows boot.",
+    "actual_model_execution_started": false
   }
 }

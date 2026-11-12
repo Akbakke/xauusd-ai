@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_FIXED_EXPOSURE_SOURCE_QUALIFIED_ADMISSION_PENDING",
+  "status": "ACTIVE_FIXED_EXPOSURE_ADMITTED_REBOOT_REQUIRED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -269,7 +269,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Use the qualified source and metadata to prepare one exact local0USD guarded exposure-schedule admission:768actual updates on12288unique TRAIN rows, unchanged FULL objective/INITIAL/RNG and fixed4096TRAIN/LATER panels. Reuse the completed FULL control. First establish the existing machine-wide idle boundary and required fresh Windows boot; only then enable the exact training gate and materialize the single campaign. No model/data job is currently admitted and no consumed scope may be relaunched.",
+  "next_measurement": "Materialize the one exact coverage campaign from qualified source and policy, install its existing controller, and perform the machine-wide-idle prepare/confirm reboot transaction. Native execution remains gated on a newer physical Windows boot and unchanged source. Run exactly768updates with zero skips, retain all six panels and stop on any parity failure; no control relaunch or candidate selection.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -12362,7 +12362,7 @@
     }
   },
   "fixed_exposure_source_qualification": {
-    "status": "SOURCE_PREFLIGHT_QUALIFIED_MODEL_ADMISSION_PENDING",
+    "status": "EXACT_ONE_USE_ADMISSION_NATIVE_FRESH_BOOT_PENDING",
     "result": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_PREPARATION_20261112_001/RESULT.json",
       "sha256": "394328000f4974e2f4409c3eadfa2db78d275487f00c8d7ab6d6b3351da2d721"
@@ -12433,7 +12433,8 @@
     "candidate_recipe": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001/RECIPE.json",
       "sha256": "673fcc4a2f8d8273324b935ec7078df637ebc7c8425eff62d0248bb0d4fea5ad"
-    }
+    },
+    "native_execution_started": false
   },
   "forecast_trade_alignment_review": {
     "user_question": "Men med dette oppsettet, mener du dette er riktig \u00e5 trade slik?",

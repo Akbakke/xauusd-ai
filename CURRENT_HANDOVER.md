@@ -5,7 +5,7 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier arbeidsstatus; terminal/pros
 
 ## Aktivt mål og neste steg
 
-TA_DIRECTION_EDGE_CAUSE_EXPOSURE_SOURCE_QUALIFIED. Edge-målet er fortsatt uoppnådd.
+TA_DIRECTION_EDGE_CAUSE_EXPOSURE_ADMITTED_REBOOT_REQUIRED. Edge-målet er fortsatt uoppnådd.
 Eksponeringsplanen er implementert i eksisterende worker med én separat, eksakt kontrakt/rute.
 Faktisk metadata-/visningsport består for100kildeeiere;104fokuserte syntetiske tester består,
 inkludert gammel rute og ny feil-/suksessrapportering. Obligatorisk pre-commit består.
@@ -16,13 +16,18 @@ Den når forventet CUDA-vaktavvisning før kontekst/CLAIM/modell. Samme faktiske
 visningsport som worker består; checkpoint, featureview, normalisering og konstruktør er identiske
 med den fullførte kontrollens faktiske restore-bevis. Ny native restore/paritet kreves fortsatt.
 Ny ROOT /home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001:
-RECIPE673fcc4a og PREFLIGHT24c7a149. Ingen RUNTIME/CLAIM eller kjøringsadmisjon finnes.
+RECIPE673fcc4a og PREFLIGHT24c7a149. Én eksakt engangsadmisjon er nå bundet; ingen modell er startet.
 Metadata-grunnlag RESULT39432800 ligger i MARKET_STATE_TA_COVERAGE_PREPARATION_20261112_001;
 den gamle metadataoperasjonen og FULL-kontrollen er COMPLETE/CONSUMED.
 
-Neste: egen eksakt lokal0USD-admisjon for den kvalifiserte kandidaten. Bekreft eksisterende
-maskinvid lediggrense og påkrevd fersk Windows-boot før treningsporten åpnes og én kampanje
-materialiseres. Global trening er fortsatt false; ingen data-/modelljobb er admittert nå.
+Neste: materialiser én kampanje, installer eksisterende controller og gjennomfør eksisterende
+prepare/confirm-reboottransaksjon etter fersk maskinvid ledigkontroll. Statisk training/native_training
+står true kun for denne kvalifiserte768-update-admisjonen fordi materializer krever den før
+omstartstransaksjonen kan opprettes. Faktisk native start er fortsatt sperret til bekreftet nyere
+fysisk Windows-boot enn645. Ingen vakter eller forbrukte planer er endret. Rekkefølgen følger
+den eksisterende kjøreruten; forrige tekst om å materialisere først etter boot var feil.
+Første ledigkontroll: ingen beregningsjobber, prosjektwriters eller prosjektlåser; kun cron-lås,
+WSL/Windows-systemgrafikk og stående strøm-/telemetrivakter. GPU0prosent/78MiB. Ingen runtime ennå.
 
 Pass1 beholder de gamle256batchene. Fra1546hele øvrige batcher velges512 jevnt fordelte
 ordensstatistikker, annenhver til kronologiske pass2/3. De46komplementbatchene holdes utenfor.
@@ -92,7 +97,7 @@ Femhorisontreviewen er COMPLETE/CONSUMED. FULL TRAIN-AUC M15–D1 var0,62–0,71
 Låste støtte-/EMA-/HTF-oppsett viste ingen avklart merverdi mot alltid-LONG på femhorisontene.
 AUC er ikke winrate. Alle tidligere kvitteringer og checkpoints beholdes uendret.
 
-Global training/native_training, full epoch og fullVAL er false. Ingen tung jobb kjører.
+Global training/native_training gjelder kun ny eksakt engangsadmisjon; full epoch og fullVAL er false. Ingen tung jobb kjører.
 Root eier policy/launch. TEST, Entry/Exit-evaluering, broker, handel, spending og promotion er stengt;
 GC er på pause. Bare benchmarkorkestrering, kontrakt/ruting og fokuserte tester er endret; numeriske eiere er uendret.
 Korte runder kvalifiserer feil og hypoteser; de dømmer ikke endelig kapasitet.
