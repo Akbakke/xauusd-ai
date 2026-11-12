@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-12T20:56:59.416624+00:00",
-  "status": "TA_COMBINED_TRAJECTORY_COMPLETE_EDGE_UNRESOLVED",
+  "observed_utc": "2026-11-12T21:18:50.417359+00:00",
+  "status": "TA_FULL_PREFIX_LEARNING_SOURCE_QUALIFIED_NATIVE_NOT_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Prepare one informative larger-exposure training candidate using the existing qualified fold-1 TRAIN inputs. Freeze architecture/objective and declare initialization, row schedule, update budget and later-development scoring before launch; verify newly selected rows with existing axis/target/window gates. Distinguish more unique data from repeated epochs. No architecture change, training launch or expansion to unqualified calendar periods is admitted by this result.",
+  "next_action": "Bind one exact native full-prefix learning recipe/window to the qualified source, then run the exact startup/checkpoint-identity/resource preflight and a fresh idle-boundary physical reboot before any claim. One model, two complete29574-row passes,3698updates; fixed0/1/2 evaluation and pass2 primary. Reuse current inputs and prior INITIAL. No model architecture/objective change, automatic extra pass, full-history expansion or TEST.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1739,7 +1739,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Retained paired trajectory complete: eight archives, zero models/updates. No early ranking gain trained away established. Larger-training metadata qualified only for existing fold-1 prefix; edge remains unresolved.",
+    "current_activity": "Qualified one bounded two-pass learning curve over all29574original TRAIN parents, including tail6 and former736complement. Source/counter/gate integration and bound metadata pass; no native run started.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1792,7 +1792,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No observed operational blocker. More training is a testable next hypothesis, not an established cure; a larger run still needs its fixed exposure recipe and existing row/target/window gates.",
+    "current_blocker": "No observed source blocker. Exact new native recipe/window, startup/identity checks and a fresh idle-boundary boot remain before training admission.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9263,7 +9263,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Prepare one informative larger-exposure training candidate using the existing qualified fold-1 TRAIN inputs. Freeze architecture/objective and declare initialization, row schedule, update budget and later-development scoring before launch; verify newly selected rows with existing axis/target/window gates. Distinguish more unique data from repeated epochs. No architecture change, training launch or expansion to unqualified calendar periods is admitted by this result.",
+    "next_action": "Bind one exact native full-prefix learning recipe/window to the qualified source, then run the exact startup/checkpoint-identity/resource preflight and a fresh idle-boundary physical reboot before any claim. One model, two complete29574-row passes,3698updates; fixed0/1/2 evaluation and pass2 primary. Reuse current inputs and prior INITIAL. No model architecture/objective change, automatic extra pass, full-history expansion or TEST.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -24962,7 +24962,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-12T20:56:59.416624+00:00",
+  "updated_utc": "2026-11-12T21:18:50.417359+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -76956,7 +76956,7 @@
     "unresolved_campaign_marker_preserved": true,
     "standard_campaign_receipt_available": false
   },
-  "active_stage": "market_state_ta_combined_decoder_trajectory_20261112_001",
+  "active_stage": "market_state_ta_full_prefix_learning_preparation_20261112_001",
   "market_state_ta_m5_c171_short_learning_20261111_002": {
     "decision": "CLOSED",
     "status": "COMPLETE_CONSUMED",
@@ -82843,5 +82843,56 @@
       "sha256": "3ea4897933f165c4e72664b12319295fe44a23df821283645b6247d1cdfd7c63"
     },
     "source_commit": "ac3d36234075ef20b76e9090945db339622e924b"
+  },
+  "market_state_ta_full_prefix_learning_preparation_20261112_001": {
+    "status": "SOURCE_AND_BOUND_METADATA_QUALIFIED_NATIVE_NOT_ADMITTED",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_PREPARATION_20261112_001/RESULT.json",
+      "sha256": "f741414d8893709b15d248236bcc79f5e26865d755d9bad066abaf0c27584522"
+    },
+    "source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_PREPARATION_20261112_001/SOURCE_QUALIFICATION.json",
+      "sha256": "e34192e8ca84cafe61515023666c8b9f69c3159e443aa077d091550294851363"
+    },
+    "execution_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "model_execution_authorized": false,
+    "source_preparation_complete": true,
+    "native_execution_started": false,
+    "new_native_stage": "market_state_ta_full_prefix_learning_20261112_001",
+    "counts": {
+      "unique_training_rows": 29574,
+      "training_presentations": 59148,
+      "passes": 2,
+      "batches_per_pass": 1849,
+      "batch_visits": 3698,
+      "required_optimizer_updates": 3698,
+      "required_skips": 0,
+      "tail_rows_each_pass": 6,
+      "previous_complement_rows_included": 736
+    },
+    "historical_encoder_lineage": {
+      "original_result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NATIVE_FOLD1_RECOVERY_20261108_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+        "sha256": "503bf914961e316dde327c37f6df9455781fa6f26e8fd623f02e9db893d9a7b6"
+      },
+      "weight_import_result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_WEIGHT_IMPORT_20261109_001/RESULT.json",
+        "sha256": "46e94426529cb37384109cc9af32bfeaadbfd8eb07c3f6b0d0fa5a7a28a786de"
+      },
+      "reverse_result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULL_REVERSE_ORDER_20261110_002/RESULT.json",
+        "sha256": "be7a403c827e5a2883d7ae6c29ccd345c2ce4feb599da402ec41e601e001347d"
+      },
+      "full_prefix_passes": 2,
+      "row_presentations": 59148,
+      "optimizer_updates_across_reset_boundaries": 3698,
+      "continuous_optimizer_counter": false,
+      "all_heads_same_history": false,
+      "intervening_alternative_FINAL_arms_inherited": false
+    },
+    "test_data_used": false,
+    "next_action": "Bind one exact native full-prefix learning recipe/window to the qualified source, then run the exact startup/checkpoint-identity/resource preflight and a fresh idle-boundary physical reboot before any claim. One model, two complete29574-row passes,3698updates; fixed0/1/2 evaluation and pass2 primary. Reuse current inputs and prior INITIAL. No model architecture/objective change, automatic extra pass, full-history expansion or TEST."
   }
 }

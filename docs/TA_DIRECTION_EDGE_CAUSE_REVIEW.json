@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_TRAJECTORY_MEASURED_LARGER_TRAINING_SCOPE_IDENTIFIED_EDGE_UNRESOLVED",
+  "status": "ACTIVE_FULL_PREFIX_LEARNING_SOURCE_QUALIFIED_EDGE_UNRESOLVED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -269,7 +269,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Prepare one informative larger-exposure training candidate using the existing qualified fold-1 TRAIN inputs. Freeze architecture/objective and declare initialization, row schedule, update budget and later-development scoring before launch; verify newly selected rows with existing axis/target/window gates. Distinguish more unique data from repeated epochs. No architecture change, training launch or expansion to unqualified calendar periods is admitted by this result.",
+  "next_measurement": "Bind one exact native full-prefix learning recipe/window to the qualified source, then run the exact startup/checkpoint-identity/resource preflight and a fresh idle-boundary physical reboot before any claim. One model, two complete29574-row passes,3698updates; fixed0/1/2 evaluation and pass2 primary. Reuse current inputs and prior INITIAL. No model architecture/objective change, automatic extra pass, full-history expansion or TEST.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -1723,6 +1723,8 @@
   },
   "training_authorized_scope": null,
   "latest_confirmed_findings": [
+    "INITIAL backbone inherits two full29574-row passes across optimizer resets:59148historical presentations/3698updates. This excludes alternative FINAL arms and does not assign the same history to replaced/cloned heads.",
+    "One two-pass current-feature learning curve is source-qualified: all29574parents,3698newupdates,59148presentations, fixed4096TRAIN/LATER panels at0/1/2. It tests repetition on known historical rows, not additional market regimes. No new training result exists.",
     "All10 later S/F conditional-side AUC point values rise from pass1 to pass3 in both arms; none establishes a positive within-arm change under both day and week intervals.",
     "All10 paired differences of changes have zero inside both day/week intervals. These observations do not establish an early combined-decoder ranking advantage that pass3 trains away.",
     "Combined M5F later AUC rises0.516268234→0.526009515; paired day95[-0.002932890,0.022628532], week95[-0.004065598,0.023778771]. AUC is ranking, not trade hit rate.",
@@ -13813,6 +13815,19 @@
     "result": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_TRAJECTORY_20261112_001/RESULT.json",
       "sha256": "2f0ab03d9dee2e8c25cf2ff9ffcfca27206e2c7d2d3c5e58bced21897e4939b6"
+    },
+    "training_authorized": false,
+    "test_data_used": false
+  },
+  "full_prefix_learning_preparation": {
+    "status": "SOURCE_AND_BOUND_METADATA_QUALIFIED_NATIVE_NOT_ADMITTED",
+    "metadata": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_PREPARATION_20261112_001/RESULT.json",
+      "sha256": "f741414d8893709b15d248236bcc79f5e26865d755d9bad066abaf0c27584522"
+    },
+    "source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_PREPARATION_20261112_001/SOURCE_QUALIFICATION.json",
+      "sha256": "e34192e8ca84cafe61515023666c8b9f69c3159e443aa077d091550294851363"
     },
     "training_authorized": false,
     "test_data_used": false
