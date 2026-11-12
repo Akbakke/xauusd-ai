@@ -5,16 +5,24 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier arbeidsstatus; terminal/pros
 
 ## Aktivt mål og neste steg
 
-TA_DIRECTION_EDGE_CAUSE_EXPOSURE_SOURCE_IMPLEMENTED. Edge-målet er fortsatt uoppnådd.
+TA_DIRECTION_EDGE_CAUSE_EXPOSURE_SOURCE_QUALIFIED. Edge-målet er fortsatt uoppnådd.
 Eksponeringsplanen er implementert i eksisterende worker med én separat, eksakt kontrakt/rute.
 Faktisk metadata-/visningsport består for100kildeeiere;104fokuserte syntetiske tester består,
-inkludert gammel rute og ny feil-/suksessrapportering. Ingen ny modelljobb er startet.
+inkludert gammel rute og ny feil-/suksessrapportering. Obligatorisk pre-commit består.
+Uavhengig kildekontroll fant ingen integrasjonsfeil. Ingen ny modelljobb er startet.
 
-Neste: eksakt oppstartsrøykprøve på committet kilde, deretter egen kvalifisert engangsadmisjon
-og påkrevd trygg fysisk boot før eventuell native kjøring. Global trening er fortsatt false.
-Ny ROOT /home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001.
+Eksakt planlagt Python-oppstart er røykprøvd under capped audit på ren kilde c0bd4e9b.
+Den når forventet CUDA-vaktavvisning før kontekst/CLAIM/modell. Samme faktiske kilde-/kvitterings-/
+visningsport som worker består; checkpoint, featureview, normalisering og konstruktør er identiske
+med den fullførte kontrollens faktiske restore-bevis. Ny native restore/paritet kreves fortsatt.
+Ny ROOT /home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001:
+RECIPE673fcc4a og PREFLIGHT24c7a149. Ingen RUNTIME/CLAIM eller kjøringsadmisjon finnes.
 Metadata-grunnlag RESULT39432800 ligger i MARKET_STATE_TA_COVERAGE_PREPARATION_20261112_001;
 den gamle metadataoperasjonen og FULL-kontrollen er COMPLETE/CONSUMED.
+
+Neste: egen eksakt lokal0USD-admisjon for den kvalifiserte kandidaten. Bekreft eksisterende
+maskinvid lediggrense og påkrevd fersk Windows-boot før treningsporten åpnes og én kampanje
+materialiseres. Global trening er fortsatt false; ingen data-/modelljobb er admittert nå.
 
 Pass1 beholder de gamle256batchene. Fra1546hele øvrige batcher velges512 jevnt fordelte
 ordensstatistikker, annenhver til kronologiske pass2/3. De46komplementbatchene holdes utenfor.
@@ -31,7 +39,7 @@ Ingen ny produsent/refit er nødvendig ut fra kilden. Nye batcher må ved faktis
 uendret lokal span-/klokkematching og nativeMTF-vindus-/witnessporter. Kontrollen mot
 baselineTRAIN[slot] brukes bare på gamle batcher; nye batcher bindes til originalakse b*16.
 Eksakt startup/import, faktiske checkpoint/view/kvitteringsnøkler og feil/suksess-rapportering
-kvalifiseres før eventuell ny modelladmisjon. Gamle forbrukte planer forblir stengt.
+er kvalifisert. Dette er kildebevis, ikke læringsresultat. Gamle forbrukte planer forblir stengt.
 
 Brukeren spør om oppsettet er riktig å trade med. Gjeldende06Nov-fase er fortsatt markedstilstand
 før Entry. S-tilstand og F-nettoendring er prognosemål, ikke kjøp/salg eller prisbane-/lønnsomhetsbevis.

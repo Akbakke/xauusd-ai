@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_FIXED_EXPOSURE_SOURCE_IMPLEMENTED_STARTUP_PENDING",
+  "status": "ACTIVE_FIXED_EXPOSURE_SOURCE_QUALIFIED_ADMISSION_PENDING",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -269,7 +269,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Qualify the exact startup command on the committed source and bind actual recipe/view/checkpoint metadata plus synthetic success/failure reporting. Then prepare one exact guarded768-update exposure admission under standing local0USD authority. Training remains disabled until qualified admission and required fresh boot; never relaunch the consumed FULL control.",
+  "next_measurement": "Use the qualified source and metadata to prepare one exact local0USD guarded exposure-schedule admission:768actual updates on12288unique TRAIN rows, unchanged FULL objective/INITIAL/RNG and fixed4096TRAIN/LATER panels. Reuse the completed FULL control. First establish the existing machine-wide idle boundary and required fresh Windows boot; only then enable the exact training gate and materialize the single campaign. No model/data job is currently admitted and no consumed scope may be relaunched.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -12362,7 +12362,7 @@
     }
   },
   "fixed_exposure_source_qualification": {
-    "status": "SOURCE_IMPLEMENTED_METADATA_PASS_STARTUP_PENDING",
+    "status": "SOURCE_PREFLIGHT_QUALIFIED_MODEL_ADMISSION_PENDING",
     "result": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_PREPARATION_20261112_001/RESULT.json",
       "sha256": "394328000f4974e2f4409c3eadfa2db78d275487f00c8d7ab6d6b3351da2d721"
@@ -12402,9 +12402,7 @@
       "At actual consumption keep original b*16 axes and exact local span/clock plus canonical closed-MTF window/witness checks.",
       "Replace obsolete baselineTRAIN[slot] binding only for new pass2/3 batches, never weaken axes/target/maturity checks."
     ],
-    "implementation_pending": [
-      "Exact committed-source startup smoke and bound source/view/checkpoint preflight before new admission."
-    ],
+    "implementation_pending": [],
     "limits": [
       "Exposure schedule changes row contents, repetition and within-pass sequence together; not pure unique-count causality.",
       "Original TRAIN rows have prior learning history;736rows are not untouched holdout. Later4096panel is reused development.",
@@ -12421,7 +12419,20 @@
       "empty_support_policy": "abort_before_update_without_replacement",
       "source_metadata_pass": true,
       "focused_test_cases_passed": 104,
-      "native_launch": false
+      "native_launch": false,
+      "source_commit": "c0bd4e9b2aec4a8c9fe530309c0837f9f3b35a9e",
+      "exact_startup_guard_rejection": true,
+      "actual_checkpoint_view_metadata_unchanged": true,
+      "mandatory_precommit_checks": "PASS",
+      "independent_review": "No concrete integration defects; fixed panels, parity ordering, counters and exact routing checked."
+    },
+    "source_preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001/PREFLIGHT.json",
+      "sha256": "24c7a149865f242ecdefee3dc25b02ea6beafbd73c2ae0a1e36d984924fdc290"
+    },
+    "candidate_recipe": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001/RECIPE.json",
+      "sha256": "673fcc4a2f8d8273324b935ec7078df637ebc7c8425eff62d0248bb0d4fea5ad"
     }
   },
   "forecast_trade_alignment_review": {

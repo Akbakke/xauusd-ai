@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-12T15:32:40.314721+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_EXPOSURE_SOURCE_IMPLEMENTED",
+  "observed_utc": "2026-11-12T15:38:22.532809+00:00",
+  "status": "TA_DIRECTION_EDGE_CAUSE_EXPOSURE_SOURCE_QUALIFIED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Qualify the exact startup command on the committed source and bind actual recipe/view/checkpoint metadata plus synthetic success/failure reporting. Then prepare one exact guarded768-update exposure admission under standing local0USD authority. Training remains disabled until qualified admission and required fresh boot; never relaunch the consumed FULL control.",
+  "next_action": "Use the qualified source and metadata to prepare one exact local0USD guarded exposure-schedule admission:768actual updates on12288unique TRAIN rows, unchanged FULL objective/INITIAL/RNG and fixed4096TRAIN/LATER panels. Reuse the completed FULL control. First establish the existing machine-wide idle boundary and required fresh Windows boot; only then enable the exact training gate and materialize the single campaign. No model/data job is currently admitted and no consumed scope may be relaunched.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -75707,7 +75707,7 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_FIXED_EXPOSURE_STARTUP_QUALIFICATION",
+    "status": "ACTIVE_FIXED_EXPOSURE_EXACT_ADMISSION_PENDING",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "G\u00e5 direkte p\u00e5 problemene og lag deg et m\u00e5l for \u00e5 n\u00f8ste opp i hvorfor vi ikke f\u00e5r god Edge ut av markedsretningen.",
@@ -75721,7 +75721,7 @@
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Qualify the exact startup command on the committed source and bind actual recipe/view/checkpoint metadata plus synthetic success/failure reporting. Then prepare one exact guarded768-update exposure admission under standing local0USD authority. Training remains disabled until qualified admission and required fresh boot; never relaunch the consumed FULL control.",
+    "next_action": "Use the qualified source and metadata to prepare one exact local0USD guarded exposure-schedule admission:768actual updates on12288unique TRAIN rows, unchanged FULL objective/INITIAL/RNG and fixed4096TRAIN/LATER panels. Reuse the completed FULL control. First establish the existing machine-wide idle boundary and required fresh Windows boot; only then enable the exact training gate and materialize the single campaign. No model/data job is currently admitted and no consumed scope may be relaunched.",
     "active_stage": "market_state_ta_coverage_preparation_20261112_001",
     "previous_goal_turn_classification": "PROGRESS_CURRENT_STATES_MATCHED_COMPLEMENT_MEASURED_WITH_EXPLICIT_THIRD_ARM_NUMERICAL_STOP",
     "last_goal_turn_classification": "PROGRESS_BOUND_ACTUAL_CONTROL_PREFIX_AND_FULL_TRAIN_INPUT_REUSE_FOR_FIXED_EXPOSURE_DESIGN",
@@ -76192,7 +76192,19 @@
       "purpose": "Determine whether harmful incremental fit appears within original TRAIN outside this update cohort before attributing failure only to temporal transfer. This is not untouched validation."
     },
     "latest_operator_question": "Men med dette oppsettet, mener du dette er riktig \u00e5 trade slik?",
-    "scope_response": "Current phase learns market-state forecasts before Entry. The exposure counterfactual diagnoses learning, not a trading strategy. Existing S and F targets do not establish selectable setups, trade-path quality or profitability; no Entry/Exit/trading authority is opened."
+    "scope_response": "Current phase learns market-state forecasts before Entry. The exposure counterfactual diagnoses learning, not a trading strategy. Existing S and F targets do not establish selectable setups, trade-path quality or profitability; no Entry/Exit/trading authority is opened.",
+    "latest_progress": {
+      "status": "PROGRESS",
+      "source_commit": "c0bd4e9b2aec4a8c9fe530309c0837f9f3b35a9e",
+      "source_preflight": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001/PREFLIGHT.json",
+        "sha256": "24c7a149865f242ecdefee3dc25b02ea6beafbd73c2ae0a1e36d984924fdc290"
+      },
+      "same_initial_and_pass1_control_parity_required": true,
+      "model_constructions": 0,
+      "optimizer_updates": 0,
+      "economic_edge_proven": false
+    }
   },
   "market_state_ta_fusion_observation_20261111_001": {
     "status": "COMPLETE",
@@ -82041,7 +82053,7 @@
     "test_data_used": false
   },
   "market_state_ta_coverage_benchmark_20261112_001": {
-    "status": "SOURCE_IMPLEMENTED_METADATA_PASS_STARTUP_PENDING",
+    "status": "SOURCE_PREFLIGHT_QUALIFIED_MODEL_ADMISSION_PENDING",
     "run_scope": "market_state_ta_coverage_benchmark_v1",
     "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001",
     "design_result": {
@@ -82076,8 +82088,22 @@
       "data_payload_reads": 0,
       "model_constructions": 0,
       "native_launch": false,
-      "exact_committed_startup_pending": true
+      "exact_committed_startup_pending": false,
+      "exact_startup_guard_rejection": true,
+      "actual_checkpoint_view_metadata_unchanged": true,
+      "worktree_clean_at_preflight": true,
+      "source_commit": "c0bd4e9b2aec4a8c9fe530309c0837f9f3b35a9e",
+      "independent_source_review": "PASS_NO_CONCRETE_INTEGRATION_DEFECT",
+      "mandatory_precommit_checks": "PASS"
     },
-    "next_action": "Qualify the exact startup command on the committed source and bind actual recipe/view/checkpoint metadata plus synthetic success/failure reporting. Then prepare one exact guarded768-update exposure admission under standing local0USD authority. Training remains disabled until qualified admission and required fresh boot; never relaunch the consumed FULL control."
+    "next_action": "Use the qualified source and metadata to prepare one exact local0USD guarded exposure-schedule admission:768actual updates on12288unique TRAIN rows, unchanged FULL objective/INITIAL/RNG and fixed4096TRAIN/LATER panels. Reuse the completed FULL control. First establish the existing machine-wide idle boundary and required fresh Windows boot; only then enable the exact training gate and materialize the single campaign. No model/data job is currently admitted and no consumed scope may be relaunched.",
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001/RECIPE.json",
+      "sha256": "673fcc4a2f8d8273324b935ec7078df637ebc7c8425eff62d0248bb0d4fea5ad"
+    },
+    "source_preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001/PREFLIGHT.json",
+      "sha256": "24c7a149865f242ecdefee3dc25b02ea6beafbd73c2ae0a1e36d984924fdc290"
+    }
   }
 }
