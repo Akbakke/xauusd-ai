@@ -6,14 +6,27 @@ NEXT_RUN_POLICY.json eier arbeidsstatus; prosess og terminal overstyrer prosa.
 
 ## Aktivt mål og neste steg
 
-TA_DIRECTION_EDGE_CAUSE_FIXED_BENCHMARK_COMPLETE_NO_LATER_GAIN.
-Målet om å avklare og rette svak retningslæring er fortsatt aktivt og uoppnådd.
-Den avtalte FULL_OBJECTIVE mot M5_DIRECTION_ONLY og skåringen er ferdig/konsumert.
-Neste spørsmål er direkte brukerens: skiller modellen nyttige kausale støtte/motstand-
-oppsett med ATR, EMA og høyere tidsrammer fra ugunstige eller uinformative situasjoner?
-Knytt eksisterende situasjonsfelt til lagrede senere prediksjoner; spesifiser grupper
-og frosne referanser før gruppeutfall leses. Behold alle grupper, FLAT/uklare utfall og tellinger.
-Ingen ny modell, trening, terskelsøk eller arkitekturendring er admittert.
+TA_DIRECTION_EDGE_CAUSE_SETUP_CONTEXT_REVIEW_ADMITTED.
+Forrige målturn ga faktisk fremdrift: fast to-arms-sammenligning og parret review er ferdig.
+Målet om svak retningsverdi er fortsatt aktivt. Neste jobb er én konkret, data-only situasjonsanalyse.
+Stage market_state_ta_setup_context_20261112_001; plan i configs/research med samme navn.
+ROOT /home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_CONTEXT_20261112_001.
+Kjør ANALYZE_SETUP_CONTEXT.py én gang via capped audit4GiB/512MiB, maksimalt900s.
+Ingen modell, checkpoint, forward, fit, featureberegning eller terskelsøk.
+
+Gruppene er låst før utfall: fire M5-nivåsituasjoner ved0..1ATR, tre M5-EMA-retninger,
+og tre kontekster fra alle fire høyereTF. Alle36kombinasjoner og UNKNOWN beholdes.
+Fraværende nullnivåer krever presence-vakt. EMA-retning bruker20/50-orden og5-barshelning.
+Tre av fire M15/H1/H4/D1 må ha samme fortegn for entydig HTF-kontekst.
+TRAIN4096 og senere4096, lagret INITIAL/FULLpass3/M5-onlypass3 og frosne tidligere priors.
+Skårer inkluderer FLAT; ukjent/uklar støtte telles. Én forhåndsvalgt samlet retningskontrast,
+med parret dag-/ukeusikkerhet. Dette er én beskrivende probe, ikke alle manuelle oppsett.
+
+Kildereview bekreftet at aktuell M5-relative HTF-ekstrem-/pivotgeometri allerede finnes.
+Det er derfor ikke påvist en generell mangel på pris mot HTF-nivåer. Lært bruk er fortsatt ubevist.
+Gjenbruk kvalifiserte253-feltscacher + eksisterende span-sidecars til dagens255felt.
+Siste rad hentes via canonical n=1-slicer; fulle modellvinduer er allerede kvalifisert.
+Ingen øvrig kjøring er admittert. Consumed sammenligningsplaner forblir stengt.
 
 ## Målt resultat fra fast sammenligning
 

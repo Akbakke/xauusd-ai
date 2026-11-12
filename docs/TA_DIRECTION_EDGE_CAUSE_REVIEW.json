@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_FIXED_BENCHMARK_COMPLETE_NO_LATER_GAIN",
+  "status": "ACTIVE_SETUP_CONTEXT_REVIEW_ADMITTED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -269,7 +269,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Address setup alignment directly: map existing causal support/resistance, ATR, EMA and higher-TF fields to the retained development predictions. Specify situation groups and frozen references before viewing group outcomes, retain all groups and inactive/ambiguous outcomes, and reuse existing inputs. No new model, training, threshold search or architectural change is admitted.",
+  "next_measurement": "Execute exactly one capped setup-context analysis of existing TRAIN/later captures and qualified input endpoints; publish all37 groups and fixed primary contrasts, then consume admission. No new model, fit, feature calculation or threshold search.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -3986,5 +3986,22 @@
     "economic_edge_established": false,
     "new_training_authorized": false,
     "next_action": "Address setup alignment directly: map existing causal support/resistance, ATR, EMA and higher-TF fields to the retained development predictions. Specify situation groups and frozen references before viewing group outcomes, retain all groups and inactive/ambiguous outcomes, and reuse existing inputs. No new model, training, threshold search or architectural change is admitted."
+  },
+  "setup_context_probe_source": {
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_SETUP_CONTEXT_20261112_001.json",
+      "sha256": "84c5445060f7cd017c6ac9223af5159c895b69b6dd038faedc87fc13e4873860"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_CONTEXT_20261112_001/SOURCE_REVIEW.json",
+      "sha256": "bb0cc971dccb760724888fbf100e9a72b64721c092f1ee5817bd4f29edaae7a7"
+    },
+    "source_semantics": [
+      "M5 registry distances use the current closed M5 close and ATR14; absent levels require explicit presence gating.",
+      "EMA distance differences preserve20/50 ordering; slope is a five-native-bar change divided by native ATR14.",
+      "HTF registry distance is not directly current M5-relative; other active fields already supply current-price-relative HTF extrema and session-pivot geometry. No general missing-geometry claim is supported."
+    ],
+    "group_outcomes_read": false,
+    "model_function_changed": false
   }
 }

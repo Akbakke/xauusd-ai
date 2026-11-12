@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-12T13:45:33.697034+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_FIXED_BENCHMARK_COMPLETE_NO_LATER_GAIN",
+  "observed_utc": "2026-11-12T14:05:30.140265+00:00",
+  "status": "TA_DIRECTION_EDGE_CAUSE_SETUP_CONTEXT_REVIEW_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Address setup alignment directly: map existing causal support/resistance, ATR, EMA and higher-TF fields to the retained development predictions. Specify situation groups and frozen references before viewing group outcomes, retain all groups and inactive/ambiguous outcomes, and reuse existing inputs. No new model, training, threshold search or architectural change is admitted.",
+  "next_action": "Execute exactly one capped setup-context analysis of existing TRAIN/later captures and qualified input endpoints; publish all37 groups and fixed primary contrasts, then consume admission. No new model, fit, feature calculation or threshold search.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -24922,7 +24922,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-12T13:45:33.697034+00:00",
+  "updated_utc": "2026-11-12T14:05:30.140265+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -64339,8 +64339,8 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "TA_DIRECTION_EDGE_CAUSE_FIXED_BENCHMARK_COMPLETE_NO_LATER_GAIN",
-  "recorded_observed_utc": "2026-11-12T13:45:33.697034+00:00",
+  "recorded_status": "TA_DIRECTION_EDGE_CAUSE_SETUP_CONTEXT_REVIEW_ADMITTED",
+  "recorded_observed_utc": "2026-11-12T14:05:30.140265+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
     "decision": "BLOCK",
@@ -75697,24 +75697,24 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_SETUP_ALIGNMENT_UNRESOLVED",
+    "status": "ACTIVE_SETUP_CONTEXT_REVIEW_ADMITTED",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
     "training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "3544491575579776d1b629bc9c61b6c351ff34c8b85f862a9b09c5b47fc4e7ff"
+      "sha256": "23b98366b27d9a2e465b1835b5e387b329406504587ac2526d6d98ccac472726"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": false,
+    "model_or_data_run_admitted": true,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Address setup alignment directly: map existing causal support/resistance, ATR, EMA and higher-TF fields to the retained development predictions. Specify situation groups and frozen references before viewing group outcomes, retain all groups and inactive/ambiguous outcomes, and reuse existing inputs. No new model, training, threshold search or architectural change is admitted.",
-    "active_stage": "market_state_ta_m5_objective_benchmark_20261112_001",
-    "previous_goal_turn_classification": "NO_PROGRESS_ADVISORY_METHOD_WITHOUT_EXECUTED_EXPERIMENT_OR_SOURCE_CHANGE",
-    "last_goal_turn_classification": "REAL_PROGRESS_MATCHED_TRAIN_GAIN_AND_LATER_PROBABILITY_REGRESSION_MEASURED",
+    "next_action": "Execute exactly one capped setup-context analysis of existing TRAIN/later captures and qualified input endpoints; publish all37 groups and fixed primary contrasts, then consume admission. No new model, fit, feature calculation or threshold search.",
+    "active_stage": "market_state_ta_setup_context_20261112_001",
+    "previous_goal_turn_classification": "PROGRESS_FIXED_COMPARISON_COMPLETE_AND_REVIEWED",
+    "last_goal_turn_classification": "IN_PROGRESS_CAUSAL_SETUP_GROUPS_DECLARED_BEFORE_OUTCOMES",
     "latest_tail_factor_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_ALL_TF_TAIL_FACTOR_REVIEW.json",
       "sha256": "5da978f765b0ad1ac001023501be7665989270d8353d768b801b9e1b29406c0f"
@@ -76107,6 +76107,18 @@
       },
       "training_authority_added": false,
       "test_data_used": false
+    },
+    "setup_context_review_20261112": {
+      "plan": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_SETUP_CONTEXT_20261112_001.json",
+        "sha256": "84c5445060f7cd017c6ac9223af5159c895b69b6dd038faedc87fc13e4873860"
+      },
+      "source_review": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_CONTEXT_20261112_001/SOURCE_REVIEW.json",
+        "sha256": "bb0cc971dccb760724888fbf100e9a72b64721c092f1ee5817bd4f29edaae7a7"
+      },
+      "status": "ADMITTED",
+      "training_enabled": false
     }
   },
   "market_state_ta_fusion_observation_20261111_001": {
@@ -76806,7 +76818,7 @@
     "unresolved_campaign_marker_preserved": true,
     "standard_campaign_receipt_available": false
   },
-  "active_stage": "market_state_ta_m5_objective_benchmark_20261112_001",
+  "active_stage": "market_state_ta_setup_context_20261112_001",
   "market_state_ta_m5_c171_short_learning_20261111_002": {
     "decision": "CLOSED",
     "status": "COMPLETE_CONSUMED",
@@ -81688,5 +81700,42 @@
         "sha256": "c7a445973bd1d779e3d48f525f0b8aba48dd795c41dac40ef5ce68d23c1e4852"
       }
     }
+  },
+  "market_state_ta_setup_context_20261112_001": {
+    "status": "ADMITTED",
+    "decision": "ADMITTED",
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_SETUP_CONTEXT_20261112_001.json",
+      "sha256": "84c5445060f7cd017c6ac9223af5159c895b69b6dd038faedc87fc13e4873860"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_CONTEXT_20261112_001/SOURCE_REVIEW.json",
+      "sha256": "bb0cc971dccb760724888fbf100e9a72b64721c092f1ee5817bd4f29edaae7a7"
+    },
+    "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_CONTEXT_20261112_001",
+    "resource_cap": {
+      "class": "audit",
+      "memory": "4G",
+      "swap": "512M",
+      "maximum_wall_seconds": 900
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "test_data_used": false,
+    "promotion_authorized": false,
+    "admission_basis": "Active direction-edge cause goal and standing local0USD authority. One prespecified retained-data descriptive probe; all model/training/trading gates remain closed.",
+    "admitted_utc": "2026-11-12T14:05:30.140265+00:00",
+    "next_action": "Execute exactly one capped setup-context analysis of existing TRAIN/later captures and qualified input endpoints; publish all37 groups and fixed primary contrasts, then consume admission. No new model, fit, feature calculation or threshold search."
   }
 }
