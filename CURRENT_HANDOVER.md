@@ -6,15 +6,15 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_ACTIVITY_SHORT_EFFECT_VERIFIED_RESIDUAL_CALIBRATION_LOCALIZED.
+TA_DIRECTION_EDGE_CAUSE_INITIAL_INPUTS_OBSERVATION_ADMITTED.
 Målet11.11 er aktivt: avklar målte årsaker til svak retningsverdi i indikatorer,
 sammensetting og læring. Korte runder er bevisst feilsøking, ikke kapasitetsdom.
 Full kvalifisert TRAIN-historikk og30–40epoker er senere skalering.
-Alle tidligere engangsplaner er konsumert; nyeste er COMPLETE/CONSUMED. Training,
+Alle tidligere treningsplaner er konsumert; nyeste fit er COMPLETE/CONSUMED. Training,
 native_training/native_launch/full_epoch er false. GX1TFActivityShortLearning001,
 GX1NonM5ShortLearning001 og begge c171-oppgavene er Disabled.
 TEST, Entry/Exit-evaluering, broker, handel, spending og promotion stengt; GC på pause.
-Ingen ny modell-/treningsjobb er innrømmet. Ingen operasjonell blokkering.
+Én lesende INITIAL-avlesning er innrømmet; ingen ny trening. Ingen operasjonell blokkering.
 
 ## Indikatorer og sammensetting
 
@@ -86,12 +86,31 @@ S/D1s isolerte eval-biasderivert med original/5 er+0,007071016initial og
 negativ derivert,49/50positiv og32tom. Færre positive bidrag veier mer samlet.
 Dette er eval-endepunkter, ikke de historiske treningsgradientene eller AdamW-stegene.
 
-Neste avgrensede arbeid er retained rekonstruksjon av S/D1-aktivitetsbiasens
-treningsderivert/klipping og AdamW-retning. TRACE har alleTFrawlogits[256,16,5,2],
-masker og256gradientnormer; direkte parametergradienter/momenter gjelder M5side.
-Kvalifiser aritmetikken mot disse fangede M5gradientene og eksisterende retained
-optimizer-replay før D1tolkning. Skill gjennomsnittlig tapspress fra oppdateringsretning
-og felles representasjon; ikke velg en ny arkitektur på antagelse. Ingen ny modellfit.
+Retained faktisk treningsgradient/Adam er nå kontrollert:1TRACE-NPZ/2CPUcheckpoints,
+0modeller/forwards/optimizerkonstruksjoner. Alle2560aktivitets-biasderiverte er
+sjekket med sentraldifferanse; maksavvik1,14e-11. M5fangede gradienter/momenter
+kvalifiserer aritmetikken. D1sluttbias matcher rekonstruksjonen innen8,23e-8.
+178negative/46positive/32tomme treningsbatcher; gjennomsnittlig derivert er positiv
+både før og etter klipping. Adam-historikk gir likevel netto positiv biasendring.
+203opp/53ned og bevegelse i32tomme batcher er rekonstruert, ikke direkte fanget.
+FP64-decaybidraget er nominelt; det er ikke målt faktiskFP32-decay.
+
+FaktiskD1bias øker0,00264197, mens gjennomsnittlig logit på2226informative rader
+øker0,52717903. Biasdelen er bare0,50115%; resterende0,52453706 blander vektendring
+og endret representasjon. Dette er additivt endepunktregnskap, ikke kausal prosent.
+Bias alene forklarer ikke problemet og gir ikke grunnlag for en biasrettelse.
+Kvittering SD1_TRAINING_OPTIMIZER_REVIEW.json7fc4a63a i samme læringsROOT.
+
+Neste kontroll fanger INITIAL-input til alle10aktivitetshoder på de samme4096radene:
+1eksisterende faktiskINITIALcheckpoint,1modell,256B16forwards,0trening/RNGrestore.
+Alle12baselinefelt og originalt tap skal være byteeksakte; kopierende hooks skal
+være passive. Deretter skilles vektendring på fast h0 fra representasjonsrest mot
+allerede lagrede FINALlogits.131fokuserte tester og metadata-preflight har bestått.
+Den nye engangsplanen e4f988f4 er ADMITTED,1invocation,0claim/0resultat så langt.
+ROOT /home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001.
+Uendret producer12GiB/512MiB,CPU0–7/pids64,8tråder;250Wlimit/170Wdraw/65Ccore/
+80Cmemory/GPU12288MiB,900sarbeider/1200svakt. Hookregistrering10/observasjoner2560.
+Ingen optimizer/backward/RNGrestore/checkpoint- eller kandidatvektskriving.
 
 ## Kvalifisering og ubeviste grenser
 
