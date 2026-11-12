@@ -848,8 +848,10 @@ def gather_native_direction_feature_batch(view, *, parent_rows, bar_start_ns, de
     at = np.searchsorted(parent_rows, selected)
     _require(np.all(at < rows) and np.array_equal(parent_rows[at], selected), 'EXACT_PARENT_IDS')
     if anchor_span:
-        # Sidecars cover this qualified TRAIN prefix only, never arbitrary OOF rows.
-        _require(np.all(at < anchor_span_inputs.fit_parent_rows), 'ANCHOR_SPAN_PREFIX_ONLY')
+        if anchor_span_inputs.later_parent_positions is None:
+            _require(np.all(at < anchor_span_inputs.fit_parent_rows), 'ANCHOR_SPAN_PREFIX_ONLY')
+        else:
+            anchor_span_inputs.require_later_batch(at, selected, decision_ns[at])
     starts, decisions = bar_start_ns[at], decision_ns[at]
     _require(np.all(starts >= 0) and np.all(starts % BAR_NS == 0) and np.all(starts <= MAX_NS - BAR_NS)
         and np.array_equal(decisions, starts + BAR_NS), 'EXACT_DECISION_CLOCK')

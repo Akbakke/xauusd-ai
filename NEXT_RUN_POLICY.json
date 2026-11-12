@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-12T05:15:29.864573+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_ANCHOR_SPAN_COMPLETE_NO_CONSISTENT_GAIN",
+  "status": "TA_DIRECTION_EDGE_CAUSE_FIXED_OBJECTIVE_BENCHMARK_SOURCE_PREPARATION",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Bind and qualify the actual expanded feature-view/gather using immutable parent arrays plus the already-qualified span sidecars and new exact normalization. Reuse original clocks, targets, all old features/statistics and completed checks; no full rebuild or old-plan relaunch. Establish a fresh actual initial model baseline only after the composed input path is qualified, then a bounded learning comparison. Normalization is qualified, model consumption and predictive benefit are not. No new data/model/training invocation is admitted; full-history30-40epochs remain later scaling.",
+  "next_action": "Prepare one fixed two-arm M5 objective benchmark: current full objective versus its existing M5-side components only. Identical features, targets, INITIAL, order and three passes; measurements at0/1/3, primary pass3. Reuse distributed4096TRAIN and qualify only fixed later4096row span coverage. No extra gradient diagnostics, full-history rebuild or indicator removal. Source preparation only; training remains disabled pending exact qualified admission.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -64331,7 +64331,7 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "TA_DIRECTION_EDGE_CAUSE_NON_M5_INITIAL_PARITY_PASS_BOUNDED_LEARNING_COMPARISON_REQUIRED",
+  "recorded_status": "TA_DIRECTION_EDGE_CAUSE_FIXED_OBJECTIVE_BENCHMARK_SOURCE_PREPARATION",
   "recorded_observed_utc": "2026-11-11T10:23:42.626649+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
@@ -75689,7 +75689,7 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_COMPOSITION_CALIBRATION_AFTER_SPAN_COMPARISON",
+    "status": "ACTIVE_FIXED_OBJECTIVE_BENCHMARK_PREPARATION",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
@@ -75703,10 +75703,10 @@
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Return directly to composition/calibration: determine what existing retained traces already establish about M5-side versus other loss-channel contributions to shared-representation updates. Reuse the completed batch-order control; do not repeat general interleaving, expand inputs or launch a model job before one exact unresolved discriminator is specified.",
+    "next_action": "Prepare one fixed two-arm M5 objective benchmark: current full objective versus its existing M5-side components only. Identical features, targets, INITIAL, order and three passes; measurements at0/1/3, primary pass3. Reuse distributed4096TRAIN and qualify only fixed later4096row span coverage. No extra gradient diagnostics, full-history rebuild or indicator removal. Source preparation only; training remains disabled pending exact qualified admission.",
     "active_stage": "market_state_ta_anchor_span_short_learning_20261112_002",
-    "previous_goal_turn_classification": "PROGRESS_FULL_PAIRED_ENDPOINTS_EXACT_AND_M5_RANK_CALIBRATION_TRADEOFF_LOCALIZED",
-    "last_goal_turn_classification": "PROGRESS_MATCHED_INITIAL_IMPORT_AND_EXISTING_SHORT_RUNNER_CONNECTED_METADATA_PREFLIGHT_PASS",
+    "previous_goal_turn_classification": "NO_PROGRESS_ADVISORY_METHOD_WITHOUT_EXECUTED_EXPERIMENT_OR_SOURCE_CHANGE",
+    "last_goal_turn_classification": "PROGRESS_M5_OBJECTIVE_COMPONENT_AND_LATER_COHORT_BINDING_IMPLEMENTED_73_FOCUSED_CHECKS_PASS",
     "latest_tail_factor_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_ALL_TF_TAIL_FACTOR_REVIEW.json",
       "sha256": "5da978f765b0ad1ac001023501be7665989270d8353d768b801b9e1b29406c0f"
@@ -75861,13 +75861,92 @@
         "sha256": "f7ba828f1aadf3aa18402b0fdab90c7a50657b1330c99dcc259f763a7d397dfb"
       }
     },
-    "next_question": "How do M5-side and other task/timeframe loss channels contribute to updates of the shared representation, given improved aggregate calibration can worsen M5 proper scores?",
+    "next_question": "Does removal of the other loss components improve matched M5 directional learning and later development scores?",
     "existing_order_control_reused": {
       "result": {
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/RESULT.json",
         "sha256": "b11a1932c924b22555bf9e848c8dea7507291c5584d0e7626de1a0f660840438"
       },
       "new_order_run_admitted": false
+    },
+    "fixed_objective_benchmark_20261112": {
+      "status": "SOURCE_PREPARATION_NOT_RUN_ADMISSION",
+      "question": "Does removal of the other loss components improve matched M5 directional learning and later development scores?",
+      "arms": [
+        "FULL_OBJECTIVE",
+        "M5_DIRECTION_ONLY"
+      ],
+      "architecture_and_all_genuine_features_unchanged": true,
+      "M5_coefficients": "Existing S1799/10010/5 and F1844/11909/5; future_weight1.0; no rescaling.",
+      "train_sample": {
+        "rows": 4096,
+        "batch_size": 16,
+        "batch_indices": "floor(i*1847/255), i=0..255",
+        "basis": "Reuse completed batch-order CONTROL selection, never its consumed admission."
+      },
+      "development_score_sample": {
+        "rows": 4096,
+        "batch_size": 16,
+        "batch_indices": "floor(i*1108/255), i=0..255",
+        "population": "Existing fold1 later17753 rows at global positions[29849,47602), 2024-10-01<=issue<2025-01-01",
+        "status": "Axes/targets exist; selected span coverage not qualified."
+      },
+      "passes_per_arm": 3,
+      "measurement_passes": [
+        0,
+        1,
+        3
+      ],
+      "primary_endpoint": "Pass3; pass1 is a prespecified learning-curve observation, not checkpoint selection.",
+      "query_policy": "Reuse original pass0 sampled queries throughout both arms and all three passes.",
+      "optimizer": "Existing AdamW initialization/settings, clipping and same RNG/order per arm.",
+      "maximum_batch_visits_per_arm": 768,
+      "empty_primary_support": "Advance cursor without optimizer step on M5-only batches with no certified M5 side; report actual steps/skips for both arms.",
+      "metrics": [
+        "M5 S/F AUC",
+        "M5 S/F Brier and log loss",
+        "all component scores/counts for tradeoff accounting",
+        "paired day/week uncertainty on development scores"
+      ],
+      "decision": "Evaluate both M5 tasks and ranking/calibration jointly; mixed/uncertain results remain inconclusive. No metric/checkpoint selection or economic-edge claim.",
+      "maximum_native_learning_arms": 2,
+      "implementation_boundary": "Reuse paired restore/fit/eval and span replay/gather; no new general framework.",
+      "new_gradient_diagnostic_workstream": false,
+      "training_enabled": false,
+      "native_training_enabled": false,
+      "test_data_used": false,
+      "started_utc": "2026-11-12T10:04:09.055596+00:00",
+      "source_preparation": "PASS:73focused synthetic cases; actual later inputs and native comparison remain unqualified.",
+      "synthetic_checks": {
+        "status": "COMPLETE",
+        "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_SOURCE_20261112_001",
+        "test_files": [
+          "tests/test_market_state_m5_direction_objective.py",
+          "tests/test_market_state_time_query_native_F_objective.py",
+          "tests/test_market_state_m5_equal_observation_loss.py",
+          "tests/test_entry_anchor_span_feature_inputs_v1.py"
+        ],
+        "native_data_reads": 0,
+        "native_model_constructions": 0,
+        "native_training_steps": 0,
+        "resource_cap": {
+          "class": "audit",
+          "memory": "4G",
+          "swap": "512M"
+        },
+        "source_test_sha256": {
+          "tests/test_market_state_m5_direction_objective.py": "679f831b4ae1daac7ee2f30bdd57a7eb006a4a8ecc1a432188ce7320362555fe",
+          "tests/test_market_state_time_query_native_F_objective.py": "6f030ae155142789f107f3b23c06a6d3b7a801fed7d7159f6a2d235a3852e0e6",
+          "tests/test_market_state_m5_equal_observation_loss.py": "ede814c28b8fdcfbd721e4f7c77e4a8e54e4acf77e6b0e69b9a1fd7b27fa9fb8",
+          "tests/test_entry_anchor_span_feature_inputs_v1.py": "57f6423ac34942da967b60d4997be91fadb8ce7419571b54ea3de1abe180a978"
+        },
+        "admitted_utc": "2026-11-12T10:12:45.501133+00:00",
+        "tests_passed": 73,
+        "review": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_SOURCE_20261112_001/SOURCE_REVIEW.json",
+          "sha256": "db742cd841260a7bbdc38df359b5a446f18d3ce99c965fdc07f9154d88808579"
+        }
+      }
     }
   },
   "market_state_ta_fusion_observation_20261111_001": {

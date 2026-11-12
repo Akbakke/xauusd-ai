@@ -41,7 +41,10 @@ def evaluate_fit_batch(model: NativeFutureDualModel, features: Mapping,
                        fold_id: int, pass_index: int, seed: int,
                        future_weight: float, m5_equal_observation: bool = False,
                        fit_batch_start: int | None = None,
-                       fit_batch_positions: np.ndarray | None = None) -> dict:
+                       fit_batch_positions: np.ndarray | None = None,
+                       m5_direction_only: bool = False) -> dict:
+    if type(m5_direction_only) is not bool or (m5_direction_only and not m5_equal_observation):
+        raise ValueError('NATIVE_F_M5_DIRECTION_ONLY_MODE')
     if type(m5_equal_observation) is not bool or (
             not m5_equal_observation
             and (fit_batch_start is not None or fit_batch_positions is not None)) or (
@@ -134,7 +137,8 @@ def evaluate_fit_batch(model: NativeFutureDualModel, features: Mapping,
         dedicated_m5_side=getattr(model.state_model, '_dedicated_m5_side', False),
         dedicated_non_m5_side=getattr(model.state_model, '_dedicated_non_m5_side', False),
         dedicated_tf_activity=getattr(model.state_model, '_dedicated_tf_activity', False),
-        m5_equal_observation=m5_equal_observation)
+        m5_equal_observation=m5_equal_observation,
+        m5_direction_only=m5_direction_only)
     return {**output, 'loss': report['loss'],
             'state_count': report['state']['count'],
             'future_count': report['future']['count'],

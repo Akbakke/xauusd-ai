@@ -6,14 +6,23 @@ NEXT_RUN_POLICY.json eier arbeidsstatus; prosess og terminal overstyrer prosa.
 
 ## Aktivt mål og neste retning
 
-TA_DIRECTION_EDGE_CAUSE_ANCHOR_SPAN_COMPLETE_NO_CONSISTENT_GAIN.
-Målet er fortsatt å avklare og rette målte svakheter i indikatorrepresentasjon,
-sammensetting og retningslæring. Den avtalte span-sammenligningen er ferdig.
-Den ga ingen konsistent forbedring; gå tilbake til målte sammensettings-/kalibreringsproblemer.
-Eksisterende konsumert batchrekkefølge-studie er kontrollert og gjenbrukes.
-Neste spørsmål: hva viser eksisterende bevis om M5-sidetap versus øvrige tapsledds
-bidrag til oppdateringene av delt representasjon? Avgrens ett uløst spørsmål før ny kode/kjøring.
-Ingen ny modell-/læringsplan er admittert. Global training/native_training er false.
+TA_DIRECTION_EDGE_CAUSE_FIXED_OBJECTIVE_BENCHMARK_SOURCE_PREPARATION.
+Målet er fortsatt å avklare og rette svak retningslæring. Span-sammenligningen er ferdig
+uten konsistent gevinst. Ny gradientdiagnostikk er satt til side.
+Neste sammenligning: dagens samlede tap mot eksisterende M5-sideledd alene, med samme
+modell, genuine inputs, INITIAL, rekkefølge og treningsbudsjett.
+Gjenbruk4096TRAIN-rader spredt over mai–september2024; span-input dekker allerede disse.
+Fast senere utviklingsutvalg:4096rader over oktober–desember2024. Bare dets span-dekning
+må kvalifiseres separat, med uendret TRAIN-normalisering. Ingen full rebuild.
+Tre passeringer per arm; måling ved0/1/3, pass3 er primært, ingen checkpointseleksjon.
+Kun kildeforberedelse nå. Ingen ny modell-/data-/læringsplan er admittert.
+Global training/native_training er false. Root eier policy og launch.
+
+M5-only tapsvalg, numerisk checkpointbinding og separat senere-inputadapter er implementert.
+73fokuserte syntetiske kontroller besto, inklusive uendret gammel tapsidentitet,
+eksakte M5-gradienter, tom støtte, initialstate/RNG og avvisning av ukvalifiserte senere rader.
+Bevis: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_SOURCE_20261112_001/SOURCE_REVIEW.json.
+Senere spanverdier er fortsatt ikke produsert; ingen prediktiv forbedring er målt i denne bølgen.
 
 Korte runder er bevisst feilsøking, ikke en dom over fullhistorikk-kapasitet.
 Kvalifisert full TRAIN-historikk og 30–40 epoker er senere skalering.

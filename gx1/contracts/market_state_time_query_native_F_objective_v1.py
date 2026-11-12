@@ -68,13 +68,20 @@ def _m5_training_profile(ta_only, dedicated_m5_side, enabled):
     return m5_equal_observation_profile() if enabled else None
 
 
+def _require_m5_direction_mode(enabled, profile):
+    if type(enabled) is not bool or (enabled and profile is None):
+        raise ValueError('NATIVE_F_M5_DIRECTION_ONLY_MODE')
+
+
 def contract(*, ta_only: bool = False, dedicated_m5_side: bool = False,
              m5_equal_observation: bool = False,
              dedicated_non_m5_side: bool = False,
-             dedicated_tf_activity: bool = False) -> dict:
+             dedicated_tf_activity: bool = False,
+             m5_direction_only: bool = False) -> dict:
     if type(ta_only) is not bool:
         raise ValueError('NATIVE_F_OBJECTIVE_PROFILE')
     profile = _m5_training_profile(ta_only, dedicated_m5_side, m5_equal_observation)
+    _require_m5_direction_mode(m5_direction_only, profile)
     value = {
         'schema_version': 'gx1_market_state_native_F_objective_candidate_v1',
         'role': 'research_only_no_fit_or_trade_authority',
@@ -99,6 +106,12 @@ def contract(*, ta_only: bool = False, dedicated_m5_side: bool = False,
         value['F_loss_contract_sha256'] = state_loss.contract(
             m5_side_normalization=profile['future'])['contract_sha256']
         value['combined_loss'] = 'M5_equal_observation_S_loss_plus_prebound_positive_weight_times_M5_equal_observation_F_loss'
+    if m5_direction_only:
+        value['m5_direction_only'] = True
+        value['combined_loss'] = 'existing_S_M5_side_plus_prebound_F_weight_times_existing_F_M5_side'
+        value['unchanged_M5_coefficients'] = 'original_q_over_N_and_TF_divisor_five'
+        value['empty_M5_side_support'] = 'skip_optimizer_update_without_imputing_direction'
+        value['other_tasks'] = 'forward_and_reporting_retained_no_direct_loss_gradient'
     raw = json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
     return {**value, 'contract_sha256': hashlib.sha256(raw).hexdigest()}
 
@@ -109,9 +122,11 @@ def combined_loss(*, state_raw: torch.Tensor, future_raw: torch.Tensor,
                   ta_only: bool = False, dedicated_m5_side: bool = False,
                   m5_equal_observation: bool = False,
                   dedicated_non_m5_side: bool = False,
-                  dedicated_tf_activity: bool = False) -> dict:
+                  dedicated_tf_activity: bool = False,
+                  m5_direction_only: bool = False) -> dict:
     """Reuse v2 masked loss on two distinct heads; weight is plan-owned."""
     profile = _m5_training_profile(ta_only, dedicated_m5_side, m5_equal_observation)
+    _require_m5_direction_mode(m5_direction_only, profile)
     if not (type(future_weight) is float and np.isfinite(future_weight)
             and 0 < future_weight <= 1
             and isinstance(state_raw, torch.Tensor)
@@ -142,15 +157,31 @@ def combined_loss(*, state_raw: torch.Tensor, future_raw: torch.Tensor,
         tensor(future_truth['mature'], 'bool'), native,
         m5_side_normalization=profile['future'] if profile is not None else None)
     total = s['loss'] + future_weight * f['loss']
+    skip_update = s['skip_update'] and f['skip_update']
+    if m5_direction_only:
+        # Keep the canonical observation masks, coefficients and TF divisor.
+        def component(raw, truth, report, normalizer):
+            target = tensor(truth['allowed'], 'uint8')[:, 0] == 4
+            cells = torch.nn.functional.binary_cross_entropy_with_logits(
+                raw[:, 0, 1], target.to(raw.dtype), reduction='none')
+            known = report['side_known_mask'][:, 0]
+            value = torch.where(known, cells, torch.zeros_like(cells)).sum()
+            return value * (normalizer['nonempty_batches']
+                            / normalizer['known_side_rows']) / len(TIMEFRAMES)
+        total = (component(state_raw, state_truth, s, profile['state'])
+                 + future_weight * component(future_raw, future_truth, f, profile['future']))
+        skip_update = not (bool(s['side_known_mask'][:, 0].any())
+                           or bool(f['side_known_mask'][:, 0].any()))
     if not bool(torch.isfinite(total)):
         raise ValueError('NATIVE_F_LOSS_NONFINITE')
     return {'loss': total, 'state': s, 'future': f,
-            'skip_update': s['skip_update'] and f['skip_update'],
+            'skip_update': skip_update,
             'future_weight': future_weight,
             'contract_sha256': contract(ta_only=ta_only, dedicated_m5_side=dedicated_m5_side,
                 m5_equal_observation=m5_equal_observation,
                 dedicated_non_m5_side=dedicated_non_m5_side,
-                dedicated_tf_activity=dedicated_tf_activity)['contract_sha256']}
+                dedicated_tf_activity=dedicated_tf_activity,
+                m5_direction_only=m5_direction_only)['contract_sha256']}
 
 
 def _weeks(issues: np.ndarray) -> np.ndarray:
