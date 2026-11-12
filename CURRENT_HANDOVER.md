@@ -119,7 +119,7 @@ Lokal replay brukte original2010-enriched opprinnelse; MTF brukte2009-native,
 begge med frosne parametre og fersk state. Bare nødvendig registryhistorikk er replayet.
 
 Råfeltene er kvalifisert; den nye komplette modellinputen er ikke ferdig bundet.
-Ingen normaliseringsfit, targetverdier, modell, checkpoint eller trening i denne runden.
+Inputkontrollen brukte ingen normaliseringsfit, targetverdier, modell, checkpoint eller trening.
 Eksisterende normalisering/checkpoints er ikke relabellet; gammel baseline er ikke ny baseline.
 
 [Normaliseringsutvidelsen](docs/TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_REVIEW.json)
