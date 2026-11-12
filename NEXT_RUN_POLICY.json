@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-11T22:53:26.085246+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_INITIAL_INPUTS_OBSERVATION_ADMITTED",
+  "status": "TA_DIRECTION_EDGE_CAUSE_REPRESENTATION_DRIFT_UPSTREAM_OF_HEADS_MEASURED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -22144,7 +22144,7 @@
     },
     "direction_edge_cause_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "1ba779d87073d1990583f080257655e2b164b002ecff11ffc660acc43f00008a"
+      "sha256": "2d5a3bd683050184bd5243a6ac492c65108995cb131f465662d3c4c6aa93e3db"
     },
     "latest_c171_startup_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_C171_SHORT_LEARNING_STARTUP_REVIEW.json",
@@ -22226,11 +22226,11 @@
     },
     "latest_tf_activity_decoder_repair": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
-      "sha256": "edde3c6f8f612401d786df082cf073c049fca12e6cc48d8b9f85e266cb294161"
+      "sha256": "23870496f91bca9658888acc864d08479d1101ec005e2e355202838c1dbe9283"
     },
     "latest_tf_activity_initial_parity": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
-      "sha256": "edde3c6f8f612401d786df082cf073c049fca12e6cc48d8b9f85e266cb294161"
+      "sha256": "23870496f91bca9658888acc864d08479d1101ec005e2e355202838c1dbe9283"
     },
     "latest_tf_activity_short_qualification": {
       "status": "PASS_SOURCE_AND_METADATA_QUALIFIED_NATIVE_NOT_ADMITTED",
@@ -22281,7 +22281,7 @@
     },
     "latest_tf_activity_short_learning": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
-      "sha256": "287a31299798d907a62e2f44a576ad1db2ec3730863a9a17f21fd19a709055b0"
+      "sha256": "6398c67d37511baa629ac9662e9c9123ce2979d1b515cdb76f6a0436c971df93"
     },
     "latest_tf_activity_residual_class_review": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/SD1_ACTIVITY_RESIDUAL_CLASS_REVIEW.json",
@@ -75625,24 +75625,24 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_INITIAL_REPRESENTATION_CAPTURE_ADMITTED",
+    "status": "ACTIVE_QUERY_PROJECTION_ENCODER_LOCALIZATION",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
     "training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "1ba779d87073d1990583f080257655e2b164b002ecff11ffc660acc43f00008a"
+      "sha256": "2d5a3bd683050184bd5243a6ac492c65108995cb131f465662d3c4c6aa93e3db"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": true,
+    "model_or_data_run_admitted": false,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Capture all10 activity-head INITIAL input representations for the same4096TRAIN rows with one existing actualINITIAL checkpoint, one read-only model and256B16 forwards; require all12 retained baseline fields and original loss byteexact plus passive hooks. Then separate head-parameter displacement on fixed h0 from residual representation change against retainedFINAL logits. No training, optimizer construction, RNG restore, combined-head architecture, full-history fit or TEST use.",
+    "next_action": "Qualify a retained-only48overlapping-row prequery pilot against the newly verified INITIAL representations/axes before interpreting it. Separate queryprojection changes from upstreambackbone/joint changes with retainedINITIAL/FINALprojection andFINALheads if parity holds. Do not extrapolate48rows to the full4096prefix or invertGELU. Fullprefixprequery input is missing; no additional native observation, training or model change is admitted. Preserve genuinefeatures/timeframes, original loss and sealedTEST; full-history30-40epoch fit remains later qualification work.",
     "active_stage": "market_state_ta_tf_activity_initial_inputs_20261112_001",
-    "previous_goal_turn_classification": "PROGRESS_ACTIVITY_ONLY_MATCHED_EFFECT_VERIFIED_AND_SD1_FLAT_REGRESSION_LOCALIZED",
-    "last_goal_turn_classification": "PROGRESS_SD1_BIAS_ATTRIBUTION_VERIFIED_ONE_INITIAL_INPUT_CAPTURE_QUALIFIED_AND_ADMITTED",
+    "previous_goal_turn_classification": "PROGRESS_SD1_BIAS_ATTRIBUTION_VERIFIED_ONE_INITIAL_INPUT_CAPTURE_QUALIFIED_AND_ADMITTED",
+    "last_goal_turn_classification": "PROGRESS_FULL_INITIAL_PARITY_AND_ORDERED_ALL20CHANNEL_ATTRIBUTION_LOCALIZE_REPRESENTATION_DRIFT",
     "latest_tail_factor_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_ALL_TF_TAIL_FACTOR_REVIEW.json",
       "sha256": "5da978f765b0ad1ac001023501be7665989270d8353d768b801b9e1b29406c0f"
@@ -75669,11 +75669,11 @@
     },
     "tf_activity_decoder_repair": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
-      "sha256": "edde3c6f8f612401d786df082cf073c049fca12e6cc48d8b9f85e266cb294161"
+      "sha256": "23870496f91bca9658888acc864d08479d1101ec005e2e355202838c1dbe9283"
     },
     "tf_activity_short_learning": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
-      "sha256": "287a31299798d907a62e2f44a576ad1db2ec3730863a9a17f21fd19a709055b0"
+      "sha256": "6398c67d37511baa629ac9662e9c9123ce2979d1b515cdb76f6a0436c971df93"
     }
   },
   "market_state_ta_fusion_observation_20261111_001": {
@@ -76926,7 +76926,7 @@
     },
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "1ba779d87073d1990583f080257655e2b164b002ecff11ffc660acc43f00008a"
+      "sha256": "2d5a3bd683050184bd5243a6ac492c65108995cb131f465662d3c4c6aa93e3db"
     },
     "full_model_constructions": 0,
     "native_model_forwards": 0,
@@ -78417,7 +78417,7 @@
     "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_MECHANICAL_20261112_001",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
-      "sha256": "edde3c6f8f612401d786df082cf073c049fca12e6cc48d8b9f85e266cb294161"
+      "sha256": "23870496f91bca9658888acc864d08479d1101ec005e2e355202838c1dbe9283"
     },
     "activity_pressure_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ACTIVITY_PRESSURE_REVIEW.json",
@@ -78956,7 +78956,7 @@
     },
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
-      "sha256": "287a31299798d907a62e2f44a576ad1db2ec3730863a9a17f21fd19a709055b0"
+      "sha256": "6398c67d37511baa629ac9662e9c9123ce2979d1b515cdb76f6a0436c971df93"
     },
     "retained_trace_coverage": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/TRACE_RETAINED_COVERAGE.json",
@@ -79257,7 +79257,7 @@
     },
     "training_enabled": false,
     "wall_seconds": 900,
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001/PLAN.json",
@@ -79268,18 +79268,36 @@
       "sha256": "58397c49a409fa06a89a829563fd1fedaf7c35a243335ac9ebc3c9cecbe6a09c"
     },
     "max_invocations": 1,
-    "remaining_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "remaining_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "backbone_encodings_authorized": 256,
-    "head_input_observations_authorized": 2560,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "backbone_encodings_authorized": 0,
+    "head_input_observations_authorized": 0,
     "candidate_weights_writes_authorized": 0,
     "backward_calls_authorized": 0,
     "optimizer_steps_authorized": 0,
-    "training_authorized": false
+    "training_authorized": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001/RESULT.json",
+      "sha256": "6aac91031b1dfdef16ddac4ff311c378ab04601cfec1f1e95ebf52b793535780"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001/TERMINAL.json",
+      "sha256": "84433f8c936a4aba446eccd69d77c80af93a69f38ed4a91fd2f23bba22ae5450"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001/CONTROLLER_RESULT.json",
+      "sha256": "8bccd017db0c9c3dd02ce9af69a6c99dbcd944521b8b0eb5191d5dd22c3175f6"
+    },
+    "source_unchanged_at_terminal": true,
+    "independent_retained_accounting": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001/AFFINE_ENDPOINT_REVIEW.json",
+      "sha256": "fb695cf6aec709661f51fd7675eadeba03d0e5aceec2bd2dc65f7d3de07058a2"
+    },
+    "next_action": "Qualify a retained-only48overlapping-row prequery pilot against the newly verified INITIAL representations/axes before interpreting it. Separate queryprojection changes from upstreambackbone/joint changes with retainedINITIAL/FINALprojection andFINALheads if parity holds. Do not extrapolate48rows to the full4096prefix or invertGELU. Fullprefixprequery input is missing; no additional native observation, training or model change is admitted. Preserve genuinefeatures/timeframes, original loss and sealedTEST; full-history30-40epoch fit remains later qualification work."
   }
 }

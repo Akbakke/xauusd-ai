@@ -6,15 +6,15 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_INITIAL_INPUTS_OBSERVATION_ADMITTED.
+TA_DIRECTION_EDGE_CAUSE_REPRESENTATION_DRIFT_UPSTREAM_OF_HEADS_MEASURED.
 Målet11.11 er aktivt: avklar målte årsaker til svak retningsverdi i indikatorer,
 sammensetting og læring. Korte runder er bevisst feilsøking, ikke kapasitetsdom.
 Full kvalifisert TRAIN-historikk og30–40epoker er senere skalering.
-Alle tidligere treningsplaner er konsumert; nyeste fit er COMPLETE/CONSUMED. Training,
+Alle tidligere engangsplaner er konsumert; nyeste observasjon er COMPLETE/CONSUMED. Training,
 native_training/native_launch/full_epoch er false. GX1TFActivityShortLearning001,
 GX1NonM5ShortLearning001 og begge c171-oppgavene er Disabled.
 TEST, Entry/Exit-evaluering, broker, handel, spending og promotion stengt; GC på pause.
-Én lesende INITIAL-avlesning er innrømmet; ingen ny trening. Ingen operasjonell blokkering.
+Ingen ny modell-/treningsjobb er innrømmet. Ingen operasjonell blokkering.
 
 ## Indikatorer og sammensetting
 
@@ -101,16 +101,41 @@ og endret representasjon. Dette er additivt endepunktregnskap, ikke kausal prose
 Bias alene forklarer ikke problemet og gir ikke grunnlag for en biasrettelse.
 Kvittering SD1_TRAINING_OPTIMIZER_REVIEW.json7fc4a63a i samme læringsROOT.
 
-Neste kontroll fanger INITIAL-input til alle10aktivitetshoder på de samme4096radene:
-1eksisterende faktiskINITIALcheckpoint,1modell,256B16forwards,0trening/RNGrestore.
-Alle12baselinefelt og originalt tap skal være byteeksakte; kopierende hooks skal
-være passive. Deretter skilles vektendring på fast h0 fra representasjonsrest mot
-allerede lagrede FINALlogits.131fokuserte tester og metadata-preflight har bestått.
-Den nye engangsplanen e4f988f4 er ADMITTED,1invocation,0claim/0resultat så langt.
+Ny lesende INITIAL-avlesning er COMPLETE/CONSUMED:1eksisterende checkpoint,
+1modell/256B16forwards/4096rader,10hooks/2560inputobservasjoner og0oppdateringer.
+Alle12baselinefelt og256originale batchtap er byteeksakte. Vekter/buffere/RNG,
+modi/flagg/identiteter/hooks er uendret;0optimizer/backward/RNGrestore/vektskriving.
 ROOT /home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001.
-Uendret producer12GiB/512MiB,CPU0–7/pids64,8tråder;250Wlimit/170Wdraw/65Ccore/
-80Cmemory/GPU12288MiB,900sarbeider/1200svakt. Hookregistrering10/observasjoner2560.
-Ingen optimizer/backward/RNGrestore/checkpoint- eller kandidatvektskriving.
+PLANe4f988f4, RESULT6aac9103, TERMINAL84433f8c; kildef5d2abe5 uendret.
+Arbeider327,54s; controller329,94s.263telemetripunkter, topper46Ccore/50Cmemory/
+132,16W/554MiB; alle vakter bevart, exit0. Opprinnelig metadataparsers formatbom
+for heartbeat/peak er bevart og korrigert i GUARD_TERMINAL_REVIEW.json; nativekvittering uendret.
+
+Etterfølgende analytisk vektregnskap fb695cf6 brukte3NPZ/2CPUcheckpoints,
+0modeller/forwards. Alle20kanaler/4kvartaler; opprinnelige B16-nevnere,/5,Fvekt1
+og M5q/N bevart. Maks initialaffin-replay4,88e-7; taps-/logitkonservering4,44e-16.
+
+| Originalt totaltap, samme4096TRAIN | Verdi |
+| --- | ---: |
+| INITIAL | 1,878002535 |
+| FINALhoder på fast INITIALrepresentasjon, analytisk | 1,871377344 |
+| Faktisk FINAL | 1,884324128 |
+
+Hodeendring på fast h0 bedrer totaltapet−0,006625191; representasjons-/avrundingsrest
+forverrer+0,012946784. D1aktivitetslogit øker0,527179: hodevekter0,103682,
+bias0,002642 og resten0,420855. På faktiskFLAT går Paktivitet88,49→89,30→93,35%.
+F/M15 PUP går53,25→55,18→69,94% mot52,08%observertUP; F/H1 går53,51→55,45→70,88%
+mot53,97%observert. Mellompunktet bruker FINALhoder på fast h0, ikke en nytrent modell.
+Representasjonsresten bedrer noen kanaler og siste to kvartaler, men forverrer andre
+og første to kvartaler. Dette er ordnet endepunktregnskap, ikke unik kausal attribusjon.
+
+Neste minste kontroll er en retained pilot på48overlappende rader med lagret input
+før queryprojection. Krev først eksakt akse-/representasjonsparitet mot den nye fangsten.
+Deretter kan endret queryprojection skilles fra tidligere backbone/joint-endring
+med eksisterende vekter.48rader kan ikke representere hele4096prefixet; fullt
+prequery-input mangler. Post-Linear+GELU kan ikke inverteres entydig. Ingen ny native-
+observasjon, trening eller modellendring er innrømmet. Parameternormer alene beviser
+ikke årsak; verken full representasjonsfrys eller bare biasrettelse er begrunnet.
 
 ## Kvalifisering og ubeviste grenser
 

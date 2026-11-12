@@ -2384,7 +2384,7 @@
   "test_data_used": false,
   "training_authorized": false,
   "promotion_authorized": false,
-  "next_action": "Capture all10 activity-head INITIAL input representations for the same4096TRAIN rows with one existing actualINITIAL checkpoint, one read-only model and256B16 forwards; require all12 retained baseline fields and original loss byteexact plus passive hooks. Then separate head-parameter displacement on fixed h0 from residual representation change against retainedFINAL logits. No training, optimizer construction, RNG restore, combined-head architecture, full-history fit or TEST use.",
+  "next_action": "Qualify a retained-only48overlapping-row prequery pilot against the newly verified INITIAL representations/axes before interpreting it. Separate queryprojection changes from upstreambackbone/joint changes with retainedINITIAL/FINALprojection andFINALheads if parity holds. Do not extrapolate48rows to the full4096prefix or invertGELU. Fullprefixprequery input is missing; no additional native observation, training or model change is admitted. Preserve genuinefeatures/timeframes, original loss and sealedTEST; full-history30-40epoch fit remains later qualification work.",
   "residual_calibration_by_fixed_quarter": {
     "state/D1/activity": {
       "CHRONOLOGICAL_Q1": {
@@ -4002,7 +4002,7 @@
     "training_authorized": false
   },
   "initial_inputs_observation": {
-    "status": "ADMITTED_ONE_READ_ONLY_ACTUAL_INITIAL_INPUT_CAPTURE",
+    "status": "COMPLETE_CONSUMED_INITIAL_INPUTS_BYTEEXACT_PASSIVE",
     "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001/PLAN.json",
@@ -4325,6 +4325,2269 @@
     "expected_bitexact_initial_batch_losses": 256,
     "passive_hooks_required": true,
     "training_authorized": false,
-    "test_data_used": false
+    "test_data_used": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001/RESULT.json",
+      "sha256": "6aac91031b1dfdef16ddac4ff311c378ab04601cfec1f1e95ebf52b793535780"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001/TERMINAL.json",
+      "sha256": "84433f8c936a4aba446eccd69d77c80af93a69f38ed4a91fd2f23bba22ae5450"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001/CONTROLLER_RESULT.json",
+      "sha256": "8bccd017db0c9c3dd02ce9af69a6c99dbcd944521b8b0eb5191d5dd22c3175f6"
+    },
+    "guard": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001/GUARD_TERMINAL_REVIEW.json",
+      "sha256": "064170e15f15f6761d885b9f3d1e7459f7e11fb799e4eb942877a580b47e1c90"
+    },
+    "source_commit": "f5d2abe55f5cb8e116af2ce09bdc6fa6d52cc2b7",
+    "counts": {
+      "archive_decodes": 1,
+      "autograd_grad_calls": 0,
+      "backbone_encodings": 256,
+      "backwards": 0,
+      "candidate_writes": 0,
+      "checkpoint_loads": 1,
+      "checkpoint_writes": 0,
+      "extra_target_gathers": 512,
+      "forward_returns": 256,
+      "head_hook_registrations": 10,
+      "head_input_observations": 2560,
+      "matched_batches": 256,
+      "model_construction_returns": 1,
+      "model_constructions": 1,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "published_npz_bytes": 21818920,
+      "resume_state_load_calls": 1,
+      "resume_state_load_returns": 1,
+      "rng_restores": 0,
+      "sampled_rows": 4096
+    },
+    "artifacts": {
+      "initial_readout_inputs": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001/TRAIN_FUSION.npz",
+        "sha256": "14c58a97f686159d4be3c5aa093c5d3dcd7f56a01e734231b263709890113ec4"
+      }
+    },
+    "passivity": {
+      "no_parameter_gradients": true,
+      "signature_unchanged": true
+    },
+    "all_initial_fields_and_loss_bitexact": true,
+    "elapsed_seconds": 327.54387873499945,
+    "source_unchanged": true,
+    "remaining_invocations": 0,
+    "relaunch_allowed": false
+  },
+  "ordered_head_representation_accounting": {
+    "status": "PASS_ORDERED_AFFINE_ENDPOINT_ACCOUNTING",
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001/AFFINE_ENDPOINT_REVIEW.json",
+      "sha256": "fb695cf6aec709661f51fd7675eadeba03d0e5aceec2bd2dc65f7d3de07058a2"
+    },
+    "script": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001/AFFINE_ENDPOINT_REVIEW.py",
+      "sha256": "d3e62a36b5b7445ba90093064e1ac3794b0044ebb0177d7db02b7a07bd4fe5b1"
+    },
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001/AFFINE_ENDPOINT_PLAN.json",
+      "sha256": "f4c5a30526c28e5234c400e72c23269aef1a69c4c80fcfdb16fcbb1b342070a0"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001/AFFINE_ENDPOINT_SOURCE_REVIEW.json",
+      "sha256": "7205ac3ee7eca386ed255dbea8906951f780b15604245e4aaa4c2c4f5e33e34a"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001/AFFINE_ENDPOINT_TERMINAL.json",
+      "sha256": "ef0c43a380ec3294ec2dbfd31e6a2f05f786fad974b4fbb1fd5da54795f39b25"
+    },
+    "counts": {
+      "npz_decodes": 3,
+      "checkpoint_decodes": 2,
+      "models": 0,
+      "forwards": 0,
+      "autograd": 0,
+      "optimizer_constructions": 0,
+      "optimizer_steps": 0,
+      "checkpoint_writes": 0
+    },
+    "maximum_initial_affine_replay_error": 4.87875314370001e-07,
+    "maximum_logit_conservation_error": 4.440892098500626e-16,
+    "maximum_independent_loss_replay_error": 4.440892098500626e-16,
+    "original_batch_loss_totals": {
+      "FULL": {
+        "initial": 1.8780025348614517,
+        "head_on_initial_inputs": 1.8713773443522543,
+        "final": 1.8843241279092635
+      },
+      "Q1": {
+        "initial": 1.8668246574966292,
+        "head_on_initial_inputs": 1.8624007598579055,
+        "final": 1.9031073897640167
+      },
+      "Q2": {
+        "initial": 2.001545919517523,
+        "head_on_initial_inputs": 2.0004974035589917,
+        "final": 2.0690915711743028
+      },
+      "Q3": {
+        "initial": 1.804752373734563,
+        "head_on_initial_inputs": 1.794147949543226,
+        "final": 1.7889205929171688
+      },
+      "Q4": {
+        "initial": 1.8388871886970917,
+        "head_on_initial_inputs": 1.8284632644488934,
+        "final": 1.7761769577815656
+      }
+    },
+    "all20channel_full_prefix": {
+      "state": {
+        "M5": {
+          "activity": {
+            "rows": 4092,
+            "observed_positive": 0.9313294232649071,
+            "initial_affine_replay_max_error": 4.87875314370001e-07,
+            "total_logit_change": 0.638299194576978,
+            "head_weight_change_at_initial_inputs": 0.1938779722321771,
+            "head_bias_change": 0.008071400225162506,
+            "head_total_change_at_initial_inputs": 0.2019493724573396,
+            "remaining_representation_and_roundoff_change": 0.43634982211963835,
+            "endpoint_scores": {
+              "initial": {
+                "mean_probability": 0.9127569054397784,
+                "brier": 0.06304341634794526,
+                "log": 0.2398765435922389
+              },
+              "head_on_initial_inputs": {
+                "mean_probability": 0.9272010517071422,
+                "brier": 0.062270216940292555,
+                "log": 0.23766916513118402
+              },
+              "final": {
+                "mean_probability": 0.9457867445393884,
+                "brier": 0.06212483109946008,
+                "log": 0.23846573455268838
+              }
+            },
+            "original_batch_loss": {
+              "initial": 0.048017612622932436,
+              "head_on_initial_inputs": 0.04757421737986529,
+              "final": 0.04773104096445392
+            },
+            "head_loss_change": -0.00044339524306714895,
+            "remaining_loss_change": 0.00015682358458863482,
+            "total_loss_change": -0.0002865716584785141
+          },
+          "side": {
+            "rows": 1378,
+            "observed_positive": 0.5217706821480407,
+            "initial_affine_replay_max_error": 3.937402201503737e-08,
+            "total_logit_change": 0.10753191689148285,
+            "head_weight_change_at_initial_inputs": 0.007763602699574999,
+            "head_bias_change": -0.00025831349194049835,
+            "head_total_change_at_initial_inputs": 0.007505289207634501,
+            "remaining_representation_and_roundoff_change": 0.10002662768384837,
+            "endpoint_scores": {
+              "initial": {
+                "mean_probability": 0.5161939128167091,
+                "brier": 0.24799851168699283,
+                "log": 0.6891366964496172
+              },
+              "head_on_initial_inputs": {
+                "mean_probability": 0.5180442639965664,
+                "brier": 0.24785364970944654,
+                "log": 0.6888450676417472
+              },
+              "final": {
+                "mean_probability": 0.542794835674244,
+                "brier": 0.24802656023179534,
+                "log": 0.689192269614916
+              }
+            },
+            "original_batch_loss": {
+              "initial": 0.13333424634006016,
+              "head_on_initial_inputs": 0.13327782196517385,
+              "final": 0.1333449986423973
+            },
+            "head_loss_change": -5.64243748863158e-05,
+            "remaining_loss_change": 6.717667722344611e-05,
+            "total_loss_change": 1.0752302337130315e-05
+          }
+        },
+        "M15": {
+          "activity": {
+            "rows": 4069,
+            "observed_positive": 0.8928483656918161,
+            "initial_affine_replay_max_error": 4.1086694713143856e-07,
+            "total_logit_change": 0.592311710229111,
+            "head_weight_change_at_initial_inputs": 0.1211374334365798,
+            "head_bias_change": 0.0024036020040512085,
+            "head_total_change_at_initial_inputs": 0.12354103544063101,
+            "remaining_representation_and_roundoff_change": 0.46877067478847995,
+            "endpoint_scores": {
+              "initial": {
+                "mean_probability": 0.8957577620205734,
+                "brier": 0.08163294878719625,
+                "log": 0.2756087294483309
+              },
+              "head_on_initial_inputs": {
+                "mean_probability": 0.9035079557615242,
+                "brier": 0.08172135063165134,
+                "log": 0.2741405754559494
+              },
+              "final": {
+                "mean_probability": 0.9283810303098646,
+                "brier": 0.0827113401733183,
+                "log": 0.27326240734856283
+              }
+            },
+            "original_batch_loss": {
+              "initial": 0.05553520899872795,
+              "head_on_initial_inputs": 0.055248897206129285,
+              "final": 0.055114530419263424
+            },
+            "head_loss_change": -0.0002863117925986647,
+            "remaining_loss_change": -0.000134366786865861,
+            "total_loss_change": -0.0004206785794645257
+          },
+          "side": {
+            "rows": 1486,
+            "observed_positive": 0.5114401076716016,
+            "initial_affine_replay_max_error": 2.481964858080943e-07,
+            "total_logit_change": -0.3528592017495536,
+            "head_weight_change_at_initial_inputs": -0.031990067345642345,
+            "head_bias_change": 0.000762108713388443,
+            "head_total_change_at_initial_inputs": -0.031227958632253902,
+            "remaining_representation_and_roundoff_change": -0.3216312431172996,
+            "endpoint_scores": {
+              "initial": {
+                "mean_probability": 0.6018645987181805,
+                "brier": 0.25432336832141694,
+                "log": 0.7040692047340094
+              },
+              "head_on_initial_inputs": {
+                "mean_probability": 0.5946229493409809,
+                "brier": 0.2528176319852988,
+                "log": 0.7006801848593124
+              },
+              "final": {
+                "mean_probability": 0.5190689686549309,
+                "brier": 0.24626778593579973,
+                "log": 0.6858905397273299
+              }
+            },
+            "original_batch_loss": {
+              "initial": 0.11360099422221556,
+              "head_on_initial_inputs": 0.11311086917893712,
+              "final": 0.11080300209227173
+            },
+            "head_loss_change": -0.0004901250432784443,
+            "remaining_loss_change": -0.0023078670866653883,
+            "total_loss_change": -0.0027979921299438326
+          }
+        },
+        "H1": {
+          "activity": {
+            "rows": 3967,
+            "observed_positive": 0.8651373834131586,
+            "initial_affine_replay_max_error": 4.4416173894390454e-07,
+            "total_logit_change": 0.43249438214368174,
+            "head_weight_change_at_initial_inputs": -0.012344469820788323,
+            "head_bias_change": -0.002484675496816635,
+            "head_total_change_at_initial_inputs": -0.01482914531760496,
+            "remaining_representation_and_roundoff_change": 0.4473235274612867,
+            "endpoint_scores": {
+              "initial": {
+                "mean_probability": 0.893733342572739,
+                "brier": 0.09438243792085883,
+                "log": 0.3059583987489939
+              },
+              "head_on_initial_inputs": {
+                "mean_probability": 0.8901460995964685,
+                "brier": 0.09312707539912393,
+                "log": 0.3023645607159529
+              },
+              "final": {
+                "mean_probability": 0.9168786186114065,
+                "brier": 0.09417627705932606,
+                "log": 0.29859620063620157
+              }
+            },
+            "original_batch_loss": {
+              "initial": 0.0635434162496349,
+              "head_on_initial_inputs": 0.062736599763067,
+              "final": 0.06214733534284404
+            },
+            "head_loss_change": -0.000806816486567899,
+            "remaining_loss_change": -0.0005892644202229597,
+            "total_loss_change": -0.0013960809067908586
+          },
+          "side": {
+            "rows": 1501,
+            "observed_positive": 0.5369753497668222,
+            "initial_affine_replay_max_error": 2.836049017851394e-07,
+            "total_logit_change": -0.3937657407356512,
+            "head_weight_change_at_initial_inputs": -0.03346567415412325,
+            "head_bias_change": 0.000762108713388443,
+            "head_total_change_at_initial_inputs": -0.03270356544073481,
+            "remaining_representation_and_roundoff_change": -0.36106217529491635,
+            "endpoint_scores": {
+              "initial": {
+                "mean_probability": 0.615400621858872,
+                "brier": 0.23141607438429146,
+                "log": 0.6548571471729725
+              },
+              "head_on_initial_inputs": {
+                "mean_probability": 0.607848466210953,
+                "brier": 0.2295687547971338,
+                "log": 0.6509935732712052
+              },
+              "final": {
+                "mean_probability": 0.5234375865631464,
+                "brier": 0.22291516134966097,
+                "log": 0.6373140340693318
+              }
+            },
+            "original_batch_loss": {
+              "initial": 0.08317821612133469,
+              "head_on_initial_inputs": 0.08275475598115989,
+              "final": 0.08099177796644173
+            },
+            "head_loss_change": -0.0004234601401748028,
+            "remaining_loss_change": -0.0017629780147181556,
+            "total_loss_change": -0.0021864381548929585
+          }
+        },
+        "H4": {
+          "activity": {
+            "rows": 3683,
+            "observed_positive": 0.9046972576703775,
+            "initial_affine_replay_max_error": 4.3065790222840405e-07,
+            "total_logit_change": 0.5528777009065857,
+            "head_weight_change_at_initial_inputs": 0.10553552873978647,
+            "head_bias_change": 0.0010179653763771057,
+            "head_total_change_at_initial_inputs": 0.10655349411616358,
+            "remaining_representation_and_roundoff_change": 0.4463242067904222,
+            "endpoint_scores": {
+              "initial": {
+                "mean_probability": 0.9143664095701206,
+                "brier": 0.072730322235158,
+                "log": 0.2517046734895245
+              },
+              "head_on_initial_inputs": {
+                "mean_probability": 0.9200786539782548,
+                "brier": 0.07279449215510425,
+                "log": 0.2506690118818482
+              },
+              "final": {
+                "mean_probability": 0.9405833556955798,
+                "brier": 0.07487029866338789,
+                "log": 0.2537968776728123
+              }
+            },
+            "original_batch_loss": {
+              "initial": 0.05289659390258019,
+              "head_on_initial_inputs": 0.05268604099151923,
+              "final": 0.0531975266829067
+            },
+            "head_loss_change": -0.00021055291106095858,
+            "remaining_loss_change": 0.0005114856913874671,
+            "total_loss_change": 0.00030093278032650855
+          },
+          "side": {
+            "rows": 1691,
+            "observed_positive": 0.651685393258427,
+            "initial_affine_replay_max_error": 2.628240074464827e-07,
+            "total_logit_change": -0.34565095635850285,
+            "head_weight_change_at_initial_inputs": -0.0280202312289487,
+            "head_bias_change": 0.000762108713388443,
+            "head_total_change_at_initial_inputs": -0.027258122515560257,
+            "remaining_representation_and_roundoff_change": -0.3183928338429426,
+            "endpoint_scores": {
+              "initial": {
+                "mean_probability": 0.6237043709868403,
+                "brier": 0.21427670100704158,
+                "log": 0.6188665713865986
+              },
+              "head_on_initial_inputs": {
+                "mean_probability": 0.6174399481030134,
+                "brier": 0.21359049892766663,
+                "log": 0.6173909848616369
+              },
+              "final": {
+                "mean_probability": 0.5429309964222917,
+                "brier": 0.2101054450807272,
+                "log": 0.6100640766123027
+              }
+            },
+            "original_batch_loss": {
+              "initial": 0.08352226061771068,
+              "head_on_initial_inputs": 0.08337379485054591,
+              "final": 0.08220146059496855
+            },
+            "head_loss_change": -0.00014846576716476267,
+            "remaining_loss_change": -0.001172334255577362,
+            "total_loss_change": -0.0013208000227421246
+          }
+        },
+        "D1": {
+          "activity": {
+            "rows": 2226,
+            "observed_positive": 0.9034141958670261,
+            "initial_affine_replay_max_error": 4.478302111365906e-07,
+            "total_logit_change": 0.5271790306228619,
+            "head_weight_change_at_initial_inputs": 0.10368184376052533,
+            "head_bias_change": 0.0026419684290885925,
+            "head_total_change_at_initial_inputs": 0.10632381218961391,
+            "remaining_representation_and_roundoff_change": 0.42085521843324797,
+            "endpoint_scores": {
+              "initial": {
+                "mean_probability": 0.9137246638322357,
+                "brier": 0.08695416603838257,
+                "log": 0.3190457970487048
+              },
+              "head_on_initial_inputs": {
+                "mean_probability": 0.9209719356830761,
+                "brier": 0.0867157493939836,
+                "log": 0.3198531824492286
+              },
+              "final": {
+                "mean_probability": 0.940051826815772,
+                "brier": 0.09123883277367127,
+                "log": 0.3521237231528151
+              }
+            },
+            "original_batch_loss": {
+              "initial": 0.06951322589406041,
+              "head_on_initial_inputs": 0.07016596487104804,
+              "final": 0.07871083710467132
+            },
+            "head_loss_change": 0.0006527389769876296,
+            "remaining_loss_change": 0.008544872233623282,
+            "total_loss_change": 0.009197611210610912
+          },
+          "side": {
+            "rows": 1130,
+            "observed_positive": 0.6884955752212389,
+            "initial_affine_replay_max_error": 2.5575164230851044e-07,
+            "total_logit_change": -0.24246153404557072,
+            "head_weight_change_at_initial_inputs": -0.01708911897492832,
+            "head_bias_change": 0.000762108713388443,
+            "head_total_change_at_initial_inputs": -0.016327010261539876,
+            "remaining_representation_and_roundoff_change": -0.22613452378403087,
+            "endpoint_scores": {
+              "initial": {
+                "mean_probability": 0.622830188582659,
+                "brier": 0.19953007143517265,
+                "log": 0.5880467066784237
+              },
+              "head_on_initial_inputs": {
+                "mean_probability": 0.6191330212191118,
+                "brier": 0.19974228368384947,
+                "log": 0.5885748460070078
+              },
+              "final": {
+                "mean_probability": 0.5664035660660217,
+                "brier": 0.2022163285435708,
+                "log": 0.5942061004604584
+              }
+            },
+            "original_batch_loss": {
+              "initial": 0.07007160324439063,
+              "head_on_initial_inputs": 0.0701858557584067,
+              "final": 0.07104577021682296
+            },
+            "head_loss_change": 0.00011425251401607495,
+            "remaining_loss_change": 0.0008599144584162527,
+            "total_loss_change": 0.0009741669724323276
+          }
+        }
+      },
+      "future": {
+        "M5": {
+          "activity": {
+            "rows": 4096,
+            "observed_positive": 0.4013671875,
+            "initial_affine_replay_max_error": 2.05340621617367e-07,
+            "total_logit_change": 0.2295323161761189,
+            "head_weight_change_at_initial_inputs": 0.04577661195893843,
+            "head_bias_change": 0.0032511726021766663,
+            "head_total_change_at_initial_inputs": 0.049027784561115104,
+            "remaining_representation_and_roundoff_change": 0.18050453161500382,
+            "endpoint_scores": {
+              "initial": {
+                "mean_probability": 0.36387800715706475,
+                "brier": 0.24174487546310663,
+                "log": 0.6774377239027225
+              },
+              "head_on_initial_inputs": {
+                "mean_probability": 0.3740764780260756,
+                "brier": 0.24030587626678573,
+                "log": 0.6739511084311309
+              },
+              "final": {
+                "mean_probability": 0.4182165502361428,
+                "brier": 0.24345684824182742,
+                "log": 0.6803662195134522
+              }
+            },
+            "original_batch_loss": {
+              "initial": 0.1354875447805445,
+              "head_on_initial_inputs": 0.13479022168622617,
+              "final": 0.13607324390269043
+            },
+            "head_loss_change": -0.0006973230943183306,
+            "remaining_loss_change": 0.001283022216464258,
+            "total_loss_change": 0.0005856991221459273
+          },
+          "side": {
+            "rows": 1644,
+            "observed_positive": 0.5139902676399026,
+            "initial_affine_replay_max_error": 2.52781590104334e-08,
+            "total_logit_change": 0.08466238821029591,
+            "head_weight_change_at_initial_inputs": 0.01273917054085308,
+            "head_bias_change": 7.580779492855072e-05,
+            "head_total_change_at_initial_inputs": 0.012814978335781631,
+            "remaining_representation_and_roundoff_change": 0.07184740987451427,
+            "endpoint_scores": {
+              "initial": {
+                "mean_probability": 0.5086802205239992,
+                "brier": 0.2487881891458932,
+                "log": 0.6907220094505501
+              },
+              "head_on_initial_inputs": {
+                "mean_probability": 0.5118696645584603,
+                "brier": 0.24848792046389648,
+                "log": 0.690119704809289
+              },
+              "final": {
+                "mean_probability": 0.5297187406982957,
+                "brier": 0.24821835097968076,
+                "log": 0.6895720148600583
+              }
+            },
+            "original_batch_loss": {
+              "initial": 0.13736647687946635,
+              "head_on_initial_inputs": 0.13724669429624736,
+              "final": 0.13713777314168918
+            },
+            "head_loss_change": -0.00011978258321898583,
+            "remaining_loss_change": -0.00010892115455818363,
+            "total_loss_change": -0.00022870373777716946
+          }
+        },
+        "M15": {
+          "activity": {
+            "rows": 4068,
+            "observed_positive": 0.35398230088495575,
+            "initial_affine_replay_max_error": 1.8997483297589213e-07,
+            "total_logit_change": 0.20623613107993452,
+            "head_weight_change_at_initial_inputs": 0.001658377983379125,
+            "head_bias_change": -0.0013206042349338531,
+            "head_total_change_at_initial_inputs": 0.00033777374844527183,
+            "remaining_representation_and_roundoff_change": 0.20589835733148923,
+            "endpoint_scores": {
+              "initial": {
+                "mean_probability": 0.3408093300378893,
+                "brier": 0.21589105435305808,
+                "log": 0.6207153293167385
+              },
+              "head_on_initial_inputs": {
+                "mean_probability": 0.34155907279699976,
+                "brier": 0.21526920585319376,
+                "log": 0.6192699080477557
+              },
+              "final": {
+                "mean_probability": 0.39103855589621356,
+                "brier": 0.21715372296676477,
+                "log": 0.6236327082948818
+              }
+            },
+            "original_batch_loss": {
+              "initial": 0.12393156383500212,
+              "head_on_initial_inputs": 0.1236381393181963,
+              "final": 0.12451413717392401
+            },
+            "head_loss_change": -0.0002934245168058208,
+            "remaining_loss_change": 0.0008759978557277143,
+            "total_loss_change": 0.0005825733389218934
+          },
+          "side": {
+            "rows": 1440,
+            "observed_positive": 0.5208333333333334,
+            "initial_affine_replay_max_error": 2.1697716745538997e-07,
+            "total_logit_change": 0.850226297436489,
+            "head_weight_change_at_initial_inputs": 0.08255871198199614,
+            "head_bias_change": 0.0026471763849258423,
+            "head_total_change_at_initial_inputs": 0.085205888366922,
+            "remaining_representation_and_roundoff_change": 0.7650204090695669,
+            "endpoint_scores": {
+              "initial": {
+                "mean_probability": 0.532502269053532,
+                "brier": 0.2566363985108514,
+                "log": 0.7078569011909971
+              },
+              "head_on_initial_inputs": {
+                "mean_probability": 0.5517657729604671,
+                "brier": 0.25810016495790133,
+                "log": 0.7113573143256513
+              },
+              "final": {
+                "mean_probability": 0.6993897266068076,
+                "brier": 0.29071005776161696,
+                "log": 0.8131007395016019
+              }
+            },
+            "original_batch_loss": {
+              "initial": 0.12956994229460167,
+              "head_on_initial_inputs": 0.12992417031913892,
+              "final": 0.1466794163407961
+            },
+            "head_loss_change": 0.00035422802453724533,
+            "remaining_loss_change": 0.016755246021657177,
+            "total_loss_change": 0.017109474046194423
+          }
+        },
+        "H1": {
+          "activity": {
+            "rows": 3936,
+            "observed_positive": 0.3648373983739837,
+            "initial_affine_replay_max_error": 1.758963468212471e-07,
+            "total_logit_change": 0.20915732476614204,
+            "head_weight_change_at_initial_inputs": -0.027626030620972287,
+            "head_bias_change": -0.0021742619574069977,
+            "head_total_change_at_initial_inputs": -0.029800292578379284,
+            "remaining_representation_and_roundoff_change": 0.2389576173445213,
+            "endpoint_scores": {
+              "initial": {
+                "mean_probability": 0.32922125261728186,
+                "brier": 0.21691430423681096,
+                "log": 0.6220982236091821
+              },
+              "head_on_initial_inputs": {
+                "mean_probability": 0.3239960657879452,
+                "brier": 0.21644065976913873,
+                "log": 0.620803023461321
+              },
+              "final": {
+                "mean_probability": 0.3805862581777235,
+                "brier": 0.2106476603984219,
+                "log": 0.6091759408292267
+              }
+            },
+            "original_batch_loss": {
+              "initial": 0.12196069618724192,
+              "head_on_initial_inputs": 0.12160444566513368,
+              "final": 0.11957867353365043
+            },
+            "head_loss_change": -0.0003562505221082479,
+            "remaining_loss_change": -0.00202577213148325,
+            "total_loss_change": -0.002382022653591498
+          },
+          "side": {
+            "rows": 1436,
+            "observed_positive": 0.5396935933147632,
+            "initial_affine_replay_max_error": 3.1302174807734673e-07,
+            "total_logit_change": 0.8989224524320231,
+            "head_weight_change_at_initial_inputs": 0.08344582103243584,
+            "head_bias_change": 0.0026471763849258423,
+            "head_total_change_at_initial_inputs": 0.08609299741736168,
+            "remaining_representation_and_roundoff_change": 0.8128294550146614,
+            "endpoint_scores": {
+              "initial": {
+                "mean_probability": 0.5351192979929198,
+                "brier": 0.2517109429155186,
+                "log": 0.6971071880607855
+              },
+              "head_on_initial_inputs": {
+                "mean_probability": 0.5544947054559448,
+                "brier": 0.2524160556822015,
+                "log": 0.6988261251500267
+              },
+              "final": {
+                "mean_probability": 0.7087735679157123,
+                "brier": 0.2754773725996659,
+                "log": 0.7783268337322586
+              }
+            },
+            "original_batch_loss": {
+              "initial": 0.10513937204275828,
+              "head_on_initial_inputs": 0.1054110548678842,
+              "final": 0.1180306399211655
+            },
+            "head_loss_change": 0.00027168282512592123,
+            "remaining_loss_change": 0.012619585053281299,
+            "total_loss_change": 0.01289126787840722
+          }
+        },
+        "H4": {
+          "activity": {
+            "rows": 3811,
+            "observed_positive": 0.36945683547625296,
+            "initial_affine_replay_max_error": 1.838803882492357e-07,
+            "total_logit_change": 0.2633942515322681,
+            "head_weight_change_at_initial_inputs": 0.025229803356051076,
+            "head_bias_change": -0.0004269741475582123,
+            "head_total_change_at_initial_inputs": 0.024802829208492864,
+            "remaining_representation_and_roundoff_change": 0.23859142232377523,
+            "endpoint_scores": {
+              "initial": {
+                "mean_probability": 0.3303719761642864,
+                "brier": 0.22192760928222807,
+                "log": 0.6327888849964393
+              },
+              "head_on_initial_inputs": {
+                "mean_probability": 0.33669809250397703,
+                "brier": 0.22071458592480792,
+                "log": 0.6300344620651264
+              },
+              "final": {
+                "mean_probability": 0.39378502702771223,
+                "brier": 0.21965584737206084,
+                "log": 0.6287165084867637
+              }
+            },
+            "original_batch_loss": {
+              "initial": 0.12323158724177843,
+              "head_on_initial_inputs": 0.12268358338193386,
+              "final": 0.12203187221611292
+            },
+            "head_loss_change": -0.0005480038598445758,
+            "remaining_loss_change": -0.0006517111658209396,
+            "total_loss_change": -0.0011997150256655154
+          },
+          "side": {
+            "rows": 1408,
+            "observed_positive": 0.6292613636363636,
+            "initial_affine_replay_max_error": 2.4999186032381715e-07,
+            "total_logit_change": 0.8801689526166725,
+            "head_weight_change_at_initial_inputs": 0.08558268751168298,
+            "head_bias_change": 0.0026471763849258423,
+            "head_total_change_at_initial_inputs": 0.08822986389660882,
+            "remaining_representation_and_roundoff_change": 0.7919390887200636,
+            "endpoint_scores": {
+              "initial": {
+                "mean_probability": 0.5474670299522522,
+                "brier": 0.22047203749132827,
+                "log": 0.6306516702552355
+              },
+              "head_on_initial_inputs": {
+                "mean_probability": 0.5672658853949274,
+                "brier": 0.21750024194886627,
+                "log": 0.6240194954268689
+              },
+              "final": {
+                "mean_probability": 0.7136803153999897,
+                "brier": 0.20958360409182247,
+                "log": 0.6110564295256516
+              }
+            },
+            "original_batch_loss": {
+              "initial": 0.07726836743125273,
+              "head_on_initial_inputs": 0.07628073730465428,
+              "final": 0.07277357144570186
+            },
+            "head_loss_change": -0.0009876301265984572,
+            "remaining_loss_change": -0.0035071658589524157,
+            "total_loss_change": -0.004494795985550873
+          }
+        },
+        "D1": {
+          "activity": {
+            "rows": 3271,
+            "observed_positive": 0.3518801589727912,
+            "initial_affine_replay_max_error": 1.783478922323667e-07,
+            "total_logit_change": 0.16533418578183712,
+            "head_weight_change_at_initial_inputs": -0.055328689340567304,
+            "head_bias_change": 0.0007300712168216705,
+            "head_total_change_at_initial_inputs": -0.05459861812374563,
+            "remaining_representation_and_roundoff_change": 0.21993280390558279,
+            "endpoint_scores": {
+              "initial": {
+                "mean_probability": 0.33943950211225576,
+                "brier": 0.23504174933369001,
+                "log": 0.6665722024305764
+              },
+              "head_on_initial_inputs": {
+                "mean_probability": 0.3268938122336931,
+                "brier": 0.2325512725119847,
+                "log": 0.6609835021752851
+              },
+              "final": {
+                "mean_probability": 0.37890433466532736,
+                "brier": 0.22422184558255018,
+                "log": 0.6415650197269087
+              }
+            },
+            "original_batch_loss": {
+              "initial": 0.10737924020448653,
+              "head_on_initial_inputs": 0.10645885080647735,
+              "final": 0.10336484225609882
+            },
+            "head_loss_change": -0.0009203893980091749,
+            "remaining_loss_change": -0.0030940085503785297,
+            "total_loss_change": -0.004014397948387705
+          },
+          "side": {
+            "rows": 1151,
+            "observed_positive": 0.7827975673327541,
+            "initial_affine_replay_max_error": 2.475320917127988e-07,
+            "total_logit_change": 0.9734907014235582,
+            "head_weight_change_at_initial_inputs": 0.08072307059479246,
+            "head_bias_change": 0.0026471763849258423,
+            "head_total_change_at_initial_inputs": 0.0833702469797183,
+            "remaining_representation_and_roundoff_change": 0.89012045444384,
+            "endpoint_scores": {
+              "initial": {
+                "mean_probability": 0.5328819068320575,
+                "brier": 0.20994892538466642,
+                "log": 0.6087814187792996
+              },
+              "head_on_initial_inputs": {
+                "mean_probability": 0.5516551965632521,
+                "brier": 0.20113544133034694,
+                "log": 0.5892185283479442
+              },
+              "final": {
+                "mean_probability": 0.7224992144068897,
+                "brier": 0.1153402843022488,
+                "log": 0.382746058589832
+              }
+            },
+            "original_batch_loss": {
+              "initial": 0.0434543657506718,
+              "head_on_initial_inputs": 0.042224628760509864,
+              "final": 0.028851677950392608
+            },
+            "head_loss_change": -0.0012297369901619337,
+            "remaining_loss_change": -0.013372950810117256,
+            "total_loss_change": -0.01460268780027919
+          }
+        }
+      }
+    },
+    "three_residual_channels_by_class_and_quarter": {
+      "state_D1_activity": {
+        "FULL": {
+          "groups": {
+            "ALL": {
+              "rows": 2226,
+              "observed_positive": 0.9034141958670261,
+              "initial_logit": 2.6315024701706053,
+              "final_logit": 3.158681500793467,
+              "total_logit_change": 0.5271790306228619,
+              "head_weight_change_at_initial_inputs": 0.10368184376052533,
+              "head_bias_change": 0.0026419684290885925,
+              "head_total_change_at_initial_inputs": 0.10632381218961391,
+              "remaining_representation_and_roundoff_change": 0.42085521843324797,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.9137246638322357,
+                  "brier": 0.08695416603838257,
+                  "log": 0.3190457970487048
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.9209719356830761,
+                  "brier": 0.0867157493939836,
+                  "log": 0.3198531824492286
+                },
+                "final": {
+                  "mean_probability": 0.940051826815772,
+                  "brier": 0.09123883277367127,
+                  "log": 0.3521237231528151
+                }
+              }
+            },
+            "POSITIVE": {
+              "rows": 2011,
+              "observed_positive": 1.0,
+              "initial_logit": 2.663370160559171,
+              "final_logit": 3.177735125437594,
+              "total_logit_change": 0.5143649648784228,
+              "head_weight_change_at_initial_inputs": 0.10489417784387246,
+              "head_bias_change": 0.0026419684290885925,
+              "head_total_change_at_initial_inputs": 0.10753614627296106,
+              "remaining_representation_and_roundoff_change": 0.4068288186054618,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.9168089118895223,
+                  "brier": 0.011552546956198024,
+                  "log": 0.08989437529472509
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.9239641122176299,
+                  "brier": 0.009841042001251186,
+                  "log": 0.08169180610017938
+                },
+                "final": {
+                  "mean_probability": 0.9407474650942683,
+                  "brier": 0.007403237440234065,
+                  "log": 0.06351037440078439
+                }
+              }
+            },
+            "NEGATIVE": {
+              "rows": 215,
+              "observed_positive": 0.0,
+              "initial_logit": 2.333428398675697,
+              "final_logit": 2.9804636442384056,
+              "total_logit_change": 0.6470352455627086,
+              "head_weight_change_at_initial_inputs": 0.09234229100884586,
+              "head_bias_change": 0.0026419684290885925,
+              "head_total_change_at_initial_inputs": 0.09498425943793445,
+              "remaining_representation_and_roundoff_change": 0.5520509861247742,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.8848761854917552,
+                  "brier": 0.7922223333605832,
+                  "log": 2.462410955873138
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.8929846472598776,
+                  "brier": 0.8057624310999599,
+                  "log": 2.5474928468117297
+                },
+                "final": {
+                  "mean_probability": 0.9335451822666734,
+                  "brier": 0.8753940988924722,
+                  "log": 3.0516653247357626
+                }
+              }
+            }
+          },
+          "original_batch_loss": {
+            "initial": 0.06951322589406041,
+            "head_on_initial_inputs": 0.07016596487104804,
+            "final": 0.07871083710467132
+          },
+          "head_loss_change": 0.0006527389769876296,
+          "remaining_loss_change": 0.008544872233623282,
+          "total_loss_change": 0.009197611210610912
+        },
+        "Q1": {
+          "groups": {
+            "ALL": {
+              "rows": 764,
+              "observed_positive": 0.9895287958115183,
+              "initial_logit": 2.7372430121399347,
+              "final_logit": 3.0146038784250537,
+              "total_logit_change": 0.27736086628511936,
+              "head_weight_change_at_initial_inputs": 0.1058348395308083,
+              "head_bias_change": 0.0026419684290885925,
+              "head_total_change_at_initial_inputs": 0.10847680795989689,
+              "remaining_representation_and_roundoff_change": 0.1688840583252225,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.9218076736728715,
+                  "brier": 0.01997239419788591,
+                  "log": 0.1152915029637705
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.9286454092584981,
+                  "brier": 0.018490738496715543,
+                  "log": 0.10863125839927396
+                },
+                "final": {
+                  "mean_probability": 0.9303909416705564,
+                  "brier": 0.0194226867748201,
+                  "log": 0.10885779027546943
+                }
+              }
+            },
+            "POSITIVE": {
+              "rows": 756,
+              "observed_positive": 1.0,
+              "initial_logit": 2.734904684875377,
+              "final_logit": 3.012602833449525,
+              "total_logit_change": 0.27769814857414793,
+              "head_weight_change_at_initial_inputs": 0.10582246420747281,
+              "head_bias_change": 0.0026419684290885925,
+              "head_total_change_at_initial_inputs": 0.1084644326365614,
+              "remaining_representation_and_roundoff_change": 0.16923371593758652,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.9215120064743558,
+                  "brier": 0.010637644792719085,
+                  "log": 0.08466157197101615
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.9283697062518675,
+                  "brier": 0.009040672823577905,
+                  "log": 0.07682567473702391
+                },
+                "final": {
+                  "mean_probability": 0.9300831084893805,
+                  "brier": 0.009885230978873706,
+                  "log": 0.07566979017575509
+                }
+              }
+            },
+            "NEGATIVE": {
+              "rows": 8,
+              "observed_positive": 0.0,
+              "initial_logit": 2.9582149386405945,
+              "final_logit": 3.2037026286125183,
+              "total_logit_change": 0.24548768997192383,
+              "head_weight_change_at_initial_inputs": 0.10700430758601295,
+              "head_bias_change": 0.0026419684290885925,
+              "head_total_change_at_initial_inputs": 0.10964627601510155,
+              "remaining_representation_and_roundoff_change": 0.1358414139568223,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.9497482239326034,
+                  "brier": 0.902106212986151,
+                  "log": 3.0098199817790574
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.954699343385081,
+                  "brier": 0.9115219446082222,
+                  "log": 3.114258914481903
+                },
+                "final": {
+                  "mean_probability": 0.9594811772916587,
+                  "brier": 0.9207122594917537,
+                  "log": 3.2451237996984754
+                }
+              }
+            }
+          },
+          "original_batch_loss": {
+            "initial": 0.021539247903806253,
+            "head_on_initial_inputs": 0.02014759675102437,
+            "final": 0.01980955680436982
+          },
+          "head_loss_change": -0.0013916511527818816,
+          "remaining_loss_change": -0.00033803994665455167,
+          "total_loss_change": -0.0017296910994364333
+        },
+        "Q2": {
+          "groups": {
+            "ALL": {
+              "rows": 665,
+              "observed_positive": 0.6887218045112782,
+              "initial_logit": 2.409153622657733,
+              "final_logit": 3.073638305897103,
+              "total_logit_change": 0.6644846832393704,
+              "head_weight_change_at_initial_inputs": 0.09748979077986626,
+              "head_bias_change": 0.0026419684290885925,
+              "head_total_change_at_initial_inputs": 0.10013175920895485,
+              "remaining_representation_and_roundoff_change": 0.5643529240304155,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.8981699703193892,
+                  "brier": 0.2542811502508319,
+                  "log": 0.8302920626280267
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.9061455067660574,
+                  "brier": 0.2572293849363997,
+                  "log": 0.8503365943135655
+                },
+                "final": {
+                  "mean_probability": 0.9399866551732908,
+                  "brier": 0.2757817683848868,
+                  "log": 0.9887254528134317
+                }
+              }
+            },
+            "POSITIVE": {
+              "rows": 458,
+              "observed_positive": 1.0,
+              "initial_logit": 2.4542920804830617,
+              "final_logit": 3.1196493688629183,
+              "total_logit_change": 0.6653572883798566,
+              "head_weight_change_at_initial_inputs": 0.10007238594409892,
+              "head_bias_change": 0.0026419684290885925,
+              "head_total_change_at_initial_inputs": 0.10271435437318752,
+              "remaining_representation_and_roundoff_change": 0.5626429340066691,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.9053114326924179,
+                  "brier": 0.013069897266740186,
+                  "log": 0.1021930698452959
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.9131717414533518,
+                  "brier": 0.011158938543843302,
+                  "log": 0.09318110146256371
+                },
+                "final": {
+                  "mean_probability": 0.9433510063782466,
+                  "brier": 0.005569525742362936,
+                  "log": 0.05972788580858276
+                }
+              }
+            },
+            "NEGATIVE": {
+              "rows": 207,
+              "observed_positive": 0.0,
+              "initial_logit": 2.3092820589669083,
+              "final_logit": 2.9718360506394057,
+              "total_logit_change": 0.6625539916724974,
+              "head_weight_change_at_initial_inputs": 0.0917756430251872,
+              "head_bias_change": 0.0026419684290885925,
+              "head_total_change_at_initial_inputs": 0.0944176114542758,
+              "remaining_representation_and_roundoff_change": 0.5681363802182217,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.882369053571336,
+                  "brier": 0.7879756133750541,
+                  "log": 2.4412550514903004
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.8905995382308842,
+                  "brier": 0.8016751069064038,
+                  "log": 2.525588844196458
+                },
+                "final": {
+                  "mean_probability": 0.9325428249710218,
+                  "brier": 0.8736426723958817,
+                  "log": 3.044188668698557
+                }
+              }
+            }
+          },
+          "original_batch_loss": {
+            "initial": 0.22898495875650499,
+            "head_on_initial_inputs": 0.23554924754528428,
+            "final": 0.27744718801566715
+          },
+          "head_loss_change": 0.006564288788779293,
+          "remaining_loss_change": 0.041897940470382866,
+          "total_loss_change": 0.04846222925916216
+        },
+        "Q3": {
+          "groups": {
+            "ALL": {
+              "rows": 489,
+              "observed_positive": 1.0,
+              "initial_logit": 2.5173555549180824,
+              "final_logit": 3.220556943206943,
+              "total_logit_change": 0.7032013882888607,
+              "head_weight_change_at_initial_inputs": 0.10153347601284353,
+              "head_bias_change": 0.0026419684290885925,
+              "head_total_change_at_initial_inputs": 0.10417544444193212,
+              "remaining_representation_and_roundoff_change": 0.5990259438469285,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.9040936356191321,
+                  "brier": 0.015002926792615069,
+                  "log": 0.10471287037157741
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.9119721215791476,
+                  "brier": 0.012859730304554673,
+                  "log": 0.09549880699587238
+                },
+                "final": {
+                  "mean_probability": 0.9405219100174682,
+                  "brier": 0.007882082592647504,
+                  "log": 0.06403580541704385
+                }
+              }
+            },
+            "POSITIVE": {
+              "rows": 489,
+              "observed_positive": 1.0,
+              "initial_logit": 2.5173555549180824,
+              "final_logit": 3.220556943206943,
+              "total_logit_change": 0.7032013882888607,
+              "head_weight_change_at_initial_inputs": 0.10153347601284353,
+              "head_bias_change": 0.0026419684290885925,
+              "head_total_change_at_initial_inputs": 0.10417544444193212,
+              "remaining_representation_and_roundoff_change": 0.5990259438469285,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.9040936356191321,
+                  "brier": 0.015002926792615069,
+                  "log": 0.10471287037157741
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.9119721215791476,
+                  "brier": 0.012859730304554673,
+                  "log": 0.09549880699587238
+                },
+                "final": {
+                  "mean_probability": 0.9405219100174682,
+                  "brier": 0.007882082592647504,
+                  "log": 0.06403580541704385
+                }
+              }
+            },
+            "NEGATIVE": {
+              "rows": 0
+            }
+          },
+          "original_batch_loss": {
+            "initial": 0.014136178131365395,
+            "head_on_initial_inputs": 0.012876449806724335,
+            "final": 0.008673655040206379
+          },
+          "head_loss_change": -0.0012597283246410605,
+          "remaining_loss_change": -0.004202794766517956,
+          "total_loss_change": -0.0054625230911590165
+        },
+        "Q4": {
+          "groups": {
+            "ALL": {
+              "rows": 308,
+              "observed_positive": 1.0,
+              "initial_logit": 3.0305091295536464,
+              "final_logit": 3.601447529219962,
+              "total_logit_change": 0.5709383996663155,
+              "head_weight_change_at_initial_inputs": 0.11512138367045552,
+              "head_bias_change": 0.0026419684290885925,
+              "head_total_change_at_initial_inputs": 0.11776335209954411,
+              "remaining_representation_and_roundoff_change": 0.45317504756677146,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.9425494185854977,
+                  "brier": 0.006063858168385793,
+                  "log": 0.06092344385310736
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.9482380087837774,
+                  "brier": 0.005053197525596661,
+                  "log": 0.05463035998517823
+                },
+                "final": {
+                  "mean_probability": 0.9634102187234513,
+                  "brier": 0.0032775801768679487,
+                  "log": 0.038454938304679276
+                }
+              }
+            },
+            "POSITIVE": {
+              "rows": 308,
+              "observed_positive": 1.0,
+              "initial_logit": 3.0305091295536464,
+              "final_logit": 3.601447529219962,
+              "total_logit_change": 0.5709383996663155,
+              "head_weight_change_at_initial_inputs": 0.11512138367045552,
+              "head_bias_change": 0.0026419684290885925,
+              "head_total_change_at_initial_inputs": 0.11776335209954411,
+              "remaining_representation_and_roundoff_change": 0.45317504756677146,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.9425494185854977,
+                  "brier": 0.006063858168385793,
+                  "log": 0.06092344385310736
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.9482380087837774,
+                  "brier": 0.005053197525596661,
+                  "log": 0.05463035998517823
+                },
+                "final": {
+                  "mean_probability": 0.9634102187234513,
+                  "brier": 0.0032775801768679487,
+                  "log": 0.038454938304679276
+                }
+              }
+            },
+            "NEGATIVE": {
+              "rows": 0
+            }
+          },
+          "original_batch_loss": {
+            "initial": 0.013392518784564997,
+            "head_on_initial_inputs": 0.012090565381159116,
+            "final": 0.008912948558441994
+          },
+          "head_loss_change": -0.0013019534034058814,
+          "remaining_loss_change": -0.0031776168227171213,
+          "total_loss_change": -0.004479570226123003
+        }
+      },
+      "future_M15_side": {
+        "FULL": {
+          "groups": {
+            "ALL": {
+              "rows": 1440,
+              "observed_positive": 0.5208333333333334,
+              "initial_logit": 0.13768216248136014,
+              "final_logit": 0.9879084599178491,
+              "total_logit_change": 0.850226297436489,
+              "head_weight_change_at_initial_inputs": 0.08255871198199614,
+              "head_bias_change": 0.0026471763849258423,
+              "head_total_change_at_initial_inputs": 0.085205888366922,
+              "remaining_representation_and_roundoff_change": 0.7650204090695669,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.532502269053532,
+                  "brier": 0.2566363985108514,
+                  "log": 0.7078569011909971
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.5517657729604671,
+                  "brier": 0.25810016495790133,
+                  "log": 0.7113573143256513
+                },
+                "final": {
+                  "mean_probability": 0.6993897266068076,
+                  "brier": 0.29071005776161696,
+                  "log": 0.8131007395016019
+                }
+              }
+            },
+            "POSITIVE": {
+              "rows": 750,
+              "observed_positive": 1.0,
+              "initial_logit": 0.19001159146179755,
+              "final_logit": 1.099435741191109,
+              "total_logit_change": 0.9094241497293115,
+              "head_weight_change_at_initial_inputs": 0.08376086104647709,
+              "head_bias_change": 0.0026471763849258423,
+              "head_total_change_at_initial_inputs": 0.08640803743140293,
+              "remaining_representation_and_roundoff_change": 0.8230161122979086,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.5446842426679895,
+                  "brier": 0.22651311612487113,
+                  "log": 0.6441175704718596
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.564106592642994,
+                  "brier": 0.20997172951223614,
+                  "log": 0.6079559088111096
+                },
+                "final": {
+                  "mean_probability": 0.7207560277949359,
+                  "brier": 0.10670320269947155,
+                  "log": 0.36234189746943474
+                }
+              }
+            },
+            "NEGATIVE": {
+              "rows": 690,
+              "observed_positive": 0.0,
+              "initial_logit": 0.08080234837218903,
+              "final_logit": 0.8666831541860449,
+              "total_logit_change": 0.7858808058138559,
+              "head_weight_change_at_initial_inputs": 0.08125202821625599,
+              "head_bias_change": 0.0026471763849258423,
+              "head_total_change_at_initial_inputs": 0.08389920460118183,
+              "remaining_representation_and_roundoff_change": 0.7019816012126741,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.5192609933856436,
+                  "brier": 0.28937909675648216,
+                  "log": 0.7771387824074507
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.538351838522938,
+                  "brier": 0.3104136817466678,
+                  "log": 0.823750146406675
+                },
+                "final": {
+                  "mean_probability": 0.6761654861849289,
+                  "brier": 0.4907175089161228,
+                  "log": 1.3030560025800442
+                }
+              }
+            }
+          },
+          "original_batch_loss": {
+            "initial": 0.12956994229460167,
+            "head_on_initial_inputs": 0.12992417031913892,
+            "final": 0.1466794163407961
+          },
+          "head_loss_change": 0.00035422802453724533,
+          "remaining_loss_change": 0.016755246021657177,
+          "total_loss_change": 0.017109474046194423
+        },
+        "Q1": {
+          "groups": {
+            "ALL": {
+              "rows": 363,
+              "observed_positive": 0.5068870523415978,
+              "initial_logit": 0.31844414773681934,
+              "final_logit": 1.2653791970129513,
+              "total_logit_change": 0.9469350492761319,
+              "head_weight_change_at_initial_inputs": 0.09179229403277052,
+              "head_bias_change": 0.0026471763849258423,
+              "head_total_change_at_initial_inputs": 0.09443947041769636,
+              "remaining_representation_and_roundoff_change": 0.8524955788584354,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.5752112105388701,
+                  "brier": 0.2549110013574537,
+                  "log": 0.7039670325037539
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.5961150228348113,
+                  "brier": 0.25868009535370873,
+                  "log": 0.7125331800167879
+                },
+                "final": {
+                  "mean_probability": 0.7513241396735215,
+                  "brier": 0.31467316275907625,
+                  "log": 0.8767609263351981
+                }
+              }
+            },
+            "POSITIVE": {
+              "rows": 184,
+              "observed_positive": 1.0,
+              "initial_logit": 0.39582179305548576,
+              "final_logit": 1.3853251364426282,
+              "total_logit_change": 0.9895033433871425,
+              "head_weight_change_at_initial_inputs": 0.0939959475079364,
+              "head_bias_change": 0.0026471763849258423,
+              "head_total_change_at_initial_inputs": 0.09664312389286224,
+              "remaining_representation_and_roundoff_change": 0.8928602194942803,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.5930628614913838,
+                  "brier": 0.18301688406036917,
+                  "log": 0.55217823343946
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.6141666579387373,
+                  "brier": 0.1669074371430474,
+                  "log": 0.5161353416194914
+                },
+                "final": {
+                  "mean_probability": 0.7711602709868788,
+                  "brier": 0.0756556715642603,
+                  "log": 0.2842916678309005
+                }
+              }
+            },
+            "NEGATIVE": {
+              "rows": 179,
+              "observed_positive": 0.0,
+              "initial_logit": 0.238905115677408,
+              "final_logit": 1.1420828123478084,
+              "total_logit_change": 0.9031776966704004,
+              "head_weight_change_at_initial_inputs": 0.08952708599125925,
+              "head_bias_change": 0.0026471763849258423,
+              "head_total_change_at_initial_inputs": 0.09217426237618509,
+              "remaining_representation_and_roundoff_change": 0.8110034342942152,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.5568609101184092,
+                  "brier": 0.32881333422149595,
+                  "log": 0.8599957421564358
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.5775591521134572,
+                  "brier": 0.3530162356372937,
+                  "log": 0.9144169915536734
+                },
+                "final": {
+                  "mean_probability": 0.730933926479903,
+                  "brier": 0.5603671201883844,
+                  "log": 1.4857796054681074
+                }
+              }
+            }
+          },
+          "original_batch_loss": {
+            "initial": 0.131109084183592,
+            "head_on_initial_inputs": 0.13247642961771977,
+            "final": 0.1620507590391496
+          },
+          "head_loss_change": 0.0013673454341277813,
+          "remaining_loss_change": 0.029574329421429818,
+          "total_loss_change": 0.0309416748555576
+        },
+        "Q2": {
+          "groups": {
+            "ALL": {
+              "rows": 363,
+              "observed_positive": 0.5454545454545454,
+              "initial_logit": 0.17433132709468363,
+              "final_logit": 1.1873839302168077,
+              "total_logit_change": 1.013052603122124,
+              "head_weight_change_at_initial_inputs": 0.08226083778698197,
+              "head_bias_change": 0.0026471763849258423,
+              "head_total_change_at_initial_inputs": 0.08490801417190781,
+              "remaining_representation_and_roundoff_change": 0.9281445889502161,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.5405139751386242,
+                  "brier": 0.25931376851813326,
+                  "log": 0.714222027393144
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.5595776406187515,
+                  "brier": 0.2599032014066638,
+                  "log": 0.7165325031025307
+                },
+                "final": {
+                  "mean_probability": 0.7383182527370309,
+                  "brier": 0.2917137536677394,
+                  "log": 0.8329095843772091
+                }
+              }
+            },
+            "POSITIVE": {
+              "rows": 198,
+              "observed_positive": 1.0,
+              "initial_logit": 0.20547299540479375,
+              "final_logit": 1.253945081193715,
+              "total_logit_change": 1.0484720857889214,
+              "head_weight_change_at_initial_inputs": 0.08281811656208553,
+              "head_bias_change": 0.0026471763849258423,
+              "head_total_change_at_initial_inputs": 0.0854652929470114,
+              "remaining_representation_and_roundoff_change": 0.9630067928419099,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.547997047011101,
+                  "brier": 0.22153049461952845,
+                  "log": 0.6326620124703897
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.5673014301174096,
+                  "brier": 0.20504277180015576,
+                  "log": 0.5968891686073391
+                },
+                "final": {
+                  "mean_probability": 0.7541632412502861,
+                  "brier": 0.07855804296787562,
+                  "log": 0.3002821319076098
+                }
+              }
+            },
+            "NEGATIVE": {
+              "rows": 165,
+              "observed_positive": 0.0,
+              "initial_logit": 0.1369613251225515,
+              "final_logit": 1.1075105490445187,
+              "total_logit_change": 0.9705492239219673,
+              "head_weight_change_at_initial_inputs": 0.0815921032568577,
+              "head_bias_change": 0.0026471763849258423,
+              "head_total_change_at_initial_inputs": 0.08423927964178354,
+              "remaining_representation_and_roundoff_change": 0.8863099442801836,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.531534288891652,
+                  "brier": 0.30465369719645896,
+                  "log": 0.8120940453004495
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.5503090932203616,
+                  "brier": 0.32573571693447334,
+                  "log": 0.8601045044967607
+                },
+                "final": {
+                  "mean_probability": 0.7193042665211248,
+                  "brier": 0.5475006065075759,
+                  "log": 1.4720625273407282
+                }
+              }
+            }
+          },
+          "original_batch_loss": {
+            "initial": 0.12927815061974152,
+            "head_on_initial_inputs": 0.12947329094646004,
+            "final": 0.15109938278140164
+          },
+          "head_loss_change": 0.00019514032671852366,
+          "remaining_loss_change": 0.021626091834941602,
+          "total_loss_change": 0.021821232161660126
+        },
+        "Q3": {
+          "groups": {
+            "ALL": {
+              "rows": 347,
+              "observed_positive": 0.5072046109510087,
+              "initial_logit": 0.16944556070829847,
+              "final_logit": 1.088080723434472,
+              "total_logit_change": 0.9186351627261735,
+              "head_weight_change_at_initial_inputs": 0.08180726546982005,
+              "head_bias_change": 0.0026471763849258423,
+              "head_total_change_at_initial_inputs": 0.08445444185474589,
+              "remaining_representation_and_roundoff_change": 0.8341807208714276,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.5399883552678496,
+                  "brier": 0.2580790393961728,
+                  "log": 0.710319785404232
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.559072968107856,
+                  "brier": 0.26024751293569204,
+                  "log": 0.7151045130476512
+                },
+                "final": {
+                  "mean_probability": 0.7203536233578798,
+                  "brier": 0.30341716736929525,
+                  "log": 0.8388577041919754
+                }
+              }
+            },
+            "POSITIVE": {
+              "rows": 176,
+              "observed_positive": 1.0,
+              "initial_logit": 0.22161737793463876,
+              "final_logit": 1.2054665254704147,
+              "total_logit_change": 0.9838491475357759,
+              "head_weight_change_at_initial_inputs": 0.08370661502445774,
+              "head_bias_change": 0.0026471763849258423,
+              "head_total_change_at_initial_inputs": 0.08635379140938358,
+              "remaining_representation_and_roundoff_change": 0.8974953561263923,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.5518805191521192,
+                  "brier": 0.2208642271476596,
+                  "log": 0.63168068794473
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.5711424663515344,
+                  "brier": 0.20467304867407768,
+                  "log": 0.5960946060098083
+                },
+                "final": {
+                  "mean_probability": 0.739665288424515,
+                  "brier": 0.09510716472417609,
+                  "log": 0.333692395508443
+                }
+              }
+            },
+            "NEGATIVE": {
+              "rows": 171,
+              "observed_positive": 0.0,
+              "initial_logit": 0.11574825175019385,
+              "final_logit": 0.9672625880056654,
+              "total_logit_change": 0.8515143362554716,
+              "head_weight_change_at_initial_inputs": 0.07985237937849703,
+              "head_bias_change": 0.0026471763849258423,
+              "head_total_change_at_initial_inputs": 0.08249955576342287,
+              "remaining_representation_and_roundoff_change": 0.7690147804920487,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.5277484672933965,
+                  "brier": 0.2963820040496134,
+                  "log": 0.7912582716783393
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.5466505605588069,
+                  "brier": 0.31744696153244134,
+                  "log": 0.837594241928706
+                },
+                "final": {
+                  "mean_probability": 0.7004772897220447,
+                  "brier": 0.5178181057642717,
+                  "log": 1.3587939283340906
+                }
+              }
+            }
+          },
+          "original_batch_loss": {
+            "initial": 0.12351050735612204,
+            "head_on_initial_inputs": 0.12413386285185674,
+            "final": 0.1421153058939813
+          },
+          "head_loss_change": 0.0006233554957346954,
+          "remaining_loss_change": 0.017981443042124567,
+          "total_loss_change": 0.018604798537859263
+        },
+        "Q4": {
+          "groups": {
+            "ALL": {
+              "rows": 367,
+              "observed_positive": 0.5231607629427792,
+              "initial_logit": -0.10739180642086252,
+              "final_logit": 0.4214472917317126,
+              "total_logit_change": 0.5288390981525751,
+              "head_weight_change_at_initial_inputs": 0.07443089178604016,
+              "head_bias_change": 0.0026471763849258423,
+              "head_total_change_at_initial_inputs": 0.077078068170966,
+              "remaining_representation_and_roundoff_change": 0.4517610299816091,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.47525630996788,
+                  "brier": 0.2543307785294713,
+                  "log": 0.7030799548697363
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.4932641860926522,
+                  "brier": 0.2537128442143802,
+                  "log": 0.7015324894525621
+                },
+                "final": {
+                  "mean_probability": 0.589695669110594,
+                  "brier": 0.25400075050858,
+                  "log": 0.7061881366187668
+                }
+              }
+            },
+            "POSITIVE": {
+              "rows": 192,
+              "observed_positive": 1.0,
+              "initial_logit": -0.052139728815139584,
+              "final_logit": 0.5689257616080189,
+              "total_logit_change": 0.6210654904231584,
+              "head_weight_change_at_initial_inputs": 0.07497416729062512,
+              "head_bias_change": 0.0026471763849258423,
+              "head_total_change_at_initial_inputs": 0.07762134367555096,
+              "remaining_representation_and_roundoff_change": 0.5434441467476074,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.4883084833729508,
+                  "brier": 0.27851348184318064,
+                  "log": 0.7554401216334602
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.5063881363562533,
+                  "brier": 0.26118178810827025,
+                  "log": 0.7182360557727413
+                },
+                "final": {
+                  "mean_probability": 0.6206672836163799,
+                  "brier": 0.17611148415461142,
+                  "log": 0.5274012109062379
+                }
+              }
+            },
+            "NEGATIVE": {
+              "rows": 175,
+              "observed_positive": 0.0,
+              "initial_logit": -0.16801122870828425,
+              "final_logit": 0.2596423419245652,
+              "total_logit_change": 0.4276535706328494,
+              "head_weight_change_at_initial_inputs": 0.07383484094672409,
+              "head_bias_change": 0.0026471763849258423,
+              "head_total_change_at_initial_inputs": 0.07648201733164993,
+              "remaining_representation_and_roundoff_change": 0.3511715533011995,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.4609362111463165,
+                  "brier": 0.22779889832243014,
+                  "log": 0.6456333719061076
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.47886533780344426,
+                  "brier": 0.24551834577079798,
+                  "log": 0.6832062909755652
+                },
+                "final": {
+                  "mean_probability": 0.5557153834813889,
+                  "brier": 0.33945640273693406,
+                  "log": 0.9023429351147986
+                }
+              }
+            }
+          },
+          "original_batch_loss": {
+            "initial": 0.1343820270189511,
+            "head_on_initial_inputs": 0.13361309786051911,
+            "final": 0.13145221764865184
+          },
+          "head_loss_change": -0.0007689291584319913,
+          "remaining_loss_change": -0.0021608802118672776,
+          "total_loss_change": -0.002929809370299269
+        }
+      },
+      "future_H1_side": {
+        "FULL": {
+          "groups": {
+            "ALL": {
+              "rows": 1436,
+              "observed_positive": 0.5396935933147632,
+              "initial_logit": 0.1489981864345543,
+              "final_logit": 1.0479206388665774,
+              "total_logit_change": 0.8989224524320231,
+              "head_weight_change_at_initial_inputs": 0.08344582103243584,
+              "head_bias_change": 0.0026471763849258423,
+              "head_total_change_at_initial_inputs": 0.08609299741736168,
+              "remaining_representation_and_roundoff_change": 0.8128294550146614,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.5351192979929198,
+                  "brier": 0.2517109429155186,
+                  "log": 0.6971071880607855
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.5544947054559448,
+                  "brier": 0.2524160556822015,
+                  "log": 0.6988261251500267
+                },
+                "final": {
+                  "mean_probability": 0.7087735679157123,
+                  "brier": 0.2754773725996659,
+                  "log": 0.7783268337322586
+                }
+              }
+            },
+            "POSITIVE": {
+              "rows": 775,
+              "observed_positive": 1.0,
+              "initial_logit": 0.21762504197176424,
+              "final_logit": 1.2131240678818958,
+              "total_logit_change": 0.9954990259101314,
+              "head_weight_change_at_initial_inputs": 0.08543315644241371,
+              "head_bias_change": 0.0026471763849258423,
+              "head_total_change_at_initial_inputs": 0.08808033282733956,
+              "remaining_representation_and_roundoff_change": 0.9074186930827918,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.5509351259147456,
+                  "brier": 0.22152626002935705,
+                  "log": 0.6332303336982223
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.5705873730261192,
+                  "brier": 0.2050079496073789,
+                  "log": 0.5969459107743496
+                },
+                "final": {
+                  "mean_probability": 0.7401774777915405,
+                  "brier": 0.09400696235047946,
+                  "log": 0.33099861819420767
+                }
+              }
+            },
+            "NEGATIVE": {
+              "rows": 661,
+              "observed_positive": 0.0,
+              "initial_logit": 0.06853553432965603,
+              "final_logit": 0.8542252417608712,
+              "total_logit_change": 0.7856897074312152,
+              "head_weight_change_at_initial_inputs": 0.08111573791181124,
+              "head_bias_change": 0.0026471763849258423,
+              "head_total_change_at_initial_inputs": 0.08376291429673709,
+              "remaining_representation_and_roundoff_change": 0.7019267931344781,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.5165757781148334,
+                  "brier": 0.2871014561330302,
+                  "log": 0.7720006254752884
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.5356266005136072,
+                  "brier": 0.30800044631455775,
+                  "log": 0.818277208570828
+                },
+                "final": {
+                  "mean_probability": 0.6719535525544916,
+                  "brier": 0.48824525148486947,
+                  "log": 1.3028039396959343
+                }
+              }
+            }
+          },
+          "original_batch_loss": {
+            "initial": 0.10513937204275828,
+            "head_on_initial_inputs": 0.1054110548678842,
+            "final": 0.1180306399211655
+          },
+          "head_loss_change": 0.00027168282512592123,
+          "remaining_loss_change": 0.012619585053281299,
+          "total_loss_change": 0.01289126787840722
+        },
+        "Q1": {
+          "groups": {
+            "ALL": {
+              "rows": 374,
+              "observed_positive": 0.5213903743315508,
+              "initial_logit": 0.3022917988735007,
+              "final_logit": 1.2696561092451055,
+              "total_logit_change": 0.9673643103716049,
+              "head_weight_change_at_initial_inputs": 0.09190115705516436,
+              "head_bias_change": 0.0026471763849258423,
+              "head_total_change_at_initial_inputs": 0.0945483334400902,
+              "remaining_representation_and_roundoff_change": 0.8728159769315146,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.571124705111363,
+                  "brier": 0.2390129609398096,
+                  "log": 0.6703871365105819
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.5919333681610899,
+                  "brier": 0.241714016500624,
+                  "log": 0.6760196331662147
+                },
+                "final": {
+                  "mean_probability": 0.748557566885018,
+                  "brier": 0.29161323630095703,
+                  "log": 0.8138160477466774
+                }
+              }
+            },
+            "POSITIVE": {
+              "rows": 195,
+              "observed_positive": 1.0,
+              "initial_logit": 0.4382752664291706,
+              "final_logit": 1.4911917049724321,
+              "total_logit_change": 1.0529164385432617,
+              "head_weight_change_at_initial_inputs": 0.09679884698268484,
+              "head_bias_change": 0.0026471763849258423,
+              "head_total_change_at_initial_inputs": 0.09944602336761069,
+              "remaining_representation_and_roundoff_change": 0.9534704151756509,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.6028106110907948,
+                  "brier": 0.17684796311699968,
+                  "log": 0.5389823046419965
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.6241687360355374,
+                  "brier": 0.1610268012688029,
+                  "log": 0.5029903820250344
+                },
+                "final": {
+                  "mean_probability": 0.7851045589374828,
+                  "brier": 0.07184195889190867,
+                  "log": 0.2691915855849492
+                }
+              }
+            },
+            "NEGATIVE": {
+              "rows": 179,
+              "observed_positive": 0.0,
+              "initial_logit": 0.1541533844972123,
+              "final_logit": 1.0283184490952246,
+              "total_logit_change": 0.8741650645980122,
+              "head_weight_change_at_initial_inputs": 0.0865656847877538,
+              "head_bias_change": 0.0026471763849258423,
+              "head_total_change_at_initial_inputs": 0.08921286117267964,
+              "remaining_representation_and_roundoff_change": 0.7849522034253327,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.5366065393795797,
+                  "brier": 0.306734606612703,
+                  "log": 0.8135376516746834
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.5568166266218875,
+                  "brier": 0.32961349678109947,
+                  "log": 0.8645151860853776
+                },
+                "final": {
+                  "mean_probability": 0.7087438045932267,
+                  "brier": 0.5310288737018757,
+                  "log": 1.4071220260792863
+                }
+              }
+            }
+          },
+          "original_batch_loss": {
+            "initial": 0.10363138552169629,
+            "head_on_initial_inputs": 0.10461276691364137,
+            "final": 0.1276991632230332
+          },
+          "head_loss_change": 0.000981381391945077,
+          "remaining_loss_change": 0.02308639630939184,
+          "total_loss_change": 0.024067777701336918
+        },
+        "Q2": {
+          "groups": {
+            "ALL": {
+              "rows": 357,
+              "observed_positive": 0.5686274509803921,
+              "initial_logit": 0.26261395101203305,
+              "final_logit": 1.3712902499691528,
+              "total_logit_change": 1.1086762989571197,
+              "head_weight_change_at_initial_inputs": 0.08483605091235526,
+              "head_bias_change": 0.0026471763849258423,
+              "head_total_change_at_initial_inputs": 0.0874832272972811,
+              "remaining_representation_and_roundoff_change": 1.0211930716598385,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.5612506272281556,
+                  "brier": 0.2818317652758293,
+                  "log": 0.7611254821702637
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.5806872455127605,
+                  "brier": 0.2826012612341837,
+                  "log": 0.7639332457215114
+                },
+                "final": {
+                  "mean_probability": 0.7708522281124008,
+                  "brier": 0.3171753086794972,
+                  "log": 0.9065355307097442
+                }
+              }
+            },
+            "POSITIVE": {
+              "rows": 203,
+              "observed_positive": 1.0,
+              "initial_logit": 0.19958380860244407,
+              "final_logit": 1.3094718175678712,
+              "total_logit_change": 1.109888008965427,
+              "head_weight_change_at_initial_inputs": 0.08402650010264096,
+              "head_bias_change": 0.0026471763849258423,
+              "head_total_change_at_initial_inputs": 0.08667367648756683,
+              "remaining_representation_and_roundoff_change": 1.0232143324778602,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.5461218793410388,
+                  "brier": 0.22595116874316595,
+                  "log": 0.6414723039233048
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.5654761920618263,
+                  "brier": 0.20940683994886494,
+                  "log": 0.6052702336108318
+                },
+                "final": {
+                  "mean_probability": 0.7609461501949781,
+                  "brier": 0.07595006642908134,
+                  "log": 0.29152863868272794
+                }
+              }
+            },
+            "NEGATIVE": {
+              "rows": 154,
+              "observed_positive": 0.0,
+              "initial_logit": 0.34569913873376396,
+              "final_logit": 1.452778183589024,
+              "total_logit_change": 1.1070790448552603,
+              "head_weight_change_at_initial_inputs": 0.08590318607061499,
+              "head_bias_change": 0.0026471763849258423,
+              "head_total_change_at_initial_inputs": 0.08855036245554082,
+              "remaining_representation_and_roundoff_change": 1.0185286823997193,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.5811930676248094,
+                  "brier": 0.35549255161434007,
+                  "log": 0.9188501262230732
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.6007381796071738,
+                  "brier": 0.3790848165648311,
+                  "log": 0.9730799435037709
+                },
+                "final": {
+                  "mean_probability": 0.78391023991264,
+                  "brier": 0.6351540371004999,
+                  "log": 1.7172264338362657
+                }
+              }
+            }
+          },
+          "original_batch_loss": {
+            "initial": 0.10917345838618311,
+            "head_on_initial_inputs": 0.10920697334997319,
+            "final": 0.1273573569418479
+          },
+          "head_loss_change": 3.3514963790073904e-05,
+          "remaining_loss_change": 0.018150383591874722,
+          "total_loss_change": 0.018183898555664796
+        },
+        "Q3": {
+          "groups": {
+            "ALL": {
+              "rows": 344,
+              "observed_positive": 0.5145348837209303,
+              "initial_logit": 0.16990327368338787,
+              "final_logit": 1.1524535500509447,
+              "total_logit_change": 0.9825502763675569,
+              "head_weight_change_at_initial_inputs": 0.08289552532672338,
+              "head_bias_change": 0.0026471763849258423,
+              "head_total_change_at_initial_inputs": 0.08554270171164922,
+              "remaining_representation_and_roundoff_change": 0.8970075746559079,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.5403146939822691,
+                  "brier": 0.2356969834946626,
+                  "log": 0.6625640807484418
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.5596261811624075,
+                  "brier": 0.23720657930291952,
+                  "log": 0.6657407031500014
+                },
+                "final": {
+                  "mean_probability": 0.7308329839739831,
+                  "brier": 0.26881842984672555,
+                  "log": 0.7539835537913263
+                }
+              }
+            },
+            "POSITIVE": {
+              "rows": 177,
+              "observed_positive": 1.0,
+              "initial_logit": 0.31431629289846635,
+              "final_logit": 1.4529650611750318,
+              "total_logit_change": 1.1386487682765656,
+              "head_weight_change_at_initial_inputs": 0.08680403525761991,
+              "head_bias_change": 0.0026471763849258423,
+              "head_total_change_at_initial_inputs": 0.08945121164254576,
+              "remaining_representation_and_roundoff_change": 1.0491975566340197,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.5736828922831307,
+                  "brier": 0.1991062930756658,
+                  "log": 0.5855569779997766
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.5935700896719638,
+                  "brier": 0.18302903804852028,
+                  "log": 0.5502302140218045
+                },
+                "final": {
+                  "mean_probability": 0.7854332761681975,
+                  "brier": 0.06349399073124853,
+                  "log": 0.25834154436155754
+                }
+              }
+            },
+            "NEGATIVE": {
+              "rows": 167,
+              "observed_positive": 0.0,
+              "initial_logit": 0.016842768287765767,
+              "final_logit": 0.8339473376619423,
+              "total_logit_change": 0.8171045693741765,
+              "head_weight_change_at_initial_inputs": 0.07875297288499472,
+              "head_bias_change": 0.0026471763849258423,
+              "head_total_change_at_initial_inputs": 0.08140014926992056,
+              "remaining_representation_and_roundoff_change": 0.7357044201042561,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.5049483999747688,
+                  "brier": 0.2744787332201861,
+                  "log": 0.744182387254512
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.5236497032810215,
+                  "brier": 0.2946282847042888,
+                  "log": 0.7881679880343776
+                },
+                "final": {
+                  "mean_probability": 0.672963213205265,
+                  "brier": 0.48643774555594366,
+                  "log": 1.2793047254623984
+                }
+              }
+            }
+          },
+          "original_batch_loss": {
+            "initial": 0.0988836241597527,
+            "head_on_initial_inputs": 0.09943691650902685,
+            "final": 0.11415414705927812
+          },
+          "head_loss_change": 0.0005532923492741482,
+          "remaining_loss_change": 0.014717230550251273,
+          "total_loss_change": 0.015270522899525421
+        },
+        "Q4": {
+          "groups": {
+            "ALL": {
+              "rows": 361,
+              "observed_positive": 0.554016620498615,
+              "initial_logit": -0.14209319589210678,
+              "final_logit": 0.398803357612806,
+              "total_logit_change": 0.5408965535049128,
+              "head_weight_change_at_initial_inputs": 0.07383555505773604,
+              "head_bias_change": 0.0026471763849258423,
+              "head_total_change_at_initial_inputs": 0.07648273144266188,
+              "remaining_representation_and_roundoff_change": 0.46441382206225096,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.4670247743928832,
+                  "brier": 0.2503389587522462,
+                  "log": 0.6943969309919178
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.48491569078827,
+                  "brier": 0.2481459840653741,
+                  "log": 0.6895955742523376
+                },
+                "final": {
+                  "mean_probability": 0.5851454891656198,
+                  "brier": 0.22386989365847162,
+                  "log": 0.6379684332816377
+                }
+              }
+            },
+            "POSITIVE": {
+              "rows": 200,
+              "observed_positive": 1.0,
+              "initial_logit": -0.06476883207447827,
+              "final_logit": 0.6319558767229319,
+              "total_logit_change": 0.6967247087974101,
+              "head_weight_change_at_initial_inputs": 0.07456613659906117,
+              "head_bias_change": 0.0026471763849258423,
+              "head_total_change_at_initial_inputs": 0.07721331298398701,
+              "remaining_representation_and_roundoff_change": 0.6195113958134231,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.485110199904389,
+                  "brier": 0.2804379879284062,
+                  "log": 0.7589474820427088
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.5031936885391214,
+                  "brier": 0.262876032270472,
+                  "log": 0.7214467552519045
+                },
+                "final": {
+                  "mean_probability": 0.6352419896214162,
+                  "brier": 0.16094956996582443,
+                  "log": 0.4956240145342818
+                }
+              }
+            },
+            "NEGATIVE": {
+              "rows": 161,
+              "observed_positive": 0.0,
+              "initial_logit": -0.2381483062245646,
+              "final_logit": 0.10917289909091055,
+              "total_logit_change": 0.3473212053154751,
+              "head_weight_change_at_initial_inputs": 0.07292800034801537,
+              "head_bias_change": 0.0026471763849258423,
+              "head_total_change_at_initial_inputs": 0.07557517673294122,
+              "remaining_representation_and_roundoff_change": 0.2717460285825339,
+              "endpoint_scores": {
+                "initial": {
+                  "mean_probability": 0.444558407297845,
+                  "brier": 0.21294886039676794,
+                  "log": 0.6142099110530467
+                },
+                "head_on_initial_inputs": {
+                  "mean_probability": 0.4622101035201315,
+                  "brier": 0.22984778753730203,
+                  "log": 0.6500288897808261
+                },
+                "final": {
+                  "mean_probability": 0.5229138115807795,
+                  "brier": 0.3020317864443688,
+                  "log": 0.8147937981851854
+                }
+              }
+            }
+          },
+          "original_batch_loss": {
+            "initial": 0.10886902010340102,
+            "head_on_initial_inputs": 0.1083875626988954,
+            "final": 0.10291189246050277
+          },
+          "head_loss_change": -0.00048145740450561414,
+          "remaining_loss_change": -0.005475670238392641,
+          "total_loss_change": -0.005957127642898255
+        }
+      }
+    },
+    "limitations": [
+      "Ordered endpoint accounting: final head parameters are applied analytically to fixed INITIAL representations, then compared with retained actual FINAL outputs. This order is explicit and not a unique causal allocation.",
+      "Residual combines representation change under final head weights with qualified FP32/FP64 replay rounding; upstream module or historical gradient cause is not isolated.",
+      "Middle logits are recorded INITIAL logits plus FP64 affine parameter displacement; initial replay error is bounded at2e-6.",
+      "B16 denominators, divisor5, futureweight1, and original M5 q/N side weighting are unchanged. Empty batches remain zero.",
+      "Dependent4096TRAIN rows and one256update path; no later generalization, significance, economic edge or long-run capacity claim.",
+      "Retained older prequery capture covers48matching rows only, not the full4096prefix. Current post-Linear+GELU representation cannot be inverted uniquely. Queryprojection and upstreambackbone/joint remain unresolved; outputheads also contribute to the three residual channels."
+    ],
+    "conclusions": [
+      "Final head parameters at fixed INITIAL input representations reduce original totalTRAINloss1.8780025348614517 to1.8713773443522543. ActualFINALtotal1.8843241279092635; representation-plus-roundoff residual increases loss0.0129467835570092 in this explicit order.",
+      "S/D1activity meanlogitrise0.527179 splits headweights0.103682+bias0.002642+representationresidual0.420855. On actualFLAT, meanPactivity88.4876percent→89.2985percent atfixedh0→93.3545percentactualFINAL.",
+      "F/M15side meanPUP53.2502percent→55.1766percent atfixedh0→69.9390percentactualFINAL against52.0833percentobservedUP. F/H1analogous53.5119→55.4495→70.8774 against53.9694observedUP.",
+      "Representation residual improves some channels and later quarters while harming others and the firsttwoquarters. A blanket encoder freeze or a head-bias-only fix is not justified.",
+      "The ordered residual localizes the endpoint drift upstream of linear output heads, but does not identify queryprojection versus encoder or historical loss-gradient cause."
+    ],
+    "test_data_used": false,
+    "training_authorized": false,
+    "independent_interpretation_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001/AFFINE_ENDPOINT_INTERPRETATION_REVIEW.json",
+      "sha256": "c52dc325869296a6fb6a9006be48a4401f933f3b7ca8e78a51d9f44eb7842eff"
+    }
   }
 }

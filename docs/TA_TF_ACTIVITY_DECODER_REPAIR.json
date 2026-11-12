@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_tf_activity_decoder_repair_v1",
-  "status": "ACTUAL_SHORT_LEARNING_COMPLETE_SD1_BIAS_EXPLAINS_ONLY_SMALL_ENDPOINT_SHIFT",
+  "status": "ACTUAL_SHORT_LEARNING_COMPLETE_RESIDUAL_DRIFT_LOCALIZED_UPSTREAM_OF_HEADS",
   "reason": "Measured shared activity-coordinate pressure and FLAT calibration regression motivate one isolated architectural comparison.",
   "evidence": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ACTIVITY_PRESSURE_REVIEW.json",
@@ -54,7 +54,7 @@
   "training_authorized": false,
   "promotion_authorized": false,
   "test_data_used": false,
-  "next_action": "Capture all10 activity-head INITIAL input representations for the same4096TRAIN rows with one existing actualINITIAL checkpoint, one read-only model and256B16 forwards; require all12 retained baseline fields and original loss byteexact plus passive hooks. Then separate head-parameter displacement on fixed h0 from residual representation change against retainedFINAL logits. No training, optimizer construction, RNG restore, combined-head architecture, full-history fit or TEST use.",
+  "next_action": "Qualify a retained-only48overlapping-row prequery pilot against the newly verified INITIAL representations/axes before interpreting it. Separate queryprojection changes from upstreambackbone/joint changes with retainedINITIAL/FINALprojection andFINALheads if parity holds. Do not extrapolate48rows to the full4096prefix or invertGELU. Fullprefixprequery input is missing; no additional native observation, training or model change is admitted. Preserve genuinefeatures/timeframes, original loss and sealedTEST; full-history30-40epoch fit remains later qualification work.",
   "mechanical_qualification": {
     "status": "PASS",
     "passed_tests": 226,
@@ -250,6 +250,6 @@
   },
   "actual_short_learning": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
-    "sha256": "287a31299798d907a62e2f44a576ad1db2ec3730863a9a17f21fd19a709055b0"
+    "sha256": "6398c67d37511baa629ac9662e9c9123ce2979d1b515cdb76f6a0436c971df93"
   }
 }
