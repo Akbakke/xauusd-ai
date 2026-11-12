@@ -6,7 +6,7 @@ NEXT_RUN_POLICY.json eier arbeidsstatus; prosess og terminal overstyrer prosa.
 
 ## Aktivt mål og neste retning
 
-TA_DIRECTION_EDGE_CAUSE_FIXED_BENCHMARK_INPUTS_COMPLETE.
+TA_DIRECTION_EDGE_CAUSE_FIXED_BENCHMARK_NATIVE_SOURCE_QUALIFIED.
 Målet er fortsatt å avklare og rette svak retningslæring. Den avtalte sammenligningen er
 FULL_OBJECTIVE mot M5_DIRECTION_ONLY, samme modell/genuine inputs/INITIAL/RNG/rekkefølge.
 TRAIN4096 over mai–september2024 og senere4096 over oktober–desember2024 er låst.
@@ -22,16 +22,33 @@ Alle31gamle felt på44114flaterader var byteeksakte:1367534celler, null avvik.
 4096lokale og20480faktiskeMTF-vinduer besto. Tid313,26s, peakRSS1,315GB.
 Kun to nye spanfelt ble produsert. Ingen normaliseringsfit, gammel cacheendring eller modellkjøring.
 
-Neste konkrete arbeid: koble eksisterende paired restore/fit/eval til de to tapsvariantene,
-den kvalifiserte senere-adapteren og de tre passeringene. Gjenbruk beståtte kontroller;
-ingen ny inpututvidelse eller gradientdiagnostikk. Eksakt native admisjon/INITIAL og selve
-læringssammenligningen gjenstår. Ingen prediktiv gevinst er målt i denne bølgen.
+Koblingen til eksisterende restore/fit/eval er nå ferdig: to objektiver, samme INITIAL,
+4096TRAIN/4096senere, tre passeringer, måling0/1/3.44fokuserte kontroller og faktisk
+metadata-preflight besto. Ingen ny modell/optimizer/genuine data i disse kontrollene.
+Tom M5-støtte gir besøk uten AdamW; per-pass RNG og passiv evaluering kontrolleres.
+Review: MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_SOURCE_20261112_001/NATIVE_INTEGRATION_REVIEW.json.
+Neste steg er eksakt ren admisjon/startkontroll og eksisterende fresh-boot-kontroller
+for denne ene sammenligningen. Fersk native INITIAL og læringsresultat gjenstår.
+Gjenbruk beståtte kontroller; ingen ny inpututvidelse/arkitektur/gradientdiagnostikk.
+Ingen prediktiv gevinst er målt i denne bølgen.
 Global training/native_training er false. Root eier policy, launch og samlet kontroll.
 
 Korte runder er bevisst feilsøking, ikke en dom over fullhistorikk-kapasitet.
 Kvalifisert full TRAIN-historikk og 30–40 epoker er senere skalering.
 TEST, Entry/Exit-evaluering, broker, handel, spending og promotion er stengt; GC er på pause.
 Åtte genuine familier, alle fem TF og D1-konteksten beholdes.
+
+## Brukerens presisering: forstå oppsett, ikke bare konsumere indikatorer
+
+Aktiv kilde bekrefter EMA-avstand/helning mot ATR, nivå-/trendlinjegeometri,
+åtte familier og femTF i den lærte sammensettingen. Dette er ikke bevis på
+at modellen skiller nyttige støtte/motstand-oppsett fra ugunstige situasjoner.
+M5 S/F-målingene gjelder t+5min; de er mål, ikke maksimal holdetid.
+Den avtalte to-arms-testen avklarer tapsinteraksjon. Den beviser ikke selektiv
+Entry eller økonomi. Før en påstand om oppsettforståelse kreves kausale,
+forhåndsdeklarerte situasjonsgrupper med alle utfall/tellinger på utviklingsdata.
+Ingen ny input-/arkitekturkampanje eller handelsautorisasjon følger av dette.
+Kildebevis og uavklarte grenser er samlet i review/policy setup_alignment_question_20261112.
 
 ## Ferdig kontroll: to trendlinje-spanfelt
 

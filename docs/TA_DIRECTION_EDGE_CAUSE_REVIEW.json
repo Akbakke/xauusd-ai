@@ -2274,5 +2274,52 @@
     "decision": "Do not start another general interleaving control. This existing result does not identify the present historical cause, but it already demonstrates the relevant calibration-versus-M5 tradeoff.",
     "new_model_or_data_job_started": false,
     "test_data_used": false
+  },
+  "setup_alignment_question_20261112": {
+    "operator_question": "Why does the model not learn support/resistance in relation to ATR, EMA and higher-timeframe context as a selective trader would?",
+    "source_checked_utc": "2026-11-12T11:21:12.695016+00:00",
+    "confirmed_source_facts": [
+      "EMA distance/slopes normalized by ATR, level/trendline geometry, eight families and all five MTF lanes reach the active learned shared representation.",
+      "Active M5 S query is k=1 at t+5minutes; M5 F is the separate exact t+5minute displacement candidate, with known side at absF>=0.5*ATR_t. These are scoring targets, not holding rules.",
+      "FULL_OBJECTIVE combines S/F activity and direction across five timeframes; the fixed comparison removes non-M5-side direct loss only."
+    ],
+    "not_established": [
+      "Whether the learned model distinguishes useful causal support/resistance+ATR+EMA+MTF setups from adverse or uninformative situations.",
+      "That a near-50percent summary identifies the cause, that indicator consumption proves utility, or that this benchmark proves selective Entry quality or economic edge.",
+      "That a short comparison judges full-history model capacity."
+    ],
+    "scope_effect": "Complete the existing fixed objective-control comparison; interpret it only as a test of loss interaction. Before claiming setup understanding, require causal situation-conditioned evidence on predeclared development groups, preserving all groups/counts. No post-result profitable-group selection, new architecture, inputs or trading authority follows from this question.",
+    "source_evidence": {
+      "gx1/features/entry_specialist_feature_groups_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/features/entry_specialist_feature_groups_v1.py",
+        "sha256": "38da0c25aaadb2bd0108eb427578163aa76c73dd7fe9367aa86fed185a1e0f27"
+      },
+      "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+        "sha256": "028665b503f28704900574b551e3571f813065f6d1fb8bd2c91d0dc27400364c"
+      },
+      "gx1/contracts/market_state_time_query_target_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_time_query_target_v1.py",
+        "sha256": "c4eacacdfb782e7dfb01cac51cb4521e95ca55d3dfeb1c215a958abbdde65ca9"
+      },
+      "gx1/contracts/market_state_future_displacement_candidate_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_future_displacement_candidate_v1.py",
+        "sha256": "4a7e0a582bef097109555ddfe1b96cb2c9d7b31c2a53366ef9a4bbbe0c6deb62"
+      },
+      "gx1/contracts/market_state_time_query_native_F_objective_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_time_query_native_F_objective_v1.py",
+        "sha256": "145cec49db56f28bbf573289cbeeb1f04b68032e467b754424b17347772af8ad"
+      }
+    },
+    "training_authority_added": false,
+    "test_data_used": false
+  },
+  "fixed_objective_benchmark_native_source": {
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_SOURCE_20261112_001/NATIVE_INTEGRATION_REVIEW.json",
+      "sha256": "35bea5cc628fda811f840885cf48b9e5e6ef7becfb2de6a2839906108593d344"
+    },
+    "native_training_started": false,
+    "predictive_improvement_measured": false
   }
 }
