@@ -51,8 +51,8 @@ og modellkonstruksjon: alle forsøk0.101kildeeiere og input-/normaliserings-/kon
 kontrollert. QUALIFIED_RECIPE_CANDIDATE_001.json binder testet worktree, ikke en launchplan.
 Ingen faktisk ny INITIAL, markedsfit, senere læringsgevinst eller økonomisk edge er målt her.
 
-Neste: bind fersk ren commit til eksisterende bevoktet kjørerute og en separat eksakt engangs-
-admisjon for denne sammenligningen. Den faktiske INITIAL-kontrollen skal stoppe kjøringen før
+Neste: bind den allerede admitterte sammenligningen til fersk ren commit og eksisterende
+bevoktet kjørerute. Den faktiske INITIAL-kontrollen skal stoppe kjøringen før
 første update ved avvik. Ikke gjenåpne tidligere planer. Korte kontroller dømmer ikke endelig
 kapasitet; kvalifisert full historikk og30–40epoker er senere skalering.
 
