@@ -6,84 +6,71 @@ NEXT_RUN_POLICY.json eier arbeidsstatus; prosess og terminal overstyrer prosa.
 
 ## Aktivt mål og neste steg
 
-TA_DIRECTION_EDGE_CAUSE_SETUP_CONTEXT_REVIEW_ADMITTED.
-Forrige målturn ga faktisk fremdrift: fast to-arms-sammenligning og parret review er ferdig.
-Målet om svak retningsverdi er fortsatt aktivt. Neste jobb er én konkret, data-only situasjonsanalyse.
-Stage market_state_ta_setup_context_20261112_001; plan i configs/research med samme navn.
+TA_DIRECTION_EDGE_CAUSE_SETUP_CONTEXT_COMPLETE_VALUE_UNRESOLVED.
+Målet om å avklare og rette svak retningsverdi er fortsatt aktivt og uoppnådd.
+Forrige målturn og denne ga faktisk fremdrift: fast læringssammenligning og deretter
+kausal situasjonsanalyse er utført. Ikke gjenta dem eller åpne konsumert admisjon.
+
+Neste avgrensede spørsmål er tidshorisonten for de samme situasjonene.
+Kontroller først at lagrede F-queries, tidspunkt og native ATR-enheter faktisk matcher
+mellom TRAIN/senere på alle fem TF. Deretter kan én separat prespesifisert avlesning
+av alle allerede lagrede endepunkter vurderes. M5 beholdes som primært; velg ikke beste
+horisont etterpå. Langhorisont krever stående LONG-referanse. Ingen slik scoring er admittert nå.
+Ingen nye grupper, terskelsøk, targets, modellendring eller trening er tillatt av dette steget.
+
+## Målt situasjonsanalyse
+
 ROOT /home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_CONTEXT_20261112_001.
-Kjør ANALYZE_SETUP_CONTEXT.py én gang via capped audit4GiB/512MiB, maksimalt900s.
-Ingen modell, checkpoint, forward, fit, featureberegning eller terskelsøk.
+Kilde d3699f64; PLAN84c54450, RESULT26cbfd65, TERMINAL984eeea7.
+Samlet bevis: [TA_DIRECTION_EDGE_CAUSE_REVIEW.json](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json),
+setup_context_probe_result. Alle37grupper og primære parrede intervaller er beholdt.
 
-Gruppene er låst før utfall: fire M5-nivåsituasjoner ved0..1ATR, tre M5-EMA-retninger,
-og tre kontekster fra alle fire høyereTF. Alle36kombinasjoner og UNKNOWN beholdes.
-Fraværende nullnivåer krever presence-vakt. EMA-retning bruker20/50-orden og5-barshelning.
-Tre av fire M15/H1/H4/D1 må ha samme fortegn for entydig HTF-kontekst.
-TRAIN4096 og senere4096, lagret INITIAL/FULLpass3/M5-onlypass3 og frosne tidligere priors.
-Skårer inkluderer FLAT; ukjent/uklar støtte telles. Én forhåndsvalgt samlet retningskontrast,
-med parret dag-/ukeusikkerhet. Dette er én beskrivende probe, ikke alle manuelle oppsett.
+Gruppene ble låst før utfall: fire M5-nivåsituasjoner ved0..1ATR, tre M5-EMA-retninger,
+og tre kontekster fra alle fire høyereTF. Fraværende nullnivåer har presence-vakt.
+EMA-retning bruker20/50-orden og5-native-barshelning; tre av fire M15/H1/H4/D1 må samsvare.
+Dette er én beskrivende probe, ikke en definisjon av alle manuelle tradingoppsett.
 
-Kildereview bekreftet at aktuell M5-relative HTF-ekstrem-/pivotgeometri allerede finnes.
-Det er derfor ikke påvist en generell mangel på pris mot HTF-nivåer. Lært bruk er fortsatt ubevist.
-Gjenbruk kvalifiserte253-feltscacher + eksisterende span-sidecars til dagens255felt.
-Siste rad hentes via canonical n=1-slicer; fulle modellvinduer er allerede kvalifisert.
-Ingen øvrig kjøring er admittert. Consumed sammenligningsplaner forblir stengt.
-
-## Målt resultat fra fast sammenligning
-
-ROOT /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001.
-Kilde071724ae, recipe690ae741, RESULT069d4d7c, TERMINALd137b42b.
-FIXED_COMPARISONda37fcdd, review-terminalc7a44597. Samlet bevis og alle komponentavveininger:
-[TA_DIRECTION_EDGE_CAUSE_REVIEW.json](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json),
-fixed_objective_benchmark_result.
-
-Samme modell/genuine inputs, INITIAL, RNG, rekkefølge og queries i begge armer.
-TRAIN4096 over mai–september2024; senere4096 over oktober–desember2024.
-Tre passeringer per arm, måling0/1/3; pass3 primært, ingen checkpointseleksjon.
-Én modell/optimizer,1536updates totalt,4096forwards,0skipped;768updates per arm.
-INITIAL-restore, per-pass RNG-likhet, passive evalueringer og uendret kilde besto.
-
-| M5 betinget retning | INITIAL | FULL pass3 | M5-only pass3 |
+| Forhåndsvalgt situasjon | TRAIN | Senere | Senere bevegelse i retning / motsatt / FLAT |
 | --- | ---: | ---: | ---: |
-| S TRAIN AUC | 0,549685 | 0,564880 | 0,636526 |
-| S senere AUC | 0,543411 | 0,548683 | 0,532370 |
-| F TRAIN AUC | 0,537196 | 0,571561 | 0,616656 |
-| F senere AUC | 0,511290 | 0,513672 | 0,495511 |
-| S senere Brier | 0,249426 | 0,250519 | 0,258705 |
-| F senere Brier | 0,249553 | 0,251796 | 0,257268 |
+| Støtte + M5/HTF opp | 197 | 153 | 38 / 24 / 91 |
+| Motstand + M5/HTF ned | 46 | 52 | 11 / 10 / 31 |
+| Samlet | 243 | 205 | 49 / 34 / 122 |
 
-M5-only lærer TRAIN sterkere, men begge senere Brier/log-skårer svekkes mot FULL/INITIAL.
-2000 parrede resamples over70UTC-dager og14uker: alle disse Brier/log-regresjonenes
-95prosentintervaller ligger over null. AUC-punktestimatene svekkes, men forskjellenes
-intervaller inkluderer null. Ingen konsistent senere gevinst; M5-only skal ikke promoteres.
-Større TRAIN-fit og senere sannsynlighetsfeil er forenlig med overtilpasning/svak overføring;
-den unike hovedårsaken er ikke bevist. Ingen generell dom over multitask eller kapasitet.
-S-sidestøtte er1403TRAIN/1414senere; F1635/1689 av4096. Dette er utfallsbetinget støtte,
-ikke selekterbar Entry-dekning. AUC er rangering, ikke treffprosent eller handelsresultat.
-Alle ti captures og publiserte task/TF-skårer ble kontrollert med gammel skåringseier;
-største skåringsavvik8,88e-16. Review brukte ingen modell/checkpoint/forward/fit og tok3,04s.
+Begge paneler har4096rader. FLAT her er F-bevegelse mindre enn0,5M5-ATR etter fem minutter,
+ikke en handelsbeslutning. Samlet senere oppsettdekning er5,00prosent; ingen feature-UNKNOWN.
+Forventet retningsbalanse utover frossen prior:0,06876;95prosent dagintervall[-0,01116;0,14565],
+ukeintervall[-0,02128;0,13373]. Signal i denne proben er derfor ikke bekreftet.
+Senere samlet F-treklasse-Brier: prior0,563346, INITIAL0,564316, FULL0,568738,
+M5-only0,572955. FULL/prior og M5-only/FULL-intervallene inkluderer null.
+FULLs betingede side-Brier er bedre i punktestimat; dette er ikke det samme som bedre
+samlet sannsynlighet eller selektiv Entry. Alle grupper, FLAT og uklar støtte beholdes.
 
-## Brukerens spørsmål og uavklarte grenser
+All-row S-treklasseskår viser noe verdi mot prior, men2443av4096senere S-rader har aktiv
+ukjent side, og én er ineligible/immature. S-state og fremtidig F-retning er ulike mål.
+Ingen gevinst i fremtidig retning eller økonomi er etablert gjennom denne forskjellen.
 
-Aktiv kilde bekrefter EMA-avstand/helning mot ATR, nivå-/trendlinjegeometri,
-åtte genuine familier og femTF/D1 i den lærte sammensettingen. Konsum beviser ikke
-nyttig situasjonsforståelse. M5 S/F-målingene gjelder t+5min; dette er mål, ikke holderegler.
-FLAT som markedsmål beviser ikke at modellen kan avstå fra dårlige Entry-oppsett.
-To-arms-testen avkreftet ingen universell hypotese: å fjerne andre direkte tapsledd
-løste ikke senere M5-verdi i akkurat denne testen. Ikke fortsett med vilkårlig tapstuning.
-Situasjonsanalysen må skille faktisk informasjon i oppsett fra modellens evne til å bruke den.
-Ingen lønnsom gruppe velges etterpå. Senere data er gjenbrukt utvikling, ikke uavhengig bekreftelse.
+## Kilde og teknisk gjennomføring
 
-## Drift, gjenbruk og avgrensing
+EMA/ATR, registry-nivåer, alle femTF og åtte genuine familier finnes i aktiv modellkonsum.
+HTF-registryavstand bruker siste HTF-close. Men aktuell M5-relative avstander til HTF-
+ekstremer og prior-session-pivoter finnes også i aktive inputs. Ingen generell mangel
+på prisgeometri er bevist; lært bruk er fortsatt uavklart.
 
-Campaign receiptb1947323 er COMPLETE/exit0. Windows boot645.
-Kontroller avsluttet; GX1M5ObjectiveBenchmark001 er Disabled med siste resultat0.
-Native og review er COMPLETE/CONSUMED: hver claimed1/completed1/remaining0, ingen relaunch.
+Eksisterende253-feltscacher og kvalifiserte span-sidecars ble komponert med gammel eier
+før canonical n=1-endepunktsuttrekk. Fulle modellvinduer var allerede kvalifisert.
+8192rader ×5TF =40960endepunkter; seks lagrede captures, ti spanarkiver, ingen modell,
+checkpoint, forward, fit eller ny featureberegning. Skåringsavvik mot originalene5,51e-16.
+Capped4GiB/512MiB, tid14,84s, exit0. Engangsjobben er COMPLETE/CONSUMED:1/1/0.
+
+## Tidligere direkte funn og grenser
+
+Fast FULL mot M5-only: samme4096TRAIN/4096senere, INITIAL/RNG/rekkefølge, tre passeringer.
+M5-only økte F TRAIN-AUC0,537→0,617, mens senere F-AUC ble0,496 og Brier/log svekket seg.
+Å fjerne andre tapsledd løste ikke senere verdi i testen. Original benchmark og review er konsumert.
+Ikke bruk dette som generell dom over multitask, genuine indikatorer eller fullhistorikk-kapasitet.
+
 Global training/native_training, full epoch og fullVAL er false; ingen tung jobb kjører.
-Kvalifiserte inputs/normalisering, INITIAL og beståtte kontroller gjenbrukes.
-Spanfelt-kontrollen viste ingen konsistent gevinst; batchrekkefølge-kontrollen er allerede utført.
-Originale artefakter/checkpoints beholdes; eldre detaljer finnes i review og Git.
-
-Korte runder er bevisst feilsøking, ikke en dom over fullhistorikk-kapasitet.
-Kvalifisert full TRAIN-historikk og 30–40 epoker er senere skalering.
+Kvalifiserte inputs/normalisering og beståtte kontroller gjenbrukes. Originale artefakter beholdes.
+Korte runder er bevisst feilsøking. Full kvalifisert TRAIN-historikk og30–40epoker er senere skalering.
 TEST, Entry/Exit-evaluering, broker, handel, spending og promotion er stengt; GC er på pause.
 Root eier policy, launch og samlet kontroll.

@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_SETUP_CONTEXT_REVIEW_ADMITTED",
+  "status": "ACTIVE_SETUP_CONTEXT_COMPLETE_VALUE_UNRESOLVED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -269,7 +269,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Execute exactly one capped setup-context analysis of existing TRAIN/later captures and qualified input endpoints; publish all37 groups and fixed primary contrasts, then consume admission. No new model, fit, feature calculation or threshold search.",
+  "next_measurement": "Resolve horizon alignment for the same already declared situations using existing retained F endpoints only. First verify that TRAIN/later query horizons and native ATR units match across all five TF; specify all endpoints together, preserve M5 as primary and include the standing long-horizon LONG reference before any further scoring. No regrouping, threshold search, new targets, model changes or training is admitted.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -1723,13 +1723,14 @@
   },
   "training_authorized_scope": null,
   "latest_confirmed_findings": [
-    "The fixed comparison completed with exact INITIAL restoration, matching per-pass RNG, same queries/order and passive evaluations; 768 updates per arm, no skips.",
-    "M5-only improves used-TRAIN side AUC and proper scores more than FULL, but both later M5 side AUC point estimates are lower than FULL and INITIAL. These paired AUC differences are uncertain under both day/week intervals.",
-    "M5-only later side Brier/log scores are worse than FULL and INITIAL for both S/F; all paired day/week 95percent intervals for these regressions are above zero. This is not merely a lower aggregate objective hiding M5 improvement.",
-    "For M5 future direction, TRAIN AUC is INITIAL0.537196, FULL0.571561, M5-only0.616656; later AUC is0.511290,0.513672,0.495511 respectively. AUC is ranking, not winrate.",
-    "M5-only later mean predicted UP probability is S0.563332 versus realized0.500707 and F0.547147 versus0.519242. Stronger TRAIN fitting accompanies larger later probability errors; this is consistent with overfitting/failed temporal transfer, not a proved unique root cause.",
-    "Removing the other direct losses did not solve later directional value in this fixed small experiment. Do not promote this variant or infer that auxiliary losses never interfere or that full-history capacity has been judged.",
-    "The unresolved question is whether existing causal SR/ATR/EMA/MTF situations carry later predictive information and whether the model distinguishes them. Indicator consumption and market-state FLAT do not demonstrate selective Entry quality."
+    "All8192 selected rows mapped to canonical closed endpoints across all five TF; UNKNOWN feature groups0. Six retained captures and existing qualified span inputs reused; no model, forward, fit or new feature calculation.",
+    "Prespecified aligned setups: TRAIN243/4096, later205/4096. Later support+UP alignment153 rows across9weeks, resistance+DOWN alignment52 rows across7weeks; all36joint groups and UNKNOWN are retained.",
+    "Later F in aligned groups:49 moves in the described direction,34 opposite,122 below the existing0.5native-M5-ATR threshold at five minutes. This is outcome classification, not executed trades or winrate.",
+    "The prespecified later signed-class-balance excess over the frozen prior is0.0687567;95percent UTC-day interval[-0.0111557,0.1456470] and week interval[-0.0212791,0.1337316]. Directional setup information is not established by this sample.",
+    "Within aligned later groups, FULL three-class F Brier0.568738 is worse in point estimate than frozen prior0.563346; paired day/week intervals include zero. M5-only0.572955 is also not an improvement. Conditional-side FULL Brier improves in point estimate, so ranking, activity and total class probability must not be conflated.",
+    "All-row later S singleton three-class Brier is better than prior for FULL, but S has2443 active-unknown-side rows and1 ineligible/immature row. This does not establish future directional value or Entry selectivity.",
+    "A blanket missing-price-geometry diagnosis is unsupported: active inputs already contain current-M5-relative HTF extrema/pivot distances. Whether the model learns the necessary relationships remains unresolved.",
+    "No architecture or indicator change is justified by this one coarse probe. The next direct discriminator is horizon alignment of these same groups with already retained endpoints; no profitable-group or best-horizon selection."
   ],
   "activity_pressure_review": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ACTIVITY_PRESSURE_REVIEW.json",
@@ -4003,5 +4004,3129 @@
     ],
     "group_outcomes_read": false,
     "model_function_changed": false
+  },
+  "setup_context_probe_result": {
+    "status": "COMPLETE_DIRECTIONAL_SETUP_VALUE_UNRESOLVED",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_CONTEXT_20261112_001/RESULT.json",
+      "sha256": "26cbfd65198f08ab25e498c4820b34186453978e13c2c912275b2f7ed39065da"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_CONTEXT_20261112_001/TERMINAL.json",
+      "sha256": "984eeea794ea6c252ebe1bf76e2dc9f8107372ba55efe10932b63675c7e6a93d"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_CONTEXT_20261112_001/CLAIM.json",
+      "sha256": "23a813f062c04a892b336b3e2dba226f54b9b32f89c9d1d57b66c6a7f448aba3"
+    },
+    "assignments": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_CONTEXT_20261112_001/GROUP_ASSIGNMENTS.npz",
+      "sha256": "f3eb714cf066dba080ed121d53a1d81c19afedd93e6387ceb0a518989793da7c"
+    },
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_SETUP_CONTEXT_20261112_001.json",
+      "sha256": "84c5445060f7cd017c6ac9223af5159c895b69b6dd038faedc87fc13e4873860"
+    },
+    "script": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_CONTEXT_20261112_001/ANALYZE_SETUP_CONTEXT.py",
+      "sha256": "ff6b14e81905117ae5b40b1e62f3d68136363fad6ff4f2dc2d3d655a23ef3bfe"
+    },
+    "native_endpoint_rows": 8192,
+    "counts": {
+      "capture_decodes": 6,
+      "checkpoint_decodes": 0,
+      "clock_maps": 5,
+      "feature_cache_maps": 5,
+      "fitting": 0,
+      "forwards": 0,
+      "model_constructions": 0,
+      "native_endpoint_windows": 40960,
+      "optimizer_updates": 0,
+      "span_archive_decodes": 10
+    },
+    "elapsed_seconds": 14.841503261999605,
+    "maximum_score_replay_error": 5.505415870296176e-16,
+    "primary_groups": {
+      "TRAIN": {
+        "ALL": {
+          "rows": 4096,
+          "utc_days": 118,
+          "utc_weeks": 22,
+          "tasks": {
+            "future": {
+              "eligible": 4096,
+              "mature": 4096,
+              "allowed_counts": {
+                "1": 792,
+                "2": 2461,
+                "4": 843,
+                "5": 0,
+                "7": 0
+              },
+              "ineligible_or_immature": 0,
+              "models": {
+                "FROZEN_PRIOR": {
+                  "three_class_count": 4096,
+                  "three_class_brier": 0.5592820859052442,
+                  "conditional_side": {
+                    "count": 1635,
+                    "auc": 0.5,
+                    "brier": 0.24977675469111546,
+                    "log": 0.6927006366769242
+                  },
+                  "mean_three_class_probability": [
+                    0.1968660780420332,
+                    0.5973086286177919,
+                    0.2058252933401603
+                  ]
+                },
+                "FULL_OBJECTIVE_PASS3": {
+                  "three_class_count": 4096,
+                  "three_class_brier": 0.5560217606692059,
+                  "conditional_side": {
+                    "count": 1635,
+                    "auc": 0.5715608037672094,
+                    "brier": 0.24582737040146463,
+                    "log": 0.6847383028021936
+                  },
+                  "mean_three_class_probability": [
+                    0.1766676952263251,
+                    0.6312266180904664,
+                    0.19210568668320752
+                  ]
+                },
+                "INITIAL": {
+                  "three_class_count": 4096,
+                  "three_class_brier": 0.5588686372683169,
+                  "conditional_side": {
+                    "count": 1635,
+                    "auc": 0.5371958014306769,
+                    "brier": 0.24900372824548575,
+                    "log": 0.6911526623046866
+                  },
+                  "mean_three_class_probability": [
+                    0.1853027723012928,
+                    0.6204779622546673,
+                    0.19421926544403975
+                  ]
+                },
+                "M5_DIRECTION_ONLY_PASS3": {
+                  "three_class_count": 4096,
+                  "three_class_brier": 0.5573870451588043,
+                  "conditional_side": {
+                    "count": 1635,
+                    "auc": 0.6166558826701175,
+                    "brier": 0.24092740622978984,
+                    "log": 0.6747501019553752
+                  },
+                  "mean_three_class_probability": [
+                    0.1820277532954911,
+                    0.600516580155291,
+                    0.21745566654921838
+                  ]
+                }
+              }
+            },
+            "state": {
+              "eligible": 4090,
+              "mature": 4096,
+              "allowed_counts": {
+                "1": 665,
+                "2": 282,
+                "4": 738,
+                "5": 2405,
+                "7": 0
+              },
+              "ineligible_or_immature": 6,
+              "models": {
+                "FROZEN_PRIOR": {
+                  "three_class_count": 1685,
+                  "three_class_brier": 0.636553753877137,
+                  "conditional_side": {
+                    "count": 1403,
+                    "auc": 0.5,
+                    "brier": 0.2493770319789844,
+                    "log": 0.6919008269472965
+                  },
+                  "mean_three_class_probability": [
+                    0.44401186114406876,
+                    0.07751675580529249,
+                    0.4784713830506467
+                  ]
+                },
+                "FULL_OBJECTIVE_PASS3": {
+                  "three_class_count": 1685,
+                  "three_class_brier": 0.6204151608362027,
+                  "conditional_side": {
+                    "count": 1403,
+                    "auc": 0.5648796788719767,
+                    "brier": 0.24515462824022155,
+                    "log": 0.6833671685915577
+                  },
+                  "mean_three_class_probability": [
+                    0.4476096125442899,
+                    0.06838508652013854,
+                    0.48400530093557065
+                  ]
+                },
+                "INITIAL": {
+                  "three_class_count": 1685,
+                  "three_class_brier": 0.6216411476196494,
+                  "conditional_side": {
+                    "count": 1403,
+                    "auc": 0.5496851885812091,
+                    "brier": 0.24769556874763798,
+                    "log": 0.6885323031770056
+                  },
+                  "mean_three_class_probability": [
+                    0.4441459222491919,
+                    0.08158457001841578,
+                    0.4742695077323922
+                  ]
+                },
+                "M5_DIRECTION_ONLY_PASS3": {
+                  "three_class_count": 1685,
+                  "three_class_brier": 0.6145887185668502,
+                  "conditional_side": {
+                    "count": 1403,
+                    "auc": 0.6365262750371865,
+                    "brier": 0.2371461541738615,
+                    "log": 0.66685799990989
+                  },
+                  "mean_three_class_probability": [
+                    0.416720149462509,
+                    0.06825735520983521,
+                    0.5150224953276568
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "ALIGNED_DIRECTIONAL_SETUP": {
+          "rows": 243,
+          "utc_days": 56,
+          "utc_weeks": 22,
+          "tasks": {
+            "future": {
+              "eligible": 243,
+              "mature": 243,
+              "allowed_counts": {
+                "1": 43,
+                "2": 138,
+                "4": 62,
+                "5": 0,
+                "7": 0
+              },
+              "ineligible_or_immature": 0,
+              "models": {
+                "FROZEN_PRIOR": {
+                  "three_class_count": 243,
+                  "three_class_brier": 0.5847703274624712,
+                  "conditional_side": {
+                    "count": 105,
+                    "auc": 0.5,
+                    "brier": 0.24811080196227198,
+                    "log": 0.6893681813040389
+                  },
+                  "mean_three_class_probability": [
+                    0.19686607804202572,
+                    0.5973086286177983,
+                    0.20582529334017619
+                  ]
+                },
+                "FULL_OBJECTIVE_PASS3": {
+                  "three_class_count": 243,
+                  "three_class_brier": 0.5801272080585285,
+                  "conditional_side": {
+                    "count": 105,
+                    "auc": 0.46811702925731435,
+                    "brier": 0.24962993789403004,
+                    "log": 0.6924737670777978
+                  },
+                  "mean_three_class_probability": [
+                    0.17556866659970194,
+                    0.626804515330129,
+                    0.1976268180701688
+                  ]
+                },
+                "INITIAL": {
+                  "three_class_count": 243,
+                  "three_class_brier": 0.5769470095442754,
+                  "conditional_side": {
+                    "count": 105,
+                    "auc": 0.5206301575393848,
+                    "brier": 0.24811034464526344,
+                    "log": 0.689366402002203
+                  },
+                  "mean_three_class_probability": [
+                    0.19186956639106975,
+                    0.6062769654471756,
+                    0.201853468161755
+                  ]
+                },
+                "M5_DIRECTION_ONLY_PASS3": {
+                  "three_class_count": 243,
+                  "three_class_brier": 0.5719389385981855,
+                  "conditional_side": {
+                    "count": 105,
+                    "auc": 0.477119279819955,
+                    "brier": 0.2527179054755561,
+                    "log": 0.6988642664051922
+                  },
+                  "mean_three_class_probability": [
+                    0.1969598215912716,
+                    0.576266553115736,
+                    0.22677362529299228
+                  ]
+                }
+              }
+            },
+            "state": {
+              "eligible": 243,
+              "mature": 243,
+              "allowed_counts": {
+                "1": 37,
+                "2": 10,
+                "4": 50,
+                "5": 146,
+                "7": 0
+              },
+              "ineligible_or_immature": 0,
+              "models": {
+                "FROZEN_PRIOR": {
+                  "three_class_count": 97,
+                  "three_class_brier": 0.5841072431621752,
+                  "conditional_side": {
+                    "count": 87,
+                    "auc": 0.5,
+                    "brier": 0.24755794846323095,
+                    "log": 0.6882609662538687
+                  },
+                  "mean_three_class_probability": [
+                    0.4440118611440555,
+                    0.07751675580529409,
+                    0.47847138305065084
+                  ]
+                },
+                "FULL_OBJECTIVE_PASS3": {
+                  "three_class_count": 97,
+                  "three_class_brier": 0.5904551271644813,
+                  "conditional_side": {
+                    "count": 87,
+                    "auc": 0.4821621621621622,
+                    "brier": 0.250717595729854,
+                    "log": 0.6946206845811681
+                  },
+                  "mean_three_class_probability": [
+                    0.44517688431379515,
+                    0.056040585388964254,
+                    0.49878253029724046
+                  ]
+                },
+                "INITIAL": {
+                  "three_class_count": 97,
+                  "three_class_brier": 0.5804386931143244,
+                  "conditional_side": {
+                    "count": 87,
+                    "auc": 0.5302702702702703,
+                    "brier": 0.24759400009370156,
+                    "log": 0.6883178803130149
+                  },
+                  "mean_three_class_probability": [
+                    0.44659120572370675,
+                    0.07211134277755503,
+                    0.4812974514987386
+                  ]
+                },
+                "M5_DIRECTION_ONLY_PASS3": {
+                  "three_class_count": 97,
+                  "three_class_brier": 0.5908323397397554,
+                  "conditional_side": {
+                    "count": 87,
+                    "auc": 0.5227027027027027,
+                    "brier": 0.2484756534748748,
+                    "log": 0.6903409374166299
+                  },
+                  "mean_three_class_probability": [
+                    0.4221052028021616,
+                    0.06035131508687354,
+                    0.5175434821109648
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "SUPPORT_ONLY_M5_UP_HTF_UP": {
+          "rows": 197,
+          "utc_days": 45,
+          "utc_weeks": 19,
+          "tasks": {
+            "future": {
+              "eligible": 197,
+              "mature": 197,
+              "allowed_counts": {
+                "1": 34,
+                "2": 110,
+                "4": 53,
+                "5": 0,
+                "7": 0
+              },
+              "ineligible_or_immature": 0,
+              "models": {
+                "FROZEN_PRIOR": {
+                  "three_class_count": 197,
+                  "three_class_brier": 0.592150324742214,
+                  "conditional_side": {
+                    "count": 87,
+                    "auc": 0.5,
+                    "brier": 0.2476943305381258,
+                    "log": 0.6885351009824787
+                  },
+                  "mean_three_class_probability": [
+                    0.1968660780420252,
+                    0.5973086286177968,
+                    0.2058252933401762
+                  ]
+                },
+                "FULL_OBJECTIVE_PASS3": {
+                  "three_class_count": 197,
+                  "three_class_brier": 0.5868206319866344,
+                  "conditional_side": {
+                    "count": 87,
+                    "auc": 0.4728079911209767,
+                    "brier": 0.24921350736962344,
+                    "log": 0.6916338341417291
+                  },
+                  "mean_three_class_probability": [
+                    0.18126140674505903,
+                    0.6171143426167852,
+                    0.20162425063815578
+                  ]
+                },
+                "INITIAL": {
+                  "three_class_count": 197,
+                  "three_class_brier": 0.5895686454820086,
+                  "conditional_side": {
+                    "count": 87,
+                    "auc": 0.5321864594894562,
+                    "brier": 0.24794821603070896,
+                    "log": 0.6890417735069451
+                  },
+                  "mean_three_class_probability": [
+                    0.19747143513869048,
+                    0.5963691106804523,
+                    0.2061594541808572
+                  ]
+                },
+                "M5_DIRECTION_ONLY_PASS3": {
+                  "three_class_count": 197,
+                  "three_class_brier": 0.5817941801172185,
+                  "conditional_side": {
+                    "count": 87,
+                    "auc": 0.4911209766925638,
+                    "brier": 0.25218201797658957,
+                    "log": 0.6977661962854936
+                  },
+                  "mean_three_class_probability": [
+                    0.207987371997762,
+                    0.5658393641351611,
+                    0.22617326386707673
+                  ]
+                }
+              }
+            },
+            "state": {
+              "eligible": 197,
+              "mature": 197,
+              "allowed_counts": {
+                "1": 31,
+                "2": 6,
+                "4": 42,
+                "5": 118,
+                "7": 0
+              },
+              "ineligible_or_immature": 0,
+              "models": {
+                "FROZEN_PRIOR": {
+                  "three_class_count": 79,
+                  "three_class_brier": 0.5630961606548336,
+                  "conditional_side": {
+                    "count": 73,
+                    "auc": 0.5,
+                    "brier": 0.2475344213501518,
+                    "log": 0.6882138901227373
+                  },
+                  "mean_three_class_probability": [
+                    0.4440118611440555,
+                    0.0775167558052941,
+                    0.47847138305065035
+                  ]
+                },
+                "FULL_OBJECTIVE_PASS3": {
+                  "three_class_count": 79,
+                  "three_class_brier": 0.5688191137060807,
+                  "conditional_side": {
+                    "count": 73,
+                    "auc": 0.46774193548387094,
+                    "brier": 0.25134018205475234,
+                    "log": 0.69586497003384
+                  },
+                  "mean_three_class_probability": [
+                    0.4511782714181672,
+                    0.05500417127170554,
+                    0.4938175573101271
+                  ]
+                },
+                "INITIAL": {
+                  "three_class_count": 79,
+                  "three_class_brier": 0.5626698327212151,
+                  "conditional_side": {
+                    "count": 73,
+                    "auc": 0.5161290322580645,
+                    "brier": 0.24803644419121318,
+                    "log": 0.6892053210931348
+                  },
+                  "mean_three_class_probability": [
+                    0.4522586158917878,
+                    0.06619720757613083,
+                    0.4815441765320814
+                  ]
+                },
+                "M5_DIRECTION_ONLY_PASS3": {
+                  "three_class_count": 79,
+                  "three_class_brier": 0.5672271553448892,
+                  "conditional_side": {
+                    "count": 73,
+                    "auc": 0.5261136712749616,
+                    "brier": 0.24857179151276648,
+                    "log": 0.690451621531886
+                  },
+                  "mean_three_class_probability": [
+                    0.43874414556504215,
+                    0.05801910459886548,
+                    0.5032367498360925
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "RESISTANCE_ONLY_M5_DOWN_HTF_DOWN": {
+          "rows": 46,
+          "utc_days": 11,
+          "utc_weeks": 8,
+          "tasks": {
+            "future": {
+              "eligible": 46,
+              "mature": 46,
+              "allowed_counts": {
+                "1": 9,
+                "2": 28,
+                "4": 9,
+                "5": 0,
+                "7": 0
+              },
+              "ineligible_or_immature": 0,
+              "models": {
+                "FROZEN_PRIOR": {
+                  "three_class_count": 46,
+                  "three_class_brier": 0.5531646869383556,
+                  "conditional_side": {
+                    "count": 18,
+                    "auc": 0.5,
+                    "brier": 0.2501237471789784,
+                    "log": 0.6933947361915801
+                  },
+                  "mean_three_class_probability": [
+                    0.1968660780420251,
+                    0.5973086286177987,
+                    0.20582529334017666
+                  ]
+                },
+                "FULL_OBJECTIVE_PASS3": {
+                  "three_class_count": 46,
+                  "three_class_brier": 0.5514618925403351,
+                  "conditional_side": {
+                    "count": 18,
+                    "auc": 0.5308641975308642,
+                    "brier": 0.2516426854286619,
+                    "log": 0.6965334429354635
+                  },
+                  "mean_three_class_probability": [
+                    0.15118888815110665,
+                    0.6683037332546691,
+                    0.18050737859422442
+                  ]
+                },
+                "INITIAL": {
+                  "three_class_count": 46,
+                  "three_class_brier": 0.5228934817239821,
+                  "conditional_side": {
+                    "count": 18,
+                    "auc": 0.5432098765432098,
+                    "brier": 0.248893966282277,
+                    "log": 0.6909354397292837
+                  },
+                  "mean_three_class_probability": [
+                    0.16787895458060656,
+                    0.6487084304264028,
+                    0.18341261499299064
+                  ]
+                },
+                "M5_DIRECTION_ONLY_PASS3": {
+                  "three_class_count": 46,
+                  "three_class_brier": 0.5297327955710217,
+                  "conditional_side": {
+                    "count": 18,
+                    "auc": 0.5925925925925926,
+                    "brier": 0.2553080283872276,
+                    "log": 0.7041716053170686
+                  },
+                  "mean_three_class_probability": [
+                    0.14973313832869298,
+                    0.6209221233151546,
+                    0.2293447383561524
+                  ]
+                }
+              }
+            },
+            "state": {
+              "eligible": 46,
+              "mature": 46,
+              "allowed_counts": {
+                "1": 6,
+                "2": 4,
+                "4": 8,
+                "5": 28,
+                "7": 0
+              },
+              "ineligible_or_immature": 0,
+              "models": {
+                "FROZEN_PRIOR": {
+                  "three_class_count": 18,
+                  "three_class_brier": 0.6763225497221753,
+                  "conditional_side": {
+                    "count": 14,
+                    "auc": 0.5,
+                    "brier": 0.24768062555285805,
+                    "log": 0.6885064346519113
+                  },
+                  "mean_three_class_probability": [
+                    0.444011861144056,
+                    0.0775167558052942,
+                    0.47847138305064996
+                  ]
+                },
+                "FULL_OBJECTIVE_PASS3": {
+                  "three_class_count": 18,
+                  "three_class_brier": 0.6854131862319067,
+                  "conditional_side": {
+                    "count": 14,
+                    "auc": 0.6041666666666666,
+                    "brier": 0.247471252750027,
+                    "log": 0.6881326247208085
+                  },
+                  "mean_three_class_probability": [
+                    0.4188374631334949,
+                    0.06058929179248852,
+                    0.5205732450740165
+                  ]
+                },
+                "INITIAL": {
+                  "three_class_count": 18,
+                  "three_class_brier": 0.6584242470618601,
+                  "conditional_side": {
+                    "count": 14,
+                    "auc": 0.6041666666666666,
+                    "brier": 0.24528697015667658,
+                    "log": 0.6836905105309607
+                  },
+                  "mean_three_class_probability": [
+                    0.4217175722082398,
+                    0.09806782505047233,
+                    0.4802146027412879
+                  ]
+                },
+                "M5_DIRECTION_ONLY_PASS3": {
+                  "three_class_count": 18,
+                  "three_class_brier": 0.6944328712505571,
+                  "conditional_side": {
+                    "count": 14,
+                    "auc": 0.4375,
+                    "brier": 0.2479743622772966,
+                    "log": 0.6897637988156523
+                  },
+                  "mean_three_class_probability": [
+                    0.34907873178729765,
+                    0.07058712778424218,
+                    0.5803341404284602
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "LATER": {
+        "ALL": {
+          "rows": 4096,
+          "utc_days": 70,
+          "utc_weeks": 14,
+          "tasks": {
+            "future": {
+              "eligible": 4096,
+              "mature": 4096,
+              "allowed_counts": {
+                "1": 812,
+                "2": 2407,
+                "4": 877,
+                "5": 0,
+                "7": 0
+              },
+              "ineligible_or_immature": 0,
+              "models": {
+                "FROZEN_PRIOR": {
+                  "three_class_count": 4096,
+                  "three_class_brier": 0.5696918927465306,
+                  "conditional_side": {
+                    "count": 1689,
+                    "auc": 0.5,
+                    "brier": 0.24969564113354448,
+                    "log": 0.692538382786966
+                  },
+                  "mean_three_class_probability": [
+                    0.1968660780420332,
+                    0.5973086286177919,
+                    0.2058252933401603
+                  ]
+                },
+                "FULL_OBJECTIVE_PASS3": {
+                  "three_class_count": 4096,
+                  "three_class_brier": 0.5704861552673495,
+                  "conditional_side": {
+                    "count": 1689,
+                    "auc": 0.5136717762636844,
+                    "brier": 0.2517960023211566,
+                    "log": 0.6967996749398965
+                  },
+                  "mean_three_class_probability": [
+                    0.17490833110392767,
+                    0.6326080872173135,
+                    0.19248358167875704
+                  ]
+                },
+                "INITIAL": {
+                  "three_class_count": 4096,
+                  "three_class_brier": 0.5655081801313675,
+                  "conditional_side": {
+                    "count": 1689,
+                    "auc": 0.5112901685661486,
+                    "brier": 0.24955319813771973,
+                    "log": 0.6922523776654274
+                  },
+                  "mean_three_class_probability": [
+                    0.18548480718482385,
+                    0.6171386008599639,
+                    0.1973765919552096
+                  ]
+                },
+                "M5_DIRECTION_ONLY_PASS3": {
+                  "three_class_count": 4096,
+                  "three_class_brier": 0.5700859218063986,
+                  "conditional_side": {
+                    "count": 1689,
+                    "auc": 0.4955106133201521,
+                    "brier": 0.2572683551424179,
+                    "log": 0.7081057208560118
+                  },
+                  "mean_three_class_probability": [
+                    0.1792826523021836,
+                    0.6039145367490708,
+                    0.21680281094874504
+                  ]
+                }
+              }
+            },
+            "state": {
+              "eligible": 4095,
+              "mature": 4096,
+              "allowed_counts": {
+                "1": 706,
+                "2": 238,
+                "4": 708,
+                "5": 2443,
+                "7": 0
+              },
+              "ineligible_or_immature": 1,
+              "models": {
+                "FROZEN_PRIOR": {
+                  "three_class_count": 1652,
+                  "three_class_brier": 0.6201300739038158,
+                  "conditional_side": {
+                    "count": 1414,
+                    "auc": 0.5,
+                    "brier": 0.2503224341661148,
+                    "log": 0.6937925115404535
+                  },
+                  "mean_three_class_probability": [
+                    0.4440118611440686,
+                    0.07751675580529223,
+                    0.4784713830506467
+                  ]
+                },
+                "FULL_OBJECTIVE_PASS3": {
+                  "three_class_count": 1652,
+                  "three_class_brier": 0.6091731887286914,
+                  "conditional_side": {
+                    "count": 1414,
+                    "auc": 0.5486827995710696,
+                    "brier": 0.2505191682544392,
+                    "log": 0.6942193507933894
+                  },
+                  "mean_three_class_probability": [
+                    0.44198060300275555,
+                    0.06516164368054582,
+                    0.4928577533166985
+                  ]
+                },
+                "INITIAL": {
+                  "three_class_count": 1652,
+                  "three_class_brier": 0.6026558371207958,
+                  "conditional_side": {
+                    "count": 1414,
+                    "auc": 0.5434111970038892,
+                    "brier": 0.24942597281922763,
+                    "log": 0.6919962758669147
+                  },
+                  "mean_three_class_probability": [
+                    0.4400453825663788,
+                    0.07748380362158959,
+                    0.482470813812033
+                  ]
+                },
+                "M5_DIRECTION_ONLY_PASS3": {
+                  "three_class_count": 1652,
+                  "three_class_brier": 0.6279568127149439,
+                  "conditional_side": {
+                    "count": 1414,
+                    "auc": 0.5323698404314912,
+                    "brier": 0.25870536813036404,
+                    "log": 0.7114495377457302
+                  },
+                  "mean_three_class_probability": [
+                    0.4092187014845633,
+                    0.06621481013722329,
+                    0.5245664883782134
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "ALIGNED_DIRECTIONAL_SETUP": {
+          "rows": 205,
+          "utc_days": 40,
+          "utc_weeks": 14,
+          "tasks": {
+            "future": {
+              "eligible": 205,
+              "mature": 205,
+              "allowed_counts": {
+                "1": 35,
+                "2": 122,
+                "4": 48,
+                "5": 0,
+                "7": 0
+              },
+              "ineligible_or_immature": 0,
+              "models": {
+                "FROZEN_PRIOR": {
+                  "three_class_count": 205,
+                  "three_class_brier": 0.563345906730608,
+                  "conditional_side": {
+                    "count": 83,
+                    "auc": 0.5,
+                    "brier": 0.24838140715310378,
+                    "log": 0.6899094810099101
+                  },
+                  "mean_three_class_probability": [
+                    0.1968660780420253,
+                    0.5973086286177968,
+                    0.2058252933401762
+                  ]
+                },
+                "FULL_OBJECTIVE_PASS3": {
+                  "three_class_count": 205,
+                  "three_class_brier": 0.5687383211817786,
+                  "conditional_side": {
+                    "count": 83,
+                    "auc": 0.5416666666666666,
+                    "brier": 0.24616557569066688,
+                    "log": 0.6854694077000429
+                  },
+                  "mean_three_class_probability": [
+                    0.1788497796033465,
+                    0.6186993003030715,
+                    0.20245092009358184
+                  ]
+                },
+                "INITIAL": {
+                  "three_class_count": 205,
+                  "three_class_brier": 0.5643160090816965,
+                  "conditional_side": {
+                    "count": 83,
+                    "auc": 0.5077380952380952,
+                    "brier": 0.24785541983428883,
+                    "log": 0.6888510831021878
+                  },
+                  "mean_three_class_probability": [
+                    0.19495899764589308,
+                    0.5983049595373907,
+                    0.2067360428167166
+                  ]
+                },
+                "M5_DIRECTION_ONLY_PASS3": {
+                  "three_class_count": 205,
+                  "three_class_brier": 0.5729549908848399,
+                  "conditional_side": {
+                    "count": 83,
+                    "auc": 0.4875,
+                    "brier": 0.2511279229840378,
+                    "log": 0.6956574169220411
+                  },
+                  "mean_three_class_probability": [
+                    0.2022487248134924,
+                    0.5714931452424332,
+                    0.22625812994407474
+                  ]
+                }
+              }
+            },
+            "state": {
+              "eligible": 205,
+              "mature": 205,
+              "allowed_counts": {
+                "1": 30,
+                "2": 6,
+                "4": 42,
+                "5": 127,
+                "7": 0
+              },
+              "ineligible_or_immature": 0,
+              "models": {
+                "FROZEN_PRIOR": {
+                  "three_class_count": 78,
+                  "three_class_brier": 0.563340130376338,
+                  "conditional_side": {
+                    "count": 72,
+                    "auc": 0.5,
+                    "brier": 0.24723592110295986,
+                    "log": 0.6876166117090068
+                  },
+                  "mean_three_class_probability": [
+                    0.4440118611440555,
+                    0.0775167558052941,
+                    0.4784713830506503
+                  ]
+                },
+                "FULL_OBJECTIVE_PASS3": {
+                  "three_class_count": 78,
+                  "three_class_brier": 0.5548922556826528,
+                  "conditional_side": {
+                    "count": 72,
+                    "auc": 0.5626984126984127,
+                    "brier": 0.24693198776669517,
+                    "log": 0.687137520131572
+                  },
+                  "mean_three_class_probability": [
+                    0.4409318161552048,
+                    0.06510409151898792,
+                    0.49396409232580735
+                  ]
+                },
+                "INITIAL": {
+                  "three_class_count": 78,
+                  "three_class_brier": 0.5572647276482997,
+                  "conditional_side": {
+                    "count": 72,
+                    "auc": 0.5468253968253968,
+                    "brier": 0.24597117111081415,
+                    "log": 0.6850660594624611
+                  },
+                  "mean_three_class_probability": [
+                    0.44150325967592313,
+                    0.07563080190231194,
+                    0.48286593842176484
+                  ]
+                },
+                "M5_DIRECTION_ONLY_PASS3": {
+                  "three_class_count": 78,
+                  "three_class_brier": 0.5635230224228605,
+                  "conditional_side": {
+                    "count": 72,
+                    "auc": 0.5325396825396825,
+                    "brier": 0.2469876437525579,
+                    "log": 0.6873136632197201
+                  },
+                  "mean_three_class_probability": [
+                    0.4240431580619302,
+                    0.06696785218540838,
+                    0.5089889897526613
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "SUPPORT_ONLY_M5_UP_HTF_UP": {
+          "rows": 153,
+          "utc_days": 26,
+          "utc_weeks": 9,
+          "tasks": {
+            "future": {
+              "eligible": 153,
+              "mature": 153,
+              "allowed_counts": {
+                "1": 24,
+                "2": 91,
+                "4": 38,
+                "5": 0,
+                "7": 0
+              },
+              "ineligible_or_immature": 0,
+              "models": {
+                "FROZEN_PRIOR": {
+                  "three_class_count": 153,
+                  "three_class_brier": 0.5633719904566312,
+                  "conditional_side": {
+                    "count": 62,
+                    "auc": 0.5,
+                    "brier": 0.2476118376131393,
+                    "log": 0.6883700879023734
+                  },
+                  "mean_three_class_probability": [
+                    0.1968660780420246,
+                    0.597308628617797,
+                    0.20582529334017627
+                  ]
+                },
+                "FULL_OBJECTIVE_PASS3": {
+                  "three_class_count": 153,
+                  "three_class_brier": 0.5674723378856299,
+                  "conditional_side": {
+                    "count": 62,
+                    "auc": 0.5581140350877193,
+                    "brier": 0.24269211042924485,
+                    "log": 0.6784798198868991
+                  },
+                  "mean_three_class_probability": [
+                    0.18676740329957361,
+                    0.607642860275854,
+                    0.205589736424572
+                  ]
+                },
+                "INITIAL": {
+                  "three_class_count": 153,
+                  "three_class_brier": 0.562162638162748,
+                  "conditional_side": {
+                    "count": 62,
+                    "auc": 0.5339912280701754,
+                    "brier": 0.24641286636538068,
+                    "log": 0.6859639996407604
+                  },
+                  "mean_three_class_probability": [
+                    0.20016146239271967,
+                    0.5903806471471581,
+                    0.2094578904601225
+                  ]
+                },
+                "M5_DIRECTION_ONLY_PASS3": {
+                  "three_class_count": 153,
+                  "three_class_brier": 0.572112668647364,
+                  "conditional_side": {
+                    "count": 62,
+                    "auc": 0.5679824561403509,
+                    "brier": 0.24346953148750233,
+                    "log": 0.6798755645498578
+                  },
+                  "mean_three_class_probability": [
+                    0.2189492359754311,
+                    0.5616886168151516,
+                    0.21936214720941727
+                  ]
+                }
+              }
+            },
+            "state": {
+              "eligible": 153,
+              "mature": 153,
+              "allowed_counts": {
+                "1": 23,
+                "2": 4,
+                "4": 30,
+                "5": 96,
+                "7": 0
+              },
+              "ineligible_or_immature": 0,
+              "models": {
+                "FROZEN_PRIOR": {
+                  "three_class_count": 57,
+                  "three_class_brier": 0.5592312509443962,
+                  "conditional_side": {
+                    "count": 53,
+                    "auc": 0.5,
+                    "brier": 0.24788200115281195,
+                    "log": 0.6889093733430379
+                  },
+                  "mean_three_class_probability": [
+                    0.44401186114405555,
+                    0.07751675580529413,
+                    0.4784713830506498
+                  ]
+                },
+                "FULL_OBJECTIVE_PASS3": {
+                  "three_class_count": 57,
+                  "three_class_brier": 0.548909744199704,
+                  "conditional_side": {
+                    "count": 53,
+                    "auc": 0.5797101449275363,
+                    "brier": 0.24599484124657936,
+                    "log": 0.6852999748260307
+                  },
+                  "mean_three_class_probability": [
+                    0.44772781560729485,
+                    0.06432248462313671,
+                    0.4879496997695687
+                  ]
+                },
+                "INITIAL": {
+                  "three_class_count": 57,
+                  "three_class_brier": 0.5570628689265927,
+                  "conditional_side": {
+                    "count": 53,
+                    "auc": 0.5579710144927537,
+                    "brier": 0.24659285815462748,
+                    "log": 0.6863217230332008
+                  },
+                  "mean_three_class_probability": [
+                    0.44730775451077937,
+                    0.07346424327369311,
+                    0.47922800221552747
+                  ]
+                },
+                "M5_DIRECTION_ONLY_PASS3": {
+                  "three_class_count": 57,
+                  "three_class_brier": 0.5636233290573744,
+                  "conditional_side": {
+                    "count": 53,
+                    "auc": 0.5449275362318841,
+                    "brier": 0.24918506846484853,
+                    "log": 0.6914726606236229
+                  },
+                  "mean_three_class_probability": [
+                    0.4556896650595152,
+                    0.07322879337859003,
+                    0.4710815415618947
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "RESISTANCE_ONLY_M5_DOWN_HTF_DOWN": {
+          "rows": 52,
+          "utc_days": 14,
+          "utc_weeks": 7,
+          "tasks": {
+            "future": {
+              "eligible": 52,
+              "mature": 52,
+              "allowed_counts": {
+                "1": 11,
+                "2": 31,
+                "4": 10,
+                "5": 0,
+                "7": 0
+              },
+              "ineligible_or_immature": 0,
+              "models": {
+                "FROZEN_PRIOR": {
+                  "three_class_count": 52,
+                  "three_class_brier": 0.563269160382886,
+                  "conditional_side": {
+                    "count": 21,
+                    "auc": 0.5,
+                    "brier": 0.2506534696044275,
+                    "log": 0.6944543558988278
+                  },
+                  "mean_three_class_probability": [
+                    0.19686607804202502,
+                    0.5973086286177988,
+                    0.20582529334017657
+                  ]
+                },
+                "FULL_OBJECTIVE_PASS3": {
+                  "three_class_count": 52,
+                  "three_class_brier": 0.5724632335723698,
+                  "conditional_side": {
+                    "count": 21,
+                    "auc": 0.5454545454545454,
+                    "brier": 0.2564205683672463,
+                    "log": 0.7061053336245627
+                  },
+                  "mean_three_class_probability": [
+                    0.1555536944971395,
+                    0.6512307488446925,
+                    0.19321555665816786
+                  ]
+                },
+                "INITIAL": {
+                  "three_class_count": 52,
+                  "three_class_brier": 0.5706518889009105,
+                  "conditional_side": {
+                    "count": 21,
+                    "auc": 0.5636363636363636,
+                    "brier": 0.2521143872186844,
+                    "log": 0.6973748533216403
+                  },
+                  "mean_three_class_probability": [
+                    0.1796517456023457,
+                    0.6216207248394207,
+                    0.19872752955823353
+                  ]
+                },
+                "M5_DIRECTION_ONLY_PASS3": {
+                  "three_class_count": 52,
+                  "three_class_brier": 0.5754333620835673,
+                  "conditional_side": {
+                    "count": 21,
+                    "auc": 0.36363636363636365,
+                    "brier": 0.2737384121642855,
+                    "log": 0.7422514572589634
+                  },
+                  "mean_three_class_probability": [
+                    0.1531106823562494,
+                    0.6003410846534727,
+                    0.2465482329902779
+                  ]
+                }
+              }
+            },
+            "state": {
+              "eligible": 52,
+              "mature": 52,
+              "allowed_counts": {
+                "1": 7,
+                "2": 2,
+                "4": 12,
+                "5": 31,
+                "7": 0
+              },
+              "ineligible_or_immature": 0,
+              "models": {
+                "FROZEN_PRIOR": {
+                  "three_class_count": 21,
+                  "three_class_brier": 0.5744928031201801,
+                  "conditional_side": {
+                    "count": 19,
+                    "auc": 0.5,
+                    "brier": 0.2454336978060039,
+                    "log": 0.6840104871509197
+                  },
+                  "mean_three_class_probability": [
+                    0.44401186114405594,
+                    0.0775167558052942,
+                    0.4784713830506499
+                  ]
+                },
+                "FULL_OBJECTIVE_PASS3": {
+                  "three_class_count": 21,
+                  "three_class_brier": 0.5711305011363704,
+                  "conditional_side": {
+                    "count": 19,
+                    "auc": 0.5238095238095238,
+                    "brier": 0.24954613332280773,
+                    "log": 0.6922633044049246
+                  },
+                  "mean_three_class_probability": [
+                    0.42248553192810306,
+                    0.06722559595058412,
+                    0.5102888721213128
+                  ]
+                },
+                "INITIAL": {
+                  "three_class_count": 21,
+                  "three_class_brier": 0.5578126298929331,
+                  "conditional_side": {
+                    "count": 19,
+                    "auc": 0.5833333333333334,
+                    "brier": 0.2442369914622823,
+                    "log": 0.6815634189756608
+                  },
+                  "mean_three_class_probability": [
+                    0.4257482022670282,
+                    0.0815114610371347,
+                    0.49274033669583706
+                  ]
+                },
+                "M5_DIRECTION_ONLY_PASS3": {
+                  "three_class_count": 21,
+                  "three_class_brier": 0.5632507615577511,
+                  "conditional_side": {
+                    "count": 19,
+                    "auc": 0.36904761904761907,
+                    "brier": 0.24085798534458935,
+                    "log": 0.6757122494088336
+                  },
+                  "mean_three_class_probability": [
+                    0.3381454962113426,
+                    0.04997386894677256,
+                    0.6118806348418847
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "primary_uncertainty": {
+      "UTC_DAY": {
+        "contrasts": {
+          "ALIGNED_DIRECTIONAL_SETUP": {
+            "future": {
+              "DESCRIBED_DIRECTION_CLASS_BALANCE_EXCESS": {
+                "lower95": -0.011155717815021084,
+                "observed_clusters": 40,
+                "point": 0.06875667929213015,
+                "rows": 205,
+                "undefined_replicates": 0,
+                "upper95": 0.14564702966974286,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.012584881170932535,
+                "observed_clusters": 32,
+                "point": -0.0022158314624368966,
+                "rows": 83,
+                "undefined_replicates": 0,
+                "upper95": 0.010172693655813664,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.007907564459847879,
+                "observed_clusters": 40,
+                "point": 0.005392414451170576,
+                "rows": 205,
+                "undefined_replicates": 0,
+                "upper95": 0.022704306307221388,
+                "valid_replicates": 2000
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.0030527696314831603,
+                "observed_clusters": 32,
+                "point": -0.0005259873188149466,
+                "rows": 83,
+                "undefined_replicates": 0,
+                "upper95": 0.001987632178428022,
+                "valid_replicates": 2000
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.008403675380745183,
+                "observed_clusters": 40,
+                "point": 0.0009701023510885777,
+                "rows": 205,
+                "undefined_replicates": 0,
+                "upper95": 0.013009341709697721,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": -0.0068649265329034604,
+                "observed_clusters": 32,
+                "point": 0.004962347293370939,
+                "rows": 83,
+                "undefined_replicates": 0,
+                "upper95": 0.018646727796448243,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.010331045792479914,
+                "observed_clusters": 40,
+                "point": 0.004216669703061422,
+                "rows": 205,
+                "undefined_replicates": 0,
+                "upper95": 0.017875656605431996,
+                "valid_replicates": 2000
+              }
+            },
+            "state": {
+              "DESCRIBED_DIRECTION_CLASS_BALANCE_EXCESS": {
+                "lower95": -0.16320006662440928,
+                "observed_clusters": 34,
+                "point": 0.009736630914905238,
+                "rows": 78,
+                "undefined_replicates": 0,
+                "upper95": 0.17848642728258293,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.010357059237157013,
+                "observed_clusters": 33,
+                "point": -0.0003039333362646435,
+                "rows": 72,
+                "undefined_replicates": 0,
+                "upper95": 0.011516324586874934,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.032380633480528026,
+                "observed_clusters": 34,
+                "point": -0.008447874693685391,
+                "rows": 78,
+                "undefined_replicates": 0,
+                "upper95": 0.018191285262952484,
+                "valid_replicates": 2000
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.004917978186111095,
+                "observed_clusters": 33,
+                "point": -0.0012647499921456667,
+                "rows": 72,
+                "undefined_replicates": 0,
+                "upper95": 0.002956225441788955,
+                "valid_replicates": 2000
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.024012251002828323,
+                "observed_clusters": 34,
+                "point": -0.006075402728038361,
+                "rows": 78,
+                "undefined_replicates": 0,
+                "upper95": 0.01072661646288099,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": -0.014916652144805819,
+                "observed_clusters": 33,
+                "point": 5.56559858627388e-05,
+                "rows": 72,
+                "undefined_replicates": 0,
+                "upper95": 0.015319234378842727,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.02164241479324096,
+                "observed_clusters": 34,
+                "point": 0.008630766740207832,
+                "rows": 78,
+                "undefined_replicates": 0,
+                "upper95": 0.038904726466120414,
+                "valid_replicates": 2000
+              }
+            }
+          },
+          "ALL": {
+            "future": {
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.000704279323763905,
+                "observed_clusters": 69,
+                "point": 0.002100361187612153,
+                "rows": 1689,
+                "undefined_replicates": 0,
+                "upper95": 0.005050489468401447,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.0029225713367030766,
+                "observed_clusters": 70,
+                "point": 0.000794262520819023,
+                "rows": 4096,
+                "undefined_replicates": 0,
+                "upper95": 0.004649766639414008,
+                "valid_replicates": 2000
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.0008924994603658319,
+                "observed_clusters": 69,
+                "point": -0.00014244299582474835,
+                "rows": 1689,
+                "undefined_replicates": 0,
+                "upper95": 0.0005691211255735149,
+                "valid_replicates": 2000
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.006829509535314776,
+                "observed_clusters": 70,
+                "point": -0.004183712615163019,
+                "rows": 4096,
+                "undefined_replicates": 0,
+                "upper95": -0.0012566816213627832,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": 0.0026844332361152115,
+                "observed_clusters": 69,
+                "point": 0.005472352821261296,
+                "rows": 1689,
+                "undefined_replicates": 0,
+                "upper95": 0.008127375436787303,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.0038820026822950745,
+                "observed_clusters": 70,
+                "point": -0.00040023346095092516,
+                "rows": 4096,
+                "undefined_replicates": 0,
+                "upper95": 0.0029649323149112867,
+                "valid_replicates": 2000
+              }
+            },
+            "state": {
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.003778304187638428,
+                "observed_clusters": 70,
+                "point": 0.0001967340883243933,
+                "rows": 1414,
+                "undefined_replicates": 0,
+                "upper95": 0.003911892090145397,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.021508701990933386,
+                "observed_clusters": 70,
+                "point": -0.010956885175124605,
+                "rows": 1652,
+                "undefined_replicates": 0,
+                "upper95": -0.0017565832663594225,
+                "valid_replicates": 2000
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.0022081992331658903,
+                "observed_clusters": 70,
+                "point": -0.0008964613468871952,
+                "rows": 1414,
+                "undefined_replicates": 0,
+                "upper95": 0.0003609471757581662,
+                "valid_replicates": 2000
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.027422196961299845,
+                "observed_clusters": 70,
+                "point": -0.01747423678302007,
+                "rows": 1652,
+                "undefined_replicates": 0,
+                "upper95": -0.008924796164534593,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": 0.004770920297321901,
+                "observed_clusters": 70,
+                "point": 0.008186199875924888,
+                "rows": 1414,
+                "undefined_replicates": 0,
+                "upper95": 0.011548692631741972,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": 0.01168790345868698,
+                "observed_clusters": 70,
+                "point": 0.0187836239862526,
+                "rows": 1652,
+                "undefined_replicates": 0,
+                "upper95": 0.02613871687884468,
+                "valid_replicates": 2000
+              }
+            }
+          },
+          "RESISTANCE_ONLY_M5_DOWN_HTF_DOWN": {
+            "future": {
+              "DESCRIBED_DIRECTION_CLASS_BALANCE_EXCESS": {
+                "lower95": -0.16126652419328583,
+                "observed_clusters": 14,
+                "point": 0.028189984528920888,
+                "rows": 52,
+                "undefined_replicates": 0,
+                "upper95": 0.21948553108762534,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.012585848828988845,
+                "observed_clusters": 11,
+                "point": 0.0057670987628188385,
+                "rows": 21,
+                "undefined_replicates": 0,
+                "upper95": 0.02386321328393341,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.025704509678875234,
+                "observed_clusters": 14,
+                "point": 0.009194073189483827,
+                "rows": 52,
+                "undefined_replicates": 0,
+                "upper95": 0.05853271809277217,
+                "valid_replicates": 2000
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.003469875599229798,
+                "observed_clusters": 11,
+                "point": 0.0014609176142569146,
+                "rows": 21,
+                "undefined_replicates": 0,
+                "upper95": 0.005953851267928025,
+                "valid_replicates": 2000
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.012062943553623539,
+                "observed_clusters": 14,
+                "point": 0.007382728518024361,
+                "rows": 52,
+                "undefined_replicates": 0,
+                "upper95": 0.03875337975873697,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": -0.02350781430000325,
+                "observed_clusters": 11,
+                "point": 0.01731784379703919,
+                "rows": 21,
+                "undefined_replicates": 0,
+                "upper95": 0.0541735225514131,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.03536398678004977,
+                "observed_clusters": 14,
+                "point": 0.0029701285111975676,
+                "rows": 52,
+                "undefined_replicates": 0,
+                "upper95": 0.029774836640307188,
+                "valid_replicates": 2000
+              }
+            },
+            "state": {
+              "DESCRIBED_DIRECTION_CLASS_BALANCE_EXCESS": {
+                "lower95": -0.5369690495219771,
+                "observed_clusters": 12,
+                "point": -0.20363571618864387,
+                "rows": 21,
+                "undefined_replicates": 0,
+                "upper95": 0.16520486352149932,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.015532407791226426,
+                "observed_clusters": 12,
+                "point": 0.004112435516803862,
+                "rows": 19,
+                "undefined_replicates": 0,
+                "upper95": 0.031472420480542405,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.04748272613205817,
+                "observed_clusters": 12,
+                "point": -0.0033623019838097757,
+                "rows": 21,
+                "undefined_replicates": 0,
+                "upper95": 0.05436691300428439,
+                "valid_replicates": 2000
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.009504311077077105,
+                "observed_clusters": 12,
+                "point": -0.001196706343721584,
+                "rows": 19,
+                "undefined_replicates": 0,
+                "upper95": 0.009446826626285817,
+                "valid_replicates": 2000
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.06171015028658557,
+                "observed_clusters": 12,
+                "point": -0.016680173227247096,
+                "rows": 21,
+                "undefined_replicates": 0,
+                "upper95": 0.022486765095916406,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": -0.05587396309178964,
+                "observed_clusters": 12,
+                "point": -0.008688147978218397,
+                "rows": 19,
+                "undefined_replicates": 0,
+                "upper95": 0.03887051586416964,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.09473928094973172,
+                "observed_clusters": 12,
+                "point": -0.00787973957861944,
+                "rows": 21,
+                "undefined_replicates": 0,
+                "upper95": 0.07451888898076797,
+                "valid_replicates": 2000
+              }
+            }
+          },
+          "SUPPORT_ONLY_M5_UP_HTF_UP": {
+            "future": {
+              "DESCRIBED_DIRECTION_CLASS_BALANCE_EXCESS": {
+                "lower95": -0.008959215298151635,
+                "observed_clusters": 26,
+                "point": 0.08254405267570457,
+                "rows": 153,
+                "undefined_replicates": 0,
+                "upper95": 0.16836517992190075,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.017529470324720155,
+                "observed_clusters": 21,
+                "point": -0.0049197271838944834,
+                "rows": 62,
+                "undefined_replicates": 0,
+                "upper95": 0.01179486417051252,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.008855236089930009,
+                "observed_clusters": 26,
+                "point": 0.004100347428998752,
+                "rows": 153,
+                "undefined_replicates": 0,
+                "upper95": 0.021185927875024876,
+                "valid_replicates": 2000
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.004469920152370739,
+                "observed_clusters": 21,
+                "point": -0.0011989712477586414,
+                "rows": 62,
+                "undefined_replicates": 0,
+                "upper95": 0.0017934307343970275,
+                "valid_replicates": 2000
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.011972129354968079,
+                "observed_clusters": 26,
+                "point": -0.0012093522938830602,
+                "rows": 153,
+                "undefined_replicates": 0,
+                "upper95": 0.012649540036396728,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": -0.008768592772398878,
+                "observed_clusters": 21,
+                "point": 0.0007774210582574991,
+                "rows": 62,
+                "undefined_replicates": 0,
+                "upper95": 0.012229805430359461,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.012031786434505793,
+                "observed_clusters": 26,
+                "point": 0.004640330761734104,
+                "rows": 153,
+                "undefined_replicates": 0,
+                "upper95": 0.021547103922367705,
+                "valid_replicates": 2000
+              }
+            },
+            "state": {
+              "DESCRIBED_DIRECTION_CLASS_BALANCE_EXCESS": {
+                "lower95": -0.09695952190659418,
+                "observed_clusters": 22,
+                "point": 0.08834749563726543,
+                "rows": 57,
+                "undefined_replicates": 0,
+                "upper95": 0.2720231083663585,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.013279995373352109,
+                "observed_clusters": 21,
+                "point": -0.0018871599062325983,
+                "rows": 53,
+                "undefined_replicates": 0,
+                "upper95": 0.012422801826224952,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.038508552934579256,
+                "observed_clusters": 22,
+                "point": -0.010321506744692198,
+                "rows": 57,
+                "undefined_replicates": 0,
+                "upper95": 0.021527953879791447,
+                "valid_replicates": 2000
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.005048556355594357,
+                "observed_clusters": 21,
+                "point": -0.001289142998184489,
+                "rows": 53,
+                "undefined_replicates": 0,
+                "upper95": 0.0032837056170729483,
+                "valid_replicates": 2000
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.018663748124900438,
+                "observed_clusters": 22,
+                "point": -0.0021683820178035685,
+                "rows": 57,
+                "undefined_replicates": 0,
+                "upper95": 0.015128300296769091,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": -0.008496876307518726,
+                "observed_clusters": 21,
+                "point": 0.003190227218269184,
+                "rows": 53,
+                "undefined_replicates": 0,
+                "upper95": 0.01837763779554606,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.011076618140833517,
+                "observed_clusters": 22,
+                "point": 0.014713584857670511,
+                "rows": 57,
+                "undefined_replicates": 0,
+                "upper95": 0.048566465674555345,
+                "valid_replicates": 2000
+              }
+            }
+          }
+        },
+        "groups": 70,
+        "seed": 20261112
+      },
+      "UTC_MONDAY_WEEK": {
+        "contrasts": {
+          "ALIGNED_DIRECTIONAL_SETUP": {
+            "future": {
+              "DESCRIBED_DIRECTION_CLASS_BALANCE_EXCESS": {
+                "lower95": -0.021279121858322744,
+                "observed_clusters": 14,
+                "point": 0.06875667929213015,
+                "rows": 205,
+                "undefined_replicates": 0,
+                "upper95": 0.1337315753947808,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.010742740325860242,
+                "observed_clusters": 13,
+                "point": -0.0022158314624368966,
+                "rows": 83,
+                "undefined_replicates": 0,
+                "upper95": 0.008475651849430162,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.011252034385585705,
+                "observed_clusters": 14,
+                "point": 0.005392414451170576,
+                "rows": 205,
+                "undefined_replicates": 0,
+                "upper95": 0.031143170981178258,
+                "valid_replicates": 2000
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.0031709198178212386,
+                "observed_clusters": 13,
+                "point": -0.0005259873188149466,
+                "rows": 83,
+                "undefined_replicates": 0,
+                "upper95": 0.0012651787407225743,
+                "valid_replicates": 2000
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.008580616440672912,
+                "observed_clusters": 14,
+                "point": 0.0009701023510885777,
+                "rows": 205,
+                "undefined_replicates": 0,
+                "upper95": 0.017335656642451302,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": -0.005356769414413409,
+                "observed_clusters": 13,
+                "point": 0.004962347293370939,
+                "rows": 83,
+                "undefined_replicates": 0,
+                "upper95": 0.01914189723831707,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.009909527359700186,
+                "observed_clusters": 14,
+                "point": 0.004216669703061422,
+                "rows": 205,
+                "undefined_replicates": 0,
+                "upper95": 0.01575315034093318,
+                "valid_replicates": 2000
+              }
+            },
+            "state": {
+              "DESCRIBED_DIRECTION_CLASS_BALANCE_EXCESS": {
+                "lower95": -0.13076643230118082,
+                "observed_clusters": 13,
+                "point": 0.009736630914905238,
+                "rows": 78,
+                "undefined_replicates": 0,
+                "upper95": 0.12856375017777755,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.007852747410105346,
+                "observed_clusters": 13,
+                "point": -0.0003039333362646435,
+                "rows": 72,
+                "undefined_replicates": 0,
+                "upper95": 0.006207738377294827,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.027525259653839295,
+                "observed_clusters": 13,
+                "point": -0.008447874693685391,
+                "rows": 78,
+                "undefined_replicates": 0,
+                "upper95": 0.011679655729788041,
+                "valid_replicates": 2000
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.004936429863703368,
+                "observed_clusters": 13,
+                "point": -0.0012647499921456667,
+                "rows": 72,
+                "undefined_replicates": 0,
+                "upper95": 0.002103513206111905,
+                "valid_replicates": 2000
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.023952187255800186,
+                "observed_clusters": 13,
+                "point": -0.006075402728038361,
+                "rows": 78,
+                "undefined_replicates": 0,
+                "upper95": 0.009796635878384682,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": -0.013597681766166025,
+                "observed_clusters": 13,
+                "point": 5.56559858627388e-05,
+                "rows": 72,
+                "undefined_replicates": 0,
+                "upper95": 0.017666571406077174,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.010099851887464071,
+                "observed_clusters": 13,
+                "point": 0.008630766740207832,
+                "rows": 78,
+                "undefined_replicates": 0,
+                "upper95": 0.03543603982406034,
+                "valid_replicates": 2000
+              }
+            }
+          },
+          "ALL": {
+            "future": {
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.00011746236010402798,
+                "observed_clusters": 14,
+                "point": 0.002100361187612153,
+                "rows": 1689,
+                "undefined_replicates": 0,
+                "upper95": 0.004543565430466474,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.0020970712004272996,
+                "observed_clusters": 14,
+                "point": 0.000794262520819023,
+                "rows": 4096,
+                "undefined_replicates": 0,
+                "upper95": 0.0035723322554770667,
+                "valid_replicates": 2000
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.0007097147880084372,
+                "observed_clusters": 14,
+                "point": -0.00014244299582474835,
+                "rows": 1689,
+                "undefined_replicates": 0,
+                "upper95": 0.0004360602870483228,
+                "valid_replicates": 2000
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.006241305000548804,
+                "observed_clusters": 14,
+                "point": -0.004183712615163019,
+                "rows": 4096,
+                "undefined_replicates": 0,
+                "upper95": -0.0018183501704390303,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": 0.003077848024741275,
+                "observed_clusters": 14,
+                "point": 0.005472352821261296,
+                "rows": 1689,
+                "undefined_replicates": 0,
+                "upper95": 0.008060433763465926,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.0043104091134353335,
+                "observed_clusters": 14,
+                "point": -0.00040023346095092516,
+                "rows": 4096,
+                "undefined_replicates": 0,
+                "upper95": 0.0033662083970791203,
+                "valid_replicates": 2000
+              }
+            },
+            "state": {
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.00438756386328444,
+                "observed_clusters": 14,
+                "point": 0.0001967340883243933,
+                "rows": 1414,
+                "undefined_replicates": 0,
+                "upper95": 0.0046324094127590705,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.022004199484478237,
+                "observed_clusters": 14,
+                "point": -0.010956885175124605,
+                "rows": 1652,
+                "undefined_replicates": 0,
+                "upper95": -0.0004995949993647877,
+                "valid_replicates": 2000
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.002404628765762531,
+                "observed_clusters": 14,
+                "point": -0.0008964613468871952,
+                "rows": 1414,
+                "undefined_replicates": 0,
+                "upper95": 0.0006335397880357819,
+                "valid_replicates": 2000
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.02710366649133819,
+                "observed_clusters": 14,
+                "point": -0.01747423678302007,
+                "rows": 1652,
+                "undefined_replicates": 0,
+                "upper95": -0.008860389248252791,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": 0.003391574714662483,
+                "observed_clusters": 14,
+                "point": 0.008186199875924888,
+                "rows": 1414,
+                "undefined_replicates": 0,
+                "upper95": 0.013176127951043183,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": 0.009365954205659971,
+                "observed_clusters": 14,
+                "point": 0.0187836239862526,
+                "rows": 1652,
+                "undefined_replicates": 0,
+                "upper95": 0.030048270322182748,
+                "valid_replicates": 2000
+              }
+            }
+          },
+          "RESISTANCE_ONLY_M5_DOWN_HTF_DOWN": {
+            "future": {
+              "DESCRIBED_DIRECTION_CLASS_BALANCE_EXCESS": {
+                "lower95": -0.16249398667229173,
+                "observed_clusters": 7,
+                "point": 0.028189984528920888,
+                "rows": 52,
+                "undefined_replicates": 0,
+                "upper95": 0.1252382850655935,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.006417438417709149,
+                "observed_clusters": 5,
+                "point": 0.0057670987628188385,
+                "rows": 21,
+                "undefined_replicates": 2,
+                "upper95": 0.0193492469794309,
+                "valid_replicates": 1998
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.02872511499030268,
+                "observed_clusters": 7,
+                "point": 0.009194073189483827,
+                "rows": 52,
+                "undefined_replicates": 0,
+                "upper95": 0.0755834068678943,
+                "valid_replicates": 2000
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.0014145729940892775,
+                "observed_clusters": 5,
+                "point": 0.0014609176142569146,
+                "rows": 21,
+                "undefined_replicates": 2,
+                "upper95": 0.005055131942986745,
+                "valid_replicates": 1998
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.012140960473283892,
+                "observed_clusters": 7,
+                "point": 0.007382728518024361,
+                "rows": 52,
+                "undefined_replicates": 0,
+                "upper95": 0.04279005945648151,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": -0.014711556552201771,
+                "observed_clusters": 5,
+                "point": 0.01731784379703919,
+                "rows": 21,
+                "undefined_replicates": 2,
+                "upper95": 0.03658430997953157,
+                "valid_replicates": 1998
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.05518273084214755,
+                "observed_clusters": 7,
+                "point": 0.0029701285111975676,
+                "rows": 52,
+                "undefined_replicates": 0,
+                "upper95": 0.03160991377273931,
+                "valid_replicates": 2000
+              }
+            },
+            "state": {
+              "DESCRIBED_DIRECTION_CLASS_BALANCE_EXCESS": {
+                "lower95": -0.4200859326388603,
+                "observed_clusters": 6,
+                "point": -0.20363571618864387,
+                "rows": 21,
+                "undefined_replicates": 0,
+                "upper95": 0.0344595219065942,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.010615449751237967,
+                "observed_clusters": 6,
+                "point": 0.004112435516803862,
+                "rows": 19,
+                "undefined_replicates": 0,
+                "upper95": 0.03378710864301426,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.03600364127097601,
+                "observed_clusters": 6,
+                "point": -0.0033623019838097757,
+                "rows": 21,
+                "undefined_replicates": 0,
+                "upper95": 0.05967289793418803,
+                "valid_replicates": 2000
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.00848323094657885,
+                "observed_clusters": 6,
+                "point": -0.001196706343721584,
+                "rows": 19,
+                "undefined_replicates": 0,
+                "upper95": 0.011392962737104542,
+                "valid_replicates": 2000
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.054428518153132315,
+                "observed_clusters": 6,
+                "point": -0.016680173227247096,
+                "rows": 21,
+                "undefined_replicates": 0,
+                "upper95": 0.02232684548388965,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": -0.048141073241363436,
+                "observed_clusters": 6,
+                "point": -0.008688147978218397,
+                "rows": 19,
+                "undefined_replicates": 0,
+                "upper95": 0.024900111850701727,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.08514563266449596,
+                "observed_clusters": 6,
+                "point": -0.00787973957861944,
+                "rows": 21,
+                "undefined_replicates": 0,
+                "upper95": 0.04618564288026083,
+                "valid_replicates": 2000
+              }
+            }
+          },
+          "SUPPORT_ONLY_M5_UP_HTF_UP": {
+            "future": {
+              "DESCRIBED_DIRECTION_CLASS_BALANCE_EXCESS": {
+                "lower95": -0.03024346449453922,
+                "observed_clusters": 9,
+                "point": 0.08254405267570457,
+                "rows": 153,
+                "undefined_replicates": 0,
+                "upper95": 0.15608932839116874,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.01606351985790911,
+                "observed_clusters": 9,
+                "point": -0.0049197271838944834,
+                "rows": 62,
+                "undefined_replicates": 0,
+                "upper95": 0.008865144603103047,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.010668593129211855,
+                "observed_clusters": 9,
+                "point": 0.004100347428998752,
+                "rows": 153,
+                "undefined_replicates": 0,
+                "upper95": 0.02814331539868508,
+                "valid_replicates": 2000
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.005070579558958361,
+                "observed_clusters": 9,
+                "point": -0.0011989712477586414,
+                "rows": 62,
+                "undefined_replicates": 0,
+                "upper95": 0.0006843369872398011,
+                "valid_replicates": 2000
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.010958506688326203,
+                "observed_clusters": 9,
+                "point": -0.0012093522938830602,
+                "rows": 153,
+                "undefined_replicates": 0,
+                "upper95": 0.01714936526341022,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": -0.00959975458358804,
+                "observed_clusters": 9,
+                "point": 0.0007774210582574991,
+                "rows": 62,
+                "undefined_replicates": 0,
+                "upper95": 0.016010347894987755,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.00613165025031739,
+                "observed_clusters": 9,
+                "point": 0.004640330761734104,
+                "rows": 153,
+                "undefined_replicates": 0,
+                "upper95": 0.011228702258961044,
+                "valid_replicates": 2000
+              }
+            },
+            "state": {
+              "DESCRIBED_DIRECTION_CLASS_BALANCE_EXCESS": {
+                "lower95": -0.05233319915527143,
+                "observed_clusters": 9,
+                "point": 0.08834749563726543,
+                "rows": 57,
+                "undefined_replicates": 0,
+                "upper95": 0.21554047809340582,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.014695461756385407,
+                "observed_clusters": 9,
+                "point": -0.0018871599062325983,
+                "rows": 53,
+                "undefined_replicates": 0,
+                "upper95": 0.007870464539690578,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.040201273195245184,
+                "observed_clusters": 9,
+                "point": -0.010321506744692198,
+                "rows": 57,
+                "undefined_replicates": 0,
+                "upper95": 0.019273787214123227,
+                "valid_replicates": 2000
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.00608035323609617,
+                "observed_clusters": 9,
+                "point": -0.001289142998184489,
+                "rows": 53,
+                "undefined_replicates": 0,
+                "upper95": 0.003033589660903323,
+                "valid_replicates": 2000
+              },
+              "INITIAL_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.019362075559296275,
+                "observed_clusters": 9,
+                "point": -0.0021683820178035685,
+                "rows": 57,
+                "undefined_replicates": 0,
+                "upper95": 0.015630079308688666,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": -0.010048757246929205,
+                "observed_clusters": 9,
+                "point": 0.003190227218269184,
+                "rows": 53,
+                "undefined_replicates": 0,
+                "upper95": 0.024264071929422662,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.006901063971996725,
+                "observed_clusters": 9,
+                "point": 0.014713584857670511,
+                "rows": 57,
+                "undefined_replicates": 0,
+                "upper95": 0.04875432436083477,
+                "valid_replicates": 2000
+              }
+            }
+          }
+        },
+        "groups": 14,
+        "seed": 20261113
+      }
+    },
+    "all_groups_descriptive": [
+      {
+        "group": "BOTH_M5_DOWN_HTF_DOWN",
+        "TRAIN": {
+          "rows": 34,
+          "F_DOWN_FLAT_UP": [
+            5,
+            20,
+            9
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.0017818512939666593
+        },
+        "LATER": {
+          "rows": 33,
+          "F_DOWN_FLAT_UP": [
+            10,
+            14,
+            9
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.028569376872226826
+        }
+      },
+      {
+        "group": "BOTH_M5_DOWN_HTF_MIXED",
+        "TRAIN": {
+          "rows": 132,
+          "F_DOWN_FLAT_UP": [
+            20,
+            94,
+            18
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.022250549258766184
+        },
+        "LATER": {
+          "rows": 96,
+          "F_DOWN_FLAT_UP": [
+            21,
+            55,
+            20
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.004488852272912809
+        }
+      },
+      {
+        "group": "BOTH_M5_DOWN_HTF_UP",
+        "TRAIN": {
+          "rows": 49,
+          "F_DOWN_FLAT_UP": [
+            6,
+            33,
+            10
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.0023301914964799454
+        },
+        "LATER": {
+          "rows": 37,
+          "F_DOWN_FLAT_UP": [
+            4,
+            21,
+            12
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.00038976244545970736
+        }
+      },
+      {
+        "group": "BOTH_M5_MIXED_HTF_DOWN",
+        "TRAIN": {
+          "rows": 23,
+          "F_DOWN_FLAT_UP": [
+            2,
+            15,
+            6
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.015388563167665976
+        },
+        "LATER": {
+          "rows": 5,
+          "F_DOWN_FLAT_UP": [
+            0,
+            4,
+            1
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.04023096812881719
+        }
+      },
+      {
+        "group": "BOTH_M5_MIXED_HTF_MIXED",
+        "TRAIN": {
+          "rows": 65,
+          "F_DOWN_FLAT_UP": [
+            10,
+            43,
+            12
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.002019488656329735
+        },
+        "LATER": {
+          "rows": 72,
+          "F_DOWN_FLAT_UP": [
+            6,
+            48,
+            18
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.016759630277723266
+        }
+      },
+      {
+        "group": "BOTH_M5_MIXED_HTF_UP",
+        "TRAIN": {
+          "rows": 52,
+          "F_DOWN_FLAT_UP": [
+            10,
+            33,
+            9
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.010730777928682865
+        },
+        "LATER": {
+          "rows": 42,
+          "F_DOWN_FLAT_UP": [
+            10,
+            22,
+            10
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.011837200822214183
+        }
+      },
+      {
+        "group": "BOTH_M5_UP_HTF_DOWN",
+        "TRAIN": {
+          "rows": 3,
+          "F_DOWN_FLAT_UP": [
+            2,
+            1,
+            0
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.19819259979083426
+        },
+        "LATER": {
+          "rows": 3,
+          "F_DOWN_FLAT_UP": [
+            1,
+            2,
+            0
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.015842441114277534
+        }
+      },
+      {
+        "group": "BOTH_M5_UP_HTF_MIXED",
+        "TRAIN": {
+          "rows": 170,
+          "F_DOWN_FLAT_UP": [
+            37,
+            108,
+            25
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.0010956691639781766
+        },
+        "LATER": {
+          "rows": 152,
+          "F_DOWN_FLAT_UP": [
+            29,
+            99,
+            24
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.001954594753942411
+        }
+      },
+      {
+        "group": "BOTH_M5_UP_HTF_UP",
+        "TRAIN": {
+          "rows": 85,
+          "F_DOWN_FLAT_UP": [
+            17,
+            45,
+            23
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.004377008708544431
+        },
+        "LATER": {
+          "rows": 96,
+          "F_DOWN_FLAT_UP": [
+            21,
+            56,
+            19
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.0046351552423384845
+        }
+      },
+      {
+        "group": "NEITHER_M5_DOWN_HTF_DOWN",
+        "TRAIN": {
+          "rows": 36,
+          "F_DOWN_FLAT_UP": [
+            6,
+            23,
+            7
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.010797079625825311
+        },
+        "LATER": {
+          "rows": 176,
+          "F_DOWN_FLAT_UP": [
+            42,
+            102,
+            32
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.005480755320357502
+        }
+      },
+      {
+        "group": "NEITHER_M5_DOWN_HTF_MIXED",
+        "TRAIN": {
+          "rows": 155,
+          "F_DOWN_FLAT_UP": [
+            32,
+            95,
+            28
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.002539678430473798
+        },
+        "LATER": {
+          "rows": 179,
+          "F_DOWN_FLAT_UP": [
+            37,
+            102,
+            40
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.01071471277952635
+        }
+      },
+      {
+        "group": "NEITHER_M5_DOWN_HTF_UP",
+        "TRAIN": {
+          "rows": 94,
+          "F_DOWN_FLAT_UP": [
+            22,
+            59,
+            13
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.016955540623594452
+        },
+        "LATER": {
+          "rows": 55,
+          "F_DOWN_FLAT_UP": [
+            16,
+            30,
+            9
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.004145437193391837
+        }
+      },
+      {
+        "group": "NEITHER_M5_MIXED_HTF_DOWN",
+        "TRAIN": {
+          "rows": 44,
+          "F_DOWN_FLAT_UP": [
+            10,
+            25,
+            9
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.009087810634064023
+        },
+        "LATER": {
+          "rows": 48,
+          "F_DOWN_FLAT_UP": [
+            6,
+            33,
+            9
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.030644787897217068
+        }
+      },
+      {
+        "group": "NEITHER_M5_MIXED_HTF_MIXED",
+        "TRAIN": {
+          "rows": 138,
+          "F_DOWN_FLAT_UP": [
+            23,
+            77,
+            38
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.0014271476147398419
+        },
+        "LATER": {
+          "rows": 200,
+          "F_DOWN_FLAT_UP": [
+            47,
+            107,
+            46
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.009310208411805122
+        }
+      },
+      {
+        "group": "NEITHER_M5_MIXED_HTF_UP",
+        "TRAIN": {
+          "rows": 133,
+          "F_DOWN_FLAT_UP": [
+            31,
+            73,
+            29
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.007851587856939924
+        },
+        "LATER": {
+          "rows": 96,
+          "F_DOWN_FLAT_UP": [
+            19,
+            61,
+            16
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.004397149016332369
+        }
+      },
+      {
+        "group": "NEITHER_M5_UP_HTF_DOWN",
+        "TRAIN": {
+          "rows": 1,
+          "F_DOWN_FLAT_UP": [
+            0,
+            1,
+            0
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.03631446103620212
+        },
+        "LATER": {
+          "rows": 19,
+          "F_DOWN_FLAT_UP": [
+            3,
+            9,
+            7
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.029454718962348823
+        }
+      },
+      {
+        "group": "NEITHER_M5_UP_HTF_MIXED",
+        "TRAIN": {
+          "rows": 228,
+          "F_DOWN_FLAT_UP": [
+            41,
+            138,
+            49
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.008983994560295522
+        },
+        "LATER": {
+          "rows": 318,
+          "F_DOWN_FLAT_UP": [
+            58,
+            197,
+            63
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.003092278183767289
+        }
+      },
+      {
+        "group": "NEITHER_M5_UP_HTF_UP",
+        "TRAIN": {
+          "rows": 255,
+          "F_DOWN_FLAT_UP": [
+            73,
+            134,
+            48
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.00975124888106763
+        },
+        "LATER": {
+          "rows": 198,
+          "F_DOWN_FLAT_UP": [
+            47,
+            108,
+            43
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.0070995715774699875
+        }
+      },
+      {
+        "group": "RESISTANCE_ONLY_M5_DOWN_HTF_DOWN",
+        "TRAIN": {
+          "rows": 46,
+          "F_DOWN_FLAT_UP": [
+            9,
+            28,
+            9
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.001702794398020472
+        },
+        "LATER": {
+          "rows": 52,
+          "F_DOWN_FLAT_UP": [
+            11,
+            31,
+            10
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.009194073189483799
+        }
+      },
+      {
+        "group": "RESISTANCE_ONLY_M5_DOWN_HTF_MIXED",
+        "TRAIN": {
+          "rows": 156,
+          "F_DOWN_FLAT_UP": [
+            30,
+            90,
+            36
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.009291114366626848
+        },
+        "LATER": {
+          "rows": 161,
+          "F_DOWN_FLAT_UP": [
+            33,
+            91,
+            37
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.0014745667443217532
+        }
+      },
+      {
+        "group": "RESISTANCE_ONLY_M5_DOWN_HTF_UP",
+        "TRAIN": {
+          "rows": 70,
+          "F_DOWN_FLAT_UP": [
+            13,
+            39,
+            18
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.011403689114159274
+        },
+        "LATER": {
+          "rows": 36,
+          "F_DOWN_FLAT_UP": [
+            6,
+            19,
+            11
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.011460438890371726
+        }
+      },
+      {
+        "group": "RESISTANCE_ONLY_M5_MIXED_HTF_DOWN",
+        "TRAIN": {
+          "rows": 61,
+          "F_DOWN_FLAT_UP": [
+            7,
+            38,
+            16
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.003308498754664739
+        },
+        "LATER": {
+          "rows": 43,
+          "F_DOWN_FLAT_UP": [
+            4,
+            33,
+            6
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.03265062667390983
+        }
+      },
+      {
+        "group": "RESISTANCE_ONLY_M5_MIXED_HTF_MIXED",
+        "TRAIN": {
+          "rows": 167,
+          "F_DOWN_FLAT_UP": [
+            27,
+            109,
+            31
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.0017512392939332908
+        },
+        "LATER": {
+          "rows": 156,
+          "F_DOWN_FLAT_UP": [
+            31,
+            92,
+            33
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.010878608524395124
+        }
+      },
+      {
+        "group": "RESISTANCE_ONLY_M5_MIXED_HTF_UP",
+        "TRAIN": {
+          "rows": 107,
+          "F_DOWN_FLAT_UP": [
+            19,
+            66,
+            22
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.007010537398637101
+        },
+        "LATER": {
+          "rows": 68,
+          "F_DOWN_FLAT_UP": [
+            14,
+            44,
+            10
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.013015744357805156
+        }
+      },
+      {
+        "group": "RESISTANCE_ONLY_M5_UP_HTF_DOWN",
+        "TRAIN": {
+          "rows": 1,
+          "F_DOWN_FLAT_UP": [
+            1,
+            0,
+            0
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.016681080695403194
+        },
+        "LATER": {
+          "rows": 27,
+          "F_DOWN_FLAT_UP": [
+            6,
+            16,
+            5
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.020520264115965595
+        }
+      },
+      {
+        "group": "RESISTANCE_ONLY_M5_UP_HTF_MIXED",
+        "TRAIN": {
+          "rows": 386,
+          "F_DOWN_FLAT_UP": [
+            89,
+            224,
+            73
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.002625614053861454
+        },
+        "LATER": {
+          "rows": 383,
+          "F_DOWN_FLAT_UP": [
+            69,
+            232,
+            82
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.005338451553858159
+        }
+      },
+      {
+        "group": "RESISTANCE_ONLY_M5_UP_HTF_UP",
+        "TRAIN": {
+          "rows": 226,
+          "F_DOWN_FLAT_UP": [
+            51,
+            120,
+            55
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.0007421261831914972
+        },
+        "LATER": {
+          "rows": 194,
+          "F_DOWN_FLAT_UP": [
+            44,
+            107,
+            43
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.005046560257841234
+        }
+      },
+      {
+        "group": "SUPPORT_ONLY_M5_DOWN_HTF_DOWN",
+        "TRAIN": {
+          "rows": 38,
+          "F_DOWN_FLAT_UP": [
+            4,
+            25,
+            9
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.02272060781879198
+        },
+        "LATER": {
+          "rows": 97,
+          "F_DOWN_FLAT_UP": [
+            22,
+            54,
+            21
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.011949068233805246
+        }
+      },
+      {
+        "group": "SUPPORT_ONLY_M5_DOWN_HTF_MIXED",
+        "TRAIN": {
+          "rows": 247,
+          "F_DOWN_FLAT_UP": [
+            43,
+            157,
+            47
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.0007251973806437776
+        },
+        "LATER": {
+          "rows": 309,
+          "F_DOWN_FLAT_UP": [
+            52,
+            190,
+            67
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.010861423071873797
+        }
+      },
+      {
+        "group": "SUPPORT_ONLY_M5_DOWN_HTF_UP",
+        "TRAIN": {
+          "rows": 115,
+          "F_DOWN_FLAT_UP": [
+            17,
+            77,
+            21
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.019414704438607645
+        },
+        "LATER": {
+          "rows": 77,
+          "F_DOWN_FLAT_UP": [
+            14,
+            44,
+            19
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.017043990246948283
+        }
+      },
+      {
+        "group": "SUPPORT_ONLY_M5_MIXED_HTF_DOWN",
+        "TRAIN": {
+          "rows": 19,
+          "F_DOWN_FLAT_UP": [
+            2,
+            14,
+            3
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.03722563197693801
+        },
+        "LATER": {
+          "rows": 22,
+          "F_DOWN_FLAT_UP": [
+            3,
+            14,
+            5
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.01730244190399591
+        }
+      },
+      {
+        "group": "SUPPORT_ONLY_M5_MIXED_HTF_MIXED",
+        "TRAIN": {
+          "rows": 147,
+          "F_DOWN_FLAT_UP": [
+            29,
+            86,
+            32
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.013214866270549717
+        },
+        "LATER": {
+          "rows": 160,
+          "F_DOWN_FLAT_UP": [
+            39,
+            91,
+            30
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.003673334005798434
+        }
+      },
+      {
+        "group": "SUPPORT_ONLY_M5_MIXED_HTF_UP",
+        "TRAIN": {
+          "rows": 174,
+          "F_DOWN_FLAT_UP": [
+            29,
+            106,
+            39
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.0015689989327829143
+        },
+        "LATER": {
+          "rows": 92,
+          "F_DOWN_FLAT_UP": [
+            16,
+            51,
+            25
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.0018033192974936903
+        }
+      },
+      {
+        "group": "SUPPORT_ONLY_M5_UP_HTF_DOWN",
+        "TRAIN": {
+          "rows": 3,
+          "F_DOWN_FLAT_UP": [
+            0,
+            3,
+            0
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.032787276744114933
+        },
+        "LATER": {
+          "rows": 18,
+          "F_DOWN_FLAT_UP": [
+            3,
+            10,
+            5
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.004121042596578108
+        }
+      },
+      {
+        "group": "SUPPORT_ONLY_M5_UP_HTF_MIXED",
+        "TRAIN": {
+          "rows": 239,
+          "F_DOWN_FLAT_UP": [
+            41,
+            152,
+            46
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.0059744127083796025
+        },
+        "LATER": {
+          "rows": 223,
+          "F_DOWN_FLAT_UP": [
+            44,
+            127,
+            52
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.011319172076031007
+        }
+      },
+      {
+        "group": "SUPPORT_ONLY_M5_UP_HTF_UP",
+        "TRAIN": {
+          "rows": 197,
+          "F_DOWN_FLAT_UP": [
+            34,
+            110,
+            53
+          ],
+          "F_FULL_minus_prior_three_Brier": -0.005329692755579513
+        },
+        "LATER": {
+          "rows": 153,
+          "F_DOWN_FLAT_UP": [
+            24,
+            91,
+            38
+          ],
+          "F_FULL_minus_prior_three_Brier": 0.0041003474289986975
+        }
+      },
+      {
+        "group": "UNKNOWN",
+        "TRAIN": {
+          "rows": 0,
+          "F_DOWN_FLAT_UP": [
+            0,
+            0,
+            0
+          ],
+          "F_FULL_minus_prior_three_Brier": null
+        },
+        "LATER": {
+          "rows": 0,
+          "F_DOWN_FLAT_UP": [
+            0,
+            0,
+            0
+          ],
+          "F_FULL_minus_prior_three_Brier": null
+        }
+      }
+    ],
+    "findings": [
+      "All8192 selected rows mapped to canonical closed endpoints across all five TF; UNKNOWN feature groups0. Six retained captures and existing qualified span inputs reused; no model, forward, fit or new feature calculation.",
+      "Prespecified aligned setups: TRAIN243/4096, later205/4096. Later support+UP alignment153 rows across9weeks, resistance+DOWN alignment52 rows across7weeks; all36joint groups and UNKNOWN are retained.",
+      "Later F in aligned groups:49 moves in the described direction,34 opposite,122 below the existing0.5native-M5-ATR threshold at five minutes. This is outcome classification, not executed trades or winrate.",
+      "The prespecified later signed-class-balance excess over the frozen prior is0.0687567;95percent UTC-day interval[-0.0111557,0.1456470] and week interval[-0.0212791,0.1337316]. Directional setup information is not established by this sample.",
+      "Within aligned later groups, FULL three-class F Brier0.568738 is worse in point estimate than frozen prior0.563346; paired day/week intervals include zero. M5-only0.572955 is also not an improvement. Conditional-side FULL Brier improves in point estimate, so ranking, activity and total class probability must not be conflated.",
+      "All-row later S singleton three-class Brier is better than prior for FULL, but S has2443 active-unknown-side rows and1 ineligible/immature row. This does not establish future directional value or Entry selectivity.",
+      "A blanket missing-price-geometry diagnosis is unsupported: active inputs already contain current-M5-relative HTF extrema/pivot distances. Whether the model learns the necessary relationships remains unresolved.",
+      "No architecture or indicator change is justified by this one coarse probe. The next direct discriminator is horizon alignment of these same groups with already retained endpoints; no profitable-group or best-horizon selection."
+    ],
+    "limitations": [
+      "These are reused TRAIN/development rows and predeclared descriptive groups, not untouched confirmation.",
+      "The36groups describe one SR/EMA/MTF probe, not all manual-trading setups or all information in the indicators. All groups and UNKNOWN remain visible.",
+      "Per-group point scores are descriptive. Primary intervals are unadjusted dependence-aware diagnostics, not authority to select a profitable group.",
+      "M5 F measures exact five-minute displacement with the existing0.5ATR activity definition. S remains a distinct state target. Neither is a holding rule.",
+      "HTF EMA describes the last closed native bar. Native HTF registry distances use that bar close; current M5-relative HTF extrema/pivot fields also exist and are not all represented by this probe.",
+      "Conditional-side scores use realized-label support. Full three-class scores include FLAT where labels are singleton; ambiguous/unknown outcomes remain separately counted. No selective Entry or economics is established."
+    ],
+    "setup_direction_value_established": false,
+    "model_use_of_setup_information_established": false,
+    "economic_edge_established": false,
+    "test_data_used": false,
+    "next_action": "Resolve horizon alignment for the same already declared situations using existing retained F endpoints only. First verify that TRAIN/later query horizons and native ATR units match across all five TF; specify all endpoints together, preserve M5 as primary and include the standing long-horizon LONG reference before any further scoring. No regrouping, threshold search, new targets, model changes or training is admitted."
   }
 }
