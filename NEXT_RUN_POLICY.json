@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-12T17:02:22.906251+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_EXPOSURE_RETAINED_REVIEW_ADMITTED",
+  "observed_utc": "2026-11-12T17:16:56.574384+00:00",
+  "status": "TA_DIRECTION_EDGE_CAUSE_EXPOSURE_EFFECT_MEASURED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Run the qualified metadata-only startup preflight, then one capped retained-output review with six archive decodes and2000paired UTC-day/week bootstrap replicates using existing scoring owners. Compare fixed pass3 COVERAGE/FULL/INITIAL and frozen prior on all five later native horizons; no model, checkpoint, feature payload, fitting, selection or TEST. Consume this review after its terminal result.",
+  "next_action": "Audit the unchanged FULL objective effective label weighting before attributing persistent non-M5 UP bias to missing indicators or architecture. Start with source and existing metadata: compare the M5 equal-observation rule with non-M5 conditional-side batch means, then qualify only the minimum existing-target count needed to measure row-weighted versus optimizer-weighted UP support on the actual old4096/new12288 schedules. Reuse completed decoder/temporal studies; no automatic calibration on LATER, source change, model run, fitting, feature removal or TEST.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -75707,7 +75707,7 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_FIXED_EXPOSURE_RETAINED_COMPARISON",
+    "status": "ACTIVE_NON_M5_EFFECTIVE_SUPERVISION_SOURCE_REVIEW",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "G\u00e5 direkte p\u00e5 problemene og lag deg et m\u00e5l for \u00e5 n\u00f8ste opp i hvorfor vi ikke f\u00e5r god Edge ut av markedsretningen.",
@@ -75721,7 +75721,7 @@
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Run the qualified metadata-only startup preflight, then one capped retained-output review with six archive decodes and2000paired UTC-day/week bootstrap replicates using existing scoring owners. Compare fixed pass3 COVERAGE/FULL/INITIAL and frozen prior on all five later native horizons; no model, checkpoint, feature payload, fitting, selection or TEST. Consume this review after its terminal result.",
+    "next_action": "Audit the unchanged FULL objective effective label weighting before attributing persistent non-M5 UP bias to missing indicators or architecture. Start with source and existing metadata: compare the M5 equal-observation rule with non-M5 conditional-side batch means, then qualify only the minimum existing-target count needed to measure row-weighted versus optimizer-weighted UP support on the actual old4096/new12288 schedules. Reuse completed decoder/temporal studies; no automatic calibration on LATER, source change, model run, fitting, feature removal or TEST.",
     "active_stage": "market_state_ta_coverage_preparation_20261112_001",
     "previous_goal_turn_classification": "PROGRESS_CURRENT_STATES_MATCHED_COMPLEMENT_MEASURED_WITH_EXPLICIT_THIRD_ARM_NUMERICAL_STOP",
     "last_goal_turn_classification": "PROGRESS_BOUND_ACTUAL_CONTROL_PREFIX_AND_FULL_TRAIN_INPUT_REUSE_FOR_FIXED_EXPOSURE_DESIGN",
@@ -76195,15 +76195,21 @@
     "scope_response": "Current phase learns market-state forecasts before Entry. The exposure counterfactual diagnoses learning, not a trading strategy. Existing S and F targets do not establish selectable setups, trade-path quality or profitability; no Entry/Exit/trading authority is opened.",
     "latest_progress": {
       "status": "PROGRESS",
-      "source_commit": "c0bd4e9b2aec4a8c9fe530309c0837f9f3b35a9e",
-      "source_preflight": {
-        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001/PREFLIGHT.json",
-        "sha256": "24c7a149865f242ecdefee3dc25b02ea6beafbd73c2ae0a1e36d984924fdc290"
+      "native_result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001/RESULT.json",
+        "sha256": "d5ba8fa99c87ee3f639770c5b042fe93a442ef4f200733f13fe21cb30a8ac9e0"
       },
-      "same_initial_and_pass1_control_parity_required": true,
-      "model_constructions": 0,
-      "optimizer_updates": 0,
-      "economic_edge_proven": false
+      "retained_result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001/EXPOSURE_COMPARISON.json",
+        "sha256": "3e25678a10a52940f23f5248078a280c9cfaeb97a82ed1d90891259fa0146f18"
+      },
+      "source_commit": "67fa0d2a45e627e3ff1d1f00e60a48926c6f547c",
+      "actual_updates": 768,
+      "skips": 0,
+      "matched_initial_and_pass1_exact": true,
+      "m5_later_auc": 0.5286059731170414,
+      "economic_edge_proven": false,
+      "model_gate_closed": true
     }
   },
   "market_state_ta_fusion_observation_20261111_001": {
@@ -82053,7 +82059,7 @@
     "test_data_used": false
   },
   "market_state_ta_coverage_benchmark_20261112_001": {
-    "status": "COMPLETE_CONSUMED_RETAINED_REVIEW_PREPARATION",
+    "status": "COMPLETE_CONSUMED_EXPOSURE_EFFECT_MEASURED",
     "run_scope": "market_state_ta_coverage_benchmark_v1",
     "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001",
     "design_result": {
@@ -82096,7 +82102,7 @@
       "independent_source_review": "PASS_NO_CONCRETE_INTEGRATION_DEFECT",
       "mandatory_precommit_checks": "PASS"
     },
-    "next_action": "Run the qualified metadata-only startup preflight, then one capped retained-output review with six archive decodes and2000paired UTC-day/week bootstrap replicates using existing scoring owners. Compare fixed pass3 COVERAGE/FULL/INITIAL and frozen prior on all five later native horizons; no model, checkpoint, feature payload, fitting, selection or TEST. Consume this review after its terminal result.",
+    "next_action": "Audit the unchanged FULL objective effective label weighting before attributing persistent non-M5 UP bias to missing indicators or architecture. Start with source and existing metadata: compare the M5 equal-observation rule with non-M5 conditional-side batch means, then qualify only the minimum existing-target count needed to measure row-weighted versus optimizer-weighted UP support on the actual old4096/new12288 schedules. Reuse completed decoder/temporal studies; no automatic calibration on LATER, source change, model run, fitting, feature removal or TEST.",
     "recipe": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001/RECIPE.json",
       "sha256": "673fcc4a2f8d8273324b935ec7078df637ebc7c8425eff62d0248bb0d4fea5ad"
@@ -82209,12 +82215,12 @@
       "training_forwards": 768
     },
     "retained_review": {
-      "status": "ADMITTED",
-      "execution_authorized": true,
+      "status": "COMPLETE_CONSUMED",
+      "execution_authorized": false,
       "max_invocations": 1,
-      "claimed_invocations": 0,
-      "completed_invocations": 0,
-      "remaining_invocations": 1,
+      "claimed_invocations": 1,
+      "completed_invocations": 1,
+      "remaining_invocations": 0,
       "relaunch_allowed": false,
       "script": {
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001/REVIEW_EXPOSURE.py",
@@ -82255,7 +82261,23 @@
       "feature_payload_reads": 0,
       "forwards": 0,
       "optimizer_updates": 0,
-      "test_data_used": false
+      "test_data_used": false,
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001/EXPOSURE_COMPARISON.json",
+        "sha256": "3e25678a10a52940f23f5248078a280c9cfaeb97a82ed1d90891259fa0146f18"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001/RETAINED_REVIEW_TERMINAL.json",
+        "sha256": "c087995007d42aa846dee2f3a2b84e12dea20667e3b0e6bbf84169e21c686de2"
+      },
+      "actual_counts": {
+        "archive_decodes": 6,
+        "checkpoint_decodes": 0,
+        "forwards": 0,
+        "models": 0,
+        "optimizer_updates": 0
+      },
+      "elapsed_seconds": 7.968881218999741
     }
   }
 }

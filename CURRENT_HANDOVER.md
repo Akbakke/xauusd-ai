@@ -5,34 +5,55 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier arbeidsstatus; terminal/pros
 
 ## Aktivt mål og neste steg
 
-TA_DIRECTION_EDGE_CAUSE_EXPOSURE_RETAINED_REVIEW_ADMITTED. Edge-målet er fortsatt uoppnådd.
-Ny eksponeringskontrast er COMPLETE/CONSUMED. ROOT
-/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001.
-RESULTd5ba8fa9, TERMINALe43be2ee, runtimekvittering75bf0f16. Ren fryst kilde67fa0d2a.
-768faktiske updates/0skip,2304forwards,1modell/optimizer/INITIAL-dekoding,0checkpointwrites,
-1evidenskapsel og alle6målinger bevart. Felles INITIAL/pass1 er bit-eksakt på begge paneler;
-modell, RNG og256treningsposter matcher kontrollen. Alle pass har lik RNG-strøm.
-Input-/kilde-/måleporter og faktisk sluttcursor/kvitteringskjede består. Windows-boot646,
-controllerexit0 og engangsoppgaven er deaktivert. Ingen tung jobb kjører.
+TA_DIRECTION_EDGE_CAUSE_EXPOSURE_EFFECT_MEASURED. Edge-målet er fortsatt uoppnådd.
+Eksponeringskontrast og retained review er COMPLETE/CONSUMED. ROOT
+/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001:
+RESULTd5ba8fa9, TERMINALe43be2ee, runtimekvittering75bf0f16, EXPOSURE_COMPARISON3e25678a.
+Native kilde67fa0d2a; retained kilde1a735c2a.768faktiske updates/0skip,2304forwards,
+1modell/optimizer/INITIAL-dekoding,0checkpointwrites,1evidenskapsel og alle6målinger bevart.
+INITIAL/pass1 modell/RNG/256poster og begge panelarrays matcher kontrollen bit-eksakt.
+Alle sluttporter og runtimekvitteringer består; source_unchanged=true. Windows-boot646,
+controllerexit0, engangsoppgaven er deaktivert, ingen tung jobb kjører.
 
 Kandidaten bruker12288unike TRAIN-rader mot4096×3 i bevart FULL, med samme768updates.
 Faste4096TRAIN/LATER-paneler, FULL-mål, INITIAL, genuine features,5TF og normalisering beholdes.
-De736komplementradene er ikke brukt til nye updates. Radinnhold, repetisjon og rekkefølge endres
-sammen; forsøket isolerer ikke unik-radtall alene. Gamle forbrukte planer forblir stengt.
+De736komplementradene er utenfor nye updates. Innhold, repetisjon og rekkefølge endres sammen;
+ikke tilskriv hele effekten unik-radtall alene. Ingen gamle engangsplaner gjenåpnes.
 
-Foreløpige punktestimater: senere M5F Brier0,251796→0,249511; M5S0,250519→0,248787 mot FULL.
-Alle10S/F×TF-sideceller får bedre Brier/logloss mot FULL. Senere samlet tap2,470884→2,360385,
-men fortsatt dårligere enn INITIAL2,350915 og prior2,316114. M5F er nesten lik INITIAL/prior.
-Gamle TRAIN-panelets tap1,789263→1,832358. Dette støtter en eksponeringsforklaring på sterkere
-paneltilpasning og dårligere senere sannsynlighetsskår; rangering/usikkerhet gjenstår.
+| Senere native F | FULL AUC → coverage | FULL Brier → coverage | Frossen prior Brier |
+| --- | --- | --- | --- |
+| M5 |0,513672 →0,528606|0,251796 →0,249511|0,249696|
+| M15|0,509511 →0,521081|0,307638 →0,279244|0,250709|
+| H1 |0,495398 →0,513097|0,316309 →0,280750|0,251352|
+| H4 |0,499505 →0,520348|0,309307 →0,270971|0,249256|
+| D1 |0,470691 →0,488312|0,303766 →0,263401|0,252789|
 
-Neste: én admittert gjenbruksvurdering av6lagrede INITIAL/FULL/COVERAGE TRAIN/LATER-captures.
-REVIEW_EXPOSURE.py er bundet i policy; capped audit4GiB/512MiB,300sek og2000dag-/ukereplikater.
-Metadata/import kontrolleres før CLAIM; bootstrap og skåringsfunksjoner gjenbrukes uendret.
-Gjenbruk kvalifisert AUC-/skåringskode og dag-/ukebootstrap for begge oppgaver og5TF. Behold
-frossen prior og alltid-LONG. Ingen ny modell, checkpointdekoding, featurelesing eller fitting.
-Global training/native_training er false. Modellen er ikke et dokumentert handelsoppsett;
-S/F-prognoser beviser ikke Entry-kvalitet, prisbane eller økonomisk edge. TEST forblir forseglet.
+Alle5F-horisonter har lavere Brier/logloss enn FULL i begge punktvise95dag-/ukeintervaller.
+M5F AUC-økningen motFULL inkluderer null; motINITIAL0,511290 er ΔAUC0,017316,
+dag[0,004153;0,031747], uke[0,004639;0,029871]. M5Brier motINITIAL/prior er usikker.
+M15/H1/H4F er fortsatt dårligere ennprior i begge Brier-intervaller. Ingen robust edge er etablert.
+Alle10S/F×TF får bedre punkt-Brier/logloss motFULL; ikke påstå at alle har avklarte intervaller.
+M5S AUC0,551444, Brier0,248787; Brierforbedringen motFULL inkluderer null i begge intervaller.
+
+Metadataregnskap uten nye capturelesinger: M15/H1F anslår meanPup0,615858/0,624343 mens
+kjent-side-UP-frekvensen er0,491060/0,500000. Feil gjennomsnittsnivå forklarer51,8%/48,0%
+av punkt-Brier-underskuddet motprior. Resten er Var(p)−2Cov(p,y), ikke separat identifiserte
+varians-/kovariansledd. Denne nivåfeilen ble større motFULL selv om Brier ble bedre.
+Ingen kalibrering ble tilpasset. På TRAIN-panelet er H1coverage meanPup0,573676 mot UP0,583275;
+modellen øker altså UP-prognosen på LATER samtidig som den observerte UP-andelen faller.
+
+Retained review:6captures/0checkpoint/0modell/0forward/0update,7,98sek. Uendrede kvalifiserte
+scorere/2000parrede dag-/ukereplikater;70dager/14uker. Gamle M5 FULL-minus-INITIAL-intervaller
+replisert; største native skårreplayfeil1,11e-15. Alle5TF/S/F, prior og alltid-LONG er beholdt.
+Dette er gjenbrukt utviklingsdata, punktvise utforskende intervaller og overlappende mål.
+Kjent-side-støtte kommer fra realiserte labels; ingen selekterbare Entry-handler eller PnL bevises.
+
+Neste: kilde-/metadatarevisjon av effektiv labelvekting i uendret FULL-mål. Sammenlign M5s
+like observasjonsvekt med non-M5 batchgjennomsnitt og kvalifiser bare nødvendig eksisterende
+target-telling for gamle4096/nye12288batchplaner. Mål implisitt UP-vekt før eventuell rettelse;
+ingen vektingsfeil er bevist nå. Gjenbruk ferdige decoder-/temporalstudier uten relaunch.
+Global trening/native/full epoch/fullVAL er false. Ingen ny data-/modelljobb er admittert.
+TEST, Entry/Exit, broker, handel, spending og promotion er fortsatt stengt.
 
 ## Målt resultat og presise grenser
 
