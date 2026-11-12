@@ -6,14 +6,14 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_TF_ACTIVITY_READ_ONLY_INITIAL_ADMITTED.
+TA_DIRECTION_EDGE_CAUSE_ACTIVITY_INITIAL_COMPLETE_LEARNING_EFFECT_UNMEASURED.
 Målet11.11 er aktivt: avklar målte årsaker til svak retningsverdi i indikatorer,
 sammensetting og læring. [Samlet status](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json).
 Korte runder er bevisst feilsøking, ikke kapasitetsdom. Full kvalifisert TRAIN-historikk
 og30–40epoker er senere skalering, ikke et krav ved hver rettelse.
-Alle tidligere engangsplaner er konsumert. Training/native_training/native_launch/full_epoch er false.
+Alle engangsplaner er konsumert. Training/native_training/native_launch/full_epoch er false.
 Ny GX1NonM5ShortLearning001 og begge gamle c171 Windowsoppgaver er Disabled.
-Én lesende aktivitetsinitialkontroll er innrømmet; ingen ny trening. GC på pause; TEST, Entry/Exit-evaluering, broker,
+Aktivitetsinitialkontrollen er fullført; ingen ny native kjøring/trening er innrømmet. GC på pause; TEST, Entry/Exit-evaluering, broker,
 handel, spending og promotion stengt. Checkpoints er forskningsevidens, ikke promotion.
 
 ## Indikatorer og sammensetting
@@ -125,11 +125,23 @@ non-finite backbone og bestod etter presis testrettelse. Produksjonskode var uen
 Originale feilkvitteringer er bevart. Uavhengig kildegjennomgang fant ingen blokkering.
 Eksakt module-preflight bestod:0modeller/checkpoints/arrays/claims/updates.
 
-Én lesende initialkontroll er ADMITTED i NEXT_RUN_POLICY:
+Lesende initialkontroll COMPLETE/CONSUMED, kilde a921f317 uendret:
 ROOT /home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_PARITY_20261112_001.
-PLAN754a891b:2modeller,256faste TRAIN-rader per modell,32forwards,20klonede
-aktivitetstensorer,0optimizer/backward/updates/checkpoint-skriving. Alle5TF/S/F-side
-skal være byteeksakte; aktivitet atol2e-6/rtol1e-6 og tap5e-6. Guarded producer
-12GiB/512MiB,CPU0–7,pids64,8tråder;250Wlimit/170Wdraw/65Ccore/80Cmemory,
-1200s ytre og900s modellbudsjett. Faktisk startparitet gjenstår.
-Ingen native trening/fullhistorikk/30–40epoker er innrømmet.
+PLAN754a891b, RESULT53a92201, TERMINALd8b41784, controllerexit0 på128,23s.
+2modeller,256faste TRAIN-rader per modell,32forwards,20klonede aktivitetstensorer.
+0optimizer/backward/updates/checkpoint-skriving/RNG-import. Kilden gjenskaper alle
+12lagrede initialfelt og tap byteeksakt. Alle5TF/S/F-sideutganger er byteeksakte;
+aktivitetsavvik maks S9,5367e-7/F2,3842e-7 og tapsavvik2,3842e-7, innen faste
+atol2e-6/rtol1e-6/tap5e-6. Modi/vekt-/buffer-/RNG-signaturer uendret, ingen gradienter.
+Ny initialmodelldigest730409e615aa fra originalc171, kun klonede aktivitetshoder.
+101telemetripunkter; topper44Ccore/46Cmemory/132,6W/592MiB, guardexit0.
+Uavhengig retained-kontroll78329d9e bestod:1NPZ/0modeller/checkpoints/forwards,
+10akse-/targetfelt og alle sidekanaler byteeksakte. Alle10aktivitetsceller og16lagrede
+tapsdifferanser bekreftet. Historisk originalparitet/fullmodellpassivitet er bundne
+kjøringskvitteringer; uavhengig kontroll åpnet ikke checkpoint/originalNPZ på nytt.
+
+Neste steg er én separat kvalifisert kort aktivitetssammenligning på originalens
+4096TRAIN-rader/256updates, sammeRNG/ferskAdamW/features/targets/tap. Separate
+nonM5-sidehoder forblir av. Hele bruktprefixets initial må samsvare før førsteupdate.
+Læringseffekt, senere generalisering og økonomisk edge er fortsatt ubevist.
+Ingen ny trening/fullhistorikk/30–40epoker er innrømmet.

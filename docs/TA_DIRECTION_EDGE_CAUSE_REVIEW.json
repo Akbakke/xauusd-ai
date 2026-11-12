@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_ACTIVITY_BINDING_PASS_READ_ONLY_INITIAL_ADMITTED",
+  "status": "ACTIVE_ACTIVITY_INITIAL_PARITY_COMPLETE_LEARNING_EFFECT_UNMEASURED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -265,7 +265,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Execute exactly one admitted read-only initial comparison from original c171 using the existing guarded producer route: 256 fixed TRAIN rows per model, 32 forwards, 20 cloned activity tensors, no optimizer/backward/updates/checkpoint writes. Verify fresh actual initial parity and source/passivity receipts before considering any separate short learning admission.",
+  "next_measurement": "Prepare a single matched short activity-only learning comparison against original c171 on the same 4096 TRAIN rows and 256 updates, with original seed/RNG, fresh empty AdamW and unchanged features/targets/loss/numerical settings. Keep separate non-M5 side heads off. Recheck the entire used-prefix initial predictions before the first update. Native training still requires its own qualified exact admission; no full-history or 30-40 epoch run is admitted.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -1730,6 +1730,23 @@
   },
   "tf_activity_decoder_repair": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
-    "sha256": "3def8c7d3f298c33ffbca29f455e0698c2ac96ca6ee084b183ba3c2d2df8e8a6"
+    "sha256": "851c5b02d6f814d50c14bff1f568dc42249fe6d37e279e76099d323d07486bea"
+  },
+  "tf_activity_initial_parity": {
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
+      "sha256": "851c5b02d6f814d50c14bff1f568dc42249fe6d37e279e76099d323d07486bea"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_PARITY_20261112_001/RESULT.json",
+      "sha256": "53a922010effcb3e261a3e6ce4b49247cdfe632858182c1fdfa04ac85c17d554"
+    },
+    "all_side_channels_bitexact": true,
+    "initial_parity_passed": true,
+    "learning_effect_measured": false,
+    "independent_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_PARITY_20261112_001/INDEPENDENT_ACTIVITY_INITIAL_PARITY_REVIEW.json",
+      "sha256": "78329d9e77390b32f81e3ea6930388d078be9244c17808bc688dea3e2156775b"
+    }
   }
 }

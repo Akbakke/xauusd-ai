@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-11T22:53:26.085246+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_TF_ACTIVITY_READ_ONLY_INITIAL_ADMITTED",
+  "status": "TA_DIRECTION_EDGE_CAUSE_ACTIVITY_INITIAL_COMPLETE_LEARNING_EFFECT_UNMEASURED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1705,7 +1705,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "198 focused cases qualified and exact metadata preflight passed. One read-only actual initial comparison admitted; no learning.",
+    "current_activity": "Read-only activity initial comparison COMPLETE: all side channels exact, cloned activity and loss within fixed tolerance, zero optimizer updates. Learning effect remains unmeasured.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1734,11 +1734,11 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "TA_NON_M5_INITIAL_PARITY_READ_ONLY",
-    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_INITIAL_PARITY_20261111_001",
+    "latest_terminal_role": "TA_TF_ACTIVITY_INITIAL_PARITY_READ_ONLY",
+    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_PARITY_20261112_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_INITIAL_PARITY_20261111_001/TERMINAL.json",
-      "sha256": "d5c1223df034a2014f4e2e5116214a41d969ffa5b472a8b3ad4e128e6ac36020"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_PARITY_20261112_001/TERMINAL.json",
+      "sha256": "d8b417843279b6e13f588ea3c63471d748ddb593ef15ae760405d05f506ee68b"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -1758,7 +1758,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Fresh actual initial parity not yet measured for activity-only model.",
+    "current_blocker": "No operational blocker. A matched short learning comparison still needs its own recipe and exact qualification/admission.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9229,7 +9229,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute exactly one admitted read-only initial comparison from original c171 using the existing guarded producer route: 256 fixed TRAIN rows per model, 32 forwards, 20 cloned activity tensors, no optimizer/backward/updates/checkpoint writes. Verify fresh actual initial parity and source/passivity receipts before considering any separate short learning admission.",
+    "next_action": "Prepare a single matched short activity-only learning comparison against original c171 on the same 4096 TRAIN rows and 256 updates, with original seed/RNG, fresh empty AdamW and unchanged features/targets/loss/numerical settings. Keep separate non-M5 side heads off. Recheck the entire used-prefix initial predictions before the first update. Native training still requires its own qualified exact admission; no full-history or 30-40 epoch run is admitted.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22144,7 +22144,7 @@
     },
     "direction_edge_cause_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "d23e7aa20c5393a0408c636a89d11c8e1c67c350aad97167056f810839715ad4"
+      "sha256": "876602adc5d69d7efdbd5175e5a05d6af1c16d4b9cc68bb016a3589df46e5ed1"
     },
     "latest_c171_startup_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_C171_SHORT_LEARNING_STARTUP_REVIEW.json",
@@ -22226,7 +22226,11 @@
     },
     "latest_tf_activity_decoder_repair": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
-      "sha256": "3def8c7d3f298c33ffbca29f455e0698c2ac96ca6ee084b183ba3c2d2df8e8a6"
+      "sha256": "851c5b02d6f814d50c14bff1f568dc42249fe6d37e279e76099d323d07486bea"
+    },
+    "latest_tf_activity_initial_parity": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
+      "sha256": "851c5b02d6f814d50c14bff1f568dc42249fe6d37e279e76099d323d07486bea"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -75566,24 +75570,24 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_ACTIVITY_BINDING_PASS_READ_ONLY_INITIAL_ADMITTED",
+    "status": "ACTIVE_ACTIVITY_INITIAL_PARITY_COMPLETE_LEARNING_EFFECT_UNMEASURED",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
     "training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "d23e7aa20c5393a0408c636a89d11c8e1c67c350aad97167056f810839715ad4"
+      "sha256": "876602adc5d69d7efdbd5175e5a05d6af1c16d4b9cc68bb016a3589df46e5ed1"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": true,
+    "model_or_data_run_admitted": false,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Execute exactly one admitted read-only initial comparison from original c171 using the existing guarded producer route: 256 fixed TRAIN rows per model, 32 forwards, 20 cloned activity tensors, no optimizer/backward/updates/checkpoint writes. Verify fresh actual initial parity and source/passivity receipts before considering any separate short learning admission.",
+    "next_action": "Prepare a single matched short activity-only learning comparison against original c171 on the same 4096 TRAIN rows and 256 updates, with original seed/RNG, fresh empty AdamW and unchanged features/targets/loss/numerical settings. Keep separate non-M5 side heads off. Recheck the entire used-prefix initial predictions before the first update. Native training still requires its own qualified exact admission; no full-history or 30-40 epoch run is admitted.",
     "active_stage": "market_state_ta_tf_activity_decoder_repair_20261112_001",
     "previous_goal_turn_classification": "PROGRESS: retained MTFintervention andinputsupport review ruledout an unsupported harmful-MTF or generalnormalization-collapse change; nextactualboundarymeasurement identified.",
-    "last_goal_turn_classification": "PROGRESS_ACTIVITY_WEIGHTS_BINDING_AND_INITIAL_ROUTE_QUALIFIED",
+    "last_goal_turn_classification": "PROGRESS_ACTIVITY_SOURCE_BINDING_MIGRATION_AND_FRESH_ACTUAL_INITIAL_PARITY_VERIFIED",
     "latest_tail_factor_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_ALL_TF_TAIL_FACTOR_REVIEW.json",
       "sha256": "5da978f765b0ad1ac001023501be7665989270d8353d768b801b9e1b29406c0f"
@@ -75610,7 +75614,7 @@
     },
     "tf_activity_decoder_repair": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
-      "sha256": "3def8c7d3f298c33ffbca29f455e0698c2ac96ca6ee084b183ba3c2d2df8e8a6"
+      "sha256": "851c5b02d6f814d50c14bff1f568dc42249fe6d37e279e76099d323d07486bea"
     }
   },
   "market_state_ta_fusion_observation_20261111_001": {
@@ -76863,7 +76867,7 @@
     },
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "d23e7aa20c5393a0408c636a89d11c8e1c67c350aad97167056f810839715ad4"
+      "sha256": "876602adc5d69d7efdbd5175e5a05d6af1c16d4b9cc68bb016a3589df46e5ed1"
     },
     "full_model_constructions": 0,
     "native_model_forwards": 0,
@@ -78354,7 +78358,7 @@
     "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_MECHANICAL_20261112_001",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
-      "sha256": "3def8c7d3f298c33ffbca29f455e0698c2ac96ca6ee084b183ba3c2d2df8e8a6"
+      "sha256": "851c5b02d6f814d50c14bff1f568dc42249fe6d37e279e76099d323d07486bea"
     },
     "activity_pressure_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ACTIVITY_PRESSURE_REVIEW.json",
@@ -78439,7 +78443,7 @@
     "training_enabled": false,
     "unique_rows": 256,
     "wall_seconds": 900,
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_PARITY_20261112_001",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_PARITY_20261112_001/PLAN.json",
@@ -78450,19 +78454,36 @@
       "sha256": "e5b74ca364ab8508f8bc2459dc09fc526b91086ac7d945ffe2a41f615f101c6a"
     },
     "max_invocations": 1,
-    "remaining_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "remaining_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "checkpoint_reads_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "checkpoint_reads_authorized": false,
     "backbone_encodings_authorized": 32,
     "head_tensor_imports_authorized": 20,
     "candidate_weights_writes_authorized": 0,
     "backward_calls_authorized": 0,
     "optimizer_steps_authorized": 0,
     "training_authorized": false,
-    "next_action": "Execute exactly one admitted read-only initial comparison from original c171 using the existing guarded producer route: 256 fixed TRAIN rows per model, 32 forwards, 20 cloned activity tensors, no optimizer/backward/updates/checkpoint writes. Verify fresh actual initial parity and source/passivity receipts before considering any separate short learning admission."
+    "next_action": "Prepare a single matched short activity-only learning comparison against original c171 on the same 4096 TRAIN rows and 256 updates, with original seed/RNG, fresh empty AdamW and unchanged features/targets/loss/numerical settings. Keep separate non-M5 side heads off. Recheck the entire used-prefix initial predictions before the first update. Native training still requires its own qualified exact admission; no full-history or 30-40 epoch run is admitted.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_PARITY_20261112_001/RESULT.json",
+      "sha256": "53a922010effcb3e261a3e6ce4b49247cdfe632858182c1fdfa04ac85c17d554"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_PARITY_20261112_001/TERMINAL.json",
+      "sha256": "d8b417843279b6e13f588ea3c63471d748ddb593ef15ae760405d05f506ee68b"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_PARITY_20261112_001/CONTROLLER_RESULT.json",
+      "sha256": "2f2982bd12612d8bc3bf361770df43e598303df994af02074289d80935798b46"
+    },
+    "source_unchanged_at_terminal": true,
+    "independent_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_PARITY_20261112_001/INDEPENDENT_ACTIVITY_INITIAL_PARITY_REVIEW.json",
+      "sha256": "78329d9e77390b32f81e3ea6930388d078be9244c17808bc688dea3e2156775b"
+    }
   }
 }

@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_tf_activity_decoder_repair_v1",
-  "status": "BINDINGS_QUALIFIED_READ_ONLY_INITIAL_ADMITTED_NO_TRAINING",
+  "status": "ACTUAL_INITIAL_PARITY_COMPLETE_LEARNING_EFFECT_UNMEASURED",
   "reason": "Measured shared activity-coordinate pressure and FLAT calibration regression motivate one isolated architectural comparison.",
   "evidence": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ACTIVITY_PRESSURE_REVIEW.json",
@@ -48,13 +48,13 @@
     "tests/test_market_state_time_query_tf_activity_v1.py"
   ],
   "fresh_actual_initial_baseline_required": true,
-  "native_function_qualified": false,
+  "native_function_qualified": true,
   "learning_effect_measured": false,
-  "native_run_authorized": true,
+  "native_run_authorized": false,
   "training_authorized": false,
   "promotion_authorized": false,
   "test_data_used": false,
-  "next_action": "Execute exactly one admitted read-only initial comparison from original c171 using the existing guarded producer route: 256 fixed TRAIN rows per model, 32 forwards, 20 cloned activity tensors, no optimizer/backward/updates/checkpoint writes. Verify fresh actual initial parity and source/passivity receipts before considering any separate short learning admission.",
+  "next_action": "Prepare a single matched short activity-only learning comparison against original c171 on the same 4096 TRAIN rows and 256 updates, with original seed/RNG, fresh empty AdamW and unchanged features/targets/loss/numerical settings. Keep separate non-M5 side heads off. Recheck the entire used-prefix initial predictions before the first update. Native training still requires its own qualified exact admission; no full-history or 30-40 epoch run is admitted.",
   "mechanical_qualification": {
     "status": "PASS",
     "passed_tests": 226,
@@ -99,6 +99,88 @@
     "backbone_forwards": 32,
     "optimizer_updates": 0,
     "backwards": 0,
-    "checkpoint_writes": 0
+    "checkpoint_writes": 0,
+    "consumed": true
+  },
+  "actual_initial_baseline": {
+    "status": "COMPLETE_INDEPENDENTLY_VERIFIED",
+    "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_PARITY_20261112_001",
+    "source_commit": "a921f3178d6128840dad2995ecbc2737d4386d00",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_PARITY_20261112_001/PLAN.json",
+      "sha256": "754a891bae3fe11527854d8d05b9ad01946b491d87c062bb5430ed8f80655a5c"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_PARITY_20261112_001/RESULT.json",
+      "sha256": "53a922010effcb3e261a3e6ce4b49247cdfe632858182c1fdfa04ac85c17d554"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_PARITY_20261112_001/TERMINAL.json",
+      "sha256": "d8b417843279b6e13f588ea3c63471d748ddb593ef15ae760405d05f506ee68b"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_PARITY_20261112_001/CONTROLLER_RESULT.json",
+      "sha256": "2f2982bd12612d8bc3bf361770df43e598303df994af02074289d80935798b46"
+    },
+    "capture": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_PARITY_20261112_001/TRAIN_FUSION.npz",
+      "sha256": "124ea2fec061409919948e0fe3657a4ec6f8cbb8687e4169b70ffe945c016b69"
+    },
+    "guard_log": {
+      "path": "/home/andre2/GX1_RUNS/.MARKET_STATE_TA_TF_ACTIVITY_INITIAL_PARITY_20261112_001.guard.mYTcFQSc.log",
+      "sha256": "866c453e8275a4fbdd0aaa91b3cd253e0666584546ec959a9e460e5cc4c3d7fd"
+    },
+    "counts": {
+      "archive_decodes": 1,
+      "autograd_grad_calls": 0,
+      "backbone_encodings": 32,
+      "backwards": 0,
+      "candidate_writes": 0,
+      "checkpoint_loads": 1,
+      "checkpoint_writes": 0,
+      "extra_target_gathers": 64,
+      "forward_returns": 32,
+      "head_tensor_imports": 20,
+      "matched_batches": 32,
+      "model_constructions": 2,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "published_npz_bytes": 109304,
+      "resume_state_load_calls": 1,
+      "resume_state_load_returns": 1,
+      "rng_restores": 0,
+      "sampled_rows": 512
+    },
+    "passivity": {
+      "CURRENT_SHARED_INITIAL_no_parameter_gradients": true,
+      "CURRENT_SHARED_INITIAL_signature_unchanged": true,
+      "TF_ACTIVITY_INITIAL_no_parameter_gradients": true,
+      "TF_ACTIVITY_INITIAL_signature_unchanged": true
+    },
+    "source_model_state_sha256": "c171736d2de79396dd86a79ad895f8bf2226e5ad8d996abf1dd7f52055e4a467",
+    "trial_model_state_sha256": "730409e615aa7aca449015ab33f443b06d3529e1d17408829df8f1d1ae5cf911",
+    "all_side_channels_bitexact": true,
+    "maximum_absolute_activity_logit_difference": {
+      "state": 9.5367431640625e-07,
+      "future": 2.384185791015625e-07
+    },
+    "maximum_absolute_loss_difference": 2.384185791015625e-07,
+    "runtime_seconds": 128.23312314800023,
+    "guard_observed": {
+      "telemetry_samples": 101,
+      "peak_core_temp_c": 44.0,
+      "peak_memory_temp_c": 46.0,
+      "peak_power_draw_w": 132.6,
+      "peak_memory_used_mib": 592.0
+    },
+    "scope": "256 fixed dependent TRAIN rows per model; 32 forwards and zero optimizer/backward/updates. Source reproduces saved initial panel exactly. Initial equality is not learning effect, generalization or economic edge.",
+    "independent_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_PARITY_20261112_001/INDEPENDENT_ACTIVITY_INITIAL_PARITY_REVIEW.json",
+      "sha256": "78329d9e77390b32f81e3ea6930388d078be9244c17808bc688dea3e2156775b"
+    },
+    "independent_review_script": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_PARITY_20261112_001/INDEPENDENT_ACTIVITY_INITIAL_PARITY_REVIEW.py",
+      "sha256": "cc92c07559c4d55380bb56d7ddad506ea02403730d9516038198cdf08a24e77d"
+    }
   }
 }
