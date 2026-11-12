@@ -5,7 +5,7 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier arbeidsstatus; terminal/pros
 
 ## Aktivt mål og neste steg
 
-TA_DIRECTION_EDGE_CAUSE_EXPOSURE_EFFECT_MEASURED. Edge-målet er fortsatt uoppnådd.
+TA_DIRECTION_EFFECTIVE_SIDE_WEIGHT_MEASURED. Edge-målet er fortsatt uoppnådd.
 Eksponeringskontrast og retained review er COMPLETE/CONSUMED. ROOT
 /home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001:
 RESULTd5ba8fa9, TERMINALe43be2ee, runtimekvittering75bf0f16, EXPOSURE_COMPARISON3e25678a.
@@ -48,15 +48,34 @@ replisert; største native skårreplayfeil1,11e-15. Alle5TF/S/F, prior og alltid
 Dette er gjenbrukt utviklingsdata, punktvise utforskende intervaller og overlappende mål.
 Kjent-side-støtte kommer fra realiserte labels; ingen selekterbare Entry-handler eller PnL bevises.
 
-Neste: én kvalifisert targets-only-telling er admittert som
-market_state_ta_effective_side_weight_20261112_001. Kildekontrollen viser M5 q/N per kjent
-rad, mens øvrige TF bruker1/n per ikke-tom batch. Mål faktisk UP-vekt i gamle4096×3 og
-nye12288-planer før noen konklusjon om feil. Uendrede bindere,9arkivdekodinger,29574TRAIN-rader,
-60sekunder,capped audit4G/512M;0features/checkpoints/modeller/forwards/updates.
-Eksakt preflight består med0dekodinger; syntetisk formel og suksess-/feilrapportering kontrollert.
-En overstreng import-assert ble rettet før claim: eksisterende targetkontrakt importerer torch,
-uten modell-/tensor-/CUDA-kall i telleren. Kilde/formel/schedule er uavhengig gjennomgått.
-Global trening/native/full epoch/fullVAL er false. Ingen modellkjøring er admittert.
+Effektiv labelvekting er nå målt, COMPLETE/CONSUMED:
+/home/andre2/GX1_RUNS/MARKET_STATE_TA_EFFECTIVE_SIDE_WEIGHT_20261112_001,
+RESULT89c0a1f5, kilde1f981f28.2,61sekunder,9arkivdekodinger,
+0features/checkpoints/modeller/forwards/updates. Alle10bevarte TRAIN-paneltall matcher;
+alle5native-F-priortall og S/M5-profilen matcher. Uendrede bindere, causalitet og5TF.
+
+| Coverage native F | Radandel UP | Effektivt konstant tapsmål | Senere modell-Pup | Senere UP-fasit |
+| --- | ---: | ---: | ---: | ---: |
+| M5 |50,519%|50,519%|53,398%|51,924%|
+| M15|50,871%|52,169%|61,586%|49,106%|
+| H1 |54,334%|54,372%|62,434%|50,000%|
+| H4 |56,150%|55,652%|62,807%|53,904%|
+| D1 |66,813%|63,605%|63,816%|57,509%|
+
+M5 har lik kjent-radvekt q/N. Non-M5 bruker1/n i hver ikke-tom B16-batch, med opptil16×
+forskjell per kjent rad. Retningen er ikke universelt UP: H4/D1 trekkes ned av vektingen.
+Tellingen etablerer ingen tapsfeil eller årsak til hele senere UP-skjevheten. TRAIN-andel
+og senere modell-P er forskjellige populasjoner; konstant tapsminimum er ikke AdamW-banen.
+På H1 var senere Pup allerede57,459% ved INITIAL; coverage øker det til62,434% mot50%fasit.
+På M15 var det57,820% og blir61,586% mot49,106%. Skjevheten fantes før og forsterkes i forsøket.
+Siste6-radersbatch inngår bare i full29574TRAIN-referanse, ikke gamle/nye updateplaner.
+Ingen modell-/tapskode er endret. Kilde/formel/resultattolkning er uavhengig gjennomgått.
+
+Neste: kvalifiser én mulig INITIAL/COVERAGE-faktorsammenligning med beholdte non-M5-F-representasjoner
+og readouts. Kontroller eksakt lagringsgrense og eksisterende svar først; gjenbruk ferdig metode.
+En2×2replay er kun kandidat til eksakt native-logitreplay og minste artefaktomfang er kvalifisert.
+Ingen ny data-/checkpoint-/modelljobb, trening eller LATER-kalibrering er admittert.
+Global trening/native/full epoch/fullVAL er false. Alle engangsporter er konsumert/stengt.
 TEST, Entry/Exit, broker, handel, spending og promotion er fortsatt stengt.
 
 ## Målt resultat og presise grenser

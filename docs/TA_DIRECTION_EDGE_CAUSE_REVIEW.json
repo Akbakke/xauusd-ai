@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_EXPOSURE_EFFECT_MEASURED_DIRECTION_EDGE_UNRESOLVED",
+  "status": "ACTIVE_EFFECTIVE_SIDE_WEIGHT_MEASURED_DIRECTION_CAUSE_UNRESOLVED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -269,7 +269,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Audit the unchanged FULL objective effective label weighting before attributing persistent non-M5 UP bias to missing indicators or architecture. Start with source and existing metadata: compare the M5 equal-observation rule with non-M5 conditional-side batch means, then qualify only the minimum existing-target count needed to measure row-weighted versus optimizer-weighted UP support on the actual old4096/new12288 schedules. Reuse completed decoder/temporal studies; no automatic calibration on LATER, source change, model run, fitting, feature removal or TEST.",
+  "next_measurement": "Qualify one frozen-state comparison of INITIAL/COVERAGE non-M5 F readout changes versus representation changes using the existing matched captures. First verify the exact retained readout boundary and whether existing results already answer this current-state comparison; reuse the completed factor-review method. A 2x2 retained replay is only a candidate until exact native-logit replay and minimal artifact scope are qualified. No new fit, checkpoint/data execution admission, feature removal, LATER calibration, repeated decoder repair, TEST or trading.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -1723,14 +1723,12 @@
   },
   "training_authorized_scope": null,
   "latest_confirmed_findings": [
-    "All six captures have exact native F queries[1,3,12,48,288], matching assignments/targets and exact partition maturity. Original all-TF scores replay within7.31e-16; no new model, fit, feature or target-tape read.",
-    "For FULL, all-row TRAIN F AUC M5/M15/H1/H4/D1 is0.571561/0.623356/0.645103/0.652020/0.714395, versus later0.513672/0.509511/0.495398/0.499505/0.470691. Fitting improvement does not transfer consistently to the later development period across the declared endpoints.",
-    "FULL later conditional-side Brier is worse than the fixed earlier-TRAIN prior on all five TF. M15/H1/H4/D1 regressions have positive95percent paired day and week intervals; the M5 interval includes zero.",
-    "The same aligned descriptive setups have no confirmed advantage over alwaysLONG on any of the five endpoints; all corresponding day/week intervals include zero. This does not establish that these setups cannot work or that a different horizon should be selected.",
-    "In aligned setups, later eligible with/opposite/FLAT counts by horizon are5m49/34/122,15m51/42/112,60m29/44/123,240m44/33/116,1440m54/34/60. Respective rawUNKNOWN counts are0/0/9/12/57; all205 rows remain accounted for.",
-    "For all4096 later rows, rawUNKNOWN counts M5/M15/H1/H4/D1 are0/24/141/363/932; eligible-but-immature counts are0. UNKNOWN is separate from FLAT and from qualified class counts; unchanged scoring masks are retained.",
-    "Native ATR scale and target support change with the horizon, and FLAT_NET ignores intermediate path excursions. These results do not isolate the effect of waiting longer or describe trade returns.",
-    "An earlier E3 full-TRAIN complement review also found failure outside its4096 update cohort, but INITIAL had full-population readout exposure and the result used another model state and CPU/GPU protocol. It is evidence to reuse, not a current-state measurement or proof of memorization."
+    "The completed exposure contrast improves all five native-F later Brier/log scores versus retained FULL in both exploratory day/week intervals. M15/H1/H4 remain worse than the frozen prior; no trading edge is established.",
+    "Active M5 side rows have fixed q/N weight before the TF divisor. Non-M5 uses 1/n_known within each nonempty B16 batch; actual maximum row-weight ratio is16, versus1 for M5.",
+    "On the actual12288-row coverage schedule, F/M15 pooledUP0.508709 becomes effectiveUP0.521688; F/H1 pooledUP0.543343 becomes0.543717. F/H4 andD1 normalization shifts are negative. There is no universal UP shift caused by this normalization.",
+    "All10 retained TRAIN-panel side counts replay exactly; all5 native-F prior counts and S/M5 prior/profile counts replay exactly. Full reference includes29574 rows; actual old/new schedules exclude the final6-row partial batch.",
+    "Later F/H1 meanP was already0.574586 at INITIAL and rises to0.624343 after coverage learning, while known-side UP fraction is0.5. F/M15 rises0.578201 to0.615858 against0.491060. Bias predates this contrast and is amplified by it.",
+    "Effective TRAIN class support is the constant-logit optimum of summed fixed-logit losses, not the AdamW optimum, a forecast for later data or a causal isolation of normalization. No objective change is justified by this count alone."
   ],
   "activity_pressure_review": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ACTIVITY_PRESSURE_REVIEW.json",
@@ -13553,5 +13551,173 @@
     "promotion_authorized": false,
     "economic_edge_established": false,
     "next_action": "Audit the unchanged FULL objective effective label weighting before attributing persistent non-M5 UP bias to missing indicators or architecture. Start with source and existing metadata: compare the M5 equal-observation rule with non-M5 conditional-side batch means, then qualify only the minimum existing-target count needed to measure row-weighted versus optimizer-weighted UP support on the actual old4096/new12288 schedules. Reuse completed decoder/temporal studies; no automatic calibration on LATER, source change, model run, fitting, feature removal or TEST."
+  },
+  "effective_side_weight_result": {
+    "status": "COMPLETE_CONSUMED",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_EFFECTIVE_SIDE_WEIGHT_20261112_001/RESULT.json",
+      "sha256": "89c0a1f5c833244e457860f488ea02483cf61cabcbadf34149a20f87229cf6f2"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_EFFECTIVE_SIDE_WEIGHT_20261112_001/TERMINAL.json",
+      "sha256": "39a046d6510a3cccad97c73985211713ffc837b2724b6a1e31330ccaf4e183ff"
+    },
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_EFFECTIVE_SIDE_WEIGHT_20261112_001/PLAN.json",
+      "sha256": "33ad6930e4344571408aaa3bee85691be65c110663ffdd52041f8ac710a555c7"
+    },
+    "script": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_EFFECTIVE_SIDE_WEIGHT_20261112_001/COUNT_WEIGHTS.py",
+      "sha256": "bf8f2e4d7fb00d4271a548efad698ef8064c09cfb5319fc2f1aad6c412faaa99"
+    },
+    "source_commit": "1f981f284b34475bc6a24e47ef7928ac01aa1435",
+    "actual_counts": {
+      "archive_decodes": 9,
+      "checkpoints": 0,
+      "features": 0,
+      "forwards": 0,
+      "models": 0,
+      "updates": 0
+    },
+    "elapsed_seconds": 2.613248284999827,
+    "formulas": {
+      "M5": "Per known row: q/(5*N), with original fixed S1799/10010 and F1844/11909.",
+      "non_M5": "Per known row:1/(5*n_known_in_batch). Constant optimum is mean UP fraction over nonempty batch visits."
+    },
+    "coverage_summary": [
+      {
+        "task": "state",
+        "timeframe": "M5",
+        "known_side": 4192,
+        "pooled_up": 0.5114503816793893,
+        "effective_up": 0.5114503816793892,
+        "effective_minus_pooled": -1.1102230246251565e-16,
+        "row_weight_ratio": 1.0,
+        "later_initial_mean_p": 0.5235782851033016,
+        "later_coverage_mean_p": 0.5158827562058472,
+        "later_actual_up": 0.5007072135785007
+      },
+      {
+        "task": "state",
+        "timeframe": "M15",
+        "known_side": 4633,
+        "pooled_up": 0.5106842218864667,
+        "effective_up": 0.5048466804285424,
+        "effective_minus_pooled": -0.005837541457924256,
+        "row_weight_ratio": 16.0,
+        "later_initial_mean_p": 0.5910367855865724,
+        "later_coverage_mean_p": 0.5914929807777449,
+        "later_actual_up": 0.5152057245080501
+      },
+      {
+        "task": "state",
+        "timeframe": "H1",
+        "known_side": 4632,
+        "pooled_up": 0.5297927461139896,
+        "effective_up": 0.5325469188930727,
+        "effective_minus_pooled": 0.002754172779083075,
+        "row_weight_ratio": 16.0,
+        "later_initial_mean_p": 0.5878272125259961,
+        "later_coverage_mean_p": 0.5883505480959597,
+        "later_actual_up": 0.5245508982035928
+      },
+      {
+        "task": "state",
+        "timeframe": "H4",
+        "known_side": 4941,
+        "pooled_up": 0.5620319773325237,
+        "effective_up": 0.5595283285006605,
+        "effective_minus_pooled": -0.00250364883186327,
+        "row_weight_ratio": 16.0,
+        "later_initial_mean_p": 0.6013337691149175,
+        "later_coverage_mean_p": 0.5958474566444882,
+        "later_actual_up": 0.46581769436997317
+      },
+      {
+        "task": "state",
+        "timeframe": "D1",
+        "known_side": 3279,
+        "pooled_up": 0.576395242451967,
+        "effective_up": 0.5551888746003216,
+        "effective_minus_pooled": -0.021206367851645425,
+        "row_weight_ratio": 16.0,
+        "later_initial_mean_p": 0.5869635192977263,
+        "later_coverage_mean_p": 0.6079515685718543,
+        "later_actual_up": 0.563265306122449
+      },
+      {
+        "task": "future",
+        "timeframe": "M5",
+        "known_side": 4915,
+        "pooled_up": 0.5051881993896236,
+        "effective_up": 0.5051881993896232,
+        "effective_minus_pooled": -3.3306690738754696e-16,
+        "row_weight_ratio": 1.0,
+        "later_initial_mean_p": 0.5152734787588296,
+        "later_coverage_mean_p": 0.5339758014326176,
+        "later_actual_up": 0.5192421551213736
+      },
+      {
+        "task": "future",
+        "timeframe": "M15",
+        "known_side": 4478,
+        "pooled_up": 0.5087092451987495,
+        "effective_up": 0.5216882590852371,
+        "effective_minus_pooled": 0.01297901388648759,
+        "row_weight_ratio": 16.0,
+        "later_initial_mean_p": 0.578200878099581,
+        "later_coverage_mean_p": 0.6158583214119174,
+        "later_actual_up": 0.49106002554278416
+      },
+      {
+        "task": "future",
+        "timeframe": "H1",
+        "known_side": 4349,
+        "pooled_up": 0.5433432973097264,
+        "effective_up": 0.5437168499973378,
+        "effective_minus_pooled": 0.00037355268761141147,
+        "row_weight_ratio": 16.0,
+        "later_initial_mean_p": 0.5745864410027174,
+        "later_coverage_mean_p": 0.6243426463758956,
+        "later_actual_up": 0.5
+      },
+      {
+        "task": "future",
+        "timeframe": "H4",
+        "known_side": 4114,
+        "pooled_up": 0.5614973262032086,
+        "effective_up": 0.5565186474464826,
+        "effective_minus_pooled": -0.004978678756725974,
+        "row_weight_ratio": 16.0,
+        "later_initial_mean_p": 0.5863404149587697,
+        "later_coverage_mean_p": 0.6280692101113459,
+        "later_actual_up": 0.5390447308567097
+      },
+      {
+        "task": "future",
+        "timeframe": "D1",
+        "known_side": 3634,
+        "pooled_up": 0.6681342872867364,
+        "effective_up": 0.6360544217687075,
+        "effective_minus_pooled": -0.03207986551802888,
+        "row_weight_ratio": 16.0,
+        "later_initial_mean_p": 0.5568153429185089,
+        "later_coverage_mean_p": 0.6381585936262151,
+        "later_actual_up": 0.5750889679715302
+      }
+    ],
+    "findings": [
+      "The completed exposure contrast improves all five native-F later Brier/log scores versus retained FULL in both exploratory day/week intervals. M15/H1/H4 remain worse than the frozen prior; no trading edge is established.",
+      "Active M5 side rows have fixed q/N weight before the TF divisor. Non-M5 uses 1/n_known within each nonempty B16 batch; actual maximum row-weight ratio is16, versus1 for M5.",
+      "On the actual12288-row coverage schedule, F/M15 pooledUP0.508709 becomes effectiveUP0.521688; F/H1 pooledUP0.543343 becomes0.543717. F/H4 andD1 normalization shifts are negative. There is no universal UP shift caused by this normalization.",
+      "All10 retained TRAIN-panel side counts replay exactly; all5 native-F prior counts and S/M5 prior/profile counts replay exactly. Full reference includes29574 rows; actual old/new schedules exclude the final6-row partial batch.",
+      "Later F/H1 meanP was already0.574586 at INITIAL and rises to0.624343 after coverage learning, while known-side UP fraction is0.5. F/M15 rises0.578201 to0.615858 against0.491060. Bias predates this contrast and is amplified by it.",
+      "Effective TRAIN class support is the constant-logit optimum of summed fixed-logit losses, not the AdamW optimum, a forecast for later data or a causal isolation of normalization. No objective change is justified by this count alone."
+    ],
+    "source_and_result_peer_review": "composition_audit read-only review: no remaining blocker; formulas, schedules,9decodes and interpretation checked.",
+    "loss_change_justified": false,
+    "training_authorized": false,
+    "economic_edge_demonstrated": false,
+    "test_data_used": false
   }
 }

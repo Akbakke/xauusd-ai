@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Audit the unchanged FULL objective effective label weighting before attributing persistent non-M5 UP bias to missing indicators or architecture. Start with source and existing metadata: compare the M5 equal-observation rule with non-M5 conditional-side batch means, then qualify only the minimum existing-target count needed to measure row-weighted versus optimizer-weighted UP support on the actual old4096/new12288 schedules. Reuse completed decoder/temporal studies; no automatic calibration on LATER, source change, model run, fitting, feature removal or TEST.",
+  "next_action": "Qualify one frozen-state comparison of INITIAL/COVERAGE non-M5 F readout changes versus representation changes using the existing matched captures. First verify the exact retained readout boundary and whether existing results already answer this current-state comparison; reuse the completed factor-review method. A 2x2 retained replay is only a candidate until exact native-logit replay and minimal artifact scope are qualified. No new fit, checkpoint/data execution admission, feature removal, LATER calibration, repeated decoder repair, TEST or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1434,9 +1434,9 @@
     "profitability_demonstrated": false,
     "required_before_more_extensive_training": true,
     "entry_learning_demonstrated": false,
-    "current_evidence_scope": "Fixed4096TRAIN/4096later,threepasses: M5-only increases TRAIN AUC but later Brier/log regress against FULL and INITIAL, with paired day/week intervals excluding zero. Later AUC point estimates worsen, intervals include zero. Reused development only; no generalization, setup selection or economic edge established.",
+    "current_evidence_scope": "Fixed exposure-schedule contrast:768updates,12288unique versus4096x3, same4096TRAIN/LATER panels. Later native-F Brier/log improves on all5TF versusFULL; M15/H1/H4 remain worse thanprior. Targets-only weighting count does not establish a corrective loss change. Reused development; no independent generalization, Entry or economic edge.",
     "component_learning_measured": true,
-    "component_learning_result": "FIXED_SMALL_TRAIN_GAIN_LATER_PROBABILITY_REGRESSION",
+    "component_learning_result": "EXPOSURE_SCHEDULE_PROBABILITY_GAIN_WITH_REMAINING_NON_M5_BIAS",
     "primary_entry_quality_qualified": false,
     "paired_learning_review": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/PAIRED_LEARNING_REVIEW.json",
@@ -1719,7 +1719,11 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_NATIVE_HORIZONS_20261112_001/RESULT.json",
       "sha256": "74c6474334f30f95fdcc323ea3b15b4f50bcfbfc2a15bf61afb7c921ed25d889"
     },
-    "setup_horizon_edge_established": false
+    "setup_horizon_edge_established": false,
+    "latest_effective_side_weight_count": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_EFFECTIVE_SIDE_WEIGHT_20261112_001/RESULT.json",
+      "sha256": "89c0a1f5c833244e457860f488ea02483cf61cabcbadf34149a20f87229cf6f2"
+    }
   },
   "current_work": {
     "operator_request": "G\u00e5 direkte p\u00e5 problemene og lag deg et m\u00e5l for \u00e5 n\u00f8ste opp i hvorfor vi ikke f\u00e5r god Edge ut av markedsretningen.",
@@ -64349,8 +64353,8 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "TA_DIRECTION_EFFECTIVE_SIDE_WEIGHT_COUNT_ADMITTED",
-  "recorded_observed_utc": "2026-11-12T17:28:04.354292+00:00",
+  "recorded_status": "TA_DIRECTION_EFFECTIVE_SIDE_WEIGHT_MEASURED",
+  "recorded_observed_utc": "2026-11-12T17:33:12.855098+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
     "decision": "BLOCK",
@@ -75707,7 +75711,7 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_TARGETS_ONLY_EFFECTIVE_WEIGHT_COUNT",
+    "status": "ACTIVE_NON_M5_CURRENT_STATE_FACTOR_QUALIFICATION",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "G\u00e5 direkte p\u00e5 problemene og lag deg et m\u00e5l for \u00e5 n\u00f8ste opp i hvorfor vi ikke f\u00e5r god Edge ut av markedsretningen.",
@@ -75717,14 +75721,14 @@
       "sha256": "2682dca5680706f78396491b6f21392d1cca7ffcb051664aa11edfe73200a54a"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": "One targets-only count, zero models or fitting",
+    "model_or_data_run_admitted": false,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Execute exactly the qualified targets-only count once. Compare effective UP support with row support across the actual CONTROL/COVERAGE schedules and original TRAIN. No loss change or learning run is admitted; a normalization difference alone is not a defect.",
+    "next_action": "Qualify one frozen-state comparison of INITIAL/COVERAGE non-M5 F readout changes versus representation changes using the existing matched captures. First verify the exact retained readout boundary and whether existing results already answer this current-state comparison; reuse the completed factor-review method. A 2x2 retained replay is only a candidate until exact native-logit replay and minimal artifact scope are qualified. No new fit, checkpoint/data execution admission, feature removal, LATER calibration, repeated decoder repair, TEST or trading.",
     "active_stage": "market_state_ta_effective_side_weight_20261112_001",
-    "previous_goal_turn_classification": "PROGRESS_CURRENT_STATES_MATCHED_COMPLEMENT_MEASURED_WITH_EXPLICIT_THIRD_ARM_NUMERICAL_STOP",
-    "last_goal_turn_classification": "PROGRESS_BOUND_ACTUAL_CONTROL_PREFIX_AND_FULL_TRAIN_INPUT_REUSE_FOR_FIXED_EXPOSURE_DESIGN",
+    "previous_goal_turn_classification": "PROGRESS_BOUND_ACTUAL_CONTROL_PREFIX_AND_FULL_TRAIN_INPUT_REUSE_FOR_FIXED_EXPOSURE_DESIGN",
+    "last_goal_turn_classification": "PROGRESS",
     "latest_tail_factor_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_ALL_TF_TAIL_FACTOR_REVIEW.json",
       "sha256": "5da978f765b0ad1ac001023501be7665989270d8353d768b801b9e1b29406c0f"
@@ -76195,21 +76199,35 @@
     "scope_response": "Current phase learns market-state forecasts before Entry. The exposure counterfactual diagnoses learning, not a trading strategy. Existing S and F targets do not establish selectable setups, trade-path quality or profitability; no Entry/Exit/trading authority is opened.",
     "latest_progress": {
       "status": "PROGRESS",
-      "native_result": {
-        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001/RESULT.json",
-        "sha256": "d5ba8fa99c87ee3f639770c5b042fe93a442ef4f200733f13fe21cb30a8ac9e0"
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_EFFECTIVE_SIDE_WEIGHT_20261112_001/RESULT.json",
+        "sha256": "89c0a1f5c833244e457860f488ea02483cf61cabcbadf34149a20f87229cf6f2"
       },
-      "retained_result": {
-        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001/EXPOSURE_COMPARISON.json",
-        "sha256": "3e25678a10a52940f23f5248078a280c9cfaeb97a82ed1d90891259fa0146f18"
+      "source_commit": "1f981f284b34475bc6a24e47ef7928ac01aa1435",
+      "actual_counts": {
+        "archive_decodes": 9,
+        "checkpoints": 0,
+        "features": 0,
+        "forwards": 0,
+        "models": 0,
+        "updates": 0
       },
-      "source_commit": "67fa0d2a45e627e3ff1d1f00e60a48926c6f547c",
-      "actual_updates": 768,
-      "skips": 0,
-      "matched_initial_and_pass1_exact": true,
-      "m5_later_auc": 0.5286059731170414,
+      "elapsed_seconds": 2.613248284999827,
+      "finding": "Measured nonuniform weights; normalization does not impose a universal UP bias. Existing later UP overforecast is present at INITIAL and amplified by coverage learning. Mechanistic cause remains unresolved.",
       "economic_edge_proven": false,
       "model_gate_closed": true
+    },
+    "effective_side_weight_review": {
+      "status": "COMPLETE_CONSUMED",
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_EFFECTIVE_SIDE_WEIGHT_20261112_001/RESULT.json",
+        "sha256": "89c0a1f5c833244e457860f488ea02483cf61cabcbadf34149a20f87229cf6f2"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_EFFECTIVE_SIDE_WEIGHT_20261112_001/TERMINAL.json",
+        "sha256": "39a046d6510a3cccad97c73985211713ffc837b2724b6a1e31330ccaf4e183ff"
+      },
+      "objective_change_justified": false
     }
   },
   "market_state_ta_fusion_observation_20261111_001": {
@@ -82281,7 +82299,7 @@
     }
   },
   "market_state_ta_effective_side_weight_20261112_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_EFFECTIVE_SIDE_WEIGHT_20261112_001",
     "question": "Does active non-M5 batch normalization materially shift effective UP label support on the completed old/new exposure schedules?",
     "plan": {
@@ -82296,15 +82314,15 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_EFFECTIVE_SIDE_WEIGHT_20261112_001/PREFLIGHT.json",
       "sha256": "1d2beffcdbb58726e1eb46bb8d0ac9cd385e6745bf024f2f927f2985ec602327"
     },
-    "execution_authorized": true,
-    "data_reads_authorized": "Only existing pinned target/axis arrays through unchanged binding owners; no feature payloads.",
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "training_enabled": false,
     "native_training_enabled": false,
     "checkpoint_reads_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "budget": {
       "archive_decodes": 9,
@@ -82322,6 +82340,23 @@
       "swap": "512M"
     },
     "command": "bash scripts/gx1_capped_run.sh --class audit --mem 4G --swap 512M -- timeout -k 5s 60s .venv/bin/python -B /home/andre2/GX1_RUNS/MARKET_STATE_TA_EFFECTIVE_SIDE_WEIGHT_20261112_001/COUNT_WEIGHTS.py",
-    "test_data_used": false
+    "test_data_used": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_EFFECTIVE_SIDE_WEIGHT_20261112_001/RESULT.json",
+      "sha256": "89c0a1f5c833244e457860f488ea02483cf61cabcbadf34149a20f87229cf6f2"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_EFFECTIVE_SIDE_WEIGHT_20261112_001/TERMINAL.json",
+      "sha256": "39a046d6510a3cccad97c73985211713ffc837b2724b6a1e31330ccaf4e183ff"
+    },
+    "actual_counts": {
+      "archive_decodes": 9,
+      "checkpoints": 0,
+      "features": 0,
+      "forwards": 0,
+      "models": 0,
+      "updates": 0
+    },
+    "elapsed_seconds": 2.613248284999827
   }
 }
