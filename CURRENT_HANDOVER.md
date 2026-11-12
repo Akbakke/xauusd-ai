@@ -6,7 +6,7 @@ NEXT_RUN_POLICY.json eier arbeidsstatus; prosess og terminal overstyrer prosa.
 
 ## Aktivt mål og avtalt omfang
 
-TA_DIRECTION_EDGE_CAUSE_ANCHOR_SPAN_IMPORT_FIXED_INITIAL_UNQUALIFIED.
+TA_DIRECTION_EDGE_CAUSE_ANCHOR_SPAN_REPLACEMENT_PREPARATION.
 Målet er fortsatt å avklare og rette målte svakheter i indikatorrepresentasjon,
 sammensetting og retningslæring. Korte runder er bevisst feilsøking.
 Full kvalifisert TRAIN-historikk og 30–40 epoker er senere skalering.
@@ -31,7 +31,8 @@ Null forwards, optimizer-konstruksjoner, backward, updates og checkpoint-skrivin
 Ingen fersk faktisk INITIAL eller prediktiv sammenligning ble produsert.
 Kontrolleren avsluttet; GX1AnchorSpanShortLearning001 er deaktivert.
 Planen er FAILED/CONSUMED, remaining_invocations=0 og relaunch_allowed=false.
-training_enabled/native_training_enabled er false. Ingen jobb eller ny plan er åpen.
+training_enabled/native_training_enabled er false. Ingen jobb er åpen.
+Erstatning002 har bare metadata-/kildeforberedelse; modell/trening er ikke innrømmet.
 
 Terminalens source_unchanged=false bevares. Separat git-observasjon viste ren
 kilde efec26e9 etter terminalen og før rettelsen; terminalflagget er ikke relabellet.
@@ -75,7 +76,11 @@ Mekanisk konsum av alle åtte familier/fem TF beviser ikke prediktiv familienytt
 ## Neste nødvendige steg
 
 Den ene avtalte læringssammenligningen er ikke gjennomført. Brukt001 relanseres aldri.
-En eventuell erstatning må få egen eksakt kilde-/policybinding og preflight etter rettelsen.
+Erstatning002 forberedes med egen eksakt kilde-/policybinding og preflight etter rettelsen.
+Samme kontrakt/runner gjenbrukes; kun engangsidentiteten og capped-path flyttes til002.
+Fokusert scope-/budsjettest PASS; tre JSON-inputbindinger er forberedt uten array-/modelllesing.
+De 24 beståtte importtestene gjenbrukes; importkoden er uendret fra rettelsen99605dc3.
+Stående lokal0USD-bestilling i GX1_RULES gir autorisasjonen; gammel001-godkjenning gjenbrukes ikke.
 Ingen automatisk forsøksserie: samme spørsmål, data, mål og budsjetter beholdes.
 Før første update må alle 4096 ferske INITIAL-rader og 256 tap matche gammel aktivitet-INITIAL:
 logits atol2e-6/rtol1e-6, tap atol5e-6, akser/targets eksakt.

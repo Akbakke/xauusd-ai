@@ -14,7 +14,7 @@ import subprocess
 from gx1.contracts import local_random_access_campaign_v2 as campaign
 
 REPO=Path('/home/andre2/src/GX1_CURRENT')
-STAGE='market_state_ta_anchor_span_short_learning_20261112_001'
+STAGE='market_state_ta_anchor_span_short_learning_20261112_002'
 SCOPE='market_state_ta_anchor_span_short_learning_v1'
 ROOT=Path('/home/andre2/GX1_RUNS')/STAGE.upper()
 RUNTIME_ROOT=ROOT/'RUNTIME'
