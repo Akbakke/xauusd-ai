@@ -58,7 +58,8 @@ def _require_model_binding(model):
     _need(model.state_model._ta_only is True, 'TA_SF_PROFILE')
     expected = contract(ta_only=True,
         dedicated_m5_side=model.state_model._dedicated_m5_side,
-        dedicated_non_m5_side=model.state_model._dedicated_non_m5_side)['contract_sha256']
+        dedicated_non_m5_side=model.state_model._dedicated_non_m5_side,
+        dedicated_tf_activity=model.state_model._dedicated_tf_activity)['contract_sha256']
     reference = torch.tensor(list(bytes.fromhex(expected)), dtype=torch.uint8,
                              device=model.future_head.weight.device)
     head = model.future_head
@@ -94,11 +95,13 @@ def _numerical(value, model):
         _need(isinstance(value, Mapping) and dict(value) == ta_sf_numerical_recipe(
                   dedicated_m5_side=model.state_model._dedicated_m5_side,
                   dedicated_non_m5_side=model.state_model._dedicated_non_m5_side,
+                  dedicated_tf_activity=model.state_model._dedicated_tf_activity,
                   m5_equal_observation=value.get('m5_equal_observation', False))
               and value['research_objective_sha256'] == model.research_objective['contract_sha256']
               and value['native_F_loss_contract_sha256'] == loss_contract(ta_only=True,
                   dedicated_m5_side=model.state_model._dedicated_m5_side,
                   dedicated_non_m5_side=model.state_model._dedicated_non_m5_side,
+                  dedicated_tf_activity=model.state_model._dedicated_tf_activity,
                   m5_equal_observation=value.get('m5_equal_observation', False))['contract_sha256']
               and value['future_weight'] == 1.0
               and float(trainer._GRAD_CLIP_NORM) == value['grad_clip_norm'],
@@ -483,6 +486,123 @@ def copy_dedicated_m5_weights_to_non_m5_sides(legacy_model, model, *,
         'source_model_contract_sha256': legacy_model.research_objective['contract_sha256'],
         'model_contract_sha256': model.research_objective['contract_sha256'],
         'copied_side_rows': clones,
+        'added_parameters': sum(target[name].numel() for name in clones),
+        'optimizer_policy': 'fresh_AdamW_empty_history_no_inherited_updates',
+        'cursor': 0, 'optimizer_updates': 0,
+        'fresh_actual_initial_measurement_required': True,
+        'prediction_parity_measured': False,
+    }
+
+
+
+def copy_dedicated_m5_weights_to_tf_activity(legacy_model, model, *,
+                                            expected_legacy_model_sha256):
+    """Clone five activity rows per task from a strictly bound original model.
+
+    This isolated variant keeps the existing M5 and shared non-M5 side heads.
+    All existing tensors, modes and trainability are preserved except the two
+    destination model-identity buffers. No RNG, optimizer history or progress is
+    transferred; the caller binds original c171 provenance and a fresh baseline.
+    """
+    torch, old, private, _, digest, _ = _deps()
+    from gx1.contracts.market_state_time_query_target_v1 import TIMEFRAMES
+    _need(_is_ta_sf(legacy_model) and _is_ta_sf(model)
+          and legacy_model is not model
+          and legacy_model.state_model._dedicated_m5_side is True
+          and model.state_model._dedicated_m5_side is True
+          and legacy_model.state_model._dedicated_non_m5_side is False
+          and model.state_model._dedicated_non_m5_side is False
+          and legacy_model.state_model._dedicated_tf_activity is False
+          and model.state_model._dedicated_tf_activity is True,
+          'TF_ACTIVITY_WARMSTART_MODE')
+    _require_model_binding(legacy_model)
+    _require_model_binding(model)
+    old._no_partial_gradients(legacy_model)
+    old._no_partial_gradients(model)
+    source_view, target_view = _feature_view(legacy_model), _feature_view(model)
+    private._view(legacy_model.state_model, source_view)
+    private._view(model.state_model, target_view)
+    _need(source_view['prefix_normalization'] == target_view['prefix_normalization'],
+          'TF_ACTIVITY_WARMSTART_NORMALIZATION')
+    source, target = legacy_model.state_dict(), model.state_dict()
+    _need(type(expected_legacy_model_sha256) is str
+          and re.fullmatch(r'[0-9a-f]{64}', expected_legacy_model_sha256) is not None
+          and digest(source) == expected_legacy_model_sha256,
+          'TF_ACTIVITY_WARMSTART_SOURCE_DIGEST')
+    clones = {
+        prefix + '.' + timeframe + '.' + kind: shared + '.' + kind
+        for prefix, shared in (
+            ('state_model.tf_activity_heads', 'state_model.query_head'),
+            ('future_tf_activity_heads', 'future_head'))
+        for timeframe in TIMEFRAMES
+        for kind in ('weight', 'bias')
+    }
+    identities = {'state_model.query_objective_sha256', 'native_F_objective_sha256'}
+    _need(set(target) == set(source) | set(clones), 'TF_ACTIVITY_WARMSTART_INVENTORY')
+    old._tensor_map(source, source, 'TF_ACTIVITY_WARMSTART_SOURCE')
+    old._tensor_map(target, target, 'TF_ACTIVITY_WARMSTART_TARGET')
+    source_pairs = list(legacy_model.named_parameters(remove_duplicate=False))
+    target_pairs = list(model.named_parameters(remove_duplicate=False))
+    source_parameters, target_parameters = dict(source_pairs), dict(target_pairs)
+    _need(set(target_parameters) == set(source_parameters) | set(clones)
+          and all(len({id(parameter) for _, parameter in pairs}) == len(pairs)
+                  and len({parameter.untyped_storage().data_ptr() for _, parameter in pairs}) == len(pairs)
+                  for pairs in (source_pairs, target_pairs)),
+          'TF_ACTIVITY_WARMSTART_PARAMETER_ALIASES')
+    buffers, old_buffers = dict(model.named_buffers()), dict(legacy_model.named_buffers())
+    source_storage = {value.untyped_storage().data_ptr()
+                      for value in (*source_parameters.values(), *old_buffers.values()) if value.numel()}
+    target_storage = {value.untyped_storage().data_ptr()
+                      for value in (*target_parameters.values(), *buffers.values()) if value.numel()}
+    _need(source_storage.isdisjoint(target_storage), 'TF_ACTIVITY_WARMSTART_STORAGE_ALIASES')
+    for name, value in source.items():
+        destination = target[name]
+        _need(value.shape == destination.shape and value.dtype == destination.dtype
+              and value.device == destination.device, 'TF_ACTIVITY_WARMSTART_TENSOR:' + name)
+    for name, original in clones.items():
+        _need(target[name].shape == source[original][0:1].shape
+              and target[name].dtype == source[original].dtype
+              and target[name].device == source[original].device,
+              'TF_ACTIVITY_WARMSTART_ACTIVITY_ROW:' + name)
+    _need(set(buffers) == set(old_buffers), 'TF_ACTIVITY_WARMSTART_BUFFER_INVENTORY')
+    _need(all(torch.equal(buffers[name], old_buffers[name])
+              for name in buffers if name not in identities), 'TF_ACTIVITY_WARMSTART_BUFFER_VALUES')
+    old_modes, modes = dict(legacy_model.named_modules()), dict(model.named_modules())
+    mode_clones = {
+        prefix + suffix: shared
+        for prefix, shared in (
+            ('state_model.tf_activity_heads', 'state_model.query_head'),
+            ('future_tf_activity_heads', 'future_head'))
+        for suffix in ('', *('.' + timeframe for timeframe in TIMEFRAMES))
+    }
+    _need(set(modes) == set(old_modes) | set(mode_clones)
+          and all(type(module.training) is bool for modules in (old_modes, modes)
+                  for module in modules.values()), 'TF_ACTIVITY_WARMSTART_MODULES')
+    with torch.no_grad():
+        for name, value in source.items():
+            if name not in identities:
+                target[name].copy_(value)
+        for name, original in clones.items():
+            target[name].copy_(source[original][0:1])
+    for name, parameter in target_parameters.items():
+        parameter.requires_grad_(source_parameters[clones.get(name, name)].requires_grad)
+    for name, module in modes.items():
+        module.training = old_modes[mode_clones.get(name, name)].training
+    _require_model_binding(model)
+    _need(digest(legacy_model.state_dict()) == expected_legacy_model_sha256,
+          'TF_ACTIVITY_WARMSTART_SOURCE_MUTATED')
+    copied = model.state_dict()
+    _need(all(torch.equal(copied[name], value)
+              for name, value in source.items() if name not in identities)
+          and all(torch.equal(copied[name], source[original][0:1])
+                  for name, original in clones.items()), 'TF_ACTIVITY_WARMSTART_COPY_PARITY')
+    return {
+        'schema_version': 'gx1_ta_tf_activity_weights_warmstart_v1',
+        'source_model_state_sha256': expected_legacy_model_sha256,
+        'model_state_sha256': digest(copied),
+        'source_model_contract_sha256': legacy_model.research_objective['contract_sha256'],
+        'model_contract_sha256': model.research_objective['contract_sha256'],
+        'copied_activity_rows': clones,
         'added_parameters': sum(target[name].numel() for name in clones),
         'optimizer_policy': 'fresh_AdamW_empty_history_no_inherited_updates',
         'cursor': 0, 'optimizer_updates': 0,

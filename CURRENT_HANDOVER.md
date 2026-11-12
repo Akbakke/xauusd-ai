@@ -6,14 +6,14 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_ACTIVITY_ONLY_MECHANICS_PASS_NATIVE_BASELINE_PENDING.
+TA_DIRECTION_EDGE_CAUSE_TF_ACTIVITY_READ_ONLY_INITIAL_ADMITTED.
 Målet11.11 er aktivt: avklar målte årsaker til svak retningsverdi i indikatorer,
 sammensetting og læring. [Samlet status](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json).
 Korte runder er bevisst feilsøking, ikke kapasitetsdom. Full kvalifisert TRAIN-historikk
 og30–40epoker er senere skalering, ikke et krav ved hver rettelse.
-Alle engangsplaner er konsumert. Training/native_training/native_launch/full_epoch er false.
+Alle tidligere engangsplaner er konsumert. Training/native_training/native_launch/full_epoch er false.
 Ny GX1NonM5ShortLearning001 og begge gamle c171 Windowsoppgaver er Disabled.
-Ingen ny native kjøring er innrømmet. GC på pause; TEST, Entry/Exit-evaluering, broker,
+Én lesende aktivitetsinitialkontroll er innrømmet; ingen ny trening. GC på pause; TEST, Entry/Exit-evaluering, broker,
 handel, spending og promotion stengt. Checkpoints er forskningsevidens, ikke promotion.
 
 ## Indikatorer og sammensetting
@@ -115,6 +115,21 @@ DefaultFalse bevarer eksisterende profiler, features/TF og tapsformler.
 226fokuserte tester bestod, exit0, alle16kildebindinger uendret under kjøring.
 Dette omfatter kloning/RNG, retningsparitet, aktivitetsinitialtoleranse, alleTF/S/F-
 gradientruter, avvisning av ugyldige hoder og avvisning fra gamle numeriske oppskrifter.
-Kun mekaniske CPU-fixture-kontroller er innrømmet; ingen factory/run/numerical-trening
-åpnes. Før native sammenligning trengs særskilt binding/migrasjon og fersk faktisk
-initialbaseline. Full historikk/30–40epoker er fortsatt senere skalering.
+Den første bølgen kvalifiserte bare mekanikk. Neste bølge nedenfor kvalifiserer
+binding/migrasjon og åpner én lesende initialbaseline. Full historikk/30–40epoker
+er fortsatt senere skalering.
+
+Streng weights-only-migrasjon og factory/view/numerical/batch-binding er kvalifisert.
+198fokuserte tilfeller:196bestod først;2feilet kun på forventet feilmelding for
+non-finite backbone og bestod etter presis testrettelse. Produksjonskode var uendret.
+Originale feilkvitteringer er bevart. Uavhengig kildegjennomgang fant ingen blokkering.
+Eksakt module-preflight bestod:0modeller/checkpoints/arrays/claims/updates.
+
+Én lesende initialkontroll er ADMITTED i NEXT_RUN_POLICY:
+ROOT /home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_PARITY_20261112_001.
+PLAN754a891b:2modeller,256faste TRAIN-rader per modell,32forwards,20klonede
+aktivitetstensorer,0optimizer/backward/updates/checkpoint-skriving. Alle5TF/S/F-side
+skal være byteeksakte; aktivitet atol2e-6/rtol1e-6 og tap5e-6. Guarded producer
+12GiB/512MiB,CPU0–7,pids64,8tråder;250Wlimit/170Wdraw/65Ccore/80Cmemory,
+1200s ytre og900s modellbudsjett. Faktisk startparitet gjenstår.
+Ingen native trening/fullhistorikk/30–40epoker er innrømmet.

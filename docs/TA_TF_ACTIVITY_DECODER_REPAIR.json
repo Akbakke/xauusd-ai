@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_tf_activity_decoder_repair_v1",
-  "status": "MECHANICALLY_QUALIFIED_NO_NATIVE_ADMISSION",
+  "status": "BINDINGS_QUALIFIED_READ_ONLY_INITIAL_ADMITTED_NO_TRAINING",
   "reason": "Measured shared activity-coordinate pressure and FLAT calibration regression motivate one isolated architectural comparison.",
   "evidence": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ACTIVITY_PRESSURE_REVIEW.json",
@@ -50,11 +50,11 @@
   "fresh_actual_initial_baseline_required": true,
   "native_function_qualified": false,
   "learning_effect_measured": false,
-  "native_run_authorized": false,
+  "native_run_authorized": true,
   "training_authorized": false,
   "promotion_authorized": false,
   "test_data_used": false,
-  "next_action": "Prepare strict original-c171 weights-only migration and default-compatible factory/view/batch/numerical binding for the isolated activity-only variant; then qualify a fresh actual initial baseline before any learning comparison. Reuse the original checkpoint, inputs, targets and training settings. No native model run or optimizer updates are admitted by mechanical qualification.",
+  "next_action": "Execute exactly one admitted read-only initial comparison from original c171 using the existing guarded producer route: 256 fixed TRAIN rows per model, 32 forwards, 20 cloned activity tensors, no optimizer/backward/updates/checkpoint writes. Verify fresh actual initial parity and source/passivity receipts before considering any separate short learning admission.",
   "mechanical_qualification": {
     "status": "PASS",
     "passed_tests": 226,
@@ -84,5 +84,21 @@
     "gx1/contracts/market_state_time_query_native_F_model_v1.py": "a0c253ffe0cd7a70927bdd08b0ad65149e2fdef0006517b132e36ba0efa0e651",
     "gx1/contracts/market_state_time_query_native_F_objective_v1.py": "da14312bc747ccea45bb77b21e1ea4897ec938a5b8aefbfb2102c2865597e834",
     "tests/test_market_state_time_query_tf_activity_v1.py": "00b2d471c908645b74fa8d1d7b7951fe86f3d06e092ac0bad946de154d93f078"
+  },
+  "binding_and_initial_route_qualification": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_PARITY_20261112_001/PREPARATION_REVIEW.json",
+    "sha256": "e5b74ca364ab8508f8bc2459dc09fc526b91086ac7d945ffe2a41f615f101c6a"
+  },
+  "native_admission_scope": {
+    "kind": "read_only_initial_only",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_PARITY_20261112_001/PLAN.json",
+      "sha256": "754a891bae3fe11527854d8d05b9ad01946b491d87c062bb5430ed8f80655a5c"
+    },
+    "model_constructions": 2,
+    "backbone_forwards": 32,
+    "optimizer_updates": 0,
+    "backwards": 0,
+    "checkpoint_writes": 0
   }
 }

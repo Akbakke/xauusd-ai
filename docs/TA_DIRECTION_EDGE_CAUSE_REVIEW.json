@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_ISOLATED_ACTIVITY_MECHANICS_PASS_NATIVE_BASELINE_PENDING",
+  "status": "ACTIVE_ACTIVITY_BINDING_PASS_READ_ONLY_INITIAL_ADMITTED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -265,7 +265,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Prepare strict original-c171 weights-only migration and default-compatible factory/view/batch/numerical binding for the isolated activity-only variant; then qualify a fresh actual initial baseline before any learning comparison. Reuse the original checkpoint, inputs, targets and training settings. No native model run or optimizer updates are admitted by mechanical qualification.",
+  "next_measurement": "Execute exactly one admitted read-only initial comparison from original c171 using the existing guarded producer route: 256 fixed TRAIN rows per model, 32 forwards, 20 cloned activity tensors, no optimizer/backward/updates/checkpoint writes. Verify fresh actual initial parity and source/passivity receipts before considering any separate short learning admission.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -1730,6 +1730,6 @@
   },
   "tf_activity_decoder_repair": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
-    "sha256": "a03c02837d8e66b9bf9863760633fbc7a80fcba010bd8feec87c82297afcb2be"
+    "sha256": "3def8c7d3f298c33ffbca29f455e0698c2ac96ca6ee084b183ba3c2d2df8e8a6"
   }
 }

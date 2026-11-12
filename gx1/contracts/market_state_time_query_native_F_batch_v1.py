@@ -133,6 +133,7 @@ def evaluate_fit_batch(model: NativeFutureDualModel, features: Mapping,
         state_query_k=query, future_weight=future_weight, ta_only=_ta_only(model),
         dedicated_m5_side=getattr(model.state_model, '_dedicated_m5_side', False),
         dedicated_non_m5_side=getattr(model.state_model, '_dedicated_non_m5_side', False),
+        dedicated_tf_activity=getattr(model.state_model, '_dedicated_tf_activity', False),
         m5_equal_observation=m5_equal_observation)
     return {**output, 'loss': report['loss'],
             'state_count': report['state']['count'],

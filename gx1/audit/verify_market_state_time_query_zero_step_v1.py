@@ -619,7 +619,8 @@ def load_ta_input_receipts(*, current_source_owners: Mapping[str, str] | None = 
 
 
 def _bind_ta_view(receipts: dict, *, max_batch_rows: int = 16,
-                  dedicated_m5_side: bool = False, dedicated_non_m5_side: bool = False) -> dict:
+                  dedicated_m5_side: bool = False, dedicated_non_m5_side: bool = False,
+                  dedicated_tf_activity: bool = False) -> dict:
     """Bind the TA view to current sources and original fold-1 statistics."""
     from gx1.contracts import entry_native_direction_feature_view_v1 as views
     _need(receipts.get('fold_ids') == [FOLD1_ID], 'TA_FOLD1_ONLY')
@@ -665,6 +666,7 @@ def _bind_ta_view(receipts: dict, *, max_batch_rows: int = 16,
         max_batch_rows=max_batch_rows, full_feature_profile=True,
         full_ta_feature_profile=True, market_state_time_query_v2=True,
         dedicated_m5_side=dedicated_m5_side, dedicated_non_m5_side=dedicated_non_m5_side,
+        dedicated_tf_activity=dedicated_tf_activity,
         unobserved_units_profile=receipts['fold1']['profile'])
     _need(value['prefix_normalization']['ta_base_normalization_sha256']
           == receipts['ta_normalization']['contract_sha256'], 'TA_VIEW_PROJECTION_IDENTITY')
