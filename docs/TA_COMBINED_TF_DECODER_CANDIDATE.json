@@ -66,5 +66,14 @@
     "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_SOURCE_20261112_001/METADATA_QUALIFICATION.json",
     "sha256": "05df7e2eb54d87c35c50ec87f21d6ec236d7132b16259b419d6392c9f3abe947"
   },
-  "next_action": "Qualify the minimum existing benchmark seam for one combined-decoder comparison against completed COVERAGE. Reuse its exact source checkpoint/span import, INITIAL RNG, all inputs/normalization,12288-row exposure schedule,768updates and fixed4096TRAIN/LATER panels. Create the activity-only source, verify its known INITIAL digest, clone only the16 side tensors into the combined target and preserve all existing tensors/modes. Require fresh actual INITIAL output/loss parity before any update; then retain the predeclared pass3 all-TF comparison. Actual checkpoint-contract/startup/reporting and guarded campaign route must be qualified before a separate one-use model admission. No new native/data/checkpoint job or training is admitted now."
+  "next_action": "Prepare the exact existing guarded launch route from a fresh clean commit, then bind a distinct one-use combined-decoder comparison under standing local authorization. Reuse completed COVERAGE inputs, source checkpoint/span import, original RNG,12288unique TRAIN rows,768updates and fixed4096TRAIN/LATER panels. Actual source INITIAL bef35daf and16-tensor clone plus both fresh INITIAL output/loss panels must pass before any update; pass3 is primary. Current source qualification opens no native/data/checkpoint job or training; never relaunch consumed plans.",
+  "benchmark_source_qualification": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_BENCHMARK_20261112_001/SOURCE_QUALIFICATION.json",
+    "sha256": "6103d33a851eeec2c08a23f59bd1aa49de9d5a237553d5f92d44c996f0813c3e"
+  },
+  "benchmark_metadata_qualification": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_BENCHMARK_20261112_001/METADATA_QUALIFICATION_001.json",
+    "sha256": "565301205e0ff23e5fad1e3d359e346f7e862252d78e2c73423586c00ec082c6"
+  },
+  "benchmark_qualification_limit": "224 unique focused checks plus actual JSON identities; no native checkpoint/data/model read or run. Actual INITIAL parity, learning comparison and economic value remain unmeasured."
 }

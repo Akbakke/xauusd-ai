@@ -54,9 +54,13 @@ def materialize(binding_path: Path) -> dict:
     from gx1.contracts import market_state_ta_anchor_span_short_learning_v1 as anchor_span
     from gx1.contracts import market_state_ta_m5_objective_benchmark_v1 as benchmark
     from gx1.contracts import market_state_ta_coverage_benchmark_v1 as coverage
+    from gx1.contracts import market_state_ta_combined_decoder_benchmark_v1 as combined
+    ta_combined = binding_path == combined.ROOT / 'PREPARATION_EXECUTION_BINDING.json'
     ta_coverage = binding_path == coverage.ROOT / 'PREPARATION_EXECUTION_BINDING.json'
     ta_benchmark = binding_path == benchmark.ROOT / 'PREPARATION_EXECUTION_BINDING.json'
-    if ta_coverage:
+    if ta_combined:
+        short = combined
+    elif ta_coverage:
         short = coverage
     elif ta_benchmark:
         short = benchmark
@@ -217,7 +221,7 @@ def materialize(binding_path: Path) -> dict:
     for number in range(1, windows_count + 1):
         window = _seal({
             'schema_version': authority.WINDOW_SCHEMA, 'recipe': binding['recipe'],
-            'invocation_number': number, 'max_invocation_seconds': 12000 if ta_benchmark or ta_coverage else 3600 if ta_short else 3000 if ta_paired else 12000,
+            'invocation_number': number, 'max_invocation_seconds': 12000 if ta_benchmark or ta_coverage or ta_combined else 3600 if ta_short else 3000 if ta_paired else 12000,
             'progress_path': str(runtime / 'progress' / f'invocation-{number:04d}.json'),
             'campaign_cursor_path': str(runtime / cursor_directory / 'RESUME_CURSOR.json'),
             'output_directory': str(runtime / output_directory), 'test_data_used': False,
@@ -248,7 +252,7 @@ def materialize(binding_path: Path) -> dict:
             'kind': authority.KIND, 'batch_size': fold1.BATCH_SIZE,
             'epoch_index': None, 'window_index': number - 1,
             'window_count': windows_count,
-            'optimizer_step_budget': (0 if ta_import or ta_score_recovery else 768 if ta_coverage else 1536 if ta_benchmark else 1849 if ta_full_reverse else 512 if ta_paired or ta_repeated else 256 if ta_short or ta_original_prefix or ta_centered
+            'optimizer_step_budget': (0 if ta_import or ta_score_recovery else 768 if ta_coverage or ta_combined else 1536 if ta_benchmark else 1849 if ta_full_reverse else 512 if ta_paired or ta_repeated else 256 if ta_short or ta_original_prefix or ta_centered
                                        else mechanical.MAX_PRIVATE_UPDATES if ta_mechanical
                                       else recipe['numerical_recipe']['max_updates']),
             'expected_success_outcome': 'COMPLETE' if ta_mechanical or ta_score_recovery else 'RESUMABLE_OR_COMPLETE',
@@ -262,7 +266,7 @@ def materialize(binding_path: Path) -> dict:
                            'before_mode': 'GENESIS' if number == 1 else 'PREVIOUS_RECEIPT_AFTER',
                            'predecessor_invocation_number': None if number == 1 else number - 1,
                            'write_mode': 'ATOMIC_UPDATE'},
-            'maximum_wall_seconds': 13800 if ta_benchmark or ta_coverage else 3900 if ta_short else 3300 if ta_paired else 13800, 'requires_fresh_windows_boot': True,
+            'maximum_wall_seconds': 13800 if ta_benchmark or ta_coverage or ta_combined else 3900 if ta_short else 3300 if ta_paired else 13800, 'requires_fresh_windows_boot': True,
             'signed_guard_only': True, 'test_data_used': False,
         }, 'invocation_sha256')
         invocations.append(_publish(out / f'INVOCATION_{number:04d}.json', invocation))

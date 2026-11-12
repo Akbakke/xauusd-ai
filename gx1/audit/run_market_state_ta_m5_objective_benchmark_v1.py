@@ -73,6 +73,55 @@ def _require_control_arrays(arrays, reference, *, model_digest, expected_digest,
     return dict(arrays_exact=True, model_state_exact=True, rows=4096)
 
 
+def _require_combined_control_arrays(arrays, reference, *, panel, measured, control_measurement, np):
+    """Only cloned non-M5 side rows may differ by the declared FP32 tolerance."""
+    _need(panel in ('TRAIN', 'LATER'), 'COMBINED_PANEL')
+    raw_suffix = '_raw' if panel == 'TRAIN' else '_activity_side_logits'
+    raw_keys = {task + raw_suffix for task in ('state', 'future')}
+    repr_keys = {task + '_representation' for task in ('state', 'future')} if panel == 'LATER' else set()
+    axes = {'parents', 'issues', 'state_query', 'future_query'} if panel == 'TRAIN' else {'parents', 'issues', 'query_native'}
+    axes |= {task + '_' + field for task in ('state', 'future') for field in ('allowed', 'eligible', 'mature')}
+    _need(set(arrays) == set(reference) == axes | raw_keys | repr_keys,
+          'COMBINED_CAPTURE_FIELDS')
+    _need(arrays['parents'].shape == reference['parents'].shape == (4096,), 'COMBINED_PANEL_ROWS')
+    _need(all(arrays[k].dtype == reference[k].dtype and arrays[k].shape == reference[k].shape
+              and bool(np.isfinite(arrays[k]).all()) and bool(np.isfinite(reference[k]).all())
+              for k in arrays), 'COMBINED_CAPTURE_LAYOUT')
+    _need(all(arrays[k].tobytes() == reference[k].tobytes() for k in axes | repr_keys),
+          'COMBINED_AXES_TARGETS_REPRESENTATIONS')
+    absolute, scaled = {}, {}
+    for task in ('state', 'future'):
+        actual, expected = arrays[task + raw_suffix], reference[task + raw_suffix]
+        _need(actual.shape == (4096, 5, 2) and actual.dtype == np.float32, 'COMBINED_LOGITS_LAYOUT')
+        _need(actual[:, :, 0].tobytes() == expected[:, :, 0].tobytes(), 'COMBINED_ACTIVITY_EXACT')
+        _need(actual[:, 0, 1].tobytes() == expected[:, 0, 1].tobytes(), 'COMBINED_M5_SIDE_EXACT')
+        delta = np.abs(actual[:, 1:, 1].astype(np.float64) - expected[:, 1:, 1].astype(np.float64))
+        absolute[task] = float(delta.max())
+        scaled[task] = float((delta / (2e-6 + 1e-6 * np.abs(expected[:, 1:, 1].astype(np.float64)))).max())
+        _need(scaled[task] <= 1., 'COMBINED_NON_M5_SIDE_PARITY')
+    if panel == 'TRAIN':
+        losses = np.asarray(measured['canonical_batch_losses'], dtype=np.float64)
+        control_losses = np.asarray(control_measurement['canonical_batch_losses'], dtype=np.float64)
+        _need(losses.shape == control_losses.shape == (256,), 'COMBINED_TRAIN_LOSS_ROWS')
+        mean_error = abs(measured['mean_canonical_batch_loss'] - control_measurement['mean_canonical_batch_loss'])
+    else:
+        _need(measured['endpoint_loss']['prior'] == control_measurement['endpoint_loss']['prior'],
+              'COMBINED_PRIOR_LOSS_EXACT')
+        losses = np.asarray([measured['endpoint_loss']['model'][k] for k in ('state', 'future', 'combined')])
+        control_losses = np.asarray([control_measurement['endpoint_loss']['model'][k] for k in ('state', 'future', 'combined')])
+        mean_error = 0.
+    _need(bool(np.isfinite(losses).all()) and bool(np.isfinite(control_losses).all())
+          and bool(np.isfinite(mean_error)), 'COMBINED_INITIAL_LOSS_FINITE')
+    loss_error = max(float(np.abs(losses - control_losses).max()), float(mean_error))
+    _need(loss_error <= 5e-6, 'COMBINED_INITIAL_LOSS_PARITY')
+    return dict(rows=4096, axes_targets_exact=True, m5_side_exact=True, activity_exact=True,
+        m5_representations_exact=True if repr_keys else None,
+        m5_representation_arrays_checked=len(repr_keys), non_m5_side_close=True,
+        canonical_loss_close=True, non_m5_side_max_abs=absolute,
+        non_m5_side_max_scaled_error=scaled, loss_max_abs=loss_error,
+        rtol=1e-6, atol=2e-6, loss_atol=5e-6)
+
+
 def _require_common_pass1(*, model_digest, rng_digest, records, expected):
     _need(model_digest == expected['model_state_sha256'], 'COMMON_PASS1_MODEL')
     _need(rng_digest == expected['training_rng_sha256'], 'COMMON_PASS1_RNG')
@@ -113,9 +162,14 @@ def _prepare_later(origin, prepared, receipts, view, *, counters, np):
 
 
 def run_objective_benchmark(*, policy_path: Path, policy_file_sha256: str,
-                            progress_path: Path, coverage: bool = False) -> dict:
-    _need(type(coverage) is bool, 'COVERAGE_MODE')
-    if coverage:
+                            progress_path: Path, coverage: bool = False,
+                            combined_decoder: bool = False) -> dict:
+    _need(type(coverage) is type(combined_decoder) is bool and not (coverage and combined_decoder),
+          'BENCHMARK_MODE')
+    exposure = coverage or combined_decoder
+    if combined_decoder:
+        from gx1.contracts import market_state_ta_combined_decoder_benchmark_v1 as scope
+    elif coverage:
         from gx1.contracts import market_state_ta_coverage_benchmark_v1 as scope
     else:
         from gx1.contracts import market_state_ta_m5_objective_benchmark_v1 as scope
@@ -148,8 +202,10 @@ def run_objective_benchmark(*, policy_path: Path, policy_file_sha256: str,
     provider = prepared = later_prepared = model = optimizer = initial = None
     source_unchanged = initial_restore_exact = evaluation_unchanged = same_queries = rng_parity = False
     import_proof = {}
+    initial_model_digest = None
+    combined_parity = dict(initial={}, rng_after_each_pass_exact=False)
     coverage_parity = dict(initial={}, pass1={}, rng_after_each_pass_exact=False)
-    if coverage:
+    if exposure:
         counters['control_capture_archive_decodes'] = 0
 
     def clock_guard():
@@ -200,7 +256,8 @@ def run_objective_benchmark(*, policy_path: Path, policy_file_sha256: str,
         trainer._set_deterministic(numerical['seed'], device, numerical['precision_policy'])
         _need(trainer._GRAD_CLIP_NORM == numerical['grad_clip_norm'], 'UNCHANGED_CLIP')
         counters['model_constructions'] += 1
-        backbone = views.build_native_direction_research_model(view,
+        backbone = views.build_native_direction_research_model(
+            origin['source_initial_view'] if combined_decoder else view,
             prefix_normalization=receipts['fold1']['normal'], constructor_metadata=receipts['constructor'],
             device=torch.device('cpu'), unobserved_units_profile=receipts['fold1']['profile'])
         model = NativeFutureDualModel(backbone); counters['model_construction_returns'] += 1
@@ -216,10 +273,29 @@ def run_objective_benchmark(*, policy_path: Path, policy_file_sha256: str,
             source_field_names=origin['source_field_names'],
             source_profile_sha256=origin['source_view']['entry_execution_profile']['contract_sha256'],
             expected_model_state_sha256=anchor.PARENT_MODEL_SHA)
+        expected_source_initial = (recipe['expected_source_initial_model_state_sha256'] if combined_decoder
+                                   else recipe['expected_initial_model_state_sha256'])
         _need(migration['expanded_parameter_tensors'] == 14 and migration['added_parameters'] == 2314
-              and migration['model_state_sha256'] == recipe['expected_initial_model_state_sha256'], 'IMPORTED_INITIAL')
+              and migration['model_state_sha256'] == expected_source_initial, 'IMPORTED_INITIAL')
         source_modes, source_rng = migration['module_training'], copy.deepcopy(saved['rng_state'])
         del saved
+        side_migration = None
+        if combined_decoder:
+            source_model = model
+            counters['model_constructions'] += 1
+            backbone = views.build_native_direction_research_model(view,
+                prefix_normalization=receipts['fold1']['normal'], constructor_metadata=receipts['constructor'],
+                device=torch.device('cpu'), unobserved_units_profile=receipts['fold1']['profile'])
+            model = NativeFutureDualModel(backbone); counters['model_construction_returns'] += 1
+            side_migration = state.copy_dedicated_m5_weights_to_non_m5_sides(source_model, model,
+                expected_legacy_model_sha256=expected_source_initial)
+            _need(len(side_migration['copied_side_rows']) == 16 and side_migration['added_parameters'] == 1032
+                  and side_migration['source_model_state_sha256'] == expected_source_initial
+                  and side_migration['model_state_sha256'] == model_sha(model.state_dict()),
+                  'COMBINED_SIDE_IMPORT')
+            source_modes = {n:bool(m.training) for n,m in model.named_modules()}
+            del source_model
+        initial_model_digest = model_sha(model.state_dict())
         model.to(device); model.train(); view_identity = copy.deepcopy(model.state_model.feature_view_identity)
         _need(model.research_objective['contract_sha256'] == recipe['expected_model_contract_sha256'], 'MODEL_CONTRACT')
         counters['optimizer_constructions'] += 1
@@ -237,6 +313,12 @@ def run_objective_benchmark(*, policy_path: Path, policy_file_sha256: str,
         import_proof = dict(source_checkpoint=source_ref, migration=migration,
             current_initial_contract_sha256=initial['contract_sha256'], original_rng_restored=True,
             additional_checkpoint_decode=False)
+        if combined_decoder:
+            _need(initial['model_state_sha256'] == initial_model_digest
+                  == side_migration['model_state_sha256'], 'COMBINED_ACTUAL_INITIAL_DIGEST')
+            import_proof.update(side_migration=side_migration,
+                source_initial_model_state_sha256=expected_source_initial,
+                later_coverage_binding_proof=origin['later_coverage_binding_proof'])
         pairs, _, _ = state._parameters(model)
 
         def signature():
@@ -287,6 +369,23 @@ def run_objective_benchmark(*, policy_path: Path, policy_file_sha256: str,
                 proof = _require_control_arrays(arrays, reference, model_digest=model_digest,
                     expected_digest=wrapper['evaluated_model_state_sha256'], np=np)
                 coverage_parity['initial' if name.startswith('INITIAL_') else 'pass1'][panel] = proof
+            if combined_decoder and name.startswith('INITIAL_'):
+                control = origin['combined_control']
+                wrapper = anchor._read(control['measurement_refs'][name])
+                binding = control['panel_captures'][name]
+                _need(wrapper['capture'] == binding and wrapper['optimizer_updates'] == updates == 0
+                      and wrapper['evaluation_state_unchanged'] is True
+                      and wrapper['evaluated_model_state_sha256'] == expected_source_initial
+                      and wrapper['measurement'] == control['measurements'][name]
+                      and model_digest == initial_model_digest, 'COMBINED_CONTROL_MEASUREMENT')
+                anchor.campaign.require_binding(binding, label='combined INITIAL control capture', verify_file=True)
+                _need(counters['control_capture_archive_decodes'] < 2, 'COMBINED_CONTROL_CAPTURE_BUDGET')
+                counters['control_capture_archive_decodes'] += 1
+                with np.load(binding['path'], allow_pickle=False) as archive:
+                    reference = {k:archive[k] for k in archive.files}
+                combined_parity['initial'][panel] = _require_combined_control_arrays(
+                    arrays, reference, panel=panel, measured=measured,
+                    control_measurement=wrapper['measurement'], np=np)
 
         def fit_report(start, *, m5_direction_only=False):
             raw, parents, clocks = runner._feature_batch(prepared, view, receipts, rows, issues, start,start+16,np=np)
@@ -303,7 +402,8 @@ def run_objective_benchmark(*, policy_path: Path, policy_file_sha256: str,
         def measure_train(label, updates):
             measured, arrays, parts, digest = trace._short_train_panel(model, recipe=recipe, counters=counters,
                 evaluate=fit_report, gather_truth=gather, capture=signature, tree_sha=tree_sha, priors=priors,
-                clock_guard=clock_guard, np=np, torch=torch, tf_activity_learning=True)
+                clock_guard=clock_guard, np=np, torch=torch, tf_activity_learning=True,
+                non_m5_learning=combined_decoder)
             publish_measurement(label+'_TRAIN',measured,arrays,digest,updates,parts)
 
         def measure_later(label, updates):
@@ -342,7 +442,9 @@ def run_objective_benchmark(*, policy_path: Path, policy_file_sha256: str,
         _need(np.array_equal(baseline_arrays['TRAIN']['parents'],rows[train_positions])
               and np.array_equal(baseline_arrays['LATER']['parents'],later_rows), 'ACTUAL_INITIAL_PANELS')
         timings['initial_seconds'] = time.monotonic()-model_started
-        print('INITIAL TRAIN/LATER complete; both arms pending',flush=True)
+        print('INITIAL TRAIN/LATER complete; declared arms pending',flush=True)
+        if combined_decoder:
+            _need(set(combined_parity['initial']) == {'TRAIN', 'LATER'}, 'COMBINED_INITIAL_BEFORE_UPDATE')
         for arm in scope.ARMS:
             clock_guard(); counters['strict_full_state_restore_calls'] += 1
             zero = state.restore_fold1_fit_state(initial,model,optimizer,numerical_recipe=numerical,
@@ -363,7 +465,7 @@ def run_objective_benchmark(*, policy_path: Path, policy_file_sha256: str,
                 initial_rng_state_sha256=signature()['rng_state_sha256'])
             training_records[arm] = []; fit_started = time.monotonic()
             for pass_number in scope.PASSES:
-                batch_indices = scope.training_batch_indices(pass_number) if coverage else scope.TRAIN_BATCH_INDICES
+                batch_indices = scope.training_batch_indices(pass_number) if exposure else scope.TRAIN_BATCH_INDICES
                 for slot,b in enumerate(batch_indices):
                     clock_guard(); start = 16*b
                     _need(counters['training_forwards'] < recipe['max_training_forwards'] and counters['forwards'] < recipe['max_forwards'], 'FIT_FORWARD_BUDGET')
@@ -376,7 +478,7 @@ def run_objective_benchmark(*, policy_path: Path, policy_file_sha256: str,
                     _need(report['model_contract_sha256'] == recipe['expected_model_contract_sha256']
                           and report['loss_contract_sha256'] == arm_numerical['native_F_loss_contract_sha256']
                           and bool(torch.isfinite(report['loss'])), 'TRAIN_OBJECTIVE_IDENTITY')
-                    if coverage and pass_number > 1:
+                    if exposure and pass_number > 1:
                         truths = gather(parents, clocks); counters['extra_target_gathers'] += 2
                         _require_coverage_observations(report, parents, clocks, rows=rows, issues=issues,
                             start=start, truths=truths, np=np)
@@ -387,7 +489,7 @@ def run_objective_benchmark(*, policy_path: Path, policy_file_sha256: str,
                               and np.array_equal(report['future_native_k'],reference['future_query'][16*slot])
                               and all(np.array_equal(report[t+'_'+k],reference[t+'_'+k][sl])
                                       for t in ('state','future') for k in ('allowed','mature')), 'FIXED_TRAIN_OBSERVATIONS')
-                    if coverage:
+                    if exposure:
                         _need(report['skip_update'] is False, 'COVERAGE_EMPTY_SUPPORT_NO_REPLACEMENT')
                     record = _apply_training_update(report,model=model,optimizer=optimizer,trainer=trainer,
                                                     counters=counters,progress=progress)
@@ -403,6 +505,9 @@ def run_objective_benchmark(*, policy_path: Path, policy_file_sha256: str,
                         coverage_parity['pass1'].update(_require_common_pass1(
                             model_digest=model_sha(model.state_dict()), rng_digest=progress['training_rng_state_sha256'],
                             records=training_records[arm], expected=origin['coverage_metadata']['common_pass1']))
+                if combined_decoder:
+                    expected_rng = origin['combined_control']['arms']['UNIQUE_COVERAGE']['training_rng_by_pass'][str(pass_number)]
+                    _need(progress['training_rng_state_sha256'] == expected_rng, 'COMBINED_MATCHED_PASS_RNG')
                 if pass_number in scope.EVALUATION_PASSES:
                     measure_train(arm+'_PASS'+str(pass_number),progress['optimizer_updates'])
                     measure_later(arm+'_PASS'+str(pass_number),progress['optimizer_updates'])
@@ -419,7 +524,7 @@ def run_objective_benchmark(*, policy_path: Path, policy_file_sha256: str,
             old._optimizer_state(optimizer_state,optimizer,model,progress['optimizer_updates'])
             old._rng(rng,device=device,seed=numerical['seed'])
             evidence_positions = train_positions
-            if coverage:
+            if exposure:
                 evidence_positions = np.concatenate([np.arange(16*b,16*b+16,dtype=np.int64)
                     for pass_number in scope.PASSES for b in scope.training_batch_indices(pass_number)])
                 _need(len(evidence_positions) == len(np.unique(evidence_positions)) == 12288,
@@ -442,16 +547,17 @@ def run_objective_benchmark(*, policy_path: Path, policy_file_sha256: str,
             progress['final_model_state_sha256'] = capsule['model_state_sha256']
             del capsule,model_state,buffers,optimizer_state,rng,stream
         _need(tree_sha(initial) == initial_seal, 'INITIAL_PAYLOAD_MUTATED')
-        _need(all(arms[a]['initial_model_state_sha256'] == recipe['expected_initial_model_state_sha256']
+        _need(all(arms[a]['initial_model_state_sha256'] == initial_model_digest
                   and arms[a]['initial_rng_state_sha256'] == recipe['initial_rng_state_sha256'] for a in scope.ARMS),
               'MATCHED_INITIAL_ARMS')
-        expected_counts = dict(model_constructions=1,model_construction_returns=1,optimizer_constructions=1,
+        expected_counts = dict(model_constructions=2 if combined_decoder else 1,
+            model_construction_returns=2 if combined_decoder else 1,optimizer_constructions=1,
             checkpoint_loads=1,initial_rng_imports=1,strict_full_state_restore_calls=len(scope.ARMS),strict_full_state_restore_returns=len(scope.ARMS),
             training_forwards=recipe['max_training_forwards'],evaluation_forwards=recipe['max_evaluation_forwards'],
             forwards=recipe['max_forwards'],forward_returns=recipe['max_forwards'],batch_visits=recipe['max_batch_visits'],
             candidate_evidence_writes=len(scope.ARMS),checkpoint_writes=0,input_sidecar_archive_decodes=12)
-        if coverage:
-            expected_counts['control_capture_archive_decodes'] = 4
+        if exposure:
+            expected_counts['control_capture_archive_decodes'] = 2 if combined_decoder else 4
             _need(counters['optimizer_updates'] == 768 and counters['skipped_batches'] == 0,
                   'COVERAGE_FIXED_UPDATES')
         _need(all(counters[k] == v for k,v in expected_counts.items())
@@ -462,6 +568,9 @@ def run_objective_benchmark(*, policy_path: Path, policy_file_sha256: str,
         if coverage:
             rng_parity = arms['UNIQUE_COVERAGE']['training_rng_by_pass'] == origin['coverage_control']['arms']['FULL_OBJECTIVE']['training_rng_by_pass']
             coverage_parity['rng_after_each_pass_exact'] = rng_parity
+        elif combined_decoder:
+            rng_parity = arms['COMBINED_DECODER']['training_rng_by_pass'] == origin['combined_control']['arms']['UNIQUE_COVERAGE']['training_rng_by_pass']
+            combined_parity['rng_after_each_pass_exact'] = rng_parity
         else:
             rng_parity = arms['FULL_OBJECTIVE']['training_rng_by_pass'] == arms['M5_DIRECTION_ONLY']['training_rng_by_pass']
         _need(rng_parity, 'MATCHED_RNG_AFTER_EACH_PASS')
@@ -484,7 +593,8 @@ def run_objective_benchmark(*, policy_path: Path, policy_file_sha256: str,
         canonical_resume_authority=False,arms=arms,measurement_refs=measurement_refs,panel_captures=captures,
         measurements=measurements,import_proof=import_proof,restore_proofs=restore_proofs,
         optimizer_initialization='fresh_adamw_empty_state',
-        initial_model_state_sha256=import_proof.get('migration',{}).get('model_state_sha256'),
+        initial_model_state_sha256=(initial_model_digest if combined_decoder
+            else import_proof.get('migration',{}).get('model_state_sha256')),
         initial_restore_exact=initial_restore_exact,evaluation_state_unchanged=evaluation_unchanged,
         same_training_queries=same_queries,rng_stream_parity=rng_parity,source_unchanged=source_unchanged,counts=counters,
         training_records=training_records,timings=dict(timings,elapsed_seconds=time.monotonic()-started),error=error,
@@ -496,6 +606,13 @@ def run_objective_benchmark(*, policy_path: Path, policy_file_sha256: str,
             limits='Fixed768updates: common4096-row first pass plus8192new TRAIN rows; old FULL control retained. '
                    'Same4096TRAIN/4096later panels, exact INITIAL/pass1 control parity. Changed exposure schedule, '
                    'not isolated unique-count causality, untouched holdout, trading value or full-capacity proof.')
+    if combined_decoder:
+        payload.update(combined_control_parity=combined_parity,
+            exposure_schedule=recipe['batch_indices_by_pass'],
+            limits='Same768updates/12288unique TRAIN rows and4096TRAIN/LATER panels as retained COVERAGE. '
+                   'Activity-only source imported exactly;16side tensors cloned into combined decoder. '
+                   'Fresh INITIAL parity required before updates; pass3 primary. '
+                   'Reused development, no untouched generalization, Entry, economics or full-capacity claim.')
     result = common._json(root/'RESULT.json',payload,counters,recipe['max_published_json_bytes'])
     common._json(root/'TERMINAL.json',dict(status=outcome,exit_code=0 if outcome=='COMPLETE' else 1,
         result=result,recipe=window['recipe'],source_unchanged=source_unchanged,test_data_used=False,

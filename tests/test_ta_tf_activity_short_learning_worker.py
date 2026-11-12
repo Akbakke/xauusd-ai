@@ -38,16 +38,19 @@ def test_new_bounds_fail_before_work(key,value):
     with pytest.raises(RuntimeError):worker._require_execution_bounds(changed,short_learning=True,tf_activity_learning=True)
 
 
-def test_entire4096_period_is_measured_with_original_loss_and_passivity(panel):
+@pytest.mark.parametrize('combined', [False, True])
+def test_entire4096_period_is_measured_with_original_loss_and_passivity(panel, combined):
     panel.args['recipe'].update(recipe())
-    loss_sha=contract(ta_only=True,dedicated_m5_side=True,m5_equal_observation=True,dedicated_tf_activity=True)['contract_sha256']
+    loss_sha=contract(ta_only=True,dedicated_m5_side=True,m5_equal_observation=True,
+        dedicated_tf_activity=True,dedicated_non_m5_side=combined)['contract_sha256']
     panel.args['recipe']['expected_loss_contract_sha256']=loss_sha
     real=panel.args['evaluate']
     def evaluate(left):
         report,parents,issues=real(left);report['loss_contract_sha256']=loss_sha
         return report,parents,issues
     panel.args['evaluate']=evaluate
-    measured,arrays,components,digest=worker._short_train_panel(panel.model,**panel.args,tf_activity_learning=True)
+    measured,arrays,components,digest=worker._short_train_panel(panel.model,**panel.args,
+        tf_activity_learning=True,non_m5_learning=combined)
     assert panel.seen==list(range(0,4096,16))
     assert measured['rows']==4096 and measured['batches']==256 and len(components)==256
     assert np.array_equal(arrays['parents'],np.arange(4096))

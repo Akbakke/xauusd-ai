@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-12T18:08:24.896614+00:00",
-  "status": "TA_COMBINED_TF_DECODER_SOURCE_QUALIFIED",
+  "observed_utc": "2026-11-12T18:35:53.817713+00:00",
+  "status": "TA_COMBINED_TF_DECODER_BENCHMARK_SOURCE_QUALIFIED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Qualify the minimum existing benchmark seam for one combined-decoder comparison against completed COVERAGE. Reuse its exact source checkpoint/span import, INITIAL RNG, all inputs/normalization,12288-row exposure schedule,768updates and fixed4096TRAIN/LATER panels. Create the activity-only source, verify its known INITIAL digest, clone only the16 side tensors into the combined target and preserve all existing tensors/modes. Require fresh actual INITIAL output/loss parity before any update; then retain the predeclared pass3 all-TF comparison. Actual checkpoint-contract/startup/reporting and guarded campaign route must be qualified before a separate one-use model admission. No new native/data/checkpoint job or training is admitted now.",
+  "next_action": "Prepare the exact existing guarded launch route from a fresh clean commit, then bind a distinct one-use combined-decoder comparison under standing local authorization. Reuse completed COVERAGE inputs, source checkpoint/span import, original RNG,12288unique TRAIN rows,768updates and fixed4096TRAIN/LATER panels. Actual source INITIAL bef35daf and16-tensor clone plus both fresh INITIAL output/loss panels must pass before any update; pass3 is primary. Current source qualification opens no native/data/checkpoint job or training; never relaunch consumed plans.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -64353,8 +64353,8 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "TA_COMBINED_TF_DECODER_SOURCE_QUALIFIED",
-  "recorded_observed_utc": "2026-11-12T18:08:24.896614+00:00",
+  "recorded_status": "TA_COMBINED_TF_DECODER_BENCHMARK_SOURCE_QUALIFIED",
+  "recorded_observed_utc": "2026-11-12T18:35:53.817713+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
     "decision": "BLOCK",
@@ -75711,7 +75711,7 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_COMBINED_DECODER_NATIVE_COMPARISON_QUALIFICATION",
+    "status": "ACTIVE_COMBINED_DECODER_NATIVE_ADMISSION_PENDING",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "G\u00e5 direkte p\u00e5 problemene og lag deg et m\u00e5l for \u00e5 n\u00f8ste opp i hvorfor vi ikke f\u00e5r god Edge ut av markedsretningen.",
@@ -75725,7 +75725,7 @@
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Qualify the minimum existing benchmark seam for one combined-decoder comparison against completed COVERAGE. Reuse its exact source checkpoint/span import, INITIAL RNG, all inputs/normalization,12288-row exposure schedule,768updates and fixed4096TRAIN/LATER panels. Create the activity-only source, verify its known INITIAL digest, clone only the16 side tensors into the combined target and preserve all existing tensors/modes. Require fresh actual INITIAL output/loss parity before any update; then retain the predeclared pass3 all-TF comparison. Actual checkpoint-contract/startup/reporting and guarded campaign route must be qualified before a separate one-use model admission. No new native/data/checkpoint job or training is admitted now.",
+    "next_action": "Prepare the exact existing guarded launch route from a fresh clean commit, then bind a distinct one-use combined-decoder comparison under standing local authorization. Reuse completed COVERAGE inputs, source checkpoint/span import, original RNG,12288unique TRAIN rows,768updates and fixed4096TRAIN/LATER panels. Actual source INITIAL bef35daf and16-tensor clone plus both fresh INITIAL output/loss panels must pass before any update; pass3 is primary. Current source qualification opens no native/data/checkpoint job or training; never relaunch consumed plans.",
     "active_stage": "market_state_ta_combined_decoder_source_20261112_001",
     "previous_goal_turn_classification": "PROGRESS",
     "last_goal_turn_classification": "PROGRESS",
@@ -76930,7 +76930,7 @@
     "unresolved_campaign_marker_preserved": true,
     "standard_campaign_receipt_available": false
   },
-  "active_stage": "market_state_ta_combined_decoder_source_20261112_001",
+  "active_stage": "market_state_ta_combined_decoder_benchmark_20261112_001",
   "market_state_ta_m5_c171_short_learning_20261111_002": {
     "decision": "CLOSED",
     "status": "COMPLETE_CONSUMED",
@@ -82468,5 +82468,47 @@
       "sha256": "4cc3c3869cceff5a7b856253d96baab969e131d1a85f426b4612279503826327"
     },
     "next_action": "Qualify the minimum existing benchmark seam for one combined-decoder comparison against completed COVERAGE. Reuse its exact source checkpoint/span import, INITIAL RNG, all inputs/normalization,12288-row exposure schedule,768updates and fixed4096TRAIN/LATER panels. Create the activity-only source, verify its known INITIAL digest, clone only the16 side tensors into the combined target and preserve all existing tensors/modes. Require fresh actual INITIAL output/loss parity before any update; then retain the predeclared pass3 all-TF comparison. Actual checkpoint-contract/startup/reporting and guarded campaign route must be qualified before a separate one-use model admission. No new native/data/checkpoint job or training is admitted now."
+  },
+  "market_state_ta_combined_decoder_benchmark_20261112_001": {
+    "status": "SOURCE_AND_JSON_METADATA_QUALIFIED_ACTUAL_INITIAL_PENDING",
+    "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_BENCHMARK_20261112_001",
+    "source_changes_authorized": "Existing benchmark only: strict activity-only INITIAL import then existing16-side-tensor migration, exact source/target metadata bridge, initial parity gate and one-arm routing. No forward/loss arithmetic change.",
+    "synthetic_tests_authorized": false,
+    "metadata_qualification_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "data_reads_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "model_execution_authorized": false,
+    "resource_cap": {
+      "run_class": "audit",
+      "memory": "4G",
+      "swap": "512M",
+      "max_test_seconds": 900
+    },
+    "execution_scope": "Focused synthetic/mocked tests and existing JSON metadata only. No native array/checkpoint/model/forward/update; all previous plans remain consumed.",
+    "proposed_comparison": {
+      "control_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001",
+      "unique_train_rows": 12288,
+      "optimizer_updates": 768,
+      "measurement_rows_each": 4096,
+      "primary_pass": 3,
+      "initial_parity_required_before_updates": true
+    },
+    "test_data_used": false,
+    "source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_BENCHMARK_20261112_001/SOURCE_QUALIFICATION.json",
+      "sha256": "6103d33a851eeec2c08a23f59bd1aa49de9d5a237553d5f92d44c996f0813c3e"
+    },
+    "metadata_qualification": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_BENCHMARK_20261112_001/METADATA_QUALIFICATION_001.json",
+      "sha256": "565301205e0ff23e5fad1e3d359e346f7e862252d78e2c73423586c00ec082c6"
+    },
+    "recipe_candidate": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_BENCHMARK_20261112_001/QUALIFIED_RECIPE_CANDIDATE_001.json",
+      "sha256": "f4d7ffd7995ce4ed4e9fde4c8c2ae75ce69c47ec6f3a90f113bd550f5b570804"
+    },
+    "focused_unique_qualified": 224,
+    "actual_initial_parity_qualified": false
   }
 }

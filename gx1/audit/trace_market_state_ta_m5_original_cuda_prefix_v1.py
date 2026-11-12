@@ -131,8 +131,7 @@ def _short_train_panel(model, *, recipe, counters, evaluate, gather_truth, captu
                        tree_sha, priors, clock_guard, np, torch, non_m5_learning=False,
                        tf_activity_learning=False):
     """Measure the fixed TRAIN panel without altering complete native state."""
-    _need(type(non_m5_learning) is type(tf_activity_learning) is bool
-          and not (non_m5_learning and tf_activity_learning), "SHORT_PANEL_VARIANT")
+    _need(type(non_m5_learning) is type(tf_activity_learning) is bool, "SHORT_PANEL_VARIANT")
     independent_heads = non_m5_learning or tf_activity_learning
     from gx1.audit.run_market_state_ta_m5_paired_batch_order_v1 import sampled_fit_measurement
     from gx1.contracts.market_state_time_query_target_v1 import NATIVE_K
