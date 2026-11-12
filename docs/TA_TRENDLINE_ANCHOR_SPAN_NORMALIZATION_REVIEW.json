@@ -1,10 +1,19 @@
 {
   "actual_model_baseline_complete": false,
-  "actual_normalization_fitted": false,
+  "actual_normalization_fitted": true,
+  "controller": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_PREP_20261112_001/CONTROLLER_RESULT.json",
+    "sha256": "1b899969c68971a474611a2c6f1568c5ba18dcfedb400cb2983120cd748b0338"
+  },
+  "controller_seconds": 7.64684482300072,
   "full_feature_view_gather_qualified": false,
   "import_smoke": {
     "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_PREP_20261112_001/IMPORT_SMOKE.log",
     "sha256": "0a357c8098904832d31dbc0c007a6bf07bb2a70c7254ec42a22284363a8b14b7"
+  },
+  "independent_receipt_review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_PREP_20261112_001/INDEPENDENT_RECEIPT_REVIEW.json",
+    "sha256": "7e1c232ebce4e2243be6fc6a01bb24cefd8fd6e587ba947e32c7060ae273d1a1"
   },
   "inputs": {
     "parent": {
@@ -24,13 +33,199 @@
       "sha256": "9414bc5dd6e07ff565e4cb0f3db7c2364bbea3d954a9708c03fc91c131034007"
     }
   },
+  "measurement": {
+    "actual_model_baseline_complete": false,
+    "artifacts": {
+      "EXTENDED_BASE_NORMALIZATION": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_20261112_001/EXTENDED_BASE_NORMALIZATION.json",
+        "sha256": "71e201b690101b7a0748fe8594fe35cae6d88288f74deee46897a54adfda69c1"
+      },
+      "NEW_FIELD_STATISTICS": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_20261112_001/NEW_FIELD_STATISTICS.json",
+        "sha256": "06d2a112d0172bf4fb735f1538debbe476edad0eb0876654995942ed165dc1b4"
+      },
+      "NEW_UNITS_PROFILE": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_20261112_001/NEW_UNITS_PROFILE.json",
+        "sha256": "050f93ad7850b9b94872cb785fb7510ec59b8a39c006bc6f0b729a145204d358"
+      },
+      "TA_INPUT_NORMALIZATION": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_20261112_001/TA_INPUT_NORMALIZATION.json",
+        "sha256": "02eca0cceec636a39b57cb12d55aa07f458653e289d6c5f57b16811e61438693"
+      }
+    },
+    "base_contract_sha256": "58e9e9bb63b65f05ae2b95ee04c6338623eb4489b75c0626c87978d41323fead",
+    "full_feature_view_gather_qualified": false,
+    "new_field_fit_proof": {
+      "mtf_d1": {
+        "available_ns_sha256": "1b2a2e9383547a9b4bf08be928a4cf8ba725aeb301598435e20013a870e30c07",
+        "center": [
+          150.0,
+          126.0
+        ],
+        "integer_spans_exact_after_inverse_rounding": true,
+        "inverse_max_abs_error": 9.951109518624435e-06,
+        "new_field_count": 2,
+        "normalized_values_sha256": "19d5995e7b8f29e7935a275101a1b87b668f7703ad2e6e1b632ceb7fe2498ae6",
+        "row_indices_sha256": "d5cc7da7b09bdffc992a624c650a3ffc6d8d5911e245c39429d6d60a383bcda7",
+        "rows": 360,
+        "scale": [
+          111.25,
+          118.0
+        ],
+        "scale_source": [
+          "raw_iqr",
+          "raw_iqr"
+        ],
+        "strictly_increasing_on_every_observed_span": true
+      },
+      "mtf_h1": {
+        "available_ns_sha256": "b390f98547d6a452b81d66c096dc081e11d69c6612fd53fac66da14ff332d0d7",
+        "center": [
+          41.0,
+          42.0
+        ],
+        "integer_spans_exact_after_inverse_rounding": true,
+        "inverse_max_abs_error": 1.6549642509744444e-06,
+        "new_field_count": 2,
+        "normalized_values_sha256": "f41e74ab3dd502626df8bc5726231fa7ec471973093ddd07b919b7ae81a51a64",
+        "row_indices_sha256": "b3b0cf82a464ee5cc48478aa67d1951be1641e5235a4fa74c2a4380a2d63a240",
+        "rows": 2571,
+        "scale": [
+          48.0,
+          41.0
+        ],
+        "scale_source": [
+          "raw_iqr",
+          "raw_iqr"
+        ],
+        "strictly_increasing_on_every_observed_span": true
+      },
+      "mtf_h4": {
+        "available_ns_sha256": "71364ec2cda7ca52e1df34d6b5e7e2f38611ee2e52fadc7f1ba542b77d063cfa",
+        "center": [
+          50.0,
+          54.0
+        ],
+        "integer_spans_exact_after_inverse_rounding": true,
+        "inverse_max_abs_error": 1.992232220970891e-06,
+        "new_field_count": 2,
+        "normalized_values_sha256": "2ffcaee5b1af1f85283e3ad9d2be086463647c6843903e253fc69bcd786bdc1c",
+        "row_indices_sha256": "2370aabbecbd17b03758dd181a5fbc3c26399ccd9581a9c5eb361f39042ff518",
+        "rows": 744,
+        "scale": [
+          46.0,
+          46.0
+        ],
+        "scale_source": [
+          "raw_iqr",
+          "raw_iqr"
+        ],
+        "strictly_increasing_on_every_observed_span": true
+      },
+      "mtf_m15": {
+        "available_ns_sha256": "b5b0a2116266d72ff2925ef9916b82232d955d95ec86f74c90864fb7dd1a121b",
+        "center": [
+          23.0,
+          25.0
+        ],
+        "integer_spans_exact_after_inverse_rounding": true,
+        "inverse_max_abs_error": 1.5064430911593263e-06,
+        "new_field_count": 2,
+        "normalized_values_sha256": "b1de0b38d7e229f0c300b146519451e8994cff305cfd3c823646516796729ad1",
+        "row_indices_sha256": "b74d7583c7f8ad370ec8acbfc2aff3f0b57a82fa8b9dba042f0d92d366e10def",
+        "rows": 9959,
+        "scale": [
+          24.0,
+          27.0
+        ],
+        "scale_source": [
+          "raw_iqr",
+          "raw_iqr"
+        ],
+        "strictly_increasing_on_every_observed_span": true
+      },
+      "mtf_m5": {
+        "available_ns_sha256": "3af20cb6f44c95a4d0ebeefbbece8b73dfc4f444e03b6be0ae29f6414b7aeab0",
+        "center": [
+          0.0,
+          0.0
+        ],
+        "integer_spans_exact_after_inverse_rounding": true,
+        "inverse_max_abs_error": 6.021643326192816e-07,
+        "new_field_count": 2,
+        "normalized_values_sha256": "2778a91602f0b2ace128f15a1de70106c578d768029a6ff4d7cd76e37926656e",
+        "row_indices_sha256": "d5999966c354bf9dfba62fb21d451f3923a6b5fe6e2acd74f4aca1126d2a3266",
+        "rows": 29702,
+        "scale": [
+          6.0,
+          5.0
+        ],
+        "scale_source": [
+          "median_positive_abs_deviation",
+          "median_positive_abs_deviation"
+        ],
+        "strictly_increasing_on_every_observed_span": true
+      },
+      "signal": {
+        "available_ns_sha256": "ab019b7ba69d7d5dd651af4d6e8a7b0f2a9018e06674910f8df445c1008829bc",
+        "center": [
+          43.0,
+          41.0
+        ],
+        "integer_spans_exact_after_inverse_rounding": true,
+        "inverse_max_abs_error": 1.587445126460807e-06,
+        "new_field_count": 2,
+        "normalized_values_sha256": "8842d310aef32de440a84752d9c80cc04b71c5aa3912646ea5f46661e067b50e",
+        "row_indices_sha256": "aaf7bb699db0eb3602ef5c44ec195780b24368c788f424fddc611270a300d9a1",
+        "rows": 29782,
+        "scale": [
+          41.0,
+          42.0
+        ],
+        "scale_source": [
+          "raw_iqr",
+          "raw_iqr"
+        ],
+        "strictly_increasing_on_every_observed_span": true
+      }
+    },
+    "new_statistics": 12,
+    "normalization_qualified": true,
+    "old_field_fit_calls": 0,
+    "old_field_preservation": {
+      "aliases_exact_by_name": true,
+      "all_old_stat_vectors_exact": true,
+      "old_category_and_support_values_exact": true,
+      "old_fields_per_surface": {
+        "ctx_cont": 2542,
+        "mtf_d1": 253,
+        "mtf_h1": 253,
+        "mtf_h4": 253,
+        "mtf_m15": 253,
+        "mtf_m5": 253,
+        "signal": 2725
+      },
+      "old_statistics_refitted": false,
+      "parent_lineage_unchanged": true
+    },
+    "predictive_value_claimed": false,
+    "surface_fit_calls": 6,
+    "ta_contract_sha256": "6c882086902701d5c9503d0c77c72c8e291ed65c44d065171c2d27afa500c3f6",
+    "units_contract_sha256": "accae7dfbc704c2f1af33d4fe71ffa7c270b675c5f1f13ce0d18d15381a93e1e"
+  },
   "method": "Existing TRAIN median/IQR and median-positive-deviation fallback for only the two new fields on each of six already-qualified row unions. Every old statistic is copied by name; masks/domains/aliases and parent lineage remain explicit. No new binary inference or observation mask.",
   "new_units_profile_sha256": "accae7dfbc704c2f1af33d4fe71ffa7c270b675c5f1f13ce0d18d15381a93e1e",
+  "old_stat_vector_entries_preserved": 45724,
+  "old_surface_fields_preserved": 6532,
   "plan": {
     "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_20261112_001.json",
     "sha256": "07653339e511831d34f17f3ad12120e4a1ffea48795bb8d1ccf0daa0a68210e3"
   },
   "predictive_value_claimed": false,
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_20261112_001/RESULT.json",
+    "sha256": "4476c63b5b70237adf6c67db7f125c6eefb95963cab9418a46ec2d3f23a77f9f"
+  },
   "scope": {
     "checkpoint_reads": 0,
     "fold_id": 1,
@@ -53,6 +248,7 @@
     "Explicit normalization extension embeds immutable parent contract and physical sidecar result; existing normalizer dispatch reconstructs and validates the exact extension.",
     "Existing fullTA projection remains the consumer path; actual view/gather and model baseline are still pending."
   ],
+  "source_head": "8582cbfb8863359daf5ea9da8be0f606e5eaff6c",
   "source_owners": {
     "gx1/audit/qualify_market_state_ta_anchor_span_inputs_v1.py": "3edba8032212b8e9c5b4d6319f342d3926ef1eb28fd64c7fe9ab148ebdb46c1d",
     "gx1/audit/qualify_market_state_ta_anchor_span_normalization_v1.py": "ebe7b181fd8ad943022e7beb4c12a5138801e206afd46e8ec4101fd2d6df32c0",
@@ -75,8 +271,15 @@
     "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_PREP_20261112_001/FOCUSED_QUALIFICATION.json",
     "sha256": "0d5314647bfb025b4aaca02bece1c84015da3c44219e7f5ed96ebee22f4dff9f"
   },
+  "source_unchanged": true,
   "stage": "market_state_ta_trendline_anchor_span_normalization_20261112_001",
-  "status": "SOURCE_AND_METADATA_QUALIFIED_EXACT_TWELVE_STATISTIC_FIT_ADMITTED_PENDING_CLEAN_PREFLIGHT",
+  "status": "COMPLETE_TWELVE_NEW_STATISTICS_AND_EXACT_OLD_STATISTIC_PRESERVATION_VIEW_AND_MODEL_PENDING",
+  "temporal_aliases_preserved_by_name": 2542,
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_20261112_001/TERMINAL.json",
+    "sha256": "568bed0ad27f7a467f4ca15453314347baf9406c1c472f9719d6e56e625c9ede"
+  },
   "test_data_used": false,
-  "training_authorized": false
+  "training_authorized": false,
+  "worker_seconds": 6.774264708001283
 }

@@ -6,19 +6,16 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_ADMITTED.
+TA_DIRECTION_EDGE_CAUSE_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_QUALIFIED_VIEW_PENDING.
 Målet11.11 er aktivt: avklar og rett målte svakheter i indikatorrepresentasjon,
 sammensetting og retningslæring. Korte runder er bevisst feilsøking, ikke kapasitetsdom.
 Full kvalifisert TRAIN-historikk og30–40epoker er senere skalering.
 
-CPU-inputkontrollen er COMPLETE/CONSUMED. Én ny normaliseringsplan er innrømmet,
-ikke startet: configs/research/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_20261112_001.json.
-Kun6CPU-fits av2nye felter hver;0gamle felt refittes. Ren preflight kreves før claim.
-Alle gamle engangsplaner er konsumert; ingen relansering. Ingen modell-/treningsadmisjon.
+Både input- og normaliseringskontrollen er COMPLETE/CONSUMED; ingen jobb står åpen.
+Alle tidligere engangsplaner er konsumert. Ingen ny data-/modell-/treningsadmisjon.
 Training/native_training/native_launch/full_epoch/full_val er false.
 TEST, Entry/Exit-evaluering, broker, handel, spending og promotion stengt; GC på pause.
-Ingen endring av Windows-treningsoppgaver. Capped audit4GiB/512MiB,CPU0–7,pids64,
-én tråd og180s+10s killgrense.
+Ingen endring av Windows-treningsoppgaver.
 
 ## Konkret rettelse: trendlinjens andre anker
 
@@ -126,18 +123,37 @@ Ingen normaliseringsfit, targetverdier, modell, checkpoint eller trening i denne
 Eksisterende normalisering/checkpoints er ikke relabellet; gammel baseline er ikke ny baseline.
 
 [Normaliseringsutvidelsen](docs/TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_REVIEW.json)
-er kilde-/metadata-kvalifisert.96unike fokuserte tester er dekket: først93PASS/3FAIL,
-deretter8berørte retester PASS. De3feilene var historiske test-fixtures som matet
-nye2727navn til bevisst forseglede gamle2725profiler; fixtures krever nå gammel
-navneSHA. Gamle produksjonsprofiler, enheter, planer og statistikk er uendret.
-Ny tredje units-identitet remapper bare signalens51value/mask-par etter navn;
-ctx/GC-enheter og fit-prefix er identiske. Eksplisitt parent/proveniens avviser resealing.
-Den nye normaliseringskontrakten bevarer gamle statistikkvektorer byteeksakt,
-inkludert signed-zero, og remapper aliases. Eksisterende TA-projeksjon brukes videre.
+er COMPLETE/CONSUMED, exit0. ROOT
+/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_20261112_001.
+Kilde8582cbfb uendret; PLAN07653339/RESULT4476c63b/TERMINAL568bed0a.
+Worker6,77s/controller7,65s; capped audit4GiB/512MiB,CPU0–7,pids64,én tråd.
+96unike fokuserte tester er dekket: først93PASS/3FAIL, deretter8berørte retester PASS.
+De3feilene var historiske fixtures som matet nye2727navn til gamle2725profiler;
+fixtures krever nå eksakt gammel navneSHA. Gamle profiler og planer er uendret.
+Obligatoriske model-native kontrakt-/repositorygater besto før commit.
 
-Ny engangsplan tilpasser kun12nye feltstatistikker fra allerede kvalifiserte sidecars.
-Gamle statistikker refittes ikke. Ingen faktisk ny normalisering er produsert ennå;
-ren preflight gjenstår før claim. Etter resultatet må faktisk feature-view/gather bindes
-til den utvidede inputen, før fersk faktisk initialbaseline og kort læringssammenligning.
-Fullhistorikk/30–40epoker er senere skalering. Senere generalisering, familienytte,
-rettelsens prediktive gevinst og økonomisk edge må fortsatt måles. Målet er aktivt.
+Nøyaktig6fit-kall for2nye felter hver;0gamle felt refittet.
+6532gamle flatefelt/45724statistikkverdier er bevart byteeksakt etter navn;
+2542aliaser er remappet uten endrede felt, masker, domener eller støtte.
+Ny units-profilaccae7df remapper bare signalens51value/mask-par etter navn;
+ctx/GC-enheter og fit-prefix er uendret. Gammel fysisk lineage er eksplisitt forelder,
+ikke relabellet cache. Proveniensen binder sidecarresultat8878d17a.
+Alle nye observerte spanverdier bevarer streng rekkefølge gjennom asinh og gjenfinnes
+eksakt som heltall etter invers. Største flyttallsavvik er under0,000010bar.
+M5spans er sparsomme: center[0,0],scale[6,5], eksisterende median-positive-deviation.
+Øvrige10nye felt bruker ordinær IQR; ingen ny binærregel, terskel, klipping eller maskering.
+
+Artefakter: EXTENDED_BASE_NORMALIZATION.json SHA71e201b6/contract58e9e9bb;
+TA_INPUT_NORMALIZATION.json SHA02eca0cc/contract6c882086;
+NEW_FIELD_STATISTICS.json SHA06d2a112; NEW_UNITS_PROFILE.json SHA050f93ad.
+Eksisterende fullTA-projeksjon validerer signal317/ctx132/MTF255.
+Uavhengig JSON-/filhash-/statistikkbytekontroll PASS, uten ny fit eller array-dekoding.
+
+Faktisk feature-view/gather må nå bindes til de uendrede foreldrearrayene pluss
+de kvalifiserte span-sidecarene og ny normalisering. Ingen full rebuild er nødvendig.
+Ny komplett modellinput og fersk faktisk initialbaseline er fortsatt ukvalifisert;
+ingen modell, checkpoint, targetverdier eller trening ble brukt i normaliseringsjobben.
+Fersk faktisk baseline kreves før en avgrenset læringssammenligning.
+Ingen ny numerisk plan er innrømmet. Fullhistorikk/30–40epoker er senere skalering.
+Senere generalisering, familienytte, rettelsens prediktive gevinst og økonomisk edge
+må fortsatt måles. Målet er aktivt.
