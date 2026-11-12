@@ -6,22 +6,27 @@ NEXT_RUN_POLICY.json eier arbeidsstatus; prosess og terminal overstyrer prosa.
 
 ## Aktivt mål og neste retning
 
-TA_DIRECTION_EDGE_CAUSE_FIXED_LATER_INPUTS_ADMITTED.
-Målet er fortsatt å avklare og rette svak retningslæring. Span-sammenligningen ga ingen
-konsistent gevinst. Neste læringssammenligning er dagens tap mot M5-sideleddene alene,
-med alle genuine inputs og samme INITIAL, rekkefølge og budsjett. Ingen ny gradientdiagnose.
-TRAIN4096 over mai–september2024 gjenbrukes. Senere utviklingspanel er4096rader over
-oktober–desember2024. Tre passeringer per arm, måling0/1/3 og pass3 som primær.
+TA_DIRECTION_EDGE_CAUSE_FIXED_BENCHMARK_INPUTS_COMPLETE.
+Målet er fortsatt å avklare og rette svak retningslæring. Den avtalte sammenligningen er
+FULL_OBJECTIVE mot M5_DIRECTION_ONLY, samme modell/genuine inputs/INITIAL/RNG/rekkefølge.
+TRAIN4096 over mai–september2024 og senere4096 over oktober–desember2024 er låst.
+Tre passeringer per arm; måling0/1/3, pass3 primært, ingen checkpointseleksjon.
+M5-koeffisientene beholdes; tom M5-støtte gir cursorframgang uten optimizersteg.
 
-M5-only tap/checkpointbinding og separat senere-adapter er kvalifisert med73tester.
-Senere datakommando/metadata har42beståtte tester og faktisk ren preflighta168ac6c.
-Plan3f8c1a9b er nå innrømmet én gang: to spanfelt, seks flater,31gamle felt byteeksakte,
-4096lokale og20480MTF-vinduer. Gjenbruk eksisterende replay og TRAIN-normalisering.
+M5-only tap og checkpointbinding samt separat senere-adapter er implementert;73tester besto.
+Senere inputeier/metadata har42beståtte tester og faktisk preflight før engangsadmisjonen.
+Fysisk jobb er COMPLETE/CONSUMED; ingen relaunch. Kilde304bf944 var uendret.
 ROOT /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_LATER_INPUTS_20261112_001.
-Kjør kun gjennom capped audit4G/512M, maks1800s. Frys kilde/policy til terminalen foreligger.
-Ingen normaliseringsfit, modell, trening, TEST eller handel er innrømmet.
-Global training/native_training er false. Root eier policy, launch og sluttkontroll.
-Fysisk senere-dekning og prediktiv forbedring er fortsatt ubevist.
+RESULTf5f8a0e6, TERMINALdde568a6, COVERAGE307f930b. Dekning binder FEATURE_VIEW2b15bcfe.
+Alle31gamle felt på44114flaterader var byteeksakte:1367534celler, null avvik.
+4096lokale og20480faktiskeMTF-vinduer besto. Tid313,26s, peakRSS1,315GB.
+Kun to nye spanfelt ble produsert. Ingen normaliseringsfit, gammel cacheendring eller modellkjøring.
+
+Neste konkrete arbeid: koble eksisterende paired restore/fit/eval til de to tapsvariantene,
+den kvalifiserte senere-adapteren og de tre passeringene. Gjenbruk beståtte kontroller;
+ingen ny inpututvidelse eller gradientdiagnostikk. Eksakt native admisjon/INITIAL og selve
+læringssammenligningen gjenstår. Ingen prediktiv gevinst er målt i denne bølgen.
+Global training/native_training er false. Root eier policy, launch og samlet kontroll.
 
 Korte runder er bevisst feilsøking, ikke en dom over fullhistorikk-kapasitet.
 Kvalifisert full TRAIN-historikk og 30–40 epoker er senere skalering.
