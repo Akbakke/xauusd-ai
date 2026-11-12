@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-12T05:15:29.864573+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_TRENDLINE_ANCHOR_SPAN_SOURCE_QUALIFIED_INPUTS_PENDING",
+  "status": "TA_DIRECTION_EDGE_CAUSE_TRENDLINE_ANCHOR_SPAN_INPUTS_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Prepare the smallest fresh causal input-extension qualification for the two anchor-span fields on the required TRAIN history: reuse original source clocks, frozen registry parameters, all unchanged features, targets and completed checks; replay the existing registry only where needed to recover the missing anchor spans. Require exact preservation of the original31 trendline fields, new physical field/normalization bindings and a fresh actual initial model baseline before any short learning comparison. No old cache or checkpoint is relabeled as the expanded function. No data/model/training invocation is admitted yet; full-history30-40epoch training remains later scaling.",
+  "next_action": "Run the fresh exact anchor-span input-only plan once after the clean preflight. Recover local-M5 and five-TF spans on the retained fold1 TRAIN normalization populations; preserve old31 fields byte-exact and all original arrays. Then qualify only new-field statistics and name-bound normalization/view transition before a fresh actual model baseline. No model or training invocation, no old-plan relaunch, no full-history epochs.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -9229,7 +9229,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Prepare the smallest fresh causal input-extension qualification for the two anchor-span fields on the required TRAIN history: reuse original source clocks, frozen registry parameters, all unchanged features, targets and completed checks; replay the existing registry only where needed to recover the missing anchor spans. Require exact preservation of the original31 trendline fields, new physical field/normalization bindings and a fresh actual initial model baseline before any short learning comparison. No old cache or checkpoint is relabeled as the expanded function. No data/model/training invocation is admitted yet; full-history30-40epoch training remains later scaling.",
+    "next_action": "Run the fresh exact anchor-span input-only plan once after the clean preflight. Recover local-M5 and five-TF spans on the retained fold1 TRAIN normalization populations; preserve old31 fields byte-exact and all original arrays. Then qualify only new-field statistics and name-bound normalization/view transition before a fresh actual model baseline. No model or training invocation, no old-plan relaunch, no full-history epochs.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22336,7 +22336,11 @@
       "sha256": "5fe4db95d6324ac18e0badaebb3d2407719bd04f480633302b110274ef8a8ef5"
     },
     "current_feature_surface_initial_baseline_required": true,
-    "current_feature_surface_physical_inputs_qualified": false
+    "current_feature_surface_physical_inputs_qualified": false,
+    "latest_trendline_anchor_span_input_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TRENDLINE_ANCHOR_SPAN_INPUTS_REVIEW.json",
+      "sha256": "caec10107157bf06caea5664376509ce5712d289da173bf21590b917a1a35b3a"
+    }
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -75675,7 +75679,7 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_TRENDLINE_ANCHOR_SPAN_SOURCE_QUALIFIED_INPUTS_PENDING",
+    "status": "ACTIVE_TRENDLINE_ANCHOR_SPAN_INPUTS_ADMITTED",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
@@ -75685,14 +75689,14 @@
       "sha256": "13ffc8fa173cdbf65ab4af65890e458bb507673e761eabb579f7366fbc25a2f3"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": false,
+    "model_or_data_run_admitted": true,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Prepare the smallest fresh causal input-extension qualification for the two anchor-span fields on the required TRAIN history: reuse original source clocks, frozen registry parameters, all unchanged features, targets and completed checks; replay the existing registry only where needed to recover the missing anchor spans. Require exact preservation of the original31 trendline fields, new physical field/normalization bindings and a fresh actual initial model baseline before any short learning comparison. No old cache or checkpoint is relabeled as the expanded function. No data/model/training invocation is admitted yet; full-history30-40epoch training remains later scaling.",
-    "active_stage": "market_state_ta_trendline_anchor_span_source_20261112_001",
+    "next_action": "Run the fresh exact anchor-span input-only plan once after the clean preflight. Recover local-M5 and five-TF spans on the retained fold1 TRAIN normalization populations; preserve old31 fields byte-exact and all original arrays. Then qualify only new-field statistics and name-bound normalization/view transition before a fresh actual model baseline. No model or training invocation, no old-plan relaunch, no full-history epochs.",
+    "active_stage": "market_state_ta_trendline_anchor_span_inputs_20261112_001",
     "previous_goal_turn_classification": "PROGRESS_FULL_PAIRED_ENDPOINTS_EXACT_AND_M5_RANK_CALIBRATION_TRADEOFF_LOCALIZED",
-    "last_goal_turn_classification": "PROGRESS_CAUSAL_ANCHOR_PAIR_INFORMATION_GAP_REPRODUCED_REPAIRED_AND_SYNTHETICALLY_QUALIFIED",
+    "last_goal_turn_classification": "PROGRESS_EXACT_CAUSAL_INPUT_EXTENSION_AND_FAILURE_PATHS_QUALIFIED",
     "latest_tail_factor_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_ALL_TF_TAIL_FACTOR_REVIEW.json",
       "sha256": "5da978f765b0ad1ac001023501be7665989270d8353d768b801b9e1b29406c0f"
@@ -75736,6 +75740,10 @@
     "trendline_anchor_span_repair": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TRENDLINE_ANCHOR_SPAN_REPAIR.json",
       "sha256": "5fe4db95d6324ac18e0badaebb3d2407719bd04f480633302b110274ef8a8ef5"
+    },
+    "trendline_anchor_span_input_preparation": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TRENDLINE_ANCHOR_SPAN_INPUTS_REVIEW.json",
+      "sha256": "caec10107157bf06caea5664376509ce5712d289da173bf21590b917a1a35b3a"
     }
   },
   "market_state_ta_fusion_observation_20261111_001": {
@@ -76435,7 +76443,7 @@
     "unresolved_campaign_marker_preserved": true,
     "standard_campaign_receipt_available": false
   },
-  "active_stage": "market_state_ta_trendline_anchor_span_source_20261112_001",
+  "active_stage": "market_state_ta_trendline_anchor_span_inputs_20261112_001",
   "market_state_ta_m5_c171_short_learning_20261111_002": {
     "decision": "CLOSED",
     "status": "COMPLETE_CONSUMED",
@@ -79834,5 +79842,82 @@
     "relaunch_allowed": false,
     "test_data_used": false,
     "next_action": "Prepare the smallest fresh causal input-extension qualification for the two anchor-span fields on the required TRAIN history: reuse original source clocks, frozen registry parameters, all unchanged features, targets and completed checks; replay the existing registry only where needed to recover the missing anchor spans. Require exact preservation of the original31 trendline fields, new physical field/normalization bindings and a fresh actual initial model baseline before any short learning comparison. No old cache or checkpoint is relabeled as the expanded function. No data/model/training invocation is admitted yet; full-history30-40epoch training remains later scaling."
+  },
+  "market_state_ta_trendline_anchor_span_inputs_20261112_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001.json",
+      "sha256": "889161060a9abb9c028abffe3246420f06a63891ee9a51305d3e8173d970fbf1"
+    },
+    "worker": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/qualify_market_state_ta_anchor_span_inputs_v1.py",
+      "sha256": "3edba8032212b8e9c5b4d6319f342d3926ef1eb28fd64c7fe9ab148ebdb46c1d"
+    },
+    "preparation_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TRENDLINE_ANCHOR_SPAN_INPUTS_REVIEW.json",
+      "sha256": "caec10107157bf06caea5664376509ce5712d289da173bf21590b917a1a35b3a"
+    },
+    "scope": {
+      "checkpoint_reads": 0,
+      "fold_id": 1,
+      "history_end_exclusive_ns": 1727654400000000000,
+      "model_constructions": 0,
+      "model_forwards": 0,
+      "new_fields": [
+        "geomline_above_anchor_span_bars",
+        "geomline_below_anchor_span_bars"
+      ],
+      "new_registry_fields": 33,
+      "normalization_fits": 0,
+      "old_registry_fields": 31,
+      "optimizer_steps": 0,
+      "parent_rows": 29574,
+      "producer_calls": 6,
+      "ranges": {
+        "D1": [
+          3336,
+          3696
+        ],
+        "H1": [
+          83079,
+          85650
+        ],
+        "H4": [
+          21368,
+          22112
+        ],
+        "M15": [
+          329741,
+          339700
+        ],
+        "M5": [
+          987326,
+          1017028
+        ],
+        "local": [
+          987027,
+          1016809
+        ]
+      },
+      "target_arrays_decoded": 0,
+      "test_data_used": false
+    },
+    "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001",
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "training_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "model_constructions_authorized": 0,
+    "model_forwards_authorized": 0,
+    "normalization_fits_authorized": 0,
+    "target_arrays_decoded_authorized": 0,
+    "optimizer_steps_authorized": 0,
+    "max_invocations": 1,
+    "remaining_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "test_data_used": false,
+    "next_action": "Run the fresh exact anchor-span input-only plan once after the clean preflight. Recover local-M5 and five-TF spans on the retained fold1 TRAIN normalization populations; preserve old31 fields byte-exact and all original arrays. Then qualify only new-field statistics and name-bound normalization/view transition before a fresh actual model baseline. No model or training invocation, no old-plan relaunch, no full-history epochs."
   }
 }

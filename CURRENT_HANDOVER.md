@@ -6,18 +6,19 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_TRENDLINE_ANCHOR_SPAN_SOURCE_QUALIFIED_INPUTS_PENDING.
+TA_DIRECTION_EDGE_CAUSE_TRENDLINE_ANCHOR_SPAN_INPUTS_ADMITTED.
 Målet11.11 er aktivt: avklar og rett målte svakheter i indikatorrepresentasjon,
 sammensetting og retningslæring. Korte runder er bevisst feilsøking, ikke kapasitetsdom.
 Full kvalifisert TRAIN-historikk og30–40epoker er senere skalering.
 
-Ingen native data-/modell-/treningskjøring innrømmet. Alle tidligere engangsplaner
-konsumert; ingen relansering. Training/native_training/native_launch/full_epoch/
-full_val er false. Ingen kjøring står åpen etter den siste syntetiske kvalifiseringen.
-Windows-treningsoppgavene ble deaktivert etter sine fullførte kjøringer; ingen ny
-oppgave opprettet. TEST, Entry/Exit-evaluering, broker, handel, spending og promotion
-stengt; GC på pause. Ingen operasjonell blokkering; fysisk input/baseline gjenstår.
-
+Én ny CPU-inputkontroll er innrømmet etter ren preflight, ikke startet ennå.
+Plan configs/research/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001.json.
+Kun seks registry-replays og to nye spanfelt, ingen targetverdier, normaliseringsfit,
+modell, checkpoint eller trening. Alle tidligere engangsplaner er fortsatt konsumert.
+Training/native_training/native_launch/full_epoch/full_val er false.
+TEST, Entry/Exit-evaluering, broker, handel, spending og promotion stengt; GC på pause.
+Ingen endring av Windows-treningsoppgaver. Én capped audit4GiB/512MiB, CPU0–7,
+én numerisk tråd, pids64,1800s+10s killgrense.
 ## Konkret rettelse: trendlinjens andre anker
 
 [Reparasjon og kvitteringer](docs/TA_TRENDLINE_ANCHOR_SPAN_REPAIR.json).
@@ -107,11 +108,22 @@ Den utvidede overflaten er foreløpig kilde-/syntetisk kvalifisert. Eksisterende
 normalisering og checkpoints er ikke oppgradert; gammel initialbaseline er ikke
 baseline for den nye funksjonen. Ingen virkelig ny inputmåling, modellbaseline eller fit.
 
-Forbered minste kausale inpututvidelse for spanfeltene på nødvendigTRAIN-historikk.
-Gjenbruk eksisterende klokker, frosne registryparametre, øvrige features, targets og
-beståtte kontroller. Replay eksisterende registry bare der ankerspenn må gjenfinnes;
-bevis bevaring av opprinnelige31felt og etabler nye navne-/bredde-/normaliseringsbindinger.
-Fersk faktisk initialbaseline kreves før en avgrenset læringssammenligning.
-Ingen ny numerisk plan er innrømmet nå; ikke start fullhistorikk/30–40epoker automatisk.
+[Ny inputkontroll](docs/TA_TRENDLINE_ANCHOR_SPAN_INPUTS_REVIEW.json) er kilde-/syntetisk
+kvalifisert:21fokuserte tester PASS og eksakt module-import PASS. Kontrollen krever
+opprinnelige31felt float32-byteeksakte før sidecar publiseres. Suksess, delvis feil
+og kildeendring etter RESULT har eksplisitt testet terminalsti. Ingen markedsarrays
+er kjørt gjennom den nye kontrollen ennå; ren preflight gjenstår før claim.
+
+Eksakte modne fold1-normaliseringspopulasjoner gjenbrukes: lokal29782rader,
+M5/M15/H1/H4/D1=29702/9959/2571/744/360. Alle seks rowhashes og fulle
+availability-clock-hasher er bundet til original normalisering e24a2b8d.
+Lokal replay bruker original2010-enriched opprinnelse; MTF bruker2009-native.
+Bare registry kjøres på nødvendig kausal historikk, med frosne parametre.
+Øvrige features, klokker, targets og beståtte kontroller gjenbrukes uendret.
+
+Etter fysisk PASS må bare de to nye feltenes statistikk på seks overflater tilpasses,
+gamle statistikker bevares per navn og ny normaliserings-/feature-view-binding etableres.
+Fersk faktisk initialbaseline kreves før kort læringssammenligning. Ingen modell-
+eller treningsplan er innrømmet. Fullhistorikk/30–40epoker er senere skalering.
 Senere generalisering, familienytte, rettelsens prediktive gevinst og økonomisk edge
 må fortsatt måles. Målet er aktivt og TEST urørt.
