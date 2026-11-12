@@ -2384,7 +2384,7 @@
   "test_data_used": false,
   "training_authorized": false,
   "promotion_authorized": false,
-  "next_action": "Qualify a retained-only48overlapping-row prequery pilot against the newly verified INITIAL representations/axes before interpreting it. Separate queryprojection changes from upstreambackbone/joint changes with retainedINITIAL/FINALprojection andFINALheads if parity holds. Do not extrapolate48rows to the full4096prefix or invertGELU. Fullprefixprequery input is missing; no additional native observation, training or model change is admitted. Preserve genuinefeatures/timeframes, original loss and sealedTEST; full-history30-40epoch fit remains later qualification work.",
+  "next_action": "Qualify one new passive paired actualINITIAL/FINAL prequery/joint boundary observation over all4096usedTRAIN rows, reusing existing inputs and checkpoints. Include128Djoint-hidden and512Djoint-source at both endpoints in one observation to avoid repeated partial captures. Require all original12raw/axis/target fields and256batchlosses byteexact per endpoint and allINITIALhead inputs byteexact to the verifiedfullcapture; preserve weights/buffers/RNG/flags/hooks per phase and the explicit weights-only endpoint transition. Fullcoverage is necessary because the retained48row pilot has0D1FLAT cases. No native/data run, training, model/loss change, full-history fit orTEST use is yet admitted.",
   "residual_calibration_by_fixed_quarter": {
     "state/D1/activity": {
       "CHRONOLOGICAL_Q1": {
@@ -6589,5 +6589,486 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001/AFFINE_ENDPOINT_INTERPRETATION_REVIEW.json",
       "sha256": "c52dc325869296a6fb6a9006be48a4401f933f3b7ca8e78a51d9f44eb7842eff"
     }
+  },
+  "retained_prequery_joint_48row_pilot": {
+    "status": "PASS_RETAINED48_PREQUERY_JOINT_ORDERED_PILOT",
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001/PREQUERY48_REVIEW.json",
+      "sha256": "444089b42894bd4c2906c6f9cd9b36cc0e9d463cdb6e9ae8ec5f8f8da0a18c34"
+    },
+    "script": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001/PREQUERY48_REVIEW.py",
+      "sha256": "2782e82914b05911aa7fe107c784d739e937de399a6b3536ca1370fcca931ddc"
+    },
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001/PREQUERY48_PLAN.json",
+      "sha256": "28f32aee0d2bfbe903541c7adf6cb61c8602818652e851687059764f7568fb59"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001/PREQUERY48_SOURCE_REVIEW.json",
+      "sha256": "3aade2e63a761242ab1625b99d5607a244d17b2e88d57ec5723d809fb824cb24"
+    },
+    "interpretation_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001/PREQUERY48_INTERPRETATION_REVIEW.json",
+      "sha256": "dcd16e23ab7128bfebedd35482806f24c0a155ceaed102edde930eada7e8c443"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001/PREQUERY48_TERMINAL.json",
+      "sha256": "41a808868f1995961867f121027e878aa5b298184cf2344c1d7b6fea285ec1e6"
+    },
+    "source_commit": "132b4044dce793cc0f175e79c080ddafa8dbfdc2",
+    "counts": {
+      "npz_decodes": 3,
+      "checkpoint_decodes": 2,
+      "models": 0,
+      "forwards": 0,
+      "autograd": 0,
+      "optimizer_constructions": 0,
+      "optimizer_steps": 0,
+      "checkpoint_writes": 0,
+      "joint_layernorm_calls": 6,
+      "joint_linear_calls": 6,
+      "joint_gelu_calls": 6,
+      "query_linear_calls": 24,
+      "query_gelu_calls": 24
+    },
+    "qualification": {
+      "matched_rows": 48,
+      "matched_original_batch_indices": [
+        0,
+        123,
+        246
+      ],
+      "all10axis_target_fields_bitexact": true,
+      "initial_m5_head_inputs_bitexact": {
+        "state": true,
+        "future": true
+      },
+      "initial_all_tf_side_outputs_bitexact": {
+        "state": true,
+        "future": true
+      },
+      "old_activity_clone_max_error": {
+        "state": 7.152557373046875e-07,
+        "future": 1.7881393432617188e-07
+      },
+      "joint_initial_hidden_max_error": 1.5828623913805018e-06,
+      "all_tf_initial_representation_max_error": {
+        "state": 7.229435827760256e-07,
+        "future": 7.622987734379194e-07
+      },
+      "maximum_initial_raw_replay_error": 3.572139140040065e-07,
+      "maximum_alignment_roundoff": 4.311241341374692e-07,
+      "maximum_logit_conservation_error": 0.0,
+      "maximum_recorded_batch_loss_replay_error": 2.4007595733621656e-07
+    },
+    "original_three_batch_loss": {
+      "ALL48": {
+        "initial": 1.8312821080438024,
+        "head": 1.826833564224281,
+        "query": 1.8306440734606095,
+        "joint": 1.853183089740419,
+        "actual_final": 1.870668240083491
+      },
+      "ORIGINAL_BATCH_0": {
+        "initial": 2.142007191860665,
+        "head": 2.169955444922597,
+        "query": 2.2481730424772253,
+        "joint": 2.3542712344732286,
+        "actual_final": 2.5086758120175485
+      },
+      "ORIGINAL_BATCH_123": {
+        "initial": 1.8199762302877502,
+        "head": 1.7943283560696046,
+        "query": 1.7460839190868895,
+        "joint": 1.7126098810665449,
+        "actual_final": 1.616664583701878
+      },
+      "ORIGINAL_BATCH_246": {
+        "initial": 1.5318629019829906,
+        "head": 1.5162168916806416,
+        "query": 1.4976752588177138,
+        "joint": 1.4926681536814839,
+        "actual_final": 1.4866643245310467
+      }
+    },
+    "focus": {
+      "state_D1_activity": {
+        "groups": {
+          "ALL": {
+            "rows": 14,
+            "observed_positive": 1.0,
+            "mean_logit_effects": {
+              "actual": 0.7116329669952393,
+              "head": 0.11164231078734585,
+              "query": 0.0803041471067187,
+              "joint": 0.11911020525908442,
+              "upstream_and_rounding": 0.40057630384209025
+            },
+            "scores": {
+              "initial": {
+                "mean_probability": 0.9310394275988347,
+                "brier": 0.004816674808913986,
+                "log": 0.07148896063272733
+              },
+              "head": {
+                "mean_probability": 0.937814991655293,
+                "brier": 0.003923878166611788,
+                "log": 0.06423497227893736
+              },
+              "query": {
+                "mean_probability": 0.9421984360978174,
+                "brier": 0.003406473110635396,
+                "log": 0.059576257698686075
+              },
+              "joint": {
+                "mean_probability": 0.9481032875151404,
+                "brier": 0.0027746864432222082,
+                "log": 0.05333721343987742
+              },
+              "actual_final": {
+                "mean_probability": 0.9639818219330857,
+                "brier": 0.001383654689446074,
+                "log": 0.036729369629473485
+              }
+            }
+          },
+          "POSITIVE": {
+            "rows": 14,
+            "observed_positive": 1.0,
+            "mean_logit_effects": {
+              "actual": 0.7116329669952393,
+              "head": 0.11164231078734585,
+              "query": 0.0803041471067187,
+              "joint": 0.11911020525908442,
+              "upstream_and_rounding": 0.40057630384209025
+            },
+            "scores": {
+              "initial": {
+                "mean_probability": 0.9310394275988347,
+                "brier": 0.004816674808913986,
+                "log": 0.07148896063272733
+              },
+              "head": {
+                "mean_probability": 0.937814991655293,
+                "brier": 0.003923878166611788,
+                "log": 0.06423497227893736
+              },
+              "query": {
+                "mean_probability": 0.9421984360978174,
+                "brier": 0.003406473110635396,
+                "log": 0.059576257698686075
+              },
+              "joint": {
+                "mean_probability": 0.9481032875151404,
+                "brier": 0.0027746864432222082,
+                "log": 0.05333721343987742
+              },
+              "actual_final": {
+                "mean_probability": 0.9639818219330857,
+                "brier": 0.001383654689446074,
+                "log": 0.036729369629473485
+              }
+            }
+          },
+          "NEGATIVE": {
+            "rows": 0
+          }
+        },
+        "original_batch_loss": {
+          "initial": 0.009618485509034033,
+          "head": 0.008724886923581669,
+          "query": 0.008213153526638527,
+          "joint": 0.007112281584124754,
+          "actual_final": 0.005619012889638351
+        },
+        "ordered_loss_changes": {
+          "head_minus_initial": -0.0008935985854523643,
+          "query_minus_head": -0.0005117333969431419,
+          "joint_minus_query": -0.0011008719425137734,
+          "actual_final_minus_joint": -0.0014932686944864023
+        }
+      },
+      "future_M15_side": {
+        "groups": {
+          "ALL": {
+            "rows": 15,
+            "observed_positive": 0.6,
+            "mean_logit_effects": {
+              "actual": 0.6851756130655606,
+              "head": 0.07818953264682561,
+              "query": 0.14645774781584034,
+              "joint": 0.1388980490310245,
+              "upstream_and_rounding": 0.32163028357187023
+            },
+            "scores": {
+              "initial": {
+                "mean_probability": 0.4852139212756474,
+                "brier": 0.31710358490729745,
+                "log": 0.833210373249593
+              },
+              "head": {
+                "mean_probability": 0.5033333754733705,
+                "brier": 0.31471502217613406,
+                "log": 0.8298329413225212
+              },
+              "query": {
+                "mean_probability": 0.5362549993130267,
+                "brier": 0.31865351069955666,
+                "log": 0.8451043759861852
+              },
+              "joint": {
+                "mean_probability": 0.5649081795069593,
+                "brier": 0.33172203360022995,
+                "log": 0.8869065619307311
+              },
+              "actual_final": {
+                "mean_probability": 0.6307143102045106,
+                "brier": 0.3312169504555987,
+                "log": 0.913371047064737
+              }
+            }
+          },
+          "POSITIVE": {
+            "rows": 9,
+            "observed_positive": 1.0,
+            "mean_logit_effects": {
+              "actual": 0.5888836367262734,
+              "head": 0.07286307392605257,
+              "query": 0.1166391818593022,
+              "joint": 0.08873783273215798,
+              "upstream_and_rounding": 0.31064354820876067
+            },
+            "scores": {
+              "initial": {
+                "mean_probability": 0.4455272749499388,
+                "brier": 0.31586691697497077,
+                "log": 0.829054310539154
+              },
+              "head": {
+                "mean_probability": 0.46298847887640854,
+                "brier": 0.2971047392847586,
+                "log": 0.7897860309121459
+              },
+              "query": {
+                "mean_probability": 0.4910483342629197,
+                "brier": 0.269299093784329,
+                "log": 0.7320482299506801
+              },
+              "joint": {
+                "mean_probability": 0.5119309662845675,
+                "brier": 0.25250749896820013,
+                "log": 0.6967889306338353
+              },
+              "actual_final": {
+                "mean_probability": 0.5818281476331227,
+                "brier": 0.19611457483174816,
+                "log": 0.5750856606735353
+              }
+            }
+          },
+          "NEGATIVE": {
+            "rows": 6,
+            "observed_positive": 0.0,
+            "mean_logit_effects": {
+              "actual": 0.8296135775744915,
+              "head": 0.08617922072798517,
+              "query": 0.19118559675064759,
+              "joint": 0.21413837347932432,
+              "upstream_and_rounding": 0.3381103866165344
+            },
+            "scores": {
+              "initial": {
+                "mean_probability": 0.5447438907642101,
+                "brier": 0.31895858680578754,
+                "log": 0.8394444673152516
+              },
+              "head": {
+                "mean_probability": 0.5638507203688136,
+                "brier": 0.34113044651319707,
+                "log": 0.8899033069380836
+              },
+              "query": {
+                "mean_probability": 0.6040649968881872,
+                "brier": 0.392685136072398,
+                "log": 1.0146885950394429
+              },
+              "joint": {
+                "mean_probability": 0.644373999340547,
+                "brier": 0.45054383554827465,
+                "log": 1.1720830088760745
+              },
+              "actual_final": {
+                "mean_probability": 0.7040435540615927,
+                "brier": 0.5338705138913746,
+                "log": 1.4207991266515396
+              }
+            }
+          }
+        },
+        "original_batch_loss": {
+          "initial": 0.1708129686813735,
+          "head": 0.17133643398079942,
+          "query": 0.17728838165539818,
+          "joint": 0.1893185523236233,
+          "actual_final": 0.20014093308324232
+        },
+        "ordered_loss_changes": {
+          "head_minus_initial": 0.0005234652994259292,
+          "query_minus_head": 0.005951947674598751,
+          "joint_minus_query": 0.01203017066822512,
+          "actual_final_minus_joint": 0.010822380759619027
+        }
+      },
+      "future_H1_side": {
+        "groups": {
+          "ALL": {
+            "rows": 11,
+            "observed_positive": 0.45454545454545453,
+            "mean_logit_effects": {
+              "actual": 0.7548765580762516,
+              "head": 0.07673674152267705,
+              "query": 0.1637276322932003,
+              "joint": 0.16890828585931336,
+              "upstream_and_rounding": 0.34550389840106094
+            },
+            "scores": {
+              "initial": {
+                "mean_probability": 0.48465295986600804,
+                "brier": 0.29835057302385887,
+                "log": 0.7928473601711847
+              },
+              "head": {
+                "mean_probability": 0.5023381363251023,
+                "brier": 0.30093599636166396,
+                "log": 0.7997218823213808
+              },
+              "query": {
+                "mean_probability": 0.5392710630633468,
+                "brier": 0.31137667180464207,
+                "log": 0.8281887856661285
+              },
+              "joint": {
+                "mean_probability": 0.5748970724454918,
+                "brier": 0.3256025533048604,
+                "log": 0.8717938098238925
+              },
+              "actual_final": {
+                "mean_probability": 0.6439328560538331,
+                "brier": 0.32762879025553526,
+                "log": 0.9064374837998819
+              }
+            }
+          },
+          "POSITIVE": {
+            "rows": 5,
+            "observed_positive": 1.0,
+            "mean_logit_effects": {
+              "actual": 0.8092768013477325,
+              "head": 0.07167496788825675,
+              "query": 0.14647480635988025,
+              "joint": 0.15571778830519045,
+              "upstream_and_rounding": 0.4354092387944051
+            },
+            "scores": {
+              "initial": {
+                "mean_probability": 0.45028765425308326,
+                "brier": 0.31120009168750445,
+                "log": 0.8199792616470244
+              },
+              "head": {
+                "mean_probability": 0.46744499720956173,
+                "brier": 0.2928646363722231,
+                "log": 0.7815181426471433
+              },
+              "query": {
+                "mean_probability": 0.5025740189347293,
+                "brier": 0.25794131130362785,
+                "log": 0.7086976366586912
+              },
+              "joint": {
+                "mean_probability": 0.5389449110481546,
+                "brier": 0.22695380786351427,
+                "log": 0.6429877119068699
+              },
+              "actual_final": {
+                "mean_probability": 0.635107599271359,
+                "brier": 0.14974481328366357,
+                "log": 0.4748300342654326
+              }
+            }
+          },
+          "NEGATIVE": {
+            "rows": 6,
+            "observed_positive": 0.0,
+            "mean_logit_effects": {
+              "actual": 0.7095430220166842,
+              "head": 0.08095488621802731,
+              "query": 0.17810498723763368,
+              "joint": 0.1799003671544158,
+              "upstream_and_rounding": 0.27058278140660746
+            },
+            "scores": {
+              "initial": {
+                "mean_probability": 0.5132907145434454,
+                "brier": 0.2876426408041542,
+                "log": 0.7702374422746517
+              },
+              "head": {
+                "mean_probability": 0.5314157522547195,
+                "brier": 0.307662129686198,
+                "log": 0.8148916653832452
+              },
+              "query": {
+                "mean_probability": 0.5698519331705278,
+                "brier": 0.35590613888882056,
+                "log": 0.9277647431723265
+              },
+              "joint": {
+                "mean_probability": 0.6048572069432728,
+                "brier": 0.4078098411726488,
+                "log": 1.062465558088078
+              },
+              "actual_final": {
+                "mean_probability": 0.6512872367058948,
+                "brier": 0.475865437732095,
+                "log": 1.2661103584119229
+              }
+            }
+          }
+        },
+        "original_batch_loss": {
+          "initial": 0.1438479508976088,
+          "head": 0.14642236877075954,
+          "query": 0.15353897034378725,
+          "joint": 0.16220597627165487,
+          "actual_final": 0.17190870943422568
+        },
+        "ordered_loss_changes": {
+          "head_minus_initial": 0.0025744178731507417,
+          "query_minus_head": 0.007116601573027709,
+          "joint_minus_query": 0.008667005927867621,
+          "actual_final_minus_joint": 0.009702733162570809
+        }
+      }
+    },
+    "limitations": [
+      "Only48dependentTRAINrows from fixed originalB16batches0,123,246; no inference for the other4048rows, fullprefix, fullhistory or generalization.",
+      "Oldpaired phase1 and originalshortFINAL weights are not used; only activityvariant INITIAL/FINAL checkpoints.",
+      "Axis/target fields, originalside outputs and bothM5initial headinputs are byteexact. Oldsharedactivity logits have the previouslyqualified cloning tolerance; allTFrepresentation replay is separately bounded at2e-6.",
+      "Explicit order head then queryprojection then joint then upstream residual. Different order would redistribute interactions; no unique historical optimizer or loss-task cause.",
+      "Joint effect compares retainedactualINITIAL512Dsource under INITIAL/FINAL LayerNorm/Linear/GELU with FINALquery/head. Residual includes preceding encoder/fusion changes and measured numerical replay/anchor mismatch; no individualfamilyutility claim.",
+      "No model change, candidate selection, fit, TEST, economicedge or promotion."
+    ],
+    "critical_coverage_gap": "S/D1has14informativeACTIVE and0FLAT rows; this pilot cannot explain thefullprefix215FLAT regression.",
+    "conclusions": [
+      "S/D1 has14informative rows, allACTIVE; upward drift improves activity loss here. No evidence on the215FLAT regression.",
+      "F/M15 andF/H1 have15and11known directions; query, joint and upstream residual each raise meanlogit and side loss in this explicit order.",
+      "No single cause isolated; residual includes rounding and interactions.",
+      "Next necessary coverage is all4096rows, ideally bothactual endpoints in one passive observation, with original raw/loss andINITIALhead-input parity before interpretation.",
+      "Supports further observation, not a model, loss-weight or training change."
+    ],
+    "test_data_used": false,
+    "training_authorized": false
   }
 }

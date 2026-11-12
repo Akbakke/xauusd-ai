@@ -6,7 +6,7 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_REPRESENTATION_DRIFT_UPSTREAM_OF_HEADS_MEASURED.
+TA_DIRECTION_EDGE_CAUSE_REPRESENTATION_DRIFT_FULL_BOUNDARY_COVERAGE_REQUIRED.
 Målet11.11 er aktivt: avklar målte årsaker til svak retningsverdi i indikatorer,
 sammensetting og læring. Korte runder er bevisst feilsøking, ikke kapasitetsdom.
 Full kvalifisert TRAIN-historikk og30–40epoker er senere skalering.
@@ -129,13 +129,21 @@ mot53,97%observert. Mellompunktet bruker FINALhoder på fast h0, ikke en nytrent
 Representasjonsresten bedrer noen kanaler og siste to kvartaler, men forverrer andre
 og første to kvartaler. Dette er ordnet endepunktregnskap, ikke unik kausal attribusjon.
 
-Neste minste kontroll er en retained pilot på48overlappende rader med lagret input
-før queryprojection. Krev først eksakt akse-/representasjonsparitet mot den nye fangsten.
-Deretter kan endret queryprojection skilles fra tidligere backbone/joint-endring
-med eksisterende vekter.48rader kan ikke representere hele4096prefixet; fullt
-prequery-input mangler. Post-Linear+GELU kan ikke inverteres entydig. Ingen ny native-
-observasjon, trening eller modellendring er innrømmet. Parameternormer alene beviser
-ikke årsak; verken full representasjonsfrys eller bare biasrettelse er begrunnet.
+Retained48pilot er nå PASS444089b4:3NPZ/2CPUcheckpoints,0modeller/forwards/trening.
+Originale batcher0/123/246;10akse-/targetfelt, alle sideoutputs og beggeM5h0 byteeksakte.
+Maks initialjoint-hidden-replay1,583e-6, allTFh0-replay7,63e-7, raw3,58e-7,
+alignment4,32e-7 og opprinnelig batchtap2,41e-7. Gammel FINAL-fase er ikke brukt.
+S/D1har kun14informative rader, alleACTIVE og0FLAT; oppforskyvningen bedrer tapet
+på disse. Piloten kan derfor ikke forklare de215FLAT-tilfellene i fullprefixet.
+F/M15-H1har bare15/11kjente retninger: queryprojection, joint og tidligere restledd
+øker både middel-logit og sidetap i valgt rekkefølge. Ingen enkelt årsak er isolert.
+
+Neste kontroll må dekke hele4096prefixet. Kvalifiser én passiv observasjon som
+fanger128Djoint-hidden og512Djoint-source ved begge faktiske INITIAL/FINAL-endepunkter,
+med eksisterende inputs/checkpoints. Dette unngår nye separate delvise captures og
+muliggjør begge ordener med eksplisitte interaksjoner. Alle12originalfelt/256batchtap
+per endepunkt og de allerede verifiserte INITIALh0 må være byteeksakte først.
+Ingen ny native-/datajobb, trening, arkitektur- eller tapsendring er innrømmet.
 
 ## Kvalifisering og ubeviste grenser
 

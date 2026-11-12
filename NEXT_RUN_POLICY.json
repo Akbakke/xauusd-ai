@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-11T22:53:26.085246+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_REPRESENTATION_DRIFT_UPSTREAM_OF_HEADS_MEASURED",
+  "status": "TA_DIRECTION_EDGE_CAUSE_REPRESENTATION_DRIFT_FULL_BOUNDARY_COVERAGE_REQUIRED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1705,7 +1705,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Dedicated activity-bias Adam reconstruction, full4096 INITIAL parity/passive representation capture, and ordered all20channel head/representation accounting are complete. Head changes at fixed initial representations improve totalTRAINloss; actual final representation drift reverses this overall. Queryprojection versus upstreambackbone/joint remains unresolved. No native observation or training is admitted.",
+    "current_activity": "Full4096 head/representation accounting and retained48 prequery/joint pilot are complete. The pilot has14S/D1ACTIVE and0FLAT cases, so it cannot explain the215FLAT regression. F/M15-H1query,joint andearlier paths contribute on15/11known directions only. Qualify fullprefix paired boundary observation next; no newnative execution, training ormodel change admitted.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -9229,7 +9229,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Qualify a retained-only48overlapping-row prequery pilot against the newly verified INITIAL representations/axes before interpreting it. Separate queryprojection changes from upstreambackbone/joint changes with retainedINITIAL/FINALprojection andFINALheads if parity holds. Do not extrapolate48rows to the full4096prefix or invertGELU. Fullprefixprequery input is missing; no additional native observation, training or model change is admitted. Preserve genuinefeatures/timeframes, original loss and sealedTEST; full-history30-40epoch fit remains later qualification work.",
+    "next_action": "Qualify one new passive paired actualINITIAL/FINAL prequery/joint boundary observation over all4096usedTRAIN rows, reusing existing inputs and checkpoints. Include128Djoint-hidden and512Djoint-source at both endpoints in one observation to avoid repeated partial captures. Require all original12raw/axis/target fields and256batchlosses byteexact per endpoint and allINITIALhead inputs byteexact to the verifiedfullcapture; preserve weights/buffers/RNG/flags/hooks per phase and the explicit weights-only endpoint transition. Fullcoverage is necessary because the retained48row pilot has0D1FLAT cases. No native/data run, training, model/loss change, full-history fit orTEST use is yet admitted.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22144,7 +22144,7 @@
     },
     "direction_edge_cause_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "2d5a3bd683050184bd5243a6ac492c65108995cb131f465662d3c4c6aa93e3db"
+      "sha256": "cc673760a62595acff1000f8a954091f1ab427b8ea1a2fa181fc2ab5b4ad68db"
     },
     "latest_c171_startup_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_C171_SHORT_LEARNING_STARTUP_REVIEW.json",
@@ -22226,11 +22226,11 @@
     },
     "latest_tf_activity_decoder_repair": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
-      "sha256": "23870496f91bca9658888acc864d08479d1101ec005e2e355202838c1dbe9283"
+      "sha256": "9d47252cde01378af23a04b0da5215ceff69c85efb5c79bd718a9c2e496172b4"
     },
     "latest_tf_activity_initial_parity": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
-      "sha256": "23870496f91bca9658888acc864d08479d1101ec005e2e355202838c1dbe9283"
+      "sha256": "9d47252cde01378af23a04b0da5215ceff69c85efb5c79bd718a9c2e496172b4"
     },
     "latest_tf_activity_short_qualification": {
       "status": "PASS_SOURCE_AND_METADATA_QUALIFIED_NATIVE_NOT_ADMITTED",
@@ -22281,7 +22281,7 @@
     },
     "latest_tf_activity_short_learning": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
-      "sha256": "6398c67d37511baa629ac9662e9c9123ce2979d1b515cdb76f6a0436c971df93"
+      "sha256": "2ff2c69a5cb34a587db2e0d4f59899502346dcd99c34075cef119165d53b5572"
     },
     "latest_tf_activity_residual_class_review": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/SD1_ACTIVITY_RESIDUAL_CLASS_REVIEW.json",
@@ -22302,6 +22302,10 @@
     "latest_tf_activity_initial_inputs_guard": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001/GUARD_TERMINAL_REVIEW.json",
       "sha256": "064170e15f15f6761d885b9f3d1e7459f7e11fb799e4eb942877a580b47e1c90"
+    },
+    "latest_tf_activity_retained_prequery_joint_pilot": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001/PREQUERY48_REVIEW.json",
+      "sha256": "444089b42894bd4c2906c6f9cd9b36cc0e9d463cdb6e9ae8ec5f8f8da0a18c34"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -75641,24 +75645,24 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_QUERY_PROJECTION_ENCODER_LOCALIZATION",
+    "status": "ACTIVE_FULL_PREFIX_BOUNDARY_OBSERVATION_QUALIFICATION",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
     "training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "2d5a3bd683050184bd5243a6ac492c65108995cb131f465662d3c4c6aa93e3db"
+      "sha256": "cc673760a62595acff1000f8a954091f1ab427b8ea1a2fa181fc2ab5b4ad68db"
     },
     "integrator": "root",
     "model_or_data_run_admitted": false,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Qualify a retained-only48overlapping-row prequery pilot against the newly verified INITIAL representations/axes before interpreting it. Separate queryprojection changes from upstreambackbone/joint changes with retainedINITIAL/FINALprojection andFINALheads if parity holds. Do not extrapolate48rows to the full4096prefix or invertGELU. Fullprefixprequery input is missing; no additional native observation, training or model change is admitted. Preserve genuinefeatures/timeframes, original loss and sealedTEST; full-history30-40epoch fit remains later qualification work.",
+    "next_action": "Qualify one new passive paired actualINITIAL/FINAL prequery/joint boundary observation over all4096usedTRAIN rows, reusing existing inputs and checkpoints. Include128Djoint-hidden and512Djoint-source at both endpoints in one observation to avoid repeated partial captures. Require all original12raw/axis/target fields and256batchlosses byteexact per endpoint and allINITIALhead inputs byteexact to the verifiedfullcapture; preserve weights/buffers/RNG/flags/hooks per phase and the explicit weights-only endpoint transition. Fullcoverage is necessary because the retained48row pilot has0D1FLAT cases. No native/data run, training, model/loss change, full-history fit orTEST use is yet admitted.",
     "active_stage": "market_state_ta_tf_activity_initial_inputs_20261112_001",
-    "previous_goal_turn_classification": "PROGRESS_SD1_BIAS_ATTRIBUTION_VERIFIED_ONE_INITIAL_INPUT_CAPTURE_QUALIFIED_AND_ADMITTED",
-    "last_goal_turn_classification": "PROGRESS_FULL_INITIAL_PARITY_AND_ORDERED_ALL20CHANNEL_ATTRIBUTION_LOCALIZE_REPRESENTATION_DRIFT",
+    "previous_goal_turn_classification": "PROGRESS_FULL_INITIAL_PARITY_AND_ORDERED_ALL20CHANNEL_ATTRIBUTION_LOCALIZE_REPRESENTATION_DRIFT",
+    "last_goal_turn_classification": "PROGRESS_RETAINED48_PREQUERY_JOINT_PILOT_QUALIFIED_AND_ZERO_FLAT_COVERAGE_MEASURED",
     "latest_tail_factor_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_ALL_TF_TAIL_FACTOR_REVIEW.json",
       "sha256": "5da978f765b0ad1ac001023501be7665989270d8353d768b801b9e1b29406c0f"
@@ -75685,11 +75689,11 @@
     },
     "tf_activity_decoder_repair": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
-      "sha256": "23870496f91bca9658888acc864d08479d1101ec005e2e355202838c1dbe9283"
+      "sha256": "9d47252cde01378af23a04b0da5215ceff69c85efb5c79bd718a9c2e496172b4"
     },
     "tf_activity_short_learning": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
-      "sha256": "6398c67d37511baa629ac9662e9c9123ce2979d1b515cdb76f6a0436c971df93"
+      "sha256": "2ff2c69a5cb34a587db2e0d4f59899502346dcd99c34075cef119165d53b5572"
     }
   },
   "market_state_ta_fusion_observation_20261111_001": {
@@ -76942,7 +76946,7 @@
     },
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "2d5a3bd683050184bd5243a6ac492c65108995cb131f465662d3c4c6aa93e3db"
+      "sha256": "cc673760a62595acff1000f8a954091f1ab427b8ea1a2fa181fc2ab5b4ad68db"
     },
     "full_model_constructions": 0,
     "native_model_forwards": 0,
@@ -78433,7 +78437,7 @@
     "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_MECHANICAL_20261112_001",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
-      "sha256": "23870496f91bca9658888acc864d08479d1101ec005e2e355202838c1dbe9283"
+      "sha256": "9d47252cde01378af23a04b0da5215ceff69c85efb5c79bd718a9c2e496172b4"
     },
     "activity_pressure_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ACTIVITY_PRESSURE_REVIEW.json",
@@ -78972,7 +78976,7 @@
     },
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
-      "sha256": "6398c67d37511baa629ac9662e9c9123ce2979d1b515cdb76f6a0436c971df93"
+      "sha256": "2ff2c69a5cb34a587db2e0d4f59899502346dcd99c34075cef119165d53b5572"
     },
     "retained_trace_coverage": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/TRACE_RETAINED_COVERAGE.json",
@@ -79314,6 +79318,6 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001/AFFINE_ENDPOINT_REVIEW.json",
       "sha256": "fb695cf6aec709661f51fd7675eadeba03d0e5aceec2bd2dc65f7d3de07058a2"
     },
-    "next_action": "Qualify a retained-only48overlapping-row prequery pilot against the newly verified INITIAL representations/axes before interpreting it. Separate queryprojection changes from upstreambackbone/joint changes with retainedINITIAL/FINALprojection andFINALheads if parity holds. Do not extrapolate48rows to the full4096prefix or invertGELU. Fullprefixprequery input is missing; no additional native observation, training or model change is admitted. Preserve genuinefeatures/timeframes, original loss and sealedTEST; full-history30-40epoch fit remains later qualification work."
+    "next_action": "Qualify one new passive paired actualINITIAL/FINAL prequery/joint boundary observation over all4096usedTRAIN rows, reusing existing inputs and checkpoints. Include128Djoint-hidden and512Djoint-source at both endpoints in one observation to avoid repeated partial captures. Require all original12raw/axis/target fields and256batchlosses byteexact per endpoint and allINITIALhead inputs byteexact to the verifiedfullcapture; preserve weights/buffers/RNG/flags/hooks per phase and the explicit weights-only endpoint transition. Fullcoverage is necessary because the retained48row pilot has0D1FLAT cases. No native/data run, training, model/loss change, full-history fit orTEST use is yet admitted."
   }
 }
