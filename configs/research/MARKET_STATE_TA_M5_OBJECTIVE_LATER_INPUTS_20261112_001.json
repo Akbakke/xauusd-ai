@@ -1,0 +1,931 @@
+{
+  "caches": {
+    "D1": {
+      "feats": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/D1_feats.npy",
+        "sha256": "d4b9fba04d89843fc119906053d2ea42feed70c568807eaefca6f0f9ddf457f5"
+      },
+      "ts": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/D1_ts.npy",
+        "sha256": "e3ed0e97376b178a2629341df88f859182a269b85ed19cd8cad3808c154d2a0f"
+      }
+    },
+    "H1": {
+      "feats": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/H1_feats.npy",
+        "sha256": "bd18f0654c6773780434af8a1b300b4e225c044fa7bde826150de35b6d5e5e06"
+      },
+      "ts": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/H1_ts.npy",
+        "sha256": "31acc8191749845ac19d9e40194d74f2a96f3f09c878f3eff45aeef73aa30109"
+      }
+    },
+    "H4": {
+      "feats": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/H4_feats.npy",
+        "sha256": "83db5ba4f928283224efd92c0a849dd4e045f497b15bff3608361afe4b45abf0"
+      },
+      "ts": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/H4_ts.npy",
+        "sha256": "e7dc88e6c93f1868349f9b3746cebbdb1c4e0640a0e1fd32c8efbbdc72bcd71f"
+      }
+    },
+    "M15": {
+      "feats": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/M15_feats.npy",
+        "sha256": "eaf89c6c37469d2776a43d5bf9eb41b7af761b6e6943c84bac95b455d024d468"
+      },
+      "ts": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/M15_ts.npy",
+        "sha256": "99c8c3b4e5419d884b19def99458f1e6f72b40911d6199e315556ce68a50acf5"
+      }
+    },
+    "M5": {
+      "feats": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/M5_feats.npy",
+        "sha256": "d62a543876c744218e9ee4f8b94ec8612cdf249f27e4ab60ef6f24afcf40eeb7"
+      },
+      "ts": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/M5_ts.npy",
+        "sha256": "bca1c92a25e3daf81c358b60558b2e0600723b62bfa6d8cc29c48b3e4032bf69"
+      }
+    }
+  },
+  "envelope_rule": "contiguous_clock_envelopes_verified_by_native_windows_after_replay",
+  "execution": {
+    "job_class": "audit",
+    "kill_after_seconds": 10,
+    "memory": "4G",
+    "module": "gx1.audit.qualify_market_state_ta_benchmark_later_inputs_v1",
+    "runner": "scripts/gx1_capped_run.sh",
+    "swap": "512M",
+    "timeout_seconds": 1800
+  },
+  "full_axes": {
+    "bar_start_ns_sha256": "e5d528ff8fcec2b23f0099834b1c5b42a12489dadfada0a6fc4aeab3b6ff4c5d",
+    "decision_ns_sha256": "6430991e6af9acf67228afaf85bda5a92a20965c0359c8624777da6c79a062ca",
+    "parent_rows_sha256": "f39321ccddb1f6c044ebd375afc92de4347260bc0bc42d276fcc2bebcfd50b84",
+    "rows": 118249,
+    "source": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_DATA_20261024_245/OUTPUT/PRICE_TARGETS.npz",
+      "sha256": "9d4a5fb3c473b088aff5a5d5a176c199a64053b679229c14f125697b93af577d"
+    }
+  },
+  "inputs": {
+    "decode_reuse_binding": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/DECODE_REUSE_BINDING.json",
+      "sha256": "48a86db06160126a5a0fab0b6d74f4bd8bd4e24493e1e4fabad97f431ba0a2be"
+    },
+    "enriched": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/M5_ENRICHED.parquet",
+      "sha256": "5e5cb256fc60a5e9a7ffe1a161aa875660f01806b8e8de2bf601fc2f528e7f99"
+    },
+    "enriched_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/M5_ENRICHED.parquet.manifest.json",
+      "sha256": "d1c0f94bcfa7c837143b287fc8a4355e3ea564cffcbae2d96c53c64e7bb62de6"
+    },
+    "feature_view": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001/FEATURE_VIEW.json",
+      "sha256": "2b15bcfe7fec09d83dfc6af71fe406b6c8153aa5d0a5d9262d112fea3ace3d60"
+    },
+    "local_producer_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_LOCAL_TRENDLINE_FORMULA_DIAGNOSTIC_20261108_001.json",
+      "sha256": "a2e0339e3da63279ef4329377b90758f2b47620d5ddca608b16c0d09e01405df"
+    },
+    "native_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/MANIFEST.json",
+      "sha256": "ca0012e5e30f7808876d666fe4d32e3fb873fddb6fc6178bd47b97eb89194cca"
+    },
+    "native_parts": [
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2009/part-000.parquet",
+        "sha256": "768566439ecdae2d75f9a4ded1fa95efe6ef65feffebf2a2190cbb2899be6373"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2010/part-000.parquet",
+        "sha256": "20a4b0f2e7d6005dbf4652b65d89744b94eed293eaa908c36b3f0af835474ee8"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2011/part-000.parquet",
+        "sha256": "af7e354c5689b80772e1e03749d78ce5534e22dee8db28c927a772c1d87d9c8c"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2012/part-000.parquet",
+        "sha256": "107aa87c79ea887a577333c684e9e5abf51dd605dbc4af447cfcbab376606f5a"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2013/part-000.parquet",
+        "sha256": "7d0c46ccdfff4aa873a73f9471d64e2eaa540722efe73d7c3d74acc475e70d6a"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2014/part-000.parquet",
+        "sha256": "fca88c77787f57a0ae0b95e3d5a2af8567305d18f9fa1b7bf121d161ff3eb1b5"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2015/part-000.parquet",
+        "sha256": "9aa853f58956e28c33a309e8bee00e2f58c8bffd7d0cd07a2366b539252a7b5a"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2016/part-000.parquet",
+        "sha256": "a5ed0e8f5d308d85ab43c80cbd244eab1486a5c7aa214040547ab57da48d786d"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2017/part-000.parquet",
+        "sha256": "b9389dd32520049e6fcb2981f59db6f6c393b83e9028c4686d10bec4b8833c30"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2018/part-000.parquet",
+        "sha256": "afdde5b4593a47035f304e8a06565250cc2f48238eb7fba1567215d11fceb64f"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2019/part-000.parquet",
+        "sha256": "f9ac110a6be9d70c126271d3f0190c4260cb00c9e841de21e7e80ae97a3b971e"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2020/part-000.parquet",
+        "sha256": "4df370d2dd54b82bbe5fd277ecbafad5d92597e4751272c226722eec6619ccce"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2021/part-000.parquet",
+        "sha256": "d1ddb6987cf6e8011ed37d29ca4d4817f3ee94a04220c7f37df0fe878bc2febe"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2022/part-000.parquet",
+        "sha256": "bfe5ffa734c3bea5434c7cb6a98f2cf1a37e00b68c00045b6d1a536919e10e0e"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2023/part-000.parquet",
+        "sha256": "09c9591ab93a742ba0ecf8833baa3812dca880230b8134fd0c9c8ef6b1e589fe"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2024/part-000.parquet",
+        "sha256": "e08957b10dc2023c8c0bc438704cdf868e8df4c2f07f0ad7526fc20bda51abbf"
+      }
+    ],
+    "old_normalization": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_MATURE_FOLD1_NORMALIZATION_20261107_001/PREFIX_NORMALIZATION_FOLD_1.json",
+      "sha256": "e24a2b8d1ae09f6f10c2de7a7097353b52aa2f2118287535e242778272022d54"
+    },
+    "parent_input_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001.json",
+      "sha256": "889161060a9abb9c028abffe3246420f06a63891ee9a51305d3e8173d970fbf1"
+    },
+    "parent_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001/RESULT.json",
+      "sha256": "8878d17a5bf114fcf9cd5eb0e74792ddc5df068b95b67951b594759d5b2b05bb"
+    },
+    "registry_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/manifest.json",
+      "sha256": "3f4c3b4b54b08931850b716e0b7cf4b5de0b54c42b0fee813cde6f1324371da4"
+    },
+    "source_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/SURFACES_050/M5_FEATURE_BASE_050.parquet.manifest.json",
+      "sha256": "2faacdca663e3192e0fd17ef877ef2ca6527b6fc0b9e156e714251a13fc19283"
+    },
+    "source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_IDENTITY_SOURCE_20261112_001/SOURCE_QUALIFICATION.json",
+      "sha256": "4193e7c723c5b655876c6dc55d6148b2061b80523212db7cea07f32272566d48"
+    },
+    "ta_normalization": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_20261112_001/TA_INPUT_NORMALIZATION.json",
+      "sha256": "02eca0cceec636a39b57cb12d55aa07f458653e289d6c5f57b16811e61438693"
+    }
+  },
+  "legacy_names": [
+    "geomline_above_active_count",
+    "geomline_above_dist_atr",
+    "geomline_above_slope_atr_per_bar",
+    "geomline_above_touch_count",
+    "geomline_above_age_bars",
+    "geomline_above_last_touch_age_bars",
+    "geomline_above_max_dev_atr",
+    "geomline_below_active_count",
+    "geomline_below_dist_atr",
+    "geomline_below_slope_atr_per_bar",
+    "geomline_below_touch_count",
+    "geomline_below_age_bars",
+    "geomline_below_last_touch_age_bars",
+    "geomline_below_max_dev_atr",
+    "geomline_touch_above",
+    "geomline_touch_below",
+    "geomline_break_up",
+    "geomline_break_down",
+    "geomline_break_line_touch_count",
+    "geomline_break_line_age_bars",
+    "geomline_retest_hold_up",
+    "geomline_retest_fail_up",
+    "geomline_retest_hold_down",
+    "geomline_retest_fail_down",
+    "geomline_bars_since_break_signed",
+    "geomchan_active",
+    "geomchan_width_atr",
+    "geomchan_pos_0_1",
+    "geomchan_slope_atr_per_bar",
+    "geomchan_converging",
+    "geomchan_apex_proximity"
+  ],
+  "local_clock_path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/SURFACES_050/M5_FEATURE_BASE_050.parquet",
+  "local_clock_stat": {
+    "st_ctime_ns": 1792368078588116277,
+    "st_dev": 2096,
+    "st_ino": 266046,
+    "st_mode": 33188,
+    "st_mtime_ns": 1792354440600082947,
+    "st_size": 2460288630
+  },
+  "local_sequence_rows": 96,
+  "local_signal": {
+    "columns": [
+      101,
+      102,
+      103,
+      104,
+      105,
+      106,
+      107,
+      108,
+      109,
+      110,
+      111,
+      112,
+      113,
+      114,
+      115,
+      116,
+      117,
+      118,
+      119,
+      120,
+      121,
+      122,
+      123,
+      124,
+      125,
+      126,
+      127,
+      128,
+      129,
+      130,
+      131
+    ],
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_NORMALIZATION_20261024_261/SUPPORT_SCRATCH/source050/signal.mmap",
+    "shape": [
+      1140763,
+      2725
+    ],
+    "stat": {
+      "st_ctime_ns": 1792854110535077629,
+      "st_dev": 2096,
+      "st_ino": 2013,
+      "st_mode": 33060,
+      "st_mtime_ns": 1792854110017618071,
+      "st_size": 12434316700
+    }
+  },
+  "mtf_legacy_columns": [
+    159,
+    160,
+    161,
+    162,
+    163,
+    164,
+    165,
+    166,
+    167,
+    168,
+    169,
+    170,
+    171,
+    172,
+    173,
+    174,
+    175,
+    176,
+    177,
+    178,
+    179,
+    180,
+    181,
+    182,
+    183,
+    184,
+    185,
+    186,
+    187,
+    188,
+    189
+  ],
+  "normalization_prefix": {
+    "bar_start_ns_sha256": "4031eb33963b717f0e2bdf9082d8d38c476b3db7beb6a10dc0e3c03329f1b6d1",
+    "cutoff_ns": 1727654400000000000,
+    "decision_ns_sha256": "ebb3489c45b01b6fd8e77bf27529d650beb6883ba84b57ee936dc549ec74e427",
+    "first_decision_ns": 1714521900000000000,
+    "last_decision_ns": 1727654100000000000,
+    "parent_rows_sha256": "1c5a8c36a94b8fa39d613f0bc122cf869dc9fa3c2f87dc64c0506acd2f55a90f",
+    "rows": 29574,
+    "selection": "all_D_strictly_less_than_cutoff_no_labels"
+  },
+  "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_LATER_INPUTS_20261112_001",
+  "parameters": {
+    "D1": {
+      "band_atr": 0.6968664882937518,
+      "seq_len": 252,
+      "swing_lookback": 3,
+      "timeframe": "D1"
+    },
+    "H1": {
+      "band_atr": 0.7319144469085033,
+      "seq_len": 96,
+      "swing_lookback": 3,
+      "timeframe": "H1"
+    },
+    "H4": {
+      "band_atr": 0.9971390001300923,
+      "seq_len": 96,
+      "swing_lookback": 3,
+      "timeframe": "H4"
+    },
+    "M15": {
+      "band_atr": 0.906513313573848,
+      "seq_len": 64,
+      "swing_lookback": 3,
+      "timeframe": "M15"
+    },
+    "M5": {
+      "band_atr": 0.9161632622285967,
+      "seq_len": 16,
+      "swing_lookback": 3,
+      "timeframe": "M5"
+    },
+    "local": {
+      "band_atr": 0.9865694402555613,
+      "seq_len": 96,
+      "swing_lookback": 3,
+      "timeframe": "M5"
+    }
+  },
+  "payload_stats": {
+    "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/M5_ENRICHED.parquet": {
+      "st_ctime_ns": 1792328818331006549,
+      "st_dev": 2096,
+      "st_ino": 178801,
+      "st_mode": 33188,
+      "st_mtime_ns": 1792328525017804287,
+      "st_size": 730577307
+    },
+    "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/D1_feats.npy": {
+      "st_ctime_ns": 1792328718558948768,
+      "st_dev": 2096,
+      "st_ino": 178833,
+      "st_mode": 33188,
+      "st_mtime_ns": 1792328718558948768,
+      "st_size": 4196892
+    },
+    "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/D1_ts.npy": {
+      "st_ctime_ns": 1792328718566283408,
+      "st_dev": 2096,
+      "st_ino": 178834,
+      "st_mode": 33188,
+      "st_mtime_ns": 1792328718566283408,
+      "st_size": 33304
+    },
+    "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/H1_feats.npy": {
+      "st_ctime_ns": 1792328718231949132,
+      "st_dev": 2096,
+      "st_ino": 178827,
+      "st_mode": 33188,
+      "st_mtime_ns": 1792328718231949132,
+      "st_size": 97139984
+    },
+    "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/H1_ts.npy": {
+      "st_ctime_ns": 1792328718290482455,
+      "st_dev": 2096,
+      "st_ino": 178828,
+      "st_mode": 33188,
+      "st_mtime_ns": 1792328718290482455,
+      "st_size": 768032
+    },
+    "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/H4_feats.npy": {
+      "st_ctime_ns": 1792328718487947047,
+      "st_dev": 2096,
+      "st_ino": 178830,
+      "st_mode": 33188,
+      "st_mtime_ns": 1792328718487947047,
+      "st_size": 25113920
+    },
+    "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/H4_ts.npy": {
+      "st_ctime_ns": 1792328718504230514,
+      "st_dev": 2096,
+      "st_ino": 178831,
+      "st_mode": 33188,
+      "st_mtime_ns": 1792328718504230514,
+      "st_size": 198656
+    },
+    "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/M15_feats.npy": {
+      "st_ctime_ns": 1792328717351956334,
+      "st_dev": 2096,
+      "st_ino": 178824,
+      "st_mode": 33188,
+      "st_mtime_ns": 1792328717351956334,
+      "st_size": 385598440
+    },
+    "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/M15_ts.npy": {
+      "st_ctime_ns": 1792328717499551124,
+      "st_dev": 2096,
+      "st_ino": 178825,
+      "st_mode": 33188,
+      "st_mtime_ns": 1792328717499551124,
+      "st_size": 3048336
+    },
+    "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/M5_feats.npy": {
+      "st_ctime_ns": 1792328714571985980,
+      "st_dev": 2096,
+      "st_ino": 178821,
+      "st_mode": 33188,
+      "st_mtime_ns": 1792328714571985980,
+      "st_size": 1154673912
+    },
+    "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/M5_ts.npy": {
+      "st_ctime_ns": 1792328714963981661,
+      "st_dev": 2096,
+      "st_ino": 178822,
+      "st_mode": 33188,
+      "st_mtime_ns": 1792328714963981661,
+      "st_size": 9127984
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2009/part-000.parquet": {
+      "st_ctime_ns": 1790525241580275294,
+      "st_dev": 2096,
+      "st_ino": 349589,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241580275294,
+      "st_size": 1667359
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2010/part-000.parquet": {
+      "st_ctime_ns": 1790525241580275294,
+      "st_dev": 2096,
+      "st_ino": 349605,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241580275294,
+      "st_size": 2819570
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2011/part-000.parquet": {
+      "st_ctime_ns": 1790525241580275294,
+      "st_dev": 2096,
+      "st_ino": 349631,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241580275294,
+      "st_size": 3542355
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2012/part-000.parquet": {
+      "st_ctime_ns": 1790525241580275294,
+      "st_dev": 2096,
+      "st_ino": 349658,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241580275294,
+      "st_size": 3684557
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2013/part-000.parquet": {
+      "st_ctime_ns": 1790525241580275294,
+      "st_dev": 2096,
+      "st_ino": 349684,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241580275294,
+      "st_size": 3657674
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2014/part-000.parquet": {
+      "st_ctime_ns": 1790525241580275294,
+      "st_dev": 2096,
+      "st_ino": 349710,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241580275294,
+      "st_size": 3629745
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2015/part-000.parquet": {
+      "st_ctime_ns": 1790525241580275294,
+      "st_dev": 2096,
+      "st_ino": 349737,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241580275294,
+      "st_size": 3621036
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2016/part-000.parquet": {
+      "st_ctime_ns": 1790525241580275294,
+      "st_dev": 2096,
+      "st_ino": 349763,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241580275294,
+      "st_size": 3630928
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2017/part-000.parquet": {
+      "st_ctime_ns": 1790525241580275294,
+      "st_dev": 2096,
+      "st_ino": 349789,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241580275294,
+      "st_size": 3615959
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2018/part-000.parquet": {
+      "st_ctime_ns": 1790525241580275294,
+      "st_dev": 2096,
+      "st_ino": 349816,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241580275294,
+      "st_size": 3609720
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2019/part-000.parquet": {
+      "st_ctime_ns": 1790525241583669170,
+      "st_dev": 2096,
+      "st_ino": 349842,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241583669170,
+      "st_size": 3596954
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2020/part-000.parquet": {
+      "st_ctime_ns": 1790525241583669170,
+      "st_dev": 2096,
+      "st_ino": 349868,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241583669170,
+      "st_size": 3664392
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2021/part-000.parquet": {
+      "st_ctime_ns": 1790525241583669170,
+      "st_dev": 2096,
+      "st_ino": 349895,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241583669170,
+      "st_size": 3569072
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2022/part-000.parquet": {
+      "st_ctime_ns": 1790525241583669170,
+      "st_dev": 2096,
+      "st_ino": 357542,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241583669170,
+      "st_size": 3512938
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2023/part-000.parquet": {
+      "st_ctime_ns": 1790525241583669170,
+      "st_dev": 2096,
+      "st_ino": 357749,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241583669170,
+      "st_size": 3204888
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2024/part-000.parquet": {
+      "st_ctime_ns": 1790525241583669170,
+      "st_dev": 2096,
+      "st_ino": 357776,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241583669170,
+      "st_size": 3196738
+    }
+  },
+  "registry_names": [
+    "geomline_above_active_count",
+    "geomline_above_dist_atr",
+    "geomline_above_slope_atr_per_bar",
+    "geomline_above_touch_count",
+    "geomline_above_age_bars",
+    "geomline_above_last_touch_age_bars",
+    "geomline_above_max_dev_atr",
+    "geomline_above_anchor_span_bars",
+    "geomline_below_active_count",
+    "geomline_below_dist_atr",
+    "geomline_below_slope_atr_per_bar",
+    "geomline_below_touch_count",
+    "geomline_below_age_bars",
+    "geomline_below_last_touch_age_bars",
+    "geomline_below_max_dev_atr",
+    "geomline_below_anchor_span_bars",
+    "geomline_touch_above",
+    "geomline_touch_below",
+    "geomline_break_up",
+    "geomline_break_down",
+    "geomline_break_line_touch_count",
+    "geomline_break_line_age_bars",
+    "geomline_retest_hold_up",
+    "geomline_retest_fail_up",
+    "geomline_retest_hold_down",
+    "geomline_retest_fail_down",
+    "geomline_bars_since_break_signed",
+    "geomchan_active",
+    "geomchan_width_atr",
+    "geomchan_pos_0_1",
+    "geomchan_slope_atr_per_bar",
+    "geomchan_converging",
+    "geomchan_apex_proximity"
+  ],
+  "schema_version": "gx1_ta_benchmark_later_input_plan_v1",
+  "scope": {
+    "batch_indices": [
+      0,
+      4,
+      8,
+      13,
+      17,
+      21,
+      26,
+      30,
+      34,
+      39,
+      43,
+      47,
+      52,
+      56,
+      60,
+      65,
+      69,
+      73,
+      78,
+      82,
+      86,
+      91,
+      95,
+      99,
+      104,
+      108,
+      112,
+      117,
+      121,
+      126,
+      130,
+      134,
+      139,
+      143,
+      147,
+      152,
+      156,
+      160,
+      165,
+      169,
+      173,
+      178,
+      182,
+      186,
+      191,
+      195,
+      199,
+      204,
+      208,
+      212,
+      217,
+      221,
+      225,
+      230,
+      234,
+      238,
+      243,
+      247,
+      252,
+      256,
+      260,
+      265,
+      269,
+      273,
+      278,
+      282,
+      286,
+      291,
+      295,
+      299,
+      304,
+      308,
+      312,
+      317,
+      321,
+      325,
+      330,
+      334,
+      338,
+      343,
+      347,
+      351,
+      356,
+      360,
+      364,
+      369,
+      373,
+      378,
+      382,
+      386,
+      391,
+      395,
+      399,
+      404,
+      408,
+      412,
+      417,
+      421,
+      425,
+      430,
+      434,
+      438,
+      443,
+      447,
+      451,
+      456,
+      460,
+      464,
+      469,
+      473,
+      477,
+      482,
+      486,
+      490,
+      495,
+      499,
+      504,
+      508,
+      512,
+      517,
+      521,
+      525,
+      530,
+      534,
+      538,
+      543,
+      547,
+      551,
+      556,
+      560,
+      564,
+      569,
+      573,
+      577,
+      582,
+      586,
+      590,
+      595,
+      599,
+      603,
+      608,
+      612,
+      617,
+      621,
+      625,
+      630,
+      634,
+      638,
+      643,
+      647,
+      651,
+      656,
+      660,
+      664,
+      669,
+      673,
+      677,
+      682,
+      686,
+      690,
+      695,
+      699,
+      703,
+      708,
+      712,
+      716,
+      721,
+      725,
+      729,
+      734,
+      738,
+      743,
+      747,
+      751,
+      756,
+      760,
+      764,
+      769,
+      773,
+      777,
+      782,
+      786,
+      790,
+      795,
+      799,
+      803,
+      808,
+      812,
+      816,
+      821,
+      825,
+      829,
+      834,
+      838,
+      842,
+      847,
+      851,
+      855,
+      860,
+      864,
+      869,
+      873,
+      877,
+      882,
+      886,
+      890,
+      895,
+      899,
+      903,
+      908,
+      912,
+      916,
+      921,
+      925,
+      929,
+      934,
+      938,
+      942,
+      947,
+      951,
+      955,
+      960,
+      964,
+      968,
+      973,
+      977,
+      981,
+      986,
+      990,
+      995,
+      999,
+      1003,
+      1008,
+      1012,
+      1016,
+      1021,
+      1025,
+      1029,
+      1034,
+      1038,
+      1042,
+      1047,
+      1051,
+      1055,
+      1060,
+      1064,
+      1068,
+      1073,
+      1077,
+      1081,
+      1086,
+      1090,
+      1094,
+      1099,
+      1103,
+      1108
+    ],
+    "batch_size": 16,
+    "checkpoint_reads": 0,
+    "fold_id": 1,
+    "model_constructions": 0,
+    "model_forwards": 0,
+    "new_registry_fields": 33,
+    "normalization_fits": 0,
+    "old_registry_fields": 31,
+    "optimizer_steps": 0,
+    "physical_envelopes": 6,
+    "producer_calls": 6,
+    "score_end_exclusive_ns": 1735689600000000000,
+    "score_parent_start": 29849,
+    "score_rows": 17753,
+    "score_start_ns": 1727740800000000000,
+    "selected_batches": 256,
+    "selected_parent_rows": 4096,
+    "target_arrays_decoded": 0,
+    "test_data_used": false
+  },
+  "source_base_head": "b6459b11936e49eb10b1f63a6df81471bef537d5",
+  "source_owners": {
+    "gx1/audit/qualify_market_state_ta_anchor_span_inputs_v1.py": "64182f0b25ec2d5426dd183f2c8e2e2254566b6f87d3065fa79277f8b9a7f411",
+    "gx1/audit/qualify_market_state_ta_benchmark_later_inputs_v1.py": "09c13c932500886afc032301f6636b9949ca35f54a5e5b7dc4d65635e4543213",
+    "gx1/contracts/entry_anchor_span_feature_inputs_v1.py": "062ca6dcfc995791c8cd86e658cd5fce87cbb2f13792b21bece83269460a336f",
+    "gx1/contracts/entry_anchor_span_normalization_v1.py": "c5fc8123c6472f197c24a8f952d9ddf2734df4cb75ffd40563f1221d7bfb34e1",
+    "gx1/contracts/entry_gc_mtf_history_v1.py": "25881da893bd09a48b6f6ef840947af611401ac6aa3059c795a99a127293f14c",
+    "gx1/contracts/entry_model_native_signal_v1.py": "2390e52858e953886a60c414bd8fc080564beec2868984359ef4ebc4b3e2671b",
+    "gx1/contracts/entry_native_direction_feature_view_v1.py": "0d8ba071e269d3c7c50c5875a9748af4c59a1d9382f710c27ca348d1a7dadfa9",
+    "gx1/contracts/gx1_capped_execution_v1.py": "60b1ccf2eda470a84ddded0d8160c628314ebb19f5766b87b70fef7c9aa3ccff",
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "gx1/features/entry_model_native_feature_layers_v1.py": "97f29b0ccc13a2fb98bcec2fc661a71b5e0ec3a3579afa220ad61972c6dd6ec4",
+    "gx1/features/entry_specialist_feature_groups_v1.py": "38da0c25aaadb2bd0108eb427578163aa76c73dd7fe9367aa86fed185a1e0f27",
+    "gx1/features/htf_features.py": "9ca968805e3eca72525e14c8b53e5b31817cd2baa7c0cdb9b636cb112f092520",
+    "gx1/features/technical_indicators_v1.py": "3a81bec825639e57a3071cc28d4dc2d3d394fef031dc89d71da3b468ca28ecad",
+    "gx1/features/trendline_registry_v1.py": "24c12e8d4c6f597a331dacecbdc5e9a9ed8fdf6c0b6798ee7c543884d04aee58",
+    "gx1/models/entry_v10/entry_v10_input_normalization.py": "b9bfa16cc61c3772a1621325c25f3ae0631c735b5f4b3dafdf0a5fe63558f148",
+    "gx1/scripts/audit_direction_d1_trendline_replay_v1.py": "afe228b61eb5ec5a10e39f80c1bf4131b806ebf95ea028c6545c74f89530b56a",
+    "scripts/gx1_capped_run.sh": "fa44c8241090fbd13fe55016d19ec56e50728aed0e238e43436885b8a42d069c",
+    "tests/test_market_state_ta_anchor_span_inputs_v1.py": "661ed55ca4cbdf7bd80bad59ef07e5deb37f4cadfa26fa1d5e406322a8731e99",
+    "tests/test_market_state_ta_benchmark_later_inputs_v1.py": "06cf00485aaed31586030ee4e3ae09798dd70117e29cba3eca0d446182d57045"
+  },
+  "stage": "market_state_ta_m5_objective_later_inputs_20261112_001",
+  "view_sha256": "c051b19f53c7d1f6d3b5aba4181d1b3368334a59c4b2eb736d9e0dbf71f688b2",
+  "window_rows": {
+    "D1": 252,
+    "H1": 96,
+    "H4": 96,
+    "M15": 64,
+    "M5": 16
+  }
+}

@@ -274,12 +274,30 @@ def publish_json(name, value):
     return ref(ROOT / name)
 
 
-def measure(plan):
+def measure(plan, *, ranges=None, cutoff=None, output_root=None):
     import pandas as pd
     from gx1.scripts.audit_direction_d1_trendline_replay_v1 import load_m5_prefix, load_native_parts_prefix
     from gx1.features.htf_features import build_multi_tf_v4_closed_timestamp_indices, _resample_ohlcv, multi_tf_resample
     from gx1.features.technical_indicators_v1 import wilder_atr, ema50_200_spread_atr_block
     from gx1.features.trendline_registry_v1 import compute_trendline_registry_features_v1
+
+    ranges = RANGES if ranges is None else ranges
+    cutoff = CUTOFF if cutoff is None else cutoff
+    output_root = ROOT if output_root is None else Path(output_root)
+    need(type(ranges) is dict and set(ranges) == {'local', *TFS}
+         and all(type(v) in (list, tuple) and len(v) == 2
+                 and all(type(i) is int for i in v) and 0 <= v[0] < v[1] for v in ranges.values())
+         and ranges == plan['scope']['ranges'] and type(cutoff) is int
+         and cutoff == plan['scope']['history_end_exclusive_ns']
+         and str(output_root) == plan['output_root'], 'EXPLICIT_REPLAY_SCOPE')
+
+    def publish_qualification(name, value):
+        if output_root == ROOT:
+            return publish_json(name, value)
+        raw = (json.dumps(value, sort_keys=True, indent=2, allow_nan=False) + '\n').encode()
+        need(len(raw) <= 2 * 1024**2, 'JSON_OUTPUT_BUDGET')
+        _publish_bytes(output_root / name, raw)
+        return ref(output_root / name)
 
     payloads = [plan['inputs']['enriched'], *plan['inputs']['native_parts'],
                 *(r for lane in plan['caches'].values() for r in lane.values())]
@@ -293,7 +311,8 @@ def measure(plan):
     stats[plan['local_clock_path']] = plan['local_clock_stat']
     native = None
     reports = {}
-    for lane, (left, right) in RANGES.items():
+    for lane in ('local', *TFS):
+        left, right = ranges[lane]
         started = time.monotonic()
         rows = np.arange(left, right, dtype=np.int64)
         if lane == 'local':
@@ -303,7 +322,7 @@ def measure(plan):
                              shape=tuple(plan['local_signal']['shape']))
             observed = np.ascontiguousarray(base[np.ix_(rows, plan['local_signal']['columns'])])
             del base, clock
-            bars, _ = load_m5_prefix(Path(plan['inputs']['enriched']['path']), CUTOFF)
+            bars, _ = load_m5_prefix(Path(plan['inputs']['enriched']['path']), cutoff)
             atr = wilder_atr(bars['high'], bars['low'], bars['close'], 14)
         else:
             cached_clock = np.load(plan['caches'][lane]['ts']['path'], mmap_mode='r', allow_pickle=False)
@@ -312,7 +331,7 @@ def measure(plan):
             observed = np.ascontiguousarray(base[np.ix_(rows, plan['mtf_legacy_columns'])], dtype=np.float32)
             del base, cached_clock
             if native is None:
-                native = load_native_parts_prefix(plan['inputs']['native_parts'], CUTOFF)
+                native = load_native_parts_prefix(plan['inputs']['native_parts'], cutoff)
                 native_indices = build_multi_tf_v4_closed_timestamp_indices(native.index)
             index = native_indices[lane]
             if lane == 'M5':
@@ -333,7 +352,7 @@ def measure(plan):
              and axis_sha(times + BAR_NS['M5' if lane == 'local' else lane] * 10**9) == pop['available_ns_sha256']
              and pd.Timestamp(int(times[0]), tz='UTC').isoformat() == pop['time_min_utc']
              and pd.Timestamp(int(times[-1]), tz='UTC').isoformat() == pop['time_max_utc']
-             and np.all(times + BAR_NS['M5' if lane == 'local' else lane] * 10**9 < CUTOFF),
+             and np.all(times + BAR_NS['M5' if lane == 'local' else lane] * 10**9 < cutoff),
              'PHYSICAL_TRAIN_POPULATION:' + lane)
         positions = selected_positions(bars.index.asi8, times)
         bars = bars.iloc[:int(positions[-1]) + 1]
@@ -349,14 +368,14 @@ def measure(plan):
         np.savez(buffer, row_indices=rows, times_ns=times, native_bar_positions=positions.astype(np.int64),
                  anchor_span_bars=spans)
         need(buffer.tell() <= 2 * 1024**2, 'ARRAY_OUTPUT_BUDGET')
-        _publish_bytes(ROOT / (lane + '_ANCHOR_SPANS.npz'), buffer.getvalue())
+        _publish_bytes(output_root / (lane + '_ANCHOR_SPANS.npz'), buffer.getvalue())
         reports[lane] = dict(population=pop, parity=parity, parameters=plan['parameters'][lane],
                              replay_rows=len(bars), first_replay_time_ns=int(bars.index.asi8[0]),
                              fresh_state_at_source_row_zero=True,
                              times_ns_sha256=axis_sha(times),
-                             artifact=ref(ROOT / (lane + '_ANCHOR_SPANS.npz')),
+                             artifact=ref(output_root / (lane + '_ANCHOR_SPANS.npz')),
                              elapsed_seconds=time.monotonic() - started)
-        publish_json(lane + '_QUALIFICATION.json', reports[lane])
+        publish_qualification(lane + '_QUALIFICATION.json', reports[lane])
         del data, bars, atr, produced, state, values, observed, spans, buffer
         gc.collect()
     need(all(stat(p) == s for p, s in stats.items())

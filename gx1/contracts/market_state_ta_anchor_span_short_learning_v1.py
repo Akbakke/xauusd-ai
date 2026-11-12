@@ -43,18 +43,22 @@ def _ref(path):
     p=Path(path);return dict(path=str(p),sha256=hashlib.sha256(p.read_bytes()).hexdigest())
 
 
-def prepare_metadata():
+def prepare_metadata(*, output_root=ROOT):
     """Prepare this single experiment's JSON before claim; never overwrite runs."""
     from gx1.contracts import entry_anchor_span_feature_view_v1 as add
     from gx1.contracts import entry_native_direction_feature_view_v1 as views
-    _need(not (ROOT/'RESULT.json').exists() and not (RUNTIME_ROOT/'EXECUTION_BINDING.json').exists(),'UNCLAIMED_PREPARATION')
+    output_root=Path(output_root)
+    _need(output_root.parent==ROOT.parent and output_root.is_dir()
+        and not output_root.is_symlink() and output_root.resolve()==output_root,'METADATA_OUTPUT_ROOT')
+    _need(not (output_root/'RESULT.json').exists()
+        and not (output_root/'RUNTIME/EXECUTION_BINDING.json').exists(),'UNCLAIMED_PREPARATION')
     old=_read(PARENT_RECIPE)
     parent=_read(add.extension.PARENT_ARTIFACT)
     profile=_read(add.NORMALIZATION_EVIDENCE['units_profile'])
     packet=add.build_anchor_span_prefix_packet(parent,_read(add.NORMALIZATION_EVIDENCE['expanded_base']),unobserved_units_profile=profile)
     constructor=add.build_anchor_span_constructor_metadata(_read(add.PARENT_CONSTRUCTOR_REF))
     def publish(name,value):
-        path=ROOT/name;path.write_text(json.dumps(value,sort_keys=True,indent=2,allow_nan=False)+'\n');return _ref(path)
+        path=output_root/name;path.write_text(json.dumps(value,sort_keys=True,indent=2,allow_nan=False)+'\n');return _ref(path)
     packet_ref=publish('PREFIX_PACKET.json',packet);constructor_ref=publish('CONSTRUCTOR_METADATA.json',constructor)
     source=_read(old['input_refs']['original_input_ta_candidate_view'])['source_bindings']
     sources={k:copy.deepcopy(source[k]) for k in views.SOURCE_REF_KEYS|views.TIME_QUERY_V2_SOURCE_REF_KEYS}

@@ -24,6 +24,11 @@ eksakte M5-gradienter, tom støtte, initialstate/RNG og avvisning av ukvalifiser
 Bevis: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_SOURCE_20261112_001/SOURCE_REVIEW.json.
 Senere spanverdier er fortsatt ikke produsert; ingen prediktiv forbedring er målt i denne bølgen.
 
+Senere inputkvalifisering er kilde-/metadataforberedt med42nye/berørte beståtte tester.
+FEATURE_VIEW2b15bcfe og plan3f8c1a9b binder det faste4096-panelet, uendret normalisering
+og gjenbrukt seks-flaters replay. Kjør først lesende preflight på ren kilde, så egen
+engangsadmisjon. Fysisk dekning og alle faktiske vinduer er fortsatt ubevist.
+
 Korte runder er bevisst feilsøking, ikke en dom over fullhistorikk-kapasitet.
 Kvalifisert full TRAIN-historikk og 30–40 epoker er senere skalering.
 TEST, Entry/Exit-evaluering, broker, handel, spending og promotion er stengt; GC er på pause.
