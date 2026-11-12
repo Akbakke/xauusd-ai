@@ -54,7 +54,7 @@
   "training_authorized": false,
   "promotion_authorized": false,
   "test_data_used": false,
-  "next_action": "Prepare a single matched short activity-only learning comparison against original c171 on the same 4096 TRAIN rows and 256 updates, with original seed/RNG, fresh empty AdamW and unchanged features/targets/loss/numerical settings. Keep separate non-M5 side heads off. Recheck the entire used-prefix initial predictions before the first update. Native training still requires its own qualified exact admission; no full-history or 30-40 epoch run is admitted.",
+  "next_action": "Obtain safe fresh physical Windows boot and postboot source/input preflight; then admit one exact matched4096TRAIN/256update activity-only comparison. No full history or30-40epoch run. Learning effect remains unmeasured.",
   "mechanical_qualification": {
     "status": "PASS",
     "passed_tests": 226,
@@ -182,5 +182,44 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_PARITY_20261112_001/INDEPENDENT_ACTIVITY_INITIAL_PARITY_REVIEW.py",
       "sha256": "cc92c07559c4d55380bb56d7ddad506ea02403730d9516038198cdf08a24e77d"
     }
+  },
+  "short_learning_route_qualification": {
+    "status": "PASS_SOURCE_AND_METADATA_QUALIFIED_NATIVE_NOT_ADMITTED",
+    "focused_tests": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/FOCUSED_TESTS.json",
+      "sha256": "635614bcc29a5296670ff2b944bd111663969e4f8e0d454f0acbb1b14b39dac2"
+    },
+    "source_binding": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/SOURCE_BINDING.json",
+      "sha256": "728f457532b32e73d439f57338ee0b6a754f62057d21a4b1f16133f497b1d672"
+    },
+    "independent_source_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/INDEPENDENT_ROUTE_REVIEW.json",
+      "sha256": "ae69add94bad05e8e0e8efcf270914d63bfdbfacdad9f6f7d7a4c30d8c57121c"
+    },
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/RECIPE.json",
+      "sha256": "4ae0082feeb4fb36d943ae1b29efbaa53d2f8876d7f1e91e486b82bb2e232f8d"
+    },
+    "actual_metadata_preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/PREFLIGHT.json",
+      "sha256": "f207f59941f28b15bcb4539c1dc1a9a06cc5a38d12b5e7a2e1fe7acab103b6dd"
+    },
+    "actual_cap_gate": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/CANONICAL_ACTUAL_PREFLIGHT_CAP_GATE.json",
+      "sha256": "be8017565a41b33498b4f87477feb296a4b0888eeb332f3fe5393b3b626f7b5a"
+    },
+    "startup_import_smoke": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/CANONICAL_STARTUP_IMPORT_SMOKE.json",
+      "sha256": "f0ad06f2e30c3f75c1dec0b02daf5b7a7b306b1cccce7a89cdfd72bbfae851e5"
+    },
+    "tests_passed": 302,
+    "errors": 0,
+    "failures": 0,
+    "skipped": 0,
+    "native_job_started": false,
+    "model_constructions": 0,
+    "optimizer_updates": 0,
+    "next_gate": "fresh safe physical Windows boot; postboot unchanged-source preflight; exact new single-use admission"
   }
 }

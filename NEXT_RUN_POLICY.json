@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-11T22:53:26.085246+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_ACTIVITY_INITIAL_COMPLETE_LEARNING_EFFECT_UNMEASURED",
+  "status": "TA_DIRECTION_EDGE_CAUSE_ACTIVITY_SHORT_SOURCE_QUALIFIED_PREBOOT",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1705,7 +1705,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Read-only activity initial comparison COMPLETE: all side channels exact, cloned activity and loss within fixed tolerance, zero optimizer updates. Learning effect remains unmeasured.",
+    "current_activity": "Activity-only matched short route passed302focusedtests and actual metadata/startup/cap preflight. Safe fresh physical boot and exact native admission pending.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1758,7 +1758,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No operational blocker. A matched short learning comparison still needs its own recipe and exact qualification/admission.",
+    "current_blocker": "No operational blocker observed; safe machine-wide idle review and fresh physical boot are required before new exact admission.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9229,7 +9229,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Prepare a single matched short activity-only learning comparison against original c171 on the same 4096 TRAIN rows and 256 updates, with original seed/RNG, fresh empty AdamW and unchanged features/targets/loss/numerical settings. Keep separate non-M5 side heads off. Recheck the entire used-prefix initial predictions before the first update. Native training still requires its own qualified exact admission; no full-history or 30-40 epoch run is admitted.",
+    "next_action": "Verify machine-wide idle, perform required safe physical Windows reboot, verify unchanged source/inputs, then exact single-use matched4096TRAIN/256update admission. All current training gates remain closed.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22144,7 +22144,7 @@
     },
     "direction_edge_cause_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "876602adc5d69d7efdbd5175e5a05d6af1c16d4b9cc68bb016a3589df46e5ed1"
+      "sha256": "7b20e8ec62d9b6f6924a818805975e5746a88327d6b9cbe4892291a41d43c75c"
     },
     "latest_c171_startup_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_C171_SHORT_LEARNING_STARTUP_REVIEW.json",
@@ -22226,11 +22226,50 @@
     },
     "latest_tf_activity_decoder_repair": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
-      "sha256": "851c5b02d6f814d50c14bff1f568dc42249fe6d37e279e76099d323d07486bea"
+      "sha256": "1d8e29a05fb533f2fd9ccf2953c665f125eb911829eca306ed697d4f0c147fdb"
     },
     "latest_tf_activity_initial_parity": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
-      "sha256": "851c5b02d6f814d50c14bff1f568dc42249fe6d37e279e76099d323d07486bea"
+      "sha256": "1d8e29a05fb533f2fd9ccf2953c665f125eb911829eca306ed697d4f0c147fdb"
+    },
+    "latest_tf_activity_short_qualification": {
+      "status": "PASS_SOURCE_AND_METADATA_QUALIFIED_NATIVE_NOT_ADMITTED",
+      "focused_tests": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/FOCUSED_TESTS.json",
+        "sha256": "635614bcc29a5296670ff2b944bd111663969e4f8e0d454f0acbb1b14b39dac2"
+      },
+      "source_binding": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/SOURCE_BINDING.json",
+        "sha256": "728f457532b32e73d439f57338ee0b6a754f62057d21a4b1f16133f497b1d672"
+      },
+      "independent_source_review": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/INDEPENDENT_ROUTE_REVIEW.json",
+        "sha256": "ae69add94bad05e8e0e8efcf270914d63bfdbfacdad9f6f7d7a4c30d8c57121c"
+      },
+      "recipe": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/RECIPE.json",
+        "sha256": "4ae0082feeb4fb36d943ae1b29efbaa53d2f8876d7f1e91e486b82bb2e232f8d"
+      },
+      "actual_metadata_preflight": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/PREFLIGHT.json",
+        "sha256": "f207f59941f28b15bcb4539c1dc1a9a06cc5a38d12b5e7a2e1fe7acab103b6dd"
+      },
+      "actual_cap_gate": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/CANONICAL_ACTUAL_PREFLIGHT_CAP_GATE.json",
+        "sha256": "be8017565a41b33498b4f87477feb296a4b0888eeb332f3fe5393b3b626f7b5a"
+      },
+      "startup_import_smoke": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/CANONICAL_STARTUP_IMPORT_SMOKE.json",
+        "sha256": "f0ad06f2e30c3f75c1dec0b02daf5b7a7b306b1cccce7a89cdfd72bbfae851e5"
+      },
+      "tests_passed": 302,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "native_job_started": false,
+      "model_constructions": 0,
+      "optimizer_updates": 0,
+      "next_gate": "fresh safe physical Windows boot; postboot unchanged-source preflight; exact new single-use admission"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -75570,24 +75609,24 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_ACTIVITY_INITIAL_PARITY_COMPLETE_LEARNING_EFFECT_UNMEASURED",
+    "status": "ACTIVE_ACTIVITY_MATCHED_SHORT_COMPARISON_PREBOOT",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
     "training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "876602adc5d69d7efdbd5175e5a05d6af1c16d4b9cc68bb016a3589df46e5ed1"
+      "sha256": "7b20e8ec62d9b6f6924a818805975e5746a88327d6b9cbe4892291a41d43c75c"
     },
     "integrator": "root",
     "model_or_data_run_admitted": false,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Prepare a single matched short activity-only learning comparison against original c171 on the same 4096 TRAIN rows and 256 updates, with original seed/RNG, fresh empty AdamW and unchanged features/targets/loss/numerical settings. Keep separate non-M5 side heads off. Recheck the entire used-prefix initial predictions before the first update. Native training still requires its own qualified exact admission; no full-history or 30-40 epoch run is admitted.",
+    "next_action": "Verify machine-wide idle, perform required safe physical Windows reboot, verify unchanged source/inputs, then exact single-use matched4096TRAIN/256update admission. All current training gates remain closed.",
     "active_stage": "market_state_ta_tf_activity_decoder_repair_20261112_001",
     "previous_goal_turn_classification": "PROGRESS: retained MTFintervention andinputsupport review ruledout an unsupported harmful-MTF or generalnormalization-collapse change; nextactualboundarymeasurement identified.",
-    "last_goal_turn_classification": "PROGRESS_ACTIVITY_SOURCE_BINDING_MIGRATION_AND_FRESH_ACTUAL_INITIAL_PARITY_VERIFIED",
+    "last_goal_turn_classification": "PROGRESS_PREVIOUS_ACTUAL_INITIAL_PARITY_VERIFIED_NOW_MATCHED_EFFECT_ROUTE_PREPARATION",
     "latest_tail_factor_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_ALL_TF_TAIL_FACTOR_REVIEW.json",
       "sha256": "5da978f765b0ad1ac001023501be7665989270d8353d768b801b9e1b29406c0f"
@@ -75614,7 +75653,7 @@
     },
     "tf_activity_decoder_repair": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
-      "sha256": "851c5b02d6f814d50c14bff1f568dc42249fe6d37e279e76099d323d07486bea"
+      "sha256": "1d8e29a05fb533f2fd9ccf2953c665f125eb911829eca306ed697d4f0c147fdb"
     }
   },
   "market_state_ta_fusion_observation_20261111_001": {
@@ -76314,7 +76353,7 @@
     "unresolved_campaign_marker_preserved": true,
     "standard_campaign_receipt_available": false
   },
-  "active_stage": "market_state_ta_tf_activity_initial_parity_20261112_001",
+  "active_stage": "market_state_ta_tf_activity_short_learning_20261112_001",
   "market_state_ta_m5_c171_short_learning_20261111_002": {
     "decision": "CLOSED",
     "status": "COMPLETE_CONSUMED",
@@ -76867,7 +76906,7 @@
     },
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "876602adc5d69d7efdbd5175e5a05d6af1c16d4b9cc68bb016a3589df46e5ed1"
+      "sha256": "7b20e8ec62d9b6f6924a818805975e5746a88327d6b9cbe4892291a41d43c75c"
     },
     "full_model_constructions": 0,
     "native_model_forwards": 0,
@@ -78358,7 +78397,7 @@
     "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_MECHANICAL_20261112_001",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
-      "sha256": "851c5b02d6f814d50c14bff1f568dc42249fe6d37e279e76099d323d07486bea"
+      "sha256": "1d8e29a05fb533f2fd9ccf2953c665f125eb911829eca306ed697d4f0c147fdb"
     },
     "activity_pressure_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ACTIVITY_PRESSURE_REVIEW.json",
@@ -78484,6 +78523,66 @@
     "independent_review": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_PARITY_20261112_001/INDEPENDENT_ACTIVITY_INITIAL_PARITY_REVIEW.json",
       "sha256": "78329d9e77390b32f81e3ea6930388d078be9244c17808bc688dea3e2156775b"
+    }
+  },
+  "market_state_ta_tf_activity_short_learning_20261112_001": {
+    "status": "SOURCE_QUALIFIED_PENDING_FRESH_PHYSICAL_BOOT",
+    "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001",
+    "source_preparation_authorized": true,
+    "synthetic_cpu_checks_authorized": true,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "test_data_used": false,
+    "next_action": "Verify machine-wide idle, perform required safe physical Windows reboot, verify unchanged source/inputs, then exact single-use matched4096TRAIN/256update admission. All current training gates remain closed.",
+    "qualification": {
+      "status": "PASS_SOURCE_AND_METADATA_QUALIFIED_NATIVE_NOT_ADMITTED",
+      "focused_tests": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/FOCUSED_TESTS.json",
+        "sha256": "635614bcc29a5296670ff2b944bd111663969e4f8e0d454f0acbb1b14b39dac2"
+      },
+      "source_binding": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/SOURCE_BINDING.json",
+        "sha256": "728f457532b32e73d439f57338ee0b6a754f62057d21a4b1f16133f497b1d672"
+      },
+      "independent_source_review": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/INDEPENDENT_ROUTE_REVIEW.json",
+        "sha256": "ae69add94bad05e8e0e8efcf270914d63bfdbfacdad9f6f7d7a4c30d8c57121c"
+      },
+      "recipe": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/RECIPE.json",
+        "sha256": "4ae0082feeb4fb36d943ae1b29efbaa53d2f8876d7f1e91e486b82bb2e232f8d"
+      },
+      "actual_metadata_preflight": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/PREFLIGHT.json",
+        "sha256": "f207f59941f28b15bcb4539c1dc1a9a06cc5a38d12b5e7a2e1fe7acab103b6dd"
+      },
+      "actual_cap_gate": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/CANONICAL_ACTUAL_PREFLIGHT_CAP_GATE.json",
+        "sha256": "be8017565a41b33498b4f87477feb296a4b0888eeb332f3fe5393b3b626f7b5a"
+      },
+      "startup_import_smoke": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/CANONICAL_STARTUP_IMPORT_SMOKE.json",
+        "sha256": "f0ad06f2e30c3f75c1dec0b02daf5b7a7b306b1cccce7a89cdfd72bbfae851e5"
+      },
+      "tests_passed": 302,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "native_job_started": false,
+      "model_constructions": 0,
+      "optimizer_updates": 0,
+      "next_gate": "fresh safe physical Windows boot; postboot unchanged-source preflight; exact new single-use admission"
+    },
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/RECIPE.json",
+      "sha256": "4ae0082feeb4fb36d943ae1b29efbaa53d2f8876d7f1e91e486b82bb2e232f8d"
+    },
+    "prepared_boot": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/PREPARED_WINDOWS_BOOT.json",
+      "sha256": "300d75162646107f9034392ba7a7a6305dbdfa3cfb59288d72d7ea2897826245"
     }
   }
 }

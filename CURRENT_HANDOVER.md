@@ -6,7 +6,7 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_ACTIVITY_INITIAL_COMPLETE_LEARNING_EFFECT_UNMEASURED.
+TA_DIRECTION_EDGE_CAUSE_ACTIVITY_SHORT_SOURCE_QUALIFIED_PREBOOT.
 Målet11.11 er aktivt: avklar målte årsaker til svak retningsverdi i indikatorer,
 sammensetting og læring. [Samlet status](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json).
 Korte runder er bevisst feilsøking, ikke kapasitetsdom. Full kvalifisert TRAIN-historikk
@@ -145,3 +145,16 @@ Neste steg er én separat kvalifisert kort aktivitetssammenligning på originale
 nonM5-sidehoder forblir av. Hele bruktprefixets initial må samsvare før førsteupdate.
 Læringseffekt, senere generalisering og økonomisk edge er fortsatt ubevist.
 Ingen ny trening/fullhistorikk/30–40epoker er innrømmet.
+
+Aktuell kildebølge: aktivitet-only matched short-rute forberedes gjennom eksisterende
+worker/campaign/materializer/cap. Original/riktig separat-side-rute beholdes.
+Ny gren er eksplisitt og gjensidig utelukkende med nonM5-sidevarianten,20imports,
+4096TRAIN-rader/256updates/768forwards. Hele initialprefixet må ha byteeksakte
+akser/targets/side og aktivitetsparitet innen kvalifisert toleranse før førsteupdate.
+302fokuserte tester bestod uten feil/skips; kilde uendret under test. Uavhengig
+kildekontroll fant ingen blokkering. Faktisk metadata/view/input-preflight og eksakt
+module-/argumentoppstart bestod; auditvakten avviste native utføring som forventet.
+RECIPE4ae0082f, kanonisk vindu388ad721; faktisk shellgate3600/3900/3900 bekreftet.
+0modeller/checkpoints/updates under klargjøring. Ingen ny native kjøring innrømmet.
+Neste: maskinvid tomgangskontroll, trygg fysisk omstart, uendret kilde/input og
+egen eksakt engangsadmisjon. Hele initialprefixet kontrolleres fortsatt før update.
