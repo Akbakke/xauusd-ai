@@ -6,14 +6,15 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_ANCHOR_SPAN_COMPARISON_SOURCE_PREPARED.
+TA_DIRECTION_EDGE_CAUSE_ANCHOR_SPAN_SINGLE_COMPARISON_ADMITTED.
 Målet11.11 er aktivt: avklar og rett målte svakheter i indikatorrepresentasjon,
 sammensetting og retningslæring. Korte runder er bevisst feilsøking, ikke kapasitetsdom.
 Full kvalifisert TRAIN-historikk og30–40epoker er senere skalering.
 
 Både input- og normaliseringskontrollen er COMPLETE/CONSUMED; ingen jobb står åpen.
-Alle tidligere engangsplaner er konsumert. Ingen ny data-/modell-/treningsadmisjon.
-Training/native_training/native_launch/full_epoch/full_val er false.
+Alle tidligere engangsplaner er konsumert. Én ny nøyaktig span-sammenligning er
+admittert; global training/native_training er true bare for denne planen.
+Native_launch/full_epoch/full_val er false; faktisk jobb er ennå ikke startet.
 TEST, Entry/Exit-evaluering, broker, handel, spending og promotion stengt; GC på pause.
 Ingen endring av Windows-treningsoppgaver.
 
@@ -198,3 +199,12 @@ Opprinnelig aktivitet-INITIAL og RNG gjenbrukes som kilde, med fersk tom AdamW.
 Én ny scope i eksisterende campaign/capped-run/materializer; samme vakter og grenser.
 Ren kilde, obligatoriske gater og konkret policyadmisjon gjenstår før launch.
 Ingen ny modellbaseline, trening eller prediktiv gevinst er påstått.
+
+Ren kilde ba9a1d71 og obligatoriske repositorygater PASS.
+PREFLIGHT0972d390 validerer faktisk provider-metadata, nye view-/normaliseringsbindinger,
+3600s/3900sgrensen og korrekt avvisning av eksakt native-kommando under audit.
+RECIPEf7ba828f er innrømmet én gang,0claimed/0completed. Sammenligningen er
+fortsatt ikke kjørt. Prepared Windows boot642; fresh-boot-vakten beholdes.
+Maskinobservasjonen viser ingen GPU-beregning, prosjektjobb eller prosjektlås,
+ingen synlige Windows-vinduer og alle gamle læringsoppgaver deaktivert.
+Neste: eksisterende materializer/controller og trygg oppstart, ingen ny kodebølge.
