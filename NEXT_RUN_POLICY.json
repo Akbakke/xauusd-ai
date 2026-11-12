@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-11T22:53:26.085246+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_NON_M5_MATCHED_SHORT_LEARNING_ADMITTED_RESULT_PENDING",
+  "status": "TA_DIRECTION_EDGE_CAUSE_MATCHED_HORIZON_EFFECT_MIXED_ACTIVITY_REGRESSION_LOCALIZED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Materialize exactly market_state_ta_non_m5_short_learning_20261112_001 from clean committed source; verify actual WINDOW bytes against canonical preflight; register/start GX1NonM5ShortLearning001 once on verified freshboot641 with preparedboot640. Run only256updates/4096TRAINrows and full4096INITIAL/FINAL observations. Preserve all old consumed plans and all signed guards. Review everyS/F/TF against immutable original fullprefix reference; no automatic continuation or broad training.",
+  "next_action": "Use retained original/trial outputs and TRAIN trace to isolate the remaining common activity shift and original sparse-batch loss weighting, first S/D1, and the persistent F/M15-H1 upward calibration shift. Keep all features, five timeframes, targets and guards. Quantify per-task/TF pressure before another model or loss change; current one-use comparison is consumed and admits no further native run. Full history and30-40epochs remain later qualification, not a required rerun after each correction.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1705,7 +1705,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Qualified one exact independent-horizon short-learning comparison after348tests and safe freshphysicalboot641; no new native run started yet.",
+    "current_activity": "Completed and independently reviewed the matched non-M5 short learning comparison on all4096usedTRAINrows. Scope consumed and task Disabled. Reduced total deterioration, mixed per-task effects, no M5 gain versus original; activity regression localized primarily to S/D1.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1758,7 +1758,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "None for the exact bounded plan; genuine learning effect, later generalization and economic edge remain unproved.",
+    "current_blocker": "No operational blocker. Remaining weak M5 performance, activity drift and F/M15-H1 upward miscalibration need retained-evidence diagnosis; later generalization and economic edge remain unproven.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9229,7 +9229,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Materialize exactly market_state_ta_non_m5_short_learning_20261112_001 from clean committed source; verify actual WINDOW bytes against canonical preflight; register/start GX1NonM5ShortLearning001 once on verified freshboot641 with preparedboot640. Run only256updates/4096TRAINrows and full4096INITIAL/FINAL observations. Preserve all old consumed plans and all signed guards. Review everyS/F/TF against immutable original fullprefix reference; no automatic continuation or broad training.",
+    "next_action": "Use retained original/trial outputs and TRAIN trace to isolate the remaining common activity shift and original sparse-batch loss weighting, first S/D1, and the persistent F/M15-H1 upward calibration shift. Keep all features, five timeframes, targets and guards. Quantify per-task/TF pressure before another model or loss change; current one-use comparison is consumed and admits no further native run. Full history and30-40epochs remain later qualification, not a required rerun after each correction.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -18922,7 +18922,7 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "market_state_ta_non_m5_short_learning_20261112_001",
+    "current_training_scope": "NONE",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -19336,7 +19336,7 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_001/UNEXPECTED_INTERRUPTION_INTEGRITY_001.json",
       "sha256": "a24c10b0873f8c94ea086c8c79083d390092521a9aabf77523c3624e2ecfe020"
     },
-    "current_native_launch_scope": "market_state_ta_non_m5_short_learning_v1",
+    "current_native_launch_scope": "NONE",
     "current_host_interruption": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/CONNECTION_LOSS_OBSERVATION_001.json",
       "sha256": "b399a59dc7af1e8b0af84c8c135d5b4efe96ac3eaa74aa4f7fb54ee8a3ce9882"
@@ -22144,7 +22144,7 @@
     },
     "direction_edge_cause_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "0c947a66449aeb6ffa7f79c48c8afcdfa64c8f9a1fead6ac2071e638ac2518fc"
+      "sha256": "956e7b768fb49ba81baa8a0ac64808763fb950274ea74395130cbc9693595c8e"
     },
     "latest_c171_startup_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_C171_SHORT_LEARNING_STARTUP_REVIEW.json",
@@ -22210,7 +22210,7 @@
     },
     "latest_non_m5_side_decoder_repair": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_SIDE_DECODER_REPAIR.json",
-      "sha256": "9ba0008a2070859d067c1d202a3c7bcef83118d5ee1ab649afda9bd16c969a58"
+      "sha256": "b26fcde67cc2edd136b181aa986b192a19ce0e5bbf0f894e2015d5011193ccae"
     },
     "latest_non_m5_initial_parity": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_INITIAL_PARITY_REVIEW.json",
@@ -22218,7 +22218,7 @@
     },
     "latest_non_m5_short_learning": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_SHORT_LEARNING_REVIEW.json",
-      "sha256": "48a5404b5ad267474e948c0e493c7e5762dd05416ebde3f41963f5a1c6fb0c63"
+      "sha256": "45e071a0ed39e75543cda838bb9fbf885b1549a2a2869f83fc3a7e378ed4fe46"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -35569,7 +35569,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -40311,7 +40311,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "market_state_ta_non_m5_short_learning_20261112_001",
+  "training_enabled_scope": null,
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -75558,24 +75558,24 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_MATCHED_NON_M5_SHORT_LEARNING_ADMITTED_RESULT_PENDING",
+    "status": "ACTIVE_MATCHED_HORIZON_EFFECT_MIXED_ACTIVITY_REGRESSION_LOCALIZED",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
     "training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "0c947a66449aeb6ffa7f79c48c8afcdfa64c8f9a1fead6ac2071e638ac2518fc"
+      "sha256": "956e7b768fb49ba81baa8a0ac64808763fb950274ea74395130cbc9693595c8e"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": true,
-    "training_enabled": true,
+    "model_or_data_run_admitted": false,
+    "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Materialize exactly market_state_ta_non_m5_short_learning_20261112_001 from clean committed source; verify actual WINDOW bytes against canonical preflight; register/start GX1NonM5ShortLearning001 once on verified freshboot641 with preparedboot640. Run only256updates/4096TRAINrows and full4096INITIAL/FINAL observations. Preserve all old consumed plans and all signed guards. Review everyS/F/TF against immutable original fullprefix reference; no automatic continuation or broad training.",
+    "next_action": "Use retained original/trial outputs and TRAIN trace to isolate the remaining common activity shift and original sparse-batch loss weighting, first S/D1, and the persistent F/M15-H1 upward calibration shift. Keep all features, five timeframes, targets and guards. Quantify per-task/TF pressure before another model or loss change; current one-use comparison is consumed and admits no further native run. Full history and30-40epochs remain later qualification, not a required rerun after each correction.",
     "active_stage": "market_state_ta_non_m5_short_learning_20261112_001",
     "previous_goal_turn_classification": "PROGRESS: retained MTFintervention andinputsupport review ruledout an unsupported harmful-MTF or generalnormalization-collapse change; nextactualboundarymeasurement identified.",
-    "last_goal_turn_classification": "PROGRESS_QUALIFIED_MATCHED_NON_M5_SHORT_LEARNING_348_TESTS_PASS_NO_NATIVE_ADMISSION",
+    "last_goal_turn_classification": "PROGRESS_MATCHED256UPDATE_EFFECT_MEASURED_ALL10TASK_TF_CELLS_ACTIVITY_REGRESSION_LOCALIZED_NO_M5_GAIN",
     "latest_tail_factor_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_ALL_TF_TAIL_FACTOR_REVIEW.json",
       "sha256": "5da978f765b0ad1ac001023501be7665989270d8353d768b801b9e1b29406c0f"
@@ -75586,7 +75586,7 @@
     },
     "non_m5_side_decoder_repair": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_SIDE_DECODER_REPAIR.json",
-      "sha256": "9ba0008a2070859d067c1d202a3c7bcef83118d5ee1ab649afda9bd16c969a58"
+      "sha256": "b26fcde67cc2edd136b181aa986b192a19ce0e5bbf0f894e2015d5011193ccae"
     },
     "non_m5_initial_parity": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_INITIAL_PARITY_REVIEW.json",
@@ -75594,7 +75594,7 @@
     },
     "non_m5_short_learning": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_SHORT_LEARNING_REVIEW.json",
-      "sha256": "48a5404b5ad267474e948c0e493c7e5762dd05416ebde3f41963f5a1c6fb0c63"
+      "sha256": "45e071a0ed39e75543cda838bb9fbf885b1549a2a2869f83fc3a7e378ed4fe46"
     }
   },
   "market_state_ta_fusion_observation_20261111_001": {
@@ -76847,7 +76847,7 @@
     },
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "0c947a66449aeb6ffa7f79c48c8afcdfa64c8f9a1fead6ac2071e638ac2518fc"
+      "sha256": "956e7b768fb49ba81baa8a0ac64808763fb950274ea74395130cbc9693595c8e"
     },
     "full_model_constructions": 0,
     "native_model_forwards": 0,
@@ -77814,7 +77814,7 @@
     "model_change_scope": "Opt-in sideheads only; old default and all existing run admissions unchanged",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_SIDE_DECODER_REPAIR.json",
-      "sha256": "9ba0008a2070859d067c1d202a3c7bcef83118d5ee1ab649afda9bd16c969a58"
+      "sha256": "b26fcde67cc2edd136b181aa986b192a19ce0e5bbf0f894e2015d5011193ccae"
     },
     "synthetic_cpu_decoder_checks_authorized": true,
     "synthetic_routing_backward_authorized": true,
@@ -77967,25 +77967,25 @@
     "next_action": "Qualify one new bounded independent-non-M5 learning comparison at the original256updates/4096chronologicalTRAINrows. Reuse originalshort002 and full-used-prefix references; keep all features/targets/loss weights and AdamW settings. Start from the measured cloned2a3847d0 initial weights, fresh empty optimizer and explicitly matched original initial training RNG. Measure the full used4096-row period before/after so the small48-row panel overlap cannot decide the result. Bind new numerical/model/view identities separately; old plans stay consumed. This closure admits no further model run or training. Full history and30-40epochs remain later."
   },
   "market_state_ta_non_m5_short_learning_20261112_001": {
-    "decision": "ADMITTED",
-    "status": "ADMITTED",
+    "decision": "CLOSED",
+    "status": "COMPLETE_CONSUMED",
     "fold_id": 1,
     "selected_fit_rows": 4096,
-    "model_constructions_authorized": 2,
-    "optimizer_constructions_authorized": 1,
-    "model_forwards_authorized": 768,
-    "backward_calls_authorized": 256,
-    "optimizer_steps_authorized": 256,
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "genuine_updates_authorized": true,
-    "genuine_backward_authorized": true,
+    "model_constructions_authorized": 0,
+    "optimizer_constructions_authorized": 0,
+    "model_forwards_authorized": 0,
+    "backward_calls_authorized": 0,
+    "optimizer_steps_authorized": 0,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "genuine_updates_authorized": false,
+    "genuine_backward_authorized": false,
     "genuine_predictor_fit_authorized": false,
     "canonical_resume_authority": false,
     "candidate_selection": false,
     "test_data_used": false,
-    "ta_non_m5_short_learning_authorized": true,
-    "initial_rng_imports_authorized": 1,
+    "ta_non_m5_short_learning_authorized": false,
+    "initial_rng_imports_authorized": 0,
     "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001",
     "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/RUNTIME",
     "recipe": {
@@ -78022,20 +78022,20 @@
     },
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_SHORT_LEARNING_REVIEW.json",
-      "sha256": "48a5404b5ad267474e948c0e493c7e5762dd05416ebde3f41963f5a1c6fb0c63"
+      "sha256": "45e071a0ed39e75543cda838bb9fbf885b1549a2a2869f83fc3a7e378ed4fe46"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
-    "campaign_preparation_authorized": true,
-    "execution_authorized": true,
-    "training_authorized": true,
-    "data_reads_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "data_reads_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
     "native_launch_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_test_execution_authorized": false,
@@ -78309,6 +78309,28 @@
     ],
     "automatic_continuation": false,
     "admission_basis": "Current explicit edge-cause goal and standing local0USD bounded diagnostic authority.348focusedtests; measured independent cloned initial; exact matched numerical recipe and actual source/view/input preflight; physical reboot640to641 after machine-wide idle. New one-use plan only; no old plan relaunch.",
-    "next_action": "Materialize exactly market_state_ta_non_m5_short_learning_20261112_001 from clean committed source; verify actual WINDOW bytes against canonical preflight; register/start GX1NonM5ShortLearning001 once on verified freshboot641 with preparedboot640. Run only256updates/4096TRAINrows and full4096INITIAL/FINAL observations. Preserve all old consumed plans and all signed guards. Review everyS/F/TF against immutable original fullprefix reference; no automatic continuation or broad training."
+    "next_action": "Use retained original/trial outputs and TRAIN trace to isolate the remaining common activity shift and original sparse-batch loss weighting, first S/D1, and the persistent F/M15-H1 upward calibration shift. Keep all features, five timeframes, targets and guards. Quantify per-task/TF pressure before another model or loss change; current one-use comparison is consumed and admits no further native run. Full history and30-40epochs remain later qualification, not a required rerun after each correction.",
+    "actual_optimizer_updates": 256,
+    "actual_parent_cursor": 4096,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/RESULT.json",
+      "sha256": "babe029c9e48c827983cc8aaf24cf660f5115317e5343a985c00d2757aca0d38"
+    },
+    "campaign_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "9dc798ab1ed2e3d39f3a03f090a8440ac0e067f40ef535b9fef78d75a0249716"
+    },
+    "task_disabled": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/WINDOWS_TASK_DISABLED.json",
+      "sha256": "05b2f888351821d773cce4c659f37c84f9029e206e72fab8db439b5823dceb74"
+    },
+    "independent_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/INDEPENDENT_NON_M5_LEARNING_REVIEW.json",
+      "sha256": "c1913ebdb485e836d2443ba53cbe36a2e6d17d17bafc941ca1c1a0c7fad1f32e"
+    },
+    "activity_diagnosis": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/RETAINED_ACTIVITY_DIAGNOSIS.json",
+      "sha256": "c772f0291e437dec218dffa1af3df3dbe1da328f6363e4b4dc0ccad4d2dea00d"
+    }
   }
 }

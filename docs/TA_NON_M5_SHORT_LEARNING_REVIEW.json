@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_non_m5_short_learning_review_v1",
-  "status": "ADMITTED_ONCE_ON_VERIFIED_FRESH_BOOT_RESULT_PENDING",
+  "status": "COMPLETE_CONSUMED_MIXED_TRAIN_RESPONSE_M5_NOT_IMPROVED_OVER_REFERENCE",
   "base_source_commit": "5e2f17a749ea5eb6dd3d1b4bafe4e184dd561b45",
   "stage": "market_state_ta_non_m5_short_learning_20261112_001",
   "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001",
@@ -79,7 +79,8 @@
     "window_wall_seconds": 3600,
     "outer_wall_seconds": 3900,
     "fresh_physical_windows_boot_required": true,
-    "guard_limits_changed": false
+    "guard_limits_changed": false,
+    "memory_temperature_guard_c": 80
   },
   "predeclared_comparison": {
     "population": "Same4096usedTRAINrows, no heldout or economic claim",
@@ -106,14 +107,14 @@
     ],
     "interpretation": "Report improvements and regressions for every horizon and task. Compare matched changes with immutable original endpoints; no threshold search, candidate selection or promotion."
   },
-  "native_run_started": false,
-  "training_authorized": true,
+  "native_run_started": true,
+  "training_authorized": false,
   "test_data_used": false,
   "later_generalization_proven": false,
   "economic_edge_proven": false,
-  "next_action": "Materialize exactly market_state_ta_non_m5_short_learning_20261112_001 from clean committed source; verify actual WINDOW bytes against canonical preflight; register/start GX1NonM5ShortLearning001 once on verified freshboot641 with preparedboot640. Run only256updates/4096TRAINrows and full4096INITIAL/FINAL observations. Preserve all old consumed plans and all signed guards. Review everyS/F/TF against immutable original fullprefix reference; no automatic continuation or broad training.",
+  "next_action": "Use retained original/trial outputs and TRAIN trace to isolate the remaining common activity shift and original sparse-batch loss weighting, first S/D1, and the persistent F/M15-H1 upward calibration shift. Keep all features, five timeframes, targets and guards. Quantify per-task/TF pressure before another model or loss change; current one-use comparison is consumed and admits no further native run. Full history and30-40epochs remain later qualification, not a required rerun after each correction.",
   "qualified_source_commit": "9aaf7f640ae6bfe967fe199f9499fffb9b87558d",
-  "training_authorized_scope": "market_state_ta_non_m5_short_learning_20261112_001",
+  "training_authorized_scope": null,
   "post_boot_verification": {
     "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/POST_BOOT_VERIFICATION.json",
     "sha256": "ee8c911c50ba51a2acc0196c9604e127b6367712634c310d78642bc6a8085ba1"
@@ -129,5 +130,566 @@
   "prefight_fixture_serialization_correction": {
     "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/PREFLIGHT_WINDOW_SERIALIZATION_REVIEW.json",
     "sha256": "4bad5dc9c9db6c6d6899427d9be9fb38f6730d31caa185b760f8b738dd57abcb"
-  }
+  },
+  "run_source_commit": "e28ed537836ae68fb3d6180a531c2cffe5cb3ad0",
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/RESULT.json",
+    "sha256": "babe029c9e48c827983cc8aaf24cf660f5115317e5343a985c00d2757aca0d38"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/TERMINAL.json",
+    "sha256": "39630ad253d2d8934ac13b891472892deb8413b1856d10af262ff819392a9d81"
+  },
+  "campaign_terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/RUNTIME/receipts/invocation-0001.json",
+    "sha256": "9dc798ab1ed2e3d39f3a03f090a8440ac0e067f40ef535b9fef78d75a0249716"
+  },
+  "cursor": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/RUNTIME/research-cursor/RESUME_CURSOR.json",
+    "sha256": "ce528a1a10192eccf536dcad4c242e86f59ad1decb3647ea1a4197238d1fbbe7"
+  },
+  "task_disabled": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/WINDOWS_TASK_DISABLED.json",
+    "sha256": "05b2f888351821d773cce4c659f37c84f9029e206e72fab8db439b5823dceb74"
+  },
+  "independent_review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/INDEPENDENT_NON_M5_LEARNING_REVIEW.json",
+    "sha256": "c1913ebdb485e836d2443ba53cbe36a2e6d17d17bafc941ca1c1a0c7fad1f32e"
+  },
+  "independent_review_source": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/INDEPENDENT_NON_M5_LEARNING_REVIEW.py",
+    "sha256": "aa51fb8eefe858682d08ba0766fc61b8e3f96261c6c34be404524566a478f092"
+  },
+  "retained_activity_diagnosis": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/RETAINED_ACTIVITY_DIAGNOSIS.json",
+    "sha256": "c772f0291e437dec218dffa1af3df3dbe1da328f6363e4b4dc0ccad4d2dea00d"
+  },
+  "retained_activity_source": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/RETAINED_ACTIVITY_DIAGNOSIS.py",
+    "sha256": "516b2c2099b004f3426d325c45b806cea7ccf25eed63d4941599bc6f9fb13119"
+  },
+  "native_counts": {
+    "archive_decodes": 1,
+    "backward_returns": 256,
+    "backwards": 256,
+    "checkpoint_loads": 2,
+    "checkpoint_writes": 2,
+    "evaluation_forwards": 512,
+    "extra_target_gathers": 1536,
+    "forward_returns": 768,
+    "forwards": 768,
+    "head_tensor_imports": 16,
+    "initial_rng_imports": 1,
+    "json_bytes": 308351,
+    "loss_component_owner_calls": 512,
+    "model_construction_returns": 2,
+    "model_constructions": 2,
+    "optimizer_constructions": 1,
+    "optimizer_step_calls": 256,
+    "optimizer_updates": 256,
+    "published_panel_bytes": 727233,
+    "resume_state_load_calls": 2,
+    "resume_state_load_returns": 2,
+    "staged_state_load_calls": 2,
+    "staged_state_load_returns": 2,
+    "strict_full_state_restore_calls": 1,
+    "strict_full_state_restore_returns": 1,
+    "training_forwards": 256
+  },
+  "timings": {
+    "elapsed_seconds": 962.621833707,
+    "fit_seconds": 353.390754907,
+    "input_setup_seconds": 74.34679629800002,
+    "model_and_restore_seconds": 275.010929532
+  },
+  "full_initial_reference": {
+    "atol": 2e-06,
+    "axes_targets_m5_activity_bitexact": true,
+    "batches": 256,
+    "cloned_sides_within_declared_tolerance": true,
+    "loss_atol": 5e-06,
+    "max_abs_loss": 2.384185791015625e-07,
+    "max_abs_non_m5_side": {
+      "future": 3.5762786865234375e-07,
+      "state": 3.5762786865234375e-07
+    },
+    "reference": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001/TRAIN_FUSION.npz",
+      "sha256": "9fbfbc662a4a3e730afcdc0ecf29df6d5ae455380b9958637708743bc899e5fe"
+    },
+    "rows": 4096,
+    "rtol": 1e-06
+  },
+  "original_training_rng_endpoints_matched": true,
+  "source_unchanged": true,
+  "initial_model_state_sha256": "2a3847d0adf85d8aade4a2ceed31cab39188ba99f14cb09773a6a79e873e0e1a",
+  "final_model_state_sha256": "8fdec0110df84493b366d64210b80d44db43f6d9565bcf1e36aff1d1b5d519e9",
+  "original_total_losses": {
+    "original": {
+      "INITIAL_TRAIN": 1.8780025839805603,
+      "FINAL_TRAIN": 1.8928706916049123
+    },
+    "trial": {
+      "INITIAL_TRAIN": 1.8780025821179152,
+      "FINAL_TRAIN": 1.88492166204378
+    }
+  },
+  "matched_loss_change": {
+    "original_change": {
+      "saved_total": 0.014868107624351978,
+      "reconstructed_total": 0.01486809946052392,
+      "activity_contribution": 0.007576757127572775,
+      "side_contribution": 0.007291342332950923
+    },
+    "trial_change": {
+      "saved_total": 0.006919079925864935,
+      "reconstructed_total": 0.006919076796965129,
+      "activity_contribution": 0.0139607650224155,
+      "side_contribution": -0.007041688225450371
+    },
+    "trial_change_minus_original_change": {
+      "saved_total": -0.007949027698487043,
+      "reconstructed_total": -0.007949022663558791,
+      "activity_contribution": 0.006384007894842725,
+      "side_contribution": -0.014333030558401294
+    }
+  },
+  "all_timeframe_direction_scores": {
+    "state": {
+      "M5": {
+        "initial": {
+          "count": 1378,
+          "up_count": 719,
+          "up_fraction": 0.5217706821480407,
+          "mean_p": 0.5161939128167091,
+          "brier": 0.24799851168699283,
+          "log": 0.6891366964496172,
+          "auc": 0.5461851627513343
+        },
+        "original_final": {
+          "count": 1378,
+          "up_count": 719,
+          "up_fraction": 0.5217706821480407,
+          "mean_p": 0.5401743469558268,
+          "brier": 0.24792445454509277,
+          "log": 0.688986354410553,
+          "auc": 0.5514656378674647
+        },
+        "trial_final": {
+          "count": 1378,
+          "up_count": 719,
+          "up_fraction": 0.5217706821480407,
+          "mean_p": 0.5472777616682417,
+          "brier": 0.24830133005359226,
+          "log": 0.6897457171237739,
+          "auc": 0.5512313721848546
+        }
+      },
+      "M15": {
+        "initial": {
+          "count": 1486,
+          "up_count": 760,
+          "up_fraction": 0.5114401076716016,
+          "mean_p": 0.6018645983871995,
+          "brier": 0.2543233678199185,
+          "log": 0.7040692037094338,
+          "auc": 0.5738292011019284
+        },
+        "original_final": {
+          "count": 1486,
+          "up_count": 760,
+          "up_fraction": 0.5114401076716016,
+          "mean_p": 0.5179729037348253,
+          "brier": 0.24586202207212868,
+          "log": 0.6850104968123808,
+          "auc": 0.5859939103958243
+        },
+        "trial_final": {
+          "count": 1486,
+          "up_count": 760,
+          "up_fraction": 0.5114401076716016,
+          "mean_p": 0.49130666256746175,
+          "brier": 0.24638035242432232,
+          "log": 0.6860999974992837,
+          "auc": 0.5853432651877628
+        }
+      },
+      "H1": {
+        "initial": {
+          "count": 1501,
+          "up_count": 806,
+          "up_fraction": 0.5369753497668222,
+          "mean_p": 0.6154006217089523,
+          "brier": 0.23141607379174645,
+          "log": 0.6548571459420001,
+          "auc": 0.6909527464876734
+        },
+        "original_final": {
+          "count": 1501,
+          "up_count": 806,
+          "up_fraction": 0.5369753497668222,
+          "mean_p": 0.521947474080777,
+          "brier": 0.22293118030098877,
+          "log": 0.6374075043758648,
+          "auc": 0.6912865737186925
+        },
+        "trial_final": {
+          "count": 1501,
+          "up_count": 806,
+          "up_fraction": 0.5369753497668222,
+          "mean_p": 0.4800777383207536,
+          "brier": 0.22529230542112824,
+          "log": 0.642270517782105,
+          "auc": 0.6912169519967153
+        }
+      },
+      "H4": {
+        "initial": {
+          "count": 1691,
+          "up_count": 1102,
+          "up_fraction": 0.651685393258427,
+          "mean_p": 0.6237043695897115,
+          "brier": 0.2142767012145085,
+          "log": 0.6188665719167075,
+          "auc": 0.6451597496756938
+        },
+        "original_final": {
+          "count": 1691,
+          "up_count": 1102,
+          "up_fraction": 0.651685393258427,
+          "mean_p": 0.541795743174128,
+          "brier": 0.21084037052841037,
+          "log": 0.6117155669186951,
+          "auc": 0.7222182850135115
+        },
+        "trial_final": {
+          "count": 1691,
+          "up_count": 1102,
+          "up_fraction": 0.651685393258427,
+          "mean_p": 0.5863244120210438,
+          "brier": 0.20334713484498038,
+          "log": 0.5951018988214895,
+          "auc": 0.7196993273535692
+        }
+      },
+      "D1": {
+        "initial": {
+          "count": 1130,
+          "up_count": 778,
+          "up_fraction": 0.6884955752212389,
+          "mean_p": 0.6228301882206908,
+          "brier": 0.1995300712989166,
+          "log": 0.5880467062428983,
+          "auc": 0.6759537859312924
+        },
+        "original_final": {
+          "count": 1130,
+          "up_count": 778,
+          "up_fraction": 0.6884955752212389,
+          "mean_p": 0.5647522077550279,
+          "brier": 0.20336440000445358,
+          "log": 0.5966691499953723,
+          "auc": 0.7121589448469269
+        },
+        "trial_final": {
+          "count": 1130,
+          "up_count": 778,
+          "up_fraction": 0.6884955752212389,
+          "mean_p": 0.6139436703076252,
+          "brier": 0.187780280389932,
+          "log": 0.5627344080307524,
+          "auc": 0.7466369186725871
+        }
+      }
+    },
+    "future": {
+      "M5": {
+        "initial": {
+          "count": 1644,
+          "up_count": 845,
+          "up_fraction": 0.5139902676399026,
+          "mean_p": 0.5086802205239992,
+          "brier": 0.2487881891458932,
+          "log": 0.6907220094505501,
+          "auc": 0.5461249638971791
+        },
+        "original_final": {
+          "count": 1644,
+          "up_count": 845,
+          "up_fraction": 0.5139902676399026,
+          "mean_p": 0.5287548724446033,
+          "brier": 0.24819342269406747,
+          "log": 0.6895224164221014,
+          "auc": 0.5530789226177693
+        },
+        "trial_final": {
+          "count": 1644,
+          "up_count": 845,
+          "up_fraction": 0.5139902676399026,
+          "mean_p": 0.5321470252692788,
+          "brier": 0.2483183895747928,
+          "log": 0.6897727185284357,
+          "auc": 0.5530367100887944
+        }
+      },
+      "M15": {
+        "initial": {
+          "count": 1440,
+          "up_count": 750,
+          "up_fraction": 0.5208333333333334,
+          "mean_p": 0.532502269054444,
+          "brier": 0.2566363984702079,
+          "log": 0.7078569011109176,
+          "auc": 0.5525004830917875
+        },
+        "original_final": {
+          "count": 1440,
+          "up_count": 750,
+          "up_fraction": 0.5208333333333334,
+          "mean_p": 0.7030995828002121,
+          "brier": 0.2918781283547309,
+          "log": 0.8169461129125526,
+          "auc": 0.573151690821256
+        },
+        "trial_final": {
+          "count": 1440,
+          "up_count": 750,
+          "up_fraction": 0.5208333333333334,
+          "mean_p": 0.6800955851579675,
+          "brier": 0.28088363349754303,
+          "log": 0.7790585487395055,
+          "auc": 0.5756328502415459
+        }
+      },
+      "H1": {
+        "initial": {
+          "count": 1436,
+          "up_count": 775,
+          "up_fraction": 0.5396935933147632,
+          "mean_p": 0.5351192977293419,
+          "brier": 0.25171094289285295,
+          "log": 0.6971071879396371,
+          "auc": 0.5703577180225465
+        },
+        "original_final": {
+          "count": 1436,
+          "up_count": 775,
+          "up_fraction": 0.5396935933147632,
+          "mean_p": 0.712610962601073,
+          "brier": 0.276682533608683,
+          "log": 0.7820469766068038,
+          "auc": 0.6080913571812016
+        },
+        "trial_final": {
+          "count": 1436,
+          "up_count": 775,
+          "up_fraction": 0.5396935933147632,
+          "mean_p": 0.6930733821030913,
+          "brier": 0.26884855297403054,
+          "log": 0.7553702043092289,
+          "auc": 0.6106759064955346
+        }
+      },
+      "H4": {
+        "initial": {
+          "count": 1408,
+          "up_count": 886,
+          "up_fraction": 0.6292613636363636,
+          "mean_p": 0.5474670295893307,
+          "brier": 0.22047203702403725,
+          "log": 0.6306516692601619,
+          "auc": 0.6712894493310154
+        },
+        "original_final": {
+          "count": 1408,
+          "up_count": 886,
+          "up_fraction": 0.6292613636363636,
+          "mean_p": 0.7174069564439377,
+          "brier": 0.20998285602195235,
+          "log": 0.6122963742327814,
+          "auc": 0.7163086064191381
+        },
+        "trial_final": {
+          "count": 1408,
+          "up_count": 886,
+          "up_fraction": 0.6292613636363636,
+          "mean_p": 0.7364085481248508,
+          "brier": 0.2103960589798933,
+          "log": 0.6140548444732463,
+          "auc": 0.7280385390449997
+        }
+      },
+      "D1": {
+        "initial": {
+          "count": 1151,
+          "up_count": 901,
+          "up_fraction": 0.7827975673327541,
+          "mean_p": 0.5328819067021744,
+          "brier": 0.2099489252164644,
+          "log": 0.6087814184360006,
+          "auc": 0.7517336293007769
+        },
+        "original_final": {
+          "count": 1151,
+          "up_count": 901,
+          "up_fraction": 0.7827975673327541,
+          "mean_p": 0.7260040806536643,
+          "brier": 0.11576553652802564,
+          "log": 0.3830971918488295,
+          "auc": 0.8891542730299667
+        },
+        "trial_final": {
+          "count": 1151,
+          "up_count": 901,
+          "up_fraction": 0.7827975673327541,
+          "mean_p": 0.767332073983877,
+          "brier": 0.11000972564727277,
+          "log": 0.36157915671954755,
+          "auc": 0.9094428412874583
+        }
+      }
+    }
+  },
+  "fixed_chronological_quarters": {
+    "CHRONOLOGICAL_Q1": {
+      "original_change": 0.04502268694341183,
+      "trial_change": 0.03949376568198204,
+      "trial_change_minus_original_change": -0.005528921261429787
+    },
+    "CHRONOLOGICAL_Q2": {
+      "original_change": 0.07745486684143543,
+      "trial_change": 0.07166485860943794,
+      "trial_change_minus_original_change": -0.00579000823199749
+    },
+    "CHRONOLOGICAL_Q3": {
+      "original_change": -0.006414756178855896,
+      "trial_change": -0.02497546747326851,
+      "trial_change_minus_original_change": -0.018560711294412613
+    },
+    "CHRONOLOGICAL_Q4": {
+      "original_change": -0.05659036710858345,
+      "trial_change": -0.058506837114691734,
+      "trial_change_minus_original_change": -0.001916470006108284
+    }
+  },
+  "non_m5_logit_change_energy": {
+    "original": {
+      "state": {
+        "total_mean_square": 0.12656969418468733,
+        "common_across_tf_mean_square": 0.12647311014408738,
+        "common_across_tf_energy_fraction": 0.9992369102159715,
+        "per_tf_mean_change": {
+          "M15": -0.27216533022328804,
+          "H1": -0.2816030001990839,
+          "H4": -0.26053106865401787,
+          "D1": -0.26284345092471995
+        }
+      },
+      "future": {
+        "total_mean_square": 0.9724416047056899,
+        "common_across_tf_mean_square": 0.9721633892492813,
+        "common_across_tf_energy_fraction": 0.9997139000891546,
+        "per_tf_mean_change": {
+          "M15": 0.8745506700074657,
+          "H1": 0.8972748969613349,
+          "H4": 0.9103363428325792,
+          "D1": 0.9104557932582793
+        }
+      }
+    },
+    "trial": {
+      "state": {
+        "total_mean_square": 0.14434492838810462,
+        "common_across_tf_mean_square": 0.11237594207686073,
+        "common_across_tf_energy_fraction": 0.778523660870939,
+        "per_tf_mean_change": {
+          "M15": -0.3816544340998007,
+          "H1": -0.4488749166625894,
+          "H4": -0.0881630126013988,
+          "D1": -0.06183652070512835
+        }
+      },
+      "future": {
+        "total_mean_square": 1.0536368291121507,
+        "common_across_tf_mean_square": 1.022001867505861,
+        "common_across_tf_energy_fraction": 0.969975459539558,
+        "per_tf_mean_change": {
+          "M15": 0.7398866549076502,
+          "H1": 0.7899548112009143,
+          "H4": 1.0198378458462685,
+          "D1": 1.1664924229698954
+        }
+      }
+    }
+  },
+  "activity_diagnosis_summary": {
+    "total_activity_loss_increase": 0.0139607650224155,
+    "state_D1_activity_increase_contribution": 0.010914105779318048,
+    "state_D1_fraction_of_net_activity_increase": 0.781769893110749,
+    "trial_state_D1": {
+      "INITIAL_TRAIN": {
+        "count": 2226,
+        "active_count": 2011,
+        "active_fraction": 0.9034141958670261,
+        "mean_p_active": 0.913724664092788,
+        "row_brier": 0.0869541660702932,
+        "row_log": 0.31904579745655504,
+        "activity_auc": 0.6100586310177744,
+        "mean_p_when_active": 0.9168089121439176,
+        "mean_p_when_flat": 0.8848761858098978,
+        "canonical_batch_activity_loss": 0.3475661302814614,
+        "canonical_contribution": 0.06951322605629227
+      },
+      "FINAL_TRAIN": {
+        "count": 2226,
+        "active_count": 2011,
+        "active_fraction": 0.9034141958670261,
+        "mean_p_active": 0.9456363675022361,
+        "row_brier": 0.0914511114657254,
+        "row_log": 0.35768459271055236,
+        "activity_auc": 0.561116186555341,
+        "mean_p_when_active": 0.9459961044571481,
+        "mean_p_when_flat": 0.9422715720774543,
+        "canonical_batch_activity_loss": 0.4021366591780516,
+        "canonical_contribution": 0.08042733183561032
+      }
+    },
+    "pairwise_direction_auc_cells_checked": 40,
+    "maximum_pairwise_rank_auc_difference": 0.0
+  },
+  "interpretation": [
+    "The opt-in horizon separation changes learning and permits more differentiated non-M5 output changes. It is not yet evidence of improved M5 prediction or later edge.",
+    "Relative to the original short run, conditional Brier/log improve for S/H4,D1 and F/M15,H1,D1, and worsen for S/M5,M15,H1 and F/M5,H4. Both M5 AUC values are slightly below the original final values.",
+    "Direction contributes a net loss decrease, but activity deterioration more than offsets it. S/D1 accounts for78.18percent of net activity deterioration, an accounting share rather than a causal fraction.",
+    "F/M15 andH1 still shift toward excessive UP probabilities and become worse than their own initial calibration.",
+    "The common non-M5 change fraction drops, especially S; F absolute common change energy increases, so the lower fraction does not establish reduced harmful transfer.",
+    "Both early chronological quarters still worsen from initial; both late quarters improve. All four have better total change than original.",
+    "One dependent used-TRAIN comparison at256updates does not establish model capacity, heldout/generalization value, economic edge or a unique gradient cause."
+  ],
+  "observed_guard_peaks": {
+    "core_temperature_c": 55,
+    "memory_temperature_c": 64,
+    "power_draw_w": 136.16,
+    "gpu_memory_mib": 2172,
+    "telemetry_samples": 799,
+    "trainer_guard_exit_code": 0
+  },
+  "operational_prelaunch_corrections": [
+    {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/STARTUP_SMOKE_REVIEW_ASSERTION_FAILURE.json",
+      "sha256": "fa8f67c7f0158af5f06dd8f7ee27cc00b3b87fe179946be08b5c5412f067ee54"
+    },
+    {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/PREFLIGHT_WINDOW_SERIALIZATION_REVIEW.json",
+      "sha256": "4bad5dc9c9db6c6d6899427d9be9fb38f6730d31caa185b760f8b738dd57abcb"
+    },
+    {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/WINDOWS_TASK_INSTALL_TERMINAL.json",
+      "sha256": "491ff67ebc1982972be5f254082914aeb23ce44b4efe290939fc96f5fb0929a9"
+    },
+    {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/WINDOWS_TASK_INSTALL_CANONICAL_TERMINAL.json",
+      "sha256": "4299f9c50f65432e39d9388ee030355ca3e89e2833734e093000a216c99adc8f"
+    }
+  ]
 }

@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_non_m5_side_decoder_repair_v1",
-  "status": "IMPLEMENTED_NATIVE_INITIAL_VERIFIED_BOUNDED_LEARNING_ADMITTED_RESULT_PENDING",
+  "status": "IMPLEMENTED_INITIAL_VERIFIED_MATCHED_SHORT_EFFECT_MIXED_NO_M5_GAIN",
   "reason": "Measured near-parallel side sensitivity and output ranking across M15/H1/H4/D1, plus opposite task pressure and fullusedprefix calibration deterioration, justify testing independent adaptation at the smallest output boundary.",
   "evidence": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_DECODER_CONDITIONING_REVIEW.json",
@@ -23,11 +23,11 @@
   "native_function_qualified": true,
   "direction_improvement_measured": false,
   "model_variant_default_active": false,
-  "native_run_authorized": true,
-  "training_authorized": true,
+  "native_run_authorized": false,
+  "training_authorized": false,
   "promotion_authorized": false,
   "test_data_used": false,
-  "next_action": "Materialize exactly market_state_ta_non_m5_short_learning_20261112_001 from clean committed source; verify actual WINDOW bytes against canonical preflight; register/start GX1NonM5ShortLearning001 once on verified freshboot641 with preparedboot640. Run only256updates/4096TRAINrows and full4096INITIAL/FINAL observations. Preserve all old consumed plans and all signed guards. Review everyS/F/TF against immutable original fullprefix reference; no automatic continuation or broad training.",
+  "next_action": "Use retained original/trial outputs and TRAIN trace to isolate the remaining common activity shift and original sparse-batch loss weighting, first S/D1, and the persistent F/M15-H1 upward calibration shift. Keep all features, five timeframes, targets and guards. Quantify per-task/TF pressure before another model or loss change; current one-use comparison is consumed and admits no further native run. Full history and30-40epochs remain later qualification, not a required rerun after each correction.",
   "mechanical_review": {
     "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SIDE_MECHANICAL_20261111_001/MECHANICAL_REVIEW.json",
     "sha256": "2e4579f1fd66fd00609ae062430d50396dbec95f7e36313f4de9da0d23128ff1"
@@ -70,10 +70,12 @@
   },
   "native_function_qualification_scope": "Original16B16 historicalTRAIN panel only; two independent models and one actual initial checkpoint. No full-population, learning or heldout qualification.",
   "full_population_initial_baseline_qualified": false,
-  "learning_effect_measured": false,
-  "training_authorized_scope": "market_state_ta_non_m5_short_learning_20261112_001",
+  "learning_effect_measured": true,
+  "training_authorized_scope": null,
   "non_m5_short_learning": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_SHORT_LEARNING_REVIEW.json",
-    "sha256": "48a5404b5ad267474e948c0e493c7e5762dd05416ebde3f41963f5a1c6fb0c63"
-  }
+    "sha256": "45e071a0ed39e75543cda838bb9fbf885b1549a2a2869f83fc3a7e378ed4fe46"
+  },
+  "learning_effect_scope": "One matched256-update/4096usedTRAINcomparison; mixed per-task/TF effect, no M5 gain over original; no generalization/economic claim.",
+  "used_4096_initial_baseline_qualified": true
 }
