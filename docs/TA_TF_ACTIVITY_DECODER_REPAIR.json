@@ -50,11 +50,11 @@
   "fresh_actual_initial_baseline_required": true,
   "native_function_qualified": true,
   "learning_effect_measured": false,
-  "native_run_authorized": false,
-  "training_authorized": false,
+  "native_run_authorized": true,
+  "training_authorized": true,
   "promotion_authorized": false,
   "test_data_used": false,
-  "next_action": "Obtain safe fresh physical Windows boot and postboot source/input preflight; then admit one exact matched4096TRAIN/256update activity-only comparison. No full history or30-40epoch run. Learning effect remains unmeasured.",
+  "next_action": "Materialize and verify exact one-use campaign; launch through existing signed native guard. Measure full4096initial before first update and full4096final; compare original and separate-side retained results. No full-history training.",
   "mechanical_qualification": {
     "status": "PASS",
     "passed_tests": 226,
@@ -221,5 +221,28 @@
     "model_constructions": 0,
     "optimizer_updates": 0,
     "next_gate": "fresh safe physical Windows boot; postboot unchanged-source preflight; exact new single-use admission"
+  },
+  "short_learning_admission": {
+    "status": "ADMITTED_ONE_EXACT_COMPARISON_NOT_STARTED",
+    "stage": "market_state_ta_tf_activity_short_learning_20261112_001",
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/RECIPE.json",
+      "sha256": "4ae0082feeb4fb36d943ae1b29efbaa53d2f8876d7f1e91e486b82bb2e232f8d"
+    },
+    "post_boot_verification": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/POST_BOOT_VERIFICATION.json",
+      "sha256": "f9c0168c0490b2d14296a5a3f056eba2878ad357b8677d7a60f26897ca821291"
+    },
+    "post_boot_preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/POST_BOOT_PREFLIGHT.json",
+      "sha256": "54b2a79f62b3f6e007ae0b2305b6f74765e7b6284109a2e3cc15ffcf654a072c"
+    },
+    "rows": 4096,
+    "updates": 256,
+    "forwards": 768,
+    "initial_rng": "67daad3d6238c809023f066b4599c7634db931c73d9229990a3f76a1845289ae",
+    "separate_non_m5_side_heads": false,
+    "full_history_training": false,
+    "test_data_used": false
   }
 }

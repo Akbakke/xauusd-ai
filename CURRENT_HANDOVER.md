@@ -6,14 +6,17 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_ACTIVITY_SHORT_SOURCE_QUALIFIED_PREBOOT.
+TA_DIRECTION_EDGE_CAUSE_ONE_ACTIVITY_SHORT_COMPARISON_ADMITTED.
 Målet11.11 er aktivt: avklar målte årsaker til svak retningsverdi i indikatorer,
 sammensetting og læring. [Samlet status](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json).
 Korte runder er bevisst feilsøking, ikke kapasitetsdom. Full kvalifisert TRAIN-historikk
 og30–40epoker er senere skalering, ikke et krav ved hver rettelse.
-Alle engangsplaner er konsumert. Training/native_training/native_launch/full_epoch er false.
+Alle tidligere engangsplaner er konsumert. Én ny aktivitet-only sammenligning er
+innrømmet: training/native_training true bare for denne eksakte planen;
+native_launch/full_epoch false. Ingen fullhistorikk-/30–40epokers kjøring.
 Ny GX1NonM5ShortLearning001 og begge gamle c171 Windowsoppgaver er Disabled.
-Aktivitetsinitialkontrollen er fullført; ingen ny native kjøring/trening er innrømmet. GC på pause; TEST, Entry/Exit-evaluering, broker,
+Aktivitetsinitialkontrollen er fullført; én ny kort native læringssammenligning er
+innrømmet etter trygg fysisk boot641→642 og uendret kilde/input. Ikke startet. GC på pause; TEST, Entry/Exit-evaluering, broker,
 handel, spending og promotion stengt. Checkpoints er forskningsevidens, ikke promotion.
 
 ## Indikatorer og sammensetting
@@ -144,7 +147,7 @@ Neste steg er én separat kvalifisert kort aktivitetssammenligning på originale
 4096TRAIN-rader/256updates, sammeRNG/ferskAdamW/features/targets/tap. Separate
 nonM5-sidehoder forblir av. Hele bruktprefixets initial må samsvare før førsteupdate.
 Læringseffekt, senere generalisering og økonomisk edge er fortsatt ubevist.
-Ingen ny trening/fullhistorikk/30–40epoker er innrømmet.
+Fullhistorikk/30–40epoker er ikke innrømmet. Den eksakte korte kjøringen er innrømmet nedenfor.
 
 Aktuell kildebølge: aktivitet-only matched short-rute forberedes gjennom eksisterende
 worker/campaign/materializer/cap. Original/riktig separat-side-rute beholdes.
@@ -155,6 +158,9 @@ akser/targets/side og aktivitetsparitet innen kvalifisert toleranse før første
 kildekontroll fant ingen blokkering. Faktisk metadata/view/input-preflight og eksakt
 module-/argumentoppstart bestod; auditvakten avviste native utføring som forventet.
 RECIPE4ae0082f, kanonisk vindu388ad721; faktisk shellgate3600/3900/3900 bekreftet.
-0modeller/checkpoints/updates under klargjøring. Ingen ny native kjøring innrømmet.
-Neste: maskinvid tomgangskontroll, trygg fysisk omstart, uendret kilde/input og
-egen eksakt engangsadmisjon. Hele initialprefixet kontrolleres fortsatt før update.
+0modeller/checkpoints/updates under klargjøring. Trygg fysisk omstart641→642 er
+bekreftet; alle92kildeeiere uendret og ny faktisk input/view-preflight bestod.
+Én ny engangsadmisjon åpner4096TRAIN/256updates/768forwards gjennom eksisterende
+campaign/hardwarevakter. Ikke startet. Hele initialprefixet kontrolleres før update.
+Neste: materialiser eksakt plan, bekreft byteidentisk vindu, start signert nativejobb.
+Ingen kildeendring under kjøringen; stabil drift kontrolleres etter15–30minutter.

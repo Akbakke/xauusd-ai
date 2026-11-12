@@ -1730,12 +1730,12 @@
   },
   "tf_activity_decoder_repair": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
-    "sha256": "1d8e29a05fb533f2fd9ccf2953c665f125eb911829eca306ed697d4f0c147fdb"
+    "sha256": "f90a002872880375f806855b452c5f11345bd1eab8ec139e372bb14b373db154"
   },
   "tf_activity_initial_parity": {
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
-      "sha256": "1d8e29a05fb533f2fd9ccf2953c665f125eb911829eca306ed697d4f0c147fdb"
+      "sha256": "f90a002872880375f806855b452c5f11345bd1eab8ec139e372bb14b373db154"
     },
     "result": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_PARITY_20261112_001/RESULT.json",
