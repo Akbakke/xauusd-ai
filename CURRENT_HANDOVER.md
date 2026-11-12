@@ -6,7 +6,7 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_REPRESENTATION_DRIFT_FULL_BOUNDARY_COVERAGE_REQUIRED.
+TA_DIRECTION_EDGE_CAUSE_PAIRED_FULL_BOUNDARY_OBSERVATION_ADMITTED.
 Målet11.11 er aktivt: avklar målte årsaker til svak retningsverdi i indikatorer,
 sammensetting og læring. Korte runder er bevisst feilsøking, ikke kapasitetsdom.
 Full kvalifisert TRAIN-historikk og30–40epoker er senere skalering.
@@ -14,7 +14,7 @@ Alle tidligere engangsplaner er konsumert; nyeste observasjon er COMPLETE/CONSUM
 native_training/native_launch/full_epoch er false. GX1TFActivityShortLearning001,
 GX1NonM5ShortLearning001 og begge c171-oppgavene er Disabled.
 TEST, Entry/Exit-evaluering, broker, handel, spending og promotion stengt; GC på pause.
-Ingen ny modell-/treningsjobb er innrømmet. Ingen operasjonell blokkering.
+Én ny lesende paired boundary-observasjon er innrømmet; ingen trening. Ingen operasjonell blokkering.
 
 ## Indikatorer og sammensetting
 
@@ -138,12 +138,20 @@ på disse. Piloten kan derfor ikke forklare de215FLAT-tilfellene i fullprefixet.
 F/M15-H1har bare15/11kjente retninger: queryprojection, joint og tidligere restledd
 øker både middel-logit og sidetap i valgt rekkefølge. Ingen enkelt årsak er isolert.
 
-Neste kontroll må dekke hele4096prefixet. Kvalifiser én passiv observasjon som
-fanger128Djoint-hidden og512Djoint-source ved begge faktiske INITIAL/FINAL-endepunkter,
-med eksisterende inputs/checkpoints. Dette unngår nye separate delvise captures og
-muliggjør begge ordener med eksplisitte interaksjoner. Alle12originalfelt/256batchtap
-per endepunkt og de allerede verifiserte INITIALh0 må være byteeksakte først.
-Ingen ny native-/datajobb, trening, arkitektur- eller tapsendring er innrømmet.
+Neste fulldekkende avlesning er kildekvalifisert og ADMITTED etter141fokuserte tester
+og metadata-preflight med0modeller/arrays/checkpoints/claims. NyROOT:
+/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_BOUNDARIES_20261112_001.
+PLAN6f0bc72e, PREFLIGHT3d964d2d.1invocation/0claim/0resultat; ingen gammelplan relanseres.
+Én modell,2eksisterende checkpoints, strict INITIAL→FINALvektovergang uten RNG-/
+optimizerrestore;512B16forwards/8192observerte rader på samme4096kronologiskeTRAIN.
+Fang begge endpointenes512Djoint-source,128Djoint-hidden og alle10TFhodeinnganger.
+Alle12originalfelt/256batchtap per endpoint og tidligereINITIALh0 må være byteeksakte.
+20headregistreringer/5120headkall,512jointsource/512jointhidden/1024queryinputkall;
+0backward/optimizer/autograd/RNGrestore/vektskriving.64MiBNPZ/2MiBJSON.
+Sammeproducer12GiB/512MiB,CPU0–7/pids64,8tråder;250Wlimit/170Wdraw/65Ccore/80Cmemory,
+GPU12288MiB,900sarbeider/1200svakt. Kilden fryses gjennom hele observasjonen.
+Etterpå kan beholdteverdier gi begge ordnede hode/query/joint/source-regnskap og4
+allerede kvalifiserte semantiske sourceblokker. Ingen trening eller modell-/tapsendring.
 
 ## Kvalifisering og ubeviste grenser
 

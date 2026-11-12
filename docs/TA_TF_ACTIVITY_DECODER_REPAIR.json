@@ -54,7 +54,7 @@
   "training_authorized": false,
   "promotion_authorized": false,
   "test_data_used": false,
-  "next_action": "Qualify one new passive paired actualINITIAL/FINAL prequery/joint boundary observation over all4096usedTRAIN rows, reusing existing inputs and checkpoints. Include128Djoint-hidden and512Djoint-source at both endpoints in one observation to avoid repeated partial captures. Require all original12raw/axis/target fields and256batchlosses byteexact per endpoint and allINITIALhead inputs byteexact to the verifiedfullcapture; preserve weights/buffers/RNG/flags/hooks per phase and the explicit weights-only endpoint transition. Fullcoverage is necessary because the retained48row pilot has0D1FLAT cases. No native/data run, training, model/loss change, full-history fit orTEST use is yet admitted.",
+  "next_action": "Execute the single qualified passive paired full4096 INITIAL/FINAL boundary observation, then retained finite endpoint/source-coordinate accounting only if both original endpoints and priorINITIALh0 are byteexact and per-phase passivity/weights-only transition hold. No training, model/loss change, full-history fit orTEST use.",
   "mechanical_qualification": {
     "status": "PASS",
     "passed_tests": 226,
@@ -250,6 +250,6 @@
   },
   "actual_short_learning": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
-    "sha256": "2ff2c69a5cb34a587db2e0d4f59899502346dcd99c34075cef119165d53b5572"
+    "sha256": "e46cb177b22586adce8ac72d6ced8aa365c293ac9e996e87f7b5a70c3c84cf02"
   }
 }
