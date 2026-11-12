@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-12T14:54:59.723882+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_CURRENT_COMPLEMENT_PARTIAL_RETAINED_REVIEW_ADMITTED",
+  "observed_utc": "2026-11-12T14:59:34.706645+00:00",
+  "status": "TA_DIRECTION_EDGE_CAUSE_TRAIN_DETERIORATION_MEASURED_M5_UNRESOLVED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Score only the two fully retained current CPU states. Preserve the consumed numerical stop on the third arm; no relaunch or new model work.",
+  "next_action": "Source/metadata only: inspect the existing current benchmark exposure/order protocol and qualify a same-update unique-coverage counterfactual if it answers a still-open question. No new model/data run or fitting admitted. Keep the missing third-arm complement explicit.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -75707,7 +75707,7 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_CURRENT_COMPLEMENT_TWO_STATE_REVIEW",
+    "status": "ACTIVE_FIXED_COMPUTE_COVERAGE_QUESTION",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "G\u00e5 direkte p\u00e5 problemene og lag deg et m\u00e5l for \u00e5 n\u00f8ste opp i hvorfor vi ikke f\u00e5r god Edge ut av markedsretningen.",
@@ -75721,10 +75721,10 @@
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Score only the two fully retained current CPU states. Preserve the consumed numerical stop on the third arm; no relaunch or new model work.",
+    "next_action": "Source/metadata only: inspect the existing current benchmark exposure/order protocol and qualify a same-update unique-coverage counterfactual if it answers a still-open question. No new model/data run or fitting admitted. Keep the missing third-arm complement explicit.",
     "active_stage": "market_state_ta_current_complement_20261112_001",
     "previous_goal_turn_classification": "PROGRESS_FIXED_SETUP_NATIVE_HORIZONS_AND_LONG_REFERENCE_SCORED",
-    "last_goal_turn_classification": "PROGRESS_MATCHED_CURRENT_COMPLEMENT_QUALIFIED",
+    "last_goal_turn_classification": "PROGRESS_CURRENT_STATES_MATCHED_COMPLEMENT_MEASURED_WITH_EXPLICIT_THIRD_ARM_NUMERICAL_STOP",
     "latest_tail_factor_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_ALL_TF_TAIL_FACTOR_REVIEW.json",
       "sha256": "5da978f765b0ad1ac001023501be7665989270d8353d768b801b9e1b29406c0f"
@@ -75879,7 +75879,7 @@
         "sha256": "f7ba828f1aadf3aa18402b0fdab90c7a50657b1330c99dcc259f763a7d397dfb"
       }
     },
-    "next_question": "Does the measured incremental fitting harm original TRAIN rows outside the recent4096 update cohort, or is deterioration confined to the later period?",
+    "next_question": "Would replacing repeated4096-row exposure with greater unique original-TRAIN coverage, at the same initial state and768updates, reduce the measured degradation and improve the fixed later comparison? This is a hypothesis; no causal coverage effect is established.",
     "existing_order_control_reused": {
       "result": {
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/RESULT.json",
@@ -81903,7 +81903,7 @@
       "M5_DIRECTION_ONLY"
     ],
     "native_training_enabled": false,
-    "next_action": "Execute this one matched CPU evaluation under existing12G/512M producer guard; source and policy remain frozen. Consume on any claimed outcome; inspect exact result before any further scope.",
+    "next_action": "Source/metadata only: inspect the existing current benchmark exposure/order protocol and qualify a same-update unique-coverage counterfactual if it answers a still-open question. No new model/data run or fitting admitted. Keep the missing third-arm complement explicit.",
     "normalization_fit_authorized": false,
     "optimizer_constructions_authorized": 0,
     "plan": {
@@ -81920,7 +81920,7 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_COMPLEMENT_20261112_001/SOURCE_REVIEW.json",
       "sha256": "a20073c32df38890eb2a74f90aa9ddeefa577cfa655185ceb08d77bd9e13dcd2"
     },
-    "status": "FAILED_CONSUMED_TWO_STATES_RETAINED_THIRD_NUMERICS_STOP",
+    "status": "FAILED_CONSUMED_TWO_STATE_REVIEW_COMPLETE",
     "test_data_used": false,
     "training_authorized": false,
     "training_enabled": false,
@@ -81955,12 +81955,12 @@
       "resume_state_load_returns": 3
     },
     "retained_review": {
-      "status": "ADMITTED",
-      "execution_authorized": true,
+      "status": "COMPLETE_CONSUMED",
+      "execution_authorized": false,
       "max_invocations": 1,
-      "claimed_invocations": 0,
-      "completed_invocations": 0,
-      "remaining_invocations": 1,
+      "claimed_invocations": 1,
+      "completed_invocations": 1,
+      "remaining_invocations": 0,
       "relaunch_allowed": false,
       "script": {
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_COMPLEMENT_20261112_001/REVIEW_RETAINED.py",
@@ -81988,7 +81988,15 @@
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_NATIVE_HORIZONS_20261112_001/REVIEW_NATIVE_HORIZONS.py",
         "sha256": "40753c912dcccc587eb3e414698f891ef0e1184fdfaf02dec2177ea8684454c0"
       },
-      "scope": "Score both completed exact matched CPU states on predeclared736complement rows. Preserve failed three-arm status and missing M5-only. No new native work or tolerance relaxation."
+      "scope": "Score both completed exact matched CPU states on predeclared736complement rows. Preserve failed three-arm status and missing M5-only. No new native work or tolerance relaxation.",
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_COMPLEMENT_20261112_001/RETAINED_COMPARISON.json",
+        "sha256": "bf5d6a51f426ea8bb62e6cad48324ddcd3d50091be21053b98e2fbdb06969f5d"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_COMPLEMENT_20261112_001/RETAINED_REVIEW_TERMINAL.json",
+        "sha256": "e57f14d1f4c1c11d06633710f0f0b0b0229f394a8ff9456502fd53d5060fb375"
+      }
     }
   }
 }

@@ -1,58 +1,68 @@
 # CURRENT_HANDOVER — GX1
 
 Arbeidssted: /home/andre2/src/GX1_CURRENT, gren work/gx1-current.
-GX1_RULES.md er bindende; NEXT_RUN_POLICY.json eier arbeidsstatus.
+GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier arbeidsstatus; terminal/prosess overstyrer prosa.
 
-## Aktivt mål og neste handling
+## Aktivt mål og neste steg
 
-TA_DIRECTION_EDGE_CAUSE_CURRENT_COMPLEMENT_PARTIAL_RETAINED_REVIEW_ADMITTED. Edge-målet er fortsatt uoppnådd.
-Native-planen er FAILED/CONSUMED. Begge komplette INITIAL/FULL-captures beholdes.
+TA_DIRECTION_EDGE_CAUSE_TRAIN_DETERIORATION_MEASURED_M5_UNRESOLVED.
+Edge-målet er fortsatt aktivt og uoppnådd. Denne bølgen målte aktuelle INITIAL/FULL på sammeCPU
+og opprinnelige TRAIN-rader utenfor siste4096-raders treningsutvalg. Forverring kan finnes før
+senere markedsperiode; M5-spørsmålet er fortsatt usikkert, og alle horisonter ble ikke verre.
+
+Neste handling er bare kilde-/metadataarbeid: gjenbruk dagens benchmark og undersøk om en
+sammenligning med flere unike TRAIN-rader og samme768oppdateringer kan isolere effekten av
+å gjenta4096-radersutvalget. Bevar eksaktINITIAL, allgenuine inputs og eksisterende senere referanser.
+Ingen effekt av dekning er bevist. Ingen ny modell-/data-/treningskjøring er admittert nå.
+Ingen gammel konsumert plan gjenåpnes; M5-only-komplementet er fortsatt umålt.
+
+## Målt resultat og presise grenser
+
 ROOT /home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_COMPLEMENT_20261112_001.
-Plan: configs/research/MARKET_STATE_TA_CURRENT_COMPLEMENT_20261112_001.json.
-Ikke relanser native-planen. Bare den nye retained_review med to lagrede captures er admittert.
-Claim/result/terminal er autoritative; planen konsumeres også ved feil. Ingen automatisk relaunch.
-Root eier policy, launch og samlet kontroll; kilde og policy fryses under kjøringen.
+Samlet bevis: docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json, current_complement_result.
+Native RESULTb4ae60a3/TERMINALdae3afbc: FAILED/CONSUMED etter253,78sek,97forwards,0updates.
+Retained RESULTbf5d6a51/TERMINALe57f14d1: tostatssammenligning COMPLETE/CONSUMED,12,12sek,
+to eksisterende captures,0checkpoint-dekodinger,0modeller/forwards/updates.
 
-Spørsmål: skader de siste4096-radenes oppdateringer også andre opprinnelige TRAIN-rader,
-eller finnes forverringen bare i senere periode? INITIAL bef35daf og begge faktiske sluttstater
-fra MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001 evalueres på sammeCPU1/no_grad.
-CURRENT INITIAL finnes allerede i ANCHOR_SPAN_SHORT_LEARNING_20261112_002; ingen migrering.
+736faste komplementrader fra46hele B16-batcher;49UTC-dager/22uker.32andre kontrollrader permodell
+er utelatt fra skårene. Dette er originalTRAIN med tidligere læringshistorie, ikke urørt holdout
+eller full25478-raderskomplement. Siste6TRAIN-rader er utenfor dette deklarerte utvalget.
+Alle genuine features og5TF bevares; sampled-S/pass0 og native-F, sammeCPU1/no_grad for begge.
 
-Fast utvalg:46jevnspredte hele komplementbatcher,736rader, pluss to separate bookendbatcher
-med32rader pertilstand. Én modell, trevekts-/bufferlaster,144forwards, maks600modellsek/900wallsek.
-De siste6radene i opprinnelig TRAIN er utenfor dette avgrensede B16-utvalget.
-Alle genuine inputs og alle femTF bevares. Gjenbruk anchor.prepare_fold1 og sampled-S/pass0,
-native-F evaluate_fit_batch. Ingen nye features, normalisering, targets eller senere modellskåring.
-Primært M5S/F side-Brier/log mot eksaktINITIAL og frossenprior; alleTF beholdes.
-ParetUTC-dag/uke2000bootstrap, ingen gruppe-/modell-/horisontutvelging.
+| Native F | Kjent side | Brier INITIAL → FULL | AUC INITIAL → FULL | Brier-differanse95dag | Brier-differanse95uke |
+| --- | ---: | --- | --- | --- | --- |
+| M5 | 280 | 0.249783 → 0.250101 | 0.505413 → 0.534416 | [-0.004438, 0.005657] | [-0.004720, 0.005255] |
+| M15 | 230 | 0.253980 → 0.282337 | 0.518207 → 0.528889 | [-0.000658, 0.062578] | [0.006930, 0.050816] |
+| H1 | 228 | 0.262638 → 0.284652 | 0.451783 → 0.501125 | [-0.012866, 0.061731] | [-0.012680, 0.061730] |
+| H4 | 239 | 0.256703 → 0.311271 | 0.444292 → 0.383645 | [0.017131, 0.094742] | [0.020314, 0.092041] |
+| D1 | 189 | 0.207414 → 0.171439 | 0.699691 → 0.744599 | [-0.081595, 0.009884] | [-0.080140, 0.009015] |
 
-Dette er opprinnelig TRAIN, ikke urørt holdout. Det er et736-raders utvalg, ikke fullkomplementet.
-De32kontrollradene holdes utenfor skårene; CPU/GPU-paritet der er ingen global feilgrense.
-Det gamle E3-komplementresultatet gjaldt annen modell og blandet numerikk; gammel plan forblir konsumert.
+H4s Brier-forverring er positiv i begge punktvise95intervaller. M5F inkluderer null i begge,
+og alle F-AUC-differansene er usikre. M15F-dagintervallet inkluderer null, H1F begge; D1F har
+bedre punktestimat men begge intervaller inkluderer null. Ikke påstå at alle horisonter blir verre.
+M5S-Brier øker0,005598: dag[-0,000114,0,011795], uke[0,001225,0,010210]. Ikke entydig M5-dom.
+M15F-logloss blir verre motINITIAL i begge intervalltyper. StateH4/D1 blir bedre på Brier. Dag/uke-bootstrap2000 er punktvis/utforskende med overlappende mål.
+Frossen TRAIN-prior og eksakt alltid-LONG for alle nativeF beholdes separat; dette er ikke PnL.
+UNKNOWN og umodne mål holdes eksplisitte. Fknownside280/230/228/239/189; UNKNOWN0/6/28/80/139.
 
-## Kvalifisering og foregående resultat
+## Den tredje armen og integritet
 
-SOURCE_CHECK.json: syntetiske fortegn/AUC/masker og bookend-separasjon bestått for alle10endepunkter.
-THREAD_CHECK.json: faktisk intra/inter1 etter standardinitialiseringen. Loaderens eksisterende tellere
-initialiseres og kreves3. Uavhengig read-only kildekontroll fant ingen gjenværende konkret blokkering.
-SOURCE_REVIEW.json binder kvitteringene; docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json samler bevisene.
+INITIAL og FULL fullførte48forwards hver med eksaktmodell-/bufferrestore og passive evalueringer.
+M5-only ble eksakt lastet, men første kontrollbatch fikk future-raw-avvik2,9087e-5 mot GPU-referansen,
+over grensen2e-5. Stoppet før komplementmåling. Ingen toleranse ble lempet og ingen relaunch utført.
+De32numeriske kontrollradene gir ingen global CPU/GPU-feilgrense. SammeCPU sammenlignes direkte.
+Original native source_unchanged=false beholdes: closing bookend ble ikke nådd etter stoppet.
+Retained review verifiserte etterpå alle bundne kilde- og statfil-hasher på nytt uten checkpointdekoding.
+En ferdig tostatsreview betyr ikke at den planlagte trearmskjøringen er ferdig.
 
-Foregående native-horisontkontroll er COMPLETE/CONSUMED. FULL TRAIN-AUC M15–D1 var0,62–0,71,
-senere0,47–0,51, med svakere sannsynligheter ennprior. Samme låste støtte-/EMA-/HTF-oppsett
-viste ingen avklart merverdi mot alltid-LONG på noen av femhorisonter. AUC er ikke winrate.
-Tid, nativeATR-skala og gyldigstøtte endres sammen; ingen isolert ventetidseffekt er bevist.
-Resultatet finnes uendret i MARKET_STATE_TA_SETUP_NATIVE_HORIZONS_20261112_001/RESULT.json.
+## Tidligere hovedfunn og arbeidsgrenser
+
+Femhorisontreviewen er COMPLETE/CONSUMED. FULL TRAIN-AUC M15–D1 var0,62–0,71, senere0,47–0,51.
+Låste støtte-/EMA-/HTF-oppsett viste ingen avklart merverdi mot alltid-LONG på femhorisontene.
+AUC er ikke winrate. Alle tidligere kvitteringer og checkpoints beholdes uendret.
 
 Global training/native_training, full epoch og fullVAL er false. Ingen tung jobb kjører.
-TEST, Entry/Exit-evaluering, broker, handel, spending og promotion er stengt; GC er på pause.
-Korte runder er kvalifisering, ikke en generell dom over prosjektets kapasitet.
-Full kvalifisert TRAIN-historikk og30–40epoker vurderes senere; ingen bred trening admittert nå.
-
-## Eksakt terminal og gjenværende begrensning
-
-Native exit1 etter253,78sek/97forwards/0updates. INITIAL og FULL fullførte48forwards hver,
-inkludert eksakt restore, passive evalueringer og kontrollrader innen2e-5. M5-only stoppet på
-første kontrollbatch: future raw2,9087e-5 over2e-5. Denne armen mangler komplementresultat.
-Originale kvitteringer og to komplette captures beholdes. source_unchanged=false i native-resultatet
-betyr at closing bookend ikke ble nådd; retained review verifiserer alle bundne kilde-/statfiler på nytt.
-Ingen toleranse er lempet, og en vellykket tostatsreview fullfører ikke den planlagte trearmskjøringen.
+Root eier policy/launch. TEST, Entry/Exit-evaluering, broker, handel, spending og promotion er stengt;
+GC er på pause. Ingen modell-/treningskode ble endret i denne bølgen.
+Korte runder kvalifiserer feil og hypoteser; de dømmer ikke endelig kapasitet.
+Full kvalifisert TRAIN-historikk og30–40epoker er senere skalering, ikke autorisert nå.
