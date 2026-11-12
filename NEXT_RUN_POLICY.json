@@ -64349,8 +64349,8 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "TA_DIRECTION_EDGE_CAUSE_NATIVE_HORIZONS_COMPLETE_TRANSFER_UNRESOLVED",
-  "recorded_observed_utc": "2026-11-12T14:31:25.894569+00:00",
+  "recorded_status": "TA_DIRECTION_EFFECTIVE_SIDE_WEIGHT_COUNT_ADMITTED",
+  "recorded_observed_utc": "2026-11-12T17:28:04.354292+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
     "decision": "BLOCK",
@@ -75707,7 +75707,7 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_NON_M5_EFFECTIVE_SUPERVISION_SOURCE_REVIEW",
+    "status": "ACTIVE_TARGETS_ONLY_EFFECTIVE_WEIGHT_COUNT",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "G\u00e5 direkte p\u00e5 problemene og lag deg et m\u00e5l for \u00e5 n\u00f8ste opp i hvorfor vi ikke f\u00e5r god Edge ut av markedsretningen.",
@@ -75717,12 +75717,12 @@
       "sha256": "2682dca5680706f78396491b6f21392d1cca7ffcb051664aa11edfe73200a54a"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": false,
+    "model_or_data_run_admitted": "One targets-only count, zero models or fitting",
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Audit the unchanged FULL objective effective label weighting before attributing persistent non-M5 UP bias to missing indicators or architecture. Start with source and existing metadata: compare the M5 equal-observation rule with non-M5 conditional-side batch means, then qualify only the minimum existing-target count needed to measure row-weighted versus optimizer-weighted UP support on the actual old4096/new12288 schedules. Reuse completed decoder/temporal studies; no automatic calibration on LATER, source change, model run, fitting, feature removal or TEST.",
-    "active_stage": "market_state_ta_coverage_preparation_20261112_001",
+    "next_action": "Execute exactly the qualified targets-only count once. Compare effective UP support with row support across the actual CONTROL/COVERAGE schedules and original TRAIN. No loss change or learning run is admitted; a normalization difference alone is not a defect.",
+    "active_stage": "market_state_ta_effective_side_weight_20261112_001",
     "previous_goal_turn_classification": "PROGRESS_CURRENT_STATES_MATCHED_COMPLEMENT_MEASURED_WITH_EXPLICIT_THIRD_ARM_NUMERICAL_STOP",
     "last_goal_turn_classification": "PROGRESS_BOUND_ACTUAL_CONTROL_PREFIX_AND_FULL_TRAIN_INPUT_REUSE_FOR_FIXED_EXPOSURE_DESIGN",
     "latest_tail_factor_review": {
@@ -76909,7 +76909,7 @@
     "unresolved_campaign_marker_preserved": true,
     "standard_campaign_receipt_available": false
   },
-  "active_stage": "market_state_ta_coverage_benchmark_20261112_001",
+  "active_stage": "market_state_ta_effective_side_weight_20261112_001",
   "market_state_ta_m5_c171_short_learning_20261111_002": {
     "decision": "CLOSED",
     "status": "COMPLETE_CONSUMED",
@@ -82279,5 +82279,49 @@
       },
       "elapsed_seconds": 7.968881218999741
     }
+  },
+  "market_state_ta_effective_side_weight_20261112_001": {
+    "status": "ADMITTED",
+    "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_EFFECTIVE_SIDE_WEIGHT_20261112_001",
+    "question": "Does active non-M5 batch normalization materially shift effective UP label support on the completed old/new exposure schedules?",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_EFFECTIVE_SIDE_WEIGHT_20261112_001/PLAN.json",
+      "sha256": "33ad6930e4344571408aaa3bee85691be65c110663ffdd52041f8ac710a555c7"
+    },
+    "script": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_EFFECTIVE_SIDE_WEIGHT_20261112_001/COUNT_WEIGHTS.py",
+      "sha256": "bf8f2e4d7fb00d4271a548efad698ef8064c09cfb5319fc2f1aad6c412faaa99"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_EFFECTIVE_SIDE_WEIGHT_20261112_001/PREFLIGHT.json",
+      "sha256": "1d2beffcdbb58726e1eb46bb8d0ac9cd385e6745bf024f2f927f2985ec602327"
+    },
+    "execution_authorized": true,
+    "data_reads_authorized": "Only existing pinned target/axis arrays through unchanged binding owners; no feature payloads.",
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "checkpoint_reads_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "budget": {
+      "archive_decodes": 9,
+      "fit_rows": 29574,
+      "seconds": 60,
+      "models": 0,
+      "features": 0,
+      "checkpoints": 0,
+      "forwards": 0,
+      "updates": 0
+    },
+    "resource_cap": {
+      "run_class": "audit",
+      "memory": "4G",
+      "swap": "512M"
+    },
+    "command": "bash scripts/gx1_capped_run.sh --class audit --mem 4G --swap 512M -- timeout -k 5s 60s .venv/bin/python -B /home/andre2/GX1_RUNS/MARKET_STATE_TA_EFFECTIVE_SIDE_WEIGHT_20261112_001/COUNT_WEIGHTS.py",
+    "test_data_used": false
   }
 }

@@ -48,11 +48,15 @@ replisert; største native skårreplayfeil1,11e-15. Alle5TF/S/F, prior og alltid
 Dette er gjenbrukt utviklingsdata, punktvise utforskende intervaller og overlappende mål.
 Kjent-side-støtte kommer fra realiserte labels; ingen selekterbare Entry-handler eller PnL bevises.
 
-Neste: kilde-/metadatarevisjon av effektiv labelvekting i uendret FULL-mål. Sammenlign M5s
-like observasjonsvekt med non-M5 batchgjennomsnitt og kvalifiser bare nødvendig eksisterende
-target-telling for gamle4096/nye12288batchplaner. Mål implisitt UP-vekt før eventuell rettelse;
-ingen vektingsfeil er bevist nå. Gjenbruk ferdige decoder-/temporalstudier uten relaunch.
-Global trening/native/full epoch/fullVAL er false. Ingen ny data-/modelljobb er admittert.
+Neste: én kvalifisert targets-only-telling er admittert som
+market_state_ta_effective_side_weight_20261112_001. Kildekontrollen viser M5 q/N per kjent
+rad, mens øvrige TF bruker1/n per ikke-tom batch. Mål faktisk UP-vekt i gamle4096×3 og
+nye12288-planer før noen konklusjon om feil. Uendrede bindere,9arkivdekodinger,29574TRAIN-rader,
+60sekunder,capped audit4G/512M;0features/checkpoints/modeller/forwards/updates.
+Eksakt preflight består med0dekodinger; syntetisk formel og suksess-/feilrapportering kontrollert.
+En overstreng import-assert ble rettet før claim: eksisterende targetkontrakt importerer torch,
+uten modell-/tensor-/CUDA-kall i telleren. Kilde/formel/schedule er uavhengig gjennomgått.
+Global trening/native/full epoch/fullVAL er false. Ingen modellkjøring er admittert.
 TEST, Entry/Exit, broker, handel, spending og promotion er fortsatt stengt.
 
 ## Målt resultat og presise grenser
