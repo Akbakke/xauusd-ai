@@ -5,12 +5,25 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_COMBINED_TF_DECODER_BENCHMARK_SOURCE_QUALIFIED. Edge-målet er fortsatt uoppnådd.
+TA_COMBINED_DECODER_BENCHMARK_ADMITTED_REBOOT_PENDING. Edge-målet er fortsatt uoppnådd.
+Eksakt ny engangsadmisjon er bundet til RECIPE826d89a3. Static training/native er true bare
+for denne ene sammenligningen; faktisk jobb er ikke startet. Materialiser eksisterende rute,
+forbered/bekreft ny fysisk Windows-boot fra646 ved fersk maskinvid idle-grense, og bruk controlleren.
+Kilde/policy fryses under jobben. Ingen gammel plan gjenåpnes.
+
+Før admisjon ble råcheckpointet b1c5fba6 lest én gang med eksisterende loader (40,7MB).
+Faktiske feature-/normaliserings-/modell-/RNG-identiteter,29 574parentrader og tom optimizer/
+null framdrift er kontrollert. CHECKPOINT_CONTRACT_001_RESULT e34e34d2 er PASS;0modeller/forwards.
+Kilde-S-hash i nytt preflightscript ble rettet før claim til samme hash-eier som uendret import.
+Autoritative forsøks-/returtellere resume_state_load_calls/returns er1/1. Begge INITIAL-paneler
+må fortsatt måles på den faktiske targetmodellen før første update. PREFLIGHT.json binder alle bevis.
+Ny RECIPE, PREPARED_WINDOWS_BOOT og IDLE_BEFORE_ADMISSION finnes i samme runroot.
+
 Aktiv kilde: én combined-decoder-sammenligning mot fullført COVERAGE via den eksisterende
 benchmarken. Root /home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_BENCHMARK_20261112_001.
 SOURCE_QUALIFICATION.json og METADATA_QUALIFICATION_001.json binder kode, tester og faktisk JSON.
-Design: docs/TA_COMBINED_TF_DECODER_CANDIDATE.json. Ingen ny modell-/data-/checkpointjobb eller
-trening er admittert. Alle source-test-/metadataporter er konsumert; native porter er false.
+Design: docs/TA_COMBINED_TF_DECODER_CANDIDATE.json. Source-/metadata-/checkpoint-preflight er
+fullført og konsumert. Bare den nye eksakte native benchmark-porten er nå admittert.
 
 Kandidaten kombinerer eksisterende separate TF-aktivitetshoder og non-M5-sidehoder. Aktivitet-only
 var et bevisst tidligere forsøk; ingen utilsiktet bortkobling eller garantert gevinst er etablert.
@@ -69,6 +82,6 @@ representasjoner; LATER lagrer bare M5. Ingen non-M5-representasjon ble antatt e
 Tidligere decoder-/temporalstudier og komplementforsøk gjenbrukes; originalkvitteringer bevares.
 Detaljert evidens og grenser finnes i docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json.
 
-Global training/native/full epoch/fullVAL er false. TEST er forseglet; Entry/Exit, broker,
+Global training/native er true bare for den nye benchmarken; full epoch/fullVAL er false. TEST er forseglet; Entry/Exit, broker,
 handel, spending og promotion er stengt. GC er på pause. Korte kontroller dømmer ikke
 endelig kapasitet; full kvalifisert historikk og30–40epoker er senere skalering.
