@@ -5,83 +5,48 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_COMBINED_DECODER_BENCHMARK_ADMITTED_REBOOT_PENDING. Edge-målet er fortsatt uoppnådd.
-Eksakt ny engangsadmisjon er bundet til RECIPE826d89a3. Static training/native er true bare
-for denne ene sammenligningen; faktisk jobb er ikke startet. Materialiser eksisterende rute,
-forbered/bekreft ny fysisk Windows-boot fra646 ved fersk maskinvid idle-grense, og bruk controlleren.
-Kilde/policy fryses under jobben. Ingen gammel plan gjenåpnes.
+TA_COMBINED_DECODER_COMPLETE_RETAINED_REVIEW_ADMITTED. Edge-målet er fortsatt uoppnådd.
+Native sammenligning er COMPLETE/CONSUMED; controller har exit0 og oppgaven er deaktivert.
+Global training/native er false. Bare én separat lesende etterkontroll av fire lagrede
+prognosearkiver er admittert. Kjør eksakt preflight før claim, deretter eksisterende4G/512M-audit.
+Ingen ny modell, checkpoint-/featurelesing, fit, TEST, Entry/Exit, broker eller handel.
 
-Før admisjon ble råcheckpointet b1c5fba6 lest én gang med eksisterende loader (40,7MB).
-Faktiske feature-/normaliserings-/modell-/RNG-identiteter,29 574parentrader og tom optimizer/
-null framdrift er kontrollert. CHECKPOINT_CONTRACT_001_RESULT e34e34d2 er PASS;0modeller/forwards.
-Kilde-S-hash i nytt preflightscript ble rettet før claim til samme hash-eier som uendret import.
-Autoritative forsøks-/returtellere resume_state_load_calls/returns er1/1. Begge INITIAL-paneler
-må fortsatt måles på den faktiske targetmodellen før første update. PREFLIGHT.json binder alle bevis.
-Ny RECIPE, PREPARED_WINDOWS_BOOT og IDLE_BEFORE_ADMISSION finnes i samme runroot.
+Root: /home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_BENCHMARK_20261112_001.
+REVIEW_COMBINED_DECODER.py gjenbruker kvalifiserte scorere/bootstrap fra COVERAGE.
+Sammenlign begge armers faste pass3 TRAIN/LATER: alle5TF S/F, sannsynlighetsfeil, AUC,
+UP-skjevhet og punktvise dag-/ukeintervaller. Kontrollpunkter og gamle intervaller må replays
+nøyaktig.4arkiver,2000trekk per gruppeskjema,0modeller. Ingen utvelgelse av pass/gruppe/terskel.
 
-Aktiv kilde: én combined-decoder-sammenligning mot fullført COVERAGE via den eksisterende
-benchmarken. Root /home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_BENCHMARK_20261112_001.
-SOURCE_QUALIFICATION.json og METADATA_QUALIFICATION_001.json binder kode, tester og faktisk JSON.
-Design: docs/TA_COMBINED_TF_DECODER_CANDIDATE.json. Source-/metadata-/checkpoint-preflight er
-fullført og konsumert. Bare den nye eksakte native benchmark-porten er nå admittert.
+## Fullført matched native sammenligning
 
-Kandidaten kombinerer eksisterende separate TF-aktivitetshoder og non-M5-sidehoder. Aktivitet-only
-var et bevisst tidligere forsøk; ingen utilsiktet bortkobling eller garantert gevinst er etablert.
-Tidligere source-/migreringsbevis (337unike kontroller) gjenbrukes fra
-MARKET_STATE_TA_COMBINED_DECODER_SOURCE_20261112_001. Alle genuine features/8familier/5TF/D1,
-normalisering, delt encoder/query og tapsaritmetikk beholdes.16nye tensorer/1032parametre.
+Frossen kilde a23c9346, RECIPE826d89a3, plan2fd275e9, fersk fysisk boot647.
+RESULT31868249 og TERMINAL93cb7f17 er COMPLETE. COMPLETION_VERIFICATION.json kontrollerer
+plan, receipt, cursor, progress, ren kilde, identiske eksponerings-/RNG-planer og faktiske tellere.
+768updates/0skip;2304forwards(768TRAIN+1536eval),2modeller/1optimizer/1checkpointlesing,
+0checkpointskrivinger og1evidence-kapsel. Native målt3129,08s. Originalkvitteringer bevares.
+Vakt: exit0; peak57Ckjerne/60Cminne/167,15W/2206MiB. Ingen jobb ble stoppet for omstart.
 
-Ny worker bygger activity-only-kilden fra eksakt source-view, gjenbruker råcheckpoint b1c5fba6 og
-uendret span-import til INITIAL bef35daf. Deretter klones16sidetensorer inn i combined-target;
-ny targetdigest måles og kan ikke kalles bef35daf. OriginalRNG67daad3d gjenopprettes etter begge
-konstruksjoner. Én frisk optimizer. Nye INITIAL TRAIN/LATER må være like kontrollen før updates:
-aksene/maskene/aktivitet/M5 er bitlike; bare non-M5-side har rtol1e-6/atol2e-6, tap atol5e-6.
-TRAIN har ingen lagrede representasjoner og hevder ingen slik kontroll; LATER kontrollerer begge
-lagrede M5-representasjoner. Senere coverage-view ombindes eksplisitt uten endrede fysiske inputs.
-Behold12288unike TRAIN-rader/768updates, faste4096TRAIN/LATER-paneler og pass3 som primærmåling.
-RNG kontrolleres etter hver pass; ingen pass1modell-/tapslikhet forventes mellom arkitekturene.
+Begge INITIAL-paneler bestod før updates. Akser/targets/aktivitet/M5 er bitlike;
+non-M5-side maksavvik3,58e-7 innen forhåndsbundet toleranse, RNG lik etter hver pass.
+TRAIN har ingen lagrede representasjoner og hevder ingen slik likhet; LATER kontrollerer
+begge lagrede M5-representasjoner. Alle genuine features/8familier/5TF/D1, normalisering,
+delt encoder/query og tapsaritmetikk er beholdt;16nye sidetensorer/1032parametre.
+Separate utganger fjerner ikke all påvirkning mellom oppgaver gjennom den delte encoderen.
 
-224unike fokuserte kontroller kvalifisert. Første suite218PASS/1FAIL; feilen var manglende
-plan_sha256 i en syntetisk failure-fixture, ikke produksjonskode. Rettet kontroll og5tillegg
-for eksisterende routing bestod (6PASS). Original feil-logg/XML er bevart. Uavhengig read-only
-integrasjonsreview fant ingen blokkering. Felles målepanel måtte tillate begge boolflagg for å
-bygge riktig tapskontrakt; gammel scope-adgang er uendret. Cap-script er uendret.
-Faktisk JSON-preflight bestod med eksplisitte sperrer mot native filåpning, np.load, torch.load
-og modellkonstruksjon: alle forsøk0.101kildeeiere og input-/normaliserings-/kontraktidentiteter
-kontrollert. QUALIFIED_RECIPE_CANDIDATE_001.json binder testet worktree, ikke en launchplan.
-Ingen faktisk ny INITIAL, markedsfit, senere læringsgevinst eller økonomisk edge er målt her.
+Foreløpige publiserte pass3-punktmål: TRAIN-loss1,832358→1,823358; senere samletloss
+2,360385→2,360441. M15F-side Brier0,279244→0,269589, mens H1/H4/D1F blir dårligere.
+Dette er ennå ikke ferdig etterkontroll eller bevis for samlet senere retningsgevinst.
 
-Neste: bind den allerede admitterte sammenligningen til fersk ren commit og eksisterende
-bevoktet kjørerute. Den faktiske INITIAL-kontrollen skal stoppe kjøringen før
-første update ved avvik. Ikke gjenåpne tidligere planer. Korte kontroller dømmer ikke endelig
-kapasitet; kvalifisert full historikk og30–40epoker er senere skalering.
+## Gjenbrukt evidens og grenser
 
-## Siste målte retningsevidens
+COVERAGE er fullført i /home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001.
+Begge armer bruker12288unike TRAIN-rader/768updates og samme4096TRAIN/LATER-paneler.
+COVERAGE ga senere M5F AUC0,528606; AUC er ikke winrate. Flere non-M5-prognoser var
+fortsatt dårligere enn frossen prior. Effektiv vektaudit89c0a1f5 viste ingen universell
+UP-drift fra vektingen og begrunnet ingen tapsrettelse.
 
-Eksponeringskontrast og retained review er COMPLETE/CONSUMED:
-/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001.
-RESULTd5ba8fa9, TERMINALe43be2ee, EXPOSURE_COMPARISON3e25678a;768updates/0skip.
-COVERAGE bruker12288unike TRAIN-rader mot4096×3, med samme oppdateringsbudsjett og faste paneler.
-Innhold/repetisjon/rekkefølge endres sammen; ikke isoler unik-radtall som eneste årsak.
-Senere M5F AUC er0,528606 motFULL0,513672 ogINITIAL0,511290. Forbedringen motFULL er usikker;
-motINITIAL er begge utforskende dag-/ukeintervaller positive. AUC er ikke winrate.
-Alle5F-horisonter har bedre senere Brier/logloss ennFULL i begge punktvise95intervaller.
-M15/H1/H4F er fortsatt dårligere enn frossen prior. Ingen robust/economisk edge er etablert.
-
-Effektiv labelvekting er COMPLETE/CONSUMED, RESULT89c0a1f5 i
-/home/andre2/GX1_RUNS/MARKET_STATE_TA_EFFECTIVE_SIDE_WEIGHT_20261112_001.
-M5 gir lik kjent-radvekt; non-M5 har opptil16× forskjell via batchgjennomsnitt.
-På COVERAGE er F/M15 pooledUP50,871%→effektiv52,169%; H154,334%→54,372%.
-H4/D1 trekkes ned, altså ingen universell UP-drift fra vektingen. Ingen tapsrettelse er begrunnet.
-Senere H1Pup var57,459% vedINITIAL og62,434% ettercoverage, mot50%kjent-side-UP-fasit.
-M15 går57,820%→61,586% mot49,106%. Skjevheten fantes før og ble forsterket.
-Tapsreferansen for konstante logits er ikke AdamW-banen eller en prognose for senere data.
-
-Retained2×2-faktorisering ble kildekontrollert og avvist: TRAIN-captures lagrer ingen
-representasjoner; LATER lagrer bare M5. Ingen non-M5-representasjon ble antatt eller invertert.
-Tidligere decoder-/temporalstudier og komplementforsøk gjenbrukes; originalkvitteringer bevares.
-Detaljert evidens og grenser finnes i docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json.
-
-Global training/native er true bare for den nye benchmarken; full epoch/fullVAL er false. TEST er forseglet; Entry/Exit, broker,
-handel, spending og promotion er stengt. GC er på pause. Korte kontroller dømmer ikke
-endelig kapasitet; full kvalifisert historikk og30–40epoker er senere skalering.
+Kilde-/migreringskvalifikasjon og beståtte fokuserte tester gjenbrukes.224unike benchmark-
+kontroller var kvalifisert før kjøring; ingen modellkode er endret etter native kjøring.
+Lagrede utviklingsperioder er gjenbrukt. Ingen uavhengig generalisering, Entry-kvalitet eller
+økonomisk edge er bevist. Korte kontroller dømmer ikke endelig kapasitet. Full kvalifisert
+historikk og30–40epoker er senere skalering. TEST er forseglet; GC er på pause.
