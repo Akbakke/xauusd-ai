@@ -5,24 +5,32 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_COMBINED_TRAJECTORY_RETAINED_ADMITTED. Edge-målet er uoppnådd.
-Native jobb og pass3-review er COMPLETE/CONSUMED. Controller exit0; oppgaven deaktivert,
-aktive markører fjernet og prosessene avsluttet. Global training/native er false. Bare én
-åtte-arkiv etterkontroll er admittert; ingen modell/trening eller gammel plan gjenåpnes.
+TA_COMBINED_TRAJECTORY_COMPLETE_EDGE_UNRESOLVED. Edge-målet er uoppnådd.
+Native benchmark og begge etterkontroller er COMPLETE/CONSUMED. Ingen aktiv jobb observert;
+global training/native er false. Ingen gammel plan gjenåpnes.
 
-Neste konkrete spørsmål: får combined en tidlig senere retningsgevinst ved pass1 som forsvinner,
-eller overføres TRAIN-bedringen heller ikke da? Bruk de åtte eksisterende pass1/pass3 TRAIN/LATER-
-arkivene for combined og COVERAGE til én avgrenset lesende forløpskontroll. Gjenbruk scorere,
-pass3-regnskap og INITIAL-JSON. Behold pass3 som primær; ingen checkpointutvelgelse.
-Parvis tidsforskjell krever de faktisk parede prognosene, ikke subtraksjon av ferdige CI-grenser.
-Eksakt auditadmisjon er nå skrevet. Kjør metadata/helper/kontrast-preflight uten CLAIM/OUTPUT
-før den ene4G/512M-kjøringen (maks300s). Root: /home/andre2/GX1_RUNS/
-MARKET_STATE_TA_COMBINED_DECODER_TRAJECTORY_20261112_001; PLAN13a7e83a og script7db3297a.
+Siste etterkontroll er lagret i docs/TA_COMBINED_TF_DECODER_TRAJECTORY_REVIEW.json.
+Root: /home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_TRAJECTORY_20261112_001.
+RESULT2f0ab03d, TERMINAL5728317e; åtte arkivlesinger, null modeller/checkpoints/forwards/
+updates, målt10,16s. Akser/targets/masker og tidligere pass3-resultater er kontrollert.
+Alle10 senere S/F AUC-punktverdier stiger fra pass1 til3 i begge armer. Alle10 parede
+forskjeller mellom armenes endringer har0 i både dag- og ukeintervall. Ingen tidlig
+combined-rangeringsgevinst som deretter trenes bort er etablert ved disse målepunktene.
+M5F combined AUC0,516268→0,526010; dag95[-0,002933;0,022629], uke95[-0,004066;0,023779].
+Dette er rangering, ikke treffprosent eller dokumentert edge. Ingen positiv innen-arm
+AUC-endring er etablert under begge grupperinger. Pass3 forblir primær; ingen checkpointvalg.
 
-Publisert JSON viser allerede senere combined-loss2,350915→2,411408→2,360441 ved0/1/3.
-Det støtter ikke enkel monotont dårligere prognose ved mer trening. Pass1-AUC/meanP og paret
-rangeringsforløp er ennå ikke målt. Passene øker også unik datadekning; ikke kall endringen
-ren epoch-, repetisjons-, optimizer- eller encoderårsak.
+Brukerens spørsmål om mer trening: den siste videreføringen brukte12 288unike rader én gang,
+fordelt på tre disjunkte delutvalg, fra en allerede trent INITIAL. Dette er ikke tre fulle
+epoker. Dagens spaninputs/normalisering er kvalifisert for29 574TRAIN-rader fra1.mai til
+29.september2024;29 568er hele B16-rader. Bevares736komplementrader utenfor, gjenstår28 832.
+Lengre historikk finnes, men større kalenderprefikser er ikke ferdig bundet til nye spanfelt.
+
+Neste konkrete arbeid er én større eksponeringskandidat med eksisterende kvalifiserte inputs,
+fast modell/tapsoppsett og forhåndsvalgt INITIAL, radplan, updatebudsjett og senere evaluering.
+Kontroller nye valgte rader med eksisterende akse-/target-/vindusporter. Skill mer unik data
+fra flere epoker. Ingen ny native kjøring er admittert nå; ingen modellendring er begrunnet
+av denne etterkontrollen. Korte diagnoser er ikke en dom over full trening eller kapasitet.
 
 ## Fullført sammenligning
 

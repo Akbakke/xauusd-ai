@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-12T20:45:35.627032+00:00",
-  "status": "TA_COMBINED_TRAJECTORY_RETAINED_ADMITTED",
+  "observed_utc": "2026-11-12T20:56:59.416624+00:00",
+  "status": "TA_COMBINED_TRAJECTORY_COMPLETE_EDGE_UNRESOLVED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Run exact metadata/helper/contrast preflight, then the one8archive capped trajectory review. All arm/pass rows and masks must match; pass3 scores and three paired interval families must replay. Measure the paired pass1-to3 changes and difference of changes for every S/F timeframe, retaining pass3 primary and all limitations. Consume the audit; no new training or architecture change.",
+  "next_action": "Prepare one informative larger-exposure training candidate using the existing qualified fold-1 TRAIN inputs. Freeze architecture/objective and declare initialization, row schedule, update budget and later-development scoring before launch; verify newly selected rows with existing axis/target/window gates. Distinguish more unique data from repeated epochs. No architecture change, training launch or expansion to unqualified calendar periods is admitted by this result.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1739,7 +1739,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Span comparison complete without consistent gain. Existing order control also shows aggregate-calibration versus M5 tradeoff and is reused. Next is a bounded review of existing loss-channel/shared-representation evidence; no new training admitted.",
+    "current_activity": "Retained paired trajectory complete: eight archives, zero models/updates. No early ranking gain trained away established. Larger-training metadata qualified only for existing fold-1 prefix; edge remains unresolved.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1768,14 +1768,14 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "ANCHOR_SPAN_MATCHED_SHORT_LEARNING_COMPLETE_CONSUMED",
-    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002",
+    "latest_terminal_role": "TA_COMBINED_TRAJECTORY_RETAINED_COMPLETE_CONSUMED",
+    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_TRAJECTORY_20261112_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002/TERMINAL.json",
-      "sha256": "f6f08a15b68f383d6666f9b0e47248f6d9f2e9d7a7988ec37b5a9cf24b8730c8"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_TRAJECTORY_20261112_001/TERMINAL.json",
+      "sha256": "5728317ec22344d5df1a629e6e6fc5419b04b4d16c5f8266d6df91442d7e5df8"
     },
     "terminal_exit_code": 0,
-    "source_unchanged_at_terminal": true,
+    "source_unchanged_at_terminal": null,
     "full_benchmark_completed": false,
     "sampler_selection_measured": true,
     "selected_sampler_published": true,
@@ -1792,7 +1792,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No operational blocker. Main direction-edge cause remains unresolved; the span comparison did not resolve the measured calibration regression.",
+    "current_blocker": "No observed operational blocker. More training is a testable next hypothesis, not an established cure; a larger run still needs its fixed exposure recipe and existing row/target/window gates.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9263,7 +9263,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Complete clean-source canonical preflight and admit exactly the prepared single4096TRAIN/256update anchor-span comparison. Existing runner must first compose the qualified inputs, map old INITIAL weights by field name, restore original RNG and pass all4096INITIAL predictions/256losses within predeclared FP32 tolerances before any update. No additional research workstream, full-history expansion or altered metrics. Follow execution_contract_20261112 and its60minute preparation budget.",
+    "next_action": "Prepare one informative larger-exposure training candidate using the existing qualified fold-1 TRAIN inputs. Freeze architecture/objective and declare initialization, row schedule, update budget and later-development scoring before launch; verify newly selected rows with existing axis/target/window gates. Distinguish more unique data from repeated epochs. No architecture change, training launch or expansion to unqualified calendar periods is admitted by this result.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -10392,10 +10392,23 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "No claim of a unique historical Adam/joint-training cause.",
-      "Later TRAIN is reused development; small gains are not fresh generalization, statistical edge or profit.",
-      "No fresh constructor or canonical optimizer resume was qualified. No further training/promotion/trading authority.",
-      "All-row native heads were evaluated on qualified cached representations; only two fresh full encoder forwards were required."
+      "No new model/checkpoint/features/fitting/TEST/trading.",
+      "All8 retained archives and all10 S/F cells remain visible.",
+      "Same row-level cluster draw shared by all four arm/pass predictions.",
+      "Report paired within-arm changes and difference of changes; never subtract CI endpoints.",
+      "Pass3 remains the declared primary result. No checkpoint/metric/group selection.",
+      "Passes add unique exposures; temporal changes do not isolate epochs, optimizer, encoder or regime.",
+      "INITIAL proper scores are reused JSON only; no new initial AUC or representation claim.",
+      "Only the existing combined decoder is contrasted at matched initialization, exposure and update budget; later shared-weight changes are part of the learned response.",
+      "Later panel is reused development; original TRAIN is not untouched holdout.",
+      "Conditional-side support uses realized labels and does not establish selectable Entry coverage.",
+      "Day/week percentile95 intervals are pointwise exploratory with overlapping targets; no multiplicity-adjusted or regime-wide guarantee.",
+      "No model, checkpoint, feature payload, new fitting, TEST, trade-path, PnL or promotion.",
+      "TRAIN S uses sampled future queries while LATER S uses native queries; their cross-panel AUC gap is not an identical-task generalization contrast.",
+      "INITIAL was a previously trained state. Current continuation exposure is not total historical learning exposure.",
+      "No full-history or30–40epoch capacity conclusion is justified by this diagnostic continuation.",
+      "AUC, probability calibration, forecast selection, Entry quality and economic edge remain distinct.",
+      "The pass3 primary report remains the historical fixed-endpoint comparison; this report supersedes its pending trajectory question only."
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -17731,7 +17744,7 @@
         "Originals preserved; unusedwindows3/4revoked. No new epoch,HPO,checkpoint/threshold selection,normalization refit,trading,broker,Exit or promotion."
       ]
     },
-    "latest_terminal_evidence_scope": "Four preserved-state tensor changes;5918actualCUDAheadcalls on29574TRAIN/17753later representations;2freshrow0 forwards and actual diskroundtrip; independent24cells/120fields.",
+    "latest_terminal_evidence_scope": "Eight retained TRAIN/LATER pass1/pass3 archives; common paired day/week resampling, all10S/F cells, prior pass3 scores and intervals replayed; zero model/feature/checkpoint execution.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -22384,7 +22397,8 @@
     "latest_anchor_span_short_learning_review": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002/EXPERIMENT_REVIEW.json",
       "sha256": "11a77d1a4b16103ef9455664c13c63b2358ccd8b1ce1e047239eeaff61ed72c8"
-    }
+    },
+    "source_unchanged_terminal_scope": "The retained-only terminal omits source_unchanged. Preserve that absence here; its source_head and exact claim/preflight/script/result bindings are recorded separately in the trajectory review. No original receipt was changed."
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -24948,7 +24962,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-12T14:31:25.894569+00:00",
+  "updated_utc": "2026-11-12T20:56:59.416624+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -82755,19 +82769,19 @@
     }
   },
   "market_state_ta_combined_decoder_trajectory_20261112_001": {
-    "status": "ADMITTED",
-    "execution_authorized": true,
+    "status": "COMPLETE_CONSUMED",
+    "execution_authorized": false,
     "training_enabled": false,
     "native_training_enabled": false,
-    "data_reads_authorized": true,
+    "data_reads_authorized": false,
     "read_scope": "Only eight bound retained prediction archives, associated JSON metadata and qualified helper source.",
     "feature_payload_reads_authorized": false,
     "checkpoint_reads_authorized": false,
     "model_execution_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_TRAJECTORY_20261112_001",
     "plan": {
@@ -82794,6 +82808,40 @@
     "primary_endpoint_pass": 3,
     "checkpoint_selection": false,
     "test_data_used": false,
-    "authorization_basis": "Standing local0USD diagnosis; new exact retained-only one-use admission. No model/training/TEST/trading authority."
+    "authorization_basis": "Standing local0USD diagnosis; new exact retained-only one-use admission. No model/training/TEST/trading authority.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_TRAJECTORY_20261112_001/RESULT.json",
+      "sha256": "2f0ab03d9dee2e8c25cf2ff9ffcfca27206e2c7d2d3c5e58bced21897e4939b6"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_TRAJECTORY_20261112_001/TERMINAL.json",
+      "sha256": "5728317ec22344d5df1a629e6e6fc5419b04b4d16c5f8266d6df91442d7e5df8"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_TRAJECTORY_20261112_001/CLAIM.json",
+      "sha256": "72243c1f894370c1edc9a280db8d1846eb255e62b316bdb12e96099ae3b071ef"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_TRAJECTORY_20261112_001/PREFLIGHT_001.log",
+      "sha256": "64948f299e5504c27370ba9586fb5323b1a889f7bcdbeaed23878254a0145e13"
+    },
+    "run_log": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_TRAJECTORY_20261112_001/RUN_001.log",
+      "sha256": "282f98955b31a2cc3188071929d0ea2e87688156e3ef082c2f5bc6360b183c0b"
+    },
+    "actual_counts": {
+      "archive_decodes": 8,
+      "archive_load_calls": 8,
+      "checkpoint_decodes": 0,
+      "forwards": 0,
+      "models": 0,
+      "optimizer_updates": 0
+    },
+    "elapsed_seconds": 10.164242916000148,
+    "aggregate_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_COMBINED_TF_DECODER_TRAJECTORY_REVIEW.json",
+      "sha256": "3ea4897933f165c4e72664b12319295fe44a23df821283645b6247d1cdfd7c63"
+    },
+    "source_commit": "ac3d36234075ef20b76e9090945db339622e924b"
   }
 }

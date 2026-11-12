@@ -1,0 +1,691 @@
+{
+  "schema_version": "gx1_combined_decoder_trajectory_review_v1",
+  "status": "COMPLETE_NO_EARLY_RANKING_ADVANTAGE_ESTABLISHED_EDGE_UNRESOLVED",
+  "observed_utc": "2026-11-12T20:56:59.416624+00:00",
+  "question": "Does the combined decoder gain later directional ranking at pass1 and lose it by pass3, or does its TRAIN improvement fail to transfer at both measured stages?",
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_TRAJECTORY_20261112_001/RESULT.json",
+    "sha256": "2f0ab03d9dee2e8c25cf2ff9ffcfca27206e2c7d2d3c5e58bced21897e4939b6"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_TRAJECTORY_20261112_001/TERMINAL.json",
+    "sha256": "5728317ec22344d5df1a629e6e6fc5419b04b4d16c5f8266d6df91442d7e5df8"
+  },
+  "claim": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_TRAJECTORY_20261112_001/CLAIM.json",
+    "sha256": "72243c1f894370c1edc9a280db8d1846eb255e62b316bdb12e96099ae3b071ef"
+  },
+  "preflight": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_TRAJECTORY_20261112_001/PREFLIGHT_001.log",
+    "sha256": "64948f299e5504c27370ba9586fb5323b1a889f7bcdbeaed23878254a0145e13"
+  },
+  "run_log": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_TRAJECTORY_20261112_001/RUN_001.log",
+    "sha256": "282f98955b31a2cc3188071929d0ea2e87688156e3ef082c2f5bc6360b183c0b"
+  },
+  "source_commit": "ac3d36234075ef20b76e9090945db339622e924b",
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_TRAJECTORY_20261112_001/PLAN.json",
+    "sha256": "13a7e83a65ff1c5be39d8d4908ba038d75787cdc503dff1a9fddd4b33c3f7434"
+  },
+  "script": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_TRAJECTORY_20261112_001/REVIEW_TRAJECTORY.py",
+    "sha256": "7db3297a9d48b614f32f56146b2ce43acaf186613469be1a87837576ecd27527"
+  },
+  "counts": {
+    "archive_decodes": 8,
+    "archive_load_calls": 8,
+    "checkpoint_decodes": 0,
+    "forwards": 0,
+    "models": 0,
+    "optimizer_updates": 0
+  },
+  "elapsed_seconds": 10.164242916000148,
+  "maximum_published_replay_error": 1.1102230246251565e-15,
+  "paired_all_arm_pass_axes_exact": true,
+  "pass3_scores_and_intervals_replayed": true,
+  "cluster_counts": {
+    "UTC_DAY": 70,
+    "UTC_MONDAY_WEEK": 14
+  },
+  "bootstrap_replicates": 2000,
+  "primary_endpoint_pass": 3,
+  "checkpoint_selection": false,
+  "all_later_auc_points_rise_in_both_arms": true,
+  "all_auc_difference_of_changes_intervals_include_zero": true,
+  "within_arm_auc_gains_positive_under_both_groupings": [],
+  "timeframe_scores": [
+    {
+      "task": "state",
+      "timeframe": "M5",
+      "conditional_side_auc": {
+        "TRAIN": {
+          "CONTROL_PASS1": 0.5506866760396927,
+          "CONTROL_PASS3": 0.5490046253845997,
+          "COMBINED_PASS1": 0.5507671618069564,
+          "COMBINED_PASS3": 0.5490922428021273
+        },
+        "LATER": {
+          "CONTROL_PASS1": 0.545365791200525,
+          "CONTROL_PASS3": 0.5514436388662153,
+          "COMBINED_PASS1": 0.5446235655639314,
+          "COMBINED_PASS3": 0.5521098413917831
+        }
+      },
+      "later_paired_auc_intervals_lower_point_upper": {
+        "COMBINED_PASS3_MINUS_PASS1": {
+          "UTC_DAY": [
+            0.0008805215567252195,
+            0.007486275827851663,
+            0.01491783785357267
+          ],
+          "UTC_MONDAY_WEEK": [
+            -0.0006475358816363713,
+            0.007486275827851663,
+            0.0166324449554745
+          ]
+        },
+        "CONTROL_PASS3_MINUS_PASS1": {
+          "UTC_DAY": [
+            0.0004226701128640792,
+            0.006077847665690306,
+            0.012368157479016472
+          ],
+          "UTC_MONDAY_WEEK": [
+            -0.000787278823601767,
+            0.006077847665690306,
+            0.013832841442646765
+          ]
+        },
+        "DIFFERENCE_OF_CHANGES": {
+          "UTC_DAY": [
+            -0.0006123578952185405,
+            0.001408428162161357,
+            0.003493107666333741
+          ],
+          "UTC_MONDAY_WEEK": [
+            -0.0006891493358783834,
+            0.001408428162161357,
+            0.003185608805889991
+          ]
+        }
+      }
+    },
+    {
+      "task": "state",
+      "timeframe": "M15",
+      "conditional_side_auc": {
+        "TRAIN": {
+          "CONTROL_PASS1": 0.6090103766676788,
+          "CONTROL_PASS3": 0.5872140165383722,
+          "COMBINED_PASS1": 0.6099694593774,
+          "COMBINED_PASS3": 0.5876176528370631
+        },
+        "LATER": {
+          "CONTROL_PASS1": 0.44203994123274565,
+          "CONTROL_PASS3": 0.4484775750535283,
+          "COMBINED_PASS1": 0.4431802651359847,
+          "COMBINED_PASS3": 0.44821989886565533
+        }
+      },
+      "later_paired_auc_intervals_lower_point_upper": {
+        "COMBINED_PASS3_MINUS_PASS1": {
+          "UTC_DAY": [
+            -0.008356534892585258,
+            0.005039633729670645,
+            0.018199208493177264
+          ],
+          "UTC_MONDAY_WEEK": [
+            -0.007959150990321276,
+            0.005039633729670645,
+            0.01698874521232041
+          ]
+        },
+        "CONTROL_PASS3_MINUS_PASS1": {
+          "UTC_DAY": [
+            -0.008422352696761616,
+            0.006437633820782662,
+            0.021162463033951286
+          ],
+          "UTC_MONDAY_WEEK": [
+            -0.00697981135111638,
+            0.006437633820782662,
+            0.020016837605240312
+          ]
+        },
+        "DIFFERENCE_OF_CHANGES": {
+          "UTC_DAY": [
+            -0.004157166858535273,
+            -0.0013980000911120172,
+            0.0013249079354680946
+          ],
+          "UTC_MONDAY_WEEK": [
+            -0.00379895069149615,
+            -0.0013980000911120172,
+            0.0005992835804211626
+          ]
+        }
+      }
+    },
+    {
+      "task": "state",
+      "timeframe": "H1",
+      "conditional_side_auc": {
+        "TRAIN": {
+          "CONTROL_PASS1": 0.7170865951971889,
+          "CONTROL_PASS3": 0.6886743681636905,
+          "COMBINED_PASS1": 0.716734819214354,
+          "COMBINED_PASS3": 0.6913272643878321
+        },
+        "LATER": {
+          "CONTROL_PASS1": 0.48168052632184305,
+          "CONTROL_PASS3": 0.49586510702414227,
+          "COMBINED_PASS1": 0.48066980665493486,
+          "COMBINED_PASS3": 0.492966656315057
+        }
+      },
+      "later_paired_auc_intervals_lower_point_upper": {
+        "COMBINED_PASS3_MINUS_PASS1": {
+          "UTC_DAY": [
+            -0.010274477645514929,
+            0.012296849660122122,
+            0.0328776906746791
+          ],
+          "UTC_MONDAY_WEEK": [
+            -0.0072067572960002975,
+            0.012296849660122122,
+            0.03202356178060114
+          ]
+        },
+        "CONTROL_PASS3_MINUS_PASS1": {
+          "UTC_DAY": [
+            -0.01043285066837349,
+            0.014184580702299221,
+            0.03724748848779738
+          ],
+          "UTC_MONDAY_WEEK": [
+            -0.005792285821279172,
+            0.014184580702299221,
+            0.03491105835822881
+          ]
+        },
+        "DIFFERENCE_OF_CHANGES": {
+          "UTC_DAY": [
+            -0.005842799143287086,
+            -0.0018877310421770988,
+            0.002028497840067114
+          ],
+          "UTC_MONDAY_WEEK": [
+            -0.006824410044285976,
+            -0.0018877310421770988,
+            0.0016822592849109182
+          ]
+        }
+      }
+    },
+    {
+      "task": "state",
+      "timeframe": "H4",
+      "conditional_side_auc": {
+        "TRAIN": {
+          "CONTROL_PASS1": 0.6790957380715705,
+          "CONTROL_PASS3": 0.6757066973161033,
+          "COMBINED_PASS1": 0.6834788146123261,
+          "COMBINED_PASS3": 0.6807125994035785
+        },
+        "LATER": {
+          "CONTROL_PASS1": 0.5278048075968335,
+          "CONTROL_PASS3": 0.5318090320717077,
+          "COMBINED_PASS1": 0.5257196501268245,
+          "COMBINED_PASS3": 0.5332099690385709
+        }
+      },
+      "later_paired_auc_intervals_lower_point_upper": {
+        "COMBINED_PASS3_MINUS_PASS1": {
+          "UTC_DAY": [
+            -0.03175975129342971,
+            0.007490318911746341,
+            0.04558236242424985
+          ],
+          "UTC_MONDAY_WEEK": [
+            -0.03718176986623392,
+            0.007490318911746341,
+            0.05140938887894485
+          ]
+        },
+        "CONTROL_PASS3_MINUS_PASS1": {
+          "UTC_DAY": [
+            -0.030977519590311416,
+            0.004004224474874252,
+            0.03813851893014635
+          ],
+          "UTC_MONDAY_WEEK": [
+            -0.035607572308653204,
+            0.004004224474874252,
+            0.043207280226119686
+          ]
+        },
+        "DIFFERENCE_OF_CHANGES": {
+          "UTC_DAY": [
+            -0.0028436791325799557,
+            0.003486094436872089,
+            0.009347239104154467
+          ],
+          "UTC_MONDAY_WEEK": [
+            -0.002322794168668307,
+            0.003486094436872089,
+            0.008213789303762932
+          ]
+        }
+      }
+    },
+    {
+      "task": "state",
+      "timeframe": "D1",
+      "conditional_side_auc": {
+        "TRAIN": {
+          "CONTROL_PASS1": 0.743919816447289,
+          "CONTROL_PASS3": 0.8016630151638001,
+          "COMBINED_PASS1": 0.7447616747459762,
+          "COMBINED_PASS3": 0.8100505460003106
+        },
+        "LATER": {
+          "CONTROL_PASS1": 0.566046322633076,
+          "CONTROL_PASS3": 0.6108384125694162,
+          "COMBINED_PASS1": 0.5653284572666938,
+          "COMBINED_PASS3": 0.6103426791277259
+        }
+      },
+      "later_paired_auc_intervals_lower_point_upper": {
+        "COMBINED_PASS3_MINUS_PASS1": {
+          "UTC_DAY": [
+            -0.020208471534548692,
+            0.0450142218610321,
+            0.10463567334012687
+          ],
+          "UTC_MONDAY_WEEK": [
+            -0.0026938187410993826,
+            0.0450142218610321,
+            0.08634719002690705
+          ]
+        },
+        "CONTROL_PASS3_MINUS_PASS1": {
+          "UTC_DAY": [
+            -0.023157333934381574,
+            0.04479208993634021,
+            0.1066046202584479
+          ],
+          "UTC_MONDAY_WEEK": [
+            -0.002348390897358451,
+            0.04479208993634021,
+            0.08540711467672099
+          ]
+        },
+        "DIFFERENCE_OF_CHANGES": {
+          "UTC_DAY": [
+            -0.008155421942681965,
+            0.0002221319246918929,
+            0.008960181354264907
+          ],
+          "UTC_MONDAY_WEEK": [
+            -0.007559809138122336,
+            0.0002221319246918929,
+            0.007225584097737894
+          ]
+        }
+      }
+    },
+    {
+      "task": "future",
+      "timeframe": "M5",
+      "conditional_side_auc": {
+        "TRAIN": {
+          "CONTROL_PASS1": 0.546405634039086,
+          "CONTROL_PASS3": 0.5337134692116898,
+          "COMBINED_PASS1": 0.5481430557053333,
+          "COMBINED_PASS3": 0.535187282073403
+        },
+        "LATER": {
+          "CONTROL_PASS1": 0.5181850351905005,
+          "CONTROL_PASS3": 0.5286059731170414,
+          "COMBINED_PASS1": 0.5162682341839343,
+          "COMBINED_PASS3": 0.5260095151967916
+        }
+      },
+      "later_paired_auc_intervals_lower_point_upper": {
+        "COMBINED_PASS3_MINUS_PASS1": {
+          "UTC_DAY": [
+            -0.00293288985131451,
+            0.009741281012857317,
+            0.02262853232048078
+          ],
+          "UTC_MONDAY_WEEK": [
+            -0.004065598043302127,
+            0.009741281012857317,
+            0.023778771454114445
+          ]
+        },
+        "CONTROL_PASS3_MINUS_PASS1": {
+          "UTC_DAY": [
+            -0.0010702540705736369,
+            0.010420937926540863,
+            0.021879327237441917
+          ],
+          "UTC_MONDAY_WEEK": [
+            -0.0018341169302063863,
+            0.010420937926540863,
+            0.02375861460445871
+          ]
+        },
+        "DIFFERENCE_OF_CHANGES": {
+          "UTC_DAY": [
+            -0.003916537611818952,
+            -0.0006796569136835462,
+            0.002358693878279979
+          ],
+          "UTC_MONDAY_WEEK": [
+            -0.0034619659659731127,
+            -0.0006796569136835462,
+            0.002345339395546677
+          ]
+        }
+      }
+    },
+    {
+      "task": "future",
+      "timeframe": "M15",
+      "conditional_side_auc": {
+        "TRAIN": {
+          "CONTROL_PASS1": 0.568992952083629,
+          "CONTROL_PASS3": 0.5623499361430396,
+          "COMBINED_PASS1": 0.5706768837803321,
+          "COMBINED_PASS3": 0.5629535026725321
+        },
+        "LATER": {
+          "CONTROL_PASS1": 0.5092047062048352,
+          "CONTROL_PASS3": 0.5210811675121106,
+          "COMBINED_PASS1": 0.5099976668031777,
+          "COMBINED_PASS3": 0.5243639591250022
+        }
+      },
+      "later_paired_auc_intervals_lower_point_upper": {
+        "COMBINED_PASS3_MINUS_PASS1": {
+          "UTC_DAY": [
+            -0.00859922120215292,
+            0.014366292321824514,
+            0.036752528002511956
+          ],
+          "UTC_MONDAY_WEEK": [
+            -0.010062995654848896,
+            0.014366292321824514,
+            0.04247014172390855
+          ]
+        },
+        "CONTROL_PASS3_MINUS_PASS1": {
+          "UTC_DAY": [
+            -0.007551267886337335,
+            0.011876461307275488,
+            0.03103099571589318
+          ],
+          "UTC_MONDAY_WEEK": [
+            -0.006967990636051638,
+            0.011876461307275488,
+            0.03499455113108488
+          ]
+        },
+        "DIFFERENCE_OF_CHANGES": {
+          "UTC_DAY": [
+            -0.0023899908558731283,
+            0.0024898310145490266,
+            0.007528007555113285
+          ],
+          "UTC_MONDAY_WEEK": [
+            -0.0032493416834725175,
+            0.0024898310145490266,
+            0.008354427264790649
+          ]
+        }
+      }
+    },
+    {
+      "task": "future",
+      "timeframe": "H1",
+      "conditional_side_auc": {
+        "TRAIN": {
+          "CONTROL_PASS1": 0.5682761734655143,
+          "CONTROL_PASS3": 0.5722380056180898,
+          "COMBINED_PASS1": 0.57648553721485,
+          "COMBINED_PASS3": 0.5848227664496949
+        },
+        "LATER": {
+          "CONTROL_PASS1": 0.4944820801494955,
+          "CONTROL_PASS3": 0.5130965112772539,
+          "COMBINED_PASS1": 0.4931852000771207,
+          "COMBINED_PASS3": 0.5109130727818325
+        }
+      },
+      "later_paired_auc_intervals_lower_point_upper": {
+        "COMBINED_PASS3_MINUS_PASS1": {
+          "UTC_DAY": [
+            -0.014868308320195114,
+            0.017727872704711822,
+            0.04733888216536732
+          ],
+          "UTC_MONDAY_WEEK": [
+            -0.014754265386542736,
+            0.017727872704711822,
+            0.050158287521995054
+          ]
+        },
+        "CONTROL_PASS3_MINUS_PASS1": {
+          "UTC_DAY": [
+            -0.013411919925000926,
+            0.018614431127758346,
+            0.047545888984220186
+          ],
+          "UTC_MONDAY_WEEK": [
+            -0.013500590400018673,
+            0.018614431127758346,
+            0.050257503192149444
+          ]
+        },
+        "DIFFERENCE_OF_CHANGES": {
+          "UTC_DAY": [
+            -0.005256856209102244,
+            -0.000886558423046524,
+            0.0033086544479638586
+          ],
+          "UTC_MONDAY_WEEK": [
+            -0.004564861493328007,
+            -0.000886558423046524,
+            0.0032262561433284626
+          ]
+        }
+      }
+    },
+    {
+      "task": "future",
+      "timeframe": "H4",
+      "conditional_side_auc": {
+        "TRAIN": {
+          "CONTROL_PASS1": 0.6018878182663776,
+          "CONTROL_PASS3": 0.5779789470926158,
+          "COMBINED_PASS1": 0.6169034627469219,
+          "COMBINED_PASS3": 0.6046477098794949
+        },
+        "LATER": {
+          "CONTROL_PASS1": 0.4916259530683248,
+          "CONTROL_PASS3": 0.5203475460803908,
+          "COMBINED_PASS1": 0.48962959878599455,
+          "COMBINED_PASS3": 0.5164358020578873
+        }
+      },
+      "later_paired_auc_intervals_lower_point_upper": {
+        "COMBINED_PASS3_MINUS_PASS1": {
+          "UTC_DAY": [
+            -0.0029089643931758126,
+            0.02680620327189276,
+            0.05442571885340383
+          ],
+          "UTC_MONDAY_WEEK": [
+            0.00308168355374992,
+            0.02680620327189276,
+            0.04775075157095246
+          ]
+        },
+        "CONTROL_PASS3_MINUS_PASS1": {
+          "UTC_DAY": [
+            -0.0011976043785990596,
+            0.028721593012066005,
+            0.05721346342583775
+          ],
+          "UTC_MONDAY_WEEK": [
+            0.003891421336003556,
+            0.028721593012066005,
+            0.05150254019562833
+          ]
+        },
+        "DIFFERENCE_OF_CHANGES": {
+          "UTC_DAY": [
+            -0.010148528423138762,
+            -0.0019153897401732456,
+            0.005930529404724578
+          ],
+          "UTC_MONDAY_WEEK": [
+            -0.009204011600481269,
+            -0.0019153897401732456,
+            0.003887752849330586
+          ]
+        }
+      }
+    },
+    {
+      "task": "future",
+      "timeframe": "D1",
+      "conditional_side_auc": {
+        "TRAIN": {
+          "CONTROL_PASS1": 0.6276973130905715,
+          "CONTROL_PASS3": 0.6529978552450463,
+          "COMBINED_PASS1": 0.6392970325554596,
+          "COMBINED_PASS3": 0.6844183698116283
+        },
+        "LATER": {
+          "CONTROL_PASS1": 0.4542245053651094,
+          "CONTROL_PASS3": 0.48831202215698954,
+          "COMBINED_PASS1": 0.453639899165796,
+          "COMBINED_PASS3": 0.4913241952335937
+        }
+      },
+      "later_paired_auc_intervals_lower_point_upper": {
+        "COMBINED_PASS3_MINUS_PASS1": {
+          "UTC_DAY": [
+            -0.01707213239581385,
+            0.03768429606779772,
+            0.08756768215735786
+          ],
+          "UTC_MONDAY_WEEK": [
+            -0.01446188555020925,
+            0.03768429606779772,
+            0.08066142969144514
+          ]
+        },
+        "CONTROL_PASS3_MINUS_PASS1": {
+          "UTC_DAY": [
+            -0.024746159177783462,
+            0.03408751679188016,
+            0.08645801728794851
+          ],
+          "UTC_MONDAY_WEEK": [
+            -0.011096974541522857,
+            0.03408751679188016,
+            0.07245458261935465
+          ]
+        },
+        "DIFFERENCE_OF_CHANGES": {
+          "UTC_DAY": [
+            -0.012180709606659759,
+            0.003596779275917561,
+            0.018192288248339024
+          ],
+          "UTC_MONDAY_WEEK": [
+            -0.01440938948714292,
+            0.003596779275917561,
+            0.016344013301979536
+          ]
+        }
+      }
+    }
+  ],
+  "findings": [
+    "All10 later S/F conditional-side AUC point values rise from pass1 to pass3 in both arms; none establishes a positive within-arm change under both day and week intervals.",
+    "All10 paired differences of changes have zero inside both day/week intervals. These observations do not establish an early combined-decoder ranking advantage that pass3 trains away.",
+    "Combined M5F later AUC rises0.516268234→0.526009515; paired day95[-0.002932890,0.022628532], week95[-0.004065598,0.023778771]. AUC is ranking, not trade hit rate.",
+    "The current768update continuation uses12288unique rows once, partitioned into three disjoint passes. It is not three full epochs or the complete lifetime training of INITIAL, which was already trained.",
+    "Current feature inputs/normalization cover29574fold-1 TRAIN parents from May through September2024. More historical data exist, but larger calendar prefixes are not automatically qualified for the new spanfeatures."
+  ],
+  "larger_training_metadata": {
+    "feature_view": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_SOURCE_20261112_001/TARGET_FEATURE_VIEW.json",
+      "sha256": "10446fab1b61ead0c5ead71d97f80d7bd3fb26c4ffaadfa3ee59e67fb75dfefb"
+    },
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_BENCHMARK_20261112_001/RECIPE.json",
+      "sha256": "826d89a30a07351d6f449a073d8b77875318cad64d4c653fa29894a249e32ad1"
+    },
+    "physical_span_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001/RESULT.json",
+      "sha256": "8878d17a5bf114fcf9cd5eb0e74792ddc5df068b95b67951b594759d5b2b05bb"
+    },
+    "normalization_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_20261112_001/RESULT.json",
+      "sha256": "4476c63b5b70237adf6c67db7f125c6eefb95963cab9418a46ec2d3f23a77f9f"
+    },
+    "qualified_train_rows": 29574,
+    "first_decision_utc": "2024-05-01T00:05:00+00:00",
+    "last_decision_utc": "2024-09-29T23:55:00+00:00",
+    "cutoff_utc": "2024-09-30T00:00:00+00:00",
+    "current_unique_continuation_rows": 12288,
+    "current_unique_fraction": 0.41550010144045446,
+    "passes_are_disjoint": true,
+    "updates": 768,
+    "complete_B16_rows_available_excluding_retained_complement": 28832,
+    "retained_complement_rows": 736,
+    "non_full_batch_tail_rows": 6,
+    "larger_prefix_declarations": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_MATURE_PREFIX_NORMALIZATION_20261107_001.json",
+      "sha256": "b77795e606b35424d6189b7866337ca74c9f7dfc22371168452f5a6f6d665029"
+    },
+    "larger_calendar_prefixes_current_span_binding_qualified": false,
+    "prerequisites": [
+      "Predeclare model/initial state, row exposure, update budget and later scoring without changing architecture to chase this result.",
+      "Check newly selected rows through existing axes, targets, native windows and resource guards.",
+      "For longer history, bind current spanfields, feature views, targets and chronological evaluation boundaries first."
+    ],
+    "native_launch_admitted": false
+  },
+  "limits": [
+    "No new model/checkpoint/features/fitting/TEST/trading.",
+    "All8 retained archives and all10 S/F cells remain visible.",
+    "Same row-level cluster draw shared by all four arm/pass predictions.",
+    "Report paired within-arm changes and difference of changes; never subtract CI endpoints.",
+    "Pass3 remains the declared primary result. No checkpoint/metric/group selection.",
+    "Passes add unique exposures; temporal changes do not isolate epochs, optimizer, encoder or regime.",
+    "INITIAL proper scores are reused JSON only; no new initial AUC or representation claim.",
+    "Only the existing combined decoder is contrasted at matched initialization, exposure and update budget; later shared-weight changes are part of the learned response.",
+    "Later panel is reused development; original TRAIN is not untouched holdout.",
+    "Conditional-side support uses realized labels and does not establish selectable Entry coverage.",
+    "Day/week percentile95 intervals are pointwise exploratory with overlapping targets; no multiplicity-adjusted or regime-wide guarantee.",
+    "No model, checkpoint, feature payload, new fitting, TEST, trade-path, PnL or promotion.",
+    "TRAIN S uses sampled future queries while LATER S uses native queries; their cross-panel AUC gap is not an identical-task generalization contrast.",
+    "INITIAL was a previously trained state. Current continuation exposure is not total historical learning exposure.",
+    "No full-history or30–40epoch capacity conclusion is justified by this diagnostic continuation.",
+    "AUC, probability calibration, forecast selection, Entry quality and economic edge remain distinct.",
+    "The pass3 primary report remains the historical fixed-endpoint comparison; this report supersedes its pending trajectory question only."
+  ],
+  "next_action": "Prepare one informative larger-exposure training candidate using the existing qualified fold-1 TRAIN inputs. Freeze architecture/objective and declare initialization, row schedule, update budget and later-development scoring before launch; verify newly selected rows with existing axis/target/window gates. Distinguish more unique data from repeated epochs. No architecture change, training launch or expansion to unqualified calendar periods is admitted by this result.",
+  "training_authorized": false,
+  "new_model_change_authorized": false,
+  "test_data_used": false,
+  "promotion_authorized": false,
+  "trading_edge_established": false
+}

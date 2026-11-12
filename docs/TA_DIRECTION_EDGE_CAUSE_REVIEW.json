@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_COMBINED_DECODER_MEASURED_LATER_EDGE_UNRESOLVED",
+  "status": "ACTIVE_TRAJECTORY_MEASURED_LARGER_TRAINING_SCOPE_IDENTIFIED_EDGE_UNRESOLVED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -269,7 +269,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Prepare one bounded retained trajectory review of the eight existing pass1/pass3 TRAIN/LATER prediction archives for COMBINED and COVERAGE. Reuse qualified scoring, pass3 comparisons and INITIAL JSON evidence. Keep pass3 as the declared primary result; measure paired temporal differences without selecting a checkpoint or claiming a unique optimizer/encoder cause. No new model, feature/checkpoint read or training; exact separate audit admission/preflight is still required.",
+  "next_measurement": "Prepare one informative larger-exposure training candidate using the existing qualified fold-1 TRAIN inputs. Freeze architecture/objective and declare initialization, row schedule, update budget and later-development scoring before launch; verify newly selected rows with existing axis/target/window gates. Distinguish more unique data from repeated epochs. No architecture change, training launch or expansion to unqualified calendar periods is admitted by this result.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -1723,6 +1723,11 @@
   },
   "training_authorized_scope": null,
   "latest_confirmed_findings": [
+    "All10 later S/F conditional-side AUC point values rise from pass1 to pass3 in both arms; none establishes a positive within-arm change under both day and week intervals.",
+    "All10 paired differences of changes have zero inside both day/week intervals. These observations do not establish an early combined-decoder ranking advantage that pass3 trains away.",
+    "Combined M5F later AUC rises0.516268234→0.526009515; paired day95[-0.002932890,0.022628532], week95[-0.004065598,0.023778771]. AUC is ranking, not trade hit rate.",
+    "The current768update continuation uses12288unique rows once, partitioned into three disjoint passes. It is not three full epochs or the complete lifetime training of INITIAL, which was already trained.",
+    "Current feature inputs/normalization cover29574fold-1 TRAIN parents from May through September2024. More historical data exist, but larger calendar prefixes are not automatically qualified for the new spanfeatures.",
     "Fixed TRAIN total loss improves1.832358166→1.823357637, while later total loss is2.360385095→2.360440765. Better TRAIN fit does not establish better later forecasts.",
     "M15 conditional-side Brier/log improves for both S and F in both pointwise day/week intervals. Its AUC change includes zero; this supports a probability/calibration effect rather than established ranking improvement.",
     "M5F AUC changes0.528605973→0.526009515, Brier0.249511328→0.249473211. Both changes remain uncertain in both day/week intervals.",
@@ -13796,6 +13801,19 @@
     "native_elapsed_seconds": 3129.077761319,
     "all_later_auc_delta_intervals_include_zero": true,
     "next_cause_question": "Does the combined decoder gain later directional ranking at pass1 and then lose it, or does its TRAIN improvement fail to transfer at both measured stages?",
+    "training_authorized": false,
+    "test_data_used": false
+  },
+  "combined_tf_decoder_trajectory": {
+    "status": "COMPLETE_NO_EARLY_RANKING_ADVANTAGE_ESTABLISHED_EDGE_UNRESOLVED",
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_COMBINED_TF_DECODER_TRAJECTORY_REVIEW.json",
+      "sha256": "3ea4897933f165c4e72664b12319295fe44a23df821283645b6247d1cdfd7c63"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_TRAJECTORY_20261112_001/RESULT.json",
+      "sha256": "2f0ab03d9dee2e8c25cf2ff9ffcfca27206e2c7d2d3c5e58bced21897e4939b6"
+    },
     "training_authorized": false,
     "test_data_used": false
   }
