@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-12T14:47:14.254989+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_CURRENT_COMPLEMENT_ADMITTED",
+  "observed_utc": "2026-11-12T14:54:59.723882+00:00",
+  "status": "TA_DIRECTION_EDGE_CAUSE_CURRENT_COMPLEMENT_PARTIAL_RETAINED_REVIEW_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Execute this one matched CPU evaluation under existing12G/512M producer guard; source and policy remain frozen. Consume on any claimed outcome; inspect exact result before any further scope.",
+  "next_action": "Score only the two fully retained current CPU states. Preserve the consumed numerical stop on the third arm; no relaunch or new model work.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1722,10 +1722,10 @@
     "setup_horizon_edge_established": false
   },
   "current_work": {
-    "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
+    "operator_request": "G\u00e5 direkte p\u00e5 problemene og lag deg et m\u00e5l for \u00e5 n\u00f8ste opp i hvorfor vi ikke f\u00e5r god Edge ut av markedsretningen.",
     "current_activity": "Span comparison complete without consistent gain. Existing order control also shows aggregate-calibration versus M5 tradeoff and is reused. Next is a bounded review of existing loss-channel/shared-representation evidence; no new training admitted.",
     "restart_and_smoke_goal": {
-      "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
+      "operator_request": "Ja, restart pc\u2019en du, og lag deg et m\u00e5l som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
       "thread_id": "01a10ffd-150b-7443-963c-03314e5968bd",
       "status_at_creation": "active",
@@ -1782,7 +1782,7 @@
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
     },
     "restart_efficiency_request": {
-      "operator_request": "Omstartene må ikke komme for sent (unngå blå heng) men må deles opp hyppig nok. Samtidig må vi finne en god effektivitet og mellomlagre så vi ikke mister info",
+      "operator_request": "Omstartene m\u00e5 ikke komme for sent (unng\u00e5 bl\u00e5 heng) men m\u00e5 deles opp hyppig nok. Samtidig m\u00e5 vi finne en god effektivitet og mellomlagre s\u00e5 vi ikke mister info",
       "method": "docs/NATIVE_LEARNING.md",
       "shorter_window_implemented": false,
       "safe_cadence_and_v38_resume_measured": false,
@@ -1798,7 +1798,7 @@
       "errors": 0
     },
     "training_preparation_goal": {
-      "operator_request": "Flott, lag deg dette som et mål og få alt dette på plass, gå så igjennom HELE repoet etter feil/mismatches og forbedringer/tilpassinger etter beste evne for prosjektet, så kjører vi en smoke og så til slutt en stor trening",
+      "operator_request": "Flott, lag deg dette som et m\u00e5l og f\u00e5 alt dette p\u00e5 plass, g\u00e5 s\u00e5 igjennom HELE repoet etter feil/mismatches og forbedringer/tilpassinger etter beste evne for prosjektet, s\u00e5 kj\u00f8rer vi en smoke og s\u00e5 til slutt en stor trening",
       "thread_id": "01a1203d-4a95-7d03-bbd9-84017db6b29c",
       "status": "completed",
       "created_utc": "2026-10-09T13:22:42Z",
@@ -2932,7 +2932,7 @@
       "authorized": false,
       "authorized_mode": null,
       "research_id": "ENTRY_EDGE_TRAIN_20261010_001",
-      "operator_request": "Bra! Lag deg dette som et mål og fullfør disse 4 stegene",
+      "operator_request": "Bra! Lag deg dette som et m\u00e5l og fullf\u00f8r disse 4 stegene",
       "spec": {
         "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_EDGE_TRAIN_PROBE_20261010.json",
         "sha256": "be64cdec048e07ecf3349a8f6f70fac4c99728c90d7476c06eddcf3e9438184a"
@@ -2995,7 +2995,7 @@
       "sha256": "2da93ae99d2f90056ce3f9e1cd9b0a1cebeec8137b3aada45b47f01c561e885e"
     },
     "entry_learning_study_20261010": {
-      "operator_request": "10.10.2026: Lag deg et nytt mål og kjør disse 4.",
+      "operator_request": "10.10.2026: Lag deg et nytt m\u00e5l og kj\u00f8r disse 4.",
       "goal_thread_id": "01a123d0-e7e1-79c3-900c-c56837ea0367",
       "status": "COMPLETE_REJECTED_ENTRY_QUALIFICATION",
       "authorized": false,
@@ -3600,7 +3600,7 @@
         "new_budget_time_added": true,
         "optimizer_authorized": false,
         "status": "closed_after_completion",
-        "operator_request": "11.10.2026 «Ja, kjør og hent inn resten også»; program decision: native track alongside CPU research; next_action 4 fresh zero-step v10 baseline under a new explicit budget"
+        "operator_request": "11.10.2026 \u00abJa, kj\u00f8r og hent inn resten ogs\u00e5\u00bb; program decision: native track alongside CPU research; next_action 4 fresh zero-step v10 baseline under a new explicit budget"
       },
       "fresh_initial_baseline_stage_v10": {
         "authorized": false,
@@ -3773,7 +3773,7 @@
       }
     },
     "head_deviation_fixes_20261011": {
-      "operator_request": "11.10.2026: Ja, rett opp i Avvik i HEAD som står uløst, dette må uansett på plass.",
+      "operator_request": "11.10.2026: Ja, rett opp i Avvik i HEAD som st\u00e5r ul\u00f8st, dette m\u00e5 uansett p\u00e5 plass.",
       "source_commit": "56d87f49a552f273397d0b0bbb13a411ac0a373a",
       "changed_source_files": {
         "gx1/contracts/entry_model_native_training_objective_v1.py": "4e8db5982dc5276a52bad4becd2ba144ccf9a765139e733eefdb8e84de4a633e",
@@ -3878,17 +3878,17 @@
       "note": "capacity measured sampler/collation only (model_forwards 0); remains valid for the v10 function; binding the selected sampler into a recipe is a separate step after the fresh v10 baseline"
     },
     "operator_decisions_20261011_program": {
-      "swing_primary_track": "«Ja, 1»: D1 decision clock, 5 and 20 day horizons, research owner research_ta_campaign_v1 D1 pipeline extended; preregistration required before any fit",
-      "parallel_gpu_and_cpu_research": "«forskningsjobben kan så klart gå samtidig»: one native GPU job and one CPU research job may run concurrently within CURRENT; each keeps its own capped cgroup, memory and thread limits; two GPU jobs or two CPU heavy jobs remain forbidden",
-      "oanda_read_access": "«Du skal ha API fra Oanda for å hente inn mer info»: manifest-bound read-only historical candle fetches for named instruments through the existing OandaClient; no orders, no account changes, secrets never logged",
-      "pattern_fields_pause": "«Ikke slett candlesticks og slikt da, men vi kan vel sette dem på pause»: candle/pattern fields are excluded from the D1 research input set; native keeps all eight families (training time is not driven by these fields); nothing deleted",
-      "dead_code_removal": "«Husk å slette unødvendig kode»: import-graph scan 11.10 found 8 modules/980 lines with zero importers and zero references outside conversation transcripts; removed in a separate commit",
+      "swing_primary_track": "\u00abJa, 1\u00bb: D1 decision clock, 5 and 20 day horizons, research owner research_ta_campaign_v1 D1 pipeline extended; preregistration required before any fit",
+      "parallel_gpu_and_cpu_research": "\u00abforskningsjobben kan s\u00e5 klart g\u00e5 samtidig\u00bb: one native GPU job and one CPU research job may run concurrently within CURRENT; each keeps its own capped cgroup, memory and thread limits; two GPU jobs or two CPU heavy jobs remain forbidden",
+      "oanda_read_access": "\u00abDu skal ha API fra Oanda for \u00e5 hente inn mer info\u00bb: manifest-bound read-only historical candle fetches for named instruments through the existing OandaClient; no orders, no account changes, secrets never logged",
+      "pattern_fields_pause": "\u00abIkke slett candlesticks og slikt da, men vi kan vel sette dem p\u00e5 pause\u00bb: candle/pattern fields are excluded from the D1 research input set; native keeps all eight families (training time is not driven by these fields); nothing deleted",
+      "dead_code_removal": "\u00abHusk \u00e5 slette un\u00f8dvendig kode\u00bb: import-graph scan 11.10 found 8 modules/980 lines with zero importers and zero references outside conversation transcripts; removed in a separate commit",
       "program_document": "docs/ENTRY_DIRECTION_SWING_PROGRAM_20261011.md",
       "source_fetch_authorized": false,
       "fits_authorized": false
     },
     "operator_decision_20261011_rule_1_instruments": {
-      "operator_request": "Åpne regel 1 med andre instrumenter (det var initielt for å ikke blande EURUSD men dette er parkert).",
+      "operator_request": "\u00c5pne regel 1 med andre instrumenter (det var initielt for \u00e5 ikke blande EURUSD men dette er parkert).",
       "bound_scope": "named instruments as manifest-bound research inputs and as offline research backtest targets (pooled/hierarchical estimation across a panel, portfolio research track)",
       "native_entry_exit_and_serving_instrument": "XAUUSD unchanged until a separate evidence-based decision",
       "source_fetch_authorized": false,
@@ -4829,7 +4829,7 @@
       "evidence_class": "measured on reused development history"
     },
     "swing_d1_stage_c_20261011": {
-      "operator_request": "11.10.2026 «Ja, kjør og hent inn resten også»",
+      "operator_request": "11.10.2026 \u00abJa, kj\u00f8r og hent inn resten ogs\u00e5\u00bb",
       "owner": "gx1.scripts.research_ta_campaign_v1 run-swing-d1 (optional D1 lane, FOMC calendar, H.10 dollar group, fold_spans)",
       "h10_retry": {
         "manifest": "configs/research/FED_H10_PACKAGES_SOURCE_20261011_002.json",
@@ -5066,7 +5066,7 @@
       "evidence_class": "measured_reused_development_walkforward"
     },
     "swing_d1_stage_c_followups_20261011": {
-      "operator_request": "11.10.2026 «Ja, kjør og hent inn resten også»",
+      "operator_request": "11.10.2026 \u00abJa, kj\u00f8r og hent inn resten ogs\u00e5\u00bb",
       "owner": "gx1.scripts.research_ta_campaign_v1 run-swing-d1 (block-matched long null d4d9229f, exclude_groups b07918b9)",
       "forward_check_010": {
         "preregistration": "configs/research/ENTRY_DIRECTION_SWING_D1_20261011_010.json",
@@ -5521,7 +5521,7 @@
       "evidence_class": "measured_reused_development_walkforward_plus_low_power_forward_half_year"
     },
     "forward_journal_20261011": {
-      "operator_request": "11.10.2026 «Ja, gjør begge» og «ja ja bash tillatelsesregel så gjør du det»",
+      "operator_request": "11.10.2026 \u00abJa, gj\u00f8r begge\u00bb og \u00abja ja bash tillatelsesregel s\u00e5 gj\u00f8r du det\u00bb",
       "authorized": true,
       "journal_id": "ENTRY_DIRECTION_SWING_FORWARD_JOURNAL_20261011",
       "owner": "gx1.scripts.research_ta_campaign_v1 run-swing-forward-journal",
@@ -5551,7 +5551,7 @@
         "route": "OANDA H1 resampled on the canonical D1 session clock"
       },
       "fit_rule": "ridge fit on rows whose 20-day outcome closed before the scored month; never on scored rows",
-      "rules_owner": "GX1_RULES.md (Operatørvedtak 11.10.2026 kveld)",
+      "rules_owner": "GX1_RULES.md (Operat\u00f8rvedtak 11.10.2026 kveld)",
       "predictor_admitted": false,
       "orders_sent": false,
       "preregistration": "configs/research/ENTRY_DIRECTION_SWING_FORWARD_JOURNAL_20261011.json",
@@ -5667,7 +5667,7 @@
       "evidence_class": "forward_scored_once_after_the_fact_fit_strictly_before_each_month"
     },
     "operator_decision_20261011_native_d1_context": {
-      "operator_request": "11.10.2026 «Ja, gjør begge»",
+      "operator_request": "11.10.2026 \u00abJa, gj\u00f8r begge\u00bb",
       "decided": "observed-market target on 1/5/20 trading days (explicitly bound successor) and a new D1 context family (COT positioning, cross-asset panel, macro drivers) with the research surface's as-of availability",
       "not_launched": "contract, signal manifest, normalization owner, dataset rebuild, recipe and training each need their own binding and budget; nothing is started by this decision",
       "design_document": "docs/NATIVE_D1_CONTEXT_HORIZON_DECISION_20261011.md",
@@ -5676,7 +5676,7 @@
       "test_sealed_for_fitting": true
     },
     "native_d1_wave_20261011": {
-      "operator_request": "11.10.2026 «Ja, kjør steg 1 og 2»",
+      "operator_request": "11.10.2026 \u00abJa, kj\u00f8r steg 1 og 2\u00bb",
       "design_document": "docs/NATIVE_D1_CONTEXT_HORIZON_DECISION_20261011.md",
       "step_1_d1_macro_context": {
         "status": "MEASURED_PASS",
@@ -5836,7 +5836,7 @@
       "flags_repair_note": "14.10.2026: the NATIVE_D1 generation (315-field manifest, horizon labels in the builder, trainer dispatch) made both true"
     },
     "native_d1_rebuild_20261011": {
-      "operator_request": "11.10.2026 «ja, kjør 3, 4 og 5»",
+      "operator_request": "11.10.2026 \u00abja, kj\u00f8r 3, 4 og 5\u00bb",
       "status": "FAILED_M5_LANE_D1_READ_END_PRESERVED",
       "authorized_goal": false,
       "core_build_authorized": false,
@@ -5881,7 +5881,7 @@
       "event_root_note": "failed core attempt; event root named by generation (not path) so the retention owner can plan it after the spec document is closed"
     },
     "native_d1_rebuild_20261011_002": {
-      "operator_request": "11.10.2026 «ja, kjør 3, 4 og 5»",
+      "operator_request": "11.10.2026 \u00abja, kj\u00f8r 3, 4 og 5\u00bb",
       "status": "FAILED_BUILDER_TEST_READ_END_PRESERVED",
       "previous_attempt": "native_d1_rebuild_20261011 (FAILED_M5_LANE_D1_READ_END_PRESERVED, 2013 s)",
       "authorized_goal": false,
@@ -5928,7 +5928,7 @@
       "event_root_note": "failed core attempt; event root named by generation (not path) so the retention owner can plan it after the spec document is closed"
     },
     "native_d1_rebuild_20261011_003": {
-      "operator_request": "11.10.2026 «ja, kjør 3, 4 og 5»",
+      "operator_request": "11.10.2026 \u00abja, kj\u00f8r 3, 4 og 5\u00bb",
       "status": "DOWNSTREAM_COMPLETE_FRESH_BASELINE_MEASURED",
       "previous_attempts": [
         "native_d1_rebuild_20261011 (FAILED_M5_LANE_D1_READ_END_PRESERVED, 2013 s)",
@@ -6612,7 +6612,7 @@
       }
     },
     "native_d1_minimum_learning_20261012": {
-      "operator_request": "12.10.2026: «ja gjør dette … Bruk minimum nå i starten for å se at alt fungerer som det skal, så kan vi vurdere å legge på fler ting senere»",
+      "operator_request": "12.10.2026: \u00abja gj\u00f8r dette \u2026 Bruk minimum n\u00e5 i starten for \u00e5 se at alt fungerer som det skal, s\u00e5 kan vi vurdere \u00e5 legge p\u00e5 fler ting senere\u00bb",
       "plan_document": "docs/NATIVE_D1_MINIMUM_LEARNING_PLAN_20261012.md",
       "status": "P2_RECENT_180D_ADMITTED_RECEIPTS_OWN_PROGRESS",
       "registered_utc": "2026-10-12T12:30:00.292062+00:00",
@@ -6652,7 +6652,7 @@
         "test_access_allowed": false,
         "control_observation_note": "study spec and study contract bind CONTROL4096 at steps 0 and 4096 and TRAIN_PROBE4096 at 0/256/1024/4096; the plan document's four control checkpoints were a wording error, repaired 14.10.2026",
         "recent_year_note": "14.10.2026: successor spec ENTRY_D1_HORIZON_LEARNING_STUDY_20261014 adds the recent-window phase (365 days before the TRAIN cutoff, 65 148 eligible rows, 4 071 steps derived by the contract owner); fit/curve repeated byte for byte",
-        "recent_two_years_note": "14.10.2026 «kjør»: successor spec ENTRY_D1_HORIZON_LEARNING_STUDY_20261015 reruns the window phase with 730 days (128 815 eligible rows, 8 050 derived steps); the contract phase key stays recent_year, window_days carries the truth",
+        "recent_two_years_note": "14.10.2026 \u00abkj\u00f8r\u00bb: successor spec ENTRY_D1_HORIZON_LEARNING_STUDY_20261015 reruns the window phase with 730 days (128 815 eligible rows, 8 050 derived steps); the contract phase key stays recent_year, window_days carries the truth",
         "seed_variant_note": "15.10.2026: named seed variants 20261015/20261016 opened through the gates for window phases only (30f0b5ba)"
       },
       "steps": {
@@ -7198,7 +7198,7 @@
               },
               "root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_001/RECENT_YEAR",
               "run_id": "ENTRY_D1_HORIZON_RECENT2Y_20261015_001",
-              "operator_basis": "user 14.10.2026 «kjør» on presented option 1 after the recent_year review (GX1_RULES decision 14.10 b: smaller window before any full epoch)",
+              "operator_basis": "user 14.10.2026 \u00abkj\u00f8r\u00bb on presented option 1 after the recent_year review (GX1_RULES decision 14.10 b: smaller window before any full epoch)",
               "window": {
                 "rule": "eligible TRAIN rows whose decision lies in (cutoff - window_days, cutoff]; frozen epoch-0 order restricted to the window first. The phase keeps the contract key name recent_year although the window is 730 days.",
                 "window_days": 730,
@@ -7650,7 +7650,7 @@
               },
               "root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_365D_S20261015",
               "run_id": "ENTRY_D1_HORIZON_365D_SEED15_20261015_001",
-              "operator_basis": "user 15.10.2026 «Ja, 1 og 2»: seed variants on the 365-day window plus a 180-day window; GX1_RULES decision 14.10 b stands",
+              "operator_basis": "user 15.10.2026 \u00abJa, 1 og 2\u00bb: seed variants on the 365-day window plus a 180-day window; GX1_RULES decision 14.10 b stands",
               "phase_spec": {
                 "run_id": "ENTRY_D1_HORIZON_365D_SEED15_20261015_001",
                 "optimizer_steps": 4071,
@@ -7838,7 +7838,7 @@
               },
               "root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_365D_S20261016",
               "run_id": "ENTRY_D1_HORIZON_365D_SEED16_20261015_001",
-              "operator_basis": "user 15.10.2026 «Ja, 1 og 2» (phase 2 of 3)",
+              "operator_basis": "user 15.10.2026 \u00abJa, 1 og 2\u00bb (phase 2 of 3)",
               "phase_spec": {
                 "run_id": "ENTRY_D1_HORIZON_365D_SEED16_20261015_001",
                 "optimizer_steps": 4071,
@@ -8022,7 +8022,7 @@
               },
               "root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_180D",
               "run_id": "ENTRY_D1_HORIZON_180D_20261015_001",
-              "operator_basis": "user 15.10.2026 «Ja, 1 og 2» (phase 3 of 3)",
+              "operator_basis": "user 15.10.2026 \u00abJa, 1 og 2\u00bb (phase 3 of 3)",
               "phase_spec": {
                 "run_id": "ENTRY_D1_HORIZON_180D_20261015_001",
                 "optimizer_steps": 2010,
@@ -8052,7 +8052,7 @@
                 }
               },
               "evidence_class": "not started; one GPU invocation at the next physical Windows boot (task armed, no forced reboot)",
-              "disarm_note": "15.10.2026: the Windows task was disabled before the M5 recheck commits (the recipe binds HEAD 810b0714; a later commit would make the invocation fail closed). Re-arm = recipe + campaign + task at the final HEAD of the M5 wave. Not re-armed: the recipe and campaign under RECENT_180D are immutable and bound to 810b0714, so re-arming needs a new attempt root; the operator re-prioritized to the M5 recheck on 15.10 («ikke å låse prosjektet til D1»)."
+              "disarm_note": "15.10.2026: the Windows task was disabled before the M5 recheck commits (the recipe binds HEAD 810b0714; a later commit would make the invocation fail closed). Re-arm = recipe + campaign + task at the final HEAD of the M5 wave. Not re-armed: the recipe and campaign under RECENT_180D are immutable and bound to 810b0714, so re-arming needs a new attempt root; the operator re-prioritized to the M5 recheck on 15.10 (\u00abikke \u00e5 l\u00e5se prosjektet til D1\u00bb)."
             }
           },
           "smoke_definition": "the fit phase's TRAIN256 observation at optimizer step 256 is the minimum plan's smoke (deviation from the 12.10 wording, recorded 14.10.2026)"
@@ -8522,7 +8522,7 @@
         "automatic_host_restart": false,
         "native_launch_admitted": false,
         "resource_owner": "scripts/gx1_capped_run.sh CPU producer20G/512M,CPU0-7,1 thread,64tasks,CURRENT project lock,unchanged available-memory/cgroup guards",
-        "operator_request": "12.10.2026 «ja gjør dette … Bruk minimum nå i starten»",
+        "operator_request": "12.10.2026 \u00abja gj\u00f8r dette \u2026 Bruk minimum n\u00e5 i starten\u00bb",
         "authorization_utc": "2026-10-12T13:33:31.280374+00:00",
         "status": "STOPPED_BY_AGENT_ON_MEASURED_PAIR_RATE_PROJECTED_OVER_WINDOW_NO_RELAUNCH",
         "proposal": {
@@ -8587,7 +8587,7 @@
         "automatic_host_restart": false,
         "native_launch_admitted": false,
         "resource_owner": "scripts/gx1_capped_run.sh CPU producer20G/512M,CPU0-7,1 thread,64tasks,CURRENT project lock,unchanged available-memory/cgroup guards",
-        "operator_request": "12.10.2026 «ja gjør dette … Bruk minimum nå i starten»",
+        "operator_request": "12.10.2026 \u00abja gj\u00f8r dette \u2026 Bruk minimum n\u00e5 i starten\u00bb",
         "authorization_utc": "2026-10-12T13:52:44.542357+00:00",
         "status": "GENUINE_COMPLETE_MEASURED_TRAIN_CAPACITY_EXIT0_AUTHORITY_CONSUMED",
         "proposal": {
@@ -8673,7 +8673,7 @@
         "schema_version": "gx1_bound_native_d1_metadata_handoff_scope_v1",
         "stage_id": "NATIVE_METADATA_HANDOFF_001",
         "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_METADATA_HANDOFF_001",
-        "operator_request": "12.10.2026 «ja gjør dette … Bruk minimum nå i starten»",
+        "operator_request": "12.10.2026 \u00abja gj\u00f8r dette \u2026 Bruk minimum n\u00e5 i starten\u00bb",
         "authorization_utc": "2026-10-13T05:57:56.372205+00:00",
         "authorized": false,
         "relaunch_allowed": false,
@@ -8739,7 +8739,7 @@
         "schema_version": "gx1_bound_native_d1_physical_preprocessing_scope_v1",
         "stage_id": "NATIVE_PREPROCESSING_001",
         "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPROCESSING_001",
-        "operator_request": "12.10.2026 «ja gjør dette … Bruk minimum nå i starten»",
+        "operator_request": "12.10.2026 \u00abja gj\u00f8r dette \u2026 Bruk minimum n\u00e5 i starten\u00bb",
         "authorization_utc": "2026-10-13T05:59:23.558188+00:00",
         "authorized": false,
         "relaunch_allowed": false,
@@ -8879,7 +8879,7 @@
         ]
       },
       "operator_decision_20261015": {
-        "request": "«Ja, 1 og 2» on the presented options after the recency-decay measurement",
+        "request": "\u00abJa, 1 og 2\u00bb on the presented options after the recency-decay measurement",
         "bound": "three preregistered window phases in spec ENTRY_D1_HORIZON_LEARNING_STUDY_20261015_002, one at a time: recent_365d_s20261015 and recent_365d_s20261016 (seed variants, contract constant RECENT_WINDOW_SEED_VARIANTS, date convention) and recent_180d (design seed). Full epoch stays excluded by the 730-day measurement; option 3 (closing the native track in favour of the forward journal) parked by this choice.",
         "spec": {
           "path": "configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261015_002.json",
@@ -9212,7 +9212,7 @@
     },
     "gc_goal_resume_authorization": {
       "received_date": "2026-10-16",
-      "operator_request": "La oss implementere det nye GC datasettet som vi lastet ned så bruker vi volume, order block og ALT vi kan få ut av dette og så trener vi igjen",
+      "operator_request": "La oss implementere det nye GC datasettet som vi lastet ned s\u00e5 bruker vi volume, order block og ALT vi kan f\u00e5 ut av dette og s\u00e5 trener vi igjen",
       "authorized_scope": "One new local-only raw-data pass, continuous series and indicator-specific source admission; no indicator feature values, fit, TEST, economics or native changes.",
       "new_databento_requests_allowed": false,
       "additional_spending_allowed": false,
@@ -9224,7 +9224,7 @@
       "new_one_off_audit_plan_execution_allowed": false,
       "new_one_off_audit_approval": {
         "received_date": "2026-10-16",
-        "operator_response": "La oss implementere det nye GC datasettet som vi lastet ned så bruker vi volume, order block og ALT vi kan få ut av dette og så trener vi igjen",
+        "operator_response": "La oss implementere det nye GC datasettet som vi lastet ned s\u00e5 bruker vi volume, order block og ALT vi kan f\u00e5 ut av dette og s\u00e5 trener vi igjen",
         "approved_plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
         "approved_plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
         "approval_receipt_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004/OPERATOR_APPROVAL.json",
@@ -9502,7 +9502,7 @@
     },
     "retention_hard_delete_20261016": {
       "status": "DELETE_AND_PHYSICAL_COMPACTION_COMPLETE",
-      "operator_request": "Gjør en ordenlig hard slett av ubrukelige filer. fra 500gb til 150/200 sikkert",
+      "operator_request": "Gj\u00f8r en ordenlig hard slett av ubrukelige filer. fra 500gb til 150/200 sikkert",
       "operator_authorized_permanent_unused_file_removal": true,
       "target_inventory": "/home/andre2/GX1_RUNS/RETENTION_OBSOLETE_PAYLOADS_20261016_001/TARGETS.json",
       "targets": 1333,
@@ -9627,7 +9627,7 @@
       "terminal_sha256": "4362868a27359bb17dab3e9bb72ac5932210f57a1f578772f29100e6d1efd32b"
     },
     "gc_m5_operator_decision_20261017": {
-      "operator_response": "Vi holder oss til M5 intradag (med mtf så klart).",
+      "operator_response": "Vi holder oss til M5 intradag (med mtf s\u00e5 klart).",
       "entry_timeframe": "M5",
       "style": "intraday",
       "mtf_preserved": [
@@ -10786,7 +10786,7 @@
           "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_001/ATTEMPT_001_FAILURE.json sha256=1e0c555542917d8c28db9ff432f1567f0beae3f8866ad09e8647dc9ca4dd71cf: attempt 001 failed on a valid Fill row, no partial report; plan 001 will not be relaunched.",
           "configs/research/GC_SOURCE_AUDIT_20261016_002.json sha256=3cca1eef4bd965e0194a5f353f76645fbb6a030c509d0f3d24850745f4d0310d: executed exactly once under the fresh single-use user approval; terminal COMPLETE_NOT_ADMITTED.",
           "Focused source-owner tests: 36 passed after adding passive-Fill handling; no full MBP-1 rerun performed.",
-          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/OPERATOR_APPROVAL.json sha256=799008e5c49192d83886705ca174b901386439771988e3742d30676c41498376: user response “Ja”; single-use approval for plan 002 only.",
+          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/OPERATOR_APPROVAL.json sha256=799008e5c49192d83886705ca174b901386439771988e3742d30676c41498376: user response \u201cJa\u201d; single-use approval for plan 002 only.",
           "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/AUDIT_RESULTS/RESULT.json sha256=c869e3d1395c5892fab19d7c3056faaca1ca4aaac41f70d3f05943d4e63dcbab: STRUCTURAL_AUDIT_COMPLETE_NOT_ADMITTED; 66 files, 892100712 records, 62783740 trades, 0 new downloads, 0 fits, TEST false.",
           "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/AUDIT_RESULTS/TERMINAL.json sha256=e513dc5f58f360cf52e06e53d280f3ce1b854a808a020c224159223dcfc0c1f8: COMPLETE_NOT_ADMITTED; result hash verified.",
           "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/POST_AUDIT_RECONCILIATION.json sha256=14288c053ad5ca972577c854183fee93abe972565ba92cc1a21ae90b75f41cda: all 66 source/receipt hashes and 15-symbol definition crosswalk match; daily activity on 678/791 dates, all 113 absent dates Saturdays; intraday coverage and OANDA overlap remain unproven.",
@@ -11020,7 +11020,7 @@
       },
       "operator_train_smoke_approval": {
         "received_utc": "2026-10-17T21:41:57.036176+00:00",
-        "request": "ja, pass på at alt av informative features/indikatorer er på plass og faktisk produserer det dem skal, så kjører vi en train og smoke test på disse 26 månedene.",
+        "request": "ja, pass p\u00e5 at alt av informative features/indikatorer er p\u00e5 plass og faktisk produserer det dem skal, s\u00e5 kj\u00f8rer vi en train og smoke test p\u00e5 disse 26 m\u00e5nedene.",
         "approved_scope": "one frozen five-fold CPU train/smoke study; full qualified market inputs, max20fits/10neural fits,128steps/network,whole1800s/4G; only after input/producer qualification",
         "native_training": false,
         "TEST": false
@@ -12037,7 +12037,7 @@
         "query_domain_minutes": {
           "first": 1,
           "last": 480,
-          "origin": "firstengineeringdomain manyhours, reuses existing96M5×5min scale; nooptimalityorholdlimitclaim"
+          "origin": "firstengineeringdomain manyhours, reuses existing96M5\u00d75min scale; nooptimalityorholdlimitclaim"
         },
         "required_completion": [
           "immutableM1BIDASKquoteprovenance+splitcontainedperquerytargets",
@@ -17392,7 +17392,7 @@
       "native_entry_private_qualification_completed": true,
       "completed_full_native_epochs": 2,
       "full_native_epoch_request_fulfilled": true,
-      "physical_dataset_qualification_scope": "121–126activeGCfive-TF numeric qualification;127/128/129/133activecompactcore numeric qualification;134once-parsed rawMBP reference join;144actual compact model input influence. Parked full-library independent numeric/usefulness qualification remains outside the active compact scope.",
+      "physical_dataset_qualification_scope": "121\u2013126activeGCfive-TF numeric qualification;127/128/129/133activecompactcore numeric qualification;134once-parsed rawMBP reference join;144actual compact model input influence. Parked full-library independent numeric/usefulness qualification remains outside the active compact scope.",
       "completed_full_native_epoch_scope": "108original epoch and151new explicit TRAIN-RMS epoch are independently completed and consumed; no authority for another epoch.",
       "compact_active_input_qualification_complete": true
     },
@@ -17418,7 +17418,7 @@
       "data_priority": "Complete and exploit all genuinely observable GC MBP-1 information on the existing26month window before considering10year OHLC expansion. Preserve unknown aggressor, actual coverage, raw price grid, contract identity and GC/XAU basis alignment.",
       "entry_objective_alignment": "Dynamic local UP/DOWN/FLAT, sustained states and transitions on all M5/M15/H1/H4/D1, without fixed starting-price or return conditions. Forecast before Entry/trades; no hard60minute ceiling or imposed state/holding duration.",
       "evidence_rule": "An earlier short CPU/rule/smoke test is scoped evidence and never a project-wide impossibility conclusion. Preserve measured results and original receipts.",
-      "execution_rule": "Disjoint agents and one capped heavy job; freeze source during execution, reuse qualified bytes, safe idle-boundary reboot, stable long-job checks approximately every 15–30 minutes or less frequently when stable.",
+      "execution_rule": "Disjoint agents and one capped heavy job; freeze source during execution, reuse qualified bytes, safe idle-boundary reboot, stable long-job checks approximately every 15\u201330 minutes or less frequently when stable.",
       "audit_document": "docs/FEATURE_AUDIT.md",
       "completion_rule": "Preserve the original goal and subsequent explicit clarifications. All active source/feature/timeframe/input/model paths need scoped evidence; qualify learned LONG/SHORT/FLAT quality, coverage and selected/abstained traceability. Report technical consistency, learned improvement, chronological generalization and economic edge separately. Missing requested qualifications prevent a full-completion claim.",
       "original_request": {
@@ -17717,7 +17717,7 @@
     },
     "latest_terminal_evidence_scope": "Four preserved-state tensor changes;5918actualCUDAheadcalls on29574TRAIN/17753later representations;2freshrow0 forwards and actual diskroundtrip; independent24cells/120fields.",
     "training_efficiency_request_20261019": {
-      "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
+      "operator_request": "Effektivisertreningenmaks;unng\u00e5gjentatteTB-ogun\u00f8dvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
       "reuse_existing_feature_target_normalization_artifacts": true,
       "full_scan_or_hash_inside_batch_loop_allowed": false,
@@ -18848,7 +18848,7 @@
     "autonomous_direction_qualification_goal_20261021": {
       "status": "ACTIVE_DIAGNOSE_THEN_MEASURE_ONE_JUSTIFIED_IMPROVEMENT",
       "operator_request_utc": "2026-10-21T19:15:05.466847+00:00",
-      "operator_request_verbatim": "Flott! Lag disse punktene som et mål og jobb kontinuerlig til du er fornøyd med resultatet av bedre kvalifikasjon av retning",
+      "operator_request_verbatim": "Flott! Lag disse punktene som et m\u00e5l og jobb kontinuerlig til du er forn\u00f8yd med resultatet av bedre kvalifikasjon av retning",
       "task_goal_thread_id": "01a15fb6-db63-7fc2-b74c-9a104bf14312",
       "objective": "Better qualified M5 Entry LONG/SHORT/FLAT direction, move magnitude and small MAE before first MFE using shared native model, existing MBP-1/SMC and causal closed M15/H1/H4/D1 context.",
       "work_packages": [
@@ -18905,7 +18905,7 @@
         "sha256": "319b7cfe18294cb1db828686dbf0d38d426b7414713fbae041aaa3aa5065d6f1"
       },
       "generalization_priority_20261022": {
-        "operator_request": "Husk å ikke gå inn på bittesmå ting, vi må ha et system som holder generelt, ikke overtilpassing. Det går jo også an å gå motsatt vei om vi har funnet at vi alltid får Mae?",
+        "operator_request": "Husk \u00e5 ikke g\u00e5 inn p\u00e5 bittesm\u00e5 ting, vi m\u00e5 ha et system som holder generelt, ikke overtilpassing. Det g\u00e5r jo ogs\u00e5 an \u00e5 g\u00e5 motsatt vei om vi har funnet at vi alltid f\u00e5r Mae?",
         "scope186": {
           "path": "/home/andre2/GX1_RUNS/NATIVE_M5_BROAD_PERIOD_INVERSION_REVIEW_20261022_186/PREPARATION_SCOPE.json",
           "sha256": "d1207d0d9eacbb543f61ac8d4a3381dfa00254041845ad949d8d8123c7f506d3"
@@ -18946,7 +18946,7 @@
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
     },
     "continuation_goal_20261023": {
-      "user_instruction": "Lag deg et mål og fortsett byggingen/justeringen av disse funnene",
+      "user_instruction": "Lag deg et m\u00e5l og fortsett byggingen/justeringen av disse funnene",
       "scope": "Complete213 fixedmeanSSE source qualification, then one explicitlybound chronological capacity comparison if qualified; evidence-driven M5Entry changes only.",
       "test_data_used": false,
       "native_launch_authorized": false,
@@ -18984,7 +18984,7 @@
       "model_or_metric_recomputation": false
     },
     "feature_value_goal_20261023": {
-      "user_instruction": "Da må vi gå rett på spørmålet om features. Hva skal til for at vi får bedre prognoser? Lag deg et nytt mål og dykk dypt inn i featursene for spørmål om forbedring/retningsedge i entry. Vi SKAL lage dette prosjektet slik at vi får en bot som har gode prognoser",
+      "user_instruction": "Da m\u00e5 vi g\u00e5 rett p\u00e5 sp\u00f8rm\u00e5let om features. Hva skal til for at vi f\u00e5r bedre prognoser? Lag deg et nytt m\u00e5l og dykk dypt inn i featursene for sp\u00f8rm\u00e5l om forbedring/retningsedge i entry. Vi SKAL lage dette prosjektet slik at vi f\u00e5r en bot som har gode prognoser",
       "thread_id": "01a1691c-e91c-7281-a962-54431293de52",
       "status": "active",
       "scope": "Genuine source-to-sequence feature information, all active families and closedTF; smallest evidence-grounded improvement, fixed causal chronological forecast/quality/coverage comparison if admitted. TechnicalPASS is not goal completion.",
@@ -18998,9 +18998,9 @@
     },
     "direction_only_goal": {
       "status": "RETAINED_VALID_ENDPOINT_BASELINE_IN_BROADER_ENTRY_OBJECTIVE",
-      "operator_request": "Et mål: retningen. Så tar vi selve trades i2.omgang.",
+      "operator_request": "Et m\u00e5l: retningen. S\u00e5 tar vi selve trades i2.omgang.",
       "observed_utc": "2026-10-24T06:04:44.651388+00:00",
-      "objective": "Forutsi senere prisretning LONG/SHORT med kalibrert sannsynlighet på M5-beslutninger, med samme genuine kausale features/TF. Dokumenter gevinst mot enkle retningsreferanser og prefix-only fit i kronologisk evaluering. Trades/risiko/Exit/MFE/MAE er utsatt.",
+      "objective": "Forutsi senere prisretning LONG/SHORT med kalibrert sannsynlighet p\u00e5 M5-beslutninger, med samme genuine kausale features/TF. Dokumenter gevinst mot enkle retningsreferanser og prefix-only fit i kronologisk evaluering. Trades/risiko/Exit/MFE/MAE er utsatt.",
       "phase_2_trade_design_authorized_now": false,
       "better_direction_qualified": false,
       "profitability_claimed": false,
@@ -19109,7 +19109,7 @@
     },
     "direction_cause_objective": {
       "authority": "Direct user request2026-10-27: include10minutes, assess every minute1..60, and commission one independent direction/bps/trigger review.",
-      "objective": "Forklar og forbedre GX1s retningsinformasjon for XAUUSD fra samme kausale M5-entry: eksplisitte punkter1/5/10/15/30/60og foreslått minuttkurve1..60. Behold dagens1/5/15baseline. Skill utilstrekkelig læring, representasjonstap, svakt fremoversignal og manglende bps-størrelse. Bevar åtte familier og D1/makro; ingen Exit eller handel.",
+      "objective": "Forklar og forbedre GX1s retningsinformasjon for XAUUSD fra samme kausale M5-entry: eksplisitte punkter1/5/10/15/30/60og foresl\u00e5tt minuttkurve1..60. Behold dagens1/5/15baseline. Skill utilstrekkelig l\u00e6ring, representasjonstap, svakt fremoversignal og manglende bps-st\u00f8rrelse. Bevar \u00e5tte familier og D1/makro; ingen Exit eller handel.",
       "fixed_horizons_minutes": [
         1,
         5,
@@ -19188,7 +19188,7 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_PRIOR_OFFSET_ROOT_REVIEW_001.json",
       "sha256": "cb8aefe756ebaabf9661410626bec88746fe5fe63e9f33cad4226fdaea3ac5c1"
     },
-    "current_direction_objective": "Forutsi meningsfull oppgang, nedgang og markedsstillstand med eksplisitt tid og størrelse på tvers av minutter/timer/dager. Prognosen er ikke Entry; Entry og trades kommer senere. Ingen hard60minuttersgrense. Behold genuin kausal MTF, åtte familier og D1/makro.",
+    "current_direction_objective": "Forutsi meningsfull oppgang, nedgang og markedsstillstand med eksplisitt tid og st\u00f8rrelse p\u00e5 tvers av minutter/timer/dager. Prognosen er ikke Entry; Entry og trades kommer senere. Ingen hard60minuttersgrense. Behold genuin kausal MTF, \u00e5tte familier og D1/makro.",
     "current_direction_cause_synthesis": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_CAUSE_SYNTHESIS_008.json",
       "sha256": "ed4da77dcf102b3bd1de461ad44bd3ba9a07ddea345c4d21585c486fe14fd62d"
@@ -19371,7 +19371,7 @@
     },
     "retention_unused_20261101": {
       "status": "DELETE_COMPLETE_VERIFIED",
-      "operator_request": "Flott! Først, rydd opp masse GB og slett alt vi ikke trenger. Så lag deg et mål og jobb aktivt mot å finne ut av hvorfor vi ikke får Edge i fremtidig retningspresisjon, og kom med forslag og løsninger",
+      "operator_request": "Flott! F\u00f8rst, rydd opp masse GB og slett alt vi ikke trenger. S\u00e5 lag deg et m\u00e5l og jobb aktivt mot \u00e5 finne ut av hvorfor vi ikke f\u00e5r Edge i fremtidig retningspresisjon, og kom med forslag og l\u00f8sninger",
       "owner": "gx1.scripts.cleanup_gx1_evidence_v1",
       "run_root": "/home/andre2/GX1_RUNS/RETENTION_UNUSED_20261101_001",
       "targets_inventory": "/home/andre2/GX1_RUNS/RETENTION_UNUSED_20261101_001/TARGETS.json",
@@ -19435,7 +19435,7 @@
     "completed_evidence_goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653",
     "edge_design_implementation_20261101": {
       "status": "SOURCE_IMPLEMENTED_76_SYNTHETIC_PASS_NATIVE_EXECUTION_PROHIBITED",
-      "user_request": "Lag nytt mål og gjør disse 2",
+      "user_request": "Lag nytt m\u00e5l og gj\u00f8r disse 2",
       "scope": [
         "explicit ordinary four-field price projection initialization with a distinct profile",
         "native GC relative coordinates with preserved masks/anchor/basis and own normalization identity"
@@ -19507,7 +19507,7 @@
       "root_cause_proven": false,
       "forecast_role_separate_from_entry": true,
       "semantic_preference": "Resolved: continuously evolving local UP/DOWN/FLAT, continuations and transitions on all five timeframes. No fixed starting-price line, required return or two-leg template.",
-      "operator_followup": "Da har vi i teorien 2 retninger. Først den ene veien, så den andre. Begge retningene skal telle. Og dette måler vi på alle 5 multi timeframe",
+      "operator_followup": "Da har vi i teorien 2 retninger. F\u00f8rst den ene veien, s\u00e5 den andre. Begge retningene skal telle. Og dette m\u00e5ler vi p\u00e5 alle 5 multi timeframe",
       "forecast_timeframes": [
         "M5",
         "M15",
@@ -19515,7 +19515,7 @@
         "H4",
         "D1"
       ],
-      "latest_operator_followup": "Ja, stemmer. Men du skriver Oppgang → nedgang tilbake til start. Tilbake til hvilken start egentlig? For opp og ned beveger seg jo dynamisk, så vi har jo ingen «start». Vi skal merke når markedet går opp, ned og holder seg flatt. Det er det vi er ute etter. Det finnes ingen «start» strek. Dekk målene fullt ut"
+      "latest_operator_followup": "Ja, stemmer. Men du skriver Oppgang \u2192 nedgang tilbake til start. Tilbake til hvilken start egentlig? For opp og ned beveger seg jo dynamisk, s\u00e5 vi har jo ingen \u00abstart\u00bb. Vi skal merke n\u00e5r markedet g\u00e5r opp, ned og holder seg flatt. Det er det vi er ute etter. Det finnes ingen \u00abstart\u00bb strek. Dekk m\u00e5lene fullt ut"
     },
     "completed_movement_forecast_review_goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653",
     "dynamic_state_short_training_20261101": {
@@ -19525,7 +19525,7 @@
       "operator_authorized_required_genuine_qualification": true,
       "operator_requested_safe_pc_restart": true,
       "operator_requested_single_short_training": true,
-      "duration_clarification": "Approximately2–3hours like prior short runs, not a hard7200s deadline. Training work/population must be explicitly bounded; unchanged hardguards still apply.",
+      "duration_clarification": "Approximately2\u20133hours like prior short runs, not a hard7200s deadline. Training work/population must be explicitly bounded; unchanged hardguards still apply.",
       "maximum_training_rounds": 1,
       "automatic_full_training_authorized": false,
       "automatic_repetition_authorized": false,
@@ -19547,7 +19547,7 @@
         "FLAT",
         "UP"
       ],
-      "target_rule_question": "ANSWERED: operator approved0.5×causal ATR(14) candidate per five TF and TRAIN label review before lock.",
+      "target_rule_question": "ANSWERED: operator approved0.5\u00d7causal ATR(14) candidate per five TF and TRAIN label review before lock.",
       "preexisting_dirty_files": 0,
       "integrator": "root",
       "owner_tasks": {
@@ -19719,7 +19719,7 @@
       "source_commit_with_full_profile": "63e4008699f49ae8265b5c9024de0b0863ca975b",
       "synthetic_native_source_guards_passed": true,
       "movement_threshold_decision": {
-        "operator_reply": "Ja, vi kjører dette",
+        "operator_reply": "Ja, vi kj\u00f8rer dette",
         "approved_candidate": {
           "atr_owner": "gx1.features.technical_indicators_v1.wilder_atr",
           "period": 14,
@@ -20757,7 +20757,7 @@
     },
     "fresh_dynamic_state_oneuse_authorization_20261103": {
       "status": "PRIVATE_CONTROL_CONSUMED_FAILED_BEFORE_MODEL_NO_MAIN_FIT",
-      "user_answer": "Ja, én kontroll og ett pass",
+      "user_answer": "Ja, \u00e9n kontroll og ett pass",
       "approved_utc_date": "2026-11-03",
       "private_control": {
         "train_parents": 32,
@@ -20848,7 +20848,7 @@
     },
     "fresh_dynamic_state_replacement_oneuse_authorization_20261103": {
       "status": "PRIVATE_REPLACEMENT_COMPLETE_CONSUMED_SUBSEQUENT_HISTORICAL_ONEPASS_CLOSED",
-      "user_answer": "Ja, én kontroll og ett pass",
+      "user_answer": "Ja, \u00e9n kontroll og ett pass",
       "prior_failed_private_attempt_relaunch_authorized": false,
       "replacement_private_control": {
         "train_parents": 32,
@@ -21638,7 +21638,7 @@
         "proposed_D1_event_estimand": "First-exit and first-exit-then-return hazards scored on paired, fully observed consecutive M1 closes while still at risk; stop at first censor/occurrence, report distinct event days and observed support. D1 +1440 marginal endpoint remains a separate primary gate. No full-day cumulative event claim from censored data.",
         "stop": "One data check at this cutoff. Missing genuine support or unmeasurable risk sets stop the proposal. No search of dates, no predictive fit and no model admission.",
         "admission_stage": "dynamic_mtf_train_prefix_dec01_20261104_001",
-        "operator_answer": "Ja, gjør den ene datakontrollen og behold desember til senere måling.",
+        "operator_answer": "Ja, gj\u00f8r den ene datakontrollen og behold desember til senere m\u00e5ling.",
         "completed_data_stage": "dynamic_mtf_train_prefix_dec01_20261104_001",
         "verified_review": {
           "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_DEC01_001/ACTUAL_DATA_GATE_REVIEW.json",
@@ -22376,7 +22376,7 @@
     "goal_execution_requested": true,
     "pause_request_owner": "current_work.gc_goal_resume_authorization",
     "pause_scope": "Current input engineering and no-fit qualification completed under 014/017/019/020. No current pause request or model launch authority; consumed plans cannot relaunch.",
-    "operator_request": "Flott, fullfør dette målet med å legge inn disse 4 punktene. Vi skal gjøre dette grundig. 15.10.2026: last ned det avgrensede 26-månedersdatasettet innenfor et absolutt tak på USD 120; bruk kun rapporterte gratis Databento-kreditter. 16.10.2026: «Ja, 26 da. Da fortsetter vi»; narrowly resumes local source qualification (step 1) only.",
+    "operator_request": "Flott, fullf\u00f8r dette m\u00e5let med \u00e5 legge inn disse 4 punktene. Vi skal gj\u00f8re dette grundig. 15.10.2026: last ned det avgrensede 26-m\u00e5nedersdatasettet innenfor et absolutt tak p\u00e5 USD 120; bruk kun rapporterte gratis Databento-kreditter. 16.10.2026: \u00abJa, 26 da. Da fortsetter vi\u00bb; narrowly resumes local source qualification (step 1) only.",
     "required_steps": [
       1,
       2,
@@ -22388,7 +22388,7 @@
     "planning_only_calendar_design": {
       "status": "PREDECLARED_NOT_EXECUTABLE",
       "updated_utc": "2026-10-15T15:28:30Z",
-      "operator_request": "tilpass testopplegget slik at vi har 26 måneder",
+      "operator_request": "tilpass testopplegget slik at vi har 26 m\u00e5neder",
       "preregistration_field": "historical_validation_design.predeclared_26_month_design",
       "window_start_utc_inclusive": "2024-05-01T00:00:00Z",
       "window_end_utc_exclusive": "2026-07-01T00:00:00Z",
@@ -22671,7 +22671,7 @@
       "new_plan_execution_authorized": true,
       "approval_required_by": [
         "User-provided AGENTS.md instruction for this project",
-        "GX1_RULES.md § Brukte engangstillatelser"
+        "GX1_RULES.md \u00a7 Brukte engangstillatelser"
       ],
       "approval_receipt_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/OPERATOR_APPROVAL.json",
       "approval_receipt_sha256": "799008e5c49192d83886705ca174b901386439771988e3742d30676c41498376",
@@ -22972,7 +22972,7 @@
     "retraining_request_owner": "current_work.operator_request",
     "new_retraining_plan_bound": false,
     "retraining_readiness": "NEW_SOURCE_BOUND_FINITE_PLAN_AND_BUDGET_REQUIRED_BEFORE_SAMPLER_BENCHMARK; NO_NATIVE_LAUNCH",
-    "user_authorization": "Enig med deg. Lag deg et mål for å gjennomføre punkt 1 til 6 nå og knekk i gang",
+    "user_authorization": "Enig med deg. Lag deg et m\u00e5l for \u00e5 gjennomf\u00f8re punkt 1 til 6 n\u00e5 og knekk i gang",
     "user_authorized_steps": [
       1,
       2,
@@ -24520,7 +24520,7 @@
       "schema_version": "gx1_bound_native_v38_train_capacity_scope_v1",
       "stage_id": "SAMPLER_BENCHMARK_001",
       "stage_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/SAMPLER_BENCHMARK_001",
-      "operator_request": "Ja, kjør videre train kapasitetstest og smoke",
+      "operator_request": "Ja, kj\u00f8r videre train kapasitetstest og smoke",
       "authorization_utc": "2026-10-08T04:55:12.000Z",
       "authorized": false,
       "relaunch_allowed": false,
@@ -24581,7 +24581,7 @@
       "schema_version": "gx1_bound_native_v38_train_capacity_scope_v1",
       "stage_id": "SAMPLER_BENCHMARK_002",
       "stage_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/SAMPLER_BENCHMARK_002",
-      "operator_request": "Ja, kjør videre train kapasitetstest og smoke",
+      "operator_request": "Ja, kj\u00f8r videre train kapasitetstest og smoke",
       "authorization_utc": "2026-10-08T04:55:12.000Z",
       "authorized": false,
       "relaunch_allowed": false,
@@ -24677,7 +24677,7 @@
       "schema_version": "gx1_bound_native_v38_metadata_handoff_scope_v1",
       "stage_id": "NATIVE_METADATA_HANDOFF_001",
       "stage_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_METADATA_HANDOFF_001",
-      "operator_request": "Ja, kjør videre train kapasitetstest og smoke",
+      "operator_request": "Ja, kj\u00f8r videre train kapasitetstest og smoke",
       "authorized": false,
       "relaunch_allowed": false,
       "status_at_binding": "EXACT_BOUND_NOT_STARTED_RECEIPTS_OWN_PROGRESS",
@@ -24753,7 +24753,7 @@
       "schema_version": "gx1_bound_native_v38_physical_preprocessing_scope_v1",
       "stage_id": "NATIVE_PREPROCESSING_001",
       "stage_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_PREPROCESSING_001",
-      "operator_request": "Ja, kjør videre train kapasitetstest og smoke",
+      "operator_request": "Ja, kj\u00f8r videre train kapasitetstest og smoke",
       "authorized": false,
       "relaunch_allowed": false,
       "status_at_binding": "EXACT_BOUND_NOT_STARTED_RECEIPTS_OWN_PROGRESS",
@@ -24862,7 +24862,7 @@
     },
     "bounded_native_smoke_request_20261008": {
       "schema_version": "gx1_new_operator_requested_conditional_bounded_smoke_v1",
-      "operator_request": "Ja, kjør videre train kapasitetstest og smoke",
+      "operator_request": "Ja, kj\u00f8r videre train kapasitetstest og smoke",
       "requested": true,
       "authorized_conditionally_on_existing_gates": true,
       "native_launch_admitted": false,
@@ -39818,7 +39818,7 @@
   },
   "cross_chat_task_policy_20261026": {
     "status": "EXTERNAL_CHAT_ASSIGNMENTS_DISMISSED",
-    "user_instruction": "Slett de oppgavene du får av den andre chaten!",
+    "user_instruction": "Slett de oppgavene du f\u00e5r av den andre chaten!",
     "external_chat_tasks_accepted": false,
     "current_thread": "01a1777e-c109-7351-b0ba-0d4bf5324429",
     "work_authority": "Direct human instructions and active improvement goal in this thread only.",
@@ -41726,7 +41726,7 @@
     },
     "phase_B_status": "PREPARATION_SYNTHETIC_37_PASS_GENUINE_FITS_CLOSED_COMPACT_FIRST",
     "compact_profile_confirmed_by_user": true,
-    "latest_operator_instruction": "Ja, vi kjører kun den kompakte nå med viktige indikatorer, så ser vi om dette er nok eller vi må tilføre noe senere. Vi holder oss til dette kompakte men viktige først",
+    "latest_operator_instruction": "Ja, vi kj\u00f8rer kun den kompakte n\u00e5 med viktige indikatorer, s\u00e5 ser vi om dette er nok eller vi m\u00e5 tilf\u00f8re noe senere. Vi holder oss til dette kompakte men viktige f\u00f8rst",
     "saved_bps_comparison_complete": true,
     "saved_bps_review": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
@@ -45559,7 +45559,7 @@
     "scope": "One explicit chronological one-pass direction scope, original compact inputs/target/seed/optimizer, original IDs for initial parity, legacy shuffled paths preserved, require separately qualified native initial and resume proof before any genuine fit.",
     "physical_restart_before_training_authorized": true,
     "user_requested_power_efficiency": true,
-    "user_request_20261028": "Restart maskinen før trening, og gass opp effektiviteten og w til treningen slik at vi får fullført dette raskere",
+    "user_request_20261028": "Restart maskinen f\u00f8r trening, og gass opp effektiviteten og w til treningen slik at vi f\u00e5r fullf\u00f8rt dette raskere",
     "synthetic_checks": {
       "status": "PASS",
       "test_count": 116,
@@ -46162,7 +46162,7 @@
         "sha256": "0c8f7fad265e65adad53e6e7bad8e2abdf6b600eac78770f52ebfa9b8db90c1b"
       }
     },
-    "scope": "One capped CPU target materialization on bound 2024–2025 TRAIN/development quote partitions; exact 1/5/15 byte parity required, no model or trading.",
+    "scope": "One capped CPU target materialization on bound 2024\u20132025 TRAIN/development quote partitions; exact 1/5/15 byte parity required, no model or trading.",
     "result": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_MINUTE_TARGETS_20261028_001/RESULT.json",
       "sha256": "1c832da918aee94ab2535898aab340e33e771c8ad9739e97ece21599be50128b"
@@ -47400,7 +47400,7 @@
     "class": "audit",
     "memory_max": "4G",
     "wall_seconds": 1200,
-    "scope": "Reproduce the cache builder’s actual float32 cast of M5 OHLCV before causal H1 trendline calculations, compare those values to the H1 cache, and quantify the original-to-float32 source price differences in fixed TRAIN and development periods.",
+    "scope": "Reproduce the cache builder\u2019s actual float32 cast of M5 OHLCV before causal H1 trendline calculations, compare those values to the H1 cache, and quantify the original-to-float32 source price differences in fixed TRAIN and development periods.",
     "claim": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_H1_BUILDER_PRECISION_REPLAY_20261028_001/INVOCATION_CLAIM.json",
       "sha256": "2864d65f2adef2f5d7b1844d69f90ac92ef7cd27ba5aee7a51b45e0e796740f6"
@@ -47440,7 +47440,7 @@
     "class": "audit",
     "memory_max": "4G",
     "wall_seconds": 1200,
-    "scope": "Recompute 31 H1 trendline coordinates from the exact hash-bound 2009–2025 native M5 parts used by the enriched-source builder, with complete causal prehistory and original precision, then compare model cache values and actual H1 windows.",
+    "scope": "Recompute 31 H1 trendline coordinates from the exact hash-bound 2009\u20132025 native M5 parts used by the enriched-source builder, with complete causal prehistory and original precision, then compare model cache values and actual H1 windows.",
     "claim": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_H1_NATIVE_HISTORY_REPLAY_20261028_001/INVOCATION_CLAIM.json",
       "sha256": "dff5d2fad3b76de4b9bb666f808b8adbc604fbef06252b13ae7ea026c0d0b891"
@@ -47642,7 +47642,7 @@
     "class": "audit",
     "memory_max": "4G",
     "wall_seconds": 1200,
-    "scope": "Independently calculate close_position_range20 on M5/M15/H1/H4/D1 from the exact native 2009–2025 OHLCV history and compare with the active cache field and actual model windows.",
+    "scope": "Independently calculate close_position_range20 on M5/M15/H1/H4/D1 from the exact native 2009\u20132025 OHLCV history and compare with the active cache field and actual model windows.",
     "claim": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_CLOSE_POSITION_NUMERIC_20261028_001/INVOCATION_CLAIM.json",
       "sha256": "483aa953e9adcefbed7e773d43da7def9cadac58a8fd0c4f29b447fb6a0dfa18"
@@ -48416,9 +48416,9 @@
     "completed_invocations": 1,
     "max_private_optimizer_steps": 4,
     "requested_physical_gpu_power_limit_w": 250,
-    "scope": "Only the specifically approved corrected 1–60-minute target private qualification: fixed 256 initial predictions, 32 TRAIN parents, four physical updates and exact resume. No full fit, TEST, broker, trading, Exit or private-weight reuse.",
+    "scope": "Only the specifically approved corrected 1\u201360-minute target private qualification: fixed 256 initial predictions, 32 TRAIN parents, four physical updates and exact resume. No full fit, TEST, broker, trading, Exit or private-weight reuse.",
     "user_approval": {
-      "response": "Ja, kjør denne kontrollen",
+      "response": "Ja, kj\u00f8r denne kontrollen",
       "scope": "exact private corrected-target qualification in DIRECTION_DECIMAL_PRIVATE_QUALIFICATION_PROPOSAL_20261028.md",
       "recorded_utc": "2026-10-28T20:21:16.535663+00:00"
     },
@@ -49109,8 +49109,8 @@
     },
     "limitations": "Not conditional on all existing model inputs; complete M1 selection and reused development prevent generalization or economic claims.",
     "user_approval": {
-      "response": "Ja, du trenger ikke godkjenning av meg hele tiden, jeg stoler på deg. kjør M1 og M5 test",
-      "scope": "one fixed conditional M1-versus-M5 direction audit, 1–60 minute corrected targets on reused Q1 development",
+      "response": "Ja, du trenger ikke godkjenning av meg hele tiden, jeg stoler p\u00e5 deg. kj\u00f8r M1 og M5 test",
+      "scope": "one fixed conditional M1-versus-M5 direction audit, 1\u201360 minute corrected targets on reused Q1 development",
       "recorded_utc": "2026-10-29T14:10:41.776060+00:00"
     },
     "result": {
@@ -49158,7 +49158,7 @@
     "pre_admission_source_commit": "c414dafc",
     "synthetic_fit_passed_under_no_model_profile": true,
     "synthetic_profile_torch_imported": false,
-    "user_approval": "2026-10-29: Ja, kjør M1-normaliseringen; exact one-shot TRAIN-only CPU plan.",
+    "user_approval": "2026-10-29: Ja, kj\u00f8r M1-normaliseringen; exact one-shot TRAIN-only CPU plan.",
     "source_head": "f44cd5f4b9bbff2b3e2a473152868ddd3dec20cf",
     "invocation_claim": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M1_NORMALIZATION_TRAIN_20261029_001/INVOCATION_CLAIM.json",
@@ -49232,7 +49232,7 @@
     "requested_physical_gpu_power_limit_w": 250,
     "qualification_weights_for_main_fit": false,
     "user_approval": {
-      "response": "Ja, du trenger ikke godkjenning av meg hele tiden, jeg stoler på deg. kjør M1 og M5 test",
+      "response": "Ja, du trenger ikke godkjenning av meg hele tiden, jeg stoler p\u00e5 deg. kj\u00f8r M1 og M5 test",
       "scope": "sequential matched M1/M5 private qualification; this admission only coarsened arm",
       "recorded_utc": "2026-10-29T13:49:46.552429+00:00"
     },
@@ -49282,7 +49282,7 @@
     "requested_physical_gpu_power_limit_w": 250,
     "qualification_weights_for_main_fit": false,
     "user_approval": {
-      "response": "Ja, du trenger ikke godkjenning av meg hele tiden, jeg stoler på deg. kjør M1 og M5 test",
+      "response": "Ja, du trenger ikke godkjenning av meg hele tiden, jeg stoler p\u00e5 deg. kj\u00f8r M1 og M5 test",
       "scope": "sequential matched M1/M5 private qualification; this admission only ordered arm after control completion",
       "recorded_utc": "2026-10-29T14:01:12.165683+00:00"
     },
@@ -50269,9 +50269,9 @@
     "physical_restart_before_each_invocation_authorized": false,
     "requested_physical_gpu_power_limit_w": 250,
     "test_or_trading_authority": false,
-    "scope": "One fresh matched M1/M5 RSI/MACD model, one TRAIN-prefix pass and fixed reused-Q1 1–60 minute direction evaluation; qualification weights not reused. Sequential arms only.",
+    "scope": "One fresh matched M1/M5 RSI/MACD model, one TRAIN-prefix pass and fixed reused-Q1 1\u201360 minute direction evaluation; qualification weights not reused. Sequential arms only.",
     "user_approval": {
-      "response": "Ja, du trenger ikke godkjenning av meg hele tiden, jeg stoler på deg. kjør M1 og M5 test",
+      "response": "Ja, du trenger ikke godkjenning av meg hele tiden, jeg stoler p\u00e5 deg. kj\u00f8r M1 og M5 test",
       "scope": "matched sequential offline M1/M5 direction test with bounded training and fixed development evaluation",
       "recorded_utc": "2026-10-29T14:20:18.325046+00:00"
     },
@@ -50338,9 +50338,9 @@
     "physical_restart_before_each_invocation_authorized": false,
     "requested_physical_gpu_power_limit_w": 250,
     "test_or_trading_authority": false,
-    "scope": "One fresh matched M1/M5 RSI/MACD model, one TRAIN-prefix pass and fixed reused-Q1 1–60 minute direction evaluation; qualification weights not reused. Sequential arms only.",
+    "scope": "One fresh matched M1/M5 RSI/MACD model, one TRAIN-prefix pass and fixed reused-Q1 1\u201360 minute direction evaluation; qualification weights not reused. Sequential arms only.",
     "user_approval": {
-      "response": "Ja, du trenger ikke godkjenning av meg hele tiden, jeg stoler på deg. kjør M1 og M5 test",
+      "response": "Ja, du trenger ikke godkjenning av meg hele tiden, jeg stoler p\u00e5 deg. kj\u00f8r M1 og M5 test",
       "scope": "matched sequential offline M1/M5 direction test with bounded training and fixed development evaluation",
       "recorded_utc": "2026-10-29T14:20:18.325267+00:00"
     }
@@ -50422,7 +50422,7 @@
     },
     "focused_price_only_tests_passed": 4,
     "user_approval": {
-      "response": "stoppe kjøringen og justere alt og så kjøre på nytt",
+      "response": "stoppe kj\u00f8ringen og justere alt og s\u00e5 kj\u00f8re p\u00e5 nytt",
       "scope": "one bounded real M5-only qualification followed by a new properly bound M5 fit",
       "recorded_utc": "2026-10-29T15:14:01.820686+00:00"
     },
@@ -50511,7 +50511,7 @@
     },
     "scope": "One fresh M5-entry price-only 60-head model, one TRAIN-prefix pass; RSI14, MACD line and histogram, ret_1, eight specialists, D1/macro and higher timeframes retained. Fixed reused Q1 evaluation, primary 5 minutes; M1/tick only future post-open work.",
     "user_approval": {
-      "response": "stoppe kjøringen og justere alt og så kjøre på nytt",
+      "response": "stoppe kj\u00f8ringen og justere alt og s\u00e5 kj\u00f8re p\u00e5 nytt",
       "scope": "new M5-entry offline training after completed own private qualification; no repeated approvals",
       "recorded_utc": "2026-10-29T15:32:00.855838+00:00"
     },
@@ -52769,7 +52769,7 @@
     "user_authorization": {
       "date": "2026-10-30",
       "chat_id": "01a18c19-1a49-7f61-a8b3-282834dd1518",
-      "request": "Ja, gjør dette. Husk å sørge for at vi får all informasjon vi trenger, og samtidig ha øynene åpne for feil/mangler/mismatches. Lag deg et mål om dette",
+      "request": "Ja, gj\u00f8r dette. Husk \u00e5 s\u00f8rge for at vi f\u00e5r all informasjon vi trenger, og samtidig ha \u00f8ynene \u00e5pne for feil/mangler/mismatches. Lag deg et m\u00e5l om dette",
       "scope": "Matched family added value, correctness audit and necessary bounded implementation; existing safety boundaries preserved."
     },
     "source_edits_authorized": false,
@@ -53367,7 +53367,7 @@
   "direction_family_same_boot_boundary_20261031_001": {
     "status": "SOURCE_AND_ACTUAL_PRIVATE_SAME_BOOT_QUALIFIED",
     "operator_request_date": "2026-10-31",
-    "operator_request": "nå. Men ikke restart så jævla ofte da, så slipper vi dette problemet",
+    "operator_request": "n\u00e5. Men ikke restart s\u00e5 j\u00e6vla ofte da, s\u00e5 slipper vi dette problemet",
     "scope": "Existing matched family study only: private_m5_family_sign_b16_initial_resume_qualification and single_prefix_m5_family_value_sign_one_pass. Sequential completed-window boundaries may reuse exact physical boot after fresh one-use idle attestation.",
     "source_edits_authorized": true,
     "synthetic_test_execution_authorized": true,
@@ -54486,8 +54486,8 @@
     "blocks_original_authorized_family_study": true,
     "synthetic_tests_authorized": false,
     "user_authorization": {
-      "initial_choice": "La denne bli ferdig, deretter læringskontrollen",
-      "latest_steering": "Vi får vel ikke noe særlig mer ut av denne siste. Stopp nå og angrep selve problemet",
+      "initial_choice": "La denne bli ferdig, deretter l\u00e6ringskontrollen",
+      "latest_steering": "Vi f\u00e5r vel ikke noe s\u00e6rlig mer ut av denne siste. Stopp n\u00e5 og angrep selve problemet",
       "latest_stop_closure": {
         "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_SCORING_RECOVERY_001/USER_STOP_CLOSURE_001.json",
         "sha256": "d2f74bed143d5de55975b367442bc9b6115c68fec180908fe8c89ec82091c5d0"
@@ -56390,7 +56390,7 @@
   },
   "dynamic_mtf_train_prefix_data_20261104_001": {
     "status": "CONSUMED_DATA_PUBLICATION_COMPLETE_INPUT_SUPPORT_BLOCK_NATIVE_CLOSED",
-    "operator_request": "04.11.2026: Ja, kjør neste steg, lag deg et langsiktig mål og følg dette.",
+    "operator_request": "04.11.2026: Ja, kj\u00f8r neste steg, lag deg et langsiktig m\u00e5l og f\u00f8lg dette.",
     "scope": "Physical fit-only target/calendar and fixed TRAIN prior. Verify measured support on identical input prefix against original live file identities. No statistical or model fit.",
     "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_001",
     "runner": "gx1.audit.run_dynamic_mtf_train_prefix_data",
@@ -56448,7 +56448,7 @@
   },
   "dynamic_mtf_train_prefix_dec01_20261104_001": {
     "status": "CONSUMED_COMPLETE_DECEMBER_RESERVED_MANDATORY_GC_D1_SUPPORT_BLOCK",
-    "operator_request": "Ja, gjør den ene datakontrollen og behold desember til senere måling.",
+    "operator_request": "Ja, gj\u00f8r den ene datakontrollen og behold desember til senere m\u00e5ling.",
     "scope": "One data-only feasibility check. Same five-TF 0.5 ATR working target and full inputs. Statistics cannot be fit without genuine support for all mandatory coordinates. A required unsupported coordinate is a sufficient stop.",
     "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_DEC01_001",
     "runner": "gx1.audit.run_dynamic_mtf_train_prefix_data",
@@ -56647,7 +56647,7 @@
   },
   "dynamic_mtf_gc_d1_bear_source_trace_20261104_001": {
     "status": "CONSUMED_TRAIN_BEAR_SOURCE_TRACE_COMPLETE_NO_ELIGIBLE_ZONE_MODEL_BLOCK",
-    "operator_request": "Lag nytt mål med dette. First milestone of the requested goal is one source analysis of the seven mandatory bearish GC-D1 fields on the 214 pre-December donor dates.",
+    "operator_request": "Lag nytt m\u00e5l med dette. First milestone of the requested goal is one source analysis of the seven mandatory bearish GC-D1 fields on the 214 pre-December donor dates.",
     "scope": "Read only the pre-cutoff clock and projected source fields from the signed 024 GC D1 table. Reconcile each date with the canonical feature owner, including observation, contract segmentation, pivot, break, prior bullish origin and gap censorship. Publish causes and parity only. The consumed prefix gate and all model authorities stay closed.",
     "runner": "gx1.audit.run_dynamic_mtf_train_prefix_data",
     "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GC_D1_BEAR_SOURCE_TRACE_001",
@@ -56926,7 +56926,7 @@
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GC_STATUS_AND_XAU_CLOCK_001/TERMINAL.json",
       "sha256": "e650e0626ddb9cb5f89f34471faeee72981e67a33cb8b14df273addb0cba618e"
     },
-    "operator_grant": "Jo, bruk de 0.0001 usd for å få dette på plass",
+    "operator_grant": "Jo, bruk de 0.0001 usd for \u00e5 f\u00e5 dette p\u00e5 plass",
     "operator_cap_total_usd": "0.0001",
     "historical_prepaid_credit_only": true,
     "max_data_requests": 2,
@@ -56966,7 +56966,7 @@
   "dynamic_mtf_native_endpoint_loss_step1_20261104_001": {
     "status": "COMPLETE_QUALIFIED_ENDPOINT_LOSS_COMPONENT_NO_MODEL_FIT",
     "goal": "Step 1: implement the registered additive marginal log loss at the five native leads and qualify its arithmetic. No model run.",
-    "operator_request": "Ja så klart, dette skal du konsentrere deg om. Gjør steg 1 som et mål og jobb kontinuerlig mot dette",
+    "operator_request": "Ja s\u00e5 klart, dette skal du konsentrere deg om. Gj\u00f8r steg 1 som et m\u00e5l og jobb kontinuerlig mot dette",
     "goal_scope": "Project milestone under the unfinished direction goal. Completing this milestone is not completion of the predictive research goal.",
     "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/NATIVE_ENDPOINT_LOSS_STEP1_001",
     "worker": {
@@ -57302,7 +57302,7 @@
   },
   "dynamic_mtf_december_candle_and_plan_20261104_001": {
     "status": "COMPLETE_EARLY_CANDLE_FROZEN_ONE_CLOSED_DECEMBER_CANDIDATE_PLAN",
-    "goal": "Kvalifiser candle-referansen fra siste kausalt lukkede prisbar på det eksakte TRAIN-prefikset med 41 866 tidligere prognosetidspunkter. Bind én eksakt, etterprøvbar plan for desemberkandidaten med den godkjente inputprofilen og det nye endepunktstapet. Bevar 5 736 desemberutfall for senere måling og alle native admisjons- og sikkerhetsvakter. Skill data- og plankvalifisering fra modellæring og uavhengig edge.",
+    "goal": "Kvalifiser candle-referansen fra siste kausalt lukkede prisbar p\u00e5 det eksakte TRAIN-prefikset med 41 866 tidligere prognosetidspunkter. Bind \u00e9n eksakt, etterpr\u00f8vbar plan for desemberkandidaten med den godkjente inputprofilen og det nye endepunktstapet. Bevar 5 736 desemberutfall for senere m\u00e5ling og alle native admisjons- og sikkerhetsvakter. Skill data- og plankvalifisering fra modell\u00e6ring og uavhengig edge.",
     "operator_request": "Prepare and measure the single prefix candle reference and lock one December research candidate plan as the next milestone of the direction goal.",
     "parent_goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "milestone_complete": true,
@@ -57599,7 +57599,7 @@
     ]
   },
   "dynamic_mtf_december_direction_execution_goal_20261104": {
-    "objective": "Før den ene forhåndsregistrerte GX1-desemberkandidaten gjennom faktisk, isolert TRAIN-only modellkvalifisering og, kun etter at hver eksakte port består, ett pass og én fryst kronologisk måling på de 5 736 reserverte desemberforeldrene. Behold 41 866 tidligere TRAIN-foreldre, samme maskerte profil og fem dynamiske tidsrammer, alle genuine forente inputs/kausale vakter, korrekt hendelsesskåring, trygg fysisk omstart og eksisterende capped rute. Dokumenter målte resultater eller det første virkelige stoppkriteriet uten omgåelse, skille modellæring, retningsverdi og uavhengig edge. Ingen TEST, handel, broker eller spending.",
+    "objective": "F\u00f8r den ene forh\u00e5ndsregistrerte GX1-desemberkandidaten gjennom faktisk, isolert TRAIN-only modellkvalifisering og, kun etter at hver eksakte port best\u00e5r, ett pass og \u00e9n fryst kronologisk m\u00e5ling p\u00e5 de 5 736 reserverte desemberforeldrene. Behold 41 866 tidligere TRAIN-foreldre, samme maskerte profil og fem dynamiske tidsrammer, alle genuine forente inputs/kausale vakter, korrekt hendelsessk\u00e5ring, trygg fysisk omstart og eksisterende capped rute. Dokumenter m\u00e5lte resultater eller det f\u00f8rste virkelige stoppkriteriet uten omg\u00e5else, skille modell\u00e6ring, retningsverdi og uavhengig edge. Ingen TEST, handel, broker eller spending.",
     "operator_request": "All next stages for the single frozen December candidate, gated in sequence by actual evidence. No additional candidates, retuning, TEST or trading.",
     "status": "COMPLETE_SINGLE_RESEARCH_TRIAL_NEGATIVE",
     "parent_goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
@@ -58827,7 +58827,7 @@
   },
   "direction_edge_research_goal_20261105": {
     "objective": "Define and measure dynamic DOWN/FLAT/UP market state at M5 forecast cadence for M5/M15/H1/H4/D1 before any Entry decision. Qualify source clocks, target/masks, genuine indicators, output/loss/scores and chronological TRAIN-only references before model fit; preserve sealed TEST and later Entry/economics as separate phases.",
-    "operator_request": "Ja men så lag deg et langsiktig mål da for faen, jeg er dritt lei si «fortsett»! Målet er at vi skal gjøre ALT vi kan for å få en god Edge på entry retning!",
+    "operator_request": "Ja men s\u00e5 lag deg et langsiktig m\u00e5l da for faen, jeg er dritt lei si \u00abfortsett\u00bb! M\u00e5let er at vi skal gj\u00f8re ALT vi kan for \u00e5 f\u00e5 en god Edge p\u00e5 entry retning!",
     "status": "FACTORIZED_V2_SCORER_SOURCE_TESTED_FIT_CLOSED",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793897675,
@@ -59492,7 +59492,7 @@
   },
   "whole_pc_xau_source_search_20261105_001": {
     "status": "COMPLETE_NO_QUALIFIED_ORDERED_SOURCE_PARTIAL_HISTORICAL_TIMING",
-    "operator_request": "Du må bare lete igjennom hele pc’en",
+    "operator_request": "Du m\u00e5 bare lete igjennom hele pc\u2019en",
     "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/WHOLE_PC_SOURCE_SEARCH_001",
     "source_workspace": "/home/andre2/src/GX1_CURRENT",
     "host": "gx1-3090",
@@ -59548,7 +59548,7 @@
   },
   "xau_input_physical_clock_goal_20261105": {
     "status": "CONSUMED_FAILED_HTTP_400_NO_SOURCE_ATR_MEASUREMENT",
-    "operator_request": "Lag nytt mål og få dette fullstendig på plass",
+    "operator_request": "Lag nytt m\u00e5l og f\u00e5 dette fullstendig p\u00e5 plass",
     "objective": "Bind actual parsed native XAU M1/M5 receipt, immutable source publication, five-TF ATR-ready and input-ready to a declared issue with source/boot/process identity, monotonic order and explicit UTC uncertainty. Close only physically supported gates.",
     "created_utc": "2026-11-05T07:34:37.481381+00:00",
     "source_base_commit": "cb1332cb9da482c783471011bffc008edf8c3133",
@@ -59585,7 +59585,7 @@
     "independent_edge": "UNKNOWN",
     "priority": "M5 Entry first. Physical input clocks support this goal; new M1 collection is not the principal workstream. M1 trade supervision and Exit remain a later phase.",
     "m1_input_role": "CONFIRMED_RETAIN_M1_DERIVED_FIVE_TF_CURRENT_STATE_SAMPLED_ONLY_ON_M5_ENTRY",
-    "operator_input_role_answer": "Behold beregningen; Entry bare på M5",
+    "operator_input_role_answer": "Behold beregningen; Entry bare p\u00e5 M5",
     "measurement_plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/XAU_INPUT_PHYSICAL_CLOCK_20261105_001.json",
       "sha256": "6fa21f44183032137c70330bd7af50c5e5abb68340c39efabbcd1500990f2d9e"
@@ -59717,7 +59717,7 @@
         "sha256": "60ba13c1152cf5f33ebab9ef0c10e8c0cf9b21e7fa739af6b2dc15b896cecd60"
       },
       "operator_measurement_approval": "XAU_INPUT_PHYSICAL_CLOCK_20261105_003",
-      "operator_measurement_answer": "Ja, kjør plan 003 én gang",
+      "operator_measurement_answer": "Ja, kj\u00f8r plan 003 \u00e9n gang",
       "operator_admission": {
         "path": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_003/OPERATOR_ADMISSION.json",
         "sha256": "67e54ca8349fe7096f874fa5deb597430e188bbf3798488cd88cede14ec59b98"
@@ -59780,7 +59780,7 @@
     "physical_measurement_scope": "Only the separate 003 cold source/ATR observation. Original 001 remains failed and consumed; full production-input readiness and absolute UTC remain UNKNOWN."
   },
   "m5_entry_priority_20261105": {
-    "operator_request": "Entry skal vi ha på m5 timeframe for m1 er for mye støy; mer eyes on m1 i en pågående trade; først entry på plass.",
+    "operator_request": "Entry skal vi ha p\u00e5 m5 timeframe for m1 er for mye st\u00f8y; mer eyes on m1 i en p\u00e5g\u00e5ende trade; f\u00f8rst entry p\u00e5 plass.",
     "entry_timeframe": "M5",
     "entry_decision_cadence_seconds": 300,
     "required_closed_context": [
@@ -59799,7 +59799,7 @@
       "m1_ofi": "Inactive in the bound dynamic December view."
     },
     "training_enabled": false,
-    "operator_input_role_answer": "Behold beregningen; Entry bare på M5",
+    "operator_input_role_answer": "Behold beregningen; Entry bare p\u00e5 M5",
     "input_role_decision": "Retain existing M1-derived five-TF current-state computation. Consume it only on the existing closed-M5 Entry cadence; no M1 Entry and no feature removal.",
     "ema_input_scope_review": {
       "path": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_001/EMA_INPUT_SCOPE_REVIEW.json",
@@ -59852,7 +59852,7 @@
       "sha256": "afb8115d2364060e81e32a288df01820cf7f9c142a847dc8f2549c31d593b436"
     },
     "operator_approved": true,
-    "operator_approval": "User answered Ja, kjør plan 002 én gang to the exact linked plan in this chat on 2026-11-05.",
+    "operator_approval": "User answered Ja, kj\u00f8r plan 002 \u00e9n gang to the exact linked plan in this chat on 2026-11-05.",
     "admitted_utc": "2026-11-05T21:11:52.182454+00:00",
     "remaining_invocations": 0,
     "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_002",
@@ -59954,7 +59954,7 @@
     "remaining_unknown": "Whether the complete fit succeeds or exposes another unscaleable field; confirmed-state age coverage, M5 +5 first-gap event censor, strict TRAIN-OOF, independent direction edge and economics remain unqualified."
   },
   "no_cost_local_standing_authorization_20261105": {
-    "operator_instruction": "Ja, og ikke spør meg hver jævla gang. ALT som ikke koster penger/tokens/Api tokens gjør du uten å spørre",
+    "operator_instruction": "Ja, og ikke sp\u00f8r meg hver j\u00e6vla gang. ALT som ikke koster penger/tokens/Api tokens gj\u00f8r du uten \u00e5 sp\u00f8rre",
     "observed_utc": "2026-11-05T21:50:29.630533+00:00",
     "scope": "Standing authorization for further local GX1 work with zero monetary cost and no billable external API or model tokens. A new exact plan, fresh policy admission, clean source, capped route and all required machine guards still apply to each run. No reuse of consumed claims.",
     "model_checks": "May be admitted under this standing authorization only after a separately exact, source-qualified model plan, safe reboot where required and policy training gate; no model run is admitted now.",
@@ -62980,7 +62980,7 @@
     "later_aggregate_authorized": false,
     "training_authorized": false,
     "broker_orders_or_trading_authorized": false,
-    "operator_approval": "Current 2026-11-06 market-state instruction Ja gjør dette and standing zero-cost local GX1 authorization; one TRAIN-only read-only semantic audit, no model or paid calls.",
+    "operator_approval": "Current 2026-11-06 market-state instruction Ja gj\u00f8r dette and standing zero-cost local GX1 authorization; one TRAIN-only read-only semantic audit, no model or paid calls.",
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
     "source_head_at_admission": "5635e34c2e60a60da3913c6e86f2a6d80c9873a4",
     "source_head_role": "EXECUTION_BINDING binds final clean committed HEAD",
@@ -66575,7 +66575,7 @@
   },
   "active_direction_goal": {
     "objective": "Isolate and correct M5 directional TRAIN deterioration, then verify matched TRAIN and later TRAIN direction against frozen prior.",
-    "user_authorization": "08.11: lag deg et mål og jobb KUN direkte mot retningen",
+    "user_authorization": "08.11: lag deg et m\u00e5l og jobb KUN direkte mot retningen",
     "scope": "Direction only; reuse completed TA input/mechanics/checkpoints; no general refactor, GC, TEST, Entry/Exit or trading.",
     "status": "COMPLETE",
     "thread_id": "01a1baf6-d535-7501-af1a-7891109e3623",
@@ -75707,21 +75707,21 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_CURRENT_TRAIN_COMPLEMENT_ADMITTED",
+    "status": "ACTIVE_CURRENT_COMPLEMENT_TWO_STATE_REVIEW",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
-    "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
+    "operator_request": "G\u00e5 direkte p\u00e5 problemene og lag deg et m\u00e5l for \u00e5 n\u00f8ste opp i hvorfor vi ikke f\u00e5r god Edge ut av markedsretningen.",
     "training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
       "sha256": "2682dca5680706f78396491b6f21392d1cca7ffcb051664aa11edfe73200a54a"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": true,
+    "model_or_data_run_admitted": false,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Execute this one matched CPU evaluation under existing12G/512M producer guard; source and policy remain frozen. Consume on any claimed outcome; inspect exact result before any further scope.",
+    "next_action": "Score only the two fully retained current CPU states. Preserve the consumed numerical stop on the third arm; no relaunch or new model work.",
     "active_stage": "market_state_ta_current_complement_20261112_001",
     "previous_goal_turn_classification": "PROGRESS_FIXED_SETUP_NATIVE_HORIZONS_AND_LONG_REFERENCE_SCORED",
     "last_goal_turn_classification": "PROGRESS_MATCHED_CURRENT_COMPLEMENT_QUALIFIED",
@@ -75786,7 +75786,7 @@
       "sha256": "3663f051c3d35aeeb0957eb80d12556e1d851b557d3b511c1c7848a91a1b1afc"
     },
     "operator_focus_correction_20261112": {
-      "request": "Koder du deg helt bort nå, eller angriper du problemet direkte?",
+      "request": "Koder du deg helt bort n\u00e5, eller angriper du problemet direkte?",
       "decision": "Prioritize one direct matched predictive comparison; stop additional support-code expansion.",
       "draft_paths": [
         "gx1/contracts/entry_anchor_span_feature_inputs_v1.py",
@@ -81886,15 +81886,15 @@
     "broker_access_allowed": false,
     "candidate_selection": false,
     "canonical_resume_authority": false,
-    "checkpoint_reads_authorized": true,
-    "claimed_invocations": 0,
+    "checkpoint_reads_authorized": false,
+    "claimed_invocations": 1,
     "completed_invocations": 0,
-    "data_reads_authorized": true,
-    "decision": "ONE_USE_CURRENT_STATES_CPU_COMPLEMENT_EVALUATION",
+    "data_reads_authorized": false,
+    "decision": "CONSUMED",
     "entry_exit_evaluation": false,
-    "execution_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
+    "execution_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
     "genuine_updates_authorized": false,
     "max_invocations": 1,
     "models": [
@@ -81912,7 +81912,7 @@
     },
     "question": "Does recent4096-row incremental fitting degrade fixed other original TRAIN rows under matched current INITIAL/final CPU evaluation?",
     "relaunch_allowed": false,
-    "remaining_invocations": 1,
+    "remaining_invocations": 0,
     "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_COMPLEMENT_20261112_001",
     "selected_complement_rows": 736,
     "selected_parity_rows": 32,
@@ -81920,13 +81920,75 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_COMPLEMENT_20261112_001/SOURCE_REVIEW.json",
       "sha256": "a20073c32df38890eb2a74f90aa9ddeefa577cfa655185ceb08d77bd9e13dcd2"
     },
-    "status": "ADMITTED",
+    "status": "FAILED_CONSUMED_TWO_STATES_RETAINED_THIRD_NUMERICS_STOP",
     "test_data_used": false,
     "training_authorized": false,
     "training_enabled": false,
     "worker": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_COMPLEMENT_20261112_001/probe.py",
       "sha256": "ea0094386749fd139f218a007d8d52ae623edfaec9518be16cf7ee6ffa952397"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_COMPLEMENT_20261112_001/RESULT.json",
+      "sha256": "b4ae60a361bc19cf10859b183b980c9ff5ac078bf1f557200b3c9c4d03b2fd0a"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_COMPLEMENT_20261112_001/TERMINAL.json",
+      "sha256": "dae3afbc84238b09c051e3f9ddc3e7730db184a06edabc88646eb5d0d60b6217"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_COMPLEMENT_20261112_001/CLAIM.json",
+      "sha256": "b27b81e94f8f295ed33ae630b0d46cc99e990e51e9635485d2aa14d69ba41a12"
+    },
+    "failure_reason": "RuntimeError: CURRENT_COMPLEMENT_BOOKEND_NUMERICS",
+    "actual_counts": {
+      "backwards": 0,
+      "checkpoint_loads": 3,
+      "checkpoint_writes": 0,
+      "forward_returns": 97,
+      "forwards": 97,
+      "input_sidecar_archive_decodes": 6,
+      "model_constructions": 1,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "resume_state_load_calls": 3,
+      "resume_state_load_returns": 3
+    },
+    "retained_review": {
+      "status": "ADMITTED",
+      "execution_authorized": true,
+      "max_invocations": 1,
+      "claimed_invocations": 0,
+      "completed_invocations": 0,
+      "remaining_invocations": 1,
+      "relaunch_allowed": false,
+      "script": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_COMPLEMENT_20261112_001/REVIEW_RETAINED.py",
+        "sha256": "6d3c88d52017cc20d63f810c8e79bf7894a39f1d9a6c95a4b2b514afcfe778fb"
+      },
+      "plan": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_CURRENT_COMPLEMENT_20261112_001.json",
+        "sha256": "4be587168b4c60badd5a5bcd0fd2dcf76871c8dd8a199f689aeb53f3b1d9074a"
+      },
+      "native_result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_COMPLEMENT_20261112_001/RESULT.json",
+        "sha256": "b4ae60a361bc19cf10859b183b980c9ff5ac078bf1f557200b3c9c4d03b2fd0a"
+      },
+      "native_terminal": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_COMPLEMENT_20261112_001/TERMINAL.json",
+        "sha256": "dae3afbc84238b09c051e3f9ddc3e7730db184a06edabc88646eb5d0d60b6217"
+      },
+      "capture_decodes": 2,
+      "checkpoint_file_hashes_only": 3,
+      "checkpoint_decodes": 0,
+      "models": 0,
+      "forwards": 0,
+      "optimizer_updates": 0,
+      "long_reference_owner": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_NATIVE_HORIZONS_20261112_001/REVIEW_NATIVE_HORIZONS.py",
+        "sha256": "40753c912dcccc587eb3e414698f891ef0e1184fdfaf02dec2177ea8684454c0"
+      },
+      "scope": "Score both completed exact matched CPU states on predeclared736complement rows. Preserve failed three-arm status and missing M5-only. No new native work or tolerance relaxation."
     }
   }
 }
