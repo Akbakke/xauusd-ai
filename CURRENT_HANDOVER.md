@@ -6,75 +6,74 @@ NEXT_RUN_POLICY.json eier arbeidsstatus; prosess og terminal overstyrer prosa.
 
 ## Aktivt mål og neste steg
 
-TA_DIRECTION_EDGE_CAUSE_SETUP_NATIVE_HORIZONS_ADMITTED.
-Målet om svak retningsverdi er fortsatt aktivt og uoppnådd. Forrige målturn fullførte
-situasjonsproben; den forblir konsumert. Nå er én separat avlesning av eksisterende F-endepunkter admittert.
-Stage market_state_ta_setup_native_horizons_20261112_001; plan med samme navn i configs/research.
+TA_DIRECTION_EDGE_CAUSE_NATIVE_HORIZONS_COMPLETE_TRANSFER_UNRESOLVED.
+Målet om å avklare og rette svak retningsverdi er fortsatt aktivt og uoppnådd.
+Forrige målturn utførte situasjonsproben; denne har faktisk skåret de samme gruppene
+på alle fem eksisterende F-endepunkter med alltid-LONG. Begge planer er konsumert.
+
+Neste konkrete skille: oppstår skadelig ekstra tilpasning også på opprinnelige TRAIN-rader
+som ikke deltok i de siste4096-radenes oppdateringer, eller først i senere periode?
+Gjenbruk eksisterende full-TRAIN-komplementmetode og inspiser dagens benchmark-evidensstater
+for én matchet kvalifisering mot eksakt CURRENT INITIAL. Ingen fitting eller modellendring.
+Dette er ikke urørt holdout: INITIAL/forhistorien kan allerede ha brukt full TRAIN-populasjon.
+Eldre E3-komplementkontroll finnes i docs/TA_M5_E3_FULL_TRAIN_002_REVIEW.json og viste regresjon,
+men gjelder annen modelltilstand5e031bd0 og blandet CPU/GPU-protokoll. Ikke gjenåpne gammel plan.
+Ingen ny genuine data-/modellkjøring er admittert nå; source/metadata-forberedelse er neste handling.
+
+## Ferdig avlesning av fem F-horisonter
+
 ROOT /home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_NATIVE_HORIZONS_20261112_001.
-Kjør REVIEW_NATIVE_HORIZONS.py én gang, capped audit4GiB/512MiB, maksimalt180s.
-
-Uendrede GROUP_ASSIGNMENTS og seks lagrede INITIAL/FULLpass3/M5-onlypass3-captures;
-alle37grupper, begge paneler og fem F-horisonter beholdes. Ingen feature-/targettape-lesing,
-modell, forward, fit eller nye targets. M5 beholdes som primært, ingen beste-horisontseleksjon.
-Kilde bekrefter native F-query[1,3,12,48,288] på begge partisjoner; kjøringen må verifisere
-queryakse, modenhet og gamle skårer. HverTF har egen ATR_t: horisont og bevegelsesskala endres sammen.
-
-Alltid-LONG er eksakt klassevektor(0,0,1), uten epsilon-klipping av uendelig logloss.
-Frosne TRAIN-priors beholdes som separat sannsynlighetsreferanse. Fortegnsbasert klassebalanse
-er ingen PnL eller handelsregel. UNKNOWN og eligible-but-immature telles separat; alle rader skal avstemmes.
-Parret dag-/ukeusikkerhet gjelder de samme fire forhåndsvalgte sammenligningene, alle fem endepunkter.
-Alle trenings-/TEST-/handelsporter er fortsatt stengt. Ingen annen jobb er admittert.
-
-## Målt situasjonsanalyse
-
-ROOT /home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_CONTEXT_20261112_001.
-Kilde d3699f64; PLAN84c54450, RESULT26cbfd65, TERMINAL984eeea7.
+Kilde8b8ce60c; PLAN8f5a0c5d, RESULT74c64743, TERMINALf5c822c4.
 Samlet bevis: [TA_DIRECTION_EDGE_CAUSE_REVIEW.json](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json),
-setup_context_probe_result. Alle37grupper og primære parrede intervaller er beholdt.
+setup_native_horizons_result. Alle37grupper og alle primære intervaller finnes i originalresultatet.
 
-Gruppene ble låst før utfall: fire M5-nivåsituasjoner ved0..1ATR, tre M5-EMA-retninger,
-og tre kontekster fra alle fire høyereTF. Fraværende nullnivåer har presence-vakt.
-EMA-retning bruker20/50-orden og5-native-barshelning; tre av fire M15/H1/H4/D1 må samsvare.
-Dette er én beskrivende probe, ikke en definisjon av alle manuelle tradingoppsett.
-
-| Forhåndsvalgt situasjon | TRAIN | Senere | Senere bevegelse i retning / motsatt / FLAT |
+| F-horisont | FULL TRAIN-AUC | FULL senere AUC | Senere side-Brier prior / FULL |
 | --- | ---: | ---: | ---: |
-| Støtte + M5/HTF opp | 197 | 153 | 38 / 24 / 91 |
-| Motstand + M5/HTF ned | 46 | 52 | 11 / 10 / 31 |
-| Samlet | 243 | 205 | 49 / 34 / 122 |
+| 5min | 0,571561 | 0,513672 | 0,249696 / 0,251796 |
+| 15min | 0,623356 | 0,509511 | 0,250709 / 0,307638 |
+| 60min | 0,645103 | 0,495398 | 0,251352 / 0,316309 |
+| 240min | 0,652020 | 0,499505 | 0,249256 / 0,309307 |
+| 1440min | 0,714395 | 0,470691 | 0,252789 / 0,303766 |
 
-Begge paneler har4096rader. FLAT her er F-bevegelse mindre enn0,5M5-ATR etter fem minutter,
-ikke en handelsbeslutning. Samlet senere oppsettdekning er5,00prosent; ingen feature-UNKNOWN.
-Forventet retningsbalanse utover frossen prior:0,06876;95prosent dagintervall[-0,01116;0,14565],
-ukeintervall[-0,02128;0,13373]. Signal i denne proben er derfor ikke bekreftet.
-Senere samlet F-treklasse-Brier: prior0,563346, INITIAL0,564316, FULL0,568738,
-M5-only0,572955. FULL/prior og M5-only/FULL-intervallene inkluderer null.
-FULLs betingede side-Brier er bedre i punktestimat; dette er ikke det samme som bedre
-samlet sannsynlighet eller selektiv Entry. Alle grupper, FLAT og uklar støtte beholdes.
+M15/H1/H4/D1s senere side-Brier-regresjoner mot prior har positive95prosentintervaller
+ved både parret UTC-dag og uke. M5-intervallet inkluderer null. AUC er rangering, ikke winrate.
+Ingen senere gevinst er vist ved å velge en annen av disse horisontene.
 
-All-row S-treklasseskår viser noe verdi mot prior, men2443av4096senere S-rader har aktiv
-ukjent side, og én er ineligible/immature. S-state og fremtidig F-retning er ulike mål.
-Ingen gevinst i fremtidig retning eller økonomi er etablert gjennom denne forskjellen.
+Samme205samstemte situasjoner, med/uten gyldig F-mål:
 
-## Kilde og teknisk gjennomføring
+| Horisont | I oppsettretning | Motsatt | FLAT_NET | UNKNOWN |
+| --- | ---: | ---: | ---: | ---: |
+| 5min | 49 | 34 | 122 | 0 |
+| 15min | 51 | 42 | 112 | 0 |
+| 60min | 29 | 44 | 123 | 9 |
+| 240min | 44 | 33 | 116 | 12 |
+| 1440min | 54 | 34 | 60 | 57 |
 
-EMA/ATR, registry-nivåer, alle femTF og åtte genuine familier finnes i aktiv modellkonsum.
-HTF-registryavstand bruker siste HTF-close. Men aktuell M5-relative avstander til HTF-
-ekstremer og prior-session-pivoter finnes også i aktive inputs. Ingen generell mangel
-på prisgeometri er bevist; lært bruk er fortsatt uavklart.
+Oppsettenes merverdi mot alltid-LONG har intervaller som inkluderer null på alle fem horisonter.
+Ingen beste gruppe/horisont velges. HverTF har egen ATR_t og0,5terskel, så tid, skala og
+støttemengde endres sammen. Dette isolerer ikke effekten av å vente lenger.
+FLAT_NET er netto sluttpunktsbevegelse, ikke fravær av bevegelse underveis eller en Entry-regel.
 
-Eksisterende253-feltscacher og kvalifiserte span-sidecars ble komponert med gammel eier
-før canonical n=1-endepunktsuttrekk. Fulle modellvinduer var allerede kvalifisert.
-8192rader ×5TF =40960endepunkter; seks lagrede captures, ti spanarkiver, ingen modell,
-checkpoint, forward, fit eller ny featureberegning. Skåringsavvik mot originalene5,51e-16.
-Capped4GiB/512MiB, tid14,84s, exit0. Engangsjobben er COMPLETE/CONSUMED:1/1/0.
+Alltid-LONG er eksakt(0,0,1); uendelig logloss ved motsatt/FLAT fasit rapporteres eksplisitt,
+ikke klippet. Frosne TRAIN-priors er separat endelig sannsynlighetsreferanse. Klassebalanse er ikke PnL.
+På alle4096senere rader er råUNKNOWN0/24/141/363/932 for M5/M15/H1/H4/D1, separat fra score-counts.
+Eligible-but-immature er0. Alle rader avstemmes; ukjent fylles aldri som FLAT.
 
-## Tidligere direkte funn og grenser
+## Gjennomføring og gjenbruk
 
-Fast FULL mot M5-only: samme4096TRAIN/4096senere, INITIAL/RNG/rekkefølge, tre passeringer.
-M5-only økte F TRAIN-AUC0,537→0,617, mens senere F-AUC ble0,496 og Brier/log svekket seg.
-Å fjerne andre tapsledd løste ikke senere verdi i testen. Original benchmark og review er konsumert.
-Ikke bruk dette som generell dom over multitask, genuine indikatorer eller fullhistorikk-kapasitet.
+Native F-query[1,3,12,48,288], eksakt modenhetsregel, uendrede grupper og målakser besto.
+Seks eksisterende captures og én lagret gruppetildeling; ingen feature-/targettape-lesing,
+modell, checkpoint, forward eller fit. Gamle all-TF-skårer ble gjenskapt innen7,31e-16,
+og M5-proper-score eksakt. Capped4GiB/512MiB,2,90s,exit0. COMPLETE/CONSUMED:1/1/0.
+
+Opprinnelig situasjonsprobe: MARKET_STATE_TA_SETUP_CONTEXT_20261112_001, RESULT26cbfd65,
+TERMINAL984eeea7. Fire M5-nivåkategorier ved0..1ATR ×tre M5-EMA-retninger ×tre HTF-kontekster,
+alle36grupper pluss UNKNOWN. Tre av fire M15/H1/H4/D1 må samsvare; terskler er ikke tunet.
+Aktuelle M5-relative HTF-ekstrem-/pivotavstander finnes allerede i modellinputs.
+Ingen generell mangel på prisgeometri er bevist; lært bruk er fortsatt uavklart.
+
+Fast FULL/M5-only-læringssammenligning er også konsumert. M5-only lærer sitt TRAIN-utvalg
+sterkere, men svekker senere sannsynligheter. Ikke fortsett med vilkårlig tapstuning eller indikatorfjerning.
 
 Global training/native_training, full epoch og fullVAL er false; ingen tung jobb kjører.
 Kvalifiserte inputs/normalisering og beståtte kontroller gjenbrukes. Originale artefakter beholdes.

@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-12T14:23:38.925473+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_SETUP_NATIVE_HORIZONS_ADMITTED",
+  "observed_utc": "2026-11-12T14:31:25.894569+00:00",
+  "status": "TA_DIRECTION_EDGE_CAUSE_NATIVE_HORIZONS_COMPLETE_TRANSFER_UNRESOLVED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Execute one capped retained-F horizon review with unchanged setup assignments, all five native endpoints and exact LONG reference. Verify native queries/maturity and original score replay; retain all groups and explicit UNKNOWN/immature counts; consume after terminal. No fitting, new labels, regrouping or best-horizon selection.",
+  "next_action": "Reuse the existing full-TRAIN complement evaluation method and inspect current fixed-benchmark evidence states to qualify one matched evaluation of original TRAIN rows excluded from the recent4096-row updates. Compare against the exact CURRENT INITIAL, preserve chronological later results, and do not call these rows untouched holdout or launch additional fitting. Prior E3 complement evidence is informative but belongs to a different model state and numerical protocol; do not rerun its consumed plan.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1714,7 +1714,12 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_CONTEXT_20261112_001/RESULT.json",
       "sha256": "26cbfd65198f08ab25e498c4820b34186453978e13c2c912275b2f7ed39065da"
     },
-    "setup_conditioned_direction_value_established": false
+    "setup_conditioned_direction_value_established": false,
+    "latest_setup_native_horizon_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_NATIVE_HORIZONS_20261112_001/RESULT.json",
+      "sha256": "74c6474334f30f95fdcc323ea3b15b4f50bcfbfc2a15bf61afb7c921ed25d889"
+    },
+    "setup_horizon_edge_established": false
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
@@ -24927,7 +24932,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-12T14:23:38.925473+00:00",
+  "updated_utc": "2026-11-12T14:31:25.894569+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -64344,8 +64349,8 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "TA_DIRECTION_EDGE_CAUSE_SETUP_NATIVE_HORIZONS_ADMITTED",
-  "recorded_observed_utc": "2026-11-12T14:23:38.925473+00:00",
+  "recorded_status": "TA_DIRECTION_EDGE_CAUSE_NATIVE_HORIZONS_COMPLETE_TRANSFER_UNRESOLVED",
+  "recorded_observed_utc": "2026-11-12T14:31:25.894569+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
     "decision": "BLOCK",
@@ -75702,24 +75707,24 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_SETUP_NATIVE_HORIZONS_REVIEW",
+    "status": "ACTIVE_CURRENT_TRAIN_COMPLEMENT_QUESTION",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
     "training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "aa1efc5d8a408b4dd36c0c86c286a4b3be870215c1878c6899515a53dddab17b"
+      "sha256": "2682dca5680706f78396491b6f21392d1cca7ffcb051664aa11edfe73200a54a"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": true,
+    "model_or_data_run_admitted": false,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Execute one capped retained-F horizon review with unchanged setup assignments, all five native endpoints and exact LONG reference. Verify native queries/maturity and original score replay; retain all groups and explicit UNKNOWN/immature counts; consume after terminal. No fitting, new labels, regrouping or best-horizon selection.",
+    "next_action": "Reuse the existing full-TRAIN complement evaluation method and inspect current fixed-benchmark evidence states to qualify one matched evaluation of original TRAIN rows excluded from the recent4096-row updates. Compare against the exact CURRENT INITIAL, preserve chronological later results, and do not call these rows untouched holdout or launch additional fitting. Prior E3 complement evidence is informative but belongs to a different model state and numerical protocol; do not rerun its consumed plan.",
     "active_stage": "market_state_ta_setup_native_horizons_20261112_001",
     "previous_goal_turn_classification": "PROGRESS_FIXED_SETUP_CONTEXT_REVIEW_COMPLETED",
-    "last_goal_turn_classification": "IN_PROGRESS_RETAINED_NATIVE_HORIZONS_AND_LONG_REFERENCE_BOUND",
+    "last_goal_turn_classification": "PROGRESS_FIXED_SETUP_NATIVE_HORIZONS_AND_LONG_REFERENCE_SCORED",
     "latest_tail_factor_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_ALL_TF_TAIL_FACTOR_REVIEW.json",
       "sha256": "5da978f765b0ad1ac001023501be7665989270d8353d768b801b9e1b29406c0f"
@@ -75874,7 +75879,7 @@
         "sha256": "f7ba828f1aadf3aa18402b0fdab90c7a50657b1330c99dcc259f763a7d397dfb"
       }
     },
-    "next_question": "Do the same prespecified situations show directional information across the already retained native horizons, and how does the model compare?",
+    "next_question": "Does the measured incremental fitting harm original TRAIN rows outside the recent4096 update cohort, or is deterioration confined to the later period?",
     "existing_order_control_reused": {
       "result": {
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/RESULT.json",
@@ -76115,6 +76120,10 @@
       "latest_context_review": {
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_CONTEXT_20261112_001/RESULT.json",
         "sha256": "26cbfd65198f08ab25e498c4820b34186453978e13c2c912275b2f7ed39065da"
+      },
+      "latest_native_horizon_review": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_NATIVE_HORIZONS_20261112_001/RESULT.json",
+        "sha256": "74c6474334f30f95fdcc323ea3b15b4f50bcfbfc2a15bf61afb7c921ed25d889"
       }
     },
     "setup_context_review_20261112": {
@@ -76138,7 +76147,7 @@
       }
     },
     "setup_native_horizons_20261112": {
-      "status": "ADMITTED",
+      "status": "COMPLETE_CONSUMED_NO_CONFIRMED_GAIN",
       "plan": {
         "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_SETUP_NATIVE_HORIZONS_20261112_001.json",
         "sha256": "8f5a0c5dbe9f554f395fcfca60c7ba109737f3672fedb2839f0bfcfdc3cc28a1"
@@ -76147,7 +76156,40 @@
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_NATIVE_HORIZONS_20261112_001/SOURCE_REVIEW.json",
         "sha256": "60d27db45ee0e9c65dc622abe9bc1bbafc2932006b51696ba011631d8180955c"
       },
-      "training_enabled": false
+      "training_enabled": false,
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_NATIVE_HORIZONS_20261112_001/RESULT.json",
+        "sha256": "74c6474334f30f95fdcc323ea3b15b4f50bcfbfc2a15bf61afb7c921ed25d889"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_NATIVE_HORIZONS_20261112_001/TERMINAL.json",
+        "sha256": "f5c822c4a0bd5339d5705f317e7f13f8a35b67355cba58e2f3f6f68d9f83e1ff"
+      }
+    },
+    "current_complement_question_20261112": {
+      "review": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_E3_FULL_TRAIN_002_REVIEW.json",
+        "sha256": "9c858657b98397f381187fa5e391f3af3531e46158d19537ba04e0326da72b3d"
+      },
+      "old_state_sha256": "5e031bd0a3c9d454a228b065ac787e79654bc9067a01fa33dfbe8c256cec702e",
+      "old_populations": {
+        "selected": 4096,
+        "complement": 25478,
+        "full": 29574
+      },
+      "conclusions": {
+        "selected_cohort_learning_measured": true,
+        "complement_direction_improvement": false,
+        "full_TRAIN_direction_improvement_vs_INITIAL": false,
+        "original_full_pass_cause_isolated": false,
+        "full_direction_fix_qualified": false
+      },
+      "critical_limits": [
+        "INITIAL M5 readout was already fitted using the full TRAIN population. Complement is original TRAIN, not untouched holdout. This does not prove row memorization or generalization failure.",
+        "Selected predictions are reused GPU; complement predictions are CPU. Device qualification covers32 selected rows only, not a global bound. Prebound conditional-M5 margins do not establish a three-class or total-objective error bound."
+      ],
+      "current_model_complement_measured": false,
+      "purpose": "Determine whether harmful incremental fit appears within original TRAIN outside this update cohort before attributing failure only to temporal transfer. This is not untouched validation."
     }
   },
   "market_state_ta_fusion_observation_20261111_001": {
@@ -81777,10 +81819,10 @@
     }
   },
   "market_state_ta_setup_native_horizons_20261112_001": {
-    "status": "ADMITTED",
-    "decision": "ADMITTED",
-    "execution_authorized": true,
-    "data_reads_authorized": true,
+    "status": "COMPLETE_CONSUMED",
+    "decision": "CONSUMED",
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "training_enabled": false,
     "native_training_enabled": false,
     "genuine_constructor_authorized": false,
@@ -81803,14 +81845,23 @@
       "maximum_wall_seconds": 180
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "test_data_used": false,
     "promotion_authorized": false,
     "admission_basis": "Active direction-edge goal and standing local0USD authority; one retained-output review of existing endpoints with no model or feature execution.",
     "admitted_utc": "2026-11-12T14:23:38.925473+00:00",
-    "next_action": "Execute one capped retained-F horizon review with unchanged setup assignments, all five native endpoints and exact LONG reference. Verify native queries/maturity and original score replay; retain all groups and explicit UNKNOWN/immature counts; consume after terminal. No fitting, new labels, regrouping or best-horizon selection."
+    "next_action": "Reuse the existing full-TRAIN complement evaluation method and inspect current fixed-benchmark evidence states to qualify one matched evaluation of original TRAIN rows excluded from the recent4096-row updates. Compare against the exact CURRENT INITIAL, preserve chronological later results, and do not call these rows untouched holdout or launch additional fitting. Prior E3 complement evidence is informative but belongs to a different model state and numerical protocol; do not rerun its consumed plan.",
+    "completed_utc": "2026-11-12T14:31:25.894569+00:00",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_NATIVE_HORIZONS_20261112_001/RESULT.json",
+      "sha256": "74c6474334f30f95fdcc323ea3b15b4f50bcfbfc2a15bf61afb7c921ed25d889"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_NATIVE_HORIZONS_20261112_001/TERMINAL.json",
+      "sha256": "f5c822c4a0bd5339d5705f317e7f13f8a35b67355cba58e2f3f6f68d9f83e1ff"
+    }
   }
 }

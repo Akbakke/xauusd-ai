@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_SETUP_NATIVE_HORIZONS_REVIEW",
+  "status": "ACTIVE_NATIVE_HORIZONS_COMPLETE_TRANSFER_UNRESOLVED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -269,7 +269,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Execute one capped retained-F horizon review with unchanged setup assignments, all five native endpoints and exact LONG reference. Verify native queries/maturity and original score replay; retain all groups and explicit UNKNOWN/immature counts; consume after terminal. No fitting, new labels, regrouping or best-horizon selection.",
+  "next_measurement": "Reuse the existing full-TRAIN complement evaluation method and inspect current fixed-benchmark evidence states to qualify one matched evaluation of original TRAIN rows excluded from the recent4096-row updates. Compare against the exact CURRENT INITIAL, preserve chronological later results, and do not call these rows untouched holdout or launch additional fitting. Prior E3 complement evidence is informative but belongs to a different model state and numerical protocol; do not rerun its consumed plan.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -1723,14 +1723,14 @@
   },
   "training_authorized_scope": null,
   "latest_confirmed_findings": [
-    "All8192 selected rows mapped to canonical closed endpoints across all five TF; UNKNOWN feature groups0. Six retained captures and existing qualified span inputs reused; no model, forward, fit or new feature calculation.",
-    "Prespecified aligned setups: TRAIN243/4096, later205/4096. Later support+UP alignment153 rows across9weeks, resistance+DOWN alignment52 rows across7weeks; all36joint groups and UNKNOWN are retained.",
-    "Later F in aligned groups:49 moves in the described direction,34 opposite,122 below the existing0.5native-M5-ATR threshold at five minutes. This is outcome classification, not executed trades or winrate.",
-    "The prespecified later signed-class-balance excess over the frozen prior is0.0687567;95percent UTC-day interval[-0.0111557,0.1456470] and week interval[-0.0212791,0.1337316]. Directional setup information is not established by this sample.",
-    "Within aligned later groups, FULL three-class F Brier0.568738 is worse in point estimate than frozen prior0.563346; paired day/week intervals include zero. M5-only0.572955 is also not an improvement. Conditional-side FULL Brier improves in point estimate, so ranking, activity and total class probability must not be conflated.",
-    "All-row later S singleton three-class Brier is better than prior for FULL, but S has2443 active-unknown-side rows and1 ineligible/immature row. This does not establish future directional value or Entry selectivity.",
-    "A blanket missing-price-geometry diagnosis is unsupported: active inputs already contain current-M5-relative HTF extrema/pivot distances. Whether the model learns the necessary relationships remains unresolved.",
-    "No architecture or indicator change is justified by this one coarse probe. The next direct discriminator is horizon alignment of these same groups with already retained endpoints; no profitable-group or best-horizon selection."
+    "All six captures have exact native F queries[1,3,12,48,288], matching assignments/targets and exact partition maturity. Original all-TF scores replay within7.31e-16; no new model, fit, feature or target-tape read.",
+    "For FULL, all-row TRAIN F AUC M5/M15/H1/H4/D1 is0.571561/0.623356/0.645103/0.652020/0.714395, versus later0.513672/0.509511/0.495398/0.499505/0.470691. Fitting improvement does not transfer consistently to the later development period across the declared endpoints.",
+    "FULL later conditional-side Brier is worse than the fixed earlier-TRAIN prior on all five TF. M15/H1/H4/D1 regressions have positive95percent paired day and week intervals; the M5 interval includes zero.",
+    "The same aligned descriptive setups have no confirmed advantage over alwaysLONG on any of the five endpoints; all corresponding day/week intervals include zero. This does not establish that these setups cannot work or that a different horizon should be selected.",
+    "In aligned setups, later eligible with/opposite/FLAT counts by horizon are5m49/34/122,15m51/42/112,60m29/44/123,240m44/33/116,1440m54/34/60. Respective rawUNKNOWN counts are0/0/9/12/57; all205 rows remain accounted for.",
+    "For all4096 later rows, rawUNKNOWN counts M5/M15/H1/H4/D1 are0/24/141/363/932; eligible-but-immature counts are0. UNKNOWN is separate from FLAT and from qualified class counts; unchanged scoring masks are retained.",
+    "Native ATR scale and target support change with the horizon, and FLAT_NET ignores intermediate path excursions. These results do not isolate the effect of waiting longer or describe trade returns.",
+    "An earlier E3 full-TRAIN complement review also found failure outside its4096 update cohort, but INITIAL had full-population readout exposure and the result used another model state and CPU/GPU protocol. It is evidence to reuse, not a current-state measurement or proof of memorization."
   ],
   "activity_pressure_review": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ACTIVITY_PRESSURE_REVIEW.json",
@@ -7140,5 +7140,2547 @@
     },
     "source_semantics_qualified": true,
     "new_group_horizon_results_read": false
+  },
+  "setup_native_horizons_result": {
+    "status": "COMPLETE_NO_CONFIRMED_SETUP_HORIZON_GAIN",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_NATIVE_HORIZONS_20261112_001/RESULT.json",
+      "sha256": "74c6474334f30f95fdcc323ea3b15b4f50bcfbfc2a15bf61afb7c921ed25d889"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_NATIVE_HORIZONS_20261112_001/TERMINAL.json",
+      "sha256": "f5c822c4a0bd5339d5705f317e7f13f8a35b67355cba58e2f3f6f68d9f83e1ff"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_NATIVE_HORIZONS_20261112_001/CLAIM.json",
+      "sha256": "d01293853e14e23bca04a3c0fd40793d71571e5b2154b10d3a2eabaf5f50b564"
+    },
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_SETUP_NATIVE_HORIZONS_20261112_001.json",
+      "sha256": "8f5a0c5dbe9f554f395fcfca60c7ba109737f3672fedb2839f0bfcfdc3cc28a1"
+    },
+    "script": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_NATIVE_HORIZONS_20261112_001/REVIEW_NATIVE_HORIZONS.py",
+      "sha256": "40753c912dcccc587eb3e414698f891ef0e1184fdfaf02dec2177ea8684454c0"
+    },
+    "source_head": "8b8ce60cd9a5e0cc9a70a8703a6f5043c47a4e69",
+    "counts": {
+      "assignment_decodes": 1,
+      "capture_decodes": 6,
+      "checkpoint_decodes": 0,
+      "feature_reads": 0,
+      "fitting": 0,
+      "forwards": 0,
+      "model_constructions": 0,
+      "target_tape_reads": 0
+    },
+    "elapsed_seconds": 2.8973386739999114,
+    "maximum_score_replay_error": 7.309092165332935e-16,
+    "all_future_queries_exact_native": true,
+    "group_assignments_unchanged": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_CONTEXT_20261112_001/GROUP_ASSIGNMENTS.npz",
+      "sha256": "f3eb714cf066dba080ed121d53a1d81c19afedd93e6387ceb0a518989793da7c"
+    },
+    "all37_groups_retained_in_result": true,
+    "five_endpoint_summary": [
+      {
+        "timeframe": "M5",
+        "lead_minutes": 5,
+        "TRAIN": {
+          "ALL": {
+            "allowed_counts": {
+              "1": 792,
+              "2": 2461,
+              "4": 843,
+              "7": 0
+            },
+            "allowed_counts_scope": "eligible_and_mature",
+            "raw_unknown_count": 0,
+            "eligible_but_immature_count": 0,
+            "observed_days": 118,
+            "observed_weeks": 22,
+            "always_LONG": {
+              "known_side_up_fraction": 0.5155963302752293,
+              "side_auc": 0.5,
+              "side_brier": 0.48440366972477067,
+              "side_count": 1635,
+              "side_log": null,
+              "side_log_status": "POSITIVE_INFINITY",
+              "signed_class_balance": 0.012451171875,
+              "singleton_count": 4096,
+              "three_brier": 1.58837890625,
+              "three_log": null,
+              "three_log_status": "POSITIVE_INFINITY"
+            },
+            "models": {
+              "FROZEN_PRIOR": {
+                "AUC": 0.5,
+                "known_side_count": 1635,
+                "side_Brier": 0.24977675469111546,
+                "side_log": 0.6927006366769242,
+                "three_class_count": 4096,
+                "three_class_Brier": 0.5592820859052442,
+                "direction_class_balance_minus_LONG": 0.0
+              },
+              "FULL_OBJECTIVE_PASS3": {
+                "AUC": 0.5715608037672094,
+                "known_side_count": 1635,
+                "side_Brier": 0.24582737040146463,
+                "side_log": 0.6847383028021936,
+                "three_class_count": 4096,
+                "three_class_Brier": 0.5560217606692059,
+                "direction_class_balance_minus_LONG": 0.02734375
+              },
+              "INITIAL": {
+                "AUC": 0.5371958014306769,
+                "known_side_count": 1635,
+                "side_Brier": 0.24900372824548575,
+                "side_log": 0.6911526623046866,
+                "three_class_count": 4096,
+                "three_class_Brier": 0.5588686372683169,
+                "direction_class_balance_minus_LONG": 0.01025390625
+              },
+              "M5_DIRECTION_ONLY_PASS3": {
+                "AUC": 0.6166558826701175,
+                "known_side_count": 1635,
+                "side_Brier": 0.24092740622978984,
+                "side_log": 0.6747501019553752,
+                "three_class_count": 4096,
+                "three_class_Brier": 0.5573870451588043,
+                "direction_class_balance_minus_LONG": 0.0478515625
+              }
+            }
+          },
+          "ALIGNED_DIRECTIONAL_SETUP": {
+            "allowed_counts": {
+              "1": 43,
+              "2": 138,
+              "4": 62,
+              "7": 0
+            },
+            "allowed_counts_scope": "eligible_and_mature",
+            "raw_unknown_count": 0,
+            "eligible_but_immature_count": 0,
+            "observed_days": 56,
+            "observed_weeks": 22,
+            "always_LONG": {
+              "known_side_up_fraction": 0.5904761904761905,
+              "side_auc": 0.5,
+              "side_brier": 0.4095238095238095,
+              "side_count": 105,
+              "side_log": null,
+              "side_log_status": "POSITIVE_INFINITY",
+              "signed_class_balance": 0.07818930041152264,
+              "singleton_count": 243,
+              "three_brier": 1.4897119341563787,
+              "three_log": null,
+              "three_log_status": "POSITIVE_INFINITY"
+            },
+            "models": {
+              "FROZEN_PRIOR": {
+                "AUC": 0.5,
+                "known_side_count": 105,
+                "side_Brier": 0.24811080196227198,
+                "side_log": 0.6893681813040389,
+                "three_class_count": 243,
+                "three_class_Brier": 0.5847703274624712,
+                "direction_class_balance_minus_LONG": 0.0
+              },
+              "FULL_OBJECTIVE_PASS3": {
+                "AUC": 0.46811702925731435,
+                "known_side_count": 105,
+                "side_Brier": 0.24962993789403004,
+                "side_log": 0.6924737670777978,
+                "three_class_count": 243,
+                "three_class_Brier": 0.5801272080585285,
+                "direction_class_balance_minus_LONG": -0.05761316872427984
+              },
+              "INITIAL": {
+                "AUC": 0.5206301575393848,
+                "known_side_count": 105,
+                "side_Brier": 0.24811034464526344,
+                "side_log": 0.689366402002203,
+                "three_class_count": 243,
+                "three_class_Brier": 0.5769470095442754,
+                "direction_class_balance_minus_LONG": -0.0411522633744856
+              },
+              "M5_DIRECTION_ONLY_PASS3": {
+                "AUC": 0.477119279819955,
+                "known_side_count": 105,
+                "side_Brier": 0.2527179054755561,
+                "side_log": 0.6988642664051922,
+                "three_class_count": 243,
+                "three_class_Brier": 0.5719389385981855,
+                "direction_class_balance_minus_LONG": -0.024691358024691357
+              }
+            },
+            "described_direction": {
+              "class_balance": 0.07818930041152264,
+              "class_balance_minus_LONG": 0.0,
+              "flat": 138,
+              "opposite": 43,
+              "with_direction": 62
+            }
+          }
+        },
+        "LATER": {
+          "ALL": {
+            "allowed_counts": {
+              "1": 812,
+              "2": 2407,
+              "4": 877,
+              "7": 0
+            },
+            "allowed_counts_scope": "eligible_and_mature",
+            "raw_unknown_count": 0,
+            "eligible_but_immature_count": 0,
+            "observed_days": 70,
+            "observed_weeks": 14,
+            "always_LONG": {
+              "known_side_up_fraction": 0.5192421551213736,
+              "side_auc": 0.5,
+              "side_brier": 0.4807578448786264,
+              "side_count": 1689,
+              "side_log": null,
+              "side_log_status": "POSITIVE_INFINITY",
+              "signed_class_balance": 0.015869140625,
+              "singleton_count": 4096,
+              "three_brier": 1.57177734375,
+              "three_log": null,
+              "three_log_status": "POSITIVE_INFINITY"
+            },
+            "models": {
+              "FROZEN_PRIOR": {
+                "AUC": 0.5,
+                "known_side_count": 1689,
+                "side_Brier": 0.24969564113354448,
+                "side_log": 0.692538382786966,
+                "three_class_count": 4096,
+                "three_class_Brier": 0.5696918927465306,
+                "direction_class_balance_minus_LONG": 0.0
+              },
+              "FULL_OBJECTIVE_PASS3": {
+                "AUC": 0.5136717762636844,
+                "known_side_count": 1689,
+                "side_Brier": 0.2517960023211566,
+                "side_log": 0.6967996749398965,
+                "three_class_count": 4096,
+                "three_class_Brier": 0.5704861552673495,
+                "direction_class_balance_minus_LONG": -0.01220703125
+              },
+              "INITIAL": {
+                "AUC": 0.5112901685661486,
+                "known_side_count": 1689,
+                "side_Brier": 0.24955319813771973,
+                "side_log": 0.6922523776654274,
+                "three_class_count": 4096,
+                "three_class_Brier": 0.5655081801313675,
+                "direction_class_balance_minus_LONG": 0.00341796875
+              },
+              "M5_DIRECTION_ONLY_PASS3": {
+                "AUC": 0.4955106133201521,
+                "known_side_count": 1689,
+                "side_Brier": 0.2572683551424179,
+                "side_log": 0.7081057208560118,
+                "three_class_count": 4096,
+                "three_class_Brier": 0.5700859218063986,
+                "direction_class_balance_minus_LONG": -0.00927734375
+              }
+            }
+          },
+          "ALIGNED_DIRECTIONAL_SETUP": {
+            "allowed_counts": {
+              "1": 35,
+              "2": 122,
+              "4": 48,
+              "7": 0
+            },
+            "allowed_counts_scope": "eligible_and_mature",
+            "raw_unknown_count": 0,
+            "eligible_but_immature_count": 0,
+            "observed_days": 40,
+            "observed_weeks": 14,
+            "always_LONG": {
+              "known_side_up_fraction": 0.5783132530120482,
+              "side_auc": 0.5,
+              "side_brier": 0.42168674698795183,
+              "side_count": 83,
+              "side_log": null,
+              "side_log_status": "POSITIVE_INFINITY",
+              "signed_class_balance": 0.06341463414634146,
+              "singleton_count": 205,
+              "three_brier": 1.5317073170731708,
+              "three_log": null,
+              "three_log_status": "POSITIVE_INFINITY"
+            },
+            "models": {
+              "FROZEN_PRIOR": {
+                "AUC": 0.5,
+                "known_side_count": 83,
+                "side_Brier": 0.24838140715310378,
+                "side_log": 0.6899094810099101,
+                "three_class_count": 205,
+                "three_class_Brier": 0.563345906730608,
+                "direction_class_balance_minus_LONG": 0.0
+              },
+              "FULL_OBJECTIVE_PASS3": {
+                "AUC": 0.5416666666666666,
+                "known_side_count": 83,
+                "side_Brier": 0.24616557569066688,
+                "side_log": 0.6854694077000429,
+                "three_class_count": 205,
+                "three_class_Brier": 0.5687383211817786,
+                "direction_class_balance_minus_LONG": -0.01951219512195122
+              },
+              "INITIAL": {
+                "AUC": 0.5077380952380952,
+                "known_side_count": 83,
+                "side_Brier": 0.24785541983428883,
+                "side_log": 0.6888510831021878,
+                "three_class_count": 205,
+                "three_class_Brier": 0.5643160090816965,
+                "direction_class_balance_minus_LONG": -0.01951219512195122
+              },
+              "M5_DIRECTION_ONLY_PASS3": {
+                "AUC": 0.4875,
+                "known_side_count": 83,
+                "side_Brier": 0.2511279229840378,
+                "side_log": 0.6956574169220411,
+                "three_class_count": 205,
+                "three_class_Brier": 0.5729549908848399,
+                "direction_class_balance_minus_LONG": -0.05853658536585366
+              }
+            },
+            "described_direction": {
+              "class_balance": 0.07317073170731707,
+              "class_balance_minus_LONG": 0.00975609756097561,
+              "flat": 122,
+              "opposite": 34,
+              "with_direction": 49
+            }
+          }
+        },
+        "paired_later_intervals": {
+          "UTC_DAY": {
+            "ALL": {
+              "FULL_DIRECTION_CLASS_BALANCE_MINUS_LONG": {
+                "lower95": -0.03557323525110597,
+                "observed_clusters": 70,
+                "point": -0.01220703125,
+                "rows": 4096,
+                "undefined_replicates": 0,
+                "upper95": 0.012428372557776195,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.0005559527845234132,
+                "observed_clusters": 69,
+                "point": 0.002100361187612153,
+                "rows": 1689,
+                "undefined_replicates": 0,
+                "upper95": 0.00477635866592504,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.002958217889253295,
+                "observed_clusters": 70,
+                "point": 0.0007942625208190213,
+                "rows": 4096,
+                "undefined_replicates": 0,
+                "upper95": 0.004866370574215503,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": 0.002661862714358568,
+                "observed_clusters": 69,
+                "point": 0.005472352821261296,
+                "rows": 1689,
+                "undefined_replicates": 0,
+                "upper95": 0.008494810394584166,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.004069637171652132,
+                "observed_clusters": 70,
+                "point": -0.00040023346095092516,
+                "rows": 4096,
+                "undefined_replicates": 0,
+                "upper95": 0.003050439905396663,
+                "valid_replicates": 2000
+              }
+            },
+            "ALIGNED_DIRECTIONAL_SETUP": {
+              "DESCRIBED_DIRECTION_CLASS_BALANCE_MINUS_LONG": {
+                "lower95": -0.08046847788227099,
+                "observed_clusters": 40,
+                "point": 0.00975609756097561,
+                "rows": 205,
+                "undefined_replicates": 0,
+                "upper95": 0.10912606730286269,
+                "valid_replicates": 2000
+              },
+              "FULL_DIRECTION_CLASS_BALANCE_MINUS_LONG": {
+                "lower95": -0.08930076243980739,
+                "observed_clusters": 40,
+                "point": -0.01951219512195122,
+                "rows": 205,
+                "undefined_replicates": 0,
+                "upper95": 0.03896262274311054,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.013156767131983745,
+                "observed_clusters": 32,
+                "point": -0.0022158314624368966,
+                "rows": 83,
+                "undefined_replicates": 0,
+                "upper95": 0.010567309927600846,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.007764194520885607,
+                "observed_clusters": 40,
+                "point": 0.005392414451170567,
+                "rows": 205,
+                "undefined_replicates": 0,
+                "upper95": 0.02287901815768588,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": -0.00692737971507483,
+                "observed_clusters": 32,
+                "point": 0.004962347293370939,
+                "rows": 83,
+                "undefined_replicates": 0,
+                "upper95": 0.018286453385165585,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.009702625460803978,
+                "observed_clusters": 40,
+                "point": 0.0042166697030614295,
+                "rows": 205,
+                "undefined_replicates": 0,
+                "upper95": 0.016376335368150155,
+                "valid_replicates": 2000
+              }
+            }
+          },
+          "UTC_MONDAY_WEEK": {
+            "ALL": {
+              "FULL_DIRECTION_CLASS_BALANCE_MINUS_LONG": {
+                "lower95": -0.033741500853265195,
+                "observed_clusters": 14,
+                "point": -0.01220703125,
+                "rows": 4096,
+                "undefined_replicates": 0,
+                "upper95": 0.007375633751678698,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.0001158577808396541,
+                "observed_clusters": 14,
+                "point": 0.002100361187612153,
+                "rows": 1689,
+                "undefined_replicates": 0,
+                "upper95": 0.00452465320829819,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.0019964129163115444,
+                "observed_clusters": 14,
+                "point": 0.0007942625208190213,
+                "rows": 4096,
+                "undefined_replicates": 0,
+                "upper95": 0.0034726318783532013,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": 0.0030221090511475803,
+                "observed_clusters": 14,
+                "point": 0.005472352821261296,
+                "rows": 1689,
+                "undefined_replicates": 0,
+                "upper95": 0.008204372357311739,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.004236504218344047,
+                "observed_clusters": 14,
+                "point": -0.00040023346095092516,
+                "rows": 4096,
+                "undefined_replicates": 0,
+                "upper95": 0.0032726170261065126,
+                "valid_replicates": 2000
+              }
+            },
+            "ALIGNED_DIRECTIONAL_SETUP": {
+              "DESCRIBED_DIRECTION_CLASS_BALANCE_MINUS_LONG": {
+                "lower95": -0.04524972253052164,
+                "observed_clusters": 14,
+                "point": 0.00975609756097561,
+                "rows": 205,
+                "undefined_replicates": 0,
+                "upper95": 0.06995696611081212,
+                "valid_replicates": 2000
+              },
+              "FULL_DIRECTION_CLASS_BALANCE_MINUS_LONG": {
+                "lower95": -0.08421369689283449,
+                "observed_clusters": 14,
+                "point": -0.01951219512195122,
+                "rows": 205,
+                "undefined_replicates": 0,
+                "upper95": 0.043016564952048794,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.009688996966530618,
+                "observed_clusters": 13,
+                "point": -0.0022158314624368966,
+                "rows": 83,
+                "undefined_replicates": 0,
+                "upper95": 0.00789892985408262,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.010709624618458131,
+                "observed_clusters": 14,
+                "point": 0.005392414451170567,
+                "rows": 205,
+                "undefined_replicates": 0,
+                "upper95": 0.029523392463587494,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": -0.005180350514811516,
+                "observed_clusters": 13,
+                "point": 0.004962347293370939,
+                "rows": 83,
+                "undefined_replicates": 0,
+                "upper95": 0.019703529706514337,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.010401842068421766,
+                "observed_clusters": 14,
+                "point": 0.0042166697030614295,
+                "rows": 205,
+                "undefined_replicates": 0,
+                "upper95": 0.015478591965463246,
+                "valid_replicates": 2000
+              }
+            }
+          }
+        }
+      },
+      {
+        "timeframe": "M15",
+        "lead_minutes": 15,
+        "TRAIN": {
+          "ALL": {
+            "allowed_counts": {
+              "1": 675,
+              "2": 2610,
+              "4": 783,
+              "7": 0
+            },
+            "allowed_counts_scope": "eligible_and_mature",
+            "raw_unknown_count": 28,
+            "eligible_but_immature_count": 0,
+            "observed_days": 118,
+            "observed_weeks": 22,
+            "always_LONG": {
+              "known_side_up_fraction": 0.5370370370370371,
+              "side_auc": 0.5,
+              "side_brier": 0.46296296296296297,
+              "side_count": 1458,
+              "side_log": null,
+              "side_log_status": "POSITIVE_INFINITY",
+              "signed_class_balance": 0.02654867256637168,
+              "singleton_count": 4068,
+              "three_brier": 1.6150442477876106,
+              "three_log": null,
+              "three_log_status": "POSITIVE_INFINITY"
+            },
+            "models": {
+              "FROZEN_PRIOR": {
+                "AUC": 0.5,
+                "known_side_count": 1458,
+                "side_Brier": 0.24894849549374923,
+                "side_log": 0.6910433224424877,
+                "three_class_count": 4068,
+                "three_class_Brier": 0.5240022957819113,
+                "direction_class_balance_minus_LONG": 0.0
+              },
+              "FULL_OBJECTIVE_PASS3": {
+                "AUC": 0.623355565015846,
+                "known_side_count": 1458,
+                "side_Brier": 0.2460252992680923,
+                "side_log": 0.6912140423116455,
+                "three_class_count": 4068,
+                "three_class_Brier": 0.5013818018492066,
+                "direction_class_balance_minus_LONG": 0.05260570304818092
+              },
+              "INITIAL": {
+                "AUC": 0.5462182489002413,
+                "known_side_count": 1458,
+                "side_Brier": 0.25308365514267994,
+                "side_log": 0.7005147909331569,
+                "three_class_count": 4068,
+                "three_class_Brier": 0.5086630429532745,
+                "direction_class_balance_minus_LONG": 0.004424778761061947
+              },
+              "M5_DIRECTION_ONLY_PASS3": {
+                "AUC": 0.6233120476798638,
+                "known_side_count": 1458,
+                "side_Brier": 0.25184032529755385,
+                "side_log": 0.7070322819855828,
+                "three_class_count": 4068,
+                "three_class_Brier": 0.5102399860381704,
+                "direction_class_balance_minus_LONG": 0.046214355948869225
+              }
+            }
+          },
+          "ALIGNED_DIRECTIONAL_SETUP": {
+            "allowed_counts": {
+              "1": 43,
+              "2": 144,
+              "4": 53,
+              "7": 0
+            },
+            "allowed_counts_scope": "eligible_and_mature",
+            "raw_unknown_count": 3,
+            "eligible_but_immature_count": 0,
+            "observed_days": 56,
+            "observed_weeks": 22,
+            "always_LONG": {
+              "known_side_up_fraction": 0.5520833333333334,
+              "side_auc": 0.5,
+              "side_brier": 0.4479166666666667,
+              "side_count": 96,
+              "side_log": null,
+              "side_log_status": "POSITIVE_INFINITY",
+              "signed_class_balance": 0.041666666666666664,
+              "singleton_count": 240,
+              "three_brier": 1.5583333333333333,
+              "three_log": null,
+              "three_log_status": "POSITIVE_INFINITY"
+            },
+            "models": {
+              "FROZEN_PRIOR": {
+                "AUC": 0.5,
+                "known_side_count": 96,
+                "side_Brier": 0.24837246750533912,
+                "side_log": 0.6898907031362609,
+                "three_class_count": 240,
+                "three_class_Brier": 0.5610201864167319,
+                "direction_class_balance_minus_LONG": 0.0
+              },
+              "FULL_OBJECTIVE_PASS3": {
+                "AUC": 0.6599385695480474,
+                "known_side_count": 96,
+                "side_Brier": 0.23267284257609297,
+                "side_log": 0.6602119252801513,
+                "three_class_count": 240,
+                "three_class_Brier": 0.5134499182393358,
+                "direction_class_balance_minus_LONG": 0.06666666666666667
+              },
+              "INITIAL": {
+                "AUC": 0.5870996050899517,
+                "known_side_count": 96,
+                "side_Brier": 0.24241118123650265,
+                "side_log": 0.6778073937277069,
+                "three_class_count": 240,
+                "three_class_Brier": 0.5296694037347601,
+                "direction_class_balance_minus_LONG": 0.008333333333333333
+              },
+              "M5_DIRECTION_ONLY_PASS3": {
+                "AUC": 0.5884159719175077,
+                "known_side_count": 96,
+                "side_Brier": 0.2567231056794768,
+                "side_log": 0.7185849768758369,
+                "three_class_count": 240,
+                "three_class_Brier": 0.5285563041781955,
+                "direction_class_balance_minus_LONG": 0.041666666666666664
+              }
+            },
+            "described_direction": {
+              "class_balance": 0.025,
+              "class_balance_minus_LONG": -0.016666666666666666,
+              "flat": 144,
+              "opposite": 45,
+              "with_direction": 51
+            }
+          }
+        },
+        "LATER": {
+          "ALL": {
+            "allowed_counts": {
+              "1": 797,
+              "2": 2506,
+              "4": 769,
+              "7": 0
+            },
+            "allowed_counts_scope": "eligible_and_mature",
+            "raw_unknown_count": 24,
+            "eligible_but_immature_count": 0,
+            "observed_days": 70,
+            "observed_weeks": 14,
+            "always_LONG": {
+              "known_side_up_fraction": 0.49106002554278416,
+              "side_auc": 0.5,
+              "side_brier": 0.5089399744572158,
+              "side_count": 1566,
+              "side_log": null,
+              "side_log_status": "POSITIVE_INFINITY",
+              "signed_class_balance": -0.0068762278978389,
+              "singleton_count": 4072,
+              "three_brier": 1.6222986247544204,
+              "three_log": null,
+              "three_log_status": "POSITIVE_INFINITY"
+            },
+            "models": {
+              "FROZEN_PRIOR": {
+                "AUC": 0.5,
+                "known_side_count": 1566,
+                "side_Brier": 0.25070866589865215,
+                "side_log": 0.6945653846196054,
+                "three_class_count": 4072,
+                "three_class_Brier": 0.5478995763404365,
+                "direction_class_balance_minus_LONG": 0.0
+              },
+              "FULL_OBJECTIVE_PASS3": {
+                "AUC": 0.5095114481646879,
+                "known_side_count": 1566,
+                "side_Brier": 0.3076381759770083,
+                "side_log": 0.8411091589643304,
+                "three_class_count": 4072,
+                "three_class_Brier": 0.5567812618556179,
+                "direction_class_balance_minus_LONG": 0.008349705304518664
+              },
+              "INITIAL": {
+                "AUC": 0.5027924939589782,
+                "known_side_count": 1566,
+                "side_Brier": 0.2733091271795235,
+                "side_log": 0.7440294600900185,
+                "three_class_count": 4072,
+                "three_class_Brier": 0.5403243305375794,
+                "direction_class_balance_minus_LONG": 0.01031434184675835
+              },
+              "M5_DIRECTION_ONLY_PASS3": {
+                "AUC": 0.48960095807914267,
+                "known_side_count": 1566,
+                "side_Brier": 0.33117859835455926,
+                "side_log": 0.9064491304064766,
+                "three_class_count": 4072,
+                "three_class_Brier": 0.5571873369629908,
+                "direction_class_balance_minus_LONG": -0.0073673870333988214
+              }
+            }
+          },
+          "ALIGNED_DIRECTIONAL_SETUP": {
+            "allowed_counts": {
+              "1": 44,
+              "2": 112,
+              "4": 49,
+              "7": 0
+            },
+            "allowed_counts_scope": "eligible_and_mature",
+            "raw_unknown_count": 0,
+            "eligible_but_immature_count": 0,
+            "observed_days": 40,
+            "observed_weeks": 14,
+            "always_LONG": {
+              "known_side_up_fraction": 0.5268817204301075,
+              "side_auc": 0.5,
+              "side_brier": 0.4731182795698925,
+              "side_count": 93,
+              "side_log": null,
+              "side_log_status": "POSITIVE_INFINITY",
+              "signed_class_balance": 0.024390243902439025,
+              "singleton_count": 205,
+              "three_brier": 1.5219512195121951,
+              "three_log": null,
+              "three_log_status": "POSITIVE_INFINITY"
+            },
+            "models": {
+              "FROZEN_PRIOR": {
+                "AUC": 0.5,
+                "known_side_count": 93,
+                "side_Brier": 0.24933727865217983,
+                "side_log": 0.6918212689717526,
+                "three_class_count": 205,
+                "three_class_Brier": 0.6092951107225525,
+                "direction_class_balance_minus_LONG": 0.0
+              },
+              "FULL_OBJECTIVE_PASS3": {
+                "AUC": 0.5078849721706865,
+                "known_side_count": 93,
+                "side_Brier": 0.28943078994886445,
+                "side_log": 0.7971779218174139,
+                "three_class_count": 205,
+                "three_class_Brier": 0.6282083896321974,
+                "direction_class_balance_minus_LONG": -0.00975609756097561
+              },
+              "INITIAL": {
+                "AUC": 0.46938775510204084,
+                "known_side_count": 93,
+                "side_Brier": 0.26894937379742856,
+                "side_log": 0.7328839584044432,
+                "three_class_count": 205,
+                "three_class_Brier": 0.6084968417475438,
+                "direction_class_balance_minus_LONG": -0.02926829268292683
+              },
+              "M5_DIRECTION_ONLY_PASS3": {
+                "AUC": 0.45315398886827457,
+                "known_side_count": 93,
+                "side_Brier": 0.31212989168578104,
+                "side_log": 0.8532500103238573,
+                "three_class_count": 205,
+                "three_class_Brier": 0.6196764900875761,
+                "direction_class_balance_minus_LONG": -0.05853658536585366
+              }
+            },
+            "described_direction": {
+              "class_balance": 0.04390243902439024,
+              "class_balance_minus_LONG": 0.01951219512195122,
+              "flat": 112,
+              "opposite": 42,
+              "with_direction": 51
+            }
+          }
+        },
+        "paired_later_intervals": {
+          "UTC_DAY": {
+            "ALL": {
+              "FULL_DIRECTION_CLASS_BALANCE_MINUS_LONG": {
+                "lower95": -0.022043313929986253,
+                "observed_clusters": 70,
+                "point": 0.008349705304518664,
+                "rows": 4072,
+                "undefined_replicates": 0,
+                "upper95": 0.039762412090009865,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": 0.03899285274155859,
+                "observed_clusters": 69,
+                "point": 0.05692951007835617,
+                "rows": 1566,
+                "undefined_replicates": 0,
+                "upper95": 0.07428185136101839,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.001268901858688032,
+                "observed_clusters": 70,
+                "point": 0.008881685515181615,
+                "rows": 4072,
+                "undefined_replicates": 0,
+                "upper95": 0.01988599012996541,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": 0.010376948304621412,
+                "observed_clusters": 69,
+                "point": 0.023540422377550926,
+                "rows": 1566,
+                "undefined_replicates": 0,
+                "upper95": 0.03704688665636953,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.00807790703772625,
+                "observed_clusters": 70,
+                "point": 0.0004060751073728293,
+                "rows": 4072,
+                "undefined_replicates": 0,
+                "upper95": 0.007509406642330989,
+                "valid_replicates": 2000
+              }
+            },
+            "ALIGNED_DIRECTIONAL_SETUP": {
+              "DESCRIBED_DIRECTION_CLASS_BALANCE_MINUS_LONG": {
+                "lower95": -0.11956521739130435,
+                "observed_clusters": 40,
+                "point": 0.01951219512195122,
+                "rows": 205,
+                "undefined_replicates": 0,
+                "upper95": 0.16599239280774541,
+                "valid_replicates": 2000
+              },
+              "FULL_DIRECTION_CLASS_BALANCE_MINUS_LONG": {
+                "lower95": -0.09708934397232813,
+                "observed_clusters": 40,
+                "point": -0.00975609756097561,
+                "rows": 205,
+                "undefined_replicates": 0,
+                "upper95": 0.08890130353817498,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.00975851853273025,
+                "observed_clusters": 34,
+                "point": 0.04009351129668465,
+                "rows": 93,
+                "undefined_replicates": 0,
+                "upper95": 0.09814189309286064,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.012338941887663338,
+                "observed_clusters": 40,
+                "point": 0.018913278909644966,
+                "rows": 205,
+                "undefined_replicates": 0,
+                "upper95": 0.05605220579152777,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": -0.01709603793801403,
+                "observed_clusters": 34,
+                "point": 0.022699101736916562,
+                "rows": 93,
+                "undefined_replicates": 0,
+                "upper95": 0.06421978682673,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.034527723035883466,
+                "observed_clusters": 40,
+                "point": -0.008531899544621411,
+                "rows": 205,
+                "undefined_replicates": 0,
+                "upper95": 0.01361090422289371,
+                "valid_replicates": 2000
+              }
+            }
+          },
+          "UTC_MONDAY_WEEK": {
+            "ALL": {
+              "FULL_DIRECTION_CLASS_BALANCE_MINUS_LONG": {
+                "lower95": -0.02353296391020176,
+                "observed_clusters": 14,
+                "point": 0.008349705304518664,
+                "rows": 4072,
+                "undefined_replicates": 0,
+                "upper95": 0.04236246374117721,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": 0.038270214731012595,
+                "observed_clusters": 14,
+                "point": 0.05692951007835617,
+                "rows": 1566,
+                "undefined_replicates": 0,
+                "upper95": 0.07687732545518541,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.0006103995424869023,
+                "observed_clusters": 14,
+                "point": 0.008881685515181615,
+                "rows": 4072,
+                "undefined_replicates": 0,
+                "upper95": 0.018601744661596472,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": 0.010703403552226352,
+                "observed_clusters": 14,
+                "point": 0.023540422377550926,
+                "rows": 1566,
+                "undefined_replicates": 0,
+                "upper95": 0.03689451937597491,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.006426506276671787,
+                "observed_clusters": 14,
+                "point": 0.0004060751073728293,
+                "rows": 4072,
+                "undefined_replicates": 0,
+                "upper95": 0.006647078046895146,
+                "valid_replicates": 2000
+              }
+            },
+            "ALIGNED_DIRECTIONAL_SETUP": {
+              "DESCRIBED_DIRECTION_CLASS_BALANCE_MINUS_LONG": {
+                "lower95": -0.0603830760434534,
+                "observed_clusters": 14,
+                "point": 0.01951219512195122,
+                "rows": 205,
+                "undefined_replicates": 0,
+                "upper95": 0.12766808510638292,
+                "valid_replicates": 2000
+              },
+              "FULL_DIRECTION_CLASS_BALANCE_MINUS_LONG": {
+                "lower95": -0.09174545965175061,
+                "observed_clusters": 14,
+                "point": -0.00975609756097561,
+                "rows": 205,
+                "undefined_replicates": 0,
+                "upper95": 0.08072267295678993,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.00921794525054142,
+                "observed_clusters": 14,
+                "point": 0.04009351129668465,
+                "rows": 93,
+                "undefined_replicates": 0,
+                "upper95": 0.10807190574051724,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.007720523794059764,
+                "observed_clusters": 14,
+                "point": 0.018913278909644966,
+                "rows": 205,
+                "undefined_replicates": 0,
+                "upper95": 0.05528618405565997,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": -0.024595696533052543,
+                "observed_clusters": 14,
+                "point": 0.022699101736916562,
+                "rows": 93,
+                "undefined_replicates": 0,
+                "upper95": 0.06796725704825322,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.03588379907635705,
+                "observed_clusters": 14,
+                "point": -0.008531899544621411,
+                "rows": 205,
+                "undefined_replicates": 0,
+                "upper95": 0.009909584926733573,
+                "valid_replicates": 2000
+              }
+            }
+          }
+        }
+      },
+      {
+        "timeframe": "H1",
+        "lead_minutes": 60,
+        "TRAIN": {
+          "ALL": {
+            "allowed_counts": {
+              "1": 598,
+              "2": 2511,
+              "4": 837,
+              "7": 0
+            },
+            "allowed_counts_scope": "eligible_and_mature",
+            "raw_unknown_count": 150,
+            "eligible_but_immature_count": 0,
+            "observed_days": 118,
+            "observed_weeks": 22,
+            "always_LONG": {
+              "known_side_up_fraction": 0.5832752613240418,
+              "side_auc": 0.5,
+              "side_brier": 0.41672473867595816,
+              "side_count": 1435,
+              "side_log": null,
+              "side_log_status": "POSITIVE_INFINITY",
+              "signed_class_balance": 0.06056766345666498,
+              "singleton_count": 3946,
+              "three_brier": 1.575772934617334,
+              "three_log": null,
+              "three_log_status": "POSITIVE_INFINITY"
+            },
+            "models": {
+              "FROZEN_PRIOR": {
+                "AUC": 0.5,
+                "known_side_count": 1435,
+                "side_Brier": 0.24522746325248973,
+                "side_log": 0.6835872882441552,
+                "three_class_count": 3946,
+                "three_class_Brier": 0.5276961914322479,
+                "direction_class_balance_minus_LONG": 0.0
+              },
+              "FULL_OBJECTIVE_PASS3": {
+                "AUC": 0.6451033512744593,
+                "known_side_count": 1435,
+                "side_Brier": 0.2310902815917171,
+                "side_log": 0.6559840775254994,
+                "three_class_count": 3946,
+                "three_class_Brier": 0.4914746941661698,
+                "direction_class_balance_minus_LONG": 0.031931069437404966
+              },
+              "INITIAL": {
+                "AUC": 0.5419798372112538,
+                "known_side_count": 1435,
+                "side_Brier": 0.25041833142289777,
+                "side_log": 0.6946748125229628,
+                "three_class_count": 3946,
+                "three_class_Brier": 0.505941765674497,
+                "direction_class_balance_minus_LONG": -0.025848960973137353
+              },
+              "M5_DIRECTION_ONLY_PASS3": {
+                "AUC": 0.588309098828033,
+                "known_side_count": 1435,
+                "side_Brier": 0.25690163614910316,
+                "side_log": 0.7198910073892183,
+                "three_class_count": 3946,
+                "three_class_Brier": 0.5094273146318536,
+                "direction_class_balance_minus_LONG": 0.010643689812468323
+              }
+            }
+          },
+          "ALIGNED_DIRECTIONAL_SETUP": {
+            "allowed_counts": {
+              "1": 27,
+              "2": 145,
+              "4": 62,
+              "7": 0
+            },
+            "allowed_counts_scope": "eligible_and_mature",
+            "raw_unknown_count": 9,
+            "eligible_but_immature_count": 0,
+            "observed_days": 54,
+            "observed_weeks": 22,
+            "always_LONG": {
+              "known_side_up_fraction": 0.6966292134831461,
+              "side_auc": 0.5,
+              "side_brier": 0.30337078651685395,
+              "side_count": 89,
+              "side_log": null,
+              "side_log_status": "POSITIVE_INFINITY",
+              "signed_class_balance": 0.14957264957264957,
+              "singleton_count": 234,
+              "three_brier": 1.4700854700854702,
+              "three_log": null,
+              "three_log_status": "POSITIVE_INFINITY"
+            },
+            "models": {
+              "FROZEN_PRIOR": {
+                "AUC": 0.5,
+                "known_side_count": 89,
+                "side_Brier": 0.2368901779256389,
+                "side_log": 0.6668825512782274,
+                "three_class_count": 234,
+                "three_class_Brier": 0.5405997338604562,
+                "direction_class_balance_minus_LONG": 0.0
+              },
+              "FULL_OBJECTIVE_PASS3": {
+                "AUC": 0.7670250896057348,
+                "known_side_count": 89,
+                "side_Brier": 0.16632509767080048,
+                "side_log": 0.5118159410130413,
+                "three_class_count": 234,
+                "three_class_Brier": 0.4737161101266008,
+                "direction_class_balance_minus_LONG": 0.05982905982905983
+              },
+              "INITIAL": {
+                "AUC": 0.6857825567502986,
+                "known_side_count": 89,
+                "side_Brier": 0.20586990962854704,
+                "side_log": 0.6027525057828313,
+                "three_class_count": 234,
+                "three_class_Brier": 0.4965201067617481,
+                "direction_class_balance_minus_LONG": 0.008547008547008548
+              },
+              "M5_DIRECTION_ONLY_PASS3": {
+                "AUC": 0.7013142174432497,
+                "known_side_count": 89,
+                "side_Brier": 0.19358500210589744,
+                "side_log": 0.574760568507274,
+                "three_class_count": 234,
+                "three_class_Brier": 0.4917938649444656,
+                "direction_class_balance_minus_LONG": 0.042735042735042736
+              }
+            },
+            "described_direction": {
+              "class_balance": 0.09829059829059829,
+              "class_balance_minus_LONG": -0.05128205128205128,
+              "flat": 145,
+              "opposite": 33,
+              "with_direction": 56
+            }
+          }
+        },
+        "LATER": {
+          "ALL": {
+            "allowed_counts": {
+              "1": 779,
+              "2": 2397,
+              "4": 779,
+              "7": 0
+            },
+            "allowed_counts_scope": "eligible_and_mature",
+            "raw_unknown_count": 141,
+            "eligible_but_immature_count": 0,
+            "observed_days": 70,
+            "observed_weeks": 14,
+            "always_LONG": {
+              "known_side_up_fraction": 0.5,
+              "side_auc": 0.5,
+              "side_brier": 0.5,
+              "side_count": 1558,
+              "side_log": null,
+              "side_log_status": "POSITIVE_INFINITY",
+              "signed_class_balance": 0.0,
+              "singleton_count": 3955,
+              "three_brier": 1.6060682680151708,
+              "three_log": null,
+              "three_log_status": "POSITIVE_INFINITY"
+            },
+            "models": {
+              "FROZEN_PRIOR": {
+                "AUC": 0.5,
+                "known_side_count": 1558,
+                "side_Brier": 0.2513524337639025,
+                "side_log": 0.6958593908898085,
+                "three_class_count": 3955,
+                "three_class_Brier": 0.5570167346008085,
+                "direction_class_balance_minus_LONG": 0.0
+              },
+              "FULL_OBJECTIVE_PASS3": {
+                "AUC": 0.4953983003785176,
+                "known_side_count": 1558,
+                "side_Brier": 0.31630893727026027,
+                "side_log": 0.8648501119856937,
+                "three_class_count": 3955,
+                "three_class_Brier": 0.5742731441380015,
+                "direction_class_balance_minus_LONG": -0.001011378002528445
+              },
+              "INITIAL": {
+                "AUC": 0.49338294545029093,
+                "known_side_count": 1558,
+                "side_Brier": 0.2743095087289975,
+                "side_log": 0.7465669394605283,
+                "three_class_count": 3955,
+                "three_class_Brier": 0.5503854855342671,
+                "direction_class_balance_minus_LONG": 0.009102402022756004
+              },
+              "M5_DIRECTION_ONLY_PASS3": {
+                "AUC": 0.4860894369365287,
+                "known_side_count": 1558,
+                "side_Brier": 0.32880497732837666,
+                "side_log": 0.9082857606550733,
+                "three_class_count": 3955,
+                "three_class_Brier": 0.5648860106108302,
+                "direction_class_balance_minus_LONG": 0.009608091024020228
+              }
+            }
+          },
+          "ALIGNED_DIRECTIONAL_SETUP": {
+            "allowed_counts": {
+              "1": 40,
+              "2": 123,
+              "4": 33,
+              "7": 0
+            },
+            "allowed_counts_scope": "eligible_and_mature",
+            "raw_unknown_count": 9,
+            "eligible_but_immature_count": 0,
+            "observed_days": 40,
+            "observed_weeks": 14,
+            "always_LONG": {
+              "known_side_up_fraction": 0.4520547945205479,
+              "side_auc": 0.5,
+              "side_brier": 0.547945205479452,
+              "side_count": 73,
+              "side_log": null,
+              "side_log_status": "POSITIVE_INFINITY",
+              "signed_class_balance": -0.03571428571428571,
+              "singleton_count": 196,
+              "three_brier": 1.663265306122449,
+              "three_log": null,
+              "three_log_status": "POSITIVE_INFINITY"
+            },
+            "models": {
+              "FROZEN_PRIOR": {
+                "AUC": 0.5,
+                "known_side_count": 73,
+                "side_Brier": 0.2548788468313147,
+                "side_log": 0.7029249764389337,
+                "three_class_count": 196,
+                "three_class_Brier": 0.5383021217300517,
+                "direction_class_balance_minus_LONG": 0.0
+              },
+              "FULL_OBJECTIVE_PASS3": {
+                "AUC": 0.5242424242424243,
+                "known_side_count": 73,
+                "side_Brier": 0.2996168246785093,
+                "side_log": 0.8152531356072212,
+                "three_class_count": 196,
+                "three_class_Brier": 0.5417559533509335,
+                "direction_class_balance_minus_LONG": 0.05102040816326531
+              },
+              "INITIAL": {
+                "AUC": 0.5265151515151515,
+                "known_side_count": 73,
+                "side_Brier": 0.2706206439207905,
+                "side_log": 0.7368261005732669,
+                "three_class_count": 196,
+                "three_class_Brier": 0.5325453722478974,
+                "direction_class_balance_minus_LONG": 0.04081632653061224
+              },
+              "M5_DIRECTION_ONLY_PASS3": {
+                "AUC": 0.531060606060606,
+                "known_side_count": 73,
+                "side_Brier": 0.30039012524019704,
+                "side_log": 0.829059651248018,
+                "three_class_count": 196,
+                "three_class_Brier": 0.5376106791471363,
+                "direction_class_balance_minus_LONG": 0.030612244897959183
+              }
+            },
+            "described_direction": {
+              "class_balance": -0.07653061224489796,
+              "class_balance_minus_LONG": -0.04081632653061224,
+              "flat": 123,
+              "opposite": 44,
+              "with_direction": 29
+            }
+          }
+        },
+        "paired_later_intervals": {
+          "UTC_DAY": {
+            "ALL": {
+              "FULL_DIRECTION_CLASS_BALANCE_MINUS_LONG": {
+                "lower95": -0.04543355591612581,
+                "observed_clusters": 70,
+                "point": -0.001011378002528445,
+                "rows": 3955,
+                "undefined_replicates": 0,
+                "upper95": 0.041465640878111054,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": 0.03825361967108721,
+                "observed_clusters": 69,
+                "point": 0.06495650350635782,
+                "rows": 1558,
+                "undefined_replicates": 0,
+                "upper95": 0.09171472803073959,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.0009382495841298683,
+                "observed_clusters": 70,
+                "point": 0.017256409537192895,
+                "rows": 3955,
+                "undefined_replicates": 0,
+                "upper95": 0.03526713685063067,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": -0.005928095588837357,
+                "observed_clusters": 69,
+                "point": 0.012496040058116371,
+                "rows": 1558,
+                "undefined_replicates": 0,
+                "upper95": 0.030109935332003943,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.023457944456401977,
+                "observed_clusters": 70,
+                "point": -0.009387133527171125,
+                "rows": 3955,
+                "undefined_replicates": 0,
+                "upper95": 0.004263432387202549,
+                "valid_replicates": 2000
+              }
+            },
+            "ALIGNED_DIRECTIONAL_SETUP": {
+              "DESCRIBED_DIRECTION_CLASS_BALANCE_MINUS_LONG": {
+                "lower95": -0.20513513513513512,
+                "observed_clusters": 40,
+                "point": -0.04081632653061224,
+                "rows": 196,
+                "undefined_replicates": 0,
+                "upper95": 0.091752172863351,
+                "valid_replicates": 2000
+              },
+              "FULL_DIRECTION_CLASS_BALANCE_MINUS_LONG": {
+                "lower95": -0.07217077949339926,
+                "observed_clusters": 40,
+                "point": 0.05102040816326531,
+                "rows": 196,
+                "undefined_replicates": 0,
+                "upper95": 0.18480590062111787,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.006697082336278366,
+                "observed_clusters": 30,
+                "point": 0.04473797784719463,
+                "rows": 73,
+                "undefined_replicates": 0,
+                "upper95": 0.10107464135840707,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.023760681428750957,
+                "observed_clusters": 40,
+                "point": 0.003453831620881955,
+                "rows": 196,
+                "undefined_replicates": 0,
+                "upper95": 0.03347158483207766,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": -0.043615852775841804,
+                "observed_clusters": 30,
+                "point": 0.0007733005616876898,
+                "rows": 73,
+                "undefined_replicates": 0,
+                "upper95": 0.049366322074462544,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.037955700736689676,
+                "observed_clusters": 40,
+                "point": -0.004145274203797227,
+                "rows": 196,
+                "undefined_replicates": 0,
+                "upper95": 0.02400043410337701,
+                "valid_replicates": 2000
+              }
+            }
+          },
+          "UTC_MONDAY_WEEK": {
+            "ALL": {
+              "FULL_DIRECTION_CLASS_BALANCE_MINUS_LONG": {
+                "lower95": -0.04017120207154478,
+                "observed_clusters": 14,
+                "point": -0.001011378002528445,
+                "rows": 3955,
+                "undefined_replicates": 0,
+                "upper95": 0.036276059204169465,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": 0.031521361076287856,
+                "observed_clusters": 14,
+                "point": 0.06495650350635782,
+                "rows": 1558,
+                "undefined_replicates": 0,
+                "upper95": 0.1003118791225488,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.002105623970406037,
+                "observed_clusters": 14,
+                "point": 0.017256409537192895,
+                "rows": 3955,
+                "undefined_replicates": 0,
+                "upper95": 0.036294576584586055,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": -0.0016023778230559653,
+                "observed_clusters": 14,
+                "point": 0.012496040058116371,
+                "rows": 1558,
+                "undefined_replicates": 0,
+                "upper95": 0.026046511129061034,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.02496669408750227,
+                "observed_clusters": 14,
+                "point": -0.009387133527171125,
+                "rows": 3955,
+                "undefined_replicates": 0,
+                "upper95": 0.004945146889670332,
+                "valid_replicates": 2000
+              }
+            },
+            "ALIGNED_DIRECTIONAL_SETUP": {
+              "DESCRIBED_DIRECTION_CLASS_BALANCE_MINUS_LONG": {
+                "lower95": -0.2421395881006865,
+                "observed_clusters": 14,
+                "point": -0.04081632653061224,
+                "rows": 196,
+                "undefined_replicates": 0,
+                "upper95": 0.10691956171781662,
+                "valid_replicates": 2000
+              },
+              "FULL_DIRECTION_CLASS_BALANCE_MINUS_LONG": {
+                "lower95": -0.07633830894150824,
+                "observed_clusters": 14,
+                "point": 0.05102040816326531,
+                "rows": 196,
+                "undefined_replicates": 0,
+                "upper95": 0.17391304347826086,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.004690292407614546,
+                "observed_clusters": 14,
+                "point": 0.04473797784719463,
+                "rows": 73,
+                "undefined_replicates": 0,
+                "upper95": 0.10124261615575897,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.022379210423652093,
+                "observed_clusters": 14,
+                "point": 0.003453831620881955,
+                "rows": 196,
+                "undefined_replicates": 0,
+                "upper95": 0.03827161036417935,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": -0.04407749303837172,
+                "observed_clusters": 14,
+                "point": 0.0007733005616876898,
+                "rows": 73,
+                "undefined_replicates": 0,
+                "upper95": 0.05713191847274408,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.045197034364001104,
+                "observed_clusters": 14,
+                "point": -0.004145274203797227,
+                "rows": 196,
+                "undefined_replicates": 0,
+                "upper95": 0.02813555346887398,
+                "valid_replicates": 2000
+              }
+            }
+          }
+        }
+      },
+      {
+        "timeframe": "H4",
+        "lead_minutes": 240,
+        "TRAIN": {
+          "ALL": {
+            "allowed_counts": {
+              "1": 579,
+              "2": 2465,
+              "4": 791,
+              "7": 0
+            },
+            "allowed_counts_scope": "eligible_and_mature",
+            "raw_unknown_count": 261,
+            "eligible_but_immature_count": 0,
+            "observed_days": 118,
+            "observed_weeks": 22,
+            "always_LONG": {
+              "known_side_up_fraction": 0.5773722627737227,
+              "side_auc": 0.5,
+              "side_brier": 0.4226277372262774,
+              "side_count": 1370,
+              "side_log": null,
+              "side_log_status": "POSITIVE_INFINITY",
+              "signed_class_balance": 0.05528031290743155,
+              "singleton_count": 3835,
+              "three_brier": 1.58748370273794,
+              "three_log": null,
+              "three_log_status": "POSITIVE_INFINITY"
+            },
+            "models": {
+              "FROZEN_PRIOR": {
+                "AUC": 0.5,
+                "known_side_count": 1370,
+                "side_Brier": 0.24412134613169434,
+                "side_log": 0.6813459987826458,
+                "three_class_count": 3835,
+                "three_class_Brier": 0.5217793230659984,
+                "direction_class_balance_minus_LONG": 0.0
+              },
+              "FULL_OBJECTIVE_PASS3": {
+                "AUC": 0.6520200266818635,
+                "known_side_count": 1370,
+                "side_Brier": 0.23387820405961943,
+                "side_log": 0.6618489817534593,
+                "three_class_count": 3835,
+                "three_class_Brier": 0.4997096079910719,
+                "direction_class_balance_minus_LONG": 0.027640156453715776
+              },
+              "INITIAL": {
+                "AUC": 0.5869311271668097,
+                "known_side_count": 1370,
+                "side_Brier": 0.2410469567196331,
+                "side_log": 0.6748765033164318,
+                "three_class_count": 3835,
+                "three_class_Brier": 0.5045502879878994,
+                "direction_class_balance_minus_LONG": -0.00469361147327249
+              },
+              "M5_DIRECTION_ONLY_PASS3": {
+                "AUC": 0.5528124037913574,
+                "known_side_count": 1370,
+                "side_Brier": 0.27633999962489963,
+                "side_log": 0.7655252093572954,
+                "three_class_count": 3835,
+                "three_class_Brier": 0.5116204138985975,
+                "direction_class_balance_minus_LONG": -0.01564537157757497
+              }
+            }
+          },
+          "ALIGNED_DIRECTIONAL_SETUP": {
+            "allowed_counts": {
+              "1": 21,
+              "2": 163,
+              "4": 48,
+              "7": 0
+            },
+            "allowed_counts_scope": "eligible_and_mature",
+            "raw_unknown_count": 11,
+            "eligible_but_immature_count": 0,
+            "observed_days": 55,
+            "observed_weeks": 22,
+            "always_LONG": {
+              "known_side_up_fraction": 0.6956521739130435,
+              "side_auc": 0.5,
+              "side_brier": 0.30434782608695654,
+              "side_count": 69,
+              "side_log": null,
+              "side_log_status": "POSITIVE_INFINITY",
+              "signed_class_balance": 0.11637931034482758,
+              "singleton_count": 232,
+              "three_brier": 1.5862068965517242,
+              "three_log": null,
+              "three_log_status": "POSITIVE_INFINITY"
+            },
+            "models": {
+              "FROZEN_PRIOR": {
+                "AUC": 0.5,
+                "known_side_count": 69,
+                "side_Brier": 0.2282744519597135,
+                "side_log": 0.6494605061774315,
+                "three_class_count": 232,
+                "three_class_Brier": 0.4655131615343409,
+                "direction_class_balance_minus_LONG": 0.0
+              },
+              "FULL_OBJECTIVE_PASS3": {
+                "AUC": 0.7728174603174603,
+                "known_side_count": 69,
+                "side_Brier": 0.18561714541016894,
+                "side_log": 0.5575786969805802,
+                "three_class_count": 232,
+                "three_class_Brier": 0.40086424406000787,
+                "direction_class_balance_minus_LONG": 0.034482758620689655
+              },
+              "INITIAL": {
+                "AUC": 0.6428571428571429,
+                "known_side_count": 69,
+                "side_Brier": 0.21913021040214375,
+                "side_log": 0.629955998745682,
+                "three_class_count": 232,
+                "three_class_Brier": 0.4314883004041576,
+                "direction_class_balance_minus_LONG": -0.017241379310344827
+              },
+              "M5_DIRECTION_ONLY_PASS3": {
+                "AUC": 0.6111111111111112,
+                "known_side_count": 69,
+                "side_Brier": 0.245951918315814,
+                "side_log": 0.699444942535103,
+                "three_class_count": 232,
+                "three_class_Brier": 0.44599604086247735,
+                "direction_class_balance_minus_LONG": -0.04310344827586207
+              }
+            },
+            "described_direction": {
+              "class_balance": 0.125,
+              "class_balance_minus_LONG": 0.008620689655172414,
+              "flat": 163,
+              "opposite": 20,
+              "with_direction": 49
+            }
+          }
+        },
+        "LATER": {
+          "ALL": {
+            "allowed_counts": {
+              "1": 608,
+              "2": 2414,
+              "4": 711,
+              "7": 0
+            },
+            "allowed_counts_scope": "eligible_and_mature",
+            "raw_unknown_count": 363,
+            "eligible_but_immature_count": 0,
+            "observed_days": 70,
+            "observed_weeks": 14,
+            "always_LONG": {
+              "known_side_up_fraction": 0.5390447308567097,
+              "side_auc": 0.5,
+              "side_brier": 0.4609552691432904,
+              "side_count": 1319,
+              "side_log": null,
+              "side_log_status": "POSITIVE_INFINITY",
+              "signed_class_balance": 0.02759174926332708,
+              "singleton_count": 3733,
+              "three_brier": 1.6190731315296008,
+              "three_log": null,
+              "three_log_status": "POSITIVE_INFINITY"
+            },
+            "models": {
+              "FROZEN_PRIOR": {
+                "AUC": 0.5,
+                "known_side_count": 1319,
+                "side_Brier": 0.24925638839129413,
+                "side_log": 0.6916782033281543,
+                "three_class_count": 3733,
+                "three_class_Brier": 0.5196805195538181,
+                "direction_class_balance_minus_LONG": 0.0
+              },
+              "FULL_OBJECTIVE_PASS3": {
+                "AUC": 0.4995049596565253,
+                "known_side_count": 1319,
+                "side_Brier": 0.30930657635588876,
+                "side_log": 0.8452607493638455,
+                "three_class_count": 3733,
+                "three_class_Brier": 0.523911629400322,
+                "direction_class_balance_minus_LONG": -0.028395392445754085
+              },
+              "INITIAL": {
+                "AUC": 0.4806864867865867,
+                "known_side_count": 1319,
+                "side_Brier": 0.2741053165181591,
+                "side_log": 0.7459464186885874,
+                "three_class_count": 3733,
+                "three_class_Brier": 0.5095455525696294,
+                "direction_class_balance_minus_LONG": -0.025180819716046077
+              },
+              "M5_DIRECTION_ONLY_PASS3": {
+                "AUC": 0.4727542749278259,
+                "known_side_count": 1319,
+                "side_Brier": 0.3309371784675769,
+                "side_log": 0.9118473219992766,
+                "three_class_count": 3733,
+                "three_class_Brier": 0.5260752918549602,
+                "direction_class_balance_minus_LONG": -0.0348245379051701
+              }
+            }
+          },
+          "ALIGNED_DIRECTIONAL_SETUP": {
+            "allowed_counts": {
+              "1": 36,
+              "2": 116,
+              "4": 41,
+              "7": 0
+            },
+            "allowed_counts_scope": "eligible_and_mature",
+            "raw_unknown_count": 12,
+            "eligible_but_immature_count": 0,
+            "observed_days": 38,
+            "observed_weeks": 14,
+            "always_LONG": {
+              "known_side_up_fraction": 0.5324675324675324,
+              "side_auc": 0.5,
+              "side_brier": 0.4675324675324675,
+              "side_count": 77,
+              "side_log": null,
+              "side_log_status": "POSITIVE_INFINITY",
+              "signed_class_balance": 0.025906735751295335,
+              "singleton_count": 193,
+              "three_brier": 1.5751295336787565,
+              "three_log": null,
+              "three_log_status": "POSITIVE_INFINITY"
+            },
+            "models": {
+              "FROZEN_PRIOR": {
+                "AUC": 0.5,
+                "known_side_count": 77,
+                "side_Brier": 0.2501375876229933,
+                "side_log": 0.6934512619023538,
+                "three_class_count": 193,
+                "three_class_Brier": 0.5603700202681252,
+                "direction_class_balance_minus_LONG": 0.0
+              },
+              "FULL_OBJECTIVE_PASS3": {
+                "AUC": 0.5223577235772358,
+                "known_side_count": 77,
+                "side_Brier": 0.28845756461539757,
+                "side_log": 0.7905303075365537,
+                "three_class_count": 193,
+                "three_class_Brier": 0.5912594325857372,
+                "direction_class_balance_minus_LONG": 0.0
+              },
+              "INITIAL": {
+                "AUC": 0.516260162601626,
+                "known_side_count": 77,
+                "side_Brier": 0.26041946946377165,
+                "side_log": 0.7154967860282805,
+                "three_class_count": 193,
+                "three_class_Brier": 0.5610847394434689,
+                "direction_class_balance_minus_LONG": -0.010362694300518135
+              },
+              "M5_DIRECTION_ONLY_PASS3": {
+                "AUC": 0.5,
+                "known_side_count": 77,
+                "side_Brier": 0.3057958534214541,
+                "side_log": 0.834722229698539,
+                "three_class_count": 193,
+                "three_class_Brier": 0.5714897954709631,
+                "direction_class_balance_minus_LONG": -0.06217616580310881
+              }
+            },
+            "described_direction": {
+              "class_balance": 0.05699481865284974,
+              "class_balance_minus_LONG": 0.031088082901554404,
+              "flat": 116,
+              "opposite": 33,
+              "with_direction": 44
+            }
+          }
+        },
+        "paired_later_intervals": {
+          "UTC_DAY": {
+            "ALL": {
+              "FULL_DIRECTION_CLASS_BALANCE_MINUS_LONG": {
+                "lower95": -0.07983334115769213,
+                "observed_clusters": 70,
+                "point": -0.028395392445754085,
+                "rows": 3733,
+                "undefined_replicates": 0,
+                "upper95": 0.01953901237782833,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": 0.02807240246831587,
+                "observed_clusters": 68,
+                "point": 0.06005018796459462,
+                "rows": 1319,
+                "undefined_replicates": 0,
+                "upper95": 0.0929323721359355,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.013088993580253717,
+                "observed_clusters": 70,
+                "point": 0.00423110984650396,
+                "rows": 3733,
+                "undefined_replicates": 0,
+                "upper95": 0.021507684675795377,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": 0.002791960461562365,
+                "observed_clusters": 68,
+                "point": 0.021630602111688154,
+                "rows": 1319,
+                "undefined_replicates": 0,
+                "upper95": 0.040542513383469723,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.01140764942358312,
+                "observed_clusters": 70,
+                "point": 0.0021636624546382834,
+                "rows": 3733,
+                "undefined_replicates": 0,
+                "upper95": 0.015544415735800789,
+                "valid_replicates": 2000
+              }
+            },
+            "ALIGNED_DIRECTIONAL_SETUP": {
+              "DESCRIBED_DIRECTION_CLASS_BALANCE_MINUS_LONG": {
+                "lower95": -0.07793481028775145,
+                "observed_clusters": 38,
+                "point": 0.031088082901554404,
+                "rows": 193,
+                "undefined_replicates": 0,
+                "upper95": 0.15663941480206534,
+                "valid_replicates": 2000
+              },
+              "FULL_DIRECTION_CLASS_BALANCE_MINUS_LONG": {
+                "lower95": -0.14285714285714285,
+                "observed_clusters": 38,
+                "point": 0.0,
+                "rows": 193,
+                "undefined_replicates": 0,
+                "upper95": 0.146355243213449,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.028071044016104905,
+                "observed_clusters": 23,
+                "point": 0.03831997699240429,
+                "rows": 77,
+                "undefined_replicates": 0,
+                "upper95": 0.11277758371889286,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.01055695555079214,
+                "observed_clusters": 38,
+                "point": 0.030889412317612063,
+                "rows": 193,
+                "undefined_replicates": 0,
+                "upper95": 0.0654536581506416,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": -0.0295776788300738,
+                "observed_clusters": 23,
+                "point": 0.017338288806056503,
+                "rows": 77,
+                "undefined_replicates": 0,
+                "upper95": 0.07152736348411709,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.05569186107884052,
+                "observed_clusters": 38,
+                "point": -0.019769637114774096,
+                "rows": 193,
+                "undefined_replicates": 0,
+                "upper95": 0.01559727486684267,
+                "valid_replicates": 2000
+              }
+            }
+          },
+          "UTC_MONDAY_WEEK": {
+            "ALL": {
+              "FULL_DIRECTION_CLASS_BALANCE_MINUS_LONG": {
+                "lower95": -0.06361743786578244,
+                "observed_clusters": 14,
+                "point": -0.028395392445754085,
+                "rows": 3733,
+                "undefined_replicates": 0,
+                "upper95": 0.006652115476570706,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": 0.03496687084755317,
+                "observed_clusters": 14,
+                "point": 0.06005018796459462,
+                "rows": 1319,
+                "undefined_replicates": 0,
+                "upper95": 0.0866557167727178,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.01569501754970365,
+                "observed_clusters": 14,
+                "point": 0.00423110984650396,
+                "rows": 3733,
+                "undefined_replicates": 0,
+                "upper95": 0.0241052281225855,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": 0.006670188655150149,
+                "observed_clusters": 14,
+                "point": 0.021630602111688154,
+                "rows": 1319,
+                "undefined_replicates": 0,
+                "upper95": 0.036555131032017955,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.010600767972131117,
+                "observed_clusters": 14,
+                "point": 0.0021636624546382834,
+                "rows": 3733,
+                "undefined_replicates": 0,
+                "upper95": 0.013776837239301579,
+                "valid_replicates": 2000
+              }
+            },
+            "ALIGNED_DIRECTIONAL_SETUP": {
+              "DESCRIBED_DIRECTION_CLASS_BALANCE_MINUS_LONG": {
+                "lower95": -0.054803967879074156,
+                "observed_clusters": 14,
+                "point": 0.031088082901554404,
+                "rows": 193,
+                "undefined_replicates": 0,
+                "upper95": 0.1295134306755778,
+                "valid_replicates": 2000
+              },
+              "FULL_DIRECTION_CLASS_BALANCE_MINUS_LONG": {
+                "lower95": -0.15447573547900428,
+                "observed_clusters": 14,
+                "point": 0.0,
+                "rows": 193,
+                "undefined_replicates": 0,
+                "upper95": 0.19299660441426136,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.02461187931665655,
+                "observed_clusters": 10,
+                "point": 0.03831997699240429,
+                "rows": 77,
+                "undefined_replicates": 0,
+                "upper95": 0.09515739791864833,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": -0.01137285481757115,
+                "observed_clusters": 14,
+                "point": 0.030889412317612063,
+                "rows": 193,
+                "undefined_replicates": 0,
+                "upper95": 0.05668201195777782,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": -0.02467441561386456,
+                "observed_clusters": 10,
+                "point": 0.017338288806056503,
+                "rows": 77,
+                "undefined_replicates": 0,
+                "upper95": 0.06830214973084059,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.05132066747864562,
+                "observed_clusters": 14,
+                "point": -0.019769637114774096,
+                "rows": 193,
+                "undefined_replicates": 0,
+                "upper95": 0.014604227617898494,
+                "valid_replicates": 2000
+              }
+            }
+          }
+        }
+      },
+      {
+        "timeframe": "D1",
+        "lead_minutes": 1440,
+        "TRAIN": {
+          "ALL": {
+            "allowed_counts": {
+              "1": 429,
+              "2": 2045,
+              "4": 801,
+              "7": 0
+            },
+            "allowed_counts_scope": "eligible_and_mature",
+            "raw_unknown_count": 821,
+            "eligible_but_immature_count": 0,
+            "observed_days": 96,
+            "observed_weeks": 22,
+            "always_LONG": {
+              "known_side_up_fraction": 0.651219512195122,
+              "side_auc": 0.5,
+              "side_brier": 0.348780487804878,
+              "side_count": 1230,
+              "side_log": null,
+              "side_log_status": "POSITIVE_INFINITY",
+              "signed_class_balance": 0.11358778625954198,
+              "singleton_count": 3275,
+              "three_brier": 1.5108396946564886,
+              "three_log": null,
+              "three_log_status": "POSITIVE_INFINITY"
+            },
+            "models": {
+              "FROZEN_PRIOR": {
+                "AUC": 0.5,
+                "known_side_count": 1230,
+                "side_Brier": 0.2273782446632927,
+                "side_log": 0.6472370071464775,
+                "three_class_count": 3275,
+                "three_class_Brier": 0.5332358848286858,
+                "direction_class_balance_minus_LONG": 0.0
+              },
+              "FULL_OBJECTIVE_PASS3": {
+                "AUC": 0.714395467204456,
+                "known_side_count": 1230,
+                "side_Brier": 0.20251933303124686,
+                "side_log": 0.5868532909087538,
+                "three_class_count": 3275,
+                "three_class_Brier": 0.5309121680525866,
+                "direction_class_balance_minus_LONG": 0.017099236641221375
+              },
+              "INITIAL": {
+                "AUC": 0.6075476749634053,
+                "known_side_count": 1230,
+                "side_Brier": 0.23211632393121792,
+                "side_log": 0.6552782731767477,
+                "three_class_count": 3275,
+                "three_class_Brier": 0.5451068214752711,
+                "direction_class_balance_minus_LONG": -0.04152671755725191
+              },
+              "M5_DIRECTION_ONLY_PASS3": {
+                "AUC": 0.688809733753554,
+                "known_side_count": 1230,
+                "side_Brier": 0.2239348734713964,
+                "side_log": 0.6439083554307196,
+                "three_class_count": 3275,
+                "three_class_Brier": 0.545978473874416,
+                "direction_class_balance_minus_LONG": 0.0024427480916030535
+              }
+            }
+          },
+          "ALIGNED_DIRECTIONAL_SETUP": {
+            "allowed_counts": {
+              "1": 26,
+              "2": 91,
+              "4": 62,
+              "7": 0
+            },
+            "allowed_counts_scope": "eligible_and_mature",
+            "raw_unknown_count": 64,
+            "eligible_but_immature_count": 0,
+            "observed_days": 44,
+            "observed_weeks": 22,
+            "always_LONG": {
+              "known_side_up_fraction": 0.7045454545454546,
+              "side_auc": 0.5,
+              "side_brier": 0.29545454545454547,
+              "side_count": 88,
+              "side_log": null,
+              "side_log_status": "POSITIVE_INFINITY",
+              "signed_class_balance": 0.2011173184357542,
+              "singleton_count": 179,
+              "three_brier": 1.3072625698324023,
+              "three_log": null,
+              "three_log_status": "POSITIVE_INFINITY"
+            },
+            "models": {
+              "FROZEN_PRIOR": {
+                "AUC": 0.5,
+                "known_side_count": 88,
+                "side_Brier": 0.20957903899528293,
+                "side_log": 0.6102205155277132,
+                "three_class_count": 179,
+                "three_class_Brier": 0.6217936646592944,
+                "direction_class_balance_minus_LONG": 0.0
+              },
+              "FULL_OBJECTIVE_PASS3": {
+                "AUC": 0.8405707196029777,
+                "known_side_count": 88,
+                "side_Brier": 0.14347965225133788,
+                "side_log": 0.4618834567387171,
+                "three_class_count": 179,
+                "three_class_Brier": 0.6225757032722044,
+                "direction_class_balance_minus_LONG": 0.1340782122905028
+              },
+              "INITIAL": {
+                "AUC": 0.707196029776675,
+                "known_side_count": 88,
+                "side_Brier": 0.19917163453056952,
+                "side_log": 0.5887571182171342,
+                "three_class_count": 179,
+                "three_class_Brier": 0.619328792996946,
+                "direction_class_balance_minus_LONG": 0.0335195530726257
+              },
+              "M5_DIRECTION_ONLY_PASS3": {
+                "AUC": 0.7655086848635235,
+                "known_side_count": 88,
+                "side_Brier": 0.17057887330949298,
+                "side_log": 0.5187460610985085,
+                "three_class_count": 179,
+                "three_class_Brier": 0.6001594324086992,
+                "direction_class_balance_minus_LONG": 0.0670391061452514
+              }
+            },
+            "described_direction": {
+              "class_balance": 0.0223463687150838,
+              "class_balance_minus_LONG": -0.1787709497206704,
+              "flat": 91,
+              "opposite": 42,
+              "with_direction": 46
+            }
+          }
+        },
+        "LATER": {
+          "ALL": {
+            "allowed_counts": {
+              "1": 597,
+              "2": 1759,
+              "4": 808,
+              "7": 0
+            },
+            "allowed_counts_scope": "eligible_and_mature",
+            "raw_unknown_count": 932,
+            "eligible_but_immature_count": 0,
+            "observed_days": 55,
+            "observed_weeks": 14,
+            "always_LONG": {
+              "known_side_up_fraction": 0.5750889679715302,
+              "side_auc": 0.5,
+              "side_brier": 0.42491103202846975,
+              "side_count": 1405,
+              "side_log": null,
+              "side_log_status": "POSITIVE_INFINITY",
+              "signed_class_balance": 0.06668773704171935,
+              "singleton_count": 3164,
+              "three_brier": 1.4892541087231352,
+              "three_log": null,
+              "three_log_status": "POSITIVE_INFINITY"
+            },
+            "models": {
+              "FROZEN_PRIOR": {
+                "AUC": 0.5,
+                "known_side_count": 1405,
+                "side_Brier": 0.2527892014045901,
+                "side_log": 0.7000834366323498,
+                "three_class_count": 3164,
+                "three_class_Brier": 0.5980111816052447,
+                "direction_class_balance_minus_LONG": 0.0
+              },
+              "FULL_OBJECTIVE_PASS3": {
+                "AUC": 0.4706909133124368,
+                "known_side_count": 1405,
+                "side_Brier": 0.30376600641734514,
+                "side_log": 0.8307210642763678,
+                "three_class_count": 3164,
+                "three_class_Brier": 0.6513399821690443,
+                "direction_class_balance_minus_LONG": -0.06700379266750948
+              },
+              "INITIAL": {
+                "AUC": 0.454707531054613,
+                "known_side_count": 1405,
+                "side_Brier": 0.27145526869079534,
+                "side_log": 0.7399146902224043,
+                "three_class_count": 3164,
+                "three_class_Brier": 0.627768096310137,
+                "direction_class_balance_minus_LONG": -0.06131479140328698
+              },
+              "M5_DIRECTION_ONLY_PASS3": {
+                "AUC": 0.4662192978091779,
+                "known_side_count": 1405,
+                "side_Brier": 0.3267044701643303,
+                "side_log": 0.9022924425028008,
+                "three_class_count": 3164,
+                "three_class_Brier": 0.647028993449912,
+                "direction_class_balance_minus_LONG": -0.07585335018963338
+              }
+            }
+          },
+          "ALIGNED_DIRECTIONAL_SETUP": {
+            "allowed_counts": {
+              "1": 38,
+              "2": 60,
+              "4": 50,
+              "7": 0
+            },
+            "allowed_counts_scope": "eligible_and_mature",
+            "raw_unknown_count": 57,
+            "eligible_but_immature_count": 0,
+            "observed_days": 30,
+            "observed_weeks": 12,
+            "always_LONG": {
+              "known_side_up_fraction": 0.5681818181818182,
+              "side_auc": 0.5,
+              "side_brier": 0.4318181818181818,
+              "side_count": 88,
+              "side_log": null,
+              "side_log_status": "POSITIVE_INFINITY",
+              "signed_class_balance": 0.08108108108108109,
+              "singleton_count": 148,
+              "three_brier": 1.3243243243243243,
+              "three_log": null,
+              "three_log_status": "POSITIVE_INFINITY"
+            },
+            "models": {
+              "FROZEN_PRIOR": {
+                "AUC": 0.5,
+                "known_side_count": 88,
+                "side_Brier": 0.2550946792689877,
+                "side_log": 0.7048780720580251,
+                "three_class_count": 148,
+                "three_class_Brier": 0.7254761638080696,
+                "direction_class_balance_minus_LONG": 0.0
+              },
+              "FULL_OBJECTIVE_PASS3": {
+                "AUC": 0.541578947368421,
+                "known_side_count": 88,
+                "side_Brier": 0.2697193284769627,
+                "side_log": 0.7456234313521786,
+                "three_class_count": 148,
+                "three_class_Brier": 0.7951304398323912,
+                "direction_class_balance_minus_LONG": -0.02702702702702703
+              },
+              "INITIAL": {
+                "AUC": 0.5231578947368422,
+                "known_side_count": 88,
+                "side_Brier": 0.2530669345595498,
+                "side_log": 0.7003037724032186,
+                "three_class_count": 148,
+                "three_class_Brier": 0.7339523139055135,
+                "direction_class_balance_minus_LONG": 0.0
+              },
+              "M5_DIRECTION_ONLY_PASS3": {
+                "AUC": 0.5252631578947369,
+                "known_side_count": 88,
+                "side_Brier": 0.28193808949004173,
+                "side_log": 0.7820699126845612,
+                "three_class_count": 148,
+                "three_class_Brier": 0.7454595283291031,
+                "direction_class_balance_minus_LONG": -0.08108108108108109
+              }
+            },
+            "described_direction": {
+              "class_balance": 0.13513513513513514,
+              "class_balance_minus_LONG": 0.05405405405405406,
+              "flat": 60,
+              "opposite": 34,
+              "with_direction": 54
+            }
+          }
+        },
+        "paired_later_intervals": {
+          "UTC_DAY": {
+            "ALL": {
+              "FULL_DIRECTION_CLASS_BALANCE_MINUS_LONG": {
+                "lower95": -0.16700834713696452,
+                "observed_clusters": 55,
+                "point": -0.06700379266750948,
+                "rows": 3164,
+                "undefined_replicates": 0,
+                "upper95": 0.021974331620159424,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": 0.016481940563318385,
+                "observed_clusters": 44,
+                "point": 0.05097680501275504,
+                "rows": 1405,
+                "undefined_replicates": 0,
+                "upper95": 0.08750012667505405,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": 0.019489910008604488,
+                "observed_clusters": 55,
+                "point": 0.053328800563799655,
+                "rows": 3164,
+                "undefined_replicates": 0,
+                "upper95": 0.08872717431520723,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": -0.007994329406104327,
+                "observed_clusters": 44,
+                "point": 0.02293846374698517,
+                "rows": 1405,
+                "undefined_replicates": 0,
+                "upper95": 0.05142431912400874,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.029684875878909736,
+                "observed_clusters": 55,
+                "point": -0.00431098871913223,
+                "rows": 3164,
+                "undefined_replicates": 0,
+                "upper95": 0.01932795523028482,
+                "valid_replicates": 2000
+              }
+            },
+            "ALIGNED_DIRECTIONAL_SETUP": {
+              "DESCRIBED_DIRECTION_CLASS_BALANCE_MINUS_LONG": {
+                "lower95": -0.12035445757250268,
+                "observed_clusters": 30,
+                "point": 0.05405405405405406,
+                "rows": 148,
+                "undefined_replicates": 0,
+                "upper95": 0.23734551553672287,
+                "valid_replicates": 2000
+              },
+              "FULL_DIRECTION_CLASS_BALANCE_MINUS_LONG": {
+                "lower95": -0.1649569736729999,
+                "observed_clusters": 30,
+                "point": -0.02702702702702703,
+                "rows": 148,
+                "undefined_replicates": 0,
+                "upper95": 0.11538461538461539,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.03345940871725519,
+                "observed_clusters": 20,
+                "point": 0.01462464920797499,
+                "rows": 88,
+                "undefined_replicates": 0,
+                "upper95": 0.0723265946617298,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": 0.018357493622346635,
+                "observed_clusters": 30,
+                "point": 0.0696542760243218,
+                "rows": 148,
+                "undefined_replicates": 0,
+                "upper95": 0.11943507491056149,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": -0.07196064916333705,
+                "observed_clusters": 20,
+                "point": 0.01221876101307902,
+                "rows": 88,
+                "undefined_replicates": 0,
+                "upper95": 0.08177514915094593,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.1115865150508481,
+                "observed_clusters": 30,
+                "point": -0.049670911503288166,
+                "rows": 148,
+                "undefined_replicates": 0,
+                "upper95": 0.008289525275864072,
+                "valid_replicates": 2000
+              }
+            }
+          },
+          "UTC_MONDAY_WEEK": {
+            "ALL": {
+              "FULL_DIRECTION_CLASS_BALANCE_MINUS_LONG": {
+                "lower95": -0.18366898418218067,
+                "observed_clusters": 14,
+                "point": -0.06700379266750948,
+                "rows": 3164,
+                "undefined_replicates": 0,
+                "upper95": 0.03801444387278718,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": 0.012666052703009648,
+                "observed_clusters": 13,
+                "point": 0.05097680501275504,
+                "rows": 1405,
+                "undefined_replicates": 0,
+                "upper95": 0.09095945920187576,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": 0.008355506963602922,
+                "observed_clusters": 14,
+                "point": 0.053328800563799655,
+                "rows": 3164,
+                "undefined_replicates": 0,
+                "upper95": 0.10129524299747485,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": -0.011849341236391189,
+                "observed_clusters": 13,
+                "point": 0.02293846374698517,
+                "rows": 1405,
+                "undefined_replicates": 0,
+                "upper95": 0.05872913302847071,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.03639157256249905,
+                "observed_clusters": 14,
+                "point": -0.00431098871913223,
+                "rows": 3164,
+                "undefined_replicates": 0,
+                "upper95": 0.02602989439714748,
+                "valid_replicates": 2000
+              }
+            },
+            "ALIGNED_DIRECTIONAL_SETUP": {
+              "DESCRIBED_DIRECTION_CLASS_BALANCE_MINUS_LONG": {
+                "lower95": -0.1702210126999835,
+                "observed_clusters": 12,
+                "point": 0.05405405405405406,
+                "rows": 148,
+                "undefined_replicates": 0,
+                "upper95": 0.28205521472392636,
+                "valid_replicates": 2000
+              },
+              "FULL_DIRECTION_CLASS_BALANCE_MINUS_LONG": {
+                "lower95": -0.13333333333333333,
+                "observed_clusters": 12,
+                "point": -0.02702702702702703,
+                "rows": 148,
+                "undefined_replicates": 0,
+                "upper95": 0.125,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_side_brier": {
+                "lower95": -0.03631101720512514,
+                "observed_clusters": 11,
+                "point": 0.01462464920797499,
+                "rows": 88,
+                "undefined_replicates": 0,
+                "upper95": 0.07008520670190417,
+                "valid_replicates": 2000
+              },
+              "FULL_OBJECTIVE_PASS3_MINUS_FROZEN_PRIOR_three_brier": {
+                "lower95": 0.022978908899455416,
+                "observed_clusters": 12,
+                "point": 0.0696542760243218,
+                "rows": 148,
+                "undefined_replicates": 0,
+                "upper95": 0.14364633665618437,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_side_brier": {
+                "lower95": -0.0816326938818542,
+                "observed_clusters": 11,
+                "point": 0.01221876101307902,
+                "rows": 88,
+                "undefined_replicates": 0,
+                "upper95": 0.08007406288361768,
+                "valid_replicates": 2000
+              },
+              "M5_DIRECTION_ONLY_PASS3_MINUS_FULL_OBJECTIVE_PASS3_three_brier": {
+                "lower95": -0.13670733627240733,
+                "observed_clusters": 12,
+                "point": -0.049670911503288166,
+                "rows": 148,
+                "undefined_replicates": 0,
+                "upper95": 0.006517604945272165,
+                "valid_replicates": 2000
+              }
+            }
+          }
+        }
+      }
+    ],
+    "findings": [
+      "All six captures have exact native F queries[1,3,12,48,288], matching assignments/targets and exact partition maturity. Original all-TF scores replay within7.31e-16; no new model, fit, feature or target-tape read.",
+      "For FULL, all-row TRAIN F AUC M5/M15/H1/H4/D1 is0.571561/0.623356/0.645103/0.652020/0.714395, versus later0.513672/0.509511/0.495398/0.499505/0.470691. Fitting improvement does not transfer consistently to the later development period across the declared endpoints.",
+      "FULL later conditional-side Brier is worse than the fixed earlier-TRAIN prior on all five TF. M15/H1/H4/D1 regressions have positive95percent paired day and week intervals; the M5 interval includes zero.",
+      "The same aligned descriptive setups have no confirmed advantage over alwaysLONG on any of the five endpoints; all corresponding day/week intervals include zero. This does not establish that these setups cannot work or that a different horizon should be selected.",
+      "In aligned setups, later eligible with/opposite/FLAT counts by horizon are5m49/34/122,15m51/42/112,60m29/44/123,240m44/33/116,1440m54/34/60. Respective rawUNKNOWN counts are0/0/9/12/57; all205 rows remain accounted for.",
+      "For all4096 later rows, rawUNKNOWN counts M5/M15/H1/H4/D1 are0/24/141/363/932; eligible-but-immature counts are0. UNKNOWN is separate from FLAT and from qualified class counts; unchanged scoring masks are retained.",
+      "Native ATR scale and target support change with the horizon, and FLAT_NET ignores intermediate path excursions. These results do not isolate the effect of waiting longer or describe trade returns.",
+      "An earlier E3 full-TRAIN complement review also found failure outside its4096 update cohort, but INITIAL had full-population readout exposure and the result used another model state and CPU/GPU protocol. It is evidence to reuse, not a current-state measurement or proof of memorization."
+    ],
+    "limitations": [
+      "All rows are reused development and the setup groups are a single coarse probe. This is not untouched confirmation or all manual trading setups.",
+      "All five endpoints were already captured. The M5 results and aggregate nonM5 metrics have previous development exposure; this is not an independent new test.",
+      "Horizon, native ATR scale and eligible/mature support change together. Results cannot isolate the causal effect of waiting longer.",
+      "FLAT_NET is small endpoint displacement, not absence of movement along the path; intermediate excursions are not scored.",
+      "Exact endpoint gaps and immature/unknown outcomes remain excluded from proper scores and explicitly counted, never recoded FLAT.",
+      "Long-horizon outcomes overlap and only14development weeks are available. Day/week intervals and multiple descriptive contrasts cannot establish broad-regime edge.",
+      "Hard-direction and alwaysLONG references are classification diagnostics only. Proper-score improvement over a one-hot reference alone is not proof of directional value or economics."
+    ],
+    "prior_complement_scope_review": {
+      "review": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_E3_FULL_TRAIN_002_REVIEW.json",
+        "sha256": "9c858657b98397f381187fa5e391f3af3531e46158d19537ba04e0326da72b3d"
+      },
+      "old_state_sha256": "5e031bd0a3c9d454a228b065ac787e79654bc9067a01fa33dfbe8c256cec702e",
+      "old_populations": {
+        "selected": 4096,
+        "complement": 25478,
+        "full": 29574
+      },
+      "conclusions": {
+        "selected_cohort_learning_measured": true,
+        "complement_direction_improvement": false,
+        "full_TRAIN_direction_improvement_vs_INITIAL": false,
+        "original_full_pass_cause_isolated": false,
+        "full_direction_fix_qualified": false
+      },
+      "critical_limits": [
+        "INITIAL M5 readout was already fitted using the full TRAIN population. Complement is original TRAIN, not untouched holdout. This does not prove row memorization or generalization failure.",
+        "Selected predictions are reused GPU; complement predictions are CPU. Device qualification covers32 selected rows only, not a global bound. Prebound conditional-M5 margins do not establish a three-class or total-objective error bound."
+      ],
+      "current_model_complement_measured": false,
+      "purpose": "Determine whether harmful incremental fit appears within original TRAIN outside this update cohort before attributing failure only to temporal transfer. This is not untouched validation."
+    },
+    "setup_horizon_edge_established": false,
+    "economic_edge_established": false,
+    "test_data_used": false,
+    "next_action": "Reuse the existing full-TRAIN complement evaluation method and inspect current fixed-benchmark evidence states to qualify one matched evaluation of original TRAIN rows excluded from the recent4096-row updates. Compare against the exact CURRENT INITIAL, preserve chronological later results, and do not call these rows untouched holdout or launch additional fitting. Prior E3 complement evidence is informative but belongs to a different model state and numerical protocol; do not rerun its consumed plan."
   }
 }
