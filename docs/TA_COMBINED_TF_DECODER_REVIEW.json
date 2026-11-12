@@ -1,0 +1,1494 @@
+{
+  "schema_version": "gx1_combined_tf_decoder_matched_review_v1",
+  "status": "COMPLETE_TRAIN_FIT_GAIN_WITH_MIXED_LATER_PROBABILITY_EFFECTS_EDGE_UNRESOLVED",
+  "observed_utc": "2026-11-12T20:33:20.330383+00:00",
+  "question": "Does adding the existing independent non-M5 side decoders to the activity-only model improve later direction at the same initialization, data exposure and768updates?",
+  "native_result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_BENCHMARK_20261112_001/RESULT.json",
+    "sha256": "31868249978d95ca9cd949f34a8091dc6956b1377607eff7a113bdbed60508ba"
+  },
+  "native_terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_BENCHMARK_20261112_001/TERMINAL.json",
+    "sha256": "93cb7f17fe7a64ca50786e284511e21b90fa0c67356faba86c225e7a3bb2d895"
+  },
+  "completion_verification": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_BENCHMARK_20261112_001/COMPLETION_VERIFICATION.json",
+    "sha256": "482437d07a70ea635f7660d924e75f8c40ec00482221d755ee7f9ef7e43073c4"
+  },
+  "retained_comparison": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_BENCHMARK_20261112_001/COMBINED_DECODER_COMPARISON.json",
+    "sha256": "9f61ae0ad8be99edadf1ac3590146f2f584f4f416107eedb9ab253a1b5cab38a"
+  },
+  "retained_terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_BENCHMARK_20261112_001/RETAINED_REVIEW_TERMINAL.json",
+    "sha256": "a650f00dc6759c05f80323f74b17feb6bb76e0d4e4c73c0c86661f469238a532"
+  },
+  "control_result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001/RESULT.json",
+    "sha256": "d5ba8fa99c87ee3f639770c5b042fe93a442ef4f200733f13fe21cb30a8ac9e0"
+  },
+  "control_review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001/EXPOSURE_COMPARISON.json",
+    "sha256": "3e25678a10a52940f23f5248078a280c9cfaeb97a82ed1d90891259fa0146f18"
+  },
+  "native_source_commit": "a23c93469ad093e6345c6f845da0f4393b51058a",
+  "retained_source_commit": "34af0e88da6486b94106b375f66849c62f82effc",
+  "matched_control": {
+    "primary_pass": 3,
+    "unique_training_rows": 12288,
+    "updates_per_arm": 768,
+    "training_panel_rows": 4096,
+    "later_panel_rows": 4096,
+    "initial_parity": {
+      "initial": {
+        "LATER": {
+          "activity_exact": true,
+          "atol": 2e-06,
+          "axes_targets_exact": true,
+          "canonical_loss_close": true,
+          "loss_atol": 5e-06,
+          "loss_max_abs": 6.129741159099922e-10,
+          "m5_representation_arrays_checked": 2,
+          "m5_representations_exact": true,
+          "m5_side_exact": true,
+          "non_m5_side_close": true,
+          "non_m5_side_max_abs": {
+            "future": 2.980232238769531e-07,
+            "state": 3.5762786865234375e-07
+          },
+          "non_m5_side_max_scaled_error": {
+            "future": 0.0994911445817451,
+            "state": 0.11641376681267022
+          },
+          "rows": 4096,
+          "rtol": 1e-06
+        },
+        "TRAIN": {
+          "activity_exact": true,
+          "atol": 2e-06,
+          "axes_targets_exact": true,
+          "canonical_loss_close": true,
+          "loss_atol": 5e-06,
+          "loss_max_abs": 2.384185791015625e-07,
+          "m5_representation_arrays_checked": 0,
+          "m5_representations_exact": null,
+          "m5_side_exact": true,
+          "non_m5_side_close": true,
+          "non_m5_side_max_abs": {
+            "future": 2.980232238769531e-07,
+            "state": 3.5762786865234375e-07
+          },
+          "non_m5_side_max_scaled_error": {
+            "future": 0.10810508350317723,
+            "state": 0.11722085299582898
+          },
+          "rows": 4096,
+          "rtol": 1e-06
+        }
+      },
+      "rng_after_each_pass_exact": true
+    },
+    "same_exposure_schedule": true,
+    "same_training_queries": true,
+    "same_rng_after_each_pass": true,
+    "changed_scope": "Existing16 non-M5 side tensors/1032parameters cloned from activity-only INITIAL; all genuine features,8families,5TF,D1context,shared encoder/query,normalization and loss arithmetic preserved."
+  },
+  "native_counts": {
+    "backward_returns": 768,
+    "backwards": 768,
+    "batch_visits": 768,
+    "candidate_evidence_writes": 1,
+    "checkpoint_loads": 1,
+    "checkpoint_writes": 0,
+    "control_capture_archive_decodes": 2,
+    "evaluation_forwards": 1536,
+    "extra_target_gathers": 2560,
+    "forward_returns": 2304,
+    "forwards": 2304,
+    "initial_rng_imports": 1,
+    "input_sidecar_archive_decodes": 12,
+    "json_bytes": 538137,
+    "loss_component_owner_calls": 768,
+    "model_construction_returns": 2,
+    "model_constructions": 2,
+    "optimizer_constructions": 1,
+    "optimizer_step_calls": 768,
+    "optimizer_step_returns": 768,
+    "optimizer_updates": 768,
+    "resume_state_load_calls": 1,
+    "resume_state_load_returns": 1,
+    "skipped_batches": 0,
+    "strict_full_state_restore_calls": 1,
+    "strict_full_state_restore_returns": 1,
+    "training_forwards": 768
+  },
+  "native_elapsed_seconds": 3129.077761319,
+  "retained_counts": {
+    "archive_decodes": 4,
+    "checkpoint_decodes": 0,
+    "forwards": 0,
+    "models": 0,
+    "optimizer_updates": 0
+  },
+  "maximum_score_replay_error": 1.1102230246251565e-15,
+  "control_scores_and_intervals_replayed": true,
+  "cluster_counts": {
+    "UTC_DAY": 70,
+    "UTC_MONDAY_WEEK": 14
+  },
+  "all_later_S_F_auc_delta_intervals_include_zero": true,
+  "objective": {
+    "TRAIN": {
+      "control": 1.8323581661097705,
+      "combined": 1.8233576365746558
+    },
+    "LATER": {
+      "control": {
+        "model": {
+          "combined": 2.3603850946877087,
+          "future": 1.4082266495389861,
+          "state": 0.9521584451487225
+        },
+        "prior": {
+          "combined": 2.31611372366914,
+          "future": 1.3675157252013772,
+          "state": 0.9485979984677625
+        }
+      },
+      "combined": {
+        "model": {
+          "combined": 2.360440765160134,
+          "future": 1.405584026407308,
+          "state": 0.9548567387528261
+        },
+        "prior": {
+          "combined": 2.31611372366914,
+          "future": 1.3675157252013772,
+          "state": 0.9485979984677625
+        }
+      }
+    }
+  },
+  "timeframe_scores": [
+    {
+      "task": "state",
+      "timeframe": "M5",
+      "TRAIN": {
+        "known_side_count": 1403,
+        "observed_up_fraction": 0.5260156806842481,
+        "CONTROL": {
+          "conditional_side": {
+            "auc": 0.5490046253845997,
+            "brier": 0.24746274855931313,
+            "log": 0.688058209563969,
+            "mean_p": 0.5068647820475228
+          },
+          "activity": {
+            "auc": 0.6642296546278086,
+            "brier": 0.06486292220289526,
+            "log": 0.2471526284023083,
+            "mean_p": 0.9118134294258075
+          }
+        },
+        "COMBINED": {
+          "conditional_side": {
+            "auc": 0.5490922428021273,
+            "brier": 0.24756039062244745,
+            "log": 0.6882535576014804,
+            "mean_p": 0.5053927017459275
+          },
+          "activity": {
+            "auc": 0.6645807259073843,
+            "brier": 0.06451208226721326,
+            "log": 0.24627747027607433,
+            "mean_p": 0.9139412318413783
+          }
+        }
+      },
+      "LATER": {
+        "known_side_count": 1414,
+        "observed_up_fraction": 0.5007072135785007,
+        "CONTROL": {
+          "conditional_side": {
+            "auc": 0.5514436388662153,
+            "brier": 0.24878698029708404,
+            "log": 0.6907071018054449,
+            "mean_p": 0.5158827562058472
+          },
+          "activity": {
+            "auc": 0.6869753345984492,
+            "brier": 0.05561789822682482,
+            "log": 0.21768235670938643,
+            "mean_p": 0.9114485014319536
+          }
+        },
+        "COMBINED": {
+          "conditional_side": {
+            "auc": 0.5521098413917831,
+            "brier": 0.2487636792899667,
+            "log": 0.6906619487761568,
+            "mean_p": 0.5138529912198455
+          },
+          "activity": {
+            "auc": 0.6870744668103176,
+            "brier": 0.055127212464452104,
+            "log": 0.2162054909490226,
+            "mean_p": 0.9146450427355262
+          }
+        },
+        "frozen_prior_side": {
+          "brier": 0.2503224341661148,
+          "log": 0.6937925115404535,
+          "mean_p": 0.5186775868957252
+        }
+      },
+      "later_combined_minus_control": {
+        "auc": {
+          "point_difference": 0.0006662025255678161,
+          "UTC_day95": [
+            -0.0016191918168467628,
+            0.003050731739805575
+          ],
+          "UTC_Monday_week95": [
+            -0.0018791153673903467,
+            0.002777873104292355
+          ]
+        },
+        "brier": {
+          "point_difference": -2.3301007117337846e-05,
+          "UTC_day95": [
+            -0.0002095456614972943,
+            0.00015353209826931763
+          ],
+          "UTC_Monday_week95": [
+            -0.00021234091252619603,
+            0.000149594123013784
+          ]
+        },
+        "log": {
+          "point_difference": -4.515302928809195e-05,
+          "UTC_day95": [
+            -0.0004200189589031039,
+            0.0003104477360168136
+          ],
+          "UTC_Monday_week95": [
+            -0.0004262141254927548,
+            0.00030353613462925347
+          ]
+        }
+      }
+    },
+    {
+      "task": "state",
+      "timeframe": "M15",
+      "TRAIN": {
+        "known_side_count": 1497,
+        "observed_up_fraction": 0.5123580494321978,
+        "CONTROL": {
+          "conditional_side": {
+            "auc": 0.5872140165383722,
+            "brier": 0.25132338595172304,
+            "log": 0.697012270928194,
+            "mean_p": 0.5920244899262086
+          },
+          "activity": {
+            "auc": 0.8509643946294903,
+            "brier": 0.07887476125927965,
+            "log": 0.2639477605920296,
+            "mean_p": 0.871367076381954
+          }
+        },
+        "COMBINED": {
+          "conditional_side": {
+            "auc": 0.5876176528370631,
+            "brier": 0.24790219383338088,
+            "log": 0.6893249529888401,
+            "mean_p": 0.567387754666289
+          },
+          "activity": {
+            "auc": 0.852255906174502,
+            "brier": 0.0784050893355398,
+            "log": 0.26249244892377005,
+            "mean_p": 0.8738712408074302
+          }
+        }
+      },
+      "LATER": {
+        "known_side_count": 1677,
+        "observed_up_fraction": 0.5152057245080501,
+        "CONTROL": {
+          "conditional_side": {
+            "auc": 0.4484775750535283,
+            "brier": 0.2786200769098284,
+            "log": 0.7566015454104389,
+            "mean_p": 0.5914929807777449
+          },
+          "activity": {
+            "auc": 0.8398595292275711,
+            "brier": 0.07198707387890435,
+            "log": 0.24600317920454368,
+            "mean_p": 0.8729126671443811
+          }
+        },
+        "COMBINED": {
+          "conditional_side": {
+            "auc": 0.44821989886565533,
+            "brier": 0.2748425993861567,
+            "log": 0.7467125596624204,
+            "mean_p": 0.5653475881762783
+          },
+          "activity": {
+            "auc": 0.8417692086783998,
+            "brier": 0.07088331278130809,
+            "log": 0.24293233780500664,
+            "mean_p": 0.877321320917192
+          }
+        },
+        "frozen_prior_side": {
+          "brier": 0.24977324991355407,
+          "log": 0.6926936189582173,
+          "mean_p": 0.51731853575584
+        }
+      },
+      "later_combined_minus_control": {
+        "auc": {
+          "point_difference": -0.0002576761878729794,
+          "UTC_day95": [
+            -0.0018063041675860064,
+            0.001240887952759785
+          ],
+          "UTC_Monday_week95": [
+            -0.0021606438341947145,
+            0.0010082904234273136
+          ]
+        },
+        "brier": {
+          "point_difference": -0.0037774775236716907,
+          "UTC_day95": [
+            -0.005506833522042985,
+            -0.0019561853729285123
+          ],
+          "UTC_Monday_week95": [
+            -0.0062266791505984674,
+            -0.0012742724951120235
+          ]
+        },
+        "log": {
+          "point_difference": -0.009888985748018442,
+          "UTC_day95": [
+            -0.013824015901219264,
+            -0.005888960512126727
+          ],
+          "UTC_Monday_week95": [
+            -0.01553211329593428,
+            -0.004321844716501009
+          ]
+        }
+      }
+    },
+    {
+      "task": "state",
+      "timeframe": "H1",
+      "TRAIN": {
+        "known_side_count": 1452,
+        "observed_up_fraction": 0.5771349862258953,
+        "CONTROL": {
+          "conditional_side": {
+            "auc": 0.6886743681636905,
+            "brier": 0.22065006609799634,
+            "log": 0.632104668570725,
+            "mean_p": 0.5994146014534477
+          },
+          "activity": {
+            "auc": 0.898343022622858,
+            "brier": 0.0803140341090929,
+            "log": 0.2640665271845909,
+            "mean_p": 0.8618025250415694
+          }
+        },
+        "COMBINED": {
+          "conditional_side": {
+            "auc": 0.6913272643878321,
+            "brier": 0.21808811686292373,
+            "log": 0.6268199678655016,
+            "mean_p": 0.5858984946881827
+          },
+          "activity": {
+            "auc": 0.8992961656541903,
+            "brier": 0.08007490812186469,
+            "log": 0.2628406498338401,
+            "mean_p": 0.8651083202074146
+          }
+        }
+      },
+      "LATER": {
+        "known_side_count": 1670,
+        "observed_up_fraction": 0.5245508982035928,
+        "CONTROL": {
+          "conditional_side": {
+            "auc": 0.49586510702414227,
+            "brier": 0.26866630586715606,
+            "log": 0.7341839797209395,
+            "mean_p": 0.5883505480959597
+          },
+          "activity": {
+            "auc": 0.8329571159007536,
+            "brier": 0.07428597603785331,
+            "log": 0.2525789115137361,
+            "mean_p": 0.8651636869523909
+          }
+        },
+        "COMBINED": {
+          "conditional_side": {
+            "auc": 0.492966656315057,
+            "brier": 0.2718350375727387,
+            "log": 0.7415051148694526,
+            "mean_p": 0.5665631267120118
+          },
+          "activity": {
+            "auc": 0.8336056319319918,
+            "brier": 0.07329951545809568,
+            "log": 0.24968969040581054,
+            "mean_p": 0.8704168895630312
+          }
+        },
+        "frozen_prior_side": {
+          "brier": 0.24943916131929716,
+          "log": 0.692025299425954,
+          "mean_p": 0.5310245310245311
+        }
+      },
+      "later_combined_minus_control": {
+        "auc": {
+          "point_difference": -0.0028984507090852873,
+          "UTC_day95": [
+            -0.007544248363758983,
+            0.001968696409269818
+          ],
+          "UTC_Monday_week95": [
+            -0.007987181345806485,
+            0.0008903656274738688
+          ]
+        },
+        "brier": {
+          "point_difference": 0.003168731705582628,
+          "UTC_day95": [
+            6.6347644458397706e-06,
+            0.006499777857011476
+          ],
+          "UTC_Monday_week95": [
+            -0.00012930140546290323,
+            0.007705738186963846
+          ]
+        },
+        "log": {
+          "point_difference": 0.007321135148513069,
+          "UTC_day95": [
+            0.0008264304505749553,
+            0.014387344870691467
+          ],
+          "UTC_Monday_week95": [
+            0.0003300295888050476,
+            0.016809657457360055
+          ]
+        }
+      }
+    },
+    {
+      "task": "state",
+      "timeframe": "H4",
+      "TRAIN": {
+        "known_side_count": 1646,
+        "observed_up_fraction": 0.6111786148238153,
+        "CONTROL": {
+          "conditional_side": {
+            "auc": 0.6757066973161033,
+            "brier": 0.21559003469814234,
+            "log": 0.6214465624820632,
+            "mean_p": 0.6066988942321075
+          },
+          "activity": {
+            "auc": 0.79929170389891,
+            "brier": 0.07495168617448623,
+            "log": 0.2607956659245019,
+            "mean_p": 0.9120284545003646
+          }
+        },
+        "COMBINED": {
+          "conditional_side": {
+            "auc": 0.6807125994035785,
+            "brier": 0.21428852457096348,
+            "log": 0.6184766324358579,
+            "mean_p": 0.626979701914263
+          },
+          "activity": {
+            "auc": 0.7981869369937887,
+            "brier": 0.07504921951363093,
+            "log": 0.261396566994339,
+            "mean_p": 0.9138538476676306
+          }
+        }
+      },
+      "LATER": {
+        "known_side_count": 1492,
+        "observed_up_fraction": 0.46581769436997317,
+        "CONTROL": {
+          "conditional_side": {
+            "auc": 0.5318090320717077,
+            "brier": 0.27280974566274385,
+            "log": 0.7431942321782553,
+            "mean_p": 0.5958474566444882
+          },
+          "activity": {
+            "auc": 0.735662988300948,
+            "brier": 0.06759610163204278,
+            "log": 0.2459524878249204,
+            "mean_p": 0.909472856791657
+          }
+        },
+        "COMBINED": {
+          "conditional_side": {
+            "auc": 0.5332099690385709,
+            "brier": 0.28059668025259227,
+            "log": 0.7617118012388219,
+            "mean_p": 0.6191654330007886
+          },
+          "activity": {
+            "auc": 0.7320805738586701,
+            "brier": 0.06768125917772219,
+            "log": 0.24679973061838392,
+            "mean_p": 0.9126862999411833
+          }
+        },
+        "frozen_prior_side": {
+          "brier": 0.25519431722038555,
+          "log": 0.7035705378371104,
+          "mean_p": 0.5455845248107654
+        }
+      },
+      "later_combined_minus_control": {
+        "auc": {
+          "point_difference": 0.0014009369668631644,
+          "UTC_day95": [
+            -0.004343102885005433,
+            0.007007651532078801
+          ],
+          "UTC_Monday_week95": [
+            -0.0031349190944686993,
+            0.004698967681324624
+          ]
+        },
+        "brier": {
+          "point_difference": 0.0077869345898484155,
+          "UTC_day95": [
+            0.0033008484071516907,
+            0.012784475295612961
+          ],
+          "UTC_Monday_week95": [
+            0.004090055894666706,
+            0.01221068742567496
+          ]
+        },
+        "log": {
+          "point_difference": 0.018517569060566563,
+          "UTC_day95": [
+            0.008281874334445005,
+            0.029898356349175266
+          ],
+          "UTC_Monday_week95": [
+            0.0099430273381753,
+            0.028892307624355726
+          ]
+        }
+      }
+    },
+    {
+      "task": "state",
+      "timeframe": "D1",
+      "TRAIN": {
+        "known_side_count": 1092,
+        "observed_up_fraction": 0.5833333333333334,
+        "CONTROL": {
+          "conditional_side": {
+            "auc": 0.8016630151638001,
+            "brier": 0.1928090251678023,
+            "log": 0.5723998360058051,
+            "mean_p": 0.5972722027526575
+          },
+          "activity": {
+            "auc": 0.5812081104347291,
+            "brier": 0.0424299570702716,
+            "log": 0.1837125551396261,
+            "mean_p": 0.9349049189494066
+          }
+        },
+        "COMBINED": {
+          "conditional_side": {
+            "auc": 0.8100505460003106,
+            "brier": 0.1890496903225432,
+            "log": 0.5638257891319473,
+            "mean_p": 0.6108826244414609
+          },
+          "activity": {
+            "auc": 0.5763197134600012,
+            "brier": 0.04234479979054604,
+            "log": 0.18381362567124968,
+            "mean_p": 0.9356263600711998
+          }
+        }
+      },
+      "LATER": {
+        "known_side_count": 1225,
+        "observed_up_fraction": 0.563265306122449,
+        "CONTROL": {
+          "conditional_side": {
+            "auc": 0.6108384125694162,
+            "brier": 0.23988664501944879,
+            "log": 0.6740681053359736,
+            "mean_p": 0.6079515685718543
+          },
+          "activity": {
+            "auc": 0.37850831054071116,
+            "brier": 0.043143448481605125,
+            "log": 0.19982032603997274,
+            "mean_p": 0.9376456564851796
+          }
+        },
+        "COMBINED": {
+          "conditional_side": {
+            "auc": 0.6103426791277259,
+            "brier": 0.24174003675258882,
+            "log": 0.6787672048155764,
+            "mean_p": 0.6237605937509545
+          },
+          "activity": {
+            "auc": 0.3693035977277509,
+            "brier": 0.04275926088000331,
+            "log": 0.1992978146234796,
+            "mean_p": 0.9392581056436583
+          }
+        },
+        "frozen_prior_side": {
+          "brier": 0.24752354584295838,
+          "log": 0.688274599168334,
+          "mean_p": 0.6023299295268231
+        }
+      },
+      "later_combined_minus_control": {
+        "auc": {
+          "point_difference": -0.0004957334416902937,
+          "UTC_day95": [
+            -0.01116944395861135,
+            0.010920613342508503
+          ],
+          "UTC_Monday_week95": [
+            -0.009999957317993946,
+            0.00832886575490097
+          ]
+        },
+        "brier": {
+          "point_difference": 0.0018533917331400307,
+          "UTC_day95": [
+            -0.003851834474626256,
+            0.0074585899912044075
+          ],
+          "UTC_Monday_week95": [
+            -0.003290911563991736,
+            0.006728532850479317
+          ]
+        },
+        "log": {
+          "point_difference": 0.004699099479602786,
+          "UTC_day95": [
+            -0.008579172585001071,
+            0.017828260401637763
+          ],
+          "UTC_Monday_week95": [
+            -0.007191154670991964,
+            0.01596348467695591
+          ]
+        }
+      }
+    },
+    {
+      "task": "future",
+      "timeframe": "M5",
+      "TRAIN": {
+        "known_side_count": 1635,
+        "observed_up_fraction": 0.5155963302752293,
+        "CONTROL": {
+          "conditional_side": {
+            "auc": 0.5337134692116898,
+            "brier": 0.2488393146596819,
+            "log": 0.690819723072902,
+            "mean_p": 0.5240159285140636
+          },
+          "activity": {
+            "auc": 0.5524817116435352,
+            "brier": 0.2383741428006855,
+            "log": 0.66974286238455,
+            "mean_p": 0.39237382963098355
+          }
+        },
+        "COMBINED": {
+          "conditional_side": {
+            "auc": 0.535187282073403,
+            "brier": 0.24873052279574578,
+            "log": 0.6906006698904256,
+            "mean_p": 0.5218990682076541
+          },
+          "activity": {
+            "auc": 0.5515962159535854,
+            "brier": 0.23851277373139876,
+            "log": 0.669997319113266,
+            "mean_p": 0.3968576959104164
+          }
+        }
+      },
+      "LATER": {
+        "known_side_count": 1689,
+        "observed_up_fraction": 0.5192421551213736,
+        "CONTROL": {
+          "conditional_side": {
+            "auc": 0.5286059731170414,
+            "brier": 0.249511328268602,
+            "log": 0.6921601951469597,
+            "mean_p": 0.5339758014326176
+          },
+          "activity": {
+            "auc": 0.5639942018333639,
+            "brier": 0.24016597687688596,
+            "log": 0.6731671169772521,
+            "mean_p": 0.39299597692350174
+          }
+        },
+        "COMBINED": {
+          "conditional_side": {
+            "auc": 0.5260095151967916,
+            "brier": 0.2494732114518975,
+            "log": 0.6920845271268278,
+            "mean_p": 0.5317486395592341
+          },
+          "activity": {
+            "auc": 0.5637024732727689,
+            "brier": 0.23999135178684483,
+            "log": 0.6727956324423735,
+            "mean_p": 0.39795200353612364
+          }
+        },
+        "frozen_prior_side": {
+          "brier": 0.24969564113354448,
+          "log": 0.692538382786966,
+          "mean_p": 0.5111241709344304
+        }
+      },
+      "later_combined_minus_control": {
+        "auc": {
+          "point_difference": -0.0025964579202497617,
+          "UTC_day95": [
+            -0.006153393320663095,
+            0.0007772843834959737
+          ],
+          "UTC_Monday_week95": [
+            -0.005743576118799271,
+            0.0003719708476868891
+          ]
+        },
+        "brier": {
+          "point_difference": -3.811681670451428e-05,
+          "UTC_day95": [
+            -0.00019878766712237012,
+            0.0001393306621448986
+          ],
+          "UTC_Monday_week95": [
+            -0.00020254925091086896,
+            0.000143113833979986
+          ]
+        },
+        "log": {
+          "point_difference": -7.566802013192486e-05,
+          "UTC_day95": [
+            -0.0003992001561171521,
+            0.0002825743272277442
+          ],
+          "UTC_Monday_week95": [
+            -0.00040778341688187114,
+            0.00028933750187509197
+          ]
+        }
+      }
+    },
+    {
+      "task": "future",
+      "timeframe": "M15",
+      "TRAIN": {
+        "known_side_count": 1458,
+        "observed_up_fraction": 0.5370370370370371,
+        "CONTROL": {
+          "conditional_side": {
+            "auc": 0.5623499361430396,
+            "brier": 0.25150907192220073,
+            "log": 0.6981438244360612,
+            "mean_p": 0.5712448835570619
+          },
+          "activity": {
+            "auc": 0.6523125154386684,
+            "brier": 0.21539980305428255,
+            "log": 0.6195706671530268,
+            "mean_p": 0.34697204385747804
+          }
+        },
+        "COMBINED": {
+          "conditional_side": {
+            "auc": 0.5629535026725321,
+            "brier": 0.24811623531475077,
+            "log": 0.6898518617265591,
+            "mean_p": 0.5543225785793867
+          },
+          "activity": {
+            "auc": 0.6514713379478527,
+            "brier": 0.2154156969754398,
+            "log": 0.6195479464791916,
+            "mean_p": 0.3525485842809074
+          }
+        }
+      },
+      "LATER": {
+        "known_side_count": 1566,
+        "observed_up_fraction": 0.49106002554278416,
+        "CONTROL": {
+          "conditional_side": {
+            "auc": 0.5210811675121106,
+            "brier": 0.27924448583100886,
+            "log": 0.7594926963528269,
+            "mean_p": 0.6158583214119174
+          },
+          "activity": {
+            "auc": 0.6233794958510813,
+            "brier": 0.2278233742179648,
+            "log": 0.6471335225794947,
+            "mean_p": 0.3494215661984165
+          }
+        },
+        "COMBINED": {
+          "conditional_side": {
+            "auc": 0.5243639591250022,
+            "brier": 0.26958867507690826,
+            "log": 0.7358060189036238,
+            "mean_p": 0.5946869496276329
+          },
+          "activity": {
+            "auc": 0.6240866110351758,
+            "brier": 0.22728210338243723,
+            "log": 0.6458895966106298,
+            "mean_p": 0.35630798502097155
+          }
+        },
+        "frozen_prior_side": {
+          "brier": 0.25070866589865215,
+          "log": 0.6945653846196054,
+          "mean_p": 0.5191418531533197
+        }
+      },
+      "later_combined_minus_control": {
+        "auc": {
+          "point_difference": 0.003282791612891578,
+          "UTC_day95": [
+            -0.002501099436358706,
+            0.0094289837543623
+          ],
+          "UTC_Monday_week95": [
+            -0.0022354773968434882,
+            0.00928270289412326
+          ]
+        },
+        "brier": {
+          "point_difference": -0.009655810754100602,
+          "UTC_day95": [
+            -0.012305641325124942,
+            -0.006779829094176071
+          ],
+          "UTC_Monday_week95": [
+            -0.013446612509315312,
+            -0.006025930543598905
+          ]
+        },
+        "log": {
+          "point_difference": -0.023686677449203053,
+          "UTC_day95": [
+            -0.030076206639090105,
+            -0.01686023038185097
+          ],
+          "UTC_Monday_week95": [
+            -0.033038981330704854,
+            -0.014721849099446004
+          ]
+        }
+      }
+    },
+    {
+      "task": "future",
+      "timeframe": "H1",
+      "TRAIN": {
+        "known_side_count": 1435,
+        "observed_up_fraction": 0.5832752613240418,
+        "CONTROL": {
+          "conditional_side": {
+            "auc": 0.5722380056180898,
+            "brier": 0.24389224985021307,
+            "log": 0.6810467767479943,
+            "mean_p": 0.5736763883203699
+          },
+          "activity": {
+            "auc": 0.692782835662458,
+            "brier": 0.21141879452394194,
+            "log": 0.608603043205345,
+            "mean_p": 0.3147988183421125
+          }
+        },
+        "COMBINED": {
+          "conditional_side": {
+            "auc": 0.5848227664496949,
+            "brier": 0.2406968455855854,
+            "log": 0.6741810599241459,
+            "mean_p": 0.573308869756257
+          },
+          "activity": {
+            "auc": 0.6937822015188918,
+            "brier": 0.2098890484565526,
+            "log": 0.6052606692304638,
+            "mean_p": 0.32554528621093304
+          }
+        }
+      },
+      "LATER": {
+        "known_side_count": 1558,
+        "observed_up_fraction": 0.5,
+        "CONTROL": {
+          "conditional_side": {
+            "auc": 0.5130965112772539,
+            "brier": 0.2807501827318052,
+            "log": 0.7642470803028476,
+            "mean_p": 0.6243426463758956
+          },
+          "activity": {
+            "auc": 0.6287180756004912,
+            "brier": 0.2333061885333145,
+            "log": 0.6611523782102199,
+            "mean_p": 0.3181790043035626
+          }
+        },
+        "COMBINED": {
+          "conditional_side": {
+            "auc": 0.5109130727818325,
+            "brier": 0.28117009420674793,
+            "log": 0.7647423945103505,
+            "mean_p": 0.6247235375103412
+          },
+          "activity": {
+            "auc": 0.6303927191831038,
+            "brier": 0.23131038145789792,
+            "log": 0.6565355979423686,
+            "mean_p": 0.3302615945984021
+          }
+        },
+        "frozen_prior_side": {
+          "brier": 0.2513524337639025,
+          "log": 0.6958593908898085,
+          "mean_p": 0.5367754505601559
+        }
+      },
+      "later_combined_minus_control": {
+        "auc": {
+          "point_difference": -0.0021834384954213526,
+          "UTC_day95": [
+            -0.008808393010555658,
+            0.0037953774216722513
+          ],
+          "UTC_Monday_week95": [
+            -0.010039328268366787,
+            0.004618089917127798
+          ]
+        },
+        "brier": {
+          "point_difference": 0.00041991147494274683,
+          "UTC_day95": [
+            -0.0010543479829089083,
+            0.0019783864256879406
+          ],
+          "UTC_Monday_week95": [
+            -0.00133020096185658,
+            0.0022497241359488575
+          ]
+        },
+        "log": {
+          "point_difference": 0.0004953142075029282,
+          "UTC_day95": [
+            -0.0027564606237892144,
+            0.0038929847846026155
+          ],
+          "UTC_Monday_week95": [
+            -0.0034715964154463153,
+            0.0045568447133008776
+          ]
+        }
+      }
+    },
+    {
+      "task": "future",
+      "timeframe": "H4",
+      "TRAIN": {
+        "known_side_count": 1370,
+        "observed_up_fraction": 0.5773722627737227,
+        "CONTROL": {
+          "conditional_side": {
+            "auc": 0.5779789470926158,
+            "brier": 0.2440934390669522,
+            "log": 0.6811148297687117,
+            "mean_p": 0.5770454681309085
+          },
+          "activity": {
+            "auc": 0.647008187619372,
+            "brier": 0.21951965172499494,
+            "log": 0.6289525577478495,
+            "mean_p": 0.29752717200019974
+          }
+        },
+        "COMBINED": {
+          "conditional_side": {
+            "auc": 0.6046477098794949,
+            "brier": 0.23708552192122892,
+            "log": 0.6660309610066368,
+            "mean_p": 0.5806768464053561
+          },
+          "activity": {
+            "auc": 0.6459877703913178,
+            "brier": 0.21857129643300585,
+            "log": 0.6267801181159077,
+            "mean_p": 0.30695425529815473
+          }
+        }
+      },
+      "LATER": {
+        "known_side_count": 1319,
+        "observed_up_fraction": 0.5390447308567097,
+        "CONTROL": {
+          "conditional_side": {
+            "auc": 0.5203475460803908,
+            "brier": 0.27097134726975075,
+            "log": 0.7425456561134371,
+            "mean_p": 0.6280692101113459
+          },
+          "activity": {
+            "auc": 0.6289376539305404,
+            "brier": 0.2209386949827433,
+            "log": 0.631085918286864,
+            "mean_p": 0.30263906114979855
+          }
+        },
+        "COMBINED": {
+          "conditional_side": {
+            "auc": 0.5164358020578873,
+            "brier": 0.2723554832803972,
+            "log": 0.7458675511414754,
+            "mean_p": 0.6356124080601016
+          },
+          "activity": {
+            "auc": 0.6291238937886338,
+            "brier": 0.2197914282736685,
+            "log": 0.6285965098049979,
+            "mean_p": 0.31332449248609984
+          }
+        },
+        "frozen_prior_side": {
+          "brier": 0.24925638839129413,
+          "log": 0.6916782033281543,
+          "mean_p": 0.5669889502762431
+        }
+      },
+      "later_combined_minus_control": {
+        "auc": {
+          "point_difference": -0.003911744022503494,
+          "UTC_day95": [
+            -0.017090577654791928,
+            0.008591704005501162
+          ],
+          "UTC_Monday_week95": [
+            -0.015564812040308277,
+            0.005153224132455542
+          ]
+        },
+        "brier": {
+          "point_difference": 0.001384136010646464,
+          "UTC_day95": [
+            -0.001938384445789805,
+            0.0046322245202464595
+          ],
+          "UTC_Monday_week95": [
+            -0.0014898951833793943,
+            0.004754793829703319
+          ]
+        },
+        "log": {
+          "point_difference": 0.0033218950280382575,
+          "UTC_day95": [
+            -0.00389315661242014,
+            0.010497979153831723
+          ],
+          "UTC_Monday_week95": [
+            -0.0029002273237281745,
+            0.010904825484519683
+          ]
+        }
+      }
+    },
+    {
+      "task": "future",
+      "timeframe": "D1",
+      "TRAIN": {
+        "known_side_count": 1230,
+        "observed_up_fraction": 0.651219512195122,
+        "CONTROL": {
+          "conditional_side": {
+            "auc": 0.6529978552450463,
+            "brier": 0.21279702601967201,
+            "log": 0.6130851048657594,
+            "mean_p": 0.6102955854417013
+          },
+          "activity": {
+            "auc": 0.521051941081758,
+            "brier": 0.23967888154425412,
+            "log": 0.6750344077510733,
+            "mean_p": 0.30791580442574246
+          }
+        },
+        "COMBINED": {
+          "conditional_side": {
+            "auc": 0.6844183698116283,
+            "brier": 0.2046616196169485,
+            "log": 0.5947427765450657,
+            "mean_p": 0.6617094959911985
+          },
+          "activity": {
+            "auc": 0.5225411970501123,
+            "brier": 0.2391723755520211,
+            "log": 0.6737490306929838,
+            "mean_p": 0.3121920261269491
+          }
+        }
+      },
+      "LATER": {
+        "known_side_count": 1405,
+        "observed_up_fraction": 0.5750889679715302,
+        "CONTROL": {
+          "conditional_side": {
+            "auc": 0.48831202215698954,
+            "brier": 0.26340132323388965,
+            "log": 0.7273871762057755,
+            "mean_p": 0.6381585936262151
+          },
+          "activity": {
+            "auc": 0.4729377537787363,
+            "brier": 0.270750250750839,
+            "log": 0.7427615075192523,
+            "mean_p": 0.30859893301164726
+          }
+        },
+        "COMBINED": {
+          "conditional_side": {
+            "auc": 0.4913241952335937,
+            "brier": 0.2686662383225405,
+            "log": 0.7446174524426784,
+            "mean_p": 0.6898825678938465
+          },
+          "activity": {
+            "auc": 0.47144871621088497,
+            "brier": 0.2700298437967581,
+            "log": 0.7409848511112141,
+            "mean_p": 0.3128472531572412
+          }
+        },
+        "frozen_prior_side": {
+          "brier": 0.2527892014045901,
+          "log": 0.7000834366323498,
+          "mean_p": 0.6668906810035842
+        }
+      },
+      "later_combined_minus_control": {
+        "auc": {
+          "point_difference": 0.0030121730766041743,
+          "UTC_day95": [
+            -0.02104832689784843,
+            0.025452581461257437
+          ],
+          "UTC_Monday_week95": [
+            -0.022784769996765087,
+            0.023436394721477908
+          ]
+        },
+        "brier": {
+          "point_difference": 0.0052649150886508456,
+          "UTC_day95": [
+            -0.012565438181895639,
+            0.024132739558629934
+          ],
+          "UTC_Monday_week95": [
+            -0.013457071308916126,
+            0.024132492285337752
+          ]
+        },
+        "log": {
+          "point_difference": 0.017230276236902875,
+          "UTC_day95": [
+            -0.02508868317900194,
+            0.06169516868094777
+          ],
+          "UTC_Monday_week95": [
+            -0.02719058065293247,
+            0.06403525236462666
+          ]
+        }
+      }
+    }
+  ],
+  "findings": [
+    "Fixed TRAIN total loss improves1.832358166→1.823357637, while later total loss is2.360385095→2.360440765. Better TRAIN fit does not establish better later forecasts.",
+    "M15 conditional-side Brier/log improves for both S and F in both pointwise day/week intervals. Its AUC change includes zero; this supports a probability/calibration effect rather than established ranking improvement.",
+    "M5F AUC changes0.528605973→0.526009515, Brier0.249511328→0.249473211. Both changes remain uncertain in both day/week intervals.",
+    "H4S Brier/log deteriorates in both pointwise day/week intervals. H1S log also deteriorates in both; its Brier week interval includes zero. Other point deteriorations must not be called conclusive.",
+    "All10 later S/F AUC-delta intervals include zero under both grouping schemes. There is no established overall later directional gain from this change.",
+    "Future M15 meanPup falls0.615858→0.594687 against observed0.491060. H1 remains0.624343→0.624724 against0.5; D1 rises0.638159→0.689883 against0.575089. Separate side heads alone did not remove the residual probability bias.",
+    "TRAIN future H4/D1 AUC improves0.577979→0.604648 and0.652998→0.684418; later H4/D1 remains0.516436/0.491324. This is a measured training-versus-later gap, not a proof of its representation or market-regime cause.",
+    "The mixed result does not justify promoting the combination or another architecture change on its own. The source variant remains available; no genuine indicator/timeframe is removed."
+  ],
+  "limits": [
+    "Only the existing combined decoder is contrasted at matched initialization, exposure and update budget; later shared-weight changes are part of the learned response.",
+    "Later panel is reused development; original TRAIN is not untouched holdout.",
+    "Conditional-side support uses realized labels and does not establish selectable Entry coverage.",
+    "Day/week percentile95 intervals are pointwise exploratory with overlapping targets; no multiplicity-adjusted or regime-wide guarantee.",
+    "No model, checkpoint, feature payload, new fitting, TEST, trade-path, PnL or promotion.",
+    "A short fixed-budget contrast does not establish full model capacity, the value of all available training years or a30–40epoch outcome.",
+    "Shared encoder/query interference, feature sufficiency and stable signal across market regimes are not isolated by this contrast.",
+    "Technical baseline/receipt success, TRAIN fit, independent generalization and trading economics remain separate claims."
+  ],
+  "training_authorized": false,
+  "new_model_change_authorized": false,
+  "test_data_used": false,
+  "promotion_authorized": false,
+  "trading_edge_established": false,
+  "published_objective_trajectory": [
+    {
+      "partition": "TRAIN",
+      "pass_index": 0,
+      "CONTROL": {
+        "loss": 1.8649946306832135,
+        "future_side_brier": {
+          "M5": 0.24900372824548575,
+          "M15": 0.2530836551426799,
+          "H1": 0.25041833142289777,
+          "H4": 0.2410469567196331,
+          "D1": 0.23211632393121792
+        }
+      },
+      "COMBINED": {
+        "loss": 1.8649946264922619,
+        "future_side_brier": {
+          "M5": 0.24900372824548575,
+          "M15": 0.25308365471150324,
+          "H1": 0.25041833177603645,
+          "H4": 0.2410469564546258,
+          "D1": 0.23211632337411775
+        }
+      }
+    },
+    {
+      "partition": "TRAIN",
+      "pass_index": 1,
+      "CONTROL": {
+        "loss": 1.8414633977226913,
+        "future_side_brier": {
+          "M5": 0.24828849889503077,
+          "M15": 0.2562516390770384,
+          "H1": 0.24887502692112637,
+          "H4": 0.24192295362105345,
+          "D1": 0.22028178152742378
+        }
+      },
+      "COMBINED": {
+        "loss": 1.8343892509583384,
+        "future_side_brier": {
+          "M5": 0.24831089428630668,
+          "M15": 0.25225224571236027,
+          "H1": 0.2440215045101499,
+          "H4": 0.23696111457280755,
+          "D1": 0.2140658246378428
+        }
+      }
+    },
+    {
+      "partition": "TRAIN",
+      "pass_index": 3,
+      "CONTROL": {
+        "loss": 1.8323581661097705,
+        "future_side_brier": {
+          "M5": 0.2488393146596819,
+          "M15": 0.2515090719222008,
+          "H1": 0.24389224985021307,
+          "H4": 0.24409343906695224,
+          "D1": 0.21279702601967201
+        }
+      },
+      "COMBINED": {
+        "loss": 1.8233576365746558,
+        "future_side_brier": {
+          "M5": 0.24873052279574578,
+          "M15": 0.24811623531475077,
+          "H1": 0.2406968455855854,
+          "H4": 0.23708552192122892,
+          "D1": 0.20466161961694848
+        }
+      }
+    },
+    {
+      "partition": "LATER",
+      "pass_index": 0,
+      "CONTROL": {
+        "loss": {
+          "model": {
+            "combined": 2.3509150846084244,
+            "future": 1.399439795918077,
+            "state": 0.9514752886903471
+          },
+          "prior": {
+            "combined": 2.31611372366914,
+            "future": 1.3675157252013772,
+            "state": 0.9485979984677625
+          }
+        },
+        "future_side_brier": {
+          "M5": 0.2495531981377197,
+          "M15": 0.27330912717952355,
+          "H1": 0.27430950872899745,
+          "H4": 0.2741053165181592,
+          "D1": 0.2714552686907954
+        }
+      },
+      "COMBINED": {
+        "loss": {
+          "model": {
+            "combined": 2.3509150839954502,
+            "future": 1.3994397953089426,
+            "state": 0.9514752886865079
+          },
+          "prior": {
+            "combined": 2.31611372366914,
+            "future": 1.3675157252013772,
+            "state": 0.9485979984677625
+          }
+        },
+        "future_side_brier": {
+          "M5": 0.2495531981377197,
+          "M15": 0.2733091270420347,
+          "H1": 0.27430950790583736,
+          "H4": 0.27410531650179143,
+          "D1": 0.271455268317444
+        }
+      }
+    },
+    {
+      "partition": "LATER",
+      "pass_index": 1,
+      "CONTROL": {
+        "loss": {
+          "model": {
+            "combined": 2.4159350016366488,
+            "future": 1.4552694535554032,
+            "state": 0.9606655480812456
+          },
+          "prior": {
+            "combined": 2.31611372366914,
+            "future": 1.3675157252013772,
+            "state": 0.9485979984677625
+          }
+        },
+        "future_side_brier": {
+          "M5": 0.24979941234186043,
+          "M15": 0.2933556764527898,
+          "H1": 0.29749212202322495,
+          "H4": 0.29188019846435953,
+          "D1": 0.28350849849781734
+        }
+      },
+      "COMBINED": {
+        "loss": {
+          "model": {
+            "combined": 2.4114082274355075,
+            "future": 1.4467744664295306,
+            "state": 0.9646337610059771
+          },
+          "prior": {
+            "combined": 2.31611372366914,
+            "future": 1.3675157252013772,
+            "state": 0.9485979984677625
+          }
+        },
+        "future_side_brier": {
+          "M5": 0.24985709959759078,
+          "M15": 0.28617043115599095,
+          "H1": 0.2949542508260404,
+          "H4": 0.2904857464557952,
+          "D1": 0.28231839335045017
+        }
+      }
+    },
+    {
+      "partition": "LATER",
+      "pass_index": 3,
+      "CONTROL": {
+        "loss": {
+          "model": {
+            "combined": 2.3603850946877087,
+            "future": 1.4082266495389861,
+            "state": 0.9521584451487225
+          },
+          "prior": {
+            "combined": 2.31611372366914,
+            "future": 1.3675157252013772,
+            "state": 0.9485979984677625
+          }
+        },
+        "future_side_brier": {
+          "M5": 0.24951132826860206,
+          "M15": 0.27924448583100886,
+          "H1": 0.2807501827318052,
+          "H4": 0.2709713472697507,
+          "D1": 0.26340132323388954
+        }
+      },
+      "COMBINED": {
+        "loss": {
+          "model": {
+            "combined": 2.360440765160134,
+            "future": 1.405584026407308,
+            "state": 0.9548567387528261
+          },
+          "prior": {
+            "combined": 2.31611372366914,
+            "future": 1.3675157252013772,
+            "state": 0.9485979984677625
+          }
+        },
+        "future_side_brier": {
+          "M5": 0.24947321145189746,
+          "M15": 0.26958867507690837,
+          "H1": 0.28117009420674793,
+          "H4": 0.27235548328039716,
+          "D1": 0.26866623832254055
+        }
+      }
+    }
+  ],
+  "trajectory_limit": "Existing JSON proper scores only. Candidate later total loss2.350915→2.411408→2.360441 is not monotonically worsening with additional updates. Pass1 AUC/meanP and paired temporal ranking intervals remain unmeasured by this review. Additional passes change unique exposure contents; do not label a temporal difference as a pure epoch/repetition/optimizer effect.",
+  "next_cause_question": "Does the combined decoder gain later directional ranking at pass1 and then lose it, or does its TRAIN improvement fail to transfer at both measured stages?",
+  "next_action": "Prepare one bounded retained trajectory review of the eight existing pass1/pass3 TRAIN/LATER prediction archives for COMBINED and COVERAGE. Reuse qualified scoring, pass3 comparisons and INITIAL JSON evidence. Keep pass3 as the declared primary result; measure paired temporal differences without selecting a checkpoint or claiming a unique optimizer/encoder cause. No new model, feature/checkpoint read or training; exact separate audit admission/preflight is still required."
+}

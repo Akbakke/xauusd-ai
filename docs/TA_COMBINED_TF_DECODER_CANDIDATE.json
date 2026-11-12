@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_combined_tf_decoder_source_candidate_v1",
-  "status": "SOURCE_QUALIFIED_NATIVE_BASELINE_AND_MATCHED_COMPARISON_PENDING",
+  "status": "MATCHED_NATIVE_AND_RETAINED_COMPARISON_COMPLETE_NOT_PROMOTED",
   "question": "Can existing independent activity and non-M5 side decoders be composed while preserving the current activity-only model at initialization, before one matched learning comparison?",
   "reason": "Measured direction and activity tradeoffs in separate completed arms; active shared non-M5 side heads are intentional. No accidental disconnection or combined benefit has been established.",
   "capture_gap": "Current TRAIN archives contain no representations; LATER archives contain M5 representations only. The proposed non-M5 2x2 retained replay is not supported, and no new model capture is admitted.",
@@ -66,7 +66,7 @@
     "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_SOURCE_20261112_001/METADATA_QUALIFICATION.json",
     "sha256": "05df7e2eb54d87c35c50ec87f21d6ec236d7132b16259b419d6392c9f3abe947"
   },
-  "next_action": "Prepare the exact existing guarded launch route from a fresh clean commit, then bind a distinct one-use combined-decoder comparison under standing local authorization. Reuse completed COVERAGE inputs, source checkpoint/span import, original RNG,12288unique TRAIN rows,768updates and fixed4096TRAIN/LATER panels. Actual source INITIAL bef35daf and16-tensor clone plus both fresh INITIAL output/loss panels must pass before any update; pass3 is primary. Current source qualification opens no native/data/checkpoint job or training; never relaunch consumed plans.",
+  "next_action": "Prepare one bounded retained trajectory review of the eight existing pass1/pass3 TRAIN/LATER prediction archives for COMBINED and COVERAGE. Reuse qualified scoring, pass3 comparisons and INITIAL JSON evidence. Keep pass3 as the declared primary result; measure paired temporal differences without selecting a checkpoint or claiming a unique optimizer/encoder cause. No new model, feature/checkpoint read or training; exact separate audit admission/preflight is still required.",
   "benchmark_source_qualification": {
     "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_BENCHMARK_20261112_001/SOURCE_QUALIFICATION.json",
     "sha256": "6103d33a851eeec2c08a23f59bd1aa49de9d5a237553d5f92d44c996f0813c3e"
@@ -75,5 +75,18 @@
     "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_BENCHMARK_20261112_001/METADATA_QUALIFICATION_001.json",
     "sha256": "565301205e0ff23e5fad1e3d359e346f7e862252d78e2c73423586c00ec082c6"
   },
-  "benchmark_qualification_limit": "224 unique focused checks plus actual JSON identities; no native checkpoint/data/model read or run. Actual INITIAL parity, learning comparison and economic value remain unmeasured."
+  "benchmark_qualification_limit": "The224 source checks preceded the native run. Actual INITIAL parity,768updates and retained pass3 comparison are now complete; independent generalization, full capacity and economics remain unproved.",
+  "native_comparison": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_BENCHMARK_20261112_001/RESULT.json",
+    "sha256": "31868249978d95ca9cd949f34a8091dc6956b1377607eff7a113bdbed60508ba"
+  },
+  "retained_comparison": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_BENCHMARK_20261112_001/COMBINED_DECODER_COMPARISON.json",
+    "sha256": "9f61ae0ad8be99edadf1ac3590146f2f584f4f416107eedb9ab253a1b5cab38a"
+  },
+  "matched_review": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_COMBINED_TF_DECODER_REVIEW.json",
+    "sha256": "ff4360e7d5ace6a87b2176a6001e3be2bb53ae45c2b79cf425d55ea38adbe4f5"
+  },
+  "bound_initial_source_scope": "Historical source-only qualification; later actual checkpoint preflight and native restore are recorded in the completed benchmark."
 }

@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_COMBINED_TF_DECODER_SOURCE_QUALIFIED_EDGE_UNRESOLVED",
+  "status": "ACTIVE_COMBINED_DECODER_MEASURED_LATER_EDGE_UNRESOLVED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -178,7 +178,7 @@
     {
       "id": "complete_used_prefix_endpoints_and_m5_gain",
       "evidence_class": "PASSIVE_FIXED_ENDPOINT_TRAIN_MEASUREMENT",
-      "finding": "All4096actually updated TRAINrows measured before/after without training. S/M5AUC0.546185\u21920.551466 andF/M5AUC0.546125\u21920.553079; both Brier/log slightlybetter. All512TRACEfixed-field comparisons and6savedpanelcontrols are byteexact. Independent954float/206exactfield audit agrees. AUC is ranking, not percentcorrect.",
+      "finding": "All4096actually updated TRAINrows measured before/after without training. S/M5AUC0.546185→0.551466 andF/M5AUC0.546125→0.553079; both Brier/log slightlybetter. All512TRACEfixed-field comparisons and6savedpanelcontrols are byteexact. Independent954float/206exactfield audit agrees. AUC is ranking, not percentcorrect.",
       "evidence": {
         "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_FULL_USED_PREFIX_REVIEW.json",
         "sha256": "b0b61e693864da4e6757ef0d126e076032bbb3026024535c6fbbabc6ed290c02"
@@ -188,7 +188,7 @@
     {
       "id": "complete_prefix_original_loss_tradeoff",
       "evidence_class": "RETAINED_ORIGINAL_LOSS_ACCOUNTING",
-      "finding": "Original total1.878003\u21921.892871 despite M5side gains. Activity andside contribute+0.007576757/+0.007291342 to objectivechange. F/M15/H1side andS/D1activity worsen whileF/D1/H4side improve. Retained arithmetic matches original perbatchcomponents within4.23e-7; no unique gradientcause established.",
+      "finding": "Original total1.878003→1.892871 despite M5side gains. Activity andside contribute+0.007576757/+0.007291342 to objectivechange. F/M15/H1side andS/D1activity worsen whileF/D1/H4side improve. Retained arithmetic matches original perbatchcomponents within4.23e-7; no unique gradientcause established.",
       "evidence": {
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_C171_FULL_USED_PREFIX_20261111_001/FULL_USED_PREFIX_LOSS_ACCOUNTING.json",
         "sha256": "68ccd418635482209e0b27aaea7f8408c41d8ef4d6b3554f6067bc38bbc19ab9"
@@ -269,7 +269,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Qualify the minimum existing benchmark seam for one combined-decoder comparison against completed COVERAGE. Reuse its exact source checkpoint/span import, INITIAL RNG, all inputs/normalization,12288-row exposure schedule,768updates and fixed4096TRAIN/LATER panels. Create the activity-only source, verify its known INITIAL digest, clone only the16 side tensors into the combined target and preserve all existing tensors/modes. Require fresh actual INITIAL output/loss parity before any update; then retain the predeclared pass3 all-TF comparison. Actual checkpoint-contract/startup/reporting and guarded campaign route must be qualified before a separate one-use model admission. No new native/data/checkpoint job or training is admitted now.",
+  "next_measurement": "Prepare one bounded retained trajectory review of the eight existing pass1/pass3 TRAIN/LATER prediction archives for COMBINED and COVERAGE. Reuse qualified scoring, pass3 comparisons and INITIAL JSON evidence. Keep pass3 as the declared primary result; measure paired temporal differences without selecting a checkpoint or claiming a unique optimizer/encoder cause. No new model, feature/checkpoint read or training; exact separate audit admission/preflight is still required.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -1723,15 +1723,16 @@
   },
   "training_authorized_scope": null,
   "latest_confirmed_findings": [
+    "Fixed TRAIN total loss improves1.832358166→1.823357637, while later total loss is2.360385095→2.360440765. Better TRAIN fit does not establish better later forecasts.",
+    "M15 conditional-side Brier/log improves for both S and F in both pointwise day/week intervals. Its AUC change includes zero; this supports a probability/calibration effect rather than established ranking improvement.",
+    "M5F AUC changes0.528605973→0.526009515, Brier0.249511328→0.249473211. Both changes remain uncertain in both day/week intervals.",
+    "H4S Brier/log deteriorates in both pointwise day/week intervals. H1S log also deteriorates in both; its Brier week interval includes zero. Other point deteriorations must not be called conclusive.",
+    "All10 later S/F AUC-delta intervals include zero under both grouping schemes. There is no established overall later directional gain from this change.",
+    "Future M15 meanPup falls0.615858→0.594687 against observed0.491060. H1 remains0.624343→0.624724 against0.5; D1 rises0.638159→0.689883 against0.575089. Separate side heads alone did not remove the residual probability bias.",
+    "TRAIN future H4/D1 AUC improves0.577979→0.604648 and0.652998→0.684418; later H4/D1 remains0.516436/0.491324. This is a measured training-versus-later gap, not a proof of its representation or market-regime cause.",
+    "The mixed result does not justify promoting the combination or another architecture change on its own. The source variant remains available; no genuine indicator/timeframe is removed.",
     "The completed exposure contrast improves all five native-F later Brier/log scores versus retained FULL in both exploratory day/week intervals. M15/H1/H4 remain worse than the frozen prior; no trading edge is established.",
-    "Active M5 side rows have fixed q/N weight before the TF divisor. Non-M5 uses 1/n_known within each nonempty B16 batch; actual maximum row-weight ratio is16, versus1 for M5.",
-    "On the actual12288-row coverage schedule, F/M15 pooledUP0.508709 becomes effectiveUP0.521688; F/H1 pooledUP0.543343 becomes0.543717. F/H4 andD1 normalization shifts are negative. There is no universal UP shift caused by this normalization.",
-    "All10 retained TRAIN-panel side counts replay exactly; all5 native-F prior counts and S/M5 prior/profile counts replay exactly. Full reference includes29574 rows; actual old/new schedules exclude the final6-row partial batch.",
-    "Later F/H1 meanP was already0.574586 at INITIAL and rises to0.624343 after coverage learning, while known-side UP fraction is0.5. F/M15 rises0.578201 to0.615858 against0.491060. Bias predates this contrast and is amplified by it.",
-    "Effective TRAIN class support is the constant-logit optimum of summed fixed-logit losses, not the AdamW optimum, a forecast for later data or a causal isolation of normalization. No objective change is justified by this count alone.",
-    "Current TRAIN/LATER archives cannot support the proposed retained non-M5 representation/readout factorization; no new captures were silently substituted.",
-    "The active shared non-M5 side heads are a deliberate isolated-activity design, not accidental loss of a qualified repair. A combined activity-plus-side candidate was not tested by either prior arm.",
-    "The minimal opt-in combination passes337unique focused synthetic/metadata cases with existing modes preserved. Exact current source/input/normalization/numerical metadata are rebound; no genuine model, checkpoint payload, forward or training update has run."
+    "Effective TRAIN class support is the constant-logit optimum of summed fixed-logit losses, not the AdamW optimum, a forecast for later data or a causal isolation of normalization. No objective change is justified by this count alone."
   ],
   "activity_pressure_review": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ACTIVITY_PRESSURE_REVIEW.json",
@@ -12438,7 +12439,7 @@
     "native_execution_started": false
   },
   "forecast_trade_alignment_review": {
-    "user_question": "Men med dette oppsettet, mener du dette er riktig \u00e5 trade slik?",
+    "user_question": "Men med dette oppsettet, mener du dette er riktig å trade slik?",
     "source_rules": {
       "path": "/home/andre2/src/GX1_CURRENT/GX1_RULES.md",
       "sha256": "94cfab7c9884df5af3c05a1af1aa45f8dafec9ec2dc05af5ed71dda1e5a9315a"
@@ -13726,18 +13727,75 @@
   "combined_tf_decoder_candidate": {
     "design": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_COMBINED_TF_DECODER_CANDIDATE.json",
-      "sha256": "831b9bb0e29ae2c70fc87147d073e6570d432bf37b45d21598f022323c3571d1"
+      "sha256": "bf2dae7a789dba27211b70a26c9a73cc66367071b97077a1a84b6de10d1b90c4"
     },
     "source_qualification": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_SOURCE_20261112_001/SOURCE_QUALIFICATION.json",
       "sha256": "4cc3c3869cceff5a7b856253d96baab969e131d1a85f426b4612279503826327"
     },
     "capture_gap": "No non-M5 representations retained: TRAIN contains only12 target/query/logit arrays; LATER includes only the two M5 representations. No unsupported2x2 replay or inversion performed.",
-    "active_configuration": "Activity-only was deliberate and preserves shared non-M5 side outputs. The previous side-only trial remains available; no accidental disconnection established.",
+    "active_configuration": "Matched control used activity-only; optional combined scope is now measured and not promoted. No native job is active.",
     "historical_result": "Side-only reduced TRAIN side contribution by0.007041688 while activity rose0.013960765. Activity-only reduced activity regression versus original by0.006609407, while direction still worsened. These separate used-TRAIN arms justify a bounded combined hypothesis, not expected improvement.",
     "current_candidate": "Existing activity heads plus existing independent non-M5 side heads;16new tensors/1032parameters. Encoder/query remain shared. Original variants and loss arithmetic preserved.",
-    "native_baseline_measured": false,
-    "learning_effect_measured": false,
+    "native_baseline_measured": true,
+    "learning_effect_measured": true,
+    "training_authorized": false,
+    "test_data_used": false
+  },
+  "combined_tf_decoder_result": {
+    "status": "COMPLETE_TRAIN_FIT_GAIN_WITH_MIXED_LATER_PROBABILITY_EFFECTS_EDGE_UNRESOLVED",
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_COMBINED_TF_DECODER_REVIEW.json",
+      "sha256": "ff4360e7d5ace6a87b2176a6001e3be2bb53ae45c2b79cf425d55ea38adbe4f5"
+    },
+    "native_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_BENCHMARK_20261112_001/RESULT.json",
+      "sha256": "31868249978d95ca9cd949f34a8091dc6956b1377607eff7a113bdbed60508ba"
+    },
+    "retained_comparison": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_BENCHMARK_20261112_001/COMBINED_DECODER_COMPARISON.json",
+      "sha256": "9f61ae0ad8be99edadf1ac3590146f2f584f4f416107eedb9ab253a1b5cab38a"
+    },
+    "primary_pass": 3,
+    "native_counts": {
+      "backward_returns": 768,
+      "backwards": 768,
+      "batch_visits": 768,
+      "candidate_evidence_writes": 1,
+      "checkpoint_loads": 1,
+      "checkpoint_writes": 0,
+      "control_capture_archive_decodes": 2,
+      "evaluation_forwards": 1536,
+      "extra_target_gathers": 2560,
+      "forward_returns": 2304,
+      "forwards": 2304,
+      "initial_rng_imports": 1,
+      "input_sidecar_archive_decodes": 12,
+      "json_bytes": 538137,
+      "loss_component_owner_calls": 768,
+      "model_construction_returns": 2,
+      "model_constructions": 2,
+      "optimizer_constructions": 1,
+      "optimizer_step_calls": 768,
+      "optimizer_step_returns": 768,
+      "optimizer_updates": 768,
+      "resume_state_load_calls": 1,
+      "resume_state_load_returns": 1,
+      "skipped_batches": 0,
+      "strict_full_state_restore_calls": 1,
+      "strict_full_state_restore_returns": 1,
+      "training_forwards": 768
+    },
+    "retained_counts": {
+      "archive_decodes": 4,
+      "checkpoint_decodes": 0,
+      "forwards": 0,
+      "models": 0,
+      "optimizer_updates": 0
+    },
+    "native_elapsed_seconds": 3129.077761319,
+    "all_later_auc_delta_intervals_include_zero": true,
+    "next_cause_question": "Does the combined decoder gain later directional ranking at pass1 and then lose it, or does its TRAIN improvement fail to transfer at both measured stages?",
     "training_authorized": false,
     "test_data_used": false
   }

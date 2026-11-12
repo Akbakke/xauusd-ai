@@ -5,48 +5,54 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_COMBINED_DECODER_COMPLETE_RETAINED_REVIEW_ADMITTED. Edge-målet er fortsatt uoppnådd.
-Native sammenligning er COMPLETE/CONSUMED; controller har exit0 og oppgaven er deaktivert.
-Global training/native er false. Bare én separat lesende etterkontroll av fire lagrede
-prognosearkiver er admittert. Kjør eksakt preflight før claim, deretter eksisterende4G/512M-audit.
-Ingen ny modell, checkpoint-/featurelesing, fit, TEST, Entry/Exit, broker eller handel.
+TA_COMBINED_DECODER_COMPLETE_NO_ESTABLISHED_LATER_DIRECTION_GAIN. Edge-målet er uoppnådd.
+Native jobb og retained review er COMPLETE/CONSUMED. Controller exit0; oppgaven deaktivert,
+aktive markører fjernet og prosessene avsluttet. Global training/native er false. Ingen ny jobb
+eller trening er admittert; gamle engangsplaner skal ikke relanseres.
+
+Neste konkrete spørsmål: får combined en tidlig senere retningsgevinst ved pass1 som forsvinner,
+eller overføres TRAIN-bedringen heller ikke da? Bruk de åtte eksisterende pass1/pass3 TRAIN/LATER-
+arkivene for combined og COVERAGE til én avgrenset lesende forløpskontroll. Gjenbruk scorere,
+pass3-regnskap og INITIAL-JSON. Behold pass3 som primær; ingen checkpointutvelgelse.
+Parvis tidsforskjell krever de faktisk parede prognosene, ikke subtraksjon av ferdige CI-grenser.
+Det trengs separat eksakt auditadmisjon/preflight, ingen ny modell eller trening.
+
+Publisert JSON viser allerede senere combined-loss2,350915→2,411408→2,360441 ved0/1/3.
+Det støtter ikke enkel monotont dårligere prognose ved mer trening. Pass1-AUC/meanP og paret
+rangeringsforløp er ennå ikke målt. Passene øker også unik datadekning; ikke kall endringen
+ren epoch-, repetisjons-, optimizer- eller encoderårsak.
+
+## Fullført sammenligning
 
 Root: /home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_BENCHMARK_20261112_001.
-REVIEW_COMBINED_DECODER.py gjenbruker kvalifiserte scorere/bootstrap fra COVERAGE.
-Sammenlign begge armers faste pass3 TRAIN/LATER: alle5TF S/F, sannsynlighetsfeil, AUC,
-UP-skjevhet og punktvise dag-/ukeintervaller. Kontrollpunkter og gamle intervaller må replays
-nøyaktig.4arkiver,2000trekk per gruppeskjema,0modeller. Ingen utvelgelse av pass/gruppe/terskel.
-
-## Fullført matched native sammenligning
-
-Frossen kilde a23c9346, RECIPE826d89a3, plan2fd275e9, fersk fysisk boot647.
-RESULT31868249 og TERMINAL93cb7f17 er COMPLETE. COMPLETION_VERIFICATION.json kontrollerer
-plan, receipt, cursor, progress, ren kilde, identiske eksponerings-/RNG-planer og faktiske tellere.
+Frossen native kilde a23c9346, RECIPE826d89a3, plan2fd275e9 og fersk fysisk boot647.
+RESULT31868249, TERMINAL93cb7f17 og COMPLETION_VERIFICATION482437d0 er kontrollert.
 768updates/0skip;2304forwards(768TRAIN+1536eval),2modeller/1optimizer/1checkpointlesing,
-0checkpointskrivinger og1evidence-kapsel. Native målt3129,08s. Originalkvitteringer bevares.
-Vakt: exit0; peak57Ckjerne/60Cminne/167,15W/2206MiB. Ingen jobb ble stoppet for omstart.
+0checkpointskrivinger og1evidence-kapsel. Native målt3129,08s. Vakt exit0; peak57Ckjerne/
+60Cminne/167,15W/2206MiB. Ingen jobb måtte stoppes for omstart. Originalkvitteringer bevares.
 
-Begge INITIAL-paneler bestod før updates. Akser/targets/aktivitet/M5 er bitlike;
-non-M5-side maksavvik3,58e-7 innen forhåndsbundet toleranse, RNG lik etter hver pass.
-TRAIN har ingen lagrede representasjoner og hevder ingen slik likhet; LATER kontrollerer
-begge lagrede M5-representasjoner. Alle genuine features/8familier/5TF/D1, normalisering,
-delt encoder/query og tapsaritmetikk er beholdt;16nye sidetensorer/1032parametre.
-Separate utganger fjerner ikke all påvirkning mellom oppgaver gjennom den delte encoderen.
+Begge INITIAL-paneler bestod før updates. Akser/targets/aktivitet/M5 bitlike; non-M5-side
+maksavvik3,58e-7 innen forhåndsbundet toleranse. Eksponeringsplan og RNG er like kontrollen.
+TRAIN hevder ingen representasjonslikhet; LATER kontrollerer begge lagrede M5-representasjoner.
+Alle genuine features/8familier/5TF/D1, normalisering, delt encoder/query og tapsaritmetikk
+beholdes. Bare eksisterende16sidetensorer/1032parametre er lagt til i denne opt-in-varianten.
 
-Foreløpige publiserte pass3-punktmål: TRAIN-loss1,832358→1,823358; senere samletloss
-2,360385→2,360441. M15F-side Brier0,279244→0,269589, mens H1/H4/D1F blir dårligere.
-Dette er ennå ikke ferdig etterkontroll eller bevis for samlet senere retningsgevinst.
+RETAINED COMPARISON9f61ae0a er COMPLETE:4arkiver,0modeller/forwards/updates,5,69s.
+Gamle kontrollpunkter og alle dag-/ukeintervaller replaysjekket; maksimal proper-score-feil
+1,11e-15.70dager/14uker, punktvise utforskende intervaller og gjenbrukte utviklingsdata.
+Samlet kilde-/resultatvurdering: docs/TA_COMBINED_TF_DECODER_REVIEW.json.
 
-## Gjenbrukt evidens og grenser
+TRAIN-loss1,832358→1,823358; senere samletloss2,360385→2,360441. Alle10 senere S/F AUC-
+endringer har0 innenfor begge95intervaller. M5F AUC0,528606→0,526010; den lille Brier-bedringen
+og AUC-endringen er usikre. M15S/F Brier/log bedres i begge intervaller, mens H4S Brier/log
+forverres. H1S log forverres også i begge; H1S Brier er usikker med ukegrupper.
+M15F meanPup0,615858→0,594687 mot0,491060 i fasit. H1F blir0,624724 mot0,5; D1F stiger
+0,638159→0,689883 mot0,575089. Separate sidehoder alene fjernet ikke skjevheten.
 
-COVERAGE er fullført i /home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001.
-Begge armer bruker12288unike TRAIN-rader/768updates og samme4096TRAIN/LATER-paneler.
-COVERAGE ga senere M5F AUC0,528606; AUC er ikke winrate. Flere non-M5-prognoser var
-fortsatt dårligere enn frossen prior. Effektiv vektaudit89c0a1f5 viste ingen universell
-UP-drift fra vektingen og begrunnet ingen tapsrettelse.
+## Grenser
 
-Kilde-/migreringskvalifikasjon og beståtte fokuserte tester gjenbrukes.224unike benchmark-
-kontroller var kvalifisert før kjøring; ingen modellkode er endret etter native kjøring.
-Lagrede utviklingsperioder er gjenbrukt. Ingen uavhengig generalisering, Entry-kvalitet eller
-økonomisk edge er bevist. Korte kontroller dømmer ikke endelig kapasitet. Full kvalifisert
-historikk og30–40epoker er senere skalering. TEST er forseglet; GC er på pause.
+Kandidaten er ikke promotert. Ingen ny modellkode er endret etter den kvalifiserte native
+kjøringen. Beståtte kilde-/migrerings-/modellkontroller gjenbrukes; policy/docs følges av
+fokuserte hooks og diff-/syntakskontroll. Ingen uavhengig generalisering, Entry-kvalitet eller
+økonomisk edge er bevist. Korte kontroller dømmer ikke endelig kapasitet; full kvalifisert
+historikk og30–40epoker er senere skalering. TEST forseglet; GC på pause; ingen broker/handel.
