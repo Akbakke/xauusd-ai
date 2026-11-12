@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-12T05:15:29.864573+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_ANCHOR_SPAN_REPLACEMENT_PREPARATION",
+  "status": "TA_DIRECTION_EDGE_CAUSE_ANCHOR_SPAN_REPLACEMENT_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,7 +1415,7 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
@@ -1705,7 +1705,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Preparing distinct002 bindings after the two measured importer fixes. The original experiment is uncompleted:001 had zero forwards/updates. No changes to architecture, data, losses, metrics or training size.",
+    "current_activity": "Exact replacement002 admitted after clean-source preflight; actual job not started. Same one4096row/256update anchor-span comparison, original INITIAL and all metrics unchanged.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1758,7 +1758,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No replacement plan admitted; repaired importer has synthetic coverage but actual INITIAL parity and the fixed learning comparison remain unmeasured.",
+    "current_blocker": "No operational blocker after repaired-import qualification. Actual INITIAL and predictive comparison are still unmeasured.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -35700,7 +35700,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -75689,7 +75689,7 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_ANCHOR_SPAN_REPLACEMENT_PREPARATION",
+    "status": "ACTIVE_ANCHOR_SPAN_REPLACEMENT_ADMITTED",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
@@ -75699,11 +75699,11 @@
       "sha256": "13ffc8fa173cdbf65ab4af65890e458bb507673e761eabb579f7366fbc25a2f3"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": false,
-    "training_enabled": false,
+    "model_or_data_run_admitted": true,
+    "training_enabled": true,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Build the same fixed comparison under new source/path bindings, qualify exact startup metadata, then seek exact policy admission under standing local authority. No training before admission; old001 remains consumed.",
+    "next_action": "Materialize exactly one new campaign, verify idle host and fresh boot after prepared643, then actual matched INITIAL over4096rows before the same256updates. No source edits during run; no relaunch of001 or002.",
     "active_stage": "market_state_ta_anchor_span_short_learning_20261112_002",
     "previous_goal_turn_classification": "PROGRESS_FULL_PAIRED_ENDPOINTS_EXACT_AND_M5_RANK_CALIBRATION_TRADEOFF_LOCALIZED",
     "last_goal_turn_classification": "PROGRESS_MATCHED_INITIAL_IMPORT_AND_EXISTING_SHORT_RUNNER_CONNECTED_METADATA_PREFLIGHT_PASS",
@@ -75809,7 +75809,7 @@
       "checkpoint": "The next implementation checkpoint must deliver the concrete comparison preflight or identify the exact remaining blocker. Do not open another preparatory workstream.",
       "scope_change_rule": "Report the measured blocker, smallest necessary deviation and effect on the agreed experiment before expanding scope. Routine fixes inside the agreed experiment do not require repeated approval.",
       "reporting_rule": "Report the experiment question, measured result and next decision. Counts of code, checks or documents are not evidence of improved edge.",
-      "current_authority": "Replacement002 metadata/source preparation for the same uncompleted comparison under standing05Nov local0USD authority. Failed001 stays consumed. No new model/training admission yet; original one-learning-run design unchanged.",
+      "current_authority": "Exactly replacement002 admitted under standing local authority after measured import repair and clean-source preflight. Failed001 remains consumed. One unchanged learning comparison, no expansion; fresh4096INITIAL must pass before256updates.",
       "implementation_budget": {
         "active_work_minutes": 60,
         "start": "next implementation work after this operator correction",
@@ -80522,9 +80522,9 @@
     }
   },
   "market_state_ta_anchor_span_short_learning_20261112_002": {
-    "decision": "NOT_ADMITTED",
-    "status": "DRAFT_METADATA_PREPARATION",
-    "ta_anchor_span_short_learning_authorized": false,
+    "decision": "ADMITTED",
+    "status": "ADMITTED",
+    "ta_anchor_span_short_learning_authorized": true,
     "fold_id": 1,
     "selected_fit_rows": 4096,
     "model_constructions_authorized": 1,
@@ -80533,17 +80533,36 @@
     "backward_calls_authorized": 256,
     "optimizer_steps_authorized": 256,
     "initial_rng_imports_authorized": 1,
-    "training_enabled": false,
-    "native_training_enabled": false,
-    "genuine_updates_authorized": false,
-    "genuine_backward_authorized": false,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "genuine_updates_authorized": true,
+    "genuine_backward_authorized": true,
     "genuine_predictor_fit_authorized": false,
     "canonical_resume_authority": false,
     "candidate_selection": false,
     "test_data_used": false,
     "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002",
     "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002/RUNTIME",
-    "recipe": null,
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002/RECIPE.json",
+      "sha256": "8af5fa09c9091cf4381f8a42c513b83cfe316af351085100d90791fd7912468e"
+    },
+    "qualification": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002/PREFLIGHT.json",
+      "sha256": "798e20e1635401f7e7fbd9215a961cb4b25ca6ded10e7f1a1bd6f23d0178cc47"
+    },
+    "actual_cap_gate": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002/PREFLIGHT.json",
+      "sha256": "798e20e1635401f7e7fbd9215a961cb4b25ca6ded10e7f1a1bd6f23d0178cc47"
+    },
+    "startup_import_smoke": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002/PREFLIGHT.json",
+      "sha256": "798e20e1635401f7e7fbd9215a961cb4b25ca6ded10e7f1a1bd6f23d0178cc47"
+    },
+    "prepared_boot": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002/PREPARED_WINDOWS_BOOT.json",
+      "sha256": "0c42e4a07c08aa285cca0b659b358e969782f01654fb5b7981e3e193e2da582c"
+    },
     "guard_template": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_MECHANICAL_20261109_001/CAMPAIGN/CAMPAIGN_PLAN.json",
       "sha256": "905dd8efd3cd7fae95f2dc90457b710d673f5a23399a61831eea9063516fcd9d"
@@ -80558,12 +80577,12 @@
     "remaining_invocations": 1,
     "relaunch_allowed": false,
     "campaign_preparation_authorized": true,
-    "execution_authorized": false,
-    "training_authorized": false,
-    "data_reads_authorized": false,
-    "checkpoint_reads_authorized": false,
-    "genuine_constructor_authorized": false,
-    "genuine_forward_authorized": false,
+    "execution_authorized": true,
+    "training_authorized": true,
+    "data_reads_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
     "native_launch_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_test_execution_authorized": false,
@@ -80836,8 +80855,8 @@
       255
     ],
     "automatic_continuation": false,
-    "admission_basis": "Standing0USD local GX1 authority and active edge-diagnosis goal, narrowed by execution_contract_20261112 to exactly one matched anchor-span comparison; no old plan reopened.",
-    "next_action": "Build the same fixed comparison under new source/path bindings, qualify exact startup metadata, then seek exact policy admission under standing local authority. No training before admission; old001 remains consumed.",
+    "admission_basis": "Standing05Nov local0USD authority and active edge-diagnosis goal. Distinct002 replaces FAILED/CONSUMED001 after two measured import-contract repairs. Failed001 used zero forwards/updates, so the one fixed learning comparison remains uncompleted. Exact source9ddedc5e preflight798e20e1 qualifies this new recipe8af5fa09 only.",
+    "next_action": "Materialize exactly one new campaign, verify idle host and fresh boot after prepared643, then actual matched INITIAL over4096rows before the same256updates. No source edits during run; no relaunch of001 or002.",
     "replaces_failed_stage": "market_state_ta_anchor_span_short_learning_20261112_001",
     "repair_source_commit": "99605dc38d2d87b400b90ae4b9f6f23bcc49c28b",
     "experimental_design_unchanged": true

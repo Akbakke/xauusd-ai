@@ -6,7 +6,7 @@ NEXT_RUN_POLICY.json eier arbeidsstatus; prosess og terminal overstyrer prosa.
 
 ## Aktivt mål og avtalt omfang
 
-TA_DIRECTION_EDGE_CAUSE_ANCHOR_SPAN_REPLACEMENT_PREPARATION.
+TA_DIRECTION_EDGE_CAUSE_ANCHOR_SPAN_REPLACEMENT_ADMITTED.
 Målet er fortsatt å avklare og rette målte svakheter i indikatorrepresentasjon,
 sammensetting og retningslæring. Korte runder er bevisst feilsøking.
 Full kvalifisert TRAIN-historikk og 30–40 epoker er senere skalering.
@@ -31,8 +31,8 @@ Null forwards, optimizer-konstruksjoner, backward, updates og checkpoint-skrivin
 Ingen fersk faktisk INITIAL eller prediktiv sammenligning ble produsert.
 Kontrolleren avsluttet; GX1AnchorSpanShortLearning001 er deaktivert.
 Planen er FAILED/CONSUMED, remaining_invocations=0 og relaunch_allowed=false.
-training_enabled/native_training_enabled er false. Ingen jobb er åpen.
-Erstatning002 har bare metadata-/kildeforberedelse; modell/trening er ikke innrømmet.
+001 er stengt. Global training/native_training er true bare for eksakt erstatning002.
+002 er admittert etter ren preflight; faktisk jobb er ennå ikke startet.
 
 Terminalens source_unchanged=false bevares. Separat git-observasjon viste ren
 kilde efec26e9 etter terminalen og før rettelsen; terminalflagget er ikke relabellet.
@@ -76,7 +76,11 @@ Mekanisk konsum av alle åtte familier/fem TF beviser ikke prediktiv familienytt
 ## Neste nødvendige steg
 
 Den ene avtalte læringssammenligningen er ikke gjennomført. Brukt001 relanseres aldri.
-Erstatning002 forberedes med egen eksakt kilde-/policybinding og preflight etter rettelsen.
+Erstatning002 er admittert med egen eksakt kilde-/policybinding etter rettelsen.
+ROOT /home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002.
+Ren kilde9ddedc5e; RECIPE8af5fa09; PREFLIGHT798e20e1; prepared Windows boot643.
+Faktisk provider-metadata, eksakt startup-avvisning under audit og3600/3900/3900-grenser PASS.
+Materializer/controller og trygg fresh-boot-oppstart gjenstår; ingen ny kodebølge.
 Samme kontrakt/runner gjenbrukes; kun engangsidentiteten og capped-path flyttes til002.
 Fokusert scope-/budsjettest PASS; tre JSON-inputbindinger er forberedt uten array-/modelllesing.
 De 24 beståtte importtestene gjenbrukes; importkoden er uendret fra rettelsen99605dc3.
