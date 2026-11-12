@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-12T05:15:29.864573+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_TRENDLINE_ANCHOR_SPAN_RAW_INPUTS_QUALIFIED_NORMALIZATION_PENDING",
+  "status": "TA_DIRECTION_EDGE_CAUSE_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Qualify the smallest name-bound normalization and feature-view extension: reuse all old per-field statistics, fit only the twelve new span statistics on the six already-qualified fold1 TRAIN populations, remap declared units explicitly, and retain every original array/target. Then establish a fresh actual initial model baseline before a short learning comparison. Raw span inputs are qualified; normalization, full new model input consumption and predictive benefit remain unqualified. No new numeric/model/training plan is admitted. All prior one-use plans remain consumed; full-history30-40epochs are later scaling.",
+  "next_action": "Execute the exact six-surface/twelve-new-statistic CPU normalization plan once after clean preflight. Reuse the qualified sidecars and all original field statistics; qualify the explicit parent-bound expanded base and existing TA projection. Then bind a real feature-view/gather to the sidecars before a fresh actual initial model baseline. No model/training invocation or broad-history run is admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -9229,7 +9229,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Qualify the smallest name-bound normalization and feature-view extension: reuse all old per-field statistics, fit only the twelve new span statistics on the six already-qualified fold1 TRAIN populations, remap declared units explicitly, and retain every original array/target. Then establish a fresh actual initial model baseline before a short learning comparison. Raw span inputs are qualified; normalization, full new model input consumption and predictive benefit remain unqualified. No new numeric/model/training plan is admitted. All prior one-use plans remain consumed; full-history30-40epochs are later scaling.",
+    "next_action": "Execute the exact six-surface/twelve-new-statistic CPU normalization plan once after clean preflight. Reuse the qualified sidecars and all original field statistics; qualify the explicit parent-bound expanded base and existing TA projection. Then bind a real feature-view/gather to the sidecars before a fresh actual initial model baseline. No model/training invocation or broad-history run is admitted.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22342,7 +22342,11 @@
       "sha256": "2ea1d19c1ea8e89375fff9bea3d5fbcde09905dd874087b6a334dd34444417ad"
     },
     "current_anchor_span_raw_inputs_qualified": true,
-    "current_anchor_span_normalization_qualified": false
+    "current_anchor_span_normalization_qualified": false,
+    "latest_trendline_anchor_span_normalization_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_REVIEW.json",
+      "sha256": "e4f613228d98591568f44f36e065a13aa95baaefb1ca0a280caa9a23beb9a9bb"
+    }
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -75681,7 +75685,7 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_TRENDLINE_ANCHOR_SPAN_RAW_INPUTS_QUALIFIED_NORMALIZATION_PENDING",
+    "status": "ACTIVE_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_ADMITTED",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
@@ -75691,14 +75695,14 @@
       "sha256": "13ffc8fa173cdbf65ab4af65890e458bb507673e761eabb579f7366fbc25a2f3"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": false,
+    "model_or_data_run_admitted": true,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Qualify the smallest name-bound normalization and feature-view extension: reuse all old per-field statistics, fit only the twelve new span statistics on the six already-qualified fold1 TRAIN populations, remap declared units explicitly, and retain every original array/target. Then establish a fresh actual initial model baseline before a short learning comparison. Raw span inputs are qualified; normalization, full new model input consumption and predictive benefit remain unqualified. No new numeric/model/training plan is admitted. All prior one-use plans remain consumed; full-history30-40epochs are later scaling.",
-    "active_stage": "market_state_ta_trendline_anchor_span_inputs_20261112_001",
+    "next_action": "Execute the exact six-surface/twelve-new-statistic CPU normalization plan once after clean preflight. Reuse the qualified sidecars and all original field statistics; qualify the explicit parent-bound expanded base and existing TA projection. Then bind a real feature-view/gather to the sidecars before a fresh actual initial model baseline. No model/training invocation or broad-history run is admitted.",
+    "active_stage": "market_state_ta_trendline_anchor_span_normalization_20261112_001",
     "previous_goal_turn_classification": "PROGRESS_FULL_PAIRED_ENDPOINTS_EXACT_AND_M5_RANK_CALIBRATION_TRADEOFF_LOCALIZED",
-    "last_goal_turn_classification": "PROGRESS_SIX_CAUSAL_PHYSICAL_INPUT_EXTENSIONS_QUALIFIED_OLD31_FIELDS_BYTEEXACT",
+    "last_goal_turn_classification": "PROGRESS_EXACT_UNIT_REMAP_AND_OLD_STATISTIC_PRESERVATION_SOURCE_QUALIFIED",
     "latest_tail_factor_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_ALL_TF_TAIL_FACTOR_REVIEW.json",
       "sha256": "5da978f765b0ad1ac001023501be7665989270d8353d768b801b9e1b29406c0f"
@@ -75750,6 +75754,10 @@
     "trendline_anchor_span_inputs": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TRENDLINE_ANCHOR_SPAN_INPUTS_REVIEW.json",
       "sha256": "2ea1d19c1ea8e89375fff9bea3d5fbcde09905dd874087b6a334dd34444417ad"
+    },
+    "trendline_anchor_span_normalization_preparation": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_REVIEW.json",
+      "sha256": "e4f613228d98591568f44f36e065a13aa95baaefb1ca0a280caa9a23beb9a9bb"
     }
   },
   "market_state_ta_fusion_observation_20261111_001": {
@@ -76449,7 +76457,7 @@
     "unresolved_campaign_marker_preserved": true,
     "standard_campaign_receipt_available": false
   },
-  "active_stage": "market_state_ta_trendline_anchor_span_inputs_20261112_001",
+  "active_stage": "market_state_ta_trendline_anchor_span_normalization_20261112_001",
   "market_state_ta_m5_c171_short_learning_20261111_002": {
     "decision": "CLOSED",
     "status": "COMPLETE_CONSUMED",
@@ -79954,5 +79962,55 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_PREP_20261112_001/INDEPENDENT_RECEIPT_REVIEW.json",
       "sha256": "4e963a187ae8955764c32262f6a9f776ba5181f08c555951c7ff8ef479db78e9"
     }
+  },
+  "market_state_ta_trendline_anchor_span_normalization_20261112_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_20261112_001.json",
+      "sha256": "07653339e511831d34f17f3ad12120e4a1ffea48795bb8d1ccf0daa0a68210e3"
+    },
+    "worker": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/qualify_market_state_ta_anchor_span_normalization_v1.py",
+      "sha256": "ebe7b181fd8ad943022e7beb4c12a5138801e206afd46e8ec4101fd2d6df32c0"
+    },
+    "scope": {
+      "checkpoint_reads": 0,
+      "fold_id": 1,
+      "model_constructions": 0,
+      "model_forwards": 0,
+      "new_field_statistics": 12,
+      "old_field_fit_calls": 0,
+      "old_statistics_refitted": false,
+      "optimizer_steps": 0,
+      "parent_rows": 29574,
+      "physical_surface_rows": 73118,
+      "sidecar_archives": 6,
+      "surface_fit_calls": 6,
+      "target_arrays_decoded": 0,
+      "test_data_used": false
+    },
+    "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_20261112_001",
+    "preparation_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_REVIEW.json",
+      "sha256": "e4f613228d98591568f44f36e065a13aa95baaefb1ca0a280caa9a23beb9a9bb"
+    },
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "normalization_fits_authorized": 6,
+    "new_field_statistics_authorized": 12,
+    "old_field_fit_calls_authorized": 0,
+    "training_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "model_constructions_authorized": 0,
+    "model_forwards_authorized": 0,
+    "target_arrays_decoded_authorized": 0,
+    "optimizer_steps_authorized": 0,
+    "max_invocations": 1,
+    "remaining_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "test_data_used": false,
+    "next_action": "Execute the exact six-surface/twelve-new-statistic CPU normalization plan once after clean preflight. Reuse the qualified sidecars and all original field statistics; qualify the explicit parent-bound expanded base and existing TA projection. Then bind a real feature-view/gather to the sidecars before a fresh actual initial model baseline. No model/training invocation or broad-history run is admitted."
   }
 }

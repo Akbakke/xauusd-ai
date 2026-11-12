@@ -6,16 +6,20 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_TRENDLINE_ANCHOR_SPAN_RAW_INPUTS_QUALIFIED_NORMALIZATION_PENDING.
+TA_DIRECTION_EDGE_CAUSE_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_ADMITTED.
 Målet11.11 er aktivt: avklar og rett målte svakheter i indikatorrepresentasjon,
 sammensetting og retningslæring. Korte runder er bevisst feilsøking, ikke kapasitetsdom.
 Full kvalifisert TRAIN-historikk og30–40epoker er senere skalering.
 
-CPU-inputkontrollen er COMPLETE/CONSUMED, exit0; ingen kjøring står åpen.
-Alle tidligere engangsplaner er konsumert. Ingen ny numerisk-/modell-/treningsplan
-innrømmet. Training/native_training/native_launch/full_epoch/full_val er false.
+CPU-inputkontrollen er COMPLETE/CONSUMED. Én ny normaliseringsplan er innrømmet,
+ikke startet: configs/research/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_20261112_001.json.
+Kun6CPU-fits av2nye felter hver;0gamle felt refittes. Ren preflight kreves før claim.
+Alle gamle engangsplaner er konsumert; ingen relansering. Ingen modell-/treningsadmisjon.
+Training/native_training/native_launch/full_epoch/full_val er false.
 TEST, Entry/Exit-evaluering, broker, handel, spending og promotion stengt; GC på pause.
-Ingen endring av Windows-treningsoppgaver.
+Ingen endring av Windows-treningsoppgaver. Capped audit4GiB/512MiB,CPU0–7,pids64,
+én tråd og180s+10s killgrense.
+
 ## Konkret rettelse: trendlinjens andre anker
 
 [Reparasjon og kvitteringer](docs/TA_TRENDLINE_ANCHOR_SPAN_REPAIR.json).
@@ -121,9 +125,19 @@ Råfeltene er kvalifisert; den nye komplette modellinputen er ikke ferdig bundet
 Ingen normaliseringsfit, targetverdier, modell, checkpoint eller trening i denne runden.
 Eksisterende normalisering/checkpoints er ikke relabellet; gammel baseline er ikke ny baseline.
 
-Neste steg er navnebundet normaliseringsutvidelse: tilpass kun de12nye feltstatistikkene
-på disse seks populasjonene, behold alle gamle statistikker og remapp deklarerte
-enheter eksplisitt. Ny feature-view/gather og fersk faktisk initialbaseline kreves før
-kort læringssammenligning. Ingen ny numerisk plan er innrømmet nå.
+[Normaliseringsutvidelsen](docs/TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_REVIEW.json)
+er kilde-/metadata-kvalifisert.96unike fokuserte tester er dekket: først93PASS/3FAIL,
+deretter8berørte retester PASS. De3feilene var historiske test-fixtures som matet
+nye2727navn til bevisst forseglede gamle2725profiler; fixtures krever nå gammel
+navneSHA. Gamle produksjonsprofiler, enheter, planer og statistikk er uendret.
+Ny tredje units-identitet remapper bare signalens51value/mask-par etter navn;
+ctx/GC-enheter og fit-prefix er identiske. Eksplisitt parent/proveniens avviser resealing.
+Den nye normaliseringskontrakten bevarer gamle statistikkvektorer byteeksakt,
+inkludert signed-zero, og remapper aliases. Eksisterende TA-projeksjon brukes videre.
+
+Ny engangsplan tilpasser kun12nye feltstatistikker fra allerede kvalifiserte sidecars.
+Gamle statistikker refittes ikke. Ingen faktisk ny normalisering er produsert ennå;
+ren preflight gjenstår før claim. Etter resultatet må faktisk feature-view/gather bindes
+til den utvidede inputen, før fersk faktisk initialbaseline og kort læringssammenligning.
 Fullhistorikk/30–40epoker er senere skalering. Senere generalisering, familienytte,
 rettelsens prediktive gevinst og økonomisk edge må fortsatt måles. Målet er aktivt.

@@ -26,7 +26,11 @@ def native_field_names():
     from gx1.features.entry_specialist_feature_groups_v1 import compile_compact_entry_execution_profile
 
     physical = compile_compact_entry_execution_profile()["physical_field_names"]
-    return {"signal": physical["signal"], "ctx_cont": physical["ctx_cont"],
+    # These two historical profiles own the sealed pre-extension physical map.
+    signal = [n for n in physical["signal"] if n not in owner.ANCHOR_SPAN_SIGNAL_FIELDS]
+    assert len(signal) == 2725
+    assert _sha(signal) == owner.october_prefix_units_profile()["surfaces"]["signal"]["field_names_sha256"]
+    return {"signal": signal, "ctx_cont": physical["ctx_cont"],
             "gc_mtf_d1": gc_mtf_history_layout()["field_names"]["D1"]}
 
 

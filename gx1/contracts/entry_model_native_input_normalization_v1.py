@@ -1804,6 +1804,13 @@ def require_input_normalization_contract(
             expected_ctx_cat_names=expected_ctx_cat_names,
             expected_entry_training_phase=expected_entry_training_phase,
             unobserved_units_profile=unobserved_units_profile)
+    if "anchor_span_extension" in value:
+        from gx1.contracts.entry_anchor_span_normalization_v1 import require_anchor_span_normalization
+        return require_anchor_span_normalization(
+            value, expected_field_names=expected_field_names,
+            expected_ctx_cat_names=expected_ctx_cat_names,
+            expected_entry_training_phase=expected_entry_training_phase,
+            unobserved_units_profile=unobserved_units_profile)
     data = dict(value)
     expected_keys = {
         "schema_version",

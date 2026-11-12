@@ -85,7 +85,9 @@ def test_mature_fold1_rejects_old_or_changed_fit_axis(key):
 def test_synthetic_unobserved_surface_has_new_identity_and_preserves_mask():
     new = units.mature_fold1_prefix_units_profile()
     old = units.october_prefix_units_profile()
-    names = compile_compact_entry_execution_profile()['physical_field_names']['signal']
+    names = [n for n in compile_compact_entry_execution_profile()['physical_field_names']['signal']
+             if n not in units.ANCHOR_SPAN_SIGNAL_FIELDS]
+    assert len(names) == 2725 and units._sha(names) == new['surfaces']['signal']['field_names_sha256']
     columns = units.prefix_units_surface_columns(new, surface='signal', field_names=names)
     assert len(columns) == 51
     raw = np.ones((8, len(names)), dtype=np.float32)

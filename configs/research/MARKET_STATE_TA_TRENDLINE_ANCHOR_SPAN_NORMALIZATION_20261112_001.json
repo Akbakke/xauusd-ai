@@ -1,0 +1,1504 @@
+{
+  "execution": {
+    "job_class": "audit",
+    "kill_after_seconds": 10,
+    "memory": "4G",
+    "module": "gx1.audit.qualify_market_state_ta_anchor_span_normalization_v1",
+    "runner": "scripts/gx1_capped_run.sh",
+    "swap": "512M",
+    "timeout_seconds": 180
+  },
+  "inputs": {
+    "parent": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_MATURE_FOLD1_NORMALIZATION_20261107_001/PREFIX_NORMALIZATION_FOLD_1.json",
+      "sha256": "e24a2b8d1ae09f6f10c2de7a7097353b52aa2f2118287535e242778272022d54"
+    },
+    "physical_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001.json",
+      "sha256": "889161060a9abb9c028abffe3246420f06a63891ee9a51305d3e8173d970fbf1"
+    },
+    "physical_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001/RESULT.json",
+      "sha256": "8878d17a5bf114fcf9cd5eb0e74792ddc5df068b95b67951b594759d5b2b05bb"
+    },
+    "physical_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001/TERMINAL.json",
+      "sha256": "9414bc5dd6e07ff565e4cb0f3db7c2364bbea3d954a9708c03fc91c131034007"
+    }
+  },
+  "new_units_profile": {
+    "authority": {
+      "broker_or_network_collection": false,
+      "genuine_data_audit": false,
+      "genuine_statistics_fit": false,
+      "native_model_launch": false,
+      "spending": false,
+      "test_access": false,
+      "training_enabled": false
+    },
+    "contract_sha256": "accae7dfbc704c2f1af33d4fe71ffa7c270b675c5f1f13ce0d18d15381a93e1e",
+    "extension_provenance": {
+      "inserted_signal_fields": [
+        "chart.geomline_above_anchor_span_bars",
+        "chart.geomline_below_anchor_span_bars"
+      ],
+      "mapping": "existing_signal_value_and_mask_indices_by_exact_field_name",
+      "new_observation_masks": false,
+      "parent_profile_name": "market_state_mature_fold1_prefix_units_v1",
+      "parent_profile_sha256": "8fe7982aaf6ef8de947997cc945669cb58e94c6729282a38f57e7a967d3013bc",
+      "physical_input_result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001/RESULT.json",
+        "sha256": "8878d17a5bf114fcf9cd5eb0e74792ddc5df068b95b67951b594759d5b2b05bb"
+      },
+      "schema_version": "gx1_mature_fold1_anchor_span_units_extension_v1",
+      "statistics_fitted": false
+    },
+    "fields": [
+      {
+        "field": "gc_d1_observed_proxy_ob_bear_active",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "boolean_0_or_1",
+        "transform": "identity",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_proxy_ob_bear_created",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "boolean_0_or_1",
+        "transform": "identity",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_proxy_ob_bear_first_retouch",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "boolean_0_or_1",
+        "transform": "identity",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_proxy_ob_bear_low",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_USD_in_source_price_quotation",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_proxy_ob_bear_high",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_USD_in_source_price_quotation",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_proxy_ob_bear_age_bars",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_observed_native_D1_row_zero_at_creation",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_proxy_ob_bear_origin_volume_contracts",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_contract",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_rolling15_vwap_usd",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_USD_in_source_price_quotation",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_rolling15_poc_usd",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_USD_in_source_price_quotation",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_rolling15_val_usd",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_USD_in_source_price_quotation",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_rolling15_vah_usd",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_USD_in_source_price_quotation",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_rolling15_volume_contracts",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_contract",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_rolling60_vwap_usd",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_USD_in_source_price_quotation",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_rolling60_poc_usd",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_USD_in_source_price_quotation",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_rolling60_val_usd",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_USD_in_source_price_quotation",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_rolling60_vah_usd",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_USD_in_source_price_quotation",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_rolling60_volume_contracts",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_contract",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_anchored_segment_vwap_usd",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_USD_in_source_price_quotation",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_anchored_segment_poc_usd",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_USD_in_source_price_quotation",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_anchored_segment_val_usd",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_USD_in_source_price_quotation",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_anchored_segment_vah_usd",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_USD_in_source_price_quotation",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_anchored_segment_volume_contracts",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_contract",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_session_observed_vwap_usd",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_USD_in_source_price_quotation",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_session_observed_poc_usd",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_USD_in_source_price_quotation",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_session_observed_val_usd",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_USD_in_source_price_quotation",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_session_observed_vah_usd",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_USD_in_source_price_quotation",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_session_observed_volume_contracts",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_contract",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_rolling15_vwap_distance_ticks",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_source_GC_price_tick",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_rolling15_vwap_prior_level_response_ticks",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_source_GC_price_tick",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_rolling15_poc_distance_ticks",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_source_GC_price_tick",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_rolling15_poc_prior_level_response_ticks",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_source_GC_price_tick",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_rolling15_val_distance_ticks",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_source_GC_price_tick",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_rolling15_val_prior_level_response_ticks",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_source_GC_price_tick",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_rolling15_vah_distance_ticks",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_source_GC_price_tick",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_rolling15_vah_prior_level_response_ticks",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_source_GC_price_tick",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_rolling60_vwap_distance_ticks",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_source_GC_price_tick",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_rolling60_vwap_prior_level_response_ticks",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_source_GC_price_tick",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_rolling60_poc_distance_ticks",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_source_GC_price_tick",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_rolling60_poc_prior_level_response_ticks",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_source_GC_price_tick",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_rolling60_val_distance_ticks",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_source_GC_price_tick",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_rolling60_val_prior_level_response_ticks",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_source_GC_price_tick",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_rolling60_vah_distance_ticks",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_source_GC_price_tick",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_rolling60_vah_prior_level_response_ticks",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_source_GC_price_tick",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_anchored_segment_vwap_distance_ticks",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_source_GC_price_tick",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_anchored_segment_vwap_prior_level_response_ticks",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_source_GC_price_tick",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_anchored_segment_poc_distance_ticks",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_source_GC_price_tick",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_anchored_segment_poc_prior_level_response_ticks",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_source_GC_price_tick",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_anchored_segment_val_distance_ticks",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_source_GC_price_tick",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_anchored_segment_val_prior_level_response_ticks",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_source_GC_price_tick",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_anchored_segment_vah_distance_ticks",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_source_GC_price_tick",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      },
+      {
+        "field": "gc_d1_observed_profile_anchored_segment_vah_prior_level_response_ticks",
+        "fixed_center": 0.0,
+        "fixed_scale": 1.0,
+        "source_unit": "one_source_GC_price_tick",
+        "transform": "asinh(x / one_declared_source_unit)",
+        "unfitted_estimates": null
+      }
+    ],
+    "fit_prefix": {
+      "bar_start_ns_sha256": "4031eb33963b717f0e2bdf9082d8d38c476b3db7beb6a10dc0e3c03329f1b6d1",
+      "cutoff_ns": 1727654400000000000,
+      "decision_ns_sha256": "ebb3489c45b01b6fd8e77bf27529d650beb6883ba84b57ee936dc549ec74e427",
+      "parent_rows_sha256": "1c5a8c36a94b8fa39d613f0bc122cf869dc9fa3c2f87dc64c0506acd2f55a90f",
+      "rows": 29574
+    },
+    "plan": {
+      "path": "configs/research/MARKET_STATE_MATURE_FOLD1_PREFIX_UNITS_20261107_001.json",
+      "sha256": "a19b4773b443573f3644ba4cc43e14652a929a8b97ea44391586dd5bf59ac630"
+    },
+    "profile_name": "market_state_mature_fold1_anchor_span_prefix_units_v1",
+    "schema_version": "gx1_native_direction_prefix_units_v1",
+    "support_evidence": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_MATURE_PREFIX_NORMALIZATION_20261107_001/QUALIFICATION_FOLD_1.json",
+      "sha256": "6df90574ef2e414a0b544f69c25de35b488147d91ad413916691b973b525ff3f"
+    },
+    "surfaces": {
+      "ctx_cont": {
+        "columns": [
+          {
+            "field": "gc_d1_observed_proxy_ob_bear_active",
+            "mask_index": 2271,
+            "value_index": 2270
+          },
+          {
+            "field": "gc_d1_observed_proxy_ob_bear_created",
+            "mask_index": 2273,
+            "value_index": 2272
+          },
+          {
+            "field": "gc_d1_observed_proxy_ob_bear_first_retouch",
+            "mask_index": 2275,
+            "value_index": 2274
+          },
+          {
+            "field": "gc_d1_observed_proxy_ob_bear_low",
+            "mask_index": 2277,
+            "value_index": 2276
+          },
+          {
+            "field": "gc_d1_observed_proxy_ob_bear_high",
+            "mask_index": 2279,
+            "value_index": 2278
+          },
+          {
+            "field": "gc_d1_observed_proxy_ob_bear_age_bars",
+            "mask_index": 2281,
+            "value_index": 2280
+          },
+          {
+            "field": "gc_d1_observed_proxy_ob_bear_origin_volume_contracts",
+            "mask_index": 2283,
+            "value_index": 2282
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_vwap_usd",
+            "mask_index": 2285,
+            "value_index": 2284
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_poc_usd",
+            "mask_index": 2287,
+            "value_index": 2286
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_val_usd",
+            "mask_index": 2289,
+            "value_index": 2288
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_vah_usd",
+            "mask_index": 2291,
+            "value_index": 2290
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_volume_contracts",
+            "mask_index": 2293,
+            "value_index": 2292
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_vwap_usd",
+            "mask_index": 2297,
+            "value_index": 2296
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_poc_usd",
+            "mask_index": 2299,
+            "value_index": 2298
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_val_usd",
+            "mask_index": 2301,
+            "value_index": 2300
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_vah_usd",
+            "mask_index": 2303,
+            "value_index": 2302
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_volume_contracts",
+            "mask_index": 2305,
+            "value_index": 2304
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_vwap_usd",
+            "mask_index": 2309,
+            "value_index": 2308
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_poc_usd",
+            "mask_index": 2311,
+            "value_index": 2310
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_val_usd",
+            "mask_index": 2313,
+            "value_index": 2312
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_vah_usd",
+            "mask_index": 2315,
+            "value_index": 2314
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_volume_contracts",
+            "mask_index": 2317,
+            "value_index": 2316
+          },
+          {
+            "field": "gc_d1_observed_profile_session_observed_vwap_usd",
+            "mask_index": 2321,
+            "value_index": 2320
+          },
+          {
+            "field": "gc_d1_observed_profile_session_observed_poc_usd",
+            "mask_index": 2323,
+            "value_index": 2322
+          },
+          {
+            "field": "gc_d1_observed_profile_session_observed_val_usd",
+            "mask_index": 2325,
+            "value_index": 2324
+          },
+          {
+            "field": "gc_d1_observed_profile_session_observed_vah_usd",
+            "mask_index": 2327,
+            "value_index": 2326
+          },
+          {
+            "field": "gc_d1_observed_profile_session_observed_volume_contracts",
+            "mask_index": 2329,
+            "value_index": 2328
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_vwap_distance_ticks",
+            "mask_index": 2339,
+            "value_index": 2338
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_vwap_prior_level_response_ticks",
+            "mask_index": 2341,
+            "value_index": 2340
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_poc_distance_ticks",
+            "mask_index": 2343,
+            "value_index": 2342
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_poc_prior_level_response_ticks",
+            "mask_index": 2345,
+            "value_index": 2344
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_val_distance_ticks",
+            "mask_index": 2347,
+            "value_index": 2346
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_val_prior_level_response_ticks",
+            "mask_index": 2349,
+            "value_index": 2348
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_vah_distance_ticks",
+            "mask_index": 2351,
+            "value_index": 2350
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_vah_prior_level_response_ticks",
+            "mask_index": 2353,
+            "value_index": 2352
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_vwap_distance_ticks",
+            "mask_index": 2355,
+            "value_index": 2354
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_vwap_prior_level_response_ticks",
+            "mask_index": 2357,
+            "value_index": 2356
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_poc_distance_ticks",
+            "mask_index": 2359,
+            "value_index": 2358
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_poc_prior_level_response_ticks",
+            "mask_index": 2361,
+            "value_index": 2360
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_val_distance_ticks",
+            "mask_index": 2363,
+            "value_index": 2362
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_val_prior_level_response_ticks",
+            "mask_index": 2365,
+            "value_index": 2364
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_vah_distance_ticks",
+            "mask_index": 2367,
+            "value_index": 2366
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_vah_prior_level_response_ticks",
+            "mask_index": 2369,
+            "value_index": 2368
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_vwap_distance_ticks",
+            "mask_index": 2371,
+            "value_index": 2370
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_vwap_prior_level_response_ticks",
+            "mask_index": 2373,
+            "value_index": 2372
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_poc_distance_ticks",
+            "mask_index": 2375,
+            "value_index": 2374
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_poc_prior_level_response_ticks",
+            "mask_index": 2377,
+            "value_index": 2376
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_val_distance_ticks",
+            "mask_index": 2379,
+            "value_index": 2378
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_val_prior_level_response_ticks",
+            "mask_index": 2381,
+            "value_index": 2380
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_vah_distance_ticks",
+            "mask_index": 2383,
+            "value_index": 2382
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_vah_prior_level_response_ticks",
+            "mask_index": 2385,
+            "value_index": 2384
+          }
+        ],
+        "field_names_sha256": "b1e0e5f688221e9d0da05bd8fd4dcab724f5022fe6cb988ea55971959229f5cf",
+        "value_name_prefix": "",
+        "width": 2542
+      },
+      "gc_mtf_d1": {
+        "columns": [
+          {
+            "field": "gc_d1_observed_proxy_ob_bear_active",
+            "mask_index": 127,
+            "value_index": 126
+          },
+          {
+            "field": "gc_d1_observed_proxy_ob_bear_created",
+            "mask_index": 129,
+            "value_index": 128
+          },
+          {
+            "field": "gc_d1_observed_proxy_ob_bear_first_retouch",
+            "mask_index": 131,
+            "value_index": 130
+          },
+          {
+            "field": "gc_d1_observed_proxy_ob_bear_low",
+            "mask_index": 133,
+            "value_index": 132
+          },
+          {
+            "field": "gc_d1_observed_proxy_ob_bear_high",
+            "mask_index": 135,
+            "value_index": 134
+          },
+          {
+            "field": "gc_d1_observed_proxy_ob_bear_age_bars",
+            "mask_index": 137,
+            "value_index": 136
+          },
+          {
+            "field": "gc_d1_observed_proxy_ob_bear_origin_volume_contracts",
+            "mask_index": 139,
+            "value_index": 138
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_vwap_usd",
+            "mask_index": 141,
+            "value_index": 140
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_poc_usd",
+            "mask_index": 143,
+            "value_index": 142
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_val_usd",
+            "mask_index": 145,
+            "value_index": 144
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_vah_usd",
+            "mask_index": 147,
+            "value_index": 146
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_volume_contracts",
+            "mask_index": 149,
+            "value_index": 148
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_vwap_usd",
+            "mask_index": 153,
+            "value_index": 152
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_poc_usd",
+            "mask_index": 155,
+            "value_index": 154
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_val_usd",
+            "mask_index": 157,
+            "value_index": 156
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_vah_usd",
+            "mask_index": 159,
+            "value_index": 158
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_volume_contracts",
+            "mask_index": 161,
+            "value_index": 160
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_vwap_usd",
+            "mask_index": 165,
+            "value_index": 164
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_poc_usd",
+            "mask_index": 167,
+            "value_index": 166
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_val_usd",
+            "mask_index": 169,
+            "value_index": 168
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_vah_usd",
+            "mask_index": 171,
+            "value_index": 170
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_volume_contracts",
+            "mask_index": 173,
+            "value_index": 172
+          },
+          {
+            "field": "gc_d1_observed_profile_session_observed_vwap_usd",
+            "mask_index": 177,
+            "value_index": 176
+          },
+          {
+            "field": "gc_d1_observed_profile_session_observed_poc_usd",
+            "mask_index": 179,
+            "value_index": 178
+          },
+          {
+            "field": "gc_d1_observed_profile_session_observed_val_usd",
+            "mask_index": 181,
+            "value_index": 180
+          },
+          {
+            "field": "gc_d1_observed_profile_session_observed_vah_usd",
+            "mask_index": 183,
+            "value_index": 182
+          },
+          {
+            "field": "gc_d1_observed_profile_session_observed_volume_contracts",
+            "mask_index": 185,
+            "value_index": 184
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_vwap_distance_ticks",
+            "mask_index": 195,
+            "value_index": 194
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_vwap_prior_level_response_ticks",
+            "mask_index": 197,
+            "value_index": 196
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_poc_distance_ticks",
+            "mask_index": 199,
+            "value_index": 198
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_poc_prior_level_response_ticks",
+            "mask_index": 201,
+            "value_index": 200
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_val_distance_ticks",
+            "mask_index": 203,
+            "value_index": 202
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_val_prior_level_response_ticks",
+            "mask_index": 205,
+            "value_index": 204
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_vah_distance_ticks",
+            "mask_index": 207,
+            "value_index": 206
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_vah_prior_level_response_ticks",
+            "mask_index": 209,
+            "value_index": 208
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_vwap_distance_ticks",
+            "mask_index": 211,
+            "value_index": 210
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_vwap_prior_level_response_ticks",
+            "mask_index": 213,
+            "value_index": 212
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_poc_distance_ticks",
+            "mask_index": 215,
+            "value_index": 214
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_poc_prior_level_response_ticks",
+            "mask_index": 217,
+            "value_index": 216
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_val_distance_ticks",
+            "mask_index": 219,
+            "value_index": 218
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_val_prior_level_response_ticks",
+            "mask_index": 221,
+            "value_index": 220
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_vah_distance_ticks",
+            "mask_index": 223,
+            "value_index": 222
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_vah_prior_level_response_ticks",
+            "mask_index": 225,
+            "value_index": 224
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_vwap_distance_ticks",
+            "mask_index": 227,
+            "value_index": 226
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_vwap_prior_level_response_ticks",
+            "mask_index": 229,
+            "value_index": 228
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_poc_distance_ticks",
+            "mask_index": 231,
+            "value_index": 230
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_poc_prior_level_response_ticks",
+            "mask_index": 233,
+            "value_index": 232
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_val_distance_ticks",
+            "mask_index": 235,
+            "value_index": 234
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_val_prior_level_response_ticks",
+            "mask_index": 237,
+            "value_index": 236
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_vah_distance_ticks",
+            "mask_index": 239,
+            "value_index": 238
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_vah_prior_level_response_ticks",
+            "mask_index": 241,
+            "value_index": 240
+          }
+        ],
+        "field_names_sha256": "15e961d57a5c2371b1aefe349026292d349e5bfb7b43372766da7893499e42fc",
+        "value_name_prefix": "",
+        "width": 399
+      },
+      "signal": {
+        "columns": [
+          {
+            "field": "gc_d1_observed_proxy_ob_bear_active",
+            "mask_index": 2456,
+            "value_index": 2455
+          },
+          {
+            "field": "gc_d1_observed_proxy_ob_bear_created",
+            "mask_index": 2458,
+            "value_index": 2457
+          },
+          {
+            "field": "gc_d1_observed_proxy_ob_bear_first_retouch",
+            "mask_index": 2460,
+            "value_index": 2459
+          },
+          {
+            "field": "gc_d1_observed_proxy_ob_bear_low",
+            "mask_index": 2462,
+            "value_index": 2461
+          },
+          {
+            "field": "gc_d1_observed_proxy_ob_bear_high",
+            "mask_index": 2464,
+            "value_index": 2463
+          },
+          {
+            "field": "gc_d1_observed_proxy_ob_bear_age_bars",
+            "mask_index": 2466,
+            "value_index": 2465
+          },
+          {
+            "field": "gc_d1_observed_proxy_ob_bear_origin_volume_contracts",
+            "mask_index": 2468,
+            "value_index": 2467
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_vwap_usd",
+            "mask_index": 2470,
+            "value_index": 2469
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_poc_usd",
+            "mask_index": 2472,
+            "value_index": 2471
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_val_usd",
+            "mask_index": 2474,
+            "value_index": 2473
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_vah_usd",
+            "mask_index": 2476,
+            "value_index": 2475
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_volume_contracts",
+            "mask_index": 2478,
+            "value_index": 2477
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_vwap_usd",
+            "mask_index": 2482,
+            "value_index": 2481
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_poc_usd",
+            "mask_index": 2484,
+            "value_index": 2483
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_val_usd",
+            "mask_index": 2486,
+            "value_index": 2485
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_vah_usd",
+            "mask_index": 2488,
+            "value_index": 2487
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_volume_contracts",
+            "mask_index": 2490,
+            "value_index": 2489
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_vwap_usd",
+            "mask_index": 2494,
+            "value_index": 2493
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_poc_usd",
+            "mask_index": 2496,
+            "value_index": 2495
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_val_usd",
+            "mask_index": 2498,
+            "value_index": 2497
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_vah_usd",
+            "mask_index": 2500,
+            "value_index": 2499
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_volume_contracts",
+            "mask_index": 2502,
+            "value_index": 2501
+          },
+          {
+            "field": "gc_d1_observed_profile_session_observed_vwap_usd",
+            "mask_index": 2506,
+            "value_index": 2505
+          },
+          {
+            "field": "gc_d1_observed_profile_session_observed_poc_usd",
+            "mask_index": 2508,
+            "value_index": 2507
+          },
+          {
+            "field": "gc_d1_observed_profile_session_observed_val_usd",
+            "mask_index": 2510,
+            "value_index": 2509
+          },
+          {
+            "field": "gc_d1_observed_profile_session_observed_vah_usd",
+            "mask_index": 2512,
+            "value_index": 2511
+          },
+          {
+            "field": "gc_d1_observed_profile_session_observed_volume_contracts",
+            "mask_index": 2514,
+            "value_index": 2513
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_vwap_distance_ticks",
+            "mask_index": 2524,
+            "value_index": 2523
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_vwap_prior_level_response_ticks",
+            "mask_index": 2526,
+            "value_index": 2525
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_poc_distance_ticks",
+            "mask_index": 2528,
+            "value_index": 2527
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_poc_prior_level_response_ticks",
+            "mask_index": 2530,
+            "value_index": 2529
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_val_distance_ticks",
+            "mask_index": 2532,
+            "value_index": 2531
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_val_prior_level_response_ticks",
+            "mask_index": 2534,
+            "value_index": 2533
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_vah_distance_ticks",
+            "mask_index": 2536,
+            "value_index": 2535
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling15_vah_prior_level_response_ticks",
+            "mask_index": 2538,
+            "value_index": 2537
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_vwap_distance_ticks",
+            "mask_index": 2540,
+            "value_index": 2539
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_vwap_prior_level_response_ticks",
+            "mask_index": 2542,
+            "value_index": 2541
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_poc_distance_ticks",
+            "mask_index": 2544,
+            "value_index": 2543
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_poc_prior_level_response_ticks",
+            "mask_index": 2546,
+            "value_index": 2545
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_val_distance_ticks",
+            "mask_index": 2548,
+            "value_index": 2547
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_val_prior_level_response_ticks",
+            "mask_index": 2550,
+            "value_index": 2549
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_vah_distance_ticks",
+            "mask_index": 2552,
+            "value_index": 2551
+          },
+          {
+            "field": "gc_d1_observed_profile_rolling60_vah_prior_level_response_ticks",
+            "mask_index": 2554,
+            "value_index": 2553
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_vwap_distance_ticks",
+            "mask_index": 2556,
+            "value_index": 2555
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_vwap_prior_level_response_ticks",
+            "mask_index": 2558,
+            "value_index": 2557
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_poc_distance_ticks",
+            "mask_index": 2560,
+            "value_index": 2559
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_poc_prior_level_response_ticks",
+            "mask_index": 2562,
+            "value_index": 2561
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_val_distance_ticks",
+            "mask_index": 2564,
+            "value_index": 2563
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_val_prior_level_response_ticks",
+            "mask_index": 2566,
+            "value_index": 2565
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_vah_distance_ticks",
+            "mask_index": 2568,
+            "value_index": 2567
+          },
+          {
+            "field": "gc_d1_observed_profile_anchored_segment_vah_prior_level_response_ticks",
+            "mask_index": 2570,
+            "value_index": 2569
+          }
+        ],
+        "field_names_sha256": "99f626ba2a99113627ccc114b8635e6d984e344bf48d759f7058c2184c5d16db",
+        "value_name_prefix": "ctx_cont.",
+        "width": 2727
+      }
+    },
+    "unit_scale_source": "unobserved_prefix_unit_scale",
+    "unobserved_semantics": {
+      "center_and_scale": "Declared units only, never estimated from masked zeros or later rows.",
+      "count": 0,
+      "internal_transformed_min_max_zero": "Storage placeholders only; no empirical support is implied.",
+      "interpretation": "A field absent throughout fit has no demonstrated learned contribution. Report its later observed support separately, without outcome-based row selection or refit.",
+      "later_observed_values": "Preserve every genuine value and mask through the invertible unit transform; no December-style zero projection.",
+      "observed_max": null,
+      "observed_min": null,
+      "raw_masks": "Preserve each genuine source mask; unknown zero and observed zero remain distinct."
+    }
+  },
+  "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_20261112_001",
+  "parent_base_contract_sha256": "3167248a761b06e08a09de3fed3a8ea56a94cd698a52aa3bd9b08e3ff25227f5",
+  "populations": {
+    "mtf_d1": {
+      "artifact": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001/D1_ANCHOR_SPANS.npz",
+        "sha256": "1a62a6b26de1fb09bd219436e68be600a5a05cb527caaef3dc8f86034c2436c1"
+      },
+      "artifact_stat": {
+        "st_ctime_ns": 1794462298876901891,
+        "st_dev": 2096,
+        "st_ino": 286110,
+        "st_mode": 33188,
+        "st_mtime_ns": 1794462298873081146,
+        "st_size": 12580
+      },
+      "lane": "D1",
+      "new_field_names": [
+        "geomline_above_anchor_span_bars",
+        "geomline_below_anchor_span_bars"
+      ],
+      "population": {
+        "available_ns_sha256": "1b2a2e9383547a9b4bf08be928a4cf8ba725aeb301598435e20013a870e30c07",
+        "selected_row_indices_sha256": "d5cc7da7b09bdffc992a624c650a3ffc6d8d5911e245c39429d6d60a383bcda7",
+        "selected_unique_row_count": 360,
+        "time_max_utc": "2024-09-26T22:00:00+00:00",
+        "time_min_utc": "2023-05-09T22:00:00+00:00"
+      },
+      "row_bounds": [
+        3336,
+        3696
+      ]
+    },
+    "mtf_h1": {
+      "artifact": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001/H1_ANCHOR_SPANS.npz",
+        "sha256": "44403a104d6ec1dd43d00e94468437ceccd71b83bedb49075a86bc7baa1b7102"
+      },
+      "artifact_stat": {
+        "st_ctime_ns": 1794462287807347242,
+        "st_dev": 2096,
+        "st_ino": 286106,
+        "st_mode": 33188,
+        "st_mtime_ns": 1794462287803525621,
+        "st_size": 83332
+      },
+      "lane": "H1",
+      "new_field_names": [
+        "geomline_above_anchor_span_bars",
+        "geomline_below_anchor_span_bars"
+      ],
+      "population": {
+        "available_ns_sha256": "b390f98547d6a452b81d66c096dc081e11d69c6612fd53fac66da14ff332d0d7",
+        "selected_row_indices_sha256": "b3b0cf82a464ee5cc48478aa67d1951be1641e5235a4fa74c2a4380a2d63a240",
+        "selected_unique_row_count": 2571,
+        "time_max_utc": "2024-09-29T22:00:00+00:00",
+        "time_min_utc": "2024-04-24T19:00:00+00:00"
+      },
+      "row_bounds": [
+        83079,
+        85650
+      ]
+    },
+    "mtf_h4": {
+      "artifact": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001/H4_ANCHOR_SPANS.npz",
+        "sha256": "26e6fd807d018b8408324c787d12b8a591e27a60a924029ac30b412fdd4222bc"
+      },
+      "artifact_stat": {
+        "st_ctime_ns": 1794462296909218131,
+        "st_dev": 2096,
+        "st_ino": 286108,
+        "st_mode": 33188,
+        "st_mtime_ns": 1794462296905397386,
+        "st_size": 24868
+      },
+      "lane": "H4",
+      "new_field_names": [
+        "geomline_above_anchor_span_bars",
+        "geomline_below_anchor_span_bars"
+      ],
+      "population": {
+        "available_ns_sha256": "71364ec2cda7ca52e1df34d6b5e7e2f38611ee2e52fadc7f1ba542b77d063cfa",
+        "selected_row_indices_sha256": "2370aabbecbd17b03758dd181a5fbc3c26399ccd9581a9c5eb361f39042ff518",
+        "selected_unique_row_count": 744,
+        "time_max_utc": "2024-09-27T18:00:00+00:00",
+        "time_min_utc": "2024-04-08T22:00:00+00:00"
+      },
+      "row_bounds": [
+        21368,
+        22112
+      ]
+    },
+    "mtf_m15": {
+      "artifact": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001/M15_ANCHOR_SPANS.npz",
+        "sha256": "40dfc0df07d5cb46bf2c9b39155d18a440fdbc8c00064be103e58efaedd841e9"
+      },
+      "artifact_stat": {
+        "st_ctime_ns": 1794462275941252722,
+        "st_dev": 2096,
+        "st_ino": 286104,
+        "st_mode": 33188,
+        "st_mtime_ns": 1794462275933609529,
+        "st_size": 319748
+      },
+      "lane": "M15",
+      "new_field_names": [
+        "geomline_above_anchor_span_bars",
+        "geomline_below_anchor_span_bars"
+      ],
+      "population": {
+        "available_ns_sha256": "b5b0a2116266d72ff2925ef9916b82232d955d95ec86f74c90864fb7dd1a121b",
+        "selected_row_indices_sha256": "b74d7583c7f8ad370ec8acbfc2aff3f0b57a82fa8b9dba042f0d92d366e10def",
+        "selected_unique_row_count": 9959,
+        "time_max_utc": "2024-09-29T23:30:00+00:00",
+        "time_min_utc": "2024-04-30T07:00:00+00:00"
+      },
+      "row_bounds": [
+        329741,
+        339700
+      ]
+    },
+    "mtf_m5": {
+      "artifact": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001/M5_ANCHOR_SPANS.npz",
+        "sha256": "a6be6f77d8bddb213c64d2d74c4c3a7df4c0dc012557c633df79c4800f468819"
+      },
+      "artifact_stat": {
+        "st_ctime_ns": 1794462234566627027,
+        "st_dev": 2096,
+        "st_ino": 286102,
+        "st_mode": 33188,
+        "st_mtime_ns": 1794462234558986503,
+        "st_size": 951524
+      },
+      "lane": "M5",
+      "new_field_names": [
+        "geomline_above_anchor_span_bars",
+        "geomline_below_anchor_span_bars"
+      ],
+      "population": {
+        "available_ns_sha256": "3af20cb6f44c95a4d0ebeefbbece8b73dfc4f444e03b6be0ae29f6414b7aeab0",
+        "selected_row_indices_sha256": "d5999966c354bf9dfba62fb21d451f3923a6b5fe6e2acd74f4aca1126d2a3266",
+        "selected_unique_row_count": 29702,
+        "time_max_utc": "2024-09-29T23:50:00+00:00",
+        "time_min_utc": "2024-04-30T22:45:00+00:00"
+      },
+      "row_bounds": [
+        987326,
+        1017028
+      ]
+    },
+    "signal": {
+      "artifact": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001/local_ANCHOR_SPANS.npz",
+        "sha256": "2de160e223c97e38041382b1ac393e2a5c7f0556eacf5ab7e8355427357effb6"
+      },
+      "artifact_stat": {
+        "st_ctime_ns": 1794462173161915728,
+        "st_dev": 2096,
+        "st_ino": 286037,
+        "st_mode": 33188,
+        "st_mtime_ns": 1794462173146635322,
+        "st_size": 954084
+      },
+      "lane": "local",
+      "new_field_names": [
+        "chart.geomline_above_anchor_span_bars",
+        "chart.geomline_below_anchor_span_bars"
+      ],
+      "population": {
+        "available_ns_sha256": "ab019b7ba69d7d5dd651af4d6e8a7b0f2a9018e06674910f8df445c1008829bc",
+        "selected_row_indices_sha256": "aaf7bb699db0eb3602ef5c44ec195780b24368c788f424fddc611270a300d9a1",
+        "selected_unique_row_count": 29782,
+        "time_max_utc": "2024-09-29T23:50:00+00:00",
+        "time_min_utc": "2024-04-30T15:05:00+00:00"
+      },
+      "row_bounds": [
+        987027,
+        1016809
+      ]
+    }
+  },
+  "schema_version": "gx1_exact_anchor_span_normalization_plan_v1",
+  "scope": {
+    "checkpoint_reads": 0,
+    "fold_id": 1,
+    "model_constructions": 0,
+    "model_forwards": 0,
+    "new_field_statistics": 12,
+    "old_field_fit_calls": 0,
+    "old_statistics_refitted": false,
+    "optimizer_steps": 0,
+    "parent_rows": 29574,
+    "physical_surface_rows": 73118,
+    "sidecar_archives": 6,
+    "surface_fit_calls": 6,
+    "target_arrays_decoded": 0,
+    "test_data_used": false
+  },
+  "source_base_head": "f312be89c4417b1d722d2ab91e4cc00c5c6394a1",
+  "source_owners": {
+    "gx1/audit/qualify_market_state_ta_anchor_span_inputs_v1.py": "3edba8032212b8e9c5b4d6319f342d3926ef1eb28fd64c7fe9ab148ebdb46c1d",
+    "gx1/audit/qualify_market_state_ta_anchor_span_normalization_v1.py": "ebe7b181fd8ad943022e7beb4c12a5138801e206afd46e8ec4101fd2d6df32c0",
+    "gx1/contracts/entry_anchor_span_normalization_v1.py": "c5fc8123c6472f197c24a8f952d9ddf2734df4cb75ffd40563f1221d7bfb34e1",
+    "gx1/contracts/entry_model_native_input_normalization_v1.py": "e55d8cfb8a93c2c5ce58fb4f39e733ba55c35e9040dbee50f1d8a8c904ea8ea7",
+    "gx1/contracts/entry_model_native_training_objective_v1.py": "076366e793368bdd079455151cbd6592e4f96432baffaa2239d869c1147cf07b",
+    "gx1/contracts/entry_native_direction_prefix_units_v1.py": "3cd82b79a42e8a48dc3cd6b89a503469b58835bbf5ccb4599fb9ec5ddd7dc59d",
+    "gx1/contracts/gx1_capped_execution_v1.py": "60b1ccf2eda470a84ddded0d8160c628314ebb19f5766b87b70fef7c9aa3ccff",
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "gx1/features/entry_specialist_feature_groups_v1.py": "38da0c25aaadb2bd0108eb427578163aa76c73dd7fe9367aa86fed185a1e0f27",
+    "gx1/models/entry_v10/entry_v10_input_normalization.py": "b9bfa16cc61c3772a1621325c25f3ae0631c735b5f4b3dafdf0a5fe63558f148",
+    "scripts/gx1_capped_run.sh": "b7c0383ee2b398b71bc2556493437f421e8d20a41b6652a149a6389e40a0aaaa",
+    "tests/test_entry_anchor_span_normalization_v1.py": "1acf91667d4ebe6eebb6506f01b603cece7a5d64de2ef5d6dbff33544ee36cc8",
+    "tests/test_entry_anchor_span_prefix_units_v1.py": "3bdfe8d600db7a58e7e8eeb43f2e5dce5970047e46c2a0f9b75a7ec4dcd91f1e",
+    "tests/test_entry_native_direction_prefix_units.py": "19cf3070fb8a66e4a6e057d761aa60a19ac243ac0bec192b3e9f0d4620da4da4",
+    "tests/test_market_state_mature_fold1_prefix_units.py": "65bab25768b21f6c7a0bad39e5154bad896b59db88c3f2748f5f1f50adceaea3",
+    "tests/test_market_state_ta_anchor_span_normalization_v1.py": "1f2627f8882ef5d2cce9596f8df4ab8674267151432dc6ff48036c94a598aa88"
+  },
+  "stage": "market_state_ta_trendline_anchor_span_normalization_20261112_001"
+}

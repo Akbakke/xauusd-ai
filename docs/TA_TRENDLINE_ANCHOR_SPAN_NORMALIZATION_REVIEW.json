@@ -1,0 +1,82 @@
+{
+  "actual_model_baseline_complete": false,
+  "actual_normalization_fitted": false,
+  "full_feature_view_gather_qualified": false,
+  "import_smoke": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_PREP_20261112_001/IMPORT_SMOKE.log",
+    "sha256": "0a357c8098904832d31dbc0c007a6bf07bb2a70c7254ec42a22284363a8b14b7"
+  },
+  "inputs": {
+    "parent": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_MATURE_FOLD1_NORMALIZATION_20261107_001/PREFIX_NORMALIZATION_FOLD_1.json",
+      "sha256": "e24a2b8d1ae09f6f10c2de7a7097353b52aa2f2118287535e242778272022d54"
+    },
+    "physical_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001.json",
+      "sha256": "889161060a9abb9c028abffe3246420f06a63891ee9a51305d3e8173d970fbf1"
+    },
+    "physical_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001/RESULT.json",
+      "sha256": "8878d17a5bf114fcf9cd5eb0e74792ddc5df068b95b67951b594759d5b2b05bb"
+    },
+    "physical_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001/TERMINAL.json",
+      "sha256": "9414bc5dd6e07ff565e4cb0f3db7c2364bbea3d954a9708c03fc91c131034007"
+    }
+  },
+  "method": "Existing TRAIN median/IQR and median-positive-deviation fallback for only the two new fields on each of six already-qualified row unions. Every old statistic is copied by name; masks/domains/aliases and parent lineage remain explicit. No new binary inference or observation mask.",
+  "new_units_profile_sha256": "accae7dfbc704c2f1af33d4fe71ffa7c270b675c5f1f13ce0d18d15381a93e1e",
+  "plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_20261112_001.json",
+    "sha256": "07653339e511831d34f17f3ad12120e4a1ffea48795bb8d1ccf0daa0a68210e3"
+  },
+  "predictive_value_claimed": false,
+  "scope": {
+    "checkpoint_reads": 0,
+    "fold_id": 1,
+    "model_constructions": 0,
+    "model_forwards": 0,
+    "new_field_statistics": 12,
+    "old_field_fit_calls": 0,
+    "old_statistics_refitted": false,
+    "optimizer_steps": 0,
+    "parent_rows": 29574,
+    "physical_surface_rows": 73118,
+    "sidecar_archives": 6,
+    "surface_fit_calls": 6,
+    "target_arrays_decoded": 0,
+    "test_data_used": false
+  },
+  "source_base_head": "f312be89c4417b1d722d2ab91e4cc00c5c6394a1",
+  "source_contract_changes": [
+    "Exact third declared-unit profile remaps only physical signal indices; old profiles/plans unchanged.",
+    "Explicit normalization extension embeds immutable parent contract and physical sidecar result; existing normalizer dispatch reconstructs and validates the exact extension.",
+    "Existing fullTA projection remains the consumer path; actual view/gather and model baseline are still pending."
+  ],
+  "source_owners": {
+    "gx1/audit/qualify_market_state_ta_anchor_span_inputs_v1.py": "3edba8032212b8e9c5b4d6319f342d3926ef1eb28fd64c7fe9ab148ebdb46c1d",
+    "gx1/audit/qualify_market_state_ta_anchor_span_normalization_v1.py": "ebe7b181fd8ad943022e7beb4c12a5138801e206afd46e8ec4101fd2d6df32c0",
+    "gx1/contracts/entry_anchor_span_normalization_v1.py": "c5fc8123c6472f197c24a8f952d9ddf2734df4cb75ffd40563f1221d7bfb34e1",
+    "gx1/contracts/entry_model_native_input_normalization_v1.py": "e55d8cfb8a93c2c5ce58fb4f39e733ba55c35e9040dbee50f1d8a8c904ea8ea7",
+    "gx1/contracts/entry_model_native_training_objective_v1.py": "076366e793368bdd079455151cbd6592e4f96432baffaa2239d869c1147cf07b",
+    "gx1/contracts/entry_native_direction_prefix_units_v1.py": "3cd82b79a42e8a48dc3cd6b89a503469b58835bbf5ccb4599fb9ec5ddd7dc59d",
+    "gx1/contracts/gx1_capped_execution_v1.py": "60b1ccf2eda470a84ddded0d8160c628314ebb19f5766b87b70fef7c9aa3ccff",
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "gx1/features/entry_specialist_feature_groups_v1.py": "38da0c25aaadb2bd0108eb427578163aa76c73dd7fe9367aa86fed185a1e0f27",
+    "gx1/models/entry_v10/entry_v10_input_normalization.py": "b9bfa16cc61c3772a1621325c25f3ae0631c735b5f4b3dafdf0a5fe63558f148",
+    "scripts/gx1_capped_run.sh": "b7c0383ee2b398b71bc2556493437f421e8d20a41b6652a149a6389e40a0aaaa",
+    "tests/test_entry_anchor_span_normalization_v1.py": "1acf91667d4ebe6eebb6506f01b603cece7a5d64de2ef5d6dbff33544ee36cc8",
+    "tests/test_entry_anchor_span_prefix_units_v1.py": "3bdfe8d600db7a58e7e8eeb43f2e5dce5970047e46c2a0f9b75a7ec4dcd91f1e",
+    "tests/test_entry_native_direction_prefix_units.py": "19cf3070fb8a66e4a6e057d761aa60a19ac243ac0bec192b3e9f0d4620da4da4",
+    "tests/test_market_state_mature_fold1_prefix_units.py": "65bab25768b21f6c7a0bad39e5154bad896b59db88c3f2748f5f1f50adceaea3",
+    "tests/test_market_state_ta_anchor_span_normalization_v1.py": "1f2627f8882ef5d2cce9596f8df4ab8674267151432dc6ff48036c94a598aa88"
+  },
+  "source_test_qualification": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_PREP_20261112_001/FOCUSED_QUALIFICATION.json",
+    "sha256": "0d5314647bfb025b4aaca02bece1c84015da3c44219e7f5ed96ebee22f4dff9f"
+  },
+  "stage": "market_state_ta_trendline_anchor_span_normalization_20261112_001",
+  "status": "SOURCE_AND_METADATA_QUALIFIED_EXACT_TWELVE_STATISTIC_FIT_ADMITTED_PENDING_CLEAN_PREFLIGHT",
+  "test_data_used": false,
+  "training_authorized": false
+}
