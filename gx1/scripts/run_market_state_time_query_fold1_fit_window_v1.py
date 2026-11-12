@@ -223,7 +223,8 @@ def _feature_batch(prepared: dict, view: dict, receipts: dict,
         gc_surfaces=None if ta_sf else prepared['gc']['surfaces'],
         gc_layout=None if ta_sf else prepared['gc']['layout'],
         batch_parent_rows=rows,
-        unobserved_units_profile=receipts['fold1']['profile'])
+        unobserved_units_profile=receipts['fold1']['profile'],
+        **({'anchor_span_inputs': prepared['anchor_span_inputs']} if 'anchor_span_inputs' in prepared else {}))
     _need(set(raw['features']) == FEATURE_KEYS
           and raw['witness']['parent_rows'] == rows.tolist()
           and raw['witness']['decision_ns'] == issues.tolist()

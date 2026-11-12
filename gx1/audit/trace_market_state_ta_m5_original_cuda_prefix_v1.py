@@ -65,14 +65,17 @@ def _bookend(recipe, plan, policy_path, policy_sha):
         campaign.require_binding(value, label='original CUDA prefix bookend', verify_file=True)
 
 
-def _require_execution_bounds(recipe, *, short_learning, non_m5_learning=False, tf_activity_learning=False):
+def _require_execution_bounds(recipe, *, short_learning, non_m5_learning=False, tf_activity_learning=False, anchor_span_learning=False):
     """Keep the consumed replay separate from the one admitted c171 experiment."""
-    _need(type(short_learning) is type(non_m5_learning) is type(tf_activity_learning) is bool
+    _need(type(short_learning) is type(non_m5_learning) is type(tf_activity_learning) is type(anchor_span_learning) is bool
+          and (not anchor_span_learning or tf_activity_learning)
           and not (non_m5_learning and tf_activity_learning)
           and (not (non_m5_learning or tf_activity_learning) or short_learning), 'SHORT_MODE')
     independent_heads = non_m5_learning or tf_activity_learning
     if short_learning:
-        if tf_activity_learning:
+        if anchor_span_learning:
+            from gx1.contracts import market_state_ta_anchor_span_short_learning_v1 as short
+        elif tf_activity_learning:
             from gx1.contracts import market_state_ta_tf_activity_short_learning_v1 as short
         elif non_m5_learning:
             from gx1.contracts import market_state_ta_non_m5_short_learning_v1 as short
@@ -83,7 +86,7 @@ def _require_execution_bounds(recipe, *, short_learning, non_m5_learning=False, 
               and recipe['max_training_forwards'] == UPDATES
               and recipe['max_evaluation_forwards'] == (512 if independent_heads else 32)
               and recipe['max_forwards'] == (768 if independent_heads else 288)
-              and (not independent_heads or recipe['max_model_constructions'] == 2
+              and (not independent_heads or recipe['max_model_constructions'] == (1 if anchor_span_learning else 2)
                   and recipe['max_initial_rng_imports'] == 1
                   and recipe.get('dedicated_tf_activity' if tf_activity_learning else 'dedicated_non_m5_side') is True
                   and recipe.get('dedicated_non_m5_side' if tf_activity_learning else 'dedicated_tf_activity', False) is False)
@@ -205,7 +208,8 @@ def _short_train_panel(model, *, recipe, counters, evaluate, gather_truth, captu
 def run_original_cuda_prefix(*, policy_path: Path, policy_file_sha256: str,
                              progress_path: Path, short_learning: bool = False,
                              non_m5_learning: bool = False,
-                             tf_activity_learning: bool = False) -> dict:
+                             tf_activity_learning: bool = False,
+                             anchor_span_learning: bool = False) -> dict:
     from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_trainer_execution
     from gx1.contracts import entry_native_direction_research_campaign_v1 as authority
     from gx1.scripts import run_entry_native_direction_research_window_v1 as common
@@ -214,10 +218,13 @@ def run_original_cuda_prefix(*, policy_path: Path, policy_file_sha256: str,
     window, plan, invocation, marker, recipe = authority.require_native_direction_research_context(
         policy_path, policy_file_sha256, progress_path)
     _require_execution_bounds(recipe, short_learning=short_learning,
-        non_m5_learning=non_m5_learning, tf_activity_learning=tf_activity_learning)
+        non_m5_learning=non_m5_learning, tf_activity_learning=tf_activity_learning,
+        anchor_span_learning=anchor_span_learning)
     independent_heads = non_m5_learning or tf_activity_learning
     if short_learning:
-        if tf_activity_learning:
+        if anchor_span_learning:
+            from gx1.contracts import market_state_ta_anchor_span_short_learning_v1 as short
+        elif tf_activity_learning:
             from gx1.contracts import market_state_ta_tf_activity_short_learning_v1 as short
         elif non_m5_learning:
             from gx1.contracts import market_state_ta_non_m5_short_learning_v1 as short
@@ -258,6 +265,8 @@ def run_original_cuda_prefix(*, policy_path: Path, policy_file_sha256: str,
             'loss_component_owner_calls', 'archive_decodes', 'published_panel_bytes')})
     if independent_heads:
         counters['initial_rng_imports'] = 0
+    if anchor_span_learning:
+        counters['input_sidecar_archive_decodes'] = 0
     started = time.monotonic()
     model_started = None
     provider = prepared = model = optimizer = initial_saved = target_saved = None
@@ -271,6 +280,7 @@ def run_original_cuda_prefix(*, policy_path: Path, policy_file_sha256: str,
     measurements, measurement_refs, panel_captures, import_proof = {}, {}, {}, {}
     initial_restore_exact = evaluation_state_unchanged = False
     final_state_ref = None
+    initial_model_sha = recipe.get('expected_initial_model_state_sha256')
 
     def clock_guard():
         now = time.monotonic()
@@ -311,12 +321,14 @@ def run_original_cuda_prefix(*, policy_path: Path, policy_file_sha256: str,
         receipts = (origin['receipts'] if short_learning else zero.load_ta_input_receipts(
             current_source_owners={name: value['sha256'] for name, value in recipe['source_owners'].items()}))
         view = origin['view'] if short_learning else zero._bind_ta_view(receipts, dedicated_m5_side=True)
-        view_ref = original['input_refs']['ta_candidate_view']
+        view_ref = None if anchor_span_learning else original['input_refs']['ta_candidate_view']
         _need((independent_heads or view == authority.campaign.read_bound_json(Path(view_ref['path']), view_ref['sha256']))
               and view['contract_sha256'] == recipe['expected_view_sha256'], 'EXACT_ORIGINAL_VIEW')
         bound = load_bound_time_query_targets()
         future_bound = load_bound_future_displacement()
-        provider, _, prepared, rows, issues = runner._prepared_fold1(receipts, view, np=np)
+        prepare = short.prepare_fold1 if anchor_span_learning else runner._prepared_fold1
+        provider, _, prepared, rows, issues = prepare(receipts, view, np=np,
+            **({'counters': counters} if anchor_span_learning else {}))
         objective.require_m5_equal_observation_axes(rows, issues)
         order = torch.from_numpy(rows.copy())
         order_sha = tree_sha(order)
@@ -328,7 +340,7 @@ def run_original_cuda_prefix(*, policy_path: Path, policy_file_sha256: str,
         _need(trainer._GRAD_CLIP_NORM == numerical['grad_clip_norm'], 'CANONICAL_CLIP')
         counters['model_constructions'] += 1
         backbone = views.build_native_direction_research_model(
-            origin['source_view'] if independent_heads else view, prefix_normalization=receipts['fold1']['normal'],
+            origin['source_view'] if independent_heads and not anchor_span_learning else view, prefix_normalization=receipts['fold1']['normal'],
             constructor_metadata=receipts['constructor'], device=torch.device('cpu') if short_learning else device,
             unobserved_units_profile=receipts['fold1']['profile'])
         model = NativeFutureDualModel(backbone)
@@ -339,8 +351,32 @@ def run_original_cuda_prefix(*, policy_path: Path, policy_file_sha256: str,
             model.state_model.feature_view_identity, recipe=original,
             verify_files=True, ta_sf=True)
         _need(model.research_objective['contract_sha256'] == (original['expected_model_contract_sha256']
-              if independent_heads else recipe['expected_model_contract_sha256']), 'EXACT_MODEL_CONTRACT')
-        if independent_heads:
+              if independent_heads and not anchor_span_learning else recipe['expected_model_contract_sha256']), 'EXACT_MODEL_CONTRACT')
+        if anchor_span_learning:
+            saved = common._load_state(source_ref, torch=torch,
+                maximum=recipe['max_checkpoint_bytes'], counters=counters)
+            counters['checkpoint_loads'] += 1
+            _need(saved['model_state_sha256'] == model_sha(saved['model_state']) == short.PARENT_MODEL_SHA
+                and saved['cursor'] == saved['optimizer_updates'] == saved['skipped_batches'] == 0
+                and torch.equal(saved['parent_order'], order)
+                and tree_sha(saved['rng_state']) == saved['rng_state_sha256'] == recipe['initial_rng_state_sha256'],
+                'ANCHOR_SPAN_ACTUAL_PARENT_INITIAL')
+            migration = state.import_anchor_span_activity_initial(saved, model,
+                source_field_names=origin['source_field_names'],
+                source_profile_sha256=origin['source_view']['entry_execution_profile']['contract_sha256'],
+                expected_model_state_sha256=short.PARENT_MODEL_SHA)
+            initial_model_sha = migration['model_state_sha256']
+            _need(migration['expanded_parameter_tensors'] == 14 and migration['added_parameters'] == 2314,
+                  'ANCHOR_SPAN_EXACT_ADDITION')
+            source_modes = migration['module_training']
+            source_initial_rng = copy.deepcopy(saved['rng_state'])
+            del saved
+            model.to(device)
+            view_identity = copy.deepcopy(model.state_model.feature_view_identity)
+            import_proof = dict(source_checkpoint=source_ref,migration=migration,
+                rng_policy='restore_actual_activity_INITIAL_rng_after_name_mapped_import',
+                optimizer_initialization=recipe['optimizer_initialization'])
+        elif independent_heads:
             saved = common._load_state(source_ref, torch=torch,
                 maximum=recipe['max_checkpoint_bytes'], counters=counters)
             counters['checkpoint_loads'] += 1
@@ -422,7 +458,7 @@ def run_original_cuda_prefix(*, policy_path: Path, policy_file_sha256: str,
                       'NON_M5_MATCHED_TRAINING_MODES')
                 trainer._restore_attended_session_rng_state(source_initial_rng, device=device)
                 counters['initial_rng_imports'] += 1
-                _need(tree_sha(trainer._attended_session_rng_state(device=device)) == short.INITIAL_RNG_SHA256,
+                _need(tree_sha(trainer._attended_session_rng_state(device=device)) == recipe['initial_rng_state_sha256'],
                       'NON_M5_MATCHED_INITIAL_RNG')
                 del source_initial_rng, source_modes
             fresh = state.capture_fold1_fit_state(
@@ -443,7 +479,7 @@ def run_original_cuda_prefix(*, policy_path: Path, policy_file_sha256: str,
             source_commit=plan['source_commit'] if short_learning else recipe['original_source_commit'], device=device)
         counters['strict_full_state_restore_returns'] += 1
         _need(restored == {'cursor': 0, 'optimizer_updates': 0, 'skipped_batches': 0}
-              and initial_saved['model_state_sha256'] == recipe['expected_initial_model_state_sha256']
+              and initial_saved['model_state_sha256'] == initial_model_sha
               and not optimizer.state, 'EXACT_ORIGINAL_INITIAL')
         fresh = state.capture_fold1_fit_state(
             model, optimizer, numerical_recipe=numerical, feature_view_identity=view_identity,
@@ -648,7 +684,7 @@ def run_original_cuda_prefix(*, policy_path: Path, policy_file_sha256: str,
         _need(cursor == ROWS and counters['optimizer_updates'] == UPDATES, 'PREFIX_COMPLETE')
         if short_learning:
             if independent_heads:
-                _need(tree_sha(trainer._attended_session_rng_state(device=device)) == short.FINAL_RNG_SHA256,
+                _need(tree_sha(trainer._attended_session_rng_state(device=device)) == recipe['terminal_rng_state_sha256'],
                       'NON_M5_MATCHED_TERMINAL_RNG')
                 state_proofs['original_training_rng_endpoints_matched'] = True
             measure_short_train('FINAL_TRAIN')
@@ -684,10 +720,12 @@ def run_original_cuda_prefix(*, policy_path: Path, policy_file_sha256: str,
                 strict_full_state_restore_returns=1,head_tensor_imports=4,
                 archive_decodes=1,loss_component_owner_calls=32)
         if independent_heads:
-            expected_counts.update(model_constructions=2,model_construction_returns=2,forwards=768,forward_returns=768,
-                evaluation_forwards=512,head_tensor_imports=20 if tf_activity_learning else 16,
+            expected_counts.update(model_constructions=1 if anchor_span_learning else 2,model_construction_returns=1 if anchor_span_learning else 2,forwards=768,forward_returns=768,
+                evaluation_forwards=512,head_tensor_imports=0 if anchor_span_learning else 20 if tf_activity_learning else 16,
                 loss_component_owner_calls=512,initial_rng_imports=1,
                 extra_target_gathers=1536)
+        if anchor_span_learning:
+            expected_counts['input_sidecar_archive_decodes'] = 6
         _need(all(counters[key] == value for key,value in expected_counts.items()),
               'EXACT_EXECUTION_COUNTS')
         _need(initial_saved['contract_sha256'] == tree_sha({
@@ -705,7 +743,7 @@ def run_original_cuda_prefix(*, policy_path: Path, policy_file_sha256: str,
         if prepared is not None:
             try:
                 from gx1.audit import qualify_market_state_mature_prefix_normalization_v1 as base
-                base._release_pages(provider,prepared)
+                (short.release_inputs if anchor_span_learning else base._release_pages)(provider,prepared)
             except BaseException as exc:
                 error = (error + '; ' if error else '') + 'cleanup: ' + type(exc).__name__ + ': ' + str(exc)
         prepared = provider = model = optimizer = initial_saved = target_saved = None
@@ -766,7 +804,7 @@ def run_original_cuda_prefix(*, policy_path: Path, policy_file_sha256: str,
             all_panels_complete=set(measurements) == {'INITIAL_TRAIN','FINAL_TRAIN'},
             canonical_loss_unchanged=source_unchanged, candidate_selection=False, later_evaluation_forwards=0,
             parameter_change_observed=(state_proofs['final']['model_state_sha256']
-                != recipe['expected_initial_model_state_sha256']) if 'final' in state_proofs else None,
+                != initial_model_sha) if 'final' in state_proofs else None,
             scope_limit='One unchanged-loss 256-update chronological TRAIN prefix from c171 with fresh empty AdamW; all active parameters and genuine features retained. Same16 intact B16 TRAIN groups before/after, not256 independent samples or held-out generalization. Fresh initial and final states are evidence only; no canonical future resume, selection or predictive-value authority.')
     if independent_heads:
         decision_scope = 'TA_TF_ACTIVITY_SHORT_LEARNING' if tf_activity_learning else 'TA_NON_M5_SHORT_LEARNING'
@@ -776,6 +814,9 @@ def run_original_cuda_prefix(*, policy_path: Path, policy_file_sha256: str,
             scope_limit=('One matched256-update/4096chronologicalTRAIN comparison of independent timeframe activity heads; original side configuration, features/targets/loss/AdamW, fresh empty optimizer and matched original initial RNG. Full used4096-row INITIAL/FINAL measurements; no heldout/full-history/selection/promotion claim.' if tf_activity_learning else
                 'One matched256-update/4096chronologicalTRAIN comparison of independent non-M5 sides; original features/targets/loss/AdamW, fresh empty optimizer and matched original initial RNG. Full used4096-row INITIAL/FINAL measurements; no heldout/full-history/selection/promotion claim.'))
         payload['dedicated_tf_activity' if tf_activity_learning else 'dedicated_non_m5_side'] = True
+    if anchor_span_learning:
+        payload.update(decision=('PASS_' if outcome=='COMPLETE' else 'FAIL_')+'TA_ANCHOR_SPAN_SHORT_LEARNING',
+            anchor_span_inputs=True,scope_limit='One additive two-span-input comparison: matched actual INITIAL within predeclared FP32 tolerances, unchanged 4096TRAIN/256updates/loss/queries/AdamW/RNG. All original fields retained; no heldout, full-history, selection or economic-edge claim.')
     result = common._json(root/'RESULT.json',payload,counters,recipe['max_published_json_bytes'])
     common._json(root/'TERMINAL.json', {
         'status':outcome,'exit_code':0 if outcome=='COMPLETE' else 1,'result':result,

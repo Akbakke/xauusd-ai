@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-12T05:15:29.864573+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_QUALIFIED_VIEW_PENDING",
+  "status": "TA_DIRECTION_EDGE_CAUSE_ANCHOR_SPAN_COMPARISON_SOURCE_PREPARED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -9229,7 +9229,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Bind and qualify the actual expanded feature-view/gather using immutable parent arrays plus the already-qualified span sidecars and new exact normalization. Reuse original clocks, targets, all old features/statistics and completed checks; no full rebuild or old-plan relaunch. Establish a fresh actual initial model baseline only after the composed input path is qualified, then a bounded learning comparison. Normalization is qualified, model consumption and predictive benefit are not. No new data/model/training invocation is admitted; full-history30-40epochs remain later scaling.",
+    "next_action": "Complete clean-source canonical preflight and admit exactly the prepared single4096TRAIN/256update anchor-span comparison. Existing runner must first compose the qualified inputs, map old INITIAL weights by field name, restore original RNG and pass all4096INITIAL predictions/256losses within predeclared FP32 tolerances before any update. No additional research workstream, full-history expansion or altered metrics. Follow execution_contract_20261112 and its60minute preparation budget.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -75685,7 +75685,7 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_QUALIFIED_VIEW_PENDING",
+    "status": "ACTIVE_ANCHOR_SPAN_SINGLE_COMPARISON_PREPARED_NOT_ADMITTED",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
@@ -75699,10 +75699,10 @@
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Bind and qualify the actual expanded feature-view/gather using immutable parent arrays plus the already-qualified span sidecars and new exact normalization. Reuse original clocks, targets, all old features/statistics and completed checks; no full rebuild or old-plan relaunch. Establish a fresh actual initial model baseline only after the composed input path is qualified, then a bounded learning comparison. Normalization is qualified, model consumption and predictive benefit are not. No new data/model/training invocation is admitted; full-history30-40epochs remain later scaling.",
+    "next_action": "Complete clean-source canonical preflight and admit exactly the prepared single4096TRAIN/256update anchor-span comparison. Existing runner must first compose the qualified inputs, map old INITIAL weights by field name, restore original RNG and pass all4096INITIAL predictions/256losses within predeclared FP32 tolerances before any update. No additional research workstream, full-history expansion or altered metrics. Follow execution_contract_20261112 and its60minute preparation budget.",
     "active_stage": "market_state_ta_trendline_anchor_span_normalization_20261112_001",
     "previous_goal_turn_classification": "PROGRESS_FULL_PAIRED_ENDPOINTS_EXACT_AND_M5_RANK_CALIBRATION_TRADEOFF_LOCALIZED",
-    "last_goal_turn_classification": "PROGRESS_TWELVE_NEW_TRAIN_STATISTICS_QUALIFIED_AND_6532_OLD_FIELD_STATISTICS_PRESERVED",
+    "last_goal_turn_classification": "PROGRESS_MATCHED_INITIAL_IMPORT_AND_EXISTING_SHORT_RUNNER_CONNECTED_METADATA_PREFLIGHT_PASS",
     "latest_tail_factor_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_ALL_TF_TAIL_FACTOR_REVIEW.json",
       "sha256": "5da978f765b0ad1ac001023501be7665989270d8353d768b801b9e1b29406c0f"
@@ -75762,6 +75762,73 @@
     "trendline_anchor_span_normalization": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_REVIEW.json",
       "sha256": "3663f051c3d35aeeb0957eb80d12556e1d851b557d3b511c1c7848a91a1b1afc"
+    },
+    "operator_focus_correction_20261112": {
+      "request": "Koder du deg helt bort nå, eller angriper du problemet direkte?",
+      "decision": "Prioritize one direct matched predictive comparison; stop additional support-code expansion.",
+      "draft_paths": [
+        "gx1/contracts/entry_anchor_span_feature_inputs_v1.py",
+        "gx1/contracts/entry_anchor_span_feature_view_v1.py"
+      ],
+      "draft_integrated": true,
+      "draft_tested": true,
+      "new_model_or_training_started": false,
+      "new_numerical_plan_admitted": false,
+      "qualification_scope": "Metadata and synthetic gather only; no current physical-data gather, actual model INITIAL or learning yet."
+    },
+    "execution_contract_20261112": {
+      "question": "Do the two qualified anchor-span fields improve M5 ranking and probability calibration under the same short TRAIN-learning setup?",
+      "allowed_change": "Append the two span fields through the existing gather/normalization path and map the existing INITIAL by field name; preserve all old features, heads, targets and numerical choices.",
+      "fixed_comparison": {
+        "train_rows": 4096,
+        "optimizer_updates": 256,
+        "batch_size": 16,
+        "new_learning_runs": 1,
+        "same_parent_order_queries_optimizer_and_initial_rng": true,
+        "fresh_actual_initial_check_required": true
+      },
+      "metrics": [
+        "M5 state and future AUC",
+        "M5 state and future Brier/log loss",
+        "original total loss and all TF components"
+      ],
+      "decision_rule": "Report improvement, deterioration or mixed/inconclusive evidence across the predeclared metrics. No metric selection, threshold search or economic-edge claim from used TRAIN.",
+      "reuse": "Existing arrays, sidecars, normalizations, original short-run reference, canonical slicers, model/loss/optimizer and hardware guards. Rerun only affected checks plus mandatory repository gates.",
+      "forbidden_expansion": [
+        "generic input or provenance framework",
+        "additional diagnostic campaigns before this comparison",
+        "unrelated model changes or refactoring",
+        "full-history or epoch expansion",
+        "new indicator selection or removal",
+        "relabeling old initial results as the changed model baseline"
+      ],
+      "checkpoint": "The next implementation checkpoint must deliver the concrete comparison preflight or identify the exact remaining blocker. Do not open another preparatory workstream.",
+      "scope_change_rule": "Report the measured blocker, smallest necessary deviation and effect on the agreed experiment before expanding scope. Routine fixes inside the agreed experiment do not require repeated approval.",
+      "reporting_rule": "Report the experiment question, measured result and next decision. Counts of code, checks or documents are not evidence of improved edge.",
+      "current_authority": "No new numerical/model/training plan admitted yet; all existing closed scope and consumed-plan guards remain.",
+      "implementation_budget": {
+        "active_work_minutes": 60,
+        "start": "next implementation work after this operator correction",
+        "includes": "source inspection, edits, focused checks and experiment preflight",
+        "excludes": "runtime of the separately admitted fixed native experiment",
+        "on_limit": "Stop further implementation and report the exact blocker and smallest scope/budget deviation; no automatic extension or new preparatory workstream.",
+        "started_utc": "2026-11-12T06:51:11.523810+00:00",
+        "checkpoint_deadline_utc": "2026-11-12T07:51:11.523810+00:00"
+      }
+    },
+    "anchor_span_comparison_preparation": {
+      "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_001",
+      "status": "SOURCE_PREPARED_NOT_ADMITTED",
+      "fixed_train_rows": 4096,
+      "fixed_updates": 256,
+      "fresh_actual_initial_required": true,
+      "actual_model_baseline_complete": false,
+      "training_started": false,
+      "new_learning_runs_completed": 0,
+      "metadata_preflight": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_001/DRAFT_PREFLIGHT.json",
+      "gather_checks": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_001/BRIDGE_TESTS.xml",
+      "initial_checks": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_001/INITIAL_BRIDGE_TESTS.xml",
+      "alias_recheck": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_001/INITIAL_BRIDGE_TESTS_002.xml"
     }
   },
   "market_state_ta_fusion_observation_20261111_001": {
@@ -80045,5 +80112,19 @@
     "normalization_qualified": true,
     "full_feature_view_gather_qualified": false,
     "actual_model_baseline_complete": false
+  },
+  "market_state_ta_anchor_span_short_learning_20261112_001": {
+    "status": "PREPARED_NOT_ADMITTED",
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_001/RUNTIME",
+    "full_epoch_training_allowed": false,
+    "test_data_used": false
   }
 }

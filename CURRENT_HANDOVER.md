@@ -6,7 +6,7 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_QUALIFIED_VIEW_PENDING.
+TA_DIRECTION_EDGE_CAUSE_ANCHOR_SPAN_COMPARISON_SOURCE_PREPARED.
 Målet11.11 er aktivt: avklar og rett målte svakheter i indikatorrepresentasjon,
 sammensetting og retningslæring. Korte runder er bevisst feilsøking, ikke kapasitetsdom.
 Full kvalifisert TRAIN-historikk og30–40epoker er senere skalering.
@@ -16,6 +16,27 @@ Alle tidligere engangsplaner er konsumert. Ingen ny data-/modell-/treningsadmisj
 Training/native_training/native_launch/full_epoch/full_val er false.
 TEST, Entry/Exit-evaluering, broker, handel, spending og promotion stengt; GC på pause.
 Ingen endring av Windows-treningsoppgaver.
+
+Brukerens fokuskorreksjon12.11: støttearbeidet har blitt for omfattende i forhold til
+direkte prediktiv måling. Generisk utbygging er stanset. De to konkrete koblingsfilene
+entry_anchor_span_feature_inputs_v1.py og entry_anchor_span_feature_view_v1.py
+er nå koblet inn i eksisterende binder/gather. 37unike fokuserte tilfeller er
+dekket: først28PASS/9FAIL, deretter9rettedePASS; feilene gjaldt syntetiske
+kildereferanser og DataFrame/backing-deling. Originale testkvitteringer beholdt i
+MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_001/BRIDGE_TESTS*.
+Dette er metadata/syntetikk, ikke faktisk fysisk gather eller modellbaseline.
+Ingen modell/trening er startet. NEXT_RUN_POLICY sin execution_contract_20261112
+låser forsøket til ett spørsmål, én endring og én fast kort sammenligning.
+Neste implementeringskontroll skal gi konkret forsøks-preflight eller eksakt
+blokkering; ingen ny forberedende arbeidsstrøm åpnes.
+Forberedelsen har60minutter effektivt arbeid fra neste implementeringsstart;
+ved grensen rapporteres konkret blokkering og nødvendig avvik før videre utvidelse.
+Gjør bare nødvendig kobling og matchet fersk INITIAL for én fast kort sammenligning
+(samme4096TRAIN-rader/256updates og eksisterende mål/oppsett der gjenbruk er gyldig).
+Mål M5-rangering og sannsynlighetskalibrering; behold totaltap/alleTF i vurderingen.
+Ingen flere generiske støtteverktøy eller gjentatte diagnosekampanjer. Hvis spanfeltene
+ikke gir målt gevinst, gå tilbake til det observerte sammensettings-/kalibreringsproblemet.
+Konkret kvalifisert plan kreves fortsatt før ny kjøring; teknisk PASS er ikke edge.
 
 ## Konkret rettelse: trendlinjens andre anker
 
@@ -157,3 +178,23 @@ Fersk faktisk baseline kreves før en avgrenset læringssammenligning.
 Ingen ny numerisk plan er innrømmet. Fullhistorikk/30–40epoker er senere skalering.
 Senere generalisering, familienytte, rettelsens prediktive gevinst og økonomisk edge
 må fortsatt måles. Målet er aktivt.
+
+## Avgrenset sammenligning klargjort12.11
+
+Konkret gather og navnebasert INITIAL-import er koblet til eksisterende kort-runner.
+14parametertensorer utvides;2314nye parametere settes0. Gamle lærte verdier
+kopieres etter felt-/modulnavn; nye normaliserings-/rutingbuffere beholdes.
+En manglende remapping av persistent input_norm_alias_signal_indices ble
+fanget i kildekontroll og rettet før faktisk modellbruk.
+101fokuserte initial/runner/campaign-tilfeller PASS;22berørte importtilfeller
+PASS etter aliasrettelsen (én ny avvisningsgrense). Tidligere gatherbevis gjenbrukes.
+Metadata-preflight PASS; ingen markedsarray, checkpoint eller modell dekodet.
+Aktuell ROOT: /home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_001.
+Dette er samme ene forsøk i execution_contract_20261112, ingen ny forsøksserie.
+Runtime skal måle fersk INITIAL på alle4096rader før første backward/update.
+Toleranser fastsatt før kjøring: logits atol2e-6/rtol1e-6, batchtap atol5e-6;
+akser/targets må være byteeksakte. Etterpå samme256updates, alle4096FINAL-rader.
+Opprinnelig aktivitet-INITIAL og RNG gjenbrukes som kilde, med fersk tom AdamW.
+Én ny scope i eksisterende campaign/capped-run/materializer; samme vakter og grenser.
+Ren kilde, obligatoriske gater og konkret policyadmisjon gjenstår før launch.
+Ingen ny modellbaseline, trening eller prediktiv gevinst er påstått.

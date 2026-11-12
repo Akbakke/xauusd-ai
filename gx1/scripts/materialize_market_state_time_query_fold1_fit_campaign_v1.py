@@ -51,7 +51,10 @@ def materialize(binding_path: Path) -> dict:
     from gx1.contracts import market_state_ta_m5_short_learning_v1 as short
     from gx1.contracts import market_state_ta_non_m5_short_learning_v1 as non_m5
     from gx1.contracts import market_state_ta_tf_activity_short_learning_v1 as activity
-    if binding_path == non_m5.ROOT / 'PREPARATION_EXECUTION_BINDING.json':
+    from gx1.contracts import market_state_ta_anchor_span_short_learning_v1 as anchor_span
+    if binding_path == anchor_span.ROOT / 'PREPARATION_EXECUTION_BINDING.json':
+        short = anchor_span
+    elif binding_path == non_m5.ROOT / 'PREPARATION_EXECUTION_BINDING.json':
         short = non_m5
     elif binding_path == activity.ROOT / 'PREPARATION_EXECUTION_BINDING.json':
         short = activity

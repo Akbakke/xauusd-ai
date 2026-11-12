@@ -611,6 +611,287 @@ def copy_dedicated_m5_weights_to_tf_activity(legacy_model, model, *,
     }
 
 
+
+def import_anchor_span_activity_initial(saved, model, *, source_field_names,
+                                        source_profile_sha256,
+                                        expected_model_state_sha256):
+    """Import one sealed activity INITIAL into the exact two-span extension.
+
+    The caller verifies the immutable checkpoint/view/normalization file refs.
+    No old model, optimizer or RNG restore is constructed here. Current buffers,
+    modes and trainability survive; returned module modes use destination names.
+    Zero new columns preserve the algebraic initial function, not asserted FP32
+    output parity. The caller must measure a fresh actual initial baseline.
+    """
+    torch, old, _, _, digest, trainer = _deps()
+    from gx1.features.entry_specialist_feature_groups_v1 import (
+        compile_full_ta_entry_execution_profile, classify_entry_specialist_feature, _canonical_sha256,
+    )
+    from gx1.contracts.market_state_time_query_model_v2 import factorized_time_query_model_contract
+    from gx1.contracts.market_state_time_query_native_F_objective_v1 import contract as loss_contract
+    from gx1.contracts.market_state_time_query_fold1_fit_v1 import ta_sf_numerical_recipe
+    reason = 'ANCHOR_SPAN_INITIAL_'
+    _need(_is_ta_sf(model) and model.state_model._ta_only is True
+          and model.state_model._dedicated_m5_side is True
+          and model.state_model._dedicated_non_m5_side is False
+          and model.state_model._dedicated_tf_activity is True, reason + 'MODE')
+    _require_model_binding(model)
+    old._no_partial_gradients(model)
+    model.backbone.require_input_normalization_state()
+    profile = compile_full_ta_entry_execution_profile()
+    new_names = {key: list(value) for key, value in profile['physical_field_names'].items()}
+    spans = ('geomline_above_anchor_span_bars', 'geomline_below_anchor_span_bars')
+    _need(isinstance(source_field_names, Mapping)
+          and set(source_field_names) == set(new_names), reason + 'FIELD_KEYS')
+    old_names = {key: list(value) for key, value in source_field_names.items()}
+    for key, names in new_names.items():
+        excluded = set('chart.' + name for name in spans) if key == 'signal' else (
+            set(spans) if key == 'mtf' else set())
+        _need(old_names[key] == [name for name in names if name not in excluded]
+              and len(set(old_names[key])) == len(old_names[key])
+              and (not excluded or excluded <= set(names)), reason + 'FIELDS:' + key)
+    _need(tuple(len(new_names[key]) for key in ('signal', 'ctx_cont', 'ctx_cat', 'mtf'))
+          == (317, 132, 1, 255), reason + 'WIDTHS')
+    _need(isinstance(saved, Mapping) and set(saved) == _STATE_KEYS
+          and saved['schema_version'] == TA_STATE_SCHEMA and saved['fold_id'] == 1
+          and all(type(saved[key]) is int and saved[key] == 0
+                  for key in ('cursor', 'optimizer_updates', 'skipped_batches')),
+          reason + 'CAPSULE')
+    _need(saved['contract_sha256'] == old._tree_sha(
+        {key: value for key, value in saved.items() if key != 'contract_sha256'}), reason + 'SEAL')
+    source, source_buffers, binding = saved['model_state'], saved['buffer_state'], saved['binding']
+    _need(all(type(value) is str and re.fullmatch(r'[0-9a-f]{64}', value) is not None
+              for value in (source_profile_sha256, expected_model_state_sha256))
+          and saved['model_state_sha256'] == digest(source) == expected_model_state_sha256,
+          reason + 'SOURCE_DIGEST')
+    _need(saved['buffer_state_sha256'] == old._tree_sha(source_buffers)
+          and saved['rng_state_sha256'] == old._tree_sha(saved['rng_state'])
+          and saved['optimizer_state_sha256'] == old._tree_sha(saved['optimizer_state'])
+          and isinstance(saved['optimizer_state']['state'], Mapping)
+          and not saved['optimizer_state']['state'], reason + 'INITIAL_DIGESTS')
+    _need(isinstance(binding, Mapping) and binding['schema_version'] == TA_BINDING_SCHEMA
+          and binding['contract_sha256'] == old._tree_sha(
+              {key: value for key, value in binding.items() if key != 'contract_sha256'})
+          and binding['feature_view_identity']['contract_sha256'] == saved['feature_view_sha256'],
+          reason + 'BINDING')
+    # The sole metadata change is the input profile. Rebuild the old contract
+    # chain as plain metadata; never instantiate or relabel an old model.
+    def reseal(value):
+        value = copy.deepcopy(value)
+        value.pop('contract_sha256', None)
+        return {**value, 'contract_sha256': _canonical_sha256(value)}
+    flags = dict(ta_only=True, dedicated_m5_side=True, dedicated_tf_activity=True)
+    source_s_contract = factorized_time_query_model_contract(**flags)
+    source_s_contract['input_profile']['contract_sha256'] = source_profile_sha256
+    source_s_contract = reseal(source_s_contract)
+    source_dual_contract = copy.deepcopy(model.research_objective)
+    source_dual_contract['S_model_contract_sha256'] = source_s_contract['contract_sha256']
+    source_dual_contract = reseal(source_dual_contract)
+    equal = binding['numerical_recipe'].get('m5_equal_observation', False)
+    source_loss_contract = loss_contract(**flags, m5_equal_observation=equal)
+    source_loss_contract['dual_model_contract_sha256'] = source_dual_contract['contract_sha256']
+    source_loss_contract = reseal(source_loss_contract)
+    current_recipe = ta_sf_numerical_recipe(dedicated_m5_side=True, dedicated_tf_activity=True,
+                                           m5_equal_observation=equal)
+    _numerical(current_recipe, model)
+    source_recipe = copy.deepcopy(current_recipe)
+    source_recipe['research_objective_sha256'] = source_dual_contract['contract_sha256']
+    source_recipe['native_F_loss_contract_sha256'] = source_loss_contract['contract_sha256']
+    source_recipe = reseal(source_recipe)
+    _need(binding['research_objective'] == source_dual_contract
+          and binding['feature_view_identity']['research_objective_sha256'] == source_dual_contract['contract_sha256']
+          and binding['numerical_recipe'] == source_recipe, reason + 'SOURCE_CONTRACTS')
+    prefix = 'state_model.backbone.'
+    profile_key = prefix + 'entry_execution_profile_contract_sha256'
+    def hash_tensor(value):
+        return torch.tensor(list(bytes.fromhex(value)), dtype=torch.uint8)
+    _need(torch.equal(source[profile_key].detach().cpu(), hash_tensor(source_profile_sha256))
+          and torch.equal(model.state_dict()[profile_key].detach().cpu(),
+                          hash_tensor(profile['contract_sha256']))
+          and source_profile_sha256 != profile['contract_sha256']
+          and torch.equal(source['state_model.query_objective_sha256'].detach().cpu(),
+                          hash_tensor(source_s_contract['contract_sha256']))
+          and torch.equal(source['native_F_objective_sha256'].detach().cpu(),
+                          hash_tensor(source_dual_contract['contract_sha256'])), reason + 'PROFILE')
+    target = model.state_dict()
+    buffers = dict(model.named_buffers())
+    pairs, active, inactive = _parameters(model)
+    parameters = dict(pairs)
+    _need(len(parameters) == len(pairs)
+          and len({id(value) for _, value in pairs}) == len(pairs)
+          and len({value.untyped_storage().data_ptr() for _, value in pairs}) == len(pairs),
+          reason + 'PARAMETER_ALIASES')
+    old._tensor_map(source, source, reason + 'SOURCE')
+    old._tensor_map(source_buffers, source_buffers, reason + 'BUFFERS')
+    old._tensor_map(target, target, reason + 'TARGET')
+    _need(set(source_buffers) == set(buffers), reason + 'BUFFER_INVENTORY')
+    for name in set(source) & set(source_buffers):
+        _need(torch.equal(source[name].detach().cpu(), source_buffers[name].detach().cpu()),
+              reason + 'PERSISTENT_BUFFER:' + name)
+    takes = {key: [new_names[key].index(name) for name in names] for key, names in old_names.items()}
+    def rename(name):
+        for base, surface in ((prefix + 'signal_nominal_embeddings.', 'signal'),
+                              (prefix + 'mtf_nominal_embeddings.', 'mtf')):
+            if name.startswith(base):
+                token, *tail = name[len(base):].split('.')
+                if surface == 'mtf':
+                    tf, token = token.rsplit('_', 1)
+                    leader = tf + '_'
+                else:
+                    leader = ''
+                _need(token.isdecimal() and int(token) < len(old_names[surface]), reason + 'EMBEDDING_KEY')
+                return base + leader + str(takes[surface][int(token)]) + ('.' + '.'.join(tail) if tail else '')
+        return name
+    inventory = binding['parameter_inventory']
+    _need(isinstance(inventory, list) and all(isinstance(item, Mapping)
+          and set(item) == {'name', 'shape', 'dtype'} for item in inventory), reason + 'INVENTORY')
+    old_parameters = [item['name'] for item in inventory]
+    mapping = {name: rename(name) for name in old_parameters}
+    _need(len(mapping) == len(inventory) and len(set(mapping.values())) == len(mapping)
+          and set(mapping.values()) == set(parameters)
+          and set(source) == set(old_parameters) | (set(source) & set(source_buffers)),
+          reason + 'PARAMETER_INVENTORY')
+    _need({rename(name) for name in source} == set(target), reason + 'STATE_INVENTORY')
+    for item in inventory:
+        value = source[item['name']]
+        _need(list(value.shape) == item['shape'] and str(value.dtype) == item['dtype']
+              and value.dtype == torch.float32, reason + 'SOURCE_PARAMETER:' + item['name'])
+    _need([rename(name) for name in binding['active_parameter_names']] == [name for name, _ in active]
+          and [rename(name) for name in binding['inactive_parameter_names']] == [name for name, _ in inactive]
+          and binding['optimizer_group_parameter_names'] == [binding['active_parameter_names']],
+          reason + 'PARTITION')
+    modes = {rename(name): mode for name, mode in saved['module_training'].items()}
+    _need(len(modes) == len(saved['module_training']) and set(modes) == set(dict(model.named_modules()))
+          and all(type(mode) is bool for mode in modes.values()), reason + 'MODES')
+    family = 'chart_geometry_encoder'
+    def names_at(names, indices):
+        return [names[index] for index in indices]
+    old_alias = [i for i, name in enumerate(old_names['signal']) if name.startswith('ctx_cont.')]
+    new_alias = list(profile['temporal_alias_signal_indices'])
+    _need(names_at(old_names['signal'], old_alias) == names_at(new_names['signal'], new_alias),
+          reason + 'ALIASES')
+    old_snap = [name for i, name in enumerate(old_names['signal']) if i not in old_alias]
+    new_snap = names_at(new_names['signal'], profile['generic_snap_signal_indices'])
+    old_chart = {surface: [name for name in old_names[surface]
+                          if classify_entry_specialist_feature(name) == family]
+                 for surface in ('signal', 'mtf')}
+    new_chart = {surface: names_at(new_names[surface], profile[route][family])
+                 for surface, route in (('signal', 'local_signal_indices_by_specialist'),
+                                        ('mtf', 'mtf_indices_by_specialist'))}
+    expanded = {}
+    for name, before, after in (
+        ('seq_proj.weight', old_names['signal'], new_names['signal']),
+        ('snap_proj.weight', old_snap, new_snap),
+        ('specialist_proj.' + family + '.weight', old_chart['signal'], new_chart['signal']),
+        ('mtf_family_proj.' + family + '.weight', old_chart['mtf'], new_chart['mtf'])):
+        expanded[prefix + name] = dict(axis=1, indices=[after.index(field) for field in before],
+                                      old_width=len(before), new_width=len(after))
+    for tf in ('m5', 'm15', 'h1', 'h4', 'd1'):
+        for kind in ('weight', 'bias'):
+            expanded[prefix + 'mtf_feature_context_gate.' + tf + '__' + family + '.' + kind] = dict(
+                axis=0, indices=[new_chart['mtf'].index(field) for field in old_chart['mtf']],
+                old_width=len(old_chart['mtf']), new_width=len(new_chart['mtf']))
+    _need(len(expanded) == 14 and all(name in parameters for name in expanded), reason + 'EXPANDED_KEYS')
+    for old_name, name in mapping.items():
+        value, destination = source[old_name], parameters[name]
+        expected = list(value.shape)
+        if name in expanded:
+            spec = expanded[name]
+            _need(expected[spec['axis']] == spec['old_width']
+                  and spec['new_width'] == spec['old_width'] + 2, reason + 'EXPANDED_WIDTH:' + name)
+            expected[spec['axis']] = spec['new_width']
+        _need(list(destination.shape) == expected and destination.dtype == value.dtype == torch.float32,
+              reason + 'PARAMETER_SHAPE:' + name)
+    # Only normalization/profile identities and name-indexed routing may differ.
+    identity_buffers = {prefix + name for name in (
+        'entry_execution_profile_contract_sha256', 'input_norm_contract_sha256',
+        'research_unobserved_units_profile_sha256')} | {
+            'state_model.query_objective_sha256', 'native_F_objective_sha256'}
+    routes = {
+        'entry_signal_projection_idx': ('signal', list(range(len(old_names['signal']))), profile['signal_indices']),
+        'generic_snap_idx': ('signal', [i for i in range(len(old_names['signal'])) if i not in old_alias], profile['generic_snap_signal_indices']),
+        'temporal_alias_signal_idx': ('signal', old_alias, new_alias),
+        'input_norm_alias_signal_indices': ('signal', old_alias, new_alias),
+    }
+    for surface, route, stems in (
+        ('signal', 'local_signal_indices_by_specialist', ('specialist_idx_',)),
+        ('mtf', 'mtf_indices_by_specialist', ('multi_tf_specialist_idx_', 'multi_tf_feature_gate_idx_'))):
+        for owner, indices in profile[route].items():
+            before = [i for i, field in enumerate(old_names[surface])
+                      if classify_entry_specialist_feature(field) == owner]
+            for stem in stems:
+                routes[stem + owner] = (surface, before, indices)
+    norm_keys = {}
+    for surface in ('signal', 'mtf_m5', 'mtf_m15', 'mtf_h1', 'mtf_h4', 'mtf_d1'):
+        for kind in ('center', 'scale', 'binary_mask', 'categorical_mask'):
+            norm_keys[prefix + 'input_norm_' + surface + '_' + kind] = takes['signal' if surface == 'signal' else 'mtf']
+    for name, value in source_buffers.items():
+        destination = buffers[name]
+        if name in identity_buffers:
+            _need(value.shape == destination.shape == (32,) and value.dtype == destination.dtype == torch.uint8,
+                  reason + 'IDENTITY_BUFFER:' + name)
+            continue
+        route = routes.get(name.removeprefix(prefix)) if name.startswith(prefix) else None
+        if route is not None:
+            _, before, after = route
+            _need(value.dtype == destination.dtype == torch.int64
+                  and torch.equal(value.detach().cpu(), torch.tensor(before, dtype=torch.int64))
+                  and torch.equal(destination.detach().cpu(), torch.tensor(list(after), dtype=torch.int64)),
+                  reason + 'ROUTING:' + name)
+            continue
+        if name in norm_keys:
+            _need(value.ndim == destination.ndim == 1 and destination.numel() == value.numel() + 2,
+                  reason + 'NORM_WIDTH:' + name)
+            destination = destination.index_select(0, torch.tensor(norm_keys[name], device=destination.device))
+        _need(value.dtype == destination.dtype and value.shape == destination.shape
+              and digest({'value': value}) == digest({'value': destination}), reason + 'BUFFER_VALUES:' + name)
+    def storage(values):
+        return {(str(value.device), value.untyped_storage().data_ptr())
+                for value in values if value.numel()}
+    _need(storage(source.values()).isdisjoint(storage(target.values()))
+          and storage(parameters.values()).isdisjoint(storage(buffers.values())),
+          reason + 'SOURCE_TARGET_ALIAS')
+    buffer_sha = old._tree_sha(buffers)
+    before_modes = {name: module.training for name, module in model.named_modules()}
+    parameter_identity = [(name, id(value), value.requires_grad) for name, value in pairs]
+    device = next(iter(parameters.values())).device
+    rng_sha = old._tree_sha(trainer._attended_session_rng_state(device=device))
+    with torch.no_grad():
+        for old_name, name in mapping.items():
+            destination = parameters[name]
+            if name in expanded:
+                spec = expanded[name]
+                destination.zero_()
+                destination.index_copy_(spec['axis'], torch.tensor(spec['indices'], device=destination.device),
+                                        source[old_name].to(device=destination.device))
+            else:
+                destination.copy_(source[old_name])
+    _require_model_binding(model)
+    old._no_partial_gradients(model)
+    _need(digest(source) == expected_model_state_sha256 and old._tree_sha(dict(model.named_buffers())) == buffer_sha
+          and {name: module.training for name, module in model.named_modules()} == before_modes
+          and [(name, id(value), value.requires_grad) for name, value in model.named_parameters()] == parameter_identity
+          and old._tree_sha(trainer._attended_session_rng_state(device=device)) == rng_sha,
+          reason + 'PASSIVITY')
+    for old_name, name in mapping.items():
+        value = parameters[name].detach()
+        if name in expanded:
+            spec = expanded[name]
+            extra = sorted(set(range(spec['new_width'])) - set(spec['indices']))
+            _need(bool((value.index_select(spec['axis'], torch.tensor(extra, device=value.device)) == 0).all()),
+                  reason + 'NEW_NONZERO:' + name)
+            value = value.index_select(spec['axis'], torch.tensor(spec['indices'], device=value.device))
+        _need(digest({'value': value}) == digest({'value': source[old_name]}), reason + 'COPY:' + name)
+    return dict(schema_version='gx1_anchor_span_activity_initial_import_v1',
+        source_model_state_sha256=expected_model_state_sha256, model_state_sha256=digest(model.state_dict()),
+        source_profile_sha256=source_profile_sha256, profile_sha256=profile['contract_sha256'],
+        parameter_name_map=mapping, expanded_tensor_maps=expanded, module_training=modes,
+        expanded_parameter_tensors=14, added_parameters=sum(2 * (parameters[name].numel() // spec['new_width'])
+            for name, spec in expanded.items()), buffers_preserved=True, rng_restored=False,
+        optimizer_policy='fresh_AdamW_empty_history_no_inherited_updates',
+        fresh_actual_initial_measurement_required=True, prediction_parity_measured=False)
+
+
 def import_equal_weight_m5_side_heads(model, coefficients, *,
                                      expected_model_state_sha256,
                                      coefficient_artifact, coefficient_recipe):

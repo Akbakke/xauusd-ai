@@ -66,6 +66,7 @@ TIME_QUERY_SOURCE_REF_KEYS = frozenset({'time_query_model_source', 'time_query_l
 TIME_QUERY_V2_SOURCE_REF_KEYS = (TIME_QUERY_SOURCE_REF_KEYS -
     {'time_query_model_source', 'time_query_loss_source'}) | frozenset({
     'time_query_v2_model_source', 'time_query_v2_loss_source'})
+ANCHOR_SPAN_SOURCE_REF_KEYS = frozenset({'anchor_span_inputs_source'})
 TIME_QUERY_MATURE_FIT_ROWS = (47338, 64615, 82152, 100224)
 TIME_QUERY_MODEL_AXIS_ROWS = 118249
 TIME_QUERY_MATURE_FOLD1_PLAN_PATH = str(time_query_targets.ROOT /
@@ -247,12 +248,18 @@ def _require_view(view, *, unobserved_units_profile=None):
     _require(isinstance(view, Mapping), 'VIEW_KEYS')
     units_profile = unobserved_units_profile is not None
     time_query_v2 = 'market_state_time_query_v2' in view
+    anchor_span = 'anchor_span_input_extension' in view
+    _require(not anchor_span or units_profile, 'ANCHOR_SPAN_EXPLICIT_UNITS')
     time_query = 'market_state_time_query' in view or time_query_v2
     _require(units_profile == ('unobserved_units_profile' in view), 'EXPLICIT_UNOBSERVED_UNITS_PROFILE')
     if units_profile:
-        profile = (units.require_mature_fold1_prefix_units_profile(unobserved_units_profile) if time_query
+        profile = (units.require_anchor_span_fold1_prefix_units_profile(unobserved_units_profile) if anchor_span
+                   else units.require_mature_fold1_prefix_units_profile(unobserved_units_profile) if time_query
                    else units.require_october_prefix_units_profile(unobserved_units_profile))
         _require(view['unobserved_units_profile'] == profile, 'UNOBSERVED_UNITS_VIEW_BINDING')
+    if anchor_span:
+        from gx1.contracts.entry_anchor_span_feature_view_v1 import require_anchor_span_view_provenance
+        require_anchor_span_view_provenance(view, profile)
     dense = 'dense_minute_supervision' in view
     price_momentum = 'price_momentum_profile' in view
     full = 'full_feature_profile' in view
@@ -280,6 +287,7 @@ def _require_view(view, *, unobserved_units_profile=None):
     _require(set(view) == VIEW_KEYS | ({'bps_scale'} if 'bps_scale' in view else set()) | ({'magnitude_weight_contract'} if 'magnitude_weight_contract' in view else set()) | ({'dense_minute_supervision'} if dense else set()) | ({'price_momentum_profile'} if price_momentum else set()) | ({'full_feature_profile'} if full else set()) | ({'full_ta_feature_profile'} if ta_only else set()) | ({'dedicated_m5_side'} if dedicated_m5_side else set()) | ({'dedicated_non_m5_side'} if dedicated_non_m5_side else set()) | ({'dedicated_tf_activity'} if dedicated_tf_activity else set()) | ({'five_minute_priority'} if five_priority else set()) | ({'dense_bps_scale'} if dense_bps else set()) | ({'m1_ofi_normalization'} if m1_ofi else set()) | ({'m1_ofi_coarsened'} if coarsened else set()) | ({'family_intervention'} if family else set()) | ({'price_momentum_initialization'} if initialization != 'zero_residual' else set()) | ({'gc_relative_coordinates_sha256'} if relative else set()) | ({'dynamic_state_supervision'} if dynamic_state else set()) | ({'market_state_five_endpoint'} if five_endpoint else set()) | ({'market_state_time_query'} if 'market_state_time_query' in view else set()) | ({'market_state_time_query_v2'} if time_query_v2 else set()) | ({'current_state_first_loss_weight'} if current_state else set()) | ({'confirmed_run_age_input'} if confirmed_age else set()) | ({'extended_forecast_minutes'} if extended_state else set()) | ({'first_flat_activity_weight'} if first_activity else set())
         | ({'native_endpoint_loss'} if endpoint else set()) | ({'zero_support_profile', 'reserved_observer_axes'} if masked_profile else set())
         | ({'unobserved_units_profile'} if units_profile else set()) | ({'october_observer_axes'} if scoped_october else set())
+        | ({'anchor_span_input_extension'} if anchor_span else set())
         and not (masked_profile and units_profile)
         and (not ta_only or (view['full_ta_feature_profile'] is True and full and time_query_v2))
         and (not dedicated_m5_side or (view['dedicated_m5_side'] is True and ta_only and time_query_v2))
@@ -358,7 +366,7 @@ def _require_view(view, *, unobserved_units_profile=None):
         and view['research_objective'] == objective
         and view['evidence_scope'] == EVIDENCE_SCOPE
         and type(view['max_batch_rows']) is int and view['max_batch_rows'] > 0, 'VIEW_CANONICAL_IDENTITY')
-    _require(set(view['source_bindings']) == SOURCE_REF_KEYS | (DENSE_SOURCE_REF_KEYS if dense else set()) | (PRICE_MOMENTUM_SOURCE_REF_KEYS if price_momentum else set()) | (FIVE_PRIORITY_SOURCE_REF_KEYS if five_priority else set()) | (DENSE_BPS_SOURCE_REF_KEYS if dense_bps else set()) | (M1_OFI_SOURCE_REF_KEYS if m1_ofi else set()) | (FAMILY_SOURCE_REF_KEYS if family else set()) | (GC_RELATIVE_SOURCE_REF_KEYS if relative else set()) | (DYNAMIC_STATE_SOURCE_REF_KEYS if dynamic_state else set()) | (FIVE_ENDPOINT_SOURCE_REF_KEYS if five_endpoint else set()) | (TIME_QUERY_V2_SOURCE_REF_KEYS if time_query_v2 else TIME_QUERY_SOURCE_REF_KEYS if time_query else set()) | (CONFIRMED_AGE_SOURCE_REF_KEYS if confirmed_age else set()) | (OCTOBER_SOURCE_REF_KEYS if october_source else set()), 'SOURCE_REF_KEYS')
+    _require(set(view['source_bindings']) == SOURCE_REF_KEYS | (DENSE_SOURCE_REF_KEYS if dense else set()) | (PRICE_MOMENTUM_SOURCE_REF_KEYS if price_momentum else set()) | (FIVE_PRIORITY_SOURCE_REF_KEYS if five_priority else set()) | (DENSE_BPS_SOURCE_REF_KEYS if dense_bps else set()) | (M1_OFI_SOURCE_REF_KEYS if m1_ofi else set()) | (FAMILY_SOURCE_REF_KEYS if family else set()) | (GC_RELATIVE_SOURCE_REF_KEYS if relative else set()) | (DYNAMIC_STATE_SOURCE_REF_KEYS if dynamic_state else set()) | (FIVE_ENDPOINT_SOURCE_REF_KEYS if five_endpoint else set()) | (TIME_QUERY_V2_SOURCE_REF_KEYS if time_query_v2 else TIME_QUERY_SOURCE_REF_KEYS if time_query else set()) | (CONFIRMED_AGE_SOURCE_REF_KEYS if confirmed_age else set()) | (OCTOBER_SOURCE_REF_KEYS if october_source else set()) | (ANCHOR_SPAN_SOURCE_REF_KEYS if anchor_span else set()), 'SOURCE_REF_KEYS')
     for item in view['source_bindings'].values(): _ref(item)
     if five_endpoint:
         path, sha256 = five_endpoint_targets.REFS['mask']
@@ -484,6 +492,10 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
     Old constructor metadata may retain old artifact provenance; only its explicit
     scalar configuration/full raw routing are used, never its old GC stats join.
     """
+    arguments = locals().copy()
+    if prefix_normalization.get('schema_version') == 'gx1_anchor_span_feature_prefix_packet_v1':
+        from gx1.contracts.entry_anchor_span_feature_view_v1 import bind_anchor_span_feature_view
+        return bind_anchor_span_feature_view(**arguments)
     time_query_mode = market_state_time_query or market_state_time_query_v2
     _require(type(dedicated_m5_side) is bool and (not dedicated_m5_side
              or (full_ta_feature_profile is True and market_state_time_query_v2 is True)),
@@ -797,7 +809,8 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
 
 def gather_native_direction_feature_batch(view, *, parent_rows, bar_start_ns, decision_ns,
     entry_sequence_source, snap_x, ctx_cont, ctx_cat, multi_tf_sources, gc_surfaces, gc_layout, batch_parent_rows,
-    m1_ofi_source=None, m1_ofi_clock=None, observer_axes=None, unobserved_units_profile=None):
+    m1_ofi_source=None, m1_ofi_clock=None, observer_axes=None, unobserved_units_profile=None,
+    anchor_span_inputs=None):
     """Gather one bounded raw batch from caller-verified immutable full backings.
 
     The normalization cutoff describes fitted statistics; later OOF feature rows
@@ -808,6 +821,15 @@ def gather_native_direction_feature_batch(view, *, parent_rows, bar_start_ns, de
     fields, routes, widths = _canonical(); rows = view['full_axes']['rows']
     ta_only = view.get('full_ta_feature_profile', False)
     ta_profile = owners.compile_full_ta_entry_execution_profile() if ta_only else None
+    anchor_span = 'anchor_span_input_extension' in view
+    if anchor_span:
+        from gx1.contracts.entry_anchor_span_feature_inputs_v1 import QualifiedAnchorSpanInputs
+        _require(type(anchor_span_inputs) is QualifiedAnchorSpanInputs, 'QUALIFIED_ANCHOR_SPAN_INPUTS')
+        anchor_span_inputs.require_binding(view, entry_sequence_source=entry_sequence_source,
+            snap_x=snap_x, ctx_cont=ctx_cont, ctx_cat=ctx_cat, multi_tf_sources=multi_tf_sources)
+    else:
+        _require(anchor_span_inputs is None, 'UNBOUND_ANCHOR_SPAN_INPUTS')
+    source_width = anchor_span_inputs.parent_signal_width if anchor_span else widths['signal']
     if ta_only:
         _require(gc_surfaces is None and gc_layout is None, 'TA_GC_INPUT_FORBIDDEN')
     if 'zero_support_profile' in view or 'october_observer_axes' in view:
@@ -825,16 +847,19 @@ def gather_native_direction_feature_batch(view, *, parent_rows, bar_start_ns, de
         and len(set(selected.tolist())) == len(selected), 'BOUNDED_PARENT_BATCH')
     at = np.searchsorted(parent_rows, selected)
     _require(np.all(at < rows) and np.array_equal(parent_rows[at], selected), 'EXACT_PARENT_IDS')
+    if anchor_span:
+        # Sidecars cover this qualified TRAIN prefix only, never arbitrary OOF rows.
+        _require(np.all(at < anchor_span_inputs.fit_parent_rows), 'ANCHOR_SPAN_PREFIX_ONLY')
     starts, decisions = bar_start_ns[at], decision_ns[at]
     _require(np.all(starts >= 0) and np.all(starts % BAR_NS == 0) and np.all(starts <= MAX_NS - BAR_NS)
         and np.array_equal(decisions, starts + BAR_NS), 'EXACT_DECISION_CLOCK')
     _require(isinstance(entry_sequence_source, Mapping) and set(entry_sequence_source) == {'signal', 'times_ns', 'sample_positions', 'audit'}, 'SEQUENCE_SOURCE_KEYS')
     source, times, positions = (entry_sequence_source[key] for key in ('signal', 'times_ns', 'sample_positions'))
     _require(isinstance(source, np.ndarray) and source.dtype == np.float32 and source.ndim == 2
-        and source.shape[1] == widths['signal'] and not source.flags.writeable
+        and source.shape[1] == source_width and not source.flags.writeable
         and isinstance(times, np.ndarray) and times.dtype == np.int64 and times.shape == (len(source),) and not times.flags.writeable
         and isinstance(positions, np.ndarray) and positions.dtype == np.int64 and positions.shape == (rows,) and not positions.flags.writeable, 'SOURCE_HEADERS')
-    for array, width, dtype in ((snap_x, widths['signal'], np.float32), (ctx_cont, widths['ctx_cont'], np.float32), (ctx_cat, widths['ctx_cat'], np.int64)):
+    for array, width, dtype in ((snap_x, source_width, np.float32), (ctx_cont, widths['ctx_cont'], np.float32), (ctx_cat, widths['ctx_cat'], np.int64)):
         _require(isinstance(array, np.ndarray) and array.dtype == dtype and array.shape == (rows, width)
             and not array.flags.writeable, 'CURRENT_HEADERS')
     take = positions[at]
@@ -846,13 +871,19 @@ def gather_native_direction_feature_batch(view, *, parent_rows, bar_start_ns, de
         clock = times[left:int(position) + 1]
         _require(np.all(clock[1:] > clock[:-1]) and np.all(clock % BAR_NS == 0)
             and np.all(clock <= MAX_NS - BAR_NS) and np.all(clock + BAR_NS <= decision), 'CAUSAL_LOCAL_SEQUENCE_CLOCK')
-        window = source[left:int(position) + 1]
-        sequences.append(np.ascontiguousarray(window[:, ta_profile['source_signal_indices']])
-                         if ta_only else window)
+        if anchor_span:
+            ids = np.arange(left, int(position) + 1, dtype=np.int64)
+            window = anchor_span_inputs.local_batch(source, ids, ids, clock)
+        else:
+            window = source[left:int(position) + 1]
+            if ta_only:
+                window = np.ascontiguousarray(window[:, ta_profile['source_signal_indices']])
+        sequences.append(window)
         clock_rows.append(clock)
     if ta_only:
         # Select canonical non-GC columns directly, before any batch copy.
-        snap = snap_x[np.ix_(at, ta_profile['source_signal_indices'])]
+        snap = (anchor_span_inputs.local_batch(snap_x, at, take, starts) if anchor_span
+                else snap_x[np.ix_(at, ta_profile['source_signal_indices'])])
         context = ctx_cont[np.ix_(at, ta_profile['source_ctx_cont_indices'])]
         _, routes, _ = _canonical(ta_only=True)
     else:
@@ -880,7 +911,8 @@ def gather_native_direction_feature_batch(view, *, parent_rows, bar_start_ns, de
             if not ta_only:
                 gc_collected[tf].append(history.gather_gc_mtf_history_rows(gc_surfaces[tf], tf=tf,
                     native_row_indices=ids, available_ns=available, layout=layout))
-            witnesses[tf].append({'native_row_indices': ids.tolist(), 'available_ns': available.tolist()})
+            original_ids = anchor_span_inputs.original_mtf_rows(tf, ids) if anchor_span else ids
+            witnesses[tf].append({'native_row_indices': original_ids.tolist(), 'available_ns': available.tolist()})
     for tf in history.TIMEFRAMES:
         features['seq_' + tf.lower()] = np.stack(collected[tf])
         if not ta_only:
