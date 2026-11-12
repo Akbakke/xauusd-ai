@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-12T05:15:29.864573+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_ANCHOR_SPAN_REPLACEMENT_ADMITTED",
+  "status": "TA_DIRECTION_EDGE_CAUSE_ANCHOR_SPAN_COMPLETE_NO_CONSISTENT_GAIN",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,7 +1415,7 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
@@ -1705,7 +1705,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Exact replacement002 admitted after clean-source preflight; actual job not started. Same one4096row/256update anchor-span comparison, original INITIAL and all metrics unchanged.",
+    "current_activity": "Span comparison complete without consistent gain. Existing order control also shows aggregate-calibration versus M5 tradeoff and is reused. Next is a bounded review of existing loss-channel/shared-representation evidence; no new training admitted.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1733,15 +1733,15 @@
     "obsolete_generated_cleanup_complete": false,
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
-    "training_started": false,
-    "latest_terminal_role": "ANCHOR_SPAN_COMPARISON_FAILED_BEFORE_FORWARD_CONSUMED",
-    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_001",
+    "training_started": true,
+    "latest_terminal_role": "ANCHOR_SPAN_MATCHED_SHORT_LEARNING_COMPLETE_CONSUMED",
+    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_001/TERMINAL.json",
-      "sha256": "429e35b8250a9644d2898175a36dad5a252ef83af5fb4f4725c48cd95847f87d"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002/TERMINAL.json",
+      "sha256": "f6f08a15b68f383d6666f9b0e47248f6d9f2e9d7a7988ec37b5a9cf24b8730c8"
     },
-    "terminal_exit_code": 1,
-    "source_unchanged_at_terminal": false,
+    "terminal_exit_code": 0,
+    "source_unchanged_at_terminal": true,
     "full_benchmark_completed": false,
     "sampler_selection_measured": true,
     "selected_sampler_published": true,
@@ -1758,7 +1758,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No operational blocker after repaired-import qualification. Actual INITIAL and predictive comparison are still unmeasured.",
+    "current_blocker": "No operational blocker. Main direction-edge cause remains unresolved; the span comparison did not resolve the measured calibration regression.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -22103,8 +22103,8 @@
       "epoch_history_hypothesis": "Insufficient training/short history remain plausible. One pass on May-Sep2024 cannot establish that30epochs or5years fail; no expansion admitted."
     },
     "latest_campaign_receipt": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_001/RUNTIME/receipts/invocation-0001.json",
-      "sha256": "5d76890b159fecda12b1a898b4b627f80418fe601b8a609b7b430753a47fefe4"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "ce8e09e6fef45ca243743052c54273e980560a87e435dc7c852e055ceb2f4b1d"
     },
     "latest_performance_and_learning_review": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_DEDICATED_M5_FOLD1_FIT_20261109_001/PERFORMANCE_AND_LEARNING_REVIEW.json",
@@ -22348,8 +22348,8 @@
       "sha256": "3663f051c3d35aeeb0957eb80d12556e1d851b557d3b511c1c7848a91a1b1afc"
     },
     "latest_anchor_span_short_learning_review": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_001/IMPORT_REPAIR_REVIEW.json",
-      "sha256": "0fdae8d78c6f4393bcdbed3bc0b6bd73ef6840060da6ffc530cb27696df05045"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002/EXPERIMENT_REVIEW.json",
+      "sha256": "11a77d1a4b16103ef9455664c13c63b2358ccd8b1ce1e047239eeaff61ed72c8"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -35700,7 +35700,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -75689,7 +75689,7 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_ANCHOR_SPAN_REPLACEMENT_ADMITTED",
+    "status": "ACTIVE_COMPOSITION_CALIBRATION_AFTER_SPAN_COMPARISON",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
@@ -75699,11 +75699,11 @@
       "sha256": "13ffc8fa173cdbf65ab4af65890e458bb507673e761eabb579f7366fbc25a2f3"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": true,
-    "training_enabled": true,
+    "model_or_data_run_admitted": false,
+    "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Materialize exactly one new campaign, verify idle host and fresh boot after prepared643, then actual matched INITIAL over4096rows before the same256updates. No source edits during run; no relaunch of001 or002.",
+    "next_action": "Return directly to composition/calibration: determine what existing retained traces already establish about M5-side versus other loss-channel contributions to shared-representation updates. Reuse the completed batch-order control; do not repeat general interleaving, expand inputs or launch a model job before one exact unresolved discriminator is specified.",
     "active_stage": "market_state_ta_anchor_span_short_learning_20261112_002",
     "previous_goal_turn_classification": "PROGRESS_FULL_PAIRED_ENDPOINTS_EXACT_AND_M5_RANK_CALIBRATION_TRADEOFF_LOCALIZED",
     "last_goal_turn_classification": "PROGRESS_MATCHED_INITIAL_IMPORT_AND_EXISTING_SHORT_RUNNER_CONNECTED_METADATA_PREFLIGHT_PASS",
@@ -75809,7 +75809,7 @@
       "checkpoint": "The next implementation checkpoint must deliver the concrete comparison preflight or identify the exact remaining blocker. Do not open another preparatory workstream.",
       "scope_change_rule": "Report the measured blocker, smallest necessary deviation and effect on the agreed experiment before expanding scope. Routine fixes inside the agreed experiment do not require repeated approval.",
       "reporting_rule": "Report the experiment question, measured result and next decision. Counts of code, checks or documents are not evidence of improved edge.",
-      "current_authority": "Exactly replacement002 admitted under standing local authority after measured import repair and clean-source preflight. Failed001 remains consumed. One unchanged learning comparison, no expansion; fresh4096INITIAL must pass before256updates.",
+      "current_authority": "Exactly one matched learning comparison COMPLETE/CONSUMED. Only retained-output scoring and review remain in this experiment; no additional learning run admitted.",
       "implementation_budget": {
         "active_work_minutes": 60,
         "start": "next implementation work after this operator correction",
@@ -75829,6 +75829,14 @@
           "sha256": "129d370acb0f6d9df4d53ca454675d7de487fd737e8eb04df40fa9bd10d99ab3"
         },
         "minimal_deviation": "Correct two metadata identities and their synthetic fixtures; no architecture, optimizer, targets, metrics or training expansion."
+      },
+      "outcome": {
+        "status": "COMPLETE_NO_CONSISTENT_GAIN",
+        "review": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002/EXPERIMENT_REVIEW.json",
+          "sha256": "11a77d1a4b16103ef9455664c13c63b2358ccd8b1ce1e047239eeaff61ed72c8"
+        },
+        "learning_comparisons_completed": 1
       }
     },
     "anchor_span_comparison_preparation": {
@@ -75852,6 +75860,14 @@
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_001/RECIPE.json",
         "sha256": "f7ba828f1aadf3aa18402b0fdab90c7a50657b1330c99dcc259f763a7d397dfb"
       }
+    },
+    "next_question": "How do M5-side and other task/timeframe loss channels contribute to updates of the shared representation, given improved aggregate calibration can worsen M5 proper scores?",
+    "existing_order_control_reused": {
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/RESULT.json",
+        "sha256": "b11a1932c924b22555bf9e848c8dea7507291c5584d0e7626de1a0f660840438"
+      },
+      "new_order_run_admitted": false
     }
   },
   "market_state_ta_fusion_observation_20261111_001": {
@@ -80522,9 +80538,9 @@
     }
   },
   "market_state_ta_anchor_span_short_learning_20261112_002": {
-    "decision": "ADMITTED",
-    "status": "ADMITTED",
-    "ta_anchor_span_short_learning_authorized": true,
+    "decision": "COMPLETE_CONSUMED",
+    "status": "COMPLETE",
+    "ta_anchor_span_short_learning_authorized": false,
     "fold_id": 1,
     "selected_fit_rows": 4096,
     "model_constructions_authorized": 1,
@@ -80533,10 +80549,10 @@
     "backward_calls_authorized": 256,
     "optimizer_steps_authorized": 256,
     "initial_rng_imports_authorized": 1,
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "genuine_updates_authorized": true,
-    "genuine_backward_authorized": true,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "genuine_updates_authorized": false,
+    "genuine_backward_authorized": false,
     "genuine_predictor_fit_authorized": false,
     "canonical_resume_authority": false,
     "candidate_selection": false,
@@ -80572,17 +80588,17 @@
       "sha256": "16a8b5d5d6b1efb22e5b8d708482338f7b25dd6aace2a709aa76f7352e190de8"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
-    "campaign_preparation_authorized": true,
-    "execution_authorized": true,
-    "training_authorized": true,
-    "data_reads_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "data_reads_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
     "native_launch_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_test_execution_authorized": false,
@@ -80856,9 +80872,65 @@
     ],
     "automatic_continuation": false,
     "admission_basis": "Standing05Nov local0USD authority and active edge-diagnosis goal. Distinct002 replaces FAILED/CONSUMED001 after two measured import-contract repairs. Failed001 used zero forwards/updates, so the one fixed learning comparison remains uncompleted. Exact source9ddedc5e preflight798e20e1 qualifies this new recipe8af5fa09 only.",
-    "next_action": "Materialize exactly one new campaign, verify idle host and fresh boot after prepared643, then actual matched INITIAL over4096rows before the same256updates. No source edits during run; no relaunch of001 or002.",
+    "next_action": "Experiment complete and consumed. No consistent M5 gain; retain genuine span repair and return to composition/calibration evidence. Do not relaunch or expand this feature experiment.",
     "replaces_failed_stage": "market_state_ta_anchor_span_short_learning_20261112_001",
     "repair_source_commit": "99605dc38d2d87b400b90ae4b9f6f23bcc49c28b",
-    "experimental_design_unchanged": true
+    "experimental_design_unchanged": true,
+    "consumed": true,
+    "actual_counts": {
+      "archive_decodes": 1,
+      "backward_returns": 256,
+      "backwards": 256,
+      "checkpoint_loads": 2,
+      "checkpoint_writes": 2,
+      "evaluation_forwards": 512,
+      "extra_target_gathers": 1536,
+      "forward_returns": 768,
+      "forwards": 768,
+      "head_tensor_imports": 0,
+      "initial_rng_imports": 1,
+      "input_sidecar_archive_decodes": 6,
+      "json_bytes": 308297,
+      "loss_component_owner_calls": 512,
+      "model_construction_returns": 1,
+      "model_constructions": 1,
+      "optimizer_constructions": 1,
+      "optimizer_step_calls": 256,
+      "optimizer_updates": 256,
+      "published_panel_bytes": 727434,
+      "resume_state_load_calls": 2,
+      "resume_state_load_returns": 2,
+      "staged_state_load_calls": 2,
+      "staged_state_load_returns": 2,
+      "strict_full_state_restore_calls": 1,
+      "strict_full_state_restore_returns": 1,
+      "training_forwards": 256
+    },
+    "optimizer_updates": 256,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002/RESULT.json",
+      "sha256": "0ddae87d37b056964740ef48fd56e94ff194082685b5b09a39696563ca9fc3f8"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002/TERMINAL.json",
+      "sha256": "f6f08a15b68f383d6666f9b0e47248f6d9f2e9d7a7988ec37b5a9cf24b8730c8"
+    },
+    "campaign_receipt": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "ce8e09e6fef45ca243743052c54273e980560a87e435dc7c852e055ceb2f4b1d"
+    },
+    "task_disabled": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002/TASK_DISABLED.json",
+      "sha256": "6aa74165a539608e9f5010204ced644eccd3259d67dfba020b70e91589e0f2f3"
+    },
+    "actual_initial_qualified": true,
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002/EXPERIMENT_REVIEW.json",
+      "sha256": "11a77d1a4b16103ef9455664c13c63b2358ccd8b1ce1e047239eeaff61ed72c8"
+    },
+    "comparison": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002/MATCHED_TRAIN_COMPARISON.json",
+      "sha256": "a60178f7651af948dc499c410d92a10748fdf909093611c1b3750d299166400f"
+    }
   }
 }

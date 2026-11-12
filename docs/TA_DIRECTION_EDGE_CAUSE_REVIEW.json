@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_TRENDLINE_ANCHOR_SPAN_SOURCE_QUALIFIED_INPUTS_PENDING",
+  "status": "ACTIVE_ANCHOR_SPAN_COMPARISON_COMPLETE_NO_CONSISTENT_GAIN",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -269,7 +269,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "The fixed anchor-span comparison remains unmeasured. The failed001 launch is consumed; after the two localized import-contract corrections, any replacement must receive a new exact source/policy binding and pass the same actual INITIAL gate before the unchanged4096rows/256updates.",
+  "next_measurement": "Return directly to composition/calibration: determine what existing retained traces already establish about M5-side versus other loss-channel contributions to shared-representation updates. Reuse the completed batch-order control; do not repeat general interleaving, expand inputs or launch a model job before one exact unresolved discriminator is specified.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -1723,62 +1723,11 @@
   },
   "training_authorized_scope": null,
   "latest_confirmed_findings": [
-    {
-      "finding": "Two distinct anchor pairs were indistinguishable in all31 old emissions. Added causal anchor span per nearest slot; all31 original fields byteexact across1340synthetic rows.185unique focused cases covered with scoped repairs/reruns. Both physical anchor times now representable; no predictive gain yet.",
-      "evidence": {
-        "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TRENDLINE_ANCHOR_SPAN_REPAIR.json",
-        "sha256": "5fe4db95d6324ac18e0badaebb3d2407719bd04f480633302b110274ef8a8ef5"
-      }
-    },
-    {
-      "finding": "Both actual endpoints fully reproduced on the same4096usedTRAIN, including215S/D1FLAT; prior48row coverage gap is closed.",
-      "evidence": {
-        "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
-        "sha256": "b428a9e1d1a0e8db397689ed0b9d731669e7ec9e240e94862b30121f20505466"
-      }
-    },
-    {
-      "finding": "Full total loss INITIAL1.878002535; isolated final head1.871377344/query1.869806905/joint1.870275136/source1.853369240; actualFINAL1.884324128. Each isolated component helps overall loss, but combined endpoint worsens; this is not true in every task/quarter and does not identify a unique historical cause.",
-      "evidence": {
-        "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
-        "sha256": "b428a9e1d1a0e8db397689ed0b9d731669e7ec9e240e94862b30121f20505466"
-      }
-    },
-    {
-      "finding": "S/D1FLAT Pactivity rises0.884876185→0.933545182; forward head/query/joint/source logit effects0.094984/0.069193/0.145482/0.337376. Source effect depends on replacement order; globalcontext contributes0.165515 in a specified singleblock comparison, not a universal causal share.",
-      "evidence": {
-        "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
-        "sha256": "b428a9e1d1a0e8db397689ed0b9d731669e7ec9e240e94862b30121f20505466"
-      }
-    },
-    {
-      "finding": "F/M15andH1 meanPUP rises0.532502→0.699390 and0.535119→0.708774 against observedUP0.520833/0.539694. All four forwardordered component changes worsen these side losses.",
-      "evidence": {
-        "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
-        "sha256": "b428a9e1d1a0e8db397689ed0b9d731669e7ec9e240e94862b30121f20505466"
-      }
-    },
-    {
-      "finding": "M5 actual AUC S0.546185163→0.551351671 andF0.546124964→0.553147055. With FINALheads/query/joint but INITIALsource, AUC0.548662892/0.549485674. Replacing the source with FINAL improves both fullprefix rankings, despite calibration harm elsewhere.",
-      "evidence": {
-        "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
-        "sha256": "b428a9e1d1a0e8db397689ed0b9d731669e7ec9e240e94862b30121f20505466"
-      }
-    },
-    {
-      "finding": "Globalcontext singlecoordinate at fixedFINALtail raises M5AUC from0.548662892/0.549485674 to0.550813493/0.554644489. It cannot be classified as generally harmful. These diagnostic mixtures are not candidates or independently trained models.",
-      "evidence": {
-        "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
-        "sha256": "b428a9e1d1a0e8db397689ed0b9d731669e7ec9e240e94862b30121f20505466"
-      }
-    },
-    {
-      "finding": "S/M5 full Brier slightly worsens0.247998512→0.248026560; F/M5 improves0.248788189→0.248218351. Direction ordering and probability calibration must be kept distinct. Quarter effects vary; F/M5Q2ranking worsens while fullprefix improves.",
-      "evidence": {
-        "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
-        "sha256": "b428a9e1d1a0e8db397689ed0b9d731669e7ec9e240e94862b30121f20505466"
-      }
-    }
+    "M5 state-side AUC changed by+0.000004221; future-side AUC by-0.000014811. This is mixed and extremely small, not a consistent directional gain.",
+    "M5 state/future conditional-side Brier and log loss both worsened slightly. Side Brier/log also worsened in all ten task/timeframe cells; activity metrics were mixed.",
+    "Canonical total loss is1.884359341 versus original1.884324176, a deterioration of0.000035165. The original loss regression from INITIAL persists.",
+    "The second-anchor representation defect was real and repaired, but its repair did not resolve the observed short-run learning/calibration problem. This does not establish its utility across full history or later generalization.",
+    "As agreed, stop expanding this feature-repair experiment and return to the already observed composition/calibration problem. Choose the next discriminator from existing evidence before changing code."
   ],
   "activity_pressure_review": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ACTIVITY_PRESSURE_REVIEW.json",
@@ -1890,6 +1839,440 @@
     "predictive_value_claimed": false,
     "relaunch_allowed": false,
     "training_authorized": false,
+    "test_data_used": false
+  },
+  "anchor_span_matched_comparison": {
+    "status": "COMPLETE_CONSUMED_NO_CONSISTENT_GAIN_ON_MATCHED_USED_TRAIN",
+    "question": "Do two qualified trendline anchor-span fields improve M5 ranking and calibration under the same short learning setup?",
+    "native_source_commit": "8c9c2303389e94adb3a79553421b1526f299aaa7",
+    "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002",
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002/RECIPE.json",
+      "sha256": "8af5fa09c9091cf4381f8a42c513b83cfe316af351085100d90791fd7912468e"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002/RESULT.json",
+      "sha256": "0ddae87d37b056964740ef48fd56e94ff194082685b5b09a39696563ca9fc3f8"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002/TERMINAL.json",
+      "sha256": "f6f08a15b68f383d6666f9b0e47248f6d9f2e9d7a7988ec37b5a9cf24b8730c8"
+    },
+    "campaign_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "ce8e09e6fef45ca243743052c54273e980560a87e435dc7c852e055ceb2f4b1d"
+    },
+    "task_disabled": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002/TASK_DISABLED.json",
+      "sha256": "6aa74165a539608e9f5010204ced644eccd3259d67dfba020b70e91589e0f2f3"
+    },
+    "comparison": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002/MATCHED_TRAIN_COMPARISON.json",
+      "sha256": "a60178f7651af948dc499c410d92a10748fdf909093611c1b3750d299166400f"
+    },
+    "scoring_owner": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/INDEPENDENT_ACTIVITY_LEARNING_REVIEW.py",
+      "sha256": "939b3d3bad4ba32e47a8f24dd1e54488fcbe1e93d8fd1b7a8d39c54533fee2ba"
+    },
+    "native_counts": {
+      "archive_decodes": 1,
+      "backward_returns": 256,
+      "backwards": 256,
+      "checkpoint_loads": 2,
+      "checkpoint_writes": 2,
+      "evaluation_forwards": 512,
+      "extra_target_gathers": 1536,
+      "forward_returns": 768,
+      "forwards": 768,
+      "head_tensor_imports": 0,
+      "initial_rng_imports": 1,
+      "input_sidecar_archive_decodes": 6,
+      "json_bytes": 308297,
+      "loss_component_owner_calls": 512,
+      "model_construction_returns": 1,
+      "model_constructions": 1,
+      "optimizer_constructions": 1,
+      "optimizer_step_calls": 256,
+      "optimizer_updates": 256,
+      "published_panel_bytes": 727434,
+      "resume_state_load_calls": 2,
+      "resume_state_load_returns": 2,
+      "staged_state_load_calls": 2,
+      "staged_state_load_returns": 2,
+      "strict_full_state_restore_calls": 1,
+      "strict_full_state_restore_returns": 1,
+      "training_forwards": 256
+    },
+    "retained_review_counts": {
+      "archive_decodes": 4,
+      "checkpoint_decodes": 0,
+      "forwards": 0,
+      "model_constructions": 0,
+      "optimizer_updates": 0
+    },
+    "timings": {
+      "elapsed_seconds": 1133.125876374,
+      "fit_seconds": 425.03820549,
+      "input_setup_seconds": 8.923523227999993,
+      "model_and_restore_seconds": 363.84454163400005
+    },
+    "initial_reference": {
+      "atol": 2e-06,
+      "axes_targets_bitexact": true,
+      "batches": 256,
+      "loss_atol": 5e-06,
+      "max_abs_logits": {
+        "future_raw": 3.5762786865234375e-07,
+        "state_raw": 9.5367431640625e-07
+      },
+      "max_abs_loss": 2.384185791015625e-07,
+      "reference": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/INITIAL_TRAIN.npz",
+        "sha256": "f4fc1510a2acb979f4cc3b186efc9af13ca3412f5f72c746dc697bae5f1c02af"
+      },
+      "rows": 4096,
+      "rtol": 1e-06
+    },
+    "initial_restore_exact": true,
+    "original_training_rng_endpoints_matched": true,
+    "source_unchanged_during_native_run": true,
+    "comparison_verification": {
+      "all_original_final_score_cells_reproduce_published_review": true,
+      "axes_queries_targets_bitexact": true,
+      "initial_logits_within_predeclared_tolerance": true
+    },
+    "M5_final": {
+      "state": {
+        "original": {
+          "auc": 0.5513516707786273,
+          "brier": 0.2480265602317954,
+          "count": 1378,
+          "down_count": 659,
+          "log": 0.689192269614916,
+          "logit_mean": 0.17249945870023464,
+          "logit_std": 0.1601811408676284,
+          "mean_p": 0.542794835674244,
+          "up_count": 719,
+          "up_fraction": 0.5217706821480407
+        },
+        "anchor_span": {
+          "auc": 0.5513558917819177,
+          "brier": 0.24802690319816453,
+          "count": 1378,
+          "down_count": 659,
+          "log": 0.6891929715655912,
+          "logit_mean": 0.1725062725292343,
+          "logit_std": 0.16018749300608368,
+          "mean_p": 0.5427965097781106,
+          "up_count": 719,
+          "up_fraction": 0.5217706821480407
+        }
+      },
+      "future": {
+        "original": {
+          "auc": 0.553147055120676,
+          "brier": 0.24821835097968076,
+          "count": 1644,
+          "down_count": 799,
+          "log": 0.6895720148600583,
+          "logit_mean": 0.11941662917158356,
+          "logit_std": 0.1299459152070865,
+          "mean_p": 0.5297187406982958,
+          "up_count": 845,
+          "up_fraction": 0.5139902676399026
+        },
+        "anchor_span": {
+          "auc": 0.5531322437070006,
+          "brier": 0.2482189051868834,
+          "count": 1644,
+          "down_count": 799,
+          "log": 0.689573126847583,
+          "logit_mean": 0.11941420926469992,
+          "logit_std": 0.12995317929579597,
+          "mean_p": 0.5297181380373926,
+          "up_count": 845,
+          "up_fraction": 0.5139902676399026
+        }
+      }
+    },
+    "all_timeframe_final_deltas": {
+      "future": {
+        "D1": {
+          "activity": {
+            "auc": 3.503926036430016e-05,
+            "brier": -4.813373195411419e-06,
+            "log": -1.1361645105401053e-05,
+            "mean_p": 2.5924206838723318e-05
+          },
+          "side": {
+            "auc": -3.995560488345706e-05,
+            "brier": 1.0479296505855329e-05,
+            "log": 2.0605847976806757e-05,
+            "mean_p": 2.5322511773673284e-05
+          }
+        },
+        "H1": {
+          "activity": {
+            "auc": -1.1142061281388393e-05,
+            "brier": 5.716562690383231e-06,
+            "log": 1.3712457063275174e-05,
+            "mean_p": 2.9843232698556488e-05
+          },
+          "side": {
+            "auc": -2.9281147821080822e-05,
+            "brier": 3.524663900245084e-06,
+            "log": 1.0900843021799389e-05,
+            "mean_p": 8.84814146662194e-06
+          }
+        },
+        "H4": {
+          "activity": {
+            "auc": -9.457874626361829e-06,
+            "brier": 4.3827289062381425e-06,
+            "log": 1.0773461136648343e-05,
+            "mean_p": 3.2299504070743e-05
+          },
+          "side": {
+            "auc": -1.9459796061327417e-05,
+            "brier": 6.167468138418286e-06,
+            "log": 1.8026989767938595e-05,
+            "mean_p": 4.5627805377312924e-06
+          }
+        },
+        "M15": {
+          "activity": {
+            "auc": -1.9025875190203934e-05,
+            "brier": 4.1856248682858865e-06,
+            "log": 1.030884457609016e-05,
+            "mean_p": 2.7730600753839152e-05
+          },
+          "side": {
+            "auc": 7.729468599060318e-06,
+            "brier": 3.839234189562113e-06,
+            "log": 1.3414120489163572e-05,
+            "mean_p": 8.788920431435088e-06
+          }
+        },
+        "M5": {
+          "activity": {
+            "auc": -5.085475683008767e-06,
+            "brier": -3.4266193058019034e-06,
+            "log": -7.756986178497627e-06,
+            "mean_p": 1.9977483404154395e-05
+          },
+          "side": {
+            "auc": -1.4811413675319685e-05,
+            "brier": 5.542072026298861e-07,
+            "log": 1.111987524726743e-06,
+            "mean_p": -6.026609031817287e-07
+          }
+        }
+      },
+      "state": {
+        "D1": {
+          "activity": {
+            "auc": -1.3877163970277273e-05,
+            "brier": 5.7342938883375716e-08,
+            "log": -1.7804376704066982e-06,
+            "mean_p": 1.534898144794905e-05
+          },
+          "side": {
+            "auc": 0.0,
+            "brier": 2.5839867824895e-06,
+            "log": 5.372208406906331e-06,
+            "mean_p": -2.8223933506321686e-05
+          }
+        },
+        "H1": {
+          "activity": {
+            "auc": 5.446267128395021e-07,
+            "brier": 1.6644609473884242e-05,
+            "log": 4.744466923439772e-05,
+            "mean_p": 3.3750733550719225e-05
+          },
+          "side": {
+            "auc": -1.9636895942309884e-05,
+            "brier": 2.1840915127302463e-06,
+            "log": 4.066797260726673e-06,
+            "mean_p": -3.501382724835356e-05
+          }
+        },
+        "H4": {
+          "activity": {
+            "auc": 3.591180061768284e-05,
+            "brier": 6.9999052770969294e-06,
+            "log": 1.966308177242526e-05,
+            "mean_p": 1.6764009314607087e-05
+          },
+          "side": {
+            "auc": -2.619099707579231e-05,
+            "brier": 7.97755029738334e-06,
+            "log": 1.684680662750182e-05,
+            "mean_p": -3.612090803051249e-05
+          }
+        },
+        "M15": {
+          "activity": {
+            "auc": -4.26139591966912e-05,
+            "brier": 9.765245051862603e-06,
+            "log": 3.932633055520052e-05,
+            "mean_p": 2.446721685878117e-05
+          },
+          "side": {
+            "auc": -1.9936204146753234e-05,
+            "brier": 2.007535431808316e-06,
+            "log": 4.464452827424026e-06,
+            "mean_p": -3.0266008796075994e-05
+          }
+        },
+        "M5": {
+          "activity": {
+            "auc": 2.614645187970499e-05,
+            "brier": 3.455522974912806e-07,
+            "log": 2.605653766057925e-06,
+            "mean_p": 1.6183489250476413e-05
+          },
+          "side": {
+            "auc": 4.2210032903389205e-06,
+            "brier": 3.4296636913788703e-07,
+            "log": 7.019506752525828e-07,
+            "mean_p": 1.6741038665335495e-06
+          }
+        }
+      }
+    },
+    "canonical_loss": {
+      "anchor_span": {
+        "FINAL_TRAIN": 1.8843593406490982,
+        "INITIAL_TRAIN": 1.8780025797896087
+      },
+      "original": {
+        "FINAL_TRAIN": 1.8843241757713258,
+        "INITIAL_TRAIN": 1.8780025811865926
+      }
+    },
+    "canonical_loss_delta_final": 3.516487777233124e-05,
+    "per_task_timeframe_components_before_divisor5": {
+      "anchor_span": {
+        "FINAL_TRAIN": {
+          "future": {
+            "D1": 0.6610813748557121,
+            "H1": 1.188070174306631,
+            "H4": 0.9740391217637807,
+            "M15": 1.3559920196421444,
+            "M5": 1.3660484268330038
+          },
+          "state": {
+            "D1": 0.7487791264793486,
+            "H1": 0.715758306265343,
+            "H4": 0.6770128915959504,
+            "M15": 0.8296317516796989,
+            "M5": 0.9053833718717215
+          }
+        },
+        "INITIAL_TRAIN": {
+          "future": {
+            "D1": 0.7541680358699523,
+            "H1": 1.1355003517237492,
+            "H4": 1.0024997824220918,
+            "M15": 1.2675075440783985,
+            "M5": 1.364270091522485
+          },
+          "state": {
+            "D1": 0.6979241661101696,
+            "H1": 0.7336081711982843,
+            "H4": 0.6820942801205092,
+            "M15": 0.8456810237257741,
+            "M5": 0.9067593080108054
+          }
+        }
+      },
+      "original": {
+        "FINAL_TRAIN": {
+          "future": {
+            "D1": 0.6610826047253795,
+            "H1": 1.1880465772701427,
+            "H4": 0.9740272283088416,
+            "M15": 1.3559677773737349,
+            "M5": 1.3660550725180656
+          },
+          "state": {
+            "D1": 0.7487830558675341,
+            "H1": 0.7156955758691765,
+            "H4": 0.676994942514284,
+            "M15": 0.8295876760384999,
+            "M5": 0.9053802154012374
+          }
+        },
+        "INITIAL_TRAIN": {
+          "future": {
+            "D1": 0.7541680379072204,
+            "H1": 1.1355003509670496,
+            "H4": 1.0024997860891744,
+            "M15": 1.2675075436127372,
+            "M5": 1.364270092220977
+          },
+          "state": {
+            "D1": 0.69792416295968,
+            "H1": 0.7336081702669617,
+            "H4": 0.6820942834528978,
+            "M15": 0.8456810250499984,
+            "M5": 0.9067593092913739
+          }
+        }
+      }
+    },
+    "conclusions": [
+      "M5 state-side AUC changed by+0.000004221; future-side AUC by-0.000014811. This is mixed and extremely small, not a consistent directional gain.",
+      "M5 state/future conditional-side Brier and log loss both worsened slightly. Side Brier/log also worsened in all ten task/timeframe cells; activity metrics were mixed.",
+      "Canonical total loss is1.884359341 versus original1.884324176, a deterioration of0.000035165. The original loss regression from INITIAL persists.",
+      "The second-anchor representation defect was real and repaired, but its repair did not resolve the observed short-run learning/calibration problem. This does not establish its utility across full history or later generalization.",
+      "As agreed, stop expanding this feature-repair experiment and return to the already observed composition/calibration problem. Choose the next discriminator from existing evidence before changing code."
+    ],
+    "limitations": [
+      "Same4096usedTRAIN rows only; no heldout or economic-edge measurement.",
+      "AUC is ranking on eligible known-side observations, not trading win rate.",
+      "One fixed short learning comparison does not judge full-history capacity or30-40epoch training.",
+      "Fresh INITIAL outputs matched predeclared FP32 tolerances, not bitwise equality of every logit."
+    ],
+    "test_data_used": false,
+    "training_authorized": false,
+    "promotion_authorized": false,
+    "relaunch_allowed": false,
+    "goal_complete": false
+  },
+  "batch_order_evidence_reused_after_span_comparison": {
+    "status": "EXISTING_CONSUMED_ORDER_CONTROL_REUSED_NO_NEW_JOB",
+    "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002",
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/RECIPE.json",
+      "sha256": "e503cf1f17a58391b7286b51ee5423f90fb47fe45d06a860f47553b9f1d8d667"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/RESULT.json",
+      "sha256": "b11a1932c924b22555bf9e848c8dea7507291c5584d0e7626de1a0f660840438"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/TERMINAL.json",
+      "sha256": "6df60cb3966721d71e0d72f654c5268d0ddb2a15215db1c63c8a9f36ac3d2b3a"
+    },
+    "scope": "Two256-update arms, same4096selectedTRAIN rows and intactB16groups, sameINITIAL and queries;256groups distributed over fullTRAIN29574, not the current first4096rows.",
+    "training_total_loss_control": 1.869982,
+    "training_total_loss_interleaved": 1.848745,
+    "training_M5_state_Brier_control": 0.247566,
+    "training_M5_state_Brier_interleaved": 0.247834,
+    "training_M5_future_Brier_control": 0.248458,
+    "training_M5_future_Brier_interleaved": 0.248634,
+    "values_above_rounded_for_synthesis": true,
+    "observed_tradeoff": "Interleaving improved total TRAIN loss and S/D1 activity plus F/M15/H1 side, but worsened M5 TRAIN proper scores. Better aggregate calibration is not automatically better M5 quality.",
+    "current_comparison_differences": [
+      "Older INITIAL ae772fd7 rather than activityINITIAL730409e6.",
+      "DedicatedM5side but no dedicatedTFactivity heads.",
+      "Distributed fullTRAIN groups rather than current contiguous4096row prefix.",
+      "Dropout mask-to-row assignment changes together with order."
+    ],
+    "decision": "Do not start another general interleaving control. This existing result does not identify the present historical cause, but it already demonstrates the relevant calibration-versus-M5 tradeoff.",
+    "new_model_or_data_job_started": false,
     "test_data_used": false
   }
 }
