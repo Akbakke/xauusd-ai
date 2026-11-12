@@ -5,8 +5,9 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_FULL_PREFIX_002_SOURCE_QUALIFIED_NATIVE_CLOSED. Edge-målet er uoppnådd.
-Ingen ny modell/trening eller omstart skjedde. Global training/native/full_epoch er false.
+TA_FULL_PREFIX_LEARNING_002_ADMITTED_READINESS_BEFORE_CLAIM. Edge-målet er uoppnådd.
+Ingen ny modell/trening eller omstart skjedde. Training/native er true bare for ny002;
+full_epoch/fullVAL er false. Alle seks legacy closed-flagg er eksplisittFalse.
 Klargjøring001 skrev sin engangsmarkør og campaignfiler, men siste readiness avviste
 rootens native_launch_authorized=True; forskningsruten kreverFalse. Dessuten manglet
 synthetic_test_execution_authorized=False. Dette er policybinding, ikke en modellfeil.
@@ -15,7 +16,10 @@ Rettelsen binder alle seks eksisterende lukkede flagg før klargjøringens claim
 84fokuserte cases består, inkludert12true/missing-tilfeller og avvisning av gammel001.
 Bare den eksakte scopekontrakten er endret;101andre kildeeiere, modell og loss er uendret.
 GATE_CORRECTION_002.json i preparation-root binder rettelsen og testkvitteringen.
-Ny002plan beholder samme vitenskapelige oppsett, men må ha ny eksakt recipe/admisjon.
+Ny002plan har samme vitenskapelige oppsett og egen eksakt admisjon.
+Root: /home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_002.
+RECIPE993b9f1d, PREFLIGHT3f769423; uendret faktisk checkpointbevis/bytehash gjenbrukt.
+Forberedelsesboot647; ny fysisk boot kreves. Fersk Windows/Linux-observasjon er ledig.
 Full draft-window-readiness skal bestå før den nye klargjøringen claimes.
 
 Neste forsøk er nå kildekvalifisert: samme bef35-INITIAL og samme29574TRAIN-foreldre fra
@@ -45,7 +49,7 @@ Windows-oppgave ble installert. Faktisk checkpointkontroll e34e34d2 kan gjenbruk
 fersk bytehash og kontroll av ny recipe/normalisering/akserekkefølge/modelldigest.
 De to INITIAL-panelene må fortsatt være bitlike kontrollen før genuine updates.
 
-Neste: bind ny002recipe og faktisk draft-window-readiness uten å endre modell/tap,
+Neste: fullfør faktisk draft-window-readiness før002claim uten å endre modell/tap,
 datarader eller antall pass. Fersk kilde/recipe/window/readiness og ledig fysisk omstart
 kreves før ny nativeadmisjon.219fokuserte kildecases er allerede dekket; kjør bare relevante
 nye gatechecks og pålagte hooks etter rettelsen. Gjør ikke gamle databygg eller fits på nytt.

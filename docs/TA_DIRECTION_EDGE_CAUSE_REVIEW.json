@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_FULL_PREFIX_002_SOURCE_QUALIFIED_EDGE_UNRESOLVED",
+  "status": "ACTIVE_FULL_PREFIX_002_ADMITTED_READINESS_AND_FRESH_BOOT_PENDING",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -269,7 +269,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Bind the same fixed two-pass learning design to fresh recipe002. Before any preparation claim, run exact CLI/metadata and full draft-window readiness against actual policy, including all six required closed flags. Then materialize once, verify idle/reboot guards, and launch only its new admitted native plan. Failed001 remains closed.",
+  "next_measurement": "Run full actual-policy draft-window readiness and exact materializer startup before any preparation002claim. Then materialize once, verify idle/reboot guards and launch the single guarded two-pass job. Old001 remains closed; no source changes during execution or automatic extra pass.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -13854,5 +13854,20 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_001/PREPARATION_TERMINAL.json",
       "sha256": "3d36c9192072e060805cca0832665ba30aa8fee30b49bb017ee69e8eeba05d0a"
     }
+  },
+  "full_prefix_learning_002_native_admission": {
+    "stage": "market_state_ta_full_prefix_learning_20261112_002",
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_002/RECIPE.json",
+      "sha256": "993b9f1dc7b581e700f3fb148f90028c7eb1b51fdf5e1c9d62f8b7bd7182c23f"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_002/PREFLIGHT.json",
+      "sha256": "3f7694237edbb8cd9cedb447bd6af4868fce87109df9cc84d83f886d28fc8fb4"
+    },
+    "model_execution_started": false,
+    "primary_pass": 2,
+    "old001_relaunch_allowed": false,
+    "test_data_used": false
   }
 }

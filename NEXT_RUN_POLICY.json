@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-12T21:35:33.801974+00:00",
-  "status": "TA_FULL_PREFIX_002_SOURCE_QUALIFIED_NATIVE_CLOSED",
+  "observed_utc": "2026-11-12T21:42:47.522348+00:00",
+  "status": "TA_FULL_PREFIX_LEARNING_002_ADMITTED_READINESS_BEFORE_CLAIM",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Bind the same fixed two-pass learning design to fresh recipe002. Before any preparation claim, run exact CLI/metadata and full draft-window readiness against actual policy, including all six required closed flags. Then materialize once, verify idle/reboot guards, and launch only its new admitted native plan. Failed001 remains closed.",
+  "next_action": "Run full actual-policy draft-window readiness and exact materializer startup before any preparation002claim. Then materialize once, verify idle/reboot guards and launch the single guarded two-pass job. Old001 remains closed; no source changes during execution or automatic extra pass.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1739,7 +1739,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Measured preclaim policy gap corrected;84focused cases pass, all model/loss source bytes unchanged. New002scope is source-qualified but not admitted.",
+    "current_activity": "New002 two-pass private comparison admitted with all legacy closed flags explicit false. Draft readiness and fresh boot pending; no model execution.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1792,7 +1792,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No observed source blocker. Fresh002recipe/admission and full draft-window readiness remain before any preparation claim.",
+    "current_blocker": "No observed source blocker; exact draft readiness before claim and fresh idle-boundary boot remain.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9263,7 +9263,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Bind the same fixed two-pass learning design to fresh recipe002. Before any preparation claim, run exact CLI/metadata and full draft-window readiness against actual policy, including all six required closed flags. Then materialize once, verify idle/reboot guards, and launch only its new admitted native plan. Failed001 remains closed.",
+    "next_action": "Run full actual-policy draft-window readiness and exact materializer startup before any preparation002claim. Then materialize once, verify idle/reboot guards and launch the single guarded two-pass job. Old001 remains closed; no source changes during execution or automatic extra pass.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -24962,7 +24962,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-12T21:35:33.801974+00:00",
+  "updated_utc": "2026-11-12T21:42:47.522348+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -35748,7 +35748,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -76956,7 +76956,7 @@
     "unresolved_campaign_marker_preserved": true,
     "standard_campaign_receipt_available": false
   },
-  "active_stage": "market_state_ta_full_prefix_learning_preparation_20261112_001",
+  "active_stage": "market_state_ta_full_prefix_learning_20261112_002",
   "market_state_ta_m5_c171_short_learning_20261111_002": {
     "decision": "CLOSED",
     "status": "COMPLETE_CONSUMED",
@@ -83001,5 +83001,98 @@
     },
     "preparation_claimed": true,
     "native_invocation_claimed": false
+  },
+  "market_state_ta_full_prefix_learning_20261112_002": {
+    "decision": "ADMITTED",
+    "status": "ADMITTED",
+    "ta_full_prefix_learning_authorized": true,
+    "fold_id": 1,
+    "selected_fit_rows": 29574,
+    "selected_score_rows": 4096,
+    "training_presentations": 59148,
+    "model_constructions_authorized": 1,
+    "optimizer_constructions_authorized": 1,
+    "model_forwards_authorized": 5234,
+    "backward_calls_authorized": 3698,
+    "optimizer_steps_authorized": 3698,
+    "initial_rng_imports_authorized": 1,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "genuine_updates_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_predictor_fit_authorized": false,
+    "canonical_resume_authority": false,
+    "candidate_selection": false,
+    "test_data_used": false,
+    "native_launch_authorized": false,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "full_epoch_training_allowed": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_002",
+    "run_scope": "market_state_ta_full_prefix_learning_v1",
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_002/RECIPE.json",
+      "sha256": "993b9f1dc7b581e700f3fb148f90028c7eb1b51fdf5e1c9d62f8b7bd7182c23f"
+    },
+    "source_preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_002/PREFLIGHT.json",
+      "sha256": "3f7694237edbb8cd9cedb447bd6af4868fce87109df9cc84d83f886d28fc8fb4"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_002/RUNTIME",
+    "execution_authorized": true,
+    "campaign_preparation_authorized": true,
+    "prepared_boot": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_002/PREPARED_WINDOWS_BOOT.json",
+      "sha256": "756e54cb65f235e0f8a289a1bfd7cc18df25229d4a5f45e1541a1daa89f3b5d0"
+    },
+    "guard_template": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_MECHANICAL_20261109_001/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "sha256": "905dd8efd3cd7fae95f2dc90457b710d673f5a23399a61831eea9063516fcd9d"
+    },
+    "materializer": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_market_state_time_query_fold1_fit_campaign_v1.py",
+      "sha256": "76e36de543bd43ab18a6d2d0176fcb56ef35e39f8b4eed498bf53c7a1e422f2d"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "model_execution_authorized": true,
+    "data_reads_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "checkpoint_loads_authorized": 1,
+    "checkpoint_writes_authorized": 0,
+    "candidate_evidence_writes_authorized": 1,
+    "max_model_seconds": 10500,
+    "max_invocation_seconds": 12000,
+    "outer_guard_seconds": 13800,
+    "max_training_forwards": 3698,
+    "max_evaluation_forwards": 1536,
+    "max_skipped_batches": 0,
+    "resource_cap": {
+      "run_class": "trainer",
+      "memory": "20G",
+      "swap": "512M",
+      "physical_power_limit_w": 250
+    },
+    "actual_model_execution_started": false,
+    "actual_native_job_active": false,
+    "idle_before_admission": {
+      "windows": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_002/PRE_ADMISSION_WINDOWS.json",
+        "sha256": "00ea0239630a8a60da9f4e377281401edf061e98f0dd68606545a38fa701fcda"
+      },
+      "linux": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_002/PRE_ADMISSION_LINUX.json",
+        "sha256": "dfee5c5cc59fe8c85af90295ddd2a1621e290619a89c7ab679da4eda75f76921"
+      },
+      "review": "No project work/writers/locks observed. Only verified system services and WSL infrastructure. Recheck before physical reboot; no work termination."
+    },
+    "authorization_basis": "New exact local0USD two-pass admission002. Failed preparation001 remains closed. No automatic extra pass, full-history/main-fit training, TEST, broker, trades or promotion."
   }
 }
