@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_SETUP_CONTEXT_COMPLETE_VALUE_UNRESOLVED",
+  "status": "ACTIVE_SETUP_NATIVE_HORIZONS_REVIEW",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -269,7 +269,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Resolve horizon alignment for the same already declared situations using existing retained F endpoints only. First verify that TRAIN/later query horizons and native ATR units match across all five TF; specify all endpoints together, preserve M5 as primary and include the standing long-horizon LONG reference before any further scoring. No regrouping, threshold search, new targets, model changes or training is admitted.",
+  "next_measurement": "Execute one capped retained-F horizon review with unchanged setup assignments, all five native endpoints and exact LONG reference. Verify native queries/maturity and original score replay; retain all groups and explicit UNKNOWN/immature counts; consume after terminal. No fitting, new labels, regrouping or best-horizon selection.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -7128,5 +7128,17 @@
     "economic_edge_established": false,
     "test_data_used": false,
     "next_action": "Resolve horizon alignment for the same already declared situations using existing retained F endpoints only. First verify that TRAIN/later query horizons and native ATR units match across all five TF; specify all endpoints together, preserve M5 as primary and include the standing long-horizon LONG reference before any further scoring. No regrouping, threshold search, new targets, model changes or training is admitted."
+  },
+  "setup_native_horizons_source": {
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_SETUP_NATIVE_HORIZONS_20261112_001.json",
+      "sha256": "8f5a0c5dbe9f554f395fcfca60c7ba109737f3672fedb2839f0bfcfdc3cc28a1"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_NATIVE_HORIZONS_20261112_001/SOURCE_REVIEW.json",
+      "sha256": "60d27db45ee0e9c65dc622abe9bc1bbafc2932006b51696ba011631d8180955c"
+    },
+    "source_semantics_qualified": true,
+    "new_group_horizon_results_read": false
   }
 }

@@ -6,17 +6,24 @@ NEXT_RUN_POLICY.json eier arbeidsstatus; prosess og terminal overstyrer prosa.
 
 ## Aktivt mål og neste steg
 
-TA_DIRECTION_EDGE_CAUSE_SETUP_CONTEXT_COMPLETE_VALUE_UNRESOLVED.
-Målet om å avklare og rette svak retningsverdi er fortsatt aktivt og uoppnådd.
-Forrige målturn og denne ga faktisk fremdrift: fast læringssammenligning og deretter
-kausal situasjonsanalyse er utført. Ikke gjenta dem eller åpne konsumert admisjon.
+TA_DIRECTION_EDGE_CAUSE_SETUP_NATIVE_HORIZONS_ADMITTED.
+Målet om svak retningsverdi er fortsatt aktivt og uoppnådd. Forrige målturn fullførte
+situasjonsproben; den forblir konsumert. Nå er én separat avlesning av eksisterende F-endepunkter admittert.
+Stage market_state_ta_setup_native_horizons_20261112_001; plan med samme navn i configs/research.
+ROOT /home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_NATIVE_HORIZONS_20261112_001.
+Kjør REVIEW_NATIVE_HORIZONS.py én gang, capped audit4GiB/512MiB, maksimalt180s.
 
-Neste avgrensede spørsmål er tidshorisonten for de samme situasjonene.
-Kontroller først at lagrede F-queries, tidspunkt og native ATR-enheter faktisk matcher
-mellom TRAIN/senere på alle fem TF. Deretter kan én separat prespesifisert avlesning
-av alle allerede lagrede endepunkter vurderes. M5 beholdes som primært; velg ikke beste
-horisont etterpå. Langhorisont krever stående LONG-referanse. Ingen slik scoring er admittert nå.
-Ingen nye grupper, terskelsøk, targets, modellendring eller trening er tillatt av dette steget.
+Uendrede GROUP_ASSIGNMENTS og seks lagrede INITIAL/FULLpass3/M5-onlypass3-captures;
+alle37grupper, begge paneler og fem F-horisonter beholdes. Ingen feature-/targettape-lesing,
+modell, forward, fit eller nye targets. M5 beholdes som primært, ingen beste-horisontseleksjon.
+Kilde bekrefter native F-query[1,3,12,48,288] på begge partisjoner; kjøringen må verifisere
+queryakse, modenhet og gamle skårer. HverTF har egen ATR_t: horisont og bevegelsesskala endres sammen.
+
+Alltid-LONG er eksakt klassevektor(0,0,1), uten epsilon-klipping av uendelig logloss.
+Frosne TRAIN-priors beholdes som separat sannsynlighetsreferanse. Fortegnsbasert klassebalanse
+er ingen PnL eller handelsregel. UNKNOWN og eligible-but-immature telles separat; alle rader skal avstemmes.
+Parret dag-/ukeusikkerhet gjelder de samme fire forhåndsvalgte sammenligningene, alle fem endepunkter.
+Alle trenings-/TEST-/handelsporter er fortsatt stengt. Ingen annen jobb er admittert.
 
 ## Målt situasjonsanalyse
 

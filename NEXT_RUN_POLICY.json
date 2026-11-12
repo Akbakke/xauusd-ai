@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-12T14:11:02.740091+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_SETUP_CONTEXT_COMPLETE_VALUE_UNRESOLVED",
+  "observed_utc": "2026-11-12T14:23:38.925473+00:00",
+  "status": "TA_DIRECTION_EDGE_CAUSE_SETUP_NATIVE_HORIZONS_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Resolve horizon alignment for the same already declared situations using existing retained F endpoints only. First verify that TRAIN/later query horizons and native ATR units match across all five TF; specify all endpoints together, preserve M5 as primary and include the standing long-horizon LONG reference before any further scoring. No regrouping, threshold search, new targets, model changes or training is admitted.",
+  "next_action": "Execute one capped retained-F horizon review with unchanged setup assignments, all five native endpoints and exact LONG reference. Verify native queries/maturity and original score replay; retain all groups and explicit UNKNOWN/immature counts; consume after terminal. No fitting, new labels, regrouping or best-horizon selection.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -24927,7 +24927,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-12T14:11:02.740091+00:00",
+  "updated_utc": "2026-11-12T14:23:38.925473+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -64344,8 +64344,8 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "TA_DIRECTION_EDGE_CAUSE_SETUP_CONTEXT_COMPLETE_VALUE_UNRESOLVED",
-  "recorded_observed_utc": "2026-11-12T14:11:02.740091+00:00",
+  "recorded_status": "TA_DIRECTION_EDGE_CAUSE_SETUP_NATIVE_HORIZONS_ADMITTED",
+  "recorded_observed_utc": "2026-11-12T14:23:38.925473+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
     "decision": "BLOCK",
@@ -75702,24 +75702,24 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_SETUP_HORIZON_ALIGNMENT_UNRESOLVED",
+    "status": "ACTIVE_SETUP_NATIVE_HORIZONS_REVIEW",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
     "training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "f8d14a7ed9a91b27916fdd5d2c4211a33680755182aa0a694b5276f9ce4307ea"
+      "sha256": "aa1efc5d8a408b4dd36c0c86c286a4b3be870215c1878c6899515a53dddab17b"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": false,
+    "model_or_data_run_admitted": true,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Resolve horizon alignment for the same already declared situations using existing retained F endpoints only. First verify that TRAIN/later query horizons and native ATR units match across all five TF; specify all endpoints together, preserve M5 as primary and include the standing long-horizon LONG reference before any further scoring. No regrouping, threshold search, new targets, model changes or training is admitted.",
-    "active_stage": "market_state_ta_setup_context_20261112_001",
-    "previous_goal_turn_classification": "PROGRESS_FIXED_COMPARISON_COMPLETE_AND_REVIEWED",
-    "last_goal_turn_classification": "PROGRESS_CAUSAL_SETUP_CONSUMPTION_AND_LATER_VALUE_MEASURED_WITHOUT_MODEL_FIT",
+    "next_action": "Execute one capped retained-F horizon review with unchanged setup assignments, all five native endpoints and exact LONG reference. Verify native queries/maturity and original score replay; retain all groups and explicit UNKNOWN/immature counts; consume after terminal. No fitting, new labels, regrouping or best-horizon selection.",
+    "active_stage": "market_state_ta_setup_native_horizons_20261112_001",
+    "previous_goal_turn_classification": "PROGRESS_FIXED_SETUP_CONTEXT_REVIEW_COMPLETED",
+    "last_goal_turn_classification": "IN_PROGRESS_RETAINED_NATIVE_HORIZONS_AND_LONG_REFERENCE_BOUND",
     "latest_tail_factor_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_ALL_TF_TAIL_FACTOR_REVIEW.json",
       "sha256": "5da978f765b0ad1ac001023501be7665989270d8353d768b801b9e1b29406c0f"
@@ -76136,6 +76136,18 @@
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_CONTEXT_20261112_001/TERMINAL.json",
         "sha256": "984eeea794ea6c252ebe1bf76e2dc9f8107372ba55efe10932b63675c7e6a93d"
       }
+    },
+    "setup_native_horizons_20261112": {
+      "status": "ADMITTED",
+      "plan": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_SETUP_NATIVE_HORIZONS_20261112_001.json",
+        "sha256": "8f5a0c5dbe9f554f395fcfca60c7ba109737f3672fedb2839f0bfcfdc3cc28a1"
+      },
+      "source_review": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_NATIVE_HORIZONS_20261112_001/SOURCE_REVIEW.json",
+        "sha256": "60d27db45ee0e9c65dc622abe9bc1bbafc2932006b51696ba011631d8180955c"
+      },
+      "training_enabled": false
     }
   },
   "market_state_ta_fusion_observation_20261111_001": {
@@ -76835,7 +76847,7 @@
     "unresolved_campaign_marker_preserved": true,
     "standard_campaign_receipt_available": false
   },
-  "active_stage": "market_state_ta_setup_context_20261112_001",
+  "active_stage": "market_state_ta_setup_native_horizons_20261112_001",
   "market_state_ta_m5_c171_short_learning_20261111_002": {
     "decision": "CLOSED",
     "status": "COMPLETE_CONSUMED",
@@ -81763,5 +81775,42 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_CONTEXT_20261112_001/TERMINAL.json",
       "sha256": "984eeea794ea6c252ebe1bf76e2dc9f8107372ba55efe10932b63675c7e6a93d"
     }
+  },
+  "market_state_ta_setup_native_horizons_20261112_001": {
+    "status": "ADMITTED",
+    "decision": "ADMITTED",
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_SETUP_NATIVE_HORIZONS_20261112_001.json",
+      "sha256": "8f5a0c5dbe9f554f395fcfca60c7ba109737f3672fedb2839f0bfcfdc3cc28a1"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_NATIVE_HORIZONS_20261112_001/SOURCE_REVIEW.json",
+      "sha256": "60d27db45ee0e9c65dc622abe9bc1bbafc2932006b51696ba011631d8180955c"
+    },
+    "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_SETUP_NATIVE_HORIZONS_20261112_001",
+    "resource_cap": {
+      "class": "audit",
+      "memory": "4G",
+      "swap": "512M",
+      "maximum_wall_seconds": 180
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "test_data_used": false,
+    "promotion_authorized": false,
+    "admission_basis": "Active direction-edge goal and standing local0USD authority; one retained-output review of existing endpoints with no model or feature execution.",
+    "admitted_utc": "2026-11-12T14:23:38.925473+00:00",
+    "next_action": "Execute one capped retained-F horizon review with unchanged setup assignments, all five native endpoints and exact LONG reference. Verify native queries/maturity and original score replay; retain all groups and explicit UNKNOWN/immature counts; consume after terminal. No fitting, new labels, regrouping or best-horizon selection."
   }
 }
