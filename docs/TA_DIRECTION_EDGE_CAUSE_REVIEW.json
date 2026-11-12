@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_NATIVE_HORIZONS_COMPLETE_TRANSFER_UNRESOLVED",
+  "status": "ACTIVE_FIXED_EXPOSURE_SOURCE_IMPLEMENTED_STARTUP_PENDING",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -269,7 +269,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Reuse the existing full-TRAIN complement evaluation method and inspect current fixed-benchmark evidence states to qualify one matched evaluation of original TRAIN rows excluded from the recent4096-row updates. Compare against the exact CURRENT INITIAL, preserve chronological later results, and do not call these rows untouched holdout or launch additional fitting. Prior E3 complement evidence is informative but belongs to a different model state and numerical protocol; do not rerun its consumed plan.",
+  "next_measurement": "Qualify the exact startup command on the committed source and bind actual recipe/view/checkpoint metadata plus synthetic success/failure reporting. Then prepare one exact guarded768-update exposure admission under standing local0USD authority. Training remains disabled until qualified admission and required fresh boot; never relaunch the consumed FULL control.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -12362,7 +12362,7 @@
     }
   },
   "fixed_exposure_source_qualification": {
-    "status": "METADATA_QUALIFIED_SOURCE_IMPLEMENTATION_AND_MODEL_ADMISSION_PENDING",
+    "status": "SOURCE_IMPLEMENTED_METADATA_PASS_STARTUP_PENDING",
     "result": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_PREPARATION_20261112_001/RESULT.json",
       "sha256": "394328000f4974e2f4409c3eadfa2db78d275487f00c8d7ab6d6b3351da2d721"
@@ -12403,9 +12403,7 @@
       "Replace obsolete baselineTRAIN[slot] binding only for new pass2/3 batches, never weaken axes/target/maturity checks."
     ],
     "implementation_pending": [
-      "Bind a separate exact one-arm recipe and admission; old consumed scope remains closed.",
-      "Reuse existing init/update/evaluation worker with per-pass batch selection and correct one-arm accounting.",
-      "Qualify exact startup, actual checkpoint/view metadata, failure reporting and routing before any model admission."
+      "Exact committed-source startup smoke and bound source/view/checkpoint preflight before new admission."
     ],
     "limits": [
       "Exposure schedule changes row contents, repetition and within-pass sequence together; not pure unique-count causality.",
@@ -12414,7 +12412,17 @@
       "Any skipped update invalidates fixed768update comparison; no replacement or extra batches.",
       "No new economic/Entry/Exit evidence; no TEST use or opening of trading authority."
     ],
-    "independent_review": "composition_audit confirmed minimum worker seams, disjoint schedule, full-TRAIN physical union reuse and unavailable pass1 optimizer state. No native execution."
+    "independent_review": "composition_audit confirmed minimum worker seams, disjoint schedule, full-TRAIN physical union reuse and unavailable pass1 optimizer state. No native execution.",
+    "source_implementation": {
+      "worker": "gx1/audit/run_market_state_ta_m5_objective_benchmark_v1.py",
+      "contract": "gx1/contracts/market_state_ta_coverage_benchmark_v1.py",
+      "old_route_preserved": true,
+      "same_initial_and_pass1_required": true,
+      "empty_support_policy": "abort_before_update_without_replacement",
+      "source_metadata_pass": true,
+      "focused_test_cases_passed": 104,
+      "native_launch": false
+    }
   },
   "forecast_trade_alignment_review": {
     "user_question": "Men med dette oppsettet, mener du dette er riktig \u00e5 trade slik?",

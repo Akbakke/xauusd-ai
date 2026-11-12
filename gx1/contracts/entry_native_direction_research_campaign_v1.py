@@ -42,6 +42,7 @@ TA_NON_M5_SHORT_LEARNING_SCOPE = 'market_state_ta_non_m5_short_learning_v1'
 TA_TF_ACTIVITY_SHORT_LEARNING_SCOPE = 'market_state_ta_tf_activity_short_learning_v1'
 TA_ANCHOR_SPAN_SHORT_LEARNING_SCOPE = 'market_state_ta_anchor_span_short_learning_v1'
 TA_M5_OBJECTIVE_BENCHMARK_SCOPE = 'market_state_ta_m5_objective_benchmark_v1'
+TA_COVERAGE_BENCHMARK_SCOPE = 'market_state_ta_coverage_benchmark_v1'
 TA_M5_CENTERED_HEAD_COORDINATES_SCOPE = 'market_state_ta_m5_centered_head_coordinates_v1'
 TA_M5_PAIRED_BATCH_ORDER_SCOPE = 'market_state_ta_m5_paired_batch_order_v1'
 TA_M5_REPEATED_PASS_SCOPE = 'market_state_ta_m5_repeated_pass_v1'
@@ -237,6 +238,11 @@ def _is_ta_anchor_span_short_learning_recipe_ref(binding):
     return isinstance(binding, Mapping) and binding.get('path') == str(RECIPE_PATH)
 
 
+def _is_ta_coverage_benchmark_recipe_ref(binding):
+    from gx1.contracts.market_state_ta_coverage_benchmark_v1 import RECIPE_PATH
+    return isinstance(binding, Mapping) and binding.get('path') == str(RECIPE_PATH)
+
+
 def _is_ta_m5_objective_benchmark_recipe_ref(binding):
     from gx1.contracts.market_state_ta_m5_objective_benchmark_v1 import RECIPE_PATH
     return isinstance(binding, Mapping) and binding.get('path') == str(RECIPE_PATH)
@@ -255,6 +261,11 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
     ref = campaign.require_binding(binding, label='direction research recipe', verify_file=verify_files)
     _require(verify_files, 'RECIPE_REQUIRES_PHYSICAL_METADATA')
     value = campaign.read_bound_json(Path(ref['path']), ref['sha256'])
+    coverage = _is_ta_coverage_benchmark_recipe_ref(ref)
+    if coverage or value.get('run_scope') == TA_COVERAGE_BENCHMARK_SCOPE:
+        _require(coverage and value.get('run_scope') == TA_COVERAGE_BENCHMARK_SCOPE, 'COVERAGE_BENCHMARK_RECIPE_PATH')
+        from gx1.contracts.market_state_ta_coverage_benchmark_v1 import require_recipe
+        return require_recipe(value,source_repo=source_repo,source_commit=source_commit,verify_files=verify_files)
     benchmark = _is_ta_m5_objective_benchmark_recipe_ref(ref)
     if benchmark or value.get('run_scope') == TA_M5_OBJECTIVE_BENCHMARK_SCOPE:
         _require(benchmark and value.get('run_scope') == TA_M5_OBJECTIVE_BENCHMARK_SCOPE, 'OBJECTIVE_BENCHMARK_RECIPE_PATH')
@@ -722,7 +733,7 @@ def guarded_research_power_limit(recipe):
             and recipe.get('numerical_recipe', {}).get('batch_size') == 16,
             'M5_IMPORT_POWER_SCOPE')
         return 250
-    if recipe.get('run_scope') in (NATIVE_F_PRIVATE_SCOPE, TA_SF_MECHANICAL_SCOPE, TA_M5_MECHANICAL_SCOPE, TA_M5_EQUAL_LOSS_SCOPE, TA_M5_C171_SHORT_LEARNING_SCOPE, TA_NON_M5_SHORT_LEARNING_SCOPE, TA_TF_ACTIVITY_SHORT_LEARNING_SCOPE, TA_ANCHOR_SPAN_SHORT_LEARNING_SCOPE, TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE, TA_M5_CENTERED_HEAD_COORDINATES_SCOPE, TA_M5_PAIRED_BATCH_ORDER_SCOPE, TA_M5_REPEATED_PASS_SCOPE, TA_M5_FULL_REVERSE_ORDER_SCOPE, TA_M5_OBJECTIVE_BENCHMARK_SCOPE):
+    if recipe.get('run_scope') in (NATIVE_F_PRIVATE_SCOPE, TA_SF_MECHANICAL_SCOPE, TA_M5_MECHANICAL_SCOPE, TA_M5_EQUAL_LOSS_SCOPE, TA_M5_C171_SHORT_LEARNING_SCOPE, TA_NON_M5_SHORT_LEARNING_SCOPE, TA_TF_ACTIVITY_SHORT_LEARNING_SCOPE, TA_ANCHOR_SPAN_SHORT_LEARNING_SCOPE, TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE, TA_M5_CENTERED_HEAD_COORDINATES_SCOPE, TA_M5_PAIRED_BATCH_ORDER_SCOPE, TA_M5_REPEATED_PASS_SCOPE, TA_M5_FULL_REVERSE_ORDER_SCOPE, TA_M5_OBJECTIVE_BENCHMARK_SCOPE, TA_COVERAGE_BENCHMARK_SCOPE):
         _require(recipe.get('fold_id') == 1
             and recipe.get('training_enabled') is True
             and recipe.get('test_data_used') is False
@@ -799,7 +810,7 @@ def require_research_invocation_execution(result: dict[str, Any], execution: Map
         '--progress-path',window['progress_path']], 'INVOCATION_ARGV')
     _require(result['kind'] == KIND and result['batch_size'] == recipe['numerical_recipe']['batch_size'] and result['epoch_index'] is None
         and result['invocation_number'] == 1 and result['window_index'] == 0 and result['window_count'] == 1
-        and type(result['optimizer_step_budget']) is int and result['optimizer_step_budget'] == (0 if import_mode else 1536 if _is_ta_m5_objective_benchmark_recipe_ref(recipe_ref) else 1849 if _is_ta_m5_full_reverse_order_recipe_ref(recipe_ref) else 512 if (_is_ta_m5_paired_batch_order_recipe_ref(recipe_ref) or _is_ta_m5_repeated_pass_recipe_ref(recipe_ref)) else 256 if (_is_ta_short_learning_recipe_ref(recipe_ref) or _is_ta_m5_original_cuda_prefix_recipe_ref(recipe_ref) or _is_ta_m5_centered_head_coordinates_recipe_ref(recipe_ref)) else 4)
+        and type(result['optimizer_step_budget']) is int and result['optimizer_step_budget'] == (0 if import_mode else 768 if _is_ta_coverage_benchmark_recipe_ref(recipe_ref) else 1536 if _is_ta_m5_objective_benchmark_recipe_ref(recipe_ref) else 1849 if _is_ta_m5_full_reverse_order_recipe_ref(recipe_ref) else 512 if (_is_ta_m5_paired_batch_order_recipe_ref(recipe_ref) or _is_ta_m5_repeated_pass_recipe_ref(recipe_ref)) else 256 if (_is_ta_short_learning_recipe_ref(recipe_ref) or _is_ta_m5_original_cuda_prefix_recipe_ref(recipe_ref) or _is_ta_m5_centered_head_coordinates_recipe_ref(recipe_ref)) else 4)
         and result['expected_success_outcome'] == 'COMPLETE' and result['maximum_wall_seconds'] == (3900 if _is_ta_short_learning_recipe_ref(recipe_ref) else 3300 if _is_ta_m5_paired_batch_order_recipe_ref(recipe_ref) else 13800)
         and result['checkpoint'] == {'pointer_path':window['campaign_cursor_path'],'before_mode':'GENESIS',
             'predecessor_invocation_number':None,'write_mode':'ATOMIC_UPDATE'}
@@ -835,7 +846,7 @@ def require_research_plan(value: Any, *, verify_files: bool = True) -> dict[str,
         from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
         if policy_recipe['run_scope'] in (DYNAMIC_STATE_PRIVATE_SCOPE, december.PRIVATE_SCOPE,
                                           october.roles.PRIVATE_SCOPE, TIME_QUERY_PRIVATE_SCOPE,
-                                          NATIVE_F_PRIVATE_SCOPE, TA_SF_MECHANICAL_SCOPE, TA_M5_MECHANICAL_SCOPE, TA_M5_IMPORT_SCOPE, TA_M5_EQUAL_LOSS_SCOPE, TA_M5_C171_SHORT_LEARNING_SCOPE, TA_NON_M5_SHORT_LEARNING_SCOPE, TA_TF_ACTIVITY_SHORT_LEARNING_SCOPE, TA_ANCHOR_SPAN_SHORT_LEARNING_SCOPE, TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE, TA_M5_CENTERED_HEAD_COORDINATES_SCOPE, TA_M5_PAIRED_BATCH_ORDER_SCOPE, TA_M5_REPEATED_PASS_SCOPE, TA_M5_FULL_REVERSE_ORDER_SCOPE, TA_M5_OBJECTIVE_BENCHMARK_SCOPE):
+                                          NATIVE_F_PRIVATE_SCOPE, TA_SF_MECHANICAL_SCOPE, TA_M5_MECHANICAL_SCOPE, TA_M5_IMPORT_SCOPE, TA_M5_EQUAL_LOSS_SCOPE, TA_M5_C171_SHORT_LEARNING_SCOPE, TA_NON_M5_SHORT_LEARNING_SCOPE, TA_TF_ACTIVITY_SHORT_LEARNING_SCOPE, TA_ANCHOR_SPAN_SHORT_LEARNING_SCOPE, TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE, TA_M5_CENTERED_HEAD_COORDINATES_SCOPE, TA_M5_PAIRED_BATCH_ORDER_SCOPE, TA_M5_REPEATED_PASS_SCOPE, TA_M5_FULL_REVERSE_ORDER_SCOPE, TA_M5_OBJECTIVE_BENCHMARK_SCOPE, TA_COVERAGE_BENCHMARK_SCOPE):
             _require('family_same_boot' not in result, 'STATE_FRESH_BOOT_REQUIRED')
             expected_policy['physical_power_limit_w'] = 250
     _require(campaign.canonical_sha256(result['policy']) == campaign.canonical_sha256(expected_policy)
@@ -935,6 +946,9 @@ def require_native_direction_research_readiness(repo: Path, *, window_path: Path
     if recipe['run_scope'] == TA_M5_CENTERED_HEAD_COORDINATES_SCOPE:
         from gx1.contracts.market_state_native_F_private_campaign_v1 import require_ta_m5_centered_head_coordinates_gate
         require_ta_m5_centered_head_coordinates_gate(gate, recipe)
+    if recipe['run_scope'] == TA_COVERAGE_BENCHMARK_SCOPE:
+        from gx1.contracts.market_state_ta_coverage_benchmark_v1 import require_gate
+        require_gate(gate, recipe)
     if recipe['run_scope'] == TA_M5_OBJECTIVE_BENCHMARK_SCOPE:
         from gx1.contracts.market_state_ta_m5_objective_benchmark_v1 import require_gate
         require_gate(gate, recipe)
@@ -968,7 +982,7 @@ def require_native_direction_research_readiness(repo: Path, *, window_path: Path
         'canonical_source_repo':str(repo),'source_commit':head,'policy_sha256':campaign.file_sha256(policy_path),
         'training_started':False,'native_invocation_seconds':3600 if recipe['run_scope'] in (TA_M5_C171_SHORT_LEARNING_SCOPE, TA_NON_M5_SHORT_LEARNING_SCOPE, TA_TF_ACTIVITY_SHORT_LEARNING_SCOPE, TA_ANCHOR_SPAN_SHORT_LEARNING_SCOPE) else 3000 if recipe['run_scope'] == TA_M5_PAIRED_BATCH_ORDER_SCOPE else 12000,
         'outer_guard_seconds':3900 if recipe['run_scope'] in (TA_M5_C171_SHORT_LEARNING_SCOPE, TA_NON_M5_SHORT_LEARNING_SCOPE, TA_TF_ACTIVITY_SHORT_LEARNING_SCOPE, TA_ANCHOR_SPAN_SHORT_LEARNING_SCOPE) else 3300 if recipe['run_scope'] == TA_M5_PAIRED_BATCH_ORDER_SCOPE else 13800,
-        'native_window_scope':{'research_only':True,'invocation_number':1,'optimizer_step_ceiling':0 if import_mode else 1536 if recipe['run_scope'] == TA_M5_OBJECTIVE_BENCHMARK_SCOPE else 1849 if full_fit else 512 if recipe['run_scope'] in (TA_M5_PAIRED_BATCH_ORDER_SCOPE, TA_M5_REPEATED_PASS_SCOPE) else 256 if recipe['run_scope'] in (TA_M5_C171_SHORT_LEARNING_SCOPE, TA_NON_M5_SHORT_LEARNING_SCOPE, TA_TF_ACTIVITY_SHORT_LEARNING_SCOPE, TA_ANCHOR_SPAN_SHORT_LEARNING_SCOPE, TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE, TA_M5_CENTERED_HEAD_COORDINATES_SCOPE) else 4,
+        'native_window_scope':{'research_only':True,'invocation_number':1,'optimizer_step_ceiling':0 if import_mode else 768 if recipe['run_scope'] == TA_COVERAGE_BENCHMARK_SCOPE else 1536 if recipe['run_scope'] == TA_M5_OBJECTIVE_BENCHMARK_SCOPE else 1849 if full_fit else 512 if recipe['run_scope'] in (TA_M5_PAIRED_BATCH_ORDER_SCOPE, TA_M5_REPEATED_PASS_SCOPE) else 256 if recipe['run_scope'] in (TA_M5_C171_SHORT_LEARNING_SCOPE, TA_NON_M5_SHORT_LEARNING_SCOPE, TA_TF_ACTIVITY_SHORT_LEARNING_SCOPE, TA_ANCHOR_SPAN_SHORT_LEARNING_SCOPE, TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE, TA_M5_CENTERED_HEAD_COORDINATES_SCOPE) else 4,
             'full_epoch_training_allowed':full_fit,'window_policy_file_sha256':window_file_sha256}}
 
 
@@ -1016,6 +1030,12 @@ def require_native_direction_research_context(policy_path: Path, policy_file_sha
 def build_research_cursor(*, recipe_ref, outcome, optimizer_updates, parent_cursor,
         parent_order_sha256, full_state, result, batch_size=2, arm_progress=None,
         repeated_progress=None) -> dict[str, Any]:
+    if _is_ta_coverage_benchmark_recipe_ref(recipe_ref):
+        _require(arm_progress is repeated_progress is None,'COVERAGE_BENCHMARK_NO_EXTRA_PROGRESS')
+        from gx1.contracts.market_state_ta_coverage_benchmark_v1 import build_cursor
+        return build_cursor(recipe_ref=recipe_ref,outcome=outcome,optimizer_updates=optimizer_updates,
+            parent_cursor=parent_cursor,parent_order_sha256=parent_order_sha256,
+            full_state=full_state,result=result,batch_size=batch_size)
     if _is_ta_m5_objective_benchmark_recipe_ref(recipe_ref):
         _require(arm_progress is repeated_progress is None,'OBJECTIVE_BENCHMARK_NO_EXTRA_PROGRESS')
         from gx1.contracts.market_state_ta_m5_objective_benchmark_v1 import build_cursor
@@ -1090,6 +1110,11 @@ def build_research_cursor(*, recipe_ref, outcome, optimizer_updates, parent_curs
 
 
 def require_research_cursor(value, *, expected_recipe, verify_files=True, batch_size=2) -> dict[str, Any]:
+    from gx1.contracts import market_state_ta_coverage_benchmark_v1 as coverage_scope
+    is_coverage = _is_ta_coverage_benchmark_recipe_ref(expected_recipe)
+    if is_coverage or (isinstance(value,Mapping) and value.get('schema_version') == coverage_scope.CURSOR_SCHEMA):
+        _require(is_coverage,'COVERAGE_BENCHMARK_RECIPE_PATH')
+        return coverage_scope.require_cursor(value,expected_recipe=expected_recipe,verify_files=verify_files,batch_size=batch_size)
     from gx1.contracts import market_state_ta_m5_objective_benchmark_v1 as benchmark
     is_benchmark = _is_ta_m5_objective_benchmark_recipe_ref(expected_recipe)
     if is_benchmark or (isinstance(value,Mapping) and value.get('schema_version') == benchmark.CURSOR_SCHEMA):
@@ -1185,14 +1210,15 @@ def build_research_progress(*, window, plan, invocation, checkpoint_pointer,
         optimizer_updates, parent_cursor, parent_order_sha256, outcome) -> dict[str,Any]:
     from datetime import datetime, timezone
     benchmark = _is_ta_m5_objective_benchmark_recipe_ref(window['recipe'])
+    coverage = _is_ta_coverage_benchmark_recipe_ref(window['recipe'])
     total_units = (0 if _is_ta_m5_import_recipe_ref(window['recipe']) else
-                   1536 if benchmark else
+                   768 if coverage else 1536 if benchmark else
                    1849 if _is_ta_m5_full_reverse_order_recipe_ref(window['recipe']) else
                    512 if (_is_ta_m5_paired_batch_order_recipe_ref(window['recipe']) or _is_ta_m5_repeated_pass_recipe_ref(window['recipe'])) else
                    256 if (_is_ta_short_learning_recipe_ref(window['recipe']) or _is_ta_m5_original_cuda_prefix_recipe_ref(window['recipe']) or _is_ta_m5_centered_head_coordinates_recipe_ref(window['recipe'])) else 4)
     value = _seal({'schema_version':campaign.PROGRESS_SCHEMA,'plan_sha256':plan['plan_sha256'],
         'invocation_sha256':invocation['invocation_sha256'],'phase':KIND,'recipe':window['recipe'],
-        'completed_units':parent_cursor//16 if benchmark else optimizer_updates,'total_units':total_units,'optimizer_updates':optimizer_updates,
+        'completed_units':parent_cursor//16 if benchmark or coverage else optimizer_updates,'total_units':total_units,'optimizer_updates':optimizer_updates,
         'parent_cursor':parent_cursor,'parent_order_sha256':parent_order_sha256,
         'checkpoint_pointer':checkpoint_pointer,'terminal':True,'outcome':outcome,
         'observed_utc':datetime.now(timezone.utc).isoformat()},'progress_sha256')
@@ -1213,6 +1239,8 @@ def require_research_progress(value, *, plan_sha256, invocation,
     batch_size=invocation['batch_size']
     _require(type(batch_size) is int and batch_size in (2,16),'PROGRESS_BATCH_SIZE')
     benchmark = _is_ta_m5_objective_benchmark_recipe_ref(invocation['direction_research_recipe'])
+    coverage = _is_ta_coverage_benchmark_recipe_ref(invocation['direction_research_recipe'])
+    benchmark_units = 768 if coverage else 1536
     full_reverse = _is_ta_m5_full_reverse_order_recipe_ref(invocation['direction_research_recipe'])
     prefix_trace = (_is_ta_short_learning_recipe_ref(invocation['direction_research_recipe'])
                     or _is_ta_m5_original_cuda_prefix_recipe_ref(invocation['direction_research_recipe'])
@@ -1223,17 +1251,17 @@ def require_research_progress(value, *, plan_sha256, invocation,
         if paired and key == 'parent_cursor':
             _require(result[key] is None, 'PAIRED_NO_CANONICAL_CURSOR')
             continue
-        maximum = ((24576 if key == 'parent_cursor' else 1536) if benchmark else
+        maximum = ((16*benchmark_units if key == 'parent_cursor' else benchmark_units) if benchmark or coverage else
                    (29574 if key == 'parent_cursor' else 1849) if full_reverse else
                    512 if paired else ((4096 if key == 'parent_cursor' else 256) if prefix_trace else (2*batch_size if key=='parent_cursor' else 4)))
         _require(type(result[key]) is int and 0 <= result[key] <= maximum,'PROGRESS_COUNTER:' + key)
-    if benchmark:
-        _require(batch_size == 16 and invocation.get('optimizer_step_budget') == 1536
-            and result['total_units'] == 1536 and result['parent_cursor'] % 16 == 0
+    if benchmark or coverage:
+        _require(batch_size == 16 and invocation.get('optimizer_step_budget') == benchmark_units
+            and result['total_units'] == benchmark_units and result['parent_cursor'] % 16 == 0
             and result['completed_units'] == result['parent_cursor']//16
             and result['optimizer_updates'] <= result['completed_units']
             and result['parent_order_sha256'] is None
-            and (result['outcome'] != 'COMPLETE' or result['completed_units'] == 1536),
+            and (result['outcome'] != 'COMPLETE' or result['completed_units'] == benchmark_units),
             'OBJECTIVE_BENCHMARK_PROGRESS')
     elif full_reverse:
         _require(batch_size == 16 and type(invocation.get('optimizer_step_budget')) is int
@@ -1263,7 +1291,7 @@ def require_research_progress(value, *, plan_sha256, invocation,
             and (result['outcome'] != 'COMPLETE' or result['optimizer_updates'] == 4 and result['parent_cursor'] == 2*batch_size), 'PROGRESS_COMPLETE')
     if full_reverse and result['parent_order_sha256'] is None:
         _require(result['outcome'] == 'FAILED' and result['optimizer_updates'] == 0, 'FULL_REVERSE_MISSING_ORDER')
-    elif not paired and not benchmark:
+    elif not paired and not benchmark and not coverage:
         campaign._sha(result['parent_order_sha256'],'parent order')
     ref = campaign.require_binding(result['checkpoint_pointer'],label='research cursor',verify_file=verify_file)
     _require(ref['path'] == invocation['checkpoint']['pointer_path'],'PROGRESS_CURSOR_PATH')

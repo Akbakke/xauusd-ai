@@ -5,18 +5,21 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier arbeidsstatus; terminal/pros
 
 ## Aktivt mål og neste steg
 
-TA_DIRECTION_EDGE_CAUSE_EXPOSURE_METADATA_QUALIFIED. Edge-målet er fortsatt uoppnådd.
-Denne bølgen kvalifiserte konkret kilde-/metadata-gjenbruk og en eksakt eksponeringsplan;
-ingen markedsarrays, checkpoints eller modeller ble dekodet/kjørt.
-ROOT /home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_PREPARATION_20261112_001,
-RESULT39432800. Kun denne metadataoperasjonen er COMPLETE/CONSUMED.
+TA_DIRECTION_EDGE_CAUSE_EXPOSURE_SOURCE_IMPLEMENTED. Edge-målet er fortsatt uoppnådd.
+Eksponeringsplanen er implementert i eksisterende worker med én separat, eksakt kontrakt/rute.
+Faktisk metadata-/visningsport består for100kildeeiere;104fokuserte syntetiske tester består,
+inkludert gammel rute og ny feil-/suksessrapportering. Ingen ny modelljobb er startet.
 
-Neste: minste endring av eksisterende benchmarkworker og eksakt kontrakt/ruting for én ny
-FULL-kandidat. Pass1 beholder de gamle256batchene. Fra1546hele øvrige batcher velges512
-jevnt fordelte ordensstatistikker, annenhver til kronologiske pass2/3. De46komplementbatchene
-holdes utenfor. Dette gir12288unike rader/768oppdateringer mot4096×3/768 i bevart FULL.
-Det endrer eksponeringsplanen; innhold, repetisjon og rekkefølge følger med. Ingen kausal effekt
-av dekning er etablert. Ingen nye data-/modell-/treningskjøringer er admittert nå.
+Neste: eksakt oppstartsrøykprøve på committet kilde, deretter egen kvalifisert engangsadmisjon
+og påkrevd trygg fysisk boot før eventuell native kjøring. Global trening er fortsatt false.
+Ny ROOT /home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001.
+Metadata-grunnlag RESULT39432800 ligger i MARKET_STATE_TA_COVERAGE_PREPARATION_20261112_001;
+den gamle metadataoperasjonen og FULL-kontrollen er COMPLETE/CONSUMED.
+
+Pass1 beholder de gamle256batchene. Fra1546hele øvrige batcher velges512 jevnt fordelte
+ordensstatistikker, annenhver til kronologiske pass2/3. De46komplementbatchene holdes utenfor.
+Dette gir12288unike rader/768oppdateringer mot4096×3/768 i bevart FULL. Innhold, repetisjon
+og rekkefølge følger med eksponeringsplanen; ingen kausal dekningseffekt er etablert.
 
 Gjenbruk ferdig FULL-kontroll uten relaunch. Felles pass1 må måle samme modell9dfd2be5,
 RNGb06f3644 og256loss-/gradient-/skip-poster før nye batcher. Pass1-optimizerstate er ikke
@@ -25,8 +28,8 @@ updates/0skip; ingen ekstrabatcher. Faste4096TRAIN/LATER-paneler og alle femTF b
 
 Seks fysiske sidecars er allerede bundet til hele29574TRAIN-populasjonens unionsvinduer.
 Ingen ny produsent/refit er nødvendig ut fra kilden. Nye batcher må ved faktisk konsum passere
-uendret lokal span-/klokkematching og nativeMTF-vindus-/witnessporter. Dagens kontroll mot
-baselineTRAIN[slot] må bare brukes på gamle batcher; nye batcher bindes til originalakse b*16.
+uendret lokal span-/klokkematching og nativeMTF-vindus-/witnessporter. Kontrollen mot
+baselineTRAIN[slot] brukes bare på gamle batcher; nye batcher bindes til originalakse b*16.
 Eksakt startup/import, faktiske checkpoint/view/kvitteringsnøkler og feil/suksess-rapportering
 kvalifiseres før eventuell ny modelladmisjon. Gamle forbrukte planer forblir stengt.
 
@@ -83,6 +86,6 @@ AUC er ikke winrate. Alle tidligere kvitteringer og checkpoints beholdes uendret
 
 Global training/native_training, full epoch og fullVAL er false. Ingen tung jobb kjører.
 Root eier policy/launch. TEST, Entry/Exit-evaluering, broker, handel, spending og promotion er stengt;
-GC er på pause. Ingen modell-/treningskode ble endret i denne bølgen.
+GC er på pause. Bare benchmarkorkestrering, kontrakt/ruting og fokuserte tester er endret; numeriske eiere er uendret.
 Korte runder kvalifiserer feil og hypoteser; de dømmer ikke endelig kapasitet.
 Full kvalifisert TRAIN-historikk og30–40epoker er senere skalering, ikke autorisert nå.

@@ -1,4 +1,4 @@
-"""One fixed two-objective learning comparison; no model/checkpoint selection.
+"""Fixed objective or exposure comparison; no model/checkpoint selection.
 
 Reuse native feature, loss, restoration and evaluation owners. Repeated visits
 are research progress, never a canonical full-epoch checkpoint cursor.
@@ -46,6 +46,40 @@ def _apply_training_update(report, *, model, optimizer, trainer, counters, progr
     return dict(loss=loss, gradient_norm=norm, skip_update=report['skip_update'])
 
 
+
+def _require_coverage_observations(report, parents, clocks, *, rows, issues, start, truths, np):
+    """Bind new batches to their original TRAIN positions, not the old panel slot."""
+    from gx1.contracts.market_state_time_query_target_v1 import NATIVE_K, TICK_NS
+    _need(np.array_equal(parents, rows[start:start+16])
+          and np.array_equal(clocks, issues[start:start+16]), 'COVERAGE_ORIGINAL_TRAIN_AXES')
+    _need(np.array_equal(report['state_query_k'], truths['state']['query_k'])
+          and np.array_equal(report['future_native_k'], np.asarray(NATIVE_K, np.int64))
+          and np.array_equal(truths['future']['validity_ns'],
+              clocks[:,None] + np.asarray(NATIVE_K, np.int64)[None,:]*TICK_NS), 'COVERAGE_NATIVE_QUERIES')
+    for task in ('state', 'future'):
+        truth = truths[task]
+        _need(np.array_equal(truth['parent_rows'], parents)
+              and np.array_equal(truth['issue_ns'], clocks)
+              and all(np.array_equal(report[task+'_'+field], truth[field])
+                      for field in ('allowed', 'mature')), 'COVERAGE_ACTUAL_TARGETS')
+
+
+def _require_control_arrays(arrays, reference, *, model_digest, expected_digest, np):
+    _need(model_digest == expected_digest, 'CONTROL_MODEL_DIGEST')
+    _need(set(arrays) == set(reference) and all(arrays[k].dtype == v.dtype
+          and arrays[k].shape == v.shape and arrays[k].tobytes() == v.tobytes()
+          for k, v in reference.items()), 'CONTROL_CAPTURE_EXACT')
+    _need(len(arrays['parents']) == 4096, 'CONTROL_PANEL_ROWS')
+    return dict(arrays_exact=True, model_state_exact=True, rows=4096)
+
+
+def _require_common_pass1(*, model_digest, rng_digest, records, expected):
+    _need(model_digest == expected['model_state_sha256'], 'COMMON_PASS1_MODEL')
+    _need(rng_digest == expected['training_rng_sha256'], 'COMMON_PASS1_RNG')
+    _need(len(records) == 256 and records == expected['records'], 'COMMON_PASS1_TRAIN_RECORDS')
+    return dict(model_state_exact=True, rng_exact=True, training_records_exact=True)
+
+
 def _prepare_later(origin, prepared, receipts, view, *, counters, np):
     """Compose only the already qualified later envelope; no new features/fit."""
     from gx1.contracts.entry_anchor_span_feature_inputs_v1 import build_anchor_span_inputs, TIMEFRAMES
@@ -78,8 +112,13 @@ def _prepare_later(origin, prepared, receipts, view, *, counters, np):
     return dict(prepared, cache=bound.mtf_sources, anchor_span_inputs=bound)
 
 
-def run_objective_benchmark(*, policy_path: Path, policy_file_sha256: str, progress_path: Path) -> dict:
-    from gx1.contracts import market_state_ta_m5_objective_benchmark_v1 as scope
+def run_objective_benchmark(*, policy_path: Path, policy_file_sha256: str,
+                            progress_path: Path, coverage: bool = False) -> dict:
+    _need(type(coverage) is bool, 'COVERAGE_MODE')
+    if coverage:
+        from gx1.contracts import market_state_ta_coverage_benchmark_v1 as scope
+    else:
+        from gx1.contracts import market_state_ta_m5_objective_benchmark_v1 as scope
     from gx1.contracts import entry_native_direction_research_campaign_v1 as authority
     from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_trainer_execution
     from gx1.scripts import run_entry_native_direction_research_window_v1 as common
@@ -109,6 +148,9 @@ def run_objective_benchmark(*, policy_path: Path, policy_file_sha256: str, progr
     provider = prepared = later_prepared = model = optimizer = initial = None
     source_unchanged = initial_restore_exact = evaluation_unchanged = same_queries = rng_parity = False
     import_proof = {}
+    coverage_parity = dict(initial={}, pass1={}, rng_after_each_pass_exact=False)
+    if coverage:
+        counters['control_capture_archive_decodes'] = 0
 
     def clock_guard():
         _need(time.monotonic()-started < window['max_invocation_seconds'], 'INVOCATION_DEADLINE')
@@ -230,6 +272,21 @@ def run_objective_benchmark(*, policy_path: Path, policy_file_sha256: str, progr
                 evaluation_state_unchanged=True, canonical_resume_authority=False, test_data_used=False)
             measurement_refs[name] = common._json(root/(name+'.json'), payload, counters, recipe['max_published_json_bytes'])
             measurements[name] = measured
+            if coverage and (name.startswith('INITIAL_') or name.startswith('UNIQUE_COVERAGE_PASS1_')):
+                control_name = name.replace('UNIQUE_COVERAGE', 'FULL_OBJECTIVE')
+                control = origin['coverage_control']
+                wrapper = anchor._read(control['measurement_refs'][control_name])
+                binding = control['panel_captures'][control_name]
+                _need(wrapper['capture'] == binding and wrapper['optimizer_updates'] == updates
+                      and wrapper['evaluation_state_unchanged'] is True, 'CONTROL_MEASUREMENT')
+                anchor.campaign.require_binding(binding, label='fixed control capture', verify_file=True)
+                _need(counters['control_capture_archive_decodes'] < 4, 'CONTROL_CAPTURE_BUDGET')
+                counters['control_capture_archive_decodes'] += 1
+                with np.load(binding['path'], allow_pickle=False) as archive:
+                    reference = {k:archive[k] for k in archive.files}
+                proof = _require_control_arrays(arrays, reference, model_digest=model_digest,
+                    expected_digest=wrapper['evaluated_model_state_sha256'], np=np)
+                coverage_parity['initial' if name.startswith('INITIAL_') else 'pass1'][panel] = proof
 
         def fit_report(start, *, m5_direction_only=False):
             raw, parents, clocks = runner._feature_batch(prepared, view, receipts, rows, issues, start,start+16,np=np)
@@ -306,9 +363,10 @@ def run_objective_benchmark(*, policy_path: Path, policy_file_sha256: str, progr
                 initial_rng_state_sha256=signature()['rng_state_sha256'])
             training_records[arm] = []; fit_started = time.monotonic()
             for pass_number in scope.PASSES:
-                for slot,b in enumerate(scope.TRAIN_BATCH_INDICES):
+                batch_indices = scope.training_batch_indices(pass_number) if coverage else scope.TRAIN_BATCH_INDICES
+                for slot,b in enumerate(batch_indices):
                     clock_guard(); start = 16*b
-                    _need(counters['training_forwards'] < 1536 and counters['forwards'] < recipe['max_forwards'], 'FIT_FORWARD_BUDGET')
+                    _need(counters['training_forwards'] < recipe['max_training_forwards'] and counters['forwards'] < recipe['max_forwards'], 'FIT_FORWARD_BUDGET')
                     optimizer.zero_grad(set_to_none=True)
                     counters['training_forwards'] += 1; counters['forwards'] += 1
                     with trainer._training_mha_fastpath_context(model.backbone), trainer._training_autocast_context(), \
@@ -318,12 +376,19 @@ def run_objective_benchmark(*, policy_path: Path, policy_file_sha256: str, progr
                     _need(report['model_contract_sha256'] == recipe['expected_model_contract_sha256']
                           and report['loss_contract_sha256'] == arm_numerical['native_F_loss_contract_sha256']
                           and bool(torch.isfinite(report['loss'])), 'TRAIN_OBJECTIVE_IDENTITY')
-                    reference = baseline_arrays['TRAIN']; sl = slice(16*slot,16*slot+16)
-                    _need(np.array_equal(parents,reference['parents'][sl]) and np.array_equal(clocks,reference['issues'][sl])
-                          and np.array_equal(report['state_query_k'],reference['state_query'][sl])
-                          and np.array_equal(report['future_native_k'],reference['future_query'][16*slot])
-                          and all(np.array_equal(report[t+'_'+k],reference[t+'_'+k][sl])
-                                  for t in ('state','future') for k in ('allowed','mature')), 'FIXED_TRAIN_OBSERVATIONS')
+                    if coverage and pass_number > 1:
+                        truths = gather(parents, clocks); counters['extra_target_gathers'] += 2
+                        _require_coverage_observations(report, parents, clocks, rows=rows, issues=issues,
+                            start=start, truths=truths, np=np)
+                    else:
+                        reference = baseline_arrays['TRAIN']; sl = slice(16*slot,16*slot+16)
+                        _need(np.array_equal(parents,reference['parents'][sl]) and np.array_equal(clocks,reference['issues'][sl])
+                              and np.array_equal(report['state_query_k'],reference['state_query'][sl])
+                              and np.array_equal(report['future_native_k'],reference['future_query'][16*slot])
+                              and all(np.array_equal(report[t+'_'+k],reference[t+'_'+k][sl])
+                                      for t in ('state','future') for k in ('allowed','mature')), 'FIXED_TRAIN_OBSERVATIONS')
+                    if coverage:
+                        _need(report['skip_update'] is False, 'COVERAGE_EMPTY_SUPPORT_NO_REPLACEMENT')
                     record = _apply_training_update(report,model=model,optimizer=optimizer,trainer=trainer,
                                                     counters=counters,progress=progress)
                     training_records[arm].append(dict(pass_number=pass_number,original_batch_index=b,**record))
@@ -331,6 +396,13 @@ def run_objective_benchmark(*, policy_path: Path, policy_file_sha256: str, progr
                 progress['passes_completed'] = pass_number
                 progress['training_rng_state_sha256'] = tree_sha(trainer._attended_session_rng_state(device=device))
                 progress['training_rng_by_pass'][str(pass_number)] = progress['training_rng_state_sha256']
+                if coverage:
+                    expected_rng = origin['coverage_control']['arms']['FULL_OBJECTIVE']['training_rng_by_pass'][str(pass_number)]
+                    _need(progress['training_rng_state_sha256'] == expected_rng, 'COVERAGE_MATCHED_PASS_RNG')
+                    if pass_number == 1:
+                        coverage_parity['pass1'].update(_require_common_pass1(
+                            model_digest=model_sha(model.state_dict()), rng_digest=progress['training_rng_state_sha256'],
+                            records=training_records[arm], expected=origin['coverage_metadata']['common_pass1']))
                 if pass_number in scope.EVALUATION_PASSES:
                     measure_train(arm+'_PASS'+str(pass_number),progress['optimizer_updates'])
                     measure_later(arm+'_PASS'+str(pass_number),progress['optimizer_updates'])
@@ -346,11 +418,17 @@ def run_objective_benchmark(*, policy_path: Path, policy_file_sha256: str, progr
             old._tensor_map(buffers,dict(model.named_buffers()),'EVIDENCE_BUFFERS')
             old._optimizer_state(optimizer_state,optimizer,model,progress['optimizer_updates'])
             old._rng(rng,device=device,seed=numerical['seed'])
+            evidence_positions = train_positions
+            if coverage:
+                evidence_positions = np.concatenate([np.arange(16*b,16*b+16,dtype=np.int64)
+                    for pass_number in scope.PASSES for b in scope.training_batch_indices(pass_number)])
+                _need(len(evidence_positions) == len(np.unique(evidence_positions)) == 12288,
+                      'COVERAGE_UNIQUE_EVIDENCE_ORDER')
             capsule = dict(schema_version='gx1_ta_m5_objective_benchmark_evidence_v1',arm=arm,recipe=window['recipe'],
                 source_commit=plan['source_commit'],original_checkpoint=source_ref,canonical_resume_authority=False,
                 model_state=model_state,buffer_state=buffers,optimizer_state=optimizer_state,rng_state=rng,
                 module_training={n:bool(m.training) for n,m in model.named_modules()},
-                selected_parent_order=torch.from_numpy(rows[train_positions].copy()),batch_visits=progress['batch_visits'],
+                selected_parent_order=torch.from_numpy(rows[evidence_positions].copy()),batch_visits=progress['batch_visits'],
                 passes_completed=3,physical_optimizer_updates=progress['optimizer_updates'],
                 skipped_batches=progress['skipped_batches'],pending_gradients=0,parameter_binding=binding,
                 numerical_recipe=arm_numerical,query_pass_index=0,model_state_sha256=model_sha(model_state),
@@ -368,15 +446,24 @@ def run_objective_benchmark(*, policy_path: Path, policy_file_sha256: str, progr
                   and arms[a]['initial_rng_state_sha256'] == recipe['initial_rng_state_sha256'] for a in scope.ARMS),
               'MATCHED_INITIAL_ARMS')
         expected_counts = dict(model_constructions=1,model_construction_returns=1,optimizer_constructions=1,
-            checkpoint_loads=1,initial_rng_imports=1,strict_full_state_restore_calls=2,strict_full_state_restore_returns=2,
-            training_forwards=1536,evaluation_forwards=2560,forwards=4096,forward_returns=4096,batch_visits=1536,
-            candidate_evidence_writes=2,checkpoint_writes=0,input_sidecar_archive_decodes=12)
+            checkpoint_loads=1,initial_rng_imports=1,strict_full_state_restore_calls=len(scope.ARMS),strict_full_state_restore_returns=len(scope.ARMS),
+            training_forwards=recipe['max_training_forwards'],evaluation_forwards=recipe['max_evaluation_forwards'],
+            forwards=recipe['max_forwards'],forward_returns=recipe['max_forwards'],batch_visits=recipe['max_batch_visits'],
+            candidate_evidence_writes=len(scope.ARMS),checkpoint_writes=0,input_sidecar_archive_decodes=12)
+        if coverage:
+            expected_counts['control_capture_archive_decodes'] = 4
+            _need(counters['optimizer_updates'] == 768 and counters['skipped_batches'] == 0,
+                  'COVERAGE_FIXED_UPDATES')
         _need(all(counters[k] == v for k,v in expected_counts.items())
-              and counters['optimizer_updates'] + counters['skipped_batches'] == 1536
+              and counters['optimizer_updates'] + counters['skipped_batches'] == recipe['max_batch_visits']
               and all(counters[k] == counters['optimizer_updates'] for k in
                       ('backwards','backward_returns','optimizer_step_calls','optimizer_step_returns'))
-              and len(measurement_refs) == len(captures) == 10, 'COMPLETE_COUNTS')
-        rng_parity = arms['FULL_OBJECTIVE']['training_rng_by_pass'] == arms['M5_DIRECTION_ONLY']['training_rng_by_pass']
+              and len(measurement_refs) == len(captures) == len(scope.MEASUREMENT_LABELS), 'COMPLETE_COUNTS')
+        if coverage:
+            rng_parity = arms['UNIQUE_COVERAGE']['training_rng_by_pass'] == origin['coverage_control']['arms']['FULL_OBJECTIVE']['training_rng_by_pass']
+            coverage_parity['rng_after_each_pass_exact'] = rng_parity
+        else:
+            rng_parity = arms['FULL_OBJECTIVE']['training_rng_by_pass'] == arms['M5_DIRECTION_ONLY']['training_rng_by_pass']
         _need(rng_parity, 'MATCHED_RNG_AFTER_EACH_PASS')
         initial_restore_exact = all(v['all_numerical_state_exact'] for v in restore_proofs.values())
         evaluation_unchanged = same_queries = True
@@ -403,6 +490,12 @@ def run_objective_benchmark(*, policy_path: Path, policy_file_sha256: str, progr
         training_records=training_records,timings=dict(timings,elapsed_seconds=time.monotonic()-started),error=error,
         primary_endpoint_pass=3,checkpoint_selection=False,test_data_used=False,promotion_authorized=False,
         limits='Fixed4096TRAIN/4096later development, three passes each. Fresh sharedINITIAL and matched inputs/RNG/order; only direct loss changes. Pass3 primary. No untouched generalization, setup-selection, trade-path, profitability or full-capacity claim.')
+    if coverage:
+        payload.update(coverage_control_parity=coverage_parity,
+            exposure_schedule=recipe['batch_indices_by_pass'],
+            limits='Fixed768updates: common4096-row first pass plus8192new TRAIN rows; old FULL control retained. '
+                   'Same4096TRAIN/4096later panels, exact INITIAL/pass1 control parity. Changed exposure schedule, '
+                   'not isolated unique-count causality, untouched holdout, trading value or full-capacity proof.')
     result = common._json(root/'RESULT.json',payload,counters,recipe['max_published_json_bytes'])
     common._json(root/'TERMINAL.json',dict(status=outcome,exit_code=0 if outcome=='COMPLETE' else 1,
         result=result,recipe=window['recipe'],source_unchanged=source_unchanged,test_data_used=False,
