@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_tf_activity_decoder_repair_v1",
-  "status": "ACTUAL_INITIAL_PARITY_COMPLETE_LEARNING_EFFECT_UNMEASURED",
+  "status": "ACTUAL_SHORT_LEARNING_COMPLETE_PARTIAL_ACTIVITY_RELIEF_M5_EDGE_UNPROVED",
   "reason": "Measured shared activity-coordinate pressure and FLAT calibration regression motivate one isolated architectural comparison.",
   "evidence": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ACTIVITY_PRESSURE_REVIEW.json",
@@ -49,12 +49,12 @@
   ],
   "fresh_actual_initial_baseline_required": true,
   "native_function_qualified": true,
-  "learning_effect_measured": false,
-  "native_run_authorized": true,
-  "training_authorized": true,
+  "learning_effect_measured": true,
+  "native_run_authorized": false,
+  "training_authorized": false,
   "promotion_authorized": false,
   "test_data_used": false,
-  "next_action": "Materialize and verify exact one-use campaign; launch through existing signed native guard. Measure full4096initial before first update and full4096final; compare original and separate-side retained results. No full-history training.",
+  "next_action": "Reconstruct the dedicated S/D1 activity-bias derivative sequence from retained training TRACE logits/masks and logged clipping norms, qualifying the arithmetic against captured M5side gradients and the existing retained optimizer replay method. Separate mean loss pressure from AdamW update direction and shared-representation movement before another model change. Only a bounded retained read-only audit is next; no new native/model fit, combined-head architecture, full history or30-40epochs is admitted.",
   "mechanical_qualification": {
     "status": "PASS",
     "passed_tests": 226,
@@ -223,7 +223,7 @@
     "next_gate": "fresh safe physical Windows boot; postboot unchanged-source preflight; exact new single-use admission"
   },
   "short_learning_admission": {
-    "status": "ADMITTED_ONE_EXACT_COMPARISON_NOT_STARTED",
+    "status": "COMPLETE_CONSUMED",
     "stage": "market_state_ta_tf_activity_short_learning_20261112_001",
     "recipe": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/RECIPE.json",
@@ -243,6 +243,13 @@
     "initial_rng": "67daad3d6238c809023f066b4599c7634db931c73d9229990a3f76a1845289ae",
     "separate_non_m5_side_heads": false,
     "full_history_training": false,
-    "test_data_used": false
+    "test_data_used": false,
+    "actual_optimizer_updates": 256,
+    "remaining_invocations": 0,
+    "relaunch_allowed": false
+  },
+  "actual_short_learning": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
+    "sha256": "a42adc0a965a95bddfcf0202224b99184b2b3b08459055785278941e14837657"
   }
 }

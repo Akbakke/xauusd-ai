@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-11T22:53:26.085246+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_ONE_ACTIVITY_SHORT_COMPARISON_ADMITTED",
+  "status": "TA_DIRECTION_EDGE_CAUSE_ACTIVITY_SHORT_EFFECT_VERIFIED_RESIDUAL_CALIBRATION_LOCALIZED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,7 +1415,7 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
@@ -1705,7 +1705,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "One matched activity-only4096TRAIN/256update comparison admitted after302tests, actual preflight and safe physical boot642; not started.",
+    "current_activity": "Matched activity-only comparison and independent fullprefix/class-decomposition complete. Partial activity-loss relief; no clear M5direction gain. S/D1FLAT overconfidence and F/M15-H1upward drift localized; retained optimizer attribution is next.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1758,7 +1758,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "None observed; exact campaign materialization and signed launch remain.",
+    "current_blocker": "No operational blocker; remaining cause attribution is substantive work, not missing user approval.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9229,7 +9229,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Materialize and verify exact one-use campaign; launch through existing signed native guard. Measure full4096initial before first update and full4096final; compare original and separate-side retained results. No full-history training.",
+    "next_action": "Reconstruct the dedicated S/D1 activity-bias derivative sequence from retained training TRACE logits/masks and logged clipping norms, qualifying the arithmetic against captured M5side gradients and the existing retained optimizer replay method. Separate mean loss pressure from AdamW update direction and shared-representation movement before another model change. Only a bounded retained read-only audit is next; no new native/model fit, combined-head architecture, full history or30-40epochs is admitted.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22144,7 +22144,7 @@
     },
     "direction_edge_cause_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "89519936b1c86c17409f3047b6fa22aaac956d3a719bb4fa74eeb3a9d519680f"
+      "sha256": "6ba0152a688f11c4437cdde76040b7d2d7a0b42edd014e21b02180108aa59ad0"
     },
     "latest_c171_startup_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_C171_SHORT_LEARNING_STARTUP_REVIEW.json",
@@ -22226,11 +22226,11 @@
     },
     "latest_tf_activity_decoder_repair": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
-      "sha256": "f90a002872880375f806855b452c5f11345bd1eab8ec139e372bb14b373db154"
+      "sha256": "d596569b48ce292082f0ca33c8ff6b5aa6241ff274913dfe7988e0086d5f145e"
     },
     "latest_tf_activity_initial_parity": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
-      "sha256": "f90a002872880375f806855b452c5f11345bd1eab8ec139e372bb14b373db154"
+      "sha256": "d596569b48ce292082f0ca33c8ff6b5aa6241ff274913dfe7988e0086d5f145e"
     },
     "latest_tf_activity_short_qualification": {
       "status": "PASS_SOURCE_AND_METADATA_QUALIFIED_NATIVE_NOT_ADMITTED",
@@ -22270,6 +22270,22 @@
       "model_constructions": 0,
       "optimizer_updates": 0,
       "next_gate": "fresh safe physical Windows boot; postboot unchanged-source preflight; exact new single-use admission"
+    },
+    "latest_tf_activity_short_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/RESULT.json",
+      "sha256": "aca65dc41d267a47528c38c036f777a084ed7255b87bf0a6305fa70db18d9901"
+    },
+    "latest_tf_activity_short_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "a2f80817621fa4c39dc9eab5fcbd8e2b84c8c9f174f7dea8ff62a1a693954d66"
+    },
+    "latest_tf_activity_short_learning": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
+      "sha256": "a42adc0a965a95bddfcf0202224b99184b2b3b08459055785278941e14837657"
+    },
+    "latest_tf_activity_residual_class_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/SD1_ACTIVITY_RESIDUAL_CLASS_REVIEW.json",
+      "sha256": "7ccf551f6fdf9554a2fc180a13d6f34d2fcce68d2503b8f6376ab2251e96b22a"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -35620,7 +35636,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -75609,24 +75625,24 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_ONE_MATCHED_ACTIVITY_SHORT_COMPARISON_ADMITTED",
+    "status": "ACTIVE_RESIDUAL_CALIBRATION_OPTIMIZER_ATTRIBUTION",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
     "training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "89519936b1c86c17409f3047b6fa22aaac956d3a719bb4fa74eeb3a9d519680f"
+      "sha256": "6ba0152a688f11c4437cdde76040b7d2d7a0b42edd014e21b02180108aa59ad0"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": true,
+    "model_or_data_run_admitted": false,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Materialize and verify exact one-use campaign; launch through existing signed native guard. Measure full4096initial before first update and full4096final; compare original and separate-side retained results. No full-history training.",
-    "active_stage": "market_state_ta_tf_activity_decoder_repair_20261112_001",
+    "next_action": "Reconstruct the dedicated S/D1 activity-bias derivative sequence from retained training TRACE logits/masks and logged clipping norms, qualifying the arithmetic against captured M5side gradients and the existing retained optimizer replay method. Separate mean loss pressure from AdamW update direction and shared-representation movement before another model change. Only a bounded retained read-only audit is next; no new native/model fit, combined-head architecture, full history or30-40epochs is admitted.",
+    "active_stage": "market_state_ta_tf_activity_short_learning_20261112_001",
     "previous_goal_turn_classification": "PROGRESS: retained MTFintervention andinputsupport review ruledout an unsupported harmful-MTF or generalnormalization-collapse change; nextactualboundarymeasurement identified.",
-    "last_goal_turn_classification": "PROGRESS_PREVIOUS_ACTUAL_INITIAL_PARITY_VERIFIED_NOW_MATCHED_EFFECT_ROUTE_PREPARATION",
+    "last_goal_turn_classification": "PROGRESS_ACTIVITY_ONLY_MATCHED_EFFECT_VERIFIED_AND_SD1_FLAT_REGRESSION_LOCALIZED",
     "latest_tail_factor_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_ALL_TF_TAIL_FACTOR_REVIEW.json",
       "sha256": "5da978f765b0ad1ac001023501be7665989270d8353d768b801b9e1b29406c0f"
@@ -75653,7 +75669,11 @@
     },
     "tf_activity_decoder_repair": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
-      "sha256": "f90a002872880375f806855b452c5f11345bd1eab8ec139e372bb14b373db154"
+      "sha256": "d596569b48ce292082f0ca33c8ff6b5aa6241ff274913dfe7988e0086d5f145e"
+    },
+    "tf_activity_short_learning": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
+      "sha256": "a42adc0a965a95bddfcf0202224b99184b2b3b08459055785278941e14837657"
     }
   },
   "market_state_ta_fusion_observation_20261111_001": {
@@ -76906,7 +76926,7 @@
     },
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "89519936b1c86c17409f3047b6fa22aaac956d3a719bb4fa74eeb3a9d519680f"
+      "sha256": "6ba0152a688f11c4437cdde76040b7d2d7a0b42edd014e21b02180108aa59ad0"
     },
     "full_model_constructions": 0,
     "native_model_forwards": 0,
@@ -78397,7 +78417,7 @@
     "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_MECHANICAL_20261112_001",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
-      "sha256": "f90a002872880375f806855b452c5f11345bd1eab8ec139e372bb14b373db154"
+      "sha256": "d596569b48ce292082f0ca33c8ff6b5aa6241ff274913dfe7988e0086d5f145e"
     },
     "activity_pressure_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ACTIVITY_PRESSURE_REVIEW.json",
@@ -78526,25 +78546,25 @@
     }
   },
   "market_state_ta_tf_activity_short_learning_20261112_001": {
-    "decision": "ADMITTED",
-    "status": "ADMITTED",
+    "decision": "CLOSED",
+    "status": "COMPLETE_CONSUMED",
     "fold_id": 1,
     "selected_fit_rows": 4096,
-    "model_constructions_authorized": 2,
-    "optimizer_constructions_authorized": 1,
-    "model_forwards_authorized": 768,
-    "backward_calls_authorized": 256,
-    "optimizer_steps_authorized": 256,
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "genuine_updates_authorized": true,
-    "genuine_backward_authorized": true,
+    "model_constructions_authorized": 0,
+    "optimizer_constructions_authorized": 0,
+    "model_forwards_authorized": 0,
+    "backward_calls_authorized": 0,
+    "optimizer_steps_authorized": 0,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "genuine_updates_authorized": false,
+    "genuine_backward_authorized": false,
     "genuine_predictor_fit_authorized": false,
     "canonical_resume_authority": false,
     "candidate_selection": false,
     "test_data_used": false,
-    "ta_tf_activity_short_learning_authorized": true,
-    "initial_rng_imports_authorized": 1,
+    "ta_tf_activity_short_learning_authorized": false,
+    "initial_rng_imports_authorized": 0,
     "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001",
     "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/RUNTIME",
     "recipe": {
@@ -78619,17 +78639,17 @@
       "sha256": "ac04a840d63ace65ab3f1cb2dff2a7dd18ab3636ae5fce2641580956e5175818"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
-    "campaign_preparation_authorized": true,
-    "execution_authorized": true,
-    "training_authorized": true,
-    "data_reads_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "data_reads_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
     "native_launch_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_test_execution_authorized": false,
@@ -78903,6 +78923,44 @@
     ],
     "automatic_continuation": false,
     "admission_basis": "Explicit active edge-cause goal and standing local0USD bounded diagnostic authority.302focusedtests and mandatory commit guards; verified actual cloned initial; same full4096prefix/256updates/numerics/RNG; actual metadata/startup/cap preflight; safe physical boot641to642 and92unchangedsourceowners. One new exact plan only.",
-    "next_action": "Materialize and verify exact one-use campaign; launch through existing signed native guard. Measure full4096initial before first update and full4096final; compare original and separate-side retained results. No full-history training."
+    "next_action": "Reconstruct the dedicated S/D1 activity-bias derivative sequence from retained training TRACE logits/masks and logged clipping norms, qualifying the arithmetic against captured M5side gradients and the existing retained optimizer replay method. Separate mean loss pressure from AdamW update direction and shared-representation movement before another model change. Only a bounded retained read-only audit is next; no new native/model fit, combined-head architecture, full history or30-40epochs is admitted.",
+    "actual_optimizer_updates": 256,
+    "actual_parent_cursor": 4096,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/RESULT.json",
+      "sha256": "aca65dc41d267a47528c38c036f777a084ed7255b87bf0a6305fa70db18d9901"
+    },
+    "campaign_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "a2f80817621fa4c39dc9eab5fcbd8e2b84c8c9f174f7dea8ff62a1a693954d66"
+    },
+    "task_disabled": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/WINDOWS_TASK_DISABLED.json",
+      "sha256": "6c086046ed0a1d31f061d43f6bfd7470cb31ee62d671c983015206431725c167"
+    },
+    "terminal_source_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/TERMINAL_SOURCE_REVIEW.json",
+      "sha256": "da6902814b07bfd5cf64f7caa21f832cb0fe7245e413a85bd4d92d0f9bd8febe"
+    },
+    "actual_window_preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/ACTUAL_WINDOW_PARITY_REVIEW.json",
+      "sha256": "fa87514ebe24147ac11fc38db0caa3cf73f35af6959f1ebf5722374eaff09da5"
+    },
+    "independent_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/INDEPENDENT_ACTIVITY_LEARNING_REVIEW.json",
+      "sha256": "f79b828f10cac0198da8f6d9b70218e062e8b3da57498fd18b4f0ef92a9ac70b"
+    },
+    "residual_class_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/SD1_ACTIVITY_RESIDUAL_CLASS_REVIEW.json",
+      "sha256": "7ccf551f6fdf9554a2fc180a13d6f34d2fcce68d2503b8f6376ab2251e96b22a"
+    },
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
+      "sha256": "a42adc0a965a95bddfcf0202224b99184b2b3b08459055785278941e14837657"
+    },
+    "retained_trace_coverage": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/TRACE_RETAINED_COVERAGE.json",
+      "sha256": "dd5355f0a3f835e4c0cc01efb07beee0077765bc479b4eb098e249e099e3a58a"
+    }
   }
 }

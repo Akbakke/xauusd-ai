@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_ACTIVITY_INITIAL_PARITY_COMPLETE_LEARNING_EFFECT_UNMEASURED",
+  "status": "ACTIVE_ACTIVITY_SHORT_EFFECT_VERIFIED_RESIDUAL_CALIBRATION_LOCALIZED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -265,7 +265,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Prepare a single matched short activity-only learning comparison against original c171 on the same 4096 TRAIN rows and 256 updates, with original seed/RNG, fresh empty AdamW and unchanged features/targets/loss/numerical settings. Keep separate non-M5 side heads off. Recheck the entire used-prefix initial predictions before the first update. Native training still requires its own qualified exact admission; no full-history or 30-40 epoch run is admitted.",
+  "next_measurement": "Reconstruct the dedicated S/D1 activity-bias derivative sequence from retained training TRACE logits/masks and logged clipping norms, qualifying the arithmetic against captured M5side gradients and the existing retained optimizer replay method. Separate mean loss pressure from AdamW update direction and shared-representation movement before another model change. Only a bounded retained read-only audit is next; no new native/model fit, combined-head architecture, full history or30-40epochs is admitted.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -1719,10 +1719,34 @@
   },
   "training_authorized_scope": null,
   "latest_confirmed_findings": [
-    "Matched independent non-M5 readouts reduce total deterioration but do not improve either M5 side output over the original short run.",
-    "The new direction contribution decreases by0.007041688 while activity increases by0.013960765; net total increases by0.006919080.",
-    "S/D1 activity contributes0.010914106, or78.18percent of net activity deterioration. Its average activity probability rises91.37to94.56percent against90.34percent active labels on2226informative rows.",
-    "All8TAfamilies and5timeframes are retained; family predictive utility and later generalization remain unproven."
+    {
+      "finding": "Isolating activity heads reduced activity-loss regression87.23percent versus original on same4096TRAIN/256updates; total still worsens versus initial.",
+      "evidence": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
+        "sha256": "a42adc0a965a95bddfcf0202224b99184b2b3b08459055785278941e14837657"
+      }
+    },
+    {
+      "finding": "No clear overall M5direction gain versus original. Both M5Brier/log are slightly worse; AUC shifts in opposite directions.",
+      "evidence": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
+        "sha256": "a42adc0a965a95bddfcf0202224b99184b2b3b08459055785278941e14837657"
+      }
+    },
+    {
+      "finding": "S/D1overconfidence on FLAT, concentrated inQ2, and F/M15-H1upward calibration drift remain. Sharedactivityoutputrow is not the sole cause.",
+      "evidence": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
+        "sha256": "a42adc0a965a95bddfcf0202224b99184b2b3b08459055785278941e14837657"
+      }
+    },
+    {
+      "finding": "All genuine8TAfamilies/5TF remain consumed; latergeneralization, economicedge and familyaddedvalue remain unproved.",
+      "evidence": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
+        "sha256": "a42adc0a965a95bddfcf0202224b99184b2b3b08459055785278941e14837657"
+      }
+    }
   ],
   "activity_pressure_review": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ACTIVITY_PRESSURE_REVIEW.json",
@@ -1730,12 +1754,12 @@
   },
   "tf_activity_decoder_repair": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
-    "sha256": "f90a002872880375f806855b452c5f11345bd1eab8ec139e372bb14b373db154"
+    "sha256": "d596569b48ce292082f0ca33c8ff6b5aa6241ff274913dfe7988e0086d5f145e"
   },
   "tf_activity_initial_parity": {
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
-      "sha256": "f90a002872880375f806855b452c5f11345bd1eab8ec139e372bb14b373db154"
+      "sha256": "d596569b48ce292082f0ca33c8ff6b5aa6241ff274913dfe7988e0086d5f145e"
     },
     "result": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_PARITY_20261112_001/RESULT.json",
@@ -1748,5 +1772,9 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_PARITY_20261112_001/INDEPENDENT_ACTIVITY_INITIAL_PARITY_REVIEW.json",
       "sha256": "78329d9e77390b32f81e3ea6930388d078be9244c17808bc688dea3e2156775b"
     }
+  },
+  "tf_activity_short_learning": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
+    "sha256": "a42adc0a965a95bddfcf0202224b99184b2b3b08459055785278941e14837657"
   }
 }
