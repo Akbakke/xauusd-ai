@@ -25,7 +25,7 @@ def test_compact_candidate_adds_only_four_genuine_owned_mtf_fields(bound_history
     names=candidate['physical_field_names']['mtf']
     assert {names[i] for i in extra}==set(PRICE_MOMENTUM_FIELDS)
     assert set(candidate['mtf_indices_by_specialist'][MOMENTUM_FAMILY])==extra
-    assert len(parent['mtf_indices'])==178 and len(candidate['mtf_indices'])==182
+    assert len(parent['mtf_indices'])==180 and len(candidate['mtf_indices'])==184
     for f in parent['base_mtf_specialists']:
         assert candidate['mtf_indices_by_specialist'][f]==parent['mtf_indices_by_specialist'][f]
     ref=_reference(candidate)

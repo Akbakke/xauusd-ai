@@ -58,7 +58,7 @@ Intra-bar order (fixed, documented; design B.1/B.3):
       line -> BROKEN), ACTIVE intra-band touch (first-entry-per-excursion),
       BROKEN retest hold (role flip back to ACTIVE) / fail / expiry
       (the last two retire the line).
-  (3) emission of the 31-field block from the post-update population
+  (3) emission of the 33-field block from the post-update population
       (V30 2026-08-13: + per-side ACTIVE counts and break memory).
 
 Documented design decisions inside the adopted spec:
@@ -162,7 +162,11 @@ from gx1.features.event_age_v1 import raw_event_age_from_last_observed_row
 # rejected by the config-key mismatch.  Pre-first-break emission is unchanged:
 # the same honest NaN censoring as before, now via 0 * NaN.
 # V7: touch memory is monotone; current-bar broken lines have no future hold label.
-TRENDLINE_REGISTRY_CONTRACT_V1 = "TRENDLINE_REGISTRY_TWO_POINT_ANCHOR_RAW_V7"
+# V8: each nearest slot exposes its immutable anchor span. Together with
+# age_bars (the confirmed first-anchor age), this preserves both anchor
+# times across slot changes without emitting registry-allocation IDs.
+# The previous31 fields retain their exact meanings and values.
+TRENDLINE_REGISTRY_CONTRACT_V1 = "TRENDLINE_REGISTRY_TWO_POINT_ANCHOR_RAW_V8"
 
 TRENDLINE_SIDE_SUPPORT = 1
 TRENDLINE_SIDE_RESISTANCE = -1
@@ -220,6 +224,11 @@ TRENDLINE_RETEST_WINDOW_BARS_V1: int = 2 * SWING_LOOKBACK + 1
 # pool, which excludes mandatory fields by construction.  That duplicate would
 # have been caught by the per-TF liveness owner, not by the availability
 # owner.
+# Anchor span is a raw native-bar distance known when the two confirmed
+# pivots create the line. It is immutable through touches and role flips.
+# With first-anchor age A and native index t, anchors are
+# a1=t-A-swing_lookback and a2=a1+span. Zero only when the slot is absent;
+# the existing active_count distinguishes absence. No threshold is added.
 TRENDLINE_REGISTRY_SLOT_FEATURE_NAMES_V1 = (
     "geomline_above_active_count",
     "geomline_above_dist_atr",
@@ -228,6 +237,7 @@ TRENDLINE_REGISTRY_SLOT_FEATURE_NAMES_V1 = (
     "geomline_above_age_bars",
     "geomline_above_last_touch_age_bars",
     "geomline_above_max_dev_atr",
+    "geomline_above_anchor_span_bars",
     "geomline_below_active_count",
     "geomline_below_dist_atr",
     "geomline_below_slope_atr_per_bar",
@@ -235,6 +245,7 @@ TRENDLINE_REGISTRY_SLOT_FEATURE_NAMES_V1 = (
     "geomline_below_age_bars",
     "geomline_below_last_touch_age_bars",
     "geomline_below_max_dev_atr",
+    "geomline_below_anchor_span_bars",
 )
 
 TRENDLINE_REGISTRY_EVENT_FEATURE_NAMES_V1 = (
@@ -320,7 +331,7 @@ _EV_COUNT = 10
 # as literals (CLAUDE.md rule 13: a repeated literal is not ownership — the
 # hand-numbered ``row[0]..row[32]`` writes that this replaced had to be
 # renumbered by hand every time a field entered or left the tuple).  Each side
-# block is the same ordered septet, so one base index per side is enough.
+# block has the same ordered fields, so one base index per side is enough.
 _SLOT_SIDE_FIELD_COUNT = len(TRENDLINE_REGISTRY_SLOT_FEATURE_NAMES_V1) // 2
 _IX_ABOVE_BASE = TRENDLINE_REGISTRY_FEATURE_NAMES_V1.index(
     "geomline_above_active_count"
@@ -335,6 +346,7 @@ _SLOT_TOUCH_COUNT = 3
 _SLOT_AGE_BARS = 4
 _SLOT_LAST_TOUCH_AGE_BARS = 5
 _SLOT_MAX_DEV_ATR = 6
+_SLOT_ANCHOR_SPAN_BARS = 7
 _IX_EVENT_BASE = TRENDLINE_REGISTRY_FEATURE_NAMES_V1.index("geomline_touch_above")
 _IX_BARS_SINCE_BREAK = TRENDLINE_REGISTRY_FEATURE_NAMES_V1.index(
     "geomline_bars_since_break_signed"
@@ -1122,6 +1134,9 @@ def _emit_row(
             t - above.last_touch_bar
         )
         row[_IX_ABOVE_BASE + _SLOT_MAX_DEV_ATR] = above.max_dev_atr
+        row[_IX_ABOVE_BASE + _SLOT_ANCHOR_SPAN_BARS] = float(
+            above.anchor2_bar - above.anchor1_bar
+        )
     if below is not None:
         row[_IX_BELOW_BASE + _SLOT_DIST_ATR] = below_key[0] / atr_t
         row[_IX_BELOW_BASE + _SLOT_SLOPE_ATR_PER_BAR] = below.slope / atr_t
@@ -1133,6 +1148,9 @@ def _emit_row(
             t - below.last_touch_bar
         )
         row[_IX_BELOW_BASE + _SLOT_MAX_DEV_ATR] = below.max_dev_atr
+        row[_IX_BELOW_BASE + _SLOT_ANCHOR_SPAN_BARS] = float(
+            below.anchor2_bar - below.anchor1_bar
+        )
     row[_IX_EVENT_BASE : _IX_EVENT_BASE + _EV_COUNT] = events
     # B9 (2026-09-20): sign = remembered side of the most recent first break,
     # exactly +/-1 after any break; pre-first-break the age is NaN and

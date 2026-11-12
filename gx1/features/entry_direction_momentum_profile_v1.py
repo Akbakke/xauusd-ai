@@ -33,7 +33,7 @@ def compile_price_momentum_profile(
     if len(set(PRICE_MOMENTUM_FIELDS)) != len(PRICE_MOMENTUM_FIELDS):
         raise RuntimeError('PRICE_MOMENTUM_PROFILE_DUPLICATE')
     indices = tuple(mtf.index(name) for name in PRICE_MOMENTUM_FIELDS)
-    if (len(mtf) != 253 or len(parent['mtf_indices']) != 178
+    if (len(mtf) != 255 or len(parent['mtf_indices']) != 180
             or len(set(indices)) != 4 or not set(indices).issubset(all_routes[MOMENTUM_FAMILY])
             or set(indices).intersection(parent['mtf_indices'])
             or MOMENTUM_FAMILY in parent['base_mtf_specialists']):
@@ -43,7 +43,7 @@ def compile_price_momentum_profile(
     base_families = tuple(f for f in owners.MODEL_NATIVE_TRAINING_SPECIALISTS
         if f in set(parent['base_mtf_specialists']) | {MOMENTUM_FAMILY})
     routes = {f: tuple(i for i in all_routes[f] if i in selected) for f in base_families}
-    if (len(mtf_indices) != 182 or any(not routes[f] for f in base_families)
+    if (len(mtf_indices) != 184 or any(not routes[f] for f in base_families)
             or any(routes[f] != parent['mtf_indices_by_specialist'][f]
                    for f in parent['base_mtf_specialists'])
             or set(routes[MOMENTUM_FAMILY]) != set(indices)):

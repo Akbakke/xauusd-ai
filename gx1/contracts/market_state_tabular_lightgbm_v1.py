@@ -13,7 +13,7 @@ import numpy as np
 from gx1.contracts.market_state_five_endpoint_contract_v1 import TIMEFRAMES
 from gx1.contracts.market_state_tabular_target_score_v1 import combine_binary_probabilities
 
-EXPECTED_WIDTH = 2725 + 1 + 5 * 253
+EXPECTED_WIDTH = 2727 + 1 + 5 * 255
 EXPECTED_CATEGORICAL = 7
 EXPECTED_CATEGORICAL_DOMAINS = {
     'signal.smc_swing_state': (0, 1, 2, 3, 4),

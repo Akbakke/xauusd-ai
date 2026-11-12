@@ -162,7 +162,7 @@ def test_ta_profile_excludes_exact_gc_registry_and_preserves_every_other_field(b
     source = profiles.compile_compact_entry_execution_profile()['physical_field_names']
     ta = profiles.compile_full_ta_entry_execution_profile()
     gc = set(profiles._GC_OWNERS)
-    assert ta['physical_widths'] == {'signal': 315, 'ctx_cont': 132, 'ctx_cat': 1, 'mtf': 253}
+    assert ta['physical_widths'] == {'signal': 317, 'ctx_cont': 132, 'ctx_cat': 1, 'mtf': 255}
     assert set(source['ctx_cont']) - set(ta['physical_field_names']['ctx_cont']) == gc
     assert set(source['signal']) - set(ta['physical_field_names']['signal']) == {
         'ctx_cont.' + name for name in gc}
@@ -175,7 +175,7 @@ def test_ta_profile_excludes_exact_gc_registry_and_preserves_every_other_field(b
         'structure_swing_encoder': 24, 'smc_liquidity_encoder': 76,
         'trend_ema_encoder': 39, 'vol_compression_encoder': 13,
         'momentum_flow_encoder': 29, 'session_regime_encoder': 9,
-        'chart_geometry_encoder': 39, 'price_action_candle_encoder': 24}
+        'chart_geometry_encoder': 41, 'price_action_candle_encoder': 24}
     assert set(ta['feature_keys']) == profiles.FULL_TA_ENTRY_FEATURE_KEYS
     reference = _ref(ta)
     assert profiles.require_compact_entry_execution_profile_reference(reference) == reference
@@ -183,7 +183,7 @@ def test_ta_profile_excludes_exact_gc_registry_and_preserves_every_other_field(b
         profiles.require_compact_entry_execution_profile_reference(
             reference, gc_mtf_history=bound_case['arguments']['prefix_normalization']['gc_mtf_history'])
     actual = architecture.entry_exit_production_architecture_contract(entry_execution_profile=reference)
-    assert actual['shared_surface'] == {'signal_dim': 315, 'snap_dim': 315,
+    assert actual['shared_surface'] == {'signal_dim': 317, 'snap_dim': 317,
                                          'ctx_cont_dim': 132, 'ctx_cat_dim': 1}
     assert 'gc_mtf_history' not in actual
 

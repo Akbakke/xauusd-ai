@@ -39,6 +39,7 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     classify_entry_specialist_feature,
     COMPACT_ENTRY_EXECUTION_PROFILE_NAME,
     compile_compact_entry_execution_profile,
+    compile_full_ta_entry_execution_profile,
     require_compact_entry_execution_profile_reference,
     model_native_context_temporal_alias_policy,
     require_model_native_specialist_contract_mode,
@@ -969,6 +970,7 @@ EXPECTED_LIVE_SPECIALIST_ROUTING: dict[str, tuple[str, ...]] = {
         "chart.geomchan_width_atr",
         "chart.geomline_above_active_count",
         "chart.geomline_above_age_bars",
+        "chart.geomline_above_anchor_span_bars",
         "chart.geomline_above_dist_atr",
         "chart.geomline_above_last_touch_age_bars",
         "chart.geomline_above_max_dev_atr",
@@ -980,6 +982,7 @@ EXPECTED_LIVE_SPECIALIST_ROUTING: dict[str, tuple[str, ...]] = {
         "chart.geomline_bars_since_break_signed",
         "chart.geomline_below_active_count",
         "chart.geomline_below_age_bars",
+        "chart.geomline_below_anchor_span_bars",
         "chart.geomline_below_dist_atr",
         "chart.geomline_below_last_touch_age_bars",
         "chart.geomline_below_max_dev_atr",
@@ -1193,7 +1196,8 @@ def test_family_timeframe_lane_has_no_unclassifiable_or_contradicted_field() -> 
 def test_compact_profile_matches_prequalified_ordered_field_sets() -> None:
     compiled = compile_compact_entry_execution_profile()
     assert compiled["name"] == COMPACT_ENTRY_EXECUTION_PROFILE_NAME
-    assert compiled["contract_sha256"] == "2ac4fb4ddfac84f588f65363ac8959544233ace286d9648bfebf60b97153f125"
+    # The two chart anchor spans enlarge physical surfaces; compact active names stay exact.
+    assert compiled["contract_sha256"] == "7a24f2df96b7ed70cabd40795627415b9545fd9604b4ddc8919e33a90be19f8b"
     expected = {
         "signal": (2622, "0acd1c2c9c73f8ef1e4acaa06a01f8fabd74ae4df57ba33baff3ee7a1d580549"),
         "ctx_cont": (2525, "6e565dd7fc69977cfb26926e93e8844875989df4b718becd3302f6d9d0575d7a"),
@@ -1208,11 +1212,32 @@ def test_compact_profile_matches_prequalified_ordered_field_sets() -> None:
         physical = compiled["physical_field_names"][surface]
         assert tuple(physical[i] for i in indices) == names
         assert tuple(sorted(indices)) == indices
-    assert tuple(map(len, compiled["physical_field_names"].values())) == (2725, 2542, 1, 253)
+    assert tuple(map(len, compiled["physical_field_names"].values())) == (2727, 2542, 1, 255)
     payload = {k: v for k, v in compiled.items() if k != "contract_sha256"}
     assert compiled["contract_sha256"] == hashlib.sha256(json.dumps(
         payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True,
     ).encode()).hexdigest()
+
+
+def test_full_ta_anchor_spans_reach_local_and_shared_five_tf_chart_routes() -> None:
+    profile = compile_full_ta_entry_execution_profile()
+    assert profile["timeframes"] == ("M5", "M15", "H1", "H4", "D1")
+    spans = ("geomline_above_anchor_span_bars", "geomline_below_anchor_span_bars")
+    for surface, route_key, names in (
+        ("signal", "local_signal_indices_by_specialist", tuple("chart." + name for name in spans)),
+        ("mtf", "mtf_indices_by_specialist", spans),
+    ):
+        physical = profile["physical_field_names"][surface]
+        active = profile["active_field_names"][surface]
+        for name in names:
+            assert physical.count(name) == active.count(name) == 1
+            index = physical.index(name)
+            assert [family for family, indices in profile[route_key].items()
+                    if index in indices] == ["chart_geometry_encoder"]
+            assert classify_entry_specialist_feature(name) == "chart_geometry_encoder"
+    # TA uses all five native matrices with this one exact ordered MTF surface.
+    assert profile["physical_field_names"]["mtf"] == tuple(MULTI_TF_PER_BAR_FEATURES_V4)
+    assert len(profile["physical_field_names"]["mtf"]) == 255
 
 
 def test_compact_profile_preserves_gc_macro_and_actual_owner_routes() -> None:

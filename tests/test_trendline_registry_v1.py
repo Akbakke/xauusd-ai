@@ -56,6 +56,7 @@ EXPECTED_TRENDLINE_REGISTRY_FEATURE_NAMES_V1 = (
     "geomline_above_age_bars",
     "geomline_above_last_touch_age_bars",
     "geomline_above_max_dev_atr",
+    "geomline_above_anchor_span_bars",
     "geomline_below_active_count",
     "geomline_below_dist_atr",
     "geomline_below_slope_atr_per_bar",
@@ -63,6 +64,7 @@ EXPECTED_TRENDLINE_REGISTRY_FEATURE_NAMES_V1 = (
     "geomline_below_age_bars",
     "geomline_below_last_touch_age_bars",
     "geomline_below_max_dev_atr",
+    "geomline_below_anchor_span_bars",
     "geomline_touch_above",
     "geomline_touch_below",
     "geomline_break_up",
@@ -82,7 +84,7 @@ EXPECTED_TRENDLINE_REGISTRY_FEATURE_NAMES_V1 = (
     "geomchan_apex_proximity",
 )
 EXPECTED_TRENDLINE_REGISTRY_FEATURE_NAMES_SHA256_V1 = (
-    "06d0d440681b47329f9786de4072921f9507d97b9eeac31e9f88fc467919c157"
+    "badbb1f76440615e77adfbab6d052ca2e4843c8ec85989e081fbeecad9bbbcbc"
 )
 
 WARMUP = 2 * SWING_LOOKBACK + 2  # structural NaN prefix (module contract)
@@ -166,7 +168,7 @@ def _compute(df, *, band=0.3, seq_len=200, state=None):
 
 
 def test_feature_name_tuple_and_sha_drift_guard():
-    assert TRENDLINE_REGISTRY_FEATURE_COUNT_V1 == 31
+    assert TRENDLINE_REGISTRY_FEATURE_COUNT_V1 == 33
     assert TRENDLINE_REGISTRY_FEATURE_COUNT_V1 == len(
         TRENDLINE_REGISTRY_FEATURE_NAMES_V1
     )
@@ -184,7 +186,7 @@ def test_feature_name_tuple_and_sha_drift_guard():
         + TRENDLINE_REGISTRY_CHANNEL_FEATURE_NAMES_V1
         == TRENDLINE_REGISTRY_FEATURE_NAMES_V1
     )
-    assert len(TRENDLINE_REGISTRY_SLOT_FEATURE_NAMES_V1) == 14
+    assert len(TRENDLINE_REGISTRY_SLOT_FEATURE_NAMES_V1) == 16
     assert len(TRENDLINE_REGISTRY_EVENT_FEATURE_NAMES_V1) == 11
     assert len(TRENDLINE_REGISTRY_CHANNEL_FEATURE_NAMES_V1) == 6
 
@@ -869,6 +871,9 @@ def test_v30_package_8a_retest_hold_flips_polarity_and_keeps_the_line():
     assert feats["geomline_retest_hold_down"].iloc[62] == 1.0
     assert feats["geomline_above_active_count"].iloc[62] == 1.0
     assert feats["geomline_below_active_count"].iloc[62] == 0.0
+    assert feats["geomline_below_anchor_span_bars"].iloc[53] == 20.0
+    assert feats["geomline_above_anchor_span_bars"].iloc[62] == 20.0
+    assert 62 - feats["geomline_above_age_bars"].iloc[62] - SWING_LOOKBACK == 10
     # The generic touch impulse is deliberately NOT raised on the flip bar:
     # the retest-hold event is that bar's specific impulse.
     assert feats["geomline_touch_above"].iloc[62] == 0.0
@@ -1095,3 +1100,64 @@ def test_line_broken_at_touch_confirmation_has_no_future_hold_target(mirrored):
     labels = compute_trendline_touch_hold_labels_v1(
         frame, seq_len=200, band_atr=.3, horizon_bars=10)
     assert (labels.loc[53] == 0.).all()
+
+
+@pytest.mark.parametrize("slot,close,side", [
+    ("above", 100.0, TRENDLINE_SIDE_RESISTANCE),
+    ("below", 102.0, TRENDLINE_SIDE_SUPPORT),
+])
+def test_anchor_span_distinguishes_previously_identical_slot_evidence(slot, close, side):
+    """Two different second anchors can share all31 legacy fields."""
+    from gx1.features import trendline_registry_v1 as registry
+
+    legacy = [n for n in TRENDLINE_REGISTRY_FEATURE_NAMES_V1
+              if not n.endswith("_anchor_span_bars")]
+    rows = []
+    for identity, second in ((7, 30), (8, 50)):
+        line = registry.TrendlineV1(
+            line_id=identity, side=side, anchor1_bar=10, anchor1_price=90.0,
+            anchor2_bar=second, anchor2_price=90.0 + 0.125 * (second - 10),
+            state=TRENDLINE_STATE_ACTIVE, touch_count=3, last_touch_bar=80,
+            max_dev_atr=0.125, touch_bars={10, second, 80},
+        )
+        state = registry.TrendlineRegistryStateV1(
+            config_key=("synthetic-emission-only",), active_lines=[line])
+        values = registry._emit_row(
+            state, 100, close, 1.0, 0.3, 512, SWING_LOOKBACK,
+            np.zeros(registry._EV_COUNT))
+        rows.append(dict(zip(TRENDLINE_REGISTRY_FEATURE_NAMES_V1, values)))
+    np.testing.assert_array_equal(
+        [rows[0][n] for n in legacy], [rows[1][n] for n in legacy])
+    field = f"geomline_{slot}_anchor_span_bars"
+    assert [r[field] for r in rows] == [20.0, 40.0]
+    for row, second in zip(rows, (30, 50)):
+        first = 100 - row[f"geomline_{slot}_age_bars"] - SWING_LOOKBACK
+        assert first == 10 and first + row[field] == second
+        opposite = "below" if slot == "above" else "above"
+        assert row[f"geomline_{opposite}_active_count"] == 0.0
+        assert row[f"geomline_{opposite}_anchor_span_bars"] == 0.0
+
+
+def test_anchor_span_is_known_at_promotion_and_immutable_through_later_touch():
+    frame = _support_line_frame(90, {10: 0.0, 30: 0.0, 50: 0.0, 70: 0.0})
+    features, _ = _compute(frame)
+    field = "geomline_below_anchor_span_bars"
+    assert features[field].iloc[:WARMUP].isna().all()
+    assert (features[field].iloc[WARMUP:53] == 0.0).all()
+    assert features.loc[53, field] == features.loc[73, field] == 20.0
+    assert features.loc[53, "geomline_below_touch_count"] == 3.0
+    assert features.loc[73, "geomline_below_touch_count"] == 4.0
+    prefix, _ = _compute(frame.iloc[:74])
+    np.testing.assert_array_equal(prefix.to_numpy(), features.iloc[:74].to_numpy())
+
+
+def test_v7_carry_cannot_silently_supply_v8_anchor_surface():
+    from gx1.features import trendline_registry_v1 as registry
+
+    frame = _support_line_frame(75, {10: 0.0, 30: 0.0, 50: 0.0})
+    _, state = _compute(frame.iloc[:60])
+    assert state.config_key[0] == registry.TRENDLINE_REGISTRY_CONTRACT_V1
+    state.config_key = ("TRENDLINE_REGISTRY_TWO_POINT_ANCHOR_RAW_V7",
+                        *state.config_key[1:])
+    with pytest.raises(RuntimeError, match="TRENDLINE_STATE_CONFIG_MISMATCH"):
+        _compute(frame.iloc[60:], state=state)

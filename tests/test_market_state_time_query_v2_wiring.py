@@ -83,7 +83,9 @@ def test_v2_builder_selects_factorized_model(time_query_case, monkeypatch):
             calls.append('normalization')
 
     class QueryShell:
-        def __init__(self, backbone):
+        def __init__(self, backbone, *, dedicated_m5_side, dedicated_non_m5_side,
+                     dedicated_tf_activity):
+            assert (dedicated_m5_side, dedicated_non_m5_side, dedicated_tf_activity) == (False, False, False)
             self.backbone = backbone
             calls.append('factorized_head')
 
@@ -193,7 +195,9 @@ def test_ta_builder_passes_reduced_statistics_and_no_gc_modules(time_query_case,
         def require_input_normalization_state(self):
             return None
     class QueryShell:
-        def __init__(self, backbone):
+        def __init__(self, backbone, *, dedicated_m5_side, dedicated_non_m5_side,
+                     dedicated_tf_activity):
+            assert (dedicated_m5_side, dedicated_non_m5_side, dedicated_tf_activity) == (False, False, False)
             self.backbone = backbone
     monkeypatch.setattr(views, 'EntryV10CtxHybridTransformer', BackboneShell)
     monkeypatch.setattr(views, 'FactorizedTimeQueryMarketStateModel', QueryShell)
@@ -202,7 +206,7 @@ def test_ta_builder_passes_reduced_statistics_and_no_gc_modules(time_query_case,
         constructor_metadata=args['constructor_metadata'], device='synthetic')
     assert len(calls) == 1
     kwargs = calls[0]
-    assert kwargs['seq_input_dim'] == kwargs['snap_input_dim'] == 315
+    assert kwargs['seq_input_dim'] == kwargs['snap_input_dim'] == 317
     assert kwargs['ctx_cont_dim'] == 132
     assert kwargs['gc_mtf_history'] is None
     assert 'research_unobserved_units_profile' not in kwargs

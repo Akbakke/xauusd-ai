@@ -1,0 +1,224 @@
+{
+  "schema_version": "gx1_ta_trendline_anchor_span_repair_v1",
+  "status": "SOURCE_IMPLEMENTED_SYNTHETICALLY_QUALIFIED_PHYSICAL_INPUTS_AND_BASELINE_PENDING",
+  "objective": "Preserve both causal anchor times of each nearest trendline slot so distinct two-pivot lines need not collapse to the same published slot evidence.",
+  "source_base_commit": "3af1a341da26473fb6ddb0791b5c2e3bed682450",
+  "source_owners": {
+    "gx1/contracts/market_state_tabular_lightgbm_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_tabular_lightgbm_v1.py",
+      "sha256": "582a413282be8bf4bb38a582a871fe8cb203421e2053d21bab33d676e2a7cf8e"
+    },
+    "gx1/features/entry_direction_momentum_profile_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/entry_direction_momentum_profile_v1.py",
+      "sha256": "1c6be8ad9aa133e23354c0dfff51a82282e90d9f0ae1e7729fa8065dd68eddb6"
+    },
+    "gx1/features/entry_specialist_feature_groups_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/entry_specialist_feature_groups_v1.py",
+      "sha256": "38da0c25aaadb2bd0108eb427578163aa76c73dd7fe9367aa86fed185a1e0f27"
+    },
+    "gx1/features/trendline_registry_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/trendline_registry_v1.py",
+      "sha256": "24c12e8d4c6f597a331dacecbdc5e9a9ed8fdf6c0b6798ee7c543884d04aee58"
+    },
+    "tests/test_entry_direction_momentum_profile_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_direction_momentum_profile_v1.py",
+      "sha256": "96d3bff5a08e18bab6652f6cc2ef13973acae06dbf33e3f0d63e46be830c6f2c"
+    },
+    "tests/test_entry_dynamic_compact_input_influence_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_dynamic_compact_input_influence_v1.py",
+      "sha256": "041fb4ae34ba4d685f85b29bc5265a6244799c2277aedce52051632b7af43f92"
+    },
+    "tests/test_entry_full_gc_profile_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_full_gc_profile_v1.py",
+      "sha256": "92830c99c22c3d73e182ec90d56bd6fb474a226e697ab65cfe54a53f1c26481d"
+    },
+    "tests/test_entry_model_native_feature_layers.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_model_native_feature_layers.py",
+      "sha256": "281b4aef01bb6675faf0179eac12458f12f750ce7b156d490763c44e1db8f022"
+    },
+    "tests/test_entry_native_direction_feature_view_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_native_direction_feature_view_v1.py",
+      "sha256": "10220bf155d1e5487caa22738c11150a48adb2ab3b745d2afa94997870142da3"
+    },
+    "tests/test_entry_specialist_feature_groups.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_specialist_feature_groups.py",
+      "sha256": "0b3bb56d6e90a2b8df262d928ae76707a40055bc1db65ac4c1f774134861b26a"
+    },
+    "tests/test_market_state_tabular_feature_view.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_market_state_tabular_feature_view.py",
+      "sha256": "be279194ceb5f30fdbdb418a729d508ac1a90449d658f35de560dd3c503da921"
+    },
+    "tests/test_market_state_time_query_native_F_model.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_market_state_time_query_native_F_model.py",
+      "sha256": "4f596a9a4bd4c4a03bc49309d19e3f893e51b246216cd072e3183c576b2b474b"
+    },
+    "tests/test_market_state_time_query_v2_wiring.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_market_state_time_query_v2_wiring.py",
+      "sha256": "d58c5280befbd8819569987d889d5d1c5b3429eac05412da053b094c38a377d2"
+    },
+    "tests/test_trendline_registry_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_trendline_registry_v1.py",
+      "sha256": "88b2423b8019ccde07d0518a30289585c16b0e0e57f949f2f445e3544c9fd4be"
+    }
+  },
+  "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_IDENTITY_SOURCE_20261112_001",
+  "observed_defect": {
+    "first_anchor_already_implicit": "age_bars=t-(anchor1_bar+swing_lookback)",
+    "missing": "Second anchor time/span is absent from the31 published fields; internal line_id and anchors do not reach the model through a separate side channel.",
+    "witness": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_IDENTITY_SOURCE_20261112_001/EMISSION_COLLISION_WITNESS.json",
+      "sha256": "def9c54a5d01a431d4bea096c83193dbd7d68bbac18c09e4f510bce9a3d93db0"
+    },
+    "synthetic_distinct_anchor_pairs": [
+      {
+        "line_id": 7,
+        "anchor1_bar": 10,
+        "anchor2_bar": 30,
+        "anchor_span_bars": 20,
+        "projection": 101.25,
+        "slope": 0.125
+      },
+      {
+        "line_id": 8,
+        "anchor1_bar": 10,
+        "anchor2_bar": 50,
+        "anchor_span_bars": 40,
+        "projection": 101.25,
+        "slope": 0.125
+      }
+    ],
+    "all31_previous_fields_equal": true,
+    "real_tape_frequency": "UNKNOWN",
+    "predictive_cost": "UNKNOWN"
+  },
+  "change": {
+    "fields": [
+      "geomline_above_anchor_span_bars",
+      "geomline_below_anchor_span_bars"
+    ],
+    "definition": "anchor2_bar-anchor1_bar; raw native-bar distance fixed at line creation.",
+    "reconstruction": "a1=t-age_bars-swing_lookback; a2=a1+anchor_span_bars. This reconstructs anchor times relative to the observed native row.",
+    "presence": "Positive only for occupied nearest slots;0 for absence distinguished by existing active_count; existing warmupNaNs preserved.",
+    "causality": "Only already-confirmed immutable pivots used; no future information, new threshold, new carry state or lifecycle/slot-selection change.",
+    "scope": "Completes the physical anchor-time pair. Does not expose full internal line_id, an explicit switch marker or anchor prices.",
+    "routes": "One shared producer/name tuple; chart-prefixed localM5 fields and same unprefixed fields on all five native MTF clocks.",
+    "registry_contract": "TRENDLINE_REGISTRY_TWO_POINT_ANCHOR_RAW_V8",
+    "old_field_count": 31,
+    "new_field_count": 33,
+    "registry_names_sha256": "badbb1f76440615e77adfbab6d052ca2e4843c8ec85989e081fbeecad9bbbcbc",
+    "old_ta_widths": {
+      "signal": 315,
+      "ctx_cont": 132,
+      "ctx_cat": 1,
+      "mtf": 253
+    },
+    "new_ta_widths": {
+      "signal": 317,
+      "ctx_cont": 132,
+      "ctx_cat": 1,
+      "mtf": 255
+    },
+    "new_raw_widths": {
+      "signal": 2727,
+      "ctx_cont": 2542,
+      "ctx_cat": 1,
+      "mtf": 255
+    },
+    "mtf_names_sha256": "ec41b6161c6e42fddbb4da5644a9fd1cd6818dead544d9f539e8ad26b4eb322f",
+    "full_ta_profile_sha256": "5332e5821f4aec84cfad9e892ca96fec747f158b499570fd9f01921967dde082",
+    "compact_profile_sha256": "7a24f2df96b7ed70cabd40795627415b9545fd9604b4ddc8919e33a90be19f8b",
+    "mtf_family_counts": {
+      "structure_swing_encoder": 24,
+      "smc_liquidity_encoder": 76,
+      "trend_ema_encoder": 39,
+      "vol_compression_encoder": 13,
+      "momentum_flow_encoder": 29,
+      "session_regime_encoder": 9,
+      "chart_geometry_encoder": 41,
+      "price_action_candle_encoder": 24
+    },
+    "all_eight_families_and_five_timeframes_preserved": true
+  },
+  "qualification": {
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_IDENTITY_SOURCE_20261112_001/SOURCE_QUALIFICATION.json",
+      "sha256": "4193e7c723c5b655876c6dc55d6148b2061b80523212db7cea07f32272566d48"
+    },
+    "legacy_parity": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_IDENTITY_SOURCE_20261112_001/LEGACY_FIELD_PARITY.json",
+      "sha256": "801a49bf783b39b12ba1034f38290fe58e164e1f5cb1166eb2864ed3a69e9587"
+    },
+    "synthetic_rows": 1340,
+    "all31_original_fields_float32_byteexact": true,
+    "checks": [
+      "Different second anchors now distinguished for both above/below slots.",
+      "Span exists at causal third-pivot promotion, remains constant through later touches and role flip.",
+      "Existing chunk/one-shot and prefix-causality tests include both new fields.",
+      "V7carry rejected by V8config key.",
+      "Local raw/aligned packing and allfive actual nativeTF slicers retain both fields with closed-bar boundaries.",
+      "FullTA field selection and synthetic normalization projection/factory binding preserve the expanded surface."
+    ],
+    "focused_tests": {
+      "unique_focused_cases_covered": 185,
+      "first_cases": 171,
+      "first_passed": 168,
+      "first_failed": 3,
+      "first_failures_rechecked_passed": 3,
+      "additional_momentum_and_fake_backend_cases": 8,
+      "additional_ta_cases": 5,
+      "ta_test_double_failures_rechecked_passed": 1,
+      "additional_legacy_factory_double_case": 1,
+      "all_observed_failures_resolved": true,
+      "prior_passed_cases_reused": true
+    },
+    "test_receipts": {
+      "EMISSION_COLLISION_WITNESS.json": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_IDENTITY_SOURCE_20261112_001/EMISSION_COLLISION_WITNESS.json",
+        "sha256": "def9c54a5d01a431d4bea096c83193dbd7d68bbac18c09e4f510bce9a3d93db0"
+      },
+      "LEGACY_FIELD_PARITY.json": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_IDENTITY_SOURCE_20261112_001/LEGACY_FIELD_PARITY.json",
+        "sha256": "801a49bf783b39b12ba1034f38290fe58e164e1f5cb1166eb2864ed3a69e9587"
+      },
+      "FOCUSED_TESTS_001.json": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_IDENTITY_SOURCE_20261112_001/FOCUSED_TESTS_001.json",
+        "sha256": "24c22c312ac5245deff86599dd6cca1d15340ca1646108b13207a6926f23ba44"
+      },
+      "FOCUSED_TESTS_002.json": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_IDENTITY_SOURCE_20261112_001/FOCUSED_TESTS_002.json",
+        "sha256": "0a6058ef6c90a988737e417581970fa9ec55490d48d447accd438530349684fa"
+      },
+      "TA_BINDING_TESTS.json": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_IDENTITY_SOURCE_20261112_001/TA_BINDING_TESTS.json",
+        "sha256": "c2a80ffbde3e531b170695a5051c3ced9f5a579b0e92f6d2f4366a3b3495664a"
+      },
+      "TA_BINDING_TESTS_002.json": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_IDENTITY_SOURCE_20261112_001/TA_BINDING_TESTS_002.json",
+        "sha256": "a5d85ae98cb47bcfb6d027ba702d2cffb35161a8b638291af3ddbb8f5e290aac"
+      }
+    },
+    "real_new_surface_checkpoint_baseline": false,
+    "real_new_surface_training": false,
+    "independent_source_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_IDENTITY_SOURCE_20261112_001/INDEPENDENT_SOURCE_REVIEW_002.json",
+      "sha256": "68f0179afdf0ec9954df7270c39b3e58b9c663cad63ea9a514fc272ff42586ee"
+    }
+  },
+  "observed_repairs": [
+    "Updated exact physical/geometry/momentum/tabular width guards for +2fields; no validator relaxed.",
+    "Updated exact name/count/digest test expectations while preserving compact active-field digests.",
+    "Two stale factory test doubles now explicitly accept and assert the existing three named decoder flags; production factory unchanged."
+  ],
+  "remaining": [
+    "Real-data causal span materialization and exact original-column preservation.",
+    "New physical names/widths and TRAIN-only normalization bindings; old statistical artifacts are not silently relabeled.",
+    "Fresh actual initial baseline and later controlled short learning comparison.",
+    "Later chronological generalization, family utility and economic edge remain unproved."
+  ],
+  "native_data_reads_authorized": false,
+  "native_model_calls_authorized": false,
+  "training_authorized": false,
+  "test_data_used": false,
+  "promotion_authorized": false,
+  "next_action": "Prepare the smallest fresh causal input-extension qualification for the two anchor-span fields on the required TRAIN history: reuse original source clocks, frozen registry parameters, all unchanged features, targets and completed checks; replay the existing registry only where needed to recover the missing anchor spans. Require exact preservation of the original31 trendline fields, new physical field/normalization bindings and a fresh actual initial model baseline before any short learning comparison. No old cache or checkpoint is relabeled as the expanded function. No data/model/training invocation is admitted yet; full-history30-40epoch training remains later scaling."
+}

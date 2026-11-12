@@ -24,13 +24,13 @@ from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
 
 
 def features(batch=1, *, ta_only=False):
-    width = 315 if ta_only else 4
+    width = 317 if ta_only else 4
     x = torch.arange(batch * width, dtype=torch.float32).reshape(batch, 1, width) + 1
     values = {'seq_x': x, 'snap_x': x[:, 0],
               'ctx_cat': torch.zeros(batch, 1, dtype=torch.int64),
               'ctx_cont': torch.zeros(batch, 132 if ta_only else 1, dtype=torch.float32)}
     for tf in ('m5', 'm15', 'h1', 'h4', 'd1'):
-        values['seq_' + tf] = torch.ones(batch, 1, 253 if ta_only else 1)
+        values['seq_' + tf] = torch.ones(batch, 1, 255 if ta_only else 1)
         if not ta_only:
             values['gc_seq_' + tf] = torch.ones(batch, 1, 1)
     return values

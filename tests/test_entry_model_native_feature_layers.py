@@ -949,35 +949,76 @@ def test_native_trendline_builder_preserves_explicit_clock_identity(
 ) -> None:
     import gx1.features.entry_model_native_feature_layers_v1 as layers
 
-    _matrix, _names, _samples, source, source_path = _valid_inputs(tmp_path)
+    _matrix, _names, samples, source, source_path = _valid_inputs(tmp_path)
     observed: list[str] = []
+    emitted: dict[str, pd.DataFrame] = {}
+    span_names = ("geomline_above_anchor_span_bars", "geomline_below_anchor_span_bars")
+    assert len(TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES) == 33
+    assert tuple(TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES[i] for i in (7, 15)) == tuple(
+        "chart." + name for name in span_names
+    )
 
     def _capture_timeframe(registry_source, **kwargs):
-        observed.append(kwargs["timeframe"])
-        return (
-            pd.DataFrame(
-                0.0,
-                index=registry_source.index,
-                columns=layers.TRENDLINE_REGISTRY_FEATURE_NAMES_V1,
-            ),
-            object(),
+        timeframe = kwargs["timeframe"]
+        observed.append(timeframe)
+        names = layers.TRENDLINE_REGISTRY_FEATURE_NAMES_V1
+        values = np.arange(len(registry_source) * len(names), dtype=np.float32).reshape(
+            len(registry_source), len(names)
         )
+        frame = pd.DataFrame(values, index=registry_source.index, columns=names)
+        # Distinct spans and rows catch swapped slots, lost columns and alignment drift.
+        frame[span_names[0]] = np.arange(len(frame), dtype=np.float32) + 10
+        frame[span_names[1]] = np.arange(len(frame), dtype=np.float32) + 1000
+        emitted[timeframe] = frame.copy(deep=True)
+        return frame, object()
 
-    monkeypatch.setattr(
-        layers,
-        "compute_trendline_registry_features_v1",
-        _capture_timeframe,
-    )
+    monkeypatch.setattr(layers, "compute_trendline_registry_features_v1", _capture_timeframe)
     for timeframe in ("M1", "M5"):
+        kwargs = dict(timeframe=timeframe, band_atr=0.25,
+                      seq_len=480 if timeframe == "M1" else 96)
         frame, names = build_trendline_registry_m5_layer(
-            None,
-            source_path,
-            timeframe=timeframe,
-            band_atr=0.25,
-            seq_len=480 if timeframe == "M1" else 96,
-            raw_frame=True,
+            None, source_path, raw_frame=True, **kwargs
         )
         assert tuple(names) == TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES
         assert frame.index.equals(pd.DatetimeIndex(source["time"]))
+        np.testing.assert_array_equal(frame.to_numpy(dtype=np.float32),
+                                      emitted[timeframe].to_numpy(dtype=np.float32))
+        aligned, aligned_names = build_trendline_registry_m5_layer(
+            samples, source_path, **kwargs
+        )
+        assert aligned_names == names
+        expected = emitted[timeframe].loc[pd.DatetimeIndex(samples["time"])]
+        np.testing.assert_array_equal(aligned, expected.to_numpy(dtype=np.float32))
 
-    assert observed == ["M1", "M5"]
+    assert observed == ["M1", "M1", "M5", "M5"]
+
+
+@pytest.mark.parametrize("timeframe,length", (("M5", 16), ("M15", 64), ("H1", 96), ("H4", 96), ("D1", 252)))
+def test_anchor_spans_survive_each_native_tf_window_and_chart_selection(timeframe, length):
+    from gx1.features.entry_specialist_feature_groups_v1 import compile_full_ta_entry_execution_profile
+
+    profile = compile_full_ta_entry_execution_profile()
+    names = tuple(htf.MULTI_TF_PER_BAR_FEATURES_V4)
+    assert names == profile["physical_field_names"]["mtf"]
+    span_names = ("geomline_above_anchor_span_bars", "geomline_below_anchor_span_bars")
+    spans = [names.index(name) for name in span_names]
+    route = tuple(profile["mtf_indices_by_specialist"]["chart_geometry_encoder"])
+    positions = [route.index(index) for index in spans]
+    labels = htf.multi_tf_bar_label(pd.date_range(
+        "2024-01-01", periods=length + 2, freq=htf.MULTI_TF_SHIFT[timeframe], tz="UTC"
+    ), timeframe)
+    values = np.zeros((length + 2, len(names)), dtype=np.float32)
+    values[:, spans[0]] = np.arange(length + 2, dtype=np.float32) + 10
+    values[:, spans[1]] = np.arange(length + 2, dtype=np.float32) + 1000
+    frame = pd.DataFrame(values, index=labels, columns=names)
+    frame.attrs.update(htf_feature_contract=htf.HTF_V4_MATRIX_CONTRACT,
+                       ts_int64=labels.asi8,
+                       feats_np=frame.to_numpy(dtype=np.float32, copy=False),
+                       causal_warmup_rows=0)
+    # Last opening is not closed at this instant; only the preceding L rows may enter.
+    window, rows = htf.slice_multi_tf_v4_window(
+        frame, labels[-1], length, htf.MULTI_TF_SHIFT[timeframe], return_row_indices=True
+    )
+    np.testing.assert_array_equal(rows, np.arange(1, length + 1, dtype=np.int64))
+    assert window.shape == (length, 255)
+    np.testing.assert_array_equal(window[:, route][:, positions], values[1:-1, spans])

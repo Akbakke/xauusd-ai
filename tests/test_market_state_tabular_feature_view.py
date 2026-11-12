@@ -53,7 +53,7 @@ def _case():
 def test_exact_last_closed_bar_and_full_five_tf_layout():
     case = _case()
     bound = view.MarketStateTabularFeatureView(**case)
-    assert bound.width == 2725 + 1 + 5 * 253 == 3991
+    assert bound.width == 2727 + 1 + 5 * 255 == 4003
     assert len(bound.feature_names) == len(set(bound.feature_names)) == bound.width
     assert len(bound.categorical) == 7
     assert {item["name"] for item in bound.categorical} == {

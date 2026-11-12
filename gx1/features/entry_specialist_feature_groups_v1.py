@@ -1566,7 +1566,7 @@ def compile_compact_entry_execution_profile() -> dict[str, object]:
         "vol_compression_encoder", "session_regime_encoder",
     )
     if (
-        (len(signal), len(ctx_cont), len(ctx_cat), len(mtf)) != (2725, 2542, 1, 253)
+        (len(signal), len(ctx_cont), len(ctx_cat), len(mtf)) != (2727, 2542, 1, 255)
         or (len(signal_indices), len(ctx_indices), len(mtf_indices),
             len(generic_snap_indices)) != (2622, 2525, 139, 97)
         or tuple(local_routes) != expected_local
@@ -1682,7 +1682,7 @@ def compile_gc_mtf_geometry_entry_execution_profile(
     signal_extra = tuple(i for i, name in enumerate(signal) if classify_entry_specialist_feature(name) == family)
     ctx_extra = tuple(i for i, name in enumerate(ctx) if classify_entry_specialist_feature("ctx_cont." + name) == family)
     mtf_extra = tuple(require_multi_tf_specialist_routing_v4(mtf)[family])
-    if ((len(signal_extra), len(ctx_extra), len(mtf_extra)) != (32, 1, 39)
+    if ((len(signal_extra), len(ctx_extra), len(mtf_extra)) != (34, 1, 41)
         or set(signal_extra) & set(base["signal_indices"])
         or set(ctx_extra) & set(base["ctx_cont_indices"])
         or set(mtf_extra) & set(base["mtf_indices"])):

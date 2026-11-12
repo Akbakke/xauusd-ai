@@ -6,139 +6,112 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_PAIRED_BOUNDARIES_COMPLETE_M5_GAIN_AND_CALIBRATION_DRIFT.
-Målet11.11 er aktivt: avklar målte årsaker til svak retningsverdi i indikatorer,
-sammensetting og læring. Korte runder er bevisst feilsøking, ikke kapasitetsdom.
+TA_DIRECTION_EDGE_CAUSE_TRENDLINE_ANCHOR_SPAN_SOURCE_QUALIFIED_INPUTS_PENDING.
+Målet11.11 er aktivt: avklar og rett målte svakheter i indikatorrepresentasjon,
+sammensetting og retningslæring. Korte runder er bevisst feilsøking, ikke kapasitetsdom.
 Full kvalifisert TRAIN-historikk og30–40epoker er senere skalering.
 
-Alle engangsplaner nedenfor er COMPLETE/CONSUMED; ingen relansering.
-Training/native_training/native_launch/full_epoch/full_val er false.
-Ingen ny modell-, data- eller treningskjøring innrømmet. Ingen operasjonell blokkering.
-GX1TFActivityShortLearning001, GX1NonM5ShortLearning001 og begge c171-oppgavene
-ble deaktivert etter sine fullførte kjøringer; ingen ny oppgave ble opprettet.
-TEST, Entry/Exit-evaluering, broker, handel, spending og promotion stengt; GC på pause.
+Ingen native data-/modell-/treningskjøring innrømmet. Alle tidligere engangsplaner
+konsumert; ingen relansering. Training/native_training/native_launch/full_epoch/
+full_val er false. Ingen kjøring står åpen etter den siste syntetiske kvalifiseringen.
+Windows-treningsoppgavene ble deaktivert etter sine fullførte kjøringer; ingen ny
+oppgave opprettet. TEST, Entry/Exit-evaluering, broker, handel, spending og promotion
+stengt; GC på pause. Ingen operasjonell blokkering; fysisk input/baseline gjenstår.
 
-## Indikatorer og sammensetting
+## Konkret rettelse: trendlinjens andre anker
 
-Alle8genuine TAfamilier og M5/M15/H1/H4/D1 når faktisk modellkonsum, med makrokontekst.
-Numerisk dekning, varierende TRAIN-støtter og oppdatering i11encodere/228tensorer
-beviser mekanikk, ikke prediktiv familienytte. Mean+last kansellerer ikke generelt;
-fast MTF-intervensjon ga ingen bedre rangering. Ingen generell normaliserings-
-eller konstantinputfeil er vist. Alle genuine features/TF og kausalitetsvakter er bevart.
+[Reparasjon og kvitteringer](docs/TA_TRENDLINE_ANCHOR_SPAN_REPAIR.json).
+ROOT /home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_IDENTITY_SOURCE_20261112_001.
+Kildegrunnlag3af1a341da26473fb6ddb0791b5c2e3bed682450.
 
-Nærmeste trendlinjeslots mangler entydig samme-linje-identitet, ankere og endringsmarkør.
-Dette er et målt semantisk hull; prediktiv kostnad er UNKNOWN. Neste kildearbeid er
-å følge eksisterende produsent og pakking til faktisk tidssekvens, og avgrense minste
-kausale rettelse. Ingen ny identitetsinfrastruktur eller modellendring er vedtatt.
-[Samlet oversikt](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json).
+Første ankertid var allerede implisitt bevart: age=t−(anchor1+lookback).
+Tidligere omtale av «manglende ankere» var derfor for grov. Andre ankertid manglet.
+Et syntetisk vitne viste ulike ankerpar(10,30)/(10,50), men identiske verdier i alle
+31publiserte felt, inkludert projeksjon, helning, alder og antall berøringer.
+Dette beviser et informasjonstap i slotrepresentasjonen; frekvens og prediktiv
+kostnad på markedstape er fortsatt UNKNOWN. Hele OHLC-historien påstås ikke identisk.
 
-## Nyeste faktiske læring
+Minste rettelse er implementert i eksisterende trendline_registry_v1.py:
+- geomline_above_anchor_span_bars
+- geomline_below_anchor_span_bars
 
-[Samlet resultat og bundne kvitteringer](docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json).
-LæringsROOT /home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001.
-Kilde7dcddb37586cdcf297ffac2e8b1f643912f4c50a uendret under kjøring.
-RECIPE4ae0082f, PLAN63b7702e, RESULTaca65dc4, TERMINAL039d6a5b.
-Samme4096kronologiske TRAIN-rader/256updates som originalshort002,1.–21.mai2024.
-Originale startvekter og trenings-RNG, fersk AdamW, uendrede hyperparametre,
-features/targets/tapsvekter. Ti separate aktivitetshoder på M5/M15/H1/H4/D1 forS/F;
-20klonede tensorer/1290parametre. Originale M5sidehoder beholdt; nonM5-sidehoder av.
-768forwards:256initial+256fit+256final;0skips. Arbeider948,98s, fit350,19s.
-Alle mekaniske baseline-/vaktkontroller bestod. Ingen ny trening i siste bølge.
+Span=anchor2−anchor1 i native barer. Sammen med eksisterende alder kan begge ankertidene
+rekonstrueres relativt til raden. Bare allerede bekreftede pivoter brukes. Ingen ny
+terskel, ID-allokering, carry-state, slotvelger eller livssyklus. Null ved fravær
+skilles av eksisterende active_count; warmupNaN bevares. Span er uendret ved berøring
+og rolleflip. Full internline_id, eksplisitt byttemarkør og ankerpriser er ikke lagt til.
 
-| Samme brukte TRAIN | Initial | Original final | Sidehoder final | Aktivitetshoder final |
-| --- | ---: | ---: | ---: | ---: |
-| Opprinnelig totaltap | 1,878003 | 1,892871 | 1,884922 | 1,884324 |
-| S/M5 side-AUC | 0,546185 | 0,551466 | 0,551231 | 0,551352 |
-| F/M5 side-AUC | 0,546125 | 0,553079 | 0,553037 | 0,553147 |
-| S/M5 side-Brier | 0,247999 | 0,247924 | 0,248301 | 0,248027 |
-| F/M5 side-Brier | 0,248788 | 0,248193 | 0,248318 | 0,248218 |
+Den felles produsenten og navnetuplene fører feltene til lokalM5 og alle5nativeTF,
+med chart_geometry_encoder som eier. Alle8genuine familier,5TF og makrokontekst beholdes.
+RegisterkontraktV7→V8; gammel carry avvises.33registerfelt, tidligere31 bevares.
+TAinput signal315→317, ctx_cont132, ctx_cat1, hverMTF253→255.
+Rå overflate signal2725→2727/ctx2542/cat1; chartfamilien MTF39→41.
+Registry-navneSHA badbb1f7, MTF-navneSHA ec41b616, fullTAprofil5332e582.
+Eksakte breddevakter i compact/geometry/momentum/tabular er oppdatert; ingen vakt svekket.
+Gamle bundne051/source050-/auditplaner er ikke relabellet til ny semantikk.
 
-AUC er rangering, ikke treffprosent eller økonomi. Aktivitetshodene reduserte netto
-aktivitetsregresjon87,23% mot original; dette er ingen87% forbedring i prediksjon.
-Totaltapet forverres fortsatt. Ingen entydig M5gevinst mot originalfinal: AUC endres
-i ulik retning, og beggeM5Brier/log er litt dårligere. Korte runder dømmer ikke kapasitet.
+## Hva som er verifisert
 
-## Full paired observasjon: fullført og kontrollert
+SOURCE_QUALIFICATION.json samler kilde-/testbindingene; kun syntetisk kvalifisering.
+LEGACY_FIELD_PARITY.json sammenligner V7fraGit med V8: alle31opprinnelige felt er
+float32-byteeksakte på1340syntetiske rader(1200randomwalk,70hold,70fail).
+Begge slotter skiller nå de kolliderende ankerparene. Promotion/touch/rolleflip,
+prefixkausalitet, eksisterende chunk/one-shot og V7carry-avvisning er kontrollert.
+Lokal rå/aligned pakking og alle5faktiske TF-vindusslicere bevarer felt og lukket-bar-grense.
+FullTAutvalg, syntetisk normaliseringsprojeksjon, gather og factorybinding er kontrollert.
+Factory-/dualtestene bruker eksisterende testdobler; ingen faktisk ny modellbaseline påstås.
 
-ROOT /home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_BOUNDARIES_20261112_001.
-Kilde f170a91cdd20e045417654bf1531f6008e090052 uendret under observasjon og analyser.
-PLAN6f0bc72e, PREFLIGHT3d964d2d, RESULT95f1fc32, TERMINAL87551f40,
-CONTROLLER5872aeaf, TRAIN_FUSIONba1ea384. Engangsclaim konsumert; alle exit0.
+185unike fokuserte tilfeller er dekket på tvers av avgrensede runder:
+171først(168PASS/3FAIL), deretter11PASS(3rettede+8berørte nye), deretter5TAtilfeller
+(4PASS/1FAIL) og2PASS(1rettet+1søstertilfelle). Beståtte tilfeller ble gjenbrukt.
+Feilene var gamle feltbredder og en foreldet factory-testdobbel. Doblene aksepterer
+nå eksplisitt de tre eksisterende decoderflaggene og krever false; produksjonsfactory
+uendret. Originale feilkvitteringer beholdt. Audit4GiB/512MiB,CPU0–7/pids64,1tråd.
+Uavhengig kildekontroll er bundet til immutable kvalifiseringskvittering i
+INDEPENDENT_SOURCE_REVIEW_002.json; første metadatakvitterings hashsyklus er korrigert
+uten å endre kilde eller testresultater.
 
-1modell/2eksisterende checkpoints, strict INITIAL→FINALvektovergang uten RNG-/
-optimizerrestore.512B16forwards/8192observerte rader på samme4096unikeTRAIN.
-Begge512Djoint-source,128Djoint-hidden og alle10TFhodeinnganger beholdt.
-Alle12originalfelt og256batchtap per endpoint byteeksakte; tidligere INITIALh0
-også byteeksakt. Vekter/buffere/RNG/modi/flagg/hooks uendret innen hver fase.
-20headregistreringer/5120hodeobservasjoner;512source/512hidden/1024queryinputs.
-0optimizer/backward/autograd/RNGrestore/checkpoint-/kandidatvektskriving.
-64.614.682byteNPZ innen64MiB. Arbeider572,36s, controller574,93s.
-141fokuserte tester før kjøring. Producer12GiB/512MiB,CPU0–7/pids64,8tråder;
-250Wlimit/170Wdraw/65Ccore/80Cmemory/GPU12288MiB,900sarbeider/1200svakt.
-456telemetripunkter; topper53Ccore/54Cmemory/137,62W/554MiB; ingen vaktbrudd.
+## Tidligere læringsfunn som fortsatt gjelder
 
-## Målt samspill og M5-rangering
+[Samlet analyse](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json) og
+[siste faktiske læring](docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json).
+Den faktiske læringsrunden brukte4096TRAIN-rader/256updates,1.–21.mai2024,
+med separateTFaktivitetshoder. RESULTaca65dc4, kilde7dcddb37. Den brukte den gamle
+31felt-overflaten; nye spanfelt er ikke målt i en faktisk modell eller læringsrunde ennå.
 
-PAIRED_BOUNDARY_REVIEW.json893e1962:4NPZ/2CPUcheckpoints,0modeller/nativeforwards.
-Alle16 faste kombinasjoner av H(hoder)/Q(queryprojection)/J(joint)/X(source),
-0=INITIAL/1=FINAL. Fire tidligere kvalifiserte semantiske sourcekoordinater:
-base, effektivMTFrest, MTFpool, globalcontext. Base inngår i begge første blokker.
-OriginalB16/tapsnevnere,/5,Fvekt1,M5q/N bevart. Både fremover- og bakoverrekkefølge;
-komponentbidrag er rekkefølgeavhengige, ikke unik historisk gradientårsak.
-Hypotetiske logits er ankret til faktiskINITIAL; faktiske endepunkter er separate.
-
-| Fullt opprinnelig TRAIN-tap | Verdi |
-| --- | ---: |
-| Faktisk INITIAL | 1,878002535 |
-| Bare FINALhoder | 1,871377344 |
-| Bare FINALqueryprojection | 1,869806905 |
-| Bare FINALjoint | 1,870275136 |
-| Bare FINALsource | 1,853369240 |
-| Faktisk FINAL, alle endringer | 1,884324128 |
-
-Hver endring alene bedrer samlet tap på hele prefixet; dette gjelder ikke alle
-oppgaver/kvartaler. Samlet endring forverrer. Det er samspill i representasjoner
-og ikke-lineært tap, ikke bevis for at én komponent generelt er skadelig.
-S/D1s215FLAT-rader er nå fullt dekket; den tidligere48raders pilotens hull er lukket.
-På faktiskFLAT øker Paktivitet88,49→93,35%. Fremoverordnede logitbidrag:
-hode0,094984/query0,069193/joint0,145482/source0,337376. Globalcontext er største
-enkeltkoordinatbidrag her0,165515; bidragene er betingede og ikke additivt kausale.
-F/M15-H1 PUP53,25→69,94% og53,51→70,88%, mot52,08/53,97%observertUP.
-Alle fire fremoverordnede komponentbytter forverrer disse sidetapene.
-
-M5_RANK_REVIEW.jsoncf7716ff:1NPZ/2CPUcheckpoints,0modeller/nativeforwards/trening.
-Alle22varianter, fullprefix/4fastekvartaler;220tie-aware AUCer mot parvist orakel.
-Faktiske20scoreceller matcher uavhengig rapport innen1,11e-16;220tapsledd innen5,55e-17.
-CPUbeggeanalyser:4GiB/512MiB,CPU0–7/pids64,1tråd;3,76/3,37sarbeider.
-Maks native hidden-replay2,40e-6, raw1,26e-6,512batchtap3,11e-7 innen faste grenser.
-Uavhengig statisk etterkontroll90240b0d; ikke fremstilt som forhåndsgate.
-
-| M5 side-AUC, brukt TRAIN | S | F |
+| M5 side, samme brukte TRAIN | INITIAL | Aktivitetshoder FINAL |
 | --- | ---: | ---: |
-| Faktisk INITIAL | 0,546185 | 0,546125 |
-| FINALH/Q/J, INITIALsource | 0,548663 | 0,549486 |
-| Faktisk FINAL | 0,551352 | 0,553147 |
-| Bare globalcontext endret fra forrige faste H/Q/J-rad | 0,550813 | 0,554644 |
+| S-AUC | 0,546185 | 0,551352 |
+| F-AUC | 0,546125 | 0,553147 |
+| S-Brier | 0,247999 | 0,248027 |
+| F-Brier | 0,248788 | 0,248218 |
 
-Sourceendringen tilfører M5-rangering samtidig som den bidrar til kalibreringsfeil
-andre steder. Globalcontext kan ikke generelt fjernes/fryses som skadelig.
-Hypotetiske kombinasjoner er diagnostikk, ikke nye modeller eller kandidatutvalg.
-S/M5Brier forverres litt; F/M5bedres. Effekter varierer med kvartal: F/M5Q2AUC
-faller selv om fullprefixet bedres. Lavere totaltap er ikke det samme som bedre retning.
+AUC måler rangering. Ingen entydig M5gevinst mot originalshort-final ble vist.
+Aktivitetsregresjon87,23% mindre enn original var et tapsregnskap, ingen87%edgegevinst.
+Totaltap1,878003→1,884324. Alle8familier/5TF ble tidligere bekreftet konsumert;
+mekanisk tilkobling og parameteroppdateringer er ikke bevist familienytte.
+
+Full paired avlesning av begge checkpointene er COMPLETE/CONSUMED:
+ROOT /home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_BOUNDARIES_20261112_001.
+RESULT95f1fc32/TERMINAL87551f40/TRAIN_FUSIONba1ea384, kildef170a91c uendret.
+Alle4096rader/endepunkt, originale outputs/batchtap og tidligere INITIALh0 byteeksakte.
+PAIRED_BOUNDARY_REVIEW893e1962 og M5_RANK_REVIEWcf7716ff viste at sourceendringene
+hjelper M5rangering samtidig som de bidrar til overkonfidens i andre kanaler.
+S/D1FLAT Paktivitet88,49→93,35%; F/M15-H1 PUP ender69,94/70,88% mot52,08/53,97%observert.
+Ingen generell frys, indikatorfjerning eller valgt endpointblanding er begrunnet.
+Ingen generell konstantinput-/normaliseringsfeil eller mean+last-kansellering ble vist.
 
 ## Ikke gjort og neste steg
 
-Ingen frys, indikatorfjerning, tapsendring eller valgt endpointblanding er begrunnet
-av disse regnskapene. D1bias alene forklarer bare0,50% av middel-logitøkningen;
-Adam-/biasregnskap og originale kvitteringer er beholdt i læringsROOT, ikke relansert.
-Historiske delte source/querygradienter finnes ikke i beholdt treningsspor;
-M5sideparametergradienter/momenter er de direkte fangede parameterstørrelsene.
+Den utvidede overflaten er foreløpig kilde-/syntetisk kvalifisert. Eksisterende caches,
+normalisering og checkpoints er ikke oppgradert; gammel initialbaseline er ikke
+baseline for den nye funksjonen. Ingen virkelig ny inputmåling, modellbaseline eller fit.
 
-Neste arbeid: kildeavgrens den konkrete trendlinje-identitetsmangelen mot eksisterende
-produsent, pakking og modellkonsum. Minste semantiske rettelse må bevare alle genuine
-familier/TF og årsakstid. Endret modellfunksjon krever fokuserte kontroller og fersk
-initialbaseline; ingen numerisk kjøring er innrømmet nå. Ikke gjenta fullførte målinger.
-
-Ett seed/256updates og avhengig brukt TRAIN. Senere generalisering, økonomisk edge,
-familienytte, trendlinjemangelens prediktive kostnad og langtidskapasitet er ubevist.
-Målet er fortsatt aktivt. TEST er urørt; fullhistorikk/30–40epoker er senere skalering.
+Forbered minste kausale inpututvidelse for spanfeltene på nødvendigTRAIN-historikk.
+Gjenbruk eksisterende klokker, frosne registryparametre, øvrige features, targets og
+beståtte kontroller. Replay eksisterende registry bare der ankerspenn må gjenfinnes;
+bevis bevaring av opprinnelige31felt og etabler nye navne-/bredde-/normaliseringsbindinger.
+Fersk faktisk initialbaseline kreves før en avgrenset læringssammenligning.
+Ingen ny numerisk plan er innrømmet nå; ikke start fullhistorikk/30–40epoker automatisk.
+Senere generalisering, familienytte, rettelsens prediktive gevinst og økonomisk edge
+må fortsatt måles. Målet er aktivt og TEST urørt.

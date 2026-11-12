@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_PAIRED_COMPOSITION_AND_M5_RANKING_COMPLETE_TRENDLINE_SEMANTICS_NEXT",
+  "status": "ACTIVE_TRENDLINE_ANCHOR_SPAN_SOURCE_QUALIFIED_INPUTS_PENDING",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -26,8 +26,12 @@
     {
       "id": "line_identity",
       "evidence_class": "PROVEN_FROM_SOURCE",
-      "finding": "Nearest trendline slots lack persistent line identity/anchors/change marker; aggregate events cannot unambiguously encode a same-line sequence.",
-      "predictive_cost": "UNKNOWN"
+      "finding": "Previous31field surface retained first-anchor age but omitted second-anchor time. Two anchor-span fields are now source-implemented and synthetically qualified; physical input/new-model qualification pending.",
+      "predictive_cost": "UNKNOWN",
+      "repair": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TRENDLINE_ANCHOR_SPAN_REPAIR.json",
+        "sha256": "5fe4db95d6324ac18e0badaebb3d2407719bd04f480633302b110274ef8a8ef5"
+      }
     },
     {
       "id": "fusion_observation",
@@ -265,7 +269,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Source-only follow-up of the unresolved nearest-trendline slot identity/anchor/change-marker gap in the actual temporal model inputs. Reuse the existing producer and packing owners to specify the smallest causal semantic correction, with all genuine families and TF preserved. The paired study is complete: do not repeat its observations, freeze components, or select an endpoint mixture from usedTRAIN. Any model-function change requires focused qualification and a fresh initial baseline; no new numerical/model/training plan is admitted now.",
+  "next_measurement": "Prepare the smallest fresh causal input-extension qualification for the two anchor-span fields on the required TRAIN history: reuse original source clocks, frozen registry parameters, all unchanged features, targets and completed checks; replay the existing registry only where needed to recover the missing anchor spans. Require exact preservation of the original31 trendline fields, new physical field/normalization bindings and a fresh actual initial model baseline before any short learning comparison. No old cache or checkpoint is relabeled as the expanded function. No data/model/training invocation is admitted yet; full-history30-40epoch training remains later scaling.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -1720,6 +1724,13 @@
   "training_authorized_scope": null,
   "latest_confirmed_findings": [
     {
+      "finding": "Two distinct anchor pairs were indistinguishable in all31 old emissions. Added causal anchor span per nearest slot; all31 original fields byteexact across1340synthetic rows.185unique focused cases covered with scoped repairs/reruns. Both physical anchor times now representable; no predictive gain yet.",
+      "evidence": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TRENDLINE_ANCHOR_SPAN_REPAIR.json",
+        "sha256": "5fe4db95d6324ac18e0badaebb3d2407719bd04f480633302b110274ef8a8ef5"
+      }
+    },
+    {
       "finding": "Both actual endpoints fully reproduced on the same4096usedTRAIN, including215S/D1FLAT; prior48row coverage gap is closed.",
       "evidence": {
         "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
@@ -1767,13 +1778,6 @@
         "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
         "sha256": "b428a9e1d1a0e8db397689ed0b9d731669e7ec9e240e94862b30121f20505466"
       }
-    },
-    {
-      "finding": "No blanket component freeze, indicator removal, training-loss reweighting or selected endpoint mixture is justified by these diagnostics. No new model/training work admitted. Next concrete source gap is stable nearest-trendline identity/anchors/change marker; predictive cost remainsUNKNOWN.",
-      "evidence": {
-        "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
-        "sha256": "b428a9e1d1a0e8db397689ed0b9d731669e7ec9e240e94862b30121f20505466"
-      }
     }
   ],
   "activity_pressure_review": {
@@ -1804,5 +1808,9 @@
   "tf_activity_short_learning": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
     "sha256": "b428a9e1d1a0e8db397689ed0b9d731669e7ec9e240e94862b30121f20505466"
+  },
+  "trendline_anchor_span_repair": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TRENDLINE_ANCHOR_SPAN_REPAIR.json",
+    "sha256": "5fe4db95d6324ac18e0badaebb3d2407719bd04f480633302b110274ef8a8ef5"
   }
 }

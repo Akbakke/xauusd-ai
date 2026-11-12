@@ -151,7 +151,7 @@ class TestDynamicCompactInputInfluenceV1(unittest.TestCase):
         layout = self.layout
         self.assertEqual(layout["counts"], {"numeric": 882, "aliases": 2525, "categorical": 7, "families": 32})
         self.assertEqual({k: len(v) for k, v in layout["physical_field_names"].items()},
-                         {"signal": 2725, "ctx_cont": 2542, "ctx_cat": 1, "mtf": 253})
+                         {"signal": 2727, "ctx_cont": 2542, "ctx_cat": 1, "mtf": 255})
         profile = layout["profile"]
         for row in layout["numeric"]:
             active = profile["signal_indices"] if row["surface"] == "seq_x" else (

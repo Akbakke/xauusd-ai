@@ -114,7 +114,7 @@ def test_raw_batch_uses_real_canonical_slicers_same_gc_ids_and_preserves_gap_and
     assert len(calls) == 2 and len(gc_calls) == 10 and all(call['return_row_indices'] is True for call in calls)
     assert len(features) == 14 and proof['parent_rows'] == [5, 12]
     assert proof['decision_ns'][1] >= bound['view']['prefix']['cutoff_ns']  # later OOF inputs are legal
-    assert features['seq_x'].shape == (2, 96, 2725) and features['ctx_cont'].shape == (2, 2542)
+    assert features['seq_x'].shape == (2, 96, 2727) and features['ctx_cont'].shape == (2, 2542)
     for i, position in enumerate(proof['source_positions']):
         source = arguments['entry_sequence_source']
         assert np.array_equal(features['seq_x'][i], source['signal'][position - 95:position + 1])
@@ -122,7 +122,7 @@ def test_raw_batch_uses_real_canonical_slicers_same_gc_ids_and_preserves_gap_and
     assert np.array_equal(features['seq_x'][:, -1], features['snap_x']) and proof['raw_values_not_normalized']
     assert np.array_equal(features['snap_x'], arguments['snap_x'][[1, 4]])
     for tf, length in owner.history.WINDOW_ROWS.items():
-        assert features['seq_' + tf.lower()].shape == (2, length, 253)
+        assert features['seq_' + tf.lower()].shape == (2, length, 255)
         assert features['gc_seq_' + tf.lower()].shape == (2, length, arguments['gc_layout']['widths'][tf])
         for i, witness in enumerate(proof['multi_tf'][tf]):
             call = next(call for call in gc_calls[i * 5:(i + 1) * 5] if call['tf'] == tf)
@@ -252,9 +252,9 @@ def test_dense_profile_restores_geometry_without_removing_compact_or_gc_fields(b
     assert new['name'] == groups.GC_MTF_GEOMETRY_ENTRY_EXECUTION_PROFILE_NAME
     assert new['local_specialists'] == new['mtf_specialists'] == tuple(groups.MODEL_NATIVE_TRAINING_SPECIALISTS)
     assert len(new['local_specialists']) == 8
-    assert len(set(new['signal_indices']) - set(old['signal_indices'])) == 32
+    assert len(set(new['signal_indices']) - set(old['signal_indices'])) == 34
     assert len(set(new['ctx_cont_indices']) - set(old['ctx_cont_indices'])) == 1
-    assert len(set(new['mtf_indices']) - set(old['mtf_indices'])) == 39
+    assert len(set(new['mtf_indices']) - set(old['mtf_indices'])) == 41
     for field in ('signal_indices', 'ctx_cont_indices', 'mtf_indices'):
         assert set(old[field]).issubset(new[field])
     assert new['gc_mtf_history'] == old['gc_mtf_history']
