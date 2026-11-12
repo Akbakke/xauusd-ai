@@ -6,28 +6,22 @@ NEXT_RUN_POLICY.json eier arbeidsstatus; prosess og terminal overstyrer prosa.
 
 ## Aktivt mål og neste retning
 
-TA_DIRECTION_EDGE_CAUSE_FIXED_OBJECTIVE_BENCHMARK_SOURCE_PREPARATION.
-Målet er fortsatt å avklare og rette svak retningslæring. Span-sammenligningen er ferdig
-uten konsistent gevinst. Ny gradientdiagnostikk er satt til side.
-Neste sammenligning: dagens samlede tap mot eksisterende M5-sideledd alene, med samme
-modell, genuine inputs, INITIAL, rekkefølge og treningsbudsjett.
-Gjenbruk4096TRAIN-rader spredt over mai–september2024; span-input dekker allerede disse.
-Fast senere utviklingsutvalg:4096rader over oktober–desember2024. Bare dets span-dekning
-må kvalifiseres separat, med uendret TRAIN-normalisering. Ingen full rebuild.
-Tre passeringer per arm; måling ved0/1/3, pass3 er primært, ingen checkpointseleksjon.
-Kun kildeforberedelse nå. Ingen ny modell-/data-/læringsplan er admittert.
-Global training/native_training er false. Root eier policy og launch.
+TA_DIRECTION_EDGE_CAUSE_FIXED_LATER_INPUTS_ADMITTED.
+Målet er fortsatt å avklare og rette svak retningslæring. Span-sammenligningen ga ingen
+konsistent gevinst. Neste læringssammenligning er dagens tap mot M5-sideleddene alene,
+med alle genuine inputs og samme INITIAL, rekkefølge og budsjett. Ingen ny gradientdiagnose.
+TRAIN4096 over mai–september2024 gjenbrukes. Senere utviklingspanel er4096rader over
+oktober–desember2024. Tre passeringer per arm, måling0/1/3 og pass3 som primær.
 
-M5-only tapsvalg, numerisk checkpointbinding og separat senere-inputadapter er implementert.
-73fokuserte syntetiske kontroller besto, inklusive uendret gammel tapsidentitet,
-eksakte M5-gradienter, tom støtte, initialstate/RNG og avvisning av ukvalifiserte senere rader.
-Bevis: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_SOURCE_20261112_001/SOURCE_REVIEW.json.
-Senere spanverdier er fortsatt ikke produsert; ingen prediktiv forbedring er målt i denne bølgen.
-
-Senere inputkvalifisering er kilde-/metadataforberedt med42nye/berørte beståtte tester.
-FEATURE_VIEW2b15bcfe og plan3f8c1a9b binder det faste4096-panelet, uendret normalisering
-og gjenbrukt seks-flaters replay. Kjør først lesende preflight på ren kilde, så egen
-engangsadmisjon. Fysisk dekning og alle faktiske vinduer er fortsatt ubevist.
+M5-only tap/checkpointbinding og separat senere-adapter er kvalifisert med73tester.
+Senere datakommando/metadata har42beståtte tester og faktisk ren preflighta168ac6c.
+Plan3f8c1a9b er nå innrømmet én gang: to spanfelt, seks flater,31gamle felt byteeksakte,
+4096lokale og20480MTF-vinduer. Gjenbruk eksisterende replay og TRAIN-normalisering.
+ROOT /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_LATER_INPUTS_20261112_001.
+Kjør kun gjennom capped audit4G/512M, maks1800s. Frys kilde/policy til terminalen foreligger.
+Ingen normaliseringsfit, modell, trening, TEST eller handel er innrømmet.
+Global training/native_training er false. Root eier policy, launch og sluttkontroll.
+Fysisk senere-dekning og prediktiv forbedring er fortsatt ubevist.
 
 Korte runder er bevisst feilsøking, ikke en dom over fullhistorikk-kapasitet.
 Kvalifisert full TRAIN-historikk og 30–40 epoker er senere skalering.
