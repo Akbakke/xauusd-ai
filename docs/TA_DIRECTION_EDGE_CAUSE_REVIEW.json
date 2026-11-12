@@ -12360,5 +12360,82 @@
       "additional_detail": "F/M15 logloss is worse than INITIAL in both day/week intervals, although its Brier day interval spans0.",
       "uncertainty": "49UTCdays/22weeks and ten pointwise endpoint intervals are not an overall95percent guarantee or holdout confirmation."
     }
+  },
+  "fixed_exposure_source_qualification": {
+    "status": "METADATA_QUALIFIED_SOURCE_IMPLEMENTATION_AND_MODEL_ADMISSION_PENDING",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_PREPARATION_20261112_001/RESULT.json",
+      "sha256": "394328000f4974e2f4409c3eadfa2db78d275487f00c8d7ab6d6b3351da2d721"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_PREPARATION_20261112_001/QUALIFY_METADATA.py",
+      "sha256": "09c943b8ba1061b86065a7621bde53c30880a4bdd58ae08a0db19355936f4da5"
+    },
+    "counts": {
+      "control_unique_rows": 4096,
+      "candidate_unique_rows": 12288,
+      "presentations_each": 12288,
+      "batch_visits_each": 768,
+      "required_actual_optimizer_updates_each": 768,
+      "required_skips_each": 0,
+      "excluded_complement_rows": 736,
+      "partial_last_batch_rows_not_selected": 6
+    },
+    "checks": {
+      "disjointness": true,
+      "chronological_each_pass": true,
+      "old_pass1_exact": true,
+      "negative_selection_rejections": 2,
+      "data_array_reads": 0,
+      "checkpoint_decodes": 0,
+      "model_constructions": 0,
+      "model_forwards": 0,
+      "training_updates": 0
+    },
+    "common_pass1_model_sha256": "9dfd2be522800a946599eb87cb14a7da7bef8df276bdec25c16ae91ec0e0f41c",
+    "common_pass1_rng_sha256": "b06f3644120220289779083e7591cd3b066fa048c0b55d389c834855c0986a60",
+    "common_pass1_optimizer_checkpoint_available": false,
+    "reusable_physical_input_population": 29574,
+    "additional_physical_producer_required": false,
+    "required_actual_input_checks": [
+      "Reuse six full-TRAIN physical unions and original normalization; no new producer/refit required by source scope.",
+      "At actual consumption keep original b*16 axes and exact local span/clock plus canonical closed-MTF window/witness checks.",
+      "Replace obsolete baselineTRAIN[slot] binding only for new pass2/3 batches, never weaken axes/target/maturity checks."
+    ],
+    "implementation_pending": [
+      "Bind a separate exact one-arm recipe and admission; old consumed scope remains closed.",
+      "Reuse existing init/update/evaluation worker with per-pass batch selection and correct one-arm accounting.",
+      "Qualify exact startup, actual checkpoint/view metadata, failure reporting and routing before any model admission."
+    ],
+    "limits": [
+      "Exposure schedule changes row contents, repetition and within-pass sequence together; not pure unique-count causality.",
+      "Original TRAIN rows have prior learning history;736rows are not untouched holdout. Later4096panel is reused development.",
+      "Frozen completed FULL reference is reused; no control rerun or checkpoint selection. Firstpass must be executed because its optimizer state is unavailable.",
+      "Any skipped update invalidates fixed768update comparison; no replacement or extra batches.",
+      "No new economic/Entry/Exit evidence; no TEST use or opening of trading authority."
+    ],
+    "independent_review": "composition_audit confirmed minimum worker seams, disjoint schedule, full-TRAIN physical union reuse and unavailable pass1 optimizer state. No native execution."
+  },
+  "forecast_trade_alignment_review": {
+    "user_question": "Men med dette oppsettet, mener du dette er riktig \u00e5 trade slik?",
+    "source_rules": {
+      "path": "/home/andre2/src/GX1_CURRENT/GX1_RULES.md",
+      "sha256": "94cfab7c9884df5af3c05a1af1aa45f8dafec9ec2dc05af5ed71dda1e5a9315a"
+    },
+    "source_method": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/NATIVE_LEARNING.md",
+      "sha256": "6e08ce52ac0f910b66bbf2938aa6d2f00fcfc17fb0063fe33bb13767bfb06992"
+    },
+    "findings": [
+      "06Nov operator phase is market-state forecasting before Entry; the user question does not itself change that design or authorize trading.",
+      "S describes local state at a future validity time; F separately measures endpoint displacement with native ATR scaling. Neither output is a buy/sell instruction or joint path forecast.",
+      "The tested F horizon is an evaluation horizon, not a fixed holding rule. FLAT_NET does not mean no intervening excursion; FLATT market state is not an abstention policy.",
+      "Support/resistance, ATR/EMA and causal MTF input availability is qualified, but conditional setup selection and downstream economic value are not proved by availability or sideAUC.",
+      "Preserve the bounded learning diagnosis; do not substitute more epochs or the exposure result for validation of a future trading setup."
+    ],
+    "trading_ready": false,
+    "model_architecture_changed": false,
+    "target_semantics_changed": false,
+    "new_training_admitted": false
   }
 }

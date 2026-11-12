@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-12T14:59:34.706645+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_TRAIN_DETERIORATION_MEASURED_M5_UNRESOLVED",
+  "observed_utc": "2026-11-12T15:13:01.735645+00:00",
+  "status": "TA_DIRECTION_EDGE_CAUSE_EXPOSURE_METADATA_QUALIFIED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Source/metadata only: inspect the existing current benchmark exposure/order protocol and qualify a same-update unique-coverage counterfactual if it answers a still-open question. No new model/data run or fitting admitted. Keep the missing third-arm complement explicit.",
+  "next_action": "Implement the minimum fixed one-arm exposure-schedule seam in the existing benchmark worker and exact campaign contract, using the metadata-qualified per-pass batches. Reuse the completed FULL control, unchanged inputs and measurements. Qualify actual startup/receipt/view bindings and success/failure accounting before any new model admission. No training or model/data execution is currently admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -75707,7 +75707,7 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_FIXED_COMPUTE_COVERAGE_QUESTION",
+    "status": "ACTIVE_FIXED_EXPOSURE_SOURCE_IMPLEMENTATION",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "G\u00e5 direkte p\u00e5 problemene og lag deg et m\u00e5l for \u00e5 n\u00f8ste opp i hvorfor vi ikke f\u00e5r god Edge ut av markedsretningen.",
@@ -75721,10 +75721,10 @@
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Source/metadata only: inspect the existing current benchmark exposure/order protocol and qualify a same-update unique-coverage counterfactual if it answers a still-open question. No new model/data run or fitting admitted. Keep the missing third-arm complement explicit.",
-    "active_stage": "market_state_ta_current_complement_20261112_001",
-    "previous_goal_turn_classification": "PROGRESS_FIXED_SETUP_NATIVE_HORIZONS_AND_LONG_REFERENCE_SCORED",
-    "last_goal_turn_classification": "PROGRESS_CURRENT_STATES_MATCHED_COMPLEMENT_MEASURED_WITH_EXPLICIT_THIRD_ARM_NUMERICAL_STOP",
+    "next_action": "Implement the minimum fixed one-arm exposure-schedule seam in the existing benchmark worker and exact campaign contract, using the metadata-qualified per-pass batches. Reuse the completed FULL control, unchanged inputs and measurements. Qualify actual startup/receipt/view bindings and success/failure accounting before any new model admission. No training or model/data execution is currently admitted.",
+    "active_stage": "market_state_ta_coverage_preparation_20261112_001",
+    "previous_goal_turn_classification": "PROGRESS_CURRENT_STATES_MATCHED_COMPLEMENT_MEASURED_WITH_EXPLICIT_THIRD_ARM_NUMERICAL_STOP",
+    "last_goal_turn_classification": "PROGRESS_BOUND_ACTUAL_CONTROL_PREFIX_AND_FULL_TRAIN_INPUT_REUSE_FOR_FIXED_EXPOSURE_DESIGN",
     "latest_tail_factor_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_ALL_TF_TAIL_FACTOR_REVIEW.json",
       "sha256": "5da978f765b0ad1ac001023501be7665989270d8353d768b801b9e1b29406c0f"
@@ -76190,7 +76190,9 @@
       ],
       "current_model_complement_measured": false,
       "purpose": "Determine whether harmful incremental fit appears within original TRAIN outside this update cohort before attributing failure only to temporal transfer. This is not untouched validation."
-    }
+    },
+    "latest_operator_question": "Men med dette oppsettet, mener du dette er riktig \u00e5 trade slik?",
+    "scope_response": "Current phase learns market-state forecasts before Entry. The exposure counterfactual diagnoses learning, not a trading strategy. Existing S and F targets do not establish selectable setups, trade-path quality or profitability; no Entry/Exit/trading authority is opened."
   },
   "market_state_ta_fusion_observation_20261111_001": {
     "status": "COMPLETE",
@@ -76889,7 +76891,7 @@
     "unresolved_campaign_marker_preserved": true,
     "standard_campaign_receipt_available": false
   },
-  "active_stage": "market_state_ta_current_complement_20261112_001",
+  "active_stage": "market_state_ta_coverage_preparation_20261112_001",
   "market_state_ta_m5_c171_short_learning_20261111_002": {
     "decision": "CLOSED",
     "status": "COMPLETE_CONSUMED",
@@ -81998,5 +82000,44 @@
         "sha256": "e57f14d1f4c1c11d06633710f0f0b0b0229f394a8ff9456502fd53d5060fb375"
       }
     }
+  },
+  "market_state_ta_coverage_preparation_20261112_001": {
+    "status": "METADATA_QUALIFIED_SOURCE_IMPLEMENTATION_PENDING",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_PREPARATION_20261112_001/RESULT.json",
+      "sha256": "394328000f4974e2f4409c3eadfa2db78d275487f00c8d7ab6d6b3351da2d721"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_PREPARATION_20261112_001/QUALIFY_METADATA.py",
+      "sha256": "09c943b8ba1061b86065a7621bde53c30880a4bdd58ae08a0db19355936f4da5"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_authorized": false,
+    "training_enabled": false,
+    "training_authorized": false,
+    "native_training_enabled": false,
+    "data_reads_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "model_constructions": 0,
+    "model_forwards": 0,
+    "training_updates": 0,
+    "source_changes_authorized": "Only minimum existing-worker/contract routing for the fixed exposure counterfactual after this source qualification.",
+    "counts": {
+      "control_unique_rows": 4096,
+      "candidate_unique_rows": 12288,
+      "presentations_each": 12288,
+      "batch_visits_each": 768,
+      "required_actual_optimizer_updates_each": 768,
+      "required_skips_each": 0,
+      "excluded_complement_rows": 736,
+      "partial_last_batch_rows_not_selected": 6
+    },
+    "next_action": "Implement the minimum fixed one-arm exposure-schedule seam in the existing benchmark worker and exact campaign contract, using the metadata-qualified per-pass batches. Reuse the completed FULL control, unchanged inputs and measurements. Qualify actual startup/receipt/view bindings and success/failure accounting before any new model admission. No training or model/data execution is currently admitted.",
+    "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_PREPARATION_20261112_001",
+    "test_data_used": false
   }
 }

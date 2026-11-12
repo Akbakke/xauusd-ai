@@ -5,16 +5,36 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier arbeidsstatus; terminal/pros
 
 ## Aktivt mål og neste steg
 
-TA_DIRECTION_EDGE_CAUSE_TRAIN_DETERIORATION_MEASURED_M5_UNRESOLVED.
-Edge-målet er fortsatt aktivt og uoppnådd. Denne bølgen målte aktuelle INITIAL/FULL på sammeCPU
-og opprinnelige TRAIN-rader utenfor siste4096-raders treningsutvalg. Forverring kan finnes før
-senere markedsperiode; M5-spørsmålet er fortsatt usikkert, og alle horisonter ble ikke verre.
+TA_DIRECTION_EDGE_CAUSE_EXPOSURE_METADATA_QUALIFIED. Edge-målet er fortsatt uoppnådd.
+Denne bølgen kvalifiserte konkret kilde-/metadata-gjenbruk og en eksakt eksponeringsplan;
+ingen markedsarrays, checkpoints eller modeller ble dekodet/kjørt.
+ROOT /home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_PREPARATION_20261112_001,
+RESULT39432800. Kun denne metadataoperasjonen er COMPLETE/CONSUMED.
 
-Neste handling er bare kilde-/metadataarbeid: gjenbruk dagens benchmark og undersøk om en
-sammenligning med flere unike TRAIN-rader og samme768oppdateringer kan isolere effekten av
-å gjenta4096-radersutvalget. Bevar eksaktINITIAL, allgenuine inputs og eksisterende senere referanser.
-Ingen effekt av dekning er bevist. Ingen ny modell-/data-/treningskjøring er admittert nå.
-Ingen gammel konsumert plan gjenåpnes; M5-only-komplementet er fortsatt umålt.
+Neste: minste endring av eksisterende benchmarkworker og eksakt kontrakt/ruting for én ny
+FULL-kandidat. Pass1 beholder de gamle256batchene. Fra1546hele øvrige batcher velges512
+jevnt fordelte ordensstatistikker, annenhver til kronologiske pass2/3. De46komplementbatchene
+holdes utenfor. Dette gir12288unike rader/768oppdateringer mot4096×3/768 i bevart FULL.
+Det endrer eksponeringsplanen; innhold, repetisjon og rekkefølge følger med. Ingen kausal effekt
+av dekning er etablert. Ingen nye data-/modell-/treningskjøringer er admittert nå.
+
+Gjenbruk ferdig FULL-kontroll uten relaunch. Felles pass1 må måle samme modell9dfd2be5,
+RNGb06f3644 og256loss-/gradient-/skip-poster før nye batcher. Pass1-optimizerstate er ikke
+bevart; pass1 kan ikke hoppes over/resumeres med antatt AdamW-paritet. Krev768faktiske
+updates/0skip; ingen ekstrabatcher. Faste4096TRAIN/LATER-paneler og alle femTF beholdes.
+
+Seks fysiske sidecars er allerede bundet til hele29574TRAIN-populasjonens unionsvinduer.
+Ingen ny produsent/refit er nødvendig ut fra kilden. Nye batcher må ved faktisk konsum passere
+uendret lokal span-/klokkematching og nativeMTF-vindus-/witnessporter. Dagens kontroll mot
+baselineTRAIN[slot] må bare brukes på gamle batcher; nye batcher bindes til originalakse b*16.
+Eksakt startup/import, faktiske checkpoint/view/kvitteringsnøkler og feil/suksess-rapportering
+kvalifiseres før eventuell ny modelladmisjon. Gamle forbrukte planer forblir stengt.
+
+Brukeren spør om oppsettet er riktig å trade med. Gjeldende06Nov-fase er fortsatt markedstilstand
+før Entry. S-tilstand og F-nettoendring er prognosemål, ikke kjøp/salg eller prisbane-/lønnsomhetsbevis.
+FLATT er ikke AVSTÅ; F-horisont er ikke holdetidsregel. Indikatorgrunnlaget er relevant,
+men gode situasjonsvalg og handelsverdi er ennå ikke bevist. Ingen ny handels-/Entry-fase åpnes.
+Eksponeringskontrollen skal belyse læring, ikke brukes som godkjenning av et handelsoppsett.
 
 ## Målt resultat og presise grenser
 
