@@ -6,7 +6,7 @@ NEXT_RUN_POLICY.json eier arbeidsstatus; prosess og terminal overstyrer prosa.
 
 ## Aktivt mål og neste retning
 
-TA_DIRECTION_EDGE_CAUSE_FIXED_BENCHMARK_NATIVE_SOURCE_QUALIFIED.
+TA_DIRECTION_EDGE_CAUSE_FIXED_BENCHMARK_ADMITTED_PENDING_LAUNCH.
 Målet er fortsatt å avklare og rette svak retningslæring. Den avtalte sammenligningen er
 FULL_OBJECTIVE mot M5_DIRECTION_ONLY, samme modell/genuine inputs/INITIAL/RNG/rekkefølge.
 TRAIN4096 over mai–september2024 og senere4096 over oktober–desember2024 er låst.
@@ -27,11 +27,16 @@ Koblingen til eksisterende restore/fit/eval er nå ferdig: to objektiver, samme 
 metadata-preflight besto. Ingen ny modell/optimizer/genuine data i disse kontrollene.
 Tom M5-støtte gir besøk uten AdamW; per-pass RNG og passiv evaluering kontrolleres.
 Review: MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_SOURCE_20261112_001/NATIVE_INTEGRATION_REVIEW.json.
-Neste steg er eksakt ren admisjon/startkontroll og eksisterende fresh-boot-kontroller
-for denne ene sammenligningen. Fersk native INITIAL og læringsresultat gjenstår.
+Eksakt ny recipe690ae741 og ren metadata/startkontroll312ada36 er bestått.
+Én kjøring er nå ADMITTED, ikke startet: stage market_state_ta_m5_objective_benchmark_20261112_001.
+Maks4096forwards/1536updates;20GiB/512MiB,250W,12GiBVRAM og eksisterende temperaturvakter.
+Modell10000s, vindu12000s, yttervakt13800s. Eksisterende fresh-boot-kontroller brukes.
+Neste steg: materialiser ny plan, maskinvid idle-kontroll og én fersk oppstart.
+Fersk native INITIAL og læringsresultat gjenstår.
 Gjenbruk beståtte kontroller; ingen ny inpututvidelse/arkitektur/gradientdiagnostikk.
 Ingen prediktiv gevinst er målt i denne bølgen.
-Global training/native_training er false. Root eier policy, launch og samlet kontroll.
+Global training/native_training er true bare for denne nye hashbundne engangskjøringen.
+Full epoch/fullVAL er false. Root eier policy, launch og samlet kontroll; kilde fryses ved start.
 
 Korte runder er bevisst feilsøking, ikke en dom over fullhistorikk-kapasitet.
 Kvalifisert full TRAIN-historikk og 30–40 epoker er senere skalering.
