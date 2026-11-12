@@ -6,19 +6,16 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_TRENDLINE_ANCHOR_SPAN_INPUTS_ADMITTED.
+TA_DIRECTION_EDGE_CAUSE_TRENDLINE_ANCHOR_SPAN_RAW_INPUTS_QUALIFIED_NORMALIZATION_PENDING.
 Målet11.11 er aktivt: avklar og rett målte svakheter i indikatorrepresentasjon,
 sammensetting og retningslæring. Korte runder er bevisst feilsøking, ikke kapasitetsdom.
 Full kvalifisert TRAIN-historikk og30–40epoker er senere skalering.
 
-Én ny CPU-inputkontroll er innrømmet etter ren preflight, ikke startet ennå.
-Plan configs/research/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001.json.
-Kun seks registry-replays og to nye spanfelt, ingen targetverdier, normaliseringsfit,
-modell, checkpoint eller trening. Alle tidligere engangsplaner er fortsatt konsumert.
-Training/native_training/native_launch/full_epoch/full_val er false.
+CPU-inputkontrollen er COMPLETE/CONSUMED, exit0; ingen kjøring står åpen.
+Alle tidligere engangsplaner er konsumert. Ingen ny numerisk-/modell-/treningsplan
+innrømmet. Training/native_training/native_launch/full_epoch/full_val er false.
 TEST, Entry/Exit-evaluering, broker, handel, spending og promotion stengt; GC på pause.
-Ingen endring av Windows-treningsoppgaver. Én capped audit4GiB/512MiB, CPU0–7,
-én numerisk tråd, pids64,1800s+10s killgrense.
+Ingen endring av Windows-treningsoppgaver.
 ## Konkret rettelse: trendlinjens andre anker
 
 [Reparasjon og kvitteringer](docs/TA_TRENDLINE_ANCHOR_SPAN_REPAIR.json).
@@ -104,26 +101,29 @@ Ingen generell konstantinput-/normaliseringsfeil eller mean+last-kansellering bl
 
 ## Ikke gjort og neste steg
 
-Den utvidede overflaten er foreløpig kilde-/syntetisk kvalifisert. Eksisterende caches,
-normalisering og checkpoints er ikke oppgradert; gammel initialbaseline er ikke
-baseline for den nye funksjonen. Ingen virkelig ny inputmåling, modellbaseline eller fit.
+[Fysisk inputkontroll](docs/TA_TRENDLINE_ANCHOR_SPAN_INPUTS_REVIEW.json) er COMPLETE:
+ROOT /home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001.
+Kilde db667784 uendret; RESULT8878d17a/TERMINAL9414bc5d. Plan88916106 er konsumert.
+21fokuserte tester, import og ren preflight PASS; capped audit4GiB/512MiB,CPU0–7,
+én tråd,pids64. Worker276,73s/controller277,20s; peakRSS1,30GB.
 
-[Ny inputkontroll](docs/TA_TRENDLINE_ANCHOR_SPAN_INPUTS_REVIEW.json) er kilde-/syntetisk
-kvalifisert:21fokuserte tester PASS og eksakt module-import PASS. Kontrollen krever
-opprinnelige31felt float32-byteeksakte før sidecar publiseres. Suksess, delvis feil
-og kildeendring etter RESULT har eksplisitt testet terminalsti. Ingen markedsarrays
-er kjørt gjennom den nye kontrollen ennå; ren preflight gjenstår før claim.
+Alle31gamle trendlinjefelt er float32-byteeksakte på73118fysiske rader:
+lokal29782, M5/M15/H1/H4/D1=29702/9959/2571/744/360.
+Det er2266658sammenlignede gamle feltverdier uten avvik. Alle seks rowhashes og fulle
+availability-clock-hasher matcher original fold1-normalisering e24a2b8d.
+To nye felt per flate gir146236nye verdier i seks små sidecars; originale caches urørt.
+Spanfeltene er finite, heltallige, positive ved aktiv linje og0ved fravær;
+rekonstruerte første/andre ankere er kausale. Begge sider varierer på alle seks flater.
+Lokal replay brukte original2010-enriched opprinnelse; MTF brukte2009-native,
+begge med frosne parametre og fersk state. Bare nødvendig registryhistorikk er replayet.
 
-Eksakte modne fold1-normaliseringspopulasjoner gjenbrukes: lokal29782rader,
-M5/M15/H1/H4/D1=29702/9959/2571/744/360. Alle seks rowhashes og fulle
-availability-clock-hasher er bundet til original normalisering e24a2b8d.
-Lokal replay bruker original2010-enriched opprinnelse; MTF bruker2009-native.
-Bare registry kjøres på nødvendig kausal historikk, med frosne parametre.
-Øvrige features, klokker, targets og beståtte kontroller gjenbrukes uendret.
+Råfeltene er kvalifisert; den nye komplette modellinputen er ikke ferdig bundet.
+Ingen normaliseringsfit, targetverdier, modell, checkpoint eller trening i denne runden.
+Eksisterende normalisering/checkpoints er ikke relabellet; gammel baseline er ikke ny baseline.
 
-Etter fysisk PASS må bare de to nye feltenes statistikk på seks overflater tilpasses,
-gamle statistikker bevares per navn og ny normaliserings-/feature-view-binding etableres.
-Fersk faktisk initialbaseline kreves før kort læringssammenligning. Ingen modell-
-eller treningsplan er innrømmet. Fullhistorikk/30–40epoker er senere skalering.
-Senere generalisering, familienytte, rettelsens prediktive gevinst og økonomisk edge
-må fortsatt måles. Målet er aktivt og TEST urørt.
+Neste steg er navnebundet normaliseringsutvidelse: tilpass kun de12nye feltstatistikkene
+på disse seks populasjonene, behold alle gamle statistikker og remapp deklarerte
+enheter eksplisitt. Ny feature-view/gather og fersk faktisk initialbaseline kreves før
+kort læringssammenligning. Ingen ny numerisk plan er innrømmet nå.
+Fullhistorikk/30–40epoker er senere skalering. Senere generalisering, familienytte,
+rettelsens prediktive gevinst og økonomisk edge må fortsatt måles. Målet er aktivt.

@@ -1,11 +1,332 @@
 {
+  "actual": {
+    "controller_seconds": 277.196598384,
+    "new_sidecar_bytes": 2346136,
+    "new_span_values": 146236,
+    "old_field_cells": 2266658,
+    "old_field_float32_bit_mismatches": 0,
+    "parent_rows": 29574,
+    "peak_rss_bytes": 1298067456,
+    "physical_rows_across_six_surfaces": 73118,
+    "surfaces": {
+      "D1": {
+        "artifact": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001/D1_ANCHOR_SPANS.npz",
+          "sha256": "1a62a6b26de1fb09bd219436e68be600a5a05cb527caaef3dc8f86034c2436c1"
+        },
+        "elapsed_seconds": 1.9400389500005986,
+        "first_replay_time_ns": 1243893600000000000,
+        "fresh_state_at_source_row_zero": true,
+        "parameters": {
+          "band_atr": 0.6968664882937518,
+          "seq_len": 252,
+          "swing_lookback": 3,
+          "timeframe": "D1"
+        },
+        "parity": {
+          "fields": 31,
+          "float32_bit_mismatched_cells": 0,
+          "legacy_values_sha256": "e03e6326d674892cec1eaac498bd3cffdcd3ce61dbc17a75cd6cbf48a122bb27",
+          "new_fields": {
+            "above": {
+              "absent_rows": 0,
+              "active_rows": 360,
+              "max_positive_span": 242.0,
+              "min_positive_span": 5.0,
+              "unique_positive_spans": 109
+            },
+            "below": {
+              "absent_rows": 0,
+              "active_rows": 360,
+              "max_positive_span": 243.0,
+              "min_positive_span": 5.0,
+              "unique_positive_spans": 98
+            }
+          },
+          "rows": 360
+        },
+        "population": {
+          "available_ns_sha256": "1b2a2e9383547a9b4bf08be928a4cf8ba725aeb301598435e20013a870e30c07",
+          "selected_row_indices_sha256": "d5cc7da7b09bdffc992a624c650a3ffc6d8d5911e245c39429d6d60a383bcda7",
+          "selected_unique_row_count": 360,
+          "time_max_utc": "2024-09-26T22:00:00+00:00",
+          "time_min_utc": "2023-05-09T22:00:00+00:00"
+        },
+        "replay_rows": 3965,
+        "times_ns_sha256": "0e8bb339a489247f786989c10bd0e594bea7dac0a9109c3552b3eacb34e92cd5"
+      },
+      "H1": {
+        "artifact": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001/H1_ANCHOR_SPANS.npz",
+          "sha256": "44403a104d6ec1dd43d00e94468437ceccd71b83bedb49075a86bc7baa1b7102"
+        },
+        "elapsed_seconds": 11.835677544999271,
+        "first_replay_time_ns": 1243814400000000000,
+        "fresh_state_at_source_row_zero": true,
+        "parameters": {
+          "band_atr": 0.7319144469085033,
+          "seq_len": 96,
+          "swing_lookback": 3,
+          "timeframe": "H1"
+        },
+        "parity": {
+          "fields": 31,
+          "float32_bit_mismatched_cells": 0,
+          "legacy_values_sha256": "eb6cffe492ba8cce1b14e997b4cad76f0c3fd43770a117763c4c5850de1ea95a",
+          "new_fields": {
+            "above": {
+              "absent_rows": 135,
+              "active_rows": 2436,
+              "max_positive_span": 88.0,
+              "min_positive_span": 4.0,
+              "unique_positive_spans": 85
+            },
+            "below": {
+              "absent_rows": 14,
+              "active_rows": 2557,
+              "max_positive_span": 88.0,
+              "min_positive_span": 4.0,
+              "unique_positive_spans": 85
+            }
+          },
+          "rows": 2571
+        },
+        "population": {
+          "available_ns_sha256": "b390f98547d6a452b81d66c096dc081e11d69c6612fd53fac66da14ff332d0d7",
+          "selected_row_indices_sha256": "b3b0cf82a464ee5cc48478aa67d1951be1641e5235a4fa74c2a4380a2d63a240",
+          "selected_unique_row_count": 2571,
+          "time_max_utc": "2024-09-29T22:00:00+00:00",
+          "time_min_utc": "2024-04-24T19:00:00+00:00"
+        },
+        "replay_rows": 92017,
+        "times_ns_sha256": "7e478d6cbb1f0a7d63112ff2cadbcd2068264efab802b98aaaa617054f324349"
+      },
+      "H4": {
+        "artifact": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001/H4_ANCHOR_SPANS.npz",
+          "sha256": "26e6fd807d018b8408324c787d12b8a591e27a60a924029ac30b412fdd4222bc"
+        },
+        "elapsed_seconds": 7.5640618659999745,
+        "first_replay_time_ns": 1243821600000000000,
+        "fresh_state_at_source_row_zero": true,
+        "parameters": {
+          "band_atr": 0.9971390001300923,
+          "seq_len": 96,
+          "swing_lookback": 3,
+          "timeframe": "H4"
+        },
+        "parity": {
+          "fields": 31,
+          "float32_bit_mismatched_cells": 0,
+          "legacy_values_sha256": "f183ebfc6da18b41a6014b45c3ea6c810e9c3f4ef0294633e574054378ac2b3c",
+          "new_fields": {
+            "above": {
+              "absent_rows": 17,
+              "active_rows": 727,
+              "max_positive_span": 88.0,
+              "min_positive_span": 6.0,
+              "unique_positive_spans": 74
+            },
+            "below": {
+              "absent_rows": 0,
+              "active_rows": 744,
+              "max_positive_span": 88.0,
+              "min_positive_span": 5.0,
+              "unique_positive_spans": 75
+            }
+          },
+          "rows": 744
+        },
+        "population": {
+          "available_ns_sha256": "71364ec2cda7ca52e1df34d6b5e7e2f38611ee2e52fadc7f1ba542b77d063cfa",
+          "selected_row_indices_sha256": "2370aabbecbd17b03758dd181a5fbc3c26399ccd9581a9c5eb361f39042ff518",
+          "selected_unique_row_count": 744,
+          "time_max_utc": "2024-09-27T18:00:00+00:00",
+          "time_min_utc": "2024-04-08T22:00:00+00:00"
+        },
+        "replay_rows": 23722,
+        "times_ns_sha256": "f7a76199282ca8b3f19510b3fb7e8eebf8cac42dc8aa6b96448878e03fb27854"
+      },
+      "M15": {
+        "artifact": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001/M15_ANCHOR_SPANS.npz",
+          "sha256": "40dfc0df07d5cb46bf2c9b39155d18a440fdbc8c00064be103e58efaedd841e9"
+        },
+        "elapsed_seconds": 39.833401391000734,
+        "first_replay_time_ns": 1243814400000000000,
+        "fresh_state_at_source_row_zero": true,
+        "parameters": {
+          "band_atr": 0.906513313573848,
+          "seq_len": 64,
+          "swing_lookback": 3,
+          "timeframe": "M15"
+        },
+        "parity": {
+          "fields": 31,
+          "float32_bit_mismatched_cells": 0,
+          "legacy_values_sha256": "4f71fe74a74d7806992295bb5bd56e2e7555f83a3b22665f9e576b08caf01f1f",
+          "new_fields": {
+            "above": {
+              "absent_rows": 805,
+              "active_rows": 9154,
+              "max_positive_span": 57.0,
+              "min_positive_span": 1.0,
+              "unique_positive_spans": 55
+            },
+            "below": {
+              "absent_rows": 637,
+              "active_rows": 9322,
+              "max_positive_span": 59.0,
+              "min_positive_span": 1.0,
+              "unique_positive_spans": 56
+            }
+          },
+          "rows": 9959
+        },
+        "population": {
+          "available_ns_sha256": "b5b0a2116266d72ff2925ef9916b82232d955d95ec86f74c90864fb7dd1a121b",
+          "selected_row_indices_sha256": "b74d7583c7f8ad370ec8acbfc2aff3f0b57a82fa8b9dba042f0d92d366e10def",
+          "selected_unique_row_count": 9959,
+          "time_max_utc": "2024-09-29T23:30:00+00:00",
+          "time_min_utc": "2024-04-30T07:00:00+00:00"
+        },
+        "replay_rows": 364784,
+        "times_ns_sha256": "1a23dfc140bcde1e4f4a0ea6e03258190238e3abe7e6d5607826d96a9318bfb5"
+      },
+      "M5": {
+        "artifact": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001/M5_ANCHOR_SPANS.npz",
+          "sha256": "a6be6f77d8bddb213c64d2d74c4c3a7df4c0dc012557c633df79c4800f468819"
+        },
+        "elapsed_seconds": 58.34335133799868,
+        "first_replay_time_ns": 1243814400000000000,
+        "fresh_state_at_source_row_zero": true,
+        "parameters": {
+          "band_atr": 0.9161632622285967,
+          "seq_len": 16,
+          "swing_lookback": 3,
+          "timeframe": "M5"
+        },
+        "parity": {
+          "fields": 31,
+          "float32_bit_mismatched_cells": 0,
+          "legacy_values_sha256": "ae9b7c34aad61588327b8760f091ccbfda0a7b5878613c32cdb139f9144d5e22",
+          "new_fields": {
+            "above": {
+              "absent_rows": 26873,
+              "active_rows": 2829,
+              "max_positive_span": 11.0,
+              "min_positive_span": 1.0,
+              "unique_positive_spans": 10
+            },
+            "below": {
+              "absent_rows": 26310,
+              "active_rows": 3392,
+              "max_positive_span": 11.0,
+              "min_positive_span": 1.0,
+              "unique_positive_spans": 11
+            }
+          },
+          "rows": 29702
+        },
+        "population": {
+          "available_ns_sha256": "3af20cb6f44c95a4d0ebeefbbece8b73dfc4f444e03b6be0ae29f6414b7aeab0",
+          "selected_row_indices_sha256": "d5999966c354bf9dfba62fb21d451f3923a6b5fe6e2acd74f4aca1126d2a3266",
+          "selected_unique_row_count": 29702,
+          "time_max_utc": "2024-09-29T23:50:00+00:00",
+          "time_min_utc": "2024-04-30T22:45:00+00:00"
+        },
+        "replay_rows": 1091560,
+        "times_ns_sha256": "0a8707fee20712efbe4a7f61cccdca2440bb0922a3341cd6380523c006881f19"
+      },
+      "local": {
+        "artifact": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001/local_ANCHOR_SPANS.npz",
+          "sha256": "2de160e223c97e38041382b1ac393e2a5c7f0556eacf5ab7e8355427357effb6"
+        },
+        "elapsed_seconds": 149.61648625899943,
+        "first_replay_time_ns": 1276466400000000000,
+        "fresh_state_at_source_row_zero": true,
+        "parameters": {
+          "band_atr": 0.9865694402555613,
+          "seq_len": 96,
+          "swing_lookback": 3,
+          "timeframe": "M5"
+        },
+        "parity": {
+          "fields": 31,
+          "float32_bit_mismatched_cells": 0,
+          "legacy_values_sha256": "933aba5e37bdbb2b746b383f739352299cced10e50f8db3890029eb3406b0bb4",
+          "new_fields": {
+            "above": {
+              "absent_rows": 516,
+              "active_rows": 29266,
+              "max_positive_span": 91.0,
+              "min_positive_span": 1.0,
+              "unique_positive_spans": 91
+            },
+            "below": {
+              "absent_rows": 601,
+              "active_rows": 29181,
+              "max_positive_span": 91.0,
+              "min_positive_span": 1.0,
+              "unique_positive_spans": 91
+            }
+          },
+          "rows": 29782
+        },
+        "population": {
+          "available_ns_sha256": "ab019b7ba69d7d5dd651af4d6e8a7b0f2a9018e06674910f8df445c1008829bc",
+          "selected_row_indices_sha256": "aaf7bb699db0eb3602ef5c44ec195780b24368c788f424fddc611270a300d9a1",
+          "selected_unique_row_count": 29782,
+          "time_max_utc": "2024-09-29T23:50:00+00:00",
+          "time_min_utc": "2024-04-30T15:05:00+00:00"
+        },
+        "replay_rows": 1017028,
+        "times_ns_sha256": "ca7ab7086cee3db1c441416b60924c09563ee47d40bdede6827babf6ca7110bf"
+      }
+    },
+    "worker_seconds": 276.7261864189986
+  },
+  "controller": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_PREP_20261112_001/CONTROLLER_RESULT.json",
+    "sha256": "ce15a640b304961f4966af2b37b93f93b40d5974d97a65bbdc36de2880791645"
+  },
   "fresh_actual_model_baseline_complete": false,
   "import_smoke": {
     "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_PREP_20261112_001/IMPORT_SMOKE.log",
     "sha256": "ebcf08321b9784b78a69e488e09d509450c490644e46a984f7c96d454fc04596"
   },
+  "independent_receipt_review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_PREP_20261112_001/INDEPENDENT_RECEIPT_REVIEW.json",
+    "sha256": "4e963a187ae8955764c32262f6a9f776ba5181f08c555951c7ff8ef479db78e9"
+  },
   "independent_review": "composition_audit: exact row-hash owner, full availability clocks and final source-bookend failure corrected; no remaining concrete source blocker; test-file ownership separate",
+  "model_consumption_of_new_fields_qualified": false,
   "normalization_fitted": false,
+  "observed_slot_occupancy": {
+    "M5": {
+      "above": {
+        "active_rows": 2829,
+        "rows": 29702
+      },
+      "below": {
+        "active_rows": 3392,
+        "rows": 29702
+      }
+    },
+    "local": {
+      "above": {
+        "active_rows": 29266,
+        "rows": 29782
+      },
+      "below": {
+        "active_rows": 29181,
+        "rows": 29782
+      }
+    }
+  },
+  "occupancy_interpretation": "Measured sparsity differs between existing local(seq96,band0.9865694402555613) and MTF-M5(seq16,band0.9161632622285967) configurations. No parameter change or predictive cause inferred.",
   "parameters": {
     "D1": {
       "band_atr": 0.6968664882937518,
@@ -44,7 +365,7 @@
       "timeframe": "M5"
     }
   },
-  "physical_input_qualification_complete": false,
+  "physical_input_qualification_complete": true,
   "plan": {
     "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001.json",
     "sha256": "889161060a9abb9c028abffe3246420f06a63891ee9a51305d3e8173d970fbf1"
@@ -94,6 +415,15 @@
     }
   },
   "predictive_value_claimed": false,
+  "remaining": [
+    "Fit only the twelve new span statistics on these exact six TRAIN populations; retain every old field statistic by name.",
+    "Bind the expanded physical inventory and remapped declared-unit profile without relabeling the old normalization.",
+    "Qualify a fresh feature-view and actual initial model baseline before a new short learning comparison."
+  ],
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001/RESULT.json",
+    "sha256": "8878d17a5bf114fcf9cd5eb0e74792ddc5df068b95b67951b594759d5b2b05bb"
+  },
   "reuse": "Existing features, clocks, frozen registry constants and targets remain immutable. Replay only local-M5 and five MTF registry prefixes needed for the retained fold1 normalization population.",
   "scope": {
     "checkpoint_reads": 0,
@@ -141,6 +471,7 @@
     "test_data_used": false
   },
   "source_base_head": "e687294415d6376af14f8a00f105cfd9bb8c091e",
+  "source_head": "db66778423fec9643e52d3478417a7ad2722aec6",
   "source_owners": {
     "gx1/audit/qualify_market_state_ta_anchor_span_inputs_v1.py": "3edba8032212b8e9c5b4d6319f342d3926ef1eb28fd64c7fe9ab148ebdb46c1d",
     "gx1/contracts/gx1_capped_execution_v1.py": "60b1ccf2eda470a84ddded0d8160c628314ebb19f5766b87b70fef7c9aa3ccff",
@@ -155,8 +486,13 @@
     "scripts/gx1_capped_run.sh": "b7c0383ee2b398b71bc2556493437f421e8d20a41b6652a149a6389e40a0aaaa",
     "tests/test_market_state_ta_anchor_span_inputs_v1.py": "661ed55ca4cbdf7bd80bad59ef07e5deb37f4cadfa26fa1d5e406322a8731e99"
   },
+  "source_unchanged": true,
   "stage": "market_state_ta_trendline_anchor_span_inputs_20261112_001",
-  "status": "SOURCE_AND_SYNTHETIC_QUALIFIED_EXACT_INPUT_ONLY_PLAN_ADMITTED_PENDING_CLEAN_PREFLIGHT",
+  "status": "COMPLETE_CAUSAL_RAW_ANCHOR_SPAN_INPUT_EXTENSION_NORMALIZATION_AND_MODEL_PENDING",
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001/TERMINAL.json",
+    "sha256": "9414bc5dd6e07ff565e4cb0f3db7c2364bbea3d954a9708c03fc91c131034007"
+  },
   "test_data_used": false,
   "tests": {
     "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_PREP_20261112_001/FOCUSED_TESTS.json",
