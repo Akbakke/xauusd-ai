@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_tf_activity_decoder_repair_v1",
-  "status": "ACTUAL_SHORT_LEARNING_COMPLETE_RESIDUAL_DRIFT_LOCALIZED_UPSTREAM_OF_HEADS",
+  "status": "ACTUAL_SHORT_LEARNING_COMPLETE_PAIRED_COMPOSITION_AND_M5_RANKING_MEASURED",
   "reason": "Measured shared activity-coordinate pressure and FLAT calibration regression motivate one isolated architectural comparison.",
   "evidence": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ACTIVITY_PRESSURE_REVIEW.json",
@@ -54,7 +54,7 @@
   "training_authorized": false,
   "promotion_authorized": false,
   "test_data_used": false,
-  "next_action": "Execute the single qualified passive paired full4096 INITIAL/FINAL boundary observation, then retained finite endpoint/source-coordinate accounting only if both original endpoints and priorINITIALh0 are byteexact and per-phase passivity/weights-only transition hold. No training, model/loss change, full-history fit orTEST use.",
+  "next_action": "Source-only follow-up of the unresolved nearest-trendline slot identity/anchor/change-marker gap in the actual temporal model inputs. Reuse the existing producer and packing owners to specify the smallest causal semantic correction, with all genuine families and TF preserved. The paired study is complete: do not repeat its observations, freeze components, or select an endpoint mixture from usedTRAIN. Any model-function change requires focused qualification and a fresh initial baseline; no new numerical/model/training plan is admitted now.",
   "mechanical_qualification": {
     "status": "PASS",
     "passed_tests": 226,
@@ -250,6 +250,6 @@
   },
   "actual_short_learning": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
-    "sha256": "e46cb177b22586adce8ac72d6ced8aa365c293ac9e996e87f7b5a70c3c84cf02"
+    "sha256": "b428a9e1d1a0e8db397689ed0b9d731669e7ec9e240e94862b30121f20505466"
   }
 }

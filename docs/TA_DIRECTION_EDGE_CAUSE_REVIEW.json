@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_FULL_PREFIX_PAIRED_BOUNDARY_OBSERVATION_ADMITTED",
+  "status": "ACTIVE_PAIRED_COMPOSITION_AND_M5_RANKING_COMPLETE_TRENDLINE_SEMANTICS_NEXT",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -265,7 +265,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Execute the single qualified passive paired full4096 INITIAL/FINAL boundary observation, then retained finite endpoint/source-coordinate accounting only if both original endpoints and priorINITIALh0 are byteexact and per-phase passivity/weights-only transition hold. No training, model/loss change, full-history fit orTEST use.",
+  "next_measurement": "Source-only follow-up of the unresolved nearest-trendline slot identity/anchor/change-marker gap in the actual temporal model inputs. Reuse the existing producer and packing owners to specify the smallest causal semantic correction, with all genuine families and TF preserved. The paired study is complete: do not repeat its observations, freeze components, or select an endpoint mixture from usedTRAIN. Any model-function change requires focused qualification and a fresh initial baseline; no new numerical/model/training plan is admitted now.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -1720,52 +1720,59 @@
   "training_authorized_scope": null,
   "latest_confirmed_findings": [
     {
-      "finding": "Retained48row prequery/joint pilot qualified; F/M15-H1query,joint andupstream contributions are positive but supported by only15/11known directions. S/D1contains14ACTIVE and0FLAT, so it cannot localize the215FLAT regression. No architecture orloss correction is justified from this pilot.",
+      "finding": "Both actual endpoints fully reproduced on the same4096usedTRAIN, including215S/D1FLAT; prior48row coverage gap is closed.",
       "evidence": {
         "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
-        "sha256": "e46cb177b22586adce8ac72d6ced8aa365c293ac9e996e87f7b5a70c3c84cf02"
+        "sha256": "b428a9e1d1a0e8db397689ed0b9d731669e7ec9e240e94862b30121f20505466"
       }
     },
     {
-      "finding": "All4096 INITIAL baseline fields and losses reproduced byteexact with passive inputs capture. Ordered analytical finalhead-on-initialrepresentation improves fulloriginalTRAINloss1.878003→1.871377; actualFINAL1.884324. MainS/D1activity andF/M15-H1side drift remains upstream of linear heads, with class/quarter differences.",
+      "finding": "Full total loss INITIAL1.878002535; isolated final head1.871377344/query1.869806905/joint1.870275136/source1.853369240; actualFINAL1.884324128. Each isolated component helps overall loss, but combined endpoint worsens; this is not true in every task/quarter and does not identify a unique historical cause.",
       "evidence": {
         "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
-        "sha256": "e46cb177b22586adce8ac72d6ced8aa365c293ac9e996e87f7b5a70c3c84cf02"
+        "sha256": "b428a9e1d1a0e8db397689ed0b9d731669e7ec9e240e94862b30121f20505466"
       }
     },
     {
-      "finding": "S/D1 actualbias rises0.00264197 versus meaninformative logitrise0.52717903; directbias accounts for0.50115percent. Remaining0.52453706 mixes weights andrepresentation. Clipping doesnotflip aggregatederivative; scalarAdam reconstruction matches finalcheckpoint to8.23e-8.",
+      "finding": "S/D1FLAT Pactivity rises0.884876185→0.933545182; forward head/query/joint/source logit effects0.094984/0.069193/0.145482/0.337376. Source effect depends on replacement order; globalcontext contributes0.165515 in a specified singleblock comparison, not a universal causal share.",
       "evidence": {
         "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
-        "sha256": "e46cb177b22586adce8ac72d6ced8aa365c293ac9e996e87f7b5a70c3c84cf02"
+        "sha256": "b428a9e1d1a0e8db397689ed0b9d731669e7ec9e240e94862b30121f20505466"
       }
     },
     {
-      "finding": "Isolating activity heads reduced activity-loss regression87.23percent versus original on same4096TRAIN/256updates; total still worsens versus initial.",
+      "finding": "F/M15andH1 meanPUP rises0.532502→0.699390 and0.535119→0.708774 against observedUP0.520833/0.539694. All four forwardordered component changes worsen these side losses.",
       "evidence": {
         "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
-        "sha256": "e46cb177b22586adce8ac72d6ced8aa365c293ac9e996e87f7b5a70c3c84cf02"
+        "sha256": "b428a9e1d1a0e8db397689ed0b9d731669e7ec9e240e94862b30121f20505466"
       }
     },
     {
-      "finding": "No clear overall M5direction gain versus original. Both M5Brier/log are slightly worse; AUC shifts in opposite directions.",
+      "finding": "M5 actual AUC S0.546185163→0.551351671 andF0.546124964→0.553147055. With FINALheads/query/joint but INITIALsource, AUC0.548662892/0.549485674. Replacing the source with FINAL improves both fullprefix rankings, despite calibration harm elsewhere.",
       "evidence": {
         "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
-        "sha256": "e46cb177b22586adce8ac72d6ced8aa365c293ac9e996e87f7b5a70c3c84cf02"
+        "sha256": "b428a9e1d1a0e8db397689ed0b9d731669e7ec9e240e94862b30121f20505466"
       }
     },
     {
-      "finding": "S/D1overconfidence on FLAT, concentrated inQ2, and F/M15-H1upward calibration drift remain. Sharedactivityoutputrow is not the sole cause.",
+      "finding": "Globalcontext singlecoordinate at fixedFINALtail raises M5AUC from0.548662892/0.549485674 to0.550813493/0.554644489. It cannot be classified as generally harmful. These diagnostic mixtures are not candidates or independently trained models.",
       "evidence": {
         "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
-        "sha256": "e46cb177b22586adce8ac72d6ced8aa365c293ac9e996e87f7b5a70c3c84cf02"
+        "sha256": "b428a9e1d1a0e8db397689ed0b9d731669e7ec9e240e94862b30121f20505466"
       }
     },
     {
-      "finding": "All genuine8TAfamilies/5TF remain consumed; latergeneralization, economicedge and familyaddedvalue remain unproved.",
+      "finding": "S/M5 full Brier slightly worsens0.247998512→0.248026560; F/M5 improves0.248788189→0.248218351. Direction ordering and probability calibration must be kept distinct. Quarter effects vary; F/M5Q2ranking worsens while fullprefix improves.",
       "evidence": {
         "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
-        "sha256": "e46cb177b22586adce8ac72d6ced8aa365c293ac9e996e87f7b5a70c3c84cf02"
+        "sha256": "b428a9e1d1a0e8db397689ed0b9d731669e7ec9e240e94862b30121f20505466"
+      }
+    },
+    {
+      "finding": "No blanket component freeze, indicator removal, training-loss reweighting or selected endpoint mixture is justified by these diagnostics. No new model/training work admitted. Next concrete source gap is stable nearest-trendline identity/anchors/change marker; predictive cost remainsUNKNOWN.",
+      "evidence": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
+        "sha256": "b428a9e1d1a0e8db397689ed0b9d731669e7ec9e240e94862b30121f20505466"
       }
     }
   ],
@@ -1775,12 +1782,12 @@
   },
   "tf_activity_decoder_repair": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
-    "sha256": "023d5b8b5af495599b682c302730bc1149cd9cdf501e3eef00ba6626c91a8faf"
+    "sha256": "54703f3bb3e266ac55de0815f106e24e1f6c475d82728a3a69e4a3591b73a9a6"
   },
   "tf_activity_initial_parity": {
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
-      "sha256": "023d5b8b5af495599b682c302730bc1149cd9cdf501e3eef00ba6626c91a8faf"
+      "sha256": "54703f3bb3e266ac55de0815f106e24e1f6c475d82728a3a69e4a3591b73a9a6"
     },
     "result": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_PARITY_20261112_001/RESULT.json",
@@ -1796,6 +1803,6 @@
   },
   "tf_activity_short_learning": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
-    "sha256": "e46cb177b22586adce8ac72d6ced8aa365c293ac9e996e87f7b5a70c3c84cf02"
+    "sha256": "b428a9e1d1a0e8db397689ed0b9d731669e7ec9e240e94862b30121f20505466"
   }
 }

@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-11T22:53:26.085246+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_PAIRED_FULL_BOUNDARY_OBSERVATION_ADMITTED",
+  "observed_utc": "2026-11-12T04:44:58.464999+00:00",
+  "status": "TA_DIRECTION_EDGE_CAUSE_PAIRED_BOUNDARIES_COMPLETE_M5_GAIN_AND_CALIBRATION_DRIFT",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Mechanically qualify one opt-in activity-only architecture from originalc171: five cloned independent activity rows perS/F, original dedicatedM5side retained and nonM5side separation off. Keep all features/TF/query/backbone, targets and loss weights. Verify legacy defaults, RNG, side parity, activity initial tolerance, exact TF/task gradient routing and rejection by old numerical recipes. No factory/run/optimizer admission or native training in this source-preparation stage; weights-only migration and actual fresh initial baseline require separate qualification.",
+  "next_action": "Source-only follow-up of the unresolved nearest-trendline slot identity/anchor/change-marker gap in the actual temporal model inputs. Reuse the existing producer and packing owners to specify the smallest causal semantic correction, with all genuine families and TF preserved. The paired study is complete: do not repeat its observations, freeze components, or select an endpoint mixture from usedTRAIN. Any model-function change requires focused qualification and a fresh initial baseline; no new numerical/model/training plan is admitted now.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1705,7 +1705,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "One read-only paired full4096 INITIAL/FINAL boundary capture qualified after141focused tests and metadata preflight; exact one-use execution admitted. Same actual model inputs/checkpoints, one model/two weightloads, no learning orRNGrestore.",
+    "current_activity": "Read-only full4096 INITIAL/FINAL paired observation COMPLETE/CONSUMED, all original fields/losses byteexact. Retained finite accounting and independent M5ranking PASS. Source changes help M5ranking and also contribute to nonM5calibration drift; no blanketfreeze justified. Next source-only work: unresolved nearest-trendline slot identity.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1734,11 +1734,11 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "READ_ONLY_FULL_PREFIX_INITIAL_INPUT_CAPTURE_COMPLETE_CONSUMED",
-    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001",
+    "latest_terminal_role": "READ_ONLY_FULL_PREFIX_PAIRED_BOUNDARIES_COMPLETE_CONSUMED",
+    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_BOUNDARIES_20261112_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_INITIAL_INPUTS_20261112_001/TERMINAL.json",
-      "sha256": "84433f8c936a4aba446eccd69d77c80af93a69f38ed4a91fd2f23bba22ae5450"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_BOUNDARIES_20261112_001/TERMINAL.json",
+      "sha256": "87551f40ede79a37df3641528699d799d1c36ab855e43f8ffa3893f24049b6b5"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -9229,7 +9229,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute the single qualified passive paired full4096 INITIAL/FINAL boundary observation, then retained finite endpoint/source-coordinate accounting only if both original endpoints and priorINITIALh0 are byteexact and per-phase passivity/weights-only transition hold. No training, model/loss change, full-history fit orTEST use.",
+    "next_action": "Source-only follow-up of the unresolved nearest-trendline slot identity/anchor/change-marker gap in the actual temporal model inputs. Reuse the existing producer and packing owners to specify the smallest causal semantic correction, with all genuine families and TF preserved. The paired study is complete: do not repeat its observations, freeze components, or select an endpoint mixture from usedTRAIN. Any model-function change requires focused qualification and a fresh initial baseline; no new numerical/model/training plan is admitted now.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22144,7 +22144,7 @@
     },
     "direction_edge_cause_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "d3475cd012a36f29fb9410505c661f52b39d6ed9a359756df35bf503ee8ec7cc"
+      "sha256": "2e0cdf66a13cd398cf9c8afeb56c127d60ded63aac58f2312888a4e12a2ab3a6"
     },
     "latest_c171_startup_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_C171_SHORT_LEARNING_STARTUP_REVIEW.json",
@@ -22226,11 +22226,11 @@
     },
     "latest_tf_activity_decoder_repair": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
-      "sha256": "023d5b8b5af495599b682c302730bc1149cd9cdf501e3eef00ba6626c91a8faf"
+      "sha256": "54703f3bb3e266ac55de0815f106e24e1f6c475d82728a3a69e4a3591b73a9a6"
     },
     "latest_tf_activity_initial_parity": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
-      "sha256": "023d5b8b5af495599b682c302730bc1149cd9cdf501e3eef00ba6626c91a8faf"
+      "sha256": "54703f3bb3e266ac55de0815f106e24e1f6c475d82728a3a69e4a3591b73a9a6"
     },
     "latest_tf_activity_short_qualification": {
       "status": "PASS_SOURCE_AND_METADATA_QUALIFIED_NATIVE_NOT_ADMITTED",
@@ -22281,7 +22281,7 @@
     },
     "latest_tf_activity_short_learning": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
-      "sha256": "e46cb177b22586adce8ac72d6ced8aa365c293ac9e996e87f7b5a70c3c84cf02"
+      "sha256": "b428a9e1d1a0e8db397689ed0b9d731669e7ec9e240e94862b30121f20505466"
     },
     "latest_tf_activity_residual_class_review": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/SD1_ACTIVITY_RESIDUAL_CLASS_REVIEW.json",
@@ -22310,6 +22310,26 @@
     "latest_tf_activity_paired_boundary_preflight": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_BOUNDARIES_20261112_001/PREFLIGHT.json",
       "sha256": "3d964d2d9a2e2e1fb50e56dc76c4cdff0f2f1eaaadfbc420c16fac8b477e66db"
+    },
+    "latest_tf_activity_paired_boundaries": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_BOUNDARIES_20261112_001/RESULT.json",
+      "sha256": "95f1fc329701d4428de2f7e85ef8908b15344f3ec5e5a841d7bfcd059780c79d"
+    },
+    "latest_tf_activity_paired_boundaries_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_BOUNDARIES_20261112_001/TERMINAL.json",
+      "sha256": "87551f40ede79a37df3641528699d799d1c36ab855e43f8ffa3893f24049b6b5"
+    },
+    "latest_tf_activity_paired_boundary_finite_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_BOUNDARIES_20261112_001/PAIRED_BOUNDARY_REVIEW.json",
+      "sha256": "893e196250906890fd111a91221fd8bfc73e925d2985680aa4d752e8a4443645"
+    },
+    "latest_tf_activity_paired_boundary_m5_ranking": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_BOUNDARIES_20261112_001/M5_RANK_REVIEW.json",
+      "sha256": "cf7716ff889b9ff39469eda8919da3eaefd0d722b76981afdc6bb05546ebb9b4"
+    },
+    "latest_retained_cpu_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_BOUNDARIES_20261112_001/M5_RANK_TERMINAL.json",
+      "sha256": "3bfbb5c9f9196f28d68de6d1fc6768b5e09bddac84cab12a6f0e52e53a1efed2"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -24874,7 +24894,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-11T19:56:27.801119+00:00",
+  "updated_utc": "2026-11-12T04:44:58.464999+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -75649,24 +75669,24 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_FULL_PREFIX_PAIRED_BOUNDARY_OBSERVATION_ADMITTED",
+    "status": "ACTIVE_PAIRED_COMPOSITION_AND_M5_RANKING_COMPLETE_TRENDLINE_SEMANTICS_NEXT",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
     "training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "d3475cd012a36f29fb9410505c661f52b39d6ed9a359756df35bf503ee8ec7cc"
+      "sha256": "2e0cdf66a13cd398cf9c8afeb56c127d60ded63aac58f2312888a4e12a2ab3a6"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": true,
+    "model_or_data_run_admitted": false,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Execute the single qualified passive paired full4096 INITIAL/FINAL boundary observation, then retained finite endpoint/source-coordinate accounting only if both original endpoints and priorINITIALh0 are byteexact and per-phase passivity/weights-only transition hold. No training, model/loss change, full-history fit orTEST use.",
+    "next_action": "Source-only follow-up of the unresolved nearest-trendline slot identity/anchor/change-marker gap in the actual temporal model inputs. Reuse the existing producer and packing owners to specify the smallest causal semantic correction, with all genuine families and TF preserved. The paired study is complete: do not repeat its observations, freeze components, or select an endpoint mixture from usedTRAIN. Any model-function change requires focused qualification and a fresh initial baseline; no new numerical/model/training plan is admitted now.",
     "active_stage": "market_state_ta_tf_activity_boundaries_20261112_001",
-    "previous_goal_turn_classification": "PROGRESS_RETAINED48_PREQUERY_JOINT_PILOT_QUALIFIED_AND_ZERO_FLAT_COVERAGE_MEASURED",
-    "last_goal_turn_classification": "PROGRESS_PAIRED_FULL_PREFIX_READ_ONLY_BOUNDARY_ROUTE_QUALIFIED_AND_ADMITTED",
+    "previous_goal_turn_classification": "PROGRESS_PAIRED_FULL_PREFIX_READ_ONLY_BOUNDARY_ROUTE_QUALIFIED_AND_ADMITTED",
+    "last_goal_turn_classification": "PROGRESS_FULL_PAIRED_ENDPOINTS_EXACT_AND_M5_RANK_CALIBRATION_TRADEOFF_LOCALIZED",
     "latest_tail_factor_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_ALL_TF_TAIL_FACTOR_REVIEW.json",
       "sha256": "5da978f765b0ad1ac001023501be7665989270d8353d768b801b9e1b29406c0f"
@@ -75693,11 +75713,19 @@
     },
     "tf_activity_decoder_repair": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
-      "sha256": "023d5b8b5af495599b682c302730bc1149cd9cdf501e3eef00ba6626c91a8faf"
+      "sha256": "54703f3bb3e266ac55de0815f106e24e1f6c475d82728a3a69e4a3591b73a9a6"
     },
     "tf_activity_short_learning": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
-      "sha256": "e46cb177b22586adce8ac72d6ced8aa365c293ac9e996e87f7b5a70c3c84cf02"
+      "sha256": "b428a9e1d1a0e8db397689ed0b9d731669e7ec9e240e94862b30121f20505466"
+    },
+    "latest_paired_boundary_finite_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_BOUNDARIES_20261112_001/PAIRED_BOUNDARY_REVIEW.json",
+      "sha256": "893e196250906890fd111a91221fd8bfc73e925d2985680aa4d752e8a4443645"
+    },
+    "latest_m5_ranking_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_BOUNDARIES_20261112_001/M5_RANK_REVIEW.json",
+      "sha256": "cf7716ff889b9ff39469eda8919da3eaefd0d722b76981afdc6bb05546ebb9b4"
     }
   },
   "market_state_ta_fusion_observation_20261111_001": {
@@ -76950,7 +76978,7 @@
     },
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "d3475cd012a36f29fb9410505c661f52b39d6ed9a359756df35bf503ee8ec7cc"
+      "sha256": "2e0cdf66a13cd398cf9c8afeb56c127d60ded63aac58f2312888a4e12a2ab3a6"
     },
     "full_model_constructions": 0,
     "native_model_forwards": 0,
@@ -78441,7 +78469,7 @@
     "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_MECHANICAL_20261112_001",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
-      "sha256": "023d5b8b5af495599b682c302730bc1149cd9cdf501e3eef00ba6626c91a8faf"
+      "sha256": "54703f3bb3e266ac55de0815f106e24e1f6c475d82728a3a69e4a3591b73a9a6"
     },
     "activity_pressure_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ACTIVITY_PRESSURE_REVIEW.json",
@@ -78980,7 +79008,7 @@
     },
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
-      "sha256": "e46cb177b22586adce8ac72d6ced8aa365c293ac9e996e87f7b5a70c3c84cf02"
+      "sha256": "b428a9e1d1a0e8db397689ed0b9d731669e7ec9e240e94862b30121f20505466"
     },
     "retained_trace_coverage": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/TRACE_RETAINED_COVERAGE.json",
@@ -79629,7 +79657,7 @@
     "training_enabled": false,
     "unique_rows": 4096,
     "wall_seconds": 900,
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_BOUNDARIES_20261112_001",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_BOUNDARIES_20261112_001/PLAN.json",
@@ -79640,21 +79668,80 @@
       "sha256": "3d964d2d9a2e2e1fb50e56dc76c4cdff0f2f1eaaadfbc420c16fac8b477e66db"
     },
     "max_invocations": 1,
-    "remaining_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "remaining_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "backbone_encodings_authorized": 512,
-    "head_input_observations_authorized": 5120,
-    "joint_source_captures_authorized": 512,
-    "query_input_observations_authorized": 1024,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "backbone_encodings_authorized": 0,
+    "head_input_observations_authorized": 0,
+    "joint_source_captures_authorized": 0,
+    "query_input_observations_authorized": 0,
     "candidate_weights_writes_authorized": 0,
     "backward_calls_authorized": 0,
     "optimizer_steps_authorized": 0,
     "training_authorized": false,
-    "next_action": "Execute the single qualified passive paired full4096 INITIAL/FINAL boundary observation, then retained finite endpoint/source-coordinate accounting only if both original endpoints and priorINITIALh0 are byteexact and per-phase passivity/weights-only transition hold. No training, model/loss change, full-history fit orTEST use."
+    "next_action": "Source-only follow-up of the unresolved nearest-trendline slot identity/anchor/change-marker gap in the actual temporal model inputs. Reuse the existing producer and packing owners to specify the smallest causal semantic correction, with all genuine families and TF preserved. The paired study is complete: do not repeat its observations, freeze components, or select an endpoint mixture from usedTRAIN. Any model-function change requires focused qualification and a fresh initial baseline; no new numerical/model/training plan is admitted now.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_BOUNDARIES_20261112_001/RESULT.json",
+      "sha256": "95f1fc329701d4428de2f7e85ef8908b15344f3ec5e5a841d7bfcd059780c79d"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_BOUNDARIES_20261112_001/TERMINAL.json",
+      "sha256": "87551f40ede79a37df3641528699d799d1c36ab855e43f8ffa3893f24049b6b5"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_BOUNDARIES_20261112_001/CONTROLLER_RESULT.json",
+      "sha256": "5872aeaf742a2b4518f1fb2351a799376c5eec53af43f64ba87a814924ebd683"
+    },
+    "guard_terminal_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_BOUNDARIES_20261112_001/GUARD_TERMINAL_REVIEW.json",
+      "sha256": "a061a3e83aeb52219b72e3709a2eb54ae1f648079a6876c6f3fc7ed23858aa88"
+    },
+    "paired_boundary_finite_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_BOUNDARIES_20261112_001/PAIRED_BOUNDARY_REVIEW.json",
+      "sha256": "893e196250906890fd111a91221fd8bfc73e925d2985680aa4d752e8a4443645"
+    },
+    "m5_ranking_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_BOUNDARIES_20261112_001/M5_RANK_REVIEW.json",
+      "sha256": "cf7716ff889b9ff39469eda8919da3eaefd0d722b76981afdc6bb05546ebb9b4"
+    },
+    "postreview": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_BOUNDARIES_20261112_001/M5_RANK_SOURCE_INTERPRETATION_REVIEW.json",
+      "sha256": "90240b0d275ffd9ae3850c980a88ae8a9746bc5f45091a7e25dff110212d9dcb"
+    },
+    "actual_counts": {
+      "archive_decodes": 3,
+      "autograd_grad_calls": 0,
+      "backbone_encodings": 512,
+      "backwards": 0,
+      "candidate_writes": 0,
+      "checkpoint_loads": 2,
+      "checkpoint_weight_transitions": 1,
+      "checkpoint_writes": 0,
+      "extra_target_gathers": 1024,
+      "forward_returns": 512,
+      "head_hook_registrations": 20,
+      "head_input_observations": 5120,
+      "joint_hidden_captures": 512,
+      "joint_hook_contexts": 512,
+      "joint_source_captures": 512,
+      "matched_batches": 512,
+      "model_construction_returns": 1,
+      "model_constructions": 1,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "published_npz_bytes": 64614682,
+      "query_input_observations": 1024,
+      "resume_state_load_calls": 2,
+      "resume_state_load_returns": 2,
+      "rng_restores": 0,
+      "sampled_rows": 8192
+    },
+    "all_endpoint_fields_and_loss_bitexact": true,
+    "all_initial_head_inputs_bitexact": true,
+    "source_unchanged": true
   }
 }
