@@ -5,52 +5,34 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier arbeidsstatus; terminal/pros
 
 ## Aktivt mål og neste steg
 
-TA_DIRECTION_EDGE_CAUSE_EXPOSURE_ADMITTED_REBOOT_REQUIRED. Edge-målet er fortsatt uoppnådd.
-Eksponeringsplanen er implementert i eksisterende worker med én separat, eksakt kontrakt/rute.
-Faktisk metadata-/visningsport består for100kildeeiere;104fokuserte syntetiske tester består,
-inkludert gammel rute og ny feil-/suksessrapportering. Obligatorisk pre-commit består.
-Uavhengig kildekontroll fant ingen integrasjonsfeil. Ingen ny modelljobb er startet.
+TA_DIRECTION_EDGE_CAUSE_EXPOSURE_RETAINED_REVIEW_ADMITTED. Edge-målet er fortsatt uoppnådd.
+Ny eksponeringskontrast er COMPLETE/CONSUMED. ROOT
+/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001.
+RESULTd5ba8fa9, TERMINALe43be2ee, runtimekvittering75bf0f16. Ren fryst kilde67fa0d2a.
+768faktiske updates/0skip,2304forwards,1modell/optimizer/INITIAL-dekoding,0checkpointwrites,
+1evidenskapsel og alle6målinger bevart. Felles INITIAL/pass1 er bit-eksakt på begge paneler;
+modell, RNG og256treningsposter matcher kontrollen. Alle pass har lik RNG-strøm.
+Input-/kilde-/måleporter og faktisk sluttcursor/kvitteringskjede består. Windows-boot646,
+controllerexit0 og engangsoppgaven er deaktivert. Ingen tung jobb kjører.
 
-Eksakt planlagt Python-oppstart er røykprøvd under capped audit på ren kilde c0bd4e9b.
-Den når forventet CUDA-vaktavvisning før kontekst/CLAIM/modell. Samme faktiske kilde-/kvitterings-/
-visningsport som worker består; checkpoint, featureview, normalisering og konstruktør er identiske
-med den fullførte kontrollens faktiske restore-bevis. Ny native restore/paritet kreves fortsatt.
-Ny ROOT /home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001:
-RECIPE673fcc4a og PREFLIGHT24c7a149. Én eksakt engangsadmisjon er nå bundet; ingen modell er startet.
-Metadata-grunnlag RESULT39432800 ligger i MARKET_STATE_TA_COVERAGE_PREPARATION_20261112_001;
-den gamle metadataoperasjonen og FULL-kontrollen er COMPLETE/CONSUMED.
+Kandidaten bruker12288unike TRAIN-rader mot4096×3 i bevart FULL, med samme768updates.
+Faste4096TRAIN/LATER-paneler, FULL-mål, INITIAL, genuine features,5TF og normalisering beholdes.
+De736komplementradene er ikke brukt til nye updates. Radinnhold, repetisjon og rekkefølge endres
+sammen; forsøket isolerer ikke unik-radtall alene. Gamle forbrukte planer forblir stengt.
 
-Neste: materialiser én kampanje, installer eksisterende controller og gjennomfør eksisterende
-prepare/confirm-reboottransaksjon etter fersk maskinvid ledigkontroll. Statisk training/native_training
-står true kun for denne kvalifiserte768-update-admisjonen fordi materializer krever den før
-omstartstransaksjonen kan opprettes. Faktisk native start er fortsatt sperret til bekreftet nyere
-fysisk Windows-boot enn645. Ingen vakter eller forbrukte planer er endret. Rekkefølgen følger
-den eksisterende kjøreruten; forrige tekst om å materialisere først etter boot var feil.
-Første ledigkontroll: ingen beregningsjobber, prosjektwriters eller prosjektlåser; kun cron-lås,
-WSL/Windows-systemgrafikk og stående strøm-/telemetrivakter. GPU0prosent/78MiB. Ingen runtime ennå.
+Foreløpige punktestimater: senere M5F Brier0,251796→0,249511; M5S0,250519→0,248787 mot FULL.
+Alle10S/F×TF-sideceller får bedre Brier/logloss mot FULL. Senere samlet tap2,470884→2,360385,
+men fortsatt dårligere enn INITIAL2,350915 og prior2,316114. M5F er nesten lik INITIAL/prior.
+Gamle TRAIN-panelets tap1,789263→1,832358. Dette støtter en eksponeringsforklaring på sterkere
+paneltilpasning og dårligere senere sannsynlighetsskår; rangering/usikkerhet gjenstår.
 
-Pass1 beholder de gamle256batchene. Fra1546hele øvrige batcher velges512 jevnt fordelte
-ordensstatistikker, annenhver til kronologiske pass2/3. De46komplementbatchene holdes utenfor.
-Dette gir12288unike rader/768oppdateringer mot4096×3/768 i bevart FULL. Innhold, repetisjon
-og rekkefølge følger med eksponeringsplanen; ingen kausal dekningseffekt er etablert.
-
-Gjenbruk ferdig FULL-kontroll uten relaunch. Felles pass1 må måle samme modell9dfd2be5,
-RNGb06f3644 og256loss-/gradient-/skip-poster før nye batcher. Pass1-optimizerstate er ikke
-bevart; pass1 kan ikke hoppes over/resumeres med antatt AdamW-paritet. Krev768faktiske
-updates/0skip; ingen ekstrabatcher. Faste4096TRAIN/LATER-paneler og alle femTF beholdes.
-
-Seks fysiske sidecars er allerede bundet til hele29574TRAIN-populasjonens unionsvinduer.
-Ingen ny produsent/refit er nødvendig ut fra kilden. Nye batcher må ved faktisk konsum passere
-uendret lokal span-/klokkematching og nativeMTF-vindus-/witnessporter. Kontrollen mot
-baselineTRAIN[slot] brukes bare på gamle batcher; nye batcher bindes til originalakse b*16.
-Eksakt startup/import, faktiske checkpoint/view/kvitteringsnøkler og feil/suksess-rapportering
-er kvalifisert. Dette er kildebevis, ikke læringsresultat. Gamle forbrukte planer forblir stengt.
-
-Brukeren spør om oppsettet er riktig å trade med. Gjeldende06Nov-fase er fortsatt markedstilstand
-før Entry. S-tilstand og F-nettoendring er prognosemål, ikke kjøp/salg eller prisbane-/lønnsomhetsbevis.
-FLATT er ikke AVSTÅ; F-horisont er ikke holdetidsregel. Indikatorgrunnlaget er relevant,
-men gode situasjonsvalg og handelsverdi er ennå ikke bevist. Ingen ny handels-/Entry-fase åpnes.
-Eksponeringskontrollen skal belyse læring, ikke brukes som godkjenning av et handelsoppsett.
+Neste: én admittert gjenbruksvurdering av6lagrede INITIAL/FULL/COVERAGE TRAIN/LATER-captures.
+REVIEW_EXPOSURE.py er bundet i policy; capped audit4GiB/512MiB,300sek og2000dag-/ukereplikater.
+Metadata/import kontrolleres før CLAIM; bootstrap og skåringsfunksjoner gjenbrukes uendret.
+Gjenbruk kvalifisert AUC-/skåringskode og dag-/ukebootstrap for begge oppgaver og5TF. Behold
+frossen prior og alltid-LONG. Ingen ny modell, checkpointdekoding, featurelesing eller fitting.
+Global training/native_training er false. Modellen er ikke et dokumentert handelsoppsett;
+S/F-prognoser beviser ikke Entry-kvalitet, prisbane eller økonomisk edge. TEST forblir forseglet.
 
 ## Målt resultat og presise grenser
 
@@ -97,7 +79,7 @@ Femhorisontreviewen er COMPLETE/CONSUMED. FULL TRAIN-AUC M15–D1 var0,62–0,71
 Låste støtte-/EMA-/HTF-oppsett viste ingen avklart merverdi mot alltid-LONG på femhorisontene.
 AUC er ikke winrate. Alle tidligere kvitteringer og checkpoints beholdes uendret.
 
-Global training/native_training gjelder kun ny eksakt engangsadmisjon; full epoch og fullVAL er false. Ingen tung jobb kjører.
+Global training/native_training, full epoch og fullVAL er false. Ingen tung jobb kjører.
 Root eier policy/launch. TEST, Entry/Exit-evaluering, broker, handel, spending og promotion er stengt;
 GC er på pause. Bare benchmarkorkestrering, kontrakt/ruting og fokuserte tester er endret; numeriske eiere er uendret.
 Korte runder kvalifiserer feil og hypoteser; de dømmer ikke endelig kapasitet.

@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_FIXED_EXPOSURE_ADMITTED_REBOOT_REQUIRED",
+  "status": "ACTIVE_EXPOSURE_RETAINED_REVIEW_ADMITTED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -269,7 +269,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Materialize the one exact coverage campaign from qualified source and policy, install its existing controller, and perform the machine-wide-idle prepare/confirm reboot transaction. Native execution remains gated on a newer physical Windows boot and unchanged source. Run exactly768updates with zero skips, retain all six panels and stop on any parity failure; no control relaunch or candidate selection.",
+  "next_measurement": "Run the qualified metadata-only startup preflight, then one capped retained-output review with six archive decodes and2000paired UTC-day/week bootstrap replicates using existing scoring owners. Compare fixed pass3 COVERAGE/FULL/INITIAL and frozen prior on all five later native horizons; no model, checkpoint, feature payload, fitting, selection or TEST. Consume this review after its terminal result.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -12457,5 +12457,61 @@
     "model_architecture_changed": false,
     "target_semantics_changed": false,
     "new_training_admitted": false
+  },
+  "fixed_exposure_native_result": {
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001/RESULT.json",
+      "sha256": "d5ba8fa99c87ee3f639770c5b042fe93a442ef4f200733f13fe21cb30a8ac9e0"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001/TERMINAL.json",
+      "sha256": "e43be2ee9e46085039ecf7a995ccc77e38c52713375bfdf54c238e24ae9b49cd"
+    },
+    "runtime_receipt": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "75bf0f1658bd88b464e56c6b3a600f29ebb40b381c1d03a199977c8d1b926c18"
+    },
+    "completion_verification": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001/COMPLETION_VERIFICATION.json",
+      "sha256": "0b4c14e434f858334e80071899e9d741aee80a06284b522d0c46c763faabed22"
+    },
+    "final_model_state_sha256": "75829c9506bd051c6e5e5ab3f24d40c74e3483638a6a836a5aa3174b838c9138",
+    "actual_counts": {
+      "backward_returns": 768,
+      "backwards": 768,
+      "batch_visits": 768,
+      "candidate_evidence_writes": 1,
+      "checkpoint_loads": 1,
+      "checkpoint_writes": 0,
+      "control_capture_archive_decodes": 4,
+      "evaluation_forwards": 1536,
+      "extra_target_gathers": 2560,
+      "forward_returns": 2304,
+      "forwards": 2304,
+      "initial_rng_imports": 1,
+      "input_sidecar_archive_decodes": 12,
+      "json_bytes": 538074,
+      "loss_component_owner_calls": 768,
+      "model_construction_returns": 1,
+      "model_constructions": 1,
+      "optimizer_constructions": 1,
+      "optimizer_step_calls": 768,
+      "optimizer_step_returns": 768,
+      "optimizer_updates": 768,
+      "resume_state_load_calls": 1,
+      "resume_state_load_returns": 1,
+      "skipped_batches": 0,
+      "strict_full_state_restore_calls": 1,
+      "strict_full_state_restore_returns": 1,
+      "training_forwards": 768
+    },
+    "status": "COMPLETE_CONSUMED",
+    "paired_initial_and_pass1_exact": true,
+    "point_estimate_gain_not_ranking_or_edge_proof": true,
+    "test_data_used": false,
+    "retained_review_script": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001/REVIEW_EXPOSURE.py",
+      "sha256": "eb71cd3fe30c7b2944a8219b138318f91f073a6ba173d888de7b1ea4fa491785"
+    }
   }
 }
