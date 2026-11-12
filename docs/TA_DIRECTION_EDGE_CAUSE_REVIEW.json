@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_MATCHED_HORIZON_EFFECT_MIXED_ACTIVITY_REGRESSION_LOCALIZED",
+  "status": "ACTIVE_ISOLATED_ACTIVITY_MECHANICS_PASS_NATIVE_BASELINE_PENDING",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -265,7 +265,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Use retained original/trial outputs and TRAIN trace to isolate the remaining common activity shift and original sparse-batch loss weighting, first S/D1, and the persistent F/M15-H1 upward calibration shift. Keep all features, five timeframes, targets and guards. Quantify per-task/TF pressure before another model or loss change; current one-use comparison is consumed and admits no further native run. Full history and30-40epochs remain later qualification, not a required rerun after each correction.",
+  "next_measurement": "Prepare strict original-c171 weights-only migration and default-compatible factory/view/batch/numerical binding for the isolated activity-only variant; then qualify a fresh actual initial baseline before any learning comparison. Reuse the original checkpoint, inputs, targets and training settings. No native model run or optimizer updates are admitted by mechanical qualification.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -1723,5 +1723,13 @@
     "The new direction contribution decreases by0.007041688 while activity increases by0.013960765; net total increases by0.006919080.",
     "S/D1 activity contributes0.010914106, or78.18percent of net activity deterioration. Its average activity probability rises91.37to94.56percent against90.34percent active labels on2226informative rows.",
     "All8TAfamilies and5timeframes are retained; family predictive utility and later generalization remain unproven."
-  ]
+  ],
+  "activity_pressure_review": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ACTIVITY_PRESSURE_REVIEW.json",
+    "sha256": "34c91f7593afa2bfae386f3dfc06f8df16b2029ea29c90b7922e9ff2b5a2f85a"
+  },
+  "tf_activity_decoder_repair": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
+    "sha256": "a03c02837d8e66b9bf9863760633fbc7a80fcba010bd8feec87c82297afcb2be"
+  }
 }

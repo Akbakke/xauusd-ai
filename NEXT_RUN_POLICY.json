@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-11T22:53:26.085246+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_MATCHED_HORIZON_EFFECT_MIXED_ACTIVITY_REGRESSION_LOCALIZED",
+  "status": "TA_DIRECTION_EDGE_CAUSE_ACTIVITY_ONLY_MECHANICS_PASS_NATIVE_BASELINE_PENDING",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Use retained original/trial outputs and TRAIN trace to isolate the remaining common activity shift and original sparse-batch loss weighting, first S/D1, and the persistent F/M15-H1 upward calibration shift. Keep all features, five timeframes, targets and guards. Quantify per-task/TF pressure before another model or loss change; current one-use comparison is consumed and admits no further native run. Full history and30-40epochs remain later qualification, not a required rerun after each correction.",
+  "next_action": "Mechanically qualify one opt-in activity-only architecture from originalc171: five cloned independent activity rows perS/F, original dedicatedM5side retained and nonM5side separation off. Keep all features/TF/query/backbone, targets and loss weights. Verify legacy defaults, RNG, side parity, activity initial tolerance, exact TF/task gradient routing and rejection by old numerical recipes. No factory/run/optimizer admission or native training in this source-preparation stage; weights-only migration and actual fresh initial baseline require separate qualification.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1705,7 +1705,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Completed and independently reviewed the matched non-M5 short learning comparison on all4096usedTRAINrows. Scope consumed and task Disabled. Reduced total deterioration, mixed per-task effects, no M5 gain versus original; activity regression localized primarily to S/D1.",
+    "current_activity": "Independent retained pressure review and 226 focused mechanical tests passed. Isolated activity-only variant needs strict migration, binding and fresh actual initial baseline; no native run admitted.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1758,7 +1758,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No operational blocker. Remaining weak M5 performance, activity drift and F/M15-H1 upward miscalibration need retained-evidence diagnosis; later generalization and economic edge remain unproven.",
+    "current_blocker": "Strict weights-only migration, optimizer/view binding and fresh actual initial baseline remain before any activity-only learning comparison.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9229,7 +9229,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Use retained original/trial outputs and TRAIN trace to isolate the remaining common activity shift and original sparse-batch loss weighting, first S/D1, and the persistent F/M15-H1 upward calibration shift. Keep all features, five timeframes, targets and guards. Quantify per-task/TF pressure before another model or loss change; current one-use comparison is consumed and admits no further native run. Full history and30-40epochs remain later qualification, not a required rerun after each correction.",
+    "next_action": "Prepare strict original-c171 weights-only migration and default-compatible factory/view/batch/numerical binding for the isolated activity-only variant; then qualify a fresh actual initial baseline before any learning comparison. Reuse the original checkpoint, inputs, targets and training settings. No native model run or optimizer updates are admitted by mechanical qualification.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22144,7 +22144,7 @@
     },
     "direction_edge_cause_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "956e7b768fb49ba81baa8a0ac64808763fb950274ea74395130cbc9693595c8e"
+      "sha256": "510e46952629e6e5ada8c40547b000b2444e7d6323e56a229eaa6250fac47cf5"
     },
     "latest_c171_startup_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_C171_SHORT_LEARNING_STARTUP_REVIEW.json",
@@ -22219,6 +22219,14 @@
     "latest_non_m5_short_learning": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_SHORT_LEARNING_REVIEW.json",
       "sha256": "45e071a0ed39e75543cda838bb9fbf885b1549a2a2869f83fc3a7e378ed4fe46"
+    },
+    "latest_activity_pressure_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ACTIVITY_PRESSURE_REVIEW.json",
+      "sha256": "34c91f7593afa2bfae386f3dfc06f8df16b2029ea29c90b7922e9ff2b5a2f85a"
+    },
+    "latest_tf_activity_decoder_repair": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
+      "sha256": "a03c02837d8e66b9bf9863760633fbc7a80fcba010bd8feec87c82297afcb2be"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -75558,24 +75566,24 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_MATCHED_HORIZON_EFFECT_MIXED_ACTIVITY_REGRESSION_LOCALIZED",
+    "status": "ACTIVE_ISOLATED_ACTIVITY_MECHANICS_PASS_NATIVE_BASELINE_PENDING",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
     "training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "956e7b768fb49ba81baa8a0ac64808763fb950274ea74395130cbc9693595c8e"
+      "sha256": "510e46952629e6e5ada8c40547b000b2444e7d6323e56a229eaa6250fac47cf5"
     },
     "integrator": "root",
     "model_or_data_run_admitted": false,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Use retained original/trial outputs and TRAIN trace to isolate the remaining common activity shift and original sparse-batch loss weighting, first S/D1, and the persistent F/M15-H1 upward calibration shift. Keep all features, five timeframes, targets and guards. Quantify per-task/TF pressure before another model or loss change; current one-use comparison is consumed and admits no further native run. Full history and30-40epochs remain later qualification, not a required rerun after each correction.",
-    "active_stage": "market_state_ta_non_m5_short_learning_20261112_001",
+    "next_action": "Prepare strict original-c171 weights-only migration and default-compatible factory/view/batch/numerical binding for the isolated activity-only variant; then qualify a fresh actual initial baseline before any learning comparison. Reuse the original checkpoint, inputs, targets and training settings. No native model run or optimizer updates are admitted by mechanical qualification.",
+    "active_stage": "market_state_ta_tf_activity_decoder_repair_20261112_001",
     "previous_goal_turn_classification": "PROGRESS: retained MTFintervention andinputsupport review ruledout an unsupported harmful-MTF or generalnormalization-collapse change; nextactualboundarymeasurement identified.",
-    "last_goal_turn_classification": "PROGRESS_MATCHED256UPDATE_EFFECT_MEASURED_ALL10TASK_TF_CELLS_ACTIVITY_REGRESSION_LOCALIZED_NO_M5_GAIN",
+    "last_goal_turn_classification": "PROGRESS_RETAINED_PRESSURE_INDEPENDENTLY_VERIFIED_AND_ISOLATED_ACTIVITY_MECHANICS_PASSED",
     "latest_tail_factor_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_ALL_TF_TAIL_FACTOR_REVIEW.json",
       "sha256": "5da978f765b0ad1ac001023501be7665989270d8353d768b801b9e1b29406c0f"
@@ -75595,6 +75603,14 @@
     "non_m5_short_learning": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_SHORT_LEARNING_REVIEW.json",
       "sha256": "45e071a0ed39e75543cda838bb9fbf885b1549a2a2869f83fc3a7e378ed4fe46"
+    },
+    "activity_pressure_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ACTIVITY_PRESSURE_REVIEW.json",
+      "sha256": "34c91f7593afa2bfae386f3dfc06f8df16b2029ea29c90b7922e9ff2b5a2f85a"
+    },
+    "tf_activity_decoder_repair": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
+      "sha256": "a03c02837d8e66b9bf9863760633fbc7a80fcba010bd8feec87c82297afcb2be"
     }
   },
   "market_state_ta_fusion_observation_20261111_001": {
@@ -76294,7 +76310,7 @@
     "unresolved_campaign_marker_preserved": true,
     "standard_campaign_receipt_available": false
   },
-  "active_stage": "market_state_ta_non_m5_short_learning_20261112_001",
+  "active_stage": "market_state_ta_tf_activity_decoder_repair_20261112_001",
   "market_state_ta_m5_c171_short_learning_20261111_002": {
     "decision": "CLOSED",
     "status": "COMPLETE_CONSUMED",
@@ -76847,7 +76863,7 @@
     },
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json",
-      "sha256": "956e7b768fb49ba81baa8a0ac64808763fb950274ea74395130cbc9693595c8e"
+      "sha256": "510e46952629e6e5ada8c40547b000b2444e7d6323e56a229eaa6250fac47cf5"
     },
     "full_model_constructions": 0,
     "native_model_forwards": 0,
@@ -78332,5 +78348,34 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_NON_M5_SHORT_LEARNING_20261112_001/RETAINED_ACTIVITY_DIAGNOSIS.json",
       "sha256": "c772f0291e437dec218dffa1af3df3dbe1da328f6363e4b4dc0ccad4d2dea00d"
     }
+  },
+  "market_state_ta_tf_activity_decoder_repair_20261112_001": {
+    "status": "MECHANICAL_PASS_NO_NATIVE_ADMISSION",
+    "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_MECHANICAL_20261112_001",
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
+      "sha256": "a03c02837d8e66b9bf9863760633fbc7a80fcba010bd8feec87c82297afcb2be"
+    },
+    "activity_pressure_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ACTIVITY_PRESSURE_REVIEW.json",
+      "sha256": "34c91f7593afa2bfae386f3dfc06f8df16b2029ea29c90b7922e9ff2b5a2f85a"
+    },
+    "model_change_scope": "Strict opt-in independent activity rows only; preserve existing model profiles",
+    "synthetic_cpu_decoder_checks_authorized": true,
+    "synthetic_routing_backward_authorized": true,
+    "native_model_run_authorized": false,
+    "native_optimizer_updates_authorized": false,
+    "training_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "new_training_recipe_admitted": false,
+    "fresh_actual_initial_baseline_required": true,
+    "test_data_used": false,
+    "next_action": "Prepare strict original-c171 weights-only migration and default-compatible factory/view/batch/numerical binding for the isolated activity-only variant; then qualify a fresh actual initial baseline before any learning comparison. Reuse the original checkpoint, inputs, targets and training settings. No native model run or optimizer updates are admitted by mechanical qualification.",
+    "mechanical_qualification": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_MECHANICAL_20261112_001/FOCUSED_TESTS.json",
+      "sha256": "5251528c1690d08017280fe5dc363c740ce825cc20bbed32d773003654e71edf"
+    },
+    "passed_tests": 226
   }
 }

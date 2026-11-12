@@ -70,7 +70,8 @@ def _m5_training_profile(ta_only, dedicated_m5_side, enabled):
 
 def contract(*, ta_only: bool = False, dedicated_m5_side: bool = False,
              m5_equal_observation: bool = False,
-             dedicated_non_m5_side: bool = False) -> dict:
+             dedicated_non_m5_side: bool = False,
+             dedicated_tf_activity: bool = False) -> dict:
     if type(ta_only) is not bool:
         raise ValueError('NATIVE_F_OBJECTIVE_PROFILE')
     profile = _m5_training_profile(ta_only, dedicated_m5_side, m5_equal_observation)
@@ -80,7 +81,8 @@ def contract(*, ta_only: bool = False, dedicated_m5_side: bool = False,
         'S_loss_contract_sha256': state_loss.contract()['contract_sha256'],
         'F_target_contract_sha256': future_contract()['contract_sha256'],
         'dual_model_contract_sha256': model_contract(ta_only=ta_only, dedicated_m5_side=dedicated_m5_side,
-            dedicated_non_m5_side=dedicated_non_m5_side)['contract_sha256'],
+            dedicated_non_m5_side=dedicated_non_m5_side,
+            dedicated_tf_activity=dedicated_tf_activity)['contract_sha256'],
         'F_score_contract_sha256': scorer.factorized_time_query_scorer_contract()['contract_sha256'],
         'combined_loss': 'side_normalized_S_loss_plus_prebound_positive_weight_times_side_normalized_F_loss',
         'F_query': 'fixed_native_k_per_TF_every_row',
@@ -106,7 +108,8 @@ def combined_loss(*, state_raw: torch.Tensor, future_raw: torch.Tensor,
                   state_query_k: torch.Tensor, future_weight: float,
                   ta_only: bool = False, dedicated_m5_side: bool = False,
                   m5_equal_observation: bool = False,
-                  dedicated_non_m5_side: bool = False) -> dict:
+                  dedicated_non_m5_side: bool = False,
+                  dedicated_tf_activity: bool = False) -> dict:
     """Reuse v2 masked loss on two distinct heads; weight is plan-owned."""
     profile = _m5_training_profile(ta_only, dedicated_m5_side, m5_equal_observation)
     if not (type(future_weight) is float and np.isfinite(future_weight)
@@ -146,7 +149,8 @@ def combined_loss(*, state_raw: torch.Tensor, future_raw: torch.Tensor,
             'future_weight': future_weight,
             'contract_sha256': contract(ta_only=ta_only, dedicated_m5_side=dedicated_m5_side,
                 m5_equal_observation=m5_equal_observation,
-                dedicated_non_m5_side=dedicated_non_m5_side)['contract_sha256']}
+                dedicated_non_m5_side=dedicated_non_m5_side,
+                dedicated_tf_activity=dedicated_tf_activity)['contract_sha256']}
 
 
 def _weeks(issues: np.ndarray) -> np.ndarray:

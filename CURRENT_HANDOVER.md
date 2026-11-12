@@ -6,7 +6,7 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; terminal/prosess overstyrer prosa.
 
 ## Aktivt mål og grenser
 
-TA_DIRECTION_EDGE_CAUSE_MATCHED_HORIZON_EFFECT_MIXED_ACTIVITY_REGRESSION_LOCALIZED.
+TA_DIRECTION_EDGE_CAUSE_ACTIVITY_ONLY_MECHANICS_PASS_NATIVE_BASELINE_PENDING.
 Målet11.11 er aktivt: avklar målte årsaker til svak retningsverdi i indikatorer,
 sammensetting og læring. [Samlet status](docs/TA_DIRECTION_EDGE_CAUSE_REVIEW.json).
 Korte runder er bevisst feilsøking, ikke kapasitetsdom. Full kvalifisert TRAIN-historikk
@@ -87,10 +87,34 @@ alle40fullprefix-retnings-AUC med annen parvis metode, eksakt avvik0,0.
 Originale råkvitteringer/checkpoints og prelaunch-feil er bevart. Ingen ny modelljobb
 ble kjørt for resultatregnskapet. Høy D1 TRAIN-AUC er ingen handels-/kapasitetsdom.
 
-## Neste konkrete avklaring
+## Retained aktivitetskontroll og neste rettede forsøk
 
-Bruk beholdte outputs og TRAIN-trace til å isolere felles aktivitetsskift og original
-vekting av batcher med sparsom støtte, først S/D1, samt vedvarende F/M15-H1 UP-skjevhet.
-Mål peroppgave/TF-trykk før ny modell-/tapsendring. Ikke fjern indikatorer eller D1,
-ikke velg nye tap eller treningsmengde fra denne ene runden. Ingen ny native plan er
-innrømmet. Full historikk/30–40epoker vurderes senere når grunnlaget er kvalifisert.
+[Ny kontroll](docs/TA_ACTIVITY_PRESSURE_REVIEW.json): fem beholdte NPZ,0modeller/checkpoints/
+forwards/autograd/updates. Originale masker, perbatch-nevnere,/5 ogF-vekt1 beholdt.
+Sentraldifferanse bekrefter15360TF-biasgradientceller innen1,94e-11; begge originale
+TRACE-tap gjenskapes innen3,14e-7. Uavhengig kontroll723a68d0 består; maksimal
+gradientrest5,55e-17, største publiserte feltavvik9,09e-13.
+
+Alle5TF deler aktivitetens sluttrad innen hver S/F-gren, M5 inkludert. I den nye
+kjøringen har175/256 S-batcher og220/256 F-batcher motstridende TF-bidrag til denne
+biasen. M5-bidraget har motsatt fortegn av summen i88S-/86F-batcher. Dette er ett
+koordinat, ikke antall skadelige oppdateringer eller full gradient-/Adam-attribusjon.
+S/D1 har2226informative rader i224batcher, radkoeffisienter varierer16ganger. Den
+batchvektede aktive labelandelen87,186% er LAVERE enn pooled90,341%; vektingen
+forklarer ikke høy aktivitet ved å heve konstantprediktorens optimum.
+S/D1-tapsendringen før/5 består av−0,02455363 på aktive rader og+0,07912416 påFLAT.
+252/256gradientnormer klippes i begge kjøringer; positiv skalering bevarer fortegn
+innen batch, men endrer batchers relative bidrag. Ingen numerisk tapsfeil er påvist.
+
+[Valgt aktivitetsforsøk](docs/TA_TF_ACTIVITY_DECODER_REPAIR.json) er mekanisk kvalifisert:
+fem egne aktivitetshoder perS/F, klonet fra row0;20tensorer/1290parametre ved128bredde.
+Originalc171-sidekonfigurasjon beholdes, den separate nonM5-sidevarianten er av.
+Dette endrer aktivitetsvekter og bias; det er ingen ren biasintervensjon. Bias-only
+var mindre matematisk, mens full radkloning gjenbruker det etablerte head-mønsteret.
+DefaultFalse bevarer eksisterende profiler, features/TF og tapsformler.
+226fokuserte tester bestod, exit0, alle16kildebindinger uendret under kjøring.
+Dette omfatter kloning/RNG, retningsparitet, aktivitetsinitialtoleranse, alleTF/S/F-
+gradientruter, avvisning av ugyldige hoder og avvisning fra gamle numeriske oppskrifter.
+Kun mekaniske CPU-fixture-kontroller er innrømmet; ingen factory/run/numerical-trening
+åpnes. Før native sammenligning trengs særskilt binding/migrasjon og fersk faktisk
+initialbaseline. Full historikk/30–40epoker er fortsatt senere skalering.

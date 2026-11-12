@@ -1,0 +1,88 @@
+{
+  "schema_version": "gx1_tf_activity_decoder_repair_v1",
+  "status": "MECHANICALLY_QUALIFIED_NO_NATIVE_ADMISSION",
+  "reason": "Measured shared activity-coordinate pressure and FLAT calibration regression motivate one isolated architectural comparison.",
+  "evidence": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ACTIVITY_PRESSURE_REVIEW.json",
+    "sha256": "34c91f7593afa2bfae386f3dfc06f8df16b2029ea29c90b7922e9ff2b5a2f85a"
+  },
+  "design": {
+    "flag": "dedicated_tf_activity",
+    "default": false,
+    "requires_ta": true,
+    "requires_dedicated_m5_side": true,
+    "requires_dedicated_non_m5_side": false,
+    "heads_per_task": 5,
+    "tasks": [
+      "S",
+      "F"
+    ],
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ],
+    "initialization": "Clone each existing task activity row0 with RNG preserved",
+    "new_tensors": 20,
+    "new_parameters_at_hidden128": 1290,
+    "changes": "Activity weights and bias become TF-specific; both change capacity, not only the measured bias coordinate.",
+    "unchanged": [
+      "all genuine indicators and five timeframes",
+      "backbone and query projection",
+      "conditional-side outputs and their original head configuration",
+      "targets and masks",
+      "loss formulas and weights",
+      "all existing default and separate-side variants"
+    ]
+  },
+  "alternative_considered": "TF-specific bias alone is a smaller mathematical intervention. Full row cloning is selected as the bounded activity-head hypothesis because it reuses the established cloned-head construction and tests TF-specific activity conditioning. This does not identify bias conflict as the unique cause.",
+  "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_MECHANICAL_20261112_001",
+  "source_owners": [
+    "gx1/contracts/market_state_time_query_model_v2.py",
+    "gx1/contracts/market_state_time_query_native_F_model_v1.py",
+    "gx1/contracts/market_state_time_query_native_F_objective_v1.py"
+  ],
+  "planned_tests": [
+    "tests/test_market_state_time_query_tf_activity_v1.py"
+  ],
+  "fresh_actual_initial_baseline_required": true,
+  "native_function_qualified": false,
+  "learning_effect_measured": false,
+  "native_run_authorized": false,
+  "training_authorized": false,
+  "promotion_authorized": false,
+  "test_data_used": false,
+  "next_action": "Prepare strict original-c171 weights-only migration and default-compatible factory/view/batch/numerical binding for the isolated activity-only variant; then qualify a fresh actual initial baseline before any learning comparison. Reuse the original checkpoint, inputs, targets and training settings. No native model run or optimizer updates are admitted by mechanical qualification.",
+  "mechanical_qualification": {
+    "status": "PASS",
+    "passed_tests": 226,
+    "test_files": [
+      "tests/test_market_state_time_query_tf_activity_v1.py",
+      "tests/test_market_state_time_query_factorized_v2.py",
+      "tests/test_market_state_time_query_native_F_model.py",
+      "tests/test_market_state_time_query_native_F_objective.py",
+      "tests/test_market_state_time_query_dedicated_m5_side_v1.py",
+      "tests/test_market_state_time_query_non_m5_side_v1.py",
+      "tests/test_market_state_non_m5_side_optimizer_binding.py",
+      "tests/test_market_state_m5_equal_observation_loss.py"
+    ],
+    "receipt": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_MECHANICAL_20261112_001/FOCUSED_TESTS.json",
+      "sha256": "5251528c1690d08017280fe5dc363c740ce825cc20bbed32d773003654e71edf"
+    },
+    "source_binding": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_MECHANICAL_20261112_001/SOURCE_BINDING.json",
+      "sha256": "9c776cb49fd4319fb1f8670cb5dff43d043a5c4d53065a222decc164650fd31d"
+    },
+    "source_unchanged_during_run": true,
+    "scope": "Synthetic CPU model/loss/routing/backward and rejection by existing numerical recipes; no actual checkpoint migration or native baseline."
+  },
+  "qualified_source_sha256": {
+    "gx1/contracts/market_state_time_query_model_v2.py": "8b952fb269ea1b31965e6e2325f3ecb9513cbb6686e21853427073b498990172",
+    "gx1/contracts/market_state_time_query_native_F_model_v1.py": "a0c253ffe0cd7a70927bdd08b0ad65149e2fdef0006517b132e36ba0efa0e651",
+    "gx1/contracts/market_state_time_query_native_F_objective_v1.py": "da14312bc747ccea45bb77b21e1ea4897ec938a5b8aefbfb2102c2865597e834",
+    "tests/test_market_state_time_query_tf_activity_v1.py": "00b2d471c908645b74fa8d1d7b7951fe86f3d06e092ac0bad946de154d93f078"
+  }
+}
