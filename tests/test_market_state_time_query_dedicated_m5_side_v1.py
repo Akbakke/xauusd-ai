@@ -23,9 +23,9 @@ from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
 )
 
 WIDTH = 128
-# Recorded before this opt-in change from the sealed TA candidate view/recovery recipe.
-LEGACY_TA_S_SHA = "f3dc272ae8df5d05d49bbb44a419b88d34fda2d046c9a85eec480b3e1619b747"
-LEGACY_TA_DUAL_SHA = "bb55e545467b15556e28442360f641ff0bf4e145d8d394001118ebef910542af"
+# Verified against pre-change 11aa70d6 with the current anchor-span TA input profile.
+LEGACY_TA_S_SHA = "3055c6e81a0f5179b975e563898aff614aa1661c8a793d7321bc953132e444f1"
+LEGACY_TA_DUAL_SHA = "035361533be115f017dcf95c104b62dae659c92c31bbcb10a0cbd664249187c4"
 
 
 def _backbone(*, ta_only=True):

@@ -294,7 +294,7 @@ def _require_view(view, *, unobserved_units_profile=None):
         and (not dedicated_non_m5_side or (view['dedicated_non_m5_side'] is True
             and dedicated_m5_side and ta_only and time_query_v2))
         and (not dedicated_tf_activity or (view['dedicated_tf_activity'] is True
-            and dedicated_m5_side and ta_only and time_query_v2 and not dedicated_non_m5_side))
+            and dedicated_m5_side and ta_only and time_query_v2))
         and not (time_query_v2 and 'market_state_time_query' in view)
         and (not scoped_october or (units_profile and not masked_profile))
         and (not units_profile or (full and ((dynamic_state and endpoint) or five_endpoint or time_query)))
@@ -505,7 +505,7 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
                  and market_state_time_query_v2 is True)), 'DEDICATED_NON_M5_SIDE_SCOPE')
     _require(type(dedicated_tf_activity) is bool and (not dedicated_tf_activity
              or (dedicated_m5_side is True and full_ta_feature_profile is True
-                 and market_state_time_query_v2 is True and dedicated_non_m5_side is False)),
+                 and market_state_time_query_v2 is True)),
              'DEDICATED_TF_ACTIVITY_SCOPE')
     _require(type(full_ta_feature_profile) is bool
              and (not full_ta_feature_profile or (full_feature_profile is True

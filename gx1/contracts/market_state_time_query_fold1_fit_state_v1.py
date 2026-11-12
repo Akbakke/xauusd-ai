@@ -400,7 +400,7 @@ def copy_legacy_weights_to_dedicated_m5(legacy_model, model, *,
 
 def copy_dedicated_m5_weights_to_non_m5_sides(legacy_model, model, *,
                                              expected_legacy_model_sha256):
-    """Clone four shared side rows per task after strict original-state restore.
+    """Clone four shared side rows per task after strict source-state restore.
 
     Existing M5, activity, query/backbone, normalization, modes and trainability
     are preserved. Only the two model-identity buffers differ. This transfers no
@@ -413,7 +413,9 @@ def copy_dedicated_m5_weights_to_non_m5_sides(legacy_model, model, *,
           and legacy_model.state_model._dedicated_m5_side is True
           and model.state_model._dedicated_m5_side is True
           and legacy_model.state_model._dedicated_non_m5_side is False
-          and model.state_model._dedicated_non_m5_side is True,
+          and model.state_model._dedicated_non_m5_side is True
+          and legacy_model.state_model._dedicated_tf_activity
+              is model.state_model._dedicated_tf_activity,
           'NON_M5_WARMSTART_MODE')
     _require_model_binding(legacy_model)
     _require_model_binding(model)

@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-12T17:16:56.574384+00:00",
-  "status": "TA_DIRECTION_EDGE_CAUSE_EXPOSURE_EFFECT_MEASURED",
+  "observed_utc": "2026-11-12T18:08:24.896614+00:00",
+  "status": "TA_COMBINED_TF_DECODER_SOURCE_QUALIFIED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Qualify one frozen-state comparison of INITIAL/COVERAGE non-M5 F readout changes versus representation changes using the existing matched captures. First verify the exact retained readout boundary and whether existing results already answer this current-state comparison; reuse the completed factor-review method. A 2x2 retained replay is only a candidate until exact native-logit replay and minimal artifact scope are qualified. No new fit, checkpoint/data execution admission, feature removal, LATER calibration, repeated decoder repair, TEST or trading.",
+  "next_action": "Qualify the minimum existing benchmark seam for one combined-decoder comparison against completed COVERAGE. Reuse its exact source checkpoint/span import, INITIAL RNG, all inputs/normalization,12288-row exposure schedule,768updates and fixed4096TRAIN/LATER panels. Create the activity-only source, verify its known INITIAL digest, clone only the16 side tensors into the combined target and preserve all existing tensors/modes. Require fresh actual INITIAL output/loss parity before any update; then retain the predeclared pass3 all-TF comparison. Actual checkpoint-contract/startup/reporting and guarded campaign route must be qualified before a separate one-use model admission. No new native/data/checkpoint job or training is admitted now.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -64353,8 +64353,8 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "TA_DIRECTION_EFFECTIVE_SIDE_WEIGHT_MEASURED",
-  "recorded_observed_utc": "2026-11-12T17:33:12.855098+00:00",
+  "recorded_status": "TA_COMBINED_TF_DECODER_SOURCE_QUALIFIED",
+  "recorded_observed_utc": "2026-11-12T18:08:24.896614+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
     "decision": "BLOCK",
@@ -75711,7 +75711,7 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_NON_M5_CURRENT_STATE_FACTOR_QUALIFICATION",
+    "status": "ACTIVE_COMBINED_DECODER_NATIVE_COMPARISON_QUALIFICATION",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "G\u00e5 direkte p\u00e5 problemene og lag deg et m\u00e5l for \u00e5 n\u00f8ste opp i hvorfor vi ikke f\u00e5r god Edge ut av markedsretningen.",
@@ -75725,9 +75725,9 @@
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Qualify one frozen-state comparison of INITIAL/COVERAGE non-M5 F readout changes versus representation changes using the existing matched captures. First verify the exact retained readout boundary and whether existing results already answer this current-state comparison; reuse the completed factor-review method. A 2x2 retained replay is only a candidate until exact native-logit replay and minimal artifact scope are qualified. No new fit, checkpoint/data execution admission, feature removal, LATER calibration, repeated decoder repair, TEST or trading.",
-    "active_stage": "market_state_ta_effective_side_weight_20261112_001",
-    "previous_goal_turn_classification": "PROGRESS_BOUND_ACTUAL_CONTROL_PREFIX_AND_FULL_TRAIN_INPUT_REUSE_FOR_FIXED_EXPOSURE_DESIGN",
+    "next_action": "Qualify the minimum existing benchmark seam for one combined-decoder comparison against completed COVERAGE. Reuse its exact source checkpoint/span import, INITIAL RNG, all inputs/normalization,12288-row exposure schedule,768updates and fixed4096TRAIN/LATER panels. Create the activity-only source, verify its known INITIAL digest, clone only the16 side tensors into the combined target and preserve all existing tensors/modes. Require fresh actual INITIAL output/loss parity before any update; then retain the predeclared pass3 all-TF comparison. Actual checkpoint-contract/startup/reporting and guarded campaign route must be qualified before a separate one-use model admission. No new native/data/checkpoint job or training is admitted now.",
+    "active_stage": "market_state_ta_combined_decoder_source_20261112_001",
+    "previous_goal_turn_classification": "PROGRESS",
     "last_goal_turn_classification": "PROGRESS",
     "latest_tail_factor_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_ALL_TF_TAIL_FACTOR_REVIEW.json",
@@ -76199,21 +76199,12 @@
     "scope_response": "Current phase learns market-state forecasts before Entry. The exposure counterfactual diagnoses learning, not a trading strategy. Existing S and F targets do not establish selectable setups, trade-path quality or profitability; no Entry/Exit/trading authority is opened.",
     "latest_progress": {
       "status": "PROGRESS",
-      "result": {
-        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_EFFECTIVE_SIDE_WEIGHT_20261112_001/RESULT.json",
-        "sha256": "89c0a1f5c833244e457860f488ea02483cf61cabcbadf34149a20f87229cf6f2"
+      "source_qualification": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_SOURCE_20261112_001/SOURCE_QUALIFICATION.json",
+        "sha256": "4cc3c3869cceff5a7b856253d96baab969e131d1a85f426b4612279503826327"
       },
-      "source_commit": "1f981f284b34475bc6a24e47ef7928ac01aa1435",
-      "actual_counts": {
-        "archive_decodes": 9,
-        "checkpoints": 0,
-        "features": 0,
-        "forwards": 0,
-        "models": 0,
-        "updates": 0
-      },
-      "elapsed_seconds": 2.613248284999827,
-      "finding": "Measured nonuniform weights; normalization does not impose a universal UP bias. Existing later UP overforecast is present at INITIAL and amplified by coverage learning. Mechanistic cause remains unresolved.",
+      "finding": "Current shared non-M5 side heads are an intentional activity-only variant. Separate prior arms do not test their combination. The minimal combined option is mechanically qualified; native initial and learning effects remain unmeasured.",
+      "native_execution": false,
       "economic_edge_proven": false,
       "model_gate_closed": true
     },
@@ -76228,6 +76219,18 @@
         "sha256": "39a046d6510a3cccad97c73985211713ffc837b2724b6a1e31330ccaf4e183ff"
       },
       "objective_change_justified": false
+    },
+    "combined_decoder_candidate": {
+      "design": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/TA_COMBINED_TF_DECODER_CANDIDATE.json",
+        "sha256": "831b9bb0e29ae2c70fc87147d073e6570d432bf37b45d21598f022323c3571d1"
+      },
+      "source_qualification": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_SOURCE_20261112_001/SOURCE_QUALIFICATION.json",
+        "sha256": "4cc3c3869cceff5a7b856253d96baab969e131d1a85f426b4612279503826327"
+      },
+      "native_initial_qualified": false,
+      "native_training_admitted": false
     }
   },
   "market_state_ta_fusion_observation_20261111_001": {
@@ -76927,7 +76930,7 @@
     "unresolved_campaign_marker_preserved": true,
     "standard_campaign_receipt_available": false
   },
-  "active_stage": "market_state_ta_effective_side_weight_20261112_001",
+  "active_stage": "market_state_ta_combined_decoder_source_20261112_001",
   "market_state_ta_m5_c171_short_learning_20261111_002": {
     "decision": "CLOSED",
     "status": "COMPLETE_CONSUMED",
@@ -82358,5 +82361,112 @@
       "updates": 0
     },
     "elapsed_seconds": 2.613248284999827
+  },
+  "market_state_ta_combined_decoder_source_20261112_001": {
+    "status": "SOURCE_QUALIFIED_NATIVE_BASELINE_AND_MATCHED_COMPARISON_PENDING",
+    "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_SOURCE_20261112_001",
+    "design": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_COMBINED_TF_DECODER_CANDIDATE.json",
+      "sha256": "831b9bb0e29ae2c70fc87147d073e6570d432bf37b45d21598f022323c3571d1"
+    },
+    "source_changes_authorized": "Opt-in combination of the two existing flags; no new forward structure. Clone16 non-M5 side tensors/1032parameters from current activity-only INITIAL, keeping its existing activity/M5/backbone/query/feature/normalization state.",
+    "synthetic_tests_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "data_reads_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "model_execution_authorized": false,
+    "resource_cap": {
+      "run_class": "audit",
+      "memory": "4G",
+      "swap": "512M"
+    },
+    "test_data_used": false,
+    "synthetic_execution_scope": {
+      "native_model_constructions": 0,
+      "native_array_reads": 0,
+      "checkpoint_reads": 0,
+      "market_training_updates": 0,
+      "allowed": "Only declared pytest fixtures: synthetic tensors, mocked backbones, optimizer/restore mechanics and immutable JSON metadata; no dataset/checkpoint payloads.",
+      "max_test_seconds": 900
+    },
+    "focused_test_files": [
+      "tests/test_market_state_time_query_non_m5_side_v1.py",
+      "tests/test_market_state_time_query_tf_activity_v1.py",
+      "tests/test_market_state_non_m5_side_optimizer_binding.py",
+      "tests/test_market_state_tf_activity_native_binding.py",
+      "tests/test_entry_anchor_span_feature_inputs_v1.py",
+      "tests/test_market_state_tf_activity_weights_migration.py"
+    ],
+    "test_execution_route": "bash scripts/gx1_capped_run.sh --class audit --mem 4G --swap 512M -- timeout -k 5s 900s .venv/bin/python -B -m pytest -q <focused_test_files>",
+    "source_hashes": {
+      "gx1/contracts/market_state_time_query_model_v2.py": "601491f5e6d2d0476b4c3ce94000aad8682b787ad6045024295f9284547c17ab",
+      "gx1/contracts/market_state_time_query_native_F_model_v1.py": "06fac49aa8680eb7064f1bbb6aba25b93979c89e66f74d893203ebf84fc0897a",
+      "gx1/contracts/entry_native_direction_feature_view_v1.py": "1181e95c1999063ee022770f3dc54404ca9b87f80199dfe33bfb69b9918e36bc",
+      "gx1/contracts/entry_anchor_span_feature_view_v1.py": "91bbb29c87456ebeefbc537aba18908d7ac6cbb08d5540cbbfcccdd858ef8f81",
+      "gx1/contracts/market_state_time_query_fold1_fit_state_v1.py": "93cdec2c60203c4c1e868242423f7d98f5fbea6e38c5fdf86c4d75a93a6ca7ef",
+      "tests/test_market_state_time_query_non_m5_side_v1.py": "0edb3cdb07ca75e5b7dc68cd8560eec10364ba96b9bb0d153ebcc340689fd2f7",
+      "tests/test_market_state_time_query_tf_activity_v1.py": "6da66c385fa1b7d22e6036d70a555ec844c8872eccbf9ad8083f7dabaebb359b",
+      "tests/test_market_state_non_m5_side_optimizer_binding.py": "7746c0925e267967206df34cb44af4231c72c814ea7b2b9b43995c033f5b8236",
+      "tests/test_market_state_tf_activity_native_binding.py": "9bc9cdcff4b9e1245e01aeb9d560bccaeb2fc22521ec8157f334eaa9c0ac90cf",
+      "tests/test_entry_anchor_span_feature_inputs_v1.py": "32ccdbd6723983a6b7528334e63afadc5d0ace87ca3ce90937f8a9533ff02dc3",
+      "tests/test_market_state_tf_activity_weights_migration.py": "f3fd700eb204112ba13a60eb630bfa7ae4dfb682464f8cf8e2b6a6d1c4f1c724",
+      "tests/test_market_state_time_query_dedicated_m5_side_v1.py": "606a2907c2828e8740b6f8303858c916de6fad422289673a0101cc1e4762f4b9"
+    },
+    "initial_test_source_hashes": {
+      "gx1/contracts/market_state_time_query_model_v2.py": "601491f5e6d2d0476b4c3ce94000aad8682b787ad6045024295f9284547c17ab",
+      "gx1/contracts/market_state_time_query_native_F_model_v1.py": "06fac49aa8680eb7064f1bbb6aba25b93979c89e66f74d893203ebf84fc0897a",
+      "gx1/contracts/entry_native_direction_feature_view_v1.py": "1181e95c1999063ee022770f3dc54404ca9b87f80199dfe33bfb69b9918e36bc",
+      "gx1/contracts/entry_anchor_span_feature_view_v1.py": "91bbb29c87456ebeefbc537aba18908d7ac6cbb08d5540cbbfcccdd858ef8f81",
+      "gx1/contracts/market_state_time_query_fold1_fit_state_v1.py": "93cdec2c60203c4c1e868242423f7d98f5fbea6e38c5fdf86c4d75a93a6ca7ef",
+      "tests/test_market_state_time_query_non_m5_side_v1.py": "36a1b27f18c794595939a3a065f662118d08150841f8b210fbc6953b92aabdf5",
+      "tests/test_market_state_time_query_tf_activity_v1.py": "8c3bca1bcbce51ef00efe28a2bea9eadb587339d1b66d42a453d640d52df3066",
+      "tests/test_market_state_non_m5_side_optimizer_binding.py": "ffae7b45d0b177896eba03ad4167cc7cc4c9b0a190b894881d64c6d9aa2f13ff",
+      "tests/test_market_state_tf_activity_native_binding.py": "c56a7aea206adcd883b94367c14cd6f8f6d04db823f288a85c175993625cd223",
+      "tests/test_entry_anchor_span_feature_inputs_v1.py": "32ccdbd6723983a6b7528334e63afadc5d0ace87ca3ce90937f8a9533ff02dc3",
+      "tests/test_market_state_tf_activity_weights_migration.py": "f3fd700eb204112ba13a60eb630bfa7ae4dfb682464f8cf8e2b6a6d1c4f1c724"
+    },
+    "targeted_recheck_nodeids": [
+      "tests/test_market_state_time_query_non_m5_side_v1.py::test_false_option_preserves_contracts_initialization_rng_state_keys_and_outputs[False-False]",
+      "tests/test_market_state_time_query_non_m5_side_v1.py::test_false_option_preserves_contracts_initialization_rng_state_keys_and_outputs[True-False]",
+      "tests/test_market_state_time_query_non_m5_side_v1.py::test_false_option_preserves_contracts_initialization_rng_state_keys_and_outputs[True-True]",
+      "tests/test_market_state_time_query_tf_activity_v1.py::test_false_option_preserves_existing_contracts_rng_state_keys_and_output[True-False-False]",
+      "tests/test_market_state_time_query_tf_activity_v1.py::test_false_option_preserves_existing_contracts_rng_state_keys_and_output[True-True-False]",
+      "tests/test_market_state_time_query_tf_activity_v1.py::test_false_option_preserves_existing_contracts_rng_state_keys_and_output[True-True-True]",
+      "tests/test_market_state_non_m5_side_optimizer_binding.py::test_false_option_preserves_existing_recipe_bytes[True-True]",
+      "tests/test_market_state_tf_activity_native_binding.py::test_default_recipe_preserves_all_existing_profiles[True-False-True]",
+      "tests/test_market_state_time_query_dedicated_m5_side_v1.py::test_legacy_contract_hashes_and_opt_in_identity"
+    ],
+    "actual_metadata_preparation": {
+      "status": "COMPLETE_CONSUMED",
+      "scope": "Rebind the exact completed coverage feature view and current source hashes; build one activity-only source view, one combined target view and one numerical recipe. Existing immutable JSON normalization/constructor metadata only.",
+      "native_array_reads": 0,
+      "checkpoint_payload_reads": 0,
+      "model_constructions": 0,
+      "forwards": 0,
+      "updates": 0,
+      "script": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_SOURCE_20261112_001/PREPARE_METADATA.py",
+        "sha256": "f344d86e1154bc8626f45a496e1debf11730582fa5786e342c44985afc38e215"
+      },
+      "preflight": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_SOURCE_20261112_001/METADATA_PREFLIGHT.json",
+        "sha256": "67035ac5bb063b9d792aa65277c320f8383a56e15a5f3e31741e40f8094676b6"
+      },
+      "max_invocations": 1,
+      "remaining_invocations": 0,
+      "relaunch_allowed": false,
+      "completed_invocations": 1,
+      "execution_authorized": false,
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_SOURCE_20261112_001/METADATA_QUALIFICATION.json",
+        "sha256": "05df7e2eb54d87c35c50ec87f21d6ec236d7132b16259b419d6392c9f3abe947"
+      }
+    },
+    "source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_SOURCE_20261112_001/SOURCE_QUALIFICATION.json",
+      "sha256": "4cc3c3869cceff5a7b856253d96baab969e131d1a85f426b4612279503826327"
+    },
+    "next_action": "Qualify the minimum existing benchmark seam for one combined-decoder comparison against completed COVERAGE. Reuse its exact source checkpoint/span import, INITIAL RNG, all inputs/normalization,12288-row exposure schedule,768updates and fixed4096TRAIN/LATER panels. Create the activity-only source, verify its known INITIAL digest, clone only the16 side tensors into the combined target and preserve all existing tensors/modes. Require fresh actual INITIAL output/loss parity before any update; then retain the predeclared pass3 all-TF comparison. Actual checkpoint-contract/startup/reporting and guarded campaign route must be qualified before a separate one-use model admission. No new native/data/checkpoint job or training is admitted now."
   }
 }

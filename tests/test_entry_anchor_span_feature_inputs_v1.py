@@ -66,7 +66,7 @@ def test_exact_metadata_dispatch_preserves_parent_gc_and_new_geometry(binding):
     assert view['anchor_span_input_extension']['execution_authorized'] is False
 
 
-@pytest.mark.parametrize('fault',['old_units','old_packet','changed_old_stat','changed_constructor','missing_overlay','other_decoder','marker_removed'])
+@pytest.mark.parametrize('fault',['old_units','old_packet','changed_old_stat','changed_constructor','missing_overlay','invalid_decoder_flag','marker_removed'])
 def test_metadata_rejects_unbound_or_resealed_changes(binding,fault):
     args=deepcopy(binding)
     if fault=='old_units':args['unobserved_units_profile']=extension.units.mature_fold1_prefix_units_profile()
@@ -76,13 +76,44 @@ def test_metadata_rejects_unbound_or_resealed_changes(binding,fault):
         packet['contract_sha256']=views._sha({k:v for k,v in packet.items() if k!='contract_sha256'})
     elif fault=='changed_constructor':args['constructor_metadata']['dropout']=.1
     elif fault=='missing_overlay':del args['source_bindings']['anchor_span_inputs_source']
-    elif fault=='other_decoder':args['dedicated_non_m5_side']=True
+    elif fault=='invalid_decoder_flag':args['dedicated_non_m5_side']=1
     else:
         view=views.bind_native_direction_feature_view(**args);del view['anchor_span_input_extension']
         view['contract_sha256']=views._sha({k:v for k,v in view.items() if k!='contract_sha256'})
         with pytest.raises(RuntimeError):views._require_view(view,unobserved_units_profile=args['unobserved_units_profile'])
         return
     with pytest.raises(RuntimeError):views.bind_native_direction_feature_view(**args)
+
+
+
+@pytest.mark.parametrize('side', [False, True])
+def test_span_view_composes_decoders_without_changing_inputs_or_normalization(binding, side):
+    original = views.bind_native_direction_feature_view(**binding)
+    combined = views.bind_native_direction_feature_view(**binding, dedicated_non_m5_side=side)
+    assert views.bind_native_direction_feature_view(
+        **binding, dedicated_non_m5_side=side, expected=combined) == combined
+    changed = {key for key in set(original) | set(combined)
+               if original.get(key) != combined.get(key)}
+    assert changed == ({'dedicated_non_m5_side', 'research_objective', 'contract_sha256'}
+                       if side else set())
+    assert combined['prefix_normalization'] == original['prefix_normalization']
+    assert combined['physical_field_names_sha256'] == original['physical_field_names_sha256']
+    assert combined['anchor_span_input_extension'] == original['anchor_span_input_extension']
+    if side:
+        assert combined['research_objective']['dedicated_non_m5_side'] is True
+        assert combined['research_objective']['dedicated_tf_activity'] is True
+        with pytest.raises(RuntimeError, match='EXPECTED_VIEW'):
+            views.bind_native_direction_feature_view(
+                **binding, dedicated_non_m5_side=True, expected=original)
+
+
+@pytest.mark.parametrize('bad', [False, 1, 'true'])
+def test_combined_span_view_rejects_resealed_nonliteral_side_flag(binding, bad):
+    combined = views.bind_native_direction_feature_view(**binding, dedicated_non_m5_side=True)
+    combined['dedicated_non_m5_side'] = bad
+    combined['contract_sha256'] = views._sha({k: v for k, v in combined.items() if k != 'contract_sha256'})
+    with pytest.raises(RuntimeError):
+        views._require_view(combined, unobserved_units_profile=binding['unobserved_units_profile'])
 
 
 def readonly(value):

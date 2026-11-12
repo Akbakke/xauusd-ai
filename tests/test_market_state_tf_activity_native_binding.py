@@ -1,4 +1,4 @@
-"""Activity-only view, factory, numerical and batch binding on synthetic inputs."""
+"""Activity and combined-decoder bindings on synthetic inputs."""
 from __future__ import annotations
 
 import json
@@ -87,10 +87,12 @@ def test_resealed_trial_cannot_drop_required_mode_marker(time_query_case, remove
         views._require_view(_seal(value))
 
 
-def test_factory_passes_trial_flag_to_real_wrapper_and_preserves_feature_constructor(time_query_case, monkeypatch):
+@pytest.mark.parametrize("non_m5", [False, True])
+def test_factory_passes_trial_flag_to_real_wrapper_and_preserves_feature_constructor(time_query_case, monkeypatch, non_m5):
     args = _arguments(time_query_case)
     old = views.bind_native_direction_feature_view(**args)
-    trial = views.bind_native_direction_feature_view(**args, dedicated_tf_activity=True)
+    trial = views.bind_native_direction_feature_view(
+        **args, dedicated_tf_activity=True, dedicated_non_m5_side=non_m5)
     calls, _ = _constructor_spy(monkeypatch)
     models = [views.build_native_direction_research_model(
         view, prefix_normalization=args["prefix_normalization"],
@@ -102,6 +104,9 @@ def test_factory_passes_trial_flag_to_real_wrapper_and_preserves_feature_constru
     assert models[0]._dedicated_tf_activity is False
     assert not hasattr(models[0], "tf_activity_heads")
     assert models[1]._dedicated_tf_activity is True
+    assert models[1]._dedicated_non_m5_side is non_m5
+    if non_m5:
+        assert tuple(models[1].non_m5_side_heads) == ("M15", "H1", "H4", "D1")
     assert tuple(models[1].tf_activity_heads) == ("M5", "M15", "H1", "H4", "D1")
     assert models[1].feature_view_identity == {
         "contract_sha256": trial["contract_sha256"],
@@ -110,6 +115,8 @@ def test_factory_passes_trial_flag_to_real_wrapper_and_preserves_feature_constru
     }
     dual = NativeFutureDualModel(models[1])
     assert tuple(dual.future_tf_activity_heads) == ("M5", "M15", "H1", "H4", "D1")
+    if non_m5:
+        assert tuple(dual.future_non_m5_side_heads) == ("M15", "H1", "H4", "D1")
     dual._require_binding()
 
 
@@ -132,10 +139,10 @@ def test_factory_rejects_inconsistent_resealed_view_before_backbone(time_query_c
 
 
 
-@pytest.mark.parametrize("enabled", [False, True])
+@pytest.mark.parametrize("enabled,non_m5", [(False, False), (True, False), (True, True)])
 @pytest.mark.parametrize("equal_observation", [False, True])
-def test_fit_batch_uses_actual_model_flag_in_original_loss_metadata(monkeypatch, enabled, equal_observation):
-    model = _model(activity=enabled)
+def test_fit_batch_uses_actual_model_flag_in_original_loss_metadata(monkeypatch, enabled, non_m5, equal_observation):
+    model = _model(activity=enabled, non_m5=non_m5)
     state, future, rows, issues, seed = _targets()
     features = {key: value for key, value in _features(16).items() if not key.startswith("gc_")}
     hidden = torch.linspace(-1, 1, 16 * 128).reshape(16, 128)
@@ -161,7 +168,7 @@ def test_fit_batch_uses_actual_model_flag_in_original_loss_metadata(monkeypatch,
         state_truth=state_truth, future_truth=future_truth,
         state_query_k=torch.from_numpy(expected_query), future_weight=1.0, ta_only=True,
         dedicated_m5_side=True, dedicated_tf_activity=enabled,
-        m5_equal_observation=equal_observation)
+        dedicated_non_m5_side=non_m5, m5_equal_observation=equal_observation)
     assert torch.equal(report["loss"], expected["loss"])
     assert report["loss_contract_sha256"] == expected["contract_sha256"]
     assert report["model_contract_sha256"] == model.research_objective["contract_sha256"]
@@ -174,23 +181,36 @@ def test_fit_batch_uses_actual_model_flag_in_original_loss_metadata(monkeypatch,
             m5_equal_observation=equal_observation)["contract_sha256"]
 
 
-@pytest.mark.parametrize("where", ["binder", "view", "numerical"])
-def test_activity_cannot_be_combined_with_non_m5_side_trial(time_query_case, where):
-    if where == "binder":
-        with pytest.raises(RuntimeError, match="DEDICATED_TF_ACTIVITY_SCOPE"):
-            views.bind_native_direction_feature_view(
-                **_arguments(time_query_case), dedicated_tf_activity=True,
-                dedicated_non_m5_side=True)
-    elif where == "view":
-        view = views.bind_native_direction_feature_view(
-            **_arguments(time_query_case), dedicated_tf_activity=True)
-        view["dedicated_non_m5_side"] = True
-        with pytest.raises(RuntimeError, match="VIEW_KEYS"):
-            views._require_view(_seal(view))
-    else:
-        with pytest.raises(ValueError, match="TF_ACTIVITY_MODE"):
-            fit.ta_sf_numerical_recipe(dedicated_m5_side=True,
-                dedicated_tf_activity=True, dedicated_non_m5_side=True)
+def test_combined_view_changes_only_side_mode_and_bound_decoder_identity(time_query_case):
+    args = _arguments(time_query_case)
+    activity = views.bind_native_direction_feature_view(**args, dedicated_tf_activity=True)
+    combined = views.bind_native_direction_feature_view(
+        **args, dedicated_tf_activity=True, dedicated_non_m5_side=True)
+    assert {key for key in combined if combined[key] != activity.get(key)} == {
+        "dedicated_non_m5_side", "research_objective", "contract_sha256"}
+    assert combined["research_objective"] == factorized_time_query_model_contract(
+        ta_only=True, dedicated_m5_side=True, dedicated_tf_activity=True,
+        dedicated_non_m5_side=True)
+    assert views.bind_native_direction_feature_view(
+        **args, dedicated_tf_activity=True, dedicated_non_m5_side=True,
+        expected=combined) == combined
+    recipe = fit.ta_sf_numerical_recipe(dedicated_m5_side=True,
+        dedicated_tf_activity=True, dedicated_non_m5_side=True, m5_equal_observation=True)
+    original = fit.ta_sf_numerical_recipe(dedicated_m5_side=True,
+        dedicated_tf_activity=True, m5_equal_observation=True)
+    assert {key for key in recipe if recipe[key] != original[key]} == {
+        "research_objective_sha256", "native_F_loss_contract_sha256", "contract_sha256"}
+    assert recipe["native_F_loss_contract_sha256"] == objective.contract(
+        ta_only=True, dedicated_m5_side=True, dedicated_tf_activity=True,
+        dedicated_non_m5_side=True, m5_equal_observation=True)["contract_sha256"]
+
+
+def test_resealed_activity_view_cannot_add_side_flag_with_old_objective(time_query_case):
+    view = views.bind_native_direction_feature_view(
+        **_arguments(time_query_case), dedicated_tf_activity=True)
+    view["dedicated_non_m5_side"] = True
+    with pytest.raises(RuntimeError, match="VIEW_CANONICAL_IDENTITY"):
+        views._require_view(_seal(view))
 
 
 @pytest.mark.parametrize("m5,non_m5,equal", [
@@ -204,7 +224,8 @@ def test_default_recipe_preserves_all_existing_profiles(m5, non_m5, equal):
     assert original == explicit
     assert "dedicated_tf_activity" not in original
     if m5 and not non_m5 and equal:
-        assert original["contract_sha256"] == "5085579ff8ad90257412ad1d42406c6c481a1d272f0cf2849ae293da87974361"
+        # Pre-change 11aa70d6 with current anchor-span inputs: PARENT_CONTRACT_COMPARISON.json.
+        assert original["contract_sha256"] == "4d5309a6cc25b73d5d6e7ec09597b1fcabf102b5575697f9ec6835f9bde72b7c"
 
 
 @pytest.mark.parametrize("equal", [False, True])

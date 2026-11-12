@@ -43,7 +43,7 @@ def factorized_time_query_model_contract(
             dedicated_non_m5_side and not dedicated_m5_side):
         raise ValueError("TIME_QUERY_DEDICATED_NON_M5_SIDE_MODE")
     if type(dedicated_tf_activity) is not bool or (dedicated_tf_activity and (
-            not ta_only or not dedicated_m5_side or dedicated_non_m5_side)):
+            not ta_only or not dedicated_m5_side)):
         raise ValueError("TIME_QUERY_DEDICATED_TF_ACTIVITY_MODE")
     value = {
         "schema_version": "gx1_market_state_time_query_model_v2",
@@ -145,7 +145,7 @@ class FactorizedTimeQueryMarketStateModel(TimeQueryMarketStateModel):
         self._dedicated_non_m5_side = dedicated_non_m5_side
         _require(type(dedicated_tf_activity) is bool
                  and (not dedicated_tf_activity or (self._ta_only
-                      and dedicated_m5_side and not dedicated_non_m5_side)),
+                      and dedicated_m5_side)),
                  "DEDICATED_TF_ACTIVITY_MODE")
         self._dedicated_tf_activity = dedicated_tf_activity
         self._require_input_profile(backbone)
@@ -206,8 +206,7 @@ class FactorizedTimeQueryMarketStateModel(TimeQueryMarketStateModel):
                  "NON_M5_SIDE_HEAD_BINDING")
         _require(type(self._dedicated_tf_activity) is bool
                  and (not self._dedicated_tf_activity or (self._ta_only is True
-                      and self._dedicated_m5_side is True
-                      and self._dedicated_non_m5_side is False)),
+                      and self._dedicated_m5_side is True)),
                  "DEDICATED_TF_ACTIVITY_MODE")
         _require(hasattr(self, "tf_activity_heads") == self._dedicated_tf_activity,
                  "TF_ACTIVITY_HEAD_BINDING")

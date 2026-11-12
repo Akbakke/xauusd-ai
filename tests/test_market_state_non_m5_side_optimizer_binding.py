@@ -18,13 +18,14 @@ from tests.test_market_state_time_query_non_m5_side_v1 import (
     CLONES, _state_pair, _snapshot, _same,
 )
 
-OLD_EQUAL_RECIPE_SHA = "5085579ff8ad90257412ad1d42406c6c481a1d272f0cf2849ae293da87974361"
+# Pre-change 11aa70d6 with current anchor-span inputs: PARENT_CONTRACT_COMPARISON.json.
+OLD_EQUAL_RECIPE_SHA = "4d5309a6cc25b73d5d6e7ec09597b1fcabf102b5575697f9ec6835f9bde72b7c"
 
 
-def _recipe(*, enabled=True, equal=False):
+def _recipe(*, enabled=True, equal=False, activity=False):
     return fit.ta_sf_numerical_recipe(
         dedicated_m5_side=True, dedicated_non_m5_side=enabled,
-        m5_equal_observation=equal)
+        dedicated_tf_activity=activity, m5_equal_observation=equal)
 
 
 @pytest.mark.parametrize("m5,equal", [(False, False), (True, False), (True, True)])
@@ -68,11 +69,12 @@ def test_non_m5_recipe_requires_dedicated_m5():
 
 
 @pytest.mark.parametrize("equal", [False, True])
-def test_fresh_optimizer_owns_exactly_old_active_plus_sixteen_new_tensors(monkeypatch, equal):
-    source, model = _state_pair(monkeypatch)
+@pytest.mark.parametrize("activity", [False, True])
+def test_fresh_optimizer_owns_exactly_old_active_plus_sixteen_new_tensors(monkeypatch, equal, activity):
+    source, model = _state_pair(monkeypatch, activity=activity)
     _, old_active, old_inactive = state._parameters(source)
     before_source = _snapshot(source)
-    recipe = _recipe(equal=equal)
+    recipe = _recipe(equal=equal, activity=activity)
     rng = torch.get_rng_state().clone()
     optimizer, binding = state.build_fold1_fit_optimizer(model, numerical_recipe=recipe)
     _same(_snapshot(source), before_source)
@@ -102,19 +104,23 @@ def test_fresh_optimizer_owns_exactly_old_active_plus_sixteen_new_tensors(monkey
 
 
 @pytest.mark.parametrize("equal", [False, True])
-def test_zero_update_full_state_roundtrip_preserves_new_heads_empty_optimizer_modes_and_rng(monkeypatch, equal):
+@pytest.mark.parametrize("activity", [False, True])
+def test_zero_update_full_state_roundtrip_preserves_new_heads_empty_optimizer_modes_and_rng(monkeypatch, equal, activity):
     _seed()
-    _, model = _state_pair(monkeypatch)
-    recipe = _recipe(equal=equal)
+    _, model = _state_pair(monkeypatch, activity=activity)
+    recipe = _recipe(equal=equal, activity=activity)
     optimizer, binding = state.build_fold1_fit_optimizer(model, numerical_recipe=recipe)
     model.eval()
     model.state_model.non_m5_side_heads["H1"].train()
     model.future_non_m5_side_heads["D1"].train()
+    if activity:
+        model.state_model.tf_activity_heads["M15"].train()
+        model.future_tf_activity_heads["H4"].train()
     _seed()
     saved = _capture(model, optimizer, recipe, 0)
     assert saved["optimizer_state"]["state"] == {}
     assert set(CLONES) <= set(saved["model_state"])
-    _, restored = _state_pair(monkeypatch)
+    _, restored = _state_pair(monkeypatch, activity=activity)
     restored_opt, restored_binding = state.build_fold1_fit_optimizer(restored, numerical_recipe=recipe)
     assert restored_binding == binding
     identities = {name: id(parameter) for name, parameter in restored.named_parameters()}
@@ -132,10 +138,11 @@ def test_zero_update_full_state_roundtrip_preserves_new_heads_empty_optimizer_mo
 
 @pytest.mark.parametrize("equal", [False, True])
 @pytest.mark.parametrize("direction", ["old_recipe_new_model", "new_recipe_old_model"])
-def test_wrong_variant_recipe_fails_before_optimizer_or_parameter_mutation(monkeypatch, equal, direction):
-    source, trial = _state_pair(monkeypatch)
+@pytest.mark.parametrize("activity", [False, True])
+def test_wrong_variant_recipe_fails_before_optimizer_or_parameter_mutation(monkeypatch, equal, direction, activity):
+    source, trial = _state_pair(monkeypatch, activity=activity)
     model = trial if direction == "old_recipe_new_model" else source
-    recipe = _recipe(enabled=direction != "old_recipe_new_model", equal=equal)
+    recipe = _recipe(enabled=direction != "old_recipe_new_model", equal=equal, activity=activity)
     before, rng = _snapshot(model), torch.get_rng_state().clone()
     def forbidden(*args, **kwargs):
         pytest.fail("wrong variant reached AdamW construction")

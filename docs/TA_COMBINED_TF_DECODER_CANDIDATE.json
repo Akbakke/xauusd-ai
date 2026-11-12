@@ -1,0 +1,70 @@
+{
+  "schema_version": "gx1_combined_tf_decoder_source_candidate_v1",
+  "status": "SOURCE_QUALIFIED_NATIVE_BASELINE_AND_MATCHED_COMPARISON_PENDING",
+  "question": "Can existing independent activity and non-M5 side decoders be composed while preserving the current activity-only model at initialization, before one matched learning comparison?",
+  "reason": "Measured direction and activity tradeoffs in separate completed arms; active shared non-M5 side heads are intentional. No accidental disconnection or combined benefit has been established.",
+  "capture_gap": "Current TRAIN archives contain no representations; LATER archives contain M5 representations only. The proposed non-M5 2x2 retained replay is not supported, and no new model capture is admitted.",
+  "evidence": {
+    "side_only": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_SHORT_LEARNING_REVIEW.json",
+      "sha256": "45e071a0ed39e75543cda838bb9fbf885b1549a2a2869f83fc3a7e378ed4fe46"
+    },
+    "activity_only": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_SHORT_LEARNING_REVIEW.json",
+      "sha256": "b428a9e1d1a0e8db397689ed0b9d731669e7ec9e240e94862b30121f20505466"
+    },
+    "activity_design": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_TF_ACTIVITY_DECODER_REPAIR.json",
+      "sha256": "54703f3bb3e266ac55de0815f106e24e1f6c475d82728a3a69e4a3591b73a9a6"
+    }
+  },
+  "allowed_change": "Opt-in combination of the two existing flags; no new forward structure. Clone16 non-M5 side tensors/1032parameters from current activity-only INITIAL, keeping its existing activity/M5/backbone/query/feature/normalization state.",
+  "source_owners": [
+    "gx1/contracts/market_state_time_query_model_v2.py",
+    "gx1/contracts/market_state_time_query_native_F_model_v1.py",
+    "gx1/contracts/entry_native_direction_feature_view_v1.py",
+    "gx1/contracts/entry_anchor_span_feature_view_v1.py",
+    "gx1/contracts/market_state_time_query_fold1_fit_state_v1.py"
+  ],
+  "unchanged": [
+    "all genuine features and5TF/8families/D1context",
+    "targets, maturity, normalization and loss arithmetic",
+    "existing default/side-only/activity-only contracts",
+    "optimizer numerics and resource guards",
+    "all consumed plans and checkpoints"
+  ],
+  "source_tests": "Existing synthetic clone, routing, masking, RNG, migration, optimizer/restore and binding tests, extended only for the new combination.",
+  "initial_requirement": "Fresh actual initial baseline required before learning; activity/M5 bitexact, cloned non-M5 outputs within predeclared justified FP32 tolerance. No synthetic-only parity claim.",
+  "candidate_comparison": "If separately qualified/admitted, use completed coverage768update/12288unique schedule and fixed4096TRAIN/LATER panels with identical source INITIAL/RNG/numerics. Primary pass3; compare all5TF S/F scores, especially M5 and remaining non-M5 probability deficits. No metric/checkpoint selection.",
+  "training_authorized": false,
+  "native_execution_authorized": false,
+  "data_reads_authorized": false,
+  "checkpoint_reads_authorized": false,
+  "test_data_used": false,
+  "resource_cap": {
+    "run_class": "audit",
+    "memory": "4G",
+    "swap": "512M"
+  },
+  "bound_initial_source": {
+    "checkpoint": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_SHORT_LEARNING_20261112_001/RUNTIME/private-research/INITIAL_C171_STATE.pt",
+      "sha256": "b1c5fba6fca0a1e0f6b999de2c733e6f169fbed1b28547c60d02f49ddf47b692"
+    },
+    "existing_import": "import_anchor_span_activity_initial",
+    "activity_only_model_sha256": "bef35dafc43f0b3450cca161049e9daacee55d92d7f1c3187bd82c9c4de972fc",
+    "initial_rng_sha256": "67daad3d6238c809023f066b4599c7634db931c73d9229990a3f76a1845289ae",
+    "combined_import": "copy_dedicated_m5_weights_to_non_m5_sides",
+    "native_payload_reopened": false
+  },
+  "remaining_coupling": "Encoder and query projection remain shared across tasks/timeframes; distinct final side/activity rows do not remove all interference or establish a learning benefit.",
+  "source_qualification": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_SOURCE_20261112_001/SOURCE_QUALIFICATION.json",
+    "sha256": "4cc3c3869cceff5a7b856253d96baab969e131d1a85f426b4612279503826327"
+  },
+  "actual_metadata": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_SOURCE_20261112_001/METADATA_QUALIFICATION.json",
+    "sha256": "05df7e2eb54d87c35c50ec87f21d6ec236d7132b16259b419d6392c9f3abe947"
+  },
+  "next_action": "Qualify the minimum existing benchmark seam for one combined-decoder comparison against completed COVERAGE. Reuse its exact source checkpoint/span import, INITIAL RNG, all inputs/normalization,12288-row exposure schedule,768updates and fixed4096TRAIN/LATER panels. Create the activity-only source, verify its known INITIAL digest, clone only the16 side tensors into the combined target and preserve all existing tensors/modes. Require fresh actual INITIAL output/loss parity before any update; then retain the predeclared pass3 all-TF comparison. Actual checkpoint-contract/startup/reporting and guarded campaign route must be qualified before a separate one-use model admission. No new native/data/checkpoint job or training is admitted now."
+}

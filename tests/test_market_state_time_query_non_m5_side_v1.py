@@ -25,9 +25,10 @@ from tests.test_market_state_time_query_dedicated_m5_side_v1 import (
 from tests.test_market_state_ta_dedicated_m5_binding_v1 import _model as state_model
 
 TIMEFRAMES = ("M15", "H1", "H4", "D1")
-M5_S_SHA = "aa7e6919bc7326a766b10f7a35843a4a7e45ca601aad0c3a817c26f976b07dae"
-M5_DUAL_SHA = "b7066eba10673122ec94765be414134da11946052c1bf74b7901b0001c8a0300"
-M5_EQUAL_LOSS_SHA = "38cf7894de7cbe7de405ed7db9a073113ecfeb8888114dbe5548e4d13356adc0"
+# Pre-change 11aa70d6 with current anchor-span inputs: PARENT_CONTRACT_COMPARISON.json.
+M5_S_SHA = "6fcbc9f9265280ecd187d9aeb92f7d956cc73456986ba3a0cac549774e4443b2"
+M5_DUAL_SHA = "5d8b5834ba14e25b816b8134ae412679c19a37b3db2413e140e3d719526b50f1"
+M5_EQUAL_LOSS_SHA = "5e505024ebda3a25314130b3aaba898f6001953dae5bf3cb4f62d4c7980e36f9"
 IDENTITY_BUFFERS = {"state_model.query_objective_sha256", "native_F_objective_sha256"}
 CLONES = {
     f"{destination}.{tf}.{kind}": f"{original}.{kind}"
@@ -39,10 +40,10 @@ CLONES = {
 }
 
 
-def _model(*, non_m5=True, m5=True, ta_only=True):
+def _model(*, non_m5=True, m5=True, ta_only=True, activity=False):
     return NativeFutureDualModel(FactorizedTimeQueryMarketStateModel(
         _backbone(ta_only=ta_only), dedicated_m5_side=m5,
-        dedicated_non_m5_side=non_m5))
+        dedicated_non_m5_side=non_m5, dedicated_tf_activity=activity))
 
 
 def _decode(model):
@@ -88,10 +89,19 @@ def _snapshot(model):
     }
 
 
-def _state_pair(monkeypatch):
+def _state_pair(monkeypatch, *, activity=False):
     source = state_model(monkeypatch, True)
+    if activity:
+        original_view = copy.deepcopy(source.state_model.feature_view_identity)
+        source = NativeFutureDualModel(FactorizedTimeQueryMarketStateModel(
+            copy.deepcopy(source.backbone), dedicated_m5_side=True, dedicated_tf_activity=True))
+        source.state_model.feature_view_identity = original_view
+        source.state_model.feature_view_identity.update(
+            contract_sha256="5" * 64,
+            research_objective_sha256=source.state_model.research_objective["contract_sha256"])
     target = NativeFutureDualModel(FactorizedTimeQueryMarketStateModel(
-        copy.deepcopy(source.backbone), dedicated_m5_side=True, dedicated_non_m5_side=True))
+        copy.deepcopy(source.backbone), dedicated_m5_side=True, dedicated_non_m5_side=True,
+        dedicated_tf_activity=activity))
     target.state_model.feature_view_identity = copy.deepcopy(source.state_model.feature_view_identity)
     target.state_model.feature_view_identity.update(
         contract_sha256="4" * 64,
@@ -123,12 +133,13 @@ def test_false_option_preserves_contracts_initialization_rng_state_keys_and_outp
                               m5_equal_observation=True)["contract_sha256"] == M5_EQUAL_LOSS_SHA
 
 
-def test_opt_in_clones_eight_independent_rows_preserving_existing_tensors_and_rng():
+@pytest.mark.parametrize("activity", [False, True])
+def test_opt_in_clones_eight_independent_rows_preserving_existing_tensors_and_rng(activity):
     torch.manual_seed(96)
-    old = _model(non_m5=False)
+    old = _model(non_m5=False, activity=activity)
     rng = torch.get_rng_state().clone()
     torch.manual_seed(96)
-    new = _model()
+    new = _model(activity=activity)
     assert torch.equal(torch.get_rng_state(), rng)
     old_params, new_params = dict(old.named_parameters()), dict(new.named_parameters())
     assert set(new_params) - set(old_params) == set(CLONES)
@@ -151,8 +162,10 @@ def test_opt_in_clones_eight_independent_rows_preserving_existing_tensors_and_rn
         assert torch.equal(a[..., 0, 1], b[..., 0, 1])
         torch.testing.assert_close(a[..., 1:, 1], b[..., 1:, 1], rtol=0, atol=1e-6)
     s = factorized_time_query_model_contract(
-        ta_only=True, dedicated_m5_side=True, dedicated_non_m5_side=True)
-    f = dual_contract(ta_only=True, dedicated_m5_side=True, dedicated_non_m5_side=True)
+        ta_only=True, dedicated_m5_side=True, dedicated_non_m5_side=True,
+        dedicated_tf_activity=activity)
+    f = dual_contract(ta_only=True, dedicated_m5_side=True, dedicated_non_m5_side=True,
+                     dedicated_tf_activity=activity)
     assert new.state_model._dedicated_non_m5_side is True
     assert new.state_model.research_objective == s
     assert new.research_objective == f
@@ -163,8 +176,9 @@ def test_opt_in_clones_eight_independent_rows_preserving_existing_tensors_and_rn
 
 @pytest.mark.parametrize("task", ["state", "future"])
 @pytest.mark.parametrize("tf", TIMEFRAMES)
-def test_side_bias_perturbation_changes_only_its_task_and_timeframe(task, tf):
-    model = _model()
+@pytest.mark.parametrize("activity", [False, True])
+def test_side_bias_perturbation_changes_only_its_task_and_timeframe(task, tf, activity):
+    model = _model(activity=activity)
     before = _decode(model)
     with torch.no_grad():
         _heads(model, task)[2][tf].bias.add_(0.75)
@@ -295,15 +309,22 @@ def test_new_metadata_keeps_original_masked_weighted_loss_and_raw_gradients(equa
         _same(new[key], old[key])
 
 
-def test_weights_only_migration_preserves_source_modes_flags_rng_and_existing_predictor(monkeypatch):
-    source, target = _state_pair(monkeypatch)
+@pytest.mark.parametrize("activity", [False, True])
+def test_weights_only_migration_preserves_source_modes_flags_rng_and_existing_predictor(monkeypatch, activity):
+    source, target = _state_pair(monkeypatch, activity=activity)
     source.train()
     source.state_model.query_head.eval()
     source.future_m5_side_head.eval()
+    if activity:
+        source.state_model.tf_activity_heads["H1"].eval()
+        source.future_tf_activity_heads["D1"].eval()
     with torch.no_grad():
         source.state_model.query_head.weight.add_(0.5)
         source.future_head.bias.sub_(0.25)
         source.state_model.m5_side_head.bias.add_(1.25)
+        if activity:
+            source.state_model.tf_activity_heads["M15"].weight.add_(0.125)
+            source.future_tf_activity_heads["H4"].bias.sub_(0.375)
     for index, parameter in enumerate(source.parameters()):
         parameter.requires_grad_(index % 3 != 0)
     for parameter in target.parameters():
@@ -347,7 +368,7 @@ def test_weights_only_migration_preserves_source_modes_flags_rng_and_existing_pr
 
 
 @pytest.mark.parametrize("fault", ["digest", "normalization", "buffer", "source_mode",
-                                   "target_mode", "inventory", "source_grad", "target_grad"])
+                                   "target_mode", "activity_mode", "inventory", "source_grad", "target_grad"])
 def test_bad_weights_only_migration_rejects_before_mutation(monkeypatch, fault):
     source, target = _state_pair(monkeypatch)
     if fault == "normalization":
@@ -358,6 +379,8 @@ def test_bad_weights_only_migration_rejects_before_mutation(monkeypatch, fault):
         source = state_model(monkeypatch, False)
     elif fault == "target_mode":
         target = copy.deepcopy(source)
+    elif fault == "activity_mode":
+        _, target = _state_pair(monkeypatch, activity=True)
     elif fault == "inventory":
         target.register_parameter("unexpected", nn.Parameter(torch.ones(1)))
     elif fault in ("source_grad", "target_grad"):

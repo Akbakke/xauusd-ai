@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_EFFECTIVE_SIDE_WEIGHT_MEASURED_DIRECTION_CAUSE_UNRESOLVED",
+  "status": "ACTIVE_COMBINED_TF_DECODER_SOURCE_QUALIFIED_EDGE_UNRESOLVED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -269,7 +269,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Qualify one frozen-state comparison of INITIAL/COVERAGE non-M5 F readout changes versus representation changes using the existing matched captures. First verify the exact retained readout boundary and whether existing results already answer this current-state comparison; reuse the completed factor-review method. A 2x2 retained replay is only a candidate until exact native-logit replay and minimal artifact scope are qualified. No new fit, checkpoint/data execution admission, feature removal, LATER calibration, repeated decoder repair, TEST or trading.",
+  "next_measurement": "Qualify the minimum existing benchmark seam for one combined-decoder comparison against completed COVERAGE. Reuse its exact source checkpoint/span import, INITIAL RNG, all inputs/normalization,12288-row exposure schedule,768updates and fixed4096TRAIN/LATER panels. Create the activity-only source, verify its known INITIAL digest, clone only the16 side tensors into the combined target and preserve all existing tensors/modes. Require fresh actual INITIAL output/loss parity before any update; then retain the predeclared pass3 all-TF comparison. Actual checkpoint-contract/startup/reporting and guarded campaign route must be qualified before a separate one-use model admission. No new native/data/checkpoint job or training is admitted now.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -1728,7 +1728,10 @@
     "On the actual12288-row coverage schedule, F/M15 pooledUP0.508709 becomes effectiveUP0.521688; F/H1 pooledUP0.543343 becomes0.543717. F/H4 andD1 normalization shifts are negative. There is no universal UP shift caused by this normalization.",
     "All10 retained TRAIN-panel side counts replay exactly; all5 native-F prior counts and S/M5 prior/profile counts replay exactly. Full reference includes29574 rows; actual old/new schedules exclude the final6-row partial batch.",
     "Later F/H1 meanP was already0.574586 at INITIAL and rises to0.624343 after coverage learning, while known-side UP fraction is0.5. F/M15 rises0.578201 to0.615858 against0.491060. Bias predates this contrast and is amplified by it.",
-    "Effective TRAIN class support is the constant-logit optimum of summed fixed-logit losses, not the AdamW optimum, a forecast for later data or a causal isolation of normalization. No objective change is justified by this count alone."
+    "Effective TRAIN class support is the constant-logit optimum of summed fixed-logit losses, not the AdamW optimum, a forecast for later data or a causal isolation of normalization. No objective change is justified by this count alone.",
+    "Current TRAIN/LATER archives cannot support the proposed retained non-M5 representation/readout factorization; no new captures were silently substituted.",
+    "The active shared non-M5 side heads are a deliberate isolated-activity design, not accidental loss of a qualified repair. A combined activity-plus-side candidate was not tested by either prior arm.",
+    "The minimal opt-in combination passes337unique focused synthetic/metadata cases with existing modes preserved. Exact current source/input/normalization/numerical metadata are rebound; no genuine model, checkpoint payload, forward or training update has run."
   ],
   "activity_pressure_review": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ACTIVITY_PRESSURE_REVIEW.json",
@@ -13718,6 +13721,24 @@
     "loss_change_justified": false,
     "training_authorized": false,
     "economic_edge_demonstrated": false,
+    "test_data_used": false
+  },
+  "combined_tf_decoder_candidate": {
+    "design": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_COMBINED_TF_DECODER_CANDIDATE.json",
+      "sha256": "831b9bb0e29ae2c70fc87147d073e6570d432bf37b45d21598f022323c3571d1"
+    },
+    "source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_SOURCE_20261112_001/SOURCE_QUALIFICATION.json",
+      "sha256": "4cc3c3869cceff5a7b856253d96baab969e131d1a85f426b4612279503826327"
+    },
+    "capture_gap": "No non-M5 representations retained: TRAIN contains only12 target/query/logit arrays; LATER includes only the two M5 representations. No unsupported2x2 replay or inversion performed.",
+    "active_configuration": "Activity-only was deliberate and preserves shared non-M5 side outputs. The previous side-only trial remains available; no accidental disconnection established.",
+    "historical_result": "Side-only reduced TRAIN side contribution by0.007041688 while activity rose0.013960765. Activity-only reduced activity regression versus original by0.006609407, while direction still worsened. These separate used-TRAIN arms justify a bounded combined hypothesis, not expected improvement.",
+    "current_candidate": "Existing activity heads plus existing independent non-M5 side heads;16new tensors/1032parameters. Encoder/query remain shared. Original variants and loss arithmetic preserved.",
+    "native_baseline_measured": false,
+    "learning_effect_measured": false,
+    "training_authorized": false,
     "test_data_used": false
   }
 }

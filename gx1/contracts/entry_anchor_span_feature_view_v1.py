@@ -212,7 +212,8 @@ def require_anchor_span_view_provenance(view, profile):
     _need(profile['contract_sha256'] == UNITS_CONTRACT_SHA, 'VIEW_UNITS')
     _need(all(view.get(k) is True for k in ('full_feature_profile', 'full_ta_feature_profile',
           'market_state_time_query_v2', 'dedicated_m5_side', 'dedicated_tf_activity'))
-          and 'dedicated_non_m5_side' not in view, 'ACTIVITY_ONLY_VIEW')
+          and ('dedicated_non_m5_side' not in view
+               or view['dedicated_non_m5_side'] is True), 'TF_DECODER_VIEW')
     overlay = _views()._ref(view.get('source_bindings', {}).get('anchor_span_inputs_source'))
     _need(overlay['path'] == OVERLAY_OWNER_PATH, 'OVERLAY_OWNER_PATH')
     _need(_canonical(view.get(MARKER_KEY)) == _canonical(_marker(overlay)), 'VIEW_PROVENANCE')
@@ -237,9 +238,11 @@ def require_anchor_span_view_provenance(view, profile):
 def bind_anchor_span_feature_view(*, prefix_normalization, prefix_normalization_ref,
     constructor_metadata, constructor_metadata_ref, source_bindings, max_batch_rows,
     expected=None, unobserved_units_profile=None, **modes):
-    """Accept the existing binder kwargs, permitting only activity-only defaults."""
-    _need(set(modes) <= set(_MODE_DEFAULTS)
-          and _canonical({**_MODE_DEFAULTS, **modes}) == _canonical(_ACTIVITY_MODES), 'ACTIVITY_ONLY_ARGUMENTS')
+    """Keep activity heads fixed; optionally add the existing non-M5 side heads."""
+    combined_side = modes.get('dedicated_non_m5_side', False)
+    _need(set(modes) <= set(_MODE_DEFAULTS) and type(combined_side) is bool
+          and _canonical({**_MODE_DEFAULTS, **modes}) == _canonical(
+              {**_ACTIVITY_MODES, 'dedicated_non_m5_side': combined_side}), 'TF_DECODER_ARGUMENTS')
     packet = require_anchor_span_prefix_packet(prefix_normalization)
     profile = units.require_anchor_span_fold1_prefix_units_profile(unobserved_units_profile)
     _need(profile == packet['unobserved_units_profile'], 'EXPLICIT_UNITS')
@@ -282,10 +285,12 @@ def bind_anchor_span_feature_view(*, prefix_normalization, prefix_normalization_
         constructor_metadata=dict(binding=views._ref(constructor_metadata_ref), content_sha256=_sha(constructor_metadata)),
         entry_execution_profile={k: compiled[k] for k in ('name','contract_sha256')},
         research_objective=factorized_time_query_model_contract(ta_only=True, dedicated_m5_side=True,
-            dedicated_non_m5_side=False, dedicated_tf_activity=True), source_bindings=refs,
+            dedicated_non_m5_side=combined_side, dedicated_tf_activity=True), source_bindings=refs,
         max_batch_rows=max_batch_rows, evidence_scope=views.EVIDENCE_SCOPE,
         full_feature_profile=True, full_ta_feature_profile=True, market_state_time_query_v2=True,
         dedicated_m5_side=True, dedicated_tf_activity=True, unobserved_units_profile=_copy(profile))
+    if combined_side:
+        value['dedicated_non_m5_side'] = True
     value[MARKER_KEY] = _marker(refs['anchor_span_inputs_source'])
     value['contract_sha256'] = _sha(value)
     views._require_view(value, unobserved_units_profile=profile)

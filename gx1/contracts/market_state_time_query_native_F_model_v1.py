@@ -30,7 +30,7 @@ def contract(*, ta_only: bool = False, dedicated_m5_side: bool = False,
             dedicated_non_m5_side and not dedicated_m5_side):
         raise ValueError('NATIVE_F_DEDICATED_NON_M5_SIDE_MODE')
     if type(dedicated_tf_activity) is not bool or (dedicated_tf_activity and (
-            not ta_only or not dedicated_m5_side or dedicated_non_m5_side)):
+            not ta_only or not dedicated_m5_side)):
         raise ValueError('NATIVE_F_DEDICATED_TF_ACTIVITY_MODE')
     value = {
         'schema_version': 'gx1_market_state_native_F_dual_model_candidate_v1',

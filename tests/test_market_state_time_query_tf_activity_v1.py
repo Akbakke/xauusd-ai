@@ -24,8 +24,9 @@ from tests.test_market_state_time_query_non_m5_side_v1 import (
 
 TIMEFRAMES = ("M5", "M15", "H1", "H4", "D1")
 # Existing native separate-side recipe identities, before this opt-in change.
-NON_M5_DUAL_SHA = "f5d7067a14574ec4d99155f0a2c1ada55356cbe5797a86a83874f8b69445e303"
-NON_M5_EQUAL_LOSS_SHA = "c611b6b700c3b7c946847b6ad29ce6cd16ec234bb7d80b68cc84289ff0f01709"
+# Pre-change 11aa70d6 with current anchor-span inputs: PARENT_CONTRACT_COMPARISON.json.
+NON_M5_DUAL_SHA = "01e48b9078e1bccedd7bd1ee7a753faeda65a429488b58b572b60b025cd64709"
+NON_M5_EQUAL_LOSS_SHA = "454539d254689205500c3118ba2dfc004c2c9cbd46ae401d2f9e536e66600f64"
 IDENTITY_BUFFERS = {"state_model.query_objective_sha256", "native_F_objective_sha256"}
 CLONES = {
     f"{destination}.{tf}.{kind}": f"{original}.{kind}"
@@ -128,8 +129,9 @@ def test_activity_clone_adds_twenty_independent_tensors_preserving_side_and_rng(
 
 @pytest.mark.parametrize("task", ["state", "future"])
 @pytest.mark.parametrize("tf", TIMEFRAMES)
-def test_activity_bias_perturbation_changes_only_its_task_timeframe_and_channel(task, tf):
-    model = _model()
+@pytest.mark.parametrize("non_m5", [False, True])
+def test_activity_bias_perturbation_changes_only_its_task_timeframe_and_channel(task, tf, non_m5):
+    model = _model(non_m5=non_m5)
     before = _decode(model)
     with torch.no_grad():
         _heads(model, task)[2][tf].bias.add_(0.75)
@@ -148,9 +150,10 @@ def test_activity_bias_perturbation_changes_only_its_task_timeframe_and_channel(
 @pytest.mark.parametrize("task", ["state", "future"])
 @pytest.mark.parametrize("tf", TIMEFRAMES)
 @pytest.mark.parametrize("channel", [0, 1])
-def test_gradient_routes_to_one_activity_head_or_unchanged_side_owner(task, tf, channel):
+@pytest.mark.parametrize("non_m5", [False, True])
+def test_gradient_routes_to_one_activity_head_or_unchanged_side_owner(task, tf, channel, non_m5):
     torch.manual_seed(53)
-    model = _model()
+    model = _model(non_m5=non_m5)
     hidden, query = _inputs()
     hidden.requires_grad_(True)
     raw = (model.state_model.decode_raw_query_grid(hidden, query)[:, 0]
@@ -158,16 +161,20 @@ def test_gradient_routes_to_one_activity_head_or_unchanged_side_owner(task, tf, 
     index = TIMEFRAMES.index(tf)
     raw[:, index, channel].sum().backward()
     shared, m5, activities = _heads(model, task)
-    selected = activities[tf] if channel == 0 else (m5 if tf == "M5" else shared)
+    sides = (model.state_model.non_m5_side_heads if task == "state"
+             else model.future_non_m5_side_heads) if non_m5 else {}
+    selected = activities[tf] if channel == 0 else (m5 if tf == "M5" else sides[tf] if non_m5 else shared)
     def nonzero(value):
         return value is not None and bool(torch.count_nonzero(value))
-    for head in (shared, m5, *activities.values()):
+    for head in (shared, m5, *activities.values(), *sides.values()):
         assert nonzero(head.weight.grad) == (head is selected)
         assert nonzero(head.bias.grad) == (head is selected)
     if shared.weight.grad is not None:
         assert not nonzero(shared.weight.grad[0]) and not nonzero(shared.bias.grad[0])
     other = _heads(model, "future" if task == "state" else "state")
-    assert all(p.grad is None for head in (other[0], other[1], *other[2].values())
+    other_sides = (model.future_non_m5_side_heads if task == "state"
+                   else model.state_model.non_m5_side_heads) if non_m5 else {}
+    assert all(p.grad is None for head in (other[0], other[1], *other[2].values(), *other_sides.values())
                for p in head.parameters())
     assert nonzero(hidden.grad)
     assert nonzero(model.state_model.query_projection[0].weight.grad)
@@ -183,9 +190,9 @@ def test_activity_option_requires_literal_boolean(value):
 
 
 @pytest.mark.parametrize("ta_only,m5,non_m5", [
-    (False, False, False), (False, True, False), (True, False, False), (True, True, True),
+    (False, False, False), (False, True, False), (True, False, False),
 ])
-def test_activity_variant_requires_ta_m5_and_shared_non_m5_sides(ta_only, m5, non_m5):
+def test_activity_variant_requires_ta_and_m5(ta_only, m5, non_m5):
     for contract in (factorized_time_query_model_contract, dual_contract, objective.contract):
         with pytest.raises(ValueError, match="MODE"):
             contract(ta_only=ta_only, dedicated_m5_side=m5,
@@ -279,8 +286,9 @@ def _loss_case(*, empty=False):
 
 @pytest.mark.parametrize("equal_observation", [False, True])
 @pytest.mark.parametrize("empty", [False, True])
-def test_activity_metadata_preserves_original_masked_loss_and_all_raw_gradients(equal_observation, empty):
-    kwargs = _loss_case(empty=empty)
+@pytest.mark.parametrize("non_m5", [False, True])
+def test_activity_metadata_preserves_original_masked_loss_and_all_raw_gradients(equal_observation, empty, non_m5):
+    kwargs = dict(_loss_case(empty=empty), dedicated_non_m5_side=non_m5)
     raws = (torch.linspace(-1, 2, 30).reshape(3, 5, 2),
             torch.linspace(0.6, -1.7, 30).reshape(3, 5, 2))
     reports, gradients = [], []
@@ -302,11 +310,13 @@ def test_activity_metadata_preserves_original_masked_loss_and_all_raw_gradients(
         assert not torch.count_nonzero(gradients[1][j][~torch.from_numpy(info)])
     old, new = (objective.contract(
         ta_only=True, dedicated_m5_side=True, dedicated_tf_activity=enabled,
-        m5_equal_observation=equal_observation) for enabled in (False, True))
+        dedicated_non_m5_side=non_m5, m5_equal_observation=equal_observation)
+        for enabled in (False, True))
     assert old["contract_sha256"] != new["contract_sha256"]
     assert reports[1]["contract_sha256"] == new["contract_sha256"]
     assert new["dual_model_contract_sha256"] == dual_contract(
-        ta_only=True, dedicated_m5_side=True, dedicated_tf_activity=True)["contract_sha256"]
+        ta_only=True, dedicated_m5_side=True, dedicated_tf_activity=True,
+        dedicated_non_m5_side=non_m5)["contract_sha256"]
     for key in old.keys() - {"contract_sha256", "dual_model_contract_sha256"}:
         _same(new[key], old[key])
 
