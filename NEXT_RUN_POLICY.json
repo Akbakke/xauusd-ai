@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-13T10:32:56.713217+00:00",
-  "status": "TA_PREPOOL_CAPTURE_001_ADMITTED_FINAL_8192_ROWS_NO_FIT",
+  "status": "TA_PREPOOL_READOUT_001_ADMITTED_TEN_DIAGNOSTIC_FITS",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Run only the admitted PREPOOL_CAPTURE001 once after clean-source verification. Then qualify one ten-fit matched F-readout (five TF x prepool128/sharedhidden128), using existing TRAIN-only coordinate owner and regularized solve(alpha=0.01), with fixed masks/weights, all fits locked before later scoring. CPU fits require separate exact admission. No architecture/model/target change, TEST, spending, or promotion; COT2024 release/vintage stays UNKNOWN.",
+  "next_action": "Execute only exact ten-fit PREPOOL_READOUT001 once under capped4G/512M audit, then consume gate and close training_enabled. Native model/backbone/heads remain unchanged. Report every TF, native/prior reference and all paired day/week intervals; no selection/promotion. COT2024 release/vintage remains UNKNOWN.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1759,7 +1759,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Qualifying direct predictive before/after-pooling comparison; older head-sharing probes are not equivalent. Exact passive capture admitted, no fit admitted.",
+    "current_activity": "Qualified ten paired diagnostic F-readout fits admitted; current native model remains frozen.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1788,8 +1788,8 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "TA_TF_SEPARATION_001_COMPLETE_CONSUMED",
-    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_PREPOOL_CAPTURE_20261113_001",
+    "latest_terminal_role": "TA_PREPOOL_CAPTURE_001_COMPLETE_CONSUMED",
+    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_PREPOOL_READOUT_20261113_001",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_MODE_OBSERVATION_20261113_001/TERMINAL.json",
       "sha256": "2cb8e04ad254385126d21c48045b2034e136b44bd388f07abdd281230543b3a8"
@@ -40902,7 +40902,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "No training or readout fit. One exact passive FINAL prepool/shared-hidden capture on retained TRAIN4096 and LATER4096.",
+  "training_enabled_scope": "market_state_ta_prepool_readout_20261113_001",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -85194,19 +85194,19 @@
     "terminal_exit_code": 0
   },
   "market_state_ta_prepool_capture_20261113_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_NO_RELAUNCH",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_PREPOOL_CAPTURE_20261113_001/PLAN.json",
       "sha256": "cf0ed75fa23b282d7175861b4ccf8a742fddf2a113c47432eac87e09f0b63d27"
     },
     "max_invocations": 1,
-    "remaining_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
+    "remaining_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
     "relaunch_allowed": false,
-    "data_reads_authorized": true,
-    "checkpoint_reads_authorized": true,
+    "data_reads_authorized": false,
+    "checkpoint_reads_authorized": false,
     "training_authorized": false,
     "readout_fits_authorized": false,
     "bounds": {
@@ -85248,6 +85248,82 @@
       "sha256": "e72c410544c6367b0d0e4dcc07ac89764dbdad2739f7535bfc1eba357c82ec25"
     },
     "authorization": "Standing zero-cost local measured-cause investigation; previous retained separation finding plus distinct prior-probe review. Exact passive observation only, unchanged current model.",
-    "scope": "One c34 FINAL checkpoint; TRAIN4096+LATER4096,512 forwards,0updates; actual five128D prepool vectors and shared128D, bitexact S/F output parity for every batch."
+    "scope": "One c34 FINAL checkpoint; TRAIN4096+LATER4096,512 forwards,0updates; actual five128D prepool vectors and shared128D, bitexact S/F output parity for every batch.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_PREPOOL_CAPTURE_20261113_001/RESULT.json",
+      "sha256": "360e5616a80f07c44884b244f56e67f5cdd27d0edda18aecfa3b681a8a883eeb"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_PREPOOL_CAPTURE_20261113_001/TERMINAL.json",
+      "sha256": "72f839be033ce787917572a92a3e46085339cd136b6a7e10745f99764e8f576d"
+    },
+    "wrapper_exit": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_PREPOOL_CAPTURE_20261113_001/WRAPPER_EXIT.json",
+      "sha256": "f1b3e626e93f2514ceba0baa754a670f553cfa212fc0bc002300c0780d0aec78"
+    },
+    "validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_PREPOOL_CAPTURE_20261113_001/VALIDATION.json",
+      "sha256": "0997f2537eee332b2c00f146380069ee01d2929cc612d43f0348e82fff760761"
+    },
+    "actual_counts": {
+      "archive_decodes": 2,
+      "autograd_grad_calls": 0,
+      "backwards": 0,
+      "candidate_writes": 0,
+      "captured_rows": 8192,
+      "checkpoint_loads": 1,
+      "checkpoint_writes": 0,
+      "deterministic_initialization_calls": 1,
+      "feature_batches": 512,
+      "forwards": 512,
+      "input_sidecar_archive_decodes": 12,
+      "model_constructions": 1,
+      "native_reference_matches": 512,
+      "new_target_gathers": 0,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "phase_capture_writes": 2,
+      "prepool_hook_calls": 512,
+      "projection_input_hook_calls": 1024,
+      "resume_state_load_calls": 1,
+      "resume_state_load_returns": 1
+    },
+    "elapsed_seconds": 577.7762928690026,
+    "source_unchanged": true
+  },
+  "market_state_ta_prepool_readout_20261113_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_PREPOOL_READOUT_20261113_001/PLAN.json",
+      "sha256": "137afc0b02b62a32b64913919746c7672611fbb86322b57d6086ce20f5aed5fd"
+    },
+    "script": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_PREPOOL_READOUT_20261113_001/COMPARE.py",
+      "sha256": "ff04cf52d990806cccebb34a6298cf097344006aadcd66de3d0836e7a04002ed"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_PREPOOL_READOUT_20261113_001/SOURCE_REVIEW.json",
+      "sha256": "2beede63023b91dea1ef4fb380456a6e6362a48cb4aa5e5a721443c9ba83d500"
+    },
+    "max_invocations": 1,
+    "remaining_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "execution_authorized": true,
+    "training_authorized": true,
+    "native_training_authorized": false,
+    "relaunch_allowed": false,
+    "readout_fits": 10,
+    "coordinate_fits": 6,
+    "archive_decodes": 4,
+    "models": 0,
+    "forwards": 0,
+    "checkpoint_decodes": 0,
+    "native_updates": 0,
+    "wall_seconds": 300,
+    "memory": "4G",
+    "swap": "512M",
+    "test_data_used": false,
+    "authorization": "Standing zero-cost local investigation; fully qualified passive current capture and fixed-method exact predictive comparison. Ten private diagnostic CPU fits only, not native training."
   }
 }

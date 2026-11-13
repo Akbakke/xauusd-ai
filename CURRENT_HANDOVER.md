@@ -5,16 +5,22 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_PREPOOL_CAPTURE_001_ADMITTED_FINAL_8192_ROWS_NO_FIT.
-Edge-målet er uoppnådd. Alle treningsflagg er false; ingen readout-fit er admittert.
-Én passiv avlesning av dagens FINAL c34 er admittert under eksisterende CUDA-vakter:
-MARKET_STATE_TA_PREPOOL_CAPTURE_20261113_001, PLAN cf0ed75f, SOURCE_REVIEW nedenfor i policy.
-4096 TRAIN + 4096 LATER på opprinnelige intakte B16-batcher; én checkpointdekoding,
-512 forwards, null updates/nye mål. Lagrer faktisk tf_token_gate-input (5×128 før TF-pooling)
-og delt hidden128 fra samme forwards. Alle S/F-logits må være bitlike lagrede referanser.
-Eksisterende observatør er utvidet; modell-/treningskilde er uendret. Seks syntetiske tester,
-sju eksakte cap-rutetester, uavhengig kildekontroll og faktisk CLI-preflight PASS uten CLAIM.
-CPU-fit krever separat eksakt admisjon etter komplett capture og kontroll.
+TA_PREPOOL_READOUT_001_ADMITTED_TEN_DIAGNOSTIC_FITS.
+Edge-målet er uoppnådd. training_enabled=true bare for eksakt privat CPU-readout001;
+native_training_enabled/native_launch/full_epoch/full_val er false. Ingen native oppdatering.
+MARKET_STATE_TA_PREPOOL_READOUT_20261113_001: PLAN137afc0b, COMPARE.py ff04cf52.
+Eksakt CLI/syntetisk preflight og uavhengig kildekontroll PASS. Ti fits, seks TRAIN-only
+koordinatsett, fire arkivdekodinger, 4G/512M/1tråd/300s; ingen modell eller checkpoint.
+Alle fitter låses før senere data dekodes; alle fem F-mål/måneder og parede dag-/ukeintervaller
+beholdes. Ingen seleksjon/promotion. Forskjellen omfatter alle transformasjoner mellom
+TF-vektorene etter attention og felles hidden, ikke pooling alene. Lukk fit-gaten etterpå.
+
+Passiv FINAL c34-capture er COMPLETE/CONSUMED, kilde2146fb5a: PREPOOL_CAPTURE001,
+PLANcf0ed75f/RESULT360e5616/TERMINAL72f839be/VALIDATION0997f253. 577,78s,
+512forwards/8192rader/nullupdates. TRAIN807801df og LATERd15575c2 inneholder
+faktisk5×128prepool og sharedhidden128. Alle512S/F-batcher er bitlike; modell/buffere/
+moduser/RNG/hooks/inputs uendret. Vakt exit0, peak51C/54C/136,54W/552MiB.
+Seks fokuserte syntetiske tester og sju cap-rutetester PASS; modell-/treningskilde uendret.
 
 Gjenbrukskontroll: eldre hodedelingsforsøk cb9c02a6/66c08aa5 og transfer34de21d6 brukte
 samme allerede sammenfattede post-query-vektor i begge armer, gammel modell7c86/view315/253.
