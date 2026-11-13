@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-13T04:09:47.243743+00:00",
-  "status": "TA_CURRENT_UPDATE_OBSERVATION_003_COMPLETE_CAUSE_UNRESOLVED",
+  "observed_utc": "2026-11-13T04:31:28.653640+00:00",
+  "status": "TA_CURRENT_MODE_OBSERVATION_001_ADMITTED_NOT_STARTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Isolate why the large F-side UP shift arises during the first complete current-function TRAIN pass and persists on later data. Reuse the measured pass0/1/2 trajectory and qualified endpoint geometry to choose one specific projection/encoder mechanism test before another training run. No new model execution, loss/architecture change, full-history training or30-40epochs admitted; no repeat of consumed003.",
+  "next_action": "Run the one fresh current mode observation001: same16B16TRAIN groups at actual INITIAL/FINAL, native controls plus dynamic eval/zero-dropout/four paired train-dropout draws;224forwards,0updates. Compare mode effect with measured endpoint UP drift; no historical-mask, population or edge claim.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1751,7 +1751,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Current endpoint gradients and retained last Adam direction measured with both exact profile controls; all590active tensors and passive state checks qualified. No training or predictive improvement in this wave.",
+    "current_activity": "Current-function paired train/eval mode contrast qualified; oldc171 mode evidence does not cover FINAL1542.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1804,7 +1804,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No operational blocker. First-pass accumulated projection/encoder UP drift and later generalization failure are not causally isolated; FINAL derivatives alone cannot reconstruct historical learning.",
+    "current_blocker": "No operational blocker. Current FINAL train/eval mode difference is unmeasured; first-pass accumulated UP drift remains unexplained.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9275,7 +9275,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Isolate why the large F-side UP shift arises during the first complete current-function TRAIN pass and persists on later data. Reuse the measured pass0/1/2 trajectory and qualified endpoint geometry to choose one specific projection/encoder mechanism test before another training run. No new model execution, loss/architecture change, full-history training or30-40epochs admitted; no repeat of consumed003.",
+    "next_action": "Run the one fresh current mode observation001: same16B16TRAIN groups at actual INITIAL/FINAL, native controls plus dynamic eval/zero-dropout/four paired train-dropout draws;224forwards,0updates. Compare mode effect with measured endpoint UP drift; no historical-mask, population or edge claim.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -84100,5 +84100,100 @@
     "elapsed_seconds": 344.1008608969969,
     "terminal_exit_code": 0,
     "source_unchanged": true
+  },
+  "market_state_ta_current_mode_observation_20261113_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_MODE_OBSERVATION_20261113_001/PLAN.json",
+      "sha256": "62e3a004d099a14dd4a248b8114f7d4227769cedeae300882dd41e665ec2b9cf"
+    },
+    "max_invocations": 1,
+    "remaining_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "training_authorized": false,
+    "bounds": {
+      "archive_decodes": 2,
+      "autograd_grad_calls": 0,
+      "backwards": 0,
+      "batch_size": 16,
+      "candidate_writes": 0,
+      "capture_records": 224,
+      "captured_rows": 3584,
+      "checkpoint_loads": 2,
+      "checkpoint_weight_transitions": 1,
+      "checkpoint_writes": 0,
+      "deterministic_initialization_calls": 2,
+      "extra_target_gathers": 64,
+      "forwards": 224,
+      "grad_forwards": 192,
+      "input_sidecar_archive_decodes": 6,
+      "loss_atol": 5e-06,
+      "max_capture_bytes": 4194304,
+      "max_published_json_bytes": 8388608,
+      "memory_bytes": 12884901888,
+      "model_constructions": 1,
+      "native_reference_matches": 32,
+      "numerical_threads": 8,
+      "observer_rng_seed_initializations": 1,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "original_batch_indices": [
+        0,
+        123,
+        246,
+        369,
+        492,
+        615,
+        738,
+        861,
+        985,
+        1108,
+        1231,
+        1354,
+        1477,
+        1600,
+        1723,
+        1847
+      ],
+      "panel_slots": [
+        0,
+        17,
+        34,
+        51,
+        68,
+        85,
+        102,
+        119,
+        136,
+        153,
+        170,
+        187,
+        204,
+        221,
+        238,
+        255
+      ],
+      "phase_capture_writes": 2,
+      "raw_atol": 2e-06,
+      "raw_rtol": 1e-06,
+      "resume_state_load_calls": 2,
+      "resume_state_load_returns": 2,
+      "rng_restores": 1,
+      "sampled_rows": 512,
+      "test_data_used": false,
+      "training_enabled": false,
+      "unique_rows": 256,
+      "wall_seconds": 600
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_MODE_OBSERVATION_20261113_001/PREFLIGHT_REPORT.json",
+      "sha256": "ab600aa026697a6c18db93364bc5623ee1ddac9d2d96dad739f3f30c70c8eabc"
+    },
+    "authorization": "Standing local0USD observation scope; one fresh current fixed-weight mode contrast, no training or consumed-plan reuse."
   }
 }

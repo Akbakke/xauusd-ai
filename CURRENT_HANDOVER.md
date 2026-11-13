@@ -5,7 +5,7 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_CURRENT_UPDATE_OBSERVATION_003_COMPLETE_CAUSE_UNRESOLVED. Edge-målet er uoppnådd.
+TA_CURRENT_MODE_OBSERVATION_001_ADMITTED_NOT_STARTED. Edge-målet er uoppnådd.
 Training/native/full_epoch/fullVAL er false. Ingen aktiv jobb. Observasjon003 og tidligere001/002
 og numerikkontroll001 er konsumert; ingen av planene skal relanseres.
 
@@ -40,10 +40,19 @@ Andre pass reduserer deler av non-M5-skjevheten. M5F TRAIN-AUC0,537196->0,535205
 men senere AUC0,511290->0,510127->0,509071. Bedre TRAIN-fit er ikke bedre senere prognoser.
 To pass på fem måneder avgjør ikke kapasiteten med hele historikken og30-40epoker.
 
-Neste: isoler hvorfor første komplette pass bygger denne query-/encoder-forskyvningen før enda en
-treningsrunde. Bruk eksisterende passmålinger og nå kvalifisert endepunktsgeometri til å velge én
-konkret mekanismekontroll. Ingen ny modellkjøring eller endring av tap/arkitektur er admittert.
-Ingen årsaksandel, bedre generalisering, Entry-kvalitet eller økonomisk edge er etablert.
+Neste: kjør bare ny moduskontroll001 via eksakt capped-rute og aktuell fryst kilde.
+Root: /home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_MODE_OBSERVATION_20261113_001.
+PLAN62e3a004; faktisk12G/512M/8tråds metadata-preflight PASS uten CLAIM/array/state/modell.
+10målrettede syntetiske tester PASS; uendrede publisher-/gradientkontroller gjenbrukes.
+Én modell,2faktiske states,16sammeB16TRAINgrupper perendepunkt.224forwards/192grad-enabled,
+0autograd/backward/optimizer/updates.32nativekontroller motbeholdte referanser,32dynamic-eval,
+32train uten dropout og128train med original dropout(firetrekk pergruppe/endepunkt).
+Både Dropout.p og MHA.dropout nulles midlertidig i zero-kontrollen og gjenopprettes eksakt.
+Fersk observatørseed20261113 etterINITIAL-last; énFINAL-restore parer hele strømmen.
+Targetqueryseed/opprinneligloss/features er uendret. Dette er ikke historisk-maskereplay.
+600s indregrense/900s yttervakt, max4MiB private captures/8MiBJSON, alle maskinvarevakter beholdes.
+Nativparitet er påkrevd; modeforskjeller måles uten å kreve likhet. Ingen ONLINE-endring,
+ny trening, populasjons-/generalisering-/edgepåstand. Skjevheten skal fortsatt forklares.
 
 Bevar tidligere kontrollkvitteringer: numerikkontroll001 sourceb2d2073d/RESULT1c1a92d6/
 TERMINALb74ed6b8/validationc0936a6b; den målte énINITIALB16gruppe og0autograd/updates.
