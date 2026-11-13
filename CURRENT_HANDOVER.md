@@ -5,8 +5,9 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_FULL_PREFIX_ORDER_SOURCE_TESTED_METADATA_PENDING. Edge-målet er uoppnådd.
-Training/native/full_epoch/fullVAL er false. Ingen ny trening er admittert.
+TA_FULL_PREFIX_ORDER_001_ADMITTED_READINESS_BEFORE_CLAIM. Edge-målet er uoppnådd.
+Én eksakt avgrenset trening er admittert; modelljobb ikke startet.
+training_enabled/native_training_enabled=true; native_launch_authorized/full_epoch/fullVAL=false.
 Ny avgrenset scope: market_state_ta_full_prefix_order_20261113_001.
 Integrator eier worker/ruting/policy/launch; composition_audit eier ny kontrakt og
 minste gjenbruk av eksisterende cursor-/completion-kontroll med fokustester.
@@ -21,7 +22,11 @@ også endret dropout-til-rad-tilordning og optimizerbane, uten separat årsaksat
 Eksakt design, kontrollbindinger og grenser ligger i den nye NEXT_RUN_POLICY-scopen.
 136fokustester PASS, inkludert gammel kontrakt/rute. Første testinnlesing stoppet på
 fixture-import; én importlinje rettet, begge logger bevart. AST/stale-path/diff-check PASS.
-Neste: faktiske metadata-/CLI-bindinger; deretter fersk eksakt native-admisjon.
+Faktisk metadata-/CLI- og tidligere fysisk checkpointidentitet PASS: RECIPE8e40b4b5,
+PREFLIGHT6a2e3650,0modeller/array-/checkpointdekodinger. Kildea51fc0a8; numeriske eiere
+uendret mot full002. Windowsboot648 og Linux uten prosjektarbeid/låser; GPU-PIDer
+avklart til System/LogonUI/dwm. Neste: eksakt pre-CLAIM-readiness, materialisering,
+og ny idle-kontroll før påkrevd fersk fysisk boot. Ingen jobb skal avbrytes.
 
 Tidligere fullpopulasjonsordre ER testet: FULL_REVERSE20261110_002 RESULTbe7a403c/
 TERMINAL40a284e6, alle29574én gang, eldre ae772-INITIAL. TRAIN-tap2,021683→1,883423;
