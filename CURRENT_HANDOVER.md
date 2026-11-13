@@ -5,40 +5,37 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_HEAD_REPRESENTATION_001_COMPLETE_UPSTREAM_AND_QUERY_DRIFT_LOCALIZED_EDGE_UNRESOLVED.
-Edge-målet er uoppnådd. Alle treningsflagg er false. Ingen aktivjobb eller ny probe admittert.
-Samlet rapport: docs/TA_HEAD_REPRESENTATION_REVIEW.json, SHA c26f9bf7.
-GPU HEAD_INPUT001 er COMPLETE/CONSUMED: kildef8a43930,RESULT697b3a53,
-TERMINALd94ac5d0,VALIDATION5b7989c4.89,90s,32forwards/2checkpoints/32gathers/12sidecars,
-0updates/nye mål. Alle32nativeoutputbaseliner ogM5inputbitlike; modell/inputs/RNG/kilde uendret.
-20fokuserte tester kvalifisert og uavhengigregnskapskontrollPASS. De opprinnelige testkvitteringene
-bevarer én rettet FP64-sigmoidtoleranse; native-/closuregrenser ble ikke endret.
-256klokkevalgte rader:128oktober/128desember. Alle5TF/S/F faktiskehodeinput, felles skjult
-128D-vektor og småquery-/hodekoeffisienter er lagret fra de samme32forwards.
+TA_TF_SEPARATION_001_ADMITTED_RETAINED_OUTPUT_AND_REPRESENTATION_READOUT.
+Edge-målet er uoppnådd. Alle treningsflagg er false. Én CPU-only avlesning er admittert:
+MARKET_STATE_TA_TF_SEPARATION_READOUT_20261113_001,PLANf0781221,READOUT.py96025b23.
+4lagredearkiver: INITIAL/order001-FINALLATER4096 + beggehead-input256-arkiver.
+0modeller/checkpoints/forwards/updates/nye mål.120s/4G/512M/1tråd.
+160parceller(alle10TFpar×S/F×INITIAL/FINAL×ALL/okt/nov/des),24representasjons-/logit-
+variansceller og80nivåceller. Sammejoint-knownmaske for faktisk/predikert enighet;
+256observerte rader må være bitlik delmengde av4096. Metadata-/uavhengigkildekontrollPASS.
+Høy korrelasjon eller liten TF-interaksjon alene beviser ikke kastet prediktivinfo ellerdesignfeil.
+Neste: én avlesning, alle resultater, lukk engangsplanen; ingen modellendring ellertrening.
 
-CPU HEAD_PROJECTION_REPLAY001 er COMPLETE/CONSUMED: kilde31d90779,PLAN74516173,
-REPLAY.py09d5889b,RESULT854ca204,TERMINAL102ce0bc,VALIDATION61270092.1,58s/4G/512M/1tråd;
-2småarkiver,64FP32Linear+GELU-batcher,16FP64affinegrids,0modeller/checkpoints/encoder/updates.
-Begge nativeprojeksjon-/logitdiagonaler besto uendrede1e-6/2e-6-toleranser; CPUreplay er IKKEbitlik.
-Maksprojeksjonsavvik2,623e-6/scaled0,593; makslogitavvik5,93e-7/scaled0,234.
-Alle8hidden/query/head-kombinasjoner,6ordnedestier og30S/F-TF-månedsceller beholdt;
-maksradclosure4,44e-16. Uavhengig JSON-regnskapskontrollPASS.
+AKTUELLKILDE: Alle8familier og5TF beholdes. FullTA-profilen krever nøyaktig én familieeier
+for hvert317signal/132ctx/255MTFfelt, allefamilierikke-tomme, komplette132kontekstaliaser.
+Historiskpreprojeksjonskontroll107c9531 viste8×5konsum på315/253; spanutvidelsen8878d17a/
+4476c63b bevarergamlefelt/statistikk oglegger2feltpåhverflate; currentdrift2c87d24c dekker
+alle317/132/255felt/vindusposisjoner. Ingen måltfrakobling funnet; ingen nycensus nødvendig.
+Mean+last-readout og tidligerec171pooling-/akseobservasjonb89942e5 gjenbrukes, ikke relanseres.
+29 574TRAIN-beslutninger ermai–sep2024; D1historievinduet gårtil2023-05-09. Flereårs
+treningsbeslutninger erikkeautomatisk kvalifisert avlangeinputvinduer.
+COT2024release/vintage erfortsattUNKNOWN;4aktivectxfelter71–74/signalalias256–259 via
+session_regime_encoder, ingenCOTi5separateMTFflater. As-of+7d og2025unntakskalender
+kvalifisererikke2024originalvintage. Ingenkonkretfremtidslekkasje erpåvist; ikke nyforklaringpåedge.
 
-DES non-M5 F: faktisk Δlogit1,205–1,399. Symmetrisk3faktorfordeling: upstreamhidden0,787–0,845,
-queryprojeksjon0,347–0,470 ogsidehode inklbias0,070–0,085. Allebidragpositive ialle6stier;
-størrelsene er rekkefølgeavhengige, oghidden er ikke nødvendigvis størst ihversti.
-Gammelt hode pånyrepresentasjon girmeanPUP0,735–0,773; nytt hode pågammelrepresentasjon0,514–0,535.
-Skjevheten ligger i storgrad førslutthodet pådisseendepunktene, men læringsårsaken er ikke isolert.
-S/non-M5 har etannetmønster: symmetriskhidden0,036–0,053,query0,239–0,312,hode0,081–0,101;
-hiddenbidraget skifter fortegn mellomstier. DESM5F hidden/query/head=0,142/0,040/0,078.
-Ingen nyaccuracygevinst eller unik historiskårsaksandel. Kryssede komponenter kan være utenfor
-samtrent fordeling. To-/trefaktorandelene må ikke behandles som fastekausalandeler.
-Tidligere M5attribution bef35→1542(RESULT3545cbf2) og blandet separat-TF-hodeforsøk gjenbrukes.
-
-Neste: følg faktisk current entry_q_joint_hidden-sammensetting og gjenbruk familie-/MTF-
-konsumbevis for et konkret sammenstillings-, tidsinformasjons- eller læringsproblem førnyendring.
-Bevar skillet mellomsvaknativeS/M15fit ogF-generaliseringsgap. Ingen nygenerellM5attribution,
-enkelhodebiasrettelse, separat-hode-reprise ellerseksfeltklamp. Ingen nykjøring/trening admittert.
+Fellespath: local/context+8spesialister→5×8MTF-gating/axialattention→pooling. Concat
+(z_v3,z,mtf_repr,global_context_h)→LayerNorm512→Linear128→GELU. TF-query kommeretterdenne
+felleshidden; førpooling finnes allerede TF-identitet/gates. Avlesningen måler faktiskTFskille.
+Forrige hode-/repr-kontroll: docs/TA_HEAD_REPRESENTATION_REVIEW.json(c26f9bf7), GPU697b3a53/
+CPU854ca204, beggeCOMPLETE/CONSUMED.32bitlikebaseliner,0updates; CPUdiagonalparitet innen
+fasttoleranse, ikkebitlik. DESFnon-M5 symmetriskhidden/query/head=0,787–0,845/0,347–0,470/
+0,070–0,085logit. All6stier/all8kombinasjoner beholdt; ingen historiskårsaksandel/accuracygevinst.
+S ogM5harandrefordelinger. Ingen generellM5attribution, enkelbiasrettelse ellerseparat-hode-reprise.
 
 Forrige kontekstprobe er COMPLETE/CONSUMED: docs/TA_CONTEXT_DRIFT_REVIEW.json,
 RESULT8f1bf7cf.32bitlikebaseliner,128forwards/0updates. Avgrensning av sekscurrentD1/makrofelt

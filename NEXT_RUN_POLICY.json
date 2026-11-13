@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-13T10:02:10.909954+00:00",
-  "status": "TA_HEAD_REPRESENTATION_001_COMPLETE_UPSTREAM_AND_QUERY_DRIFT_LOCALIZED_EDGE_UNRESOLVED",
+  "observed_utc": "2026-11-13T10:22:12.523073+00:00",
+  "status": "TA_TF_SEPARATION_001_ADMITTED_RETAINED_OUTPUT_AND_REPRESENTATION_READOUT",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Trace the actual current entry_q_joint_hidden assembly and reuse prior family/MTF consumption evidence to identify a concrete upstream pooling, temporal-information or learning issue. Preserve the separate native S/M15 fit and F generalization problems. Do not repeat general M5 head attribution, simple output-bias correction, independent-head trial or six-field clamp. Current endpoint accounting is not unique historical causation or improved accuracy. No further run/checkpoint decoding/training or model change is admitted.",
+  "next_action": "Run the admitted CPU retained-array TF separation readout once; preserve allTFpairs/phases/months, same-mask true/predicted disagreements and exact variance decomposition. High output correlation alone does not prove discarded predictive information or authorize architecture changes. COT2024 release/vintage remains UNKNOWN, not a demonstrated leak; no training.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -85117,5 +85117,46 @@
     "elapsed_seconds": 1.5802494019990263,
     "source_unchanged": true,
     "terminal_exit_code": 0
+  },
+  "market_state_ta_tf_separation_readout_20261113_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_SEPARATION_READOUT_20261113_001/PLAN.json",
+      "sha256": "f0781221035c8f94248d1c5ee3d33ecda778703282c70d70c0eacba685ae9db7"
+    },
+    "script": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_SEPARATION_READOUT_20261113_001/READOUT.py",
+      "sha256": "96025b23b6833949601ace0dce10fbc6f3ce408ac7e5967a1c129f9320215cc7"
+    },
+    "max_invocations": 1,
+    "remaining_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "execution_authorized": true,
+    "relaunch_allowed": false,
+    "data_reads_authorized": true,
+    "checkpoint_reads_authorized": false,
+    "model_execution_authorized": false,
+    "training_authorized": false,
+    "bounds": {
+      "archive_decodes": 4,
+      "checkpoint_decodes": 0,
+      "cpu_threads": 1,
+      "full_model_forwards": 0,
+      "geometry_cells": 24,
+      "level_cells": 80,
+      "max_seconds": 120,
+      "memory": "4G",
+      "model_constructions": 0,
+      "new_target_gathers": 0,
+      "optimizer_updates": 0,
+      "pair_cells": 160,
+      "swap": "512M"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_SEPARATION_READOUT_20261113_001/PREFLIGHT.json",
+      "sha256": "db94f7b6416e84c7cfe1d9fd9aba1cb88466ae21f08265985c44ba2960885dda"
+    },
+    "authorization": "Standing local0USD measured-cause investigation. Actual source uses common128D hidden before TF-query conditioning; all genuine families/TF are routed. One readout reuses current native predictions/head-input captures to measure cross-TF ranking and same-mask outcome differences. No new feature census, encoder, checkpoint, fit or candidate selection."
   }
 }
