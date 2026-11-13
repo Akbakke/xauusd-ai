@@ -5,30 +5,48 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_ORDER_ACCURACY_READOUT_001_ADMITTED_NOT_STARTED. Edge-målet er uoppnådd.
-Fullført native ordre001 på kildea31e2448/boot649: 3698updates,59148presentasjoner,
-29574unike TRAIN-rader i hvert av2pass,0skip. TerminalCOMPLETE/exit0; vaktPASS;
-Windowsoppgave Disabled/LastResult0. RNG-passparitet og INITIAL-restaurering eksakt.
-RESULTa3ff7bdb, COMPLETION_VERIFICATION160cb198;0dekodinger i avslutningskontrollen.
-training_enabled/native_training_enabled=false. Planen er konsumert og skal ikke relanseres.
+TA_ORDER_ACCURACY_001_COMPLETE_TRAIN_FIT_LATER_DIRECTION_GAP. Edge-målet er uoppnådd.
+training_enabled/native_training_enabled/native_launch_authorized=false.
+Begge nye engangsplaner er COMPLETE/CONSUMED; ingen relansering eller promotion.
+Samlet rapport: docs/TA_ORDER_ACCURACY_REVIEW.json. Neste arbeid skal angripe det målte
+native-F TRAIN→senere-gapet og S/M15s svake retning med beholdt evidens og eksakte
+mål-/horisont-/inputbindinger. Ingen terskeltilpasning på LATER, automatisk outputflip,
+flere generelle epoker eller repetisjon av ordre-/modusforsøk uten konkret mekanisme.
 
-Neste er brukerens konkrete spørsmål om faktisk treffprosent versus AUC:
-én ny admittert CPU-avlesning av8beholdte prediksjonsarkiver, uten ny modell/trening.
-15syntetiske fokustester PASS; opprinnelig faktoriseringsfunksjon og kvalifisert scorer/
-bootstrap gjenbrukes. Eksakt metadata-preflight før én avlesning, maksimalt240sek/4G.
-Alle10S/F×5TF på TRAIN og senere utviklingspanel. Fast pass2 primær, pass1 sekundær;
-fullprefix002 er beholdt kontroll. Beregn binær accuracy/balansert accuracy, confusion,
-klassefordeling, aktivitet og faktoriserte DOWN/FLAT/UP. Faste M5F-sannsynlighetsgrupper
-vises alle, uten terskeltilpasning eller beste-gruppe-utvalg. Tidligere0,51 var AUC,
-ikke modellens treffprosent; known_side_accuracy var alltid-LONG-referanse.
-Integrator eier privat avlesning/policy/launch; composition_audit eier kun liten ren
-accuracy-hjelper og fokustester. Ingen endring i modell, features, mål eller tapsfunksjon.
+Native ordre001: /home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_ORDER_20261113_001.
+Kildea31e2448,boot649,RESULTa3ff7bdb,COMPLETION_VERIFICATION160cb198.3698updates,
+59148presentasjoner,29574unike mai–september2024-TRAIN-rader i hvert av2pass,0skip.
+8075,16s; terminalexit0/vaktPASS; Windows Disabled/LastResult0; ingen aktivinvokasjon.
+INITIAL og begge pass-RNG matcher beholdt fullprefix002. Kun batchvisitrekkefølge
+43×43-transponert, intakte B16-batcher/tail6 sist; dropout-til-rad/optimizerbane følger med.
 
-Ordre001 bruker samme bef35-INITIAL,29574mai–september2024-rader,2pass og3698updates
-som fullprefix002, med faste43×43-transponerte originale batcher og tail6 sist.
-Rekkefølge omfatter også dropout-til-rad-tilordning og optimizerbane; ikke separat årsak.
-Pass1 viste mindre sannsynlighetsfeil enn gammel rekkefølge i alle10senere celler;
-fullført pass2/rangering/accuracy er ennå ikke skåret. Ingen ny edge-konklusjon.
+Avlesning: /home/andre2/GX1_RUNS/MARKET_STATE_TA_ORDER_ACCURACY_READOUT_20261113_001.
+Kilde62a79a05,RESULTb972ad67,REVIEW_VALIDATIONb7c00014.8arkiver,13,04s,
+0modeller/checkpoints/forwards/updates.15målrettede syntetiske tester PASS.
+Original faktoriseringsfunksjon og kvalifisert scorer/bootstrap gjenbrukt; publiserte
+proper scores replayet innen1,12e-15;270matriser kontrollregnet og agentkontroll PASS.
+Pass2 primær; pass1 sekundær;70dager/14uker,2000parede trekk hver, punktvise intervaller.
+
+ACC-AVKLARING: Tidligere≈0,51 var AUC, ikke treffprosent; known_side_accuracy var
+alltid-LONG-referanse. Ingen regnefeil funnet. Ny faktisk M5F-sideaccuracy865/1689=
+51,2137%; balansert50,3929%;AUC0,507776; alltidUP51,9242%. Modellen svarerUP71,3440%,
+trefferUP71,7218% ogDOWN29,0640%. Uke-AUC95%[0,48444;0,53239]; sterk skjult rangering
+bak0,5-terskelen er ikke påvist. Alle4096 M5F-argmaxprediksjoner erFLAT både INITIAL,
+gammelCONTROL og nyePASS1/2:58,7646%klasseaccuracy er nøyaktig alltidFLAT, balansert1/3.
+Dette er diagnostisk klasseavlesning, ikke en operativ handelsbeslutning eller tålmodighet.
+Fasit2407FLAT,877UP,812DOWN; kjent-side-nevner er ikke valgbar Entry-dekning.
+Faste sannsynlighetsgrupper vises ALLE: [.2,.4)224rader/100kjent side/57%treff;
+[.4,.6)2553/1038/49,42%;[.6,.8)1319/551/53,54%;yttergruppene tomme. Ingen utvalgsregel.
+
+Ny ordre gir lavere senere Brier-punktestimat i alle10S/F-celler enn gammelordre, men
+9/10er fortsatt dårligere enn INITIAL. Kun F/M15Brier og F/M15,H1log skiller seg fra
+kontroll i begge blokkeringsintervaller. Ingen AUC-/accuracy-/balansert-endring gjør det.
+TRAIN F-AUC M5/M15/H1/H4/D1:0,5652/0,6165/0,7118/0,8028/0,8855, alle overkontroll.
+Senere F-AUC:0,5078/0,5050/0,4804/0,5073/0,5499. Et reelt deskriptivt generaliseringsgap;
+årsaken er ikke isolert. S/M5 har svak overtilfeldig rangering; S/M15AUC0,4480under0,5
+med begge punktvise intervaller. D1S0,6364 og D1F0,5499 har brede intervaller rundt0,5.
+Alle10celler/allefaser/TRAIN/LATER og eksplisitte nevnere finnes i rapporten. Ingen
+modell-,feature-,mål- eller tapsendring; kun manglende metricavlesning er rettet.
 
 Tidligere fullpopulasjonsordre ER testet: FULL_REVERSE20261110_002 RESULTbe7a403c/
 TERMINAL40a284e6, alle29574én gang, eldre ae772-INITIAL. TRAIN-tap2,021683→1,883423;

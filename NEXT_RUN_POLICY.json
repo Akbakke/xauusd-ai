@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-13T08:13:07.489921+00:00",
-  "status": "TA_ORDER_ACCURACY_READOUT_001_ADMITTED_NOT_STARTED",
+  "observed_utc": "2026-11-13T08:18:13.302000+00:00",
+  "status": "TA_ORDER_ACCURACY_001_COMPLETE_TRAIN_FIT_LATER_DIRECTION_GAP",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Run exact eight-archive metadata preflight, then one capped retained-output accuracy/order readout. Pass2 primary; all S/F and TF cells; report threshold/class effects separately from ranking and economic edge.",
+  "next_action": "Investigate the measured native-F TRAIN-to-later transfer failure and S/M15 below-chance direction using existing retained evidence and exact horizon/target/input bindings. Keep S sampled-TRAIN versus native-LATER task differences explicit. Do not tune thresholds on LATER, flip outputs, add generic epochs, or repeat order/mode audits without a concrete observed mechanism.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1434,9 +1434,9 @@
     "profitability_demonstrated": false,
     "required_before_more_extensive_training": true,
     "entry_learning_demonstrated": false,
-    "current_evidence_scope": "Two complete chronological29574-row passes: later total probability loss2.350915->2.645637; no established AUC gain. Exact parameter replay shows all590active tensors updated and final output bias is a negligible explanation; M5 weights and representations jointly shift UP. Reused development, no independent generalization/Entry/economics.",
+    "current_evidence_scope": "Same29574rows/two passes with changed batchvisitorder improves TRAIN F AUC acrossall5TF and lowers all10later Brier point estimates vs oldorder, but no qualified later direction gain. M5F AUC.507776, sideaccuracy51.2137%, balanced50.3929%; jointargmax100%FLAT. Exact8archive readout, originalscore replay1.12e-15;15synthetic tests and270aggregate matrix checks PASS. Reuseddevelopment only.",
     "component_learning_measured": true,
-    "component_learning_result": "EXPOSURE_SCHEDULE_PROBABILITY_GAIN_WITH_REMAINING_NON_M5_BIAS",
+    "component_learning_result": "STRONGER_TRAIN_FIT_WITHOUT_LATER_DIRECTION_GAIN",
     "primary_entry_quality_qualified": false,
     "paired_learning_review": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/PAIRED_LEARNING_REVIEW.json",
@@ -1747,6 +1747,10 @@
     "latest_recorded_clipping_exposure": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001/CLIP_WEIGHT_REUSE_REVIEW.json",
       "sha256": "069e74e6c78260aa060cbdd764b654ecacb2c4e6bcda3b94687d8af45d8d9c70"
+    },
+    "latest_order_accuracy_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ORDER_ACCURACY_REVIEW.json",
+      "sha256": "eae0324dfbacddcf76223d15c88b2bd02ce50b6f3d5acbab883b234c0da8efb1"
     }
   },
   "current_work": {
@@ -1804,7 +1808,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No operational blocker; completed order experiment needs fixed retained-prediction scoring. Hidden ranking versus threshold/FLAT effects is unmeasured until accuracy readout.",
+    "current_blocker": "No operational blocker. M5F actual accuracy51.21%/balanced50.39%/AUC.5078 and100%FLAT joint argmax are verified; native-F TRAIN fit gains do not transfer robustly to later data. Causal mechanism remains unresolved.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9275,7 +9279,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run exact eight-archive metadata preflight, then one capped retained-output accuracy/order readout. Pass2 primary; all S/F and TF cells; report threshold/class effects separately from ranking and economic edge.",
+    "next_action": "Investigate the measured native-F TRAIN-to-later transfer failure and S/M15 below-chance direction using existing retained evidence and exact horizon/target/input bindings. Keep S sampled-TRAIN versus native-LATER task differences explicit. Do not tune thresholds on LATER, flip outputs, add generic epochs, or repeat order/mode audits without a concrete observed mechanism.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22579,7 +22583,7 @@
         "new_model_calls": 0
       }
     },
-    "status": "TA_ORDER_ACCURACY_READOUT_001_ADMITTED_NOT_STARTED",
+    "status": "TA_ORDER_ACCURACY_001_COMPLETE_TRAIN_FIT_LATER_DIRECTION_GAP",
     "observed_utc": "2026-11-13T03:49:42.485840+00:00",
     "current_observation_stage": "market_state_ta_current_update_observation_20261113_003",
     "current_observation_plan": {
@@ -22815,7 +22819,11 @@
     },
     "full_prefix_order_stage": "market_state_ta_full_prefix_order_20261113_001",
     "full_prefix_order_running": false,
-    "operational_blocker": null
+    "operational_blocker": null,
+    "latest_order_accuracy_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ORDER_ACCURACY_REVIEW.json",
+      "sha256": "eae0324dfbacddcf76223d15c88b2bd02ce50b6f3d5acbab883b234c0da8efb1"
+    }
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -84654,7 +84662,7 @@
     "elapsed_seconds": 8075.163519098999
   },
   "market_state_ta_order_accuracy_readout_20261113_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_NO_RELAUNCH",
     "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ORDER_ACCURACY_READOUT_20261113_001",
     "script": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ORDER_ACCURACY_READOUT_20261113_001/REVIEW_READOUT.py",
@@ -84673,11 +84681,11 @@
       "sha256": "c866b0e74a270a8707563d31953dfa224a28efbc164f3ddb0cdaa607c92e5b81"
     },
     "focused_test_cases": 15,
-    "execution_authorized": true,
+    "execution_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "archive_reads": 8,
     "bootstrap_replicates": 2000,
@@ -84699,6 +84707,31 @@
       "memory": "4G",
       "swap": "512M"
     },
-    "authorization_basis": "User explicitly requested actual accuracy, hidden direction and deviations; standing local0USD cause investigation. Reuse completed order/control prediction archives and qualified score/bootstrap owners. No new training, threshold/order/pass/bin selection."
+    "authorization_basis": "User explicitly requested actual accuracy, hidden direction and deviations; standing local0USD cause investigation. Reuse completed order/control prediction archives and qualified score/bootstrap owners. No new training, threshold/order/pass/bin selection.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ORDER_ACCURACY_READOUT_20261113_001/RESULT.json",
+      "sha256": "b972ad678dd480def90671b3a41ff82c024c1e4e954d162cbee09698eaab54e9"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ORDER_ACCURACY_READOUT_20261113_001/TERMINAL.json",
+      "sha256": "fab07cbc826f5579e414f230ec42acb11c1ca5f274375ef131c1496dc8ee6b6e"
+    },
+    "validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ORDER_ACCURACY_READOUT_20261113_001/REVIEW_VALIDATION.json",
+      "sha256": "b7c000140f97ae9acebd149e46784704a662c73de18c71908c984c192339a1bd"
+    },
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ORDER_ACCURACY_REVIEW.json",
+      "sha256": "eae0324dfbacddcf76223d15c88b2bd02ce50b6f3d5acbab883b234c0da8efb1"
+    },
+    "actual_counts": {
+      "archive_decodes": 8,
+      "archive_load_calls": 8,
+      "checkpoint_decodes": 0,
+      "forwards": 0,
+      "models": 0,
+      "optimizer_updates": 0
+    },
+    "elapsed_seconds": 13.013258313998449
   }
 }
