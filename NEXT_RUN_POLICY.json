@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-13T10:32:56.713217+00:00",
-  "status": "TA_PREPOOL_READOUT_001_COMPLETE_PERIOD_TRANSFER_NEXT",
+  "status": "TA_PERIOD_TRANSFER_READOUT_002_ADMITTED_NO_FIT",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Stop further pooling/head redesign based only on near-common TF ranking. Follow transfer across time: reuse existing chronological fold/coverage and monthly native prediction evidence to distinguish changing score levels from loss/reversal of within-period ranking. No fresh fit or model/data job admitted. Never call a retrospective split independent OOF if the frozen backbone saw the scored rows; preserve the full-history goal and COT2024 UNKNOWN.",
+  "next_action": "Run only exact retained period readout002 once. Reuse older chronological input/target/fold evidence; current fold2 span inputs/normalization/consumer binding remain unqualified. No new fit/native job admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1759,7 +1759,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Matched predictive readout complete: no established prepool rank advantage; native ranking varies across months and TRAIN fit transfers poorly. Reuse chronological fold/coverage evidence before any next admission.",
+    "current_activity": "Quantify current endpoint changes and period differences using retained predictions; qualify exact missing fold2 boundaries from existing metadata.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -40902,7 +40902,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "No training, native update, readout fit or new data/model job admitted. Current paired representation comparison is complete and consumed.",
+  "training_enabled_scope": "No training. Two retained INITIAL/FINAL LATER archives, all five F timeframes/all months, fixed paired day/week uncertainty and algebraic Brier accounting only.",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -85363,5 +85363,51 @@
     "decision": "NO_FIXED_LINEAR_PREPOOL_RANKING_ADVANTAGE_ESTABLISHED_PERIOD_TRANSFER_NEXT",
     "all_primary_auc_accuracy_intervals_include_zero": true,
     "native_replay_error": 0.0
+  },
+  "market_state_ta_period_transfer_readout_20261113_001": {
+    "status": "SOURCE_PREFLIGHT_FAILED_NO_CLAIM",
+    "failure": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_PERIOD_TRANSFER_READOUT_20261113_001/SOURCE_FAILURE.json",
+      "sha256": "5322174ae0d415a9dbedad2ab8d00d2a5f6251e2f48598ed755af04b7d8cb905"
+    },
+    "execution_authorized": false,
+    "relaunch_allowed": false,
+    "claimed_invocations": 0,
+    "remaining_invocations": 0,
+    "genuine_archive_decodes": 0,
+    "models": 0,
+    "fits": 0
+  },
+  "market_state_ta_period_transfer_readout_20261113_002": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_PERIOD_TRANSFER_READOUT_20261113_002/PLAN.json",
+      "sha256": "ca58ed5ece3fd1ccfa1c60b46e7734391f6124074900404c25611ffaeb2bb2a7"
+    },
+    "script": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_PERIOD_TRANSFER_READOUT_20261113_002/REVIEW.py",
+      "sha256": "af60eb43bcdde10c39eb1e9d5fe0993dfd279d8db07802a6a9fbccf1af08c705"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_PERIOD_TRANSFER_READOUT_20261113_002/SOURCE_REVIEW.json",
+      "sha256": "095f1182289619b989454b7756fc3774d1fff0494c5c24e4eb8e9532e63c0d84"
+    },
+    "max_invocations": 1,
+    "remaining_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "execution_authorized": true,
+    "relaunch_allowed": false,
+    "training_authorized": false,
+    "archive_decodes": 2,
+    "models": 0,
+    "checkpoint_decodes": 0,
+    "forwards": 0,
+    "fits": 0,
+    "updates": 0,
+    "wall_seconds": 120,
+    "memory": "4G",
+    "swap": "512M",
+    "authorization": "Standing zero-cost measured-cause investigation; quantify existing period differences before choosing next data/model action. Retained outputs only, no model/data production or fitting."
   }
 }

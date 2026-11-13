@@ -5,8 +5,12 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_PREPOOL_READOUT_001_COMPLETE_PERIOD_TRANSFER_NEXT.
-Edge-målet er uoppnådd. Alle treningsflagg er false. Ingen aktiv jobb eller ny fit er admittert.
+TA_PERIOD_TRANSFER_READOUT_002_ADMITTED_NO_FIT.
+Edge-målet er uoppnådd. Alle treningsflagg er false. Én eksakt null-fit CPU-avlesning er admittert:
+MARKET_STATE_TA_PERIOD_TRANSFER_READOUT_20261113_002, PLANca58ed5e. To beholdte INITIAL/FINAL-
+arkiver, alle5F/alle3måneder, parede dag-/ukeintervaller, Brier-meanbias/rest. 4G/512M/120s.
+Faktisk CLI/syntetisk preflight PASS. Plan001 hadde helper-navnemismatch, fanget før CLAIM;
+002 retter bare planbindingen. Ingen data-/modell-/fitjobb eller relaunch er åpnet av dette.
 Samlet siste rapport: docs/TA_PREPOOL_PREDICTIVE_REVIEW.json; eksakt SHA står i policy.
 
 Neste arbeid gjelder overføring fra TRAIN til senere perioder: gjenbruk eksisterende
