@@ -26,16 +26,15 @@ def read(ref):
 def ref(name):return dict(path='/synthetic/'+name,sha256='1'*64)
 
 
-@pytest.fixture(scope='module')
-def binding():
-    parent=read(extension.extension.PARENT_ARTIFACT)
-    base=read(extension.NORMALIZATION_EVIDENCE['expanded_base'])
-    units=read(extension.NORMALIZATION_EVIDENCE['units_profile'])
+def binding_case(spec):
+    parent=read(spec['parent_reference'])
+    base=read(spec['normalization_evidence']['expanded_base'])
+    units=(None if spec['units_sha'] is None else read(spec['normalization_evidence']['units_profile']))
     constructor=extension.build_anchor_span_constructor_metadata(read(extension.PARENT_CONSTRUCTOR_REF))
     packet=extension.build_anchor_span_prefix_packet(parent,base,unobserved_units_profile=units)
     proof=parent['prefix_qualification']['proof']['source_bindings']
     sources={key:ref(key) for key in views.SOURCE_REF_KEYS|views.TIME_QUERY_V2_SOURCE_REF_KEYS|views.ANCHOR_SPAN_SOURCE_REF_KEYS}
-    sources.update(input_qualification=extension.PARENT_QUALIFICATION_REF,
+    sources.update(input_qualification=spec['qualification_reference'],
         raw_input_provider_plan=proof['provider_plan'],raw_gc_layout=proof['boolean_raw_gc_layout'],
         raw_gc_transition=proof['boolean_raw_domain_transition'],time_query_mature_prefix_plan=proof['current_plan'],
         anchor_span_inputs_source=dict(path=extension.OVERLAY_OWNER_PATH,sha256='1'*64))
@@ -53,6 +52,16 @@ def binding():
         source_bindings=sources,max_batch_rows=16,unobserved_units_profile=units,
         full_feature_profile=True,full_ta_feature_profile=True,market_state_time_query_v2=True,
         dedicated_m5_side=True,dedicated_tf_activity=True)
+
+
+@pytest.fixture(scope='module')
+def binding():
+    return binding_case(extension.FOLD1_BINDING)
+
+
+@pytest.fixture(scope='module')
+def fold2_binding():
+    return binding_case(extension.FOLD2_BINDING)
 
 
 def test_exact_metadata_dispatch_preserves_parent_gc_and_new_geometry(binding):
@@ -343,3 +352,50 @@ def test_train_builder_does_not_accept_unbound_later_axes(monkeypatch):
     view,_,_,build=make_gather_case(monkeypatch)
     with pytest.raises(RuntimeError,match='UNBOUND_LATER_AXES'):
         overlay.build_anchor_span_inputs(view,**build,later_axes={})
+
+
+def test_fold2_view_uses_own_prefix_without_inheriting_units(binding, fold2_binding):
+    old=views.bind_native_direction_feature_view(**binding)
+    new=views.bind_native_direction_feature_view(**fold2_binding)
+    assert views.bind_native_direction_feature_view(**fold2_binding,expected=new)==new
+    views._require_view(new,unobserved_units_profile=None)
+    assert new['prefix']['rows']==47338 and new['prefix']['cutoff_ns']==1735603200000000000
+    assert new['prefix_normalization']['contract_sha256']==extension.FOLD2_BINDING['packet_sha']
+    assert new['prefix_normalization']['ta_base_normalization_sha256']==extension.FOLD2_BINDING['ta_sha']
+    assert 'unobserved_units_profile' not in new
+    assert 'unobserved_units_profile_sha256' not in new['prefix_normalization']
+    for key in ('physical_widths','physical_field_names_sha256','canonical_routing_sha256',
+                'constructor_scalar_config','entry_execution_profile','research_objective'):
+        assert new[key]==old[key]
+    packet=fold2_binding['prefix_normalization']
+    assert packet['unobserved_units_profile'] is None
+    assert packet['gc_mtf_history']==packet['parent_prefix_normalization']['gc_mtf_history']
+    assert extension.require_anchor_span_prefix_packet(packet)==packet
+
+
+@pytest.mark.parametrize('fault',['fold1_units','cutoff','marker','normalization','parent_source','null_units_key'])
+def test_fold2_view_rejects_resealed_wrong_scope_or_units(binding,fold2_binding,fault):
+    args=deepcopy(fold2_binding)
+    if fault=='fold1_units':
+        args['unobserved_units_profile']=binding['unobserved_units_profile']
+        with pytest.raises(RuntimeError,match='FOLD2_UNOBSERVED_UNITS_FORBIDDEN'):
+            views.bind_native_direction_feature_view(**args)
+        return
+    view=views.bind_native_direction_feature_view(**args)
+    if fault=='cutoff':view['prefix']['cutoff_ns']+=300*10**9
+    elif fault=='marker':view[extension.MARKER_KEY]['parent_prefix_reference']=extension.FOLD1_BINDING['parent_reference']
+    elif fault=='normalization':view['prefix_normalization']['base_sha256']=extension.BASE_CONTRACT_SHA
+    elif fault=='parent_source':view['prefix_source_bindings_sha256']='0'*64
+    else:view['unobserved_units_profile']=None
+    view['contract_sha256']=views._sha({k:v for k,v in view.items() if k!='contract_sha256'})
+    with pytest.raises(RuntimeError):views._require_view(view,unobserved_units_profile=None)
+
+
+def test_retained_fold1_view_reconstructs_identically(binding):
+    retained=read(dict(path='/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001/FEATURE_VIEW.json',
+        sha256='2b15bcfe7fec09d83dfc6af71fe406b6c8153aa5d0a5d9262d112fea3ace3d60'))
+    args={**binding,'prefix_normalization_ref':retained['prefix_normalization']['binding'],
+          'constructor_metadata_ref':retained['constructor_metadata']['binding'],
+          'source_bindings':retained['source_bindings'],'max_batch_rows':retained['max_batch_rows'],
+          'dedicated_non_m5_side':retained.get('dedicated_non_m5_side',False)}
+    assert views.bind_native_direction_feature_view(**args,expected=retained)==retained

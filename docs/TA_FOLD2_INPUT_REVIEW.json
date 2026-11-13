@@ -13,8 +13,8 @@
     }
   },
   "native_training_authorized": false,
-  "new_job_admitted": false,
-  "next_action": "Bind the exact fold2 prefix packet and span feature view to parent32f917bb, physical8f2acfaf and new TA normalization3528af4e (contract53e57991), explicitly allowing no units only for this qualified fold2. Preserve fold1 reconstruction. Existing blockers are entry_anchor_span_feature_view_v1._parent/build_anchor_span_prefix_packet/provenance and entry_native_direction_feature_view_v1 span-view dispatch. Then qualify actual TRAIN gather and later Jan-Mar2025 coverage before any fresh native baseline/fit. No new job admitted.",
+  "new_job_admitted": true,
+  "next_action": "Execute only the exact admitted full fold2 TRAIN input gather:47338 chronological rows,2959 batches,last10; own frozen normalization and unchanged activity-only function. No model or fit. Preserve completion or failure, consume plan, review exact counts and inputs. Jan-Mar2025 later coverage and fresh native baseline/fit remain separate unopened gates.",
   "normalization": {
     "artifacts": {
       "EXTENDED_BASE_NORMALIZATION": {
@@ -221,7 +221,7 @@
       "sha256": "2e25098183d2ffb27a4441f178789e2bdd39b84646815b67d061ccedbf2170da"
     }
   },
-  "observed_utc": "2026-11-13T12:32:56.138694+00:00",
+  "observed_utc": "2026-11-13T13:03:08.390850+00:00",
   "physical": {
     "all_413_overlap_rows_bitexact": true,
     "counts": {
@@ -315,7 +315,7 @@
     "Existing additive normalization supports exactly the qualified fold2 parent and physical result; no inherited fold1 units. All old statistics and fold1 output identity preserved.",
     "Existing six two-field fit/inverse/projection owner reused with exact fold2 parent/cutoff/output binding."
   ],
-  "status": "FOLD2_PHYSICAL_SPANS_AND_OWN_NORMALIZATION_QUALIFIED_VIEW_AND_MODEL_PENDING",
+  "status": "FOLD2_CURRENT_VIEW_METADATA_QUALIFIED_FULL_TRAIN_GATHER_ADMITTED",
   "test_data_used": false,
   "validation": {
     "both_actual_cli_preflights": "PASS",
@@ -324,5 +324,63 @@
     "normalization_focused_tests": 27,
     "required_commit_contract_checks": "PASS",
     "span_subset_and_parity_focused_tests": 11
+  },
+  "feature_view_binding": {
+    "metadata": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001/METADATA.json",
+      "sha256": "693ba3e0b88592486c6091f2cfb9ab8ef14144d6dde1eb7502634a411a23ace6"
+    },
+    "packet": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001/PREFIX_NORMALIZATION.json",
+      "sha256": "0c3bbe1cdaf190b00e51729c00706ef9ec9686e4b7c675b42a441f7118c202fe"
+    },
+    "view": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001/FEATURE_VIEW.json",
+      "sha256": "81ea31a124f45d18adfd35958b90ebb1124d6bb8d256dbe29f32e5b9213cbff0"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001/SOURCE_REVIEW.json",
+      "sha256": "d627b1ff63970f85605c70b6c1f2cab4beeede0d4ac20743be4f338f84f77b45"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001/PREFLIGHT.json",
+      "sha256": "dd9d1de4816ada18b481341e9356e27cb94fc8f521c3e07627d84cdc8c6b5ef4"
+    },
+    "focused_tests": {
+      "count": 51,
+      "passed": true,
+      "log": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001/FOCUSED_TESTS.log",
+        "sha256": "99af909bee61cd646d994dd641a2779ea1f9be9d59c51e74b128fb07cfca6367"
+      }
+    },
+    "all_current_function_invariants_exact": true,
+    "historical_gc_bridge_reused": true,
+    "full_train_gather": {
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001/PLAN.json",
+        "sha256": "783ae8cc3c8992d7d209d70de841b52c3dd6d04d5dc2a21a772f61a2cc151596"
+      },
+      "status": "ADMITTED_NOT_EXECUTED",
+      "counts": {
+        "axis_archive_decodes": 1,
+        "axis_arrays_decoded": 3,
+        "checkpoint_reads": 0,
+        "feature_batches": 2959,
+        "local_clock_loads": 1,
+        "model_constructions": 0,
+        "model_forwards": 0,
+        "mtf_maps": 10,
+        "normalization_calls": 23672,
+        "normalization_fits": 0,
+        "optimizer_steps": 0,
+        "parent_rows": 47338,
+        "raw_backing_maps": 6,
+        "sidecar_archive_decodes": 6,
+        "target_arrays_decoded": 0
+      }
+    },
+    "native_model_constructed": false,
+    "later_inputs_qualified": false
   }
 }

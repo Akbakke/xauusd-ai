@@ -249,7 +249,12 @@ def _require_view(view, *, unobserved_units_profile=None):
     units_profile = unobserved_units_profile is not None
     time_query_v2 = 'market_state_time_query_v2' in view
     anchor_span = 'anchor_span_input_extension' in view
-    _require(not anchor_span or units_profile, 'ANCHOR_SPAN_EXPLICIT_UNITS')
+    profile = None
+    if anchor_span:
+        from gx1.contracts.entry_anchor_span_feature_view_v1 import (
+            FOLD2_BINDING, require_anchor_span_view_provenance)
+        _require(units_profile or view.get('prefix_normalization', {}).get('contract_sha256')
+                 == FOLD2_BINDING['packet_sha'], 'ANCHOR_SPAN_EXPLICIT_UNITS')
     time_query = 'market_state_time_query' in view or time_query_v2
     _require(units_profile == ('unobserved_units_profile' in view), 'EXPLICIT_UNOBSERVED_UNITS_PROFILE')
     if units_profile:
@@ -258,7 +263,6 @@ def _require_view(view, *, unobserved_units_profile=None):
                    else units.require_october_prefix_units_profile(unobserved_units_profile))
         _require(view['unobserved_units_profile'] == profile, 'UNOBSERVED_UNITS_VIEW_BINDING')
     if anchor_span:
-        from gx1.contracts.entry_anchor_span_feature_view_v1 import require_anchor_span_view_provenance
         require_anchor_span_view_provenance(view, profile)
     dense = 'dense_minute_supervision' in view
     price_momentum = 'price_momentum_profile' in view

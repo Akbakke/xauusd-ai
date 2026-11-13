@@ -5,19 +5,29 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_FOLD2_INPUTS_NORMALIZED_CURRENT_VIEW_PENDING. Edge-målet er uoppnådd.
-Fold2s fysiske span-inputs og egen normalisering er kvalifisert. Alle treningsflagg er false.
-Begge engangsjobber er COMPLETE/CONSUMED; ingen relaunch eller ny jobb er admittert.
-Samlet rapport: docs/TA_FOLD2_INPUT_REVIEW.json. Eksakte referanser/SHA står i policy.
+TA_FOLD2_CURRENT_VIEW_BOUND_FULL_TRAIN_INPUT_GATHER_ADMITTED. Edge-målet er uoppnådd.
+Eksakt fold2-pakke/view er materialisert med samme aktivitet-only-funksjon som faktisk ble
+brukt i FULL_PREFIX_ORDER: non-M5-side=False, samme constructor/ruting/317/132/255bredder,
+96lokale bars,16/64/96/96/252MTF-vinduer og uendrede skalarer. Ingen modell er konstruert.
+51fokuserte tester, metadata-materialisering, CLI-preflight og uavhengig kildekontroll PASS.
+Fold1-metadata er identiske ved rekonstruksjon. Fold2 bruker ingen enhetsunntak.
+Historisk GC-viewhash ef64a40a beholdes som proveniens; eksisterende
+HISTORICAL_RUNTIME_BRIDGE binder separat dagens25881da8. Ingen ny GC-kode/numerikk.
 
-Neste konkrete sperre er den fortsatt fold1-bundne inputvisningen:
-entry_anchor_span_feature_view_v1._parent/build_anchor_span_prefix_packet/proveniens,
-og span-dispatch i entry_native_direction_feature_view_v1 som krever enhetsprofil.
-Bind bare eksakt fold2-parent32f917bb, fysisk resultat8f2acfaf og TA-normalisering3528af4e
-(kontrakt53e57991), med eksplisitt None for enhetsprofil. Bevar fold1-rekonstruksjonen.
-Deretter må faktisk TRAIN-gather og senere januar–mars2025-dekning kvalifiseres før egen
-fersk native initialbaseline/fit. TRAIN-adapteren bruker allerede viewets cutoff.
-Ingen modelljobb eller native trening er åpnet av denne overleveringen.
+Én CPU-inputjobb er nå admittert i
+/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001/PLAN.json.
+47338kronologiske TRAIN-rader,2959batcher à16 med siste10,23672normaliseringskall.
+Direkte provider/readonly råbackinger og canonical gather; ingen fold1-klargjøring.
+Kun tre klokke/id-akser dekodes fra eksisterende aksearkiv. Null targets/modeller/fit/
+checkpoint/oppdateringer. Maks2400s under4G/512M; ingen relaunch.
+Faktisk gather er ennå ikke kjørt/kvalifisert. Gjennomfør bare denne planen, kontroller
+terminal/tellere/bookends og konsumér den. Ingen kilde-/policyendringer under kjøring.
+Stabil jobb kontrolleres etter15–30min; ingen minuttvis polling.
+
+Begge foregående fysiske/normaliseringsjobber er COMPLETE/CONSUMED. Ingen relaunch.
+Etter TRAIN-kontrollen gjenstår separat januar–mars2025-inputdekning, deretter egen
+fersk native initialbaseline før eventuell fit. Alle treningsflagg er fortsatt false.
+Samlet rapport: docs/TA_FOLD2_INPUT_REVIEW.json. Eksakte referanser/SHA står i policy.
 
 ## Fullført og verifisert
 
@@ -36,7 +46,7 @@ Seks tofeltsfit på eget fold2-prefix; ingen gamle felt refittet. Alle6532gamle 
 masker, kategorier, support, aliaser og fysisk lineage er bevart. Ingen fold1-enhetsunntak.
 317signal/132kontekst/255perTF er projisert uten ny fit. Alle observerte spanverdier er
 monotone og gjenfinnes eksakt etter heltallsavrunding; største inverse feil9,44e-6.
-Basekontrakt7bd0f896; TA-kontrakt53e57991. Full feature-view/gather og baseline er ubevist.
+Basekontrakt7bd0f896; TA-kontrakt53e57991. Faktisk full TRAIN-gather og baseline er ubevist.
 27fokuserte tester, faktisk CLI-preflight og påkrevde commit-kontrakttester PASS.
 Uavhengig kilde-/JSON-kontroll PASS. Fold1s beholdte normaliseringsartefakt er identisk.
 

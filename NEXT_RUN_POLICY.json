@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-13T12:32:56.169049+00:00",
-  "status": "TA_FOLD2_INPUTS_NORMALIZED_CURRENT_VIEW_PENDING",
+  "observed_utc": "2026-11-13T13:03:08.390850+00:00",
+  "status": "TA_FOLD2_CURRENT_VIEW_BOUND_FULL_TRAIN_INPUT_GATHER_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Bind the exact fold2 prefix packet and span feature view to parent32f917bb, physical8f2acfaf and new TA normalization3528af4e (contract53e57991), explicitly allowing no units only for this qualified fold2. Preserve fold1 reconstruction. Existing blockers are entry_anchor_span_feature_view_v1._parent/build_anchor_span_prefix_packet/provenance and entry_native_direction_feature_view_v1 span-view dispatch. Then qualify actual TRAIN gather and later Jan-Mar2025 coverage before any fresh native baseline/fit. No new job admitted.",
+  "next_action": "Execute only the exact admitted full fold2 TRAIN input gather:47338 chronological rows,2959 batches,last10; own frozen normalization and unchanged activity-only function. No model or fit. Preserve completion or failure, consume plan, review exact counts and inputs. Jan-Mar2025 later coverage and fresh native baseline/fit remain separate unopened gates.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1755,11 +1755,17 @@
     "latest_query_input_drift_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_QUERY_INPUT_DRIFT_REVIEW.json",
       "sha256": "693b0f928ab07b57e9aa5f650aa3d823b1b7101d2f1530d412b7e8dad6b1bdf8"
-    }
+    },
+    "fold2_current_view_metadata": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001/METADATA.json",
+      "sha256": "693ba3e0b88592486c6091f2cfb9ab8ef14144d6dde1eb7502634a411a23ace6"
+    },
+    "fold2_actual_full_train_input_gather_qualified": false,
+    "fold2_later_inputs_qualified": false
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Own fold2 physical spans and additive normalization qualified. Exact current-feature packet/view binding and actual gather remain.",
+    "current_activity": "Exact fold2 feature view materialized with unchanged current function. One full TRAIN input-only gather admitted; no native training.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1788,11 +1794,11 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "TA_PREPOOL_READOUT_001_COMPLETE_CONSUMED",
-    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_PREPOOL_READOUT_20261113_001",
+    "latest_terminal_role": "TA_FOLD2_SPAN_NORMALIZATION_001_COMPLETE_CONSUMED",
+    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_MODE_OBSERVATION_20261113_001/TERMINAL.json",
-      "sha256": "2cb8e04ad254385126d21c48045b2034e136b44bd388f07abdd281230543b3a8"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_NORMALIZATION_20261113_001/TERMINAL.json",
+      "sha256": "b0928b658dbfea54f37bdf0ec6308af2ddeee69e0ebe7b88960e64ddbbea47cf"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -1812,7 +1818,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No operational blocker. Native S/M15 alreadyweak onTRAIN; current D1context constant duringfit plus later inputdistribution shifts are measured. Their causal contribution to native-F UP drift remainsunisolated.",
+    "current_blocker": "Full47338 TRAIN gather and Jan-Mar2025 later coverage remain unqualified before any fresh native baseline/fit.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -25407,7 +25413,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-13T12:32:56.169049+00:00",
+  "updated_utc": "2026-11-13T13:03:08.390850+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -77380,7 +77386,7 @@
     "unresolved_campaign_marker_preserved": true,
     "standard_campaign_receipt_available": false
   },
-  "active_stage": "market_state_ta_full_prefix_order_20261113_001",
+  "active_stage": "market_state_ta_fold2_span_view_20261113_001",
   "market_state_ta_m5_c171_short_learning_20261111_002": {
     "decision": "CLOSED",
     "status": "COMPLETE_CONSUMED",
@@ -85626,5 +85632,54 @@
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_FOLD2_INPUT_REVIEW.json",
       "sha256": "8164d0697c204f752f13c6af244f698213b699289e5ef6129fc3014d5c4c75cc"
     }
+  },
+  "market_state_ta_fold2_span_view_20261113_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001/PLAN.json",
+      "sha256": "783ae8cc3c8992d7d209d70de841b52c3dd6d04d5dc2a21a772f61a2cc151596"
+    },
+    "script": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001/GATHER.py",
+      "sha256": "1561c47a7c8cd2760e9f290737424ee23255e07596ea8f89b35a09e8e8149212"
+    },
+    "metadata": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001/METADATA.json",
+      "sha256": "693ba3e0b88592486c6091f2cfb9ab8ef14144d6dde1eb7502634a411a23ace6"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001/SOURCE_REVIEW.json",
+      "sha256": "d627b1ff63970f85605c70b6c1f2cab4beeede0d4ac20743be4f338f84f77b45"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001/PREFLIGHT.json",
+      "sha256": "dd9d1de4816ada18b481341e9356e27cb94fc8f521c3e07627d84cdc8c6b5ef4"
+    },
+    "counts": {
+      "axis_archive_decodes": 1,
+      "axis_arrays_decoded": 3,
+      "checkpoint_reads": 0,
+      "feature_batches": 2959,
+      "local_clock_loads": 1,
+      "model_constructions": 0,
+      "model_forwards": 0,
+      "mtf_maps": 10,
+      "normalization_calls": 23672,
+      "normalization_fits": 0,
+      "optimizer_steps": 0,
+      "parent_rows": 47338,
+      "raw_backing_maps": 6,
+      "sidecar_archive_decodes": 6,
+      "target_arrays_decoded": 0
+    },
+    "max_seconds": 2400,
+    "max_invocations": 1,
+    "remaining_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "training_authorized": false,
+    "relaunch_allowed": false
   }
 }
