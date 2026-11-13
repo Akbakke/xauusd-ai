@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_FULL_PREFIX_COMPLETE_RETAINED_RANK_AND_PERIOD_DIAGNOSIS_ADMITTED",
+  "status": "ACTIVE_FULL_PREFIX_UPWARD_PROBABILITY_DRIFT_MEASURED_CAUSE_UNISOLATED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -269,7 +269,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Run exact six-archive retained readout after metadata preflight; compare initial/pass1/pass2 ranking, probability levels, all months and paired day/week uncertainty. No new fit or source/model change.",
+  "next_measurement": "Separate direct side-output bias changes from weight/representation and Adam-history effects using the retained INITIAL/FINAL state identities and recorded logit shifts; inspect existing evidence before admitting any bounded tensor decode. No new training or generic interleaving rerun.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -1721,14 +1721,17 @@
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_SHORT_LEARNING_REVIEW.json",
     "sha256": "45e071a0ed39e75543cda838bb9fbf885b1549a2a2869f83fc3a7e378ed4fe46"
   },
-  "training_authorized_scope": "None; one retained six-archive CPU readout only.",
+  "training_authorized_scope": "None. Native and retained one-use scopes consumed.",
   "latest_confirmed_findings": [
-    "Both complete29574-row passes ran:3698updates,59148presentations,0skips,2tail6batches.",
-    "Initial model and both4096-row panels exactly matched the retained control before updates.",
-    "TRAIN fixed-panel canonical loss1.8649946306832135 ->1.9600942628458142 ->1.9090923154726624; both endpoints worse than INITIAL.",
-    "LATER native endpoint loss2.3509150846084244 ->2.639348393508072 ->2.645637123661932; prior2.31611372366914.",
-    "Later known-side Brier is worse than INITIAL in9of10 S/F cells at primarypass2.",
-    "Ranking, probability-level drift, and calendar-period retention need the saved readouts; no cause inferred from Brier/log alone."
+    "Two full passes completed correctly, but did not improve later probability scores: native loss2.3509150846084244 ->2.645637123661932. Fixed TRAIN-panel loss also remains worse than INITIAL.",
+    "All10 later INITIAL-to-pass2 conditional-side AUC change intervals include0 in both exploratory UTC-day and Monday-week bootstrap. No ranking gain is established by this continuation.",
+    "Eight non-D1 S/F cells have worse Brier and log scores in both day/week intervals. D1S proper-score improvement and D1F deterioration remain uncertain in these intervals.",
+    "Later M5F AUC0.511290 ->0.509071; meanPup0.515273 ->0.600113 against realized known-side UP0.519242. This is ranking and conditional probability, not a hit-rate/profit claim.",
+    "Later M15/H1/H4/D1 F meanPup rises to0.806739/0.816133/0.818379/0.814294, versus realized known-side UP0.491060/0.5/0.539045/0.575089.",
+    "All-calendar-month summaries do not support a uniform early-month forgetting explanation: F/H1 worsens May-July and improves August-September, F/M15 andH4 also worsen inSeptember, while F/D1 improves TRAIN Brier in allfive months.",
+    "Pointwise later S/M5 andS/D1 AUC exceed the constant-prior rank reference, andS/M15 lies below it; allfive F comparisons with the constant rank reference remain uncertain. This does not establish a training gain or economic edge.",
+    "Reused full29574-row targets and exact numeric/query bindings imply constant-logit F UP optima0.511126/0.531247/0.537731/0.568059/0.641793. Pooled weighting alone does not account for non-M5 forecast means near0.81.",
+    "The final256batches are UP-rich, especiallyD1, but all23known F/D1 labels in the final16batches are DOWN. Cumulative order, representation and Adam effects remain unisolated; the final labels being UP is not a sufficient explanation."
   ],
   "activity_pressure_review": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ACTIVITY_PRESSURE_REVIEW.json",
@@ -13861,6 +13864,6 @@
   },
   "full_prefix_learning_result": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_FULL_PREFIX_LEARNING_REVIEW.json",
-    "sha256": "77b8cb067dc6e933acd8a77b34721a53811b66d1aebab7d925c07a1692e0b3e4"
+    "sha256": "488e11dd8c8fcc0a49b026da1e4833754136f36dbb4f4a74b0f9159a64a1524b"
   }
 }

@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-12T21:42:47.522348+00:00",
-  "status": "TA_FULL_PREFIX_COMPLETE_WORSE_PROPER_SCORES_RETAINED_READOUT_ADMITTED",
+  "status": "TA_FULL_PREFIX_READOUT_COMPLETE_UPWARD_PROBABILITY_DRIFT_UNRESOLVED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Run exact six-archive retained readout after metadata preflight; compare initial/pass1/pass2 ranking, probability levels, all months and paired day/week uncertainty. No new fit or source/model change.",
+  "next_action": "Separate direct side-output bias changes from weight/representation and Adam-history effects using the retained INITIAL/FINAL state identities and recorded logit shifts; inspect existing evidence before admitting any bounded tensor decode. No new training or generic interleaving rerun.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1739,7 +1739,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Full-prefix native002 complete and independently verified; Windows task disabled. Fixed-panel proper scores worsened. Six retained archives admitted for ranking and calendar-period diagnosis.",
+    "current_activity": "Native two-pass and retained six-panel review complete and consumed. Broad UP probability drift with worse proper scores is measured; no later ranking gain established. Exact existing target counts reused without arrays/models.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1768,11 +1768,11 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "TA_FULL_PREFIX_NATIVE_COMPLETE_CONSUMED",
-    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_002/RUNTIME",
+    "latest_terminal_role": "TA_FULL_PREFIX_RETAINED_READOUT_COMPLETE_CONSUMED",
+    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_READOUT_20261113_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_002/TERMINAL.json",
-      "sha256": "72d686c5b4da75a9a52e7c638e684d0ad357def76caa2e292becdbd053f7cba9"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_READOUT_20261113_001/TERMINAL.json",
+      "sha256": "440db3988bdfa9ec16c4562fced3d3ea7b9dc8276697500a8df94495012c7c42"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -1792,7 +1792,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No operational blocker. Ranking versus probability-level drift and period retention remain unmeasured.",
+    "current_blocker": "No operational blocker. The parameter/representation/optimizer cause of the measured UP drift is not yet isolated.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9263,7 +9263,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run exact six-archive retained readout after metadata preflight; compare initial/pass1/pass2 ranking, probability levels, all months and paired day/week uncertainty. No new fit or source/model change.",
+    "next_action": "Separate direct side-output bias changes from weight/representation and Adam-history effects using the retained INITIAL/FINAL state identities and recorded logit shifts; inspect existing evidence before admitting any bounded tensor decode. No new training or generic interleaving rerun.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -19094,8 +19094,8 @@
     },
     "feature_potential_exhausted": false,
     "latest_terminal_receipt": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_002/TERMINAL.json",
-      "sha256": "72d686c5b4da75a9a52e7c638e684d0ad357def76caa2e292becdbd053f7cba9"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_READOUT_20261113_001/TERMINAL.json",
+      "sha256": "440db3988bdfa9ec16c4562fced3d3ea7b9dc8276697500a8df94495012c7c42"
     },
     "latest_broad_direction_review": {
       "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/SYNTHESIS.json",
@@ -22398,10 +22398,18 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002/EXPERIMENT_REVIEW.json",
       "sha256": "11a77d1a4b16103ef9455664c13c63b2358ccd8b1ce1e047239eeaff61ed72c8"
     },
-    "source_unchanged_terminal_scope": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_002/TERMINAL.json",
+    "source_unchanged_terminal_scope": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_READOUT_20261113_001/TERMINAL.json",
     "latest_full_prefix_learning_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_FULL_PREFIX_LEARNING_REVIEW.json",
-      "sha256": "77b8cb067dc6e933acd8a77b34721a53811b66d1aebab7d925c07a1692e0b3e4"
+      "sha256": "488e11dd8c8fcc0a49b026da1e4833754136f36dbb4f4a74b0f9159a64a1524b"
+    },
+    "latest_full_prefix_readout": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_READOUT_20261113_001/RESULT.json",
+      "sha256": "f1b0321e5ae9bf97aeff9d8d516515dea2473816074f2e77752bb8f5a25404bf"
+    },
+    "latest_full_prefix_target_weight_reuse": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_READOUT_20261113_001/TARGET_WEIGHT_REUSE_REVIEW.json",
+      "sha256": "3ed18d8622a06812840b1e8e0bde28ee4cb889ee60ef5eb582529bb9b55bf661"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -25607,8 +25615,8 @@
     }
   },
   "latest_terminal_receipt": {
-    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_002/TERMINAL.json",
-    "sha256": "72d686c5b4da75a9a52e7c638e684d0ad357def76caa2e292becdbd053f7cba9"
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_READOUT_20261113_001/TERMINAL.json",
+    "sha256": "440db3988bdfa9ec16c4562fced3d3ea7b9dc8276697500a8df94495012c7c42"
   },
   "trend_event_numeric_source_128": {
     "status": "COMPLETE_PASS",
@@ -40473,7 +40481,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "No training. One six-archive retained readout only.",
+  "training_enabled_scope": "No training or retained payload execution admitted; both current one-use plans consumed.",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -64362,7 +64370,7 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "TA_FULL_PREFIX_COMPLETE_WORSE_PROPER_SCORES_RETAINED_READOUT_ADMITTED",
+  "recorded_status": "TA_FULL_PREFIX_READOUT_COMPLETE_UPWARD_PROBABILITY_DRIFT_UNRESOLVED",
   "recorded_observed_utc": "2026-11-12T20:45:35.627032+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
@@ -83125,11 +83133,11 @@
     },
     "review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_FULL_PREFIX_LEARNING_REVIEW.json",
-      "sha256": "77b8cb067dc6e933acd8a77b34721a53811b66d1aebab7d925c07a1692e0b3e4"
+      "sha256": "488e11dd8c8fcc0a49b026da1e4833754136f36dbb4f4a74b0f9159a64a1524b"
     }
   },
   "market_state_ta_full_prefix_readout_20261113_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_NO_RELAUNCH",
     "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_READOUT_20261113_001",
     "script": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_READOUT_20261113_001/REVIEW_READOUT.py",
@@ -83139,11 +83147,11 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_READOUT_20261113_001/PLAN.json",
       "sha256": "145b9b28286c670313fc575b8008d2e7106e92641f2aac4a67ba8aee5657618d"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "archive_reads": 6,
     "bootstrap_replicates": 2000,
@@ -83165,6 +83173,35 @@
       "memory": "4G",
       "swap": "512M"
     },
-    "authorization_basis": "Standing local0USD direction-cause investigation; reuse six completed native panels, qualified scorers and paired bootstrap. No model/data regeneration."
+    "authorization_basis": "Standing local0USD direction-cause investigation; reuse six completed native panels, qualified scorers and paired bootstrap. No model/data regeneration.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_READOUT_20261113_001/RESULT.json",
+      "sha256": "f1b0321e5ae9bf97aeff9d8d516515dea2473816074f2e77752bb8f5a25404bf"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_READOUT_20261113_001/TERMINAL.json",
+      "sha256": "440db3988bdfa9ec16c4562fced3d3ea7b9dc8276697500a8df94495012c7c42"
+    },
+    "validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_READOUT_20261113_001/REVIEW_VALIDATION.json",
+      "sha256": "6bf3c18f0d4db7a897ccba40b612d6c5c37f5aa52c0ba34ce3164afec660ac98"
+    },
+    "target_weight_reuse": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_READOUT_20261113_001/TARGET_WEIGHT_REUSE_REVIEW.json",
+      "sha256": "3ed18d8622a06812840b1e8e0bde28ee4cb889ee60ef5eb582529bb9b55bf661"
+    },
+    "actual_counts": {
+      "archive_decodes": 6,
+      "archive_load_calls": 6,
+      "checkpoint_decodes": 0,
+      "forwards": 0,
+      "models": 0,
+      "optimizer_updates": 0
+    },
+    "elapsed_seconds": 8.110216302999106,
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_FULL_PREFIX_LEARNING_REVIEW.json",
+      "sha256": "488e11dd8c8fcc0a49b026da1e4833754136f36dbb4f4a74b0f9159a64a1524b"
+    }
   }
 }
