@@ -641,11 +641,13 @@ def run_native_direction_research_window(*, policy_path: Path, policy_file_sha25
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix_authority
     window,plan,invocation,marker,launch=authority.require_native_direction_research_context(policy_path,policy_file_sha256,progress_path)
     if launch['run_scope'] in (authority.TA_M5_OBJECTIVE_BENCHMARK_SCOPE, authority.TA_COVERAGE_BENCHMARK_SCOPE,
-                               authority.TA_COMBINED_DECODER_BENCHMARK_SCOPE, authority.TA_FULL_PREFIX_LEARNING_SCOPE):
+                               authority.TA_COMBINED_DECODER_BENCHMARK_SCOPE, authority.TA_FULL_PREFIX_LEARNING_SCOPE,
+                               authority.TA_FULL_PREFIX_ORDER_SCOPE):
         from gx1.audit.run_market_state_ta_m5_objective_benchmark_v1 import run_objective_benchmark
         return run_objective_benchmark(policy_path=policy_path,
             policy_file_sha256=policy_file_sha256, progress_path=progress_path,
-            **({'full_prefix_learning': True} if launch['run_scope'] == authority.TA_FULL_PREFIX_LEARNING_SCOPE else
+            **({'full_prefix_order': True} if launch['run_scope'] == authority.TA_FULL_PREFIX_ORDER_SCOPE else
+               {'full_prefix_learning': True} if launch['run_scope'] == authority.TA_FULL_PREFIX_LEARNING_SCOPE else
                {'coverage': True} if launch['run_scope'] == authority.TA_COVERAGE_BENCHMARK_SCOPE else
                {'combined_decoder': True} if launch['run_scope'] == authority.TA_COMBINED_DECODER_BENCHMARK_SCOPE else {}))
     if launch["run_scope"] == authority.TA_M5_FULL_REVERSE_ORDER_SCOPE:

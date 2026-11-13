@@ -164,11 +164,15 @@ def _prepare_later(origin, prepared, receipts, view, *, counters, np):
 def run_objective_benchmark(*, policy_path: Path, policy_file_sha256: str,
                             progress_path: Path, coverage: bool = False,
                             combined_decoder: bool = False,
-                            full_prefix_learning: bool = False) -> dict:
-    _need(all(type(v) is bool for v in (coverage, combined_decoder, full_prefix_learning))
-          and sum((coverage, combined_decoder, full_prefix_learning)) <= 1, 'BENCHMARK_MODE')
-    exposure = coverage or combined_decoder or full_prefix_learning
-    if full_prefix_learning:
+                            full_prefix_learning: bool = False,
+                            full_prefix_order: bool = False) -> dict:
+    modes = (coverage, combined_decoder, full_prefix_learning, full_prefix_order)
+    _need(all(type(v) is bool for v in modes) and sum(modes) <= 1, 'BENCHMARK_MODE')
+    exposure = any(modes)
+    if full_prefix_order:
+        from gx1.contracts import market_state_ta_full_prefix_order_v1 as scope
+        full_prefix_learning = True
+    elif full_prefix_learning:
         from gx1.contracts import market_state_ta_full_prefix_learning_v1 as scope
     elif combined_decoder:
         from gx1.contracts import market_state_ta_combined_decoder_benchmark_v1 as scope
@@ -527,6 +531,9 @@ def run_objective_benchmark(*, policy_path: Path, policy_file_sha256: str,
                 progress['passes_completed'] = pass_number
                 progress['training_rng_state_sha256'] = tree_sha(trainer._attended_session_rng_state(device=device))
                 progress['training_rng_by_pass'][str(pass_number)] = progress['training_rng_state_sha256']
+                if full_prefix_order:
+                    expected_rng = origin['order_control']['arms']['FULL_PREFIX']['training_rng_by_pass'][str(pass_number)]
+                    _need(progress['training_rng_state_sha256'] == expected_rng, 'FULL_PREFIX_ORDER_MATCHED_PASS_RNG')
                 if coverage:
                     expected_rng = origin['coverage_control']['arms']['FULL_OBJECTIVE']['training_rng_by_pass'][str(pass_number)]
                     _need(progress['training_rng_state_sha256'] == expected_rng, 'COVERAGE_MATCHED_PASS_RNG')
@@ -607,11 +614,13 @@ def run_objective_benchmark(*, policy_path: Path, policy_file_sha256: str,
         elif combined_decoder:
             rng_parity = arms['COMBINED_DECODER']['training_rng_by_pass'] == origin['combined_control']['arms']['UNIQUE_COVERAGE']['training_rng_by_pass']
             combined_parity['rng_after_each_pass_exact'] = rng_parity
+        elif full_prefix_order:
+            rng_parity = arms['FULL_PREFIX']['training_rng_by_pass'] == origin['order_control']['arms']['FULL_PREFIX']['training_rng_by_pass']
         elif full_prefix_learning:
             rng_parity = None  # No equal-budget arm exists for an after-fit RNG comparison.
         else:
             rng_parity = arms['FULL_OBJECTIVE']['training_rng_by_pass'] == arms['M5_DIRECTION_ONLY']['training_rng_by_pass']
-        _need(full_prefix_learning or rng_parity, 'MATCHED_RNG_AFTER_EACH_PASS')
+        _need((full_prefix_learning and not full_prefix_order) or rng_parity, 'MATCHED_RNG_AFTER_EACH_PASS')
         initial_restore_exact = all(v['all_numerical_state_exact'] for v in restore_proofs.values())
         evaluation_unchanged = same_queries = True
         trace._bookend(recipe,plan,policy_path,policy_file_sha256); clock_guard(); source_unchanged = True
@@ -652,6 +661,14 @@ def run_objective_benchmark(*, policy_path: Path, policy_file_sha256: str,
                    'Same INITIAL, features, targets, order and4096TRAIN/LATER panels; pass2 fixed primary. '
                    'Inherited backbone already trained on these parents; this tests repetition with current features/heads, '
                    'not new historical coverage, untouched confirmation, convergence, Entry or economic edge.')
+    if full_prefix_order:
+        payload['limits'] = (
+            'Two complete passes over the same29574TRAIN parents and3698updates as retained full-prefix002. '
+            'Original intact batches in fixed43x43 transpose order, tail6 last each pass; INITIAL, inputs, '
+            'queries, objective, optimizer and4096TRAIN/LATER panels unchanged. Pass2 fixed primary. '
+            'Presentation order includes changed dropout-to-row assignment and optimizer trajectory. '
+            'Previous order controls had mixed outcomes; no isolated attribution, untouched confirmation, '
+            'convergence, Entry or economic edge claim.')
     if combined_decoder:
         payload.update(combined_control_parity=combined_parity,
             exposure_schedule=recipe['batch_indices_by_pass'],

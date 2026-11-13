@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-13T04:46:45.052595+00:00",
-  "status": "TA_CURRENT_MODE_OBSERVATION_001_COMPLETE_UP_DRIFT_PERSISTS",
+  "status": "TA_FULL_PREFIX_ORDER_SOURCE_TESTED_METADATA_PENDING",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Reuse the qualified matched COVERAGE schedule and its source, exact targets and current INITIAL bindings to determine whether its broader calendar exposure can cover all29574current TRAIN parents without a new objective or more updates. Compare the existing full-prefix and previous order controls before admitting one specific learning intervention. The mode hypothesis is measured on the fixed subset; do not repeat mode, generic order or decoder tests. Training stays disabled until a fresh exact bounded admission.",
+  "next_action": "Qualify one current-function full-population43x43 order contrast against retained full002: same29,574rows, two passes,3698updates and original intact batches/tail. Old full-reverse and16x16 controls are already consumed and reused. Complete exact source/metadata/native gates before admission; do not start generic repeats or full-history training.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -22812,7 +22812,10 @@
       "predictive_improvement_established": false,
       "training_authorized": false,
       "test_data_used": false
-    }
+    },
+    "full_prefix_order_stage": "market_state_ta_full_prefix_order_20261113_001",
+    "full_prefix_order_running": false,
+    "operational_blocker": null
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -25376,7 +25379,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-13T02:22:51.532143+00:00",
+  "updated_utc": "2026-11-13T05:12:28.869049+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -77349,7 +77352,7 @@
     "unresolved_campaign_marker_preserved": true,
     "standard_campaign_receipt_available": false
   },
-  "active_stage": "market_state_ta_full_prefix_learning_20261112_002",
+  "active_stage": "market_state_ta_full_prefix_order_20261113_001",
   "market_state_ta_m5_c171_short_learning_20261111_002": {
     "decision": "CLOSED",
     "status": "COMPLETE_CONSUMED",
@@ -84371,6 +84374,151 @@
     "mode_effect_review": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_MODE_OBSERVATION_20261113_001/MODE_EFFECT_REVIEW.json",
       "sha256": "873044bee4679bc9a2692b9c4eb56edf49bba4a8d88147af96ff4b358c163697"
+    }
+  },
+  "market_state_ta_full_prefix_order_20261113_001": {
+    "status": "SOURCE_TESTED_METADATA_PENDING",
+    "run_scope": "market_state_ta_full_prefix_order_v1",
+    "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_ORDER_20261113_001/RUNTIME",
+    "max_invocations": 1,
+    "remaining_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "execution_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "campaign_preparation_authorized": false,
+    "native_launch_authorized": false,
+    "relaunch_allowed": false,
+    "test_data_used": false,
+    "promotion_authorized": false,
+    "hypothesis": "With the current bef35 INITIAL, TF activity heads and anchor-span inputs, does fixed43x43 calendar dispersion reduce the learned UP drift at the same full-population two-pass update budget?",
+    "controls": {
+      "current_chronological": {
+        "RECIPE": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_002/RECIPE.json",
+          "sha256": "993b9f1dc7b581e700f3fb148f90028c7eb1b51fdf5e1c9d62f8b7bd7182c23f"
+        },
+        "RESULT": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_002/RESULT.json",
+          "sha256": "cc5d1ba16cf8823cce63794e6210061f714c5106f04a5b6ab5a7906494cad172"
+        },
+        "TERMINAL": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_002/TERMINAL.json",
+          "sha256": "72d686c5b4da75a9a52e7c638e684d0ad357def76caa2e292becdbd053f7cba9"
+        }
+      },
+      "current_coverage": {
+        "RECIPE": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001/RECIPE.json",
+          "sha256": "673fcc4a2f8d8273324b935ec7078df637ebc7c8425eff62d0248bb0d4fea5ad"
+        },
+        "RESULT": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001/RESULT.json",
+          "sha256": "d5ba8fa99c87ee3f639770c5b042fe93a442ef4f200733f13fe21cb30a8ac9e0"
+        },
+        "TERMINAL": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COVERAGE_BENCHMARK_20261112_001/TERMINAL.json",
+          "sha256": "e43be2ee9e46085039ecf7a995ccc77e38c52713375bfdf54c238e24ae9b49cd"
+        }
+      },
+      "old_full_reverse": {
+        "RECIPE": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULL_REVERSE_ORDER_20261110_002/RECIPE.json",
+          "sha256": "9f8cb54f927e0a52541be93cdbd2c821e9d461c6aff9c27f2def0d11daed14df"
+        },
+        "RESULT": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULL_REVERSE_ORDER_20261110_002/RESULT.json",
+          "sha256": "be7a403c827e5a2883d7ae6c29ccd345c2ce4feb599da402ec41e601e001347d"
+        },
+        "TERMINAL": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_FULL_REVERSE_ORDER_20261110_002/TERMINAL.json",
+          "sha256": "40a284e6ee0648c46165e85e28e56494e9378b3e9f0e6457ad93da67d1dcf2fe"
+        }
+      },
+      "old_paired_order": {
+        "RECIPE": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/RECIPE.json",
+          "sha256": "e503cf1f17a58391b7286b51ee5423f90fb47fe45d06a860f47553b9f1d8d667"
+        },
+        "RESULT": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/RESULT.json",
+          "sha256": "b11a1932c924b22555bf9e848c8dea7507291c5584d0e7626de1a0f660840438"
+        },
+        "TERMINAL": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_PAIRED_BATCH_ORDER_20261110_002/TERMINAL.json",
+          "sha256": "6df60cb3966721d71e0d72f654c5268d0ddb2a15215db1c63c8a9f36ac3d2b3a"
+        }
+      }
+    },
+    "schedule": {
+      "rule": "[43*r+c for c in range(43) for r in range(43)]",
+      "same_each_pass": true,
+      "batches_per_pass": 1849,
+      "rows_per_pass": 29574,
+      "passes": 2,
+      "optimizer_updates": 3698,
+      "training_presentations": 59148,
+      "tail_rows": 6,
+      "tail_batch_last": true,
+      "original_intact_batches": true,
+      "original_queries_pass0": true
+    },
+    "causal_boundary": "Order intervention includes dropout-to-row assignment and optimizer trajectory; it does not separately identify these mechanisms.",
+    "previous_order_findings": {
+      "full_reverse": "All29574 already tested once on older ae772 INITIAL: TRAIN loss2.021683 to1.883423, later192 F/M5 Brier0.248827 to0.243230 but S/M5 worsened0.235061 to0.238067; comparison FAIL. No full-population novelty claim.",
+      "paired_16x16": "Same4096 old rows/256updates, intact batches: aggregate TRAIN loss improved while M5 S/F proper scores and later192 worsened. No general interleaving benefit established.",
+      "coverage": "Current first4096 already spans May-September2024. UNIQUE_COVERAGE changes content, repetition and order together. Its gain is motivation, not isolated order proof."
+    },
+    "fixed_assessment": {
+      "primary_pass": 2,
+      "secondary_pass": 1,
+      "panel_rows": {
+        "TRAIN": 4096,
+        "LATER": 4096
+      },
+      "primary_question": "Current candidate versus retained chronological full002 at pass2 on M5 F discrimination and proper probability scores.",
+      "report_all": "All10 S/F x5TF AUC, Brier, log loss and mean-UP-versus-known-side frequency; retain per-month views and fixed day/week paired development intervals.",
+      "controls": [
+        "same full002 INITIAL",
+        "same full002 pass2",
+        "constant TRAIN prior",
+        "always-LONG known-side reference, not return"
+      ],
+      "no_selection": [
+        "no alternate order search",
+        "no best-pass selection",
+        "no independent generalization or economic claim"
+      ]
+    },
+    "required_before_admission": [
+      "focused tests and unchanged numerical source bridge",
+      "exact metadata/CLI preflight before CLAIM",
+      "current idle/boot/resource gate",
+      "clean bound source and exact one-use policy"
+    ],
+    "scope_limits": [
+      "no new historical rows",
+      "no objective/model/feature/target change",
+      "no TEST, broker, trading, spending or promotion"
+    ],
+    "source_checks": {
+      "focused_tests": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_ORDER_20261113_001/TESTS_002.log",
+        "sha256": "5655d991f09a601e42deeeb701b3ffa5360da36642e2fc69bcab36be279c7183"
+      },
+      "passed_cases": 136,
+      "initial_collection_failure": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_ORDER_20261113_001/TESTS_001.log",
+        "sha256": "a3ce332a97117b55e5065086b71ec69c02cd47164673e7c73b5d0fa753a4c83b"
+      },
+      "failure_repair": "Only test fixture import changed to established tests package namespace.",
+      "syntax": "PASS",
+      "stale_added_paths": "PASS",
+      "diff_check": "PASS",
+      "old_chronological_contract_and_route_covered": true,
+      "actual_recipe_metadata_qualification": "PENDING",
+      "training_started": false
     }
   }
 }

@@ -5,73 +5,42 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_CURRENT_MODE_OBSERVATION_001_COMPLETE_UP_DRIFT_PERSISTS. Edge-målet er uoppnådd.
-Training/native/full_epoch/fullVAL er false. Ingen aktiv jobb. Moduskontroll001, gradientobservasjon003,
-tidligere001/002 og numerikkontroll001 er konsumert; ingen av planene skal relanseres.
+TA_FULL_PREFIX_ORDER_SOURCE_TESTED_METADATA_PENDING. Edge-målet er uoppnådd.
+Training/native/full_epoch/fullVAL er false. Ingen ny trening er admittert.
+Ny avgrenset scope: market_state_ta_full_prefix_order_20261113_001.
+Integrator eier worker/ruting/policy/launch; composition_audit eier ny kontrakt og
+minste gjenbruk av eksisterende cursor-/completion-kontroll med fokustester.
 
-Fullført: /home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_003.
-Frossen kilde3019998a, PLANea82d0a0, RESULTd5efba0d, TERMINAL81432923,
-REVIEW_VALIDATIONcc4d547f, MECHANISM_REVIEWfce77fa3.344,101s; guardexit0;
-peak45C/50C/143,05W/2068MiB. Én modell,2faktiske endepunkterbef35/1542,
-16fasteB16TRAINgrupper perendepunkt,alle590aktive tensorer i8disjunkte grupper.
-96forwards/32grad-forwards/256autogradkall;0optimizer/updates/backward/RNG-restores/checkpointskriving.
-Alle32nativekontroller var bitlike sine beholdte referanser; alle32grad-forwards var bitlike egne
-nye dynamiske no_grad-referanser.256gruppeclosure-kontroller PASS,maxrelativt1,52782e-7.
-Parametre/buffere/flagg/RNG/features var uendret per fase; source/input-referanser verifisert.
-Uendrede toleranser. Kryssprofil avviker fortsatt: maxPdiffINITIAL9,51715e-7,FINAL6,21928e-6.
-Dette reparerte observasjonens referanse; ingen ONLINE-, taps-, feature- eller treningsfunksjon ble endret.
+Spørsmålet er om dagens bef35-INITIAL, aktivitetshoder og spaninputs beholder mer
+av læringen ved jevnere kalenderfordeling underveis. Samme29574mai–september2024-rader,
+2pass,3698updates og59148presentasjoner som fullprefix002. Faste43×43-transponerte
+originale batcher; tail6 sist i hvert pass. Originalt mål, queries og målepaneler gjenbrukes.
+Beholdt fullprefix002 er kontroll; den skal ikke relanseres. Pass2 er primær, pass1 sekundær.
+Alle10S/F×5TF skåres; mindre UP-bias alene er ikke bedre retning. Rekkefølge omfatter
+også endret dropout-til-rad-tilordning og optimizerbane, uten separat årsaksattribusjon.
+Eksakt design, kontrollbindinger og grenser ligger i den nye NEXT_RUN_POLICY-scopen.
+136fokustester PASS, inkludert gammel kontrakt/rute. Første testinnlesing stoppet på
+fixture-import; én importlinje rettet, begge logger bevart. AST/stale-path/diff-check PASS.
+Neste: faktiske metadata-/CLI-bindinger; deretter fersk eksakt native-admisjon.
 
-F/non-M5: geometri av middelgradienter gir totalSGD-retning+0,967994INITIAL til-13,457736FINAL.
-FINAL future-side-ledd-13,467711; øvrige tap netto+0,009975. Nominell siste Adam-retning-0,013459,
-negativ i16av16grupper; totalSGD negativ i10av16. Dette støtter ikke generell vedvarende UP-drift
-fra øvrige oppgaver ved FINAL. M5 S/F har positiv gjennomsnittlig batch-dot i alle fem delte grupper
-og samlet12positive/4negative batcher ved begge endepunkter. Ingen generell konflikt er påvist her.
-Gjennomsnittlig batch-dot er ikke dot mellom middel-S/F-vektorer; sistnevnte ble ikke beholdt.
+Tidligere fullpopulasjonsordre ER testet: FULL_REVERSE20261110_002 RESULTbe7a403c/
+TERMINAL40a284e6, alle29574én gang, eldre ae772-INITIAL. TRAIN-tap2,021683→1,883423;
+senere192 M5F Brier0,248827→0,243230, men M5S0,235061→0,238067. Samlet gateFAIL.
+Eldre16×16-paring RESULTb11a1932 brukte4096rader/256updates og ga også M5-avveiinger.
+Disse gjenbrukes; nytt forsøk er ingen første test av ordre eller generell interleavinggevinst.
+CurrentCOVERAGE RESULTd5ba8fa9 endret innhold/repetisjon/ordre samlet. Første4096
+spenner allerede over hele mai–september; ingen utvidet kalenderperiode foreslås.
 
-Faktisk FINAL-INITIAL parameterdelta har positiv lokal logitprojeksjon ved begge endepunkter.
-FINAL non-M5-bidrag: query_projection+0,660965,remaining_encoder+0,602346,shared_side_heads+0,216385;
-samlet+1,484738. Dette er lokale J·delta-koordinater, ikke kausale andeler av faktisk historisk endring.
-Adam-målet er siste lagrede momenters nominelle gradientledd uten decay, ikke et predikert neste steg.
-Eval-mode TRAIN-utvalg rekonstruerer ikke historisk dropout, batchrekkefølge eller treningsbane.
-
-Gjenbruk av eksisterende pass0/1/2 viser at den store UP-forskyvningen oppstår innen første pass:
-senere M15F meanP0,578201->0,823873->0,806739; H1F0,574586->0,828949->0,816133.
-Andre pass reduserer deler av non-M5-skjevheten. M5F TRAIN-AUC0,537196->0,535205->0,546849,
-men senere AUC0,511290->0,510127->0,509071. Bedre TRAIN-fit er ikke bedre senere prognoser.
-To pass på fem måneder avgjør ikke kapasiteten med hele historikken og30-40epoker.
-
-Nyest fullført: /home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_MODE_OBSERVATION_20261113_001.
-Frossen kildeaa032b60,PLAN62e3a004,RESULT6275bbfe,TERMINAL2cb8e04a,
-REVIEW_VALIDATION1b1c4375,MODE_EFFECT_REVIEW873044be.255,383s;guardexit0;
-peak45C/48C/137,38W/2034MiB.224forwards/192grad-enabled/0autograd/updates,
-1modell/2states/2TRAINarkiver/6spanarkiver.2privateNPZ=800280bytes;3584capturerader,
-256unikeTRAINrader,16B16grupper og7profiler perendepunkt.10fokustester PASS.
-Alle32nativekontroller bitlike referansen; alle32train-zero-dropout bitlike dynamic eval/grad.
-34MHA- og105Dropout-innstillinger gjenopprettet; øvrig state/features uendret. Egen seed20261113,
-énFINAL-RNGrestore;32batcher med7routegrensers RNG-kjede parer eksakt. Ingen historisk-maskepåstand.
-
-FINAL F/non-M5 meanP i train medfire dropouttrekk ligger bare0,160–0,178prosentpoeng under eval.
-INITIAL→FINAL-driften er fortsatt+21,04–22,22prosentpoeng;15av16batcher øker for hver non-M5F.
-Originaltap øker1,875017→1,912449 i eval og1,875272→1,910833 i train-middel; øker i allefiretrekk.
-Sannsynlighetene gjelder alle256rader, ogsåFLAT/UNKNOWN: ingen treffrate eller kjent-side-skår.
-Store lærte UP-forskyvninger består i train-mode. Dette avviser en stor ren modusforklaring på
-utvalget, ikke dropouts påvirkning under historisk læring eller andre perioders modusrespons.
-
-Neste: gjenbruk den faktiske matchedCOVERAGE-planen/koden og dens INITIAL-/targetbindinger
-for å avgjøre om den bredere kalenderdekningen kan omfatte alle29574aktuelle TRAIN-foreldre
-med uendret mål og oppdateringsbudsjett. Sammenhold tidligere ordrekontroller før én konkret
-læringsintervensjon klargjøres; ingen ny trening er admittert. Ikke gjenta moduskontrollen.
-EksisterendeCOVERAGE ga bedre senere native-F Brier/log enn matchedFULL for alle5TF i begge
-punktvise dag-/ukeintervaller. M5F AUC0,528606 mot INITIAL0,511290 har positive intervaller,
-men motmatchedFULL0,513672 inkluderer begge0. Innhold/repetisjon/ordre endres samlet;
-non-M5bias består. Combineddecoder ga ingen etablert AUC-merverdi. Dette er gjenbrukt utvikling,
-ikke uavhengig bekreftelse, ferdig modell eller økonomisk edge.
-
-Bevar tidligere kontrollkvitteringer: numerikkontroll001 sourceb2d2073d/RESULT1c1a92d6/
-TERMINALb74ed6b8/validationc0936a6b; den målte énINITIALB16gruppe og0autograd/updates.
-Observasjon001 feilet før modell på parent_order-metadata;002 stoppet ved feil profilreferanse.
-Siste-grense-revisjonen RESULTbbda929f/validationb2c96178 og parameter-replayRESULT3545cbf2/
-validation0d6be484 gjenbrukes. Historikk og full metode finnes i Git og aktuelle årsaksdokumenter.
+Siste moduskontroll20261113_001 er COMPLETE/CONSUMED: RESULT6275bbfe,
+TERMINAL2cb8e04a, MODE_EFFECT_REVIEW873044be;224forwards/0updates.
+FINAL non-M5F train-mode meanP er bare0,160–0,178prosentpoeng under eval;
+INITIAL→FINAL-driften består med+21,04–22,22prosentpoeng på256TRAINrader.
+Ren modusforskjell forklarer ikke den store skjevheten på dette utvalget.
+Gradientobservasjon003 RESULTd5efba0d/TERMINAL81432923 viste at FINAL totalgradient
+og lagret siste Adam-retning allerede peker ned for non-M5F. Historisk læringsbane
+forblir uisolert; ingen generell vedvarende oppgavekonflikt ble påvist her.
+Begge observasjoner, tidligere001/002 og numerikkontroll001 er konsumert.
+Ingen modell-/feature-/tapsrettelse eller ny edge er etablert av disse observasjonene.
 
 ## Nytt resultat
 

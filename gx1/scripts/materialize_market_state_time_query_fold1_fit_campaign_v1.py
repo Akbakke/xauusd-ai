@@ -56,11 +56,15 @@ def materialize(binding_path: Path) -> dict:
     from gx1.contracts import market_state_ta_coverage_benchmark_v1 as coverage
     from gx1.contracts import market_state_ta_combined_decoder_benchmark_v1 as combined
     from gx1.contracts import market_state_ta_full_prefix_learning_v1 as full_prefix
-    ta_full_prefix = binding_path == full_prefix.ROOT / 'PREPARATION_EXECUTION_BINDING.json'
+    from gx1.contracts import market_state_ta_full_prefix_order_v1 as full_order
+    ta_full_order = binding_path == full_order.ROOT / 'PREPARATION_EXECUTION_BINDING.json'
+    ta_full_prefix = ta_full_order or binding_path == full_prefix.ROOT / 'PREPARATION_EXECUTION_BINDING.json'
     ta_combined = binding_path == combined.ROOT / 'PREPARATION_EXECUTION_BINDING.json'
     ta_coverage = binding_path == coverage.ROOT / 'PREPARATION_EXECUTION_BINDING.json'
     ta_benchmark = binding_path == benchmark.ROOT / 'PREPARATION_EXECUTION_BINDING.json'
-    if ta_full_prefix:
+    if ta_full_order:
+        short = full_order
+    elif ta_full_prefix:
         short = full_prefix
     elif ta_combined:
         short = combined

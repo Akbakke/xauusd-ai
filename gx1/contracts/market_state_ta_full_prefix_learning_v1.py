@@ -226,40 +226,43 @@ def preflight_read_only(recipe, *, source_commit=None):
 
 
 def build_cursor(*, recipe_ref, outcome, optimizer_updates, parent_cursor, parent_order_sha256,
-                 full_state, result, batch_size=16):
-    value = dict(schema_version=CURSOR_SCHEMA, recipe=recipe_ref, outcome=outcome,
+                 full_state, result, batch_size=16, root=ROOT, recipe_path=RECIPE_PATH,
+                 cursor_schema=CURSOR_SCHEMA, result_schema=RESULT_SCHEMA, completion=None):
+    value = dict(schema_version=cursor_schema, recipe=recipe_ref, outcome=outcome,
         optimizer_updates=optimizer_updates, parent_cursor=parent_cursor,
         parent_order_sha256=parent_order_sha256, full_state=full_state, result=result,
         test_data_used=False, canonical_resume_authority=False)
     value['cursor_sha256'] = campaign.canonical_sha256(value)
-    return require_cursor(value, expected_recipe=recipe_ref, verify_files=False, batch_size=batch_size)
+    return require_cursor(value, expected_recipe=recipe_ref, verify_files=False, batch_size=batch_size,
+        root=root, recipe_path=recipe_path, cursor_schema=cursor_schema, result_schema=result_schema, completion=completion)
 
 
-def require_cursor(value, *, expected_recipe, verify_files=True, batch_size=16):
+def require_cursor(value, *, expected_recipe, verify_files=True, batch_size=16, root=ROOT,
+                   recipe_path=RECIPE_PATH, cursor_schema=CURSOR_SCHEMA, result_schema=RESULT_SCHEMA, completion=None):
     fields = {'schema_version', 'recipe', 'outcome', 'optimizer_updates', 'parent_cursor',
         'parent_order_sha256', 'full_state', 'result', 'test_data_used', 'canonical_resume_authority', 'cursor_sha256'}
-    _need(isinstance(value, Mapping) and set(value) == fields and value['schema_version'] == CURSOR_SCHEMA
+    _need(isinstance(value, Mapping) and set(value) == fields and value['schema_version'] == cursor_schema
           and value['cursor_sha256'] == campaign.canonical_sha256({k: v for k, v in value.items() if k != 'cursor_sha256'}),
           'CURSOR_FIELDS')
     visits = _visits_from_cursor(value['parent_cursor'])
-    _need(type(batch_size) is int and batch_size == 16 and expected_recipe.get('path') == str(RECIPE_PATH)
+    _need(type(batch_size) is int and batch_size == 16 and expected_recipe.get('path') == str(recipe_path)
           and value['recipe'] == expected_recipe and value['outcome'] in ('COMPLETE', 'FAILED')
           and type(value['optimizer_updates']) is int and 0 <= value['optimizer_updates'] <= visits
           and value['parent_order_sha256'] is value['full_state'] is None
           and value['test_data_used'] is value['canonical_resume_authority'] is False, 'CURSOR_SCOPE')
-    _need(isinstance(value['result'], Mapping) and value['result'].get('path') == str(ROOT / 'RESULT.json'), 'RESULT_PATH')
+    _need(isinstance(value['result'], Mapping) and value['result'].get('path') == str(root / 'RESULT.json'), 'RESULT_PATH')
     campaign.require_binding(value['result'], label='full prefix result', verify_file=verify_files)
     if value['outcome'] == 'COMPLETE':
         _need(value['parent_cursor'] == 59148 and value['optimizer_updates'] == 3698, 'COMPLETE_FIXED_UPDATES')
     if verify_files:
         report = _read(value['result'])
-        _need(report['schema_version'] == RESULT_SCHEMA and report['outcome'] == value['outcome']
+        _need(report['schema_version'] == result_schema and report['outcome'] == value['outcome']
               and report['recipe'] == expected_recipe and report['parent_cursor'] == value['parent_cursor']
               and report['training_presentations'] == value['parent_cursor'] and report['batch_visits'] == visits
               and report['optimizer_updates'] == value['optimizer_updates']
               and report['canonical_resume_authority'] is report['test_data_used'] is False, 'CURSOR_RESULT')
         if value['outcome'] == 'COMPLETE':
-            _require_complete(report)
+            (_require_complete if completion is None else completion)(report)
     return dict(value)
 
 
@@ -272,7 +275,8 @@ def _require_initial_parity(proof):
               and type(item['rows']) is int and item['rows'] == 4096, 'INITIAL_PANEL_PARITY')
 
 
-def _require_complete(report):
+def _require_complete(report, *, root=ROOT, schedule=None, rng_stream_parity=None):
+    schedule = training_batch_indices if schedule is None else schedule
     expected = dict(model_constructions=1, model_construction_returns=1, optimizer_constructions=1,
         checkpoint_loads=1, resume_state_load_calls=1, resume_state_load_returns=1,
         strict_full_state_restore_calls=1, strict_full_state_restore_returns=1, initial_rng_imports=1,
@@ -285,7 +289,7 @@ def _require_complete(report):
     _need(all(type(report.get(k)) is int and report[k] == v for k, v in dict(optimizer_updates=3698,
         batch_visits=3698, skipped_batches=0, parent_cursor=59148, training_presentations=59148).items()), 'COMPLETE_FIXED_UPDATES')
     _need(all(report.get(k) is True for k in ('initial_restore_exact', 'evaluation_state_unchanged',
-        'source_unchanged', 'same_training_queries')) and report['rng_stream_parity'] is None
+        'source_unchanged', 'same_training_queries')) and report['rng_stream_parity'] is rng_stream_parity
         and report['optimizer_initialization'] == 'fresh_adamw_empty_state'
         and report['initial_model_state_sha256'] == MODEL_SHA256, 'COMPLETE_INITIAL_AND_PASSIVITY')
     _require_initial_parity(report['full_prefix_control_parity'])
@@ -300,19 +304,19 @@ def _require_complete(report):
         campaign._sha(digest, 'observed full prefix pass RNG')
     campaign._sha(arm['final_model_state_sha256'], 'full prefix final model')
     evidence = arm['evidence_capsule']
-    _need(evidence['path'] == str(ROOT / 'FULL_PREFIX_EVIDENCE.pt'), 'EVIDENCE_PATH')
+    _need(evidence['path'] == str(root / 'FULL_PREFIX_EVIDENCE.pt'), 'EVIDENCE_PATH')
     campaign.require_binding(evidence, label='full prefix evidence only', verify_file=True)
     records = report['training_records']['FULL_PREFIX']
     _need(len(records) == 3698 and [(r['pass_number'], r['original_batch_index'], r['rows']) for r in records]
-          == [(p, b, batch_rows(b)) for p in PASSES for b in training_batch_indices(p)]
+          == [(p, b, batch_rows(b)) for p in PASSES for b in schedule(p)]
           and all(type(r['pass_number']) is type(r['original_batch_index']) is type(r['rows']) is int
               and r['skip_update'] is False for r in records), 'ACTUAL_TRAINING_SCHEDULE')
     _need(sum(r['rows'] for r in records) == 59148 and sum(r['rows'] == 6 for r in records) == 2, 'ACTUAL_TAIL_AND_PRESENTATIONS')
     control, chains, state_digests = _read(CONTROL_RESULT_REF), {}, {}
     for label in MEASUREMENT_LABELS:
         ref, capture = report['measurement_refs'][label], report['panel_captures'][label]
-        _need(ref['path'] == str(ROOT / (label + '.json'))
-              and capture['path'] == str(ROOT / (label + '_READOUT.npz')), 'PANEL_PATH')
+        _need(ref['path'] == str(root / (label + '.json'))
+              and capture['path'] == str(root / (label + '_READOUT.npz')), 'PANEL_PATH')
         campaign.require_binding(ref, label=label + ' measurement', verify_file=True)
         campaign.require_binding(capture, label=label + ' capture', verify_file=True)
         measured = _read(ref); panel = label.rsplit('_', 1)[1]
