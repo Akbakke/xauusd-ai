@@ -2327,5 +2327,331 @@
     "Independent generalization, selectable Entry quality or economic edge.",
     "Failure of the complete multi-year30-40epoch capacity; this uses one five-month prefix."
   ],
-  "next_mechanism_question": "Separate direct side-output bias changes from weight/representation and Adam-history effects using the retained INITIAL/FINAL state identities and recorded logit shifts; inspect existing evidence before admitting any bounded tensor decode. No new training or generic interleaving rerun."
+  "next_mechanism_question": "Reuse the existing matched objective-benchmark and train-mode/gradient evidence to distinguish shared representation pressure from side-decoder coupling in the measured UP drift. Bind evidence to the exact function and starting weights before choosing a further causal test. No new training, generic order/architecture experiment, calibration fit or checkpoint selection is admitted.",
+  "parameter_replay": {
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_002/RESULT.json",
+      "sha256": "3545cbf2342a0b977cb1860954a15942b0b7617e4cedc7cb435c568798508e6a"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_002/TERMINAL.json",
+      "sha256": "5d990762b59263c19dc853eab152dddd27a453db82e177a09d7f1083e861e179"
+    },
+    "validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_002/REVIEW_VALIDATION.json",
+      "sha256": "0d6be48471b800ff1bf42992e7c234dc7043497fbfe25a9504585a075e4d9b60"
+    },
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_002/PLAN.json",
+      "sha256": "5f32f005bd9307bd83d73ebe9c75a2c18962b95b297b61b4dbc1b2af3ad361bf"
+    },
+    "script": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_002/REVIEW_PARAMETERS.py",
+      "sha256": "050fadff489a05a2dd9daa7677db15e8efd0bedfda1ec62d23a3b5d364455563"
+    },
+    "source_commit": "cb16098e385a3b4bbbc3dbf30542c1d15f7e9654",
+    "elapsed_seconds": 3.1491763009998976,
+    "counts": {
+      "affine_endpoint_replays": 4,
+      "archive_decodes": 2,
+      "archive_load_calls": 2,
+      "checkpoint_decodes": 2,
+      "checkpoint_load_calls": 2,
+      "checkpoint_writes": 0,
+      "cuda_initializations": 0,
+      "model_constructions": 0,
+      "module_calls": 0,
+      "optimizer_constructions": 0
+    },
+    "prior_failed_scope": {
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_001/TERMINAL.json",
+        "sha256": "ea3b57b7c56fac43c5e33349bfa5f1ee80b835c85138a1ce2641bf0fe95fd9a2"
+      },
+      "checkpoint_decodes": 2,
+      "archive_decodes": 0,
+      "relaunch_allowed": false
+    },
+    "feature_view_provenance": {
+      "both_checkpoint_bindings_match_own_view": true,
+      "constructor_and_normalization_byteidentical": true,
+      "exact_differences": {
+        "anchor_span_input_extension.overlay_owner.sha256": {
+          "FINAL": "062ca6dcfc995791c8cd86e658cd5fce87cbb2f13792b21bece83269460a336f",
+          "INITIAL": "0a901da3bf2f0dd729be118c79c208e2c0ae737ba1b6f8ada9425c319cb5e784"
+        },
+        "constructor_metadata.binding.path": {
+          "FINAL": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001/CONSTRUCTOR_METADATA.json",
+          "INITIAL": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002/CONSTRUCTOR_METADATA.json"
+        },
+        "contract_sha256": {
+          "FINAL": "c051b19f53c7d1f6d3b5aba4181d1b3368334a59c4b2eb736d9e0dbf71f688b2",
+          "INITIAL": "fabeb1568af091f78ac5e425062a547874a573578345611544db9620c0d54857"
+        },
+        "prefix_normalization.binding.path": {
+          "FINAL": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001/PREFIX_PACKET.json",
+          "INITIAL": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002/PREFIX_PACKET.json"
+        },
+        "source_bindings.anchor_span_inputs_source.sha256": {
+          "FINAL": "062ca6dcfc995791c8cd86e658cd5fce87cbb2f13792b21bece83269460a336f",
+          "INITIAL": "0a901da3bf2f0dd729be118c79c208e2c0ae737ba1b6f8ada9425c319cb5e784"
+        }
+      },
+      "views": {
+        "FINAL": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001/FEATURE_VIEW.json",
+          "sha256": "2b15bcfe7fec09d83dfc6af71fe406b6c8153aa5d0a5d9262d112fea3ace3d60"
+        },
+        "INITIAL": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002/FEATURE_VIEW.json",
+          "sha256": "a63427cd0b2f4274fc3683f3157792ee15e5baf27dab65af59e0a659bfc58297"
+        }
+      }
+    },
+    "active_parameter_tensors": {
+      "changed": 590,
+      "total": 590,
+      "unchanged": []
+    },
+    "inactive_parameter_tensors": {
+      "changed": [],
+      "total": 179
+    },
+    "changed_buffers": [],
+    "optimizer_state": {
+      "active_parameters": 590,
+      "parameters_with_history": 590,
+      "parameters_without_history": [],
+      "step_histogram": {
+        "3698": 590
+      }
+    },
+    "maximum_score_replay_error": 0.0,
+    "maximum_decomposition_closure_error": 3.3306690738754696e-16,
+    "findings": [
+      "All590active parameter tensors changed and each has Adam step3698;179inactive tensors and all buffers are unchanged. This excludes whole active tensors receiving no updates, not ineffective gradients or incorrect learning.",
+      "The final output bias explains only0.030258% of the M5 future mean raw-logit rise and0.322162%-0.364143% of the non-M5 future rises. Earlier projection or bias changes can still contribute through the representation.",
+      "On1689known-side M5 future rows, mean raw-logit change is0.35050136595137327. The symmetric endpoint allocation is0.160745767 to side weights and0.189649539 to representations, with negligible final bias and rounding. Ordered decompositions differ because both factors changed; these are not unique causal shares.",
+      "The M5 future interaction between changed side weights and changed representations is about0.160961. INITIAL/old-representation-final-head/final-representation-old-head/FINAL mean UP probabilities are0.515273/0.535136/0.542344/0.600113. Both mixtures have worse Brier/log than INITIAL. No frozen-component strategy is qualified.",
+      "Exact saved-weight identities, four FP64 affine endpoint replays of retained FP32 values, all score replays and algebraic closure passed. The maximum retained score error is0 and maximum decomposition closure error is3.33e-16.",
+      "This localizes the retained endpoint drift to weight/representation changes and rules out a simple last-layer intercept explanation. It does not identify which upstream loss/gradient/order dynamics caused it; non-M5 representations and the full gradient trajectory were not retained."
+    ],
+    "limits": [
+      "Affine endpoint accounting on reused development rows is not a new forecast or checkpoint selection.",
+      "Final Adam state does not identify cumulative gradient/order effects.",
+      "Non-M5 hidden representations were not retained; only direct final bias versus combined remainder is measured."
+    ],
+    "test_data_used": false,
+    "promotion_authorized": false,
+    "final_output_bias_fraction_of_observed_mean_logit_change": {
+      "future": {
+        "D1": {
+          "known_rows": 1405,
+          "mean_raw_logit_change": 1.5525690040103692,
+          "fraction": 0.0032216162343874314
+        },
+        "H1": {
+          "known_rows": 1558,
+          "mean_raw_logit_change": 1.488984542635816,
+          "fraction": 0.003359189679345042
+        },
+        "H4": {
+          "known_rows": 1319,
+          "mean_raw_logit_change": 1.4566010037271857,
+          "fraction": 0.003433872073085115
+        },
+        "M15": {
+          "known_rows": 1566,
+          "mean_raw_logit_change": 1.3735746685415506,
+          "fraction": 0.0036414340063779553
+        },
+        "M5": {
+          "known_rows": 1689,
+          "mean_raw_logit_change": 0.35050136595137327,
+          "fraction": 0.0003025816724538123
+        }
+      },
+      "state": {
+        "D1": {
+          "known_rows": 1225,
+          "mean_raw_logit_change": 0.43995426415788885,
+          "fraction": 0.01046186348229034
+        },
+        "H1": {
+          "known_rows": 1670,
+          "mean_raw_logit_change": 0.3794312773685077,
+          "fraction": 0.012130632672121817
+        },
+        "H4": {
+          "known_rows": 1492,
+          "mean_raw_logit_change": 0.337119686658227,
+          "fraction": 0.0136531375420315
+        },
+        "M15": {
+          "known_rows": 1677,
+          "mean_raw_logit_change": 0.3540250383901699,
+          "fraction": 0.013001174919720417
+        },
+        "M5": {
+          "known_rows": 1414,
+          "mean_raw_logit_change": 0.21266071856235283,
+          "fraction": -0.0035183081062298144
+        }
+      }
+    },
+    "m5_fixed_endpoint_diagnostics": {
+      "future": {
+        "known_rows": 1689,
+        "scores": {
+          "FINAL": {
+            "auc": 0.5090714538479254,
+            "brier": 0.2587337322054691,
+            "count": 1689,
+            "down_count": 812,
+            "log": 0.7116241623258293,
+            "logit_mean": 0.4116525282832982,
+            "logit_std": 0.2534528873254846,
+            "mean_p": 0.600112789324991,
+            "up_count": 877,
+            "up_fraction": 0.5192421551213736
+          },
+          "HEAD_FINAL_REP_INITIAL": {
+            "auc": 0.5139343709803349,
+            "brier": 0.25076855408915216,
+            "count": 1689,
+            "down_count": 812,
+            "log": 0.6947023358305756,
+            "logit_mean": 0.14152225768341586,
+            "logit_std": 0.16355690385124183,
+            "mean_p": 0.5351361248719795,
+            "up_count": 877,
+            "up_fraction": 0.5192421551213736
+          },
+          "HEAD_INITIAL_REP_FINAL": {
+            "auc": 0.5098185147530486,
+            "brier": 0.25058852581958374,
+            "count": 1689,
+            "down_count": 812,
+            "log": 0.6943462937096051,
+            "logit_mean": 0.17031997451050074,
+            "logit_std": 0.1233568826810816,
+            "mean_p": 0.5423436174199192,
+            "up_count": 877,
+            "up_fraction": 0.5192421551213736
+          },
+          "INITIAL": {
+            "auc": 0.5112901685661486,
+            "brier": 0.24955319813771973,
+            "count": 1689,
+            "down_count": 812,
+            "log": 0.6922523776654274,
+            "logit_mean": 0.06115116233192495,
+            "logit_std": 0.05350139599245069,
+            "mean_p": 0.5152734787588296,
+            "up_count": 877,
+            "up_fraction": 0.5192421551213736
+          }
+        },
+        "observed_mean_raw_logit_change": 0.35050136595137327,
+        "symmetric_allocation_fractions": {
+          "bias": 0.0003025816724538123,
+          "head_weights": 0.45861666457796213,
+          "representation": 0.5410807429650397,
+          "rounding": 1.0784544154140388e-08
+        },
+        "head_first_mean_changes": {
+          "head": 0.08037109535149091,
+          "representation": 0.2701302668198849,
+          "rounding": 3.7799974571891034e-09
+        },
+        "representation_first_mean_changes": {
+          "head": 0.24133254999280002,
+          "representation": 0.10916881217857578,
+          "rounding": 3.7799974571891034e-09
+        },
+        "mean_weight_representation_interaction": 0.16096145464130912,
+        "maximum_closure_error": 3.3306690738754696e-16,
+        "maximum_affine_endpoint_errors": [
+          2.238971144596924e-08,
+          9.920610133384855e-08
+        ]
+      },
+      "state": {
+        "known_rows": 1414,
+        "scores": {
+          "FINAL": {
+            "auc": 0.5403502664810103,
+            "brier": 0.25495731316587694,
+            "count": 1414,
+            "down_count": 706,
+            "log": 0.7033763413148858,
+            "logit_mean": 0.3072382628185282,
+            "logit_std": 0.23033034398967728,
+            "mean_p": 0.5753982766607882,
+            "up_count": 708,
+            "up_fraction": 0.5007072135785007
+          },
+          "HEAD_FINAL_REP_INITIAL": {
+            "auc": 0.5415066180118756,
+            "brier": 0.24919843979555864,
+            "count": 1414,
+            "down_count": 706,
+            "log": 0.6915404543175645,
+            "logit_mean": 0.05711995064827803,
+            "logit_std": 0.17556742432167916,
+            "mean_p": 0.514237797897532,
+            "up_count": 708,
+            "up_fraction": 0.5007072135785007
+          },
+          "HEAD_INITIAL_REP_FINAL": {
+            "auc": 0.5396100414526016,
+            "brier": 0.25130925839442964,
+            "count": 1414,
+            "down_count": 706,
+            "log": 0.6957979746560123,
+            "logit_mean": 0.2036032600061937,
+            "logit_std": 0.12962728457507303,
+            "mean_p": 0.5505450426102492,
+            "up_count": 708,
+            "up_fraction": 0.5007072135785007
+          },
+          "INITIAL": {
+            "auc": 0.5434111970038892,
+            "brier": 0.24942597281922763,
+            "count": 1414,
+            "down_count": 706,
+            "log": 0.6919962758669147,
+            "logit_mean": 0.09457754425617539,
+            "logit_std": 0.10528934374550956,
+            "mean_p": 0.5235782851033016,
+            "up_count": 708,
+            "up_fraction": 0.5007072135785007
+          }
+        },
+        "observed_mean_raw_logit_change": 0.21266071856235283,
+        "symmetric_allocation_fractions": {
+          "bias": -0.0035183081062298144,
+          "head_weights": 0.15911217400152217,
+          "representation": 0.8444061220946726,
+          "rounding": 1.201003500398893e-08
+        },
+        "head_first_mean_changes": {
+          "head": -0.037457593607897355,
+          "representation": 0.25011830961618753,
+          "rounding": 2.554062673907296e-09
+        },
+        "representation_first_mean_changes": {
+          "head": 0.10363500025827183,
+          "representation": 0.10902571575001833,
+          "rounding": 2.554062673907296e-09
+        },
+        "mean_weight_representation_interaction": 0.14109259386616918,
+        "maximum_closure_error": 2.220446049250313e-16,
+        "maximum_affine_endpoint_errors": [
+          3.939555495713343e-08,
+          8.018516550745147e-08
+        ]
+      }
+    }
+  }
 }

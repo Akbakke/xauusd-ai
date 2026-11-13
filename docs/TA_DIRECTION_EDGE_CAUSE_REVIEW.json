@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_FULL_PREFIX_PARAMETER_REPLAY_002_ADMITTED",
+  "status": "ACTIVE_FULL_PREFIX_PARAMETER_REPLAY_COMPLETE_CAUSAL_TRAINING_MECHANISM_UNRESOLVED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -269,7 +269,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Metadata preflight then one capped4G/512M max240s retained-state replay002. Verify each state against its own exact view, both measured model digests, two current LATER archives and affine endpoints. No model execution, refit, selection or generic order experiment.",
+  "next_measurement": "Reuse the existing matched objective-benchmark and train-mode/gradient evidence to distinguish shared representation pressure from side-decoder coupling in the measured UP drift. Bind evidence to the exact function and starting weights before choosing a further causal test. No new training, generic order/architecture experiment, calibration fit or checkpoint selection is admitted.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -13893,7 +13893,9 @@
     "archive_decodes": 2,
     "model_calls": 0,
     "question": "Does the measured UP logit shift come from the output bias, changed side weights, or changed retained M5 representations? Final Adam moments are endpoint evidence only.",
-    "view_provenance_correction": "Validate each exact own feature-view identity and the five fixed provenance differences; copied normalization/constructor bytes must match. All model and capture gates retained."
+    "view_provenance_correction": "Validate each exact own feature-view identity and the five fixed provenance differences; copied normalization/constructor bytes must match. All model and capture gates retained.",
+    "status": "COMPLETE_CONSUMED_NO_RELAUNCH",
+    "execution_authorized": false
   },
   "full_prefix_parameter_replay_001_failure": {
     "terminal": {
@@ -13914,5 +13916,43 @@
     },
     "reason": "Each state uses its own exact feature-view provenance; five measured JSON leaf differences. The mistaken cross-view equality stopped before archive decoding; model digests already matched.",
     "relaunch_allowed": false
+  },
+  "full_prefix_parameter_replay_result": {
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_002/RESULT.json",
+      "sha256": "3545cbf2342a0b977cb1860954a15942b0b7617e4cedc7cb435c568798508e6a"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_002/TERMINAL.json",
+      "sha256": "5d990762b59263c19dc853eab152dddd27a453db82e177a09d7f1083e861e179"
+    },
+    "validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_002/REVIEW_VALIDATION.json",
+      "sha256": "0d6be48471b800ff1bf42992e7c234dc7043497fbfe25a9504585a075e4d9b60"
+    },
+    "repository_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_FULL_PREFIX_LEARNING_REVIEW.json",
+      "sha256": "947cedd255c40050293898e969c9f6525cb74d2a5263bd79493861b79929dc6c"
+    },
+    "counts": {
+      "affine_endpoint_replays": 4,
+      "archive_decodes": 2,
+      "archive_load_calls": 2,
+      "checkpoint_decodes": 2,
+      "checkpoint_load_calls": 2,
+      "checkpoint_writes": 0,
+      "cuda_initializations": 0,
+      "model_constructions": 0,
+      "module_calls": 0,
+      "optimizer_constructions": 0
+    },
+    "findings": [
+      "All590active parameter tensors changed and each has Adam step3698;179inactive tensors and all buffers are unchanged. This excludes whole active tensors receiving no updates, not ineffective gradients or incorrect learning.",
+      "The final output bias explains only0.030258% of the M5 future mean raw-logit rise and0.322162%-0.364143% of the non-M5 future rises. Earlier projection or bias changes can still contribute through the representation.",
+      "On1689known-side M5 future rows, mean raw-logit change is0.35050136595137327. The symmetric endpoint allocation is0.160745767 to side weights and0.189649539 to representations, with negligible final bias and rounding. Ordered decompositions differ because both factors changed; these are not unique causal shares.",
+      "The M5 future interaction between changed side weights and changed representations is about0.160961. INITIAL/old-representation-final-head/final-representation-old-head/FINAL mean UP probabilities are0.515273/0.535136/0.542344/0.600113. Both mixtures have worse Brier/log than INITIAL. No frozen-component strategy is qualified.",
+      "Exact saved-weight identities, four FP64 affine endpoint replays of retained FP32 values, all score replays and algebraic closure passed. The maximum retained score error is0 and maximum decomposition closure error is3.33e-16.",
+      "This localizes the retained endpoint drift to weight/representation changes and rules out a simple last-layer intercept explanation. It does not identify which upstream loss/gradient/order dynamics caused it; non-M5 representations and the full gradient trajectory were not retained."
+    ]
   }
 }

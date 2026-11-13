@@ -5,26 +5,34 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_FULL_PREFIX_PARAMETER_REPLAY_002_ADMITTED_001_FAILED_CONSUMED. Edge-målet er uoppnådd.
-Training/native/full_epoch/fullVAL er false. Native002 og readout001 er konsumert.
+TA_FULL_PREFIX_PARAMETER_REPLAY_COMPLETE_CAUSAL_TRAINING_MECHANISM_UNRESOLVED. Edge-målet er uoppnådd.
+Training/native/full_epoch/fullVAL er false. Ingen jobb er aktiv. Native002, readout001 og
+parameter-replay002 er konsumert; ingen relansering. Source cb16098e, RESULT3545cbf2,
+TERMINAL5d990762, REVIEW_VALIDATION0d6be484. 3,149s under4G/512M og timeout240s.
+2checkpoints/2arkiver/4affine endepunkter;0modeller/modulkall/optimizer/CUDA/checkpointskriving.
+
+Alle590aktive parametertensorer endret seg og har Adam-steg3698.179inaktive og alle buffere
+uendret. Dette beviser oppdateringer, ikke informative gradienter i hvert steg eller god læring.
+Siste output-bias forklarer0,0303% av M5F-logitøkningen og0,322–0,364% for øvrigeF-tidsrammer.
+Tidligere bias-/projeksjonsendringer kan fortsatt inngå i representasjonsleddet.
+M5F,1689kjente siderader: meanΔlogit0,350501. Symmetrisk regnskap gir vektledd0,160746 og
+representasjonsledd0,189650; begge ordnede regnskap er også publisert. Dette er algebraisk
+endepunktfordeling, ikke entydige årsaksandeler. Samspillsleddet Δw·Δh er0,160961.
+INITIAL/nytt hode+gammel representasjon/gammelt hode+ny representasjon/FINAL meanPup:
+0,515273/0,535136/0,542344/0,600113. Begge blandingene har dårligere Brier/log enn INITIAL;
+ingen frysestrategi eller ny kandidat er kvalifisert. Score-replayfeil0; maks algebrafeil3,33e-16.
+Non-M5 mangler beholdte representasjoner; kun output-bias mot samlet rest kan skilles der.
+
+Neste: gjenbruk eksisterende matchede objektivforsøk og train-mode-/gradientbevis for å skille
+felles representasjonspress fra side-dekoderkobling i det målte UP-skiftet. Bind til faktisk
+funksjon/startvekter før et nytt årsaksskille velges. Ingen ny trening, generell ordre-/arkitekturtest,
+kalibreringsfit eller checkpointutvelgelse er admittert. Hele gradientforløpet er ikke beholdt.
+
 Parameter-replay001 stoppet etter2checkpointdekodinger,0arkiver/0modeller, på feilaktig krav om
-identisk view-proveniens mellom span-INITIAL og native-FINAL. Original feilterminal bevares.
-Begge faktiske modelldigester var allerede verifisert. Ingen treningsfeil er etablert av avviket.
-
-Minste rettelse er ny engangsadmisjon MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_002.
-Hver kapsel valideres mot sitt eget originale view. Bare fem dokumenterte JSON-blader skiller:
-view-contract-SHA, constructor/prefix-metadata-stier, og overlay-owner-SHA i to felter.
-Constructor og normalisering er byteidentiske; overlay-endringen tilføyer kvalifisert senere
-paneldekning og bevarer TRAIN-cutoff. Alle øvrige viewfelt er identiske. Ingen generell dispensasjon.
-PLAN og REVIEW_PARAMETERS.py er hashbundet i policy. Metadata-preflight før CLAIM, deretter én
-capped4G/512M-kjøring med ytre timeout240s:2checkpoints og2beholdte native002-LATER-arkiver.
-Ingen modellkonstruksjon/modulkall, CUDA, optimizer, nye features/targets, fit eller checkpointskriving.
-
-M5: FP64-affine endepunkter fra beholdte FP32-verdier kontrolleres mot radvis gamma129-grense,
-deretter symmetrisk og begge ordnede bias/vekt/representasjonsregnskap. Non-M5 har ikke lagrede
-representasjoner: bare direkte bias mot samlet rest kan skilles. Endelige Adam-momenter er
-ikke hele forløpet; faktiske parametersteg observeres. Ingen kalibreringsfit eller modellendring.
-Neste: fullfør denne eksakte kontrollen og lukk admisjonen før neste avgrensning.
+lik view-proveniens. Original feilterminal bevares og001 relanseres ikke.002 validerte hver kapsel
+mot eget originale view og nøyaktig fem metadataforskjeller. Constructor/normalisering er
+byteidentiske; overlay-endringen tilføyer kvalifisert senere-dekning og bevarer TRAIN-cutoff.
+Alle øvrige viewfelt er identiske. Dette var en rettelse av diagnosekontrollen, ikke treningskoden.
 
 ## Nytt resultat
 
