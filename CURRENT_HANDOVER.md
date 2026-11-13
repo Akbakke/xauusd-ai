@@ -5,28 +5,30 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_FULL_PREFIX_ORDER_001_ADMITTED_READINESS_BEFORE_CLAIM. Edge-målet er uoppnådd.
-Én eksakt avgrenset trening er admittert; modelljobb ikke startet.
-training_enabled/native_training_enabled=true; native_launch_authorized/full_epoch/fullVAL=false.
-Ny avgrenset scope: market_state_ta_full_prefix_order_20261113_001.
-Integrator eier worker/ruting/policy/launch; composition_audit eier ny kontrakt og
-minste gjenbruk av eksisterende cursor-/completion-kontroll med fokustester.
+TA_ORDER_ACCURACY_READOUT_001_ADMITTED_NOT_STARTED. Edge-målet er uoppnådd.
+Fullført native ordre001 på kildea31e2448/boot649: 3698updates,59148presentasjoner,
+29574unike TRAIN-rader i hvert av2pass,0skip. TerminalCOMPLETE/exit0; vaktPASS;
+Windowsoppgave Disabled/LastResult0. RNG-passparitet og INITIAL-restaurering eksakt.
+RESULTa3ff7bdb, COMPLETION_VERIFICATION160cb198;0dekodinger i avslutningskontrollen.
+training_enabled/native_training_enabled=false. Planen er konsumert og skal ikke relanseres.
 
-Spørsmålet er om dagens bef35-INITIAL, aktivitetshoder og spaninputs beholder mer
-av læringen ved jevnere kalenderfordeling underveis. Samme29574mai–september2024-rader,
-2pass,3698updates og59148presentasjoner som fullprefix002. Faste43×43-transponerte
-originale batcher; tail6 sist i hvert pass. Originalt mål, queries og målepaneler gjenbrukes.
-Beholdt fullprefix002 er kontroll; den skal ikke relanseres. Pass2 er primær, pass1 sekundær.
-Alle10S/F×5TF skåres; mindre UP-bias alene er ikke bedre retning. Rekkefølge omfatter
-også endret dropout-til-rad-tilordning og optimizerbane, uten separat årsaksattribusjon.
-Eksakt design, kontrollbindinger og grenser ligger i den nye NEXT_RUN_POLICY-scopen.
-136fokustester PASS, inkludert gammel kontrakt/rute. Første testinnlesing stoppet på
-fixture-import; én importlinje rettet, begge logger bevart. AST/stale-path/diff-check PASS.
-Faktisk metadata-/CLI- og tidligere fysisk checkpointidentitet PASS: RECIPE8e40b4b5,
-PREFLIGHT6a2e3650,0modeller/array-/checkpointdekodinger. Kildea51fc0a8; numeriske eiere
-uendret mot full002. Windowsboot648 og Linux uten prosjektarbeid/låser; GPU-PIDer
-avklart til System/LogonUI/dwm. Neste: eksakt pre-CLAIM-readiness, materialisering,
-og ny idle-kontroll før påkrevd fersk fysisk boot. Ingen jobb skal avbrytes.
+Neste er brukerens konkrete spørsmål om faktisk treffprosent versus AUC:
+én ny admittert CPU-avlesning av8beholdte prediksjonsarkiver, uten ny modell/trening.
+15syntetiske fokustester PASS; opprinnelig faktoriseringsfunksjon og kvalifisert scorer/
+bootstrap gjenbrukes. Eksakt metadata-preflight før én avlesning, maksimalt240sek/4G.
+Alle10S/F×5TF på TRAIN og senere utviklingspanel. Fast pass2 primær, pass1 sekundær;
+fullprefix002 er beholdt kontroll. Beregn binær accuracy/balansert accuracy, confusion,
+klassefordeling, aktivitet og faktoriserte DOWN/FLAT/UP. Faste M5F-sannsynlighetsgrupper
+vises alle, uten terskeltilpasning eller beste-gruppe-utvalg. Tidligere0,51 var AUC,
+ikke modellens treffprosent; known_side_accuracy var alltid-LONG-referanse.
+Integrator eier privat avlesning/policy/launch; composition_audit eier kun liten ren
+accuracy-hjelper og fokustester. Ingen endring i modell, features, mål eller tapsfunksjon.
+
+Ordre001 bruker samme bef35-INITIAL,29574mai–september2024-rader,2pass og3698updates
+som fullprefix002, med faste43×43-transponerte originale batcher og tail6 sist.
+Rekkefølge omfatter også dropout-til-rad-tilordning og optimizerbane; ikke separat årsak.
+Pass1 viste mindre sannsynlighetsfeil enn gammel rekkefølge i alle10senere celler;
+fullført pass2/rangering/accuracy er ennå ikke skåret. Ingen ny edge-konklusjon.
 
 Tidligere fullpopulasjonsordre ER testet: FULL_REVERSE20261110_002 RESULTbe7a403c/
 TERMINAL40a284e6, alle29574én gang, eldre ae772-INITIAL. TRAIN-tap2,021683→1,883423;
