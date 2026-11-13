@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-13T08:18:13.302000+00:00",
-  "status": "TA_ORDER_ACCURACY_001_COMPLETE_TRAIN_FIT_LATER_DIRECTION_GAP",
+  "observed_utc": "2026-11-13T08:35:54.974943+00:00",
+  "status": "TA_QUERY_INPUT_DRIFT_001_ADMITTED_NOT_STARTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Investigate the measured native-F TRAIN-to-later transfer failure and S/M15 below-chance direction using existing retained evidence and exact horizon/target/input bindings. Keep S sampled-TRAIN versus native-LATER task differences explicit. Do not tune thresholds on LATER, flip outputs, add generic epochs, or repeat order/mode audits without a concrete observed mechanism.",
+  "next_action": "One capped CPU observation: split retained INITIAL/PASS2 S/M15 TRAIN scores by actualk1/2/3, and compare all actual normalized input fields/windows on fixed4096TRAIN/LATER panels by calendar month. Follow measured December probability drift; no model/targets/refit or feature changes.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1808,7 +1808,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No operational blocker. M5F actual accuracy51.21%/balanced50.39%/AUC.5078 and100%FLAT joint argmax are verified; native-F TRAIN fit gains do not transfer robustly to later data. Causal mechanism remains unresolved.",
+    "current_blocker": "No operational blocker. M15 sampled/native query difference and December shared UP drift require exact retained-horizon/input distribution observation before any model repair.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9279,7 +9279,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Investigate the measured native-F TRAIN-to-later transfer failure and S/M15 below-chance direction using existing retained evidence and exact horizon/target/input bindings. Keep S sampled-TRAIN versus native-LATER task differences explicit. Do not tune thresholds on LATER, flip outputs, add generic epochs, or repeat order/mode audits without a concrete observed mechanism.",
+    "next_action": "One capped CPU observation: split retained INITIAL/PASS2 S/M15 TRAIN scores by actualk1/2/3, and compare all actual normalized input fields/windows on fixed4096TRAIN/LATER panels by calendar month. Follow measured December probability drift; no model/targets/refit or feature changes.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22583,7 +22583,7 @@
         "new_model_calls": 0
       }
     },
-    "status": "TA_ORDER_ACCURACY_001_COMPLETE_TRAIN_FIT_LATER_DIRECTION_GAP",
+    "status": "TA_QUERY_INPUT_DRIFT_001_ADMITTED_NOT_STARTED",
     "observed_utc": "2026-11-13T03:49:42.485840+00:00",
     "current_observation_stage": "market_state_ta_current_update_observation_20261113_003",
     "current_observation_plan": {
@@ -84733,5 +84733,48 @@
       "optimizer_updates": 0
     },
     "elapsed_seconds": 13.013258313998449
+  },
+  "market_state_ta_query_input_drift_20261113_001": {
+    "status": "ADMITTED",
+    "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_QUERY_INPUT_DRIFT_20261113_001",
+    "script": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_QUERY_INPUT_DRIFT_20261113_001/OBSERVE.py",
+      "sha256": "325e27d295dbc2c5682c2c703e3d993df7b5faeaeb9a167ef414db2958c7cafe"
+    },
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_QUERY_INPUT_DRIFT_20261113_001/PLAN.json",
+      "sha256": "990399dbde3d3baccc21a349a42fca7cf7dcf5f96fadea0a11467348af921afe"
+    },
+    "execution_authorized": true,
+    "max_invocations": 1,
+    "remaining_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "counts": {
+      "checkpoint_decodes": 0,
+      "feature_batches": 512,
+      "feature_issue_rows": 8192,
+      "forwards": 0,
+      "input_sidecar_archive_decodes": 12,
+      "models": 0,
+      "new_targets": 0,
+      "readout_archives": 3,
+      "updates": 0
+    },
+    "max_seconds": 900,
+    "resource_cap": {
+      "run_class": "audit",
+      "memory": "4G",
+      "swap": "512M"
+    },
+    "model_execution_authorized": false,
+    "training_authorized": false,
+    "new_targets_authorized": false,
+    "normalization_fit_authorized": false,
+    "feature_changes_authorized": false,
+    "test_data_used": false,
+    "promotion_authorized": false,
+    "authorization_basis": "Standing local0USD measured-cause investigation: source-proved S/M15 query-population difference and recorded December UP-probability increase despite fewer UP outcomes. Reuse exact retained panels and native input/normalization owners. One bounded CPU observation, no candidate selection or trading."
   }
 }

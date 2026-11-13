@@ -5,13 +5,27 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_ORDER_ACCURACY_001_COMPLETE_TRAIN_FIT_LATER_DIRECTION_GAP. Edge-målet er uoppnådd.
+TA_QUERY_INPUT_DRIFT_001_ADMITTED_NOT_STARTED. Edge-målet er uoppnådd.
 training_enabled/native_training_enabled/native_launch_authorized=false.
-Begge nye engangsplaner er COMPLETE/CONSUMED; ingen relansering eller promotion.
-Samlet rapport: docs/TA_ORDER_ACCURACY_REVIEW.json. Neste arbeid skal angripe det målte
-native-F TRAIN→senere-gapet og S/M15s svake retning med beholdt evidens og eksakte
-mål-/horisont-/inputbindinger. Ingen terskeltilpasning på LATER, automatisk outputflip,
-flere generelle epoker eller repetisjon av ordre-/modusforsøk uten konkret mekanisme.
+Native ordre001 og accuracy001 er COMPLETE/CONSUMED; ingen relansering eller promotion.
+Én ny CPU-avlesning admittert: MARKET_STATE_TA_QUERY_INPUT_DRIFT_20261113_001,
+4G/512M/maks900s;3lagrede prediksjonsarkiver,12eksisterende sidecars,512native feature-
+gathers/8192issue-rader.0modeller/checkpoints/forwards/updates/nye mål eller normaliseringsfit.
+Alle råinputflaters genuine felt og faktiske vinduer transformeres med uendret TRAIN-normalisering;
+alle måneder/felt beholdes. Fordelingsforskjell alene beviser ingen årsaksvirkning eller fjerning.
+Én syntetisk accumulator-kontroll og metadata-preflight førCLAIM; agentkildekontroll fant
+ingen layout-/countfeil. Manglende hashbinding til eksisterende accuracy-helper er lagt til.
+Integrator eier policy/launch/avlesning. Ingen kildeendring under den bundne CPU-jobben.
+
+Konkrete spor: TRAIN S/M15 blander k1/2/3(5/10/15min), LATER barek3. Modellen får
+TF/k eksplisitt; eksisterende endpoint-paritet118706M15issues har0bit-/M1-radavvik.
+Ingen fortegns-/klokkefeil funnet. INITIAL AUC0,6095på blandetTRAIN mot0,4433senere;
+nyPASS2 0,5739/0,4480. Avlesningen skiller TRAIN på faktisk lagretk før årsakstilskrivning.
+Ny native-F H1 meanPup gårfra0,568oktober til0,810desember, mens fasitUP gårfra0,589til0,398.
+Desember meanPup M15/H4/D1 er0,785/0,805/0,818. Inputs er allerede relativTA/asinh og
+aktiv norm har ingen desember-zero-support-projeksjon; observer nå faktisk inputfordeling.
+Ingen terskeltilpasning på LATER, outputflip, generelle ekstraepoker eller nye ordre-/modustester.
+Samlet forrige rapport: docs/TA_ORDER_ACCURACY_REVIEW.json.
 
 Native ordre001: /home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_ORDER_20261113_001.
 Kildea31e2448,boot649,RESULTa3ff7bdb,COMPLETION_VERIFICATION160cb198.3698updates,
