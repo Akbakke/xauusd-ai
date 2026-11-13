@@ -5,32 +5,33 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_FOLD2_LATER_INPUTS_001_CONSUMED_NATIVE_2025_BINDING_REPAIR_PENDING. Edge-målet er uoppnådd.
-LATER_INPUTS001 er FAILED/CONSUMED; ingen relaunch og ingen jobb er admittert.
-Feilen er konkret i den private klargjøringen: replay_plan.inputs.native_parts arvet
-bare2009–2024 mens cutoff/panel ble utvidet til januar–mars2025. load_native_parts_prefix
-utvider aldri listen. M5feilet på ANCHOR_SPAN_INPUT_EXACT_SOURCE_CLOCK før ny M5-kvalifikasjon.
-Siste bundne2024bar er2024-12-31 21:55UTC; M5-gapet krever til2025-03-31 23:10UTC.
-Samme native/enriched/cache-lineage binder2025part SHA5c6e9ffb, fra2025-01-01 23:00UTC.
-Dette er en klargjøringsfeil, ikke et påvist klokkeavvik i modellens lagrede inputs.
-Første manglende stempel og full klokkeparitet med2025delen er ennå ikke målt.
+TA_FOLD2_LATER_INPUTS_002_ADMITTED_NATIVE_2025_LOCAL_REUSE. Edge-målet er uoppnådd.
+Én ny avgrenset inputjobb er admittert; alle treningsflagg er false.
+002-plan23f37478, script28f2ff8e og kildekontroll426f5080 er bundet. Faktisk capped
+preflight6ebb149b PASS: metadata/signaturer/syntetisk merge, null payload/CLAIM.
+Kjør bare002 fra ren kilde gjennom gx1_capped_run.sh audit4G/512M,2400sekunder.
+Frys kilde/policy under kjøring. Ingen lokalreplay eller TRAIN-rerun.
 
-Bevar001/TERMINAL, WRAPPER_EXIT, AXIS_AND_REUSE_QUALIFICATION og FAILURE_REVIEW.
-local17353rader er fullført med31gamle felt bitlike: GAPS/local_QUALIFICATION SHA4a1d8687,
-artefakt4b1353d5. Dette gjenbrukes; ingen ny lokalreplay. Producer/history-tellere er null
-fordi delegert operasjon ikke returnerte; én lokalprodusent er kvittert, M5 ble forsøkt.
-Ingen native vinduskontroll/gather/modell/target/fit/oppdatering ble gjennomført.
-Kilde/policy/bookends var uendret. Exit1 er faktisk terminalstatus.
+001 er FAILED/CONSUMED og må aldri relanseres. Planen arvet2009–2024 mens panelet
+krevde2025; M5 stoppet på ANCHOR_SPAN_INPUT_EXACT_SOURCE_CLOCK. Dette var en privat
+klargjøringsfeil, ikke et påvist avvik i modellens lagrede data. Originalterminal,
+wrapperkvittering, aksekvalifikasjon og FAILURE_REVIEWbc059ebf er bevart.
+Lokal17353 er ferdig med31gamle felt bitlike; kvalifikasjon4a1d8687/artefakt4b1353d5
+skal gjenbrukes eksakt. Producer/history-null i001 betyr at delegert kall ikke returnerte.
 
-Minste neste rettelse er en ny, separat engangsplan: bind bare den dokumenterte2025delen,
-gjenbruk ferdig lokalspan, mål M5-klokkejoin med2024 kontra2024+2025 før dyr replay,
-og beregn bare de fem gjenværende MTF-gapene. Bevar alle klokke-/paritetsporter.
-Ingen kilde-/modellendring eller TRAIN-refit kreves av denne klargjøringsfeilen.
-Full47338 TRAIN-inputkvalifikasjon og89tester/kontraktkontroller gjenbrukes.
+002 legger bare til allerede manifestbundet2025part SHA5c6e9ffb. Etter claim leses kun
+tid fra2024/2025 for å måle M5-gapets17353stempler: gammelt mangeltall skal være positivt,
+nytt skal være0 før noen ny replay. Første manglende stempel er ennå ikke målt.
+Rekonstruer bare fem gjenværende MTF-gap med25028nye outputrader. Forvent17944gjenbrukte,
+42972samlet og414bitlike overlapprader. Ingen modell-/featureendring eller refit.
+Deretter4096forhåndsvalgte januar–mars2025rader,256B16,2048normaliseringskall og native
+vindus-/klokke-/alias-/finitetsporter. RESULT, COVERAGE og GATHER_RESULT må alle bindes
+av terminal. Ingen targets/modeller/forwards/checkpoints/oppdateringer/TEST.
+
+Full47338TRAIN-inputkvalifikasjon og89tester/kontraktkontroller gjenbrukes.
 Aktivitet-only-funksjon, egen normalisering og rebound view f7979c85 er uendret.
-Det senere panelet er4096forhåndsvalgte rader fra17288; sistevalgte64881, siste8partial utelatt.
-TEST forseglet; alle treningsflagg false. Modellbaseline/fit er separate uåpnede steg.
-Samlet rapport: docs/TA_FOLD2_INPUT_REVIEW.json. NEXT_RUN_POLICY eier status.
+Senere panel4096av17288; sistevalgte64881 og siste8partial utelatt. Baseline/fit er
+separate uåpnede steg. Rapport: docs/TA_FOLD2_INPUT_REVIEW.json. NEXT_RUN_POLICY eier status.
 
 ## Fullført og verifisert
 
