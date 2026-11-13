@@ -5,13 +5,22 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_FULL_PREFIX_READOUT_COMPLETE_UPWARD_PROBABILITY_DRIFT_UNRESOLVED. Edge-målet er uoppnådd.
-Training/native/full_epoch/fullVAL er false. Ingen jobb er aktiv; Windowsoppgaven er Disabled.
-Native002 og seks-panel-readout001 er konsumert, ingen relansering eller nye payloadkjøringer.
-Neste konkrete spørsmål: hvor i parameter-/representasjons-/Adam-oppdateringen oppstod det
-brede UP-skiftet? Skill direkte sidebias fra vekt/representasjon med eksisterende INITIAL/FINAL-
-identiteter og målt logitnivå. Gjenbruk tidligere kvalifiserte gradient-/train-mode-/vektbevis før
-ny avgrenset tensorlesing admitteres. Ingen ny trening eller generell ordre-/arkitekturtest nå.
+TA_FULL_PREFIX_PARAMETER_REPLAY_ADMITTED_NO_MODEL_EXECUTION. Edge-målet er uoppnådd.
+Training/native/full_epoch/fullVAL er false. Native002 og readout001 er konsumert og skal ikke relanseres.
+Én ny CPU-admisjon: MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_001.
+PLAN og REVIEW_PARAMETERS.py er hashbundet i NEXT_RUN_POLICY. Metadata-preflight før CLAIM,
+deretter én capped4G/512M-kjøring, maks240s:2checkpoints og2beholdte LATER-arkiver.
+Ingen modellkonstruksjon/modulkall, CUDA, optimizer, nye features/targets, fit eller checkpointskriving.
+
+Den lagrede span-INITIAL e7ba70f6 har faktisk bef35-modelldigest; FINAL-kapselen a4e31070
+har1542ed99. Ingen rekonstruert initialmodell eller ny forward trengs. Begge faktiske M5-
+representasjoner er beholdt med prediksjonene. Kontroller FP64-affine endepunkter mot den
+kvalifiserte radvise gamma129-FP32-grensen, deretter symmetrisk og begge ordnede algebraiske
+bias/vekt/representasjonsregnskap. Non-M5 har ikke lagrede representasjoner; der kan bare
+direkte bias skilles fra samlet rest. Endelige Adam-momenter er ikke hele treningsforløpet.
+Ikke anta3698steg perparameter; observer reell historikk mot navn/gruppebindingen.
+Ingen kalibreringsfit, checkpointutvelgelse eller ny modell-/arkitekturendring.
+Neste: fullfør denne eksakte kontrollen og lukk admisjonen før neste avgrensning.
 
 ## Nytt resultat
 

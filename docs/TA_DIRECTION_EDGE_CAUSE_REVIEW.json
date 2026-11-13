@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_FULL_PREFIX_UPWARD_PROBABILITY_DRIFT_MEASURED_CAUSE_UNISOLATED",
+  "status": "ACTIVE_FULL_PREFIX_PARAMETER_REPLAY_ADMITTED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -269,7 +269,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Separate direct side-output bias changes from weight/representation and Adam-history effects using the retained INITIAL/FINAL state identities and recorded logit shifts; inspect existing evidence before admitting any bounded tensor decode. No new training or generic interleaving rerun.",
+  "next_measurement": "One metadata preflight, then one capped4G/512M max240s read of2bound states and2LATER archives; verify actual model digests and affine endpoints, measure direct sidebias, symmetric/both ordered M5 weight-representation changes and final Adam state. No model construction/forward, new data, training or selection.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -1721,7 +1721,7 @@
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_SHORT_LEARNING_REVIEW.json",
     "sha256": "45e071a0ed39e75543cda838bb9fbf885b1549a2a2869f83fc3a7e378ed4fe46"
   },
-  "training_authorized_scope": "None. Native and retained one-use scopes consumed.",
+  "training_authorized_scope": "None;2checkpoint/2archive mathematical replay only,0model calls.",
   "latest_confirmed_findings": [
     "Two full passes completed correctly, but did not improve later probability scores: native loss2.3509150846084244 ->2.645637123661932. Fixed TRAIN-panel loss also remains worse than INITIAL.",
     "All10 later INITIAL-to-pass2 conditional-side AUC change intervals include0 in both exploratory UTC-day and Monday-week bootstrap. No ranking gain is established by this continuation.",
@@ -13865,5 +13865,33 @@
   "full_prefix_learning_result": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_FULL_PREFIX_LEARNING_REVIEW.json",
     "sha256": "488e11dd8c8fcc0a49b026da1e4833754136f36dbb4f4a74b0f9159a64a1524b"
+  },
+  "full_prefix_parameter_replay_admission": {
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_001/PLAN.json",
+      "sha256": "3576fc11579deb12ddecbff348c01e6118e223369254d149bc91168f8e92b676"
+    },
+    "script": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_001/REVIEW_PARAMETERS.py",
+      "sha256": "1ee9c91100c61a9e5ad217bc131e25c8771755052765a4f159636a1e7b6f3b91"
+    },
+    "states": {
+      "FINAL": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_002/FULL_PREFIX_EVIDENCE.pt",
+        "sha256": "a4e3107077a510bf290989026c1cdd19d826b97d797dea2fbadf2a905e8b97da"
+      },
+      "INITIAL": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_ANCHOR_SPAN_SHORT_LEARNING_20261112_002/RUNTIME/private-research/INITIAL_C171_STATE.pt",
+        "sha256": "e7ba70f65ad960e12a0232c12f56eaf967348e7155b5f75ac58dfeddc4fd8a9d"
+      }
+    },
+    "model_digests": {
+      "FINAL": "1542ed994b1d96f8c77481a8263df39ba52aa9d48720773357ecf96cd3ecd2c4",
+      "INITIAL": "bef35dafc43f0b3450cca161049e9daacee55d92d7f1c3187bd82c9c4de972fc"
+    },
+    "checkpoint_decodes": 2,
+    "archive_decodes": 2,
+    "model_calls": 0,
+    "question": "Does the measured UP logit shift come from the output bias, changed side weights, or changed retained M5 representations? Final Adam moments are endpoint evidence only."
   }
 }
