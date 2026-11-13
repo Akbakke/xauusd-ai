@@ -1,0 +1,328 @@
+{
+  "limits": [
+    "This is a completed physical-input and normalization prerequisite for the current-feature later-fold investigation, not a prediction or economic result.",
+    "Current native models and weights have not been fitted, loaded or changed. Current fold1 normalization reconstructs identically; a new fold2 input function requires its own baseline.",
+    "Full native TRAIN-view gathering and Jan-Mar2025 score-input coverage are not yet qualified. Historical development is reused; no independent TEST confirmation.",
+    "TEST remains sealed. All genuine features/timeframes and eight families plus D1/macro remain. COT2024 vintage remains UNKNOWN; GC is paused while the original M5/MTF/26-month goal remains."
+  ],
+  "metadata_correction": {
+    "finding": "Prior raw-axis versus namespaced-row hash comparison was invalid. Correct hash proves all six contiguous row axes. No accuracy result or raw input was changed by this correction.",
+    "receipt": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_001/ROW_AXIS_CORRECTION.json",
+      "sha256": "8d2ae09f2bcb1993f88b8178bd2e3834d304a62d852703bc65527edf32be55b0"
+    }
+  },
+  "native_training_authorized": false,
+  "new_job_admitted": false,
+  "next_action": "Bind the exact fold2 prefix packet and span feature view to parent32f917bb, physical8f2acfaf and new TA normalization3528af4e (contract53e57991), explicitly allowing no units only for this qualified fold2. Preserve fold1 reconstruction. Existing blockers are entry_anchor_span_feature_view_v1._parent/build_anchor_span_prefix_packet/provenance and entry_native_direction_feature_view_v1 span-view dispatch. Then qualify actual TRAIN gather and later Jan-Mar2025 coverage before any fresh native baseline/fit. No new job admitted.",
+  "normalization": {
+    "artifacts": {
+      "EXTENDED_BASE_NORMALIZATION": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_NORMALIZATION_20261113_001/EXTENDED_BASE_NORMALIZATION.json",
+        "sha256": "0c58f1aad6bcb7eb2fa37e799449b0e0de69fc8f29cc3469c296e2fa71196ae9"
+      },
+      "NEW_FIELD_STATISTICS": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_NORMALIZATION_20261113_001/NEW_FIELD_STATISTICS.json",
+        "sha256": "a4e1b195c5d219bcd75c4d9b23ae7ea9c9982dee178ec32cdebacd19526c5a45"
+      },
+      "TA_INPUT_NORMALIZATION": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_NORMALIZATION_20261113_001/TA_INPUT_NORMALIZATION.json",
+        "sha256": "3528af4ee8abe07ae2e56a9bdabe7c10f55832e0f26ee28f5d49a6ad9c6e2a7c"
+      }
+    },
+    "base_contract_sha256": "7bd0f8966ef77b83bc9bbea7c7bd8a08c670cb57929c731beb7312e15b307cc5",
+    "counts": {
+      "checkpoint_reads": 0,
+      "model_constructions": 0,
+      "model_forwards": 0,
+      "new_field_statistics": 12,
+      "old_field_fit_calls": 0,
+      "optimizer_steps": 0,
+      "sidecar_archives": 6,
+      "surface_fit_calls": 6,
+      "target_arrays_decoded": 0
+    },
+    "elapsed_seconds": 3.544963470998482,
+    "field_widths": {
+      "ctx_cont": 132,
+      "mtf_d1": 255,
+      "mtf_h1": 255,
+      "mtf_h4": 255,
+      "mtf_m15": 255,
+      "mtf_m5": 255,
+      "signal": 317
+    },
+    "new_field_fit_proof": {
+      "mtf_d1": {
+        "available_ns_sha256": "5bd0e5e74c3ff40e4d5564eb9750315e81b58b45a40e3eff283b1758781263ad",
+        "center": [
+          141.0,
+          126.0
+        ],
+        "integer_spans_exact_after_inverse_rounding": true,
+        "inverse_max_abs_error": 9.4437023676619e-06,
+        "new_field_count": 2,
+        "normalized_values_sha256": "5041a6b9e8e182bdd51fd55766e8bf2663c4e0b4c03c7e2db8e44d90abac15a3",
+        "row_indices_sha256": "c3d8f59f1efb36a8920cd23b859b6962100018eef9467722f30502d0c73f87c4",
+        "rows": 425,
+        "scale": [
+          107.0,
+          110.0
+        ],
+        "scale_source": [
+          "raw_iqr",
+          "raw_iqr"
+        ],
+        "strictly_increasing_on_every_observed_span": true
+      },
+      "mtf_h1": {
+        "available_ns_sha256": "dba8fdb2d373643dab253f1319acccb26a0fffb4a69b3cef881326a40b845c42",
+        "center": [
+          45.0,
+          44.0
+        ],
+        "integer_spans_exact_after_inverse_rounding": true,
+        "inverse_max_abs_error": 1.6554959643144684e-06,
+        "new_field_count": 2,
+        "normalized_values_sha256": "78b0478c8e4422985ca8b40ae8c091f582d5d77a1897deff49fb6d6bc38580cd",
+        "row_indices_sha256": "6d68f8a5b3913492cf2f1fbb256e57a8363befd4f212d77ea84a00270b62cb4e",
+        "rows": 4058,
+        "scale": [
+          49.0,
+          40.0
+        ],
+        "scale_source": [
+          "raw_iqr",
+          "raw_iqr"
+        ],
+        "strictly_increasing_on_every_observed_span": true
+      },
+      "mtf_h4": {
+        "available_ns_sha256": "307cf21782a42c98c828b4334b2ae8c7875f8c288e328eb3d398f013c9eb78d8",
+        "center": [
+          45.0,
+          51.5
+        ],
+        "integer_spans_exact_after_inverse_rounding": true,
+        "inverse_max_abs_error": 1.8721453898251639e-06,
+        "new_field_count": 2,
+        "normalized_values_sha256": "d947565ca3c875305918ca638c6ec0b2632511cbcb5afcb8728b97258e6366f7",
+        "row_indices_sha256": "92861e47c95947e32a91cc417fcfe3d1cbca82dd46bae79e795f9f9781ecf84a",
+        "rows": 1134,
+        "scale": [
+          47.0,
+          50.0
+        ],
+        "scale_source": [
+          "raw_iqr",
+          "raw_iqr"
+        ],
+        "strictly_increasing_on_every_observed_span": true
+      },
+      "mtf_m15": {
+        "available_ns_sha256": "0c635eef1dafd70bfd86a1bc0b1294fa7f8748d428663986c7d29ceacb8668d7",
+        "center": [
+          24.0,
+          26.0
+        ],
+        "integer_spans_exact_after_inverse_rounding": true,
+        "inverse_max_abs_error": 2.082909659861798e-06,
+        "new_field_count": 2,
+        "normalized_values_sha256": "0b41fceacef05600a1c57c0f452639522833b653b2faa1bcf7b6d2cc3797304d",
+        "row_indices_sha256": "0818066de738db38f8f64a3bb6a0e60e7a4693216f6c479b1c1830bc64b70cd5",
+        "rows": 15903,
+        "scale": [
+          26.0,
+          28.0
+        ],
+        "scale_source": [
+          "raw_iqr",
+          "raw_iqr"
+        ],
+        "strictly_increasing_on_every_observed_span": true
+      },
+      "mtf_m5": {
+        "available_ns_sha256": "90961eb5b73b0f262b2abba6154df24593b31f7df4cc29e8519443dc63382227",
+        "center": [
+          0.0,
+          0.0
+        ],
+        "integer_spans_exact_after_inverse_rounding": true,
+        "inverse_max_abs_error": 5.214523248753267e-07,
+        "new_field_count": 2,
+        "normalized_values_sha256": "1026d4cdd3812b3ab33789d10c369914fa09ac7772c1b87936d368a637820502",
+        "row_indices_sha256": "a9075f9afa9667932179beeacce5553587c2a6c51f21236fcd7cf12fb7b1f98e",
+        "rows": 47534,
+        "scale": [
+          5.0,
+          5.0
+        ],
+        "scale_source": [
+          "median_positive_abs_deviation",
+          "median_positive_abs_deviation"
+        ],
+        "strictly_increasing_on_every_observed_span": true
+      },
+      "signal": {
+        "available_ns_sha256": "9f4042bff2f986dc34d2c34e4173d9ee96afc4468552b019d0dd65a4e76c1075",
+        "center": [
+          42.0,
+          41.0
+        ],
+        "integer_spans_exact_after_inverse_rounding": true,
+        "inverse_max_abs_error": 3.544116538023445e-06,
+        "new_field_count": 2,
+        "normalized_values_sha256": "5fe2c97c354d8c5de138779f21432906593338dc1324cc3cbc19a376569b4b69",
+        "row_indices_sha256": "e1a30ec1c91344de54ffd27139c3f4676a0d1226f68b237210592a2e00f17ca4",
+        "rows": 47614,
+        "scale": [
+          41.0,
+          42.0
+        ],
+        "scale_source": [
+          "raw_iqr",
+          "raw_iqr"
+        ],
+        "strictly_increasing_on_every_observed_span": true
+      }
+    },
+    "old_field_preservation": {
+      "aliases_exact_by_name": true,
+      "all_old_stat_vectors_exact": true,
+      "old_category_and_support_values_exact": true,
+      "old_fields_per_surface": {
+        "ctx_cont": 2542,
+        "mtf_d1": 253,
+        "mtf_h1": 253,
+        "mtf_h4": 253,
+        "mtf_m15": 253,
+        "mtf_m5": 253,
+        "signal": 2725
+      },
+      "old_statistics_refitted": false,
+      "parent_lineage_unchanged": true
+    },
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_NORMALIZATION_20261113_001/PLAN.json",
+      "sha256": "a97f9fd05385308f4a347d92029e9249d9c7123c4fb4d228ab55e42d349477e6"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_NORMALIZATION_20261113_001/RESULT.json",
+      "sha256": "372eaa86973369e1c32bcd4f1bd49b38bbc903562dd9cc5b9c6c95d299b29774"
+    },
+    "ta_contract_sha256": "53e579914776df8091249da54260afa49ca775ef5a0c8cca6a5e442a4c5d5c9b",
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_NORMALIZATION_20261113_001/TERMINAL.json",
+      "sha256": "b0928b658dbfea54f37bdf0ec6308af2ddeee69e0ebe7b88960e64ddbbea47cf"
+    },
+    "unobserved_units_profile": null,
+    "validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_NORMALIZATION_20261113_001/VALIDATION.json",
+      "sha256": "2e25098183d2ffb27a4441f178789e2bdd39b84646815b67d061ccedbf2170da"
+    }
+  },
+  "observed_utc": "2026-11-13T12:32:56.138694+00:00",
+  "physical": {
+    "all_413_overlap_rows_bitexact": true,
+    "counts": {
+      "checkpoint_reads": 0,
+      "clock_arrays": 6,
+      "merged_output_rows": 116668,
+      "model_constructions": 0,
+      "model_forwards": 0,
+      "new_output_rows": 471,
+      "normalization_fits": 0,
+      "optimizer_steps": 0,
+      "producer_calls": 3,
+      "sidecar_archive_decodes": 15,
+      "target_arrays_decoded": 0
+    },
+    "elapsed_seconds": 264.7019240669979,
+    "gap_replay_history_rows": {
+      "M15": 364813,
+      "M5": 1091821,
+      "local": 1017209
+    },
+    "new_legacy_cells_checked": 14601,
+    "new_legacy_fields_checked": 31,
+    "new_legacy_mismatches": 0,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_002/PLAN.json",
+      "sha256": "c1a0ea6c69e7d108c3564f5ed78a0d433ffa5548a1b43ea12931612fd59f2018"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_002/RESULT.json",
+      "sha256": "8f2acfafc459cc9a2fbcb7b588c40eb008d1e75c7e47835bbc55f24b68f32cc2"
+    },
+    "rows_by_surface": {
+      "D1": {
+        "new_rows": 0,
+        "overlap_rows": 251,
+        "required_rows": 425,
+        "reused_unique_rows": 425
+      },
+      "H1": {
+        "new_rows": 0,
+        "overlap_rows": 72,
+        "required_rows": 4058,
+        "reused_unique_rows": 4058
+      },
+      "H4": {
+        "new_rows": 0,
+        "overlap_rows": 90,
+        "required_rows": 1134,
+        "reused_unique_rows": 1134
+      },
+      "M15": {
+        "new_rows": 29,
+        "overlap_rows": 0,
+        "required_rows": 15903,
+        "reused_unique_rows": 15874
+      },
+      "M5": {
+        "new_rows": 261,
+        "overlap_rows": 0,
+        "required_rows": 47534,
+        "reused_unique_rows": 47273
+      },
+      "local": {
+        "new_rows": 181,
+        "overlap_rows": 0,
+        "required_rows": 47614,
+        "reused_unique_rows": 47433
+      }
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_002/TERMINAL.json",
+      "sha256": "3de8d27ac093e9d06a5b473bd7d76cfaa8eaea8c33cfdeaa35bda1720094b807"
+    },
+    "validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_002/VALIDATION.json",
+      "sha256": "9313ef0d9e898317a31c90e528fdf3d5afea12af8a9ef707693977319ea1abb6"
+    }
+  },
+  "predictive_improvement_established": false,
+  "prefix": {
+    "decision_fit_end_utc": "2024-12-30T23:50:00+00:00",
+    "decision_fit_start_utc": "2024-05-01T00:00:00+00:00",
+    "parent_decisions": 47338,
+    "physical_history_scope": "All physical rows in the original fold2 TRAIN windows; earlier MTF history is included, not restricted to decision start date.",
+    "strict_availability_cutoff_ns": 1735603200000000000
+  },
+  "schema_version": 1,
+  "source_changes": [
+    "Existing span producer supports explicit ordered unique plan-bound subsets; default six-surface behavior preserved.",
+    "Existing additive normalization supports exactly the qualified fold2 parent and physical result; no inherited fold1 units. All old statistics and fold1 output identity preserved.",
+    "Existing six two-field fit/inverse/projection owner reused with exact fold2 parent/cutoff/output binding."
+  ],
+  "status": "FOLD2_PHYSICAL_SPANS_AND_OWN_NORMALIZATION_QUALIFIED_VIEW_AND_MODEL_PENDING",
+  "test_data_used": false,
+  "validation": {
+    "both_actual_cli_preflights": "PASS",
+    "both_execution_wrappers_exit": 0,
+    "independent_source_and_json_reviews": "PASS",
+    "normalization_focused_tests": 27,
+    "required_commit_contract_checks": "PASS",
+    "span_subset_and_parity_focused_tests": 11
+  }
+}
