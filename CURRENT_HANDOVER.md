@@ -5,9 +5,18 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_CURRENT_SIDE_BOUNDARY_AND_UPDATE_EXPOSURE_REVIEW_COMPLETE_CAUSE_UNRESOLVED. Edge-målet er uoppnådd.
+TA_CURRENT_UPDATE_OBSERVATION_ADMITTED_NOT_STARTED. Edge-målet er uoppnådd.
 Training/native/full_epoch/fullVAL er false. Alle tidligere planer er konsumert; ingen aktiv jobb.
-Siste root: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001.
+Ny engangsobservasjon: /home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_001.
+PLAN3de465ca. Eksakt guarded12G/512M/8tråder preflight PASS,0modeller/arrays/states/CLAIM.
+25målrettede syntetiske tester PASS;11eksisterende gradientregresjoner er gjenbrukt.
+Én modell,2faktiske states(bef35/1542),34forwards/256autograd,16fasteB16TRAINgrupper ved hvert
+endepunkt; alle590aktive tensorer delt uten overlapp;0updates/RNG-restores/checkpointskriving.
+Sammenligner lokale F-logitderivater mot originale tapsledd, lagret sisteAdam-retning ogΔθ.
+Bevar skillet mellom gjennomsnitt av batchgeometri og geometri for gjennomsnittsvektorer.
+Ingen gradientarkiver, feature-/modellendring eller ny trening. Preflight/source binding gjelder
+aktuell cap-rute; original nativeRECIPE er urørt. Målt resultat mangler fortsatt.
+Sist fullførte root: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001.
 Source47f7700a; RESULTbbda929f, TERMINALb7416725, REVIEW_VALIDATIONb2c96178.3,096s capped4G/512M,
 timeout240s;2checkpoints/2TRAINarkiver,0modeller/modulkall/autograd/updates/affine replay.
 2048finitt-differansekontroller max5,15e-12; M5-loss-replay max2,40e-7; score-replay0.
@@ -35,10 +44,10 @@ motUP0,4889. Dette gjelder nylige faktiske treningsinputs/vekter, ikke FINAL/LAT
 Direkte og rekursiv momentberegning matcher innen2,23e-16; native FP32-historikk er ikke replayet.
 Ingen grunn til å fjerne S-målet, endre klippevakten eller gjenta et generelt ordre-/arkitekturforsøk.
 
-Neste: klargjør minste aktuelle observasjon som kobler tapsgradient/lagret Adam-retning til
-UP-endring i delt projeksjon/enkoder. Gjenbruk eksisterende tapsfrø/VJP-eier og dagens inputs,
-men bind bef35/1542,aktuell8trådsruntime og kilde. Gammel c171/R1-worker og cap-rute er uforenlige;
-ingen port omgås eller gammel scope relanseres. Ingen ny nativekjøring eller trening er admittert.
+Neste: kjør bare den nye admitterte engangsobservasjonen ovenfor gjennom eksakt cap-rute,
+og les original RESULT/TERMINAL før noen årsakskonklusjon. Paritet kreves før gradientene;
+modi/RNG/flagg/parametere må være uendret innen hver fase. Originale tapsfrø og masker
+beholdes. Gammel c171/R1-plan relanseres ikke. Ingen trening er admittert.
 
 Forrige parameter-replay002 er bevart: RESULT3545cbf2,TERMINAL5d990762,validation0d6be484.
 Alle 590 aktive parametertensorer fikk 3698 Adam-steg; 179 inaktive og alle buffere var uendret. Siste output-bias forklarte

@@ -48,6 +48,7 @@ TA_NON_M5_INITIAL_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_non_m5_initi
 TA_TF_ACTIVITY_INITIAL_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_tf_activity_initial_v1
 TA_TF_ACTIVITY_INITIAL_INPUTS_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_tf_activity_initial_inputs_v1
 TA_TF_ACTIVITY_BOUNDARIES_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_tf_activity_boundaries_v1
+TA_CURRENT_UPDATES_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_current_updates_v1
 RUNNER_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
 REPO_ROOT="$(cd "$(dirname "$RUNNER_PATH")/.." && pwd -P)"
 CANONICAL_TRAINER_PYTHON="$REPO_ROOT/.venv/bin/python"
@@ -291,6 +292,26 @@ matches_bound_market_state_ta_tf_activity_boundaries() {
   [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$7" ]]
 }
 
+# Exact passive current-endpoint gradient observation, including metadata-only preflight.
+matches_bound_market_state_ta_current_updates() {
+  local expected_plan="$1" expected_output="$2"
+  shift 2
+  if [[ $# -eq 12 ]]; then
+    [[ "${12}" == --preflight ]] || return 1
+    set -- "${@:1:11}"
+  fi
+  [[ $# -eq 11 ]] || return 1
+  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \
+    && "$3" == "$TA_CURRENT_UPDATES_PRODUCER_MODULE" \
+    && "$4" == --market-state-ta-current-updates-plan && "$5" == "$expected_plan" \
+    && "$6" == --market-state-ta-current-updates-plan-sha256 && "$7" =~ ^[0-9a-f]{64}$ \
+    && "$8" == --device && "$9" == cuda && "${10}" == --out-dir \
+    && "${11}" == "$expected_output" && "$expected_plan" == /* && "$expected_output" == /* ]] || return 1
+  [[ -f "$expected_plan" && ! -L "$expected_plan" \
+    && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1
+  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$7" ]]
+}
+
 validate_target_command() {
   local executable_basename="${1##*/}" target_arg module
   local trainer_reference=false hardware_smoke_reference=false
@@ -342,7 +363,8 @@ validate_target_command() {
           && [[ "${3:-}" != "$TA_NON_M5_INITIAL_PRODUCER_MODULE" ]] \
           && [[ "${3:-}" != "$TA_TF_ACTIVITY_INITIAL_PRODUCER_MODULE" ]] \
           && [[ "${3:-}" != "$TA_TF_ACTIVITY_INITIAL_INPUTS_PRODUCER_MODULE" ]] \
-          && [[ "${3:-}" != "$TA_TF_ACTIVITY_BOUNDARIES_PRODUCER_MODULE" ]]; }; then
+          && [[ "${3:-}" != "$TA_TF_ACTIVITY_BOUNDARIES_PRODUCER_MODULE" ]] \
+          && [[ "${3:-}" != "$TA_CURRENT_UPDATES_PRODUCER_MODULE" ]]; }; then
         echo "FATAL: --cuda-producer is reserved for an allow-listed TRAIN/VAL-only evidence producer" >&2
         exit 75
       fi
@@ -496,6 +518,19 @@ validate_target_command() {
         local ta_tf_activity_boundaries_root=/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_ACTIVITY_BOUNDARIES_20261112_001
         if ! matches_bound_market_state_ta_tf_activity_boundaries "$ta_tf_activity_boundaries_root/PLAN.json" "$ta_tf_activity_boundaries_root" "$@"; then
           echo "FATAL: timeframe activity paired boundary capture is not exactly bound" >&2
+          exit 75
+        fi
+        # Match the original deterministic_fp32 evaluation's numerical threads.
+        # Affinity, TasksMax and every hardware/memory stop remain unchanged.
+        NUMERICAL_THREAD_COUNT=8
+        TRAINER_GPU_MAX_POWER_LIMIT_W=250
+        TRAINER_MAX_WALL_SECONDS=1200
+        TRAINER_MODEL_MAX_WALL_SECONDS=1200
+      fi
+      if [[ "${3:-}" == "$TA_CURRENT_UPDATES_PRODUCER_MODULE" ]]; then
+        local ta_current_updates_root=/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_001
+        if ! matches_bound_market_state_ta_current_updates "$ta_current_updates_root/PLAN.json" "$ta_current_updates_root" "$@"; then
+          echo "FATAL: current update observation is not exactly bound" >&2
           exit 75
         fi
         # Match the original deterministic_fp32 evaluation's numerical threads.
