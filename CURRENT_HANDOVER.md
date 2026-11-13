@@ -5,21 +5,25 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_FULL_PREFIX_PARAMETER_REPLAY_ADMITTED_NO_MODEL_EXECUTION. Edge-målet er uoppnådd.
-Training/native/full_epoch/fullVAL er false. Native002 og readout001 er konsumert og skal ikke relanseres.
-Én ny CPU-admisjon: MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_001.
-PLAN og REVIEW_PARAMETERS.py er hashbundet i NEXT_RUN_POLICY. Metadata-preflight før CLAIM,
-deretter én capped4G/512M-kjøring, maks240s:2checkpoints og2beholdte LATER-arkiver.
+TA_FULL_PREFIX_PARAMETER_REPLAY_002_ADMITTED_001_FAILED_CONSUMED. Edge-målet er uoppnådd.
+Training/native/full_epoch/fullVAL er false. Native002 og readout001 er konsumert.
+Parameter-replay001 stoppet etter2checkpointdekodinger,0arkiver/0modeller, på feilaktig krav om
+identisk view-proveniens mellom span-INITIAL og native-FINAL. Original feilterminal bevares.
+Begge faktiske modelldigester var allerede verifisert. Ingen treningsfeil er etablert av avviket.
+
+Minste rettelse er ny engangsadmisjon MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_002.
+Hver kapsel valideres mot sitt eget originale view. Bare fem dokumenterte JSON-blader skiller:
+view-contract-SHA, constructor/prefix-metadata-stier, og overlay-owner-SHA i to felter.
+Constructor og normalisering er byteidentiske; overlay-endringen tilføyer kvalifisert senere
+paneldekning og bevarer TRAIN-cutoff. Alle øvrige viewfelt er identiske. Ingen generell dispensasjon.
+PLAN og REVIEW_PARAMETERS.py er hashbundet i policy. Metadata-preflight før CLAIM, deretter én
+capped4G/512M-kjøring med ytre timeout240s:2checkpoints og2beholdte native002-LATER-arkiver.
 Ingen modellkonstruksjon/modulkall, CUDA, optimizer, nye features/targets, fit eller checkpointskriving.
 
-Den lagrede span-INITIAL e7ba70f6 har faktisk bef35-modelldigest; FINAL-kapselen a4e31070
-har1542ed99. Ingen rekonstruert initialmodell eller ny forward trengs. Begge faktiske M5-
-representasjoner er beholdt med prediksjonene. Kontroller FP64-affine endepunkter mot den
-kvalifiserte radvise gamma129-FP32-grensen, deretter symmetrisk og begge ordnede algebraiske
-bias/vekt/representasjonsregnskap. Non-M5 har ikke lagrede representasjoner; der kan bare
-direkte bias skilles fra samlet rest. Endelige Adam-momenter er ikke hele treningsforløpet.
-Ikke anta3698steg perparameter; observer reell historikk mot navn/gruppebindingen.
-Ingen kalibreringsfit, checkpointutvelgelse eller ny modell-/arkitekturendring.
+M5: FP64-affine endepunkter fra beholdte FP32-verdier kontrolleres mot radvis gamma129-grense,
+deretter symmetrisk og begge ordnede bias/vekt/representasjonsregnskap. Non-M5 har ikke lagrede
+representasjoner: bare direkte bias mot samlet rest kan skilles. Endelige Adam-momenter er
+ikke hele forløpet; faktiske parametersteg observeres. Ingen kalibreringsfit eller modellendring.
 Neste: fullfør denne eksakte kontrollen og lukk admisjonen før neste avgrensning.
 
 ## Nytt resultat

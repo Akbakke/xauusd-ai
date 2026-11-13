@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-12T21:42:47.522348+00:00",
-  "status": "TA_FULL_PREFIX_PARAMETER_REPLAY_ADMITTED_NO_MODEL_EXECUTION",
+  "status": "TA_FULL_PREFIX_PARAMETER_REPLAY_002_ADMITTED_001_FAILED_CONSUMED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1739,7 +1739,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Exact retained parameter replay admitted; genuine model execution and training remain closed. Native/previous readout plans stay consumed.",
+    "current_activity": "Exact provenance-corrected retained parameter replay002 admitted; failed001 consumed. No training or model execution.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1792,7 +1792,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No operational blocker. Fresh metadata preflight and actual retained-state/affine replay verification remain.",
+    "current_blocker": "No operational blocker; corrected own-view preflight and one bounded actual replay remain.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9263,7 +9263,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "One metadata preflight, then one capped4G/512M max240s read of2bound states and2LATER archives; verify actual model digests and affine endpoints, measure direct sidebias, symmetric/both ordered M5 weight-representation changes and final Adam state. No model construction/forward, new data, training or selection.",
+    "next_action": "Metadata preflight then one capped4G/512M max240s retained-state replay002. Verify each state against its own exact view, both measured model digests, two current LATER archives and affine endpoints. No model execution, refit, selection or generic order experiment.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22413,14 +22413,14 @@
     },
     "pending_parameter_replay": {
       "status": "ADMITTED",
-      "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_001",
+      "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_002",
       "script": {
-        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_001/REVIEW_PARAMETERS.py",
-        "sha256": "1ee9c91100c61a9e5ad217bc131e25c8771755052765a4f159636a1e7b6f3b91"
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_002/REVIEW_PARAMETERS.py",
+        "sha256": "050fadff489a05a2dd9daa7677db15e8efd0bedfda1ec62d23a3b5d364455563"
       },
       "plan": {
-        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_001/PLAN.json",
-        "sha256": "3576fc11579deb12ddecbff348c01e6118e223369254d149bc91168f8e92b676"
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_002/PLAN.json",
+        "sha256": "5f32f005bd9307bd83d73ebe9c75a2c18962b95b297b61b4dbc1b2af3ad361bf"
       },
       "execution_authorized": true,
       "max_invocations": 1,
@@ -22449,7 +22449,13 @@
         "memory": "4G",
         "swap": "512M"
       },
-      "authorization_basis": "Standing local0USD direction-cause investigation. Exact retained INITIAL/FINAL states and two actual LATER captures only. Algebraic endpoint accounting, no model execution or new training."
+      "authorization_basis": "Standing local0USD direction-cause investigation. Exact retained INITIAL/FINAL states and two actual LATER captures only. Algebraic endpoint accounting, no model execution or new training.",
+      "previous_failed_terminal": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_001/TERMINAL.json",
+        "sha256": "ea3b57b7c56fac43c5e33349bfa5f1ee80b835c85138a1ce2641bf0fe95fd9a2"
+      },
+      "correction": "Validate each exact own feature-view identity and the five fixed provenance differences; copied normalization/constructor bytes must match. All model and capture gates retained.",
+      "timeout_enforcement": "Existing /usr/bin/timeout --signal=KILL 240s inside capped4G/512M audit."
     }
   },
   "gc_order_flow_research_20261006": {
@@ -83245,7 +83251,7 @@
     }
   },
   "market_state_ta_full_prefix_parameter_replay_20261113_001": {
-    "status": "ADMITTED",
+    "status": "FAILED_CONSUMED_VIEW_PROVENANCE_EQUALITY",
     "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_001",
     "script": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_001/REVIEW_PARAMETERS.py",
@@ -83254,6 +83260,64 @@
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_001/PLAN.json",
       "sha256": "3576fc11579deb12ddecbff348c01e6118e223369254d149bc91168f8e92b676"
+    },
+    "execution_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 0,
+    "remaining_invocations": 0,
+    "relaunch_allowed": false,
+    "checkpoint_decodes": 2,
+    "archive_decodes": 2,
+    "model_constructions_authorized": 0,
+    "module_calls_authorized": 0,
+    "optimizer_constructions_authorized": 0,
+    "optimizer_updates_authorized": 0,
+    "checkpoint_writes_authorized": 0,
+    "cuda_initialization_authorized": false,
+    "raw_feature_reads_authorized": false,
+    "new_targets_authorized": false,
+    "calibration_fit_authorized": false,
+    "candidate_selection": false,
+    "promotion_authorized": false,
+    "test_data_used": false,
+    "affine_endpoint_replays": 4,
+    "max_seconds": 240,
+    "resource_cap": {
+      "run_class": "audit",
+      "memory": "4G",
+      "swap": "512M"
+    },
+    "authorization_basis": "Standing local0USD direction-cause investigation. Exact retained INITIAL/FINAL states and two actual LATER captures only. Algebraic endpoint accounting, no model execution or new training.",
+    "failed_invocations": 1,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_001/TERMINAL.json",
+      "sha256": "ea3b57b7c56fac43c5e33349bfa5f1ee80b835c85138a1ce2641bf0fe95fd9a2"
+    },
+    "actual_counts": {
+      "affine_endpoint_replays": 0,
+      "archive_decodes": 0,
+      "archive_load_calls": 0,
+      "checkpoint_decodes": 2,
+      "checkpoint_load_calls": 2,
+      "checkpoint_writes": 0,
+      "cuda_initializations": 0,
+      "model_constructions": 0,
+      "module_calls": 0,
+      "optimizer_constructions": 0
+    },
+    "failure": "Each state uses its own exact feature-view provenance; five measured JSON leaf differences. The mistaken cross-view equality stopped before archive decoding; model digests already matched."
+  },
+  "market_state_ta_full_prefix_parameter_replay_20261113_002": {
+    "status": "ADMITTED",
+    "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_002",
+    "script": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_002/REVIEW_PARAMETERS.py",
+      "sha256": "050fadff489a05a2dd9daa7677db15e8efd0bedfda1ec62d23a3b5d364455563"
+    },
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_002/PLAN.json",
+      "sha256": "5f32f005bd9307bd83d73ebe9c75a2c18962b95b297b61b4dbc1b2af3ad361bf"
     },
     "execution_authorized": true,
     "max_invocations": 1,
@@ -83282,6 +83346,12 @@
       "memory": "4G",
       "swap": "512M"
     },
-    "authorization_basis": "Standing local0USD direction-cause investigation. Exact retained INITIAL/FINAL states and two actual LATER captures only. Algebraic endpoint accounting, no model execution or new training."
+    "authorization_basis": "Standing local0USD direction-cause investigation. Exact retained INITIAL/FINAL states and two actual LATER captures only. Algebraic endpoint accounting, no model execution or new training.",
+    "previous_failed_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_001/TERMINAL.json",
+      "sha256": "ea3b57b7c56fac43c5e33349bfa5f1ee80b835c85138a1ce2641bf0fe95fd9a2"
+    },
+    "correction": "Validate each exact own feature-view identity and the five fixed provenance differences; copied normalization/constructor bytes must match. All model and capture gates retained.",
+    "timeout_enforcement": "Existing /usr/bin/timeout --signal=KILL 240s inside capped4G/512M audit."
   }
 }

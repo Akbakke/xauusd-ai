@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_FULL_PREFIX_PARAMETER_REPLAY_ADMITTED",
+  "status": "ACTIVE_FULL_PREFIX_PARAMETER_REPLAY_002_ADMITTED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -269,7 +269,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "One metadata preflight, then one capped4G/512M max240s read of2bound states and2LATER archives; verify actual model digests and affine endpoints, measure direct sidebias, symmetric/both ordered M5 weight-representation changes and final Adam state. No model construction/forward, new data, training or selection.",
+  "next_measurement": "Metadata preflight then one capped4G/512M max240s retained-state replay002. Verify each state against its own exact view, both measured model digests, two current LATER archives and affine endpoints. No model execution, refit, selection or generic order experiment.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -13868,12 +13868,12 @@
   },
   "full_prefix_parameter_replay_admission": {
     "plan": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_001/PLAN.json",
-      "sha256": "3576fc11579deb12ddecbff348c01e6118e223369254d149bc91168f8e92b676"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_002/PLAN.json",
+      "sha256": "5f32f005bd9307bd83d73ebe9c75a2c18962b95b297b61b4dbc1b2af3ad361bf"
     },
     "script": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_001/REVIEW_PARAMETERS.py",
-      "sha256": "1ee9c91100c61a9e5ad217bc131e25c8771755052765a4f159636a1e7b6f3b91"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_002/REVIEW_PARAMETERS.py",
+      "sha256": "050fadff489a05a2dd9daa7677db15e8efd0bedfda1ec62d23a3b5d364455563"
     },
     "states": {
       "FINAL": {
@@ -13892,6 +13892,27 @@
     "checkpoint_decodes": 2,
     "archive_decodes": 2,
     "model_calls": 0,
-    "question": "Does the measured UP logit shift come from the output bias, changed side weights, or changed retained M5 representations? Final Adam moments are endpoint evidence only."
+    "question": "Does the measured UP logit shift come from the output bias, changed side weights, or changed retained M5 representations? Final Adam moments are endpoint evidence only.",
+    "view_provenance_correction": "Validate each exact own feature-view identity and the five fixed provenance differences; copied normalization/constructor bytes must match. All model and capture gates retained."
+  },
+  "full_prefix_parameter_replay_001_failure": {
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_001/TERMINAL.json",
+      "sha256": "ea3b57b7c56fac43c5e33349bfa5f1ee80b835c85138a1ce2641bf0fe95fd9a2"
+    },
+    "counts": {
+      "affine_endpoint_replays": 0,
+      "archive_decodes": 0,
+      "archive_load_calls": 0,
+      "checkpoint_decodes": 2,
+      "checkpoint_load_calls": 2,
+      "checkpoint_writes": 0,
+      "cuda_initializations": 0,
+      "model_constructions": 0,
+      "module_calls": 0,
+      "optimizer_constructions": 0
+    },
+    "reason": "Each state uses its own exact feature-view provenance; five measured JSON leaf differences. The mistaken cross-view equality stopped before archive decoding; model digests already matched.",
+    "relaunch_allowed": false
   }
 }
