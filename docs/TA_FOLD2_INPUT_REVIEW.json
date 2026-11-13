@@ -13,8 +13,8 @@
     }
   },
   "native_training_authorized": false,
-  "new_job_admitted": true,
-  "next_action": "Execute only the exact admitted full fold2 TRAIN input gather:47338 chronological rows,2959 batches,last10; own frozen normalization and unchanged activity-only function. No model or fit. Preserve completion or failure, consume plan, review exact counts and inputs. Jan-Mar2025 later coverage and fresh native baseline/fit remain separate unopened gates.",
+  "new_job_admitted": false,
+  "next_action": "Qualify the exact fixed fold2 Jan-Mar2025 later input panel with clock-derived envelopes and existing native window owner, reusing overlapping spans. Current blocker: later-coverage adapter and clock-envelope helpers are hard-bound to fold1 Oct-Dec2024. Preserve fold1 behavior; no source refactor, TRAIN refit or native model job. Use own fold2 normalization unchanged. Fresh native baseline/fit remain unopened.",
   "normalization": {
     "artifacts": {
       "EXTENDED_BASE_NORMALIZATION": {
@@ -221,7 +221,7 @@
       "sha256": "2e25098183d2ffb27a4441f178789e2bdd39b84646815b67d061ccedbf2170da"
     }
   },
-  "observed_utc": "2026-11-13T13:03:08.390850+00:00",
+  "observed_utc": "2026-11-13T13:34:59.330068+00:00",
   "physical": {
     "all_413_overlap_rows_bitexact": true,
     "counts": {
@@ -315,7 +315,7 @@
     "Existing additive normalization supports exactly the qualified fold2 parent and physical result; no inherited fold1 units. All old statistics and fold1 output identity preserved.",
     "Existing six two-field fit/inverse/projection owner reused with exact fold2 parent/cutoff/output binding."
   ],
-  "status": "FOLD2_CURRENT_VIEW_METADATA_QUALIFIED_FULL_TRAIN_GATHER_ADMITTED",
+  "status": "FOLD2_FULL_TRAIN_INPUT_GATHER_QUALIFIED_LATER_AND_MODEL_PENDING",
   "test_data_used": false,
   "validation": {
     "both_actual_cli_preflights": "PASS",
@@ -361,7 +361,7 @@
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001/PLAN.json",
         "sha256": "783ae8cc3c8992d7d209d70de841b52c3dd6d04d5dc2a21a772f61a2cc151596"
       },
-      "status": "ADMITTED_NOT_EXECUTED",
+      "status": "COMPLETE_CONSUMED_NO_RELAUNCH",
       "counts": {
         "axis_archive_decodes": 1,
         "axis_arrays_decoded": 3,
@@ -378,7 +378,29 @@
         "raw_backing_maps": 6,
         "sidecar_archive_decodes": 6,
         "target_arrays_decoded": 0
-      }
+      },
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001/RESULT.json",
+        "sha256": "a108db7b1b56f5d7321befbcf6412c8d0f3116a88a9bda31059270d09970d7ec"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001/TERMINAL.json",
+        "sha256": "b71df0c340b409994602893201b24a4a0cbd51cce578deb26bc2933db64ab84b"
+      },
+      "wrapper_exit": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001/WRAPPER_EXIT.json",
+        "sha256": "55f1a81f7f39a57210358c338e02972030f50fc4e8c6259f81195eb7959a7e37"
+      },
+      "validation": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001/VALIDATION.json",
+        "sha256": "bd6564e0db353552c83f85e1d40bd9e41849565c59f787aa73a9ddd962ca09ce"
+      },
+      "elapsed_seconds": 744.7107785280023,
+      "all_raw_native_guards_passed": true,
+      "all_normalized_values_finite": true,
+      "normalization_fits": 0,
+      "model_constructions": 0,
+      "source_unchanged": true
     },
     "native_model_constructed": false,
     "later_inputs_qualified": false
