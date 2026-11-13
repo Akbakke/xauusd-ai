@@ -5,37 +5,50 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_TF_SEPARATION_001_ADMITTED_RETAINED_OUTPUT_AND_REPRESENTATION_READOUT.
-Edge-målet er uoppnådd. Alle treningsflagg er false. Én CPU-only avlesning er admittert:
-MARKET_STATE_TA_TF_SEPARATION_READOUT_20261113_001,PLANf0781221,READOUT.py96025b23.
-4lagredearkiver: INITIAL/order001-FINALLATER4096 + beggehead-input256-arkiver.
-0modeller/checkpoints/forwards/updates/nye mål.120s/4G/512M/1tråd.
-160parceller(alle10TFpar×S/F×INITIAL/FINAL×ALL/okt/nov/des),24representasjons-/logit-
-variansceller og80nivåceller. Sammejoint-knownmaske for faktisk/predikert enighet;
-256observerte rader må være bitlik delmengde av4096. Metadata-/uavhengigkildekontrollPASS.
-Høy korrelasjon eller liten TF-interaksjon alene beviser ikke kastet prediktivinfo ellerdesignfeil.
-Neste: én avlesning, alle resultater, lukk engangsplanen; ingen modellendring ellertrening.
+TA_TF_SEPARATION_001_COMPLETE_NEAR_COMMON_F_RANKING_LEARNABILITY_UNRESOLVED.
+Edge-målet er uoppnådd. Alle treningsflagg er false. Ingen aktiv jobb eller ny probe er admittert.
+Samlet rapport: docs/TA_CURRENT_TF_SEPARATION_REVIEW.json, SHA 4f0dd86c.
+CPU-avlesning MARKET_STATE_TA_TF_SEPARATION_READOUT_20261113_001 er COMPLETE/CONSUMED:
+kilde b740d7a3, PLAN f0781221, READOUT.py 96025b23, RESULT 54d56e23,
+TERMINAL f414dd6d, VALIDATION dae62b95. 1,01s under 4G/512M/1tråd;
+4 lagrede arkiver, 160 parceller, 24 geometryceller, 80 nivåceller; 0 modeller/checkpoints/
+forwards/updates/nye mål. Scalar-checks og uavhengig kilde-/JSON-kontroll PASS.
+256 head-input-rader er kontrollert bitlik delmengde av de 4096 native LATER-radene.
 
-AKTUELLKILDE: Alle8familier og5TF beholdes. FullTA-profilen krever nøyaktig én familieeier
-for hvert317signal/132ctx/255MTFfelt, allefamilierikke-tomme, komplette132kontekstaliaser.
-Historiskpreprojeksjonskontroll107c9531 viste8×5konsum på315/253; spanutvidelsen8878d17a/
-4476c63b bevarergamlefelt/statistikk oglegger2feltpåhverflate; currentdrift2c87d24c dekker
-alle317/132/255felt/vindusposisjoner. Ingen måltfrakobling funnet; ingen nycensus nødvendig.
-Mean+last-readout og tidligerec171pooling-/akseobservasjonb89942e5 gjenbrukes, ikke relanseres.
-29 574TRAIN-beslutninger ermai–sep2024; D1historievinduet gårtil2023-05-09. Flereårs
-treningsbeslutninger erikkeautomatisk kvalifisert avlangeinputvinduer.
-COT2024release/vintage erfortsattUNKNOWN;4aktivectxfelter71–74/signalalias256–259 via
-session_regime_encoder, ingenCOTi5separateMTFflater. As-of+7d og2025unntakskalender
-kvalifisererikke2024originalvintage. Ingenkonkretfremtidslekkasje erpåvist; ikke nyforklaringpåedge.
+F-RANGERING PÅ 4096 RADER: FINAL M15/H1/H4/D1 har Spearman 0,999343–0,999917.
+Månedsvis er minimum 0,998922; dette er ikke bare felles forskyvning mellom måneder.
+M15/D1 på samme 504 jointly-known-rader: predikert retningsenighet 98,2143%, faktisk
+58,5317%. Dette er enighet mellom TF, ikke hver TFs accuracy. INITIAL non-M5 var allerede
+nesten felles (rho 0,999524–0,999900); siste rekkefølgeforsøk skapte ikke denne likheten.
+M5F mot øvrige TF endres fra rho 0,783537–0,797773 til 0,993464–0,994737.
+Denne INITIAL/FINAL-kontrasten isolerer verken ordre eller negativ oppgaveoverføring.
+S/M5 er annerledes: FINAL rho mot øvrige S-TF −0,0167 til 0,0238, mot omtrent −0,85 i INITIAL.
+Native S/F hodeinput er bitlike, men mål og hoder er forskjellige.
 
-Fellespath: local/context+8spesialister→5×8MTF-gating/axialattention→pooling. Concat
-(z_v3,z,mtf_repr,global_context_h)→LayerNorm512→Linear128→GELU. TF-query kommeretterdenne
-felleshidden; førpooling finnes allerede TF-identitet/gates. Avlesningen måler faktiskTFskille.
-Forrige hode-/repr-kontroll: docs/TA_HEAD_REPRESENTATION_REVIEW.json(c26f9bf7), GPU697b3a53/
-CPU854ca204, beggeCOMPLETE/CONSUMED.32bitlikebaseliner,0updates; CPUdiagonalparitet innen
-fasttoleranse, ikkebitlik. DESFnon-M5 symmetriskhidden/query/head=0,787–0,845/0,347–0,470/
-0,070–0,085logit. All6stier/all8kombinasjoner beholdt; ingen historiskårsaksandel/accuracygevinst.
-S ogM5harandrefordelinger. Ingen generellM5attribution, enkelbiasrettelse ellerseparat-hode-reprise.
+GEOMETRI PÅ 256 RADER: FINAL non-M5-representasjon er 99,3560% radfelles, 0,4846%
+konstant TF og 0,1593% rad×TF. F-logitens interaksjonsandel er 0,08676%.
+Absolutt interaksjonsenergi økte fra INITIAL. Liten varians beviser ikke at nyttig info mangler.
+Ulike realiserte utfall kan ha like betingede sannsynligheter; dette beviser ikke en bedre prognose.
+Alle TF-par, begge faser, alle måneder og S/F er beholdt. Ingen accuracy-/edgegevinst er målt.
+
+KILDE/KONSUM: FullTA-ruting dekker 317 signal, 132 kontekst og 255 felt per TF, alle 8 familier.
+Tidligere 8×5-preprojeksjonsbevis 107c9531, eksakt span-utvidelse 8878d17a/4476c63b,
+current inputdrift 2c87d24c og native paritet er gjenbrukt; ingen ny feltcensus.
+Felles hidden kommer fra local/context, 8 spesialister og 5×8 MTF-gating/akseattention.
+Concat (z_v3,z,mtf_repr,global_context_h) går gjennom LayerNorm512→Linear128→GELU.
+TF-query kommer etter denne felles vektoren; TF-identitet og gates finnes også før pooling.
+29 574 TRAIN-beslutninger gjelder mai–sep2024; D1-historievindu går til 2023-05-09.
+COT2024 release/vintage er fortsatt UNKNOWN for 4 aktive kontekstfelt. Ingen konkret lekkasje
+er påvist. As-of+7d og 2025-unntak kvalifiserer ikke 2024-vintage; detaljene står i rapporten.
+
+Neste: kvalifiser én matchet prediktiv readout-kontroll av TF-spesifikke representasjoner før
+pooling mot felles hidden. Gjenbruk eksisterende avgrenset readout-eier og sjekk tidligere
+prober/tilgjengelige aktiveringer først. Identisk TRAIN-fit og senere utviklingsskår; ingen
+ny capture/fit/job er admittert nå. Høy korrelasjon alene gir ingen arkitekturautorisasjon.
+Ikke gjenta generell poolingvarians, separat-hode-forsøk eller M5-hodeattribution.
+Forrige hode-/representasjonsregnskap: docs/TA_HEAD_REPRESENTATION_REVIEW.json,
+GPU RESULT697b3a53 / CPU RESULT854ca204, begge fullført; dette er endepunktsregnskap,
+ikke historiske årsaksandeler eller bedre prediksjoner.
 
 Forrige kontekstprobe er COMPLETE/CONSUMED: docs/TA_CONTEXT_DRIFT_REVIEW.json,
 RESULT8f1bf7cf.32bitlikebaseliner,128forwards/0updates. Avgrensning av sekscurrentD1/makrofelt

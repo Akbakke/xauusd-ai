@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-13T10:22:12.523073+00:00",
-  "status": "TA_TF_SEPARATION_001_ADMITTED_RETAINED_OUTPUT_AND_REPRESENTATION_READOUT",
+  "observed_utc": "2026-11-13T10:32:56.713217+00:00",
+  "status": "TA_TF_SEPARATION_001_COMPLETE_NEAR_COMMON_F_RANKING_LEARNABILITY_UNRESOLVED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Run the admitted CPU retained-array TF separation readout once; preserve allTFpairs/phases/months, same-mask true/predicted disagreements and exact variance decomposition. High output correlation alone does not prove discarded predictive information or authorize architecture changes. COT2024 release/vintage remains UNKNOWN, not a demonstrated leak; no training.",
+  "next_action": "Qualify one matched predictive readout comparison of TF-specific prepool representations versus the current shared hidden, with identical TRAIN-only fitting and later-development scoring using an existing bounded readout owner. First inspect retained-activation availability and prior equivalent probes. Do not repeat unsupervised pooling-variance or independent-head trials. Current correlation/variance results do not by themselves authorize architecture changes or training. No new capture/checkpoint decoding/fit/job is admitted; COT2024 release/vintage remains UNKNOWN.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -85119,7 +85119,7 @@
     "terminal_exit_code": 0
   },
   "market_state_ta_tf_separation_readout_20261113_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_NO_RELAUNCH",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_SEPARATION_READOUT_20261113_001/PLAN.json",
       "sha256": "f0781221035c8f94248d1c5ee3d33ecda778703282c70d70c0eacba685ae9db7"
@@ -85129,12 +85129,12 @@
       "sha256": "96025b23b6833949601ace0dce10fbc6f3ce408ac7e5967a1c129f9320215cc7"
     },
     "max_invocations": 1,
-    "remaining_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
+    "remaining_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
     "relaunch_allowed": false,
-    "data_reads_authorized": true,
+    "data_reads_authorized": false,
     "checkpoint_reads_authorized": false,
     "model_execution_authorized": false,
     "training_authorized": false,
@@ -85157,6 +85157,40 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_SEPARATION_READOUT_20261113_001/PREFLIGHT.json",
       "sha256": "db94f7b6416e84c7cfe1d9fd9aba1cb88466ae21f08265985c44ba2960885dda"
     },
-    "authorization": "Standing local0USD measured-cause investigation. Actual source uses common128D hidden before TF-query conditioning; all genuine families/TF are routed. One readout reuses current native predictions/head-input captures to measure cross-TF ranking and same-mask outcome differences. No new feature census, encoder, checkpoint, fit or candidate selection."
+    "authorization": "Standing local0USD measured-cause investigation. Actual source uses common128D hidden before TF-query conditioning; all genuine families/TF are routed. One readout reuses current native predictions/head-input captures to measure cross-TF ranking and same-mask outcome differences. No new feature census, encoder, checkpoint, fit or candidate selection.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_SEPARATION_READOUT_20261113_001/RESULT.json",
+      "sha256": "54d56e231421787b07451f23142491d4320544113131785bbab59ad3a0e11680"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_SEPARATION_READOUT_20261113_001/TERMINAL.json",
+      "sha256": "f414dd6d53a5cf3bcc7340dcb9d29ef00af180438dc419cbac00ba5439556ab2"
+    },
+    "wrapper_exit": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_SEPARATION_READOUT_20261113_001/WRAPPER_EXIT.json",
+      "sha256": "02218c634fd9429bb9e500c0795f8b4f71bd825ddeb17c25038d4e127b3cbebf"
+    },
+    "validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TF_SEPARATION_READOUT_20261113_001/VALIDATION.json",
+      "sha256": "dae62b951098882eeb56ffc74436da672f8f5fd7b551498a16add5aa18b20325"
+    },
+    "public_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_CURRENT_TF_SEPARATION_REVIEW.json",
+      "sha256": "4f0dd86cb73dbd8dae1c40b9c793f5f3dd7b7eb8d7d52eb353593dd4668fcb44"
+    },
+    "actual_counts": {
+      "archive_decodes": 4,
+      "checkpoint_decodes": 0,
+      "full_model_forwards": 0,
+      "geometry_cells": 24,
+      "level_cells": 80,
+      "model_constructions": 0,
+      "new_target_gathers": 0,
+      "optimizer_updates": 0,
+      "pair_cells": 160
+    },
+    "elapsed_seconds": 1.0078286249990924,
+    "source_unchanged": true,
+    "terminal_exit_code": 0
   }
 }
