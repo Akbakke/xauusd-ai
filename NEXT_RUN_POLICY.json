@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-13T13:59:40.190747+00:00",
-  "status": "TA_FOLD2_LATER_INPUTS_SINGLE_QUALIFICATION_ADMITTED",
+  "observed_utc": "2026-11-13T14:28:53.546444+00:00",
+  "status": "TA_FOLD2_LATER_INPUTS_001_CONSUMED_NATIVE_2025_BINDING_REPAIR_PENDING",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Execute only exact later-input plan416475ff once: derive six clock envelopes, reuse overlapping spans, replay contiguous missing rows, then existing native-window verification and actual4096-row raw/normalized gather. No models/targets/fits. Freeze source/policy during run; monitor stable execution after15-30minutes. Consume and review both physical and gathered results plus terminal/wrapper. Native initial baseline remains a separate unopened gate.",
+  "next_action": "New exact one-use plan: append only manifest-bound2025 native part, reuse completed local gap, check M5 timestamps with2024 versus2024+2025 before replaying only the five remaining MTF gaps. No model changes or refit.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1769,7 +1769,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "One exact fold2 Jan-Mar2025 input-only qualification admitted after source review and actual CLI preflight.",
+    "current_activity": "Later-input001 failed and consumed; source-year omission localized in the private preparation plan. Completed local17353 rows preserved.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1798,13 +1798,13 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "TA_FOLD2_SPAN_VIEW_001_FULL_TRAIN_INPUTS_COMPLETE_CONSUMED",
+    "latest_terminal_role": "TA_FOLD2_LATER_INPUTS_001_FAILED_CONSUMED",
     "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001/VALIDATION.json",
-      "sha256": "bd6564e0db353552c83f85e1d40bd9e41849565c59f787aa73a9ddd962ca09ce"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_001/TERMINAL.json",
+      "sha256": "543c9af5895680059c4894111a473c7698415af61df8b3c8f207f12054180645"
     },
-    "terminal_exit_code": 0,
+    "terminal_exit_code": 1,
     "source_unchanged_at_terminal": true,
     "full_benchmark_completed": false,
     "sampler_selection_measured": true,
@@ -1822,7 +1822,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Actual later physical/window/gather qualification pending; native baseline/fit not admitted.",
+    "current_blocker": "Replay native_parts ended in2024 although later panel extends throughMar2025. Exact2025part is present in the same native/enriched/cache lineage; remaining clock equality must be measured.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -25417,7 +25417,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-13T13:59:40.190747+00:00",
+  "updated_utc": "2026-11-13T14:28:53.546444+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -85710,7 +85710,7 @@
     "later_inputs_qualified": false
   },
   "market_state_ta_fold2_later_inputs_20261113_001": {
-    "status": "ADMITTED",
+    "status": "FAILED_CONSUMED_NO_RELAUNCH",
     "source_review": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_001/SOURCE_REVIEW.json",
       "sha256": "71801b82e50fc807b24102d96d4e011950d504b87ebe99214d35ea393be4ee1d"
@@ -85723,13 +85723,13 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_001/FEATURE_VIEW.json",
       "sha256": "f7979c855c0a2b3a0cee5c0234d5f242b00431e56e4bc68469226f4a61cf7943"
     },
-    "execution_authorized": true,
-    "data_reads_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "training_authorized": false,
     "relaunch_allowed": false,
     "max_invocations": 1,
-    "remaining_invocations": 1,
-    "claimed_invocations": 0,
+    "remaining_invocations": 0,
+    "claimed_invocations": 1,
     "completed_invocations": 0,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_001/PLAN.json",
@@ -86022,6 +86022,27 @@
     "preflight": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_001/PREFLIGHT.json",
       "sha256": "4ad91c3ff4306580ab1e1e0b58701497431e0426be94ed6c1b5b98591f7cfc84"
-    }
+    },
+    "failed_invocations": 1,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_001/TERMINAL.json",
+      "sha256": "543c9af5895680059c4894111a473c7698415af61df8b3c8f207f12054180645"
+    },
+    "wrapper_exit": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_001/WRAPPER_EXIT.json",
+      "sha256": "f0ae210906975091dbe500db000c35a2cd0f0321d068cb28cba3dde11032e0d8"
+    },
+    "failure_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_001/FAILURE_REVIEW.json",
+      "sha256": "bc059ebf20ac01be7a86d8054f14db86c48137a4a439f120d999f1f1807551f1"
+    },
+    "completed_local_qualification": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_001/GAPS/local_QUALIFICATION.json",
+      "sha256": "4a1d8687766294df258040ed826af43b141489824166d77a9c34aee1829ad8cf"
+    },
+    "result": null,
+    "coverage": null,
+    "gather_result": null,
+    "actual_later_inputs_qualified": false
   }
 }

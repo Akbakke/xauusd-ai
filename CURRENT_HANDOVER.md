@@ -5,35 +5,31 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_FOLD2_LATER_INPUTS_SINGLE_QUALIFICATION_ADMITTED. Edge-målet er uoppnådd.
-Full fold2 TRAIN-gather er kvalifisert og konsumert. Fold2s senere inputbinding er nå
-avgrenset i kilde til januar–mars2025, med uendret fold1/default/TRAIN-gren.
-89fokuserte tester, syntaks/stale-path/diff og uavhengig kildekontroll PASS.
-Ny FEATURE_VIEW f7979c85 endrer bare overlay-eierens kildehash;13invarianter inklusive
-prefix, akser, normalisering, ruting, constructor og aktivitet-only-funksjon er identiske.
-TRAIN-grenen er uendret; beholdt full TRAIN-kvalifikasjon gjenbrukes uten ny datakjøring.
+TA_FOLD2_LATER_INPUTS_001_CONSUMED_NATIVE_2025_BINDING_REPAIR_PENDING. Edge-målet er uoppnådd.
+LATER_INPUTS001 er FAILED/CONSUMED; ingen relaunch og ingen jobb er admittert.
+Feilen er konkret i den private klargjøringen: replay_plan.inputs.native_parts arvet
+bare2009–2024 mens cutoff/panel ble utvidet til januar–mars2025. load_native_parts_prefix
+utvider aldri listen. M5feilet på ANCHOR_SPAN_INPUT_EXACT_SOURCE_CLOCK før ny M5-kvalifikasjon.
+Siste bundne2024bar er2024-12-31 21:55UTC; M5-gapet krever til2025-03-31 23:10UTC.
+Samme native/enriched/cache-lineage binder2025part SHA5c6e9ffb, fra2025-01-01 23:00UTC.
+Dette er en klargjøringsfeil, ikke et påvist klokkeavvik i modellens lagrede inputs.
+Første manglende stempel og full klokkeparitet med2025delen er ennå ikke målt.
 
-Det senere utvalget er forhåndsvalgt4096rader,256hele B16-grupper medindeks i*1079//255
-fra scorerad47602. Scoringsperioden har17288rader; sistevalgteposisjon64881.
-De siste8ufullstendige batchradene utelates etter samme utvalgsregel somfold1.
-Dette er ikke full senerepopulasjon. Ingen targetverdier brukes til utvalget.
+Bevar001/TERMINAL, WRAPPER_EXIT, AXIS_AND_REUSE_QUALIFICATION og FAILURE_REVIEW.
+local17353rader er fullført med31gamle felt bitlike: GAPS/local_QUALIFICATION SHA4a1d8687,
+artefakt4b1353d5. Dette gjenbrukes; ingen ny lokalreplay. Producer/history-tellere er null
+fordi delegert operasjon ikke returnerte; én lokalprodusent er kvittert, M5 ble forsøkt.
+Ingen native vinduskontroll/gather/modell/target/fit/oppdatering ble gjennomført.
+Kilde/policy/bookends var uendret. Exit1 er faktisk terminalstatus.
 
-Én ny CPU-inputjobb er admittert:
- /home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_001/PLAN.json
-SHA416475ff; privatQUALIFY SHA babb2272. Maks2400s, outer2430s,4G/512M. Ingen relaunch.
-Aktuell CLI-preflight, metadata/signatur/syntetisk merge og integrators fulle kildereview PASS.
-Null claim/payload-dekoding i preflight. Eksisterende89tester/commit-kontraktkontroller gjenbrukes.
-
-Kjør bare denne planen én gang. Gjenbruk eksisterende clock-envelope/merge/replay/
-native-window/gather-eiere. Beregn kun sammenhengende mangler etter bitlikt overlapp,
-maksimalt ett gap per seks flater. Fysisk RESULT/COVERAGE publiseres før faktisk
-raw/normalisert4096raders seneregather. TerminalCOMPLETE må binde begge resultatene.
-Fysiske ny-/gjenbruks-/historierader telles faktisk; ingen antatt positiv prognoseverdi.
-Ingen TRAIN-rerun/refit, nye targets, modeller, checkpoints eller oppdateringer.
-Frys kilde og policy under kjøring. Første stabile kontroll etter15–30min.
-Kontroller fysiskRESULT, COVERAGE, GATHER_RESULT, TERMINAL og wrapper; konsumér planen.
-Egen fersk native initialbaseline kreves før eventuell fit; alle treningsflagg false.
-Tidligere engangsjobber er COMPLETE/CONSUMED, aldri relaunch. TEST forblir forseglet.
+Minste neste rettelse er en ny, separat engangsplan: bind bare den dokumenterte2025delen,
+gjenbruk ferdig lokalspan, mål M5-klokkejoin med2024 kontra2024+2025 før dyr replay,
+og beregn bare de fem gjenværende MTF-gapene. Bevar alle klokke-/paritetsporter.
+Ingen kilde-/modellendring eller TRAIN-refit kreves av denne klargjøringsfeilen.
+Full47338 TRAIN-inputkvalifikasjon og89tester/kontraktkontroller gjenbrukes.
+Aktivitet-only-funksjon, egen normalisering og rebound view f7979c85 er uendret.
+Det senere panelet er4096forhåndsvalgte rader fra17288; sistevalgte64881, siste8partial utelatt.
+TEST forseglet; alle treningsflagg false. Modellbaseline/fit er separate uåpnede steg.
 Samlet rapport: docs/TA_FOLD2_INPUT_REVIEW.json. NEXT_RUN_POLICY eier status.
 
 ## Fullført og verifisert

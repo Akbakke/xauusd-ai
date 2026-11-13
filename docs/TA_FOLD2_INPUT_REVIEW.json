@@ -13,8 +13,8 @@
     }
   },
   "native_training_authorized": false,
-  "new_job_admitted": true,
-  "next_action": "Execute only exact later-input plan416475ff once: derive six clock envelopes, reuse overlapping spans, replay contiguous missing rows, then existing native-window verification and actual4096-row raw/normalized gather. No models/targets/fits. Freeze source/policy during run; monitor stable execution after15-30minutes. Consume and review both physical and gathered results plus terminal/wrapper. Native initial baseline remains a separate unopened gate.",
+  "new_job_admitted": false,
+  "next_action": "New exact one-use plan: append only manifest-bound2025 native part, reuse completed local gap, check M5 timestamps with2024 versus2024+2025 before replaying only the five remaining MTF gaps. No model changes or refit.",
   "normalization": {
     "artifacts": {
       "EXTENDED_BASE_NORMALIZATION": {
@@ -221,7 +221,7 @@
       "sha256": "2e25098183d2ffb27a4441f178789e2bdd39b84646815b67d061ccedbf2170da"
     }
   },
-  "observed_utc": "2026-11-13T13:59:40.190747+00:00",
+  "observed_utc": "2026-11-13T14:28:53.546444+00:00",
   "physical": {
     "all_413_overlap_rows_bitexact": true,
     "counts": {
@@ -315,7 +315,7 @@
     "Existing additive normalization supports exactly the qualified fold2 parent and physical result; no inherited fold1 units. All old statistics and fold1 output identity preserved.",
     "Existing six two-field fit/inverse/projection owner reused with exact fold2 parent/cutoff/output binding."
   ],
-  "status": "FOLD2_TRAIN_QUALIFIED_SINGLE_LATER_INPUT_JOB_ADMITTED",
+  "status": "FOLD2_LATER_INPUT_JOB_FAILED_SOURCE_YEAR_BINDING_MISSING",
   "test_data_used": false,
   "validation": {
     "both_actual_cli_preflights": "PASS",
@@ -427,7 +427,7 @@
     "own_train_normalization_unchanged": true,
     "full_train_gather_reused": true,
     "later_actual_qualified": false,
-    "new_job_admitted": true,
+    "new_job_admitted": false,
     "preflight": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_001/PREFLIGHT.json",
       "sha256": "4ad91c3ff4306580ab1e1e0b58701497431e0426be94ed6c1b5b98591f7cfc84"
@@ -436,8 +436,28 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_001/PLAN.json",
       "sha256": "416475ffbcb49d11842b988db6bcac097243d9905cbbb98ed63c3cb7f9a6f8bc"
     },
-    "job_status": "ADMITTED_NOT_EXECUTED",
+    "job_status": "FAILED_CONSUMED_NO_RELAUNCH",
     "max_seconds": 2400,
-    "maximum_gap_producer_calls": 6
+    "maximum_gap_producer_calls": 6,
+    "actual_later_inputs_qualified": false,
+    "failure_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_001/FAILURE_REVIEW.json",
+      "sha256": "bc059ebf20ac01be7a86d8054f14db86c48137a4a439f120d999f1f1807551f1"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_001/TERMINAL.json",
+      "sha256": "543c9af5895680059c4894111a473c7698415af61df8b3c8f207f12054180645"
+    },
+    "wrapper_exit": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_001/WRAPPER_EXIT.json",
+      "sha256": "f0ae210906975091dbe500db000c35a2cd0f0321d068cb28cba3dde11032e0d8"
+    },
+    "completed_local_qualification": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_001/GAPS/local_QUALIFICATION.json",
+      "sha256": "4a1d8687766294df258040ed826af43b141489824166d77a9c34aee1829ad8cf"
+    },
+    "completed_local_rows": 17353,
+    "cause": "The inherited explicit native_parts list ended at2024, while the fixed later panel requires2025. Raising the replay cutoff does not add source files.",
+    "model_input_data_defect_established": false
   }
 }
