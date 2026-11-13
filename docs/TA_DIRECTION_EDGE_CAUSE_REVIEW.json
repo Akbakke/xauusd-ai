@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_FULL_PREFIX_PARAMETER_REPLAY_COMPLETE_CAUSAL_TRAINING_MECHANISM_UNRESOLVED",
+  "status": "ACTIVE_M5_SIDE_BOUNDARY_GRADIENT_ADMITTED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -269,7 +269,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Reuse the existing matched objective-benchmark and train-mode/gradient evidence to distinguish shared representation pressure from side-decoder coupling in the measured UP drift. Bind evidence to the exact function and starting weights before choosing a further causal test. No new training, generic order/architecture experiment, calibration fit or checkpoint selection is admitted.",
+  "next_measurement": "Run one preflight then one capped4G/512M max240s analytic M5 side-boundary audit on INITIAL/FINAL states and two TRAIN captures. Verify model/source/query identities, canonical loss and2048finite differences; distinguish per-row versus uniform-shift geometry. No TRAIN representation replay, upstream Jacobian/Adam or training claim.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -13954,5 +13954,86 @@
       "Exact saved-weight identities, four FP64 affine endpoint replays of retained FP32 values, all score replays and algebraic closure passed. The maximum retained score error is0 and maximum decomposition closure error is3.33e-16.",
       "This localizes the retained endpoint drift to weight/representation changes and rules out a simple last-layer intercept explanation. It does not identify which upstream loss/gradient/order dynamics caused it; non-M5 representations and the full gradient trajectory were not retained."
     ]
+  },
+  "current_S_F_cause_reuse": {
+    "full_prefix_recipe": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_002/RECIPE.json",
+      "sha256": "993b9f1dc7b581e700f3fb148f90028c7eb1b51fdf5e1c9d62f8b7bd7182c23f"
+    },
+    "matched_objective_recipe": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001/RECIPE.json",
+      "sha256": "690ae74195017c21f0aa9cdd3558c6cb6a8f4a09e7a797b3ce591fb1ea86026b"
+    },
+    "matched_objective_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001/RESULT.json",
+      "sha256": "069d4d7cbb088474016c78be2abcb0a1d1fb20f240413cc35e9d9003730b3a5d"
+    },
+    "matched_objective_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001/FIXED_COMPARISON.json",
+      "sha256": "da37fcdd139751a76c3782befb3f05fc72c82c9327122ba6ce0902497586c2e7"
+    },
+    "exact_same_initial_model": "bef35dafc43f0b3450cca161049e9daacee55d92d7f1c3187bd82c9c4de972fc",
+    "exact_same_canonical_numerical_recipe": true,
+    "identical_input_refs": 15,
+    "old_mixing_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_MIXING_GRADIENT_OBSERVATION_20261111_001/RESULT.json",
+      "sha256": "dbdd04d875ce81949741158fc0c37efe4f556744d95bdd521928088ea2ddb7e1"
+    },
+    "old_matched_train_mode": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_C171_MATCHED_TRAIN_MODE_REVIEW.json",
+      "sha256": "ba8fa2a5e3278626558395abdad9df8081ffe998ee48390e94db357a3c9a7a80"
+    },
+    "findings": [
+      "FULL and M5-only begin at actualbef35 and use the same15inputrefs and canonical numerical recipe as full-prefix002. M5-only still sums S/M5 and F/M5 side losses; it does not isolate them.",
+      "Old16-batch attention gradients are bound to c171, not bef35 or currentFINAL1542. Mean batch dot and dot ofmean gradients are distinct.",
+      "Old activity-pressure evidence uses shared activity rows; current dedicatedTFactivity heads invalidate direct transfer of those row-conflict numbers.",
+      "No current S-only/F-only arm or exact current S/F gradient split was found in the bound evidence.",
+      "Source loss has zero direct activity derivative against side logits, but all losses can reach shared projection/encoder. No numerical loss defect is established."
+    ],
+    "scope": "Reuse and exact metadata/source review only;0newpayloaddecodes/forwards/fit."
+  },
+  "m5_side_boundary_gradient_admission": {
+    "status": "ADMITTED",
+    "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001",
+    "script": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001/REVIEW_BOUNDARY.py",
+      "sha256": "043bb0d5649a7bdd22be868749f32377c24bc0e9bc0b98fe8c98c441cc58742b"
+    },
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001/PLAN.json",
+      "sha256": "36d4f8a49366973ed23b520ee6c927e03faaa7920bdf38fc8d5145494358860d"
+    },
+    "execution_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "checkpoint_decodes": 2,
+    "archive_decodes": 2,
+    "affine_endpoint_replays": 0,
+    "finite_difference_checks": 2048,
+    "model_constructions_authorized": 0,
+    "module_calls_authorized": 0,
+    "optimizer_constructions_authorized": 0,
+    "optimizer_updates_authorized": 0,
+    "autograd_calls_authorized": 0,
+    "checkpoint_writes_authorized": 0,
+    "cuda_initialization_authorized": false,
+    "raw_feature_reads_authorized": false,
+    "new_targets_authorized": false,
+    "training_authorized": false,
+    "candidate_selection": false,
+    "promotion_authorized": false,
+    "test_data_used": false,
+    "max_seconds": 240,
+    "resource_cap": {
+      "run_class": "audit",
+      "memory": "4G",
+      "swap": "512M"
+    },
+    "timeout_enforcement": "Existing /usr/bin/timeout --signal=KILL 240s inside capped audit.",
+    "authorization_basis": "Standing local0USD direction-cause diagnosis; actual current S/F readout boundary is an unmeasured discriminator. Reuse existing states/TRAIN outputs and qualified affine method; no model execution or fit.",
+    "shared_M5_boundary_basis": "Source-bound common hidden/projection and actualM5query1; no retained TRAIN h or measured h parity."
   }
 }

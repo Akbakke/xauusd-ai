@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-13T01:31:44.376191+00:00",
-  "status": "TA_FULL_PREFIX_PARAMETER_REPLAY_COMPLETE_CAUSAL_TRAINING_MECHANISM_UNRESOLVED",
+  "status": "TA_M5_SIDE_BOUNDARY_GRADIENT_ADMITTED_NO_MODEL_EXECUTION",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1743,7 +1743,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Saved-state diagnosis complete: full active-tensor updates and coupled M5 weight/representation drift verified. No active job; no new training admitted.",
+    "current_activity": "Current S/F M5 side-pressure gap established; one exact saved-state CPU boundary-gradient measurement admitted.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1796,7 +1796,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No operational blocker. The upstream cause of coupled UP drift and useful later directional edge remain unestablished.",
+    "current_blocker": "No operational blocker. Exact metadata preflight and one capped retained-boundary measurement remain.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9267,7 +9267,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Reuse the existing matched objective-benchmark and train-mode/gradient evidence to distinguish shared representation pressure from side-decoder coupling in the measured UP drift. Bind evidence to the exact function and starting weights before choosing a further causal test. No new training, generic order/architecture experiment, calibration fit or checkpoint selection is admitted.",
+    "next_action": "Run one preflight then one capped4G/512M max240s analytic M5 side-boundary audit on INITIAL/FINAL states and two TRAIN captures. Verify model/source/query identities, canonical loss and2048finite differences; distinguish per-row versus uniform-shift geometry. No TRAIN representation replay, upstream Jacobian/Adam or training claim.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22485,6 +22485,50 @@
         "optimizer_constructions": 0
       },
       "elapsed_seconds": 3.1491763009998976
+    },
+    "pending_side_boundary_gradient": {
+      "status": "ADMITTED",
+      "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001",
+      "script": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001/REVIEW_BOUNDARY.py",
+        "sha256": "043bb0d5649a7bdd22be868749f32377c24bc0e9bc0b98fe8c98c441cc58742b"
+      },
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001/PLAN.json",
+        "sha256": "36d4f8a49366973ed23b520ee6c927e03faaa7920bdf38fc8d5145494358860d"
+      },
+      "execution_authorized": true,
+      "max_invocations": 1,
+      "claimed_invocations": 0,
+      "completed_invocations": 0,
+      "remaining_invocations": 1,
+      "relaunch_allowed": false,
+      "checkpoint_decodes": 2,
+      "archive_decodes": 2,
+      "affine_endpoint_replays": 0,
+      "finite_difference_checks": 2048,
+      "model_constructions_authorized": 0,
+      "module_calls_authorized": 0,
+      "optimizer_constructions_authorized": 0,
+      "optimizer_updates_authorized": 0,
+      "autograd_calls_authorized": 0,
+      "checkpoint_writes_authorized": 0,
+      "cuda_initialization_authorized": false,
+      "raw_feature_reads_authorized": false,
+      "new_targets_authorized": false,
+      "training_authorized": false,
+      "candidate_selection": false,
+      "promotion_authorized": false,
+      "test_data_used": false,
+      "max_seconds": 240,
+      "resource_cap": {
+        "run_class": "audit",
+        "memory": "4G",
+        "swap": "512M"
+      },
+      "timeout_enforcement": "Existing /usr/bin/timeout --signal=KILL 240s inside capped audit.",
+      "authorization_basis": "Standing local0USD direction-cause diagnosis; actual current S/F readout boundary is an unmeasured discriminator. Reuse existing states/TRAIN outputs and qualified affine method; no model execution or fit.",
+      "shared_M5_boundary_basis": "Source-bound common hidden/projection and actualM5query1; no retained TRAIN h or measured h parity."
     }
   },
   "gc_order_flow_research_20261006": {
@@ -25049,7 +25093,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-13T01:31:44.376191+00:00",
+  "updated_utc": "2026-11-13T01:53:04.930782+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -83407,5 +83451,49 @@
       "optimizer_constructions": 0
     },
     "elapsed_seconds": 3.1491763009998976
+  },
+  "market_state_ta_m5_side_boundary_gradient_20261113_001": {
+    "status": "ADMITTED",
+    "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001",
+    "script": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001/REVIEW_BOUNDARY.py",
+      "sha256": "043bb0d5649a7bdd22be868749f32377c24bc0e9bc0b98fe8c98c441cc58742b"
+    },
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001/PLAN.json",
+      "sha256": "36d4f8a49366973ed23b520ee6c927e03faaa7920bdf38fc8d5145494358860d"
+    },
+    "execution_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "checkpoint_decodes": 2,
+    "archive_decodes": 2,
+    "affine_endpoint_replays": 0,
+    "finite_difference_checks": 2048,
+    "model_constructions_authorized": 0,
+    "module_calls_authorized": 0,
+    "optimizer_constructions_authorized": 0,
+    "optimizer_updates_authorized": 0,
+    "autograd_calls_authorized": 0,
+    "checkpoint_writes_authorized": 0,
+    "cuda_initialization_authorized": false,
+    "raw_feature_reads_authorized": false,
+    "new_targets_authorized": false,
+    "training_authorized": false,
+    "candidate_selection": false,
+    "promotion_authorized": false,
+    "test_data_used": false,
+    "max_seconds": 240,
+    "resource_cap": {
+      "run_class": "audit",
+      "memory": "4G",
+      "swap": "512M"
+    },
+    "timeout_enforcement": "Existing /usr/bin/timeout --signal=KILL 240s inside capped audit.",
+    "authorization_basis": "Standing local0USD direction-cause diagnosis; actual current S/F readout boundary is an unmeasured discriminator. Reuse existing states/TRAIN outputs and qualified affine method; no model execution or fit.",
+    "shared_M5_boundary_basis": "Source-bound common hidden/projection and actualM5query1; no retained TRAIN h or measured h parity."
   }
 }
