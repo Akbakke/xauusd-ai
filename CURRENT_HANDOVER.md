@@ -59,11 +59,6 @@ TF-query kommer etter denne felles vektoren; TF-identitet og gates finnes også 
 COT2024 release/vintage er fortsatt UNKNOWN for 4 aktive kontekstfelt. Ingen konkret lekkasje
 er påvist. As-of+7d og 2025-unntak kvalifiserer ikke 2024-vintage; detaljene står i rapporten.
 
-Neste: kvalifiser én matchet prediktiv readout-kontroll av TF-spesifikke representasjoner før
-pooling mot felles hidden. Gjenbruk eksisterende avgrenset readout-eier og sjekk tidligere
-prober/tilgjengelige aktiveringer først. Identisk TRAIN-fit og senere utviklingsskår; ingen
-ny capture/fit/job er admittert nå. Høy korrelasjon alene gir ingen arkitekturautorisasjon.
-Ikke gjenta generell poolingvarians, separat-hode-forsøk eller M5-hodeattribution.
 Forrige hode-/representasjonsregnskap: docs/TA_HEAD_REPRESENTATION_REVIEW.json,
 GPU RESULT697b3a53 / CPU RESULT854ca204, begge fullført; dette er endepunktsregnskap,
 ikke historiske årsaksandeler eller bedre prediksjoner.
