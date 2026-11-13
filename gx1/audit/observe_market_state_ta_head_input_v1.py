@@ -183,6 +183,172 @@ def run(plan_path,plan_sha,out_dir,device='cuda'):
         signal.setitimer(signal.ITIMER_REAL,0);signal.signal(signal.SIGALRM,prior_alarm)
         if prepared is not None:scope.full.anchor.release_inputs(provider,prepared)
 
+PREPOOL_STAGE='market_state_ta_prepool_capture_20261113_001'
+PREPOOL_ROOT=ROOT.parent/PREPOOL_STAGE.upper()
+PREPOOL_COUNTS=dict(model_constructions=1,checkpoint_loads=1,resume_state_load_calls=1,resume_state_load_returns=1,
+    archive_decodes=2,input_sidecar_archive_decodes=12,feature_batches=512,forwards=512,native_reference_matches=512,
+    captured_rows=8192,phase_capture_writes=2,prepool_hook_calls=512,projection_input_hook_calls=1024,
+    deterministic_initialization_calls=1,optimizer_constructions=0,optimizer_updates=0,backwards=0,
+    autograd_grad_calls=0,checkpoint_writes=0,candidate_writes=0,new_target_gathers=0)
+PREPOOL_BOUNDS=dict(counts=PREPOOL_COUNTS,batch_size=16,rows_per_partition=4096,wall_seconds=840,
+    memory_bytes=12*1024**3,numerical_threads=8,max_published_json_bytes=4*1024**2,
+    max_capture_bytes=16*1024**2,training_enabled=False,test_data_used=False)
+
+def _prepool_metadata():
+    q=base._metadata()
+    for panel in ('TRAIN','LATER'):
+        label='FULL_PREFIX_PASS2_'+panel; ref=q['native']['measurement_refs'][label]; m=cache._read(ref)
+        need(m['evaluated_model_state_sha256']==MODELS['FINAL'] and m['optimizer_updates']==3698
+             and m['evaluation_state_unchanged'] is True and m['test_data_used'] is False
+             and m['measurement']['rows']==4096 and m['measurement']['batches']==256
+             and m['capture']==q['native']['panel_captures'][label],'PREPOOL_MEASUREMENT:'+panel)
+        q['inputs'][panel+'_capture']=m['capture'];q['inputs'][panel+'_measurement']=ref
+        q['measurements'][panel]=m
+        campaign.require_binding(m['capture'],label='prepool '+panel,verify_file=True)
+    return q
+
+def build_prepool_plan(source_base_commit,*,q=None):
+    q=_prepool_metadata() if q is None else q
+    return dict(schema_version='gx1_ta_prepool_capture_v1',stage=PREPOOL_STAGE,source_repo=str(REPO),
+        source_base_commit=source_base_commit,worker=cache._ref(WORKER),
+        helpers={name:cache._ref(REPO/name) for name in HELPERS},source_owners=q['source_owners'],inputs=q['inputs'],
+        model_digest=MODELS['FINAL'],bounds=PREPOOL_BOUNDS,
+        panels={p:q['measurements'][p]['panel_batch_indices'] for p in ('TRAIN','LATER')},
+        captures=dict(prepool='Actual tf_token_gate input: five cross-TF-attended 128D vectors before TF weighted pooling.',
+                      hidden='Actual query_projection Linear input first128: shared entry_q_joint_hidden; S and F must be bitexact.'),
+        purpose='Retain equal-width before/after representations for one separately admitted fixed-method TRAIN-only F-readout comparison on all five TF. Capture itself has zero fits and no predictive conclusion.',
+        limits=['Same retained4096TRAIN/4096LATER panels, intactB16; every S/F output must be bitexact to its original panel.',
+                'One current FINAL endpoint, no initial or checkpoint selection; all original targets/masks reused.',
+                'COT2024 release/vintage remains UNKNOWN; reused development is not independent confirmation.'])
+
+def prepool_gate_fields(ref):
+    return dict(status='ADMITTED',plan=ref,max_invocations=1,remaining_invocations=1,claimed_invocations=0,completed_invocations=0,
+        execution_authorized=True,relaunch_allowed=False,data_reads_authorized=True,checkpoint_reads_authorized=True,
+        training_authorized=False,readout_fits_authorized=False,bounds=PREPOOL_BOUNDS)
+
+def _inspect_prepool(plan_path,plan_sha,out_dir,*,execute):
+    need(Path(plan_path)==PREPOOL_ROOT/'PLAN.json' and Path(out_dir)==PREPOOL_ROOT,'PREPOOL_EXACT_PATHS')
+    need(not any((PREPOOL_ROOT/n).exists() for n in ('CLAIM.json','RESULT.json','TERMINAL.json')),'PREPOOL_ONE_USE')
+    ref=dict(path=str(plan_path),sha256=plan_sha);plan=cache._read(ref);q=_prepool_metadata()
+    need(plan==build_prepool_plan(plan['source_base_commit'],q=q),'PREPOOL_EXACT_PLAN')
+    head=cache._git('rev-parse','HEAD');subprocess.run(['git','merge-base','--is-ancestor',plan['source_base_commit'],head],cwd=REPO,check=True)
+    pr=cache._ref(REPO/'NEXT_RUN_POLICY.json');policy=cache._read(pr)
+    need(all(policy.get(k) is False for k in ('training_enabled','native_training_enabled','native_launch_authorized','full_epoch_training_allowed','full_val_allowed')),'PREPOOL_NO_TRAINING')
+    if execute:
+        need(all(type(policy.get(PREPOOL_STAGE,{}).get(k)) is type(v) and policy[PREPOOL_STAGE][k]==v for k,v in prepool_gate_fields(ref).items()),'PREPOOL_ADMISSION')
+        need(cache._git('branch','--show-current')=='work/gx1-current','PREPOOL_BRANCH')
+        campaign.require_clean_source(dict(source_repo=str(REPO),source_commit=head))
+    return dict(q,plan=plan,plan_ref=ref,head=head,bound_refs=[ref,pr,plan['worker'],*plan['helpers'].values(),*plan['inputs'].values(),*plan['source_owners'].values()])
+
+def _prepool_hooks(model,observed,counts,*,np):
+    # Observe the Linear gate input, not the Transformer module: preserve attention fastpaths.
+    def prepool(module,args):
+        need(len(args)==1 and tuple(args[0].shape)==(16,5,128) and 'prepool' not in observed,'PREPOOL_HOOK_DOMAIN')
+        a=args[0].detach().cpu().numpy().copy()
+        need(a.dtype==np.float32 and np.isfinite(a).all(),'PREPOOL_FINITE')
+        observed['prepool']=a;counts['prepool_hook_calls']+=1
+    def hidden(module,args):
+        need(len(args)==1,'PREPOOL_QUERY_ARGUMENT');x=args[0];task='state' if x.ndim==4 else 'future'
+        need(tuple(x.shape)==((16,1,5,134) if task=='state' else (16,5,134)) and task+'_hidden' not in observed,'PREPOOL_QUERY_DOMAIN')
+        a=x.detach().cpu().numpy().copy();a=a[:,0] if task=='state' else a
+        need(a.dtype==np.float32 and np.isfinite(a).all() and np.array_equal(a[:,:,:128],np.broadcast_to(a[:,0:1,:128],(16,5,128))),'PREPOOL_SHARED_HIDDEN')
+        observed[task+'_hidden']=a[:,0,:128].copy();counts['projection_input_hook_calls']+=1
+    return [model.backbone.tf_token_gate.register_forward_pre_hook(prepool),
+            model.state_model.query_projection[0].register_forward_pre_hook(hidden)]
+
+def run_prepool(plan_path,plan_sha,out_dir,device='cuda'):
+    started=time.monotonic();need(device=='cuda','PREPOOL_CUDA_ONLY');q=_inspect_prepool(plan_path,plan_sha,out_dir,execute=True);cap=previous._runtime_cap()
+    import numpy as np,torch
+    from gx1.contracts import entry_native_direction_feature_view_v1 as views
+    from gx1.contracts import entry_native_direction_research_state_v1 as old
+    from gx1.contracts import market_state_time_query_fold1_fit_state_v1 as state
+    from gx1.contracts import market_state_ta_full_prefix_order_v1 as scope
+    from gx1.contracts.market_state_time_query_native_F_model_v1 import NativeFutureDualModel
+    from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256 as model_sha
+    from gx1.contracts.market_state_time_query_native_F_objective_v1 import require_m5_equal_observation_axes
+    from gx1.audit.run_market_state_ta_m5_objective_benchmark_v1 import _prepare_later
+    from gx1.scripts import run_market_state_time_query_fold1_fit_window_v1 as runner
+    from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+    from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import _BATCH_EQUAL_LENGTH_MTF_EVAL
+    from gx1.contracts.immutable_event_authority_v1 import _publish_bytes
+    need(not torch.cuda.is_initialized() and signal.getitimer(signal.ITIMER_REAL)==(0.,0.),'PREPOOL_INIT_ORDER')
+    counts={k:0 for k in PREPOOL_COUNTS};claim=cache._publish('CLAIM.json',dict(plan=q['plan_ref'],source_commit=q['head'],cap=cap,no_relaunch_under_this_plan=True,test_data_used=False),root=PREPOOL_ROOT)
+    provider=prepared=model=None;handles=[];artifacts={};records=[];passivity={};before=None;prior_alarm=signal.getsignal(signal.SIGALRM)
+    def timeout(*unused):raise TimeoutError('Prepool capture840second bound')
+    def bookend():
+        campaign.require_clean_source(dict(source_repo=str(REPO),source_commit=q['head']))
+        for binding in q['bound_refs']:campaign.require_binding(binding,label='prepool bookend',verify_file=True)
+    def signature():
+        return dict(model=model_sha(model.state_dict()),buffers=old._tree_sha(dict(model.named_buffers())),modes={n:m.training for n,m in model.named_modules()},
+            flags={n:p.requires_grad for n,p in model.named_parameters()},parameters={n:id(p) for n,p in model.named_parameters()},modules={n:id(m) for n,m in model.named_modules()},
+            view=copy.deepcopy(model.state_model.feature_view_identity),hooks={n:{k:tuple((i,id(h)) for i,h in getattr(m,k).items()) for k in ('_forward_hooks','_forward_pre_hooks','_backward_hooks','_backward_pre_hooks')} for n,m in model.named_modules()},
+            rng=old._tree_sha(trainer._attended_session_rng_state(device=cuda)),runtime=previous._runtime_profile(torch),mha_fastpath=torch.backends.mha.get_fastpath_enabled(),mtf_batch_equal=_BATCH_EQUAL_LENGTH_MTF_EVAL.get())
+    def publish(complete,**extra):
+        return cache._publish_fusion_outcome(q['plan_ref'],dict(claim=claim,source_commit=q['head'],model_digest=MODELS['FINAL'],counts=counts,artifacts=artifacts,batch_records=records,passivity=passivity,**extra),complete=complete,root=PREPOOL_ROOT,json_bytes_bound=PREPOOL_BOUNDS['max_published_json_bytes'])
+    try:
+        signal.signal(signal.SIGALRM,timeout);signal.setitimer(signal.ITIMER_REAL,PREPOOL_BOUNDS['wall_seconds'])
+        recipe,view,receipts=q['recipe'],q['view'],q['receipts'];cuda=torch.device('cuda');numerical=recipe['numerical_recipe']
+        trainer._set_deterministic(numerical['seed'],cuda,numerical['precision_policy']);counts['deterministic_initialization_calls']+=1
+        previous._require_runtime_profile(previous._runtime_profile(torch));need(_BATCH_EQUAL_LENGTH_MTF_EVAL.get() is False and torch.backends.mha.get_fastpath_enabled() is True,'PREPOOL_RUNTIME')
+        captures={}
+        for panel in ('TRAIN','LATER'):
+            with np.load(q['inputs'][panel+'_capture']['path'],allow_pickle=False) as z:captures[panel]={k:z[k].copy() for k in z.files}
+            counts['archive_decodes']+=1;need(all(len(a)==4096 for a in captures[panel].values()),'PREPOOL_CAPTURE_ROWS')
+        counts['checkpoint_loads']+=1;saved=common._load_state(q['inputs']['FINAL_checkpoint'],torch=torch,maximum=128*1024**2,counters=counts)
+        provider,provider_plan,prepared,rows,issues=scope.full.anchor.prepare_fold1(receipts,view,np=np,counters=counts)
+        require_m5_equal_observation_axes(rows,issues);order=torch.from_numpy(rows.copy());later=_prepare_later(q,prepared,receipts,view,counters=counts,np=np)
+        counts['model_constructions']+=1;model=NativeFutureDualModel(views.build_native_direction_research_model(view,prefix_normalization=receipts['fold1']['normal'],constructor_metadata=receipts['constructor'],device=torch.device('cpu'),unobserved_units_profile=receipts['fold1']['profile']))
+        previous._short_parameter_partition(model,state)
+        base.parent._load_endpoint(model,saved,'FINAL',q,order,torch=torch,old=old,state=state,model_sha=model_sha,model_digests=MODELS)
+        model.to(cuda);model.eval();before=signature();observed={};handles=_prepool_hooks(model,observed,counts,np=np)
+        for panel,data in (('TRAIN',prepared),('LATER',later)):
+            c=captures[panel];parts=[]
+            for left in range(0,4096,16):
+                right=left+16;raw,parents,clocks=runner._feature_batch(data,view,receipts,c['parents'],c['issues'],left,right,np=np)
+                counts['feature_batches']+=1;original=base._raw_digest(raw);observed.clear()
+                need(np.array_equal(parents,c['parents'][left:right]) and np.array_equal(clocks,c['issues'][left:right]),'PREPOOL_PARENT_CLOCK')
+                query=c['state_query' if panel=='TRAIN' else 'query_native'][left:right]
+                features={k:torch.from_numpy(v).to(cuda) for k,v in raw.items()}
+                with torch.inference_mode():
+                    need(not any(m.training for m in model.modules()) and not torch.is_grad_enabled(),'PREPOOL_PASSIVE_FORWARD')
+                    output=model(**features,query_k=torch.from_numpy(query.copy()).to(cuda));counts['forwards']+=1
+                need(set(observed)=={'prepool','state_hidden','future_hidden'} and np.array_equal(observed['state_hidden'],observed['future_hidden']),'PREPOOL_CAPTURE_COMPLETE')
+                piece=dict(prepool=observed['prepool'],hidden=observed['state_hidden'],parents=parents.copy(),issues=clocks.copy())
+                parity={}
+                for task in ('state','future'):
+                    actual=output[task+'_activity_side_logits'].cpu().numpy().copy();key=task+('_raw' if panel=='TRAIN' else '_activity_side_logits')
+                    expected=c[key][left:right];parity[task]=bool(np.array_equal(actual,expected));need(parity[task],'PREPOOL_NATIVE_BITEXACT:'+panel+':'+task+':'+str(left))
+                    piece[task+'_raw']=actual
+                    for suffix in ('allowed','eligible','mature'):piece[task+'_'+suffix]=c[task+'_'+suffix][left:right].copy()
+                piece['state_query']=query.copy();piece['future_query']=c['future_query' if panel=='TRAIN' else 'query_native'][left:right].copy()
+                parts.append(piece);counts['native_reference_matches']+=1;counts['captured_rows']+=16
+                need(base._raw_digest(raw)==original and all(p.grad is None for p in model.parameters()),'PREPOOL_NO_MUTATION')
+                records.append(dict(panel=panel,slot=left//16,native_bitexact=parity));del features,output
+            joined={k:np.concatenate([x[k] for x in parts]) for k in parts[0]};stream=io.BytesIO();np.savez(stream,**joined);blob=stream.getvalue()
+            need(len(blob)<=PREPOOL_BOUNDS['max_capture_bytes'],'PREPOOL_CAPTURE_SIZE');path=PREPOOL_ROOT/(panel+'_CAPTURE.npz');_publish_bytes(path,blob);artifacts[panel]=cache._ref(path);counts['phase_capture_writes']+=1
+            print(panel+'4096 paired prepool/hidden rows and all native logits bitexact',flush=True)
+        for h in handles:h.remove()
+        handles=[];passivity=dict(signature_unchanged=signature()==before,no_parameter_gradients=all(p.grad is None for p in model.parameters()))
+        need(all(passivity.values()) and counts==PREPOOL_COUNTS,'PREPOOL_PASSIVITY_COUNTS')
+        scope.full.anchor.release_inputs(provider,prepared);prepared=None;provider.validate_metadata(provider_plan);bookend()
+        return publish(True,source_unchanged=True,elapsed_seconds=time.monotonic()-started,readout_fits=0,interpretation_authorized=False)
+    except BaseException as exc:
+        signal.setitimer(signal.ITIMER_REAL,0)
+        for h in handles:h.remove()
+        errors={}
+        try:
+            if before is not None:passivity=dict(signature_unchanged=signature()==before,no_parameter_gradients=all(p.grad is None for p in model.parameters()))
+        except Exception as other:errors['passivity']=repr(other)
+        try:bookend()
+        except Exception as other:errors['bookend']=repr(other)
+        publish(False,source_unchanged='bookend' not in errors,error=type(exc).__name__+':'+str(exc),verification_errors=errors,elapsed_seconds=time.monotonic()-started,interpretation_authorized=False)
+        raise
+    finally:
+        signal.setitimer(signal.ITIMER_REAL,0);signal.signal(signal.SIGALRM,prior_alarm)
+        if prepared is not None:scope.full.anchor.release_inputs(provider,prepared)
+
+
 def main(argv=None):
     import argparse,json,sys
     supplied=list(sys.argv[1:] if argv is None else argv);flags=('--market-state-ta-head-input-plan','--market-state-ta-head-input-plan-sha256')
@@ -193,5 +359,11 @@ def main(argv=None):
         if sum(v.partition('=')[0]==flag for v in supplied)>1:parser.error('duplicate flag:'+flag)
     if '--preflight' in supplied and supplied[-1]!='--preflight':parser.error('--preflight must be last')
     args=parser.parse_args(supplied);kwargs=dict(plan_path=args.market_state_ta_head_input_plan,plan_sha=args.market_state_ta_head_input_plan_sha256,out_dir=args.out_dir)
-    print(json.dumps(preflight(**kwargs) if args.preflight else run(**kwargs,device=args.device),sort_keys=True,allow_nan=False));return 0
+    if args.out_dir==PREPOOL_ROOT:
+        if args.preflight:
+            checked=_inspect_prepool(**kwargs,execute=False)
+            result=dict(status='PASS_METADATA_ONLY_PREPOOL',plan=checked['plan_ref'],model_constructions=0,checkpoint_loads=0,array_decodes=0,claims=0)
+        else:result=run_prepool(**kwargs,device=args.device)
+    else:result=preflight(**kwargs) if args.preflight else run(**kwargs,device=args.device)
+    print(json.dumps(result,sort_keys=True,allow_nan=False));return 0
 if __name__=='__main__':raise SystemExit(main())

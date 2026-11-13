@@ -5,15 +5,33 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_TF_SEPARATION_001_COMPLETE_NEAR_COMMON_F_RANKING_LEARNABILITY_UNRESOLVED.
-Edge-målet er uoppnådd. Alle treningsflagg er false. Ingen aktiv jobb eller ny probe er admittert.
+TA_PREPOOL_CAPTURE_001_ADMITTED_FINAL_8192_ROWS_NO_FIT.
+Edge-målet er uoppnådd. Alle treningsflagg er false; ingen readout-fit er admittert.
+Én passiv avlesning av dagens FINAL c34 er admittert under eksisterende CUDA-vakter:
+MARKET_STATE_TA_PREPOOL_CAPTURE_20261113_001, PLAN cf0ed75f, SOURCE_REVIEW nedenfor i policy.
+4096 TRAIN + 4096 LATER på opprinnelige intakte B16-batcher; én checkpointdekoding,
+512 forwards, null updates/nye mål. Lagrer faktisk tf_token_gate-input (5×128 før TF-pooling)
+og delt hidden128 fra samme forwards. Alle S/F-logits må være bitlike lagrede referanser.
+Eksisterende observatør er utvidet; modell-/treningskilde er uendret. Seks syntetiske tester,
+sju eksakte cap-rutetester, uavhengig kildekontroll og faktisk CLI-preflight PASS uten CLAIM.
+CPU-fit krever separat eksakt admisjon etter komplett capture og kontroll.
+
+Gjenbrukskontroll: eldre hodedelingsforsøk cb9c02a6/66c08aa5 og transfer34de21d6 brukte
+samme allerede sammenfattede post-query-vektor i begge armer, gammel modell7c86/view315/253.
+Eldre temporal-capture b89942e5 har 256+256 rader og modellc171; dagens c34 mangler det
+matchede prepool/TRAIN-paret. Disse er ikke svar på nåværende før/etter-spørsmål.
+Planlagt minste readout: fem F-mål × to128D-armer, samme TRAIN-masker/vekter/prior,
+TRAIN-only koordinater fra eksisterende eier og eksisterende solve med alpha0,01.
+Standardisering er nødvendig for sammenlignbar straffeskala og må bindes eksplisitt;
+gamle råkoordinatfits ommerkes ikke. Alle ti fitter låses før senere scoring.
+Ingen ny arkitektur eller generell treningsrunde følger av denne kontrollen.
+COT2024 release/vintage er fortsatt UNKNOWN; ingen konkret lekkasje er påvist.
+
+## Siste fullførte analyse
+
 Samlet rapport: docs/TA_CURRENT_TF_SEPARATION_REVIEW.json, SHA 4f0dd86c.
-CPU-avlesning MARKET_STATE_TA_TF_SEPARATION_READOUT_20261113_001 er COMPLETE/CONSUMED:
-kilde b740d7a3, PLAN f0781221, READOUT.py 96025b23, RESULT 54d56e23,
-TERMINAL f414dd6d, VALIDATION dae62b95. 1,01s under 4G/512M/1tråd;
-4 lagrede arkiver, 160 parceller, 24 geometryceller, 80 nivåceller; 0 modeller/checkpoints/
-forwards/updates/nye mål. Scalar-checks og uavhengig kilde-/JSON-kontroll PASS.
-256 head-input-rader er kontrollert bitlik delmengde av de 4096 native LATER-radene.
+TF_SEPARATION001 RESULT54d56e23/TERMINALf414dd6d/VALIDATIONdae62b95 er COMPLETE/CONSUMED.
+Fire lagrede arkiver, 1,01s CPU; ingen modell, forward eller fit.
 
 F-RANGERING PÅ 4096 RADER: FINAL M15/H1/H4/D1 har Spearman 0,999343–0,999917.
 Månedsvis er minimum 0,998922; dette er ikke bare felles forskyvning mellom måneder.

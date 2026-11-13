@@ -656,7 +656,9 @@ validate_target_command() {
       fi
       if [[ "${3:-}" == "$TA_HEAD_INPUT_PRODUCER_MODULE" ]]; then
         local ta_head_input_root=/home/andre2/GX1_RUNS/MARKET_STATE_TA_HEAD_INPUT_OBSERVATION_20261113_001
-        if ! matches_bound_market_state_ta_head_input "$ta_head_input_root/PLAN.json" "$ta_head_input_root" "$@"; then
+        local ta_prepool_root=/home/andre2/GX1_RUNS/MARKET_STATE_TA_PREPOOL_CAPTURE_20261113_001
+        if ! matches_bound_market_state_ta_head_input "$ta_head_input_root/PLAN.json" "$ta_head_input_root" "$@" \
+          && ! matches_bound_market_state_ta_head_input "$ta_prepool_root/PLAN.json" "$ta_prepool_root" "$@"; then
           echo "FATAL: current head input observation is not exactly bound" >&2
           exit 75
         fi
