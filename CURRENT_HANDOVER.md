@@ -5,39 +5,32 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_FOLD2_TRAIN_AND_LATER_INPUTS_QUALIFIED_NATIVE_BASELINE_PENDING. Edge-målet er uoppnådd.
-LATER_INPUTS002 er COMPLETE/CONSUMED; exit0 etter215,18sekunder under4G/512M.
-Ingen jobb er admittert eller i drift. Alle treningsflagg er false.
-Kildecc452272; plan23f37478; terminal1297d154; fysisk resultat2cab8b60;
-COVERAGE5abd47c4; GATHER_RESULTe6aacfe9; VALIDATIONdf45d60f.
-Kilde/policy/plan/input-bookends er uendret og faktisk wrapperexit er0.
-Uavhengig JSON-/hashgjennomgang PASS; ingen array-rerun.
+TA_FOLD2_TARGET_COUNTS_ADMITTED_BEFORE_NATIVE_BASELINE. Edge-målet er uoppnådd.
+Én target-only kontroll er admittert: TARGET_COUNTS001, plan8ee3e898/script034439d1.
+Revidert faktisk preflightc4213004 PASS uten payload/CLAIM. Kjør én gang fra ren kilde
+med gx1_capped_run.sh audit4G/512M,60s; frys kilde/policy. Alle treningsflagg false.
 
-Minste klargjøringsrettelse er bekreftet: med bare2024 manglet17343av17353M5-gapstempler,
-første2025-01-01 23:00UTC. Med den allerede manifestbundne2025parten matcher alle17353.
-CLOCK_JOINfa604b4d leste kun tid fra to filer. Dette retter den private kontrollplanens
-ufullstendige filliste; det er ingen påvist modellinputfeil eller prediktiv forbedring.
-001/TERMINAL og FAILURE_REVIEWbc059ebf er bevart og må aldri relanseres.
+Konkret sperre: aktive M5 q/N-profiler og fit-batch-vakter er eksplisitt fold1/29574.
+Eksisterende femfolds S-prior har fold2/47602 og ingen B16-q; eget modne TRAIN er47338.
+Bruk aldri fold1-tall eller deaktiver M5-equal for å få fold2 til å kjøre. Dette er en
+sperre for ny sammenligning, ikke en påvist årsak til tidligere svak ACC.
+Tell egne S/F M5 kjente sider N og ikke-tomme batcher q:2959kronologiske B16, siste10.
+Verifiser aktiv sampled-S M5 mot native-endepunkt, alle fasiter modne, eksakte inputakser.
+Gjenbruk fit_endpoint_priors(...fold_id=2) på samme47338rader. Maks9arkivdekodinger,
+to referanseprior-fit; null modeller/forwards/feature-gather/optimizer/checkpoints/TEST.
+Kanonisk aksevalidering henter også senere scoremasker; disse brukes ikke til fit/skår.
+Etter telling: bind samme tapsmetode q/N eksplisitt til fold2, med fold1 uendret.
+Fersk native INITIAL og eventuell trening er separate uåpnede steg. Gjenbruk eksisterende
+modellfabrikk; benchmarkens gamle INITIAL-import arver trent backbone og er ikke fersk.
 
-17353ferdige lokale rader fra001 er gjenbrukt. Fem MTF-produseringer gav25028nye rader,
-17944samlet gjenbrukte og42972komplette fysiske rader med414bitlike overlapprader.
-Alle31gamle felt på nye MTF-rader er bitlike:775868celler,0avvik. Rekonstruksjonen behandlet
-1627161historiebars;25028 er nye outputrader. Ingen lokalreplay eller TRAIN-rerun.
-4096native lokalmønstre og20480MTF-vinduer bestod. Faktisk senere gather besøkte4096
-forhåndsvalgte januar–mars2025rader i256B16 og gjorde2048normaliseringskall. Alle åtte
-inputflater har forventet bredde/vindu/felt; rå klokke-/alias-/finitetsporter og normalisert
-finitet består.673796096skalare vinduspresentasjoner er overlappende, ikke uavhengige observasjoner.
-Null modeller/forwards/targets/normaliseringsfit/checkpoints/oppdateringer; TEST forseglet.
-
-Full47338TRAIN-inputkvalifikasjon og89tester/kontraktkontroller gjenbrukes.
-Aktivitet-only-funksjon, egen normalisering og rebound view f7979c85 er uendret.
-Senere panel4096av17288; sistevalgte64881 og siste8partial utelatt. Rapport:
-docs/TA_FOLD2_INPUT_REVIEW.json. NEXT_RUN_POLICY eier status.
-
-Neste avgrensede steg er å gjenbruke eksisterende benchmark for fersk native initialbaseline
-på akkurat denne funksjonen/egenprefixet. Modellbaseline og eventuell senere fit er separate,
-uåpnede steg; ingen automatisk trening eller ny indikatorarkitektur følger av input-PASS.
-Hold F-rangering/AUC, terskelaccuracy, klassebalanse og sannsynlighetsfeil atskilt i vurderingen.
+LATER_INPUTS002 er COMPLETE/CONSUMED, exit0,215,18s; terminal1297d154,
+RESULT2cab8b60/COVERAGE5abd47c4/GATHER_RESULTe6aacfe9/VALIDATIONdf45d60f.
+4096faste senere rader og alle åtte inputflater består.17353lokale rader gjenbrukt,
+25028nye MTF,17944samlet gjenbrukte,42972fysiske rader,414bitlike overlapper.
+Alle775868gamle MTF-celler bitlike.2025delen fjernet alle17343manglende M5stempler.
+Dette rettet privat filliste, ingen påvist modellinputfeil eller prediktiv gevinst.
+Full47338TRAIN-gather og89tester gjenbrukes. Aktivitetsfunksjon/egen normalisering/view
+f7979c85 er uendret. TEST forseglet. Rapport: docs/TA_FOLD2_INPUT_REVIEW.json.
 
 ## Fullført og verifisert
 

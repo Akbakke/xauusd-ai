@@ -13,8 +13,8 @@
     }
   },
   "native_training_authorized": false,
-  "new_job_admitted": false,
-  "next_action": "Reuse completed full47338 TRAIN and fixed4096 Jan-Mar2025 later inputs. Next isolate fresh native model/initial baseline for this exact own-prefix function using the existing benchmark path; no training or model job is admitted yet. Compare native F ranking, threshold accuracy, class balance and proper scores separately; no new indicator architecture from input qualification.",
+  "new_job_admitted": true,
+  "next_action": "Run only TARGET_COUNTS001 under capped audit4G/512M/60s. Measure M5 known-side N and nonempty B16 q on exact47338 mature TRAIN rows; verify sampled S M5/native parity and fit own S/F endpoint reference priors. No models, features, optimizer, later fit or TEST. Then bind the same existing q/N method to fold2 before native INITIAL.",
   "normalization": {
     "artifacts": {
       "EXTENDED_BASE_NORMALIZATION": {
@@ -221,7 +221,7 @@
       "sha256": "2e25098183d2ffb27a4441f178789e2bdd39b84646815b67d061ccedbf2170da"
     }
   },
-  "observed_utc": "2026-11-13T15:01:02.885137+00:00",
+  "observed_utc": "2026-11-13T15:14:18.893135+00:00",
   "physical": {
     "all_413_overlap_rows_bitexact": true,
     "counts": {
@@ -315,7 +315,7 @@
     "Existing additive normalization supports exactly the qualified fold2 parent and physical result; no inherited fold1 units. All old statistics and fold1 output identity preserved.",
     "Existing six two-field fit/inverse/projection owner reused with exact fold2 parent/cutoff/output binding."
   ],
-  "status": "FOLD2_TRAIN_AND_FIXED_LATER_INPUTS_QUALIFIED_NATIVE_BASELINE_PENDING",
+  "status": "FOLD2_INPUTS_QUALIFIED_TARGET_COUNTS_ADMITTED",
   "test_data_used": false,
   "validation": {
     "both_actual_cli_preflights": "PASS",
@@ -602,5 +602,45 @@
       "payload_decodes": 0,
       "source_changes": 0
     }
+  },
+  "target_weighting_preparation": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_TARGET_COUNTS_20261113_001/PLAN.json",
+      "sha256": "8ee3e898db428d6e1b66344a020f757e7bad07cad9490dbff44cf4f4aabab93c"
+    },
+    "script": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_TARGET_COUNTS_20261113_001/MEASURE.py",
+      "sha256": "034439d18e9d4dd2580276dccbe5fdd92b49c939a2981dfc943a6f475c83c6ce"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_TARGET_COUNTS_20261113_001/PREFLIGHT_REVIEWED.json",
+      "sha256": "c4213004c42dd848feba8fb4886603637a41c9ece68d019759e5f4755fdf18f7"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_TARGET_COUNTS_20261113_001/SOURCE_REVIEW.json",
+      "sha256": "4deeecd5f7e955ea930136ab22afd5bffced8bddaad44c086f183c9c3fa03638"
+    },
+    "scope": {
+      "batch_size": 16,
+      "batches": 2959,
+      "fit_rows": 47338,
+      "fold_id": 2,
+      "later_labels_used_for_fit": false,
+      "max_archive_decodes": 9,
+      "model_or_training_operations": 0,
+      "pass_index": 0,
+      "reference_prior_fits": 2,
+      "seed": 20260911,
+      "tail_rows": 10,
+      "test_data_used": false
+    },
+    "active_loss_fold1_only": true,
+    "existing_S_prior_fold2_rows": 47602,
+    "required_mature_fit_rows": 47338,
+    "existing_prior_has_nonempty_B16_counts": false,
+    "model_baseline_qualified": false,
+    "predictive_improvement_established": false,
+    "test_data_used": false
   }
 }
