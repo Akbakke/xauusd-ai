@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-13T10:32:56.713217+00:00",
-  "status": "TA_PREPOOL_READOUT_001_ADMITTED_TEN_DIAGNOSTIC_FITS",
+  "status": "TA_PREPOOL_READOUT_001_COMPLETE_PERIOD_TRANSFER_NEXT",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Execute only exact ten-fit PREPOOL_READOUT001 once under capped4G/512M audit, then consume gate and close training_enabled. Native model/backbone/heads remain unchanged. Report every TF, native/prior reference and all paired day/week intervals; no selection/promotion. COT2024 release/vintage remains UNKNOWN.",
+  "next_action": "Stop further pooling/head redesign based only on near-common TF ranking. Follow transfer across time: reuse existing chronological fold/coverage and monthly native prediction evidence to distinguish changing score levels from loss/reversal of within-period ranking. No fresh fit or model/data job admitted. Never call a retrospective split independent OOF if the frozen backbone saw the scored rows; preserve the full-history goal and COT2024 UNKNOWN.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1759,7 +1759,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Qualified ten paired diagnostic F-readout fits admitted; current native model remains frozen.",
+    "current_activity": "Matched predictive readout complete: no established prepool rank advantage; native ranking varies across months and TRAIN fit transfers poorly. Reuse chronological fold/coverage evidence before any next admission.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1788,7 +1788,7 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "TA_PREPOOL_CAPTURE_001_COMPLETE_CONSUMED",
+    "latest_terminal_role": "TA_PREPOOL_READOUT_001_COMPLETE_CONSUMED",
     "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_PREPOOL_READOUT_20261113_001",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_MODE_OBSERVATION_20261113_001/TERMINAL.json",
@@ -40902,7 +40902,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "market_state_ta_prepool_readout_20261113_001",
+  "training_enabled_scope": "No training, native update, readout fit or new data/model job admitted. Current paired representation comparison is complete and consumed.",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -85292,7 +85292,7 @@
     "source_unchanged": true
   },
   "market_state_ta_prepool_readout_20261113_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_NO_RELAUNCH",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_PREPOOL_READOUT_20261113_001/PLAN.json",
       "sha256": "137afc0b02b62a32b64913919746c7672611fbb86322b57d6086ce20f5aed5fd"
@@ -85306,11 +85306,11 @@
       "sha256": "2beede63023b91dea1ef4fb380456a6e6362a48cb4aa5e5a721443c9ba83d500"
     },
     "max_invocations": 1,
-    "remaining_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
-    "training_authorized": true,
+    "remaining_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
+    "training_authorized": false,
     "native_training_authorized": false,
     "relaunch_allowed": false,
     "readout_fits": 10,
@@ -85324,6 +85324,44 @@
     "memory": "4G",
     "swap": "512M",
     "test_data_used": false,
-    "authorization": "Standing zero-cost local investigation; fully qualified passive current capture and fixed-method exact predictive comparison. Ten private diagnostic CPU fits only, not native training."
+    "authorization": "Standing zero-cost local investigation; fully qualified passive current capture and fixed-method exact predictive comparison. Ten private diagnostic CPU fits only, not native training.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_PREPOOL_READOUT_20261113_001/RESULT.json",
+      "sha256": "7b94f2c5c391bde62febdc83cc6edc741336b1693c84082fb271c429c78fdf7f"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_PREPOOL_READOUT_20261113_001/TERMINAL.json",
+      "sha256": "e50e7dbea37ad17fca4bca4da87a01194675075ac31933b98059c1a2f3610438"
+    },
+    "wrapper_exit": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_PREPOOL_READOUT_20261113_001/WRAPPER_EXIT.json",
+      "sha256": "5efe2f0c66b96e8e258d2b631d08194869f65d92f129609d40ad525ccfef3311"
+    },
+    "fit_lock": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_PREPOOL_READOUT_20261113_001/TRAIN_LOCK.json",
+      "sha256": "2b1eae283dbf2e9bd151cd5d782c4b45f15a0571e35cfb7fa7cc0af68183e7f0"
+    },
+    "actual_counts": {
+      "archive_decodes": 4,
+      "checkpoint_decodes": 0,
+      "coordinate_fits": 6,
+      "forwards": 0,
+      "models": 0,
+      "native_updates": 0,
+      "readout_fits": 10
+    },
+    "elapsed_seconds": 5.681690217003052,
+    "source_unchanged": true,
+    "validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_PREPOOL_READOUT_20261113_001/VALIDATION.json",
+      "sha256": "372ae8afa370e915e9b298d795555aa490d51fe2198d3d436b0fa46bd1b68736"
+    },
+    "public_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_PREPOOL_PREDICTIVE_REVIEW.json",
+      "sha256": "609c877f9697ba9cf88d8993a84c11b5ecd27376c3fa6d1e1293e8e743aeb496"
+    },
+    "decision": "NO_FIXED_LINEAR_PREPOOL_RANKING_ADVANTAGE_ESTABLISHED_PERIOD_TRANSFER_NEXT",
+    "all_primary_auc_accuracy_intervals_include_zero": true,
+    "native_replay_error": 0.0
   }
 }
