@@ -79,3 +79,16 @@ def test_exact_cap_matcher_permits_only_same_command_and_optional_final_prefligh
     assert not accepted(flags[:-1]+[str(tmp_path/'other')])
     assert not accepted(flags+['--other'])
     assert not accepted(flags[:6]+['f'*64]+flags[7:])
+
+
+@pytest.mark.parametrize('phase,field',[('INITIAL','parent_order'),('FINAL','selected_parent_order')])
+def test_parent_order_uses_both_actual_saved_orders_without_recipe_key(phase,field):
+    order=torch.tensor([11,12,14],dtype=torch.int64)
+    states={'INITIAL':{'parent_order':order.clone()},'FINAL':{'selected_parent_order':order.clone()}}
+    observer._require_parent_order(order,states,torch=torch)
+    states[phase][field]=order[[0,2,1]]
+    with pytest.raises(RuntimeError,match='ACTUAL_PAIRED_PARENT_ORDER'):
+        observer._require_parent_order(order,states,torch=torch)
+    states[phase][field]=order.float()
+    with pytest.raises(RuntimeError,match='ACTUAL_PAIRED_PARENT_ORDER'):
+        observer._require_parent_order(order,states,torch=torch)

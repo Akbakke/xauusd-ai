@@ -15,7 +15,7 @@ from gx1.contracts import local_random_access_campaign_v2 as campaign
 from gx1.contracts import market_state_ta_full_prefix_learning_v1 as full
 
 REPO = cache.REPO
-STAGE = 'market_state_ta_current_update_observation_20261113_001'
+STAGE = 'market_state_ta_current_update_observation_20261113_002'
 ROOT = Path('/home/andre2/GX1_RUNS') / STAGE.upper()
 WORKER = REPO / 'gx1/audit/observe_market_state_ta_current_updates_v1.py'
 NATIVE_ROOT = full.ROOT
@@ -169,6 +169,17 @@ def _groups(model):
     return groups
 
 
+def _require_parent_order(order, states, *, torch):
+    # Full-prefix RECIPE has no parent_order_sha256; the actual saved endpoints
+    # and the qualified prepared axes carry the order. Compare their values.
+    expected = (states['INITIAL']['parent_order'], states['FINAL']['selected_parent_order'])
+    _need(isinstance(order,torch.Tensor) and order.ndim == 1 and order.numel() > 0
+        and order.dtype == torch.int64 and order.device.type == 'cpu', 'PARENT_ORDER_DOMAIN')
+    _need(all(isinstance(value,torch.Tensor) and value.dtype == order.dtype
+        and value.device == order.device and value.shape == order.shape and torch.equal(value,order)
+        for value in expected), 'ACTUAL_PAIRED_PARENT_ORDER')
+
+
 def _load_endpoint(model, saved, phase, q, order, *, torch, old, state, model_sha):
     recipe = q['recipe']; final = phase == 'FINAL'; binding = saved['parameter_binding' if final else 'binding']
     _need(saved['model_state_sha256'] == model_sha(saved['model_state']) == MODELS[phase]
@@ -296,15 +307,15 @@ def run(plan_path, plan_sha, out_dir, device='cuda'):
         runtime=previous._runtime_profile(torch); previous._require_runtime_profile(runtime)
         _need(_BATCH_EQUAL_LENGTH_MTF_EVAL.get() is False,'RUNTIME')
         captures={}; states={}
-        for phase in PHASES:
-            with np.load(q['inputs'][phase+'_capture']['path'],allow_pickle=False) as z: captures[phase]={k:z[k].copy() for k in z.files}
+        for load_phase in PHASES:
+            with np.load(q['inputs'][load_phase+'_capture']['path'],allow_pickle=False) as z: captures[load_phase]={k:z[k].copy() for k in z.files}
             counts['archive_decodes']+=1
-            _need(set(captures[phase]) == set(previous.BASE_KEYS) and all(len(a)==4096 for a in captures[phase].values()),'CAPTURE_LAYOUT')
+            _need(set(captures[load_phase]) == set(previous.BASE_KEYS) and all(len(a)==4096 for a in captures[load_phase].values()),'CAPTURE_LAYOUT')
             counts['checkpoint_loads']+=1
-            states[phase]=common._load_state(q['inputs'][phase+'_checkpoint'],torch=torch,maximum=128*1024**2,counters=counts)
+            states[load_phase]=common._load_state(q['inputs'][load_phase+'_checkpoint'],torch=torch,maximum=128*1024**2,counters=counts)
         provider,provider_plan,prepared,rows,issues=full.anchor.prepare_fold1(receipts,view,np=np,counters=counts)
         require_m5_equal_observation_axes(rows,issues); order=torch.from_numpy(rows.copy())
-        _need(old._tree_sha(order) == recipe['parent_order_sha256'],'PARENT_ORDER')
+        _require_parent_order(order,states,torch=torch)
         bound,future=load_bound_time_query_targets(),load_bound_future_displacement()
         counts['model_constructions']+=1
         model=NativeFutureDualModel(views.build_native_direction_research_model(view,

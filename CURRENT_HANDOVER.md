@@ -5,17 +5,21 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_CURRENT_UPDATE_OBSERVATION_ADMITTED_NOT_STARTED. Edge-målet er uoppnådd.
+TA_CURRENT_UPDATE_OBSERVATION_002_ADMITTED_NOT_STARTED. Edge-målet er uoppnådd.
 Training/native/full_epoch/fullVAL er false. Alle tidligere planer er konsumert; ingen aktiv jobb.
-Ny engangsobservasjon: /home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_001.
-PLAN3de465ca. Eksakt guarded12G/512M/8tråder preflight PASS,0modeller/arrays/states/CLAIM.
-25målrettede syntetiske tester PASS;11eksisterende gradientregresjoner er gjenbrukt.
+Ny engangsobservasjon: /home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_002.
+PLAN65d116d6. Eksakt guarded12G/512M/8tråder preflight PASS,0modeller/arrays/states/CLAIM.
+25målrettede syntetiske tester PASS;11gradientregresjoner gjenbrukt;3ordre-/captester PASS etter rettelse.
 Én modell,2faktiske states(bef35/1542),34forwards/256autograd,16fasteB16TRAINgrupper ved hvert
 endepunkt; alle590aktive tensorer delt uten overlapp;0updates/RNG-restores/checkpointskriving.
 Sammenligner lokale F-logitderivater mot originale tapsledd, lagret sisteAdam-retning ogΔθ.
 Bevar skillet mellom gjennomsnitt av batchgeometri og geometri for gjennomsnittsvektorer.
 Ingen gradientarkiver, feature-/modellendring eller ny trening. Preflight/source binding gjelder
 aktuell cap-rute; original nativeRECIPE er urørt. Målt resultat mangler fortsatt.
+001 er FAILED_CONSUMED: RESULTfa545c31/TERMINAL2ccd71eb,sourceab065c1e;0modeller/forwards,
+2states/2TRAINarkiver/6spanarkiver lest. Root hadde brukt parent_order_sha256 som ikke finnes i
+full-prefixRECIPE. Minste rettelse sammenligner faktisk preparedorder med begge savedorders;
+dtype/form/rekkefølge testes. Ingen originalkvittering endret,001 relanseres ikke.
 Sist fullførte root: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001.
 Source47f7700a; RESULTbbda929f, TERMINALb7416725, REVIEW_VALIDATIONb2c96178.3,096s capped4G/512M,
 timeout240s;2checkpoints/2TRAINarkiver,0modeller/modulkall/autograd/updates/affine replay.
