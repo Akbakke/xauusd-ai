@@ -550,7 +550,7 @@ validate_target_command() {
         TRAINER_MODEL_MAX_WALL_SECONDS=1200
       fi
       if [[ "${3:-}" == "$TA_CURRENT_UPDATES_PRODUCER_MODULE" ]]; then
-        local ta_current_updates_root=/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_002
+        local ta_current_updates_root=/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_003
         if ! matches_bound_market_state_ta_current_updates "$ta_current_updates_root/PLAN.json" "$ta_current_updates_root" "$@"; then
           echo "FATAL: current update observation is not exactly bound" >&2
           exit 75

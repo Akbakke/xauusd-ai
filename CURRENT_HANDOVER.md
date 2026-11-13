@@ -5,24 +5,26 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_CURRENT_NUMERIC_ROUTE_COMPARISON_ADMITTED_NOT_STARTED. Edge-målet er uoppnådd.
-Training/native/full_epoch/fullVAL er false. Ingen aktiv jobb; tidligere scopes001/002 er konsumert.
-Ny root: /home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_NUMERIC_ROUTES_20261113_001.
-PLAN55655fe0. Eksakt metadata-preflight gjennom guarded12G/512M/8tråder PASS med0CLAIM/model/array/state.
-Fem målrettede syntetiske sammenligningstester PASS; exactcapmatcher2gyldige/4avviste; begge
-publisherstatus-tester gjenbrukes fra uendret eier. Indre tidsgrense300s, ytrevakt600s; øvrige vakter uendret.
-Én faktiskbef35INITIAL,énmodell,énB16gruppe(index0),3forwards: originaleval/no_grad meddefaultMHA,
-dynamiskno_grad medMHAFalse og dynamiskgrad-enabled.0autograd/updates/RNG-restores/checkpointskriving.
-Originalruten må matche retainedcontrol før de andre; sammenligningsstørrelser og3små private
-route-NPZ bevares. COMPLETE er ikke cross-route-ekvivalens; opprinnelig2e-6/1e-6 ogloss5e-6 beholdes.
+TA_CURRENT_UPDATE_OBSERVATION_003_ADMITTED_NOT_STARTED. Edge-målet er uoppnådd.
+Training/native/full_epoch/fullVAL er false. Ingen aktiv jobb; eldre001/002 og numerikkontrollen er konsumert.
+Ny root: /home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_003.
+PLANea82d0a0. Eksakt guarded12G/512M/8tråds metadata-preflight PASS uten CLAIM/model/array/state.
+6målrettede profil-/captester PASS; uendrede gradient-/Adam-/publisher-tester gjenbrukes.
+Én modell,2faktiske endepunkterbef35/1542,16fasteB16TRAINgrupper perendepunkt,alle590aktive tensorer.
+96forwards:32originale nativekontroller motretained,32nye dynamiske no_grad-referanser,
+32grad-enabledforward motegen dynamiskreferanse.256autograd,0updates/RNG-restores/checkpointskriving.
+Begge egne referansegater kreves med uendrede toleranser; cross-profile-feilstørrelser bevares separat.
+Ingen modell-, tap-, feature-/MTF-endring eller ny trening. Vekter/RNG/flagg/features kontrolleres uendret.
 
-Bakgrunn: observer002(source948acf26,RESULTb40fbdb0,TERMINAL05e86ad2) stoppet etter1modell/
-1INITIALno_grad-forward påstate_raw-paritet;0grad/autograd/updates,tilstand/RNG/flagg uendret.
-590aktive tensorer og sisteAdamsteg3698 ble kontrollert, men ingen upstream-gradient målt.
-Kildebevist profilforskjell: nativeTRAIN bruker eval/no_grad utenMHA-overstyring; observeren
-brukte MHAFalse. TorchdefaultTrue tillater fastpath, mens grad-enabled parametre deaktiverer
-fusedruten. Størrelse/bidrag er umålt.002 beholdt ikke rawfeilstørrelse; denne konkrete mangelen
-rettes i ny observasjon.001-feltfeilen er lukket; ingen gamle engangsplaner relanseres.
+Numerikkontroll001 er COMPLETE: /home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_NUMERIC_ROUTES_20261113_001.
+Sourceb2d2073d,RESULT1c1a92d6,TERMINALb74ed6b8,REVIEW_VALIDATIONc0936a6b.48,056s;1modell/
+1state/1TRAINarkiv/6spanarkiver,3forwards/1grad-enabled/0autograd/updates.3privateNPZ=19122bytes.
+Originalno_grad var bitlikretained; dynamiskno_grad oggrad var bitlike. Native→dynamic maxSraw
+4,0531e-6(scaled1,3973),Fraw9,5367e-7; maxPdiffS7,6003e-7/F2,1166e-7;lossdiff2,3842e-7.
+Dette er énINITIALB16gruppe; ingen generell årsak til historisk UP-drift eller senere svakedge er bevist.
+Opprinnelig kryssprofil-toleranse feiler fortsatt og er ikke slakket.003 reparerer feilreferansen,
+ikke modellen. Nativeprofiler og egne dynamiske kontrollprofiler verifiseres på hver valgtbatch.
+001metadatafeil og002paritetsstopp er bevart; de skal aldri relanseres. Ingen aktuell upstream-VJP målt ennå.
 Sist fullførte root: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001.
 Source47f7700a; RESULTbbda929f, TERMINALb7416725, REVIEW_VALIDATIONb2c96178.3,096s capped4G/512M,
 timeout240s;2checkpoints/2TRAINarkiver,0modeller/modulkall/autograd/updates/affine replay.
@@ -51,9 +53,9 @@ motUP0,4889. Dette gjelder nylige faktiske treningsinputs/vekter, ikke FINAL/LAT
 Direkte og rekursiv momentberegning matcher innen2,23e-16; native FP32-historikk er ikke replayet.
 Ingen grunn til å fjerne S-målet, endre klippevakten eller gjenta et generelt ordre-/arkitekturforsøk.
 
-Neste: kjør bare den nye admitterte3-forward-rutekontrollen. Lesoriginal RESULT/TERMINAL og
-parvise feilstørrelser før videre gradientarbeid. Ingen fullgradientobservasjon, trening,
-generell arkitektur-/ordretest eller toleranseendring er admittert.
+Neste: kjør bare den admitterte003-observasjonen gjennom eksakt cap-rute. Les original
+RESULT/TERMINAL og separate referansegater før gradient-/Adam-tolkning. Hold gjennomsnitt
+av batchgeometri adskilt fra geometri av gjennomsnittsvektorer. Ingen trening er admittert.
 
 Forrige parameter-replay002 er bevart: RESULT3545cbf2,TERMINAL5d990762,validation0d6be484.
 Alle 590 aktive parametertensorer fikk 3698 Adam-steg; 179 inaktive og alle buffere var uendret. Siste output-bias forklarte

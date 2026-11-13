@@ -16,20 +16,38 @@ def fixture_piece():
             else np.zeros((16,5),np.int64) for name in observer.previous.BASE_KEYS}
 
 
-def test_parity_requires_exact_targets_and_bounds_raw_rounding():
-    expected=fixture_piece(); actual={k:v.copy() for k,v in expected.items()}
-    actual['future_raw'][0,0,1]=1e-6
-    result=observer._parity(actual,expected,1.+1e-6,1.,np=np)
-    assert result['axes_targets_bitexact'] and not result['raw']['future_raw']['bitexact']
-    actual['future_allowed'][0,0]=4
-    with pytest.raises(RuntimeError,match='EXACT_AXES_TARGETS'):
-        observer._parity(actual,expected,1.,1.,np=np)
-    actual['future_allowed'][0,0]=0; actual['future_raw'][0,0,1]=3e-6
-    with pytest.raises(RuntimeError,match='RAW_PARITY'):
-        observer._parity(actual,expected,1.,1.,np=np)
-    actual['future_raw'][0,0,1]=0
-    with pytest.raises(RuntimeError,match='LOSS_PARITY'):
-        observer._parity(actual,expected,1.001,1.,np=np)
+def test_profile_comparison_preserves_cross_route_difference_and_requires_own_reference():
+    expected=fixture_piece(); native={k:v.copy() for k,v in expected.items()}
+    dynamic={k:v.copy() for k,v in expected.items()}; dynamic['state_raw'][0,0,1]=4e-6
+    grad={k:v.copy() for k,v in dynamic.items()}
+    native_result=observer.compare_profile('NATIVE_NO_GRAD',native,expected,1.,1.,np=np)
+    dynamic_result=observer.compare_profile('DYNAMIC_NO_GRAD',dynamic,expected,1.,1.,np=np)
+    grad_result=observer.compare_profile('DYNAMIC_GRAD',grad,expected,1.,1.,
+        dynamic_reference=dynamic,dynamic_loss=1.,np=np)
+    assert native_result['required_reference_qualified'] is True
+    assert native_result['retained_comparison']['within_existing_tolerance'] is True
+    assert dynamic_result['required_reference_qualified'] is None
+    assert dynamic_result['retained_comparison']['within_existing_tolerance'] is False
+    assert grad_result['retained_comparison']['within_existing_tolerance'] is False
+    assert grad_result['required_reference_qualified'] is True
+    assert grad_result['dynamic_comparison']['within_existing_tolerance'] is True
+    assert grad_result['dynamic_comparison']['raw']['state_raw']['bitexact'] is True
+    assert grad_result['retained_comparison']['raw']['state_raw']['max_abs']==float(grad['state_raw'][0,0,1])
+    bad_native=observer.compare_profile('NATIVE_NO_GRAD',dynamic,expected,1.,1.,np=np)
+    assert bad_native['required_reference_qualified'] is False
+    grad['state_raw'][0,0,1]=8e-6
+    bad_grad=observer.compare_profile('DYNAMIC_GRAD',grad,expected,1.,1.,
+        dynamic_reference=dynamic,dynamic_loss=1.,np=np)
+    assert bad_grad['required_reference_qualified'] is False
+    assert bad_grad['dynamic_comparison']['within_existing_tolerance'] is False
+    bad_loss=observer.compare_profile('NATIVE_NO_GRAD',native,expected,1.001,1.,np=np)
+    assert bad_loss['required_reference_qualified'] is False
+    with pytest.raises(RuntimeError):
+        observer.compare_profile('DYNAMIC_GRAD',grad,expected,1.,1.,np=np)
+    native['future_allowed'][0,0]=4
+    with pytest.raises(RuntimeError,match='AXES_TARGETS'):
+        observer.compare_profile('NATIVE_NO_GRAD',native,expected,1.,1.,np=np)
+    json.dumps([native_result,dynamic_result,grad_result,bad_native,bad_grad,bad_loss],allow_nan=False)
 
 
 def test_geometry_direction_sign_and_complement_close_across_disjoint_groups():

@@ -1,6 +1,7 @@
 """Passive current-endpoint loss/Jacobian/retained-Adam observation; no fit."""
 from __future__ import annotations
 
+import contextlib
 import copy
 import math
 from pathlib import Path
@@ -15,7 +16,7 @@ from gx1.contracts import local_random_access_campaign_v2 as campaign
 from gx1.contracts import market_state_ta_full_prefix_learning_v1 as full
 
 REPO = cache.REPO
-STAGE = 'market_state_ta_current_update_observation_20261113_002'
+STAGE = 'market_state_ta_current_update_observation_20261113_003'
 ROOT = Path('/home/andre2/GX1_RUNS') / STAGE.upper()
 WORKER = REPO / 'gx1/audit/observe_market_state_ta_current_updates_v1.py'
 NATIVE_ROOT = full.ROOT
@@ -29,11 +30,19 @@ PANEL_SLOTS = list(range(0, 256, 17))
 BATCHES = [0,123,246,369,492,615,738,861,985,1108,1231,1354,1477,1600,1723,1847]
 GROUP_COUNTS = dict(query_projection=2, family_axis_attn=12, timeframe_axis_attn=12,
     cross_tf_attn=12, m5_side_heads=4, shared_side_heads=4, tf_activity_heads=20, remaining_encoder=524)
-HELPERS = ('gx1/audit/ta_current_update_direction_v1.py', 'gx1/audit/ta_direction_mixing_gradient_v1.py')
+NUMERIC_ROOT = ROOT.parent/'MARKET_STATE_TA_CURRENT_NUMERIC_ROUTES_20261113_001'
+NUMERIC_RESULT = dict(path=str(NUMERIC_ROOT/'RESULT.json'),sha256='1c1a92d65e673dd5b91e3c9fda79eb22ed34bd8bbe7f69067181ef05dcb2d9ac')
+NUMERIC_VALIDATION = dict(path=str(NUMERIC_ROOT/'REVIEW_VALIDATION.json'),sha256='c0936a6bc5a45b73ee8b18efbacaa941cd7bbdcc252a31eacf031f85a2720015')
+NUMERIC_WORKER = 'gx1/audit/observe_market_state_ta_current_numeric_routes_v1.py'
+ROUTES = ('NATIVE_NO_GRAD','DYNAMIC_NO_GRAD','DYNAMIC_GRAD')
+HELPERS = ('gx1/audit/ta_current_update_direction_v1.py', 'gx1/audit/ta_direction_mixing_gradient_v1.py',
+    NUMERIC_WORKER, '.venv/lib/python3.10/site-packages/torch/backends/mha/__init__.py',
+    '.venv/lib/python3.10/site-packages/torch/nn/modules/transformer.py')
 BOUNDS = dict(batch_size=16, panel_slots=PANEL_SLOTS, original_batch_indices=BATCHES,
     sampled_rows=512, unique_rows=256, model_constructions=1, checkpoint_loads=2,
     archive_decodes=2, input_sidecar_archive_decodes=6, checkpoint_weight_transitions=1,
-    forwards=34, grad_forwards=32, autograd_grad_calls=256, matched_batches=34,
+    forwards=96, grad_forwards=32, autograd_grad_calls=256, matched_batches=64,
+    native_reference_matches=32, dynamic_reference_matches=32,
     optimizer_constructions=0, optimizer_updates=0, backwards=0, rng_restores=0,
     checkpoint_writes=0, candidate_writes=0, wall_seconds=900, memory_bytes=12*1024**3,
     max_vector_bytes=2*1024**3, max_published_json_bytes=32*1024**2,
@@ -100,6 +109,18 @@ def _metadata():
     _need(native['initial_model_state_sha256'] == MODELS['INITIAL']
         and native['arms']['FULL_PREFIX']['evidence_capsule'] == inputs['FINAL_checkpoint']
         and native['arms']['FULL_PREFIX']['final_model_state_sha256'] == MODELS['FINAL'], 'SAVED_ENDPOINT_REFS')
+    numeric,validation = cache._read(NUMERIC_RESULT),cache._read(NUMERIC_VALIDATION)
+    numeric_plan = cache._read(numeric['plan'])
+    _need(numeric['status'] == 'COMPLETE' and numeric['source_unchanged'] is True
+        and numeric['model_state_sha256'] == MODELS['INITIAL']
+        and numeric['native_retained_control_qualified'] is numeric['dynamic_grad_vs_no_grad_qualified'] is True
+        and numeric['cross_route_equivalence_qualified'] is False
+        and validation['result'] == NUMERIC_RESULT and validation['native_no_grad_vs_retained_bitexact'] is True
+        and validation['dynamic_no_grad_vs_grad_bitexact'] is True, 'QUALIFIED_NUMERIC_PROFILE_REFERENCES')
+    for ref in [numeric_plan['worker'], *(numeric_plan['helpers'][name] for name in HELPERS[-2:])]:
+        campaign.require_binding(ref,label='unchanged numeric comparator/torch route',verify_file=True)
+    inputs.update(numeric_profile_result=NUMERIC_RESULT,numeric_profile_validation=NUMERIC_VALIDATION,
+                  numeric_profile_plan=numeric['plan'])
     for ref in inputs.values(): campaign.require_binding(ref, label='current observation input', verify_file=True)
     for ref in owners.values(): campaign.require_binding(ref, label='current observation owner', verify_file=True)
     return dict(origin, recipe=recipe, native=native, measurements=measurements, views=views,
@@ -211,22 +232,19 @@ def _load_endpoint(model, saved, phase, q, order, *, torch, old, state, model_sh
     state._numerical(recipe['numerical_recipe'],model)
 
 
-def _parity(piece, baseline, loss, expected_loss, *, np):
-    _need(set(piece) == set(baseline) == set(previous.BASE_KEYS), 'PARITY_KEYS')
-    errors = {}
-    for name,actual in piece.items():
-        expected = baseline[name]
-        _need(actual.shape == expected.shape and actual.dtype == expected.dtype, 'PARITY_LAYOUT:'+name)
-        if name.endswith('_raw'):
-            _need(bool(np.isfinite(actual).all()) and bool(np.isfinite(expected).all()), 'NONFINITE_RAW')
-            delta = np.abs(actual.astype(np.float64)-expected.astype(np.float64))
-            scale = BOUNDS['raw_atol']+BOUNDS['raw_rtol']*np.abs(expected.astype(np.float64))
-            errors[name] = dict(max_abs=float(delta.max()), max_scaled=float((delta/scale).max()), bitexact=actual.tobytes()==expected.tobytes())
-            _need(errors[name]['max_scaled'] <= 1., 'RAW_PARITY:'+name)
-        else: _need(actual.tobytes() == expected.tobytes(), 'EXACT_AXES_TARGETS:'+name)
-    error = abs(loss-expected_loss)
-    _need(math.isfinite(error) and error <= BOUNDS['loss_atol'], 'LOSS_PARITY')
-    return dict(raw=errors, loss_max_abs=error, axes_targets_bitexact=True)
+def compare_profile(route,piece,baseline,loss,baseline_loss,*,dynamic_reference=None,dynamic_loss=None,np):
+    """Use an actual reference from the same route; retain cross-route differences."""
+    from gx1.audit.observe_market_state_ta_current_numeric_routes_v1 import compare_pieces
+    _need(route in ROUTES,'REFERENCE_ROUTE')
+    measured=dict(retained_comparison=compare_pieces(piece,baseline,loss,baseline_loss,np=np),
+                  required_reference_qualified=None)
+    if route == 'NATIVE_NO_GRAD':
+        measured['required_reference_qualified']=measured['retained_comparison']['within_existing_tolerance']
+    elif route == 'DYNAMIC_GRAD':
+        _need(dynamic_reference is not None and dynamic_loss is not None,'DYNAMIC_REFERENCE')
+        measured['dynamic_comparison']=compare_pieces(piece,dynamic_reference,loss,dynamic_loss,np=np)
+        measured['required_reference_qualified']=measured['dynamic_comparison']['within_existing_tolerance']
+    return measured
 
 
 def geometry(vectors, adam, delta, *, torch):
@@ -277,7 +295,7 @@ def run(plan_path, plan_sha, out_dir, device='cuda'):
         max_invocations=1,no_relaunch_under_this_plan=True,test_data_used=False),root=ROOT)
     counts = {k:0 for k in ('model_constructions','checkpoint_loads','resume_state_load_calls','resume_state_load_returns',
         'archive_decodes','input_sidecar_archive_decodes','checkpoint_weight_transitions','forwards','grad_forwards',
-        'autograd_grad_calls','matched_batches','sampled_rows','optimizer_constructions','optimizer_updates',
+        'autograd_grad_calls','matched_batches','native_reference_matches','dynamic_reference_matches','sampled_rows','optimizer_constructions','optimizer_updates',
         'backwards','rng_restores','checkpoint_writes','candidate_writes')}
     provider=prepared=model=None; records=[]; summaries={}; passivity={}; before={}; phase=None; slot=None
     runtime={}; adam_report={}; inventory={}; transition={}
@@ -305,7 +323,7 @@ def run(plan_path, plan_sha, out_dir, device='cuda'):
         recipe,view,receipts=q['recipe'],q['view'],q['receipts']; numerical=recipe['numerical_recipe']; cuda=torch.device('cuda')
         trainer._set_deterministic(numerical['seed'],cuda,numerical['precision_policy'])
         runtime=previous._runtime_profile(torch); previous._require_runtime_profile(runtime)
-        _need(_BATCH_EQUAL_LENGTH_MTF_EVAL.get() is False,'RUNTIME')
+        _need(_BATCH_EQUAL_LENGTH_MTF_EVAL.get() is False and torch.backends.mha.get_fastpath_enabled() is True,'RUNTIME')
         captures={}; states={}
         for load_phase in PHASES:
             with np.load(q['inputs'][load_phase+'_capture']['path'],allow_pickle=False) as z: captures[load_phase]={k:z[k].copy() for k in z.files}
@@ -342,15 +360,26 @@ def run(plan_path, plan_sha, out_dir, device='cuda'):
                 _need(all(prior[k] == after[k] for k in prior if k not in ('model','buffers')), 'WEIGHTS_ONLY_TRANSITION')
                 transition=dict(initial_model=prior['model'],final_model=after['model'],non_weight_state_unchanged=True)
             before[phase]=signature(); sums=None; phase_geometries=[]
-            for number,(slot,batch) in enumerate(zip(PANEL_SLOTS,BATCHES)):
+            for slot,batch in zip(PANEL_SLOTS,BATCHES):
                 raw,parents,clocks=runner._feature_batch(prepared,view,receipts,rows,issues,batch*16,batch*16+16,np=np)
                 features={k:torch.from_numpy(v).to(cuda) for k,v in raw.items()}
+                feature_signature={k:old._tree_sha(v) for k,v in features.items()}
                 truths=dict(state=bound.gather_fit_sampled(parents,clocks,fold_id=1,pass_index=0,seed=numerical['seed']),
                     future=future.gather(parents,clocks,fold_id=1,partition='fit'))
-                for grad_enabled in ([False,True] if number == 0 else [True]):
-                    _need(counts['forwards'] < 34 and time.monotonic()-started < 900, 'FORWARD_BOUND')
-                    with torch.set_grad_enabled(grad_enabled),trainer._training_mha_fastpath_context(model.backbone),trainer._training_autocast_context(),trainer._training_model_finite_check_context():
-                        _need(not model.training and not model.backbone.training and torch.backends.mha.get_fastpath_enabled() is False
+                retained={k:v[slot*16:slot*16+16] for k,v in captures[phase].items()}
+                retained_loss=q['measurements'][phase]['measurement']['canonical_batch_losses'][slot]
+                dynamic_reference=dynamic_loss=None
+                for route in ROUTES:
+                    grad_enabled=route == 'DYNAMIC_GRAD'; dynamic=route != 'NATIVE_NO_GRAD'
+                    _need(counts['forwards'] < BOUNDS['forwards'] and time.monotonic()-started < 900, 'FORWARD_BOUND')
+                    with contextlib.ExitStack() as contexts:
+                        contexts.enter_context(torch.set_grad_enabled(grad_enabled))
+                        if dynamic:
+                            contexts.enter_context(trainer._training_mha_fastpath_context(model.backbone))
+                            contexts.enter_context(trainer._training_autocast_context())
+                            contexts.enter_context(trainer._training_model_finite_check_context())
+                        _need(not model.training and not model.backbone.training and torch.is_grad_enabled() == grad_enabled
+                            and not torch.is_inference_mode_enabled() and torch.backends.mha.get_fastpath_enabled() is (not dynamic)
                             and _BATCH_EQUAL_LENGTH_MTF_EVAL.get() is False, 'FORWARD_PROFILE')
                         counts['forwards']+=1; counts['grad_forwards']+=int(grad_enabled)
                         report=evaluate_fit_batch(model,features,bound,future,parents,clocks,fold_id=1,pass_index=0,
@@ -366,11 +395,20 @@ def run(plan_path, plan_sha, out_dir, device='cuda'):
                                 and np.array_equal(truths[task]['mature'],report[task+'_mature']), 'TARGET_AXES')
                             piece[task+'_raw']=report[task+'_activity_side_logits'].detach().cpu().numpy().copy()
                             for key in ('allowed','eligible','mature'): piece[task+'_'+key]=truths[task][key].copy()
-                        parity=_parity(piece,{k:v[slot*16:slot*16+16] for k,v in captures[phase].items()},
-                            float(report['loss'].detach()),q['measurements'][phase]['measurement']['canonical_batch_losses'][slot],np=np)
-                        counts['matched_batches']+=1
-                        record=dict(phase=phase,panel_slot=slot,original_batch_index=batch,grad_enabled=grad_enabled,parity=parity)
-                        if grad_enabled:
+                        loss=float(report['loss'].detach())
+                        record=dict(phase=phase,panel_slot=slot,original_batch_index=batch,route=route,
+                            grad_enabled=grad_enabled,mha_fastpath=not dynamic,loss=loss)
+                        records.append(record)
+                        record.update(compare_profile(route,piece,retained,loss,retained_loss,
+                            dynamic_reference=dynamic_reference,dynamic_loss=dynamic_loss,np=np))
+                        # Cross-profile differences are never converted into an equivalence
+                        # claim. Native and gradient forwards each have their own strict gate.
+                        _need(record['required_reference_qualified'] is not False,'MATCHED_PROFILE_PARITY:'+route)
+                        if route == 'NATIVE_NO_GRAD':
+                            counts['native_reference_matches']+=1; counts['matched_batches']+=1
+                        elif route == 'DYNAMIC_NO_GRAD': dynamic_reference,dynamic_loss=piece,loss
+                        else:
+                            counts['dynamic_reference_matches']+=1; counts['matched_batches']+=1
                             measured,vectors=gradient.measure_current_update_direction(report,groups,counts=counts,torch=torch)
                             record.update(gradient=_scalar_report(measured),geometry=geometry(vectors,adam,delta,torch=torch))
                             phase_geometries.append(record['geometry']['all_active_parameters'])
@@ -379,10 +417,10 @@ def run(plan_path, plan_sha, out_dir, device='cuda'):
                                 for g in sums:
                                     for arm in gradient.ARMS: sums[g][arm].add_(vectors[g][arm])
                             del vectors; counts['sampled_rows']+=16
-                        records.append(record)
-                        _need(all(p.grad is None for p in model.parameters()), 'NO_PARAMETER_GRAD')
+                        record['features_unchanged']={k:old._tree_sha(v) for k,v in features.items()} == feature_signature
+                        _need(record['features_unchanged'] and all(p.grad is None for p in model.parameters()), 'PASSIVE_INPUTS_AND_PARAMETERS')
                         del report
-                del features,raw
+                del features,raw,dynamic_reference
             for v in sums.values():
                 for value in v.values(): value.div_(len(PANEL_SLOTS))
             summaries[phase]=dict(geometry_of_mean_vectors=geometry(sums,adam,delta,torch=torch),
@@ -398,6 +436,7 @@ def run(plan_path, plan_sha, out_dir, device='cuda'):
         return outcome(True,source_unchanged=True,elapsed_seconds=time.monotonic()-started,
             limits=[q['plan']['interpretation'],q['plan']['aggregation'],
                 'Eval-mode TRAIN subset; no historical dropout/gradient trajectory reconstructed, no economic or independent generalization claim.',
+                'All32 native forwards must match retained controls; all32 grad forwards must match their fresh dynamic no_grad references. Cross-profile differences remain separately reported under unchanged tolerances.',
                 'SGD local directions use original losses without clipping or Adam preconditioning; Adam moments include their original clipped history.',
                 'Observable probes are all-row mean F-side logits; loss derivatives keep original known-label masks and coefficients.'])
     except BaseException as exc:

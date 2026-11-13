@@ -2327,7 +2327,7 @@
     "Independent generalization, selectable Entry quality or economic edge.",
     "Failure of the complete multi-year30-40epoch capacity; this uses one five-month prefix."
   ],
-  "next_mechanism_question": "Prepare smallest fresh current-INITIAL first-B16 numerical-route comparison: original eval/no_grad MHA-default path, explicit dynamic no_grad path, and grad-enabled counterpart; retain scalar mismatch evidence and preserve current tolerance. Source profile difference is identified but unisolated. No new execution/training/full gradient observation is admitted; consumed001/002 remain closed.",
+  "next_mechanism_question": "Run exactly one fresh003same-profile gradient observation:1model/2states,16fixedB16TRAIN groups per endpoint,all590active tensors;96forwards(32native controls,32dynamic no_grad references,32grad),256autograd,0updates. Both reference gates and all passivity/source guards required. Preserve cross-profile differences; no training/finite historical attribution.",
   "parameter_replay": {
     "result": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_002/RESULT.json",
@@ -3144,5 +3144,19 @@
       "sha256": "b33f50dfb68a86fe8988b887841706cac5ca49d535335259bd9e976011dc716c"
     },
     "current_upstream_gradient_observation_qualified": false
+  },
+  "current_numeric_route_comparison": {
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_NUMERIC_ROUTES_20261113_001/RESULT.json",
+      "sha256": "1c1a92d65e673dd5b91e3c9fda79eb22ed34bd8bbe7f69067181ef05dcb2d9ac"
+    },
+    "validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_NUMERIC_ROUTES_20261113_001/REVIEW_VALIDATION.json",
+      "sha256": "c0936a6bc5a45b73ee8b18efbacaa941cd7bbdcc252a31eacf031f85a2720015"
+    },
+    "first_B16_scope_only": true,
+    "native_control_bitexact": true,
+    "dynamic_grad_vs_no_grad_bitexact": true,
+    "cross_route_equivalence_under_original_tolerance": false
   }
 }
