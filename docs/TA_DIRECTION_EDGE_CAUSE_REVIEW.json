@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_M5_SIDE_BOUNDARY_GRADIENT_ADMITTED",
+  "status": "ACTIVE_CURRENT_SIDE_BOUNDARY_AND_UPDATE_EXPOSURE_REVIEW_COMPLETE",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -269,7 +269,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Run one preflight then one capped4G/512M max240s analytic M5 side-boundary audit on INITIAL/FINAL states and two TRAIN captures. Verify model/source/query identities, canonical loss and2048finite differences; distinguish per-row versus uniform-shift geometry. No TRAIN representation replay, upstream Jacobian/Adam or training claim.",
+  "next_measurement": "Prepare the smallest current-function observation that relates loss gradients and retained Adam direction to upward-logit changes in the shared projection/encoder. Reuse the existing loss-seed/VJP method and current qualified inputs; bind exact bef35/1542states, current8-thread runtime and source. The old c171/R1 worker/cap route is incompatible and must not be relaxed or relaunched. No model/architecture change, generic order experiment, native execution or training is admitted yet.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -13993,7 +13993,7 @@
     "scope": "Reuse and exact metadata/source review only;0newpayloaddecodes/forwards/fit."
   },
   "m5_side_boundary_gradient_admission": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_NO_BROAD_M5_BOUNDARY_SF_CONFLICT",
     "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001",
     "script": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001/REVIEW_BOUNDARY.py",
@@ -14003,11 +14003,11 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001/PLAN.json",
       "sha256": "36d4f8a49366973ed23b520ee6c927e03faaa7920bdf38fc8d5145494358860d"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "checkpoint_decodes": 2,
     "archive_decodes": 2,
@@ -14034,6 +14034,90 @@
     },
     "timeout_enforcement": "Existing /usr/bin/timeout --signal=KILL 240s inside capped audit.",
     "authorization_basis": "Standing local0USD direction-cause diagnosis; actual current S/F readout boundary is an unmeasured discriminator. Reuse existing states/TRAIN outputs and qualified affine method; no model execution or fit.",
-    "shared_M5_boundary_basis": "Source-bound common hidden/projection and actualM5query1; no retained TRAIN h or measured h parity."
+    "shared_M5_boundary_basis": "Source-bound common hidden/projection and actualM5query1; no retained TRAIN h or measured h parity.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001/RESULT.json",
+      "sha256": "bbda929f25999b7284377300c16a2540d9978cd1e9dfc953df251ff6621b5cd3"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001/TERMINAL.json",
+      "sha256": "b7416725544c7bac0e0cef0d5b3ccb4002f6ef302db49a5212fa68f56f92d252"
+    },
+    "validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001/REVIEW_VALIDATION.json",
+      "sha256": "b2c961786e09af81bdd290187ff8a3545db94482e22f850823c07d6fa621242b"
+    },
+    "actual_counts": {
+      "affine_endpoint_replays": 0,
+      "archive_decodes": 2,
+      "archive_load_calls": 2,
+      "checkpoint_decodes": 2,
+      "checkpoint_load_calls": 2,
+      "checkpoint_writes": 0,
+      "cuda_initializations": 0,
+      "model_constructions": 0,
+      "module_calls": 0,
+      "optimizer_constructions": 0
+    },
+    "elapsed_seconds": 3.096296589999838,
+    "metadata_reuse": {
+      "clip_exposure": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001/CLIP_WEIGHT_REUSE_REVIEW.json",
+        "sha256": "069e74e6c78260aa060cbdd764b654ecacb2c4e6bcda3b94687d8af45d8d9c70"
+      },
+      "side_bias_moments": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001/ADAM_BIAS_MOMENT_REUSE_REVIEW.json",
+        "sha256": "b9775fc08500c85fb9eb84aef03c1a674626c36deb310ca270b09067c7b9d6f3"
+      },
+      "validation": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001/METADATA_REUSE_VALIDATION.json",
+        "sha256": "1a892ffb7713ae1df54b66226381953dffc11df2f59ca41c63b64999586bc7fc"
+      },
+      "new_payload_decodes": 0,
+      "new_model_calls": 0
+    }
+  },
+  "current_side_boundary_and_update_exposure_result": {
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001/RESULT.json",
+      "sha256": "bbda929f25999b7284377300c16a2540d9978cd1e9dfc953df251ff6621b5cd3"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001/TERMINAL.json",
+      "sha256": "b7416725544c7bac0e0cef0d5b3ccb4002f6ef302db49a5212fa68f56f92d252"
+    },
+    "validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001/REVIEW_VALIDATION.json",
+      "sha256": "b2c961786e09af81bdd290187ff8a3545db94482e22f850823c07d6fa621242b"
+    },
+    "clip_exposure": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001/CLIP_WEIGHT_REUSE_REVIEW.json",
+      "sha256": "069e74e6c78260aa060cbdd764b654ecacb2c4e6bcda3b94687d8af45d8d9c70"
+    },
+    "side_bias_moments": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001/ADAM_BIAS_MOMENT_REUSE_REVIEW.json",
+      "sha256": "b9775fc08500c85fb9eb84aef03c1a674626c36deb310ca270b09067c7b9d6f3"
+    },
+    "metadata_validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001/METADATA_REUSE_VALIDATION.json",
+      "sha256": "1a892ffb7713ae1df54b66226381953dffc11df2f59ca41c63b64999586bc7fc"
+    },
+    "repository_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_FULL_PREFIX_LEARNING_REVIEW.json",
+      "sha256": "0fc8f280b7dd9e3d2f41e9b5d2545e6c3e55f0b749ba6011c7df938ea246fef4"
+    },
+    "findings": [
+      "On4096retained TRAIN rows,979have known M5 side for both S/F;952agree and27oppose. The actual readout-weight cosine rises0.749289->0.850564. This is currentbef35/1542 evidence, not transfer of oldc171 attention gradients.",
+      "For freely varying per-row M5 readout coordinates, all256intact B16groups have nonnegative S/F cross-dots at both endpoints. A broad last-boundary S/F conflict is not supported; this does not describe the upstream parameter Jacobian.",
+      "A single common translation of all M5 representations has negative S/F cross-dots in71INITIAL/65FINAL of249jointly supported groups. Means of batch dots and dots ofmean gradients are positive. These are different geometries, not contradictory measurements.",
+      "Canonical M5 combined-loss replay error is2.40e-7; retained score replay error0;2048finite-difference checks have max error5.15e-12. The audit used2states/2TRAINarchives,0models/forwards/autograd/updates.",
+      "Recorded norms exceed1 in3693of3698training steps. Under the fixed nominal reconstructed clipping scales, full-population F UP exposure increases0.46-2.11percentage points acrossM5/M15/H1/H4/D1. These conditional ratios are not a ceiling on model predictions.",
+      "Clipping exposure shifts are larger near the end: last16F/H1 rises0.416071->0.568364 andF/M15 rises0.572786->0.678681. Last256F/D1 is already0.821782unweighted and becomes0.814609weighted. Timing and support must not be hidden by the full-population mean.",
+      "Actual final side-bias first moments are negative for M5S/F and positive for shared non-M5S/F. Thus the last gradient-based Adam component pushes the shared non-M5side biases DOWN. Decoupled weight decay and all other parameter contributions remain separate.",
+      "Nominal moment-weighted historical F probabilities are0.518293against UPexposure0.571510forM5 and0.608490against0.488851for the shared non-M5head. These are recent weighted training-history aggregates inferred from retained moments, not FINAL TRAIN/LATER predictions or native FP32 history replay.",
+      "No current loss formula defect, broad M5 last-boundary S/F cancellation, beneficial task removal or clipping-rule change is established. The shared projection/encoder and Adam parameter-direction mechanism remains to be measured."
+    ],
+    "new_training_authorized": false,
+    "test_data_used": false
   }
 }

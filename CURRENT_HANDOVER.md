@@ -5,48 +5,47 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_M5_SIDE_BOUNDARY_GRADIENT_ADMITTED_NO_MODEL_EXECUTION. Edge-målet er uoppnådd.
-Training/native/full_epoch/fullVAL er false. Native002, readout001 og parameter-replay002 er
-konsumert. Ny engangsscope MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001:
-2eksakte tilstander +2beholdte TRAIN-paneler,0affine replay,2048finitt-differanse-kontroller.
-Metadata-preflight før CLAIM; capped4G/512M med timeoutKILL240s.0modeller/modulkall/optimizer/
-autograd/CUDA/updates/checkpointskriving. PLAN og REVIEW_BOUNDARY.py er hashbundet i policy.
+TA_CURRENT_SIDE_BOUNDARY_AND_UPDATE_EXPOSURE_REVIEW_COMPLETE_CAUSE_UNRESOLVED. Edge-målet er uoppnådd.
+Training/native/full_epoch/fullVAL er false. Alle tidligere planer er konsumert; ingen aktiv jobb.
+Siste root: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001.
+Source47f7700a; RESULTbbda929f, TERMINALb7416725, REVIEW_VALIDATIONb2c96178.3,096s capped4G/512M,
+timeout240s;2checkpoints/2TRAINarkiver,0modeller/modulkall/autograd/updates/affine replay.
+2048finitt-differansekontroller max5,15e-12; M5-loss-replay max2,40e-7; score-replay0.
+TRAIN har ikke beholdt M5-representasjoner. Felles funksjonskoordinat er kilde-/query1-bundet;
+FP64-derivert ved faktiske FP32-logits er ikke målt h-paritet eller native autograd-historikk.
 
-Aktuelt M5-only-forsøk har sammebef35-INITIAL,15inputs og numerisk oppskrift som full-prefix002,
-men beholder både S/M5- og F/M5-side. Det avgjør ikke om de motarbeider hverandre. Gammel
-16-batch attentionmåling gjelder c171 og gammel aktivitetspressmåling delte aktivitetsrader;
-verdiene kan ikke tilskrives dagens modell. Ingen aktuell S-only/F-only-arm er dokumentert.
-S er lokal tilstand ved framtidig gyldighetstid; F er netto prisendring fra prognosestart.
-Kilden viser null direkte aktivitetsgradient mot sideloggiten, men felles projeksjon/enkoder.
+Aktuelt M5-only-forsøk deler faktiskbef35-INITIAL,alle15inputrefs og numerisk oppskrift med
+full-prefix002, men beholder begge S/F-sideledd. Gammel c171attention-/aktivitetsrevisjon kan
+ikke tilskrives dagens funksjon. S er framtidig lokal tilstand; F er netto prisendring fra utstedelse.
+Ny kontroll:979M5rader med begge sider kjent;952enige/27motsatt. Hodecosinus0,7493→0,8506.
+Alle256intakteB16grupper har ikke-negativt radvist S/F-dot ved begge endepunkter. Ved én felles
+translasjon er71INITIAL/65FINAL av249støttede grupper negative, men begge aggregeringer positive.
+Ingen generell M5-S/F-motvirkning er påvist ved denne siste grensen. Upstream-Jacobian er umålt.
 
-Neste kontroll beregner dL/dh = known·q/(5N)·(sigmoid(z)-y)·w for begge M5-sidegrener.
-Bevar intakte B16-grupper og skill frie radvise representasjoner fra én felles translasjon av
-alle representasjoner; middel av batch-dot er ikke dot av middelgradienter. TRAIN har ikke
-beholdt M5-h. Felles funksjonskoordinat bindes til kilde og faktisk query1; ingen numerisk h-paritet
-hevdes. FP64-deriverte ved beholdte FP32-logits er ikke native autograd eller historiske treningsgradienter,
-query-/encoder-Jacobian, Adam-virkning eller bevist nyttig inngrep. Ingen ny native-/treningsplan.
+JSON-only tillegg: CLIP_WEIGHT_REUSE_REVIEW069e74e6, ADAM_BIAS_MOMENT_REUSE_REVIEWb9775fc0,
+METADATA_REUSE_VALIDATION1a892ffb.0nye array-/checkpointdekodinger/modeller/updates.
+3693av3698preclip-normer>1. Nominell skala min(1,1/(norm+1e-6)); fullpopulasjonens F-UP-
+referanser øker0,46–2,11prosentpoeng under disse faste skalaene. Sluttfasen skiller seg:
+siste16F/H1 0,4161→0,5684;M15 0,5728→0,6787. Siste256D1 0,8218→0,8146. Dette er betinget
+klasseeksponering, ingen øvre prediksjonsgrense, faktisk gradientrekonstruksjon eller årsaksandel.
+Faktiske siste bias-exp_avg er negative forM5S/F, positive for non-M5S/F. Adam-gradientleddet
+presser dermed de delte non-M5sidebiasene NED. Decoupled decay og øvrige parameterbidrag er egne.
+Nominell β1=.9-historikkrekonstruksjon: F/M5 vektetP0,5183 motUP0,5715; non-M5 vektetP0,6085
+motUP0,4889. Dette gjelder nylige faktiske treningsinputs/vekter, ikke FINAL/LATER-prognoser.
+Direkte og rekursiv momentberegning matcher innen2,23e-16; native FP32-historikk er ikke replayet.
+Ingen grunn til å fjerne S-målet, endre klippevakten eller gjenta et generelt ordre-/arkitekturforsøk.
 
-Siste fullførte parameter-replay002: sourcecb16098e, RESULT3545cbf2, TERMINAL5d990762,
-REVIEW_VALIDATION0d6be484.3,149s;2checkpoints/2arkiver/4affine endepunkter,0modeller/updates.
-Alle590aktive parametertensorer endret seg og har Adam-steg3698.179inaktive og alle buffere
-uendret. Dette beviser oppdateringer, ikke informative gradienter i hvert steg eller god læring.
-Siste output-bias forklarer0,0303% av M5F-logitøkningen og0,322–0,364% for øvrigeF-tidsrammer.
-Tidligere bias-/projeksjonsendringer kan fortsatt inngå i representasjonsleddet.
-M5F,1689kjente siderader: meanΔlogit0,350501. Symmetrisk regnskap gir vektledd0,160746 og
-representasjonsledd0,189650; begge ordnede regnskap er også publisert. Dette er algebraisk
-endepunktfordeling, ikke entydige årsaksandeler. Samspillsleddet Δw·Δh er0,160961.
-INITIAL/nytt hode+gammel representasjon/gammelt hode+ny representasjon/FINAL meanPup:
-0,515273/0,535136/0,542344/0,600113. Begge blandingene har dårligere Brier/log enn INITIAL;
-ingen frysestrategi eller ny kandidat er kvalifisert. Score-replayfeil0; maks algebrafeil3,33e-16.
-Non-M5 mangler beholdte representasjoner; kun output-bias mot samlet rest kan skilles der.
+Neste: klargjør minste aktuelle observasjon som kobler tapsgradient/lagret Adam-retning til
+UP-endring i delt projeksjon/enkoder. Gjenbruk eksisterende tapsfrø/VJP-eier og dagens inputs,
+men bind bef35/1542,aktuell8trådsruntime og kilde. Gammel c171/R1-worker og cap-rute er uforenlige;
+ingen port omgås eller gammel scope relanseres. Ingen ny nativekjøring eller trening er admittert.
 
-Neste steg er den avgrensede analytiske kontrollen over. Hele gradientforløpet er ikke beholdt.
-
-Parameter-replay001 stoppet etter2checkpointdekodinger,0arkiver/0modeller, på feilaktig krav om
-lik view-proveniens. Original feilterminal bevares og001 relanseres ikke.002 validerte hver kapsel
-mot eget originale view og nøyaktig fem metadataforskjeller. Constructor/normalisering er
-byteidentiske; overlay-endringen tilføyer kvalifisert senere-dekning og bevarer TRAIN-cutoff.
-Alle øvrige viewfelt er identiske. Dette var en rettelse av diagnosekontrollen, ikke treningskoden.
+Forrige parameter-replay002 er bevart: RESULT3545cbf2,TERMINAL5d990762,validation0d6be484.
+Alle 590 aktive parametertensorer fikk 3698 Adam-steg; 179 inaktive og alle buffere var uendret. Siste output-bias forklarte
+0,0303%avM5F-logitøkningen og0,322–0,364%for øvrigeF. M5F-endepunktene viser samspill mellom
+vekt og representasjon, ikke entydige årsaksandeler. Begge fikserte blandinger tapte INITIAL-Brier/log.
+Parameter-replay001 feilet på feilaktig likhetskrav mellom view-provenienser; kvitteringen bevares,
+001 relanseres ikke.002 verifiserte egne view-identiteter, fem metadataforskjeller og like normbytes.
 
 ## Nytt resultat
 
