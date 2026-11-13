@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-13T08:35:54.974943+00:00",
-  "status": "TA_QUERY_INPUT_DRIFT_001_ADMITTED_NOT_STARTED",
+  "observed_utc": "2026-11-13T08:53:17.345097+00:00",
+  "status": "TA_QUERY_INPUT_DRIFT_001_COMPLETE_NATIVE_HORIZON_AND_CONTEXT_COVERAGE_GAPS",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "One capped CPU observation: split retained INITIAL/PASS2 S/M15 TRAIN scores by actualk1/2/3, and compare all actual normalized input fields/windows on fixed4096TRAIN/LATER panels by calendar month. Follow measured December probability drift; no model/targets/refit or feature changes.",
+  "next_action": "Qualify one bounded frozen-model observation of whether measured current-D1/macro input changes drive the December UP drift. Reuse existing model-state restoration/input-observation owners and current INITIAL/FINAL evidence; no updates or feature removal. Distinguish local sensitivity/private intervention from improved predictive edge. Existing broad M15 persistence is already measured and must not be rerun. No new job is admitted by this next-step record.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1434,7 +1434,7 @@
     "profitability_demonstrated": false,
     "required_before_more_extensive_training": true,
     "entry_learning_demonstrated": false,
-    "current_evidence_scope": "Same29574rows/two passes with changed batchvisitorder improves TRAIN F AUC acrossall5TF and lowers all10later Brier point estimates vs oldorder, but no qualified later direction gain. M5F AUC.507776, sideaccuracy51.2137%, balanced50.3929%; jointargmax100%FLAT. Exact8archive readout, originalscore replay1.12e-15;15synthetic tests and270aggregate matrix checks PASS. Reuseddevelopment only.",
+    "current_evidence_scope": "Order001 native-F TRAIN fit improves but later direction doesnot. Accuracy readout M5F51.21%/balanced50.39%/AUC.5078. New zero-model audit shows S/M15 TRAIN nativek3AUC.4913 versus pooled.5739; currentD1stackcontext constant across29574fitdecisions and changesinDecember. Allinputfields/windows observed on8192fixedrows. Scope cannot prove unique cause, independent generalization or economic edge.",
     "component_learning_measured": true,
     "component_learning_result": "STRONGER_TRAIN_FIT_WITHOUT_LATER_DIRECTION_GAIN",
     "primary_entry_quality_qualified": false,
@@ -1751,6 +1751,10 @@
     "latest_order_accuracy_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ORDER_ACCURACY_REVIEW.json",
       "sha256": "eae0324dfbacddcf76223d15c88b2bd02ce50b6f3d5acbab883b234c0da8efb1"
+    },
+    "latest_query_input_drift_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_QUERY_INPUT_DRIFT_REVIEW.json",
+      "sha256": "693b0f928ab07b57e9aa5f650aa3d823b1b7101d2f1530d412b7e8dad6b1bdf8"
     }
   },
   "current_work": {
@@ -1808,7 +1812,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No operational blocker. M15 sampled/native query difference and December shared UP drift require exact retained-horizon/input distribution observation before any model repair.",
+    "current_blocker": "No operational blocker. Native S/M15 alreadyweak onTRAIN; current D1context constant duringfit plus later inputdistribution shifts are measured. Their causal contribution to native-F UP drift remainsunisolated.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9279,7 +9283,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "One capped CPU observation: split retained INITIAL/PASS2 S/M15 TRAIN scores by actualk1/2/3, and compare all actual normalized input fields/windows on fixed4096TRAIN/LATER panels by calendar month. Follow measured December probability drift; no model/targets/refit or feature changes.",
+    "next_action": "Qualify one bounded frozen-model observation of whether measured current-D1/macro input changes drive the December UP drift. Reuse existing model-state restoration/input-observation owners and current INITIAL/FINAL evidence; no updates or feature removal. Distinguish local sensitivity/private intervention from improved predictive edge. Existing broad M15 persistence is already measured and must not be rerun. No new job is admitted by this next-step record.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22583,7 +22587,7 @@
         "new_model_calls": 0
       }
     },
-    "status": "TA_QUERY_INPUT_DRIFT_001_ADMITTED_NOT_STARTED",
+    "status": "TA_QUERY_INPUT_DRIFT_001_COMPLETE_NATIVE_HORIZON_AND_CONTEXT_COVERAGE_GAPS",
     "observed_utc": "2026-11-13T03:49:42.485840+00:00",
     "current_observation_stage": "market_state_ta_current_update_observation_20261113_003",
     "current_observation_plan": {
@@ -22823,6 +22827,10 @@
     "latest_order_accuracy_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ORDER_ACCURACY_REVIEW.json",
       "sha256": "eae0324dfbacddcf76223d15c88b2bd02ce50b6f3d5acbab883b234c0da8efb1"
+    },
+    "latest_query_input_drift_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_QUERY_INPUT_DRIFT_REVIEW.json",
+      "sha256": "693b0f928ab07b57e9aa5f650aa3d823b1b7101d2f1530d412b7e8dad6b1bdf8"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -84735,7 +84743,7 @@
     "elapsed_seconds": 13.013258313998449
   },
   "market_state_ta_query_input_drift_20261113_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_NO_RELAUNCH",
     "root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_QUERY_INPUT_DRIFT_20261113_001",
     "script": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_QUERY_INPUT_DRIFT_20261113_001/OBSERVE.py",
@@ -84745,11 +84753,11 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_QUERY_INPUT_DRIFT_20261113_001/PLAN.json",
       "sha256": "990399dbde3d3baccc21a349a42fca7cf7dcf5f96fadea0a11467348af921afe"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "max_invocations": 1,
-    "remaining_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "remaining_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "counts": {
       "checkpoint_decodes": 0,
@@ -84775,6 +84783,34 @@
     "feature_changes_authorized": false,
     "test_data_used": false,
     "promotion_authorized": false,
-    "authorization_basis": "Standing local0USD measured-cause investigation: source-proved S/M15 query-population difference and recorded December UP-probability increase despite fewer UP outcomes. Reuse exact retained panels and native input/normalization owners. One bounded CPU observation, no candidate selection or trading."
+    "authorization_basis": "Standing local0USD measured-cause investigation: source-proved S/M15 query-population difference and recorded December UP-probability increase despite fewer UP outcomes. Reuse exact retained panels and native input/normalization owners. One bounded CPU observation, no candidate selection or trading.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_QUERY_INPUT_DRIFT_20261113_001/RESULT.json",
+      "sha256": "2c87d24c9b366f7d4d110bd64cf9604ddf804a3c60edc70e724955a64db8cb32"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_QUERY_INPUT_DRIFT_20261113_001/TERMINAL.json",
+      "sha256": "23d27a2b655da826dde557ed6e02d0917bb588aca70346757ba83a86c4919fc0"
+    },
+    "validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_QUERY_INPUT_DRIFT_20261113_001/VALIDATION.json",
+      "sha256": "0625774c67ccb26afa57ed09a151955de6a5eeddc030bfc016559bc98aec06eb"
+    },
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_QUERY_INPUT_DRIFT_REVIEW.json",
+      "sha256": "693b0f928ab07b57e9aa5f650aa3d823b1b7101d2f1530d412b7e8dad6b1bdf8"
+    },
+    "actual_counts": {
+      "checkpoint_decodes": 0,
+      "feature_batches": 512,
+      "feature_issue_rows": 8192,
+      "forwards": 0,
+      "input_sidecar_archive_decodes": 12,
+      "models": 0,
+      "new_targets": 0,
+      "readout_archives": 3,
+      "updates": 0
+    },
+    "elapsed_seconds": 256.40596745199946
   }
 }

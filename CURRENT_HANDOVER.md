@@ -5,27 +5,42 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_QUERY_INPUT_DRIFT_001_ADMITTED_NOT_STARTED. Edge-målet er uoppnådd.
-training_enabled/native_training_enabled/native_launch_authorized=false.
-Native ordre001 og accuracy001 er COMPLETE/CONSUMED; ingen relansering eller promotion.
-Én ny CPU-avlesning admittert: MARKET_STATE_TA_QUERY_INPUT_DRIFT_20261113_001,
-4G/512M/maks900s;3lagrede prediksjonsarkiver,12eksisterende sidecars,512native feature-
-gathers/8192issue-rader.0modeller/checkpoints/forwards/updates/nye mål eller normaliseringsfit.
-Alle råinputflaters genuine felt og faktiske vinduer transformeres med uendret TRAIN-normalisering;
-alle måneder/felt beholdes. Fordelingsforskjell alene beviser ingen årsaksvirkning eller fjerning.
-Én syntetisk accumulator-kontroll og metadata-preflight førCLAIM; agentkildekontroll fant
-ingen layout-/countfeil. Manglende hashbinding til eksisterende accuracy-helper er lagt til.
-Integrator eier policy/launch/avlesning. Ingen kildeendring under den bundne CPU-jobben.
+TA_QUERY_INPUT_DRIFT_001_COMPLETE_NATIVE_HORIZON_AND_CONTEXT_COVERAGE_GAPS.
+Edge-målet er uoppnådd. training_enabled/native_training_enabled/native_launch_authorized=false.
+Alle siste engangsplaner er COMPLETE/CONSUMED. Ingen aktivjobb eller ny probe admittert.
+Ny samlet rapport: docs/TA_QUERY_INPUT_DRIFT_REVIEW.json.
+Neste: kvalifiser én minste frosne modellobservasjon for om målte D1-/makro-endringer
+faktisk driver desember-UP-driften. Gjenbruk eksisterende restore/input-observer-eiere,
+INITIALbef35 og ordre001-FINALc34e754b/evidencec1e102fe. Ingen updates eller fjerning
+av genuine features. Lokal følsomhet/intervensjon er ikke bedre prediksjon eller edge.
+Bred M15-persistens er allerede målt; skal ikke kjøres igjen. Behold horisont-/maskeskiller.
 
-Konkrete spor: TRAIN S/M15 blander k1/2/3(5/10/15min), LATER barek3. Modellen får
-TF/k eksplisitt; eksisterende endpoint-paritet118706M15issues har0bit-/M1-radavvik.
-Ingen fortegns-/klokkefeil funnet. INITIAL AUC0,6095på blandetTRAIN mot0,4433senere;
-nyPASS2 0,5739/0,4480. Avlesningen skiller TRAIN på faktisk lagretk før årsakstilskrivning.
-Ny native-F H1 meanPup gårfra0,568oktober til0,810desember, mens fasitUP gårfra0,589til0,398.
-Desember meanPup M15/H4/D1 er0,785/0,805/0,818. Inputs er allerede relativTA/asinh og
-aktiv norm har ingen desember-zero-support-projeksjon; observer nå faktisk inputfordeling.
-Ingen terskeltilpasning på LATER, outputflip, generelle ekstraepoker eller nye ordre-/modustester.
-Samlet forrige rapport: docs/TA_ORDER_ACCURACY_REVIEW.json.
+CPU-observasjon: MARKET_STATE_TA_QUERY_INPUT_DRIFT_20261113_001, kildea427db8f,
+RESULT2c87d24c,VALIDATION0625774c.256,56s under4G/512M;3lagrede prediksjonsarkiver,
+12sidecars,512native featuregathers/8192issue-rader;0modeller/checkpoints/forwards/
+updates/nye mål/normaliseringsfit. Alle aktive TA-felt/tidsvinduer/måneder beholdt;
+syntetisk accumulatorPASS, månedlig reaggregasjon innen1,12e-16. Ingen modellkodeendring.
+
+M15 S-TRAIN blandet k1/2/3. INITIAL AUC0,765923/0,574648/0,486006; PASS2
+0,680804/0,549059/0,491303, kjentstøtte492/515/490. Den native15min-oppgaven er altså
+svak allerede påTRAIN; blandetTRAIN≈0,574 mot senere≈0,448 er ikke rent generaliseringsgap.
+Kilden bruker ekte M1-oppdatert lokaltilstand og eksplisittTF/k; bareATR holdesfra nativebar.
+Ingen fortegn-/klokkefeil funnet;118706M15issues hadde0bit-/M1-radavvik i beholdtparitet.
+Gjenbrukt QUERY_REFERENCES RESULT1ef8e55e, samme tape/fullakse:17 753senereissues,
+hardpersistens79,0773/57,6298/48,7318%ved5/10/15min på5267/4430/4061begge-kjentepar.
+Dette dokumenterer horisontavhengig oppgavevanskelighet. Ulike masker hindrer direkte
+modell-mot-persistenspåstand på dagens4096undergrupper. Ingen ny bred tape-jobb nødvendig.
+
+NATIVE INPUTDRIFT: current ctx d1_ema_stack_aligned_v2=+1 gjennomalle29574fitbeslutninger,
+normalisert0/ingenvarians. Oktober/november fortsattkonstant; desember endretpå22,91%av
+1327panelrader. D1-historikkvinduene inneholder eldre tilstandsvariasjon; modellen har ikke
+bare sett én historiskD1tilstand. December EUR_USD_rv_20D ogcurrent D1trendage ligger
+100%utenforfrossetfitintervall; XPT-vol75,96% og H4divergenceage88,40%avkonsumertvindu.
+Asinhbevarerverdiene utenklipping. Dette er målte kontekst-/fordelingsgap, ikke påvist
+normaliseringsfeil eller kausalbevis forUP-drift. Aliasfelter er ikke uavhengige indikatorer.
+NativeF TRAIN→senere-gapet består; flere repetisjoner av sammetreningsperiode tilfører
+ikke nye aktuelle regimer. Fullkvalifisert historikk/30–40epokers kapasitet er fortsattuprøvd.
+Forrige komplette accuracy/ordre-rapport: docs/TA_ORDER_ACCURACY_REVIEW.json.
 
 Native ordre001: /home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_ORDER_20261113_001.
 Kildea31e2448,boot649,RESULTa3ff7bdb,COMPLETION_VERIFICATION160cb198.3698updates,
