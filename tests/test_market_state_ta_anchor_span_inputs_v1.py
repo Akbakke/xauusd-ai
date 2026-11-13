@@ -195,3 +195,29 @@ def test_execution_guard_fails_before_inspection_or_claim(monkeypatch):
     monkeypatch.setattr(worker, 'measure', forbidden)
     with pytest.raises(RuntimeError, match='synthetic_cap_required'):
         worker.run('a' * 64)
+
+
+@pytest.mark.parametrize('lanes,declared,ranges,accepted', (
+    (None, None, ['local', 'M5', 'M15', 'H1', 'H4', 'D1'], True),
+    (None, None, ['local', 'M5', 'M15'], False),
+    (('local', 'M5', 'M15'), ['local', 'M5', 'M15'], ['local', 'M5', 'M15'], True),
+    (('local', 'M5', 'M15'), ['local', 'M5'], ['local', 'M5', 'M15'], False),
+    (('M5', 'M5'), ['M5', 'M5'], ['M5'], False),
+    (('UNKNOWN',), ['UNKNOWN'], ['UNKNOWN'], False),
+    ((), [], [], False),
+    (('M5', 'local'), ['M5', 'local'], ['local', 'M5'], False),
+))
+def test_replay_subset_is_explicit_unique_ordered_and_default_stays_all(
+        monkeypatch, tmp_path, lanes, declared, ranges, accepted):
+    bounds = {lane: [1, 2] for lane in ranges}
+    scope = dict(ranges=bounds, history_end_exclusive_ns=100)
+    if declared is not None:
+        scope['replay_lanes'] = declared
+    plan = dict(scope=scope, output_root=str(tmp_path),
+                inputs=dict(enriched={'path': 'synthetic'}, native_parts=[]), caches={})
+    def stop_before_io(*args):
+        raise RuntimeError('SYNTHETIC_IO_BOUNDARY')
+    monkeypatch.setattr(worker, 'stat', stop_before_io)
+    expected = 'SYNTHETIC_IO_BOUNDARY' if accepted else 'EXPLICIT_REPLAY_(LANES|SCOPE)'
+    with pytest.raises(RuntimeError, match=expected):
+        worker.measure(plan, ranges=bounds, cutoff=100, output_root=tmp_path, lanes=lanes)

@@ -274,17 +274,24 @@ def publish_json(name, value):
     return ref(ROOT / name)
 
 
-def measure(plan, *, ranges=None, cutoff=None, output_root=None):
+def measure(plan, *, ranges=None, cutoff=None, output_root=None, lanes=None):
     import pandas as pd
     from gx1.scripts.audit_direction_d1_trendline_replay_v1 import load_m5_prefix, load_native_parts_prefix
     from gx1.features.htf_features import build_multi_tf_v4_closed_timestamp_indices, _resample_ohlcv, multi_tf_resample
     from gx1.features.technical_indicators_v1 import wilder_atr, ema50_200_spread_atr_block
     from gx1.features.trendline_registry_v1 import compute_trendline_registry_features_v1
 
+    default_lanes = ('local', *TFS)
+    explicit_lanes = lanes is not None
+    lanes = default_lanes if lanes is None else lanes
+    need(type(lanes) in (list, tuple) and 0 < len(lanes) <= len(default_lanes)
+         and tuple(lanes) == tuple(lane for lane in default_lanes if lane in lanes)
+         and (not explicit_lanes or plan['scope'].get('replay_lanes') == list(lanes)),
+         'EXPLICIT_REPLAY_LANES')
     ranges = RANGES if ranges is None else ranges
     cutoff = CUTOFF if cutoff is None else cutoff
     output_root = ROOT if output_root is None else Path(output_root)
-    need(type(ranges) is dict and set(ranges) == {'local', *TFS}
+    need(type(ranges) is dict and set(ranges) == set(lanes)
          and all(type(v) in (list, tuple) and len(v) == 2
                  and all(type(i) is int for i in v) and 0 <= v[0] < v[1] for v in ranges.values())
          and ranges == plan['scope']['ranges'] and type(cutoff) is int
@@ -311,7 +318,7 @@ def measure(plan, *, ranges=None, cutoff=None, output_root=None):
     stats[plan['local_clock_path']] = plan['local_clock_stat']
     native = None
     reports = {}
-    for lane in ('local', *TFS):
+    for lane in lanes:
         left, right = ranges[lane]
         started = time.monotonic()
         rows = np.arange(left, right, dtype=np.int64)

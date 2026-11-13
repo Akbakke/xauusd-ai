@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-13T11:52:51.282992+00:00",
-  "status": "TA_PERIOD_TRANSFER_002_COMPLETE_FOLD2_SCOPE_QUALIFICATION",
+  "observed_utc": "2026-11-13T12:09:58.746881+00:00",
+  "status": "TA_FOLD2_SPAN_REUSE_002_ADMITTED_NO_FIT",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Qualify exact fold2 local window union and existing span reuse before any new model work: match authoritative row/clock hashes, calculate required missing rows, preserve overlap/cutoff, and bind own prefix normalization without fold1 unobserved-unit exceptions. The contiguous local candidate failed its hash check; 471 is an unqualified candidate gap-fill volume. No new data/model/readout/training job is admitted.",
+  "next_action": "Execute exactly admitted fold2 span reuse002 once under audit4G/512M and timeout1200s. Reuse twelve sidecars, replay only local/M5/M15 gaps471rows, preserve31legacy fields and all overlap bits; bind six full row/availability identities116668rows. Then review physical qualification before any own-prefix normalization or fresh baseline/fit. No training admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1759,7 +1759,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Monthly INITIAL/FINAL retained prediction audit completed and independently reviewed; period-dependent ranking and probability error measured. Current work is fold2 reuse scope qualification only.",
+    "current_activity": "Prepare exact three-gap current-feature fold2 input qualification. Corrected prior metadata hash comparison; all six namespaced row axes match original fold2 evidence.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -9283,7 +9283,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Qualify exact fold2 local window union and existing span reuse before any new model work: match authoritative row/clock hashes, calculate required missing rows, preserve overlap/cutoff, and bind own prefix normalization without fold1 unobserved-unit exceptions. The contiguous local candidate failed its hash check; 471 is an unqualified candidate gap-fill volume. No new data/model/readout/training job is admitted.",
+    "next_action": "Execute exactly admitted fold2 span reuse002 once under audit4G/512M and timeout1200s. Reuse twelve sidecars, replay only local/M5/M15 gaps471rows, preserve31legacy fields and all overlap bits; bind six full row/availability identities116668rows. Then review physical qualification before any own-prefix normalization or fresh baseline/fit. No training admitted.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22587,7 +22587,7 @@
         "new_model_calls": 0
       }
     },
-    "status": "TA_PERIOD_TRANSFER_002_COMPLETE_FOLD2_SCOPE_QUALIFICATION",
+    "status": "TA_FOLD2_SPAN_REUSE_002_ADMITTED_NO_FIT",
     "observed_utc": "2026-11-13T03:49:42.485840+00:00",
     "current_observation_stage": "market_state_ta_current_update_observation_20261113_003",
     "current_observation_plan": {
@@ -22837,8 +22837,8 @@
       "sha256": "3542234b26b1e66f9c5527a3a27652c8110756e66aeaa10a0631d8c05c9b84c3"
     },
     "latest_fold2_reuse_scope": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_PERIOD_TRANSFER_READOUT_20261113_002/FOLD2_SCOPE_METADATA.json",
-      "sha256": "79ee5543d9567c10b10ef1bfbdd352ab43788ab509b30ac371d68f2bf25ae01a"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_001/ROW_AXIS_CORRECTION.json",
+      "sha256": "8d2ae09f2bcb1993f88b8178bd2e3834d304a62d852703bc65527edf32be55b0"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -25403,7 +25403,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-13T11:52:51.282992+00:00",
+  "updated_utc": "2026-11-13T12:09:58.746881+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -40910,7 +40910,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "No training or new data/model/readout job admitted; period readout002 complete/consumed.",
+  "training_enabled_scope": "Native training and fitting remain closed; one exact physical span reuse qualification002 is admitted, with zero normalization/model fits.",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -85450,6 +85450,62 @@
     "fold2_scope_review": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_PERIOD_TRANSFER_READOUT_20261113_002/FOLD2_SCOPE_METADATA.json",
       "sha256": "79ee5543d9567c10b10ef1bfbdd352ab43788ab509b30ac371d68f2bf25ae01a"
+    },
+    "fold2_scope_review_superseded": true,
+    "fold2_scope_correction": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_001/ROW_AXIS_CORRECTION.json",
+      "sha256": "8d2ae09f2bcb1993f88b8178bd2e3834d304a62d852703bc65527edf32be55b0"
     }
+  },
+  "market_state_ta_fold2_span_reuse_20261113_001": {
+    "status": "SOURCE_PREFLIGHT_FAILED_NO_CLAIM",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_001/PLAN.json",
+      "sha256": "54509b066b2f25ae7f9a5448c850edc9039af7494faac5df00241d22ea092be5"
+    },
+    "source_failure": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_001/SOURCE_FAILURE.json",
+      "sha256": "c49049209166e198723b9c05de359df529ab815054b53748b742725a8b196bc6"
+    },
+    "max_invocations": 1,
+    "remaining_invocations": 0,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "relaunch_allowed": false
+  },
+  "market_state_ta_fold2_span_reuse_20261113_002": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_002/PLAN.json",
+      "sha256": "c1a0ea6c69e7d108c3564f5ed78a0d433ffa5548a1b43ea12931612fd59f2018"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_002/SOURCE_REVIEW.json",
+      "sha256": "984fa6cf9c441552192f542410c49434971ec182a934390c5d1a337d5c0f5fd1"
+    },
+    "scope": {
+      "checkpoint_reads": 0,
+      "fold_id": 2,
+      "merged_rows": 116668,
+      "model_constructions": 0,
+      "model_forwards": 0,
+      "new_output_rows": 471,
+      "normalization_fits": 0,
+      "optimizer_steps": 0,
+      "parent_rows": 47338,
+      "producer_calls": 3,
+      "target_arrays_decoded": 0,
+      "test_data_used": false
+    },
+    "max_invocations": 1,
+    "remaining_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "training_authorized": false,
+    "relaunch_allowed": false
   }
 }

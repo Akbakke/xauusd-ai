@@ -5,22 +5,33 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_PERIOD_TRANSFER_002_COMPLETE_FOLD2_SCOPE_QUALIFICATION. Edge-målet er uoppnådd.
-Alle treningsflagg er false. Ingen ny data-, modell-, avlesnings- eller treningsjobb er admittert.
-Siste rapport: docs/TA_PERIOD_TRANSFER_REVIEW.json; eksakte referanser/SHA står i policy.
+TA_FOLD2_SPAN_REUSE_002_ADMITTED_NO_FIT. Edge-målet er uoppnådd. Alle treningsflagg er false.
+Én eksakt fysisk inputkvalifisering er admittert: MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_002.
+Plan/source-review ligger i samme RUNS-root; eksakte SHA og engangsgrense står i policy.
+Kjør bare gjennom audit4G/512M, timeout1200s/kill-after10. Ingen native-/normaliseringsfit.
 
-Neste steg er å kvalifisere gjenbruk for én senere kronologisk fold, med dagens317/132/255felt.
-Eksisterende modne fold2-inputs og F-targets finnes. Gjenskap først eksakt lokal union av
-96-raders vinduer fra bundne foreldre/klokker, match autoritative rad-/tilgjengelighetshasher,
-og beregn faktisk manglende span-utvalg. Kontroller overlapp, cutoff og egen normalisering.
-Fold2 har ingen fold1-unobserved-unit-unntak; disse skal ikke arves. Ingen full råmatrise-
-eller target-rebuild er begrunnet. Ny native funksjon/normalisering krever egen initialbaseline.
+Gjenbruk12span-filer fra tidligere TRAIN og LATER. Produser kun471manglende outputrader:
+lokal181, M5261, M1529. Eksisterende produsent får eksplisitt lanes; standardseks beholdes.
+Replay rekonstruerer fortsatt historisk registertilstand fra kildestart;471 er ikke antall leste
+eller beregnede historiebars. Bevar31gamle felt bitlikt. Slå sammen116668kvalifiserte rader
+fordelt påseks flater; krev bitlik klokke/native-posisjon/FP32spans på413overlappende rader.
+Trim til fold2-prefix og match alle autoritative rad-/tilgjengelighetshasher før publisering.
 
-Lokal kandidat [987027,1034641) med47614rader feilet hashkontroll: f5b4112c mot e1a30ec1.
-Antall+start gir ikke slutt på en vindusunion. Eksisterende span-omslag har181lokale,
-261M5 og29M15rader mellom seg; summen471 er bare mulig fysisk gapfylling, IKKE kvalifisert
-antall nødvendige fold2-rader. Eksakt union/klokke/overlapp er neste konkrete bevisgrense.
-Metadataavviket er ikke en påvist rådatafeil. Se gate002/FOLD2_SCOPE_METADATA.json.
+Rettelse til forrige metadataavlesning: f5b4112c var rå aksehash og kunne ikke sammenlignes
+med namespacet e1a30ec1. Lokal [987027,1034641) og alle femMTF-intervaller matcher med
+eksakt _hash_int64_indices. Det var kontrollmetoden som var feil, ingen påvist datasvikt.
+Original FOLD2_SCOPE_METADATA er bevart og eksplisitt overstyrt av ROW_AXIS_CORRECTION.json
+i001-root. Accuracy-/månedsresultatene påvirkes ikke. Klokker/verdier er ennå ikke kvalifisert.
+
+11fokuserte tester PASS;002 endelig faktisk CLI/syntetisk preflight PASS uten datadekoding.
+001 feilet før CLAIM på feil forventet TRAIN-kvitteringsstatus; originaler er bevart.
+002 retter status, binder opprinnelig plan gjennom hele løpet og bevarer delkvitteringer
+med ukjent antall forsøk ved replayfeil. Uavhengig avgrenset kildegjennomgang gjennomført.
+
+Etter denne kvalifiseringen gjenstår fold2s egen317/132/255-normalisering. Fold2 har ingen
+fold1-unobserved-unit-unntak; disse skal ikke arves. Ny funksjon/normalisering krever egen
+initialbaseline. Ingen baseline, ny modelljobb eller trening er åpnet av denne planen.
+Siste prognoserapport er docs/TA_PERIOD_TRANSFER_REVIEW.json.
 
 ## Siste målte resultat
 
