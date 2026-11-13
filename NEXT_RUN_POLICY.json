@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-13T09:22:01.782252+00:00",
-  "status": "TA_CONTEXT_DRIFT_001_ADMITTED_FROZEN_CURRENT_PATH_OBSERVATION",
+  "observed_utc": "2026-11-13T09:30:25.757736+00:00",
+  "status": "TA_CONTEXT_DRIFT_001_COMPLETE_SMALL_CURRENT_PATH_EFFECT_UP_DRIFT_UNRESOLVED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Execute exactly the admitted passive context-path observation once, then compare all fixed arms/months/TF/tasks and INITIAL versus FINAL. Preserve native baseline parity and model/input/RNG invariance. Close consumed admission after terminal. No training, production feature changes, or edge claim.",
+  "next_action": "Reuse existing native INITIAL/FINAL retained representations and current source-owned head definitions to distinguish shared-representation drift from learned direction-head response. Check prior evidence and captured coverage first; no speculative source changes. The six tested current-context paths alone explain little of the measured aggregate UP drift on this fixed panel. No new run, checkpoint decoding, training, production clamp, or feature deletion is admitted by this next-step record.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -84814,19 +84814,19 @@
     "elapsed_seconds": 256.40596745199946
   },
   "market_state_ta_context_drift_observation_20261113_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_NO_RELAUNCH",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CONTEXT_DRIFT_OBSERVATION_20261113_001/PLAN.json",
       "sha256": "bbd36b9c6861c39b4f33f3af5d0d58ff6099c2bc4cea4c8301a9810b23a3d542"
     },
     "max_invocations": 1,
-    "remaining_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
+    "remaining_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
     "relaunch_allowed": false,
-    "data_reads_authorized": true,
-    "checkpoint_reads_authorized": true,
+    "data_reads_authorized": false,
+    "checkpoint_reads_authorized": false,
     "training_authorized": false,
     "bounds": {
       "batch_size": 16,
@@ -84873,6 +84873,56 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CONTEXT_DRIFT_OBSERVATION_20261113_001/FOCUSED_TESTS.log",
       "sha256": "ccdc7c377f52cd1f0d27cd182971a213d58bb8d74b2e5cdbdfe67971aa982688"
     },
-    "authorization": "Standing local0USD measured-cause investigation; one passive INITIAL/current-order-FINAL contrast of six previously measured current-context paths, using fixed TRAIN bounds. No fitting, production clamp, feature removal, candidate selection, or consumed-plan reuse."
+    "authorization": "Standing local0USD measured-cause investigation; one passive INITIAL/current-order-FINAL contrast of six previously measured current-context paths, using fixed TRAIN bounds. No fitting, production clamp, feature removal, candidate selection, or consumed-plan reuse.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CONTEXT_DRIFT_OBSERVATION_20261113_001/RESULT.json",
+      "sha256": "8f1bf7cf7ea0b7a7c836188e064899b70dcbfddc7e08ff673e7ff70a92ad90e8"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CONTEXT_DRIFT_OBSERVATION_20261113_001/TERMINAL.json",
+      "sha256": "41890f7e66724f445498280f0083dbc1fbb9eca7668f60fca110d088ec8e4148"
+    },
+    "wrapper_exit": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CONTEXT_DRIFT_OBSERVATION_20261113_001/NATIVE_WRAPPER_EXIT.json",
+      "sha256": "f83b7046ec85aa53a39708fa6ef07c02adb5608f8c63ffa887ee8319d604ce0c"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CONTEXT_DRIFT_OBSERVATION_20261113_001/CONTEXT_EFFECT_REVIEW.json",
+      "sha256": "5bf3ae35a0d9c9c2275711f13043d432d126b76377b9d09e29207d3a7114252f"
+    },
+    "validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CONTEXT_DRIFT_OBSERVATION_20261113_001/VALIDATION.json",
+      "sha256": "36c2f213e2ee4f98fdb44e8476094ea08cd8cfc093f6f57491d9d1929e46a3ee"
+    },
+    "public_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_CONTEXT_DRIFT_REVIEW.json",
+      "sha256": "5bf3ae35a0d9c9c2275711f13043d432d126b76377b9d09e29207d3a7114252f"
+    },
+    "actual_counts": {
+      "archive_decodes": 2,
+      "autograd_grad_calls": 0,
+      "backwards": 0,
+      "candidate_writes": 0,
+      "captured_rows": 2048,
+      "checkpoint_loads": 2,
+      "checkpoint_weight_transitions": 1,
+      "checkpoint_writes": 0,
+      "deterministic_initialization_calls": 1,
+      "feature_batches": 32,
+      "forwards": 128,
+      "input_sidecar_archive_decodes": 12,
+      "model_constructions": 1,
+      "native_reference_matches": 32,
+      "new_target_gathers": 0,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "phase_capture_writes": 2,
+      "resume_state_load_calls": 2,
+      "resume_state_load_returns": 2,
+      "sampled_rows": 512
+    },
+    "elapsed_seconds": 159.9829488710002,
+    "source_unchanged": true,
+    "terminal_exit_code": 0
   }
 }

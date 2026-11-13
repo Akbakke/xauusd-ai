@@ -5,21 +5,37 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_CONTEXT_DRIFT_001_ADMITTED_FROZEN_CURRENT_PATH_OBSERVATION.
-Edge-målet er uoppnådd. Alle treningsflagg er false.
-Én ny passiv probe er admittert: MARKET_STATE_TA_CONTEXT_DRIFT_OBSERVATION_20261113_001,
-PLAN bbd36b9c. INITIAL bef35 og ordre001-FINAL c34e754b, samme256LATER-rader:
-8intakte B16-batcher fra oktober og8fra desember, valgt fra klokke/tellinger.
-Fire faste armer: BASELINE, toD1felt innen TRAIN-current-grenser, firemakrovolfelt
-innen samme feltgrenser, og begge. Current ctx/snapshot/lokal-sekvens-aliaser flyttes
-sammen; MTF-historikk beholdes. Dette er private inputintervensjoner, ikke en
-produksjonsrettelse; endrede vektorer trenger ikke beskrive et fysisk sammenhengende marked.
-128forwards,2checkpointdekodinger,32featuregathers,12sidecars,0updates/nye mål;
-600s observatør,900s eksisterendeCUDAprodusentvakt,12G/512M,8tråder,allefysiskevakter beholdt.
-32målrettede syntetiske tester PASS; metadata-preflight PASS uten array/modelldekoding.
-Hver baseline må gjenskape lagret native output før intervensjoner tolkes; feilende
-baseline og avvik bevares. Modell/inputs/RNG/kilde må være uendret. Ingen relansering.
-Neste: kjør én gang, sammenlign alle armer og INITIAL→FINAL-effekter, lukk kvitteringen.
+TA_CONTEXT_DRIFT_001_COMPLETE_SMALL_CURRENT_PATH_EFFECT_UP_DRIFT_UNRESOLVED.
+Edge-målet er uoppnådd. Alle treningsflagg er false. Ingen aktivjobb eller ny probe admittert.
+Siste kontroll er COMPLETE/CONSUMED: MARKET_STATE_TA_CONTEXT_DRIFT_OBSERVATION_20261113_001,
+kilde82aa8226,PLANbbd36b9c,RESULT8f1bf7cf,TERMINAL41890f7e,REVIEW5bf3ae35,VALIDATION36c2f213.
+Samlet rapport: docs/TA_CONTEXT_DRIFT_REVIEW.json.159,98s; eksisterendeCUDA-vakt exit0,
+12G/512M,8tråder;32målrettede tester PASS.128forwards,2checkpointdekodinger,32gathers,
+12sidecars,2048lagrede armrader/256unikeklokker,0updates/nye mål. Alle32nativebaseliner
+var bitlike; modell/buffere/modi/RNG/inputs/kilde uendret. Første relativePython-kommando
+ble avvist før CLAIM/modell; originalavvisning bevart, absolutt kanonisksti kjørte én invokasjon.
+
+INITIALbef35 og ordre001-FINALc34e754b på samme128oktober/128desemberrader,8intakte
+B16-batcher per måned valgt fra klokke/tellinger. Fire forhåndsfaste armer: BASELINE,
+toD1felt avgrenset til TRAIN-current-grenser, firemakrovolfelt avgrenset, og begge.
+Currentctx/snapshot/lokalsekvens-aliaser flyttes sammen; MTF-historikk forblir genuine.
+Desember FINAL JOINT endrer F-meanPup M5/M15/H1/H4/D1 med−0,205/−0,988/−0,983/−0,994/
+−1,023prosentpoeng. Non-M5-effekten var bare−0,092til−0,094pp i INITIAL: læringen øker
+følsomheten, men storUP-skjevhet består. FINAL oktober→desember-drift non-M5 er18,65–19,57pp;
+etterJOINT fortsatt18,45–19,34pp. Bare0,192–0,229pp av månedsforskjellen fjernes.
+Batchvirkningene har ulike fortegn: JOINT-desember F/M15−3,304til+1,982pp, D1−3,420til+1,673pp.
+Dette utelukker ikke lokal påvirkning eller bredere D1/makroeffekter gjennom uendrede
+MTF-/korrelerte inputbaner. Det viser at de seks avgrensede currentbanene alene forklarer
+lite av den aggregerte driften på disse radene. Konklusjonen gjelder denne avgrensningen
+av verdier utenfor TRAIN-grensene; den avviser ikke generell betydning av disse inputbanene.
+Intervenerte vektorer trenger ikke beskrive et fysisk sammenhengende marked; ingen
+produksjonsklipping, featurefjerning eller edge. Uavhengig agentkontroll fant ingen tallavvik.
+Alle armer/TF/S/F, batchspenn, interaksjoner og INITIAL→FINAL-kontraster er beholdt;
+rapporten bruker bare eksisterende JSON, ingen ytterligere array-/modellkjøring.
+
+Neste: sjekk eksisterende kilde/evidens for lagrede INITIAL/FINAL-representasjoner og
+retningshodenes faktiske konsum. Skill felles representasjonsdrift fra lært hoderespons
+før eventuell ny avgrenset kontroll. Ingen ny jobb eller checkpointdekoding er admittert.
 Bred M15-persistens er allerede målt og skal ikke kjøres igjen. Ingen ny trening.
 
 CPU-observasjon: MARKET_STATE_TA_QUERY_INPUT_DRIFT_20261113_001, kildea427db8f,
