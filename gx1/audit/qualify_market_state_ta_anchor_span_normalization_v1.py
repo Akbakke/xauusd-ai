@@ -139,8 +139,27 @@ def publish(name,value):
     return io.ref(ROOT/name)
 
 
-def measure(plan):
-    parent=_parent_metadata()
+def measure(plan, *, parent=None, cutoff=None, output_root=None):
+    explicit = any(value is not None for value in (parent, cutoff, output_root))
+    if explicit:
+        need(isinstance(parent, dict) and parent.get('contract_sha256') == extension.FOLD2_PARENT_BASE_SHA
+             and cutoff == extension.FOLD2_CUTOFF_NS
+             and plan['inputs']['parent'] == extension.FOLD2_PARENT_ARTIFACT
+             and plan['inputs']['physical_result'] == extension.FOLD2_PHYSICAL_RESULT
+             and output_root is not None and str(output_root) == plan['output_root'],
+             'EXACT_FOLD2_MEASUREMENT_SCOPE')
+    else:
+        parent = _parent_metadata()
+        cutoff = io.CUTOFF
+        output_root = ROOT
+
+    def publish_measurement(name, value):
+        if not explicit:
+            return publish(name, value)
+        raw=(json.dumps(value,sort_keys=True,indent=2,allow_nan=False)+'\n').encode()
+        need(len(raw)<=16*1024**2,'JSON_SIZE')
+        _publish_bytes(Path(output_root)/name,raw)
+        return io.ref(Path(output_root)/name)
     stats,proof={},{}
     for surface,item in plan['populations'].items():
         path=Path(item['artifact']['path'])
@@ -158,7 +177,7 @@ def measure(plan):
              and np.array_equal(rows,np.arange(*item['row_bounds'],dtype=np.int64))
              and io.row_sha(rows,lane)==item['population']['selected_row_indices_sha256']
              and io.axis_sha(times+duration)==item['population']['available_ns_sha256']
-             and np.all(times+duration<io.CUTOFF)
+             and np.all(times+duration<cutoff)
              and np.all(np.diff(times)>0) and np.all(np.diff(positions)>0),'EXACT_FIT_ARRAYS:' + surface)
         stat=norm.fit_surface_normalization(values,surface=surface,field_names=item['new_field_names'],
                                             allow_constant_train_fields=False)
@@ -178,10 +197,10 @@ def measure(plan):
             normalized_values_sha256=hashlib.sha256(normalized.tobytes()).hexdigest(),
             scale_source=stat['scale_source'],center=stat['center'],scale=stat['scale'])
         need(io.stat(path)==item['artifact_stat'],'SIDECAR_BOOKEND')
-        publish(surface.upper()+'_NEW_STATS.json',dict(statistics=stat,proof=proof[surface],
+        publish_measurement(surface.upper()+'_NEW_STATS.json',dict(statistics=stat,proof=proof[surface],
             physical_artifact=item['artifact'],normalization_extension_complete=False,test_data_used=False))
     extended=extension.extend_anchor_span_normalization(parent,stats)
-    new_units=units.anchor_span_fold1_prefix_units_profile()
+    new_units=None if explicit else units.anchor_span_fold1_prefix_units_profile()
     fields={k:s['field_names'] for k,s in extended['surfaces'].items()}
     validated=norm.require_input_normalization_contract(
         extended,expected_field_names=fields,expected_ctx_cat_names=extended['ctx_cat']['field_names'],
@@ -195,13 +214,13 @@ def measure(plan):
         expected_entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
     need([ta['surfaces'][k]['field_count'] for k in norm.EXPECTED_SURFACES]==[317,132,255,255,255,255,255],
          'TA_PHYSICAL_WIDTHS')
-    artifacts={name:publish(name+'.json',data) for name,data in
+    artifacts={name:publish_measurement(name+'.json',data) for name,data in
         (('NEW_FIELD_STATISTICS',stats),('EXTENDED_BASE_NORMALIZATION',extended),
-         ('TA_INPUT_NORMALIZATION',ta),('NEW_UNITS_PROFILE',new_units))}
+         ('TA_INPUT_NORMALIZATION',ta),('NEW_UNITS_PROFILE',new_units)) if data is not None}
     return dict(artifacts=artifacts,new_field_fit_proof=proof,
         old_field_preservation=extension.old_field_preservation(parent,extended),
         base_contract_sha256=extended['contract_sha256'],ta_contract_sha256=ta['contract_sha256'],
-        units_contract_sha256=new_units['contract_sha256'],
+        units_contract_sha256=None if explicit else new_units['contract_sha256'],
         new_statistics=12,surface_fit_calls=6,old_field_fit_calls=0,
         normalization_qualified=True,full_feature_view_gather_qualified=False,
         actual_model_baseline_complete=False,predictive_value_claimed=False)

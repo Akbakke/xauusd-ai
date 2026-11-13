@@ -5,32 +5,37 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_FOLD2_SPAN_REUSE_002_ADMITTED_NO_FIT. Edge-målet er uoppnådd. Alle treningsflagg er false.
-Én eksakt fysisk inputkvalifisering er admittert: MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_002.
-Plan/source-review ligger i samme RUNS-root; eksakte SHA og engangsgrense står i policy.
-Kjør bare gjennom audit4G/512M, timeout1200s/kill-after10. Ingen native-/normaliseringsfit.
+TA_FOLD2_SPAN_NORMALIZATION_001_ADMITTED_NO_NATIVE_FIT. Edge-målet er uoppnådd.
+Alle native treningsflagg er false. Én eksakt normalisering er admittert:
+MARKET_STATE_TA_FOLD2_SPAN_NORMALIZATION_20261113_001, audit4G/512M/180s/kill-after10.
+Seks tofeltsfit på kvalifiserte TRAIN-prefix-rader; alle gamle statistikker beholdes.
+Ingen modell, checkpoint, forward, native update eller TEST. Plan/SHA står i policy.
 
-Gjenbruk12span-filer fra tidligere TRAIN og LATER. Produser kun471manglende outputrader:
-lokal181, M5261, M1529. Eksisterende produsent får eksplisitt lanes; standardseks beholdes.
-Replay rekonstruerer fortsatt historisk registertilstand fra kildestart;471 er ikke antall leste
-eller beregnede historiebars. Bevar31gamle felt bitlikt. Slå sammen116668kvalifiserte rader
-fordelt påseks flater; krev bitlik klokke/native-posisjon/FP32spans på413overlappende rader.
-Trim til fold2-prefix og match alle autoritative rad-/tilgjengelighetshasher før publisering.
+Normaliseringseieren støtter nå eksakt fold2-parent20123245 og fysisk resultat8f2acfaf,
+uten fold1-enhetsunntak. Fold1-standardveien og beholdt normaliseringsartefakt er identiske.
+27fokuserte metadata-/syntetiske tester og faktisk CLI-preflight PASS. Uavhengig kilde-
+og populasjonsbinding gjennomgått. Hele fold2-populasjonen valideres før de seks fittene.
+Etterpå gjenstår kvalifisering av aktuell feature-view og egen fersk native initialbaseline.
+Ingen slik modelljobb eller native trening er åpnet av normaliseringsplanen.
 
-Rettelse til forrige metadataavlesning: f5b4112c var rå aksehash og kunne ikke sammenlignes
-med namespacet e1a30ec1. Lokal [987027,1034641) og alle femMTF-intervaller matcher med
-eksakt _hash_int64_indices. Det var kontrollmetoden som var feil, ingen påvist datasvikt.
-Original FOLD2_SCOPE_METADATA er bevart og eksplisitt overstyrt av ROW_AXIS_CORRECTION.json
-i001-root. Accuracy-/månedsresultatene påvirkes ikke. Klokker/verdier er ennå ikke kvalifisert.
+## Fullført fysisk fold2-kvalifisering
 
-11fokuserte tester PASS;002 endelig faktisk CLI/syntetisk preflight PASS uten datadekoding.
-001 feilet før CLAIM på feil forventet TRAIN-kvitteringsstatus; originaler er bevart.
-002 retter status, binder opprinnelig plan gjennom hele løpet og bevarer delkvitteringer
-med ukjent antall forsøk ved replayfeil. Uavhengig avgrenset kildegjennomgang gjennomført.
+SPAN_REUSE002 er COMPLETE/CONSUMED, exit0, kilde084d6c51,264,72s under4G/512M.
+ROOT: /home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_002.
+RESULT8f2acfaf, TERMINAL3de8d27a, VALIDATION9313ef0d; eksakte referanser i policy.
+Alle116668rader=116197gjenbrukte+471nye. Alle seks radhash-/tilgjengelighetsbevis matcher.
+413overlapprader er bitlike for tid, native-posisjon og FP32spans. Tre gap: lokal181,
+M5261, M1529; alle31gamle felt bitlike på nye rader (14601celler). Tre produsentkall,
+15sidecar-dekodinger,6klokker; null normalisering/model/target/checkpoint/update.
+Rekonstruksjon fra kildestart beregnet2473843historiebars;471 er nye outputrader.
+11fokuserte subset/default-tester og sluttkontroll PASS; ingen relaunch.
 
-Etter denne kvalifiseringen gjenstår fold2s egen317/132/255-normalisering. Fold2 har ingen
-fold1-unobserved-unit-unntak; disse skal ikke arves. Ny funksjon/normalisering krever egen
-initialbaseline. Ingen baseline, ny modelljobb eller trening er åpnet av denne planen.
+Rettelsen til tidligere metadataavlesning er bindende: f5b4112c var rå aksehash, og
+sammenligningen med namespacet e1a30ec1 var ugyldig. Alle seks intervaller matcher riktig
+_hash_int64_indices. Original feilkvittering er bevart og overstyrt av ROW_AXIS_CORRECTION
+iSPAN_REUSE001-root. Accuracyresultatene påvirkes ikke. 001 feilet før CLAIM på forventet
+TRAIN-kvitteringsstatus; originaler bevart. 002 rettet status, planbookends og feilregnskap.
+
 Siste prognoserapport er docs/TA_PERIOD_TRANSFER_REVIEW.json.
 
 ## Siste målte resultat

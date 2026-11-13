@@ -232,3 +232,59 @@ def test_resealed_parent_and_wrong_consumer_are_rejected(metadata_case):
         norm.require_input_normalization_contract(expanded, **wrong)
     with pytest.raises(RuntimeError, match='PROVENANCE_AND_UNITS_REQUIRED'):
         norm.require_input_normalization_contract(expanded, **{**kwargs, 'unobserved_units_profile': None})
+
+
+@pytest.fixture(scope='module')
+def fold2_metadata_case():
+    path = Path(extension.FOLD2_PARENT_ARTIFACT['path'])
+    if not path.is_file():
+        pytest.skip('requires exact fold2 JSON metadata only')
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == extension.FOLD2_PARENT_ARTIFACT['sha256']
+    parent = json.loads(path.read_text())['base_normalization']
+    additions = {s: statistics(s, extension.span_names(s), parent['surfaces'][s]['fit_row_count'])
+                 for s in extension.SURFACES}
+    before = encoded([parent, additions])
+    def no_fit(*args, **kwargs):
+        raise AssertionError('metadata extension must not fit')
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(norm, 'fit_surface_normalization', no_fit)
+        monkeypatch.setattr(norm, 'fit_ctx_cat_contract', no_fit)
+        expanded = extension.extend_anchor_span_normalization(parent, additions)
+    assert encoded([parent, additions]) == before
+    fields = compile_full_ta_entry_execution_profile()['source_field_names']
+    kwargs = dict(expected_field_names={s: fields['mtf' if s.startswith('mtf_') else s]
+                                       for s in norm.EXPECTED_SURFACES},
+                  expected_ctx_cat_names=fields['ctx_cat'],
+                  expected_entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+                  unobserved_units_profile=None)
+    return parent, additions, expanded, kwargs
+
+
+def test_fold2_uses_own_parent_without_any_fold1_unit_exceptions(fold2_metadata_case):
+    parent, _, expanded, kwargs = fold2_metadata_case
+    assert norm.require_input_normalization_contract(expanded, **kwargs) == expanded
+    proof = extension.old_field_preservation(parent, expanded)
+    assert proof['all_old_stat_vectors_exact'] and not proof['old_statistics_refitted']
+    assert expanded['anchor_span_extension']['parent_artifact'] == extension.FOLD2_PARENT_ARTIFACT
+    assert expanded['anchor_span_extension']['physical_input_result'] == extension.FOLD2_PHYSICAL_RESULT
+    assert expanded['anchor_span_extension']['unobserved_units_profile'] is None
+    assert all('unobserved_units_profile_sha256' not in v for v in expanded['surfaces'].values())
+    test_existing_ta_projection_routes_new_spans_and_reconstructs_exactly(fold2_metadata_case)
+    with pytest.raises(RuntimeError, match='FOLD2_UNOBSERVED_UNITS_FORBIDDEN'):
+        norm.require_input_normalization_contract(expanded, **{**kwargs,
+            'unobserved_units_profile': units.anchor_span_fold1_prefix_units_profile()})
+
+
+@pytest.mark.parametrize('fault', ('old_stat', 'alias', 'lineage', 'physical_ref', 'new_population'))
+def test_fold2_resealing_cannot_change_old_fields_or_bound_provenance(fold2_metadata_case, fault):
+    test_resealing_cannot_change_preserved_state_or_provenance(fold2_metadata_case, fault)
+
+
+def test_retained_fold1_extension_reconstructs_without_identity_change():
+    path = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_20261112_001/EXTENDED_BASE_NORMALIZATION.json')
+    if not path.is_file():
+        pytest.skip('requires retained fold1 JSON only')
+    retained = json.loads(path.read_text())
+    p = retained['anchor_span_extension']
+    rebuilt = extension.extend_anchor_span_normalization(p['source_contract'], p['new_field_statistics'])
+    assert encoded(rebuilt) == encoded(retained)

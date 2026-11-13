@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-13T12:09:58.746881+00:00",
-  "status": "TA_FOLD2_SPAN_REUSE_002_ADMITTED_NO_FIT",
+  "observed_utc": "2026-11-13T12:25:37.773389+00:00",
+  "status": "TA_FOLD2_SPAN_NORMALIZATION_001_ADMITTED_NO_NATIVE_FIT",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Execute exactly admitted fold2 span reuse002 once under audit4G/512M and timeout1200s. Reuse twelve sidecars, replay only local/M5/M15 gaps471rows, preserve31legacy fields and all overlap bits; bind six full row/availability identities116668rows. Then review physical qualification before any own-prefix normalization or fresh baseline/fit. No training admitted.",
+  "next_action": "Execute exactly admitted fold2 normalization001 once under audit4G/512M/180s: six two-field fits on qualified116668prefix rows, zero refit of old fields, no fold1 units. Review exact old-stat preservation, inverse/monotonicity and317/132/255projection before current-feature view or fresh native baseline qualification. No model job/training admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1759,7 +1759,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Prepare exact three-gap current-feature fold2 input qualification. Corrected prior metadata hash comparison; all six namespaced row axes match original fold2 evidence.",
+    "current_activity": "Fold2 physical inputs qualified; exact own-prefix additive normalization is the next admitted step.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -9283,7 +9283,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute exactly admitted fold2 span reuse002 once under audit4G/512M and timeout1200s. Reuse twelve sidecars, replay only local/M5/M15 gaps471rows, preserve31legacy fields and all overlap bits; bind six full row/availability identities116668rows. Then review physical qualification before any own-prefix normalization or fresh baseline/fit. No training admitted.",
+    "next_action": "Execute exactly admitted fold2 normalization001 once under audit4G/512M/180s: six two-field fits on qualified116668prefix rows, zero refit of old fields, no fold1 units. Review exact old-stat preservation, inverse/monotonicity and317/132/255projection before current-feature view or fresh native baseline qualification. No model job/training admitted.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22587,7 +22587,7 @@
         "new_model_calls": 0
       }
     },
-    "status": "TA_FOLD2_SPAN_REUSE_002_ADMITTED_NO_FIT",
+    "status": "TA_FOLD2_SPAN_NORMALIZATION_001_ADMITTED_NO_NATIVE_FIT",
     "observed_utc": "2026-11-13T03:49:42.485840+00:00",
     "current_observation_stage": "market_state_ta_current_update_observation_20261113_003",
     "current_observation_plan": {
@@ -25403,7 +25403,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-13T12:09:58.746881+00:00",
+  "updated_utc": "2026-11-13T12:25:37.773389+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -40910,7 +40910,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "Native training and fitting remain closed; one exact physical span reuse qualification002 is admitted, with zero normalization/model fits.",
+  "training_enabled_scope": "Native training/model jobs remain closed; only six two-field prefix normalization fits in exact normalization001 are admitted.",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -85476,7 +85476,7 @@
     "relaunch_allowed": false
   },
   "market_state_ta_fold2_span_reuse_20261113_002": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_NO_RELAUNCH",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_002/PLAN.json",
       "sha256": "c1a0ea6c69e7d108c3564f5ed78a0d433ffa5548a1b43ea12931612fd59f2018"
@@ -85500,11 +85500,76 @@
       "test_data_used": false
     },
     "max_invocations": 1,
+    "remaining_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "training_authorized": false,
+    "relaunch_allowed": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_002/RESULT.json",
+      "sha256": "8f2acfafc459cc9a2fbcb7b588c40eb008d1e75c7e47835bbc55f24b68f32cc2"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_002/TERMINAL.json",
+      "sha256": "3de8d27ac093e9d06a5b473bd7d76cfaa8eaea8c33cfdeaa35bda1720094b807"
+    },
+    "wrapper_exit": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_002/WRAPPER_EXIT.json",
+      "sha256": "c9fc1a98d5b836cb806294c28ca994551f4cffcc3f2ec3e8a3202efbea9d0da5"
+    },
+    "counts": {
+      "checkpoint_reads": 0,
+      "clock_arrays": 6,
+      "merged_output_rows": 116668,
+      "model_constructions": 0,
+      "model_forwards": 0,
+      "new_output_rows": 471,
+      "normalization_fits": 0,
+      "optimizer_steps": 0,
+      "producer_calls": 3,
+      "sidecar_archive_decodes": 15,
+      "target_arrays_decoded": 0
+    },
+    "elapsed_seconds": 264.7019240669979,
+    "validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_002/VALIDATION.json",
+      "sha256": "9313ef0d9e898317a31c90e528fdf3d5afea12af8a9ef707693977319ea1abb6"
+    }
+  },
+  "market_state_ta_fold2_span_normalization_20261113_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_NORMALIZATION_20261113_001/PLAN.json",
+      "sha256": "a97f9fd05385308f4a347d92029e9249d9c7123c4fb4d228ab55e42d349477e6"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_NORMALIZATION_20261113_001/SOURCE_REVIEW.json",
+      "sha256": "20774e1c97ad6990318ecfa085dace11f291de9a2ffcdad352a170ade1aa5c2f"
+    },
+    "scope": {
+      "checkpoint_reads": 0,
+      "fold_id": 2,
+      "model_constructions": 0,
+      "model_forwards": 0,
+      "new_field_statistics": 12,
+      "old_field_fit_calls": 0,
+      "optimizer_steps": 0,
+      "parent_rows": 47338,
+      "physical_surface_rows": 116668,
+      "sidecar_archives": 6,
+      "surface_fit_calls": 6,
+      "target_arrays_decoded": 0,
+      "test_data_used": false
+    },
+    "max_invocations": 1,
     "remaining_invocations": 1,
     "claimed_invocations": 0,
     "completed_invocations": 0,
     "execution_authorized": true,
     "data_reads_authorized": true,
+    "normalization_fits_authorized": 6,
     "training_authorized": false,
     "relaunch_allowed": false
   }

@@ -26,6 +26,16 @@ PHYSICAL_RESULT = {
     'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001/RESULT.json',
     'sha256': '8878d17a5bf114fcf9cd5eb0e74792ddc5df068b95b67951b594759d5b2b05bb',
 }
+FOLD2_PARENT_BASE_SHA = '20123245fb1a7c6d4336c61c3edae1ca695c1b1a75a17f89e8fda13232886f42'
+FOLD2_PARENT_ARTIFACT = {
+    'path': '/home/andre2/GX1_RUNS/MARKET_STATE_MATURE_PREFIX_NORMALIZATION_20261107_001/PREFIX_NORMALIZATION_FOLD_2.json',
+    'sha256': '32f917bb9cf262f57afe2f60d58025b6679a3ffc5874dbe2d3b49382283ff9bc',
+}
+FOLD2_PHYSICAL_RESULT = {
+    'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_002/RESULT.json',
+    'sha256': '8f2acfafc459cc9a2fbcb7b588c40eb008d1e75c7e47835bbc55f24b68f32cc2',
+}
+FOLD2_CUTOFF_NS = 1735603200000000000
 STAT_VECTORS = ('center', 'scale', 'binary_mask', 'categorical_mask', 'scale_source',
                 'train_transformed_min', 'train_transformed_max')
 
@@ -125,9 +135,9 @@ def old_field_preservation(parent, expanded):
 
 
 def extend_anchor_span_normalization(parent, new_statistics):
-    """Build the one qualified fold-1 extension from validated two-field stats."""
+    """Build an exact qualified fold-1 or fold-2 extension; preserve parent stats."""
     from gx1.features.entry_specialist_feature_groups_v1 import compile_full_ta_entry_execution_profile
-    need(isinstance(parent, Mapping) and parent.get('contract_sha256') == PARENT_BASE_SHA
+    need(isinstance(parent, Mapping) and parent.get('contract_sha256') in (PARENT_BASE_SHA, FOLD2_PARENT_BASE_SHA)
          and 'ta_projection' not in parent and 'anchor_span_extension' not in parent, 'EXACT_PARENT')
     need(isinstance(new_statistics, Mapping) and set(new_statistics) == set(SURFACES),
          'SIX_NEW_STAT_SURFACES')
@@ -136,8 +146,9 @@ def extend_anchor_span_normalization(parent, new_statistics):
                   for surface in norm.EXPECTED_SURFACES}
     old_names = {surface:[n for n in names if n not in span_names(surface)]
                  for surface, names in full_names.items()}
-    old_units = units.mature_fold1_prefix_units_profile()
-    new_units = units.anchor_span_fold1_prefix_units_profile()
+    fold2 = parent['contract_sha256'] == FOLD2_PARENT_BASE_SHA
+    old_units = None if fold2 else units.mature_fold1_prefix_units_profile()
+    new_units = None if fold2 else units.anchor_span_fold1_prefix_units_profile()
     original = norm.require_input_normalization_contract(
         parent, expected_field_names=old_names, expected_ctx_cat_names=fields['ctx_cat'],
         expected_entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
@@ -154,7 +165,7 @@ def extend_anchor_span_normalization(parent, new_statistics):
              'NEW_STAT_SCOPE:' + surface)
         additions[surface] = stat
     surfaces = {surface:merge_surface(original['surfaces'][surface], additions.get(surface),
-        field_names=full_names[surface], units_profile_sha=new_units['contract_sha256'])
+        field_names=full_names[surface], units_profile_sha=None if fold2 else new_units['contract_sha256'])
         for surface in norm.EXPECTED_SURFACES}
     maps = {surface:{i:full_names[surface].index(n)
              for i,n in enumerate(original['surfaces'][surface]['field_names'])}
@@ -169,8 +180,10 @@ def extend_anchor_span_normalization(parent, new_statistics):
         unobserved_units_profile=new_units)
     preservation = old_field_preservation(original,result)
     result['anchor_span_extension'] = dict(
-        schema_version='gx1_exact_fold1_anchor_span_normalization_extension_v1',
-        parent_artifact=copy(PARENT_ARTIFACT),physical_input_result=copy(PHYSICAL_RESULT),
+        schema_version=('gx1_exact_fold2_anchor_span_normalization_extension_v1' if fold2 else
+                        'gx1_exact_fold1_anchor_span_normalization_extension_v1'),
+        parent_artifact=copy(FOLD2_PARENT_ARTIFACT if fold2 else PARENT_ARTIFACT),
+        physical_input_result=copy(FOLD2_PHYSICAL_RESULT if fold2 else PHYSICAL_RESULT),
         source_contract=copy(original),new_field_statistics=copy(additions),
         unobserved_units_profile=copy(new_units),preservation=preservation,
         physical_storage='unchanged_parent_arrays_plus_qualified_two_field_sidecars',
@@ -186,11 +199,15 @@ def require_anchor_span_normalization(value, *, expected_field_names, expected_c
     """Reconstruct the entire extension; resealing cannot alter an old statistic."""
     need(isinstance(value, Mapping), 'CONTRACT')
     provenance = value.get('anchor_span_extension')
-    need(isinstance(provenance, Mapping) and isinstance(unobserved_units_profile, Mapping),
-         'PROVENANCE_AND_UNITS_REQUIRED')
+    need(isinstance(provenance, Mapping), 'PROVENANCE_AND_UNITS_REQUIRED')
     expected = extend_anchor_span_normalization(
         provenance.get('source_contract'),provenance.get('new_field_statistics'))
-    profile = units.require_anchor_span_fold1_prefix_units_profile(unobserved_units_profile)
+    if expected['anchor_span_extension']['unobserved_units_profile'] is None:
+        need(unobserved_units_profile is None, 'FOLD2_UNOBSERVED_UNITS_FORBIDDEN')
+        profile = None
+    else:
+        need(isinstance(unobserved_units_profile, Mapping), 'PROVENANCE_AND_UNITS_REQUIRED')
+        profile = units.require_anchor_span_fold1_prefix_units_profile(unobserved_units_profile)
     need(profile == expected['anchor_span_extension']['unobserved_units_profile']
          and norm._canonical_sha256(value) == norm._canonical_sha256(expected), 'EXACT_EXTENSION')
     fields = {surface:stat['field_names'] for surface,stat in expected['surfaces'].items()}
