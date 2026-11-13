@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-13T09:56:40.355545+00:00",
-  "status": "TA_HEAD_INPUT_COMPLETE_PROJECTION_REPLAY_001_ADMITTED",
+  "observed_utc": "2026-11-13T10:02:10.909954+00:00",
+  "status": "TA_HEAD_REPRESENTATION_001_COMPLETE_UPSTREAM_AND_QUERY_DRIFT_LOCALIZED_EDGE_UNRESOLVED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Run exactly the admitted CPU projection replay once. Qualify both post-GELU and logit diagonals before separating retained upstream hidden, query projection and head terms. Keep all8 combinations, all6 ordered paths and all30cells; close consumed admission afterward. Endpoint accounting is not a historical causal share or improved predictive edge.",
+  "next_action": "Trace the actual current entry_q_joint_hidden assembly and reuse prior family/MTF consumption evidence to identify a concrete upstream pooling, temporal-information or learning issue. Preserve the separate native S/M15 fit and F generalization problems. Do not repeat general M5 head attribution, simple output-bias correction, independent-head trial or six-field clamp. Current endpoint accounting is not unique historical causation or improved accuracy. No further run/checkpoint decoding/training or model change is admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -85040,10 +85040,14 @@
     },
     "elapsed_seconds": 89.89698289400076,
     "source_unchanged": true,
-    "terminal_exit_code": 0
+    "terminal_exit_code": 0,
+    "public_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_HEAD_REPRESENTATION_REVIEW.json",
+      "sha256": "c26f9bf7687bb7b61a46b8f7770528a52b82795ca2daadff6e47ae35d8541b44"
+    }
   },
   "market_state_ta_head_projection_replay_20261113_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_NO_RELAUNCH",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_HEAD_PROJECTION_REPLAY_20261113_001/PLAN.json",
       "sha256": "74516173261ec7b6dfa4c694723656b33cfb76536e92e600f386acb4d8f08bf5"
@@ -85053,10 +85057,10 @@
       "sha256": "09d5889b3e1e98238c0d5f5a3735bea72580dd30676c65fa8537243077cd8396"
     },
     "max_invocations": 1,
-    "remaining_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
+    "remaining_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
     "relaunch_allowed": false,
     "checkpoint_reads_authorized": false,
     "model_execution_authorized": false,
@@ -85078,6 +85082,40 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_HEAD_PROJECTION_REPLAY_20261113_001/PREFLIGHT.json",
       "sha256": "06ea3d9b1170cea69858339c4ca925aaa18700d708c32547cf39b59c2a576c12"
     },
-    "authorization": "Standing local0USD measured-cause investigation. Native all-TF head-input observation shows representation term dominates current non-M5 UP endpoint shift. Reuse its retained hidden/projection/head arrays for one CPU-only all8-combination/all6-path accounting; no checkpoint or fresh encoder/GPU, fitting, selection or production changes."
+    "authorization": "Standing local0USD measured-cause investigation. Native all-TF head-input observation shows representation term dominates current non-M5 UP endpoint shift. Reuse its retained hidden/projection/head arrays for one CPU-only all8-combination/all6-path accounting; no checkpoint or fresh encoder/GPU, fitting, selection or production changes.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_HEAD_PROJECTION_REPLAY_20261113_001/RESULT.json",
+      "sha256": "854ca204b72a64fbb53454e690cdf28ed1ca326ad464ac2a89ef0f7f2113236c"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_HEAD_PROJECTION_REPLAY_20261113_001/TERMINAL.json",
+      "sha256": "102ce0bc8e88ba12f5d4d767c3227bf5a2a17bfa74f64c5675fa1f8886b60fef"
+    },
+    "wrapper_exit": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_HEAD_PROJECTION_REPLAY_20261113_001/WRAPPER_EXIT.json",
+      "sha256": "fc157e82b2f4e3abdbcb91649e6fcecfb6699007de5d2b4940cdfb74a15c3fd2"
+    },
+    "validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_HEAD_PROJECTION_REPLAY_20261113_001/VALIDATION.json",
+      "sha256": "61270092f8fef48096e38c4f965d9bbbbf2911d769eb254c22b75bc2d6aa14e4"
+    },
+    "public_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_HEAD_REPRESENTATION_REVIEW.json",
+      "sha256": "c26f9bf7687bb7b61a46b8f7770528a52b82795ca2daadff6e47ae35d8541b44"
+    },
+    "actual_counts": {
+      "accounting_cells": 30,
+      "affine_grid_evaluations": 16,
+      "archive_decodes": 2,
+      "checkpoint_decodes": 0,
+      "full_model_forwards": 0,
+      "model_constructions": 0,
+      "new_target_gathers": 0,
+      "optimizer_updates": 0,
+      "projection_batch_evaluations": 64
+    },
+    "elapsed_seconds": 1.5802494019990263,
+    "source_unchanged": true,
+    "terminal_exit_code": 0
   }
 }
