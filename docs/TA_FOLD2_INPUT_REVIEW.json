@@ -14,7 +14,7 @@
   },
   "native_training_authorized": false,
   "new_job_admitted": false,
-  "next_action": "Qualify the exact fixed fold2 Jan-Mar2025 later input panel with clock-derived envelopes and existing native window owner, reusing overlapping spans. Current blocker: later-coverage adapter and clock-envelope helpers are hard-bound to fold1 Oct-Dec2024. Preserve fold1 behavior; no source refactor, TRAIN refit or native model job. Use own fold2 normalization unchanged. Fresh native baseline/fit remain unopened.",
+  "next_action": "Finish and review one exact input-only later qualification using existing replay/merge/window/gather owners. Bind Jan-Mar2025 fixed4096 panel, clock-derived envelopes, reused overlaps and at most one new gap per six surfaces. Physical RESULT/COVERAGE then actual canonical later gather with frozen own-prefix normalization in one capped job. Preflight and exact admission required; no job admitted yet. No TRAIN rerun/refit, models or targets. Fresh native baseline remains separate.",
   "normalization": {
     "artifacts": {
       "EXTENDED_BASE_NORMALIZATION": {
@@ -221,7 +221,7 @@
       "sha256": "2e25098183d2ffb27a4441f178789e2bdd39b84646815b67d061ccedbf2170da"
     }
   },
-  "observed_utc": "2026-11-13T13:34:59.330068+00:00",
+  "observed_utc": "2026-11-13T13:47:13.628602+00:00",
   "physical": {
     "all_413_overlap_rows_bitexact": true,
     "counts": {
@@ -315,7 +315,7 @@
     "Existing additive normalization supports exactly the qualified fold2 parent and physical result; no inherited fold1 units. All old statistics and fold1 output identity preserved.",
     "Existing six two-field fit/inverse/projection owner reused with exact fold2 parent/cutoff/output binding."
   ],
-  "status": "FOLD2_FULL_TRAIN_INPUT_GATHER_QUALIFIED_LATER_AND_MODEL_PENDING",
+  "status": "FOLD2_TRAIN_INPUTS_QUALIFIED_LATER_SOURCE_READY_PHYSICAL_PENDING",
   "test_data_used": false,
   "validation": {
     "both_actual_cli_preflights": "PASS",
@@ -404,5 +404,29 @@
     },
     "native_model_constructed": false,
     "later_inputs_qualified": false
+  },
+  "later_preparation": {
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_001/SOURCE_SCOPE_REVIEW.json",
+      "sha256": "96278e2028b6cb79d55334ee7b835f3c5bfaf4b4563549ea476b04368b4560af"
+    },
+    "metadata": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_001/METADATA.json",
+      "sha256": "202ffea2a4a84145e5ae6cd57e94380df3febd8ce67d6511dd475a395f11f2dc"
+    },
+    "view": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_001/FEATURE_VIEW.json",
+      "sha256": "f7979c855c0a2b3a0cee5c0234d5f242b00431e56e4bc68469226f4a61cf7943"
+    },
+    "selected_rows": 4096,
+    "score_rows": 17288,
+    "score_parent_start": 47602,
+    "last_selected_parent_position": 64881,
+    "partial_tail_rows_excluded": 8,
+    "selected_batch_rule": "256 completeB16 groups; floor(i*1079/255)",
+    "own_train_normalization_unchanged": true,
+    "full_train_gather_reused": true,
+    "later_actual_qualified": false,
+    "new_job_admitted": false
   }
 }

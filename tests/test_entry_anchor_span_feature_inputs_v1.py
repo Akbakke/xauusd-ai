@@ -191,8 +191,8 @@ def make_gather_case(monkeypatch, *, later=False):
             later_coverage_sha256='b'*64,
             later_qualification=('/home/andre2/GX1_RUNS/SYNTHETIC/RESULT.json','c'*64))
         monkeypatch.setattr(overlay,'_require_later_coverage',lambda *a:later_binding)
-        monkeypatch.setattr(overlay,'LATER_SCORE_END_NS',int(c['decision_ns'][-1])+views.BAR_NS)
-        build.update(later_coverage={'synthetic_only':True},later_axes={
+        build.update(later_coverage={'synthetic_only':True,
+            'score_end_exclusive_ns':int(c['decision_ns'][-1])+views.BAR_NS},later_axes={
             key:c[key] for key in ('parent_rows','bar_start_ns','decision_ns')})
     bound=overlay.build_anchor_span_inputs(view,**build)
     args={**original,'entry_sequence_source':seq,'snap_x':snap,'multi_tf_sources':bound.mtf_sources,'anchor_span_inputs':bound}
@@ -225,38 +225,40 @@ def test_composed_input_scope_clock_and_backing_guards(monkeypatch,fault):
     with pytest.raises(RuntimeError):views.gather_native_direction_feature_batch(view,**args)
 
 
-def later_metadata_case():
+def later_metadata_case(fold_id=1):
     """Synthetic axes only; no retained market values or large feature matrices."""
-    start=overlay.LATER_SCORE_START_NS
-    decisions=start+(np.arange(118249,dtype=np.int64)-29849)*views.BAR_NS
+    panel=overlay.later_panel(fold_id=fold_id)
+    start=panel['score_start_ns']
+    decisions=start+(np.arange(118249,dtype=np.int64)-panel['score_parent_start'])*views.BAR_NS
     axes=dict(parent_rows=readonly(3*np.arange(118249,dtype=np.int64)+2),
               bar_start_ns=readonly(decisions-views.BAR_NS),decision_ns=readonly(decisions))
     sha=lambda a:hashlib.sha256(a.astype('<i8').tobytes()).hexdigest()
     view=dict(contract_sha256='a'*64,full_axes=dict(rows=118249,**{
         k+'_sha256':sha(a) for k,a in axes.items()}),
-        prefix=dict(rows=29574,cutoff_ns=1727654400000000000,normalization_identity='unchanged'))
+        prefix=dict(rows=panel['prefix_rows'],cutoff_ns=panel['prefix_cutoff_ns'],normalization_identity='unchanged'))
     populations={k:dict(selected_unique_row_count=3,selected_row_indices_sha256='d'*64,
                        available_ns_sha256='e'*64) for k in ('local',*overlay.TIMEFRAMES)}
-    selected=(29849+np.array([i*1108//255 for i in range(256)],dtype=np.int64)[:,None]*16
+    selected=(panel['score_parent_start']+np.array(panel['batch_indices'],dtype=np.int64)[:,None]*16
               +np.arange(16,dtype=np.int64)).reshape(-1)
     coverage=dict(schema_version=overlay.LATER_COVERAGE_SCHEMA,status='COMPLETE',
         qualification=dict(path='/home/andre2/GX1_RUNS/SYNTHETIC_LATER/RESULT.json',sha256='f'*64),
         view_sha256=view['contract_sha256'],full_axes=deepcopy(view['full_axes']),
-        normalization_prefix=deepcopy(view['prefix']),score_parent_start=29849,score_rows=17753,
-        score_start_ns=overlay.LATER_SCORE_START_NS,score_end_exclusive_ns=overlay.LATER_SCORE_END_NS,
-        batch_size=16,batch_indices=[i*1108//255 for i in range(256)],
+        normalization_prefix=deepcopy(view['prefix']),score_parent_start=panel['score_parent_start'],score_rows=panel['score_rows'],
+        score_start_ns=panel['score_start_ns'],score_end_exclusive_ns=panel['score_end_exclusive_ns'],
+        batch_size=16,batch_indices=panel['batch_indices'],
         selected_parent_rows_sha256=sha(axes['parent_rows'][selected]),
         selected_decision_ns_sha256=sha(axes['decision_ns'][selected]),
         physical_populations=deepcopy(populations))
     return view,coverage,axes,populations,selected
 
 
-def test_fixed_later_metadata_owns_only_selected_axes_without_changing_train_normalization():
-    view,coverage,axes,populations,positions=later_metadata_case()
+@pytest.mark.parametrize('fold_id,first,last',[(1,29849,47592),(2,47602,64881)])
+def test_fixed_later_metadata_owns_only_selected_axes_without_changing_train_normalization(fold_id,first,last):
+    view,coverage,axes,populations,positions=later_metadata_case(fold_id)
     before=deepcopy((view,coverage,populations))
     actual=overlay._require_later_coverage(view,coverage,axes,populations)
     assert (view,coverage,populations)==before
-    assert len(positions)==4096 and positions[0]==29849 and positions[-1]==47592
+    assert len(positions)==4096 and positions[0]==first and positions[-1]==last
     for key,expected in [('later_parent_positions',positions),
                          ('later_parent_rows',axes['parent_rows'][positions]),
                          ('later_decision_ns',axes['decision_ns'][positions])]:
@@ -265,14 +267,15 @@ def test_fixed_later_metadata_owns_only_selected_axes_without_changing_train_nor
     assert len(actual['later_coverage_sha256'])==64
     assert actual['later_qualification']==tuple(coverage['qualification'][k] for k in ('path','sha256'))
     coverage['batch_indices'][0]=1
-    assert actual['later_parent_positions'][0]==29849
+    assert actual['later_parent_positions'][0]==first
 
 
 @pytest.mark.parametrize('fault',[
     'view','full_axes','normalization','population','batch_selection','score_count','boolean_count',
     'unfinished','ref_path','ref_sha','selected_axis_hash','mutable_axis','changed_axis','extra_key'])
-def test_later_metadata_rejects_scope_axis_or_provenance_changes(fault):
-    view,coverage,axes,populations,_=later_metadata_case()
+@pytest.mark.parametrize('fold_id',[1,2])
+def test_later_metadata_rejects_scope_axis_or_provenance_changes(fault,fold_id):
+    view,coverage,axes,populations,_=later_metadata_case(fold_id)
     if fault=='view':coverage['view_sha256']='b'*64
     elif fault=='full_axes':coverage['full_axes']['rows']-=1
     elif fault=='normalization':coverage['normalization_prefix']['cutoff_ns']+=views.BAR_NS
@@ -399,3 +402,25 @@ def test_retained_fold1_view_reconstructs_identically(binding):
           'source_bindings':retained['source_bindings'],'max_batch_rows':retained['max_batch_rows'],
           'dedicated_non_m5_side':retained.get('dedicated_non_m5_side',False)}
     assert views.bind_native_direction_feature_view(**args,expected=retained)==retained
+
+
+def test_fold2_later_panel_rejects_fold1_selection_and_unqualified_prefix():
+    view,coverage,axes,populations,_=later_metadata_case(2)
+    coverage['batch_indices']=list(overlay.LATER_BATCH_INDICES)
+    with pytest.raises(RuntimeError,match='LATER_FIXED_PANEL'):
+        overlay._require_later_coverage(view,coverage,axes,populations)
+    view,coverage,axes,populations,_=later_metadata_case(2)
+    view['prefix']['cutoff_ns']+=views.BAR_NS
+    coverage['normalization_prefix']=deepcopy(view['prefix'])
+    with pytest.raises(RuntimeError,match='LATER_QUALIFIED_PREFIX'):
+        overlay._require_later_coverage(view,coverage,axes,populations)
+
+
+def test_later_adapter_uses_qualified_end_instead_of_fold1_global(monkeypatch):
+    view,_,_,build=make_gather_case(monkeypatch,later=True)
+    # The exact metadata binding is isolated in its own tests; the real array
+    # guard must use the validated coverage cutoff for either supported panel.
+    payload=build['span_payloads']['local']
+    build['later_coverage']['score_end_exclusive_ns']=int(payload['times_ns'][-1])+views.BAR_NS
+    with pytest.raises(RuntimeError,match='QUALIFIED_POPULATION:local'):
+        overlay.build_anchor_span_inputs(view,**build)

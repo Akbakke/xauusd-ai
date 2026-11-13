@@ -27,12 +27,29 @@ LATER_SCORE_START_NS = 1727740800000000000  # 2024-10-01 UTC
 LATER_SCORE_END_NS = 1735689600000000000  # 2025-01-01 UTC
 
 
+
+def later_panel(*, fold_id=1):
+    """Two fixed development panels; never infer a scope from observed values."""
+    need(type(fold_id) is int and fold_id in (1, 2), 'LATER_FOLD_ID')
+    if fold_id == 1:
+        return dict(prefix_rows=29574, prefix_cutoff_ns=1727654400000000000,
+            score_parent_start=29849, score_rows=17753, batch_size=16,
+            score_start_ns=LATER_SCORE_START_NS, score_end_exclusive_ns=LATER_SCORE_END_NS,
+            batch_indices=list(LATER_BATCH_INDICES))
+    # Exact245 metadata b043ec38: Jan-Mar2025 has17288 rows at[47602,64890).
+    # Same256 evenly spaced complete B16 groups; final8 partial rows are excluded.
+    return dict(prefix_rows=47338, prefix_cutoff_ns=1735603200000000000,
+        score_parent_start=47602, score_rows=17288, batch_size=16,
+        score_start_ns=1735689600000000000, score_end_exclusive_ns=1743465600000000000,
+        batch_indices=[i * 1079 // 255 for i in range(256)])
+
+
 def _axis_sha(value):
     return hashlib.sha256(value.astype('<i8', copy=False).tobytes()).hexdigest()
 
 
 def _require_later_coverage(view, coverage, axes, populations):
-    """Bind only the fixed fold1 development panel; this grants no execution.
+    """Bind one exact fold1/fold2 development panel; this grants no execution.
 
     The caller must verify the referenced COMPLETE qualification and sidecar
     file hashes. This owner verifies their declared axes and actual arrays.
@@ -50,14 +67,17 @@ def _require_later_coverage(view, coverage, axes, populations):
          and coverage['full_axes'] == view['full_axes']
          and coverage['normalization_prefix'] == view['prefix']
          and coverage['physical_populations'] == populations, 'LATER_COVERAGE_BINDING')
-    need(view['full_axes']['rows'] == 118249 and view['prefix']['rows'] == 29574
-         and view['prefix']['cutoff_ns'] == 1727654400000000000, 'LATER_FOLD1_PREFIX')
-    fixed = dict(score_parent_start=29849, score_rows=17753, batch_size=16,
-                 score_start_ns=LATER_SCORE_START_NS, score_end_exclusive_ns=LATER_SCORE_END_NS)
+    panels = [later_panel(fold_id=i) for i in (1, 2)]
+    matches = [p for p in panels if view['prefix']['rows'] == p['prefix_rows']
+               and view['prefix']['cutoff_ns'] == p['prefix_cutoff_ns']]
+    need(view['full_axes']['rows'] == 118249 and len(matches) == 1, 'LATER_QUALIFIED_PREFIX')
+    panel = matches[0]
+    fixed = {k: panel[k] for k in ('score_parent_start', 'score_rows', 'batch_size',
+                                 'score_start_ns', 'score_end_exclusive_ns')}
     need(all(type(coverage[k]) is int and coverage[k] == v for k, v in fixed.items())
          and type(coverage['batch_indices']) is list
          and all(type(i) is int for i in coverage['batch_indices'])
-         and tuple(coverage['batch_indices']) == LATER_BATCH_INDICES, 'LATER_FIXED_PANEL')
+         and coverage['batch_indices'] == panel['batch_indices'], 'LATER_FIXED_PANEL')
     ref = coverage['qualification']
     need(type(ref) is dict and set(ref) == {'path', 'sha256'}
          and type(ref['path']) is str and type(ref['sha256']) is str, 'LATER_QUALIFICATION_REF')
@@ -75,10 +95,11 @@ def _require_later_coverage(view, coverage, axes, populations):
              and _axis_sha(value) == view['full_axes'][name + '_sha256'], 'LATER_FULL_AXIS:' + name)
     need(np.array_equal(axes['bar_start_ns'] + 300 * 10**9, axes['decision_ns']),
          'LATER_DECISION_CLOCK')
-    score_times = axes['decision_ns'][29849:47602]
-    need(np.all(score_times >= LATER_SCORE_START_NS) and np.all(score_times < LATER_SCORE_END_NS),
-         'LATER_SCORE_INTERVAL')
-    positions = (29849 + np.asarray(LATER_BATCH_INDICES, dtype=np.int64)[:, None] * 16
+    start = panel['score_parent_start']
+    score_times = axes['decision_ns'][start:start + panel['score_rows']]
+    need(np.all(score_times >= panel['score_start_ns'])
+         and np.all(score_times < panel['score_end_exclusive_ns']), 'LATER_SCORE_INTERVAL')
+    positions = (start + np.asarray(panel['batch_indices'], dtype=np.int64)[:, None] * 16
                  + np.arange(16, dtype=np.int64)).reshape(-1)
     parents, decisions = axes['parent_rows'][positions], axes['decision_ns'][positions]
     need(_axis_sha(parents) == coverage['selected_parent_rows_sha256']
@@ -253,7 +274,7 @@ def build_anchor_span_inputs(view, *, entry_sequence_source, snap_x, ctx_cont, c
         coverage_cutoff = view['prefix']['cutoff_ns']
     else:
         later_binding = _require_later_coverage(view, later_coverage, later_axes, physical_populations)
-        coverage_cutoff = LATER_SCORE_END_NS
+        coverage_cutoff = later_coverage['score_end_exclusive_ns']
         need(np.all(positions >= 0) and np.all(positions < len(times))
              and np.array_equal(times[positions], later_axes['bar_start_ns']), 'LATER_PARENT_SOURCE_CLOCK')
     selected={}

@@ -5,18 +5,29 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_FOLD2_FULL_TRAIN_INPUTS_QUALIFIED_LATER_COVERAGE_PENDING. Edge-målet er uoppnådd.
-Fold2s fulle TRAIN-inputvisning/gather og egen normalisering er nå kvalifisert.
-Alle tre inputjobber er COMPLETE/CONSUMED. Ingen relaunch eller ny jobb er admittert.
-Alle treningsflagg er false. Ingen native modell/baseline er konstruert i denne bølgen.
+TA_FOLD2_LATER_SCOPE_BOUND_PHYSICAL_AND_GATHER_PENDING. Edge-målet er uoppnådd.
+Full fold2 TRAIN-gather er kvalifisert og konsumert. Fold2s senere inputbinding er nå
+avgrenset i kilde til januar–mars2025, med uendret fold1/default/TRAIN-gren.
+89fokuserte tester, syntaks/stale-path/diff og uavhengig kildekontroll PASS.
+Ny FEATURE_VIEW f7979c85 endrer bare overlay-eierens kildehash;13invarianter inklusive
+prefix, akser, normalisering, ruting, constructor og aktivitet-only-funksjon er identiske.
+TRAIN-grenen er uendret; beholdt full TRAIN-kvalifikasjon gjenbrukes uten ny datakjøring.
 
-Neste konkrete sperre er fold1-bindingen i entry_anchor_span_feature_inputs_v1._require_later_coverage
-og qualify_market_state_ta_benchmark_later_inputs_v1s utvalg/klokkegrenser. Utvid bare til
-eksakt fold2 januar–mars2025 med uendret fold1-adferd. Bind et forhåndsvalgt panel og
-utled seks fysiske vindusomslutninger fra klokker; gjenbruk overlappende spans og eksisterende
-native vindus-/31felt-kontroller. Ingen nye targets eller TRAIN-normaliseringsfit.
-Senere coverage og egen fersk native initialbaseline må kvalifiseres før eventuell fit.
-Samlet rapport: docs/TA_FOLD2_INPUT_REVIEW.json. Eksakte referanser/SHA står i policy.
+Det senere utvalget er forhåndsvalgt4096rader,256hele B16-grupper medindeks i*1079//255
+fra scorerad47602. Scoringsperioden har17288rader; sistevalgteposisjon64881.
+De siste8ufullstendige batchradene utelates etter samme utvalgsregel somfold1.
+Dette er ikke full senerepopulasjon. Ingen targetverdier brukes til utvalget.
+
+Neste: ferdigstill/revider én avgrenset CPU-jobb i
+/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_001.
+PLAN_DRAFT/privatQUALIFY er under klargjøring, ikke admittert. Gjenbruk eksisterende
+clock-envelope/merge/replay/native-window/gather-eiere. Beregn kun sammenhengende
+mangler etter bitlikt overlapp, maksimalt ett gap per seks flater. Publiser fysisk
+RESULT/COVERAGE før faktisk raw/normalisert seneregather, og krev begge i terminalen.
+Ingen TRAIN-rerun/refit, nye targets, modeller, checkpoints eller oppdateringer.
+Egen fersk native initialbaseline kreves før eventuell fit; alle treningsflagg false.
+Tidligere engangsjobber er COMPLETE/CONSUMED, aldri relaunch. TEST forblir forseglet.
+Samlet rapport: docs/TA_FOLD2_INPUT_REVIEW.json. NEXT_RUN_POLICY eier status.
 
 ## Fullført og verifisert
 

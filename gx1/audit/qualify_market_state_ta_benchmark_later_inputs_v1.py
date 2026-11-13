@@ -72,8 +72,9 @@ def publish(name, value):
     return replay.ref(ROOT / name)
 
 
-def selected_positions():
-    return (29849 + np.asarray(overlay.LATER_BATCH_INDICES, np.int64)[:, None] * 16
+def selected_positions(*, fold_id=1):
+    panel = overlay.later_panel(fold_id=fold_id)
+    return (panel['score_parent_start'] + np.asarray(panel['batch_indices'], np.int64)[:, None] * 16
             + np.arange(16, dtype=np.int64)).reshape(-1)
 
 
@@ -150,7 +151,7 @@ def inspect(plan_sha, *, execute):
     return plan,plan_ref,policy_ref,head
 
 
-def envelopes_from_clocks(plan, axes, local_clock, clocks):
+def envelopes_from_clocks(plan, axes, local_clock, clocks, *, fold_id=1):
     """Conservative bounds only; COMPLETE additionally requires native slices."""
     import pandas as pd
     need(set(axes) == {'parent_rows','bar_start_ns','decision_ns'}, 'AXIS_KEYS')
@@ -159,13 +160,19 @@ def envelopes_from_clocks(plan, axes, local_clock, clocks):
              and np.all(np.diff(a)>0) and replay.axis_sha(a) == plan['full_axes'][name+'_sha256'],
              'FULL_AXIS:'+name)
     need(np.array_equal(axes['bar_start_ns']+300*10**9,axes['decision_ns']), 'DECISION_CLOCK')
-    score_times=axes['decision_ns'][29849:47602]
-    need(np.all(score_times>=overlay.LATER_SCORE_START_NS)
-         and np.all(score_times<overlay.LATER_SCORE_END_NS), 'SCORE_INTERVAL')
-    chosen = selected_positions()
+    panel=overlay.later_panel(fold_id=fold_id)
+    if fold_id == 2:
+        prefix=plan.get('normalization_prefix', {})
+        need(prefix.get('rows')==panel['prefix_rows']
+             and prefix.get('cutoff_ns')==panel['prefix_cutoff_ns'], 'FOLD2_NORMALIZATION_PREFIX')
+    left=panel['score_parent_start']
+    score_times=axes['decision_ns'][left:left+panel['score_rows']]
+    need(np.all(score_times>=panel['score_start_ns'])
+         and np.all(score_times<panel['score_end_exclusive_ns']), 'SCORE_INTERVAL')
+    chosen = selected_positions(fold_id=fold_id)
     starts,decisions = axes['bar_start_ns'][chosen],axes['decision_ns'][chosen]
-    need(len(chosen)==4096 and np.all(decisions>=overlay.LATER_SCORE_START_NS)
-         and np.all(decisions<overlay.LATER_SCORE_END_NS), 'FIXED_SCORE_INTERVAL')
+    need(len(chosen)==4096 and np.all(decisions>=panel['score_start_ns'])
+         and np.all(decisions<panel['score_end_exclusive_ns']), 'FIXED_SCORE_INTERVAL')
     need(plan['local_sequence_rows']==MODEL_NATIVE_SEQ_LEN and plan['window_rows']==dict(WINDOW_ROWS)
          and set(clocks)==set(replay.TFS), 'CANONICAL_WINDOW_LENGTHS')
     pos = replay.selected_positions(local_clock,starts)
@@ -183,7 +190,7 @@ def envelopes_from_clocks(plan, axes, local_clock, clocks):
         rows=np.arange(left,right,dtype=np.int64)
         times=clock[rows]
         shift=300*10**9 if lane=='local' else int(htf.MULTI_TF_SHIFT[lane].value)
-        need(np.all(np.diff(times)>0) and np.all(times+shift<overlay.LATER_SCORE_END_NS), 'ENVELOPE_CLOCK:'+lane)
+        need(np.all(np.diff(times)>0) and np.all(times+shift<panel['score_end_exclusive_ns']), 'ENVELOPE_CLOCK:'+lane)
         populations[lane]=dict(selected_unique_row_count=len(rows),
             selected_row_indices_sha256=replay.row_sha(rows,lane),
             available_ns_sha256=replay.axis_sha(times+shift),
@@ -192,9 +199,10 @@ def envelopes_from_clocks(plan, axes, local_clock, clocks):
     return bounds,populations,chosen,pos
 
 
-def read_axes_and_clocks(plan):
+def read_axes_and_clocks(plan, *, fold_id=1):
     """Decode three axis members and clocks; never a target archive member."""
     import pyarrow.parquet as pq
+    end=overlay.later_panel(fold_id=fold_id)['score_end_exclusive_ns']
     source=plan['full_axes']['source']
     need(replay.sha(source['path'])==source['sha256'], 'AXIS_ARCHIVE_SHA')
     with np.load(source['path'],allow_pickle=False) as z:
@@ -207,7 +215,7 @@ def read_axes_and_clocks(plan):
     with Path(plan['local_clock_path']).open('rb') as stream:
         for batch in pq.ParquetFile(stream).iter_batches(batch_size=65536,columns=['time'],use_threads=False):
             a=np.asarray(batch.column(0).to_numpy(),dtype='datetime64[ns]').view(np.int64)
-            stop=int(np.searchsorted(a,overlay.LATER_SCORE_END_NS,side='left'))
+            stop=int(np.searchsorted(a,end,side='left'))
             parts.append(a[:stop].copy())
             if stop<len(a):break
     local=np.concatenate(parts)
@@ -219,7 +227,7 @@ def read_axes_and_clocks(plan):
         raw=np.load(item['path'],mmap_mode='r',allow_pickle=False)
         need(raw.dtype in (np.dtype('int64'),np.dtype('datetime64[ns]')), 'CLOCK_DTYPE:'+tf)
         a=np.asarray(raw,dtype=np.int64)
-        stop=int(np.searchsorted(a,overlay.LATER_SCORE_END_NS,side='left'))
+        stop=int(np.searchsorted(a,end,side='left'))
         clocks[tf]=np.array(a[:stop],dtype=np.int64,copy=True)
         del raw,a
     for a in (*axes.values(),local,*clocks.values()):a.setflags(write=False)
@@ -277,14 +285,15 @@ def verify_native_windows(plan, bounds, reports, axes, local_clock, chosen, loca
     return counts
 
 
-def coverage_record(plan, view, axes, populations, result_ref):
-    chosen=selected_positions()
+def coverage_record(plan, view, axes, populations, result_ref, *, fold_id=1):
+    panel=overlay.later_panel(fold_id=fold_id)
+    chosen=selected_positions(fold_id=fold_id)
     coverage=dict(schema_version=overlay.LATER_COVERAGE_SCHEMA,status='COMPLETE',qualification=result_ref,
         view_sha256=plan['view_sha256'],full_axes=deepcopy(plan['full_axes']),
         normalization_prefix=deepcopy(plan['normalization_prefix']),
-        score_parent_start=29849,score_rows=17753,score_start_ns=overlay.LATER_SCORE_START_NS,
-        score_end_exclusive_ns=overlay.LATER_SCORE_END_NS,batch_size=16,
-        batch_indices=list(overlay.LATER_BATCH_INDICES),
+        score_parent_start=panel['score_parent_start'],score_rows=panel['score_rows'],
+        score_start_ns=panel['score_start_ns'],score_end_exclusive_ns=panel['score_end_exclusive_ns'],
+        batch_size=16,batch_indices=panel['batch_indices'],
         selected_parent_rows_sha256=replay.axis_sha(axes['parent_rows'][chosen]),
         selected_decision_ns_sha256=replay.axis_sha(axes['decision_ns'][chosen]),
         physical_populations=populations)

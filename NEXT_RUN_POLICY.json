@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-13T13:34:59.330068+00:00",
-  "status": "TA_FOLD2_FULL_TRAIN_INPUTS_QUALIFIED_LATER_COVERAGE_PENDING",
+  "observed_utc": "2026-11-13T13:47:13.628602+00:00",
+  "status": "TA_FOLD2_LATER_SCOPE_BOUND_PHYSICAL_AND_GATHER_PENDING",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Qualify the exact fixed fold2 Jan-Mar2025 later input panel with clock-derived envelopes and existing native window owner, reusing overlapping spans. Current blocker: later-coverage adapter and clock-envelope helpers are hard-bound to fold1 Oct-Dec2024. Preserve fold1 behavior; no source refactor, TRAIN refit or native model job. Use own fold2 normalization unchanged. Fresh native baseline/fit remain unopened.",
+  "next_action": "Finish and review one exact input-only later qualification using existing replay/merge/window/gather owners. Bind Jan-Mar2025 fixed4096 panel, clock-derived envelopes, reused overlaps and at most one new gap per six surfaces. Physical RESULT/COVERAGE then actual canonical later gather with frozen own-prefix normalization in one capped job. Preflight and exact admission required; no job admitted yet. No TRAIN rerun/refit, models or targets. Fresh native baseline remains separate.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1769,7 +1769,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Full47338 fold2 TRAIN input gather completed and independently verified. Exact later Jan-Mar2025 input binding remains.",
+    "current_activity": "Explicit fold2 later-panel source qualified by89focused tests and source review; metadata rebound with unchanged TRAIN/function/normalization.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1799,7 +1799,7 @@
     "existing_indicator_surface_changed": false,
     "training_started": true,
     "latest_terminal_role": "TA_FOLD2_SPAN_VIEW_001_FULL_TRAIN_INPUTS_COMPLETE_CONSUMED",
-    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001",
+    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_001",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001/VALIDATION.json",
       "sha256": "bd6564e0db353552c83f85e1d40bd9e41849565c59f787aa73a9ddd962ca09ce"
@@ -1822,7 +1822,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Later-coverage adapter and clock-envelope helpers are fixed to fold1 Oct-Dec2024; qualify explicit fold2 scope before baseline/fit.",
+    "current_blocker": "Physical Jan-Mar2025 spans, native windows and actual later raw/normalized gather remain unqualified; private one-use job is being prepared.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -25417,7 +25417,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-13T13:34:59.330068+00:00",
+  "updated_utc": "2026-11-13T13:47:13.628602+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -77390,7 +77390,7 @@
     "unresolved_campaign_marker_preserved": true,
     "standard_campaign_receipt_available": false
   },
-  "active_stage": "market_state_ta_fold2_span_view_20261113_001",
+  "active_stage": "market_state_ta_fold2_later_inputs_20261113_001",
   "market_state_ta_m5_c171_short_learning_20261111_002": {
     "decision": "CLOSED",
     "status": "COMPLETE_CONSUMED",
@@ -85708,5 +85708,28 @@
     "elapsed_seconds": 744.7107785280023,
     "actual_gather_qualified": true,
     "later_inputs_qualified": false
+  },
+  "market_state_ta_fold2_later_inputs_20261113_001": {
+    "status": "SOURCE_CHECKED_NOT_ADMITTED",
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_001/SOURCE_SCOPE_REVIEW.json",
+      "sha256": "96278e2028b6cb79d55334ee7b835f3c5bfaf4b4563549ea476b04368b4560af"
+    },
+    "metadata": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_001/METADATA.json",
+      "sha256": "202ffea2a4a84145e5ae6cd57e94380df3febd8ce67d6511dd475a395f11f2dc"
+    },
+    "view": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_001/FEATURE_VIEW.json",
+      "sha256": "f7979c855c0a2b3a0cee5c0234d5f242b00431e56e4bc68469226f4a61cf7943"
+    },
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "training_authorized": false,
+    "relaunch_allowed": false,
+    "max_invocations": 1,
+    "remaining_invocations": 0,
+    "claimed_invocations": 0,
+    "completed_invocations": 0
   }
 }

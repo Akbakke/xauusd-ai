@@ -9,23 +9,25 @@ from gx1.audit import qualify_market_state_ta_benchmark_later_inputs_v1 as worke
 from gx1.audit import qualify_market_state_ta_anchor_span_inputs_v1 as replay
 
 
-def clock_case(monkeypatch):
+def clock_case(monkeypatch,fold_id=1):
     # Timestamp grid semantics are owned by unchanged HTF tests. This fixture
     # isolates selection/envelope algebra on small uniform synthetic clocks.
     monkeypatch.setattr(worker.htf,'require_multi_tf_timestamp_grid',lambda *a,**kw:None)
-    start=worker.overlay.LATER_SCORE_START_NS
+    panel=worker.overlay.later_panel(fold_id=fold_id)
+    start=panel['score_start_ns']
     step=300*10**9
-    decision=start+(np.arange(118249,dtype=np.int64)-29849)*step
+    decision=start+(np.arange(118249,dtype=np.int64)-panel['score_parent_start'])*step
     axes=dict(parent_rows=3*np.arange(118249,dtype=np.int64)+2,
               bar_start_ns=decision-step,decision_ns=decision)
     for a in axes.values():a.setflags(write=False)
     plan=dict(full_axes=dict(rows=118249,**{k+'_sha256':replay.axis_sha(a) for k,a in axes.items()}),
-              local_sequence_rows=worker.MODEL_NATIVE_SEQ_LEN,window_rows=dict(worker.WINDOW_ROWS))
+              local_sequence_rows=worker.MODEL_NATIVE_SEQ_LEN,window_rows=dict(worker.WINDOW_ROWS),
+              normalization_prefix=dict(rows=panel['prefix_rows'],cutoff_ns=panel['prefix_cutoff_ns']))
     local=np.arange(start-200*step,start+18000*step,step,dtype=np.int64)
     clocks={}
     for tf,n in worker.WINDOW_ROWS.items():
         shift=int(worker.htf.MULTI_TF_SHIFT[tf].value)
-        clocks[tf]=np.arange(start-(n+3)*shift,worker.overlay.LATER_SCORE_END_NS,shift,dtype=np.int64)
+        clocks[tf]=np.arange(start-(n+3)*shift,panel['score_end_exclusive_ns'],shift,dtype=np.int64)
     return plan,axes,local,clocks
 
 
@@ -164,3 +166,36 @@ def test_preflight_has_no_claim_or_array_decode(monkeypatch,capsys):
     ['--preflight','--preflight','--plan-sha256','a'*64]])
 def test_cli_rejects_missing_hash_and_duplicate_modes(argv):
     with pytest.raises(RuntimeError):worker.main(argv)
+
+
+def test_fold2_envelopes_and_coverage_use_own_fixed_panel(monkeypatch):
+    plan,axes,local,clocks=clock_case(monkeypatch,2)
+    bounds,pops,chosen,positions=worker.envelopes_from_clocks(plan,axes,local,clocks,fold_id=2)
+    assert len(chosen)==4096 and chosen[0]==47602 and chosen[-1]==64881
+    assert np.array_equal(chosen,(47602+np.array([i*1079//255 for i in range(256)])[:,None]*16+np.arange(16)).reshape(-1))
+    assert bounds['local']==[int(positions[0])-95,int(positions[-1])+1]
+    for tf,n in worker.WINDOW_ROWS.items():
+        shift=int(worker.htf.MULTI_TF_SHIFT[tf].value)
+        first=np.flatnonzero(clocks[tf]+shift<=axes['decision_ns'][chosen[0]])[-n:]
+        last=np.flatnonzero(clocks[tf]+shift<=axes['decision_ns'][chosen[-1]])[-n:]
+        assert bounds[tf]==[int(first[0]),int(last[-1])+1]
+    plan['view_sha256']='a'*64
+    view=dict(contract_sha256=plan['view_sha256'],full_axes=plan['full_axes'],prefix=plan['normalization_prefix'])
+    c=worker.coverage_record(plan,view,axes,pops,dict(path=str(worker.ROOT/'RESULT.json'),sha256='b'*64),fold_id=2)
+    assert c['score_parent_start']==47602 and c['score_rows']==17288
+    assert c['score_start_ns']==1735689600000000000 and c['score_end_exclusive_ns']==1743465600000000000
+    assert c['normalization_prefix']==dict(rows=47338,cutoff_ns=1735603200000000000)
+
+
+@pytest.mark.parametrize('fault',['wrong_prefix','wrong_period','unknown_fold','boolean_fold'])
+def test_fold2_envelopes_reject_mixed_scope(monkeypatch,fault):
+    plan,axes,local,clocks=clock_case(monkeypatch,2)
+    fold_id=2
+    if fault=='wrong_prefix':plan['normalization_prefix']['rows']=29574
+    elif fault=='wrong_period':
+        plan,axes,local,clocks=clock_case(monkeypatch,1)
+        plan['normalization_prefix']=dict(rows=47338,cutoff_ns=1735603200000000000)
+    elif fault=='unknown_fold':fold_id=3
+    else:fold_id=True
+    with pytest.raises(RuntimeError,match='PREFIX|INTERVAL|FOLD_ID'):
+        worker.envelopes_from_clocks(plan,axes,local,clocks,fold_id=fold_id)
