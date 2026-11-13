@@ -5,15 +5,22 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_QUERY_INPUT_DRIFT_001_COMPLETE_NATIVE_HORIZON_AND_CONTEXT_COVERAGE_GAPS.
-Edge-målet er uoppnådd. training_enabled/native_training_enabled/native_launch_authorized=false.
-Alle siste engangsplaner er COMPLETE/CONSUMED. Ingen aktivjobb eller ny probe admittert.
-Ny samlet rapport: docs/TA_QUERY_INPUT_DRIFT_REVIEW.json.
-Neste: kvalifiser én minste frosne modellobservasjon for om målte D1-/makro-endringer
-faktisk driver desember-UP-driften. Gjenbruk eksisterende restore/input-observer-eiere,
-INITIALbef35 og ordre001-FINALc34e754b/evidencec1e102fe. Ingen updates eller fjerning
-av genuine features. Lokal følsomhet/intervensjon er ikke bedre prediksjon eller edge.
-Bred M15-persistens er allerede målt; skal ikke kjøres igjen. Behold horisont-/maskeskiller.
+TA_CONTEXT_DRIFT_001_ADMITTED_FROZEN_CURRENT_PATH_OBSERVATION.
+Edge-målet er uoppnådd. Alle treningsflagg er false.
+Én ny passiv probe er admittert: MARKET_STATE_TA_CONTEXT_DRIFT_OBSERVATION_20261113_001,
+PLAN bbd36b9c. INITIAL bef35 og ordre001-FINAL c34e754b, samme256LATER-rader:
+8intakte B16-batcher fra oktober og8fra desember, valgt fra klokke/tellinger.
+Fire faste armer: BASELINE, toD1felt innen TRAIN-current-grenser, firemakrovolfelt
+innen samme feltgrenser, og begge. Current ctx/snapshot/lokal-sekvens-aliaser flyttes
+sammen; MTF-historikk beholdes. Dette er private inputintervensjoner, ikke en
+produksjonsrettelse; endrede vektorer trenger ikke beskrive et fysisk sammenhengende marked.
+128forwards,2checkpointdekodinger,32featuregathers,12sidecars,0updates/nye mål;
+600s observatør,900s eksisterendeCUDAprodusentvakt,12G/512M,8tråder,allefysiskevakter beholdt.
+32målrettede syntetiske tester PASS; metadata-preflight PASS uten array/modelldekoding.
+Hver baseline må gjenskape lagret native output før intervensjoner tolkes; feilende
+baseline og avvik bevares. Modell/inputs/RNG/kilde må være uendret. Ingen relansering.
+Neste: kjør én gang, sammenlign alle armer og INITIAL→FINAL-effekter, lukk kvitteringen.
+Bred M15-persistens er allerede målt og skal ikke kjøres igjen. Ingen ny trening.
 
 CPU-observasjon: MARKET_STATE_TA_QUERY_INPUT_DRIFT_20261113_001, kildea427db8f,
 RESULT2c87d24c,VALIDATION0625774c.256,56s under4G/512M;3lagrede prediksjonsarkiver,

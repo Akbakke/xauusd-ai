@@ -201,9 +201,12 @@ def _require_parent_order(order, states, *, torch):
         for value in expected), 'ACTUAL_PAIRED_PARENT_ORDER')
 
 
-def _load_endpoint(model, saved, phase, q, order, *, torch, old, state, model_sha):
+def _load_endpoint(model, saved, phase, q, order, *, torch, old, state, model_sha, model_digests=None):
+    expected_models = MODELS if model_digests is None else model_digests
+    _need(set(expected_models) == set(PHASES), "EXPECTED_PHASE_MODELS")
+    for digest in expected_models.values(): campaign._sha(digest, "expected model digest")
     recipe = q['recipe']; final = phase == 'FINAL'; binding = saved['parameter_binding' if final else 'binding']
-    _need(saved['model_state_sha256'] == model_sha(saved['model_state']) == MODELS[phase]
+    _need(saved['model_state_sha256'] == model_sha(saved['model_state']) == expected_models[phase]
         and saved['buffer_state_sha256'] == old._tree_sha(saved['buffer_state'])
         and binding['feature_view_identity'] == _view_identity(q['views'][phase])
         and binding['numerical_recipe'] == recipe['numerical_recipe']
@@ -226,7 +229,7 @@ def _load_endpoint(model, saved, phase, q, order, *, torch, old, state, model_sh
     old._tensor_map(saved['model_state'],model.state_dict(),'CURRENT_MODEL')
     old._tensor_map(saved['buffer_state'],dict(model.named_buffers()),'CURRENT_BUFFERS')
     model.load_state_dict(saved['model_state'],strict=True)
-    _need(model_sha(model.state_dict()) == MODELS[phase]
+    _need(model_sha(model.state_dict()) == expected_models[phase]
         and old._tree_sha(dict(model.named_buffers())) == saved['buffer_state_sha256']
         and model.state_model.feature_view_identity == _view_identity(q['view']), 'LOADED_CURRENT_IDENTITY')
     state._numerical(recipe['numerical_recipe'],model)

@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-13T08:53:17.345097+00:00",
-  "status": "TA_QUERY_INPUT_DRIFT_001_COMPLETE_NATIVE_HORIZON_AND_CONTEXT_COVERAGE_GAPS",
+  "observed_utc": "2026-11-13T09:22:01.782252+00:00",
+  "status": "TA_CONTEXT_DRIFT_001_ADMITTED_FROZEN_CURRENT_PATH_OBSERVATION",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Qualify one bounded frozen-model observation of whether measured current-D1/macro input changes drive the December UP drift. Reuse existing model-state restoration/input-observation owners and current INITIAL/FINAL evidence; no updates or feature removal. Distinguish local sensitivity/private intervention from improved predictive edge. Existing broad M15 persistence is already measured and must not be rerun. No new job is admitted by this next-step record.",
+  "next_action": "Execute exactly the admitted passive context-path observation once, then compare all fixed arms/months/TF/tasks and INITIAL versus FINAL. Preserve native baseline parity and model/input/RNG invariance. Close consumed admission after terminal. No training, production feature changes, or edge claim.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -84812,5 +84812,67 @@
       "updates": 0
     },
     "elapsed_seconds": 256.40596745199946
+  },
+  "market_state_ta_context_drift_observation_20261113_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CONTEXT_DRIFT_OBSERVATION_20261113_001/PLAN.json",
+      "sha256": "bbd36b9c6861c39b4f33f3af5d0d58ff6099c2bc4cea4c8301a9810b23a3d542"
+    },
+    "max_invocations": 1,
+    "remaining_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "execution_authorized": true,
+    "relaunch_allowed": false,
+    "data_reads_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "training_authorized": false,
+    "bounds": {
+      "batch_size": 16,
+      "batches_per_month": 8,
+      "counts": {
+        "archive_decodes": 2,
+        "autograd_grad_calls": 0,
+        "backwards": 0,
+        "candidate_writes": 0,
+        "captured_rows": 2048,
+        "checkpoint_loads": 2,
+        "checkpoint_weight_transitions": 1,
+        "checkpoint_writes": 0,
+        "deterministic_initialization_calls": 1,
+        "feature_batches": 32,
+        "forwards": 128,
+        "input_sidecar_archive_decodes": 12,
+        "model_constructions": 1,
+        "native_reference_matches": 32,
+        "new_target_gathers": 0,
+        "optimizer_constructions": 0,
+        "optimizer_updates": 0,
+        "phase_capture_writes": 2,
+        "resume_state_load_calls": 2,
+        "resume_state_load_returns": 2,
+        "sampled_rows": 512
+      },
+      "max_capture_bytes": 4194304,
+      "max_published_json_bytes": 8388608,
+      "memory_bytes": 12884901888,
+      "numerical_threads": 8,
+      "raw_atol": 2e-06,
+      "raw_rtol": 1e-06,
+      "test_data_used": false,
+      "training_enabled": false,
+      "unique_rows": 256,
+      "wall_seconds": 600
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CONTEXT_DRIFT_OBSERVATION_20261113_001/PREFLIGHT.log",
+      "sha256": "dd36f742443cc1416a0ef53c001d1cd2a3eed98ad68ee388dd21c82374723a8d"
+    },
+    "focused_tests": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CONTEXT_DRIFT_OBSERVATION_20261113_001/FOCUSED_TESTS.log",
+      "sha256": "ccdc7c377f52cd1f0d27cd182971a213d58bb8d74b2e5cdbdfe67971aa982688"
+    },
+    "authorization": "Standing local0USD measured-cause investigation; one passive INITIAL/current-order-FINAL contrast of six previously measured current-context paths, using fixed TRAIN bounds. No fitting, production clamp, feature removal, candidate selection, or consumed-plan reuse."
   }
 }
