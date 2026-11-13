@@ -1,0 +1,395 @@
+{
+  "schema_version": "gx1_ta_full_prefix_learning_review_v1",
+  "status": "NATIVE_COMPLETE_FIXED_PANEL_PROPER_SCORES_WORSE_RANKING_PENDING",
+  "native_source_commit": "2f825e27b93c03b98ac3558f3cb05c44ae180d49",
+  "native_result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_002/RESULT.json",
+    "sha256": "cc5d1ba16cf8823cce63794e6210061f714c5106f04a5b6ab5a7906494cad172"
+  },
+  "native_terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_002/TERMINAL.json",
+    "sha256": "72d686c5b4da75a9a52e7c638e684d0ad357def76caa2e292becdbd053f7cba9"
+  },
+  "completion_verification": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_002/COMPLETION_VERIFICATION.json",
+    "sha256": "2630485ce28d2e120e7e47f86c1ae5ece23722b6ea5b2d8d6e24feec2356426a"
+  },
+  "task_disabled": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_002/TASK_DISABLED.json",
+    "sha256": "1eccee4e49087ebc114bd68cd88e698d3feec132dddf47b1e57ef814eea9754d"
+  },
+  "primary_endpoint_pass": 2,
+  "counts": {
+    "backward_returns": 3698,
+    "backwards": 3698,
+    "batch_visits": 3698,
+    "candidate_evidence_writes": 1,
+    "checkpoint_loads": 1,
+    "checkpoint_writes": 0,
+    "control_capture_archive_decodes": 2,
+    "evaluation_forwards": 1536,
+    "extra_target_gathers": 8932,
+    "forward_returns": 5234,
+    "forwards": 5234,
+    "initial_rng_imports": 1,
+    "input_sidecar_archive_decodes": 12,
+    "json_bytes": 538022,
+    "loss_component_owner_calls": 768,
+    "model_construction_returns": 1,
+    "model_constructions": 1,
+    "optimizer_constructions": 1,
+    "optimizer_step_calls": 3698,
+    "optimizer_step_returns": 3698,
+    "optimizer_updates": 3698,
+    "resume_state_load_calls": 1,
+    "resume_state_load_returns": 1,
+    "skipped_batches": 0,
+    "strict_full_state_restore_calls": 1,
+    "strict_full_state_restore_returns": 1,
+    "training_forwards": 3698,
+    "training_presentations": 59148
+  },
+  "timings": {
+    "FULL_PREFIX_seconds": 7586.817654868999,
+    "elapsed_seconds": 8283.249816802,
+    "initial_seconds": 658.469227432,
+    "input_seconds": 13.951175230000018
+  },
+  "initial_control_parity": {
+    "initial": {
+      "LATER": {
+        "arrays_exact": true,
+        "model_state_exact": true,
+        "rows": 4096
+      },
+      "TRAIN": {
+        "arrays_exact": true,
+        "model_state_exact": true,
+        "rows": 4096
+      }
+    }
+  },
+  "measurements": {
+    "INITIAL": {
+      "TRAIN": {
+        "loss": 1.8649946306832135,
+        "conditional_side": {
+          "state": {
+            "D1": {
+              "brier": 0.20789582593143707,
+              "log": 0.6059170813364804
+            },
+            "H1": {
+              "brier": 0.21916620023036687,
+              "log": 0.6291364995216927
+            },
+            "H4": {
+              "brier": 0.21897039342060998,
+              "log": 0.6290741437053738
+            },
+            "M15": {
+              "brier": 0.24993501337335872,
+              "log": 0.6941120915535913
+            },
+            "M5": {
+              "brier": 0.24769556874763796,
+              "log": 0.6885323031770056
+            }
+          },
+          "future": {
+            "D1": {
+              "brier": 0.23211632393121792,
+              "log": 0.6552782731767477
+            },
+            "H1": {
+              "brier": 0.25041833142289777,
+              "log": 0.6946748125229628
+            },
+            "H4": {
+              "brier": 0.2410469567196331,
+              "log": 0.6748765033164318
+            },
+            "M15": {
+              "brier": 0.2530836551426799,
+              "log": 0.7005147909331568
+            },
+            "M5": {
+              "brier": 0.24900372824548575,
+              "log": 0.6911526623046865
+            }
+          }
+        }
+      },
+      "LATER": {
+        "loss": 2.3509150846084244,
+        "conditional_side": {
+          "state": {
+            "D1": {
+              "brier": 0.2487344107629518,
+              "log": 0.6914078160049865
+            },
+            "H1": {
+              "brier": 0.2671037703960082,
+              "log": 0.7303352696351518
+            },
+            "H4": {
+              "brier": 0.27126634763700685,
+              "log": 0.7389153488732892
+            },
+            "M15": {
+              "brier": 0.27472253794952994,
+              "log": 0.7466181982923628
+            },
+            "M5": {
+              "brier": 0.24942597281922757,
+              "log": 0.6919962758669146
+            }
+          },
+          "future": {
+            "D1": {
+              "brier": 0.2714552686907954,
+              "log": 0.7399146902224043
+            },
+            "H1": {
+              "brier": 0.27430950872899745,
+              "log": 0.7465669394605287
+            },
+            "H4": {
+              "brier": 0.2741053165181592,
+              "log": 0.7459464186885876
+            },
+            "M15": {
+              "brier": 0.27330912717952355,
+              "log": 0.7440294600900189
+            },
+            "M5": {
+              "brier": 0.2495531981377197,
+              "log": 0.6922523776654272
+            }
+          }
+        }
+      }
+    },
+    "PASS1": {
+      "TRAIN": {
+        "loss": 1.9600942628458142,
+        "conditional_side": {
+          "state": {
+            "D1": {
+              "brier": 0.22937621148494405,
+              "log": 0.6525104269658262
+            },
+            "H1": {
+              "brier": 0.2302486307747318,
+              "log": 0.6535293168031516
+            },
+            "H4": {
+              "brier": 0.22180261649553853,
+              "log": 0.6344037595344784
+            },
+            "M15": {
+              "brier": 0.26669047736420115,
+              "log": 0.7342252264441103
+            },
+            "M5": {
+              "brier": 0.24909274486869562,
+              "log": 0.6914127375178858
+            }
+          },
+          "future": {
+            "D1": {
+              "brier": 0.21747158176309003,
+              "log": 0.6470750806213685
+            },
+            "H1": {
+              "brier": 0.29789506997977355,
+              "log": 0.8783530845992129
+            },
+            "H4": {
+              "brier": 0.28325763172996427,
+              "log": 0.8365112646570552
+            },
+            "M15": {
+              "brier": 0.31607184839857005,
+              "log": 0.9183543326898489
+            },
+            "M5": {
+              "brier": 0.2531187628945336,
+              "log": 0.6996532736514905
+            }
+          }
+        }
+      },
+      "LATER": {
+        "loss": 2.639348393508072,
+        "conditional_side": {
+          "state": {
+            "D1": {
+              "brier": 0.241747958361164,
+              "log": 0.6788669249474623
+            },
+            "H1": {
+              "brier": 0.28242388474926805,
+              "log": 0.7687265121211141
+            },
+            "H4": {
+              "brier": 0.3010386322546383,
+              "log": 0.8128955223813823
+            },
+            "M15": {
+              "brier": 0.2951117510610097,
+              "log": 0.7998468006513011
+            },
+            "M5": {
+              "brier": 0.25579537648264844,
+              "log": 0.705038595099066
+            }
+          },
+          "future": {
+            "D1": {
+              "brier": 0.30766122260711243,
+              "log": 0.9417981236411743
+            },
+            "H1": {
+              "brier": 0.3755260657705266,
+              "log": 1.138501328827428
+            },
+            "H4": {
+              "brier": 0.3461623768967293,
+              "log": 1.0507039914570389
+            },
+            "M15": {
+              "brier": 0.3801038856978251,
+              "log": 1.126292379384632
+            },
+            "M5": {
+              "brier": 0.257299999247027,
+              "log": 0.7083584807657998
+            }
+          }
+        }
+      }
+    },
+    "PASS2": {
+      "TRAIN": {
+        "loss": 1.9090923154726624,
+        "conditional_side": {
+          "state": {
+            "D1": {
+              "brier": 0.21619901463805685,
+              "log": 0.6225188392565193
+            },
+            "H1": {
+              "brier": 0.2262992818537442,
+              "log": 0.6455830644646354
+            },
+            "H4": {
+              "brier": 0.21755581103797933,
+              "log": 0.6249800726633997
+            },
+            "M15": {
+              "brier": 0.2656439556634294,
+              "log": 0.7336291231438489
+            },
+            "M5": {
+              "brier": 0.2477141792705088,
+              "log": 0.6886308608943045
+            }
+          },
+          "future": {
+            "D1": {
+              "brier": 0.1923231790785806,
+              "log": 0.5747284280962528
+            },
+            "H1": {
+              "brier": 0.279631301107187,
+              "log": 0.8196352426998372
+            },
+            "H4": {
+              "brier": 0.26548830459410866,
+              "log": 0.7783089181291007
+            },
+            "M15": {
+              "brier": 0.3025097872436316,
+              "log": 0.87032818020426
+            },
+            "M5": {
+              "brier": 0.2521162536680308,
+              "log": 0.6976823102971111
+            }
+          }
+        }
+      },
+      "LATER": {
+        "loss": 2.645637123661932,
+        "conditional_side": {
+          "state": {
+            "D1": {
+              "brier": 0.24110551912630435,
+              "log": 0.6818218253277597
+            },
+            "H1": {
+              "brier": 0.28730146827301617,
+              "log": 0.7832551848347564
+            },
+            "H4": {
+              "brier": 0.30689894468879675,
+              "log": 0.8308329391677588
+            },
+            "M15": {
+              "brier": 0.2995791250404762,
+              "log": 0.8143144660281663
+            },
+            "M5": {
+              "brier": 0.2549573131658769,
+              "log": 0.7033763413148859
+            }
+          },
+          "future": {
+            "D1": {
+              "brier": 0.30243113842934,
+              "log": 0.9408075369265888
+            },
+            "H1": {
+              "brier": 0.3695071950354144,
+              "log": 1.1377804878510502
+            },
+            "H4": {
+              "brier": 0.3431512155213737,
+              "log": 1.0533571601975424
+            },
+            "M15": {
+              "brier": 0.3690380327780782,
+              "log": 1.0992505838453317
+            },
+            "M5": {
+              "brier": 0.25873373220546914,
+              "log": 0.7116241623258288
+            }
+          }
+        }
+      }
+    }
+  },
+  "later_prior_loss": 2.31611372366914,
+  "findings": [
+    "Both complete29574-row passes ran:3698updates,59148presentations,0skips,2tail6batches.",
+    "Initial model and both4096-row panels exactly matched the retained control before updates.",
+    "TRAIN fixed-panel canonical loss1.8649946306832135 ->1.9600942628458142 ->1.9090923154726624; both endpoints worse than INITIAL.",
+    "LATER native endpoint loss2.3509150846084244 ->2.639348393508072 ->2.645637123661932; prior2.31611372366914.",
+    "Later known-side Brier is worse than INITIAL in9of10 S/F cells at primarypass2.",
+    "Ranking, probability-level drift, and calendar-period retention need the saved readouts; no cause inferred from Brier/log alone."
+  ],
+  "constraints": [
+    "No independent generalization, selectable Entry, or economic edge claim.",
+    "TRAIN sampled-S and LATER native-S are different tasks; compare changes within each panel.",
+    "Two passes of one qualified five-month prefix do not decide full-history30-40epoch capacity.",
+    "No candidate promotion or checkpoint selection; TEST sealed, GC paused, no broker/trades/spending."
+  ],
+  "retained_readout_plan": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_READOUT_20261113_001/PLAN.json",
+    "sha256": "145b9b28286c670313fc575b8008d2e7106e92641f2aac4a67ba8aee5657618d"
+  },
+  "test_data_used": false,
+  "promotion_authorized": false
+}

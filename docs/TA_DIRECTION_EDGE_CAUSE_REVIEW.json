@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_FULL_PREFIX_002_ADMITTED_READINESS_AND_FRESH_BOOT_PENDING",
+  "status": "ACTIVE_FULL_PREFIX_COMPLETE_RETAINED_RANK_AND_PERIOD_DIAGNOSIS_ADMITTED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -269,7 +269,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Run full actual-policy draft-window readiness and exact materializer startup before any preparation002claim. Then materialize once, verify idle/reboot guards and launch the single guarded two-pass job. Old001 remains closed; no source changes during execution or automatic extra pass.",
+  "next_measurement": "Run exact six-archive retained readout after metadata preflight; compare initial/pass1/pass2 ranking, probability levels, all months and paired day/week uncertainty. No new fit or source/model change.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -1721,25 +1721,14 @@
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_NON_M5_SHORT_LEARNING_REVIEW.json",
     "sha256": "45e071a0ed39e75543cda838bb9fbf885b1549a2a2869f83fc3a7e378ed4fe46"
   },
-  "training_authorized_scope": null,
+  "training_authorized_scope": "None; one retained six-archive CPU readout only.",
   "latest_confirmed_findings": [
-    "INITIAL backbone inherits two full29574-row passes across optimizer resets:59148historical presentations/3698updates. This excludes alternative FINAL arms and does not assign the same history to replaced/cloned heads.",
-    "One two-pass current-feature learning curve is source-qualified: all29574parents,3698newupdates,59148presentations, fixed4096TRAIN/LATER panels at0/1/2. It tests repetition on known historical rows, not additional market regimes. No new training result exists.",
-    "All10 later S/F conditional-side AUC point values rise from pass1 to pass3 in both arms; none establishes a positive within-arm change under both day and week intervals.",
-    "All10 paired differences of changes have zero inside both day/week intervals. These observations do not establish an early combined-decoder ranking advantage that pass3 trains away.",
-    "Combined M5F later AUC rises0.516268234→0.526009515; paired day95[-0.002932890,0.022628532], week95[-0.004065598,0.023778771]. AUC is ranking, not trade hit rate.",
-    "The current768update continuation uses12288unique rows once, partitioned into three disjoint passes. It is not three full epochs or the complete lifetime training of INITIAL, which was already trained.",
-    "Current feature inputs/normalization cover29574fold-1 TRAIN parents from May through September2024. More historical data exist, but larger calendar prefixes are not automatically qualified for the new spanfeatures.",
-    "Fixed TRAIN total loss improves1.832358166→1.823357637, while later total loss is2.360385095→2.360440765. Better TRAIN fit does not establish better later forecasts.",
-    "M15 conditional-side Brier/log improves for both S and F in both pointwise day/week intervals. Its AUC change includes zero; this supports a probability/calibration effect rather than established ranking improvement.",
-    "M5F AUC changes0.528605973→0.526009515, Brier0.249511328→0.249473211. Both changes remain uncertain in both day/week intervals.",
-    "H4S Brier/log deteriorates in both pointwise day/week intervals. H1S log also deteriorates in both; its Brier week interval includes zero. Other point deteriorations must not be called conclusive.",
-    "All10 later S/F AUC-delta intervals include zero under both grouping schemes. There is no established overall later directional gain from this change.",
-    "Future M15 meanPup falls0.615858→0.594687 against observed0.491060. H1 remains0.624343→0.624724 against0.5; D1 rises0.638159→0.689883 against0.575089. Separate side heads alone did not remove the residual probability bias.",
-    "TRAIN future H4/D1 AUC improves0.577979→0.604648 and0.652998→0.684418; later H4/D1 remains0.516436/0.491324. This is a measured training-versus-later gap, not a proof of its representation or market-regime cause.",
-    "The mixed result does not justify promoting the combination or another architecture change on its own. The source variant remains available; no genuine indicator/timeframe is removed.",
-    "The completed exposure contrast improves all five native-F later Brier/log scores versus retained FULL in both exploratory day/week intervals. M15/H1/H4 remain worse than the frozen prior; no trading edge is established.",
-    "Effective TRAIN class support is the constant-logit optimum of summed fixed-logit losses, not the AdamW optimum, a forecast for later data or a causal isolation of normalization. No objective change is justified by this count alone."
+    "Both complete29574-row passes ran:3698updates,59148presentations,0skips,2tail6batches.",
+    "Initial model and both4096-row panels exactly matched the retained control before updates.",
+    "TRAIN fixed-panel canonical loss1.8649946306832135 ->1.9600942628458142 ->1.9090923154726624; both endpoints worse than INITIAL.",
+    "LATER native endpoint loss2.3509150846084244 ->2.639348393508072 ->2.645637123661932; prior2.31611372366914.",
+    "Later known-side Brier is worse than INITIAL in9of10 S/F cells at primarypass2.",
+    "Ranking, probability-level drift, and calendar-period retention need the saved readouts; no cause inferred from Brier/log alone."
   ],
   "activity_pressure_review": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ACTIVITY_PRESSURE_REVIEW.json",
@@ -13869,5 +13858,9 @@
     "primary_pass": 2,
     "old001_relaunch_allowed": false,
     "test_data_used": false
+  },
+  "full_prefix_learning_result": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_FULL_PREFIX_LEARNING_REVIEW.json",
+    "sha256": "77b8cb067dc6e933acd8a77b34721a53811b66d1aebab7d925c07a1692e0b3e4"
   }
 }
