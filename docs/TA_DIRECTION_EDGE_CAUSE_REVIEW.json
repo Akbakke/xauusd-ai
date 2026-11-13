@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_CURRENT_MODE_CONTRAST_001_ADMITTED",
+  "status": "ACTIVE_CURRENT_MODE_EFFECT_SMALL_LEARNING_EXPOSURE_NEXT",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -269,7 +269,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Run the one fresh current mode observation001: same16B16TRAIN groups at actual INITIAL/FINAL, native controls plus dynamic eval/zero-dropout/four paired train-dropout draws;224forwards,0updates. Compare mode effect with measured endpoint UP drift; no historical-mask, population or edge claim.",
+  "next_measurement": "Reuse the qualified matched COVERAGE schedule and its source, exact targets and current INITIAL bindings to determine whether its broader calendar exposure can cover all29574current TRAIN parents without a new objective or more updates. Compare the existing full-prefix and previous order controls before admitting one specific learning intervention. The mode hypothesis is measured on the fixed subset; do not repeat mode, generic order or decoder tests. Training stays disabled until a fresh exact bounded admission.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -1737,7 +1737,14 @@
     "Actual endpoint parameter delta has positive local projection on mean F logits at both endpoints. Query projection and remaining encoder dominate FINAL non-M5 projection, followed by shared side heads. These are local endpoint derivatives, not causal shares of the finite historical prediction change.",
     "The retained pass0/1/2 trajectory locates the major non-M5 F UP shift within pass1: later M15 meanP0.578201->0.823873->0.806739 and H1 meanP0.574586->0.828949->0.816133. Pass2 partially reduces this bias, without establishing later ranking improvement.",
     "M5F TRAIN AUC0.537196->0.535205->0.546849, while later AUC0.511290->0.510127->0.509071. Better fit from pass1to2 is not demonstrated later predictive improvement. Later total loss2.350915->2.639348->2.645637.",
-    "The reference-path correction affected only passive observation. No ONLINE model, loss, feature or training-function correction occurred in this wave; it does not itself justify retraining. Two passes over five months do not settle full-history/30-40epoch capacity."
+    "The reference-path correction affected only passive observation. No ONLINE model, loss, feature or training-function correction occurred in this wave; it does not itself justify retraining. Two passes over five months do not settle full-history/30-40epoch capacity.",
+    "All32native controls and all32train-zero-dropout/dynamic-eval controls are bitexact, including original loss.",
+    "Across the four paired dropout draws, FINAL F/non-M5 mean PUP is only0.160-0.178percentage points lower than dynamic eval. The INITIAL-to-FINAL increase remains21.04-22.22percentage points.",
+    "Original fixed-panel loss rises in every paired dropout draw; mean increase0.0355609 versus0.0374321 in dynamic eval. Large accumulated UP drift and loss regression persist under current train mode.",
+    "These are all-row side probabilities on256fixedTRAIN rows, including FLAT/UNKNOWN rows. Neither hit rate nor known-side proper scores nor current later-period quality is measured by this mode observer.",
+    "Four paired dropout draws do not determine the expectation across masks or dropout influence during historical optimization. No model/loss/feature correction or predictive gain follows from the observation.",
+    "Existing matched COVERAGE evidence remains the relevant positive learning result: all5later native-F Brier/log differences versus repeated FULL exclude zero in both exploratory pointwise day/week intervals; M5F AUC0.528606 exceeds INITIAL0.511290 in both intervals, but its difference versus matchedFULL0.513672 remains uncertain. Contents/repetitions/order change jointly and residual non-M5bias remains. This is reused development, not untouched confirmation or economic edge.",
+    "Existing combined decoder result has mixed probability effects and all10later S/F AUC-difference intervals include zero. No new decoder or generic mode/order rerun is justified solely by the current observation."
   ],
   "activity_pressure_review": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ACTIVITY_PRESSURE_REVIEW.json",
@@ -14869,5 +14876,163 @@
     "historical_rng_replay": false,
     "model_or_loss_change": false,
     "training_authorized": false
+  },
+  "current_mode_observation_001_result": {
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_MODE_OBSERVATION_20261113_001/RESULT.json",
+      "sha256": "6275bbfe5c82024b08f041566f455afa8f578f2196817a2dce272ab4bbf87182"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_MODE_OBSERVATION_20261113_001/TERMINAL.json",
+      "sha256": "2cb8e04ad254385126d21c48045b2034e136b44bd388f07abdd281230543b3a8"
+    },
+    "validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_MODE_OBSERVATION_20261113_001/REVIEW_VALIDATION.json",
+      "sha256": "1b1c43751c93537a0c1ae54fa36e853af4df20e039da806ad6da3bacd02cdb00"
+    },
+    "mode_effect_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_MODE_OBSERVATION_20261113_001/MODE_EFFECT_REVIEW.json",
+      "sha256": "873044bee4679bc9a2692b9c4eb56edf49bba4a8d88147af96ff4b358c163697"
+    },
+    "source_commit": "aa032b60aef6263bee2bdbd324321df0c8f331d6",
+    "counts": {
+      "archive_decodes": 2,
+      "autograd_grad_calls": 0,
+      "backwards": 0,
+      "candidate_writes": 0,
+      "capture_records": 224,
+      "captured_rows": 3584,
+      "checkpoint_loads": 2,
+      "checkpoint_weight_transitions": 1,
+      "checkpoint_writes": 0,
+      "deterministic_initialization_calls": 2,
+      "extra_target_gathers": 64,
+      "forwards": 224,
+      "grad_forwards": 192,
+      "input_sidecar_archive_decodes": 6,
+      "model_constructions": 1,
+      "native_reference_matches": 32,
+      "observer_rng_seed_initializations": 1,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "phase_capture_writes": 2,
+      "published_capture_bytes": 800280,
+      "resume_state_load_calls": 2,
+      "resume_state_load_returns": 2,
+      "rng_restores": 1,
+      "sampled_rows": 512
+    },
+    "elapsed_seconds": 255.38345906000177,
+    "native_controls_bitexact": 32,
+    "zero_dropout_train_vs_dynamic_eval_bitexact": 32,
+    "paired_observer_rng_exact": true,
+    "non_rng_state_and_features_unchanged": true,
+    "original_loss_contrast": {
+      "FINAL": {
+        "dropout_draws": [
+          1.9131705835461617,
+          1.9093739986419678,
+          1.9114628285169601,
+          1.909324288368225
+        ],
+        "dropout_mean": 1.9108329247683287,
+        "eval": 1.9124487042427063
+      },
+      "INITIAL": {
+        "dropout_draws": [
+          1.8758898302912712,
+          1.8750009015202522,
+          1.8757716417312622,
+          1.874425746500492
+        ],
+        "dropout_mean": 1.8752720300108194,
+        "eval": 1.8750165775418282
+      },
+      "endpoint_changes": {
+        "dropout_mean": 0.03556089475750923,
+        "eval": 0.03743212670087814,
+        "paired_draws": [
+          0.03728075325489044,
+          0.034373097121715546,
+          0.03569118678569794,
+          0.034898541867733
+        ]
+      }
+    },
+    "future_side_mean_probability": {
+      "D1": {
+        "FINAL": {
+          "dynamic_eval_mean_p": 0.7722827006678543,
+          "mean_dropout_p": 0.7706864222139921,
+          "dropout_minus_eval_mean_p": -0.001596278453862232
+        },
+        "INITIAL": {
+          "dynamic_eval_mean_p": 0.5486506184377996,
+          "mean_dropout_p": 0.5484581018460782,
+          "dropout_minus_eval_mean_p": -0.00019251659172137003
+        }
+      },
+      "H1": {
+        "FINAL": {
+          "dynamic_eval_mean_p": 0.7536052131271204,
+          "mean_dropout_p": 0.7519022551600543,
+          "dropout_minus_eval_mean_p": -0.0017029579670660988
+        },
+        "INITIAL": {
+          "dynamic_eval_mean_p": 0.5316056029975964,
+          "mean_dropout_p": 0.5314500011286839,
+          "dropout_minus_eval_mean_p": -0.00015560186891250272
+        }
+      },
+      "H4": {
+        "FINAL": {
+          "dynamic_eval_mean_p": 0.7628510053738605,
+          "mean_dropout_p": 0.7612216043844418,
+          "dropout_minus_eval_mean_p": -0.0016294009894187722
+        },
+        "INITIAL": {
+          "dynamic_eval_mean_p": 0.5428641262567917,
+          "mean_dropout_p": 0.5427131210155651,
+          "dropout_minus_eval_mean_p": -0.0001510052412265761
+        }
+      },
+      "M15": {
+        "FINAL": {
+          "dynamic_eval_mean_p": 0.7488233935420232,
+          "mean_dropout_p": 0.747044508700184,
+          "dropout_minus_eval_mean_p": -0.00177888484183919
+        },
+        "INITIAL": {
+          "dynamic_eval_mean_p": 0.5368274357462834,
+          "mean_dropout_p": 0.5366309477478113,
+          "dropout_minus_eval_mean_p": -0.00019648799847216125
+        }
+      },
+      "M5": {
+        "FINAL": {
+          "dynamic_eval_mean_p": 0.5753611150236185,
+          "mean_dropout_p": 0.5745877880999792,
+          "dropout_minus_eval_mean_p": -0.0007733269236392948
+        },
+        "INITIAL": {
+          "dynamic_eval_mean_p": 0.5124952722873004,
+          "mean_dropout_p": 0.5123882433902152,
+          "dropout_minus_eval_mean_p": -0.00010702889708524843
+        }
+      }
+    },
+    "findings": [
+      "All32native controls and all32train-zero-dropout/dynamic-eval controls are bitexact, including original loss.",
+      "Across the four paired dropout draws, FINAL F/non-M5 mean PUP is only0.160-0.178percentage points lower than dynamic eval. The INITIAL-to-FINAL increase remains21.04-22.22percentage points.",
+      "Original fixed-panel loss rises in every paired dropout draw; mean increase0.0355609 versus0.0374321 in dynamic eval. Large accumulated UP drift and loss regression persist under current train mode.",
+      "These are all-row side probabilities on256fixedTRAIN rows, including FLAT/UNKNOWN rows. Neither hit rate nor known-side proper scores nor current later-period quality is measured by this mode observer.",
+      "Four paired dropout draws do not determine the expectation across masks or dropout influence during historical optimization. No model/loss/feature correction or predictive gain follows from the observation.",
+      "Existing matched COVERAGE evidence remains the relevant positive learning result: all5later native-F Brier/log differences versus repeated FULL exclude zero in both exploratory pointwise day/week intervals; M5F AUC0.528606 exceeds INITIAL0.511290 in both intervals, but its difference versus matchedFULL0.513672 remains uncertain. Contents/repetitions/order change jointly and residual non-M5bias remains. This is reused development, not untouched confirmation or economic edge.",
+      "Existing combined decoder result has mixed probability effects and all10later S/F AUC-difference intervals include zero. No new decoder or generic mode/order rerun is justified solely by the current observation."
+    ],
+    "historical_cause_established": false,
+    "predictive_improvement_established": false,
+    "training_authorized": false,
+    "test_data_used": false
   }
 }

@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-13T04:31:28.653640+00:00",
-  "status": "TA_CURRENT_MODE_OBSERVATION_001_ADMITTED_NOT_STARTED",
+  "observed_utc": "2026-11-13T04:46:45.052595+00:00",
+  "status": "TA_CURRENT_MODE_OBSERVATION_001_COMPLETE_UP_DRIFT_PERSISTS",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Run the one fresh current mode observation001: same16B16TRAIN groups at actual INITIAL/FINAL, native controls plus dynamic eval/zero-dropout/four paired train-dropout draws;224forwards,0updates. Compare mode effect with measured endpoint UP drift; no historical-mask, population or edge claim.",
+  "next_action": "Reuse the qualified matched COVERAGE schedule and its source, exact targets and current INITIAL bindings to determine whether its broader calendar exposure can cover all29574current TRAIN parents without a new objective or more updates. Compare the existing full-prefix and previous order controls before admitting one specific learning intervention. The mode hypothesis is measured on the fixed subset; do not repeat mode, generic order or decoder tests. Training stays disabled until a fresh exact bounded admission.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1751,7 +1751,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Current-function paired train/eval mode contrast qualified; oldc171 mode evidence does not cover FINAL1542.",
+    "current_activity": "Current train/eval contrast completed: large UP drift and total-loss regression persist with original dropout. Existing matched COVERAGE evidence is the next reuse point for the learning schedule.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1780,11 +1780,11 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "TA_CURRENT_UPDATE_OBSERVATION_003_COMPLETE_CONSUMED",
-    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_003",
+    "latest_terminal_role": "TA_CURRENT_MODE_OBSERVATION_001_COMPLETE_CONSUMED",
+    "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_MODE_OBSERVATION_20261113_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_003/TERMINAL.json",
-      "sha256": "81432923c80298de97f62cf6505ad3549896a46358725324b9e9c4a1ef8f1624"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_MODE_OBSERVATION_20261113_001/TERMINAL.json",
+      "sha256": "2cb8e04ad254385126d21c48045b2034e136b44bd388f07abdd281230543b3a8"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -1804,7 +1804,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No operational blocker. Current FINAL train/eval mode difference is unmeasured; first-pass accumulated UP drift remains unexplained.",
+    "current_blocker": "No operational blocker. Learned first-pass UP drift persists in train mode; historical optimization/exposure mechanism and robust later edge remain unresolved.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9275,7 +9275,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run the one fresh current mode observation001: same16B16TRAIN groups at actual INITIAL/FINAL, native controls plus dynamic eval/zero-dropout/four paired train-dropout draws;224forwards,0updates. Compare mode effect with measured endpoint UP drift; no historical-mask, population or edge claim.",
+    "next_action": "Reuse the qualified matched COVERAGE schedule and its source, exact targets and current INITIAL bindings to determine whether its broader calendar exposure can cover all29574current TRAIN parents without a new objective or more updates. Compare the existing full-prefix and previous order controls before admitting one specific learning intervention. The mode hypothesis is measured on the fixed subset; do not repeat mode, generic order or decoder tests. Training stays disabled until a fresh exact bounded admission.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22654,6 +22654,164 @@
       "predictive_improvement_established": false,
       "test_data_used": false,
       "training_authorized": false
+    },
+    "latest_current_mode_observation": {
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_MODE_OBSERVATION_20261113_001/RESULT.json",
+        "sha256": "6275bbfe5c82024b08f041566f455afa8f578f2196817a2dce272ab4bbf87182"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_MODE_OBSERVATION_20261113_001/TERMINAL.json",
+        "sha256": "2cb8e04ad254385126d21c48045b2034e136b44bd388f07abdd281230543b3a8"
+      },
+      "validation": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_MODE_OBSERVATION_20261113_001/REVIEW_VALIDATION.json",
+        "sha256": "1b1c43751c93537a0c1ae54fa36e853af4df20e039da806ad6da3bacd02cdb00"
+      },
+      "mode_effect_review": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_MODE_OBSERVATION_20261113_001/MODE_EFFECT_REVIEW.json",
+        "sha256": "873044bee4679bc9a2692b9c4eb56edf49bba4a8d88147af96ff4b358c163697"
+      },
+      "source_commit": "aa032b60aef6263bee2bdbd324321df0c8f331d6",
+      "counts": {
+        "archive_decodes": 2,
+        "autograd_grad_calls": 0,
+        "backwards": 0,
+        "candidate_writes": 0,
+        "capture_records": 224,
+        "captured_rows": 3584,
+        "checkpoint_loads": 2,
+        "checkpoint_weight_transitions": 1,
+        "checkpoint_writes": 0,
+        "deterministic_initialization_calls": 2,
+        "extra_target_gathers": 64,
+        "forwards": 224,
+        "grad_forwards": 192,
+        "input_sidecar_archive_decodes": 6,
+        "model_constructions": 1,
+        "native_reference_matches": 32,
+        "observer_rng_seed_initializations": 1,
+        "optimizer_constructions": 0,
+        "optimizer_updates": 0,
+        "phase_capture_writes": 2,
+        "published_capture_bytes": 800280,
+        "resume_state_load_calls": 2,
+        "resume_state_load_returns": 2,
+        "rng_restores": 1,
+        "sampled_rows": 512
+      },
+      "elapsed_seconds": 255.38345906000177,
+      "native_controls_bitexact": 32,
+      "zero_dropout_train_vs_dynamic_eval_bitexact": 32,
+      "paired_observer_rng_exact": true,
+      "non_rng_state_and_features_unchanged": true,
+      "original_loss_contrast": {
+        "FINAL": {
+          "dropout_draws": [
+            1.9131705835461617,
+            1.9093739986419678,
+            1.9114628285169601,
+            1.909324288368225
+          ],
+          "dropout_mean": 1.9108329247683287,
+          "eval": 1.9124487042427063
+        },
+        "INITIAL": {
+          "dropout_draws": [
+            1.8758898302912712,
+            1.8750009015202522,
+            1.8757716417312622,
+            1.874425746500492
+          ],
+          "dropout_mean": 1.8752720300108194,
+          "eval": 1.8750165775418282
+        },
+        "endpoint_changes": {
+          "dropout_mean": 0.03556089475750923,
+          "eval": 0.03743212670087814,
+          "paired_draws": [
+            0.03728075325489044,
+            0.034373097121715546,
+            0.03569118678569794,
+            0.034898541867733
+          ]
+        }
+      },
+      "future_side_mean_probability": {
+        "D1": {
+          "FINAL": {
+            "dynamic_eval_mean_p": 0.7722827006678543,
+            "mean_dropout_p": 0.7706864222139921,
+            "dropout_minus_eval_mean_p": -0.001596278453862232
+          },
+          "INITIAL": {
+            "dynamic_eval_mean_p": 0.5486506184377996,
+            "mean_dropout_p": 0.5484581018460782,
+            "dropout_minus_eval_mean_p": -0.00019251659172137003
+          }
+        },
+        "H1": {
+          "FINAL": {
+            "dynamic_eval_mean_p": 0.7536052131271204,
+            "mean_dropout_p": 0.7519022551600543,
+            "dropout_minus_eval_mean_p": -0.0017029579670660988
+          },
+          "INITIAL": {
+            "dynamic_eval_mean_p": 0.5316056029975964,
+            "mean_dropout_p": 0.5314500011286839,
+            "dropout_minus_eval_mean_p": -0.00015560186891250272
+          }
+        },
+        "H4": {
+          "FINAL": {
+            "dynamic_eval_mean_p": 0.7628510053738605,
+            "mean_dropout_p": 0.7612216043844418,
+            "dropout_minus_eval_mean_p": -0.0016294009894187722
+          },
+          "INITIAL": {
+            "dynamic_eval_mean_p": 0.5428641262567917,
+            "mean_dropout_p": 0.5427131210155651,
+            "dropout_minus_eval_mean_p": -0.0001510052412265761
+          }
+        },
+        "M15": {
+          "FINAL": {
+            "dynamic_eval_mean_p": 0.7488233935420232,
+            "mean_dropout_p": 0.747044508700184,
+            "dropout_minus_eval_mean_p": -0.00177888484183919
+          },
+          "INITIAL": {
+            "dynamic_eval_mean_p": 0.5368274357462834,
+            "mean_dropout_p": 0.5366309477478113,
+            "dropout_minus_eval_mean_p": -0.00019648799847216125
+          }
+        },
+        "M5": {
+          "FINAL": {
+            "dynamic_eval_mean_p": 0.5753611150236185,
+            "mean_dropout_p": 0.5745877880999792,
+            "dropout_minus_eval_mean_p": -0.0007733269236392948
+          },
+          "INITIAL": {
+            "dynamic_eval_mean_p": 0.5124952722873004,
+            "mean_dropout_p": 0.5123882433902152,
+            "dropout_minus_eval_mean_p": -0.00010702889708524843
+          }
+        }
+      },
+      "findings": [
+        "All32native controls and all32train-zero-dropout/dynamic-eval controls are bitexact, including original loss.",
+        "Across the four paired dropout draws, FINAL F/non-M5 mean PUP is only0.160-0.178percentage points lower than dynamic eval. The INITIAL-to-FINAL increase remains21.04-22.22percentage points.",
+        "Original fixed-panel loss rises in every paired dropout draw; mean increase0.0355609 versus0.0374321 in dynamic eval. Large accumulated UP drift and loss regression persist under current train mode.",
+        "These are all-row side probabilities on256fixedTRAIN rows, including FLAT/UNKNOWN rows. Neither hit rate nor known-side proper scores nor current later-period quality is measured by this mode observer.",
+        "Four paired dropout draws do not determine the expectation across masks or dropout influence during historical optimization. No model/loss/feature correction or predictive gain follows from the observation.",
+        "Existing matched COVERAGE evidence remains the relevant positive learning result: all5later native-F Brier/log differences versus repeated FULL exclude zero in both exploratory pointwise day/week intervals; M5F AUC0.528606 exceeds INITIAL0.511290 in both intervals, but its difference versus matchedFULL0.513672 remains uncertain. Contents/repetitions/order change jointly and residual non-M5bias remains. This is reused development, not untouched confirmation or economic edge.",
+        "Existing combined decoder result has mixed probability effects and all10later S/F AUC-difference intervals include zero. No new decoder or generic mode/order rerun is justified solely by the current observation."
+      ],
+      "historical_cause_established": false,
+      "predictive_improvement_established": false,
+      "training_authorized": false,
+      "test_data_used": false
     }
   },
   "gc_order_flow_research_20261006": {
@@ -84102,19 +84260,19 @@
     "source_unchanged": true
   },
   "market_state_ta_current_mode_observation_20261113_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_MODE_OBSERVATION_20261113_001/PLAN.json",
       "sha256": "62e3a004d099a14dd4a248b8114f7d4227769cedeae300882dd41e665ec2b9cf"
     },
     "max_invocations": 1,
-    "remaining_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "remaining_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "checkpoint_reads_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "checkpoint_reads_authorized": false,
     "training_authorized": false,
     "bounds": {
       "archive_decodes": 2,
@@ -84194,6 +84352,25 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_MODE_OBSERVATION_20261113_001/PREFLIGHT_REPORT.json",
       "sha256": "ab600aa026697a6c18db93364bc5623ee1ddac9d2d96dad739f3f30c70c8eabc"
     },
-    "authorization": "Standing local0USD observation scope; one fresh current fixed-weight mode contrast, no training or consumed-plan reuse."
+    "authorization": "Standing local0USD observation scope; one fresh current fixed-weight mode contrast, no training or consumed-plan reuse.",
+    "terminal_exit_code": 0,
+    "source_unchanged": true,
+    "elapsed_seconds": 255.38345906000177,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_MODE_OBSERVATION_20261113_001/RESULT.json",
+      "sha256": "6275bbfe5c82024b08f041566f455afa8f578f2196817a2dce272ab4bbf87182"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_MODE_OBSERVATION_20261113_001/TERMINAL.json",
+      "sha256": "2cb8e04ad254385126d21c48045b2034e136b44bd388f07abdd281230543b3a8"
+    },
+    "validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_MODE_OBSERVATION_20261113_001/REVIEW_VALIDATION.json",
+      "sha256": "1b1c43751c93537a0c1ae54fa36e853af4df20e039da806ad6da3bacd02cdb00"
+    },
+    "mode_effect_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_MODE_OBSERVATION_20261113_001/MODE_EFFECT_REVIEW.json",
+      "sha256": "873044bee4679bc9a2692b9c4eb56edf49bba4a8d88147af96ff4b358c163697"
+    }
   }
 }

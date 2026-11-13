@@ -5,9 +5,9 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_CURRENT_MODE_OBSERVATION_001_ADMITTED_NOT_STARTED. Edge-målet er uoppnådd.
-Training/native/full_epoch/fullVAL er false. Ingen aktiv jobb. Observasjon003 og tidligere001/002
-og numerikkontroll001 er konsumert; ingen av planene skal relanseres.
+TA_CURRENT_MODE_OBSERVATION_001_COMPLETE_UP_DRIFT_PERSISTS. Edge-målet er uoppnådd.
+Training/native/full_epoch/fullVAL er false. Ingen aktiv jobb. Moduskontroll001, gradientobservasjon003,
+tidligere001/002 og numerikkontroll001 er konsumert; ingen av planene skal relanseres.
 
 Fullført: /home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_003.
 Frossen kilde3019998a, PLANea82d0a0, RESULTd5efba0d, TERMINAL81432923,
@@ -40,19 +40,32 @@ Andre pass reduserer deler av non-M5-skjevheten. M5F TRAIN-AUC0,537196->0,535205
 men senere AUC0,511290->0,510127->0,509071. Bedre TRAIN-fit er ikke bedre senere prognoser.
 To pass på fem måneder avgjør ikke kapasiteten med hele historikken og30-40epoker.
 
-Neste: kjør bare ny moduskontroll001 via eksakt capped-rute og aktuell fryst kilde.
-Root: /home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_MODE_OBSERVATION_20261113_001.
-PLAN62e3a004; faktisk12G/512M/8tråds metadata-preflight PASS uten CLAIM/array/state/modell.
-10målrettede syntetiske tester PASS; uendrede publisher-/gradientkontroller gjenbrukes.
-Én modell,2faktiske states,16sammeB16TRAINgrupper perendepunkt.224forwards/192grad-enabled,
-0autograd/backward/optimizer/updates.32nativekontroller motbeholdte referanser,32dynamic-eval,
-32train uten dropout og128train med original dropout(firetrekk pergruppe/endepunkt).
-Både Dropout.p og MHA.dropout nulles midlertidig i zero-kontrollen og gjenopprettes eksakt.
-Fersk observatørseed20261113 etterINITIAL-last; énFINAL-restore parer hele strømmen.
-Targetqueryseed/opprinneligloss/features er uendret. Dette er ikke historisk-maskereplay.
-600s indregrense/900s yttervakt, max4MiB private captures/8MiBJSON, alle maskinvarevakter beholdes.
-Nativparitet er påkrevd; modeforskjeller måles uten å kreve likhet. Ingen ONLINE-endring,
-ny trening, populasjons-/generalisering-/edgepåstand. Skjevheten skal fortsatt forklares.
+Nyest fullført: /home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_MODE_OBSERVATION_20261113_001.
+Frossen kildeaa032b60,PLAN62e3a004,RESULT6275bbfe,TERMINAL2cb8e04a,
+REVIEW_VALIDATION1b1c4375,MODE_EFFECT_REVIEW873044be.255,383s;guardexit0;
+peak45C/48C/137,38W/2034MiB.224forwards/192grad-enabled/0autograd/updates,
+1modell/2states/2TRAINarkiver/6spanarkiver.2privateNPZ=800280bytes;3584capturerader,
+256unikeTRAINrader,16B16grupper og7profiler perendepunkt.10fokustester PASS.
+Alle32nativekontroller bitlike referansen; alle32train-zero-dropout bitlike dynamic eval/grad.
+34MHA- og105Dropout-innstillinger gjenopprettet; øvrig state/features uendret. Egen seed20261113,
+énFINAL-RNGrestore;32batcher med7routegrensers RNG-kjede parer eksakt. Ingen historisk-maskepåstand.
+
+FINAL F/non-M5 meanP i train medfire dropouttrekk ligger bare0,160–0,178prosentpoeng under eval.
+INITIAL→FINAL-driften er fortsatt+21,04–22,22prosentpoeng;15av16batcher øker for hver non-M5F.
+Originaltap øker1,875017→1,912449 i eval og1,875272→1,910833 i train-middel; øker i allefiretrekk.
+Sannsynlighetene gjelder alle256rader, ogsåFLAT/UNKNOWN: ingen treffrate eller kjent-side-skår.
+Store lærte UP-forskyvninger består i train-mode. Dette avviser en stor ren modusforklaring på
+utvalget, ikke dropouts påvirkning under historisk læring eller andre perioders modusrespons.
+
+Neste: gjenbruk den faktiske matchedCOVERAGE-planen/koden og dens INITIAL-/targetbindinger
+for å avgjøre om den bredere kalenderdekningen kan omfatte alle29574aktuelle TRAIN-foreldre
+med uendret mål og oppdateringsbudsjett. Sammenhold tidligere ordrekontroller før én konkret
+læringsintervensjon klargjøres; ingen ny trening er admittert. Ikke gjenta moduskontrollen.
+EksisterendeCOVERAGE ga bedre senere native-F Brier/log enn matchedFULL for alle5TF i begge
+punktvise dag-/ukeintervaller. M5F AUC0,528606 mot INITIAL0,511290 har positive intervaller,
+men motmatchedFULL0,513672 inkluderer begge0. Innhold/repetisjon/ordre endres samlet;
+non-M5bias består. Combineddecoder ga ingen etablert AUC-merverdi. Dette er gjenbrukt utvikling,
+ikke uavhengig bekreftelse, ferdig modell eller økonomisk edge.
 
 Bevar tidligere kontrollkvitteringer: numerikkontroll001 sourceb2d2073d/RESULT1c1a92d6/
 TERMINALb74ed6b8/validationc0936a6b; den målte énINITIALB16gruppe og0autograd/updates.
