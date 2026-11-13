@@ -5,33 +5,39 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_FOLD2_LATER_INPUTS_002_ADMITTED_NATIVE_2025_LOCAL_REUSE. Edge-målet er uoppnådd.
-Én ny avgrenset inputjobb er admittert; alle treningsflagg er false.
-002-plan23f37478, script28f2ff8e og kildekontroll426f5080 er bundet. Faktisk capped
-preflight6ebb149b PASS: metadata/signaturer/syntetisk merge, null payload/CLAIM.
-Kjør bare002 fra ren kilde gjennom gx1_capped_run.sh audit4G/512M,2400sekunder.
-Frys kilde/policy under kjøring. Ingen lokalreplay eller TRAIN-rerun.
+TA_FOLD2_TRAIN_AND_LATER_INPUTS_QUALIFIED_NATIVE_BASELINE_PENDING. Edge-målet er uoppnådd.
+LATER_INPUTS002 er COMPLETE/CONSUMED; exit0 etter215,18sekunder under4G/512M.
+Ingen jobb er admittert eller i drift. Alle treningsflagg er false.
+Kildecc452272; plan23f37478; terminal1297d154; fysisk resultat2cab8b60;
+COVERAGE5abd47c4; GATHER_RESULTe6aacfe9; VALIDATIONdf45d60f.
+Kilde/policy/plan/input-bookends er uendret og faktisk wrapperexit er0.
+Uavhengig JSON-/hashgjennomgang PASS; ingen array-rerun.
 
-001 er FAILED/CONSUMED og må aldri relanseres. Planen arvet2009–2024 mens panelet
-krevde2025; M5 stoppet på ANCHOR_SPAN_INPUT_EXACT_SOURCE_CLOCK. Dette var en privat
-klargjøringsfeil, ikke et påvist avvik i modellens lagrede data. Originalterminal,
-wrapperkvittering, aksekvalifikasjon og FAILURE_REVIEWbc059ebf er bevart.
-Lokal17353 er ferdig med31gamle felt bitlike; kvalifikasjon4a1d8687/artefakt4b1353d5
-skal gjenbrukes eksakt. Producer/history-null i001 betyr at delegert kall ikke returnerte.
+Minste klargjøringsrettelse er bekreftet: med bare2024 manglet17343av17353M5-gapstempler,
+første2025-01-01 23:00UTC. Med den allerede manifestbundne2025parten matcher alle17353.
+CLOCK_JOINfa604b4d leste kun tid fra to filer. Dette retter den private kontrollplanens
+ufullstendige filliste; det er ingen påvist modellinputfeil eller prediktiv forbedring.
+001/TERMINAL og FAILURE_REVIEWbc059ebf er bevart og må aldri relanseres.
 
-002 legger bare til allerede manifestbundet2025part SHA5c6e9ffb. Etter claim leses kun
-tid fra2024/2025 for å måle M5-gapets17353stempler: gammelt mangeltall skal være positivt,
-nytt skal være0 før noen ny replay. Første manglende stempel er ennå ikke målt.
-Rekonstruer bare fem gjenværende MTF-gap med25028nye outputrader. Forvent17944gjenbrukte,
-42972samlet og414bitlike overlapprader. Ingen modell-/featureendring eller refit.
-Deretter4096forhåndsvalgte januar–mars2025rader,256B16,2048normaliseringskall og native
-vindus-/klokke-/alias-/finitetsporter. RESULT, COVERAGE og GATHER_RESULT må alle bindes
-av terminal. Ingen targets/modeller/forwards/checkpoints/oppdateringer/TEST.
+17353ferdige lokale rader fra001 er gjenbrukt. Fem MTF-produseringer gav25028nye rader,
+17944samlet gjenbrukte og42972komplette fysiske rader med414bitlike overlapprader.
+Alle31gamle felt på nye MTF-rader er bitlike:775868celler,0avvik. Rekonstruksjonen behandlet
+1627161historiebars;25028 er nye outputrader. Ingen lokalreplay eller TRAIN-rerun.
+4096native lokalmønstre og20480MTF-vinduer bestod. Faktisk senere gather besøkte4096
+forhåndsvalgte januar–mars2025rader i256B16 og gjorde2048normaliseringskall. Alle åtte
+inputflater har forventet bredde/vindu/felt; rå klokke-/alias-/finitetsporter og normalisert
+finitet består.673796096skalare vinduspresentasjoner er overlappende, ikke uavhengige observasjoner.
+Null modeller/forwards/targets/normaliseringsfit/checkpoints/oppdateringer; TEST forseglet.
 
 Full47338TRAIN-inputkvalifikasjon og89tester/kontraktkontroller gjenbrukes.
 Aktivitet-only-funksjon, egen normalisering og rebound view f7979c85 er uendret.
-Senere panel4096av17288; sistevalgte64881 og siste8partial utelatt. Baseline/fit er
-separate uåpnede steg. Rapport: docs/TA_FOLD2_INPUT_REVIEW.json. NEXT_RUN_POLICY eier status.
+Senere panel4096av17288; sistevalgte64881 og siste8partial utelatt. Rapport:
+docs/TA_FOLD2_INPUT_REVIEW.json. NEXT_RUN_POLICY eier status.
+
+Neste avgrensede steg er å gjenbruke eksisterende benchmark for fersk native initialbaseline
+på akkurat denne funksjonen/egenprefixet. Modellbaseline og eventuell senere fit er separate,
+uåpnede steg; ingen automatisk trening eller ny indikatorarkitektur følger av input-PASS.
+Hold F-rangering/AUC, terskelaccuracy, klassebalanse og sannsynlighetsfeil atskilt i vurderingen.
 
 ## Fullført og verifisert
 

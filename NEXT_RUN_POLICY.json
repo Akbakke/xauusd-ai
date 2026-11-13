@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-13T14:41:43.344558+00:00",
-  "status": "TA_FOLD2_LATER_INPUTS_002_ADMITTED_NATIVE_2025_LOCAL_REUSE",
+  "observed_utc": "2026-11-13T15:01:02.885137+00:00",
+  "status": "TA_FOLD2_TRAIN_AND_LATER_INPUTS_QUALIFIED_NATIVE_BASELINE_PENDING",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Execute only LATER_INPUTS002 from clean source through capped audit4G/512M, with2400s bound. Require the time-only2024/2025 join before five remaining MTF replays, then exact4096 canonical later gather. Reuse local17353 and all TRAIN qualification. No training/model/target access.",
+  "next_action": "Reuse completed full47338 TRAIN and fixed4096 Jan-Mar2025 later inputs. Next isolate fresh native model/initial baseline for this exact own-prefix function using the existing benchmark path; no training or model job is admitted yet. Compare native F ranking, threshold accuracy, class balance and proper scores separately; no new indicator architecture from input qualification.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1769,7 +1769,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "One new remaining-input qualification admitted after exact2025 source binding and local17353reuse; preflight passed with zero payloads.",
+    "current_activity": "Fold2 TRAIN and fixed later inputs qualified.002 complete and consumed; zero model/target/fit operations. Fresh native initial baseline remains unqualified.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1798,13 +1798,13 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "TA_FOLD2_LATER_INPUTS_001_FAILED_CONSUMED",
+    "latest_terminal_role": "TA_FOLD2_LATER_INPUTS_002_COMPLETE_CONSUMED",
     "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_002",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_001/TERMINAL.json",
-      "sha256": "543c9af5895680059c4894111a473c7698415af61df8b3c8f207f12054180645"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_002/TERMINAL.json",
+      "sha256": "1297d1548f78b2390856be3da16709a1e8d408652b16cc61b7b5eadc075ec2f1"
     },
-    "terminal_exit_code": 1,
+    "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
     "full_benchmark_completed": false,
     "sampler_selection_measured": true,
@@ -22852,7 +22852,7 @@
     },
     "latest_fold2_input_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_FOLD2_INPUT_REVIEW.json",
-      "sha256": "1c958f297146f60fd855ffb91c2f7bdc687962bfe220c3bb2675e9331d506702"
+      "sha256": "742292ce3d825ec7a3056042d59d126f0a45b4beb76c3f0f4356188d36a4e0cc"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -25417,7 +25417,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-13T14:41:43.344558+00:00",
+  "updated_utc": "2026-11-13T15:01:02.885137+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -26058,8 +26058,8 @@
     }
   },
   "latest_terminal_receipt": {
-    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_READOUT_20261113_001/TERMINAL.json",
-    "sha256": "440db3988bdfa9ec16c4562fced3d3ea7b9dc8276697500a8df94495012c7c42"
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_002/TERMINAL.json",
+    "sha256": "1297d1548f78b2390856be3da16709a1e8d408652b16cc61b7b5eadc075ec2f1"
   },
   "trend_event_numeric_source_128": {
     "status": "COMPLETE_PASS",
@@ -76171,7 +76171,7 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_COMBINED_DECODER_RETAINED_TRAJECTORY",
+    "status": "ACTIVE_FOLD2_INPUTS_QUALIFIED_NATIVE_BASELINE_PENDING",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
@@ -76181,12 +76181,12 @@
       "sha256": "2682dca5680706f78396491b6f21392d1cca7ffcb051664aa11edfe73200a54a"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": true,
+    "model_or_data_run_admitted": false,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Materialize this exact admitted combined-decoder plan once from a clean commit, prepare and confirm the guarded fresh Windows reboot after a fresh machine-wide idle check, then let the existing one-use controller execute. Freeze source/policy during execution. Both INITIAL panels must pass before updates;768updates and pass3 are fixed. No full epoch/fullVAL/TEST/Entry/Exit/trading.",
-    "active_stage": "market_state_ta_combined_decoder_source_20261112_001",
+    "next_action": "Reuse completed full47338 TRAIN and fixed4096 Jan-Mar2025 later inputs. Next isolate fresh native model/initial baseline for this exact own-prefix function using the existing benchmark path; no training or model job is admitted yet. Compare native F ranking, threshold accuracy, class balance and proper scores separately; no new indicator architecture from input qualification.",
+    "active_stage": "market_state_ta_fold2_later_inputs_20261113_002",
     "previous_goal_turn_classification": "PROGRESS",
     "last_goal_turn_classification": "PROGRESS",
     "latest_tail_factor_review": {
@@ -76655,18 +76655,20 @@
       "current_model_complement_measured": false,
       "purpose": "Determine whether harmful incremental fit appears within original TRAIN outside this update cohort before attributing failure only to temporal transfer. This is not untouched validation."
     },
-    "latest_operator_question": "Men med dette oppsettet, mener du dette er riktig å trade slik?",
+    "latest_operator_question": "Gå dypere inn i acc og treffsikkerhet og se om vi har avvik her. Klarer modellen finne riktig vei, men den slår ikke ut på acc?",
     "scope_response": "Current phase learns market-state forecasts before Entry. The exposure counterfactual diagnoses learning, not a trading strategy. Existing S and F targets do not establish selectable setups, trade-path quality or profitability; no Entry/Exit/trading authority is opened.",
     "latest_progress": {
-      "status": "PROGRESS",
-      "source_qualification": {
-        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_COMBINED_DECODER_SOURCE_20261112_001/SOURCE_QUALIFICATION.json",
-        "sha256": "4cc3c3869cceff5a7b856253d96baab969e131d1a85f426b4612279503826327"
+      "observed_utc": "2026-11-13T15:01:02.885137+00:00",
+      "stage": "market_state_ta_fold2_later_inputs_20261113_002",
+      "input_review": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/TA_FOLD2_INPUT_REVIEW.json",
+        "sha256": "742292ce3d825ec7a3056042d59d126f0a45b4beb76c3f0f4356188d36a4e0cc"
       },
-      "finding": "Current shared non-M5 side heads are an intentional activity-only variant. Separate prior arms do not test their combination. The minimal combined option is mechanically qualified; native initial and learning effects remain unmeasured.",
-      "native_execution": false,
-      "economic_edge_proven": false,
-      "model_gate_closed": true
+      "validation": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_002/VALIDATION.json",
+        "sha256": "df45d60f7a38c0355e315878f9a849ea35211b0b19b5c254a0f14cde8691921b"
+      },
+      "predictive_improvement_established": false
     },
     "effective_side_weight_review": {
       "status": "COMPLETE_CONSUMED",
@@ -86046,7 +86048,7 @@
     "actual_later_inputs_qualified": false
   },
   "market_state_ta_fold2_later_inputs_20261113_002": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_NO_RELAUNCH",
     "source_review": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_002/SOURCE_REVIEW.json",
       "sha256": "426f5080079c9f3f0338050e00b44dfa33e5db6e5ab93478b6f2d2c0f0f51c33"
@@ -86059,14 +86061,14 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_001/FEATURE_VIEW.json",
       "sha256": "f7979c855c0a2b3a0cee5c0234d5f242b00431e56e4bc68469226f4a61cf7943"
     },
-    "execution_authorized": true,
-    "data_reads_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "training_authorized": false,
     "relaunch_allowed": false,
     "max_invocations": 1,
-    "remaining_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "remaining_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "failed_invocations": 0,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_002/PLAN.json",
@@ -86370,6 +86372,71 @@
     "retained_local_qualification": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_001/GAPS/local_QUALIFICATION.json",
       "sha256": "4a1d8687766294df258040ed826af43b141489824166d77a9c34aee1829ad8cf"
-    }
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_002/TERMINAL.json",
+      "sha256": "1297d1548f78b2390856be3da16709a1e8d408652b16cc61b7b5eadc075ec2f1"
+    },
+    "wrapper_exit": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_002/WRAPPER_EXIT.json",
+      "sha256": "60863b58a80bd0a662c3227ef3d20ee9032859e998cb0699fa2d9802d103062c"
+    },
+    "validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_002/VALIDATION.json",
+      "sha256": "df45d60f7a38c0355e315878f9a849ea35211b0b19b5c254a0f14cde8691921b"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_002/RESULT.json",
+      "sha256": "2cab8b604d0349a093331806acadd0ca1c12327d17eb2a45d60972650cb22dd4"
+    },
+    "coverage": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_002/COVERAGE.json",
+      "sha256": "5abd47c4c27964d2c8d60846701376e9e73d1f0b94ae57986bae23f4cf31cc1a"
+    },
+    "gather_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_002/GATHER_RESULT.json",
+      "sha256": "e6aacfe9fd0043ca78773f97c22d53805286819465663345c1e399edb08d4655"
+    },
+    "clock_join": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_002/CLOCK_JOIN.json",
+      "sha256": "fa604b4d21a35a4f65495e60d377ab9c593167fae600631e781f1acf8b32c12a"
+    },
+    "actual_later_inputs_qualified": true,
+    "model_baseline_qualified": false,
+    "predictive_improvement_established": false,
+    "actual_counts": {
+      "axis_archive_decodes": 1,
+      "axis_arrays_decoded": 3,
+      "checkpoint_reads": 0,
+      "clipped_clock_arrays": 6,
+      "feature_batches": 256,
+      "full_local_clock_loads": 1,
+      "gap_sidecar_archive_decodes": 5,
+      "history_replay_rows": 1627161,
+      "local_windows": 4096,
+      "merged_output_rows": 42972,
+      "model_constructions": 0,
+      "model_forwards": 0,
+      "mtf_maps": 10,
+      "mtf_windows": 20480,
+      "native_clock_only_part_reads": 2,
+      "native_clock_only_rows": 88560,
+      "native_window_calls": 4096,
+      "native_window_sidecar_archive_decodes": 6,
+      "new_output_rows": 25028,
+      "normalization_calls": 2048,
+      "normalization_fits": 0,
+      "optimizer_steps": 0,
+      "overlap_rows": 414,
+      "parent_rows": 4096,
+      "producer_calls": 5,
+      "raw_backing_maps": 6,
+      "retained_local_archive_decodes": 1,
+      "retained_local_output_rows": 17353,
+      "reused_sidecar_archive_decodes": 12,
+      "reused_unique_rows": 17944,
+      "target_arrays_decoded": 0
+    },
+    "elapsed_seconds": 215.18348180900648
   }
 }

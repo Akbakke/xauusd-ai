@@ -13,8 +13,8 @@
     }
   },
   "native_training_authorized": false,
-  "new_job_admitted": true,
-  "next_action": "Execute only LATER_INPUTS002 from clean source through capped audit4G/512M, with2400s bound. Require the time-only2024/2025 join before five remaining MTF replays, then exact4096 canonical later gather. Reuse local17353 and all TRAIN qualification. No training/model/target access.",
+  "new_job_admitted": false,
+  "next_action": "Reuse completed full47338 TRAIN and fixed4096 Jan-Mar2025 later inputs. Next isolate fresh native model/initial baseline for this exact own-prefix function using the existing benchmark path; no training or model job is admitted yet. Compare native F ranking, threshold accuracy, class balance and proper scores separately; no new indicator architecture from input qualification.",
   "normalization": {
     "artifacts": {
       "EXTENDED_BASE_NORMALIZATION": {
@@ -221,7 +221,7 @@
       "sha256": "2e25098183d2ffb27a4441f178789e2bdd39b84646815b67d061ccedbf2170da"
     }
   },
-  "observed_utc": "2026-11-13T14:41:43.344558+00:00",
+  "observed_utc": "2026-11-13T15:01:02.885137+00:00",
   "physical": {
     "all_413_overlap_rows_bitexact": true,
     "counts": {
@@ -315,7 +315,7 @@
     "Existing additive normalization supports exactly the qualified fold2 parent and physical result; no inherited fold1 units. All old statistics and fold1 output identity preserved.",
     "Existing six two-field fit/inverse/projection owner reused with exact fold2 parent/cutoff/output binding."
   ],
-  "status": "FOLD2_REMAINING_LATER_INPUTS_002_ADMITTED",
+  "status": "FOLD2_TRAIN_AND_FIXED_LATER_INPUTS_QUALIFIED_NATIVE_BASELINE_PENDING",
   "test_data_used": false,
   "validation": {
     "both_actual_cli_preflights": "PASS",
@@ -426,8 +426,8 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_002/PREFLIGHT.json",
       "sha256": "6ebb149b15a4317172da61969948701e7621d8f0b6b6b29e9b4bdb05d5465769"
     },
-    "job_status": "ADMITTED",
-    "new_job_admitted": true,
+    "job_status": "COMPLETE_CONSUMED_NO_RELAUNCH",
+    "new_job_admitted": false,
     "selected_rows": 4096,
     "score_rows": 17288,
     "score_parent_start": 47602,
@@ -436,8 +436,8 @@
     "selected_batch_rule": "256 completeB16 groups; floor(i*1079/255)",
     "own_train_normalization_unchanged": true,
     "full_train_gather_reused": true,
-    "later_actual_qualified": false,
-    "actual_later_inputs_qualified": false,
+    "later_actual_qualified": true,
+    "actual_later_inputs_qualified": true,
     "max_seconds": 2400,
     "maximum_gap_producer_calls": 5,
     "remaining_mtf_rows": 25028,
@@ -447,7 +447,7 @@
       "sha256": "4a1d8687766294df258040ed826af43b141489824166d77a9c34aee1829ad8cf"
     },
     "source_year_added": 2025,
-    "clock_join_qualified": false,
+    "clock_join_qualified": true,
     "predecessor_terminal": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_001/TERMINAL.json",
       "sha256": "543c9af5895680059c4894111a473c7698415af61df8b3c8f207f12054180645"
@@ -456,6 +456,151 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_001/FAILURE_REVIEW.json",
       "sha256": "bc059ebf20ac01be7a86d8054f14db86c48137a4a439f120d999f1f1807551f1"
     },
-    "model_input_data_defect_established": false
+    "model_input_data_defect_established": false,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_002/TERMINAL.json",
+      "sha256": "1297d1548f78b2390856be3da16709a1e8d408652b16cc61b7b5eadc075ec2f1"
+    },
+    "wrapper_exit": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_002/WRAPPER_EXIT.json",
+      "sha256": "60863b58a80bd0a662c3227ef3d20ee9032859e998cb0699fa2d9802d103062c"
+    },
+    "validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_002/VALIDATION.json",
+      "sha256": "df45d60f7a38c0355e315878f9a849ea35211b0b19b5c254a0f14cde8691921b"
+    },
+    "physical_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_002/RESULT.json",
+      "sha256": "2cab8b604d0349a093331806acadd0ca1c12327d17eb2a45d60972650cb22dd4"
+    },
+    "coverage": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_002/COVERAGE.json",
+      "sha256": "5abd47c4c27964d2c8d60846701376e9e73d1f0b94ae57986bae23f4cf31cc1a"
+    },
+    "gather_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_002/GATHER_RESULT.json",
+      "sha256": "e6aacfe9fd0043ca78773f97c22d53805286819465663345c1e399edb08d4655"
+    },
+    "clock_join": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_002/CLOCK_JOIN.json",
+      "sha256": "fa604b4d21a35a4f65495e60d377ab9c593167fae600631e781f1acf8b32c12a"
+    },
+    "counts": {
+      "axis_archive_decodes": 1,
+      "axis_arrays_decoded": 3,
+      "checkpoint_reads": 0,
+      "clipped_clock_arrays": 6,
+      "feature_batches": 256,
+      "full_local_clock_loads": 1,
+      "gap_sidecar_archive_decodes": 5,
+      "history_replay_rows": 1627161,
+      "local_windows": 4096,
+      "merged_output_rows": 42972,
+      "model_constructions": 0,
+      "model_forwards": 0,
+      "mtf_maps": 10,
+      "mtf_windows": 20480,
+      "native_clock_only_part_reads": 2,
+      "native_clock_only_rows": 88560,
+      "native_window_calls": 4096,
+      "native_window_sidecar_archive_decodes": 6,
+      "new_output_rows": 25028,
+      "normalization_calls": 2048,
+      "normalization_fits": 0,
+      "optimizer_steps": 0,
+      "overlap_rows": 414,
+      "parent_rows": 4096,
+      "producer_calls": 5,
+      "raw_backing_maps": 6,
+      "retained_local_archive_decodes": 1,
+      "retained_local_output_rows": 17353,
+      "reused_sidecar_archive_decodes": 12,
+      "reused_unique_rows": 17944,
+      "target_arrays_decoded": 0
+    },
+    "elapsed_seconds": 215.18348180900648,
+    "source_commit": "cc4522724e030c1a2ebe49bcb116c457e4f2c396",
+    "source_unchanged": true,
+    "all_raw_native_clock_alias_and_finite_guards_passed": true,
+    "all_normalized_values_finite": true,
+    "clock_missing_before2025": 17343,
+    "clock_missing_with2025": 0,
+    "clock_required_rows": 17353,
+    "clock_first_missing_utc": "2025-01-01T23:00:00+00:00",
+    "new_legacy_bitexact_cells": 775868,
+    "surfaces": {
+      "ctx_cont": {
+        "issue_rows": 4096,
+        "rows": 4096,
+        "scalar_values": 540672,
+        "width": 132,
+        "window_rows": 1
+      },
+      "seq_d1": {
+        "issue_rows": 4096,
+        "rows": 1032192,
+        "scalar_values": 263208960,
+        "width": 255,
+        "window_rows": 252
+      },
+      "seq_h1": {
+        "issue_rows": 4096,
+        "rows": 393216,
+        "scalar_values": 100270080,
+        "width": 255,
+        "window_rows": 96
+      },
+      "seq_h4": {
+        "issue_rows": 4096,
+        "rows": 393216,
+        "scalar_values": 100270080,
+        "width": 255,
+        "window_rows": 96
+      },
+      "seq_m15": {
+        "issue_rows": 4096,
+        "rows": 262144,
+        "scalar_values": 66846720,
+        "width": 255,
+        "window_rows": 64
+      },
+      "seq_m5": {
+        "issue_rows": 4096,
+        "rows": 65536,
+        "scalar_values": 16711680,
+        "width": 255,
+        "window_rows": 16
+      },
+      "seq_x": {
+        "issue_rows": 4096,
+        "rows": 393216,
+        "scalar_values": 124649472,
+        "width": 317,
+        "window_rows": 96
+      },
+      "snap_x": {
+        "issue_rows": 4096,
+        "rows": 4096,
+        "scalar_values": 1298432,
+        "width": 317,
+        "window_rows": 1
+      }
+    },
+    "session_counts": [
+      1467,
+      880,
+      758,
+      991
+    ],
+    "scalar_window_presentations": 673796096,
+    "model_baseline_qualified": false,
+    "predictive_improvement_established": false,
+    "test_data_used": false,
+    "independent_review": {
+      "status": "PASS_JSON_HASH_JOINS_AND_LIMITS",
+      "reviewer": "composition_audit",
+      "payload_decodes": 0,
+      "source_changes": 0
+    }
   }
 }
