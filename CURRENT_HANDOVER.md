@@ -5,27 +5,24 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_CURRENT_UPDATE_OBSERVATION_002_PARITY_STOP_NUMERICAL_PROFILE_DIAGNOSIS. Edge-målet er uoppnådd.
-Training/native/full_epoch/fullVAL er false. Ingen aktiv jobb;001/002 er FAILED_CONSUMED og skal ikke relanseres.
-Siste observasjon: /home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_002.
-Source948acf26, PLAN65d116d6, RESULTb40fbdb0, TERMINAL05e86ad2. Første INITIAL no_grad-forward
-feilet på state_raw-paritet.1modell/1forward,2states/2TRAINarkiver/6spanarkiver;0grad-forwards,
-autograd,updates,RNG-restores,checkpoint-/kandidatskriving. INITIALtilstand/flagg/RNG uendret.
-Alle590aktive tensorer er faktisk gruppert og sisteAdam-historikk navne-/oppskrift-/steg3698-kontrollert;
-ingen aktuell gradient eller sammenheng mellom Adam-retning og logit er målt.
-NUMERICAL_PROFILE_DIAGNOSIS.json og REVIEW_VALIDATION.json binder feilen og kildene i samme root.
-Konkret profilforskjell: lagret TRAIN-evaluering bruker eval/no_grad uten MHA-overstyring;
-observeren tvinger MHA-fastpathFalse via treningskonteksten. Installert Torch har defaultTrue,
-men hver modul må også kvalifisere for fastpath. Grad-enabled parametre deaktiverer fused-ruten.
-Forskjellen er kildebevist, dens bidrag til mismatch er umålt.002 beholdt ikke feilede raw-verdier
-eller feilstørrelsen. Ingen toleranse skal slakkes, og dette beviser ikke årsaken til svak edge.
-Foreldre/klokker/beggequery-akser passerte sammenligning før state_raw; senere masker ble ikke kontrollert.
+TA_CURRENT_NUMERIC_ROUTE_COMPARISON_ADMITTED_NOT_STARTED. Edge-målet er uoppnådd.
+Training/native/full_epoch/fullVAL er false. Ingen aktiv jobb; tidligere scopes001/002 er konsumert.
+Ny root: /home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_NUMERIC_ROUTES_20261113_001.
+PLAN55655fe0. Eksakt metadata-preflight gjennom guarded12G/512M/8tråder PASS med0CLAIM/model/array/state.
+Fem målrettede syntetiske sammenligningstester PASS; exactcapmatcher2gyldige/4avviste; begge
+publisherstatus-tester gjenbrukes fra uendret eier. Indre tidsgrense300s, ytrevakt600s; øvrige vakter uendret.
+Én faktiskbef35INITIAL,énmodell,énB16gruppe(index0),3forwards: originaleval/no_grad meddefaultMHA,
+dynamiskno_grad medMHAFalse og dynamiskgrad-enabled.0autograd/updates/RNG-restores/checkpointskriving.
+Originalruten må matche retainedcontrol før de andre; sammenligningsstørrelser og3små private
+route-NPZ bevares. COMPLETE er ikke cross-route-ekvivalens; opprinnelig2e-6/1e-6 ogloss5e-6 beholdes.
 
-001 er bevart: RESULTfa545c31/TERMINAL2ccd71eb,sourceab065c1e;0modeller/forwards,
-2states/2TRAINarkiver/6spanarkiver. Root hadde brukt et parent_order_sha256-felt som ikke finnes i
-full-prefixRECIPE.002 rettet dette til faktiskpreparedorder mot begge savedorders; dette passerte.
-25målrettede syntetiske tester PASS;11gradientregresjoner gjenbrukt;3ordre-/captester PASS etter rettelse.
-Begge eksakte metadata-preflights PASS, men ingen aktuell gradientmåling er kvalifisert.
+Bakgrunn: observer002(source948acf26,RESULTb40fbdb0,TERMINAL05e86ad2) stoppet etter1modell/
+1INITIALno_grad-forward påstate_raw-paritet;0grad/autograd/updates,tilstand/RNG/flagg uendret.
+590aktive tensorer og sisteAdamsteg3698 ble kontrollert, men ingen upstream-gradient målt.
+Kildebevist profilforskjell: nativeTRAIN bruker eval/no_grad utenMHA-overstyring; observeren
+brukte MHAFalse. TorchdefaultTrue tillater fastpath, mens grad-enabled parametre deaktiverer
+fusedruten. Størrelse/bidrag er umålt.002 beholdt ikke rawfeilstørrelse; denne konkrete mangelen
+rettes i ny observasjon.001-feltfeilen er lukket; ingen gamle engangsplaner relanseres.
 Sist fullførte root: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001.
 Source47f7700a; RESULTbbda929f, TERMINALb7416725, REVIEW_VALIDATIONb2c96178.3,096s capped4G/512M,
 timeout240s;2checkpoints/2TRAINarkiver,0modeller/modulkall/autograd/updates/affine replay.
@@ -54,10 +51,9 @@ motUP0,4889. Dette gjelder nylige faktiske treningsinputs/vekter, ikke FINAL/LAT
 Direkte og rekursiv momentberegning matcher innen2,23e-16; native FP32-historikk er ikke replayet.
 Ingen grunn til å fjerne S-målet, endre klippevakten eller gjenta et generelt ordre-/arkitekturforsøk.
 
-Neste: klargjør minste nye første-B16 INITIAL-kontroll som sammenligner original eval/no_grad-
-rute, eksplisitt dynamisk no_grad-rute og dens grad-enabled-motpart. Bevar scalarfeilstørrelser
-og alle kvitteringer. Ingen ny kjøring/trening eller fullgradientobservasjon er admittert.
-Gjenbruk inputs/checkpoints og beståtte tester; ingen generell arkitektur-/ordretest eller gateomgåelse.
+Neste: kjør bare den nye admitterte3-forward-rutekontrollen. Lesoriginal RESULT/TERMINAL og
+parvise feilstørrelser før videre gradientarbeid. Ingen fullgradientobservasjon, trening,
+generell arkitektur-/ordretest eller toleranseendring er admittert.
 
 Forrige parameter-replay002 er bevart: RESULT3545cbf2,TERMINAL5d990762,validation0d6be484.
 Alle 590 aktive parametertensorer fikk 3698 Adam-steg; 179 inaktive og alle buffere var uendret. Siste output-bias forklarte

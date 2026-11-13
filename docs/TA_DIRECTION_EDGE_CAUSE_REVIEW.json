@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_CURRENT_NUMERICAL_PROFILE_DIFFERENCE_UNISOLATED",
+  "status": "ACTIVE_CURRENT_NUMERIC_ROUTE_COMPARISON_ADMITTED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -269,7 +269,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Prepare smallest fresh current-INITIAL first-B16 numerical-route comparison: original eval/no_grad MHA-default path, explicit dynamic no_grad path, and grad-enabled counterpart; retain scalar mismatch evidence and preserve current tolerance. Source profile difference is identified but unisolated. No new execution/training/full gradient observation is admitted; consumed001/002 remain closed.",
+  "next_measurement": "Run exactly one current-INITIAL first-B16 route comparison:1model/1checkpoint/1retained capture/3forwards,0autograd/updates. Native eval/no_grad retained control must pass; measure dynamic no_grad and grad-enabled counterpart with unchanged tolerances and private raw captures. No full gradient observation or training admitted.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -14382,5 +14382,49 @@
       }
     },
     "finding": "Current observer fails retained INITIAL raw parity before autograd. Actual native TRAIN eval and observer use different MHA profiles; quantitative cause is not isolated. No upstream loss/Adam-logit derivative result yet."
+  },
+  "current_numeric_route_comparison_admission": {
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_NUMERIC_ROUTES_20261113_001/PLAN.json",
+      "sha256": "55655fe059619e766abdf0bbfc2bcc976f74aeeb6659171720da7b2dd90ca431"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_NUMERIC_ROUTES_20261113_001/PREFLIGHT_REPORT.json",
+      "sha256": "da930f9d88ff2ccf19a768da68c6d8f52c21bc34cfe4852d969d89b45cd0a289"
+    },
+    "bounds": {
+      "batch_size": 16,
+      "original_batch_index": 0,
+      "panel_slot": 0,
+      "unique_rows": 16,
+      "model_constructions": 1,
+      "checkpoint_loads": 1,
+      "resume_state_load_calls": 1,
+      "resume_state_load_returns": 1,
+      "archive_decodes": 1,
+      "input_sidecar_archive_decodes": 6,
+      "forwards": 3,
+      "grad_forwards": 1,
+      "route_capture_writes": 3,
+      "autograd_grad_calls": 0,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "backwards": 0,
+      "rng_restores": 0,
+      "checkpoint_writes": 0,
+      "candidate_writes": 0,
+      "wall_seconds": 300,
+      "memory_bytes": 12884901888,
+      "max_capture_bytes": 1048576,
+      "max_published_json_bytes": 2097152,
+      "numerical_threads": 8,
+      "raw_rtol": 1e-06,
+      "raw_atol": 2e-06,
+      "loss_atol": 5e-06,
+      "training_enabled": false,
+      "test_data_used": false
+    },
+    "reason": "Observer002 actual INITIAL no_grad raw parity stop; source identified different MHA profile. Quantify that difference before any gradient attribution.",
+    "scope": "Same first outcome-blind B16 TRAIN batch and actual INITIAL; original/default native no_grad, dynamic no_grad, dynamic grad-enabled. No tolerance relaxation, autograd, optimizer or model change."
   }
 }

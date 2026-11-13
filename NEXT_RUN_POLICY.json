@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-13T03:12:13.435920+00:00",
-  "status": "TA_CURRENT_UPDATE_OBSERVATION_002_PARITY_STOP_NUMERICAL_PROFILE_DIAGNOSIS",
+  "observed_utc": "2026-11-13T03:27:59.445375+00:00",
+  "status": "TA_CURRENT_NUMERIC_ROUTE_COMPARISON_ADMITTED_NOT_STARTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Prepare smallest fresh current-INITIAL first-B16 numerical-route comparison: original eval/no_grad MHA-default path, explicit dynamic no_grad path, and grad-enabled counterpart; retain scalar mismatch evidence and preserve current tolerance. Source profile difference is identified but unisolated. No new execution/training/full gradient observation is admitted; consumed001/002 remain closed.",
+  "next_action": "Run exactly one current-INITIAL first-B16 route comparison:1model/1checkpoint/1retained capture/3forwards,0autograd/updates. Native eval/no_grad retained control must pass; measure dynamic no_grad and grad-enabled counterpart with unchanged tolerances and private raw captures. No full gradient observation or training admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -9275,7 +9275,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Prepare smallest fresh current-INITIAL first-B16 numerical-route comparison: original eval/no_grad MHA-default path, explicit dynamic no_grad path, and grad-enabled counterpart; retain scalar mismatch evidence and preserve current tolerance. Source profile difference is identified but unisolated. No new execution/training/full gradient observation is admitted; consumed001/002 remain closed.",
+    "next_action": "Run exactly one current-INITIAL first-B16 route comparison:1model/1checkpoint/1retained capture/3forwards,0autograd/updates. Native eval/no_grad retained control must pass; measure dynamic no_grad and grad-enabled counterpart with unchanged tolerances and private raw captures. No full gradient observation or training admitted.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22579,12 +22579,12 @@
         "new_model_calls": 0
       }
     },
-    "status": "TA_CURRENT_UPDATE_OBSERVATION_002_PARITY_STOP_NUMERICAL_PROFILE_DIAGNOSIS",
-    "observed_utc": "2026-11-13T03:12:13.435920+00:00",
-    "current_observation_stage": "market_state_ta_current_update_observation_20261113_002",
+    "status": "TA_CURRENT_NUMERIC_ROUTE_COMPARISON_ADMITTED_NOT_STARTED",
+    "observed_utc": "2026-11-13T03:27:59.445375+00:00",
+    "current_observation_stage": "market_state_ta_current_numeric_routes_20261113_001",
     "current_observation_plan": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_002/PLAN.json",
-      "sha256": "65d116d61e2f11748f40367ae941dad71b5559bd03ddbc51cb3475c6316fddbb"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_NUMERIC_ROUTES_20261113_001/PLAN.json",
+      "sha256": "55655fe059619e766abdf0bbfc2bcc976f74aeeb6659171720da7b2dd90ca431"
     },
     "current_observation_running": false,
     "latest_current_update_profile_diagnosis": {
@@ -83851,5 +83851,56 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_002/REVIEW_VALIDATION.json",
       "sha256": "b33f50dfb68a86fe8988b887841706cac5ca49d535335259bd9e976011dc716c"
     }
+  },
+  "market_state_ta_current_numeric_routes_20261113_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_NUMERIC_ROUTES_20261113_001/PLAN.json",
+      "sha256": "55655fe059619e766abdf0bbfc2bcc976f74aeeb6659171720da7b2dd90ca431"
+    },
+    "max_invocations": 1,
+    "remaining_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_authorized": true,
+    "training_authorized": false,
+    "bounds": {
+      "batch_size": 16,
+      "original_batch_index": 0,
+      "panel_slot": 0,
+      "unique_rows": 16,
+      "model_constructions": 1,
+      "checkpoint_loads": 1,
+      "resume_state_load_calls": 1,
+      "resume_state_load_returns": 1,
+      "archive_decodes": 1,
+      "input_sidecar_archive_decodes": 6,
+      "forwards": 3,
+      "grad_forwards": 1,
+      "route_capture_writes": 3,
+      "autograd_grad_calls": 0,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "backwards": 0,
+      "rng_restores": 0,
+      "checkpoint_writes": 0,
+      "candidate_writes": 0,
+      "wall_seconds": 300,
+      "memory_bytes": 12884901888,
+      "max_capture_bytes": 1048576,
+      "max_published_json_bytes": 2097152,
+      "numerical_threads": 8,
+      "raw_rtol": 1e-06,
+      "raw_atol": 2e-06,
+      "loss_atol": 5e-06,
+      "training_enabled": false,
+      "test_data_used": false
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_NUMERIC_ROUTES_20261113_001/PREFLIGHT_REPORT.json",
+      "sha256": "da930f9d88ff2ccf19a768da68c6d8f52c21bc34cfe4852d969d89b45cd0a289"
+    },
+    "authorization": "Standing local0USD observation authority; fresh exact scope isolates measured profile mismatch, no training."
   }
 }
