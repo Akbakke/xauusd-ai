@@ -2327,7 +2327,7 @@
     "Independent generalization, selectable Entry quality or economic edge.",
     "Failure of the complete multi-year30-40epoch capacity; this uses one five-month prefix."
   ],
-  "next_mechanism_question": "Prepare the smallest current-function observation that relates loss gradients and retained Adam direction to upward-logit changes in the shared projection/encoder. Reuse the existing loss-seed/VJP method and current qualified inputs; bind exact bef35/1542states, current8-thread runtime and source. The old c171/R1 worker/cap route is incompatible and must not be relaxed or relaunched. No model/architecture change, generic order experiment, native execution or training is admitted yet.",
+  "next_mechanism_question": "Prepare smallest fresh current-INITIAL first-B16 numerical-route comparison: original eval/no_grad MHA-default path, explicit dynamic no_grad path, and grad-enabled counterpart; retain scalar mismatch evidence and preserve current tolerance. Source profile difference is identified but unisolated. No new execution/training/full gradient observation is admitted; consumed001/002 remain closed.",
   "parameter_replay": {
     "result": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_PARAMETER_REPLAY_20261113_002/RESULT.json",
@@ -3133,5 +3133,16 @@
     "Actual final side-bias first moments are negative for M5S/F and positive for shared non-M5S/F. Thus the last gradient-based Adam component pushes the shared non-M5side biases DOWN. Decoupled weight decay and all other parameter contributions remain separate.",
     "Nominal moment-weighted historical F probabilities are0.518293against UPexposure0.571510forM5 and0.608490against0.488851for the shared non-M5head. These are recent weighted training-history aggregates inferred from retained moments, not FINAL TRAIN/LATER predictions or native FP32 history replay.",
     "No current loss formula defect, broad M5 last-boundary S/F cancellation, beneficial task removal or clipping-rule change is established. The shared projection/encoder and Adam parameter-direction mechanism remains to be measured."
-  ]
+  ],
+  "current_update_numerical_profile_diagnosis": {
+    "diagnosis": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_002/NUMERICAL_PROFILE_DIAGNOSIS.json",
+      "sha256": "814f4c09689ff2e52d914febb3f837eee18d67360b0b613cc31a7b807d993eff"
+    },
+    "validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_002/REVIEW_VALIDATION.json",
+      "sha256": "b33f50dfb68a86fe8988b887841706cac5ca49d535335259bd9e976011dc716c"
+    },
+    "current_upstream_gradient_observation_qualified": false
+  }
 }

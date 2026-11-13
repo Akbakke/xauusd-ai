@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-13T03:04:26.241730+00:00",
-  "status": "TA_CURRENT_UPDATE_OBSERVATION_002_ADMITTED_NOT_STARTED",
+  "observed_utc": "2026-11-13T03:12:13.435920+00:00",
+  "status": "TA_CURRENT_UPDATE_OBSERVATION_002_PARITY_STOP_NUMERICAL_PROFILE_DIAGNOSIS",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Run fresh exact002current-endpoint observation after minimal parent-order key repair; consumed001 has0models/forwards and remains immutable. One capped12G/512M guarded model,2saved states,34forwards/256autograd,0updates; original masks and all590active tensors. No training or finite-path causal claim.",
+  "next_action": "Prepare smallest fresh current-INITIAL first-B16 numerical-route comparison: original eval/no_grad MHA-default path, explicit dynamic no_grad path, and grad-enabled counterpart; retain scalar mismatch evidence and preserve current tolerance. Source profile difference is identified but unisolated. No new execution/training/full gradient observation is admitted; consumed001/002 remain closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -9275,7 +9275,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run fresh exact002current-endpoint observation after minimal parent-order key repair; consumed001 has0models/forwards and remains immutable. One capped12G/512M guarded model,2saved states,34forwards/256autograd,0updates; original masks and all590active tensors. No training or finite-path causal claim.",
+    "next_action": "Prepare smallest fresh current-INITIAL first-B16 numerical-route comparison: original eval/no_grad MHA-default path, explicit dynamic no_grad path, and grad-enabled counterpart; retain scalar mismatch evidence and preserve current tolerance. Source profile difference is identified but unisolated. No new execution/training/full gradient observation is admitted; consumed001/002 remain closed.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22579,12 +22579,17 @@
         "new_model_calls": 0
       }
     },
-    "status": "TA_CURRENT_UPDATE_OBSERVATION_002_ADMITTED_NOT_STARTED",
-    "observed_utc": "2026-11-13T03:04:26.241730+00:00",
+    "status": "TA_CURRENT_UPDATE_OBSERVATION_002_PARITY_STOP_NUMERICAL_PROFILE_DIAGNOSIS",
+    "observed_utc": "2026-11-13T03:12:13.435920+00:00",
     "current_observation_stage": "market_state_ta_current_update_observation_20261113_002",
     "current_observation_plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_002/PLAN.json",
       "sha256": "65d116d61e2f11748f40367ae941dad71b5559bd03ddbc51cb3475c6316fddbb"
+    },
+    "current_observation_running": false,
+    "latest_current_update_profile_diagnosis": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_002/NUMERICAL_PROFILE_DIAGNOSIS.json",
+      "sha256": "814f4c09689ff2e52d914febb3f837eee18d67360b0b613cc31a7b807d993eff"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -83724,19 +83729,19 @@
     }
   },
   "market_state_ta_current_update_observation_20261113_002": {
-    "status": "ADMITTED",
+    "status": "FAILED_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_002/PLAN.json",
       "sha256": "65d116d61e2f11748f40367ae941dad71b5559bd03ddbc51cb3475c6316fddbb"
     },
     "max_invocations": 1,
-    "remaining_invocations": 1,
-    "claimed_invocations": 0,
+    "remaining_invocations": 0,
+    "claimed_invocations": 1,
     "completed_invocations": 0,
     "relaunch_allowed": false,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "checkpoint_reads_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "checkpoint_reads_authorized": false,
     "training_authorized": false,
     "bounds": {
       "batch_size": 16,
@@ -83828,6 +83833,23 @@
         "sha256": "2ccd71ebab333bb75af599d05519b76623875548d9094ad026516f3946a5bf5d"
       }
     },
-    "authorization": "Standing local0USD observation authority; new exact scope after concrete metadata blocker, no training."
+    "authorization": "Standing local0USD observation authority; new exact scope after concrete metadata blocker, no training.",
+    "failed_invocations": 1,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_002/RESULT.json",
+      "sha256": "b40fbdb0c2831c8cd2f7fd9ab0979b3491914f9290c375ef1e4bc11626ce4aaa"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_002/TERMINAL.json",
+      "sha256": "05e86ad22bad5645aff0b831b16abe7f59ea22b52c02f4c0f7bc8f03d027d2bc"
+    },
+    "diagnosis": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_002/NUMERICAL_PROFILE_DIAGNOSIS.json",
+      "sha256": "814f4c09689ff2e52d914febb3f837eee18d67360b0b613cc31a7b807d993eff"
+    },
+    "validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_002/REVIEW_VALIDATION.json",
+      "sha256": "b33f50dfb68a86fe8988b887841706cac5ca49d535335259bd9e976011dc716c"
+    }
   }
 }

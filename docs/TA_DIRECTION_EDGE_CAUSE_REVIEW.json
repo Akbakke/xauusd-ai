@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_CURRENT_UPSTREAM_OBSERVATION_002_ADMITTED_NO_EDGE_CLAIM",
+  "status": "ACTIVE_CURRENT_NUMERICAL_PROFILE_DIFFERENCE_UNISOLATED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -269,7 +269,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Run fresh exact002current-endpoint observation after minimal parent-order key repair; consumed001 has0models/forwards and remains immutable. One capped12G/512M guarded model,2saved states,34forwards/256autograd,0updates; original masks and all590active tensors. No training or finite-path causal claim.",
+  "next_measurement": "Prepare smallest fresh current-INITIAL first-B16 numerical-route comparison: original eval/no_grad MHA-default path, explicit dynamic no_grad path, and grad-enabled counterpart; retain scalar mismatch evidence and preserve current tolerance. Source profile difference is identified but unisolated. No new execution/training/full gradient observation is admitted; consumed001/002 remain closed.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -14337,5 +14337,50 @@
       }
     },
     "repair": "No parent_order_sha256 exists in full-prefix RECIPE. New source compares qualified prepared axes directly with actual INITIAL.parent_order and FINAL.selected_parent_order, enforcing dtype/shape/equality. No model/training change."
+  },
+  "current_update_observation_002_result": {
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_002/RESULT.json",
+      "sha256": "b40fbdb0c2831c8cd2f7fd9ab0979b3491914f9290c375ef1e4bc11626ce4aaa"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_002/TERMINAL.json",
+      "sha256": "05e86ad22bad5645aff0b831b16abe7f59ea22b52c02f4c0f7bc8f03d027d2bc"
+    },
+    "diagnosis": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_002/NUMERICAL_PROFILE_DIAGNOSIS.json",
+      "sha256": "814f4c09689ff2e52d914febb3f837eee18d67360b0b613cc31a7b807d993eff"
+    },
+    "validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_002/REVIEW_VALIDATION.json",
+      "sha256": "b33f50dfb68a86fe8988b887841706cac5ca49d535335259bd9e976011dc716c"
+    },
+    "counts": {
+      "archive_decodes": 2,
+      "autograd_grad_calls": 0,
+      "backwards": 0,
+      "candidate_writes": 0,
+      "checkpoint_loads": 2,
+      "checkpoint_weight_transitions": 0,
+      "checkpoint_writes": 0,
+      "forwards": 1,
+      "grad_forwards": 0,
+      "input_sidecar_archive_decodes": 6,
+      "matched_batches": 0,
+      "model_constructions": 1,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "resume_state_load_calls": 2,
+      "resume_state_load_returns": 2,
+      "rng_restores": 0,
+      "sampled_rows": 0
+    },
+    "passivity": {
+      "INITIAL": {
+        "no_parameter_gradients": true,
+        "signature_unchanged": true
+      }
+    },
+    "finding": "Current observer fails retained INITIAL raw parity before autograd. Actual native TRAIN eval and observer use different MHA profiles; quantitative cause is not isolated. No upstream loss/Adam-logit derivative result yet."
   }
 }
