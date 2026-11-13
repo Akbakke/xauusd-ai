@@ -5,24 +5,29 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_HEAD_INPUT_001_ADMITTED_FROZEN_NON_M5_ACCOUNTING.
-Edge-målet er uoppnådd. Alle treningsflagg er false. Én ny passiv probe er admittert:
-MARKET_STATE_TA_HEAD_INPUT_OBSERVATION_20261113_001,PLANd3bb769f.
-M5 har egne S/F-sidehoder; M15/H1/H4/D1 deler ett peroppgave og TF-modulert Linear+GELU.
-LATER-arkivene lagrer bare M5-hodeinput, ikke øvrige TF. Eksisterende PARAMETER_REPLAY002
-RESULT3545cbf2 viste allerede blandet M5-vekt/representasjonsbidrag bef35→1542; gjenbrukes.
-Den nye proben fyller det konkrete non-M5-gapet ved order001-c34 og sammebef35-INITIAL.
-Samme256 klokkevalgte rader som forrige kontekstprobe;128oktober/128desember, intakteB16.
-32nativeforwards,2checkpoints,32gathers,12sidecars,64+64observasjonshooks,0updates/nye mål.
-Faktiske felles skjulte vektorer, alleTF-hodeinput og små dekoderparametre lagres fra samme
-forwards for senere algebra uten nyGPU.30regnskapsceller:alle10S/F-TF for hvermåned ogsamlet;
-begge ordnede/symmetrisk dekomponering, bias og eksplisitt avrundingsrest beholdes.
-Native output og eksisterendeM5-input må gjenskapes; modell/inputs/RNG/kilde uendret.
-600s observatør/900s eksisterendeCUDA-vakt,12G/512M,8tråder,allefysiskevakter beholdt.
-20målrettede tester kvalifisert:19PASS først, én alternativ FP64-sigmoidtest rettet
-fra2e-16 til4epsilon og gjenkjørtPASS. Native-/closuregrenser uendret; metadata-preflightPASS.
-Kilde-/API-kontroll fant ingen kjørehindring. Neste: én kjøring, alle resultater, lukk planen.
-Ingen historisk årsaksandel, bedreaccuracy/edge eller ny trening følger av et algebraiskregnskap.
+TA_HEAD_INPUT_COMPLETE_PROJECTION_REPLAY_001_ADMITTED.
+Edge-målet er uoppnådd. Alle treningsflagg er false. Ingen GPU-jobb kjører.
+Én CPU-only replay er admittert: MARKET_STATE_TA_HEAD_PROJECTION_REPLAY_20261113_001,
+PLAN74516173,REPLAY.py09d5889b.2smålagredearkiver,0modeller/checkpoints/encoder/updates;
+64FP32Linear+GELU-batcher,16FP64affinegrids,30celler.120s/4G/512M/1tråd.
+Alle8hidden/projeksjon/hode-endepunktskombinasjoner,6ordnede stier og symmetriskmiddel;
+begge nativepostGELU oglogitdiagonaler må bestå eksisterende1e-6/2e-6-toleranse først.
+Metadata-preflight og uavhengig kildekontrollPASS. Neste: én replay, alle resultater, lukk.
+Ingen unik historisk årsaksandel eller bedreaccuracy/edge følger av algebraen.
+
+GPU-observasjon MARKET_STATE_TA_HEAD_INPUT_OBSERVATION_20261113_001 er COMPLETE/CONSUMED:
+kilde f8a43930,RESULT697b3a53,TERMINALd94ac5d0,VALIDATION5b7989c4.89,90s,
+32forwards/2checkpoints/32gathers/12sidecars/0updates. Alle32baseliner ogM5inputbitlike;
+modell/inputs/RNG/kilde uendret.20fokuserte tester kvalifisert;20testenes originale kvitteringer bevart.
+256klokkevalgte rader,128oktober/128desember. Alle5TF/S/F faktiske hodeinput er nå lagret,
+sammen med skjult vektor førquery og smådekoderparametre for viderealgebra utennyGPU.
+Desember F/M15-H1-H4-D1 Δlogit1,205/1,313/1,360/1,399; symmetriskrepresentasjon1,128/
+1,227/1,268/1,308, hodevekter0,075/0,084/0,091/0,090 ogbias0,001812. Representasjonstermen
+dominerer ogsåbeggeordnederegnskap; interaksjon0,120–0,134 gjørandelene rekkefølgeavhengige.
+Gammelt hode pånyrepresentasjon girPUP0,735–0,773; nytt hode pågammelrepresentasjon0,514–0,535.
+Maksaffinereplay4,93e-7,radclosure1,33e-15. Regnskapetblanderforeløpigbackbone ogqueryprojeksjon;
+den admitterte CPUreplayen skillerdisse medalleredeobserverte arrays.
+TidligeregenerellM5attribution bef35→1542(RESULT3545cbf2)gjenbrukes;ingen nygenerellM5-probe.
 
 Forrige kontekstprobe er COMPLETE/CONSUMED: docs/TA_CONTEXT_DRIFT_REVIEW.json,
 RESULT8f1bf7cf.32bitlikebaseliner,128forwards/0updates. Avgrensning av sekscurrentD1/makrofelt

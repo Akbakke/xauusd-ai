@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-13T09:46:44.346160+00:00",
-  "status": "TA_HEAD_INPUT_001_ADMITTED_FROZEN_NON_M5_ACCOUNTING",
+  "observed_utc": "2026-11-13T09:56:40.355545+00:00",
+  "status": "TA_HEAD_INPUT_COMPLETE_PROJECTION_REPLAY_001_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Execute exactly the admitted passive head-input observation once; require native output/M5-input parity, preserve all TF/S/F and ordered/symmetric algebra with rounding residuals. Distinguish endpoint accounting from historical causal attribution and improved predictions. No training, production input changes, or candidate selection.",
+  "next_action": "Run exactly the admitted CPU projection replay once. Qualify both post-GELU and logit diagonals before separating retained upstream hidden, query projection and head terms. Keep all8 combinations, all6 ordered paths and all30cells; close consumed admission afterward. Endpoint accounting is not a historical causal share or improved predictive edge.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -84926,19 +84926,19 @@
     "terminal_exit_code": 0
   },
   "market_state_ta_head_input_observation_20261113_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_NO_RELAUNCH",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_HEAD_INPUT_OBSERVATION_20261113_001/PLAN.json",
       "sha256": "d3bb769f7a3d0dbe7ff879931d93c26b36c976057dd04c570d444b75b05ae7ad"
     },
     "max_invocations": 1,
-    "remaining_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
+    "remaining_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
     "relaunch_allowed": false,
-    "data_reads_authorized": true,
-    "checkpoint_reads_authorized": true,
+    "data_reads_authorized": false,
+    "checkpoint_reads_authorized": false,
     "training_authorized": false,
     "bounds": {
       "batch_size": 16,
@@ -84994,6 +84994,90 @@
       "sha256": "2f1ed025bba947ee01955d44a432ac920e4a04560cb0092861a79da9b2d77956"
     },
     "focused_tests_passed": 20,
-    "authorization": "Standing local0USD measured-cause investigation. Native artifacts retain only M5 head inputs; existing bef35-to-1542 M5 accounting is reused, not rerun. One fixed-weight observation fills the non-M5 head-input gap for current c34 on the same256 clock-selected rows as the completed context probe. No feature intervention, fitting, candidate selection or consumed-plan reuse."
+    "authorization": "Standing local0USD measured-cause investigation. Native artifacts retain only M5 head inputs; existing bef35-to-1542 M5 accounting is reused, not rerun. One fixed-weight observation fills the non-M5 head-input gap for current c34 on the same256 clock-selected rows as the completed context probe. No feature intervention, fitting, candidate selection or consumed-plan reuse.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_HEAD_INPUT_OBSERVATION_20261113_001/RESULT.json",
+      "sha256": "697b3a539a795012e16e8ba7aacea265d0951bc5ea838379fa81780131eb6097"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_HEAD_INPUT_OBSERVATION_20261113_001/TERMINAL.json",
+      "sha256": "d94ac5d0f99ca03b654a4d928732ac06be23024c7ffa75193ecafd956e52f0aa"
+    },
+    "wrapper_exit": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_HEAD_INPUT_OBSERVATION_20261113_001/WRAPPER_EXIT.json",
+      "sha256": "afe0273b26278649a2defca7317c1f1cb0ed4dbcb8c47ab8714fd93e16543789"
+    },
+    "validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_HEAD_INPUT_OBSERVATION_20261113_001/VALIDATION.json",
+      "sha256": "5b7989c46a9e2de4911b4f3765e6d90f36fc3dce2ba07408d0927b05ed89b930"
+    },
+    "actual_counts": {
+      "affine_accounting_cells": 30,
+      "archive_decodes": 2,
+      "autograd_grad_calls": 0,
+      "backwards": 0,
+      "candidate_writes": 0,
+      "captured_rows": 512,
+      "checkpoint_loads": 2,
+      "checkpoint_weight_transitions": 1,
+      "checkpoint_writes": 0,
+      "deterministic_initialization_calls": 1,
+      "feature_batches": 32,
+      "forwards": 32,
+      "head_parameter_capture_sets": 2,
+      "input_sidecar_archive_decodes": 12,
+      "model_constructions": 1,
+      "native_reference_matches": 32,
+      "new_target_gathers": 0,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "phase_capture_writes": 2,
+      "projection_input_hook_calls": 64,
+      "representation_hook_calls": 64,
+      "resume_state_load_calls": 2,
+      "resume_state_load_returns": 2,
+      "sampled_rows": 512
+    },
+    "elapsed_seconds": 89.89698289400076,
+    "source_unchanged": true,
+    "terminal_exit_code": 0
+  },
+  "market_state_ta_head_projection_replay_20261113_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_HEAD_PROJECTION_REPLAY_20261113_001/PLAN.json",
+      "sha256": "74516173261ec7b6dfa4c694723656b33cfb76536e92e600f386acb4d8f08bf5"
+    },
+    "script": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_HEAD_PROJECTION_REPLAY_20261113_001/REPLAY.py",
+      "sha256": "09d5889b3e1e98238c0d5f5a3735bea72580dd30676c65fa8537243077cd8396"
+    },
+    "max_invocations": 1,
+    "remaining_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "execution_authorized": true,
+    "relaunch_allowed": false,
+    "checkpoint_reads_authorized": false,
+    "model_execution_authorized": false,
+    "training_authorized": false,
+    "bounds": {
+      "accounting_cells": 30,
+      "affine_grid_evaluations": 16,
+      "archive_decodes": 2,
+      "checkpoint_decodes": 0,
+      "cpu_threads": 1,
+      "full_model_forwards": 0,
+      "max_seconds": 120,
+      "memory": "4G",
+      "model_constructions": 0,
+      "projection_batch_evaluations": 64,
+      "swap": "512M"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_HEAD_PROJECTION_REPLAY_20261113_001/PREFLIGHT.json",
+      "sha256": "06ea3d9b1170cea69858339c4ca925aaa18700d708c32547cf39b59c2a576c12"
+    },
+    "authorization": "Standing local0USD measured-cause investigation. Native all-TF head-input observation shows representation term dominates current non-M5 UP endpoint shift. Reuse its retained hidden/projection/head arrays for one CPU-only all8-combination/all6-path accounting; no checkpoint or fresh encoder/GPU, fitting, selection or production changes."
   }
 }
