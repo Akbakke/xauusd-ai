@@ -5,64 +5,51 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_CURRENT_UPDATE_OBSERVATION_003_ADMITTED_NOT_STARTED. Edge-målet er uoppnådd.
-Training/native/full_epoch/fullVAL er false. Ingen aktiv jobb; eldre001/002 og numerikkontrollen er konsumert.
-Ny root: /home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_003.
-PLANea82d0a0. Eksakt guarded12G/512M/8tråds metadata-preflight PASS uten CLAIM/model/array/state.
-6målrettede profil-/captester PASS; uendrede gradient-/Adam-/publisher-tester gjenbrukes.
-Én modell,2faktiske endepunkterbef35/1542,16fasteB16TRAINgrupper perendepunkt,alle590aktive tensorer.
-96forwards:32originale nativekontroller motretained,32nye dynamiske no_grad-referanser,
-32grad-enabledforward motegen dynamiskreferanse.256autograd,0updates/RNG-restores/checkpointskriving.
-Begge egne referansegater kreves med uendrede toleranser; cross-profile-feilstørrelser bevares separat.
-Ingen modell-, tap-, feature-/MTF-endring eller ny trening. Vekter/RNG/flagg/features kontrolleres uendret.
+TA_CURRENT_UPDATE_OBSERVATION_003_COMPLETE_CAUSE_UNRESOLVED. Edge-målet er uoppnådd.
+Training/native/full_epoch/fullVAL er false. Ingen aktiv jobb. Observasjon003 og tidligere001/002
+og numerikkontroll001 er konsumert; ingen av planene skal relanseres.
 
-Numerikkontroll001 er COMPLETE: /home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_NUMERIC_ROUTES_20261113_001.
-Sourceb2d2073d,RESULT1c1a92d6,TERMINALb74ed6b8,REVIEW_VALIDATIONc0936a6b.48,056s;1modell/
-1state/1TRAINarkiv/6spanarkiver,3forwards/1grad-enabled/0autograd/updates.3privateNPZ=19122bytes.
-Originalno_grad var bitlikretained; dynamiskno_grad oggrad var bitlike. Native→dynamic maxSraw
-4,0531e-6(scaled1,3973),Fraw9,5367e-7; maxPdiffS7,6003e-7/F2,1166e-7;lossdiff2,3842e-7.
-Dette er énINITIALB16gruppe; ingen generell årsak til historisk UP-drift eller senere svakedge er bevist.
-Opprinnelig kryssprofil-toleranse feiler fortsatt og er ikke slakket.003 reparerer feilreferansen,
-ikke modellen. Nativeprofiler og egne dynamiske kontrollprofiler verifiseres på hver valgtbatch.
-001metadatafeil og002paritetsstopp er bevart; de skal aldri relanseres. Ingen aktuell upstream-VJP målt ennå.
-Sist fullførte root: /home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_SIDE_BOUNDARY_GRADIENT_20261113_001.
-Source47f7700a; RESULTbbda929f, TERMINALb7416725, REVIEW_VALIDATIONb2c96178.3,096s capped4G/512M,
-timeout240s;2checkpoints/2TRAINarkiver,0modeller/modulkall/autograd/updates/affine replay.
-2048finitt-differansekontroller max5,15e-12; M5-loss-replay max2,40e-7; score-replay0.
-TRAIN har ikke beholdt M5-representasjoner. Felles funksjonskoordinat er kilde-/query1-bundet;
-FP64-derivert ved faktiske FP32-logits er ikke målt h-paritet eller native autograd-historikk.
+Fullført: /home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_003.
+Frossen kilde3019998a, PLANea82d0a0, RESULTd5efba0d, TERMINAL81432923,
+REVIEW_VALIDATIONcc4d547f, MECHANISM_REVIEWfce77fa3.344,101s; guardexit0;
+peak45C/50C/143,05W/2068MiB. Én modell,2faktiske endepunkterbef35/1542,
+16fasteB16TRAINgrupper perendepunkt,alle590aktive tensorer i8disjunkte grupper.
+96forwards/32grad-forwards/256autogradkall;0optimizer/updates/backward/RNG-restores/checkpointskriving.
+Alle32nativekontroller var bitlike sine beholdte referanser; alle32grad-forwards var bitlike egne
+nye dynamiske no_grad-referanser.256gruppeclosure-kontroller PASS,maxrelativt1,52782e-7.
+Parametre/buffere/flagg/RNG/features var uendret per fase; source/input-referanser verifisert.
+Uendrede toleranser. Kryssprofil avviker fortsatt: maxPdiffINITIAL9,51715e-7,FINAL6,21928e-6.
+Dette reparerte observasjonens referanse; ingen ONLINE-, taps-, feature- eller treningsfunksjon ble endret.
 
-Aktuelt M5-only-forsøk deler faktiskbef35-INITIAL,alle15inputrefs og numerisk oppskrift med
-full-prefix002, men beholder begge S/F-sideledd. Gammel c171attention-/aktivitetsrevisjon kan
-ikke tilskrives dagens funksjon. S er framtidig lokal tilstand; F er netto prisendring fra utstedelse.
-Ny kontroll:979M5rader med begge sider kjent;952enige/27motsatt. Hodecosinus0,7493→0,8506.
-Alle256intakteB16grupper har ikke-negativt radvist S/F-dot ved begge endepunkter. Ved én felles
-translasjon er71INITIAL/65FINAL av249støttede grupper negative, men begge aggregeringer positive.
-Ingen generell M5-S/F-motvirkning er påvist ved denne siste grensen. Upstream-Jacobian er umålt.
+F/non-M5: geometri av middelgradienter gir totalSGD-retning+0,967994INITIAL til-13,457736FINAL.
+FINAL future-side-ledd-13,467711; øvrige tap netto+0,009975. Nominell siste Adam-retning-0,013459,
+negativ i16av16grupper; totalSGD negativ i10av16. Dette støtter ikke generell vedvarende UP-drift
+fra øvrige oppgaver ved FINAL. M5 S/F har positiv gjennomsnittlig batch-dot i alle fem delte grupper
+og samlet12positive/4negative batcher ved begge endepunkter. Ingen generell konflikt er påvist her.
+Gjennomsnittlig batch-dot er ikke dot mellom middel-S/F-vektorer; sistnevnte ble ikke beholdt.
 
-JSON-only tillegg: CLIP_WEIGHT_REUSE_REVIEW069e74e6, ADAM_BIAS_MOMENT_REUSE_REVIEWb9775fc0,
-METADATA_REUSE_VALIDATION1a892ffb.0nye array-/checkpointdekodinger/modeller/updates.
-3693av3698preclip-normer>1. Nominell skala min(1,1/(norm+1e-6)); fullpopulasjonens F-UP-
-referanser øker0,46–2,11prosentpoeng under disse faste skalaene. Sluttfasen skiller seg:
-siste16F/H1 0,4161→0,5684;M15 0,5728→0,6787. Siste256D1 0,8218→0,8146. Dette er betinget
-klasseeksponering, ingen øvre prediksjonsgrense, faktisk gradientrekonstruksjon eller årsaksandel.
-Faktiske siste bias-exp_avg er negative forM5S/F, positive for non-M5S/F. Adam-gradientleddet
-presser dermed de delte non-M5sidebiasene NED. Decoupled decay og øvrige parameterbidrag er egne.
-Nominell β1=.9-historikkrekonstruksjon: F/M5 vektetP0,5183 motUP0,5715; non-M5 vektetP0,6085
-motUP0,4889. Dette gjelder nylige faktiske treningsinputs/vekter, ikke FINAL/LATER-prognoser.
-Direkte og rekursiv momentberegning matcher innen2,23e-16; native FP32-historikk er ikke replayet.
-Ingen grunn til å fjerne S-målet, endre klippevakten eller gjenta et generelt ordre-/arkitekturforsøk.
+Faktisk FINAL-INITIAL parameterdelta har positiv lokal logitprojeksjon ved begge endepunkter.
+FINAL non-M5-bidrag: query_projection+0,660965,remaining_encoder+0,602346,shared_side_heads+0,216385;
+samlet+1,484738. Dette er lokale J·delta-koordinater, ikke kausale andeler av faktisk historisk endring.
+Adam-målet er siste lagrede momenters nominelle gradientledd uten decay, ikke et predikert neste steg.
+Eval-mode TRAIN-utvalg rekonstruerer ikke historisk dropout, batchrekkefølge eller treningsbane.
 
-Neste: kjør bare den admitterte003-observasjonen gjennom eksakt cap-rute. Les original
-RESULT/TERMINAL og separate referansegater før gradient-/Adam-tolkning. Hold gjennomsnitt
-av batchgeometri adskilt fra geometri av gjennomsnittsvektorer. Ingen trening er admittert.
+Gjenbruk av eksisterende pass0/1/2 viser at den store UP-forskyvningen oppstår innen første pass:
+senere M15F meanP0,578201->0,823873->0,806739; H1F0,574586->0,828949->0,816133.
+Andre pass reduserer deler av non-M5-skjevheten. M5F TRAIN-AUC0,537196->0,535205->0,546849,
+men senere AUC0,511290->0,510127->0,509071. Bedre TRAIN-fit er ikke bedre senere prognoser.
+To pass på fem måneder avgjør ikke kapasiteten med hele historikken og30-40epoker.
 
-Forrige parameter-replay002 er bevart: RESULT3545cbf2,TERMINAL5d990762,validation0d6be484.
-Alle 590 aktive parametertensorer fikk 3698 Adam-steg; 179 inaktive og alle buffere var uendret. Siste output-bias forklarte
-0,0303%avM5F-logitøkningen og0,322–0,364%for øvrigeF. M5F-endepunktene viser samspill mellom
-vekt og representasjon, ikke entydige årsaksandeler. Begge fikserte blandinger tapte INITIAL-Brier/log.
-Parameter-replay001 feilet på feilaktig likhetskrav mellom view-provenienser; kvitteringen bevares,
-001 relanseres ikke.002 verifiserte egne view-identiteter, fem metadataforskjeller og like normbytes.
+Neste: isoler hvorfor første komplette pass bygger denne query-/encoder-forskyvningen før enda en
+treningsrunde. Bruk eksisterende passmålinger og nå kvalifisert endepunktsgeometri til å velge én
+konkret mekanismekontroll. Ingen ny modellkjøring eller endring av tap/arkitektur er admittert.
+Ingen årsaksandel, bedre generalisering, Entry-kvalitet eller økonomisk edge er etablert.
+
+Bevar tidligere kontrollkvitteringer: numerikkontroll001 sourceb2d2073d/RESULT1c1a92d6/
+TERMINALb74ed6b8/validationc0936a6b; den målte énINITIALB16gruppe og0autograd/updates.
+Observasjon001 feilet før modell på parent_order-metadata;002 stoppet ved feil profilreferanse.
+Siste-grense-revisjonen RESULTbbda929f/validationb2c96178 og parameter-replayRESULT3545cbf2/
+validation0d6be484 gjenbrukes. Historikk og full metode finnes i Git og aktuelle årsaksdokumenter.
 
 ## Nytt resultat
 

@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_direction_edge_cause_review_v1",
-  "status": "ACTIVE_CURRENT_UPSTREAM_OBSERVER_003_ADMITTED_WITH_MATCHED_PROFILES",
+  "status": "ACTIVE_CURRENT_ENDPOINT_GEOMETRY_QUALIFIED_HISTORICAL_CAUSE_UNRESOLVED",
   "source_base_commit": "290035a97ff481b81d1f814992f65f241aa4889f",
   "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
   "operator_training_clarification": "Short runs intentionally qualify mechanics and corrections. Full qualified TRAIN history and30-40epochs are later scaling options, not a required rerun for every correction or an immediate launch.",
@@ -269,7 +269,7 @@
       "selected_response": "Opt-in independent non-M5 side heads implemented,167focusedCPUtestspass. Existing M5/activity and original loss preserved; nativebaseline andlearningimprovement remainunproved."
     }
   ],
-  "next_measurement": "Run exactly one fresh003same-profile gradient observation:1model/2states,16fixedB16TRAIN groups per endpoint,all590active tensors;96forwards(32native controls,32dynamic no_grad references,32grad),256autograd,0updates. Both reference gates and all passivity/source guards required. Preserve cross-profile differences; no training/finite historical attribution.",
+  "next_measurement": "Isolate why the large F-side UP shift arises during the first complete current-function TRAIN pass and persists on later data. Reuse the measured pass0/1/2 trajectory and qualified endpoint geometry to choose one specific projection/encoder mechanism test before another training run. No new model execution, loss/architecture change, full-history training or30-40epochs admitted; no repeat of consumed003.",
   "not_established": [
     "Unique historical optimizer cause",
     "Family-specific predictive added value under the current S/F objective",
@@ -1731,7 +1731,13 @@
     "All-calendar-month summaries do not support a uniform early-month forgetting explanation: F/H1 worsens May-July and improves August-September, F/M15 andH4 also worsen inSeptember, while F/D1 improves TRAIN Brier in allfive months.",
     "Pointwise later S/M5 andS/D1 AUC exceed the constant-prior rank reference, andS/M15 lies below it; allfive F comparisons with the constant rank reference remain uncertain. This does not establish a training gain or economic edge.",
     "Reused full29574-row targets and exact numeric/query bindings imply constant-logit F UP optima0.511126/0.531247/0.537731/0.568059/0.641793. Pooled weighting alone does not account for non-M5 forecast means near0.81.",
-    "The final256batches are UP-rich, especiallyD1, but all23known F/D1 labels in the final16batches are DOWN. Cumulative order, representation and Adam effects remain unisolated; the final labels being UP is not a sufficient explanation."
+    "The final256batches are UP-rich, especiallyD1, but all23known F/D1 labels in the final16batches are DOWN. Cumulative order, representation and Adam effects remain unisolated; the final labels being UP is not a sufficient explanation.",
+    "FINAL non-M5 F mean-logit total SGD direction is negative; future-side gradient dominates the mean direction and remaining losses have near-zero net effect. Nominal retained last Adam direction is negative in all16selected groups. This does not support persistent general other-task UP pressure at FINAL.",
+    "M5 S/F mean batch gradient dot is positive in every shared parameter group at both endpoints; all-parameter dot is positive12/16batches at each endpoint. No general M5 S/F conflict is demonstrated on this subset. Dot of mean S/F gradient vectors was not retained.",
+    "Actual endpoint parameter delta has positive local projection on mean F logits at both endpoints. Query projection and remaining encoder dominate FINAL non-M5 projection, followed by shared side heads. These are local endpoint derivatives, not causal shares of the finite historical prediction change.",
+    "The retained pass0/1/2 trajectory locates the major non-M5 F UP shift within pass1: later M15 meanP0.578201->0.823873->0.806739 and H1 meanP0.574586->0.828949->0.816133. Pass2 partially reduces this bias, without establishing later ranking improvement.",
+    "M5F TRAIN AUC0.537196->0.535205->0.546849, while later AUC0.511290->0.510127->0.509071. Better fit from pass1to2 is not demonstrated later predictive improvement. Later total loss2.350915->2.639348->2.645637.",
+    "The reference-path correction affected only passive observation. No ONLINE model, loss, feature or training-function correction occurred in this wave; it does not itself justify retraining. Two passes over five months do not settle full-history/30-40epoch capacity."
   ],
   "activity_pressure_review": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/TA_ACTIVITY_PRESSURE_REVIEW.json",
@@ -14716,5 +14722,64 @@
     },
     "repair": "Measured native-versus-dynamic FP32 difference exceeded strict state-logit tolerance on first B16; same-dynamic-route no_grad/grad were bitexact. Keep original native control, add fresh dynamic reference per batch; retain all measured cross-route differences without tolerance change.",
     "scientific_scope_unchanged": "Same16outcome-blind B16groups perendpoint,exactbef35/1542states,originalloss/masks,all590active tensors,8VJPs pergradbatch,zero updates."
+  },
+  "current_update_observation_003_result": {
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_003/RESULT.json",
+      "sha256": "d5efba0db7e6958c8cd902ea5ef4211fe22d39f4e8310c95b9384207dad2a055"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_003/TERMINAL.json",
+      "sha256": "81432923c80298de97f62cf6505ad3549896a46358725324b9e9c4a1ef8f1624"
+    },
+    "validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_003/REVIEW_VALIDATION.json",
+      "sha256": "cc4d547faaa45b7896fd8c7cf697c41964f63d0326d401f119b73e8e0ef0a04c"
+    },
+    "mechanism_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_003/MECHANISM_REVIEW.json",
+      "sha256": "fce77fa3f457a235424c62e254f66e4d70355f8264753e643cec25ec07656787"
+    },
+    "source_commit": "3019998a1a9906ec56c81f0ec791c304d2b5b598",
+    "counts": {
+      "archive_decodes": 2,
+      "autograd_grad_calls": 256,
+      "backwards": 0,
+      "candidate_writes": 0,
+      "checkpoint_loads": 2,
+      "checkpoint_weight_transitions": 1,
+      "checkpoint_writes": 0,
+      "dynamic_reference_matches": 32,
+      "forwards": 96,
+      "grad_forwards": 32,
+      "input_sidecar_archive_decodes": 6,
+      "matched_batches": 64,
+      "model_constructions": 1,
+      "native_reference_matches": 32,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "resume_state_load_calls": 2,
+      "resume_state_load_returns": 2,
+      "rng_restores": 0,
+      "sampled_rows": 512
+    },
+    "elapsed_seconds": 344.1008608969969,
+    "native_retained_bitexact_batches": 32,
+    "dynamic_grad_no_grad_bitexact_batches": 32,
+    "max_group_closure_relative_l2": 1.5278183720106438e-07,
+    "max_scalar_geometry_closure_abs": 6.394884621840902e-14,
+    "findings": [
+      "FINAL non-M5 F mean-logit total SGD direction is negative; future-side gradient dominates the mean direction and remaining losses have near-zero net effect. Nominal retained last Adam direction is negative in all16selected groups. This does not support persistent general other-task UP pressure at FINAL.",
+      "M5 S/F mean batch gradient dot is positive in every shared parameter group at both endpoints; all-parameter dot is positive12/16batches at each endpoint. No general M5 S/F conflict is demonstrated on this subset. Dot of mean S/F gradient vectors was not retained.",
+      "Actual endpoint parameter delta has positive local projection on mean F logits at both endpoints. Query projection and remaining encoder dominate FINAL non-M5 projection, followed by shared side heads. These are local endpoint derivatives, not causal shares of the finite historical prediction change.",
+      "The retained pass0/1/2 trajectory locates the major non-M5 F UP shift within pass1: later M15 meanP0.578201->0.823873->0.806739 and H1 meanP0.574586->0.828949->0.816133. Pass2 partially reduces this bias, without establishing later ranking improvement.",
+      "M5F TRAIN AUC0.537196->0.535205->0.546849, while later AUC0.511290->0.510127->0.509071. Better fit from pass1to2 is not demonstrated later predictive improvement. Later total loss2.350915->2.639348->2.645637.",
+      "The reference-path correction affected only passive observation. No ONLINE model, loss, feature or training-function correction occurred in this wave; it does not itself justify retraining. Two passes over five months do not settle full-history/30-40epoch capacity."
+    ],
+    "historical_causal_attribution_established": false,
+    "retraining_benefit_established": false,
+    "predictive_improvement_established": false,
+    "test_data_used": false,
+    "training_authorized": false
   }
 }
