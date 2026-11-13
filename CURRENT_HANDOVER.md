@@ -5,38 +5,29 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_CONTEXT_DRIFT_001_COMPLETE_SMALL_CURRENT_PATH_EFFECT_UP_DRIFT_UNRESOLVED.
-Edge-målet er uoppnådd. Alle treningsflagg er false. Ingen aktivjobb eller ny probe admittert.
-Siste kontroll er COMPLETE/CONSUMED: MARKET_STATE_TA_CONTEXT_DRIFT_OBSERVATION_20261113_001,
-kilde82aa8226,PLANbbd36b9c,RESULT8f1bf7cf,TERMINAL41890f7e,REVIEW5bf3ae35,VALIDATION36c2f213.
-Samlet rapport: docs/TA_CONTEXT_DRIFT_REVIEW.json.159,98s; eksisterendeCUDA-vakt exit0,
-12G/512M,8tråder;32målrettede tester PASS.128forwards,2checkpointdekodinger,32gathers,
-12sidecars,2048lagrede armrader/256unikeklokker,0updates/nye mål. Alle32nativebaseliner
-var bitlike; modell/buffere/modi/RNG/inputs/kilde uendret. Første relativePython-kommando
-ble avvist før CLAIM/modell; originalavvisning bevart, absolutt kanonisksti kjørte én invokasjon.
+TA_HEAD_INPUT_001_ADMITTED_FROZEN_NON_M5_ACCOUNTING.
+Edge-målet er uoppnådd. Alle treningsflagg er false. Én ny passiv probe er admittert:
+MARKET_STATE_TA_HEAD_INPUT_OBSERVATION_20261113_001,PLANd3bb769f.
+M5 har egne S/F-sidehoder; M15/H1/H4/D1 deler ett peroppgave og TF-modulert Linear+GELU.
+LATER-arkivene lagrer bare M5-hodeinput, ikke øvrige TF. Eksisterende PARAMETER_REPLAY002
+RESULT3545cbf2 viste allerede blandet M5-vekt/representasjonsbidrag bef35→1542; gjenbrukes.
+Den nye proben fyller det konkrete non-M5-gapet ved order001-c34 og sammebef35-INITIAL.
+Samme256 klokkevalgte rader som forrige kontekstprobe;128oktober/128desember, intakteB16.
+32nativeforwards,2checkpoints,32gathers,12sidecars,64+64observasjonshooks,0updates/nye mål.
+Faktiske felles skjulte vektorer, alleTF-hodeinput og små dekoderparametre lagres fra samme
+forwards for senere algebra uten nyGPU.30regnskapsceller:alle10S/F-TF for hvermåned ogsamlet;
+begge ordnede/symmetrisk dekomponering, bias og eksplisitt avrundingsrest beholdes.
+Native output og eksisterendeM5-input må gjenskapes; modell/inputs/RNG/kilde uendret.
+600s observatør/900s eksisterendeCUDA-vakt,12G/512M,8tråder,allefysiskevakter beholdt.
+20målrettede tester kvalifisert:19PASS først, én alternativ FP64-sigmoidtest rettet
+fra2e-16 til4epsilon og gjenkjørtPASS. Native-/closuregrenser uendret; metadata-preflightPASS.
+Kilde-/API-kontroll fant ingen kjørehindring. Neste: én kjøring, alle resultater, lukk planen.
+Ingen historisk årsaksandel, bedreaccuracy/edge eller ny trening følger av et algebraiskregnskap.
 
-INITIALbef35 og ordre001-FINALc34e754b på samme128oktober/128desemberrader,8intakte
-B16-batcher per måned valgt fra klokke/tellinger. Fire forhåndsfaste armer: BASELINE,
-toD1felt avgrenset til TRAIN-current-grenser, firemakrovolfelt avgrenset, og begge.
-Currentctx/snapshot/lokalsekvens-aliaser flyttes sammen; MTF-historikk forblir genuine.
-Desember FINAL JOINT endrer F-meanPup M5/M15/H1/H4/D1 med−0,205/−0,988/−0,983/−0,994/
-−1,023prosentpoeng. Non-M5-effekten var bare−0,092til−0,094pp i INITIAL: læringen øker
-følsomheten, men storUP-skjevhet består. FINAL oktober→desember-drift non-M5 er18,65–19,57pp;
-etterJOINT fortsatt18,45–19,34pp. Bare0,192–0,229pp av månedsforskjellen fjernes.
-Batchvirkningene har ulike fortegn: JOINT-desember F/M15−3,304til+1,982pp, D1−3,420til+1,673pp.
-Dette utelukker ikke lokal påvirkning eller bredere D1/makroeffekter gjennom uendrede
-MTF-/korrelerte inputbaner. Det viser at de seks avgrensede currentbanene alene forklarer
-lite av den aggregerte driften på disse radene. Konklusjonen gjelder denne avgrensningen
-av verdier utenfor TRAIN-grensene; den avviser ikke generell betydning av disse inputbanene.
-Intervenerte vektorer trenger ikke beskrive et fysisk sammenhengende marked; ingen
-produksjonsklipping, featurefjerning eller edge. Uavhengig agentkontroll fant ingen tallavvik.
-Alle armer/TF/S/F, batchspenn, interaksjoner og INITIAL→FINAL-kontraster er beholdt;
-rapporten bruker bare eksisterende JSON, ingen ytterligere array-/modellkjøring.
-
-Neste: sjekk eksisterende kilde/evidens for lagrede INITIAL/FINAL-representasjoner og
-retningshodenes faktiske konsum. Skill felles representasjonsdrift fra lært hoderespons
-før eventuell ny avgrenset kontroll. Ingen ny jobb eller checkpointdekoding er admittert.
-Bred M15-persistens er allerede målt og skal ikke kjøres igjen. Ingen ny trening.
+Forrige kontekstprobe er COMPLETE/CONSUMED: docs/TA_CONTEXT_DRIFT_REVIEW.json,
+RESULT8f1bf7cf.32bitlikebaseliner,128forwards/0updates. Avgrensning av sekscurrentD1/makrofelt
+reduserte non-M5 desemberUP med≈1pp, men månedsskjevheten bare0,192–0,229pp.
+Det gjelder denne TRAIN-bound-avgrensningen; ikke generell irrelevans avD1/makro/MTF.
 
 CPU-observasjon: MARKET_STATE_TA_QUERY_INPUT_DRIFT_20261113_001, kildea427db8f,
 RESULT2c87d24c,VALIDATION0625774c.256,56s under4G/512M;3lagrede prediksjonsarkiver,

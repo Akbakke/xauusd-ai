@@ -6,7 +6,7 @@ import subprocess
 import pytest
 
 
-@pytest.mark.parametrize("suffix,constant", [("current_modes","TA_CURRENT_MODES_PRODUCER_MODULE"),("context_drift","TA_CONTEXT_DRIFT_PRODUCER_MODULE")])
+@pytest.mark.parametrize("suffix,constant", [("current_modes","TA_CURRENT_MODES_PRODUCER_MODULE"),("context_drift","TA_CONTEXT_DRIFT_PRODUCER_MODULE"),("head_input","TA_HEAD_INPUT_PRODUCER_MODULE")])
 def test_current_mode_cap_accepts_only_bound_command_and_optional_preflight(tmp_path,suffix,constant):
     repo=Path(__file__).resolve().parents[1]
     source=(repo/'scripts/gx1_capped_run.sh').read_text()

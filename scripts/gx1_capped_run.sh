@@ -52,6 +52,7 @@ TA_CURRENT_UPDATES_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_current_upd
 TA_CURRENT_NUMERIC_ROUTES_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_current_numeric_routes_v1
 TA_CURRENT_MODES_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_current_modes_v1
 TA_CONTEXT_DRIFT_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_context_drift_v1
+TA_HEAD_INPUT_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_head_input_v1
 RUNNER_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
 REPO_ROOT="$(cd "$(dirname "$RUNNER_PATH")/.." && pwd -P)"
 CANONICAL_TRAINER_PYTHON="$REPO_ROOT/.venv/bin/python"
@@ -356,6 +357,25 @@ matches_bound_market_state_ta_context_drift() {
   [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$7" ]]
 }
 
+matches_bound_market_state_ta_head_input() {
+  local expected_plan="$1" expected_output="$2"
+  shift 2
+  if [[ $# -eq 12 ]]; then
+    [[ "${12}" == --preflight ]] || return 1
+    set -- "${@:1:11}"
+  fi
+  [[ $# -eq 11 ]] || return 1
+  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \
+    && "$3" == "$TA_HEAD_INPUT_PRODUCER_MODULE" \
+    && "$4" == --market-state-ta-head-input-plan && "$5" == "$expected_plan" \
+    && "$6" == --market-state-ta-head-input-plan-sha256 && "$7" =~ ^[0-9a-f]{64}$ \
+    && "$8" == --device && "$9" == cuda && "${10}" == --out-dir \
+    && "${11}" == "$expected_output" && "$expected_plan" == /* && "$expected_output" == /* ]] || return 1
+  [[ -f "$expected_plan" && ! -L "$expected_plan" \
+    && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1
+  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$7" ]]
+}
+
 # Exact passive current first-batch numerical route comparison, including metadata-only preflight.
 matches_bound_market_state_ta_current_numeric_routes() {
   local expected_plan="$1" expected_output="$2"
@@ -431,7 +451,8 @@ validate_target_command() {
           && [[ "${3:-}" != "$TA_CURRENT_UPDATES_PRODUCER_MODULE" ]] \
           && [[ "${3:-}" != "$TA_CURRENT_NUMERIC_ROUTES_PRODUCER_MODULE" ]] \
           && [[ "${3:-}" != "$TA_CURRENT_MODES_PRODUCER_MODULE" ]] \
-          && [[ "${3:-}" != "$TA_CONTEXT_DRIFT_PRODUCER_MODULE" ]]; }; then
+          && [[ "${3:-}" != "$TA_CONTEXT_DRIFT_PRODUCER_MODULE" ]] \
+          && [[ "${3:-}" != "$TA_HEAD_INPUT_PRODUCER_MODULE" ]]; }; then
         echo "FATAL: --cuda-producer is reserved for an allow-listed TRAIN/VAL-only evidence producer" >&2
         exit 75
       fi
@@ -624,6 +645,19 @@ validate_target_command() {
         local ta_context_drift_root=/home/andre2/GX1_RUNS/MARKET_STATE_TA_CONTEXT_DRIFT_OBSERVATION_20261113_001
         if ! matches_bound_market_state_ta_context_drift "$ta_context_drift_root/PLAN.json" "$ta_context_drift_root" "$@"; then
           echo "FATAL: current context drift observation is not exactly bound" >&2
+          exit 75
+        fi
+        # Match the original deterministic_fp32 evaluation's numerical threads.
+        # Affinity, TasksMax and every hardware/memory stop remain unchanged.
+        NUMERICAL_THREAD_COUNT=8
+        TRAINER_GPU_MAX_POWER_LIMIT_W=250
+        TRAINER_MAX_WALL_SECONDS=900
+        TRAINER_MODEL_MAX_WALL_SECONDS=900
+      fi
+      if [[ "${3:-}" == "$TA_HEAD_INPUT_PRODUCER_MODULE" ]]; then
+        local ta_head_input_root=/home/andre2/GX1_RUNS/MARKET_STATE_TA_HEAD_INPUT_OBSERVATION_20261113_001
+        if ! matches_bound_market_state_ta_head_input "$ta_head_input_root/PLAN.json" "$ta_head_input_root" "$@"; then
+          echo "FATAL: current head input observation is not exactly bound" >&2
           exit 75
         fi
         # Match the original deterministic_fp32 evaluation's numerical threads.
