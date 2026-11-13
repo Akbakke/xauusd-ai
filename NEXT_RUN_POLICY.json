@@ -1797,8 +1797,8 @@
     "latest_terminal_role": "TA_FOLD2_SPAN_NORMALIZATION_001_COMPLETE_CONSUMED",
     "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_NORMALIZATION_20261113_001/TERMINAL.json",
-      "sha256": "b0928b658dbfea54f37bdf0ec6308af2ddeee69e0ebe7b88960e64ddbbea47cf"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001/NORMALIZATION_COMPLETION.json",
+      "sha256": "f65e91ab900c5e2041838c6e69af229ea5457777e6d9170d909beeac2bccd8f2"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -85680,6 +85680,10 @@
     "execution_authorized": true,
     "data_reads_authorized": true,
     "training_authorized": false,
-    "relaunch_allowed": false
+    "relaunch_allowed": false,
+    "prior_normalization_completion": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001/NORMALIZATION_COMPLETION.json",
+      "sha256": "f65e91ab900c5e2041838c6e69af229ea5457777e6d9170d909beeac2bccd8f2"
+    }
   }
 }

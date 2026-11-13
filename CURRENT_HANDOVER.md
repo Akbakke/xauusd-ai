@@ -28,6 +28,9 @@ Begge foregående fysiske/normaliseringsjobber er COMPLETE/CONSUMED. Ingen relau
 Etter TRAIN-kontrollen gjenstår separat januar–mars2025-inputdekning, deretter egen
 fersk native initialbaseline før eventuell fit. Alle treningsflagg er fortsatt false.
 Samlet rapport: docs/TA_FOLD2_INPUT_REVIEW.json. Eksakte referanser/SHA står i policy.
+Handover krever eksplisitt TEST-felt; forrige normaliseringsterminal mangler dette.
+NORMALIZATION_COMPLETION binder terminalen til det eksisterende resultatets false-felt;
+originalkvitteringen er bevart. Dette er ikke en gather-fullføring.
 
 ## Fullført og verifisert
 
