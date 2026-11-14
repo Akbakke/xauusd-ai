@@ -5,7 +5,7 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: TA_F_M5_TABULAR_OOF_REJECTED_PRECLAIM_INPUT_SCHEMA_MISMATCH.
+Aktuell policy: TA_FOLD2_F_M5_BRIER_ACCOUNTING_COMPLETE_EDGE_UNQUALIFIED.
 Gammelt F-M5 FINAL-hode hadde senere innen-UTC-dag AUC0,4724 mot
 S-skårens0,5607 på samme F-mål; samlet F-TRAIN-AUC0,5125 skjulte
 lokalt rangeringstap. Kilde- og etikettreview står i
@@ -82,6 +82,17 @@ frosne F-TRAIN-prior0,249755; alle fem folds er dårligere. Paret
 uke-95%-intervall for prior-minus-modell er −0,002008 til−0,001096.
 Dette er ikke en F-trent modelltest eller bevis for at F ikke kan læres.
 Se `docs/TA_S_TABULAR_ON_F_M5_READONLY_REVIEW_20261114.json`.
+
+Frosne fold2-shared-captures er nå dekomponert eksakt mot F-TRAIN-prioren
+på fast senere panel (N1591). INITIAL→FINAL reduserte F-sannsynlighetenes
+standardavvik ca0,0235→0,0021 mens AUC falt0,5258→0,5087. FINALs Brier
+over prior er+0,000785; nivåskift-interaksjon+0,000694 dominerer,
+scorevarians er+0,000004 og retningskovarians gir−0,000097 i kreditt.
+Etter TRAIN-sentrering av den uendrede skåren er senere Brier0,249243
+mot fryst prior0,249257, men punktgevinsten+0,000014 har dag-/uke-
+95%-intervaller som omfatter0. Dette er utforskende på gjenbrukt VAL;
+ren kalibrering endrer ikke AUC eller kvalifiserer Edge. Se
+`docs/TA_FOLD2_F_M5_BRIER_ACCOUNTING_20261114.json`.
 
 Neste steg er gyldige255-felts kausale inputs og foldspesifikk TRAIN-
 normalisering for alle fem folds før en helt ny eksakt modellplan, eller
