@@ -14,7 +14,8 @@
   },
   "native_training_authorized": false,
   "new_job_admitted": false,
-  "next_action": "Commit the shared-M5 zero-update baseline source on a clean branch, then build one exact source/input-bound plan, pass read-only startup and receipt preflight, and admit one capped CUDA producer invocation. No model execution or fit is currently admitted; TEST and trading remain closed.",
+  "next_action": "Run exactly one capped CUDA producer invocation of the admitted shared-M5 zero-update INITIAL plan, verify immutable terminal/capture parity and disable the one-use gate. No fit, TEST, Entry, Exit, broker or trade is admitted.",
+  "fold2_shared_m5_initial_plan": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SHARED_M5_INITIAL_20261114_001/PLAN.json", "sha256": "a7edc19b419e9130e99bb43fed81064d131b67c3f5c297f266c16a83d76586dc"},
   "fold2_shared_m5_initial_source_preparation": {"path": "docs/TA_FOLD2_SHARED_M5_INITIAL_PREPARATION_20261114.json", "sha256": "af1b267a092a568848044f7a7d1ca3ddebe4cdee1e70c045e4c12e4c008e2563"},
   "fold2_m5_shared_head_source_review": {"path": "docs/TA_FOLD2_M5_SHARED_HEAD_SOURCE_REVIEW_20261114.json", "sha256": "c0ff64f6969fdf732f2197ea9c565881b6c1526e4a9c5af692da7084b8964e42"},
   "fold2_m5_read_only_diagnosis": {"path": "docs/TA_FOLD2_M5_READ_ONLY_DIAGNOSIS_20261114.json", "sha256": "a5250d1acbb3c6df74c7d8c9b2feb4812e0a377da99fc3d1112d00ccb54ba7ac"},
@@ -224,7 +225,7 @@
       "sha256": "2e25098183d2ffb27a4441f178789e2bdd39b84646815b67d061ccedbf2170da"
     }
   },
-  "observed_utc": "2026-11-14T16:52:27.239089+00:00",
+  "observed_utc": "2026-11-14T16:55:30.757154+00:00",
   "physical": {
     "all_413_overlap_rows_bitexact": true,
     "counts": {
