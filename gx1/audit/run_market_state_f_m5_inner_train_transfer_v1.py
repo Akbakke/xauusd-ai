@@ -466,7 +466,7 @@ def main() -> int:
         plan, plan_ref, head, _ = preflight(args.plan, args.plan_sha256,
                                            args.out_dir,
                                            physical_view=args.physical_view)
-        print(json.dumps({'status': 'READY_NO_CLAIM_NO_TARGET_PAYLOAD',
+        print(json.dumps({'status': 'READY_NO_CLAIM_NO_FIT',
                           'plan': plan_ref, 'source_head': head,
                           'fixed_tabular_fits': 5,
                           'physical_view_checked': args.physical_view,
