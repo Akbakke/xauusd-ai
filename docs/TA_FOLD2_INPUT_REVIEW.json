@@ -14,7 +14,7 @@
   },
   "native_training_authorized": false,
   "new_job_admitted": false,
-  "next_action": "Implement one read-only, zero-update fold2 INITIAL worker using the existing fresh model factory and qualified input owners. Smoke the exact import/startup and verify source, view, target, panel, reporting and GPU guards before a separate one-use policy admission. No execution or training is admitted now; training_enabled=false and TEST stays sealed.",
+  "next_action": "Review already captured trained development readouts for rank versus ACC stability across October–December without selecting a threshold. Fresh fold2 INITIAL is complete, zero-update, and not a learning or trading result. Keep training_enabled=false and TEST sealed; any fold2 fit needs a separate exact admission.",
   "normalization": {
     "artifacts": {
       "EXTENDED_BASE_NORMALIZATION": {
@@ -316,7 +316,7 @@
     "Existing six two-field fit/inverse/projection owner reused with exact fold2 parent/cutoff/output binding.",
     "Existing M5 equal-observation owner binds fold2 to its measured S/F q/N, axes, view and target-count receipts; fold1 profile and default identity remain unchanged."
   ],
-  "status": "FOLD2_INPUTS_AND_TARGET_COUNTS_QUALIFIED_WEIGHTING_SOURCE_BOUND_INITIAL_PENDING",
+  "status": "FOLD2_FRESH_INITIAL_COMPLETE_READONLY_NO_DIRECTION_EDGE_PROVEN",
   "test_data_used": false,
   "validation": {
     "both_actual_cli_preflights": "PASS",
@@ -808,5 +808,183 @@
     "execution_authorized": false,
     "training_authorized": false,
     "test_data_used": false
+  },
+  "fresh_initial_execution": {
+    "status": "COMPLETE_CONSUMED_ZERO_UPDATES",
+    "design_snapshot_remains_source_and_panel_only": true,
+    "source_commit": "d100a3efab1812b7e0ce94b5094117665e64a086",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_004/PLAN.json",
+      "sha256": "6fe63d5e06812122cf5a7c9a7e816fa547c718fd65039fac2588b2988542390a"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_004/PREFLIGHT_REVIEWED.json",
+      "sha256": "e68bee7f3b3b592fa53c25b9f7f756f5e672039fcffa477b7ea0b15a322bec3a"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_004/CLAIM.json",
+      "sha256": "627a527993842fa172aaf2947ace3b7d84386ec710bf3b47d6192ea2c72f4687"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_004/RESULT.json",
+      "sha256": "ebaa2de9a98755f6b509a2354653aa52d4fa3904852ae328e6cc1858bda712d8"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_004/TERMINAL.json",
+      "sha256": "7a44ec02932dba7096e71f9b6fae9ada797f754a69d114a9a0d6b240c54d40e1"
+    },
+    "validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_004/VALIDATION.json",
+      "sha256": "0c6abfbf668d27773c66dfcf1a1bc82e8f41a1f33e572064265f98936427ad9b"
+    },
+    "captures": {
+      "LATER": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_004/LATER_READOUT.npz",
+        "sha256": "90f60a307c855c1c8543aab8a86924519257c21d29be4c728550c00147865108"
+      },
+      "TRAIN": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_004/TRAIN_READOUT.npz",
+        "sha256": "eacccb900c7dcab0c50ab8af34e5af3eb51461aedb6ae74103dbddf8acb3a291"
+      }
+    },
+    "elapsed_seconds": 506.17755279599805,
+    "counts": {
+      "backwards": 0,
+      "checkpoint_loads": 0,
+      "feature_batches": 512,
+      "model_constructions": 1,
+      "model_forwards": 512,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "parent_rows": 8192,
+      "test_rows": 0
+    },
+    "model_state_sha256": "3c172867694217f240a076c34220a1b7fafb2464af5738de544cf7a17068984b",
+    "primary_later_future_M5": {
+      "known_side_n": 1591,
+      "up_n": 855,
+      "auc": 0.4867769514365624,
+      "accuracy_at_zero": 0.48397234443746073,
+      "always_up_accuracy": 0.5373978629792583,
+      "brier": 0.2504250763034614
+    },
+    "later_per_tf": {
+      "state": {
+        "M5": {
+          "known_side_n": 1392,
+          "up_n": 759,
+          "auc": 0.5218702583219377,
+          "accuracy_at_zero": 0.4547413793103448,
+          "always_up_accuracy": 0.5452586206896551,
+          "brier": 0.2629753730940399
+        },
+        "M15": {
+          "known_side_n": 1671,
+          "up_n": 958,
+          "auc": 0.5319674579169437,
+          "accuracy_at_zero": 0.42669060442848594,
+          "always_up_accuracy": 0.5733093955715141,
+          "brier": 0.2652950529905361
+        },
+        "H1": {
+          "known_side_n": 1713,
+          "up_n": 1014,
+          "auc": 0.5611792557979418,
+          "accuracy_at_zero": 0.4080560420315236,
+          "always_up_accuracy": 0.5919439579684763,
+          "brier": 0.2696042327873919
+        },
+        "H4": {
+          "known_side_n": 1656,
+          "up_n": 914,
+          "auc": 0.49584702176977474,
+          "accuracy_at_zero": 0.44806763285024154,
+          "always_up_accuracy": 0.5519323671497585,
+          "brier": 0.2641355485813492
+        },
+        "D1": {
+          "known_side_n": 1420,
+          "up_n": 1006,
+          "auc": 0.5627851249987995,
+          "accuracy_at_zero": 0.2915492957746479,
+          "always_up_accuracy": 0.7084507042253522,
+          "brier": 0.2859540820993642
+        }
+      },
+      "future": {
+        "M5": {
+          "known_side_n": 1591,
+          "up_n": 855,
+          "auc": 0.4867769514365624,
+          "accuracy_at_zero": 0.48397234443746073,
+          "always_up_accuracy": 0.5373978629792583,
+          "brier": 0.2504250763034614
+        },
+        "M15": {
+          "known_side_n": 1547,
+          "up_n": 876,
+          "auc": 0.47695288841706984,
+          "accuracy_at_zero": 0.49838396897220427,
+          "always_up_accuracy": 0.5662572721396251,
+          "brier": 0.24980285074314218
+        },
+        "H1": {
+          "known_side_n": 1552,
+          "up_n": 915,
+          "auc": 0.4545899065805389,
+          "accuracy_at_zero": 0.49742268041237114,
+          "always_up_accuracy": 0.5895618556701031,
+          "brier": 0.2510746117464409
+        },
+        "H4": {
+          "known_side_n": 1439,
+          "up_n": 844,
+          "auc": 0.45781193994185354,
+          "accuracy_at_zero": 0.5357887421820708,
+          "always_up_accuracy": 0.5865184155663655,
+          "brier": 0.2504936114367331
+        },
+        "D1": {
+          "known_side_n": 1500,
+          "up_n": 1165,
+          "auc": 0.366198193581449,
+          "accuracy_at_zero": 0.5706666666666667,
+          "always_up_accuracy": 0.7766666666666666,
+          "brier": 0.2478033984730451
+        }
+      }
+    },
+    "later_future_M5_by_month": {
+      "2025-01": {
+        "known_side_n": 521,
+        "auc": 0.4920656067738402,
+        "accuracy_at_zero": 0.4760076775431862,
+        "always_up_accuracy": 0.5335892514395394,
+        "brier": 0.2508502399259554
+      },
+      "2025-02": {
+        "known_side_n": 514,
+        "auc": 0.4979600535866521,
+        "accuracy_at_zero": 0.5252918287937743,
+        "always_up_accuracy": 0.5369649805447471,
+        "brier": 0.24940321116006645
+      },
+      "2025-03": {
+        "known_side_n": 556,
+        "auc": 0.4547325907107029,
+        "accuracy_at_zero": 0.45323741007194246,
+        "always_up_accuracy": 0.5413669064748201,
+        "brier": 0.25097135046962266
+      }
+    },
+    "interpretation": [
+      "F M5 later AUC is below 0.5 and ACC below always-UP on the fixed development panel; no improved directional edge is demonstrated.",
+      "S H1 and D1 zero-update AUC exceed 0.56 while their ACC is below always-UP; ACC and ranking can diverge, but random initialization cannot establish learned value.",
+      "The zero-update model is not comparable as a trained fold2 result; the panels are reused development and economic value was not measured."
+    ],
+    "training_authorized": false,
+    "test_data_used": false,
+    "execution_authorized": false,
+    "relaunch_allowed": false
   }
 }

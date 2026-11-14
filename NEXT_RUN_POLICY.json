@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-14T08:20:13.546805+00:00",
-  "status": "TA_FOLD2_FRESH_INITIAL_004_ADMITTED_NOT_CLAIMED",
+  "observed_utc": "2026-11-14T08:32:48.533965+00:00",
+  "status": "TA_FOLD2_FRESH_INITIAL_COMPLETE_NO_F_M5_EDGE_TRAINING_CLOSED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Run only the new source-bound fold2 fresh INITIAL 004 once through the exact capped CUDA route. Plans 002/003 are FAILED_CONSUMED and cannot be relaunched. Verify terminal, source bookends, fixed panels and zero updates; score predeclared AUC/ACC/Brier/calibration/months. training_enabled=false; no TEST or training.",
+  "next_action": "Read-only review of existing trained October–December development readouts for whether direction rank survives month/TF checks despite weak ACC; do not compare unpaired panels as a learning gain. Fold2 fresh INITIAL is complete and consumed. Any fold2 fit requires a separate exact admission. training_enabled=false; TEST sealed; no trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -86597,20 +86597,73 @@
     "test_data_used": false
   },
   "market_state_ta_fold2_fresh_initial_20261114_004": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_NO_RELAUNCH",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_004/PLAN.json",
       "sha256": "6fe63d5e06812122cf5a7c9a7e816fa547c718fd65039fac2588b2988542390a"
     },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_004/PREFLIGHT_REVIEWED.json",
+      "sha256": "e68bee7f3b3b592fa53c25b9f7f756f5e672039fcffa477b7ea0b15a322bec3a"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_004/CLAIM.json",
+      "sha256": "627a527993842fa172aaf2947ace3b7d84386ec710bf3b47d6192ea2c72f4687"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_004/RESULT.json",
+      "sha256": "ebaa2de9a98755f6b509a2354653aa52d4fa3904852ae328e6cc1858bda712d8"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_004/TERMINAL.json",
+      "sha256": "7a44ec02932dba7096e71f9b6fae9ada797f754a69d114a9a0d6b240c54d40e1"
+    },
+    "validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_004/VALIDATION.json",
+      "sha256": "0c6abfbf668d27773c66dfcf1a1bc82e8f41a1f33e572064265f98936427ad9b"
+    },
+    "captures": {
+      "LATER": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_004/LATER_READOUT.npz",
+        "sha256": "90f60a307c855c1c8543aab8a86924519257c21d29be4c728550c00147865108"
+      },
+      "TRAIN": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_004/TRAIN_READOUT.npz",
+        "sha256": "eacccb900c7dcab0c50ab8af34e5af3eb51461aedb6ae74103dbddf8acb3a291"
+      }
+    },
+    "source_commit": "d100a3efab1812b7e0ce94b5094117665e64a086",
+    "source_unchanged": true,
+    "counts": {
+      "backwards": 0,
+      "checkpoint_loads": 0,
+      "feature_batches": 512,
+      "model_constructions": 1,
+      "model_forwards": 512,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "parent_rows": 8192,
+      "test_rows": 0
+    },
+    "model_state_sha256": "3c172867694217f240a076c34220a1b7fafb2464af5738de544cf7a17068984b",
+    "elapsed_seconds": 506.17755279599805,
+    "primary_later_future_M5": {
+      "known_side_n": 1591,
+      "up_n": 855,
+      "auc": 0.4867769514365624,
+      "accuracy_at_zero": 0.48397234443746073,
+      "always_up_accuracy": 0.5373978629792583,
+      "brier": 0.2504250763034614
+    },
     "max_invocations": 1,
-    "remaining_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "checkpoint_reads_authorized": false,
+    "remaining_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
+    "relaunch_allowed": false,
     "training_authorized": false,
     "test_data_used": false,
-    "relaunch_allowed": false
+    "predictive_edge_proven": false,
+    "economic_value_measured": false
   }
 }
