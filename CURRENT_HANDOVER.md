@@ -5,7 +5,7 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_FOLD2_M5_INNER_LIFECYCLE_SOURCE_REVIEWED_EXECUTION_CLOSED. Edge-målet er
+TA_FOLD2_M5_CAMPAIGN_ROUTE_SOURCE_REVIEWED_EXECUTION_CLOSED. Edge-målet er
 uoppnådd. TARGET_COUNTS001 er COMPLETE/CONSUMED, exit0,3,78s. RESULT ba50eb96,
 VALIDATION dd45bd05, TERMINAL dccda6f6; ingen relansering. På eksakt47338 modne
 TRAIN-rader /2959 B16 med siste10 er M5 kjent retning S N16101/q2890 og F N19072/q2950.
@@ -52,12 +52,24 @@ preflight og slutt-scorer. Scoreren replayet alle130 INITIAL-celler eksakt;
 identisk INITIAL-par ga null AUC-gevinst. Bootstrap-seed er dag20260911,
 mandagsuke20260912. Arbeidskoden binder alle17 uendrede INITIAL-inputkvitteringer;
 design-dokumentet må fryses separat. Indre livssyklus er kildebundet og avviser
-lukket policy og manglende GPU-vakt før payload. Den krever fersk startdigest,
+lukket/full-fit-svak policy og manglende GPU-vakt før payload. Den krever fersk startdigest,
 fast pass og parvis FINAL-readout, men faktisk payload/modell/fit er ikke kjørt.
-Én trainer-window på12000s/250W, intern10500s og null checkpoint/resume er
-foreslått. Neste steg er kampanjedispatch, claim, immutable FINAL-captures,
-terminal/cursor/progress og feilforbruk før separat engangsadmisjon.
+Fersk INITIAL-design er bitlik originalkilden og nå fryst i egen kildebundet
+reseptfil; metadata-resepten binder 47338 TRAIN, maks2959 oppdateringer, null
+checkpoint/resume og de 17 gjenbrukte inputkvitteringene. Campaignens
+metadataautoritet kjenner fold2-resepten, 2959 besøkte batcher og mulige
+hoppede oppdateringer i terminal cursor/progress. Materialisering, dispatch og
+ytre worker er kildebundet og syntetisk rutet; syntetisk COMPLETE og midt-i-step FAILED publiserer
+immutable resultat/cursor/progress, mens gjentak avvises. En ren committed kilde
+kan publisere kun kandidat-resept under lukket trening. Ingen campaign-resept er
+ennå publisert, og ingen faktisk payload/modell/fit/FINAL-capture er kjørt. Én
+trainer-window på12000s/250W og intern10500s er foreslått. Neste steg er
+fokuserte sluttkontroller, samlet dagscommit/push, ren kandidat-resept og egen
+ressurs-/boot-/admisjonsreview.
 Ingen fit-admisjon: training_enabled=false; ingen trening, TEST, broker eller ordre.
+Fokuserte fold2/campaign-tester PASS. Eldre fold1-fit-testfil har19 isolerte
+fixture-feil NATIVE_F_PRIVATE_TA_M5_EXACT_INPUT_IDENTITY i uendrede kilder/refs;
+ikke bruk den som fold2-kvittering eller gjenta uten konkret behov.
 
 LATER_INPUTS002 er COMPLETE/CONSUMED, exit0,215,18s; terminal1297d154,
 RESULT2cab8b60/COVERAGE5abd47c4/GATHER_RESULTe6aacfe9/VALIDATIONdf45d60f.

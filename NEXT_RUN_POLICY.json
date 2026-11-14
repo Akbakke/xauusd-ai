@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-14T08:44:03.214755+00:00",
-  "status": "TA_FOLD2_M5_INNER_LIFECYCLE_SOURCE_REVIEWED_EXECUTION_CLOSED",
+  "status": "TA_FOLD2_M5_CAMPAIGN_ROUTE_SOURCE_REVIEWED_EXECUTION_CLOSED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Bind the fold2 M5 inner worker to the canonical guarded research campaign: immutable source/recipe, one 12000-second 250 W window, claim, final capture publication, terminal and cursor/progress receipts, and consumed failure with no resume. Qualify metadata and synthetic startup/failure before any separate one-use fit admission. training_enabled=false; no fit, TEST, broker or trading authorized.",
+  "next_action": "Finish focused source and metadata checks, then commit/push this code and handover in the daily batch. From a clean committed source, publish only the immutable fold2 M5 candidate recipe while training remains closed. Review exact fresh boot, guard, resources and one-use policy before any separate fit admission. No fit, TEST, broker or trading authorized; training_enabled=false.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",

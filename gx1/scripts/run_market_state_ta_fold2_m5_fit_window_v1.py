@@ -11,7 +11,7 @@ import torch
 from gx1.contracts.market_state_ta_fold2_m5_fit_v1 import (
     ADAMW_DEFAULTS, BATCH_VISITS, INITIAL_MODEL_SHA256, LOSS_SHA256,
     MODEL_CONTRACT_SHA256, TRAIN_ROWS, VIEW_SHA256,
-    batch_bounds,
+    batch_bounds, INITIAL_PLAN_REF, require_reused_input_refs,
 )
 from gx1.contracts.market_state_time_query_native_F_batch_v1 import evaluate_fit_batch
 from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
@@ -28,7 +28,8 @@ def _need(ok: bool, reason: str) -> None:
 
 def fit_one_pass(*, model, optimizer, parent_rows: np.ndarray,
                  issue_ns: np.ndarray, state_bound, future_bound,
-                 gather_features: Callable, deadline_monotonic: float) -> dict:
+                 gather_features: Callable, deadline_monotonic: float,
+                 progress_state: dict | None = None) -> dict:
     """Consume every fixed TRAIN batch once after the caller proves admission.
 
     The caller owns guarded launch, exact source/start binding, feature inputs,
@@ -55,9 +56,16 @@ def fit_one_pass(*, model, optimizer, parent_rows: np.ndarray,
           and time.monotonic() < deadline_monotonic, 'DEADLINE')
     optimizer.zero_grad(set_to_none=True)
     records, updates, skipped = [], 0, 0
+    if progress_state is not None:
+        progress_state.update(batch_visits=0, optimizer_updates=0,
+                              skipped_batches=0, parent_cursor=0,
+                              batch_visit_in_flight=False,
+                              optimizer_step_in_flight=False)
     for index in range(BATCH_VISITS):
         _need(time.monotonic() < deadline_monotonic, 'TIME_BUDGET')
         left, right = batch_bounds(index)
+        if progress_state is not None:
+            progress_state['batch_visit_in_flight'] = True
         rows, issues = parent_rows[left:right], issue_ns[left:right]
         features = gather_features(left, right, rows, issues)
         report = evaluate_fit_batch(
@@ -77,6 +85,8 @@ def fit_one_pass(*, model, optimizer, parent_rows: np.ndarray,
             skipped += 1
         else:
             report['loss'].backward()
+            if progress_state is not None:
+                progress_state['optimizer_step_in_flight'] = True
             norm = float(trainer._optimizer_step_with_finite_gradients(
                 model=model, optimizer=optimizer))
             _need(math.isfinite(norm), 'GRADIENT_NORM')
@@ -84,6 +94,12 @@ def fit_one_pass(*, model, optimizer, parent_rows: np.ndarray,
             updates += 1
         optimizer.zero_grad(set_to_none=True)
         records.append(record)
+        if progress_state is not None:
+            progress_state.update(batch_visits=index + 1,
+                                  optimizer_updates=updates,
+                                  skipped_batches=skipped, parent_cursor=right,
+                                  batch_visit_in_flight=False,
+                                  optimizer_step_in_flight=False)
         del features, report
     _need(len(records) == BATCH_VISITS and records[-1]['stop'] == TRAIN_ROWS
           and updates + skipped == BATCH_VISITS
@@ -93,42 +109,6 @@ def fit_one_pass(*, model, optimizer, parent_rows: np.ndarray,
             'skipped_batches': skipped, 'training_records': records,
             'parent_cursor': TRAIN_ROWS, 'checkpoint_writes': 0,
             'test_data_used': False}
-
-
-INITIAL_PLAN_REF = {
-    'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_004/PLAN.json',
-    'sha256': '6fe63d5e06812122cf5a7c9a7e816fa547c718fd65039fac2588b2988542390a',
-}
-
-
-def require_reused_input_refs(initial_plan_ref: dict) -> dict:
-    """Bind completed input receipts; the evolving design is separately frozen."""
-    from gx1.audit.observe_market_state_ta_fold2_fresh_initial_v1 import read
-    _need(initial_plan_ref == INITIAL_PLAN_REF, 'INITIAL_PLAN_BINDING')
-    plan = read(initial_plan_ref)
-    inputs = plan['inputs']
-    _need(plan['stage'] == 'market_state_ta_fold2_fresh_initial_20261114_004'
-          and plan['source_repo'] == '/home/andre2/src/GX1_CURRENT'
-          and plan['train_rows'] == plan['later_rows'] == 4096
-          and plan['forwards'] == 512 and plan['optimizer_updates'] == 0
-          and plan['checkpoint_loads'] == 0 and plan['test_data_used'] is False,
-          'INITIAL_PLAN_STAGE')
-    expected = {'design', 'train_plan', 'later_plan', 'view', 'normalization',
-                'constructor', 'priors', 'packet', 'provider_plan',
-                'physical_result', 'train_gather_result', 'later_result',
-                'later_terminal', 'later_gather_result', 'later_coverage',
-                'train_validation', 'later_validation', 'target_validation'}
-    _need(set(inputs) == expected, 'INITIAL_INPUT_SET')
-    for name, binding in inputs.items():
-        if name != 'design':
-            read(binding)
-    for name, status in (('train_validation', 'PASS_FULL_FOLD2_TRAIN_INPUT_GATHER'),
-                         ('later_validation', 'PASS_JSON_HASH_JOIN_AND_EXACT_COUNTS'),
-                         ('target_validation', 'PASS_JSON_PREFIX_MASK_BATCH_AND_PRIOR_JOINS')):
-        receipt = read(inputs[name])
-        _need(receipt['status'] == status and receipt['test_data_used'] is False,
-              'VALIDATION_' + name.upper())
-    return inputs
 
 
 def prepare_qualified_inputs(*, initial_plan_ref: dict, design: dict,
@@ -347,7 +327,8 @@ def evaluate_fixed_panels(*, model, context: dict, deadline_monotonic: float) ->
 
 def _execute_fixed_fit_and_readout(*, launch: dict, review_ref: dict,
                                    initial_result_ref: dict,
-                                   deadline_monotonic: float) -> dict:
+                                   deadline_monotonic: float,
+                                   progress_state: dict | None = None) -> dict:
     """Inner one-pass work; only a verified guarded campaign may call it."""
     import json
     from pathlib import Path
@@ -374,9 +355,18 @@ def _execute_fixed_fit_and_readout(*, launch: dict, review_ref: dict,
     gate = policy.get(STAGE, {})
     _need(policy['training_enabled'] is True
           and policy['native_training_enabled'] is True
+          and policy['full_epoch_training_allowed'] is True
           and gate.get('status') == 'ADMITTED'
-          and gate.get('training_authorized') is True
           and gate.get('execution_authorized') is True
+          and gate.get('data_reads_authorized') is True
+          and gate.get('genuine_constructor_authorized') is True
+          and gate.get('genuine_forward_authorized') is True
+          and gate.get('genuine_backward_authorized') is True
+          and gate.get('genuine_updates_authorized') is True
+          and gate.get('genuine_predictor_fit_authorized') is True
+          and gate.get('training_enabled') is True
+          and gate.get('native_training_enabled') is True
+          and gate.get('full_epoch_training_allowed') is True
           and gate.get('test_data_used') is False
           and launch.get('run_scope') == SCOPE
           and launch.get('admission_stage') == STAGE
@@ -388,6 +378,10 @@ def _execute_fixed_fit_and_readout(*, launch: dict, review_ref: dict,
     require_guarded_cuda_trainer_execution()
     _need(type(deadline_monotonic) is float
           and time.monotonic() < deadline_monotonic, 'MODEL_DEADLINE')
+    _need(review_ref == launch['input_refs']['frozen_design']
+          and initial_result_ref == launch['input_refs']['initial_result']
+          and launch['input_refs']['initial_plan'] == INITIAL_PLAN_REF,
+          'FROZEN_RECIPE_INPUTS')
     review = read_ref(review_ref, base=REPO)
     hypothesis = review['fold2_m5_fit_hypothesis']
     require_fixed_design(hypothesis)
@@ -424,11 +418,14 @@ def _execute_fixed_fit_and_readout(*, launch: dict, review_ref: dict,
             future_bound=context['future_bound'],
             gather_features=lambda left, right, rows, issues:
                 context['features']('TRAIN', rows, issues),
-            deadline_monotonic=deadline_monotonic)
+            deadline_monotonic=deadline_monotonic,
+            progress_state=progress_state)
         final = evaluate_fixed_panels(
             model=model, context=context, deadline_monotonic=deadline_monotonic)
         initial_later = read_capture(initial_result['captures']['LATER'])
+        _need(time.monotonic() < deadline_monotonic, 'MODEL_DEADLINE')
         paired = paired_later_f_m5(initial_later, final['captures']['LATER'])
+        _need(time.monotonic() < deadline_monotonic, 'MODEL_DEADLINE')
         _need(fit['batch_visits'] == 2959
               and fit['parent_cursor'] == TRAIN_ROWS
               and fit['optimizer_updates'] + fit['skipped_batches'] == 2959
@@ -442,3 +439,159 @@ def _execute_fixed_fit_and_readout(*, launch: dict, review_ref: dict,
     finally:
         if context is not None:
             context['release']()
+
+
+def run_fold2_m5_fit_window(*, policy_path, policy_file_sha256: str,
+                            progress_path) -> dict:
+    """One admitted native campaign window; failure consumes this plan."""
+    started = time.monotonic()
+    import hashlib
+    import io
+    import json
+    from pathlib import Path
+
+    from gx1.contracts import entry_native_direction_research_campaign_v1 as authority
+    from gx1.contracts import local_random_access_campaign_v2 as campaign
+    from gx1.contracts import market_state_ta_fold2_m5_fit_v1 as scope
+    from gx1.contracts.gx1_capped_execution_v1 import (
+        require_guarded_cuda_trainer_execution,
+    )
+    from gx1.contracts.immutable_event_authority_v1 import _publish_bytes
+    from gx1.audit.score_market_state_ta_fold2_m5_fit_v1 import read_capture
+    from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+
+    limits = require_guarded_cuda_trainer_execution()
+    window, plan, invocation, marker, recipe = (
+        authority.require_native_direction_research_context(
+            policy_path, policy_file_sha256, progress_path))
+    _need(recipe['run_scope'] == scope.SCOPE
+          and recipe['admission_stage'] == scope.STAGE
+          and window['max_invocation_seconds'] == 12000
+          and recipe['one_window'] == scope.ONE_WINDOW
+          and invocation['optimizer_step_budget'] == scope.BATCH_VISITS,
+          'EXACT_ADMITTED_WINDOW')
+    scope.require_recipe(recipe, source_repo=scope.REPO,
+                         source_commit=plan['source_commit'])
+    root, output = scope.ROOT, Path(window['output_directory'])
+    _need(not any((root / name).exists() for name in (
+        'RESULT.json', 'TERMINAL.json', 'PAIRED_READOUT.json',
+        'FINAL_TRAIN_READOUT.npz', 'FINAL_LATER_READOUT.npz'))
+        and not output.exists() and not Path(window['campaign_cursor_path']).exists()
+        and not Path(progress_path).exists(), 'ONE_USE_GENESIS')
+    output.mkdir(parents=True)
+    counters = {'json_bytes': 0}
+    claim = common._json(output / 'CLAIM.json', {
+        'schema_version': 'gx1_ta_fold2_m5_fit_claim_v1',
+        'recipe': window['recipe'], 'plan_sha256': plan['plan_sha256'],
+        'source_commit': plan['source_commit'], 'limits': limits,
+        'test_data_used': False}, counters, recipe['max_published_json_bytes'])
+    state = {'batch_visits': 0, 'optimizer_updates': 0,
+             'skipped_batches': 0, 'parent_cursor': 0,
+             'batch_visit_in_flight': False,
+             'optimizer_step_in_flight': False}
+    captures, paired_ref, inner = {}, None, None
+    error, source_unchanged = None, False
+
+    def clock_guard() -> None:
+        _need(time.monotonic() - started < window['max_invocation_seconds'],
+              'INVOCATION_DEADLINE')
+
+    try:
+        inner = _execute_fixed_fit_and_readout(
+            launch=recipe, review_ref=recipe['input_refs']['frozen_design'],
+            initial_result_ref=recipe['input_refs']['initial_result'],
+            deadline_monotonic=float(min(started + window['max_invocation_seconds'],
+                                         started + recipe['max_model_seconds'])),
+            progress_state=state)
+        fit, final = inner['fit'], inner['final']
+        _need(all(fit[key] == state[key] for key in
+                  ('batch_visits', 'optimizer_updates', 'skipped_batches', 'parent_cursor')),
+              'PROGRESS_STATE_PARITY')
+        for label in ('TRAIN', 'LATER'):
+            clock_guard()
+            stream = io.BytesIO()
+            np.savez(stream, **final['captures'][label])
+            blob = stream.getvalue()
+            _need(len(blob) <= 2 * 1024 * 1024, 'FINAL_CAPTURE_BYTES')
+            path = root / ('FINAL_' + label + '_READOUT.npz')
+            _publish_bytes(path, blob)
+            binding = {'path': str(path),
+                       'sha256': hashlib.sha256(blob).hexdigest()}
+            read_capture(binding)
+            captures[label] = binding
+        clock_guard()
+        paired_ref = common._json(root / 'PAIRED_READOUT.json',
+            inner['paired_later_f_m5'], counters, recipe['max_published_json_bytes'])
+        campaign.require_clean_source(plan)
+        source_unchanged = True
+        clock_guard()
+    except BaseException as exc:
+        error = type(exc).__name__ + ': ' + str(exc)
+        try:
+            campaign.require_clean_source(plan)
+            source_unchanged = True
+        except BaseException as source_exc:
+            error += '; source: ' + type(source_exc).__name__ + ': ' + str(source_exc)
+
+    outcome = 'COMPLETE' if error is None and source_unchanged else 'FAILED'
+    visits, updates = state['batch_visits'], state['optimizer_updates']
+    parent_cursor = scope.cursor_from_batch_visits(visits)
+    _need(state['parent_cursor'] == parent_cursor
+          and 0 <= updates <= visits <= scope.BATCH_VISITS,
+          'TERMINAL_COUNT_BOUND')
+    payload = {
+        'schema_version': scope.RESULT_SCHEMA,
+        'status': ('PASS_FOLD2_M5_FIT_AND_READOUT' if outcome == 'COMPLETE'
+                   else 'FAILED_CONSUMED_NO_RESUME'),
+        'outcome': outcome, 'recipe': window['recipe'],
+        'recipe_inputs': recipe['input_refs'],
+        'initial_result': recipe['input_refs']['initial_result'],
+        'claim': claim, 'source_commit': plan['source_commit'],
+        'source_unchanged': source_unchanged,
+        'batch_visits': visits, 'optimizer_updates': updates,
+        'skipped_batches': state['skipped_batches'],
+        'parent_cursor': parent_cursor,
+        'parent_order_sha256': scope.TRAIN_PARENT_ORDER_SHA256,
+        'checkpoint_writes': 0, 'canonical_resume_authority': False,
+        'batch_visit_in_flight_at_terminal': state['batch_visit_in_flight'],
+        'optimizer_updates_is_lower_bound': state['optimizer_step_in_flight'],
+        'final_captures': captures, 'paired_readout': paired_ref,
+        'fit': inner['fit'] if outcome == 'COMPLETE' else None,
+        'readouts': inner['final']['readouts'] if outcome == 'COMPLETE' else None,
+        'measurements': inner['final']['measurements'] if outcome == 'COMPLETE' else None,
+        'final_model_state_sha256': (inner['final']['final_model_state_sha256']
+                                     if outcome == 'COMPLETE' else None),
+        'elapsed_seconds': time.monotonic() - started,
+        'error': error, 'test_data_used': False,
+        'predictive_edge_proven': False, 'economic_value_measured': False,
+    }
+    result = common._json(root / 'RESULT.json', payload, counters,
+                          recipe['max_published_json_bytes'])
+    terminal = common._json(root / 'TERMINAL.json', {
+        'status': outcome, 'exit_code': 0 if outcome == 'COMPLETE' else 1,
+        'result': result, 'recipe': window['recipe'],
+        'source_unchanged': source_unchanged,
+        'no_relaunch_under_this_plan': True, 'test_data_used': False,
+    }, counters, recipe['max_published_json_bytes'])
+    cursor = authority.build_research_cursor(
+        recipe_ref=window['recipe'], outcome=outcome,
+        optimizer_updates=updates, parent_cursor=parent_cursor,
+        parent_order_sha256=scope.TRAIN_PARENT_ORDER_SHA256,
+        full_state=None, result=result, batch_size=scope.BATCH_SIZE)
+    cursor_ref = common._json(Path(window['campaign_cursor_path']), cursor,
+                              counters, recipe['max_published_json_bytes'])
+    progress = authority.build_research_progress(
+        window=window, plan=plan, invocation=invocation,
+        checkpoint_pointer=cursor_ref, optimizer_updates=updates,
+        parent_cursor=parent_cursor,
+        parent_order_sha256=scope.TRAIN_PARENT_ORDER_SHA256, outcome=outcome)
+    common._json(Path(progress_path), progress, counters,
+                 recipe['max_published_json_bytes'])
+    authority.require_research_progress(
+        progress, plan_sha256=plan['plan_sha256'], invocation=invocation,
+        expected_selection_receipt_sha256=None, verify_file=True)
+    if error is not None:
+        raise RuntimeError('FOLD2_M5_FIT_CONSUMED_FAILURE: ' + error)
+    return {'result': result, 'terminal': terminal,
+            'checkpoint_pointer': cursor_ref, 'progress_path': str(progress_path),
+            'predictive_edge_proven': False, 'test_data_used': False}

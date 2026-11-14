@@ -142,10 +142,18 @@ def test_inner_lifecycle_requires_gpu_guard_before_payload(monkeypatch, tmp_path
     from gx1.contracts import gx1_capped_execution_v1 as guard
     from gx1.contracts import market_state_ta_fold2_m5_fit_v1 as scope
 
+    admitted = {'status': 'ADMITTED', 'test_data_used': False,
+                'execution_authorized': True, 'data_reads_authorized': True,
+                'genuine_constructor_authorized': True,
+                'genuine_forward_authorized': True,
+                'genuine_backward_authorized': True,
+                'genuine_updates_authorized': True,
+                'genuine_predictor_fit_authorized': True,
+                'training_enabled': True, 'native_training_enabled': True,
+                'full_epoch_training_allowed': True}
     (tmp_path / 'NEXT_RUN_POLICY.json').write_text(json.dumps({
         'training_enabled': True, 'native_training_enabled': True,
-        scope.STAGE: {'status': 'ADMITTED', 'training_authorized': True,
-                      'execution_authorized': True, 'test_data_used': False},
+        'full_epoch_training_allowed': True, scope.STAGE: admitted,
     }))
     monkeypatch.setattr(scope, 'REPO', tmp_path)
     monkeypatch.setattr(guard, 'require_guarded_cuda_trainer_execution',
@@ -155,6 +163,16 @@ def test_inner_lifecycle_requires_gpu_guard_before_payload(monkeypatch, tmp_path
     launch = {'run_scope': scope.SCOPE, 'admission_stage': scope.STAGE,
               'fold_id': 2, 'training_enabled': True,
               'test_data_used': False, 'max_model_seconds': 10500}
+    policy_path = tmp_path / 'NEXT_RUN_POLICY.json'
+    closed = json.loads(policy_path.read_text())
+    closed['full_epoch_training_allowed'] = False
+    policy_path.write_text(json.dumps(closed))
+    with pytest.raises(RuntimeError, match='FOLD2_M5_FIT_POLICY_CLOSED'):
+        worker._execute_fixed_fit_and_readout(
+            launch=launch, review_ref={}, initial_result_ref={},
+            deadline_monotonic=float(time.monotonic() + 30))
+    closed['full_epoch_training_allowed'] = True
+    policy_path.write_text(json.dumps(closed))
     with pytest.raises(RuntimeError, match='GUARD_REQUIRED'):
         worker._execute_fixed_fit_and_readout(
             launch=launch, review_ref={}, initial_result_ref={},

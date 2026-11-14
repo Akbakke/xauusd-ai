@@ -640,6 +640,10 @@ def run_native_direction_research_window(*, policy_path: Path, policy_file_sha25
     from gx1.contracts import entry_native_direction_research_campaign_v1 as authority
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix_authority
     window,plan,invocation,marker,launch=authority.require_native_direction_research_context(policy_path,policy_file_sha256,progress_path)
+    if launch['run_scope'] == authority.TA_FOLD2_M5_FIT_SCOPE:
+        from gx1.scripts.run_market_state_ta_fold2_m5_fit_window_v1 import run_fold2_m5_fit_window
+        return run_fold2_m5_fit_window(policy_path=policy_path,
+            policy_file_sha256=policy_file_sha256, progress_path=progress_path)
     if launch['run_scope'] in (authority.TA_M5_OBJECTIVE_BENCHMARK_SCOPE, authority.TA_COVERAGE_BENCHMARK_SCOPE,
                                authority.TA_COMBINED_DECODER_BENCHMARK_SCOPE, authority.TA_FULL_PREFIX_LEARNING_SCOPE,
                                authority.TA_FULL_PREFIX_ORDER_SCOPE):

@@ -37,7 +37,7 @@ def inspect() -> dict:
         MODEL_CONTRACT_SHA256, require_fixed_design,
     )
     require_fixed_design(h)
-    need(policy['status'] == 'TA_FOLD2_M5_INNER_LIFECYCLE_SOURCE_REVIEWED_EXECUTION_CLOSED'
+    need(policy['status'] == 'TA_FOLD2_M5_CAMPAIGN_ROUTE_SOURCE_REVIEWED_EXECUTION_CLOSED'
          and policy['training_enabled'] is False
          and all(policy.get(k) is False for k in (
              'native_training_enabled', 'native_launch_authorized',
@@ -118,7 +118,7 @@ def inspect() -> dict:
          'FRESH_INITIAL')
     need(h['fixed_readout']['train_and_later_panels']
          == review['fresh_initial_design']['panels'], 'UNCHANGED_PANELS')
-    from gx1.scripts.run_market_state_ta_fold2_m5_fit_window_v1 import (
+    from gx1.contracts.market_state_ta_fold2_m5_fit_v1 import (
         INITIAL_PLAN_REF, require_reused_input_refs,
     )
     need(INITIAL_PLAN_REF == review['fresh_initial_execution']['plan'],
