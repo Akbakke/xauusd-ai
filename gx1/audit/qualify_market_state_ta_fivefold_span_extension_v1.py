@@ -26,11 +26,14 @@ from gx1.contracts.immutable_event_authority_v1 import _fsync_directory, _publis
 
 REPO = Path('/home/andre2/src/GX1_CURRENT')
 RUNS = Path('/home/andre2/GX1_RUNS')
-STAGE = 'market_state_ta_fivefold_span_extension_20261114_001'
+STAGE = 'market_state_ta_fivefold_span_extension_20261114_002'
 PLAN = REPO / 'configs/research' / (STAGE.upper() + '.json')
 ROOT = RUNS / STAGE.upper()
 POLICY = REPO / 'NEXT_RUN_POLICY.json'
 LANES = ('local', 'M5', 'M15', 'H1', 'H4', 'D1')
+NATIVE_LANES = LANES[1:]
+FAILED_001 = RUNS / 'MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_001'
+NATIVE_2025 = Path('/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2025/part-000.parquet')
 KEYS = frozenset(('row_indices', 'times_ns', 'native_bar_positions', 'anchor_span_bars'))
 CUTOFF_NS = 1767225600000000000
 OLD_PLAN = REPO / 'configs/research/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001.json'
@@ -52,7 +55,8 @@ SWAP_MAX = 512 * 1024**2
 WALL_SECONDS = 3600
 INTERNAL_SECONDS = 3480
 SCOPE = {'new_rows_total': 173854, 'merged_rows_total': 290522,
-         'producer_calls': 6, 'model_constructions': 0, 'model_forwards': 0,
+         'reused_local_delta_rows': 71186, 'replayed_native_rows_total': 102668,
+         'producer_calls': 5, 'model_constructions': 0, 'model_forwards': 0,
          'normalization_fits': 0, 'optimizer_steps': 0,
          'target_labels_used': False, 'test_data_used': False}
 
@@ -147,6 +151,39 @@ def merge(old: dict, new: dict, *, lane: str, scope: dict) -> dict:
     return out
 
 
+
+def verify_native_clocks(old: dict, plan: dict, coverage: dict) -> None:
+    """Check every needed 2025 source timestamp before a one-use claim."""
+    import pandas as pd
+    from gx1.features.htf_features import build_multi_tf_v4_closed_timestamp_indices
+
+    refs = [*old['inputs']['native_parts'], plan['native_2025_part']]
+    need(len(refs) == 17 and refs[-1] == ref(NATIVE_2025),
+         'NATIVE_2025_IDENTITY')
+    frames = []
+    for item in refs:
+        path = Path(item['path'])
+        need(ref(path) == item, 'NATIVE_PART_HASH:' + str(path))
+        frames.append(pd.read_parquet(path, columns=['time']))
+    index = pd.DatetimeIndex(pd.concat(frames, ignore_index=True)['time']).as_unit('ns')
+    index = index[index.asi8 < CUTOFF_NS]
+    need(len(index) > 0 and index.is_unique and index.is_monotonic_increasing,
+         'NATIVE_SOURCE_CLOCK')
+    indices = build_multi_tf_v4_closed_timestamp_indices(index)
+    for lane in NATIVE_LANES:
+        cached = old['caches'][lane]['ts']
+        path = Path(cached['path'])
+        need(ref(path) == cached, 'CACHE_CLOCK_HASH:' + lane)
+        left, right = coverage['lanes'][lane]['new_range']
+        clock = np.load(path, mmap_mode='r', allow_pickle=False)
+        desired = np.asarray(clock[left:right], dtype=np.int64)
+        source = indices[lane].asi8
+        positions = np.searchsorted(source, desired)
+        need(len(desired) == right - left and np.all(positions < len(source))
+             and np.array_equal(source[positions], desired),
+             'EXACT_NATIVE_CLOCK:' + lane)
+
+
 def preflight(plan_path: Path, plan_sha: str, *, admitted: bool = False) -> tuple:
     head = clean_head()
     need(plan_path == PLAN and len(plan_sha) == 64 and sha(PLAN) == plan_sha
@@ -155,6 +192,8 @@ def preflight(plan_path: Path, plan_sha: str, *, admitted: bool = False) -> tupl
     coverage = checked(plan['coverage'])
     fold2 = checked(plan['fold2_result'])
     old = checked(plan['old_plan'])
+    failed_001 = checked(plan['failed_001_terminal'])
+    local_qual = checked(plan['reuse_local_qualification'])
     need(plan['schema_version'] == 'gx1_ta_fivefold_span_extension_plan_v1'
          and plan['stage'] == STAGE and plan['status'] == 'PREPARED_NOT_ADMITTED'
          and plan['output_root'] == str(ROOT)
@@ -170,6 +209,15 @@ def preflight(plan_path: Path, plan_sha: str, *, admitted: bool = False) -> tupl
          and old['scope']['ranges']['local'][0] == coverage['lanes']['local']['old_range'][0]
          and plan['lanes'] == list(LANES)
          and plan['lane_scopes'] == coverage['lanes']
+         and failed_001['status'] == 'FAILED_CONSUMED'
+         and failed_001['no_relaunch'] is True
+         and failed_001['plan']['path'].endswith('MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_001.json')
+         and plan['native_2025_part'] == ref(NATIVE_2025)
+         and local_qual['artifact'] == plan['reuse_local_artifact']
+         and local_qual['population'] == coverage['lanes']['local']['new_population']
+         and local_qual['parity']['fields'] == 31
+         and local_qual['parity']['float32_bit_mismatched_cells'] == 0
+         and local_qual['fresh_state_at_source_row_zero'] is True
          and plan['source_base_head'] and len(plan['source_base_head']) == 40
          and subprocess.run(['git', 'merge-base', '--is-ancestor',
                              plan['source_base_head'], head],
@@ -192,6 +240,9 @@ def preflight(plan_path: Path, plan_sha: str, *, admitted: bool = False) -> tupl
              and all(check['row_hash_match'] is True for check in item['fit_proof_checks']),
              'LANE_SCOPE:' + lane)
         archive(item['old_sidecar'], expected_range=item['old_range'])
+    archive(plan['reuse_local_artifact'],
+            expected_range=coverage['lanes']['local']['new_range'])
+    verify_native_clocks(old, plan, coverage)
     policy_ref = None
     if admitted:
         cap = require_capped_cpu_audit_execution()
@@ -219,7 +270,7 @@ def preflight(plan_path: Path, plan_sha: str, *, admitted: bool = False) -> tupl
              and gate.get('test_data_used') is False
              and gate.get('broker_access_allowed') is False,
              'POLICY_GATE')
-    return plan, coverage, fold2, old, head, policy_ref
+    return plan, coverage, fold2, old, head, policy_ref, local_qual
 
 
 def bookend(plan: dict, plan_sha: str, policy_ref: dict, head: str) -> None:
@@ -230,6 +281,10 @@ def bookend(plan: dict, plan_sha: str, policy_ref: dict, head: str) -> None:
          and all(ref(Path(plan[key]['path'])) == plan[key]
                  for key in ('coverage', 'fold2_result', 'old_plan')),
          'SOURCE_BOOKEND')
+    for key in ('failed_001_terminal', 'reuse_local_qualification',
+                'reuse_local_artifact', 'native_2025_part'):
+        need(ref(Path(plan[key]['path'])) == plan[key],
+             'REUSED_INPUT_BOOKEND:' + key)
     for lane in LANES:
         item = plan['lane_scopes'][lane]['old_sidecar']
         need(ref(Path(item['path'])) == item, 'OLD_SIDECAR_BOOKEND:' + lane)
@@ -241,7 +296,7 @@ def wall_limit(_signum, _frame) -> None:
 
 def run(plan_path: Path, plan_sha: str) -> dict:
     started = time.monotonic()
-    plan, coverage, _, old, head, policy_ref = preflight(
+    plan, coverage, _, old, head, policy_ref, local_qual = preflight(
         plan_path, plan_sha, admitted=True)
     need(policy_ref is not None, 'ADMISSION_REQUIRED')
     ROOT.mkdir(parents=True, exist_ok=False)
@@ -260,18 +315,20 @@ def run(plan_path: Path, plan_sha: str) -> dict:
         delta_dir = ROOT / 'DELTA'
         delta_dir.mkdir()
         wrapper = copy.deepcopy(old)
+        wrapper['inputs']['native_parts'].append(plan['native_2025_part'])
         wrapper['populations'] = {lane: coverage['lanes'][lane]['new_population']
-                                  for lane in LANES}
+                                  for lane in NATIVE_LANES}
         wrapper['scope'] = {'ranges': {lane: coverage['lanes'][lane]['new_range']
-                                      for lane in LANES},
+                                      for lane in NATIVE_LANES},
                             'history_end_exclusive_ns': CUTOFF_NS,
-                            'replay_lanes': list(LANES),
+                            'replay_lanes': list(NATIVE_LANES),
                             'array_output_budget_bytes': 4 * 1024**2}
         wrapper['output_root'] = str(delta_dir)
-        delta = replay.measure(wrapper, ranges=wrapper['scope']['ranges'],
-                               cutoff=CUTOFF_NS, output_root=delta_dir,
-                               lanes=LANES)
-        need(set(delta) == set(LANES), 'SIX_REPLAYS')
+        delta = {'local': local_qual}
+        delta.update(replay.measure(wrapper, ranges=wrapper['scope']['ranges'],
+                                    cutoff=CUTOFF_NS, output_root=delta_dir,
+                                    lanes=NATIVE_LANES))
+        need(set(delta) == set(LANES), 'SIX_SURFACES')
         for lane in LANES:
             scope = coverage['lanes'][lane]
             item = delta[lane]
@@ -306,7 +363,9 @@ def run(plan_path: Path, plan_sha: str) -> dict:
             'plan': {'path': str(PLAN), 'sha256': plan_sha},
             'policy': policy_ref, 'claim': claim,
             'source_head': head, 'source_unchanged': True,
-            'coverage': plan['coverage'], 'lanes': completed,
+            'coverage': plan['coverage'], 'native_2025_part': plan['native_2025_part'],
+            'reused_local_qualification': plan['reuse_local_qualification'],
+            'lanes': completed,
             'counts': SCOPE, 'elapsed_seconds': time.monotonic() - started,
             'normalization_fitted': False, 'model_fit': False,
             'test_data_used': False})
@@ -347,7 +406,7 @@ def main() -> int:
     parser.add_argument('--preflight', action='store_true')
     args = parser.parse_args()
     if args.preflight:
-        plan, coverage, _, _, head, _ = preflight(args.plan, args.plan_sha256)
+        plan, coverage, _, _, head, _, _ = preflight(args.plan, args.plan_sha256)
         # Exercise merge acceptance and rejection without physical payload reads.
         rows = np.arange(2, dtype=np.int64)
         left = {'row_indices': rows[:1], 'times_ns': np.array([10], np.int64),

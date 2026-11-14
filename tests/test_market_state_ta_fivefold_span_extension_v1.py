@@ -52,20 +52,29 @@ def test_claimed_run_writes_terminal_for_success_or_partial_failure(monkeypatch,
     monkeypatch.setattr(work, 'SCOPE', {'new_rows_total': 6, 'merged_rows_total': 12})
     scopes = {lane: _scope() for lane in work.LANES}
     coverage = {'lanes': scopes}
-    old = {'populations': {}, 'scope': {}, 'output_root': ''}
+    old = {'inputs': {'native_parts': []}, 'populations': {},
+           'scope': {}, 'output_root': ''}
     policy_ref = {'path': 'policy', 'sha256': 'b' * 64}
+    local_qual = {'population': scopes['local']['new_population'],
+                  'parity': {'float32_bit_mismatched_cells': 0, 'fields': 31},
+                  'fresh_state_at_source_row_zero': True,
+                  'artifact': {'path': 'local', 'sha256': 'a' * 64}}
     monkeypatch.setattr(work, 'preflight', lambda *_a, **_kw:
-                        ({'coverage': {}, 'lane_scopes': scopes, 'source_owners': {}},
-                         coverage, {}, old, 'head', policy_ref))
+                        ({'coverage': {}, 'lane_scopes': scopes, 'source_owners': {},
+                          'native_2025_part': {'path': 'native2025', 'sha256': 'c' * 64},
+                          'reuse_local_qualification': {'path': 'qual', 'sha256': 'd' * 64}},
+                         coverage, {}, old, 'head', policy_ref, local_qual))
     monkeypatch.setattr(work, 'bookend', lambda *_a: None)
     def measure(wrapper, **_kw):
         assert wrapper['scope']['history_end_exclusive_ns'] == work.CUTOFF_NS
         assert wrapper['scope']['array_output_budget_bytes'] == 4 * 1024**2
+        assert wrapper['scope']['replay_lanes'] == list(work.NATIVE_LANES)
+        assert len(wrapper['inputs']['native_parts']) == 1
         return {lane: {'population': scopes[lane]['new_population'],
                        'parity': {'float32_bit_mismatched_cells': 0, 'fields': 31},
                        'fresh_state_at_source_row_zero': True,
                        'artifact': {'path': lane, 'sha256': 'a' * 64}}
-                for lane in work.LANES}
+                for lane in work.NATIVE_LANES}
     monkeypatch.setattr(work.replay, 'measure', measure)
     monkeypatch.setattr(work, 'archive', lambda item, *, expected_range:
                         _block(expected_range[0],

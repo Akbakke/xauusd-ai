@@ -1,0 +1,90 @@
+{
+  "all_five_native_clocks_exact": true,
+  "claim": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_001/CLAIM.json",
+    "sha256": "24b857ef52f6e4ac86093e80566ed8529cde40a98abfdbd8c56b509917d9c1c2"
+  },
+  "failure": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_001/FAILED.json",
+    "sha256": "62870ca1d943167fca13b7a1b31d39cae54bbbe1a9914f3f72db0b73230c4296"
+  },
+  "local_delta_artifact": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_001/DELTA/local_ANCHOR_SPANS.npz",
+    "sha256": "34cb127dbd39d0000232c55e47fa64e675260ed2ad5cb243af5a203dd0779a8a"
+  },
+  "local_delta_qualification": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_001/DELTA/local_QUALIFICATION.json",
+    "sha256": "2a8811ae9b27ab8e11a8f149b5436c9d03cb2471a7ef1b172e1e44944cce0547"
+  },
+  "local_delta_rows": 71186,
+  "local_old_field_bit_mismatches": 0,
+  "model_fits": 0,
+  "native_2025_part": {
+    "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2025/part-000.parquet",
+    "sha256": "5c6e9ffb938a44074491fbaf959cfdd1e389c37bbd40051d9f4d2add3ca6b879"
+  },
+  "native_clock_checks": {
+    "D1": {
+      "cached_clock": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/D1_ts.npy",
+        "sha256": "e3ed0e97376b178a2629341df88f859182a269b85ed19cd8cad3808c154d2a0f"
+      },
+      "missing_rows": 0,
+      "new_rows": 258,
+      "source_clock_matched_rows": 258
+    },
+    "H1": {
+      "cached_clock": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/H1_ts.npy",
+        "sha256": "31acc8191749845ac19d9e40194d74f2a96f3f09c878f3eff45aeef73aa30109"
+      },
+      "missing_rows": 0,
+      "new_rows": 5937,
+      "source_clock_matched_rows": 5937
+    },
+    "H4": {
+      "cached_clock": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/H4_ts.npy",
+        "sha256": "e7dc88e6c93f1868349f9b3746cebbdb1c4e0640a0e1fd32c8efbbdc72bcd71f"
+      },
+      "missing_rows": 0,
+      "new_rows": 1552,
+      "source_clock_matched_rows": 1552
+    },
+    "M15": {
+      "cached_clock": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/M15_ts.npy",
+        "sha256": "99c8c3b4e5419d884b19def99458f1e6f72b40911d6199e315556ce68a50acf5"
+      },
+      "missing_rows": 0,
+      "new_rows": 23735,
+      "source_clock_matched_rows": 23735
+    },
+    "M5": {
+      "cached_clock": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/M5_ts.npy",
+        "sha256": "bca1c92a25e3daf81c358b60558b2e0600723b62bfa6d8cc29c48b3e4032bf69"
+      },
+      "missing_rows": 0,
+      "new_rows": 71186,
+      "source_clock_matched_rows": 71186
+    }
+  },
+  "native_rows_before_cutoff": 1180579,
+  "normalization_fits": 0,
+  "observed_utc": "2026-11-14T20:03:44.519786+00:00",
+  "old_last_native_part": {
+    "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2024/part-000.parquet",
+    "sha256": "e08957b10dc2023c8c0bc438704cdf868e8df4c2f07f0ad7526fc20bda51abbf"
+  },
+  "root_cause": "Bound old native_parts end with 2024. Replay local passed, then M5 source lacked required 2025 timestamps and failed EXACT_SOURCE_CLOCK.",
+  "schema_version": "gx1_span_extension_001_failure_review_v1",
+  "source_head_at_failure": "13f09c8194ee3c1fc130980189e7d09ec9f7bd3d",
+  "stage_001": "FAILED_CONSUMED_NO_RELAUNCH",
+  "target_labels_used": false,
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_001/TERMINAL.json",
+    "sha256": "3b01d598f790075fd9ea0b6ea03e4ec992223c255cc702ea10e2ac84f5cf16c9"
+  },
+  "test_data_used": false
+}
