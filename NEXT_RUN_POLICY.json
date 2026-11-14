@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-14T07:25:04.561418+00:00",
-  "status": "TA_FOLD2_TARGET_COUNTS_COMPLETE_WEIGHTING_SOURCE_BOUND_INITIAL_PENDING",
+  "observed_utc": "2026-11-14T07:55:52.922816+00:00",
+  "status": "TA_FOLD2_FRESH_INITIAL_DESIGN_BOUND_EXECUTION_UNADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Prepare a separate exact fold2 fresh native INITIAL plan at zero updates on the qualified TRAIN and selected later input surfaces, with fold2 S/F priors and measured q/N. Bind source, model identity, plan, resources and policy before any run. No new claim, fit, TEST or training is authorized; training_enabled=false.",
+  "next_action": "Implement one read-only, zero-update fold2 INITIAL worker using the existing fresh model factory and qualified input owners. Smoke the exact import/startup and verify source, view, target, panel, reporting and GPU guards before a separate one-use policy admission. No execution or training is admitted now; training_enabled=false and TEST stays sealed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1769,7 +1769,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Fold2 target counts complete and consumed; the existing M5 equal-observation loss and batch owners now bind the measured fold2 q/N. No model execution.",
+    "current_activity": "Fresh fold2 native INITIAL source and fixed-panel design bound; no model execution or new run admission.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1822,7 +1822,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "A fresh fold2 native INITIAL has no exact admitted plan or measurement. Model fit and TEST remain closed.",
+    "current_blocker": "Exact read-only worker, startup/preflight, resource cap and one-use policy admission remain before any INITIAL forward.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -22838,7 +22838,7 @@
     },
     "latest_fold2_input_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_FOLD2_INPUT_REVIEW.json",
-      "sha256": "f7c8765c2d68f7fe91ed8468c2003e70f58ca1c3bf0b5782fca822a1d6803afc"
+      "sha256": "6fdf91a099cc3e86ede9352a3f012cf1cc2e3df71d211be0efaf74c9e060cbdf"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -25403,7 +25403,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-14T07:25:04.561418+00:00",
+  "updated_utc": "2026-11-14T07:55:52.922816+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -76157,7 +76157,7 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_FOLD2_COUNTS_COMPLETE_FRESH_INITIAL_PLAN_PENDING",
+    "status": "ACTIVE_FOLD2_INITIAL_DESIGN_BOUND_EXECUTION_UNADMITTED",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
@@ -76171,7 +76171,7 @@
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Prepare a separate exact fold2 fresh native INITIAL plan at zero updates on the qualified TRAIN and selected later input surfaces, with fold2 S/F priors and measured q/N. Bind source, model identity, plan, resources and policy before any run. No new claim, fit, TEST or training is authorized; training_enabled=false.",
+    "next_action": "Implement one read-only, zero-update fold2 INITIAL worker using the existing fresh model factory and qualified input owners. Smoke the exact import/startup and verify source, view, target, panel, reporting and GPU guards before a separate one-use policy admission. No execution or training is admitted now; training_enabled=false and TEST stays sealed.",
     "active_stage": "market_state_ta_fold2_fresh_initial_preparation",
     "previous_goal_turn_classification": "PROGRESS",
     "last_goal_turn_classification": "PROGRESS",
