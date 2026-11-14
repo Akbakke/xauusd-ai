@@ -288,3 +288,37 @@ def test_retained_fold1_extension_reconstructs_without_identity_change():
     p = retained['anchor_span_extension']
     rebuilt = extension.extend_anchor_span_normalization(p['source_contract'], p['new_field_statistics'])
     assert encoded(rebuilt) == encoded(retained)
+
+
+@pytest.mark.parametrize('fold_id', (3, 4, 5))
+def test_later_fold_metadata_extension_uses_own_parent_and_keeps_old_stats(fold_id):
+    binding = next((value for value in extension.FOLD_BINDINGS.values()
+                    if value[0] == fold_id), None)
+    assert binding is not None
+    _, parent_ref, physical_ref = binding
+    path = Path(parent_ref['path'])
+    if not path.is_file():
+        pytest.skip('requires exact immutable fold metadata only')
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == parent_ref['sha256']
+    parent = json.loads(path.read_text())['base_normalization']
+    additions = {surface: statistics(surface, extension.span_names(surface),
+                                    parent['surfaces'][surface]['fit_row_count'])
+                 for surface in extension.SURFACES}
+    before = encoded([parent, additions])
+    expanded = extension.extend_anchor_span_normalization(parent, additions)
+    assert encoded([parent, additions]) == before
+    provenance = expanded['anchor_span_extension']
+    assert provenance['schema_version'] == f'gx1_exact_fold{fold_id}_anchor_span_normalization_extension_v1'
+    assert provenance['parent_artifact'] == parent_ref
+    assert provenance['physical_input_result'] == physical_ref
+    assert provenance['unobserved_units_profile'] is None
+    assert provenance['preservation']['all_old_stat_vectors_exact'] is True
+    fields = compile_full_ta_entry_execution_profile()['source_field_names']
+    kwargs = dict(expected_field_names={s: fields['mtf' if s.startswith('mtf_') else s]
+                                       for s in norm.EXPECTED_SURFACES},
+                  expected_ctx_cat_names=fields['ctx_cat'],
+                  expected_entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+                  unobserved_units_profile=None)
+    assert norm.require_input_normalization_contract(expanded, **kwargs) == expanded
+    projected = norm.project_ta_input_normalization_contract(expanded)
+    assert projected['surfaces']['mtf_m5']['field_count'] == 255

@@ -1,0 +1,672 @@
+{
+  "command_template": [
+    "timeout",
+    "--signal=TERM",
+    "--kill-after=10s",
+    "300s",
+    "scripts/gx1_capped_run.sh",
+    "--class",
+    "audit",
+    "--mem",
+    "4G",
+    "--swap",
+    "512M",
+    "--",
+    ".venv/bin/python",
+    "-m",
+    "gx1.audit.qualify_market_state_ta_fivefold_span_normalization_v1",
+    "--plan",
+    "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_FIVEFOLD_SPAN_NORMALIZATION_20261114_001.json",
+    "--plan-sha256",
+    "{plan_sha256}"
+  ],
+  "coverage": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_FIVEFOLD_ANCHOR_SPAN_COVERAGE_20261114.json",
+    "sha256": "c27f0f1c550ff1643356b9612be85623e80bdb815545615ae69e41fcc1500d92"
+  },
+  "folds": {
+    "3": {
+      "cutoff_ns": 1743379200000000000,
+      "inputs": {
+        "parent": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_MATURE_PREFIX_NORMALIZATION_20261107_001/PREFIX_NORMALIZATION_FOLD_3.json",
+          "sha256": "d8f41ce422f564f7d747c605f92a4ec83d5d2dc98806bd1b2e1f9d696c90a0cd"
+        },
+        "physical_result": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/RESULT.json",
+          "sha256": "e2309fcdd18100b5ac0b9734161d21ef00ee68d9cd4ada545873f046d88cb30d"
+        }
+      },
+      "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_NORMALIZATION_20261114_001/FOLD_3",
+      "populations": {
+        "mtf_d1": {
+          "artifact": {
+            "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/D1_ANCHOR_SPANS.npz",
+            "sha256": "539561880f240d8e5f1cae8b4397d97b20a748ef54d03b085382940098af221f"
+          },
+          "artifact_stat": {
+            "st_ctime_ns": 1794686920867356508,
+            "st_dev": 2096,
+            "st_ino": 289109,
+            "st_mode": 33188,
+            "st_mtime_ns": 1794686920863356512,
+            "st_size": 22916
+          },
+          "lane": "D1",
+          "new_field_names": [
+            "geomline_above_anchor_span_bars",
+            "geomline_below_anchor_span_bars"
+          ],
+          "population": {
+            "available_ns_sha256": "4961117b31fbdbec935417b77ed94829e5ec91d33894a949ec6b868bda2c0d5e",
+            "selected_row_indices_sha256": "a72df739af6414587a67c81bf641a063fd2cc5b131e62dd333bdc3207b273f95",
+            "selected_unique_row_count": 488
+          },
+          "prefix_from_full_sidecar": true,
+          "row_bounds": [
+            3336,
+            3824
+          ]
+        },
+        "mtf_h1": {
+          "artifact": {
+            "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/H1_ANCHOR_SPANS.npz",
+            "sha256": "b7b07e88983bcb2fe92caa3919869ecd6b5a1bffa6f6f78867aa4332af1cd28f"
+          },
+          "artifact_stat": {
+            "st_ctime_ns": 1794686920851356523,
+            "st_dev": 2096,
+            "st_ino": 289082,
+            "st_mode": 33188,
+            "st_mtime_ns": 1794686920839356534,
+            "st_size": 320900
+          },
+          "lane": "H1",
+          "new_field_names": [
+            "geomline_above_anchor_span_bars",
+            "geomline_below_anchor_span_bars"
+          ],
+          "population": {
+            "available_ns_sha256": "fb40344dc72b667a02f933fc0ba75aa73da3744027652306971a3f6606521b4c",
+            "selected_row_indices_sha256": "9c041d0120a3043df1dd8d6c5f7b3a895fbfb52541ed3d94483b7ef0b2382bef",
+            "selected_unique_row_count": 5504
+          },
+          "prefix_from_full_sidecar": true,
+          "row_bounds": [
+            83079,
+            88583
+          ]
+        },
+        "mtf_h4": {
+          "artifact": {
+            "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/H4_ANCHOR_SPANS.npz",
+            "sha256": "c626f58cd089668e04a7533e3bfa6b020e8572338ee68bd582d88392c1e8f516"
+          },
+          "artifact_stat": {
+            "st_ctime_ns": 1794686920859356516,
+            "st_dev": 2096,
+            "st_ino": 289105,
+            "st_mode": 33188,
+            "st_mtime_ns": 1794686920851356523,
+            "st_size": 87012
+          },
+          "lane": "H4",
+          "new_field_names": [
+            "geomline_above_anchor_span_bars",
+            "geomline_below_anchor_span_bars"
+          ],
+          "population": {
+            "available_ns_sha256": "a7862845c373e86ba8ef32d9c87944186bcc1590774ff4f01f4be3a0b846697a",
+            "selected_row_indices_sha256": "5a6ceb2ee86527143f57b2b70d934a4b634f9b4041da5e8b261597c6cf1f6a36",
+            "selected_unique_row_count": 1512
+          },
+          "prefix_from_full_sidecar": true,
+          "row_bounds": [
+            21368,
+            22880
+          ]
+        },
+        "mtf_m15": {
+          "artifact": {
+            "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/M15_ANCHOR_SPANS.npz",
+            "sha256": "ded0cdb2edb048e65fabe82f90544447f6e3efff801c1fda74b4d2701ff5f729"
+          },
+          "artifact_stat": {
+            "st_ctime_ns": 1794686920835356537,
+            "st_dev": 2096,
+            "st_ino": 289069,
+            "st_mode": 33188,
+            "st_mtime_ns": 1794686920819356552,
+            "st_size": 1269476
+          },
+          "lane": "M15",
+          "new_field_names": [
+            "geomline_above_anchor_span_bars",
+            "geomline_below_anchor_span_bars"
+          ],
+          "population": {
+            "available_ns_sha256": "a36c77da41cfe585c951a37fd90876f5776d30e6c064c3f1345a7a7fbe587316",
+            "selected_row_indices_sha256": "2d30f40fc7289b31608eee1dc36dcec1a7712f199a78021f1b4ade0ef2233be5",
+            "selected_unique_row_count": 21683
+          },
+          "prefix_from_full_sidecar": true,
+          "row_bounds": [
+            329741,
+            351424
+          ]
+        },
+        "mtf_m5": {
+          "artifact": {
+            "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/M5_ANCHOR_SPANS.npz",
+            "sha256": "8ec7042d9285475fc30edde9c30b1ea5bedc776ca960171aacc80dc9346118ea"
+          },
+          "artifact_stat": {
+            "st_ctime_ns": 1794686920803356566,
+            "st_dev": 2096,
+            "st_ino": 289062,
+            "st_mode": 33188,
+            "st_mtime_ns": 1794686920783356585,
+            "st_size": 3800100
+          },
+          "lane": "M5",
+          "new_field_names": [
+            "geomline_above_anchor_span_bars",
+            "geomline_below_anchor_span_bars"
+          ],
+          "population": {
+            "available_ns_sha256": "30830ef9ad21d4b9c68e41510ac6a4f5014f2292a1fef7fbfba8f321e1c098c3",
+            "selected_row_indices_sha256": "72c3b2d6f16a4fa4066e4a690acf01e85d5eae5bb9692094c54536683635e5c8",
+            "selected_unique_row_count": 64874
+          },
+          "prefix_from_full_sidecar": true,
+          "row_bounds": [
+            987326,
+            1052200
+          ]
+        },
+        "signal": {
+          "artifact": {
+            "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/local_ANCHOR_SPANS.npz",
+            "sha256": "8908cc67a0b1c7e70e278a408f6a03e8d858f64ca261fb71b215313d8fa49cd5"
+          },
+          "artifact_stat": {
+            "st_ctime_ns": 1794686920747356617,
+            "st_dev": 2096,
+            "st_ino": 289041,
+            "st_mode": 33188,
+            "st_mtime_ns": 1794686920735356628,
+            "st_size": 3802660
+          },
+          "lane": "local",
+          "new_field_names": [
+            "chart.geomline_above_anchor_span_bars",
+            "chart.geomline_below_anchor_span_bars"
+          ],
+          "population": {
+            "available_ns_sha256": "13a62b7a717a69474d4c07600ef59255ba1d991f84cc672319cde0f1ac98b330",
+            "selected_row_indices_sha256": "f36825eac324932c4b714dc401b3a292d88d23866c44aa30fcfa3e1dd52ffcf1",
+            "selected_unique_row_count": 64954
+          },
+          "prefix_from_full_sidecar": true,
+          "row_bounds": [
+            987027,
+            1051981
+          ]
+        }
+      }
+    },
+    "4": {
+      "cutoff_ns": 1751241600000000000,
+      "inputs": {
+        "parent": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_MATURE_PREFIX_NORMALIZATION_20261107_001/PREFIX_NORMALIZATION_FOLD_4.json",
+          "sha256": "9cac18f0509d8a343c6a777532650a3caa06cb82bf43ac15c5cc17d292c8f7de"
+        },
+        "physical_result": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/RESULT.json",
+          "sha256": "e2309fcdd18100b5ac0b9734161d21ef00ee68d9cd4ada545873f046d88cb30d"
+        }
+      },
+      "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_NORMALIZATION_20261114_001/FOLD_4",
+      "populations": {
+        "mtf_d1": {
+          "artifact": {
+            "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/D1_ANCHOR_SPANS.npz",
+            "sha256": "539561880f240d8e5f1cae8b4397d97b20a748ef54d03b085382940098af221f"
+          },
+          "artifact_stat": {
+            "st_ctime_ns": 1794686920867356508,
+            "st_dev": 2096,
+            "st_ino": 289109,
+            "st_mode": 33188,
+            "st_mtime_ns": 1794686920863356512,
+            "st_size": 22916
+          },
+          "lane": "D1",
+          "new_field_names": [
+            "geomline_above_anchor_span_bars",
+            "geomline_below_anchor_span_bars"
+          ],
+          "population": {
+            "available_ns_sha256": "c88c0961990e9e50ec898db9651917be5d67add7f2d629986fbb150e07ca84ef",
+            "selected_row_indices_sha256": "121fa88bd0d48df20005480164e4300d88cd3b0d5261ac01204efa7550f2a4e8",
+            "selected_unique_row_count": 552
+          },
+          "prefix_from_full_sidecar": true,
+          "row_bounds": [
+            3336,
+            3888
+          ]
+        },
+        "mtf_h1": {
+          "artifact": {
+            "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/H1_ANCHOR_SPANS.npz",
+            "sha256": "b7b07e88983bcb2fe92caa3919869ecd6b5a1bffa6f6f78867aa4332af1cd28f"
+          },
+          "artifact_stat": {
+            "st_ctime_ns": 1794686920851356523,
+            "st_dev": 2096,
+            "st_ino": 289082,
+            "st_mode": 33188,
+            "st_mtime_ns": 1794686920839356534,
+            "st_size": 320900
+          },
+          "lane": "H1",
+          "new_field_names": [
+            "geomline_above_anchor_span_bars",
+            "geomline_below_anchor_span_bars"
+          ],
+          "population": {
+            "available_ns_sha256": "c81a677478bda73d7e16d63f0dcf8e0f15628d065eb868d392938ba997dbe4a5",
+            "selected_row_indices_sha256": "881d6439ae465d9b984edebcb2cfc648cf68c3cf9d09402db2629e6b7e67dfb9",
+            "selected_unique_row_count": 6972
+          },
+          "prefix_from_full_sidecar": true,
+          "row_bounds": [
+            83079,
+            90051
+          ]
+        },
+        "mtf_h4": {
+          "artifact": {
+            "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/H4_ANCHOR_SPANS.npz",
+            "sha256": "c626f58cd089668e04a7533e3bfa6b020e8572338ee68bd582d88392c1e8f516"
+          },
+          "artifact_stat": {
+            "st_ctime_ns": 1794686920859356516,
+            "st_dev": 2096,
+            "st_ino": 289105,
+            "st_mode": 33188,
+            "st_mtime_ns": 1794686920851356523,
+            "st_size": 87012
+          },
+          "lane": "H4",
+          "new_field_names": [
+            "geomline_above_anchor_span_bars",
+            "geomline_below_anchor_span_bars"
+          ],
+          "population": {
+            "available_ns_sha256": "59c2de9527ea10b3e83a8b1bfacf1c0a0b27d67becc0b792c305bee50d019d32",
+            "selected_row_indices_sha256": "9cd5180c9aa857a35a5d962a1e110b1c943cb0a43e6aa458f678234ced6bdc11",
+            "selected_unique_row_count": 1896
+          },
+          "prefix_from_full_sidecar": true,
+          "row_bounds": [
+            21368,
+            23264
+          ]
+        },
+        "mtf_m15": {
+          "artifact": {
+            "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/M15_ANCHOR_SPANS.npz",
+            "sha256": "ded0cdb2edb048e65fabe82f90544447f6e3efff801c1fda74b4d2701ff5f729"
+          },
+          "artifact_stat": {
+            "st_ctime_ns": 1794686920835356537,
+            "st_dev": 2096,
+            "st_ino": 289069,
+            "st_mode": 33188,
+            "st_mtime_ns": 1794686920819356552,
+            "st_size": 1269476
+          },
+          "lane": "M15",
+          "new_field_names": [
+            "geomline_above_anchor_span_bars",
+            "geomline_below_anchor_span_bars"
+          ],
+          "population": {
+            "available_ns_sha256": "9042d099a90453219c67f4c93dc14d68f41ab42442914afd7d5e1e57044e2134",
+            "selected_row_indices_sha256": "d269dfe907d13fac26f1d79bbfd99d6233ac84e4d522a52475b08aa4b3622731",
+            "selected_unique_row_count": 27551
+          },
+          "prefix_from_full_sidecar": true,
+          "row_bounds": [
+            329741,
+            357292
+          ]
+        },
+        "mtf_m5": {
+          "artifact": {
+            "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/M5_ANCHOR_SPANS.npz",
+            "sha256": "8ec7042d9285475fc30edde9c30b1ea5bedc776ca960171aacc80dc9346118ea"
+          },
+          "artifact_stat": {
+            "st_ctime_ns": 1794686920803356566,
+            "st_dev": 2096,
+            "st_ino": 289062,
+            "st_mode": 33188,
+            "st_mtime_ns": 1794686920783356585,
+            "st_size": 3800100
+          },
+          "lane": "M5",
+          "new_field_names": [
+            "geomline_above_anchor_span_bars",
+            "geomline_below_anchor_span_bars"
+          ],
+          "population": {
+            "available_ns_sha256": "17829726ffe6a5361b49e32d3a908c62f7f8e6077a2671d8b02c3597dd0089bc",
+            "selected_row_indices_sha256": "ae1405fc9e5c39646a585ee25d38bd4d9b6c89038b9ea7a877b74f4e046e28c0",
+            "selected_unique_row_count": 82477
+          },
+          "prefix_from_full_sidecar": true,
+          "row_bounds": [
+            987326,
+            1069803
+          ]
+        },
+        "signal": {
+          "artifact": {
+            "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/local_ANCHOR_SPANS.npz",
+            "sha256": "8908cc67a0b1c7e70e278a408f6a03e8d858f64ca261fb71b215313d8fa49cd5"
+          },
+          "artifact_stat": {
+            "st_ctime_ns": 1794686920747356617,
+            "st_dev": 2096,
+            "st_ino": 289041,
+            "st_mode": 33188,
+            "st_mtime_ns": 1794686920735356628,
+            "st_size": 3802660
+          },
+          "lane": "local",
+          "new_field_names": [
+            "chart.geomline_above_anchor_span_bars",
+            "chart.geomline_below_anchor_span_bars"
+          ],
+          "population": {
+            "available_ns_sha256": "24ea663280b0f65d0fa9035542fb06c019ad04cefab7ca6883426d21fe594683",
+            "selected_row_indices_sha256": "540cbacfa387eea6a829ea3af1a8a01e79f2f2146a4378000df16cd36896fb76",
+            "selected_unique_row_count": 82557
+          },
+          "prefix_from_full_sidecar": true,
+          "row_bounds": [
+            987027,
+            1069584
+          ]
+        }
+      }
+    },
+    "5": {
+      "cutoff_ns": 1759190400000000000,
+      "inputs": {
+        "parent": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_MATURE_PREFIX_NORMALIZATION_20261107_001/PREFIX_NORMALIZATION_FOLD_5.json",
+          "sha256": "36af91debeccd26f7c9411049c296a222840abca563566cd3f29065354d49847"
+        },
+        "physical_result": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/RESULT.json",
+          "sha256": "e2309fcdd18100b5ac0b9734161d21ef00ee68d9cd4ada545873f046d88cb30d"
+        }
+      },
+      "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_NORMALIZATION_20261114_001/FOLD_5",
+      "populations": {
+        "mtf_d1": {
+          "artifact": {
+            "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/D1_ANCHOR_SPANS.npz",
+            "sha256": "539561880f240d8e5f1cae8b4397d97b20a748ef54d03b085382940098af221f"
+          },
+          "artifact_stat": {
+            "st_ctime_ns": 1794686920867356508,
+            "st_dev": 2096,
+            "st_ino": 289109,
+            "st_mode": 33188,
+            "st_mtime_ns": 1794686920863356512,
+            "st_size": 22916
+          },
+          "lane": "D1",
+          "new_field_names": [
+            "geomline_above_anchor_span_bars",
+            "geomline_below_anchor_span_bars"
+          ],
+          "population": {
+            "available_ns_sha256": "c54a34ae6e834f80105cc4695d1058a92b05be97060a43bc52615b142a96968d",
+            "selected_row_indices_sha256": "a6449e6eba2515abccffc14a7c494884882ccdcf0e1f37aba3188cdca48632f9",
+            "selected_unique_row_count": 618
+          },
+          "prefix_from_full_sidecar": true,
+          "row_bounds": [
+            3336,
+            3954
+          ]
+        },
+        "mtf_h1": {
+          "artifact": {
+            "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/H1_ANCHOR_SPANS.npz",
+            "sha256": "b7b07e88983bcb2fe92caa3919869ecd6b5a1bffa6f6f78867aa4332af1cd28f"
+          },
+          "artifact_stat": {
+            "st_ctime_ns": 1794686920851356523,
+            "st_dev": 2096,
+            "st_ino": 289082,
+            "st_mode": 33188,
+            "st_mtime_ns": 1794686920839356534,
+            "st_size": 320900
+          },
+          "lane": "H1",
+          "new_field_names": [
+            "geomline_above_anchor_span_bars",
+            "geomline_below_anchor_span_bars"
+          ],
+          "population": {
+            "available_ns_sha256": "f8656ecba170d39c49ec3f870faa31a1a2c5ed54947730decef4cb11315d7a04",
+            "selected_row_indices_sha256": "87d0c9c1b788fccdb23ecda605532dfa7bb282e23fccb873588feea9ec186e41",
+            "selected_unique_row_count": 8484
+          },
+          "prefix_from_full_sidecar": true,
+          "row_bounds": [
+            83079,
+            91563
+          ]
+        },
+        "mtf_h4": {
+          "artifact": {
+            "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/H4_ANCHOR_SPANS.npz",
+            "sha256": "c626f58cd089668e04a7533e3bfa6b020e8572338ee68bd582d88392c1e8f516"
+          },
+          "artifact_stat": {
+            "st_ctime_ns": 1794686920859356516,
+            "st_dev": 2096,
+            "st_ino": 289105,
+            "st_mode": 33188,
+            "st_mtime_ns": 1794686920851356523,
+            "st_size": 87012
+          },
+          "lane": "H4",
+          "new_field_names": [
+            "geomline_above_anchor_span_bars",
+            "geomline_below_anchor_span_bars"
+          ],
+          "population": {
+            "available_ns_sha256": "b7a0cddcbc0a4674c8d394347ba64fbc76ab0e1be9a38be0f56f4712485cb6e2",
+            "selected_row_indices_sha256": "9157652f1473cde1f8e1c0e48ff726c87bfea30694f3cd0632d9d4afee5b4cd2",
+            "selected_unique_row_count": 2291
+          },
+          "prefix_from_full_sidecar": true,
+          "row_bounds": [
+            21368,
+            23659
+          ]
+        },
+        "mtf_m15": {
+          "artifact": {
+            "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/M15_ANCHOR_SPANS.npz",
+            "sha256": "ded0cdb2edb048e65fabe82f90544447f6e3efff801c1fda74b4d2701ff5f729"
+          },
+          "artifact_stat": {
+            "st_ctime_ns": 1794686920835356537,
+            "st_dev": 2096,
+            "st_ino": 289069,
+            "st_mode": 33188,
+            "st_mtime_ns": 1794686920819356552,
+            "st_size": 1269476
+          },
+          "lane": "M15",
+          "new_field_names": [
+            "geomline_above_anchor_span_bars",
+            "geomline_below_anchor_span_bars"
+          ],
+          "population": {
+            "available_ns_sha256": "cbf8e10419bc7954989a63b812577febeb84106c1aabc7523ec1c71a11784313",
+            "selected_row_indices_sha256": "9746715d110e7ae5619918fb5fa4822fe2177464fb833599041085a50001bbd8",
+            "selected_unique_row_count": 33597
+          },
+          "prefix_from_full_sidecar": true,
+          "row_bounds": [
+            329741,
+            363338
+          ]
+        },
+        "mtf_m5": {
+          "artifact": {
+            "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/M5_ANCHOR_SPANS.npz",
+            "sha256": "8ec7042d9285475fc30edde9c30b1ea5bedc776ca960171aacc80dc9346118ea"
+          },
+          "artifact_stat": {
+            "st_ctime_ns": 1794686920803356566,
+            "st_dev": 2096,
+            "st_ino": 289062,
+            "st_mode": 33188,
+            "st_mtime_ns": 1794686920783356585,
+            "st_size": 3800100
+          },
+          "lane": "M5",
+          "new_field_names": [
+            "geomline_above_anchor_span_bars",
+            "geomline_below_anchor_span_bars"
+          ],
+          "population": {
+            "available_ns_sha256": "ab3bf3317321c9b148b9c878301d540c7f1b541b81529c4cccfc9e974e08b4a2",
+            "selected_row_indices_sha256": "f358a8e89bfab0f6526811ad1e7fb02b1f3584fea57ad06fc0b518ed33cf4b36",
+            "selected_unique_row_count": 100615
+          },
+          "prefix_from_full_sidecar": true,
+          "row_bounds": [
+            987326,
+            1087941
+          ]
+        },
+        "signal": {
+          "artifact": {
+            "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/local_ANCHOR_SPANS.npz",
+            "sha256": "8908cc67a0b1c7e70e278a408f6a03e8d858f64ca261fb71b215313d8fa49cd5"
+          },
+          "artifact_stat": {
+            "st_ctime_ns": 1794686920747356617,
+            "st_dev": 2096,
+            "st_ino": 289041,
+            "st_mode": 33188,
+            "st_mtime_ns": 1794686920735356628,
+            "st_size": 3802660
+          },
+          "lane": "local",
+          "new_field_names": [
+            "chart.geomline_above_anchor_span_bars",
+            "chart.geomline_below_anchor_span_bars"
+          ],
+          "population": {
+            "available_ns_sha256": "40f132c7112eaf18e8a7091093f32118e3a295e792cb7ae81296bc9e78caae61",
+            "selected_row_indices_sha256": "15b8e2bba45a78e389233463e059a7a106910578ed9648a6b60a1398643db107",
+            "selected_unique_row_count": 100695
+          },
+          "prefix_from_full_sidecar": true,
+          "row_bounds": [
+            987027,
+            1087722
+          ]
+        }
+      }
+    }
+  },
+  "max_invocations": 1,
+  "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_NORMALIZATION_20261114_001",
+  "physical_result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/RESULT.json",
+    "sha256": "e2309fcdd18100b5ac0b9734161d21ef00ee68d9cd4ada545873f046d88cb30d"
+  },
+  "physical_terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/TERMINAL.json",
+    "sha256": "78b535e176039b30746d7cf474ab9b1a83a62b4bc806d4b0e6768d2615a72423"
+  },
+  "schema_version": "gx1_ta_fivefold_span_normalization_plan_v1",
+  "scope": {
+    "checkpoint_reads": 0,
+    "fold_ids": [
+      3,
+      4,
+      5
+    ],
+    "model_constructions": 0,
+    "model_forwards": 0,
+    "new_field_statistics": 36,
+    "old_field_fit_calls": 0,
+    "old_statistics_refitted": false,
+    "optimizer_steps": 0,
+    "sidecar_array_decodes": 24,
+    "surface_fit_calls": 18,
+    "target_labels_used": false,
+    "test_data_used": false
+  },
+  "sidecars": {
+    "D1": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/D1_ANCHOR_SPANS.npz",
+      "sha256": "539561880f240d8e5f1cae8b4397d97b20a748ef54d03b085382940098af221f"
+    },
+    "H1": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/H1_ANCHOR_SPANS.npz",
+      "sha256": "b7b07e88983bcb2fe92caa3919869ecd6b5a1bffa6f6f78867aa4332af1cd28f"
+    },
+    "H4": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/H4_ANCHOR_SPANS.npz",
+      "sha256": "c626f58cd089668e04a7533e3bfa6b020e8572338ee68bd582d88392c1e8f516"
+    },
+    "M15": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/M15_ANCHOR_SPANS.npz",
+      "sha256": "ded0cdb2edb048e65fabe82f90544447f6e3efff801c1fda74b4d2701ff5f729"
+    },
+    "M5": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/M5_ANCHOR_SPANS.npz",
+      "sha256": "8ec7042d9285475fc30edde9c30b1ea5bedc776ca960171aacc80dc9346118ea"
+    },
+    "local": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/local_ANCHOR_SPANS.npz",
+      "sha256": "8908cc67a0b1c7e70e278a408f6a03e8d858f64ca261fb71b215313d8fa49cd5"
+    }
+  },
+  "source_base_head": "b044b2d9c83f61e37047087b911d59da91bcf0dc",
+  "source_owners": {
+    "gx1/audit/qualify_market_state_ta_anchor_span_inputs_v1.py": "c7fa16218ebda3989388d40e6aa89d03f7f503937739812a13e97e64797d55d2",
+    "gx1/audit/qualify_market_state_ta_anchor_span_normalization_v1.py": "1cd6e114085da1732b3b8377657bbce96b3e06e45eb5d84bddbc53fc5bcf07f3",
+    "gx1/audit/qualify_market_state_ta_fivefold_span_extension_v1.py": "a7e7da105b74fd52fba803aae23b1ce7982f0614133f1fbfd0e7d1f2a0a03372",
+    "gx1/audit/qualify_market_state_ta_fivefold_span_normalization_v1.py": "0ae76d5d4cbffce2d09bf536288408123c9caf20a5fdc006c840fb738b9a286b",
+    "gx1/contracts/entry_anchor_span_normalization_v1.py": "60ecdadbbe44123dc2b09e0b94c4c2f6cff7a5d4f4ff0f4f9d9b2eb6f6aadc51",
+    "gx1/contracts/entry_model_native_input_normalization_v1.py": "e55d8cfb8a93c2c5ce58fb4f39e733ba55c35e9040dbee50f1d8a8c904ea8ea7",
+    "gx1/contracts/entry_model_native_training_objective_v1.py": "076366e793368bdd079455151cbd6592e4f96432baffaa2239d869c1147cf07b",
+    "gx1/contracts/gx1_capped_execution_v1.py": "60b1ccf2eda470a84ddded0d8160c628314ebb19f5766b87b70fef7c9aa3ccff",
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "gx1/features/entry_specialist_feature_groups_v1.py": "38da0c25aaadb2bd0108eb427578163aa76c73dd7fe9367aa86fed185a1e0f27",
+    "gx1/models/entry_v10/entry_v10_input_normalization.py": "b9bfa16cc61c3772a1621325c25f3ae0631c735b5f4b3dafdf0a5fe63558f148",
+    "scripts/gx1_capped_run.sh": "3c9d608574be3755e0e3d63d2617a01612d65dbaf61b26b76765262a5a2abc4c"
+  },
+  "stage": "market_state_ta_fivefold_span_normalization_20261114_001",
+  "status": "PREPARED_NOT_ADMITTED",
+  "test_data_used": false
+}

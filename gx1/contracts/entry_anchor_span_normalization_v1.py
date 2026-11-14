@@ -36,6 +36,29 @@ FOLD2_PHYSICAL_RESULT = {
     'sha256': '8f2acfafc459cc9a2fbcb7b588c40eb008d1e75c7e47835bbc55f24b68f32cc2',
 }
 FOLD2_CUTOFF_NS = 1735603200000000000
+FOLD3_PARENT_BASE_SHA = '3c49368d96ffa9cb06e3db08dd288632904b7733a4c3891ef95f60214a490c37'
+FOLD4_PARENT_BASE_SHA = 'e5358e8d70eb4f72a1e8a4ffb055dc992e14e3051cdf7c3bd24c369a85c5f74b'
+FOLD5_PARENT_BASE_SHA = 'da7b9126fcae1a80261c091bdc0a96c18da6ec872e290a6c1886b5721e033fc8'
+FIVEFOLD_PHYSICAL_RESULT = {
+    'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/RESULT.json',
+    'sha256': 'e2309fcdd18100b5ac0b9734161d21ef00ee68d9cd4ada545873f046d88cb30d',
+}
+FOLD_BINDINGS = {
+    PARENT_BASE_SHA: (1, PARENT_ARTIFACT, PHYSICAL_RESULT),
+    FOLD2_PARENT_BASE_SHA: (2, FOLD2_PARENT_ARTIFACT, FOLD2_PHYSICAL_RESULT),
+    FOLD3_PARENT_BASE_SHA: (3, {
+        'path': '/home/andre2/GX1_RUNS/MARKET_STATE_MATURE_PREFIX_NORMALIZATION_20261107_001/PREFIX_NORMALIZATION_FOLD_3.json',
+        'sha256': 'd8f41ce422f564f7d747c605f92a4ec83d5d2dc98806bd1b2e1f9d696c90a0cd',
+    }, FIVEFOLD_PHYSICAL_RESULT),
+    FOLD4_PARENT_BASE_SHA: (4, {
+        'path': '/home/andre2/GX1_RUNS/MARKET_STATE_MATURE_PREFIX_NORMALIZATION_20261107_001/PREFIX_NORMALIZATION_FOLD_4.json',
+        'sha256': '9cac18f0509d8a343c6a777532650a3caa06cb82bf43ac15c5cc17d292c8f7de',
+    }, FIVEFOLD_PHYSICAL_RESULT),
+    FOLD5_PARENT_BASE_SHA: (5, {
+        'path': '/home/andre2/GX1_RUNS/MARKET_STATE_MATURE_PREFIX_NORMALIZATION_20261107_001/PREFIX_NORMALIZATION_FOLD_5.json',
+        'sha256': '36af91debeccd26f7c9411049c296a222840abca563566cd3f29065354d49847',
+    }, FIVEFOLD_PHYSICAL_RESULT),
+}
 STAT_VECTORS = ('center', 'scale', 'binary_mask', 'categorical_mask', 'scale_source',
                 'train_transformed_min', 'train_transformed_max')
 
@@ -135,9 +158,9 @@ def old_field_preservation(parent, expanded):
 
 
 def extend_anchor_span_normalization(parent, new_statistics):
-    """Build an exact qualified fold-1 or fold-2 extension; preserve parent stats."""
+    """Extend one exact mature TRAIN fold; preserve every old statistic."""
     from gx1.features.entry_specialist_feature_groups_v1 import compile_full_ta_entry_execution_profile
-    need(isinstance(parent, Mapping) and parent.get('contract_sha256') in (PARENT_BASE_SHA, FOLD2_PARENT_BASE_SHA)
+    need(isinstance(parent, Mapping) and parent.get('contract_sha256') in FOLD_BINDINGS
          and 'ta_projection' not in parent and 'anchor_span_extension' not in parent, 'EXACT_PARENT')
     need(isinstance(new_statistics, Mapping) and set(new_statistics) == set(SURFACES),
          'SIX_NEW_STAT_SURFACES')
@@ -146,9 +169,9 @@ def extend_anchor_span_normalization(parent, new_statistics):
                   for surface in norm.EXPECTED_SURFACES}
     old_names = {surface:[n for n in names if n not in span_names(surface)]
                  for surface, names in full_names.items()}
-    fold2 = parent['contract_sha256'] == FOLD2_PARENT_BASE_SHA
-    old_units = None if fold2 else units.mature_fold1_prefix_units_profile()
-    new_units = None if fold2 else units.anchor_span_fold1_prefix_units_profile()
+    fold_id, parent_artifact, physical_result = FOLD_BINDINGS[parent['contract_sha256']]
+    old_units = units.mature_fold1_prefix_units_profile() if fold_id == 1 else None
+    new_units = units.anchor_span_fold1_prefix_units_profile() if fold_id == 1 else None
     original = norm.require_input_normalization_contract(
         parent, expected_field_names=old_names, expected_ctx_cat_names=fields['ctx_cat'],
         expected_entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
@@ -165,7 +188,8 @@ def extend_anchor_span_normalization(parent, new_statistics):
              'NEW_STAT_SCOPE:' + surface)
         additions[surface] = stat
     surfaces = {surface:merge_surface(original['surfaces'][surface], additions.get(surface),
-        field_names=full_names[surface], units_profile_sha=None if fold2 else new_units['contract_sha256'])
+        field_names=full_names[surface],
+        units_profile_sha=new_units['contract_sha256'] if fold_id == 1 else None)
         for surface in norm.EXPECTED_SURFACES}
     maps = {surface:{i:full_names[surface].index(n)
              for i,n in enumerate(original['surfaces'][surface]['field_names'])}
@@ -180,10 +204,9 @@ def extend_anchor_span_normalization(parent, new_statistics):
         unobserved_units_profile=new_units)
     preservation = old_field_preservation(original,result)
     result['anchor_span_extension'] = dict(
-        schema_version=('gx1_exact_fold2_anchor_span_normalization_extension_v1' if fold2 else
-                        'gx1_exact_fold1_anchor_span_normalization_extension_v1'),
-        parent_artifact=copy(FOLD2_PARENT_ARTIFACT if fold2 else PARENT_ARTIFACT),
-        physical_input_result=copy(FOLD2_PHYSICAL_RESULT if fold2 else PHYSICAL_RESULT),
+        schema_version=f'gx1_exact_fold{fold_id}_anchor_span_normalization_extension_v1',
+        parent_artifact=copy(parent_artifact),
+        physical_input_result=copy(physical_result),
         source_contract=copy(original),new_field_statistics=copy(additions),
         unobserved_units_profile=copy(new_units),preservation=preservation,
         physical_storage='unchanged_parent_arrays_plus_qualified_two_field_sidecars',

@@ -142,12 +142,14 @@ def publish(name,value):
 def measure(plan, *, parent=None, cutoff=None, output_root=None):
     explicit = any(value is not None for value in (parent, cutoff, output_root))
     if explicit:
-        need(isinstance(parent, dict) and parent.get('contract_sha256') == extension.FOLD2_PARENT_BASE_SHA
-             and cutoff == extension.FOLD2_CUTOFF_NS
-             and plan['inputs']['parent'] == extension.FOLD2_PARENT_ARTIFACT
-             and plan['inputs']['physical_result'] == extension.FOLD2_PHYSICAL_RESULT
+        binding = (extension.FOLD_BINDINGS.get(parent.get('contract_sha256'))
+                   if isinstance(parent, dict) else None)
+        need(binding is not None and binding[0] in (2, 3, 4, 5)
+             and cutoff == plan.get('cutoff_ns', plan.get('cutoff'))
+             and plan['inputs']['parent'] == binding[1]
+             and plan['inputs']['physical_result'] == binding[2]
              and output_root is not None and str(output_root) == plan['output_root'],
-             'EXACT_FOLD2_MEASUREMENT_SCOPE')
+             'EXACT_MATURE_FOLD_MEASUREMENT_SCOPE')
     else:
         parent = _parent_metadata()
         cutoff = io.CUTOFF
@@ -169,6 +171,12 @@ def measure(plan, *, parent=None, cutoff=None, output_root=None):
             rows,times,positions,values=(z[k] for k in
                 ('row_indices','times_ns','native_bar_positions','anchor_span_bars'))
         count=item['population']['selected_unique_row_count'];lane=item['lane']
+        if item.get('prefix_from_full_sidecar', False):
+            need(len(rows) >= count and count > 0 and
+                 np.array_equal(rows[:count], np.arange(*item['row_bounds'], dtype=np.int64)),
+                 'EXACT_PREFIX_SLICE:' + surface)
+            rows,times,positions,values = (array[:count] for array in
+                (rows,times,positions,values))
         duration=io.BAR_NS['M5' if lane=='local' else lane]*10**9
         need(rows.dtype==times.dtype==positions.dtype==np.int64
              and rows.shape==times.shape==positions.shape==(count,)
