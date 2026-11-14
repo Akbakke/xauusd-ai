@@ -1,0 +1,131 @@
+{
+  "finding": "Every saved 64-round F M5 model fits its own TRAIN labels strongly, but ranking collapses and Brier falls below its frozen TRAIN prior on the later chronological score rows. The replayed score predictions are identical to the original outputs.",
+  "fit_source_commit": "1f2dd9fc06e9e136aeab690adcb3abfa2c3ec511",
+  "folds": [
+    {
+      "auc_train_minus_later": 0.28693979105569933,
+      "fold_id": 1,
+      "later_prior_minus_model_brier": -0.001462240850324592,
+      "score_auc": 0.5075645016468672,
+      "score_brier": 0.2512956572596256,
+      "score_n": 7165,
+      "score_predictions_exact_saved_model_replay": true,
+      "score_prior_brier": 0.249833416409301,
+      "train_auc": 0.7945042927025665,
+      "train_brier": 0.22801784098594707,
+      "train_n": 11909,
+      "train_p_mean": 0.511118578004642,
+      "train_p_sd": 0.04812583647438972,
+      "train_prior_brier": 0.24987621125676626,
+      "train_prior_minus_model_brier": 0.02185837027081919,
+      "train_up_fraction": 0.5111260391300697
+    },
+    {
+      "auc_train_minus_later": 0.23750029723145571,
+      "fold_id": 2,
+      "later_prior_minus_model_brier": -0.0009562275434823464,
+      "score_auc": 0.510374875249501,
+      "score_brier": 0.2505554303911502,
+      "score_n": 6707,
+      "score_predictions_exact_saved_model_replay": true,
+      "score_prior_brier": 0.24959920284766784,
+      "train_auc": 0.7478751724809567,
+      "train_brier": 0.23500793854862587,
+      "train_n": 19072,
+      "train_p_mean": 0.5117972812531699,
+      "train_p_sd": 0.038336140945363646,
+      "train_prior_brier": 0.2498608213706057,
+      "train_prior_minus_model_brier": 0.01485288282197983,
+      "train_up_fraction": 0.511797399328859
+    },
+    {
+      "auc_train_minus_later": 0.2161874974548046,
+      "fold_id": 3,
+      "later_prior_minus_model_brier": -0.001391290743966933,
+      "score_auc": 0.5010866662660576,
+      "score_brier": 0.2512858476974714,
+      "score_n": 6886,
+      "score_predictions_exact_saved_model_replay": true,
+      "score_prior_brier": 0.2498945569535045,
+      "train_auc": 0.7172741637208622,
+      "train_brier": 0.23822882842129423,
+      "train_n": 25785,
+      "train_p_mean": 0.5145178553922052,
+      "train_p_sd": 0.033643795821153066,
+      "train_prior_brier": 0.24978905493483836,
+      "train_prior_minus_model_brier": 0.01156022651354413,
+      "train_up_fraction": 0.5145239480318015
+    },
+    {
+      "auc_train_minus_later": 0.19990129319774763,
+      "fold_id": 4,
+      "later_prior_minus_model_brier": -0.0005788849977491906,
+      "score_auc": 0.5060244475751151,
+      "score_brier": 0.2504514414972693,
+      "score_n": 7050,
+      "score_predictions_exact_saved_model_replay": true,
+      "score_prior_brier": 0.2498725564995201,
+      "train_auc": 0.7059257407728627,
+      "train_brier": 0.2403047298376053,
+      "train_n": 32658,
+      "train_p_mean": 0.5136251534953756,
+      "train_p_sd": 0.02904089376775789,
+      "train_prior_brier": 0.24981433037898862,
+      "train_prior_minus_model_brier": 0.009509600541383306,
+      "train_up_fraction": 0.5136260640578113
+    },
+    {
+      "auc_train_minus_later": 0.18496531536628913,
+      "fold_id": 5,
+      "later_prior_minus_model_brier": -0.0002632302463457803,
+      "score_auc": 0.5134810088000666,
+      "score_brier": 0.24983237735964117,
+      "score_n": 6952,
+      "score_predictions_exact_saved_model_replay": true,
+      "score_prior_brier": 0.2495691471132954,
+      "train_auc": 0.6984463241663558,
+      "train_brier": 0.2417614487753181,
+      "train_n": 39720,
+      "train_p_mean": 0.5132607559623243,
+      "train_p_sd": 0.025137144893056126,
+      "train_prior_brier": 0.2498239634900903,
+      "train_prior_minus_model_brier": 0.008062514714772206,
+      "train_up_fraction": 0.5132678751258811
+    }
+  ],
+  "input_matrix_sha256": "19539b3cda7c4e3983b37dee027b5ef7fc133692925a1caf9f8d0a85ea48cdb1",
+  "limits": [
+    "The TRAIN-vs-later gap proves transfer failure for this fixed LightGBM recipe, not which specific feature, tree depth, or market regime caused it.",
+    "No score-derived round count, shrinkage, feature, or threshold is selected from these development folds.",
+    "This is not native-model transfer, independent TEST, Entry quality, or economic edge."
+  ],
+  "next_question": "Check a precommitted inner chronological TRAIN-only validation with exact 5-minute F target maturation before any separate outer-score fit or calibration claim.",
+  "observed_utc": "2026-11-14T21:00:42.768444+00:00",
+  "old_projection_sha256": "2942cb983a9a96d9f34b8cc20c02de32e8ef6e1c02fc1f2920822540ad17669c",
+  "prior_oof_review": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_F_M5_CURRENT_OOF_RESULT_REVIEW_20261114.json",
+    "sha256": "123579ff86fb804482d16a958c25dfd6c64d4a00a9cb55200d45682b7b69bed3"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_F_M5_TABULAR_OOF_20261114_002/RESULT.json",
+    "sha256": "ac5dac12791c092380f318d20552529c690fe1928be0a9b6aec9a1626cc9b3c9"
+  },
+  "schema_version": "gx1_ta_f_m5_saved_model_train_score_diagnosis_v1",
+  "source_head_at_diagnosis": "a40588d7af1d29f7b9941be1a0a65ba4f66d276c",
+  "status": "COMPLETE_READ_ONLY_TRAIN_SCORE_TRANSFER_GAP",
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_F_M5_TABULAR_OOF_20261114_002/TERMINAL.json",
+    "sha256": "6537d7bc428cae6470ff7d8a1b0124e8444a2b408ae5c7c439a4e992e1ca6d88"
+  },
+  "validation": {
+    "capped_memory": "12G",
+    "capped_swap": "512M",
+    "full_current_matrix_hash_matches_fit": true,
+    "model_fits": 0,
+    "model_updates": 0,
+    "old_field_projection_hash_matches": true,
+    "saved_score_prediction_replay_max_abs_error_lt_1e_12_all_folds": true,
+    "test_data_used": false,
+    "train_target_join_exact": true
+  }
+}

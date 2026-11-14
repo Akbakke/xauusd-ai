@@ -5,7 +5,21 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: TA_F_M5_CURRENT_OOF_COMPLETE_NO_POSITIVE_GATE.
+Aktuell policy: TA_F_M5_TRAIN_SCORE_TRANSFER_GAP_CONFIRMED_NO_FIT.
+Lesende capped diagnose av de fem lagrede64-runders F-M5-modellene gjenskapte
+alle senere scoreprediksjoner eksakt fra den hashbundne4003-felts matrisen.
+Eget TRAIN hadde AUC0,6984–0,7945 og Brier0,2280–0,2418, klart bedre enn
+TRAIN-prior0,2498–0,2499. Senere AUC var0,5011–0,5135 og Brier dårligere
+enn prior i alle fem folder. Dette bekrefter modellens TRAIN→senere
+transfergap; det utpeker ikke én bestemt feature, treparameter eller
+markedsregime som årsak. Rapport:
+`docs/TA_F_M5_SAVED_MODEL_TRAIN_SCORE_DIAGNOSIS_20261114.json`.
+Ingen ny fit eller kalibreringsparameter er valgt. Neste avgrensede spørsmål
+er om en forhåndsbundet indre kronologisk TRAIN-kontroll med eksakt5-minutters
+F-målmodning kan identifisere en rettbar overtilpasning. Ny fit krever egen
+engangsplan under cap. TEST, native-trening og handel forblir stengt.
+
+Tidligere policy: TA_F_M5_CURRENT_OOF_COMPLETE_NO_POSITIVE_GATE.
 Den ene F-M5-tabellplan002 er COMPLETE/CONSUMED, exit0,187,61s under12G/512M.
 Fem faste F-trente LightGBM-hoder brukte den eksakte4003-felts kausale visningen;
 3991 gamle felt var bitlike og alle12 nye spennfelt var tilgjengelige før fit.
