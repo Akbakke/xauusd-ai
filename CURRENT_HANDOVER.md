@@ -5,7 +5,7 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: TA_FOLD2_SHARED_M5_FIT_SOURCE_PREPARED_NO_ADMISSION.
+Aktuell policy: TA_FOLD2_SHARED_M5_FIT_001_ADMITTED_ONE_USE.
 Målt F-M5-avvik på faste, gjenbrukte utviklingspaneler: gammel FINAL
 innen-UTC-dag AUC TRAIN0,4628 og senere0,4724, mens samlet TRAIN-AUC0,5125.
 S-skåren mot samme F-mål hadde bedre innen-dag AUC; dette var en post hoc
@@ -35,11 +35,17 @@ readout-radene. Endrede forventede initial-/kontrakthasher er parametre,
 mens gammel standard er uendret; ny direct trainer-rute er eksakt bundet og
 bruker samme fysiske sikkerhetsgrenser som fullførte fold2-plan004.
 Kildeplanen står i `docs/TA_FOLD2_SHARED_M5_FIT_PREPARATION_20261114.json`.
-Fokuserte syntetiske kontroller og syntaks består. Ingen ny PLAN, claim,
-modellforward eller fit er kjørt. Global training_enabled=false. Neste steg
-er ren kildecommit, én hashbundet plan og lesende faktisk input-/rute-
-preflight før egen policyadmisjon kan vurderes. TEST, Entry, Exit, broker,
-ordre og handel er fortsatt stengt.
+Fokuserte syntetiske kontroller og syntaks består. Kildecommit5db2040b
+har eksakt ny plan001 SHAdf869636, bundet til fersk shared-INITIAL.
+Direkte og eksakt capped lesende preflight på faktiske fold2-input/view
+passerte med0 modeller/forwards/updates/claim; PREFLIGHT SHAde390ebc.
+Én capped TRAIN-pass er nå særskilt innrømmet: opptil2959 B16-besøk og
+optimizersteg,512 faste readout-forwards,0 checkpoint,TEST. Bare denne
+planen setter global training_enabled/native_training_enabled og
+full_epoch_training_allowed=true; øvrig trening er stengt. Ingen claim,
+modellforward eller fit er kjørt ennå. Neste steg er én faktisk guarded
+launch fra ren kilde og deretter immutable terminal-/capture-kontroll.
+TEST, Entry, Exit, broker, ordre og handel er fortsatt stengt.
 
 TA_FOLD2_M5_004_COMPLETE_CONSUMED_F_M5_EDGE_UNQUALIFIED. Edge-målet er
 uoppnådd. TARGET_COUNTS001 er COMPLETE/CONSUMED, exit0,3,78s. RESULT ba50eb96,
