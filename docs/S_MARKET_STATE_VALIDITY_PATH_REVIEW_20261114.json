@@ -1,0 +1,562 @@
+{
+  "economic_edge_demonstrated": false,
+  "existing_deterministic_persistence_vs_prior_conditional_side": {
+    "D1": {
+      "conditional_side_count": 11053,
+      "frozen_prior_brier": 0.2470198581441161,
+      "persistence_brier": 0.49715009499683344
+    },
+    "H1": {
+      "conditional_side_count": 17763,
+      "frozen_prior_brier": 0.24620435953187084,
+      "persistence_brier": 0.5241794741879187
+    },
+    "H4": {
+      "conditional_side_count": 13938,
+      "frozen_prior_brier": 0.24764312793344573,
+      "persistence_brier": 0.48191993112354714
+    },
+    "M15": {
+      "conditional_side_count": 18488,
+      "frozen_prior_brier": 0.24861298276715757,
+      "persistence_brier": 0.5157399394201644
+    },
+    "M5": {
+      "conditional_side_count": 12046,
+      "frozen_prior_brier": 0.24917318898912139,
+      "persistence_brier": 0.5136974929437158
+    }
+  },
+  "findings": [
+    "Known-to-known S changes are common at every native lead on the conditional observed subset; deterministic persistence is a weak directional reference in the existing later-TRAIN receipt.",
+    "All fifteen physical examples reproduce saved local range and satisfy selected 0.5 ATR activity / 1.0 ATR certified-side geometry; this does not independently certify every directional path or prove predictive value.",
+    "The ACTIVE_SIDE_UNKNOWN examples include gray 0.5-to-1.0 ATR moves; unknown side must remain a partial label.",
+    "Large fractions of the full population have partial or missing side labels; known-pair transition rates cannot be projected to them."
+  ],
+  "method": {
+    "known_pair_denominator": "Only pairs with singleton current and future labels; not a population transition rate.",
+    "pair": "At issue t compare current S(t) from exact previous issue t-lead with future S(t+lead) from current issue; both exact physical M1 endpoints required.",
+    "physical_check": "Last W observed M1 high/low and previous close reproduces saved local range within 1e-9 USD; validity and issue timestamp crosschecked against physical M1 bar.",
+    "physical_range_max_abs_error_usd": 0.0,
+    "safe_prior_overlap_start_utc": "2024-05-09T00:34:00+00:00",
+    "sample_categories": [
+      "known_change",
+      "active_side_unknown",
+      "flat"
+    ],
+    "sample_selection": "Chronological median per TF/category in 2024-06-01 to 2024-09-30, complete prior local span and exact M1 source.",
+    "state_bits": {
+      "ACTIVE_SIDE_UNKNOWN": 5,
+      "ALL_UNKNOWN": 7,
+      "DOWN": 1,
+      "FLAT": 2,
+      "UP": 4
+    }
+  },
+  "model_fits": 0,
+  "next_gate": "Decide whether the five-TF endpoint S contract represents useful local movement at declared native leads; precommit one probabilistic transition/side hypothesis and chronologically score against frozen prior before any native fit.",
+  "observed_utc": "2026-11-14T22:51:46.719359+00:00",
+  "physical_samples": [
+    {
+      "category": "known_change",
+      "category_candidates": 2379,
+      "clock_gaps_in_window": 0,
+      "current_allowed_bit": 4,
+      "future_allowed_bit": 1,
+      "future_close_usd": 2388.39,
+      "future_m1_source_row": 5281428,
+      "half_atr_usd": 0.624051551547366,
+      "issue_close_usd": 2389.86,
+      "issue_utc": "2024-07-30T10:35:00+00:00",
+      "local_high_bar_utc": "2024-07-30T10:35:00+00:00",
+      "local_low_bar_utc": "2024-07-30T10:39:00+00:00",
+      "local_range_usd": 1.5350000000003092,
+      "observed_m1_window": 5,
+      "prior_half_atr_reason_bits": 24,
+      "range_divided_by_atr": 1.229866343729298,
+      "timeframe": "M5",
+      "validity_utc": "2024-07-30T10:40:00+00:00"
+    },
+    {
+      "category": "active_side_unknown",
+      "category_candidates": 13448,
+      "clock_gaps_in_window": 0,
+      "current_allowed_bit": 4,
+      "future_allowed_bit": 5,
+      "future_close_usd": 2454.265,
+      "future_m1_source_row": 5283645,
+      "half_atr_usd": 1.194136951801495,
+      "issue_close_usd": 2455.65,
+      "issue_utc": "2024-08-01T01:40:00+00:00",
+      "local_high_bar_utc": "2024-08-01T01:43:00+00:00",
+      "local_low_bar_utc": "2024-08-01T01:41:00+00:00",
+      "local_range_usd": 2.025000000000091,
+      "observed_m1_window": 5,
+      "prior_half_atr_reason_bits": 24,
+      "range_divided_by_atr": 0.8478926964554367,
+      "timeframe": "M5",
+      "validity_utc": "2024-08-01T01:45:00+00:00"
+    },
+    {
+      "category": "flat",
+      "category_candidates": 1855,
+      "clock_gaps_in_window": 0,
+      "current_allowed_bit": 1,
+      "future_allowed_bit": 2,
+      "future_close_usd": 2385.685,
+      "future_m1_source_row": 5279257,
+      "half_atr_usd": 0.6150657891172713,
+      "issue_close_usd": 2385.925,
+      "issue_utc": "2024-07-26T20:15:00+00:00",
+      "local_high_bar_utc": "2024-07-26T20:15:00+00:00",
+      "local_low_bar_utc": "2024-07-26T20:16:00+00:00",
+      "local_range_usd": 0.455000000000382,
+      "observed_m1_window": 5,
+      "prior_half_atr_reason_bits": 0,
+      "range_divided_by_atr": 0.36987913167255476,
+      "timeframe": "M5",
+      "validity_utc": "2024-07-26T20:20:00+00:00"
+    },
+    {
+      "category": "known_change",
+      "category_candidates": 3154,
+      "clock_gaps_in_window": 0,
+      "current_allowed_bit": 4,
+      "future_allowed_bit": 1,
+      "future_close_usd": 2421.1,
+      "future_m1_source_row": 5283089,
+      "half_atr_usd": 1.7685187206005273,
+      "issue_close_usd": 2423.68,
+      "issue_utc": "2024-07-31T15:10:00+00:00",
+      "local_high_bar_utc": "2024-07-31T15:10:00+00:00",
+      "local_low_bar_utc": "2024-07-31T15:24:00+00:00",
+      "local_range_usd": 3.7399999999997817,
+      "observed_m1_window": 15,
+      "prior_half_atr_reason_bits": 0,
+      "range_divided_by_atr": 1.0573820781297152,
+      "timeframe": "M15",
+      "validity_utc": "2024-07-31T15:25:00+00:00"
+    },
+    {
+      "category": "active_side_unknown",
+      "category_candidates": 11188,
+      "clock_gaps_in_window": 0,
+      "current_allowed_bit": 4,
+      "future_allowed_bit": 5,
+      "future_close_usd": 2423.15,
+      "future_m1_source_row": 5283124,
+      "half_atr_usd": 1.705506789052239,
+      "issue_close_usd": 2422.87,
+      "issue_utc": "2024-07-31T15:45:00+00:00",
+      "local_high_bar_utc": "2024-07-31T15:50:00+00:00",
+      "local_low_bar_utc": "2024-07-31T15:52:00+00:00",
+      "local_range_usd": 1.7800000000002,
+      "observed_m1_window": 15,
+      "prior_half_atr_reason_bits": 0,
+      "range_divided_by_atr": 0.5218390250411602,
+      "timeframe": "M15",
+      "validity_utc": "2024-07-31T16:00:00+00:00"
+    },
+    {
+      "category": "flat",
+      "category_candidates": 2770,
+      "clock_gaps_in_window": 0,
+      "current_allowed_bit": 2,
+      "future_allowed_bit": 2,
+      "future_close_usd": 2409.35,
+      "future_m1_source_row": 5282139,
+      "half_atr_usd": 1.3332136658308333,
+      "issue_close_usd": 2409.29,
+      "issue_utc": "2024-07-30T23:20:00+00:00",
+      "local_high_bar_utc": "2024-07-30T23:25:00+00:00",
+      "local_low_bar_utc": "2024-07-30T23:20:00+00:00",
+      "local_range_usd": 0.6549999999997453,
+      "observed_m1_window": 15,
+      "prior_half_atr_reason_bits": 0,
+      "range_divided_by_atr": 0.2456470469763606,
+      "timeframe": "M15",
+      "validity_utc": "2024-07-30T23:35:00+00:00"
+    },
+    {
+      "category": "known_change",
+      "category_candidates": 3165,
+      "clock_gaps_in_window": 0,
+      "current_allowed_bit": 1,
+      "future_allowed_bit": 4,
+      "future_close_usd": 2390.45,
+      "future_m1_source_row": 5281783,
+      "half_atr_usd": 2.8058254312545254,
+      "issue_close_usd": 2387.78,
+      "issue_utc": "2024-07-30T15:35:00+00:00",
+      "local_high_bar_utc": "2024-07-30T16:31:00+00:00",
+      "local_low_bar_utc": "2024-07-30T15:50:00+00:00",
+      "local_range_usd": 8.144999999999982,
+      "observed_m1_window": 60,
+      "prior_half_atr_reason_bits": 0,
+      "range_divided_by_atr": 1.4514445391490791,
+      "timeframe": "H1",
+      "validity_utc": "2024-07-30T16:35:00+00:00"
+    },
+    {
+      "category": "active_side_unknown",
+      "category_candidates": 10248,
+      "clock_gaps_in_window": 0,
+      "current_allowed_bit": 4,
+      "future_allowed_bit": 5,
+      "future_close_usd": 2448.86,
+      "future_m1_source_row": 5283404,
+      "half_atr_usd": 3.7780224666594955,
+      "issue_close_usd": 2449.785,
+      "issue_utc": "2024-07-31T19:40:00+00:00",
+      "local_high_bar_utc": "2024-07-31T20:05:00+00:00",
+      "local_low_bar_utc": "2024-07-31T19:43:00+00:00",
+      "local_range_usd": 4.934999999999945,
+      "observed_m1_window": 60,
+      "prior_half_atr_reason_bits": 0,
+      "range_divided_by_atr": 0.6531194617753878,
+      "timeframe": "H1",
+      "validity_utc": "2024-07-31T20:40:00+00:00"
+    },
+    {
+      "category": "flat",
+      "category_candidates": 2303,
+      "clock_gaps_in_window": 0,
+      "current_allowed_bit": 2,
+      "future_allowed_bit": 2,
+      "future_close_usd": 2408.54,
+      "future_m1_source_row": 5282174,
+      "half_atr_usd": 2.8602309983178786,
+      "issue_close_usd": 2408.95,
+      "issue_utc": "2024-07-30T23:10:00+00:00",
+      "local_high_bar_utc": "2024-07-30T23:43:00+00:00",
+      "local_low_bar_utc": "2024-07-31T00:09:00+00:00",
+      "local_range_usd": 1.9350000000004002,
+      "observed_m1_window": 60,
+      "prior_half_atr_reason_bits": 0,
+      "range_divided_by_atr": 0.3382593925347965,
+      "timeframe": "H1",
+      "validity_utc": "2024-07-31T00:10:00+00:00"
+    },
+    {
+      "category": "known_change",
+      "category_candidates": 3002,
+      "clock_gaps_in_window": 0,
+      "current_allowed_bit": 1,
+      "future_allowed_bit": 4,
+      "future_close_usd": 2403.93,
+      "future_m1_source_row": 5287307,
+      "half_atr_usd": 11.903755800579958,
+      "issue_close_usd": 2373.54,
+      "issue_utc": "2024-08-05T12:55:00+00:00",
+      "local_high_bar_utc": "2024-08-05T15:17:00+00:00",
+      "local_low_bar_utc": "2024-08-05T12:55:00+00:00",
+      "local_range_usd": 39.3449999999998,
+      "observed_m1_window": 240,
+      "prior_half_atr_reason_bits": 0,
+      "range_divided_by_atr": 1.6526296682801107,
+      "timeframe": "H4",
+      "validity_utc": "2024-08-05T16:55:00+00:00"
+    },
+    {
+      "category": "active_side_unknown",
+      "category_candidates": 8563,
+      "clock_gaps_in_window": 1,
+      "current_allowed_bit": 4,
+      "future_allowed_bit": 5,
+      "future_close_usd": 2408.85,
+      "future_m1_source_row": 5282079,
+      "half_atr_usd": 6.386544928490743,
+      "issue_close_usd": 2405.015,
+      "issue_utc": "2024-07-30T18:35:00+00:00",
+      "local_high_bar_utc": "2024-07-30T20:23:00+00:00",
+      "local_low_bar_utc": "2024-07-30T17:45:00+00:00",
+      "local_range_usd": 10.235000000000127,
+      "observed_m1_window": 240,
+      "prior_half_atr_reason_bits": 0,
+      "range_divided_by_atr": 0.8012939793425085,
+      "timeframe": "H4",
+      "validity_utc": "2024-07-30T22:35:00+00:00"
+    },
+    {
+      "category": "flat",
+      "category_candidates": 1630,
+      "clock_gaps_in_window": 1,
+      "current_allowed_bit": 2,
+      "future_allowed_bit": 2,
+      "future_close_usd": 2384.69,
+      "future_m1_source_row": 5289049,
+      "half_atr_usd": 10.576311599884255,
+      "issue_close_usd": 2388.305,
+      "issue_utc": "2024-08-06T20:05:00+00:00",
+      "local_high_bar_utc": "2024-08-06T19:01:00+00:00",
+      "local_low_bar_utc": "2024-08-06T23:51:00+00:00",
+      "local_range_usd": 10.284999999999854,
+      "observed_m1_window": 240,
+      "prior_half_atr_reason_bits": 0,
+      "range_divided_by_atr": 0.48622811000161964,
+      "timeframe": "H4",
+      "validity_utc": "2024-08-07T00:05:00+00:00"
+    },
+    {
+      "category": "known_change",
+      "category_candidates": 812,
+      "clock_gaps_in_window": 1,
+      "current_allowed_bit": 4,
+      "future_allowed_bit": 1,
+      "future_close_usd": 2424.32,
+      "future_m1_source_row": 5285856,
+      "half_atr_usd": 17.59835813764497,
+      "issue_close_usd": 2445.52,
+      "issue_utc": "2024-08-01T15:40:00+00:00",
+      "local_high_bar_utc": "2024-08-02T12:35:00+00:00",
+      "local_low_bar_utc": "2024-08-02T15:15:00+00:00",
+      "local_range_usd": 66.83999999999969,
+      "observed_m1_window": 1440,
+      "prior_half_atr_reason_bits": 8,
+      "range_divided_by_atr": 1.8990407933857485,
+      "timeframe": "D1",
+      "validity_utc": "2024-08-02T15:40:00+00:00"
+    },
+    {
+      "category": "active_side_unknown",
+      "category_candidates": 5458,
+      "clock_gaps_in_window": 1,
+      "current_allowed_bit": 5,
+      "future_allowed_bit": 5,
+      "future_close_usd": 2387.455,
+      "future_m1_source_row": 5290545,
+      "half_atr_usd": 20.130088550845414,
+      "issue_close_usd": 2383.065,
+      "issue_utc": "2024-08-07T02:05:00+00:00",
+      "local_high_bar_utc": "2024-08-07T12:50:00+00:00",
+      "local_low_bar_utc": "2024-08-07T01:24:00+00:00",
+      "local_range_usd": 28.074999999999818,
+      "observed_m1_window": 1440,
+      "prior_half_atr_reason_bits": 0,
+      "range_divided_by_atr": 0.6973392076514422,
+      "timeframe": "D1",
+      "validity_utc": "2024-08-08T02:05:00+00:00"
+    },
+    {
+      "category": "flat",
+      "category_candidates": 138,
+      "clock_gaps_in_window": 1,
+      "current_allowed_bit": 4,
+      "future_allowed_bit": 2,
+      "future_close_usd": 2427.715,
+      "future_m1_source_row": 5292986,
+      "half_atr_usd": 20.357046511499323,
+      "issue_close_usd": 2423.26,
+      "issue_utc": "2024-08-08T19:50:00+00:00",
+      "local_high_bar_utc": "2024-08-09T17:03:00+00:00",
+      "local_low_bar_utc": "2024-08-09T06:00:00+00:00",
+      "local_range_usd": 20.159999999999854,
+      "observed_m1_window": 1440,
+      "prior_half_atr_reason_bits": 0,
+      "range_divided_by_atr": 0.4951602382155938,
+      "timeframe": "D1",
+      "validity_utc": "2024-08-09T19:50:00+00:00"
+    }
+  ],
+  "schema_version": "gx1_s_validity_path_transition_review_v1",
+  "scope": "Selected S mask at five native leads on 118706 TRAIN issues; deterministic physical path sample from safe Jun-Sep 2024 overlap; no target selection, fit, TEST or trading.",
+  "source_refs": {
+    "existing_duration_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_M1_DURATION_20261107_001/RESULT.json",
+      "sha256": "dd8bc8a036d260cfe20605f5c5eafa45461cc64b46ae1973642aa4ae36230444"
+    },
+    "existing_persistence_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_CAUSAL_PERSISTENCE_REFERENCE_20261107_001/RESULT.json",
+      "sha256": "8fc8b00e761bdab569a418ac3c3e3deaceba4e996f85526b53acd6fd245b318a"
+    },
+    "prior_half_atr_arrays": {
+      "local_range": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_005/STATE_SERIES/local_range.npy",
+        "sha256": "9654a21fb7f1f9b1b96a1351964a732ea463dc528707e86b588f32fd340a31e3"
+      },
+      "reason": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_005/STATE_SERIES/reason.npy",
+        "sha256": "ec82841b8c5195f017130d0d0026d8e03d5cf584e345d3929609a423069972e6"
+      },
+      "threshold": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_005/STATE_SERIES/threshold.npy",
+        "sha256": "e7ef5cc39254f71d2dd81ab5ca5c557004ec8b7b1b24d4fa6afe0d3ccc1783c6"
+      },
+      "validity_ns": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_005/STATE_SERIES/validity_ns.npy",
+        "sha256": "0bad77fdcd6036a4e4dadbf4e9164283d9fff11902b20bd5a0259acc1261803a"
+      }
+    },
+    "prior_half_atr_series": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_005/STATE_SERIES/SERIES.json",
+      "sha256": "d2addf8fbb6f9ac9e9ed741bbbd2fe2bfdc07f59553ea28c021ea198d5fbfa8e"
+    },
+    "selected_mask": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001/ROW_MASKS.npz",
+      "sha256": "2b063e35b97cc1dbdbb522d2b2876a39514b1145d8c59d8a2ab07561764f9edc"
+    },
+    "selected_mask_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001/RESULT.json",
+      "sha256": "126aceee074dc223a60894545533d1f242275d8c4b4327acc67b048449cac7b8"
+    },
+    "xau_m1": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m1_quotes_source/m1_quotes.parquet",
+      "sha256": "54b66c5e9b5a0125f089afcc9d3327c79af9c3543eebdb2644281ed9d3c2734c"
+    }
+  },
+  "status": "COMPLETE_READ_ONLY_NO_FIT",
+  "target_locked": false,
+  "test_data_used": false,
+  "transition_at_native_lead": {
+    "D1": {
+      "both_singleton": 14385,
+      "changed_singleton": 7605,
+      "current_active_unknown_future_active_unknown": 17270,
+      "current_active_unknown_future_singleton": 12548,
+      "current_singleton": 27760,
+      "current_singleton_future_active_unknown": 11991,
+      "down_flat_up_matrix": [
+        [
+          2227,
+          135,
+          3061
+        ],
+        [
+          342,
+          0,
+          527
+        ],
+        [
+          3227,
+          313,
+          4553
+        ]
+      ],
+      "exact_previous_issue_pairs": 93496,
+      "future_singleton": 29728,
+      "lead_minutes": 1440,
+      "paired_exact_source": 68623,
+      "same_singleton": 6780
+    },
+    "H1": {
+      "both_singleton": 29667,
+      "changed_singleton": 15832,
+      "current_active_unknown_future_active_unknown": 29899,
+      "current_active_unknown_future_singleton": 23914,
+      "current_singleton": 54107,
+      "current_singleton_future_active_unknown": 24353,
+      "down_flat_up_matrix": [
+        [
+          4828,
+          487,
+          6739
+        ],
+        [
+          947,
+          2328,
+          981
+        ],
+        [
+          5772,
+          906,
+          6679
+        ]
+      ],
+      "exact_previous_issue_pairs": 113515,
+      "future_singleton": 53724,
+      "lead_minutes": 60,
+      "paired_exact_source": 108288,
+      "same_singleton": 13835
+    },
+    "H4": {
+      "both_singleton": 24993,
+      "changed_singleton": 13612,
+      "current_active_unknown_future_active_unknown": 25225,
+      "current_active_unknown_future_singleton": 24835,
+      "current_singleton": 48766,
+      "current_singleton_future_active_unknown": 23318,
+      "down_flat_up_matrix": [
+        [
+          4512,
+          792,
+          4929
+        ],
+        [
+          976,
+          1008,
+          1249
+        ],
+        [
+          4386,
+          1280,
+          5861
+        ]
+      ],
+      "exact_previous_issue_pairs": 109930,
+      "future_singleton": 50198,
+      "lead_minutes": 240,
+      "paired_exact_source": 101092,
+      "same_singleton": 11381
+    },
+    "M15": {
+      "both_singleton": 31522,
+      "changed_singleton": 15578,
+      "current_active_unknown_future_active_unknown": 33467,
+      "current_active_unknown_future_singleton": 25410,
+      "current_singleton": 57010,
+      "current_singleton_future_active_unknown": 25426,
+      "down_flat_up_matrix": [
+        [
+          5489,
+          463,
+          6841
+        ],
+        [
+          728,
+          3878,
+          804
+        ],
+        [
+          6061,
+          681,
+          6577
+        ]
+      ],
+      "exact_previous_issue_pairs": 117402,
+      "future_singleton": 56989,
+      "lead_minutes": 15,
+      "paired_exact_source": 116055,
+      "same_singleton": 15944
+    },
+    "M5": {
+      "both_singleton": 20514,
+      "changed_singleton": 11147,
+      "current_active_unknown_future_active_unknown": 42872,
+      "current_active_unknown_future_singleton": 27140,
+      "current_singleton": 47720,
+      "current_singleton_future_active_unknown": 27192,
+      "down_flat_up_matrix": [
+        [
+          3626,
+          510,
+          4370
+        ],
+        [
+          719,
+          1544,
+          769
+        ],
+        [
+          4065,
+          714,
+          4197
+        ]
+      ],
+      "exact_previous_issue_pairs": 118264,
+      "future_singleton": 47673,
+      "lead_minutes": 5,
+      "paired_exact_source": 117784,
+      "same_singleton": 9367
+    }
+  }
+}

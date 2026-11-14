@@ -5,21 +5,24 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: S_TARGET_INFORMATION_GAP_REVIEW_COMPLETE_NO_FIT.
-Lesende gjennomgang av hashbundne TRAIN-kvitteringer viser118706 S-utstedelser
-per TF. M5 har39670 kjente retninger,70346 AKTIV med uavklart side,8182 FLATT
-og508 helt ukjente. Blant fullt avgrensede singleton-løp varer2794/3577 M5,
-2744/3307 M15,1013/1136 H1,191/199 H4 og17/17 D1 kortere enn eget
-prognoselead. Mange andre løp er sensurert; dette er ikke en populasjonsrate.
-Faktoriserte v2-tapet maskerer sidegradient ved uavklart side. TA-only-profilen
-utelater GC-eide felt med vilje og beholder D1/makro. Ingen ny rutefeil er påvist.
-S-målsemantikk og prediktiv verdi er fortsatt ukvalifisert. Se
-`docs/S_MARKET_STATE_INFORMATION_GAP_REVIEW_20261114.json`.
-Eksisterende TRAIN-kontroll måler M5s0,5 ATR til median2,082 siterte
-spreads; dette gjenbrukes, ikke kjøres på nytt. Neste arbeid er håndkontroll
-av representative XAU-prisbaner og vurdering av S-varighet/skifter ved
-erklærte gyldighetstider før én forhåndsbundet kausal hypotese.
-Ingen ny fit, TEST eller handel.
+Aktuell policy: S_VALIDITY_PATH_TRANSITION_REVIEW_COMPLETE_NO_FIT.
+Lesende sammenstilling av hashbundet S-mask og eksakte M1-gyldighetspunkter
+viser kjente tilstandsskifter i11147/20514 M5-par,15578/31522 M15-par,
+15832/29667 H1-par,13612/24993 H4-par og7605/14385 D1-par ved hver TFs
+egen prognoselead. Nevnerne omfatter bare par med kjent singleton-tilstand
+i begge ender og eksakt M1-kilde, ikke alle TRAIN-utstedelser. Ukjent side
+er fortsatt ukjent. 15 deterministisk valgte fysiske TRAIN-prisbaner, tre
+tilfeller per TF, gjenskapte lagret lokal range eksakt og følger den valgte
+0,5 ATR-aktivitetsregelen i disse eksemplene. M15s aktive/uavklarte eksempel
+har range1,780 USD mellom0,5 ATR1,706 og1,0 ATR3,412; dette er ikke FLATT.
+Eksisterende kausal deterministisk persistens tapte mot frossen TRAIN-prior
+på betinget side-Brier på alle fem TF i senere utviklingsfolder. Se
+`docs/S_MARKET_STATE_VALIDITY_PATH_REVIEW_20261114.json`.
+Neste arbeid er å avgjøre om endpoint-S ved disse ledetidene representerer
+meningsfull lokal bevegelse gitt målt varighet, skifter og observerbarhet.
+Deretter bindes fasit, masker, output, tap og skår samlet før én
+forhåndsbundet kausal, probabilistisk S-hypotese og kronologisk sammenligning.
+S-fasiten er ikke låst; ingen ny fit, TEST eller handel.
 
 Tidligere policy: TA_F_M5_PRICE_ATR_SOURCE_REPLAY_COMPLETE_EDGE_UNQUALIFIED.
 Uavhengig capped lesereplay fra hashbundet M5-parquet rekonstruerte
