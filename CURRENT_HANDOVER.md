@@ -5,14 +5,17 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: S_NATIVE_SELECTED_INITIAL_PREPARED_NO_CLAIM.
-Ny engangsplan `configs/research/MARKET_STATE_NATIVE_F_SELECTED_ENDPOINT_INITIAL_20261115_001.json`
-binder de samme to genuine fold1 TRAIN-inputradene til valgt native S-fasit, full
-GC S/F-modell og side-normalisert tap. Rammen er én CPU-forward, én backward,
-null optimizersteg,12G/512M og1800s under eksisterende capped vakt. Planen
-er bare PREPARED: ingen preflight, claim eller kjøring ennå. Etter ren
-kildecommit kjøres eksakt lesende preflight; kun ved PASS kan denne ene
-initialkontrollen få separat policyadmisjon. TRAIN-fit, TEST og handel er stengt.
+Aktuell policy: S_NATIVE_SELECTED_INITIAL_PREFLIGHT_BLOCKED_SOURCE_LINEAGE.
+Den nye engangsplanen for valgt native S-fasit ble kildecommittet, men lesende
+preflight feilet før claim med `TIME_QUERY_ZERO_STEP_REVIEWED_RUNNER_REF`.
+Den gjenbrukte v2-planen binder historisk capped-runner; dagens runner er
+endret. En kontroll viste også 13 v2-kildeeiere med andre gjeldende hasher.
+`/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_SELECTED_ENDPOINT_INITIAL_20261115_001`
+finnes ikke: null claim, modell-forward, backward og optimizersteg. Planen er
+ikke innrømmet og skal ikke kjøres. Neste konkrete gate er fersk full-GC
+kildevisning/normalisering med eksakt nåværende lineage for de to TRAIN-radene,
+deretter ny hashbundet engangsplan og lesende preflight. TRAIN-fit, TEST og
+handel er stengt.
 
 Den valgte fem-TF S-masken er hashbundet til118249 modellrader og fem faste
 native endepunkter. Den gamle samplede tidsforespørselen treffer D1s native
