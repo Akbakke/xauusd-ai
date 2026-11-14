@@ -5,7 +5,7 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_FOLD2_M5_CAMPAIGN_ROUTE_SOURCE_REVIEWED_EXECUTION_CLOSED. Edge-målet er
+TA_FOLD2_M5_DIRECTION_FIT_ONE_USE_ADMITTED_PREPARATION_PENDING. Edge-målet er
 uoppnådd. TARGET_COUNTS001 er COMPLETE/CONSUMED, exit0,3,78s. RESULT ba50eb96,
 VALIDATION dd45bd05, TERMINAL dccda6f6; ingen relansering. På eksakt47338 modne
 TRAIN-rader /2959 B16 med siste10 er M5 kjent retning S N16101/q2890 og F N19072/q2950.
@@ -67,9 +67,13 @@ for målt Windows-boot649 (SHAaeaddb68); faktisk kjøring krever senere boot>649
 Gammel guard-template er strukturelt gyldig, men runner/observer-kildehash bindes
 på nytt ved materialisering. Ingen campaign-plan, claim, faktisk payload/modell/
 fit/FINAL-capture finnes. Én trainer-window på12000s/250W og intern10500s er
-foreslått. Neste steg er eksakt engangsadmisjons-/ressursreview og fersk boot;
-training_enabled=false inntil eget vedtak.
-Ingen fit-admisjon: training_enabled=false; ingen trening, TEST, broker eller ordre.
+foreslått. Eksakt engangsadmisjon gjelder nå kun fold2 M5-retning på de faste
+47338 TRAIN-radene, maks2959 oppdateringer, én fersk modell og ingen checkpoint.
+Lesende PREFLIGHT.json SHA38f9d443 er PASS uten payload eller modell. Policy har
+training_enabled=true for denne ene ruten; ingen faktisk fit er startet. Neste
+steg er capped kampanjematerialisering, maskinvid idle-kontroll og fysisk
+Windows-boot>649 før én signert12000s/250W trainer-window. TEST, Entry, Exit,
+broker, ordre og annen trening er stengt. Resultat og edge er ubevist.
 Fokuserte fold2/campaign-tester PASS. Eldre fold1-fit-testfil har19 isolerte
 fixture-feil NATIVE_F_PRIVATE_TA_M5_EXACT_INPUT_IDENTITY i uendrede kilder/refs;
 ikke bruk den som fold2-kvittering eller gjenta uten konkret behov.
