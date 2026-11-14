@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-14T08:12:38.354041+00:00",
-  "status": "TA_FOLD2_FRESH_INITIAL_002_ADMITTED_NOT_CLAIMED",
+  "observed_utc": "2026-11-14T08:16:36.328105+00:00",
+  "status": "TA_FOLD2_FRESH_INITIAL_003_ADMITTED_NOT_CLAIMED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Run the single admitted fold2 fresh INITIAL 002 through the exact capped CUDA route. Verify CLAIM, terminal, source bookends, fixed TRAIN/LATER panels and zero model updates; then score the predeclared AUC/ACC/Brier/calibration/month readout and close the one-use policy. No training or TEST use; training_enabled=false.",
+  "next_action": "Run only the new source-bound fold2 fresh INITIAL 003 once through the exact capped CUDA route. Plan 002 is FAILED_CONSUMED before data/model and cannot be relaunched. Verify terminal, source bookends, fixed panels and zero updates, then score predeclared AUC/ACC/Brier/calibration/months. training_enabled=false; no TEST or training.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -86525,10 +86525,46 @@
     "predictive_improvement_established": false
   },
   "market_state_ta_fold2_fresh_initial_20261114_002": {
-    "status": "ADMITTED",
+    "status": "FAILED_CONSUMED_NO_RELAUNCH",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_002/PLAN.json",
       "sha256": "042b232262d7a263ba63731a1bbfadddc815fdf1c6edd75ba2425808715d869e"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_002/CLAIM.json",
+      "sha256": "ea9f84f048a5eae3957fd178756696cc529356ad05031a1cc911bb2b9b8f06a8"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_002/TERMINAL.json",
+      "sha256": "61e3b5a8152150c309aa227eb90e410442bff6a20736ba8a2e9349bc2ee7af00"
+    },
+    "error": "RuntimeError('FOLD2_FRESH_INITIAL_FOLD2_VIEW')",
+    "phase": "INPUTS",
+    "completed_counts": {
+      "backwards": 0,
+      "checkpoint_loads": 0,
+      "feature_batches": 0,
+      "model_constructions": 0,
+      "model_forwards": 0,
+      "optimizer_constructions": 0,
+      "optimizer_updates": 0,
+      "parent_rows": 0,
+      "test_rows": 0
+    },
+    "max_invocations": 1,
+    "remaining_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 0,
+    "execution_authorized": false,
+    "relaunch_allowed": false,
+    "training_authorized": false,
+    "test_data_used": false
+  },
+  "market_state_ta_fold2_fresh_initial_20261114_003": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_003/PLAN.json",
+      "sha256": "2cece6b9abb83c179e248e9eb85f634d2293f4c2cd061b22ba51c22cf3c79c2f"
     },
     "max_invocations": 1,
     "remaining_invocations": 1,

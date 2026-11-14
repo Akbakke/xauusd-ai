@@ -11,7 +11,7 @@ import subprocess
 import time
 
 REPO = Path('/home/andre2/src/GX1_CURRENT')
-STAGE = 'market_state_ta_fold2_fresh_initial_20261114_002'
+STAGE = 'market_state_ta_fold2_fresh_initial_20261114_003'
 ROOT = Path('/home/andre2/GX1_RUNS') / STAGE.upper()
 TRAIN_ROOT = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001')
 LATER_ROOT = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_002')
@@ -70,7 +70,7 @@ def build_plan(source_base_commit):
     inputs = {
         'design': design_ref, 'train_plan': train_ref, 'later_plan': later_ref,
         'view': design['model']['feature_view'],
-        'normalization': design['model']['normalization'],
+        'normalization': train['inputs']['normalization'],
         'constructor': design['model']['constructor'],
         'priors': design['targets_and_prior']['own_endpoint_priors'],
         'packet': train['inputs']['packet'],
@@ -120,6 +120,16 @@ def inspect(plan_path, plan_sha, out_dir, *, execute):
          == design['model']['future_fold2_fit_loss_sha256'], 'FOLD2_FUTURE_FIT_CONTRACT')
     require_endpoint_priors(read(plan['inputs']['priors']), fold_id=2,
                             ta_only=True, dedicated_m5_side=True)
+    from gx1.contracts.entry_model_native_input_normalization_v1 import (
+        project_ta_input_normalization_contract,
+    )
+    packet = read(plan['inputs']['packet'])
+    normal = read(plan['inputs']['normalization'])
+    view = read(plan['inputs']['view'])
+    need(normal == project_ta_input_normalization_contract(
+        packet['base_normalization'], unobserved_units_profile=None)
+         and view['prefix_normalization']['ta_base_normalization_sha256']
+         == normal['contract_sha256'], 'TA_NORMALIZATION_PREFLIGHT')
     need(not any((ROOT / n).exists() for n in ('CLAIM.json', 'RESULT.json', 'TERMINAL.json')),
          'ONE_USE')
     head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=REPO, text=True).strip()
