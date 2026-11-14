@@ -64,7 +64,7 @@ def evaluate_fit_batch(model: NativeFutureDualModel, features: Mapping,
         raise ValueError('NATIVE_F_BATCH_INPUT')
     if m5_equal_observation:
         from gx1.contracts.market_state_time_query_native_F_objective_v1 import m5_equal_observation_profile
-        profile = m5_equal_observation_profile()
+        profile = m5_equal_observation_profile(fold_id=fold_id)
         if fit_batch_positions is None:
             if not (_ta_only(model)
                     and getattr(model.state_model, '_dedicated_m5_side', False) is True
@@ -138,7 +138,7 @@ def evaluate_fit_batch(model: NativeFutureDualModel, features: Mapping,
         dedicated_non_m5_side=getattr(model.state_model, '_dedicated_non_m5_side', False),
         dedicated_tf_activity=getattr(model.state_model, '_dedicated_tf_activity', False),
         m5_equal_observation=m5_equal_observation,
-        m5_direction_only=m5_direction_only)
+        m5_direction_only=m5_direction_only, fold_id=fold_id)
     return {**output, 'loss': report['loss'],
             'state_count': report['state']['count'],
             'future_count': report['future']['count'],

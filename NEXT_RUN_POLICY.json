@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-13T15:14:18.893135+00:00",
-  "status": "TA_FOLD2_TARGET_COUNTS_ADMITTED_BEFORE_NATIVE_BASELINE",
+  "observed_utc": "2026-11-14T07:25:04.561418+00:00",
+  "status": "TA_FOLD2_TARGET_COUNTS_COMPLETE_WEIGHTING_SOURCE_BOUND_INITIAL_PENDING",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Run only TARGET_COUNTS001 under capped audit4G/512M/60s. Measure M5 known-side N and nonempty B16 q on exact47338 mature TRAIN rows; verify sampled S M5/native parity and fit own S/F endpoint reference priors. No models, features, optimizer, later fit or TEST. Then bind the same existing q/N method to fold2 before native INITIAL.",
+  "next_action": "Prepare a separate exact fold2 fresh native INITIAL plan at zero updates on the qualified TRAIN and selected later input surfaces, with fold2 S/F priors and measured q/N. Bind source, model identity, plan, resources and policy before any run. No new claim, fit, TEST or training is authorized; training_enabled=false.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -1769,7 +1769,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Own fold2 target counts required: current q/N is explicitly fold1-only; existing prior47602 cannot replace mature47338. One60s target-only qualification admitted.",
+    "current_activity": "Fold2 target counts complete and consumed; the existing M5 equal-observation loss and batch owners now bind the measured fold2 q/N. No model execution.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1798,11 +1798,11 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "TA_FOLD2_LATER_INPUTS_002_COMPLETE_CONSUMED",
+    "latest_terminal_role": "TA_FOLD2_TARGET_COUNTS_001_COMPLETE_CONSUMED",
     "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_TARGET_COUNTS_20261113_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_002/TERMINAL.json",
-      "sha256": "1297d1548f78b2390856be3da16709a1e8d408652b16cc61b7b5eadc075ec2f1"
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_TARGET_COUNTS_20261113_001/TERMINAL.json",
+      "sha256": "dccda6f607e6bced6e7a1c5009c79de85dd34d0a92c3730ecf94a41db929db17"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -1822,7 +1822,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Current M5 equal-observation profile and fit batch guard support only fold1; exact own fold2 N/q must be measured before extending the same method.",
+    "current_blocker": "A fresh fold2 native INITIAL has no exact admitted plan or measurement. Model fit and TEST remain closed.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -10422,23 +10422,9 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "No new model/checkpoint/features/fitting/TEST/trading.",
-      "All8 retained archives and all10 S/F cells remain visible.",
-      "Same row-level cluster draw shared by all four arm/pass predictions.",
-      "Report paired within-arm changes and difference of changes; never subtract CI endpoints.",
-      "Pass3 remains the declared primary result. No checkpoint/metric/group selection.",
-      "Passes add unique exposures; temporal changes do not isolate epochs, optimizer, encoder or regime.",
-      "INITIAL proper scores are reused JSON only; no new initial AUC or representation claim.",
-      "Only the existing combined decoder is contrasted at matched initialization, exposure and update budget; later shared-weight changes are part of the learned response.",
-      "Later panel is reused development; original TRAIN is not untouched holdout.",
-      "Conditional-side support uses realized labels and does not establish selectable Entry coverage.",
-      "Day/week percentile95 intervals are pointwise exploratory with overlapping targets; no multiplicity-adjusted or regime-wide guarantee.",
-      "No model, checkpoint, feature payload, new fitting, TEST, trade-path, PnL or promotion.",
-      "TRAIN S uses sampled future queries while LATER S uses native queries; their cross-panel AUC gap is not an identical-task generalization contrast.",
-      "INITIAL was a previously trained state. Current continuation exposure is not total historical learning exposure.",
-      "No full-history or30–40epoch capacity conclusion is justified by this diagnostic continuation.",
-      "AUC, probability calibration, forecast selection, Entry quality and economic edge remain distinct.",
-      "The pass3 primary report remains the historical fixed-endpoint comparison; this report supersedes its pending trajectory question only."
+      "The fold2 q/N coefficient difference from fold1 is approximately 0.1%; its predictive effect was not measured.",
+      "No fresh INITIAL, model fit, scoring, checkpoint, TEST, trade-path or economic result.",
+      "The later panel is reused development; no independent generalization or edge is established."
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -17774,7 +17760,7 @@
         "Originals preserved; unusedwindows3/4revoked. No new epoch,HPO,checkpoint/threshold selection,normalization refit,trading,broker,Exit or promotion."
       ]
     },
-    "latest_terminal_evidence_scope": "Two states/two retained TRAIN panels,0model execution; analytic M5 side gradients. Separate JSON-only recorded-clipping and retained-bias-moment reuse,0additional payload decodes.",
+    "latest_terminal_evidence_scope": "47338 mature TRAIN rows; S M5 N16101/q2890, F M5 N19072/q2950; sampled S M5/native parity, two S/F reference prior fits, zero model/feature/optimizer operations. Fold2 source binding is untrained.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -22852,7 +22838,7 @@
     },
     "latest_fold2_input_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_FOLD2_INPUT_REVIEW.json",
-      "sha256": "0e7c4e60d9dfdbd51acaa68deba6bf883fcad6478a633591fb0723e22741644e"
+      "sha256": "f7c8765c2d68f7fe91ed8468c2003e70f58ca1c3bf0b5782fca822a1d6803afc"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -25417,7 +25403,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-13T15:14:18.893135+00:00",
+  "updated_utc": "2026-11-14T07:25:04.561418+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -26058,8 +26044,8 @@
     }
   },
   "latest_terminal_receipt": {
-    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_002/TERMINAL.json",
-    "sha256": "1297d1548f78b2390856be3da16709a1e8d408652b16cc61b7b5eadc075ec2f1"
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_TARGET_COUNTS_20261113_001/TERMINAL.json",
+    "sha256": "dccda6f607e6bced6e7a1c5009c79de85dd34d0a92c3730ecf94a41db929db17"
   },
   "trend_event_numeric_source_128": {
     "status": "COMPLETE_PASS",
@@ -76171,7 +76157,7 @@
     "comparison_pass": true
   },
   "direction_edge_cause_goal_20261111": {
-    "status": "ACTIVE_FOLD2_TARGET_COUNTS_ADMITTED",
+    "status": "ACTIVE_FOLD2_COUNTS_COMPLETE_FRESH_INITIAL_PLAN_PENDING",
     "thread_id": "01a1ca7f-f712-7d13-8dcb-bb214f48f1ff",
     "objective": "Locate and correct measured causes of weak market-direction learning; distinguish input information, fusion representation, task learning, later ranking and probability amplitude.",
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
@@ -76181,12 +76167,12 @@
       "sha256": "2682dca5680706f78396491b6f21392d1cca7ffcb051664aa11edfe73200a54a"
     },
     "integrator": "root",
-    "model_or_data_run_admitted": true,
+    "model_or_data_run_admitted": false,
     "training_enabled": false,
     "test_data_used": false,
     "broad_training_now": false,
-    "next_action": "Run only TARGET_COUNTS001 under capped audit4G/512M/60s. Measure M5 known-side N and nonempty B16 q on exact47338 mature TRAIN rows; verify sampled S M5/native parity and fit own S/F endpoint reference priors. No models, features, optimizer, later fit or TEST. Then bind the same existing q/N method to fold2 before native INITIAL.",
-    "active_stage": "market_state_ta_fold2_target_counts_20261113_001",
+    "next_action": "Prepare a separate exact fold2 fresh native INITIAL plan at zero updates on the qualified TRAIN and selected later input surfaces, with fold2 S/F priors and measured q/N. Bind source, model identity, plan, resources and policy before any run. No new claim, fit, TEST or training is authorized; training_enabled=false.",
+    "active_stage": "market_state_ta_fold2_fresh_initial_preparation",
     "previous_goal_turn_classification": "PROGRESS",
     "last_goal_turn_classification": "PROGRESS",
     "latest_tail_factor_review": {
@@ -77388,7 +77374,7 @@
     "unresolved_campaign_marker_preserved": true,
     "standard_campaign_receipt_available": false
   },
-  "active_stage": "market_state_ta_fold2_target_counts_20261113_001",
+  "active_stage": "market_state_ta_fold2_fresh_initial_preparation",
   "market_state_ta_m5_c171_short_learning_20261111_002": {
     "decision": "CLOSED",
     "status": "COMPLETE_CONSUMED",
@@ -86436,7 +86422,7 @@
     "elapsed_seconds": 215.18348180900648
   },
   "market_state_ta_fold2_target_counts_20261113_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_NO_RELAUNCH",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_TARGET_COUNTS_20261113_001/PLAN.json",
       "sha256": "8ee3e898db428d6e1b66344a020f757e7bad07cad9490dbff44cf4f4aabab93c"
@@ -86468,15 +86454,74 @@
       "test_data_used": false
     },
     "max_seconds": 60,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "reference_prior_fit_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "reference_prior_fit_authorized": false,
     "training_authorized": false,
     "max_invocations": 1,
-    "remaining_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "remaining_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "failed_invocations": 0,
-    "relaunch_allowed": false
+    "relaunch_allowed": false,
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_TARGET_COUNTS_20261113_001/CLAIM.json",
+      "sha256": "f5f0e4e8722a1327e1c70f9865085ca354679c2d3acd8c4bc80f0b4c2aa8582c"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_TARGET_COUNTS_20261113_001/RESULT.json",
+      "sha256": "ba50eb96f1a663ec8829554d67364d03a2a9cc642a4807554f614a47af645131"
+    },
+    "validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_TARGET_COUNTS_20261113_001/VALIDATION.json",
+      "sha256": "dd45bd05dfc7e4b5f081999303869c93101e2fa6daf1f2da28b6dda87ca31bdb"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_TARGET_COUNTS_20261113_001/TERMINAL.json",
+      "sha256": "dccda6f607e6bced6e7a1c5009c79de85dd34d0a92c3730ecf94a41db929db17"
+    },
+    "wrapper_exit": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_TARGET_COUNTS_20261113_001/WRAPPER_EXIT.json",
+      "sha256": "24c6df1d630b076fd59a2ed8a6c568035229ae47d5e80cd235b6f34a31daea17"
+    },
+    "endpoint_priors": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_TARGET_COUNTS_20261113_001/ENDPOINT_PRIORS.json",
+      "sha256": "15cf7bc27b3840adbbe9e4a7644439dc5ac81d6a61012cf10b12dfaadb75393e"
+    },
+    "actual_counts": {
+      "archive_decodes": 9,
+      "backwards": 0,
+      "checkpoint_reads": 0,
+      "checkpoint_writes": 0,
+      "feature_gathers": 0,
+      "feature_normalization_fits": 0,
+      "model_constructions": 0,
+      "model_forwards": 0,
+      "optimizer_constructions": 0,
+      "optimizer_steps": 0,
+      "reference_prior_fits": 2
+    },
+    "elapsed_seconds": 3.7785424610046903,
+    "fit_rows": 47338,
+    "S_M5_sampled_endpoint_parity": true,
+    "all_fit_targets_mature": true,
+    "tasks": {
+      "state": {
+        "known_side_rows": 16101,
+        "nonempty_batches": 2890,
+        "q_over_N": 0.17949195702130302,
+        "fold1_coefficient_over_own_coefficient": 1.0012720497495584
+      },
+      "future": {
+        "known_side_rows": 19072,
+        "nonempty_batches": 2950,
+        "q_over_N": 0.15467701342281878,
+        "fold1_coefficient_over_own_coefficient": 1.0010593896369504
+      }
+    },
+    "source_unchanged": true,
+    "test_data_used": false,
+    "model_baseline_qualified": false,
+    "predictive_improvement_established": false
   }
 }

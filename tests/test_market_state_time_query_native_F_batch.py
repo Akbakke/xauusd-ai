@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import numpy as np
+import pytest
 import torch
 
 from gx1.audit import verify_market_state_time_query_v2_zero_step_v1 as zero
@@ -127,3 +129,79 @@ def test_gc_batch_input_keys_keep_the_explicit_original_contract():
         'gc_seq_m5', 'gc_seq_m15', 'gc_seq_h1', 'gc_seq_h4', 'gc_seq_d1'}
     assert original.FEATURE_KEYS == factorized.FEATURE_KEYS == expected_gc
     assert len(expected_gc) == 14 and 'gc_features' not in factorized.FEATURE_KEYS
+
+
+def _fold2_weighted_batch(monkeypatch, start, size):
+    from tests.test_market_state_m5_equal_observation_binding import _batch_case
+    events, args, kwargs = _batch_case(monkeypatch, 0, size)
+    parents = np.arange(47338, dtype=np.int64) * 3 + 7
+    issues = state.TRAIN_START_NS + (np.arange(47338, dtype=np.int64) + 1) * state.M5_NS
+    for bound in args[2:4]:
+        bound.parent_rows, bound.decision_ns = parents.copy(), issues.copy()
+    args[4], args[5] = parents[start:start + size].copy(), issues[start:start + size].copy()
+    args[0].state_model._dedicated_tf_activity = True
+    kwargs.update(fold_id=2, fit_batch_start=start)
+    return events, args, kwargs
+
+
+@pytest.mark.parametrize('start,size', [(16, 16), (47328, 10)])
+def test_fold2_weighted_batch_and_tail_reach_own_loss_binding(monkeypatch, start, size):
+    from gx1.contracts import market_state_time_query_native_F_objective_v1 as objective
+    events, args, kwargs = _fold2_weighted_batch(monkeypatch, start, size)
+    result = batch.evaluate_fit_batch(*args, **kwargs)
+    assert events == ['forward', 'S-targets', 'F-targets']
+    assert result['state_activity_side_logits'].shape == (size, 5, 2)
+    assert result['loss_contract_sha256'] == objective.contract(
+        ta_only=True, dedicated_m5_side=True, dedicated_tf_activity=True,
+        m5_equal_observation=True, fold_id=2)['contract_sha256']
+    # Zero logits, all known-UP: ten activity terms, eight ordinary side terms,
+    # and size times the two distinct measured M5 coefficients, all divided by five.
+    expected = np.log(2) * (18 + size * (2890 / 16101 + 2950 / 19072)) / 5
+    assert float(result['loss']) == pytest.approx(expected, rel=1e-6)
+    assert np.all(result['state_query_k'][:, 0] == 1)
+
+
+def test_fold2_explicit_positions_accept_own_rows_beyond_fold1(monkeypatch):
+    events, args, kwargs = _fold2_weighted_batch(monkeypatch, 0, 16)
+    positions = np.array([47337, 29574, 0, 33000, 5, 40000, 7, 100,
+                          47200, 9, 11, 13, 15, 17, 19, 21], np.int64)
+    args[4] = args[2].parent_rows[positions].copy()
+    args[5] = args[2].decision_ns[positions].copy()
+    kwargs.pop('fit_batch_start')
+    kwargs['fit_batch_positions'] = positions
+    result = batch.evaluate_fit_batch(*args, **kwargs)
+    assert events == ['forward', 'S-targets', 'F-targets']
+    np.testing.assert_array_equal(result['state_query_k'], query.sampled_query_k(
+        args[5], pass_index=0, seed=20260911))
+
+
+@pytest.mark.parametrize('fault', [
+    'fold1_tail', 'unsupported_fold', 'bool_fold', 'early_tail', 'past_end',
+    'wrong_start', 'future_parent', 'state_issue', 'duplicate_positions', 'wrong_positions',
+])
+def test_fold2_bad_batch_binding_rejects_before_forward_or_targets(monkeypatch, fault):
+    tail = fault == 'fold1_tail'
+    size = 10 if tail or fault == 'early_tail' else 16
+    events, args, kwargs = _fold2_weighted_batch(monkeypatch, 47328 if tail else 0, size)
+    if fault == 'fold1_tail':
+        kwargs['fold_id'] = 1
+    elif fault == 'unsupported_fold':
+        kwargs['fold_id'] = 3
+    elif fault == 'bool_fold':
+        kwargs['fold_id'] = True
+    elif fault == 'past_end':
+        kwargs['fit_batch_start'] = 47344
+    elif fault == 'wrong_start':
+        kwargs['fit_batch_start'] = 16
+    elif fault == 'future_parent':
+        args[3].parent_rows[0] += 1
+    elif fault == 'state_issue':
+        args[2].decision_ns[0] += 1
+    elif fault in ('duplicate_positions', 'wrong_positions'):
+        kwargs.pop('fit_batch_start')
+        positions = np.arange(16, dtype=np.int64)
+        positions[-1] = 0 if fault == 'duplicate_positions' else 40000
+        kwargs['fit_batch_positions'] = positions
+    with pytest.raises(ValueError, match='NATIVE_F_(M5_EQUAL_OBSERVATION|BATCH_INPUT)'):
+        batch.evaluate_fit_batch(*args, **kwargs)
+    assert not events

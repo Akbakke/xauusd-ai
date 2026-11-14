@@ -24,8 +24,33 @@ NATIVE_QUERY = np.asarray(NATIVE_K, dtype=np.int64)[None, :]
 METRICS = ('activity', 'conditional_side', 'three_class')
 
 
-def m5_equal_observation_profile() -> dict:
-    """Fixed fold-1 TRAIN population from the verified paired weight contrast."""
+def m5_equal_observation_profile(*, fold_id: int = 1) -> dict:
+    """Only the two measured, immutable TRAIN populations have q/N profiles."""
+    if type(fold_id) is not int or fold_id not in (1, 2):
+        raise ValueError('NATIVE_F_M5_EQUAL_OBSERVATION_FOLD')
+    if fold_id == 2:
+        return _seal({
+            'schema_version': 'gx1_ta_fold2_m5_equal_observation_weighting_v1',
+            'fold_id': 2, 'pass_index': 0, 'seed': 20260911,
+            'batch_size': 16, 'fit_rows': 47338, 'fit_batches': 2959,
+            'parent_axis_sha256': 'db43609ad6bd10e8d1a13b216243855c499189f8d2f08ef0a67d49de66e29fe9',
+            'issue_axis_sha256': '380184a9c95a02f2716326765783746b1834371a7266545113fb1eae6722da47',
+            'feature_view_sha256': '388fadd9ce6b6d8673724f776eb0f945711ab76cc3b3650f875f3a9e5431c4ab',
+            'target_count_result': {
+                'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_TARGET_COUNTS_20261113_001/RESULT.json',
+                'sha256': 'ba50eb96f1a663ec8829554d67364d03a2a9cc642a4807554f614a47af645131'},
+            'target_count_validation': {
+                'path': '/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_TARGET_COUNTS_20261113_001/VALIDATION.json',
+                'sha256': 'dd45bd05dfc7e4b5f081999303869c93101e2fa6daf1f2da28b6dda87ca31bdb'},
+            'state': {'known_side_rows': 16101, 'nonempty_batches': 2890},
+            'future': {'known_side_rows': 19072, 'nonempty_batches': 2950},
+            'S_observations': 'sampled_pass0_query_M5_k1_equal_native_M5',
+            'F_observations': 'native_M5_k1',
+            'known_side_mask': 'eligible_and_mature_and_allowed_in_1_4',
+            'batch_side_term_before_TF_divisor': 'sum_known_side_BCE_times_q_over_N',
+            'mass_preserved_over_mean_of_fit_batches': 'q_over_5B',
+            'later_data_used_for_normalization': False,
+        })
     value = {
         'schema_version': 'gx1_ta_fold1_m5_equal_observation_weighting_v1',
         'fold_id': 1, 'pass_index': 0, 'seed': 20260911,
@@ -48,10 +73,10 @@ def m5_equal_observation_profile() -> dict:
     return _seal(value)
 
 
-def require_m5_equal_observation_axes(parent_rows, issue_ns) -> dict:
+def require_m5_equal_observation_axes(parent_rows, issue_ns, *, fold_id: int = 1) -> dict:
     """Verify the complete immutable fit order once, before any fit forward."""
     from gx1.audit.qualify_market_state_mature_prefix_normalization_v1 import _axis_sha
-    profile = m5_equal_observation_profile()
+    profile = m5_equal_observation_profile(fold_id=fold_id)
     if not (isinstance(parent_rows, np.ndarray) and isinstance(issue_ns, np.ndarray)
             and parent_rows.dtype == issue_ns.dtype == np.dtype('int64')
             and parent_rows.shape == issue_ns.shape == (profile['fit_rows'],)
@@ -61,11 +86,13 @@ def require_m5_equal_observation_axes(parent_rows, issue_ns) -> dict:
     return profile
 
 
-def _m5_training_profile(ta_only, dedicated_m5_side, enabled):
+def _m5_training_profile(ta_only, dedicated_m5_side, enabled, *, fold_id=1):
     if type(enabled) is not bool or (enabled and (
             ta_only is not True or dedicated_m5_side is not True)):
         raise ValueError('NATIVE_F_M5_EQUAL_OBSERVATION_MODE')
-    return m5_equal_observation_profile() if enabled else None
+    if type(fold_id) is not int or not 1 <= fold_id <= 5:
+        raise ValueError('NATIVE_F_M5_EQUAL_OBSERVATION_FOLD')
+    return m5_equal_observation_profile(fold_id=fold_id) if enabled else None
 
 
 def _require_m5_direction_mode(enabled, profile):
@@ -77,10 +104,11 @@ def contract(*, ta_only: bool = False, dedicated_m5_side: bool = False,
              m5_equal_observation: bool = False,
              dedicated_non_m5_side: bool = False,
              dedicated_tf_activity: bool = False,
-             m5_direction_only: bool = False) -> dict:
+             m5_direction_only: bool = False, fold_id: int = 1) -> dict:
     if type(ta_only) is not bool:
         raise ValueError('NATIVE_F_OBJECTIVE_PROFILE')
-    profile = _m5_training_profile(ta_only, dedicated_m5_side, m5_equal_observation)
+    profile = _m5_training_profile(
+        ta_only, dedicated_m5_side, m5_equal_observation, fold_id=fold_id)
     _require_m5_direction_mode(m5_direction_only, profile)
     value = {
         'schema_version': 'gx1_market_state_native_F_objective_candidate_v1',
@@ -123,9 +151,10 @@ def combined_loss(*, state_raw: torch.Tensor, future_raw: torch.Tensor,
                   m5_equal_observation: bool = False,
                   dedicated_non_m5_side: bool = False,
                   dedicated_tf_activity: bool = False,
-                  m5_direction_only: bool = False) -> dict:
+                  m5_direction_only: bool = False, fold_id: int = 1) -> dict:
     """Reuse v2 masked loss on two distinct heads; weight is plan-owned."""
-    profile = _m5_training_profile(ta_only, dedicated_m5_side, m5_equal_observation)
+    profile = _m5_training_profile(
+        ta_only, dedicated_m5_side, m5_equal_observation, fold_id=fold_id)
     _require_m5_direction_mode(m5_direction_only, profile)
     if not (type(future_weight) is float and np.isfinite(future_weight)
             and 0 < future_weight <= 1
@@ -181,7 +210,7 @@ def combined_loss(*, state_raw: torch.Tensor, future_raw: torch.Tensor,
                 m5_equal_observation=m5_equal_observation,
                 dedicated_non_m5_side=dedicated_non_m5_side,
                 dedicated_tf_activity=dedicated_tf_activity,
-                m5_direction_only=m5_direction_only)['contract_sha256']}
+                m5_direction_only=m5_direction_only, fold_id=fold_id)['contract_sha256']}
 
 
 def _weeks(issues: np.ndarray) -> np.ndarray:

@@ -1,8 +1,8 @@
 {
   "limits": [
     "This is a completed physical-input and normalization prerequisite for the current-feature later-fold investigation, not a prediction or economic result.",
-    "Current native models and weights have not been fitted, loaded or changed. Current fold1 normalization reconstructs identically; a new fold2 input function requires its own baseline.",
-    "Full native TRAIN-view gathering and Jan-Mar2025 score-input coverage are not yet qualified. Historical development is reused; no independent TEST confirmation.",
+    "No fresh fold2 native INITIAL, fit or prediction has been measured. Current fold1 normalization and the fold1 loss profile remain unchanged.",
+    "The 47338-row native TRAIN input gather and 4096 selected Jan-Mar2025 later input rows are qualified. Historical development is reused; no independent TEST confirmation.",
     "TEST remains sealed. All genuine features/timeframes and eight families plus D1/macro remain. COT2024 vintage remains UNKNOWN; GC is paused while the original M5/MTF/26-month goal remains."
   ],
   "metadata_correction": {
@@ -13,8 +13,8 @@
     }
   },
   "native_training_authorized": false,
-  "new_job_admitted": true,
-  "next_action": "Run only TARGET_COUNTS001 under capped audit4G/512M/60s. Measure M5 known-side N and nonempty B16 q on exact47338 mature TRAIN rows; verify sampled S M5/native parity and fit own S/F endpoint reference priors. No models, features, optimizer, later fit or TEST. Then bind the same existing q/N method to fold2 before native INITIAL.",
+  "new_job_admitted": false,
+  "next_action": "Prepare a separate exact fold2 fresh native INITIAL plan at zero updates on the qualified TRAIN and selected later input surfaces, with fold2 S/F priors and measured q/N. Bind source, model identity, plan, resources and policy before any run. No new claim, fit, TEST or training is authorized; training_enabled=false.",
   "normalization": {
     "artifacts": {
       "EXTENDED_BASE_NORMALIZATION": {
@@ -221,7 +221,7 @@
       "sha256": "2e25098183d2ffb27a4441f178789e2bdd39b84646815b67d061ccedbf2170da"
     }
   },
-  "observed_utc": "2026-11-13T15:14:18.893135+00:00",
+  "observed_utc": "2026-11-14T07:25:04.561418+00:00",
   "physical": {
     "all_413_overlap_rows_bitexact": true,
     "counts": {
@@ -313,9 +313,10 @@
   "source_changes": [
     "Existing span producer supports explicit ordered unique plan-bound subsets; default six-surface behavior preserved.",
     "Existing additive normalization supports exactly the qualified fold2 parent and physical result; no inherited fold1 units. All old statistics and fold1 output identity preserved.",
-    "Existing six two-field fit/inverse/projection owner reused with exact fold2 parent/cutoff/output binding."
+    "Existing six two-field fit/inverse/projection owner reused with exact fold2 parent/cutoff/output binding.",
+    "Existing M5 equal-observation owner binds fold2 to its measured S/F q/N, axes, view and target-count receipts; fold1 profile and default identity remain unchanged."
   ],
-  "status": "FOLD2_INPUTS_QUALIFIED_TARGET_COUNTS_ADMITTED",
+  "status": "FOLD2_INPUTS_AND_TARGET_COUNTS_QUALIFIED_WEIGHTING_SOURCE_BOUND_INITIAL_PENDING",
   "test_data_used": false,
   "validation": {
     "both_actual_cli_preflights": "PASS",
@@ -323,7 +324,9 @@
     "independent_source_and_json_reviews": "PASS",
     "normalization_focused_tests": 27,
     "required_commit_contract_checks": "PASS",
-    "span_subset_and_parity_focused_tests": 11
+    "span_subset_and_parity_focused_tests": 11,
+    "target_count_json_prefix_mask_batch_prior_joins": "PASS_JSON_PREFIX_MASK_BATCH_AND_PRIOR_JOINS",
+    "target_count_array_rerun": false
   },
   "feature_view_binding": {
     "metadata": {
@@ -604,7 +607,7 @@
     }
   },
   "target_weighting_preparation": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_NO_RELAUNCH",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_TARGET_COUNTS_20261113_001/PLAN.json",
       "sha256": "8ee3e898db428d6e1b66344a020f757e7bad07cad9490dbff44cf4f4aabab93c"
@@ -635,12 +638,67 @@
       "tail_rows": 10,
       "test_data_used": false
     },
-    "active_loss_fold1_only": true,
+    "active_loss_fold1_only": false,
     "existing_S_prior_fold2_rows": 47602,
     "required_mature_fit_rows": 47338,
     "existing_prior_has_nonempty_B16_counts": false,
     "model_baseline_qualified": false,
     "predictive_improvement_established": false,
-    "test_data_used": false
+    "test_data_used": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_TARGET_COUNTS_20261113_001/RESULT.json",
+      "sha256": "ba50eb96f1a663ec8829554d67364d03a2a9cc642a4807554f614a47af645131"
+    },
+    "validation": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_TARGET_COUNTS_20261113_001/VALIDATION.json",
+      "sha256": "dd45bd05dfc7e4b5f081999303869c93101e2fa6daf1f2da28b6dda87ca31bdb"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_TARGET_COUNTS_20261113_001/TERMINAL.json",
+      "sha256": "dccda6f607e6bced6e7a1c5009c79de85dd34d0a92c3730ecf94a41db929db17"
+    },
+    "wrapper_exit": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_TARGET_COUNTS_20261113_001/WRAPPER_EXIT.json",
+      "sha256": "24c6df1d630b076fd59a2ed8a6c568035229ae47d5e80cd235b6f34a31daea17"
+    },
+    "endpoint_priors": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_TARGET_COUNTS_20261113_001/ENDPOINT_PRIORS.json",
+      "sha256": "15cf7bc27b3840adbbe9e4a7644439dc5ac81d6a61012cf10b12dfaadb75393e"
+    },
+    "fit_rows": 47338,
+    "fit_batches": 2959,
+    "tail_rows": 10,
+    "S_M5_sampled_endpoint_parity": true,
+    "all_fit_targets_mature": true,
+    "tasks": {
+      "state": {
+        "known_side_rows": 16101,
+        "nonempty_batches": 2890,
+        "q_over_N": 0.17949195702130302,
+        "fold1_coefficient_over_own_coefficient": 1.0012720497495584
+      },
+      "future": {
+        "known_side_rows": 19072,
+        "nonempty_batches": 2950,
+        "q_over_N": 0.15467701342281878,
+        "fold1_coefficient_over_own_coefficient": 1.0010593896369504
+      }
+    },
+    "counts": {
+      "archive_decodes": 9,
+      "backwards": 0,
+      "checkpoint_reads": 0,
+      "checkpoint_writes": 0,
+      "feature_gathers": 0,
+      "feature_normalization_fits": 0,
+      "model_constructions": 0,
+      "model_forwards": 0,
+      "optimizer_constructions": 0,
+      "optimizer_steps": 0,
+      "reference_prior_fits": 2
+    },
+    "elapsed_seconds": 3.7785424610046903,
+    "source_unchanged_during_count": true,
+    "coefficient_difference_predictive_effect_measured": false
   }
 }

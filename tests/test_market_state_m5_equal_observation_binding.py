@@ -19,10 +19,10 @@ from tests.test_market_state_ta_dedicated_m5_binding_v1 import (
     _model, _capture, _seed, ORDER, DEVICE, COMMIT,
 )
 
-# Recorded before this change in FIT_DOMAIN_AND_OLD_CONTRACTS.json, under
-# MARKET_STATE_TA_M5_EQUAL_OBSERVATION_LOSS_20261109_001.
-OLD_OBJECTIVE_SHA = 'f5a79eacd89aefd878c6cc823e616456fead2e7748c5e589b2a2d8f7a73b30cb'
-OLD_NUMERICAL_SHA = 'dc133ed1aabfa357d8fbf18237f6fb6a1816c3e12d55fc24020b2bba532740ca'
+# Rechecked against the unchanged b248deda objective source before the fold-2
+# binding. The earlier 20261109 hashes preceded later intended contract changes.
+OLD_OBJECTIVE_SHA = '63cb7337ee45806cd10f2f4b15416997e7a8b0f579acc233b577b2b147a48f0d'
+OLD_NUMERICAL_SHA = 'ebfa0009d9b72a264d94bd4141f5dc99849e92e7f728103d55718d0d44e55eb2'
 
 
 def test_default_numerical_is_exact_and_opt_in_changes_only_training_binding():
@@ -127,7 +127,7 @@ def test_bad_opt_in_batch_is_rejected_before_forward_or_target_read(monkeypatch,
     size = 15 if fault == 'short_batch' else 6 if fault == 'early_tail' else 16
     events, args, kwargs = _batch_case(monkeypatch, 0, size)
     if fault == 'fold':
-        kwargs['fold_id'] = 2
+        kwargs['fold_id'] = 3
     elif fault == 'pass':
         kwargs['pass_index'] = 1
     elif fault == 'seed':
@@ -291,7 +291,7 @@ def test_bad_explicit_positions_reject_before_forward_or_targets(monkeypatch, fa
     elif fault == 'without_opt_in':
         kwargs['m5_equal_observation'] = False
     elif fault in ('fold', 'pass', 'seed'):
-        kwargs[{'fold': 'fold_id', 'pass': 'pass_index', 'seed': 'seed'}[fault]] += 1
+        kwargs[{'fold': 'fold_id', 'pass': 'pass_index', 'seed': 'seed'}[fault]] += 2 if fault == 'fold' else 1
     elif fault == 'no_dedicated':
         args[0].state_model._dedicated_m5_side = False
     elif fault == 'gc_profile':

@@ -5,23 +5,25 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_FOLD2_TARGET_COUNTS_ADMITTED_BEFORE_NATIVE_BASELINE. Edge-målet er uoppnådd.
-Én target-only kontroll er admittert: TARGET_COUNTS001, plan8ee3e898/script034439d1.
-Revidert faktisk preflightc4213004 PASS uten payload/CLAIM. Kjør én gang fra ren kilde
-med gx1_capped_run.sh audit4G/512M,60s; frys kilde/policy. Alle treningsflagg false.
+TA_FOLD2_TARGET_COUNTS_COMPLETE_WEIGHTING_SOURCE_BOUND_INITIAL_PENDING. Edge-målet er
+uoppnådd. TARGET_COUNTS001 er COMPLETE/CONSUMED, exit0,3,78s. RESULT ba50eb96,
+VALIDATION dd45bd05, TERMINAL dccda6f6; ingen relansering. På eksakt47338 modne
+TRAIN-rader /2959 B16 med siste10 er M5 kjent retning S N16101/q2890 og F N19072/q2950.
+Sampled S-M5 er lik native M5-endepunktet; alle fit-targets er modne. Egne S/F-priorer
+er fit på samme TRAIN-rader.9arkivdekodinger,2referanseprior-fit, null modeller,
+forwards, feature-gather, optimizer, checkpoint, senere fit eller TEST.
 
-Konkret sperre: aktive M5 q/N-profiler og fit-batch-vakter er eksplisitt fold1/29574.
-Eksisterende femfolds S-prior har fold2/47602 og ingen B16-q; eget modne TRAIN er47338.
-Bruk aldri fold1-tall eller deaktiver M5-equal for å få fold2 til å kjøre. Dette er en
-sperre for ny sammenligning, ikke en påvist årsak til tidligere svak ACC.
-Tell egne S/F M5 kjente sider N og ikke-tomme batcher q:2959kronologiske B16, siste10.
-Verifiser aktiv sampled-S M5 mot native-endepunkt, alle fasiter modne, eksakte inputakser.
-Gjenbruk fit_endpoint_priors(...fold_id=2) på samme47338rader. Maks9arkivdekodinger,
-to referanseprior-fit; null modeller/forwards/feature-gather/optimizer/checkpoints/TEST.
-Kanonisk aksevalidering henter også senere scoremasker; disse brukes ikke til fit/skår.
-Etter telling: bind samme tapsmetode q/N eksplisitt til fold2, med fold1 uendret.
-Fersk native INITIAL og eventuell trening er separate uåpnede steg. Gjenbruk eksisterende
-modellfabrikk; benchmarkens gamle INITIAL-import arver trent backbone og er ikke fersk.
+Den eksisterende M5-equal-taps-/batch-eieren binder nå fold2s egne q/N, akser,
+inputview og målkvitteringer; fold1-profil og default kontrakt er uendret. Forholdet
+mellom fold1- og fold2-koeffisientene er1,00127(S) og1,00106(F), omtrent0,1%.
+Dette er ikke en målt forklaring på svak ACC eller bevis for bedre AUC. En gammel
+testhash ble korrigert mot uendret b248deda-baseline; den var foreldet før fold2-bindingen.
+Fokuserte kildekontroller består. Fersk fold2 native INITIAL er ikke kjørt.
+
+Neste steg er å planlegge en separat eksakt INITIAL med null oppdateringer på de
+kvalifiserte TRAIN- og utvalgte senere inputflatene, egne fold2-priorer og q/N.
+Den planen må kilde-, modell-, ressurs- og policybindes før kjøring. Ingen ny plan
+er admittert her; training_enabled=false, ingen trening eller TEST-bruk.
 
 LATER_INPUTS002 er COMPLETE/CONSUMED, exit0,215,18s; terminal1297d154,
 RESULT2cab8b60/COVERAGE5abd47c4/GATHER_RESULTe6aacfe9/VALIDATIONdf45d60f.

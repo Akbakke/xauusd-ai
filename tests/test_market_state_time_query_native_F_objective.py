@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 import torch
 
 from gx1.contracts import market_state_five_endpoint_target_binding_v1 as state
@@ -186,3 +187,95 @@ def test_endpoint_merge_rejects_changed_scope_and_observation_hash_tracks_mask()
         total = objective.merge_endpoint_measurements(None, original)
         with pytest.raises(ValueError, match='MERGE_BINDING'):
             objective.merge_endpoint_measurements(total, dict(original, **{key: value}))
+
+
+# The fold1 profile is frozen; fold2 is bound to its target-only measurement.
+def test_measured_fold2_profile_preserves_fold1_and_binds_own_counts():
+    first = objective.m5_equal_observation_profile()
+    assert first == objective.m5_equal_observation_profile(fold_id=1)
+    assert first['contract_sha256'] == 'c11930254fe54d89ccfb5594aac90e1f599674db1f1bd7fd7c1b5732e6476a04'
+    second = objective.m5_equal_observation_profile(fold_id=2)
+    assert (second['fit_rows'], second['fit_batches'], second['batch_size']) == (47338, 2959, 16)
+    assert second['state'] == dict(known_side_rows=16101, nonempty_batches=2890)
+    assert second['future'] == dict(known_side_rows=19072, nonempty_batches=2950)
+    assert second['target_count_result']['sha256'] == 'ba50eb96f1a663ec8829554d67364d03a2a9cc642a4807554f614a47af645131'
+    assert second['target_count_validation']['sha256'] == 'dd45bd05dfc7e4b5f081999303869c93101e2fa6daf1f2da28b6dda87ca31bdb'
+    assert not {'fit_cache_sha256', 'weight_result_sha256', 'weight_verification_sha256'} & second.keys()
+    kwargs = dict(ta_only=True, dedicated_m5_side=True, dedicated_tf_activity=True)
+    default = objective.contract(**kwargs, m5_equal_observation=True)
+    assert default == objective.contract(**kwargs, m5_equal_observation=True, fold_id=1)
+    own = objective.contract(**kwargs, m5_equal_observation=True, fold_id=2)
+    changed = {'contract_sha256', 'm5_side_weighting_profile',
+               'S_loss_contract_sha256', 'F_loss_contract_sha256'}
+    assert {k: v for k, v in own.items() if k not in changed} == {
+        k: v for k, v in default.items() if k not in changed}
+    assert own['m5_side_weighting_profile'] == second
+    assert own['contract_sha256'] != default['contract_sha256']
+
+
+@pytest.mark.parametrize('fold_id', [1, 2, 3, 4, 5])
+def test_unweighted_objective_keeps_existing_identity_for_all_folds(fold_id):
+    kwargs = dict(ta_only=True, dedicated_m5_side=True, dedicated_tf_activity=True)
+    assert objective.contract(**kwargs, fold_id=fold_id) == objective.contract(**kwargs)
+
+
+@pytest.mark.parametrize('fold_id', [True, False, 0, 3, 5, '2', 2.0, np.int64(2)])
+def test_only_exact_measured_fold_ids_admit_m5_weighting(fold_id):
+    with pytest.raises(ValueError, match='M5_EQUAL_OBSERVATION_FOLD'):
+        objective.m5_equal_observation_profile(fold_id=fold_id)
+    with pytest.raises(ValueError, match='M5_EQUAL_OBSERVATION_FOLD'):
+        objective.contract(ta_only=True, dedicated_m5_side=True,
+                           m5_equal_observation=True, fold_id=fold_id)
+
+
+@pytest.mark.parametrize('size', [16, 10])
+def test_fold2_loss_uses_own_coefficients_and_preserves_other_gradients(size):
+    allowed = np.tile(np.array([4, 1, 4, 2, 5], np.uint8), (size, 1))
+    allowed[:7, 0] = [1, 4, 2, 5, 7, 4, 1]
+    eligible, mature = np.ones((size, 5), bool), np.ones((size, 5), bool)
+    mature[5, 0] = False
+    eligible[6, 0] = False
+    truth = dict(allowed=allowed, eligible=eligible, mature=mature)
+    s = torch.linspace(-1, 1, size * 10).reshape(size, 5, 2).requires_grad_()
+    f = (-s.detach()).clone().requires_grad_()
+    kwargs = dict(state_raw=s, future_raw=f, state_truth=truth, future_truth=truth,
+                  state_query_k=torch.tensor([NATIVE_K] * size), future_weight=0.375,
+                  ta_only=True, dedicated_m5_side=True, dedicated_tf_activity=True,
+                  fold_id=2)
+    weighted = objective.combined_loss(**kwargs, m5_equal_observation=True)
+    ordinary = objective.combined_loss(**kwargs)
+    weighted_grad = torch.autograd.grad(weighted['loss'], (s, f))
+    ordinary_grad = torch.autograd.grad(ordinary['loss'], (s, f))
+    known = torch.from_numpy(eligible[:, 0] & mature[:, 0] & np.isin(allowed[:, 0], (1, 4)))
+    target = torch.from_numpy(allowed[:, 0] == 4).to(torch.float32)
+    for raw, actual, old, coefficient in zip(
+            (s, f), weighted_grad, ordinary_grad, (2890 / 16101 / 5, 0.375 * 2950 / 19072 / 5)):
+        expected = torch.where(known, (raw[:, 0, 1].detach().sigmoid() - target) * coefficient,
+                               torch.zeros(size))
+        torch.testing.assert_close(actual[:, 0, 1], expected, rtol=1e-6, atol=2e-9)
+        assert torch.equal(actual[~known, 0, 1], torch.zeros(int((~known).sum())))
+        assert torch.equal(actual[..., 0], old[..., 0])
+        assert torch.equal(actual[:, 1:, :], old[:, 1:, :])
+    assert weighted['contract_sha256'] == objective.contract(
+        ta_only=True, dedicated_m5_side=True, dedicated_tf_activity=True,
+        m5_equal_observation=True, fold_id=2)['contract_sha256']
+
+
+def test_fold2_full_axis_binding_rejects_shape_dtype_order_and_clock_changes(monkeypatch):
+    from gx1.audit.qualify_market_state_mature_prefix_normalization_v1 import _axis_sha
+    parents = np.arange(47338, dtype=np.int64) * 3 + 7
+    issues = state.TRAIN_START_NS + (np.arange(47338, dtype=np.int64) + 1) * state.M5_NS
+    original = objective.m5_equal_observation_profile
+    # Synthetic axes retain the measured dimensions; no genuine target payload is opened.
+    profile = dict(original(fold_id=2), parent_axis_sha256=_axis_sha(parents),
+                   issue_axis_sha256=_axis_sha(issues))
+    def synthetic_profile(*, fold_id=1):
+        return profile if fold_id == 2 else original(fold_id=fold_id)
+    monkeypatch.setattr(objective, 'm5_equal_observation_profile', synthetic_profile)
+    assert objective.require_m5_equal_observation_axes(parents, issues, fold_id=2) == profile
+    for rows, clocks in ((parents[:-1], issues[:-1]), (parents.astype(np.int32), issues),
+                         (parents[::-1], issues), (parents, issues + state.M5_NS)):
+        with pytest.raises(ValueError, match='M5_EQUAL_OBSERVATION_FIT_AXES'):
+            objective.require_m5_equal_observation_axes(rows, clocks, fold_id=2)
+    with pytest.raises(ValueError, match='M5_EQUAL_OBSERVATION_FIT_AXES'):
+        objective.require_m5_equal_observation_axes(parents, issues, fold_id=1)

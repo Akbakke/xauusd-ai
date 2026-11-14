@@ -95,6 +95,26 @@ def test_complete_batch_scorer_matches_qualified_paired_math(priors):
         assert new[key] == old[key]
 
 
+
+def test_sampled_scorer_binds_own_fold_and_preserves_default(priors):
+    value = arrays(32)
+    first = paired.sampled_fit_measurement(value, [1., 2.], priors, **ARGS)
+    assert first == paired.sampled_fit_measurement(value, [1., 2.], priors, fold_id=1, **ARGS)
+    own = objective._seal({**{k: v for k, v in priors.items() if k != 'contract_sha256'}, 'fold_id': 2})
+    second = paired.sampled_fit_measurement(value, [1., 2.], own, fold_id=2, **ARGS)
+    assert second['fold_id'] == 2 and second['frozen_prior_contract_sha256'] == own['contract_sha256']
+    for key in ('scores', 'means', 'observation_chain_sha256', 'mean_canonical_batch_loss'):
+        assert second[key] == first[key]
+    with pytest.raises(ValueError, match='NATIVE_F_ENDPOINT_PRIOR_BINDING'):
+        paired.sampled_fit_measurement(value, [1., 2.], priors, fold_id=2, **ARGS)
+
+
+@pytest.mark.parametrize('fold_id', [True, 0, 6, 2.0])
+def test_sampled_scorer_rejects_invalid_fold(priors, fold_id):
+    with pytest.raises(RuntimeError, match='FIT_MEASUREMENT_FOLD'):
+        paired.sampled_fit_measurement(arrays(32), [1., 2.], priors, fold_id=fold_id, **ARGS)
+
+
 def test_cached_later_uses_native_endpoint_batch_chain_not_train_schema(priors):
     source = arrays(32)
     cache = {k: source[k] for k in ('parents', 'issues')}

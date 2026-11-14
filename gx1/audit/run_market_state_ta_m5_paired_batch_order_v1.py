@@ -52,10 +52,11 @@ def build_execution_orders(parent_rows, arm_batch_indices):
 
 
 def sampled_fit_measurement(arrays, batch_losses, priors, *, model_contract_sha256,
-                            loss_contract_sha256, feature_view_sha256):
+                            loss_contract_sha256, feature_view_sha256, fold_id: int = 1):
     """Use the existing proper scorer on genuine sampled S / native F queries."""
     import numpy as np
     from gx1.contracts import market_state_time_query_native_F_objective_v1 as objective
+    _need(type(fold_id) is int and 1 <= fold_id <= 5, 'FIT_MEASUREMENT_FOLD')
     n = len(arrays['parents'])
     _need(n > 0 and n % 16 == 0 and len(batch_losses) == n//16
           and all(math.isfinite(float(v)) for v in batch_losses), 'FIT_MEASUREMENT_BATCHES')
@@ -66,7 +67,7 @@ def sampled_fit_measurement(arrays, batch_losses, priors, *, model_contract_sha2
         _need(value.dtype == np.int64 and value.shape == shape, 'MEASUREMENT_AXIS')
         digest.update(np.ascontiguousarray(value).tobytes())
     scores, means, m5_prior = {}, {}, {}
-    prior_raw = objective._endpoint_prior_arrays(priors,1,ta_only=True,dedicated_m5_side=True)
+    prior_raw = objective._endpoint_prior_arrays(priors,fold_id,ta_only=True,dedicated_m5_side=True)
     for task in TASKS:
         raw = arrays[task+'_raw']
         _need(raw.dtype == np.float32 and raw.shape == (n,5,2) and np.isfinite(raw).all(),
@@ -87,7 +88,7 @@ def sampled_fit_measurement(arrays, batch_losses, priors, *, model_contract_sha2
         observation_chain_sha256=digest.hexdigest(),scores={'model':scores},
         means={'model':means,'prior':{t:{'M5':{'conditional_side':m5_prior[t]}} for t in TASKS}},
         mean_canonical_batch_loss=math.fsum(map(float,batch_losses))/len(batch_losses),
-        canonical_batch_losses=list(map(float,batch_losses)),fold_id=1,pass_index=0,seed=20260911,
+        canonical_batch_losses=list(map(float,batch_losses)),fold_id=fold_id,pass_index=0,seed=20260911,
         query_domain={'state':'sampled_pass0','future':'native_endpoints'},
         loss_contract_sha256=loss_contract_sha256,model_contract_sha256=model_contract_sha256,
         feature_view_sha256=feature_view_sha256,frozen_prior_contract_sha256=priors['contract_sha256'],
