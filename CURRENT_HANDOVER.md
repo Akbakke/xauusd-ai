@@ -5,7 +5,7 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: TA_FOLD2_SHARED_M5_FIT_001_COMPLETE_CONSUMED_EDGE_UNQUALIFIED.
+Aktuell policy: TA_M5_F_ONLY_FIVEFOLD_TARGET_AUDIT_COMPLETE_MODEL_OOF_PENDING.
 Gammelt F-M5 FINAL-hode hadde senere innen-UTC-dag AUC0,4724 mot
 S-skårens0,5607 på samme F-mål; samlet F-TRAIN-AUC0,5125 skjulte
 lokalt rangeringstap. Kilde- og etikettreview står i
@@ -51,12 +51,24 @@ er usikker. Dette viser en mål-/dekningsforskjell, ikke en bevist kodefeil
 eller grunn til å invertere/gate skåren. Se
 `docs/TA_FOLD2_SHARED_M5_F_ONLY_DIAGNOSIS_20261114.json`.
 
+Lesende femfolds mål-OOF er nå bundet på hele scoreaksen for fold1–5
+(2024-10–2025-12). F-only utgjør38,86–41,71% av F-kjente M5-sider i
+scorefoldene; nesten alle har S allowed-set5. Alle forkortede TRAIN-prefiks
+har modne S/F-mål. Dette er mål- og dekningskontroll med0 modeller,
+forwards og optimizersteg, ikke modell-OOF eller 26måneders kvalifikasjon.
+F-only er definert av framtidig S-fasit og kan bare brukes som retrospektiv
+scorestratum, aldri ONLINE-gate. Samme rapport forhåndsbinder femfolds
+modellevaluering og viser at å legge fryst F-TRAIN-priorlogit+0,04719 til
+shared FINAL gir senere Brier0,249257 mot prior-alene0,249257; ingen målt
+verdi utover prior og ingen AUC-endring. Se
+`docs/TA_M5_F_ONLY_FIVEFOLD_TARGET_AUDIT_20261114.json`.
+
 Global training_enabled/native_training_enabled/full_epoch_training_allowed
-står igjen false; fit-plan001 kan ikke relanseres. Neste steg er å
-forhåndsdefinere F-only versus overlapp-kontroll på kronologisk
-utviklings-OOF med modne mål og foldspesifikk TRAIN-normalisering, før
-eventuell ny modellendring eller engangsadmisjon. Ingen ny fit er åpnet.
-TEST, Entry, Exit, broker, ordre, handel og promotion er stengt.
+står igjen false; fit-plan001 kan ikke relanseres. Neste steg er lesende
+kontroll av eksisterende input-/normaliseringseiere for alle fem folds,
+med kvalifisering kun av manglende deler før en separat innrømmet
+modell-OOF. Ingen ny fit er åpnet. TEST, Entry, Exit, broker, ordre,
+handel og promotion er stengt.
 
 TA_FOLD2_M5_004_COMPLETE_CONSUMED_F_M5_EDGE_UNQUALIFIED. Edge-målet er
 uoppnådd. TARGET_COUNTS001 er COMPLETE/CONSUMED, exit0,3,78s. RESULT ba50eb96,

@@ -1,0 +1,305 @@
+{
+  "existing_fold2_model_result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SHARED_M5_FIT_20261114_001/RESULT.json",
+    "sha256": "4f03bac60e47a83ce5c5591490cfc584efe2860a34890679359559045ca3d58d"
+  },
+  "fold2_frozen_prior": {
+    "F_M5_side_logit": 0.04719340647587358,
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_TARGET_COUNTS_20261113_001/ENDPOINT_PRIORS.json",
+    "sha256": "15cf7bc27b3840adbbe9e4a7644439dc5ac81d6a61012cf10b12dfaadb75393e"
+  },
+  "fold2_prior_offset_counterfactual": {
+    "LATER": {
+      "known_side_n": 1591,
+      "observed_up_fraction": 0.5373978629792583,
+      "scores": {
+        "model": {
+          "brier": 0.2500421777715712,
+          "log_loss": 0.6932315154374297,
+          "mean_probability": 0.49823391906808606
+        },
+        "model_plus_train_F_prior_logit": {
+          "brier": 0.24925738467525924,
+          "log_loss": 0.6916616189345669,
+          "mean_probability": 0.5100307079155934
+        },
+        "train_F_prior_only": {
+          "brier": 0.24925684692147698,
+          "log_loss": 0.6916606243807926,
+          "mean_probability": 0.5117961623151935
+        }
+      }
+    },
+    "TRAIN": {
+      "known_side_n": 1661,
+      "observed_up_fraction": 0.5111378687537628,
+      "scores": {
+        "model": {
+          "brier": 0.2498244973568596,
+          "log_loss": 0.6927959288330071,
+          "mean_probability": 0.49973362380775666
+        },
+        "model_plus_train_F_prior_logit": {
+          "brier": 0.24969487046031907,
+          "log_loss": 0.6925360829795574,
+          "mean_probability": 0.5115291131522826
+        },
+        "train_F_prior_only": {
+          "brier": 0.249876381230037,
+          "log_loss": 0.6928999229623305,
+          "mean_probability": 0.5117961623151936
+        }
+      }
+    }
+  },
+  "folds": [
+    {
+      "discarded_immature_fit_rows": 275,
+      "effective_fit_cutoff_utc": "2024-09-30T00:00:00.000000000",
+      "fit": {
+        "F_m5_known_side_n": 11909,
+        "F_only_S_allowed_counts": {
+          "5": 4767,
+          "7": 4
+        },
+        "F_only_fraction_of_F_known": 0.40062137878915105,
+        "F_only_n": 4771,
+        "F_up_fraction_F_only": 0.5084887864179417,
+        "F_up_fraction_overlap": 0.5128887643597646,
+        "S_F_overlap_n": 7138,
+        "S_m5_known_side_n": 10010,
+        "all_targets_mature": true,
+        "decision_ns_sha256": "ebb3489c45b01b6fd8e77bf27529d650beb6883ba84b57ee936dc549ec74e427",
+        "first_issue_utc": "2024-05-01T00:05:00.000000000",
+        "last_issue_utc": "2024-09-29T23:55:00.000000000",
+        "parent_rows_sha256": "1c5a8c36a94b8fa39d613f0bc122cf869dc9fa3c2f87dc64c0506acd2f55a90f",
+        "rows": 29574
+      },
+      "fold_id": 1,
+      "official_fit_cutoff_utc": "2024-10-01T00:00:00.000000000",
+      "score": {
+        "F_m5_known_side_n": 7165,
+        "F_only_S_allowed_counts": {
+          "5": 2784
+        },
+        "F_only_fraction_of_F_known": 0.3885554780181438,
+        "F_only_n": 2784,
+        "F_up_fraction_F_only": 0.5025143678160919,
+        "F_up_fraction_overlap": 0.5197443506048848,
+        "S_F_overlap_n": 4381,
+        "S_m5_known_side_n": 6096,
+        "all_targets_mature": null,
+        "decision_ns_sha256": "22a1b7282f908836380755186c919ec01a5061cd681e9723e5655078c7d6fe6c",
+        "first_issue_utc": "2024-10-01T00:00:00.000000000",
+        "last_issue_utc": "2024-12-31T21:55:00.000000000",
+        "parent_rows_sha256": "afa02322eca78c7c1161f969d94d1693bba99cb9565626dcfe2efa81992eabf7",
+        "rows": 17753
+      },
+      "score_end_exclusive_utc": "2025-01-01T00:00:00.000000000"
+    },
+    {
+      "discarded_immature_fit_rows": 264,
+      "effective_fit_cutoff_utc": "2024-12-31T00:00:00.000000000",
+      "fit": {
+        "F_m5_known_side_n": 19072,
+        "F_only_S_allowed_counts": {
+          "5": 7552,
+          "7": 4
+        },
+        "F_only_fraction_of_F_known": 0.3961828859060403,
+        "F_only_n": 7556,
+        "F_up_fraction_F_only": 0.5068819481206988,
+        "F_up_fraction_overlap": 0.5150225772837791,
+        "S_F_overlap_n": 11516,
+        "S_m5_known_side_n": 16101,
+        "all_targets_mature": true,
+        "decision_ns_sha256": "380184a9c95a02f2716326765783746b1834371a7266545113fb1eae6722da47",
+        "first_issue_utc": "2024-05-01T00:05:00.000000000",
+        "last_issue_utc": "2024-12-30T23:55:00.000000000",
+        "parent_rows_sha256": "db43609ad6bd10e8d1a13b216243855c499189f8d2f08ef0a67d49de66e29fe9",
+        "rows": 47338
+      },
+      "fold_id": 2,
+      "official_fit_cutoff_utc": "2025-01-01T00:00:00.000000000",
+      "score": {
+        "F_m5_known_side_n": 6707,
+        "F_only_S_allowed_counts": {
+          "5": 2684
+        },
+        "F_only_fraction_of_F_known": 0.40017891754882956,
+        "F_only_n": 2684,
+        "F_up_fraction_F_only": 0.5182563338301043,
+        "F_up_fraction_overlap": 0.5259756400695998,
+        "S_F_overlap_n": 4023,
+        "S_m5_known_side_n": 5728,
+        "all_targets_mature": null,
+        "decision_ns_sha256": "cd13bc2bc6ebd373406f83a311a5666fad57e642a8a71b5800bd33b72201edc5",
+        "first_issue_utc": "2025-01-01T23:05:00.000000000",
+        "last_issue_utc": "2025-03-31T23:55:00.000000000",
+        "parent_rows_sha256": "07939f4346aa6bf1528961f8ff432a13682d1d13f432b0173fc1f217a52d2b2a",
+        "rows": 17288
+      },
+      "score_end_exclusive_utc": "2025-04-01T00:00:00.000000000"
+    },
+    {
+      "discarded_immature_fit_rows": 275,
+      "effective_fit_cutoff_utc": "2025-03-31T00:00:00.000000000",
+      "fit": {
+        "F_m5_known_side_n": 25785,
+        "F_only_S_allowed_counts": {
+          "5": 10233,
+          "7": 4
+        },
+        "F_only_fraction_of_F_known": 0.39701376769439595,
+        "F_only_n": 10237,
+        "F_up_fraction_F_only": 0.5089381654781674,
+        "F_up_fraction_overlap": 0.5182016979675843,
+        "S_F_overlap_n": 15548,
+        "S_m5_known_side_n": 21840,
+        "all_targets_mature": true,
+        "decision_ns_sha256": "2b752a1856df6148c7d814dbbd99c3e7aec3d21905fa8730648b8a157f0cec6a",
+        "first_issue_utc": "2024-05-01T00:05:00.000000000",
+        "last_issue_utc": "2025-03-30T23:55:00.000000000",
+        "parent_rows_sha256": "adc6c1fead7228acc87f8e1fbea3787ef645bea81eab60db2fa0d829f1104508",
+        "rows": 64615
+      },
+      "fold_id": 3,
+      "official_fit_cutoff_utc": "2025-04-01T00:00:00.000000000",
+      "score": {
+        "F_m5_known_side_n": 6886,
+        "F_only_S_allowed_counts": {
+          "5": 2872
+        },
+        "F_only_fraction_of_F_known": 0.41707812953819345,
+        "F_only_n": 2872,
+        "F_up_fraction_F_only": 0.5107938718662952,
+        "F_up_fraction_overlap": 0.51096163428002,
+        "S_F_overlap_n": 4014,
+        "S_m5_known_side_n": 5734,
+        "all_targets_mature": null,
+        "decision_ns_sha256": "36c16dc493482a12a20b394f102c25a4878cb07b53b83cc4a6373329e732c96b",
+        "first_issue_utc": "2025-04-01T00:00:00.000000000",
+        "last_issue_utc": "2025-06-30T23:55:00.000000000",
+        "parent_rows_sha256": "a9df5d08104962bef0fb64a2a318da7ab29183f021b07cf3b38d1126b4a30281",
+        "rows": 17537
+      },
+      "score_end_exclusive_utc": "2025-07-01T00:00:00.000000000"
+    },
+    {
+      "discarded_immature_fit_rows": 275,
+      "effective_fit_cutoff_utc": "2025-06-30T00:00:00.000000000",
+      "fit": {
+        "F_m5_known_side_n": 32658,
+        "F_only_S_allowed_counts": {
+          "5": 13105,
+          "7": 4
+        },
+        "F_only_fraction_of_F_known": 0.40140241288505113,
+        "F_only_n": 13109,
+        "F_up_fraction_F_only": 0.5090395911206042,
+        "F_up_fraction_overlap": 0.5167016215663205,
+        "S_F_overlap_n": 19549,
+        "S_m5_known_side_n": 27559,
+        "all_targets_mature": true,
+        "decision_ns_sha256": "d14eaf2f2730151ee18c5d5fb4698828a6b15e06780b2691ef81a11260cf209a",
+        "first_issue_utc": "2024-05-01T00:05:00.000000000",
+        "last_issue_utc": "2025-06-29T23:55:00.000000000",
+        "parent_rows_sha256": "95ad8e88e1f010c709357f2c8a0a68ab487bad3d6af0c037f35a105347c8e2a7",
+        "rows": 82152
+      },
+      "fold_id": 4,
+      "official_fit_cutoff_utc": "2025-07-01T00:00:00.000000000",
+      "score": {
+        "F_m5_known_side_n": 7050,
+        "F_only_S_allowed_counts": {
+          "5": 2807,
+          "7": 2
+        },
+        "F_only_fraction_of_F_known": 0.3984397163120567,
+        "F_only_n": 2809,
+        "F_up_fraction_F_only": 0.5069419722321111,
+        "F_up_fraction_overlap": 0.5145012968639472,
+        "S_F_overlap_n": 4241,
+        "S_m5_known_side_n": 6129,
+        "all_targets_mature": null,
+        "decision_ns_sha256": "1397529e7b438e5021f109360c4ec62e8ad30029eeecf835c5c9b466947a78f0",
+        "first_issue_utc": "2025-07-01T00:00:00.000000000",
+        "last_issue_utc": "2025-09-30T23:55:00.000000000",
+        "parent_rows_sha256": "ec5766d4b9fa355555332580ecedaaff94aafda9960e29ac36f8f3d0067f9f31",
+        "rows": 18072
+      },
+      "score_end_exclusive_utc": "2025-10-01T00:00:00.000000000"
+    },
+    {
+      "discarded_immature_fit_rows": 275,
+      "effective_fit_cutoff_utc": "2025-09-30T00:00:00.000000000",
+      "fit": {
+        "F_m5_known_side_n": 39720,
+        "F_only_S_allowed_counts": {
+          "5": 15916,
+          "7": 6
+        },
+        "F_only_fraction_of_F_known": 0.4008559919436052,
+        "F_only_n": 15922,
+        "F_up_fraction_F_only": 0.5091068961185781,
+        "F_up_fraction_overlap": 0.5160517690562232,
+        "S_F_overlap_n": 23798,
+        "S_m5_known_side_n": 33697,
+        "all_targets_mature": true,
+        "decision_ns_sha256": "f86aa6ebb92b2e191c0754104aa0438e089d4c4c7558216787f601466218649d",
+        "first_issue_utc": "2024-05-01T00:05:00.000000000",
+        "last_issue_utc": "2025-09-29T23:55:00.000000000",
+        "parent_rows_sha256": "cf2d4f16b1a0869f2825636dc80166cd27f78703e8b83886b72c0943b309ca87",
+        "rows": 100224
+      },
+      "fold_id": 5,
+      "official_fit_cutoff_utc": "2025-10-01T00:00:00.000000000",
+      "score": {
+        "F_m5_known_side_n": 6952,
+        "F_only_S_allowed_counts": {
+          "5": 2800,
+          "7": 6
+        },
+        "F_only_fraction_of_F_known": 0.40362485615650173,
+        "F_only_n": 2806,
+        "F_up_fraction_F_only": 0.5092658588738418,
+        "F_up_fraction_overlap": 0.5320791123974915,
+        "S_F_overlap_n": 4146,
+        "S_m5_known_side_n": 5889,
+        "all_targets_mature": null,
+        "decision_ns_sha256": "61b79b53e5caba6581911b36d543349f6a1a545335ad7cccf49e861d58c2f06a",
+        "first_issue_utc": "2025-10-01T00:00:00.000000000",
+        "last_issue_utc": "2025-12-31T21:55:00.000000000",
+        "parent_rows_sha256": "5b66d1fd5bc818281a70b6e5f3f95d848efee39d2be3223479252a2cdf57c2ab",
+        "rows": 17750
+      },
+      "score_end_exclusive_utc": "2026-01-01T00:00:00.000000000"
+    }
+  ],
+  "interpretation": "F-only target coverage is stable near forty percent across five development score folds and almost entirely S allowed-set 5. This is a task-definition difference, not a demonstrated source bug. A TRAIN-pinned prior logit offset improves fold2 later Brier to approximately the prior-only Brier but adds no measured proper-score value and cannot change AUC. Do not implement a calibration or gate change from this reused panel.",
+  "model_constructions": 0,
+  "model_forwards": 0,
+  "optimizer_updates": 0,
+  "predeclared_next_model_audit": {
+    "blockers": "Fold-specific native input normalization and fresh model baselines are not qualified for all five folds. No fit or TEST admission follows from target coverage.",
+    "fit": "Each fold uses only its preceding one-day-matured TRAIN prefix, fold-specific input normalization and frozen F prior; no score-row refit. Model source, seed, update budget and output are bound before score.",
+    "interpretation": "All historical folds are previously examined development data. These measurements cannot prove independent economic edge; forward journal remains the confirmation route.",
+    "primary": "F M5 known-side AUC, Brier and log loss against fixed TRAIN prior; report per-fold and all-fold results plus UTC-day and Monday-week paired uncertainty. No threshold or model selection from score folds.",
+    "scope": "All five existing chronological development score folds, entire bound score axes. No TEST or selected 4096-row panel as a substitute for full-fold OOF.",
+    "secondary": "F-only versus S/F-overlap strata, defined from future S target solely for retrospective diagnosis. Never feed stratum membership to predictor or use it as an ONLINE gate."
+  },
+  "schema_version": "gx1_ta_m5_f_only_fivefold_target_audit_v1",
+  "source_commit": "2e1bad9d99465a9263806ca07b76cb542a5816db",
+  "status": "TARGET_COVERAGE_VERIFIED_MODEL_OOF_PENDING",
+  "target_binding_sources": {
+    "gx1/contracts/market_state_five_endpoint_target_binding_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_five_endpoint_target_binding_v1.py",
+      "sha256": "71dc01154aada84d01e930cb78970a79608c5bff5ebd710d9f48273934e14bfd"
+    },
+    "gx1/contracts/market_state_future_displacement_candidate_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_future_displacement_candidate_v1.py",
+      "sha256": "4a7e0a582bef097109555ddfe1b96cb2c9d7b31c2a53366ef9a4bbbe0c6deb62"
+    }
+  },
+  "test_data_used": false
+}
