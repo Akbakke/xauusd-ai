@@ -1,0 +1,158 @@
+{
+  "claim": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_NORMALIZATION_20261114_001/CLAIM.json",
+    "sha256": "fe544a2d6fe00ef627ccb72583f59f9a9d85c362969f3c28774f9dc163bcadb2"
+  },
+  "economic_edge_proven": false,
+  "folds": {
+    "1": {
+      "reused": true,
+      "ta_contract_sha256": "6c882086902701d5c9503d0c77c72c8e291ed65c44d065171c2d27afa500c3f6",
+      "ta_normalization": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_20261112_001/TA_INPUT_NORMALIZATION.json",
+        "sha256": "02eca0cceec636a39b57cb12d55aa07f458653e289d6c5f57b16811e61438693"
+      }
+    },
+    "2": {
+      "reused": true,
+      "ta_contract_sha256": "53e579914776df8091249da54260afa49ca775ef5a0c8cca6a5e442a4c5d5c9b",
+      "ta_normalization": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_NORMALIZATION_20261113_001/TA_INPUT_NORMALIZATION.json",
+        "sha256": "3528af4ee8abe07ae2e56a9bdabe7c10f55832e0f26ee28f5d49a6ad9c6e2a7c"
+      }
+    },
+    "3": {
+      "old_field_preservation": {
+        "aliases_exact_by_name": true,
+        "all_old_stat_vectors_exact": true,
+        "old_category_and_support_values_exact": true,
+        "old_fields_per_surface": {
+          "ctx_cont": 2542,
+          "mtf_d1": 253,
+          "mtf_h1": 253,
+          "mtf_h4": 253,
+          "mtf_m15": 253,
+          "mtf_m5": 253,
+          "signal": 2725
+        },
+        "old_statistics_refitted": false,
+        "parent_lineage_unchanged": true
+      },
+      "reused": false,
+      "ta_contract_sha256": "d752f69e1a7725a0d9b30e70bf98189ce3b8a232a8034e2bfe729a373d999ca0",
+      "ta_normalization": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_NORMALIZATION_20261114_001/FOLD_3/TA_INPUT_NORMALIZATION.json",
+        "sha256": "28ce1930a26d8b402c09a52b9ef0c17bbaa1ea5d81f1b5498d8653769cd57766"
+      },
+      "train_rows_by_surface": {
+        "mtf_d1": 488,
+        "mtf_h1": 5504,
+        "mtf_h4": 1512,
+        "mtf_m15": 21683,
+        "mtf_m5": 64874,
+        "signal": 64954
+      }
+    },
+    "4": {
+      "old_field_preservation": {
+        "aliases_exact_by_name": true,
+        "all_old_stat_vectors_exact": true,
+        "old_category_and_support_values_exact": true,
+        "old_fields_per_surface": {
+          "ctx_cont": 2542,
+          "mtf_d1": 253,
+          "mtf_h1": 253,
+          "mtf_h4": 253,
+          "mtf_m15": 253,
+          "mtf_m5": 253,
+          "signal": 2725
+        },
+        "old_statistics_refitted": false,
+        "parent_lineage_unchanged": true
+      },
+      "reused": false,
+      "ta_contract_sha256": "79b52fca7377fc4885cce6d66884e21d4d06c193a49fc38e9d52535d8d88a319",
+      "ta_normalization": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_NORMALIZATION_20261114_001/FOLD_4/TA_INPUT_NORMALIZATION.json",
+        "sha256": "6708905a9d9304c2d601556afd5dc6a01494ba3a7d6d2a9b42d60749c1275436"
+      },
+      "train_rows_by_surface": {
+        "mtf_d1": 552,
+        "mtf_h1": 6972,
+        "mtf_h4": 1896,
+        "mtf_m15": 27551,
+        "mtf_m5": 82477,
+        "signal": 82557
+      }
+    },
+    "5": {
+      "old_field_preservation": {
+        "aliases_exact_by_name": true,
+        "all_old_stat_vectors_exact": true,
+        "old_category_and_support_values_exact": true,
+        "old_fields_per_surface": {
+          "ctx_cont": 2542,
+          "mtf_d1": 253,
+          "mtf_h1": 253,
+          "mtf_h4": 253,
+          "mtf_m15": 253,
+          "mtf_m5": 253,
+          "signal": 2725
+        },
+        "old_statistics_refitted": false,
+        "parent_lineage_unchanged": true
+      },
+      "reused": false,
+      "ta_contract_sha256": "11d4e06f098fddab2c5136f1c8bffce752143d668ff1328f46b9c2df24fa68f9",
+      "ta_normalization": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_NORMALIZATION_20261114_001/FOLD_5/TA_INPUT_NORMALIZATION.json",
+        "sha256": "1730fd7f542374f38d262c7580c76415b205ef0c4865ab4e4f3bf1bb8c2aaf30"
+      },
+      "train_rows_by_surface": {
+        "mtf_d1": 618,
+        "mtf_h1": 8484,
+        "mtf_h4": 2291,
+        "mtf_m15": 33597,
+        "mtf_m5": 100615,
+        "signal": 100695
+      }
+    }
+  },
+  "full_model_input_view_qualified": false,
+  "model_fits": 0,
+  "model_forwards": 0,
+  "new_field_statistics": 36,
+  "new_surface_fit_calls": 18,
+  "observed_utc": "2026-11-14T20:25:21.048530+00:00",
+  "old_field_fit_calls": 0,
+  "old_statistics_refitted": false,
+  "optimizer_steps": 0,
+  "plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_FIVEFOLD_SPAN_NORMALIZATION_20261114_001.json",
+    "sha256": "15949f150ea8da9a2676680ff13430a90468e4f91f4e5efd0db50e291e200919"
+  },
+  "ranking_or_calibration_gain_measured": false,
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_NORMALIZATION_20261114_001/RESULT.json",
+    "sha256": "0cc42c0031aa1746d9e937c35ab7afe8834639570dff5feda8ddb6865900c702"
+  },
+  "schema_version": "gx1_ta_fivefold_span_normalization_result_review_v1",
+  "source_head": "5efa03071362137f8b0cbc31afef4bb43a0733fb",
+  "source_unchanged": true,
+  "status": "COMPLETE_CONSUMED_INPUT_NORMALIZATION_ONLY",
+  "surface_widths": [
+    317,
+    132,
+    255,
+    255,
+    255,
+    255,
+    255
+  ],
+  "target_labels_used": false,
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_NORMALIZATION_20261114_001/TERMINAL.json",
+    "sha256": "f01847e05b5098e3e221c285fc3fb35b00bf64f2d32b9f1911ad929c4c907948"
+  },
+  "test_data_used": false
+}
