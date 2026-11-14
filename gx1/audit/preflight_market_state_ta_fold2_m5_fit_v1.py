@@ -33,9 +33,11 @@ def inspect() -> dict:
     h = review['fold2_m5_fit_hypothesis']
     fit = h['fixed_fit']
     resource = h['resource_gate']
-    from gx1.contracts.market_state_ta_fold2_m5_fit_v1 import require_fixed_design
+    from gx1.contracts.market_state_ta_fold2_m5_fit_v1 import (
+        MODEL_CONTRACT_SHA256, require_fixed_design,
+    )
     require_fixed_design(h)
-    need(policy['status'] == 'TA_FOLD2_M5_METADATA_PREFLIGHT_PASS_EXECUTION_CLOSED'
+    need(policy['status'] == 'TA_FOLD2_M5_FIT_CORE_SYNTHETIC_REVIEWED_EXECUTION_CLOSED'
          and policy['training_enabled'] is False
          and all(policy.get(k) is False for k in (
              'native_training_enabled', 'native_launch_authorized',
@@ -70,6 +72,7 @@ def inspect() -> dict:
          and fit['view_contract_sha256'] == profile['feature_view_sha256']
          and fit['m5_equal_observation_profile_sha256'] == profile['contract_sha256']
          and fit['loss_contract_sha256'] == loss['contract_sha256']
+         and loss['dual_model_contract_sha256'] == MODEL_CONTRACT_SHA256
          and fit['m5_direction_only'] is True
          and fit['future_weight'] == 1.0,
          'FIT_CONTRACT')

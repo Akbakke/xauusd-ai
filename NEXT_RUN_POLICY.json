@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-14T08:44:03.214755+00:00",
-  "status": "TA_FOLD2_M5_METADATA_PREFLIGHT_PASS_EXECUTION_CLOSED",
+  "status": "TA_FOLD2_M5_FIT_CORE_SYNTHETIC_REVIEWED_EXECUTION_CLOSED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Implement only the fold2 M5 one-pass fit worker through the canonical guarded trainer route, reusing the metadata preflight and fixed panels. Bind the proposed 12000-second one-window, 250 W, no-checkpoint/no-resume rule in the exact campaign and worker; qualify source, startup and failure receipts before a separate one-use admission. training_enabled=false; no fit, TEST, broker or trading authorized.",
+  "next_action": "Bind the fold2 M5 fit core to the qualified full TRAIN feature gather and fixed final TRAIN/later readout, then to the existing canonical guarded research campaign with exact source, one-window 12000-second/250 W/no-resume admission and failure receipts. Qualify metadata and synthetic startup/failure paths before any separate one-use fit admission. training_enabled=false; no fit, TEST, broker or trading authorized.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",

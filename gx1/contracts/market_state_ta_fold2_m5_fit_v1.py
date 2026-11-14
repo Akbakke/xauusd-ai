@@ -20,7 +20,12 @@ INITIAL_MODEL_SHA256 = '3c172867694217f240a076c34220a1b7fafb2464af5738de544cf7a1
 VIEW_SHA256 = '388fadd9ce6b6d8673724f776eb0f945711ab76cc3b3650f875f3a9e5431c4ab'
 PROFILE_SHA256 = '734a2bfb6b1c796205b9a77bd91989bf1f0652e6bf6594927c74ff580c634f75'
 LOSS_SHA256 = 'da042c0f02d104bf5533f9d82688b986a29117436517485272de0853e7bd6150'
+MODEL_CONTRACT_SHA256 = '4d6fa668262b2cf51e78d015b81a462dc53debf606121b859898053e6fd12e38'
 BOOTSTRAP_SEEDS = {'UTC_DAY': 20260911, 'UTC_MONDAY_WEEK': 20260912}
+ADAMW_DEFAULTS = {'lr': 1e-4, 'betas': (0.9, 0.999), 'eps': 1e-8,
+                  'weight_decay': 1e-4, 'amsgrad': False, 'foreach': None,
+                  'maximize': False, 'capturable': False,
+                  'differentiable': False, 'fused': None}
 ONE_WINDOW = {'max_invocation_seconds': 12000, 'max_model_seconds': 10500,
               'wrapper_wall_seconds': 13800, 'gpu_power_cap_w': 250,
               'checkpoint_writes': 0, 'resume_allowed': False,
@@ -53,6 +58,11 @@ def require_fixed_design(hypothesis: dict) -> None:
           and fit['loss_contract_sha256'] == LOSS_SHA256
           and fit['m5_direction_only'] is True and fit['future_weight'] == 1.0,
           'FIXED_FUNCTION')
+    _need(fit['optimizer_candidate_reused_without_search']
+          == {'name': 'torch.optim.AdamW',
+              'kwargs': {key: list(value) if key == 'betas' else value
+                         for key, value in ADAMW_DEFAULTS.items()}},
+          'FIXED_OPTIMIZER')
     _need(readout['bootstrap_binding']['replicates'] == 2000
           and readout['bootstrap_binding']['seeds'] == BOOTSTRAP_SEEDS
           and all(panel['selected_rows'] == PANEL_ROWS
