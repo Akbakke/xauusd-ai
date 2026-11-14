@@ -12,9 +12,9 @@
       "sha256": "8d2ae09f2bcb1993f88b8178bd2e3834d304a62d852703bc65527edf32be55b0"
     }
   },
-  "native_training_authorized": true,
-  "new_job_admitted": true,
-  "next_action": "Only frozen recipe003 is admitted for one guarded TRAIN fit after fresh boot >651. The published recipe passed the runtime gate and the actual full S/F bound axes reached first batch read-only; materialize on clean source, inspect plan, run one window. Plans001/002 remain consumed. No TEST, Entry, Exit, broker or trading.",
+  "native_training_authorized": false,
+  "new_job_admitted": false,
+  "next_action": "Plan003 failed and was consumed before first model forward/update. Sampled S target owner and explicit M5 side count are corrected; actual first/tail target evaluation and loss passed read-only. Commit/push, then publish only distinct candidate recipe004 under closed training. No TEST, Entry, Exit, broker or trading.",
   "normalization": {
     "artifacts": {
       "EXTENDED_BASE_NORMALIZATION": {
@@ -221,7 +221,7 @@
       "sha256": "2e25098183d2ffb27a4441f178789e2bdd39b84646815b67d061ccedbf2170da"
     }
   },
-  "observed_utc": "2026-11-14T12:28:20.093561+00:00",
+  "observed_utc": "2026-11-14T12:41:48.617307+00:00",
   "physical": {
     "all_413_overlap_rows_bitexact": true,
     "counts": {
@@ -317,7 +317,7 @@
     "Existing M5 equal-observation owner binds fold2 to its measured S/F q/N, axes, view and target-count receipts; fold1 profile and default identity remain unchanged.",
     "Runtime fold_id gate now reads numerical_recipe.fold_id; prior synthetic fixture was corrected and an admitted-gate regression added. Distinct frozen design002 preserves all initial inputs and targets."
   ],
-  "status": "FOLD2_M5_PLANS001_002_CONSUMED_003_ONE_USE_FIT_ADMITTED_PREPARATION_PENDING",
+  "status": "FOLD2_M5_PLAN003_FAILED_CONSUMED_004_SOURCE_REPAIR_CLOSED",
   "test_data_used": false,
   "validation": {
     "both_actual_cli_preflights": "PASS",
@@ -989,7 +989,7 @@
     "relaunch_allowed": false
   },
   "fold2_m5_fit_hypothesis": {
-    "status": "PLANS001_002_FAILED_CONSUMED_003_ONE_USE_FIT_ADMITTED_PREPARATION_PENDING",
+    "status": "PLAN003_FAILED_CONSUMED_ZERO_UPDATE_004_REPAIR_SOURCE_CLOSED",
     "question": "Can one fixed chronological full-TRAIN pass of the existing native S/F model, using only its M5 known-side direction loss, improve later F M5 rank versus the exact fresh zero-update function?",
     "source_commit_at_review": "f013cb758e0d03098bbe4edaddef6c5426d8a5fa",
     "source_owners": {
@@ -999,7 +999,7 @@
       },
       "gx1/contracts/market_state_time_query_native_F_batch_v1.py": {
         "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_time_query_native_F_batch_v1.py",
-        "sha256": "ec21182ce3e6955bea30a3b344e3f9fbcbc04ba5b5404e2fd7f7afc92f494601"
+        "sha256": "138dab0c7aea643d2f0ed329888e2c18b95e955b163c783a2e8567d9e6679dcb"
       },
       "gx1/scripts/run_market_state_time_query_fold1_fit_window_v1.py": {
         "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_market_state_time_query_fold1_fit_window_v1.py",
@@ -1015,7 +1015,7 @@
       },
       "tests/test_market_state_m5_equal_observation_binding.py": {
         "path": "/home/andre2/src/GX1_CURRENT/tests/test_market_state_m5_equal_observation_binding.py",
-        "sha256": "ba5958fd73eff1dbdfe13a29e9d34fe9bb3c880bc01b2e05a55e00cbb1485ace"
+        "sha256": "c5eb5819a1389c0bcef4d36a7cd18d7a6f499273f75f15e20282e08be1a24ef8"
       },
       "scripts/gx1_capped_run.sh": {
         "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_capped_run.sh",
@@ -1023,19 +1023,19 @@
       },
       "gx1/audit/preflight_market_state_ta_fold2_m5_fit_v1.py": {
         "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/preflight_market_state_ta_fold2_m5_fit_v1.py",
-        "sha256": "24938b09bf935733de05dc299e0cb4cedd4b87de3f6d91493990c6f76ca80f29"
+        "sha256": "5f74a91a6c370a029468601b5b7587b39f3ec01f8972f7e180b7687299949327"
       },
       "gx1/contracts/market_state_ta_fold2_m5_fit_v1.py": {
         "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_ta_fold2_m5_fit_v1.py",
-        "sha256": "069d9eb7ff140af35b2a3973db40315af7108cd4573b174351389a53803b85ea"
+        "sha256": "a74f917c6e201692b655af677ea9305b2f84a21e960e5c062594b86cfe56391d"
       },
       "gx1/scripts/run_market_state_ta_fold2_m5_fit_window_v1.py": {
         "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_market_state_ta_fold2_m5_fit_window_v1.py",
-        "sha256": "2dc635efc8543bcff8117157c4580c601eef038abe35ddb99807c4ba69c029a3"
+        "sha256": "d4dc24eba587d27716d089ee9384252a7adcbb2362e92623a61eab0c2f0fe86f"
       },
       "tests/test_market_state_ta_fold2_m5_fit_core.py": {
         "path": "/home/andre2/src/GX1_CURRENT/tests/test_market_state_ta_fold2_m5_fit_core.py",
-        "sha256": "1f8098a7f0643053f18c818a3da2be20a78a9eb5b611fdc769db6c72db527ca4"
+        "sha256": "7e7ae0f96a8100fb68a99835516bf3c00adaedcc676bfcfd817b39e72598a36e"
       },
       "gx1/audit/score_market_state_ta_fold2_m5_fit_v1.py": {
         "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/score_market_state_ta_fold2_m5_fit_v1.py",
@@ -1067,11 +1067,11 @@
       },
       "gx1/scripts/prepare_market_state_ta_fold2_m5_fit_recipe_v1.py": {
         "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/prepare_market_state_ta_fold2_m5_fit_recipe_v1.py",
-        "sha256": "71402572ac88fd19660aa01bc7f55135e20f61bb986e0bc1f832810e52494a98"
+        "sha256": "9d23b22dcf02c0640e6f920ca4545d15866618459781eba2355e418f6760a7df"
       },
       "tests/test_market_state_ta_fold2_m5_fit_campaign_route.py": {
         "path": "/home/andre2/src/GX1_CURRENT/tests/test_market_state_ta_fold2_m5_fit_campaign_route.py",
-        "sha256": "3793efa2e26871c686b04dd318d4c0100b54281a6032855ca0df68ecccffb3f9"
+        "sha256": "d924b509bad2a12e6bedc1568e3ef4d54abfae92a9c46b7e5146ab5ddd883449"
       }
     },
     "observed_basis": {
@@ -1204,11 +1204,11 @@
         }
       }
     },
-    "implementation_gap": "Plans001/002 were consumed with zero updates. Corrected source, published recipe003, read-only actual bound input check and full S/F target axes to first batch pass. One-use fit003 is admitted; campaign plan, fresh boot >651, guarded claim, actual updates and final readout are pending.",
+    "implementation_gap": "Plans001/002/003 were consumed with zero updates. Plan003 reached first batch but supplied endpoint S targets to sampled TRAIN evaluator, failing before forward. Source now supplies sampled S target for fit, endpoint S target for fixed readout and explicit M5 known-side count. Actual first/tail S/F target evaluator and loss pass read-only; no recipe004, plan, claim or fit is admitted.",
     "resource_note": "The historical fold1 full-prefix two-pass phase took 7586.8 seconds for 3698 updates; this is planning evidence, not a fold2 wall-time guarantee or admission.",
     "scope_limits": "All genuine TA/MTF/D1 inputs and S/F outputs remain; the selected loss gives direct gradient only to M5 known-side direction. A single pass cannot rule out deeper learning if it fails. No Entry selection, economics, TEST or trading is measured.",
-    "execution_authorized": true,
-    "training_authorized": true,
+    "execution_authorized": false,
+    "training_authorized": false,
     "test_data_used": false,
     "adapter_qualification": {
       "test": "tests/test_market_state_m5_equal_observation_binding.py::test_fold2_direction_only_binds_full_batch_and_partial_tail",
@@ -1527,12 +1527,12 @@
         "sha256": "acf67bdf70c8f0a5f3d5a03115337d1181c72cba67667af216ab6b192c003171"
       },
       "candidate_recipe_published": true,
-      "training_authorized": true,
+      "training_authorized": false,
       "test_data_used": false,
       "focused_tests_passed": 14,
       "actual_full_S_F_bound_target_axes_match_47338_fit_prefix": true,
       "actual_bound_axes_reach_first_batch_without_payload_or_update": true,
-      "status": "ADMITTED_PREPARATION_PENDING",
+      "status": "FAILED_CONSUMED_ZERO_UPDATE_S_FIT_TARGET_OWNER_MISMATCH",
       "recipe": {
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_003/RECIPE.json",
         "sha256": "ee16c4c4f4d98a2f9629ec8d1be0cff56469e19cdc58cb87f16c4d4769332149"
@@ -1555,7 +1555,35 @@
       },
       "source_commit": "853ddadc815cea0ca7b6bb974559a626921da9b5",
       "max_invocations": 1,
-      "remaining_invocations": 1
+      "remaining_invocations": 0,
+      "boot_id": 652,
+      "batch_visits": 0,
+      "optimizer_updates": 0,
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_003/RESULT.json",
+        "sha256": "21204b71bc9155bddc450e1dc88990e65c721b97cf1c4618df63ab68c49639a2"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_003/TERMINAL.json",
+        "sha256": "d8f2d19962e24d1b62d20e13f07f4a5862f227cc0f91007aac9db91449499f82"
+      },
+      "invocation_receipt": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_003/RUNTIME/receipts/invocation-0001.json",
+        "sha256": "5ca23efbd32c93afe9fb57ed0375cb04842b54033b21cd3ed03cdef562e97efd"
+      },
+      "task_disabled_observed": true
+    },
+    "successor004": {
+      "stage": "market_state_ta_fold2_m5_direction_fit_20261114_004",
+      "frozen_design": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_FOLD2_M5_FIT_DESIGN_20261114_004.json",
+        "sha256": "f1ab0e159e3a2e4a78211175e0b60f658fdd78e70db7be1dd5ce6111023d42c5"
+      },
+      "candidate_recipe_published": false,
+      "training_authorized": false,
+      "test_data_used": false,
+      "focused_evaluator_and_fold2_suites_passed": true,
+      "actual_first_and_tail_S_F_target_evaluator_loss_read_only_passed": true
     }
   }
 }

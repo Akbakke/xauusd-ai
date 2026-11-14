@@ -142,6 +142,8 @@ def evaluate_fit_batch(model: NativeFutureDualModel, features: Mapping,
     return {**output, 'loss': report['loss'],
             'state_count': report['state']['count'],
             'future_count': report['future']['count'],
+            'known_side_count_m5': int(report['state']['side_known_mask'][:, 0].sum().item()
+                                       + report['future']['side_known_mask'][:, 0].sum().item()),
             'state_per_tf_counts': report['state']['per_tf_counts'],
             'future_per_tf_counts': report['future']['per_tf_counts'],
             'skip_update': report['skip_update'],

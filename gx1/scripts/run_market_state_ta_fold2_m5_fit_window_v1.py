@@ -76,9 +76,12 @@ def fit_one_pass(*, model, optimizer, parent_rows: np.ndarray,
         _need(report['loss_contract_sha256'] == LOSS_SHA256
               and report['model_contract_sha256'] == MODEL_CONTRACT_SHA256
               and bool(torch.isfinite(report['loss']).all())
-              and report['skip_update'] is (report['count'] == 0), 'LOSS_AND_SUPPORT')
+              and type(report['known_side_count_m5']) is int
+              and 0 <= report['known_side_count_m5'] <= 2 * len(rows)
+              and report['skip_update'] is (report['known_side_count_m5'] == 0),
+              'LOSS_AND_SUPPORT')
         record = {'batch_index': index, 'start': left, 'stop': right,
-                  'known_side_count': int(report['count']),
+                  'known_side_count': report['known_side_count_m5'],
                   'skip_update': report['skip_update'],
                   'loss': float(report['loss'].detach())}
         if report['skip_update']:
@@ -133,6 +136,9 @@ def prepare_qualified_inputs(*, initial_plan_ref: dict, design: dict,
     from gx1.contracts.market_state_future_displacement_candidate_v1 import (
         load_bound_future_displacement,
     )
+    from gx1.contracts.market_state_time_query_binding_v1 import (
+        load_bound_time_query_targets,
+    )
     from gx1.contracts.market_state_time_query_native_F_objective_v1 import (
         require_endpoint_priors,
     )
@@ -179,6 +185,10 @@ def prepare_qualified_inputs(*, initial_plan_ref: dict, design: dict,
         _need(hashlib.sha256(axes[key].astype('<i8').tobytes()).hexdigest()
               == view['full_axes'][key + '_sha256'], 'FULL_AXIS_' + key)
     state_bound, future_bound = load_bound_five_endpoint_targets(), load_bound_future_displacement()
+    state_fit_bound = load_bound_time_query_targets()
+    _need(np.array_equal(state_fit_bound.parent_rows, state_bound.parent_rows)
+          and np.array_equal(state_fit_bound.decision_ns, state_bound.decision_ns),
+          'FOLD2_FIT_STATE_AXES')
     oof = state_bound.mature_oof_axes(fold_id=2)
     _need(np.array_equal(axes['parent_rows'][:TRAIN_ROWS], oof['fit_parent_rows'])
           and np.array_equal(axes['parent_rows'][47602:64890], oof['score_parent_rows'])
@@ -254,7 +264,8 @@ def prepare_qualified_inputs(*, initial_plan_ref: dict, design: dict,
             'normalization': normalization, 'constructor': constructor,
             'priors': priors, 'axes': axes, 'train_positions': train_pos,
             'later_positions': later_pos, 'state_bound': state_bound,
-            'future_bound': future_bound, 'features': features, 'release': release}
+            'state_fit_bound': state_fit_bound, 'future_bound': future_bound,
+            'features': features, 'release': release}
 
 
 def evaluate_fixed_panels(*, model, context: dict, deadline_monotonic: float) -> dict:
@@ -414,7 +425,7 @@ def _execute_fixed_fit_and_readout(*, launch: dict, review_ref: dict,
             model=model, optimizer=optimizer,
             parent_rows=axes['parent_rows'][:TRAIN_ROWS],
             issue_ns=axes['decision_ns'][:TRAIN_ROWS],
-            state_bound=context['state_bound'],
+            state_bound=context['state_fit_bound'],
             future_bound=context['future_bound'],
             gather_features=lambda left, right, rows, issues:
                 context['features']('TRAIN', rows, issues),

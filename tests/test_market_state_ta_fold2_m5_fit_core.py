@@ -29,7 +29,7 @@ def _case(monkeypatch, *, lr=1e-4, wrong_model_contract=False):
         seen.append(index)
         skip = index in (0, 2958)
         return {'loss': model.weight.sum() * (0 if skip else .01),
-                'count': 0 if skip else 1, 'skip_update': skip,
+                'known_side_count_m5': 0 if skip else 1, 'skip_update': skip,
                 'loss_contract_sha256': worker.LOSS_SHA256,
                 'model_contract_sha256': ('wrong' if wrong_model_contract else
                                           worker.MODEL_CONTRACT_SHA256)}

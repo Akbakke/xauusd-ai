@@ -5,7 +5,7 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_FOLD2_M5_DIRECTION_FIT_003_ONE_USE_ADMITTED_PREPARATION_PENDING. Edge-målet er
+TA_FOLD2_M5_003_CONSUMED_004_SOURCE_QUALIFIED_RECIPE_PENDING. Edge-målet er
 uoppnådd. TARGET_COUNTS001 er COMPLETE/CONSUMED, exit0,3,78s. RESULT ba50eb96,
 VALIDATION dd45bd05, TERMINAL dccda6f6; ingen relansering. På eksakt47338 modne
 TRAIN-rader /2959 B16 med siste10 er M5 kjent retning S N16101/q2890 og F N19072/q2950.
@@ -85,10 +85,17 @@ reell aksekontroll når første batch uten payload/update. Plan002 er
 FAILED/CONSUMED uten relansering, Windows-oppgaven deaktivert. Design003
 er identisk med002 utenom ny engangsidentitet. Resept003 SHAee16c4c4 er publisert fra ren commit853ddadc og boot651
 SHA14a06a41. Lesende PREFLIGHT SHA27a5fecf og faktisk resept/
-fullakse-gate SHA693ce1af passerer før forward/update. Én separat
-12000s/250W-admisjon003 med høyst2959 updates og null checkpoint er
-åpnet; faktisk fit er ikke startet. Neste steg er ren commit/push,
-capped materialisering, maskinvid idle-kontroll og fysisk boot>651. TEST, Entry, Exit, broker og ordre er stengt.
+fullakse-gate SHA693ce1af passerer før forward/update. Plan003 ble materialisert og startet etter fysisk boot652, men feilet ved
+første batch med RESULT SHA21204b71, TERMINAL SHAd8f2d199 og kvittering
+SHA5ca23efb:0 batchbesøk,0 updates, ingen FINAL. Fit sendte endpoint-S-target
+til evaluatoren som krever sampled S-target. Den latente bruken av manglende
+report[count] ble også avdekket. Fit bruker nå sampled S i TRAIN og endpoint S
+i fast readout, og evaluatoren gir eksplisitt M5-kjent-sideantall. Faktiske
+S/F-targets og loss for første og siste batch passerer lesende, uten native
+forward eller update. Plan003 er FAILED/CONSUMED uten relansering, Windows-
+oppgaven deaktivert. Design004 er identisk med003 utenom engangsidentitet.
+Ingen resept004 eller fit er innrømmet; training_enabled=false. Neste steg
+er ren commit/push og en ny kvalifisert kandidat. TEST, Entry, Exit, broker og ordre er stengt.
 Edge er fortsatt ubevist.
 Fokuserte fold2/campaign-tester PASS. Eldre fold1-fit-testfil har19 isolerte
 fixture-feil NATIVE_F_PRIVATE_TA_M5_EXACT_INPUT_IDENTITY i uendrede kilder/refs;

@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-14T12:28:20.093561+00:00",
-  "status": "TA_FOLD2_M5_DIRECTION_FIT_003_ONE_USE_ADMITTED_PREPARATION_PENDING",
+  "observed_utc": "2026-11-14T12:41:48.617307+00:00",
+  "status": "TA_FOLD2_M5_003_CONSUMED_004_SOURCE_QUALIFIED_RECIPE_PENDING",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
-  "full_epoch_training_allowed": true,
+  "training_enabled": false,
+  "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Only frozen fold2 M5 direction recipe003 is admitted for one capped TRAIN pass after fresh boot and exact guards. Plans001/002 remain failed/consumed. TEST, Entry, Exit, broker, trading and promotion remain closed.",
-  "next_action": "Materialize only plan003 from clean committed source and prepared boot651 under capped audit. Check immutable plan, startup and machine-wide idle; then one physical Windows boot >651 for one guarded 12000-second/250 W window. Score fixed later F M5 paired AUC and all five TF/month cells, close admission and task. No relaunch of any consumed plan.",
+  "rule": "Plans001/002/003 failed and were consumed with zero optimizer updates. The measured sampled-S target-owner and M5 side-count interface defects are repaired in source; all training, TEST, Entry, Exit, broker, trading and promotion remain closed. Successor004 needs distinct recipe and exact one-use admission.",
+  "next_action": "Commit/push the minimal sampled-S TRAIN target binding, explicit M5 known-side count, frozen design004 and handover. From clean source publish only candidate recipe004 and prepared boot652 under closed training. Before a separate exact admission, verify the actual first/tail S/F target evaluation and loss, source startup, resources and all prior consumed plans. No relaunch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -25403,7 +25403,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-14T12:28:20.093561+00:00",
+  "updated_utc": "2026-11-14T12:41:48.617307+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -36168,7 +36168,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -86965,7 +86965,7 @@
     "successor_candidate_stage": "market_state_ta_fold2_m5_direction_fit_20261114_003"
   },
   "market_state_ta_fold2_m5_direction_fit_20261114_003": {
-    "status": "ADMITTED",
+    "status": "FAILED_CONSUMED_ZERO_UPDATE_S_FIT_TARGET_OWNER_MISMATCH",
     "recipe": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_003/RECIPE.json",
       "sha256": "ee16c4c4f4d98a2f9629ec8d1be0cff56469e19cdc58cb87f16c4d4769332149"
@@ -86973,9 +86973,9 @@
     "source_commit": "853ddadc815cea0ca7b6bb974559a626921da9b5",
     "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_003/RUNTIME",
     "candidate_preparation_consumed": true,
-    "campaign_preparation_authorized": true,
-    "execution_authorized": true,
-    "training_authorized": true,
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
+    "training_authorized": false,
     "relaunch_allowed": false,
     "test_data_used": false,
     "prepared_boot": {
@@ -87019,22 +87019,22 @@
       "test_data_used": false
     },
     "fresh_physical_windows_boot_before_invocation_required": true,
-    "operator_fit_admission_authorized": true,
+    "operator_fit_admission_authorized": false,
     "decision": "ADMITTED",
     "fold_id": 2,
     "selected_fit_rows": 47338,
     "selected_score_rows": 4096,
-    "model_constructions_authorized": 1,
-    "optimizer_constructions_authorized": 1,
-    "model_forwards_authorized": 3471,
-    "backward_calls_authorized": 2959,
-    "optimizer_steps_authorized": 2959,
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "genuine_predictor_fit_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
-    "full_epoch_training_allowed": true,
+    "model_constructions_authorized": 0,
+    "optimizer_constructions_authorized": 0,
+    "model_forwards_authorized": 0,
+    "backward_calls_authorized": 0,
+    "optimizer_steps_authorized": 0,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "genuine_predictor_fit_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "full_epoch_training_allowed": false,
     "canonical_resume_authority": false,
     "candidate_selection": false,
     "native_launch_authorized": false,
@@ -87052,18 +87052,18 @@
       "sha256": "3e46c619b509721bcc77f43a6bd0277545c99b38b0fc437cd290b3f7b353ed54"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "model_execution_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "model_execution_authorized": false,
     "checkpoint_reads_authorized": false,
     "checkpoint_loads_authorized": 0,
     "checkpoint_writes_authorized": 0,
-    "candidate_evidence_writes_authorized": 1,
-    "actual_model_execution_started": false,
+    "candidate_evidence_writes_authorized": 0,
+    "actual_model_execution_started": true,
     "actual_native_job_active": false,
     "max_model_seconds": 10500,
     "max_invocation_seconds": 12000,
@@ -87091,6 +87091,32 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_003/ACTUAL_GATE_CHECK.json",
       "sha256": "693ce1af3ea24cf42f923c2e83fdd8db38e6a20c8cbe05882f9802ad8b008324"
     },
-    "preclaim_actual_full_target_axes": "PASS_118249_FULL_S_F_ROWS_47338_TRAIN_PREFIX_TO_FIRST_BATCH_NO_FORWARD_OR_UPDATE"
+    "preclaim_actual_full_target_axes": "PASS_118249_FULL_S_F_ROWS_47338_TRAIN_PREFIX_TO_FIRST_BATCH_NO_FORWARD_OR_UPDATE",
+    "actual_boot_id": 652,
+    "actual_batch_visits": 0,
+    "actual_optimizer_updates": 0,
+    "task_disabled_observed": true,
+    "failure_cause": "Fit passed the full-axis gate but passed BoundFiveEndpointTargets (S endpoint scoring owner) into evaluate_fit_batch, which requires BoundTimeQueryTargets for sampled S training. It failed at NATIVE_F_BATCH_INPUT before first model forward/update. Worker also expected nonexistent report[count]; now uses explicit M5 known-side count from the evaluator. Actual first and tail S/F targets and loss were checked read-only.",
+    "campaign_plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_003/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "sha256": "bcb0626637ece3ba5f215380008e1da0f9e65e2c938a426644c95fcff3075c40"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_003/RESULT.json",
+      "sha256": "21204b71bc9155bddc450e1dc88990e65c721b97cf1c4618df63ab68c49639a2"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_003/TERMINAL.json",
+      "sha256": "d8f2d19962e24d1b62d20e13f07f4a5862f227cc0f91007aac9db91449499f82"
+    },
+    "invocation_receipt": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_003/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "5ca23efbd32c93afe9fb57ed0375cb04842b54033b21cd3ed03cdef562e97efd"
+    },
+    "progress": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_003/RUNTIME/progress/invocation-0001.json",
+      "sha256": "cf3766b3371285c65e8798b79f7fb87ebaa2957026f2e376d7bb9924703ec561"
+    },
+    "successor_candidate_stage": "market_state_ta_fold2_m5_direction_fit_20261114_004"
   }
 }

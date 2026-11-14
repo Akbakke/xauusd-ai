@@ -4,7 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 
 REPO = Path('/home/andre2/src/GX1_CURRENT')
-STAGE = 'market_state_ta_fold2_m5_direction_fit_20261114_003'
+STAGE = 'market_state_ta_fold2_m5_direction_fit_20261114_004'
 SCOPE = 'market_state_ta_fold2_m5_direction_fit_v1'
 ROOT = Path('/home/andre2/GX1_RUNS') / STAGE.upper()
 RUNTIME_ROOT = ROOT / 'RUNTIME'
@@ -115,7 +115,7 @@ def require_reused_input_refs(initial_plan_ref: dict) -> dict:
 
 # Candidate metadata for the existing native research campaign. Building this
 # recipe does not change NEXT_RUN_POLICY or grant execution.
-DESIGN_PATH = REPO / 'configs/research/MARKET_STATE_TA_FOLD2_M5_FIT_DESIGN_20261114_003.json'
+DESIGN_PATH = REPO / 'configs/research/MARKET_STATE_TA_FOLD2_M5_FIT_DESIGN_20261114_004.json'
 RECIPE_SCHEMA = 'gx1_ta_fold2_m5_direction_fit_recipe_v1'
 RESULT_SCHEMA = 'gx1_ta_fold2_m5_direction_fit_result_v1'
 CURSOR_SCHEMA = 'gx1_ta_fold2_m5_direction_fit_cursor_v1'

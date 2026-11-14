@@ -362,4 +362,5 @@ def test_fold2_direction_only_binds_full_batch_and_partial_tail(monkeypatch, sta
         ta_only=True, dedicated_m5_side=True, dedicated_tf_activity=True,
         m5_equal_observation=True, m5_direction_only=True, fold_id=2)['contract_sha256']
     assert result['skip_update'] is False
+    assert 0 < result['known_side_count_m5'] <= 2 * size
     assert torch.isfinite(result['loss'])
