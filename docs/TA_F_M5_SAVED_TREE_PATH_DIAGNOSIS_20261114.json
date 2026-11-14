@@ -1,0 +1,324 @@
+{
+  "current_matrix_sha256": "19539b3cda7c4e3983b37dee027b5ef7fc133692925a1caf9f8d0a85ea48cdb1",
+  "finding": "At 64 rounds Brier is below the frozen own-fold prior in all five later folds. Earlier tree prefixes have much smaller probability spread and small positive Brier deltas only in folds 1, 2, and 4; folds 3 and 5 remain negative at every inspected prefix. Ranking stays near chance.",
+  "fixed_checkpoints": [
+    1,
+    2,
+    4,
+    8,
+    16,
+    32,
+    64
+  ],
+  "folds": [
+    {
+      "fold_id": 1,
+      "known_side_n": 7165,
+      "rounds": [
+        {
+          "auc": 0.4969746749538656,
+          "brier": 0.2498576464298553,
+          "p_sd": 0.0030753740906001603,
+          "prior_minus_model": -2.4230020554294462e-05,
+          "rounds": 1
+        },
+        {
+          "auc": 0.49898597051950305,
+          "brier": 0.24987016661529976,
+          "p_sd": 0.004918283790813584,
+          "prior_minus_model": -3.67502059987479e-05,
+          "rounds": 2
+        },
+        {
+          "auc": 0.5079420678887884,
+          "brier": 0.24979151499116709,
+          "p_sd": 0.008281747541436343,
+          "prior_minus_model": 4.1901418133927226e-05,
+          "rounds": 4
+        },
+        {
+          "auc": 0.5051103405666995,
+          "brier": 0.2498868810149124,
+          "p_sd": 0.013211776094854804,
+          "prior_minus_model": -5.346460561139743e-05,
+          "rounds": 8
+        },
+        {
+          "auc": 0.5045006597760535,
+          "brier": 0.25014310916547683,
+          "p_sd": 0.020300932403483796,
+          "prior_minus_model": -0.0003096927561758167,
+          "rounds": 16
+        },
+        {
+          "auc": 0.5087117806281267,
+          "brier": 0.25022348307188585,
+          "p_sd": 0.029114805569744807,
+          "prior_minus_model": -0.00039006666258484257,
+          "rounds": 32
+        },
+        {
+          "auc": 0.5075645016468672,
+          "brier": 0.2512956572596256,
+          "p_sd": 0.04525904845151005,
+          "prior_minus_model": -0.001462240850324592,
+          "rounds": 64
+        }
+      ]
+    },
+    {
+      "fold_id": 2,
+      "known_side_n": 6707,
+      "rounds": [
+        {
+          "auc": 0.5051497897063016,
+          "brier": 0.2495747827668044,
+          "p_sd": 0.002618811817616311,
+          "prior_minus_model": 2.4420080863452043e-05,
+          "rounds": 1
+        },
+        {
+          "auc": 0.5037585988736812,
+          "brier": 0.24959408624315857,
+          "p_sd": 0.003762183887855964,
+          "prior_minus_model": 5.116604509275424e-06,
+          "rounds": 2
+        },
+        {
+          "auc": 0.507851751853436,
+          "brier": 0.2495486320782151,
+          "p_sd": 0.005742352866152067,
+          "prior_minus_model": 5.0570769452751296e-05,
+          "rounds": 4
+        },
+        {
+          "auc": 0.5112979843883662,
+          "brier": 0.24948336381465847,
+          "p_sd": 0.0091533412744684,
+          "prior_minus_model": 0.00011583903300937948,
+          "rounds": 8
+        },
+        {
+          "auc": 0.5052365804106074,
+          "brier": 0.2496710128674144,
+          "p_sd": 0.014498328919384209,
+          "prior_minus_model": -7.181001974654322e-05,
+          "rounds": 16
+        },
+        {
+          "auc": 0.50743873859424,
+          "brier": 0.24994600183299512,
+          "p_sd": 0.023007021827730394,
+          "prior_minus_model": -0.0003467989853272735,
+          "rounds": 32
+        },
+        {
+          "auc": 0.510374875249501,
+          "brier": 0.2505554303911502,
+          "p_sd": 0.03300087415469216,
+          "prior_minus_model": -0.0009562275434823464,
+          "rounds": 64
+        }
+      ]
+    },
+    {
+      "fold_id": 3,
+      "known_side_n": 6886,
+      "rounds": [
+        {
+          "auc": 0.49290309997177734,
+          "brier": 0.24994973960342162,
+          "p_sd": 0.0029910924864651506,
+          "prior_minus_model": -5.518264991713484e-05,
+          "rounds": 1
+        },
+        {
+          "auc": 0.4938996713880025,
+          "brier": 0.2499408335248227,
+          "p_sd": 0.004157467830666205,
+          "prior_minus_model": -4.6276571318198956e-05,
+          "rounds": 2
+        },
+        {
+          "auc": 0.4980047050189119,
+          "brier": 0.24996348575654975,
+          "p_sd": 0.006244003383028179,
+          "prior_minus_model": -6.892880304526505e-05,
+          "rounds": 4
+        },
+        {
+          "auc": 0.496165926102474,
+          "brier": 0.25007157158468435,
+          "p_sd": 0.010364686949228716,
+          "prior_minus_model": -0.0001770146311798615,
+          "rounds": 8
+        },
+        {
+          "auc": 0.4987729376845784,
+          "brier": 0.2501872853947759,
+          "p_sd": 0.01523303373011115,
+          "prior_minus_model": -0.00029272844127142816,
+          "rounds": 16
+        },
+        {
+          "auc": 0.4999407104149815,
+          "brier": 0.25057084232784177,
+          "p_sd": 0.024111350791386828,
+          "prior_minus_model": -0.0006762853743372821,
+          "rounds": 32
+        },
+        {
+          "auc": 0.5010866662660576,
+          "brier": 0.2512858476974714,
+          "p_sd": 0.03648749304652049,
+          "prior_minus_model": -0.001391290743966933,
+          "rounds": 64
+        }
+      ]
+    },
+    {
+      "fold_id": 4,
+      "known_side_n": 7050,
+      "rounds": [
+        {
+          "auc": 0.5051816706959559,
+          "brier": 0.24985114123283325,
+          "p_sd": 0.002395293454882699,
+          "prior_minus_model": 2.1415266686836132e-05,
+          "rounds": 1
+        },
+        {
+          "auc": 0.5052302653404476,
+          "brier": 0.24984444872091818,
+          "p_sd": 0.003520907630820683,
+          "prior_minus_model": 2.810777860190461e-05,
+          "rounds": 2
+        },
+        {
+          "auc": 0.5058284183091415,
+          "brier": 0.2498408400525601,
+          "p_sd": 0.0053705593166391945,
+          "prior_minus_model": 3.171644695998399e-05,
+          "rounds": 4
+        },
+        {
+          "auc": 0.5094586435821572,
+          "brier": 0.2498241855483403,
+          "p_sd": 0.007869701791320691,
+          "prior_minus_model": 4.837095117979362e-05,
+          "rounds": 8
+        },
+        {
+          "auc": 0.5050819449839375,
+          "brier": 0.24991094405878206,
+          "p_sd": 0.012274788422079134,
+          "prior_minus_model": -3.8387559261970905e-05,
+          "rounds": 16
+        },
+        {
+          "auc": 0.5050098381005202,
+          "brier": 0.250118977547361,
+          "p_sd": 0.0187915113685139,
+          "prior_minus_model": -0.00024642104784092234,
+          "rounds": 32
+        },
+        {
+          "auc": 0.5060244475751151,
+          "brier": 0.2504514414972693,
+          "p_sd": 0.028135805044407075,
+          "prior_minus_model": -0.0005788849977491906,
+          "rounds": 64
+        }
+      ]
+    },
+    {
+      "fold_id": 5,
+      "known_side_n": 6952,
+      "rounds": [
+        {
+          "auc": 0.4952675952607944,
+          "brier": 0.2496199979321819,
+          "p_sd": 0.002303081247756449,
+          "prior_minus_model": -5.0850818886505333e-05,
+          "rounds": 1
+        },
+        {
+          "auc": 0.5055033488025299,
+          "brier": 0.24957959498467824,
+          "p_sd": 0.0033261131893039565,
+          "prior_minus_model": -1.0447871382851526e-05,
+          "rounds": 2
+        },
+        {
+          "auc": 0.5015449153396346,
+          "brier": 0.249602527968524,
+          "p_sd": 0.004957121882859135,
+          "prior_minus_model": -3.3380855228609674e-05,
+          "rounds": 4
+        },
+        {
+          "auc": 0.5029934989564409,
+          "brier": 0.24962966122482474,
+          "p_sd": 0.007905888930867428,
+          "prior_minus_model": -6.051411152935282e-05,
+          "rounds": 8
+        },
+        {
+          "auc": 0.5086477522528893,
+          "brier": 0.24964277760798578,
+          "p_sd": 0.012105870004789453,
+          "prior_minus_model": -7.363049469039096e-05,
+          "rounds": 16
+        },
+        {
+          "auc": 0.5134718856924376,
+          "brier": 0.24966478609568038,
+          "p_sd": 0.017438629720102957,
+          "prior_minus_model": -9.563898238498791e-05,
+          "rounds": 32
+        },
+        {
+          "auc": 0.5134810088000666,
+          "brier": 0.24983237735964117,
+          "p_sd": 0.0247488618982183,
+          "prior_minus_model": -0.0002632302463457803,
+          "rounds": 64
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "This is posthoc inspection of already-consumed development score outcomes. No round count or calibration factor is selected or authorized from this curve.",
+    "It identifies excessive score probability spread by round 64, not a proven stable ranking signal, independent generalization, or economic edge."
+  ],
+  "next_question": "Use a distinct one-use capped inner chronological TRAIN-only fit and exact M5 target maturation to select or reject a simpler recipe without consulting the outer score labels.",
+  "observed_utc": "2026-11-14T21:04:45.947792+00:00",
+  "original_oof_review": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_F_M5_CURRENT_OOF_RESULT_REVIEW_20261114.json",
+    "sha256": "123579ff86fb804482d16a958c25dfd6c64d4a00a9cb55200d45682b7b69bed3"
+  },
+  "original_result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_F_M5_TABULAR_OOF_20261114_002/RESULT.json",
+    "sha256": "ac5dac12791c092380f318d20552529c690fe1928be0a9b6aec9a1626cc9b3c9"
+  },
+  "original_terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_F_M5_TABULAR_OOF_20261114_002/TERMINAL.json",
+    "sha256": "6537d7bc428cae6470ff7d8a1b0124e8444a2b408ae5c7c439a4e992e1ca6d88"
+  },
+  "schema_version": "gx1_ta_f_m5_saved_tree_path_diagnosis_v1",
+  "source_commit": "3237f9b6696b28886c9016341463f1a67eee9032",
+  "status": "COMPLETE_READ_ONLY_POSTHOC_DEVELOPMENT_DIAGNOSIS",
+  "train_score_diagnosis": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_F_M5_SAVED_MODEL_TRAIN_SCORE_DIAGNOSIS_20261114.json",
+    "sha256": "78c9a43dc75cc5696779b4b626828b13c6d63a0f686e8f366188639c3d87f58c"
+  },
+  "validation": {
+    "capped_memory": "12G",
+    "capped_swap": "512M",
+    "model_fits": 0,
+    "model_updates": 0,
+    "round_64_predictions_and_scores_match_original": true,
+    "same_saved_models": true,
+    "test_data_used": false
+  }
+}

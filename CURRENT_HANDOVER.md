@@ -5,7 +5,18 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: TA_F_M5_TRAIN_SCORE_TRANSFER_GAP_CONFIRMED_NO_FIT.
+Aktuell policy: TA_F_M5_TREE_PATH_POSTHOC_DIAGNOSIS_COMPLETE_NO_FIT.
+Lesende replay av lagrede F-M5-trær ved1/2/4/8/16/32/64 runder bekrefter at
+64-runders Brier er dårligere enn fryst TRAIN-prior i alle fem senere folder.
+Tidlige prefikser gir små positive Brier-forskjeller bare i fold1/2/4;
+fold3/5 er negative ved alle undersøkte runder. Rangering forblir nær0,5.
+Dette er post hoc på konsumert utviklingsscore og velger ingen runde.
+Se `docs/TA_F_M5_SAVED_TREE_PATH_DIAGNOSIS_20261114.json`.
+Neste avgrensede kontroll er indre kronologisk TRAIN-validering med eksakt
+5-minutters F-målmodning under en egen forhåndsbundet engangsplan.
+Ingen ny fit, TEST eller handel er åpnet.
+
+Tidligere policy: TA_F_M5_TRAIN_SCORE_TRANSFER_GAP_CONFIRMED_NO_FIT.
 Lesende capped diagnose av de fem lagrede64-runders F-M5-modellene gjenskapte
 alle senere scoreprediksjoner eksakt fra den hashbundne4003-felts matrisen.
 Eget TRAIN hadde AUC0,6984–0,7945 og Brier0,2280–0,2418, klart bedre enn
