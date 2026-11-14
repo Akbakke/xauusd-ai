@@ -5,25 +5,30 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: S_ENDPOINT_WINDOW_OVERLAP_REVIEW_COMPLETE_NO_FIT.
-Hashbundet TRAIN-maske og M1-måltape viser at valgt S er en tilstand ved
-framtidig gyldighetstid over siste W observerte M1-barer; W er lik hver TFs
-kalenderledetid. Alle kjente M5/M15/H1-endepunkter har hele W etter issue.
-H4 har 4919/53961 kjente endepunkter der 64/65 M1-barer i mål-vinduet
-ligger før issue. D1 har dette på samtlige 39041/39041 kjente endepunkter.
-Kilde- og bitparitet ved eksakte endepunkter er 0 avvik. Denne historikken er
-kausalt kjent, men H4/D1-S må omtales som framtidig endepunktstilstand,
-ikke ren framtidig prisbane. Se
-`docs/S_MARKET_STATE_WINDOW_OVERLAP_REVIEW_20261115.json`. Målt
-S-varighet, tilstandsskifter og fysisk prisbane står fortsatt i
-`docs/S_MARKET_STATE_VALIDITY_PATH_REVIEW_20261114.json`.
+Aktuell policy: S_NATIVE_ENDPOINT_BATCH_SOURCE_TESTED_NOT_ADMITTED.
+Den valgte fem-TF S-masken er hashbundet til118249 modellrader og fem faste
+native endepunkter. Den gamle samplede tidsforespørselen treffer D1s native
+endepunkt sjelden: bare19 av6951 kjente D1-sidemål på fold1s TRAIN-prefiks
+og37 av12291 på fold2s med eksakt pass0/seed20260911. De samplede native-
+etikettene er bitlike med den valgte masken, men øvrige samplede tider er
+fortsatt bare en kandidat. Eksisterende full-GC S/F-rute har allerede
+side-normalisert tap og en liten fysisk optimizer-/resume-kontroll. Den
+eldre S-only v2-batchen er bare brukt til nullsteg; den er ikke aktiv fit-rute.
+Se `docs/S_MARKET_STATE_NATIVE_ENDPOINT_FIT_BINDING_REVIEW_20261115.json`.
 
-Neste arbeid er å binde fem-TF S-fasit, tillatte sett, modelloutput,
-side-normalisert tap, proper skår og forhåndsvalgt TRAIN-priorgate sammen.
-Deretter kun én forhåndsbundet kausal probabilistisk hypotese og kronologisk
-TRAIN-kontroll under eksakt engangsadmisjon. En ren framtidsbane krever egen
-stengningsbevisst måldesign og ny kildeparitet. Målet er ikke låst; ingen ny
-fit, TEST eller handel er åpnet, og økonomisk Edge er ubevist.
+Eksisterende S/F-batchadapter har nå en eksplisitt opt-in for valgte native
+S-endepunkter. Den sender faste fem K til forward, leser valgte mål etterpå,
+sjekker eksakt gyldighet og avviser umodne fit-mål; gammel samplet modus er
+uendret.18 fokuserte batchtester og23 taps-/skårtester besto. Dette er bare
+kilde-/syntetisk rutepluss reelle målakser, ikke fysisk ny INITIAL, fit,
+modellverdi eller Edge. Modusen er ennå ikke bundet i recipe/campaign.
+
+Neste arbeid er én eksakt full-GC S/F-recipe/runner med denne modusen,
+frossen tidligere-TRAIN-prior, proper skår på de fem native endepunktene,
+fysisk feature-/normaliseringsidentitet og fersk INITIAL før egen admisjon.
+S-fasit og kampanje er ikke låst/innrømmet; ingen ny fit, TEST eller handel.
+H4/D1-vinduets kausale overlapp står i
+`docs/S_MARKET_STATE_WINDOW_OVERLAP_REVIEW_20261115.json`.
 
 Tidligere policy: TA_F_M5_PRICE_ATR_SOURCE_REPLAY_COMPLETE_EDGE_UNQUALIFIED.
 Uavhengig capped lesereplay fra hashbundet M5-parquet rekonstruerte

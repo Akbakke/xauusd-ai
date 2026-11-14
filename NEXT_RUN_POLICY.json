@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-14T23:05:17.267649+00:00",
-  "status": "S_ENDPOINT_WINDOW_OVERLAP_REVIEW_COMPLETE_NO_FIT",
+  "observed_utc": "2026-11-14T23:17:40.587050+00:00",
+  "status": "S_NATIVE_ENDPOINT_BATCH_SOURCE_TESTED_NOT_ADMITTED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1418,8 +1418,9 @@
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Selected S is a future endpoint state over W observed M1 bars, with W equal to each TF lead in calendar minutes. Hashbound tape and selected mask have zero exact-endpoint source/bit mismatches. Known singleton target windows overlap pre-issue history by 64/65 observed M1 bars in H4 4919/53961 and D1 39041/39041; none of the known M5/M15/H1 endpoints overlap. This is causal known history, not future leakage, and H4/D1 S is not a pure future-only path. Previous validity/transition/persistence receipts remain descriptive. No target lock, fit, TEST, native training, broker, trade or economic Edge.",
-  "next_action": "Bind the five-TF S endpoint-state candidate, including disclosed H4/D1 pre-issue window overlap, to allowed-set masks, factorized output, side-normalized loss, proper scores and a frozen TRAIN-prior acceptance rule. Then precommit one causal probabilistic S hypothesis and exact one-use capped chronological TRAIN-only admission. A pure future-interval path requires a separate closure-aware target design and fresh source parity. Do not fit now or open TEST/trading.",
+  "rule": "The five selected S targets are fixed native endpoints from the hashbound 118249-row model mask. The old sampled time-query schedule directly supervises only 19/6951 selected D1 known-side fit cells in fold1 and 37/12291 in fold2 under the exact pass0 seed 20260911; native-query bit parity is exact. Existing full-GC dual S/F objective already uses side-normalized loss and has only a small technical optimizer witness. An opt-in selected-native-endpoint fit-batch adapter is source-tested with real bound targets; the old sampled route is unchanged. This mode is not wired to a campaign or physically initialized. Target selection, model fit, later generalization and economic Edge remain unproved; TEST and trading closed.",
+  "next_action": "Bind the selected-native S endpoint mode and the existing full-GC dual S/F side-normalized objective to one exact new recipe/runner, predeclare the earlier-TRAIN prior and native-endpoint proper-score acceptance gate, and verify the full physical feature/normalization identity. Require a fresh guarded initial baseline and one-use campaign admission before any chronological TRAIN-only fit. Do not reuse consumed plans, open TEST or trade.",
+  "s_market_state_native_endpoint_fit_binding_review_20261115": {"status": "SOURCE_MODE_TESTED_NOT_CAMPAIGN_ADMITTED", "report": {"path": "docs/S_MARKET_STATE_NATIVE_ENDPOINT_FIT_BINDING_REVIEW_20261115.json", "sha256": "8d374636f286f7f4c8bf138cc13a263734fa2fb17bf534daa880702179108bba"}, "target_locked": false, "model_fits": 0, "test_data_used": false, "economic_edge_demonstrated": false},
   "s_market_state_window_overlap_review_20261115": {"status": "COMPLETE_READ_ONLY_NO_FIT", "report": {"path": "docs/S_MARKET_STATE_WINDOW_OVERLAP_REVIEW_20261115.json", "sha256": "fbedb23e4432ddf0858f04cda9a63a58060bff7b261bfdb59254a9ea242c322e"}, "target_locked": false, "model_fits": 0, "test_data_used": false, "economic_edge_demonstrated": false},
   "s_market_state_validity_path_review_20261114": {"status": "COMPLETE_READ_ONLY_NO_FIT", "report": {"path": "docs/S_MARKET_STATE_VALIDITY_PATH_REVIEW_20261114.json", "sha256": "4d21be4fc317a58511c318fd744dd731a0e0fb0781033b049a716f5582cf7b6e"}, "target_locked": false, "model_fits": 0, "test_data_used": false, "economic_edge_demonstrated": false},
   "s_market_state_information_gap_review_20261114": {"status": "COMPLETE_READ_ONLY_NO_FIT", "report": {"path": "docs/S_MARKET_STATE_INFORMATION_GAP_REVIEW_20261114.json", "sha256": "84b63a3ad35be5b992878611fd883557caac45b710b3f82eb3ce214577a8c3b8"}, "target_locked": false, "model_fits": 0, "test_data_used": false, "economic_edge_demonstrated": false},

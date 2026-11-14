@@ -1,4 +1,4 @@
-"""One shared-encoder S sampled query and F native query TRAIN batch adapter.
+"""One shared-encoder S query and F native query TRAIN batch adapter.
 
 Feature tensors alone enter forward. Both future target owners are gathered
 only after the model output exists. No optimizer, checkpoint or run authority.
@@ -10,6 +10,7 @@ from collections.abc import Mapping
 import numpy as np
 import torch
 
+from gx1.contracts.market_state_five_endpoint_target_binding_v1 import BoundFiveEndpointTargets
 from gx1.contracts.market_state_future_displacement_candidate_v1 import BoundFutureDisplacement
 from gx1.contracts.market_state_time_query_batch_v2 import FEATURE_KEYS
 from gx1.contracts.market_state_time_query_binding_v1 import (
@@ -17,6 +18,7 @@ from gx1.contracts.market_state_time_query_binding_v1 import (
 )
 from gx1.contracts.market_state_time_query_native_F_model_v1 import NativeFutureDualModel
 from gx1.contracts.market_state_time_query_model_v2 import factorized_log_probabilities
+from gx1.contracts.market_state_time_query_target_v1 import NATIVE_K, TICK_NS
 from gx1.contracts.market_state_time_query_native_F_objective_v1 import combined_loss
 
 
@@ -35,14 +37,17 @@ def _feature_keys(model) -> frozenset:
 
 
 def evaluate_fit_batch(model: NativeFutureDualModel, features: Mapping,
-                       state_bound: BoundTimeQueryTargets,
+                       state_bound: BoundTimeQueryTargets | BoundFiveEndpointTargets,
                        future_bound: BoundFutureDisplacement,
                        parent_rows: np.ndarray, issue_ns: np.ndarray, *,
                        fold_id: int, pass_index: int, seed: int,
                        future_weight: float, m5_equal_observation: bool = False,
                        fit_batch_start: int | None = None,
                        fit_batch_positions: np.ndarray | None = None,
-                       m5_direction_only: bool = False) -> dict:
+                       m5_direction_only: bool = False,
+                       selected_state_endpoints: bool = False) -> dict:
+    if type(selected_state_endpoints) is not bool:
+        raise ValueError('NATIVE_F_SELECTED_STATE_ENDPOINT_MODE')
     if type(m5_direction_only) is not bool or (m5_direction_only and not m5_equal_observation):
         raise ValueError('NATIVE_F_M5_DIRECTION_ONLY_MODE')
     if type(m5_equal_observation) is not bool or (
@@ -51,7 +56,8 @@ def evaluate_fit_batch(model: NativeFutureDualModel, features: Mapping,
             fit_batch_start is not None and fit_batch_positions is not None):
         raise ValueError('NATIVE_F_M5_EQUAL_OBSERVATION_MODE')
     if not (type(model) is NativeFutureDualModel
-            and type(state_bound) is BoundTimeQueryTargets
+            and type(state_bound) is (BoundFiveEndpointTargets if selected_state_endpoints
+                                      else BoundTimeQueryTargets)
             and type(future_bound) is BoundFutureDisplacement
             and isinstance(features, Mapping) and set(features) == _feature_keys(model)
             and all(isinstance(value, torch.Tensor) for value in features.values())
@@ -99,7 +105,14 @@ def evaluate_fit_batch(model: NativeFutureDualModel, features: Mapping,
                 if not (np.array_equal(parent_rows, bound.parent_rows[fit_batch_positions])
                         and np.array_equal(issue_ns, bound.decision_ns[fit_batch_positions])):
                     raise ValueError('NATIVE_F_M5_EQUAL_OBSERVATION_AXIS')
-    query_np = sampled_query_k(issue_ns, pass_index=pass_index, seed=seed)
+    if selected_state_endpoints:
+        if not (type(pass_index) is int and 0 <= pass_index < 2**64
+                and type(seed) is int and 0 <= seed < 2**64):
+            raise ValueError('NATIVE_F_SELECTED_STATE_ENDPOINT_SCHEDULE')
+        query_np = np.broadcast_to(np.asarray(NATIVE_K, dtype=np.int64),
+                                   (len(issue_ns), len(NATIVE_K))).copy()
+    else:
+        query_np = sampled_query_k(issue_ns, pass_index=pass_index, seed=seed)
     device = model.state_model.query_native_k.device
     query = torch.from_numpy(query_np).to(device=device)
     output = model(**features, query_k=query)
@@ -118,12 +131,21 @@ def evaluate_fit_batch(model: NativeFutureDualModel, features: Mapping,
             and torch.equal(output['future_log_probs'], factorized_log_probabilities(
                 output['future_activity_side_logits']))):
         raise RuntimeError('NATIVE_F_BATCH_MODEL_OUTPUT')
-    state_truth = state_bound.gather_fit_sampled(
-        parent_rows, issue_ns, fold_id=fold_id,
-        pass_index=pass_index, seed=seed)
+    if selected_state_endpoints:
+        state_truth = state_bound.gather(parent_rows, issue_ns,
+                                         fold_id=fold_id, partition='fit')
+        if not bool(state_truth['mature'].all()):
+            raise ValueError('NATIVE_F_SELECTED_STATE_ENDPOINT_IMMATURE')
+    else:
+        state_truth = state_bound.gather_fit_sampled(
+            parent_rows, issue_ns, fold_id=fold_id,
+            pass_index=pass_index, seed=seed)
     future_truth = future_bound.gather(
         parent_rows, issue_ns, fold_id=fold_id, partition='fit')
-    if not (np.array_equal(state_truth['query_k'], query_np)
+    if not ((selected_state_endpoints or np.array_equal(state_truth['query_k'], query_np))
+            and (not selected_state_endpoints or np.array_equal(
+                state_truth['validity_ns'],
+                issue_ns[:, None] + query_np * TICK_NS))
             and np.array_equal(state_truth['parent_rows'], parent_rows)
             and np.array_equal(future_truth['parent_rows'], parent_rows)
             and np.array_equal(state_truth['issue_ns'], issue_ns)
@@ -149,6 +171,8 @@ def evaluate_fit_batch(model: NativeFutureDualModel, features: Mapping,
             'future_per_tf_counts': report['future']['per_tf_counts'],
             'skip_update': report['skip_update'],
             'state_query_k': query_np.copy(),
+            **({'state_target_mode': 'selected_native_endpoints'}
+               if selected_state_endpoints else {}),
             'future_native_k': model.state_model.query_native_k.detach().cpu().numpy().copy(),
             'state_allowed': state_truth['allowed'],
             'future_allowed': future_truth['allowed'],

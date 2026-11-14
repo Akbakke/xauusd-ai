@@ -1,0 +1,153 @@
+{
+  "economic_edge_demonstrated": false,
+  "evidence_class": "physical_hashbound_targets_and_axes_plus_source_and_synthetic_forward_tests",
+  "existing_full_GC_dual_loss_contract_sha256": "06c8bffc81cbfe2da114499d3428ee94682a38609de67788854fd6cd2a1606dd",
+  "existing_side_normalized_loss_contract_sha256": "b386435ac41bdbbeacb71f06d0bd12cc69bd0687f336e0d3f2f63c47d6637234",
+  "focused_tests": {
+    "model_training_or_optimizer_updates": 0,
+    "tests/test_market_state_time_query_native_F_batch.py": "18 passed",
+    "tests/test_market_state_time_query_native_F_objective.py": "23 passed"
+  },
+  "folds": {
+    "1": {
+      "all_five_native_targets_mature": true,
+      "fit_issue_axis_sha256": "ebb3489c45b01b6fd8e77bf27529d650beb6883ba84b57ee936dc549ec74e427",
+      "fit_parent_axis_sha256": "1c5a8c36a94b8fa39d613f0bc122cf869dc9fa3c2f87dc64c0506acd2f55a90f",
+      "fit_rows": 29574,
+      "pass_index": 0,
+      "seed": 20260911,
+      "timeframes": {
+        "D1": {
+          "all_sampled_query_known_side": 7717,
+          "native_k": 288,
+          "native_query_bit_parity_with_selected": true,
+          "native_query_known_side_in_sampled_pass": 19,
+          "native_query_rows_in_sampled_pass": 103,
+          "selected_native_endpoint_known_side": 6951
+        },
+        "H1": {
+          "all_sampled_query_known_side": 10968,
+          "native_k": 12,
+          "native_query_bit_parity_with_selected": true,
+          "native_query_known_side_in_sampled_pass": 901,
+          "native_query_rows_in_sampled_pass": 2432,
+          "selected_native_endpoint_known_side": 11086
+        },
+        "H4": {
+          "all_sampled_query_known_side": 11989,
+          "native_k": 48,
+          "native_query_bit_parity_with_selected": true,
+          "native_query_known_side_in_sampled_pass": 209,
+          "native_query_rows_in_sampled_pass": 559,
+          "selected_native_endpoint_known_side": 11888
+        },
+        "M15": {
+          "all_sampled_query_known_side": 11206,
+          "native_k": 3,
+          "native_query_bit_parity_with_selected": true,
+          "native_query_known_side_in_sampled_pass": 3785,
+          "native_query_rows_in_sampled_pass": 9903,
+          "selected_native_endpoint_known_side": 11171
+        },
+        "M5": {
+          "all_sampled_query_known_side": 10010,
+          "native_k": 1,
+          "native_query_bit_parity_with_selected": true,
+          "native_query_known_side_in_sampled_pass": 10010,
+          "native_query_rows_in_sampled_pass": 29574,
+          "selected_native_endpoint_known_side": 10010
+        }
+      }
+    },
+    "2": {
+      "all_five_native_targets_mature": true,
+      "fit_issue_axis_sha256": "380184a9c95a02f2716326765783746b1834371a7266545113fb1eae6722da47",
+      "fit_parent_axis_sha256": "db43609ad6bd10e8d1a13b216243855c499189f8d2f08ef0a67d49de66e29fe9",
+      "fit_rows": 47338,
+      "pass_index": 0,
+      "seed": 20260911,
+      "timeframes": {
+        "D1": {
+          "all_sampled_query_known_side": 13490,
+          "native_k": 288,
+          "native_query_bit_parity_with_selected": true,
+          "native_query_known_side_in_sampled_pass": 37,
+          "native_query_rows_in_sampled_pass": 167,
+          "selected_native_endpoint_known_side": 12291
+        },
+        "H1": {
+          "all_sampled_query_known_side": 17964,
+          "native_k": 12,
+          "native_query_bit_parity_with_selected": true,
+          "native_query_known_side_in_sampled_pass": 1488,
+          "native_query_rows_in_sampled_pass": 3887,
+          "selected_native_endpoint_known_side": 17973
+        },
+        "H4": {
+          "all_sampled_query_known_side": 18690,
+          "native_k": 48,
+          "native_query_bit_parity_with_selected": true,
+          "native_query_known_side_in_sampled_pass": 340,
+          "native_query_rows_in_sampled_pass": 925,
+          "selected_native_endpoint_known_side": 18391
+        },
+        "M15": {
+          "all_sampled_query_known_side": 18237,
+          "native_k": 3,
+          "native_query_bit_parity_with_selected": true,
+          "native_query_known_side_in_sampled_pass": 6112,
+          "native_query_rows_in_sampled_pass": 15812,
+          "selected_native_endpoint_known_side": 18182
+        },
+        "M5": {
+          "all_sampled_query_known_side": 16101,
+          "native_k": 1,
+          "native_query_bit_parity_with_selected": true,
+          "native_query_known_side_in_sampled_pass": 16101,
+          "native_query_rows_in_sampled_pass": 47338,
+          "selected_native_endpoint_known_side": 16101
+        }
+      }
+    }
+  },
+  "mechanism": "The old label-blind sampled query uses k in 1..native_k. Only k=native_k directly supervises each selected native endpoint. D1 receives 19 and 37 known-side native cells in these two exact pass-0 fit populations, versus 6951 and 12291 selected D1 known-side endpoints. Other sampled D1 cells have different future validities and were never selected as the native five-TF target.",
+  "minimal_source_change": "Existing dual S/F batch adapter gained explicit selected_state_endpoints=True mode. It requires BoundFiveEndpointTargets, sends fixed native k to forward before gathering targets, verifies exact validity and mature fit labels, and keeps the historical sampled mode as default. It reuses the already side-normalized dual objective.",
+  "model_fits": 0,
+  "observed_utc": "2026-11-14T23:17:00.061933+00:00",
+  "remaining_gate": "The new source mode is not connected to an exact campaign recipe/runner, has no fresh physical initial baseline or chronological model fit, and does not choose dual S/F over a pure S model. Bind one candidate route and frozen earlier-TRAIN prior before a one-use capped admission. Full-GC value and economic Edge remain untested.",
+  "schema_version": "gx1_s_native_endpoint_fit_binding_review_v1",
+  "scope": "TRAIN_only_fold1_fold2_selected_native_S_endpoint_vs_old_sampled_query_support",
+  "selected_endpoint_bound_rows": 118249,
+  "selected_endpoint_unjoined_target_rows": 457,
+  "source_refs": {
+    "candidate_tape": {
+      "bytes": 4169474,
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TIME_QUERY_TAPE_20261107_001/TRAIN_CANDIDATE_TAPE.npz",
+      "sha256": "86aff221bf63532b67efe7c5770daa986bdebe916f149dd99961dacde1043b8b"
+    },
+    "prior_full_GC_dual_4step_recipe": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_PRIVATE_4STEP_20261108_001/RECIPE.json",
+      "sha256": "5e5577e03e9e41f3e8135621e550e16494e1f24de35d2d3b3db32abf3585b451"
+    },
+    "prior_full_GC_dual_4step_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_PRIVATE_4STEP_20261108_001/RUNTIME/private-research/RESULT.json",
+      "sha256": "55936ccfb06bddcebebfb10a6a591de29143fae3f64036594463f04985ccd97e"
+    },
+    "selected_endpoint_mask": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001/ROW_MASKS.npz",
+      "sha256": "2b063e35b97cc1dbdbb522d2b2876a39514b1145d8c59d8a2ab07561764f9edc"
+    },
+    "source_file_sha256": {
+      "gx1/contracts/market_state_five_endpoint_target_binding_v1.py": "71dc01154aada84d01e930cb78970a79608c5bff5ebd710d9f48273934e14bfd",
+      "gx1/contracts/market_state_time_query_binding_v1.py": "ccb4ec1398183597f9ee447f74d7e5b03fbcaf37739c1454b1b4cbb8145a5e91",
+      "gx1/contracts/market_state_time_query_native_F_batch_v1.py": "b92c12205a3103e8d529f09c473226a120a146c8b5ee499dd751d457a3cf2aff",
+      "gx1/contracts/market_state_time_query_native_F_objective_v1.py": "4b244ac61c0b3360e12a4b12db8e8d066e9017b6913da165c31fd8afae6a8658",
+      "gx1/contracts/market_state_time_query_side_normalized_loss_v1.py": "b9c6884f08d73f35212be625926467df0977a76cb71b443ebf1f4e7398742532",
+      "tests/test_market_state_time_query_native_F_batch.py": "910121383a6e419dff7ff71eb40ae2e34bf17543f37dc09d616b93d378d8ccf8"
+    }
+  },
+  "status": "SOURCE_MODE_TESTED_NOT_CAMPAIGN_ADMITTED",
+  "target_locked": false,
+  "test_data_used": false,
+  "training_enabled": false
+}
