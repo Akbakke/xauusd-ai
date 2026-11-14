@@ -370,7 +370,7 @@ def _execute_fixed_fit_and_readout(*, launch: dict, review_ref: dict,
           and gate.get('test_data_used') is False
           and launch.get('run_scope') == SCOPE
           and launch.get('admission_stage') == STAGE
-          and launch.get('fold_id') == 2
+          and launch.get('numerical_recipe', {}).get('fold_id') == 2
           and launch.get('training_enabled') is True
           and launch.get('test_data_used') is False
           and launch.get('max_model_seconds') == 10500,

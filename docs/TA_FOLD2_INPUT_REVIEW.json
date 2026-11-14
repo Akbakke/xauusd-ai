@@ -14,7 +14,7 @@
   },
   "native_training_authorized": false,
   "new_job_admitted": false,
-  "next_action": "Immutable fold2 M5 recipe and prepared Windows boot 649 are bound. The old guard template requires current runner/observer source rebind; materializer does this. A later fresh physical boot (ID >649), exact one-use campaign admission and guarded resource check are still required. training_enabled=false; no fit, TEST, broker or trading authorized.",
+  "next_action": "Source repair, design002, 13 focused tests and read-only actual-recipe runtime gate pass. Commit/push; from clean source publish only the distinct candidate recipe002 and prepared boot650. Then exact new one-use admission and fresh boot are separate gates. No training or TEST authorized.",
   "normalization": {
     "artifacts": {
       "EXTENDED_BASE_NORMALIZATION": {
@@ -221,7 +221,7 @@
       "sha256": "2e25098183d2ffb27a4441f178789e2bdd39b84646815b67d061ccedbf2170da"
     }
   },
-  "observed_utc": "2026-11-14T07:55:52.922816+00:00",
+  "observed_utc": "2026-11-14T11:59:59.062778+00:00",
   "physical": {
     "all_413_overlap_rows_bitexact": true,
     "counts": {
@@ -314,9 +314,10 @@
     "Existing span producer supports explicit ordered unique plan-bound subsets; default six-surface behavior preserved.",
     "Existing additive normalization supports exactly the qualified fold2 parent and physical result; no inherited fold1 units. All old statistics and fold1 output identity preserved.",
     "Existing six two-field fit/inverse/projection owner reused with exact fold2 parent/cutoff/output binding.",
-    "Existing M5 equal-observation owner binds fold2 to its measured S/F q/N, axes, view and target-count receipts; fold1 profile and default identity remain unchanged."
+    "Existing M5 equal-observation owner binds fold2 to its measured S/F q/N, axes, view and target-count receipts; fold1 profile and default identity remain unchanged.",
+    "Runtime fold_id gate now reads numerical_recipe.fold_id; prior synthetic fixture was corrected and an admitted-gate regression added. Distinct frozen design002 preserves all initial inputs and targets."
   ],
-  "status": "FOLD2_M5_CANDIDATE_RECIPE_AND_PREPARED_BOOT_EXECUTION_CLOSED",
+  "status": "FOLD2_M5_PLAN001_FAILED_CONSUMED_002_SOURCE_REPAIR_CLOSED",
   "test_data_used": false,
   "validation": {
     "both_actual_cli_preflights": "PASS",
@@ -988,7 +989,7 @@
     "relaunch_allowed": false
   },
   "fold2_m5_fit_hypothesis": {
-    "status": "CANDIDATE_RECIPE_AND_BOOT_649_PREPARED_FIT_UNADMITTED",
+    "status": "PLAN001_FAILED_CONSUMED_ZERO_UPDATE_002_REPAIR_SOURCE_CLOSED",
     "question": "Can one fixed chronological full-TRAIN pass of the existing native S/F model, using only its M5 known-side direction loss, improve later F M5 rank versus the exact fresh zero-update function?",
     "source_commit_at_review": "f013cb758e0d03098bbe4edaddef6c5426d8a5fa",
     "source_owners": {
@@ -1022,19 +1023,19 @@
       },
       "gx1/audit/preflight_market_state_ta_fold2_m5_fit_v1.py": {
         "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/preflight_market_state_ta_fold2_m5_fit_v1.py",
-        "sha256": "fb2eaa973bd26adf18617df627c94904478329457b51d26f98e939c85057857a"
+        "sha256": "902651d95ca47c7b99d0d447554499b70625cd10f7d4b03e95bbfd53c82c5c81"
       },
       "gx1/contracts/market_state_ta_fold2_m5_fit_v1.py": {
         "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_ta_fold2_m5_fit_v1.py",
-        "sha256": "52719a41e123bf078132115fede6e1a339867c1ff7eed7d20b01bb84e341d74c"
+        "sha256": "f49890c9522bef864e5e4f4594b68237e615eb4212a34f33a6fb453915651c1e"
       },
       "gx1/scripts/run_market_state_ta_fold2_m5_fit_window_v1.py": {
         "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_market_state_ta_fold2_m5_fit_window_v1.py",
-        "sha256": "392e7e998cc595a42ca1333e3f3cb596b3062dc7476349b0515f3ebab893a98c"
+        "sha256": "00f69e1a8596413258018d023731bf624b2f6320efffa557de09aa60433f793e"
       },
       "tests/test_market_state_ta_fold2_m5_fit_core.py": {
         "path": "/home/andre2/src/GX1_CURRENT/tests/test_market_state_ta_fold2_m5_fit_core.py",
-        "sha256": "6f9609fe8a91d53f95dd5b898e10e7f4df7c753c332b6a03edd1883c0053694c"
+        "sha256": "a4b144b2ac12fd19ee7fef0d822dc0368965e3cadd847e48735ae2eaa0cdd198"
       },
       "gx1/audit/score_market_state_ta_fold2_m5_fit_v1.py": {
         "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/score_market_state_ta_fold2_m5_fit_v1.py",
@@ -1066,11 +1067,11 @@
       },
       "gx1/scripts/prepare_market_state_ta_fold2_m5_fit_recipe_v1.py": {
         "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/prepare_market_state_ta_fold2_m5_fit_recipe_v1.py",
-        "sha256": "c64f71ebbe73ba1e5b560c7d91f6f84bb3d011df3b1b61ec7a8ebfdbb80f7bb1"
+        "sha256": "884590bcf140e576df6d1f891fc1c417282754b01730d7bf32fe2f96e568a971"
       },
       "tests/test_market_state_ta_fold2_m5_fit_campaign_route.py": {
         "path": "/home/andre2/src/GX1_CURRENT/tests/test_market_state_ta_fold2_m5_fit_campaign_route.py",
-        "sha256": "47c530ba518a6a7d6c10574aa845afcbf2be182ee416167f3c306b6a470e996e"
+        "sha256": "8cc4380f87ee659ca0a62d600a847999fd282eb8bf9d8323896bdd14f9451102"
       }
     },
     "observed_basis": {
@@ -1203,7 +1204,7 @@
         }
       }
     },
-    "implementation_gap": "Immutable candidate recipe and prepared Windows boot 649 exist. The existing guard template needs current runner/observer source rebind, which materialization performs. No admitted campaign plan, later fresh boot, guarded claim, real payload/model startup, fit, FINAL captures or paired final readout exists.",
+    "implementation_gap": "Plan001 was consumed after a top-level fold_id runtime-gate mismatch, with no payload, model or update. Source and fixture are corrected; successor design002 exists. No successor recipe, boot, plan, claim or fit is admitted.",
     "resource_note": "The historical fold1 full-prefix two-pass phase took 7586.8 seconds for 3698 updates; this is planning evidence, not a fold2 wall-time guarantee or admission.",
     "scope_limits": "All genuine TA/MTF/D1 inputs and S/F outputs remain; the selected loss gives direct gradient only to M5 known-side direction. A single pass cannot rule out deeper learning if it fails. No Entry selection, economics, TEST or trading is measured.",
     "execution_authorized": false,
@@ -1231,7 +1232,7 @@
       "cuda_producer_default_wall_seconds": 3600,
       "cuda_producer_fit_allowlisted": false,
       "canonical_trainer_window_max_invocation_seconds_option": 12000,
-      "required_before_admission": "Bind the fold2 trainer dispatch and exact source/start/model digest, 12000-second/250 W guarded one-window route, zero-checkpoint/no-resume failure accounting, immutable one-use plan and fixed readout; qualify startup and failure receipts without a model update.",
+      "required_before_admission": "For successor002, prove the actual frozen recipe against the runtime policy gate before claim, then bind a distinct one-use guarded campaign with fresh boot and exact source/resources. Plan001 is consumed.",
       "runtime_inference": "The old fold1 timing does not establish fold2 runtime.",
       "proposed_one_window": {
         "max_invocation_seconds": 12000,
@@ -1338,7 +1339,7 @@
       "limits": "No campaign dispatch, claim/cursor/progress/terminal receipts, actual input payload, model construction or fit execution."
     },
     "frozen_recipe": {
-      "status": "IMMUTABLE_CANDIDATE_RECIPE_PUBLISHED_NO_ADMISSION",
+      "status": "PLAN001_IMMUTABLE_CANDIDATE_RECIPE_CONSUMED_FAILURE",
       "design": {
         "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_FOLD2_M5_FIT_DESIGN_20261114_001.json",
         "sha256": "07adbe390c9a2d4501f65fbb4750c37b5142d69813ecb18ca0e9e91baa6b1f87"
@@ -1378,7 +1379,7 @@
       "prepared_windows_boot_id": 649
     },
     "campaign_route": {
-      "status": "SOURCE_BOUND_SYNTHETIC_COMPLETE_AND_CONSUMED_FAILURE_PASS_NO_REAL_EXECUTION",
+      "status": "PLAN001_FAILED_CONSUMED_ZERO_UPDATE_NO_RELAUNCH",
       "authority": {
         "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_campaign_v1.py",
         "sha256": "88c3be696cb9a02ede362bf277ac669922e769d8f325c04be952f75f21463c74"
@@ -1444,6 +1445,44 @@
       },
       "fresh_physical_windows_boot_before_invocation_required": true,
       "operator_fit_admission_authorized": false
+    },
+    "consumed_plan001": {
+      "status": "FAILED_CONSUMED_NO_RELAUNCH",
+      "boot_id": 650,
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_001/CAMPAIGN/CAMPAIGN_PLAN.json",
+        "sha256": "0ca3ab4513efb2fe67235dd85dd2c48cb8cb5e7e919ce65c09ba283aaa09778d"
+      },
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_001/RESULT.json",
+        "sha256": "a331cbbca206fdf5487204f8dc944c3b939c31f8fcf585794accfbcdbbabc02b"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_001/TERMINAL.json",
+        "sha256": "2aab677ba2eadf569b3846d3a4f333bfd4bd505742f996c102851f456f866e95"
+      },
+      "invocation_receipt": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_001/RUNTIME/receipts/invocation-0001.json",
+        "sha256": "54ca0175117d31a436895eff7908cd6d83d87e6e77f5e51932e63010038de423"
+      },
+      "batch_visits": 0,
+      "optimizer_updates": 0,
+      "feature_payload_reads": 0,
+      "model_constructions": 0,
+      "task_disabled_observed": true,
+      "cause": "runtime checked top-level fold_id although frozen recipe stores numerical_recipe.fold_id"
+    },
+    "successor002": {
+      "stage": "market_state_ta_fold2_m5_direction_fit_20261114_002",
+      "frozen_design": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_FOLD2_M5_FIT_DESIGN_20261114_002.json",
+        "sha256": "774d02e20b00578d850ad8d3e0d5d57470492c25e5726e6cfef5c0240300abe3"
+      },
+      "candidate_recipe_published": false,
+      "training_authorized": false,
+      "test_data_used": false,
+      "focused_tests_passed": 13,
+      "actual_recipe_runtime_gate_reached_guard_before_payload": true
     }
   }
 }

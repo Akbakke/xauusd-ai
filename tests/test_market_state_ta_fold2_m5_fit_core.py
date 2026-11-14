@@ -161,7 +161,7 @@ def test_inner_lifecycle_requires_gpu_guard_before_payload(monkeypatch, tmp_path
     monkeypatch.setattr(worker, 'prepare_qualified_inputs',
                         lambda **kwargs: pytest.fail('payload before guard'))
     launch = {'run_scope': scope.SCOPE, 'admission_stage': scope.STAGE,
-              'fold_id': 2, 'training_enabled': True,
+              'numerical_recipe': {'fold_id': 2}, 'training_enabled': True,
               'test_data_used': False, 'max_model_seconds': 10500}
     policy_path = tmp_path / 'NEXT_RUN_POLICY.json'
     closed = json.loads(policy_path.read_text())
@@ -177,3 +177,39 @@ def test_inner_lifecycle_requires_gpu_guard_before_payload(monkeypatch, tmp_path
         worker._execute_fixed_fit_and_readout(
             launch=launch, review_ref={}, initial_result_ref={},
             deadline_monotonic=float(time.monotonic() + 30))
+
+
+def test_inner_policy_reads_fold_from_numerical_recipe(monkeypatch, tmp_path):
+    """A schema-realistic admission reaches the guard without data/model work."""
+    import json
+    from gx1.contracts import market_state_ta_fold2_m5_fit_v1 as scope
+    from gx1.contracts import gx1_capped_execution_v1 as guard
+
+    class ReachedGuard(Exception):
+        pass
+
+    gate = scope.gate_fields()
+    gate.update(execution_authorized=True, data_reads_authorized=True,
+                genuine_constructor_authorized=True, genuine_forward_authorized=True)
+    policy = {'training_enabled': True, 'native_training_enabled': True,
+              'full_epoch_training_allowed': True, scope.STAGE: gate}
+    (tmp_path / 'NEXT_RUN_POLICY.json').write_text(json.dumps(policy))
+    monkeypatch.setattr(scope, 'REPO', tmp_path)
+
+    def reached_guard():
+        raise ReachedGuard()
+
+    monkeypatch.setattr(guard, 'require_guarded_cuda_trainer_execution',
+                        reached_guard)
+    recipe = {'run_scope': scope.SCOPE, 'admission_stage': scope.STAGE,
+              'numerical_recipe': {'fold_id': 2}, 'training_enabled': True,
+              'test_data_used': False, 'max_model_seconds': 10500}
+    args = {'launch': recipe, 'review_ref': {}, 'initial_result_ref': {},
+            'deadline_monotonic': time.monotonic() + 10}
+    with pytest.raises(ReachedGuard):
+        worker._execute_fixed_fit_and_readout(**args)
+
+    recipe['numerical_recipe']['fold_id'] = 1
+    recipe['fold_id'] = 2
+    with pytest.raises(RuntimeError, match='FOLD2_M5_FIT_POLICY_CLOSED'):
+        worker._execute_fixed_fit_and_readout(**args)

@@ -5,7 +5,7 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_FOLD2_M5_DIRECTION_FIT_ONE_USE_ADMITTED_PREPARATION_PENDING. Edge-målet er
+TA_FOLD2_M5_001_CONSUMED_002_SOURCE_QUALIFIED_RECIPE_PENDING. Edge-målet er
 uoppnådd. TARGET_COUNTS001 er COMPLETE/CONSUMED, exit0,3,78s. RESULT ba50eb96,
 VALIDATION dd45bd05, TERMINAL dccda6f6; ingen relansering. På eksakt47338 modne
 TRAIN-rader /2959 B16 med siste10 er M5 kjent retning S N16101/q2890 og F N19072/q2950.
@@ -47,11 +47,11 @@ faste senere panelene, uten checkpoint-/terskelvalg. Tidligere fold1 fulltap ga
 F M5 senere AUC0,5113→0,5101→0,5091 etter pass1/pass2 og dårligere Brier;
 det er begrunnelse, ikke matchet fold2-kontroll. Eksisterende fit-runner importerer
 gammelt checkpoint og binder fold1. Fold2 har fast B16/B10-kildekontrakt,
-fit-kjerne og seks fokuserte syntetiske tester PASS, samt read-only metadata-
+fit-kjerne og sju fokuserte syntetiske tester PASS, samt read-only metadata-
 preflight og slutt-scorer. Scoreren replayet alle130 INITIAL-celler eksakt;
 identisk INITIAL-par ga null AUC-gevinst. Bootstrap-seed er dag20260911,
 mandagsuke20260912. Arbeidskoden binder alle17 uendrede INITIAL-inputkvitteringer;
-design-dokumentet må fryses separat. Indre livssyklus er kildebundet og avviser
+design001/002 er fryst separat. Indre livssyklus er kildebundet og avviser
 lukket/full-fit-svak policy og manglende GPU-vakt før payload. Den krever fersk startdigest,
 fast pass og parvis FINAL-readout, men faktisk payload/modell/fit er ikke kjørt.
 Fersk INITIAL-design er bitlik originalkilden og nå fryst i egen kildebundet
@@ -60,20 +60,21 @@ checkpoint/resume og de 17 gjenbrukte inputkvitteringene. Campaignens
 metadataautoritet kjenner fold2-resepten, 2959 besøkte batcher og mulige
 hoppede oppdateringer i terminal cursor/progress. Materialisering, dispatch og
 ytre worker er kildebundet og syntetisk rutet; syntetisk COMPLETE og midt-i-step FAILED publiserer
-immutable resultat/cursor/progress, mens gjentak avvises. En ren committed kilde
-har nå publisert kun immutable kandidat-resept SHA4dac6a56 fra c72f29eb
-under lukket trening. Stage har RECIPE.json og immutable PREPARED_WINDOWS_BOOT.json
-for målt Windows-boot649 (SHAaeaddb68); faktisk kjøring krever senere boot>649.
-Gammel guard-template er strukturelt gyldig, men runner/observer-kildehash bindes
-på nytt ved materialisering. Ingen campaign-plan, claim, faktisk payload/modell/
-fit/FINAL-capture finnes. Én trainer-window på12000s/250W og intern10500s er
-foreslått. Eksakt engangsadmisjon gjelder nå kun fold2 M5-retning på de faste
-47338 TRAIN-radene, maks2959 oppdateringer, én fersk modell og ingen checkpoint.
-Lesende PREFLIGHT.json SHA38f9d443 er PASS uten payload eller modell. Policy har
-training_enabled=true for denne ene ruten; ingen faktisk fit er startet. Neste
-steg er capped kampanjematerialisering, maskinvid idle-kontroll og fysisk
-Windows-boot>649 før én signert12000s/250W trainer-window. TEST, Entry, Exit,
-broker, ordre og annen trening er stengt. Resultat og edge er ubevist.
+immutable resultat/cursor/progress, mens gjentak avvises. Plan001 bandt immutable kandidat-resept SHA4dac6a56 og Windows-boot649.
+Den ble innrømmet og materialisert på ren kilde; fysisk boot650 startet
+signert trainer. Runtime feilet før payload/modell/forward med RESULT SHAa331cbbc,
+TERMINAL SHA2aab677b og kvittering SHA54ca0175:0 batchbesøk,0 updates.
+Runtime leste toppnivå-`fold_id`, mens fryst resept har
+`numerical_recipe.fold_id=2`.21 av22 kontrollerte adgangsfelt var sanne.
+Plan001 er FAILED/CONSUMED uten relansering; Windows-oppgaven er deaktivert.
+Eksisterende runtime-eier leser nå riktig schemafelt. Den gamle syntetiske
+fixturen er rettet, og en negativ/positiv gatetest er lagt til. Design002
+er bitlik design001 utenom ny engangsidentitet.13 fokuserte tester, syntaks,
+lesende metadata-preflight og faktisk resept gjennom runtime-gaten før
+payload består. Ingen kandidat-resept002, ny bootkvittering eller fit finnes.
+training_enabled=false. Neste steg er ren commit/push, så resept002 og
+separat eksakt engangsadmisjon. TEST, Entry, Exit, broker og ordre er stengt.
+Edge er fortsatt ubevist.
 Fokuserte fold2/campaign-tester PASS. Eldre fold1-fit-testfil har19 isolerte
 fixture-feil NATIVE_F_PRIVATE_TA_M5_EXACT_INPUT_IDENTITY i uendrede kilder/refs;
 ikke bruk den som fold2-kvittering eller gjenta uten konkret behov.

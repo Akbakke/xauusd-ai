@@ -143,7 +143,7 @@ def test_candidate_recipe_preparation_is_one_use_and_keeps_training_closed(
     root = tmp_path / 'RUNS/FOLD2'
     root.parent.mkdir()
     (repo / 'NEXT_RUN_POLICY.json').write_text(json.dumps({
-        'status': 'TA_FOLD2_M5_CAMPAIGN_ROUTE_SOURCE_REVIEWED_EXECUTION_CLOSED',
+        'status': 'TA_FOLD2_M5_001_CONSUMED_002_SOURCE_QUALIFIED_RECIPE_PENDING',
         'training_enabled': False, 'native_training_enabled': False,
         'full_epoch_training_allowed': False, 'full_val_allowed': False}))
     monkeypatch.setattr(scope, 'REPO', repo)
