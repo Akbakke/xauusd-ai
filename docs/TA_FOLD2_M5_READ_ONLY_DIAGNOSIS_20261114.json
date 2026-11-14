@@ -1,0 +1,149 @@
+{
+  "schema_version": "gx1_ta_fold2_m5_read_only_diagnosis_v1",
+  "status": "COMPLETE_READ_ONLY_EDGE_UNQUALIFIED",
+  "observed_utc": "2026-11-14T14:26:24.798114+00:00",
+  "sources": {
+    "fit_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_004/RESULT.json",
+      "sha256": "d05f1226ee6ec678a15ede40a43568e976c1346a1f41113e31934ae10f0883f5"
+    },
+    "fresh_initial_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_004/RESULT.json",
+      "sha256": "ebaa2de9a98755f6b509a2354653aa52d4fa3904852ae328e6cc1858bda712d8"
+    },
+    "paired_readout": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_004/PAIRED_READOUT.json",
+      "sha256": "2ad636e0759ae4f6cbd1efc0b21b389ada1bcd044b5193be57b97eb55af638aa"
+    },
+    "captures": {
+      "TRAIN": {
+        "INITIAL": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_004/TRAIN_READOUT.npz",
+          "sha256": "eacccb900c7dcab0c50ab8af34e5af3eb51461aedb6ae74103dbddf8acb3a291"
+        },
+        "FINAL": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_004/FINAL_TRAIN_READOUT.npz",
+          "sha256": "ab050d3e23801f2aa9f5ca0f97dfc1c455af246dcd1cf11fa1e22cc5b6db3909"
+        }
+      },
+      "LATER": {
+        "INITIAL": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_004/LATER_READOUT.npz",
+          "sha256": "90f60a307c855c1c8543aab8a86924519257c21d29be4c728550c00147865108"
+        },
+        "FINAL": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_004/FINAL_LATER_READOUT.npz",
+          "sha256": "7ca3c77164dffa0b568b1a50fe0e83e8757ca596359f5f0b0b59e253e20eb4c4"
+        }
+      }
+    }
+  },
+  "method": "Hash-verified immutable INITIAL and FINAL TRAIN/later captures; identical parent/issue/target axes checked. M5 known side is mature and eligible with allowed bit DOWN=1 or UP=4. Positive raw[...,0,1] is UP logit. AUC independently recomputed with sklearn and compared to published readouts; probability sigmoid, Brier mean squared error, correlation Pearson on S/F known-side overlap. All S-on-F scores are post-hoc descriptive diagnostics on reused development.",
+  "TRAIN_fixed_panel": {
+    "F_known_n": 1661,
+    "S_known_n": 1402,
+    "F_only_n": 636,
+    "overlap_n": 1025,
+    "overlap_same_direction_n": 994,
+    "overlap_same_direction_fraction": 0.9697560975609756,
+    "initial": {
+      "F_on_F_auc": 0.4994502370218223,
+      "S_on_F_auc_exploratory": 0.4950463309486095,
+      "F_on_F_brier": 0.25048925293688945,
+      "S_on_F_brier_exploratory": 0.2580420626534907,
+      "F_probability_mean": 0.4986129501985327,
+      "F_probability_sd": 0.020647037230566115,
+      "F_probability_p05_p50_p95": [
+        0.4633456954578616,
+        0.4989008790822461,
+        0.5311374486063282
+      ],
+      "F_label_up_fraction": 0.5111378687537628,
+      "overlap_S_F_score_correlation": -0.7224707411018982,
+      "overlap_S_on_F_auc_exploratory": 0.5047040855288278,
+      "overlap_F_on_F_auc": 0.48620847651775484
+    },
+    "final": {
+      "F_on_F_auc": 0.5124733821882597,
+      "S_on_F_auc_exploratory": 0.5116407596302808,
+      "F_on_F_brier": 0.250028508836533,
+      "S_on_F_brier_exploratory": 0.2500009598531972,
+      "F_probability_mean": 0.4903253186856512,
+      "F_probability_sd": 0.011027952217008943,
+      "F_probability_p05_p50_p95": [
+        0.47641126090605856,
+        0.48778407908539634,
+        0.5120731412477618
+      ],
+      "F_label_up_fraction": 0.5111378687537628,
+      "overlap_S_F_score_correlation": -0.0758621363096493,
+      "overlap_S_on_F_auc_exploratory": 0.5256701030927835,
+      "overlap_F_on_F_auc": 0.5124360442917144
+    }
+  },
+  "LATER_fixed_panel": {
+    "F_known_n": 1591,
+    "S_known_n": 1392,
+    "F_only_n": 636,
+    "overlap_n": 955,
+    "overlap_same_direction_n": 924,
+    "overlap_same_direction_fraction": 0.9675392670157068,
+    "initial": {
+      "F_on_F_auc": 0.4867769514365624,
+      "S_on_F_auc_exploratory": 0.5258072718026952,
+      "F_on_F_brier": 0.2504250763034614,
+      "S_on_F_brier_exploratory": 0.2618154597167701,
+      "F_probability_mean": 0.5073945807287682,
+      "F_probability_sd": 0.020900905474539436,
+      "F_probability_p05_p50_p95": [
+        0.46968879904142025,
+        0.5087325912352291,
+        0.5406346616793081
+      ],
+      "F_label_up_fraction": 0.5373978629792583,
+      "overlap_S_F_score_correlation": -0.6968156356751638,
+      "overlap_S_on_F_auc_exploratory": 0.5252485159605902,
+      "overlap_F_on_F_auc": 0.4815696859040512
+    },
+    "final": {
+      "F_on_F_auc": 0.48738717264174936,
+      "S_on_F_auc_exploratory": 0.528424548690567,
+      "F_on_F_brier": 0.2515235126364608,
+      "S_on_F_brier_exploratory": 0.2500720509174383,
+      "F_probability_mean": 0.48479359906752223,
+      "F_probability_sd": 0.0068114798683001545,
+      "F_probability_p05_p50_p95": [
+        0.4764207978052194,
+        0.4834204548467888,
+        0.49728429567626464
+      ],
+      "F_label_up_fraction": 0.5373978629792583,
+      "overlap_S_F_score_correlation": -0.5297712881318727,
+      "overlap_S_on_F_auc_exploratory": 0.5372663685357184,
+      "overlap_F_on_F_auc": 0.48952572481984247
+    }
+  },
+  "source_alignment_review": {
+    "native_M5_query_same_for_S_and_F": true,
+    "same_causal_backbone_and_query_projection_at_native_M5": true,
+    "separate_dedicated_M5_side_linear_heads": true,
+    "up_bit_and_positive_side_logit_consistent": true,
+    "saved_initial_final_parent_issue_and_target_arrays_equal": true,
+    "source_paths": [
+      "gx1/contracts/market_state_time_query_model_v2.py",
+      "gx1/contracts/market_state_time_query_native_F_model_v1.py",
+      "gx1/contracts/market_state_time_query_native_F_objective_v1.py",
+      "gx1/contracts/market_state_time_query_native_F_batch_v1.py"
+    ]
+  },
+  "interpretation": [
+    "Later F M5 AUC and the predeclared paired gain remain unqualified; FINAL Brier worsened. Probability spread contracted and its mean is below the later UP fraction.",
+    "A monotone calibration or threshold change cannot change AUC. The fixed later F target has an exploratory better S-head point AUC, but this head was inspected post hoc and does not qualify a model or economic edge.",
+    "S/F known-side labels agree on 924 of 955 later overlap rows; their FINAL logits correlate negatively. This is observed head disagreement, not proof of its causal origin or a target binding defect."
+  ],
+  "distinct_causal_hypothesis": "Independent S and F M5 conditional-side linear heads on the same native-query representation make the F ordering less transferable; a single shared M5 side decoder trained against both mature TRAIN target populations may change F M5 ranking. The 3.25 percent overlap label disagreement and 40 percent F-only known-side rows may defeat this hypothesis.",
+  "next_action": "Review one distinct causal candidate: share the M5 conditional-side decoder between S and F at the same native query. First specify the two target populations and an exact one-use TRAIN-only comparison with fixed paired later F M5 readout. No new fit or TEST is admitted by this diagnosis.",
+  "new_training_authorized": false,
+  "test_data_used": false,
+  "economic_edge_proven": false
+}

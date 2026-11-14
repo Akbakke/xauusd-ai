@@ -14,7 +14,8 @@
   },
   "native_training_authorized": false,
   "new_job_admitted": false,
-  "next_action": "Use completed TRAIN/later development captures only for read-only F M5 score and target/feature diagnosis. Paired later F M5 AUC gain is unqualified and Brier worsened; no new fit, TEST, Entry, Exit, broker or trading is admitted.",
+  "next_action": "Review one distinct causal candidate: share the M5 conditional-side decoder between S and F at the same native query. First specify the two target populations and an exact one-use TRAIN-only comparison with fixed paired later F M5 readout. No new fit or TEST is admitted by this diagnosis.",
+  "fold2_m5_read_only_diagnosis": {"path": "docs/TA_FOLD2_M5_READ_ONLY_DIAGNOSIS_20261114.json", "sha256": "a5250d1acbb3c6df74c7d8c9b2feb4812e0a377da99fc3d1112d00ccb54ba7ac"},
   "normalization": {
     "artifacts": {
       "EXTENDED_BASE_NORMALIZATION": {
@@ -221,7 +222,7 @@
       "sha256": "2e25098183d2ffb27a4441f178789e2bdd39b84646815b67d061ccedbf2170da"
     }
   },
-  "observed_utc": "2026-11-14T14:18:50.989812+00:00",
+  "observed_utc": "2026-11-14T14:26:24.798114+00:00",
   "physical": {
     "all_413_overlap_rows_bitexact": true,
     "counts": {

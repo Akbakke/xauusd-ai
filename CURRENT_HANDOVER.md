@@ -106,8 +106,19 @@ F M5 Brier ble dårligere0,250425→0,251524. Kun6/15 senere F TF/måned-celler
 økte AUC og1/15 bedret Brier; alle celler er verifisert fra immutable
 captures. S M5 fikk bedre punktestimat, men var ikke valgt primært F-mål.
 Ingen kvalifisert rangering, uavhengig generalisering eller økonomisk edge.
-training_enabled=false; neste steg er kun avgrenset lesende diagnose. TEST, Entry, Exit, broker og ordre er stengt.
-Edge er fortsatt ubevist.
+training_enabled=false; neste steg er kildebasert spesifikasjon av én delt S/F-M5-sidehode-hypotese. TEST, Entry, Exit, broker og ordre er stengt.
+Edge er fortsatt ubevist. Lesende, hash-verifisert diagnose på uendrede captures
+står i `docs/TA_FOLD2_M5_READ_ONLY_DIAGNOSIS_20261114.json`. Senere F M5
+FINAL-sannsynlighet har middel0,4848 og SD0,00681 mot faktisk UP-andel0,5374;
+AUC0,4874 og Brier0,25152. S/F-kjente M5-retninger er like på924/955
+overlapprader, men FINAL-skårene korrelerer -0,530. S-skår mot samme F-mål
+gir post hoc AUC0,5284 og Brier0,25007; dette er utforskende utviklingsdata,
+ikke valgt signal eller edge. Kildekontroll fant samme native M5-representasjon,
+separate sidehoder og korrekt UP-koding; ingen akse-/målfeil i captures.
+Ren sannsynlighetskalibrering kan ikke forbedre AUC. Én ny kausal hypotese
+er delt S/F-M5-sidehode mot begge modne TRAIN-mål; ulik etikett og F-only
+dekning kan falsifisere den. Ingen ny fit er innrømmet; policy krever egen
+spesifikasjon, fersk baseline og ny engangsadgang før eventuell kjøring.
 Fokuserte fold2/campaign-tester PASS. Eldre fold1-fit-testfil har19 isolerte
 fixture-feil NATIVE_F_PRIVATE_TA_M5_EXACT_INPUT_IDENTITY i uendrede kilder/refs;
 ikke bruk den som fold2-kvittering eller gjenta uten konkret behov.

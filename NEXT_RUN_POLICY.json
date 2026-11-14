@@ -44,7 +44,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-14T14:18:50.989812+00:00",
+  "observed_utc": "2026-11-14T14:26:24.798114+00:00",
   "status": "TA_FOLD2_M5_004_COMPLETE_CONSUMED_F_M5_EDGE_UNQUALIFIED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
@@ -1419,7 +1419,8 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Plan004 completed and was consumed: 2959 TRAIN batches, 2952 updates and fixed later readout. Paired later F M5 AUC gain is unqualified, Brier worsened, economics and TEST remain unmeasured. All training, Entry, Exit, broker, trading and promotion are closed; no plan relaunch.",
-  "next_action": "Use only saved TRAIN/later development captures and receipts for a bounded read-only diagnosis of F M5 score dispersion, S-vs-F behavior and target/feature alignment. Define one distinct causal hypothesis before any new fit proposal; no new training, TEST, broker or trade is admitted.",
+  "next_action": "Review one distinct causal candidate: share the M5 conditional-side decoder between S and F at the same native query. First specify the two target populations and an exact one-use TRAIN-only comparison with fixed paired later F M5 readout. No new fit or TEST is admitted by this diagnosis.",
+  "market_state_ta_fold2_m5_read_only_diagnosis_20261114": {"path": "docs/TA_FOLD2_M5_READ_ONLY_DIAGNOSIS_20261114.json", "sha256": "a5250d1acbb3c6df74c7d8c9b2feb4812e0a377da99fc3d1112d00ccb54ba7ac"},
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
