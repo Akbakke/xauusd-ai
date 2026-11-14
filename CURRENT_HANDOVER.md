@@ -5,7 +5,7 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: TA_FIVEFOLD_SPAN_EXTENSION_PREPARED_NOT_ADMITTED.
+Aktuell policy: TA_FIVEFOLD_SPAN_EXTENSION_ADMITTED_INPUT_ONLY.
 Femfolds manglende 255-felts input er nå bundet i en input-only plan uten claim:
 `docs/TA_FIVEFOLD_ANCHOR_SPAN_COVERAGE_20261114.json` verifiserer30/30
 opprinnelige fit-radhash og seks sammenhengende før-TEST-radintervaller.
@@ -13,8 +13,9 @@ Planen gjenbruker fold2s seks uforanderlige sidecars og lager bare173854
 nye rader, samlet290522. Replay krever bitlikhet for31 gamle trendlinjefelt;
 modell/normalisering/mål/TEST er utenfor jobben. Ny engangsplan
 `configs/research/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_001.json`
-er PREPARED, ikke admitted eller kjørt. Kilde-/policy-preflight og ressurskontroll
-gjenstår før eventuell opptak og én capped kjøring. Global trening er fortsatt
+er ADMITTED for nøyaktig én input-only capped kjøring. Direkte og eksakt
+capped preflight besto uten claim/payload; kildecommit c048780d er frosset.
+Ingen modellfit eller fysisk replay er startet ennå. Global trening er fortsatt
 stengt; Edge er ikke kvalifisert.
 
 Tidligere policy: TA_FOLD2_F_M5_BRIER_ACCOUNTING_COMPLETE_EDGE_UNQUALIFIED.
