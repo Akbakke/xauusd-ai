@@ -1022,7 +1022,11 @@
       },
       "gx1/audit/preflight_market_state_ta_fold2_m5_fit_v1.py": {
         "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/preflight_market_state_ta_fold2_m5_fit_v1.py",
-        "sha256": "59c6a81511744f73c83bb7e916a86f8668a6dac8e3e89f8c717aba3f69b3bd85"
+        "sha256": "9bd0bf07bfa9a5470423f1c92df28bc0e7b41acde563dee8007b716c692613f8"
+      },
+      "gx1/contracts/market_state_ta_fold2_m5_fit_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_ta_fold2_m5_fit_v1.py",
+        "sha256": "6508f864cec536ea6301f0416c609e0fb31f7fe72c7b67a9663e34edb269f522"
       }
     },
     "observed_basis": {
@@ -1199,10 +1203,32 @@
       "status": "PASS_METADATA_ONLY_FIT_UNADMITTED",
       "script": {
         "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/preflight_market_state_ta_fold2_m5_fit_v1.py",
-        "sha256": "59c6a81511744f73c83bb7e916a86f8668a6dac8e3e89f8c717aba3f69b3bd85"
+        "sha256": "9bd0bf07bfa9a5470423f1c92df28bc0e7b41acde563dee8007b716c692613f8"
       },
       "checks": "Current closed policy; source hashes; exact fold2 q/N, axis and loss contracts; completed target counts; fresh zero-update INITIAL and independent validation; unchanged fixed panels; historical resource basis; proposed no-resume window.",
       "limits": "JSON/source metadata only; no feature payload, model construction, forward, backward, optimizer update, trainer dispatch, or fit admission."
+    },
+    "schedule_contract": {
+      "status": "FIXED_CHRONOLOGICAL_TRAIN_AND_READOUT_BOUND_NO_EXECUTION",
+      "source": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_ta_fold2_m5_fit_v1.py",
+        "sha256": "6508f864cec536ea6301f0416c609e0fb31f7fe72c7b67a9663e34edb269f522"
+      },
+      "first_batch": [
+        0,
+        16
+      ],
+      "penultimate_batch": [
+        47312,
+        47328
+      ],
+      "last_batch": [
+        47328,
+        47338
+      ],
+      "batch_visits": 2959,
+      "maximum_updates": 2959,
+      "model_or_fit_run": false
     }
   }
 }

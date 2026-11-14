@@ -58,6 +58,9 @@ window:12000s, intern modellgrense10500s, 250W, null checkpoint/resume;
 svikt forbruker engangsplanen. Ruten og disse vaktene er ennå ikke implementert.
 Bootstrap-bindingen ble rettet mot den faktiske period-transfer-scoreren før
 fit: UTC-dag seed20260911, UTC-mandagsuke seed20260912, 2000 parvise trekk.
+Fold2-kildekontrakt binder nå hele kronologiske TRAIN-planen, B16/B10-halen,
+fersk startdigest, fast readout, bootstrap og én no-resume-window; preflighten
+bruker den og består. Ingen worker eller dispatch er kvalifisert ennå.
 Neste steg er kun fold2-worker og eksakt campaign/start-/feilkvittering.
 Ingen fit-admisjon: training_enabled=false; ingen trening, TEST, broker eller ordre.
 

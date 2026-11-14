@@ -33,6 +33,8 @@ def inspect() -> dict:
     h = review['fold2_m5_fit_hypothesis']
     fit = h['fixed_fit']
     resource = h['resource_gate']
+    from gx1.contracts.market_state_ta_fold2_m5_fit_v1 import require_fixed_design
+    require_fixed_design(h)
     need(policy['status'] == 'TA_FOLD2_M5_METADATA_PREFLIGHT_PASS_EXECUTION_CLOSED'
          and policy['training_enabled'] is False
          and all(policy.get(k) is False for k in (
