@@ -46,6 +46,8 @@ def test_preflight_checks_plan_recipe_and_refs_without_payload_or_claim(monkeypa
                         lambda: pytest.fail('preflight read target payload'))
     head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
     monkeypatch.setattr(worker, '_clean_head', lambda: head)
+    # The consumed worker pins its original adapter; the synthetic fixture uses today's source.
+    monkeypatch.setattr(worker, 'SOURCE_ADAPTER_SHA', _sha(worker.REPO / worker.SOURCE_ADAPTER_PATH))
     owners = {path: _sha(worker.REPO / path) for path in worker.SOURCE_PATHS}
     plan = {
         'schema_version': worker.SCHEMA, 'stage': worker.STAGE,

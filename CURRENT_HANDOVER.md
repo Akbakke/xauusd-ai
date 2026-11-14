@@ -63,12 +63,20 @@ shared FINAL gir senere Brier0,249257 mot prior-alene0,249257; ingen målt
 verdi utover prior og ingen AUC-endring. Se
 `docs/TA_M5_F_ONLY_FIVEFOLD_TARGET_AUDIT_20261114.json`.
 
+Eksisterende modne TRAIN-prefikser og fersk normalisering er kvittert for
+fold1–5; den gamle tabell-OOF brukte samme kausale inputvisning, men trente
+S-målet. Lesende F-skår fra S-modellen er derfor ingen direkte test av om
+F-M5-fasiten kan læres. Én ny, separat F-M5-tabell-OOF er forberedt:
+`configs/research/MARKET_STATE_F_M5_TABULAR_OOF_20261114_001.json`.
+Fem faste LightGBM-sidehoder, ett per modent TRAIN-prefiks, bruker eksakt
+uendret tabellfeaturematrise/oppskrift; modellskår sammenlignes mot hver
+folds frosne F-TRAIN-prior med ukevis paret Brier-kontroll. F-only og
+overlapp er kun retrospektive strata. Planen er PREPARED_NOT_ADMITTED:
+ingen claim, modellfit eller payloadlesing er åpnet. Neste steg er lesende
+oppstart/import-/kvitteringspreflight, så egen eksakt capped CPU-admisjon.
 Global training_enabled/native_training_enabled/full_epoch_training_allowed
-står igjen false; fit-plan001 kan ikke relanseres. Neste steg er lesende
-kontroll av eksisterende input-/normaliseringseiere for alle fem folds,
-med kvalifisering kun av manglende deler før en separat innrømmet
-modell-OOF. Ingen ny fit er åpnet. TEST, Entry, Exit, broker, ordre,
-handel og promotion er stengt.
+står false; brukt fit-plan001 relanseres ikke. TEST, Entry, Exit, broker,
+ordre, handel og promotion er stengt.
 
 TA_FOLD2_M5_004_COMPLETE_CONSUMED_F_M5_EDGE_UNQUALIFIED. Edge-målet er
 uoppnådd. TARGET_COUNTS001 er COMPLETE/CONSUMED, exit0,3,78s. RESULT ba50eb96,
