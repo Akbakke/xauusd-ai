@@ -34,10 +34,14 @@ Brier og eksisterende ACC-eier. Plan002/003 er FAILED_CONSUMED før første forw
 med respektive normaliserings-/dualmodellhash-kontrollfeil; aldri relanser.
 Plan001 hadde bare metadata-preflight, ingen claim.
 
-Neste steg: les kun eksisterende trente oktober–desember-utdata for om AUC/rangering
-overlever på tvers av måneder og TF når ACC er svak. Paneler uten paring må ikke
-tolkes som læringsgevinst. Ny fold2-fit krever separat eksakt admisjon.
-training_enabled=false; ingen trening, TEST, broker eller ordre.
+Eksisterende trent oktober–desember-readout er gjenlest: oktober M5 AUC-gevinst
++0,0312, men paret dag- og ukeintervall omfatter0; november/desember FINAL AUC
+0,5118/0,5051, samlet0,5078 med ukeintervall0,4844–0,5324. Oktober-ACC skjuler
+lokal rangering, men ingen stabil M5-edge. D1-samlet AUC0,5499 har bredt
+ukeintervall0,3881–0,7204 og er ikke M5 Entry-kvalifikasjon.
+Neste steg: utform én avgrenset fold2 M5 fit-hypotese med egen q/N og de faste
+panelene for gjennomgang; ingen fit-admisjon nå. training_enabled=false; ingen
+trening, TEST, broker eller ordre.
 LATER_INPUTS002 er COMPLETE/CONSUMED, exit0,215,18s; terminal1297d154,
 RESULT2cab8b60/COVERAGE5abd47c4/GATHER_RESULTe6aacfe9/VALIDATIONdf45d60f.
 4096faste senere rader og alle åtte inputflater består.17353lokale rader gjenbrukt,

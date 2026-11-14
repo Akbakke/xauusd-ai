@@ -44,7 +44,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-14T08:32:48.533965+00:00",
+  "observed_utc": "2026-11-14T08:35:29.014701+00:00",
   "status": "TA_FOLD2_FRESH_INITIAL_COMPLETE_NO_F_M5_EDGE_TRAINING_CLOSED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Read-only review of existing trained October–December development readouts for whether direction rank survives month/TF checks despite weak ACC; do not compare unpaired panels as a learning gain. Fold2 fresh INITIAL is complete and consumed. Any fold2 fit requires a separate exact admission. training_enabled=false; TEST sealed; no trading.",
+  "next_action": "Prepare one bounded, source- and panel-bound fold2 M5 known-side fit hypothesis for review, using the completed fresh INITIAL, own q/N and fixed TRAIN/later panels. Keep the fit execution unadmitted: training_enabled=false, TEST sealed, no broker or trading. Existing October–December rank/ACC review is complete and does not prove transferable M5 edge.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
