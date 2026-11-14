@@ -5,7 +5,7 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_FOLD2_M5_003_CONSUMED_004_SOURCE_QUALIFIED_RECIPE_PENDING. Edge-målet er
+TA_FOLD2_M5_DIRECTION_FIT_004_ONE_USE_ADMITTED_PREPARATION_PENDING. Edge-målet er
 uoppnådd. TARGET_COUNTS001 er COMPLETE/CONSUMED, exit0,3,78s. RESULT ba50eb96,
 VALIDATION dd45bd05, TERMINAL dccda6f6; ingen relansering. På eksakt47338 modne
 TRAIN-rader /2959 B16 med siste10 er M5 kjent retning S N16101/q2890 og F N19072/q2950.
@@ -94,8 +94,13 @@ i fast readout, og evaluatoren gir eksplisitt M5-kjent-sideantall. Faktiske
 S/F-targets og loss for første og siste batch passerer lesende, uten native
 forward eller update. Plan003 er FAILED/CONSUMED uten relansering, Windows-
 oppgaven deaktivert. Design004 er identisk med003 utenom engangsidentitet.
-Ingen resept004 eller fit er innrømmet; training_enabled=false. Neste steg
-er ren commit/push og en ny kvalifisert kandidat. TEST, Entry, Exit, broker og ordre er stengt.
+Resept004 SHAaa144f7f er publisert fra ren commit5f696c2e og boot652
+SHA113db346. Lesende PREFLIGHT SHA27a5fecf og faktisk resept/
+S/F-target-evaluator/loss SHA485ed0f2 passerer for første og siste batch
+med 0 native forwards/updates. Egen engangsadmisjon004 er åpnet for
+12000s/250W, maks2959 updates, null checkpoint og fysisk boot>652.
+Ingen faktisk fit er startet; neste steg er ren commit/push, capped
+materialisering og maskinvid idle-kontroll. TEST, Entry, Exit, broker og ordre er stengt.
 Edge er fortsatt ubevist.
 Fokuserte fold2/campaign-tester PASS. Eldre fold1-fit-testfil har19 isolerte
 fixture-feil NATIVE_F_PRIVATE_TA_M5_EXACT_INPUT_IDENTITY i uendrede kilder/refs;

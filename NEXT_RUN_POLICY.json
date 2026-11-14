@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-14T12:41:48.617307+00:00",
-  "status": "TA_FOLD2_M5_003_CONSUMED_004_SOURCE_QUALIFIED_RECIPE_PENDING",
+  "observed_utc": "2026-11-14T12:46:58.230929+00:00",
+  "status": "TA_FOLD2_M5_DIRECTION_FIT_004_ONE_USE_ADMITTED_PREPARATION_PENDING",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": false,
-  "full_epoch_training_allowed": false,
+  "training_enabled": true,
+  "full_epoch_training_allowed": true,
   "full_val_allowed": false,
-  "rule": "Plans001/002/003 failed and were consumed with zero optimizer updates. The measured sampled-S target-owner and M5 side-count interface defects are repaired in source; all training, TEST, Entry, Exit, broker, trading and promotion remain closed. Successor004 needs distinct recipe and exact one-use admission.",
-  "next_action": "Commit/push the minimal sampled-S TRAIN target binding, explicit M5 known-side count, frozen design004 and handover. From clean source publish only candidate recipe004 and prepared boot652 under closed training. Before a separate exact admission, verify the actual first/tail S/F target evaluation and loss, source startup, resources and all prior consumed plans. No relaunch.",
+  "rule": "Only frozen fold2 M5 direction recipe004 is admitted for one capped TRAIN pass after fresh boot and exact guards. Plans001/002/003 remain failed/consumed. TEST, Entry, Exit, broker, trading and promotion remain closed.",
+  "next_action": "Materialize only plan004 from clean committed source and prepared boot652 under capped audit. Check immutable plan, startup and machine-wide idle; then one physical Windows boot >652 for one guarded 12000-second/250 W window. Score fixed later F M5 paired AUC and all five TF/month cells, close admission and task. No relaunch of consumed plans.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -25403,7 +25403,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-14T12:41:48.617307+00:00",
+  "updated_utc": "2026-11-14T12:46:58.230929+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -36168,7 +36168,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -87118,5 +87118,135 @@
       "sha256": "cf3766b3371285c65e8798b79f7fb87ebaa2957026f2e376d7bb9924703ec561"
     },
     "successor_candidate_stage": "market_state_ta_fold2_m5_direction_fit_20261114_004"
+  },
+  "market_state_ta_fold2_m5_direction_fit_20261114_004": {
+    "status": "ADMITTED",
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_004/RECIPE.json",
+      "sha256": "aa144f7fed073e25c58bd9818dc4610394cd9449d6aaf27a8651e85dfa915eca"
+    },
+    "source_commit": "5f696c2eb733485b2dee9c17ab308797fcce1592",
+    "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_004/RUNTIME",
+    "candidate_preparation_consumed": true,
+    "campaign_preparation_authorized": true,
+    "execution_authorized": true,
+    "training_authorized": true,
+    "relaunch_allowed": false,
+    "test_data_used": false,
+    "prepared_boot": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_004/PREPARED_WINDOWS_BOOT.json",
+      "sha256": "113db346dd036a62704cd38ffd3a151a45258562de5e3ec68ce71b7d9825e4f4"
+    },
+    "guard_template_candidate": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_MECHANICAL_20261109_001/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "sha256": "905dd8efd3cd7fae95f2dc90457b710d673f5a23399a61831eea9063516fcd9d"
+    },
+    "guard_template_source_rebind_required": [
+      "signed_guard_sources:runner",
+      "controller_sources:observer"
+    ],
+    "proposed_one_window": {
+      "max_invocation_seconds": 12000,
+      "max_model_seconds": 10500,
+      "wrapper_wall_seconds": 13800,
+      "gpu_power_cap_w": 250,
+      "checkpoint_writes": 0,
+      "resume_allowed": false,
+      "failure_consumes_one_use_plan": true
+    },
+    "next_execution_requires_windows_boot_id_greater_than": 652,
+    "materializer_candidate": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_market_state_time_query_fold1_fit_campaign_v1.py",
+      "sha256": "3e46c619b509721bcc77f43a6bd0277545c99b38b0fc437cd290b3f7b353ed54"
+    },
+    "proposed_capped_invocation": {
+      "class": "trainer",
+      "memory": "20G",
+      "swap": "512M",
+      "max_invocation_seconds": 12000,
+      "wrapper_wall_seconds": 13800,
+      "max_model_seconds": 10500,
+      "gpu_power_cap_w": 250,
+      "optimizer_step_budget": 2959,
+      "checkpoint_writes": 0,
+      "resume_allowed": false,
+      "failure_consumes_one_use_plan": true,
+      "test_data_used": false
+    },
+    "fresh_physical_windows_boot_before_invocation_required": true,
+    "operator_fit_admission_authorized": true,
+    "decision": "ADMITTED",
+    "fold_id": 2,
+    "selected_fit_rows": 47338,
+    "selected_score_rows": 4096,
+    "model_constructions_authorized": 1,
+    "optimizer_constructions_authorized": 1,
+    "model_forwards_authorized": 3471,
+    "backward_calls_authorized": 2959,
+    "optimizer_steps_authorized": 2959,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "genuine_predictor_fit_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
+    "full_epoch_training_allowed": true,
+    "canonical_resume_authority": false,
+    "candidate_selection": false,
+    "native_launch_authorized": false,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "full_val_allowed": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "guard_template": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_MECHANICAL_20261109_001/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "sha256": "905dd8efd3cd7fae95f2dc90457b710d673f5a23399a61831eea9063516fcd9d"
+    },
+    "materializer": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_market_state_time_query_fold1_fit_campaign_v1.py",
+      "sha256": "3e46c619b509721bcc77f43a6bd0277545c99b38b0fc437cd290b3f7b353ed54"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "model_execution_authorized": true,
+    "checkpoint_reads_authorized": false,
+    "checkpoint_loads_authorized": 0,
+    "checkpoint_writes_authorized": 0,
+    "candidate_evidence_writes_authorized": 1,
+    "actual_model_execution_started": false,
+    "actual_native_job_active": false,
+    "max_model_seconds": 10500,
+    "max_invocation_seconds": 12000,
+    "outer_guard_seconds": 13800,
+    "max_training_forwards": 2959,
+    "max_evaluation_forwards": 512,
+    "resource_cap": {
+      "run_class": "trainer",
+      "memory": "20G",
+      "swap": "512M",
+      "physical_power_limit_w": 250
+    },
+    "source_preflight": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_004/PREFLIGHT.json",
+      "sha256": "27a5fecf59f08c72c3dcee37d3771eb1663b9775863854fe6fefe23da9fbaffb"
+    },
+    "authorization_basis": "User 2026-11-14 directs calibration and edge work; GX1_RULES 2026-11-05 standing local 0 USD authority. This exact fourth one-use admission binds frozen fold2 M5 direction recipe004 after plans001/002/003 failed and were consumed with zero updates. It requires physical Windows boot >652 and all guards. No TEST, Entry, Exit, broker, trade, spending or promotion.",
+    "bound_input_check": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_002/BOUND_INPUT_CHECK.json",
+      "sha256": "f21ee0dcd0250263396c542769dcc3935f4d1c320809191bd885895f0e504080"
+    },
+    "preclaim_published_recipe_runtime_gate": "PASS_TO_GUARD_BEFORE_PAYLOAD",
+    "preclaim_trainer_module_startup": "PASS_DIRECT_ABSOLUTE_PYTHON_MODULE_HELP_SAME_REPO_CWD_NO_CLAIM",
+    "actual_gate_check": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_004/ACTUAL_GATE_CHECK.json",
+      "sha256": "485ed0f236649c189ccc261a4a692546bb2bdf7248ac40e0b9186b3b42040644"
+    },
+    "preclaim_actual_full_target_axes": "PASS_118249_FULL_S_F_ROWS_47338_TRAIN_PREFIX_TO_FIRST_BATCH_NO_FORWARD_OR_UPDATE",
+    "preclaim_actual_first_and_tail_target_evaluator": "PASS_ACTUAL_S_SAMPLED_F_NATIVE_TARGETS_LOSS_AND_KNOWN_M5_COUNTS_NO_NATIVE_FORWARD_OR_UPDATE"
   }
 }

@@ -12,9 +12,9 @@
       "sha256": "8d2ae09f2bcb1993f88b8178bd2e3834d304a62d852703bc65527edf32be55b0"
     }
   },
-  "native_training_authorized": false,
-  "new_job_admitted": false,
-  "next_action": "Plan003 failed and was consumed before first model forward/update. Sampled S target owner and explicit M5 side count are corrected; actual first/tail target evaluation and loss passed read-only. Commit/push, then publish only distinct candidate recipe004 under closed training. No TEST, Entry, Exit, broker or trading.",
+  "native_training_authorized": true,
+  "new_job_admitted": true,
+  "next_action": "Only frozen recipe004 is admitted for one guarded TRAIN fit after fresh boot >652. The published recipe passed the runtime gate and actual first/tail S/F target evaluator/loss passed read-only; materialize on clean source, inspect plan, run one window. Plans001/002/003 remain consumed. No TEST, Entry, Exit, broker or trading.",
   "normalization": {
     "artifacts": {
       "EXTENDED_BASE_NORMALIZATION": {
@@ -221,7 +221,7 @@
       "sha256": "2e25098183d2ffb27a4441f178789e2bdd39b84646815b67d061ccedbf2170da"
     }
   },
-  "observed_utc": "2026-11-14T12:41:48.617307+00:00",
+  "observed_utc": "2026-11-14T12:46:58.230929+00:00",
   "physical": {
     "all_413_overlap_rows_bitexact": true,
     "counts": {
@@ -317,7 +317,7 @@
     "Existing M5 equal-observation owner binds fold2 to its measured S/F q/N, axes, view and target-count receipts; fold1 profile and default identity remain unchanged.",
     "Runtime fold_id gate now reads numerical_recipe.fold_id; prior synthetic fixture was corrected and an admitted-gate regression added. Distinct frozen design002 preserves all initial inputs and targets."
   ],
-  "status": "FOLD2_M5_PLAN003_FAILED_CONSUMED_004_SOURCE_REPAIR_CLOSED",
+  "status": "FOLD2_M5_PLANS001_003_CONSUMED_004_ONE_USE_FIT_ADMITTED_PREPARATION_PENDING",
   "test_data_used": false,
   "validation": {
     "both_actual_cli_preflights": "PASS",
@@ -989,7 +989,7 @@
     "relaunch_allowed": false
   },
   "fold2_m5_fit_hypothesis": {
-    "status": "PLAN003_FAILED_CONSUMED_ZERO_UPDATE_004_REPAIR_SOURCE_CLOSED",
+    "status": "PLANS001_003_FAILED_CONSUMED_004_ONE_USE_FIT_ADMITTED_PREPARATION_PENDING",
     "question": "Can one fixed chronological full-TRAIN pass of the existing native S/F model, using only its M5 known-side direction loss, improve later F M5 rank versus the exact fresh zero-update function?",
     "source_commit_at_review": "f013cb758e0d03098bbe4edaddef6c5426d8a5fa",
     "source_owners": {
@@ -1204,11 +1204,11 @@
         }
       }
     },
-    "implementation_gap": "Plans001/002/003 were consumed with zero updates. Plan003 reached first batch but supplied endpoint S targets to sampled TRAIN evaluator, failing before forward. Source now supplies sampled S target for fit, endpoint S target for fixed readout and explicit M5 known-side count. Actual first/tail S/F target evaluator and loss pass read-only; no recipe004, plan, claim or fit is admitted.",
+    "implementation_gap": "Plans001/002/003 were consumed with zero updates. Corrected source, published recipe004, read-only actual bound input check and first/tail S/F target evaluator/loss pass. One-use fit004 is admitted; campaign plan, fresh boot >652, guarded claim, actual updates and final readout are pending.",
     "resource_note": "The historical fold1 full-prefix two-pass phase took 7586.8 seconds for 3698 updates; this is planning evidence, not a fold2 wall-time guarantee or admission.",
     "scope_limits": "All genuine TA/MTF/D1 inputs and S/F outputs remain; the selected loss gives direct gradient only to M5 known-side direction. A single pass cannot rule out deeper learning if it fails. No Entry selection, economics, TEST or trading is measured.",
-    "execution_authorized": false,
-    "training_authorized": false,
+    "execution_authorized": true,
+    "training_authorized": true,
     "test_data_used": false,
     "adapter_qualification": {
       "test": "tests/test_market_state_m5_equal_observation_binding.py::test_fold2_direction_only_binds_full_batch_and_partial_tail",
@@ -1579,11 +1579,35 @@
         "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_FOLD2_M5_FIT_DESIGN_20261114_004.json",
         "sha256": "f1ab0e159e3a2e4a78211175e0b60f658fdd78e70db7be1dd5ce6111023d42c5"
       },
-      "candidate_recipe_published": false,
-      "training_authorized": false,
+      "candidate_recipe_published": true,
+      "training_authorized": true,
       "test_data_used": false,
       "focused_evaluator_and_fold2_suites_passed": true,
-      "actual_first_and_tail_S_F_target_evaluator_loss_read_only_passed": true
+      "actual_first_and_tail_S_F_target_evaluator_loss_read_only_passed": true,
+      "status": "ADMITTED_PREPARATION_PENDING",
+      "recipe": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_004/RECIPE.json",
+        "sha256": "aa144f7fed073e25c58bd9818dc4610394cd9449d6aaf27a8651e85dfa915eca"
+      },
+      "prepared_boot": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_004/PREPARED_WINDOWS_BOOT.json",
+        "sha256": "113db346dd036a62704cd38ffd3a151a45258562de5e3ec68ce71b7d9825e4f4"
+      },
+      "source_preflight": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_004/PREFLIGHT.json",
+        "sha256": "27a5fecf59f08c72c3dcee37d3771eb1663b9775863854fe6fefe23da9fbaffb"
+      },
+      "actual_gate_check": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_004/ACTUAL_GATE_CHECK.json",
+        "sha256": "485ed0f236649c189ccc261a4a692546bb2bdf7248ac40e0b9186b3b42040644"
+      },
+      "bound_input_check": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_002/BOUND_INPUT_CHECK.json",
+        "sha256": "f21ee0dcd0250263396c542769dcc3935f4d1c320809191bd885895f0e504080"
+      },
+      "source_commit": "5f696c2eb733485b2dee9c17ab308797fcce1592",
+      "max_invocations": 1,
+      "remaining_invocations": 1
     }
   }
 }
