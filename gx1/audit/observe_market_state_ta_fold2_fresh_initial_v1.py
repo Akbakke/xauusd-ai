@@ -11,7 +11,7 @@ import subprocess
 import time
 
 REPO = Path('/home/andre2/src/GX1_CURRENT')
-STAGE = 'market_state_ta_fold2_fresh_initial_20261114_003'
+STAGE = 'market_state_ta_fold2_fresh_initial_20261114_004'
 ROOT = Path('/home/andre2/GX1_RUNS') / STAGE.upper()
 TRAIN_ROOT = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001')
 LATER_ROOT = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_002')
@@ -115,6 +115,14 @@ def inspect(plan_path, plan_sha, out_dir, *, execute):
         contract, require_endpoint_priors,
     )
     design = read(plan['inputs']['design'])['fresh_initial_design']
+    default_loss = contract(ta_only=True, dedicated_m5_side=True,
+                            dedicated_tf_activity=True)
+    need(default_loss['contract_sha256']
+         == design['model']['default_model_objective_sha256'], 'DEFAULT_LOSS_CONTRACT')
+    from gx1.contracts.market_state_time_query_native_F_model_v1 import contract as dual_model_contract
+    need(dual_model_contract(ta_only=True, dedicated_m5_side=True,
+                             dedicated_tf_activity=True)['contract_sha256']
+         == default_loss['dual_model_contract_sha256'], 'DUAL_MODEL_CONTRACT')
     need(contract(ta_only=True, dedicated_m5_side=True, m5_equal_observation=True,
                   dedicated_tf_activity=True, fold_id=2)['contract_sha256']
          == design['model']['future_fold2_fit_loss_sha256'], 'FOLD2_FUTURE_FIT_CONTRACT')
@@ -344,8 +352,12 @@ def run(plan_path, plan_sha, out_dir, device):
             device=torch.device('cpu'), unobserved_units_profile=None)
         model = NativeFutureDualModel(backbone).to(cuda).eval()
         counts['model_constructions'] = 1
-        need(model.research_objective['contract_sha256']
-             == design['model']['default_model_objective_sha256'], 'MODEL_CONTRACT')
+        default_loss = objective.contract(ta_only=True, dedicated_m5_side=True,
+                                          dedicated_tf_activity=True)
+        need(default_loss['contract_sha256']
+             == design['model']['default_model_objective_sha256']
+             and model.research_objective['contract_sha256']
+             == default_loss['dual_model_contract_sha256'], 'MODEL_CONTRACT')
         initial_sha = canonical_model_state_sha256(model.state_dict())
         readouts, measurements, captures = {}, {}, {}
         for label, selected, partition in (('TRAIN', train_pos, 'fit'),

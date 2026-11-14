@@ -692,7 +692,7 @@ validate_target_command() {
         TRAINER_MODEL_MAX_WALL_SECONDS=900
       fi
       if [[ "${3:-}" == "$TA_FOLD2_FRESH_INITIAL_PRODUCER_MODULE" ]]; then
-        local fold2_initial_root=/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_003
+        local fold2_initial_root=/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_004
         if ! matches_bound_market_state_ta_fold2_fresh_initial "$fold2_initial_root/PLAN.json" "$fold2_initial_root" "$@"; then
           echo "FATAL: fold 2 fresh INITIAL observation is not exactly bound" >&2
           exit 75

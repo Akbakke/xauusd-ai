@@ -5,7 +5,7 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_FOLD2_FRESH_INITIAL_003_ADMITTED_NOT_CLAIMED. Edge-målet er
+TA_FOLD2_FRESH_INITIAL_004_ADMITTED_NOT_CLAIMED. Edge-målet er
 uoppnådd. TARGET_COUNTS001 er COMPLETE/CONSUMED, exit0,3,78s. RESULT ba50eb96,
 VALIDATION dd45bd05, TERMINAL dccda6f6; ingen relansering. På eksakt47338 modne
 TRAIN-rader /2959 B16 med siste10 er M5 kjent retning S N16101/q2890 og F N19072/q2950.
@@ -26,15 +26,19 @@ CLAIM ea9f84f0, TERMINAL 61e3b5a8, exit1 i INPUTS, null datagather/modell/
 forwards/checkpoint/optimizer/TEST. Feilen var workerens nye kontroll som brukte
 PREFIX_NORMALIZATION som om den var TA_INPUT_NORMALIZATION; den faktiske kvalifiserte
 TA-normaliseringen ligger i fold2 TRAIN-planen. Minste rettelse binder denne filen
-og sjekker den allerede i metadata-preflight. Ny plan 003 (2cece6b9) er admittert,
-men ikke claimet; capped/signet preflight exit0, PREFLIGHT_REVIEWED 1960244a.
-Plan 001 var kun metadata-preflight og ble avløst før claim etter kontroll av
-read-only-kravet for fulle akser. Eksisterende fabrikk bygger uten checkpoint. Forhåndsvalgt4096 TRAIN og4096
+og sjekker den allerede i metadata-preflight. Plan 003 (2cece6b9) er også
+FAILED_CONSUMED: CLAIM 7a63b46a, TERMINAL 9c59d13c, exit1 etter én modellbygning,
+null forwards/checkpoint/optimizer/TEST. Kontrollfeilen sammenlignet dualmodellens
+kontrakthash med tapskontraktens hash. Eieren skiller disse; ny preflight binder
+begge, og runtime sjekker riktig dualmodellhash. Ny plan 004 (6fe63d5e) er
+admittert uten claim, capped/signet preflight exit0, PREFLIGHT_REVIEWED e68bee7f.
+Plan 001 var kun metadata-preflight, avløst før claim etter read-only-aksekravet.
+Ingen av de konsumerte planene relanseres. Eksisterende fabrikk bygger uten checkpoint. Forhåndsvalgt4096 TRAIN og4096
 senere rader bruker hele B16-grupper, egne fold2-priorer og uendrede native S/F-mål.
 Primær readout er F M5 kjent-side AUC på senere utviklingspanel; alle fem TF, ACC,
 alltid-UP, Brier, kalibreringsnevner og måneder beholdes. q/N bindes for senere
 fit, men kan ikke påvirke nullstegsprognoser. Dette er ingen OOF-, edge- eller
-økonomimåling. Neste steg er én 003-kjøring via capped CUDA-rute med 12GiB/512MiB,
+økonomimåling. Neste steg er én 004-kjøring via capped CUDA-rute med 12GiB/512MiB,
 CPU0-7, åtte numeriske tråder, 250W konfigurert, 170W trekkstopp, 65/80C,
 12288MiB GPU-minne og 1800s ytre vakt. Worker har 1700s intern grense.
 training_enabled=false; ingen TEST eller trening.
