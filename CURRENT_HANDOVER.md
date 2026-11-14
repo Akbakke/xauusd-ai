@@ -5,12 +5,12 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: TA_FIVEFOLD_SPAN_NORMALIZATION_345_PREPARED_NOT_ADMITTED.
+Aktuell policy: TA_FIVEFOLD_SPAN_NORMALIZATION_345_ADMITTED_TRAIN_ONLY.
 Fold3–5 har egne uforandrede253-felts TRAIN-normaliseringer. Kvalifiserte
 fullsidecars har eksakte før-cutoff-prefikser på alle seks overflater.
 Den eksisterende additive normaliseringskontrakten er utvidet med eksakte
 fold3–5-parentbindinger; fold1/2-output forblir rekonstruerbart. En
-én-gangs CPU-plan for bare36 nye spennstatistikker er PREPARED, uten claim.
+én-gangs CPU-plan for bare36 nye spennstatistikker er ADMITTED etter direkte og capped eksakt preflight, uten claim eller fit.
 Dette er fortsatt inputnormalisering, ikke F-M5 modell-OOF eller Edge.
 
 Plan002 er COMPLETE/CONSUMED, exit0 etter143,53s. Den bandt eksakt
