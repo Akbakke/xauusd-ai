@@ -5,7 +5,7 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_FOLD2_M5_FIT_CORE_SYNTHETIC_REVIEWED_EXECUTION_CLOSED. Edge-målet er
+TA_FOLD2_M5_READOUT_SOURCE_REPLAYED_EXECUTION_CLOSED. Edge-målet er
 uoppnådd. TARGET_COUNTS001 er COMPLETE/CONSUMED, exit0,3,78s. RESULT ba50eb96,
 VALIDATION dd45bd05, TERMINAL dccda6f6; ingen relansering. På eksakt47338 modne
 TRAIN-rader /2959 B16 med siste10 er M5 kjent retning S N16101/q2890 og F N19072/q2950.
@@ -65,8 +65,13 @@ Fit-kjernen har tre fokuserte syntetiske tester PASS:2959 B16/B10-besøk,2957
 oppdateringer ved to simulerte tomme batcher; feil AdamW og modellkontrakt
 stoppes før oppdatering. Faktisk
 feature-gather, native modell, sluttreadout og kampanjedispatch er ikke prøvd.
-Neste steg er å binde disse til eksisterende bevoktet research-kampanje med
-eksakte kilde-, oppstart- og feilkvitteringer før separat fit-admisjon.
+Skrivefri slutt-scorer replayet alle130 lagrede INITIAL-panel/task/måned/TF-celler
+eksakt og ga null parvis F M5 AUC-endring for identiske captures i både dag- og
+uke-bootstrap. Primærintervaller er låst til F M5 samlet og jan–mar; øvrige TF
+og kalibrering rapporteres beskrivende. Ingen FINAL-fit-capture finnes.
+Neste steg er å binde faktisk full TRAIN/later feature-gather og scorer til fit-kjernen,
+deretter eksisterende bevoktet research-kampanje med eksakte kilde-, oppstart-
+og feilkvitteringer før separat fit-admisjon.
 Ingen fit-admisjon: training_enabled=false; ingen trening, TEST, broker eller ordre.
 
 LATER_INPUTS002 er COMPLETE/CONSUMED, exit0,215,18s; terminal1297d154,

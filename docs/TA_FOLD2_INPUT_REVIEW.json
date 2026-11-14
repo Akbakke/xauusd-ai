@@ -14,7 +14,7 @@
   },
   "native_training_authorized": false,
   "new_job_admitted": false,
-  "next_action": "Bind the fold2 M5 fit core to the qualified full TRAIN feature gather and fixed final TRAIN/later readout, then to the existing canonical guarded research campaign with exact source, one-window 12000-second/250 W/no-resume admission and failure receipts. Qualify metadata and synthetic startup/failure paths before any separate one-use fit admission. training_enabled=false; no fit, TEST, broker or trading authorized.",
+  "next_action": "Bind the fold2 M5 fit core and fixed final scorer to the qualified full TRAIN/later feature gather, then the canonical guarded research campaign with exact source, 12000-second/250 W/no-resume admission and failure receipts. Qualify metadata and synthetic startup/failure paths before any separate one-use fit admission. training_enabled=false; no fit, TEST, broker or trading authorized.",
   "normalization": {
     "artifacts": {
       "EXTENDED_BASE_NORMALIZATION": {
@@ -316,7 +316,7 @@
     "Existing six two-field fit/inverse/projection owner reused with exact fold2 parent/cutoff/output binding.",
     "Existing M5 equal-observation owner binds fold2 to its measured S/F q/N, axes, view and target-count receipts; fold1 profile and default identity remain unchanged."
   ],
-  "status": "FOLD2_M5_FIT_CORE_SYNTHETIC_REVIEWED_EXECUTION_CLOSED",
+  "status": "FOLD2_M5_READOUT_SOURCE_REPLAYED_EXECUTION_CLOSED",
   "test_data_used": false,
   "validation": {
     "both_actual_cli_preflights": "PASS",
@@ -988,7 +988,7 @@
     "relaunch_allowed": false
   },
   "fold2_m5_fit_hypothesis": {
-    "status": "FIT_CORE_SYNTHETIC_REVIEWED_EXECUTION_UNADMITTED",
+    "status": "FIT_CORE_AND_READOUT_SOURCE_REPLAYED_EXECUTION_UNADMITTED",
     "question": "Can one fixed chronological full-TRAIN pass of the existing native S/F model, using only its M5 known-side direction loss, improve later F M5 rank versus the exact fresh zero-update function?",
     "source_commit_at_review": "f013cb758e0d03098bbe4edaddef6c5426d8a5fa",
     "source_owners": {
@@ -1022,7 +1022,7 @@
       },
       "gx1/audit/preflight_market_state_ta_fold2_m5_fit_v1.py": {
         "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/preflight_market_state_ta_fold2_m5_fit_v1.py",
-        "sha256": "7cfa26deb7403260aae732d6a81403bd4c6df8f829f67dd59276feddfeea23e1"
+        "sha256": "9682ecb5fa21702c35b64c7c147578c37cbf2e05b1bf0239d134747e39384f3c"
       },
       "gx1/contracts/market_state_ta_fold2_m5_fit_v1.py": {
         "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_ta_fold2_m5_fit_v1.py",
@@ -1035,6 +1035,18 @@
       "tests/test_market_state_ta_fold2_m5_fit_core.py": {
         "path": "/home/andre2/src/GX1_CURRENT/tests/test_market_state_ta_fold2_m5_fit_core.py",
         "sha256": "781e5963f877b132fb1885819de1b83a5c1d868c31c63b5d9372dd7b764a5bd1"
+      },
+      "gx1/audit/score_market_state_ta_fold2_m5_fit_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/score_market_state_ta_fold2_m5_fit_v1.py",
+        "sha256": "3f819e0262486459c7e9ef58f5ff39cf3ed40fe329672afbf7839271f521d471"
+      },
+      "tests/test_market_state_ta_fold2_m5_fit_readout.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/tests/test_market_state_ta_fold2_m5_fit_readout.py",
+        "sha256": "9effcacef8ff8982ea2295898033cd5c8aced17537ee0fd91406fdaa6bb5218a"
+      },
+      "gx1/audit/observe_market_state_ta_fold2_fresh_initial_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/observe_market_state_ta_fold2_fresh_initial_v1.py",
+        "sha256": "f2d14e38a39637ac68cdab8be34785d0fe4e55d5c0607f02447d3cb8aceeb5f3"
       }
     },
     "observed_basis": {
@@ -1147,7 +1159,7 @@
         }
       },
       "primary": "paired later F M5 known-side AUC after one full TRAIN pass versus fresh INITIAL, with absolute AUC versus 0.5",
-      "uncertainty": "2000 paired bootstrap replicates with UTC_DAY seed 20260911 and UTC_MONDAY_WEEK seed 20260912, using the same global cluster weights across phases and months as the completed period-transfer scorer; no resampling choice after result",
+      "uncertainty": "2000 paired AUC bootstrap replicates for later F M5 all and each January-March month: UTC_DAY seed 20260911 and UTC_MONDAY_WEEK seed 20260912, using the same global cluster weights across phases and months as the completed period-transfer scorer. Other TF and calibration cells are descriptive; no resampling choice after result.",
       "secondary": "S/F all five TF and every January-March month: known-side N, AUC, zero-logit ACC, always-UP ACC, Brier, log loss and fixed calibration bins; TRAIN fit separately",
       "checkpoint_selection": "none; score only the predetermined final pass and the already completed INITIAL",
       "decision": "A development ranking signal requires both day/week 95% lower bounds above 0 for paired F M5 AUC gain and above 0.5 for final absolute F M5 AUC. Report all months/TF and calibration regardless of outcome. Reused development still cannot establish independent or economic edge.",
@@ -1211,7 +1223,7 @@
       "status": "PASS_METADATA_ONLY_FIT_UNADMITTED",
       "script": {
         "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/preflight_market_state_ta_fold2_m5_fit_v1.py",
-        "sha256": "7cfa26deb7403260aae732d6a81403bd4c6df8f829f67dd59276feddfeea23e1"
+        "sha256": "9682ecb5fa21702c35b64c7c147578c37cbf2e05b1bf0239d134747e39384f3c"
       },
       "checks": "Current closed policy; source hashes; exact fold2 q/N, axis and loss contracts; completed target counts; fresh zero-update INITIAL and independent validation; unchanged fixed panels; historical resource basis; proposed no-resume window.",
       "limits": "JSON/source metadata only; no feature payload, model construction, forward, backward, optimizer update, trainer dispatch, or fit admission."
@@ -1252,6 +1264,25 @@
       "limit": "Synthetic feature/target adapter and fake axes/model digest; no actual feature gather, native model fit, endpoint readout or campaign route.",
       "focused_test": "tests/test_market_state_ta_fold2_m5_fit_core.py",
       "focused_test_cases": 3
+    },
+    "readout_scorer": {
+      "status": "SOURCE_REPLAYED_INITIAL_IDENTITY_PASS_NO_FIT",
+      "source": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/score_market_state_ta_fold2_m5_fit_v1.py",
+        "sha256": "3f819e0262486459c7e9ef58f5ff39cf3ed40fe329672afbf7839271f521d471"
+      },
+      "focused_test": {
+        "path": "/home/andre2/src/GX1_CURRENT/tests/test_market_state_ta_fold2_m5_fit_readout.py",
+        "sha256": "9effcacef8ff8982ea2295898033cd5c8aced17537ee0fd91406fdaa6bb5218a"
+      },
+      "fresh_initial_result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_004/RESULT.json",
+        "sha256": "ebaa2de9a98755f6b509a2354653aa52d4fa3904852ae328e6cc1858bda712d8"
+      },
+      "replayed_panel_task_month_tf_cells": 130,
+      "identity_paired_auc_gain_lower95": 0.0,
+      "test_data_used": false,
+      "limits": "Read-only existing INITIAL captures and synthetic controls. No final trained capture, native fit, predictive gain or economic evidence."
     }
   }
 }
