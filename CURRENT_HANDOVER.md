@@ -56,6 +56,8 @@ fersk INITIAL/130 validerte celler, eksakt loss/profil og låste kildehash-er;
 null feature-payload, modell eller oppdatering. Foreslått én bevoktet trainer-
 window:12000s, intern modellgrense10500s, 250W, null checkpoint/resume;
 svikt forbruker engangsplanen. Ruten og disse vaktene er ennå ikke implementert.
+Bootstrap-bindingen ble rettet mot den faktiske period-transfer-scoreren før
+fit: UTC-dag seed20260911, UTC-mandagsuke seed20260912, 2000 parvise trekk.
 Neste steg er kun fold2-worker og eksakt campaign/start-/feilkvittering.
 Ingen fit-admisjon: training_enabled=false; ingen trening, TEST, broker eller ordre.
 

@@ -113,6 +113,17 @@ def inspect() -> dict:
          'FRESH_INITIAL')
     need(h['fixed_readout']['train_and_later_panels']
          == review['fresh_initial_design']['panels'], 'UNCHANGED_PANELS')
+    bootstrap = h['fixed_readout']['bootstrap_binding']
+    method = read_ref(bootstrap['method_review'], base=REPO)['method']
+    script_ref = bootstrap['source_script']
+    script = Path(script_ref['path'])
+    need(bootstrap['replicates'] == method['bootstrap_replicates'] == 2000
+         and bootstrap['seeds'] == method['bootstrap_seeds']
+         == {'UTC_DAY': 20260911, 'UTC_MONDAY_WEEK': 20260912}
+         and script.is_file() and not script.is_symlink()
+         and script.is_relative_to(Path('/home/andre2/GX1_RUNS'))
+         and hashlib.sha256(script.read_bytes()).hexdigest() == script_ref['sha256'],
+         'BOOTSTRAP_METHOD')
 
     previous = read_ref(basis['prior_fold1_full_objective_result'],
                         base=Path('/home/andre2/GX1_RUNS'))

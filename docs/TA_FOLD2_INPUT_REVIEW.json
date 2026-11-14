@@ -1022,7 +1022,7 @@
       },
       "gx1/audit/preflight_market_state_ta_fold2_m5_fit_v1.py": {
         "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/preflight_market_state_ta_fold2_m5_fit_v1.py",
-        "sha256": "0f8f8d1f007349fccc6a95c6cdedccef88e46a954d4cbb59f9de09dc89caa130"
+        "sha256": "59c6a81511744f73c83bb7e916a86f8668a6dac8e3e89f8c717aba3f69b3bd85"
       }
     },
     "observed_basis": {
@@ -1135,10 +1135,25 @@
         }
       },
       "primary": "paired later F M5 known-side AUC after one full TRAIN pass versus fresh INITIAL, with absolute AUC versus 0.5",
-      "uncertainty": "2000 paired bootstrap replicates with seed 20260911 by UTC day and UTC Monday week, matching the existing period-transfer scorer; no resampling choice after result",
+      "uncertainty": "2000 paired bootstrap replicates with UTC_DAY seed 20260911 and UTC_MONDAY_WEEK seed 20260912, using the same global cluster weights across phases and months as the completed period-transfer scorer; no resampling choice after result",
       "secondary": "S/F all five TF and every January-March month: known-side N, AUC, zero-logit ACC, always-UP ACC, Brier, log loss and fixed calibration bins; TRAIN fit separately",
       "checkpoint_selection": "none; score only the predetermined final pass and the already completed INITIAL",
-      "decision": "A development ranking signal requires both day/week 95% lower bounds above 0 for paired F M5 AUC gain and above 0.5 for final absolute F M5 AUC. Report all months/TF and calibration regardless of outcome. Reused development still cannot establish independent or economic edge."
+      "decision": "A development ranking signal requires both day/week 95% lower bounds above 0 for paired F M5 AUC gain and above 0.5 for final absolute F M5 AUC. Report all months/TF and calibration regardless of outcome. Reused development still cannot establish independent or economic edge.",
+      "bootstrap_binding": {
+        "replicates": 2000,
+        "seeds": {
+          "UTC_DAY": 20260911,
+          "UTC_MONDAY_WEEK": 20260912
+        },
+        "method_review": {
+          "path": "/home/andre2/src/GX1_CURRENT/docs/TA_PERIOD_TRANSFER_REVIEW.json",
+          "sha256": "3542234b26b1e66f9c5527a3a27652c8110756e66aeaa10a0631d8c05c9b84c3"
+        },
+        "source_script": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_PERIOD_TRANSFER_READOUT_20261113_002/REVIEW.py",
+          "sha256": "af60eb43bcdde10c39eb1e9d5fe0993dfd279d8db07802a6a9fbccf1af08c705"
+        }
+      }
     },
     "implementation_gap": "The existing fold1 fit runner imports an old checkpoint and hardcodes fold1 axes/targets; its numerical recipe also binds fold1. The CUDA producer route is evidence-only and capped at 3600 seconds. A minimal fold2 worker under the canonical guarded trainer route, with exact resource and checkpoint/resume bindings, is required before any fit.",
     "resource_note": "The historical fold1 full-prefix two-pass phase took 7586.8 seconds for 3698 updates; this is planning evidence, not a fold2 wall-time guarantee or admission.",
@@ -1184,7 +1199,7 @@
       "status": "PASS_METADATA_ONLY_FIT_UNADMITTED",
       "script": {
         "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/preflight_market_state_ta_fold2_m5_fit_v1.py",
-        "sha256": "0f8f8d1f007349fccc6a95c6cdedccef88e46a954d4cbb59f9de09dc89caa130"
+        "sha256": "59c6a81511744f73c83bb7e916a86f8668a6dac8e3e89f8c717aba3f69b3bd85"
       },
       "checks": "Current closed policy; source hashes; exact fold2 q/N, axis and loss contracts; completed target counts; fresh zero-update INITIAL and independent validation; unchanged fixed panels; historical resource basis; proposed no-resume window.",
       "limits": "JSON/source metadata only; no feature payload, model construction, forward, backward, optimizer update, trainer dispatch, or fit admission."
