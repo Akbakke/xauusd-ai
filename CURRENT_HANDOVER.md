@@ -5,21 +5,30 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: TA_F_M5_CURRENT_OOF_ADMITTED_RESEARCH_ONLY.
-Ny F-M5-tabellplan002 er ADMITTED for én 0USD CPU-forskningskjøring,
-uten claim eller fit. Direkte og eksakt capped preflight besto. Den binder den
-fysisk målte4003-felts visningen, uendret3991-felts projeksjon, fem
-modne TRAIN-prefiks med egne fryste F-priorer, og de opprinnelige fulle
-senere scoreaksene. Før første LightGBM-fit må hele matrisens SHA og gammel
-projeksjon være eksakt. Plan001 forblir avvist før claim. Ingen TEST,
-native-trening eller handelsautoritet.
+Aktuell policy: TA_F_M5_CURRENT_OOF_COMPLETE_NO_POSITIVE_GATE.
+Den ene F-M5-tabellplan002 er COMPLETE/CONSUMED, exit0,187,61s under12G/512M.
+Fem faste F-trente LightGBM-hoder brukte den eksakte4003-felts kausale visningen;
+3991 gamle felt var bitlike og alle12 nye spennfelt var tilgjengelige før fit.
+Alle fem egne TRAIN-priorer ble fryst før første fit. Lagrede prediksjoner,
+F/S-mål, AUC, Brier, retrospektive strata og2000 parede uke-bootstrap-trekk
+er uavhengig etterregnet. 34760 F-kjente senere utviklingsutfall gav
+Brier(prior−modell)=−0,0009316; alle fem folder var negative, og95%-ukeintervallet
+var[−0,0014261,−0,0004570]. AUC per fold var0,5011–0,5135. De nye
+spennfeltene ble faktisk brukt i alle fem trærne. Se
+`docs/TA_F_M5_CURRENT_OOF_RESULT_REVIEW_20261114.json` og originalkvitteringer
+under `/home/andre2/GX1_RUNS/MARKET_STATE_F_M5_TABULAR_OOF_20261114_002`.
+Den konkrete253/255-kildeblokkeringen er rettet; F-M5-rangering/kalibrering
+har fortsatt ingen positiv gate. Ingen ny parameter er valgt fra scoreutfallene.
+Planen relanseres ikke. En ny TRAIN-only kalibreringshypotese krever særskilt
+forhåndsbundet plan og senere uavhengig evidens. TEST, native-trening,
+Entry/Exit, broker, handel og økonomisk Edge forblir stengt/ubevist.
 
 Lesende capped 4003-felts tabellvisning er nå fysisk kontrollert på
 118249 modellrader. Prosjeksjon av alle3991 gamle felt hadde nøyaktig
 samme SHA som frossen gammel matrise; de12 nye spennfeltene er hentet fra
 kvalifiserte kausale sidecars. Ny matrise-SHA19539b3c. Ingen mål eller
 modellfit ble brukt. Se `docs/TA_CURRENT_TABULAR_SPAN_VIEW_20261114.json`.
-F-M5-OOF på denne visningen er fortsatt ikke kjørt.
+F-M5-OOF på denne visningen er målt ovenfor, uten positiv gate.
 
 Fold3–5 har egne uforandrede253-felts TRAIN-normaliseringer. Kvalifiserte
 fullsidecars har eksakte før-cutoff-prefikser på alle seks overflater.
@@ -30,9 +39,7 @@ fold3–5-parentbindinger; fold1/2-output forblir rekonstruerbart. En
 spennstatistikker, mens alle gamle statistikker ble bevart. Fold1/2s
 ferdige kontrakter gjenbrukes. Se
 `docs/TA_FIVEFOLD_SPAN_NORMALIZATION_RESULT_REVIEW_20261114.json`.
-Dette er fortsatt inputnormalisering, ikke F-M5 modell-OOF eller Edge.
-Neste steg er en eksakt nåværende255-felts F-M5-modellvisning og femfolds
-TRAIN-only fit/OOF-score mot fryst F-prior; ingen slik måling er gjort.
+Dette var inputnormalisering; den etterfølgende F-M5-OOF er målt ovenfor og har ingen positiv gate.
 
 Plan002 er COMPLETE/CONSUMED, exit0 etter143,53s. Den bandt eksakt
 2025-native-del og gjenbrukte bitlik local-delta fra konsumert plan001.
@@ -44,8 +51,8 @@ rad-/tids-hasher og tilgjengelighet før TEST. Se
 M5/M15/H1/H4/D1 på71186/23735/5937/1552/258 nye rader.
 `docs/TA_FIVEFOLD_SPAN_EXTENSION_001_FAILURE_REVIEW_20261114.json`
 bevarer årsak og terminal. Ingen modell- eller normaliseringsfit.
-Neste steg er foldspesifikk TRAIN-normalisering på gjeldende255-felts
-profil før en ny F-M5 OOF. Rangering, kalibrering og Edge er fortsatt ubevist.
+Foldspesifikk TRAIN-normalisering og F-M5-OOF er siden fullført ovenfor;
+kalibrering og økonomisk Edge er ikke påvist.
 
 Femfolds manglende 255-felts input er nå bundet i en input-only plan uten claim:
 `docs/TA_FIVEFOLD_ANCHOR_SPAN_COVERAGE_20261114.json` verifiserer30/30

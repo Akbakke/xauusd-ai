@@ -1,0 +1,273 @@
+{
+  "claim": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_F_M5_TABULAR_OOF_20261114_002/CLAIM.json",
+    "sha256": "f7cb3b8509c81ad4ebba639c6ec062f679b794ecb6047388a907b18f49a775fa"
+  },
+  "feature_schema": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_F_M5_TABULAR_OOF_20261114_002/FEATURE_SCHEMA.json",
+    "sha256": "c8569aac2af73cd3e23328acaf455cd91624c6c823295cb9a2522e10a8b9bdc0"
+  },
+  "folds": [
+    {
+      "auc": 0.5075645016468672,
+      "brier": 0.2512956572596256,
+      "calibration_decomposition": {
+        "identity_prior_minus_model": -0.0014622408503245797,
+        "model_delta_second_moment": 0.002048557547379768,
+        "outcome_covariance_with_model_delta": 0.0002931583485275942
+      },
+      "fit_known_side_n": 11909,
+      "fold_id": 1,
+      "frozen_train_prior_up": 0.5111241709344304,
+      "model_mean_up": 0.5115437905760516,
+      "model_sd_up": 0.04525904845151005,
+      "new_span_feature_gain": 124.92586994171143,
+      "new_span_feature_split_count": 11,
+      "prior_brier": 0.249833416409301,
+      "prior_minus_model": -0.001462240850324592,
+      "retrospective_strata": {
+        "F_only": {
+          "auc": 0.5086779365353798,
+          "brier": 0.25129869427016716,
+          "n": 2784,
+          "prior_brier": 0.2500678066642219,
+          "prior_minus_model": -0.0012308876059452523
+        },
+        "S_F_overlap": {
+          "auc": 0.5068209788411475,
+          "brier": 0.25129372732642596,
+          "n": 4381,
+          "prior_brier": 0.2496844681167423,
+          "prior_minus_model": -0.001609259209683661
+        }
+      },
+      "score_first_utc": "2024-10-01T00:00:00+00:00",
+      "score_known_side_n": 7165,
+      "score_last_utc": "2024-12-31T21:55:00+00:00",
+      "score_up_fraction": 0.513049546406141,
+      "total_split_count": 896,
+      "week_count": 14
+    },
+    {
+      "auc": 0.510374875249501,
+      "brier": 0.2505554303911502,
+      "calibration_decomposition": {
+        "identity_prior_minus_model": -0.0009562275434823351,
+        "model_delta_second_moment": 0.0012667731411757134,
+        "outcome_covariance_with_model_delta": 0.00015527279884668913
+      },
+      "fit_known_side_n": 19072,
+      "fold_id": 2,
+      "frozen_train_prior_up": 0.5117961623151934,
+      "model_mean_up": 0.49846516662087703,
+      "model_sd_up": 0.03300087415469216,
+      "new_span_feature_gain": 156.5782995223999,
+      "new_span_feature_split_count": 12,
+      "prior_brier": 0.24959920284766784,
+      "prior_minus_model": -0.0009562275434823464,
+      "retrospective_strata": {
+        "F_only": {
+          "auc": 0.4947888953570156,
+          "brier": 0.2514071568718612,
+          "n": 2684,
+          "prior_brier": 0.24970844009108584,
+          "prior_minus_model": -0.0016987167807753778
+        },
+        "S_F_overlap": {
+          "auc": 0.5207557868087228,
+          "brier": 0.24998718930881644,
+          "n": 4023,
+          "prior_brier": 0.24952632371236233,
+          "prior_minus_model": -0.00046086559645411307
+        }
+      },
+      "score_first_utc": "2025-01-01T23:05:00+00:00",
+      "score_known_side_n": 6707,
+      "score_last_utc": "2025-03-31T23:55:00+00:00",
+      "score_up_fraction": 0.5228865364544506,
+      "total_split_count": 896,
+      "week_count": 14
+    },
+    {
+      "auc": 0.5010866662660576,
+      "brier": 0.2512858476974714,
+      "calibration_decomposition": {
+        "identity_prior_minus_model": -0.0013912907439668535,
+        "model_delta_second_moment": 0.0014014944708488357,
+        "outcome_covariance_with_model_delta": 5.1018634409910656e-06
+      },
+      "fit_known_side_n": 25785,
+      "fold_id": 3,
+      "frozen_train_prior_up": 0.5145228215767634,
+      "model_mean_up": 0.5061468247985315,
+      "model_sd_up": 0.03648749304652049,
+      "new_span_feature_gain": 172.98339939117432,
+      "new_span_feature_split_count": 12,
+      "prior_brier": 0.2498945569535045,
+      "prior_minus_model": -0.001391290743966933,
+      "retrospective_strata": {
+        "F_only": {
+          "auc": 0.5095013184483307,
+          "brier": 0.25075099277853685,
+          "n": 2872,
+          "prior_brier": 0.2498973973960772,
+          "prior_minus_model": -0.0008535953824596598
+        },
+        "S_F_overlap": {
+          "auc": 0.49527273576275677,
+          "brier": 0.2516685341267639,
+          "n": 4014,
+          "prior_brier": 0.24989252462887354,
+          "prior_minus_model": -0.0017760094978903351
+        }
+      },
+      "score_first_utc": "2025-04-01T00:00:00+00:00",
+      "score_known_side_n": 6886,
+      "score_last_utc": "2025-06-30T23:55:00+00:00",
+      "score_up_fraction": 0.5108916642462968,
+      "total_split_count": 896,
+      "week_count": 14
+    },
+    {
+      "auc": 0.5060244475751151,
+      "brier": 0.2504514414972693,
+      "calibration_decomposition": {
+        "identity_prior_minus_model": -0.0005788849977490818,
+        "model_delta_second_moment": 0.0008087965499294162,
+        "outcome_covariance_with_model_delta": 0.0001149557760901672
+      },
+      "fit_known_side_n": 32658,
+      "fold_id": 4,
+      "frozen_train_prior_up": 0.5136252296387018,
+      "model_mean_up": 0.5094811948376253,
+      "model_sd_up": 0.028135805044407075,
+      "new_span_feature_gain": 95.8759994506836,
+      "new_span_feature_split_count": 6,
+      "prior_brier": 0.2498725564995201,
+      "prior_minus_model": -0.0005788849977491906,
+      "retrospective_strata": {
+        "F_only": {
+          "auc": 0.49478968076907476,
+          "brier": 0.2512066026964941,
+          "n": 2809,
+          "prior_brier": 0.2499964749510913,
+          "prior_minus_model": -0.0012101277454027726
+        },
+        "S_F_overlap": {
+          "auc": 0.5136529216704825,
+          "brier": 0.24995126516889793,
+          "n": 4241,
+          "prior_brier": 0.24979047988304676,
+          "prior_minus_model": -0.0001607852858511727
+        }
+      },
+      "score_first_utc": "2025-07-01T00:00:00+00:00",
+      "score_known_side_n": 7050,
+      "score_last_utc": "2025-09-30T23:55:00+00:00",
+      "score_up_fraction": 0.5114893617021277,
+      "total_split_count": 896,
+      "week_count": 14
+    },
+    {
+      "auc": 0.5134810088000666,
+      "brier": 0.24983237735964117,
+      "calibration_decomposition": {
+        "identity_prior_minus_model": -0.0002632302463457652,
+        "model_delta_second_moment": 0.0006695637669548535,
+        "outcome_covariance_with_model_delta": 0.00020316676030454416
+      },
+      "fit_known_side_n": 39720,
+      "fold_id": 5,
+      "frozen_train_prior_up": 0.5132672070892704,
+      "model_mean_up": 0.5057135588516457,
+      "model_sd_up": 0.0247488618982183,
+      "new_span_feature_gain": 102.12218189239502,
+      "new_span_feature_split_count": 8,
+      "prior_brier": 0.2495691471132954,
+      "prior_minus_model": -0.0002632302463457803,
+      "retrospective_strata": {
+        "F_only": {
+          "auc": 0.5151511917521331,
+          "brier": 0.25000578072186536,
+          "n": 2806,
+          "prior_brier": 0.24993015464687118,
+          "prior_minus_model": -7.562607499417284e-05
+        },
+        "S_F_overlap": {
+          "auc": 0.5119276387733548,
+          "brier": 0.2497150184994383,
+          "n": 4146,
+          "prior_brier": 0.24932481832911457,
+          "prior_minus_model": -0.00039020017032373455
+        }
+      },
+      "score_first_utc": "2025-10-01T00:00:00+00:00",
+      "score_known_side_n": 6952,
+      "score_last_utc": "2025-12-31T21:55:00+00:00",
+      "score_up_fraction": 0.5228711162255466,
+      "total_split_count": 896,
+      "week_count": 14
+    }
+  ],
+  "interpretation": [
+    "The 12 causal anchor-span fields are present and used, and all 3991 older input fields match the frozen old matrix exactly. The specific missing-current-feature source blocker is corrected.",
+    "F M5 Brier is worse than each fold own frozen TRAIN prior in every later development score fold; the paired weekly interval is entirely below zero. Point AUCs near 0.5 do not establish useful rank transfer.",
+    "Fold 1 has nearly matched mean probability and outcome frequency yet worse Brier, so a global mean shift alone does not explain the failure. Score variance exceeds outcome-aligned covariance in all five folds.",
+    "F-only and S/F-overlap are retrospective outcome strata; neither is an admissible online selection gate.",
+    "No calibration parameter, threshold, architecture, or feature was chosen from these score outcomes. This negative readout grants no native-model, sealed TEST, Entry, Exit, trading or economic authority."
+  ],
+  "next_gate": "A new precommitted hypothesis and TRAIN-only calibration evidence would be needed before any separate fit; do not relaunch this consumed plan or tune on these development score folds.",
+  "observed_utc": "2026-11-14T20:51:38.373134+00:00",
+  "plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_F_M5_TABULAR_OOF_20261114_002.json",
+    "sha256": "c45d2987eb65aea78282e77ff6787aee16b4bbf5fcd66c41fbcc62ac838ba57a"
+  },
+  "pooled": {
+    "decision": "NO_POSITIVE_GATE",
+    "known_side_n": 34760,
+    "positive_fold_count": 0,
+    "prior_minus_model_brier": -0.0009315856673300924,
+    "week_bootstrap_95pct": [
+      -0.0014260565586016985,
+      -0.0004569710635312592
+    ]
+  },
+  "prior_frozen": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_F_M5_TABULAR_OOF_20261114_002/PRIOR_FROZEN.json",
+    "sha256": "72fb08f079c676c179b8ce1321c75720f616f760968dbcab4192e6df6efb2b61"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_F_M5_TABULAR_OOF_20261114_002/RESULT.json",
+    "sha256": "ac5dac12791c092380f318d20552529c690fe1928be0a9b6aec9a1626cc9b3c9"
+  },
+  "schema_version": "gx1_ta_f_m5_current_oof_result_review_v1",
+  "source_commit": "1f2dd9fc06e9e136aeab690adcb3abfa2c3ec511",
+  "status": "COMPLETE_NEGATIVE_DEVELOPMENT_TRAIN_DIAGNOSTIC",
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_F_M5_TABULAR_OOF_20261114_002/TERMINAL.json",
+    "sha256": "6537d7bc428cae6470ff7d8a1b0124e8444a2b408ae5c7c439a4e992e1ca6d88"
+  },
+  "unproved": [
+    "stable_f_m5_ranking",
+    "calibrated_f_m5_transfer",
+    "native_model_transfer",
+    "entry_quality",
+    "economic_edge"
+  ],
+  "validation": {
+    "4003_field_matrix_and_3991_old_projection_hashes": "PASS_BEFORE_FIRST_FIT",
+    "all_fold_and_retrospective_stratum_AUC_Brier_recomputed": "PASS",
+    "all_week_deltas_and_2000_week_bootstrap_recomputed": "PASS",
+    "five_fold_axes_and_prediction_hashes": "PASS",
+    "frozen_fit_prior_recomputed": "PASS",
+    "method": "independent_saved_prediction_replay_against_bound_S_F_targets_with_scipy_tie_aware_ranks_and_week_block_bootstrap",
+    "native_training": false,
+    "new_span_fields_used_by_each_saved_model": "PASS",
+    "source_bookends": "PASS",
+    "test_data_used": false
+  },
+  "weekly_review": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_F_M5_TABULAR_OOF_20261114_002/WEEKLY_REVIEW.json",
+    "sha256": "ebeabd63418fe06aaae0b7507055153777387b5da23f033cbe4b07bb9888ef86"
+  }
+}
