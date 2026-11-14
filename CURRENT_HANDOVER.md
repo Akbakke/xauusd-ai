@@ -5,14 +5,19 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: TA_FIVEFOLD_SPAN_EXTENSION_002_ADMITTED_INPUT_ONLY.
-Plan002 er ADMITTED for én input-only capped kjøring, uten claim ennå.
-Den binder eksakt2025-native-del og gjenbruker bitlik local-delta fra
-konsumert plan001. Direkte og capped preflight kontrollerte de fem native
-tidsaksene før claim. Lesende kildekontroll fant eksakt treff
+Aktuell policy: TA_FIVEFOLD_SPAN_EXTENSION_002_COMPLETE_INPUT_ONLY_EDGE_UNQUALIFIED.
+Plan002 er COMPLETE/CONSUMED, exit0 etter143,53s. Den bandt eksakt
+2025-native-del og gjenbrukte bitlik local-delta fra konsumert plan001.
+Seks fulle sidecars dekker290522 rader;173854 nye mot fold2, hvor71186
+lokale rader ble gjenbrukt. Alle31 gamle trendlinjefelt hadde null bitavvik,
+og uavhengig kontroll bekreftet bitlik gammel/ny sammenslåing, eksakte
+rad-/tids-hasher og tilgjengelighet før TEST. Se
+`docs/TA_FIVEFOLD_SPAN_EXTENSION_002_RESULT_REVIEW_20261114.json`. Lesende kildekontroll fant eksakt treff
 M5/M15/H1/H4/D1 på71186/23735/5937/1552/258 nye rader.
 `docs/TA_FIVEFOLD_SPAN_EXTENSION_001_FAILURE_REVIEW_20261114.json`
 bevarer årsak og terminal. Ingen modell- eller normaliseringsfit.
+Neste steg er foldspesifikk TRAIN-normalisering på gjeldende255-felts
+profil før en ny F-M5 OOF. Rangering, kalibrering og Edge er fortsatt ubevist.
 
 Femfolds manglende 255-felts input er nå bundet i en input-only plan uten claim:
 `docs/TA_FIVEFOLD_ANCHOR_SPAN_COVERAGE_20261114.json` verifiserer30/30

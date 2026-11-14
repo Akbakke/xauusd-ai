@@ -1,0 +1,114 @@
+{
+  "all_lanes": {
+    "D1": {
+      "full_artifact": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/D1_ANCHOR_SPANS.npz",
+        "sha256": "539561880f240d8e5f1cae8b4397d97b20a748ef54d03b085382940098af221f"
+      },
+      "full_rows": 683,
+      "last_available_ns": 1767132000000000000,
+      "new_rows": 258,
+      "old_31_field_bit_mismatches": 0,
+      "old_and_new_arrays_bitexact": true,
+      "old_rows_reused": 425
+    },
+    "H1": {
+      "full_artifact": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/H1_ANCHOR_SPANS.npz",
+        "sha256": "b7b07e88983bcb2fe92caa3919869ecd6b5a1bffa6f6f78867aa4332af1cd28f"
+      },
+      "full_rows": 9995,
+      "last_available_ns": 1767214800000000000,
+      "new_rows": 5937,
+      "old_31_field_bit_mismatches": 0,
+      "old_and_new_arrays_bitexact": true,
+      "old_rows_reused": 4058
+    },
+    "H4": {
+      "full_artifact": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/H4_ANCHOR_SPANS.npz",
+        "sha256": "c626f58cd089668e04a7533e3bfa6b020e8572338ee68bd582d88392c1e8f516"
+      },
+      "full_rows": 2686,
+      "last_available_ns": 1767204000000000000,
+      "new_rows": 1552,
+      "old_31_field_bit_mismatches": 0,
+      "old_and_new_arrays_bitexact": true,
+      "old_rows_reused": 1134
+    },
+    "M15": {
+      "full_artifact": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/M15_ANCHOR_SPANS.npz",
+        "sha256": "ded0cdb2edb048e65fabe82f90544447f6e3efff801c1fda74b4d2701ff5f729"
+      },
+      "full_rows": 39638,
+      "last_available_ns": 1767217500000000000,
+      "new_rows": 23735,
+      "old_31_field_bit_mismatches": 0,
+      "old_and_new_arrays_bitexact": true,
+      "old_rows_reused": 15903
+    },
+    "M5": {
+      "full_artifact": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/M5_ANCHOR_SPANS.npz",
+        "sha256": "8ec7042d9285475fc30edde9c30b1ea5bedc776ca960171aacc80dc9346118ea"
+      },
+      "full_rows": 118720,
+      "last_available_ns": 1767218100000000000,
+      "new_rows": 71186,
+      "old_31_field_bit_mismatches": 0,
+      "old_and_new_arrays_bitexact": true,
+      "old_rows_reused": 47534
+    },
+    "local": {
+      "full_artifact": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/local_ANCHOR_SPANS.npz",
+        "sha256": "8908cc67a0b1c7e70e278a408f6a03e8d858f64ca261fb71b215313d8fa49cd5"
+      },
+      "full_rows": 118800,
+      "last_available_ns": 1767218100000000000,
+      "new_rows": 71186,
+      "old_31_field_bit_mismatches": 0,
+      "old_and_new_arrays_bitexact": true,
+      "old_rows_reused": 47614
+    }
+  },
+  "claim": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/CLAIM.json",
+    "sha256": "46f3e19bff27ccff0bb0fdd42da655b8b0f68e43b21033dc582c846e8cf7374b"
+  },
+  "economic_edge_proven": false,
+  "fold_specific_255_normalization_complete": false,
+  "limits": [
+    "Input overlays alone do not establish F M5 learnability or economic edge.",
+    "Fold-specific TRAIN normalization is still needed before a current 255-field fivefold F model score."
+  ],
+  "model_fits": 0,
+  "model_forwards": 0,
+  "native_rows_replayed": 102668,
+  "normalization_fits": 0,
+  "observed_utc": "2026-11-14T20:10:05.640855+00:00",
+  "optimizer_steps": 0,
+  "plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002.json",
+    "sha256": "74918e7d52c7588aea8a0ca07ba891bfb77682e2186ae310b000eff3a5ab69cc"
+  },
+  "predictive_ranking_or_calibration_gain_measured": false,
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/RESULT.json",
+    "sha256": "e2309fcdd18100b5ac0b9734161d21ef00ee68d9cd4ada545873f046d88cb30d"
+  },
+  "reused_local_delta_rows": 71186,
+  "schema_version": "gx1_ta_fivefold_span_extension_002_result_review_v1",
+  "source_commit": "10e5256e0bf43d79fa88d23874ca946f37523410",
+  "source_unchanged": true,
+  "status": "COMPLETE_CONSUMED_INPUT_ONLY",
+  "target_labels_used": false,
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/TERMINAL.json",
+    "sha256": "78b535e176039b30746d7cf474ab9b1a83a62b4bc806d4b0e6768d2615a72423"
+  },
+  "test_data_used": false,
+  "total_full_rows": 290522,
+  "total_new_rows": 173854
+}
