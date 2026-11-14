@@ -5,8 +5,9 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: TA_F_M5_CURRENT_OOF_PREPARED_NOT_ADMITTED.
-Ny F-M5-tabellplan002 er PREPARED, uten claim eller fit. Den binder den
+Aktuell policy: TA_F_M5_CURRENT_OOF_ADMITTED_RESEARCH_ONLY.
+Ny F-M5-tabellplan002 er ADMITTED for én 0USD CPU-forskningskjøring,
+uten claim eller fit. Direkte og eksakt capped preflight besto. Den binder den
 fysisk målte4003-felts visningen, uendret3991-felts projeksjon, fem
 modne TRAIN-prefiks med egne fryste F-priorer, og de opprinnelige fulle
 senere scoreaksene. Før første LightGBM-fit må hele matrisens SHA og gammel
