@@ -5,7 +5,7 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: TA_FOLD2_SHARED_M5_INITIAL_001_COMPLETE_CONSUMED_EDGE_UNQUALIFIED.
+Aktuell policy: TA_FOLD2_SHARED_M5_FIT_SOURCE_PREPARED_NO_ADMISSION.
 Målt F-M5-avvik på faste, gjenbrukte utviklingspaneler: gammel FINAL
 innen-UTC-dag AUC TRAIN0,4628 og senere0,4724, mens samlet TRAIN-AUC0,5125.
 S-skåren mot samme F-mål hadde bedre innen-dag AUC; dette var en post hoc
@@ -29,10 +29,17 @@ Brier0,2504→0,2618. På TRAIN N1661 gikk AUC0,4995→0,4950 og Brier
 AUC-differanse+0,0390 omfatter0 (dag −0,0072 til0,0835; uke −0,0004
 til0,0796). Dette er ingen lært rangering, kalibrert sannsynlighet,
 økonomisk edge eller handelsadgang. Plan001 er COMPLETE/CONSUMED, ingen
-relansering. Global training_enabled=false. Neste lokale milepæl er å
-kvalifisere én eksakt avgrenset shared-M5-fit-plan mot denne baselinen og
-gjenbrukte fold2-TRAIN-input; ny policyadmisjon kreves før optimizersteg.
-TEST, Entry, Exit, broker, ordre og handel er fortsatt stengt.
+relansering. En avgrenset shared-M5-fit-kilde gjenbruker bestått fold2-
+batchsløyfe,47338 kronologiske TRAIN-rader og de samme4096+4096 faste
+readout-radene. Endrede forventede initial-/kontrakthasher er parametre,
+mens gammel standard er uendret; ny direct trainer-rute er eksakt bundet og
+bruker samme fysiske sikkerhetsgrenser som fullførte fold2-plan004.
+Kildeplanen står i `docs/TA_FOLD2_SHARED_M5_FIT_PREPARATION_20261114.json`.
+Fokuserte syntetiske kontroller og syntaks består. Ingen ny PLAN, claim,
+modellforward eller fit er kjørt. Global training_enabled=false. Neste steg
+er ren kildecommit, én hashbundet plan og lesende faktisk input-/rute-
+preflight før egen policyadmisjon kan vurderes. TEST, Entry, Exit, broker,
+ordre og handel er fortsatt stengt.
 
 TA_FOLD2_M5_004_COMPLETE_CONSUMED_F_M5_EDGE_UNQUALIFIED. Edge-målet er
 uoppnådd. TARGET_COUNTS001 er COMPLETE/CONSUMED, exit0,3,78s. RESULT ba50eb96,

@@ -227,3 +227,23 @@ def test_inner_policy_reads_fold_from_numerical_recipe(monkeypatch, tmp_path):
     recipe['fold_id'] = 2
     with pytest.raises(RuntimeError, match='FOLD2_M5_FIT_POLICY_CLOSED'):
         worker._execute_fixed_fit_and_readout(**args)
+
+
+def test_shared_candidate_uses_its_bound_initial_and_contracts(monkeypatch):
+    seen, kwargs = _case(monkeypatch)
+    original_evaluate = worker.evaluate_fit_batch
+    monkeypatch.setattr(worker, 'canonical_model_state_sha256', lambda _: 'shared-initial')
+
+    def shared_evaluate(*args, **kwargs):
+        report = original_evaluate(*args, **kwargs)
+        report['loss_contract_sha256'] = 'shared-loss'
+        report['model_contract_sha256'] = 'shared-model'
+        return report
+
+    monkeypatch.setattr(worker, 'evaluate_fit_batch', shared_evaluate)
+    result = worker.fit_one_pass(
+        **kwargs, expected_initial_model_sha256='shared-initial',
+        expected_loss_sha256='shared-loss',
+        expected_model_contract_sha256='shared-model')
+    assert seen == list(range(2959))
+    assert result['batch_visits'] == 2959 and result['optimizer_updates'] == 2957

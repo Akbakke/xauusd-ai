@@ -1,0 +1,75 @@
+{
+  "admission_required": true,
+  "batch_size": 16,
+  "batch_visits": 2959,
+  "candidate": "One chronological fold2 TRAIN pass from the verified fresh shared-M5 INITIAL; native M5 S/F side parameters tied, S/F mature target masks and losses retained.",
+  "checkpoint_writes": 0,
+  "current_training_enabled": false,
+  "fixed_readout_forwards": 512,
+  "fixed_readout_rows": {
+    "LATER": 4096,
+    "TRAIN": 4096
+  },
+  "frozen_design": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_FOLD2_M5_FIT_DESIGN_20261114_004.json",
+    "sha256": "f1ab0e159e3a2e4a78211175e0b60f658fdd78e70db7be1dd5ce6111023d42c5"
+  },
+  "guard": "Existing 20GiB/512MiB capped trainer, CPU affinity 0-18, signed Windows GPU telemetry, 300W configured ceiling/310W actual draw, 85C core/80C memory, 12288MiB GPU memory, one project lock. Same physical research envelope as completed fold2 plan004.",
+  "launch_required_checks": [
+    "clean source and SHA-bound exact plan",
+    "reused source receipts and actual fold2 view/normalization",
+    "fresh shared INITIAL model-state digest",
+    "exact guarded command import and metadata preflight without claim or forward",
+    "synthetic success/failure terminal publication",
+    "single owner of policy and launch"
+  ],
+  "max_model_seconds": 10500,
+  "maximum_optimizer_updates": 2959,
+  "optimizer": {
+    "amsgrad": false,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "capturable": false,
+    "differentiable": false,
+    "eps": 1e-08,
+    "foreach": null,
+    "fused": null,
+    "lr": 0.0001,
+    "maximize": false,
+    "weight_decay": 0.0001
+  },
+  "outer_guard_seconds": 10800,
+  "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SHARED_M5_FIT_20261114_001",
+  "result_limit": "One readout and paired day/week later F-M5 AUC intervals; do not select by TEST or claim economic edge.",
+  "schema_version": "gx1_ta_fold2_shared_m5_fit_source_preparation_v1",
+  "source_owners": [
+    "gx1/audit/run_market_state_ta_fold2_shared_m5_fit_v1.py",
+    "gx1/scripts/run_market_state_ta_fold2_m5_fit_window_v1.py",
+    "gx1/contracts/market_state_ta_fold2_m5_fit_v1.py",
+    "gx1/contracts/market_state_time_query_native_F_model_v1.py",
+    "gx1/contracts/market_state_time_query_native_F_objective_v1.py",
+    "gx1/contracts/market_state_time_query_native_F_batch_v1.py",
+    "gx1/contracts/entry_native_direction_feature_view_v1.py",
+    "gx1/audit/score_market_state_ta_fold2_m5_fit_v1.py",
+    "scripts/gx1_capped_run.sh",
+    "scripts/gx1_guarded_trainer_exec.sh"
+  ],
+  "source_review": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_FOLD2_M5_SHARED_HEAD_SOURCE_REVIEW_20261114.json",
+    "sha256": "c0ff64f6969fdf732f2197ea9c565881b6c1526e4a9c5af692da7084b8964e42"
+  },
+  "stage": "market_state_ta_fold2_shared_m5_fit_20261114_001",
+  "status": "SOURCE_PREPARED_NO_ADMISSION",
+  "test_data_used": false,
+  "train_rows": 47338,
+  "verified_shared_initial_result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SHARED_M5_INITIAL_20261114_001/RESULT.json",
+    "sha256": "4dafdb1da1c6e30bd37c23deb0afb5476edea1c2d652c2d63f2d8b0efca05274"
+  },
+  "verified_shared_initial_review": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_FOLD2_SHARED_M5_INITIAL_RESULT_REVIEW_20261114.json",
+    "sha256": "c5befa2cb553eb20d4dd2e8eb6e30fbc369de3d9e1112e864cc47e3adf097f84"
+  }
+}

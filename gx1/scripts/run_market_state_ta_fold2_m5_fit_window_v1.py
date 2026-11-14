@@ -29,14 +29,17 @@ def _need(ok: bool, reason: str) -> None:
 def fit_one_pass(*, model, optimizer, parent_rows: np.ndarray,
                  issue_ns: np.ndarray, state_bound, future_bound,
                  gather_features: Callable, deadline_monotonic: float,
-                 progress_state: dict | None = None) -> dict:
+                 progress_state: dict | None = None,
+                 expected_initial_model_sha256: str = INITIAL_MODEL_SHA256,
+                 expected_loss_sha256: str = LOSS_SHA256,
+                 expected_model_contract_sha256: str = MODEL_CONTRACT_SHA256) -> dict:
     """Consume every fixed TRAIN batch once after the caller proves admission.
 
     The caller owns guarded launch, exact source/start binding, feature inputs,
     receipts, and failure consumption. This function cannot grant execution.
     """
     _need(canonical_model_state_sha256(model.state_dict())
-          == INITIAL_MODEL_SHA256, 'FRESH_INITIAL_STATE')
+          == expected_initial_model_sha256, 'FRESH_INITIAL_STATE')
     parameters = list(model.parameters())
     _need(type(optimizer) is torch.optim.AdamW and not optimizer.state
           and optimizer.defaults == ADAMW_DEFAULTS
@@ -73,8 +76,8 @@ def fit_one_pass(*, model, optimizer, parent_rows: np.ndarray,
             fold_id=2, pass_index=0, seed=20260911, future_weight=1.0,
             m5_equal_observation=True, fit_batch_start=left,
             m5_direction_only=True)
-        _need(report['loss_contract_sha256'] == LOSS_SHA256
-              and report['model_contract_sha256'] == MODEL_CONTRACT_SHA256
+        _need(report['loss_contract_sha256'] == expected_loss_sha256
+              and report['model_contract_sha256'] == expected_model_contract_sha256
               and bool(torch.isfinite(report['loss']).all())
               and type(report['known_side_count_m5']) is int
               and 0 <= report['known_side_count_m5'] <= 2 * len(rows)
