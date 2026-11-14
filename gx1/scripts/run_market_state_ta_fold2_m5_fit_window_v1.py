@@ -50,8 +50,8 @@ def fit_one_pass(*, model, optimizer, parent_rows: np.ndarray,
           and parent_rows.shape == issue_ns.shape == (TRAIN_ROWS,), 'TRAIN_AXES')
     require_m5_equal_observation_axes(parent_rows, issue_ns, fold_id=2)
     for bound in (state_bound, future_bound):
-        _need(np.array_equal(bound.parent_rows, parent_rows)
-              and np.array_equal(bound.decision_ns, issue_ns), 'TARGET_AXES')
+        _need(np.array_equal(bound.parent_rows[:TRAIN_ROWS], parent_rows)
+              and np.array_equal(bound.decision_ns[:TRAIN_ROWS], issue_ns), 'TARGET_AXES')
     _need(type(deadline_monotonic) is float
           and time.monotonic() < deadline_monotonic, 'DEADLINE')
     optimizer.zero_grad(set_to_none=True)

@@ -24,7 +24,7 @@ def prepare() -> dict:
         ['git', 'status', '--porcelain=v1', '--untracked-files=all'],
         cwd=repo, text=True), 'SOURCE_DIRTY')
     policy = json.loads((repo / 'NEXT_RUN_POLICY.json').read_text())
-    _need(policy['status'] == 'TA_FOLD2_M5_001_CONSUMED_002_SOURCE_QUALIFIED_RECIPE_PENDING'
+    _need(policy['status'] == 'TA_FOLD2_M5_002_CONSUMED_003_SOURCE_QUALIFIED_RECIPE_PENDING'
           and all(policy.get(key) is False for key in (
               'training_enabled', 'native_training_enabled',
               'full_epoch_training_allowed', 'full_val_allowed'))

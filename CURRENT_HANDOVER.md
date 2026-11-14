@@ -5,7 +5,7 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_FOLD2_M5_DIRECTION_FIT_002_ONE_USE_ADMITTED_PREPARATION_PENDING. Edge-målet er
+TA_FOLD2_M5_002_CONSUMED_003_SOURCE_QUALIFIED_RECIPE_PENDING. Edge-målet er
 uoppnådd. TARGET_COUNTS001 er COMPLETE/CONSUMED, exit0,3,78s. RESULT ba50eb96,
 VALIDATION dd45bd05, TERMINAL dccda6f6; ingen relansering. På eksakt47338 modne
 TRAIN-rader /2959 B16 med siste10 er M5 kjent retning S N16101/q2890 og F N19072/q2950.
@@ -75,10 +75,17 @@ payload består. Resept002 SHA31960926 er publisert fra ren commit0e365422, med 
 boot650 SHA94f48f81. Lesende preflight SHA27a5fecf og faktisk bundet
 feature-/normaliserings-/initialidentitet SHAf21ee0dc er PASS; eksakt
 resept når GPU-vakt før payload, og moduloppstart er røykprøvd uten claim.
-Separat engangsadmisjon002 gjelder nå høyst2959 oppdateringer, én
-12000s/250W-window og null checkpoint; ingen fit er startet. Neste steg
-er ren commit/push, så capped materialisering, maskinvid idle-kontroll
-og fysisk Windows-boot>650. training_enabled=true kun for denne ruten. TEST, Entry, Exit, broker og ordre er stengt.
+Plan002 ble materialisert og startet etter fysisk boot651, men feilet med
+RESULT SHA0babbcac, TERMINAL SHA2e4feb7b og kvittering SHAa41571f0:
+0 batchbesøk,0 updates, ingen FINAL. Faktiske S/F-targeteiere har118249
+rader, mens TRAIN-prefikset har47338; hele aksen ble feilaktig sammenlignet
+med prefikset. Begge faktiske prefiks er eksakt like. Koden sjekker nå
+prefikset, fullakse-regresjonen og14 fokuserte tester består; lesende
+reell aksekontroll når første batch uten payload/update. Plan002 er
+FAILED/CONSUMED uten relansering, Windows-oppgaven deaktivert. Design003
+er identisk med002 utenom ny engangsidentitet. Ingen resept003 eller fit
+er innrømmet; training_enabled=false. Neste steg er ren commit/push,
+deretter resept003 og separat eksakt engangsadmisjon. TEST, Entry, Exit, broker og ordre er stengt.
 Edge er fortsatt ubevist.
 Fokuserte fold2/campaign-tester PASS. Eldre fold1-fit-testfil har19 isolerte
 fixture-feil NATIVE_F_PRIVATE_TA_M5_EXACT_INPUT_IDENTITY i uendrede kilder/refs;

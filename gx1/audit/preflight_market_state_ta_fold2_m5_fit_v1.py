@@ -37,7 +37,7 @@ def inspect() -> dict:
         MODEL_CONTRACT_SHA256, require_fixed_design,
     )
     require_fixed_design(h)
-    need(policy['status'] == 'TA_FOLD2_M5_001_CONSUMED_002_SOURCE_QUALIFIED_RECIPE_PENDING'
+    need(policy['status'] == 'TA_FOLD2_M5_002_CONSUMED_003_SOURCE_QUALIFIED_RECIPE_PENDING'
          and policy['training_enabled'] is False
          and all(policy.get(k) is False for k in (
              'native_training_enabled', 'native_launch_authorized',

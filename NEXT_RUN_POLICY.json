@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-14T12:10:41.106429+00:00",
-  "status": "TA_FOLD2_M5_DIRECTION_FIT_002_ONE_USE_ADMITTED_PREPARATION_PENDING",
+  "observed_utc": "2026-11-14T12:22:53.021329+00:00",
+  "status": "TA_FOLD2_M5_002_CONSUMED_003_SOURCE_QUALIFIED_RECIPE_PENDING",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1415,11 +1415,11 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
-  "full_epoch_training_allowed": true,
+  "training_enabled": false,
+  "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Only distinct frozen fold2 M5 direction fit recipe002 is admitted for one capped TRAIN pass after fresh boot and exact guards. Plan001 remains failed/consumed. TEST, Entry, Exit, broker, trading and promotion remain closed.",
-  "next_action": "Materialize only plan002 from clean committed source and prepared boot650 under capped audit. Check immutable plan, exact startup and machine-wide idle; then one physical Windows boot >650 for one guarded 12000-second/250 W window. Score fixed later F M5 paired AUC and all five TF/month cells, close admission and task. Never relaunch 001 or 002.",
+  "rule": "Plans001 and 002 failed and were consumed with zero optimizer updates. The measured full-target-axis/prefix mismatch is repaired in source; all training, TEST, Entry, Exit, broker, trading and promotion remain closed. Successor003 requires distinct recipe and exact one-use admission.",
+  "next_action": "Commit/push the minimal TRAIN-prefix target-axis fix, full-axis regression, frozen design003 and handover. From clean source publish only candidate recipe003 and prepared boot651 under closed training. Before separate exact admission, prove the actual target axes reach first batch without payload/update, and recheck startup, sources and resources. Never relaunch 001 or 002.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -25403,7 +25403,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-14T12:10:41.106429+00:00",
+  "updated_utc": "2026-11-14T12:22:53.021329+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -36168,7 +36168,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -86815,7 +86815,7 @@
     }
   },
   "market_state_ta_fold2_m5_direction_fit_20261114_002": {
-    "status": "ADMITTED",
+    "status": "FAILED_CONSUMED_ZERO_UPDATE_TARGET_FULL_AXIS_MISMATCH",
     "recipe": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_002/RECIPE.json",
       "sha256": "31960926153d1b7e21fe9b4e9016f02c2350e78757dd72db976afeac9c02dbe7"
@@ -86823,9 +86823,9 @@
     "source_commit": "0e365422e9dfe61fc1a8dbe63e197e844c1d0263",
     "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_002/RUNTIME",
     "candidate_preparation_consumed": true,
-    "campaign_preparation_authorized": true,
-    "execution_authorized": true,
-    "training_authorized": true,
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
+    "training_authorized": false,
     "relaunch_allowed": false,
     "test_data_used": false,
     "prepared_boot": {
@@ -86869,22 +86869,22 @@
       "test_data_used": false
     },
     "fresh_physical_windows_boot_before_invocation_required": true,
-    "operator_fit_admission_authorized": true,
+    "operator_fit_admission_authorized": false,
     "decision": "ADMITTED",
     "fold_id": 2,
     "selected_fit_rows": 47338,
     "selected_score_rows": 4096,
-    "model_constructions_authorized": 1,
-    "optimizer_constructions_authorized": 1,
-    "model_forwards_authorized": 3471,
-    "backward_calls_authorized": 2959,
-    "optimizer_steps_authorized": 2959,
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "genuine_predictor_fit_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
-    "full_epoch_training_allowed": true,
+    "model_constructions_authorized": 0,
+    "optimizer_constructions_authorized": 0,
+    "model_forwards_authorized": 0,
+    "backward_calls_authorized": 0,
+    "optimizer_steps_authorized": 0,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "genuine_predictor_fit_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "full_epoch_training_allowed": false,
     "canonical_resume_authority": false,
     "candidate_selection": false,
     "native_launch_authorized": false,
@@ -86902,18 +86902,18 @@
       "sha256": "3e46c619b509721bcc77f43a6bd0277545c99b38b0fc437cd290b3f7b353ed54"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "model_execution_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "model_execution_authorized": false,
     "checkpoint_reads_authorized": false,
     "checkpoint_loads_authorized": 0,
     "checkpoint_writes_authorized": 0,
-    "candidate_evidence_writes_authorized": 1,
-    "actual_model_execution_started": false,
+    "candidate_evidence_writes_authorized": 0,
+    "actual_model_execution_started": true,
     "actual_native_job_active": false,
     "max_model_seconds": 10500,
     "max_invocation_seconds": 12000,
@@ -86936,6 +86936,32 @@
       "sha256": "f21ee0dcd0250263396c542769dcc3935f4d1c320809191bd885895f0e504080"
     },
     "preclaim_published_recipe_runtime_gate": "PASS_TO_GUARD_BEFORE_PAYLOAD",
-    "preclaim_trainer_module_startup": "PASS_DIRECT_ABSOLUTE_PYTHON_MODULE_HELP_SAME_REPO_CWD_NO_CLAIM"
+    "preclaim_trainer_module_startup": "PASS_DIRECT_ABSOLUTE_PYTHON_MODULE_HELP_SAME_REPO_CWD_NO_CLAIM",
+    "actual_boot_id": 651,
+    "actual_batch_visits": 0,
+    "actual_optimizer_updates": 0,
+    "task_disabled_observed": true,
+    "failure_cause": "Both S and F bound targets have 118249 full model rows while fixed TRAIN fit has 47338 rows. The fit core compared whole bound axes to the TRAIN prefix; both exact 47338 prefixes match. Failure occurred after model and optimizer construction but before first batch forward/update.",
+    "campaign_plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_002/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "sha256": "02f618aeb56628e9ef8cbcce50a80b466ef8a7ae2f0f5f31d34452f7aee2ccbf"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_002/RESULT.json",
+      "sha256": "0babbcac2278fcfcfd568642fbddf5149bc4133668862b4db3f16feca2885a28"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_002/TERMINAL.json",
+      "sha256": "2e4feb7b0a8b2539d10e1e54438a4448f15bdbcb0f7b15b7a9869aca162f1f74"
+    },
+    "invocation_receipt": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_002/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "a41571f0db3ba9aaea6c7581f99c4dbc4f4bafffa34579ffddac752c0569520b"
+    },
+    "progress": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_002/RUNTIME/progress/invocation-0001.json",
+      "sha256": "7771302fa597b5fe69d009e056fb8e975b06aa1ad32cbb0ddef48830de9ee166"
+    },
+    "successor_candidate_stage": "market_state_ta_fold2_m5_direction_fit_20261114_003"
   }
 }

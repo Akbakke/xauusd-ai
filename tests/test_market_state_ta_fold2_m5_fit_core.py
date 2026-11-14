@@ -13,7 +13,9 @@ from gx1.scripts import run_market_state_ta_fold2_m5_fit_window_v1 as worker
 def _case(monkeypatch, *, lr=1e-4, wrong_model_contract=False):
     parents = np.arange(47338, dtype=np.int64)
     issues = parents + 1
-    bound = SimpleNamespace(parent_rows=parents, decision_ns=issues)
+    full_parents = np.arange(118249, dtype=np.int64)
+    bound = SimpleNamespace(parent_rows=full_parents,
+                            decision_ns=full_parents + 1)
     model = torch.nn.Linear(1, 1)
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     monkeypatch.setattr(worker, 'canonical_model_state_sha256',
@@ -64,6 +66,18 @@ def test_rejects_wrong_recipe_or_model_before_update(monkeypatch, fault, reason)
     assert kwargs['optimizer'].state == {}
     assert all(torch.equal(value, before[key]) for key, value in
                kwargs['model'].state_dict().items())
+
+
+def test_rejects_target_axis_prefix_mismatch_before_update(monkeypatch):
+    seen, kwargs = _case(monkeypatch)
+    wrong = kwargs['future_bound'].decision_ns.copy()
+    wrong[5] += 1
+    kwargs['future_bound'] = SimpleNamespace(
+        parent_rows=kwargs['future_bound'].parent_rows, decision_ns=wrong)
+    with pytest.raises(RuntimeError, match='FOLD2_M5_FIT_TARGET_AXES'):
+        worker.fit_one_pass(**kwargs)
+    assert seen == []
+    assert kwargs['optimizer'].state == {}
 
 
 def test_fixed_final_readout_uses_both_bound_panels_without_state_change(monkeypatch):
