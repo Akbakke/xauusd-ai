@@ -5,7 +5,20 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: TA_F_M5_TARGET_ENDPOINT_GAP_REVIEW_COMPLETE_EDGE_UNQUALIFIED.
+Aktuell policy: TA_F_M5_PRICE_ATR_SOURCE_REPLAY_COMPLETE_EDGE_UNQUALIFIED.
+Uavhengig capped lesereplay fra hashbundet M5-parquet rekonstruerte
+118706/118706 F-M5-issues: neste lukkede M5-pris, Wilder ATR14 på siste
+lukkede bar, eksakt endepunkt, gyldighet, tegn og normalisert størrelse
+var bitlike med måltapen. Alle118249 modellraders sideetiketter var like;
+0 numeriske avvik og0 modellfits. Se
+`docs/TA_F_M5_PRICE_ATR_SOURCE_RECONSTRUCTION_20261114.json`.
+Pris-/ATR-timing og målberegning forklarer ikke F-M5-overføringssvikten.
+64-runders oppskrift og indre TRAIN-valgt nedkorting gav ingen positiv
+senere Brier-gate. Ingen ny kilde-/modellfeil er målt som begrunner enda en
+fit; behold kvitteringene og vent på en konkret kausal hypotese med
+senere uavhengig evidens. TEST, native-trening og handel er stengt.
+
+Tidligere policy: TA_F_M5_TARGET_ENDPOINT_GAP_REVIEW_COMPLETE_EDGE_UNQUALIFIED.
 Lesende kontroll av den hashbundne F-M5-måltapen fant118249/118249
 modellrader med eksakt framtidig5-minutters endepunkt,0 mellomliggende
 gap og0 avvik mellom sign,0,5×ATR-størrelse og allowed-sideetikett.

@@ -1,0 +1,54 @@
+{
+  "atr_period": 14,
+  "full_train_plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/FULL_TRAIN_MARKET_STATE_ENDPOINT_CANDIDATE_20261107_001.json",
+    "sha256": "c3c789f4e7ed3edba2880bfb9e51decc9efad779324351bbd19ac86d2a607ce2"
+  },
+  "interpretation": "The F M5 target tape exactly matches the immutable source M5 closed-price change and independently recomputed Wilder ATR14 at the last completed M5 bar. Price/ATR timing and numeric target construction do not explain the observed F M5 generalization failure.",
+  "issue_rows": 118706,
+  "limits": [
+    "This does not establish predictive signal, calibration transfer, native-model quality, Entry quality, or economic Edge.",
+    "No target threshold, feature or model parameter was selected from these results."
+  ],
+  "m5_lead_minutes": 5,
+  "m5_source": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/M5_ENRICHED.parquet",
+    "sha256": "5e5cb256fc60a5e9a7ffe1a161aa875660f01806b8e8de2bf601fc2f528e7f99"
+  },
+  "m5_source_rows_read": 1106047,
+  "model_rows": 118249,
+  "observed_utc": "2026-11-14T21:29:11.454786+00:00",
+  "previous_target_integrity_review": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_F_M5_TARGET_ENDPOINT_GAP_REVIEW_20261114.json",
+    "sha256": "d607242e47aef4f22e66f7a677c95ad4ee9e3adb5944d0982d07e6cbaf031fb4"
+  },
+  "producer_source": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/measure_market_state_decision_return_gc_v1.py",
+    "sha256": "f8629367d581c5ab2a9e2635cc2aef8f8556b8b98da35c7b73e80b74e7a4e9cf"
+  },
+  "schema_version": "gx1_ta_f_m5_price_atr_source_reconstruction_v1",
+  "source_commit": "e57f65c67d47eb626a7b74ba5113cf35b8f6d45a",
+  "status": "COMPLETE_INDEPENDENT_BIT_EXACT_M5_SOURCE_REPLAY",
+  "target_tape": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_DECISION_RETURN_GC_20261108_002/DECISION_RETURN_TAPE.npz",
+    "sha256": "f87dcc7c669e86a10325a526023933346926f17037685a3082a875e67a1fb167"
+  },
+  "validation": {
+    "all_118249_model_side_bits_identical": true,
+    "all_118706_issue_rows_magnitude_bit_identical": true,
+    "capped_memory": "4G",
+    "capped_swap": "512M",
+    "m5_closed_price_endpoint_mismatch_n": 0,
+    "m5_future_sign_mismatch_n": 0,
+    "m5_magnitude_bit_mismatch_n": 0,
+    "m5_magnitude_max_abs_error": 0.0,
+    "m5_model_side_label_mismatch_n": 0,
+    "m5_target_valid_mismatch_n": 0,
+    "manual_closed_price_move_replay": "PASS",
+    "manual_wilder_atr14_replay": "PASS",
+    "model_fits": 0,
+    "source_file_unchanged_during_read": true,
+    "source_parquet_sha256_matches_plan": true,
+    "test_data_used": false
+  }
+}
