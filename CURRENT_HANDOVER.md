@@ -5,7 +5,19 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: TA_F_M5_TREE_PATH_POSTHOC_DIAGNOSIS_COMPLETE_NO_FIT.
+Aktuell policy: TA_F_M5_INNER_TRAIN_TRANSFER_PREPARED_NO_FIT.
+En egen F-M5 indre TRAIN-plan er PREPARED_NOT_ADMITTED uten claim eller fit:
+`configs/research/MARKET_STATE_F_M5_INNER_TRAIN_TRANSFER_20261114_001.json`.
+Fem modne prefiks er delt kronologisk ved80% av F-kjente TRAIN-sider;
+inner-train-mål må bli gyldige strengt før valideringsstart, med eksakt
+5-minutters F-horisont. Planen binder fem faste64-runders LightGBM-fits,
+forhåndsvalgte1/2/4/8/16/32/64 readouts og TRAIN-prior fryst før fit.
+Valg av runder kommer bare fra den indre TRAIN-valideringen; ingen ytre
+scorefasit brukes i denne jobben. Neste steg er direkte og capped fysisk
+preflight uten claim/datafit; først etter bestått kontroll kan egen
+policyadmisjon åpne én capped kjøring. Ingen TEST, native-trening eller handel.
+
+Tidligere policy: TA_F_M5_TREE_PATH_POSTHOC_DIAGNOSIS_COMPLETE_NO_FIT.
 Lesende replay av lagrede F-M5-trær ved1/2/4/8/16/32/64 runder bekrefter at
 64-runders Brier er dårligere enn fryst TRAIN-prior i alle fem senere folder.
 Tidlige prefikser gir små positive Brier-forskjeller bare i fold1/2/4;
