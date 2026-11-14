@@ -12,9 +12,9 @@
       "sha256": "8d2ae09f2bcb1993f88b8178bd2e3834d304a62d852703bc65527edf32be55b0"
     }
   },
-  "native_training_authorized": true,
-  "new_job_admitted": true,
-  "next_action": "Only frozen recipe004 is admitted for one guarded TRAIN fit after fresh boot >652. The published recipe passed the runtime gate and actual first/tail S/F target evaluator/loss passed read-only; materialize on clean source, inspect plan, run one window. Plans001/002/003 remain consumed. No TEST, Entry, Exit, broker or trading.",
+  "native_training_authorized": false,
+  "new_job_admitted": false,
+  "next_action": "Use completed TRAIN/later development captures only for read-only F M5 score and target/feature diagnosis. Paired later F M5 AUC gain is unqualified and Brier worsened; no new fit, TEST, Entry, Exit, broker or trading is admitted.",
   "normalization": {
     "artifacts": {
       "EXTENDED_BASE_NORMALIZATION": {
@@ -221,7 +221,7 @@
       "sha256": "2e25098183d2ffb27a4441f178789e2bdd39b84646815b67d061ccedbf2170da"
     }
   },
-  "observed_utc": "2026-11-14T12:46:58.230929+00:00",
+  "observed_utc": "2026-11-14T14:18:50.989812+00:00",
   "physical": {
     "all_413_overlap_rows_bitexact": true,
     "counts": {
@@ -317,7 +317,7 @@
     "Existing M5 equal-observation owner binds fold2 to its measured S/F q/N, axes, view and target-count receipts; fold1 profile and default identity remain unchanged.",
     "Runtime fold_id gate now reads numerical_recipe.fold_id; prior synthetic fixture was corrected and an admitted-gate regression added. Distinct frozen design002 preserves all initial inputs and targets."
   ],
-  "status": "FOLD2_M5_PLANS001_003_CONSUMED_004_ONE_USE_FIT_ADMITTED_PREPARATION_PENDING",
+  "status": "FOLD2_M5_PLAN004_COMPLETE_CONSUMED_F_M5_RANK_GAIN_UNQUALIFIED",
   "test_data_used": false,
   "validation": {
     "both_actual_cli_preflights": "PASS",
@@ -989,7 +989,7 @@
     "relaunch_allowed": false
   },
   "fold2_m5_fit_hypothesis": {
-    "status": "PLANS001_003_FAILED_CONSUMED_004_ONE_USE_FIT_ADMITTED_PREPARATION_PENDING",
+    "status": "PLAN004_COMPLETE_CONSUMED_F_M5_RANK_GAIN_UNQUALIFIED",
     "question": "Can one fixed chronological full-TRAIN pass of the existing native S/F model, using only its M5 known-side direction loss, improve later F M5 rank versus the exact fresh zero-update function?",
     "source_commit_at_review": "f013cb758e0d03098bbe4edaddef6c5426d8a5fa",
     "source_owners": {
@@ -1204,11 +1204,11 @@
         }
       }
     },
-    "implementation_gap": "Plans001/002/003 were consumed with zero updates. Corrected source, published recipe004, read-only actual bound input check and first/tail S/F target evaluator/loss pass. One-use fit004 is admitted; campaign plan, fresh boot >652, guarded claim, actual updates and final readout are pending.",
+    "implementation_gap": "Fixed fold2 M5 direction-only TRAIN fit completed with 2959 batches, 2952 updates and exact final TRAIN/later readouts. Paired later F M5 AUC gain is 0.000610 with day/week 95% intervals spanning zero; Brier worsened. The selected development ranking signal, independent generalization, Entry quality and economics remain unqualified. No new fit is admitted.",
     "resource_note": "The historical fold1 full-prefix two-pass phase took 7586.8 seconds for 3698 updates; this is planning evidence, not a fold2 wall-time guarantee or admission.",
     "scope_limits": "All genuine TA/MTF/D1 inputs and S/F outputs remain; the selected loss gives direct gradient only to M5 known-side direction. A single pass cannot rule out deeper learning if it fails. No Entry selection, economics, TEST or trading is measured.",
-    "execution_authorized": true,
-    "training_authorized": true,
+    "execution_authorized": false,
+    "training_authorized": false,
     "test_data_used": false,
     "adapter_qualification": {
       "test": "tests/test_market_state_m5_equal_observation_binding.py::test_fold2_direction_only_binds_full_batch_and_partial_tail",
@@ -1580,11 +1580,11 @@
         "sha256": "f1ab0e159e3a2e4a78211175e0b60f658fdd78e70db7be1dd5ce6111023d42c5"
       },
       "candidate_recipe_published": true,
-      "training_authorized": true,
+      "training_authorized": false,
       "test_data_used": false,
       "focused_evaluator_and_fold2_suites_passed": true,
       "actual_first_and_tail_S_F_target_evaluator_loss_read_only_passed": true,
-      "status": "ADMITTED_PREPARATION_PENDING",
+      "status": "COMPLETE_CONSUMED_F_M5_RANK_GAIN_UNQUALIFIED",
       "recipe": {
         "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_004/RECIPE.json",
         "sha256": "aa144f7fed073e25c58bd9818dc4610394cd9449d6aaf27a8651e85dfa915eca"
@@ -1607,7 +1607,168 @@
       },
       "source_commit": "5f696c2eb733485b2dee9c17ab308797fcce1592",
       "max_invocations": 1,
-      "remaining_invocations": 1
+      "remaining_invocations": 0,
+      "boot_id": 653,
+      "batch_visits": 2959,
+      "optimizer_updates": 2952,
+      "skipped_batches": 7,
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_004/RESULT.json",
+        "sha256": "d05f1226ee6ec678a15ede40a43568e976c1346a1f41113e31934ae10f0883f5"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_004/TERMINAL.json",
+        "sha256": "1d1b499569f2ddf75bee24f505e37561f6e8d30ccebd963644be456305ac7869"
+      },
+      "invocation_receipt": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_004/RUNTIME/receipts/invocation-0001.json",
+        "sha256": "0cc6f6426901ef8d1170d4935ca4155a27dfbb9daef22d8eb4e99c47cbc8aac2"
+      },
+      "paired_readout": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_004/PAIRED_READOUT.json",
+        "sha256": "2ad636e0759ae4f6cbd1efc0b21b389ada1bcd044b5193be57b97eb55af638aa"
+      },
+      "post_run_validation": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_004/POST_RUN_VALIDATION.json",
+        "sha256": "fa4bdf1a187c7c9e6dc7a70ed3c1c024d68291db0469848b029483b4cd73b1a0"
+      },
+      "task_disabled_observed": true,
+      "later_F_M5_initial_auc": 0.4867769514365624,
+      "later_F_M5_final_auc": 0.4873871726417493,
+      "later_F_M5_auc_delta": {
+        "lower95": -0.03378878242013497,
+        "point_difference": 0.0006102212051868894,
+        "undefined_replicates": 0,
+        "upper95": 0.03368215592720664,
+        "valid_replicates": 2000
+      },
+      "later_F_M5_initial_brier": 0.2504250763034614,
+      "later_F_M5_final_brier": 0.2515235126364608,
+      "development_ranking_signal_qualified": false,
+      "economic_value_measured": false
+    },
+    "final_panel_review": {
+      "source_result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_004/RESULT.json",
+        "sha256": "d05f1226ee6ec678a15ede40a43568e976c1346a1f41113e31934ae10f0883f5"
+      },
+      "source_initial_result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_004/RESULT.json",
+        "sha256": "ebaa2de9a98755f6b509a2354653aa52d4fa3904852ae328e6cc1858bda712d8"
+      },
+      "all_15_later_future_month_tf_cells": {
+        "2025-01_M5": {
+          "known_side_n": 521,
+          "initial_auc": 0.4920656067738402,
+          "final_auc": 0.5117831660597448,
+          "initial_brier": 0.2508502399259554,
+          "final_brier": 0.25114147495510647
+        },
+        "2025-01_M15": {
+          "known_side_n": 520,
+          "initial_auc": 0.4921134229092707,
+          "final_auc": 0.49113977141658804,
+          "initial_brier": 0.25063387118687097,
+          "final_brier": 0.2529497408219906
+        },
+        "2025-01_H1": {
+          "known_side_n": 522,
+          "initial_auc": 0.4957766089108911,
+          "final_auc": 0.54947400990099,
+          "initial_brier": 0.25143468391321583,
+          "final_brier": 0.25516008689541025
+        },
+        "2025-01_H4": {
+          "known_side_n": 522,
+          "initial_auc": 0.488606013276064,
+          "final_auc": 0.5681374463100352,
+          "initial_brier": 0.25064512409360834,
+          "final_brier": 0.2536883591903817
+        },
+        "2025-01_D1": {
+          "known_side_n": 520,
+          "initial_auc": 0.4273694702588608,
+          "final_auc": 0.6357773152355545,
+          "initial_brier": 0.24860624912545237,
+          "final_brier": 0.26342814965258704
+        },
+        "2025-02_M5": {
+          "known_side_n": 514,
+          "initial_auc": 0.4979600535866521,
+          "final_auc": 0.47510960906101574,
+          "initial_brier": 0.24940321116006645,
+          "final_brier": 0.2515976009056175
+        },
+        "2025-02_M15": {
+          "known_side_n": 509,
+          "initial_auc": 0.473833848845565,
+          "final_auc": 0.4388571250039054,
+          "initial_brier": 0.24937874068268795,
+          "final_brier": 0.2537389537219509
+        },
+        "2025-02_H1": {
+          "known_side_n": 487,
+          "initial_auc": 0.43324851569126377,
+          "final_auc": 0.3520101781170483,
+          "initial_brier": 0.25178606566185674,
+          "final_brier": 0.2545935390013262
+        },
+        "2025-02_H4": {
+          "known_side_n": 480,
+          "initial_auc": 0.3857795694253792,
+          "final_auc": 0.36750013031919515,
+          "initial_brier": 0.2558157805669714,
+          "final_brier": 0.25229775141707583
+        },
+        "2025-02_D1": {
+          "known_side_n": 517,
+          "initial_auc": 0.3373260738052027,
+          "final_auc": 0.3295220810647308,
+          "initial_brier": 0.2540626713075264,
+          "final_brier": 0.2545582417608074
+        },
+        "2025-03_M5": {
+          "known_side_n": 556,
+          "initial_auc": 0.4547325907107029,
+          "final_auc": 0.46799557032115174,
+          "initial_brier": 0.25097135046962266,
+          "final_brier": 0.2518130095099123
+        },
+        "2025-03_M15": {
+          "known_side_n": 518,
+          "initial_auc": 0.45228969445085815,
+          "final_auc": 0.4428692372816132,
+          "initial_brier": 0.24938536307911166,
+          "final_brier": 0.25460772976116663
+        },
+        "2025-03_H1": {
+          "known_side_n": 543,
+          "initial_auc": 0.4523809523809524,
+          "final_auc": 0.3378235378235378,
+          "initial_brier": 0.2500903838866545,
+          "final_brier": 0.2573531538753543
+        },
+        "2025-03_H4": {
+          "known_side_n": 437,
+          "initial_auc": 0.5837771500023156,
+          "final_auc": 0.5045385078497662,
+          "initial_brier": 0.24446676752505525,
+          "final_brier": 0.25500311722971647
+        },
+        "2025-03_D1": {
+          "known_side_n": 463,
+          "initial_auc": 0.5763069882063017,
+          "final_auc": 0.7766238338320718,
+          "initial_brier": 0.23991241273939795,
+          "final_brier": 0.26402991017700866
+        }
+      },
+      "later_future_auc_gain_cells": 6,
+      "later_future_brier_gain_cells": 1,
+      "later_state_M5_initial_auc": 0.5218702583219377,
+      "later_state_M5_final_auc": 0.5489637774822197,
+      "state_M5_is_exploratory_not_selected_F_endpoint": true,
+      "test_data_used": false
     }
   }
 }

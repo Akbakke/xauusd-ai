@@ -5,7 +5,7 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_FOLD2_M5_DIRECTION_FIT_004_ONE_USE_ADMITTED_PREPARATION_PENDING. Edge-målet er
+TA_FOLD2_M5_004_COMPLETE_CONSUMED_F_M5_EDGE_UNQUALIFIED. Edge-målet er
 uoppnådd. TARGET_COUNTS001 er COMPLETE/CONSUMED, exit0,3,78s. RESULT ba50eb96,
 VALIDATION dd45bd05, TERMINAL dccda6f6; ingen relansering. På eksakt47338 modne
 TRAIN-rader /2959 B16 med siste10 er M5 kjent retning S N16101/q2890 og F N19072/q2950.
@@ -97,10 +97,16 @@ oppgaven deaktivert. Design004 er identisk med003 utenom engangsidentitet.
 Resept004 SHAaa144f7f er publisert fra ren commit5f696c2e og boot652
 SHA113db346. Lesende PREFLIGHT SHA27a5fecf og faktisk resept/
 S/F-target-evaluator/loss SHA485ed0f2 passerer for første og siste batch
-med 0 native forwards/updates. Egen engangsadmisjon004 er åpnet for
-12000s/250W, maks2959 updates, null checkpoint og fysisk boot>652.
-Ingen faktisk fit er startet; neste steg er ren commit/push, capped
-materialisering og maskinvid idle-kontroll. TEST, Entry, Exit, broker og ordre er stengt.
+med 0 native forwards/updates. Plan004 fullførte én gang etter fysisk boot653: RESULT SHAd05f1226,
+TERMINAL SHA1d1b4995 og validering SHAfa4bdf1a. 2959 batchbesøk,2952 updates,
+7 skips,0 checkpoint,exit0; Windows-oppgaven er deaktivert. Fast senere
+F M5 AUC var0,486777 INITIAL og0,487387 FINAL; parvis delta+0,000610
+med dag95% [-0,033789,+0,033682] og ukeintervallet omfatter også0.
+F M5 Brier ble dårligere0,250425→0,251524. Kun6/15 senere F TF/måned-celler
+økte AUC og1/15 bedret Brier; alle celler er verifisert fra immutable
+captures. S M5 fikk bedre punktestimat, men var ikke valgt primært F-mål.
+Ingen kvalifisert rangering, uavhengig generalisering eller økonomisk edge.
+training_enabled=false; neste steg er kun avgrenset lesende diagnose. TEST, Entry, Exit, broker og ordre er stengt.
 Edge er fortsatt ubevist.
 Fokuserte fold2/campaign-tester PASS. Eldre fold1-fit-testfil har19 isolerte
 fixture-feil NATIVE_F_PRIVATE_TA_M5_EXACT_INPUT_IDENTITY i uendrede kilder/refs;
