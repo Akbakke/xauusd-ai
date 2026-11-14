@@ -5,7 +5,19 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: TA_F_M5_INNER_TRAIN_TRANSFER_COMPLETE_NO_EDGE.
+Aktuell policy: TA_F_M5_TARGET_ENDPOINT_GAP_REVIEW_COMPLETE_EDGE_UNQUALIFIED.
+Lesende kontroll av den hashbundne F-M5-måltapen fant118249/118249
+modellrader med eksakt framtidig5-minutters endepunkt,0 mellomliggende
+gap og0 avvik mellom sign,0,5×ATR-størrelse og allowed-sideetikett.
+Alle fem senere scorefoldene har0 mål-/endepunktsgap. Se
+`docs/TA_F_M5_TARGET_ENDPOINT_GAP_REVIEW_20261114.json`.
+Dette utelukker akkurat gap, endepunkt og sidebit-mapping som forklaring på
+den målte F-M5-overføringssvikten; det gjør ikke målsemantikken prediktiv.
+Ingen ny fit er innrømmet. Behold de negative kvitteringene; en ny F-M5-
+hypotese krever et konkret kausalt kilde-/målbevis eller senere uavhengig
+forwarddata. TEST, native-trening og handel forblir stengt.
+
+Tidligere policy: TA_F_M5_INNER_TRAIN_TRANSFER_COMPLETE_NO_EDGE.
 Indre F-M5 TRAIN-plan001 er COMPLETE/CONSUMED, exit0 etter163,19s under
 12G/512M. Fem64-runders modeller fikk egen TRAIN-AUC0,7097–0,7974 og
 bedre TRAIN-Brier enn TRAIN-prior, men alle fem tapte Brier mot prior på

@@ -1,0 +1,79 @@
+{
+  "all_model_rows_valid_exact_endpoint": true,
+  "all_model_rows_without_gap": true,
+  "folds": [
+    {
+      "first_issue_ns": 1727740800000000000,
+      "fold_id": 1,
+      "known_side_gap_n": 0,
+      "known_side_n": 7165,
+      "last_issue_ns": 1735682100000000000,
+      "score_rows": 17753,
+      "valid_not_exact_n": 0
+    },
+    {
+      "first_issue_ns": 1735772700000000000,
+      "fold_id": 2,
+      "known_side_gap_n": 0,
+      "known_side_n": 6707,
+      "last_issue_ns": 1743465300000000000,
+      "score_rows": 17288,
+      "valid_not_exact_n": 0
+    },
+    {
+      "first_issue_ns": 1743465600000000000,
+      "fold_id": 3,
+      "known_side_gap_n": 0,
+      "known_side_n": 6886,
+      "last_issue_ns": 1751327700000000000,
+      "score_rows": 17537,
+      "valid_not_exact_n": 0
+    },
+    {
+      "first_issue_ns": 1751328000000000000,
+      "fold_id": 4,
+      "known_side_gap_n": 0,
+      "known_side_n": 7050,
+      "last_issue_ns": 1759276500000000000,
+      "score_rows": 18072,
+      "valid_not_exact_n": 0
+    },
+    {
+      "first_issue_ns": 1759276800000000000,
+      "fold_id": 5,
+      "known_side_gap_n": 0,
+      "known_side_n": 6952,
+      "last_issue_ns": 1767218100000000000,
+      "score_rows": 17750,
+      "valid_not_exact_n": 0
+    }
+  ],
+  "future_target_source": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_future_displacement_candidate_v1.py",
+    "sha256": "4a7e0a582bef097109555ddfe1b96cb2c9d7b31c2a53366ef9a4bbbe0c6deb62"
+  },
+  "independent_allowed_bit_label_mismatch_n": 0,
+  "inner_transfer_result_review": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_F_M5_INNER_TRAIN_TRANSFER_RESULT_REVIEW_20261114.json",
+    "sha256": "4a8d7d6d8a479be5c4c77c34ed2f2dd6cfb7f59a4eed13cf31b3e14d04d99252"
+  },
+  "interpretation": "The bound F M5 model rows have exact five-minute endpoints, zero intervening gaps, and zero sign/magnitude/threshold-to-side label mismatches. These target-integrity failure modes do not explain the measured F M5 transfer gap.",
+  "known_side_n": 46775,
+  "limits": [
+    "This does not prove the F candidate target is economically useful, that its 0.5 ATR threshold is optimal, or that its conditional side is predictable from causal inputs.",
+    "No model parameter or target threshold was selected; sealed TEST and trading were not accessed."
+  ],
+  "m5_lead_minutes": 5,
+  "model_fits": 0,
+  "model_rows": 118249,
+  "model_updates": 0,
+  "observed_utc": "2026-11-14T21:24:35.460545+00:00",
+  "schema_version": "gx1_ta_f_m5_target_endpoint_gap_review_v1",
+  "source_commit": "32a7810c907b2f5a14f2a7ca8505330eb664ff09",
+  "status": "COMPLETE_READ_ONLY_NO_TARGET_ENDPOINT_OR_GAP_DEFECT",
+  "target_tape": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_DECISION_RETURN_GC_20261108_002/DECISION_RETURN_TAPE.npz",
+    "sha256": "f87dcc7c669e86a10325a526023933346926f17037685a3082a875e67a1fb167"
+  },
+  "test_data_used": false
+}
