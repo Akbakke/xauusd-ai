@@ -150,3 +150,24 @@ def test_zero_step_rebinding_preserves_weights_optimizer_and_rng(monkeypatch):
         state.restore_fold1_fit_state(old, model, optimizer, numerical_recipe=selected, **kwargs)
     result = state.restore_fold1_fit_state(new, model, optimizer, numerical_recipe=selected, **kwargs)
     assert result == dict(cursor=0, optimizer_updates=0, skipped_batches=0)
+
+
+def test_fold2_m5_direction_uses_own_weighting_and_no_other_task_gradient():
+    raws, truths, args = case()
+    args['fold_id'] = 2
+    full = objective.combined_loss(**args)
+    selected = objective.combined_loss(**args, m5_direction_only=True)
+    assert selected['contract_sha256'] == 'da042c0f02d104bf5533f9d82688b986a29117436517485272de0853e7bd6150'
+    for raw, truth, full_grad, chosen, coefficient in zip(
+            raws, truths, torch.autograd.grad(full['loss'], raws),
+            torch.autograd.grad(selected['loss'], raws),
+            (2890 / 16101 / 5, 2950 / 19072 / 5)):
+        known = (truth['eligible'][:, 0] & truth['mature'][:, 0]
+                 & np.isin(truth['allowed'][:, 0], (1, 4)))
+        up = torch.from_numpy((truth['allowed'][:, 0] == 4).astype(np.float32))
+        expected = (raw.detach()[:, 0, 1].sigmoid() - up) * coefficient
+        expected[~known] = 0
+        assert torch.allclose(chosen[:, 0, 1], expected, atol=4e-9, rtol=2e-7)
+        assert torch.equal(chosen[:, 0, 1], full_grad[:, 0, 1])
+        assert torch.count_nonzero(chosen[..., 0]) == 0
+        assert torch.count_nonzero(chosen[:, 1:, :]) == 0

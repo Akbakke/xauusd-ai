@@ -5,7 +5,7 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_FOLD2_FRESH_INITIAL_COMPLETE_NO_F_M5_EDGE_TRAINING_CLOSED. Edge-målet er
+TA_FOLD2_M5_FIT_SOURCE_REVIEWED_EXECUTION_CLOSED. Edge-målet er
 uoppnådd. TARGET_COUNTS001 er COMPLETE/CONSUMED, exit0,3,78s. RESULT ba50eb96,
 VALIDATION dd45bd05, TERMINAL dccda6f6; ingen relansering. På eksakt47338 modne
 TRAIN-rader /2959 B16 med siste10 er M5 kjent retning S N16101/q2890 og F N19072/q2950.
@@ -39,9 +39,17 @@ Eksisterende trent oktober–desember-readout er gjenlest: oktober M5 AUC-gevins
 0,5118/0,5051, samlet0,5078 med ukeintervall0,4844–0,5324. Oktober-ACC skjuler
 lokal rangering, men ingen stabil M5-edge. D1-samlet AUC0,5499 har bredt
 ukeintervall0,3881–0,7204 og er ikke M5 Entry-kvalifikasjon.
-Neste steg: utform én avgrenset fold2 M5 fit-hypotese med egen q/N og de faste
-panelene for gjennomgang; ingen fit-admisjon nå. training_enabled=false; ingen
-trening, TEST, broker eller ordre.
+Fold2 M5-retning-alene-tapet har nå kilde-/gradientreview i
+`docs/TA_FOLD2_INPUT_REVIEW.json`: kontrakt da042c0f, egen q/N, null direkte
+gradient i aktivitet og andre TF. Én foreslått kronologisk pass bruker alle47338
+TRAIN-rader/maks2959 B16-oppdateringer fra samme ferske INITIAL og skårer de samme
+faste senere panelene, uten checkpoint-/terskelvalg. Tidligere fold1 fulltap ga
+F M5 senere AUC0,5113→0,5101→0,5091 etter pass1/pass2 og dårligere Brier;
+det er begrunnelse, ikke matchet fold2-kontroll. Eksisterende fit-runner importerer
+gammelt checkpoint og binder fold1, så en minimal fold2-worker trengs.
+Neste steg er kun worker + metadata-preflight og eksakt ressurs-/resume-binding.
+Ingen fit-admisjon: training_enabled=false; ingen trening, TEST, broker eller ordre.
+
 LATER_INPUTS002 er COMPLETE/CONSUMED, exit0,215,18s; terminal1297d154,
 RESULT2cab8b60/COVERAGE5abd47c4/GATHER_RESULTe6aacfe9/VALIDATIONdf45d60f.
 4096faste senere rader og alle åtte inputflater består.17353lokale rader gjenbrukt,
@@ -87,7 +95,7 @@ Seks tofeltsfit på eget fold2-prefix; ingen gamle felt refittet. Alle6532gamle 
 masker, kategorier, support, aliaser og fysisk lineage er bevart. Ingen fold1-enhetsunntak.
 317signal/132kontekst/255perTF er projisert uten ny fit. Alle observerte spanverdier er
 monotone og gjenfinnes eksakt etter heltallsavrunding; største inverse feil9,44e-6.
-Basekontrakt7bd0f896; TA-kontrakt53e57991. TRAIN-gather er nå kvalifisert nedenfor; modellbaseline er ubevist.
+Basekontrakt7bd0f896; TA-kontrakt53e57991. TRAIN-gather er nå kvalifisert nedenfor; framtidig fit er ubevist.
 27fokuserte tester, faktisk CLI-preflight og påkrevde commit-kontrakttester PASS.
 Uavhengig kilde-/JSON-kontroll PASS. Fold1s beholdte normaliseringsartefakt er identisk.
 
@@ -120,7 +128,7 @@ Alle genuine317/132/255features, fem TF, åtte familier og D1/makro beholdes. Ti
 fullTA-konsum/paritet gjenbrukes; ingen ny feltcensus er nødvendig for disse to span-feltene.
 COT2024-vintage forblir UNKNOWN; ingen konkret lekkasje er påvist. Juni2026 er gjenbrukt
 utviklings-VAL. Alle tidligere statistiske intervaller er punktvise på gjenbrukt utvikling.
-INITIAL arver eldre backbone-trening; eksponerte rader blir ikke uavhengig OOF ved ny splitt.
+Tidligere fold1 INITIAL arvet eldre backbone-trening; fold2 INITIAL er fersk. Eksponerte rader blir ikke uavhengig OOF ved ny splitt.
 Kjent-side-nevner er ikke valgbar Entry-dekning. Årsak, uavhengig generalisering, Entry/Exit-
 kvalitet og økonomisk edge er ubevist. Korte forsøk dømmer ikke full historikk/kapasitet.
 Full kvalifisert historikk/30–40epoker er senere retning, ikke en åpnet kjøring.

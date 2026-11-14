@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-14T08:35:29.014701+00:00",
-  "status": "TA_FOLD2_FRESH_INITIAL_COMPLETE_NO_F_M5_EDGE_TRAINING_CLOSED",
+  "observed_utc": "2026-11-14T08:44:03.214755+00:00",
+  "status": "TA_FOLD2_M5_FIT_SOURCE_REVIEWED_EXECUTION_CLOSED",
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Active direction-edge cause diagnosis. Reuse qualified evidence and admit only the next exact bounded control after preflight. Consumed plans remain closed; all training, TEST, Entry/Exit, broker, trading and promotion gates stay closed.",
-  "next_action": "Prepare one bounded, source- and panel-bound fold2 M5 known-side fit hypothesis for review, using the completed fresh INITIAL, own q/N and fixed TRAIN/later panels. Keep the fit execution unadmitted: training_enabled=false, TEST sealed, no broker or trading. Existing October–December rank/ACC review is complete and does not prove transferable M5 edge.",
+  "next_action": "Implement only a minimal fold2 fresh-fit worker and metadata preflight for the source-reviewed one-pass M5 known-side hypothesis in docs/TA_FOLD2_INPUT_REVIEW.json. Bind exact resources and resume rules before any separate one-use admission. training_enabled=false; no fit, TEST, broker or trading authorized.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
