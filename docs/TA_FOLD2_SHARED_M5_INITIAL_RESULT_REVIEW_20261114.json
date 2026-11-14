@@ -1,0 +1,136 @@
+{
+  "backwards": 0,
+  "checkpoint_writes": 0,
+  "comparison": {
+    "LATER": {
+      "future_m5": {
+        "known_side_n": 1591,
+        "old_f_auc": 0.4867769514365624,
+        "old_f_brier": 0.2504250763034614,
+        "shared_auc": 0.5258072718026952,
+        "shared_brier": 0.2618154597167701
+      },
+      "parity": {
+        "axes_targets_exact": true,
+        "future_activity_exact": true,
+        "future_m5_matches_old_state_exact": true,
+        "future_non_m5_side_exact": true,
+        "readout_replayed": true,
+        "state_exact": true
+      }
+    },
+    "TRAIN": {
+      "future_m5": {
+        "known_side_n": 1661,
+        "old_f_auc": 0.49945023702182223,
+        "old_f_brier": 0.25048925293688945,
+        "shared_auc": 0.4950463309486095,
+        "shared_brier": 0.2580420626534907
+      },
+      "parity": {
+        "axes_targets_exact": true,
+        "future_activity_exact": true,
+        "future_m5_matches_old_state_exact": true,
+        "future_non_m5_side_exact": true,
+        "readout_replayed": true,
+        "state_exact": true
+      }
+    }
+  },
+  "elapsed_seconds": 508.64200523399995,
+  "evaluation_forwards": 512,
+  "exploratory_paired_later_f_m5_auc_intervals": {
+    "UTC_DAY": {
+      "2025-01": {
+        "lower95": -0.062486910256187536,
+        "point_difference": 0.026956212807531743,
+        "undefined_replicates": 0,
+        "upper95": 0.121765352294764,
+        "valid_replicates": 2000
+      },
+      "2025-02": {
+        "lower95": -0.07022855351022864,
+        "point_difference": 0.009164535379369121,
+        "undefined_replicates": 0,
+        "upper95": 0.08379876621326682,
+        "valid_replicates": 2000
+      },
+      "2025-03": {
+        "lower95": 0.035722808531414144,
+        "point_difference": 0.0969317959742036,
+        "undefined_replicates": 0,
+        "upper95": 0.15747965565046673,
+        "valid_replicates": 2000
+      },
+      "all": {
+        "lower95": -0.007231208358675756,
+        "point_difference": 0.03903032036613274,
+        "undefined_replicates": 0,
+        "upper95": 0.08345146303650222,
+        "valid_replicates": 2000
+      }
+    },
+    "UTC_MONDAY_WEEK": {
+      "2025-01": {
+        "lower95": -0.052414551190817574,
+        "point_difference": 0.026956212807531743,
+        "undefined_replicates": 1,
+        "upper95": 0.09337309622325912,
+        "valid_replicates": 1999
+      },
+      "2025-02": {
+        "lower95": -0.11187818253035647,
+        "point_difference": 0.009164535379369121,
+        "undefined_replicates": 4,
+        "upper95": 0.07412405303030306,
+        "valid_replicates": 1996
+      },
+      "2025-03": {
+        "lower95": 0.039396152909666415,
+        "point_difference": 0.0969317959742036,
+        "undefined_replicates": 5,
+        "upper95": 0.1662626318324471,
+        "valid_replicates": 1995
+      },
+      "all": {
+        "lower95": -0.0004287084565947034,
+        "point_difference": 0.03903032036613274,
+        "undefined_replicates": 0,
+        "upper95": 0.07958475678218153,
+        "valid_replicates": 2000
+      }
+    }
+  },
+  "guard_log": {
+    "exit_line": "2026-11-14T17:05:37Z event=exit child_status=0 stage=canonical telemetry_samples=404 peak_core_temp_c=46 peak_memory_temp_c=50 peak_power_draw_w=130.09 peak_memory_used_mib=554",
+    "path": "/home/andre2/GX1_RUNS/.MARKET_STATE_TA_FOLD2_SHARED_M5_INITIAL_20261114_001.guard.159H0EnS.log",
+    "sha256": "7e3e2791fbfbd9f2efafca2cd1d5cca90fe4af04eb69181dbe910603b012150a"
+  },
+  "interpretation": "Shared M5 side parameter removes the measured S/F M5 score disagreement. Later F AUC point estimate rises at zero updates, but paired overall day and week intervals include zero, TRAIN AUC falls and Brier worsens in both panels. Reused development evidence; no learned ranking, calibrated probabilities, economic edge or trading qualification.",
+  "model_constructions": 1,
+  "model_state_sha256": "32864041053fbb4b6511159f93083bd6e38e9915df8a3f06de182c768ab9424f",
+  "next_gate": "A separate exact qualified fit plan is required before any optimizer step; global training remains closed. TEST, Entry, Exit, broker and trade remain closed.",
+  "old_initial_result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_004/RESULT.json",
+    "sha256": "ebaa2de9a98755f6b509a2354653aa52d4fa3904852ae328e6cc1858bda712d8"
+  },
+  "optimizer_updates": 0,
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SHARED_M5_INITIAL_20261114_001/PLAN.json",
+    "sha256": "a7edc19b419e9130e99bb43fed81064d131b67c3f5c297f266c16a83d76586dc"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SHARED_M5_INITIAL_20261114_001/RESULT.json",
+    "sha256": "4dafdb1da1c6e30bd37c23deb0afb5476edea1c2d652c2d63f2d8b0efca05274"
+  },
+  "schema_version": "gx1_ta_fold2_shared_m5_initial_result_review_v1",
+  "source_commit": "38e249311f6a2df7a234319f8edf5c57e491d4e1",
+  "source_unchanged": true,
+  "stage": "market_state_ta_fold2_shared_m5_initial_20261114_001",
+  "status": "PHYSICAL_ZERO_UPDATE_BASELINE_COMPLETE_EDGE_UNQUALIFIED",
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SHARED_M5_INITIAL_20261114_001/TERMINAL.json",
+    "sha256": "c668fb4fd26f12f19918181117a455191490bca6b4283229deba8756f9367ea3"
+  },
+  "test_data_used": false
+}
