@@ -5,10 +5,11 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: TA_FIVEFOLD_SPAN_EXTENSION_002_PREPARED_NOT_ADMITTED.
-Plan002 er klargjort uten claim. Den binder eksakt2025-native-del,
-gjenbruker bitlik local-delta fra konsumert plan001, og vil kontrollere de
-fem native tidsaksene før claim. Lesende kildekontroll fant eksakt treff
+Aktuell policy: TA_FIVEFOLD_SPAN_EXTENSION_002_ADMITTED_INPUT_ONLY.
+Plan002 er ADMITTED for én input-only capped kjøring, uten claim ennå.
+Den binder eksakt2025-native-del og gjenbruker bitlik local-delta fra
+konsumert plan001. Direkte og capped preflight kontrollerte de fem native
+tidsaksene før claim. Lesende kildekontroll fant eksakt treff
 M5/M15/H1/H4/D1 på71186/23735/5937/1552/258 nye rader.
 `docs/TA_FIVEFOLD_SPAN_EXTENSION_001_FAILURE_REVIEW_20261114.json`
 bevarer årsak og terminal. Ingen modell- eller normaliseringsfit.
