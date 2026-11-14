@@ -1,0 +1,248 @@
+{
+  "comparison": {
+    "LATER": {
+      "frozen_prior": {
+        "brier": 0.24925684692147676,
+        "log_loss": 0.6916606243807928
+      },
+      "original_final": {
+        "auc": 0.4873871726417493,
+        "brier": 0.2515235126364608,
+        "known_side_n": 1591
+      },
+      "parity": {
+        "axes_targets_exact": true,
+        "shared_m5_side_logit_exact": true
+      },
+      "shared_final": {
+        "accuracy_at_zero": 0.4871150219987429,
+        "always_up_accuracy": 0.5373978629792583,
+        "auc": 0.5087345855580981,
+        "brier": 0.2500421777715712,
+        "known_side_n": 1591,
+        "log_loss": 0.6932315154374297
+      },
+      "shared_final_distribution": {
+        "known_side_n": 1591,
+        "mean_probability": 0.49823391906808606,
+        "probability_sd": 0.0021070044707608856,
+        "up_fraction": 0.5373978629792583,
+        "within_day_pairs": 9854,
+        "within_utc_day_auc_pair_weighted": 0.5318652323929369
+      },
+      "shared_initial": {
+        "auc": 0.5258072718026952,
+        "brier": 0.2618154597167701,
+        "known_side_n": 1591
+      }
+    },
+    "TRAIN": {
+      "frozen_prior": {
+        "brier": 0.24987638123003672,
+        "log_loss": 0.6928999229623307
+      },
+      "original_final": {
+        "auc": 0.5124733821882598,
+        "brier": 0.250028508836533,
+        "known_side_n": 1661
+      },
+      "parity": {
+        "axes_targets_exact": true,
+        "shared_m5_side_logit_exact": true
+      },
+      "shared_final": {
+        "accuracy_at_zero": 0.49307645996387717,
+        "always_up_accuracy": 0.5111378687537628,
+        "auc": 0.5020481934701503,
+        "brier": 0.2498244973568596,
+        "known_side_n": 1661,
+        "log_loss": 0.6927959288330071
+      },
+      "shared_final_distribution": {
+        "known_side_n": 1661,
+        "mean_probability": 0.49973362380775666,
+        "probability_sd": 0.004165516693258568,
+        "up_fraction": 0.5111378687537628,
+        "within_day_pairs": 4021,
+        "within_utc_day_auc_pair_weighted": 0.5302163640885352
+      },
+      "shared_initial": {
+        "auc": 0.4950463309486095,
+        "brier": 0.2580420626534907,
+        "known_side_n": 1661
+      }
+    }
+  },
+  "counts": {
+    "batch_visits": 2959,
+    "checkpoint_writes": 0,
+    "fixed_readout_forwards": 512,
+    "model_constructions": 1,
+    "optimizer_updates": 2952,
+    "skipped_batches": 7,
+    "test_rows": 0,
+    "train_rows": 47338
+  },
+  "development_ranking_signal_qualified": false,
+  "economic_value_measured": false,
+  "elapsed_seconds": 4795.069480422999,
+  "exploratory_original_final_to_shared_final_later_f_m5_auc": {
+    "UTC_DAY": {
+      "lower95": -0.008199290728128097,
+      "point_difference": 0.02134741291634884,
+      "undefined_replicates": 0,
+      "upper95": 0.053912682449809866,
+      "valid_replicates": 2000
+    },
+    "UTC_MONDAY_WEEK": {
+      "lower95": -0.009796687414830054,
+      "point_difference": 0.02134741291634884,
+      "undefined_replicates": 0,
+      "upper95": 0.05765925777042715,
+      "valid_replicates": 2000
+    }
+  },
+  "final_model_state_sha256": "b1e8c081ea3c0034d8d716c07ee53613f248a98036332d9712e7b2f6beb2aafd",
+  "guard_log": {
+    "exit_line": "2026-11-14T18:42:01Z event=exit child_status=0 stage=canonical telemetry_samples=3776 peak_core_temp_c=58 peak_memory_temp_c=62 peak_power_draw_w=166.33 peak_memory_used_mib=2172",
+    "path": "/home/andre2/GX1_RUNS/.MARKET_STATE_TA_FOLD2_SHARED_M5_FIT_20261114_001.guard.sdHOdE3r.log",
+    "sha256": "47243cb28a297c8ca2a519e0972162c05f5b52f69da6de07dbc90e913ce69c0a"
+  },
+  "initial_model_state_sha256": "32864041053fbb4b6511159f93083bd6e38e9915df8a3f06de182c768ab9424f",
+  "interpretation": "Tied parameters remove S/F M5 score disagreement. One full TRAIN pass improves F-M5 Brier versus the shared zero-update baseline but worsens later AUC; paired day/week AUC gain intervals include zero and final AUC intervals include 0.5. Later Brier and log loss remain worse than the frozen F prior. The score is near 0.5 despite later UP prevalence above 0.53. Comparison with the original separate-head final is exploratory and also uncertain. No independent generalization or economic edge is shown.",
+  "later_months": {
+    "original_final": {
+      "2025-01": {
+        "auc": 0.5117831660597448,
+        "brier": 0.25114147495510647,
+        "known_side_n": 521
+      },
+      "2025-02": {
+        "auc": 0.47510960906101574,
+        "brier": 0.2515976009056175,
+        "known_side_n": 514
+      },
+      "2025-03": {
+        "auc": 0.46799557032115174,
+        "brier": 0.2518130095099123,
+        "known_side_n": 556
+      }
+    },
+    "shared_final": {
+      "2025-01": {
+        "auc": 0.5009325872635225,
+        "brier": 0.25005441121339134,
+        "known_side_n": 521
+      },
+      "2025-02": {
+        "auc": 0.5215107782243332,
+        "brier": 0.24996103588447027,
+        "known_side_n": 514
+      },
+      "2025-03": {
+        "auc": 0.5015764445313009,
+        "brier": 0.2501057268844878,
+        "known_side_n": 556
+      }
+    },
+    "shared_initial": {
+      "2025-01": {
+        "auc": 0.519021819581372,
+        "brier": 0.2599723002979595,
+        "known_side_n": 521
+      },
+      "2025-02": {
+        "auc": 0.5071245889660212,
+        "brier": 0.26437580406178884,
+        "known_side_n": 514
+      },
+      "2025-03": {
+        "auc": 0.5516643866849065,
+        "brier": 0.2611756558747931,
+        "known_side_n": 556
+      }
+    }
+  },
+  "next_gate": "Close the consumed one-use fit gate. Do not rerun, train more, open TEST or change ONLINE behavior from this result.",
+  "original_fit_result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_004/RESULT.json",
+    "sha256": "d05f1226ee6ec678a15ede40a43568e976c1346a1f41113e31934ae10f0883f5"
+  },
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SHARED_M5_FIT_20261114_001/PLAN.json",
+    "sha256": "df869636b8c7a05d04ce94391b7d7ce118f14b2bb1c6355ccc44c3aeb18cf955"
+  },
+  "predeclared_shared_initial_to_final_later_f_m5_auc": {
+    "UTC_DAY": {
+      "final_auc": {
+        "lower95": 0.48564730022290886,
+        "point_difference": 0.5087345855580981,
+        "undefined_replicates": 0,
+        "upper95": 0.5315275694916042,
+        "valid_replicates": 2000
+      },
+      "final_minus_initial_auc": {
+        "lower95": -0.05376888948206071,
+        "point_difference": -0.017072686244597013,
+        "undefined_replicates": 0,
+        "upper95": 0.01860667671207659,
+        "valid_replicates": 2000
+      },
+      "initial_auc": {
+        "lower95": 0.5010027141551212,
+        "point_difference": 0.5258072718026952,
+        "undefined_replicates": 0,
+        "upper95": 0.549741750296491,
+        "valid_replicates": 2000
+      },
+      "known_side_n": 1591
+    },
+    "UTC_MONDAY_WEEK": {
+      "final_auc": {
+        "lower95": 0.4864481586284473,
+        "point_difference": 0.5087345855580981,
+        "undefined_replicates": 0,
+        "upper95": 0.5300550764078216,
+        "valid_replicates": 2000
+      },
+      "final_minus_initial_auc": {
+        "lower95": -0.048287089109785304,
+        "point_difference": -0.017072686244597013,
+        "undefined_replicates": 0,
+        "upper95": 0.017081848937968526,
+        "valid_replicates": 2000
+      },
+      "initial_auc": {
+        "lower95": 0.5038333389389649,
+        "point_difference": 0.5258072718026952,
+        "undefined_replicates": 0,
+        "upper95": 0.5491291568511888,
+        "valid_replicates": 2000
+      },
+      "known_side_n": 1591
+    }
+  },
+  "readout_replay": {
+    "cells": 130,
+    "status": "PASS_EXACT_ALL_METRICS"
+  },
+  "record_replay": "PASS_ALL_2959_ORDERED_BOUNDS_SUPPORT_AND_FINITE_LOSSES",
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SHARED_M5_FIT_20261114_001/RESULT.json",
+    "sha256": "4f03bac60e47a83ce5c5591490cfc584efe2860a34890679359559045ca3d58d"
+  },
+  "schema_version": "gx1_ta_fold2_shared_m5_fit_result_review_v1",
+  "shared_initial_result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SHARED_M5_INITIAL_20261114_001/RESULT.json",
+    "sha256": "4dafdb1da1c6e30bd37c23deb0afb5476edea1c2d652c2d63f2d8b0efca05274"
+  },
+  "source_commit": "5db2040b874ea7b08963ef6955e12515de7a33c1",
+  "source_unchanged": true,
+  "stage": "market_state_ta_fold2_shared_m5_fit_20261114_001",
+  "status": "COMPLETE_CONSUMED_F_M5_EDGE_UNQUALIFIED",
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SHARED_M5_FIT_20261114_001/TERMINAL.json",
+    "sha256": "0163c58f339d234da9a64abbe12f2b16337863fa5cfcb20798b7ebbe1d1fa21b"
+  },
+  "test_data_used": false
+}

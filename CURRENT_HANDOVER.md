@@ -5,47 +5,47 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: TA_FOLD2_SHARED_M5_FIT_001_ADMITTED_ONE_USE.
-Målt F-M5-avvik på faste, gjenbrukte utviklingspaneler: gammel FINAL
-innen-UTC-dag AUC TRAIN0,4628 og senere0,4724, mens samlet TRAIN-AUC0,5125.
-S-skåren mot samme F-mål hadde bedre innen-dag AUC; dette var en post hoc
-kandidat, ikke kvalifisert edge. Modne TRAIN-mål var enige på11178/11516
-overlapprader, mens F hadde7556 egne kjente sider. Kilde og full måling står i
+Aktuell policy: TA_FOLD2_SHARED_M5_FIT_001_COMPLETE_CONSUMED_EDGE_UNQUALIFIED.
+Gammelt F-M5 FINAL-hode hadde senere innen-UTC-dag AUC0,4724 mot
+S-skårens0,5607 på samme F-mål; samlet F-TRAIN-AUC0,5125 skjulte
+lokalt rangeringstap. Kilde- og etikettreview står i
 `docs/TA_FOLD2_M5_SHARED_HEAD_SOURCE_REVIEW_20261114.json`.
 
-Opt-in delt S/F-M5-sidehode er implementert; gamle standardkontrakter,
-separate S/F-målmasker, aktivitet og øvrige TF er bevart. Egen fersk fysisk
-INITIAL001 fullførte én capped CUDA-kjøring, exit0,508,64s, RESULT SHA4dafdb1d,
-TERMINAL SHA kontrollert i resultatgjennomgangen. Én modell,512forwards,
-0 backward/optimizer/checkpoint/TEST; signed GPU-vakt exit0, maksimal
-46°C kjerne,50°C minne,130,09W og554MiB GPU-minne. Hashverifiserte captures
-replayer eksakt: samme akser/mål, all S-output, F-aktivitet og F-side på
-M15/H1/H4/D1; ny F-M5-side er bitlik gammel S-M5-side. Gjennomgang:
+Opt-in delt S/F-M5-sidehode er implementert uten endring i gammel
+standardkontrakt, separate S/F-målmasker, aktivitet eller andre TF. Fersk
+fysisk shared-INITIAL001 er COMPLETE/CONSUMED, exit0,508,64s,512
+forwards og0 updates; bitlik S-output og F-aktivitet/andre TF mot gammel
+INITIAL, ny F-M5-side bitlik gammel S-M5-side. Senere F-M5 nullstegs
+AUC0,4868→0,5258, men Brier0,2504→0,2618. Utforskende paret dag/uke-
+intervall for AUC-punktgevinst omfatter0. Se
 `docs/TA_FOLD2_SHARED_M5_INITIAL_RESULT_REVIEW_20261114.json`.
 
-På senere faste F-M5-rader N1591 gikk nullstegs AUC0,4868→0,5258, men
-Brier0,2504→0,2618. På TRAIN N1661 gikk AUC0,4995→0,4950 og Brier
-0,2505→0,2580. Utforskende paret dag/uke-95%-intervall for senere
-AUC-differanse+0,0390 omfatter0 (dag −0,0072 til0,0835; uke −0,0004
-til0,0796). Dette er ingen lært rangering, kalibrert sannsynlighet,
-økonomisk edge eller handelsadgang. Plan001 er COMPLETE/CONSUMED, ingen
-relansering. En avgrenset shared-M5-fit-kilde gjenbruker bestått fold2-
-batchsløyfe,47338 kronologiske TRAIN-rader og de samme4096+4096 faste
-readout-radene. Endrede forventede initial-/kontrakthasher er parametre,
-mens gammel standard er uendret; ny direct trainer-rute er eksakt bundet og
-bruker samme fysiske sikkerhetsgrenser som fullførte fold2-plan004.
-Kildeplanen står i `docs/TA_FOLD2_SHARED_M5_FIT_PREPARATION_20261114.json`.
-Fokuserte syntetiske kontroller og syntaks består. Kildecommit5db2040b
-har eksakt ny plan001 SHAdf869636, bundet til fersk shared-INITIAL.
-Direkte og eksakt capped lesende preflight på faktiske fold2-input/view
-passerte med0 modeller/forwards/updates/claim; PREFLIGHT SHAde390ebc.
-Én capped TRAIN-pass er nå særskilt innrømmet: opptil2959 B16-besøk og
-optimizersteg,512 faste readout-forwards,0 checkpoint,TEST. Bare denne
-planen setter global training_enabled/native_training_enabled og
-full_epoch_training_allowed=true; øvrig trening er stengt. Ingen claim,
-modellforward eller fit er kjørt ennå. Neste steg er én faktisk guarded
-launch fra ren kilde og deretter immutable terminal-/capture-kontroll.
-TEST, Entry, Exit, broker, ordre og handel er fortsatt stengt.
+Én særskilt hashbundet shared-M5 TRAIN-fit plan001 er nå fullført og
+konsumert, exit0,4795,07s:47338 TRAIN-rader,2959 B16-besøk,2952
+optimizersteg,7 skip,512 faste readout-forwards,0 checkpoint/TEST.
+Kildecommit5db2040b, plan SHAdf869636, RESULT SHA4f03bac6,
+terminal/vakt og alle130 readout-celler uavhengig kontrollert; ingen
+kildeendring under kjøringen. Signed GPU-vakt exit0 med maksimalt58°C
+kjerne,62°C minne,166,33W og2172MiB GPU-minne. F- og S-M5-logit
+forblir bitlike på samme rad. Full gjennomgang står i
+`docs/TA_FOLD2_SHARED_M5_FIT_RESULT_REVIEW_20261114.json`.
+
+Senere F-M5 N1591 AUC gikk0,5258 INITIAL→0,5087 FINAL, Brier
+0,2618→0,2500; fryst F-prior Brier0,24926 er fortsatt bedre.
+Paret dag/uke-95%-intervall for AUC-endring−0,0171 omfatter0,
+og begge FINAL-AUC-intervall omfatter0,5. Januar/februar/mars FINAL-AUC
+0,5009/0,5215/0,5016. TRAIN F-M5 AUC0,4950→0,5020 og Brier
+0,2580→0,24982; dette er TRAIN-fit, ikke generalisering. Mot gammelt
+separat FINAL F-hode steg senere AUC0,4874→0,5087 og Brier ble lavere,
+men sammenligningen er post hoc og paret intervall omfatter0. Modellens
+senere gjennomsnittssannsynlighet0,4982 mot UP-andel0,5374 viser
+fortsatt svak kalibrering. Ingen kvalifisert Edge eller økonomi.
+
+Global training_enabled/native_training_enabled/full_epoch_training_allowed
+står igjen false; fit-plan001 kan ikke relanseres. Neste steg er en
+lesende mål-/skårdiagnose av hvorfor det delte hodet trekker mot0,5 og
+ikke slår F-prior på senere data, før eventuell ny eksakt hypotese og
+admisjon. TEST, Entry, Exit, broker, ordre, handel og promotion er stengt.
 
 TA_FOLD2_M5_004_COMPLETE_CONSUMED_F_M5_EDGE_UNQUALIFIED. Edge-målet er
 uoppnådd. TARGET_COUNTS001 er COMPLETE/CONSUMED, exit0,3,78s. RESULT ba50eb96,
