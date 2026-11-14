@@ -37,7 +37,7 @@ def inspect() -> dict:
         MODEL_CONTRACT_SHA256, require_fixed_design,
     )
     require_fixed_design(h)
-    need(policy['status'] == 'TA_FOLD2_M5_INPUT_SOURCE_BOUND_EXECUTION_CLOSED'
+    need(policy['status'] == 'TA_FOLD2_M5_INNER_LIFECYCLE_SOURCE_REVIEWED_EXECUTION_CLOSED'
          and policy['training_enabled'] is False
          and all(policy.get(k) is False for k in (
              'native_training_enabled', 'native_launch_authorized',

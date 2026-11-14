@@ -5,7 +5,7 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_FOLD2_M5_INPUT_SOURCE_BOUND_EXECUTION_CLOSED. Edge-målet er
+TA_FOLD2_M5_INNER_LIFECYCLE_SOURCE_REVIEWED_EXECUTION_CLOSED. Edge-målet er
 uoppnådd. TARGET_COUNTS001 er COMPLETE/CONSUMED, exit0,3,78s. RESULT ba50eb96,
 VALIDATION dd45bd05, TERMINAL dccda6f6; ingen relansering. På eksakt47338 modne
 TRAIN-rader /2959 B16 med siste10 er M5 kjent retning S N16101/q2890 og F N19072/q2950.
@@ -46,16 +46,17 @@ TRAIN-rader/maks2959 B16-oppdateringer fra samme ferske INITIAL og skårer de sa
 faste senere panelene, uten checkpoint-/terskelvalg. Tidligere fold1 fulltap ga
 F M5 senere AUC0,5113→0,5101→0,5091 etter pass1/pass2 og dårligere Brier;
 det er begrunnelse, ikke matchet fold2-kontroll. Eksisterende fit-runner importerer
-gammelt checkpoint og binder fold1. Fold2 har nå fast B16/B10-kildekontrakt,
-syntetisk fit-kjerne (4 fokuserte tester PASS), read-only metadata-preflight
-og slutt-scorer. Scoreren replayet alle130 INITIAL-celler eksakt; identisk
-INITIAL-par gir null parvis AUC-gevinst. Bootstrap-seed er dag20260911 og
+gammelt checkpoint og binder fold1. Fold2 har fast B16/B10-kildekontrakt,
+fit-kjerne og seks fokuserte syntetiske tester PASS, samt read-only metadata-
+preflight og slutt-scorer. Scoreren replayet alle130 INITIAL-celler eksakt;
+identisk INITIAL-par ga null AUC-gevinst. Bootstrap-seed er dag20260911,
 mandagsuke20260912. Arbeidskoden binder alle17 uendrede INITIAL-inputkvitteringer;
-kun det utviklede design-dokumentet skal fryses separat. Faktisk feature-payload,
-modellgather, FINAL-capture og fit er ikke kjørt i ny worker. Én bevoktet
-trainer-window på12000s/250W, intern10500s og null checkpoint/resume er
-foreslått, men kampanjedispatch og feilkvitteringer mangler. Neste steg er
-worker-livssyklus og eksakt engangskampanje før separat fit-admisjon.
+design-dokumentet må fryses separat. Indre livssyklus er kildebundet og avviser
+lukket policy og manglende GPU-vakt før payload. Den krever fersk startdigest,
+fast pass og parvis FINAL-readout, men faktisk payload/modell/fit er ikke kjørt.
+Én trainer-window på12000s/250W, intern10500s og null checkpoint/resume er
+foreslått. Neste steg er kampanjedispatch, claim, immutable FINAL-captures,
+terminal/cursor/progress og feilforbruk før separat engangsadmisjon.
 Ingen fit-admisjon: training_enabled=false; ingen trening, TEST, broker eller ordre.
 
 LATER_INPUTS002 er COMPLETE/CONSUMED, exit0,215,18s; terminal1297d154,

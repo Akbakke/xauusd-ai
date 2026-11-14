@@ -119,3 +119,43 @@ def test_fixed_final_readout_uses_both_bound_panels_without_state_change(monkeyp
     assert calls[255] == ('fit', 4080, 16)
     assert calls[256] == ('score', 10000, 16)
     assert calls[-1] == ('score', 14080, 16)
+
+
+def test_inner_lifecycle_rejects_closed_policy_before_payload(monkeypatch, tmp_path):
+    import json
+    from gx1.contracts import market_state_ta_fold2_m5_fit_v1 as scope
+
+    (tmp_path / 'NEXT_RUN_POLICY.json').write_text(json.dumps({
+        'training_enabled': False, 'native_training_enabled': False,
+    }))
+    monkeypatch.setattr(scope, 'REPO', tmp_path)
+    monkeypatch.setattr(worker, 'prepare_qualified_inputs',
+                        lambda **kwargs: pytest.fail('payload before gate'))
+    with pytest.raises(RuntimeError, match='FOLD2_M5_FIT_POLICY_CLOSED'):
+        worker._execute_fixed_fit_and_readout(
+            launch={}, review_ref={}, initial_result_ref={},
+            deadline_monotonic=float(time.monotonic() + 30))
+
+
+def test_inner_lifecycle_requires_gpu_guard_before_payload(monkeypatch, tmp_path):
+    import json
+    from gx1.contracts import gx1_capped_execution_v1 as guard
+    from gx1.contracts import market_state_ta_fold2_m5_fit_v1 as scope
+
+    (tmp_path / 'NEXT_RUN_POLICY.json').write_text(json.dumps({
+        'training_enabled': True, 'native_training_enabled': True,
+        scope.STAGE: {'status': 'ADMITTED', 'training_authorized': True,
+                      'execution_authorized': True, 'test_data_used': False},
+    }))
+    monkeypatch.setattr(scope, 'REPO', tmp_path)
+    monkeypatch.setattr(guard, 'require_guarded_cuda_trainer_execution',
+                        lambda: (_ for _ in ()).throw(RuntimeError('GUARD_REQUIRED')))
+    monkeypatch.setattr(worker, 'prepare_qualified_inputs',
+                        lambda **kwargs: pytest.fail('payload before guard'))
+    launch = {'run_scope': scope.SCOPE, 'admission_stage': scope.STAGE,
+              'fold_id': 2, 'training_enabled': True,
+              'test_data_used': False, 'max_model_seconds': 10500}
+    with pytest.raises(RuntimeError, match='GUARD_REQUIRED'):
+        worker._execute_fixed_fit_and_readout(
+            launch=launch, review_ref={}, initial_result_ref={},
+            deadline_monotonic=float(time.monotonic() + 30))

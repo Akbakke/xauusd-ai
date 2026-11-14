@@ -343,3 +343,102 @@ def evaluate_fixed_panels(*, model, context: dict, deadline_monotonic: float) ->
             'measurements': measurements, 'evaluation_forwards': forwards,
             'final_model_state_sha256': state_before,
             'test_data_used': False}
+
+
+def _execute_fixed_fit_and_readout(*, launch: dict, review_ref: dict,
+                                   initial_result_ref: dict,
+                                   deadline_monotonic: float) -> dict:
+    """Inner one-pass work; only a verified guarded campaign may call it."""
+    import json
+    from pathlib import Path
+
+    from gx1.audit.preflight_market_state_ta_fold2_m5_fit_v1 import read_ref
+    from gx1.audit.score_market_state_ta_fold2_m5_fit_v1 import (
+        paired_later_f_m5, read_capture,
+    )
+    from gx1.contracts.gx1_capped_execution_v1 import (
+        require_guarded_cuda_trainer_execution,
+    )
+    from gx1.contracts.market_state_ta_fold2_m5_fit_v1 import (
+        REPO, SCOPE, STAGE, require_fixed_design,
+    )
+    from gx1.contracts.market_state_time_query_native_F_model_v1 import (
+        NativeFutureDualModel,
+    )
+    from gx1.contracts.entry_native_direction_feature_view_v1 import (
+        build_native_direction_research_model,
+    )
+    from gx1.audit.observe_market_state_ta_fold2_fresh_initial_v1 import read
+
+    policy = json.loads((REPO / 'NEXT_RUN_POLICY.json').read_text())
+    gate = policy.get(STAGE, {})
+    _need(policy['training_enabled'] is True
+          and policy['native_training_enabled'] is True
+          and gate.get('status') == 'ADMITTED'
+          and gate.get('training_authorized') is True
+          and gate.get('execution_authorized') is True
+          and gate.get('test_data_used') is False
+          and launch.get('run_scope') == SCOPE
+          and launch.get('admission_stage') == STAGE
+          and launch.get('fold_id') == 2
+          and launch.get('training_enabled') is True
+          and launch.get('test_data_used') is False
+          and launch.get('max_model_seconds') == 10500,
+          'POLICY_CLOSED')
+    require_guarded_cuda_trainer_execution()
+    _need(type(deadline_monotonic) is float
+          and time.monotonic() < deadline_monotonic, 'MODEL_DEADLINE')
+    review = read_ref(review_ref, base=REPO)
+    hypothesis = review['fold2_m5_fit_hypothesis']
+    require_fixed_design(hypothesis)
+    _need(initial_result_ref == hypothesis['observed_basis']['fresh_fold2_initial_result'],
+          'INITIAL_RESULT_BINDING')
+    initial_result = read(initial_result_ref)
+    _need(initial_result['status'] == 'COMPLETE_FRESH_INITIAL'
+          and initial_result['optimizer_updates'] == 0
+          and initial_result['model_state_sha256'] == INITIAL_MODEL_SHA256
+          and initial_result['test_data_used'] is False,
+          'FRESH_INITIAL_RECEIPT')
+    device = torch.device('cuda', 0)
+    context = None
+    try:
+        context = prepare_qualified_inputs(
+            initial_plan_ref=INITIAL_PLAN_REF,
+            design=review['fresh_initial_design'], device=device)
+        trainer._set_deterministic(20260911, device, trainer.DETERMINISTIC_FP32)
+        backbone = build_native_direction_research_model(
+            context['view'], prefix_normalization=context['packet'],
+            constructor_metadata=context['constructor'],
+            device=torch.device('cpu'), unobserved_units_profile=None)
+        model = NativeFutureDualModel(backbone).to(device).train()
+        _need(model.research_objective['contract_sha256'] == MODEL_CONTRACT_SHA256
+              and canonical_model_state_sha256(model.state_dict())
+                  == INITIAL_MODEL_SHA256, 'EXACT_FRESH_CONSTRUCTOR')
+        optimizer = torch.optim.AdamW(model.parameters(), **ADAMW_DEFAULTS)
+        axes = context['axes']
+        fit = fit_one_pass(
+            model=model, optimizer=optimizer,
+            parent_rows=axes['parent_rows'][:TRAIN_ROWS],
+            issue_ns=axes['decision_ns'][:TRAIN_ROWS],
+            state_bound=context['state_bound'],
+            future_bound=context['future_bound'],
+            gather_features=lambda left, right, rows, issues:
+                context['features']('TRAIN', rows, issues),
+            deadline_monotonic=deadline_monotonic)
+        final = evaluate_fixed_panels(
+            model=model, context=context, deadline_monotonic=deadline_monotonic)
+        initial_later = read_capture(initial_result['captures']['LATER'])
+        paired = paired_later_f_m5(initial_later, final['captures']['LATER'])
+        _need(fit['batch_visits'] == 2959
+              and fit['parent_cursor'] == TRAIN_ROWS
+              and fit['optimizer_updates'] + fit['skipped_batches'] == 2959
+              and final['evaluation_forwards'] == 512
+              and final['test_data_used'] is fit['test_data_used'] is paired['test_data_used'] is False,
+              'FIXED_WORK_COMPLETE')
+        return {'fit': fit, 'final': final, 'paired_later_f_m5': paired,
+                'initial_result': initial_result_ref,
+                'initial_model_state_sha256': INITIAL_MODEL_SHA256,
+                'test_data_used': False}
+    finally:
+        if context is not None:
+            context['release']()
