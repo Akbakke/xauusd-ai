@@ -5,7 +5,14 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: TA_FIVEFOLD_SPAN_NORMALIZATION_COMPLETE_EDGE_UNQUALIFIED.
+Aktuell policy: TA_CURRENT_TABULAR_SPAN_VIEW_QUALIFIED_F_OOF_PENDING.
+Lesende capped 4003-felts tabellvisning er nå fysisk kontrollert på
+118249 modellrader. Prosjeksjon av alle3991 gamle felt hadde nøyaktig
+samme SHA som frossen gammel matrise; de12 nye spennfeltene er hentet fra
+kvalifiserte kausale sidecars. Ny matrise-SHA19539b3c. Ingen mål eller
+modellfit ble brukt. Se `docs/TA_CURRENT_TABULAR_SPAN_VIEW_20261114.json`.
+F-M5-OOF på denne visningen er fortsatt ikke kjørt.
+
 Fold3–5 har egne uforandrede253-felts TRAIN-normaliseringer. Kvalifiserte
 fullsidecars har eksakte før-cutoff-prefikser på alle seks overflater.
 Den eksisterende additive normaliseringskontrakten er utvidet med eksakte
