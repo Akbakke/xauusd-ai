@@ -5,7 +5,14 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: TA_CURRENT_TABULAR_SPAN_VIEW_QUALIFIED_F_OOF_PENDING.
+Aktuell policy: TA_F_M5_CURRENT_OOF_PREPARED_NOT_ADMITTED.
+Ny F-M5-tabellplan002 er PREPARED, uten claim eller fit. Den binder den
+fysisk målte4003-felts visningen, uendret3991-felts projeksjon, fem
+modne TRAIN-prefiks med egne fryste F-priorer, og de opprinnelige fulle
+senere scoreaksene. Før første LightGBM-fit må hele matrisens SHA og gammel
+projeksjon være eksakt. Plan001 forblir avvist før claim. Ingen TEST,
+native-trening eller handelsautoritet.
+
 Lesende capped 4003-felts tabellvisning er nå fysisk kontrollert på
 118249 modellrader. Prosjeksjon av alle3991 gamle felt hadde nøyaktig
 samme SHA som frossen gammel matrise; de12 nye spennfeltene er hentet fra

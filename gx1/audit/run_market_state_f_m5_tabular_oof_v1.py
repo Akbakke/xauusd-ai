@@ -1,4 +1,4 @@
-"""One-use fivefold F-M5 side diagnostic on the existing causal tabular view.
+"""One-use fivefold F-M5 side diagnostic on the current causal 4003-field view.
 
 This CPU worker fits one fixed LightGBM head per mature TRAIN prefix. It has no
 native trainer, sealed TEST, Entry, Exit, broker, or trading route.
@@ -19,6 +19,8 @@ import numpy as np
 from gx1.audit import run_market_state_tabular_oof_v1 as base
 from gx1.audit import qualify_market_state_mature_prefix_normalization_v1 as source
 from gx1.contracts import market_state_future_displacement_candidate_v1 as future
+from gx1.contracts import market_state_current_tabular_span_overlay_v1 as overlay
+from gx1.contracts import market_state_tabular_feature_view_v1 as features
 from gx1.contracts import market_state_tabular_lightgbm_v1 as model
 from gx1.contracts import market_state_tabular_weekly_review_v1 as review
 from gx1.contracts.market_state_tabular_target_score_v1 import mature_fold_training_targets
@@ -27,22 +29,37 @@ from gx1.contracts.immutable_event_authority_v1 import _fsync_directory
 
 REPO = base.REPO
 RUNS = base.RUNS
-STAGE = 'market_state_f_m5_tabular_oof_20261114_001'
-SCHEMA = 'gx1_market_state_f_m5_tabular_oof_plan_v1'
+STAGE = 'market_state_f_m5_tabular_oof_20261114_002'
+SCHEMA = 'gx1_market_state_f_m5_tabular_oof_plan_v2'
 PLAN_PATH = REPO / 'configs/research' / (STAGE.upper() + '.json')
 OUT_ROOT = RUNS / STAGE.upper()
 POLICY = REPO / 'NEXT_RUN_POLICY.json'
-FEATURE_SCHEMA = {'path': str(base.OUT_ROOT / 'FEATURE_SCHEMA.json'),
-                  'sha256': 'a9ba2702805a89de9e1a5e703ee2487de4425013f6a1b9f60b5d38edfbb1a22a'}
+OLD_FEATURE_SCHEMA = {'path': str(base.OUT_ROOT / 'FEATURE_SCHEMA.json'),
+                      'sha256': 'a9ba2702805a89de9e1a5e703ee2487de4425013f6a1b9f60b5d38edfbb1a22a'}
+CURRENT_VIEW_REVIEW = {'path': str(REPO / 'docs/TA_CURRENT_TABULAR_SPAN_VIEW_20261114.json'),
+                       'sha256': 'd39556e11795c56f978d8271add45793723fac5521bea0e260bc577753eccfda'}
+SPAN_RESULT = {'path': str(RUNS / 'MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_002/RESULT.json'),
+               'sha256': 'e2309fcdd18100b5ac0b9734161d21ef00ee68d9cd4ada545873f046d88cb30d'}
+OLD_ANCHOR_PLAN = {'path': str(REPO / 'configs/research/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001.json'),
+                   'sha256': '889161060a9abb9c028abffe3246420f06a63891ee9a51305d3e8173d970fbf1'}
+NORMALIZATION_REVIEW = {'path': str(REPO / 'docs/TA_FIVEFOLD_SPAN_NORMALIZATION_RESULT_REVIEW_20261114.json'),
+                        'sha256': 'bfd14750064d3675c2a5e02a703d4d5c64ac94c2f6304d678af4065db9a81a46'}
 TARGET_AUDIT = {'path': str(REPO / 'docs/TA_M5_F_ONLY_FIVEFOLD_TARGET_AUDIT_20261114.json'),
                 'sha256': '6c06bd481d7466e9eb861f86f15906d8a17f587d599cca26d171ad542bda0518'}
 INPUT_REFS = {**base.INPUT_REFS,
               **{'future_' + name: {'path': str(path), 'sha256': digest}
                  for name, (path, digest) in future.REFS.items()},
-              'tabular_feature_schema': FEATURE_SCHEMA, 'fivefold_target_audit': TARGET_AUDIT}
+              'old_tabular_feature_schema': OLD_FEATURE_SCHEMA,
+              'current_view_review': CURRENT_VIEW_REVIEW,
+              'span_result': SPAN_RESULT, 'old_anchor_plan': OLD_ANCHOR_PLAN,
+              'fivefold_normalization_review': NORMALIZATION_REVIEW,
+              'fivefold_target_audit': TARGET_AUDIT}
 SOURCE_PATHS = base.SOURCE_PATHS | frozenset({
     'gx1/audit/run_market_state_f_m5_tabular_oof_v1.py',
     'gx1/contracts/market_state_future_displacement_candidate_v1.py',
+    'gx1/contracts/market_state_current_tabular_span_overlay_v1.py',
+    'gx1/audit/qualify_market_state_ta_fivefold_span_extension_v1.py',
+    'gx1/audit/qualify_market_state_ta_anchor_span_inputs_v1.py',
 })
 FOLD_IDS = base.FOLD_IDS
 SCORE_AXES = base.SCORE_AXES
@@ -81,13 +98,28 @@ def _inputs() -> tuple[dict, dict, dict]:
             path = Path(item['path'])
             _need(path.is_file() and not path.is_symlink()
                   and _sha(path) == item['sha256'], 'FUTURE_REF:' + name)
-    schema = _checked_json(FEATURE_SCHEMA)
+    schema = _checked_json(OLD_FEATURE_SCHEMA)
     audit = _checked_json(TARGET_AUDIT)
+    current = _checked_json(CURRENT_VIEW_REVIEW)
+    normalizations = _checked_json(NORMALIZATION_REVIEW)
     _need(schema.get('schema_version') == 'gx1_market_state_tabular_feature_schema_v1'
           and schema.get('no_future_targets_in_features') is True
-          and len(audit.get('folds', [])) == 5, 'REUSED_SCHEMA_AND_AUDIT')
-    _need(schema['width'] == model.EXPECTED_WIDTH,
-          'REUSED_SCHEMA_CURRENT_MODEL_WIDTH')
+          and len(audit.get('folds', [])) == 5
+          and schema['width'] == model.EXPECTED_WIDTH - 12
+          and current['old_feature_schema'] == OLD_FEATURE_SCHEMA
+          and current['span_result'] == SPAN_RESULT
+          and current['old_projection_matches_immutable_schema'] is True
+          and current['old_matrix_projection_sha256'] ==
+              schema['matrix_float32_c_order_sha256']
+          and current['current_width'] == model.EXPECTED_WIDTH
+          and current['model_rows'] == schema['rows']
+          and set(normalizations['folds']) == {str(i) for i in FOLD_IDS}
+          and normalizations['surface_widths'] == [317, 132, 255, 255, 255, 255, 255]
+          and normalizations['test_data_used'] is False,
+          'CURRENT_SCHEMA_AND_AUDIT')
+    for item in normalizations['folds'].values():
+        _need(_sha(Path(item['ta_normalization']['path'])) ==
+              item['ta_normalization']['sha256'], 'FOLD_NORMALIZATION_REF')
     return chain, schema, audit
 
 
@@ -246,6 +278,29 @@ def _prob_tensor(p: np.ndarray) -> np.ndarray:
     return output
 
 
+
+def _current_matrix(view, deadline: float) -> tuple[np.ndarray, str, str]:
+    """Verify the old 3991 cells on every row before the first F-model fit."""
+    _need(view.width == model.EXPECTED_WIDTH == 4003, 'CURRENT_MATRIX_WIDTH')
+    old_positions = [i for i, name in enumerate(view.feature_names)
+                     if not name.endswith('_anchor_span_bars')]
+    _need(len(old_positions) == 3991, 'OLD_PROJECTION_WIDTH')
+    matrix = np.empty((len(view.parent_rows), view.width), dtype=np.float32)
+    current_hash, old_hash = hashlib.sha256(), hashlib.sha256()
+    for start in range(0, len(view.parent_rows), base.MAX_CHUNK_ROWS):
+        base._time_guard(deadline)
+        stop = min(start + base.MAX_CHUNK_ROWS, len(view.parent_rows))
+        chunk = view.take(np.arange(start, stop, dtype=np.int64),
+                          max_rows=base.MAX_CHUNK_ROWS)
+        _need(chunk.shape == (stop - start, view.width)
+              and chunk.dtype == np.float32 and not np.isinf(chunk).any(),
+              'CURRENT_FEATURE_CHUNK')
+        matrix[start:stop] = chunk
+        current_hash.update(memoryview(np.ascontiguousarray(chunk)))
+        old_hash.update(memoryview(np.ascontiguousarray(chunk[:, old_positions])))
+    return matrix, current_hash.hexdigest(), old_hash.hexdigest()
+
+
 def _fold(plan: dict, s_bound, f_bound, view, matrix: np.ndarray,
           prior: dict, fold_id: int, out_dir: Path, deadline: float) -> tuple[dict, dict]:
     base._time_guard(deadline)
@@ -358,9 +413,15 @@ def run(plan_path: Path, plan_sha: str, out_dir: Path) -> dict:
         provider = source._provider_module()
         provider_plan = chain['provider_plan']
         info = provider.validate_metadata(provider_plan)
-        prepared = source._prepare_inputs(provider, provider_plan, info, chain['gc_layout'])
-        source._validate_axes(plan['cohorts'], prepared['axes'])
-        view = base._view(prepared)
+        old_plan = _checked_json(OLD_ANCHOR_PLAN)
+        span_result = _checked_json(SPAN_RESULT)
+        view, overlay_proof = overlay.build(
+            provider, provider_plan, info, old_plan=old_plan,
+            span_result=span_result, old_schema=schema)
+        source._validate_axes(plan['cohorts'], {
+            'parent_rows': view.parent_rows,
+            'bar_start_ns': view.decision_ns - features.BAR_NS,
+            'decision_ns': view.decision_ns})
         s_bound = base.target.load_bound_five_endpoint_targets()
         f_bound = future.load_bound_future_displacement()
         _need(np.array_equal(s_bound.parent_rows, f_bound.parent_rows)
@@ -381,13 +442,20 @@ def run(plan_path: Path, plan_sha: str, out_dir: Path) -> dict:
             'schema_version': 'gx1_market_state_f_m5_tabular_prior_v1',
             'plan': plan_ref, 'claim': claim, 'folds': priors,
             'before_any_model_fit': True, 'test_data_used': False})
-        matrix, matrix_sha = base._matrix(view, deadline)
-        _need(matrix_sha == schema['matrix_float32_c_order_sha256']
-              and matrix.shape == (schema['rows'], schema['width']),
-              'REUSED_FEATURE_IDENTITY')
+        matrix, matrix_sha, old_projection_sha = _current_matrix(view, deadline)
+        qualified = _checked_json(CURRENT_VIEW_REVIEW)
+        _need(matrix_sha == qualified['current_matrix_float32_c_order_sha256']
+              and old_projection_sha == schema['matrix_float32_c_order_sha256']
+              and matrix.shape == (schema['rows'], model.EXPECTED_WIDTH),
+              'CURRENT_FEATURE_IDENTITY_BEFORE_FIT')
         feature_ref = base._write_json(out_dir, 'FEATURE_SCHEMA.json', {
-            'schema_version': 'gx1_market_state_f_m5_tabular_feature_identity_v1',
-            'reused_schema': FEATURE_SCHEMA, 'matrix_float32_c_order_sha256': matrix_sha,
+            'schema_version': 'gx1_market_state_f_m5_current_feature_identity_v1',
+            'old_schema': OLD_FEATURE_SCHEMA, 'current_view_review': CURRENT_VIEW_REVIEW,
+            'matrix_float32_c_order_sha256': matrix_sha,
+            'old_projection_sha256': old_projection_sha,
+            'rows': len(view.parent_rows), 'width': view.width,
+            'feature_names': list(view.feature_names),
+            'categorical': list(view.categorical), 'overlay_proof': overlay_proof,
             'no_future_targets_in_features': True})
         for fold_id in FOLD_IDS:
             _bookend(plan, plan_sha, policy_ref['sha256'], head)
@@ -402,7 +470,7 @@ def run(plan_path: Path, plan_sha: str, out_dir: Path) -> dict:
         weekly = review.paired_m5_weekly_review(weekly_inputs)
         weekly_ref = base._write_json(out_dir, 'WEEKLY_REVIEW.json', weekly)
         result = base._write_json(out_dir, 'RESULT.json', {
-            'schema_version': 'gx1_market_state_f_m5_tabular_result_v1',
+            'schema_version': 'gx1_market_state_f_m5_tabular_result_v2',
             'status': 'COMPLETE_FIVE_FOLDS', 'plan': plan_ref, 'policy': policy_ref,
             'claim': claim, 'source_head': head, 'elapsed_seconds': time.monotonic() - started,
             'input_refs': INPUT_REFS, 'prior_frozen': prior_ref,

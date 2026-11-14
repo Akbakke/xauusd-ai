@@ -18,14 +18,23 @@ def _truth(bits):
 
 
 
-def test_preflight_rejects_old_feature_width_before_claim(monkeypatch):
+def test_preflight_rejects_unqualified_current_width_before_claim(monkeypatch):
     monkeypatch.setattr(worker.base, '_reference_chain', lambda: {'cohorts': []})
     monkeypatch.setattr(worker, 'INPUT_REFS', {})
     payloads = iter(({'schema_version': 'gx1_market_state_tabular_feature_schema_v1',
-                      'no_future_targets_in_features': True, 'width': 3991},
-                     {'folds': [{}] * 5}))
+                      'no_future_targets_in_features': True, 'width': 3991,
+                      'rows': 6, 'matrix_float32_c_order_sha256': 'a' * 64},
+                     {'folds': [{}] * 5},
+                     {'old_feature_schema': worker.OLD_FEATURE_SCHEMA,
+                      'span_result': worker.SPAN_RESULT,
+                      'old_projection_matches_immutable_schema': True,
+                      'old_matrix_projection_sha256': 'a' * 64,
+                      'current_width': 3991, 'model_rows': 6},
+                     {'folds': {str(i): {} for i in range(1, 6)},
+                      'surface_widths': [317, 132, 255, 255, 255, 255, 255],
+                      'test_data_used': False}))
     monkeypatch.setattr(worker, '_checked_json', lambda _ref: next(payloads))
-    with pytest.raises(RuntimeError, match='REUSED_SCHEMA_CURRENT_MODEL_WIDTH'):
+    with pytest.raises(RuntimeError, match='CURRENT_SCHEMA_AND_AUDIT'):
         worker._inputs()
 
 
@@ -91,22 +100,25 @@ def test_claimed_run_publishes_terminal_on_success_or_failure(monkeypatch, tmp_p
     out_dir = tmp_path / 'RUN'
     parents = np.arange(6, dtype=np.int64)
     issues = np.arange(100, 106, dtype=np.int64)
-    view = SimpleNamespace(parent_rows=parents, decision_ns=issues)
+    view = SimpleNamespace(parent_rows=parents, decision_ns=issues,
+                           width=worker.model.EXPECTED_WIDTH,
+                           feature_names=('old',), categorical=())
     plan = {'cohorts': [{}] * 5, 'source_owners': {}}
     plan_ref = {'path': 'plan', 'sha256': 'a' * 64}
     policy_ref = {'path': 'policy', 'sha256': 'b' * 64}
     monkeypatch.setattr(worker, 'preflight', lambda *_a, **_k:
                         (plan, plan_ref, 'head', policy_ref))
-    schema = {'matrix_float32_c_order_sha256': 'c' * 64, 'rows': 6, 'width': 2}
+    schema = {'matrix_float32_c_order_sha256': 'd' * 64, 'rows': 6, 'width': 3991}
     audit = {'folds': [{'fit': {'F_m5_known_side_n': 2}}] * 5}
     monkeypatch.setattr(worker, '_inputs', lambda: ({'provider_plan': {}, 'gc_layout': {}},
                                                       schema, audit))
     provider = SimpleNamespace(validate_metadata=lambda _: {})
     monkeypatch.setattr(worker.source, '_provider_module', lambda: provider)
-    monkeypatch.setattr(worker.source, '_prepare_inputs', lambda *_a:
-                        {'axes': {}, 'expected_axes': {}})
     monkeypatch.setattr(worker.source, '_validate_axes', lambda *_a: None)
-    monkeypatch.setattr(worker.base, '_view', lambda _: view)
+    monkeypatch.setattr(worker.overlay, 'build', lambda *_a, **_k: (view, {'synthetic': True}))
+    monkeypatch.setattr(worker, '_checked_json', lambda item: (
+        {'current_matrix_float32_c_order_sha256': 'c' * 64}
+        if item == worker.CURRENT_VIEW_REVIEW else {}))
     bound = SimpleNamespace(parent_rows=parents, decision_ns=issues,
                             gather=lambda *_a, **_k: _truth([1, 4]))
     monkeypatch.setattr(worker.base.target, 'load_bound_five_endpoint_targets', lambda: bound)
@@ -114,8 +126,9 @@ def test_claimed_run_publishes_terminal_on_success_or_failure(monkeypatch, tmp_p
     monkeypatch.setattr(worker, 'mature_fold_training_targets', lambda *_a, **_k:
                         {'cohort': {'fit_parent_rows': parents[:2],
                                     'fit_decision_ns': issues[:2]}})
-    monkeypatch.setattr(worker.base, '_matrix', lambda *_a:
-                        (np.zeros((6, 2), dtype=np.float32), 'c' * 64))
+    monkeypatch.setattr(worker, '_current_matrix', lambda *_a:
+                        (np.zeros((6, worker.model.EXPECTED_WIDTH), dtype=np.float32),
+                         'c' * 64, 'd' * 64))
     monkeypatch.setattr(worker.base, '_time_guard', lambda _: None)
     monkeypatch.setattr(worker, '_bookend', lambda *_a: None)
     calls = []
