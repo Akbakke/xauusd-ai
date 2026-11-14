@@ -1,0 +1,293 @@
+{
+  "exploratory_later_within_day_gap": {
+    "F_only_auc": 0.48815461346633415,
+    "days": 67,
+    "lower95": -0.003659046731768081,
+    "overlap_auc": 0.5534985025864416,
+    "overlap_minus_F_only": 0.06534388912010747,
+    "replicates": 2000,
+    "upper95": 0.13034247437492028
+  },
+  "fixed_panels": {
+    "LATER": {
+      "old_final": {
+        "F_only": {
+          "F_side": {
+            "brier": 0.2515339534108509,
+            "known_n": 636,
+            "pooled_auc": 0.48474360504435693,
+            "up_fraction": 0.5377358490566038,
+            "within_day_pairs": 1604,
+            "within_utc_day_auc_pair_weighted": 0.4476309226932668
+          },
+          "S_allowed_counts": {
+            "5": 636
+          },
+          "S_side_on_F_truth": {
+            "brier": 0.25042442788242036,
+            "known_n": 636,
+            "pooled_auc": 0.5157636153876756,
+            "up_fraction": 0.5377358490566038,
+            "within_day_pairs": 1604,
+            "within_utc_day_auc_pair_weighted": 0.5623441396508728
+          }
+        },
+        "overlap": {
+          "F_side": {
+            "brier": 0.2515165594086994,
+            "known_n": 955,
+            "pooled_auc": 0.48952572481984247,
+            "up_fraction": 0.53717277486911,
+            "within_day_pairs": 3673,
+            "within_utc_day_auc_pair_weighted": 0.4808058807514293
+          },
+          "S_allowed_counts": {
+            "1": 429,
+            "4": 526
+          },
+          "S_side_on_F_truth": {
+            "brier": 0.24983737892819374,
+            "known_n": 955,
+            "pooled_auc": 0.5372663685357184,
+            "up_fraction": 0.53717277486911,
+            "within_day_pairs": 3673,
+            "within_utc_day_auc_pair_weighted": 0.5682003811598149
+          }
+        }
+      },
+      "shared_final": {
+        "F_only": {
+          "F_side": {
+            "brier": 0.2502083374690047,
+            "known_n": 636,
+            "pooled_auc": 0.4678561483072761,
+            "up_fraction": 0.5377358490566038,
+            "within_day_pairs": 1604,
+            "within_utc_day_auc_pair_weighted": 0.48815461346633415
+          },
+          "S_allowed_counts": {
+            "5": 636
+          }
+        },
+        "overlap": {
+          "F_side": {
+            "brier": 0.24993152063275687,
+            "known_n": 955,
+            "pooled_auc": 0.5367944748749702,
+            "up_fraction": 0.53717277486911,
+            "within_day_pairs": 3673,
+            "within_utc_day_auc_pair_weighted": 0.5534985025864416
+          },
+          "S_allowed_counts": {
+            "1": 429,
+            "4": 526
+          }
+        }
+      },
+      "shared_initial": {
+        "F_only": {
+          "F_side": {
+            "brier": 0.2619390130587563,
+            "known_n": 636,
+            "pooled_auc": 0.5266638819270398,
+            "up_fraction": 0.5377358490566038,
+            "within_day_pairs": 1604,
+            "within_utc_day_auc_pair_weighted": 0.5311720698254364
+          },
+          "S_allowed_counts": {
+            "5": 636
+          }
+        },
+        "overlap": {
+          "F_side": {
+            "brier": 0.2617331770722641,
+            "known_n": 955,
+            "pooled_auc": 0.5252485159605903,
+            "up_fraction": 0.53717277486911,
+            "within_day_pairs": 3673,
+            "within_utc_day_auc_pair_weighted": 0.5238224884290771
+          },
+          "S_allowed_counts": {
+            "1": 429,
+            "4": 526
+          }
+        }
+      }
+    },
+    "TRAIN": {
+      "old_final": {
+        "F_only": {
+          "F_side": {
+            "brier": 0.24948806208671692,
+            "known_n": 636,
+            "pooled_auc": 0.511257583405085,
+            "up_fraction": 0.4858490566037736,
+            "within_day_pairs": 625,
+            "within_utc_day_auc_pair_weighted": 0.4352
+          },
+          "S_allowed_counts": {
+            "5": 636
+          },
+          "S_side_on_F_truth": {
+            "brier": 0.2501698173603752,
+            "known_n": 636,
+            "pooled_auc": 0.48864344882871646,
+            "up_fraction": 0.4858490566037736,
+            "within_day_pairs": 625,
+            "within_utc_day_auc_pair_weighted": 0.5584
+          }
+        },
+        "overlap": {
+          "F_side": {
+            "brier": 0.2503638494539799,
+            "known_n": 1025,
+            "pooled_auc": 0.5124360442917144,
+            "up_fraction": 0.526829268292683,
+            "within_day_pairs": 1539,
+            "within_utc_day_auc_pair_weighted": 0.4743339831059129
+          },
+          "S_allowed_counts": {
+            "1": 486,
+            "4": 539
+          },
+          "S_side_on_F_truth": {
+            "brier": 0.24989618582923112,
+            "known_n": 1025,
+            "pooled_auc": 0.5256701030927835,
+            "up_fraction": 0.526829268292683,
+            "within_day_pairs": 1539,
+            "within_utc_day_auc_pair_weighted": 0.6296296296296297
+          }
+        }
+      },
+      "shared_final": {
+        "F_only": {
+          "F_side": {
+            "brier": 0.24981196391018617,
+            "known_n": 636,
+            "pooled_auc": 0.49130568173945743,
+            "up_fraction": 0.4858490566037736,
+            "within_day_pairs": 625,
+            "within_utc_day_auc_pair_weighted": 0.504
+          },
+          "S_allowed_counts": {
+            "5": 636
+          }
+        },
+        "overlap": {
+          "F_side": {
+            "brier": 0.24983227420767357,
+            "known_n": 1025,
+            "pooled_auc": 0.5074112256586484,
+            "up_fraction": 0.526829268292683,
+            "within_day_pairs": 1539,
+            "within_utc_day_auc_pair_weighted": 0.5451591942820013
+          },
+          "S_allowed_counts": {
+            "1": 486,
+            "4": 539
+          }
+        }
+      },
+      "shared_initial": {
+        "F_only": {
+          "F_side": {
+            "brier": 0.2549964738674471,
+            "known_n": 636,
+            "pooled_auc": 0.47758874934433854,
+            "up_fraction": 0.4858490566037736,
+            "within_day_pairs": 625,
+            "within_utc_day_auc_pair_weighted": 0.4832
+          },
+          "S_allowed_counts": {
+            "5": 636
+          }
+        },
+        "overlap": {
+          "F_side": {
+            "brier": 0.25993181335390414,
+            "known_n": 1025,
+            "pooled_auc": 0.5047040855288278,
+            "up_fraction": 0.526829268292683,
+            "within_day_pairs": 1539,
+            "within_utc_day_auc_pair_weighted": 0.5094217024041585
+          },
+          "S_allowed_counts": {
+            "1": 486,
+            "4": 539
+          }
+        }
+      }
+    }
+  },
+  "full_train": {
+    "F_UP_fraction_all": 0.511797399328859,
+    "F_known_n": 19072,
+    "F_only_S_allowed_counts": {
+      "5": 7552,
+      "7": 4
+    },
+    "F_only_fraction_of_F_known": 0.3961828859060403,
+    "F_only_n": 7556,
+    "S_UP_fraction_all": 0.5169244146326315,
+    "S_known_n": 16101,
+    "overlap_n": 11516,
+    "rows": 47338
+  },
+  "full_train_prior_target_review": {
+    "path": "docs/TA_FOLD2_M5_SHARED_HEAD_SOURCE_REVIEW_20261114.json",
+    "sha256": "c0ff64f6969fdf732f2197ea9c565881b6c1526e4a9c5af692da7084b8964e42"
+  },
+  "interpretation": "Almost all F-only TRAIN targets have S allowed-set 5 (DOWN or UP), not a unique S direction. The shared fit has weaker F-only ranking point estimates in each later month, but the day-bootstrap within-day cohort gap includes zero. This is a target-coverage difference and an exploratory failure mode, not proof that the target definition or code is wrong. Do not invert or gate the score based on reused later data.",
+  "later_shared_final_monthly": {
+    "2025-01": {
+      "F_only": {
+        "known_n": 196,
+        "pooled_auc": 0.47022996954741153
+      },
+      "overlap": {
+        "known_n": 325,
+        "pooled_auc": 0.5204298625351257
+      }
+    },
+    "2025-02": {
+      "F_only": {
+        "known_n": 197,
+        "pooled_auc": 0.48316463540590787
+      },
+      "overlap": {
+        "known_n": 317,
+        "pooled_auc": 0.54580122029544
+      }
+    },
+    "2025-03": {
+      "F_only": {
+        "known_n": 243,
+        "pooled_auc": 0.4510647010647011
+      },
+      "overlap": {
+        "known_n": 313,
+        "pooled_auc": 0.5405982905982906
+      }
+    }
+  },
+  "method": "Hash-verified fixed TRAIN/LATER captures. F-known side is eligible,mature,allowed 1 or 4; S-known likewise. F-only means F-known and not S-known. Within-day AUC weights each UTC day by positive-negative pairs. Exploratory bootstrap resamples later UTC days 2000 times; seed 20261114.",
+  "next_step": "Predeclare F-only versus overlap evaluation across chronological development OOF with mature targets and fold-specific TRAIN normalization before another architecture or loss change. No new fit is admitted.",
+  "schema_version": "gx1_ta_fold2_shared_m5_f_only_read_only_diagnosis_v1",
+  "source_results": {
+    "old_final": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_004/RESULT.json",
+      "sha256": "d05f1226ee6ec678a15ede40a43568e976c1346a1f41113e31934ae10f0883f5"
+    },
+    "shared_final": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SHARED_M5_FIT_20261114_001/RESULT.json",
+      "sha256": "4f03bac60e47a83ce5c5591490cfc584efe2860a34890679359559045ca3d58d"
+    },
+    "shared_initial": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SHARED_M5_INITIAL_20261114_001/RESULT.json",
+      "sha256": "4dafdb1da1c6e30bd37c23deb0afb5476edea1c2d652c2d63f2d8b0efca05274"
+    }
+  },
+  "status": "F_ONLY_GRAY_SET_POINT_GAP_UNCERTAIN",
+  "test_data_used": false
+}

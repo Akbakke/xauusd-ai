@@ -41,11 +41,22 @@ men sammenligningen er post hoc og paret intervall omfatter0. Modellens
 senere gjennomsnittssannsynlighet0,4982 mot UP-andel0,5374 viser
 fortsatt svak kalibrering. Ingen kvalifisert Edge eller økonomi.
 
+Lesende kohortdiagnose på fulle TRAIN-mål:7556/19072 F-kjente M5-rader
+mangler entydig S-side;7552 av disse har S allowed-set5={NED,OPP}.
+På senere fast panel har F-only N636 mot S/F-overlapp N955. Shared FINAL
+innen-UTC-dag AUC er0,4882 på F-only og0,5535 på overlapp; pooled
+F-only AUC er under0,5 i januar/februar/mars. Post hoc dag-bootstrap for
+innen-dag-gapet+0,0653 har95% intervall −0,0037 til0,1303, så kohortforskjellen
+er usikker. Dette viser en mål-/dekningsforskjell, ikke en bevist kodefeil
+eller grunn til å invertere/gate skåren. Se
+`docs/TA_FOLD2_SHARED_M5_F_ONLY_DIAGNOSIS_20261114.json`.
+
 Global training_enabled/native_training_enabled/full_epoch_training_allowed
-står igjen false; fit-plan001 kan ikke relanseres. Neste steg er en
-lesende mål-/skårdiagnose av hvorfor det delte hodet trekker mot0,5 og
-ikke slår F-prior på senere data, før eventuell ny eksakt hypotese og
-admisjon. TEST, Entry, Exit, broker, ordre, handel og promotion er stengt.
+står igjen false; fit-plan001 kan ikke relanseres. Neste steg er å
+forhåndsdefinere F-only versus overlapp-kontroll på kronologisk
+utviklings-OOF med modne mål og foldspesifikk TRAIN-normalisering, før
+eventuell ny modellendring eller engangsadmisjon. Ingen ny fit er åpnet.
+TEST, Entry, Exit, broker, ordre, handel og promotion er stengt.
 
 TA_FOLD2_M5_004_COMPLETE_CONSUMED_F_M5_EDGE_UNQUALIFIED. Edge-målet er
 uoppnådd. TARGET_COUNTS001 er COMPLETE/CONSUMED, exit0,3,78s. RESULT ba50eb96,
