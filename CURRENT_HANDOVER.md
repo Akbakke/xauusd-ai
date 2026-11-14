@@ -5,7 +5,15 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: S_NATIVE_ENDPOINT_BATCH_SOURCE_TESTED_NOT_ADMITTED.
+Aktuell policy: S_NATIVE_SELECTED_INITIAL_PREPARED_NO_CLAIM.
+Ny engangsplan `configs/research/MARKET_STATE_NATIVE_F_SELECTED_ENDPOINT_INITIAL_20261115_001.json`
+binder de samme to genuine fold1 TRAIN-inputradene til valgt native S-fasit, full
+GC S/F-modell og side-normalisert tap. Rammen er én CPU-forward, én backward,
+null optimizersteg,12G/512M og1800s under eksisterende capped vakt. Planen
+er bare PREPARED: ingen preflight, claim eller kjøring ennå. Etter ren
+kildecommit kjøres eksakt lesende preflight; kun ved PASS kan denne ene
+initialkontrollen få separat policyadmisjon. TRAIN-fit, TEST og handel er stengt.
+
 Den valgte fem-TF S-masken er hashbundet til118249 modellrader og fem faste
 native endepunkter. Den gamle samplede tidsforespørselen treffer D1s native
 endepunkt sjelden: bare19 av6951 kjente D1-sidemål på fold1s TRAIN-prefiks
@@ -23,10 +31,10 @@ uendret.18 fokuserte batchtester og23 taps-/skårtester besto. Dette er bare
 kilde-/syntetisk rutepluss reelle målakser, ikke fysisk ny INITIAL, fit,
 modellverdi eller Edge. Modusen er ennå ikke bundet i recipe/campaign.
 
-Neste arbeid er én eksakt full-GC S/F-recipe/runner med denne modusen,
-frossen tidligere-TRAIN-prior, proper skår på de fem native endepunktene,
-fysisk feature-/normaliseringsidentitet og fersk INITIAL før egen admisjon.
-S-fasit og kampanje er ikke låst/innrømmet; ingen ny fit, TEST eller handel.
+Etter en eventuell bestått fersk INITIAL bindes en egen kronologisk
+full-GC S/F-fit med frossen tidligere-TRAIN-prior og proper skår på de fem
+native endepunktene. S-fasit og fit-kampanje er ikke låst/innrømmet;
+økonomisk Edge, TEST og handel forblir stengt/ubevist.
 H4/D1-vinduets kausale overlapp står i
 `docs/S_MARKET_STATE_WINDOW_OVERLAP_REVIEW_20261115.json`.
 

@@ -1,4 +1,4 @@
-"""One capped CPU TRAIN witness for the shared S/F head, without optimizer.
+"""One capped CPU TRAIN witness for selected native S endpoints, without optimizer.
 
 Reuses the completed v2 source/view qualification and two fixed real feature
 rows. This worker can never train, read TEST, save weights or contact a broker.
@@ -18,22 +18,25 @@ import numpy as np
 from gx1.audit import qualify_market_state_mature_prefix_normalization_v1 as mature
 from gx1.audit import verify_market_state_time_query_v2_zero_step_v1 as v2
 from gx1.audit import verify_market_state_time_query_zero_step_v1 as old
+from gx1.contracts import market_state_five_endpoint_target_binding_v1 as selected_state
 from gx1.contracts import market_state_future_displacement_candidate_v1 as future
 from gx1.contracts import market_state_time_query_native_F_model_v1 as dual_model
 from gx1.contracts import market_state_time_query_native_F_objective_v1 as objective
 
 REPO, RUNS, POLICY = old.REPO, old.RUNS, old.POLICY
-STAGE = 'market_state_native_F_cpu_zero_step_20261108_002'
-PLAN_PATH = REPO / 'configs/research/MARKET_STATE_NATIVE_F_CPU_ZERO_STEP_20261108_002.json'
-OUT_ROOT = RUNS / 'MARKET_STATE_NATIVE_F_CPU_ZERO_STEP_20261108_002'
+STAGE = 'market_state_native_F_selected_endpoint_initial_20261115_001'
+PLAN_PATH = REPO / 'configs/research/MARKET_STATE_NATIVE_F_SELECTED_ENDPOINT_INITIAL_20261115_001.json'
+OUT_ROOT = RUNS / 'MARKET_STATE_NATIVE_F_SELECTED_ENDPOINT_INITIAL_20261115_001'
 SOURCE_PATHS = (
     'gx1/audit/verify_market_state_native_F_cpu_zero_step_v1.py',
+    'gx1/contracts/market_state_five_endpoint_target_binding_v1.py',
     'gx1/contracts/market_state_future_displacement_candidate_v1.py',
     'gx1/contracts/market_state_time_query_native_F_model_v1.py',
     'gx1/contracts/market_state_time_query_native_F_objective_v1.py',
     'gx1/contracts/market_state_time_query_loss_v2.py',
     'gx1/contracts/market_state_time_query_side_normalized_loss_v1.py',
     'gx1/contracts/market_state_time_query_native_F_batch_v1.py',
+    'gx1/contracts/market_state_time_query_target_v1.py',
     'gx1/contracts/gx1_capped_execution_v1.py',
     'scripts/gx1_capped_run.sh',
 )
@@ -41,6 +44,14 @@ MEMORY_BYTES = 12 * 1024**3
 SWAP_BYTES = 512 * 1024**2
 WALL_SECONDS = 1800
 WITNESS_F_WEIGHT = 1.0  # Prebound equal S/F candidate weight; no fit here.
+
+
+def planned_command(plan_sha256: str) -> list[str]:
+    return ['timeout', '--signal=TERM', '--kill-after=10s', '1800s',
+            'scripts/gx1_capped_run.sh', '--class', 'producer', '--mem', '12G',
+            '--swap', '512M', '--', '.venv/bin/python', '-m',
+            'gx1.audit.verify_market_state_native_F_cpu_zero_step_v1',
+            '--plan', str(PLAN_PATH), '--plan-sha256', plan_sha256]
 
 
 def need(ok: object, reason: str) -> None:
@@ -69,14 +80,17 @@ def inspect(plan_ref: dict, *, require_policy: bool) -> tuple[dict, dict, dict, 
     need(plan_ref == ref(PLAN_PATH) and not OUT_ROOT.exists(), 'PLAN_OR_OUTPUT')
     plan = json.loads(PLAN_PATH.read_text())
     need(set(plan) == {'schema_version', 'stage', 'status', 'source_base_head',
-                       'source_owners', 'inputs', 'scope', 'limits', 'output_root'}
+                       'source_owners', 'inputs', 'scope', 'limits', 'output_root',
+                       'command_template'}
          and plan['schema_version'] == 'gx1_market_state_native_F_cpu_zero_step_plan_v1'
          and plan['stage'] == STAGE and plan['status'] == 'PREPARED_NOT_ADMITTED'
          and plan['output_root'] == str(OUT_ROOT)
+         and plan['command_template'] == planned_command('{plan_sha256}')
          and plan['scope'] == {'fold_id': 1, 'partition': 'fit',
                                'sample_parent_rows': v2.PARENT_ROWS,
                                'sample_issue_ns': v2.ISSUE_NS,
                                'pass_index': v2.PASS_INDEX, 'seed': v2.SEED,
+                               'selected_state_endpoints': True,
                                'physical_model_forwards': 1,
                                'backward_calls': 1, 'optimizer_steps': 0,
                                'witness_F_weight': WITNESS_F_WEIGHT,
@@ -87,6 +101,8 @@ def inspect(plan_ref: dict, *, require_policy: bool) -> tuple[dict, dict, dict, 
                                 'swap': SWAP_BYTES,
                                 'wall_seconds': WALL_SECONDS}
          and plan['inputs'] == {'completed_v2_plan': ref(v2.PLAN_PATH),
+                                'selected_S_mask': {'path': selected_state.REFS['mask'][0],
+                                                    'sha256': selected_state.REFS['mask'][1]},
                                 'F_result': {'path': str(future.REFS['result'][0]),
                                              'sha256': future.REFS['result'][1]},
                                 'F_tape': {'path': str(future.REFS['tape'][0]),
@@ -102,10 +118,15 @@ def inspect(plan_ref: dict, *, require_policy: bool) -> tuple[dict, dict, dict, 
          'SOURCE_OWNERS')
     v2_plan, _ = v2._checked_plan(v2.PLAN_PATH,
                                   plan['inputs']['completed_v2_plan']['sha256'])
-    receipts, view, state_bound = v2._inspect_inputs(v2_plan)
+    receipts, view, _ = v2._inspect_inputs(v2_plan)
+    state_bound = selected_state.load_bound_five_endpoint_targets()
     future_bound = future.load_bound_future_displacement()
     selected = np.asarray(v2.PARENT_ROWS, dtype=np.int64)
     issues = np.asarray(v2.ISSUE_NS, dtype=np.int64)
+    state_truth = state_bound.gather(selected, issues, fold_id=1, partition='fit')
+    need(state_truth['allowed'].tolist() == [[5, 5, 1, 5, 5], [1, 1, 1, 5, 5]]
+         and bool(state_truth['eligible'].all() and state_truth['mature'].all()),
+         'SELECTED_S_TARGET_PAIR')
     truth = future_bound.gather(selected, issues, fold_id=1, partition='fit')
     need(truth['allowed'].tolist() == [[2, 2, 1, 1, 4], [1, 1, 1, 1, 4]]
          and bool(truth['eligible'].all() and truth['mature'].all()),
@@ -143,6 +164,7 @@ def preflight(plan_ref: dict) -> dict:
             'model_contract_sha256': dual_model.contract()['contract_sha256'],
             'objective_contract_sha256': objective.contract()['contract_sha256'],
             'fold1_lineage': receipts['fold1']['lineage'],
+            'state_target_mode': 'selected_native_endpoints',
             'model_forwards': 0, 'optimizer_steps': 0, 'test_data_used': False}
 
 
@@ -221,11 +243,14 @@ def witness(receipts: dict, view: dict, state_bound, future_bound) -> dict:
         outcome = evaluate_fit_batch(
             model, tensors, state_bound, future_bound, selected, issues,
             fold_id=1, pass_index=v2.PASS_INDEX, seed=v2.SEED,
-            future_weight=WITNESS_F_WEIGHT)
+            future_weight=WITNESS_F_WEIGHT, selected_state_endpoints=True)
     handle.remove()
-    need(len(captured) == 1 and outcome['state_count'] == 5
+    need(len(captured) == 1 and outcome['state_count'] == 10
          and outcome['future_count'] == 10
-         and outcome['state_query_k'].tolist() == v2.EXPECTED_QUERY_K
+         and outcome['state_query_k'].tolist() == [[1, 3, 12, 48, 288]] * 2
+         and outcome['state_target_mode'] == 'selected_native_endpoints'
+         and outcome['state_allowed'].tolist()
+             == [[5, 5, 1, 5, 5], [1, 1, 1, 5, 5]]
          and outcome['future_native_k'].tolist() == [1, 3, 12, 48, 288]
          and outcome['future_allowed'].tolist()
              == [[2, 2, 1, 1, 4], [1, 1, 1, 1, 4]]
@@ -265,10 +290,11 @@ def witness(receipts: dict, view: dict, state_bound, future_bound) -> dict:
          'NO_UPDATE_OR_CUDA')
     provider.validate_metadata(provider_plan)
     return {'decision': 'PASS_REAL_FEATURE_S_F_FORWARD_BACKWARD_NO_UPDATE',
-            'scope_limit': 'Two fixed mature TRAIN rows; no fit, OOF, calibration, direction value, Entry or economic authority.',
+            'scope_limit': 'Two fixed selected native-endpoint TRAIN rows; no fit, OOF, calibration, direction value, Entry or economic authority.',
             'sample_parent_rows': v2.PARENT_ROWS,
             'sample_issue_ns': v2.ISSUE_NS,
             'state_query_k': outcome['state_query_k'].tolist(),
+            'state_target_mode': outcome['state_target_mode'],
             'future_native_k': outcome['future_native_k'].tolist(),
             'state_allowed': outcome['state_allowed'].tolist(),
             'future_allowed': outcome['future_allowed'].tolist(),
