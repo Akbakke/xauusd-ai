@@ -86,6 +86,8 @@ def _inputs() -> tuple[dict, dict, dict]:
     _need(schema.get('schema_version') == 'gx1_market_state_tabular_feature_schema_v1'
           and schema.get('no_future_targets_in_features') is True
           and len(audit.get('folds', [])) == 5, 'REUSED_SCHEMA_AND_AUDIT')
+    _need(schema['width'] == model.EXPECTED_WIDTH,
+          'REUSED_SCHEMA_CURRENT_MODEL_WIDTH')
     return chain, schema, audit
 
 

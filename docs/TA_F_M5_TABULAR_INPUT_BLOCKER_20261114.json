@@ -1,0 +1,49 @@
+{
+  "available_255_field_cache_found_in_searched_roots": false,
+  "cache_inventory_roots_searched": [
+    "/home/andre2/GX1_DATA",
+    "/home/andre2/GX1_RUNS"
+  ],
+  "cache_manifest": {
+    "feature_count": 253,
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/manifest.json",
+    "sha256": "3f4c3b4b54b08931850b716e0b7cf4b5de0b54c42b0fee813cde6f1324371da4"
+  },
+  "current_input_scope": "Fold2 native 255-field span input and normalization have separate receipts; the 2026-11-07 fivefold normalization/tabular receipts predate these two fields and do not qualify current 255-field fivefold view.",
+  "current_mtf_feature_count": 255,
+  "current_tabular_model_expected_width": 4003,
+  "decision": "REJECT_PREPARED_PLAN_BEFORE_CLAIM_REQUIRE_CURRENT_INPUT_QUALIFICATION",
+  "limits": [
+    "The cache mismatch is an input-contract blocker, not evidence that the old F-M5 model lacked economic edge for this reason.",
+    "Do not relabel or silently zero-fill missing genuine fields; do not promote a 253-field historical reference as current-model input."
+  ],
+  "new_mtf_fields_missing_from_cache": [
+    "geomline_above_anchor_span_bars",
+    "geomline_below_anchor_span_bars"
+  ],
+  "observed_utc": "2026-11-14T19:26:42.586718+00:00",
+  "old_tabular_feature_schema": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TABULAR_LIGHTGBM_OOF_20261107_001/FEATURE_SCHEMA.json",
+    "sha256": "a9ba2702805a89de9e1a5e703ee2487de4425013f6a1b9f60b5d38edfbb1a22a"
+  },
+  "old_tabular_span_field_count": 0,
+  "old_tabular_width": 3991,
+  "preclaim_guard": "Runner now rejects reused feature schema width3991 against current model width4003 before any claim or payload; the old prepared plan remains rejected.",
+  "prepared_plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_F_M5_TABULAR_OOF_20261114_001.json",
+    "sha256": "727226f38ffb93937630d0ddb1f7f9b99aeafcd68289441b9dc7d20fa206c5ea"
+  },
+  "read_only_view_probe": {
+    "cap": "12G_memory_512M_swap_0_7_cpu",
+    "claim_created": false,
+    "class": "producer",
+    "error": "HTF_V4_CACHE_CONTRACT_MISMATCH: feature_count observed=253 expected=255",
+    "exit_code": 1,
+    "model_fits": 0,
+    "optimizer_steps": 0,
+    "output_directory_exists": false,
+    "test_data_used": false
+  },
+  "schema_version": "gx1_ta_f_m5_tabular_input_blocker_v1",
+  "source_head": "950340a6343032d02d5f64b45f98a2d78efeafbe"
+}

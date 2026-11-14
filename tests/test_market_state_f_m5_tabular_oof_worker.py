@@ -17,6 +17,18 @@ def _truth(bits):
     return {'allowed': allowed, 'eligible': eligible, 'mature': mature}
 
 
+
+def test_preflight_rejects_old_feature_width_before_claim(monkeypatch):
+    monkeypatch.setattr(worker.base, '_reference_chain', lambda: {'cohorts': []})
+    monkeypatch.setattr(worker, 'INPUT_REFS', {})
+    payloads = iter(({'schema_version': 'gx1_market_state_tabular_feature_schema_v1',
+                      'no_future_targets_in_features': True, 'width': 3991},
+                     {'folds': [{}] * 5}))
+    monkeypatch.setattr(worker, '_checked_json', lambda _ref: next(payloads))
+    with pytest.raises(RuntimeError, match='REUSED_SCHEMA_CURRENT_MODEL_WIDTH'):
+        worker._inputs()
+
+
 def test_f_head_fits_only_f_m5_labels_and_scores_full_later_axis(monkeypatch, tmp_path):
     parents = np.arange(8, dtype=np.int64)
     issues = np.arange(10, 18, dtype=np.int64)

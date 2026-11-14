@@ -5,7 +5,7 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: TA_M5_F_ONLY_FIVEFOLD_TARGET_AUDIT_COMPLETE_MODEL_OOF_PENDING.
+Aktuell policy: TA_F_M5_TABULAR_OOF_REJECTED_PRECLAIM_INPUT_SCHEMA_MISMATCH.
 Gammelt F-M5 FINAL-hode hadde senere innen-UTC-dag AUC0,4724 mot
 S-skårens0,5607 på samme F-mål; samlet F-TRAIN-AUC0,5125 skjulte
 lokalt rangeringstap. Kilde- og etikettreview står i
@@ -63,20 +63,31 @@ shared FINAL gir senere Brier0,249257 mot prior-alene0,249257; ingen målt
 verdi utover prior og ingen AUC-endring. Se
 `docs/TA_M5_F_ONLY_FIVEFOLD_TARGET_AUDIT_20261114.json`.
 
-Eksisterende modne TRAIN-prefikser og fersk normalisering er kvittert for
-fold1–5; den gamle tabell-OOF brukte samme kausale inputvisning, men trente
-S-målet. Lesende F-skår fra S-modellen er derfor ingen direkte test av om
-F-M5-fasiten kan læres. Én ny, separat F-M5-tabell-OOF er forberedt:
-`configs/research/MARKET_STATE_F_M5_TABULAR_OOF_20261114_001.json`.
-Fem faste LightGBM-sidehoder, ett per modent TRAIN-prefiks, bruker eksakt
-uendret tabellfeaturematrise/oppskrift; modellskår sammenlignes mot hver
-folds frosne F-TRAIN-prior med ukevis paret Brier-kontroll. F-only og
-overlapp er kun retrospektive strata. Planen er PREPARED_NOT_ADMITTED:
-ingen claim, modellfit eller payloadlesing er åpnet. Neste steg er lesende
-oppstart/import-/kvitteringspreflight, så egen eksakt capped CPU-admisjon.
-Global training_enabled/native_training_enabled/full_epoch_training_allowed
-står false; brukt fit-plan001 relanseres ikke. TEST, Entry, Exit, broker,
-ordre, handel og promotion er stengt.
+Den forberedte femfolds F-M5-tabellplanen001 er REJECTED_PRECLAIM, uten
+claim/output/modellfit. Eksakt import-/kvitteringspreflight besto, men
+capped lesende fysisk inputvisning stoppet før matrisen; ny lesende
+preclaim-vakt avviser også gammel tabellbredde: gammel bundet
+26måneders MTF-cache har253 felt, gjeldende kilde krever255. De to
+trendlinje-ankerspennfeltene kom inn12.11. Gammel tabellfeaturematrise
+har3991 felt og ingen spennfelt; dagens modellkontrakt krever4003.
+Ingen 255-felts cache ble funnet under GX1_DATA/GX1_RUNS. Den gamle
+femfolds-normaliseringen fra07.11 er for før-spennprofilen; kun fold2s
+nye255-felts native input/normalisering er særskilt kvalifisert. Ingen
+nullutfylling eller stille dropping av genuine felt. Se
+`docs/TA_F_M5_TABULAR_INPUT_BLOCKER_20261114.json`.
+
+Eksisterende lagrede, S-trente tabell-OOF-prognoser ble scoret lesende mot
+F-M5 på alle fem utviklingsfold: N34760, Brier0,251321 mot folds
+frosne F-TRAIN-prior0,249755; alle fem folds er dårligere. Paret
+uke-95%-intervall for prior-minus-modell er −0,002008 til−0,001096.
+Dette er ikke en F-trent modelltest eller bevis for at F ikke kan læres.
+Se `docs/TA_S_TABULAR_ON_F_M5_READONLY_REVIEW_20261114.json`.
+
+Neste steg er gyldige255-felts kausale inputs og foldspesifikk TRAIN-
+normalisering for alle fem folds før en helt ny eksakt modellplan, eller
+en særskilt bundet, smalere F-referanse. Plan001 kjøres ikke. Global
+training_enabled/native_training_enabled/full_epoch_training_allowed er
+false. TEST, Entry, Exit, broker, ordre, handel og promotion er stengt.
 
 TA_FOLD2_M5_004_COMPLETE_CONSUMED_F_M5_EDGE_UNQUALIFIED. Edge-målet er
 uoppnådd. TARGET_COUNTS001 er COMPLETE/CONSUMED, exit0,3,78s. RESULT ba50eb96,
