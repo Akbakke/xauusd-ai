@@ -14,7 +14,7 @@
   },
   "native_training_authorized": false,
   "new_job_admitted": false,
-  "next_action": "Implement the minimal fold2 fresh-fit worker through the canonical guarded trainer route and a metadata-only preflight for the fixed one-pass M5 known-side hypothesis. Bind exact wall/resource and checkpoint/resume rules before a separate one-use admission. training_enabled=false; no fit, TEST, broker or trading authorized.",
+  "next_action": "Implement only the fold2 M5 one-pass fit worker through the canonical guarded trainer route, reusing the metadata preflight and fixed panels. Bind the proposed 12000-second one-window, 250 W, no-checkpoint/no-resume rule in the exact campaign and worker; qualify source, startup and failure receipts before a separate one-use admission. training_enabled=false; no fit, TEST, broker or trading authorized.",
   "normalization": {
     "artifacts": {
       "EXTENDED_BASE_NORMALIZATION": {
@@ -316,7 +316,7 @@
     "Existing six two-field fit/inverse/projection owner reused with exact fold2 parent/cutoff/output binding.",
     "Existing M5 equal-observation owner binds fold2 to its measured S/F q/N, axes, view and target-count receipts; fold1 profile and default identity remain unchanged."
   ],
-  "status": "FOLD2_M5_DIRECTION_BATCH_BINDING_REVIEWED_EXECUTION_CLOSED",
+  "status": "FOLD2_M5_METADATA_PREFLIGHT_PASS_EXECUTION_CLOSED",
   "test_data_used": false,
   "validation": {
     "both_actual_cli_preflights": "PASS",
@@ -988,7 +988,7 @@
     "relaunch_allowed": false
   },
   "fold2_m5_fit_hypothesis": {
-    "status": "SOURCE_GRADIENT_AND_SYNTHETIC_BATCH_BINDING_REVIEWED_EXECUTION_UNADMITTED",
+    "status": "SOURCE_GRADIENT_BATCH_AND_METADATA_REVIEWED_EXECUTION_UNADMITTED",
     "question": "Can one fixed chronological full-TRAIN pass of the existing native S/F model, using only its M5 known-side direction loss, improve later F M5 rank versus the exact fresh zero-update function?",
     "source_commit_at_review": "f013cb758e0d03098bbe4edaddef6c5426d8a5fa",
     "source_owners": {
@@ -1019,6 +1019,10 @@
       "scripts/gx1_capped_run.sh": {
         "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_capped_run.sh",
         "sha256": "2cd62acd3c78316d2403ff6e6970c4f20a12934ce7407a7d03999bf9d9c5f592"
+      },
+      "gx1/audit/preflight_market_state_ta_fold2_m5_fit_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/preflight_market_state_ta_fold2_m5_fit_v1.py",
+        "sha256": "0f8f8d1f007349fccc6a95c6cdedccef88e46a954d4cbb59f9de09dc89caa130"
       }
     },
     "observed_basis": {
@@ -1164,8 +1168,26 @@
       "cuda_producer_default_wall_seconds": 3600,
       "cuda_producer_fit_allowlisted": false,
       "canonical_trainer_window_max_invocation_seconds_option": 12000,
-      "required_before_admission": "Bind a fold2 trainer dispatch, immutable one-use plan, exact start digest, wall/thermal/memory ceilings, and checkpoint/resume cursor plus optimizer/RNG state; qualify metadata preflight without a model update.",
-      "runtime_inference": "The old fold1 timing does not establish fold2 runtime."
+      "required_before_admission": "Bind the fold2 trainer dispatch and exact source/start/model digest, 12000-second/250 W guarded one-window route, zero-checkpoint/no-resume failure accounting, immutable one-use plan and fixed readout; qualify startup and failure receipts without a model update.",
+      "runtime_inference": "The old fold1 timing does not establish fold2 runtime.",
+      "proposed_one_window": {
+        "max_invocation_seconds": 12000,
+        "max_model_seconds": 10500,
+        "wrapper_wall_seconds": 13800,
+        "gpu_power_cap_w": 250,
+        "checkpoint_writes": 0,
+        "resume_allowed": false,
+        "failure_consumes_one_use_plan": true
+      }
+    },
+    "metadata_preflight": {
+      "status": "PASS_METADATA_ONLY_FIT_UNADMITTED",
+      "script": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/preflight_market_state_ta_fold2_m5_fit_v1.py",
+        "sha256": "0f8f8d1f007349fccc6a95c6cdedccef88e46a954d4cbb59f9de09dc89caa130"
+      },
+      "checks": "Current closed policy; source hashes; exact fold2 q/N, axis and loss contracts; completed target counts; fresh zero-update INITIAL and independent validation; unchanged fixed panels; historical resource basis; proposed no-resume window.",
+      "limits": "JSON/source metadata only; no feature payload, model construction, forward, backward, optimizer update, trainer dispatch, or fit admission."
     }
   }
 }
