@@ -107,6 +107,8 @@ _MODE_DEFAULTS = dict(bps_scale=None, magnitude_weight_contract=None, dense_minu
     dedicated_non_m5_side=False, dedicated_tf_activity=False)
 _ACTIVITY_MODES = {**_MODE_DEFAULTS, 'full_feature_profile': True, 'full_ta_feature_profile': True,
     'market_state_time_query_v2': True, 'dedicated_m5_side': True, 'dedicated_tf_activity': True}
+_FULL_GC_MODES = {**_MODE_DEFAULTS, 'full_feature_profile': True,
+    'market_state_time_query_v2': True}
 
 
 def _need(ok, reason):
@@ -154,13 +156,14 @@ def _profile(value, binding):
     return profile
 
 
-def _normalization_identity(binding, reference):
+def _normalization_identity(binding, reference, *, ta_only=True):
     result = dict(binding=_views()._ref(reference), contract_sha256=binding['packet_sha'],
         base_sha256=binding['base_sha'], gc_layout_sha256=binding['gc_layout_sha'],
         gc_normalization_sha256=binding['gc_normalization_sha'],
-        qualification_sha256=binding['qualification_sha'],
-        ta_base_normalization_sha256=binding['ta_sha'],
-        source_owner_profile_sha256=binding['owner_profile_sha'])
+        qualification_sha256=binding['qualification_sha'])
+    if ta_only:
+        result['ta_base_normalization_sha256'] = binding['ta_sha']
+        result['source_owner_profile_sha256'] = binding['owner_profile_sha']
     if binding['units_sha'] is not None:
         result['unobserved_units_profile_sha256'] = binding['units_sha']
     return result
@@ -274,16 +277,21 @@ def require_anchor_span_view_provenance(view, profile):
     """Additional exact metadata gates; generic geometry/objective gates remain."""
     binding = _binding(view.get('prefix_normalization'), 'packet_sha', 'VIEW_NORMALIZATION')
     profile = _profile(profile, binding)
-    _need(all(view.get(k) is True for k in ('full_feature_profile', 'full_ta_feature_profile',
-          'market_state_time_query_v2', 'dedicated_m5_side', 'dedicated_tf_activity'))
-          and ('dedicated_non_m5_side' not in view
-               or view['dedicated_non_m5_side'] is True), 'TF_DECODER_VIEW')
+    ta_only = view.get('full_ta_feature_profile') is True
+    _need(view.get('full_feature_profile') is True
+          and view.get('market_state_time_query_v2') is True
+          and (all(view.get(k) is True for k in ('dedicated_m5_side', 'dedicated_tf_activity'))
+               and ('dedicated_non_m5_side' not in view
+                    or view['dedicated_non_m5_side'] is True)
+               if ta_only else all(k not in view for k in
+                    ('dedicated_m5_side', 'dedicated_non_m5_side', 'dedicated_tf_activity'))),
+          'TF_DECODER_VIEW')
     overlay = _views()._ref(view.get('source_bindings', {}).get('anchor_span_inputs_source'))
     _need(overlay['path'] == OVERLAY_OWNER_PATH, 'OVERLAY_OWNER_PATH')
     _need(_canonical(view.get(MARKER_KEY)) == _canonical(_marker(overlay, binding)), 'VIEW_PROVENANCE')
     prefix = view['prefix_normalization']
     _need(isinstance(prefix, Mapping) and 'binding' in prefix, 'VIEW_NORMALIZATION')
-    expected = _normalization_identity(binding, prefix['binding'])
+    expected = _normalization_identity(binding, prefix['binding'], ta_only=ta_only)
     _need(_canonical(prefix) == _canonical(expected), 'VIEW_NORMALIZATION')
     _need(all(_sha(view[key]) == binding['proof_hashes'][key]
               for key in ('prefix', 'full_axes', 'base_lineage'))
@@ -298,11 +306,16 @@ def require_anchor_span_view_provenance(view, profile):
 def bind_anchor_span_feature_view(*, prefix_normalization, prefix_normalization_ref,
     constructor_metadata, constructor_metadata_ref, source_bindings, max_batch_rows,
     expected=None, unobserved_units_profile=None, **modes):
-    """Keep activity heads fixed; optionally add the existing non-M5 side heads."""
+    """Bind the qualified span overlay to TA decoders or the full-GC S/F view."""
     combined_side = modes.get('dedicated_non_m5_side', False)
-    _need(set(modes) <= set(_MODE_DEFAULTS) and type(combined_side) is bool
-          and _canonical({**_MODE_DEFAULTS, **modes}) == _canonical(
-              {**_ACTIVITY_MODES, 'dedicated_non_m5_side': combined_side}), 'TF_DECODER_ARGUMENTS')
+    ta_only = modes.get('full_ta_feature_profile', False)
+    _need(set(modes) <= set(_MODE_DEFAULTS) and type(ta_only) is bool
+          and type(combined_side) is bool and (
+              _canonical({**_MODE_DEFAULTS, **modes}) == _canonical(
+                  {**_ACTIVITY_MODES, 'dedicated_non_m5_side': combined_side})
+              if ta_only else not combined_side and
+              _canonical({**_MODE_DEFAULTS, **modes}) == _canonical(_FULL_GC_MODES)),
+          'TF_DECODER_ARGUMENTS')
     packet = require_anchor_span_prefix_packet(prefix_normalization)
     binding = _binding(packet, 'packet_sha', 'PACKET_SEAL')
     profile = _profile(unobserved_units_profile, binding)
@@ -330,10 +343,13 @@ def bind_anchor_span_feature_view(*, prefix_normalization, prefix_normalization_
               'PARENT_SOURCE_OWNERS')
     _need(refs['anchor_span_inputs_source']['path'] == OVERLAY_OWNER_PATH, 'OVERLAY_OWNER_PATH')
     _need(type(max_batch_rows) is int and max_batch_rows > 0, 'MAX_BATCH_ROWS')
-    fields, routes, widths = views._canonical(ta_only=True)
-    compiled = views.owners.compile_full_ta_entry_execution_profile()
+    fields, routes, widths = views._canonical(ta_only=ta_only)
+    compiled = (views.owners.compile_full_ta_entry_execution_profile() if ta_only else
+        views.owners.compile_full_gc_mtf_entry_execution_profile(
+            packet['gc_mtf_history'], unobserved_units_profile=profile))
     value = dict(schema_version=views.SCHEMA_VERSION,
-        prefix_normalization=_normalization_identity(binding, prefix_normalization_ref),
+        prefix_normalization=_normalization_identity(
+            binding, prefix_normalization_ref, ta_only=ta_only),
         prefix=_copy(proof['prefix']), full_axes=_copy(proof['full_axes']), base_lineage=_copy(proof['base_lineage']),
         prefix_source_bindings_sha256=_sha(provenance), physical_widths=dict(widths),
         physical_field_names_sha256={k: views._sha(v) for k, v in fields.items()},
@@ -341,11 +357,14 @@ def bind_anchor_span_feature_view(*, prefix_normalization, prefix_normalization_
         canonical_routing_sha256=views._sha(routes), constructor_scalar_config=dict(SCALARS),
         constructor_metadata=dict(binding=views._ref(constructor_metadata_ref), content_sha256=_sha(constructor_metadata)),
         entry_execution_profile={k: compiled[k] for k in ('name','contract_sha256')},
-        research_objective=factorized_time_query_model_contract(ta_only=True, dedicated_m5_side=True,
-            dedicated_non_m5_side=combined_side, dedicated_tf_activity=True), source_bindings=refs,
+        research_objective=factorized_time_query_model_contract(ta_only=ta_only,
+            dedicated_m5_side=ta_only, dedicated_non_m5_side=combined_side,
+            dedicated_tf_activity=ta_only), source_bindings=refs,
         max_batch_rows=max_batch_rows, evidence_scope=views.EVIDENCE_SCOPE,
-        full_feature_profile=True, full_ta_feature_profile=True, market_state_time_query_v2=True,
-        dedicated_m5_side=True, dedicated_tf_activity=True)
+        full_feature_profile=True, market_state_time_query_v2=True)
+    if ta_only:
+        value.update(full_ta_feature_profile=True, dedicated_m5_side=True,
+                     dedicated_tf_activity=True)
     if profile is not None:
         value['unobserved_units_profile'] = _copy(profile)
     if combined_side:

@@ -893,7 +893,8 @@ def gather_native_direction_feature_batch(view, *, parent_rows, bar_start_ns, de
         context = ctx_cont[np.ix_(at, ta_profile['source_ctx_cont_indices'])]
         _, routes, _ = _canonical(ta_only=True)
     else:
-        snap = snap_x[at]
+        snap = (anchor_span_inputs.local_batch(snap_x, at, take, starts)
+                if anchor_span else snap_x[at])
         context = ctx_cont[at]
     features = {'seq_x': np.stack(sequences), 'snap_x': np.ascontiguousarray(snap),
         'ctx_cont': np.ascontiguousarray(context), 'ctx_cat': np.ascontiguousarray(ctx_cat[at])}
@@ -914,10 +915,10 @@ def gather_native_direction_feature_batch(view, *, parent_rows, bar_start_ns, de
             available = np.asarray(multi_tf_sources[tf].attrs['ts_int64'][ids], dtype=np.int64) + int(MULTI_TF_SHIFT[tf].value)
             _require(np.all(available <= decision), 'CAUSAL_TF_CLOCK:' + tf)
             collected[tf].append(window)
+            original_ids = anchor_span_inputs.original_mtf_rows(tf, ids) if anchor_span else ids
             if not ta_only:
                 gc_collected[tf].append(history.gather_gc_mtf_history_rows(gc_surfaces[tf], tf=tf,
-                    native_row_indices=ids, available_ns=available, layout=layout))
-            original_ids = anchor_span_inputs.original_mtf_rows(tf, ids) if anchor_span else ids
+                    native_row_indices=original_ids, available_ns=available, layout=layout))
             witnesses[tf].append({'native_row_indices': original_ids.tolist(), 'available_ns': available.tolist()})
     for tf in history.TIMEFRAMES:
         features['seq_' + tf.lower()] = np.stack(collected[tf])

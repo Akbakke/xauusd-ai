@@ -64,6 +64,28 @@ def fold2_binding():
     return binding_case(extension.FOLD2_BINDING)
 
 
+def test_full_gc_fold2_metadata_binds_expanded_raw_and_parent_gc(fold2_binding):
+    args=deepcopy(fold2_binding)
+    for key in ('full_ta_feature_profile','dedicated_m5_side','dedicated_tf_activity'):
+        del args[key]
+    view=views.bind_native_direction_feature_view(**args)
+    assert views.bind_native_direction_feature_view(**args,expected=view)==view
+    assert view['physical_widths']==dict(signal=2727,ctx_cont=2542,ctx_cat=1,mtf=255)
+    assert view['entry_execution_profile']['name']==views.owners.FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME
+    assert view['prefix_normalization']['gc_normalization_sha256']==extension.FOLD2_BINDING['gc_normalization_sha']
+    assert 'ta_base_normalization_sha256' not in view['prefix_normalization']
+    assert 'full_ta_feature_profile' not in view
+    assert view['research_objective']==extension.factorized_time_query_model_contract(ta_only=False)
+
+
+def test_full_gc_fold1_rejects_incompatible_gc_unit_profile(binding):
+    args=deepcopy(binding)
+    for key in ('full_ta_feature_profile','dedicated_m5_side','dedicated_tf_activity'):
+        del args[key]
+    with pytest.raises(RuntimeError,match='UNITS_BINDING'):
+        views.bind_native_direction_feature_view(**args)
+
+
 def test_exact_metadata_dispatch_preserves_parent_gc_and_new_geometry(binding):
     view=views.bind_native_direction_feature_view(**binding)
     assert views.bind_native_direction_feature_view(**binding,expected=view)==view
@@ -129,7 +151,7 @@ def readonly(value):
     value=np.ascontiguousarray(value);value.setflags(write=False);return value
 
 
-def make_gather_case(monkeypatch, *, later=False):
+def make_gather_case(monkeypatch, *, later=False, full_gc=False):
     # Metadata identity is tested separately above; this small fixture isolates
     # real canonical window/cropping behavior with no market-value reads.
     monkeypatch.setattr(views,'_require_view',lambda view,**kw:view)
@@ -151,9 +173,14 @@ def make_gather_case(monkeypatch, *, later=False):
     for frame in c['multi_tf_sources'].values():
         frame.attrs['feats_np']=readonly(frame.to_numpy(dtype=np.float32,copy=False))
         frame.attrs['ts_int64']=readonly(frame.attrs['ts_int64'])
-    base_view=dict(full_ta_feature_profile=True,full_axes=dict(rows=6),prefix=dict(rows=4,cutoff_ns=c['cutoff_ns']),max_batch_rows=2,contract_sha256='a'*64)
+    base_view=dict(full_feature_profile=True,full_axes=dict(rows=6),
+        prefix=dict(rows=4,cutoff_ns=c['cutoff_ns']),max_batch_rows=2,
+        contract_sha256='a'*64,
+        prefix_normalization=dict(gc_layout_sha256=c['gc_layout']['contract_sha256']))
+    if not full_gc:base_view['full_ta_feature_profile']=True
     original={k:c[k] for k in ('parent_rows','bar_start_ns','decision_ns','entry_sequence_source','snap_x','ctx_cont','ctx_cat','multi_tf_sources')}
-    original.update(gc_surfaces=None,gc_layout=None,
+    original.update(gc_surfaces=c['gc_surfaces'] if full_gc else None,
+                    gc_layout=c['gc_layout'] if full_gc else None,
                     batch_parent_rows=np.array([12,15] if later else [5,9],np.int64))
     expected=views.gather_native_direction_feature_batch(base_view,**original)
     keep=[i for i,n in enumerate(fields['signal']) if n not in local_names]
@@ -207,6 +234,16 @@ def test_composed_batch_matches_full_current_arrays_and_original_native_row_witn
         assert output['features'][key].tobytes()==value.tobytes(),key
     assert output['witness']==expected['witness']
     assert all(rows[0]>0 for rows in args['anchor_span_inputs'].mtf_parent_rows.values())
+
+
+def test_full_gc_composed_batch_preserves_all_xau_and_gc_values(monkeypatch):
+    view,args,expected,_=make_gather_case(monkeypatch,full_gc=True)
+    output=views.gather_native_direction_feature_batch(view,**args)
+    assert all('gc_seq_'+tf.lower() in output['features'] for tf in overlay.TIMEFRAMES)
+    assert set(output['features'])==set(expected['features'])
+    for key,value in expected['features'].items():
+        assert output['features'][key].tobytes()==value.tobytes(),key
+    assert output['witness']==expected['witness']
 
 
 @pytest.mark.parametrize('fault',['later_parent','missing_overlay','different_source','mutable_backing','changed_clock','changed_population'])

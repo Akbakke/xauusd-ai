@@ -1,0 +1,174 @@
+{
+  "focused_checks": {
+    "anchor_span_feature_inputs_suite": "passed",
+    "combined_full_gc_profile_suite": "one unrelated relative GC coordinate contract source hash failure in gc_order_flow_v1.py",
+    "full_gc_metadata_and_synthetic_XAU_GC_gather": "3 passed"
+  },
+  "full_gc_view": {
+    "contract_sha256": "9ea6a4595c6a5792acd190ad12dc861d9bb99ec921c5bd3650b38b15154981bc",
+    "execution_profile_sha256": "efe705c50c80216eb9fa45f3233703b21278f376ca68a4c436f9a79ce7beb126",
+    "historical_gc_runtime_bridge": {
+      "current_source_sha256": "25881da893bd09a48b6f6ef840947af611401ac6aa3059c795a99a127293f14c",
+      "view_source_sha256": "ef64a40a7ac24fc931acc267fae298adde26f20ed91ed587fd28ffcaae71c565"
+    },
+    "local_specialists": [
+      "structure_swing_encoder",
+      "smc_liquidity_encoder",
+      "trend_ema_encoder",
+      "vol_compression_encoder",
+      "momentum_flow_encoder",
+      "session_regime_encoder",
+      "chart_geometry_encoder",
+      "price_action_candle_encoder"
+    ],
+    "macro_context_field_count": 61,
+    "mtf_specialists": [
+      "structure_swing_encoder",
+      "smc_liquidity_encoder",
+      "trend_ema_encoder",
+      "vol_compression_encoder",
+      "momentum_flow_encoder",
+      "session_regime_encoder",
+      "chart_geometry_encoder",
+      "price_action_candle_encoder"
+    ],
+    "physical_widths": {
+      "ctx_cat": 1,
+      "ctx_cont": 2542,
+      "mtf": 255,
+      "signal": 2727
+    },
+    "source_binding_count": 18
+  },
+  "limits": {
+    "chronological_fit": false,
+    "economic_edge": false,
+    "fold1_full_gc": "blocked by inherited GC units profile mismatch",
+    "later_generalization": false,
+    "normalization_refit": false,
+    "physical_full_gc_forward_backward": false,
+    "test_data_used": false,
+    "training_enabled": false
+  },
+  "next_gate": "After clean source commit, bind one new fold2 full-GC selected-native S/F zero-step plan to these exact packet, sidecar, source and target refs; smoke exact capped CLI without claim; admit separately only after preflight. Do not relaunch blocked plan 001.",
+  "observed_utc": "2026-11-14T23:56:04.759754+00:00",
+  "physical_parent": {
+    "fold2_constructor": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001/CONSTRUCTOR_METADATA.json",
+      "sha256": "84883657faac58baa62250528b74bd38b3625ac91031677062acb16080aeaf88"
+    },
+    "fold2_packet": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001/PREFIX_NORMALIZATION.json",
+      "sha256": "0c3bbe1cdaf190b00e51729c00706ef9ec9686e4b7c675b42a441f7118c202fe"
+    },
+    "fold2_sidecar_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_002/RESULT.json",
+      "sha256": "8f2acfafc459cc9a2fbcb7b588c40eb008d1e75c7e47835bbc55f24b68f32cc2"
+    },
+    "fold2_sidecar_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_002/TERMINAL.json",
+      "sha256": "3de8d27ac093e9d06a5b473bd7d76cfaa8eaea8c33cfdeaa35bda1720094b807"
+    },
+    "sidecar_surfaces": {
+      "D1": {
+        "all_overlap_columns_bitexact": true,
+        "new_rows": 0,
+        "required_rows": 425
+      },
+      "H1": {
+        "all_overlap_columns_bitexact": true,
+        "new_rows": 0,
+        "required_rows": 4058
+      },
+      "H4": {
+        "all_overlap_columns_bitexact": true,
+        "new_rows": 0,
+        "required_rows": 1134
+      },
+      "M15": {
+        "all_overlap_columns_bitexact": true,
+        "new_rows": 29,
+        "required_rows": 15903
+      },
+      "M5": {
+        "all_overlap_columns_bitexact": true,
+        "new_rows": 261,
+        "required_rows": 47534
+      },
+      "local": {
+        "all_overlap_columns_bitexact": true,
+        "new_rows": 181,
+        "required_rows": 47614
+      }
+    },
+    "view_plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001/PLAN.json",
+      "sha256": "783ae8cc3c8992d7d209d70de841b52c3dd6d04d5dc2a21a772f61a2cc151596"
+    }
+  },
+  "schema_version": "gx1_s_full_gc_anchor_span_fold2_source_review_v1",
+  "scope": "Fold2 TRAIN input metadata, selected S/F labels on two fixed rows, current source binding; no model construction or feature payload read.",
+  "selected_targets": {
+    "F_allowed": [
+      [
+        2,
+        2,
+        1,
+        1,
+        4
+      ],
+      [
+        1,
+        1,
+        1,
+        1,
+        4
+      ]
+    ],
+    "S_allowed": [
+      [
+        5,
+        5,
+        1,
+        5,
+        5
+      ],
+      [
+        1,
+        1,
+        1,
+        5,
+        5
+      ]
+    ],
+    "all_eligible_and_mature": true,
+    "fold_id": 2,
+    "issue_ns": [
+      1714521900000000000,
+      1714522500000000000
+    ],
+    "parent_rows": [
+      0,
+      2
+    ]
+  },
+  "source_owners": {
+    "gx1/contracts/entry_anchor_span_feature_inputs_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_anchor_span_feature_inputs_v1.py",
+      "sha256": "4ac9734ea30e720865a1976d0ef0ddcb1a952fe29da0475d24a5ba07f0ec2ab5"
+    },
+    "gx1/contracts/entry_anchor_span_feature_view_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_anchor_span_feature_view_v1.py",
+      "sha256": "bf6ee17594cc52332f44a6a85f48f195b4124bf4237998ce8bce3fa974982eb0"
+    },
+    "gx1/contracts/entry_native_direction_feature_view_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_feature_view_v1.py",
+      "sha256": "6fc56f8dd76005090614df83a6dc87db94163f0216cfdf1983278f3932d7d34f"
+    },
+    "tests/test_entry_anchor_span_feature_inputs_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_anchor_span_feature_inputs_v1.py",
+      "sha256": "b5c6db6417685022ecf5a74a3d3743f4fb203efcb5921022eeb6a56a38d0daff"
+    }
+  },
+  "status": "SOURCE_AND_SYNTHETIC_FULL_GC_FOLD2_PASS_PHYSICAL_INITIAL_PENDING"
+}

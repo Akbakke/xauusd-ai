@@ -246,8 +246,8 @@ def build_anchor_span_inputs(view, *, entry_sequence_source, snap_x, ctx_cont, c
     from gx1.models.entry_v10.entry_v10_input_normalization import _hash_int64_indices
 
     views._require_view(view,unobserved_units_profile=unobserved_units_profile)
-    need('anchor_span_input_extension' in view and view.get('full_ta_feature_profile') is True,
-         'EXPLICIT_TA_EXTENSION')
+    need('anchor_span_input_extension' in view and view.get('full_feature_profile') is True,
+         'EXPLICIT_ANCHOR_SPAN_EXTENSION')
     need(isinstance(entry_sequence_source,Mapping)
          and set(entry_sequence_source)=={'signal','times_ns','sample_positions','audit'},'LOCAL_SOURCE_KEYS')
     profile=owners.compile_full_ta_entry_execution_profile()
@@ -301,7 +301,10 @@ def build_anchor_span_inputs(view, *, entry_sequence_source, snap_x, ctx_cont, c
     local_rows,local_times,local_spans=selected['local']
     need(np.all(local_rows>=0) and np.all(local_rows<len(source))
          and np.array_equal(times[local_rows],local_times),'LOCAL_PHYSICAL_CLOCK')
-    local_columns=column_plan(parent_signal,new_local,profile['physical_field_names']['signal'])
+    local_names = (profile['physical_field_names']['signal']
+                   if view.get('full_ta_feature_profile') is True
+                   else profile['source_field_names']['signal'])
+    local_columns=column_plan(parent_signal,new_local,local_names)
     mtf_columns=column_plan(parent_mtf,SPAN_FIELDS,htf.MULTI_TF_PER_BAR_FEATURES_V4)
     frames,mapped_rows,backings={},{},{}
     for tf in TIMEFRAMES:

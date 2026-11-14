@@ -5,17 +5,26 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: S_NATIVE_SELECTED_INITIAL_PREFLIGHT_BLOCKED_SOURCE_LINEAGE.
-Den nye engangsplanen for valgt native S-fasit ble kildecommittet, men lesende
-preflight feilet før claim med `TIME_QUERY_ZERO_STEP_REVIEWED_RUNNER_REF`.
-Den gjenbrukte v2-planen binder historisk capped-runner; dagens runner er
-endret. En kontroll viste også 13 v2-kildeeiere med andre gjeldende hasher.
-`/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_SELECTED_ENDPOINT_INITIAL_20261115_001`
-finnes ikke: null claim, modell-forward, backward og optimizersteg. Planen er
-ikke innrømmet og skal ikke kjøres. Neste konkrete gate er fersk full-GC
-kildevisning/normalisering med eksakt nåværende lineage for de to TRAIN-radene,
-deretter ny hashbundet engangsplan og lesende preflight. TRAIN-fit, TEST og
-handel er stengt.
+Aktuell policy: S_FULL_GC_FOLD2_ANCHOR_SOURCE_TESTED_INITIAL_CLOSED.
+Den blokkerte engangsplanen 001 feilet lesende preflight før claim fordi dens
+historiske v2-kildevisning ikke lenger matcher dagens runner og kilder. Den
+skal ikke kjøres; outputroten finnes ikke.
+
+Eksisterende fold2 TRAIN-kvitteringer har seks fysisk kvalifiserte
+ankerspenn-sidecars, utvidet normalisering og bevart GC-historikk. Samme
+kildeeiere binder nå en full-GC S/F-visning med2727 lokale signalfelt,
+255 MTF-felt på M5/M15/H1/H4/D1 og eksakt historisk-til-nåværende GC-kildebro.
+Syntetisk gather var bitlik full rå XAU+GC, og den fokuserte anchor-span-suiten
+besto. Dette er kilde-/metadata-/syntetisk bevis: ingen fysisk full-GC
+forward/backward, fit eller Edge. Fold1 avvises av uforenlig arvet GC-
+enhetsprofil. Én separat test for relative GC-priskoordinater feiler på
+en eksisterende gc_order_flow_v1.py-kildehash; rå-GC-ruten bruker den ikke.
+Se docs/S_FULL_GC_ANCHOR_SPAN_FOLD2_SOURCE_REVIEW_20261115.json.
+
+Neste gate er en ny hashbundet fold2 CPU-nullstegplan på de samme to TRAIN-radene,
+de seks sidecarene og valgt native S-fasit. Kjør lesende preflight uten claim,
+gi deretter separat eksakt policyadmisjon før eventuell én capped forward/
+backward. TRAIN-fit, TEST, broker og handel forblir stengt.
 
 Den valgte fem-TF S-masken er hashbundet til118249 modellrader og fem faste
 native endepunkter. Den gamle samplede tidsforespørselen treffer D1s native
