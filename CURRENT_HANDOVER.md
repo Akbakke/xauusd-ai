@@ -16,7 +16,11 @@ delt M5-sideparameter er implementert og syntetisk kontrollert; gammel
 standardkontrakt/output og egne S/F-masker er bevart. Ingen fysisk ny
 INITIAL, fit eller TEST er kjørt. Neste steg er eksakt ny engangsadmisjon
 for fersk, capped nullstegsbaseline; fit trenger separat senere admisjon.
-training_enabled=false, ingen broker/ordre/handel.
+Baseline-produsent og eksakt capped CUDA-rute er kildeforberedt i
+`docs/TA_FOLD2_SHARED_M5_INITIAL_PREPARATION_20261114.json`; ingen plan,
+admisjon, claim, modellkjøring eller fit. Kildecommit og lesende preflight
+kommer før eventuell engangsadmisjon. training_enabled=false, ingen
+broker/ordre/handel.
 
 TA_FOLD2_M5_004_COMPLETE_CONSUMED_F_M5_EDGE_UNQUALIFIED. Edge-målet er
 uoppnådd. TARGET_COUNTS001 er COMPLETE/CONSUMED, exit0,3,78s. RESULT ba50eb96,

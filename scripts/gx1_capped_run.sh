@@ -54,6 +54,7 @@ TA_CURRENT_MODES_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_current_modes
 TA_CONTEXT_DRIFT_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_context_drift_v1
 TA_HEAD_INPUT_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_head_input_v1
 TA_FOLD2_FRESH_INITIAL_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_fold2_fresh_initial_v1
+TA_FOLD2_SHARED_M5_INITIAL_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_fold2_shared_m5_initial_v1
 RUNNER_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
 REPO_ROOT="$(cd "$(dirname "$RUNNER_PATH")/.." && pwd -P)"
 CANONICAL_TRAINER_PYTHON="$REPO_ROOT/.venv/bin/python"
@@ -397,6 +398,26 @@ matches_bound_market_state_ta_fold2_fresh_initial() {
   [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$7" ]]
 }
 
+# One fixed shared-M5-head zero-update baseline; no alternative plan or output root.
+matches_bound_market_state_ta_fold2_shared_m5_initial() {
+  local expected_plan="$1" expected_output="$2"
+  shift 2
+  if [[ $# -eq 12 ]]; then
+    [[ "${12}" == --preflight ]] || return 1
+    set -- "${@:1:11}"
+  fi
+  [[ $# -eq 11 ]] || return 1
+  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \
+    && "$3" == "$TA_FOLD2_SHARED_M5_INITIAL_PRODUCER_MODULE" \
+    && "$4" == --plan && "$5" == "$expected_plan" \
+    && "$6" == --plan-sha256 && "$7" =~ ^[0-9a-f]{64}$ \
+    && "$8" == --device && "$9" == cuda && "${10}" == --out-dir \
+    && "${11}" == "$expected_output" && "$expected_plan" == /* && "$expected_output" == /* ]] || return 1
+  [[ -f "$expected_plan" && ! -L "$expected_plan" \
+    && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1
+  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$7" ]]
+}
+
 # Exact passive current first-batch numerical route comparison, including metadata-only preflight.
 matches_bound_market_state_ta_current_numeric_routes() {
   local expected_plan="$1" expected_output="$2"
@@ -474,7 +495,7 @@ validate_target_command() {
           && [[ "${3:-}" != "$TA_CURRENT_MODES_PRODUCER_MODULE" ]] \
           && [[ "${3:-}" != "$TA_CONTEXT_DRIFT_PRODUCER_MODULE" ]] \
           && [[ "${3:-}" != "$TA_HEAD_INPUT_PRODUCER_MODULE" ]] \
-          && [[ "${3:-}" != "$TA_FOLD2_FRESH_INITIAL_PRODUCER_MODULE" ]]; }; then
+          && [[ "${3:-}" != "$TA_FOLD2_FRESH_INITIAL_PRODUCER_MODULE" ]] && [[ "${3:-}" != "$TA_FOLD2_SHARED_M5_INITIAL_PRODUCER_MODULE" ]]; }; then
         echo "FATAL: --cuda-producer is reserved for an allow-listed TRAIN/VAL-only evidence producer" >&2
         exit 75
       fi
@@ -695,6 +716,17 @@ validate_target_command() {
         local fold2_initial_root=/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_004
         if ! matches_bound_market_state_ta_fold2_fresh_initial "$fold2_initial_root/PLAN.json" "$fold2_initial_root" "$@"; then
           echo "FATAL: fold 2 fresh INITIAL observation is not exactly bound" >&2
+          exit 75
+        fi
+        NUMERICAL_THREAD_COUNT=8
+        TRAINER_GPU_MAX_POWER_LIMIT_W=250
+        TRAINER_MAX_WALL_SECONDS=1800
+        TRAINER_MODEL_MAX_WALL_SECONDS=1800
+      fi
+      if [[ "${3:-}" == "$TA_FOLD2_SHARED_M5_INITIAL_PRODUCER_MODULE" ]]; then
+        local shared_m5_initial_root=/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SHARED_M5_INITIAL_20261114_001
+        if ! matches_bound_market_state_ta_fold2_shared_m5_initial "$shared_m5_initial_root/PLAN.json" "$shared_m5_initial_root" "$@"; then
+          echo "FATAL: shared-M5 initial observation is not exactly bound" >&2
           exit 75
         fi
         NUMERICAL_THREAD_COUNT=8
