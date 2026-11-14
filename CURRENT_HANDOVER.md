@@ -5,7 +5,7 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_FOLD2_M5_FIT_SOURCE_REVIEWED_EXECUTION_CLOSED. Edge-målet er
+TA_FOLD2_M5_BATCH_BINDING_REVIEWED_EXECUTION_CLOSED. Edge-målet er
 uoppnådd. TARGET_COUNTS001 er COMPLETE/CONSUMED, exit0,3,78s. RESULT ba50eb96,
 VALIDATION dd45bd05, TERMINAL dccda6f6; ingen relansering. På eksakt47338 modne
 TRAIN-rader /2959 B16 med siste10 er M5 kjent retning S N16101/q2890 og F N19072/q2950.
@@ -46,8 +46,13 @@ TRAIN-rader/maks2959 B16-oppdateringer fra samme ferske INITIAL og skårer de sa
 faste senere panelene, uten checkpoint-/terskelvalg. Tidligere fold1 fulltap ga
 F M5 senere AUC0,5113→0,5101→0,5091 etter pass1/pass2 og dårligere Brier;
 det er begrunnelse, ikke matchet fold2-kontroll. Eksisterende fit-runner importerer
-gammelt checkpoint og binder fold1, så en minimal fold2-worker trengs.
-Neste steg er kun worker + metadata-preflight og eksakt ressurs-/resume-binding.
+gammelt checkpoint og binder fold1. Syntetiske adaptertester for fold2 B16 og
+endelig B10 består; de beviser ikke faktisk fit eller prediksjon. Historisk fold1
+topassfase tok7586,8s/3698oppdateringer. CUDA-produsent har3600s og tillater
+ikke fit; bevoktet trainer-rute kan bindes til12000s, men fold2-dispatch,
+startdigest og eksakt checkpoint-/resume-regel er ennå ikke kvalifisert.
+Neste steg er minimal fold2-worker via trainer-ruten og metadata-preflight,
+med ressurs-/resume-binding før separat engangsadmisjon.
 Ingen fit-admisjon: training_enabled=false; ingen trening, TEST, broker eller ordre.
 
 LATER_INPUTS002 er COMPLETE/CONSUMED, exit0,215,18s; terminal1297d154,

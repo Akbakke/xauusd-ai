@@ -1,7 +1,7 @@
 {
   "limits": [
     "This is a completed physical-input and normalization prerequisite for the current-feature later-fold investigation, not a prediction or economic result.",
-    "No fresh fold2 native INITIAL, fit or prediction has been measured. Current fold1 normalization and the fold1 loss profile remain unchanged.",
+    "Fresh fold2 zero-update INITIAL is measured on fixed TRAIN/later development panels; fold2 fit and any learned predictive benefit remain unmeasured.",
     "The 47338-row native TRAIN input gather and 4096 selected Jan-Mar2025 later input rows are qualified. Historical development is reused; no independent TEST confirmation.",
     "TEST remains sealed. All genuine features/timeframes and eight families plus D1/macro remain. COT2024 vintage remains UNKNOWN; GC is paused while the original M5/MTF/26-month goal remains."
   ],
@@ -14,7 +14,7 @@
   },
   "native_training_authorized": false,
   "new_job_admitted": false,
-  "next_action": "Implement only the minimal fold2 fresh-fit worker and metadata preflight for the one-pass M5 known-side hypothesis; bind exact resources and resume rules before any one-use admission. training_enabled=false, TEST sealed, no fit execution authorized.",
+  "next_action": "Implement the minimal fold2 fresh-fit worker through the canonical guarded trainer route and a metadata-only preflight for the fixed one-pass M5 known-side hypothesis. Bind exact wall/resource and checkpoint/resume rules before a separate one-use admission. training_enabled=false; no fit, TEST, broker or trading authorized.",
   "normalization": {
     "artifacts": {
       "EXTENDED_BASE_NORMALIZATION": {
@@ -316,7 +316,7 @@
     "Existing six two-field fit/inverse/projection owner reused with exact fold2 parent/cutoff/output binding.",
     "Existing M5 equal-observation owner binds fold2 to its measured S/F q/N, axes, view and target-count receipts; fold1 profile and default identity remain unchanged."
   ],
-  "status": "FOLD2_M5_DIRECTION_FIT_SOURCE_AND_GRADIENT_REVIEWED_EXECUTION_CLOSED",
+  "status": "FOLD2_M5_DIRECTION_BATCH_BINDING_REVIEWED_EXECUTION_CLOSED",
   "test_data_used": false,
   "validation": {
     "both_actual_cli_preflights": "PASS",
@@ -988,7 +988,7 @@
     "relaunch_allowed": false
   },
   "fold2_m5_fit_hypothesis": {
-    "status": "SOURCE_AND_GRADIENT_REVIEWED_EXECUTION_UNADMITTED",
+    "status": "SOURCE_GRADIENT_AND_SYNTHETIC_BATCH_BINDING_REVIEWED_EXECUTION_UNADMITTED",
     "question": "Can one fixed chronological full-TRAIN pass of the existing native S/F model, using only its M5 known-side direction loss, improve later F M5 rank versus the exact fresh zero-update function?",
     "source_commit_at_review": "f013cb758e0d03098bbe4edaddef6c5426d8a5fa",
     "source_owners": {
@@ -1011,6 +1011,14 @@
       "tests/test_market_state_m5_direction_objective.py": {
         "path": "/home/andre2/src/GX1_CURRENT/tests/test_market_state_m5_direction_objective.py",
         "sha256": "408720414f4290646b54310c9d853c20db8d39406229dd83216a6dd57fd58d79"
+      },
+      "tests/test_market_state_m5_equal_observation_binding.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/tests/test_market_state_m5_equal_observation_binding.py",
+        "sha256": "ba5958fd73eff1dbdfe13a29e9d34fe9bb3c880bc01b2e05a55e00cbb1485ace"
+      },
+      "scripts/gx1_capped_run.sh": {
+        "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_capped_run.sh",
+        "sha256": "2cd62acd3c78316d2403ff6e6970c4f20a12934ce7407a7d03999bf9d9c5f592"
       }
     },
     "observed_basis": {
@@ -1128,11 +1136,36 @@
       "checkpoint_selection": "none; score only the predetermined final pass and the already completed INITIAL",
       "decision": "A development ranking signal requires both day/week 95% lower bounds above 0 for paired F M5 AUC gain and above 0.5 for final absolute F M5 AUC. Report all months/TF and calibration regardless of outcome. Reused development still cannot establish independent or economic edge."
     },
-    "implementation_gap": "Existing fold1 fit runner imports an old checkpoint and hardcodes fold1 axes/targets; its numerical recipe also binds fold1. A minimal new fold2 worker and exact capped resource/resume gates are required before any fit.",
-    "resource_note": "Historical fold1 full-prefix two-pass phase took 7586.8 seconds for 3698 updates; this is planning evidence, not a fold2 wall-time guarantee or admission.",
+    "implementation_gap": "The existing fold1 fit runner imports an old checkpoint and hardcodes fold1 axes/targets; its numerical recipe also binds fold1. The CUDA producer route is evidence-only and capped at 3600 seconds. A minimal fold2 worker under the canonical guarded trainer route, with exact resource and checkpoint/resume bindings, is required before any fit.",
+    "resource_note": "The historical fold1 full-prefix two-pass phase took 7586.8 seconds for 3698 updates; this is planning evidence, not a fold2 wall-time guarantee or admission.",
     "scope_limits": "All genuine TA/MTF/D1 inputs and S/F outputs remain; the selected loss gives direct gradient only to M5 known-side direction. A single pass cannot rule out deeper learning if it fails. No Entry selection, economics, TEST or trading is measured.",
     "execution_authorized": false,
     "training_authorized": false,
-    "test_data_used": false
+    "test_data_used": false,
+    "adapter_qualification": {
+      "test": "tests/test_market_state_m5_equal_observation_binding.py::test_fold2_direction_only_binds_full_batch_and_partial_tail",
+      "synthetic_cases": [
+        {
+          "start": 16,
+          "rows": 16
+        },
+        {
+          "start": 47328,
+          "rows": 10
+        }
+      ],
+      "assertions": "Fold2 full axis/target binding, M5 direction-only loss contract, finite loss and nonempty update for ordinary B16 and exact final B10.",
+      "limit": "Synthetic in-memory adapter test only; no actual feature gather, native model training, optimizer update or future-score proof."
+    },
+    "resource_gate": {
+      "historical_fold1_full_prefix_seconds": 7586.817654868999,
+      "historical_fold1_optimizer_updates": 3698,
+      "historical_fold1_elapsed_seconds": 8283.249816802,
+      "cuda_producer_default_wall_seconds": 3600,
+      "cuda_producer_fit_allowlisted": false,
+      "canonical_trainer_window_max_invocation_seconds_option": 12000,
+      "required_before_admission": "Bind a fold2 trainer dispatch, immutable one-use plan, exact start digest, wall/thermal/memory ceilings, and checkpoint/resume cursor plus optimizer/RNG state; qualify metadata preflight without a model update.",
+      "runtime_inference": "The old fold1 timing does not establish fold2 runtime."
+    }
   }
 }

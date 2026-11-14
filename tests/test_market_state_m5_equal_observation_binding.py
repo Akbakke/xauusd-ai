@@ -86,12 +86,12 @@ class _Targets:
         return self._truth(parents, issues)
 
 
-def _batch_case(monkeypatch, start, size):
+def _batch_case(monkeypatch, start, size, *, total_rows=29574):
     events = []
     model = _RecordingTA(events)
     # Deliberate parent-ID gaps ensure alignment uses axis positions.
-    all_parents = np.arange(29574, dtype=np.int64) * 3 + 7
-    all_issues = (np.arange(29574, dtype=np.int64) + 1) * TICK_NS
+    all_parents = np.arange(total_rows, dtype=np.int64) * 3 + 7
+    all_issues = (np.arange(total_rows, dtype=np.int64) + 1) * TICK_NS
     s = _Targets(all_parents, all_issues, events)
     f = _Targets(all_parents, all_issues, events)
     rows, issues = all_parents[start:start+size].copy(), all_issues[start:start+size].copy()
@@ -349,3 +349,17 @@ def test_resealed_but_changed_weighting_profile_is_rejected(monkeypatch):
     with pytest.raises(RuntimeError, match='TA_SF_NUMERICAL_RECIPE'):
         state.build_fold1_fit_optimizer(model, numerical_recipe=broken)
     assert digest(model.state_dict()) == before
+
+
+@pytest.mark.parametrize('start,size', [(16, 16), (47328, 10)])
+def test_fold2_direction_only_binds_full_batch_and_partial_tail(monkeypatch, start, size):
+    events, args, kwargs = _batch_case(monkeypatch, start, size, total_rows=47338)
+    args[0].state_model._dedicated_tf_activity = True
+    kwargs.update(fold_id=2, m5_direction_only=True)
+    result = batch.evaluate_fit_batch(*args, **kwargs)
+    assert events == ['forward', 'S-targets', 'F-targets']
+    assert result['loss_contract_sha256'] == objective.contract(
+        ta_only=True, dedicated_m5_side=True, dedicated_tf_activity=True,
+        m5_equal_observation=True, m5_direction_only=True, fold_id=2)['contract_sha256']
+    assert result['skip_update'] is False
+    assert torch.isfinite(result['loss'])
