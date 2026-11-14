@@ -5,24 +5,25 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: S_VALIDITY_PATH_TRANSITION_REVIEW_COMPLETE_NO_FIT.
-Lesende sammenstilling av hashbundet S-mask og eksakte M1-gyldighetspunkter
-viser kjente tilstandsskifter i11147/20514 M5-par,15578/31522 M15-par,
-15832/29667 H1-par,13612/24993 H4-par og7605/14385 D1-par ved hver TFs
-egen prognoselead. Nevnerne omfatter bare par med kjent singleton-tilstand
-i begge ender og eksakt M1-kilde, ikke alle TRAIN-utstedelser. Ukjent side
-er fortsatt ukjent. 15 deterministisk valgte fysiske TRAIN-prisbaner, tre
-tilfeller per TF, gjenskapte lagret lokal range eksakt og følger den valgte
-0,5 ATR-aktivitetsregelen i disse eksemplene. M15s aktive/uavklarte eksempel
-har range1,780 USD mellom0,5 ATR1,706 og1,0 ATR3,412; dette er ikke FLATT.
-Eksisterende kausal deterministisk persistens tapte mot frossen TRAIN-prior
-på betinget side-Brier på alle fem TF i senere utviklingsfolder. Se
+Aktuell policy: S_ENDPOINT_WINDOW_OVERLAP_REVIEW_COMPLETE_NO_FIT.
+Hashbundet TRAIN-maske og M1-måltape viser at valgt S er en tilstand ved
+framtidig gyldighetstid over siste W observerte M1-barer; W er lik hver TFs
+kalenderledetid. Alle kjente M5/M15/H1-endepunkter har hele W etter issue.
+H4 har 4919/53961 kjente endepunkter der 64/65 M1-barer i mål-vinduet
+ligger før issue. D1 har dette på samtlige 39041/39041 kjente endepunkter.
+Kilde- og bitparitet ved eksakte endepunkter er 0 avvik. Denne historikken er
+kausalt kjent, men H4/D1-S må omtales som framtidig endepunktstilstand,
+ikke ren framtidig prisbane. Se
+`docs/S_MARKET_STATE_WINDOW_OVERLAP_REVIEW_20261115.json`. Målt
+S-varighet, tilstandsskifter og fysisk prisbane står fortsatt i
 `docs/S_MARKET_STATE_VALIDITY_PATH_REVIEW_20261114.json`.
-Neste arbeid er å avgjøre om endpoint-S ved disse ledetidene representerer
-meningsfull lokal bevegelse gitt målt varighet, skifter og observerbarhet.
-Deretter bindes fasit, masker, output, tap og skår samlet før én
-forhåndsbundet kausal, probabilistisk S-hypotese og kronologisk sammenligning.
-S-fasiten er ikke låst; ingen ny fit, TEST eller handel.
+
+Neste arbeid er å binde fem-TF S-fasit, tillatte sett, modelloutput,
+side-normalisert tap, proper skår og forhåndsvalgt TRAIN-priorgate sammen.
+Deretter kun én forhåndsbundet kausal probabilistisk hypotese og kronologisk
+TRAIN-kontroll under eksakt engangsadmisjon. En ren framtidsbane krever egen
+stengningsbevisst måldesign og ny kildeparitet. Målet er ikke låst; ingen ny
+fit, TEST eller handel er åpnet, og økonomisk Edge er ubevist.
 
 Tidligere policy: TA_F_M5_PRICE_ATR_SOURCE_REPLAY_COMPLETE_EDGE_UNQUALIFIED.
 Uavhengig capped lesereplay fra hashbundet M5-parquet rekonstruerte
