@@ -5,7 +5,16 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: TA_F_M5_INNER_TRAIN_TRANSFER_PREPARED_NO_FIT.
+Aktuell policy: TA_F_M5_INNER_TRAIN_TRANSFER_ADMITTED_RESEARCH_ONLY.
+Indre F-M5 TRAIN-plan001 er nå ADMITTED for én 0USD capped CPU-kjøring
+med fem faste fits,12G/512M/1800s. Direkte preflight og capped fysisk
+visnings-/mål-/splittpreflight besto uten claim eller modellfit. Fem eksakte
+splittgrenser og streng5-minutters målmodning er forhåndsbundet; ingen ytre
+scorefasit, TEST, native-trening eller handel. Kildecommit6537efa2,
+plansha cec52ca8. Neste steg er å kjøre planen nøyaktig én gang og
+uavhengig kontrollere kvitteringene før videre designvalg.
+
+Tidligere policy: TA_F_M5_INNER_TRAIN_TRANSFER_PREPARED_NO_FIT.
 En egen F-M5 indre TRAIN-plan er PREPARED_NOT_ADMITTED uten claim eller fit:
 `configs/research/MARKET_STATE_F_M5_INNER_TRAIN_TRANSFER_20261114_001.json`.
 Fem modne prefiks er delt kronologisk ved80% av F-kjente TRAIN-sider;
