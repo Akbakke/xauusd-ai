@@ -5,14 +5,22 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: TA_F_M5_INNER_TRAIN_TRANSFER_ADMITTED_RESEARCH_ONLY.
-Indre F-M5 TRAIN-plan001 er nå ADMITTED for én 0USD capped CPU-kjøring
-med fem faste fits,12G/512M/1800s. Direkte preflight og capped fysisk
-visnings-/mål-/splittpreflight besto uten claim eller modellfit. Fem eksakte
-splittgrenser og streng5-minutters målmodning er forhåndsbundet; ingen ytre
-scorefasit, TEST, native-trening eller handel. Kildecommit6537efa2,
-plansha cec52ca8. Neste steg er å kjøre planen nøyaktig én gang og
-uavhengig kontrollere kvitteringene før videre designvalg.
+Aktuell policy: TA_F_M5_INNER_TRAIN_TRANSFER_COMPLETE_NO_EDGE.
+Indre F-M5 TRAIN-plan001 er COMPLETE/CONSUMED, exit0 etter163,19s under
+12G/512M. Fem64-runders modeller fikk egen TRAIN-AUC0,7097–0,7974 og
+bedre TRAIN-Brier enn TRAIN-prior, men alle fem tapte Brier mot prior på
+senere indre TRAIN-validering. Alle fem eksakte splittene, priorene,
+35 checkpoint-AUC/Brier og treningsmål er uavhengig gjenskapt fra lagrede
+modeller; ingen ytre scorefasit ble brukt i fit eller rundevalget.
+Den forhåndsbundne regelen valgte [0,0,0,2,1] trær. Lesende anvendelse på
+gjenbrukte ytre utviklingsfolder gav Brier(prior−modell)=−0,00000447
+på34760 F-kjente sider; paret uke-95%-intervall
+[−0,00002630,+0,00001868] omfatter0. Bare fold4 bedret Brier svakt;
+fold5 ble verre, og tre folder var kun prior. Dette beviser ingen stabil
+rangering, kalibrering eller Edge og begrunner ingen ny ytre fit.
+Se `docs/TA_F_M5_INNER_TRAIN_TRANSFER_RESULT_REVIEW_20261114.json`.
+Neste steg er én konkret lesende F-mål-/kildeintegritetskontroll før noen
+ny modellendring. TEST, native-trening, Entry/Exit, broker og handel er stengt.
 
 Tidligere policy: TA_F_M5_INNER_TRAIN_TRANSFER_PREPARED_NO_FIT.
 En egen F-M5 indre TRAIN-plan er PREPARED_NOT_ADMITTED uten claim eller fit:

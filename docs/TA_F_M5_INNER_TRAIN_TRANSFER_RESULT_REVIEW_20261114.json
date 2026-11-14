@@ -1,0 +1,194 @@
+{
+  "claim": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_F_M5_INNER_TRAIN_TRANSFER_20261114_001/CLAIM.json",
+    "sha256": "c879fdca89db046f2e121483981497b461cce8104d1d8d20b38d11a30aab49d2"
+  },
+  "fit_source_commit": "7bb2ac4bd57fac7624516ba3ac53cf8f74e7044c",
+  "inner_folds": [
+    {
+      "fold_id": 1,
+      "inner_selected_round": 0,
+      "inner_validation_known_side_n": 2382,
+      "purged_known_side_n": 0,
+      "selected_inner_prior_minus_model": 0.0,
+      "train64_auc": 0.7974396008750698,
+      "train64_prior_minus_model": 0.024212301756832977,
+      "train_known_side_n": 9527,
+      "validation64_auc": 0.5023670163034466,
+      "validation64_prior_minus_model": -0.0019255255468746957
+    },
+    {
+      "fold_id": 2,
+      "inner_selected_round": 0,
+      "inner_validation_known_side_n": 3815,
+      "purged_known_side_n": 0,
+      "selected_inner_prior_minus_model": 0.0,
+      "train64_auc": 0.7649897757726996,
+      "train64_prior_minus_model": 0.018135751193883498,
+      "train_known_side_n": 15257,
+      "validation64_auc": 0.5041217219198416,
+      "validation64_prior_minus_model": -0.001163852750355493
+    },
+    {
+      "fold_id": 3,
+      "inner_selected_round": 0,
+      "inner_validation_known_side_n": 5157,
+      "purged_known_side_n": 1,
+      "selected_inner_prior_minus_model": 0.0,
+      "train64_auc": 0.7367445737791365,
+      "train64_prior_minus_model": 0.01410261198906762,
+      "train_known_side_n": 20627,
+      "validation64_auc": 0.4997398678842337,
+      "validation64_prior_minus_model": -0.0019382691638159533
+    },
+    {
+      "fold_id": 4,
+      "inner_selected_round": 2,
+      "inner_validation_known_side_n": 6532,
+      "purged_known_side_n": 0,
+      "selected_inner_prior_minus_model": 3.6831838020612295e-06,
+      "train64_auc": 0.7214255676572139,
+      "train64_prior_minus_model": 0.01135833275591458,
+      "train_known_side_n": 26126,
+      "validation64_auc": 0.4996608685123635,
+      "validation64_prior_minus_model": -0.0011508846876901457
+    },
+    {
+      "fold_id": 5,
+      "inner_selected_round": 1,
+      "inner_validation_known_side_n": 7944,
+      "purged_known_side_n": 1,
+      "selected_inner_prior_minus_model": 2.1660049438515516e-05,
+      "train64_auc": 0.7096798805379197,
+      "train64_prior_minus_model": 0.009688184974717517,
+      "train_known_side_n": 31775,
+      "validation64_auc": 0.5023686366051243,
+      "validation64_prior_minus_model": -0.0006616723383058853
+    }
+  ],
+  "inner_selected_rounds": [
+    0,
+    0,
+    0,
+    2,
+    1
+  ],
+  "interpretation": [
+    "All five 64-round inner fits improve their own TRAIN Brier but lose Brier to the inner TRAIN prior on later inner-validation rows. This reproduces the generalization failure within TRAIN.",
+    "The precommitted inner rule selects prior only for three folds and one or two trees for the others. Applied to saved full-fit trees on reused outer development scores, pooled Brier remains slightly worse than prior and the paired weekly interval includes zero.",
+    "A shorter tree path alone does not establish stable F M5 ranking or calibration. This result does not justify another outer refit, a feature/threshold search, or a native-model promotion."
+  ],
+  "next_gate": "A separate causal source or target defect, or a new precommitted hypothesis with genuinely later independent evidence, is needed before another F M5 fit or any Edge claim.",
+  "observed_utc": "2026-11-14T21:22:07.239452+00:00",
+  "original_oof_review": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_F_M5_CURRENT_OOF_RESULT_REVIEW_20261114.json",
+    "sha256": "123579ff86fb804482d16a958c25dfd6c64d4a00a9cb55200d45682b7b69bed3"
+  },
+  "outer_development_replay": {
+    "folds": [
+      {
+        "auc_if_model": null,
+        "brier": 0.249833416409301,
+        "fold_id": 1,
+        "known_side_n": 7165,
+        "prior_brier": 0.249833416409301,
+        "prior_minus_model": 0.0,
+        "selected_round": 0,
+        "week_count": 14
+      },
+      {
+        "auc_if_model": null,
+        "brier": 0.24959920284766784,
+        "fold_id": 2,
+        "known_side_n": 6707,
+        "prior_brier": 0.24959920284766784,
+        "prior_minus_model": 0.0,
+        "selected_round": 0,
+        "week_count": 14
+      },
+      {
+        "auc_if_model": null,
+        "brier": 0.2498945569535045,
+        "fold_id": 3,
+        "known_side_n": 6886,
+        "prior_brier": 0.2498945569535045,
+        "prior_minus_model": 0.0,
+        "selected_round": 0,
+        "week_count": 14
+      },
+      {
+        "auc_if_model": 0.5052302653404476,
+        "brier": 0.24984444872091818,
+        "fold_id": 4,
+        "known_side_n": 7050,
+        "prior_brier": 0.2498725564995201,
+        "prior_minus_model": 2.810777860190461e-05,
+        "selected_round": 2,
+        "week_count": 14
+      },
+      {
+        "auc_if_model": 0.4952675952607944,
+        "brier": 0.2496199979321819,
+        "fold_id": 5,
+        "known_side_n": 6952,
+        "prior_brier": 0.2495691471132954,
+        "prior_minus_model": -5.0850818886505333e-05,
+        "selected_round": 1,
+        "week_count": 14
+      }
+    ],
+    "independent_confirmation": false,
+    "known_side_n": 34760,
+    "model_scored_folds": 2,
+    "paired_week_bootstrap_95pct": [
+      -2.6304812720290288e-05,
+      1.8684276863120293e-05
+    ],
+    "pooled_prior_minus_model_brier": -4.469362881335935e-06,
+    "positive_model_folds": 1,
+    "prior_only_folds": 3,
+    "score_derived_selection": false
+  },
+  "plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_F_M5_INNER_TRAIN_TRANSFER_20261114_001.json",
+    "sha256": "cec52ca808d42dc6c1e23205602a425f50fbe05bef6892b0843a23070770ae40"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_F_M5_INNER_TRAIN_TRANSFER_20261114_001/RESULT.json",
+    "sha256": "56c2faf7be9050ffcfd4709f3978a3b2ecb5e61f5d973fdd27daf0bb01cc0359"
+  },
+  "saved_tree_path_review": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_F_M5_SAVED_TREE_PATH_DIAGNOSIS_20261114.json",
+    "sha256": "fb2e3d1afb1d59ebf08f687ed6ddaaedfbea836c51eb81647a3b2e2b4b5cc6ff"
+  },
+  "schema_version": "gx1_ta_f_m5_inner_train_transfer_result_review_v1",
+  "splits_priors_frozen": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_F_M5_INNER_TRAIN_TRANSFER_20261114_001/INNER_SPLITS_PRIORS_FROZEN.json",
+    "sha256": "ce32755eade78539cf8227d869de768136acda1397a19d17665d6be41a5d7dc1"
+  },
+  "status": "COMPLETE_NO_POSITIVE_TRANSFER_GATE",
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_F_M5_INNER_TRAIN_TRANSFER_20261114_001/TERMINAL.json",
+    "sha256": "a581b41d7c70b9590471fe128c507ad9e4bdd2e21ee3aca9a839cfb0d18a97db"
+  },
+  "unproved": [
+    "stable_f_m5_ranking",
+    "positive_f_m5_calibration_transfer",
+    "specific_feature_or_target_cause",
+    "native_model_transfer",
+    "entry_quality",
+    "economic_edge"
+  ],
+  "validation": {
+    "current_4003_matrix_and_old_projection_hashes": "PASS",
+    "frozen_priors_before_first_fit": true,
+    "independent_replay_all_five_inner_splits_priors_models_and_35_checkpoint_auc_brier": "PASS",
+    "inner_model_train64_metrics_recomputed": "PASS",
+    "inner_run_outer_score_labels_used": false,
+    "native_training": false,
+    "review_reuses_outer_development_score": true,
+    "selected_outer_development_raw_predictions_replayed": "PASS",
+    "test_data_used": false,
+    "week_block_2000_bootstrap_recomputed": "PASS"
+  }
+}
