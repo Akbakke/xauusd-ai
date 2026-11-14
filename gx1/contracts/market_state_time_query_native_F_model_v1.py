@@ -21,7 +21,9 @@ from gx1.contracts.market_state_time_query_target_v1 import NATIVE_K, TIMEFRAMES
 
 def contract(*, ta_only: bool = False, dedicated_m5_side: bool = False,
              dedicated_non_m5_side: bool = False,
-             dedicated_tf_activity: bool = False) -> dict:
+             dedicated_tf_activity: bool = False, shared_m5_side: bool = False) -> dict:
+    if type(shared_m5_side) is not bool or (shared_m5_side and not dedicated_m5_side):
+        raise ValueError('NATIVE_F_SHARED_M5_SIDE_MODE')
     if type(ta_only) is not bool:
         raise ValueError('NATIVE_F_TA_MODE')
     if type(dedicated_m5_side) is not bool or (dedicated_m5_side and not ta_only):
@@ -54,6 +56,11 @@ def contract(*, ta_only: bool = False, dedicated_m5_side: bool = False,
             'fixed_native_k_per_TF_shared_projection_distinct_two_logit_head'
             '_with_dedicated_M5_conditional_side_Linear_hidden_to_1')
         value['M5_side_initialization'] = 'clone_each_task_shared_side_row_preserving_CPU_and_active_CUDA_RNG'
+    if shared_m5_side:
+        value['shared_m5_side'] = True
+        value['F'] = 'fixed_native_k_per_TF_shared_projection_distinct_activity_and_non_M5_heads_shared_S_F_M5_side_Linear'
+        value['M5_side_initialization'] = 'clone_state_side_row_then_share_parameter_identity_preserving_RNG'
+        value['M5_side_parameter_owner'] = 'state_model.m5_side_head_for_S_and_F_native_query'
     if dedicated_non_m5_side:
         value['dedicated_non_m5_side'] = True
         value['non_M5_side_timeframes'] = list(TIMEFRAMES[1:])
@@ -73,17 +80,25 @@ def contract(*, ta_only: bool = False, dedicated_m5_side: bool = False,
 class NativeFutureDualModel(nn.Module):
     """Keep the v2 S submodel exact while adding one small F decoder head."""
 
-    def __init__(self, state_model: FactorizedTimeQueryMarketStateModel):
+    def __init__(self, state_model: FactorizedTimeQueryMarketStateModel, *,
+                 shared_m5_side: bool = False):
         super().__init__()
         if type(state_model) is not FactorizedTimeQueryMarketStateModel:
             raise TypeError('NATIVE_F_STATE_MODEL_OWNER')
+        if type(shared_m5_side) is not bool or (shared_m5_side and not state_model._dedicated_m5_side):
+            raise ValueError('NATIVE_F_SHARED_M5_SIDE_MODE')
         state_model._require_binding()
         self.state_model = state_model
+        self._shared_m5_side = shared_m5_side
         width = state_model._hidden_width
         device = state_model.query_head.weight.device
         self.future_head = nn.Linear(width, 2, device=device, dtype=torch.float32)
         if state_model._dedicated_m5_side:
             self.future_m5_side_head = _clone_side_head(self.future_head)
+            if shared_m5_side:
+                # Keep distinct module hooks while both tasks update one Linear.
+                self.future_m5_side_head.weight = state_model.m5_side_head.weight
+                self.future_m5_side_head.bias = state_model.m5_side_head.bias
         if state_model._dedicated_non_m5_side:
             self.future_non_m5_side_heads = nn.ModuleDict({
                 timeframe: _clone_side_head(self.future_head)
@@ -101,7 +116,8 @@ class NativeFutureDualModel(nn.Module):
         return contract(ta_only=self.state_model._ta_only,
                         dedicated_m5_side=self.state_model._dedicated_m5_side,
                         dedicated_non_m5_side=self.state_model._dedicated_non_m5_side,
-                        dedicated_tf_activity=self.state_model._dedicated_tf_activity)
+                        dedicated_tf_activity=self.state_model._dedicated_tf_activity,
+                        shared_m5_side=self._shared_m5_side)
 
     @property
     def backbone(self) -> nn.Module:
@@ -122,9 +138,15 @@ class NativeFutureDualModel(nn.Module):
                 and not self.native_F_objective_sha256.requires_grad
                 and torch.equal(self.native_F_objective_sha256, reference)
                 and hasattr(self, 'future_m5_side_head') == self.state_model._dedicated_m5_side
+                and type(self._shared_m5_side) is bool
                 and hasattr(self, 'future_non_m5_side_heads') == self.state_model._dedicated_non_m5_side
                 and hasattr(self, 'future_tf_activity_heads') == self.state_model._dedicated_tf_activity):
             raise RuntimeError('NATIVE_F_HEAD_BINDING')
+        if self.state_model._dedicated_m5_side:
+            shared = (self.future_m5_side_head.weight is self.state_model.m5_side_head.weight
+                      and self.future_m5_side_head.bias is self.state_model.m5_side_head.bias)
+            if shared is not self._shared_m5_side:
+                raise RuntimeError('NATIVE_F_SHARED_M5_SIDE_BINDING')
         heads = [(self.future_head, 2)]
         if self.state_model._dedicated_m5_side:
             heads.append((self.future_m5_side_head, 1))

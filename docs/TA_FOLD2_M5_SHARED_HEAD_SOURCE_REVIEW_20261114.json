@@ -1,0 +1,127 @@
+{
+  "schema_version": "gx1_ta_fold2_m5_within_day_and_shared_head_source_review_v1",
+  "status": "SOURCE_QUALIFIED_PHYSICAL_BASELINE_PENDING",
+  "observed_utc": "2026-11-14T16:41:36.396536+00:00",
+  "prior_result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_004/RESULT.json",
+    "sha256": "d05f1226ee6ec678a15ede40a43568e976c1346a1f41113e31934ae10f0883f5"
+  },
+  "prior_capture_refs": {
+    "TRAIN": {
+      "INITIAL": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_004/TRAIN_READOUT.npz",
+        "sha256": "eacccb900c7dcab0c50ab8af34e5af3eb51461aedb6ae74103dbddf8acb3a291"
+      },
+      "FINAL": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_004/FINAL_TRAIN_READOUT.npz",
+        "sha256": "ab050d3e23801f2aa9f5ca0f97dfc1c455af246dcd1cf11fa1e22cc5b6db3909"
+      }
+    },
+    "LATER": {
+      "INITIAL": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_004/LATER_READOUT.npz",
+        "sha256": "90f60a307c855c1c8543aab8a86924519257c21d29be4c728550c00147865108"
+      },
+      "FINAL": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_004/FINAL_LATER_READOUT.npz",
+        "sha256": "7ca3c77164dffa0b568b1a50fe0e83e8757ca596359f5f0b0b59e253e20eb4c4"
+      }
+    }
+  },
+  "method": "Hash-verified fixed captures and full mature fold-2 TRAIN target bindings. Known M5 side requires eligible, mature and allowed bit 1 or 4. Pooled AUC uses sklearn; within-day AUC is the positive-negative-pair-weighted mean of UTC-day AUC for days containing both labels. Day variance fraction is variance of each row's day-mean logit divided by total logit variance. All alternate S-on-F and day-stratified metrics are post-hoc diagnostics, not a selected endpoint.",
+  "full_TRAIN_target_populations": {
+    "rows": 47338,
+    "S_known_n": 16101,
+    "F_known_n": 19072,
+    "both_known_n": 11516,
+    "same_side_n": 11178,
+    "same_side_fraction": 0.9706495310871831,
+    "F_only_n": 7556,
+    "S_only_n": 4585,
+    "F_only_fraction_of_F_known": 0.3961828859060403
+  },
+  "fixed_TRAIN_panel": {
+    "F_known_n": 1661,
+    "utc_days": 178,
+    "days_with_both_sides": 176,
+    "INITIAL": {
+      "state_on_F": {
+        "pooled_auc": 0.4950463309486095,
+        "within_utc_day_auc_pair_weighted": 0.5041034568515295,
+        "between_utc_day_score_variance_fraction": 0.4173506408017027
+      },
+      "future_on_F": {
+        "pooled_auc": 0.4994502370218223,
+        "within_utc_day_auc_pair_weighted": 0.49241482218353644,
+        "between_utc_day_score_variance_fraction": 0.3806328494784839
+      }
+    },
+    "FINAL": {
+      "state_on_F": {
+        "pooled_auc": 0.5116407596302808,
+        "within_utc_day_auc_pair_weighted": 0.6033325043521512,
+        "between_utc_day_score_variance_fraction": 0.5448208268468552
+      },
+      "future_on_F": {
+        "pooled_auc": 0.5124733821882597,
+        "within_utc_day_auc_pair_weighted": 0.46282019398159663,
+        "between_utc_day_score_variance_fraction": 0.7818805933872082
+      }
+    }
+  },
+  "fixed_later_development_panel": {
+    "F_known_n": 1591,
+    "utc_days": 67,
+    "days_with_both_sides": 66,
+    "INITIAL": {
+      "state_on_F": {
+        "pooled_auc": 0.5258072718026952,
+        "within_utc_day_auc_pair_weighted": 0.5274000405926528,
+        "between_utc_day_score_variance_fraction": 0.3381158203844242
+      },
+      "future_on_F": {
+        "pooled_auc": 0.4867769514365624,
+        "within_utc_day_auc_pair_weighted": 0.4750355185711386,
+        "between_utc_day_score_variance_fraction": 0.27837300304458784
+      }
+    },
+    "FINAL": {
+      "state_on_F": {
+        "pooled_auc": 0.528424548690567,
+        "within_utc_day_auc_pair_weighted": 0.5606860158311345,
+        "between_utc_day_score_variance_fraction": 0.2825302580394263
+      },
+      "future_on_F": {
+        "pooled_auc": 0.48738717264174936,
+        "within_utc_day_auc_pair_weighted": 0.472396996143698,
+        "between_utc_day_score_variance_fraction": 0.5126573085553331
+      }
+    }
+  },
+  "interpretation": [
+    "The separate F M5 head showed only a small pooled TRAIN AUC increase while its within-day point AUC was below 0.5 on TRAIN and later development. This does not prove worsening or identify a single cause.",
+    "S M5 scored against the same F target had stronger within-day point ranking in both panels, but its later pooled AUC was already above 0.5 at the fresh random INITIAL; its later paired gain is unqualified.",
+    "The two known-side targets agree on 97.1 percent of the full mature TRAIN overlap, but F has 7,556 known-side rows with unknown S side. Shared parameters are a testable causal candidate, not an established improvement."
+  ],
+  "source_candidate": {
+    "change": "opt_in_shared_m5_side_parameter_identity",
+    "default_mode_preserves_original_contract_and_output": true,
+    "shared_mode_M5_native_S_F_logits_identical": true,
+    "separate_S_F_target_masks_and_loss_terms_retained": true,
+    "activity_and_other_TF_heads_separate": true,
+    "model_contract_sha256": "67fb09a93a4370d0cf52c5f70ae96d77bc9e966abe81500c395c21ba9dd1aaaf",
+    "loss_contract_sha256": "6b8a1597114b080c4c0f0e4cff6bde6306f455e4c590bf514e9a8f0298421f84",
+    "source_sha256": {
+      "gx1/contracts/market_state_time_query_native_F_model_v1.py": "bbfe6e09b9ab236c65b08154d793c4cac006f28dea83bf78df0ca0ad9c92be3e",
+      "gx1/contracts/market_state_time_query_native_F_objective_v1.py": "4b244ac61c0b3360e12a4b12db8e8d066e9017b6913da165c31fd8afae6a8658",
+      "gx1/contracts/market_state_time_query_native_F_batch_v1.py": "1f0cbb1b8972f9ad21ef432ce3bf77c296353ca9d0f6ed9782845d19781ebc4e"
+    },
+    "focused_synthetic_tests_passed": true,
+    "actual_physical_baseline_run": false,
+    "actual_fit_run": false
+  },
+  "next_action": "Qualify one fresh zero-update, guarded INITIAL baseline for the opt-in shared S/F M5 side head on the fixed fold-2 TRAIN/later panels. Require exact new one-use policy admission and source/input binding before model execution; a fit needs its own later admission. No TEST, Entry, Exit, broker or trade.",
+  "training_enabled": false,
+  "test_data_used": false,
+  "predictive_edge_proven": false
+}

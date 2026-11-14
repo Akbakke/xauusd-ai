@@ -252,3 +252,66 @@ def test_dual_forward_still_encodes_once(monkeypatch):
     expected_f = model.decode_native_F_raw(hidden)
     assert torch.equal(out["state_activity_side_logits"], expected_s)
     assert torch.equal(out["future_activity_side_logits"], expected_f)
+
+
+def test_shared_m5_side_has_one_parameter_owner_and_native_score():
+    torch.manual_seed(410)
+    independent = _model(dedicated_m5_side=True)
+    rng_after_independent = torch.get_rng_state().clone()
+    torch.manual_seed(410)
+    shared = NativeFutureDualModel(FactorizedTimeQueryMarketStateModel(
+        _backbone(), dedicated_m5_side=True), shared_m5_side=True)
+    assert torch.equal(torch.get_rng_state(), rng_after_independent)
+    assert shared.research_objective['contract_sha256'] != independent.research_objective['contract_sha256']
+    assert shared.future_m5_side_head is not shared.state_model.m5_side_head
+    assert shared.future_m5_side_head.weight is shared.state_model.m5_side_head.weight
+    assert shared.future_m5_side_head.bias is shared.state_model.m5_side_head.bias
+    assert 'future_m5_side_head.weight' not in dict(shared.named_parameters())
+    shared._require_binding()
+    state, future = _decode(shared)
+    assert torch.equal(state[:, 0, 0, 1], future[:, 0, 1])
+    original_state, original_future = _decode(independent)
+    assert torch.equal(state, original_state)
+    assert torch.equal(future[:, :, 0], original_future[:, :, 0])
+    assert torch.equal(future[:, 1:, 1], original_future[:, 1:, 1])
+
+
+def test_shared_m5_side_accumulates_both_known_target_gradients():
+    torch.manual_seed(411)
+    model = NativeFutureDualModel(FactorizedTimeQueryMarketStateModel(
+        _backbone(), dedicated_m5_side=True), shared_m5_side=True)
+    state, future = _decode(model)
+    s = state[:, 0, 0, 1]
+    f = future[:, 0, 1]
+    head = model.state_model.m5_side_head.weight
+    s_loss = torch.nn.functional.binary_cross_entropy_with_logits(
+        s, torch.tensor([1., 0., 1.]))
+    f_loss = torch.nn.functional.binary_cross_entropy_with_logits(
+        f, torch.tensor([1., 1., 0.]))
+    gs = torch.autograd.grad(s_loss, head, retain_graph=True)[0]
+    gf = torch.autograd.grad(f_loss, head, retain_graph=True)[0]
+    (s_loss + f_loss).backward()
+    torch.testing.assert_close(head.grad, gs + gf, rtol=0, atol=1e-7)
+    assert torch.count_nonzero(head.grad)
+    model.future_m5_side_head.weight = nn.Parameter(head.detach().clone())
+    with pytest.raises(RuntimeError, match='NATIVE_F_SHARED_M5_SIDE_BINDING'):
+        model._require_binding()
+
+
+def test_shared_m5_fold2_profile_contract_and_native_equality():
+    kwargs = dict(ta_only=True, dedicated_m5_side=True,
+                  dedicated_non_m5_side=False, dedicated_tf_activity=True)
+    assert dual_contract(**kwargs)['contract_sha256'] == (
+        '4d6fa668262b2cf51e78d015b81a462dc53debf606121b859898053e6fd12e38')
+    model = NativeFutureDualModel(FactorizedTimeQueryMarketStateModel(
+        _backbone(), dedicated_m5_side=True, dedicated_tf_activity=True),
+        shared_m5_side=True)
+    assert model.research_objective['contract_sha256'] == dual_contract(
+        **kwargs, shared_m5_side=True)['contract_sha256']
+    model._require_binding()
+    model.to(dtype=torch.float64).to(dtype=torch.float32)
+    assert model.future_m5_side_head.weight is model.state_model.m5_side_head.weight
+    assert model.future_m5_side_head.bias is model.state_model.m5_side_head.bias
+    model._require_binding()
+    state, future = _decode(model)
+    assert torch.equal(state[:, 0, 0, 1], future[:, 0, 1])

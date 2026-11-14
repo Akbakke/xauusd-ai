@@ -171,3 +171,29 @@ def test_fold2_m5_direction_uses_own_weighting_and_no_other_task_gradient():
         assert torch.equal(chosen[:, 0, 1], full_grad[:, 0, 1])
         assert torch.count_nonzero(chosen[..., 0]) == 0
         assert torch.count_nonzero(chosen[:, 1:, :]) == 0
+
+
+def test_shared_m5_side_changes_binding_only_for_the_same_masked_loss():
+    raws, _, args = case()
+    args.update(fold_id=2, m5_direction_only=True)
+    separate = objective.combined_loss(**args)
+    tied = objective.combined_loss(**args, shared_m5_side=True)
+    assert tied['contract_sha256'] != separate['contract_sha256']
+    assert tied['contract_sha256'] == objective.contract(
+        **PROFILE, fold_id=2, m5_direction_only=True,
+        shared_m5_side=True)['contract_sha256']
+    assert torch.equal(tied['loss'], separate['loss'])
+    for a, b in zip(torch.autograd.grad(tied['loss'], raws, retain_graph=True),
+                    torch.autograd.grad(separate['loss'], raws)):
+        assert torch.equal(a, b)
+
+
+def test_batch_adapter_binds_shared_head_loss_identity(monkeypatch):
+    from tests.test_market_state_m5_equal_observation_binding import _batch_case
+    events, args, kwargs = _batch_case(monkeypatch, 16, 16)
+    args[0]._shared_m5_side = True
+    out = batch.evaluate_fit_batch(*args, **kwargs, m5_direction_only=True)
+    assert events == ['forward', 'S-targets', 'F-targets']
+    assert out['loss_contract_sha256'] == objective.contract(
+        ta_only=True, dedicated_m5_side=True, m5_equal_observation=True,
+        m5_direction_only=True, shared_m5_side=True)['contract_sha256']

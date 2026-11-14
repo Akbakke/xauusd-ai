@@ -5,6 +5,19 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
+Aktuell policy: TA_FOLD2_M5_SHARED_HEAD_SOURCE_QUALIFIED_BASELINE_PENDING.
+Målt avvik på lagrede, faste F-M5-paneler: FINAL innen UTC-dag AUC
+TRAIN0,4628 og senere0,4724, selv om samlet TRAIN-AUC0,5125. S-skåren
+mot samme F-mål har innen-dag AUC0,6033/0,5607; utforskende og ikke
+kvalifisert edge. Modne TRAIN-mål er enige på11178/11516 overlapp,
+mens F har7556 egne kjente sider. Kilde og tall står i
+`docs/TA_FOLD2_M5_SHARED_HEAD_SOURCE_REVIEW_20261114.json`. Opt-in
+delt M5-sideparameter er implementert og syntetisk kontrollert; gammel
+standardkontrakt/output og egne S/F-masker er bevart. Ingen fysisk ny
+INITIAL, fit eller TEST er kjørt. Neste steg er eksakt ny engangsadmisjon
+for fersk, capped nullstegsbaseline; fit trenger separat senere admisjon.
+training_enabled=false, ingen broker/ordre/handel.
+
 TA_FOLD2_M5_004_COMPLETE_CONSUMED_F_M5_EDGE_UNQUALIFIED. Edge-målet er
 uoppnådd. TARGET_COUNTS001 er COMPLETE/CONSUMED, exit0,3,78s. RESULT ba50eb96,
 VALIDATION dd45bd05, TERMINAL dccda6f6; ingen relansering. På eksakt47338 modne
@@ -106,7 +119,7 @@ F M5 Brier ble dårligere0,250425→0,251524. Kun6/15 senere F TF/måned-celler
 økte AUC og1/15 bedret Brier; alle celler er verifisert fra immutable
 captures. S M5 fikk bedre punktestimat, men var ikke valgt primært F-mål.
 Ingen kvalifisert rangering, uavhengig generalisering eller økonomisk edge.
-training_enabled=false; neste steg er kildebasert spesifikasjon av én delt S/F-M5-sidehode-hypotese. TEST, Entry, Exit, broker og ordre er stengt.
+training_enabled=false; neste steg er egen innrømmet nullstegsbaseline for delt S/F-M5-sidehode. TEST, Entry, Exit, broker og ordre er stengt.
 Edge er fortsatt ubevist. Lesende, hash-verifisert diagnose på uendrede captures
 står i `docs/TA_FOLD2_M5_READ_ONLY_DIAGNOSIS_20261114.json`. Senere F M5
 FINAL-sannsynlighet har middel0,4848 og SD0,00681 mot faktisk UP-andel0,5374;
@@ -117,8 +130,8 @@ ikke valgt signal eller edge. Kildekontroll fant samme native M5-representasjon,
 separate sidehoder og korrekt UP-koding; ingen akse-/målfeil i captures.
 Ren sannsynlighetskalibrering kan ikke forbedre AUC. Én ny kausal hypotese
 er delt S/F-M5-sidehode mot begge modne TRAIN-mål; ulik etikett og F-only
-dekning kan falsifisere den. Ingen ny fit er innrømmet; policy krever egen
-spesifikasjon, fersk baseline og ny engangsadgang før eventuell kjøring.
+dekning kan falsifisere den. Kildevarianten er nå særskilt dokumentert;
+fersk baseline og ny engangsadgang kreves før eventuell fit.
 Fokuserte fold2/campaign-tester PASS. Eldre fold1-fit-testfil har19 isolerte
 fixture-feil NATIVE_F_PRIVATE_TA_M5_EXACT_INPUT_IDENTITY i uendrede kilder/refs;
 ikke bruk den som fold2-kvittering eller gjenta uten konkret behov.
