@@ -1,0 +1,441 @@
+{
+  "command_template": [
+    "timeout",
+    "--signal=TERM",
+    "--kill-after=10s",
+    "3600s",
+    "scripts/gx1_capped_run.sh",
+    "--class",
+    "audit",
+    "--mem",
+    "4G",
+    "--swap",
+    "512M",
+    "--",
+    ".venv/bin/python",
+    "-m",
+    "gx1.audit.qualify_market_state_ta_fivefold_span_extension_v1",
+    "--plan",
+    "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_001.json",
+    "--plan-sha256",
+    "{plan_sha256}"
+  ],
+  "coverage": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_FIVEFOLD_ANCHOR_SPAN_COVERAGE_20261114.json",
+    "sha256": "c27f0f1c550ff1643356b9612be85623e80bdb815545615ae69e41fcc1500d92"
+  },
+  "cutoff_ns": 1767225600000000000,
+  "fold2_result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_002/RESULT.json",
+    "sha256": "8f2acfafc459cc9a2fbcb7b588c40eb008d1e75c7e47835bbc55f24b68f32cc2"
+  },
+  "lane_scopes": {
+    "D1": {
+      "extra_superrange_rows": 0,
+      "fit_proof_checks": [
+        {
+          "fit_input_rows": 360,
+          "fold_id": 1,
+          "row_hash_match": true
+        },
+        {
+          "fit_input_rows": 425,
+          "fold_id": 2,
+          "row_hash_match": true
+        },
+        {
+          "fit_input_rows": 488,
+          "fold_id": 3,
+          "row_hash_match": true
+        },
+        {
+          "fit_input_rows": 552,
+          "fold_id": 4,
+          "row_hash_match": true
+        },
+        {
+          "fit_input_rows": 618,
+          "fold_id": 5,
+          "row_hash_match": true
+        }
+      ],
+      "full_population": {
+        "available_ns_sha256": "8f7da236fa83417bcf39bdd7e4a102837d830708fd3bf049ad83c1c915f82b25",
+        "selected_row_indices_sha256": "a3ced9d68fa67b339e8d56da38eead4a5316b29cc5769496667d1de9811be463",
+        "selected_unique_row_count": 683
+      },
+      "last_availability_utc": "2025-12-30T22:00:00+00:00",
+      "new_population": {
+        "available_ns_sha256": "64e0ee209618aea20f6701d2bb7d0b873b3a032a08b8c067150e6cd6e205b4f2",
+        "selected_row_indices_sha256": "27800a29f1bc0eb09edf8a29e3df61e9ce8fb4f7650b579f752166ac27a59d16",
+        "selected_unique_row_count": 258,
+        "time_max_utc": "2025-12-29T22:00:00+00:00",
+        "time_min_utc": "2024-12-30T22:00:00+00:00"
+      },
+      "new_range": [
+        3761,
+        4019
+      ],
+      "new_rows": 258,
+      "old_range": [
+        3336,
+        3761
+      ],
+      "old_sidecar": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_002/D1_ANCHOR_SPANS.npz",
+        "sha256": "01ea9a338f1d73afbb414c6c64dce7e71d08b6a0e295b0449b2c1670a0e68de3"
+      },
+      "required_superrange": [
+        3336,
+        4019
+      ],
+      "selected_union_rows": 683
+    },
+    "H1": {
+      "extra_superrange_rows": 0,
+      "fit_proof_checks": [
+        {
+          "fit_input_rows": 2571,
+          "fold_id": 1,
+          "row_hash_match": true
+        },
+        {
+          "fit_input_rows": 4058,
+          "fold_id": 2,
+          "row_hash_match": true
+        },
+        {
+          "fit_input_rows": 5504,
+          "fold_id": 3,
+          "row_hash_match": true
+        },
+        {
+          "fit_input_rows": 6972,
+          "fold_id": 4,
+          "row_hash_match": true
+        },
+        {
+          "fit_input_rows": 8484,
+          "fold_id": 5,
+          "row_hash_match": true
+        }
+      ],
+      "full_population": {
+        "available_ns_sha256": "ee166f18b148f2bfbed54ad864cb6ab828aeac519ea54e4bcea85c47813d3c2a",
+        "selected_row_indices_sha256": "66964412cb7dffad87f6ecd4d098294014a894f587df9475bb445b32033c2614",
+        "selected_unique_row_count": 9995
+      },
+      "last_availability_utc": "2025-12-31T21:00:00+00:00",
+      "new_population": {
+        "available_ns_sha256": "9d0ce9dd7b5b7b5822762a0e29abeffad163e1025b968e0af614304afe4fa79f",
+        "selected_row_indices_sha256": "0b9b625c7a36d816a69ad0874f6c9b72d6c1683a31726f4baac5f31e5970094a",
+        "selected_unique_row_count": 5937,
+        "time_max_utc": "2025-12-31T20:00:00+00:00",
+        "time_min_utc": "2024-12-30T23:00:00+00:00"
+      },
+      "new_range": [
+        87137,
+        93074
+      ],
+      "new_rows": 5937,
+      "old_range": [
+        83079,
+        87137
+      ],
+      "old_sidecar": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_002/H1_ANCHOR_SPANS.npz",
+        "sha256": "27e9339c6d3b60b9a87b518e3e3607ebbb49e4149f8f1688de4b9aa05b491c2d"
+      },
+      "required_superrange": [
+        83079,
+        93074
+      ],
+      "selected_union_rows": 9995
+    },
+    "H4": {
+      "extra_superrange_rows": 0,
+      "fit_proof_checks": [
+        {
+          "fit_input_rows": 744,
+          "fold_id": 1,
+          "row_hash_match": true
+        },
+        {
+          "fit_input_rows": 1134,
+          "fold_id": 2,
+          "row_hash_match": true
+        },
+        {
+          "fit_input_rows": 1512,
+          "fold_id": 3,
+          "row_hash_match": true
+        },
+        {
+          "fit_input_rows": 1896,
+          "fold_id": 4,
+          "row_hash_match": true
+        },
+        {
+          "fit_input_rows": 2291,
+          "fold_id": 5,
+          "row_hash_match": true
+        }
+      ],
+      "full_population": {
+        "available_ns_sha256": "02a1e1a61f5adc92c846b43cd4ad6c1c38a57eae004bb68fbec576464fd61a7b",
+        "selected_row_indices_sha256": "ec7ded09325c46e701094d024463da29dc7af67803cf628fcd53de7a495b5f4a",
+        "selected_unique_row_count": 2686
+      },
+      "last_availability_utc": "2025-12-31T18:00:00+00:00",
+      "new_population": {
+        "available_ns_sha256": "bc5e91c2bc49062760cd88c40deee69bd16ed26b3579f3421ce124aa4a557353",
+        "selected_row_indices_sha256": "4e97a9f9a28fb59c7d674cc66d91c316209f64469a73fe24a9f50c4e0edcf019",
+        "selected_unique_row_count": 1552,
+        "time_max_utc": "2025-12-31T14:00:00+00:00",
+        "time_min_utc": "2024-12-30T22:00:00+00:00"
+      },
+      "new_range": [
+        22502,
+        24054
+      ],
+      "new_rows": 1552,
+      "old_range": [
+        21368,
+        22502
+      ],
+      "old_sidecar": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_002/H4_ANCHOR_SPANS.npz",
+        "sha256": "c7596ecaff29653566233d8714e5cac8697831013c813e8c8760d38a110d15a1"
+      },
+      "required_superrange": [
+        21368,
+        24054
+      ],
+      "selected_union_rows": 2686
+    },
+    "M15": {
+      "extra_superrange_rows": 0,
+      "fit_proof_checks": [
+        {
+          "fit_input_rows": 9959,
+          "fold_id": 1,
+          "row_hash_match": true
+        },
+        {
+          "fit_input_rows": 15903,
+          "fold_id": 2,
+          "row_hash_match": true
+        },
+        {
+          "fit_input_rows": 21683,
+          "fold_id": 3,
+          "row_hash_match": true
+        },
+        {
+          "fit_input_rows": 27551,
+          "fold_id": 4,
+          "row_hash_match": true
+        },
+        {
+          "fit_input_rows": 33597,
+          "fold_id": 5,
+          "row_hash_match": true
+        }
+      ],
+      "full_population": {
+        "available_ns_sha256": "61615078648e13c5d9d826663309c7dccbfd82974dafdbfb1ef6f553b18badde",
+        "selected_row_indices_sha256": "3dcd6e6ba90385417ba9f5236518eb7457bd2662fc95866dd88c737b15a50f21",
+        "selected_unique_row_count": 39638
+      },
+      "last_availability_utc": "2025-12-31T21:45:00+00:00",
+      "new_population": {
+        "available_ns_sha256": "6061020aea91049a0e5e1cf15dc4694fd6ed62b6fa6524f45a6c80a8c35830d0",
+        "selected_row_indices_sha256": "0079e07fdffb39baba1234ea2d0e13e9bc33fdb7d5522620b016ab68eed37b58",
+        "selected_unique_row_count": 23735,
+        "time_max_utc": "2025-12-31T21:30:00+00:00",
+        "time_min_utc": "2024-12-30T23:45:00+00:00"
+      },
+      "new_range": [
+        345644,
+        369379
+      ],
+      "new_rows": 23735,
+      "old_range": [
+        329741,
+        345644
+      ],
+      "old_sidecar": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_002/M15_ANCHOR_SPANS.npz",
+        "sha256": "b01e972a8e7a4f20ef99ce4aef5815ccdab18f0c75fdc72ef373f8dbd9451d80"
+      },
+      "required_superrange": [
+        329741,
+        369379
+      ],
+      "selected_union_rows": 39638
+    },
+    "M5": {
+      "extra_superrange_rows": 0,
+      "fit_proof_checks": [
+        {
+          "fit_input_rows": 29702,
+          "fold_id": 1,
+          "row_hash_match": true
+        },
+        {
+          "fit_input_rows": 47534,
+          "fold_id": 2,
+          "row_hash_match": true
+        },
+        {
+          "fit_input_rows": 64874,
+          "fold_id": 3,
+          "row_hash_match": true
+        },
+        {
+          "fit_input_rows": 82477,
+          "fold_id": 4,
+          "row_hash_match": true
+        },
+        {
+          "fit_input_rows": 100615,
+          "fold_id": 5,
+          "row_hash_match": true
+        }
+      ],
+      "full_population": {
+        "available_ns_sha256": "356fcc4e39d4b954fc8210d4b389bb4696ebc65892e68ab7834391440d94f314",
+        "selected_row_indices_sha256": "0f0992f5f833d75857aa3a24b1213dcc36659211609fe5044fefd6c26cba960c",
+        "selected_unique_row_count": 118720
+      },
+      "last_availability_utc": "2025-12-31T21:55:00+00:00",
+      "new_population": {
+        "available_ns_sha256": "b5836456067bd4d18505467a6d7818fc187527b1e0f849d748b2f103bfcb1c10",
+        "selected_row_indices_sha256": "62ce922a86d5611fa25847ad32a5f00fd07c3fa5366bb5e2c6008070667f58df",
+        "selected_unique_row_count": 71186,
+        "time_max_utc": "2025-12-31T21:50:00+00:00",
+        "time_min_utc": "2024-12-30T23:55:00+00:00"
+      },
+      "new_range": [
+        1034860,
+        1106046
+      ],
+      "new_rows": 71186,
+      "old_range": [
+        987326,
+        1034860
+      ],
+      "old_sidecar": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_002/M5_ANCHOR_SPANS.npz",
+        "sha256": "4c6ad34e4455c0bca0317087b022aa4524b9112707a900119ce1fe21e671475a"
+      },
+      "required_superrange": [
+        987326,
+        1106046
+      ],
+      "selected_union_rows": 118720
+    },
+    "local": {
+      "extra_superrange_rows": 0,
+      "fit_proof_checks": [
+        {
+          "fit_input_rows": 29782,
+          "fold_id": 1,
+          "row_hash_match": true
+        },
+        {
+          "fit_input_rows": 47614,
+          "fold_id": 2,
+          "row_hash_match": true
+        },
+        {
+          "fit_input_rows": 64954,
+          "fold_id": 3,
+          "row_hash_match": true
+        },
+        {
+          "fit_input_rows": 82557,
+          "fold_id": 4,
+          "row_hash_match": true
+        },
+        {
+          "fit_input_rows": 100695,
+          "fold_id": 5,
+          "row_hash_match": true
+        }
+      ],
+      "full_population": {
+        "available_ns_sha256": "1f87dda31c77bcf135319cb677762ca22392acdbfff1aeea1e839b3a909d39d3",
+        "selected_row_indices_sha256": "2cc807eba7c5ac9235bd6b18955972b79a0d0c99e0ca2e2b325e5f998138c13c",
+        "selected_unique_row_count": 118800
+      },
+      "last_availability_utc": "2025-12-31T21:55:00+00:00",
+      "new_population": {
+        "available_ns_sha256": "b5836456067bd4d18505467a6d7818fc187527b1e0f849d748b2f103bfcb1c10",
+        "selected_row_indices_sha256": "7b509c61b82ca0fac72c1607547b3285349a40e4f0bb0f761b71b809ded34dcf",
+        "selected_unique_row_count": 71186,
+        "time_max_utc": "2025-12-31T21:50:00+00:00",
+        "time_min_utc": "2024-12-30T23:55:00+00:00"
+      },
+      "new_range": [
+        1034641,
+        1105827
+      ],
+      "new_rows": 71186,
+      "old_range": [
+        987027,
+        1034641
+      ],
+      "old_sidecar": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_002/local_ANCHOR_SPANS.npz",
+        "sha256": "9dda557010e53fdd0772d6c9f5c119545ebc02a367f9e937062123bb4f09c492"
+      },
+      "required_superrange": [
+        987027,
+        1105827
+      ],
+      "selected_union_rows": 118800
+    }
+  },
+  "lanes": [
+    "local",
+    "M5",
+    "M15",
+    "H1",
+    "H4",
+    "D1"
+  ],
+  "max_invocations": 1,
+  "old_plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001.json",
+    "sha256": "889161060a9abb9c028abffe3246420f06a63891ee9a51305d3e8173d970fbf1"
+  },
+  "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_001",
+  "schema_version": "gx1_ta_fivefold_span_extension_plan_v1",
+  "scope": {
+    "merged_rows_total": 290522,
+    "model_constructions": 0,
+    "model_forwards": 0,
+    "new_rows_total": 173854,
+    "normalization_fits": 0,
+    "optimizer_steps": 0,
+    "producer_calls": 6,
+    "target_labels_used": false,
+    "test_data_used": false
+  },
+  "source_base_head": "c9f19dfa7a7be4bba9cf81a637e15f211aca1c5b",
+  "source_owners": {
+    "gx1/audit/qualify_market_state_ta_anchor_span_inputs_v1.py": "c7fa16218ebda3989388d40e6aa89d03f7f503937739812a13e97e64797d55d2",
+    "gx1/audit/qualify_market_state_ta_fivefold_span_extension_v1.py": "738a1e50eafceaf79aa2d66bc33245ac39b8f7b98dd4c65894ad58c3ddc92c5b",
+    "gx1/contracts/gx1_capped_execution_v1.py": "60b1ccf2eda470a84ddded0d8160c628314ebb19f5766b87b70fef7c9aa3ccff",
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "gx1/features/htf_features.py": "9ca968805e3eca72525e14c8b53e5b31817cd2baa7c0cdb9b636cb112f092520",
+    "gx1/features/technical_indicators_v1.py": "3a81bec825639e57a3071cc28d4dc2d3d394fef031dc89d71da3b468ca28ecad",
+    "gx1/features/trendline_registry_v1.py": "24c12e8d4c6f597a331dacecbdc5e9a9ed8fdf6c0b6798ee7c543884d04aee58",
+    "gx1/scripts/audit_direction_d1_trendline_replay_v1.py": "afe228b61eb5ec5a10e39f80c1bf4131b806ebf95ea028c6545c74f89530b56a",
+    "scripts/gx1_capped_run.sh": "3c9d608574be3755e0e3d63d2617a01612d65dbaf61b26b76765262a5a2abc4c"
+  },
+  "stage": "market_state_ta_fivefold_span_extension_20261114_001",
+  "status": "PREPARED_NOT_ADMITTED",
+  "test_data_used": false
+}

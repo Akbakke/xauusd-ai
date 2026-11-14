@@ -374,7 +374,9 @@ def measure(plan, *, ranges=None, cutoff=None, output_root=None, lanes=None):
         buffer = io.BytesIO()
         np.savez(buffer, row_indices=rows, times_ns=times, native_bar_positions=positions.astype(np.int64),
                  anchor_span_bars=spans)
-        need(buffer.tell() <= 2 * 1024**2, 'ARRAY_OUTPUT_BUDGET')
+        budget = plan['scope'].get('array_output_budget_bytes', 2 * 1024**2)
+        need(type(budget) is int and budget in (2 * 1024**2, 4 * 1024**2)
+             and buffer.tell() <= budget, 'ARRAY_OUTPUT_BUDGET')
         _publish_bytes(output_root / (lane + '_ANCHOR_SPANS.npz'), buffer.getvalue())
         reports[lane] = dict(population=pop, parity=parity, parameters=plan['parameters'][lane],
                              replay_rows=len(bars), first_replay_time_ns=int(bars.index.asi8[0]),

@@ -5,7 +5,19 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: TA_FOLD2_F_M5_BRIER_ACCOUNTING_COMPLETE_EDGE_UNQUALIFIED.
+Aktuell policy: TA_FIVEFOLD_SPAN_EXTENSION_PREPARED_NOT_ADMITTED.
+Femfolds manglende 255-felts input er nå bundet i en input-only plan uten claim:
+`docs/TA_FIVEFOLD_ANCHOR_SPAN_COVERAGE_20261114.json` verifiserer30/30
+opprinnelige fit-radhash og seks sammenhengende før-TEST-radintervaller.
+Planen gjenbruker fold2s seks uforanderlige sidecars og lager bare173854
+nye rader, samlet290522. Replay krever bitlikhet for31 gamle trendlinjefelt;
+modell/normalisering/mål/TEST er utenfor jobben. Ny engangsplan
+`configs/research/MARKET_STATE_TA_FIVEFOLD_SPAN_EXTENSION_20261114_001.json`
+er PREPARED, ikke admitted eller kjørt. Kilde-/policy-preflight og ressurskontroll
+gjenstår før eventuell opptak og én capped kjøring. Global trening er fortsatt
+stengt; Edge er ikke kvalifisert.
+
+Tidligere policy: TA_FOLD2_F_M5_BRIER_ACCOUNTING_COMPLETE_EDGE_UNQUALIFIED.
 Gammelt F-M5 FINAL-hode hadde senere innen-UTC-dag AUC0,4724 mot
 S-skårens0,5607 på samme F-mål; samlet F-TRAIN-AUC0,5125 skjulte
 lokalt rangeringstap. Kilde- og etikettreview står i
