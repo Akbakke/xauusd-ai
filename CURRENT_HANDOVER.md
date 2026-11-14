@@ -61,11 +61,14 @@ metadataautoritet kjenner fold2-resepten, 2959 besøkte batcher og mulige
 hoppede oppdateringer i terminal cursor/progress. Materialisering, dispatch og
 ytre worker er kildebundet og syntetisk rutet; syntetisk COMPLETE og midt-i-step FAILED publiserer
 immutable resultat/cursor/progress, mens gjentak avvises. En ren committed kilde
-kan publisere kun kandidat-resept under lukket trening. Ingen campaign-resept er
-ennå publisert, og ingen faktisk payload/modell/fit/FINAL-capture er kjørt. Én
-trainer-window på12000s/250W og intern10500s er foreslått. Neste steg er
-fokuserte sluttkontroller, samlet dagscommit/push, ren kandidat-resept og egen
-ressurs-/boot-/admisjonsreview.
+har nå publisert kun immutable kandidat-resept SHA4dac6a56 fra c72f29eb
+under lukket trening. Stage har RECIPE.json og immutable PREPARED_WINDOWS_BOOT.json
+for målt Windows-boot649 (SHAaeaddb68); faktisk kjøring krever senere boot>649.
+Gammel guard-template er strukturelt gyldig, men runner/observer-kildehash bindes
+på nytt ved materialisering. Ingen campaign-plan, claim, faktisk payload/modell/
+fit/FINAL-capture finnes. Én trainer-window på12000s/250W og intern10500s er
+foreslått. Neste steg er eksakt engangsadmisjons-/ressursreview og fersk boot;
+training_enabled=false inntil eget vedtak.
 Ingen fit-admisjon: training_enabled=false; ingen trening, TEST, broker eller ordre.
 Fokuserte fold2/campaign-tester PASS. Eldre fold1-fit-testfil har19 isolerte
 fixture-feil NATIVE_F_PRIVATE_TA_M5_EXACT_INPUT_IDENTITY i uendrede kilder/refs;

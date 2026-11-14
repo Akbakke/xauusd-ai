@@ -14,7 +14,7 @@
   },
   "native_training_authorized": false,
   "new_job_admitted": false,
-  "next_action": "Finish focused source and metadata checks, then commit/push this code and handover in the daily batch. From a clean committed source, publish only the immutable fold2 M5 candidate recipe while training remains closed. Review exact fresh boot, guard, resources and one-use policy before any separate fit admission. No fit, TEST, broker or trading authorized; training_enabled=false.",
+  "next_action": "Immutable fold2 M5 recipe and prepared Windows boot 649 are bound. The old guard template requires current runner/observer source rebind; materializer does this. A later fresh physical boot (ID >649), exact one-use campaign admission and guarded resource check are still required. training_enabled=false; no fit, TEST, broker or trading authorized.",
   "normalization": {
     "artifacts": {
       "EXTENDED_BASE_NORMALIZATION": {
@@ -316,7 +316,7 @@
     "Existing six two-field fit/inverse/projection owner reused with exact fold2 parent/cutoff/output binding.",
     "Existing M5 equal-observation owner binds fold2 to its measured S/F q/N, axes, view and target-count receipts; fold1 profile and default identity remain unchanged."
   ],
-  "status": "FOLD2_M5_CAMPAIGN_ROUTE_SOURCE_REVIEWED_EXECUTION_CLOSED",
+  "status": "FOLD2_M5_CANDIDATE_RECIPE_AND_PREPARED_BOOT_EXECUTION_CLOSED",
   "test_data_used": false,
   "validation": {
     "both_actual_cli_preflights": "PASS",
@@ -988,7 +988,7 @@
     "relaunch_allowed": false
   },
   "fold2_m5_fit_hypothesis": {
-    "status": "CAMPAIGN_ROUTE_SOURCE_AND_SYNTHETIC_TERMINALS_REVIEWED_EXECUTION_UNADMITTED",
+    "status": "CANDIDATE_RECIPE_AND_BOOT_649_PREPARED_FIT_UNADMITTED",
     "question": "Can one fixed chronological full-TRAIN pass of the existing native S/F model, using only its M5 known-side direction loss, improve later F M5 rank versus the exact fresh zero-update function?",
     "source_commit_at_review": "f013cb758e0d03098bbe4edaddef6c5426d8a5fa",
     "source_owners": {
@@ -1203,7 +1203,7 @@
         }
       }
     },
-    "implementation_gap": "The fold2 frozen recipe, existing native campaign metadata/materializer dispatch, outer worker and terminal cursor/progress are source-bound and synthetically checked. No clean committed candidate recipe, fresh physical boot, real payload/model startup, actual fit, immutable FINAL captures or paired final readout exists. Fit admission remains closed.",
+    "implementation_gap": "Immutable candidate recipe and prepared Windows boot 649 exist. The existing guard template needs current runner/observer source rebind, which materialization performs. No admitted campaign plan, later fresh boot, guarded claim, real payload/model startup, fit, FINAL captures or paired final readout exists.",
     "resource_note": "The historical fold1 full-prefix two-pass phase took 7586.8 seconds for 3698 updates; this is planning evidence, not a fold2 wall-time guarantee or admission.",
     "scope_limits": "All genuine TA/MTF/D1 inputs and S/F outputs remain; the selected loss gives direct gradient only to M5 known-side direction. A single pass cannot rule out deeper learning if it fails. No Entry selection, economics, TEST or trading is measured.",
     "execution_authorized": false,
@@ -1338,7 +1338,7 @@
       "limits": "No campaign dispatch, claim/cursor/progress/terminal receipts, actual input payload, model construction or fit execution."
     },
     "frozen_recipe": {
-      "status": "FROZEN_DESIGN_AND_CANDIDATE_PREPARATION_SOURCE_ONLY_NO_PUBLICATION_OR_ADMISSION",
+      "status": "IMMUTABLE_CANDIDATE_RECIPE_PUBLISHED_NO_ADMISSION",
       "design": {
         "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_FOLD2_M5_FIT_DESIGN_20261114_001.json",
         "sha256": "07adbe390c9a2d4501f65fbb4750c37b5142d69813ecb18ca0e9e91baa6b1f87"
@@ -1357,7 +1357,7 @@
       "candidate_max_optimizer_updates": 2959,
       "candidate_checkpoint_writes": 0,
       "candidate_resume_allowed": false,
-      "campaign_recipe_published": false,
+      "campaign_recipe_published": true,
       "execution_authorized": false,
       "test_data_used": false,
       "campaign_authority": {
@@ -1365,7 +1365,17 @@
         "sha256": "88c3be696cb9a02ede362bf277ac669922e769d8f325c04be952f75f21463c74"
       },
       "terminal_cursor_checks": "B16/B10 parent cursor reaches 47338 after 2959 visits; optimizer updates may be fewer than visits. Synthetic terminal transport covers COMPLETE and mid-step FAILED with lower-bound counters, immutable result/cursor/progress and no resume.",
-      "focused_test_cases": 2
+      "focused_test_cases": 2,
+      "candidate_recipe": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_001/RECIPE.json",
+        "sha256": "4dac6a567f5bb0308b02be640ac53c3474b390424719a39c349da0d06e43f098"
+      },
+      "candidate_recipe_source_commit": "c72f29ebe63ee1a69e3d0e16ced5ccdcce867473",
+      "prepared_windows_boot": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_001/PREPARED_WINDOWS_BOOT.json",
+        "sha256": "aeaddb68596ae5afb70de4ce0a30a18478332c1e179f1799c2b48e084a26f3ed"
+      },
+      "prepared_windows_boot_id": 649
     },
     "campaign_route": {
       "status": "SOURCE_BOUND_SYNTHETIC_COMPLETE_AND_CONSUMED_FAILURE_PASS_NO_REAL_EXECUTION",
@@ -1398,10 +1408,42 @@
       "real_model_constructions": 0,
       "real_optimizer_updates": 0,
       "real_final_captures_published": false,
-      "candidate_recipe_published": false,
+      "candidate_recipe_published": true,
       "training_authorized": false,
       "test_data_used": false,
-      "synthetic_router_and_materializer_selection": true
+      "synthetic_router_and_materializer_selection": true,
+      "candidate_recipe": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_001/RECIPE.json",
+        "sha256": "4dac6a567f5bb0308b02be640ac53c3474b390424719a39c349da0d06e43f098"
+      },
+      "prepared_windows_boot": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_001/PREPARED_WINDOWS_BOOT.json",
+        "sha256": "aeaddb68596ae5afb70de4ce0a30a18478332c1e179f1799c2b48e084a26f3ed"
+      },
+      "guard_template_candidate": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_EQUAL_LOSS_MECHANICAL_20261109_001/CAMPAIGN/CAMPAIGN_PLAN.json",
+        "sha256": "905dd8efd3cd7fae95f2dc90457b710d673f5a23399a61831eea9063516fcd9d"
+      },
+      "current_source_rebind_required": [
+        "signed_guard_sources:runner",
+        "controller_sources:observer"
+      ],
+      "proposed_capped_invocation": {
+        "class": "trainer",
+        "memory": "20G",
+        "swap": "512M",
+        "max_invocation_seconds": 12000,
+        "wrapper_wall_seconds": 13800,
+        "max_model_seconds": 10500,
+        "gpu_power_cap_w": 250,
+        "optimizer_step_budget": 2959,
+        "checkpoint_writes": 0,
+        "resume_allowed": false,
+        "failure_consumes_one_use_plan": true,
+        "test_data_used": false
+      },
+      "fresh_physical_windows_boot_before_invocation_required": true,
+      "operator_fit_admission_authorized": false
     }
   }
 }
