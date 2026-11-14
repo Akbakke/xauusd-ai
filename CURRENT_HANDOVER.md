@@ -5,7 +5,7 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-TA_FOLD2_M5_READOUT_SOURCE_REPLAYED_EXECUTION_CLOSED. Edge-målet er
+TA_FOLD2_M5_INPUT_SOURCE_BOUND_EXECUTION_CLOSED. Edge-målet er
 uoppnådd. TARGET_COUNTS001 er COMPLETE/CONSUMED, exit0,3,78s. RESULT ba50eb96,
 VALIDATION dd45bd05, TERMINAL dccda6f6; ingen relansering. På eksakt47338 modne
 TRAIN-rader /2959 B16 med siste10 er M5 kjent retning S N16101/q2890 og F N19072/q2950.
@@ -46,32 +46,16 @@ TRAIN-rader/maks2959 B16-oppdateringer fra samme ferske INITIAL og skårer de sa
 faste senere panelene, uten checkpoint-/terskelvalg. Tidligere fold1 fulltap ga
 F M5 senere AUC0,5113→0,5101→0,5091 etter pass1/pass2 og dårligere Brier;
 det er begrunnelse, ikke matchet fold2-kontroll. Eksisterende fit-runner importerer
-gammelt checkpoint og binder fold1. Syntetiske adaptertester for fold2 B16 og
-endelig B10 består; de beviser ikke faktisk fit eller prediksjon. Historisk fold1
-topassfase tok7586,8s/3698oppdateringer. CUDA-produsent har3600s og tillater
-ikke fit; bevoktet trainer-rute kan bindes til12000s, men fold2-dispatch,
-startdigest og eksakt checkpoint-/resume-regel er ennå ikke kvalifisert.
-Read-only fold2 M5-metadata-preflight består nå mot ferdige målkvitteringer,
-fersk INITIAL/130 validerte celler, eksakt loss/profil og låste kildehash-er;
-null feature-payload, modell eller oppdatering. Foreslått én bevoktet trainer-
-window:12000s, intern modellgrense10500s, 250W, null checkpoint/resume;
-svikt forbruker engangsplanen. Ruten og disse vaktene er ennå ikke implementert.
-Bootstrap-bindingen ble rettet mot den faktiske period-transfer-scoreren før
-fit: UTC-dag seed20260911, UTC-mandagsuke seed20260912, 2000 parvise trekk.
-Fold2-kildekontrakt binder nå hele kronologiske TRAIN-planen, B16/B10-halen,
-fersk startdigest, fast readout, bootstrap og én no-resume-window; preflighten
-bruker den og består. Ingen worker eller dispatch er kvalifisert ennå.
-Fit-kjernen har tre fokuserte syntetiske tester PASS:2959 B16/B10-besøk,2957
-oppdateringer ved to simulerte tomme batcher; feil AdamW og modellkontrakt
-stoppes før oppdatering. Faktisk
-feature-gather, native modell, sluttreadout og kampanjedispatch er ikke prøvd.
-Skrivefri slutt-scorer replayet alle130 lagrede INITIAL-panel/task/måned/TF-celler
-eksakt og ga null parvis F M5 AUC-endring for identiske captures i både dag- og
-uke-bootstrap. Primærintervaller er låst til F M5 samlet og jan–mar; øvrige TF
-og kalibrering rapporteres beskrivende. Ingen FINAL-fit-capture finnes.
-Neste steg er å binde faktisk full TRAIN/later feature-gather og scorer til fit-kjernen,
-deretter eksisterende bevoktet research-kampanje med eksakte kilde-, oppstart-
-og feilkvitteringer før separat fit-admisjon.
+gammelt checkpoint og binder fold1. Fold2 har nå fast B16/B10-kildekontrakt,
+syntetisk fit-kjerne (4 fokuserte tester PASS), read-only metadata-preflight
+og slutt-scorer. Scoreren replayet alle130 INITIAL-celler eksakt; identisk
+INITIAL-par gir null parvis AUC-gevinst. Bootstrap-seed er dag20260911 og
+mandagsuke20260912. Arbeidskoden binder alle17 uendrede INITIAL-inputkvitteringer;
+kun det utviklede design-dokumentet skal fryses separat. Faktisk feature-payload,
+modellgather, FINAL-capture og fit er ikke kjørt i ny worker. Én bevoktet
+trainer-window på12000s/250W, intern10500s og null checkpoint/resume er
+foreslått, men kampanjedispatch og feilkvitteringer mangler. Neste steg er
+worker-livssyklus og eksakt engangskampanje før separat fit-admisjon.
 Ingen fit-admisjon: training_enabled=false; ingen trening, TEST, broker eller ordre.
 
 LATER_INPUTS002 er COMPLETE/CONSUMED, exit0,215,18s; terminal1297d154,
