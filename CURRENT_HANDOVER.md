@@ -5,24 +5,24 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_CAUSAL_TRANSITION_S_M5_SIDE_UNSUPPORTED_EDGE_UNQUALIFIED.
-Den ene forhåndsbundne, capped kausale S(t)-overgangsreferansen er
-COMPLETE/CONSUMED, exit0, med eksakt fysisk M1-ankerkontroll og prior-
-scoreparitet. Moden Fold2 fit47338 og fast senere utvikling4096;
-0 native modellforward/optimizersteg, TEST, Entry, broker og handel.
-Primær S/M5 kjent side: Brier0,248751066 mot frossen prior0,248754604
-på1392 rader, forbedring0,000003538; bare4/14 senere uker bedre.
-Enkel nåtilstand gir dermed ingen kvalifisert M5-retningsfordel.
-M15/H1 aktivitet og treklasse bedres som sekundære utviklingsmål,
-mens D1 retning forverres; ingen ettervalgt TF/modell/terskel.
-H4/D1 S-endepunktvindu kan omfatte observert historikk før issue og er
-ikke et rent framtidig intervallmål. Aggregert rapport:
-`docs/S_FOLD2_CAUSAL_TRANSITION_RESULT_REVIEW_20261115.json`.
-Original CLAIM/RESULT/TERMINAL:
-`/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_CAUSAL_TRANSITION_20261115_001/`.
-Neste gate: gjennomgå kausal kilde/mål-kobling og bind ett kostnadsbevisst
-M5 Entry-banemål med MAE før første MFE. Ny input-/målhypotese må
-forhåndsbindes før mer scoring/fit. Native fit, TEST og handel er stengt.
+Gjeldende policy: M5_ALL_SIDE_JOINT_COST_TARGET_COVERAGE_ADMITTED_NO_SCORE.
+En én-gangs CPU-måling er forhåndsbundet til begge utførbare Entry-sider
+på de eksakte Fold2 fit47338/senere4096-radene. Den bruker eksisterende
+XAU M1 BID/ASK, samme terminal-/komplette banemaske, deklarerte kostnader
+og konservativ MAE før første MFE ved seks tidligere erklærte
+observasjonstider. Forrige fasitvalgte S-side-kvittering gjenspilles for
+akse-/scoreparitet. Planen er innrømmet, ikke claimet. Lesende preflight
+og én capped 4G/512M audit gjenstår. Ingen horisont-/sidevalg, native fit,
+Exit, TEST, broker eller handel.
+
+Forrige policy: FOLD2_CAUSAL_TRANSITION_S_M5_SIDE_UNSUPPORTED_EDGE_UNQUALIFIED.
+Primær S/M5 kjent side Brier0,248751066 mot frossen prior0,248754604
+på1392 rader; bare4/14 senere uker bedre. Enkel nåtilstand kvalifiserer
+ikke M5-retning. `docs/S_FOLD2_CAUSAL_TRANSITION_RESULT_REVIEW_20261115.json`.
+Den eldre fellesmaske-kostnadskvitteringen på fasitvalgt S-side er også
+COMPLETE/CONSUMED: negativ netto markout i begge kohorter på alle seks
+observasjonstidene. Den er en hindsightdiagnose, ikke en Entry-beslutning.
+`docs/S_M5_JOINT_COST_RESULT_REVIEW_20261115.json`.
 
 Forrige policy: GC_MID_RESPONSE_FOLD2_RAW_M5_S_POSITIVE_ORIENTATION_UNSUPPORTED_EDGE_UNQUALIFIED.
 Den ene lesende GC M5-midtprisresponsplanen er COMPLETE/CONSUMED, exit0
