@@ -1,0 +1,89 @@
+{
+  "schema_version": "gx1_fold2_d1_driver_calendar_semantics_review_v1",
+  "observed_utc": "2026-11-15T04:46:06Z",
+  "source_commit": "11169ddab3e4761b428fb112b380b58d856e71a6",
+  "source_owner": "gx1/scripts/research_ta_campaign_v1.py:3462",
+  "design_owner": "docs/NATIVE_D1_CONTEXT_HORIZON_DECISION_20261011.md",
+  "status": "CURRENT_UNION_DATE_SEMANTICS_MEASURED_SOURCE_DATE_ALTERNATIVE_UNSELECTED",
+  "actual_formula": "Primitive Treasury, VIX and GLD values are outer-joined on Date and forward-filled on the union calendar before delta(k) is computed. k counts union-calendar rows after carry-forward, not kth valid observation of each source.",
+  "alternative_formula": "Compute delta(k) over each series own finite observation dates and carry the completed delta forward to union dates. Diagnostic only; not selected or materialized.",
+  "development_scope": {
+    "union_dates": 239,
+    "treasury_observation_dates": 228,
+    "vix_observation_dates": 237,
+    "gld_observation_dates": 239,
+    "physical_m5_rows": 65127,
+    "bar_start_utc_inclusive": [
+      "2024-05-01 00:00:00+00:00",
+      "2025-03-31 23:10:00+00:00"
+    ],
+    "m5_source_row_groups_inclusive": [
+      241,
+      256
+    ],
+    "sealed_test_used": false
+  },
+  "by_field": {
+    "real10y_change1D": {
+      "union_dates_different_from_source_day_alternative": 10,
+      "physical_m5_rows_changed_at_1e_minus_6": 2064,
+      "max_absolute_difference_at_physical_m5": 0.050000000000000266,
+      "unit": "percentage_points"
+    },
+    "real10y_change5D": {
+      "union_dates_different_from_source_day_alternative": 49,
+      "physical_m5_rows_changed_at_1e_minus_6": 12972,
+      "max_absolute_difference_at_physical_m5": 0.10000000089406935,
+      "unit": "percentage_points"
+    },
+    "real10y_change21D": {
+      "union_dates_different_from_source_day_alternative": 171,
+      "physical_m5_rows_changed_at_1e_minus_6": 47124,
+      "max_absolute_difference_at_physical_m5": 0.18999999821186098,
+      "unit": "percentage_points"
+    },
+    "slope10y2y_change21D": {
+      "union_dates_different_from_source_day_alternative": 157,
+      "physical_m5_rows_changed_at_1e_minus_6": 42408,
+      "max_absolute_difference_at_physical_m5": 0.13999999977648248,
+      "unit": "percentage_points"
+    },
+    "breakeven10y_change21D": {
+      "union_dates_different_from_source_day_alternative": 143,
+      "physical_m5_rows_changed_at_1e_minus_6": 39036,
+      "max_absolute_difference_at_physical_m5": 0.15999999940395337,
+      "unit": "percentage_points"
+    },
+    "vix_log_change5D": {
+      "union_dates_different_from_source_day_alternative": 10,
+      "physical_m5_rows_changed_at_1e_minus_6": 2484,
+      "max_absolute_difference_at_physical_m5": 0.5541096180426517,
+      "unit": "log_units"
+    },
+    "gld_log_change21D": {
+      "union_dates_different_from_source_day_alternative": 109,
+      "physical_m5_rows_changed_at_1e_minus_6": 30783,
+      "max_absolute_difference_at_physical_m5": 0.015170336698612452,
+      "unit": "log_units"
+    }
+  },
+  "external_publication_context": {
+    "cftc": "https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm",
+    "treasury": "https://home.treasury.gov/policy-issues/financing-the-government/interest-rate-statistics",
+    "cboe_vix": "https://www.cboe.com/tradable_products/vix/vix_historical_data",
+    "spdr_gld": "https://www.spdrgoldshares.com/usa/gld/",
+    "scope_note": "Official pages support ordinary report or daily close context. They do not establish a complete historical point-in-time release ledger for all source dates. The bound D+1 NY-day driver delay and COT exception clock are not independently certified for every historical revision."
+  },
+  "interpretation": "The alternative is materially different but this does not prove the selected research-surface formula wrong. Changing the actual formula is a design change requiring rebuilt inputs/normalization and a fresh initial baseline before model use.",
+  "limits": {
+    "new_code_or_feature_data_written": false,
+    "alternative_selected_from_development": false,
+    "model_forwards": 0,
+    "optimizer_steps": 0,
+    "new_fit": false,
+    "sealed_test_used": false,
+    "broker_or_trading_used": false,
+    "predictive_value_or_economic_edge_proven": false
+  },
+  "next_gate": "Keep frozen union-calendar semantics for the current candidate. Audit remaining field formulas/units/warmup and historical release clocks; admit any source-day formula only as a separately predeclared design with fresh source and initial baseline."
+}

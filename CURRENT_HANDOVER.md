@@ -5,7 +5,20 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_D1_MACRO_61_FIELD_ASOF_REPLAY_PASS_SEMANTIC_AUDIT_OPEN_OPTIMIZER_ADMISSION_CLOSED.
+Gjeldende policy: FOLD2_D1_DRIVER_UNION_CALENDAR_SEMANTICS_MEASURED_ALTERNATIVE_UNSELECTED_EDGE_UNQUALIFIED.
+Kildekoden beregner driver-Δ1/5/21 over sammenslåtte Treasury/VIX/GLD-datoer
+etter forward fill. En separat kildedag-definisjon ble bare diagnostisert:
+på 239 utviklingsdatoer og 65 127 fysiske M5-rader ville den endre opptil
+171 datoer / 47 124 M5-rader for real10y_change21D. Syv deltafelt er målt;
+alternativet er ikke valgt, og dagens vedtatte forskningsformel er uendret.
+Dette avklarer feltets faktiske betydning, ikke prediktiv verdi eller Edge.
+Publiseringskilder støtter generelle forsinkelser, men full historisk
+revisjonsklokke er ubevist. Se
+`docs/S_FOLD2_D1_DRIVER_CALENDAR_SEMANTICS_REVIEW_20261115.json`.
+Ingen kilde-/modellendring, initialbaseline, fit, TEST eller handel.
+Firestegs selected-native-kandidaten er uadmittert; `training_enabled=false`.
+
+Forrige policy: FOLD2_D1_MACRO_61_FIELD_ASOF_REPLAY_PASS_SEMANTIC_AUDIT_OPEN_OPTIMIZER_ADMISSION_CLOSED.
 Én capped, lesende kildebygger-replay på 65 127 fysiske M5-utviklingsrader
 sammenlignet alle 61 D1/makrofelt (3 972 747 feltceller) med materialisert
 kilde: 0 verdi- eller endelighetsmaskeavvik ved float32-toleranse. Alle
