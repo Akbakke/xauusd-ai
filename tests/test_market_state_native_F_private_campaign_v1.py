@@ -242,3 +242,33 @@ def test_ta_materializer_emits_one_guarded_invocation_without_launch(tmp_path, m
     assert window['campaign_cursor_path'] == str(runtime / 'research-cursor/RESUME_CURSOR.json')
     assert plan['phase'] == outer.PHASE and plan['policy']['physical_power_limit_w'] == 250
     assert plan['test_data_used'] is False
+
+
+def test_fold2_selected_native_source_evidence():
+    evidence = scope.fold2_selected_native_source_evidence()
+    assert evidence['decision'] == 'PASS_FOLD2_FULL_GC_SELECTED_S_F_SOURCE_TARGET_ONLY'
+    assert evidence['fit_rows'] == 47338
+    assert evidence['selected_later_rows'] == 4096
+    assert evidence['native_k'] == [1, 3, 12, 48, 288]
+    assert evidence['target_support'] == {
+        'state': {'informative_by_batch': [80, 80], 'known_side_by_batch': [19, 22]},
+        'future': {'informative_by_batch': [80, 80], 'known_side_by_batch': [33, 25]},
+    }
+    assert evidence['model_fit_authorized'] is False
+    assert evidence['optimizer_resume_qualified'] is False
+    assert evidence['test_data_used'] is False
+
+
+def test_fold2_selected_native_rejects_changed_later_panel(monkeypatch):
+    original = scope._read
+
+    def changed(item, label):
+        value = original(item, label)
+        if label == 'full GC later input result':
+            return {**value, 'selected_parent_rows': 4095}
+        return value
+
+    monkeypatch.setattr(scope, '_read', changed)
+    with pytest.raises(campaign.RandomAccessCampaignError,
+                       match='FOLD2_SELECTED_SOURCE_RECEIPTS'):
+        scope.fold2_selected_native_source_evidence()

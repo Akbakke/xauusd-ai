@@ -2532,3 +2532,133 @@ def require_ta_m5_full_reverse_order_cursor(value, *, expected_recipe, verify_fi
                   'FULL_REVERSE_EVIDENCE_PATH')
             campaign.require_binding(evidence, label='full reverse private evidence', verify_file=True)
     return cursor
+
+
+# Fold 2 selected-native S/F source bridge; metadata and target clocks only.
+# It prepares no launch recipe and cannot change the closed training gate.
+FOLD2_SELECTED_INITIAL_REVIEW = {
+    'path': str(CANONICAL_REPO / 'docs/S_FOLD2_SELECTED_NATIVE_INITIAL_RESULT_REVIEW_20261115.json'),
+    'sha256': '9036427ce64e60bc3ca0807335c4041b8ae14716e2e973976e9e100916486780',
+}
+FOLD2_FULL_GC_LATER_REVIEW = {
+    'path': str(CANONICAL_REPO / 'docs/S_FULL_GC_FOLD2_LATER_INPUT_RESULT_REVIEW_20261115.json'),
+    'sha256': '1ffe24e677a27f23a228a914320d24115aaa5a56b42e0918449960df22e7da4e',
+}
+FOLD2_EXACT_PRIOR_REVIEW = {
+    'path': str(CANONICAL_REPO / 'docs/S_FOLD2_EXACT_PRIOR_LATER_RESULT_REVIEW_20261115.json'),
+    'sha256': '39f88e28635b5976075031351c8e9acaac01d89fca56c7941ab061df61806d0a',
+}
+FOLD2_FULL_GC_VIEW_SHA256 = '9ea6a4595c6a5792acd190ad12dc861d9bb99ec921c5bd3650b38b15154981bc'
+
+
+def fold2_selected_native_source_evidence() -> dict:
+    """Qualify the reused Fold 2 input/target receipts without model work."""
+    import numpy as np
+    from gx1.contracts.market_state_five_endpoint_target_binding_v1 import (
+        load_bound_five_endpoint_targets,
+    )
+    from gx1.contracts.market_state_future_displacement_candidate_v1 import (
+        load_bound_future_displacement,
+    )
+    from gx1.contracts.market_state_time_query_target_v1 import NATIVE_K, TICK_NS
+
+    initial_review = _read(FOLD2_SELECTED_INITIAL_REVIEW, 'selected Fold 2 initial review')
+    later_review = _read(FOLD2_FULL_GC_LATER_REVIEW, 'full GC later input review')
+    prior_review = _read(FOLD2_EXACT_PRIOR_REVIEW, 'exact Fold 2 prior review')
+    _read(initial_review['plan'], 'selected Fold 2 initial plan')
+    initial_claim = _read(initial_review['claim'], 'selected Fold 2 initial claim')
+    _read(later_review['plan'], 'full GC later input plan')
+    later_claim = _read(later_review['claim'], 'full GC later input claim')
+    initial = _read(initial_review['result'], 'selected Fold 2 initial result')
+    initial_terminal = _read(initial_review['terminal'], 'selected Fold 2 initial terminal')
+    later = _read(later_review['result'], 'full GC later input result')
+    later_terminal = _read(later_review['terminal'], 'full GC later input terminal')
+    frozen = _read(prior_review['frozen_priors'], 'exact Fold 2 frozen prior')
+    _need(initial_review.get('status') == 'COMPLETE_CONSUMED_MECHANICS_PASS_EDGE_UNQUALIFIED'
+          and initial.get('status') == initial_terminal.get('status') == 'COMPLETE'
+          and initial_terminal.get('exit_code') == 0
+          and initial_claim.get('plan') == initial.get('plan') == initial_terminal.get('plan')
+              == initial_review['plan']
+          and initial.get('claim') == initial_terminal.get('claim') == initial_review['claim']
+          and initial_terminal.get('result') == initial_review['result']
+          and initial.get('view_sha256') == FOLD2_FULL_GC_VIEW_SHA256
+          and initial.get('model_contract_sha256') == MODEL_CONTRACT_SHA256
+          and initial.get('loss_contract_sha256') == LOSS_CONTRACT_SHA256
+          and initial.get('state_target_mode') == 'selected_native_endpoints'
+          and initial.get('state_query_k') == [[1, 3, 12, 48, 288]] * 2
+          and initial.get('future_native_k') == [1, 3, 12, 48, 288]
+          and initial.get('model_forwards') == initial.get('backward_calls') == 1
+          and initial.get('optimizer_steps') == 0
+          and initial.get('test_data_used') is False
+          and later_review.get('status') == 'COMPLETE_CONSUMED_INPUT_ONLY_EDGE_UNQUALIFIED'
+          and later.get('status') == later_terminal.get('status') == 'COMPLETE'
+          and later_terminal.get('exit_code') == 0
+          and later_claim.get('plan') == later.get('plan') == later_terminal.get('plan')
+              == later_review['plan']
+          and later.get('claim') == later_terminal.get('claim') == later_review['claim']
+          and later_terminal.get('result') == later_review['result']
+          and later.get('view_sha256') == FOLD2_FULL_GC_VIEW_SHA256
+          and later.get('selected_parent_rows') == 4096
+          and later.get('feature_batches') == 256
+          and later.get('model_forwards') == later.get('optimizer_steps') == 0
+          and later.get('test_data_used') is False
+          and prior_review.get('measured', {}).get('fit_rows') == 47338
+          and prior_review['measured'].get('selected_later_rows') == 4096
+          and prior_review['measured'].get('model_forwards') == 0
+          and prior_review['measured'].get('optimizer_steps') == 0
+          and prior_review['measured'].get('test_data_used') is False
+          and frozen.get('schema_version') == 'gx1_native_S_F_frozen_endpoint_priors_v1'
+          and frozen.get('fold_id') == 2
+          and frozen.get('fit_rows') == 47338
+          and frozen.get('native_query_k') == [1, 3, 12, 48, 288]
+          and frozen.get('loss_contract_sha256') == LOSS_CONTRACT_SHA256,
+          'FOLD2_SELECTED_SOURCE_RECEIPTS')
+    state = load_bound_five_endpoint_targets()
+    future = load_bound_future_displacement()
+    _need(hashlib.sha256(state.parent_rows[:47338].astype('<i8', copy=False).tobytes()).hexdigest()
+              == frozen['fit_parent_rows_sha256']
+          and hashlib.sha256(state.decision_ns[:47338].astype('<i8', copy=False).tobytes()).hexdigest()
+              == frozen['fit_decision_ns_sha256'],
+          'FOLD2_SELECTED_FROZEN_PRIOR_AXES')
+    parents = np.asarray(PARENT_ROWS, dtype=np.int64)
+    at = np.searchsorted(state.parent_rows, parents)
+    _need(bool(np.all(at < len(state.parent_rows)))
+          and np.array_equal(state.parent_rows[at], parents),
+          'FOLD2_SELECTED_PARENT_ROWS')
+    issues = state.decision_ns[at]
+    s = state.gather(parents, issues, fold_id=2, partition='fit')
+    f = future.gather(parents, issues, fold_id=2, partition='fit')
+    expected_validity = issues[:, None] + np.asarray(NATIVE_K, np.int64)[None, :] * TICK_NS
+    _need(parents.shape == (32,) and np.array_equal(s['validity_ns'], expected_validity)
+          and np.array_equal(f['validity_ns'], expected_validity)
+          and bool(s['mature'].all() and f['mature'].all())
+          and bool(s['eligible'].all() and f['eligible'].all()),
+          'FOLD2_SELECTED_TARGET_CLOCK')
+    counts = {}
+    for name, truth in (('state', s), ('future', f)):
+        counts[name] = {
+            'informative_by_batch': [int(np.count_nonzero(truth['allowed'][i:i + 16] != 7))
+                                     for i in (0, 16)],
+            'known_side_by_batch': [int(np.count_nonzero(np.isin(
+                truth['allowed'][i:i + 16], (1, 4)))) for i in (0, 16)],
+        }
+    _need(counts == {
+        'state': {'informative_by_batch': [80, 80], 'known_side_by_batch': [19, 22]},
+        'future': {'informative_by_batch': [80, 80], 'known_side_by_batch': [33, 25]},
+    }, 'FOLD2_SELECTED_TWO_BATCH_SUPPORT')
+    return {
+        'decision': 'PASS_FOLD2_FULL_GC_SELECTED_S_F_SOURCE_TARGET_ONLY',
+        'view_sha256': FOLD2_FULL_GC_VIEW_SHA256,
+        'model_contract_sha256': MODEL_CONTRACT_SHA256,
+        'loss_contract_sha256': LOSS_CONTRACT_SHA256,
+        'native_k': list(NATIVE_K),
+        'parent_rows': list(PARENT_ROWS),
+        'batch_size': BATCH_SIZE,
+        'target_support': counts,
+        'initial_optimizer_steps': 0,
+        'selected_later_rows': 4096,
+        'fit_rows': 47338,
+        'model_fit_authorized': False,
+        'optimizer_resume_qualified': False,
+        'test_data_used': False,
+    }

@@ -1,0 +1,137 @@
+{
+  "decision": "FOLD2_SELECTED_NATIVE_INPUT_TARGET_BRIDGE_PASS_CAMPAIGN_ROUTE_MISSING",
+  "focused_checks": {
+    "selected_source_success_and_changed_later_receipt_rejection": "2 passed",
+    "syntax": "passed"
+  },
+  "limits": {
+    "broker_access": false,
+    "chronological_fit_performed": false,
+    "economic_edge_proven": false,
+    "genuine_feature_batches_run": 0,
+    "later_generalization_proven": false,
+    "model_constructions": 0,
+    "model_forwards": 0,
+    "optimizer_resume_qualified": false,
+    "optimizer_steps": 0,
+    "test_data_used": false,
+    "training_enabled": false
+  },
+  "measured_gap": {
+    "S_D1_and_H4_endpoint_window_can_include_pre_issue_history": true,
+    "S_and_F_native_validity_same_five_clocks": true,
+    "current_batch_adapter_selected_endpoint_mode": true,
+    "existing_fold2_full_gc_selected_native_campaign_route": false,
+    "existing_native_private_runner_fold_id": 1,
+    "existing_native_private_runner_selected_state_endpoints": false,
+    "source_basis": "evaluate_fit_batch selected_state_endpoints mode is called by the consumed two-row initial audit; current private runner pins fold_id=1 and calls the default sampled mode.",
+    "target_semantics": "S is endpoint market state; F is decision-anchored displacement. The overlap is known causal history, not future leakage."
+  },
+  "next_gate": "Add an exact Fold2 full-GC selected-native scope to the existing guarded native campaign, reusing the current two-batch AdamW/state owner. Prove fresh initial, optimizer and serialized resume before a separate chronological fit design/admission. Preserve frozen Fold2 prior and all five TF.",
+  "observed_utc": "2026-11-15T03:12:35.546052+00:00",
+  "reused_reviews": {
+    "frozen_prior": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/S_FOLD2_EXACT_PRIOR_LATER_RESULT_REVIEW_20261115.json",
+      "sha256": "39f88e28635b5976075031351c8e9acaac01d89fca56c7941ab061df61806d0a"
+    },
+    "initial": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/S_FOLD2_SELECTED_NATIVE_INITIAL_RESULT_REVIEW_20261115.json",
+      "sha256": "9036427ce64e60bc3ca0807335c4041b8ae14716e2e973976e9e100916486780"
+    },
+    "later_input": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/S_FULL_GC_FOLD2_LATER_INPUT_RESULT_REVIEW_20261115.json",
+      "sha256": "1ffe24e677a27f23a228a914320d24115aaa5a56b42e0918449960df22e7da4e"
+    },
+    "state_window_overlap": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/S_MARKET_STATE_WINDOW_OVERLAP_REVIEW_20261115.json",
+      "sha256": "fbedb23e4432ddf0858f04cda9a63a58060bff7b261bfdb59254a9ea242c322e"
+    }
+  },
+  "schema_version": "gx1_s_f_fold2_selected_native_route_gap_review_v1",
+  "scope": "Source and pinned target receipt qualification for two fixed Fold2 full-GC selected-native S/F B16 batches; no model work.",
+  "source_and_target_evidence": {
+    "batch_size": 16,
+    "decision": "PASS_FOLD2_FULL_GC_SELECTED_S_F_SOURCE_TARGET_ONLY",
+    "fit_rows": 47338,
+    "initial_optimizer_steps": 0,
+    "loss_contract_sha256": "06c8bffc81cbfe2da114499d3428ee94682a38609de67788854fd6cd2a1606dd",
+    "model_contract_sha256": "ab6b8163d99213abd348a91ad97de87ca0e62b8704b4df0cb2086e47614ba811",
+    "model_fit_authorized": false,
+    "native_k": [
+      1,
+      3,
+      12,
+      48,
+      288
+    ],
+    "optimizer_resume_qualified": false,
+    "parent_rows": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33
+    ],
+    "selected_later_rows": 4096,
+    "target_support": {
+      "future": {
+        "informative_by_batch": [
+          80,
+          80
+        ],
+        "known_side_by_batch": [
+          33,
+          25
+        ]
+      },
+      "state": {
+        "informative_by_batch": [
+          80,
+          80
+        ],
+        "known_side_by_batch": [
+          19,
+          22
+        ]
+      }
+    },
+    "test_data_used": false,
+    "view_sha256": "9ea6a4595c6a5792acd190ad12dc861d9bb99ec921c5bd3650b38b15154981bc"
+  },
+  "source_owners": {
+    "gx1/contracts/market_state_five_endpoint_target_binding_v1.py": "71dc01154aada84d01e930cb78970a79608c5bff5ebd710d9f48273934e14bfd",
+    "gx1/contracts/market_state_future_displacement_candidate_v1.py": "4a7e0a582bef097109555ddfe1b96cb2c9d7b31c2a53366ef9a4bbbe0c6deb62",
+    "gx1/contracts/market_state_native_F_private_campaign_v1.py": "310618cae25fbe21e6f8e4f7f9b587a6c5380eb3afd3648f35b6d7d4b626ab48",
+    "gx1/contracts/market_state_native_F_private_state_v1.py": "1957acc048d58840abf93bb2c53eb19c9c146105aa089494584ce1f81b1e7db7",
+    "gx1/contracts/market_state_time_query_native_F_batch_v1.py": "b92c12205a3103e8d529f09c473226a120a146c8b5ee499dd751d457a3cf2aff",
+    "gx1/scripts/run_market_state_native_F_private_window_v1.py": "36ce03d2d9106cb97091c099c7c3833206256b5809e21c89c33960475a6feec2",
+    "tests/test_market_state_native_F_private_campaign_v1.py": "3602473b656e0fe09895ad4a4a9f441f9f7e021424bac4283d29fb35e69c7c68"
+  }
+}
