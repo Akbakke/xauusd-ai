@@ -91,8 +91,9 @@ def checked_file(item: dict) -> Path:
 
 
 def checked_json(item: dict) -> dict:
-    checked_file(item)
-    return old._read_ref(item)
+    path = checked_file(item)
+    need(0 < path.stat().st_size <= 32 * 1024**2, 'JSON_SIZE:' + str(path))
+    return json.loads(path.read_text())
 
 
 def current_state() -> tuple[str, str]:
