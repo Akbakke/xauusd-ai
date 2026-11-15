@@ -5,16 +5,20 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_H1_CURRENT_SIGN_RANK_READ_ONLY_ADMITTED.
-Én ny lesende Fold2-hypotese er forhåndsbundet før score: kausalt kjent
-H1-nåtilstand OPP/NED rangerer framtidig S/M5 OPP/NED. Bit4=+1, bit1=−1,
-ellers0; M5-nåtilstand er fast samme-rad kontroll. Primær metrikk er
-tie-aware AUC på kjent S/M5-side; alle S/F×fem TF og14 senere uker
-rapporteres uten ettervalg. Eksakt moden fit47338, fast senere4096,
-ingen lærte vekter eller terskel. Plan:
-`configs/research/MARKET_STATE_FOLD2_H1_SIGN_RANK_20261115_001.json`.
-Én capped auditadgang, 0 modellforward/optimizer, ingen TEST/handel.
-Native fit forblir uadmittert; `training_enabled=false`.
+Gjeldende policy: FOLD2_H1_SIGN_RANK_FAIL_DIRECTION_EDGE_UNQUALIFIED.
+Én forhåndsbundet capped lesende H1-nåtilstand→framtidig S/M5-side-test er
+fullført og brukt opp. Primær positiv H1-sign AUC var 0,488751 på fit
+(16 101 kjent-side-rader) og 0,464319 på fast senere utvikling
+(1 392 kjent-side-rader); samme-rad M5-kontroll var 0,482766 og 0,490111.
+Kun 3/14 senere uker hadde H1-AUC over 0,5. H1-nåretning var kjent på
+614/1 392 senere primærrader; ukjent ble skåret null, ikke fjernet.
+Sekundær D1-celle var høyere, men kan ikke velges etter denne senere
+skåringen. Dette er verken modellfit, uavhengig generalisering eller Edge.
+Se `docs/S_FOLD2_H1_CURRENT_SIGN_RANK_REVIEW_20261115.json` og hashbundne
+CLAIM/RESULT/TERMINAL under GX1_RUNS. Ingen relansering eller tegnvending.
+Neste arbeid må teste én ny kausal informasjons- eller målbanemekanisme
+med forhåndsbundet kontroll. Native fit forblir uadmittert;
+`training_enabled=false`; ingen TEST, broker eller handel.
 
 Forrige policy: FOLD2_D1_MACRO_SOURCE_FIRST_WARMUP_PASS_DIRECTION_EDGE_UNQUALIFIED.
 Kilde-første warmup for alle 61 D1/makrofelt fulgte deklarert alder:

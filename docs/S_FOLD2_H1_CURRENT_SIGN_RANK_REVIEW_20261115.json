@@ -1,0 +1,211 @@
+{
+  "schema_version": "gx1_fold2_h1_current_sign_rank_review_v1",
+  "decision": "PRIMARY_HYPOTHESIS_FAILED_NO_EDGE_CLAIM",
+  "scope": "Predeclared read-only positive H1 current direction ranks eligible mature future S/M5 UP over DOWN; M5 current sign same-row control. No fit, threshold search, sign flip, native forward, TEST or trade.",
+  "plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_FOLD2_H1_SIGN_RANK_20261115_001.json",
+    "sha256": "5c903fa840bcf60e88fdd54861ee5a5ab9de51e7fb33b0d5667c06f66117cb9d"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_H1_SIGN_RANK_20261115_001/RESULT.json",
+    "sha256": "b8bedc811b628b18dd36d48a57842eb40016f5b161b24eb797c19903fb981f79"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_H1_SIGN_RANK_20261115_001/TERMINAL.json",
+    "sha256": "c6995ba39d22ee3e05a5c73a7d9e19d55c503a5bee945335693b81e52fcad6f0"
+  },
+  "source_head": "7d268fb930450f2b200a87263eeea3d355a1f5b0",
+  "fit_rows": 47338,
+  "later_rows": 4096,
+  "primary_state_M5": {
+    "fit": {
+      "constant_rank_reference_auc": 0.5,
+      "down_rows": 7778,
+      "h1_current_direction_known_rows": 7066,
+      "h1_sign_auc": 0.48875110150729356,
+      "known_future_side_rows": 16101,
+      "m5_current_direction_known_rows": 6746,
+      "m5_sign_control_auc": 0.48276611262300556,
+      "up_rows": 8323
+    },
+    "later": {
+      "constant_rank_reference_auc": 0.5,
+      "down_rows": 633,
+      "h1_current_direction_known_rows": 614,
+      "h1_sign_auc": 0.46431864492857694,
+      "known_future_side_rows": 1392,
+      "m5_current_direction_known_rows": 568,
+      "m5_sign_control_auc": 0.49011129219247906,
+      "up_rows": 759
+    }
+  },
+  "later_week_count": 14,
+  "later_weeks_h1_auc_above_half": 3,
+  "all_cells": {
+    "fit": {
+      "future": {
+        "D1": {
+          "known_future_side_rows": 15148,
+          "h1_current_direction_known_rows": 5764,
+          "m5_current_direction_known_rows": 5038,
+          "h1_sign_auc": 0.5106025127985171,
+          "m5_sign_control_auc": 0.5022994055099536
+        },
+        "H1": {
+          "known_future_side_rows": 16552,
+          "h1_current_direction_known_rows": 8332,
+          "m5_current_direction_known_rows": 6628,
+          "h1_sign_auc": 0.48694606462022433,
+          "m5_sign_control_auc": 0.49876319446914097
+        },
+        "H4": {
+          "known_future_side_rows": 16278,
+          "h1_current_direction_known_rows": 7548,
+          "m5_current_direction_known_rows": 6352,
+          "h1_sign_auc": 0.4974100399626101,
+          "m5_sign_control_auc": 0.49322538376922614
+        },
+        "M15": {
+          "known_future_side_rows": 17483,
+          "h1_current_direction_known_rows": 8288,
+          "m5_current_direction_known_rows": 7033,
+          "h1_sign_auc": 0.49733747436308384,
+          "m5_sign_control_auc": 0.49893604423677146
+        },
+        "M5": {
+          "known_future_side_rows": 19072,
+          "h1_current_direction_known_rows": 7779,
+          "m5_current_direction_known_rows": 7150,
+          "h1_sign_auc": 0.4963165405528068,
+          "m5_sign_control_auc": 0.49248229660203097
+        }
+      },
+      "state": {
+        "D1": {
+          "known_future_side_rows": 12291,
+          "h1_current_direction_known_rows": 5210,
+          "m5_current_direction_known_rows": 4244,
+          "h1_sign_auc": 0.5377701973839539,
+          "m5_sign_control_auc": 0.5060228075885963
+        },
+        "H1": {
+          "known_future_side_rows": 17973,
+          "h1_current_direction_known_rows": 10065,
+          "m5_current_direction_known_rows": 7630,
+          "h1_sign_auc": 0.48384624211410077,
+          "m5_sign_control_auc": 0.49143941615372305
+        },
+        "H4": {
+          "known_future_side_rows": 18391,
+          "h1_current_direction_known_rows": 9194,
+          "m5_current_direction_known_rows": 7391,
+          "h1_sign_auc": 0.5052659590367288,
+          "m5_sign_control_auc": 0.49496094189239137
+        },
+        "M15": {
+          "known_future_side_rows": 18182,
+          "h1_current_direction_known_rows": 9608,
+          "m5_current_direction_known_rows": 8031,
+          "h1_sign_auc": 0.4831793529625591,
+          "m5_sign_control_auc": 0.4869744880649461
+        },
+        "M5": {
+          "known_future_side_rows": 16101,
+          "h1_current_direction_known_rows": 7066,
+          "m5_current_direction_known_rows": 6746,
+          "h1_sign_auc": 0.48875110150729356,
+          "m5_sign_control_auc": 0.48276611262300556
+        }
+      }
+    },
+    "later": {
+      "future": {
+        "D1": {
+          "known_future_side_rows": 1500,
+          "h1_current_direction_known_rows": 592,
+          "m5_current_direction_known_rows": 504,
+          "h1_sign_auc": 0.4955595413490487,
+          "m5_sign_control_auc": 0.4975017615783742
+        },
+        "H1": {
+          "known_future_side_rows": 1552,
+          "h1_current_direction_known_rows": 782,
+          "m5_current_direction_known_rows": 595,
+          "h1_sign_auc": 0.44307589366137373,
+          "m5_sign_control_auc": 0.4830618249821997
+        },
+        "H4": {
+          "known_future_side_rows": 1439,
+          "h1_current_direction_known_rows": 656,
+          "m5_current_direction_known_rows": 528,
+          "h1_sign_auc": 0.4644211238997969,
+          "m5_sign_control_auc": 0.5163029192719742
+        },
+        "M15": {
+          "known_future_side_rows": 1547,
+          "h1_current_direction_known_rows": 738,
+          "m5_current_direction_known_rows": 614,
+          "h1_sign_auc": 0.46608006859522694,
+          "m5_sign_control_auc": 0.49212737072045404
+        },
+        "M5": {
+          "known_future_side_rows": 1591,
+          "h1_current_direction_known_rows": 674,
+          "m5_current_direction_known_rows": 601,
+          "h1_sign_auc": 0.48905097889651666,
+          "m5_sign_control_auc": 0.4891932049326214
+        }
+      },
+      "state": {
+        "D1": {
+          "known_future_side_rows": 1420,
+          "h1_current_direction_known_rows": 623,
+          "m5_current_direction_known_rows": 479,
+          "h1_sign_auc": 0.5708718702279079,
+          "m5_sign_control_auc": 0.5004321894718645
+        },
+        "H1": {
+          "known_future_side_rows": 1713,
+          "h1_current_direction_known_rows": 961,
+          "m5_current_direction_known_rows": 690,
+          "h1_sign_auc": 0.43295860809891845,
+          "m5_sign_control_auc": 0.4844134901084389
+        },
+        "H4": {
+          "known_future_side_rows": 1656,
+          "h1_current_direction_known_rows": 829,
+          "m5_current_direction_known_rows": 622,
+          "h1_sign_auc": 0.5011788766536712,
+          "m5_sign_control_auc": 0.5195484143039983
+        },
+        "M15": {
+          "known_future_side_rows": 1671,
+          "h1_current_direction_known_rows": 879,
+          "m5_current_direction_known_rows": 723,
+          "h1_sign_auc": 0.4513274206724505,
+          "m5_sign_control_auc": 0.4956152807830713
+        },
+        "M5": {
+          "known_future_side_rows": 1392,
+          "h1_current_direction_known_rows": 614,
+          "m5_current_direction_known_rows": 568,
+          "h1_sign_auc": 0.46431864492857694,
+          "m5_sign_control_auc": 0.49011129219247906
+        }
+      }
+    }
+  },
+  "interpretation": [
+    "Fixed positive H1 sign missed the primary known-side ranking in both fit and reused later development; it is weaker than the same-row M5 control in later.",
+    "Current H1 direction is known for 614 of 1392 eligible mature known future S/M5-side rows in later; zero-scored other rows remain included in primary AUC.",
+    "The higher secondary state D1 AUC was not the registered primary test and cannot be selected on this reused later sample.",
+    "AUC measures ranking, not positive after-cost trade expectancy or economically executable Edge."
+  ],
+  "unproven": [
+    "Independent chronological generalization",
+    "Native trained-model response",
+    "All-input predictive value",
+    "Historical macro publication/revision clocks",
+    "After-cost executable selective trading Edge"
+  ]
+}
