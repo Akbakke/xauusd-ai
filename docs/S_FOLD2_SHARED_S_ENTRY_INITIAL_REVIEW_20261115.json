@@ -1,4 +1,12 @@
 {
+  "active_phase_correction": {
+    "meaning": "The single B16 dual-head gradient check proves technical compatibility only. GX1_RULES.md makes S-only learning the active phase; Entry heads, Entry loss and Entry decision remain later.",
+    "measurements_unchanged": true,
+    "rule": {
+      "path": "/home/andre2/src/GX1_CURRENT/GX1_RULES.md",
+      "sha256": "94cfab7c9884df5af3c05a1af1aa45f8dafec9ec2dc05af5ed71dda1e5a9315a"
+    }
+  },
   "claim": {
     "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_SHARED_S_ENTRY_INITIAL_20261115_001/CLAIM.json",
     "sha256": "0da1122240e001fd1f6ec46f870213e3d1155ff8b122a655faf8ff83c0ddde6b"
@@ -44,7 +52,7 @@
     "test_data_used": false,
     "trade_selection": false
   },
-  "next_gate": "Bind one exact shared S/Entry training objective, frozen earlier-TRAIN prior, unchanged native resume state and chronological later scoring on the fixed cohorts. Qualify optimizer/resume under separate exact one-use admission before any update. Keep TEST, broker and trading closed.",
+  "next_gate": "Qualify the S-only fixed five-point five-TF loss, earlier-TRAIN per-cell prior, S-specific optimizer/resume and prefix-valid chronological scoring before a separate exact fit admission. Keep Entry heads inactive in active S training; preserve the read-only Entry mechanics receipt for later. TEST, broker and trading remain closed.",
   "plan": {
     "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_FOLD2_SHARED_S_ENTRY_INITIAL_20261115_001.json",
     "sha256": "1c5dd64c746a063073700078bfafb3cf506c2bb7323b6390c8176720a5def2b3"

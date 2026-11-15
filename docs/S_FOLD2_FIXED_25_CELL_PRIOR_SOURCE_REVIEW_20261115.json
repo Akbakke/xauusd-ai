@@ -1,0 +1,50 @@
+{
+  "focused_synthetic_tests_passed": 2,
+  "limits": {
+    "chronological_later_score": false,
+    "economic_edge_proven": false,
+    "model_forwards": 0,
+    "optimizer_steps": 0,
+    "physical_prior_fit_performed": false,
+    "test_data_used": false
+  },
+  "next_gate": "Under a separate exact admission, fit this prior only on the earlier mature Fold2 fit axis, score the frozen 25-cell reference and S model on fixed later development with identical masks and weekly pairing, and qualify S-only optimizer/resume before any model update. Entry/Exit losses remain inactive.",
+  "proof": "The wrapper calls the existing five-TF activity/conditional-side prior separately for each of five fixed query rows, then validates all 25 support counts against the pinned Fold2 loss. Saved logits are sealed and checked against their counts. Unknown side contributes only to activity. No physical TRAIN labels were fitted.",
+  "reused_sources": {
+    "endpoint_prior": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_five_endpoint_prior_v1.py",
+      "sha256": "102922a72478f7b4281cccdc57f935abaf67f9a721f89448a9945b19edec6104"
+    },
+    "fixed_loss": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_fold2_multiminute_side_loss_v1.py",
+      "sha256": "20ebe302e7f6dad0247517031e33a4554e29798e3b952a3904d8906679f67d93"
+    },
+    "fixed_path": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_fold2_multiminute_path_v1.py",
+      "sha256": "4217b27ea57302bc0ed3a948f0351554b1c3d91de7e781e0aaeb8baac63fac1b"
+    }
+  },
+  "schema_version": "gx1_fold2_fixed_25_cell_S_prior_source_review_v1",
+  "scope": {
+    "exact_activity_and_known_side_support_required": true,
+    "exact_parent_and_issue_axis_hashes_required": true,
+    "fit_rows_required": 47338,
+    "fixed_query_cells": 25,
+    "fold_id": 2,
+    "partition": "fit",
+    "query_points_per_timeframe": 5,
+    "smoothing": "laplace_plus_one_separate_binary_activity_and_conditional_side",
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ]
+  },
+  "source": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_fold2_multiminute_prior_v1.py",
+    "sha256": "46cb9f820d5cfdaeaf208e9860976113de7a7070a4fc482d639ff7a5654140aa"
+  },
+  "status": "SOURCE_ONLY_PASS_25_CELL_PRIOR_NO_PHYSICAL_FIT"
+}

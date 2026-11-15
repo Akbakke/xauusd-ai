@@ -1,10 +1,11 @@
 {
   "decision": {
-    "S_forecast_gate": "Score the independent fixed five-point S task with proper probabilities and its own earlier-TRAIN prior; a better S score alone is not economic Edge.",
     "S_role": "Retain causal M5/M15/H1/H4/D1 dynamic S as a separate market-state forecast and context. Do not convert future certified S side into an Entry action.",
-    "comparison": "Fit and any threshold only on earlier mature TRAIN. Score the fixed later 4096 development rows in time order against frozen TRAIN prior and predeclared always-LONG/always-SHORT/FLAT references on identical observable populations. Report all six horizons, selected and abstained rows, coverage, weekly uncertainty, costs and open-position limitations. No horizon or threshold selection from later scores.",
-    "one_next_hypothesis": "Earlier mature Fold2 causal XAU+full-GC five-TF inputs contain incremental information about both LONG and SHORT M5 cost-adjusted terminal markout and conservative pre-MFE MAE on the six fixed observation horizons, beyond an earlier-fit frozen constant prior.",
-    "target_scope": "Keep all physical M5 decision rows and both executable sides. Use separate terminal and complete-path observation masks and the existing causal price/cost authority; do not use future S labels or future availability as model input."
+    "active_S_comparison": "Prebind all 25 query/timeframe cells, activity/conditional-side/three-class proper scores, same-row persistence and earlier-TRAIN per-cell prior. Evaluate the complete fixed later development cohort in issue-time order with paired UTC-week uncertainty. No later score selects a cell, weight or checkpoint; a better S score is not Entry Edge.",
+    "active_S_hypothesis": "On the fixed five-point path for each of M5/M15/H1/H4/D1, the causal full-GC/XAU model improves proper probabilities over a per-cell prior fitted only on earlier mature TRAIN. Unknown activity and side remain separately masked. Fold2 is one development gate; supported folds 1-4 need their own prefix-valid input normalization for chronological OOF.",
+    "later_entry_comparison": "Fit and any threshold only on earlier mature TRAIN. Score the fixed later 4096 development rows in time order against frozen TRAIN prior and predeclared always-LONG/always-SHORT/FLAT references on identical observable populations. Report all six horizons, selected and abstained rows, coverage, weekly uncertainty, costs and open-position limitations. No horizon or threshold selection from later scores.",
+    "later_entry_hypothesis": "Earlier mature Fold2 causal XAU+full-GC five-TF inputs contain incremental information about both LONG and SHORT M5 cost-adjusted terminal markout and conservative pre-MFE MAE on the six fixed observation horizons, beyond an earlier-fit frozen constant prior.",
+    "later_entry_target_scope": "Keep all physical M5 decision rows and both executable sides. Use separate terminal and complete-path observation masks and the existing causal price/cost authority; do not use future S labels or future availability as model input."
   },
   "evidence": {
     "all_side_cost": {
@@ -35,6 +36,7 @@
   "limits": {
     "declared_costs_not_historical_fills": true,
     "economic_edge_proven": false,
+    "entry_loss_or_decision_in_active_S_fit_authorized": false,
     "later_4096_is_reused_development_not_independent_confirmation": true,
     "model_recipe_optimizer_resume_not_yet_qualified_for_this_hypothesis": true,
     "no_one_position_or_open_position_PnL_proved": true,
@@ -81,7 +83,16 @@
     "historical_cost_truth_qualified": false,
     "later_utc_weeks": 14
   },
-  "next_gate": "Bind an exact single-hypothesis model and frozen earlier-TRAIN prior recipe with optimizer/resume proof and a fixed chronological scoring protocol. Seek separate exact admission before any fit. Do not launch a broad round; keep TEST, broker and trading closed.",
+  "next_gate": "Bind one exact S-only five-TF 25-cell loss and earlier-TRAIN per-cell prior, qualify S-specific optimizer/resume and prefix-valid chronological Fold2/later scoring, then seek a separate exact fit admission. Entry heads remain inactive in this phase. Extend to supported folds 1-4 only with their own prefix-valid normalization. TEST, broker and trading stay closed.",
+  "phase_order_correction": {
+    "active_phase": "market_state_S_only_before_Entry",
+    "meaning": "The measured direct-S and all-side Entry economics remain valid research evidence, but their model fit and decision policy belong after the active S learning phase. The dual-head B16 control was read-only mechanics, not a combined-objective admission.",
+    "previous_next_gate_superseded": true,
+    "rule": {
+      "path": "/home/andre2/src/GX1_CURRENT/GX1_RULES.md",
+      "sha256": "94cfab7c9884df5af3c05a1af1aa45f8dafec9ec2dc05af5ed71dda1e5a9315a"
+    }
+  },
   "reuse_candidate": {
     "candidate_quality_not_cash_or_native_authority": true,
     "existing_decoder": "The existing entry_only_dynamic_m5_path decoder already has a shared 1..480 minute query, two-side terminal-net, MFE and conservative pre-MFE-MAE outputs. All six fixed observation points are in its query grid. Reuse is a source candidate only; the Fold2 S task and this Entry model have different target and cohort bindings.",
@@ -102,5 +113,5 @@
   },
   "schema_version": "gx1_fold2_edge_route_decision_v1",
   "source_head": "aa063975be86ffa7154096c4954ce59467b1bcd9",
-  "status": "SOURCE_EVIDENCE_BOUND_DIRECT_S_NOT_ENTRY_TARGET_FIT_CLOSED_EDGE_UNQUALIFIED"
+  "status": "SOURCE_EVIDENCE_BOUND_S_ACTIVE_ENTRY_LATER_FIT_CLOSED_EDGE_UNQUALIFIED"
 }
