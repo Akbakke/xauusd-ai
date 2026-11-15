@@ -1,0 +1,524 @@
+{
+  "by_task_timeframe": {
+    "future": {
+      "D1": {
+        "fit_active_count": 14983,
+        "fit_activity_count": 36900,
+        "fit_log_mean": 0.6753870535193176,
+        "fit_prior_log_mean": 0.6753870535193176,
+        "later_metrics": {
+          "activity": {
+            "brier_improvement_reference_minus_candidate": 0.0,
+            "candidate_brier_mean": 0.2535720844115946,
+            "candidate_log_mean": 0.7004886903869317,
+            "later_count": 3181,
+            "log_improvement_reference_minus_candidate": 0.0,
+            "reference_brier_mean": 0.2535720844115946,
+            "reference_log_mean": 0.7004886903869317
+          },
+          "conditional_side": {
+            "brier_improvement_reference_minus_candidate": 0.0,
+            "candidate_brier_mean": 0.19563983923144793,
+            "candidate_log_mean": 0.5823393465319832,
+            "later_count": 1500,
+            "log_improvement_reference_minus_candidate": 0.0,
+            "reference_brier_mean": 0.19563983923144793,
+            "reference_log_mean": 0.5823393465319832
+          },
+          "three_class": {
+            "brier_improvement_reference_minus_candidate": 0.0,
+            "candidate_brier_mean": 0.5944761673927728,
+            "candidate_log_mean": 0.9750907085566817,
+            "later_count": 3181,
+            "log_improvement_reference_minus_candidate": 0.0,
+            "reference_brier_mean": 0.5944761673927728,
+            "reference_log_mean": 0.9750907085566817
+          }
+        },
+        "slope_nonnegative": 0.0
+      },
+      "H1": {
+        "fit_active_count": 16408,
+        "fit_activity_count": 44978,
+        "fit_log_mean": 0.6561309158733768,
+        "fit_prior_log_mean": 0.6561309158733768,
+        "later_metrics": {
+          "activity": {
+            "brier_improvement_reference_minus_candidate": 0.0,
+            "candidate_brier_mean": 0.23833501840579796,
+            "candidate_log_mean": 0.669698173241452,
+            "later_count": 3988,
+            "log_improvement_reference_minus_candidate": 0.0,
+            "reference_brier_mean": 0.23833501840579796,
+            "reference_log_mean": 0.669698173241452
+          },
+          "conditional_side": {
+            "brier_improvement_reference_minus_candidate": 0.0,
+            "candidate_brier_mean": 0.24552355468085568,
+            "candidate_log_mean": 0.684184593111399,
+            "later_count": 1552,
+            "log_improvement_reference_minus_candidate": 0.0,
+            "reference_brier_mean": 0.24552355468085568,
+            "reference_log_mean": 0.684184593111399
+          },
+          "three_class": {
+            "brier_improvement_reference_minus_candidate": 0.0,
+            "candidate_brier_mean": 0.5508006896967573,
+            "candidate_log_mean": 0.9359605825967405,
+            "later_count": 3988,
+            "log_improvement_reference_minus_candidate": 0.0,
+            "reference_brier_mean": 0.5508006896967573,
+            "reference_log_mean": 0.9359605825967405
+          }
+        },
+        "slope_nonnegative": 0.0
+      },
+      "H4": {
+        "fit_active_count": 16089,
+        "fit_activity_count": 43395,
+        "fit_log_mean": 0.6593577612851836,
+        "fit_prior_log_mean": 0.6593577612851836,
+        "later_metrics": {
+          "activity": {
+            "brier_improvement_reference_minus_candidate": 0.0,
+            "candidate_brier_mean": 0.23789376877761056,
+            "candidate_log_mean": 0.6687642907843536,
+            "later_count": 3703,
+            "log_improvement_reference_minus_candidate": 0.0,
+            "reference_brier_mean": 0.23789376877761056,
+            "reference_log_mean": 0.6687642907843536
+          },
+          "conditional_side": {
+            "brier_improvement_reference_minus_candidate": 0.0,
+            "candidate_brier_mean": 0.24349793248625448,
+            "candidate_log_mean": 0.6801023663950039,
+            "later_count": 1439,
+            "log_improvement_reference_minus_candidate": 0.0,
+            "reference_brier_mean": 0.24349793248625448,
+            "reference_log_mean": 0.6801023663950039
+          },
+          "three_class": {
+            "brier_improvement_reference_minus_candidate": 0.0,
+            "candidate_brier_mean": 0.5492274136527869,
+            "candidate_log_mean": 0.9330546783734465,
+            "later_count": 3703,
+            "log_improvement_reference_minus_candidate": 0.0,
+            "reference_brier_mean": 0.5492274136527869,
+            "reference_log_mean": 0.9330546783734465
+          }
+        },
+        "slope_nonnegative": 0.0
+      },
+      "M15": {
+        "fit_active_count": 17328,
+        "fit_activity_count": 46524,
+        "fit_log_mean": 0.6602486272243069,
+        "fit_prior_log_mean": 0.6602486272243069,
+        "later_metrics": {
+          "activity": {
+            "brier_improvement_reference_minus_candidate": 0.0,
+            "candidate_brier_mean": 0.23537869451085766,
+            "candidate_log_mean": 0.663617058892084,
+            "later_count": 4083,
+            "log_improvement_reference_minus_candidate": 0.0,
+            "reference_brier_mean": 0.23537869451085766,
+            "reference_log_mean": 0.663617058892084
+          },
+          "conditional_side": {
+            "brier_improvement_reference_minus_candidate": 0.0,
+            "candidate_brier_mean": 0.24818347402303745,
+            "candidate_log_mean": 0.6895130375639982,
+            "later_count": 1547,
+            "log_improvement_reference_minus_candidate": 0.0,
+            "reference_brier_mean": 0.24818347402303745,
+            "reference_log_mean": 0.6895130375639982
+          },
+          "three_class": {
+            "brier_improvement_reference_minus_candidate": 0.0,
+            "candidate_brier_mean": 0.5419987199363185,
+            "candidate_log_mean": 0.9248653246553722,
+            "later_count": 4083,
+            "log_improvement_reference_minus_candidate": 0.0,
+            "reference_brier_mean": 0.5419987199363185,
+            "reference_log_mean": 0.9248653246553722
+          }
+        },
+        "slope_nonnegative": 0.0
+      },
+      "M5": {
+        "fit_active_count": 18876,
+        "fit_activity_count": 46868,
+        "fit_log_mean": 0.6741102655625846,
+        "fit_prior_log_mean": 0.6741102655625846,
+        "later_metrics": {
+          "activity": {
+            "brier_improvement_reference_minus_candidate": 0.0,
+            "candidate_brier_mean": 0.2377609011865566,
+            "candidate_log_mean": 0.6684763111550521,
+            "later_count": 4096,
+            "log_improvement_reference_minus_candidate": 0.0,
+            "reference_brier_mean": 0.2377609011865566,
+            "reference_log_mean": 0.6684763111550521
+          },
+          "conditional_side": {
+            "brier_improvement_reference_minus_candidate": 0.0,
+            "candidate_brier_mean": 0.24925684692147698,
+            "candidate_log_mean": 0.6916606243807926,
+            "later_count": 1591,
+            "log_improvement_reference_minus_candidate": 0.0,
+            "reference_brier_mean": 0.24925684692147698,
+            "reference_log_mean": 0.6916606243807926
+          },
+          "three_class": {
+            "brier_improvement_reference_minus_candidate": 0.0,
+            "candidate_brier_mean": 0.5506242412311074,
+            "candidate_log_mean": 0.9371364804396812,
+            "later_count": 4096,
+            "log_improvement_reference_minus_candidate": 0.0,
+            "reference_brier_mean": 0.5506242412311074,
+            "reference_log_mean": 0.9371364804396812
+          }
+        },
+        "slope_nonnegative": 0.0
+      }
+    },
+    "state": {
+      "D1": {
+        "fit_active_count": 27653,
+        "fit_activity_count": 28780,
+        "fit_log_mean": 0.1652653440835805,
+        "fit_prior_log_mean": 0.1652653440835805,
+        "later_metrics": {
+          "activity": {
+            "brier_improvement_reference_minus_candidate": 0.0,
+            "candidate_brier_mean": 0.007269919222802193,
+            "candidate_log_mean": 0.05957017676299208,
+            "later_count": 3037,
+            "log_improvement_reference_minus_candidate": 0.0,
+            "reference_brier_mean": 0.007269919222802193,
+            "reference_log_mean": 0.05957017676299208
+          },
+          "conditional_side": {
+            "brier_improvement_reference_minus_candidate": 0.0,
+            "candidate_brier_mean": 0.2232983550660313,
+            "candidate_log_mean": 0.6393454635449067,
+            "later_count": 1420,
+            "log_improvement_reference_minus_candidate": 0.0,
+            "reference_brier_mean": 0.2232983550660313,
+            "reference_log_mean": 0.6393454635449067
+          },
+          "three_class": {
+            "brier_improvement_reference_minus_candidate": 0.0,
+            "candidate_brier_mean": 0.46295281556077306,
+            "candidate_log_mean": 0.7127914363939357,
+            "later_count": 1439,
+            "log_improvement_reference_minus_candidate": 0.0,
+            "reference_brier_mean": 0.46295281556077306,
+            "reference_log_mean": 0.7127914363939357
+          }
+        },
+        "slope_nonnegative": 0.0
+      },
+      "H1": {
+        "fit_active_count": 39317,
+        "fit_activity_count": 44699,
+        "fit_log_mean": 0.36773403844083646,
+        "fit_prior_log_mean": 0.36773403844083646,
+        "later_metrics": {
+          "activity": {
+            "brier_improvement_reference_minus_candidate": 0.0,
+            "candidate_brier_mean": 0.08934215641627496,
+            "candidate_log_mean": 0.3244025708588411,
+            "later_count": 3988,
+            "log_improvement_reference_minus_candidate": 0.0,
+            "reference_brier_mean": 0.08934215641627496,
+            "reference_log_mean": 0.3244025708588411
+          },
+          "conditional_side": {
+            "brier_improvement_reference_minus_candidate": 0.0,
+            "candidate_brier_mean": 0.24481829271311462,
+            "candidate_log_mean": 0.682768988726997,
+            "later_count": 1713,
+            "log_improvement_reference_minus_candidate": 0.0,
+            "reference_brier_mean": 0.24481829271311462,
+            "reference_log_mean": 0.682768988726997
+          },
+          "three_class": {
+            "brier_improvement_reference_minus_candidate": 0.0,
+            "candidate_brier_mean": 0.6335464679683672,
+            "candidate_log_mean": 1.054325196631503,
+            "later_count": 2106,
+            "log_improvement_reference_minus_candidate": 0.0,
+            "reference_brier_mean": 0.6335464679683672,
+            "reference_log_mean": 1.054325196631503
+          }
+        },
+        "slope_nonnegative": 0.0
+      },
+      "H4": {
+        "fit_active_count": 38783,
+        "fit_activity_count": 42351,
+        "fit_log_mean": 0.2890245492879128,
+        "fit_prior_log_mean": 0.2890245492879128,
+        "later_metrics": {
+          "activity": {
+            "brier_improvement_reference_minus_candidate": 0.0,
+            "candidate_brier_mean": 0.054929565859665755,
+            "candidate_log_mean": 0.22527268645907472,
+            "later_count": 3703,
+            "log_improvement_reference_minus_candidate": 0.0,
+            "reference_brier_mean": 0.054929565859665755,
+            "reference_log_mean": 0.22527268645907472
+          },
+          "conditional_side": {
+            "brier_improvement_reference_minus_candidate": 0.0,
+            "candidate_brier_mean": 0.24791684456012753,
+            "candidate_log_mean": 0.688977492441595,
+            "later_count": 1656,
+            "log_improvement_reference_minus_candidate": 0.0,
+            "reference_brier_mean": 0.24791684456012753,
+            "reference_log_mean": 0.688977492441595
+          },
+          "three_class": {
+            "brier_improvement_reference_minus_candidate": 0.0,
+            "candidate_brier_mean": 0.592462230535167,
+            "candidate_log_mean": 0.9703643661504934,
+            "later_count": 1869,
+            "log_improvement_reference_minus_candidate": 0.0,
+            "reference_brier_mean": 0.592462230535167,
+            "reference_log_mean": 0.9703643661504934
+          }
+        },
+        "slope_nonnegative": 0.0
+      },
+      "M15": {
+        "fit_active_count": 41126,
+        "fit_activity_count": 46421,
+        "fit_log_mean": 0.3549322122899085,
+        "fit_prior_log_mean": 0.3549322122899085,
+        "later_metrics": {
+          "activity": {
+            "brier_improvement_reference_minus_candidate": 0.0,
+            "candidate_brier_mean": 0.09015958066868943,
+            "candidate_log_mean": 0.326039753807663,
+            "later_count": 4083,
+            "log_improvement_reference_minus_candidate": 0.0,
+            "reference_brier_mean": 0.09015958066868943,
+            "reference_log_mean": 0.326039753807663
+          },
+          "conditional_side": {
+            "brier_improvement_reference_minus_candidate": 0.0,
+            "candidate_brier_mean": 0.24760216013295816,
+            "candidate_log_mean": 0.6883494153692391,
+            "later_count": 1671,
+            "log_improvement_reference_minus_candidate": 0.0,
+            "reference_brier_mean": 0.24760216013295816,
+            "reference_log_mean": 0.6883494153692391
+          },
+          "three_class": {
+            "brier_improvement_reference_minus_candidate": 0.0,
+            "candidate_brier_mean": 0.6450907773435801,
+            "candidate_log_mean": 1.0761418801035885,
+            "later_count": 2079,
+            "log_improvement_reference_minus_candidate": 0.0,
+            "reference_brier_mean": 0.6450907773435801,
+            "reference_log_mean": 1.0761418801035885
+          }
+        },
+        "slope_nonnegative": 0.0
+      },
+      "M5": {
+        "fit_active_count": 43399,
+        "fit_activity_count": 46833,
+        "fit_log_mean": 0.2621545179280485,
+        "fit_prior_log_mean": 0.2621545179280485,
+        "later_metrics": {
+          "activity": {
+            "brier_improvement_reference_minus_candidate": 0.0,
+            "candidate_brier_mean": 0.06017179082850035,
+            "candidate_log_mean": 0.23904975078427942,
+            "later_count": 4096,
+            "log_improvement_reference_minus_candidate": 0.0,
+            "reference_brier_mean": 0.06017179082850035,
+            "reference_log_mean": 0.23904975078427942
+          },
+          "conditional_side": {
+            "brier_improvement_reference_minus_candidate": 0.0,
+            "candidate_brier_mean": 0.24875460360871018,
+            "candidate_log_mean": 0.6906555455297392,
+            "later_count": 1392,
+            "log_improvement_reference_minus_candidate": 0.0,
+            "reference_brier_mean": 0.24875460360871018,
+            "reference_log_mean": 0.6906555455297392
+          },
+          "three_class": {
+            "brier_improvement_reference_minus_candidate": 0.0,
+            "candidate_brier_mean": 0.6300898406520241,
+            "candidate_log_mean": 1.059996404584913,
+            "later_count": 1655,
+            "log_improvement_reference_minus_candidate": 0.0,
+            "reference_brier_mean": 0.6300898406520241,
+            "reference_log_mean": 1.059996404584913
+          }
+        },
+        "slope_nonnegative": 0.0
+      }
+    }
+  },
+  "claim": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_GC_ABS_BOOK_ACTIVITY_FOLD2_20261115_001/CLAIM.json",
+    "sha256": "ee23a5a5e58a53df719927b7be5adf42177a0c2020004885379a15129b611646"
+  },
+  "coverage": {
+    "fit_observed_rows": 46868,
+    "later_observed_rows": 4092,
+    "later_rows": 4096
+  },
+  "decision": "POSITIVE_ABS_GC_BOOK_IMBALANCE_ACTIVITY_SLOPES_ZERO_ALL_TEN_CELLS",
+  "fit_standardization": {
+    "mean": 0.05085192721496333,
+    "observed_fit_rows": 46868,
+    "std": 0.04567562193715444
+  },
+  "interpretation": [
+    "Every one of the ten predeclared nonnegative activity slopes optimized to zero on earlier mature Fold2 TRAIN. The candidate therefore equals the frozen prior on fixed later development; the primary S/M5 activity shows no improvement in any of 14 UTC weeks.",
+    "The result rejects only the positive monotone absolute-book-imbalance activity hypothesis for this one legacy GC field. It does not test a negative orientation, nonlinear interactions, all genuine features, or the current full-GC native model. Do not reverse sign after this later score.",
+    "Conditional-side logits and proper scores remain exactly those of the frozen prior. M5 Entry, independent generalization, economic Edge, TEST, broker and trading remain unmeasured or closed."
+  ],
+  "next_gate": "Inspect the current full-GC input route and causal source-target alignment for a measured gap. Predeclare one genuinely new mechanism if supported by source evidence; do not relaunch or reverse this consumed hypothesis. Qualify native optimizer/resume and exact fit admission before training. Keep five-TF S/F, sealed TEST and trading closure.",
+  "observed_utc": "2026-11-15T02:53:59.818555+00:00",
+  "plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_GC_ABS_BOOK_ACTIVITY_FOLD2_20261115_001.json",
+    "sha256": "8ebe02e1479def700c36b4ca44224db7b8b3555407e312f0964d7bcd20444e07"
+  },
+  "primary_by_utc_issue_week": {
+    "2024-12-30": {
+      "activity_count": 144,
+      "brier_improvement_reference_minus_candidate": 0.0,
+      "log_improvement_reference_minus_candidate": 0.0
+    },
+    "2025-01-06": {
+      "activity_count": 320,
+      "brier_improvement_reference_minus_candidate": 0.0,
+      "log_improvement_reference_minus_candidate": 0.0
+    },
+    "2025-01-13": {
+      "activity_count": 320,
+      "brier_improvement_reference_minus_candidate": 0.0,
+      "log_improvement_reference_minus_candidate": 0.0
+    },
+    "2025-01-20": {
+      "activity_count": 320,
+      "brier_improvement_reference_minus_candidate": 0.0,
+      "log_improvement_reference_minus_candidate": 0.0
+    },
+    "2025-01-27": {
+      "activity_count": 335,
+      "brier_improvement_reference_minus_candidate": 0.0,
+      "log_improvement_reference_minus_candidate": 0.0
+    },
+    "2025-02-03": {
+      "activity_count": 321,
+      "brier_improvement_reference_minus_candidate": 0.0,
+      "log_improvement_reference_minus_candidate": 0.0
+    },
+    "2025-02-10": {
+      "activity_count": 320,
+      "brier_improvement_reference_minus_candidate": 0.0,
+      "log_improvement_reference_minus_candidate": 0.0
+    },
+    "2025-02-17": {
+      "activity_count": 320,
+      "brier_improvement_reference_minus_candidate": 0.0,
+      "log_improvement_reference_minus_candidate": 0.0
+    },
+    "2025-02-24": {
+      "activity_count": 320,
+      "brier_improvement_reference_minus_candidate": 0.0,
+      "log_improvement_reference_minus_candidate": 0.0
+    },
+    "2025-03-03": {
+      "activity_count": 336,
+      "brier_improvement_reference_minus_candidate": 0.0,
+      "log_improvement_reference_minus_candidate": 0.0
+    },
+    "2025-03-10": {
+      "activity_count": 320,
+      "brier_improvement_reference_minus_candidate": 0.0,
+      "log_improvement_reference_minus_candidate": 0.0
+    },
+    "2025-03-17": {
+      "activity_count": 326,
+      "brier_improvement_reference_minus_candidate": 0.0,
+      "log_improvement_reference_minus_candidate": 0.0
+    },
+    "2025-03-24": {
+      "activity_count": 330,
+      "brier_improvement_reference_minus_candidate": 0.0,
+      "log_improvement_reference_minus_candidate": 0.0
+    },
+    "2025-03-31": {
+      "activity_count": 64,
+      "brier_improvement_reference_minus_candidate": 0.0,
+      "log_improvement_reference_minus_candidate": 0.0
+    }
+  },
+  "primary_positive_brier_weeks": 0,
+  "prior_score_parity": true,
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_GC_ABS_BOOK_ACTIVITY_FOLD2_20261115_001/RESULT.json",
+    "sha256": "71e22eaf2877df1326f63314b0f8da07e53320505e54307365058b58693d6f08"
+  },
+  "schema_version": "gx1_s_f_gc_abs_book_activity_fold2_review_v1",
+  "scope": {
+    "fit_rows": 47338,
+    "fold_id": 2,
+    "frozen_prior_intercept": true,
+    "hypothesis": "higher_absolute_observed_GC_book_imbalance_predicts_higher_future_activity",
+    "later_development_rows": 4096,
+    "model_forwards": 0,
+    "native_model_fit": false,
+    "nonnegative_slope": true,
+    "optimizer_steps": 0,
+    "primary_cell": "state_M5_activity",
+    "tasks": [
+      "state",
+      "future"
+    ],
+    "test_data_used": false,
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ],
+    "trade_selection": false
+  },
+  "side_logits_unchanged": true,
+  "source_field": {
+    "field": "gc_m5_observed_book_tw_imbalance",
+    "mask_col": 815,
+    "masked_float32_train_sha256": "792d56e2c63753daa24bb5d71b2f162a31539cde018e6df60f59a330fa93da4c",
+    "missing": 621,
+    "mmap_stat": {
+      "st_ctime_ns": 1792854125594530789,
+      "st_dev": 2096,
+      "st_ino": 2091,
+      "st_mode": 33060,
+      "st_mtime_ns": 1792854125554858712,
+      "st_size": 1202355832
+    },
+    "observed": 117628,
+    "price_control": "close_distance_from_ema5_bps",
+    "price_control_col": 8,
+    "price_control_finite": 118249,
+    "value_col": 814
+  },
+  "source_head": "2dbeeae0e99a16384d4bde8426fe7f89a5e17e32",
+  "status": "COMPLETE_CONSUMED_POSITIVE_ACTIVITY_HYPOTHESIS_UNSUPPORTED_EDGE_UNQUALIFIED",
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_GC_ABS_BOOK_ACTIVITY_FOLD2_20261115_001/TERMINAL.json",
+    "sha256": "2707917787bf9ed619dc5e0ae36e14bd7d84cfef48dd7f48823faf3fa706bf75"
+  }
+}

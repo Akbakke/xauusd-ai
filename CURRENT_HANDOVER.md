@@ -5,16 +5,20 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: GC_ABS_BOOK_ACTIVITY_FOLD2_ADMITTED_NO_SCORE.
-Aktiv fase er S/F-markedstilstand på M5/M15/H1/H4/D1 før Entry.
-Én hypotese er forhåndsbundet: høyere absolutt observert GC M5 tidsvektet
-bokubalanse ved beslutning varsler framtidig S/M5 aktivitet. En enkelt
-ikke-negativ helning per S/F×TF tilpasses bare på moden Fold2 fit47338,
-med frossen prior som intercept og kun fitbasert skala. Fast senere
-utvikling4096 scores mot samme prior; manglende GC-input faller tilbake.
-S/M5 aktivitet er hovedmål, alle øvrige TF er beskrivende. Planen er
-innrømmet, ikke claimet. Lesende preflight og én capped CPU-audit gjenstår.
-Ingen native modellforward/fit, Entry-valg, TEST, broker eller handel.
+Gjeldende policy: GC_ABS_BOOK_ACTIVITY_POSITIVE_HYPOTHESIS_UNSUPPORTED_EDGE_UNQUALIFIED.
+Den ene forhåndsbundne, capped GC-bokaktivitetstesten er COMPLETE/CONSUMED,
+exit0. På moden Fold2 fit47338 ble helningen0 i alle ti S/F×fem-TF-
+celler for positiv monotoni mellom absolutt M5 bokubalanse og framtidig
+aktivitet. Kandidaten er dermed identisk med frossen prior på fast senere
+utvikling4096; primær S/M5 aktivitet forbedret0/14 uker. Dette avviser
+bare denne ene orienterte, rå GC-felthypotesen. Ingen fortegnsvending,
+ettervalgt TF, native full-GC modellscore eller økonomisk Edge.
+Aggregert rapport: `docs/S_F_GC_ABS_BOOK_ACTIVITY_FOLD2_RESULT_REVIEW_20261115.json`.
+Original CLAIM/RESULT/TERMINAL:
+`/home/andre2/GX1_RUNS/MARKET_STATE_GC_ABS_BOOK_ACTIVITY_FOLD2_20261115_001/`.
+Neste gate: gjennomgå faktisk full-GC modellkonsum og eksakt S/F-målklokke
+for et målt gap; forhåndsbind en ny mekanisme bare ved kildebelegg.
+Native optimizer/resume/fit, TEST, broker og handel er stengt.
 
 Forrige policy: M5_ALL_SIDE_JOINT_COST_TARGET_BOUND_EDGE_UNQUALIFIED.
 Den tosidige M5 Entry-kostnadskontrollen er COMPLETE/CONSUMED og brukes
