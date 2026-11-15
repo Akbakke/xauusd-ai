@@ -1,0 +1,124 @@
+{
+  "M5_H1_current_sign_control_auc": {
+    "fit": 0.5241619292137422,
+    "later": 0.5195133259311437
+  },
+  "claim": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_MINUTE_ONE_PERSISTENCE_RANK_20261115_001/CLAIM.json",
+    "sha256": "8af2222502f8d906c9d8c95696e4ca3bd74a6db0efe4ae9a90025242994fd5fc"
+  },
+  "decision": "HIGH_CAUSAL_CURRENT_STATE_PERSISTENCE_MINUTE_ONE_ONLY_FIT_NOT_QUALIFIED",
+  "economic_edge_qualified": false,
+  "interpretation": [
+    "The one-minute target has strong same-TF state persistence on the fixed development cohorts, including M5.",
+    "A minute-one score or loss improvement alone cannot demonstrate detection of state transitions, local price path quality, Entry quality or economic Edge.",
+    "The source-only minute-one side-normalized loss remains unadmitted; a transition/path objective and reference must be predeclared from the semantic goal before any fit.",
+    "Later development scores are descriptive only and cannot choose a query schedule or fit recipe; sealed TEST remains unused."
+  ],
+  "later_M5_weekly": {
+    "max_auc": 0.9194373401534527,
+    "min_auc": 0.788496652465003,
+    "weeks": 14,
+    "weeks_auc_above_half": 14
+  },
+  "model_forwards": 0,
+  "observed_utc": "2026-11-15T11:18:17.707164+00:00",
+  "optimizer_steps": 0,
+  "plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_FOLD2_MINUTE_ONE_PERSISTENCE_RANK_20261115_001.json",
+    "sha256": "b16c7639d6d78888387691bb4bf3bd073677668b49cd153ee040b7fb4d8a58a1"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_MINUTE_ONE_PERSISTENCE_RANK_20261115_001/RESULT.json",
+    "sha256": "3e5f378135175bba9e4567e5160905dc90bf6050b3a746e52b2c1d76e19f9603"
+  },
+  "schema_version": "gx1_fold2_minute_one_persistence_rank_review_v1",
+  "scope": {
+    "fit_rows": 47338,
+    "fold_id": 2,
+    "later_development_rows": 4096,
+    "predictor": "same_TF_certified_current_S_sign_else_zero",
+    "query_minute": 1,
+    "target": "certified_future_S_side_only",
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ],
+    "unknown_current_rows_retained": true
+  },
+  "scores": {
+    "fit": {
+      "D1": {
+        "constant_rank_reference_auc": 0.5,
+        "current_certified_direction_rows": 12235,
+        "known_future_side_rows": 16360,
+        "same_tf_current_sign_auc": 0.9678012995880463
+      },
+      "H1": {
+        "constant_rank_reference_auc": 0.5,
+        "current_certified_direction_rows": 17586,
+        "known_future_side_rows": 18140,
+        "same_tf_current_sign_auc": 0.986960642353617
+      },
+      "H4": {
+        "constant_rank_reference_auc": 0.5,
+        "current_certified_direction_rows": 18276,
+        "known_future_side_rows": 19108,
+        "same_tf_current_sign_auc": 0.9964655403177296
+      },
+      "M15": {
+        "constant_rank_reference_auc": 0.5,
+        "current_certified_direction_rows": 16691,
+        "known_future_side_rows": 18184,
+        "same_tf_current_sign_auc": 0.9572471822182022
+      },
+      "M5": {
+        "constant_rank_reference_auc": 0.5,
+        "current_certified_direction_rows": 11715,
+        "known_future_side_rows": 15891,
+        "same_tf_current_sign_auc": 0.8838124612785024
+      }
+    },
+    "later": {
+      "D1": {
+        "constant_rank_reference_auc": 0.5,
+        "current_certified_direction_rows": 1392,
+        "known_future_side_rows": 1905,
+        "same_tf_current_sign_auc": 0.9589778431945901
+      },
+      "H1": {
+        "constant_rank_reference_auc": 0.5,
+        "current_certified_direction_rows": 1594,
+        "known_future_side_rows": 1645,
+        "same_tf_current_sign_auc": 0.9874504213217047
+      },
+      "H4": {
+        "constant_rank_reference_auc": 0.5,
+        "current_certified_direction_rows": 1751,
+        "known_future_side_rows": 1902,
+        "same_tf_current_sign_auc": 0.9962817772112201
+      },
+      "M15": {
+        "constant_rank_reference_auc": 0.5,
+        "current_certified_direction_rows": 1508,
+        "known_future_side_rows": 1632,
+        "same_tf_current_sign_auc": 0.9568177232372148
+      },
+      "M5": {
+        "constant_rank_reference_auc": 0.5,
+        "current_certified_direction_rows": 1035,
+        "known_future_side_rows": 1421,
+        "same_tf_current_sign_auc": 0.8608905709635184
+      }
+    }
+  },
+  "source_head": "bba81dfb0f55fbc400f7a5c1af84620cba687262",
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_MINUTE_ONE_PERSISTENCE_RANK_20261115_001/TERMINAL.json",
+    "sha256": "bc690965bf583c38b27507fb95a92e4d707b0279ce000dc82e379497ec4e698e"
+  },
+  "test_data_used": false
+}

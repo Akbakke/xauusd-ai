@@ -5,7 +5,22 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_MINUTE_ONE_PERSISTENCE_RANK_READ_ONLY_ADMITTED.
+Gjeldende policy: FOLD2_MINUTE_ONE_PERSISTENCE_HIGH_TRANSITION_PATH_GATE_OPEN_EDGE_UNQUALIFIED.
+Én capped lesekontroll er fullført og brukt opp. Sertifisert nå-S på samme TF
+ranker sertifisert S-side ett minutt senere svært høyt: M5 AUC 0,883812
+på fit15 891 og 0,860891 på senere1 421 kjentside-rader; de fire
+andre TF ligger fra 0,957 til 0,996 senere. M5 H1-fortegn-kontrollen
+var 0,524/0,520 på samme fit/senere målrader. Alle 14 senere M5-uker
+hadde AUC over 0,5. Ukjent nåretning ble skåret null og beholdt. Se
+docs/S_FOLD2_MINUTE_ONE_PERSISTENCE_RANK_REVIEW_20261115.json. Dette er
+en enkel kausal referanse, ikke modellfit, fremtidig handelsretning eller
+økonomisk Edge. Minutt1 alene er for dominert av tilstandspersistens til
+å kvalifisere løpende skifter. Neste gate er én forhåndsbundet skifte-/
+banesensitiv S-måling mot samme-tidsrammes persistens, med alle fem TF og
+hele kjent/ukjent populasjonen. Senere score velger ingen query/fit.
+Native fit er uadmittert; training_enabled=false; TEST/handel stengt.
+
+Forrige policy: FOLD2_MINUTE_ONE_PERSISTENCE_RANK_READ_ONLY_ADMITTED.
 Én avgrenset, capped lesekontroll skal måle en enkel kausal referanse før
 modellfit: sertifisert nåtilstands fortegn på samme TF ved lukket M5-beslutning
 ranker framtidig sertifisert S-side ved fast minutt1. Ukjent nåretning får
