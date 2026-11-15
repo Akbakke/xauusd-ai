@@ -5,7 +5,20 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_MINUTE_NATIVE_FORWARD_READ_ONLY_ADMITTED.
+Gjeldende policy: FOLD2_MINUTE_NATIVE_FORWARD_MECHANICS_PASS_LEARNING_EDGE_OPEN.
+Én capped, forhåndsbundet genuine full-GC Fold2 fit-B16 minuttspørring er
+fullført og brukt opp. Ett CPU-backbone-kall og tre hode-decodes ga bitlikt
+råoutput ved fem gamle native endepunkter; fast minutt1 på alle fem TF ga
+endelig maskert loss 0,629565 over 40/80 kvalifiserte celler. Modellen var
+ferskt tilfeldig initialisert og uendret; ingen fit, checkpoint eller TEST.
+H4/D1 hadde 0 kvalifiserte minutt1-celler i første B16. Dette beviser
+mekanikk, ikke læring, generalisering eller Edge. Se
+docs/S_FOLD2_MINUTE_NATIVE_FORWARD_REVIEW_20261115.json. Neste konkrete
+retning er én forhåndsbundet informativ minuttsbanehypotese med fersk
+initialbaseline og egen eksakt opptaksgate før eventuell fit. Native trening
+er fortsatt uadmittert; training_enabled=false; ingen broker/handel.
+
+Forrige policy: FOLD2_MINUTE_NATIVE_FORWARD_READ_ONLY_ADMITTED.
 Én ny, forhåndsbundet lesekjøring på første genuine full-GC Fold2 fit-B16
 kan gjøre nøyaktig én CPU-backbone-encode og tre hode-decodes: gammel
 native spørring, samme fem endepunkter i minutter (bitlik kontroll),
@@ -18,7 +31,6 @@ ikke læring, senere generalisering eller økonomisk Edge.
 Native fit er fortsatt uadmittert; training_enabled=false.
 
 Forrige policy: FOLD2_MINUTE_QUERY_SOURCE_PASS_NATIVE_MINUTE_FORWARD_OPEN_EDGE_UNQUALIFIED.
-Gjeldende policy: FOLD2_MINUTE_QUERY_SOURCE_PASS_NATIVE_MINUTE_FORWARD_OPEN_EDGE_UNQUALIFIED.
 Én capped Fold2-kildekontroll er fullført og brukt opp. Eksisterende
 hashbundet M1-S-tape gir eksakte modne M5-etiketter ved minutt1–4 uten
 ny targetbygging. På alle fem TF har de gamle native endepunktene 0

@@ -1,0 +1,86 @@
+{
+  "backbone_encode_calls": 1,
+  "checkpoint_reads": 0,
+  "claim": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_MINUTE_NATIVE_FORWARD_20261115_001/CLAIM.json",
+    "sha256": "93d03e49762c99274d736227f98e8ad79c3a520aa08842b24e227bcce8fd38f7"
+  },
+  "decision": "PASS_GENUINE_FULL_GC_MINUTE_FORWARD_MECHANICS_ONLY",
+  "economic_edge_qualified": false,
+  "first_fit_batch_rows": 16,
+  "fixed_query_minute": 1,
+  "head_decode_calls": 3,
+  "independent_generalization_measured": false,
+  "limits": [
+    "Fresh random initialization only: loss and raw delta do not measure predictive improvement.",
+    "H4 and D1 have zero eligible minute-1 labels in this first B16; their prediction quality is unmeasured here.",
+    "Fit of minute-query objective, later chronological score, execution economics and sealed monthly forward journal remain open."
+  ],
+  "minute_1_allowed_counts": {
+    "1": 13,
+    "2": 1,
+    "4": 3,
+    "5": 23,
+    "7": 40
+  },
+  "minute_1_eligible_cells": 40,
+  "minute_1_loss": 0.629564642906189,
+  "minute_1_vs_endpoint_M5_max_abs_raw_delta": 0.011629164218902588,
+  "model_constructions": 1,
+  "model_contract_sha256": "23c2ba59baf86a48811a6ef9f319daeae69293fc2bb28b90d4017330740c986e",
+  "native_endpoint_raw_bit_equal": true,
+  "observed_utc": "2026-11-15T10:36:16.594928+00:00",
+  "optimizer_steps": 0,
+  "per_tf_score_support": {
+    "D1": {
+      "activity": 0,
+      "known_side": 0,
+      "three_class": 0
+    },
+    "H1": {
+      "activity": 8,
+      "known_side": 4,
+      "three_class": 4
+    },
+    "H4": {
+      "activity": 0,
+      "known_side": 0,
+      "three_class": 0
+    },
+    "M15": {
+      "activity": 16,
+      "known_side": 5,
+      "three_class": 6
+    },
+    "M5": {
+      "activity": 16,
+      "known_side": 7,
+      "three_class": 7
+    }
+  },
+  "plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_FOLD2_MINUTE_NATIVE_FORWARD_20261115_001.json",
+    "sha256": "9deff7d6d2f77d03595e214d16a5df1a09141cd7ff1953a31f99886ec952e2b5"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_MINUTE_NATIVE_FORWARD_20261115_001/RESULT.json",
+    "sha256": "3d7aa701371c355892fb678161dc486fedc962f9c059af6617a6f56fe5933e46"
+  },
+  "same_initial_and_final_state": true,
+  "schema_version": "gx1_fold2_minute_native_forward_review_v1",
+  "source_head": "8a59d40dd46a7339bc660dc1bb515b8356b03700",
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_MINUTE_NATIVE_FORWARD_20261115_001/TERMINAL.json",
+    "sha256": "b4a7b072120f74f94c90adc866137180808c5f471a21a24d4b379ebd67e07143"
+  },
+  "test_data_used": false,
+  "timeframes": [
+    "M5",
+    "M15",
+    "H1",
+    "H4",
+    "D1"
+  ],
+  "training_performed": false,
+  "view_sha256": "9ea6a4595c6a5792acd190ad12dc861d9bb99ec921c5bd3650b38b15154981bc"
+}
