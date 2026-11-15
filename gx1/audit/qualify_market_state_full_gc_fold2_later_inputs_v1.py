@@ -27,7 +27,7 @@ OUT_ROOT = RUNS / 'MARKET_STATE_FULL_GC_FOLD2_LATER_INPUTS_20261115_001'
 LATER_ROOT = RUNS / 'MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_002'
 WORKER_PATH = 'gx1/audit/qualify_market_state_full_gc_fold2_later_inputs_v1.py'
 SOURCE_PATHS = tuple(sorted(set(base.SOURCE_PATHS) | {WORKER_PATH}))
-MEMORY_BYTES = 8 * 1024**3
+MEMORY_BYTES = 12 * 1024**3
 SWAP_BYTES = 512 * 1024**2
 WALL_SECONDS = 900
 SCORE_ROWS = 4096
@@ -43,7 +43,7 @@ def need(ok: object, reason: str) -> None:
 
 def planned_command(plan_sha256: str) -> list[str]:
     return ['timeout', '--signal=TERM', '--kill-after=10s', '900s',
-            'scripts/gx1_capped_run.sh', '--class', 'producer', '--mem', '8G',
+            'scripts/gx1_capped_run.sh', '--class', 'producer', '--mem', '12G',
             '--swap', '512M', '--', '.venv/bin/python', '-m',
             'gx1.audit.qualify_market_state_full_gc_fold2_later_inputs_v1',
             '--plan', str(PLAN_PATH), '--plan-sha256', plan_sha256]
