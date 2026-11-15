@@ -5,19 +5,29 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: GC_BOOK_TW_FOLD2_ADMITTED_READONLY_NO_FIT.
-Én separat lesende GC-signalaudit er innrømmet på eksakt Fold2 moden
-fitakse47338 og fast senere utvikling4096. Forhåndslåst hypotese:
-positiv M5 tidsvektet GC-ordrebokubalanse rangerer OPP høyere for
-S/F conditional side på M5/M15/H1/H4/D1. Samme-rad XAU-avstand
-fra EMA5 er kontroll; konstant frossen prior har AUC0,5. Dette er
-kilde- og rankassosiasjon uten sannsynlighetsfit eller Entry-mål.
-Gamle GC aggressor-/OFI-referanser relanseres ikke. En første
-lesende preflight fant at den gamle 051-verifikatoren bandt dagens
-utvidede profil; ny worker bruker derfor forseglede 051-manifester
-og feltbytes direkte. Ingen CLAIM eller kildekode i gammel eier ble endret. Plan:
-`configs/research/MARKET_STATE_GC_BOOK_TW_FOLD2_20261115_001.json`.
-0 modellforwards, optimizersteg, TEST, broker eller handel.
+Gjeldende policy: GC_BOOK_TW_FOLD2_RAW_M5_S_POSITIVE_ORIENTATION_UNSUPPORTED_EDGE_UNQUALIFIED.
+Én lesende, capped GC-bokrangering er COMPLETE/CONSUMED, exit0.
+Den forhåndsvalgte hypotesen om positiv M5 tidsvektet GC-ubalanse
+som OPP-signal støttes ikke på eksakt Fold2 S/M5 conditional side:
+AUC0,48744 på moden fit47338 (15951 felles observerte S-sider) og
+0,48301 på fast senere utvikling4096 (1392 felles S-sider); 5/14
+senere uker med begge sider var over0,5. F/M5 var0,48735 i fit og
+0,50826 senere, uten stabilt fortegn. Alle S/F-celler på M5/M15/H1/H4/D1
+og samme-rad XAU EMA5-rangkontroll er bevart i rapporten. AUC0,5 er
+konstant-priorens rankreferanse, ikke proper-score eller Edge.
+Den historiske051-felt-/maskehashen ble lik049-registeret og klokkeaksen
+lik tidligere GC-kilde; dagens utvidede full-GC modellkonsum er ikke
+scoret. Første lesende preflight stoppet på gammel kildeverifikators
+krav om identisk eldre/ny feltprofil; direkte 051-manifestbinding
+rettet bare denne blokkeringen før CLAIM. 0 modellforwards, fit,
+optimizersteg, TEST, broker, handel eller Entry-valg.
+Aggregert rapport: `docs/S_F_GC_BOOK_TW_FOLD2_RESULT_REVIEW_20261115.json`.
+Original CLAIM/RESULT/TERMINAL:
+`/home/andre2/GX1_RUNS/MARKET_STATE_GC_BOOK_TW_FOLD2_20261115_001/`.
+Ikke snu fortegnet eller velg D1 fra samme utviklingsresultat. Neste
+S/F-forsøk trenger én ny målbundet kausal hypotese, pris-kontroll,
+prefix-normalisering og eksakt optimizer/resume-/fitadmisjon. TEST
+og handel er stengt.
 
 Forrige policy: S_M5_JOINT_COST_DIRECT_S_SIDE_NEGATIVE_EDGE_UNQUALIFIED.
 Fellesmaskeauditen er COMPLETE/CONSUMED, exit0 under4G/512M. Eksakt

@@ -1,0 +1,348 @@
+{
+  "by_cohort_task_timeframe": {
+    "fit": {
+      "future": {
+        "D1": {
+          "constant_prior_auc": 0.5,
+          "gc_auc_positive_orientation": 0.49474020720076634,
+          "gc_auc_within_price_nonpositive": 0.4976415359634543,
+          "gc_auc_within_price_positive": 0.4914712941001347,
+          "gc_missing_on_known_side": 165,
+          "joint_observed": 14983,
+          "known_side": 15148,
+          "price_nonfinite_on_known_gc": 0,
+          "weeks_gc_auc_above_half": 12,
+          "weeks_with_both_sides": 31,
+          "xau_ema_distance_auc": 0.5095360212885898
+        },
+        "H1": {
+          "constant_prior_auc": 0.5,
+          "gc_auc_positive_orientation": 0.49522058478752345,
+          "gc_auc_within_price_nonpositive": 0.500959220291321,
+          "gc_auc_within_price_positive": 0.4921063255119786,
+          "gc_missing_on_known_side": 144,
+          "joint_observed": 16408,
+          "known_side": 16552,
+          "price_nonfinite_on_known_gc": 0,
+          "weeks_gc_auc_above_half": 11,
+          "weeks_with_both_sides": 36,
+          "xau_ema_distance_auc": 0.48597605686172185
+        },
+        "H4": {
+          "constant_prior_auc": 0.5,
+          "gc_auc_positive_orientation": 0.5015123956950582,
+          "gc_auc_within_price_nonpositive": 0.5045613254044421,
+          "gc_auc_within_price_positive": 0.49893488034083827,
+          "gc_missing_on_known_side": 189,
+          "joint_observed": 16089,
+          "known_side": 16278,
+          "price_nonfinite_on_known_gc": 0,
+          "weeks_gc_auc_above_half": 16,
+          "weeks_with_both_sides": 36,
+          "xau_ema_distance_auc": 0.49548042760087635
+        },
+        "M15": {
+          "constant_prior_auc": 0.5,
+          "gc_auc_positive_orientation": 0.48526232376047734,
+          "gc_auc_within_price_nonpositive": 0.48716972621194954,
+          "gc_auc_within_price_positive": 0.4849451922032567,
+          "gc_missing_on_known_side": 155,
+          "joint_observed": 17328,
+          "known_side": 17483,
+          "price_nonfinite_on_known_gc": 0,
+          "weeks_gc_auc_above_half": 10,
+          "weeks_with_both_sides": 36,
+          "xau_ema_distance_auc": 0.4906541833625898
+        },
+        "M5": {
+          "constant_prior_auc": 0.5,
+          "gc_auc_positive_orientation": 0.48734578469084794,
+          "gc_auc_within_price_nonpositive": 0.4902668583201928,
+          "gc_auc_within_price_positive": 0.4867572207244171,
+          "gc_missing_on_known_side": 196,
+          "joint_observed": 18876,
+          "known_side": 19072,
+          "price_nonfinite_on_known_gc": 0,
+          "weeks_gc_auc_above_half": 11,
+          "weeks_with_both_sides": 36,
+          "xau_ema_distance_auc": 0.48524600994948963
+        }
+      },
+      "state": {
+        "D1": {
+          "constant_prior_auc": 0.5,
+          "gc_auc_positive_orientation": 0.496965562292076,
+          "gc_auc_within_price_nonpositive": 0.49388791196835136,
+          "gc_auc_within_price_positive": 0.4961025897837,
+          "gc_missing_on_known_side": 249,
+          "joint_observed": 12042,
+          "known_side": 12291,
+          "price_nonfinite_on_known_gc": 0,
+          "weeks_gc_auc_above_half": 9,
+          "weeks_with_both_sides": 21,
+          "xau_ema_distance_auc": 0.5389328715786089
+        },
+        "H1": {
+          "constant_prior_auc": 0.5,
+          "gc_auc_positive_orientation": 0.49903896052343977,
+          "gc_auc_within_price_nonpositive": 0.506326067804959,
+          "gc_auc_within_price_positive": 0.4958681505573502,
+          "gc_missing_on_known_side": 144,
+          "joint_observed": 17829,
+          "known_side": 17973,
+          "price_nonfinite_on_known_gc": 0,
+          "weeks_gc_auc_above_half": 17,
+          "weeks_with_both_sides": 36,
+          "xau_ema_distance_auc": 0.4767789394293938
+        },
+        "H4": {
+          "constant_prior_auc": 0.5,
+          "gc_auc_positive_orientation": 0.5076304891168818,
+          "gc_auc_within_price_nonpositive": 0.504388605289438,
+          "gc_auc_within_price_positive": 0.5101239909478656,
+          "gc_missing_on_known_side": 201,
+          "joint_observed": 18190,
+          "known_side": 18391,
+          "price_nonfinite_on_known_gc": 0,
+          "weeks_gc_auc_above_half": 20,
+          "weeks_with_both_sides": 36,
+          "xau_ema_distance_auc": 0.5064490712030477
+        },
+        "M15": {
+          "constant_prior_auc": 0.5,
+          "gc_auc_positive_orientation": 0.48575326651171025,
+          "gc_auc_within_price_nonpositive": 0.48294216480749386,
+          "gc_auc_within_price_positive": 0.49366530741977976,
+          "gc_missing_on_known_side": 161,
+          "joint_observed": 18021,
+          "known_side": 18182,
+          "price_nonfinite_on_known_gc": 0,
+          "weeks_gc_auc_above_half": 10,
+          "weeks_with_both_sides": 36,
+          "xau_ema_distance_auc": 0.4703788086690911
+        },
+        "M5": {
+          "constant_prior_auc": 0.5,
+          "gc_auc_positive_orientation": 0.4874442333952358,
+          "gc_auc_within_price_nonpositive": 0.49185526702187266,
+          "gc_auc_within_price_positive": 0.48738500824798464,
+          "gc_missing_on_known_side": 150,
+          "joint_observed": 15951,
+          "known_side": 16101,
+          "price_nonfinite_on_known_gc": 0,
+          "weeks_gc_auc_above_half": 11,
+          "weeks_with_both_sides": 36,
+          "xau_ema_distance_auc": 0.4703690546718668
+        }
+      }
+    },
+    "later": {
+      "future": {
+        "D1": {
+          "constant_prior_auc": 0.5,
+          "gc_auc_positive_orientation": 0.5125634713032774,
+          "gc_auc_within_price_nonpositive": 0.521161872532431,
+          "gc_auc_within_price_positive": 0.5086741191453233,
+          "gc_missing_on_known_side": 1,
+          "joint_observed": 1499,
+          "known_side": 1500,
+          "price_nonfinite_on_known_gc": 0,
+          "weeks_gc_auc_above_half": 5,
+          "weeks_with_both_sides": 9,
+          "xau_ema_distance_auc": 0.46921834128327433
+        },
+        "H1": {
+          "constant_prior_auc": 0.5,
+          "gc_auc_positive_orientation": 0.47090087193357416,
+          "gc_auc_within_price_nonpositive": 0.4616344764157141,
+          "gc_auc_within_price_positive": 0.48095297925678626,
+          "gc_missing_on_known_side": 2,
+          "joint_observed": 1550,
+          "known_side": 1552,
+          "price_nonfinite_on_known_gc": 0,
+          "weeks_gc_auc_above_half": 4,
+          "weeks_with_both_sides": 14,
+          "xau_ema_distance_auc": 0.4204315477981571
+        },
+        "H4": {
+          "constant_prior_auc": 0.5,
+          "gc_auc_positive_orientation": 0.49217318318528364,
+          "gc_auc_within_price_nonpositive": 0.48890591306321646,
+          "gc_auc_within_price_positive": 0.4965127432173198,
+          "gc_missing_on_known_side": 3,
+          "joint_observed": 1436,
+          "known_side": 1439,
+          "price_nonfinite_on_known_gc": 0,
+          "weeks_gc_auc_above_half": 6,
+          "weeks_with_both_sides": 14,
+          "xau_ema_distance_auc": 0.4797729793463164
+        },
+        "M15": {
+          "constant_prior_auc": 0.5,
+          "gc_auc_positive_orientation": 0.49861346453531497,
+          "gc_auc_within_price_nonpositive": 0.5065369946605645,
+          "gc_auc_within_price_positive": 0.49386930600666795,
+          "gc_missing_on_known_side": 0,
+          "joint_observed": 1547,
+          "known_side": 1547,
+          "price_nonfinite_on_known_gc": 0,
+          "weeks_gc_auc_above_half": 6,
+          "weeks_with_both_sides": 14,
+          "xau_ema_distance_auc": 0.4622437035978469
+        },
+        "M5": {
+          "constant_prior_auc": 0.5,
+          "gc_auc_positive_orientation": 0.5082634121535723,
+          "gc_auc_within_price_nonpositive": 0.49348589010143745,
+          "gc_auc_within_price_positive": 0.5220335975393351,
+          "gc_missing_on_known_side": 0,
+          "joint_observed": 1591,
+          "known_side": 1591,
+          "price_nonfinite_on_known_gc": 0,
+          "weeks_gc_auc_above_half": 8,
+          "weeks_with_both_sides": 14,
+          "xau_ema_distance_auc": 0.47578343503686754
+        }
+      },
+      "state": {
+        "D1": {
+          "constant_prior_auc": 0.5,
+          "gc_auc_positive_orientation": 0.5364650179056408,
+          "gc_auc_within_price_nonpositive": 0.5279325497781796,
+          "gc_auc_within_price_positive": 0.5434799876439698,
+          "gc_missing_on_known_side": 1,
+          "joint_observed": 1419,
+          "known_side": 1420,
+          "price_nonfinite_on_known_gc": 0,
+          "weeks_gc_auc_above_half": 6,
+          "weeks_with_both_sides": 7,
+          "xau_ema_distance_auc": 0.5255341649241714
+        },
+        "H1": {
+          "constant_prior_auc": 0.5,
+          "gc_auc_positive_orientation": 0.4820621780409054,
+          "gc_auc_within_price_nonpositive": 0.47959410003327047,
+          "gc_auc_within_price_positive": 0.4895677949894817,
+          "gc_missing_on_known_side": 2,
+          "joint_observed": 1711,
+          "known_side": 1713,
+          "price_nonfinite_on_known_gc": 0,
+          "weeks_gc_auc_above_half": 4,
+          "weeks_with_both_sides": 14,
+          "xau_ema_distance_auc": 0.43728194427951844
+        },
+        "H4": {
+          "constant_prior_auc": 0.5,
+          "gc_auc_positive_orientation": 0.5105804764173134,
+          "gc_auc_within_price_nonpositive": 0.5186926288385143,
+          "gc_auc_within_price_positive": 0.5016829720972663,
+          "gc_missing_on_known_side": 3,
+          "joint_observed": 1653,
+          "known_side": 1656,
+          "price_nonfinite_on_known_gc": 0,
+          "weeks_gc_auc_above_half": 8,
+          "weeks_with_both_sides": 14,
+          "xau_ema_distance_auc": 0.5129977720641101
+        },
+        "M15": {
+          "constant_prior_auc": 0.5,
+          "gc_auc_positive_orientation": 0.4936227589619562,
+          "gc_auc_within_price_nonpositive": 0.49681818989042736,
+          "gc_auc_within_price_positive": 0.4979664014146773,
+          "gc_missing_on_known_side": 0,
+          "joint_observed": 1671,
+          "known_side": 1671,
+          "price_nonfinite_on_known_gc": 0,
+          "weeks_gc_auc_above_half": 6,
+          "weeks_with_both_sides": 14,
+          "xau_ema_distance_auc": 0.43837090478937246
+        },
+        "M5": {
+          "constant_prior_auc": 0.5,
+          "gc_auc_positive_orientation": 0.48301477582334784,
+          "gc_auc_within_price_nonpositive": 0.4456285323188807,
+          "gc_auc_within_price_positive": 0.5207070707070707,
+          "gc_missing_on_known_side": 0,
+          "joint_observed": 1392,
+          "known_side": 1392,
+          "price_nonfinite_on_known_gc": 0,
+          "weeks_gc_auc_above_half": 5,
+          "weeks_with_both_sides": 14,
+          "xau_ema_distance_auc": 0.45934307009930336
+        }
+      }
+    }
+  },
+  "claim": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_GC_BOOK_TW_FOLD2_20261115_001/CLAIM.json",
+    "sha256": "d8894e2d53673ad17532b8360fac2ee8a79daa7b926efeb4532936f9f7e5a102"
+  },
+  "decision": "NO_PROMOTION_OF_PREDECLARED_POSITIVE_M5_BOOK_IMBALANCE_FOR_S_DIRECTION",
+  "hypothesis": "Positive observed M5 GC time-weighted book imbalance ranks UP above DOWN at selected native S/F endpoints, especially M5 S; one same-row XAU EMA5-distance rank control.",
+  "interpretation": [
+    "The predeclared positive GC orientation does not rank M5 S UP above DOWN in fit or later development: AUC 0.48744 and 0.48301, respectively. Only 5 of 14 later weeks with both sides exceed 0.5.",
+    "M5 F changes from fit AUC 0.48735 to later 0.50826; this is not a stable positive signal. Other TF are reported but cannot be selected post hoc as the primary win.",
+    "AUC 0.5 is the constant-prior rank reference on each same-row binary subset. XAU EMA5 distance is only a raw rank control; a paired AUC difference is not an incremental proper-score or a fitted model comparison.",
+    "The selected historical 051 field and mask replay the 049 registry hash and decision clock. Today expanded full-GC native view and model predictive consumption are not scored by this audit.",
+    "No probability calibration, causal model fit, selected Entry, economics, independent confirmation, TEST, broker or trading is included."
+  ],
+  "next_gate": "Keep this one-use raw-field plan consumed. Preserve all five TF and genuine input families. Before any new S/F fit, qualify an exact causal hypothesis, same-row price/control comparison, prefix normalization and optimizer/resume under separate policy admission; separately establish an economic M5 Entry target after the active market-state phase.",
+  "observed_utc": "2026-11-15T01:56:25.468737+00:00",
+  "plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_GC_BOOK_TW_FOLD2_20261115_001.json",
+    "sha256": "e24a27042f799852f417a1d2e2caef1fa238be8caa8de20fe27365a1c3986e0a"
+  },
+  "population": {
+    "fit_rows": 47338,
+    "fold_id": 2,
+    "later_fixed_development_rows": 4096,
+    "target_mask": "eligible_mature_certified_side_and_observed_GC_and_finite_XAU_control",
+    "tasks": [
+      "state",
+      "future"
+    ],
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ]
+  },
+  "primary_result": {
+    "fit_m5_s_gc_auc": 0.4874442333952358,
+    "later_m5_s_gc_auc": 0.48301477582334784,
+    "later_m5_s_weeks_above_half": 5,
+    "later_m5_s_weeks_with_both_sides": 14
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_GC_BOOK_TW_FOLD2_20261115_001/RESULT.json",
+    "sha256": "b06066116a451204fab812afdeeaad8885cd8858fced70142cb91e0de83263c5"
+  },
+  "schema_version": "gx1_gc_book_tw_fold2_review_v1",
+  "source_field": {
+    "field": "gc_m5_observed_book_tw_imbalance",
+    "mask_col": 815,
+    "masked_float32_train_sha256": "792d56e2c63753daa24bb5d71b2f162a31539cde018e6df60f59a330fa93da4c",
+    "missing": 621,
+    "mmap_stat": {
+      "st_ctime_ns": 1792854125594530789,
+      "st_dev": 2096,
+      "st_ino": 2091,
+      "st_mode": 33060,
+      "st_mtime_ns": 1792854125554858712,
+      "st_size": 1202355832
+    },
+    "observed": 117628,
+    "price_control": "close_distance_from_ema5_bps",
+    "price_control_col": 8,
+    "price_control_finite": 118249,
+    "value_col": 814
+  },
+  "source_head": "bc56a67bb261e44d1ac250b2707f32a940b42359",
+  "status": "COMPLETE_CONSUMED_RAW_POSITIVE_ORIENTATION_M5_S_NOT_SUPPORTED_NO_EDGE",
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_GC_BOOK_TW_FOLD2_20261115_001/TERMINAL.json",
+    "sha256": "9e989ca67e7a54365998d067be795b711b14e305c27dd3b1bc88ca45b7010b7e"
+  }
+}
