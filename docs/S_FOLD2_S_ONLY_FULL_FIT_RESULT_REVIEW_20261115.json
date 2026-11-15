@@ -1,0 +1,331 @@
+{
+  "schema_version": "gx1_fold2_s_only_full_fit_result_review_v1",
+  "status": "COMPLETE_CONSUMED_PRIMARY_REJECTED_EDGE_UNQUALIFIED",
+  "observed_utc": "2026-11-15T22:44:29.584757+00:00",
+  "source_commit": "fa875c7d240cacf89c459dacd286c6189d43cc47",
+  "campaign_plan_sha256": "1ee9f866f717a256adadc707ac391e9d07c6c7be0f8fff01fa4be4ab0ef0cbab",
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_25_CELL_S_FULL_FIT_20261115_003/RESULT.json",
+    "sha256": "8d1c0b84987cce4df816c621947e5d0d06d79914dc29d5ddb9ee7cd5b689e975"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_25_CELL_S_FULL_FIT_20261115_003/TERMINAL.json",
+    "sha256": "b45cb7a386e57ca567948cd6411ad0635359c91b663043b7c33357676cda1133"
+  },
+  "execution": {
+    "windows_boot_id": 655,
+    "batch_visits": 2959,
+    "optimizer_updates": 2959,
+    "skipped_batches": 0,
+    "elapsed_seconds": 5033.695725544,
+    "checkpoint_writes": 7,
+    "initial_model_state_sha256": "d47a4624835ab811f115007af88b346d0597ef4fd682806db6351c7a6ade4679",
+    "final_model_state_sha256": "093685f9ddcca84a724618fd0bccbf64409302db9aff8feb3016cb57be492ac7",
+    "source_unchanged": true,
+    "signed_guard_exit_code": 0,
+    "peak_core_temp_c": 57,
+    "peak_memory_temp_c": 66,
+    "peak_power_draw_w": 138.36,
+    "peak_gpu_memory_mib": 2292
+  },
+  "fixed_primary": {
+    "auc_improvement": -0.028087439140713655,
+    "both_primary_metrics_improved": false,
+    "brier_improvement": -0.07932067641555882,
+    "final_model_auc": 0.4717481845031814,
+    "final_model_brier": 0.328075280024269,
+    "frozen_prior_brier": 0.24875460360871018,
+    "frozen_same_tf_current_sign_auc": 0.49983562364389506,
+    "same_certified_rows": 1392,
+    "test_data_used": false
+  },
+  "later_25_cell_brier": {
+    "activity": {
+      "beats_frozen_prior": 11,
+      "comparable_cells": 25
+    },
+    "conditional_side": {
+      "beats_frozen_prior": 0,
+      "comparable_cells": 25
+    },
+    "three_class": {
+      "beats_frozen_prior": 0,
+      "comparable_cells": 25
+    }
+  },
+  "later_m5_weekly_brier": {
+    "weeks": 14,
+    "weeks_beating_prior": 0,
+    "per_week": [
+      {
+        "week": "2025-W01",
+        "known_side": 37,
+        "model_brier": 0.26134966227788176,
+        "prior_brier": 0.2516584440651751,
+        "beats_prior": false
+      },
+      {
+        "week": "2025-W02",
+        "known_side": 97,
+        "model_brier": 0.3046490315348366,
+        "prior_brier": 0.24976299417098524,
+        "beats_prior": false
+      },
+      {
+        "week": "2025-W03",
+        "known_side": 130,
+        "model_brier": 0.30629169203650597,
+        "prior_brier": 0.2500260213931947,
+        "beats_prior": false
+      },
+      {
+        "week": "2025-W04",
+        "known_side": 124,
+        "model_brier": 0.32497790819013045,
+        "prior_brier": 0.24919460256012121,
+        "beats_prior": false
+      },
+      {
+        "week": "2025-W05",
+        "known_side": 113,
+        "model_brier": 0.3427930495071369,
+        "prior_brier": 0.24804003998107435,
+        "beats_prior": false
+      },
+      {
+        "week": "2025-W06",
+        "known_side": 78,
+        "model_brier": 0.37131998567565583,
+        "prior_brier": 0.2468151210513251,
+        "beats_prior": false
+      },
+      {
+        "week": "2025-W07",
+        "known_side": 121,
+        "model_brier": 0.3417042749609843,
+        "prior_brier": 0.2484682649619816,
+        "beats_prior": false
+      },
+      {
+        "week": "2025-W08",
+        "known_side": 121,
+        "model_brier": 0.3367206990444966,
+        "prior_brier": 0.24846826496198157,
+        "beats_prior": false
+      },
+      {
+        "week": "2025-W09",
+        "known_side": 127,
+        "model_brier": 0.32634958940774916,
+        "prior_brier": 0.2488206525481089,
+        "beats_prior": false
+      },
+      {
+        "week": "2025-W10",
+        "known_side": 88,
+        "model_brier": 0.3062869388402014,
+        "prior_brier": 0.24874797260847012,
+        "beats_prior": false
+      },
+      {
+        "week": "2025-W11",
+        "known_side": 101,
+        "model_brier": 0.34390690971544985,
+        "prior_brier": 0.24710295932120094,
+        "beats_prior": false
+      },
+      {
+        "week": "2025-W12",
+        "known_side": 132,
+        "model_brier": 0.35842958434749295,
+        "prior_brier": 0.2477223779046789,
+        "beats_prior": false
+      },
+      {
+        "week": "2025-W13",
+        "known_side": 112,
+        "model_brier": 0.30259090375850484,
+        "prior_brier": 0.24998418051036145,
+        "beats_prior": false
+      },
+      {
+        "week": "2025-W14",
+        "known_side": 11,
+        "model_brier": 0.29268978271135765,
+        "prior_brier": 0.2518247567198441,
+        "beats_prior": false
+      }
+    ]
+  },
+  "later_m5_minute5": {
+    "actual_up_rate": 0.5452586206896551,
+    "final_predicted_up_mean": 0.27440262591025094,
+    "fit_constant_up_prior": 0.5169223126125566,
+    "argmax_counts_all_five_points": {
+      "DOWN": 20285,
+      "FLAT": 0,
+      "UP": 195
+    },
+    "initial_activity_brier": 0.2776137981106387,
+    "final_activity_brier": 0.06041287701283076,
+    "frozen_prior_activity_brier": 0.06017179082850035
+  },
+  "later_transition_argmax_diagnostic": {
+    "D1": {
+      "certified_adjacent_pairs": 4768,
+      "observed_changes": 443,
+      "detected_changes": 1,
+      "false_changes": 1
+    },
+    "H1": {
+      "certified_adjacent_pairs": 6885,
+      "observed_changes": 1108,
+      "detected_changes": 0,
+      "false_changes": 1
+    },
+    "H4": {
+      "certified_adjacent_pairs": 5933,
+      "observed_changes": 912,
+      "detected_changes": 0,
+      "false_changes": 0
+    },
+    "M15": {
+      "certified_adjacent_pairs": 6445,
+      "observed_changes": 834,
+      "detected_changes": 0,
+      "false_changes": 1
+    },
+    "M5": {
+      "certified_adjacent_pairs": 5066,
+      "observed_changes": 347,
+      "detected_changes": 0,
+      "false_changes": 0
+    }
+  },
+  "exploratory_train_replay": {
+    "scope": "1024 evenly spread TRAIN rows in 64 contiguous B16 windows; same rows and labels for initial and final CPU readout; no optimizer step",
+    "known_m5_minute5_sides": 366,
+    "selection_start_indices": [
+      0,
+      751,
+      1502,
+      2253,
+      3004,
+      3755,
+      4506,
+      5258,
+      6009,
+      6760,
+      7511,
+      8262,
+      9013,
+      9764,
+      10516,
+      11267,
+      12018,
+      12769,
+      13520,
+      14271,
+      15022,
+      15774,
+      16525,
+      17276,
+      18027,
+      18778,
+      19529,
+      20280,
+      21032,
+      21783,
+      22534,
+      23285,
+      24036,
+      24787,
+      25538,
+      26290,
+      27041,
+      27792,
+      28543,
+      29294,
+      30045,
+      30796,
+      31548,
+      32299,
+      33050,
+      33801,
+      34552,
+      35303,
+      36054,
+      36806,
+      37557,
+      38308,
+      39059,
+      39810,
+      40561,
+      41312,
+      42064,
+      42815,
+      43566,
+      44317,
+      45068,
+      45819,
+      46570,
+      47322
+    ],
+    "initial": {
+      "m5_minute5_activity_brier": 0.27015726124841416,
+      "m5_minute5_auc": 0.5174159154212465,
+      "m5_minute5_known_side_rows": 366,
+      "m5_minute5_predicted_up_mean": 0.5295262409056122,
+      "m5_minute5_predicted_up_sd": 0.019732296453501497,
+      "m5_minute5_side_brier": 0.25221064888978767,
+      "m5_minute5_up_rate": 0.4726775956284153,
+      "q5_side_brier_by_tf": {
+        "D1": 0.24337228780472295,
+        "H1": 0.2503128484346237,
+        "H4": 0.24395296785591922,
+        "M15": 0.2522064397714842,
+        "M5": 0.25221064888978767
+      }
+    },
+    "final": {
+      "m5_minute5_activity_brier": 0.06787742592090203,
+      "m5_minute5_auc": 0.4849800832609542,
+      "m5_minute5_known_side_rows": 366,
+      "m5_minute5_predicted_up_mean": 0.37011561052160785,
+      "m5_minute5_predicted_up_sd": 0.15188224561367294,
+      "m5_minute5_side_brier": 0.2910979399469749,
+      "m5_minute5_up_rate": 0.4726775956284153,
+      "q5_side_brier_by_tf": {
+        "D1": 0.31751226162819157,
+        "H1": 0.26901870098399205,
+        "H4": 0.3225567898987374,
+        "M15": 0.30595554262144337,
+        "M5": 0.2910979399469749
+      }
+    },
+    "limitation": "Sampled TRAIN evidence, not a full TRAIN score or an independent validation set."
+  },
+  "interpretation": [
+    "The exact one-pass S hypothesis fails both preselected M5 minute5 references on the same 1392 certified later sides.",
+    "Across later development, conditional-side and three-class Brier beat the frozen prior in zero of 25 cells; M5 side Brier beats the prior in zero of 14 weeks.",
+    "The trained model predicts mostly DOWN and detects no certified M5 adjacent-checkpoint changes. This is a concrete failure to read reversals in the tested representation.",
+    "A same-row exploratory TRAIN replay also shows M5 side degradation, so later regime shift alone cannot explain the observed result.",
+    "The backbone contains feature-family and cross-timeframe gates and attention, but this result does not prove predictive cooperation among indicators. The joint activity/side objective allows the easier activity task to improve while certified side worsens.",
+    "The causal reason for the side collapse is not isolated. Shared-head interference, optimization and feature/target relationships remain competing explanations. A tiny fixed TRAIN overfit diagnostic can separate basic fit capacity from generalization, but requires a separately admitted one-use training plan."
+  ],
+  "not_measured": [
+    "independent sealed TEST adaptation",
+    "selective Entry decisions",
+    "costed trade economics",
+    "profit",
+    "exact turning-time probability",
+    "individual feature causal value"
+  ],
+  "controls": {
+    "training_closed_after_terminal": true,
+    "windows_task_disabled_after_terminal": true,
+    "test_data_used": false,
+    "broker_or_trade": false,
+    "economic_edge_proven": false
+  }
+}
