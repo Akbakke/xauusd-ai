@@ -5,7 +5,19 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_FULL_GC_5TF_STRUCTURAL_ROUTE_PASS_OPTIMIZER_ADMISSION_CLOSED.
+Gjeldende policy: FOLD2_D1_MACRO_SOURCE_NORM_LIVENESS_PASS_OPTIMIZER_ADMISSION_CLOSED.
+Eksakt Fold2 fit47338 og fast senere utvikling4096 er knyttet til eksisterende
+parent-/beslutningshasher. Alle 61 D1/makrofelt er fysisk endelige og
+varierende på begge kohorter; samtlige har positiv, ikke-kollapset TRAIN-
+normalisering. Dette kvalifiserer kildeliv og normalisering, ikke feltvis
+prediktiv verdi, individuell modellfølsomhet, fit eller Edge. Formel, enhet,
+warmup og publiseringstid er fortsatt ikke uavhengig revidert felt for felt.
+Se `docs/S_FOLD2_D1_MACRO_PHYSICAL_LIVENESS_REVIEW_20261115.json`.
+Firestegs selected-native-kandidaten er fortsatt uadmittert; eksakt
+engangs policyadmisjon og fersk fysisk boot kreves. `training_enabled=false`,
+TEST, broker og handel forblir stengt.
+
+Forrige policy: FOLD2_FULL_GC_5TF_STRUCTURAL_ROUTE_PASS_OPTIMIZER_ADMISSION_CLOSED.
 Kildekontrollen mot dagens Fold2 full-GC view `9ea6a4595c6a5792acd190ad12dc861d9bb99ec921c5bd3650b38b15154981bc`
 viser eksakt strukturell indeksdekning for alle deklarerte 2727 signal-,
 2542 kontekst- og 255 MTF-felt på hver av fem TF, samt 639/493/453/431/399

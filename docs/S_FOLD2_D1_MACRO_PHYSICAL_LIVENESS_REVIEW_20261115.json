@@ -1,0 +1,649 @@
+{
+  "availability_contract_review": {
+    "cot": "as_of plus seven days and bound official late-publication exceptions; joined strictly before M5 decision",
+    "drivers": "observation D joined strictly after end of New York day D+1",
+    "full_field_by_field_formula_unit_warmup_publication_replay_completed": false,
+    "oanda_panel": "last closed D1 session bar at or before M5 decision"
+  },
+  "bindings": {
+    "ctx_fit_rows": 47338,
+    "fit_prefix_path": "/home/andre2/GX1_RUNS/MARKET_STATE_MATURE_PREFIX_NORMALIZATION_20261107_001/PREFIX_NORMALIZATION_FOLD_2.json",
+    "fit_prefix_sha256": "32f917bb9cf262f57afe2f60d58025b6679a3ffc5874dbe2d3b49382283ff9bc",
+    "later_coverage_path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_002/COVERAGE.json",
+    "later_coverage_sha256": "5abd47c4c27964d2c8d60846701376e9e73d1f0b94ae57986bae23f4cf31cc1a",
+    "train_context_stats_sha256": "357d1f9f0d2455762c78526b91b1748cbb4c68ecf3e53d0dbd556d89f96b0646",
+    "train_normalization_path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001/PREFIX_NORMALIZATION.json"
+  },
+  "exact_cohorts": {
+    "fit": {
+      "decision_ns_sha256_verified": "380184a9c95a02f2716326765783746b1834371a7266545113fb1eae6722da47",
+      "first_bar_start_utc": "2024-05-01 00:00:00+00:00",
+      "last_bar_start_utc": "2024-12-30 23:50:00+00:00",
+      "missing_source_rows": 0,
+      "rows": 47338,
+      "source_rows_matched": 47338
+    },
+    "later_development": {
+      "decision_ns_sha256_verified": "c03ec2ae8b418e21739f9f7966b946615878344364e6dc4e4d80087a0fee99d3",
+      "first_bar_start_utc": "2025-01-01 23:00:00+00:00",
+      "last_bar_start_utc": "2025-03-31 23:10:00+00:00",
+      "missing_source_rows": 0,
+      "rows": 4096,
+      "source_rows_matched": 4096
+    }
+  },
+  "field_count": 61,
+  "fields_by_group": {
+    "drivers": {
+      "fields": 13,
+      "fit_unique_max": 141,
+      "fit_unique_min": 21,
+      "later_unique_max": 51,
+      "later_unique_min": 16
+    },
+    "panel_oanda": {
+      "fields": 44,
+      "fit_unique_max": 174,
+      "fit_unique_min": 174,
+      "later_unique_max": 64,
+      "later_unique_min": 64
+    },
+    "positioning_cot": {
+      "fields": 4,
+      "fit_unique_max": 35,
+      "fit_unique_min": 35,
+      "later_unique_max": 13,
+      "later_unique_min": 13
+    }
+  },
+  "limits": {
+    "economic_edge_proven": false,
+    "exact_model_input_per_field_sensitivity_proven": false,
+    "field_predictive_value_proven": false,
+    "later_generalization_proven": false,
+    "model_forward_or_optimizer_steps": 0,
+    "new_fit_performed": false,
+    "source_sha_not_freshly_recomputed": true,
+    "test_data_used": false
+  },
+  "next_gate": "No source absence or collapsed normalization found for these 61 fields on exact Fold2 fit and fixed later development rows. Continue targeted causal/formula audit on a measured discrepancy; selected native four-update candidate remains unadmitted and requires exact one-use policy plus fresh physical boot. No TEST or trade.",
+  "per_field_liveness": {
+    "BCO_USD_logret_1D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "BCO_USD_logret_20D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "BCO_USD_logret_5D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "BCO_USD_rv_20D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "EUR_USD_logret_1D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "EUR_USD_logret_20D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "EUR_USD_logret_5D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "EUR_USD_rv_20D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "SPX500_USD_logret_1D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "SPX500_USD_logret_20D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "SPX500_USD_logret_5D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "SPX500_USD_rv_20D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "USB10Y_USD_logret_1D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "USB10Y_USD_logret_20D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "USB10Y_USD_logret_5D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "USB10Y_USD_rv_20D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "USD_JPY_logret_1D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "USD_JPY_logret_20D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "USD_JPY_logret_5D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "USD_JPY_rv_20D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "WTICO_USD_logret_1D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "WTICO_USD_logret_20D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "WTICO_USD_logret_5D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "WTICO_USD_rv_20D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "XAG_USD_logret_1D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "XAG_USD_logret_20D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "XAG_USD_logret_5D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "XAG_USD_rv_20D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "XAU_USD_logret_1D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "XAU_USD_logret_20D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "XAU_USD_logret_5D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "XAU_USD_rv_20D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "XCU_USD_logret_1D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "XCU_USD_logret_20D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "XCU_USD_logret_5D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "XCU_USD_rv_20D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "XPD_USD_logret_1D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "XPD_USD_logret_20D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "XPD_USD_logret_5D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "XPD_USD_rv_20D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "XPT_USD_logret_1D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "XPT_USD_logret_20D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "XPT_USD_logret_5D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "XPT_USD_rv_20D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 174,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 64,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "breakeven10y_change21D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 49,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 24,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "breakeven10y_level": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 34,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 16,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "cot_change4reports": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 35,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 13,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "cot_commercial_net_over_oi": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 35,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 13,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "cot_noncommercial_net_over_oi": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 35,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 13,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "cot_open_interest_log_change4reports": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 35,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 13,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "gld_log_change21D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 117,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 47,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "gld_log_level": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 75,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 39,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "nominal10y_level": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 71,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 33,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "real10y_change1D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 21,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 19,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "real10y_change21D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 63,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 33,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "real10y_change5D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 38,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 23,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "real10y_level": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 60,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 31,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "slope10y2y_change21D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 42,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 34,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "slope10y2y_level": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 58,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 19,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "vix_log_change5D": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 141,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 51,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    },
+    "vix_log_level": {
+      "fit_finite_rows": 47338,
+      "fit_unique_finite_values": 129,
+      "later_development_finite_rows": 4096,
+      "later_development_unique_finite_values": 50,
+      "train_scale_positive_finite": true,
+      "train_scale_source": "raw_iqr",
+      "train_transformed_range_positive_finite": true
+    }
+  },
+  "schema_version": "gx1_fold2_d1_macro_physical_liveness_review_v1",
+  "source": {
+    "bytes_observed": 730577307,
+    "fresh_full_file_sha256_recomputed": false,
+    "m5_prebuilt_path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/M5_ENRICHED.parquet",
+    "parquet_row_groups": 279,
+    "parquet_rows": 1140982,
+    "recorded_sha256_from_frozen_normalization": "5e5cb256fc60a5e9a7ffe1a161aa875660f01806b8e8de2bf601fc2f528e7f99",
+    "row_groups_read_for_cohorts": [
+      241,
+      242,
+      243,
+      244,
+      245,
+      246,
+      247,
+      248,
+      249,
+      250,
+      251,
+      252,
+      253,
+      254,
+      255,
+      256
+    ]
+  },
+  "status": "SOURCE_AND_TRAIN_NORMALIZATION_LIVENESS_PASS_PREDICTIVE_VALUE_UNTESTED"
+}
