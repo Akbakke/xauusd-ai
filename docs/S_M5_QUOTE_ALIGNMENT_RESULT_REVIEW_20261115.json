@@ -1,0 +1,54 @@
+{
+  "decision": "DIRECT_CERTIFIED_S_SIDE_FIXED_5M_REFERENCE_NEGATIVE_AFTER_DECLARED_COST",
+  "limits": [
+    "S is a future local-state label. Selecting only known S side after the fact is an oracle diagnostic and has no deployable coverage or trading PnL.",
+    "The fixed-five-minute markout is negative on average at the declared 4 bps round-trip slippage plus quoted bid/ask spread.",
+    "Before-slippage value is a cost sensitivity on the same hindsight cohort, not a strategy break-even estimate.",
+    "Five minutes is an observation horizon, not a fixed holding or Exit rule. MFE and MAE lack pre-MFE ordering.",
+    "A selected subset, longer horizon, dynamic M5 path objective or S as context may differ; no such Edge is measured here."
+  ],
+  "measured": {
+    "all_exact_quote_rows": 47124,
+    "certified_s_exact_quote_rows": 16071,
+    "certified_s_rows": 16101,
+    "certified_s_share_of_fit_rows": 0.33949469770586,
+    "declared_roundtrip_slippage_bps": 4.0,
+    "hindsight_s_side_mean_after_spread_and_finance_before_4bps_slippage": 3.3538353246566994,
+    "hindsight_s_side_mean_mae_bps": 4.05757418746641,
+    "hindsight_s_side_mean_mfe_bps": 5.375071301758691,
+    "hindsight_s_side_mean_net_bps": -0.6461646753433006,
+    "hindsight_s_side_median_net_bps": -1.119990264965507,
+    "hindsight_s_side_nonpositive_rows": 10033,
+    "hindsight_s_side_positive_fraction": 0.37570779665235515,
+    "hindsight_s_side_positive_rows": 6038,
+    "same_rows_always_long_mean_net_bps": -5.517347264641452,
+    "same_rows_always_short_mean_net_bps": -5.720734403328539
+  },
+  "next_gate": "Keep S as five-timeframe context and score selected native endpoints against the frozen TRAIN prior separately. Bind a distinct cost-aware M5 Entry decision outcome with pre-MFE MAE from the existing dynamic path, then precommit one causal signal hypothesis. No model update without qualified optimizer/resume and exact operator fit admission. TEST and trading closed.",
+  "observed_utc": "2026-11-15T00:57:34.759666+00:00",
+  "plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_S_M5_QUOTE_ALIGNMENT_20261115_001.json",
+    "sha256": "a1a1dcb0ca3a3666220d43ad2a9952f75f8b3f9fa4072d3bb6bd682edda60006"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_S_M5_QUOTE_ALIGNMENT_20261115_001/RESULT.json",
+    "sha256": "44dd9eb7b60de6bf4d2b7c75a69fecc834df94db51d2724939aa0e83521b952b"
+  },
+  "schema_version": "gx1_s_m5_quote_alignment_review_v1",
+  "scope": {
+    "entry_timeframe": "M5",
+    "fold_id": 2,
+    "mature_train_rows": 47338,
+    "model_fits": 0,
+    "observation_minutes": 5,
+    "optimizer_steps": 0,
+    "selected_trades": 0,
+    "test_data_used": false
+  },
+  "source_head": "3e4c3b29add28c42b831681bb552456d4828efb9",
+  "status": "COMPLETE_READ_ONLY_ONE_USE_NO_FIT",
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_S_M5_QUOTE_ALIGNMENT_20261115_001/TERMINAL.json",
+    "sha256": "62ef5ae94cd2ac1a27b138da1a9b88d776e7cd534a9d3a984dc016fe8cc98d5e"
+  }
+}

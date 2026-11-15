@@ -5,8 +5,20 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: S_M5_QUOTE_ALIGNMENT_ADMITTED_NO_RUN_EDGE_UNQUALIFIED.
-En ny, avgrenset Fold2 TRAIN-only M5-kostaudit er ADMITTED_NO_CLAIM: `configs/research/MARKET_STATE_S_M5_QUOTE_ALIGNMENT_20261115_001.json`. Den vil sammenholde valgt S-side med eksakt M1 bid/ask ved beslutning og fem minutter senere, gjenbruke Entry-eierens prisbaneberegning og deklarert 4bps kostprojeksjon. Dette er et etterpåkjent måldiagnostisk utfall, ikke valgt handel, Exit-regel eller Edge. Ingen claim, rålesing, fit eller TEST så langt.
+Aktuell policy: S_M5_QUOTE_REFERENCE_NEGATIVE_EDGE_UNQUALIFIED.
+Fold2 TRAIN-only S/M5-quoteaudit er COMPLETE/CONSUMED, exit0 under 4G/512M.
+Eksakt M1 bid/ask ved M5-beslutning og fem minutter senere var tilgjengelig
+på47124 av47338 modne rader;16071 av16101 med sertifisert S-side. Selv med
+etterpåkjent korrekt S-side var middel netto −0,6462bps etter bid/ask og
+deklarert4bps rundtur-slippage;10033/16071 var ikke positive. Dette er en
+måldiagnose på en selektert fasitkohort, ikke modellscore, realisert P&L eller
+bevis mot en lærbar undergruppe eller annen horisont. MFE/MAE her mangler
+rekkefølge før første MFE. S beholdes som fem-TF markedskontekst; separat
+kost- og prisbanebundet M5 Entry-mål trengs. Aggregert rapport:
+`docs/S_M5_QUOTE_ALIGNMENT_RESULT_REVIEW_20261115.json`. Originale
+CLAIM/RESULT/TERMINAL ligger i
+`/home/andre2/GX1_RUNS/MARKET_STATE_S_M5_QUOTE_ALIGNMENT_20261115_001/`. 0
+modellfits, optimizersteg, TEST, broker eller handel.
 
 Fold2 full-GC senere inputplan er COMPLETE/CONSUMED, exit0 etter169,04s
 under12G/512M. Den gjenbrukte de seks fysiske sidecarene og bandt
@@ -44,11 +56,12 @@ enhetsprofil. Én separat test for relative GC-priskoordinater feiler på
 en eksisterende gc_order_flow_v1.py-kildehash; rå-GC-ruten bruker den ikke.
 Se docs/S_FULL_GC_ANCHOR_SPAN_FOLD2_SOURCE_REVIEW_20261115.json.
 
-Neste gate er én separat forhåndsbundet kronologisk valgt-native S/F-
-sammenlikning med fryst TRAIN-prior og proper skår på alle fem TF.
-Før fit må kausal hypotese, optimizer/resume og økonomisk Entry-mål
-kvalifiseres; trening krever eksakt operatøradmisjon. Begge
-engangsplaner er forbrukt. TEST, broker og handel er stengt.
+Neste gate er én forhåndsbundet kronologisk valgt-native S/F-proper-score mot
+fryst tidligere-TRAIN-prior på alle fem TF. Den negative direkte
+S→fem-minutters-Entry-kontrollen krever i tillegg et separat kostbevis for
+valgt M5 Entry med pre-MFE-MAE fra eksisterende kausale kilde. Før fit må én
+konkret signalhypotese og optimizer/resume kvalifiseres; trening krever eksakt
+operatøradmisjon. Engangsplanen er forbrukt. TEST, broker og handel er stengt.
 
 Den valgte fem-TF S-masken er hashbundet til118249 modellrader og fem faste
 native endepunkter. Den gamle samplede tidsforespørselen treffer D1s native
