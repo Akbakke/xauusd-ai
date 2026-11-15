@@ -5,23 +5,21 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_MULTIMINUTE_INITIAL_READ_ONLY_ADMITTED.
-Fast fempunkts-S-bane og separat 25-cellers side-normalisert loss er
-kildekvalifisert på Fold2, uten modellfit. Faktisk fasit viser 199/428
-senere M5-rader med minst ett kjent sideskifte på de samme fem punktene;
-22 av disse vendte tilbake til startsiden før sluttpunktet. Se
-docs/S_FOLD2_MULTIMINUTE_PATH_REVIEW_20261115.json og
-docs/S_FOLD2_MULTIMINUTE_SIDE_LOSS_SOURCE_REVIEW_20261115.json.
-Én ny, forhåndsbundet full-GC CPU B16 initialforward/backward på eksisterende
-Fold2-input er nå innrømmet med 12G/512M cap, én backbone, én fempunkts-
-decode og én backward. Alle flyttallsinputkanalers gradient, også nuller,
-skal rapporteres. Modellen bygges fersk, uten checkpoint eller optimizer,
-og state-digest må være uendret. Plan:
-configs/research/MARKET_STATE_FOLD2_MULTIMINUTE_INITIAL_20261115_001.json.
-Neste steg er preflight, claim, terminal/resultat og kontroll av eventuelle
-nullruter. Dette beviser bare mekanikk på én B16; alle indikatorers faktiske
-modellkonsum og senere generalisering er fortsatt åpne. training_enabled=false;
-TEST, broker og handel stengt. Planen relanseres aldri etter claim.
+Gjeldende policy: FOLD2_MULTIMINUTE_INITIAL_MECHANICS_PASS_ZERO_CHANNEL_CAUSE_OPEN_EDGE_UNQUALIFIED.
+Den ene tillatte full-GC Fold2 B16 CPU-initialkjøringen er fullført og brukt opp.
+Terminal COMPLETE/exit 0; én backbone, én fempunkts-decode og én backward,
+ingen optimizer eller checkpoint og uendret modellstate. Alle 13 flyttallsinput-
+tensorer har endelig gradient; alle fem signal- og GC-tidsrammer har ikke-null
+gradient, og kategorisk kontekstembeddingsgradient er ikke-null. Dette viser
+mekanisk informasjonsflyt på første B16, ikke læring, generell indikatorverdi,
+generalisering eller økonomisk Edge. Review:
+docs/S_FOLD2_MULTIMINUTE_INITIAL_REVIEW_20261115.json.
+Nullgradientkanaler er hovedsakelig kildens verdi/observasjonspar; fysisk
+observasjonsflagg i batchen er ennå ikke målt mot disse. Neste smale steg er
+en skrivebeskyttet kontroll av samme låste B16: sammenlign hvert nullgradient-
+verdifelt med faktisk observasjonsflagg, og undersøk bare observerte nullfelt.
+Ingen ny modellkjøring eller trening er innrømmet. training_enabled=false;
+TEST, broker og handel stengt. Planen relanseres aldri.
 
 Forrige policy: FOLD2_PAIRED_MINUTE_PATH_CHANGE_CONFIRMED_MULTIMINUTE_OBJECTIVE_OPEN_EDGE_UNQUALIFIED.
 Korrigert capped parvis engangskontroll002 er fullført og brukt opp. På

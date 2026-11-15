@@ -1,0 +1,132 @@
+{
+  "claim": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_MULTIMINUTE_INITIAL_20261115_001/CLAIM.json",
+    "sha256": "46504134fb053475ec21a419dce5affa040707c1c0d0c5ae021c4e9bcfd656f7"
+  },
+  "limits": {
+    "economic_edge_proven": false,
+    "no_fit_learning_or_generalization_measured": true,
+    "one_nonzero_tensor_gradient_does_not_prove_every_indicator_has_value": true,
+    "single_first_fit_B16_only": true,
+    "zero_masked_value_channel_cause_unverified_without_physical_observation_flags": true
+  },
+  "measured": {
+    "activity_raw_nonzero_gradient_count": 274,
+    "all_five_gc_TF_have_nonzero_input_gradient": true,
+    "all_five_seq_TF_have_nonzero_numeric_input_gradient": true,
+    "batch_rows": 16,
+    "checkpoint_reads": 0,
+    "ctx_cat_embedding_nonzero_gradient": true,
+    "floating_input_tensors": 13,
+    "initial_final_state_equal": true,
+    "initial_loss": 0.9387760758399963,
+    "input_tensors_with_finite_gradient": 13,
+    "known_side_raw_nonzero_gradient_count": 79,
+    "optimizer_steps": 0,
+    "query_cells_per_row": 25,
+    "test_data_used": false,
+    "zero_channel_source_classification": {
+      "ctx_cont": {
+        "other_zero_channels": [],
+        "zero_channels": 1117,
+        "zero_channels_with_observation_pair": 1117
+      },
+      "gc_seq_d1": {
+        "other_zero_channels": [],
+        "zero_channels": 200,
+        "zero_channels_with_observation_pair": 200
+      },
+      "gc_seq_h1": {
+        "other_zero_channels": [],
+        "zero_channels": 201,
+        "zero_channels_with_observation_pair": 201
+      },
+      "gc_seq_h4": {
+        "other_zero_channels": [],
+        "zero_channels": 216,
+        "zero_channels_with_observation_pair": 216
+      },
+      "gc_seq_m15": {
+        "other_zero_channels": [],
+        "zero_channels": 221,
+        "zero_channels_with_observation_pair": 221
+      },
+      "gc_seq_m5": {
+        "other_zero_channels": [],
+        "zero_channels": 284,
+        "zero_channels_with_observation_pair": 284
+      },
+      "seq_d1": {
+        "zero_channels": 1,
+        "zero_fields": [
+          [
+            85,
+            "mtf_smc_swing_state"
+          ]
+        ]
+      },
+      "seq_h1": {
+        "zero_channels": 1,
+        "zero_fields": [
+          [
+            85,
+            "mtf_smc_swing_state"
+          ]
+        ]
+      },
+      "seq_h4": {
+        "zero_channels": 1,
+        "zero_fields": [
+          [
+            85,
+            "mtf_smc_swing_state"
+          ]
+        ]
+      },
+      "seq_m15": {
+        "zero_channels": 1,
+        "zero_fields": [
+          [
+            85,
+            "mtf_smc_swing_state"
+          ]
+        ]
+      },
+      "seq_m5": {
+        "zero_channels": 1,
+        "zero_fields": [
+          [
+            85,
+            "mtf_smc_swing_state"
+          ]
+        ]
+      },
+      "seq_x": {
+        "other_zero_channels": [
+          [
+            13,
+            "smc_swing_state"
+          ]
+        ],
+        "zero_channels": 1118,
+        "zero_channels_with_observation_pair": 1117
+      }
+    }
+  },
+  "next_gate": "Read only the same pinned first Fold2 B16 physical observation flags and compare each zero-gradient value channel with its availability mask. Keep no-model, no optimizer, TEST and trading closed. If any observed value has zero gradient, investigate the exact route before a fit.",
+  "plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_FOLD2_MULTIMINUTE_INITIAL_20261115_001.json",
+    "sha256": "a7e7ce06cc3cc06874888e6fa5f05213f0fe7b4bae864caa03dd5ee05c7a95b7"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_MULTIMINUTE_INITIAL_20261115_001/RESULT.json",
+    "sha256": "ed744301059c8391f6f527343f5290030a721274f738afd4e89d6e61d22bca23"
+  },
+  "schema_version": "gx1_fold2_multiminute_initial_review_v1",
+  "source_head": "acbbe796a397010bcef04254a60c267874f08535",
+  "status": "COMPLETE_CONSUMED_INITIAL_MECHANICS_PASS_ZERO_CHANNEL_CAUSE_OPEN_EDGE_UNQUALIFIED",
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_MULTIMINUTE_INITIAL_20261115_001/TERMINAL.json",
+    "sha256": "abc94c5b6b51cc05120474756f61866b1e68d8a766cf4686010d016fa378417a"
+  }
+}
