@@ -5,21 +5,20 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_MULTIMINUTE_INITIAL_MECHANICS_PASS_ZERO_CHANNEL_CAUSE_OPEN_EDGE_UNQUALIFIED.
-Den ene tillatte full-GC Fold2 B16 CPU-initialkjøringen er fullført og brukt opp.
-Terminal COMPLETE/exit 0; én backbone, én fempunkts-decode og én backward,
-ingen optimizer eller checkpoint og uendret modellstate. Alle 13 flyttallsinput-
-tensorer har endelig gradient; alle fem signal- og GC-tidsrammer har ikke-null
-gradient, og kategorisk kontekstembeddingsgradient er ikke-null. Dette viser
-mekanisk informasjonsflyt på første B16, ikke læring, generell indikatorverdi,
-generalisering eller økonomisk Edge. Review:
-docs/S_FOLD2_MULTIMINUTE_INITIAL_REVIEW_20261115.json.
-Nullgradientkanaler er hovedsakelig kildens verdi/observasjonspar; fysisk
-observasjonsflagg i batchen er ennå ikke målt mot disse. Neste smale steg er
-en skrivebeskyttet kontroll av samme låste B16: sammenlign hvert nullgradient-
-verdifelt med faktisk observasjonsflagg, og undersøk bare observerte nullfelt.
-Ingen ny modellkjøring eller trening er innrømmet. training_enabled=false;
-TEST, broker og handel stengt. Planen relanseres aldri.
+Gjeldende policy: FOLD2_INITIAL_MASK_OBSERVATION_READ_ONLY_ADMITTED.
+Første full-GC Fold2 B16 initialforward/backward er fullført og brukt opp;
+alle fem signal- og GC-tidsrammer hadde ikke-null inputgradient.
+Se docs/S_FOLD2_MULTIMINUTE_INITIAL_REVIEW_20261115.json.
+Nullgradientkanalene ble klassifisert mot kildefeltnavn: 1117 i signal,
+1117 i ctx_cont og 200–284 per GC-tidsramme er verdier med observasjonsflagg;
+signalets ene øvrige null er kategorisk embedding. Selve fysiske flaggene
+i denne B16 er ennå ikke kontrollert. Én skrivebeskyttet, 12G/512M-avgrenset
+kildekontroll på samme låste rader er innrømmet gjennom
+configs/research/MARKET_STATE_FOLD2_INITIAL_MASK_OBSERVATION_20261115_001.json.
+Den sammenligner nullgradientverdier med faktiske observasjonsflagg og
+undersøker bare konkrete observerte nullfelt. Ingen modell, optimizer,
+checkpoint, TEST, broker eller handel; training_enabled=false og Edge ukvalifisert.
+Planen relanseres aldri etter claim.
 
 Forrige policy: FOLD2_PAIRED_MINUTE_PATH_CHANGE_CONFIRMED_MULTIMINUTE_OBJECTIVE_OPEN_EDGE_UNQUALIFIED.
 Korrigert capped parvis engangskontroll002 er fullført og brukt opp. På

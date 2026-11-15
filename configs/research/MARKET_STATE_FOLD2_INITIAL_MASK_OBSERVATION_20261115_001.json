@@ -1,0 +1,56 @@
+{
+  "broker_access_allowed": false,
+  "hypothesis": "On the exact previously audited first full-GC Fold2 B16, physical observation flags explain the zero-gradient value channels. Any observed zero-gradient value is a concrete routing or numerical diagnostic, not proof of Edge.",
+  "input_refs": {
+    "initial_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_MULTIMINUTE_INITIAL_20261115_001/RESULT.json",
+      "sha256": "ed744301059c8391f6f527343f5290030a721274f738afd4e89d6e61d22bca23"
+    },
+    "initial_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_MULTIMINUTE_INITIAL_20261115_001/TERMINAL.json",
+      "sha256": "abc94c5b6b51cc05120474756f61866b1e68d8a766cf4686010d016fa378417a"
+    },
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_SELECTED_FOLD2_TWO_BATCH_20261115_001/RECIPE.json",
+      "sha256": "3e5c6875544583a6410c5031c2a7e44220d6437b98c438130304eaab92605981"
+    }
+  },
+  "limits": {
+    "class": "producer",
+    "max_invocations": 1,
+    "memory": "12G",
+    "swap": "512M",
+    "wall_seconds": 1800
+  },
+  "max_invocations": 1,
+  "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_INITIAL_MASK_OBSERVATION_20261115_001",
+  "relaunch_allowed": false,
+  "schema_version": "gx1_fold2_initial_mask_observation_plan_v1",
+  "scope": {
+    "backward_calls": 0,
+    "batch_index": 0,
+    "batch_size": 16,
+    "checkpoint_reads": 0,
+    "fold_id": 2,
+    "forward_calls": 0,
+    "model_constructions": 0,
+    "optimizer_steps": 0,
+    "partition": "fit",
+    "test_data_used": false
+  },
+  "source_base_head": "f10c279691a0274a6ede738d9f459988b8bf6b4f",
+  "source_owners": {
+    "gx1/audit/measure_market_state_fold2_exact_prior_later_v1.py": "5a2872a16f40f8d3e35a3b527be75390a12500d13879e1bd272ba621a9c0e314",
+    "gx1/audit/qualify_market_state_fold2_initial_mask_observation_v1.py": "29e37157873ef3b2314ef91064f9cb9d901457aac5d5c00265a95b17ee47b1a4",
+    "gx1/contracts/entry_native_direction_feature_view_v1.py": "6fc56f8dd76005090614df83a6dc87db94163f0216cfdf1983278f3932d7d34f",
+    "gx1/contracts/gx1_capped_execution_v1.py": "60b1ccf2eda470a84ddded0d8160c628314ebb19f5766b87b70fef7c9aa3ccff",
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "gx1/contracts/market_state_fold2_selected_native_batches_v1.py": "fc12939b055fc0ef9140eab8aedadaba0b453833f87f594aa15462db372bb6cb",
+    "gx1/features/gc_native_context_v1.py": "28c4235d7a050698fc474e302ff1277d76983a72a4d11e74005fa74775c86fdf",
+    "scripts/gx1_capped_run.sh": "3c9d608574be3755e0e3d63d2617a01612d65dbaf61b26b76765262a5a2abc4c"
+  },
+  "stage": "market_state_fold2_initial_mask_observation_20261115_001",
+  "status": "ADMITTED_READ_ONLY",
+  "test_authorized": false,
+  "training_authorized": false
+}
