@@ -5,7 +5,16 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: S_FULL_GC_FOLD2_SELECTED_INITIAL_COMPLETE_EDGE_UNQUALIFIED.
+Aktuell policy: S_FULL_GC_FOLD2_LATER_INPUT_PREPARED_PREFLIGHT_PENDING.
+Fysisk full-GC INITIAL er forbrukt og bestått. Fold2s faste senere
+jan–mar2025-panel på4096 utviklingsrader har seks allerede kvalifiserte
+anker-sidecars og TRAIN-normalisering, men den tidligere gatheren var
+bundet til TA-visning uten rå GC. Ny engangsplan
+`configs/research/MARKET_STATE_FULL_GC_FOLD2_LATER_INPUTS_20261115_001.json`
+gjenbruker disse artefaktene og skal fysisk kvalifisere full-XAU+GC-
+input på alle fem TF uten mål, modell, fit eller TEST. Bare lesende
+preflight er tillatt nå; ingen claim er opprettet.
+
 Fold2 engangsplan002 er COMPLETE/CONSUMED, exit0 etter26,09s under
 12G/512M. To faktiske TRAIN-rader gav full XAU+GC-featurebatch med
 2727 lokale felt,255 MTF-felt på alle fem tidsrammer og rå GC-sekvenser.
@@ -25,17 +34,17 @@ ankerspenn-sidecars, utvidet normalisering og bevart GC-historikk. Samme
 kildeeiere binder nå en full-GC S/F-visning med2727 lokale signalfelt,
 255 MTF-felt på M5/M15/H1/H4/D1 og eksakt historisk-til-nåværende GC-kildebro.
 Syntetisk gather var bitlik full rå XAU+GC, og den fokuserte anchor-span-suiten
-besto. Dette er kilde-/metadata-/syntetisk bevis: ingen fysisk full-GC
-forward/backward, fit eller Edge. Fold1 avvises av uforenlig arvet GC-
+besto. Dette var kilde-/metadata-/syntetisk bevis før den fysisk beståtte
+INITIAL-kontrollen ovenfor; ingen fit eller Edge. Fold1 avvises av uforenlig arvet GC-
 enhetsprofil. Én separat test for relative GC-priskoordinater feiler på
 en eksisterende gc_order_flow_v1.py-kildehash; rå-GC-ruten bruker den ikke.
 Se docs/S_FULL_GC_ANCHOR_SPAN_FOLD2_SOURCE_REVIEW_20261115.json.
 
-Neste gate er én separat forhåndsbundet kronologisk TRAIN-sammenlikning
-for valgt native S/F med full GC, alle fem tidsrammer og fryst prior.
-Før trening må én kausal hypotese, proper skår og senere økonomisk
-beslutningsmål låses; ny fit krever egen eksakt admisjon. Plan002 er
-forbrukt og skal aldri relanseres. TEST, broker og handel er stengt.
+Neste gate er eksakt capped preflight uten claim for full-GC senere
+inputplan. Etter PASS krever én fysisk read-only gather egen admisjon.
+Før senere TRAIN-fit må én kausal hypotese, proper skår og økonomisk
+beslutningsmål låses; trening krever egen operatøradmisjon. INITIAL-
+plan002 er forbrukt. TEST, broker og handel er stengt.
 
 Den valgte fem-TF S-masken er hashbundet til118249 modellrader og fem faste
 native endepunkter. Den gamle samplede tidsforespørselen treffer D1s native
@@ -50,9 +59,10 @@ Se `docs/S_MARKET_STATE_NATIVE_ENDPOINT_FIT_BINDING_REVIEW_20261115.json`.
 Eksisterende S/F-batchadapter har nå en eksplisitt opt-in for valgte native
 S-endepunkter. Den sender faste fem K til forward, leser valgte mål etterpå,
 sjekker eksakt gyldighet og avviser umodne fit-mål; gammel samplet modus er
-uendret.18 fokuserte batchtester og23 taps-/skårtester besto. Dette er bare
-kilde-/syntetisk rutepluss reelle målakser, ikke fysisk ny INITIAL, fit,
-modellverdi eller Edge. Modusen er ennå ikke bundet i recipe/campaign.
+uendret.18 fokuserte batchtester og23 taps-/skårtester besto.
+Kilde-/syntetisk rute og reelle målakser er nå fulgt av fysisk INITIAL,
+men ingen fit, modellverdi eller Edge. Modusen er ennå ikke bundet i
+recipe/campaign.
 
 Fersk full-GC INITIAL er nå fysisk bestått på to TRAIN-rader. En egen
 kronologisk full-GC S/F-fit med frossen tidligere-TRAIN-prior og proper
