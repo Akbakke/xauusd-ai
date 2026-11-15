@@ -95,7 +95,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "FOLD2_S_25_CELL_PRIVATE_002_CLOCK_CORRECTED_NO_ADMISSION_EDGE_UNQUALIFIED",
+  "status": "FOLD2_S_25_CELL_PRIVATE_CLOCK_CORRECTED_SOURCE_READY_NO_RUN_ADMISSION_EDGE_UNQUALIFIED",
   "market_state_fold2_25_cell_s_private_route_20261115_001": {"status": "REJECTED_READ_ONLY_PREFLIGHT_CLOCK_MISMATCH_NO_CLAIM", "recipe": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_25_CELL_S_PRIVATE_TWO_BATCH_20261115_001/RECIPE.json", "sha256": "2cfaf79197210ddc7d3408529bc3dec9cbf9e24d5a09d586a6d8b8e3173b8d76"}, "source_commit": "9f942249bb48001641df69e610c5fd10af0280da", "review": {"path": "/home/andre2/src/GX1_CURRENT/docs/S_FOLD2_S_ONLY_PRIVATE_ROUTE_SOURCE_REVIEW_20261115.json", "sha256": "07df9cac48b0102cb73c7e2b214e7b62f89ad9f7b2da8a24bf3e1f4aa3f8a84a"}, "fold_id": 2, "timeframes": ["M5", "M15", "H1", "H4", "D1"], "fixed_query_cells": 25, "private_batches": 2, "physical_optimizer_updates": 0, "full_fit_authorized": false, "test_data_used": false, "economic_edge_proven": false},
   "market_state_fold2_25_cell_s_private_route_20261115_002": {"status": "SOURCE_CORRECTED_NO_CANDIDATE_NO_ADMISSION", "review": {"path": "/home/andre2/src/GX1_CURRENT/docs/S_FOLD2_S_ONLY_PRIVATE_CLOCK_PREFLIGHT_REVIEW_20261115.json", "sha256": "40c6402cdc9d9cea46bcb61b5ee168f57f6744dfcec652161bda9f8a4394e324"}, "feature_fit_cutoff_ns": 1735603200000000000, "s_target_fold_upper_ns": 1735689600000000000, "physical_optimizer_updates": 0, "test_data_used": false, "economic_edge_proven": false},
   "market_state_fold2_paired_minute_path_20261115_002": {

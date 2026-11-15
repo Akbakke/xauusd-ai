@@ -5,7 +5,7 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_S_25_CELL_PRIVATE_002_CLOCK_CORRECTED_NO_ADMISSION_EDGE_UNQUALIFIED.
+Gjeldende policy: FOLD2_S_25_CELL_PRIVATE_CLOCK_CORRECTED_SOURCE_READY_NO_RUN_ADMISSION_EDGE_UNQUALIFIED.
 Lesende, 12G-begrenset kontroll av kandidat001 fant før modellarbeid at faktisk
 Fold2-featuregrense er 1735603200000000000 ns, mens S-fasitens øvre
 gyldighet er 1735689600000000000 ns. Ruten brukte feilaktig første grense
