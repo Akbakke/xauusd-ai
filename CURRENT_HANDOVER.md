@@ -32,6 +32,11 @@ TEST, Entry/Exit, broker eller handel er innrømmet.
   0/14 senere M5-uker. M5-modellen registrerte 0/347 sertifiserte skifter
   mellom nabopunktene. Den ga gjennomsnittlig 27,4 % UP på rader med 54,5 %
   faktisk UP og valgte DOWN i 20 285/20 480 M5-rad/tidspunktkombinasjoner.
+- Ved native endepunkt følger modellens M5- og D1-UP-sannsynligheter
+  hverandre nesten helt (korrelasjon 0,999731 over 4 096 senere rader).
+  Blant 473 rader med kjent side på begge TF er fasitene ulike i 222,
+  mens modellens 0,5-UP/NED-svar er ulike i bare 2. Dette er målt
+  TF-diskrimineringssvikt i sluttoutput, ikke bevist årsak i én bestemt port.
 - En separat lesende CPU-replay av initial- og sluttcheckpoint på samme
   1 024 spredte TRAIN-rader fant M5 minutt 5 Brier 0,252211 → 0,291098 og
   AUC 0,517416 → 0,484980 på 366 kjente sider. Dette er en begrenset

@@ -311,7 +311,8 @@
     "The trained model predicts mostly DOWN and detects no certified M5 adjacent-checkpoint changes. This is a concrete failure to read reversals in the tested representation.",
     "A same-row exploratory TRAIN replay also shows M5 side degradation, so later regime shift alone cannot explain the observed result.",
     "The backbone contains feature-family and cross-timeframe gates and attention, but this result does not prove predictive cooperation among indicators. The joint activity/side objective allows the easier activity task to improve while certified side worsens.",
-    "The causal reason for the side collapse is not isolated. Shared-head interference, optimization and feature/target relationships remain competing explanations. A tiny fixed TRAIN overfit diagnostic can separate basic fit capacity from generalization, but requires a separately admitted one-use training plan."
+    "The causal reason for the side collapse is not isolated. Shared-head interference, optimization and feature/target relationships remain competing explanations. A tiny fixed TRAIN overfit diagnostic can separate basic fit capacity from generalization, but requires a separately admitted one-use training plan.",
+    "At the native endpoint, M5 and D1 side probabilities are nearly identical on later rows while certified M5/D1 sides often disagree; the current shared query output fails timeframe discrimination."
   ],
   "not_measured": [
     "independent sealed TEST adaptation",
@@ -327,5 +328,39 @@
     "test_data_used": false,
     "broker_or_trade": false,
     "economic_edge_proven": false
+  },
+  "later_query_discrimination": {
+    "capture_sha256": "70d8ff660d39a5b282ec199935e80b98553695161f7e83859dfa2a942746e3a3",
+    "native_endpoint_m5_d1_probability_correlation_all_rows": 0.9997308795420343,
+    "native_endpoint_m5_d1_mean_absolute_probability_gap_all_rows": 0.006852616382616295,
+    "m5_minute1_vs_minute5_probability_correlation_all_rows": 0.9997681592596173,
+    "mean_within_row_native_endpoint_cross_tf_probability_sd": 0.004708851092223025,
+    "same_row_certified_side_pairs": {
+      "M5_vs_M15": {
+        "same_rows_both_certified": 826,
+        "observed_side_disagreements": 280,
+        "predicted_side_disagreements_at_0_5": 0,
+        "predicted_probability_correlation": 0.999869506097619
+      },
+      "M5_vs_H1": {
+        "same_rows_both_certified": 724,
+        "observed_side_disagreements": 336,
+        "predicted_side_disagreements_at_0_5": 1,
+        "predicted_probability_correlation": 0.9998667334601399
+      },
+      "M5_vs_H4": {
+        "same_rows_both_certified": 623,
+        "observed_side_disagreements": 282,
+        "predicted_side_disagreements_at_0_5": 0,
+        "predicted_probability_correlation": 0.999933673847545
+      },
+      "M5_vs_D1": {
+        "same_rows_both_certified": 473,
+        "observed_side_disagreements": 222,
+        "predicted_side_disagreements_at_0_5": 2,
+        "predicted_probability_correlation": 0.9997355799878092
+      }
+    },
+    "interpretation": "The shared query output barely distinguishes timeframe or forecast minute on this later cohort, despite frequent certified side disagreements between scales. This is observed output collapse, not proof of which encoder, gate, head or optimizer component caused it."
   }
 }

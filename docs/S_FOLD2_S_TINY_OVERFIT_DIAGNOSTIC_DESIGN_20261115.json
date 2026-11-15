@@ -27,7 +27,7 @@
   "measurement": {
     "same_1024_train_rows_initial_and_final": true,
     "primary": "M5 minute5 known-side Brier and AUC on the same 366 certified sides, plus mean predicted UP versus actual UP",
-    "secondary": "all 25 activity and side cells, full masks and optimizer/gradient records",
+    "secondary": "All 25 activity and side cells, full masks and optimizer/gradient records; same-row M5 versus D1 and minute1 versus minute5 output discrimination on the fixed TRAIN subset.",
     "predeclared_fit_screen": "M5 minute5 side Brier below both fresh initial and same-row fixed +1 prior, and AUC above fresh initial. Any gain is only memorization capacity, not generalization or Edge.",
     "later_or_test_model_selection": false
   },
