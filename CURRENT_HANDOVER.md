@@ -5,7 +5,13 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: S_FULL_GC_FOLD2_LATER_INPUT_PREPARED_PREFLIGHT_PENDING.
+Aktuell policy: S_FULL_GC_FOLD2_LATER_INPUT_ADMITTED_ONE_USE.
+Capped no-claim preflight for full-GC senere input besto:45 kildeeiere,
+4096 faste utviklingsrader,256 batcher, seks sidecars og korrekt
+full-GC-visningshash.0 arraydekoding, modellforward og optimizersteg;
+ingen claim. Én read-only 8G/512M/900s gather er nå eksakt innrømmet.
+Første claim forbruker planen også ved feil; TEST/handel er stengt.
+
 Fysisk full-GC INITIAL er forbrukt og bestått. Fold2s faste senere
 jan–mar2025-panel på4096 utviklingsrader har seks allerede kvalifiserte
 anker-sidecars og TRAIN-normalisering, men den tidligere gatheren var
@@ -13,7 +19,7 @@ bundet til TA-visning uten rå GC. Ny engangsplan
 `configs/research/MARKET_STATE_FULL_GC_FOLD2_LATER_INPUTS_20261115_001.json`
 gjenbruker disse artefaktene og skal fysisk kvalifisere full-XAU+GC-
 input på alle fem TF uten mål, modell, fit eller TEST. Bare lesende
-preflight er tillatt nå; ingen claim er opprettet.
+gather er innrømmet etter bestått preflight; ingen claim er opprettet.
 
 Fold2 engangsplan002 er COMPLETE/CONSUMED, exit0 etter26,09s under
 12G/512M. To faktiske TRAIN-rader gav full XAU+GC-featurebatch med
@@ -40,8 +46,8 @@ enhetsprofil. Én separat test for relative GC-priskoordinater feiler på
 en eksisterende gc_order_flow_v1.py-kildehash; rå-GC-ruten bruker den ikke.
 Se docs/S_FULL_GC_ANCHOR_SPAN_FOLD2_SOURCE_REVIEW_20261115.json.
 
-Neste gate er eksakt capped preflight uten claim for full-GC senere
-inputplan. Etter PASS krever én fysisk read-only gather egen admisjon.
+Neste gate er én eksakt capped read-only gather av full-GC senere
+inputplan; preflight besto og egen engangsadmisjon er gitt.
 Før senere TRAIN-fit må én kausal hypotese, proper skår og økonomisk
 beslutningsmål låses; trening krever egen operatøradmisjon. INITIAL-
 plan002 er forbrukt. TEST, broker og handel er stengt.
