@@ -1,0 +1,54 @@
+{
+  "backwards": 4,
+  "bit_exact_resume": true,
+  "boot_id": 654,
+  "claim": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_25_CELL_S_PRIVATE_TWO_BATCH_20261115_002/RUNTIME/private-research/CLAIM.json",
+    "sha256": "39fe36f3b54c4c4c09247bf704df1f422ca4df03c8a563472f71ae756523fe51"
+  },
+  "cursor": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_25_CELL_S_PRIVATE_TWO_BATCH_20261115_002/RUNTIME/research-cursor/RESUME_CURSOR.json",
+    "sha256": "054f0b4ad7a1433ea55ea7454916dae8a5cd5b58112407a210aaaec562ffc2ea"
+  },
+  "decision": "PRIVATE_MECHANICS_PASS_EDGE_UNQUALIFIED",
+  "economic_edge_proven": false,
+  "elapsed_model_seconds": 65.330652077,
+  "final_private_checkpoint": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_25_CELL_S_PRIVATE_TWO_BATCH_20261115_002/RUNTIME/private-research/FINAL_PRIVATE_STATE.pt",
+    "sha256": "7837217ab57fb1e668589bc520710078c4a802dfaa7f149d498df6dc7028be65"
+  },
+  "forwards": 6,
+  "guard_decision": "PASS",
+  "guard_log": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_25_CELL_S_PRIVATE_TWO_BATCH_20261115_002/RUNTIME/invocation-evidence/invocation-0001/SIGNED_GUARD.log",
+    "sha256": "204045ba92125814909d6acae27900c22275d754a786ab734fabaa0b139a2398"
+  },
+  "initial_full_state_sha256": "a49cf2fd2f3cb842a373ebeb03de7145c70d42e7281bcdc782ebcd1399b43921",
+  "invocations": 1,
+  "model_constructions": 3,
+  "next_hypothesis": "A fresh S-only 25-cell fit must beat the frozen 25-cell prior and a predeclared same-timeframe persistence reference on chronological later development rows, including transitions and all eligible cells, before any direction/trading claim.",
+  "optimizer_updates": 4,
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_25_CELL_S_PRIVATE_TWO_BATCH_20261115_002/CAMPAIGN/CAMPAIGN_PLAN.json",
+    "sha256": "8af5ef49cec7493ae71621f1c7a8b85057e7e8dabad92ee59bf8017880195fe4"
+  },
+  "predictive_value_qualified": false,
+  "qualification_boundary": "The two batches show executable mechanics and exact model/AdamW/RNG resume. Their training loss decrease is not an out-of-sample predictive or trading result. Full FIT and later fixed 25-cell score require separate exact gates.",
+  "receipt": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_25_CELL_S_PRIVATE_TWO_BATCH_20261115_002/RUNTIME/receipts/invocation-0001.json",
+    "sha256": "46d6a50dd8d6a438b1a7eb6947ad7af13acaca893bd77573d98ae97a2ca7888e"
+  },
+  "recipe": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_25_CELL_S_PRIVATE_TWO_BATCH_20261115_002/RECIPE.json",
+    "sha256": "d657a76b916629b7d9917b618bce08fcca694761725c15501bb86ec0658c9e91"
+  },
+  "reference_final_state_sha256": "de26844df4fdada521c410927218c6c5207abcd79aa22ef050f86355ebafd11b",
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_25_CELL_S_PRIVATE_TWO_BATCH_20261115_002/RUNTIME/private-research/RESULT.json",
+    "sha256": "56565f3053f2e0df87bcaf575d2ca40dc94e48d5f919bc3ffc6da8955dd3f523"
+  },
+  "schema_version": "gx1_fold2_s_only_private_002_result_review_v1",
+  "scope": "Fold2 S-only 25 fixed cells on M5/M15/H1/H4/D1; two B16 parent batches, one private guarded invocation, four physical optimizer updates; private weights excluded from main fit.",
+  "source_head": "41089c58408597494fe8417d9d35db00772609b5",
+  "test_data_used": false
+}
