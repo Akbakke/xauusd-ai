@@ -45,9 +45,9 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-15T00:38:31Z",
-  "status": "S_FULL_GC_FOLD2_LATER_INPUT_COMPLETE_EDGE_UNQUALIFIED",
+  "status": "S_M5_QUOTE_ALIGNMENT_ADMITTED_NO_RUN_EDGE_UNQUALIFIED",
   "market_state_s_m5_quote_alignment_20261115_001": {
-    "status": "PREPARED_NOT_ADMITTED",
+    "status": "ADMITTED",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_S_M5_QUOTE_ALIGNMENT_20261115_001.json",
       "sha256": "a1a1dcb0ca3a3666220d43ad2a9952f75f8b3f9fa4072d3bb6bd682edda60006"
@@ -56,8 +56,8 @@
     "max_invocations": 1,
     "claimed_invocations": 0,
     "completed_invocations": 0,
-    "execution_authorized": false,
-    "data_reads_authorized": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
     "model_forwards_authorized": 0,
     "optimizer_steps_authorized": 0,
     "training_authorized": false,
