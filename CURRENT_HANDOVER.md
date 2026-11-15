@@ -5,7 +5,19 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: S_FOLD2_EXACT_PRIOR_LATER_COMPLETE_BASELINE_ONLY_EDGE_UNQUALIFIED.
+Gjeldende policy: S_M5_PATH_COST_ALIGNMENT_ADMITTED_NO_MODEL.
+Én ny lesende engangsaudit er kilde-/ressursbundet under 4G/512M. Den kobler
+S/M5 på eksakt moden Fold2 TRAIN-akse (47338) og faste senere 4096 rader
+til eksisterende fysisk M1 bid/ask- og dynamisk prisbane-eier.
+Observasjonshorisontene 1/5/15/60/240/480 minutter er forhåndsvalgt fra
+fungerende dynamisk kilde; ingen beste horisont eller Entry velges.
+Terminal netto etter deklarerte kostnader, MFE og konservativ pre-MFE MAE
+rapporteres med egne masker. Kostautoriteten i den fysiske Entry-ruten har
+532 bps årlig LONG-finansiering, mens forrige femminuttersdiagnose deklarerte
+569 bps; de skal ikke blandes stille. Ingen modell, TEST, broker eller handel.
+Plan: `configs/research/MARKET_STATE_S_M5_PATH_COST_ALIGNMENT_20261115_001.json`.
+
+Forrige policy: S_FOLD2_EXACT_PRIOR_LATER_COMPLETE_BASELINE_ONLY_EDGE_UNQUALIFIED.
 Engangsauditen er COMPLETE/CONSUMED, exit0 under 4G/512M. Den frøs S/F-prior
 på eksakt moden Fold2 TRAIN-akse (47338 rader) og målte proper-score på
 4096 faste utviklingsrader fra jan–mar2025 fordelt på14 UTC-uker og alle fem
