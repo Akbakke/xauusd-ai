@@ -5,7 +5,23 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_PAIRED_MINUTE_PATH_002_READ_ONLY_ADMITTED.
+Gjeldende policy: FOLD2_PAIRED_MINUTE_PATH_CHANGE_CONFIRMED_MULTIMINUTE_OBJECTIVE_OPEN_EDGE_UNQUALIFIED.
+Korrigert capped parvis engangskontroll002 er fullført og brukt opp. På
+samme 610 senere M5-rader med kjent side ved begge tider faller kausalt
+nå-S-fortegns AUC fra 0,847353 ved minutt1 til 0,468378 ved minutt5;
+285/610 skifter sertifisert side. Av 738 par med kjent treklassetilstand
+skifter 350 (47,4 %). Fit viser 3429/7200 sidevendinger og 4269/8953
+tilstandsskifter. Alle fem TF har parvise skifter og sterk reduksjon i
+persistensscore mot native endepunkt. Hele populasjonens umodne/ukjente
+masker finnes i RESULT; parvise AUC gjelder bare sertifisert delmengde.
+Se docs/S_FOLD2_PAIRED_MINUTE_PATH_REVIEW_20261115.json. Dette er verken
+full banefasit, modellfit, handelsretning eller Edge. Minutt1-only fit
+forblir uadmittert. Neste steg er én fast, semantisk valgt flerminutt-S-
+spørreplan med mellomtilstander og skifttid, målt mot samme-TF-persistens
+uten senere scorevalg. Fersk modellinitial/gate gjenstår;
+training_enabled=false; TEST, broker og handel stengt.
+
+Forrige policy: FOLD2_PAIRED_MINUTE_PATH_002_READ_ONLY_ADMITTED.
 Første parvise engangsplan ble CLAIM-et og stanset uten RESULT. Gammel
 Fold2-endepunkteier returnerer senere allowed/eligible også for umodne
 celler, med separat mature=false; den nye minuttapen sensurerer samme celler

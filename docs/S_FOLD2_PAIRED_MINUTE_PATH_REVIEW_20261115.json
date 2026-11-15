@@ -1,0 +1,246 @@
+{
+  "M5_H1_current_sign_control_on_same_pairs": {
+    "fit": {
+      "endpoint_auc": 0.4930016464169029,
+      "minute_one_auc": 0.5335750542585401
+    },
+    "later": {
+      "endpoint_auc": 0.4547262555379491,
+      "minute_one_auc": 0.5209247547754259
+    }
+  },
+  "claim": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_PAIRED_MINUTE_PATH_20261115_002/CLAIM.json",
+    "sha256": "38c34eab728c7dca48f8d23d46cebd5a7d706d65cc1f077bae83826bdc2385f1"
+  },
+  "decision": "PAIRED_PATH_STATE_CHANGE_CONFIRMED_MINUTE_ONE_ONLY_FIT_UNQUALIFIED",
+  "economic_edge_qualified": false,
+  "failed_predecessor_review": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/S_FOLD2_PAIRED_MINUTE_PATH_FAILURE_REVIEW_20261115.json",
+    "sha256": "45f4c924ed8ebc43b14e00e973869200de2d035d9b25b86389c102c15a8d4988"
+  },
+  "interpretation": [
+    "The strong minute-one persistence and weak native-endpoint persistence are measured on exactly the same certified side rows for each TF, not different score populations.",
+    "M5 later has 350 certified state changes among 738 singleton pairs and 285 side flips among 610 known-side pairs; these are lower bounds over two observed times, not a complete path count.",
+    "Only the paired certified subset supports AUC and change fractions; all unknown, missing and immature cells remain in the full result coverage.",
+    "These labels describe local S state, not a tradeable return or economic Edge. A minute-one-only fit cannot qualify the requested dynamic path.",
+    "The next candidate must predeclare intermediate minute queries from the semantic horizon and score transitions versus same-TF persistence. Later development cannot select query times, weights or model variants."
+  ],
+  "later_M5_weekly": {
+    "maximum_paired_known_side_rows": 64,
+    "minimum_paired_known_side_rows": 4,
+    "weeks": 14,
+    "weeks_endpoint_auc_above_half": 5
+  },
+  "model_forwards": 0,
+  "observed_utc": "2026-11-15T11:34:05.786765+00:00",
+  "optimizer_steps": 0,
+  "panels": {
+    "fit": {
+      "D1": {
+        "early_eligible": 37940,
+        "early_mature": 47338,
+        "endpoint_eligible": 29142,
+        "endpoint_mature": 47338,
+        "endpoint_same_tf_sign_auc": 0.47500694101066404,
+        "minute_one_same_tf_sign_auc": 0.9728535866506127,
+        "paired_certified_change_fraction": 0.5579491598448945,
+        "paired_certified_state_change_rows": 2590,
+        "paired_current_sign_known_rows": 3086,
+        "paired_future_side_flip_fraction": 0.4909451748945671,
+        "paired_future_side_flip_rows": 1979,
+        "paired_known_side_rows": 4031,
+        "paired_singleton_rows": 4642,
+        "rows": 47338,
+        "same_row_auc_endpoint_minus_minute_one": -0.4978466456399487
+      },
+      "H1": {
+        "early_eligible": 46855,
+        "early_mature": 47338,
+        "endpoint_eligible": 45142,
+        "endpoint_mature": 47338,
+        "endpoint_same_tf_sign_auc": 0.48048281489166406,
+        "minute_one_same_tf_sign_auc": 0.9828874668631618,
+        "paired_certified_change_fraction": 0.49185328472583884,
+        "paired_certified_state_change_rows": 6611,
+        "paired_current_sign_known_rows": 9896,
+        "paired_future_side_flip_fraction": 0.5177674968008662,
+        "paired_future_side_flip_rows": 5260,
+        "paired_known_side_rows": 10159,
+        "paired_singleton_rows": 13441,
+        "rows": 47338,
+        "same_row_auc_endpoint_minus_minute_one": -0.5024046519714978
+      },
+      "H4": {
+        "early_eligible": 45626,
+        "early_mature": 47338,
+        "endpoint_eligible": 42784,
+        "endpoint_mature": 47338,
+        "endpoint_same_tf_sign_auc": 0.5345120845888773,
+        "minute_one_same_tf_sign_auc": 0.9950110739724526,
+        "paired_certified_change_fraction": 0.5494427737484522,
+        "paired_certified_state_change_rows": 6212,
+        "paired_current_sign_known_rows": 8209,
+        "paired_future_side_flip_fraction": 0.47114156311694344,
+        "paired_future_side_flip_rows": 4057,
+        "paired_known_side_rows": 8611,
+        "paired_singleton_rows": 11306,
+        "rows": 47338,
+        "same_row_auc_endpoint_minus_minute_one": -0.46049898938357525
+      },
+      "M15": {
+        "early_eligible": 47209,
+        "early_mature": 47338,
+        "endpoint_eligible": 46884,
+        "endpoint_mature": 47338,
+        "endpoint_same_tf_sign_auc": 0.4832483145835169,
+        "minute_one_same_tf_sign_auc": 0.948277472072265,
+        "paired_certified_change_fraction": 0.4677777777777778,
+        "paired_certified_state_change_rows": 6315,
+        "paired_current_sign_known_rows": 9749,
+        "paired_future_side_flip_fraction": 0.515266812517835,
+        "paired_future_side_flip_rows": 5417,
+        "paired_known_side_rows": 10513,
+        "paired_singleton_rows": 13500,
+        "rows": 47338,
+        "same_row_auc_endpoint_minus_minute_one": -0.46502915748874807
+      },
+      "M5": {
+        "early_eligible": 47299,
+        "early_mature": 47338,
+        "endpoint_eligible": 47302,
+        "endpoint_mature": 47338,
+        "endpoint_same_tf_sign_auc": 0.47357758944414036,
+        "minute_one_same_tf_sign_auc": 0.8571982430781057,
+        "paired_certified_change_fraction": 0.47682341114710153,
+        "paired_certified_state_change_rows": 4269,
+        "paired_current_sign_known_rows": 5188,
+        "paired_future_side_flip_fraction": 0.47625,
+        "paired_future_side_flip_rows": 3429,
+        "paired_known_side_rows": 7200,
+        "paired_singleton_rows": 8953,
+        "rows": 47338,
+        "same_row_auc_endpoint_minus_minute_one": -0.3836206536339653
+      }
+    },
+    "later": {
+      "D1": {
+        "early_eligible": 3889,
+        "early_mature": 4096,
+        "endpoint_eligible": 3037,
+        "endpoint_mature": 4032,
+        "endpoint_same_tf_sign_auc": 0.6122553088469254,
+        "minute_one_same_tf_sign_auc": 0.9306708098867441,
+        "paired_certified_change_fraction": 0.4849315068493151,
+        "paired_certified_state_change_rows": 354,
+        "paired_current_sign_known_rows": 409,
+        "paired_future_side_flip_fraction": 0.44868035190615835,
+        "paired_future_side_flip_rows": 306,
+        "paired_known_side_rows": 682,
+        "paired_singleton_rows": 730,
+        "rows": 4096,
+        "same_row_auc_endpoint_minus_minute_one": -0.31841550103981875
+      },
+      "H1": {
+        "early_eligible": 4084,
+        "early_mature": 4096,
+        "endpoint_eligible": 3988,
+        "endpoint_mature": 4092,
+        "endpoint_same_tf_sign_auc": 0.42119773117003034,
+        "minute_one_same_tf_sign_auc": 0.9844579124579125,
+        "paired_certified_change_fraction": 0.5424679487179487,
+        "paired_certified_state_change_rows": 677,
+        "paired_current_sign_known_rows": 942,
+        "paired_future_side_flip_fraction": 0.5510835913312694,
+        "paired_future_side_flip_rows": 534,
+        "paired_known_side_rows": 969,
+        "paired_singleton_rows": 1248,
+        "rows": 4096,
+        "same_row_auc_endpoint_minus_minute_one": -0.5632601812878821
+      },
+      "H4": {
+        "early_eligible": 4064,
+        "early_mature": 4096,
+        "endpoint_eligible": 3703,
+        "endpoint_mature": 4080,
+        "endpoint_same_tf_sign_auc": 0.42832741970673005,
+        "minute_one_same_tf_sign_auc": 0.9934167121667121,
+        "paired_certified_change_fraction": 0.6113243761996161,
+        "paired_certified_state_change_rows": 637,
+        "paired_current_sign_known_rows": 751,
+        "paired_future_side_flip_fraction": 0.5578069129916567,
+        "paired_future_side_flip_rows": 468,
+        "paired_known_side_rows": 839,
+        "paired_singleton_rows": 1042,
+        "rows": 4096,
+        "same_row_auc_endpoint_minus_minute_one": -0.5650892924599821
+      },
+      "M15": {
+        "early_eligible": 4093,
+        "early_mature": 4096,
+        "endpoint_eligible": 4083,
+        "endpoint_mature": 4096,
+        "endpoint_same_tf_sign_auc": 0.46539987046815834,
+        "minute_one_same_tf_sign_auc": 0.9438539281667013,
+        "paired_certified_change_fraction": 0.5131118881118881,
+        "paired_certified_state_change_rows": 587,
+        "paired_current_sign_known_rows": 852,
+        "paired_future_side_flip_fraction": 0.5364806866952789,
+        "paired_future_side_flip_rows": 500,
+        "paired_known_side_rows": 932,
+        "paired_singleton_rows": 1144,
+        "rows": 4096,
+        "same_row_auc_endpoint_minus_minute_one": -0.478454057698543
+      },
+      "M5": {
+        "early_eligible": 4095,
+        "early_mature": 4096,
+        "endpoint_eligible": 4096,
+        "endpoint_mature": 4096,
+        "endpoint_same_tf_sign_auc": 0.4683784453858509,
+        "minute_one_same_tf_sign_auc": 0.8473530803648254,
+        "paired_certified_change_fraction": 0.4742547425474255,
+        "paired_certified_state_change_rows": 350,
+        "paired_current_sign_known_rows": 439,
+        "paired_future_side_flip_fraction": 0.4672131147540984,
+        "paired_future_side_flip_rows": 285,
+        "paired_known_side_rows": 610,
+        "paired_singleton_rows": 738,
+        "rows": 4096,
+        "same_row_auc_endpoint_minus_minute_one": -0.3789746349789745
+      }
+    }
+  },
+  "plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_FOLD2_PAIRED_MINUTE_PATH_20261115_002.json",
+    "sha256": "185b6ef973af71cb7854ab56721ff5887e84d8f460cafb516e9b02cb79323480"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_PAIRED_MINUTE_PATH_20261115_002/RESULT.json",
+    "sha256": "3d415b1253c07fca6a0738b212e4aba2c1f77c1e5dd14dc176bddd999dab678e"
+  },
+  "schema_version": "gx1_fold2_paired_minute_path_review_v1",
+  "scope": {
+    "early_minute_all_TF": 1,
+    "fit_rows": 47338,
+    "fold_id": 2,
+    "later_development_rows": 4096,
+    "native_endpoint_minutes": {
+      "D1": 1440,
+      "H1": 60,
+      "H4": 240,
+      "M15": 15,
+      "M5": 5
+    },
+    "same_row_certified_pair_required_for_rank_and_change": true,
+    "test_data_used": false,
+    "whole_population_unknown_immature_counts_in_result": true
+  },
+  "source_head": "667e093057240b83e9286830e148bcfbb77cfda5",
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_PAIRED_MINUTE_PATH_20261115_002/TERMINAL.json",
+    "sha256": "7c399bb7d9dec962e166f0a5e679e2e85f9a9838a6e137dfc736104e472630f9"
+  },
+  "test_data_used": false,
+  "training_authorized": false
+}
