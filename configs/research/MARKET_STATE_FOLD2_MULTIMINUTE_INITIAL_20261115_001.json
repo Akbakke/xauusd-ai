@@ -1,0 +1,120 @@
+{
+  "backbone_forwards_authorized": 1,
+  "backward_calls_authorized": 1,
+  "broker_access_allowed": false,
+  "checkpoint_reads_authorized": 0,
+  "head_decodes_authorized": 1,
+  "hypothesis": "On the first previously qualified genuine full-GC Fold2 B16, one fresh randomly initialized ONLINE backbone can answer the exact five-point S path, produce finite support-normalized loss and proper marginal scores, and backpropagate only certified target gradients. Report every floating input channel gradient, including zeros, without update or checkpoint. This is mechanics, not learning or Edge.",
+  "input_refs": {
+    "candidate_tape": {
+      "bytes": 4169474,
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TIME_QUERY_TAPE_20261107_001/TRAIN_CANDIDATE_TAPE.npz",
+      "sha256": "86aff221bf63532b67efe7c5770daa986bdebe916f149dd99961dacde1043b8b"
+    },
+    "fit_support": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/S_FOLD2_MULTIMINUTE_FIT_SUPPORT_20261115.json",
+      "sha256": "eb926b6324dbacb7e2c4bf536b5d49bd669475655c30a2c88a8aab32743c8065"
+    },
+    "loss_source_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/S_FOLD2_MULTIMINUTE_SIDE_LOSS_SOURCE_REVIEW_20261115.json",
+      "sha256": "00142c26a87f960ed2a41adc66575469b16eac636af634829ecbd183e7d2deb2"
+    },
+    "path_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/S_FOLD2_MULTIMINUTE_PATH_REVIEW_20261115.json",
+      "sha256": "bb5767be842fd60e79036db4ba33a5ab6e0d71e311f263dd4a58afdf7317f908"
+    },
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_SELECTED_FOLD2_TWO_BATCH_20261115_001/RECIPE.json",
+      "sha256": "3e5c6875544583a6410c5031c2a7e44220d6437b98c438130304eaab92605981"
+    }
+  },
+  "limits": {
+    "class": "producer",
+    "max_invocations": 1,
+    "memory": "12G",
+    "swap": "512M",
+    "wall_seconds": 1800
+  },
+  "max_invocations": 1,
+  "model_constructions_authorized": 1,
+  "optimizer_steps_authorized": 0,
+  "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_MULTIMINUTE_INITIAL_20261115_001",
+  "relaunch_allowed": false,
+  "schema_version": "gx1_fold2_multiminute_initial_plan_v1",
+  "scope": {
+    "backbone_encode_calls": 1,
+    "batch_index": 0,
+    "batch_size": 16,
+    "checkpoint_reads": 0,
+    "fold_id": 2,
+    "head_decode_calls": 1,
+    "input_gradient_channels": true,
+    "loss_contract_sha256": "7be6548a19845908c131809af1243590c418ddd6b02fd9ba968970d326affad5",
+    "model_constructions": 1,
+    "optimizer_steps": 0,
+    "partition": "fit",
+    "query_minutes": [
+      [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      [
+        2,
+        4,
+        15,
+        60,
+        360
+      ],
+      [
+        3,
+        8,
+        30,
+        120,
+        720
+      ],
+      [
+        4,
+        12,
+        45,
+        180,
+        1080
+      ],
+      [
+        5,
+        15,
+        60,
+        240,
+        1440
+      ]
+    ],
+    "query_sha256": "1d6b5d891e08b91ead2ca0b49e0aef22e3c8c1d2ab08d81fa9fd2ffe3bf3c56d",
+    "test_data_used": false
+  },
+  "seed": 51,
+  "source_base_head": "4d583fd91dab29c1e2574cd0d957232dc312005d",
+  "source_owners": {
+    "gx1/audit/build_market_state_time_query_tape_v1.py": "169e8085f2ee78f41e96a9c3cb6e9fe224cc0bb430769bb72cbd4bb6e28a1dbc",
+    "gx1/audit/qualify_market_state_fold2_multiminute_initial_v1.py": "91401b4343e9bf410ae437e44f044a6c9f772d7db2a93d455e58ca9a9a38b101",
+    "gx1/contracts/entry_native_direction_feature_view_v1.py": "6fc56f8dd76005090614df83a6dc87db94163f0216cfdf1983278f3932d7d34f",
+    "gx1/contracts/gx1_capped_execution_v1.py": "60b1ccf2eda470a84ddded0d8160c628314ebb19f5766b87b70fef7c9aa3ccff",
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "gx1/contracts/market_state_five_endpoint_contract_v1.py": "5007214d0f8df9dc9834dcf8c88d22ea75567772e8ffc184ad5cecb77fc19b34",
+    "gx1/contracts/market_state_fold2_multiminute_path_v1.py": "4217b27ea57302bc0ed3a948f0351554b1c3d91de7e781e0aaeb8baac63fac1b",
+    "gx1/contracts/market_state_fold2_multiminute_side_loss_v1.py": "20ebe302e7f6dad0247517031e33a4554e29798e3b952a3904d8906679f67d93",
+    "gx1/contracts/market_state_fold2_selected_native_batches_v1.py": "fc12939b055fc0ef9140eab8aedadaba0b453833f87f594aa15462db372bb6cb",
+    "gx1/contracts/market_state_minute_query_candidate_v1.py": "2295cfeaf44bf1fa6e3398b5379b31b9fb42ca48427643158e5018e3cc7bd051",
+    "gx1/contracts/market_state_time_query_model_v2.py": "601491f5e6d2d0476b4c3ce94000aad8682b787ad6045024295f9284547c17ab",
+    "gx1/contracts/market_state_time_query_scorer_v2.py": "a3bd1e8e4482030cee0e267ad88da7552f4e1fe65e4e79182b19339e31acad12",
+    "gx1/contracts/market_state_time_query_target_v1.py": "c4eacacdfb782e7dfb01cac51cb4521e95ca55d3dfeb1c215a958abbdde65ca9",
+    "gx1/contracts/model_state_digest_v1.py": "f5d362079bb61bd61919bdea56e7f782d2461499691f2d588cc9a6a078e487e4",
+    "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "5983cd8d6395ed2a61a139a35069d96accc4c8c62378a8460d09ff3aeaf7201e",
+    "scripts/gx1_capped_run.sh": "3c9d608574be3755e0e3d63d2617a01612d65dbaf61b26b76765262a5a2abc4c"
+  },
+  "stage": "market_state_fold2_multiminute_initial_20261115_001",
+  "status": "ADMITTED_READ_ONLY",
+  "test_authorized": false,
+  "training_authorized": false
+}

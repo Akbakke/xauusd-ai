@@ -5,24 +5,23 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_MULTIMINUTE_SIDE_LOSS_SOURCE_PASS_INITIAL_MODEL_GATE_OPEN_EDGE_UNQUALIFIED.
-Den ene capped flerminutt-S-lesekontrollen er COMPLETE/forbrukt. På samme
-428 senere M5-rader med kjent side i alle minuttene 1–5 hadde 199 minst
-ett observert sideskifte, hvorav 22 endte tilbake på startside. Kausalt
-samme-TF nå-S-fortegns AUC på disse radene faller 0,800746 → 0,499836;
-fit har 5 050 all-fem kjentside-rader og 2 459 med minst ett skifte.
-Alle fem TF, masker og 14 senere M5-uker ligger i
-docs/S_FOLD2_MULTIMINUTE_PATH_REVIEW_20261115.json.
-En separat flerminutt-losskandidat er kildekontrollert: aktivitet og
-sertifisert side normaliseres hver for seg på eksakt Fold2-fitstøtte for
-hvert av 25 faste spørsmål/TF-celler. Ukjent side gir null sidegradient;
-fast klokke og umodne masker avvises i tre fokuserte tester. Se
+Gjeldende policy: FOLD2_MULTIMINUTE_INITIAL_READ_ONLY_ADMITTED.
+Fast fempunkts-S-bane og separat 25-cellers side-normalisert loss er
+kildekvalifisert på Fold2, uten modellfit. Faktisk fasit viser 199/428
+senere M5-rader med minst ett kjent sideskifte på de samme fem punktene;
+22 av disse vendte tilbake til startsiden før sluttpunktet. Se
+docs/S_FOLD2_MULTIMINUTE_PATH_REVIEW_20261115.json og
 docs/S_FOLD2_MULTIMINUTE_SIDE_LOSS_SOURCE_REVIEW_20261115.json.
-Neste gate er en ny, eksakt innrømmet full-GC initialforward/gradient og
-kontroll av faktisk indikator-/tidsrammekonsum; deretter kronologisk
-sammenligning med TRAIN-prior og samme-TF-persistens før økonomisk vurdering.
-Dette er ikke modellfit, generalisering eller Edge. training_enabled=false;
-TEST, broker og handel stengt.
+Én ny, forhåndsbundet full-GC CPU B16 initialforward/backward på eksisterende
+Fold2-input er nå innrømmet med 12G/512M cap, én backbone, én fempunkts-
+decode og én backward. Alle flyttallsinputkanalers gradient, også nuller,
+skal rapporteres. Modellen bygges fersk, uten checkpoint eller optimizer,
+og state-digest må være uendret. Plan:
+configs/research/MARKET_STATE_FOLD2_MULTIMINUTE_INITIAL_20261115_001.json.
+Neste steg er preflight, claim, terminal/resultat og kontroll av eventuelle
+nullruter. Dette beviser bare mekanikk på én B16; alle indikatorers faktiske
+modellkonsum og senere generalisering er fortsatt åpne. training_enabled=false;
+TEST, broker og handel stengt. Planen relanseres aldri etter claim.
 
 Forrige policy: FOLD2_PAIRED_MINUTE_PATH_CHANGE_CONFIRMED_MULTIMINUTE_OBJECTIVE_OPEN_EDGE_UNQUALIFIED.
 Korrigert capped parvis engangskontroll002 er fullført og brukt opp. På
