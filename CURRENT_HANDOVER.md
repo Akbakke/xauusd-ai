@@ -5,7 +5,18 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_MINUTE_SIDE_WEIGHT_SOURCE_PASS_NATIVE_BASELINE_FIT_OPEN.
+Gjeldende policy: FOLD2_MINUTE_ONE_PERSISTENCE_RANK_READ_ONLY_ADMITTED.
+Én avgrenset, capped lesekontroll skal måle en enkel kausal referanse før
+modellfit: sertifisert nåtilstands fortegn på samme TF ved lukket M5-beslutning
+ranker framtidig sertifisert S-side ved fast minutt1. Ukjent nåretning får
+nullscore og blir i populasjonen. M5 primærkontroll bruker også H1-nåfortegn
+på nøyaktig samme rader; Fold2 fit47 338 og fast senere4096 samt 14 uker
+scorer uten fit/fortegnsvalg. Plan:
+configs/research/MARKET_STATE_FOLD2_MINUTE_ONE_PERSISTENCE_RANK_20261115_001.json.
+Ingen modellforward, optimizer, TEST, broker eller handel. Native fit fortsatt
+uadmittert; training_enabled=false.
+
+Forrige policy: FOLD2_MINUTE_SIDE_WEIGHT_SOURCE_PASS_NATIVE_BASELINE_FIT_OPEN.
 Målt avvik i minutt1-tapet: sertifisert retningsfeil ble delt på alle
 informative rader. Første genuine B16 hadde kjent side på M5 7/16,
 M15 5/16 og H1 4/8; hele Fold2 fit har kjent side på 15 891/47 299
