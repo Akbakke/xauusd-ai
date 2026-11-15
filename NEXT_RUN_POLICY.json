@@ -95,7 +95,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "FOLD2_PAIRED_MINUTE_PATH_CHANGE_CONFIRMED_MULTIMINUTE_OBJECTIVE_OPEN_EDGE_UNQUALIFIED",
+  "status": "FOLD2_MULTIMINUTE_PATH_READ_ONLY_ADMITTED",
   "market_state_fold2_paired_minute_path_20261115_002": {
     "status": "COMPLETE_CONSUMED_PAIRED_PATH_CHANGE_CONFIRMED",
     "plan": {
@@ -1872,7 +1872,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The reused Fold2 full-GC selected-native S/F source receipts and two fixed B16 target batches pass exact five-clock and maturity checks. The consumed two-row physical initial remains mechanics only. The existing native private runner is Fold1 sampled-query; no Fold2 selected-native optimizer/resume campaign or fit is qualified. The previous positive absolute-GC-book-activity hypothesis remains rejected only in its declared one-field orientation. training_enabled=false; TEST, broker and trading remain closed.",
-  "next_action": "The fixed paired Fold2 audit confirms M5 same-row current-S sign AUC 0.8474 at minute1 versus 0.4684 at minute5 on 610 later known-side pairs; 350/738 singleton pairs change state. All five TF show material paired path changes. Next define one fixed multiminute S path target/query/score that includes intermediate states and transition timing from semantic horizons, with full unknown coverage and same-TF persistence as reference. Do not choose times or weights from later results. Fresh actual model baseline and exact one-use admission remain open; training_enabled=false, no TEST, broker or trade.",
+  "next_action": "One fixed capped read-only Fold2 path audit is admitted on fit47338 and later4096. Five semantic minute checkpoints per M5/M15/H1/H4/D1 measure all mature/eligible/unknown masks, certified transition intervals and exact causal same-TF current-sign reference, including identical five-checkpoint known-side rows and 14 later M5 weeks. No model forward, optimizer, TEST, broker or trade. The plan is one-use and cannot be relaunched after claim; training_enabled=false.",
   "s_f_fold2_selected_native_route_gap_review_20261115": {"status": "COMPLETE_SOURCE_TARGET_ONLY_CAMPAIGN_UNQUALIFIED", "review": {"path": "/home/andre2/src/GX1_CURRENT/docs/S_F_FOLD2_SELECTED_NATIVE_ROUTE_GAP_REVIEW_20261115.json", "sha256": "14fbf45a408fbf6508fc5c23788770d23389eab700d77c6c718ee018d5c9b37e"}, "fit_rows": 47338, "selected_later_rows": 4096, "target_batches": 2, "model_forwards": 0, "optimizer_steps": 0, "training_authorized": false, "test_data_used": false, "economic_edge_proven": false},
   "market_state_native_F_selected_endpoint_initial_20261115_001": {"status": "PREFLIGHT_BLOCKED_NOT_ADMITTED", "decision": "NO_CLAIM_NO_EXECUTION", "preflight": {"exit_code": 1, "reason": "TIME_QUERY_ZERO_STEP_REVIEWED_RUNNER_REF", "historical_v2_source_owner_mismatches": 13, "claim_written": false, "output_root_exists": false}, "scope": "Two actual fold1 TRAIN rows, full GC S/F selected-native S endpoint initial, one forward/backward, zero optimizer updates; no fit, TEST, broker or trading.", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_NATIVE_F_SELECTED_ENDPOINT_INITIAL_20261115_001.json", "sha256": "2fedd2f003a0df2e947bcb7730b6d7c94acfb0a5a9fc1f60e04aeeba14e9c94c"}, "worker": {"path": "/home/andre2/src/GX1_CURRENT/gx1/audit/verify_market_state_native_F_cpu_zero_step_v1.py", "sha256": "2594b985178d9b7a44789283214432805a8c9d641f9a7825772731b67cea1eef"}, "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_SELECTED_ENDPOINT_INITIAL_20261115_001", "max_invocations": 1, "claimed_invocations": 0, "completed_invocations": 0, "execution_authorized": false, "data_reads_authorized": false, "model_forwards_authorized": 0, "backward_calls_authorized": 0, "optimizer_steps_authorized": 0, "training_authorized": false, "test_authorized": false, "checkpoint_reads_authorized": false, "broker_access_allowed": false, "relaunch_allowed": false, "test_data_used": false, "memory_max": "12G", "swap_max": "512M", "wall_seconds": 1800, "standing_authorization_source": "GX1_RULES_20261105_local_zero_spend_read_only_research"},
   "market_state_native_F_selected_endpoint_initial_fold2_20261115_002": {"status": "COMPLETE_CONSUMED_EDGE_UNQUALIFIED", "decision": "FULL_GC_SELECTED_NATIVE_TWO_ROW_MECHANICS_PASS_NO_EDGE", "scope": "Two fixed fold2 TRAIN rows, full-GC selected native S/F; at most one forward/backward after separate admission, zero optimizer updates.", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_NATIVE_F_SELECTED_ENDPOINT_INITIAL_FOLD2_20261115_002.json", "sha256": "21e2deb4cea4974f3c3276189e58a361c5861750a80e55ba5ae934c97e27eda1"}, "worker": {"path": "/home/andre2/src/GX1_CURRENT/gx1/audit/verify_market_state_native_F_cpu_zero_step_v1.py", "sha256": "98cbd3bb723a021a2fa21efa2d9d05ba09dfc41b933feda7ab97e9d7a3be2062"}, "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_SELECTED_ENDPOINT_INITIAL_FOLD2_20261115_002", "max_invocations": 1, "claimed_invocations": 1, "completed_invocations": 1, "preflight_read_only_authorized": true, "execution_authorized": false, "data_reads_authorized": false, "model_forwards_authorized": 0, "backward_calls_authorized": 0, "optimizer_steps_authorized": 0, "training_authorized": false, "test_authorized": false, "checkpoint_reads_authorized": false, "broker_access_allowed": false, "relaunch_allowed": false, "test_data_used": false, "memory_max": "12G", "swap_max": "512M", "wall_seconds": 1800, "standing_authorization_source": "GX1_RULES_20261105_local_zero_spend_read_only_research", "preflight_note": "Two no-claim preflights found an inherited 8 MiB JSON reader limit and a missing source-owner binding for the prior mature-prefix plan; both corrected. No output root or model forward.", "preflight": {"status": "READY_NO_CLAIM_NO_FEATURE_ARRAY_DECODE", "source_owners_checked": 44, "view_sha256": "9ea6a4595c6a5792acd190ad12dc861d9bb99ec921c5bd3650b38b15154981bc", "model_forwards": 0, "optimizer_steps": 0, "test_data_used": false}, "claim": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_SELECTED_ENDPOINT_INITIAL_FOLD2_20261115_002/CLAIM.json", "sha256": "a61b1c88bb7f3f5317276187a3a4e56a4f691bbcfac745b36eec8c02ee98736c"}, "result": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_SELECTED_ENDPOINT_INITIAL_FOLD2_20261115_002/RESULT.json", "sha256": "23e2d01a429f9580d67fbead7320e42fae7761859ac5c8ceefd0af7dfc2ed081"}, "terminal": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_SELECTED_ENDPOINT_INITIAL_FOLD2_20261115_002/TERMINAL.json", "sha256": "b028e2bbd1dc710579a73f0fc82563b3303524f89cf635f86b7ada8e8678580d"}, "review": {"path": "/home/andre2/src/GX1_CURRENT/docs/S_FOLD2_SELECTED_NATIVE_INITIAL_RESULT_REVIEW_20261115.json", "sha256": "9036427ce64e60bc3ca0807335c4041b8ae14716e2e973976e9e100916486780"}, "actual_model_forwards": 1, "actual_backward_calls": 1, "actual_optimizer_steps": 0, "source_unchanged": true, "physical_full_gc_initial": true, "chronological_fit_performed": false, "later_generalization_proven": false, "economic_edge_proven": false},
@@ -88481,5 +88481,23 @@
     "probability_fit": false,
     "test_data_used": false,
     "economic_edge_proven": false
+  },
+  "market_state_fold2_multiminute_path_20261115_001": {
+    "status": "ADMITTED_READ_ONLY",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_FOLD2_MULTIMINUTE_PATH_20261115_001.json",
+      "sha256": "63adbc31fc0b11ba97b74b81d1cdfb60da5ea52822fcde6290d29c8aa4ed5fe3"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_MULTIMINUTE_PATH_20261115_001",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "data_reads_authorized": true,
+    "model_forwards_authorized": 0,
+    "optimizer_steps_authorized": 0,
+    "training_authorized": false,
+    "test_authorized": false,
+    "broker_access_allowed": false,
+    "relaunch_allowed": false
   }
 }

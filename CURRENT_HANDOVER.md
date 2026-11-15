@@ -5,7 +5,21 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_PAIRED_MINUTE_PATH_CHANGE_CONFIRMED_MULTIMINUTE_OBJECTIVE_OPEN_EDGE_UNQUALIFIED.
+Gjeldende policy: FOLD2_MULTIMINUTE_PATH_READ_ONLY_ADMITTED.
+En fast, fasitblind flerminuttplan er kildekodet: første observerbare minutt,
+kvart-, halv-, trekvart- og native sluttpunkt på hver av M5/M15/H1/H4/D1.
+Eksisterende minuttape, treklasse/ukjent-maske, marginale proper scores og
+samme-TF nå-S-fortegn gjenbrukes. Skifte mellom to sertifiserte punkt beviser
+minst ett skifte i intervallet; like endepunkter beviser ikke ro imellom.
+Fire fokuserte syntetiske tester og syntaks består. Én ny capped lesekontroll
+på fast Fold2 fit47 338 og senere4 096 er forhåndsbundet i
+configs/research/MARKET_STATE_FOLD2_MULTIMINUTE_PATH_20261115_001.json.
+Hele maskepopulasjonen, like kjentside-rader på alle fem spørsmål og 14
+senere M5-uker skal rapporteres. Ingen modellforward, fit, TEST, broker eller
+handel; training_enabled=false. Neste steg er preflight, én claim/kjøring og
+terminal/resultatvurdering. Planen kan ikke relanseres etter claim.
+
+Forrige policy: FOLD2_PAIRED_MINUTE_PATH_CHANGE_CONFIRMED_MULTIMINUTE_OBJECTIVE_OPEN_EDGE_UNQUALIFIED.
 Korrigert capped parvis engangskontroll002 er fullført og brukt opp. På
 samme 610 senere M5-rader med kjent side ved begge tider faller kausalt
 nå-S-fortegns AUC fra 0,847353 ved minutt1 til 0,468378 ved minutt5;
