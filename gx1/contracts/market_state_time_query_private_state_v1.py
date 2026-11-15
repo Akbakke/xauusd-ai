@@ -1,4 +1,4 @@
-"""Exact in-memory optimizer and resume state for the private time-query probe.
+"""Exact in-memory optimizer and resume state for guarded private S probes.
 
 No input IO, admission, launch, EMA, scheduler, target model or trading role.
 The caller owns atomic checkpoint publication and the fixed TRAIN row schedule.
@@ -43,9 +43,22 @@ def _numerical(value, model):
     from gx1.contracts.market_state_time_query_private_campaign_v1 import (
         time_query_private_numerical_recipe,
     )
-    _need(type(model) is Model, 'EXACT_MODEL_TYPE')
-    _need(isinstance(value, Mapping) and dict(value) == time_query_private_numerical_recipe(),
-        'CANONICAL_NUMERICAL_RECIPE')
+    from gx1.contracts.market_state_time_query_model_v2 import (
+        FactorizedTimeQueryMarketStateModel,
+    )
+    if type(model) is FactorizedTimeQueryMarketStateModel:
+        from gx1.contracts.market_state_fold2_multiminute_private_v1 import (
+            require_private_scope,
+        )
+        _need(model._ta_only is False
+              and model._dedicated_m5_side is False
+              and model._dedicated_non_m5_side is False
+              and model._dedicated_tf_activity is False, 'FOLD2_S_ONLY_MODE')
+        require_private_scope(dict(value) if isinstance(value, Mapping) else value)
+    else:
+        _need(type(model) is Model, 'EXACT_MODEL_TYPE')
+        _need(isinstance(value, Mapping) and dict(value) == time_query_private_numerical_recipe(),
+              'CANONICAL_NUMERICAL_RECIPE')
     _need(value.get('research_objective_sha256') == model.research_objective['contract_sha256'],
         'RECIPE_OBJECTIVE')
     _need(float(trainer._GRAD_CLIP_NORM) == value['grad_clip_norm'],
@@ -68,7 +81,15 @@ def _view(model, expected):
 
 def _parameters(model):
     torch, old, _, Model, _, _ = _deps()
-    _need(type(model) is Model, 'EXACT_MODEL_TYPE')
+    from gx1.contracts.market_state_time_query_model_v2 import (
+        FactorizedTimeQueryMarketStateModel,
+    )
+    _need(type(model) in (Model, FactorizedTimeQueryMarketStateModel), 'EXACT_MODEL_TYPE')
+    if type(model) is FactorizedTimeQueryMarketStateModel:
+        _need(model._ta_only is False
+              and model._dedicated_m5_side is False
+              and model._dedicated_non_m5_side is False
+              and model._dedicated_tf_activity is False, 'FOLD2_S_ONLY_MODE')
     model._require_binding()
     model.backbone.require_input_normalization_state()
     pairs = list(model.named_parameters(remove_duplicate=False))

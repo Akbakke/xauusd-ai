@@ -5,21 +5,25 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_S_25_CELL_PRIOR_COMPLETE_CONSUMED_EDGE_UNQUALIFIED.
-Aktiv fase er S-only læring på M5/M15/H1/H4/D1 før Entry. Den ene
-4G/512M-avgrensede Fold2-baselinen er fullført og brukt opp: +1-smoothed
-aktivitets-/betinget-sideprior på 25 faste celler ble tilpasset 47 338
-tidligere modne FIT-rader og scoret på de allerede valgte 4 096 senere
-utviklingsradene fordelt på 14 UTC-uker. Ukjent fasit beholdt riktige masker;
-uke- og totalsummer stemmer. CLAIM, PRIOR, RESULT og TERMINAL er forseglede.
-Se docs/S_FOLD2_FIXED_25_CELL_PRIOR_RESULT_REVIEW_20261115.json.
-Dette er en konstant referanse, ikke en score for S-modellen, generalisering
-for modellen eller økonomisk Edge. Neste gate er separat eksakt innrømmet
-S-only modellfit med kontroll av faktisk feature-/normaliseringsidentitet og
-frosset scoring mot samme senere referanse. Global training_enabled=false;
-TEST, Entry/Exit, broker og handel stengt. Brukt plan relanseres aldri.
+Gjeldende policy: FOLD2_S_25_CELL_PRIVATE_STATE_SOURCE_READY_NO_FIT_ADMISSION_EDGE_UNQUALIFIED.
+Aktiv fase er S-only på M5/M15/H1/H4/D1 før Entry. Den fryste +1-prioren
+på 25 celler er fullført på 47 338 tidligere FIT-rader og 4 096 senere
+utviklingsrader over 14 UTC-uker; engangsplanen er konsumert. Se
+docs/S_FOLD2_FIXED_25_CELL_PRIOR_RESULT_REVIEW_20261115.json.
+Neste konkrete sperre var checkpoint-eierens eksakte gamle modelltype. Den
+aksepterer nå det faktoriserte S-hodet bare i full-GC-modus med separat
+forseglet B16/2-stegs privat numerisk kontrakt. To nye fokuserte syntetiske
+tester samt gammel privat state-suite består, også komplett modell-/AdamW-/
+RNG-restore etter ett syntetisk steg. Se
+docs/S_FOLD2_S_ONLY_PRIVATE_STATE_SOURCE_REVIEW_20261115.json.
+Dette er kilde-/syntetisk mekanikk, ingen fysisk S-only oppdatering,
+generalisering eller økonomisk Edge. Neste gate er én egen innrømmet, bevoktet
+fysisk to-B16 S-only optimizer/resume-kontroll med fersk initial og eksakt
+feature-/normaliseringsidentitet; private vekter brukes aldri til hovedfit.
+Full FIT og senere 25-cellers modellscore krever egne porter. Global
+training_enabled=false; TEST, Entry/Exit, broker og handel er stengt.
 
-Forrige policy: FOLD2_PAIRED_MINUTE_PATH_CHANGE_CONFIRMED_MULTIMINUTE_OBJECTIVE_OPEN_EDGE_UNQUALIFIED.
+Tidligere policy: FOLD2_PAIRED_MINUTE_PATH_CHANGE_CONFIRMED_MULTIMINUTE_OBJECTIVE_OPEN_EDGE_UNQUALIFIED.
 Korrigert capped parvis engangskontroll002 er fullført og brukt opp. På
 samme 610 senere M5-rader med kjent side ved begge tider faller kausalt
 nå-S-fortegns AUC fra 0,847353 ved minutt1 til 0,468378 ved minutt5;
