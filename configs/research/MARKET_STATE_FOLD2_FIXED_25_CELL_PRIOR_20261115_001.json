@@ -1,0 +1,80 @@
+{
+  "baseline_estimation_authorized": true,
+  "broker_access_allowed": false,
+  "hypothesis": "A +1 smoothed activity/conditional-side constant prior fitted on the exact earlier mature Fold2 FIT axis provides a frozen, honest 25-cell S proper-score reference on the preselected 4096 later development rows. No model or economic Edge is measured.",
+  "input_refs": {
+    "coverage": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_FULL_GC_FOLD2_LATER_COVERAGE_20261115_001.json",
+      "sha256": "ff18b8fcde8b09c41cbec5c216c532ef688a6be29767e456475cef941495c640"
+    },
+    "later_input_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FULL_GC_FOLD2_LATER_INPUTS_20261115_001/RESULT.json",
+      "sha256": "820c41c10faddefc9ad38622168eb2080e6913ee68ebba6f0e0dff8fa0edf37b"
+    },
+    "later_input_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FULL_GC_FOLD2_LATER_INPUTS_20261115_001/TERMINAL.json",
+      "sha256": "47267210715f01d6f4dc03e30b207344a7ccde23b87e0867e73b4330665ff950"
+    },
+    "path_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/S_FOLD2_MULTIMINUTE_PATH_REVIEW_20261115.json",
+      "sha256": "bb5767be842fd60e79036db4ba33a5ab6e0d71e311f263dd4a58afdf7317f908"
+    },
+    "prior_source_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/S_FOLD2_FIXED_25_CELL_PRIOR_SOURCE_REVIEW_20261115.json",
+      "sha256": "f2b3c922a2d925e6f14abdf749d2dae91f2ef0e471800ec2ad20c861512e8142"
+    },
+    "target_tape": {
+      "bytes": 4169474,
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TIME_QUERY_TAPE_20261107_001/TRAIN_CANDIDATE_TAPE.npz",
+      "sha256": "86aff221bf63532b67efe7c5770daa986bdebe916f149dd99961dacde1043b8b"
+    }
+  },
+  "limits": {
+    "class": "audit",
+    "max_invocations": 1,
+    "memory": "4G",
+    "swap": "512M",
+    "wall_seconds": 600
+  },
+  "max_invocations": 1,
+  "model_forwards_authorized": 0,
+  "optimizer_steps_authorized": 0,
+  "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_FIXED_25_CELL_PRIOR_20261115_001",
+  "relaunch_allowed": false,
+  "schema_version": "gx1_fold2_fixed_25_cell_prior_plan_v1",
+  "scope": {
+    "fit_decision_ns_sha256": "380184a9c95a02f2716326765783746b1834371a7266545113fb1eae6722da47",
+    "fit_parent_rows_sha256": "db43609ad6bd10e8d1a13b216243855c499189f8d2f08ef0a67d49de66e29fe9",
+    "fit_rows": 47338,
+    "fold_id": 2,
+    "later_selected_rows": 4096,
+    "model_forwards": 0,
+    "optimizer_steps": 0,
+    "query_cells": 25,
+    "query_sha256": "1d6b5d891e08b91ead2ca0b49e0aef22e3c8c1d2ab08d81fa9fd2ffe3bf3c56d",
+    "test_data_used": false
+  },
+  "source_base_head": "7d7977646b1981a855d7d59981364f10ba07c47d",
+  "source_owners": {
+    "gx1/audit/build_market_state_time_query_tape_v1.py": "169e8085f2ee78f41e96a9c3cb6e9fe224cc0bb430769bb72cbd4bb6e28a1dbc",
+    "gx1/audit/fit_market_state_fold2_fixed_25_cell_prior_v1.py": "43e9b6c875710e1b30f98f2a38581b6bfebc82ed76fff806d452336a7d4af818",
+    "gx1/audit/measure_market_state_fold2_exact_prior_later_v1.py": "5a2872a16f40f8d3e35a3b527be75390a12500d13879e1bd272ba621a9c0e314",
+    "gx1/contracts/gx1_capped_execution_v1.py": "60b1ccf2eda470a84ddded0d8160c628314ebb19f5766b87b70fef7c9aa3ccff",
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "gx1/contracts/market_state_five_endpoint_contract_v1.py": "5007214d0f8df9dc9834dcf8c88d22ea75567772e8ffc184ad5cecb77fc19b34",
+    "gx1/contracts/market_state_five_endpoint_prior_v1.py": "102922a72478f7b4281cccdc57f935abaf67f9a721f89448a9945b19edec6104",
+    "gx1/contracts/market_state_five_endpoint_target_binding_v1.py": "71dc01154aada84d01e930cb78970a79608c5bff5ebd710d9f48273934e14bfd",
+    "gx1/contracts/market_state_fold2_multiminute_path_v1.py": "4217b27ea57302bc0ed3a948f0351554b1c3d91de7e781e0aaeb8baac63fac1b",
+    "gx1/contracts/market_state_fold2_multiminute_prior_v1.py": "46cb9f820d5cfdaeaf208e9860976113de7a7070a4fc482d639ff7a5654140aa",
+    "gx1/contracts/market_state_fold2_multiminute_side_loss_v1.py": "20ebe302e7f6dad0247517031e33a4554e29798e3b952a3904d8906679f67d93",
+    "gx1/contracts/market_state_minute_query_candidate_v1.py": "2295cfeaf44bf1fa6e3398b5379b31b9fb42ca48427643158e5018e3cc7bd051",
+    "gx1/contracts/market_state_time_query_native_F_objective_v1.py": "4b244ac61c0b3360e12a4b12db8e8d066e9017b6913da165c31fd8afae6a8658",
+    "gx1/contracts/market_state_time_query_scorer_v2.py": "a3bd1e8e4482030cee0e267ad88da7552f4e1fe65e4e79182b19339e31acad12",
+    "gx1/contracts/market_state_time_query_target_v1.py": "c4eacacdfb782e7dfb01cac51cb4521e95ca55d3dfeb1c215a958abbdde65ca9",
+    "scripts/gx1_capped_run.sh": "3c9d608574be3755e0e3d63d2617a01612d65dbaf61b26b76765262a5a2abc4c"
+  },
+  "stage": "market_state_fold2_fixed_25_cell_prior_20261115_001",
+  "status": "ADMITTED_BASELINE_ONLY",
+  "test_authorized": false,
+  "training_authorized": false
+}

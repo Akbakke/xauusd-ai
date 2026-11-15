@@ -5,26 +5,20 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_S_25_CELL_PRIOR_SOURCE_READY_FIT_CLOSED_EDGE_UNQUALIFIED.
-Bindende GX1_RULES.md, vedtak06.11, gjør dynamisk S-markedstilstand på
-M5/M15/H1/H4/D1 til aktiv læringsfase før Entry. Forrige B16-kontroll av
-delt native encoder er kun teknisk gjenbruksbevis; Entry-loss/Entry-fit hører
-senere. De korrigerte reviews er
-docs/S_FOLD2_SHARED_S_ENTRY_INITIAL_REVIEW_20261115.json og
-docs/S_FOLD2_EDGE_ROUTE_DECISION_20261115.json.
-Eksakt fempunkts-S-tap er kildekvalifisert og hadde faktisk første B16-
-forward/backward. En minimal 25-cellers TRAIN-konstantprior gjenbruker nå
-eksisterende +1-algebra, separat aktivitet/sertifisert side, med bundet
-Fold2-akse og eksakt support; to fokuserte syntetiske tester består. Ingen
-fysisk priorfit er utført. Se
+Gjeldende policy: FOLD2_S_25_CELL_PRIOR_BASELINE_ONLY_ADMITTED_EDGE_UNQUALIFIED.
+Aktiv fase er S-only læring på M5/M15/H1/H4/D1 før Entry. Korrigert
+faseorden og kildeklar 25-cellers konstantprior er dokumentert i
+docs/S_FOLD2_EDGE_ROUTE_DECISION_20261115.json og
 docs/S_FOLD2_FIXED_25_CELL_PRIOR_SOURCE_REVIEW_20261115.json.
-Neste gate er egen innrømmet fysisk priorfit på tidligere modne TRAIN-rader,
-frosset kronologisk senere proper-score mot S-modellen og S-spesifikk
-optimizer/resume med inaktive Entry-/Exit-hoder før modelloppdatering.
-Fold2 er utvikling; full OOF over eksisterende26månedersgrunnlag krever
-støttede folds1–4 med egne prefix-gyldige normaliseringer. Økonomisk Edge
-er ikke målt. training_enabled=false; TEST, broker og handel stengt.
-Brukte engangsplaner relanseres aldri.
+Én separat 4G/512M-avgrenset baseline-estimering på eksakt tidligere moden
+Fold2 FIT-akse er innrømmet. Den bruker fem faste spørsmål per tidsramme,
+beholder ukjent aktivitet/side som ukjent, forsegler TRAIN-prioren og scorer
+den på den allerede valgte senere4096 utviklingskohorten per UTC-uke.
+Plan: configs/research/MARKET_STATE_FOLD2_FIXED_25_CELL_PRIOR_20261115_001.json.
+Ingen modellforward, optimizer eller modellfit er innrømmet; global
+training_enabled=false. Resultatet er utviklingsreferanse, ikke S-modellverdi
+eller økonomisk Edge. TEST, Entry/Exit, broker og handel stengt.
+Planen relanseres aldri etter claim.
 
 Forrige policy: FOLD2_PAIRED_MINUTE_PATH_CHANGE_CONFIRMED_MULTIMINUTE_OBJECTIVE_OPEN_EDGE_UNQUALIFIED.
 Korrigert capped parvis engangskontroll002 er fullført og brukt opp. På
