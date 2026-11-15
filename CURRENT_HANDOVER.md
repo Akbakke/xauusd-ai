@@ -5,7 +5,24 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_S_25_CELL_PRIVATE_CLOCK_CORRECTED_SOURCE_READY_NO_RUN_ADMISSION_EDGE_UNQUALIFIED.
+Gjeldende policy: FOLD2_S_25_CELL_PRIVATE_002_PREFLIGHT_PASS_NO_RUN_ADMISSION_EDGE_UNQUALIFIED.
+Kandidat002 er publisert uinnrømmet: /home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_25_CELL_S_PRIVATE_TWO_BATCH_20261115_002/RECIPE.json
+SHA256 d657a76b916629b7d9917b618bce08fcca694761725c15501bb86ec0658c9e91.
+Kappet, lesende kontroll bestod bundet kilde, to faktiske B16, full-GC-visning,
+separat feature-/S-fasitklokke og modne/ukjente masker. En fersk CPU-modell
+bestod faktisk feature-/normaliserings-/modellkontrakt mot privat modell-/
+AdamW-/RNG-checkpoint ved 0 forward og 0 optimizersteg. Syntetisk COMPLETE/
+FAILED-publisering og 127 fokuserte tester består. Se
+docs/S_FOLD2_S_ONLY_PRIVATE_002_PREFLIGHT_REVIEW_20261115.json.
+Den bevoktede 250W-ruten gjenkjenner oppskriften og avviser manglende
+policyadmisjon. Roten har bare RECIPE; ingen kampanjeplan, CLAIM, fysisk
+oppdatering, full FIT, senere modellscore eller Edge. Neste port er egen
+nøyaktig fire-stegs to-B16 innrømmelse, trygg fersk fysisk boot, plan og
+lesende oppstart av eksakt planlagt trainerkommando før CLAIM. Private vekter
+kan ikke brukes i full FIT. training_enabled=false; TEST, Entry/Exit, broker
+og handel er stengt.
+
+Tidligere policy: FOLD2_S_25_CELL_PRIVATE_CLOCK_CORRECTED_SOURCE_READY_NO_RUN_ADMISSION_EDGE_UNQUALIFIED.
 Lesende, 12G-begrenset kontroll av kandidat001 fant før modellarbeid at faktisk
 Fold2-featuregrense er 1735603200000000000 ns, mens S-fasitens øvre
 gyldighet er 1735689600000000000 ns. Ruten brukte feilaktig første grense

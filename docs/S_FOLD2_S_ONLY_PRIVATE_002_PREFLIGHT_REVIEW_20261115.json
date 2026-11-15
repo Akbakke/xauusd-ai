@@ -1,0 +1,115 @@
+{
+  "candidate": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_25_CELL_S_PRIVATE_TWO_BATCH_20261115_002/RECIPE.json",
+    "root_contains_only_recipe": true,
+    "sha256": "d657a76b916629b7d9917b618bce08fcca694761725c15501bb86ec0658c9e91",
+    "source_commit": "48d423e4549cd147300ec5c2611174e486c989a2"
+  },
+  "limits": {
+    "bit_exact_cuda_resume_unproven": true,
+    "broker_or_trade_authorized": false,
+    "economic_edge_unproven": true,
+    "exact_bound_trainer_startup_smoke_pending_plan": true,
+    "full_fit_unadmitted": true,
+    "generalization_unproven": true,
+    "later_model_score_unmeasured": true,
+    "no_campaign_plan": true,
+    "no_claim_or_output": true,
+    "physical_private_optimizer_updates": 0,
+    "test_data_used": false
+  },
+  "next_gate": "Prepare one exact four-update, two-B16 S-only private policy admission. A fresh physical boot, bound campaign plan and exact planned-command read-only smoke must pass before CLAIM. Private weights cannot seed full FIT.",
+  "observed_utc": "2026-11-15T14:32:19.589115+00:00",
+  "read_only_actual_checkpoint_identity": {
+    "active_parameter_tensors": 639,
+    "capped_class": "producer",
+    "checkpoint_files_written": 0,
+    "cuda_initialized": false,
+    "decision": "PASS_READ_ONLY_ACTUAL_FULL_GC_MODEL_CHECKPOINT_IDENTITY",
+    "inactive_parameter_tensors": 179,
+    "initial_model_state_sha256": "069c0a5bb8d38c83ddd0e11e6fa04fe158d27ec4ab20bca4ebffa1093b95413c",
+    "initial_optimizer_state_sha256": "6394857220220f76e6b98bc947fe8727a7ac3ab77ad2a439468930cc45e749a1",
+    "memory": "12G",
+    "model_constructions": 1,
+    "model_contract_sha256": "23c2ba59baf86a48811a6ef9f319daeae69293fc2bb28b90d4017330740c986e",
+    "model_forwards": 0,
+    "numerical_contract_sha256": "931d440a56628f26c847e0bbdf2800a7d8c2321a672292c6a2835ca66c0f1d14",
+    "optimizer_steps": 0,
+    "swap": "512M",
+    "test_data_used": false
+  },
+  "read_only_bound_source": {
+    "batch_issue_sha256": [
+      "97669a99c7b529d45a873fb34d623b5aba7d4c15aa3bd9522f67cae1a0dbab38",
+      "8ad51680a7328d812f652a1171157f297cd7067f03ba16aa3da57951f61a7901"
+    ],
+    "batch_parent_rows": [
+      [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17
+      ],
+      [
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33
+      ]
+    ],
+    "capped_class": "producer",
+    "decision": "PASS_READ_ONLY_BOUND_SOURCE_VIEW_S_CLOCK_PREFLIGHT",
+    "feature_fit_cutoff_ns": 1735603200000000000,
+    "informative_by_batch": [
+      274,
+      315
+    ],
+    "known_side_by_batch": [
+      79,
+      38
+    ],
+    "memory": "12G",
+    "model_constructions": 0,
+    "model_forwards": 0,
+    "optimizer_steps": 0,
+    "s_target_fold_upper_ns": 1735689600000000000,
+    "swap": "512M",
+    "test_data_used": false,
+    "view_sha256": "9ea6a4595c6a5792acd190ad12dc861d9bb99ec921c5bd3650b38b15154981bc"
+  },
+  "routing_and_tests": {
+    "canonical_recipe_verified": true,
+    "capped_trainer_help_without_campaign_plan_refused": "campaign plan path/file SHA-256 binding invalid",
+    "direct_module_help_import_passed": true,
+    "focused_tests_passed": 127,
+    "missing_private_policy_gate_rejected": true,
+    "new_scope_synthetic_complete_and_failed_publication_passed": true,
+    "physical_power_limit_w": 250
+  },
+  "schema_version": "gx1_fold2_s_only_private_002_read_only_preflight_review_v1",
+  "status": "CANDIDATE_002_READ_ONLY_SOURCE_VIEW_TARGET_AND_CPU_STATE_PASS_NO_ADMISSION"
+}

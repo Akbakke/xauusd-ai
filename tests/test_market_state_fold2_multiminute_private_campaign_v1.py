@@ -109,3 +109,53 @@ def test_feature_fit_cutoff_does_not_censor_s_target_day():
         fold_upper_ns=scope.FEATURE_FIT_CUTOFF_NS)
     assert actual['mature'][0, -1, -1] and actual['eligible'][0, -1, -1]
     assert not wrong['mature'][0, -1, -1]
+
+
+@pytest.mark.parametrize('complete', [False, True])
+def test_new_scope_publishes_complete_or_failed_terminal(tmp_path, monkeypatch, complete):
+    from gx1.contracts import entry_native_direction_research_campaign_v1 as authority
+    from gx1.scripts import run_market_state_time_query_private_window_v1 as runner
+
+    output = tmp_path / 'private-research'
+    output.mkdir()
+    recipe = {'path': str(scope.RECIPE_PATH), 'sha256': 'a' * 64}
+    window = {'recipe': recipe,
+              'campaign_cursor_path': str(tmp_path / 'cursor' / 'pointer.json')}
+    progress_path = tmp_path / 'progress' / 'invocation.json'
+    counters = {'json_bytes': 0, 'optimizer_updates': 4 if complete else 0}
+    final_state = None
+    if complete:
+        path = tmp_path / 'FULL_STATE.pt'
+        path.write_bytes(b'synthetic checkpoint, never used for fit')
+        final_state = _ref(path)
+
+    def progress(**kwargs):
+        return {'outcome': kwargs['outcome'],
+                'checkpoint_pointer': kwargs['checkpoint_pointer']}
+
+    def require_progress(value, **kwargs):
+        cursor_ref = value['checkpoint_pointer']
+        cursor = json.loads(Path(cursor_ref['path']).read_text())
+        scope.require_cursor(cursor, expected_recipe=recipe, verify_files=True,
+                             batch_size=16)
+        assert kwargs['verify_file'] is True
+        return value
+
+    monkeypatch.setattr(authority, 'build_research_progress', progress)
+    monkeypatch.setattr(authority, 'require_research_progress', require_progress)
+    payload = {'schema_version': scope.RESULT_SCHEMA,
+               'decision': scope.PASS_DECISION if complete else 'FAILED',
+               'recipe': recipe, 'parent_order_sha256': 'b' * 64,
+               'parent_cursor': 32 if complete else 0,
+               'physical_optimizer_updates': counters['optimizer_updates'],
+               'final_state': final_state, 'bit_exact_resume': complete,
+               'test_data_used': False}
+    result = runner._publish_terminal(
+        output=output, progress_path=progress_path,
+        window=window, plan={'plan_sha256': 'c' * 64},
+        invocation={'kind': 'synthetic-metadata-only'},
+        payload=payload, counters=counters, maximum=100000, scope=scope)
+    assert Path(result['result']['path']).is_file()
+    assert Path(result['checkpoint_pointer']['path']).is_file()
+    assert json.loads(progress_path.read_text())['outcome'] == (
+        'COMPLETE' if complete else 'FAILED')
