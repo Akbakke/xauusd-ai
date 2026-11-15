@@ -5,17 +5,21 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: SELECTED_NATIVE_FOLD2_B16_GATHER_ADMITTED_ZERO_MODEL_ZERO_OPTIMIZER.
-Den separate lesende engangsplanen for faktisk Fold2 full-GC gather av rad2–33
-i to B16-batcher bestod no-CLAIM preflight på ren commit `844a5146`. Policy
-admitterer bare denne datakontrollen: capped producer 12G/512M, null modell-
-konstruksjoner, forwards, backward calls og optimizersteg. Kjør nøyaktig én
-gang og kontroller CLAIM/RESULT/TERMINAL samt kildebookend. Den andre
-Fold2 native kandidatoppskriften (`3e5c6875544583a6410c5031c2a7e44220d6437b98c438130304eaab92605981`)
-for firestegs AdamW/resume er fortsatt separat uadmittert med
-`training_enabled=false`. Ingen full fit, senere modellscore eller Edge er
-kvalifisert; TEST, broker og handel er stengt. Se
-`docs/S_F_FOLD2_SELECTED_NATIVE_CAMPAIGN_ROUTE_SOURCE_REVIEW_20261115.json`.
+Gjeldende policy: SELECTED_NATIVE_FOLD2_B16_GATHER_PASS_OPTIMIZER_ADMISSION_CLOSED.
+Den separate lesende Fold2 full-GC S/F-kontrollen er COMPLETE/CONSUMED,
+exit0 under capped producer 12G/512M. To faktiske B16-batcher på TRAIN-rad2–33
+ble lest med 14 genuine featureflater per batch og kausale M5/M15/H1/H4/D1-
+klokker. View-SHA er `9ea6a4595c6a5792acd190ad12dc861d9bb99ec921c5bd3650b38b15154981bc`.
+Original CLAIM/RESULT/TERMINAL er bevart i
+`/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_SELECTED_NATIVE_B16_GATHER_20261115_001/`.
+Se `docs/S_F_FOLD2_SELECTED_NATIVE_B16_GATHER_RESULT_REVIEW_20261115.json`.
+Null modellkonstruksjoner, forwards, optimizersteg, CUDA, TEST eller handel.
+Dette kvalifiserer fysisk input, ikke modell-læring eller Edge. Den separate
+firestegs AdamW/resume-kandidatoppskriften, SHA256
+`3e5c6875544583a6410c5031c2a7e44220d6437b98c438130304eaab92605981`,
+er uadmittert. Neste gate er eksakt engangs policyadmisjon med fersk fysisk
+boot før bevoktet optimizer/resume. `training_enabled=false` består; ingen
+full fit, senere modellscore, TEST, broker eller handel.
 
 Forrige policy: GC_ABS_BOOK_ACTIVITY_POSITIVE_HYPOTHESIS_UNSUPPORTED_EDGE_UNQUALIFIED.
 Den ene forhåndsbundne, capped GC-bokaktivitetstesten er COMPLETE/CONSUMED,

@@ -1,0 +1,51 @@
+{
+  "candidate_recipe": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_SELECTED_FOLD2_TWO_BATCH_20261115_001/RECIPE.json",
+    "sha256": "3e5c6875544583a6410c5031c2a7e44220d6437b98c438130304eaab92605981"
+  },
+  "claim": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_SELECTED_NATIVE_B16_GATHER_20261115_001/CLAIM.json",
+    "sha256": "ef29e6fd2feb43afe6db6da926c653c2b0ff91e10e4437ac35f89f70c063ad1b"
+  },
+  "limits": "Physical input gather and causal available clocks only; no optimizer/resume, fit, later model score, calibration, Entry or economic Edge.",
+  "measured": {
+    "causal_lanes_per_batch": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ],
+    "cuda_initialized": false,
+    "elapsed_seconds": 17.619742652997957,
+    "feature_batches": 2,
+    "feature_surfaces_per_batch": 14,
+    "fold_id": 2,
+    "model_constructions": 0,
+    "model_forwards": 0,
+    "optimizer_steps": 0,
+    "parent_rows": [
+      2,
+      33
+    ],
+    "rows_per_batch": 16,
+    "test_data_used": false,
+    "view_sha256": "9ea6a4595c6a5792acd190ad12dc861d9bb99ec921c5bd3650b38b15154981bc"
+  },
+  "next_gate": "Separate exact one-use admission of the existing four-step guarded native candidate after fresh physical boot; current global training_enabled=false remains closed.",
+  "plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_FOLD2_SELECTED_NATIVE_B16_GATHER_20261115_001.json",
+    "sha256": "5a68dede09591782ca88711d6121823e6a78cc4c225e13a934408c6c8f7564bb"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_SELECTED_NATIVE_B16_GATHER_20261115_001/RESULT.json",
+    "sha256": "889f18da9e307f3096ce46a1a4a49662298795456083921edb7a520673860cff"
+  },
+  "schema_version": "gx1_fold2_selected_native_b16_gather_result_review_v1",
+  "source_head": "88df94a208a55dc7fd71c3b53a1637eb63f6b757",
+  "status": "COMPLETE_CONSUMED_INPUT_ONLY_EDGE_UNQUALIFIED",
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_SELECTED_NATIVE_B16_GATHER_20261115_001/TERMINAL.json",
+    "sha256": "25f3a0d95935c062b91f7f27b846cfde256527f43f7a7ede4be766ce35305480"
+  }
+}
