@@ -10,8 +10,8 @@ import hashlib
 import json
 
 from gx1.contracts.entry_model_native_train_recipe_v1 import native_direction_research_recipe
-from gx1.contracts.market_state_fold2_multiminute_side_loss_v1 import contract as s_loss_contract
-from gx1.contracts.market_state_time_query_model_v2 import factorized_time_query_model_contract
+MODEL_CONTRACT_SHA256 = '23c2ba59baf86a48811a6ef9f319daeae69293fc2bb28b90d4017330740c986e'
+LOSS_CONTRACT_SHA256 = '7be6548a19845908c131809af1243590c418ddd6b02fd9ba968970d326affad5'
 from gx1.contracts.market_state_time_query_private_campaign_v1 import PARENT_ROWS
 
 SCHEMA = 'gx1_market_state_fold2_25_cell_S_private_numerical_v1'
@@ -26,9 +26,9 @@ def numerical_recipe() -> dict:
     base.pop('contract_sha256')
     base['schema_version'] = SCHEMA
     base['research_objective_sha256'] = (
-        factorized_time_query_model_contract()['contract_sha256'])
+        MODEL_CONTRACT_SHA256)
     base['fold2_25_cell_s_loss_contract_sha256'] = (
-        s_loss_contract()['contract_sha256'])
+        LOSS_CONTRACT_SHA256)
     value = json.dumps(base, sort_keys=True, separators=(',', ':'),
                        ensure_ascii=True, allow_nan=False).encode()
     return {**base, 'contract_sha256': hashlib.sha256(value).hexdigest()}

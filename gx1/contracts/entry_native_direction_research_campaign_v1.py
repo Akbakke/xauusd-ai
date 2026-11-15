@@ -33,6 +33,7 @@ DYNAMIC_STATE_PRIVATE_SCOPE = 'private_dynamic_mtf_state_b16_initial_resume_qual
 TIME_QUERY_PRIVATE_SCOPE = 'market_state_time_query_private_4step_v1'
 NATIVE_F_PRIVATE_SCOPE = 'market_state_native_F_private_4step_v1'
 FOLD2_SELECTED_NATIVE_SCOPE = 'market_state_native_F_selected_fold2_two_batch_v1'
+FOLD2_25_CELL_S_PRIVATE_SCOPE = 'market_state_fold2_25_cell_S_private_two_batch_v1'
 TA_SF_MECHANICAL_SCOPE = 'market_state_ta_sf_mechanical_v1'
 TA_M5_MECHANICAL_SCOPE = 'market_state_ta_dedicated_m5_mechanical_v1'
 TA_M5_IMPORT_SCOPE = 'market_state_ta_m5_equal_weight_import_v1'
@@ -390,6 +391,11 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
         from gx1.contracts.market_state_time_query_private_campaign_v1 import require_time_query_private_recipe
         return require_time_query_private_recipe(value, source_repo=source_repo,
             source_commit=source_commit, verify_files=verify_files)
+    if value.get('run_scope') == FOLD2_25_CELL_S_PRIVATE_SCOPE:
+        from gx1.contracts import market_state_fold2_multiminute_private_campaign_v1 as fold2_s
+        _require(ref['path'] == str(fold2_s.RECIPE_PATH), 'FOLD2_S_RECIPE_PATH')
+        return fold2_s.require_recipe(value, source_repo=source_repo,
+                                      source_commit=source_commit, verify_files=verify_files)
     if value.get('run_scope') == FOLD2_SELECTED_NATIVE_SCOPE:
         from gx1.contracts import market_state_fold2_selected_native_private_v1 as fold2
         _require(ref['path'] == str(fold2.RECIPE_PATH), 'FOLD2_SELECTED_RECIPE_PATH')
@@ -785,6 +791,14 @@ def guarded_research_power_limit(recipe):
             and recipe.get('numerical_recipe', {}).get('batch_size') == 16,
             'M5_IMPORT_POWER_SCOPE')
         return 250
+    if recipe.get('run_scope') == FOLD2_25_CELL_S_PRIVATE_SCOPE:
+        _require(recipe.get('fold_id') == 2
+            and recipe.get('s_only_25_cell') is True
+            and recipe.get('training_enabled') is True
+            and recipe.get('test_data_used') is False
+            and recipe.get('numerical_recipe', {}).get('batch_size') == 16,
+            'FOLD2_S_POWER_SCOPE')
+        return 250
     if recipe.get('run_scope') == FOLD2_SELECTED_NATIVE_SCOPE:
         _require(recipe.get('fold_id') == 2
             and recipe.get('selected_state_endpoints') is True
@@ -906,7 +920,7 @@ def require_research_plan(value: Any, *, verify_files: bool = True) -> dict[str,
         from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
         if policy_recipe['run_scope'] in (DYNAMIC_STATE_PRIVATE_SCOPE, december.PRIVATE_SCOPE,
                                           october.roles.PRIVATE_SCOPE, TIME_QUERY_PRIVATE_SCOPE,
-                                          NATIVE_F_PRIVATE_SCOPE, FOLD2_SELECTED_NATIVE_SCOPE, TA_SF_MECHANICAL_SCOPE, TA_M5_MECHANICAL_SCOPE, TA_M5_IMPORT_SCOPE, TA_M5_EQUAL_LOSS_SCOPE, TA_M5_C171_SHORT_LEARNING_SCOPE, TA_NON_M5_SHORT_LEARNING_SCOPE, TA_TF_ACTIVITY_SHORT_LEARNING_SCOPE, TA_ANCHOR_SPAN_SHORT_LEARNING_SCOPE, TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE, TA_M5_CENTERED_HEAD_COORDINATES_SCOPE, TA_M5_PAIRED_BATCH_ORDER_SCOPE, TA_M5_REPEATED_PASS_SCOPE, TA_M5_FULL_REVERSE_ORDER_SCOPE, TA_M5_OBJECTIVE_BENCHMARK_SCOPE, TA_COVERAGE_BENCHMARK_SCOPE, TA_COMBINED_DECODER_BENCHMARK_SCOPE, TA_FULL_PREFIX_LEARNING_SCOPE, TA_FULL_PREFIX_ORDER_SCOPE, TA_FOLD2_M5_FIT_SCOPE):
+                                          NATIVE_F_PRIVATE_SCOPE, FOLD2_SELECTED_NATIVE_SCOPE, FOLD2_25_CELL_S_PRIVATE_SCOPE, TA_SF_MECHANICAL_SCOPE, TA_M5_MECHANICAL_SCOPE, TA_M5_IMPORT_SCOPE, TA_M5_EQUAL_LOSS_SCOPE, TA_M5_C171_SHORT_LEARNING_SCOPE, TA_NON_M5_SHORT_LEARNING_SCOPE, TA_TF_ACTIVITY_SHORT_LEARNING_SCOPE, TA_ANCHOR_SPAN_SHORT_LEARNING_SCOPE, TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE, TA_M5_CENTERED_HEAD_COORDINATES_SCOPE, TA_M5_PAIRED_BATCH_ORDER_SCOPE, TA_M5_REPEATED_PASS_SCOPE, TA_M5_FULL_REVERSE_ORDER_SCOPE, TA_M5_OBJECTIVE_BENCHMARK_SCOPE, TA_COVERAGE_BENCHMARK_SCOPE, TA_COMBINED_DECODER_BENCHMARK_SCOPE, TA_FULL_PREFIX_LEARNING_SCOPE, TA_FULL_PREFIX_ORDER_SCOPE, TA_FOLD2_M5_FIT_SCOPE):
             _require('family_same_boot' not in result, 'STATE_FRESH_BOOT_REQUIRED')
             expected_policy['physical_power_limit_w'] = 250
     _require(campaign.canonical_sha256(result['policy']) == campaign.canonical_sha256(expected_policy)
@@ -989,6 +1003,9 @@ def require_native_direction_research_readiness(repo: Path, *, window_path: Path
     if recipe['run_scope'] == TIME_QUERY_PRIVATE_SCOPE:
         from gx1.contracts.market_state_time_query_private_campaign_v1 import require_time_query_private_gate
         require_time_query_private_gate(gate, recipe)
+    if recipe['run_scope'] == FOLD2_25_CELL_S_PRIVATE_SCOPE:
+        from gx1.contracts.market_state_fold2_multiminute_private_campaign_v1 import require_gate
+        require_gate(gate, recipe)
     if recipe['run_scope'] == FOLD2_SELECTED_NATIVE_SCOPE:
         from gx1.contracts.market_state_fold2_selected_native_private_v1 import require_gate
         require_gate(gate, recipe)
@@ -1212,6 +1229,14 @@ def build_research_cursor(*, recipe_ref, outcome, optimizer_updates, parent_curs
 
 
 def require_research_cursor(value, *, expected_recipe, verify_files=True, batch_size=2) -> dict[str, Any]:
+    from gx1.contracts import market_state_fold2_multiminute_private_campaign_v1 as fold2_s
+    if (expected_recipe.get('path') == str(fold2_s.RECIPE_PATH)
+            or (isinstance(value, Mapping) and
+                value.get('schema_version') == fold2_s.CURSOR_SCHEMA)):
+        _require(expected_recipe.get('path') == str(fold2_s.RECIPE_PATH),
+                 'FOLD2_S_CURSOR_RECIPE_PATH')
+        return fold2_s.require_cursor(value, expected_recipe=expected_recipe,
+                                      verify_files=verify_files, batch_size=batch_size)
     from gx1.contracts import market_state_fold2_selected_native_private_v1 as fold2_selected
     if (expected_recipe.get('path') == str(fold2_selected.RECIPE_PATH)
             or (isinstance(value, Mapping) and

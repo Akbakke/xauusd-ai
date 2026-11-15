@@ -7,6 +7,8 @@ mechanics and timing; its weights and loss are not predictor qualification.
 from __future__ import annotations
 
 import gc
+import io
+from contextlib import nullcontext
 from pathlib import Path
 import time
 
@@ -107,12 +109,14 @@ def _publish_claim(*, output: Path, window: dict, plan: dict,
 
 def _publish_terminal(*, output: Path, progress_path: Path,
                       window: dict, plan: dict, invocation: dict,
-                      payload: dict, counters: dict, maximum: int) -> dict:
+                      payload: dict, counters: dict, maximum: int, scope=None) -> dict:
     """Publish immutable result, cursor and progress for either terminal path."""
+    scope = globals()["scope"] if scope is None else scope
     from gx1.contracts import entry_native_direction_research_campaign_v1 as authority
     from gx1.scripts import run_entry_native_direction_research_window_v1 as common
-    outcome = ('COMPLETE' if payload['decision']
-               == 'PASS_PRIVATE_MARKET_STATE_TIME_QUERY_RESUME' else 'FAILED')
+    pass_decision = getattr(scope, 'PASS_DECISION',
+                            'PASS_PRIVATE_MARKET_STATE_TIME_QUERY_RESUME')
+    outcome = 'COMPLETE' if payload['decision'] == pass_decision else 'FAILED'
     _need(payload['recipe'] == window['recipe']
           and payload['test_data_used'] is False
           and (outcome != 'COMPLETE' or payload['final_state'] is not None),
@@ -142,18 +146,22 @@ def _publish_terminal(*, output: Path, progress_path: Path,
 
 def run_time_query_private_window(*, policy_path: Path,
                                   policy_file_sha256: str,
-                                  progress_path: Path) -> dict:
+                                  progress_path: Path,
+                                  fold2_s_only: bool = False) -> dict:
     """Execute only inside the existing guarded one-use campaign invocation."""
     from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_trainer_execution
     limits = require_guarded_cuda_trainer_execution()
     from gx1.contracts import entry_native_direction_research_campaign_v1 as authority
+    from gx1.contracts import market_state_fold2_multiminute_private_campaign_v1 as fold2_scope
+    scope = fold2_scope if fold2_s_only else globals()['scope']
     window, plan, invocation, marker, recipe = (
         authority.require_native_direction_research_context(
             policy_path, policy_file_sha256, progress_path))
     _need(recipe['run_scope'] == scope.SCOPE
           and recipe['numerical_recipe'] == scope.time_query_private_numerical_recipe()
           and recipe['parent_rows'] == list(scope.PARENT_ROWS)
-          and recipe['fold_id'] == 1 and recipe['test_data_used'] is False,
+          and recipe['fold_id'] == (2 if fold2_s_only else 1)
+          and recipe['test_data_used'] is False,
           'ADMITTED_SCOPE')
 
     import numpy as np
@@ -212,32 +220,77 @@ def run_time_query_private_window(*, policy_path: Path,
         _publish_claim(output=output, window=window, plan=plan,
                        limits=limits, counters=counters,
                        maximum=recipe['max_published_json_bytes'])
-        receipts = zero._inspect_receipts()
-        zero_plan = zero._read_ref(scope.ZERO_STEP_REFS['plan'])
-        view = zero._bind_view(zero_plan, receipts, 1)
-        _need(view['contract_sha256'] == recipe['expected_view_sha256'],
-              'FOLD1_VIEW')
+        if fold2_s_only:
+            from gx1.audit import build_market_state_time_query_tape_v1 as producer
+            from gx1.contracts import market_state_fold2_selected_native_batches_v1 as source_batches
+            from gx1.contracts.market_state_fold2_multiminute_path_v1 import (
+                fixed_query_grid, gather_fixed_path,
+            )
+            from gx1.contracts.market_state_minute_query_candidate_v1 import (
+                MinuteQueryTargetTape, decode_raw_minute_grid,
+            )
+            from gx1.contracts.market_state_fold2_multiminute_side_loss_v1 import allowed_set_loss
+            view, packet, constructor, raw_batches, batch_reports, provider, provider_plan = (
+                source_batches.load_two_batches(source_owners=recipe['source_owners']))
+            _need(view['contract_sha256'] == recipe['expected_view_sha256']
+                  and view['prefix']['cutoff_ns'] == 1735689600000000000,
+                  'FOLD2_S_VIEW_AND_FIT_CUTOFF')
+            receipts = None
+        else:
+            receipts = zero._inspect_receipts()
+            zero_plan = zero._read_ref(scope.ZERO_STEP_REFS['plan'])
+            view = zero._bind_view(zero_plan, receipts, 1)
+            _need(view['contract_sha256'] == recipe['expected_view_sha256'],
+                  'FOLD1_VIEW')
         timings['validation_seconds'] = time.monotonic() - tic
         tic = time.monotonic()
-        raw_batches, batch_reports, provider, provider_plan = (
-            _load_train_batches(receipts, view, np=np))
+        if not fold2_s_only:
+            raw_batches, batch_reports, provider, provider_plan = (
+                _load_train_batches(receipts, view, np=np))
         timings['batch_gather_seconds'] = time.monotonic() - tic
         tic = time.monotonic()
-        bound = targets.load_bound_time_query_targets()
+        if fold2_s_only:
+            tape_ref = recipe['input_refs']['candidate_tape']
+            with np.load(io.BytesIO(Path(tape_ref['path']).read_bytes()),
+                         allow_pickle=False) as saved:
+                _need(set(saved.files) == producer.TAPE_KEYS, 'FOLD2_S_TAPE_KEYS')
+                tape = MinuteQueryTargetTape(
+                    np.array(saved['validity_ns'], copy=True),
+                    np.array(saved['m1_source_row'], copy=True),
+                    np.array(saved['allowed_set'], copy=True),
+                    np.array(saved['path_observed'], copy=True),
+                    np.array(saved['gap_kind'], copy=True))
+            truth_batches = []
+            for _, _, issue in raw_batches:
+                issue_ns = np.asarray(issue, dtype=np.int64)
+                truth = gather_fixed_path(tape, issue_ns,
+                    fold_upper_ns=view['prefix']['cutoff_ns'])
+                _need(np.array_equal(fixed_query_grid(issue_ns),
+                                     truth['query_minutes']), 'FOLD2_S_QUERY_CLOCK')
+                truth_batches.append(truth)
+            bound = None
+        else:
+            bound = targets.load_bound_time_query_targets()
+            truth_batches = [None] * len(raw_batches)
         timings['target_binding_seconds'] = time.monotonic() - tic
         common._json(output / 'INPUT_QUALIFICATION.json',
-                     {'fold_id': 1, 'selection': 'fixed_chronological_train_rows_2_to_33',
+                     {'fold_id': 2 if fold2_s_only else 1,
+                      'selection': 'fixed_chronological_train_rows_2_to_33',
                       'batch_size': 16, 'parent_order_sha256': order_sha,
                       'batches': batch_reports, 'view_sha256': view['contract_sha256'],
                       'label_blind_selection': True, 'test_data_used': False},
                      counters, recipe['max_published_json_bytes'])
         batches = []
-        for raw, rows, issue in raw_batches:
-            batches.append(({
-                name: torch.from_numpy(value).to(device)
-                for name, value in raw.items()
-            }, rows, issue))
-        del raw_batches
+        for (raw, rows, issue), truth in zip(raw_batches, truth_batches):
+            features = {name: torch.from_numpy(value).to(device)
+                        for name, value in raw.items()}
+            if fold2_s_only:
+                target = {name: torch.from_numpy(truth[name]).to(device)
+                          for name in ('allowed', 'eligible', 'mature', 'query_minutes')}
+                batches.append((features, rows, issue, target))
+            else:
+                batches.append((features, rows, issue))
+        del raw_batches, truth_batches
         torch.cuda.reset_peak_memory_stats(device)
 
         def fresh():
@@ -250,9 +303,10 @@ def run_time_query_private_window(*, policy_path: Path,
             _need(counters['model_constructions'] <= scope.MAX_MODEL_CONSTRUCTIONS,
                   'MODEL_CONSTRUCTION_BUDGET')
             model = views.build_native_direction_research_model(
-                view, prefix_normalization=receipts['fold1']['normal'],
-                constructor_metadata=receipts['constructor'], device=device,
-                unobserved_units_profile=receipts['fold1']['profile'])
+                view, prefix_normalization=packet if fold2_s_only else receipts['fold1']['normal'],
+                constructor_metadata=constructor if fold2_s_only else receipts['constructor'],
+                device=device,
+                unobserved_units_profile=None if fold2_s_only else receipts['fold1']['profile'])
             counters['model_construction_returns'] += 1
             _need(model.feature_view_identity['contract_sha256']
                   == recipe['expected_view_sha256']
@@ -270,7 +324,7 @@ def run_time_query_private_window(*, policy_path: Path,
 
         def evaluate(model, batch, *, baseline: bool):
             clock_guard()
-            features, rows, issue = batch
+            features, rows, issue = batch[:3]
             counters['forwards'] += 1
             _need(counters['forwards'] <= scope.MAX_FORWARDS,
                   'FORWARD_BUDGET')
@@ -279,7 +333,22 @@ def run_time_query_private_window(*, policy_path: Path,
             with trainer._training_mha_fastpath_context(model.backbone), \
                  trainer._training_autocast_context(), \
                  trainer._training_model_finite_check_context():
-                if baseline:
+                if fold2_s_only:
+                    target = batch[3]
+                    with torch.no_grad() if baseline else nullcontext():
+                        hidden = model.encode_features(**features)
+                        raw = decode_raw_minute_grid(model, hidden, target['query_minutes'])
+                        scored = allowed_set_loss(raw, target['allowed'],
+                            target['eligible'], target['mature'], target['query_minutes'])
+                    outcome = {
+                        'loss': scored['loss'],
+                        'count': int(scored['informative_counts'].sum().item()),
+                        'per_tf_counts': scored['informative_counts'].sum(dim=0).tolist(),
+                        'skip_update': scored['skip_update'],
+                        'model_contract_sha256': model.research_objective['contract_sha256'],
+                        'loss_contract_sha256': scored['contract_sha256'],
+                    }
+                elif baseline:
                     with torch.no_grad():
                         outcome = evaluate_fit_batch(
                             model, features, bound, rows, issue, fold_id=1,
@@ -441,7 +510,8 @@ def run_time_query_private_window(*, policy_path: Path,
     passed = bit_exact and source_unchanged and error is None
     payload = {
         'schema_version': scope.RESULT_SCHEMA,
-        'decision': ('PASS_PRIVATE_MARKET_STATE_TIME_QUERY_RESUME'
+        'decision': ((scope.PASS_DECISION if fold2_s_only else
+                      'PASS_PRIVATE_MARKET_STATE_TIME_QUERY_RESUME')
                      if passed else 'FAILED'),
         'recipe': window['recipe'],
         'source_unchanged': source_unchanged,
@@ -470,9 +540,10 @@ def run_time_query_private_window(*, policy_path: Path,
         output=output, progress_path=progress_path,
         window=window, plan=plan, invocation=invocation,
         payload=payload, counters=counters,
-        maximum=recipe['max_published_json_bytes'])
+        maximum=recipe['max_published_json_bytes'], scope=scope)
     _bookend(recipe, plan, policy_path, policy_file_sha256)
     if not passed:
         raise RuntimeError('TIME_QUERY_PRIVATE_WINDOW_FAILED:' + str(error))
-    return {'decision': 'PASS_PRIVATE_MARKET_STATE_TIME_QUERY_RESUME',
+    return {'decision': scope.PASS_DECISION if fold2_s_only else
+            'PASS_PRIVATE_MARKET_STATE_TIME_QUERY_RESUME',
             **published, 'counts': counters}

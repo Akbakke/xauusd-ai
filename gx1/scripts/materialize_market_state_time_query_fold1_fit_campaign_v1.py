@@ -59,6 +59,8 @@ def materialize(binding_path: Path) -> dict:
     from gx1.contracts import market_state_ta_full_prefix_order_v1 as full_order
     from gx1.contracts import market_state_ta_fold2_m5_fit_v1 as fold2_fit
     from gx1.contracts import market_state_fold2_selected_native_private_v1 as selected_fold2
+    from gx1.contracts import market_state_fold2_multiminute_private_campaign_v1 as fold2_s
+    fold2_s_private = binding_path == fold2_s.ROOT / 'PREPARATION_EXECUTION_BINDING.json'
     fold2_selected = binding_path == selected_fold2.ROOT / 'PREPARATION_EXECUTION_BINDING.json'
     ta_fold2_fit = binding_path == fold2_fit.ROOT / 'PREPARATION_EXECUTION_BINDING.json'
     ta_full_order = binding_path == full_order.ROOT / 'PREPARATION_EXECUTION_BINDING.json'
@@ -95,7 +97,7 @@ def materialize(binding_path: Path) -> dict:
     import_stage = mechanical.TA_M5_FINAL_IMPORT_STAGE if ta_final_import else mechanical.TA_M5_IMPORT_STAGE
     import_root, import_runtime, import_recipe_path = mechanical.ta_m5_import_paths(import_stage)
     ta_m5 = binding_path == mechanical.TA_M5_ROOT / 'PREPARATION_EXECUTION_BINDING.json'
-    ta_mechanical = fold2_selected or ta_fold2_fit or ta_short or ta_full_reverse or ta_repeated or ta_paired or ta_centered or ta_original_prefix or ta_m5_equal_loss or ta_import or ta_m5 or binding_path == mechanical.TA_ROOT / 'PREPARATION_EXECUTION_BINDING.json'
+    ta_mechanical = fold2_s_private or fold2_selected or ta_fold2_fit or ta_short or ta_full_reverse or ta_repeated or ta_paired or ta_centered or ta_original_prefix or ta_m5_equal_loss or ta_import or ta_m5 or binding_path == mechanical.TA_ROOT / 'PREPARATION_EXECUTION_BINDING.json'
     ta_sf = binding_path == fold1.TA_SF_RUNTIME_ROOT.parent / 'PREPARATION_EXECUTION_BINDING.json'
     ta_recovery = binding_path == fold1.TA_RECOVERY_RUNTIME_ROOT.parent / 'PREPARATION_EXECUTION_BINDING.json'
     ta_score_recovery = binding_path == fold1.TA_M5_SCORE_RECOVERY_ROOT / 'PREPARATION_EXECUTION_BINDING.json'
@@ -129,7 +131,8 @@ def materialize(binding_path: Path) -> dict:
                      else fold1.TA_M5_EQUAL_LOSS_FIT_MAX_WINDOWS if ta_m5_equal_loss_fit else fold1.MAX_WINDOWS)
     cursor_directory, output_directory = 'prefix-cursor', 'prefix-fit'
     if ta_mechanical:
-        runtime, root = ((selected_fold2.RUNTIME_ROOT, selected_fold2.ROOT) if fold2_selected
+        runtime, root = ((fold2_s.RUNTIME_ROOT, fold2_s.ROOT) if fold2_s_private
+            else (selected_fold2.RUNTIME_ROOT, selected_fold2.ROOT) if fold2_selected
             else (fold2_fit.RUNTIME_ROOT, fold2_fit.ROOT) if ta_fold2_fit
             else (short.RUNTIME_ROOT, short.ROOT) if ta_short
             else (mechanical.TA_M5_FULL_REVERSE_ORDER_RUNTIME_ROOT, mechanical.TA_M5_FULL_REVERSE_ORDER_ROOT) if ta_full_reverse
@@ -142,6 +145,7 @@ def materialize(binding_path: Path) -> dict:
             else (mechanical.TA_M5_RUNTIME_ROOT, mechanical.TA_M5_ROOT) if ta_m5
             else (mechanical.TA_RUNTIME_ROOT, mechanical.TA_ROOT))
         recipe_path, stage, run_scope = (
+            (fold2_s.RECIPE_PATH, fold2_s.STAGE, fold2_s.SCOPE) if fold2_s_private else
             (selected_fold2.RECIPE_PATH, selected_fold2.STAGE, selected_fold2.SCOPE) if fold2_selected else
             (fold2_fit.RECIPE_PATH, fold2_fit.STAGE, fold2_fit.SCOPE) if ta_fold2_fit else
             (short.RECIPE_PATH,short.STAGE,short.SCOPE) if ta_short else
@@ -207,7 +211,7 @@ def materialize(binding_path: Path) -> dict:
           and recipe['runtime_root'] == str(runtime)
           and (ta_mechanical or recipe['max_windows'] == windows_count), 'RECIPE')
     if ta_mechanical:
-        (selected_fold2.require_gate if fold2_selected else fold2_fit.require_gate if ta_fold2_fit else short.require_gate if ta_short else mechanical.require_ta_m5_full_reverse_order_gate if ta_full_reverse
+        (fold2_s.require_gate if fold2_s_private else selected_fold2.require_gate if fold2_selected else fold2_fit.require_gate if ta_fold2_fit else short.require_gate if ta_short else mechanical.require_ta_m5_full_reverse_order_gate if ta_full_reverse
          else mechanical.require_ta_m5_repeated_pass_gate if ta_repeated
          else mechanical.require_ta_m5_paired_batch_order_gate if ta_paired
          else mechanical.require_ta_m5_centered_head_coordinates_gate if ta_centered

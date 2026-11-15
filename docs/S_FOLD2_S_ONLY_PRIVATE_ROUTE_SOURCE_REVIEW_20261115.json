@@ -1,0 +1,52 @@
+{
+  "checks": {
+    "cursor_success_failure_synthetic_passed": true,
+    "focused_pytest_count": 124,
+    "focused_pytest_passed": true,
+    "missing_private_gate_rejected": true,
+    "numerical_model_loss_contract_parity_passed": true,
+    "old_private_route_tests_passed": true,
+    "source_recipe_full_ref_binding_passed": true
+  },
+  "limits": {
+    "broker_or_trade_authorized": false,
+    "candidate_recipe_published": false,
+    "economic_edge_proven": false,
+    "full_fit_qualified": false,
+    "generalization_proven": false,
+    "later_model_score_measured": false,
+    "physical_s_optimizer_resume_qualified": false,
+    "test_data_used": false
+  },
+  "next_gate": "Commit clean source; publish one candidate recipe without admission. Any physical two-B16 run needs a separate exact one-use policy admission, fresh physical boot and canonical guards. Private weights never seed full fit.",
+  "observed_utc": "2026-11-15T14:09:38.508580+00:00",
+  "reuse": {
+    "canonical_guarded_campaign": "gx1/contracts/entry_native_direction_research_campaign_v1.py",
+    "full_gc_fold2_two_batch_loader": "gx1/contracts/market_state_fold2_selected_native_batches_v1.py",
+    "private_model_adamw_rng_state": "gx1/contracts/market_state_time_query_private_state_v1.py",
+    "worker": "gx1/scripts/run_market_state_time_query_private_window_v1.py"
+  },
+  "schema_version": "gx1_fold2_s_only_25_cell_private_route_source_review_v1",
+  "scope": {
+    "backwards": 4,
+    "batch_size": 16,
+    "fit_batches": 2,
+    "fold_id": 2,
+    "forwards": 6,
+    "fresh_model_constructions": 3,
+    "objective": "S_only_fixed_25_query_TF_cells",
+    "parent_rows": "fixed_2_through_33",
+    "partition": "fit",
+    "physical_optimizer_updates_if_admitted": 4,
+    "private_weights_for_main_fit": false,
+    "test_data_used": false,
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ]
+  },
+  "status": "SOURCE_AND_SYNTHETIC_ROUTE_PASS_NO_PHYSICAL_UPDATE_NO_FIT_ADMISSION"
+}

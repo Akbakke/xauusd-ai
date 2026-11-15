@@ -5,7 +5,21 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_S_25_CELL_PRIVATE_STATE_SOURCE_READY_NO_FIT_ADMISSION_EDGE_UNQUALIFIED.
+Gjeldende policy: FOLD2_S_25_CELL_PRIVATE_ROUTE_SOURCE_READY_NO_FIT_ADMISSION_EDGE_UNQUALIFIED.
+Den separate Fold2 S-only private ruten er nå koblet til eksisterende bevoktet
+kampanje, faktisk full-GC B16-kilde, fast 25-cellers S-tap og komplett
+modell-/AdamW-/RNG-gjenopptak. Den gamle private ruten består uendret i
+fokuserte tester; totalt 124 fokuserte tester består. Kildeoppskrift med
+fysiske inputreferanser verifiseres, mens manglende egen policyport avvises.
+Se docs/S_FOLD2_S_ONLY_PRIVATE_ROUTE_SOURCE_REVIEW_20261115.json.
+Ingen kandidatoppskrift er publisert ennå, ingen fysisk modelloppdatering,
+full FIT, senere modellscore eller økonomisk Edge. Neste steg er ren commit og
+publisering av én uinnrømmet oppskrift. Fysisk to-B16-kontroll krever egen
+eksakt engangsinnrømmelse, fersk fysisk boot og bevoktet maskinvarekjøring.
+Private vekter kan ikke brukes i hovedfit. training_enabled=false; TEST,
+Entry/Exit, broker og handel er stengt.
+
+Tidligere policy: FOLD2_S_25_CELL_PRIVATE_STATE_SOURCE_READY_NO_FIT_ADMISSION_EDGE_UNQUALIFIED.
 Aktiv fase er S-only på M5/M15/H1/H4/D1 før Entry. Den fryste +1-prioren
 på 25 celler er fullført på 47 338 tidligere FIT-rader og 4 096 senere
 utviklingsrader over 14 UTC-uker; engangsplanen er konsumert. Se
