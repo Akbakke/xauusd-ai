@@ -5,7 +5,18 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_H1_SIGN_RANK_FAIL_DIRECTION_EDGE_UNQUALIFIED.
+Gjeldende policy: FOLD2_ENDPOINT_ALIAS_READ_ONLY_ADMITTED.
+Én forhåndsbundet, lesende Fold2-kontroll skal måle sertifiserte M1-tilstander
+mellom lik nåtilstand og valgt framtidig S-endepunkt på M5/M15/H1/H4/D1.
+Primær måling er M5-andelen med en annen sertifisert mellomtilstand;
+samme par uten ukjent kildehull er fast kontroll. Den gjenbruker eksisterende
+TRAIN-kilde, 0,5/1,0 ATR og full endepunktmaskes eksakte oppskrift, med
+bit-for-bit paritetskrav. Plan:
+configs/research/MARKET_STATE_FOLD2_ENDPOINT_ALIAS_20261115_001.json.
+Én capped audit, ingen publisert ny fasit, modellforward/optimizer, TEST
+eller handel. Native fit forblir uadmittert; training_enabled=false.
+
+Forrige policy: FOLD2_H1_SIGN_RANK_FAIL_DIRECTION_EDGE_UNQUALIFIED.
 Én forhåndsbundet capped lesende H1-nåtilstand→framtidig S/M5-side-test er
 fullført og brukt opp. Primær positiv H1-sign AUC var 0,488751 på fit
 (16 101 kjent-side-rader) og 0,464319 på fast senere utvikling
