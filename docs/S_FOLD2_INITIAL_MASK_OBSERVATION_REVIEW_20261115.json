@@ -1,0 +1,98 @@
+{
+  "claim": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_INITIAL_MASK_OBSERVATION_20261115_001/CLAIM.json",
+    "sha256": "e37fada248347e8fb16874b694c5feee2ec535d573cede542569ec3dd03db945"
+  },
+  "interpretation": "All zero-gradient value channels with physical observation pairs on the first pinned full-GC Fold2 B16 had zero physical observation flags. No observed value in those pairs had zero gradient. This resolves the measured null-gradient value-route question for this batch; it does not prove value from all indicators, all rows, learned prediction or economic Edge. The unpaired signal categorical channel uses a separate nominal route and was not individually gradient-audited here.",
+  "limits": {
+    "economic_edge_proven": false,
+    "no_all_row_indicator_coverage_claim": true,
+    "no_learning_or_generalization_measured": true,
+    "single_first_fit_B16_only": true,
+    "test_data_used": false
+  },
+  "measured": {
+    "backward_calls": 0,
+    "by_tensor": {
+      "ctx_cont": {
+        "nonzero_gradient_unobserved_values": 0,
+        "observed_zero_gradient_values": 0,
+        "unobserved_zero_gradient_values": 1117,
+        "unpaired_zero_fields": [],
+        "zero_gradient_values": 1117
+      },
+      "gc_seq_d1": {
+        "nonzero_gradient_unobserved_values": 0,
+        "observed_zero_gradient_values": 0,
+        "unobserved_zero_gradient_values": 200,
+        "unpaired_zero_fields": [],
+        "zero_gradient_values": 200
+      },
+      "gc_seq_h1": {
+        "nonzero_gradient_unobserved_values": 0,
+        "observed_zero_gradient_values": 0,
+        "unobserved_zero_gradient_values": 201,
+        "unpaired_zero_fields": [],
+        "zero_gradient_values": 201
+      },
+      "gc_seq_h4": {
+        "nonzero_gradient_unobserved_values": 0,
+        "observed_zero_gradient_values": 0,
+        "unobserved_zero_gradient_values": 216,
+        "unpaired_zero_fields": [],
+        "zero_gradient_values": 216
+      },
+      "gc_seq_m15": {
+        "nonzero_gradient_unobserved_values": 0,
+        "observed_zero_gradient_values": 0,
+        "unobserved_zero_gradient_values": 221,
+        "unpaired_zero_fields": [],
+        "zero_gradient_values": 221
+      },
+      "gc_seq_m5": {
+        "nonzero_gradient_unobserved_values": 0,
+        "observed_zero_gradient_values": 0,
+        "unobserved_zero_gradient_values": 284,
+        "unpaired_zero_fields": [],
+        "zero_gradient_values": 284
+      },
+      "seq_x": {
+        "nonzero_gradient_unobserved_values": 0,
+        "observed_zero_gradient_values": 0,
+        "unobserved_zero_gradient_values": 1117,
+        "unpaired_zero_fields": [
+          {
+            "index": 13,
+            "name": "smc_swing_state"
+          }
+        ],
+        "zero_gradient_values": 1117
+      }
+    },
+    "forward_calls": 0,
+    "model_constructions": 0,
+    "nonzero_gradient_unobserved_value_channels": 0,
+    "observed_zero_gradient_value_channels": 0,
+    "optimizer_steps": 0,
+    "physically_unobserved_zero_gradient_value_channels": 3356,
+    "same_first_fold2_B16": true,
+    "test_data_used": false,
+    "zero_gradient_value_channels_total": 3356
+  },
+  "next_gate": "Choose and precommit one economically relevant path/state hypothesis and chronological fit/VAL baseline comparison under a separate exact admission. Reuse pinned source; do not open TEST, broker or trade.",
+  "plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_FOLD2_INITIAL_MASK_OBSERVATION_20261115_001.json",
+    "sha256": "35657040b69e0af495a549186687c1df52fefa52f8854b89b8f9ce2f24364ed7"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_INITIAL_MASK_OBSERVATION_20261115_001/RESULT.json",
+    "sha256": "cefad178e7f9a4013312e9117e92be0adf0ca690417bd445fb07f13776816c92"
+  },
+  "schema_version": "gx1_fold2_initial_mask_observation_review_v1",
+  "source_head": "e1b9d778572e97354e607e69641718ab1e1229ed",
+  "status": "COMPLETE_CONSUMED_FIRST_B16_ZERO_VALUES_UNOBSERVED_EDGE_UNQUALIFIED",
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_INITIAL_MASK_OBSERVATION_20261115_001/TERMINAL.json",
+    "sha256": "54e3f5761e7f683e76a96e6012c0f12f797e1a84c20801de960ca7c71f617ee4"
+  }
+}

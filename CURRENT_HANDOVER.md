@@ -5,20 +5,22 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_INITIAL_MASK_OBSERVATION_READ_ONLY_ADMITTED.
-Første full-GC Fold2 B16 initialforward/backward er fullført og brukt opp;
-alle fem signal- og GC-tidsrammer hadde ikke-null inputgradient.
-Se docs/S_FOLD2_MULTIMINUTE_INITIAL_REVIEW_20261115.json.
-Nullgradientkanalene ble klassifisert mot kildefeltnavn: 1117 i signal,
-1117 i ctx_cont og 200–284 per GC-tidsramme er verdier med observasjonsflagg;
-signalets ene øvrige null er kategorisk embedding. Selve fysiske flaggene
-i denne B16 er ennå ikke kontrollert. Én skrivebeskyttet, 12G/512M-avgrenset
-kildekontroll på samme låste rader er innrømmet gjennom
-configs/research/MARKET_STATE_FOLD2_INITIAL_MASK_OBSERVATION_20261115_001.json.
-Den sammenligner nullgradientverdier med faktiske observasjonsflagg og
-undersøker bare konkrete observerte nullfelt. Ingen modell, optimizer,
-checkpoint, TEST, broker eller handel; training_enabled=false og Edge ukvalifisert.
-Planen relanseres aldri etter claim.
+Gjeldende policy: FOLD2_INITIAL_MASK_OBSERVATION_COMPLETE_CONSUMED_FIRST_B16_ROUTE_PASS_EDGE_UNQUALIFIED.
+Første full-GC Fold2 B16 initialforward/backward er fullført og brukt opp:
+alle fem signal- og GC-tidsrammer hadde ikke-null inputgradient. En separat
+skrivebeskyttet kildekontroll på nøyaktig samme B16 er også fullført og brukt
+opp. Alle 3356 nullgradientverdier med fysiske observasjonspar var uobserverte;
+ingen observert parverdi hadde null gradient. Ingen frakoblet observert
+verdikanal er påvist i denne batchen. Kategorisk signalverdi går via egen
+embeddingrute og er ikke individuelt gradientbevist her. Review:
+docs/S_FOLD2_INITIAL_MASK_OBSERVATION_REVIEW_20261115.json og
+docs/S_FOLD2_MULTIMINUTE_INITIAL_REVIEW_20261115.json.
+Dette er mekanikk og dekning på én B16, ikke dokumentert læring, effekt av alle
+indikatorer, generalisering eller økonomisk Edge. Ingen modellkode skal
+endres på denne bakgrunn. Neste gate er én forhåndsbundet økonomisk relevant
+S-bane/markedsstat-hypotese med kronologisk fit/VAL mot forhåndsvalgt referanse;
+det krever egen nøyaktig innrømmelse. training_enabled=false; TEST, broker
+og handel stengt. Ingen av de brukte engangsplanene relanseres.
 
 Forrige policy: FOLD2_PAIRED_MINUTE_PATH_CHANGE_CONFIRMED_MULTIMINUTE_OBJECTIVE_OPEN_EDGE_UNQUALIFIED.
 Korrigert capped parvis engangskontroll002 er fullført og brukt opp. På
