@@ -1,0 +1,224 @@
+{
+  "by_fixed_horizon": {
+    "fit": {
+      "1": {
+        "joint_issue_ns_sha256": "bb5c1617b7f4bcb7238d80ea7def565cb9210740b9002cb6e272f1efc215c73e",
+        "joint_parent_rows_sha256": "c2ac3365dffc692e333816b0463af3a3137976fd18554feeff1447417d013ce8",
+        "joint_rows": 16101,
+        "mfe_mean_bps": 0.504717611084535,
+        "net_minus_pre_mfe_mae_upper_mean_bps": -8.425847669749604,
+        "positive_net_weeks": 0,
+        "pre_mfe_mae_upper_mean_bps": 3.347127055118803,
+        "terminal_net_mean_bps": -5.078720614630801,
+        "terminal_net_positive_fraction": 0.03869324886653003,
+        "terminal_only_excluded_rows": 0,
+        "weeks": 36
+      },
+      "15": {
+        "joint_issue_ns_sha256": "5adc6947ff1b11f2ada5f6502c86a3e9dbe33218031b9bdc4f3b18f4c4ca1e04",
+        "joint_parent_rows_sha256": "b3efa76bdfd902cffd1857e09260124e3094b172f2574977238bcf05979505c3",
+        "joint_rows": 15996,
+        "mfe_mean_bps": 9.562082546105277,
+        "net_minus_pre_mfe_mae_upper_mean_bps": -4.680238059422487,
+        "positive_net_weeks": 8,
+        "pre_mfe_mae_upper_mean_bps": 4.022638470847684,
+        "terminal_net_mean_bps": -0.6575995885748025,
+        "terminal_net_positive_fraction": 0.41847961990497623,
+        "terminal_only_excluded_rows": 6,
+        "weeks": 36
+      },
+      "240": {
+        "joint_issue_ns_sha256": "d9b28f34470849c28a57c1657007d60cd5e945c391233141f45b7c25f61d55eb",
+        "joint_parent_rows_sha256": "9966b8fc5796bf9425f104df673fa9c9138fa34d9ced78cd3031ff4b5ad6a0b7",
+        "joint_rows": 14399,
+        "mfe_mean_bps": 32.50305552493379,
+        "net_minus_pre_mfe_mae_upper_mean_bps": -10.9916899734808,
+        "positive_net_weeks": 6,
+        "pre_mfe_mae_upper_mean_bps": 9.916443200129384,
+        "terminal_net_mean_bps": -1.0752467733514133,
+        "terminal_net_positive_fraction": 0.48114452392527257,
+        "terminal_only_excluded_rows": 938,
+        "weeks": 36
+      },
+      "480": {
+        "joint_issue_ns_sha256": "ef3235e0478072272c42c5a4f24652182345cb018aaf39cd3cc819b3daad1a0d",
+        "joint_parent_rows_sha256": "f9cc7b16ad81308cf0a573bb97dd6e42fb064051c09670c53dc2121bd507fdda",
+        "joint_rows": 11576,
+        "mfe_mean_bps": 45.61472387508123,
+        "net_minus_pre_mfe_mae_upper_mean_bps": -16.687154133813923,
+        "positive_net_weeks": 7,
+        "pre_mfe_mae_upper_mean_bps": 14.529076283589,
+        "terminal_net_mean_bps": -2.1580778502249234,
+        "terminal_net_positive_fraction": 0.4853144436765722,
+        "terminal_only_excluded_rows": 2482,
+        "weeks": 36
+      },
+      "5": {
+        "joint_issue_ns_sha256": "fd35f8e59b71089464a9d263bd1698f0c30c4c93fbd19115620d01f64f706b9f",
+        "joint_parent_rows_sha256": "26388edc40175ef26bedaff378abc0bc99bfa9ad37e7ad1d8bb3daa86d1465d0",
+        "joint_rows": 16071,
+        "mfe_mean_bps": 5.382523705253534,
+        "net_minus_pre_mfe_mae_upper_mean_bps": -4.445705456676514,
+        "positive_net_weeks": 8,
+        "pre_mfe_mae_upper_mean_bps": 3.7997225048565553,
+        "terminal_net_mean_bps": -0.6459829518199584,
+        "terminal_net_positive_fraction": 0.37570779665235515,
+        "terminal_only_excluded_rows": 0,
+        "weeks": 36
+      },
+      "60": {
+        "joint_issue_ns_sha256": "5405b5806fec109a970a54ad1324b7ecb1698a7e78d97f0c03b0214b3aad50b2",
+        "joint_parent_rows_sha256": "340934f9efdb0fa13dd6927559a2722743c1b6cb8f0c8a5db90be5cce0840d47",
+        "joint_rows": 15756,
+        "mfe_mean_bps": 17.549762355989113,
+        "net_minus_pre_mfe_mae_upper_mean_bps": -5.830949162521088,
+        "positive_net_weeks": 6,
+        "pre_mfe_mae_upper_mean_bps": 5.290940848508039,
+        "terminal_net_mean_bps": -0.540008314013048,
+        "terminal_net_positive_fraction": 0.4623000761614623,
+        "terminal_only_excluded_rows": 48,
+        "weeks": 36
+      }
+    },
+    "later": {
+      "1": {
+        "joint_issue_ns_sha256": "e4aa44b0eb496520df35fa113f5704b60a0e7eecdee38ee5cc4908fe11252ab3",
+        "joint_parent_rows_sha256": "acb24350a1f2d13f3d02a3d3e88122d4239c8b225ffa375f0393a23c02397af2",
+        "joint_rows": 1392,
+        "mfe_mean_bps": 0.1668755261712361,
+        "net_minus_pre_mfe_mae_upper_mean_bps": -9.029253471081947,
+        "positive_net_weeks": 0,
+        "pre_mfe_mae_upper_mean_bps": 3.609921100696495,
+        "terminal_net_mean_bps": -5.419332370385452,
+        "terminal_net_positive_fraction": 0.020833333333333332,
+        "terminal_only_excluded_rows": 0,
+        "weeks": 14
+      },
+      "15": {
+        "joint_issue_ns_sha256": "35efdda917cd4b2f82e77e63924901df1e688da6c2714b640be5e7c17e1a6ddc",
+        "joint_parent_rows_sha256": "2072816bb27df73cae15471dcf41c8f3a4c5062fefdc614a8a6e1bdb57356211",
+        "joint_rows": 1389,
+        "mfe_mean_bps": 8.764877471460062,
+        "net_minus_pre_mfe_mae_upper_mean_bps": -5.521735122474131,
+        "positive_net_weeks": 3,
+        "pre_mfe_mae_upper_mean_bps": 4.291832994612816,
+        "terminal_net_mean_bps": -1.2299021278613138,
+        "terminal_net_positive_fraction": 0.3851691864650828,
+        "terminal_only_excluded_rows": 0,
+        "weeks": 14
+      },
+      "240": {
+        "joint_issue_ns_sha256": "130ffb29da26027a1aad59d94068499864c9d0b0e779f2dabb64eede96702af5",
+        "joint_parent_rows_sha256": "684bb571ae97f4c9ab801c801d3a1c53159aea4da52634d948861880680fb417",
+        "joint_rows": 1218,
+        "mfe_mean_bps": 30.05241712185633,
+        "net_minus_pre_mfe_mae_upper_mean_bps": -10.561359691857296,
+        "positive_net_weeks": 6,
+        "pre_mfe_mae_upper_mean_bps": 10.136959297915688,
+        "terminal_net_mean_bps": -0.42440039394161133,
+        "terminal_net_positive_fraction": 0.48357963875205257,
+        "terminal_only_excluded_rows": 86,
+        "weeks": 14
+      },
+      "480": {
+        "joint_issue_ns_sha256": "13bb3646ec0f7f1c8e741132ff1f88b3203df7f2bdb475b2cdc16e9ff056ecee",
+        "joint_parent_rows_sha256": "4aecb433fe941e3a1c97b73e98b2a4370aa225d7b5aa779d725a7bd97af1b962",
+        "joint_rows": 986,
+        "mfe_mean_bps": 41.109427307749556,
+        "net_minus_pre_mfe_mae_upper_mean_bps": -16.128382000004823,
+        "positive_net_weeks": 5,
+        "pre_mfe_mae_upper_mean_bps": 14.763999381007109,
+        "terminal_net_mean_bps": -1.3643826189977157,
+        "terminal_net_positive_fraction": 0.4817444219066937,
+        "terminal_only_excluded_rows": 223,
+        "weeks": 14
+      },
+      "5": {
+        "joint_issue_ns_sha256": "26d888d7322eb4c4f1a6ab921c404ca6e73900224946dcbf8bfc2d3c35215597",
+        "joint_parent_rows_sha256": "e7bfbd4cbb2613e4fef1e3becd997f875cab4f0f8aa38e562c60b2ffe8d07339",
+        "joint_rows": 1391,
+        "mfe_mean_bps": 4.8953442038903034,
+        "net_minus_pre_mfe_mae_upper_mean_bps": -5.316573368969841,
+        "positive_net_weeks": 2,
+        "pre_mfe_mae_upper_mean_bps": 4.080762474012488,
+        "terminal_net_mean_bps": -1.235810894957353,
+        "terminal_net_positive_fraction": 0.32278936017253773,
+        "terminal_only_excluded_rows": 0,
+        "weeks": 14
+      },
+      "60": {
+        "joint_issue_ns_sha256": "7c513a1123579063c26779a0e90ddd2edef3bf77251033211bbdf2b5a3a704fc",
+        "joint_parent_rows_sha256": "0e1f06ccf1f3678957897592ba817465e66ea276691b39d8b82c0cfa5461bbee",
+        "joint_rows": 1375,
+        "mfe_mean_bps": 15.756177850751492,
+        "net_minus_pre_mfe_mae_upper_mean_bps": -6.891099435168977,
+        "positive_net_weeks": 2,
+        "pre_mfe_mae_upper_mean_bps": 5.586740954535566,
+        "terminal_net_mean_bps": -1.30435848063341,
+        "terminal_net_positive_fraction": 0.4516363636363636,
+        "terminal_only_excluded_rows": 0,
+        "weeks": 14
+      }
+    }
+  },
+  "claim": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_S_M5_JOINT_COST_20261115_001/CLAIM.json",
+    "sha256": "6369e9d60a42866fe30298517a26e23e614e40cab55675adf23ee1f660842c71"
+  },
+  "decision": "RETAIN_S_FIVE_TF_CONTEXT_REQUIRE_SEPARATE_PATH_AND_COST_AWARE_ENTRY_HYPOTHESIS",
+  "declared_economics": {
+    "annual_financing_cost_bps": [
+      532.0,
+      0.0
+    ],
+    "capital_hurdle_included": false,
+    "cost_authority_sha256": "7d5cee1d196add19b8fd525860f1f7e61626c510257a073f948a3f089dda9de3",
+    "coverage_end_utc_exclusive": "2026-04-01T00:00:00+00:00",
+    "coverage_start_utc": "2024-05-01T00:00:00+00:00",
+    "economics_sha256": "81b7d1c7311d831753e273840ed5e732819c4c4371aa832b76b7f9ec1118b999",
+    "historical_cost_truth_qualified": false,
+    "risk_utility_included": false,
+    "round_trip_execution_cost_bps": 4.0,
+    "schema_version": "gx1_entry_observed_market_v1_economics",
+    "seconds_per_year": 31557600.0
+  },
+  "interpretation": [
+    "Common-mask terminal net is negative in both cohorts at all six predeclared observation horizons, even with the S side known in hindsight.",
+    "Long-horizon censoring changes the population: at 480min later, 1209 known-S terminal rows narrow to 986 full-path rows; common-mask net is -1.36438bps versus -0.92259bps on terminal-only rows.",
+    "Conservative pre-MFE MAE is a path-risk diagnostic. Net minus MAE is a diagnostic sum, not a realized return or a permitted objective on its own.",
+    "MFE is hindsight opportunity, M1 OHLC cannot order intraminute extremes, and observation horizons are not hold or stop rules.",
+    "No causal model decision, calibrated Entry/Exit policy, independent transfer, actual fills, open-position economics, TEST, broker or trade has been shown."
+  ],
+  "next_gate": "Precommit one causal incremental-information hypothesis for existing XAU+GC input versus frozen S/F prior on all five TF, and separately formulate a path- and cost-aware M5 Entry target. No broad model round or training without exact admission; TEST and trading stay sealed.",
+  "observed_utc": "2026-11-15T01:41:15.738982+00:00",
+  "plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_S_M5_JOINT_COST_20261115_001.json",
+    "sha256": "480e2b54363051cfc72733d5239603358c5af2412298e9347c4754045ad737a4"
+  },
+  "population": {
+    "fit_rows": 47338,
+    "fold_id": 2,
+    "horizon_minutes": [
+      1,
+      5,
+      15,
+      60,
+      240,
+      480
+    ],
+    "later_fixed_development_rows": 4096,
+    "mask": "S known side plus terminal and complete M1 path observed",
+    "side_selection": "hindsight_certified_S_only"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_S_M5_JOINT_COST_20261115_001/RESULT.json",
+    "sha256": "6fe578eeedb99a80e8bc833668d3efaab1fdb8a6a28afbb16c5ed2f9e97b8c7d"
+  },
+  "schema_version": "gx1_s_m5_joint_cost_review_v1",
+  "source_head": "d0e085399bdd99796415926f13255d567ab3abc4",
+  "status": "COMPLETE_CONSUMED_COMMON_MASK_DIRECT_S_SIDE_NEGATIVE_ALL_SIX_NO_EDGE",
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_S_M5_JOINT_COST_20261115_001/TERMINAL.json",
+    "sha256": "85e851b481dccc8e0e55360fa4a0f39bf79b02021ac32b27e2b592e87a40dcbf"
+  }
+}
