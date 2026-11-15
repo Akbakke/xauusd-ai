@@ -5,7 +5,14 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: S_M5_PATH_COST_DIRECT_S_SIDE_NEGATIVE_EDGE_UNQUALIFIED.
+Gjeldende policy: S_M5_JOINT_COST_ADMITTED_READONLY.
+Ny separat engangsplan er innrømmet for en lesende, capped fellesmaskeaudit
+av terminal netto, MFE og konservativ pre-MFE MAE på de samme S/M5-radene.
+Faste Fold2 fit47338/senere4096 og seks forhåndsvalgte horisonter gjenbrukes.
+Dette er etterpåkjent S-side som måldiagnose, ikke en modellbeslutning.
+0 tillatte modellforwards, optimizersteg, TEST, broker og handel.
+Ny plan: `configs/research/MARKET_STATE_S_M5_JOINT_COST_20261115_001.json`.
+Forrige policy: S_M5_PATH_COST_DIRECT_S_SIDE_NEGATIVE_EDGE_UNQUALIFIED.
 Den lesende Fold2 S/M5-baneaudit er COMPLETE/CONSUMED, exit0 under4G/512M.
 På eksakt moden fitakse47338 og fast senere utvikling4096 hadde
 etterpåkjent S-side negativ middel netto etter deklarert4bps rundturkost

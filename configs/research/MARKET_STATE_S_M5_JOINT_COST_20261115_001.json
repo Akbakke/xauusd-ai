@@ -1,0 +1,87 @@
+{
+  "input_refs": {
+    "coverage": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_FULL_GC_FOLD2_LATER_COVERAGE_20261115_001.json",
+      "sha256": "ff18b8fcde8b09c41cbec5c216c532ef688a6be29767e456475cef941495c640"
+    },
+    "m1": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m1_quotes_source/m1_quotes.parquet",
+      "sha256": "54b66c5e9b5a0125f089afcc9d3327c79af9c3543eebdb2644281ed9d3c2734c"
+    },
+    "model_axes": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_DATA_20261024_245/OUTPUT/PRICE_TARGETS.npz",
+      "sha256": "9d4a5fb3c473b088aff5a5d5a176c199a64053b679229c14f125697b93af577d"
+    },
+    "old_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_S_M5_PATH_COST_ALIGNMENT_20261115_001.json",
+      "sha256": "e24fc5971c158e7490338ae1f95e29d30555f1946ce7de852f800a945ac77c7d"
+    },
+    "old_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_S_M5_PATH_COST_ALIGNMENT_20261115_001/RESULT.json",
+      "sha256": "22d3a4f7e0311afa2c1bbd940a15b70d1c3514339a3be40b8d79c4e6ab4d5866"
+    },
+    "old_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_S_M5_PATH_COST_ALIGNMENT_20261115_001/TERMINAL.json",
+      "sha256": "6997d52c887c18d86f5e751ff3250a14d038e777951e441b799e183a480e5961"
+    },
+    "physical_receipt": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/PHYSICAL_TARGET_RECEIPT.json",
+      "sha256": "dd95d9ecb43f309635e61ba268ec4db6518a3ee23550aa0c94330ff303a5063d"
+    },
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/RECIPE.json",
+      "sha256": "83dbdaec44aac242db740cc43bd1314679aba2668eb53da4bc5e1a972afc82cd"
+    },
+    "state_mask": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001/ROW_MASKS.npz",
+      "sha256": "2b063e35b97cc1dbdbb522d2b2876a39514b1145d8c59d8a2ab07561764f9edc"
+    }
+  },
+  "limits": {
+    "class": "audit",
+    "max_invocations": 1,
+    "memory": "4G",
+    "model_forwards": 0,
+    "optimizer_steps": 0,
+    "swap": "512M",
+    "training_authorized": false,
+    "wall_seconds": 1800
+  },
+  "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_S_M5_JOINT_COST_20261115_001",
+  "schema_version": "gx1_s_m5_joint_cost_plan_v1",
+  "scope": {
+    "entry_timeframe": "M5",
+    "exit_evaluation": false,
+    "fit_cutoff_ns_exclusive": 1735689600000000000,
+    "fit_rows": 47338,
+    "fold_id": 2,
+    "horizon_minutes": [
+      1,
+      5,
+      15,
+      60,
+      240,
+      480
+    ],
+    "later_cutoff_ns_exclusive": 1743465600000000000,
+    "later_rows": 4096,
+    "side_selection": "hindsight_certified_S_only",
+    "test_data_used": false
+  },
+  "source_base_head": "c72cd65ed0986ef07fec71dfbc66158b52e2d2c4",
+  "source_owners": {
+    "gx1/audit/measure_market_state_fold2_exact_prior_later_v1.py": "5a2872a16f40f8d3e35a3b527be75390a12500d13879e1bd272ba621a9c0e314",
+    "gx1/audit/measure_market_state_s_m5_joint_cost_v1.py": "39f15f11d312a0d9dcd2f7686baa7403d2c6c36c68da28cb877d1cfb94193de2",
+    "gx1/audit/measure_market_state_s_m5_path_cost_alignment_v1.py": "3573537dbd0d7b89def701d0469b3497a7890c83eedeecff50f5843b8c518c0c",
+    "gx1/audit/measure_market_state_s_m5_quote_alignment_v1.py": "729f82c4aa6ab20fe5747d01ddbb4f39f1653f0348ed0d3c5a315e002cfd1ad7",
+    "gx1/contracts/entry_causal_m1_outcomes_v1.py": "4cba6a5fb49c518eedd67bd8264af51bb319a3af604aeda483c415d4ea864ac7",
+    "gx1/contracts/entry_observed_market_v1.py": "b6f703ea2348fa196cbf4eff9effcda33ecec8de4bcc32c43c0974ad3065d5cb",
+    "gx1/contracts/gx1_capped_execution_v1.py": "60b1ccf2eda470a84ddded0d8160c628314ebb19f5766b87b70fef7c9aa3ccff",
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "gx1/contracts/market_state_five_endpoint_target_binding_v1.py": "71dc01154aada84d01e930cb78970a79608c5bff5ebd710d9f48273934e14bfd",
+    "gx1/contracts/market_state_time_query_native_F_objective_v1.py": "4b244ac61c0b3360e12a4b12db8e8d066e9017b6913da165c31fd8afae6a8658",
+    "scripts/gx1_capped_run.sh": "3c9d608574be3755e0e3d63d2617a01612d65dbaf61b26b76765262a5a2abc4c"
+  },
+  "stage": "market_state_s_m5_joint_cost_20261115_001",
+  "status": "PREPARED_NOT_ADMITTED"
+}
