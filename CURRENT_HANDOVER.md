@@ -5,7 +5,15 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: GC_BOOK_TW_FOLD2_RAW_M5_S_POSITIVE_ORIENTATION_UNSUPPORTED_EDGE_UNQUALIFIED.
+Gjeldende policy: GC_MID_RESPONSE_FOLD2_PREDECLARED_NO_FIT_ADMITTED_EDGE_UNQUALIFIED.
+Ny, forhåndsbundet lesende hypotese: positiv observert GC M5 midtprisrespons
+skal rangere OPP over NED for valgte native S/F-mål, primært S/M5.
+Samme-rad XAU EMA5-avstand er rankkontroll. Eksakt Fold2 fit47338 og
+senere4096, fem TF, null fit/optimizer/TEST/handel. Planen er innrømmet
+én gang, men ennå ikke claimet eller scoret. Capped preflight og kjøring
+gjenstår; resultatet kan ikke velge fortegn eller modell fra gjenbrukt VAL.
+
+Forrige policy: GC_BOOK_TW_FOLD2_RAW_M5_S_POSITIVE_ORIENTATION_UNSUPPORTED_EDGE_UNQUALIFIED.
 Én lesende, capped GC-bokrangering er COMPLETE/CONSUMED, exit0.
 Den forhåndsvalgte hypotesen om positiv M5 tidsvektet GC-ubalanse
 som OPP-signal støttes ikke på eksakt Fold2 S/M5 conditional side:
