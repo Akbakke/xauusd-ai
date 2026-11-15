@@ -1,0 +1,38 @@
+{
+  "base_path_contract": {
+    "path": "gx1/contracts/market_state_fold2_multiminute_path_v1.py",
+    "sha256": "4217b27ea57302bc0ed3a948f0351554b1c3d91de7e781e0aaeb8baac63fac1b"
+  },
+  "fit_batches_b16": 2959,
+  "fit_rows": 47338,
+  "focused_synthetic_tests_passed": 3,
+  "limits": {
+    "economic_edge_not_proven": true,
+    "feature_consumption_not_verified": true,
+    "fit_admission": false,
+    "fresh_genuine_model_initial_not_measured": true,
+    "full_fit_loss_or_gradient_not_measured": true,
+    "generalization_not_measured": true
+  },
+  "loss_contract_sha256": "7be6548a19845908c131809af1243590c418ddd6b02fd9ba968970d326affad5",
+  "loss_source": {
+    "path": "gx1/contracts/market_state_fold2_multiminute_side_loss_v1.py",
+    "sha256": "20ebe302e7f6dad0247517031e33a4554e29798e3b952a3904d8906679f67d93"
+  },
+  "method": "For each of 25 fixed query/TF cells, full-epoch informative-row mean activity BCE plus full-epoch certified-side-row mean side BCE; average the 25 cells. Unknown side has zero side gradient.",
+  "model_forwards": 0,
+  "next_gate": "A separately admitted fresh full-GC initial model forward on the exact fixed five-point query with actual feature-consumption and finite loss/gradient checks; bind full fit order and model gate before any optimizer step. TEST and trading remain closed.",
+  "optimizer_steps": 0,
+  "query_sha256": "1d6b5d891e08b91ead2ca0b49e0aef22e3c8c1d2ab08d81fa9fd2ffe3bf3c56d",
+  "schema_version": "gx1_fold2_multiminute_side_loss_source_review_v1",
+  "source_result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_MULTIMINUTE_PATH_20261115_001/RESULT.json",
+    "sha256": "d6d839c3f7b4b02c50bd44811eeacb7bb0a45d73e55f6299952d72ca6ab00e6c"
+  },
+  "status": "SOURCE_ONLY_PASS_NO_MODEL_FIT_OR_EDGE",
+  "support": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/S_FOLD2_MULTIMINUTE_FIT_SUPPORT_20261115.json",
+    "sha256": "eb926b6324dbacb7e2c4bf536b5d49bd669475655c30a2c88a8aab32743c8065"
+  },
+  "test_data_used": false
+}

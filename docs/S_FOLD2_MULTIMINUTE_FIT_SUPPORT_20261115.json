@@ -1,0 +1,99 @@
+{
+  "fit_batches_b16": 2959,
+  "fit_rows": 47338,
+  "informative_support_query_by_TF": [
+    [
+      47299,
+      47209,
+      46855,
+      45626,
+      37940
+    ],
+    [
+      47301,
+      47216,
+      46540,
+      43955,
+      34476
+    ],
+    [
+      47302,
+      47046,
+      46067,
+      43604,
+      32172
+    ],
+    [
+      47306,
+      46880,
+      45599,
+      43232,
+      29728
+    ],
+    [
+      47302,
+      46884,
+      45142,
+      42784,
+      29142
+    ]
+  ],
+  "known_side_support_query_by_TF": [
+    [
+      15891,
+      18184,
+      18140,
+      19108,
+      16360
+    ],
+    [
+      15933,
+      18267,
+      18127,
+      18848,
+      14595
+    ],
+    [
+      16057,
+      18203,
+      18078,
+      18756,
+      13385
+    ],
+    [
+      16085,
+      18120,
+      18023,
+      18625,
+      12353
+    ],
+    [
+      16101,
+      18182,
+      17973,
+      18391,
+      12291
+    ]
+  ],
+  "model_forwards": 0,
+  "optimizer_steps": 0,
+  "query_sha256": "1d6b5d891e08b91ead2ca0b49e0aef22e3c8c1d2ab08d81fa9fd2ffe3bf3c56d",
+  "schema_version": "gx1_fold2_multiminute_fit_support_v1",
+  "source_result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_MULTIMINUTE_PATH_20261115_001/RESULT.json",
+    "sha256": "d6d839c3f7b4b02c50bd44811eeacb7bb0a45d73e55f6299952d72ca6ab00e6c"
+  },
+  "source_terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_MULTIMINUTE_PATH_20261115_001/TERMINAL.json",
+    "sha256": "9c9a6f3478ee286a11d69e338f5bd3f06c374eaf5fc081500de9269e84d069a3"
+  },
+  "test_data_used": false,
+  "timeframes": [
+    "M5",
+    "M15",
+    "H1",
+    "H4",
+    "D1"
+  ],
+  "training_authority": false
+}

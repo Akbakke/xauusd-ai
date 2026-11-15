@@ -5,22 +5,24 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_MULTIMINUTE_PATH_CHANGE_CONFIRMED_MODEL_FIT_OPEN_EDGE_UNQUALIFIED.
-Den ene capped, forhåndsbundne Fold2-lesekontrollen er COMPLETE og brukt opp.
-På samme 428 senere M5-rader med kjent side i alle minuttene 1–5 hadde
-199 minst ett sertifisert mellomliggende sideskifte; 22 av disse endte
-likevel med samme side som i minutt1. Kausalt samme-TF nå-S-fortegns AUC
-på nøyaktig disse radene er 0,800746/0,680672/0,560808/0,502782/0,499836
-ved minutt1–5. Fit har 5 050 all-fem kjentside-rader og 2 459 med minst
-ett observert sideskifte. Alle fem TFs faste mellompunkt, skifteintervaller,
-modenhet, ukjente masker og 14 senere M5-uker er bevart i
-docs/S_FOLD2_MULTIMINUTE_PATH_REVIEW_20261115.json og immutable RESULT.
-Dette er et kilde-/målresultat, ikke modellfit, full minuttbane,
-framtidig handelsretning eller Edge. Endepunktlikhet utelukker ikke
-mellomliggende skifter. Neste konkrete blokkering er en flerminutt-S-loss
-med side normalisert på kjent støtte, samt verifisert faktisk modellkonsum
-og fersk initialbaseline før eventuell fit. Ingen fit-admisjon;
-training_enabled=false; TEST, broker og handel stengt.
+Gjeldende policy: FOLD2_MULTIMINUTE_SIDE_LOSS_SOURCE_PASS_INITIAL_MODEL_GATE_OPEN_EDGE_UNQUALIFIED.
+Den ene capped flerminutt-S-lesekontrollen er COMPLETE/forbrukt. På samme
+428 senere M5-rader med kjent side i alle minuttene 1–5 hadde 199 minst
+ett observert sideskifte, hvorav 22 endte tilbake på startside. Kausalt
+samme-TF nå-S-fortegns AUC på disse radene faller 0,800746 → 0,499836;
+fit har 5 050 all-fem kjentside-rader og 2 459 med minst ett skifte.
+Alle fem TF, masker og 14 senere M5-uker ligger i
+docs/S_FOLD2_MULTIMINUTE_PATH_REVIEW_20261115.json.
+En separat flerminutt-losskandidat er kildekontrollert: aktivitet og
+sertifisert side normaliseres hver for seg på eksakt Fold2-fitstøtte for
+hvert av 25 faste spørsmål/TF-celler. Ukjent side gir null sidegradient;
+fast klokke og umodne masker avvises i tre fokuserte tester. Se
+docs/S_FOLD2_MULTIMINUTE_SIDE_LOSS_SOURCE_REVIEW_20261115.json.
+Neste gate er en ny, eksakt innrømmet full-GC initialforward/gradient og
+kontroll av faktisk indikator-/tidsrammekonsum; deretter kronologisk
+sammenligning med TRAIN-prior og samme-TF-persistens før økonomisk vurdering.
+Dette er ikke modellfit, generalisering eller Edge. training_enabled=false;
+TEST, broker og handel stengt.
 
 Forrige policy: FOLD2_PAIRED_MINUTE_PATH_CHANGE_CONFIRMED_MULTIMINUTE_OBJECTIVE_OPEN_EDGE_UNQUALIFIED.
 Korrigert capped parvis engangskontroll002 er fullført og brukt opp. På
