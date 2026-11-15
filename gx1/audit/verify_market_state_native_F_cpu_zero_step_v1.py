@@ -35,6 +35,7 @@ ISSUE_NS = [1714521900000000000, 1714522500000000000]
 PASS_INDEX = 0
 SEED = 20261107
 SOURCE_PATHS = tuple(sorted(mature.SOURCE_PATHS | {
+    'configs/research/MARKET_STATE_MATURE_PREFIX_NORMALIZATION_20261107_001.json',
     WORKER_PATH,
     'gx1/audit/verify_market_state_time_query_zero_step_v1.py',
     'gx1/contracts/entry_anchor_span_feature_view_v1.py',

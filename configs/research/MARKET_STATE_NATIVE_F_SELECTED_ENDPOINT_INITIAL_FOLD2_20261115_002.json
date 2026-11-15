@@ -98,8 +98,9 @@
   },
   "source_base_head": "cf5cbe6339ab25dd127b692e4ef9f05754e173bb",
   "source_owners": {
+    "configs/research/MARKET_STATE_MATURE_PREFIX_NORMALIZATION_20261107_001.json": "b77795e606b35424d6189b7866337ca74c9f7dfc22371168452f5a6f6d665029",
     "gx1/audit/qualify_market_state_mature_prefix_normalization_v1.py": "479837880848b6961897982590bc81799772aa350b2a6d8230719ac29f49c54a",
-    "gx1/audit/verify_market_state_native_F_cpu_zero_step_v1.py": "413584dc97d18c3c2ef271d8fa5be65dfbb2f571172961d1e1f5d242482e9b91",
+    "gx1/audit/verify_market_state_native_F_cpu_zero_step_v1.py": "98cbd3bb723a021a2fa21efa2d9d05ba09dfc41b933feda7ab97e9d7a3be2062",
     "gx1/audit/verify_market_state_time_query_zero_step_v1.py": "66e0fce8ec005193aace36ddfa8d54f2320bd2ca5f59249e2699dd584a614c85",
     "gx1/contracts/entry_anchor_span_feature_inputs_v1.py": "4ac9734ea30e720865a1976d0ef0ddcb1a952fe29da0475d24a5ba07f0ec2ab5",
     "gx1/contracts/entry_anchor_span_feature_view_v1.py": "bf6ee17594cc52332f44a6a85f48f195b4124bf4237998ce8bce3fa974982eb0",
