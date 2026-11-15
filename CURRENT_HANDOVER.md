@@ -5,7 +5,20 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_ENDPOINT_ALIAS_CONFIRMED_DYNAMIC_S_TARGET_ALIGNMENT_OPEN_EDGE_UNQUALIFIED.
+Gjeldende policy: FOLD2_MINUTE_QUERY_SOURCE_READ_ONLY_ADMITTED.
+Målt endepunktalias viser at M5-minutt1–4 må kunne spørres. En separat
+kildekandidat bruker den allerede hashbundne 591 682-raders M1-S-tapen,
+eksakt minuttsoppslag, eksisterende faktoriserte modellhode og samme
+maskerte loss-/proper-score-semantikk. Fire fokuserte syntetiske tester
+består, herunder bitlikt output og lik loss ved de gamle endepunktene.
+Én capped lesekontroll er forhåndsbundet mot Fold2 fit47 338 og fast
+senere4096, med M5-minutt1–4 som primær dekning og alle fem opprinnelige
+endepunkter som paritetskontroll. Plan:
+configs/research/MARKET_STATE_FOLD2_MINUTE_QUERY_SOURCE_20261115_001.json.
+Ingen ONLINE-kjøring, optimizer, ny tape, TEST eller handel; native fit
+forblir uadmittert og training_enabled=false.
+
+Forrige policy: FOLD2_ENDPOINT_ALIAS_CONFIRMED_DYNAMIC_S_TARGET_ALIGNMENT_OPEN_EDGE_UNQUALIFIED.
 Én forhåndsbundet capped TRAIN-lesekontroll er fullført og brukt opp.
 Fem valgte S-endepunkter traff eksisterende bitfasit på alle fem TF med
 0 avvik, men mellom lik sertifisert nå- og framtidig tilstand fant vi
