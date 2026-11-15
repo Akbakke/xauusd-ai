@@ -1,0 +1,64 @@
+{
+  "authority": {
+    "broker": false,
+    "campaign_plan_exists": false,
+    "full_fit_admitted": false,
+    "private_002_consumed": true,
+    "spending": false,
+    "test": false,
+    "trade": false,
+    "training_enabled": false
+  },
+  "claim_boundary": "Better S scores would be development predictive evidence only. Independent generalization, selective Entry quality and costed economics require separately frozen forward journal evidence.",
+  "fit_protocol": "One chronological pass over every mature earlier TRAIN row. Start with empty AdamW, fixed seed/precision and an actual fresh initial baseline. Retain full model/AdamW/RNG checkpoints for recovery; no automatic relaunch.",
+  "fixed_inputs": {
+    "feature_fit_cutoff_ns": 1735603200000000000,
+    "fit_batches_b16": 2959,
+    "fit_rows": 47338,
+    "fold_id": 2,
+    "last_batch_rows": 10,
+    "later_rows": 4096,
+    "later_utc_weeks": 14,
+    "query_cells": 25,
+    "query_sha256": "1d6b5d891e08b91ead2ca0b49e0aef22e3c8c1d2ab08d81fa9fd2ffe3bf3c56d",
+    "s_target_fold_upper_ns": 1735689600000000000,
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ]
+  },
+  "fixed_later_measurement": "Score initial and final on identical 4096 later development rows. Primary: M5 minute5 conditional-side Brier versus frozen +1 prior, and AUC on identical certified known-side rows versus same-TF current-sign. Report activity and three-class proper scores, all 25 cells, all masks, 14 UTC weeks and checkpoint transition diagnostics without selecting any query, threshold, model variant or epoch on later.",
+  "implementation_gap": "The existing guarded route executes only two private B16 batches. A separate one-use full-fit worker, streaming full-GC feature gather, checkpoint/progress contract, fixed later scorer, campaign route and exact gate must be qualified before admission.",
+  "model_and_loss": "Fresh deterministic full-GC native S-only model and current fixed 25-cell allowed-set loss; no private checkpoint import, feature removal, architecture change or query selection.",
+  "one_hypothesis": "A fresh full-GC S-only native model trained once on the fixed earlier Fold2 population improves the fixed M5 five-minute conditional-side forecast over the frozen prior and same-TF current-sign ranking on the chronological later development cohort.",
+  "references": {
+    "frozen_25_cell_prior": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/S_FOLD2_FIXED_25_CELL_PRIOR_RESULT_REVIEW_20261115.json",
+      "sha256": "74c32b168be2bccedfa7977a3b8c9fb0f27b9474ce12b478682a61fee581ed70"
+    },
+    "frozen_25_cell_same_tf_path": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/S_FOLD2_MULTIMINUTE_PATH_REVIEW_20261115.json",
+      "sha256": "bb5767be842fd60e79036db4ba33a5ab6e0d71e311f263dd4a58afdf7317f908"
+    },
+    "private_mechanics": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/S_FOLD2_S_ONLY_PRIVATE_002_RESULT_REVIEW_20261115.json",
+      "sha256": "2e508fd7545a799381a0cdd97aa43f86198b113d17826573120993c0cce87e6e"
+    }
+  },
+  "resource_envelope_proposed": {
+    "batch_size": 16,
+    "fresh_physical_windows_boot": true,
+    "gpu_power_limit_w": 250,
+    "max_invocations": 1,
+    "max_optimizer_updates": 2959,
+    "max_wall_seconds": 13800,
+    "memory": "20G",
+    "swap": "512M"
+  },
+  "schema_version": "gx1_fold2_s_only_25_cell_full_fit_design_v1",
+  "source_head_at_design": "60bd9e1926a017e7cb26b528df328b825cddf72a",
+  "status": "SOURCE_DESIGN_ONLY_NO_RUN_ADMISSION"
+}
