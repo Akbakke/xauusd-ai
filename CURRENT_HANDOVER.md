@@ -5,20 +5,19 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_S_25_CELL_PRIOR_BASELINE_ONLY_ADMITTED_EDGE_UNQUALIFIED.
-Aktiv fase er S-only læring på M5/M15/H1/H4/D1 før Entry. Korrigert
-faseorden og kildeklar 25-cellers konstantprior er dokumentert i
-docs/S_FOLD2_EDGE_ROUTE_DECISION_20261115.json og
-docs/S_FOLD2_FIXED_25_CELL_PRIOR_SOURCE_REVIEW_20261115.json.
-Én separat 4G/512M-avgrenset baseline-estimering på eksakt tidligere moden
-Fold2 FIT-akse er innrømmet. Den bruker fem faste spørsmål per tidsramme,
-beholder ukjent aktivitet/side som ukjent, forsegler TRAIN-prioren og scorer
-den på den allerede valgte senere4096 utviklingskohorten per UTC-uke.
-Plan: configs/research/MARKET_STATE_FOLD2_FIXED_25_CELL_PRIOR_20261115_001.json.
-Ingen modellforward, optimizer eller modellfit er innrømmet; global
-training_enabled=false. Resultatet er utviklingsreferanse, ikke S-modellverdi
-eller økonomisk Edge. TEST, Entry/Exit, broker og handel stengt.
-Planen relanseres aldri etter claim.
+Gjeldende policy: FOLD2_S_25_CELL_PRIOR_COMPLETE_CONSUMED_EDGE_UNQUALIFIED.
+Aktiv fase er S-only læring på M5/M15/H1/H4/D1 før Entry. Den ene
+4G/512M-avgrensede Fold2-baselinen er fullført og brukt opp: +1-smoothed
+aktivitets-/betinget-sideprior på 25 faste celler ble tilpasset 47 338
+tidligere modne FIT-rader og scoret på de allerede valgte 4 096 senere
+utviklingsradene fordelt på 14 UTC-uker. Ukjent fasit beholdt riktige masker;
+uke- og totalsummer stemmer. CLAIM, PRIOR, RESULT og TERMINAL er forseglede.
+Se docs/S_FOLD2_FIXED_25_CELL_PRIOR_RESULT_REVIEW_20261115.json.
+Dette er en konstant referanse, ikke en score for S-modellen, generalisering
+for modellen eller økonomisk Edge. Neste gate er separat eksakt innrømmet
+S-only modellfit med kontroll av faktisk feature-/normaliseringsidentitet og
+frosset scoring mot samme senere referanse. Global training_enabled=false;
+TEST, Entry/Exit, broker og handel stengt. Brukt plan relanseres aldri.
 
 Forrige policy: FOLD2_PAIRED_MINUTE_PATH_CHANGE_CONFIRMED_MULTIMINUTE_OBJECTIVE_OPEN_EDGE_UNQUALIFIED.
 Korrigert capped parvis engangskontroll002 er fullført og brukt opp. På

@@ -1,0 +1,579 @@
+{
+  "schema_version": "gx1_fold2_fixed_25_cell_prior_result_review_v1",
+  "status": "COMPLETE_CONSUMED_BASELINE_ONLY_EDGE_UNQUALIFIED",
+  "observed_utc": "2026-11-15T13:31:16.379004+00:00",
+  "source_head": "55a39b33c3f8c9ba8e95e0fbe76d7f9de5b41941",
+  "claim": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_FIXED_25_CELL_PRIOR_20261115_001/CLAIM.json",
+    "sha256": "df390788621df49b29f4cae19715d7563f0597611cb7524da09856eeb184263f"
+  },
+  "prior": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_FIXED_25_CELL_PRIOR_20261115_001/PRIOR.json",
+    "sha256": "37aa249032b0e6ea08006d65352332e47d439371fbb52af79028f36ef4c55867"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_FIXED_25_CELL_PRIOR_20261115_001/RESULT.json",
+    "sha256": "33ff02aaecb5ccb6ff79e3cf80d5926fd485d58d3a14796348fc705966500025"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_FIXED_25_CELL_PRIOR_20261115_001/TERMINAL.json",
+    "sha256": "8b747b676cf380df027f36f72e8f6166e1f4f83f03ab6adda05244ba3c374fce"
+  },
+  "plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_FOLD2_FIXED_25_CELL_PRIOR_20261115_001.json",
+    "sha256": "e7b94824166f8f2ac9a6c12b801530469f5cef8b638ad6d253ae4b410b8d937c"
+  },
+  "scope": {
+    "fold_id": 2,
+    "earlier_fit_rows": 47338,
+    "preselected_later_development_rows": 4096,
+    "later_utc_weeks": 14,
+    "query_cells": 25,
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ],
+    "fit_parent_rows_sha256": "db43609ad6bd10e8d1a13b216243855c499189f8d2f08ef0a67d49de66e29fe9",
+    "fit_decision_ns_sha256": "380184a9c95a02f2716326765783746b1834371a7266545113fb1eae6722da47",
+    "later_parent_rows_sha256": "1e4a137f13f9217641999e9730a0eec152472fe26aef517bd83da04463d926b6",
+    "later_issue_ns_sha256": "c03ec2ae8b418e21739f9f7966b946615878344364e6dc4e4d80087a0fee99d3"
+  },
+  "method": "Laplace +1 constant activity and conditional-side prior fitted independently for each of 25 fixed query cells on earlier mature Fold2 TRAIN labels; later proper scores use observed activity/side masks and original selected later development rows.",
+  "per_cell_later_prior_mean_scores": [
+    {
+      "checkpoint_index": 0,
+      "timeframe": "D1",
+      "query_minute": 1,
+      "metrics": {
+        "activity": {
+          "count": 3889,
+          "mean_brier": 0.00896307576793854
+        },
+        "conditional_side": {
+          "count": 1905,
+          "mean_brier": 0.23547375597514902,
+          "mean_log_loss": 0.6639904190260191
+        },
+        "three_class": {
+          "count": 1937,
+          "mean_brier": 0.48907009885228436,
+          "mean_log_loss": 0.7443110909025596
+        }
+      }
+    },
+    {
+      "checkpoint_index": 0,
+      "timeframe": "H1",
+      "query_minute": 1,
+      "metrics": {
+        "activity": {
+          "count": 4084,
+          "mean_brier": 0.09770912169080236
+        },
+        "conditional_side": {
+          "count": 1645,
+          "mean_brier": 0.24364319252614886,
+          "mean_log_loss": 0.6804153800065632
+        },
+        "three_class": {
+          "count": 2089,
+          "mean_brier": 0.6448098274740657,
+          "mean_log_loss": 1.0741779411518961
+        }
+      }
+    },
+    {
+      "checkpoint_index": 0,
+      "timeframe": "H4",
+      "query_minute": 1,
+      "metrics": {
+        "activity": {
+          "count": 4064,
+          "mean_brier": 0.06473760422666681
+        },
+        "conditional_side": {
+          "count": 1902,
+          "mean_brier": 0.2468168863742485,
+          "mean_log_loss": 0.6867750147967805
+        },
+        "three_class": {
+          "count": 2182,
+          "mean_brier": 0.600499597011564,
+          "mean_log_loss": 0.9884681466065169
+        }
+      }
+    },
+    {
+      "checkpoint_index": 0,
+      "timeframe": "M15",
+      "query_minute": 1,
+      "metrics": {
+        "activity": {
+          "count": 4093,
+          "mean_brier": 0.09113948678449203
+        },
+        "conditional_side": {
+          "count": 1632,
+          "mean_brier": 0.24772621234275274,
+          "mean_log_loss": 0.6885973327661239
+        },
+        "three_class": {
+          "count": 2046,
+          "mean_brier": 0.6489561611768078,
+          "mean_log_loss": 1.0834534820676167
+        }
+      }
+    },
+    {
+      "checkpoint_index": 0,
+      "timeframe": "M5",
+      "query_minute": 1,
+      "metrics": {
+        "activity": {
+          "count": 4095,
+          "mean_brier": 0.06335884639052364
+        },
+        "conditional_side": {
+          "count": 1421,
+          "mean_brier": 0.24932099895021675,
+          "mean_log_loss": 0.6917889283620384
+        },
+        "three_class": {
+          "count": 1699,
+          "mean_brier": 0.6337430660694574,
+          "mean_log_loss": 1.0653490014857825
+        }
+      }
+    },
+    {
+      "checkpoint_index": 1,
+      "timeframe": "D1",
+      "query_minute": 360,
+      "metrics": {
+        "activity": {
+          "count": 3568,
+          "mean_brier": 0.011059598962793384
+        },
+        "conditional_side": {
+          "count": 1700,
+          "mean_brier": 0.2364994324120889,
+          "mean_log_loss": 0.6660390110167486
+        },
+        "three_class": {
+          "count": 1737,
+          "mean_brier": 0.49555161436876355,
+          "mean_log_loss": 0.7597043546205366
+        }
+      }
+    },
+    {
+      "checkpoint_index": 1,
+      "timeframe": "H1",
+      "query_minute": 15,
+      "metrics": {
+        "activity": {
+          "count": 4074,
+          "mean_brier": 0.09902483060966137
+        },
+        "conditional_side": {
+          "count": 1705,
+          "mean_brier": 0.24369941095870007,
+          "mean_log_loss": 0.6805274218733525
+        },
+        "three_class": {
+          "count": 2156,
+          "mean_brier": 0.6433948741954066,
+          "mean_log_loss": 1.0719137134981191
+        }
+      }
+    },
+    {
+      "checkpoint_index": 1,
+      "timeframe": "H4",
+      "query_minute": 60,
+      "metrics": {
+        "activity": {
+          "count": 3957,
+          "mean_brier": 0.062261575752706244
+        },
+        "conditional_side": {
+          "count": 1829,
+          "mean_brier": 0.2457132703458418,
+          "mean_log_loss": 0.6845654185928538
+        },
+        "three_class": {
+          "count": 2091,
+          "mean_brier": 0.5971542066883185,
+          "mean_log_loss": 0.984346572514755
+        }
+      }
+    },
+    {
+      "checkpoint_index": 1,
+      "timeframe": "M15",
+      "query_minute": 4,
+      "metrics": {
+        "activity": {
+          "count": 4094,
+          "mean_brier": 0.09230754721762796
+        },
+        "conditional_side": {
+          "count": 1663,
+          "mean_brier": 0.24758205937657055,
+          "mean_log_loss": 0.6883090469608395
+        },
+        "three_class": {
+          "count": 2083,
+          "mean_brier": 0.6477476870247274,
+          "mean_log_loss": 1.0805311468765337
+        }
+      }
+    },
+    {
+      "checkpoint_index": 1,
+      "timeframe": "M5",
+      "query_minute": 2,
+      "metrics": {
+        "activity": {
+          "count": 4095,
+          "mean_brier": 0.07018514705617009
+        },
+        "conditional_side": {
+          "count": 1374,
+          "mean_brier": 0.24953709610806632,
+          "mean_log_loss": 0.6922213174542602
+        },
+        "three_class": {
+          "count": 1685,
+          "mean_brier": 0.6496489894182413,
+          "mean_log_loss": 1.1007351509986556
+        }
+      }
+    },
+    {
+      "checkpoint_index": 2,
+      "timeframe": "D1",
+      "query_minute": 720,
+      "metrics": {
+        "activity": {
+          "count": 3351,
+          "mean_brier": 0.0072994122066434245
+        },
+        "conditional_side": {
+          "count": 1590,
+          "mean_brier": 0.23176710176408477,
+          "mean_log_loss": 0.6565092367117539
+        },
+        "three_class": {
+          "count": 1611,
+          "mean_brier": 0.4790093771695857,
+          "mean_log_loss": 0.7295076099591795
+        }
+      }
+    },
+    {
+      "checkpoint_index": 2,
+      "timeframe": "H1",
+      "query_minute": 30,
+      "metrics": {
+        "activity": {
+          "count": 4055,
+          "mean_brier": 0.09357044898190683
+        },
+        "conditional_side": {
+          "count": 1749,
+          "mean_brier": 0.24343886588383848,
+          "mean_log_loss": 0.6800054136779315
+        },
+        "three_class": {
+          "count": 2169,
+          "mean_brier": 0.6343158930250911,
+          "mean_log_loss": 1.055434433333391
+        }
+      }
+    },
+    {
+      "checkpoint_index": 2,
+      "timeframe": "H4",
+      "query_minute": 120,
+      "metrics": {
+        "activity": {
+          "count": 3823,
+          "mean_brier": 0.05089972908252107
+        },
+        "conditional_side": {
+          "count": 1671,
+          "mean_brier": 0.24439651346530442,
+          "mean_log_loss": 0.6819299477935279
+        },
+        "three_class": {
+          "count": 1873,
+          "mean_brier": 0.5822563773580243,
+          "mean_log_loss": 0.9544300354137841
+        }
+      }
+    },
+    {
+      "checkpoint_index": 2,
+      "timeframe": "M15",
+      "query_minute": 8,
+      "metrics": {
+        "activity": {
+          "count": 4087,
+          "mean_brier": 0.09035129148939436
+        },
+        "conditional_side": {
+          "count": 1668,
+          "mean_brier": 0.2477222109109313,
+          "mean_log_loss": 0.688589121501629
+        },
+        "three_class": {
+          "count": 2077,
+          "mean_brier": 0.6451250006602703,
+          "mean_log_loss": 1.0752879082504736
+        }
+      }
+    },
+    {
+      "checkpoint_index": 2,
+      "timeframe": "M5",
+      "query_minute": 3,
+      "metrics": {
+        "activity": {
+          "count": 4095,
+          "mean_brier": 0.06939499907538607
+        },
+        "conditional_side": {
+          "count": 1374,
+          "mean_brier": 0.2493690897751262,
+          "mean_log_loss": 0.6918850901987537
+        },
+        "three_class": {
+          "count": 1681,
+          "mean_brier": 0.6469526429072124,
+          "mean_log_loss": 1.0925597017826356
+        }
+      }
+    },
+    {
+      "checkpoint_index": 3,
+      "timeframe": "D1",
+      "query_minute": 1080,
+      "metrics": {
+        "activity": {
+          "count": 3090,
+          "mean_brier": 0.01120242738586343
+        },
+        "conditional_side": {
+          "count": 1411,
+          "mean_brier": 0.22834573510055223,
+          "mean_log_loss": 0.64956461689188
+        },
+        "three_class": {
+          "count": 1443,
+          "mean_brier": 0.4811861425414008,
+          "mean_log_loss": 0.7470442096348893
+        }
+      }
+    },
+    {
+      "checkpoint_index": 3,
+      "timeframe": "H1",
+      "query_minute": 45,
+      "metrics": {
+        "activity": {
+          "count": 4028,
+          "mean_brier": 0.09293278649906903
+        },
+        "conditional_side": {
+          "count": 1738,
+          "mean_brier": 0.24374462415699832,
+          "mean_log_loss": 0.6806180150781611
+        },
+        "three_class": {
+          "count": 2153,
+          "mean_brier": 0.6350596288976234,
+          "mean_log_loss": 1.0575433343496732
+        }
+      }
+    },
+    {
+      "checkpoint_index": 3,
+      "timeframe": "H4",
+      "query_minute": 180,
+      "metrics": {
+        "activity": {
+          "count": 3766,
+          "mean_brier": 0.04743841591660036
+        },
+        "conditional_side": {
+          "count": 1700,
+          "mean_brier": 0.24630659036970967,
+          "mean_log_loss": 0.6857542082793573
+        },
+        "three_class": {
+          "count": 1884,
+          "mean_brier": 0.5777171464794814,
+          "mean_log_loss": 0.9407022150930086
+        }
+      }
+    },
+    {
+      "checkpoint_index": 3,
+      "timeframe": "M15",
+      "query_minute": 12,
+      "metrics": {
+        "activity": {
+          "count": 4082,
+          "mean_brier": 0.08757914151279493
+        },
+        "conditional_side": {
+          "count": 1639,
+          "mean_brier": 0.24778145655744782,
+          "mean_log_loss": 0.6887082261998134
+        },
+        "three_class": {
+          "count": 2033,
+          "mean_brier": 0.6434589223668774,
+          "mean_log_loss": 1.0722221159035799
+        }
+      }
+    },
+    {
+      "checkpoint_index": 3,
+      "timeframe": "M5",
+      "query_minute": 4,
+      "metrics": {
+        "activity": {
+          "count": 4096,
+          "mean_brier": 0.06513281954901741
+        },
+        "conditional_side": {
+          "count": 1365,
+          "mean_brier": 0.24895601613888527,
+          "mean_log_loss": 0.6910586731579808
+        },
+        "three_class": {
+          "count": 1651,
+          "mean_brier": 0.6387760055296084,
+          "mean_log_loss": 1.0736762386360996
+        }
+      }
+    },
+    {
+      "checkpoint_index": 4,
+      "timeframe": "D1",
+      "query_minute": 1440,
+      "metrics": {
+        "activity": {
+          "count": 3037,
+          "mean_brier": 0.007269919222802193
+        },
+        "conditional_side": {
+          "count": 1420,
+          "mean_brier": 0.2232983550660313,
+          "mean_log_loss": 0.6393454635449067
+        },
+        "three_class": {
+          "count": 1439,
+          "mean_brier": 0.46295281556077306,
+          "mean_log_loss": 0.7127914363939357
+        }
+      }
+    },
+    {
+      "checkpoint_index": 4,
+      "timeframe": "H1",
+      "query_minute": 60,
+      "metrics": {
+        "activity": {
+          "count": 3988,
+          "mean_brier": 0.08934215641627496
+        },
+        "conditional_side": {
+          "count": 1713,
+          "mean_brier": 0.24481829271311462,
+          "mean_log_loss": 0.682768988726997
+        },
+        "three_class": {
+          "count": 2106,
+          "mean_brier": 0.6335464679683672,
+          "mean_log_loss": 1.054325196631503
+        }
+      }
+    },
+    {
+      "checkpoint_index": 4,
+      "timeframe": "H4",
+      "query_minute": 240,
+      "metrics": {
+        "activity": {
+          "count": 3703,
+          "mean_brier": 0.054929565859665755
+        },
+        "conditional_side": {
+          "count": 1656,
+          "mean_brier": 0.24791684456012753,
+          "mean_log_loss": 0.688977492441595
+        },
+        "three_class": {
+          "count": 1869,
+          "mean_brier": 0.592462230535167,
+          "mean_log_loss": 0.9703643661504934
+        }
+      }
+    },
+    {
+      "checkpoint_index": 4,
+      "timeframe": "M15",
+      "query_minute": 15,
+      "metrics": {
+        "activity": {
+          "count": 4083,
+          "mean_brier": 0.09015958066868943
+        },
+        "conditional_side": {
+          "count": 1671,
+          "mean_brier": 0.24760216013295816,
+          "mean_log_loss": 0.6883494153692391
+        },
+        "three_class": {
+          "count": 2079,
+          "mean_brier": 0.6450907773435801,
+          "mean_log_loss": 1.0761418801035885
+        }
+      }
+    },
+    {
+      "checkpoint_index": 4,
+      "timeframe": "M5",
+      "query_minute": 5,
+      "metrics": {
+        "activity": {
+          "count": 4096,
+          "mean_brier": 0.06017179082850035
+        },
+        "conditional_side": {
+          "count": 1392,
+          "mean_brier": 0.24875460360871018,
+          "mean_log_loss": 0.6906555455297392
+        },
+        "three_class": {
+          "count": 1655,
+          "mean_brier": 0.6300898406520241,
+          "mean_log_loss": 1.059996404584913
+        }
+      }
+    }
+  ],
+  "weekly_partition_checked": true,
+  "learning_claim": false,
+  "s_model_forward": false,
+  "economic_edge_proven": false,
+  "test_data_used": false,
+  "entry_exit_or_trading": false,
+  "next_gate": "A separately admitted S-only native fit must bind feature and normalization identity, preserve the fixed query and masking contract, and score its frozen predictions on the same later development rows against this exact prior. TRAIN fit, later generalization and economic edge remain separate claims."
+}
