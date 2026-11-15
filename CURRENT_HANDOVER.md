@@ -3,24 +3,20 @@
 Arbeidssted: /home/andre2/src/GX1_CURRENT, gren work/gx1-current.
 GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal overstyrer prosa.
 
-## Aktivt mål og neste steg
+## Kort overtakelse for neste agent
 
-Gjeldende policy: FOLD2_S_25_CELL_PRIVATE_002_PREFLIGHT_PASS_NO_RUN_ADMISSION_EDGE_UNQUALIFIED.
-Kandidat002 er publisert uinnrømmet: /home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_25_CELL_S_PRIVATE_TWO_BATCH_20261115_002/RECIPE.json
-SHA256 d657a76b916629b7d9917b618bce08fcca694761725c15501bb86ec0658c9e91.
-Kappet, lesende kontroll bestod bundet kilde, to faktiske B16, full-GC-visning,
-separat feature-/S-fasitklokke og modne/ukjente masker. En fersk CPU-modell
-bestod faktisk feature-/normaliserings-/modellkontrakt mot privat modell-/
-AdamW-/RNG-checkpoint ved 0 forward og 0 optimizersteg. Syntetisk COMPLETE/
-FAILED-publisering, varig kampanjeprogresjon og 129 fokuserte tester består. Se
-docs/S_FOLD2_S_ONLY_PRIVATE_002_PREFLIGHT_REVIEW_20261115.json.
-Den bevoktede 250W-ruten gjenkjenner oppskriften og avviser manglende
-policyadmisjon. Roten har bare RECIPE; ingen kampanjeplan, CLAIM, fysisk
-oppdatering, full FIT, senere modellscore eller Edge. Neste port er egen
-nøyaktig fire-stegs to-B16 innrømmelse, trygg fersk fysisk boot, plan og
-lesende oppstart av eksakt planlagt trainerkommando før CLAIM. Private vekter
-kan ikke brukes i full FIT. training_enabled=false; TEST, Entry/Exit, broker
-og handel er stengt.
+**Arbeidsstatus:** `NEXT_RUN_POLICY.json` er `FOLD2_S_25_CELL_PRIVATE_002_PREFLIGHT_PASS_NO_RUN_ADMISSION_EDGE_UNQUALIFIED`. Aktiv fase er dynamisk S-only på M5/M15/H1/H4/D1, fast 25-cellers spørreplan før Entry. `training_enabled=false` og `native_training_enabled=false`.
+
+**Gjort:** Kandidat002 er uinnrømmet og hashbundet til `/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_25_CELL_S_PRIVATE_TWO_BATCH_20261115_002/RECIPE.json` (SHA256 `d657a76b916629b7d9917b618bce08fcca694761725c15501bb86ec0658c9e91`). Lesende capped kontroll bestod de faktiske Fold2-radene 2–33, full GC og alle fem TF, separate feature-/S-fasitklokker og fersk CPU-modell/AdamW/RNG-checkpointidentitet. Suksess/feil og varig kampanjeprogresjon består syntetisk; 129 fokuserte tester består. Se `docs/S_FOLD2_S_ONLY_PRIVATE_002_PREFLIGHT_REVIEW_20261115.json`. Kandidat001 ble forkastet etter målt klokkeavvik; ikke bruk eller relanser den.
+
+**Åpent og sperret:** Spørsmål om eksakt engangsgodkjenning for trygg Windows-omstart og én privat kontroll er sendt, uten svar ved denne overtakelsen. Codex-målet er markert blokkert mens dette svaret venter. Roten til kandidat002 inneholder bare `RECIPE.json`: ingen kampanjeplan, CLAIM, CUDA-oppdatering, full FIT, senere modellscore eller økonomisk Edge. TEST, Entry/Exit, broker og handel forblir stengt. Denne overleveringen gir ingen kjøringsadmisjon.
+
+**Neste punkter:**
+
+1. Avvent eksplisitt svar på den åpne godkjenningen. Ved nei: behold alle treningsporter stengt. Ved ja: kontroller ren `work/gx1-current`, oppskrift/kildehash, gjeldende policy og maskinens ledighet; lag bare den eksakte engangsadmisjonen for to B16 og høyst fire private optimizersteg.
+2. Ta trygg fersk fysisk boot, materialiser bevoktet kampanje og røykprøv den eksakte bundne trainerkommandoen lesende før CLAIM. Behold 20G/512M- og 250W-vaktene; ingen parallell tung jobb.
+3. Kjør én privat kontroll og kontroller original terminal, full modell-/AdamW-/RNG-gjenopptak og bitlikt sluttresultat. Private vekter brukes aldri i hovedfit; feil konsumerer planen.
+4. Full S-only FIT på 47 338 rader og fast senere score på 4 096 utviklingsrader krever egne porter. Sammenlign alle 25 celler kronologisk mot fryst per-celle-prior og samme-TF-persistens, med ukjente masker og 14 UTC-uker. Dette beviser ennå ikke Entry eller økonomisk Edge.
 
 Tidligere policy: FOLD2_S_25_CELL_PRIVATE_CLOCK_CORRECTED_SOURCE_READY_NO_RUN_ADMISSION_EDGE_UNQUALIFIED.
 Lesende, 12G-begrenset kontroll av kandidat001 fant før modellarbeid at faktisk
