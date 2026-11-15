@@ -5,19 +5,22 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_MULTIMINUTE_PATH_READ_ONLY_ADMITTED.
-En fast, fasitblind flerminuttplan er kildekodet: første observerbare minutt,
-kvart-, halv-, trekvart- og native sluttpunkt på hver av M5/M15/H1/H4/D1.
-Eksisterende minuttape, treklasse/ukjent-maske, marginale proper scores og
-samme-TF nå-S-fortegn gjenbrukes. Skifte mellom to sertifiserte punkt beviser
-minst ett skifte i intervallet; like endepunkter beviser ikke ro imellom.
-Fire fokuserte syntetiske tester og syntaks består. Én ny capped lesekontroll
-på fast Fold2 fit47 338 og senere4 096 er forhåndsbundet i
-configs/research/MARKET_STATE_FOLD2_MULTIMINUTE_PATH_20261115_001.json.
-Hele maskepopulasjonen, like kjentside-rader på alle fem spørsmål og 14
-senere M5-uker skal rapporteres. Ingen modellforward, fit, TEST, broker eller
-handel; training_enabled=false. Neste steg er preflight, én claim/kjøring og
-terminal/resultatvurdering. Planen kan ikke relanseres etter claim.
+Gjeldende policy: FOLD2_MULTIMINUTE_PATH_CHANGE_CONFIRMED_MODEL_FIT_OPEN_EDGE_UNQUALIFIED.
+Den ene capped, forhåndsbundne Fold2-lesekontrollen er COMPLETE og brukt opp.
+På samme 428 senere M5-rader med kjent side i alle minuttene 1–5 hadde
+199 minst ett sertifisert mellomliggende sideskifte; 22 av disse endte
+likevel med samme side som i minutt1. Kausalt samme-TF nå-S-fortegns AUC
+på nøyaktig disse radene er 0,800746/0,680672/0,560808/0,502782/0,499836
+ved minutt1–5. Fit har 5 050 all-fem kjentside-rader og 2 459 med minst
+ett observert sideskifte. Alle fem TFs faste mellompunkt, skifteintervaller,
+modenhet, ukjente masker og 14 senere M5-uker er bevart i
+docs/S_FOLD2_MULTIMINUTE_PATH_REVIEW_20261115.json og immutable RESULT.
+Dette er et kilde-/målresultat, ikke modellfit, full minuttbane,
+framtidig handelsretning eller Edge. Endepunktlikhet utelukker ikke
+mellomliggende skifter. Neste konkrete blokkering er en flerminutt-S-loss
+med side normalisert på kjent støtte, samt verifisert faktisk modellkonsum
+og fersk initialbaseline før eventuell fit. Ingen fit-admisjon;
+training_enabled=false; TEST, broker og handel stengt.
 
 Forrige policy: FOLD2_PAIRED_MINUTE_PATH_CHANGE_CONFIRMED_MULTIMINUTE_OBJECTIVE_OPEN_EDGE_UNQUALIFIED.
 Korrigert capped parvis engangskontroll002 er fullført og brukt opp. På

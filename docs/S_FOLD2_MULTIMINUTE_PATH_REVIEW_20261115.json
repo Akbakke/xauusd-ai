@@ -1,0 +1,452 @@
+{
+  "claim": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_MULTIMINUTE_PATH_20261115_001/CLAIM.json",
+    "sha256": "b74e2ec75aaed02822525083049802a084b3afd18964b5d574328f219ad7ec18"
+  },
+  "later_M5_utc_weeks": 14,
+  "limits": {
+    "all_five_known_side_AUC_conditional_on_certified_subset": true,
+    "changed_endpoint_states_only_bound_transition_to_interval": true,
+    "economic_edge_proven": false,
+    "equal_endpoint_states_do_not_prove_no_intermediate_change": true,
+    "five_points_are_not_full_minute_path": true,
+    "marginal_state_probabilities_not_joint_path_probabilities": true,
+    "model_fit_performed": false,
+    "model_probability_quality_measured": false,
+    "test_data_used": false
+  },
+  "measured": {
+    "fit": {
+      "D1": {
+        "all_unknown_bit7_by_checkpoint": [
+          9398,
+          12862,
+          15166,
+          17610,
+          18196
+        ],
+        "eligible_by_checkpoint": [
+          37940,
+          34476,
+          32172,
+          29728,
+          29142
+        ],
+        "first_last_side_flip_rows": 980,
+        "mature_by_checkpoint": [
+          47338,
+          47338,
+          47338,
+          47338,
+          47338
+        ],
+        "query_minutes": [
+          1,
+          360,
+          720,
+          1080,
+          1440
+        ],
+        "returned_to_start_after_sampled_flip_rows": 60,
+        "rows_with_certified_side_at_all_five_points": 2057,
+        "same_row_current_sign_auc_by_checkpoint": [
+          0.9586880845531183,
+          0.8444330715158564,
+          0.704712768697942,
+          0.6162182929632366,
+          0.5121736935607568
+        ],
+        "sampled_adjacent_side_flip_rows": 1040
+      },
+      "H1": {
+        "all_unknown_bit7_by_checkpoint": [
+          483,
+          798,
+          1271,
+          1739,
+          2196
+        ],
+        "eligible_by_checkpoint": [
+          46855,
+          46540,
+          46067,
+          45599,
+          45142
+        ],
+        "first_last_side_flip_rows": 3978,
+        "mature_by_checkpoint": [
+          47338,
+          47338,
+          47338,
+          47338,
+          47338
+        ],
+        "query_minutes": [
+          1,
+          15,
+          30,
+          45,
+          60
+        ],
+        "returned_to_start_after_sampled_flip_rows": 1443,
+        "rows_with_certified_side_at_all_five_points": 7762,
+        "same_row_current_sign_auc_by_checkpoint": [
+          0.9787204992655418,
+          0.7479331479121579,
+          0.5869470208857183,
+          0.5048331636783341,
+          0.48588924588949883
+        ],
+        "sampled_adjacent_side_flip_rows": 5421
+      },
+      "H4": {
+        "all_unknown_bit7_by_checkpoint": [
+          1712,
+          3383,
+          3734,
+          4106,
+          4554
+        ],
+        "eligible_by_checkpoint": [
+          45626,
+          43955,
+          43604,
+          43232,
+          42784
+        ],
+        "first_last_side_flip_rows": 2817,
+        "mature_by_checkpoint": [
+          47338,
+          47338,
+          47338,
+          47338,
+          47338
+        ],
+        "query_minutes": [
+          1,
+          60,
+          120,
+          180,
+          240
+        ],
+        "returned_to_start_after_sampled_flip_rows": 895,
+        "rows_with_certified_side_at_all_five_points": 5886,
+        "same_row_current_sign_auc_by_checkpoint": [
+          0.9934554692178053,
+          0.737675313591378,
+          0.6028921196207229,
+          0.5398588997951457,
+          0.5229384868108856
+        ],
+        "sampled_adjacent_side_flip_rows": 3712
+      },
+      "M15": {
+        "all_unknown_bit7_by_checkpoint": [
+          129,
+          122,
+          292,
+          458,
+          454
+        ],
+        "eligible_by_checkpoint": [
+          47209,
+          47216,
+          47046,
+          46880,
+          46884
+        ],
+        "first_last_side_flip_rows": 3774,
+        "mature_by_checkpoint": [
+          47338,
+          47338,
+          47338,
+          47338,
+          47338
+        ],
+        "query_minutes": [
+          1,
+          4,
+          8,
+          12,
+          15
+        ],
+        "returned_to_start_after_sampled_flip_rows": 967,
+        "rows_with_certified_side_at_all_five_points": 7416,
+        "same_row_current_sign_auc_by_checkpoint": [
+          0.9339858855202829,
+          0.7559352860807454,
+          0.5745060631351492,
+          0.4994545966668727,
+          0.488363696852897
+        ],
+        "sampled_adjacent_side_flip_rows": 4741
+      },
+      "M5": {
+        "all_unknown_bit7_by_checkpoint": [
+          39,
+          37,
+          36,
+          32,
+          36
+        ],
+        "eligible_by_checkpoint": [
+          47299,
+          47301,
+          47302,
+          47306,
+          47302
+        ],
+        "first_last_side_flip_rows": 2219,
+        "mature_by_checkpoint": [
+          47338,
+          47338,
+          47338,
+          47338,
+          47338
+        ],
+        "query_minutes": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "returned_to_start_after_sampled_flip_rows": 240,
+        "rows_with_certified_side_at_all_five_points": 5050,
+        "same_row_current_sign_auc_by_checkpoint": [
+          0.8143476692389736,
+          0.6688843700858867,
+          0.5631196333991264,
+          0.5042569171864353,
+          0.4833795340162836
+        ],
+        "sampled_adjacent_side_flip_rows": 2459
+      }
+    },
+    "later": {
+      "D1": {
+        "all_unknown_bit7_by_checkpoint": [
+          207,
+          528,
+          745,
+          1006,
+          1059
+        ],
+        "eligible_by_checkpoint": [
+          3889,
+          3568,
+          3351,
+          3090,
+          3037
+        ],
+        "first_last_side_flip_rows": 186,
+        "mature_by_checkpoint": [
+          4096,
+          4080,
+          4064,
+          4048,
+          4032
+        ],
+        "query_minutes": [
+          1,
+          360,
+          720,
+          1080,
+          1440
+        ],
+        "returned_to_start_after_sampled_flip_rows": 21,
+        "rows_with_certified_side_at_all_five_points": 413,
+        "same_row_current_sign_auc_by_checkpoint": [
+          0.8851661779081134,
+          0.7427198673235452,
+          0.6673496932515337,
+          0.6361717100633357,
+          0.6953191489361702
+        ],
+        "sampled_adjacent_side_flip_rows": 207
+      },
+      "H1": {
+        "all_unknown_bit7_by_checkpoint": [
+          12,
+          22,
+          41,
+          68,
+          108
+        ],
+        "eligible_by_checkpoint": [
+          4084,
+          4074,
+          4055,
+          4028,
+          3988
+        ],
+        "first_last_side_flip_rows": 429,
+        "mature_by_checkpoint": [
+          4096,
+          4096,
+          4096,
+          4095,
+          4092
+        ],
+        "query_minutes": [
+          1,
+          15,
+          30,
+          45,
+          60
+        ],
+        "returned_to_start_after_sampled_flip_rows": 158,
+        "rows_with_certified_side_at_all_five_points": 786,
+        "same_row_current_sign_auc_by_checkpoint": [
+          0.9811026023312551,
+          0.7091816911489043,
+          0.5212168401868714,
+          0.454299084298411,
+          0.4243723250092677
+        ],
+        "sampled_adjacent_side_flip_rows": 587
+      },
+      "H4": {
+        "all_unknown_bit7_by_checkpoint": [
+          32,
+          139,
+          273,
+          330,
+          393
+        ],
+        "eligible_by_checkpoint": [
+          4064,
+          3957,
+          3823,
+          3766,
+          3703
+        ],
+        "first_last_side_flip_rows": 316,
+        "mature_by_checkpoint": [
+          4096,
+          4092,
+          4081,
+          4081,
+          4080
+        ],
+        "query_minutes": [
+          1,
+          60,
+          120,
+          180,
+          240
+        ],
+        "returned_to_start_after_sampled_flip_rows": 105,
+        "rows_with_certified_side_at_all_five_points": 589,
+        "same_row_current_sign_auc_by_checkpoint": [
+          0.989993910864423,
+          0.6726853453245705,
+          0.5231108621051894,
+          0.43531863784089303,
+          0.4567961745367603
+        ],
+        "sampled_adjacent_side_flip_rows": 421
+      },
+      "M15": {
+        "all_unknown_bit7_by_checkpoint": [
+          3,
+          2,
+          9,
+          14,
+          13
+        ],
+        "eligible_by_checkpoint": [
+          4093,
+          4094,
+          4087,
+          4082,
+          4083
+        ],
+        "first_last_side_flip_rows": 353,
+        "mature_by_checkpoint": [
+          4096,
+          4096,
+          4096,
+          4096,
+          4096
+        ],
+        "query_minutes": [
+          1,
+          4,
+          8,
+          12,
+          15
+        ],
+        "returned_to_start_after_sampled_flip_rows": 87,
+        "rows_with_certified_side_at_all_five_points": 649,
+        "same_row_current_sign_auc_by_checkpoint": [
+          0.9294530609130277,
+          0.7508373919571871,
+          0.5470066841034583,
+          0.48302192229677016,
+          0.4599079290916587
+        ],
+        "sampled_adjacent_side_flip_rows": 440
+      },
+      "M5": {
+        "all_unknown_bit7_by_checkpoint": [
+          1,
+          1,
+          1,
+          0,
+          0
+        ],
+        "eligible_by_checkpoint": [
+          4095,
+          4095,
+          4095,
+          4096,
+          4096
+        ],
+        "first_last_side_flip_rows": 177,
+        "mature_by_checkpoint": [
+          4096,
+          4096,
+          4096,
+          4096,
+          4096
+        ],
+        "query_minutes": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "returned_to_start_after_sampled_flip_rows": 22,
+        "rows_with_certified_side_at_all_five_points": 428,
+        "same_row_current_sign_auc_by_checkpoint": [
+          0.8007456140350877,
+          0.6806716220971147,
+          0.5608082933350866,
+          0.5027819153596775,
+          0.49983562364389506
+        ],
+        "sampled_adjacent_side_flip_rows": 199
+      }
+    }
+  },
+  "method": "five_fixed_label_blind_semantic_landmarks_per_TF; all masks preserved; same-TF current sign on all certified checkpoint rows and identical five-point subset",
+  "next_gate": "Bind a side-support-normalized multiminute S loss to this exact fixed grid and run a fresh actual full-GC initial baseline only under a new exact one-use admission. Prove input consumption by timeframe, then compare frozen TRAIN prior and same-TF persistence on chronological development before any economic claim. TEST, broker and trading remain closed.",
+  "plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_FOLD2_MULTIMINUTE_PATH_20261115_001.json",
+    "sha256": "63adbc31fc0b11ba97b74b81d1cdfb60da5ea52822fcde6290d29c8aa4ed5fe3"
+  },
+  "query_sha256": "1d6b5d891e08b91ead2ca0b49e0aef22e3c8c1d2ab08d81fa9fd2ffe3bf3c56d",
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_MULTIMINUTE_PATH_20261115_001/RESULT.json",
+    "sha256": "d6d839c3f7b4b02c50bd44811eeacb7bb0a45d73e55f6299952d72ca6ab00e6c"
+  },
+  "schema_version": "gx1_fold2_multiminute_path_review_v1",
+  "source_head": "5d10c8c728e0770794571216c01c451cd1cc3f06",
+  "status": "COMPLETE_CONSUMED_SOURCE_PATH_CHANGES_CONFIRMED_MODEL_EDGE_UNQUALIFIED",
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_MULTIMINUTE_PATH_20261115_001/TERMINAL.json",
+    "sha256": "9c9a6f3478ee286a11d69e338f5bd3f06c374eaf5fc081500de9269e84d069a3"
+  }
+}
