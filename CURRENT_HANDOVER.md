@@ -5,15 +5,19 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: S_FOLD2_EXACT_PRIOR_LATER_ADMITTED_NO_MODEL_FIT.
-Én hashbundet, capped audit er innrømmet for eksakt moden Fold2 TRAIN-akse
-(47338 rader) og et fast 4096-raders utviklingspanel jan–mar2025.
-S/F-prior fryses fra bare tidligere TRAIN før senere proper-score på
-M5/M15/H1/H4/D1. Gammel fem-TF-prior brukte 47602 rader, altså en annen
-fit-akse enn dagens valgte native oppsett. Ingen modellforwards, optimizer,
-TEST, broker eller handel er innrømmet. Plan:
-`configs/research/MARKET_STATE_FOLD2_EXACT_PRIOR_LATER_4096_20261115_001.json`.
-Etter terminal oppdateres policy og overlevering med målt utfall.
+Gjeldende policy: S_FOLD2_EXACT_PRIOR_LATER_COMPLETE_BASELINE_ONLY_EDGE_UNQUALIFIED.
+Engangsauditen er COMPLETE/CONSUMED, exit0 under 4G/512M. Den frøs S/F-prior
+på eksakt moden Fold2 TRAIN-akse (47338 rader) og målte proper-score på
+4096 faste utviklingsrader fra jan–mar2025 fordelt på14 UTC-uker og alle fem
+TF. Gammel fem-TF-prior brukte en annen 47602-raders fit-akse. M5
+kjent-side-priorens Brier var0,248755 (S,1392 rader) og0,249257
+(F,1591 rader). Dette er bare en frossen nullreferanse, ingen modellscore
+eller økonomisk Edge. Resultat:
+`docs/S_FOLD2_EXACT_PRIOR_LATER_RESULT_REVIEW_20261115.json`; original
+CLAIM/FROZEN_PRIORS/RESULT/TERMINAL:
+`/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_EXACT_PRIOR_LATER_4096_20261115_001/`.
+0 modellforwards, optimizersteg, TEST, broker eller handel. Neste konkrete
+gate er et separat kost- og prisbanebundet M5 Entry-mål med pre-MFE MAE.
 
 Forrige policy: S_M5_QUOTE_REFERENCE_NEGATIVE_EDGE_UNQUALIFIED.
 Fold2 TRAIN-only S/M5-quoteaudit er COMPLETE/CONSUMED, exit0 under 4G/512M.
@@ -66,12 +70,12 @@ enhetsprofil. Én separat test for relative GC-priskoordinater feiler på
 en eksisterende gc_order_flow_v1.py-kildehash; rå-GC-ruten bruker den ikke.
 Se docs/S_FULL_GC_ANCHOR_SPAN_FOLD2_SOURCE_REVIEW_20261115.json.
 
-Neste gate er én forhåndsbundet kronologisk valgt-native S/F-proper-score mot
-fryst tidligere-TRAIN-prior på alle fem TF. Den negative direkte
-S→fem-minutters-Entry-kontrollen krever i tillegg et separat kostbevis for
-valgt M5 Entry med pre-MFE-MAE fra eksisterende kausale kilde. Før fit må én
-konkret signalhypotese og optimizer/resume kvalifiseres; trening krever eksakt
-operatøradmisjon. Engangsplanen er forbrukt. TEST, broker og handel er stengt.
+Den kronologiske valgte-native S/F-prioren og senere proper-score er nå
+målt på alle fem TF. Den negative direkte S→fem-minutters-Entry-kontrollen
+krever et separat kostbevis for valgt M5 Entry med pre-MFE MAE fra
+eksisterende kausale kilde. Før fit må én konkret signalhypotese og
+optimizer/resume kvalifiseres; trening krever eksakt operatøradmisjon.
+Engangsplanen er forbrukt. TEST, broker og handel er stengt.
 
 Den valgte fem-TF S-masken er hashbundet til118249 modellrader og fem faste
 native endepunkter. Den gamle samplede tidsforespørselen treffer D1s native

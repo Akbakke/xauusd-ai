@@ -1,0 +1,308 @@
+{
+  "claim": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_EXACT_PRIOR_LATER_4096_20261115_001/CLAIM.json",
+    "sha256": "609b010b15274a946242587fed5dea619e1f978c3921138525423689a258261a"
+  },
+  "decision": "EXACT_MATURE_FOLD2_FROZEN_TRAIN_PRIOR_ESTABLISHED_AND_LATER_SCORED",
+  "frozen_priors": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_EXACT_PRIOR_LATER_4096_20261115_001/FROZEN_PRIORS.json",
+    "sha256": "bd8ecf1d47d067d8ef3aee1f4bd5fa2241e618f615edc4792b95dbe194fa0eb4"
+  },
+  "interpretation": [
+    "Old 47602-row prior was a different axis; this new prior matches current mature selected-native Fold2 fit rows and was frozen before later score gather.",
+    "Later baseline Brier and log scores quantify S/F class frequencies and transfer for this fixed Jan-Mar 2025 development panel. They do not score a model.",
+    "M5 conditional-side Brier is 0.248755 for S and 0.249257 for F on 1392 and 1591 known-side rows respectively. This is close to the 0.25 constant half-probability reference, not proof that causal features lack information.",
+    "No selected M5 Entry, pre-MFE MAE, cost-adjusted strategy, later independent generalization, or realized economic Edge is established."
+  ],
+  "measured": {
+    "broker_access": false,
+    "fit_rows": 47338,
+    "later_utc_weeks": 14,
+    "model_forwards": 0,
+    "old_prior_fit_rows": 47602,
+    "optimizer_steps": 0,
+    "selected_later_rows": 4096,
+    "task_metrics": {
+      "future": {
+        "D1": {
+          "activity": {
+            "later_count": 3181,
+            "later_prior_brier_mean": 0.2535720844115946,
+            "later_prior_log_mean": 0.7004886903869317
+          },
+          "conditional_side": {
+            "later_count": 1500,
+            "later_prior_brier_mean": 0.19563983923144793,
+            "later_prior_log_mean": 0.5823393465319832
+          },
+          "fit_counts": {
+            "active": 15148,
+            "activity": 37370,
+            "certified_side": 15148,
+            "up": 9509
+          },
+          "fit_prior_active_probability": 0.40535695172856684,
+          "fit_prior_up_given_active_probability": 0.6277227722772277,
+          "three_class": {
+            "later_count": 3181,
+            "later_prior_brier_mean": 0.5944761673927728,
+            "later_prior_log_mean": 0.9750907085566817
+          }
+        },
+        "H1": {
+          "activity": {
+            "later_count": 3988,
+            "later_prior_brier_mean": 0.23833501840579796,
+            "later_prior_log_mean": 0.669698173241452
+          },
+          "conditional_side": {
+            "later_count": 1552,
+            "later_prior_brier_mean": 0.24552355468085568,
+            "later_prior_log_mean": 0.684184593111399
+          },
+          "fit_counts": {
+            "active": 16552,
+            "activity": 45437,
+            "certified_side": 16552,
+            "up": 8773
+          },
+          "fit_prior_active_probability": 0.36429058738088427,
+          "fit_prior_up_given_active_probability": 0.5300229551769965,
+          "three_class": {
+            "later_count": 3988,
+            "later_prior_brier_mean": 0.5508006896967573,
+            "later_prior_log_mean": 0.9359605825967405
+          }
+        },
+        "H4": {
+          "activity": {
+            "later_count": 3703,
+            "later_prior_brier_mean": 0.23789376877761056,
+            "later_prior_log_mean": 0.6687642907843536
+          },
+          "conditional_side": {
+            "later_count": 1439,
+            "later_prior_brier_mean": 0.24349793248625448,
+            "later_prior_log_mean": 0.6801023663950039
+          },
+          "fit_counts": {
+            "active": 16278,
+            "activity": 43853,
+            "certified_side": 16278,
+            "up": 9037
+          },
+          "fit_prior_active_probability": 0.37120054725800933,
+          "fit_prior_up_given_active_probability": 0.5551597051597051,
+          "three_class": {
+            "later_count": 3703,
+            "later_prior_brier_mean": 0.5492274136527869,
+            "later_prior_log_mean": 0.9330546783734465
+          }
+        },
+        "M15": {
+          "activity": {
+            "later_count": 4083,
+            "later_prior_brier_mean": 0.23537869451085766,
+            "later_prior_log_mean": 0.663617058892084
+          },
+          "conditional_side": {
+            "later_count": 1547,
+            "later_prior_brier_mean": 0.24818347402303745,
+            "later_prior_log_mean": 0.6895130375639982
+          },
+          "fit_counts": {
+            "active": 17483,
+            "activity": 46992,
+            "certified_side": 17483,
+            "up": 9013
+          },
+          "fit_prior_active_probability": 0.37204749542494786,
+          "fit_prior_up_given_active_probability": 0.5155275950814985,
+          "three_class": {
+            "later_count": 4083,
+            "later_prior_brier_mean": 0.5419987199363185,
+            "later_prior_log_mean": 0.9248653246553722
+          }
+        },
+        "M5": {
+          "activity": {
+            "later_count": 4096,
+            "later_prior_brier_mean": 0.2377609011865566,
+            "later_prior_log_mean": 0.6684763111550521
+          },
+          "conditional_side": {
+            "later_count": 1591,
+            "later_prior_brier_mean": 0.24925684692147698,
+            "later_prior_log_mean": 0.6916606243807926
+          },
+          "fit_counts": {
+            "active": 19072,
+            "activity": 47338,
+            "certified_side": 19072,
+            "up": 9761
+          },
+          "fit_prior_active_probability": 0.40289395859738064,
+          "fit_prior_up_given_active_probability": 0.5117961623151934,
+          "three_class": {
+            "later_count": 4096,
+            "later_prior_brier_mean": 0.5506242412311074,
+            "later_prior_log_mean": 0.9371364804396812
+          }
+        }
+      },
+      "state": {
+        "D1": {
+          "activity": {
+            "later_count": 3037,
+            "later_prior_brier_mean": 0.007269919222802193,
+            "later_prior_log_mean": 0.05957017676299208
+          },
+          "conditional_side": {
+            "later_count": 1420,
+            "later_prior_brier_mean": 0.2232983550660313,
+            "later_prior_log_mean": 0.6393454635449067
+          },
+          "fit_counts": {
+            "active": 28015,
+            "activity": 29142,
+            "certified_side": 12291,
+            "up": 7117
+          },
+          "fit_prior_active_probability": 0.9612956354652759,
+          "fit_prior_up_given_active_probability": 0.5790287155291629,
+          "three_class": {
+            "later_count": 1439,
+            "later_prior_brier_mean": 0.46295281556077306,
+            "later_prior_log_mean": 0.7127914363939357
+          }
+        },
+        "H1": {
+          "activity": {
+            "later_count": 3988,
+            "later_prior_brier_mean": 0.08934215641627496,
+            "later_prior_log_mean": 0.3244025708588411
+          },
+          "conditional_side": {
+            "later_count": 1713,
+            "later_prior_brier_mean": 0.24481829271311462,
+            "later_prior_log_mean": 0.682768988726997
+          },
+          "fit_counts": {
+            "active": 39677,
+            "activity": 45142,
+            "certified_side": 17973,
+            "up": 9611
+          },
+          "fit_prior_active_probability": 0.8789207868155237,
+          "fit_prior_up_given_active_probability": 0.5347426981919332,
+          "three_class": {
+            "later_count": 2106,
+            "later_prior_brier_mean": 0.6335464679683672,
+            "later_prior_log_mean": 1.054325196631503
+          }
+        },
+        "H4": {
+          "activity": {
+            "later_count": 3703,
+            "later_prior_brier_mean": 0.054929565859665755,
+            "later_prior_log_mean": 0.22527268645907472
+          },
+          "conditional_side": {
+            "later_count": 1656,
+            "later_prior_brier_mean": 0.24791684456012753,
+            "later_prior_log_mean": 0.688977492441595
+          },
+          "fit_counts": {
+            "active": 39178,
+            "activity": 42784,
+            "certified_side": 18391,
+            "up": 9695
+          },
+          "fit_prior_active_probability": 0.9156967232272238,
+          "fit_prior_up_given_active_probability": 0.5271570706246942,
+          "three_class": {
+            "later_count": 1869,
+            "later_prior_brier_mean": 0.592462230535167,
+            "later_prior_log_mean": 0.9703643661504934
+          }
+        },
+        "M15": {
+          "activity": {
+            "later_count": 4083,
+            "later_prior_brier_mean": 0.09015958066868943,
+            "later_prior_log_mean": 0.326039753807663
+          },
+          "conditional_side": {
+            "later_count": 1671,
+            "later_prior_brier_mean": 0.24760216013295816,
+            "later_prior_log_mean": 0.6883494153692391
+          },
+          "fit_counts": {
+            "active": 41507,
+            "activity": 46884,
+            "certified_side": 18182,
+            "up": 9432
+          },
+          "fit_prior_active_probability": 0.8852962504798874,
+          "fit_prior_up_given_active_probability": 0.5187527496700396,
+          "three_class": {
+            "later_count": 2079,
+            "later_prior_brier_mean": 0.6450907773435801,
+            "later_prior_log_mean": 1.0761418801035885
+          }
+        },
+        "M5": {
+          "activity": {
+            "later_count": 4096,
+            "later_prior_brier_mean": 0.06017179082850035,
+            "later_prior_log_mean": 0.23904975078427942
+          },
+          "conditional_side": {
+            "later_count": 1392,
+            "later_prior_brier_mean": 0.24875460360871018,
+            "later_prior_log_mean": 0.6906555455297392
+          },
+          "fit_counts": {
+            "active": 43828,
+            "activity": 47302,
+            "certified_side": 16101,
+            "up": 8323
+          },
+          "fit_prior_active_probability": 0.9265389819042787,
+          "fit_prior_up_given_active_probability": 0.5169223126125566,
+          "three_class": {
+            "later_count": 1655,
+            "later_prior_brier_mean": 0.6300898406520241,
+            "later_prior_log_mean": 1.059996404584913
+          }
+        }
+      }
+    },
+    "test_data_used": false,
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ],
+    "trades": 0
+  },
+  "next_gate": "Bind one cost-aware M5 Entry path outcome with pre-MFE MAE from existing causal sources, then precommit one causal input hypothesis. A model fit needs qualified optimizer/resume plus exact operator admission. Preserve TEST and trading closure.",
+  "observed_utc": "2026-11-15T01:10:33.365918Z",
+  "plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_FOLD2_EXACT_PRIOR_LATER_4096_20261115_001.json",
+    "sha256": "31aeae76ce4f9b336bd293c537fcb7c350bd3531b2bd97b3bb9b51e6d4667608"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_EXACT_PRIOR_LATER_4096_20261115_001/RESULT.json",
+    "sha256": "252b397f794bb7663e7836b941ba69f33fcc58f31bb6e0796af448b408140b07"
+  },
+  "schema_version": "gx1_s_fold2_exact_prior_later_review_v1",
+  "source_head": "c68c796b4dafa5d0e8383694da9b1af49166fbb2",
+  "status": "COMPLETE_CONSUMED_BASELINE_ONLY_EDGE_UNQUALIFIED",
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_EXACT_PRIOR_LATER_4096_20261115_001/TERMINAL.json",
+    "sha256": "304b7204faab52d9440f659a4e46bcd9da2f4de856963dcf37adb8a265a6b497"
+  }
+}
