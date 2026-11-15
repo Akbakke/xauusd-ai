@@ -5,13 +5,23 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: GC_MID_RESPONSE_FOLD2_PREDECLARED_NO_FIT_ADMITTED_EDGE_UNQUALIFIED.
-Ny, forhåndsbundet lesende hypotese: positiv observert GC M5 midtprisrespons
-skal rangere OPP over NED for valgte native S/F-mål, primært S/M5.
-Samme-rad XAU EMA5-avstand er rankkontroll. Eksakt Fold2 fit47338 og
-senere4096, fem TF, null fit/optimizer/TEST/handel. Planen er innrømmet
-én gang, men ennå ikke claimet eller scoret. Capped preflight og kjøring
-gjenstår; resultatet kan ikke velge fortegn eller modell fra gjenbrukt VAL.
+Gjeldende policy: GC_MID_RESPONSE_FOLD2_RAW_M5_S_POSITIVE_ORIENTATION_UNSUPPORTED_EDGE_UNQUALIFIED.
+Den ene lesende GC M5-midtprisresponsplanen er COMPLETE/CONSUMED, exit0
+under4G/512M. Forhåndsvalgt positiv orientering støttes ikke for
+S/M5: rå AUC0,47239 på15951 felles observerte sider i moden fit47338
+og0,47372 på1392 i fast senere utvikling4096;5/14 senere uker
+med begge sider var over0,5. F/M5 er også under0,5 i begge paneler.
+Alle ti S/F×fem-TF-celler og identisk samme-rad XAU EMA5-rankkontroll
+er bevart. Dette er råfeltmåling, ikke score fra dagens full-GC modell
+eller bevis om kalibrering, Entry eller økonomisk Edge. 0 modellforward,
+optimizersteg, TEST, broker og handel. Aggregert rapport:
+`docs/S_F_GC_MID_RESPONSE_FOLD2_RESULT_REVIEW_20261115.json`.
+Original CLAIM/RESULT/TERMINAL:
+`/home/andre2/GX1_RUNS/MARKET_STATE_GC_MID_RESPONSE_FOLD2_20261115_001/`.
+Ikke snu fortegn eller velg TF/terskel etterpå. Neste gate er mål- og
+kausal informasjonskontroll ved native gyldighet, deretter kvalifisert
+full-GC Fold2 selected-native optimizer/resume og eksakt fitadmisjon.
+TEST og handel forblir stengt.
 
 Forrige policy: GC_BOOK_TW_FOLD2_RAW_M5_S_POSITIVE_ORIENTATION_UNSUPPORTED_EDGE_UNQUALIFIED.
 Én lesende, capped GC-bokrangering er COMPLETE/CONSUMED, exit0.

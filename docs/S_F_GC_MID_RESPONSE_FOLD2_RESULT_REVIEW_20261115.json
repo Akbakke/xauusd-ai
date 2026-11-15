@@ -1,0 +1,290 @@
+{
+  "decision": "NO_PROMOTION_OF_PREDECLARED_POSITIVE_GC_M5_MID_RESPONSE_FOR_S_DIRECTION",
+  "economic_edge_demonstrated": false,
+  "evidence": {
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_GC_MID_RESPONSE_FOLD2_20261115_001/CLAIM.json",
+      "sha256": "0088e31238b44ebcbeab2f1b9ba9df6b3db639b5872b355aed5f97c5d1f6e9e2"
+    },
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_GC_MID_RESPONSE_FOLD2_20261115_001.json",
+      "sha256": "481ad14a35e422b467261c0504158aebdfe626b9fc99558736c20c5b2351e372"
+    },
+    "previous_book_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_GC_BOOK_TW_FOLD2_20261115_001/RESULT.json",
+      "sha256": "b06066116a451204fab812afdeeaad8885cd8858fced70142cb91e0de83263c5"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_GC_MID_RESPONSE_FOLD2_20261115_001/RESULT.json",
+      "sha256": "e9546ab730ace2aba84c8042c263cd033b454e27c19346fea4085c73bda83040"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_GC_MID_RESPONSE_FOLD2_20261115_001/TERMINAL.json",
+      "sha256": "39729ea4231614c011c128ad6400593c9a82d69d4e9e8dc3da58d253fc8fe985"
+    }
+  },
+  "hypothesis": "Positive observed M5 GC book mid-response ranks UP above DOWN at selected native S/F endpoints; S/M5 is primary, XAU EMA5 distance is same-row rank control.",
+  "interpretation": [
+    "The predeclared positive GC mid-response orientation does not rank S/M5 UP above DOWN in fit or fixed later development.",
+    "F/M5 also remains below 0.5 in both panels. Other timeframe cells remain reported and are not selected post hoc.",
+    "Identical same-row known-side populations and XAU EMA5 control scores match the prior book-imbalance screen; paired AUCs do not prove incremental prediction or calibrated probability.",
+    "This historical 051 raw-field screen does not score the current full-GC S/F model or establish a tradable Entry, realized PnL, independent generalization or Edge."
+  ],
+  "model_forwards": 0,
+  "next_gate": "Stop reusing this development panel to choose GC sign, TF or threshold. Review selected S/F target semantics and qualify a distinct causal information hypothesis plus full-GC Fold2 optimizer/resume and exact campaign only before any authorized fit.",
+  "observed_utc": "2026-11-15T02:15:06.177613+00:00",
+  "optimizer_steps": 0,
+  "panels": {
+    "fit": {
+      "rows": 47338,
+      "tasks": {
+        "future": {
+          "D1": {
+            "constant_prior_auc": 0.5,
+            "down": 5611,
+            "gc_book_imbalance_auc_positive_orientation_same_rows": 0.49474020720076634,
+            "gc_mid_response_auc_positive_orientation": 0.5081289720902931,
+            "joint_observed": 14983,
+            "up": 9372,
+            "weeks_gc_mid_auc_above_half": 13,
+            "weeks_with_both_sides": 31,
+            "xau_ema5_distance_auc_same_rows": 0.5095360212885898
+          },
+          "H1": {
+            "constant_prior_auc": 0.5,
+            "down": 7721,
+            "gc_book_imbalance_auc_positive_orientation_same_rows": 0.49522058478752345,
+            "gc_mid_response_auc_positive_orientation": 0.48996212700358527,
+            "joint_observed": 16408,
+            "up": 8687,
+            "weeks_gc_mid_auc_above_half": 10,
+            "weeks_with_both_sides": 36,
+            "xau_ema5_distance_auc_same_rows": 0.48597605686172185
+          },
+          "H4": {
+            "constant_prior_auc": 0.5,
+            "down": 7222,
+            "gc_book_imbalance_auc_positive_orientation_same_rows": 0.5015123956950582,
+            "gc_mid_response_auc_positive_orientation": 0.4963765044823598,
+            "joint_observed": 16089,
+            "up": 8867,
+            "weeks_gc_mid_auc_above_half": 13,
+            "weeks_with_both_sides": 36,
+            "xau_ema5_distance_auc_same_rows": 0.49548042760087635
+          },
+          "M15": {
+            "constant_prior_auc": 0.5,
+            "down": 8397,
+            "gc_book_imbalance_auc_positive_orientation_same_rows": 0.48526232376047734,
+            "gc_mid_response_auc_positive_orientation": 0.4931378684052362,
+            "joint_observed": 17328,
+            "up": 8931,
+            "weeks_gc_mid_auc_above_half": 14,
+            "weeks_with_both_sides": 36,
+            "xau_ema5_distance_auc_same_rows": 0.4906541833625898
+          },
+          "M5": {
+            "constant_prior_auc": 0.5,
+            "down": 9219,
+            "gc_book_imbalance_auc_positive_orientation_same_rows": 0.48734578469084794,
+            "gc_mid_response_auc_positive_orientation": 0.48732550452760964,
+            "joint_observed": 18876,
+            "up": 9657,
+            "weeks_gc_mid_auc_above_half": 10,
+            "weeks_with_both_sides": 36,
+            "xau_ema5_distance_auc_same_rows": 0.48524600994948963
+          }
+        },
+        "state": {
+          "D1": {
+            "constant_prior_auc": 0.5,
+            "down": 5041,
+            "gc_book_imbalance_auc_positive_orientation_same_rows": 0.496965562292076,
+            "gc_mid_response_auc_positive_orientation": 0.5236664266597673,
+            "joint_observed": 12042,
+            "up": 7001,
+            "weeks_gc_mid_auc_above_half": 15,
+            "weeks_with_both_sides": 21,
+            "xau_ema5_distance_auc_same_rows": 0.5389328715786089
+          },
+          "H1": {
+            "constant_prior_auc": 0.5,
+            "down": 8310,
+            "gc_book_imbalance_auc_positive_orientation_same_rows": 0.49903896052343977,
+            "gc_mid_response_auc_positive_orientation": 0.48393309650254246,
+            "joint_observed": 17829,
+            "up": 9519,
+            "weeks_gc_mid_auc_above_half": 8,
+            "weeks_with_both_sides": 36,
+            "xau_ema5_distance_auc_same_rows": 0.4767789394293938
+          },
+          "H4": {
+            "constant_prior_auc": 0.5,
+            "down": 8638,
+            "gc_book_imbalance_auc_positive_orientation_same_rows": 0.5076304891168818,
+            "gc_mid_response_auc_positive_orientation": 0.5023931108812566,
+            "joint_observed": 18190,
+            "up": 9552,
+            "weeks_gc_mid_auc_above_half": 20,
+            "weeks_with_both_sides": 36,
+            "xau_ema5_distance_auc_same_rows": 0.5064490712030477
+          },
+          "M15": {
+            "constant_prior_auc": 0.5,
+            "down": 8675,
+            "gc_book_imbalance_auc_positive_orientation_same_rows": 0.48575326651171025,
+            "gc_mid_response_auc_positive_orientation": 0.4748001672493464,
+            "joint_observed": 18021,
+            "up": 9346,
+            "weeks_gc_mid_auc_above_half": 4,
+            "weeks_with_both_sides": 36,
+            "xau_ema5_distance_auc_same_rows": 0.4703788086690911
+          },
+          "M5": {
+            "constant_prior_auc": 0.5,
+            "down": 7709,
+            "gc_book_imbalance_auc_positive_orientation_same_rows": 0.4874442333952358,
+            "gc_mid_response_auc_positive_orientation": 0.47239140119568296,
+            "joint_observed": 15951,
+            "up": 8242,
+            "weeks_gc_mid_auc_above_half": 5,
+            "weeks_with_both_sides": 36,
+            "xau_ema5_distance_auc_same_rows": 0.4703690546718668
+          }
+        }
+      }
+    },
+    "later": {
+      "rows": 4096,
+      "tasks": {
+        "future": {
+          "D1": {
+            "constant_prior_auc": 0.5,
+            "down": 335,
+            "gc_book_imbalance_auc_positive_orientation_same_rows": 0.5125634713032774,
+            "gc_mid_response_auc_positive_orientation": 0.4977996614863825,
+            "joint_observed": 1499,
+            "up": 1164,
+            "weeks_gc_mid_auc_above_half": 4,
+            "weeks_with_both_sides": 9,
+            "xau_ema5_distance_auc_same_rows": 0.46921834128327433
+          },
+          "H1": {
+            "constant_prior_auc": 0.5,
+            "down": 637,
+            "gc_book_imbalance_auc_positive_orientation_same_rows": 0.47090087193357416,
+            "gc_mid_response_auc_positive_orientation": 0.4811496592907953,
+            "joint_observed": 1550,
+            "up": 913,
+            "weeks_gc_mid_auc_above_half": 6,
+            "weeks_with_both_sides": 14,
+            "xau_ema5_distance_auc_same_rows": 0.4204315477981571
+          },
+          "H4": {
+            "constant_prior_auc": 0.5,
+            "down": 595,
+            "gc_book_imbalance_auc_positive_orientation_same_rows": 0.49217318318528364,
+            "gc_mid_response_auc_positive_orientation": 0.49695140838737395,
+            "joint_observed": 1436,
+            "up": 841,
+            "weeks_gc_mid_auc_above_half": 7,
+            "weeks_with_both_sides": 14,
+            "xau_ema5_distance_auc_same_rows": 0.4797729793463164
+          },
+          "M15": {
+            "constant_prior_auc": 0.5,
+            "down": 671,
+            "gc_book_imbalance_auc_positive_orientation_same_rows": 0.49861346453531497,
+            "gc_mid_response_auc_positive_orientation": 0.4798544052698555,
+            "joint_observed": 1547,
+            "up": 876,
+            "weeks_gc_mid_auc_above_half": 4,
+            "weeks_with_both_sides": 14,
+            "xau_ema5_distance_auc_same_rows": 0.4622437035978469
+          },
+          "M5": {
+            "constant_prior_auc": 0.5,
+            "down": 736,
+            "gc_book_imbalance_auc_positive_orientation_same_rows": 0.5082634121535723,
+            "gc_mid_response_auc_positive_orientation": 0.4886147660818713,
+            "joint_observed": 1591,
+            "up": 855,
+            "weeks_gc_mid_auc_above_half": 5,
+            "weeks_with_both_sides": 14,
+            "xau_ema5_distance_auc_same_rows": 0.47578343503686754
+          }
+        },
+        "state": {
+          "D1": {
+            "constant_prior_auc": 0.5,
+            "down": 414,
+            "gc_book_imbalance_auc_positive_orientation_same_rows": 0.5364650179056408,
+            "gc_mid_response_auc_positive_orientation": 0.5229660874372101,
+            "joint_observed": 1419,
+            "up": 1005,
+            "weeks_gc_mid_auc_above_half": 4,
+            "weeks_with_both_sides": 7,
+            "xau_ema5_distance_auc_same_rows": 0.5255341649241714
+          },
+          "H1": {
+            "constant_prior_auc": 0.5,
+            "down": 699,
+            "gc_book_imbalance_auc_positive_orientation_same_rows": 0.4820621780409054,
+            "gc_mid_response_auc_positive_orientation": 0.4790086911284896,
+            "joint_observed": 1711,
+            "up": 1012,
+            "weeks_gc_mid_auc_above_half": 5,
+            "weeks_with_both_sides": 14,
+            "xau_ema5_distance_auc_same_rows": 0.43728194427951844
+          },
+          "H4": {
+            "constant_prior_auc": 0.5,
+            "down": 742,
+            "gc_book_imbalance_auc_positive_orientation_same_rows": 0.5105804764173134,
+            "gc_mid_response_auc_positive_orientation": 0.5179477544595702,
+            "joint_observed": 1653,
+            "up": 911,
+            "weeks_gc_mid_auc_above_half": 8,
+            "weeks_with_both_sides": 14,
+            "xau_ema5_distance_auc_same_rows": 0.5129977720641101
+          },
+          "M15": {
+            "constant_prior_auc": 0.5,
+            "down": 713,
+            "gc_book_imbalance_auc_positive_orientation_same_rows": 0.4936227589619562,
+            "gc_mid_response_auc_positive_orientation": 0.4724860699154093,
+            "joint_observed": 1671,
+            "up": 958,
+            "weeks_gc_mid_auc_above_half": 4,
+            "weeks_with_both_sides": 14,
+            "xau_ema5_distance_auc_same_rows": 0.43837090478937246
+          },
+          "M5": {
+            "constant_prior_auc": 0.5,
+            "down": 633,
+            "gc_book_imbalance_auc_positive_orientation_same_rows": 0.48301477582334784,
+            "gc_mid_response_auc_positive_orientation": 0.47371718420554193,
+            "joint_observed": 1392,
+            "up": 759,
+            "weeks_gc_mid_auc_above_half": 5,
+            "weeks_with_both_sides": 14,
+            "xau_ema5_distance_auc_same_rows": 0.45934307009930336
+          }
+        }
+      }
+    }
+  },
+  "primary_result": {
+    "fit_joint_observed": 15951,
+    "fit_s_m5_auc": 0.47239140119568296,
+    "later_joint_observed": 1392,
+    "later_s_m5_auc": 0.47371718420554193,
+    "later_weeks_above_half": 5,
+    "later_weeks_with_both_sides": 14
+  },
+  "schema_version": "gx1_gc_mid_response_fold2_review_v1",
+  "source_commit": "08941f17d794d9ca9bbbba722fff045c1850aa56",
+  "status": "COMPLETE_CONSUMED_NO_FIT_EDGE_UNQUALIFIED",
+  "test_data_used": false,
+  "trade_selection": false
+}
