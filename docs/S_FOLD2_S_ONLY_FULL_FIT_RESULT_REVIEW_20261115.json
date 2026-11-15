@@ -312,7 +312,8 @@
     "A same-row exploratory TRAIN replay also shows M5 side degradation, so later regime shift alone cannot explain the observed result.",
     "The backbone contains feature-family and cross-timeframe gates and attention, but this result does not prove predictive cooperation among indicators. The joint activity/side objective allows the easier activity task to improve while certified side worsens.",
     "The causal reason for the side collapse is not isolated. Shared-head interference, optimization and feature/target relationships remain competing explanations. A tiny fixed TRAIN overfit diagnostic can separate basic fit capacity from generalization, but requires a separately admitted one-use training plan.",
-    "At the native endpoint, M5 and D1 side probabilities are nearly identical on later rows while certified M5/D1 sides often disagree; the current shared query output fails timeframe discrimination."
+    "At the native endpoint, M5 and D1 side probabilities are nearly identical on later rows while certified M5/D1 sides often disagree; the current shared query output fails timeframe discrimination.",
+    "Saved checkpoint weights confirm the query-coordinate columns changed; a completely frozen query projection is ruled out, while useful timeframe-conditioned side behavior remains absent."
   ],
   "not_measured": [
     "independent sealed TEST adaptation",
@@ -362,5 +363,22 @@
       }
     },
     "interpretation": "The shared query output barely distinguishes timeframe or forecast minute on this later cohort, despite frequent certified side disagreements between scales. This is observed output collapse, not proof of which encoder, gate, head or optimizer component caused it."
+  },
+  "checkpoint_query_weight_diagnostic": {
+    "scope": "read_only_CPU_initial_vs_final_saved_state_dict; no model forward or optimizer",
+    "projection_weight_shape": [
+      128,
+      134
+    ],
+    "shared_hidden_columns": 128,
+    "timeframe_one_hot_plus_fraction_columns": 6,
+    "query_coordinate_weight_initial_rms": 0.05110892280936241,
+    "query_coordinate_weight_final_rms": 0.06224329024553299,
+    "query_coordinate_weight_change_rms": 0.031016329303383827,
+    "shared_hidden_weight_change_rms": 0.006325532216578722,
+    "side_head_weight_change_rms": 0.006493142805993557,
+    "side_head_bias_initial": 0.03466106206178665,
+    "side_head_bias_final": 0.03666355460882187,
+    "interpretation": "The six query-coordinate weight columns changed under the completed fit, so they were not frozen. Near-identical timeframe outputs persist despite these updates. This does not isolate a causal encoder, projection, loss or optimizer defect."
   }
 }
