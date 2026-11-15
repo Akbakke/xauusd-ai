@@ -5,7 +5,20 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_MINUTE_NATIVE_FORWARD_MECHANICS_PASS_LEARNING_EDGE_OPEN.
+Gjeldende policy: FOLD2_MINUTE_SIDE_WEIGHT_SOURCE_PASS_NATIVE_BASELINE_FIT_OPEN.
+Målt avvik i minutt1-tapet: sertifisert retningsfeil ble delt på alle
+informative rader. Første genuine B16 hadde kjent side på M5 7/16,
+M15 5/16 og H1 4/8; hele Fold2 fit har kjent side på 15 891/47 299
+M5-kvalifiserte celler. En separat kildekandidat gjenbruker den vedtatte
+støttenormaliseringen: fast minutt1 på fem TF, aktivitet delt på informativ
+støtte og side vektet likt per sertifisert fit-rad over 2 959 kronologiske
+B16-batcher. Tre nye fokuserte tester består, uten modellforward eller
+optimizer. Se docs/S_FOLD2_MINUTE_SIDE_LOSS_SOURCE_REVIEW_20261115.json.
+Dette er ingen målt forbedring i læring eller Edge. Neste gate er fersk
+genuin initialbaseline og eksakt opptak av full fit-radrekkefølge før
+eventuell trening; training_enabled=false; TEST, broker og handel stengt.
+
+Forrige policy: FOLD2_MINUTE_NATIVE_FORWARD_MECHANICS_PASS_LEARNING_EDGE_OPEN.
 Én capped, forhåndsbundet genuine full-GC Fold2 fit-B16 minuttspørring er
 fullført og brukt opp. Ett CPU-backbone-kall og tre hode-decodes ga bitlikt
 råoutput ved fem gamle native endepunkter; fast minutt1 på alle fem TF ga

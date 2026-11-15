@@ -1,0 +1,89 @@
+{
+  "batch_size": 16,
+  "decision": "PASS_FIXED_MINUTE_ONE_EQUAL_SIDE_OBSERVATION_SOURCE_ONLY",
+  "economic_edge_qualified": false,
+  "finding": "Existing minute allowed-set loss divides each certified side BCE by all informative cells. The first genuine B16 and full Fold2 support show that this dilutes the side gradient when many labels are activity-only.",
+  "first_genuine_B16_side_coefficient_comparison": {
+    "D1": {
+      "eligible": 0,
+      "known_side": 0,
+      "new_over_old_coefficient": null,
+      "new_side_coefficient": 0.1808679706601467,
+      "old_side_coefficient": null
+    },
+    "H1": {
+      "eligible": 8,
+      "known_side": 4,
+      "new_over_old_coefficient": 1.3049614112458654,
+      "new_side_coefficient": 0.16312017640573317,
+      "old_side_coefficient": 0.125
+    },
+    "H4": {
+      "eligible": 0,
+      "known_side": 0,
+      "new_over_old_coefficient": null,
+      "new_side_coefficient": 0.1548566045635336,
+      "old_side_coefficient": null
+    },
+    "M15": {
+      "eligible": 16,
+      "known_side": 5,
+      "new_over_old_coefficient": 2.603607567091949,
+      "new_side_coefficient": 0.16272547294324682,
+      "old_side_coefficient": 0.0625
+    },
+    "M5": {
+      "eligible": 16,
+      "known_side": 7,
+      "new_over_old_coefficient": 2.97929645711409,
+      "new_side_coefficient": 0.18620602856963062,
+      "old_side_coefficient": 0.0625
+    }
+  },
+  "fit_batches": 2959,
+  "fit_eligible_cells": {
+    "D1": 37940,
+    "H1": 46855,
+    "H4": 45626,
+    "M15": 47209,
+    "M5": 47299
+  },
+  "fit_rows": 47338,
+  "fixed_query_minute_all_timeframes": 1,
+  "focused_test": {
+    "path": "/home/andre2/src/GX1_CURRENT/tests/test_market_state_fold2_minute_one_side_loss_v1.py",
+    "sha256": "c21b1f150174c7749b2483d7bcb81b6f8a4087d5f0d7b7dc37aede71c262c6b5"
+  },
+  "focused_tests_passed": 3,
+  "independent_generalization_measured": false,
+  "known_side_fit_rows": {
+    "D1": 16360,
+    "H1": 18140,
+    "H4": 19108,
+    "M15": 18184,
+    "M5": 15891
+  },
+  "model_forwards": 0,
+  "next_gate": "Fresh actual initial function baseline and exact one-use admission before any Fold2 minute-one fit; later chronological scores and economic Edge remain separate.",
+  "normalization": "Activity BCE remains averaged over informative cells per TF and batch. Each certified side BCE receives fit_batches/known_side_fit_rows for that TF before equal-TF division. Averaging one complete chronological pass over 2959 batches gives equal weight to each known-side fit row.",
+  "observed_utc": "2026-11-15T10:45:00.792848+00:00",
+  "optimizer_steps": 0,
+  "prior_genuine_forward": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/S_FOLD2_MINUTE_NATIVE_FORWARD_REVIEW_20261115.json",
+    "sha256": "5c1b507e1267ed9fd5bf856e97f575c30221ddd2caa584990cc4f1ca143cf59d"
+  },
+  "prior_minute_source": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/S_FOLD2_MINUTE_QUERY_SOURCE_REVIEW_20261115.json",
+    "sha256": "06dd85b07d5d0c5b26995251f9b410b903826d1d450c4e77dfff473094488b2c"
+  },
+  "required_fit_schedule": "Exactly 47338 bound Fold2 fit rows in fixed 16-row chronological batches, each row once; verify before any optimizer step.",
+  "schema_version": "gx1_fold2_minute_one_side_loss_source_review_v1",
+  "score_selection": "No threshold, weight or query time selected using later development or sealed TEST.",
+  "source": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_fold2_minute_one_side_loss_v1.py",
+    "sha256": "e92310a542a8b4849019b8c8e99ce438ce8bfd399ab025254f234d396123876e"
+  },
+  "source_contract_sha256": "a196607ae4111cd39ac25782aba7ae573aed40c18107aa46589f0723769e00ae",
+  "target_or_forward_changed": false,
+  "training_authorized": false
+}
