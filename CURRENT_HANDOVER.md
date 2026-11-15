@@ -5,21 +5,25 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: SELECTED_NATIVE_FOLD2_B16_GATHER_PASS_OPTIMIZER_ADMISSION_CLOSED.
-Den separate lesende Fold2 full-GC S/F-kontrollen er COMPLETE/CONSUMED,
-exit0 under capped producer 12G/512M. To faktiske B16-batcher på TRAIN-rad2–33
-ble lest med 14 genuine featureflater per batch og kausale M5/M15/H1/H4/D1-
-klokker. View-SHA er `9ea6a4595c6a5792acd190ad12dc861d9bb99ec921c5bd3650b38b15154981bc`.
-Original CLAIM/RESULT/TERMINAL er bevart i
-`/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_SELECTED_NATIVE_B16_GATHER_20261115_001/`.
-Se `docs/S_F_FOLD2_SELECTED_NATIVE_B16_GATHER_RESULT_REVIEW_20261115.json`.
-Null modellkonstruksjoner, forwards, optimizersteg, CUDA, TEST eller handel.
-Dette kvalifiserer fysisk input, ikke modell-læring eller Edge. Den separate
-firestegs AdamW/resume-kandidatoppskriften, SHA256
-`3e5c6875544583a6410c5031c2a7e44220d6437b98c438130304eaab92605981`,
-er uadmittert. Neste gate er eksakt engangs policyadmisjon med fersk fysisk
-boot før bevoktet optimizer/resume. `training_enabled=false` består; ingen
-full fit, senere modellscore, TEST, broker eller handel.
+Gjeldende policy: FOLD2_FULL_GC_5TF_STRUCTURAL_ROUTE_PASS_OPTIMIZER_ADMISSION_CLOSED.
+Kildekontrollen mot dagens Fold2 full-GC view `9ea6a4595c6a5792acd190ad12dc861d9bb99ec921c5bd3650b38b15154981bc`
+viser eksakt strukturell indeksdekning for alle deklarerte 2727 signal-,
+2542 kontekst- og 255 MTF-felt på hver av fem TF, samt 639/493/453/431/399
+GC-modellkoordinater M5/M15/H1/H4/D1. Åtte spesialistfamilier er beholdt;
+alle 61 D1/makrofelt ligger i kontekstbanen gjennom session_regime og global
+kontekst. Én fysisk full-GC S/F-forward/backward på to TRAIN-rader hadde
+ikke-null gradient i fire målt grupper; separat er to B16 full-GC-inputbatcher
+lest fysisk og kausalt uten modell eller optimizer. Dette beviser kilderute,
+ikke individuell feltfølsomhet, læring, kalibrering eller Edge. Formel/enhet,
+warmup og publiseringstid er ikke revidert felt for felt i denne kontrollen.
+Se `docs/S_F_FOLD2_FULL_GC_5TF_MODEL_CONSUMPTION_ROUTE_REVIEW_20261115.json`
+og `docs/S_F_FOLD2_SELECTED_NATIVE_B16_GATHER_RESULT_REVIEW_20261115.json`.
+Den lesende engangsplanen er COMPLETE/CONSUMED; originalkvitteringer er bevart
+i `/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_SELECTED_NATIVE_B16_GATHER_20261115_001/`.
+Firestegs AdamW/resume-oppskriften `3e5c6875544583a6410c5031c2a7e44220d6437b98c438130304eaab92605981`
+er separat uadmittert. Neste gate er eksakt engangs policyadmisjon og fersk
+fysisk boot. `training_enabled=false` består; ingen full fit, TEST, broker
+eller handel.
 
 Forrige policy: GC_ABS_BOOK_ACTIVITY_POSITIVE_HYPOTHESIS_UNSUPPORTED_EDGE_UNQUALIFIED.
 Den ene forhåndsbundne, capped GC-bokaktivitetstesten er COMPLETE/CONSUMED,

@@ -1,0 +1,133 @@
+{
+  "categorical_routing": {
+    "ctx_cat_fields": 1,
+    "ctx_cat_route": "family context categorical embedding",
+    "ctx_cont_nominal_fields": 0,
+    "gc_mtf_nominal_fields_per_timeframe": 0,
+    "mtf_nominal_fields_per_timeframe": 1,
+    "mtf_route": "dedicated nominal embedding on each M5/M15/H1/H4/D1 family path",
+    "signal_nominal_fields": 1,
+    "signal_route": "dedicated nominal embedding on sequence and specialist path"
+  },
+  "ctx_cat_width": 1,
+  "execution_profile_sha256": "efe705c50c80216eb9fa45f3233703b21278f376ca68a4c436f9a79ce7beb126",
+  "gc_model_coordinate_routes": {
+    "D1": {
+      "all_declared_indices_routed_once": true,
+      "family_partition_indices": 399,
+      "model_coordinates": 399
+    },
+    "H1": {
+      "all_declared_indices_routed_once": true,
+      "family_partition_indices": 453,
+      "model_coordinates": 453
+    },
+    "H4": {
+      "all_declared_indices_routed_once": true,
+      "family_partition_indices": 431,
+      "model_coordinates": 431
+    },
+    "M15": {
+      "all_declared_indices_routed_once": true,
+      "family_partition_indices": 493,
+      "model_coordinates": 493
+    },
+    "M5": {
+      "all_declared_indices_routed_once": true,
+      "family_partition_indices": 639,
+      "model_coordinates": 639
+    }
+  },
+  "inference_limit": "Structural index coverage and one physical two-row forward/backward do not prove every individual field has nonzero sensitivity, generalization, calibration, Entry quality or economic Edge. The two B16 batches were gathered but not passed through the model. Formula, source units, warmup and publication timing were not revalidated field by field in this route-only audit.",
+  "loss_contract_sha256": "06c8bffc81cbfe2da114499d3428ee94682a38609de67788854fd6cd2a1606dd",
+  "macro_context": {
+    "declared_D1_macro_fields": 61,
+    "model_path": "session_regime_encoder context token then family_context_global; retained context, not a ninth specialist encoder",
+    "present_in_context": 61,
+    "routed_to_session_regime": 61
+  },
+  "model_contract_sha256": "ab6b8163d99213abd348a91ad97de87ca0e62b8704b4df0cb2086e47614ba811",
+  "observed_physical": {
+    "nonzero_gradient_groups": [
+      "backbone",
+      "future_head",
+      "shared_projection",
+      "state_head"
+    ],
+    "two_B16_feature_gather_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/S_F_FOLD2_SELECTED_NATIVE_B16_GATHER_RESULT_REVIEW_20261115.json",
+      "sha256": "ef5af9ca9612dae49ace0b0eabee9f8ac1ad9a6e2a3031bb4999fa8ccae46dc4"
+    },
+    "two_B16_model_forwards": 0,
+    "two_row_backward_calls": 1,
+    "two_row_forward_backward_ref": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_SELECTED_ENDPOINT_INITIAL_FOLD2_20261115_002/RESULT.json",
+      "sha256": "23e2d01a429f9580d67fbead7320e42fae7761859ac5c8ceefd0af7dfc2ed081"
+    },
+    "two_row_model_forwards": 1,
+    "two_row_optimizer_steps": 0
+  },
+  "physical_field_routes": {
+    "ctx_cont": {
+      "active_indices": 2542,
+      "all_declared_indices_routed_once": true,
+      "family_partition_indices": 2542,
+      "physical_width": 2542
+    },
+    "mtf": {
+      "active_indices": 255,
+      "all_declared_indices_routed_once": true,
+      "family_partition_indices": 255,
+      "physical_width": 255
+    },
+    "signal": {
+      "active_indices": 2727,
+      "all_declared_indices_routed_once": true,
+      "family_partition_indices": 2727,
+      "physical_width": 2727
+    }
+  },
+  "schema_version": "gx1_fold2_full_gc_5tf_model_consumption_route_review_v1",
+  "source_commit": "6b91c66acee5972dc55b3fe9dcbe106a803f0b24",
+  "source_owners_sha256": {
+    "gx1/contracts/entry_native_direction_feature_view_v1.py": "6fc56f8dd76005090614df83a6dc87db94163f0216cfdf1983278f3932d7d34f",
+    "gx1/contracts/market_state_time_query_model_v2.py": "601491f5e6d2d0476b4c3ce94000aad8682b787ad6045024295f9284547c17ab",
+    "gx1/contracts/market_state_time_query_native_F_model_v1.py": "bbfe6e09b9ab236c65b08154d793c4cac006f28dea83bf78df0ca0ad9c92be3e",
+    "gx1/features/entry_specialist_feature_groups_v1.py": "38da0c25aaadb2bd0108eb427578163aa76c73dd7fe9367aa86fed185a1e0f27",
+    "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": "028665b503f28704900574b551e3571f813065f6d1fb8bd2c91d0dc27400364c"
+  },
+  "specialist_families": [
+    "structure_swing_encoder",
+    "smc_liquidity_encoder",
+    "trend_ema_encoder",
+    "vol_compression_encoder",
+    "momentum_flow_encoder",
+    "session_regime_encoder",
+    "chart_geometry_encoder",
+    "price_action_candle_encoder"
+  ],
+  "status": "PASS_STRUCTURAL_ALL_DECLARED_FIELD_ROUTES_PHYSICAL_FORWARD_LIMITED",
+  "target_support": {
+    "future": {
+      "informative_by_batch": [
+        80,
+        80
+      ],
+      "known_side_by_batch": [
+        33,
+        25
+      ]
+    },
+    "state": {
+      "informative_by_batch": [
+        80,
+        80
+      ],
+      "known_side_by_batch": [
+        19,
+        22
+      ]
+    }
+  },
+  "view_sha256": "9ea6a4595c6a5792acd190ad12dc861d9bb99ec921c5bd3650b38b15154981bc"
+}
