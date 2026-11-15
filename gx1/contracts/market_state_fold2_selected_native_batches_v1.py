@@ -21,7 +21,7 @@ def _need(ok, reason):
         raise RuntimeError('FOLD2_SELECTED_NATIVE_BATCHES_' + reason)
 
 
-def load_two_batches(*, source_owners):
+def load_two_batches(*, source_owners, stream=False, later_full_gc_ref=None):
     """Return view, normalization, constructor, two raw batches and provider.
 
     Receipts, current source bindings, five causal clocks and all 32 TRAIN axes
@@ -146,6 +146,109 @@ def load_two_batches(*, source_owners):
     _need(gc['layout'] == mature._receipt_chain()['gc_layout']
           and gc['layout']['contract_sha256'] == view['prefix_normalization']['gc_layout_sha256'],
           'CURRENT_GC_LAYOUT')
+    if stream:
+        _need(isinstance(later_full_gc_ref, dict)
+              and set(later_full_gc_ref) == {'path', 'sha256'}, 'LATER_REF')
+        later_full = initial.checked_json(later_full_gc_ref)
+        _need(later_full['status'] == 'COMPLETE'
+              and later_full['decision'] == 'PASS_FULL_GC_FOLD2_LATER_INPUT_GATHER'
+              and later_full['view_sha256'] == view['contract_sha256']
+              and later_full['selected_parent_rows'] == 4096
+              and later_full['feature_batches'] == 256
+              and later_full['test_data_used'] is False, 'LATER_RECEIPT')
+        later_plan = initial.checked_json(later_full['plan'])
+        later_physical = initial.checked_json(later_plan['inputs']['later_result'])
+        coverage = initial.checked_json(later_plan['inputs']['later_coverage'])
+        _need(later_physical['status'] == 'COMPLETE'
+              and coverage['status'] == 'COMPLETE'
+              and coverage['score_rows'] >= 4096
+              and len(coverage['batch_indices']) == 256
+              and later_full['parent_rows_sha256']
+                  == coverage['selected_parent_rows_sha256']
+              and later_full['decision_ns_sha256']
+                  == coverage['selected_decision_ns_sha256'], 'LATER_LINEAGE')
+        chosen = (coverage['score_parent_start']
+                  + np.asarray(coverage['batch_indices'], dtype=np.int64)[:, None] * 16
+                  + np.arange(16, dtype=np.int64)).reshape(-1)
+        _need(chosen.shape == (4096,)
+              and int(chosen[-1]) < coverage['score_parent_start'] + coverage['score_rows']
+              and hashlib.sha256(axes['parent_rows'][chosen].astype('<i8', copy=False).tobytes()).hexdigest()
+                  == coverage['selected_parent_rows_sha256']
+              and hashlib.sha256(axes['decision_ns'][chosen].astype('<i8', copy=False).tobytes()).hexdigest()
+                  == coverage['selected_decision_ns_sha256'], 'LATER_SELECTED_AXES')
+        later_payloads = {}
+        for lane in ('local', *TIMEFRAMES):
+            artifact = later_physical['surfaces'][lane]['artifact']
+            initial.checked_file(artifact)
+            with np.load(artifact['path'], allow_pickle=False) as archive:
+                later_payloads[lane] = {key: archive[key] for key in archive.files}
+        later_coverage = dict(coverage, view_sha256=view['contract_sha256'])
+        later_bound = build_anchor_span_inputs(
+            view, entry_sequence_source=sequence, snap_x=current['snap'],
+            ctx_cont=current['ctx_cont'], ctx_cat=current['ctx_cat'],
+            parent_signal_names=parent['surfaces']['signal']['field_names'],
+            parent_mtf_names=parent['surfaces']['mtf_m5']['field_names'],
+            parent_mtf_values=values, parent_mtf_times=clocks,
+            span_payloads=later_payloads,
+            physical_populations={lane: item['population']
+                                  for lane, item in later_physical['surfaces'].items()},
+            unobserved_units_profile=None, later_coverage=later_coverage,
+            later_axes=axes)
+        selected_set = set(chosen.tolist())
+
+        def gather(label, rows, batch_issues):
+            _need(label in ('TRAIN', 'LATER') and isinstance(rows, np.ndarray)
+                  and rows.dtype == np.int64 and isinstance(batch_issues, np.ndarray)
+                  and batch_issues.dtype == np.int64 and 1 <= len(rows) <= 16
+                  and len(rows) == len(batch_issues), 'STREAM_REQUEST')
+            at = np.searchsorted(axes['parent_rows'], rows)
+            _need(bool(np.all(at < len(axes['parent_rows'])))
+                  and np.array_equal(axes['parent_rows'][at], rows)
+                  and np.array_equal(axes['decision_ns'][at], batch_issues)
+                  and (bool(np.all(at < 47338)) if label == 'TRAIN'
+                       else all(int(pos) in selected_set for pos in at)),
+                  'STREAM_AXES')
+            overlay = bound if label == 'TRAIN' else later_bound
+            raw = views.gather_native_direction_feature_batch(
+                view, parent_rows=axes['parent_rows'], bar_start_ns=axes['bar_start_ns'],
+                decision_ns=axes['decision_ns'], entry_sequence_source=sequence,
+                snap_x=current['snap'], ctx_cont=current['ctx_cont'], ctx_cat=current['ctx_cat'],
+                multi_tf_sources=overlay.mtf_sources, gc_surfaces=gc['surfaces'],
+                gc_layout=gc['layout'], batch_parent_rows=rows,
+                unobserved_units_profile=None, anchor_span_inputs=overlay)
+            _need(set(raw['features']) == FEATURE_KEYS
+                  and raw['witness']['parent_rows'] == rows.tolist()
+                  and raw['witness']['decision_ns'] == batch_issues.tolist(),
+                  'STREAM_BATCH_IDENTITY')
+            for name, value in raw['features'].items():
+                dtype = np.int64 if name == 'ctx_cat' else np.float32
+                _need(value.dtype == dtype and value.shape[0] == len(rows)
+                      and bool(np.isfinite(value).all()), 'STREAM_FEATURE:' + name)
+            for lane, witnesses in raw['witness']['multi_tf'].items():
+                _need(len(witnesses) == len(rows)
+                      and all(max(item['available_ns']) <= int(issue)
+                              for item, issue in zip(witnesses, batch_issues)),
+                      'STREAM_CLOCK:' + lane)
+            return raw['features']
+
+        def release():
+            for array in (*source.values(), *current.values(),
+                          *values.values(), *clocks.values()):
+                provider.flush_pages(array)
+            for surface in gc['surfaces'].values():
+                for key in ('native_row_indices', 'available_ns', 'features'):
+                    provider.flush_pages(surface[key])
+            provider.validate_metadata(provider_plan)
+
+        return {'view': view, 'packet': packet, 'constructor': constructor,
+                'axes': axes, 'train_parent_rows': axes['parent_rows'][:47338],
+                'train_issue_ns': axes['decision_ns'][:47338],
+                'later_parent_rows': axes['parent_rows'][chosen],
+                'later_issue_ns': axes['decision_ns'][chosen],
+                'later_score_upper_ns': coverage['score_end_exclusive_ns'],
+                'gather': gather, 'release': release,
+                'provider': provider, 'provider_plan': provider_plan}
+
     batches, reports = [], []
     for left in (0, scope.BATCH_SIZE):
         rows = selected[left:left + scope.BATCH_SIZE]

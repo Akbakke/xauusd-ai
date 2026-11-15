@@ -49,6 +49,7 @@ TA_COMBINED_DECODER_BENCHMARK_SCOPE = 'market_state_ta_combined_decoder_benchmar
 TA_FULL_PREFIX_LEARNING_SCOPE = 'market_state_ta_full_prefix_learning_v1'
 TA_FULL_PREFIX_ORDER_SCOPE = 'market_state_ta_full_prefix_order_v1'
 TA_FOLD2_M5_FIT_SCOPE = 'market_state_ta_fold2_m5_direction_fit_v1'
+FOLD2_S_FULL_FIT_SCOPE = 'market_state_fold2_25_cell_S_full_fit_v1'
 TA_M5_CENTERED_HEAD_COORDINATES_SCOPE = 'market_state_ta_m5_centered_head_coordinates_v1'
 TA_M5_PAIRED_BATCH_ORDER_SCOPE = 'market_state_ta_m5_paired_batch_order_v1'
 TA_M5_REPEATED_PASS_SCOPE = 'market_state_ta_m5_repeated_pass_v1'
@@ -258,6 +259,10 @@ def _is_ta_fold2_m5_fit_recipe_ref(binding):
     from gx1.contracts.market_state_ta_fold2_m5_fit_v1 import RECIPE_PATH
     return isinstance(binding, Mapping) and binding.get('path') == str(RECIPE_PATH)
 
+def _is_fold2_s_full_fit_recipe_ref(binding):
+    from gx1.contracts.market_state_fold2_s_full_fit_v1 import RECIPE_PATH
+    return isinstance(binding, Mapping) and binding.get('path') == str(RECIPE_PATH)
+
 
 def _is_ta_combined_decoder_benchmark_recipe_ref(binding):
     from gx1.contracts.market_state_ta_combined_decoder_benchmark_v1 import RECIPE_PATH
@@ -287,6 +292,11 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
     ref = campaign.require_binding(binding, label='direction research recipe', verify_file=verify_files)
     _require(verify_files, 'RECIPE_REQUIRES_PHYSICAL_METADATA')
     value = campaign.read_bound_json(Path(ref['path']), ref['sha256'])
+    fold2_s_fit = _is_fold2_s_full_fit_recipe_ref(ref)
+    if fold2_s_fit or value.get('run_scope') == FOLD2_S_FULL_FIT_SCOPE:
+        _require(fold2_s_fit and value.get('run_scope') == FOLD2_S_FULL_FIT_SCOPE, 'FOLD2_S_FULL_FIT_RECIPE_PATH')
+        from gx1.contracts.market_state_fold2_s_full_fit_v1 import require_recipe
+        return require_recipe(value, source_repo=source_repo, source_commit=source_commit, verify_files=verify_files)
     fold2_fit = _is_ta_fold2_m5_fit_recipe_ref(ref)
     if fold2_fit or value.get('run_scope') == TA_FOLD2_M5_FIT_SCOPE:
         _require(fold2_fit and value.get('run_scope') == TA_FOLD2_M5_FIT_SCOPE,
@@ -791,6 +801,12 @@ def guarded_research_power_limit(recipe):
             and recipe.get('numerical_recipe', {}).get('batch_size') == 16,
             'M5_IMPORT_POWER_SCOPE')
         return 250
+    if recipe.get('run_scope') == FOLD2_S_FULL_FIT_SCOPE:
+        _require(recipe.get('fold_id') == 2 and recipe.get('s_only_25_cell') is True
+            and recipe.get('training_enabled') is True and recipe.get('full_epoch_training_allowed') is True
+            and recipe.get('test_data_used') is False
+            and recipe.get('numerical_recipe', {}).get('batch_size') == 16, 'FOLD2_S_FULL_FIT_POWER_SCOPE')
+        return 250
     if recipe.get('run_scope') == FOLD2_25_CELL_S_PRIVATE_SCOPE:
         _require(recipe.get('fold_id') == 2
             and recipe.get('s_only_25_cell') is True
@@ -884,7 +900,7 @@ def require_research_invocation_execution(result: dict[str, Any], execution: Map
         '--progress-path',window['progress_path']], 'INVOCATION_ARGV')
     _require(result['kind'] == KIND and result['batch_size'] == recipe['numerical_recipe']['batch_size'] and result['epoch_index'] is None
         and result['invocation_number'] == 1 and result['window_index'] == 0 and result['window_count'] == 1
-        and type(result['optimizer_step_budget']) is int and result['optimizer_step_budget'] == (0 if import_mode else 2959 if _is_ta_fold2_m5_fit_recipe_ref(recipe_ref) else 3698 if (_is_ta_full_prefix_learning_recipe_ref(recipe_ref) or _is_ta_full_prefix_order_recipe_ref(recipe_ref)) else 768 if (_is_ta_coverage_benchmark_recipe_ref(recipe_ref) or _is_ta_combined_decoder_benchmark_recipe_ref(recipe_ref)) else 1536 if _is_ta_m5_objective_benchmark_recipe_ref(recipe_ref) else 1849 if _is_ta_m5_full_reverse_order_recipe_ref(recipe_ref) else 512 if (_is_ta_m5_paired_batch_order_recipe_ref(recipe_ref) or _is_ta_m5_repeated_pass_recipe_ref(recipe_ref)) else 256 if (_is_ta_short_learning_recipe_ref(recipe_ref) or _is_ta_m5_original_cuda_prefix_recipe_ref(recipe_ref) or _is_ta_m5_centered_head_coordinates_recipe_ref(recipe_ref)) else 4)
+        and type(result['optimizer_step_budget']) is int and result['optimizer_step_budget'] == (0 if import_mode else 2959 if (_is_ta_fold2_m5_fit_recipe_ref(recipe_ref) or _is_fold2_s_full_fit_recipe_ref(recipe_ref)) else 3698 if (_is_ta_full_prefix_learning_recipe_ref(recipe_ref) or _is_ta_full_prefix_order_recipe_ref(recipe_ref)) else 768 if (_is_ta_coverage_benchmark_recipe_ref(recipe_ref) or _is_ta_combined_decoder_benchmark_recipe_ref(recipe_ref)) else 1536 if _is_ta_m5_objective_benchmark_recipe_ref(recipe_ref) else 1849 if _is_ta_m5_full_reverse_order_recipe_ref(recipe_ref) else 512 if (_is_ta_m5_paired_batch_order_recipe_ref(recipe_ref) or _is_ta_m5_repeated_pass_recipe_ref(recipe_ref)) else 256 if (_is_ta_short_learning_recipe_ref(recipe_ref) or _is_ta_m5_original_cuda_prefix_recipe_ref(recipe_ref) or _is_ta_m5_centered_head_coordinates_recipe_ref(recipe_ref)) else 4)
         and result['expected_success_outcome'] == 'COMPLETE' and result['maximum_wall_seconds'] == (3900 if _is_ta_short_learning_recipe_ref(recipe_ref) else 3300 if _is_ta_m5_paired_batch_order_recipe_ref(recipe_ref) else 13800)
         and result['checkpoint'] == {'pointer_path':window['campaign_cursor_path'],'before_mode':'GENESIS',
             'predecessor_invocation_number':None,'write_mode':'ATOMIC_UPDATE'}
@@ -920,7 +936,7 @@ def require_research_plan(value: Any, *, verify_files: bool = True) -> dict[str,
         from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
         if policy_recipe['run_scope'] in (DYNAMIC_STATE_PRIVATE_SCOPE, december.PRIVATE_SCOPE,
                                           october.roles.PRIVATE_SCOPE, TIME_QUERY_PRIVATE_SCOPE,
-                                          NATIVE_F_PRIVATE_SCOPE, FOLD2_SELECTED_NATIVE_SCOPE, FOLD2_25_CELL_S_PRIVATE_SCOPE, TA_SF_MECHANICAL_SCOPE, TA_M5_MECHANICAL_SCOPE, TA_M5_IMPORT_SCOPE, TA_M5_EQUAL_LOSS_SCOPE, TA_M5_C171_SHORT_LEARNING_SCOPE, TA_NON_M5_SHORT_LEARNING_SCOPE, TA_TF_ACTIVITY_SHORT_LEARNING_SCOPE, TA_ANCHOR_SPAN_SHORT_LEARNING_SCOPE, TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE, TA_M5_CENTERED_HEAD_COORDINATES_SCOPE, TA_M5_PAIRED_BATCH_ORDER_SCOPE, TA_M5_REPEATED_PASS_SCOPE, TA_M5_FULL_REVERSE_ORDER_SCOPE, TA_M5_OBJECTIVE_BENCHMARK_SCOPE, TA_COVERAGE_BENCHMARK_SCOPE, TA_COMBINED_DECODER_BENCHMARK_SCOPE, TA_FULL_PREFIX_LEARNING_SCOPE, TA_FULL_PREFIX_ORDER_SCOPE, TA_FOLD2_M5_FIT_SCOPE):
+                                          NATIVE_F_PRIVATE_SCOPE, FOLD2_SELECTED_NATIVE_SCOPE, FOLD2_25_CELL_S_PRIVATE_SCOPE, TA_SF_MECHANICAL_SCOPE, TA_M5_MECHANICAL_SCOPE, TA_M5_IMPORT_SCOPE, TA_M5_EQUAL_LOSS_SCOPE, TA_M5_C171_SHORT_LEARNING_SCOPE, TA_NON_M5_SHORT_LEARNING_SCOPE, TA_TF_ACTIVITY_SHORT_LEARNING_SCOPE, TA_ANCHOR_SPAN_SHORT_LEARNING_SCOPE, TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE, TA_M5_CENTERED_HEAD_COORDINATES_SCOPE, TA_M5_PAIRED_BATCH_ORDER_SCOPE, TA_M5_REPEATED_PASS_SCOPE, TA_M5_FULL_REVERSE_ORDER_SCOPE, TA_M5_OBJECTIVE_BENCHMARK_SCOPE, TA_COVERAGE_BENCHMARK_SCOPE, TA_COMBINED_DECODER_BENCHMARK_SCOPE, TA_FULL_PREFIX_LEARNING_SCOPE, TA_FULL_PREFIX_ORDER_SCOPE, TA_FOLD2_M5_FIT_SCOPE, FOLD2_S_FULL_FIT_SCOPE):
             _require('family_same_boot' not in result, 'STATE_FRESH_BOOT_REQUIRED')
             expected_policy['physical_power_limit_w'] = 250
     _require(campaign.canonical_sha256(result['policy']) == campaign.canonical_sha256(expected_policy)
@@ -966,7 +982,8 @@ def require_native_direction_research_readiness(repo: Path, *, window_path: Path
     import_mode = _is_ta_m5_import_recipe_ref(window['recipe'])
     training_enabled = not import_mode
     full_fit = (_is_ta_m5_full_reverse_order_recipe_ref(window['recipe'])
-                or _is_ta_fold2_m5_fit_recipe_ref(window['recipe']))
+                or _is_ta_fold2_m5_fit_recipe_ref(window['recipe'])
+                or _is_fold2_s_full_fit_recipe_ref(window['recipe']))
     _require(repo == CANONICAL_REPO and branch == 'work/gx1-current' and not dirty
         and policy.get('schema_version') == 'gx1_next_native_run_policy_v1'
         and policy.get('canonical_source_repo') == str(repo) and policy.get('canonical_branch') == branch
@@ -1030,6 +1047,9 @@ def require_native_direction_research_readiness(repo: Path, *, window_path: Path
     if recipe['run_scope'] == TA_FOLD2_M5_FIT_SCOPE:
         from gx1.contracts.market_state_ta_fold2_m5_fit_v1 import require_gate
         require_gate(gate, recipe)
+    if recipe['run_scope'] == FOLD2_S_FULL_FIT_SCOPE:
+        from gx1.contracts.market_state_fold2_s_full_fit_v1 import require_gate
+        require_gate(gate, recipe)
     if recipe['run_scope'] == TA_FULL_PREFIX_ORDER_SCOPE:
         from gx1.contracts.market_state_ta_full_prefix_order_v1 import require_gate
         require_gate(gate, recipe)
@@ -1075,7 +1095,7 @@ def require_native_direction_research_readiness(repo: Path, *, window_path: Path
         'canonical_source_repo':str(repo),'source_commit':head,'policy_sha256':campaign.file_sha256(policy_path),
         'training_started':False,'native_invocation_seconds':3600 if recipe['run_scope'] in (TA_M5_C171_SHORT_LEARNING_SCOPE, TA_NON_M5_SHORT_LEARNING_SCOPE, TA_TF_ACTIVITY_SHORT_LEARNING_SCOPE, TA_ANCHOR_SPAN_SHORT_LEARNING_SCOPE) else 3000 if recipe['run_scope'] == TA_M5_PAIRED_BATCH_ORDER_SCOPE else 12000,
         'outer_guard_seconds':3900 if recipe['run_scope'] in (TA_M5_C171_SHORT_LEARNING_SCOPE, TA_NON_M5_SHORT_LEARNING_SCOPE, TA_TF_ACTIVITY_SHORT_LEARNING_SCOPE, TA_ANCHOR_SPAN_SHORT_LEARNING_SCOPE) else 3300 if recipe['run_scope'] == TA_M5_PAIRED_BATCH_ORDER_SCOPE else 13800,
-        'native_window_scope':{'research_only':True,'invocation_number':1,'optimizer_step_ceiling':0 if import_mode else 2959 if recipe['run_scope'] == TA_FOLD2_M5_FIT_SCOPE else 3698 if recipe['run_scope'] in (TA_FULL_PREFIX_LEARNING_SCOPE, TA_FULL_PREFIX_ORDER_SCOPE) else 768 if recipe['run_scope'] in (TA_COVERAGE_BENCHMARK_SCOPE, TA_COMBINED_DECODER_BENCHMARK_SCOPE) else 1536 if recipe['run_scope'] == TA_M5_OBJECTIVE_BENCHMARK_SCOPE else 1849 if full_fit else 512 if recipe['run_scope'] in (TA_M5_PAIRED_BATCH_ORDER_SCOPE, TA_M5_REPEATED_PASS_SCOPE) else 256 if recipe['run_scope'] in (TA_M5_C171_SHORT_LEARNING_SCOPE, TA_NON_M5_SHORT_LEARNING_SCOPE, TA_TF_ACTIVITY_SHORT_LEARNING_SCOPE, TA_ANCHOR_SPAN_SHORT_LEARNING_SCOPE, TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE, TA_M5_CENTERED_HEAD_COORDINATES_SCOPE) else 4,
+        'native_window_scope':{'research_only':True,'invocation_number':1,'optimizer_step_ceiling':0 if import_mode else 2959 if recipe['run_scope'] in (TA_FOLD2_M5_FIT_SCOPE, FOLD2_S_FULL_FIT_SCOPE) else 3698 if recipe['run_scope'] in (TA_FULL_PREFIX_LEARNING_SCOPE, TA_FULL_PREFIX_ORDER_SCOPE) else 768 if recipe['run_scope'] in (TA_COVERAGE_BENCHMARK_SCOPE, TA_COMBINED_DECODER_BENCHMARK_SCOPE) else 1536 if recipe['run_scope'] == TA_M5_OBJECTIVE_BENCHMARK_SCOPE else 1849 if full_fit else 512 if recipe['run_scope'] in (TA_M5_PAIRED_BATCH_ORDER_SCOPE, TA_M5_REPEATED_PASS_SCOPE) else 256 if recipe['run_scope'] in (TA_M5_C171_SHORT_LEARNING_SCOPE, TA_NON_M5_SHORT_LEARNING_SCOPE, TA_TF_ACTIVITY_SHORT_LEARNING_SCOPE, TA_ANCHOR_SPAN_SHORT_LEARNING_SCOPE, TA_M5_ORIGINAL_CUDA_PREFIX_SCOPE, TA_M5_CENTERED_HEAD_COORDINATES_SCOPE) else 4,
             'full_epoch_training_allowed':full_fit,'window_policy_file_sha256':window_file_sha256}}
 
 
@@ -1123,6 +1143,13 @@ def require_native_direction_research_context(policy_path: Path, policy_file_sha
 def build_research_cursor(*, recipe_ref, outcome, optimizer_updates, parent_cursor,
         parent_order_sha256, full_state, result, batch_size=2, arm_progress=None,
         repeated_progress=None) -> dict[str, Any]:
+    if _is_fold2_s_full_fit_recipe_ref(recipe_ref):
+        _require(arm_progress is repeated_progress is None, 'FOLD2_S_FULL_FIT_PROGRESS')
+        from gx1.contracts.market_state_fold2_s_full_fit_v1 import build_cursor
+        return build_cursor(recipe_ref=recipe_ref, outcome=outcome,
+            optimizer_updates=optimizer_updates, parent_cursor=parent_cursor,
+            parent_order_sha256=parent_order_sha256, full_state=full_state,
+            result=result, batch_size=batch_size)
     if _is_ta_fold2_m5_fit_recipe_ref(recipe_ref):
         _require(full_state is arm_progress is repeated_progress is None,
                  'FOLD2_FIT_NO_RESUME_STATE')
@@ -1229,6 +1256,12 @@ def build_research_cursor(*, recipe_ref, outcome, optimizer_updates, parent_curs
 
 
 def require_research_cursor(value, *, expected_recipe, verify_files=True, batch_size=2) -> dict[str, Any]:
+    from gx1.contracts import market_state_fold2_s_full_fit_v1 as s_full
+    is_s_full = _is_fold2_s_full_fit_recipe_ref(expected_recipe)
+    if is_s_full or (isinstance(value, Mapping) and value.get('schema_version') == s_full.CURSOR_SCHEMA):
+        _require(is_s_full, 'FOLD2_S_FULL_FIT_CURSOR_PATH')
+        return s_full.require_cursor(value, expected_recipe=expected_recipe,
+                                     verify_files=verify_files, batch_size=batch_size)
     from gx1.contracts import market_state_fold2_multiminute_private_campaign_v1 as fold2_s
     if (expected_recipe.get('path') == str(fold2_s.RECIPE_PATH)
             or (isinstance(value, Mapping) and
@@ -1367,9 +1400,13 @@ def require_research_cursor(value, *, expected_recipe, verify_files=True, batch_
 def build_research_progress(*, window, plan, invocation, checkpoint_pointer,
         optimizer_updates, parent_cursor, parent_order_sha256, outcome) -> dict[str,Any]:
     from datetime import datetime, timezone
-    fold2_fit = _is_ta_fold2_m5_fit_recipe_ref(window['recipe'])
+    fold2_fit = (_is_ta_fold2_m5_fit_recipe_ref(window['recipe'])
+                 or _is_fold2_s_full_fit_recipe_ref(window['recipe']))
     if fold2_fit:
-        from gx1.contracts.market_state_ta_fold2_m5_fit_v1 import batch_visits_from_cursor
+        if _is_fold2_s_full_fit_recipe_ref(window['recipe']):
+            from gx1.contracts.market_state_fold2_s_full_fit_v1 import visits_from_cursor as batch_visits_from_cursor
+        else:
+            from gx1.contracts.market_state_ta_fold2_m5_fit_v1 import batch_visits_from_cursor
     full_prefix = (_is_ta_full_prefix_learning_recipe_ref(window['recipe'])
                    or _is_ta_full_prefix_order_recipe_ref(window['recipe']))
     benchmark = _is_ta_m5_objective_benchmark_recipe_ref(window['recipe'])
@@ -1402,7 +1439,8 @@ def require_research_progress(value, *, plan_sha256, invocation,
     campaign._utc(result['observed_utc'],'research progress')
     batch_size=invocation['batch_size']
     _require(type(batch_size) is int and batch_size in (2,16),'PROGRESS_BATCH_SIZE')
-    fold2_fit = _is_ta_fold2_m5_fit_recipe_ref(invocation['direction_research_recipe'])
+    fold2_fit = (_is_ta_fold2_m5_fit_recipe_ref(invocation['direction_research_recipe'])
+                 or _is_fold2_s_full_fit_recipe_ref(invocation['direction_research_recipe']))
     full_prefix = (_is_ta_full_prefix_learning_recipe_ref(invocation['direction_research_recipe'])
                    or _is_ta_full_prefix_order_recipe_ref(invocation['direction_research_recipe']))
     benchmark = _is_ta_m5_objective_benchmark_recipe_ref(invocation['direction_research_recipe'])
@@ -1426,8 +1464,12 @@ def require_research_progress(value, *, plan_sha256, invocation,
                    512 if paired else ((4096 if key == 'parent_cursor' else 256) if prefix_trace else (2*batch_size if key=='parent_cursor' else 4)))
         _require(type(result[key]) is int and 0 <= result[key] <= maximum,'PROGRESS_COUNTER:' + key)
     if fold2_fit:
-        from gx1.contracts.market_state_ta_fold2_m5_fit_v1 import (
-            TRAIN_PARENT_ORDER_SHA256, batch_visits_from_cursor)
+        if _is_fold2_s_full_fit_recipe_ref(invocation['direction_research_recipe']):
+            from gx1.contracts.market_state_fold2_s_full_fit_v1 import (
+                TRAIN_PARENT_ORDER_SHA256, visits_from_cursor as batch_visits_from_cursor)
+        else:
+            from gx1.contracts.market_state_ta_fold2_m5_fit_v1 import (
+                TRAIN_PARENT_ORDER_SHA256, batch_visits_from_cursor)
         _require(batch_size == 16 and invocation.get('optimizer_step_budget') == 2959
             and result['total_units'] == 2959
             and result['completed_units'] == batch_visits_from_cursor(result['parent_cursor'])
