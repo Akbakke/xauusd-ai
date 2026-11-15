@@ -5,7 +5,18 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_D1_MACRO_SOURCE_FIRST_WARMUP_PASS_DIRECTION_EDGE_UNQUALIFIED.
+Gjeldende policy: FOLD2_H1_CURRENT_SIGN_RANK_READ_ONLY_ADMITTED.
+Én ny lesende Fold2-hypotese er forhåndsbundet før score: kausalt kjent
+H1-nåtilstand OPP/NED rangerer framtidig S/M5 OPP/NED. Bit4=+1, bit1=−1,
+ellers0; M5-nåtilstand er fast samme-rad kontroll. Primær metrikk er
+tie-aware AUC på kjent S/M5-side; alle S/F×fem TF og14 senere uker
+rapporteres uten ettervalg. Eksakt moden fit47338, fast senere4096,
+ingen lærte vekter eller terskel. Plan:
+`configs/research/MARKET_STATE_FOLD2_H1_SIGN_RANK_20261115_001.json`.
+Én capped auditadgang, 0 modellforward/optimizer, ingen TEST/handel.
+Native fit forblir uadmittert; `training_enabled=false`.
+
+Forrige policy: FOLD2_D1_MACRO_SOURCE_FIRST_WARMUP_PASS_DIRECTION_EDGE_UNQUALIFIED.
 Kilde-første warmup for alle 61 D1/makrofelt fulgte deklarert alder:
 COT-endring etter fire rapporter, 11 OANDA-paneler med logret1/5/20
 etter 1/5/20 D1-barer og rv20 etter 20 avkastninger, samt driver-Δ1/5/21

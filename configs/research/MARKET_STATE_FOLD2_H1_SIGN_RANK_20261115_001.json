@@ -1,0 +1,74 @@
+{
+  "schema_version": "gx1_fold2_h1_sign_rank_plan_v1",
+  "stage": "market_state_fold2_h1_sign_rank_20261115_001",
+  "status": "ADMITTED_READ_ONLY",
+  "registered_utc": "2026-11-15T05:04:38.349439+00:00",
+  "source_base_head": "5e2dca7cf2c19a3762bc1e388d28b6a5cdf48e9b",
+  "hypothesis": "Positive causal current H1 market-state direction ranks a later native S/M5 UP side above DOWN; no learned weights, threshold, sign flip or field selection.",
+  "rationale": "A higher-timeframe local state may filter shorter M5 direction noise; earlier current-M5-only transition and raw GC screens were unsupported, so this distinct multi-timeframe mechanism is fixed before scoring.",
+  "scope": {
+    "fold_id": 2,
+    "fit_rows": 47338,
+    "later_rows": 4096,
+    "tasks": [
+      "state",
+      "future"
+    ],
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ],
+    "primary_cell": "state_M5_known_side",
+    "predictor": "current_H1_bit4_plus1_bit1_minus1_else_zero",
+    "control": "current_M5_same_sign_mapping_same_rows",
+    "target": "future_allowed_bit4_up_vs_bit1_down_eligible_mature",
+    "metric": "tie_aware_rank_auc_no_fit",
+    "weekly_primary": true,
+    "test_data_used": false
+  },
+  "interpretation_limits": [
+    "AUC is rank information on known future-side rows, not calibrated probability, S activity, FLAT, Entry, realized profit or Edge.",
+    "Fixed later development has already served other diagnostics; it is not an untouched external holdout.",
+    "Secondary S/F timeframes are reported without selecting a winner.",
+    "A result cannot authorize native optimizer, TEST or trading."
+  ],
+  "input_refs": {
+    "coverage": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_FULL_GC_FOLD2_LATER_COVERAGE_20261115_001.json",
+      "sha256": "ff18b8fcde8b09c41cbec5c216c532ef688a6be29767e456475cef941495c640"
+    },
+    "state_mask": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001/ROW_MASKS.npz",
+      "sha256": "2b063e35b97cc1dbdbb522d2b2876a39514b1145d8c59d8a2ab07561764f9edc"
+    },
+    "future_tape": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_DECISION_RETURN_GC_20261108_002/DECISION_RETURN_TAPE.npz",
+      "sha256": "f87dcc7c669e86a10325a526023933346926f17037685a3082a875e67a1fb167"
+    }
+  },
+  "source_owners": {
+    "gx1/audit/measure_market_state_fold2_h1_sign_rank_v1.py": "a466784a518ca77e5bb915d22dfa8813c8bf6048b624444d6b0c15448c910f58",
+    "gx1/audit/measure_market_state_fold2_causal_transition_v1.py": "7fc4277368afd6dd46e23f51c9c320c095728a5730887d54df839bdff36db82e",
+    "gx1/audit/measure_market_state_fold2_exact_prior_later_v1.py": "5a2872a16f40f8d3e35a3b527be75390a12500d13879e1bd272ba621a9c0e314",
+    "gx1/audit/measure_market_state_causal_persistence_reference_v1.py": "6dccec4a1b089b3dc924df53234e1635a1696033a2c45fb635f84d6273395b3f",
+    "gx1/contracts/market_state_five_endpoint_target_binding_v1.py": "71dc01154aada84d01e930cb78970a79608c5bff5ebd710d9f48273934e14bfd",
+    "gx1/contracts/market_state_future_displacement_candidate_v1.py": "4a7e0a582bef097109555ddfe1b96cb2c9d7b31c2a53366ef9a4bbbe0c6deb62",
+    "gx1/contracts/market_state_time_query_native_F_objective_v1.py": "4b244ac61c0b3360e12a4b12db8e8d066e9017b6913da165c31fd8afae6a8658",
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "gx1/contracts/gx1_capped_execution_v1.py": "60b1ccf2eda470a84ddded0d8160c628314ebb19f5766b87b70fef7c9aa3ccff",
+    "scripts/gx1_capped_run.sh": "3c9d608574be3755e0e3d63d2617a01612d65dbaf61b26b76765262a5a2abc4c"
+  },
+  "limits": {
+    "class": "audit",
+    "memory": "4G",
+    "swap": "512M",
+    "max_invocations": 1,
+    "model_forwards": 0,
+    "optimizer_steps": 0,
+    "native_training_authorized": false
+  },
+  "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_H1_SIGN_RANK_20261115_001"
+}
