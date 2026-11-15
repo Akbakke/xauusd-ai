@@ -12,7 +12,7 @@ Kappet, lesende kontroll bestod bundet kilde, to faktiske B16, full-GC-visning,
 separat feature-/S-fasitklokke og modne/ukjente masker. En fersk CPU-modell
 bestod faktisk feature-/normaliserings-/modellkontrakt mot privat modell-/
 AdamW-/RNG-checkpoint ved 0 forward og 0 optimizersteg. Syntetisk COMPLETE/
-FAILED-publisering og 127 fokuserte tester består. Se
+FAILED-publisering, varig kampanjeprogresjon og 129 fokuserte tester består. Se
 docs/S_FOLD2_S_ONLY_PRIVATE_002_PREFLIGHT_REVIEW_20261115.json.
 Den bevoktede 250W-ruten gjenkjenner oppskriften og avviser manglende
 policyadmisjon. Roten har bare RECIPE; ingen kampanjeplan, CLAIM, fysisk

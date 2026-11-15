@@ -102,10 +102,11 @@
     "view_sha256": "9ea6a4595c6a5792acd190ad12dc861d9bb99ec921c5bd3650b38b15154981bc"
   },
   "routing_and_tests": {
+    "canonical_durable_progress_complete_failed_passed": true,
     "canonical_recipe_verified": true,
     "capped_trainer_help_without_campaign_plan_refused": "campaign plan path/file SHA-256 binding invalid",
     "direct_module_help_import_passed": true,
-    "focused_tests_passed": 127,
+    "focused_tests_passed": 129,
     "missing_private_policy_gate_rejected": true,
     "new_scope_synthetic_complete_and_failed_publication_passed": true,
     "physical_power_limit_w": 250

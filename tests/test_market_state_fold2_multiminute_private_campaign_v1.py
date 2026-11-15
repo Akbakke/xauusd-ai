@@ -159,3 +159,47 @@ def test_new_scope_publishes_complete_or_failed_terminal(tmp_path, monkeypatch, 
     assert Path(result['checkpoint_pointer']['path']).is_file()
     assert json.loads(progress_path.read_text())['outcome'] == (
         'COMPLETE' if complete else 'FAILED')
+
+
+@pytest.mark.parametrize('complete', [False, True])
+def test_canonical_progress_validates_new_scope_cursor(tmp_path, complete):
+    from gx1.contracts import entry_native_direction_research_campaign_v1 as authority
+
+    recipe = {'path': str(scope.RECIPE_PATH), 'sha256': 'a' * 64}
+    order_sha = 'b' * 64
+    updates, position = (4, 32) if complete else (0, 0)
+    state_ref = None
+    if complete:
+        state_path = tmp_path / 'FULL_STATE.pt'
+        state_path.write_bytes(b'synthetic private state')
+        state_ref = _ref(state_path)
+    result_ref = _json_ref(tmp_path / 'RESULT.json', {
+        'schema_version': scope.RESULT_SCHEMA, 'recipe': recipe,
+        'parent_order_sha256': order_sha, 'parent_cursor': position,
+        'physical_optimizer_updates': updates, 'final_state': state_ref,
+        'decision': scope.PASS_DECISION if complete else 'FAILED',
+        'bit_exact_resume': complete, 'test_data_used': False,
+    })
+    cursor = scope.build_time_query_private_cursor(
+        recipe_ref=recipe, outcome='COMPLETE' if complete else 'FAILED',
+        optimizer_updates=updates, parent_cursor=position,
+        parent_order_sha256=order_sha, full_state=state_ref,
+        result=result_ref)
+    cursor_ref = _json_ref(tmp_path / 'RESUME_CURSOR.json', cursor)
+    invocation = {
+        'kind': authority.KIND, 'invocation_sha256': 'c' * 64,
+        'direction_research_recipe': recipe, 'batch_size': 16,
+        'optimizer_step_budget': 4,
+        'checkpoint': {'pointer_path': cursor_ref['path']},
+    }
+    plan = {'plan_sha256': 'd' * 64}
+    progress = authority.build_research_progress(
+        window={'recipe': recipe}, plan=plan, invocation=invocation,
+        checkpoint_pointer=cursor_ref, optimizer_updates=updates,
+        parent_cursor=position, parent_order_sha256=order_sha,
+        outcome='COMPLETE' if complete else 'FAILED')
+    checked = authority.require_research_progress(
+        progress, plan_sha256=plan['plan_sha256'], invocation=invocation,
+        expected_selection_receipt_sha256=None, verify_file=True)
+    assert checked['completed_units'] == updates
+    assert checked['total_units'] == 4
