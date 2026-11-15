@@ -5,24 +5,23 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: M5_ALL_SIDE_JOINT_COST_TARGET_BOUND_EDGE_UNQUALIFIED.
-Den ene forhåndsbundne, capped CPU-kontrollen er COMPLETE/CONSUMED, exit0.
-Begge utførbare M5 Entry-sider er målt på samme eksakte Fold2 fit47338/
-senere4096-akse og felles terminal-/komplett M1-banemaske ved seks tidligere
-erklærte observasjonstider. Fasitvalgt S-side fra gammel kvittering
-stemmer eksakt. Begge sider har negativ gjennomsnittlig deklarert-kost
-netto markout i fit på alle seks punkter og senere ved1–240min.
-Senere alltid-LONG ved480min er +2,85677bps mot −3,90789bps i fit;
-netto minus konservativ MAE før første MFE er likevel −15,00837bps senere.
-Dette er regimafølsom utviklingsreferanse, ikke valgt horisont, holdregel,
-Exit, handels-PnL eller Edge. Historiske faktiske kostnader er ukjente.
-Aggregert rapport: `docs/M5_ALL_SIDE_JOINT_COST_RESULT_REVIEW_20261115.json`.
-Original CLAIM/RESULT/TERMINAL:
-`/home/andre2/GX1_RUNS/MARKET_STATE_M5_ALL_SIDE_JOINT_COST_20261115_001/`.
-Neste gate er én forhåndsbundet kausal inputhypotese mot dette tosidige
-Entry-målet på tidligere fit og fast senere utvikling, med prior samt
-alltid-LONG/SHORT/FLAT som faste referanser. S/F på fem TF beholdes som
-eget kontekstmål. Ingen native fit, TEST, broker eller handel.
+Gjeldende policy: GC_ABS_BOOK_ACTIVITY_FOLD2_ADMITTED_NO_SCORE.
+Aktiv fase er S/F-markedstilstand på M5/M15/H1/H4/D1 før Entry.
+Én hypotese er forhåndsbundet: høyere absolutt observert GC M5 tidsvektet
+bokubalanse ved beslutning varsler framtidig S/M5 aktivitet. En enkelt
+ikke-negativ helning per S/F×TF tilpasses bare på moden Fold2 fit47338,
+med frossen prior som intercept og kun fitbasert skala. Fast senere
+utvikling4096 scores mot samme prior; manglende GC-input faller tilbake.
+S/M5 aktivitet er hovedmål, alle øvrige TF er beskrivende. Planen er
+innrømmet, ikke claimet. Lesende preflight og én capped CPU-audit gjenstår.
+Ingen native modellforward/fit, Entry-valg, TEST, broker eller handel.
+
+Forrige policy: M5_ALL_SIDE_JOINT_COST_TARGET_BOUND_EDGE_UNQUALIFIED.
+Den tosidige M5 Entry-kostnadskontrollen er COMPLETE/CONSUMED og brukes
+bare som avgrenset økonomisk kontekst. Begge sider var negative i fit ved
+alle seks observasjonstider; senere alltid-LONG480min var positiv netto,
+men negativ etter konservativ pre-MFE-MAE og negativ i fit. Ingen Edge.
+`docs/M5_ALL_SIDE_JOINT_COST_RESULT_REVIEW_20261115.json`.
 
 Forrige policy: FOLD2_CAUSAL_TRANSITION_S_M5_SIDE_UNSUPPORTED_EDGE_UNQUALIFIED.
 Primær S/M5 kjent side Brier0,248751066 mot frossen prior0,248754604
