@@ -1,0 +1,68 @@
+{
+  "schema_version": "gx1_fold2_d1_macro_asof_replay_review_v1",
+  "observed_utc": "2026-11-15T04:38:18.561990+00:00",
+  "source": {
+    "branch": "work/gx1-current",
+    "source_commit": "3801c61002b6bd53b867488ef9b0acb3177598ef",
+    "m5_prebuilt_path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/M5_ENRICHED.parquet",
+    "m5_full_file_sha256_recorded_not_recomputed": "5e5cb256fc60a5e9a7ffe1a161aa875660f01806b8e8de2bf601fc2f528e7f99",
+    "source_spec_path": "configs/research/D1_MACRO_CONTEXT_SOURCES_20261011_001.json",
+    "source_spec_sha256_verified": "b8e2c01ddc5c1941dd509f1c3507a4211b2d0f7e3820f64c7607e95a0916d6b3"
+  },
+  "method": {
+    "row_groups_inclusive": [
+      241,
+      256
+    ],
+    "bar_start_utc_inclusive": [
+      "2024-05-01 00:00:00+00:00",
+      "2025-03-31 23:10:00+00:00"
+    ],
+    "decision_time": "M5 bar start plus five minutes",
+    "replay": "load pinned D1 macro source spec; build source components and all 61 as-of fields on physical M5 decisions; compare with physical prebuilt field values",
+    "comparison": "same finite mask and numpy.isclose(rtol=1e-6, atol=1e-6) for finite values",
+    "capped_runner": "scripts/gx1_capped_run.sh --class audit --mem 4G --swap 512M",
+    "capped_scope_verified": true,
+    "exit_code": 0
+  },
+  "coverage": {
+    "physical_m5_rows": 65127,
+    "fields": 61,
+    "field_cells": 3972747,
+    "fit_and_fixed_later_calendar_span_covered": true,
+    "exact_parent_selection_reverified": false
+  },
+  "results_by_group": {
+    "positioning_cot": {
+      "fields": 4,
+      "cell_mismatches": 0,
+      "finite_mask_mismatches": 0,
+      "max_abs_error": 2.9752110664027498e-08
+    },
+    "panel_oanda": {
+      "fields": 44,
+      "cell_mismatches": 0,
+      "finite_mask_mismatches": 0,
+      "max_abs_error": 7.448137218091233e-09
+    },
+    "drivers": {
+      "fields": 13,
+      "cell_mismatches": 0,
+      "finite_mask_mismatches": 0,
+      "max_abs_error": 2.321336474153668e-07
+    }
+  },
+  "status": "PASS_SOURCE_BUILDER_TO_MATERIALIZED_ASOF_REPLAY",
+  "limits": {
+    "independent_formula_unit_warmup_publication_timestamp_audit_completed": false,
+    "external_historical_release_clock_reverified": false,
+    "physical_full_m5_source_sha256_recomputed": false,
+    "model_forward_performed": false,
+    "optimizer_steps": 0,
+    "new_fit_performed": false,
+    "sealed_test_used": false,
+    "broker_or_trading_used": false,
+    "predictive_value_or_economic_edge_proven": false
+  },
+  "next_gate": "Audit formula, units, warmup and independently published as-of clocks for each declared source family; measure field contribution only with predeclared development hypotheses. Exact one-use native fit admission remains closed."
+}

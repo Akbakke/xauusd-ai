@@ -5,7 +5,18 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_S_F_EXACT_CLOCK_PASS_D1_F_GAP_DIAGNOSTIC_OPTIMIZER_ADMISSION_CLOSED.
+Gjeldende policy: FOLD2_D1_MACRO_61_FIELD_ASOF_REPLAY_PASS_SEMANTIC_AUDIT_OPEN_OPTIMIZER_ADMISSION_CLOSED.
+Én capped, lesende kildebygger-replay på 65 127 fysiske M5-utviklingsrader
+sammenlignet alle 61 D1/makrofelt (3 972 747 feltceller) med materialisert
+kilde: 0 verdi- eller endelighetsmaskeavvik ved float32-toleranse. Alle
+4 COT-, 44 OANDA D1-panel- og 13 driverfelt stemte. Dette binder den hashfestede
+byggeren til fysisk utviklingskilde; ekstern publiseringsklokke, uavhengig
+formel/enhet/warmup, prediktiv verdi og Edge er fortsatt ubevist. Ingen
+modellforward, fit, TEST eller handel. Se
+`docs/S_FOLD2_D1_MACRO_ASOF_REPLAY_REVIEW_20261115.json`.
+Firestegs selected-native-kandidaten er uadmittert; `training_enabled=false`.
+
+Forrige policy: FOLD2_S_F_EXACT_CLOCK_PASS_D1_F_GAP_DIAGNOSTIC_OPTIMIZER_ADMISSION_CLOSED.
 Eksakt Fold2 fit47338 og fast senere utvikling4096 har samme M5-beslutnings-
 og fem native gyldighetsklokker for S og F. F er et eget sluttprisforskyvningsmål.
 Alle gyldige D1 F-sluttpunkter har mellomliggende M5-hull:37370 i fit og
