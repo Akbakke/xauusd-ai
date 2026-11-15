@@ -5,15 +5,24 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_CAUSAL_TRANSITION_PRIOR_CONTROL_ADMITTED_NO_SCORE.
-Én sannsynlighetsbasert, kausal nåtilstand-overgangsreferanse er
-forhåndsbundet på moden Fold2 fit47338 og fast senere utvikling4096.
-Eksakt tidligere S-gyldighet og fysisk M1-rad må stemme ved beslutning;
-manglende nåtilstand bruker frossen Fold2-prior. Fire S-biter, én fast
-prior-pseudoobservasjon per celle; S/F aktivitet, side og treklasset
-proper-score på M5/M15/H1/H4/D1. Planen er innrømmet, ikke claimet.
-Lesende preflight og én capped CPU-baseline gjenstår. Ingen native fit,
-optimizer, TEST, Entry eller handel.
+Gjeldende policy: FOLD2_CAUSAL_TRANSITION_S_M5_SIDE_UNSUPPORTED_EDGE_UNQUALIFIED.
+Den ene forhåndsbundne, capped kausale S(t)-overgangsreferansen er
+COMPLETE/CONSUMED, exit0, med eksakt fysisk M1-ankerkontroll og prior-
+scoreparitet. Moden Fold2 fit47338 og fast senere utvikling4096;
+0 native modellforward/optimizersteg, TEST, Entry, broker og handel.
+Primær S/M5 kjent side: Brier0,248751066 mot frossen prior0,248754604
+på1392 rader, forbedring0,000003538; bare4/14 senere uker bedre.
+Enkel nåtilstand gir dermed ingen kvalifisert M5-retningsfordel.
+M15/H1 aktivitet og treklasse bedres som sekundære utviklingsmål,
+mens D1 retning forverres; ingen ettervalgt TF/modell/terskel.
+H4/D1 S-endepunktvindu kan omfatte observert historikk før issue og er
+ikke et rent framtidig intervallmål. Aggregert rapport:
+`docs/S_FOLD2_CAUSAL_TRANSITION_RESULT_REVIEW_20261115.json`.
+Original CLAIM/RESULT/TERMINAL:
+`/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_CAUSAL_TRANSITION_20261115_001/`.
+Neste gate: gjennomgå kausal kilde/mål-kobling og bind ett kostnadsbevisst
+M5 Entry-banemål med MAE før første MFE. Ny input-/målhypotese må
+forhåndsbindes før mer scoring/fit. Native fit, TEST og handel er stengt.
 
 Forrige policy: GC_MID_RESPONSE_FOLD2_RAW_M5_S_POSITIVE_ORIENTATION_UNSUPPORTED_EDGE_UNQUALIFIED.
 Den ene lesende GC M5-midtprisresponsplanen er COMPLETE/CONSUMED, exit0
