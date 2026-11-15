@@ -5,7 +5,21 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_D1_MACRO_61_FIELD_INDEPENDENT_FORMULA_ASOF_PASS_HIST_RELEASE_OPEN_EDGE_UNQUALIFIED.
+Gjeldende policy: FOLD2_D1_MACRO_SOURCE_FIRST_WARMUP_PASS_DIRECTION_EDGE_UNQUALIFIED.
+Kilde-første warmup for alle 61 D1/makrofelt fulgte deklarert alder:
+COT-endring etter fire rapporter, 11 OANDA-paneler med logret1/5/20
+etter 1/5/20 D1-barer og rv20 etter 20 avkastninger, samt driver-Δ1/5/21
+etter tilsvarende sammenslåtte kildedatoer. Ingen for tidlig finite-verdi.
+Første OANDA-kildebar i 2009 kan være delvis, men ligger langt før Fold2,
+hvor alle 61 felt er finite. Se
+`docs/S_FOLD2_D1_MACRO_SOURCE_FIRST_WARMUP_REVIEW_20261115.json`.
+Full historisk publiserings-/revisjonsklokke og feltvis prediktiv verdi er
+fortsatt ubevist. Neste arbeid retter seg mot én forhåndsbundet
+retningshypotese på fem TF; S-ukjent og økonomi holdes atskilt. Ingen
+modellforward, fit, TEST eller handel. selected-native-kandidaten er
+uadmittert; `training_enabled=false`.
+
+Forrige policy: FOLD2_D1_MACRO_61_FIELD_INDEPENDENT_FORMULA_ASOF_PASS_HIST_RELEASE_OPEN_EDGE_UNQUALIFIED.
 Tre separate capped, lesende kildeberegninger traff alle 61 D1/makrofelt
 på 65 127 fysiske M5-utviklingsrader (3 972 747 feltceller), med 0 verdi-
 eller endelighetsmaskeavvik ved float32-toleranse. Fire COT-felt kom fra

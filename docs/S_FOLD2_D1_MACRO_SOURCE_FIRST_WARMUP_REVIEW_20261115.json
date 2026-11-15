@@ -1,0 +1,90 @@
+{
+  "schema_version": "gx1_fold2_d1_macro_source_first_warmup_review_v1",
+  "observed_utc": "2026-11-15T04:56:55Z",
+  "source_commit": "87232fd0e8b4a53480bfc2141e59086ce2fdb91a",
+  "status": "PASS_DECLARED_SOURCE_FIRST_WARMUP_NO_FOLD2_EFFECT",
+  "positioning_cot": {
+    "fields": 4,
+    "source_archive_year": 2009,
+    "gold_reports_in_year": 52,
+    "first_report_as_of": "2009-01-06",
+    "ratio_fields_first_finite_report_index_zero_based": 0,
+    "four_report_change_fields_first_finite_report_index_zero_based": 4,
+    "premature_finite_fields": 0
+  },
+  "panel_oanda": {
+    "fields": 44,
+    "instruments": [
+      "BCO_USD",
+      "EUR_USD",
+      "SPX500_USD",
+      "USB10Y_USD",
+      "USD_JPY",
+      "WTICO_USD",
+      "XAG_USD",
+      "XAU_USD",
+      "XCU_USD",
+      "XPD_USD",
+      "XPT_USD"
+    ],
+    "source_first_d1_label_utc": "2009-05-31 22:00:00+00:00",
+    "first_finite_d1_bar_indices_zero_based": {
+      "logret_1D": 1,
+      "logret_5D": 5,
+      "logret_20D": 20,
+      "rv_20D": 20
+    },
+    "instruments_with_premature_finite": 0,
+    "first_bar_may_be_partial_due_to_source_start": true
+  },
+  "drivers": {
+    "fields": 13,
+    "first_level_dates": {
+      "real10y_level": "2009-01-02",
+      "nominal10y_level": "2009-01-02",
+      "vix_log_level": "1990-01-02",
+      "gld_log_level": "2004-11-18"
+    },
+    "first_finite_union_date_indices_zero_based": {
+      "real10y_level": 4825,
+      "real10y_change1D": 4826,
+      "real10y_change5D": 4830,
+      "real10y_change21D": 4846,
+      "nominal10y_level": 4825,
+      "slope10y2y_level": 4825,
+      "slope10y2y_change21D": 4846,
+      "breakeven10y_level": 4825,
+      "breakeven10y_change21D": 4846,
+      "vix_log_level": 0,
+      "vix_log_change5D": 5,
+      "gld_log_level": 3751,
+      "gld_log_change21D": 3772
+    },
+    "delta_fields_with_premature_finite": 0,
+    "calendar_semantics": "current union-date after-forward-fill, unchanged"
+  },
+  "fold2_relevance": {
+    "existing_liveness_review": "docs/S_FOLD2_D1_MACRO_PHYSICAL_LIVENESS_REVIEW_20261115.json",
+    "fit_rows": 47338,
+    "fixed_later_development_rows": 4096,
+    "all_61_fields_finite_on_both_cohorts": true,
+    "first_source_warmup_precedes_both_cohorts": true
+  },
+  "method": {
+    "capped_runner": "scripts/gx1_capped_run.sh --class audit --mem 4G --swap 512M",
+    "scope_verified": true,
+    "exit_code": 0,
+    "source_first_cot_zip_and_first_oanda_h1_batches_read": true,
+    "driver_source_component_first_finite_positions_read": true,
+    "new_full_source_hashes_recomputed": false
+  },
+  "limits": {
+    "earliest_oanda_d1_bar_complete_h1_coverage_proven": false,
+    "full_historical_publication_and_revision_clocks_proven": false,
+    "new_model_fit_or_forward": false,
+    "sealed_test_targets_or_scores_used": false,
+    "broker_or_trading_used": false,
+    "predictive_value_or_economic_edge_proven": false
+  },
+  "next_gate": "No source-first warmup defect affects Fold2. Keep exact historical release uncertainty explicit and move to one predeclared direction-information hypothesis on five-TF S/F with TRAIN-to-fixed-later chronology; optimizer fit still needs exact admission."
+}
