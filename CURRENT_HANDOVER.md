@@ -5,17 +5,24 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: S_M5_PATH_COST_ALIGNMENT_ADMITTED_NO_MODEL.
-Én ny lesende engangsaudit er kilde-/ressursbundet under 4G/512M. Den kobler
-S/M5 på eksakt moden Fold2 TRAIN-akse (47338) og faste senere 4096 rader
-til eksisterende fysisk M1 bid/ask- og dynamisk prisbane-eier.
-Observasjonshorisontene 1/5/15/60/240/480 minutter er forhåndsvalgt fra
-fungerende dynamisk kilde; ingen beste horisont eller Entry velges.
-Terminal netto etter deklarerte kostnader, MFE og konservativ pre-MFE MAE
-rapporteres med egne masker. Kostautoriteten i den fysiske Entry-ruten har
-532 bps årlig LONG-finansiering, mens forrige femminuttersdiagnose deklarerte
-569 bps; de skal ikke blandes stille. Ingen modell, TEST, broker eller handel.
-Plan: `configs/research/MARKET_STATE_S_M5_PATH_COST_ALIGNMENT_20261115_001.json`.
+Gjeldende policy: S_M5_PATH_COST_DIRECT_S_SIDE_NEGATIVE_EDGE_UNQUALIFIED.
+Den lesende Fold2 S/M5-baneaudit er COMPLETE/CONSUMED, exit0 under4G/512M.
+På eksakt moden fitakse47338 og fast senere utvikling4096 hadde
+etterpåkjent S-side negativ middel netto etter deklarert4bps rundturkost
+ved alle forhåndsvalgte1/5/15/60/240/480min. Senere middel var
+−5,419/−1,236/−1,230/−1,304/−0,412/−0,923bps; dette er ikke
+modellvalgte handler. Ved480min var1209 senere sertifiserte S-side-rader
+terminalobserverte, men bare986 hadde observert hel prisbane. MFE og
+konservativ pre-MFE MAE er rapportert på den snevrere fellesmasken;
+netto–MAE på akkurat samme rader er ennå ikke målt. M1 OHLC gir ikke
+intraminuttrekkefølge. Kostautoriteten her har532bps årlig LONG-finansiering;
+forrige femminuttersdiagnose deklarerte569bps, begge historiske antakelser.
+Rapport: `docs/S_M5_PATH_COST_ALIGNMENT_RESULT_REVIEW_20261115.json`.
+Original CLAIM/RESULT/TERMINAL:
+`/home/andre2/GX1_RUNS/MARKET_STATE_S_M5_PATH_COST_ALIGNMENT_20261115_001/`.
+0 modellforwards, optimizersteg, TEST, broker, handel eller Entry-valg.
+S består som fem-TF markedstilstand; neste økonomiske bro er netto og
+pre-MFE MAE på felles maske, ikke en ny handlingsregel.
 
 Forrige policy: S_FOLD2_EXACT_PRIOR_LATER_COMPLETE_BASELINE_ONLY_EDGE_UNQUALIFIED.
 Engangsauditen er COMPLETE/CONSUMED, exit0 under 4G/512M. Den frøs S/F-prior
@@ -82,12 +89,13 @@ enhetsprofil. Én separat test for relative GC-priskoordinater feiler på
 en eksisterende gc_order_flow_v1.py-kildehash; rå-GC-ruten bruker den ikke.
 Se docs/S_FULL_GC_ANCHOR_SPAN_FOLD2_SOURCE_REVIEW_20261115.json.
 
-Den kronologiske valgte-native S/F-prioren og senere proper-score er nå
-målt på alle fem TF. Den negative direkte S→fem-minutters-Entry-kontrollen
-krever et separat kostbevis for valgt M5 Entry med pre-MFE MAE fra
-eksisterende kausale kilde. Før fit må én konkret signalhypotese og
-optimizer/resume kvalifiseres; trening krever eksakt operatøradmisjon.
-Engangsplanen er forbrukt. TEST, broker og handel er stengt.
+Den kronologiske valgte-native S/F-prioren og senere proper-score er målt
+på alle fem TF. Direkte S-side som Entry-retning er nå negativ i middel
+etter deklarerte kostnader ved seks faste observasjonshorisonter i fit og
+senere utvikling. Før beslutningsstudie må terminal netto og pre-MFE MAE
+samles på felles maske; før fit må én konkret kausal signalhypotese og
+optimizer/resume kvalifiseres. Trening krever eksakt operatøradmisjon.
+Begge nye engangsplaner er forbrukt. TEST, broker og handel er stengt.
 
 Den valgte fem-TF S-masken er hashbundet til118249 modellrader og fem faste
 native endepunkter. Den gamle samplede tidsforespørselen treffer D1s native

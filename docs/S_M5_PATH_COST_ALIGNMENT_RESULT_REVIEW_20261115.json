@@ -1,0 +1,243 @@
+{
+  "claim": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_S_M5_PATH_COST_ALIGNMENT_20261115_001/CLAIM.json",
+    "sha256": "b451723336dea14aea7019a4badc0938b48ef601121c9c94a9985f59dce06882"
+  },
+  "decision": "RETAIN_S_AS_MARKET_STATE_CONTEXT_REQUIRE_SEPARATE_ENTRY_VALUE_TARGET",
+  "declared_economics": {
+    "annual_long_financing_bps": 532.0,
+    "annual_short_financing_bps": 0.0,
+    "earlier_5min_quote_audit_annual_long_financing_bps": 569.0,
+    "economics_sha256": "81b7d1c7311d831753e273840ed5e732819c4c4371aa832b76b7f9ec1118b999",
+    "historical_cost_truth_qualified": false,
+    "maximum_37bps_annual_difference_over_480min_bps": 0.03376682637462925,
+    "round_trip_execution_cost_bps": 4.0
+  },
+  "interpretation": [
+    "Hindsight-certified S side has negative mean declared-net terminal markout at each of six predeclared horizons in both the exact Fold2 fit cohort and fixed later development cohort. This is not a model decision, trade selection, or proof against learnable subsets.",
+    "MFE and conservative pre-MFE MAE use a stricter joint terminal-and-path mask. Their means cannot be subtracted from terminal-net means on a different mask at longer horizons. A common-mask economic quality measure remains unmeasured.",
+    "M1 OHLC does not order intraminute extremes. The upper MAE is conservative; MFE is hindsight price opportunity rather than executable realized profit.",
+    "Longer observation horizons increase path censoring from unknown quote gaps. Horizons are measurements, not fixed holds, stops or Exit rules.",
+    "The 532 versus 569 bps annual long-financing assumptions are both declared projections rather than historical broker fills. Their difference cannot reverse the reported mean signs at these horizons.",
+    "No trained S/F model score, selected LONG/SHORT/FLAT decisions, open-position economics, independent confirmation, TEST, broker or trade is included."
+  ],
+  "measured_by_fixed_horizon": {
+    "fit": {
+      "1": {
+        "eligible_rows": 47338,
+        "hindsight_s_side_mfe_mean_bps_on_joint_mask": 0.504717611084535,
+        "hindsight_s_side_pre_mfe_mae_upper_mean_bps_on_joint_mask": 3.347127055118803,
+        "hindsight_s_side_terminal_net_mean_bps": -5.078720614630801,
+        "hindsight_s_side_terminal_net_positive_fraction": 0.03869324886653003,
+        "known_s_terminal_and_path_rows": 16101,
+        "known_s_terminal_rows": 16101,
+        "path_observed_rows": 47332,
+        "positive_utc_issue_weeks_for_terminal_net": 0,
+        "same_rows_always_long_net_mean_bps": -5.644175571361482,
+        "same_rows_always_short_net_mean_bps": -5.587624599566351,
+        "terminal_observed_rows": 47332,
+        "utc_issue_weeks": 36
+      },
+      "15": {
+        "eligible_rows": 47338,
+        "hindsight_s_side_mfe_mean_bps_on_joint_mask": 9.562082546105277,
+        "hindsight_s_side_pre_mfe_mae_upper_mean_bps_on_joint_mask": 4.022638470847684,
+        "hindsight_s_side_terminal_net_mean_bps": -0.6592486597934603,
+        "hindsight_s_side_terminal_net_positive_fraction": 0.4183227096612923,
+        "known_s_terminal_and_path_rows": 15996,
+        "known_s_terminal_rows": 16002,
+        "path_observed_rows": 46707,
+        "positive_utc_issue_weeks_for_terminal_net": 8,
+        "same_rows_always_long_net_mean_bps": -5.468387917366348,
+        "same_rows_always_short_net_mean_bps": -5.7860953798239425,
+        "terminal_observed_rows": 46812,
+        "utc_issue_weeks": 36
+      },
+      "240": {
+        "eligible_rows": 47338,
+        "hindsight_s_side_mfe_mean_bps_on_joint_mask": 32.50305552493379,
+        "hindsight_s_side_pre_mfe_mae_upper_mean_bps_on_joint_mask": 9.916443200129384,
+        "hindsight_s_side_terminal_net_mean_bps": -1.080388484923616,
+        "hindsight_s_side_terminal_net_positive_fraction": 0.4792332268370607,
+        "known_s_terminal_and_path_rows": 14399,
+        "known_s_terminal_rows": 15337,
+        "path_observed_rows": 38702,
+        "positive_utc_issue_weeks_for_terminal_net": 7,
+        "same_rows_always_long_net_mean_bps": -4.612799132167404,
+        "same_rows_always_short_net_mean_bps": -6.860019005023493,
+        "terminal_observed_rows": 43672,
+        "utc_issue_weeks": 36
+      },
+      "480": {
+        "eligible_rows": 47338,
+        "hindsight_s_side_mfe_mean_bps_on_joint_mask": 45.61472387508123,
+        "hindsight_s_side_pre_mfe_mae_upper_mean_bps_on_joint_mask": 14.529076283589,
+        "hindsight_s_side_terminal_net_mean_bps": -1.6760008582412296,
+        "hindsight_s_side_terminal_net_positive_fraction": 0.4871247688149097,
+        "known_s_terminal_and_path_rows": 11576,
+        "known_s_terminal_rows": 14058,
+        "path_observed_rows": 30398,
+        "positive_utc_issue_weeks_for_terminal_net": 11,
+        "same_rows_always_long_net_mean_bps": -3.186663611171816,
+        "same_rows_always_short_net_mean_bps": -8.545221447913352,
+        "terminal_observed_rows": 41943,
+        "utc_issue_weeks": 36
+      },
+      "5": {
+        "eligible_rows": 47338,
+        "hindsight_s_side_mfe_mean_bps_on_joint_mask": 5.382523705253534,
+        "hindsight_s_side_pre_mfe_mae_upper_mean_bps_on_joint_mask": 3.7997225048565553,
+        "hindsight_s_side_terminal_net_mean_bps": -0.6459829518199584,
+        "hindsight_s_side_terminal_net_positive_fraction": 0.37570779665235515,
+        "known_s_terminal_and_path_rows": 16071,
+        "known_s_terminal_rows": 16071,
+        "path_observed_rows": 47124,
+        "positive_utc_issue_weeks_for_terminal_net": 8,
+        "same_rows_always_long_net_mean_bps": -5.516995526866717,
+        "same_rows_always_short_net_mean_bps": -5.720734403328539,
+        "terminal_observed_rows": 47157,
+        "utc_issue_weeks": 36
+      },
+      "60": {
+        "eligible_rows": 47338,
+        "hindsight_s_side_mfe_mean_bps_on_joint_mask": 17.549762355989113,
+        "hindsight_s_side_pre_mfe_mae_upper_mean_bps_on_joint_mask": 5.290940848508039,
+        "hindsight_s_side_terminal_net_mean_bps": -0.5467758828428066,
+        "hindsight_s_side_terminal_net_positive_fraction": 0.46152872690458113,
+        "known_s_terminal_and_path_rows": 15756,
+        "known_s_terminal_rows": 15804,
+        "path_observed_rows": 44976,
+        "positive_utc_issue_weeks_for_terminal_net": 6,
+        "same_rows_always_long_net_mean_bps": -5.350385824269731,
+        "same_rows_always_short_net_mean_bps": -5.9407302929219,
+        "terminal_observed_rows": 45262,
+        "utc_issue_weeks": 36
+      }
+    },
+    "later": {
+      "1": {
+        "eligible_rows": 4096,
+        "hindsight_s_side_mfe_mean_bps_on_joint_mask": 0.1668755261712361,
+        "hindsight_s_side_pre_mfe_mae_upper_mean_bps_on_joint_mask": 3.609921100696495,
+        "hindsight_s_side_terminal_net_mean_bps": -5.419332370385452,
+        "hindsight_s_side_terminal_net_positive_fraction": 0.020833333333333332,
+        "known_s_terminal_and_path_rows": 1392,
+        "known_s_terminal_rows": 1392,
+        "path_observed_rows": 4096,
+        "positive_utc_issue_weeks_for_terminal_net": 0,
+        "same_rows_always_long_net_mean_bps": -5.952386523138084,
+        "same_rows_always_short_net_mean_bps": -5.88460303222067,
+        "terminal_observed_rows": 4096,
+        "utc_issue_weeks": 14
+      },
+      "15": {
+        "eligible_rows": 4096,
+        "hindsight_s_side_mfe_mean_bps_on_joint_mask": 8.764877471460062,
+        "hindsight_s_side_pre_mfe_mae_upper_mean_bps_on_joint_mask": 4.291832994612816,
+        "hindsight_s_side_terminal_net_mean_bps": -1.2299021278613138,
+        "hindsight_s_side_terminal_net_positive_fraction": 0.3851691864650828,
+        "known_s_terminal_and_path_rows": 1389,
+        "known_s_terminal_rows": 1389,
+        "path_observed_rows": 4077,
+        "positive_utc_issue_weeks_for_terminal_net": 3,
+        "same_rows_always_long_net_mean_bps": -4.995686568575496,
+        "same_rows_always_short_net_mean_bps": -6.858095591672806,
+        "terminal_observed_rows": 4077,
+        "utc_issue_weeks": 14
+      },
+      "240": {
+        "eligible_rows": 4080,
+        "hindsight_s_side_mfe_mean_bps_on_joint_mask": 30.05241712185633,
+        "hindsight_s_side_pre_mfe_mae_upper_mean_bps_on_joint_mask": 10.136959297915688,
+        "hindsight_s_side_terminal_net_mean_bps": -0.4120012847275272,
+        "hindsight_s_side_terminal_net_positive_fraction": 0.48236196319018404,
+        "known_s_terminal_and_path_rows": 1218,
+        "known_s_terminal_rows": 1304,
+        "path_observed_rows": 3290,
+        "positive_utc_issue_weeks_for_terminal_net": 6,
+        "same_rows_always_long_net_mean_bps": -1.8053300446818668,
+        "same_rows_always_short_net_mean_bps": -10.216878544429198,
+        "terminal_observed_rows": 3691,
+        "utc_issue_weeks": 14
+      },
+      "480": {
+        "eligible_rows": 4080,
+        "hindsight_s_side_mfe_mean_bps_on_joint_mask": 41.109427307749556,
+        "hindsight_s_side_pre_mfe_mae_upper_mean_bps_on_joint_mask": 14.763999381007109,
+        "hindsight_s_side_terminal_net_mean_bps": -0.9225859364371808,
+        "hindsight_s_side_terminal_net_positive_fraction": 0.48883374689826303,
+        "known_s_terminal_and_path_rows": 986,
+        "known_s_terminal_rows": 1209,
+        "path_observed_rows": 2626,
+        "positive_utc_issue_weeks_for_terminal_net": 6,
+        "same_rows_always_long_net_mean_bps": 0.8618561785168084,
+        "same_rows_always_short_net_mean_bps": -13.1608542103522,
+        "terminal_observed_rows": 3571,
+        "utc_issue_weeks": 14
+      },
+      "5": {
+        "eligible_rows": 4096,
+        "hindsight_s_side_mfe_mean_bps_on_joint_mask": 4.8953442038903034,
+        "hindsight_s_side_pre_mfe_mae_upper_mean_bps_on_joint_mask": 4.080762474012488,
+        "hindsight_s_side_terminal_net_mean_bps": -1.235810894957353,
+        "hindsight_s_side_terminal_net_positive_fraction": 0.32278936017253773,
+        "known_s_terminal_and_path_rows": 1391,
+        "known_s_terminal_rows": 1391,
+        "path_observed_rows": 4089,
+        "positive_utc_issue_weeks_for_terminal_net": 2,
+        "same_rows_always_long_net_mean_bps": -5.539982609898277,
+        "same_rows_always_short_net_mean_bps": -6.296976288467045,
+        "terminal_observed_rows": 4089,
+        "utc_issue_weeks": 14
+      },
+      "60": {
+        "eligible_rows": 4092,
+        "hindsight_s_side_mfe_mean_bps_on_joint_mask": 15.756177850751492,
+        "hindsight_s_side_pre_mfe_mae_upper_mean_bps_on_joint_mask": 5.586740954535566,
+        "hindsight_s_side_terminal_net_mean_bps": -1.30435848063341,
+        "hindsight_s_side_terminal_net_positive_fraction": 0.4516363636363636,
+        "known_s_terminal_and_path_rows": 1375,
+        "known_s_terminal_rows": 1375,
+        "path_observed_rows": 3973,
+        "positive_utc_issue_weeks_for_terminal_net": 2,
+        "same_rows_always_long_net_mean_bps": -3.0848651676069383,
+        "same_rows_always_short_net_mean_bps": -8.78901723159049,
+        "terminal_observed_rows": 3973,
+        "utc_issue_weeks": 14
+      }
+    }
+  },
+  "next_gate": "Keep S as five-TF market state. Before an Entry decision study, require common-mask net and pre-MFE MAE evidence. Precommit one causal incremental-information hypothesis for S/F and compare with the frozen earlier-TRAIN prior on later data; any model fit needs exact operator admission and qualified optimizer/resume. TEST and trading remain sealed.",
+  "observed_utc": "2026-11-15T01:29:36.362587Z",
+  "plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_S_M5_PATH_COST_ALIGNMENT_20261115_001.json",
+    "sha256": "e24fc5971c158e7490338ae1f95e29d30555f1946ce7de852f800a945ac77c7d"
+  },
+  "population": {
+    "entry_timeframe": "M5",
+    "fit_rows": 47338,
+    "fit_s_known_side_rows": 16101,
+    "fold_id": 2,
+    "later_fixed_development_rows": 4096,
+    "later_s_known_side_rows": 1392,
+    "observation_horizon_minutes": [
+      1,
+      5,
+      15,
+      60,
+      240,
+      480
+    ]
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_S_M5_PATH_COST_ALIGNMENT_20261115_001/RESULT.json",
+    "sha256": "22d3a4f7e0311afa2c1bbd940a15b70d1c3514339a3be40b8d79c4e6ab4d5866"
+  },
+  "schema_version": "gx1_s_m5_path_cost_alignment_review_v1",
+  "source_head": "ed00d5118e3ecb5bf78afd25f404914dc530670f",
+  "status": "COMPLETE_CONSUMED_DIRECT_S_SIDE_NET_NEGATIVE_ALL_SIX_OBSERVATIONS_NO_EDGE",
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_S_M5_PATH_COST_ALIGNMENT_20261115_001/TERMINAL.json",
+    "sha256": "6997d52c887c18d86f5e751ff3250a14d038e777951e441b799e183a480e5961"
+  }
+}
