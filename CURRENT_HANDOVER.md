@@ -5,13 +5,12 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: S_FULL_GC_FOLD2_SELECTED_INITIAL_PREPARED_PREFLIGHT_PENDING.
-Ny engangsplan `configs/research/MARKET_STATE_NATIVE_F_SELECTED_ENDPOINT_INITIAL_FOLD2_20261115_002.json`
-binder fold2 TRAIN-pakken, seks fysiske sidecars, rå GC-historikk,
-valgte native S/F-mål, nåværende kildehash og eksakt12G/512M/1800s cap.
-Ingen claim eller modellforward er gjort. Neste handling er lesende capped
-preflight; en eventuell fysisk nullstegskjøring krever egen eksakt
-policyadmisjon etter PASS og forbruker planen ved første claim.
+Aktuell policy: S_FULL_GC_FOLD2_SELECTED_INITIAL_ADMITTED_ONE_USE.
+Eksakt capped lesende preflight besto:44 kildeeiere,47 338 fold2 TRAIN-rader,
+full-GC-kontrakt `9ea6a4595c6a5792acd190ad12dc861d9bb99ec921c5bd3650b38b15154981bc`,
+0 modellforward,0 optimizersteg og ingen claim. Én 12G/512M/1800s CPU-
+forward/backward på to faste rader er nå innrømmet; første claim forbruker
+planen også ved feil. TRAIN-fit, TEST og handel er fortsatt stengt.
 
 Den blokkerte engangsplanen 001 feilet lesende preflight før claim fordi dens
 historiske v2-kildevisning ikke lenger matcher dagens runner og kilder. Den
@@ -28,10 +27,11 @@ enhetsprofil. Én separat test for relative GC-priskoordinater feiler på
 en eksisterende gc_order_flow_v1.py-kildehash; rå-GC-ruten bruker den ikke.
 Se docs/S_FULL_GC_ANCHOR_SPAN_FOLD2_SOURCE_REVIEW_20261115.json.
 
-Neste gate er en ny hashbundet fold2 CPU-nullstegplan på de samme to TRAIN-radene,
-de seks sidecarene og valgt native S-fasit. Kjør lesende preflight uten claim,
-gi deretter separat eksakt policyadmisjon før eventuell én capped forward/
-backward. TRAIN-fit, TEST, broker og handel forblir stengt.
+Neste gate er én gjennomføring av den hashbundne fold2 CPU-nullstegplanen
+på samme to TRAIN-rader, seks sidecars og valgt native S/F-fasit.
+Lesende preflight besto og eksakt engangsadmisjon er gitt. Etter første
+claim skal resultat eller feil lukkes uten relansering. TRAIN-fit, TEST,
+broker og handel forblir stengt.
 
 Den valgte fem-TF S-masken er hashbundet til118249 modellrader og fem faste
 native endepunkter. Den gamle samplede tidsforespørselen treffer D1s native
