@@ -5,7 +5,17 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: S_M5_QUOTE_REFERENCE_NEGATIVE_EDGE_UNQUALIFIED.
+Gjeldende policy: S_FOLD2_EXACT_PRIOR_LATER_ADMITTED_NO_MODEL_FIT.
+Én hashbundet, capped audit er innrømmet for eksakt moden Fold2 TRAIN-akse
+(47338 rader) og et fast 4096-raders utviklingspanel jan–mar2025.
+S/F-prior fryses fra bare tidligere TRAIN før senere proper-score på
+M5/M15/H1/H4/D1. Gammel fem-TF-prior brukte 47602 rader, altså en annen
+fit-akse enn dagens valgte native oppsett. Ingen modellforwards, optimizer,
+TEST, broker eller handel er innrømmet. Plan:
+`configs/research/MARKET_STATE_FOLD2_EXACT_PRIOR_LATER_4096_20261115_001.json`.
+Etter terminal oppdateres policy og overlevering med målt utfall.
+
+Forrige policy: S_M5_QUOTE_REFERENCE_NEGATIVE_EDGE_UNQUALIFIED.
 Fold2 TRAIN-only S/M5-quoteaudit er COMPLETE/CONSUMED, exit0 under 4G/512M.
 Eksakt M1 bid/ask ved M5-beslutning og fem minutter senere var tilgjengelig
 på47124 av47338 modne rader;16071 av16101 med sertifisert S-side. Selv med
