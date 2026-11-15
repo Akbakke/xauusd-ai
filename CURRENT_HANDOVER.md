@@ -5,7 +5,21 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_S_25_CELL_PRIVATE_CANDIDATE_READY_NO_RUN_ADMISSION_EDGE_UNQUALIFIED.
+Gjeldende policy: FOLD2_S_25_CELL_PRIVATE_002_CLOCK_CORRECTED_NO_ADMISSION_EDGE_UNQUALIFIED.
+Lesende, 12G-begrenset kontroll av kandidat001 fant før modellarbeid at faktisk
+Fold2-featuregrense er 1735603200000000000 ns, mens S-fasitens øvre
+gyldighet er 1735689600000000000 ns. Ruten brukte feilaktig første grense
+som den andre. Kildepakke og to B16 ble lest; ingen CLAIM/OUTPUT, modell eller
+optimizer ble laget. Kandidat001 beholdes uendret og forkastes.
+Den minste rettelsen skiller klokkene eksplisitt i ny stage002, binder
+featuregrensen til faktisk Fold2-pakke og bruker S-fasitgrensen i targetoppslag.
+Syntetisk grensetest består. Se
+docs/S_FOLD2_S_ONLY_PRIVATE_CLOCK_PREFLIGHT_REVIEW_20261115.json.
+Neste steg er ren commit, ny uinnrømmet kandidat002 og lesende klokke-/
+visningskontroll på nøyaktig denne. training_enabled=false; TEST, Entry/Exit,
+broker og handel stengt.
+
+Tidligere policy: FOLD2_S_25_CELL_PRIVATE_CANDIDATE_READY_NO_RUN_ADMISSION_EDGE_UNQUALIFIED.
 Én eksakt S-only 25-cellers to-B16 kandidatoppskrift er publisert uten
 kjøringsadmisjon: /home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_25_CELL_S_PRIVATE_TWO_BATCH_20261115_001/RECIPE.json
 SHA256 2cfaf79197210ddc7d3408529bc3dec9cbf9e24d5a09d586a6d8b8e3173b8d76.

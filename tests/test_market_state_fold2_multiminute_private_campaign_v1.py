@@ -87,3 +87,25 @@ def test_cursor_checks_immutable_terminal_result(tmp_path, complete):
         with pytest.raises(Exception, match='CURSOR_RESULT'):
             scope.require_cursor(rebound, expected_recipe=recipe,
                                  verify_files=True, batch_size=16)
+
+
+def test_feature_fit_cutoff_does_not_censor_s_target_day():
+    import numpy as np
+    from gx1.contracts.market_state_fold2_multiminute_path_v1 import (
+        QUERY_MINUTES, gather_fixed_path,
+    )
+    from gx1.contracts.market_state_minute_query_candidate_v1 import MinuteQueryTargetTape
+    from gx1.contracts.market_state_time_query_target_v1 import MINUTE_NS
+
+    issue = np.array([scope.FEATURE_FIT_CUTOFF_NS - 5 * MINUTE_NS], np.int64)
+    validity = np.unique(issue[0] + QUERY_MINUTES.reshape(-1) * MINUTE_NS)
+    bits = np.full((len(validity), 5), 2, np.uint8)
+    tape = MinuteQueryTargetTape(
+        validity, np.arange(len(validity), dtype=np.int64), bits,
+        np.ones_like(bits, dtype=np.bool_), np.zeros(len(validity), np.uint8))
+    actual = gather_fixed_path(tape, issue,
+        fold_upper_ns=scope.S_TARGET_FOLD_UPPER_NS)
+    wrong = gather_fixed_path(tape, issue,
+        fold_upper_ns=scope.FEATURE_FIT_CUTOFF_NS)
+    assert actual['mature'][0, -1, -1] and actual['eligible'][0, -1, -1]
+    assert not wrong['mature'][0, -1, -1]

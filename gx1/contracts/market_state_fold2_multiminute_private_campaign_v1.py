@@ -18,7 +18,7 @@ from gx1.contracts.market_state_fold2_multiminute_private_v1 import (
 )
 
 SCOPE = 'market_state_fold2_25_cell_S_private_two_batch_v1'
-STAGE = 'market_state_fold2_25_cell_S_private_two_batch_20261115_001'
+STAGE = 'market_state_fold2_25_cell_S_private_two_batch_20261115_002'
 ROOT = Path('/home/andre2/GX1_RUNS') / STAGE.upper()
 RUNTIME_ROOT = ROOT / 'RUNTIME'
 RECIPE_PATH = ROOT / 'RECIPE.json'
@@ -26,6 +26,8 @@ RECIPE_SCHEMA = 'gx1_market_state_fold2_25_cell_S_private_recipe_v1'
 CURSOR_SCHEMA = 'gx1_market_state_fold2_25_cell_S_private_cursor_v1'
 RESULT_SCHEMA = 'gx1_market_state_fold2_25_cell_S_private_result_v1'
 PASS_DECISION = 'PASS_FOLD2_25_CELL_S_PRIVATE_RESUME'
+FEATURE_FIT_CUTOFF_NS = 1735603200000000000
+S_TARGET_FOLD_UPPER_NS = 1735689600000000000
 FOLD_ID = 2
 PARENT_ROWS = base.PARENT_ROWS
 BATCH_SIZE = base.BATCH_SIZE
@@ -46,6 +48,7 @@ SOURCE_PATHS = (
     'gx1/contracts/market_state_time_query_model_v2.py',
     'gx1/contracts/market_state_time_query_private_state_v1.py',
     'gx1/audit/build_market_state_time_query_tape_v1.py',
+    'gx1/audit/qualify_market_state_fold2_multiminute_initial_v1.py',
     'gx1/scripts/run_market_state_time_query_private_window_v1.py',
     'gx1/scripts/prepare_market_state_fold2_multiminute_private_recipe_v1.py',
 )
@@ -62,6 +65,12 @@ def time_query_private_numerical_recipe() -> dict:
 
 def input_refs() -> dict[str, dict[str, str]]:
     refs = old.input_refs()
+    packet_ref = refs['fold2_packet']
+    packet = campaign.read_bound_json(Path(packet_ref['path']),
+                                      packet_ref['sha256'])
+    _need(packet['parent_prefix_normalization']['prefix_qualification']
+          ['proof']['prefix']['cutoff_ns'] == FEATURE_FIT_CUTOFF_NS,
+          'FEATURE_FIT_CUTOFF')
     review_ref = {'path': str(INITIAL_REVIEW),
                   'sha256': campaign.file_sha256(INITIAL_REVIEW)}
     review = campaign.read_bound_json(INITIAL_REVIEW, review_ref['sha256'])
@@ -107,6 +116,8 @@ def build_recipe(*, source_commit: str) -> dict:
         'admission_stage': STAGE, 'run_scope': SCOPE,
         'fold_id': FOLD_ID, 'partition': 'fit',
         'parent_rows': list(PARENT_ROWS), 'pass_index': PASS_INDEX,
+        'feature_fit_cutoff_ns': FEATURE_FIT_CUTOFF_NS,
+        's_target_fold_upper_ns': S_TARGET_FOLD_UPPER_NS,
         's_only_25_cell': True, 'selected_state_endpoints': False,
         'numerical_recipe': numerical_recipe(), 'input_refs': input_refs(),
         'source_owners': {name: {'path': str(repo / name),

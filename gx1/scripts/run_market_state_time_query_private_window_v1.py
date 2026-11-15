@@ -233,7 +233,9 @@ def run_time_query_private_window(*, policy_path: Path,
             view, packet, constructor, raw_batches, batch_reports, provider, provider_plan = (
                 source_batches.load_two_batches(source_owners=recipe['source_owners']))
             _need(view['contract_sha256'] == recipe['expected_view_sha256']
-                  and view['prefix']['cutoff_ns'] == 1735689600000000000,
+                  and view['prefix']['cutoff_ns'] == recipe['feature_fit_cutoff_ns']
+                  and recipe['s_target_fold_upper_ns']
+                      == fold2_scope.S_TARGET_FOLD_UPPER_NS,
                   'FOLD2_S_VIEW_AND_FIT_CUTOFF')
             receipts = None
         else:
@@ -264,7 +266,7 @@ def run_time_query_private_window(*, policy_path: Path,
             for _, _, issue in raw_batches:
                 issue_ns = np.asarray(issue, dtype=np.int64)
                 truth = gather_fixed_path(tape, issue_ns,
-                    fold_upper_ns=view['prefix']['cutoff_ns'])
+                    fold_upper_ns=recipe['s_target_fold_upper_ns'])
                 _need(np.array_equal(fixed_query_grid(issue_ns),
                                      truth['query_minutes']), 'FOLD2_S_QUERY_CLOCK')
                 truth_batches.append(truth)

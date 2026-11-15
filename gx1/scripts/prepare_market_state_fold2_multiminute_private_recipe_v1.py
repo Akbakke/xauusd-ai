@@ -26,7 +26,7 @@ def prepare() -> dict:
         cwd=repo, text=True), 'SOURCE_DIRTY')
     policy = json.loads((repo / 'NEXT_RUN_POLICY.json').read_text())
     _need(policy['status'] ==
-          'FOLD2_S_25_CELL_PRIVATE_ROUTE_SOURCE_READY_NO_FIT_ADMISSION_EDGE_UNQUALIFIED'
+          'FOLD2_S_25_CELL_PRIVATE_CLOCK_CORRECTED_SOURCE_READY_NO_RUN_ADMISSION_EDGE_UNQUALIFIED'
           and all(policy.get(key) is False for key in (
               'training_enabled', 'native_training_enabled',
               'full_epoch_training_allowed', 'full_val_allowed'))

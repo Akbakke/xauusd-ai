@@ -1,0 +1,49 @@
+{
+  "candidate_001": {
+    "claim_created": false,
+    "output_created": false,
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_25_CELL_S_PRIVATE_TWO_BATCH_20261115_001/RECIPE.json",
+    "root_contains_only_recipe": true,
+    "sha256": "2cfaf79197210ddc7d3408529bc3dec9cbf9e24d5a09d586a6d8b8e3173b8d76",
+    "source_commit": "9f942249bb48001641df69e610c5fd10af0280da"
+  },
+  "limits": {
+    "candidate_002_published": false,
+    "economic_edge_proven": false,
+    "full_fit_qualified": false,
+    "later_model_score_measured": false,
+    "physical_private_update_qualified": false,
+    "trading_authorized": false
+  },
+  "minimal_correction": {
+    "new_admission_stage": "market_state_fold2_25_cell_S_private_two_batch_20261115_002",
+    "old_001_recipe_immutable_and_not_relaunched": true,
+    "separate_recipe_fields": [
+      "feature_fit_cutoff_ns",
+      "s_target_fold_upper_ns"
+    ],
+    "source_bound_packet_cutoff_check": true,
+    "synthetic_regression_test_passed": true,
+    "target_gather_uses_s_target_fold_upper": true
+  },
+  "next_gate": "Commit the corrected stage002 source; publish one new candidate recipe without admission; rerun the exact read-only source/view/clock preflight before any CLAIM.",
+  "observed_utc": "2026-11-15T14:22:31.064948+00:00",
+  "read_only_preflight": {
+    "actual_feature_fit_cutoff_ns": 1735603200000000000,
+    "assertion_failed": "feature_view_prefix_cutoff_was_not_target_fold_upper",
+    "bound_two_batch_loader_returned": true,
+    "capped_class": "producer",
+    "feature_cutoff_source": "bound_fold2_packet.parent_prefix_normalization.prefix_qualification.proof.prefix.cutoff_ns",
+    "memory": "12G",
+    "model_constructions": 0,
+    "model_forwards": 0,
+    "optimizer_updates": 0,
+    "s_target_fold_upper_ns": 1735689600000000000,
+    "source_recipe_routing_passed": true,
+    "swap": "512M",
+    "target_upper_source": "gx1/audit/qualify_market_state_fold2_multiminute_initial_v1.py",
+    "test_data_used": false
+  },
+  "schema_version": "gx1_fold2_s_only_private_clock_preflight_review_v1",
+  "status": "READ_ONLY_PREFLIGHT_REJECTED_001_CLOCK_CORRECTED_002_SOURCE_ONLY"
+}
