@@ -88891,6 +88891,7 @@
     "claimed_invocations": 0,
     "completed_invocations": 0,
     "remaining_invocations": 1,
+    "relaunch_allowed": false,
     "campaign_preparation_authorized": true,
     "execution_authorized": true,
     "data_reads_authorized": true,
