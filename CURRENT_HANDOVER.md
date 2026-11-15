@@ -5,24 +5,21 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: SELECTED_NATIVE_FOLD2_CANDIDATE_RECIPE_PREFLIGHT_PASS_ADMISSION_CLOSED.
-Kildekode for Fold2 full-XAU+GC selected-native S/F privat AdamW/resume er
-committet på `1be8f954`. En uforanderlig kandidatoppskrift er publisert:
-`/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_SELECTED_FOLD2_TWO_BATCH_20261115_001/RECIPE.json`,
-SHA256 `3e5c6875544583a6410c5031c2a7e44220d6437b98c438130304eaab92605981`.
-Den binder 73 nåværende kilder og 20 inputkvitteringer, Fold2 rad2–33,
-full XAU+GC, fem valgte native S/F-endepunkter og frossen prior. 37 fokuserte
-tester og kildepreflight passerer; CLI-hjelp røykprøvd. Forsøksvinduer blir
-avvist som forventet av `training_enabled=false` før CLAIM. Ingen kampanje er
-admittert, ingen faktisk B16 full-GC gather, optimizersteg, fit, senere
-modellscore eller Edge er kvalifisert. Se
-`docs/S_F_FOLD2_SELECTED_NATIVE_CAMPAIGN_ROUTE_SOURCE_REVIEW_20261115.json`.
-Neste gate er eksakt separat engangsadmisjon for kandidatoppskriften og en
-ny fysisk boot før bevoktet 32-raders firestegs optimizer/resume; kvalifiser
-faktisk input-gather før optimizer. Ingen full fit autoriseres. TEST, broker
-og handel er stengt. S er framtidig endepunkttilstand; H4/D1 kan inneholde
-kjent før-issue historikk. F er separat beslutningsforankret forflytning.
-Ingen av dem er Entry-mål i denne fasen.
+Gjeldende policy: SELECTED_NATIVE_FOLD2_B16_GATHER_PLAN_READY_NO_ADMISSION.
+Fold2 selected-native privat AdamW/resume-rute og kandidatoppskrift er bundet
+mot commit `1be8f954`; SHA256 for oppskriften er
+`3e5c6875544583a6410c5031c2a7e44220d6437b98c438130304eaab92605981`.
+Lesende kildepreflight passerer, global `training_enabled=false` avviser et
+forsøksvindu før CLAIM. For å måle den gjenværende konkrete usikkerheten er
+en separat engangsplan for faktisk full-GC gather av Fold2 rad2–33 i to B16-
+batcher forberedt: `configs/research/MARKET_STATE_FOLD2_SELECTED_NATIVE_B16_GATHER_20261115_001.json`.
+Den krever capped producer 12G/512M, null modellkonstruksjoner, forwards og
+optimizersteg. Planen er ennå ikke admittert eller kjørt. Neste steg er
+no-CLAIM preflight, separat lesende policyadmisjon, én kjøring og terminal-
+kontroll; deretter ny vurdering av den fortsatt stengte firestegs optimizer-
+prøven. Ingen full fit, senere modellscore eller Edge er kvalifisert. TEST,
+broker og handel er stengt. S og F er separate fem-TF-mål, ikke Entry i denne
+fasen. Se `docs/S_F_FOLD2_SELECTED_NATIVE_CAMPAIGN_ROUTE_SOURCE_REVIEW_20261115.json`.
 
 Forrige policy: GC_ABS_BOOK_ACTIVITY_POSITIVE_HYPOTHESIS_UNSUPPORTED_EDGE_UNQUALIFIED.
 Den ene forhåndsbundne, capped GC-bokaktivitetstesten er COMPLETE/CONSUMED,
