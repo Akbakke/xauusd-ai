@@ -5,20 +5,26 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_SHARED_S_ENTRY_INITIAL_READ_ONLY_ADMITTED_EDGE_UNQUALIFIED.
-Kildebundet beslutning i docs/S_FOLD2_EDGE_ROUTE_DECISION_20261115.json:
-direkte framtidig S-side er negativ deklarert netto på alle seks faste M5-
-målepunkter i både fit og senere utvikling. S beholdes som markedsbeskrivelse;
-Entry trenger egen side- og prisbanekvalitet. Første S-B16 viste full-GC-
-informasjonsflyt på alle fem tidsrammer og ingen observert nullgradientverdi.
-Én ny låst, 12G/512M-avgrenset initialkontroll på samme første Fold2 B16 er
-innrømmet. Den bygger fersk ONLINE uten checkpoint, bruker én native encoder
-til både fast fempunkts-S og eksisterende toside-Entry-dekoder, binder seks
-M5 netto/MAE-fasiter på samme klokke og gjør én maskert teknisk backward.
-Plan: configs/research/MARKET_STATE_FOLD2_SHARED_S_ENTRY_INITIAL_20261115_001.json.
-Ingen optimizer eller fit er innrømmet. Mekanikk er ikke læring, senere
-VAL-verdi eller økonomisk Edge. training_enabled=false; TEST, broker og
-handel stengt. Planen relanseres aldri etter claim.
+Gjeldende policy: FOLD2_SHARED_S_ENTRY_INITIAL_MECHANICS_PASS_FIT_CLOSED_EDGE_UNQUALIFIED.
+Den ene innrømmede full-GC Fold2 B16-kontrollen er fullført og brukt opp.
+Samme ferske native encoder matet fast S-fempunktsbane og eksisterende
+LONG/SHORT Entry-netto-/MAE-hoder uten nytt backbonekall. Seks faste
+1/5/15/60/240/480-minutts netto-/prisbanefasiter var felles observert på
+alle16 rader og klokket til de samme M5-beslutningene. Én teknisk, maskert
+Entry-backward ga endelige ikke-null inputgradienter på alle fem signal- og
+GC-tidsrammer, ingen observert nullgradientverdi i verdi/maske-par, aktive
+Entry-hoder og uendret modellstate. S-hodet hadde egen aktiv gradient i forrige
+S-kontroll; det var ikke del av Entry-backward. Review:
+docs/S_FOLD2_SHARED_S_ENTRY_INITIAL_REVIEW_20261115.json.
+Dette kvalifiserer delt mekanikk på første B16, ikke fittet læring,
+indikatorverdi på alle rader, kronologisk prognose eller Edge. Direkte
+framtidig S-side var negativ deklarert netto på alle seks faste punkter i
+fit og senere utvikling; S beholdes som markedsbeskrivelse. Se
+docs/S_FOLD2_EDGE_ROUTE_DECISION_20261115.json.
+Neste gate er én eksakt kombinert mål-/lossoppskrift og tidligere TRAIN-frosset
+prior, kvalifisert optimizer/resume og fast senere kronologisk score før egen
+fit-innrømmelse. training_enabled=false; TEST, broker og handel stengt.
+Ingen brukt engangsplan relanseres.
 
 Forrige policy: FOLD2_PAIRED_MINUTE_PATH_CHANGE_CONFIRMED_MULTIMINUTE_OBJECTIVE_OPEN_EDGE_UNQUALIFIED.
 Korrigert capped parvis engangskontroll002 er fullført og brukt opp. På

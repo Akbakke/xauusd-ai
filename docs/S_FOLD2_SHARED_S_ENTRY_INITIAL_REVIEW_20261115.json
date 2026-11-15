@@ -1,0 +1,63 @@
+{
+  "claim": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_SHARED_S_ENTRY_INITIAL_20261115_001/CLAIM.json",
+    "sha256": "0da1122240e001fd1f6ec46f870213e3d1155ff8b122a655faf8ff83c0ddde6b"
+  },
+  "interpretation": "The existing Fold2 full-GC native encoder can feed both dynamic S and two-side M5 Entry outputs without a second encoder or new architecture. The exact first B16 cost/path targets align to the same M5 decision clocks. This technical raw-bps common-mask gradient probe uses random initial weights; its MSE is not a trained result or economic value. The S query head was deliberately excluded from this Entry backward and was separately gradient-proved in the prior pinned S initial run.",
+  "limits": {
+    "all_indicator_effects_not_proven": true,
+    "declared_costs_not_historical_fills": true,
+    "economic_edge_proven": false,
+    "no_full_fit_or_chronological_model_score": true,
+    "no_optimizer_resume_qualified_for_joint_objective": true,
+    "no_trade_or_open_position_PnL": true,
+    "only_first_fit_B16": true,
+    "test_data_used": false
+  },
+  "measured": {
+    "S_head_finite": true,
+    "S_head_gradient_in_prior_S_probe": true,
+    "S_head_gradient_in_this_entry_probe": false,
+    "all_13_floating_input_tensors_finite_nonzero_gradient": true,
+    "all_five_signal_and_gc_timeframes_nonzero_gradient": true,
+    "checkpoint_reads": 0,
+    "cost_and_complete_path_common_target_rows_by_horizon": [
+      16,
+      16,
+      16,
+      16,
+      16,
+      16
+    ],
+    "declared_cost_economics_sha256": "81b7d1c7311d831753e273840ed5e732819c4c4371aa832b76b7f9ec1118b999",
+    "entry_mae_head_nonzero_gradient": true,
+    "entry_net_and_mae_heads_finite": true,
+    "entry_net_head_nonzero_gradient": true,
+    "initial_state_matches_prior_S_initial": true,
+    "observed_paired_value_zero_gradient_count": 0,
+    "one_native_encoder_forward": true,
+    "optimizer_steps": 0,
+    "raw_bps_probe_mse_untrained": 117.56111145019531,
+    "same_first_fold2_full_gc_B16": true,
+    "shared_backbone_nonzero_gradient": true,
+    "state_digest_unchanged": true,
+    "test_data_used": false,
+    "trade_selection": false
+  },
+  "next_gate": "Bind one exact shared S/Entry training objective, frozen earlier-TRAIN prior, unchanged native resume state and chronological later scoring on the fixed cohorts. Qualify optimizer/resume under separate exact one-use admission before any update. Keep TEST, broker and trading closed.",
+  "plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_FOLD2_SHARED_S_ENTRY_INITIAL_20261115_001.json",
+    "sha256": "1c5dd64c746a063073700078bfafb3cf506c2bb7323b6390c8176720a5def2b3"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_SHARED_S_ENTRY_INITIAL_20261115_001/RESULT.json",
+    "sha256": "312c6bc8fc2f449aeb2f450f72c6da94633d7d39022e52042a07547e467c434c"
+  },
+  "schema_version": "gx1_fold2_shared_s_entry_initial_review_v1",
+  "source_head": "22a4ff615de004dbf5ea02b816060afe1e593800",
+  "status": "COMPLETE_CONSUMED_SHARED_ENCODER_DUAL_HEAD_MECHANICS_PASS_EDGE_UNQUALIFIED",
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_SHARED_S_ENTRY_INITIAL_20261115_001/TERMINAL.json",
+    "sha256": "dd3986da931cc1c4c7506f04942a22032c80f769f0b0e97604f6dfb2534ab8cb"
+  }
+}
