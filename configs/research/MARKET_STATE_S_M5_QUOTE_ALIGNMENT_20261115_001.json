@@ -1,0 +1,60 @@
+{
+  "economics": {
+    "cost_status": "declared_projection_not_historical_broker_fills",
+    "entry": "exact_m1_bid_ask_open_at_issue",
+    "long_financing_bps_annual": 569.0,
+    "path": "five_contiguous_m1_bars",
+    "roundtrip_slippage_bps": 4.0,
+    "seconds_per_year": 31557600.0,
+    "short_financing_bps_annual": 0.0,
+    "spread_counted_in_bid_ask": true,
+    "terminal": "exact_m1_bid_ask_open_at_issue_plus_5_minutes"
+  },
+  "input_refs": {
+    "m1": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m1_quotes_source/m1_quotes.parquet",
+      "sha256": "54b66c5e9b5a0125f089afcc9d3327c79af9c3543eebdb2644281ed9d3c2734c"
+    },
+    "mask": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001/ROW_MASKS.npz",
+      "sha256": "2b063e35b97cc1dbdbb522d2b2876a39514b1145d8c59d8a2ab07561764f9edc"
+    },
+    "model_axes": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_DATA_20261024_245/OUTPUT/PRICE_TARGETS.npz",
+      "sha256": "9d4a5fb3c473b088aff5a5d5a176c199a64053b679229c14f125697b93af577d"
+    }
+  },
+  "limits": {
+    "class": "audit",
+    "max_invocations": 1,
+    "memory": "4G",
+    "model_forwards": 0,
+    "optimizer_steps": 0,
+    "swap": "512M",
+    "wall_seconds": 1800
+  },
+  "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_S_M5_QUOTE_ALIGNMENT_20261115_001",
+  "schema_version": "gx1_s_m5_quote_alignment_plan_v1",
+  "scope": {
+    "entry_timeframe": "M5",
+    "exit_evaluation": false,
+    "fit_decision_ns_sha256": "380184a9c95a02f2716326765783746b1834371a7266545113fb1eae6722da47",
+    "fit_parent_rows_sha256": "db43609ad6bd10e8d1a13b216243855c499189f8d2f08ef0a67d49de66e29fe9",
+    "fit_rows": 47338,
+    "fold_id": 2,
+    "query_horizon_minutes": 5,
+    "test_data_used": false,
+    "timeframe": "M5"
+  },
+  "source_base_head": "a014a66a3625b1c5e7e714f4a277c47ac49abddf",
+  "source_owners": {
+    "gx1/audit/measure_market_state_s_m5_quote_alignment_v1.py": "729f82c4aa6ab20fe5747d01ddbb4f39f1653f0348ed0d3c5a315e002cfd1ad7",
+    "gx1/contracts/entry_causal_m1_outcomes_v1.py": "4cba6a5fb49c518eedd67bd8264af51bb319a3af604aeda483c415d4ea864ac7",
+    "gx1/contracts/gx1_capped_execution_v1.py": "60b1ccf2eda470a84ddded0d8160c628314ebb19f5766b87b70fef7c9aa3ccff",
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "gx1/contracts/market_state_five_endpoint_target_binding_v1.py": "71dc01154aada84d01e930cb78970a79608c5bff5ebd710d9f48273934e14bfd",
+    "scripts/gx1_capped_run.sh": "3c9d608574be3755e0e3d63d2617a01612d65dbaf61b26b76765262a5a2abc4c"
+  },
+  "stage": "market_state_s_m5_quote_alignment_20261115_001",
+  "status": "PREPARED_NOT_ADMITTED"
+}

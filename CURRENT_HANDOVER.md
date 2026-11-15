@@ -6,6 +6,8 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 ## Aktivt mål og neste steg
 
 Aktuell policy: S_FULL_GC_FOLD2_LATER_INPUT_COMPLETE_EDGE_UNQUALIFIED.
+En ny, avgrenset Fold2 TRAIN-only M5-kostaudit er PREPARED_NOT_ADMITTED: `configs/research/MARKET_STATE_S_M5_QUOTE_ALIGNMENT_20261115_001.json`. Den vil sammenholde valgt S-side med eksakt M1 bid/ask ved beslutning og fem minutter senere, gjenbruke Entry-eierens prisbaneberegning og deklarert 4bps kostprojeksjon. Dette er et etterpåkjent måldiagnostisk utfall, ikke valgt handel, Exit-regel eller Edge. Ingen claim, rålesing, fit eller TEST.
+
 Fold2 full-GC senere inputplan er COMPLETE/CONSUMED, exit0 etter169,04s
 under12G/512M. Den gjenbrukte de seks fysiske sidecarene og bandt
 4096 faste utviklingsrader fra jan–mar2025 i256 batcher til dagens

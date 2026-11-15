@@ -46,6 +46,25 @@
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-15T00:38:31Z",
   "status": "S_FULL_GC_FOLD2_LATER_INPUT_COMPLETE_EDGE_UNQUALIFIED",
+  "market_state_s_m5_quote_alignment_20261115_001": {
+    "status": "PREPARED_NOT_ADMITTED",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_S_M5_QUOTE_ALIGNMENT_20261115_001.json",
+      "sha256": "a1a1dcb0ca3a3666220d43ad2a9952f75f8b3f9fa4072d3bb6bd682edda60006"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_S_M5_QUOTE_ALIGNMENT_20261115_001",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "model_forwards_authorized": 0,
+    "optimizer_steps_authorized": 0,
+    "training_authorized": false,
+    "test_authorized": false,
+    "broker_access_allowed": false,
+    "relaunch_allowed": false
+  },
   "market_state_mature_fold1_normalization_20261107_001": {
     "status": "CONSUMED_COMPLETE_FOLD1_MATURE_UNITS_NORMALIZATION_NO_MODEL",
     "decision": "PASS_FRESH_FOLD1_INPUT_STATS_NO_MODEL_FIT",
