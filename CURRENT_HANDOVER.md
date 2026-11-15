@@ -5,7 +5,21 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_MINUTE_QUERY_SOURCE_READ_ONLY_ADMITTED.
+Gjeldende policy: FOLD2_MINUTE_QUERY_SOURCE_PASS_NATIVE_MINUTE_FORWARD_OPEN_EDGE_UNQUALIFIED.
+Én capped Fold2-kildekontroll er fullført og brukt opp. Eksisterende
+hashbundet M1-S-tape gir eksakte modne M5-etiketter ved minutt1–4 uten
+ny targetbygging. På alle fem TF har de gamle native endepunktene 0
+avvik i S-bit, modenhet og effektiv kvalifisering i både fit47 338 og
+fast senere utvikling4096. M5 minutt1 har sertifisert OPP/NED på
+15 891/47 338 fit-rader og 1 421/4 096 senere rader; aktivitet-only
+bit5 dominerer fortsatt. Kilde-/syntetisk output, loss og score består,
+men genuine full-feature minute-forward, kausalt forhåndsbundet
+spørreplan, fersk initialbaseline, fit, uavhengig generalisering og Edge
+er åpne. Se docs/S_FOLD2_MINUTE_QUERY_SOURCE_REVIEW_20261115.json.
+Native trening er uadmittert; training_enabled=false; ingen TEST,
+broker eller handel.
+
+Forrige policy: FOLD2_MINUTE_QUERY_SOURCE_READ_ONLY_ADMITTED.
 Målt endepunktalias viser at M5-minutt1–4 må kunne spørres. En separat
 kildekandidat bruker den allerede hashbundne 591 682-raders M1-S-tapen,
 eksakt minuttsoppslag, eksisterende faktoriserte modellhode og samme
