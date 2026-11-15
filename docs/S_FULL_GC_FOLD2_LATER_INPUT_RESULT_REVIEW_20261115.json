@@ -1,0 +1,142 @@
+{
+  "admission_policy": {
+    "path": "/home/andre2/src/GX1_CURRENT/NEXT_RUN_POLICY.json",
+    "sha256": "be3a7a180f5fdd04148599484b7633021cb5c5efa54311100e38134ab26d927a"
+  },
+  "claim": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FULL_GC_FOLD2_LATER_INPUTS_20261115_001/CLAIM.json",
+    "sha256": "44c65c6628e0ba5e8ab725b650f51761b1318212b2fde0c405aac9a180348686"
+  },
+  "full_gc_later_coverage": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_FULL_GC_FOLD2_LATER_COVERAGE_20261115_001.json",
+    "sha256": "ff18b8fcde8b09c41cbec5c216c532ef688a6be29767e456475cef941495c640"
+  },
+  "limits": {
+    "economic_edge_proven": false,
+    "full_17288_later_rows_qualified": false,
+    "gc_marginal_predictive_value_proven": false,
+    "later_predictive_generalization_proven": false,
+    "model_fit_performed": false,
+    "only_fixed_4096_development_rows_qualified": true,
+    "test_data_used": false
+  },
+  "measured": {
+    "all_raw_feature_values_finite": true,
+    "cap_memory_max_bytes": 12884901888,
+    "cap_swap_max_bytes": 536870912,
+    "causal_mtf_clock_rows": {
+      "D1": 4096,
+      "H1": 4096,
+      "H4": 4096,
+      "M15": 4096,
+      "M5": 4096
+    },
+    "cpu_peak_rss_kib": 1602204,
+    "elapsed_seconds": 169.04298202099744,
+    "feature_batches": 256,
+    "feature_shapes_per_batch": {
+      "ctx_cat": [
+        16,
+        1
+      ],
+      "ctx_cont": [
+        16,
+        2542
+      ],
+      "gc_seq_d1": [
+        16,
+        252,
+        399
+      ],
+      "gc_seq_h1": [
+        16,
+        96,
+        453
+      ],
+      "gc_seq_h4": [
+        16,
+        96,
+        431
+      ],
+      "gc_seq_m15": [
+        16,
+        64,
+        493
+      ],
+      "gc_seq_m5": [
+        16,
+        16,
+        639
+      ],
+      "seq_d1": [
+        16,
+        252,
+        255
+      ],
+      "seq_h1": [
+        16,
+        96,
+        255
+      ],
+      "seq_h4": [
+        16,
+        96,
+        255
+      ],
+      "seq_m15": [
+        16,
+        64,
+        255
+      ],
+      "seq_m5": [
+        16,
+        16,
+        255
+      ],
+      "seq_x": [
+        16,
+        96,
+        2727
+      ],
+      "snap_x": [
+        16,
+        2727
+      ]
+    },
+    "fold_id": 2,
+    "gc_surface_count": 5,
+    "model_constructions": 0,
+    "model_forwards": 0,
+    "optimizer_steps": 0,
+    "score_period": "2025-01-01_to_2025-04-01_exclusive",
+    "selected_decision_ns_sha256": "c03ec2ae8b418e21739f9f7966b946615878344364e6dc4e4d80087a0fee99d3",
+    "selected_parent_rows": 4096,
+    "selected_parent_rows_sha256": "1e4a137f13f9217641999e9730a0eec152472fe26aef517bd83da04463d926b6",
+    "target_arrays_decoded": 0,
+    "test_data_used": false
+  },
+  "next_gate": "One precommitted selected-native S/F hypothesis and proper-score comparison with frozen TRAIN prior; optimizer/resume and operator fit admission required before any model update. TEST and trading remain closed.",
+  "observed_utc": "2026-11-15T00:37:59Z",
+  "plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_FULL_GC_FOLD2_LATER_INPUTS_20261115_001.json",
+    "sha256": "dcc6ae23dedb5c6f866a941ce472165dfad6d14f0cb95ddeff89e4b6b0bb82c2"
+  },
+  "preclaim_cap_block": {
+    "claim_written": false,
+    "output_root_created": false,
+    "reason": "GX1_CPU_RESEARCH_GX1_CAPPED_MEMORY_BYTES_INVALID",
+    "requested_memory": "8G",
+    "required_memory": "12G"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FULL_GC_FOLD2_LATER_INPUTS_20261115_001/RESULT.json",
+    "sha256": "820c41c10faddefc9ad38622168eb2080e6913ee68ebba6f0e0dff8fa0edf37b"
+  },
+  "schema_version": "gx1_s_full_gc_fold2_later_input_result_review_v1",
+  "source_head": "0cc3742a00542c512306bb976cdc88381ed13805",
+  "status": "COMPLETE_CONSUMED_INPUT_ONLY_EDGE_UNQUALIFIED",
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FULL_GC_FOLD2_LATER_INPUTS_20261115_001/TERMINAL.json",
+    "sha256": "47267210715f01d6f4dc03e30b207344a7ccde23b87e0867e73b4330665ff950"
+  }
+}

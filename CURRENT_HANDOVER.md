@@ -5,21 +5,17 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: S_FULL_GC_FOLD2_LATER_INPUT_ADMITTED_12G_ONE_USE.
-Korrigert12G/512M/900s capped no-claim preflight besto:45 kildeeiere,
-4096 faste senere utviklingsrader,256 batcher og samme full-GC-hash.
-Den tidligere8G-feilen var før claim og payload; outputroten finnes
-fortsatt ikke. Én read-only gather er nå innrømmet. Første claim
-forbruker planen;0 mål-/modell-/optimizer- og TEST-autoritet.
-
-Fysisk full-GC INITIAL er forbrukt og bestått. Fold2s faste senere
-jan–mar2025-panel på4096 utviklingsrader har seks allerede kvalifiserte
-anker-sidecars og TRAIN-normalisering, men den tidligere gatheren var
-bundet til TA-visning uten rå GC. Ny engangsplan
-`configs/research/MARKET_STATE_FULL_GC_FOLD2_LATER_INPUTS_20261115_001.json`
-gjenbruker disse artefaktene og skal fysisk kvalifisere full-XAU+GC-
-input på alle fem TF uten mål, modell, fit eller TEST. Bare lesende
-gather er innrømmet etter ny preflight; ingen claim er opprettet.
+Aktuell policy: S_FULL_GC_FOLD2_LATER_INPUT_COMPLETE_EDGE_UNQUALIFIED.
+Fold2 full-GC senere inputplan er COMPLETE/CONSUMED, exit0 etter169,04s
+under12G/512M. Den gjenbrukte de seks fysiske sidecarene og bandt
+4096 faste utviklingsrader fra jan–mar2025 i256 batcher til dagens
+full-XAU+GC-visning:14 tensorflater, fem GC-flater, fem kausale
+MTF-klokker på alle rader og finite råverdier.0 mål-arraylesing,
+modellkonstruksjoner, forwards, optimizersteg, TEST og handel.
+Eksakt ny dekningsbinding:
+`configs/research/MARKET_STATE_FULL_GC_FOLD2_LATER_COVERAGE_20261115_001.json`.
+Aggregert kontroll: `docs/S_FULL_GC_FOLD2_LATER_INPUT_RESULT_REVIEW_20261115.json`.
+Dette kvalifiserer input på det faste panelet, ikke læring eller Edge.
 
 Fold2 engangsplan002 er COMPLETE/CONSUMED, exit0 etter26,09s under
 12G/512M. To faktiske TRAIN-rader gav full XAU+GC-featurebatch med
@@ -46,11 +42,11 @@ enhetsprofil. Én separat test for relative GC-priskoordinater feiler på
 en eksisterende gc_order_flow_v1.py-kildehash; rå-GC-ruten bruker den ikke.
 Se docs/S_FULL_GC_ANCHOR_SPAN_FOLD2_SOURCE_REVIEW_20261115.json.
 
-Neste gate er én eksakt capped read-only gather av full-GC senere
-inputplan etter korrigert cap og fornyet engangsadmisjon.
-Før senere TRAIN-fit må én kausal hypotese, proper skår og økonomisk
-beslutningsmål låses; trening krever egen operatøradmisjon. INITIAL-
-plan002 er forbrukt. TEST, broker og handel er stengt.
+Neste gate er én separat forhåndsbundet kronologisk valgt-native S/F-
+sammenlikning med fryst TRAIN-prior og proper skår på alle fem TF.
+Før fit må kausal hypotese, optimizer/resume og økonomisk Entry-mål
+kvalifiseres; trening krever eksakt operatøradmisjon. Begge
+engangsplaner er forbrukt. TEST, broker og handel er stengt.
 
 Den valgte fem-TF S-masken er hashbundet til118249 modellrader og fem faste
 native endepunkter. Den gamle samplede tidsforespørselen treffer D1s native
