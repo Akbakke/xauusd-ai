@@ -1,0 +1,549 @@
+{
+  "claim": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_M5_ALL_SIDE_JOINT_COST_20261115_001/CLAIM.json",
+    "sha256": "d00cd0153c3f13042d67ac3dde6a4e3d54c0b16ef9237d4353fc6b57ecc1721b"
+  },
+  "decision": "BOTH_EXECUTABLE_SIDES_BOUND_ON_COMMON_FOLD2_MASK_NO_CAUSAL_SELECTION",
+  "economics": {
+    "annual_financing_cost_bps": [
+      532.0,
+      0.0
+    ],
+    "capital_hurdle_included": false,
+    "cost_authority_sha256": "7d5cee1d196add19b8fd525860f1f7e61626c510257a073f948a3f089dda9de3",
+    "coverage_end_utc_exclusive": "2026-04-01T00:00:00+00:00",
+    "coverage_start_utc": "2024-05-01T00:00:00+00:00",
+    "economics_sha256": "81b7d1c7311d831753e273840ed5e732819c4c4371aa832b76b7f9ec1118b999",
+    "historical_cost_truth_qualified": false,
+    "risk_utility_included": false,
+    "round_trip_execution_cost_bps": 4.0,
+    "schema_version": "gx1_entry_observed_market_v1_economics",
+    "seconds_per_year": 31557600.0
+  },
+  "interpretation": [
+    "The all-side population includes rows where S future side is unknown. LONG and SHORT share the same terminal-plus-complete-path mask at each fixed observation point; the consumed hindsight-S subset was replayed exactly.",
+    "Both sides have negative common-mask mean declared-cost net markout in fit at all six points. In later development, both sides are negative at 1-240 minutes; always-LONG at 480 minutes is positive 2.85677 bps versus negative 3.90789 bps in fit. This is a regime-sensitive reference, not selected evidence of Edge.",
+    "Mean net minus conservative pre-MFE MAE is negative for both sides in both cohorts at all six points. This one-bps-per-bps quality convention is diagnostic, not realized cash return or calibrated risk preference.",
+    "Either-side positive counts use future knowledge and are only an opportunity upper bound. A causal decision model has not selected side or horizon, and no Exit or holding rule was evaluated.",
+    "The four-bps round-trip execution cost and financing are declared assumptions. Historical cost truth, capital hurdle, actual fills, open-position economics and independent generalization remain unqualified."
+  ],
+  "joint_s_result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_S_M5_JOINT_COST_20261115_001/RESULT.json",
+    "sha256": "6fe578eeedb99a80e8bc833668d3efaab1fdb8a6a28afbb16c5ed2f9e97b8c7d"
+  },
+  "next_gate": "Predeclare one causal input-to-all-side Entry outcome hypothesis on the same Fold2 axes, estimate only on earlier mature TRAIN, and score fixed later development against always-LONG/SHORT/FLAT and a frozen prior without horizon selection. Preserve five-TF S/F as separate context. Native fit requires qualified optimizer/resume and exact admission; TEST and trading stay closed.",
+  "observed_utc": "2026-11-15T02:44:23.129271+00:00",
+  "panels": {
+    "fit": {
+      "1": {
+        "common_issue_ns_sha256": "c8b0bda6660a9af5f995bd12f0cfe3a548114f778f5b0a89f7254a80d340b46b",
+        "common_parent_rows_sha256": "8ae0aa5b6c44092d439accbabee5433e822d1a3a5b388b27aa0d289f998b59e9",
+        "common_rows": 47332,
+        "either_side_positive_quality_rows_hindsight": 679,
+        "either_side_positive_terminal_net_rows_hindsight": 1873,
+        "eligible_rows": 47338,
+        "hindsight_s_subset_replay": true,
+        "path_observed_rows": 47332,
+        "sides": {
+          "long": {
+            "mfe_mean_bps": -0.02877139840790513,
+            "net_minus_pre_mfe_mae_upper_mean_bps": -8.894822056971663,
+            "positive_net_mean_weeks": 0,
+            "positive_quality_fraction": 0.00633820671004817,
+            "positive_quality_mean_weeks": 0,
+            "positive_quality_rows": 300,
+            "positive_terminal_net_fraction": 0.018676582438941942,
+            "positive_terminal_net_rows": 884,
+            "pre_mfe_mae_upper_mean_bps": 3.2572639276215987,
+            "terminal_net_mean_bps": -5.637558129350064
+          },
+          "short": {
+            "mfe_mean_bps": -0.004492711447081318,
+            "net_minus_pre_mfe_mae_upper_mean_bps": -8.860202711303689,
+            "positive_net_mean_weeks": 0,
+            "positive_quality_fraction": 0.008007267810360855,
+            "positive_quality_mean_weeks": 0,
+            "positive_quality_rows": 379,
+            "positive_terminal_net_fraction": 0.020894954787458803,
+            "positive_terminal_net_rows": 989,
+            "pre_mfe_mae_upper_mean_bps": 3.231084920169087,
+            "terminal_net_mean_bps": -5.629117791134602
+          }
+        },
+        "terminal_observed_rows": 47332,
+        "terminal_only_excluded_rows": 0,
+        "weeks": 36
+      },
+      "15": {
+        "common_issue_ns_sha256": "a9104df15404c087ab1558b9e6c2873c682e7c39869480047fd4ddb47254aa6c",
+        "common_parent_rows_sha256": "c62b8d8e7e90fba16a88c6e899c557053d14c2ed2cc8037a97253520c3bb1cb8",
+        "common_rows": 46707,
+        "either_side_positive_quality_rows_hindsight": 9518,
+        "either_side_positive_terminal_net_rows_hindsight": 18538,
+        "eligible_rows": 47338,
+        "hindsight_s_subset_replay": true,
+        "path_observed_rows": 46707,
+        "sides": {
+          "long": {
+            "mfe_mean_bps": 4.617942898851772,
+            "net_minus_pre_mfe_mae_upper_mean_bps": -9.961689305330026,
+            "positive_net_mean_weeks": 0,
+            "positive_quality_fraction": 0.10454535722696812,
+            "positive_quality_mean_weeks": 0,
+            "positive_quality_rows": 4883,
+            "positive_terminal_net_fraction": 0.20455178024707218,
+            "positive_terminal_net_rows": 9554,
+            "pre_mfe_mae_upper_mean_bps": 4.388454476893573,
+            "terminal_net_mean_bps": -5.573234828436454
+          },
+          "short": {
+            "mfe_mean_bps": 4.748915850416668,
+            "net_minus_pre_mfe_mae_upper_mean_bps": -10.027102599727453,
+            "positive_net_mean_weeks": 0,
+            "positive_quality_fraction": 0.0992356606076177,
+            "positive_quality_mean_weeks": 0,
+            "positive_quality_rows": 4635,
+            "positive_terminal_net_fraction": 0.19234804204937161,
+            "positive_terminal_net_rows": 8984,
+            "pre_mfe_mae_upper_mean_bps": 4.323102570846015,
+            "terminal_net_mean_bps": -5.704000028881438
+          }
+        },
+        "terminal_observed_rows": 46812,
+        "terminal_only_excluded_rows": 105,
+        "weeks": 36
+      },
+      "240": {
+        "common_issue_ns_sha256": "461b88704273348bb78d0bba9d40832e3879695e0f4b956fe1909d6143de8191",
+        "common_parent_rows_sha256": "7aa0a7379c27f09f23b73d4ee4259ba6a9a3f046bc89b4873670416b0b7fc46d",
+        "common_rows": 38702,
+        "either_side_positive_quality_rows_hindsight": 20981,
+        "either_side_positive_terminal_net_rows_hindsight": 32679,
+        "eligible_rows": 47338,
+        "hindsight_s_subset_replay": true,
+        "path_observed_rows": 38702,
+        "sides": {
+          "long": {
+            "mfe_mean_bps": 26.560434669801534,
+            "net_minus_pre_mfe_mae_upper_mean_bps": -17.385240303090598,
+            "positive_net_mean_weeks": 9,
+            "positive_quality_fraction": 0.2991835047284378,
+            "positive_quality_mean_weeks": 0,
+            "positive_quality_rows": 11579,
+            "positive_terminal_net_fraction": 0.4634644204433879,
+            "positive_terminal_net_rows": 17937,
+            "pre_mfe_mae_upper_mean_bps": 12.668382980249868,
+            "terminal_net_mean_bps": -4.716857322840728
+          },
+          "short": {
+            "mfe_mean_bps": 27.038432973831828,
+            "net_minus_pre_mfe_mae_upper_mean_bps": -19.143947170373583,
+            "positive_net_mean_weeks": 6,
+            "positive_quality_fraction": 0.2429331817477133,
+            "positive_quality_mean_weeks": 0,
+            "positive_quality_rows": 9402,
+            "positive_terminal_net_fraction": 0.3809105472585396,
+            "positive_terminal_net_rows": 14742,
+            "pre_mfe_mae_upper_mean_bps": 12.369485311522308,
+            "terminal_net_mean_bps": -6.774461858851275
+          }
+        },
+        "terminal_observed_rows": 43672,
+        "terminal_only_excluded_rows": 4970,
+        "weeks": 36
+      },
+      "480": {
+        "common_issue_ns_sha256": "16d44978a2cf09598f9930b179f1ec1f56aaca47072fea0f06d1a60df36d6f82",
+        "common_parent_rows_sha256": "3c9a80bdb2eef98453166833ea93a73583e4279a27b71a331e38b669860cb98d",
+        "common_rows": 30398,
+        "either_side_positive_quality_rows_hindsight": 18598,
+        "either_side_positive_terminal_net_rows_hindsight": 27392,
+        "eligible_rows": 47338,
+        "hindsight_s_subset_replay": true,
+        "path_observed_rows": 30398,
+        "sides": {
+          "long": {
+            "mfe_mean_bps": 41.16346406103718,
+            "net_minus_pre_mfe_mae_upper_mean_bps": -21.113945224889967,
+            "positive_net_mean_weeks": 12,
+            "positive_quality_fraction": 0.34660175011513916,
+            "positive_quality_mean_weeks": 4,
+            "positive_quality_rows": 10536,
+            "positive_terminal_net_fraction": 0.4974340417132706,
+            "positive_terminal_net_rows": 15121,
+            "pre_mfe_mae_upper_mean_bps": 17.206057901486577,
+            "terminal_net_mean_bps": -3.9078873234033913
+          },
+          "short": {
+            "mfe_mean_bps": 40.76596800233525,
+            "net_minus_pre_mfe_mae_upper_mean_bps": -25.35393748222192,
+            "positive_net_mean_weeks": 8,
+            "positive_quality_fraction": 0.2652148167642608,
+            "positive_quality_mean_weeks": 3,
+            "positive_quality_rows": 8062,
+            "positive_terminal_net_fraction": 0.4036778735443121,
+            "positive_terminal_net_rows": 12271,
+            "pre_mfe_mae_upper_mean_bps": 17.52592238655466,
+            "terminal_net_mean_bps": -7.828015095667257
+          }
+        },
+        "terminal_observed_rows": 41943,
+        "terminal_only_excluded_rows": 11545,
+        "weeks": 36
+      },
+      "5": {
+        "common_issue_ns_sha256": "378ec8d3454942680a424c47cb2b49edd07c37ae85280b49578a4a935d25af36",
+        "common_parent_rows_sha256": "54f3da25679fcbcb78c6470f023267cd0f879332ab7c2405b224e7304c90b5dd",
+        "common_rows": 47124,
+        "either_side_positive_quality_rows_hindsight": 3894,
+        "either_side_positive_terminal_net_rows_hindsight": 9104,
+        "eligible_rows": 47338,
+        "hindsight_s_subset_replay": true,
+        "path_observed_rows": 47124,
+        "sides": {
+          "long": {
+            "mfe_mean_bps": 1.893608752085599,
+            "net_minus_pre_mfe_mae_upper_mean_bps": -9.16794037887546,
+            "positive_net_mean_weeks": 0,
+            "positive_quality_fraction": 0.04127408539173245,
+            "positive_quality_mean_weeks": 0,
+            "positive_quality_rows": 1945,
+            "positive_terminal_net_fraction": 0.09829386299974535,
+            "positive_terminal_net_rows": 4632,
+            "pre_mfe_mae_upper_mean_bps": 3.555936646813489,
+            "terminal_net_mean_bps": -5.6120037320619724
+          },
+          "short": {
+            "mfe_mean_bps": 1.9370920343276516,
+            "net_minus_pre_mfe_mae_upper_mean_bps": -9.184467620085432,
+            "positive_net_mean_weeks": 0,
+            "positive_quality_fraction": 0.041358967829556066,
+            "positive_quality_mean_weeks": 0,
+            "positive_quality_rows": 1949,
+            "positive_terminal_net_fraction": 0.09489856548680078,
+            "positive_terminal_net_rows": 4472,
+            "pre_mfe_mae_upper_mean_bps": 3.524916919410873,
+            "terminal_net_mean_bps": -5.659550700674559
+          }
+        },
+        "terminal_observed_rows": 47157,
+        "terminal_only_excluded_rows": 33,
+        "weeks": 36
+      },
+      "60": {
+        "common_issue_ns_sha256": "6043c8cc16b2faaa3357b4fc0f0f28ab6aad9989c6ff0c5d67c998a421809797",
+        "common_parent_rows_sha256": "22ef0faee5d610f7e59cac32b971baf94df59141de458364d6ee423c71d57881",
+        "common_rows": 44976,
+        "either_side_positive_quality_rows_hindsight": 17422,
+        "either_side_positive_terminal_net_rows_hindsight": 29413,
+        "eligible_rows": 47338,
+        "hindsight_s_subset_replay": true,
+        "path_observed_rows": 44976,
+        "sides": {
+          "long": {
+            "mfe_mean_bps": 11.301940798608216,
+            "net_minus_pre_mfe_mae_upper_mean_bps": -12.279936822613736,
+            "positive_net_mean_weeks": 0,
+            "positive_quality_fraction": 0.2056207755247243,
+            "positive_quality_mean_weeks": 0,
+            "positive_quality_rows": 9248,
+            "positive_terminal_net_fraction": 0.35080932052650304,
+            "positive_terminal_net_rows": 15778,
+            "pre_mfe_mae_upper_mean_bps": 6.850344302094882,
+            "terminal_net_mean_bps": -5.429592520518855
+          },
+          "short": {
+            "mfe_mean_bps": 11.662982632825218,
+            "net_minus_pre_mfe_mae_upper_mean_bps": -12.488115876181725,
+            "positive_net_mean_weeks": 0,
+            "positive_quality_fraction": 0.18174137317680542,
+            "positive_quality_mean_weeks": 0,
+            "positive_quality_rows": 8174,
+            "positive_terminal_net_fraction": 0.30316168623265743,
+            "positive_terminal_net_rows": 13635,
+            "pre_mfe_mae_upper_mean_bps": 6.603413076906958,
+            "terminal_net_mean_bps": -5.884702799274766
+          }
+        },
+        "terminal_observed_rows": 45262,
+        "terminal_only_excluded_rows": 286,
+        "weeks": 36
+      }
+    },
+    "later": {
+      "1": {
+        "common_issue_ns_sha256": "c03ec2ae8b418e21739f9f7966b946615878344364e6dc4e4d80087a0fee99d3",
+        "common_parent_rows_sha256": "1e4a137f13f9217641999e9730a0eec152472fe26aef517bd83da04463d926b6",
+        "common_rows": 4096,
+        "either_side_positive_quality_rows_hindsight": 33,
+        "either_side_positive_terminal_net_rows_hindsight": 113,
+        "eligible_rows": 4096,
+        "hindsight_s_subset_replay": true,
+        "path_observed_rows": 4096,
+        "sides": {
+          "long": {
+            "mfe_mean_bps": -0.32579572071225016,
+            "net_minus_pre_mfe_mae_upper_mean_bps": -9.449190093386157,
+            "positive_net_mean_weeks": 0,
+            "positive_quality_fraction": 0.00439453125,
+            "positive_quality_mean_weeks": 0,
+            "positive_quality_rows": 18,
+            "positive_terminal_net_fraction": 0.014404296875,
+            "positive_terminal_net_rows": 59,
+            "pre_mfe_mae_upper_mean_bps": 3.5475273944554258,
+            "terminal_net_mean_bps": -5.901662698930731
+          },
+          "short": {
+            "mfe_mean_bps": -0.31572668714263596,
+            "net_minus_pre_mfe_mae_upper_mean_bps": -9.509581526003917,
+            "positive_net_mean_weeks": 0,
+            "positive_quality_fraction": 0.003662109375,
+            "positive_quality_mean_weeks": 0,
+            "positive_quality_rows": 15,
+            "positive_terminal_net_fraction": 0.01318359375,
+            "positive_terminal_net_rows": 54,
+            "pre_mfe_mae_upper_mean_bps": 3.5439098691850806,
+            "terminal_net_mean_bps": -5.965671656818837
+          }
+        },
+        "terminal_observed_rows": 4096,
+        "terminal_only_excluded_rows": 0,
+        "weeks": 14
+      },
+      "15": {
+        "common_issue_ns_sha256": "237fe26731ef1a3d183846e122960e5735a96487421df78af2c06eda9c89dca8",
+        "common_parent_rows_sha256": "5139a5ba4445ccd54f34f98d6cc9c37aae29780c0ca6217efd62390cb69d4c69",
+        "common_rows": 4077,
+        "either_side_positive_quality_rows_hindsight": 715,
+        "either_side_positive_terminal_net_rows_hindsight": 1493,
+        "eligible_rows": 4096,
+        "hindsight_s_subset_replay": true,
+        "path_observed_rows": 4077,
+        "sides": {
+          "long": {
+            "mfe_mean_bps": 4.407144064722877,
+            "net_minus_pre_mfe_mae_upper_mean_bps": -10.05335540184132,
+            "positive_net_mean_weeks": 0,
+            "positive_quality_fraction": 0.09982830512631836,
+            "positive_quality_mean_weeks": 0,
+            "positive_quality_rows": 407,
+            "positive_terminal_net_fraction": 0.20946774589158695,
+            "positive_terminal_net_rows": 854,
+            "pre_mfe_mae_upper_mean_bps": 4.72242606008013,
+            "terminal_net_mean_bps": -5.330929341761189
+          },
+          "short": {
+            "mfe_mean_bps": 4.102838638998806,
+            "net_minus_pre_mfe_mae_upper_mean_bps": -11.113886323226094,
+            "positive_net_mean_weeks": 0,
+            "positive_quality_fraction": 0.0755457444199166,
+            "positive_quality_mean_weeks": 0,
+            "positive_quality_rows": 308,
+            "positive_terminal_net_fraction": 0.15673289183222958,
+            "positive_terminal_net_rows": 639,
+            "pre_mfe_mae_upper_mean_bps": 4.574319887678732,
+            "terminal_net_mean_bps": -6.539566435547361
+          }
+        },
+        "terminal_observed_rows": 4077,
+        "terminal_only_excluded_rows": 0,
+        "weeks": 14
+      },
+      "240": {
+        "common_issue_ns_sha256": "3ce6bb1bdc8e6fecde2bf82fda2fb0451dca9955fd9b1e248bb109db93af9fae",
+        "common_parent_rows_sha256": "99d1027db45f752b2a386de56f5d2649b06294373cfc4d7c0f871c682e5dbf9e",
+        "common_rows": 3290,
+        "either_side_positive_quality_rows_hindsight": 1723,
+        "either_side_positive_terminal_net_rows_hindsight": 2725,
+        "eligible_rows": 4080,
+        "hindsight_s_subset_replay": true,
+        "path_observed_rows": 3290,
+        "sides": {
+          "long": {
+            "mfe_mean_bps": 26.27276413486901,
+            "net_minus_pre_mfe_mae_upper_mean_bps": -14.956704026803578,
+            "positive_net_mean_weeks": 6,
+            "positive_quality_fraction": 0.30516717325227966,
+            "positive_quality_mean_weeks": 0,
+            "positive_quality_rows": 1004,
+            "positive_terminal_net_fraction": 0.4805471124620061,
+            "positive_terminal_net_rows": 1581,
+            "pre_mfe_mae_upper_mean_bps": 12.426898212680713,
+            "terminal_net_mean_bps": -2.5298058141228656
+          },
+          "short": {
+            "mfe_mean_bps": 24.2293797975007,
+            "net_minus_pre_mfe_mae_upper_mean_bps": -22.02909571966146,
+            "positive_net_mean_weeks": 1,
+            "positive_quality_fraction": 0.21854103343465045,
+            "positive_quality_mean_weeks": 1,
+            "positive_quality_rows": 719,
+            "positive_terminal_net_fraction": 0.34772036474164136,
+            "positive_terminal_net_rows": 1144,
+            "pre_mfe_mae_upper_mean_bps": 12.499602248762315,
+            "terminal_net_mean_bps": -9.529493470899144
+          }
+        },
+        "terminal_observed_rows": 3691,
+        "terminal_only_excluded_rows": 401,
+        "weeks": 14
+      },
+      "480": {
+        "common_issue_ns_sha256": "920fdf78be94f424d5561d0814d2ba752382d2b6eb5c8a15b270b1fafd937037",
+        "common_parent_rows_sha256": "943c9db31e5d3222bebb6db3cc5175eabe8390a787724634d89de7824373bb12",
+        "common_rows": 2626,
+        "either_side_positive_quality_rows_hindsight": 1558,
+        "either_side_positive_terminal_net_rows_hindsight": 2346,
+        "eligible_rows": 4080,
+        "hindsight_s_subset_replay": true,
+        "path_observed_rows": 2626,
+        "sides": {
+          "long": {
+            "mfe_mean_bps": 39.68641658378697,
+            "net_minus_pre_mfe_mae_upper_mean_bps": -15.008372968971853,
+            "positive_net_mean_weeks": 11,
+            "positive_quality_fraction": 0.3758568164508759,
+            "positive_quality_mean_weeks": 1,
+            "positive_quality_rows": 987,
+            "positive_terminal_net_fraction": 0.5380807311500381,
+            "positive_terminal_net_rows": 1413,
+            "pre_mfe_mae_upper_mean_bps": 17.865145876669096,
+            "terminal_net_mean_bps": 2.856772907697246
+          },
+          "short": {
+            "mfe_mean_bps": 34.19417815864792,
+            "net_minus_pre_mfe_mae_upper_mean_bps": -32.10271661287387,
+            "positive_net_mean_weeks": 1,
+            "positive_quality_fraction": 0.21744097486671743,
+            "positive_quality_mean_weeks": 1,
+            "positive_quality_rows": 571,
+            "positive_terminal_net_fraction": 0.35529322162985527,
+            "positive_terminal_net_rows": 933,
+            "pre_mfe_mae_upper_mean_bps": 16.937574629834025,
+            "terminal_net_mean_bps": -15.16514198303985
+          }
+        },
+        "terminal_observed_rows": 3571,
+        "terminal_only_excluded_rows": 945,
+        "weeks": 14
+      },
+      "5": {
+        "common_issue_ns_sha256": "0a30c65eeb3d17f93d97e42ef5d650a8c71c88d0b94ae078ab1314a673f1b878",
+        "common_parent_rows_sha256": "bbfea5b417a06956644951642b67714b5327df4805d0d391c7786dd458a0a671",
+        "common_rows": 4089,
+        "either_side_positive_quality_rows_hindsight": 280,
+        "either_side_positive_terminal_net_rows_hindsight": 692,
+        "eligible_rows": 4096,
+        "hindsight_s_subset_replay": true,
+        "path_observed_rows": 4089,
+        "sides": {
+          "long": {
+            "mfe_mean_bps": 1.6307025633533165,
+            "net_minus_pre_mfe_mae_upper_mean_bps": -9.604015436473464,
+            "positive_net_mean_weeks": 0,
+            "positive_quality_fraction": 0.03643922719491318,
+            "positive_quality_mean_weeks": 0,
+            "positive_quality_rows": 149,
+            "positive_terminal_net_fraction": 0.09391049156272928,
+            "positive_terminal_net_rows": 384,
+            "pre_mfe_mae_upper_mean_bps": 3.871315201250156,
+            "terminal_net_mean_bps": -5.732700235223308
+          },
+          "short": {
+            "mfe_mean_bps": 1.5530814644627398,
+            "net_minus_pre_mfe_mae_upper_mean_bps": -9.981387498292817,
+            "positive_net_mean_weeks": 0,
+            "positive_quality_fraction": 0.03203717290291025,
+            "positive_quality_mean_weeks": 0,
+            "positive_quality_rows": 131,
+            "positive_terminal_net_fraction": 0.07532404010760577,
+            "positive_terminal_net_rows": 308,
+            "pre_mfe_mae_upper_mean_bps": 3.8417648036847485,
+            "terminal_net_mean_bps": -6.139622694608069
+          }
+        },
+        "terminal_observed_rows": 4089,
+        "terminal_only_excluded_rows": 0,
+        "weeks": 14
+      },
+      "60": {
+        "common_issue_ns_sha256": "bd8e62c09b438ba138dcf7587e31709e2cf5d006ca6eb5f12887ae30508bb402",
+        "common_parent_rows_sha256": "ee727ae79eb814c22d8dae16b22a6f3612e960871a845cac49480cbda2bd7767",
+        "common_rows": 3973,
+        "either_side_positive_quality_rows_hindsight": 1500,
+        "either_side_positive_terminal_net_rows_hindsight": 2619,
+        "eligible_rows": 4092,
+        "hindsight_s_subset_replay": true,
+        "path_observed_rows": 3973,
+        "sides": {
+          "long": {
+            "mfe_mean_bps": 11.25783997089975,
+            "net_minus_pre_mfe_mae_upper_mean_bps": -10.849733029396038,
+            "positive_net_mean_weeks": 0,
+            "positive_quality_fraction": 0.22803926503901334,
+            "positive_quality_mean_weeks": 0,
+            "positive_quality_rows": 906,
+            "positive_terminal_net_fraction": 0.3850994210923735,
+            "positive_terminal_net_rows": 1530,
+            "pre_mfe_mae_upper_mean_bps": 7.036122495369222,
+            "terminal_net_mean_bps": -3.813610534026816
+          },
+          "short": {
+            "mfe_mean_bps": 9.992445769714562,
+            "net_minus_pre_mfe_mae_upper_mean_bps": -14.807461588712528,
+            "positive_net_mean_weeks": 0,
+            "positive_quality_fraction": 0.14950918701233326,
+            "positive_quality_mean_weeks": 0,
+            "positive_quality_rows": 594,
+            "positive_terminal_net_fraction": 0.2741001761892776,
+            "positive_terminal_net_rows": 1089,
+            "pre_mfe_mae_upper_mean_bps": 6.737752615350287,
+            "terminal_net_mean_bps": -8.069708973362241
+          }
+        },
+        "terminal_observed_rows": 3973,
+        "terminal_only_excluded_rows": 0,
+        "weeks": 14
+      }
+    }
+  },
+  "plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_M5_ALL_SIDE_JOINT_COST_20261115_001.json",
+    "sha256": "83992eb067a69b8e70e9bb5c91963a0b61d07e32a91c9716d4fe5d5327e74d55"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_M5_ALL_SIDE_JOINT_COST_20261115_001/RESULT.json",
+    "sha256": "5e98d1e731a43d5751967309563132818408cb0422dc3af0367f95adf85e69c6"
+  },
+  "schema_version": "gx1_m5_all_side_joint_cost_review_v1",
+  "scope": {
+    "common_mask": "terminal_and_complete_m1_path_both_sides",
+    "entry_timeframe": "M5",
+    "fit_rows": 47338,
+    "fold_id": 2,
+    "horizon_minutes": [
+      1,
+      5,
+      15,
+      60,
+      240,
+      480
+    ],
+    "later_development_rows": 4096,
+    "model_forwards": 0,
+    "observation_horizon_is_hold_or_exit_rule": false,
+    "optimizer_steps": 0,
+    "selected_trades": 0,
+    "side_order": [
+      "long",
+      "short"
+    ],
+    "test_data_used": false
+  },
+  "source_head": "d7c62a472de6634eb8e1c8cef5e9c8186488ba10",
+  "status": "COMPLETE_CONSUMED_ALL_SIDE_ENTRY_TARGET_COVERAGE_NO_EDGE",
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_M5_ALL_SIDE_JOINT_COST_20261115_001/TERMINAL.json",
+    "sha256": "a4d914b051add96bf94a93210074bf508cbe4e45406257c618a64dd7f7cd9ed5"
+  }
+}

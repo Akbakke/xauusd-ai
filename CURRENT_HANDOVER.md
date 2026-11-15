@@ -5,15 +5,24 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: M5_ALL_SIDE_JOINT_COST_TARGET_COVERAGE_ADMITTED_NO_SCORE.
-En én-gangs CPU-måling er forhåndsbundet til begge utførbare Entry-sider
-på de eksakte Fold2 fit47338/senere4096-radene. Den bruker eksisterende
-XAU M1 BID/ASK, samme terminal-/komplette banemaske, deklarerte kostnader
-og konservativ MAE før første MFE ved seks tidligere erklærte
-observasjonstider. Forrige fasitvalgte S-side-kvittering gjenspilles for
-akse-/scoreparitet. Planen er innrømmet, ikke claimet. Lesende preflight
-og én capped 4G/512M audit gjenstår. Ingen horisont-/sidevalg, native fit,
-Exit, TEST, broker eller handel.
+Gjeldende policy: M5_ALL_SIDE_JOINT_COST_TARGET_BOUND_EDGE_UNQUALIFIED.
+Den ene forhåndsbundne, capped CPU-kontrollen er COMPLETE/CONSUMED, exit0.
+Begge utførbare M5 Entry-sider er målt på samme eksakte Fold2 fit47338/
+senere4096-akse og felles terminal-/komplett M1-banemaske ved seks tidligere
+erklærte observasjonstider. Fasitvalgt S-side fra gammel kvittering
+stemmer eksakt. Begge sider har negativ gjennomsnittlig deklarert-kost
+netto markout i fit på alle seks punkter og senere ved1–240min.
+Senere alltid-LONG ved480min er +2,85677bps mot −3,90789bps i fit;
+netto minus konservativ MAE før første MFE er likevel −15,00837bps senere.
+Dette er regimafølsom utviklingsreferanse, ikke valgt horisont, holdregel,
+Exit, handels-PnL eller Edge. Historiske faktiske kostnader er ukjente.
+Aggregert rapport: `docs/M5_ALL_SIDE_JOINT_COST_RESULT_REVIEW_20261115.json`.
+Original CLAIM/RESULT/TERMINAL:
+`/home/andre2/GX1_RUNS/MARKET_STATE_M5_ALL_SIDE_JOINT_COST_20261115_001/`.
+Neste gate er én forhåndsbundet kausal inputhypotese mot dette tosidige
+Entry-målet på tidligere fit og fast senere utvikling, med prior samt
+alltid-LONG/SHORT/FLAT som faste referanser. S/F på fem TF beholdes som
+eget kontekstmål. Ingen native fit, TEST, broker eller handel.
 
 Forrige policy: FOLD2_CAUSAL_TRANSITION_S_M5_SIDE_UNSUPPORTED_EDGE_UNQUALIFIED.
 Primær S/M5 kjent side Brier0,248751066 mot frossen prior0,248754604
