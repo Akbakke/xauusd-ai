@@ -5,7 +5,16 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_MINUTE_ONE_PERSISTENCE_HIGH_TRANSITION_PATH_GATE_OPEN_EDGE_UNQUALIFIED.
+Gjeldende policy: FOLD2_PAIRED_MINUTE_PATH_READ_ONLY_ADMITTED.
+Én capped, forhåndsbundet lesekontroll skal skåre de samme sertifiserte
+Fold2-radene ved minutt1 og native endepunkt 5/15/60/240/1440 på alle
+fem TF. Primær M5 måler kausalt nå-S-fortegns AUC ved minutt1 mot minutt5
+på identiske kjentside-rader, samt sikkert observerte tilstandsskifter.
+Hele populasjonens ukjente/umodne masker og 14 senere M5-uker beholdes.
+Plan: configs/research/MARKET_STATE_FOLD2_PAIRED_MINUTE_PATH_20261115_001.json.
+Ingen modellforward, fit, TEST, broker eller handel; training_enabled=false.
+
+Forrige policy: FOLD2_MINUTE_ONE_PERSISTENCE_HIGH_TRANSITION_PATH_GATE_OPEN_EDGE_UNQUALIFIED.
 Én capped lesekontroll er fullført og brukt opp. Sertifisert nå-S på samme TF
 ranker sertifisert S-side ett minutt senere svært høyt: M5 AUC 0,883812
 på fit15 891 og 0,860891 på senere1 421 kjentside-rader; de fire
