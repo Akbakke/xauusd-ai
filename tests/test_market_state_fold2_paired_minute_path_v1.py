@@ -1,7 +1,10 @@
 """The paired minute-path reference uses the same certified rows."""
 import numpy as np
+import pytest
 
-from gx1.audit.measure_market_state_fold2_paired_minute_path_v1 import paired_cell
+from gx1.audit.measure_market_state_fold2_paired_minute_path_v1 import (
+    check_endpoint_parity, paired_cell,
+)
 
 
 def test_paired_auc_and_change_count_keep_unknown_population():
@@ -27,3 +30,22 @@ def test_paired_auc_and_change_count_keep_unknown_population():
     assert got["paired_future_side_flip_rows"] == 2
     assert got["minute_one_same_tf_sign_auc"] == 1.0
     assert got["endpoint_same_tf_sign_auc"] == 0.25
+
+
+def test_immature_old_target_bits_are_never_compared_or_scored():
+    clock = np.array([[5, 15], [10, 20]], np.int64)
+    mature = np.array([[True, False], [True, False]], np.bool_)
+    endpoint = {
+        "validity_ns": clock, "mature": mature,
+        "allowed": np.array([[1, 7], [4, 7]], np.uint8),
+        "eligible": np.array([[True, False], [True, False]], np.bool_),
+    }
+    old = {
+        "validity_ns": clock.copy(), "mature": mature.copy(),
+        "allowed": np.array([[1, 4], [4, 1]], np.uint8),
+        "eligible": np.ones((2, 2), np.bool_),
+    }
+    check_endpoint_parity(endpoint, old, "later")
+    old["allowed"][0, 0] = 4
+    with pytest.raises(RuntimeError, match="MATURE_PARITY"):
+        check_endpoint_parity(endpoint, old, "later")

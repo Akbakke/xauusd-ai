@@ -5,7 +5,21 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_PAIRED_MINUTE_PATH_READ_ONLY_ADMITTED.
+Gjeldende policy: FOLD2_PAIRED_MINUTE_PATH_002_READ_ONLY_ADMITTED.
+Første parvise engangsplan ble CLAIM-et og stanset uten RESULT. Gammel
+Fold2-endepunkteier returnerer senere allowed/eligible også for umodne
+celler, med separat mature=false; den nye minuttapen sensurerer samme celler
+til bit7/false. Rå paritet er derfor feil kontroll for umodne celler.
+Terminal: FAILED_CONSUMED; se
+docs/S_FOLD2_PAIRED_MINUTE_PATH_FAILURE_REVIEW_20261115.json. Ingen
+relansering av plan001. Minste rettelse sammenligner klokke/modenhet overalt,
+bits/eligible bare der moden, og krever sensur på umodne minuttceller.
+To fokuserte tester består. Ny uavhengig lesekontroll002 har samme faste
+queryer, rader, primærmål og 4G-vakt; plan:
+configs/research/MARKET_STATE_FOLD2_PAIRED_MINUTE_PATH_20261115_002.json.
+Ingen modellforward, fit, TEST, broker eller handel; training_enabled=false.
+
+Forrige policy: FOLD2_PAIRED_MINUTE_PATH_READ_ONLY_ADMITTED.
 Én capped, forhåndsbundet lesekontroll skal skåre de samme sertifiserte
 Fold2-radene ved minutt1 og native endepunkt 5/15/60/240/1440 på alle
 fem TF. Primær M5 måler kausalt nå-S-fortegns AUC ved minutt1 mot minutt5

@@ -1,0 +1,26 @@
+{
+  "claim": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_PAIRED_MINUTE_PATH_20261115_001/CLAIM.json",
+    "sha256": "30ed04ed0d5d69c61da61ab53d0185b8db336ced1b4fe09c61b030b40847dfb0"
+  },
+  "decision": "FAILED_CONSUMED_OLD_LATER_TARGET_IMMATURE_CENSOR_SEMANTICS",
+  "diagnosis": "BoundFiveEndpointTargets.gather returns the stored allowed bits and eligible flag for immature later endpoint cells together with a separate mature mask. MinuteQueryTargetTape.gather_minutes censors immature cells to allowed 7 and eligible false. Raw-array parity is valid only on mature cells; validity clocks and maturity masks must match everywhere.",
+  "fix": "Compare allowed and eligible only at mature cells, require identical validity and maturity everywhere, and require 7/false for immature minute-tape cells. No target, input, ONLINE function or model change.",
+  "model_forwards": 0,
+  "observed_utc": "2026-11-15T11:30:59.424953+00:00",
+  "old_plan_relaunch_allowed": false,
+  "optimizer_steps": 0,
+  "plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_FOLD2_PAIRED_MINUTE_PATH_20261115_001.json",
+    "sha256": "41c3459e1c4d79c2cb679a3f26dc9da7c0f86d066b2c88c5a40038fffc87ed07"
+  },
+  "reason": "RuntimeError:FOLD2_PAIRED_MINUTE_PATH_NATIVE_ENDPOINT_PARITY:later:allowed",
+  "result_published": false,
+  "schema_version": "gx1_fold2_paired_minute_path_failure_review_v1",
+  "source_head": "e2a73c6c423dec43ad1d9c8f51921fa28fb2ae61",
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_PAIRED_MINUTE_PATH_20261115_001/TERMINAL.json",
+    "sha256": "d4e19202f74ff916d8222105b933c692cba7869dcc8625eb5e6dfbd945144f41"
+  },
+  "test_data_used": false
+}

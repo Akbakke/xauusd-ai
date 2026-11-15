@@ -28,9 +28,9 @@ from gx1.contracts.immutable_event_authority_v1 import _publish_bytes
 
 REPO = prior.REPO
 POLICY = prior.POLICY
-STAGE = "market_state_fold2_paired_minute_path_20261115_001"
-PLAN = REPO / "configs/research/MARKET_STATE_FOLD2_PAIRED_MINUTE_PATH_20261115_001.json"
-ROOT = Path("/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_PAIRED_MINUTE_PATH_20261115_001")
+STAGE = "market_state_fold2_paired_minute_path_20261115_002"
+PLAN = REPO / "configs/research/MARKET_STATE_FOLD2_PAIRED_MINUTE_PATH_20261115_002.json"
+ROOT = Path("/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_PAIRED_MINUTE_PATH_20261115_002")
 TIMEFRAMES = ("M5", "M15", "H1", "H4", "D1")
 CODE = (
     "gx1/audit/measure_market_state_fold2_paired_minute_path_v1.py",
@@ -97,6 +97,20 @@ def paired_cell(early: dict, endpoint: dict, now: np.ndarray, j: int,
     return out
 
 
+def check_endpoint_parity(endpoint: dict, old: dict, cohort: str) -> None:
+    """Compare old labels only where mature; minute tape censors earlier."""
+    for key in ("validity_ns", "mature"):
+        need(np.array_equal(endpoint[key], old[key]),
+             "NATIVE_ENDPOINT_CLOCK:" + cohort + ":" + key)
+    mature = endpoint["mature"]
+    for key in ("allowed", "eligible"):
+        need(np.array_equal(endpoint[key][mature], old[key][mature]),
+             "NATIVE_ENDPOINT_MATURE_PARITY:" + cohort + ":" + key)
+    need(bool(np.all(endpoint["allowed"][~mature] == 7))
+         and not bool(endpoint["eligible"][~mature].any()),
+         "NATIVE_ENDPOINT_IMMATURE_CENSORED:" + cohort)
+
+
 def preflight(plan_sha: str) -> tuple:
     need(Path.cwd().resolve() == REPO
          and prior.git("branch", "--show-current") == "work/gx1-current"
@@ -106,7 +120,7 @@ def preflight(plan_sha: str) -> tuple:
     plan = json.loads(PLAN.read_text())
     need(plan["schema_version"] == "gx1_fold2_paired_minute_path_plan_v1"
          and plan["stage"] == STAGE and plan["status"] == "ADMITTED_READ_ONLY"
-         and plan["source_base_head"] == "4bbcd76b54bfa4c0d39985ea5bb336b7bd6a5550"
+         and plan["source_base_head"] == "e2a73c6c423dec43ad1d9c8f51921fa28fb2ae61"
          and plan["output_root"] == str(ROOT)
          and plan["scope"] == {
              "fold_id": 2, "fit_rows": 47338, "later_rows": 4096,
@@ -182,9 +196,7 @@ def measure(head: str, policy_ref: dict, plan: dict) -> dict:
                                     (len(issues), 5)).copy(),
             fold_upper_ns=cutoff)
         old = bound.gather(rows, issues, fold_id=2, partition=partition)
-        for key in ("allowed", "eligible", "mature", "validity_ns"):
-            need(np.array_equal(endpoint[key], old[key]),
-                 "NATIVE_ENDPOINT_PARITY:" + name + ":" + key)
+        check_endpoint_parity(endpoint, old, name)
         observed = {}
         for j, tf in enumerate(TIMEFRAMES):
             bits = early["allowed"][:, j]
