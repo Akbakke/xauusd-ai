@@ -1,0 +1,149 @@
+{
+  "admission_policy": {
+    "path": "/home/andre2/src/GX1_CURRENT/NEXT_RUN_POLICY.json",
+    "sha256": "dccf8157f9e591adecd4196305311574c10f0ed051724658c9456acc94e02854"
+  },
+  "claim": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_SELECTED_ENDPOINT_INITIAL_FOLD2_20261115_002/CLAIM.json",
+    "sha256": "a61b1c88bb7f3f5317276187a3a4e56a4f691bbcfac745b36eec8c02ee98736c"
+  },
+  "limits": {
+    "calibration_proven": false,
+    "economic_edge_proven": false,
+    "entry_decision_qualified": false,
+    "feature_family_utility_proven": false,
+    "fit_performed": false,
+    "gc_marginal_predictive_value_proven": false,
+    "later_generalization_proven": false,
+    "test_data_used": false
+  },
+  "next_gate": "Separate precommitted chronological TRAIN design for selected native S/F with frozen prior and all five TF; require measured later proper-score and net-economic improvement before any Edge claim. No training admission yet.",
+  "observed_utc": "2026-11-15T00:16:29Z",
+  "physical": {
+    "all_five_mtf_clocks_causal": true,
+    "all_four_reported_gradient_groups_finite_nonzero": true,
+    "backward_calls": 1,
+    "cap_memory_max_bytes": 12884901888,
+    "cap_swap_max_bytes": 536870912,
+    "checkpoint_loaded": false,
+    "cpu_peak_rss_kib": 1468848,
+    "cuda_initialized": false,
+    "decision": "PASS_REAL_FEATURE_S_F_FORWARD_BACKWARD_NO_UPDATE",
+    "elapsed_seconds": 26.093777213995054,
+    "feature_shapes": {
+      "ctx_cat": [
+        2,
+        1
+      ],
+      "ctx_cont": [
+        2,
+        2542
+      ],
+      "gc_seq_d1": [
+        2,
+        252,
+        399
+      ],
+      "gc_seq_h1": [
+        2,
+        96,
+        453
+      ],
+      "gc_seq_h4": [
+        2,
+        96,
+        431
+      ],
+      "gc_seq_m15": [
+        2,
+        64,
+        493
+      ],
+      "gc_seq_m5": [
+        2,
+        16,
+        639
+      ],
+      "seq_d1": [
+        2,
+        252,
+        255
+      ],
+      "seq_h1": [
+        2,
+        96,
+        255
+      ],
+      "seq_h4": [
+        2,
+        96,
+        255
+      ],
+      "seq_m15": [
+        2,
+        64,
+        255
+      ],
+      "seq_m5": [
+        2,
+        16,
+        255
+      ],
+      "seq_x": [
+        2,
+        96,
+        2727
+      ],
+      "snap_x": [
+        2,
+        2727
+      ]
+    },
+    "fold_id": 2,
+    "future_count": 10,
+    "future_native_k": [
+      1,
+      3,
+      12,
+      48,
+      288
+    ],
+    "masked_unknown_and_flat_side_gradients_zero": true,
+    "model_forwards": 1,
+    "model_state_unchanged": true,
+    "optimizer_steps": 0,
+    "partition": "fit",
+    "sample_count": 2,
+    "state_count": 10,
+    "state_query_k": [
+      1,
+      3,
+      12,
+      48,
+      288
+    ],
+    "state_target_mode": "selected_native_endpoints",
+    "test_data_used": false
+  },
+  "plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_NATIVE_F_SELECTED_ENDPOINT_INITIAL_FOLD2_20261115_002.json",
+    "sha256": "21e2deb4cea4974f3c3276189e58a361c5861750a80e55ba5ae934c97e27eda1"
+  },
+  "preflight": {
+    "fit_rows": 47338,
+    "source_owners_checked": 44,
+    "status": "READY_NO_CLAIM_NO_FEATURE_ARRAY_DECODE",
+    "test_data_used": false
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_SELECTED_ENDPOINT_INITIAL_FOLD2_20261115_002/RESULT.json",
+    "sha256": "23e2d01a429f9580d67fbead7320e42fae7761859ac5c8ceefd0af7dfc2ed081"
+  },
+  "schema_version": "gx1_s_fold2_selected_native_initial_result_review_v1",
+  "source_head": "89040fa37d046843b6bf05fa2d9d239961835e76",
+  "status": "COMPLETE_CONSUMED_MECHANICS_PASS_EDGE_UNQUALIFIED",
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_SELECTED_ENDPOINT_INITIAL_FOLD2_20261115_002/TERMINAL.json",
+    "sha256": "b028e2bbd1dc710579a73f0fc82563b3303524f89cf635f86b7ada8e8678580d"
+  }
+}

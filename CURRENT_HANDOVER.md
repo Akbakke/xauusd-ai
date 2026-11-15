@@ -5,12 +5,16 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: S_FULL_GC_FOLD2_SELECTED_INITIAL_ADMITTED_ONE_USE.
-Eksakt capped lesende preflight besto:44 kildeeiere,47 338 fold2 TRAIN-rader,
-full-GC-kontrakt `9ea6a4595c6a5792acd190ad12dc861d9bb99ec921c5bd3650b38b15154981bc`,
-0 modellforward,0 optimizersteg og ingen claim. Én 12G/512M/1800s CPU-
-forward/backward på to faste rader er nå innrømmet; første claim forbruker
-planen også ved feil. TRAIN-fit, TEST og handel er fortsatt stengt.
+Aktuell policy: S_FULL_GC_FOLD2_SELECTED_INITIAL_COMPLETE_EDGE_UNQUALIFIED.
+Fold2 engangsplan002 er COMPLETE/CONSUMED, exit0 etter26,09s under
+12G/512M. To faktiske TRAIN-rader gav full XAU+GC-featurebatch med
+2727 lokale felt,255 MTF-felt på alle fem tidsrammer og rå GC-sekvenser.
+Alle fem MTF-klokker var kausale. Valgte native S/F-mål, forward og
+backward besto; fire rapporterte parametergrupper hadde finite og
+ikke-null gradienter, maskerte ukjente/flate sider hadde null direkte
+gradient. Modellhash var uendret;0 optimizersteg,0 TEST og ingen handel.
+Dette er mekanikk, ikke dokumentert prediktiv nytte eller Edge.
+Se `docs/S_FOLD2_SELECTED_NATIVE_INITIAL_RESULT_REVIEW_20261115.json`.
 
 Den blokkerte engangsplanen 001 feilet lesende preflight før claim fordi dens
 historiske v2-kildevisning ikke lenger matcher dagens runner og kilder. Den
@@ -27,11 +31,11 @@ enhetsprofil. Én separat test for relative GC-priskoordinater feiler på
 en eksisterende gc_order_flow_v1.py-kildehash; rå-GC-ruten bruker den ikke.
 Se docs/S_FULL_GC_ANCHOR_SPAN_FOLD2_SOURCE_REVIEW_20261115.json.
 
-Neste gate er én gjennomføring av den hashbundne fold2 CPU-nullstegplanen
-på samme to TRAIN-rader, seks sidecars og valgt native S/F-fasit.
-Lesende preflight besto og eksakt engangsadmisjon er gitt. Etter første
-claim skal resultat eller feil lukkes uten relansering. TRAIN-fit, TEST,
-broker og handel forblir stengt.
+Neste gate er én separat forhåndsbundet kronologisk TRAIN-sammenlikning
+for valgt native S/F med full GC, alle fem tidsrammer og fryst prior.
+Før trening må én kausal hypotese, proper skår og senere økonomisk
+beslutningsmål låses; ny fit krever egen eksakt admisjon. Plan002 er
+forbrukt og skal aldri relanseres. TEST, broker og handel er stengt.
 
 Den valgte fem-TF S-masken er hashbundet til118249 modellrader og fem faste
 native endepunkter. Den gamle samplede tidsforespørselen treffer D1s native
@@ -50,10 +54,10 @@ uendret.18 fokuserte batchtester og23 taps-/skårtester besto. Dette er bare
 kilde-/syntetisk rutepluss reelle målakser, ikke fysisk ny INITIAL, fit,
 modellverdi eller Edge. Modusen er ennå ikke bundet i recipe/campaign.
 
-Etter en eventuell bestått fersk INITIAL bindes en egen kronologisk
-full-GC S/F-fit med frossen tidligere-TRAIN-prior og proper skår på de fem
-native endepunktene. S-fasit og fit-kampanje er ikke låst/innrømmet;
-økonomisk Edge, TEST og handel forblir stengt/ubevist.
+Fersk full-GC INITIAL er nå fysisk bestått på to TRAIN-rader. En egen
+kronologisk full-GC S/F-fit med frossen tidligere-TRAIN-prior og proper
+skår på fem native endepunkter er ikke låst eller innrømmet. Økonomisk
+Edge, TEST og handel forblir stengt/ubevist.
 H4/D1-vinduets kausale overlapp står i
 `docs/S_MARKET_STATE_WINDOW_OVERLAP_REVIEW_20261115.json`.
 
