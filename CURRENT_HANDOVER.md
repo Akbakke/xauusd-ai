@@ -5,7 +5,14 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Aktuell policy: S_FULL_GC_FOLD2_ANCHOR_SOURCE_TESTED_INITIAL_CLOSED.
+Aktuell policy: S_FULL_GC_FOLD2_SELECTED_INITIAL_PREPARED_PREFLIGHT_PENDING.
+Ny engangsplan `configs/research/MARKET_STATE_NATIVE_F_SELECTED_ENDPOINT_INITIAL_FOLD2_20261115_002.json`
+binder fold2 TRAIN-pakken, seks fysiske sidecars, rå GC-historikk,
+valgte native S/F-mål, nåværende kildehash og eksakt12G/512M/1800s cap.
+Ingen claim eller modellforward er gjort. Neste handling er lesende capped
+preflight; en eventuell fysisk nullstegskjøring krever egen eksakt
+policyadmisjon etter PASS og forbruker planen ved første claim.
+
 Den blokkerte engangsplanen 001 feilet lesende preflight før claim fordi dens
 historiske v2-kildevisning ikke lenger matcher dagens runner og kilder. Den
 skal ikke kjøres; outputroten finnes ikke.

@@ -1,11 +1,12 @@
-"""One capped CPU TRAIN witness for selected native S endpoints, without optimizer.
+"""One capped full-GC fold2 TRAIN witness for selected native S/F endpoints.
 
-Reuses the completed v2 source/view qualification and two fixed real feature
-rows. This worker can never train, read TEST, save weights or contact a broker.
+Reuses the qualified fold2 anchor-span packet, six sidecars and old GC arrays.
+One model forward and backward, zero optimizer updates; no TEST or trading.
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import resource
@@ -16,7 +17,6 @@ import time
 import numpy as np
 
 from gx1.audit import qualify_market_state_mature_prefix_normalization_v1 as mature
-from gx1.audit import verify_market_state_time_query_v2_zero_step_v1 as v2
 from gx1.audit import verify_market_state_time_query_zero_step_v1 as old
 from gx1.contracts import market_state_five_endpoint_target_binding_v1 as selected_state
 from gx1.contracts import market_state_future_displacement_candidate_v1 as future
@@ -24,12 +24,27 @@ from gx1.contracts import market_state_time_query_native_F_model_v1 as dual_mode
 from gx1.contracts import market_state_time_query_native_F_objective_v1 as objective
 
 REPO, RUNS, POLICY = old.REPO, old.RUNS, old.POLICY
-STAGE = 'market_state_native_F_selected_endpoint_initial_20261115_001'
-PLAN_PATH = REPO / 'configs/research/MARKET_STATE_NATIVE_F_SELECTED_ENDPOINT_INITIAL_20261115_001.json'
-OUT_ROOT = RUNS / 'MARKET_STATE_NATIVE_F_SELECTED_ENDPOINT_INITIAL_20261115_001'
-SOURCE_PATHS = (
-    'gx1/audit/verify_market_state_native_F_cpu_zero_step_v1.py',
-    'gx1/contracts/market_state_five_endpoint_target_binding_v1.py',
+STAGE = 'market_state_native_F_selected_endpoint_initial_fold2_20261115_002'
+PLAN_PATH = REPO / 'configs/research/MARKET_STATE_NATIVE_F_SELECTED_ENDPOINT_INITIAL_FOLD2_20261115_002.json'
+OUT_ROOT = RUNS / 'MARKET_STATE_NATIVE_F_SELECTED_ENDPOINT_INITIAL_FOLD2_20261115_002'
+WORKER_PATH = 'gx1/audit/verify_market_state_native_F_cpu_zero_step_v1.py'
+FOLD2_ROOT = RUNS / 'MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001'
+FOLD2_VIEW_PLAN = FOLD2_ROOT / 'PLAN.json'
+PARENT_ROWS = [0, 2]
+ISSUE_NS = [1714521900000000000, 1714522500000000000]
+PASS_INDEX = 0
+SEED = 20261107
+SOURCE_PATHS = tuple(sorted(mature.SOURCE_PATHS | {
+    WORKER_PATH,
+    'gx1/audit/verify_market_state_time_query_zero_step_v1.py',
+    'gx1/contracts/entry_anchor_span_feature_view_v1.py',
+    'gx1/contracts/entry_anchor_span_feature_inputs_v1.py',
+    'gx1/contracts/entry_anchor_span_normalization_v1.py',
+    'gx1/contracts/entry_native_direction_feature_view_v1.py',
+    'gx1/contracts/entry_native_direction_research_v1.py',
+    'gx1/contracts/market_state_time_query_binding_v1.py',
+    'gx1/contracts/market_state_time_query_model_v2.py',
+    'gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py',
     'gx1/contracts/market_state_future_displacement_candidate_v1.py',
     'gx1/contracts/market_state_time_query_native_F_model_v1.py',
     'gx1/contracts/market_state_time_query_native_F_objective_v1.py',
@@ -37,13 +52,13 @@ SOURCE_PATHS = (
     'gx1/contracts/market_state_time_query_side_normalized_loss_v1.py',
     'gx1/contracts/market_state_time_query_native_F_batch_v1.py',
     'gx1/contracts/market_state_time_query_target_v1.py',
-    'gx1/contracts/gx1_capped_execution_v1.py',
-    'scripts/gx1_capped_run.sh',
-)
+    'gx1/contracts/model_state_digest_v1.py',
+    'gx1/models/entry_v10/entry_v10_ctx_train_v3.py',
+}))
 MEMORY_BYTES = 12 * 1024**3
 SWAP_BYTES = 512 * 1024**2
 WALL_SECONDS = 1800
-WITNESS_F_WEIGHT = 1.0  # Prebound equal S/F candidate weight; no fit here.
+WITNESS_F_WEIGHT = 1.0
 
 
 def planned_command(plan_sha256: str) -> list[str]:
@@ -67,46 +82,51 @@ def ref(path: Path) -> dict:
     return {'path': str(path), 'sha256': sha(path)}
 
 
+def checked_file(item: dict) -> Path:
+    need(type(item) is dict and set(item) == {'path', 'sha256'}, 'FILE_REF_KEYS')
+    path = Path(item['path'])
+    need(path.is_absolute() and path.is_file() and not path.is_symlink()
+         and sha(path) == item['sha256'], 'FILE_REF:' + str(path))
+    return path
+
+
+def checked_json(item: dict) -> dict:
+    checked_file(item)
+    return old._read_ref(item)
+
+
 def current_state() -> tuple[str, str]:
-    head = v2._clean_head()
+    head = old._clean_head()
     branch = subprocess.check_output(('git', 'branch', '--show-current'),
                                      cwd=REPO, text=True).strip()
     need(branch == 'work/gx1-current', 'BRANCH')
     return head, branch
 
 
-def inspect(plan_ref: dict, *, require_policy: bool) -> tuple[dict, dict, dict, dict, dict, dict]:
+def inspect(plan_ref: dict, *, require_policy: bool) -> dict:
+    from gx1.contracts import entry_native_direction_feature_view_v1 as views
     head, _ = current_state()
     need(plan_ref == ref(PLAN_PATH) and not OUT_ROOT.exists(), 'PLAN_OR_OUTPUT')
     plan = json.loads(PLAN_PATH.read_text())
+    expected_scope = {'fold_id': 2, 'partition': 'fit',
+                      'sample_parent_rows': PARENT_ROWS,
+                      'sample_issue_ns': ISSUE_NS,
+                      'pass_index': PASS_INDEX, 'seed': SEED,
+                      'selected_state_endpoints': True,
+                      'physical_model_forwards': 1, 'backward_calls': 1,
+                      'optimizer_steps': 0, 'witness_F_weight': WITNESS_F_WEIGHT,
+                      'training_authorized': False, 'test_data_used': False}
     need(set(plan) == {'schema_version', 'stage', 'status', 'source_base_head',
                        'source_owners', 'inputs', 'scope', 'limits', 'output_root',
-                       'command_template'}
+                       'command_template', 'expected_view_sha256'}
          and plan['schema_version'] == 'gx1_market_state_native_F_cpu_zero_step_plan_v1'
          and plan['stage'] == STAGE and plan['status'] == 'PREPARED_NOT_ADMITTED'
          and plan['output_root'] == str(OUT_ROOT)
          and plan['command_template'] == planned_command('{plan_sha256}')
-         and plan['scope'] == {'fold_id': 1, 'partition': 'fit',
-                               'sample_parent_rows': v2.PARENT_ROWS,
-                               'sample_issue_ns': v2.ISSUE_NS,
-                               'pass_index': v2.PASS_INDEX, 'seed': v2.SEED,
-                               'selected_state_endpoints': True,
-                               'physical_model_forwards': 1,
-                               'backward_calls': 1, 'optimizer_steps': 0,
-                               'witness_F_weight': WITNESS_F_WEIGHT,
-                               'training_authorized': False,
-                               'test_data_used': False}
+         and plan['scope'] == expected_scope
          and plan['limits'] == {'memory_max': MEMORY_BYTES,
                                 'memory_high': MEMORY_BYTES,
-                                'swap': SWAP_BYTES,
-                                'wall_seconds': WALL_SECONDS}
-         and plan['inputs'] == {'completed_v2_plan': ref(v2.PLAN_PATH),
-                                'selected_S_mask': {'path': selected_state.REFS['mask'][0],
-                                                    'sha256': selected_state.REFS['mask'][1]},
-                                'F_result': {'path': str(future.REFS['result'][0]),
-                                             'sha256': future.REFS['result'][1]},
-                                'F_tape': {'path': str(future.REFS['tape'][0]),
-                                           'sha256': future.REFS['tape'][1]}}
+                                'swap': SWAP_BYTES, 'wall_seconds': WALL_SECONDS}
          and subprocess.run(('git', 'merge-base', '--is-ancestor',
                              plan['source_base_head'], head), cwd=REPO,
                             stdout=subprocess.DEVNULL,
@@ -116,21 +136,95 @@ def inspect(plan_ref: dict, *, require_policy: bool) -> tuple[dict, dict, dict, 
          and all(sha(REPO / path) == digest
                  for path, digest in plan['source_owners'].items()),
          'SOURCE_OWNERS')
-    v2_plan, _ = v2._checked_plan(v2.PLAN_PATH,
-                                  plan['inputs']['completed_v2_plan']['sha256'])
-    receipts, view, _ = v2._inspect_inputs(v2_plan)
+    inputs = plan['inputs']
+    view_plan = checked_json(inputs['fold2_view_plan'])
+    need(inputs['fold2_view_plan'] == ref(FOLD2_VIEW_PLAN)
+         and inputs['fold2_view_result'] == ref(FOLD2_ROOT / 'RESULT.json')
+         and inputs['fold2_view_validation'] == ref(FOLD2_ROOT / 'VALIDATION.json')
+         and inputs['fold2_packet'] == view_plan['inputs']['packet']
+         and inputs['fold2_constructor'] == view_plan['inputs']['constructor']
+         and inputs['fold2_prior_ta_view'] == view_plan['inputs']['view']
+         and inputs['fold2_sidecar_result'] == view_plan['inputs']['physical_result']
+         and inputs['fold2_sidecar_terminal'] == view_plan['inputs']['physical_terminal']
+         and inputs['selected_S_mask'] ==
+             {'path': selected_state.REFS['mask'][0],
+              'sha256': selected_state.REFS['mask'][1]}
+         and inputs['F_result'] ==
+             {'path': str(future.REFS['result'][0]),
+              'sha256': future.REFS['result'][1]}
+         and inputs['F_tape'] ==
+             {'path': str(future.REFS['tape'][0]),
+              'sha256': future.REFS['tape'][1]},
+         'INPUT_REFS')
+    completed = checked_json(inputs['fold2_view_result'])
+    validation = checked_json(inputs['fold2_view_validation'])
+    packet = checked_json(inputs['fold2_packet'])
+    constructor = checked_json(inputs['fold2_constructor'])
+    prior_view = checked_json(inputs['fold2_prior_ta_view'])
+    physical = checked_json(inputs['fold2_sidecar_result'])
+    terminal = checked_json(inputs['fold2_sidecar_terminal'])
+    physical_plan = checked_json(physical['plan'])
+    old_span_plan = checked_json(physical_plan['evidence']['input_plan'])
+    provider_plan = checked_json(mature.INPUT_REFS['provider_plan'])
+    checked_file(mature.INPUT_REFS['provider_worker'])
+    need(completed.get('status') == 'COMPLETE_FULL_FOLD2_TRAIN_INPUT_GATHER'
+         and validation.get('status') == 'PASS_FULL_FOLD2_TRAIN_INPUT_GATHER'
+         and validation.get('actual_gather_qualified') is True
+         and completed.get('test_data_used') is False
+         and physical.get('status') == terminal.get('status') == 'COMPLETE'
+         and terminal.get('exit_code') == 0
+         and physical.get('test_data_used') is False
+         and physical_plan['scope']['fold_id'] == 2
+         and physical_plan['scope']['parent_rows'] == 47338
+         and view_plan['counts']['parent_rows'] == 47338
+         and view_plan['inputs']['provider_plan'] == mature.INPUT_REFS['provider_plan']
+         and set(physical['surfaces']) == {'local','M5','M15','H1','H4','D1'}
+         and all(item['all_overlap_columns_bitexact']
+                 for item in physical['surfaces'].values()),
+         'FOLD2_INPUT_LINEAGE')
+    for lane in ('local','M5','M15','H1','H4','D1'):
+        checked_file(physical['surfaces'][lane]['artifact'])
+    for lane in ('M5','M15','H1','H4','D1'):
+        for kind in ('feats','ts'):
+            checked_file(old_span_plan['caches'][lane][kind])
+    sources = {key: dict(item) for key, item in prior_view['source_bindings'].items()}
+    bridge = old.HISTORICAL_RUNTIME_BRIDGE['gx1/contracts/entry_gc_mtf_history_v1.py']
+    need(sources['gc_gather_source']['sha256'] == bridge[0]
+         and plan['source_owners']['gx1/contracts/entry_gc_mtf_history_v1.py'] == bridge[1],
+         'HISTORICAL_GC_BRIDGE')
+    for key, item in sources.items():
+        path = Path(item['path'])
+        if path.is_relative_to(REPO) and key != 'gc_gather_source':
+            relative = str(path.relative_to(REPO))
+            need(relative in plan['source_owners'], 'CURRENT_VIEW_SOURCE:' + key)
+            sources[key] = {'path': str(path),
+                            'sha256': plan['source_owners'][relative]}
+        elif key != 'gc_gather_source':
+            checked_file(item)
+    view = views.bind_native_direction_feature_view(
+        prefix_normalization=packet,
+        prefix_normalization_ref=inputs['fold2_packet'],
+        constructor_metadata=constructor,
+        constructor_metadata_ref=inputs['fold2_constructor'],
+        source_bindings=sources, max_batch_rows=16,
+        full_feature_profile=True, market_state_time_query_v2=True)
+    need(view['contract_sha256'] == plan['expected_view_sha256']
+         and view['physical_widths'] ==
+             {'signal':2727,'ctx_cont':2542,'ctx_cat':1,'mtf':255}
+         and 'full_ta_feature_profile' not in view
+         and 'unobserved_units_profile' not in view,
+         'FULL_GC_VIEW')
     state_bound = selected_state.load_bound_five_endpoint_targets()
     future_bound = future.load_bound_future_displacement()
-    selected = np.asarray(v2.PARENT_ROWS, dtype=np.int64)
-    issues = np.asarray(v2.ISSUE_NS, dtype=np.int64)
-    state_truth = state_bound.gather(selected, issues, fold_id=1, partition='fit')
-    need(state_truth['allowed'].tolist() == [[5, 5, 1, 5, 5], [1, 1, 1, 5, 5]]
-         and bool(state_truth['eligible'].all() and state_truth['mature'].all()),
-         'SELECTED_S_TARGET_PAIR')
-    truth = future_bound.gather(selected, issues, fold_id=1, partition='fit')
-    need(truth['allowed'].tolist() == [[2, 2, 1, 1, 4], [1, 1, 1, 1, 4]]
-         and bool(truth['eligible'].all() and truth['mature'].all()),
-         'F_TARGET_PAIR')
+    selected = np.asarray(PARENT_ROWS, dtype=np.int64)
+    issues = np.asarray(ISSUE_NS, dtype=np.int64)
+    state_truth = state_bound.gather(selected, issues, fold_id=2, partition='fit')
+    future_truth = future_bound.gather(selected, issues, fold_id=2, partition='fit')
+    need(state_truth['allowed'].tolist() == [[5,5,1,5,5],[1,1,1,5,5]]
+         and future_truth['allowed'].tolist() == [[2,2,1,1,4],[1,1,1,1,4]]
+         and bool(state_truth['eligible'].all() and state_truth['mature'].all()
+                  and future_truth['eligible'].all() and future_truth['mature'].all()),
+         'TARGET_PAIR')
     policy_ref = ref(POLICY)
     if require_policy:
         policy = json.loads(POLICY.read_text())
@@ -141,7 +235,7 @@ def inspect(plan_ref: dict, *, require_policy: bool) -> tuple[dict, dict, dict, 
              and isinstance(gate, dict)
              and gate.get('status') == 'ADMITTED'
              and gate.get('plan') == plan_ref
-             and gate.get('worker') == ref(REPO / SOURCE_PATHS[0])
+             and gate.get('worker') == ref(REPO / WORKER_PATH)
              and gate.get('max_invocations') == 1
              and gate.get('claimed_invocations') == gate.get('completed_invocations') == 0
              and gate.get('execution_authorized') is True
@@ -153,78 +247,141 @@ def inspect(plan_ref: dict, *, require_policy: bool) -> tuple[dict, dict, dict, 
              and gate.get('relaunch_allowed') is False
              and gate.get('test_data_used') is False,
              'POLICY')
-    return plan, policy_ref, receipts, view, state_bound, future_bound
+    return {'plan':plan,'plan_ref':plan_ref,'policy_ref':policy_ref,
+            'view':view,'packet':packet,'constructor':constructor,
+            'physical':physical,'physical_plan':physical_plan,
+            'old_span_plan':old_span_plan,'provider_plan':provider_plan,
+            'state_bound':state_bound,'future_bound':future_bound}
 
 
 def preflight(plan_ref: dict) -> dict:
-    plan, _, receipts, view, _, _ = inspect(plan_ref, require_policy=False)
-    return {'status': 'READY_NO_CLAIM_NO_FEATURE_PAYLOAD',
-            'plan': plan_ref, 'source_owners_checked': len(plan['source_owners']),
-            'view_sha256': view['contract_sha256'],
+    checked = inspect(plan_ref, require_policy=False)
+    return {'status': 'READY_NO_CLAIM_NO_FEATURE_ARRAY_DECODE',
+            'plan': plan_ref,
+            'source_owners_checked': len(checked['plan']['source_owners']),
+            'view_sha256': checked['view']['contract_sha256'],
             'model_contract_sha256': dual_model.contract()['contract_sha256'],
             'objective_contract_sha256': objective.contract()['contract_sha256'],
-            'fold1_lineage': receipts['fold1']['lineage'],
+            'fold_id': 2, 'fit_rows': 47338,
             'state_target_mode': 'selected_native_endpoints',
-            'model_forwards': 0, 'optimizer_steps': 0, 'test_data_used': False}
+            'model_forwards': 0, 'optimizer_steps': 0,
+            'test_data_used': False}
 
 
-def witness(receipts: dict, view: dict, state_bound, future_bound) -> dict:
+def witness(checked: dict) -> dict:
     import torch
     from gx1.contracts import entry_native_direction_feature_view_v1 as views
+    from gx1.contracts.entry_exit_feature_surface_v1 import load_m1_feature_surface_times
+    from gx1.contracts.entry_gc_mtf_history_v1 import load_gc_mtf_history_raw_artifact
+    from gx1.contracts.entry_anchor_span_feature_inputs_v1 import (
+        build_anchor_span_inputs, TIMEFRAMES,
+    )
     from gx1.contracts.market_state_time_query_native_F_batch_v1 import (
         FEATURE_KEYS, evaluate_fit_batch,
     )
     from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
     from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
 
-    chain = receipts['provider_chain']
-    provider_plan = chain['provider_plan']
+    view, packet = checked['view'], checked['packet']
+    provider_plan = checked['provider_plan']
     provider = mature._provider_module()
     info = provider.validate_metadata(provider_plan)
-    prepared = mature._prepare_inputs(provider, provider_plan, info, chain['gc_layout'])
-    mature._validate_axes(receipts['mature_plan']['cohorts'], prepared['axes'])
-    axes = prepared['axes']
-    selected = np.asarray(v2.PARENT_ROWS, dtype=np.int64)
-    issues = np.asarray(v2.ISSUE_NS, dtype=np.int64)
+    axes, _ = provider.read_axes(provider_plan, info, np)
+    for key in ('parent_rows', 'bar_start_ns', 'decision_ns'):
+        values = axes[key]
+        need(values.dtype == np.int64 and values.shape == (view['full_axes']['rows'],)
+             and hashlib.sha256(values.astype('<i8', copy=False).tobytes()).hexdigest()
+                 == view['full_axes'][key + '_sha256']
+             and hashlib.sha256(values[:47338].astype('<i8', copy=False).tobytes()).hexdigest()
+                 == view['prefix'][key + '_sha256'], 'REAL_AXIS:' + key)
+        values.setflags(write=False)
+    selected = np.asarray(PARENT_ROWS, dtype=np.int64)
+    issues = np.asarray(ISSUE_NS, dtype=np.int64)
     at = np.searchsorted(axes['parent_rows'], selected)
     need(np.array_equal(axes['parent_rows'][at], selected)
          and np.array_equal(axes['decision_ns'][at], issues)
-         and int(at[-1]) < receipts['fold1']['cohort']['joined_fit_rows'],
+         and int(at[-1]) < 47338
+         and bool(np.all(axes['decision_ns'][:47338] < view['prefix']['cutoff_ns'])),
          'REAL_FEATURE_ROWS')
-    for key in ('parent_rows', 'bar_start_ns', 'decision_ns'):
-        axes[key].setflags(write=False)
-    sequence = prepared['entry_sequence_source']
-    for key in ('signal', 'times_ns', 'sample_positions'):
-        sequence[key].setflags(write=False)
-    for key in ('snap', 'ctx_cont', 'ctx_cat'):
-        prepared['current'][key].setflags(write=False)
+    groups = provider.map_reuse(info['reuse'], np)
+    source, current = groups['source050'], groups['current051']
+    old_span_plan = checked['old_span_plan']
+    need(provider.regular(old_span_plan['local_clock_path'])
+         == old_span_plan['local_clock_stat'], 'LOCAL_CLOCK_STAT')
+    times = load_m1_feature_surface_times(
+        Path(old_span_plan['local_clock_path']),
+        context='NATIVE_F_SELECTED_FOLD2_TRAIN_CLOCK_ONLY',
+        expected_bar_seconds=300).asi8
+    positions = np.searchsorted(times, axes['bar_start_ns']).astype(np.int64)
+    need(np.all(positions < len(times))
+         and np.array_equal(times[positions], axes['bar_start_ns']),
+         'LOCAL_POSITIONS')
+    for array in (times, positions, source['signal'], current['snap'],
+                  current['ctx_cont'], current['ctx_cat']):
+        array.setflags(write=False)
+    sequence = dict(signal=source['signal'], times_ns=times,
+                    sample_positions=positions, audit=info['audit'])
+    physical = checked['physical']
+    payloads, values, clocks = {}, {}, {}
+    for lane in ('local', *TIMEFRAMES):
+        sidecar = physical['surfaces'][lane]['artifact']
+        checked_file(sidecar)
+        with np.load(sidecar['path'], allow_pickle=False) as archive:
+            payloads[lane] = {key: archive[key] for key in archive.files}
+        if lane != 'local':
+            cache = old_span_plan['caches'][lane]
+            for kind in ('feats', 'ts'):
+                checked_file(cache[kind])
+            values[lane] = np.load(cache['feats']['path'],
+                                   mmap_mode='r', allow_pickle=False)
+            clocks[lane] = np.load(cache['ts']['path'],
+                                   mmap_mode='r', allow_pickle=False)
+    parent = packet['parent_prefix_normalization']['base_normalization']
+    bound = build_anchor_span_inputs(
+        view, entry_sequence_source=sequence,
+        snap_x=current['snap'], ctx_cont=current['ctx_cont'],
+        ctx_cat=current['ctx_cat'],
+        parent_signal_names=parent['surfaces']['signal']['field_names'],
+        parent_mtf_names=parent['surfaces']['mtf_m5']['field_names'],
+        parent_mtf_values=values, parent_mtf_times=clocks,
+        span_payloads=payloads,
+        physical_populations={lane: surface['population']
+                              for lane, surface in physical['surfaces'].items()},
+        unobserved_units_profile=None)
+    gc = load_gc_mtf_history_raw_artifact(provider_plan['gc_surfaces'])
+    need(gc['layout'] == mature._receipt_chain()['gc_layout']
+         and gc['layout']['contract_sha256']
+             == view['prefix_normalization']['gc_layout_sha256'],
+         'CURRENT_GC_LAYOUT')
     raw = views.gather_native_direction_feature_batch(
         view, parent_rows=axes['parent_rows'],
         bar_start_ns=axes['bar_start_ns'], decision_ns=axes['decision_ns'],
-        entry_sequence_source=sequence,
-        snap_x=prepared['current']['snap'],
-        ctx_cont=prepared['current']['ctx_cont'],
-        ctx_cat=prepared['current']['ctx_cat'],
-        multi_tf_sources=prepared['cache'],
-        gc_surfaces=prepared['gc']['surfaces'],
-        gc_layout=prepared['gc']['layout'],
-        batch_parent_rows=selected,
-        unobserved_units_profile=receipts['fold1']['profile'])
+        entry_sequence_source=sequence, snap_x=current['snap'],
+        ctx_cont=current['ctx_cont'], ctx_cat=current['ctx_cat'],
+        multi_tf_sources=bound.mtf_sources, gc_surfaces=gc['surfaces'],
+        gc_layout=gc['layout'], batch_parent_rows=selected,
+        unobserved_units_profile=None, anchor_span_inputs=bound)
     need(set(raw['features']) == FEATURE_KEYS
-         and raw['witness']['parent_rows'] == v2.PARENT_ROWS
-         and raw['witness']['decision_ns'] == v2.ISSUE_NS,
-         'FEATURE_ONLY_BATCH')
-    mature._release_pages(provider, prepared)
+         and raw['witness']['parent_rows'] == PARENT_ROWS
+         and raw['witness']['decision_ns'] == ISSUE_NS,
+         'FULL_GC_FEATURE_BATCH')
+    for array in (*source.values(), *current.values(),
+                  *values.values(), *clocks.values()):
+        provider.flush_pages(array)
+    for surface in gc['surfaces'].values():
+        for key in ('native_row_indices', 'available_ns', 'features'):
+            provider.flush_pages(surface[key])
+    del groups, source, current, values, clocks, gc, payloads, bound, sequence
     device = torch.device('cpu')
     need(not torch.cuda.is_initialized(), 'NO_CUDA')
-    torch.manual_seed(v2.SEED)
+    torch.manual_seed(SEED)
     state_model = views.build_native_direction_research_model(
-        view, prefix_normalization=receipts['fold1']['normal'],
-        constructor_metadata=receipts['constructor'], device=device,
-        unobserved_units_profile=receipts['fold1']['profile'])
+        view, prefix_normalization=packet,
+        constructor_metadata=checked['constructor'], device=device,
+        unobserved_units_profile=None)
     need(type(state_model).__name__ == 'FactorizedTimeQueryMarketStateModel'
          and state_model.feature_view_identity['contract_sha256']
-             == v2.EXPECTED_VIEW_SHA256, 'FRESH_V2_MODEL')
+             == view['contract_sha256'], 'FRESH_FULL_GC_FOLD2_MODEL')
     model = dual_model.NativeFutureDualModel(state_model)
     model.train()
     initial_state = canonical_model_state_sha256(model.state_dict())
@@ -241,8 +398,8 @@ def witness(receipts: dict, view: dict, state_bound, future_bound) -> dict:
          trainer._training_autocast_context(), \
          trainer._training_model_finite_check_context():
         outcome = evaluate_fit_batch(
-            model, tensors, state_bound, future_bound, selected, issues,
-            fold_id=1, pass_index=v2.PASS_INDEX, seed=v2.SEED,
+            model, tensors, checked['state_bound'], checked['future_bound'],
+            selected, issues, fold_id=2, pass_index=PASS_INDEX, seed=SEED,
             future_weight=WITNESS_F_WEIGHT, selected_state_endpoints=True)
     handle.remove()
     need(len(captured) == 1 and outcome['state_count'] == 10
@@ -291,8 +448,8 @@ def witness(receipts: dict, view: dict, state_bound, future_bound) -> dict:
     provider.validate_metadata(provider_plan)
     return {'decision': 'PASS_REAL_FEATURE_S_F_FORWARD_BACKWARD_NO_UPDATE',
             'scope_limit': 'Two fixed selected native-endpoint TRAIN rows; no fit, OOF, calibration, direction value, Entry or economic authority.',
-            'sample_parent_rows': v2.PARENT_ROWS,
-            'sample_issue_ns': v2.ISSUE_NS,
+            'sample_parent_rows': PARENT_ROWS,
+            'sample_issue_ns': ISSUE_NS,
             'state_query_k': outcome['state_query_k'].tolist(),
             'state_target_mode': outcome['state_target_mode'],
             'future_native_k': outcome['future_native_k'].tolist(),
@@ -327,8 +484,8 @@ def run(plan_ref: dict) -> dict:
         require_capped_cpu_research_producer_execution, require_capped_lock_ancestry,
     )
     began = time.monotonic()
-    plan, policy_ref, receipts, view, state_bound, future_bound = inspect(
-        plan_ref, require_policy=True)
+    checked = inspect(plan_ref, require_policy=True)
+    plan, policy_ref = checked['plan'], checked['policy_ref']
     cap = require_capped_cpu_research_producer_execution()
     cap['lock'] = require_capped_lock_ancestry()
     need(cap['memory_max'] == cap['memory_high'] == MEMORY_BYTES
@@ -349,7 +506,7 @@ def run(plan_ref: dict) -> dict:
         signal.signal(signal.SIGALRM, timeout)
         signal.setitimer(signal.ITIMER_REAL, WALL_SECONDS - 100)
         try:
-            result = witness(receipts, view, state_bound, future_bound)
+            result = witness(checked)
         finally:
             signal.setitimer(signal.ITIMER_REAL, 0)
             signal.signal(signal.SIGALRM, old_handler)
