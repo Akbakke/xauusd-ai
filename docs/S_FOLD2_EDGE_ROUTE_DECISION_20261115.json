@@ -1,0 +1,106 @@
+{
+  "decision": {
+    "S_forecast_gate": "Score the independent fixed five-point S task with proper probabilities and its own earlier-TRAIN prior; a better S score alone is not economic Edge.",
+    "S_role": "Retain causal M5/M15/H1/H4/D1 dynamic S as a separate market-state forecast and context. Do not convert future certified S side into an Entry action.",
+    "comparison": "Fit and any threshold only on earlier mature TRAIN. Score the fixed later 4096 development rows in time order against frozen TRAIN prior and predeclared always-LONG/always-SHORT/FLAT references on identical observable populations. Report all six horizons, selected and abstained rows, coverage, weekly uncertainty, costs and open-position limitations. No horizon or threshold selection from later scores.",
+    "one_next_hypothesis": "Earlier mature Fold2 causal XAU+full-GC five-TF inputs contain incremental information about both LONG and SHORT M5 cost-adjusted terminal markout and conservative pre-MFE MAE on the six fixed observation horizons, beyond an earlier-fit frozen constant prior.",
+    "target_scope": "Keep all physical M5 decision rows and both executable sides. Use separate terminal and complete-path observation masks and the existing causal price/cost authority; do not use future S labels or future availability as model input."
+  },
+  "evidence": {
+    "all_side_cost": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/M5_ALL_SIDE_JOINT_COST_RESULT_REVIEW_20261115.json",
+      "sha256": "5ed6c4f5e09b28e5cb1a9a591e4b158aa4c5535e28bb045dfb98a5bae02877e5"
+    },
+    "fit_support": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/S_FOLD2_MULTIMINUTE_FIT_SUPPORT_20261115.json",
+      "sha256": "eb926b6324dbacb7e2c4bf536b5d49bd669475655c30a2c88a8aab32743c8065"
+    },
+    "mask": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/S_FOLD2_INITIAL_MASK_OBSERVATION_REVIEW_20261115.json",
+      "sha256": "bf525464553e867a2c4bd1d3d286b2801220d7254dda63ef7df804e275fca83b"
+    },
+    "prior": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/S_FOLD2_EXACT_PRIOR_LATER_RESULT_REVIEW_20261115.json",
+      "sha256": "39f88e28635b5976075031351c8e9acaac01d89fca56c7941ab061df61806d0a"
+    },
+    "route": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/S_F_FOLD2_FULL_GC_5TF_MODEL_CONSUMPTION_ROUTE_REVIEW_20261115.json",
+      "sha256": "a7299e059b89c31be8918036f5dc1aa2ae36853a2b425259a45dfbba8ae19c03"
+    },
+    "s_joint_cost": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/S_M5_JOINT_COST_RESULT_REVIEW_20261115.json",
+      "sha256": "1cb85d4eb9a873bb8cf45fc67a68bf79ad77d75f97a687d86bdaf8c70ebff17b"
+    }
+  },
+  "limits": {
+    "declared_costs_not_historical_fills": true,
+    "economic_edge_proven": false,
+    "later_4096_is_reused_development_not_independent_confirmation": true,
+    "model_recipe_optimizer_resume_not_yet_qualified_for_this_hypothesis": true,
+    "no_one_position_or_open_position_PnL_proved": true,
+    "observation_horizons_are_not_hold_or_exit_rules": true,
+    "one_next_hypothesis_is_design_not_fit_admission": true,
+    "test_data_used": false,
+    "trading_authorized": false
+  },
+  "measured": {
+    "all_side_common_mask": "terminal_and_complete_m1_path_both_sides",
+    "all_side_fit_rows": 47338,
+    "all_side_fixed_later_development_rows": 4096,
+    "declared_round_trip_cost_bps": 4.0,
+    "direct_hindsight_S_side_declared_net_mean_bps_by_horizon": {
+      "fit": {
+        "1": -5.078720614630801,
+        "15": -0.6575995885748025,
+        "240": -1.0752467733514133,
+        "480": -2.1580778502249234,
+        "5": -0.6459829518199584,
+        "60": -0.540008314013048
+      },
+      "later": {
+        "1": -5.419332370385452,
+        "15": -1.2299021278613138,
+        "240": -0.42440039394161133,
+        "480": -1.3643826189977157,
+        "5": -1.235810894957353,
+        "60": -1.30435848063341
+      }
+    },
+    "direct_hindsight_S_side_net_negative_all_six_fit_and_later": true,
+    "first_full_gc_B16_observed_paired_values_with_zero_gradient": 0,
+    "first_full_gc_B16_zero_gradient_paired_values_unobserved": 3356,
+    "five_TF_source_routes_structurally_bound": true,
+    "fixed_horizon_minutes": [
+      1,
+      5,
+      15,
+      60,
+      240,
+      480
+    ],
+    "historical_cost_truth_qualified": false,
+    "later_utc_weeks": 14
+  },
+  "next_gate": "Bind an exact single-hypothesis model and frozen earlier-TRAIN prior recipe with optimizer/resume proof and a fixed chronological scoring protocol. Seek separate exact admission before any fit. Do not launch a broad round; keep TEST, broker and trading closed.",
+  "reuse_candidate": {
+    "candidate_quality_not_cash_or_native_authority": true,
+    "existing_decoder": "The existing entry_only_dynamic_m5_path decoder already has a shared 1..480 minute query, two-side terminal-net, MFE and conservative pre-MFE-MAE outputs. All six fixed observation points are in its query grid. Reuse is a source candidate only; the Fold2 S task and this Entry model have different target and cohort bindings.",
+    "fold2_binding_and_optimizer_resume_qualified": false,
+    "model_code": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+      "sha256": "028665b503f28704900574b551e3571f813065f6d1fb8bd2c91d0dc27400364c"
+    },
+    "no_new_head_required_by_source_shape": true,
+    "objective_code": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_training_objective_v1.py",
+      "sha256": "076366e793368bdd079455151cbd6592e4f96432baffaa2239d869c1147cf07b"
+    },
+    "query_code": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_causal_m1_outcomes_v1.py",
+      "sha256": "4cba6a5fb49c518eedd67bd8264af51bb319a3af604aeda483c415d4ea864ac7"
+    }
+  },
+  "schema_version": "gx1_fold2_edge_route_decision_v1",
+  "source_head": "aa063975be86ffa7154096c4954ce59467b1bcd9",
+  "status": "SOURCE_EVIDENCE_BOUND_DIRECT_S_NOT_ENTRY_TARGET_FIT_CLOSED_EDGE_UNQUALIFIED"
+}
