@@ -5,7 +5,26 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_ENDPOINT_ALIAS_READ_ONLY_ADMITTED.
+Gjeldende policy: FOLD2_ENDPOINT_ALIAS_CONFIRMED_DYNAMIC_S_TARGET_ALIGNMENT_OPEN_EDGE_UNQUALIFIED.
+Én forhåndsbundet capped TRAIN-lesekontroll er fullført og brukt opp.
+Fem valgte S-endepunkter traff eksisterende bitfasit på alle fem TF med
+0 avvik, men mellom lik sertifisert nå- og framtidig tilstand fant vi
+en annen sertifisert M1-tilstand på M5 i 547/3 929 fit-par (13,92 %)
+og 40/319 faste senere utviklingspar (12,54 %). Tilsvarende observerte
+mellomtilstander finnes på M15/H1/H4/D1; se
+docs/S_FOLD2_ENDPOINT_ALIAS_REVIEW_20261115.json. Alle disse like
+endepunktparene var uten ukjente kildehull. Dette er et nedre anslag
+på utelatt mellomforløp i den avgrensede delmengden, ingen målt
+modellprediksjon eller Edge. Den eksisterende fem-endepunktfasiten er
+korrekt for endepunkter, men kvalifiserer ikke alene hele det løpende
+S-målet. Dagens native time-query har 5min tick og M5 native_k=1;
+den kan dermed ikke spørre om de målte M5-mellomtilstandene i minutt1–4.
+Neste steg er én kildekontrollert, minuttkapabel banebevisst S-kandidat
+med samsvarende fasit/query/output/loss/score på fem TF. Endret ONLINE-
+spørring krever fersk initialbaseline før eventuell fit. Ingen ny target
+er publisert; training_enabled=false, TEST og handel stengt.
+
+Forrige policy: FOLD2_ENDPOINT_ALIAS_READ_ONLY_ADMITTED.
 Én forhåndsbundet, lesende Fold2-kontroll skal måle sertifiserte M1-tilstander
 mellom lik nåtilstand og valgt framtidig S-endepunkt på M5/M15/H1/H4/D1.
 Primær måling er M5-andelen med en annen sertifisert mellomtilstand;
