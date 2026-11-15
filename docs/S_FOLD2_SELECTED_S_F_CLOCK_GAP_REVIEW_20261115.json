@@ -1,0 +1,174 @@
+{
+  "bindings": {
+    "F_tape": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_DECISION_RETURN_GC_20261108_002/DECISION_RETURN_TAPE.npz",
+      "sha256": "f87dcc7c669e86a10325a526023933346926f17037685a3082a875e67a1fb167"
+    },
+    "fit_cutoff_ns": 1735689600000000000,
+    "fit_effective_cutoff_ns": 1735603200000000000,
+    "fold_id": 2,
+    "later_fixed_coverage": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_002/COVERAGE.json",
+      "sha256": "5abd47c4c27964d2c8d60846701376e9e73d1f0b94ae57986bae23f4cf31cc1a"
+    },
+    "score_end_exclusive_ns": 1743465600000000000,
+    "state_mask": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001/ROW_MASKS.npz",
+      "sha256": "2b063e35b97cc1dbdbb522d2b2876a39514b1145d8c59d8a2ab07561764f9edc"
+    }
+  },
+  "cohorts": {
+    "fit": {
+      "decision_ns_sha256": "380184a9c95a02f2716326765783746b1834371a7266545113fb1eae6722da47",
+      "parent_rows_sha256": "db43609ad6bd10e8d1a13b216243855c499189f8d2f08ef0a67d49de66e29fe9",
+      "partition": "fit",
+      "rows": 47338,
+      "same_S_F_decision_and_validity_clock": true,
+      "timeframes": {
+        "D1": {
+          "F_eligible_with_intermediate_M5_gap": 37370,
+          "F_eligible_without_intermediate_M5_gap": 0,
+          "F_exact_endpoint_eligible_mature_rows": 37370,
+          "F_gap_fraction_of_eligible": 1.0,
+          "F_known_side_fraction_of_eligible": 0.405352,
+          "F_known_side_rows": 15148,
+          "S_eligible_mature_rows": 29142,
+          "S_known_side_fraction_of_eligible": 0.421762,
+          "S_known_side_rows": 12291,
+          "native_lead_minutes": 1440
+        },
+        "H1": {
+          "F_eligible_with_intermediate_M5_gap": 0,
+          "F_eligible_without_intermediate_M5_gap": 45437,
+          "F_exact_endpoint_eligible_mature_rows": 45437,
+          "F_gap_fraction_of_eligible": 0.0,
+          "F_known_side_fraction_of_eligible": 0.364285,
+          "F_known_side_rows": 16552,
+          "S_eligible_mature_rows": 45142,
+          "S_known_side_fraction_of_eligible": 0.398144,
+          "S_known_side_rows": 17973,
+          "native_lead_minutes": 60
+        },
+        "H4": {
+          "F_eligible_with_intermediate_M5_gap": 4644,
+          "F_eligible_without_intermediate_M5_gap": 39209,
+          "F_exact_endpoint_eligible_mature_rows": 43853,
+          "F_gap_fraction_of_eligible": 0.105899,
+          "F_known_side_fraction_of_eligible": 0.371195,
+          "F_known_side_rows": 16278,
+          "S_eligible_mature_rows": 42784,
+          "S_known_side_fraction_of_eligible": 0.429857,
+          "S_known_side_rows": 18391,
+          "native_lead_minutes": 240
+        },
+        "M15": {
+          "F_eligible_with_intermediate_M5_gap": 0,
+          "F_eligible_without_intermediate_M5_gap": 46992,
+          "F_exact_endpoint_eligible_mature_rows": 46992,
+          "F_gap_fraction_of_eligible": 0.0,
+          "F_known_side_fraction_of_eligible": 0.372042,
+          "F_known_side_rows": 17483,
+          "S_eligible_mature_rows": 46884,
+          "S_known_side_fraction_of_eligible": 0.387808,
+          "S_known_side_rows": 18182,
+          "native_lead_minutes": 15
+        },
+        "M5": {
+          "F_eligible_with_intermediate_M5_gap": 0,
+          "F_eligible_without_intermediate_M5_gap": 47338,
+          "F_exact_endpoint_eligible_mature_rows": 47338,
+          "F_gap_fraction_of_eligible": 0.0,
+          "F_known_side_fraction_of_eligible": 0.40289,
+          "F_known_side_rows": 19072,
+          "S_eligible_mature_rows": 47302,
+          "S_known_side_fraction_of_eligible": 0.340387,
+          "S_known_side_rows": 16101,
+          "native_lead_minutes": 5
+        }
+      }
+    },
+    "later_fixed_development": {
+      "decision_ns_sha256": "c03ec2ae8b418e21739f9f7966b946615878344364e6dc4e4d80087a0fee99d3",
+      "parent_rows_sha256": "1e4a137f13f9217641999e9730a0eec152472fe26aef517bd83da04463d926b6",
+      "partition": "score",
+      "rows": 4096,
+      "same_S_F_decision_and_validity_clock": true,
+      "timeframes": {
+        "D1": {
+          "F_eligible_with_intermediate_M5_gap": 3181,
+          "F_eligible_without_intermediate_M5_gap": 0,
+          "F_exact_endpoint_eligible_mature_rows": 3181,
+          "F_gap_fraction_of_eligible": 1.0,
+          "F_known_side_fraction_of_eligible": 0.47155,
+          "F_known_side_rows": 1500,
+          "S_eligible_mature_rows": 3037,
+          "S_known_side_fraction_of_eligible": 0.467567,
+          "S_known_side_rows": 1420,
+          "native_lead_minutes": 1440
+        },
+        "H1": {
+          "F_eligible_with_intermediate_M5_gap": 0,
+          "F_eligible_without_intermediate_M5_gap": 3988,
+          "F_exact_endpoint_eligible_mature_rows": 3988,
+          "F_gap_fraction_of_eligible": 0.0,
+          "F_known_side_fraction_of_eligible": 0.389168,
+          "F_known_side_rows": 1552,
+          "S_eligible_mature_rows": 3988,
+          "S_known_side_fraction_of_eligible": 0.429539,
+          "S_known_side_rows": 1713,
+          "native_lead_minutes": 60
+        },
+        "H4": {
+          "F_eligible_with_intermediate_M5_gap": 401,
+          "F_eligible_without_intermediate_M5_gap": 3302,
+          "F_exact_endpoint_eligible_mature_rows": 3703,
+          "F_gap_fraction_of_eligible": 0.108291,
+          "F_known_side_fraction_of_eligible": 0.388604,
+          "F_known_side_rows": 1439,
+          "S_eligible_mature_rows": 3703,
+          "S_known_side_fraction_of_eligible": 0.447205,
+          "S_known_side_rows": 1656,
+          "native_lead_minutes": 240
+        },
+        "M15": {
+          "F_eligible_with_intermediate_M5_gap": 0,
+          "F_eligible_without_intermediate_M5_gap": 4083,
+          "F_exact_endpoint_eligible_mature_rows": 4083,
+          "F_gap_fraction_of_eligible": 0.0,
+          "F_known_side_fraction_of_eligible": 0.378888,
+          "F_known_side_rows": 1547,
+          "S_eligible_mature_rows": 4083,
+          "S_known_side_fraction_of_eligible": 0.409258,
+          "S_known_side_rows": 1671,
+          "native_lead_minutes": 15
+        },
+        "M5": {
+          "F_eligible_with_intermediate_M5_gap": 0,
+          "F_eligible_without_intermediate_M5_gap": 4096,
+          "F_exact_endpoint_eligible_mature_rows": 4096,
+          "F_gap_fraction_of_eligible": 0.0,
+          "F_known_side_fraction_of_eligible": 0.388428,
+          "F_known_side_rows": 1591,
+          "S_eligible_mature_rows": 4096,
+          "S_known_side_fraction_of_eligible": 0.339844,
+          "S_known_side_rows": 1392,
+          "native_lead_minutes": 5
+        }
+      }
+    }
+  },
+  "interpretation": "S and F are distinct targets on the identical M5 decision and five native validity clocks. On Fold2 fit and the fixed later-development sample every mature eligible D1 F endpoint spans at least one missing intermediate M5 bar. This is valid for the declared endpoint displacement, but it is not a continuous price-path or economic hold label. Do not transfer F side to unknown S rows or infer Entry quality from either target.",
+  "limits": {
+    "D1_F_displacement_is_not_path": true,
+    "S_and_F_are_separate_labels": true,
+    "economic_edge_proven": false,
+    "model_forward_or_optimizer_steps": 0,
+    "new_fit_performed": false,
+    "predictive_model_scored": false,
+    "test_data_used": false,
+    "underlying_M1_BID_ASK_economic_path_replayed": false
+  },
+  "next_gate": "Preserve all five S/F targets and truthful masks. Target-path suitability needs an explicit design decision before economic use of D1 F; the selected-native four-update candidate remains unadmitted pending exact one-use policy and fresh physical boot. No TEST, broker or trading.",
+  "schema_version": "gx1_fold2_selected_S_F_target_clock_and_gap_review_v1",
+  "status": "EXACT_S_F_CLOCK_PASS_D1_F_ENDPOINT_NOT_PATH"
+}

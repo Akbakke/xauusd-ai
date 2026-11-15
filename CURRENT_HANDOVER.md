@@ -5,7 +5,19 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_GC_5TF_TRAIN_SUPPORT_MEASURED_D1_PARTIAL_OPTIMIZER_ADMISSION_CLOSED.
+Gjeldende policy: FOLD2_S_F_EXACT_CLOCK_PASS_D1_F_GAP_DIAGNOSTIC_OPTIMIZER_ADMISSION_CLOSED.
+Eksakt Fold2 fit47338 og fast senere utvikling4096 har samme M5-beslutnings-
+og fem native gyldighetsklokker for S og F. F er et eget sluttprisforskyvningsmål.
+Alle gyldige D1 F-sluttpunkter har mellomliggende M5-hull:37370 i fit og
+3181 senere. M5/M15/H1 har ingen slike hull; H4 har delvis dekning.
+D1 F beviser derfor sluttprisforskjell, ikke en sammenhengende handelsbane
+eller økonomisk Edge. Ukjent S-side fylles ikke fra F. Ingen kodeendring, modellforward,
+fit, TEST eller handel ble utført i denne kontrollen. Se
+`docs/S_FOLD2_SELECTED_S_F_CLOCK_GAP_REVIEW_20261115.json`.
+Firestegs selected-native-kandidaten er fortsatt uadmittert; eksakt
+engangs policyadmisjon og fersk fysisk boot kreves. `training_enabled=false`.
+
+Forrige policy: FOLD2_GC_5TF_TRAIN_SUPPORT_MEASURED_D1_PARTIAL_OPTIMIZER_ADMISSION_CLOSED.
 Fold2 GC-TRAIN-støtte er målt på den frosne fem-TF-normaliseringen:
 alle 2415 deklarerte GC-koordinater har minst én observert TRAIN-verdi og
 endelig, positiv skala. 39 er konstante på den valgte TRAIN-unionen. D1 har
