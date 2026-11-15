@@ -1,0 +1,77 @@
+{
+  "schema_version": "gx1_fold2_d1_macro_independent_formula_clock_review_v1",
+  "observed_utc": "2026-11-15T04:51:33Z",
+  "source_commit": "2ffed01b556dd07921a2fb76dca9d40afb3a263e",
+  "status": "PASS_INDEPENDENT_ARITHMETIC_AND_DECLARED_ASOF_ON_DEVELOPMENT",
+  "scope": {
+    "m5_prebuilt_path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/M5_ENRICHED.parquet",
+    "m5_full_sha256_recorded_not_recomputed": "5e5cb256fc60a5e9a7ffe1a161aa875660f01806b8e8de2bf601fc2f528e7f99",
+    "m5_row_groups_inclusive": [
+      241,
+      256
+    ],
+    "bar_start_utc_inclusive": [
+      "2024-05-01 00:00:00+00:00",
+      "2025-03-31 23:10:00+00:00"
+    ],
+    "physical_m5_rows": 65127,
+    "fields": 61,
+    "field_cells": 3972747,
+    "source_spec_path": "configs/research/D1_MACRO_CONTEXT_SOURCES_20261011_001.json",
+    "source_spec_sha256_verified": "b8e2c01ddc5c1941dd509f1c3507a4211b2d0f7e3820f64c7607e95a0916d6b3"
+  },
+  "independent_oracles": {
+    "positioning_cot": {
+      "fields": 4,
+      "field_cells": 260508,
+      "source": "hash-checked annual.txt from 2023, 2024 and 2025 CFTC zip archives; 117 Gold reports",
+      "formula": "noncommercial and commercial net counts divided by open interest; four-report ratio difference and open-interest log difference",
+      "asof": "report as_of plus seven calendar days, strict before M5 decision; late-publication exception dates are outside this development sample",
+      "mismatches": 0,
+      "max_abs_error": 2.9752110664027498e-08,
+      "units": "ratios and log changes, dimensionless"
+    },
+    "panel_oanda": {
+      "fields": 44,
+      "field_cells": 2865588,
+      "source": "11 H1 parquet files read in chronological batches through development cutoff; 6166 to 6721 H1 rows and 279 to 319 D1 bars per instrument in independent window",
+      "formula": "independent 22:00 UTC D1 session grouping, last close, log close difference over 1/5/20 observed D1 bars, 20-return sample standard deviation ddof=1",
+      "asof": "D1 label plus 24 hours, inclusive at M5 decision",
+      "mismatches": 0,
+      "max_abs_error": 7.448137218091233e-09,
+      "units": "log returns and return standard deviation, dimensionless"
+    },
+    "drivers": {
+      "fields": 13,
+      "field_cells": 846651,
+      "source": "pinned Treasury, Cboe VIX and SPDR GLD primitive parsers, then separately recomputed union-date arithmetic through 2025-03; 9064 source union dates before cutoff",
+      "formula": "levels, percentage-point differences, slope and breakeven, log VIX and log tonnes and their differences; delta(k) follows frozen union-date after-forward-fill semantics",
+      "asof": "observation date D at New York midnight D+2, strict before M5 decision",
+      "mismatches": 0,
+      "max_abs_error": 2.321336474153668e-07,
+      "units": "Treasury levels/changes in percent/percentage points; VIX and GLD log levels/changes dimensionless"
+    }
+  },
+  "execution": {
+    "capped_runner": "scripts/gx1_capped_run.sh --class audit --mem 4G --swap 512M",
+    "three_sequential_read_only_audits": true,
+    "scope_verified_each": true,
+    "exit_code_each": 0,
+    "comparison": "finite masks identical and numpy.isclose(atol=1e-6, rtol=1e-6) on finite values"
+  },
+  "limits": {
+    "exact_fold2_parent_selection_reverified": false,
+    "full_m5_file_sha256_freshly_recomputed": false,
+    "driver_primitive_parsers_independent_of_owner": false,
+    "first_source_history_warmup_physically_checked": false,
+    "complete_historical_publication_or_revision_timestamp_ledger_verified": false,
+    "source_archives_contain_later_public_dates_but_metric_cuts_before_2025_04": true,
+    "sealed_model_test_targets_or_candidate_scores_used": false,
+    "model_forward_performed": false,
+    "optimizer_steps": 0,
+    "new_fit_performed": false,
+    "broker_or_trading_used": false,
+    "field_predictive_value_or_economic_edge_proven": false
+  },
+  "next_gate": "Audit source-first warmup and exact historical publication/revision clocks where evidence exists; then quantify field contribution only under a predeclared chronological development hypothesis. Native optimizer admission remains closed."
+}

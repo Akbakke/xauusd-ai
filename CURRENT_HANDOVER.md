@@ -5,7 +5,21 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_D1_DRIVER_UNION_CALENDAR_SEMANTICS_MEASURED_ALTERNATIVE_UNSELECTED_EDGE_UNQUALIFIED.
+Gjeldende policy: FOLD2_D1_MACRO_61_FIELD_INDEPENDENT_FORMULA_ASOF_PASS_HIST_RELEASE_OPEN_EDGE_UNQUALIFIED.
+Tre separate capped, lesende kildeberegninger traff alle 61 D1/makrofelt
+på 65 127 fysiske M5-utviklingsrader (3 972 747 feltceller), med 0 verdi-
+eller endelighetsmaskeavvik ved float32-toleranse. Fire COT-felt kom fra
+hashverifiserte råarkiver, 44 panelfelt fra egne H1→D1-lukkinger og 13
+driverfelt fra separat aritmetikk på pinnede primitivkilder. Dagens
+sammenslåtte driverdatoakse er bevart. Dette kvalifiserer formel og deklarert
+as-of i utviklingsspennet; første kilde-warmup og komplett historisk
+publiserings-/revisjonsklokke er fortsatt ubevist. Ingen feltvis prediktiv
+verdi, modellfit, generalisering eller Edge. Se
+`docs/S_FOLD2_D1_MACRO_61_FIELD_INDEPENDENT_FORMULA_CLOCK_REVIEW_20261115.json`.
+Ingen modellforward, fit, TEST-skåring eller handel. Firestegs selected-native-
+kandidaten er uadmittert; `training_enabled=false`.
+
+Forrige policy: FOLD2_D1_DRIVER_UNION_CALENDAR_SEMANTICS_MEASURED_ALTERNATIVE_UNSELECTED_EDGE_UNQUALIFIED.
 Kildekoden beregner driver-Δ1/5/21 over sammenslåtte Treasury/VIX/GLD-datoer
 etter forward fill. En separat kildedag-definisjon ble bare diagnostisert:
 på 239 utviklingsdatoer og 65 127 fysiske M5-rader ville den endre opptil
