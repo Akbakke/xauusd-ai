@@ -5,21 +5,17 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: SELECTED_NATIVE_FOLD2_B16_GATHER_PLAN_READY_NO_ADMISSION.
-Fold2 selected-native privat AdamW/resume-rute og kandidatoppskrift er bundet
-mot commit `1be8f954`; SHA256 for oppskriften er
-`3e5c6875544583a6410c5031c2a7e44220d6437b98c438130304eaab92605981`.
-Lesende kildepreflight passerer, global `training_enabled=false` avviser et
-forsøksvindu før CLAIM. For å måle den gjenværende konkrete usikkerheten er
-en separat engangsplan for faktisk full-GC gather av Fold2 rad2–33 i to B16-
-batcher forberedt: `configs/research/MARKET_STATE_FOLD2_SELECTED_NATIVE_B16_GATHER_20261115_001.json`.
-Den krever capped producer 12G/512M, null modellkonstruksjoner, forwards og
-optimizersteg. Planen er ennå ikke admittert eller kjørt. Neste steg er
-no-CLAIM preflight, separat lesende policyadmisjon, én kjøring og terminal-
-kontroll; deretter ny vurdering av den fortsatt stengte firestegs optimizer-
-prøven. Ingen full fit, senere modellscore eller Edge er kvalifisert. TEST,
-broker og handel er stengt. S og F er separate fem-TF-mål, ikke Entry i denne
-fasen. Se `docs/S_F_FOLD2_SELECTED_NATIVE_CAMPAIGN_ROUTE_SOURCE_REVIEW_20261115.json`.
+Gjeldende policy: SELECTED_NATIVE_FOLD2_B16_GATHER_ADMITTED_ZERO_MODEL_ZERO_OPTIMIZER.
+Den separate lesende engangsplanen for faktisk Fold2 full-GC gather av rad2–33
+i to B16-batcher bestod no-CLAIM preflight på ren commit `844a5146`. Policy
+admitterer bare denne datakontrollen: capped producer 12G/512M, null modell-
+konstruksjoner, forwards, backward calls og optimizersteg. Kjør nøyaktig én
+gang og kontroller CLAIM/RESULT/TERMINAL samt kildebookend. Den andre
+Fold2 native kandidatoppskriften (`3e5c6875544583a6410c5031c2a7e44220d6437b98c438130304eaab92605981`)
+for firestegs AdamW/resume er fortsatt separat uadmittert med
+`training_enabled=false`. Ingen full fit, senere modellscore eller Edge er
+kvalifisert; TEST, broker og handel er stengt. Se
+`docs/S_F_FOLD2_SELECTED_NATIVE_CAMPAIGN_ROUTE_SOURCE_REVIEW_20261115.json`.
 
 Forrige policy: GC_ABS_BOOK_ACTIVITY_POSITIVE_HYPOTHESIS_UNSUPPORTED_EDGE_UNQUALIFIED.
 Den ene forhåndsbundne, capped GC-bokaktivitetstesten er COMPLETE/CONSUMED,
