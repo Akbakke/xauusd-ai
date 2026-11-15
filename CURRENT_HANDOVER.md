@@ -5,7 +5,17 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: GC_MID_RESPONSE_FOLD2_RAW_M5_S_POSITIVE_ORIENTATION_UNSUPPORTED_EDGE_UNQUALIFIED.
+Gjeldende policy: FOLD2_CAUSAL_TRANSITION_PRIOR_CONTROL_ADMITTED_NO_SCORE.
+Én sannsynlighetsbasert, kausal nåtilstand-overgangsreferanse er
+forhåndsbundet på moden Fold2 fit47338 og fast senere utvikling4096.
+Eksakt tidligere S-gyldighet og fysisk M1-rad må stemme ved beslutning;
+manglende nåtilstand bruker frossen Fold2-prior. Fire S-biter, én fast
+prior-pseudoobservasjon per celle; S/F aktivitet, side og treklasset
+proper-score på M5/M15/H1/H4/D1. Planen er innrømmet, ikke claimet.
+Lesende preflight og én capped CPU-baseline gjenstår. Ingen native fit,
+optimizer, TEST, Entry eller handel.
+
+Forrige policy: GC_MID_RESPONSE_FOLD2_RAW_M5_S_POSITIVE_ORIENTATION_UNSUPPORTED_EDGE_UNQUALIFIED.
 Den ene lesende GC M5-midtprisresponsplanen er COMPLETE/CONSUMED, exit0
 under4G/512M. Forhåndsvalgt positiv orientering støttes ikke for
 S/M5: rå AUC0,47239 på15951 felles observerte sider i moden fit47338
