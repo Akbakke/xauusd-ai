@@ -1,0 +1,51 @@
+{
+  "candidate_recipe": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_SELECTED_FOLD2_TWO_BATCH_20261115_001/RECIPE.json",
+    "sha256": "3e5c6875544583a6410c5031c2a7e44220d6437b98c438130304eaab92605981"
+  },
+  "next_gate": "A separate exact one-use admission of this recipe, clean source and fresh physical boot before any guarded optimizer/resume run. No full fit or TEST authority.",
+  "observed": {
+    "claim_exists": false,
+    "cli_help_smoke": "PASS",
+    "current_global_training_enabled": false,
+    "focused_tests_passed": 37,
+    "input_refs_bound": 20,
+    "later_model_score_performed": false,
+    "model_fit_performed": false,
+    "optimizer_updates": 0,
+    "recipe_source_preflight": "PASS_NO_CLAIM_RECIPE_SOURCE_PREFLIGHT",
+    "source_owners_bound": 73,
+    "stage_admitted": false,
+    "test_data_used": false,
+    "window_readiness": "REJECTED_READINESS_GLOBAL_AS_EXPECTED"
+  },
+  "route": {
+    "batch_count": 2,
+    "batch_size": 16,
+    "fold_id": 2,
+    "full_epoch_training_allowed": false,
+    "max_backward_calls": 4,
+    "max_model_constructions": 3,
+    "max_model_forwards": 6,
+    "max_physical_optimizer_updates": 4,
+    "native_campaign": "existing guarded native direction research",
+    "parent_rows": [
+      2,
+      33
+    ],
+    "partition": "fit",
+    "power_limit_w": 250,
+    "selected_state_endpoints": true,
+    "state_owner": "market_state_native_F_private_state_v1",
+    "training_enabled_in_candidate": true
+  },
+  "schema_version": "gx1_fold2_selected_native_private_route_source_review_v1",
+  "source_commit": "1be8f9545c24694f1f6be2924e7a7dc6b3febdf6",
+  "status": "CANDIDATE_RECIPE_PREFLIGHT_PASS_NO_ADMISSION",
+  "unproven": [
+    "32-row full-GC physical feature gather",
+    "GPU optimizer/resume equality",
+    "chronological fit and later model generalization",
+    "economic Edge"
+  ]
+}

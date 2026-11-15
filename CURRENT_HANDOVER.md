@@ -5,21 +5,24 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: SELECTED_NATIVE_FOLD2_TWO_BATCH_ROUTE_CODED_CAMPAIGN_UNADMITTED.
-Den nye kildekoden binder gjenbrukte Fold2 full-XAU+GC TRAIN-inputs, moden S/F-
-fasit ved fem native endepunkter, frossen prior og rad2–33 til eksisterende
-bevoktet native kampanje og AdamW/state-eier. Ruten har fire fysiske private
-oppdateringer som teknisk optimizer/resume-kvalifisering, ikke modell-fit.
-Fokuserte kontrakttester og syntaks passerer. Faktisk B16 full-GC gather,
-kommando/preflight, optimizer, senere modellscore, generalisering og Edge
-står fortsatt uprøvd. Ingen recipe, CLAIM eller kampanjeadmisjon er publisert.
-Kilde-/målrapport: `docs/S_F_FOLD2_SELECTED_NATIVE_ROUTE_GAP_REVIEW_20261115.json`.
-Neste steg: commit/push ren kilde, bygg eksakt engangs kandidatoppskrift fra
-committet HEAD, røykprøv bevoktet kommando og lesende preflight uten CLAIM.
-Separat engangsadmisjon kreves før optimizersteg; `training_enabled=false`
-består nå. TEST, broker og handel er stengt. S er framtidig endepunkttilstand;
-H4/D1 kan inneholde kjent før-issue historikk. F er separat beslutningsforankret
-forflytning. Ingen av dem er Entry-mål i denne fasen.
+Gjeldende policy: SELECTED_NATIVE_FOLD2_CANDIDATE_RECIPE_PREFLIGHT_PASS_ADMISSION_CLOSED.
+Kildekode for Fold2 full-XAU+GC selected-native S/F privat AdamW/resume er
+committet på `1be8f954`. En uforanderlig kandidatoppskrift er publisert:
+`/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_SELECTED_FOLD2_TWO_BATCH_20261115_001/RECIPE.json`,
+SHA256 `3e5c6875544583a6410c5031c2a7e44220d6437b98c438130304eaab92605981`.
+Den binder 73 nåværende kilder og 20 inputkvitteringer, Fold2 rad2–33,
+full XAU+GC, fem valgte native S/F-endepunkter og frossen prior. 37 fokuserte
+tester og kildepreflight passerer; CLI-hjelp røykprøvd. Forsøksvinduer blir
+avvist som forventet av `training_enabled=false` før CLAIM. Ingen kampanje er
+admittert, ingen faktisk B16 full-GC gather, optimizersteg, fit, senere
+modellscore eller Edge er kvalifisert. Se
+`docs/S_F_FOLD2_SELECTED_NATIVE_CAMPAIGN_ROUTE_SOURCE_REVIEW_20261115.json`.
+Neste gate er eksakt separat engangsadmisjon for kandidatoppskriften og en
+ny fysisk boot før bevoktet 32-raders firestegs optimizer/resume; kvalifiser
+faktisk input-gather før optimizer. Ingen full fit autoriseres. TEST, broker
+og handel er stengt. S er framtidig endepunkttilstand; H4/D1 kan inneholde
+kjent før-issue historikk. F er separat beslutningsforankret forflytning.
+Ingen av dem er Entry-mål i denne fasen.
 
 Forrige policy: GC_ABS_BOOK_ACTIVITY_POSITIVE_HYPOTHESIS_UNSUPPORTED_EDGE_UNQUALIFIED.
 Den ene forhåndsbundne, capped GC-bokaktivitetstesten er COMPLETE/CONSUMED,
