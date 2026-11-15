@@ -112,6 +112,93 @@ def score_signal(gc: np.ndarray, price: np.ndarray, up: np.ndarray) -> dict:
     return out
 
 
+
+def legacy_source_metadata() -> dict:
+    """Bind sealed 051 fields without consulting today's expanded native profile."""
+    def load(name: str, limit: int = 4 * 1024**2) -> dict:
+        return source._read_json(source.REFS[name], limit)
+
+    provider = load('provider_plan')
+    binding = load('decode_binding')
+    source_plan = load('source_plan')
+    source_terminal = load('source_terminal')
+    source_outer = load('source_outer_terminal')
+    reconstruction = load('source_reconstruction')
+    feature_manifest = load('feature_manifest')
+    split = load('split_manifest', 64 * 1024**2)
+    registry = load('gc_registry')
+    complete_plan = load('complete_plan')
+    complete = load('complete_result')
+    complete_terminal = load('complete_terminal')
+    refs = source.REFS
+    need(provider.get('decode_reuse_binding') == refs['decode_binding']
+         and provider.get('m5_feature_manifest') == refs['feature_manifest']
+         and provider.get('source_reconstruction') == refs['source_reconstruction']
+         and provider.get('axes', {}).get('source')
+             == {'path': str(Path(state.REFS['model_axes'][0])),
+                 'sha256': state.REFS['model_axes'][1]}
+         and provider['axes'].get('rows') == SHAPE[0]
+         and provider['axes'].get('decision_rule')
+             == 'bar_start_ns_plus_300000000000'
+         and binding.get('source_plan') == refs['source_plan']
+         and binding.get('source_worker') == refs['source_worker']
+         and binding.get('terminal') == refs['source_terminal']
+         and binding.get('outer_terminal') == refs['source_outer_terminal']
+         and binding.get('schema_version')
+             == 'gx1_native_direction_completed_decode_reuse_v1'
+         and binding.get('data_fit_or_support_qualified') is False
+         and source_terminal.get('source_unchanged') is True
+         and source_terminal.get('test_data_used') is False
+         and source_outer.get('source_and_external_bookends_unchanged') is True
+         and source_plan.get('worker') == refs['source_worker'],
+         'LEGACY_LINEAGE')
+    need(complete.get('status')
+             == 'COMPLETE_FIVE_RAW_QUALIFICATIONS_FOUR_BOOLEAN_PREFIX_NORMALIZATIONS_NO_MODEL_ADMISSION'
+         and complete.get('input_provider_plan') == refs['provider_plan']
+         and complete.get('five_complete_raw_parities_before_first_fit') is True
+         and complete.get('test_data_used') is False
+         and complete.get('plan') == refs['complete_plan']
+         and complete_terminal.get('status') == 'COMPLETE'
+         and complete_terminal.get('exit_code') == 0
+         and complete_terminal.get('source_unchanged') is True
+         and complete_terminal.get('result') == refs['complete_result']
+         and complete_plan.get('input_provider_plan') == refs['provider_plan'],
+         'LEGACY_COMPLETE')
+    for path, shape in ((source.CURRENT_MMAP, SHAPE),
+                        (source.SOURCE_MMAP, (1140763, SHAPE[1]))):
+        stat = source._file_stat(path)
+        need(stat == binding['scratch_files'][str(path)]
+             and stat == complete['reused_scratch'][str(path)]
+             and not stat['st_mode'] & 0o222
+             and stat['st_size'] == shape[0] * shape[1] * 4,
+             'MMAP_STAT:' + path.name)
+    checks = reconstruction.get('checks', {})
+    need(reconstruction.get('decision') == 'PASS'
+         and reconstruction.get('rows') == SHAPE[0]
+         and reconstruction.get('feature_surface_rows') == 1140763
+         and reconstruction.get('manifest_path') == refs['split_manifest']['path']
+         and reconstruction.get('manifest_sha256') == refs['split_manifest']['sha256']
+         and all(checks.get(key) is True for key in (
+             'every_emitted_timestamp_maps_exactly_once_to_feature_surface',
+             'every_sequence_equals_exact_source_surface_history_bit_identical',
+             'every_snapshot_equals_exact_source_surface_current_row_bit_identical',
+             'source_timestamps_strictly_increasing')),
+         'LEGACY_CLOCK')
+    need(feature_manifest.get('ctx_cont_dim') == SHAPE[1]
+         and len(split['feature_contract']['ctx_cont_names']) == SHAPE[1]
+         and split['extra']['gc_native_context']['registry_sha256']
+             == refs['gc_registry']['sha256']
+         and registry.get('schema_version') == 'gx1_native_gc_context_registry_v1'
+         and registry.get('outcomes_accessed') is False
+         and registry.get('train_decision_rows') == SHAPE[0]
+         and registry.get('train_parent_clock_binding', {}).get('bar_clock_sha256')
+             == provider['axes']['bar_start_ns_sha256'],
+         'LEGACY_FIELDS')
+    return {'provider': provider, 'binding': binding, 'registry': registry,
+            'current_stat': source._file_stat(source.CURRENT_MMAP),
+            'source_stat': source._file_stat(source.SOURCE_MMAP)}
+
+
 def inspect(plan_sha: str) -> tuple[dict, dict, str, object, object, dict, np.ndarray, np.ndarray, dict]:
     need(Path.cwd().resolve() == REPO
          and git('branch', '--show-current') == 'work/gx1-current'
@@ -163,7 +250,7 @@ def inspect(plan_sha: str) -> tuple[dict, dict, str, object, object, dict, np.nd
          and baseline['selected_score_rows'] == 4096
          and baseline['frozen_priors'] == expected['prior_frozen']
          and baseline['test_data_used'] is False, 'RECEIPTS')
-    meta = source._source_metadata()
+    meta = legacy_source_metadata()
     names = meta['binding']['scratch_files']
     need(str(source.CURRENT_MMAP) in names, 'MMAP_BINDING')
     manifest = json.loads(Path(source.REFS['split_manifest']['path']).read_text())

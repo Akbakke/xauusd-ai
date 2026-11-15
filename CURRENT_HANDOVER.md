@@ -12,7 +12,10 @@ positiv M5 tidsvektet GC-ordrebokubalanse rangerer OPP høyere for
 S/F conditional side på M5/M15/H1/H4/D1. Samme-rad XAU-avstand
 fra EMA5 er kontroll; konstant frossen prior har AUC0,5. Dette er
 kilde- og rankassosiasjon uten sannsynlighetsfit eller Entry-mål.
-Gamle GC aggressor-/OFI-referanser relanseres ikke. Plan:
+Gamle GC aggressor-/OFI-referanser relanseres ikke. En første
+lesende preflight fant at den gamle 051-verifikatoren bandt dagens
+utvidede profil; ny worker bruker derfor forseglede 051-manifester
+og feltbytes direkte. Ingen CLAIM eller kildekode i gammel eier ble endret. Plan:
 `configs/research/MARKET_STATE_GC_BOOK_TW_FOLD2_20261115_001.json`.
 0 modellforwards, optimizersteg, TEST, broker eller handel.
 

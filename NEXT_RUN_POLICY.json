@@ -44,7 +44,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-15T01:53:57.797667Z",
+  "observed_utc": "2026-11-15T01:55:50.338663Z",
   "status": "GC_BOOK_TW_FOLD2_ADMITTED_READONLY_NO_FIT",
   "market_state_s_m5_quote_alignment_20261115_001": {
     "status": "COMPLETE_CONSUMED_DIRECT_5M_S_REFERENCE_NEGATIVE_NO_EDGE",
@@ -64846,7 +64846,7 @@
     }
   },
   "recorded_status": "GC_BOOK_TW_FOLD2_ADMITTED_READONLY_NO_FIT",
-  "recorded_observed_utc": "2026-11-15T01:53:57.797667Z",
+  "recorded_observed_utc": "2026-11-15T01:55:50.338663Z",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
     "decision": "BLOCK",
@@ -88023,7 +88023,7 @@
     "status": "ADMITTED",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_GC_BOOK_TW_FOLD2_20261115_001.json",
-      "sha256": "cd6c23142996d392017e00bf5f9b033ab38113b9ed4b63cb74db988afb594cdb"
+      "sha256": "e24a27042f799852f417a1d2e2caef1fa238be8caa8de20fe27365a1c3986e0a"
     },
     "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_GC_BOOK_TW_FOLD2_20261115_001",
     "max_invocations": 1,
