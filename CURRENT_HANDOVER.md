@@ -5,7 +5,18 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_S_25_CELL_PRIVATE_ROUTE_SOURCE_READY_NO_FIT_ADMISSION_EDGE_UNQUALIFIED.
+Gjeldende policy: FOLD2_S_25_CELL_PRIVATE_CANDIDATE_READY_NO_RUN_ADMISSION_EDGE_UNQUALIFIED.
+Én eksakt S-only 25-cellers to-B16 kandidatoppskrift er publisert uten
+kjøringsadmisjon: /home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_25_CELL_S_PRIVATE_TWO_BATCH_20261115_001/RECIPE.json
+SHA256 2cfaf79197210ddc7d3408529bc3dec9cbf9e24d5a09d586a6d8b8e3173b8d76.
+Kanonisk oppskrift/ruting og 250W-vakt passerer; manglende privat policyport
+avvises. Ingen CLAIM, fysisk oppdatering, full FIT eller senere modellscore.
+Før fysisk kjøring: lesende røykprøve av eksakt launch/import og bundne
+kilde-/kvitterings-/visningsporter samt syntetisk suksess-/feilpublisering.
+Deretter kreves egen eksakt engangsinnrømmelse, fersk fysisk boot og bevoktet
+kjøring. training_enabled=false; TEST, Entry/Exit, broker og handel stengt.
+
+Tidligere policy: FOLD2_S_25_CELL_PRIVATE_ROUTE_SOURCE_READY_NO_FIT_ADMISSION_EDGE_UNQUALIFIED.
 Den separate Fold2 S-only private ruten er nå koblet til eksisterende bevoktet
 kampanje, faktisk full-GC B16-kilde, fast 25-cellers S-tap og komplett
 modell-/AdamW-/RNG-gjenopptak. Den gamle private ruten består uendret i
