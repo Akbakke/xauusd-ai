@@ -313,7 +313,8 @@
     "The backbone contains feature-family and cross-timeframe gates and attention, but this result does not prove predictive cooperation among indicators. The joint activity/side objective allows the easier activity task to improve while certified side worsens.",
     "The causal reason for the side collapse is not isolated. Shared-head interference, optimization and feature/target relationships remain competing explanations. A tiny fixed TRAIN overfit diagnostic can separate basic fit capacity from generalization, but requires a separately admitted one-use training plan.",
     "At the native endpoint, M5 and D1 side probabilities are nearly identical on later rows while certified M5/D1 sides often disagree; the current shared query output fails timeframe discrimination.",
-    "Saved checkpoint weights confirm the query-coordinate columns changed; a completely frozen query projection is ruled out, while useful timeframe-conditioned side behavior remains absent."
+    "Saved checkpoint weights confirm the query-coordinate columns changed; a completely frozen query projection is ruled out, while useful timeframe-conditioned side behavior remains absent.",
+    "On 256 fixed later rows, the local eight-family specialist gate concentrated 78.3 percent mean weight on volatility/compression after training versus 2.8 percent initially; the separate TF gate remained nonuniform. This is observed routing, not a causal attribution of side failure to one family."
   ],
   "not_measured": [
     "independent sealed TEST adaptation",
@@ -380,5 +381,91 @@
     "side_head_bias_initial": 0.03466106206178665,
     "side_head_bias_final": 0.03666355460882187,
     "interpretation": "The six query-coordinate weight columns changed under the completed fit, so they were not frozen. Near-identical timeframe outputs persist despite these updates. This does not isolate a causal encoder, projection, loss or optimizer defect."
+  },
+  "exploratory_gate_readout": {
+    "scope": "read_only_same_256_spread_later_rows_CPU_initial_final_gate_readout",
+    "selected_later_rows": 256,
+    "selection_start_indices": [
+      0,
+      272,
+      544,
+      816,
+      1088,
+      1360,
+      1632,
+      1904,
+      2176,
+      2448,
+      2720,
+      2992,
+      3264,
+      3536,
+      3808,
+      4080
+    ],
+    "specialist_names": [
+      "structure_swing_encoder",
+      "smc_liquidity_encoder",
+      "trend_ema_encoder",
+      "vol_compression_encoder",
+      "momentum_flow_encoder",
+      "session_regime_encoder",
+      "chart_geometry_encoder",
+      "price_action_candle_encoder"
+    ],
+    "local_specialist_gate": {
+      "initial_mean_weights": [
+        0.321529,
+        0.165972,
+        0.097885,
+        0.027749,
+        0.060385,
+        0.076268,
+        0.152483,
+        0.097729
+      ],
+      "final_mean_weights": [
+        0.161587,
+        0.004708,
+        0.015654,
+        0.782645,
+        0.013424,
+        0.007081,
+        0.009717,
+        0.005184
+      ],
+      "initial_mean_entropy": 1.8156000836062112,
+      "final_mean_entropy": 0.5926377878655528,
+      "final_mean_coordinate_sd_between_rows": 0.05322701226557195
+    },
+    "timeframe_gate": {
+      "timeframe_order": [
+        "M5",
+        "M15",
+        "H1",
+        "H4",
+        "D1"
+      ],
+      "initial_mean_weights": [
+        0.197439,
+        0.218595,
+        0.110239,
+        0.147589,
+        0.326139
+      ],
+      "final_mean_weights": [
+        0.184194,
+        0.078889,
+        0.39169,
+        0.21235,
+        0.132878
+      ],
+      "final_mean_entropy": 1.4608893755614618
+    },
+    "family_tf_cooperation_gate_final_mean_entropy": 3.410604837937306,
+    "family_tf_feature_gate_final_mean_coordinate_sd_between_rows": 0.01041492548779021,
+    "optimizer_steps": 0,
+    "test_data_used": false,
+    "limitation": "256 sampled later rows; gate weights describe routing and do not prove causal feature contribution or profit."
   }
 }

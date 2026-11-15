@@ -39,6 +39,10 @@ TEST, Entry/Exit, broker eller handel er innrømmet.
   TF-diskrimineringssvikt i sluttoutput, ikke bevist årsak i én bestemt port.
   Lagrede vekter viser at de seks TF-/tid-kolonnene i spørringsprojeksjonen
   faktisk ble oppdatert (RMS-endring 0,0310); de var ikke fryst.
+- Lesende CPU-portmåling på 256 faste senere rader: lokal åttefamilieport
+  la 78,3 % snittvekt på volatilitet/kompresjon etter fit, mot 2,8 % før.
+  TF-porten var ulik mellom tidsrammer, men sluttretningene ble nesten like.
+  Dette er målt ruting, ikke årsaksbevis for én bestemt indikatorfamilie.
 - En separat lesende CPU-replay av initial- og sluttcheckpoint på samme
   1 024 spredte TRAIN-rader fant M5 minutt 5 Brier 0,252211 → 0,291098 og
   AUC 0,517416 → 0,484980 på 366 kjente sider. Dette er en begrenset
