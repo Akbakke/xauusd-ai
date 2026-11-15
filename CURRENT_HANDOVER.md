@@ -5,26 +5,20 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_EDGE_ROUTE_SOURCE_DECISION_FIT_CLOSED_EDGE_UNQUALIFIED.
-Kvalifisert første full-GC Fold2 B16 ga ikke-null gradient på alle fem
-signal- og GC-tidsrammer. Samme B16s 3356 nullgradientverdier med
-observasjonspar var alle fysisk uobserverte; ingen observert parverdi hadde
-null gradient. Dette beviser lokal inputmekanikk, ikke alle raders indikatorverdi.
-Direkte fremtidig S-side er nå avvist som selvstendig M5 Entry-regel: selv
-hindsight-sertifisert side har negativt deklarert netto gjennomsnitt ved alle
-seks faste 1/5/15/60/240/480-minuttsmålinger i både Fold2 fit og den faste
-senere utviklingskohorten. Begge kjørbare sider har felles prisbane-/kostmaske
-på 47338 fit- og 4096 senere rader. S beholdes som dynamisk M5/M15/H1/H4/D1-
-markedsbeskrivelse; Entry trenger egen side- og prisbanekvalitet. Kildebundet
-beslutning: docs/S_FOLD2_EDGE_ROUTE_DECISION_20261115.json.
-Neste ene hypotese er at kausale XAU+full-GC-felter bærer mer informasjon om
-begge siders M5 netto markout og konservativ pre-MFE MAE på de seks faste
-målepunktene enn en tidligere TRAIN-frosset konstantprior. Bind modelloppskrift,
-optimizer/resume og kronologisk senere sammenligning før særskilt innrømmelse.
-Eksisterende Entry-only-dekoder har allerede tosidekomponenter på1–480min,
-inkludert de seks målepunktene; Fold2-binding og resume er ikke kvalifisert.
-Senere4096 er gjenbrukt utvikling, kost er deklarert og ingen Exit/åpen-posisjon-
-økonomi er bevist. training_enabled=false; TEST, broker og handel stengt.
+Gjeldende policy: FOLD2_SHARED_S_ENTRY_INITIAL_READ_ONLY_ADMITTED_EDGE_UNQUALIFIED.
+Kildebundet beslutning i docs/S_FOLD2_EDGE_ROUTE_DECISION_20261115.json:
+direkte framtidig S-side er negativ deklarert netto på alle seks faste M5-
+målepunkter i både fit og senere utvikling. S beholdes som markedsbeskrivelse;
+Entry trenger egen side- og prisbanekvalitet. Første S-B16 viste full-GC-
+informasjonsflyt på alle fem tidsrammer og ingen observert nullgradientverdi.
+Én ny låst, 12G/512M-avgrenset initialkontroll på samme første Fold2 B16 er
+innrømmet. Den bygger fersk ONLINE uten checkpoint, bruker én native encoder
+til både fast fempunkts-S og eksisterende toside-Entry-dekoder, binder seks
+M5 netto/MAE-fasiter på samme klokke og gjør én maskert teknisk backward.
+Plan: configs/research/MARKET_STATE_FOLD2_SHARED_S_ENTRY_INITIAL_20261115_001.json.
+Ingen optimizer eller fit er innrømmet. Mekanikk er ikke læring, senere
+VAL-verdi eller økonomisk Edge. training_enabled=false; TEST, broker og
+handel stengt. Planen relanseres aldri etter claim.
 
 Forrige policy: FOLD2_PAIRED_MINUTE_PATH_CHANGE_CONFIRMED_MULTIMINUTE_OBJECTIVE_OPEN_EDGE_UNQUALIFIED.
 Korrigert capped parvis engangskontroll002 er fullført og brukt opp. På

@@ -1,0 +1,93 @@
+{
+  "broker_access_allowed": false,
+  "hypothesis": "On the same genuine pinned first full-GC Fold2 B16, one fresh native encoder can feed both the five-point S head and the existing two-side 1..480 minute Entry heads; the six fixed cost/path targets align to the same causal M5 decision clocks and a target-only masked raw-bps probe backpropagates through the native Entry heads without an update. This is mechanics, not learning or Edge.",
+  "input_refs": {
+    "S_initial_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_MULTIMINUTE_INITIAL_20261115_001/RESULT.json",
+      "sha256": "ed744301059c8391f6f527343f5290030a721274f738afd4e89d6e61d22bca23"
+    },
+    "all_side_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_M5_ALL_SIDE_JOINT_COST_20261115_001.json",
+      "sha256": "83992eb067a69b8e70e9bb5c91963a0b61d07e32a91c9716d4fe5d5327e74d55"
+    },
+    "all_side_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_M5_ALL_SIDE_JOINT_COST_20261115_001/RESULT.json",
+      "sha256": "5e98d1e731a43d5751967309563132818408cb0422dc3af0367f95adf85e69c6"
+    },
+    "all_side_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_M5_ALL_SIDE_JOINT_COST_20261115_001/TERMINAL.json",
+      "sha256": "a4d914b051add96bf94a93210074bf508cbe4e45406257c618a64dd7f7cd9ed5"
+    },
+    "cost_recipe": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/RECIPE.json",
+      "sha256": "83dbdaec44aac242db740cc43bd1314679aba2668eb53da4bc5e1a972afc82cd"
+    },
+    "mask_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_INITIAL_MASK_OBSERVATION_20261115_001/RESULT.json",
+      "sha256": "cefad178e7f9a4013312e9117e92be0adf0ca690417bd445fb07f13776816c92"
+    },
+    "selected_recipe": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_SELECTED_FOLD2_TWO_BATCH_20261115_001/RECIPE.json",
+      "sha256": "3e5c6875544583a6410c5031c2a7e44220d6437b98c438130304eaab92605981"
+    }
+  },
+  "limits": {
+    "class": "producer",
+    "max_invocations": 1,
+    "memory": "12G",
+    "swap": "512M",
+    "wall_seconds": 1800
+  },
+  "max_invocations": 1,
+  "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_SHARED_S_ENTRY_INITIAL_20261115_001",
+  "relaunch_allowed": false,
+  "schema_version": "gx1_fold2_shared_s_entry_initial_plan_v1",
+  "scope": {
+    "S_head_decodes": 1,
+    "S_query_sha256": "1d6b5d891e08b91ead2ca0b49e0aef22e3c8c1d2ab08d81fa9fd2ffe3bf3c56d",
+    "backward_calls": 1,
+    "batch_index": 0,
+    "batch_size": 16,
+    "checkpoint_reads": 0,
+    "entry_head_decodes": 1,
+    "entry_horizon_minutes": [
+      1,
+      5,
+      15,
+      60,
+      240,
+      480
+    ],
+    "fold_id": 2,
+    "model_constructions": 1,
+    "native_encoder_forwards": 1,
+    "optimizer_steps": 0,
+    "partition": "fit",
+    "test_data_used": false
+  },
+  "seed": 51,
+  "source_base_head": "94132f94283d01eb60d7826e3e5d96d96704d0e0",
+  "source_owners": {
+    "gx1/audit/qualify_market_state_fold2_initial_mask_observation_v1.py": "29e37157873ef3b2314ef91064f9cb9d901457aac5d5c00265a95b17ee47b1a4",
+    "gx1/audit/qualify_market_state_fold2_multiminute_initial_v1.py": "91401b4343e9bf410ae437e44f044a6c9f772d7db2a93d455e58ca9a9a38b101",
+    "gx1/audit/qualify_market_state_fold2_shared_s_entry_initial_v1.py": "5f48fdccc2094b011cb3c4462a22999ab22e3e14a0c76eb8e6178d7b9b219cb2",
+    "gx1/contracts/entry_causal_m1_outcomes_v1.py": "4cba6a5fb49c518eedd67bd8264af51bb319a3af604aeda483c415d4ea864ac7",
+    "gx1/contracts/entry_native_direction_feature_view_v1.py": "6fc56f8dd76005090614df83a6dc87db94163f0216cfdf1983278f3932d7d34f",
+    "gx1/contracts/entry_observed_market_v1.py": "b6f703ea2348fa196cbf4eff9effcda33ecec8de4bcc32c43c0974ad3065d5cb",
+    "gx1/contracts/gx1_capped_execution_v1.py": "60b1ccf2eda470a84ddded0d8160c628314ebb19f5766b87b70fef7c9aa3ccff",
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "gx1/contracts/market_state_fold2_multiminute_path_v1.py": "4217b27ea57302bc0ed3a948f0351554b1c3d91de7e781e0aaeb8baac63fac1b",
+    "gx1/contracts/market_state_fold2_selected_native_batches_v1.py": "fc12939b055fc0ef9140eab8aedadaba0b453833f87f594aa15462db372bb6cb",
+    "gx1/contracts/market_state_minute_query_candidate_v1.py": "2295cfeaf44bf1fa6e3398b5379b31b9fb42ca48427643158e5018e3cc7bd051",
+    "gx1/contracts/market_state_time_query_model_v2.py": "601491f5e6d2d0476b4c3ce94000aad8682b787ad6045024295f9284547c17ab",
+    "gx1/contracts/model_state_digest_v1.py": "f5d362079bb61bd61919bdea56e7f782d2461499691f2d588cc9a6a078e487e4",
+    "gx1/features/gc_native_context_v1.py": "28c4235d7a050698fc474e302ff1277d76983a72a4d11e74005fa74775c86fdf",
+    "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": "028665b503f28704900574b551e3571f813065f6d1fb8bd2c91d0dc27400364c",
+    "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "5983cd8d6395ed2a61a139a35069d96accc4c8c62378a8460d09ff3aeaf7201e",
+    "scripts/gx1_capped_run.sh": "3c9d608574be3755e0e3d63d2617a01612d65dbaf61b26b76765262a5a2abc4c"
+  },
+  "stage": "market_state_fold2_shared_s_entry_initial_20261115_001",
+  "status": "ADMITTED_READ_ONLY",
+  "test_authorized": false,
+  "training_authorized": false
+}
