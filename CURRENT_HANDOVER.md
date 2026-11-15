@@ -5,18 +5,13 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Kort overtakelse for neste agent
 
-**Arbeidsstatus:** `NEXT_RUN_POLICY.json` er `FOLD2_S_25_CELL_PRIVATE_002_PREFLIGHT_PASS_NO_RUN_ADMISSION_EDGE_UNQUALIFIED`. Aktiv fase er dynamisk S-only på M5/M15/H1/H4/D1, fast 25-cellers spørreplan før Entry. `training_enabled=false` og `native_training_enabled=false`.
+**Arbeidsstatus:** `NEXT_RUN_POLICY.json` er `FOLD2_S_25_CELL_PRIVATE_002_ONE_USE_ADMITTED_REBOOT_REQUIRED_EDGE_UNQUALIFIED`. Bare én eksakt Fold2 S-only kontroll på M5/M15/H1/H4/D1 og fast 25-cellers spørreplan er innrømmet. `training_enabled=true` og `native_training_enabled=true` gjelder bare denne private to-B16-kontrollen med høyst fire optimizersteg; full predictor-FIT er stengt.
 
-**Gjort:** Kandidat002 er uinnrømmet og hashbundet til `/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_25_CELL_S_PRIVATE_TWO_BATCH_20261115_002/RECIPE.json` (SHA256 `d657a76b916629b7d9917b618bce08fcca694761725c15501bb86ec0658c9e91`). Lesende capped kontroll bestod de faktiske Fold2-radene 2–33, full GC og alle fem TF, separate feature-/S-fasitklokker og fersk CPU-modell/AdamW/RNG-checkpointidentitet. Suksess/feil og varig kampanjeprogresjon består syntetisk; 129 fokuserte tester består. Se `docs/S_FOLD2_S_ONLY_PRIVATE_002_PREFLIGHT_REVIEW_20261115.json`. Kandidat001 ble forkastet etter målt klokkeavvik; ikke bruk eller relanser den.
+**Gjort:** Operatøren svarte 15.11 «Ja, jeg godkjenner alt» på ventende engangsgodkjenning og ba om aktiv Edge-undersøkelse. Kandidat002 er uendret og hashbundet til `/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_25_CELL_S_PRIVATE_TWO_BATCH_20261115_002/RECIPE.json` (SHA256 `d657a76b916629b7d9917b618bce08fcca694761725c15501bb86ec0658c9e91`). Lesende capped faktisk input-/klokke-/CPU-checkpointkontroll og 129 fokuserte tester er dokumentert i `docs/S_FOLD2_S_ONLY_PRIVATE_002_PREFLIGHT_REVIEW_20261115.json`. Forberedt Windows-identitet er boot653. Kandidat001 er forkastet og skal ikke brukes eller relanseres.
 
-**Åpent og sperret:** Spørsmål om eksakt engangsgodkjenning for trygg Windows-omstart og én privat kontroll er sendt, uten svar ved denne overtakelsen. Codex-målet er markert blokkert mens dette svaret venter. Roten til kandidat002 inneholder bare `RECIPE.json`: ingen kampanjeplan, CLAIM, CUDA-oppdatering, full FIT, senere modellscore eller økonomisk Edge. TEST, Entry/Exit, broker og handel forblir stengt. Denne overleveringen gir ingen kjøringsadmisjon.
+**Åpent og sperret:** Ingen kampanjeplan eller CLAIM er laget ved innrømmelsen. Ingen fysisk CUDA-oppdatering, full FIT, senere modellscore, uavhengig generalisering eller økonomisk Edge er bevist. Private vekter kan aldri så hovedfit. TEST, Entry/Exit, broker og handel forblir stengt.
 
-**Neste punkter:**
-
-1. Avvent eksplisitt svar på den åpne godkjenningen. Ved nei: behold alle treningsporter stengt. Ved ja: kontroller ren `work/gx1-current`, oppskrift/kildehash, gjeldende policy og maskinens ledighet; lag bare den eksakte engangsadmisjonen for to B16 og høyst fire private optimizersteg.
-2. Ta trygg fersk fysisk boot, materialiser bevoktet kampanje og røykprøv den eksakte bundne trainerkommandoen lesende før CLAIM. Behold 20G/512M- og 250W-vaktene; ingen parallell tung jobb.
-3. Kjør én privat kontroll og kontroller original terminal, full modell-/AdamW-/RNG-gjenopptak og bitlikt sluttresultat. Private vekter brukes aldri i hovedfit; feil konsumerer planen.
-4. Full S-only FIT på 47 338 rader og fast senere score på 4 096 utviklingsrader krever egne porter. Sammenlign alle 25 celler kronologisk mot fryst per-celle-prior og samme-TF-persistens, med ukjente masker og 14 UTC-uker. Dette beviser ennå ikke Entry eller økonomisk Edge.
+**Neste punkter:** Materialiser den eksisterende bevoktede kampanjen på ren committet kilde. Kontroller maskinvid ledighet og ta trygg fersk fysisk boot etter boot653. Røykprøv eksakt bundet trenerkommando lesende før CLAIM. Kjør deretter kontrollen én gang under 20G/512M/250W-vaktene og kontroller original terminal og bitlik full modell-/AdamW-/RNG-gjenopptak. Feil konsumerer planen. Lukk treningsportene i samme bølge. Full S-only FIT på 47 338 rader og fast senere score på 4 096 utviklingsrader krever egne eksakte porter og sammenligning mot fryst 25-cellers prior og samme-TF-persistens over 14 UTC-uker.
 
 Tidligere policy: FOLD2_S_25_CELL_PRIVATE_CLOCK_CORRECTED_SOURCE_READY_NO_RUN_ADMISSION_EDGE_UNQUALIFIED.
 Lesende, 12G-begrenset kontroll av kandidat001 fant før modellarbeid at faktisk
