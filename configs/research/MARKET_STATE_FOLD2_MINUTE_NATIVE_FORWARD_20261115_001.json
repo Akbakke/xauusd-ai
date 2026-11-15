@@ -1,0 +1,62 @@
+{
+  "hypothesis": "The existing full-GC Fold2 B16 model can encode causal inputs once and answer fixed M5/M15/H1/H4/D1 minute-1 queries with finite masked scores, while all five old native endpoints remain bit equal. This establishes mechanics only.",
+  "input_refs": {
+    "candidate_tape": {
+      "bytes": 4169474,
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TIME_QUERY_TAPE_20261107_001/TRAIN_CANDIDATE_TAPE.npz",
+      "sha256": "86aff221bf63532b67efe7c5770daa986bdebe916f149dd99961dacde1043b8b"
+    },
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_NATIVE_F_SELECTED_FOLD2_TWO_BATCH_20261115_001/RECIPE.json",
+      "sha256": "3e5c6875544583a6410c5031c2a7e44220d6437b98c438130304eaab92605981"
+    }
+  },
+  "limits": {
+    "class": "producer",
+    "max_invocations": 1,
+    "memory": "12G",
+    "swap": "512M",
+    "wall_seconds": 1800
+  },
+  "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_MINUTE_NATIVE_FORWARD_20261115_001",
+  "schema_version": "gx1_fold2_minute_native_forward_plan_v1",
+  "scope": {
+    "backbone_encode_calls": 1,
+    "batch_index": 0,
+    "batch_size": 16,
+    "checkpoint_reads": 0,
+    "fold_id": 2,
+    "head_decode_calls": 3,
+    "minute_query_all_TF": 1,
+    "native_endpoint_minutes": [
+      5,
+      15,
+      60,
+      240,
+      1440
+    ],
+    "optimizer_steps": 0,
+    "partition": "fit",
+    "test_data_used": false
+  },
+  "seed": 51,
+  "source_base_head": "a34e12c6010bf9b90a53d2a524493ad29ad737f1",
+  "source_owners": {
+    "gx1/audit/build_market_state_time_query_tape_v1.py": "169e8085f2ee78f41e96a9c3cb6e9fe224cc0bb430769bb72cbd4bb6e28a1dbc",
+    "gx1/audit/qualify_market_state_fold2_minute_native_forward_v1.py": "ca15db1641c0ed2f0bb7938465581b989682fbbae796f653aa0b927d74a72aae",
+    "gx1/contracts/entry_native_direction_feature_view_v1.py": "6fc56f8dd76005090614df83a6dc87db94163f0216cfdf1983278f3932d7d34f",
+    "gx1/contracts/gx1_capped_execution_v1.py": "60b1ccf2eda470a84ddded0d8160c628314ebb19f5766b87b70fef7c9aa3ccff",
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "gx1/contracts/market_state_five_endpoint_contract_v1.py": "5007214d0f8df9dc9834dcf8c88d22ea75567772e8ffc184ad5cecb77fc19b34",
+    "gx1/contracts/market_state_fold2_selected_native_batches_v1.py": "fc12939b055fc0ef9140eab8aedadaba0b453833f87f594aa15462db372bb6cb",
+    "gx1/contracts/market_state_minute_query_candidate_v1.py": "2295cfeaf44bf1fa6e3398b5379b31b9fb42ca48427643158e5018e3cc7bd051",
+    "gx1/contracts/market_state_time_query_loss_v2.py": "d098429d34af9321c558e1e51e534b0305d91eb4f16c0d0a7950aaad8f84ce13",
+    "gx1/contracts/market_state_time_query_model_v2.py": "601491f5e6d2d0476b4c3ce94000aad8682b787ad6045024295f9284547c17ab",
+    "gx1/contracts/market_state_time_query_scorer_v2.py": "a3bd1e8e4482030cee0e267ad88da7552f4e1fe65e4e79182b19339e31acad12",
+    "gx1/contracts/market_state_time_query_target_v1.py": "c4eacacdfb782e7dfb01cac51cb4521e95ca55d3dfeb1c215a958abbdde65ca9",
+    "gx1/contracts/model_state_digest_v1.py": "f5d362079bb61bd61919bdea56e7f782d2461499691f2d588cc9a6a078e487e4",
+    "scripts/gx1_capped_run.sh": "3c9d608574be3755e0e3d63d2617a01612d65dbaf61b26b76765262a5a2abc4c"
+  },
+  "stage": "market_state_fold2_minute_native_forward_20261115_001",
+  "status": "ADMITTED_READ_ONLY"
+}

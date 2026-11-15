@@ -5,6 +5,19 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
+Gjeldende policy: FOLD2_MINUTE_NATIVE_FORWARD_READ_ONLY_ADMITTED.
+Én ny, forhåndsbundet lesekjøring på første genuine full-GC Fold2 fit-B16
+kan gjøre nøyaktig én CPU-backbone-encode og tre hode-decodes: gammel
+native spørring, samme fem endepunkter i minutter (bitlik kontroll),
+og fast minutt1 på M5/M15/H1/H4/D1. Ingen modelloppdatering,
+checkpoint, TEST, broker eller handel. Kildeoppskriften gjenbrukes bare
+for hashbundet input; dens gamle treningsflagg gir ingen ny fullmakt.
+Plan: configs/research/MARKET_STATE_FOLD2_MINUTE_NATIVE_FORWARD_20261115_001.json.
+Resultatet kan bare kvalifisere mekanikk og maskert score på 16 fit-rader,
+ikke læring, senere generalisering eller økonomisk Edge.
+Native fit er fortsatt uadmittert; training_enabled=false.
+
+Forrige policy: FOLD2_MINUTE_QUERY_SOURCE_PASS_NATIVE_MINUTE_FORWARD_OPEN_EDGE_UNQUALIFIED.
 Gjeldende policy: FOLD2_MINUTE_QUERY_SOURCE_PASS_NATIVE_MINUTE_FORWARD_OPEN_EDGE_UNQUALIFIED.
 Én capped Fold2-kildekontroll er fullført og brukt opp. Eksisterende
 hashbundet M1-S-tape gir eksakte modne M5-etiketter ved minutt1–4 uten
