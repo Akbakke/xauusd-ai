@@ -5,7 +5,18 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: S_M5_JOINT_COST_DIRECT_S_SIDE_NEGATIVE_EDGE_UNQUALIFIED.
+Gjeldende policy: GC_BOOK_TW_FOLD2_ADMITTED_READONLY_NO_FIT.
+Én separat lesende GC-signalaudit er innrømmet på eksakt Fold2 moden
+fitakse47338 og fast senere utvikling4096. Forhåndslåst hypotese:
+positiv M5 tidsvektet GC-ordrebokubalanse rangerer OPP høyere for
+S/F conditional side på M5/M15/H1/H4/D1. Samme-rad XAU-avstand
+fra EMA5 er kontroll; konstant frossen prior har AUC0,5. Dette er
+kilde- og rankassosiasjon uten sannsynlighetsfit eller Entry-mål.
+Gamle GC aggressor-/OFI-referanser relanseres ikke. Plan:
+`configs/research/MARKET_STATE_GC_BOOK_TW_FOLD2_20261115_001.json`.
+0 modellforwards, optimizersteg, TEST, broker eller handel.
+
+Forrige policy: S_M5_JOINT_COST_DIRECT_S_SIDE_NEGATIVE_EDGE_UNQUALIFIED.
 Fellesmaskeauditen er COMPLETE/CONSUMED, exit0 under4G/512M. Eksakt
 Fold2 fit47338 og senere4096, med etterpåkjent S-side, gav negativ
 middel terminal netto på samme observerte prisbaner ved alle seks
