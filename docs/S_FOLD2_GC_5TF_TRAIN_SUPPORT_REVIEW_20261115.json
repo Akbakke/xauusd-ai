@@ -1,0 +1,406 @@
+{
+  "all_five_timeframes": {
+    "D1": {
+      "collapsed_binary_count": 2,
+      "collapsed_continuous_count": 11,
+      "collapsed_train_normalized_coordinates": [
+        {
+          "binary": false,
+          "field": "gc_d1_observed_executed_trade_size_min_contracts",
+          "nonzero_observed_rows": 168,
+          "observed_rows": 168,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": true,
+          "field": "gc_d1_observed_proxy_ob_bear_first_retouch",
+          "nonzero_observed_rows": 0,
+          "observed_rows": 3,
+          "scale_source": "semantic_binary_identity"
+        },
+        {
+          "binary": false,
+          "field": "gc_d1_observed_proxy_ob_bear_low",
+          "nonzero_observed_rows": 3,
+          "observed_rows": 3,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": false,
+          "field": "gc_d1_observed_proxy_ob_bear_high",
+          "nonzero_observed_rows": 3,
+          "observed_rows": 3,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": false,
+          "field": "gc_d1_observed_proxy_ob_bear_origin_volume_contracts",
+          "nonzero_observed_rows": 3,
+          "observed_rows": 3,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": false,
+          "field": "gc_d1_observed_profile_snapshot_age_minutes",
+          "nonzero_observed_rows": 0,
+          "observed_rows": 173,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": false,
+          "field": "gc_d1_observed_event_spread_state_min_ticks",
+          "nonzero_observed_rows": 168,
+          "observed_rows": 168,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": false,
+          "field": "gc_d1_observed_event_receive_interval_min_ns",
+          "nonzero_observed_rows": 0,
+          "observed_rows": 168,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": false,
+          "field": "gc_d1_observed_event_ts_in_delta_clamped_low_count",
+          "nonzero_observed_rows": 0,
+          "observed_rows": 168,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": false,
+          "field": "gc_d1_observed_event_ts_in_delta_clamped_high_count",
+          "nonzero_observed_rows": 0,
+          "observed_rows": 168,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": false,
+          "field": "gc_d1_observed_event_undefined_event_clock_count",
+          "nonzero_observed_rows": 0,
+          "observed_rows": 168,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": false,
+          "field": "gc_d1_observed_event_negative_matching_clock_count",
+          "nonzero_observed_rows": 0,
+          "observed_rows": 168,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": true,
+          "field": "gc_d1_observed_signed_complete",
+          "nonzero_observed_rows": 0,
+          "observed_rows": 173,
+          "scale_source": "semantic_binary_identity"
+        }
+      ],
+      "declared_model_coordinates": 399,
+      "fields_with_zero_observed_train_rows": 0,
+      "nonfinite_or_nonpositive_normalization_fields": 0,
+      "observed_volume_fraction": 0.395294,
+      "observed_volume_rows": 168,
+      "row_union": {
+        "available_ns_sha256": "5bd0e5e74c3ff40e4d5564eb9750315e81b58b45a40e3eff283b1758781263ad",
+        "native_row_indices_sha256": "24df8f70758830c1b04a27f9d92f60c213ca91dc0477ca9ddc87439959e5ef6b",
+        "rows": 425
+      },
+      "stats_sha256": "42c467c9b0ad77b98b746cc2327a2c8595cbfc5fd364f9ada1b957b58327f038",
+      "train_union_rows": 425
+    },
+    "H1": {
+      "collapsed_binary_count": 0,
+      "collapsed_continuous_count": 6,
+      "collapsed_train_normalized_coordinates": [
+        {
+          "binary": false,
+          "field": "gc_h1_observed_executed_trade_size_min_contracts",
+          "nonzero_observed_rows": 3921,
+          "observed_rows": 3921,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": false,
+          "field": "gc_h1_observed_profile_snapshot_age_minutes",
+          "nonzero_observed_rows": 0,
+          "observed_rows": 3962,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": false,
+          "field": "gc_h1_observed_event_ts_in_delta_clamped_low_count",
+          "nonzero_observed_rows": 0,
+          "observed_rows": 3921,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": false,
+          "field": "gc_h1_observed_event_ts_in_delta_clamped_high_count",
+          "nonzero_observed_rows": 0,
+          "observed_rows": 3921,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": false,
+          "field": "gc_h1_observed_event_undefined_event_clock_count",
+          "nonzero_observed_rows": 0,
+          "observed_rows": 3921,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": false,
+          "field": "gc_h1_observed_event_negative_matching_clock_count",
+          "nonzero_observed_rows": 0,
+          "observed_rows": 3921,
+          "scale_source": "constant_train_unit_scale"
+        }
+      ],
+      "declared_model_coordinates": 453,
+      "fields_with_zero_observed_train_rows": 0,
+      "nonfinite_or_nonpositive_normalization_fields": 0,
+      "observed_volume_fraction": 0.96624,
+      "observed_volume_rows": 3921,
+      "row_union": {
+        "available_ns_sha256": "dba8fdb2d373643dab253f1319acccb26a0fffb4a69b3cef881326a40b845c42",
+        "native_row_indices_sha256": "e9b86d79b10d080108f07893ad27978726419db0fa2bd422fca39e9e4412c28a",
+        "rows": 4058
+      },
+      "stats_sha256": "6bd5d03ebfdd8a268b5ec4b70d0932393b5854851d88eb701b003aa4b32796c5",
+      "train_union_rows": 4058
+    },
+    "H4": {
+      "collapsed_binary_count": 1,
+      "collapsed_continuous_count": 8,
+      "collapsed_train_normalized_coordinates": [
+        {
+          "binary": false,
+          "field": "gc_h4_observed_executed_trade_size_min_contracts",
+          "nonzero_observed_rows": 1028,
+          "observed_rows": 1028,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": false,
+          "field": "gc_h4_observed_profile_snapshot_age_minutes",
+          "nonzero_observed_rows": 0,
+          "observed_rows": 1038,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": false,
+          "field": "gc_h4_observed_event_spread_state_min_ticks",
+          "nonzero_observed_rows": 1028,
+          "observed_rows": 1028,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": false,
+          "field": "gc_h4_observed_event_receive_interval_min_ns",
+          "nonzero_observed_rows": 0,
+          "observed_rows": 1028,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": false,
+          "field": "gc_h4_observed_event_ts_in_delta_clamped_low_count",
+          "nonzero_observed_rows": 0,
+          "observed_rows": 1028,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": false,
+          "field": "gc_h4_observed_event_ts_in_delta_clamped_high_count",
+          "nonzero_observed_rows": 0,
+          "observed_rows": 1028,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": false,
+          "field": "gc_h4_observed_event_undefined_event_clock_count",
+          "nonzero_observed_rows": 0,
+          "observed_rows": 1028,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": false,
+          "field": "gc_h4_observed_event_negative_matching_clock_count",
+          "nonzero_observed_rows": 0,
+          "observed_rows": 1028,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": true,
+          "field": "gc_h4_observed_signed_complete",
+          "nonzero_observed_rows": 0,
+          "observed_rows": 1038,
+          "scale_source": "semantic_binary_identity"
+        }
+      ],
+      "declared_model_coordinates": 431,
+      "fields_with_zero_observed_train_rows": 0,
+      "nonfinite_or_nonpositive_normalization_fields": 0,
+      "observed_volume_fraction": 0.906526,
+      "observed_volume_rows": 1028,
+      "row_union": {
+        "available_ns_sha256": "307cf21782a42c98c828b4334b2ae8c7875f8c288e328eb3d398f013c9eb78d8",
+        "native_row_indices_sha256": "d45a3cbbb4e7b9ebe2548680d14c3ac70d73027fcf5843cb66a26cb3397181f8",
+        "rows": 1134
+      },
+      "stats_sha256": "233acb08797cc8066b422d46df6aae7b1324a2e30569f2b17a2a1ff685cef05c",
+      "train_union_rows": 1134
+    },
+    "M15": {
+      "collapsed_binary_count": 0,
+      "collapsed_continuous_count": 6,
+      "collapsed_train_normalized_coordinates": [
+        {
+          "binary": false,
+          "field": "gc_m15_observed_executed_trade_size_min_contracts",
+          "nonzero_observed_rows": 15683,
+          "observed_rows": 15683,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": false,
+          "field": "gc_m15_observed_profile_snapshot_age_minutes",
+          "nonzero_observed_rows": 0,
+          "observed_rows": 15839,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": false,
+          "field": "gc_m15_observed_event_ts_in_delta_clamped_low_count",
+          "nonzero_observed_rows": 0,
+          "observed_rows": 15685,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": false,
+          "field": "gc_m15_observed_event_ts_in_delta_clamped_high_count",
+          "nonzero_observed_rows": 0,
+          "observed_rows": 15685,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": false,
+          "field": "gc_m15_observed_event_undefined_event_clock_count",
+          "nonzero_observed_rows": 0,
+          "observed_rows": 15685,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": false,
+          "field": "gc_m15_observed_event_negative_matching_clock_count",
+          "nonzero_observed_rows": 0,
+          "observed_rows": 15685,
+          "scale_source": "constant_train_unit_scale"
+        }
+      ],
+      "declared_model_coordinates": 493,
+      "fields_with_zero_observed_train_rows": 0,
+      "nonfinite_or_nonpositive_normalization_fields": 0,
+      "observed_volume_fraction": 0.986166,
+      "observed_volume_rows": 15683,
+      "row_union": {
+        "available_ns_sha256": "0c635eef1dafd70bfd86a1bc0b1294fa7f8748d428663986c7d29ceacb8668d7",
+        "native_row_indices_sha256": "1a41bf1e2efac76762a2a2727e8128099049ee0ff7e4fc37fde3e8993401fd45",
+        "rows": 15903
+      },
+      "stats_sha256": "8721192277581597d38ea718c9e9ac6ea7766265bd599ca7be74c19bbe088e1c",
+      "train_union_rows": 15903
+    },
+    "M5": {
+      "collapsed_binary_count": 0,
+      "collapsed_continuous_count": 5,
+      "collapsed_train_normalized_coordinates": [
+        {
+          "binary": false,
+          "field": "gc_m5_observed_profile_snapshot_age_minutes",
+          "nonzero_observed_rows": 0,
+          "observed_rows": 47519,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": false,
+          "field": "gc_m5_observed_event_ts_in_delta_clamped_low_count",
+          "nonzero_observed_rows": 0,
+          "observed_rows": 47048,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": false,
+          "field": "gc_m5_observed_event_ts_in_delta_clamped_high_count",
+          "nonzero_observed_rows": 0,
+          "observed_rows": 47048,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": false,
+          "field": "gc_m5_observed_event_undefined_event_clock_count",
+          "nonzero_observed_rows": 0,
+          "observed_rows": 47048,
+          "scale_source": "constant_train_unit_scale"
+        },
+        {
+          "binary": false,
+          "field": "gc_m5_observed_event_negative_matching_clock_count",
+          "nonzero_observed_rows": 0,
+          "observed_rows": 47048,
+          "scale_source": "constant_train_unit_scale"
+        }
+      ],
+      "declared_model_coordinates": 639,
+      "fields_with_zero_observed_train_rows": 0,
+      "nonfinite_or_nonpositive_normalization_fields": 0,
+      "observed_volume_fraction": 0.98965,
+      "observed_volume_rows": 47042,
+      "row_union": {
+        "available_ns_sha256": "90961eb5b73b0f262b2abba6154df24593b31f7df4cc29e8519443dc63382227",
+        "native_row_indices_sha256": "b2204037127f1cccf8eea55c3e3b07db2e63ced97f49d6989529e418a4f79715",
+        "rows": 47534
+      },
+      "stats_sha256": "4bc92e4b1eaf48d3a76357bfc6c66f000af47f657508dca6e4682fd4d1acc829",
+      "train_union_rows": 47534
+    }
+  },
+  "bindings": {
+    "fit_cutoff_ns": 1735603200000000000,
+    "fit_start_ns": 1714521900000000000,
+    "layout_contract_sha256": "b67b9b94b78b4cf933c23e6738666911cd2c262ae3ab696448d42571e13bec6f",
+    "normalization_contract_sha256": "6ac415ae9cf47c912694b56c3f721ebf587466dd8e46eea5f0acca1e1d108977",
+    "prefix_normalization_path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001/PREFIX_NORMALIZATION.json",
+    "prefix_normalization_sha256": "0c3bbe1cdaf190b00e51729c00706ef9ec9686e4b7c675b42a441f7118c202fe",
+    "prefix_qualification_path": "/home/andre2/GX1_RUNS/MARKET_STATE_MATURE_PREFIX_NORMALIZATION_20261107_001/PREFIX_NORMALIZATION_FOLD_2.json",
+    "prefix_qualification_sha256": "32f917bb9cf262f57afe2f60d58025b6679a3ffc5874dbe2d3b49382283ff9bc",
+    "split": "train"
+  },
+  "collapsed_binary_count": 3,
+  "collapsed_continuous_count": 36,
+  "d1_source_reconciliation": {
+    "bear_created_positive_rows": 1,
+    "bear_first_retouch_positive_rows": 0,
+    "bear_low_observed_rows": 3,
+    "bear_low_unique_observed_values": 1,
+    "closed_source_rows_before_cutoff": 244,
+    "observed_volume_rows": 168,
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_TRUSTED_RECORD_RESTORATION_20261018_024/RESULTS/TRADE_FEATURES_D1.parquet",
+    "sha256_verified": "287da769221afd12e806c14e8a2f6983b1fcb1787e6a6def986f1d57509a86eb",
+    "signed_complete_positive_rows": 0
+  },
+  "interpretation": "All declared GC fields have at least one observed TRAIN value and finite positive normalization. 39 of 2415 normalized coordinates are constant over the TRAIN union, mostly integrity counters and sparse D1 event fields. D1 observed volume covers 168 of 425 consumed unique D1 rows; the independently hash-verified source has the same 168 closed observed-volume rows before cutoff. Partial D1 history is preserved behind observed masks; no source drop or future-row leakage is established.",
+  "limits": {
+    "economic_edge_proven": false,
+    "full_formula_unit_warmup_publication_audit_completed": false,
+    "later_predictive_generalization_proven": false,
+    "model_forward_or_optimizer_steps": 0,
+    "new_fit_performed": false,
+    "per_field_model_sensitivity_proven": false,
+    "test_data_used": false
+  },
+  "next_gate": "Keep masks and genuine fields; investigate only a concrete formula/clock mismatch. Selected-native four-update candidate remains unadmitted pending exact one-use policy and fresh physical boot. No full fit, TEST, broker or trading.",
+  "schema_version": "gx1_fold2_gc_5tf_train_support_review_v1",
+  "status": "TRAIN_SUPPORT_MEASURED_D1_PARTIAL_COVERAGE_NO_SOURCE_DROP_PROVEN",
+  "total_collapsed_train_normalized_coordinates": 39,
+  "total_model_gc_coordinates": 2415
+}

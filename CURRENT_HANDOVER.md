@@ -5,7 +5,21 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: FOLD2_D1_MACRO_SOURCE_NORM_LIVENESS_PASS_OPTIMIZER_ADMISSION_CLOSED.
+Gjeldende policy: FOLD2_GC_5TF_TRAIN_SUPPORT_MEASURED_D1_PARTIAL_OPTIMIZER_ADMISSION_CLOSED.
+Fold2 GC-TRAIN-støtte er målt på den frosne fem-TF-normaliseringen:
+alle 2415 deklarerte GC-koordinater har minst én observert TRAIN-verdi og
+endelig, positiv skala. 39 er konstante på den valgte TRAIN-unionen. D1 har
+168/425 rader med observert GC-volum; den hashverifiserte D1-kilden har
+nøyaktig 168 lukkede volumrader før cutoff. Tre observerte D1-bjørnerader
+har samme nivå; sjeldne hendelser og delvis historikk beholdes bak masker.
+Ingen kildedropp eller framtidslekkasje er påvist. Dette er ikke feltvis
+prediktiv verdi, fit, generalisering eller Edge. Se
+`docs/S_FOLD2_GC_5TF_TRAIN_SUPPORT_REVIEW_20261115.json`.
+Firestegs selected-native-kandidaten er fortsatt uadmittert; eksakt
+engangs policyadmisjon og fersk fysisk boot kreves. `training_enabled=false`,
+TEST, broker og handel forblir stengt.
+
+Forrige policy: FOLD2_D1_MACRO_SOURCE_NORM_LIVENESS_PASS_OPTIMIZER_ADMISSION_CLOSED.
 Eksakt Fold2 fit47338 og fast senere utvikling4096 er knyttet til eksisterende
 parent-/beslutningshasher. Alle 61 D1/makrofelt er fysisk endelige og
 varierende på begge kohorter; samtlige har positiv, ikke-kollapset TRAIN-
