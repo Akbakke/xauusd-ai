@@ -5,20 +5,20 @@ GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier status; prosess/terminal ove
 
 ## Aktivt mål og neste steg
 
-Gjeldende policy: SELECTED_NATIVE_FOLD2_TWO_BATCH_SOURCE_TARGET_PASS_CAMPAIGN_UNQUALIFIED.
-Kilde- og målbindingen for dagens full-XAU+GC S/F-visning er nå kontrollert
-lesende mot immutabel Fold2-INITIAL, senere input4096 og frossen prior47338.
-To faste B16-batcher (parent2–33) har samme fem native gyldighetsklokker,
-modne S- og F-mål og observerte sider i begge batcher. Eksisterende
-AdamW/state-eier kan brukes til teknisk optimizer/resume, men native-kampanjen
-binder fortsatt Fold1 med samplede S-spørringer. Ingen Fold2 selected-native
-kampanjerute, optimizersteg, fit, senere modellscore eller Edge er kvalifisert.
+Gjeldende policy: SELECTED_NATIVE_FOLD2_TWO_BATCH_ROUTE_CODED_CAMPAIGN_UNADMITTED.
+Den nye kildekoden binder gjenbrukte Fold2 full-XAU+GC TRAIN-inputs, moden S/F-
+fasit ved fem native endepunkter, frossen prior og rad2–33 til eksisterende
+bevoktet native kampanje og AdamW/state-eier. Ruten har fire fysiske private
+oppdateringer som teknisk optimizer/resume-kvalifisering, ikke modell-fit.
+Fokuserte kontrakttester og syntaks passerer. Faktisk B16 full-GC gather,
+kommando/preflight, optimizer, senere modellscore, generalisering og Edge
+står fortsatt uprøvd. Ingen recipe, CLAIM eller kampanjeadmisjon er publisert.
 Kilde-/målrapport: `docs/S_F_FOLD2_SELECTED_NATIVE_ROUTE_GAP_REVIEW_20261115.json`.
-Neste gate er én eksakt Fold2 full-GC selected-native optimizer/resume-rute
-gjennom eksisterende kampanjevakter, med røykprøvd kommando og lesende
-preflight før separat engangsadmisjon. `training_enabled=false` består;
-TEST, broker og handel er stengt. S er framtidig endepunkttilstand; H4/D1
-kan inneholde kjent før-issue historikk. F er separat beslutningsforankret
+Neste steg: commit/push ren kilde, bygg eksakt engangs kandidatoppskrift fra
+committet HEAD, røykprøv bevoktet kommando og lesende preflight uten CLAIM.
+Separat engangsadmisjon kreves før optimizersteg; `training_enabled=false`
+består nå. TEST, broker og handel er stengt. S er framtidig endepunkttilstand;
+H4/D1 kan inneholde kjent før-issue historikk. F er separat beslutningsforankret
 forflytning. Ingen av dem er Entry-mål i denne fasen.
 
 Forrige policy: GC_ABS_BOOK_ACTIVITY_POSITIVE_HYPOTHESIS_UNSUPPORTED_EDGE_UNQUALIFIED.
