@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_INTEGRATED_ACTUAL_TRAIN_OBJECTIVE_GRADIENT_PASS_FIT_CLOSED.
+TA_INTEGRATED_TRAIN_OBJECTIVE_LATER_GATHER_PASS_FIT_CLOSED.
 Den tidligere ikke-GC S-lesningen er fullført og M5-Edge fortsatt ubevist.
 Fold2 S-only full-GC 25-cellers engangsplan er fullført og konsumert.
 training_enabled=false, native_training_enabled=false og
@@ -457,6 +457,16 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   ingen fersk CUDA baseline. Kvittering:
   `docs/TA_INTEGRATED_ACTUAL_OBJECTIVE_PREFLIGHT_REVIEW_20261116.json`.
   Fit, senere score, kalibrering, vending, kostnader og Edge gjenstår.
+
+
+- Den eksisterende Fold2 fit-/score-inputruten kan nå bruke separat TF-dekoder
+  uten å ommerke den gamle senere sidecar-kvitteringen: en streng ombinding
+  krever at alle fysiske viewfelt er like og at bare de to dekoderflaggene
+  endres. På én faktisk senere utviklingsbatch ga en capped 4G CPU-kontroll
+  ni finite TA-flater med 317 lokale felt og 255 per TF. Testene for gammel
+  inputeier og ombindingen besto. Dette er kilde-/gatherparitet, ikke
+  modellscore eller prediktiv gevinst. Aggregat:
+  `docs/TA_INTEGRATED_LATER_VIEW_REBIND_REVIEW_20261116.json`.
 
 ## Ikke gjort / faktisk hindring
 

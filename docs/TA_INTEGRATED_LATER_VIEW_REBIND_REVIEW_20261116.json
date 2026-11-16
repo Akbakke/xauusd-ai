@@ -1,0 +1,79 @@
+{
+  "schema_version": "gx1_ta_integrated_later_view_rebind_review_v1",
+  "decision": "PASS_CPU_ACTUAL_LATER_BATCH_FEATURE_GATHER_DECODER_ONLY_VIEW",
+  "source_commit": "c0ece54a6a0d3445edd1cc0309334799678b474e",
+  "sources": {
+    "gx1/scripts/run_market_state_ta_fold2_m5_fit_window_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_market_state_ta_fold2_m5_fit_window_v1.py",
+      "sha256": "d14d64a5358967faa5645ff506890bdd239e0a69f00b0ab9254b2395e774f85f"
+    },
+    "gx1/contracts/market_state_ta_decoder_view_rebind_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_ta_decoder_view_rebind_v1.py",
+      "sha256": "56d5a50b24834ae3c6655bfcc97878cf64281d8e2b4c07af1163d3bd4c8375df"
+    }
+  },
+  "execution": {
+    "runner": "scripts/gx1_capped_run.sh",
+    "class": "audit",
+    "memory_max_bytes": 4294967296,
+    "swap_max_bytes": 536870912,
+    "terminal_exit_code": 0,
+    "model_forwards": 0,
+    "optimizer_steps": 0
+  },
+  "view_sha256": "8056fe96b4340bccc149da7f22dde85e4ac1b62c5e58c874ec7fbb771c1dff1a",
+  "later_selected_rows": 16,
+  "features": {
+    "seq_x": [
+      16,
+      96,
+      317
+    ],
+    "snap_x": [
+      16,
+      317
+    ],
+    "ctx_cont": [
+      16,
+      132
+    ],
+    "ctx_cat": [
+      16,
+      1
+    ],
+    "seq_m5": [
+      16,
+      16,
+      255
+    ],
+    "seq_m15": [
+      16,
+      64,
+      255
+    ],
+    "seq_h1": [
+      16,
+      96,
+      255
+    ],
+    "seq_h4": [
+      16,
+      96,
+      255
+    ],
+    "seq_d1": [
+      16,
+      252,
+      255
+    ]
+  },
+  "all_finite": true,
+  "guard": "Original later sidecar coverage remains bound to its original view; strict rebind checked all unchanged physical fields and only added dedicated_non_m5_side and direct_tf_hidden.",
+  "limits": [
+    "One later development batch proves gathering and shape, not full panel model scoring or later predictive quality.",
+    "No fresh CUDA initial baseline, fit, TEST, ONLINE parity or Edge."
+  ],
+  "test_data_used": false,
+  "training_authorized": false,
+  "economic_edge_proven": false
+}
