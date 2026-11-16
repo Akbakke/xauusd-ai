@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import signal
 from pathlib import Path
 import subprocess
 import sys
@@ -150,6 +151,10 @@ def aggregate(time: np.ndarray, result: dict[str, np.ndarray]) -> dict:
     return {"aggregate": summary, "private_examples": examples}
 
 
+def _wall_timeout(_signum: int, _frame: object) -> None:
+    raise TimeoutError("TA_M5_STRUCTURE_AUDIT_WALL_LIMIT")
+
+
 def execute(plan_sha: str) -> None:
     import pandas as pd
     from gx1.contracts.gx1_capped_execution_v1 import require_capped_cpu_audit_execution
@@ -164,6 +169,8 @@ def execute(plan_sha: str) -> None:
              "source_commit": subprocess.check_output(("git", "rev-parse", "HEAD"), cwd=REPO, text=True).strip(),
              "claimed_utc": datetime.now(timezone.utc).isoformat()}
     (output / "CLAIM.json").write_text(json.dumps(claim, indent=2) + "\n")
+    previous_alarm = signal.signal(signal.SIGALRM, _wall_timeout)
+    signal.alarm(900)
     try:
         need(file_sha(Path(plan["input"]["path"])) == plan["input"]["sha256_expected_from_manifest"],
              "PARQUET_SHA")
@@ -206,6 +213,8 @@ def execute(plan_sha: str) -> None:
                     "error": type(exc).__name__ + ":" + str(exc)}
         raise
     finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, previous_alarm)
         with (output / "TERMINAL.json").open("x") as handle:
             json.dump(terminal, handle, indent=2)
             handle.write("\n")

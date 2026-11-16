@@ -372,7 +372,8 @@ Entry, TEST eller handel åpnes av denne presiseringen.
    ikke låst target, innrømmet kjøring eller modellfit. Neste nødvendige
    kontroll er den forberedte engangsplanen
    configs/research/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001.json:
-   Fold2 TRAIN M5, eksklusiv grense 01.01.2025, 4G/512M/900s,
+   Fold2 TRAIN M5, eksklusiv grense 01.01.2025, 4G/512M/900s
+   med intern alarm for veggtidsgrensen,
    lesende aggregater og høyst åtte private eksempler. Låst leserute
    gx1/audit/run_ta_m5_structure_fold2_readonly_v1.py kan bare preflighte
    uten innrømmelse; ingen prislesing før særskilt policygate og kapsling.

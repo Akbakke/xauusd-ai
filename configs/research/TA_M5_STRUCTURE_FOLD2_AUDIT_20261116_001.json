@@ -38,7 +38,7 @@
     },
     "worker": {
       "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/run_ta_m5_structure_fold2_readonly_v1.py",
-      "sha256": "92d4061793192a87c8969630d7ca37f72c6b146d5695b12afa740642caae6e02"
+      "sha256": "e3a2b68b967c96a5b1d3e515d4bc382fcafea166121bc13d8498cba4ee9640d9"
     },
     "capped_contract": {
       "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/gx1_capped_execution_v1.py",
