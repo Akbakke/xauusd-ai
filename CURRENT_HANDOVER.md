@@ -367,6 +367,17 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   Ikke relanser den konsumerte planen; beregn korrigert, bundet dekning
   som del av én samlet kampanje.
 
+- Serving-kilden har allerede en gjenbrukbar M1-bane: `PrebuiltServingSnapshot`
+  holder hashbundet `BASE28` med rå M1-OHLC, og
+  `v12_state_from_prebuilt.get_closed_m1_bar` krever eksakt minutt,
+  samme pargenerasjon og uendret kildefilstempel. Leseren merker raden
+  `complete=True`; faktisk lukking ved beslutning krever paritetskontroll. En M5-
+  beslutning ved `t` kan dermed be om de fem lukkede M1-barene med starter
+  `t−5` til `t−1` minutter fra én serving-kapsel. S-tapens gyldighet
+  `t` svarer til slutt på M1-baren `t−1`. Dette er kodelesning av en
+  tilgjengelig leveringsvei, ikke målt TRAIN/ONLINE-verdi- eller
+  samtidighetsparitet; TA-modellen konsumerer ennå ikke banen.
+
 ## Ikke gjort / faktisk hindring
 
 Det målte problemet er svake M5-vendinger og utilstrekkelige selvstendige
@@ -404,8 +415,9 @@ Entry, TEST eller handel åpnes av denne presiseringen.
 2. Bind nåtilstand og vending ærlig. `gather_current` er bare et
    historisk, M1-avledet nåoppslag; det er ennå ikke input til TA-modellen
    og erstatter ikke hele ordnede M1-banen. Bred historisk Fold2-dekning
-   er målt; krev samme lukkede beslutningsklokke i framtidig ONLINE-levering
-   før eventuell modellkobling. Den separate M5-topp/bunn-
+   er målt; gjenbruk `BASE28` sin eksakte lukkede M1-leser og bevis
+   TRAIN/ONLINE-verdi- og samtidighetsparitet før modellkobling.
+   Den separate M5-topp/bunn-
    kandidaten har god fysisk dekning, men er ennå ikke låst som treningsmål.
    Behold bit5 `{OPP,NED}`, blandet struktur og ukjente forløp uten gjettet
    side eller FLAT. Dette er én samlet mål-/inputbeslutning, ikke flere
