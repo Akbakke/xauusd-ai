@@ -179,6 +179,13 @@ Entry, TEST eller handel åpnes av denne presiseringen.
    mot fryst referanse og faktisk vendingsdiskriminering før mer trening.
    Senere kronologisk generalisering og alle valgte/åpne posisjoners økonomi
    trengs før Edge. TEST, broker og handel er fortsatt stengt.
+4. Én avgrenset, uinnrømmet ikke-GC S-kontroll er konkretisert i
+   docs/TA_S_FIVE_TF_FROZEN_REPRESENTATION_READOUT_PROPOSAL_20261116.json:
+   10 faste lineære CPU-lesninger på beholdte 4 096 TRAIN/4 096 senere rader,
+   prepool mot felles representasjon, native svar og fryst TRAIN-prior.
+   Alle fem TF og faktisk treklasse-/M5-vendingsutfall rapporteres. Ingen
+   kildeendring, modellkjøring eller fit er åpnet av forslaget; ny særskilt
+   engangsinnrømmelse kreves.
 
 Opprydding: historiske overleveringsavsnitt er fjernet her og bevart i Git.
 Ingen Python-fil er slettet; gjeldende referanse-, import-, test- og

@@ -1,0 +1,124 @@
+{
+  "schema_version": "gx1_ta_s_five_tf_frozen_representation_readout_proposal_v1",
+  "status": "PREPARED_UNADMITTED_NO_EXECUTION",
+  "question": "Does the already frozen non-GC TA representation contain linearly accessible S-side information for M5 and the other four timeframes that the native side decoder fails to use?",
+  "hypothesis": "A per-TF pre-pooling representation may retain S direction information lost or inaccessible at the shared hidden/native decoder boundary. This is a representation-accessibility diagnostic, not a new Entry model or Edge test.",
+  "captures": {
+    "TRAIN": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_PREPOOL_CAPTURE_20261113_001/TRAIN_CAPTURE.npz",
+      "sha256": "807801df5e391c2d437a3de4ae3a67c28af93ab15157d82e5491c081ccdd4844"
+    },
+    "LATER": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_PREPOOL_CAPTURE_20261113_001/LATER_CAPTURE.npz",
+      "sha256": "d15575c25d6dccfbd9a6cb23637e19d39f495c675dffdd6a46c65e80d8eda8fe"
+    }
+  },
+  "capture_layout": {
+    "rows_per_panel": 4096,
+    "prepool": "float32 [4096,5,128]",
+    "shared_hidden": "float32 [4096,128]",
+    "state_raw": "float32 [4096,5,2]",
+    "state_target": "state_allowed, state_eligible, state_mature; all [4096,5]",
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ]
+  },
+  "reused_method": {
+    "prior_F_readout_plan": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_PREPOOL_READOUT_20261113_001/PLAN.json",
+    "prior_F_readout_plan_sha256": "137afc0b02b62a32b64913919746c7672611fbb86322b57d6086ce20f5aed5fd",
+    "train_only_coordinate_fit": true,
+    "fixed_regularization_alpha": 0.01,
+    "solver": "existing regularized Newton logistic readout and frozen coordinate owner; no hyperparameter search",
+    "arms": [
+      "NATIVE",
+      "FROZEN_TRAIN_PRIOR",
+      "PREPOOL_PER_TF",
+      "SHARED_HIDDEN_PER_TF"
+    ],
+    "fits": 10,
+    "max_archive_decodes": 4,
+    "max_wall_seconds": 300,
+    "numeric_threads": 1
+  },
+  "preflight_before_any_fit": [
+    "Fresh one-use policy admission, source/script hash, exact capture SHA and TRAIN/LATER axis/target parity.",
+    "Prove the S masks and all five TF labels are present in both immutable archives.",
+    "No model construction, model forward, checkpoint read or target regeneration."
+  ],
+  "locked_scoring": [
+    "Each TF uses the same eligible-and-mature allowed{1,4} TRAIN side mask for its two linear arms and its frozen TRAIN prior.",
+    "Freeze all coordinates, coefficients and priors before opening LATER. Score conditional S-side Brier, log loss and AUC for every TF on the same later known-side rows; compare against native and prior.",
+    "Primary M5: report later S-side Brier/AUC and prospective native five-minute turn AUC/Brier on the certified paired subset, with current side reconstructed only for retrospective scoring.",
+    "Report actual DOWN/FLAT/UP decisions by combining each readout side probability with the same frozen native activity probability; count FLAT and correct distinct TF directions on joint-certified conflicts.",
+    "Use the prior fixed UTC-day/Monday-week paired bootstrap method and report all five TF without selecting a favorable TF, month, checkpoint or threshold."
+  ],
+  "interpretation_gate": [
+    "A PREPOOL gain would support accessible S information before pooling under this fixed linear method; it would not prove pooling is the only cause or qualify Edge.",
+    "A SHARED gain over NATIVE would support decoder insufficiency under this fixed method; a lack of gain would not prove no nonlinear information exists.",
+    "If M5 still fails frozen prior or turn discrimination, stop this decoder route; do not launch a broad architecture or epoch search from this result.",
+    "Any favorable result remains reused development and requires separate independent chronological qualification, full M5 Entry evaluation and economic evidence before Edge."
+  ],
+  "authorization": {
+    "execution_authorized": false,
+    "training_enabled": false,
+    "native_model_forwards_authorized": 0,
+    "native_optimizer_updates_authorized": 0,
+    "readout_fits_authorized": 0,
+    "test_authorized": false,
+    "full_gc_authorized": false,
+    "broker_or_trading_authorized": false,
+    "new_one_use_admission_required": true
+  },
+  "test_data_used": false,
+  "predictive_edge_proven": false,
+  "verified_capture_side_support": {
+    "TRAIN": {
+      "M5": {
+        "DOWN": 665,
+        "UP": 738
+      },
+      "M15": {
+        "DOWN": 730,
+        "UP": 767
+      },
+      "H1": {
+        "DOWN": 614,
+        "UP": 838
+      },
+      "H4": {
+        "DOWN": 640,
+        "UP": 1006
+      },
+      "D1": {
+        "DOWN": 455,
+        "UP": 637
+      }
+    },
+    "LATER": {
+      "M5": {
+        "DOWN": 706,
+        "UP": 708
+      },
+      "M15": {
+        "DOWN": 813,
+        "UP": 864
+      },
+      "H1": {
+        "DOWN": 794,
+        "UP": 876
+      },
+      "H4": {
+        "DOWN": 797,
+        "UP": 695
+      },
+      "D1": {
+        "DOWN": 535,
+        "UP": 690
+      }
+    }
+  }
+}
