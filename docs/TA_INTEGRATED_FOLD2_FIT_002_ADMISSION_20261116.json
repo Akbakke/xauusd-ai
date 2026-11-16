@@ -1,0 +1,47 @@
+{
+  "schema_version": "gx1_ta_integrated_fold2_fit_002_admission_v1",
+  "decision": "ADMIT_EXACT_ONE_USE_NON_GC_FIVE_TF_FIT_UNDER_STANDING_LOCAL_AUTHORITY",
+  "authority": "User 2026-11-16 removed repeated yes for technically qualified local 0 USD non-GC M5/MTF work; integrator records exact one-use policy admission.",
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_FIT_20261116_002/PLAN.json",
+    "sha256": "330e4cb1dd4c76980264b44a32f091e67c43142819514901f60068abed102783"
+  },
+  "source_base_commit": "1ea48c459ceda58dd60dde3ae08560018f9d7644",
+  "preparation_review": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_INTEGRATED_FOLD2_FIT_002_PREPARATION_20261116.json",
+    "sha256": "443ef9ed5da95ac9216230a13d887ff670caa27998dd9f99f65b815975343802"
+  },
+  "exact_command_preclaim": {
+    "status": "PASS_NO_CLAIM_NO_MODEL",
+    "guard_log": {
+      "path": "/home/andre2/GX1_RUNS/.TA_INTEGRATED_FOLD2_FIT_20261116_002.guard.FOw7omLd.log",
+      "sha256": "741ebfbb554aee20d62c0d915b66b4817adc42fad3968ec07f951b8dc578bf05"
+    },
+    "stdio_log": {
+      "path": "/home/andre2/GX1_RUNS/.TA_INTEGRATED_FOLD2_FIT_20261116_002.trainer.JTfKYi3V.log",
+      "sha256": "877b1ca654f739c1197b208bc542cb65cd38079f82f3884a512139158eda3ce8"
+    }
+  },
+  "physical_score_preclaim": "PASS actual TRAIN and later B16 with both M5 structure classes; unchanged initial CPU model; zero optimizer updates",
+  "synthetic_terminal_preclaim": "PASS success and failure payload roundtrip, hash and no-overwrite in temporary directories",
+  "prior_windows_boot_id": 656,
+  "required_execution_windows_boot_id_greater_than": 656,
+  "one_use_bounds": {
+    "invocations": 1,
+    "fit_rows": 47338,
+    "max_optimizer_updates": 2959,
+    "max_model_forwards": 3983,
+    "max_script_seconds": 10500,
+    "guard_seconds": 10800,
+    "memory": "20G",
+    "swap": "512M",
+    "gpu_power_limit_max_w": 300,
+    "gpu_actual_draw_stop_w": 310,
+    "core_temp_stop_c": 85
+  },
+  "full_gc_paused": true,
+  "test_data_used": false,
+  "broker_or_trade_authorized": false,
+  "relaunch_authorized": false,
+  "economic_edge_proven": false
+}

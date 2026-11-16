@@ -7,16 +7,21 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_INTEGRATED_FOLD2_FIT_002_PREPARED_NOT_ADMITTED.
-Operatøren innrømmet eksakt plan-SHA
-`4016255217a3c87bdc84715b6e65707090fa09dcaa1e70a3a1b3455bdac84621`.
-Fysisk Windows boot-ID 656 og signerte 20G/512M/GPU-vakter besto.
-Planen ble CLAIM-et, men feilet i initial TRAIN-strukturskår før optimizer
-ble opprettet: 256 initialforwards, null oppdateringer, ingen checkpoint
-eller senere score. Engangsplanen er konsumert og må aldri relanseres.
-training_enabled=false, native_training_enabled=false og
-full_epoch_training_allowed=false. Full GC er pauset; TEST, Entry/Exit,
-broker og handel er lukket. M5-Edge er ubevist.
+TA_INTEGRATED_FOLD2_FIT_002_ADMITTED_ONE_USE_PREBOOT.
+Brukeren fjernet kravet om nytt «ja» for hver stor lokal ikke-GC-kjøring.
+Integrator innrømmet plan002 SHA
+`330e4cb1dd4c76980264b44a32f091e67c43142819514901f60068abed102783`
+i policy under stående 0 USD-fullmakt. Den eksakte capped kommandoen,
+kvitteringene og signert telemetri besto lesende uten CLAIM eller modell.
+training_enabled, native_training_enabled og full_epoch_training_allowed er
+true bare for denne ene planen. Fysisk Windows boot-ID må bli >656 før
+start. Full GC er pauset; TEST, Entry/Exit, broker og handel er lukket.
+M5-Edge er ubevist.
+
+Plan001 SHA `4016255217a3c87bdc84715b6e65707090fa09dcaa1e70a3a1b3455bdac84621`
+ble CLAIM-et under fysisk boot 656, men feilet i initial TRAIN-strukturskår
+før optimizer ble opprettet: 256 initialforwards, null oppdateringer,
+ingen checkpoint eller senere score. Den er konsumert og kan ikke relanseres.
 
 Brukeren innrømmet 16.11 én ikke-GC S CPU-lesning på låste opptak.
 Syntetisk preflight under 4G/512M besto. Den ene kjøringen avsluttet
@@ -537,11 +542,10 @@ Entry, TEST eller handel åpnes av denne presiseringen.
 
 ## Neste steg
 
-1. Kontroller eksakt plan002-kommando/import, alle kvitteringsnøkler og
-   skårens suksess-/feilvei lesende før CLAIM. Integrator innrømmer deretter
-   én hashbundet kjøring i policy under stående fullmakt, tar fysisk
-   Windows boot-ID >656, verifiserer ren kilde og signerte vakter, og
-   starter bare plan002. Plan001 er konsumert og kan aldri relanseres.
+1. Ta fysisk Windows boot-ID >656, verifiser ren kilde, eksakt plan002,
+   eneste åpne policygate, ledig maskin og signerte vakter; start deretter
+   bare den innrømmede plan002. Ingen kildeendring under kjøring.
+   Plan001 er konsumert og kan aldri relanseres.
 2. Etter faktisk fit, vurder alle fem TF S/F, M5-vending, struktur og
    kalibrering på de samme faste TRAIN-/senere utviklingsradene. Et grønt
    skårprogram alene viser ikke læring eller generalisering.
