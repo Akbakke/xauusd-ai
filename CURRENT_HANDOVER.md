@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_INTEGRATED_TRAIN_OBJECTIVE_LATER_GATHER_PASS_FIT_CLOSED.
+TA_INTEGRATED_FOLD2_FIT_PLAN_PREPARED_NOT_ADMITTED.
 Den tidligere ikke-GC S-lesningen er fullført og M5-Edge fortsatt ubevist.
 Fold2 S-only full-GC 25-cellers engangsplan er fullført og konsumert.
 training_enabled=false, native_training_enabled=false og
@@ -468,6 +468,19 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   modellscore eller prediktiv gevinst. Aggregat:
   `docs/TA_INTEGRATED_LATER_VIEW_REBIND_REVIEW_20261116.json`.
 
+- Én integrert ikke-GC Fold2-plan er nå fysisk bundet til samme fullstendige
+  TA-input, egne S/F-hoder på fem TF, fem lukkede M1-barer og maskert
+  M5-topp/bunn-tap. Plan-SHA er
+  `4016255217a3c87bdc84715b6e65707090fa09dcaa1e70a3a1b3455bdac84621`.
+  Kilde-/input-preflight besto uten modellkjøring eller CLAIM. En capped
+  4G-kontroll av én faktisk senere B16-batch bekreftet initialmodellens
+  digest og at skåringen bruker eksakt Fold2 S/F-tapskontrakt; én forward,
+  null optimizersteg. Maksimum ved eventuell separat innrømmelse er
+  47 338 TRAIN-rader, 2 959 oppdateringer, 1 024 initial-/final-
+  skårforwards og 10 500 sekunder under 20G/512M/GPU-vakt.
+  Se `docs/TA_INTEGRATED_FOLD2_FIT_PREPARATION_20261116.json`.
+  Ingen trening eller senere resultat finnes; engangsgaten står stengt.
+
 ## Ikke gjort / faktisk hindring
 
 Det målte problemet er svake M5-vendinger og utilstrekkelige selvstendige
@@ -495,33 +508,19 @@ Entry, TEST eller handel åpnes av denne presiseringen.
 
 ## Neste steg
 
-1. Fullfør én samlet ikke-GC M5/MTF-kampanjekontrakt før stor kjøring:
-   M5 er beslutningsklokken, M15/H1/H4/D1 gir egne kausale retninger,
-   og alle genuine indikatorfamilier beholdes. Den opt-in integrerte
-   kildekandidaten binder nå `direct_tf_hidden`, fem egne S/F-sidehoder,
-   fem-M1-banen og separate M5-strukturutganger. Ikke ommerk gamle
-   checkpoints. Én faktisk bundet TRAIN-batch besto source-/forward-/
-   gradient-preflight; neste gate er én forhåndsbundet samlet tapsfunksjon
-   og kampanje. En batch beviser ikke læring eller senere gevinst.
-2. Bind nåtilstand og vending ærlig. `gather_current` er bare et
-   historisk, M1-avledet nåoppslag; den nye TA-modellen bruker fem lukkede
-   M1-barer på én fysisk TRAIN-batch, men ONLINE-levering er ennå ikke vist. Bred historisk Fold2-dekning
-   er målt; arkivert `BASE28` og S-TRAIN-M1 har null verdi-/klokkeavvik
-   på hele Fold2-fitaksen. Gjenbruk den eksakte M1-leseren og bevis faktisk
-   ONLINE-levering/lukking før eventuell live modellkobling.
-   Den separate M5-topp/bunn-
-   kandidaten har god fysisk dekning, men er ennå ikke låst som treningsmål.
-   Behold bit5 `{OPP,NED}`, blandet struktur og ukjente forløp uten gjettet
-   side eller FLAT. Dette er én samlet mål-/inputbeslutning, ikke flere
-   enkle indikatorregler.
-3. Forhåndsbind én meningsfull multi-feature TRAIN-fit og én senere
-   kronologisk score med fryste priorer: S/F per TF, faktisk M5-vending,
-   kalibrering og strukturutfall på de samme deklarerte radene. Bare målt
-   senere gevinst kan rettferdiggjøre større trening. Kostet M5-beslutning,
-   alle valgte/åpne posisjoner og senere forward-bekreftelse trengs før
-   økonomisk Edge. Spør operatøren først når en eksakt stor kjøring er
-   kvalifisert; `training_enabled=false`, Full GC-pause og TEST-forsegling
-   består. Ingen ny enkeltregel- eller VAL-utvalgsrunde.
+1. Innhent eksakt operatøradgang til den forberedte store engangskjøringen
+   før `training_enabled` eventuelt endres. Kontroller fersk fysisk boot,
+   kildelås, plan-SHA og maskinvarevakter. Kjør bare den ene bundne
+   integrerte planen; ingen modellrunde eller kildeendring mens den går.
+2. Les initial og final på de samme forhåndsvalgte TRAIN-/senere panelene:
+   fem TF S/F aktivitet og side mot fryst TRAIN-prior, M5-topp/bunn mot
+   fryst TRAIN-prior, samt kalibrering og faktisk M5-vendingssporing.
+   Et endret treningsloss alene er ikke senere generalisering.
+3. Bare hvis den samlede senere gevinsten holder, planlegg Entry-beslutning
+   med forhåndsbundet kostmodell og alle valgte/åpne posisjoner, samt
+   uavhengig forward-bekreftelse. Den nåværende utviklingsperioden og
+   prognoseskåren kan ikke bevise netto Edge. Full GC er fortsatt pauset;
+   TEST, ONLINE, broker og handel er lukket.
 
 Opprydding: historiske overleveringsavsnitt er fjernet her og bevart i Git.
 Ingen Python-fil er slettet; gjeldende referanse-, import-, test- og

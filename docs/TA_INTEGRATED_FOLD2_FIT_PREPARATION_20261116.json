@@ -1,0 +1,50 @@
+{
+  "schema_version": "gx1_ta_integrated_fold2_fit_preparation_review_v1",
+  "decision": "ONE_INTEGRATED_FIVE_TF_FIT_SOURCE_AND_INPUTS_READY_EXECUTION_NOT_ADMITTED",
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_FIT_20261116_001/PLAN.json",
+    "sha256": "4016255217a3c87bdc84715b6e65707090fa09dcaa1e70a3a1b3455bdac84621"
+  },
+  "source_commit": "0d43f8c117a1e7695b06e9cac8ca10de840915c0",
+  "physical_read_only_preflight": {
+    "status": "PASS_SOURCE_INPUT_AND_POLICY_PREFLIGHT",
+    "actual_later_b16_score": "PASS_ACTUAL_LATER_B16_INTEGRATED_SCORE_NO_FIT",
+    "initial_cpu_model_state_sha256": "0a04141985c261b82414b5020937a65b0905aa3fb7d441aa9a4ea45bebb27525",
+    "exact_fold2_S_F_score_contract_bound": true,
+    "model_forwards": 1,
+    "optimizer_updates": 0,
+    "claim_created": false
+  },
+  "proposed_one_use_bounds": {
+    "fit_rows": 47338,
+    "batch_visits": 2959,
+    "max_optimizer_updates": 2959,
+    "fixed_train_panel_rows": 4096,
+    "fixed_later_development_panel_rows": 4096,
+    "evaluation_forwards": 1024,
+    "total_max_model_forwards": 3983,
+    "max_script_seconds": 10500,
+    "outer_guard_seconds": 10800,
+    "cgroup_memory": "20G",
+    "cgroup_swap": "512M",
+    "gpu_power_limit_w": 300,
+    "gpu_draw_stop_w": 310,
+    "gpu_core_temperature_stop_c": 85
+  },
+  "readout_scope": {
+    "S_F_activity_and_conditional_side": "all_five_TF_against_frozen_TRAIN_priors",
+    "M5_structure": "observed_high_and_low_Brier_vs_frozen_full_TRAIN_prior_and_AUC",
+    "panels": "fixed_spread_TRAIN_4096_and_chronological_Jan_Mar_2025_development_4096",
+    "initial_and_final": "same_panels_without_result_based_selection",
+    "economic_edge": "not_scored_without_a_predeclared_costed_Entry_rule_and_forward_confirmation"
+  },
+  "limits": [
+    "One TRAIN pass is a learning control, not a converged model or Edge proof.",
+    "The later panel is reused development data, not sealed TEST or independent forward confirmation.",
+    "M5 reversal, ONLINE M1 delivery, Entry economics and costed Edge remain unproven.",
+    "Any operator admission must be exact one-use; training_enabled remains false now."
+  ],
+  "training_authorized": false,
+  "test_data_used": false,
+  "economic_edge_proven": false
+}
