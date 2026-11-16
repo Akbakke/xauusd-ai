@@ -120,6 +120,16 @@ TEST, Entry/Exit, broker eller handel er innrømmet.
   Den bundne modellkontrakten har ikke eksplisitt nå-S som forward-input;
   årsaksverdien av dette er ikke isolert. ONLINE-paritet, uavhengig
   generalisering og Edge er fortsatt ubevist.
+- Fold2 TA-direction-only er en komponenttest: den bundne tapsfunksjonen
+  optimerte direkte bare M5-side i S/F, ikke aktivitet eller de fire andre
+  tidsrammenes sideledd. Modellens egen DOWN/FLAT/UP-mapping gir FLAT på
+  alle 4 096 senere rader i hver av de fem TF både før og etter trening.
+  Betinget side-AUC er derfor ikke en faktisk fem-TF retningsbeslutning.
+  I kontrast ga full-prefix Fold1 PASS2 på M5 481 DOWN, 0 FLAT og 3 615 UP;
+  FLAT-kollapsen er ikke universell. Fold2 FINAL sideutganger har fortsatt
+  Spearman-korrelasjon minst 0,994 mellom alle TF-par. M5/D1-fasiter
+  var ulike i 222/473 felles kjente rader, mens betinget side-svar var
+  riktig på begge TF i bare 3 av de 222. Ingen fem-TF kvalifikasjon.
 
 ## Ikke gjort / faktisk hindring
 

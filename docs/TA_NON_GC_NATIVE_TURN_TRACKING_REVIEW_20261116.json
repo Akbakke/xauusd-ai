@@ -1277,5 +1277,335 @@
       "explicit_current_state_or_future_target_forward_input": false,
       "interpretation": "The bound Fold2 model forecasts future side from causal indicator context and query, without the reconstructed current S label as an explicit forward input. The observed cross-state mismatch does not prove that adding such an input would fix it."
     }
+  },
+  "native_three_class_and_tf_direction_readout": {
+    "schema_version": "gx1_ta_retained_native_three_class_and_tf_direction_v1",
+    "method": "Read-only stored native S raw logits. Apply the bound factorized DOWN/FLAT/UP log-probability mapping and argmax; compare conditional side threshold at 0.5 across TF only where both S side targets are certified. All 4096 fixed later development rows, no model forward, fit, threshold tuning or TEST.",
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ],
+    "source_capture_refs": "top-level capture_refs for Fold1 PASS2; fold2_distinct_TA_direction_only_prospective.capture_refs for Fold2 INITIAL and FINAL",
+    "fold2_loss_binding": {
+      "m5_direction_only": true,
+      "recipe_loss_contract_sha256": "da042c0f02d104bf5533f9d82688b986a29117436517485272de0853e7bd6150",
+      "source": "gx1/contracts/market_state_time_query_native_F_objective_v1.py",
+      "source_sha256": "4b244ac61c0b3360e12a4b12db8e8d066e9017b6913da165c31fd8afae6a8658",
+      "directly_optimized": "S M5 conditional side plus F M5 conditional side; no direct activity or non-M5 side loss in this mode"
+    },
+    "three_class_counts": {
+      "fold1_PASS2": {
+        "M5": {
+          "all_rows_DOWN_FLAT_UP": [
+            481,
+            0,
+            3615
+          ],
+          "certified_side_rows": 1414,
+          "certified_side_predictions_DOWN_FLAT_UP": [
+            172,
+            0,
+            1242
+          ]
+        },
+        "M15": {
+          "all_rows_DOWN_FLAT_UP": [
+            387,
+            140,
+            3569
+          ],
+          "certified_side_rows": 1677,
+          "certified_side_predictions_DOWN_FLAT_UP": [
+            205,
+            12,
+            1460
+          ]
+        },
+        "H1": {
+          "all_rows_DOWN_FLAT_UP": [
+            336,
+            278,
+            3482
+          ],
+          "certified_side_rows": 1670,
+          "certified_side_predictions_DOWN_FLAT_UP": [
+            191,
+            37,
+            1442
+          ]
+        },
+        "H4": {
+          "all_rows_DOWN_FLAT_UP": [
+            319,
+            67,
+            3710
+          ],
+          "certified_side_rows": 1492,
+          "certified_side_predictions_DOWN_FLAT_UP": [
+            187,
+            9,
+            1296
+          ]
+        },
+        "D1": {
+          "all_rows_DOWN_FLAT_UP": [
+            342,
+            0,
+            3754
+          ],
+          "certified_side_rows": 1225,
+          "certified_side_predictions_DOWN_FLAT_UP": [
+            153,
+            0,
+            1072
+          ]
+        }
+      },
+      "fold2_INITIAL": {
+        "M5": {
+          "all_rows_DOWN_FLAT_UP": [
+            0,
+            4096,
+            0
+          ],
+          "certified_side_rows": 1392,
+          "certified_side_predictions_DOWN_FLAT_UP": [
+            0,
+            1392,
+            0
+          ]
+        },
+        "M15": {
+          "all_rows_DOWN_FLAT_UP": [
+            0,
+            4096,
+            0
+          ],
+          "certified_side_rows": 1671,
+          "certified_side_predictions_DOWN_FLAT_UP": [
+            0,
+            1671,
+            0
+          ]
+        },
+        "H1": {
+          "all_rows_DOWN_FLAT_UP": [
+            0,
+            4096,
+            0
+          ],
+          "certified_side_rows": 1713,
+          "certified_side_predictions_DOWN_FLAT_UP": [
+            0,
+            1713,
+            0
+          ]
+        },
+        "H4": {
+          "all_rows_DOWN_FLAT_UP": [
+            0,
+            4096,
+            0
+          ],
+          "certified_side_rows": 1656,
+          "certified_side_predictions_DOWN_FLAT_UP": [
+            0,
+            1656,
+            0
+          ]
+        },
+        "D1": {
+          "all_rows_DOWN_FLAT_UP": [
+            0,
+            4096,
+            0
+          ],
+          "certified_side_rows": 1420,
+          "certified_side_predictions_DOWN_FLAT_UP": [
+            0,
+            1420,
+            0
+          ]
+        }
+      },
+      "fold2_FINAL": {
+        "M5": {
+          "all_rows_DOWN_FLAT_UP": [
+            0,
+            4096,
+            0
+          ],
+          "certified_side_rows": 1392,
+          "certified_side_predictions_DOWN_FLAT_UP": [
+            0,
+            1392,
+            0
+          ]
+        },
+        "M15": {
+          "all_rows_DOWN_FLAT_UP": [
+            0,
+            4096,
+            0
+          ],
+          "certified_side_rows": 1671,
+          "certified_side_predictions_DOWN_FLAT_UP": [
+            0,
+            1671,
+            0
+          ]
+        },
+        "H1": {
+          "all_rows_DOWN_FLAT_UP": [
+            0,
+            4096,
+            0
+          ],
+          "certified_side_rows": 1713,
+          "certified_side_predictions_DOWN_FLAT_UP": [
+            0,
+            1713,
+            0
+          ]
+        },
+        "H4": {
+          "all_rows_DOWN_FLAT_UP": [
+            0,
+            4096,
+            0
+          ],
+          "certified_side_rows": 1656,
+          "certified_side_predictions_DOWN_FLAT_UP": [
+            0,
+            1656,
+            0
+          ]
+        },
+        "D1": {
+          "all_rows_DOWN_FLAT_UP": [
+            0,
+            4096,
+            0
+          ],
+          "certified_side_rows": 1420,
+          "certified_side_predictions_DOWN_FLAT_UP": [
+            0,
+            1420,
+            0
+          ]
+        }
+      }
+    },
+    "fold2_FINAL_conditional_side_pairwise": [
+      {
+        "pair": "M5_M15",
+        "joint_certified": 826,
+        "true_side_disagreements": 280,
+        "predicted_side_disagreements": 149,
+        "both_correct_on_true_disagreements": 38,
+        "false_predicted_disagreements_when_truth_agrees": 94,
+        "spearman_all_4096": 0.993955,
+        "mean_absolute_probability_difference_all_4096": 0.003724
+      },
+      {
+        "pair": "M5_H1",
+        "joint_certified": 724,
+        "true_side_disagreements": 336,
+        "predicted_side_disagreements": 27,
+        "both_correct_on_true_disagreements": 5,
+        "false_predicted_disagreements_when_truth_agrees": 16,
+        "spearman_all_4096": 0.996223,
+        "mean_absolute_probability_difference_all_4096": 0.002146
+      },
+      {
+        "pair": "M5_H4",
+        "joint_certified": 623,
+        "true_side_disagreements": 282,
+        "predicted_side_disagreements": 133,
+        "both_correct_on_true_disagreements": 33,
+        "false_predicted_disagreements_when_truth_agrees": 74,
+        "spearman_all_4096": 0.996907,
+        "mean_absolute_probability_difference_all_4096": 0.004287
+      },
+      {
+        "pair": "M5_D1",
+        "joint_certified": 473,
+        "true_side_disagreements": 222,
+        "predicted_side_disagreements": 22,
+        "both_correct_on_true_disagreements": 3,
+        "false_predicted_disagreements_when_truth_agrees": 15,
+        "spearman_all_4096": 0.997335,
+        "mean_absolute_probability_difference_all_4096": 0.002347
+      },
+      {
+        "pair": "M15_H1",
+        "joint_certified": 1053,
+        "true_side_disagreements": 394,
+        "predicted_side_disagreements": 207,
+        "both_correct_on_true_disagreements": 34,
+        "false_predicted_disagreements_when_truth_agrees": 141,
+        "spearman_all_4096": 0.998649,
+        "mean_absolute_probability_difference_all_4096": 0.005567
+      },
+      {
+        "pair": "M15_H4",
+        "joint_certified": 854,
+        "true_side_disagreements": 386,
+        "predicted_side_disagreements": 17,
+        "both_correct_on_true_disagreements": 5,
+        "false_predicted_disagreements_when_truth_agrees": 10,
+        "spearman_all_4096": 0.99903,
+        "mean_absolute_probability_difference_all_4096": 0.000676
+      },
+      {
+        "pair": "M15_D1",
+        "joint_certified": 591,
+        "true_side_disagreements": 283,
+        "predicted_side_disagreements": 137,
+        "both_correct_on_true_disagreements": 16,
+        "false_predicted_disagreements_when_truth_agrees": 79,
+        "spearman_all_4096": 0.99618,
+        "mean_absolute_probability_difference_all_4096": 0.005879
+      },
+      {
+        "pair": "H1_H4",
+        "joint_certified": 996,
+        "true_side_disagreements": 430,
+        "predicted_side_disagreements": 215,
+        "both_correct_on_true_disagreements": 28,
+        "false_predicted_disagreements_when_truth_agrees": 138,
+        "spearman_all_4096": 0.998802,
+        "mean_absolute_probability_difference_all_4096": 0.006175
+      },
+      {
+        "pair": "H1_D1",
+        "joint_certified": 632,
+        "true_side_disagreements": 280,
+        "predicted_side_disagreements": 14,
+        "both_correct_on_true_disagreements": 1,
+        "false_predicted_disagreements_when_truth_agrees": 10,
+        "spearman_all_4096": 0.998312,
+        "mean_absolute_probability_difference_all_4096": 0.000574
+      },
+      {
+        "pair": "H4_D1",
+        "joint_certified": 728,
+        "true_side_disagreements": 210,
+        "predicted_side_disagreements": 212,
+        "both_correct_on_true_disagreements": 20,
+        "false_predicted_disagreements_when_truth_agrees": 161,
+        "spearman_all_4096": 0.997918,
+        "mean_absolute_probability_difference_all_4096": 0.006487
+      }
+    ],
+    "interpretation": "Fold2 direction-only fit is a component test. The bound objective directly optimizes M5 conditional side only, while its actual factorized three-class decision is FLAT on every later row for every TF in both phases. This cannot qualify a five-TF direction decision or Edge. Fold1 full-prefix PASS2 has a different bias, mostly UP, so all-FLAT is specific to the direction-only fit rather than a universal output failure. Fold2 conditional side outputs remain highly correlated across TF and often fail to resolve known TF disagreements. These observations do not isolate indicator interaction or one architectural cause.",
+    "limits": [
+      "A conditional side threshold diagnostic is not the three-class state decision or an Entry/trade rule.",
+      "Certified side masks use realized outcomes and do not define online selection.",
+      "Both panels were reused for development; no independent generalization or economic claim."
+    ]
   }
 }
