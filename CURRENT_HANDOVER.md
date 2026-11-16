@@ -7,7 +7,8 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_S_FIVE_TF_READOUT_001_COMPLETE_M5_REJECTED_EDGE_UNQUALIFIED.
+TA_M5_STRUCTURE_FOLD2_AUDIT_COMPLETE_TARGET_EDGE_UNQUALIFIED.
+Den tidligere ikke-GC S-lesningen er fullført og M5-Edge fortsatt ubevist.
 Fold2 S-only full-GC 25-cellers engangsplan er fullført og konsumert.
 training_enabled=false, native_training_enabled=false og
 full_epoch_training_allowed=false. Full GC er ifølge operatøren pauset
@@ -367,22 +368,25 @@ Entry, TEST eller handel åpnes av denne presiseringen.
    gx1/audit/measure_ta_m5_structure_candidate_v1.py og åtte fokuserte
    syntetiske tester består. En konkret sensurfeil mellom bekreftet fryst
    nivå og M5-beslutningen ble rettet før denne overleveringen; bar på
-   den eksklusive foldgrensen avvises. Dette er ingen fysisk TRAIN-kontroll:
-   dekning, modning og faktiske forløp er fortsatt ukjent. Kandidaten er
-   ikke låst target, innrømmet kjøring eller modellfit. Neste nødvendige
-   kontroll er den forberedte engangsplanen
-   configs/research/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001.json:
-   Fold2 TRAIN M5, eksklusiv grense 01.01.2025, 4G/512M/900s
-   med intern alarm for veggtidsgrensen,
-   lesende aggregater og høyst åtte private eksempler. Låst leserute
-   gx1/audit/run_ta_m5_structure_fold2_readonly_v1.py kan bare preflighte
-   uten innrømmelse; ingen prislesing før særskilt policygate og kapsling.
-   Operatøren innrømmet denne eksakte planen én gang; status
-   ADMITTED_ONE_USE, execution_authorized=true og claimed_invocations=0.
-   Den capped preflighten besto uten CLAIM/prislesing. Kjøringen er ennå
-   ikke startet. Per-plan spørregel for små lesende CPU-auditer er fjernet
-   fra AGENTS.md; store kjøringer krever fortsatt spørsmål.
-   Ikke fyll bit5 med oppdiktet side. Ingen Full
+   den eksklusive foldgrensen avvises. Den ene fysisk bundne Fold2 TRAIN-
+   lesningen er fullført og konsumert under 4G/512M/900s uten modellsteg.
+   Originale CLAIM/RESULT/TERMINAL ligger privat i
+   GX1_RUNS/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001; samlet aggregering
+   og begrensninger er i
+   docs/TA_M5_STRUCTURE_FOLD2_AUDIT_RESULT_REVIEW_20261116.json.
+   47 567/47 784 beslutningsbarer har begge neste pivoter bekreftet;
+   47 195 har entydig parklasse. Av 589 ukjente parklasser mangler 217
+   komplett par og 372 har samme bar som topp og bunn uten observert intern
+   rekkefølge. OPP=18 043, NED=14 514, BLANDET=14 581, LIKT=57.
+   Kjent lukning forklarer 166 passerte M5-klokkebrudd; åtte forblir
+   ukjente i innlest segment. Dette er dekning, ikke prognosegevinst,
+   ONLINE-paritet eller Edge; strukturklassen erstatter ikke S/F.
+   Planen relanseres ikke. Per-plan spørregel for små lesende CPU-auditer
+   er fjernet fra AGENTS.md; store kjøringer krever fortsatt spørsmål.
+   Neste nødvendige kontroll er om framtidig struktur faktisk kan
+   predikeres bedre enn fryst TRAIN-prior og kausal persistens før
+   eventuelt targetvalg eller modellfit. Ikke fyll bit5 med oppdiktet side.
+   Ingen Full
    GC-kode, checkpointdiagnose eller ny full-GC-hypotese nå.
 3. En senere særskilt innrømmet, kort matchet kontroll må vise både M5-side
    mot fryst referanse og faktisk vendingsdiskriminering før mer trening.

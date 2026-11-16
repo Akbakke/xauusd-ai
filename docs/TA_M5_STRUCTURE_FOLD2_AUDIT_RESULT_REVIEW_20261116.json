@@ -1,0 +1,127 @@
+{
+  "schema_version": "gx1_ta_m5_structure_fold2_audit_review_v1",
+  "decision": "COMPLETE_SOURCE_COVERAGE_ONLY_TARGET_AND_EDGE_UNQUALIFIED",
+  "plan": {
+    "path": "configs/research/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001.json",
+    "sha256": "2d5b7359b377a8d4d7658ff7cbc6a756db94565d70673604f69a86530750c081"
+  },
+  "source_commit_at_claim": "8c9570cd18f8e68d5ca29f794e914890ce33a65f",
+  "private_receipts": {
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001/CLAIM.json",
+      "sha256": "12f4d4c5c0c131cb61bf15d2795f557b3c3ceab37cf7b9f4fab13db569a1a0c8"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001/RESULT.json",
+      "sha256": "e6be73a2e5e04a9e0abf91e3b0b3775e93f0d75b6064ff8c842c123b1f842450"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001/TERMINAL.json",
+      "sha256": "f6a131efb8b3c0f1a85cfa5544dd16d225cf3a75f98d551c0f27041cea1badd9"
+    }
+  },
+  "input_parquet_sha256_verified_by_worker": "5e5cb256fc60a5e9a7ffe1a161aa875660f01806b8e8de2bf601fc2f528e7f99",
+  "scope": {
+    "issue_start_utc": "2024-05-01T00:00:00Z",
+    "fold_target_end_utc_exclusive": "2025-01-01T00:00:00Z",
+    "m5_issues": 47784,
+    "test_data_used": false
+  },
+  "aggregate": {
+    "issue_count": 47784,
+    "both_observed": 47567,
+    "atr_valid": 47784,
+    "pair_classes": {
+      "UNKNOWN": 589,
+      "MIXED": 14581,
+      "UP": 18043,
+      "DOWN": 14514,
+      "TIE": 57
+    },
+    "same_pivot_bar": 372,
+    "both_levels_hit": 6459,
+    "no_frozen_level_hit": 8301,
+    "high": {
+      "frozen_high_valid": 47709,
+      "next_high_pivot_found": 47761,
+      "future_high_valid": 47682,
+      "high_observed": 47608,
+      "high_hit": 24674,
+      "high_wick_reject": 5592,
+      "high_close_break": 19053,
+      "confirm_delay_bars_p50_p90": [
+        9.0,
+        17.0
+      ]
+    },
+    "low": {
+      "frozen_low_valid": 47704,
+      "next_low_pivot_found": 47777,
+      "future_low_valid": 47697,
+      "low_observed": 47619,
+      "low_hit": 21094,
+      "low_wick_reject": 5440,
+      "low_close_break": 15626,
+      "confirm_delay_bars_p50_p90": [
+        9.0,
+        17.0
+      ]
+    },
+    "monthly": {
+      "2024-05": {
+        "issues": 6294,
+        "both_observed": 6264
+      },
+      "2024-06": {
+        "issues": 5514,
+        "both_observed": 5484
+      },
+      "2024-07": {
+        "issues": 6318,
+        "both_observed": 6284
+      },
+      "2024-08": {
+        "issues": 6048,
+        "both_observed": 6048
+      },
+      "2024-09": {
+        "issues": 5790,
+        "both_observed": 5769
+      },
+      "2024-10": {
+        "issues": 6348,
+        "both_observed": 6348
+      },
+      "2024-11": {
+        "issues": 5715,
+        "both_observed": 5666
+      },
+      "2024-12": {
+        "issues": 5757,
+        "both_observed": 5704
+      }
+    },
+    "known_closure_bridged_m5_breaks": 166,
+    "unknown_m5_clock_breaks": 8
+  },
+  "rates": {
+    "pair_observed": 0.9954587309559685,
+    "class_known": 0.9876736983090574,
+    "mixed_among_known_classes": 0.3089522195147791
+  },
+  "unknown_class_accounting": {
+    "missing_one_or_both_pivots": 217,
+    "same_pivot_bar_no_intrabar_order": 372,
+    "total_unknown": 589
+  },
+  "limits": [
+    "This is source/target coverage, not learned prediction, M5 turn discrimination, ONLINE parity, Entry or economic Edge.",
+    "Structural pair classes are a separate candidate and are not the existing S/F labels.",
+    "Fold2 M5 source rows and earlier S fit rows are not identical cohorts; coverage rates are not a matched model comparison.",
+    "Do not relaunch this consumed one-use plan."
+  ],
+  "model_forwards": 0,
+  "optimizer_steps": 0,
+  "target_locked": false,
+  "economic_edge_proven": false
+}
