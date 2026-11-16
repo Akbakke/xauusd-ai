@@ -107,6 +107,19 @@ TEST, Entry/Exit, broker eller handel er innrømmet.
   ikke bevist absolutt diskriminering eller Edge. Det er en annen modell
   og en annen utviklingsperiode enn Fold1 PASS2; årsaksforskjellen er ukjent.
   H4 mangler native par også her. Samme rapport inneholder alle TF.
+- Samme lagrede Fold2 M5-par er delt etter kjent nåretning. Innen nå-OPP
+  rangerer FINAL framtidig skifte med AUC 0,582090 (285 par, 134 skifter;
+  dag-/ukeintervall over 0,5); innen nå-NED er AUC 0,557540 (246 par,
+  143 skifter; intervaller omfatter 0,5). Parvis gevinst over INITIAL
+  for nå-OPP er usikker per dag, positiv per uke; for nå-NED er den usikker.
+  Faktiske skifter er hyppigere fra NED enn OPP (58,1 mot 47,0 %), men
+  avledet FINAL-sannsynlighet er i snitt lavere fra NED enn OPP (50,1 mot
+  50,9 %). Dag-/ukeintervaller støtter denne omvendte grupperekkefølgen
+  på det brukte utviklingsutvalget. Dette er en målt svikt i kondisjonering
+  på nåtilstand, ikke bevis for at én indikator eller modellport er årsaken.
+  Den bundne modellkontrakten har ikke eksplisitt nå-S som forward-input;
+  årsaksverdien av dette er ikke isolert. ONLINE-paritet, uavhengig
+  generalisering og Edge er fortsatt ubevist.
 
 ## Ikke gjort / faktisk hindring
 

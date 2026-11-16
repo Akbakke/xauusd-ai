@@ -1128,5 +1128,154 @@
     "fit_rows": 47338,
     "max_updates": 2959,
     "interpretation": "Actual pre-existing Fold2 TA-only direction-only fit, not a new model run in this review."
+  },
+  "m5_current_state_conditioned_turn": {
+    "schema_version": "gx1_ta_m5_current_state_conditioned_turn_readout_v1",
+    "method": "Read-only M5 native prospective pairs already certified in this report. Current UP/DOWN comes from the preceding target whose validity equals the forecast issue. On each current-state group, score the same issue future switch probability derived from the future UP logit. AUC is computed separately within current UP and current DOWN. Paired 1000-replicate UTC-day and Monday-week cluster bootstrap reuses identical draws for INITIAL and FINAL/PASS2. No new estimator, feature ablation, threshold, model forward, optimizer or TEST.",
+    "fold1_full_prefix": {
+      "capture_refs": "top-level capture_refs",
+      "current_UP": {
+        "pairs": 270,
+        "actual_switches": 136,
+        "initial_auc": 0.471356,
+        "pass2_auc": 0.478435,
+        "auc_gain": 0.007079,
+        "pass2_auc_95_day": [
+          0.4165,
+          0.5502
+        ],
+        "auc_gain_95_day": [
+          -0.0223,
+          0.0385
+        ],
+        "pass2_auc_95_week": [
+          0.4217,
+          0.5484
+        ],
+        "auc_gain_95_week": [
+          -0.0207,
+          0.0343
+        ]
+      },
+      "current_DOWN": {
+        "pairs": 286,
+        "actual_switches": 157,
+        "initial_auc": 0.552609,
+        "pass2_auc": 0.555671,
+        "auc_gain": 0.003061,
+        "pass2_auc_95_day": [
+          0.4969,
+          0.6111
+        ],
+        "auc_gain_95_day": [
+          -0.0282,
+          0.0364
+        ],
+        "pass2_auc_95_week": [
+          0.5039,
+          0.6132
+        ],
+        "auc_gain_95_week": [
+          -0.0241,
+          0.0308
+        ]
+      },
+      "clusters": {
+        "UTC_day": 66,
+        "UTC_Monday_week": 14
+      }
+    },
+    "fold2_distinct_m5_direction_only": {
+      "capture_refs": "fold2_distinct_TA_direction_only_prospective.capture_refs",
+      "current_UP": {
+        "pairs": 285,
+        "actual_switches": 134,
+        "actual_switch_rate": 0.47017543859649125,
+        "initial_auc": 0.523722,
+        "final_auc": 0.58209,
+        "auc_gain": 0.058367,
+        "final_mean_switch_probability": 0.509492286735721,
+        "final_auc_95_day": [
+          0.5292,
+          0.6358
+        ],
+        "auc_gain_95_day": [
+          -0.0144,
+          0.1329
+        ],
+        "final_auc_95_week": [
+          0.513,
+          0.6536
+        ],
+        "auc_gain_95_week": [
+          0.0085,
+          0.1272
+        ]
+      },
+      "current_DOWN": {
+        "pairs": 246,
+        "actual_switches": 143,
+        "actual_switch_rate": 0.5813008130081301,
+        "initial_auc": 0.528889,
+        "final_auc": 0.55754,
+        "auc_gain": 0.028651,
+        "final_mean_switch_probability": 0.5006764372020374,
+        "final_auc_95_day": [
+          0.483,
+          0.6318
+        ],
+        "auc_gain_95_day": [
+          -0.0679,
+          0.1369
+        ],
+        "final_auc_95_week": [
+          0.4873,
+          0.6265
+        ],
+        "auc_gain_95_week": [
+          -0.0462,
+          0.0984
+        ]
+      },
+      "observed_DOWN_minus_UP_switch_rate": 0.1111253744116389,
+      "forecast_DOWN_minus_UP_mean_switch_probability": -0.008815849533683607,
+      "observed_rate_difference_95_day": [
+        0.0393,
+        0.1853
+      ],
+      "observed_rate_difference_95_week": [
+        0.0349,
+        0.1911
+      ],
+      "forecast_mean_difference_95_day": [
+        -0.0119,
+        -0.0058
+      ],
+      "forecast_mean_difference_95_week": [
+        -0.0122,
+        -0.0063
+      ],
+      "clusters": {
+        "UTC_day": 62,
+        "UTC_Monday_week": 14
+      }
+    },
+    "interpretation": "Fold2 FINAL has scoped within-current-UP switch ranking on this reused later development subset (AUC 0.582; both clustered level intervals above 0.5), but gain over INITIAL has mixed day/week intervals. Current-DOWN ranking and gain remain uncertain. Across current-state groups, observed switch frequency is higher from DOWN while the derived FINAL switch forecast mean is slightly higher from UP; this is a measured current-state conditioning/calibration mismatch. Fold1 has no established within-state learning gain. None of these observations attributes signal to a specific indicator or indicator interaction, establishes generalization, or qualifies Edge.",
+    "limits": [
+      "Current-state label is reconstructed retrospectively; ONLINE parity and live coverage are unqualified.",
+      "Groups are conditioned on certified current and future S labels and cannot be used as a deployment filter.",
+      "Intervals are exploratory on reused development after multiple readouts, without multiplicity adjustment.",
+      "Fold1 and Fold2 are different model fits and later periods, not a controlled recipe ablation."
+    ],
+    "fold2_model_binding": {
+      "recipe": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_004/RECIPE.json",
+      "recipe_model_contract_sha256": "4d6fa668262b2cf51e78d015b81a462dc53debf606121b859898053e6fd12e38",
+      "native_F_contract_matches_recipe": true,
+      "underlying_S_model_contract_sha256": "f172a52f59ca72adf41ab4bf8ddfc3b06668aa1e612f1e84f7c21e523730cf82",
+      "underlying_S_contract_source": "gx1/contracts/market_state_time_query_model_v2.py",
+      "underlying_S_contract_source_sha256": "601491f5e6d2d0476b4c3ce94000aad8682b787ad6045024295f9284547c17ab",
+      "explicit_current_state_or_future_target_forward_input": false,
+      "interpretation": "The bound Fold2 model forecasts future side from causal indicator context and query, without the reconstructed current S label as an explicit forward input. The observed cross-state mismatch does not prove that adding such an input would fix it."
+    }
   }
 }
