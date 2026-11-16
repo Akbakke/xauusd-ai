@@ -16,9 +16,11 @@ GX1RandomAccessCampaignV2 er deaktivert. Ingen relansering, native modellfit,
 TEST, Entry/Exit, broker eller handel er innrømmet.
 
 Brukeren innrømmet 16.11 én ikke-GC S CPU-lesning på låste opptak.
-Syntetisk preflight under 4G/512M besto uten genuine fits eller CLAIM.
-Engangsgaten er nå åpen bare for denne planen; etter terminal skal den lukkes.
-Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
+Syntetisk preflight under 4G/512M besto. Den ene kjøringen avsluttet
+med terminal exit 0: 10 faste CPU-lesninger, fire arkivdekoder og null
+modell-forwards/optimizersteg. Engangsgaten er konsumert og stengt.
+Resultatskåringen gjennomgås før konklusjon; ingen native trening, Full GC,
+TEST, broker eller handel er åpnet.
 
 ## Gjort og kontrollert
 
