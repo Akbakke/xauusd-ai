@@ -163,8 +163,9 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   M15 før pooling slo de svake decoderne relativt i AUC, men slo ikke fryst
   prior i Brier eller sikkert i absolutt AUC. Lineær før-pooling-lesning
   er dermed forkastet som M5-reparasjon; dette avviser ikke mulig ikke-lineær
-  indikatorinformasjon. Fullt aggregat, alle TF/konflikter og grenser står i
-  docs/TA_S_FIVE_TF_FROZEN_REPRESENTATION_RESULT_REVIEW_20261116.json.
+  indikatorinformasjon. Kompakt aggregat for alle TF og grenser står i
+  docs/TA_S_FIVE_TF_FROZEN_REPRESENTATION_RESULT_REVIEW_20261116.json;
+  alle parvise TF-konflikter er bevart med hash i kjøringens REVIEW.json.
 
 ## Ikke gjort / faktisk hindring
 
