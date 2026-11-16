@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_INTEGRATED_SOURCE_SYNTHETIC_PASS_PHYSICAL_UNQUALIFIED.
+TA_INTEGRATED_PHYSICAL_TRAIN_FORWARD_GRADIENT_PASS_FIT_UNQUALIFIED.
 Den tidligere ikke-GC S-lesningen er fullført og M5-Edge fortsatt ubevist.
 Fold2 S-only full-GC 25-cellers engangsplan er fullført og konsumert.
 training_enabled=false, native_training_enabled=false og
@@ -376,7 +376,7 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   `t−5` til `t−1` minutter fra én serving-kapsel. S-tapens gyldighet
   `t` svarer til slutt på M1-baren `t−1`. Dette er kodelesning av en
   tilgjengelig leveringsvei, ikke bevis for faktisk live lukking;
-  TA-modellen konsumerer ennå ikke banen.
+  gjeldende ONLINE-modell konsumerer ennå ikke banen.
 
 - En capped 4G lesende Fold2-kontroll sammenlignet hashbundet S-TRAIN-M1
   med den arkiverte, hashbundne Entry-serving-parets `BASE28` på alle 47 338
@@ -394,8 +394,8 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   Fold2-fit-issues ga samme 47 124 fulle baner og 235 956 observerte
   plasser fra både S-TRAIN-M1 og arkivert `BASE28`, med bitidentiske
   normaliserte input og masker. M5-intern rekkefølge blir nå representerbar;
-  lengre M1-historikk for øvrige TF, faktisk ONLINE-levering, modellforward,
-  læring og Edge er ennå ikke bevist.
+  lengre M1-historikk for øvrige TF og faktisk ONLINE-levering er ennå ikke
+  bevist; den rene kildekontrollen målte ikke modellforward eller Edge.
 
 - En ny avskrudd-som-standard `IntegratedTAMarketStateModel` binder samme
   fulle TA-encoder, fem separate post-attention TF-vektorer og egne S/F-
@@ -404,8 +404,23 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   har egne logitter for treff av frossen topp og bunn, og ukjent fasit maskeres.
   Tre syntetiske fokustester består for ett encoder-kall, startparitet,
   TF-lokal følsomhet, gradientvei og ukjent-maske. Dette er en kildekandidat:
-  ingen faktisk bundet TRAIN-forward, gradient på fysisk input, låst
-  strukturdekning, tapsvekting, ONLINE-levering, fit eller Edge er vist.
+  denne kildekontrollen alene viste ingen faktisk TRAIN-forward eller læring;
+  den fysiske kontrollen nedenfor lukker bare forward-/gradientgapet.
+
+
+- Én capped 4G, lesende Fold2-preflight på 16 faktiske TRAIN-rader besto med
+  to modellforwards og null optimizersteg/checkpointlesninger. Nullporten ga
+  bitidentisk S/F-output mot eksisterende dualmodell. Alle fem S- og fem
+  F-sidehoder hadde ikke-null gradient på kjente fasiter; M1-port og
+  topp/bunn-hode hadde også ikke-null gradient. Valgt batch hadde 16 fulle
+  fem-M1-baner og begge strukturfasiter observerte på 16/16 rader.
+  Korrigert strukturkilde ble samtidig målt på Fold2 TRAIN: 47 608 kjente
+  topputfall, 47 619 bunnutfall og 47 195 kjente parklasser. Den første
+  preflighten stoppet på manglende readonly-merke, ble rettet; en bestått
+  mellomliggende batch manglet D1-fasit og ble fulgt av en batch med kjent
+  S/F-side på alle fem TF. Eksakte kvitteringer og begrensninger:
+  `docs/TA_INTEGRATED_PHYSICAL_PREFLIGHT_REVIEW_20261116.json`.
+  Dette beviser numerisk kobling, ikke læring, ONLINE-levering eller Edge.
 
 ## Ikke gjort / faktisk hindring
 
@@ -439,12 +454,12 @@ Entry, TEST eller handel åpnes av denne presiseringen.
    og alle genuine indikatorfamilier beholdes. Den opt-in integrerte
    kildekandidaten binder nå `direct_tf_hidden`, fem egne S/F-sidehoder,
    fem-M1-banen og separate M5-strukturutganger. Ikke ommerk gamle
-   checkpoints. Kjør én faktisk, begrenset source-/forward-/gradient-
-   preflight på bundne TRAIN-inputs. Syntetisk PASS er ikke fysisk paritet.
+   checkpoints. Én faktisk bundet TRAIN-batch besto source-/forward-/
+   gradient-preflight; neste gate er én forhåndsbundet samlet tapsfunksjon
+   og kampanje. En batch beviser ikke læring eller senere gevinst.
 2. Bind nåtilstand og vending ærlig. `gather_current` er bare et
-   historisk, M1-avledet nåoppslag; det er ennå ikke input til TA-modellen
-   og erstatter ikke hele ordnede M1-banen. Fem-barers M1-M5-kilde er nå
-   fysisk kontrollert, men ennå ikke modellinput. Bred historisk Fold2-dekning
+   historisk, M1-avledet nåoppslag; den nye TA-modellen bruker fem lukkede
+   M1-barer på én fysisk TRAIN-batch, men ONLINE-levering er ennå ikke vist. Bred historisk Fold2-dekning
    er målt; arkivert `BASE28` og S-TRAIN-M1 har null verdi-/klokkeavvik
    på hele Fold2-fitaksen. Gjenbruk den eksakte M1-leseren og bevis faktisk
    ONLINE-levering/lukking før eventuell live modellkobling.

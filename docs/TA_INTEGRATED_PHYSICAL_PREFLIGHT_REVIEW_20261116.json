@@ -1,0 +1,98 @@
+{
+  "schema_version": "gx1_ta_integrated_physical_preflight_review_v1",
+  "decision": "PASS_ACTUAL_TRAIN_FORWARD_AND_ALL_FIVE_TF_SIDE_GRADIENTS_FIT_AND_EDGE_UNQUALIFIED",
+  "scope": {
+    "fold_id": 2,
+    "partition": "fit",
+    "issue_positions": [
+      36000,
+      36016
+    ],
+    "actual_rows": 16,
+    "one_batch_only": true,
+    "TEST_used": false
+  },
+  "source": {
+    "script": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/qualify_market_state_ta_integrated_preflight_v1.py",
+      "sha256": "9eabb9a9e719f98b27bd341ec52554bfdbd61aa3cbb821bdb54e895a7156ba04"
+    },
+    "commit": "5f597d42ff726209068fe872e3257ecb4f991d43",
+    "view_sha256": "8056fe96b4340bccc149da7f22dde85e4ac1b62c5e58c874ec7fbb771c1dff1a",
+    "model_contract_sha256": "70a0497b27ba0ab45277ba622443ab2fca36a448357f1ccb3158689193f8bc82"
+  },
+  "private_receipts": {
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_PREFLIGHT_20261116_003/CLAIM.json",
+      "sha256": "8c27ba5bbb221c5bd0fc6ede6e5fa2e5b772e2ffe2d6a61c1e8f90a6431c54d2"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_PREFLIGHT_20261116_003/RESULT.json",
+      "sha256": "78c03ae5b23d66a1d13213d34e884bb3a5839f67a8994bb2b565fb6b978e319d"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_PREFLIGHT_20261116_003/TERMINAL.json",
+      "sha256": "3c37186ca5dff75003ca01582dce8466527d4a61f8993574ab58dda586dbdbcf"
+    }
+  },
+  "observed": {
+    "rows": 16,
+    "model_forwards": 2,
+    "optimizer_constructions": 0,
+    "optimizer_steps": 0,
+    "checkpoint_reads": 0,
+    "M1_full_paths": 16,
+    "M1_observed_slots": 80,
+    "S_known_sides_by_tf": [
+      4,
+      3,
+      8,
+      10,
+      16
+    ],
+    "F_known_sides_by_tf": [
+      4,
+      6,
+      3,
+      12,
+      16
+    ],
+    "structure_high_observed_batch": 16,
+    "structure_low_observed_batch": 16,
+    "corrected_structure_full_fold_high_observed": 47608,
+    "corrected_structure_full_fold_low_observed": 47619,
+    "corrected_structure_full_fold_pair_class_known": 47195,
+    "S_F_M1_gate_nonzero_gradient_cells": 15360,
+    "S_side_head_nonzero_gradient_cells_by_tf": [
+      128,
+      128,
+      128,
+      128,
+      128
+    ],
+    "F_side_head_nonzero_gradient_cells_by_tf": [
+      128,
+      128,
+      128,
+      128,
+      128
+    ],
+    "structure_M1_gate_nonzero_gradient_cells": 3072,
+    "structure_head_nonzero_gradient_cells": 256
+  },
+  "validation": {
+    "zero_initialized_M1_gate_exact_S_F_baseline_parity": true,
+    "corrected_structure_maturity_used": true,
+    "no_training_or_checkpoint": true,
+    "source_unchanged": true,
+    "initial_failed_attempt": "TA_INTEGRATED_PREFLIGHT_20261116_001 stopped at readonly-parent binding; fixed without source-data modification",
+    "batch_002": "TA_INTEGRATED_PREFLIGHT_20261116_002 passed but had zero D1 known side targets; batch_003 selected from existing target masks to cover all five TF"
+  },
+  "limits": [
+    "One actual TRAIN batch validates path and gradients, not learning or generalization.",
+    "The S/F and structure losses were differentiated separately; their global training weights are not predeclared.",
+    "The corrected structure source replay has measured coverage but target choice and fit campaign remain unadmitted.",
+    "Archived M1 source parity is not live ONLINE bar closure/delivery.",
+    "No TEST, broker, order, paper/live trade or economic Edge was measured."
+  ]
+}
