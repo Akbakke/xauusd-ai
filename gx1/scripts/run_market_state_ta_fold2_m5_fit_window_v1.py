@@ -118,7 +118,7 @@ def fit_one_pass(*, model, optimizer, parent_rows: np.ndarray,
 
 
 def prepare_qualified_inputs(*, initial_plan_ref: dict, design: dict,
-                             device: torch.device) -> dict:
+                             device: torch.device, integrated_direct_tf: bool = False) -> dict:
     """Reconstruct the completed fold 2 INITIAL input path for one admitted fit."""
     import hashlib
     from pathlib import Path
@@ -129,6 +129,8 @@ def prepare_qualified_inputs(*, initial_plan_ref: dict, design: dict,
     )
     from gx1.contracts import entry_native_direction_feature_view_v1 as views
     from gx1.contracts.entry_anchor_span_feature_inputs_v1 import build_anchor_span_inputs
+    from gx1.contracts.entry_anchor_span_feature_view_v1 import bind_anchor_span_feature_view
+    from gx1.contracts.market_state_ta_decoder_view_rebind_v1 import rebind_decoder_only
     from gx1.contracts.entry_exit_feature_surface_v1 import load_m1_feature_surface_times
     from gx1.contracts.entry_model_native_input_normalization_v1 import (
         project_ta_input_normalization_contract,
@@ -163,10 +165,23 @@ def prepare_qualified_inputs(*, initial_plan_ref: dict, design: dict,
           and later_gather['counts']['parent_rows'] == 4096
           and not any(x['test_data_used'] for x in (train_gather, later_gather, later_result)),
           'QUALIFIED_INPUTS')
-    view, packet = read(inputs['view']), read(inputs['packet'])
+    old_view, packet = read(inputs['view']), read(inputs['packet'])
     normalization, constructor, priors = [read(inputs[key])
                                           for key in ('normalization', 'constructor', 'priors')]
-    _need(view['contract_sha256'] == VIEW_SHA256
+    _need(type(integrated_direct_tf) is bool and old_view['contract_sha256'] == VIEW_SHA256,
+          'ORIGINAL_VIEW')
+    view = (bind_anchor_span_feature_view(
+        prefix_normalization=packet, prefix_normalization_ref=inputs['packet'],
+        constructor_metadata=constructor, constructor_metadata_ref=inputs['constructor'],
+        source_bindings=old_view['source_bindings'], max_batch_rows=old_view['max_batch_rows'],
+        unobserved_units_profile=None, full_feature_profile=True,
+        full_ta_feature_profile=True, market_state_time_query_v2=True,
+        dedicated_m5_side=True, dedicated_non_m5_side=True,
+        dedicated_tf_activity=True, direct_tf_hidden=True)
+        if integrated_direct_tf else old_view)
+    _need(view['contract_sha256'] == (
+          '8056fe96b4340bccc149da7f22dde85e4ac1b62c5e58c874ec7fbb771c1dff1a'
+          if integrated_direct_tf else VIEW_SHA256)
           and view['prefix']['rows'] == TRAIN_ROWS
           and view['dedicated_m5_side'] is view['dedicated_tf_activity'] is True
           and view['full_ta_feature_profile'] is True
@@ -227,8 +242,8 @@ def prepare_qualified_inputs(*, initial_plan_ref: dict, design: dict,
             _need(ref(binding['path']) == binding, 'SIDECAR_' + lane)
             with np.load(binding['path'], allow_pickle=False) as archive:
                 payloads[lane] = {key: archive[key] for key in archive.files}
-        return build_anchor_span_inputs(
-            view, entry_sequence_source=seq, snap_x=current['snap'],
+        original = build_anchor_span_inputs(
+            old_view, entry_sequence_source=seq, snap_x=current['snap'],
             ctx_cont=current['ctx_cont'], ctx_cat=current['ctx_cat'],
             parent_signal_names=names['signal']['field_names'],
             parent_mtf_names=names['mtf_m5']['field_names'],
@@ -238,6 +253,8 @@ def prepare_qualified_inputs(*, initial_plan_ref: dict, design: dict,
                                   {lane: x['population'] for lane, x in result['surfaces'].items()}),
             unobserved_units_profile=None,
             **({'later_coverage': coverage, 'later_axes': axes} if later else {}))
+        return (rebind_decoder_only(old_view, view, original)
+                if integrated_direct_tf else original)
 
     overlays = {'TRAIN': overlay(train_result, later=False),
                 'LATER': overlay(later_result, later=True)}
