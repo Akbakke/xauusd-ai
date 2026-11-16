@@ -8,7 +8,7 @@ from pathlib import Path
 import subprocess
 
 REPO = Path('/home/andre2/src/GX1_CURRENT')
-ROOT = Path('/home/andre2/GX1_RUNS/TA_INTEGRATED_PREFLIGHT_20261116_001')
+ROOT = Path('/home/andre2/GX1_RUNS/TA_INTEGRATED_PREFLIGHT_20261116_002')
 TRAIN = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001')
 LATER = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_002')
 TF = ('M5', 'M15', 'H1', 'H4', 'D1')
@@ -115,6 +115,9 @@ def main():
         positions = np.searchsorted(times, axes['bar_start_ns']).astype(np.int64)
         need(np.all(positions < len(times))
              and np.array_equal(times[positions], axes['bar_start_ns']), 'LOCAL_CLOCK')
+        for array in (*axes.values(), times, positions, source['signal'],
+                      current['snap'], current['ctx_cont'], current['ctx_cat']):
+            array.setflags(write=False)
         seq = dict(signal=source['signal'], times_ns=times,
                    sample_positions=positions, audit=info['audit'])
         values, clocks, payloads = {}, {}, {}
