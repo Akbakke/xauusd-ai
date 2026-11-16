@@ -138,6 +138,28 @@ def test_endpoint_global_denominators_are_independent_of_unequal_batch_support()
     assert whole['scores']['model']['future']['M5']['conditional_side']['count'] == 1
 
 
+def test_endpoint_measurement_binds_direct_five_tf_decoder_contract():
+    raw = np.zeros((4, 5, 2), dtype=np.float32)
+    bits = np.full((4, 5), 4, dtype=np.uint8)
+    parent = np.arange(4, dtype=np.int64)
+    issue = state.TRAIN_START_NS + (parent + 2) * state.M5_NS
+    valid = issue[:, None] + np.asarray(state.LEAD_MINUTES)[None, :] * state.MINUTE_NS
+    truth = {'parent_rows': parent, 'issue_ns': issue, 'validity_ns': valid,
+             'allowed': bits, 'eligible': np.ones((4, 5), dtype=bool),
+             'mature': np.ones((4, 5), dtype=bool)}
+    measured = objective.endpoint_measurement_sums(
+        state_raw=raw, future_raw=raw, state_truth=truth, future_truth=truth,
+        parent_rows=parent, issue_ns=issue, fold_id=1, partition='fit',
+        future_weight=1.0, model_contract_sha256='integrated',
+        feature_view_sha256='direct', ta_only=True, dedicated_m5_side=True,
+        dedicated_non_m5_side=True, dedicated_tf_activity=True,
+        direct_tf_hidden=True, m5_equal_observation=True)
+    assert measured['loss_contract_sha256'] == objective.contract(
+        ta_only=True, dedicated_m5_side=True, dedicated_non_m5_side=True,
+        dedicated_tf_activity=True, direct_tf_hidden=True,
+        m5_equal_observation=True, fold_id=1)['contract_sha256']
+
+
 def test_endpoint_priors_are_frozen_on_exact_mature_fit_and_masks_survive():
     import pytest
     endpoints, future = _endpoint_fixture()

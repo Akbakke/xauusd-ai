@@ -388,7 +388,11 @@ def endpoint_measurement_sums(*, state_raw: np.ndarray, future_raw: np.ndarray,
                               fold_id: int, partition: str, future_weight: float,
                               model_contract_sha256: str, feature_view_sha256: str,
                               frozen_priors: dict | None = None, ta_only: bool = False,
-                              dedicated_m5_side: bool = False, shared_m5_side: bool = False) -> dict:
+                              dedicated_m5_side: bool = False, shared_m5_side: bool = False,
+                              dedicated_non_m5_side: bool = False,
+                              dedicated_tf_activity: bool = False,
+                              direct_tf_hidden: bool = False,
+                              m5_equal_observation: bool = False) -> dict:
     """Additive endpoint sufficient statistics; never average minibatch losses."""
     if not (type(fold_id) is int and 1 <= fold_id <= 5 and partition in ('fit', 'score')
             and type(future_weight) is float and np.isfinite(future_weight)
@@ -430,7 +434,12 @@ def endpoint_measurement_sums(*, state_raw: np.ndarray, future_raw: np.ndarray,
         'rows': len(parent_rows), 'fold_id': fold_id, 'partition': partition,
         'future_weight': future_weight, 'native_query_k': list(NATIVE_K),
         'loss_contract_sha256': contract(ta_only=ta_only, dedicated_m5_side=dedicated_m5_side,
-                                        shared_m5_side=shared_m5_side)['contract_sha256'],
+                                        shared_m5_side=shared_m5_side,
+                                        dedicated_non_m5_side=dedicated_non_m5_side,
+                                        dedicated_tf_activity=dedicated_tf_activity,
+                                        direct_tf_hidden=direct_tf_hidden,
+                                        m5_equal_observation=m5_equal_observation,
+                                        fold_id=fold_id)['contract_sha256'],
         'model_contract_sha256': model_contract_sha256,
         'feature_view_sha256': feature_view_sha256,
         'frozen_prior_contract_sha256': prior_sha,
