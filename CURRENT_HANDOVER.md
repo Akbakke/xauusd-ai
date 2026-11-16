@@ -523,7 +523,8 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
 
 Den avsluttede fit002-lesningen er bundet i
 `docs/TA_INTEGRATED_FOLD2_FIT_002_RESULT_REVIEW_20261116.json` (SHA256
-`08c6dbfc0725a1468bdeb809c88aa3faa8e7c34a0f4345699ebd7cbd1cef5b30`). Senere S/F-side-Brier var dårligere enn fryst TRAIN-prior
+`445ac6163ee81ae112c59b7210643af44845cd90d10e24c6d6bfe9bd919aaf03`).
+Senere S/F-side-Brier var dårligere enn fryst TRAIN-prior
 i 10/10 TF-/oppgaveceller; treklasse-Brier var også dårligere i 10/10.
 Struktur topp/bunn slo prior med AUC 0,7945/0,7834, men M5-vending på
 531 kjente nabopar fikk AUC 0,4535. F-hodene er fysisk separate, men
@@ -531,6 +532,18 @@ deres retningsoutput er fortsatt sterkt korrelert. Strukturfasiten gjelder
 neste bekreftede pivot (median 9 M5-barer til bekreftelse), ikke neste
 M5-vending. Kilden beviser dette målskillet; den eksakte årsaken til
 svak sidelæring er fortsatt uisolert. Senere panel er gjenbrukt utvikling.
+
+En lesende TRAIN-kontroll av samme låste modell og mål viste M5-vendings-AUC
+0,4656 på 551 kjente nabopar (INITIAL 0,4625). Hele fit-populasjonen har
+6 746 eksakte kjente M5-sidepar, hvor 3 547 skifter; alle de aktuelle
+M5-beslutningene hadde komplett lukket M1-bane. S fikk native kjent
+sidefasit på M5 16 101, M15 6 112, H1 1 488, H4 340 og D1 bare 37
+rader. F hadde minst 15 148 kjente native sider per TF, men outputene
+forble sterkt korrelerte. Dette er to ulike hindringer: sparsom native
+S-eksponering på høyere TF og F-kollaps tross dekning. En ekstra
+vendings-BCE på samme M5-sidelogit er algebraisk bare omvekting av
+rader med kjent nåside, ikke ny informasjon eller en begrunnelse for
+et nytt hode. Ingen ny trening eller VAL-utvelgelse fulgte.
 
 Det målte problemet er svake M5-vendinger og utilstrekkelige selvstendige
 fem-TF-retninger. M5-only-fitten gir begrenset senere S-rangering, men
@@ -557,9 +570,10 @@ Entry, TEST eller handel åpnes av denne presiseringen.
 
 ## Neste steg
 
-1. Bruk bare TRAIN og eksisterende kvitteringer til å kontrollere klokke,
-   kjent-side-dekning og tapsfordeling for et direkte M5-vendingsmål.
-   Ikke velg ny modell etter det gjenbrukte januar–mars-panelet.
+1. Kvalifiser på TRAIN en S-plan som faktisk gir native sidefasit på
+   alle fem TF, og isoler F-kollaps i taps-/representasjonsstien. Bruk
+   de 6 746 kjente M5-naboparene uten nytt vendingshode. Ikke velg
+   ny modell etter det gjenbrukte januar–mars-panelet.
 2. Bind deretter én eksakt kronologisk OOF-/forward-plan bare hvis
    mål og observerbarhet er kvalifisert. Økonomisk Edge krever senere
    forhåndsbundet kostet Entry og alle valgte/åpne posisjoner.

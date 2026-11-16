@@ -599,7 +599,7 @@
     "interpretation": "High/low level hits at a later confirmed pivot are not the next-bar M5 state switch."
   },
   "conclusion": {
-    "measured": "Structure high/low learned on fixed TRAIN and reused later panels; activity Brier improves in seven of ten later task/TF cells. Every later conditional-side and three-class Brier is worse than the frozen TRAIN prior. Final M5 turn AUC is below 0.5 on 531 known pairs; F outputs remain highly correlated across TF despite physically distinct heads.",
+    "measured": "Structure high/low learned on fixed TRAIN and reused later panels; activity Brier improves in seven of ten later task/TF cells. Every later conditional-side and three-class Brier is worse than the frozen TRAIN prior. Final M5 turn AUC is below 0.5 on 531 known pairs; F outputs remain highly correlated across TF despite physically distinct heads. Fixed TRAIN M5 turn AUC is 0.4656 on 551 known pairs; full TRAIN has 6746 exact adjacent known pairs and 3547 turns. S native H4/D1 side supervision is sparse, while F native supervision is not.",
     "source_proven": "The integrated model routes five post-attention TF vectors to distinct S and F side heads; the high/low structure target is a separate future confirmed-pivot event.",
     "not_established": [
       "M5 turning skill",
@@ -612,5 +612,90 @@
   "training_enabled": false,
   "economic_edge_proven": false,
   "test_data_used": false,
-  "next_boundary": "Do not select another model on this reused Jan-Mar panel. Review TRAIN-only target/turn timing and side coverage, then bind any new chronological OOF and forward confirmation before economic claims; Full GC and training remain closed."
+  "next_boundary": "Do not add a separate turn head or select another model on reused Jan-Mar development. Qualify a native S schedule across all TF and inspect F side optimization/representation on TRAIN; direct M5 turn support is 6746 exact known pairs. Any later fit requires a new exact chronological OOF plan. Full GC, training, TEST and trading remain closed.",
+  "additional_train_and_query_diagnosis": {
+    "class": "TRAIN_and_source_only_no_new_fit",
+    "input_ref": {
+      "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_INPUTS_20261116_001/INPUTS.npz",
+      "sha256": "00300177b925facce71824ec08f91129496340106ab4d3541f94789639607b89",
+      "bytes": 3427305
+    },
+    "target_count_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_TARGET_COUNTS_20261113_001/RESULT.json",
+      "sha256": "ba50eb96f1a663ec8829554d67364d03a2a9cc642a4807554f614a47af645131"
+    },
+    "full_fit_M1_complete_paths": 47124,
+    "full_fit_S_native_query_exposure": {
+      "M5": {
+        "native_k": 1,
+        "sampled_native_rows": 47338,
+        "known_side_native_rows": 16101,
+        "known_side_any_sampled_query_rows": 16101
+      },
+      "M15": {
+        "native_k": 3,
+        "sampled_native_rows": 15812,
+        "known_side_native_rows": 6112,
+        "known_side_any_sampled_query_rows": 18237
+      },
+      "H1": {
+        "native_k": 12,
+        "sampled_native_rows": 3887,
+        "known_side_native_rows": 1488,
+        "known_side_any_sampled_query_rows": 17964
+      },
+      "H4": {
+        "native_k": 48,
+        "sampled_native_rows": 925,
+        "known_side_native_rows": 340,
+        "known_side_any_sampled_query_rows": 18690
+      },
+      "D1": {
+        "native_k": 288,
+        "sampled_native_rows": 167,
+        "known_side_native_rows": 37,
+        "known_side_any_sampled_query_rows": 13490
+      }
+    },
+    "full_fit_F_native_known_side_rows": {
+      "M5": 19072,
+      "M15": 17483,
+      "H1": 16552,
+      "H4": 16278,
+      "D1": 15148
+    },
+    "full_fit_exact_native_M5_turn_support": {
+      "fit_rows": 47338,
+      "exact_adjacent_issue_pairs": 47156,
+      "known_native_M5_S_side_pairs": 6746,
+      "actual_side_switches": 3547,
+      "current_issue_complete_M1_path_pairs": 6746,
+      "both_issue_complete_M1_path_pairs": 6735
+    },
+    "fixed_spread_TRAIN_M5_turn": {
+      "INITIAL": {
+        "known_pair_count": 551,
+        "actual_switch_count": 271,
+        "switch_probability_auc": 0.4624934106483922,
+        "switch_probability_brier": 0.2599845032387087,
+        "predicted_switch_count": 278,
+        "true_positive_switch_count": 126
+      },
+      "FINAL": {
+        "known_pair_count": 551,
+        "actual_switch_count": 271,
+        "switch_probability_auc": 0.46564312071692143,
+        "switch_probability_brier": 0.25638886569010494,
+        "predicted_switch_count": 325,
+        "true_positive_switch_count": 153
+      }
+    },
+    "direct_turn_BCE_identity": "For known current side c and next side y, t=y XOR c and p_turn=p_up if c=DOWN else 1-p_up. BCE(t,p_turn)=BCE(y,p_up). An added turn BCE on the same side logit only reweights the known-current subset; it does not add a new target signal.",
+    "interpretation": [
+      "M5 native S k1 was trained on every row, yet final M5 turn ranking is below 0.5 even on fixed TRAIN rows. This is not solely a later-panel transfer failure.",
+      "S native endpoint supervision is sparse at H4 and D1; exact native k appears on 925/167 rows, with known side on 340/37. Nearby sampled k may transfer, so this is a measured exposure gap, not a proven sole cause.",
+      "F uses fixed native endpoints and has 15148-19072 known-side TRAIN rows by TF, yet its final TF outputs are highly correlated. F collapse therefore cannot be attributed to sparse native query sampling.",
+      "Structure high/low is observed on more than 47188/47338 rows, while native M5 S side is certified on 16101/47338. The turn-pair mask is narrower despite complete causal M1 paths on every current issue in the known pairs."
+    ]
+  }
 }
