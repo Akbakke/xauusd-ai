@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-FOLD2_S_FULL_FIT_003_COMPLETE_PRIMARY_REJECTED_EDGE_UNQUALIFIED.
+TA_S_FIVE_TF_READOUT_001_COMPLETE_M5_REJECTED_EDGE_UNQUALIFIED.
 Fold2 S-only full-GC 25-cellers engangsplan er fullført og konsumert.
 training_enabled=false, native_training_enabled=false og
 full_epoch_training_allowed=false. Full GC er ifølge operatøren pauset
@@ -19,8 +19,8 @@ Brukeren innrømmet 16.11 én ikke-GC S CPU-lesning på låste opptak.
 Syntetisk preflight under 4G/512M besto. Den ene kjøringen avsluttet
 med terminal exit 0: 10 faste CPU-lesninger, fire arkivdekoder og null
 modell-forwards/optimizersteg. Engangsgaten er konsumert og stengt.
-Resultatskåringen gjennomgås før konklusjon; ingen native trening, Full GC,
-TEST, broker eller handel er åpnet.
+Etterkontrollen er fullført: ingen M5 side- eller vendingsgevinst er kvalifisert.
+Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
 
 ## Gjort og kontrollert
 
@@ -151,6 +151,21 @@ TEST, broker eller handel er åpnet.
   fortegnet på én isolert femminutters avkastning; høy skifteandel alene
   avdekker derfor ingen målklokkefeil.
 
+- Den særskilt innrømmede ikke-GC S-lesningen på beholdte 4 096 TRAIN /
+  4 096 senere rader er konsumert (10 faste lineære CPU-fits, 6,17 s,
+  fire arkivdekoder, null native forwards/oppdateringer). Alle fem TF og
+  native M5-vendinger er målt. M5 før pooling ga senere side-AUC 0,507714
+  og Brier 0,256642, mot native AUC 0,534733/Brier 0,253292 og fryst
+  TRAIN-prior Brier 0,250640. Forverringen mot prior har dag-/ukeintervall
+  over null. På 556 sertifiserte M5-par var skifte-AUC 0,543363; nivå- og
+  parvise gevinstintervaller omfatter 0,5/null. Faktisk treklasse-M5 traff
+  710/1 414 kjente sider mot native 749/1 414 og valgte aldri FLAT.
+  M15 før pooling slo de svake decoderne relativt i AUC, men slo ikke fryst
+  prior i Brier eller sikkert i absolutt AUC. Lineær før-pooling-lesning
+  er dermed forkastet som M5-reparasjon; dette avviser ikke mulig ikke-lineær
+  indikatorinformasjon. Fullt aggregat, alle TF/konflikter og grenser står i
+  docs/TA_S_FIVE_TF_FROZEN_REPRESENTATION_RESULT_REVIEW_20261116.json.
+
 ## Ikke gjort / faktisk hindring
 
 Det målte problemet er at boten lærer aktivitet og felles retningsnivå, men
@@ -186,13 +201,11 @@ Entry, TEST eller handel åpnes av denne presiseringen.
    mot fryst referanse og faktisk vendingsdiskriminering før mer trening.
    Senere kronologisk generalisering og alle valgte/åpne posisjoners økonomi
    trengs før Edge. TEST, broker og handel er fortsatt stengt.
-4. Én avgrenset, uinnrømmet ikke-GC S-kontroll er konkretisert i
-   docs/TA_S_FIVE_TF_FROZEN_REPRESENTATION_READOUT_PROPOSAL_20261116.json:
-   10 faste lineære CPU-lesninger på beholdte 4 096 TRAIN/4 096 senere rader,
-   prepool mot felles representasjon, native svar og fryst TRAIN-prior.
-   Alle fem TF og faktisk treklasse-/M5-vendingsutfall rapporteres. Ingen
-   kildeendring, modellkjøring eller fit er åpnet av forslaget; ny særskilt
-   engangsinnrømmelse kreves.
+4. Den innrømmede S-lesningen er fullført, gjennomgått og konsumert.
+   Ikke relanser eller lag flere lineære decoder-runder på samme panel.
+   Før-pooling alene ga ingen M5-reparasjon mot fryst prior eller native.
+   Neste læringssteg må være særskilt innrømmet, kildekausalt og målt på
+   faktisk M5-beslutning og selvstendige fem-TF-retninger.
 
 Opprydding: historiske overleveringsavsnitt er fjernet her og bevart i Git.
 Ingen Python-fil er slettet; gjeldende referanse-, import-, test- og

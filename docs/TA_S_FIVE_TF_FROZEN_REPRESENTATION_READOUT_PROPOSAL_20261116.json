@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_ta_s_five_tf_frozen_representation_readout_proposal_v1",
-  "status": "PREPARED_UNADMITTED_NO_EXECUTION",
+  "status": "COMPLETE_CONSUMED_NO_M5_RESCUE",
   "question": "Does the already frozen non-GC TA representation contain linearly accessible S-side information for M5 and the other four timeframes that the native side decoder fails to use?",
   "hypothesis": "A per-TF pre-pooling representation may retain S direction information lost or inaccessible at the shared hidden/native decoder boundary. This is a representation-accessibility diagnostic, not a new Entry model or Edge test.",
   "captures": {
@@ -120,5 +120,19 @@
         "UP": 690
       }
     }
+  },
+  "outcome": {
+    "source_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_S_FIVE_TF_READOUT_20261116_001/RESULT.json",
+      "sha256": "d54a90b271fa4af5bb19ff283d03d3d3246c620db093fe6a77167fb0e252ba17"
+    },
+    "independent_review": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_S_FIVE_TF_READOUT_20261116_001/REVIEW.json",
+      "sha256": "7075c2c117ee046ebc58fa6324da592c69b8858fc8287b9ee02749f492046e62"
+    },
+    "repository_review": "docs/TA_S_FIVE_TF_FROZEN_REPRESENTATION_RESULT_REVIEW_20261116.json",
+    "relaunch_allowed": false,
+    "training_enabled_after_run": false,
+    "edge_proven": false
   }
 }
