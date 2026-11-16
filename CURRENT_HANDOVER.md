@@ -176,8 +176,15 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   M5-S ved eksakt beslutningsklokke kan historisk bygges fra lukket M1 og
   tilgjengelig ATR. I opptaket har 1 319 rader både kjent framtidsside og
   eksakt forrige M5-issue; nåsiden er kjent i bare 556, FLAT i 33 og aktiv
-  med ukjent side i 730. De 556 kjente parene har 293 faktiske skifter.
-  ONLINE-paritet er ikke vist. Ingen ny fit eller modellkjøring ble utført.
+  med ukjent side i 730. De 556 kjente parene har 293 faktiske skifter. En lesende, etterpå-
+  undersøkt parvis UTC-dag-bootstrap på de samme hashbundne logittene
+  (2 000 trekk, seed 20261116) gir native skifte-AUC 0,527193 mot fryst
+  TRAIN-prior 0,522671; differanse 95 % [-0,041848, 0,050085]. Native
+  skifte-Brier er 0,253117 mot prior 0,249460; differanse 95 %
+  [-0,003979, 0,011750]. Begge intervaller omfatter null. Dette gjenskaper
+  rapportens punktmål og viser at innen-dag AUC 0,573465 ikke dokumenterer
+  bedre skiftevarsel. ONLINE-paritet er ikke vist. Ingen ny fit, native
+  forward eller modelloppdatering ble utført.
 
 - Direkte kilde- og outputkontroll skiller to problemer. I den låste
   full-prefix TA-modellen har M5 eget sidehode; M15/H1/H4/D1 deler ett
