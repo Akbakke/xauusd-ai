@@ -10,7 +10,8 @@ finnes i Git.
 FOLD2_S_FULL_FIT_003_COMPLETE_PRIMARY_REJECTED_EDGE_UNQUALIFIED.
 Fold2 S-only full-GC 25-cellers engangsplan er fullført og konsumert.
 training_enabled=false, native_training_enabled=false og
-full_epoch_training_allowed=false. Windows-oppgaven
+full_epoch_training_allowed=false. Full GC er ifølge operatøren pauset
+inntil videre (bekreftet 16.11). Windows-oppgaven
 GX1RandomAccessCampaignV2 er deaktivert. Ingen relansering, ny modellfit,
 TEST, Entry/Exit, broker eller handel er innrømmet.
 
@@ -82,25 +83,26 @@ forårsaker mest skade er ennå ikke isolert. S-fasiten er fem marginale
 framtidstilstander per TF, ikke direkte vendetid eller kostet Entry.
 Individuell indikatornytte, generalisering og økonomisk Edge er ubevist.
 
-Operatørpresisering 16.11: M5 er prognosens brennpunkt og senere Entry-klokke.
-M5, M15, H1, H4 og D1 skal hver ha sin egen målte retning/tilstand; andre
-tidsrammer understøtter M5 med kausalt lukket kontekst. Uenighet mellom
-tidsrammer er et gyldig utfall, ikke en modellfeil. Fem output-plasser er
-utilstrekkelig når de i praksis gir samme retningssvar. Den nåværende
-full-GC-kjøringen oppfyller ikke dette funksjonelle kravet. Dette vedtaket
-åpner ikke trening, Entry, TEST eller handel.
+M5 som prognose-/beslutningspunkt er allerede fastlagt i GX1_RULES.md
+(18.10/06.11); det er ikke en ny designbeslutning. Brukeren presiserte
+16.11 at M5, M15, H1, H4 og D1 hver skal ha egen målt retning/tilstand,
+mens øvrige tidsrammer understøtter M5 med kausalt lukket kontekst.
+Uenighet mellom tidsrammer er gyldig. Den avsluttede full-GC Fold2-fitten
+hadde fem output-plasser, men nesten samme retningssvar på alle TF og
+oppfylte ikke funksjonskravet. Full GC er nå pauset; historiske målinger
+beholdes uten ny GC-diagnose, kildeendring eller kjøring. Ingen trening,
+Entry, TEST eller handel åpnes av denne presiseringen.
 
 ## Neste steg
 
 1. Plan003 er konsumert og full-GC S-hypotesen forkastet. Operatøren har
    trukket den uinnrømmede 30-epokers memoriseringsdiagnosen; ingen trening
    åpnes av dette arbeidet.
-2. Bind én separat, etterprøvbar retningsprognose for hver av de fem TF,
-   med M5 som brennpunkt og de fire øvrige som målt, kausal kontekst.
-   Bruk lagrede checkpoint/score til å avgrense hvorfor dagens delte
-   dekoder ikke skiller TF; vurder minste endring i eksisterende hode-/tapsti.
-   Mål både kvalitet per TF og om konteksten faktisk hjelper M5. Ingen bred
-   arkitekturendring eller gjentatt modellrunde uten en målt blokkering.
+2. Respekter Full GC-pausen. Bruk eksisterende, allerede målte ikke-GC-
+   resultater til å avgrense M5-retning og de fire øvrige TF-retningene uten
+   ny modellkjøring. M5 er det etablerte beslutningspunktet; mål om de
+   separate TF-prognosene faktisk tilfører M5 verdi før en kildeendring.
+   Ingen Full GC-kode, checkpointdiagnose eller ny full-GC-hypotese nå.
 3. En senere særskilt innrømmet, kort matchet kontroll må vise både M5-side
    mot fryst referanse og faktisk vendingsdiskriminering før mer trening.
    Senere kronologisk generalisering og alle valgte/åpne posisjoners økonomi
