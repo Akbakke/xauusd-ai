@@ -1,0 +1,94 @@
+{
+  "schema_version": "gx1_ta_m5_structure_fold2_readonly_plan_v1",
+  "stage": "ta_m5_structure_fold2_audit_20261116_001",
+  "status": "PREPARED_NOT_ADMITTED",
+  "purpose": "Measure causal next confirmed M5 high/low coverage and level tests on Fold2 TRAIN only; source diagnostic, not target selection or model fit.",
+  "input": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/M5_ENRICHED.parquet",
+    "sha256_expected_from_manifest": "5e5cb256fc60a5e9a7ffe1a161aa875660f01806b8e8de2bf601fc2f528e7f99",
+    "manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/M5_ENRICHED.parquet.manifest.json",
+      "sha256": "d1c0f94bcfa7c837143b287fc8a4355e3ea564cffcbae2d96c53c64e7bb62de6"
+    },
+    "row_groups_inclusive": [
+      241,
+      252
+    ],
+    "row_group_252_contains_later_development_rows": "read for Parquet row-group access; discard all rows at or after 2025-01-01 before replay; no TEST rows"
+  },
+  "closure_authority": {
+    "path": "/home/andre2/GX1_RUNS/FULL_TRAIN_XAU_CLOSURE_AUTHORITY_20261107_001/closure_authority.json",
+    "sha256": "4fcde066583cef98fd1fcd8a748c4544b4f11eb5be8fbf2705159fc3b1bfe978",
+    "known_market_closure_count": 413,
+    "unknown_source_gap_count": 95,
+    "rule": "only successor_across_gap_allowed intervals may bridge an exact fully contained missing-M5 interval"
+  },
+  "source_owners": {
+    "candidate": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/measure_ta_m5_structure_candidate_v1.py",
+      "sha256": "098d7695e93824e0d8b6c114533f565c3c23f08c6c675ef02cd8ef174c85f2b5"
+    },
+    "smc": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/smc_v1.py",
+      "sha256": "56b9fe479e1cdb7dc524179b65e585d890cdd2fef128d47a6cada00692b94d9a"
+    },
+    "capped_runner": {
+      "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_capped_run.sh",
+      "sha256": "3c9d608574be3755e0e3d63d2617a01612d65dbaf61b26b76765262a5a2abc4c"
+    },
+    "worker": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/run_ta_m5_structure_fold2_readonly_v1.py",
+      "sha256": "92d4061793192a87c8969630d7ca37f72c6b146d5695b12afa740642caae6e02"
+    },
+    "capped_contract": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/gx1_capped_execution_v1.py",
+      "sha256": "60b1ccf2eda470a84ddded0d8160c628314ebb19f5766b87b70fef7c9aa3ccff"
+    }
+  },
+  "scope": {
+    "issue_start_utc": "2024-05-01T00:00:00Z",
+    "fold_target_end_utc_exclusive": "2025-01-01T00:00:00Z",
+    "warmup_from_row_group": 241,
+    "timeframe": "M5",
+    "source_columns": [
+      "time",
+      "high",
+      "low",
+      "close",
+      "atr"
+    ],
+    "test_data_used": false,
+    "all_observed_closed_m5_issues_in_scope": true
+  },
+  "limits": {
+    "one_use": true,
+    "class": "audit",
+    "memory_max": "4G",
+    "swap_max": "512M",
+    "wall_seconds": 900,
+    "gpu": false,
+    "model_forwards": 0,
+    "optimizer_steps": 0,
+    "no_restart_on_failure": true
+  },
+  "report": {
+    "private_output_root": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001",
+    "aggregate": [
+      "issue_count",
+      "known_closure_and_unknown_gap_counts",
+      "atr_and_frozen_level_coverage",
+      "next_pivot_coverage_and_confirmation_delay",
+      "pair_class_counts",
+      "level_hit_wick_reject_close_break_counts",
+      "same_pivot_bar_count",
+      "monthly_coverage"
+    ],
+    "private_examples": "bounded actual M5 cases; not pushed",
+    "private_examples_max": 8
+  },
+  "target_locked": false,
+  "execution_authorized": false,
+  "model_fits_authorized": false,
+  "test_data_used": false,
+  "economic_edge_proven": false
+}

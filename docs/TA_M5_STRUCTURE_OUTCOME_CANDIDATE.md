@@ -40,9 +40,12 @@ og størrelse/varighet; ikke lag en hard UP/DOWN-etikett av blandede par.
 
 ## Sensur og kontroll før modell
 
-Kildegap mellom fryst nivås bekreftelse og beslutning, kildegap etter
-beslutning, ufullstendig bekreftelsesvindu og TRAIN-foldens målgrense
-sensurerer berørt komponent. Manglende neste pivot er ikke «ingen treff»
+Ukjente M5-klokkebrudd mellom fryst nivås bekreftelse og beslutning eller
+etter beslutning, ufullstendig bekreftelsesvindu og TRAIN-foldens målgrense
+sensurerer berørt komponent. En markedsstengning kan bare passeres når hele
+intervallet med manglende M5-barstarter ligger i en eksisterende, eksakt
+verifisert lukningsautoritet; ellers sensureres bruddet. ATR-, frystnivå-
+og framtidspivotmasker beholdes separat. Manglende neste pivot er ikke «ingen treff»
 eller FLAT. Ingen maksimal holdetid eller resultatutvalgt ATR-terskel
 innføres. Lesende TRAIN-kontroll må vise dekning, modningstid, klasse-
 fordeling, samtidige treff og eksempler på faktiske M5-forløp før dette

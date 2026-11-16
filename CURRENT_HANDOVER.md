@@ -361,15 +361,24 @@ Entry, TEST eller handel åpnes av denne presiseringen.
    docs/TA_M5_STRUCTURE_OUTCOME_CANDIDATE.md. Den binder nivåidentitet,
    pivotens tre lukkede bekreftelsesbarer, nivåtreff/brudd/avvisning og
    sensur ved M5-klokkebrudd/foldgrense, uten å omdøpe dette til S eller F.
+   Eksakte dokumenterte markedsstengninger kan nå passeres bare ved full
+   intervallinneslutning; øvrige M5-klokkebrudd forblir ukjente.
    Kildekandidaten er implementert i
-   gx1/audit/measure_ta_m5_structure_candidate_v1.py og sju fokuserte
+   gx1/audit/measure_ta_m5_structure_candidate_v1.py og åtte fokuserte
    syntetiske tester består. En konkret sensurfeil mellom bekreftet fryst
    nivå og M5-beslutningen ble rettet før denne overleveringen; bar på
    den eksklusive foldgrensen avvises. Dette er ingen fysisk TRAIN-kontroll:
    dekning, modning og faktiske forløp er fortsatt ukjent. Kandidaten er
    ikke låst target, innrømmet kjøring eller modellfit. Neste nødvendige
-   kontroll er én avgrenset TRAIN-måling før eventuell supervisjon; ikke
-   fyll bit5 med oppdiktet side. Ingen Full
+   kontroll er den forberedte engangsplanen
+   configs/research/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001.json:
+   Fold2 TRAIN M5, eksklusiv grense 01.01.2025, 4G/512M/900s,
+   lesende aggregater og høyst åtte private eksempler. Låst leserute
+   gx1/audit/run_ta_m5_structure_fold2_readonly_v1.py kan bare preflighte
+   uten innrømmelse; ingen prislesing før særskilt policygate og kapsling.
+   Planen er ikke innrømmet;
+   execution_authorized=false, ingen prisrader er lest i denne bølgen.
+   Ikke fyll bit5 med oppdiktet side. Ingen Full
    GC-kode, checkpointdiagnose eller ny full-GC-hypotese nå.
 3. En senere særskilt innrømmet, kort matchet kontroll må vise både M5-side
    mot fryst referanse og faktisk vendingsdiskriminering før mer trening.

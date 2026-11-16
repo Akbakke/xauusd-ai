@@ -30,6 +30,21 @@ def _new_pivots(last_index: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     return pivot, confirmation
 
 
+def _classify_clock_breaks(time: np.ndarray, closures: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Return exact-closure and unknown break masks on consecutive M5 rows."""
+    raw = np.diff(time) != M5_NS
+    known = np.zeros(len(raw), dtype=bool)
+    break_rows = np.flatnonzero(raw)
+    if len(closures) and len(break_rows):
+        missing_start = time[break_rows] + M5_NS
+        position = np.searchsorted(closures[:, 0], missing_start, side="right") - 1
+        safe = np.maximum(position, 0)
+        certified = ((position >= 0) & (missing_start >= closures[safe, 0])
+                     & (time[break_rows + 1] <= closures[safe, 1]))
+        known[break_rows[certified]] = True
+    return known, raw & ~known
+
+
 def measure_candidate(
     closed_ns: np.ndarray,
     high: np.ndarray,
@@ -39,12 +54,15 @@ def measure_candidate(
     issue_rows: np.ndarray,
     *,
     fold_target_end_ns: int,
+    known_closure_ns: np.ndarray | None = None,
 ) -> dict[str, np.ndarray]:
     """Compare the next confirmed high/low with levels frozen at each issue.
 
     An observed pair means that both pivot bars start strictly after the
     issue, both confirmations close by the fold boundary, and neither the
-    frozen nor future seven-bar pivot windows cross an M5 source gap.
+    frozen nor future seven-bar pivot windows cross an unknown M5 clock gap.
+    An exact, independently certified market-closure interval may bridge a
+    clock discontinuity only if it contains every missing M5 bar start.
     Missing components remain masked; they are never FLAT or no-touch.
     """
     arrays = [np.asarray(x) for x in (closed_ns, high, low, close, atr)]
@@ -68,10 +86,19 @@ def measure_candidate(
           and int(time[-1]) < TRAIN_END_NS
           and bool(np.all((time[issues] >= TRAIN_START_NS)
                           & (time[issues] < fold_target_end_ns))), "CLOCK")
+    _need(bool(np.all(time % M5_NS == 0)
+               and np.all(np.diff(time) % M5_NS == 0)), "M5_CLOCK")
 
+    closures = (np.empty((0, 2), dtype=np.int64) if known_closure_ns is None
+                else np.asarray(known_closure_ns))
+    _need(closures.dtype == np.int64 and closures.ndim == 2
+          and closures.shape[1] == 2
+          and bool(np.all(closures[:, 0] < closures[:, 1]))
+          and bool(np.all(closures[1:, 0] >= closures[:-1, 1])), "CLOSURES")
     # The sole existing SMC owner determines pivot identities and release lag.
     replay, _ = replay_smc_causal_structure_v2(high, low, close)
-    gap = np.concatenate(([0], np.cumsum(np.diff(time) != M5_NS, dtype=np.int64)))
+    _, unknown_breaks = _classify_clock_breaks(time, closures)
+    gap = np.concatenate(([0], np.cumsum(unknown_breaks, dtype=np.int64)))
     def clear_window(left: np.ndarray, right: np.ndarray) -> np.ndarray:
         return (left >= 0) & (right < n) & (gap[np.clip(right, 0, n - 1)]
                                                  == gap[np.clip(left, 0, n - 1)])
@@ -89,6 +116,7 @@ def measure_candidate(
         "next_low_confirm_row": np.full(m, -1, dtype=np.int64),
         "high_delta_atr": np.full(m, np.nan, dtype=np.float64),
         "low_delta_atr": np.full(m, np.nan, dtype=np.float64),
+        "atr_valid": np.zeros(m, dtype=bool),
         "high_observed": np.zeros(m, dtype=bool),
         "low_observed": np.zeros(m, dtype=bool),
         "high_hit": np.zeros(m, dtype=bool),
@@ -103,6 +131,7 @@ def measure_candidate(
         "no_frozen_level_hit": np.zeros(m, dtype=bool),
     }
     base = np.isfinite(atr[issues]) & (atr[issues] > 0)
+    result["atr_valid"] = base
     for side in ("high", "low"):
         frozen_idx = result[f"frozen_{side}_idx"]
         frozen_price = result[f"frozen_{side}"]
@@ -110,9 +139,12 @@ def measure_candidate(
         frozen_valid = (frozen_idx >= SWING_LOOKBACK) & np.isfinite(frozen_price)
         frozen_valid &= clear_window(frozen_idx - SWING_LOOKBACK, frozen_confirm)
         frozen_valid &= gap[issues] == gap[np.clip(frozen_confirm, 0, n - 1)]
+        result[f"frozen_{side}_valid"] = frozen_valid
         pivot, confirmation = _new_pivots(replay[f"last_{side}_idx"])
         position = np.searchsorted(pivot, issues + 1, side="left")
         available = position < len(pivot)
+        result[f"next_{side}_pivot_found"] = available
+        result[f"future_{side}_valid"] = np.zeros(m, dtype=bool)
         chosen = np.minimum(position, max(len(pivot) - 1, 0))
         if not len(pivot):
             continue
@@ -120,6 +152,7 @@ def measure_candidate(
         future_valid = (available & (time[next_confirm] < fold_target_end_ns)
                         & clear_window(next_idx - SWING_LOOKBACK, next_confirm)
                         & (gap[next_confirm] == gap[issues]))
+        result[f"future_{side}_valid"] = future_valid
         observed = base & frozen_valid & future_valid
         result[f"{side}_observed"] = observed
         result[f"next_{side}_idx"][observed] = next_idx[observed]

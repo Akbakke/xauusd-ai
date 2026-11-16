@@ -14,12 +14,13 @@ CLOSE = np.array([
 START_NS = int(np.datetime64("2024-05-01T00:00:00", "ns").astype(np.int64))
 
 
-def _case(close=CLOSE, time=None, issues=(11, 13)):
+def _case(close=CLOSE, time=None, issues=(11, 13), known_closure_ns=None):
     if time is None:
         time = START_NS + np.arange(len(close), dtype=np.int64) * M5_NS
     return measure_candidate(time, close + 0.1, close - 0.1, close,
                              np.ones(len(close)), np.asarray(issues, dtype=np.int64),
-                             fold_target_end_ns=int(time[-1] + M5_NS))
+                             fold_target_end_ns=int(time[-1] + M5_NS),
+                             known_closure_ns=known_closure_ns)
 
 
 def test_frozen_levels_and_next_confirmed_pair_are_separate():
@@ -58,6 +59,27 @@ def test_gap_between_frozen_confirmation_and_issue_masks_that_level():
     assert result["frozen_low_idx"][0] == 7
     assert not result["low_observed"][0]
     assert result["pair_class"][0] == UNKNOWN
+
+
+def test_exact_certified_closure_bridges_only_fully_contained_gap():
+    time = START_NS + np.arange(len(CLOSE), dtype=np.int64) * M5_NS
+    missing_start = int(time[16])
+    time[16:] += M5_NS
+    exact = np.array([[missing_start, missing_start + M5_NS]], dtype=np.int64)
+    observed = _case(time=time, issues=(11,), known_closure_ns=exact)
+    assert observed["high_observed"][0] and observed["low_observed"][0]
+    assert observed["atr_valid"][0] and observed["frozen_high_valid"][0]
+    assert observed["future_high_valid"][0] and observed["next_high_pivot_found"][0]
+    incomplete = exact.copy()
+    incomplete[0, 1] -= 1
+    censored = _case(time=time, issues=(11,), known_closure_ns=incomplete)
+    assert not censored["high_observed"][0]
+    assert not censored["low_observed"][0]
+    assert not censored["future_high_valid"][0]
+    invalid_clock = time.copy()
+    invalid_clock[16:] += 1
+    with pytest.raises(ValueError, match="TA_M5_STRUCTURE_M5_CLOCK"):
+        _case(time=invalid_clock, issues=(11,), known_closure_ns=exact)
 
 
 def test_bar_at_exclusive_fold_end_is_rejected():
