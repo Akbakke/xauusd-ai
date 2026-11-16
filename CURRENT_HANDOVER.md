@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_INTEGRATED_FOLD2_FIT_002_COMPLETE_CONSUMED_ASSESSMENT_OPEN.
+TA_INTEGRATED_FOLD2_FIT_002_COMPLETE_CONSUMED_M5_TURN_UNQUALIFIED.
 Brukeren fjernet kravet om nytt «ja» for hver stor lokal ikke-GC-kjøring.
 Integrator innrømmet plan002 SHA
 `330e4cb1dd4c76980264b44a32f091e67c43142819514901f60068abed102783`
@@ -16,9 +16,10 @@ boot-ID 657 og avsluttet med terminal exit 0: 47 338 TRAIN-rader,
 2 959 optimizersteg, 1 024 initial-/final-skårforwards og uendret kilde.
 Signert GPU-vakt holdt seg innen grensene. Engangsplanen er konsumert;
 training_enabled=false, native_training_enabled=false og
-full_epoch_training_allowed=false. Faste scoreopptak er skrevet, men
-samlet retnings-, vendings- og strukturvurdering gjenstår. Full GC er
-pauset; TEST, Entry/Exit, broker og handel er lukket. M5-Edge er ubevist.
+full_epoch_training_allowed=false. Faste TRAIN- og senere opptak er nå
+gjennomgått: struktur lærte, men M5-vending og kalibrert S/F-retning
+kvalifiserte ikke. Full GC er pauset; TEST, Entry/Exit, broker og handel er
+lukket. M5-Edge er ubevist. Stabile langkjøringer sjekkes omtrent hver time.
 
 Plan001 SHA `4016255217a3c87bdc84715b6e65707090fa09dcaa1e70a3a1b3455bdac84621`
 ble CLAIM-et under fysisk boot 656, men feilet i initial TRAIN-strukturskår
@@ -520,6 +521,17 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
 
 ## Ikke gjort / faktisk hindring
 
+Den avsluttede fit002-lesningen er bundet i
+`docs/TA_INTEGRATED_FOLD2_FIT_002_RESULT_REVIEW_20261116.json` (SHA256
+`08c6dbfc0725a1468bdeb809c88aa3faa8e7c34a0f4345699ebd7cbd1cef5b30`). Senere S/F-side-Brier var dårligere enn fryst TRAIN-prior
+i 10/10 TF-/oppgaveceller; treklasse-Brier var også dårligere i 10/10.
+Struktur topp/bunn slo prior med AUC 0,7945/0,7834, men M5-vending på
+531 kjente nabopar fikk AUC 0,4535. F-hodene er fysisk separate, men
+deres retningsoutput er fortsatt sterkt korrelert. Strukturfasiten gjelder
+neste bekreftede pivot (median 9 M5-barer til bekreftelse), ikke neste
+M5-vending. Kilden beviser dette målskillet; den eksakte årsaken til
+svak sidelæring er fortsatt uisolert. Senere panel er gjenbrukt utvikling.
+
 Det målte problemet er svake M5-vendinger og utilstrekkelige selvstendige
 fem-TF-retninger. M5-only-fitten gir begrenset senere S-rangering, men
 ikke sikker før/etter-gevinst eller bedre Brier enn prior; F og faktiske
@@ -545,16 +557,14 @@ Entry, TEST eller handel åpnes av denne presiseringen.
 
 ## Neste steg
 
-1. Les og bind de faste initial-/final-opptakene: S/F aktivitet og kjent
-   side på alle fem TF mot fryst TRAIN-prior, M5-vending på native nabobarer,
-   topp/bunn og kalibrering på samme TRAIN-/senere utviklingspanel. Skill
-   TRAIN-læring fra senere generalisering og målte ukjente.
-2. Bare hvis den samlede senere gevinsten holder, bind en kostet
-   M5-Entry-beslutning med alle valgte/åpne posisjoner og uavhengig
-   forward-bekreftelse før økonomisk Edge hevdes. Ingen ny modellrunde
-   velges etter dette utviklingspanelet.
-3. Full GC, TEST, ONLINE, broker og handel forblir lukket. Plan001 og
-   plan002 er konsumert og kan aldri relanseres.
+1. Bruk bare TRAIN og eksisterende kvitteringer til å kontrollere klokke,
+   kjent-side-dekning og tapsfordeling for et direkte M5-vendingsmål.
+   Ikke velg ny modell etter det gjenbrukte januar–mars-panelet.
+2. Bind deretter én eksakt kronologisk OOF-/forward-plan bare hvis
+   mål og observerbarhet er kvalifisert. Økonomisk Edge krever senere
+   forhåndsbundet kostet Entry og alle valgte/åpne posisjoner.
+3. Full GC, trening, TEST, ONLINE, broker og handel forblir lukket.
+   Plan001 og plan002 er konsumert og kan aldri relanseres.
 
 Opprydding: historiske overleveringsavsnitt er fjernet her og bevart i Git.
 Ingen Python-fil er slettet; gjeldende referanse-, import-, test- og

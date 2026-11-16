@@ -30,8 +30,8 @@ Claude og Codex. En teknisk PASS er ikke bedre handelsbeslutninger eller profitt
   eksisterende maskinvarevakter. Separate prosjekter har separate prosjektlåser;
   dette svekker ingen kapasitets-, minne-, CPU-, effekt- eller temperaturgrense.
 - Gjenbruk ferdige inputs, targets, outputs og beståtte kontroller. Stabil
-  langkjøring kontrolleres omtrent hver15.–30.minutt, gjerne sjeldnere ved
-  stabil drift; ingen minuttvis modellpolling.
+  langkjøring kontrolleres omtrent én gang i timen; ingen minuttvis
+  modellpolling.
 - Modell-/treningskode endres bare for en konkret observert blokkering eller
   vedtatt designendring. Begrunn minste rettelse før implementasjon. Ingen
   forebyggende refaktorering, brede søk, nye rammeverk eller gjentatte fullsuiter.

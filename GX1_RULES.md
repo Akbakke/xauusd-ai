@@ -550,8 +550,8 @@ Delvis output etter stopp/krasj/reboot er ugyldig uten completion-manifest/hashe
 
 Utnytt målt CPU-/GPU-kapasitet effektivt innen eksisterende verifiserte
 kapasitets-, temperatur-, effekt- og minnevakter. «Maks» åpner ingen omgåelse.
-Stabile kjøringer kontrolleres omtrent hver15.–30.minutt, gjerne sjeldnere;
-aldri minuttvise modellrunder eller arbeid bare for å fylle ventetid.
+Stabile kjøringer kontrolleres omtrent én gang i timen; aldri minuttvise
+modellrunder eller arbeid bare for å fylle ventetid.
 Sporadisk PC-omstart gjøres ved trygg grense mellom fullførte kjøringer.
 Bevar terminalkvitteringer; alle prosjektjobber, GPU-beregninger og prosjektlåser
 på maskinen må være ledige. Ingen aktiv jobb avbrytes for periodisk omstart.

@@ -95,7 +95,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "TA_INTEGRATED_FOLD2_FIT_002_COMPLETE_CONSUMED_ASSESSMENT_OPEN",
+  "status": "TA_INTEGRATED_FOLD2_FIT_002_COMPLETE_CONSUMED_M5_TURN_UNQUALIFIED",
   "market_state_fold2_25_cell_s_private_route_20261115_001": {"status": "REJECTED_READ_ONLY_PREFLIGHT_CLOCK_MISMATCH_NO_CLAIM", "recipe": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_25_CELL_S_PRIVATE_TWO_BATCH_20261115_001/RECIPE.json", "sha256": "2cfaf79197210ddc7d3408529bc3dec9cbf9e24d5a09d586a6d8b8e3173b8d76"}, "source_commit": "9f942249bb48001641df69e610c5fd10af0280da", "review": {"path": "/home/andre2/src/GX1_CURRENT/docs/S_FOLD2_S_ONLY_PRIVATE_ROUTE_SOURCE_REVIEW_20261115.json", "sha256": "07df9cac48b0102cb73c7e2b214e7b62f89ad9f7b2da8a24bf3e1f4aa3f8a84a"}, "fold_id": 2, "timeframes": ["M5", "M15", "H1", "H4", "D1"], "fixed_query_cells": 25, "private_batches": 2, "physical_optimizer_updates": 0, "full_fit_authorized": false, "test_data_used": false, "economic_edge_proven": false},
   "market_state_fold2_25_cell_s_private_route_20261115_002": {"status": "COMPLETE_CONSUMED_PRIVATE_MECHANICS_PASS_EDGE_UNQUALIFIED", "recipe": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_25_CELL_S_PRIVATE_TWO_BATCH_20261115_002/RECIPE.json", "sha256": "d657a76b916629b7d9917b618bce08fcca694761725c15501bb86ec0658c9e91"}, "source_commit": "48d423e4549cd147300ec5c2611174e486c989a2", "preflight": {"path": "/home/andre2/src/GX1_CURRENT/docs/S_FOLD2_S_ONLY_PRIVATE_002_PREFLIGHT_REVIEW_20261115.json", "sha256": "aa6a0a6d5d8ab410bf4b03c96e1d625a2877277bb91eb239923aafec0ddb56cc"}, "review": {"path": "/home/andre2/src/GX1_CURRENT/docs/S_FOLD2_S_ONLY_PRIVATE_CLOCK_PREFLIGHT_REVIEW_20261115.json", "sha256": "40c6402cdc9d9cea46bcb61b5ee168f57f6744dfcec652161bda9f8a4394e324"}, "feature_fit_cutoff_ns": 1735603200000000000, "s_target_fold_upper_ns": 1735689600000000000, "physical_optimizer_updates": 4, "test_data_used": false, "economic_edge_proven": false, "private_result": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_25_CELL_S_PRIVATE_TWO_BATCH_20261115_002/RUNTIME/private-research/RESULT.json", "sha256": "56565f3053f2e0df87bcaf575d2ca40dc94e48d5f919bc3ffc6da8955dd3f523"}, "review_result": {"path": "/home/andre2/src/GX1_CURRENT/docs/S_FOLD2_S_ONLY_PRIVATE_002_RESULT_REVIEW_20261115.json", "sha256": "2e508fd7545a799381a0cdd97aa43f86198b113d17826573120993c0cce87e6e"}},
   "market_state_fold2_paired_minute_path_20261115_002": {
@@ -1880,7 +1880,7 @@
   "market_state_ta_integrated_objective_later_20261116": {"status": "SOURCE_OBJECTIVE_AND_LATER_INPUTS_READY_NO_FIT", "review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_INTEGRATED_OBJECTIVE_LATER_INPUTS_REVIEW_20261116.json", "sha256": "d93d30dd580bab052d21219aae31102329f5f37c33148e9135cb495512632d8c"}, "objective_contract_sha256": "f4cd885a7994f66367abc54fcbdedbe5339275ef8404dee29362b38bf2819bd1", "later_input_archive": {"path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_LATER_INPUTS_20261116_001/INPUTS.npz", "sha256": "9b527afd59c906f32cf91046ddee282b998cfad5b22216030fb6a873f651ae47"}, "later_input_result": {"path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_LATER_INPUTS_20261116_001/RESULT.json", "sha256": "293e9d042788fa750c60fa49bf84dcdef9e016995805605218b552f8e77c5985"}, "later_score_rows": 4096, "later_issue_axis_sha256": "c03ec2ae8b418e21739f9f7966b946615878344364e6dc4e4d80087a0fee99d3", "later_M1_complete_paths": 4089, "later_structure_high_observed": 4068, "later_structure_low_observed": 4081, "training_authorized": false, "test_authorized": false, "economic_edge_proven": false},
   "market_state_ta_integrated_objective_preflight_20261116_004": {"status": "GENUINE_TRAIN_INTEGRATED_OBJECTIVE_GRADIENT_PASS_NO_FIT", "review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_INTEGRATED_ACTUAL_OBJECTIVE_PREFLIGHT_REVIEW_20261116.json", "sha256": "ad48b1ddc40ab5a893ce0c0f936e06eb9f850d85f1ba023baf8787b999f0ff8d"}, "private_result": {"path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_PREFLIGHT_20261116_004/RESULT.json", "sha256": "5e5a1790b4ae8673f6f3ddd63ed078b81e469a92870cf3ac6b5f0fc2b75ac2c4"}, "objective_contract_sha256": "f4cd885a7994f66367abc54fcbdedbe5339275ef8404dee29362b38bf2819bd1", "model_contract_sha256": "70a0497b27ba0ab45277ba622443ab2fca36a448357f1ccb3158689193f8bc82", "all_five_S_F_side_head_gradients_nonzero": true, "optimizer_steps": 0, "training_authorized": false, "test_authorized": false, "economic_edge_proven": false},
   "market_state_ta_integrated_later_view_rebind_20261116": {"status": "ACTUAL_LATER_FEATURE_GATHER_PASS_NO_MODEL", "review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_INTEGRATED_LATER_VIEW_REBIND_REVIEW_20261116.json", "sha256": "18616578ac8a0f79eb250c892757ccd099e15b27f567eeee02e36b96a546785c"}, "view_sha256": "8056fe96b4340bccc149da7f22dde85e4ac1b62c5e58c874ec7fbb771c1dff1a", "later_rows_gathered": 16, "all_nine_surfaces_finite": true, "model_forwards": 0, "optimizer_steps": 0, "training_authorized": false, "test_authorized": false, "economic_edge_proven": false},
-  "next_action": "Integrated non-GC Fold2 fit002 completed on boot657 with 2959/2959 optimizer updates, 1024 fixed initial/final panel forwards, source unchanged and terminal exit0. One-use gate is closed and training_enabled=false. Read all five S/F TF direction, M5 prospective turns, structure, calibration and frozen priors on the fixed Jan-Mar2025 development panel before any learning/generalization claim. TEST/broker/trading closed; no economic Edge claim.",
+  "next_action": "Fit002 is assessed and consumed: structure high/low learned on reused later development, but M5 turn AUC 0.4535 on 531 known adjacent pairs and later S/F conditional-side Brier loses to frozen TRAIN prior in all ten TF/task cells. Training remains closed. Inspect TRAIN-only target clocks, turn-label coverage and side-loss allocation before any new exact plan; do not select on Jan-Mar2025 again. Full GC, TEST, broker and trading remain closed; no economic Edge claim.",
   "ta_m5_structure_persistence_20261116_001": {"status": "COMPLETE_CONSUMED_FIXED_REFERENCE_NO_ESTABLISHED_GAIN", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_STRUCTURE_PERSISTENCE_20261116_001.json", "sha256": "907ff7ce4fe6a9449f71501b9f4913f1637e2e6b747ce98670fd206a92f21d4a"}, "claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_PERSISTENCE_20261116_001/CLAIM.json", "sha256": "a731f909e8cce5ef949679d65b882ed06520ee19ff53c264a2a0e86fdd1994ed"}, "result": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_PERSISTENCE_20261116_001/RESULT.json", "sha256": "ea10505d4fa8490880d14a126973a8a4fd0f2f4b59ca7e4c08c67b1f05085c86"}, "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_PERSISTENCE_20261116_001/TERMINAL.json", "sha256": "7290d4bae30cb4c4d212af311f714b80e27263605c49641e9874512eb14c7e3f"}, "repository_review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_STRUCTURE_PERSISTENCE_RESULT_REVIEW_20261116.json", "sha256": "020a6b02aa158d4f6d35cb62197683c36bedf5d6be357b94953a2c69fc420fb5"}, "execution_authorized": false, "claimed_invocations": 1, "completed_invocations": 1, "relaunch_allowed": false, "actual_counts": {"prior_mature_issues": 23886, "later_known_classes": 23302, "prior_correct": 8936, "persistence_correct": 8253, "model_forwards": 0, "optimizer_steps": 0}, "target_locked": false, "model_fits_authorized": false, "test_data_used": false, "economic_edge_proven": false},
   "ta_m5_structure_fold2_audit_20261116_001": {"status": "COMPLETE_CONSUMED_SOURCE_COVERAGE_ONLY_TARGET_UNQUALIFIED", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001.json", "sha256": "2d5b7359b377a8d4d7658ff7cbc6a756db94565d70673604f69a86530750c081"}, "claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001/CLAIM.json", "sha256": "12f4d4c5c0c131cb61bf15d2795f557b3c3ceab37cf7b9f4fab13db569a1a0c8"}, "result": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001/RESULT.json", "sha256": "e6be73a2e5e04a9e0abf91e3b0b3775e93f0d75b6064ff8c842c123b1f842450"}, "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001/TERMINAL.json", "sha256": "f6a131efb8b3c0f1a85cfa5544dd16d225cf3a75f98d551c0f27041cea1badd9"}, "repository_review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_STRUCTURE_FOLD2_AUDIT_RESULT_REVIEW_20261116.json", "sha256": "601809c2472d5d9f021499dfce2f72f53d56522404f16654df0334451f6de12d"}, "execution_authorized": false, "claimed_invocations": 1, "completed_invocations": 1, "relaunch_allowed": false, "actual_counts": {"m5_issues": 47784, "both_observed": 47567, "known_pair_class": 47195, "same_pivot_bar": 372, "model_forwards": 0, "optimizer_steps": 0}, "target_locked": false, "model_fits_authorized": false, "test_data_used": false, "economic_edge_proven": false},
   "ta_m5_structure_outcome_candidate_20261116": {"status": "BOUNDARY_CORRECTED_SOURCE_ONLY_TARGET_UNQUALIFIED", "spec": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_STRUCTURE_OUTCOME_CANDIDATE.md", "sha256": "679cddda79a94ba39651a185fef83a9ef8e8b7c8895744e0d66a61aa65e4d709"}, "source": {"path": "/home/andre2/src/GX1_CURRENT/gx1/audit/measure_ta_m5_structure_candidate_v1.py", "sha256": "d37419d782dded9c77227e6ff64b2ee90bb7ba36283ba451a6da97971b5905b2"}, "tests": {"path": "/home/andre2/src/GX1_CURRENT/tests/test_ta_m5_structure_candidate_v1.py", "sha256": "438b3c66504e84e6986f0fa044d4b7a76d23a4db1fae244d0715dec175d8a1b7"}, "target_locked": false, "execution_authorized": false, "model_fits_authorized": false, "test_data_used": false, "economic_edge_proven": false, "historical_fold2_coverage_receipt_uncorrected": true, "corrected_physical_fold2_coverage_measured": false},
@@ -1913,9 +1913,9 @@
     "profitability_demonstrated": false,
     "required_before_more_extensive_training": true,
     "entry_learning_demonstrated": false,
-    "current_evidence_scope": "Current native F M5 later accuracy51.21%, balanced50.39%, AUC0.5078; joint argmax allFLAT. Monthly audit: October M5/H1 FINAL AUC above0.5 in both pointwise day/week intervals, but their paired training gains uncertain; probability errors worsen after training on several November/December TF. All five TF/months retained. Reused development; cause, independent transfer, Entry quality and economic edge unresolved.",
+    "current_evidence_scope": "Integrated non-GC Fold2 fit002: 47338 TRAIN rows, 2959 updates. Fixed later Jan-Mar2025 development: structure high/low AUC 0.7945/0.7834 and Brier below frozen priors; S/F conditional-side and three-class Brier worse than frozen TRAIN prior in 10/10 cells each. Prospective M5 turn AUC 0.4535 on 531 known adjacent pairs. Reused development, no independent generalization, Entry or economic Edge.",
     "component_learning_measured": true,
-    "component_learning_result": "STRONGER_TRAIN_FIT_WITHOUT_LATER_DIRECTION_GAIN",
+    "component_learning_result": "STRUCTURE_LATER_GAIN_WITHOUT_M5_DIRECTION_OR_TURN_QUALIFICATION",
     "primary_entry_quality_qualified": false,
     "paired_learning_review": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/PAIRED_LEARNING_REVIEW.json",
@@ -2248,7 +2248,7 @@
   },
   "current_work": {
     "operator_request": "Gå direkte på problemene og lag deg et mål for å nøste opp i hvorfor vi ikke får god Edge ut av markedsretningen.",
-    "current_activity": "Fold2 full-GC S-only full fit completed and rejected: 2959 updates, later M5 minute5 Brier 0.328075 vs prior 0.248755 and AUC 0.471748 vs current-sign 0.499836; sampled TRAIN M5 side also degraded.",
+    "current_activity": "Integrated non-GC Fold2 fit002 assessed and consumed: structure learning transferred to fixed reused later panel, but M5 turn AUC 0.4535 and all ten later S/F conditional-side Brier cells lose to frozen TRAIN prior.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -2277,11 +2277,11 @@
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "FOLD2_S_FULL_FIT_003_COMPLETE_PRIMARY_REJECTED",
+    "latest_terminal_role": "TA_INTEGRATED_FOLD2_FIT_002_COMPLETE_ASSESSED_CONSUMED",
     "runtime_root": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_25_CELL_S_FULL_FIT_20261115_003",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_25_CELL_S_FULL_FIT_20261115_003/TERMINAL.json",
-      "sha256": "b45cb7a386e57ca567948cd6411ad0635359c91b663043b7c33357676cda1133"
+      "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_FIT_20261116_002/TERMINAL.json",
+      "sha256": "48f1fb9bca27c9269c8c12f4fa19fdf09881239ffde52458c7c2d53135ddfa88"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -2301,7 +2301,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "S direction failed on later development in 25/25 cells and 14/14 M5 weeks; sampled TRAIN M5 side also degraded. Native M5/D1 side outputs are nearly identical despite frequent certified side disagreement. The causal optimization/representation failure is not isolated. No predictive or economic Edge.",
+    "current_blocker": "M5 turning and calibrated S/F direction remain unqualified. F side outputs still collapse across TF despite distinct heads; structure high/low targets are later confirmed pivot events, not the next-bar M5 turn. Exact optimization/input cause is not isolated; no independent generalization or economic Edge.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -10901,9 +10901,9 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "The fold2 q/N coefficient difference from fold1 is approximately 0.1%; its predictive effect was not measured.",
-      "No fresh INITIAL, model fit, scoring, checkpoint, TEST, trade-path or economic result.",
-      "The later panel is reused development; no independent generalization or edge is established."
+      "No independent forward confirmation or economic Edge.",
+      "M5 known-turn coverage is 531 adjacent pairs out of 4096 fixed later issue rows.",
+      "Exact cause of weak side learning and indicator utility remain unisolated."
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -17942,14 +17942,14 @@
       "data_priority": "Complete and exploit all genuinely observable GC MBP-1 information on the existing26month window before considering10year OHLC expansion. Preserve unknown aggressor, actual coverage, raw price grid, contract identity and GC/XAU basis alignment.",
       "entry_objective_alignment": "Dynamic local UP/DOWN/FLAT, sustained states and transitions on all M5/M15/H1/H4/D1, without fixed starting-price or return conditions. Forecast before Entry/trades; no hard60minute ceiling or imposed state/holding duration.",
       "evidence_rule": "An earlier short CPU/rule/smoke test is scoped evidence and never a project-wide impossibility conclusion. Preserve measured results and original receipts.",
-      "execution_rule": "Disjoint agents and one capped heavy job; freeze source during execution, reuse qualified bytes, safe idle-boundary reboot, stable long-job checks approximately every 15–30 minutes or less frequently when stable.",
+      "execution_rule": "Disjoint agents and one capped heavy job; freeze source during execution, reuse qualified bytes, safe idle-boundary reboot, and check stable long jobs about once per hour.",
       "audit_document": "docs/FEATURE_AUDIT.md",
       "completion_rule": "Preserve the original goal and subsequent explicit clarifications. All active source/feature/timeframe/input/model paths need scoped evidence; qualify learned LONG/SHORT/FLAT quality, coverage and selected/abstained traceability. Report technical consistency, learned improvement, chronological generalization and economic edge separately. Missing requested qualifications prevent a full-completion claim.",
       "original_request": {
         "path": "/home/andre2/src/GX1_CURRENT/docs/ORIGINAL_PROJECT_GOAL.md",
         "sha256": "da21eeb1ec9e712e3d5372140a8165e1d771f12df7ff8efdefd341bdf849454c"
       },
-      "current_phase": "Offline five-timeframe market-state research at the established M5 decision cadence. Fold2 full-GC S-only fit003 failed its fixed M5 direction/reversal references; Full GC remains paused by the operator (reaffirmed 2026-11-16). Training closed; generalization and economic edge unproved. TEST, Entry, Exit and trading remain closed.",
+      "current_phase": "Offline five-timeframe market-state research at established M5 cadence. Integrated non-GC Fold2 fit002 is complete and assessed; structure learned on reused development, M5 turning failed. Full GC paused, training closed; independent generalization and economic Edge unproved. TEST, Entry, Exit and trading remain closed.",
       "entry_decision_cadence_seconds": 300,
       "future_outcome_queries": "Source-supported time/size domain for future local-state validity remains to be bound for each timeframe. Existing terminal/first-event/session-day targets are scoped historical evidence, not a ready dynamic-state contract.",
       "latest_operator_clarification_date": "2026-11-16",
@@ -18239,7 +18239,7 @@
         "Originals preserved; unusedwindows3/4revoked. No new epoch,HPO,checkpoint/threshold selection,normalization refit,trading,broker,Exit or promotion."
       ]
     },
-    "latest_terminal_evidence_scope": "47338 mature TRAIN rows; S M5 N16101/q2890, F M5 N19072/q2950; sampled S M5/native parity, two S/F reference prior fits, zero model/feature/optimizer operations. Fold2 source binding is untrained.",
+    "latest_terminal_evidence_scope": "47338 mature TRAIN rows, 2959 optimizer updates, 4096 fixed TRAIN and 4096 fixed later Jan-Mar2025 development rows scored before and after. Structure high/low learned; M5 turn and calibrated direction unqualified. TEST unused.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -89070,7 +89070,8 @@
     "actual_optimizer_updates": 0
   },
   "ta_integrated_fold2_fit_20261116_002": {
-    "status": "COMPLETE_CONSUMED_ASSESSMENT_OPEN",
+    "status": "COMPLETE_CONSUMED_ASSESSED_M5_TURN_UNQUALIFIED",
+    "result_review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_INTEGRATED_FOLD2_FIT_002_RESULT_REVIEW_20261116.json", "sha256": "08c6dbfc0725a1468bdeb809c88aa3faa8e7c34a0f4345699ebd7cbd1cef5b30"},
     "plan": {
       "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_FIT_20261116_002/PLAN.json",
       "sha256": "330e4cb1dd4c76980264b44a32f091e67c43142819514901f60068abed102783"
