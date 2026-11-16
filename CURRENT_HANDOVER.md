@@ -255,8 +255,13 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   market_state_time_query_references_20261107_001 og
   market_state_ema_side_reference_20261107_001 i NEXT_RUN_POLICY.json.
   Dette er målt svak supervisjonsdekning og ustabil nåside-referanse, ikke
-  bevis for at ikke-lineære indikatorer ikke kan ha informasjon. Kjent,
-  lukket M5-OHLC og kjent framtidig side er forskjellige størrelser. Den
+  bevis for at ikke-lineære indikatorer ikke kan ha informasjon. Varighets-
+  kvitteringen har median tre observerte minutter for 3 577 fullt avgrensede
+  singleton-løp, hvorav 2 794 kortere enn M5-rytmen på fem minutter. De fleste av
+  alle 74 662 slike løp er derimot avgrenset av ukjent etikett; medianen
+  beviser ikke at virkelige retningsepisoder vanligvis varer tre minutter.
+  Den direkte skifteobservasjonen på 6 237/12 129 kjente M5-par står.
+  Kjent, lukket M5-OHLC og kjent framtidig side er forskjellige størrelser. Den
   faktiske ikke-GC TA-profilen fører 317 lokale signalfelt og 255 felt per
   lukket TF-vindu til modellen, blant dem bekreftede swing-/pivotnivåer,
   BOS/CHOCH, sweeps, nivåavstand, brudd og retest. Dette er felt, ikke 255
@@ -265,9 +270,21 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   Kildetapen har også 95 ukjente kildegap blant 591 682 TRAIN-M1-rader og
   413 dokumenterte lukningsgap, så «alle barer» gjelder bare observerte,
   lukkede barer. På det målte M1-båndet skyldes de fleste bit5 fasitens
-  mellomkategori, ikke et hull i observert OHLC. En vendefasit må bruke
-  nivåer kjent ved beslutningen og senere faktisk nivåtreff/bekreftelse
-  som utfall, med særskilt håndtering av
+  mellomkategori, ikke et hull i observert OHLC. S-tilstanden beregnes
+  fra rekkefølgen på lukkede M1-OHLC, mens ikke-GC TA-modellens ni aktive
+  featureflater er M5/MTF/kontekst uten M1-bane. Et rent kildeeksempel med
+  terskel 1,0 viser dette formelt, med hver M1-H/L lik maksimum/minimum
+  av barens åpning og slutt: M1-sluttstiene
+  `0, -1.2, -0.8, +1.2, +0.4, 0` og
+  `0, +1.2, +0.8, -1.2, -0.4, 0` har lik aggregert M5-OHLC
+  `(open=0, high=+1.2, low=-1.2, close=0)`, men `_step_direction` gir
+  NED for første og OPP for andre ved M5-slutt. Selv alle korrekte
+  M5-barer kan derfor ikke entydig rekonstruere nå-S; faktisk forekomst
+  og bidrag til modellfeilen
+  er ikke målt. En eventuell M1-tilstand som input krever eksakt lukket
+  beslutningsklokke og ONLINE-paritet; eksemplet åpner ingen ny inputrute.
+  En vendefasit må bruke nivåer kjent ved beslutningen og senere faktisk
+  nivåtreff/bekreftelse som utfall, med særskilt håndtering av
   manglende og tvetydige forløp; ingen slik fasit er låst eller fitet nå.
 
 - Lesende Fold2 M5-only-før/etterkontroll på et annet, låst panel enn
