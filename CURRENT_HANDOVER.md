@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_DIRECT_TF_SOURCE_ONLY_FIT_UNADMITTED_EDGE_UNQUALIFIED.
+TA_CURRENT_S_EXACT_CLOCK_SOURCE_ONLY_MODEL_INPUT_UNQUALIFIED.
 Den tidligere ikke-GC S-lesningen er fullført og M5-Edge fortsatt ubevist.
 Fold2 S-only full-GC 25-cellers engangsplan er fullført og konsumert.
 training_enabled=false, native_training_enabled=false og
@@ -336,6 +336,23 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   dekning. Den faste SMC-persistensregelen tapte mot fryst TRAIN-prior;
   ingen flere enkeltregelrunder følger.
 
+- Kildesammenligning avdekket at den eldre historiske nåtilstandsinputen
+  brukte 0,5 ATR også for side, mens den valgte S-tapen bruker 0,5 ATR for
+  aktivitet og 1,0 ATR for sikker side. Eldre accessor kan derfor ikke
+  ommerkes som dagens S-nåinput. Den publiserte, hashbundne TRAIN-M1-tapen
+  får nå et separat `gather_current`: eksakt lukket M1-tilstand ved bundet
+  M5-issue, med bit5 `{OPP,NED}`, sti-/gapmasker og kildeindeks, men uten
+  framtidsspørring. Fire nye fokustester består; én bruker tre faktiske
+  Fold2-issues, og de to berørte testfilene har 13 PASS. En separat lesende
+  full Fold2-kontroll fant eksakt M1-rad ved 47 327/47 338 fit-issues og
+  17 288/17 288 senere score-issues. M5-side var entydig ved bare
+  16 166/47 338 fit-issues og 5 743/17 288 score-issues; bit5 var
+  27 662 og 10 373. Samme kildeoppslag gir entydig fit-side på
+  M15/H1/H4/D1 ved henholdsvis 18 268/18 158/19 110/16 361 issues.
+  Dette viser bred historisk klokke-/kildedekning, men ikke ONLINE-
+  levering, modellkonsum eller Edge. Bit5 er en målt målgråsone, ikke
+  manglende M1-bar.
+
 ## Ikke gjort / faktisk hindring
 
 Det målte problemet er svake M5-vendinger og utilstrekkelige selvstendige
@@ -369,9 +386,11 @@ Entry, TEST eller handel åpnes av denne presiseringen.
    fem egne S/F-sidehoder som eksplisitt kandidat; ikke ommerk gamle
    checkpoints. Kjør først én faktisk, begrenset source-/forward-/gradient-
    preflight på bundne TRAIN-inputs. Syntetisk PASS er ikke fysisk paritet.
-2. Bind nåtilstand og vending ærlig. S bruker ordnet M1-forløp som dagens
-   ikke-GC TA-input mangler; undersøk en kausal lukket-M1 nåtilstand med
-   ONLINE-paritet før den eventuelt legges inn. Den separate M5-topp/bunn-
+2. Bind nåtilstand og vending ærlig. `gather_current` er bare et
+   historisk, M1-avledet nåoppslag; det er ennå ikke input til TA-modellen
+   og erstatter ikke hele ordnede M1-banen. Kontroller bred, fysisk
+   nåoppslagsdekning og samme lukkede beslutningsklokke i framtidig
+   ONLINE-levering før eventuell modellkobling. Den separate M5-topp/bunn-
    kandidaten har god fysisk dekning, men er ennå ikke låst som treningsmål.
    Behold bit5 `{OPP,NED}`, blandet struktur og ukjente forløp uten gjettet
    side eller FLAT. Dette er én samlet mål-/inputbeslutning, ikke flere

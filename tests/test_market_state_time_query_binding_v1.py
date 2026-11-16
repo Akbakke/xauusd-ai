@@ -151,3 +151,49 @@ def test_failed_terminal_and_hash_are_rejected(tmp_path, monkeypatch):
     monkeypatch.setattr(binding, 'CANDIDATE_REFS', refs)
     with pytest.raises(ValueError, match='TAPE_HASH'):
         binding._checked_bytes('tape', 32 * 1024**2)
+
+
+def test_current_lookup_enforces_exact_parent_and_fold_without_future_query():
+    boundary = binding.old.FOLD_BOUNDARIES_NS[0]
+    issues = np.array([boundary - 289 * TICK_NS, boundary + TICK_NS], dtype=np.int64)
+    parents = np.array([11, 33], dtype=np.int64)
+    validity = np.array(sorted({int(issue + k * TICK_NS)
+                                for issue in issues for k in NATIVE_K} | set(map(int, issues))),
+                        dtype=np.int64)
+    source = np.arange(100, 100 + len(validity), dtype=np.int64)
+    bits = np.full((len(validity), 5), 7, dtype=np.uint8)
+    bits[np.searchsorted(validity, issues[0])] = [1, 2, 4, 5, 7]
+    path = np.isin(bits, (1, 2, 4))
+    tape = TimeQueryTargetTape(validity, source, bits, path_observed=path,
+                               gap_kind=np.zeros(len(validity), dtype=np.uint8))
+    native = np.broadcast_to(np.asarray(NATIVE_K, dtype=np.int64), (2, 5)).copy()
+    selected = tape.gather(issues, native, fold_upper_ns=binding.old.FOLD_BOUNDARIES_NS[-1])
+    bound = binding.BoundTimeQueryTargets(parents, issues, tape, issues,
+        selected['allowed'], selected['m1_source_row'],
+        train_end_ns=binding.old.FOLD_BOUNDARIES_NS[-1])
+    current = bound.gather_current(parents[:1], issues[:1], fold_id=1, partition='fit')
+    assert current['parent_rows'].tolist() == [11]
+    assert current['allowed'].tolist() == [[1, 2, 4, 5, 7]]
+    assert current['m1_source_row'][0] == source[np.searchsorted(validity, issues[0])]
+    with pytest.raises(ValueError, match='CURRENT_PARENT_ISSUE'):
+        bound.gather_current(parents[:1], issues[1:], fold_id=1, partition='fit')
+    with pytest.raises(ValueError, match='CURRENT_PARTITION'):
+        bound.gather_current(parents[1:], issues[1:], fold_id=1, partition='fit')
+    score = bound.gather_current(parents[1:], issues[1:], fold_id=1, partition='score')
+    assert score['present'].tolist() == [True]
+
+
+def test_published_train_tape_delivers_current_only_on_bound_fold2_issues():
+    bound = binding.load_bound_time_query_targets()
+    rows, issues = bound.parent_rows[:3].copy(), bound.decision_ns[:3].copy()
+    current = bound.gather_current(rows, issues, fold_id=2, partition='fit')
+    assert current['clock_basis'] == 'historical_closed_M1_event_time_not_online_delivery'
+    assert set(current) == {'parent_rows', 'issue_ns', 'allowed', 'm1_source_row',
+                            'path_observed', 'gap_kind', 'present',
+                            'activity_known', 'side_known', 'clock_basis'}
+    assert np.array_equal(current['issue_ns'], issues)
+    assert np.array_equal(current['parent_rows'], rows)
+    assert np.all(~current['path_observed'] | current['side_known']
+                  | (current['allowed'] == 2))
+    assert not any(key.startswith('future') or key in ('query_k', 'validity_ns')
+                   for key in current)

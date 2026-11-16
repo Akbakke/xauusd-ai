@@ -1,7 +1,8 @@
-"""Bind future M5-tick state targets to the pinned TRAIN model axis.
+"""Bind future state targets and current-only M1 evidence to TRAIN M5 issues.
 
 The published M1 tape is a research candidate. This owner checks its COMPLETE
 receipt and every old native endpoint before exposing targets for loss/scoring.
+The current-only accessor uses exact issue clocks and exposes no future query.
 Query schedules depend only on issue time, TF, pass and a fixed seed.
 """
 from __future__ import annotations
@@ -173,6 +174,29 @@ class BoundTimeQueryTargets:
         got = self.tape.gather(issue_ns, query_k, fold_upper_ns=target_upper)
         return {'parent_rows': parent_rows.copy(), **got}
 
+    def gather_current(self, parent_rows: np.ndarray, issue_ns: np.ndarray,
+                       *, fold_id: int, partition: str) -> dict:
+        """Current-only M1/S evidence at bound M5 issues; no future query."""
+        _need(type(fold_id) is int and 1 <= fold_id <= 5
+              and partition in ('fit', 'score'), 'CURRENT_FOLD')
+        _need(isinstance(parent_rows, np.ndarray) and parent_rows.dtype == np.int64
+              and isinstance(issue_ns, np.ndarray) and issue_ns.dtype == np.int64
+              and parent_rows.ndim == issue_ns.ndim == 1
+              and len(parent_rows) == len(issue_ns) > 0, 'CURRENT_AXIS')
+        at = np.searchsorted(self.parent_rows, parent_rows)
+        _need(bool(np.all(at < len(self.parent_rows)))
+              and np.array_equal(self.parent_rows[at], parent_rows)
+              and np.array_equal(self.decision_ns[at], issue_ns), 'CURRENT_PARENT_ISSUE')
+        boundary = old.FOLD_BOUNDARIES_NS[fold_id - 1]
+        if partition == 'fit':
+            lower, upper = old.TRAIN_START_NS, boundary - 1440 * old.MINUTE_NS
+        else:
+            lower, upper = boundary, old.FOLD_BOUNDARIES_NS[fold_id]
+        _need(bool(np.all((issue_ns >= lower) & (issue_ns < upper))),
+              'CURRENT_PARTITION')
+        current = self.tape.gather_current(issue_ns)
+        return {'parent_rows': parent_rows.copy(), **current}
+
     def gather_fit_sampled(self, parent_rows: np.ndarray, issue_ns: np.ndarray,
                            *, fold_id: int, pass_index: int, seed: int
                            ) -> dict[str, np.ndarray]:
@@ -224,7 +248,8 @@ def load_bound_time_query_targets() -> BoundTimeQueryTargets:
           and np.all(path <= np.isin(bits, (1, 2, 4)))
           and result.get('tape_report', {}).get('m1_rows') == 591682,
           'TAPE_SCHEMA')
-    tape = TimeQueryTargetTape(axis, source, bits)
+    tape = TimeQueryTargetTape(axis, source, bits,
+                               path_observed=path, gap_kind=gap)
     bound = old.load_bound_five_endpoint_targets()
     with np.load(io.BytesIO(old._checked_bytes('mask', 4 * 1024**2)),
                  allow_pickle=False) as selected:

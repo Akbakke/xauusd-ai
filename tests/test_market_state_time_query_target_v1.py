@@ -77,3 +77,44 @@ def test_two_issues_keep_timeframe_and_source_rows_aligned():
     assert np.array_equal(result['allowed'], bits)
     assert np.array_equal(result['m1_source_row'],
                           np.array([[100] * 5, [101] * 5], dtype=np.int64))
+
+
+def test_current_lookup_uses_exact_issue_and_preserves_gray_side_mask():
+    axis = np.array([5, 10, 15], dtype=np.int64) * MINUTE_NS
+    source = np.array([50, 51, 52], dtype=np.int64)
+    bits = np.array([[7, 7, 7, 7, 7], [1, 2, 4, 5, 7], [4, 4, 4, 4, 4]], dtype=np.uint8)
+    path = np.array([[0] * 5, [1, 1, 1, 0, 0], [1] * 5], dtype=np.bool_)
+    gap = np.array([0, 2, 0], dtype=np.uint8)
+    tape = TimeQueryTargetTape(axis, source, bits, path_observed=path, gap_kind=gap)
+    got = tape.gather_current(np.array([10, 20], dtype=np.int64) * MINUTE_NS)
+    assert np.array_equal(got['allowed'][0], bits[1])
+    assert np.array_equal(got['activity_known'][0], [True, True, True, True, False])
+    assert np.array_equal(got['side_known'][0], [True, False, True, False, False])
+    assert np.array_equal(got['path_observed'][0], path[1])
+    assert got['m1_source_row'].tolist() == [51, -1]
+    assert got['gap_kind'].tolist() == [2, 0]
+    assert np.array_equal(got['allowed'][1], np.full(5, 7, dtype=np.uint8))
+    assert got['clock_basis'] == 'historical_closed_M1_event_time_not_online_delivery'
+    changed_future = bits.copy()
+    changed_future[2] = 1
+    other = TimeQueryTargetTape(axis, source, changed_future,
+                                path_observed=np.array([[0] * 5, [1, 1, 1, 0, 0],
+                                                        [1] * 5], dtype=np.bool_),
+                                gap_kind=gap)
+    assert np.array_equal(other.gather_current(np.array([10], np.int64) * MINUTE_NS)['allowed'],
+                          tape.gather_current(np.array([10], np.int64) * MINUTE_NS)['allowed'])
+    with pytest.raises(ValueError, match='CURRENT_CLOCK'):
+        tape.gather_current(np.array([11], np.int64) * MINUTE_NS)
+
+
+def test_current_lookup_requires_bound_path_and_gap_masks():
+    tape = TimeQueryTargetTape(np.array([5], dtype=np.int64) * MINUTE_NS,
+                               np.array([1], dtype=np.int64),
+                               np.array([[1, 2, 4, 5, 7]], dtype=np.uint8))
+    with pytest.raises(ValueError, match='CURRENT_AUX_REQUIRED'):
+        tape.gather_current(np.array([5], dtype=np.int64) * MINUTE_NS)
+    with pytest.raises(ValueError, match='CURRENT_AUX_PAIR'):
+        TimeQueryTargetTape(np.array([5], dtype=np.int64) * MINUTE_NS,
+                            np.array([1], dtype=np.int64),
+                            np.array([[1, 2, 4, 5, 7]], dtype=np.uint8),
+                            path_observed=np.zeros((1, 5), dtype=np.bool_))

@@ -95,7 +95,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "TA_DIRECT_TF_SOURCE_ONLY_FIT_UNADMITTED_EDGE_UNQUALIFIED",
+  "status": "TA_CURRENT_S_EXACT_CLOCK_SOURCE_ONLY_MODEL_INPUT_UNQUALIFIED",
   "market_state_fold2_25_cell_s_private_route_20261115_001": {"status": "REJECTED_READ_ONLY_PREFLIGHT_CLOCK_MISMATCH_NO_CLAIM", "recipe": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_25_CELL_S_PRIVATE_TWO_BATCH_20261115_001/RECIPE.json", "sha256": "2cfaf79197210ddc7d3408529bc3dec9cbf9e24d5a09d586a6d8b8e3173b8d76"}, "source_commit": "9f942249bb48001641df69e610c5fd10af0280da", "review": {"path": "/home/andre2/src/GX1_CURRENT/docs/S_FOLD2_S_ONLY_PRIVATE_ROUTE_SOURCE_REVIEW_20261115.json", "sha256": "07df9cac48b0102cb73c7e2b214e7b62f89ad9f7b2da8a24bf3e1f4aa3f8a84a"}, "fold_id": 2, "timeframes": ["M5", "M15", "H1", "H4", "D1"], "fixed_query_cells": 25, "private_batches": 2, "physical_optimizer_updates": 0, "full_fit_authorized": false, "test_data_used": false, "economic_edge_proven": false},
   "market_state_fold2_25_cell_s_private_route_20261115_002": {"status": "COMPLETE_CONSUMED_PRIVATE_MECHANICS_PASS_EDGE_UNQUALIFIED", "recipe": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_25_CELL_S_PRIVATE_TWO_BATCH_20261115_002/RECIPE.json", "sha256": "d657a76b916629b7d9917b618bce08fcca694761725c15501bb86ec0658c9e91"}, "source_commit": "48d423e4549cd147300ec5c2611174e486c989a2", "preflight": {"path": "/home/andre2/src/GX1_CURRENT/docs/S_FOLD2_S_ONLY_PRIVATE_002_PREFLIGHT_REVIEW_20261115.json", "sha256": "aa6a0a6d5d8ab410bf4b03c96e1d625a2877277bb91eb239923aafec0ddb56cc"}, "review": {"path": "/home/andre2/src/GX1_CURRENT/docs/S_FOLD2_S_ONLY_PRIVATE_CLOCK_PREFLIGHT_REVIEW_20261115.json", "sha256": "40c6402cdc9d9cea46bcb61b5ee168f57f6744dfcec652161bda9f8a4394e324"}, "feature_fit_cutoff_ns": 1735603200000000000, "s_target_fold_upper_ns": 1735689600000000000, "physical_optimizer_updates": 4, "test_data_used": false, "economic_edge_proven": false, "private_result": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD2_25_CELL_S_PRIVATE_TWO_BATCH_20261115_002/RUNTIME/private-research/RESULT.json", "sha256": "56565f3053f2e0df87bcaf575d2ca40dc94e48d5f919bc3ffc6da8955dd3f523"}, "review_result": {"path": "/home/andre2/src/GX1_CURRENT/docs/S_FOLD2_S_ONLY_PRIVATE_002_RESULT_REVIEW_20261115.json", "sha256": "2e508fd7545a799381a0cdd97aa43f86198b113d17826573120993c0cce87e6e"}},
   "market_state_fold2_paired_minute_path_20261115_002": {
@@ -1874,7 +1874,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Fold2 S-only candidate002 mechanical route and subsequent one-use full predictor FIT003 are completed and consumed. FIT003 failed its fixed M5-side later references. All training ports are closed; no additional fit, TEST, Entry/Exit, broker or trading is authorized. Private candidate002 weights cannot seed another fit.",
-  "next_action": "Four synthetic controls pass for an explicit non-GC direct-TF S/F research route: five post-attention TF vectors now reach five dedicated side heads through one existing backbone encode, with old default contract identities preserved. This is source mechanics only; no physical native TRAIN forward, ONLINE M1 current-state parity, independent turn target, combined fit, generalization or economic Edge is established. The M5 structural target remains unlocked; the consumed fixed SMC persistence rule lost to frozen TRAIN prior and must not be repeated. Next bind causal now-state/turn observability and a single integrated five-TF multi-feature campaign, then run one bounded physical preflight and seek admission only for the exact large fit. training_enabled=false, Full GC paused, TEST/broker/trading closed.",
+  "next_action": "The existing historical current-state input uses a 0.5 ATR side threshold and is semantically incompatible with the selected S tape, which uses 0.5 ATR for activity and 1.0 ATR for proven side. A new current-only exact-clock accessor on the already published, hash-bound TRAIN M1 tape preserves bit5, source/path/gap masks and bound M5 parent identity; four focused tests pass, including three physical Fold2 issues. A read-only full Fold2 lookup found exact M1 rows at 47,327/47,338 fit and 17,288/17,288 score issues, but M5 side is known at only 16,166 and 5,743 issues. It returns no future query, but is only historical event-time evidence. It is not yet a TA model input, full M1 path or ONLINE delivery proof. Keep direct-TF five-head source candidate; bind the M1/current input and structural turn target in one integrated campaign, then perform a bounded physical forward/gradient preflight before seeking an exact large-fit admission. training_enabled=false, Full GC paused, TEST/broker/trading closed; no more single-rule rounds.",
   "ta_m5_structure_persistence_20261116_001": {"status": "COMPLETE_CONSUMED_FIXED_REFERENCE_NO_ESTABLISHED_GAIN", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_STRUCTURE_PERSISTENCE_20261116_001.json", "sha256": "907ff7ce4fe6a9449f71501b9f4913f1637e2e6b747ce98670fd206a92f21d4a"}, "claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_PERSISTENCE_20261116_001/CLAIM.json", "sha256": "a731f909e8cce5ef949679d65b882ed06520ee19ff53c264a2a0e86fdd1994ed"}, "result": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_PERSISTENCE_20261116_001/RESULT.json", "sha256": "ea10505d4fa8490880d14a126973a8a4fd0f2f4b59ca7e4c08c67b1f05085c86"}, "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_PERSISTENCE_20261116_001/TERMINAL.json", "sha256": "7290d4bae30cb4c4d212af311f714b80e27263605c49641e9874512eb14c7e3f"}, "repository_review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_STRUCTURE_PERSISTENCE_RESULT_REVIEW_20261116.json", "sha256": "020a6b02aa158d4f6d35cb62197683c36bedf5d6be357b94953a2c69fc420fb5"}, "execution_authorized": false, "claimed_invocations": 1, "completed_invocations": 1, "relaunch_allowed": false, "actual_counts": {"prior_mature_issues": 23886, "later_known_classes": 23302, "prior_correct": 8936, "persistence_correct": 8253, "model_forwards": 0, "optimizer_steps": 0}, "target_locked": false, "model_fits_authorized": false, "test_data_used": false, "economic_edge_proven": false},
   "ta_m5_structure_fold2_audit_20261116_001": {"status": "COMPLETE_CONSUMED_SOURCE_COVERAGE_ONLY_TARGET_UNQUALIFIED", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001.json", "sha256": "2d5b7359b377a8d4d7658ff7cbc6a756db94565d70673604f69a86530750c081"}, "claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001/CLAIM.json", "sha256": "12f4d4c5c0c131cb61bf15d2795f557b3c3ceab37cf7b9f4fab13db569a1a0c8"}, "result": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001/RESULT.json", "sha256": "e6be73a2e5e04a9e0abf91e3b0b3775e93f0d75b6064ff8c842c123b1f842450"}, "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001/TERMINAL.json", "sha256": "f6a131efb8b3c0f1a85cfa5544dd16d225cf3a75f98d551c0f27041cea1badd9"}, "repository_review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_STRUCTURE_FOLD2_AUDIT_RESULT_REVIEW_20261116.json", "sha256": "601809c2472d5d9f021499dfce2f72f53d56522404f16654df0334451f6de12d"}, "execution_authorized": false, "claimed_invocations": 1, "completed_invocations": 1, "relaunch_allowed": false, "actual_counts": {"m5_issues": 47784, "both_observed": 47567, "known_pair_class": 47195, "same_pivot_bar": 372, "model_forwards": 0, "optimizer_steps": 0}, "target_locked": false, "model_fits_authorized": false, "test_data_used": false, "economic_edge_proven": false},
   "ta_m5_structure_outcome_candidate_20261116": {"status": "PHYSICAL_FOLD2_COVERAGE_MEASURED_TARGET_UNQUALIFIED", "spec": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_STRUCTURE_OUTCOME_CANDIDATE.md", "sha256": "82ab8aea01ca76792704fa39ac44fd28afe66b705fa25e10c2019d4b0447af98"}, "source": {"path": "/home/andre2/src/GX1_CURRENT/gx1/audit/measure_ta_m5_structure_candidate_v1.py", "sha256": "098d7695e93824e0d8b6c114533f565c3c23f08c6c675ef02cd8ef174c85f2b5"}, "tests": {"path": "/home/andre2/src/GX1_CURRENT/tests/test_ta_m5_structure_candidate_v1.py", "sha256": "5c4b9f4f1e26c13b6a5785bd184f37668b0106cb76df3f6be909e4e61454cae1"}, "target_locked": false, "execution_authorized": false, "model_fits_authorized": false, "test_data_used": false, "economic_edge_proven": false},
@@ -88950,6 +88950,39 @@
     "source_only": true,
     "genuine_train_forward_verified": false,
     "online_m1_current_state_parity_verified": false,
+    "training_authorized": false,
+    "model_fits_authorized": false,
+    "test_authorized": false,
+    "broker_access_allowed": false,
+    "economic_edge_proven": false
+  }
+,
+  "market_state_ta_current_s_input_source_20261116": {
+    "status": "CURRENT_ONLY_SOURCE_PASS_MODEL_AND_ONLINE_UNQUALIFIED",
+    "source_semantics": "selected_0.5_ATR_activity_1.0_ATR_proven_side",
+    "clock_basis": "historical_closed_M1_event_time_not_online_delivery",
+    "source_sha256": {
+      "gx1/contracts/market_state_time_query_target_v1.py": "bd87e01e10ebac86932bc438012820dd4ea0b04ed1acf82644cc233e1fac83f9",
+      "gx1/contracts/market_state_time_query_binding_v1.py": "6db09212d8c1a565afb5b6ba650a049a84319de64d11668819fe238a1eca72bd"
+    },
+    "test_sha256": {
+      "tests/test_market_state_time_query_target_v1.py": "648d18c7a42fa50fafdef7d4044eed01c7735b65c68e15a7e566e7d620e2768e",
+      "tests/test_market_state_time_query_binding_v1.py": "5f34de5283fd1490690108871e00faa66607280831c8fb448e895119079685dc"
+    },
+    "physical_fold2_issue_rows_checked": 64626,
+    "whole_fold_current_coverage_checked": true,
+    "physical_fold2_current_coverage": {
+      "fit_issues": 47338,
+      "fit_exact_m1_rows": 47327,
+      "score_issues": 17288,
+      "score_exact_m1_rows": 17288,
+      "fit_side_known_by_tf": {"M5": 16166, "M15": 18268, "H1": 18158, "H4": 19110, "D1": 16361},
+      "score_side_known_by_tf": {"M5": 5743, "M15": 6809, "H1": 6980, "H4": 7509, "D1": 7942},
+      "fit_m5_active_side_unknown": 27662,
+      "score_m5_active_side_unknown": 10373
+    },
+    "ta_model_input_connected": false,
+    "online_delivery_parity_verified": false,
     "training_authorized": false,
     "model_fits_authorized": false,
     "test_authorized": false,

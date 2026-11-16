@@ -1,7 +1,8 @@
-"""Pure exact-clock TRAIN state lookup for preselected future M5 ticks.
+"""Exact-clock TRAIN state lookup for future queries and current-only M5 issues.
 
-The caller owns the query schedule and the hash-bound M1 tape. This module
-never chooses a time from future labels, publishes targets, or authorizes fit.
+The caller owns the query schedule and the hash-bound M1 tape. Current-only
+lookup returns the state at the issue clock and never reads a future cell.
+Neither path publishes targets or authorizes fit.
 """
 from __future__ import annotations
 
@@ -23,7 +24,8 @@ class TimeQueryTargetTape:
     """Validate a source tape once, then gather only exact mature query rows."""
 
     def __init__(self, validity_ns: np.ndarray, source_row: np.ndarray,
-                 allowed_bits: np.ndarray):
+                 allowed_bits: np.ndarray, *, path_observed: np.ndarray | None = None,
+                 gap_kind: np.ndarray | None = None):
         _require(isinstance(validity_ns, np.ndarray)
                  and validity_ns.dtype == np.int64 and validity_ns.ndim == 1, "TAPE_AXIS")
         n = len(validity_ns)
@@ -44,6 +46,50 @@ class TimeQueryTargetTape:
         self.source_row = np.frombuffer(np.ascontiguousarray(source_row).tobytes(), dtype=np.int64)
         self.allowed_bits = np.frombuffer(np.ascontiguousarray(allowed_bits).tobytes(),
                                           dtype=np.uint8).reshape(n, len(TIMEFRAMES))
+        _require((path_observed is None) == (gap_kind is None), "CURRENT_AUX_PAIR")
+        if path_observed is not None:
+            _require(isinstance(path_observed, np.ndarray)
+                     and path_observed.dtype == np.bool_
+                     and path_observed.shape == allowed_bits.shape
+                     and bool(np.all(path_observed <= np.isin(allowed_bits, (1, 2, 4))))
+                     and isinstance(gap_kind, np.ndarray)
+                     and gap_kind.dtype == np.uint8 and gap_kind.shape == (n,)
+                     and bool(np.isin(gap_kind, (0, 1, 2)).all()), "CURRENT_AUX_DOMAIN")
+            self.path_observed = np.frombuffer(
+                np.ascontiguousarray(path_observed).tobytes(), dtype=np.bool_).reshape(n, len(TIMEFRAMES))
+            self.gap_kind = np.frombuffer(np.ascontiguousarray(gap_kind).tobytes(), dtype=np.uint8)
+        else:
+            self.path_observed = None
+            self.gap_kind = None
+
+    def gather_current(self, issue_ns: np.ndarray) -> dict[str, np.ndarray | str]:
+        """Read only the exact closed M1 state at each M5 issue, never a future row."""
+        _require(self.path_observed is not None and self.gap_kind is not None,
+                 "CURRENT_AUX_REQUIRED")
+        _require(isinstance(issue_ns, np.ndarray) and issue_ns.dtype == np.int64
+                 and issue_ns.ndim == 1 and len(issue_ns) > 0
+                 and bool(np.all(issue_ns >= 0))
+                 and bool(np.all(issue_ns % TICK_NS == 0)), "CURRENT_CLOCK")
+        at = np.searchsorted(self.validity_ns, issue_ns)
+        present = at < len(self.validity_ns)
+        present[present] &= self.validity_ns[at[present]] == issue_ns[present]
+        allowed = np.full((len(issue_ns), len(TIMEFRAMES)), 7, dtype=np.uint8)
+        source = np.full(len(issue_ns), -1, dtype=np.int64)
+        path = np.zeros_like(allowed, dtype=np.bool_)
+        gap = np.zeros(len(issue_ns), dtype=np.uint8)
+        if bool(present.any()):
+            selected = at[present]
+            allowed[present] = self.allowed_bits[selected]
+            source[present] = self.source_row[selected]
+            path[present] = self.path_observed[selected]
+            gap[present] = self.gap_kind[selected]
+        _require(bool(np.all((source >= 0) == present)), "CURRENT_SOURCE_CLOCK")
+        return {"issue_ns": issue_ns.copy(), "allowed": allowed,
+                "m1_source_row": source, "path_observed": path,
+                "gap_kind": gap, "present": present,
+                "activity_known": present[:, None] & (allowed != 7),
+                "side_known": present[:, None] & np.isin(allowed, (1, 4)),
+                "clock_basis": "historical_closed_M1_event_time_not_online_delivery"}
 
     def gather(self, issue_ns: np.ndarray, query_k: np.ndarray, *,
                fold_upper_ns: int) -> dict[str, np.ndarray]:
