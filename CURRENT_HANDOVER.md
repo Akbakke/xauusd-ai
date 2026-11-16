@@ -130,6 +130,15 @@ TEST, Entry/Exit, broker eller handel er innrømmet.
   Spearman-korrelasjon minst 0,994 mellom alle TF-par. M5/D1-fasiter
   var ulike i 222/473 felles kjente rader, mens betinget side-svar var
   riktig på begge TF i bare 3 av de 222. Ingen fem-TF kvalifikasjon.
+- Samme avgrensede Fold2-kontroll på beholdte TRAIN-rader gir 551
+  sertifiserte M5-par: faktisk skifteandel 45,3 % fra OPP og 53,1 % fra
+  NED, mens FINAL avleder 51,0 og 50,1 %. Modellens omvendte grupperekkefølge
+  finnes altså også her, men dag-/ukeintervall for forskjellen i faktisk
+  TRAIN-skifteandel omfatter null. Periodeskiftets bidrag er uavklart.
+  Treklasse-svaret er FLAT på alle 4 096 TRAIN-rader i alle fem TF også.
+  Kilden definerer S som kausal retningsendring ved 0,5 native ATR, ikke
+  fortegnet på én isolert femminutters avkastning; høy skifteandel alene
+  avdekker derfor ingen målklokkefeil.
 
 ## Ikke gjort / faktisk hindring
 

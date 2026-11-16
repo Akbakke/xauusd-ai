@@ -1260,12 +1260,13 @@
         "UTC_Monday_week": 14
       }
     },
-    "interpretation": "Fold2 FINAL has scoped within-current-UP switch ranking on this reused later development subset (AUC 0.582; both clustered level intervals above 0.5), but gain over INITIAL has mixed day/week intervals. Current-DOWN ranking and gain remain uncertain. Across current-state groups, observed switch frequency is higher from DOWN while the derived FINAL switch forecast mean is slightly higher from UP; this is a measured current-state conditioning/calibration mismatch. Fold1 has no established within-state learning gain. None of these observations attributes signal to a specific indicator or indicator interaction, establishes generalization, or qualifies Edge.",
+    "interpretation": "Fold2 FINAL has scoped within-current-UP switch ranking on this reused later development subset (AUC 0.582; both clustered level intervals above 0.5), but gain over INITIAL has mixed day/week intervals. Current-DOWN ranking and gain remain uncertain. Across current-state groups, observed switch frequency is higher from DOWN while the derived FINAL switch forecast mean is slightly higher from UP; this is a measured current-state conditioning/calibration mismatch. Fold1 has no established within-state learning gain. None of these observations attributes signal to a specific indicator or indicator interaction, establishes generalization, or qualifies Edge. On the separate retained TRAIN panel the point forecast switch-group ordering is also reversed, but the actual DOWN-minus-UP rate difference is uncertain by day/week cluster intervals; this does not rule out period effects. The S target is causal persistent directional change rather than a one-bar return sign.",
     "limits": [
       "Current-state label is reconstructed retrospectively; ONLINE parity and live coverage are unqualified.",
       "Groups are conditioned on certified current and future S labels and cannot be used as a deployment filter.",
       "Intervals are exploratory on reused development after multiple readouts, without multiplicity adjustment.",
-      "Fold1 and Fold2 are different model fits and later periods, not a controlled recipe ablation."
+      "Fold1 and Fold2 are different model fits and later periods, not a controlled recipe ablation.",
+      "The retained TRAIN panel has only 551 certified native pairs; its observed DOWN-minus-UP switch-rate interval includes zero, so the later group-rate gap cannot be declared stable across TRAIN and later."
     ],
     "fold2_model_binding": {
       "recipe": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_004/RECIPE.json",
@@ -1276,6 +1277,74 @@
       "underlying_S_contract_source_sha256": "601491f5e6d2d0476b4c3ce94000aad8682b787ad6045024295f9284547c17ab",
       "explicit_current_state_or_future_target_forward_input": false,
       "interpretation": "The bound Fold2 model forecasts future side from causal indicator context and query, without the reconstructed current S label as an explicit forward input. The observed cross-state mismatch does not prove that adding such an input would fix it."
+    },
+    "fold2_matched_TRAIN_current_state": {
+      "source_captures": {
+        "INITIAL": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_004/TRAIN_READOUT.npz",
+          "sha256": "eacccb900c7dcab0c50ab8af34e5af3eb51461aedb6ae74103dbddf8acb3a291"
+        },
+        "FINAL": {
+          "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_004/FINAL_TRAIN_READOUT.npz",
+          "sha256": "ab050d3e23801f2aa9f5ca0f97dfc1c455af246dcd1cf11fa1e22cc5b6db3909"
+        }
+      },
+      "method": "Exactly the same native M5 certified previous-target/current-state and future-target pairing as Fold2 later; identical INITIAL/FINAL axes and labels checked. This is the fixed 4096-row retained TRAIN score panel, not all 47338 TRAIN fit rows. No model forward or optimizer.",
+      "certified_pairs": 551,
+      "actual_switches": 271,
+      "initial_pooled_switch_auc": 0.457973,
+      "final_pooled_switch_auc": 0.505285,
+      "current_UP": {
+        "pairs": 278,
+        "actual_switches": 126,
+        "actual_switch_rate": 0.45323741007194246,
+        "initial_mean_switch_probability": 0.575531,
+        "final_mean_switch_probability": 0.510495,
+        "initial_switch_auc": 0.507623,
+        "final_switch_auc": 0.56391
+      },
+      "current_DOWN": {
+        "pairs": 273,
+        "actual_switches": 145,
+        "actual_switch_rate": 0.5311355311355311,
+        "initial_mean_switch_probability": 0.424311,
+        "final_mean_switch_probability": 0.500789,
+        "initial_switch_auc": 0.47958,
+        "final_switch_auc": 0.491002
+      },
+      "actual_DOWN_minus_UP_switch_rate": 0.07789812106358864,
+      "final_forecast_DOWN_minus_UP_mean_switch_probability": -0.009706,
+      "cluster_intervals_1000_replicates_seed_20261116": {
+        "UTC_day": {
+          "clusters": 155,
+          "actual_rate_difference_95": [
+            -0.0102,
+            0.156
+          ],
+          "forecast_mean_difference_95": [
+            -0.0123,
+            -0.007
+          ]
+        },
+        "UTC_Monday_week": {
+          "clusters": 35,
+          "actual_rate_difference_95": [
+            -0.0097,
+            0.1611
+          ],
+          "forecast_mean_difference_95": [
+            -0.0127,
+            -0.0068
+          ]
+        }
+      },
+      "three_class_argmax": "INITIAL and FINAL each predict FLAT for all 4096 TRAIN rows on each of five TF; same as retained Fold2 later panel."
+    },
+    "target_definition_source": {
+      "path": "gx1/contracts/entry_dynamic_mtf_state_targets_v1.py",
+      "sha256": "42de2b1a774ec6be8c4de4a369cadcbee07d390048a8c3f950a78747cc323212",
+      "definition": "Persistent causal directional-change S state, threshold 0.5 of last completed native TF ATR, built from completed M1 bars. It is not the sign of an isolated five-minute return. Historical current-only accessor requires validity, maturity and ATR availability no later than issue; ONLINE delivery parity remains unproven.",
+      "interpretation": "High switch frequency in selected certified M5 pairs does not by itself prove a target-clock/sign error or that S is a non-persistent return label."
     }
   },
   "native_three_class_and_tf_direction_readout": {
