@@ -599,7 +599,7 @@
     "interpretation": "High/low level hits at a later confirmed pivot are not the next-bar M5 state switch."
   },
   "conclusion": {
-    "measured": "Structure high/low learned on fixed TRAIN and reused later panels; activity Brier improves in seven of ten later task/TF cells. Every later conditional-side and three-class Brier is worse than the frozen TRAIN prior. Final M5 turn AUC is below 0.5 on 531 known pairs; F outputs remain highly correlated across TF despite physically distinct heads. Fixed TRAIN M5 turn AUC is 0.4656 on 551 known pairs; full TRAIN has 6746 exact adjacent known pairs and 3547 turns. S native H4/D1 side supervision is sparse, while F native supervision is not.",
+    "measured": "Structure high/low learned on fixed TRAIN and reused later panels; activity Brier improves in seven of ten later task/TF cells. Every later conditional-side and three-class Brier is worse than the frozen TRAIN prior. Final M5 turn AUC is below 0.5 on 531 known pairs; F outputs remain highly correlated across TF despite physically distinct heads. Fixed TRAIN M5 turn AUC is 0.4656 on 551 known pairs; full TRAIN has 6746 exact adjacent known pairs and 3547 turns. S native H4/D1 side supervision is sparse, while F native supervision is not. Capped actual B16 forward reproduces saved F logits within 1.4e-5 while TF hidden/projection vectors remain different; F side-sign collapse also appears on fixed TRAIN (M5/D1 truth disagrees 211/517, model 36/517).",
     "source_proven": "The integrated model routes five post-attention TF vectors to distinct S and F side heads; the high/low structure target is a separate future confirmed-pivot event.",
     "not_established": [
       "M5 turning skill",
@@ -612,7 +612,7 @@
   "training_enabled": false,
   "economic_edge_proven": false,
   "test_data_used": false,
-  "next_boundary": "Do not add a separate turn head or select another model on reused Jan-Mar development. Qualify a native S schedule across all TF and inspect F side optimization/representation on TRAIN; direct M5 turn support is 6746 exact known pairs. Any later fit requires a new exact chronological OOF plan. Full GC, training, TEST and trading remain closed.",
+  "next_boundary": "F collapse occurs after distinct TF representations in a scoped actual TRAIN probe. Qualify one TRAIN-only frozen-encoder F readout/optimizer control and a native S query schedule before any new exact chronological OOF fit. Do not select a model on reused Jan-Mar development. Training, Full GC, TEST and trading remain closed.",
   "additional_train_and_query_diagnosis": {
     "class": "TRAIN_and_source_only_no_new_fit",
     "input_ref": {
@@ -696,6 +696,110 @@
       "S native endpoint supervision is sparse at H4 and D1; exact native k appears on 925/167 rows, with known side on 340/37. Nearby sampled k may transfer, so this is a measured exposure gap, not a proven sole cause.",
       "F uses fixed native endpoints and has 15148-19072 known-side TRAIN rows by TF, yet its final TF outputs are highly correlated. F collapse therefore cannot be attributed to sparse native query sampling.",
       "Structure high/low is observed on more than 47188/47338 rows, while native M5 S side is certified on 16101/47338. The turn-pair mask is narrower despite complete causal M1 paths on every current issue in the known pairs."
+    ]
+  },
+  "F_readout_localization": {
+    "method": "One capped CPU audit, 4G memory/512M swap, zero optimizer: strictly loaded final checkpoint and read actual full-TA TRAIN features for 16 fixed panel positions 0,256,...,3840; computed distinct TF fused hidden, F query projection and F raw side. Full captured 4096-row panels scored separately without model forwards.",
+    "checkpoint_ref": {
+      "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_FIT_20261116_002/FINAL_MODEL.pt",
+      "sha256": "bf19929c3ab02f5b90cc83a962c10135aef290cb6d291882deb6e657a74f4763"
+    },
+    "train_capture_ref": {
+      "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_FIT_20261116_002/FINAL_TRAIN_READOUT.npz",
+      "sha256": "9e794d5836b401f25747f78c6bf286b7fbff7ff172fc54154eda394dc22050d3"
+    },
+    "selected_fixed_train_rows": 16,
+    "selected_panel_position_step": 256,
+    "capture_max_abs_F_logit_difference": 1.3232231140136719e-05,
+    "B16_M5_vs_other_TF": {
+      "M15": {
+        "fused_hidden_mean_cosine": 0.91777,
+        "fused_hidden_relative_distance": 0.45371,
+        "F_projection_mean_cosine": 0.95007,
+        "F_projection_relative_distance": 0.35508,
+        "side_sign_disagree": 2
+      },
+      "H1": {
+        "fused_hidden_mean_cosine": 0.94257,
+        "fused_hidden_relative_distance": 0.49422,
+        "F_projection_mean_cosine": 0.96865,
+        "F_projection_relative_distance": 0.43344,
+        "side_sign_disagree": 2
+      },
+      "H4": {
+        "fused_hidden_mean_cosine": 0.94202,
+        "fused_hidden_relative_distance": 0.40947,
+        "F_projection_mean_cosine": 0.96943,
+        "F_projection_relative_distance": 0.34054,
+        "side_sign_disagree": 2
+      },
+      "D1": {
+        "fused_hidden_mean_cosine": 0.91191,
+        "fused_hidden_relative_distance": 0.44809,
+        "F_projection_mean_cosine": 0.95345,
+        "F_projection_relative_distance": 0.33808,
+        "side_sign_disagree": 2
+      }
+    },
+    "full_capture_F_M5_vs_other_TF": {
+      "TRAIN": {
+        "M15": {
+          "joint_known": 848,
+          "truth_side_disagree": 84,
+          "final_side_sign_disagree": 89,
+          "final_logit_pearson_r": 0.8564366330489768
+        },
+        "H1": {
+          "joint_known": 709,
+          "truth_side_disagree": 186,
+          "final_side_sign_disagree": 54,
+          "final_logit_pearson_r": 0.8617345864378613
+        },
+        "H4": {
+          "joint_known": 602,
+          "truth_side_disagree": 218,
+          "final_side_sign_disagree": 22,
+          "final_logit_pearson_r": 0.9124848443342896
+        },
+        "D1": {
+          "joint_known": 517,
+          "truth_side_disagree": 211,
+          "final_side_sign_disagree": 36,
+          "final_logit_pearson_r": 0.963643596664192
+        }
+      },
+      "LATER": {
+        "M15": {
+          "joint_known": 825,
+          "truth_side_disagree": 65,
+          "final_side_sign_disagree": 77,
+          "final_logit_pearson_r": 0.830249903491558
+        },
+        "H1": {
+          "joint_known": 684,
+          "truth_side_disagree": 178,
+          "final_side_sign_disagree": 43,
+          "final_logit_pearson_r": 0.8487214632979371
+        },
+        "H4": {
+          "joint_known": 606,
+          "truth_side_disagree": 238,
+          "final_side_sign_disagree": 14,
+          "final_logit_pearson_r": 0.9146670497428488
+        },
+        "D1": {
+          "joint_known": 557,
+          "truth_side_disagree": 249,
+          "final_side_sign_disagree": 15,
+          "final_logit_pearson_r": 0.9540433637750475
+        }
+      }
+    },
+    "interpretation": "TF-specific fused hidden and F projection vectors are not identical on the fixed B16. F side decisions are nevertheless similar even when known truths disagree in both fixed TRAIN and reused later panels. This localizes the effective collapse to the F readout/optimization path after distinct representations; it does not prove whether task interference, chronological one-pass order, insufficient fit or signal weakness is the cause.",
+    "limits": [
+      "The representation probe covers 16 fixed TRAIN rows and has no immutable private output receipt; its result is a scoped source/CPU observation, not generalization evidence.",
+      "The full captured output comparisons cover 4096 fixed TRAIN and 4096 reused later rows; those capture bytes are hash-bound.",
+      "No new fit, threshold search, TEST, costed Entry or economic Edge."
     ]
   }
 }

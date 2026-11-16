@@ -523,7 +523,7 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
 
 Den avsluttede fit002-lesningen er bundet i
 `docs/TA_INTEGRATED_FOLD2_FIT_002_RESULT_REVIEW_20261116.json` (SHA256
-`445ac6163ee81ae112c59b7210643af44845cd90d10e24c6d6bfe9bd919aaf03`).
+`b5d0f398ba7535e812404a4e1f1f390cb263f2a272c375d37c41980faf90c512`).
 Senere S/F-side-Brier var dårligere enn fryst TRAIN-prior
 i 10/10 TF-/oppgaveceller; treklasse-Brier var også dårligere i 10/10.
 Struktur topp/bunn slo prior med AUC 0,7945/0,7834, men M5-vending på
@@ -544,6 +544,16 @@ S-eksponering på høyere TF og F-kollaps tross dekning. En ekstra
 vendings-BCE på samme M5-sidelogit er algebraisk bare omvekting av
 rader med kjent nåside, ikke ny informasjon eller en begrunnelse for
 et nytt hode. Ingen ny trening eller VAL-utvelgelse fulgte.
+
+En capped, lesende CPU-forward på 16 faste TRAIN-rader gjenskapte lagret F-logit
+innen 0,000014. De fem TF-representasjonene og F-projeksjonene var ulike
+(M5/D1 relativ avstand henholdsvis 0,448 og 0,338), men F ga likevel
+likt sidefortegn på 14/16 av disse radene. På hele det faste TRAIN-panelet
+hadde M5/D1 ulik kjent F-side i 211/517 tilfeller; F-outputene var ulike
+i bare 36. Senere utvikling ga 249/557 mot 15. Den effektive kollapsen
+ligger dermed etter ulike TF-vektorer, i F-utlesning/læring. Årsaken
+(tapskonflikt, kronologisk rekkefølge, utilstrekkelig fit eller svakt
+signal) er ikke isolert. Ingen ny optimizer eller model fit ble kjørt.
 
 Det målte problemet er svake M5-vendinger og utilstrekkelige selvstendige
 fem-TF-retninger. M5-only-fitten gir begrenset senere S-rangering, men
@@ -570,10 +580,10 @@ Entry, TEST eller handel åpnes av denne presiseringen.
 
 ## Neste steg
 
-1. Kvalifiser på TRAIN en S-plan som faktisk gir native sidefasit på
-   alle fem TF, og isoler F-kollaps i taps-/representasjonsstien. Bruk
-   de 6 746 kjente M5-naboparene uten nytt vendingshode. Ikke velg
-   ny modell etter det gjenbrukte januar–mars-panelet.
+1. Kvalifiser på TRAIN en native S-plan for alle fem TF og én
+   frossen-encoder-kontroll som skiller F-utlesning fra optimizer/
+   oppgavemiks. Bruk de 6 746 kjente M5-naboparene uten nytt
+   vendingshode. Ikke velg ny modell etter januar–mars-panelet.
 2. Bind deretter én eksakt kronologisk OOF-/forward-plan bare hvis
    mål og observerbarhet er kvalifisert. Økonomisk Edge krever senere
    forhåndsbundet kostet Entry og alle valgte/åpne posisjoner.
