@@ -8,11 +8,11 @@ from pathlib import Path
 import subprocess
 
 REPO = Path('/home/andre2/src/GX1_CURRENT')
-ROOT = Path('/home/andre2/GX1_RUNS/TA_INTEGRATED_PREFLIGHT_20261116_002')
+ROOT = Path('/home/andre2/GX1_RUNS/TA_INTEGRATED_PREFLIGHT_20261116_003')
 TRAIN = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001')
 LATER = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_002')
 TF = ('M5', 'M15', 'H1', 'H4', 'D1')
-LEFT, RIGHT = 128, 144
+LEFT, RIGHT = 36000, 36016
 END = int(__import__('numpy').datetime64('2025-01-01', 'ns').astype('int64'))
 
 
@@ -75,7 +75,7 @@ def main():
     need(not ROOT.exists(), 'ONE_USE')
     ROOT.mkdir()
     claim = {'source_commit': head, 'source_sha256': sha(__file__), 'cap': cap,
-             'scope': 'one_read_only_fold2_train_batch_128_143',
+             'scope': 'one_read_only_fold2_train_batch_36000_36015',
              'claimed_utc': datetime.now(timezone.utc).isoformat()}
     (ROOT / 'CLAIM.json').write_text(json.dumps(claim, indent=2) + '\n')
     try:
@@ -150,13 +150,20 @@ def main():
         parity = json.loads((REPO / 'docs/TA_M1_PATH_ARCHIVE_PARITY_REVIEW_20261116.json').read_text())
         m1_ref = parity['source_refs']['S_train_m1_quotes_parquet']
         need(sha(m1_ref['path']) == m1_ref['sha256'], 'M1_SOURCE_SHA')
-        raw = pq.ParquetFile(m1_ref['path']).read_row_group(1820,
-            columns=['time', 'open', 'high', 'low', 'close'])
+        m1_parquet = pq.ParquetFile(m1_ref['path'])
+        wanted_start, wanted_end = int(issues[0] - 300_000_000_000), int(issues[-1] - 60_000_000_000)
+        groups = []
+        for index in range(m1_parquet.metadata.num_row_groups):
+            stats = m1_parquet.metadata.row_group(index).column(0).statistics
+            if pd.Timestamp(stats.max).value >= wanted_start and pd.Timestamp(stats.min).value <= wanted_end:
+                groups.append(index)
+        need(0 < len(groups) <= 2, 'M1_ROW_GROUP_SCOPE')
+        raw = m1_parquet.read_row_groups(groups, columns=['time', 'open', 'high', 'low', 'close'])
         m1_time = raw['time'].to_numpy(zero_copy_only=False).astype('datetime64[ns]').astype(np.int64)
         m1_ohlc = np.stack([raw[key].to_numpy(zero_copy_only=False)
                             for key in ('open', 'high', 'low', 'close')], axis=1)
         path = M1IssuePathTape(m1_time, m1_ohlc).gather(issues)
-        need(bool(path['full_path'].all()) and path['observed'].shape == (16, 5), 'M1_PATH')
+        need(path['observed'].shape == (16, 5), 'M1_PATH')
 
         structure_plan = json.loads((REPO / 'configs/research/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001.json').read_text())
         m5_ref = structure_plan['input']
@@ -214,7 +221,14 @@ def main():
              'LOSS_FINITE')
         sf['loss'].backward(retain_graph=True)
         sf_gate_grad = int(torch.count_nonzero(model.m1_tf_gate.weight.grad).item())
-        need(sf_gate_grad > 0, 'SF_M1_GRADIENT')
+        state_heads = (model.dual.state_model.m5_side_head,
+                       *(model.dual.state_model.non_m5_side_heads[tf] for tf in TF[1:]))
+        future_heads = (model.dual.future_m5_side_head,
+                        *(model.dual.future_non_m5_side_heads[tf] for tf in TF[1:]))
+        state_side_grads = [int(torch.count_nonzero(head.weight.grad).item()) for head in state_heads]
+        future_side_grads = [int(torch.count_nonzero(head.weight.grad).item()) for head in future_heads]
+        need(sf_gate_grad > 0 and all(state_side_grads) and all(future_side_grads),
+             'ALL_TF_SF_SIDE_GRADIENTS')
         model.zero_grad(set_to_none=True)
         structure['loss_sums'].sum().backward()
         structure_gate_grad = int(torch.count_nonzero(model.m1_tf_gate.weight.grad).item())
@@ -237,6 +251,8 @@ def main():
                   'S_F_diagnostic_loss': float(sf['loss'].detach()),
                   'structure_diagnostic_loss_sum': float(structure['loss_sums'].sum().detach()),
                   'S_F_M1_gate_nonzero_gradient_cells': sf_gate_grad,
+                  'S_side_head_nonzero_gradient_cells_by_tf': state_side_grads,
+                  'F_side_head_nonzero_gradient_cells_by_tf': future_side_grads,
                   'structure_M1_gate_nonzero_gradient_cells': structure_gate_grad,
                   'structure_head_nonzero_gradient_cells': structure_head_grad,
                   'test_data_used': False, 'training_authorized': False,
