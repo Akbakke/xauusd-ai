@@ -1,0 +1,76 @@
+{
+  "aggregate": {
+    "S_missing_source_mismatches": 0,
+    "S_source_row_mismatches": 0,
+    "S_tape_current_present": 47327,
+    "field_mismatches": {
+      "ask_close": 0,
+      "ask_high": 0,
+      "ask_low": 0,
+      "ask_open": 0,
+      "bid_close": 0,
+      "bid_high": 0,
+      "bid_low": 0,
+      "bid_open": 0,
+      "close": 0,
+      "high": 0,
+      "low": 0,
+      "open": 0,
+      "volume": 0
+    },
+    "issues_last_m1_present": 47327,
+    "m1_slots_missing": 734,
+    "m1_slots_present": 235956,
+    "m5_issues_full_five_bar_path": 47124,
+    "m5_issues_incomplete_path": 214,
+    "raw_base_presence_mismatches": 0
+  },
+  "base28_row_groups": [
+    4
+  ],
+  "decision": "PASS_ARCHIVE_TRAIN_SOURCE_VALUE_AND_CLOCK_PARITY_MODEL_INPUT_UNQUALIFIED",
+  "economic_edge_proven": false,
+  "execution": {
+    "class": "audit",
+    "memory_high_bytes": 4294967296,
+    "memory_max_bytes": 4294967296,
+    "numerical_threads": 1,
+    "pids_max": 64,
+    "runner": "scripts/gx1_capped_run.sh",
+    "swap_max_bytes": 536870912,
+    "terminal_exit_code": 0
+  },
+  "limits": [
+    "Archived BASE28 pair overlap proves historical source parity only, not actual ONLINE delivery or bar completion at M5 decision.",
+    "No M1 path model input, forward, fit, later score or economic Edge was measured.",
+    "The 214 incomplete paths must be preserved with explicit masks, not silently dropped or filled as observed."
+  ],
+  "method": "Exact Fold2 fit parent/issue axis, five M1 bar starts at issue minus 5 through 1 minutes; read only intersecting source row groups, compare presence and 13 literal mid/bid/ask OHLC and volume fields bitexact; verify published S current source row against raw parquet global row index.",
+  "model_forwards": 0,
+  "optimizer_steps": 0,
+  "raw_row_groups": [
+    1820,
+    1901
+  ],
+  "schema_version": "gx1_ta_m1_archive_path_parity_review_v1",
+  "scope": {
+    "fold_id": 2,
+    "m1_slots": 236690,
+    "m1_window_minutes": 5,
+    "m5_issues": 47338,
+    "partition": "fit",
+    "test_data_used": false
+  },
+  "source_hashes_checked_during_capped_run": true,
+  "source_refs": {
+    "S_train_m1_quotes_parquet": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m1_quotes_source/m1_quotes.parquet",
+      "sha256": "54b66c5e9b5a0125f089afcc9d3327c79af9c3543eebdb2644281ed9d3c2734c"
+    },
+    "archived_base28_parquet": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/PAIR_GENERATIONS/fc3333d71ca71d3916b3f6716bbfd36824a216dc15fb927efa8c03cac0594170/base28.parquet",
+      "sha256": "15c4dce883912406b06cbd4e8d91d134feaee7cc1b65ba0b7dc9e979c89778fc"
+    },
+    "archived_pair_generation_id": "fc3333d71ca71d3916b3f6716bbfd36824a216dc15fb927efa8c03cac0594170"
+  }
+}

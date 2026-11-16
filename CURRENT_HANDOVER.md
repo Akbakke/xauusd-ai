@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_INTEGRATED_TARGET_BOUNDARY_CORRECTED_SOURCE_ONLY_UNQUALIFIED.
+TA_M1_ARCHIVE_PARITY_PASS_INTEGRATED_MODEL_UNQUALIFIED.
 Den tidligere ikke-GC S-lesningen er fullført og M5-Edge fortsatt ubevist.
 Fold2 S-only full-GC 25-cellers engangsplan er fullført og konsumert.
 training_enabled=false, native_training_enabled=false og
@@ -378,6 +378,16 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   tilgjengelig leveringsvei, ikke målt TRAIN/ONLINE-verdi- eller
   samtidighetsparitet; TA-modellen konsumerer ennå ikke banen.
 
+- En capped 4G lesende Fold2-kontroll sammenlignet hashbundet S-TRAIN-M1
+  med den arkiverte, hashbundne Entry-serving-parets `BASE28` på alle 47 338
+  fit-issues. Fem lukkede M1-minutter per M5-issue ga 235 956 observerte av
+  236 690 plasser. Alle 13 mid-/bid-/ask-OHLC- og volumfelt var bitidentiske
+  ved observerte plasser; kilde-/tilstedeværelsesmasker og S-tapens siste
+  M1-kildeindeks hadde null avvik. 47 124 issues hadde full femminuttersbane,
+  214 var ufullstendige og skal maskeres uten å droppes. Aggregatet og
+  kildehashene står i `docs/TA_M1_PATH_ARCHIVE_PARITY_REVIEW_20261116.json`.
+  Dette er arkivparitet, ikke fysisk live-levering, TA-modellinput eller Edge.
+
 ## Ikke gjort / faktisk hindring
 
 Det målte problemet er svake M5-vendinger og utilstrekkelige selvstendige
@@ -415,8 +425,9 @@ Entry, TEST eller handel åpnes av denne presiseringen.
 2. Bind nåtilstand og vending ærlig. `gather_current` er bare et
    historisk, M1-avledet nåoppslag; det er ennå ikke input til TA-modellen
    og erstatter ikke hele ordnede M1-banen. Bred historisk Fold2-dekning
-   er målt; gjenbruk `BASE28` sin eksakte lukkede M1-leser og bevis
-   TRAIN/ONLINE-verdi- og samtidighetsparitet før modellkobling.
+   er målt; arkivert `BASE28` og S-TRAIN-M1 har null verdi-/klokkeavvik
+   på hele Fold2-fitaksen. Gjenbruk den eksakte M1-leseren og bevis faktisk
+   ONLINE-levering/lukking før eventuell live modellkobling.
    Den separate M5-topp/bunn-
    kandidaten har god fysisk dekning, men er ennå ikke låst som treningsmål.
    Behold bit5 `{OPP,NED}`, blandet struktur og ukjente forløp uten gjettet
