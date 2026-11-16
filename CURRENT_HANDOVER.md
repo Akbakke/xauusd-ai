@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_INTEGRATED_FOLD2_FIT_INPUT_TAPE_BOUND_TRAINING_CLOSED.
+TA_INTEGRATED_FOLD2_OBJECTIVE_AND_FIXED_LATER_INPUTS_READY_FIT_CLOSED.
 Den tidligere ikke-GC S-lesningen er fullført og M5-Edge fortsatt ubevist.
 Fold2 S-only full-GC 25-cellers engangsplan er fullført og konsumert.
 training_enabled=false, native_training_enabled=false og
@@ -435,6 +435,18 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   metadatahashen `29487410...` er ikke identisk med denne og må ikke brukes
   som kvittering for den fysiske modellen. Senere score-input og samlet
   tapsoppskrift er ennå ikke bundet.
+
+
+- Én kildekontrakt for samlet Fold2 S/F/struktur-tap er lagt til. Den bruker
+  eksisterende fem-TF aktivitet og kjent side med M5 q/N-observasjonsvekting,
+  F-vekt 1,0 og et forhåndsvalgt mindre hjelpeledd på 0,25 for maskert
+  topp/bunn-BCE. To fokustester består for aritmetikk og null gradient på
+  ukjent strukturfasit; faktisk optimizersteg er ikke kjørt. Det faste
+  4 096-raders senere utviklingspanelet (januar–mars 2025) er nå bundet til
+  et privat M1-/strukturarkiv: 4 089 fulle fem-M1-baner, topp/bunn observert
+  på 4 068/4 081 rader. Dette er gjenbrukt utvikling, ikke forseglet TEST
+  eller uavhengig bekreftelse. Kvitteringer og begrensninger står i
+  `docs/TA_INTEGRATED_OBJECTIVE_LATER_INPUTS_REVIEW_20261116.json`.
 
 ## Ikke gjort / faktisk hindring
 

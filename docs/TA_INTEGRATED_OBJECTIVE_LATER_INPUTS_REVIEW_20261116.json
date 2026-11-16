@@ -1,0 +1,52 @@
+{
+  "schema_version": "gx1_ta_integrated_objective_later_inputs_review_v1",
+  "decision": "SOURCE_BOUND_SF_STRUCTURE_OBJECTIVE_AND_FIXED_LATER_INPUTS_NO_FIT_AUTHORITY",
+  "objective": {
+    "source": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_ta_integrated_objective_v1.py",
+      "sha256": "f93ea806077868f8bd48a8f7d837f7e1586f48d2624728f17fddc85d81e0eaa2"
+    },
+    "contract_sha256": "f4cd885a7994f66367abc54fcbdedbe5339275ef8404dee29362b38bf2819bd1",
+    "future_weight": 1.0,
+    "structure_auxiliary_weight": 0.25,
+    "M5_S_equal_observation_fold2": true,
+    "mask_rule": "unknown_structure_and_S_F_side_labels_have_zero_direct_gradient",
+    "focus_tests_passed": 2
+  },
+  "later_development_panel": {
+    "source": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/materialize_market_state_ta_integrated_fold2_later_v1.py",
+      "sha256": "c8aede519e85ea6220104cbf8e0182070226fdacaeaf1a218ed4f95b914042d2"
+    },
+    "source_commit": "c17d12aba7fbe8ba058b639a0e76402b9b229459",
+    "score_rows": 4096,
+    "issue_axis_sha256": "c03ec2ae8b418e21739f9f7966b946615878344364e6dc4e4d80087a0fee99d3",
+    "M1_observed_slots": 20452,
+    "M1_complete_paths": 4089,
+    "structure_high_observed": 4068,
+    "structure_low_observed": 4081,
+    "structure_both_observed": 4068,
+    "private_archive": {
+      "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_LATER_INPUTS_20261116_001/INPUTS.npz",
+      "sha256": "9b527afd59c906f32cf91046ddee282b998cfad5b22216030fb6a873f651ae47",
+      "bytes": 304556
+    },
+    "private_result": {
+      "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_LATER_INPUTS_20261116_001/RESULT.json",
+      "sha256": "293e9d042788fa750c60fa49bf84dcdef9e016995805605218b552f8e77c5985"
+    },
+    "private_terminal": {
+      "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_LATER_INPUTS_20261116_001/TERMINAL.json",
+      "sha256": "a5a5f2e7d9e979f4c125ae196783afc21aa7fbcb0fdbbd858af4f8b54da20834"
+    }
+  },
+  "limits": [
+    "The later panel is reused January-March 2025 development data, not sealed TEST or independent forward confirmation.",
+    "The 0.25 auxiliary coefficient was fixed as a subordinate structure task; no observed predictive benefit is claimed.",
+    "Loss implementation has synthetic unit coverage only; no actual integrated optimizer step or later model score has occurred.",
+    "Structure target availability and M1 source paths are offline; ONLINE delivery and economic Edge remain unknown."
+  ],
+  "test_data_used": false,
+  "training_authorized": false,
+  "economic_edge_proven": false
+}
