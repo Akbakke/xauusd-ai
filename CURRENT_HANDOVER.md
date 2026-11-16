@@ -362,10 +362,10 @@ Entry, TEST eller handel åpnes av denne presiseringen.
    pivotens tre lukkede bekreftelsesbarer, nivåtreff/brudd/avvisning og
    sensur ved M5-klokkebrudd/foldgrense, uten å omdøpe dette til S eller F.
    Kildekandidaten er implementert i
-   gx1/audit/measure_ta_m5_structure_candidate_v1.py og seks fokuserte
+   gx1/audit/measure_ta_m5_structure_candidate_v1.py og sju fokuserte
    syntetiske tester består. En konkret sensurfeil mellom bekreftet fryst
    nivå og M5-beslutningen ble rettet før denne overleveringen; bar på
-   TRAIN-sluttgrensen avvises. Dette er ingen fysisk TRAIN-kontroll:
+   den eksklusive foldgrensen avvises. Dette er ingen fysisk TRAIN-kontroll:
    dekning, modning og faktiske forløp er fortsatt ukjent. Kandidaten er
    ikke låst target, innrømmet kjøring eller modellfit. Neste nødvendige
    kontroll er én avgrenset TRAIN-måling før eventuell supervisjon; ikke

@@ -18,7 +18,7 @@ Manglende nivå, ATR eller lukkede kildebarer får egen maske.
 
 Finn første *nye* bekreftede M5-topp og første *nye* bekreftede M5-bunn med
 pivotbar etter `t`. Begge må modnes innen samme TRAIN-folds deklarerte
-målgrense. Bevar pivotbar og bekreftelsesbar hver for seg. Sammenlign de to
+målgrense (eksklusiv). Bevar pivotbar og bekreftelsesbar hver for seg. Sammenlign de to
 pivotprisene med nivåene fryst ved `t`; senere oppdaterte SMC-nivåer får ikke
 endre sammenligningsgrunnlaget.
 

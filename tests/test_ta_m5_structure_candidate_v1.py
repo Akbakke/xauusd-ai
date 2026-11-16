@@ -19,7 +19,7 @@ def _case(close=CLOSE, time=None, issues=(11, 13)):
         time = START_NS + np.arange(len(close), dtype=np.int64) * M5_NS
     return measure_candidate(time, close + 0.1, close - 0.1, close,
                              np.ones(len(close)), np.asarray(issues, dtype=np.int64),
-                             fold_target_end_ns=int(time[-1]))
+                             fold_target_end_ns=int(time[-1] + M5_NS))
 
 
 def test_frozen_levels_and_next_confirmed_pair_are_separate():
@@ -60,6 +60,14 @@ def test_gap_between_frozen_confirmation_and_issue_masks_that_level():
     assert result["pair_class"][0] == UNKNOWN
 
 
+def test_bar_at_exclusive_fold_end_is_rejected():
+    time = START_NS + np.arange(len(CLOSE), dtype=np.int64) * M5_NS
+    with pytest.raises(ValueError, match="TA_M5_STRUCTURE_CLOCK"):
+        measure_candidate(time, CLOSE + 0.1, CLOSE - 0.1, CLOSE,
+                          np.ones(len(CLOSE)), np.array([11], dtype=np.int64),
+                          fold_target_end_ns=int(time[-1]))
+
+
 def test_test_period_is_rejected_before_source_replay():
     time = START_NS + np.arange(len(CLOSE), dtype=np.int64) * M5_NS
     time[-1] = int(np.datetime64("2026-07-01T00:00:00", "ns").astype(np.int64))
@@ -73,7 +81,7 @@ def test_same_bar_high_and_low_keep_hits_but_no_direction_order():
     time = START_NS + np.arange(len(CLOSE), dtype=np.int64) * M5_NS
     result = measure_candidate(time, high, low, CLOSE, np.ones(len(CLOSE)),
                                np.array([17], dtype=np.int64),
-                               fold_target_end_ns=int(time[-1]))
+                               fold_target_end_ns=int(time[-1] + M5_NS))
     assert result["same_pivot_bar"][0]
     assert result["both_levels_hit"][0]
     assert result["pair_class"][0] == UNKNOWN

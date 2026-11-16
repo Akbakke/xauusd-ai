@@ -64,7 +64,7 @@ def measure_candidate(
     _need(type(fold_target_end_ns) is int
           and TRAIN_START_NS < fold_target_end_ns <= TRAIN_END_NS
           and bool(np.all(time[1:] > time[:-1]))
-          and int(time[-1]) <= fold_target_end_ns
+          and int(time[-1]) < fold_target_end_ns
           and int(time[-1]) < TRAIN_END_NS
           and bool(np.all((time[issues] >= TRAIN_START_NS)
                           & (time[issues] < fold_target_end_ns))), "CLOCK")
@@ -117,7 +117,7 @@ def measure_candidate(
         if not len(pivot):
             continue
         next_idx, next_confirm = pivot[chosen], confirmation[chosen]
-        future_valid = (available & (time[next_confirm] <= fold_target_end_ns)
+        future_valid = (available & (time[next_confirm] < fold_target_end_ns)
                         & clear_window(next_idx - SWING_LOOKBACK, next_confirm)
                         & (gap[next_confirm] == gap[issues]))
         observed = base & frozen_valid & future_valid
