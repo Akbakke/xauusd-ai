@@ -1,0 +1,65 @@
+{
+  "schema_version": "gx1_ta_integrated_fold2_fit_002_terminal_review_v1",
+  "decision": "COMPLETE_CONSUMED_FIXED_SCORE_WRITTEN_ASSESSMENT_OPEN",
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_FIT_20261116_002/PLAN.json",
+    "sha256": "330e4cb1dd4c76980264b44a32f091e67c43142819514901f60068abed102783"
+  },
+  "boot_id": 657,
+  "source_commit": "76bc69b272c17ae0f76883dbb585be3e81546674",
+  "source_unchanged": true,
+  "claim": {
+    "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_FIT_20261116_002/CLAIM.json",
+    "sha256": "7030e757206f848e9bfc52e6336b31377f06d90b2f0eb030a982783947dbe966"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_FIT_20261116_002/RESULT.json",
+    "sha256": "90bf16d729bbcd5efb63706ff52b8c81486b55c3e8fba52381f322cc95d16455"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_FIT_20261116_002/TERMINAL.json",
+    "sha256": "48f1fb9bca27c9269c8c12f4fa19fdf09881239ffde52458c7c2d53135ddfa88"
+  },
+  "checkpoint": {
+    "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_FIT_20261116_002/FINAL_MODEL.pt",
+    "sha256": "bf19929c3ab02f5b90cc83a962c10135aef290cb6d291882deb6e657a74f4763"
+  },
+  "captures": {
+    "FINAL_LATER": {
+      "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_FIT_20261116_002/FINAL_LATER_READOUT.npz",
+      "sha256": "4fdfa3341013161975314de032f8e2f55ab8eadd7ab15d5da5dd32df0485c12e"
+    },
+    "FINAL_TRAIN": {
+      "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_FIT_20261116_002/FINAL_TRAIN_READOUT.npz",
+      "sha256": "9e794d5836b401f25747f78c6bf286b7fbff7ff172fc54154eda394dc22050d3"
+    },
+    "INITIAL_LATER": {
+      "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_FIT_20261116_002/INITIAL_LATER_READOUT.npz",
+      "sha256": "57917b5c11238bfc3cf1a2ec7be2cae96906a11b4a79b90e31a99a85606afb90"
+    },
+    "INITIAL_TRAIN": {
+      "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_FIT_20261116_002/INITIAL_TRAIN_READOUT.npz",
+      "sha256": "9c8dce24921a82fbf797a5a54b365bcf219ad423f51c6983892c71e12c35c9a1"
+    }
+  },
+  "guard_log": {
+    "path": "/home/andre2/GX1_RUNS/.TA_INTEGRATED_FOLD2_FIT_20261116_002.guard.jlk9xRNT.log",
+    "sha256": "8e53f05bbeec4370c7073f84fc56f64b73e1f2d2bf2e8ef89daf67c20fffd318"
+  },
+  "fit_rows": 47338,
+  "batch_visits": 2959,
+  "optimizer_updates": 2959,
+  "skipped_batches": 0,
+  "initial_and_final_panel_forwards": 1024,
+  "elapsed_seconds": 6135.727311627999,
+  "guard_peaks": {
+    "core_temp_c": 54,
+    "memory_temp_c": 60,
+    "power_draw_w": 166.21,
+    "gpu_memory_used_mib": 2172
+  },
+  "assessment": "All five TF, M5 prospective turn, structure, calibration, chronology, baselines and economic limits require explicit post-run reading.",
+  "relaunch_allowed": false,
+  "test_data_used": false,
+  "economic_edge_proven": false
+}

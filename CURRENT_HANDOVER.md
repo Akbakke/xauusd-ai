@@ -7,16 +7,18 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_INTEGRATED_FOLD2_FIT_002_ADMITTED_ONE_USE_PREBOOT.
+TA_INTEGRATED_FOLD2_FIT_002_COMPLETE_CONSUMED_ASSESSMENT_OPEN.
 Brukeren fjernet kravet om nytt «ja» for hver stor lokal ikke-GC-kjøring.
 Integrator innrømmet plan002 SHA
 `330e4cb1dd4c76980264b44a32f091e67c43142819514901f60068abed102783`
-i policy under stående 0 USD-fullmakt. Den eksakte capped kommandoen,
-kvitteringene og signert telemetri besto lesende uten CLAIM eller modell.
-training_enabled, native_training_enabled og full_epoch_training_allowed er
-true bare for denne ene planen. Fysisk Windows boot-ID må bli >656 før
-start. Full GC er pauset; TEST, Entry/Exit, broker og handel er lukket.
-M5-Edge er ubevist.
+i policy under stående 0 USD-fullmakt. Den kjørte etter fysisk Windows
+boot-ID 657 og avsluttet med terminal exit 0: 47 338 TRAIN-rader,
+2 959 optimizersteg, 1 024 initial-/final-skårforwards og uendret kilde.
+Signert GPU-vakt holdt seg innen grensene. Engangsplanen er konsumert;
+training_enabled=false, native_training_enabled=false og
+full_epoch_training_allowed=false. Faste scoreopptak er skrevet, men
+samlet retnings-, vendings- og strukturvurdering gjenstår. Full GC er
+pauset; TEST, Entry/Exit, broker og handel er lukket. M5-Edge er ubevist.
 
 Plan001 SHA `4016255217a3c87bdc84715b6e65707090fa09dcaa1e70a3a1b3455bdac84621`
 ble CLAIM-et under fysisk boot 656, men feilet i initial TRAIN-strukturskår
@@ -510,10 +512,11 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   Kilde-/input-preflight besto med null forwards/CLAIM, og runner avviser
   eksplisitt plan001 med exit 75. Se
   `docs/TA_INTEGRATED_FOLD2_FIT_002_PREPARATION_20261116.json`.
-  training_enabled=false; plan002 er ikke innrømmet. Operatøren presiserte
-  16.11 at nytt «ja» per stor lokal kjøring skal bort. Integrator innrømmer
-  selv hver kvalifiserte, hashbundne engangsplan under stående 0 USD-fullmakt;
-  fysisk boot, ressursvakter og øvrige grenser er uendret.
+  Operatøren presiserte 16.11 at nytt «ja» per stor lokal kjøring skal bort.
+  Integrator innrømmet deretter plan002 under stående 0 USD-fullmakt; fysisk
+  boot, ressursvakter og øvrige grenser ble bevart. Den fullførte med
+  terminal exit 0 og er nå konsumert. Eksakte kvitteringer:
+  `docs/TA_INTEGRATED_FOLD2_FIT_002_TERMINAL_REVIEW_20261116.json`.
 
 ## Ikke gjort / faktisk hindring
 
@@ -542,16 +545,16 @@ Entry, TEST eller handel åpnes av denne presiseringen.
 
 ## Neste steg
 
-1. Ta fysisk Windows boot-ID >656, verifiser ren kilde, eksakt plan002,
-   eneste åpne policygate, ledig maskin og signerte vakter; start deretter
-   bare den innrømmede plan002. Ingen kildeendring under kjøring.
-   Plan001 er konsumert og kan aldri relanseres.
-2. Etter faktisk fit, vurder alle fem TF S/F, M5-vending, struktur og
-   kalibrering på de samme faste TRAIN-/senere utviklingsradene. Et grønt
-   skårprogram alene viser ikke læring eller generalisering.
-3. Bare hvis senere gevinst holder, bind kostet Entry og uavhengig
-   forward-bekreftelse før økonomisk Edge hevdes. Full GC, TEST, ONLINE,
-   broker og handel forblir lukket.
+1. Les og bind de faste initial-/final-opptakene: S/F aktivitet og kjent
+   side på alle fem TF mot fryst TRAIN-prior, M5-vending på native nabobarer,
+   topp/bunn og kalibrering på samme TRAIN-/senere utviklingspanel. Skill
+   TRAIN-læring fra senere generalisering og målte ukjente.
+2. Bare hvis den samlede senere gevinsten holder, bind en kostet
+   M5-Entry-beslutning med alle valgte/åpne posisjoner og uavhengig
+   forward-bekreftelse før økonomisk Edge hevdes. Ingen ny modellrunde
+   velges etter dette utviklingspanelet.
+3. Full GC, TEST, ONLINE, broker og handel forblir lukket. Plan001 og
+   plan002 er konsumert og kan aldri relanseres.
 
 Opprydding: historiske overleveringsavsnitt er fjernet her og bevart i Git.
 Ingen Python-fil er slettet; gjeldende referanse-, import-, test- og
