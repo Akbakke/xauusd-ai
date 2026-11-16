@@ -104,7 +104,7 @@ _MODE_DEFAULTS = dict(bps_scale=None, magnitude_weight_contract=None, dense_minu
     first_flat_activity_weight=None, native_endpoint_loss=False, confirmed_run_age_input=False,
     zero_support_profile=None, october_observer_axes=None, market_state_time_query=False,
     market_state_time_query_v2=False, full_ta_feature_profile=False, dedicated_m5_side=False,
-    dedicated_non_m5_side=False, dedicated_tf_activity=False)
+    dedicated_non_m5_side=False, dedicated_tf_activity=False, direct_tf_hidden=False)
 _ACTIVITY_MODES = {**_MODE_DEFAULTS, 'full_feature_profile': True, 'full_ta_feature_profile': True,
     'market_state_time_query_v2': True, 'dedicated_m5_side': True, 'dedicated_tf_activity': True}
 _FULL_GC_MODES = {**_MODE_DEFAULTS, 'full_feature_profile': True,
@@ -283,8 +283,11 @@ def require_anchor_span_view_provenance(view, profile):
           and (all(view.get(k) is True for k in ('dedicated_m5_side', 'dedicated_tf_activity'))
                and ('dedicated_non_m5_side' not in view
                     or view['dedicated_non_m5_side'] is True)
+               and ('direct_tf_hidden' not in view or (view['direct_tf_hidden'] is True
+                    and view.get('dedicated_non_m5_side') is True))
                if ta_only else all(k not in view for k in
-                    ('dedicated_m5_side', 'dedicated_non_m5_side', 'dedicated_tf_activity'))),
+                    ('dedicated_m5_side', 'dedicated_non_m5_side', 'dedicated_tf_activity',
+                     'direct_tf_hidden'))),
           'TF_DECODER_VIEW')
     overlay = _views()._ref(view.get('source_bindings', {}).get('anchor_span_inputs_source'))
     _need(overlay['path'] == OVERLAY_OWNER_PATH, 'OVERLAY_OWNER_PATH')
@@ -308,11 +311,14 @@ def bind_anchor_span_feature_view(*, prefix_normalization, prefix_normalization_
     expected=None, unobserved_units_profile=None, **modes):
     """Bind the qualified span overlay to TA decoders or the full-GC S/F view."""
     combined_side = modes.get('dedicated_non_m5_side', False)
+    direct_tf_hidden = modes.get('direct_tf_hidden', False)
     ta_only = modes.get('full_ta_feature_profile', False)
     _need(set(modes) <= set(_MODE_DEFAULTS) and type(ta_only) is bool
-          and type(combined_side) is bool and (
+          and type(combined_side) is bool and type(direct_tf_hidden) is bool
+          and (not direct_tf_hidden or (ta_only and combined_side)) and (
               _canonical({**_MODE_DEFAULTS, **modes}) == _canonical(
-                  {**_ACTIVITY_MODES, 'dedicated_non_m5_side': combined_side})
+                  {**_ACTIVITY_MODES, 'dedicated_non_m5_side': combined_side,
+                   'direct_tf_hidden': direct_tf_hidden})
               if ta_only else not combined_side and
               _canonical({**_MODE_DEFAULTS, **modes}) == _canonical(_FULL_GC_MODES)),
           'TF_DECODER_ARGUMENTS')
@@ -359,7 +365,7 @@ def bind_anchor_span_feature_view(*, prefix_normalization, prefix_normalization_
         entry_execution_profile={k: compiled[k] for k in ('name','contract_sha256')},
         research_objective=factorized_time_query_model_contract(ta_only=ta_only,
             dedicated_m5_side=ta_only, dedicated_non_m5_side=combined_side,
-            dedicated_tf_activity=ta_only), source_bindings=refs,
+            dedicated_tf_activity=ta_only, direct_tf_hidden=direct_tf_hidden), source_bindings=refs,
         max_batch_rows=max_batch_rows, evidence_scope=views.EVIDENCE_SCOPE,
         full_feature_profile=True, market_state_time_query_v2=True)
     if ta_only:
@@ -369,6 +375,8 @@ def bind_anchor_span_feature_view(*, prefix_normalization, prefix_normalization_
         value['unobserved_units_profile'] = _copy(profile)
     if combined_side:
         value['dedicated_non_m5_side'] = True
+    if direct_tf_hidden:
+        value['direct_tf_hidden'] = True
     value[MARKER_KEY] = _marker(refs['anchor_span_inputs_source'], binding)
     value['contract_sha256'] = _sha(value)
     views._require_view(value, unobserved_units_profile=profile)

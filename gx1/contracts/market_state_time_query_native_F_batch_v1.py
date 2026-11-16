@@ -159,6 +159,7 @@ def evaluate_fit_batch(model: NativeFutureDualModel, features: Mapping,
         dedicated_m5_side=getattr(model.state_model, '_dedicated_m5_side', False),
         dedicated_non_m5_side=getattr(model.state_model, '_dedicated_non_m5_side', False),
         dedicated_tf_activity=getattr(model.state_model, '_dedicated_tf_activity', False),
+        direct_tf_hidden=getattr(model.state_model, '_direct_tf_hidden', False),
         m5_equal_observation=m5_equal_observation,
         m5_direction_only=m5_direction_only, fold_id=fold_id,
         shared_m5_side=getattr(model, '_shared_m5_side', False))

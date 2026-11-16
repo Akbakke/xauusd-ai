@@ -445,7 +445,8 @@ def ta_sf_numerical_recipe(*, dedicated_m5_side: bool = False,
                            m5_equal_observation: bool = False,
                            dedicated_non_m5_side: bool = False,
                            dedicated_tf_activity: bool = False,
-                           m5_direction_only: bool = False) -> dict[str, Any]:
+                           m5_direction_only: bool = False,
+                           direct_tf_hidden: bool = False) -> dict[str, Any]:
     """Same mature one-pass optimizer; explicitly bind corrected TA S/F."""
     from gx1.contracts.market_state_time_query_native_F_model_v1 import contract as model_contract
     from gx1.contracts.market_state_time_query_native_F_objective_v1 import contract as loss_contract
@@ -454,11 +455,13 @@ def ta_sf_numerical_recipe(*, dedicated_m5_side: bool = False,
     base.update(schema_version=TA_NUMERICAL_SCHEMA,
         research_objective_sha256=model_contract(ta_only=True, dedicated_m5_side=dedicated_m5_side,
             dedicated_non_m5_side=dedicated_non_m5_side,
-            dedicated_tf_activity=dedicated_tf_activity)['contract_sha256'],
+            dedicated_tf_activity=dedicated_tf_activity,
+            direct_tf_hidden=direct_tf_hidden)['contract_sha256'],
         native_F_loss_contract_sha256=loss_contract(ta_only=True,
             dedicated_m5_side=dedicated_m5_side,
             dedicated_non_m5_side=dedicated_non_m5_side,
             dedicated_tf_activity=dedicated_tf_activity,
+            direct_tf_hidden=direct_tf_hidden,
             m5_equal_observation=m5_equal_observation,
             m5_direction_only=m5_direction_only)['contract_sha256'],
         future_weight=1.0)

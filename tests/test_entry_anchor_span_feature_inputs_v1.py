@@ -461,3 +461,18 @@ def test_later_adapter_uses_qualified_end_instead_of_fold1_global(monkeypatch):
     build['later_coverage']['score_end_exclusive_ns']=int(payload['times_ns'][-1])+views.BAR_NS
     with pytest.raises(RuntimeError,match='QUALIFIED_POPULATION:local'):
         overlay.build_anchor_span_inputs(view,**build)
+
+
+def test_fold2_ta_anchor_span_accepts_direct_tf_only_with_five_side_heads(fold2_binding):
+    args = deepcopy(fold2_binding)
+    args.update(dedicated_non_m5_side=True, direct_tf_hidden=True)
+    view = views.bind_native_direction_feature_view(**args)
+    assert view['direct_tf_hidden'] is True
+    assert view['dedicated_non_m5_side'] is True
+    assert view['research_objective'] == extension.factorized_time_query_model_contract(
+        ta_only=True, dedicated_m5_side=True, dedicated_non_m5_side=True,
+        dedicated_tf_activity=True, direct_tf_hidden=True)
+    assert views.bind_native_direction_feature_view(**args, expected=view) == view
+    del args['dedicated_non_m5_side']
+    with pytest.raises(RuntimeError, match='TF_DECODER_ARGUMENTS'):
+        views.bind_native_direction_feature_view(**args)

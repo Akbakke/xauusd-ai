@@ -21,7 +21,8 @@ from gx1.contracts.market_state_time_query_target_v1 import NATIVE_K, TIMEFRAMES
 
 def contract(*, ta_only: bool = False, dedicated_m5_side: bool = False,
              dedicated_non_m5_side: bool = False,
-             dedicated_tf_activity: bool = False, shared_m5_side: bool = False) -> dict:
+             dedicated_tf_activity: bool = False, shared_m5_side: bool = False,
+             direct_tf_hidden: bool = False) -> dict:
     if type(shared_m5_side) is not bool or (shared_m5_side and not dedicated_m5_side):
         raise ValueError('NATIVE_F_SHARED_M5_SIDE_MODE')
     if type(ta_only) is not bool:
@@ -34,13 +35,17 @@ def contract(*, ta_only: bool = False, dedicated_m5_side: bool = False,
     if type(dedicated_tf_activity) is not bool or (dedicated_tf_activity and (
             not ta_only or not dedicated_m5_side)):
         raise ValueError('NATIVE_F_DEDICATED_TF_ACTIVITY_MODE')
+    if type(direct_tf_hidden) is not bool or (direct_tf_hidden and (
+            not ta_only or not dedicated_non_m5_side)):
+        raise ValueError('NATIVE_F_DIRECT_TF_HIDDEN_MODE')
     value = {
         'schema_version': 'gx1_market_state_native_F_dual_model_candidate_v1',
         'role': 'research_only_no_fit_or_trade_authority',
         'S_model_contract_sha256': factorized_time_query_model_contract(
             ta_only=ta_only, dedicated_m5_side=dedicated_m5_side,
             dedicated_non_m5_side=dedicated_non_m5_side,
-            dedicated_tf_activity=dedicated_tf_activity)['contract_sha256'],
+            dedicated_tf_activity=dedicated_tf_activity,
+            direct_tf_hidden=direct_tf_hidden)['contract_sha256'],
         'F_target_contract_sha256': future_contract()['contract_sha256'],
         'encoder': 'one_existing_v2_causal_native_backbone_encode_features_call',
         'S': 'unchanged_v2_sampled_query_projection_and_state_head',
@@ -73,6 +78,9 @@ def contract(*, ta_only: bool = False, dedicated_m5_side: bool = False,
         value['S'] += '_and_independent_TF_activity_heads'
         value['F'] += '_and_independent_TF_activity_heads'
         value['TF_activity_initialization'] = 'clone_each_task_shared_activity_row_preserving_side_and_CPU_and_active_CUDA_RNG'
+    if direct_tf_hidden:
+        value['direct_tf_hidden'] = True
+        value['encoder'] = 'one_existing_v2_causal_native_backbone_encode_features_call_with_five_post_cross_TF_hidden_vectors'
     raw = json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
     return {**value, 'contract_sha256': hashlib.sha256(raw).hexdigest()}
 
@@ -117,7 +125,8 @@ class NativeFutureDualModel(nn.Module):
                         dedicated_m5_side=self.state_model._dedicated_m5_side,
                         dedicated_non_m5_side=self.state_model._dedicated_non_m5_side,
                         dedicated_tf_activity=self.state_model._dedicated_tf_activity,
-                        shared_m5_side=self._shared_m5_side)
+                        shared_m5_side=self._shared_m5_side,
+                        direct_tf_hidden=self.state_model._direct_tf_hidden)
 
     @property
     def backbone(self) -> nn.Module:
@@ -195,15 +204,18 @@ class NativeFutureDualModel(nn.Module):
 
     def decode_native_F_raw(self, hidden: torch.Tensor) -> torch.Tensor:
         self._require_binding()
+        direct = self.state_model._direct_tf_hidden
         if not (isinstance(hidden, torch.Tensor) and hidden.dtype == torch.float32
-                and hidden.ndim == 2 and hidden.shape[0] > 0
-                and hidden.shape[1] == self.state_model._hidden_width
+                and hidden.ndim == (3 if direct else 2) and hidden.shape[0] > 0
+                and hidden.shape[1:] == ((len(TIMEFRAMES), self.state_model._hidden_width)
+                                         if direct else (self.state_model._hidden_width,))
                 and hidden.device == self.future_head.weight.device
                 and bool(torch.isfinite(hidden).all())):
             raise ValueError('NATIVE_F_HIDDEN')
         device = hidden.device
         batch = hidden.shape[0]
-        source = hidden[:, None, :].expand(-1, len(TIMEFRAMES), -1)
+        source = (hidden if direct else
+                  hidden[:, None, :].expand(-1, len(TIMEFRAMES), -1))
         tf = self.state_model.query_tf_coordinates[None].expand(batch, -1, -1)
         native_fraction = torch.ones((batch, len(TIMEFRAMES), 1),
                                      dtype=torch.float32, device=device)

@@ -1,6 +1,6 @@
 # M5-strukturutfall fra kjente topper og bunner
 
-Status: **kildekandidat med syntetisk kontroll; fysisk TRAIN-dekning ikke målt,
+Status: **kildekandidat med syntetisk kontroll og målt Fold2 TRAIN-dekning;
 ikke låst target eller kjøreplan**. Implementasjon:
 `gx1/audit/measure_ta_m5_structure_candidate_v1.py`.
 M5 er fortsatt beslutningsklokken. Full GC, modellfit, TEST og handel er stengt.
@@ -49,7 +49,17 @@ og framtidspivotmasker beholdes separat. Manglende neste pivot er ikke «ingen t
 eller FLAT. Ingen maksimal holdetid eller resultatutvalgt ATR-terskel
 innføres. Lesende TRAIN-kontroll må vise dekning, modningstid, klasse-
 fordeling, samtidige treff og eksempler på faktiske M5-forløp før dette
-kan bindes som supervisjon. Sammenlign senere enhver prognose med fryst
-TRAIN-prior, reelle M5-vendinger og alle fem TF-retninger. Økonomisk Edge
+kan bindes som supervisjon. Fold2 TRAIN-lesningen er nå fullført:
+47 567/47 784 beslutningsbarer har begge neste pivoter bekreftet, og
+47 195 har entydig parklasse (OPP 18 043, NED 14 514, BLANDET 14 581,
+LIKT 57). De 589 ukjente er 217 ufullstendige par og 372 topper/bunner
+på samme bar med uobservert intern rekkefølge. Se
+`docs/TA_M5_STRUCTURE_FOLD2_AUDIT_RESULT_REVIEW_20261116.json` for eksakt
+kilde- og kjøringsbinding. En på forhånd låst SMC-persistensregel scoret
+8 253/23 302 (35,42 %) mot fryst TRAIN-prior 8 936/23 302 (38,35 %)
+på senere september–desember; se
+`docs/TA_M5_STRUCTURE_PERSISTENCE_RESULT_REVIEW_20261116.json`.
+Dette kvalifiserer ikke regelen eller en modellfit. Sammenlign senere enhver
+prognose med fryst TRAIN-prior, reelle M5-vendinger og alle fem TF-retninger. Økonomisk Edge
 krever i tillegg egne kost- og posisjonsmålinger; denne definisjonen
 beviser ingen verdi alene.

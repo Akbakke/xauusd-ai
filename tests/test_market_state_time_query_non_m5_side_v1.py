@@ -412,3 +412,116 @@ def test_variant_cannot_use_existing_numerical_or_optimizer_route(monkeypatch, e
         with pytest.raises(RuntimeError, match="NUMERICAL|NON_M5"):
             call()
     _same(_snapshot(model), before)
+
+
+def test_direct_tf_hidden_is_opt_in_and_each_tf_reaches_its_own_S_F_decoder(monkeypatch):
+    from tests.test_market_state_time_query_native_F_model import features
+    from gx1.contracts.market_state_time_query_target_v1 import NATIVE_K
+    from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import EntryV10CtxHybridTransformer
+
+    flags = dict(ta_only=True, dedicated_m5_side=True, dedicated_non_m5_side=True)
+    for contract in (factorized_time_query_model_contract, dual_contract):
+        assert contract(**flags) == contract(**flags, direct_tf_hidden=False)
+        assert contract(**flags, direct_tf_hidden=True)['contract_sha256'] != contract(**flags)['contract_sha256']
+        with pytest.raises(ValueError, match='DIRECT_TF_HIDDEN'):
+            contract(ta_only=True, dedicated_m5_side=True, direct_tf_hidden=True)
+
+    calls = []
+    def synthetic_forward(self, seq_x, snap_x, **kwargs):
+        assert kwargs.pop('research_representation_only') is True
+        assert kwargs.pop('research_timeframe_representations') is True
+        calls.append(1)
+        batch = seq_x.shape[0]
+        return {'entry_q_timeframe_hidden': (
+            seq_x[:, :1, :1] + torch.arange(5, dtype=torch.float32)[None, :, None]
+        ).expand(batch, 5, WIDTH).clone()}
+    monkeypatch.setattr(EntryV10CtxHybridTransformer, 'forward', synthetic_forward)
+    dual = NativeFutureDualModel(FactorizedTimeQueryMarketStateModel(
+        _backbone(), dedicated_m5_side=True, dedicated_non_m5_side=True,
+        direct_tf_hidden=True))
+    q = torch.tensor([NATIVE_K], dtype=torch.int64)
+    output = dual(**features(ta_only=True), query_k=q)
+    assert calls == [1]
+    assert output['state_activity_side_logits'].shape == (1, 5, 2)
+    assert output['future_activity_side_logits'].shape == (1, 5, 2)
+    assert dual.research_objective['S_model_contract_sha256'] == (
+        dual.state_model.research_objective['contract_sha256'])
+    dual._require_binding()
+
+    hidden = torch.randn(2, 5, WIDTH, requires_grad=True)
+    s = dual.state_model.decode_raw_query_grid(hidden, q.expand(2, -1)[:, None])
+    f = dual.decode_native_F_raw(hidden)
+    changed = hidden.detach().clone()
+    changed[:, 2] += 0.75
+    s_changed = dual.state_model.decode_raw_query_grid(changed, q.expand(2, -1)[:, None])
+    f_changed = dual.decode_native_F_raw(changed)
+    assert torch.equal(s[:, :, [0, 1, 3, 4]], s_changed[:, :, [0, 1, 3, 4]])
+    assert torch.equal(f[:, [0, 1, 3, 4]], f_changed[:, [0, 1, 3, 4]])
+    (s[:, :, 2, 1].sum() + f[:, 2, 1].sum()).backward()
+    assert torch.count_nonzero(hidden.grad[:, 2]) > 0
+    assert torch.count_nonzero(hidden.grad[:, [0, 1, 3, 4]]) == 0
+
+
+def test_backbone_opt_in_returns_five_post_attention_vectors_without_changing_joint(monkeypatch):
+    from gx1.contracts.entry_model_native_training_objective_v1 import (
+        ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+    )
+    from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
+        CtxModelConfig, EntryV10CtxHybridTransformer,
+    )
+    from gx1.features.entry_specialist_feature_groups_v1 import (
+        compile_full_ta_entry_execution_profile,
+    )
+
+    backbone = EntryV10CtxHybridTransformer.__new__(EntryV10CtxHybridTransformer)
+    nn.Module.__init__(backbone)
+    cfg = CtxModelConfig.__new__(CtxModelConfig)
+    profile = compile_full_ta_entry_execution_profile()
+    identity = {key: profile[key] for key in ('name', 'contract_sha256')}
+    for name, value in (('entry_training_phase', ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE),
+                        ('entry_execution_profile', identity), ('gc_mtf_history', None),
+                        ('d_model', WIDTH),
+                        *((f'{tf}_seq_len', 1) for tf in ('m5', 'm15', 'h1', 'h4', 'd1'))):
+        object.__setattr__(cfg, name, value)
+    backbone.cfg = cfg
+    backbone.entry_training_phase = cfg.entry_training_phase
+    backbone.entry_execution_profile = identity
+    backbone._entry_execution_profile_identity = tuple(identity.values())
+    backbone._gc_mtf_history_identity = None
+    backbone.gc_mtf_history = None
+    backbone._expected_seq_len = 1
+    for tf in ('m5', 'm15', 'h1', 'h4', 'd1'):
+        setattr(backbone, f'_expected_{tf}_seq_dim', 1)
+    backbone.entry_q_joint_norm = nn.LayerNorm(4 * WIDTH)
+    backbone.entry_q_joint_in = nn.Linear(4 * WIDTH, WIDTH)
+    with torch.no_grad():
+        backbone.entry_q_joint_in.weight.zero_()
+        backbone.entry_q_joint_in.bias.zero_()
+        for index in range(5):
+            backbone.entry_q_joint_in.weight[index, 2 * WIDTH + index] = 1
+    base = torch.zeros(1, WIDTH)
+    tokens = torch.zeros(1, 5, WIDTH)
+    for index in range(5):
+        tokens[0, index, index] = 1
+    monkeypatch.setattr(backbone, '_encode_shared_feature_base',
+                        lambda **kwargs: (base, torch.ones(1, 1), base))
+    monkeypatch.setattr(backbone, '_encode_multi_tf_route', lambda **kwargs: {
+        'representation': base, 'mtf_repr': base, 'tf_attended': tokens,
+        'tf_gate': torch.ones(1, 5) / 5,
+        'family_tf_cooperation_gate': torch.ones(1, 1),
+        'family_tf_feature_gate': torch.ones(1, 1),
+    })
+    values = dict(seq_x=torch.zeros(1, 1, 1), snap_x=torch.zeros(1, 1),
+                  ctx_cat=torch.zeros(1, 1, dtype=torch.int64), ctx_cont=torch.zeros(1, 1))
+    values.update({f'seq_{tf}': torch.zeros(1, 1, 1)
+                   for tf in ('m5', 'm15', 'h1', 'h4', 'd1')})
+    original = backbone(**values, research_representation_only=True)
+    direct = backbone(**values, research_representation_only=True,
+                      research_timeframe_representations=True)
+    assert torch.equal(direct['entry_q_joint_hidden'], original['entry_q_joint_hidden'])
+    assert direct['entry_q_timeframe_hidden'].shape == (1, 5, WIDTH)
+    assert all(not torch.equal(direct['entry_q_timeframe_hidden'][:, 0],
+                               direct['entry_q_timeframe_hidden'][:, index])
+               for index in range(1, 5))
+    with pytest.raises(RuntimeError, match='TIMEFRAME_MODE'):
+        backbone(**values, research_timeframe_representations=True)

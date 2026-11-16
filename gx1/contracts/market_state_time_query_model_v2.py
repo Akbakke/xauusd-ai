@@ -34,6 +34,7 @@ from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import EntryV10CtxHyb
 def factorized_time_query_model_contract(
     *, ta_only: bool = False, dedicated_m5_side: bool = False,
     dedicated_non_m5_side: bool = False, dedicated_tf_activity: bool = False,
+    direct_tf_hidden: bool = False,
 ) -> dict:
     if type(ta_only) is not bool:
         raise ValueError("TIME_QUERY_TA_MODE")
@@ -45,6 +46,9 @@ def factorized_time_query_model_contract(
     if type(dedicated_tf_activity) is not bool or (dedicated_tf_activity and (
             not ta_only or not dedicated_m5_side)):
         raise ValueError("TIME_QUERY_DEDICATED_TF_ACTIVITY_MODE")
+    if type(direct_tf_hidden) is not bool or (direct_tf_hidden and (
+            not ta_only or not dedicated_non_m5_side)):
+        raise ValueError("TIME_QUERY_DIRECT_TF_HIDDEN_MODE")
     value = {
         "schema_version": "gx1_market_state_time_query_model_v2",
         "role": "research_only_no_entry_exit_or_trade_authority",
@@ -81,6 +85,10 @@ def factorized_time_query_model_contract(
         value["TF_activity_timeframes"] = list(TIMEFRAMES)
         value["head"] += "_and_independent_TF_activity_Linear_hidden_to_1"
         value["TF_activity_initialization"] = "clone_shared_activity_row_preserving_side_and_CPU_and_active_CUDA_RNG"
+    if direct_tf_hidden:
+        value["direct_tf_hidden"] = True
+        value["backbone"] = "five_post_cross_TF_tokens_through_existing_entry_q_projection_without_detach"
+        value["query"] = "own_TF_hidden_plus_five_timeframe_one_hot_plus_preselected_k_over_native_k"
     if ta_only:
         profile = compile_full_ta_entry_execution_profile()
         value["input_profile"] = {key: profile[key] for key in ("name", "contract_sha256")}
@@ -127,7 +135,8 @@ class FactorizedTimeQueryMarketStateModel(TimeQueryMarketStateModel):
     def __init__(self, backbone: EntryV10CtxHybridTransformer, *,
                  dedicated_m5_side: bool = False,
                  dedicated_non_m5_side: bool = False,
-                 dedicated_tf_activity: bool = False):
+                 dedicated_tf_activity: bool = False,
+                 direct_tf_hidden: bool = False):
         # Build the distinct v2 head directly; do not instantiate an unused v1
         # three-logit head or consume its initialization randomness.
         nn.Module.__init__(self)
@@ -148,6 +157,10 @@ class FactorizedTimeQueryMarketStateModel(TimeQueryMarketStateModel):
                       and dedicated_m5_side)),
                  "DEDICATED_TF_ACTIVITY_MODE")
         self._dedicated_tf_activity = dedicated_tf_activity
+        _require(type(direct_tf_hidden) is bool
+                 and (not direct_tf_hidden or (self._ta_only
+                      and dedicated_non_m5_side)), "DIRECT_TF_HIDDEN_MODE")
+        self._direct_tf_hidden = direct_tf_hidden
         self._require_input_profile(backbone)
         self.backbone = backbone
         self._hidden_width = width
@@ -179,7 +192,8 @@ class FactorizedTimeQueryMarketStateModel(TimeQueryMarketStateModel):
         return factorized_time_query_model_contract(
             ta_only=self._ta_only, dedicated_m5_side=self._dedicated_m5_side,
             dedicated_non_m5_side=self._dedicated_non_m5_side,
-            dedicated_tf_activity=self._dedicated_tf_activity)
+            dedicated_tf_activity=self._dedicated_tf_activity,
+            direct_tf_hidden=self._direct_tf_hidden)
 
     def _require_input_profile(self, backbone) -> None:
         if self._ta_only:
@@ -210,6 +224,9 @@ class FactorizedTimeQueryMarketStateModel(TimeQueryMarketStateModel):
                  "DEDICATED_TF_ACTIVITY_MODE")
         _require(hasattr(self, "tf_activity_heads") == self._dedicated_tf_activity,
                  "TF_ACTIVITY_HEAD_BINDING")
+        _require(type(self._direct_tf_hidden) is bool
+                 and (not self._direct_tf_hidden or (self._ta_only
+                      and self._dedicated_non_m5_side)), "DIRECT_TF_HIDDEN_MODE")
         width = _backbone_width(self.backbone)
         _require(width == self._hidden_width, "HIDDEN_WIDTH")
         self._require_input_profile(self.backbone)
@@ -305,11 +322,16 @@ class FactorizedTimeQueryMarketStateModel(TimeQueryMarketStateModel):
                                           torch.int64, torch.uint8) if integer
                           else value.dtype == torch.float32 and bool(torch.isfinite(value).all())),
                      "FEATURE:" + name)
-        output = self.backbone(**features, research_representation_only=True)
+        output = self.backbone(**features, research_representation_only=True,
+                               **({"research_timeframe_representations": True}
+                                  if self._direct_tf_hidden else {}))
         _require(isinstance(output, dict), "BACKBONE_OUTPUT")
-        hidden = output.get("entry_q_joint_hidden")
+        hidden = output.get("entry_q_timeframe_hidden" if self._direct_tf_hidden
+                            else "entry_q_joint_hidden")
         _require(isinstance(hidden, torch.Tensor) and hidden.dtype == torch.float32
-                 and hidden.shape == (seq_x.shape[0], self._hidden_width)
+                 and hidden.shape == ((seq_x.shape[0], len(TIMEFRAMES), self._hidden_width)
+                                      if self._direct_tf_hidden else
+                                      (seq_x.shape[0], self._hidden_width))
                  and hidden.device == self.query_tf_coordinates.device
                  and bool(torch.isfinite(hidden).all()), "BACKBONE_HIDDEN")
         return hidden
@@ -319,9 +341,12 @@ class FactorizedTimeQueryMarketStateModel(TimeQueryMarketStateModel):
     ) -> torch.Tensor:
         """Decode one bounded query block into the two primitive head logits."""
         self._require_binding()
-        batch = hidden.shape[0] if isinstance(hidden, torch.Tensor) and hidden.ndim == 2 else -1
+        batch = (hidden.shape[0] if isinstance(hidden, torch.Tensor)
+                 and hidden.ndim == (3 if self._direct_tf_hidden else 2) else -1)
         _require(isinstance(hidden, torch.Tensor) and hidden.dtype == torch.float32
-                 and hidden.shape == (batch, self._hidden_width) and batch > 0
+                 and hidden.shape == ((batch, len(TIMEFRAMES), self._hidden_width)
+                                      if self._direct_tf_hidden else
+                                      (batch, self._hidden_width)) and batch > 0
                  and hidden.device == self.query_tf_coordinates.device
                  and bool(torch.isfinite(hidden).all()), "HIDDEN")
         _require(isinstance(query_k, torch.Tensor) and query_k.dtype == torch.int64
@@ -333,7 +358,9 @@ class FactorizedTimeQueryMarketStateModel(TimeQueryMarketStateModel):
                            & (query_k <= self.query_native_k[None, None, :])).all()),
                  "QUERY_K")
         blocks = query_k.shape[1]
-        source = hidden[:, None, None, :].expand(-1, blocks, len(TIMEFRAMES), -1)
+        source = (hidden[:, None, :, :].expand(-1, blocks, -1, -1)
+                  if self._direct_tf_hidden else
+                  hidden[:, None, None, :].expand(-1, blocks, len(TIMEFRAMES), -1))
         tf = self.query_tf_coordinates[None, None].expand(batch, blocks, -1, -1)
         fraction = (query_k.to(torch.float32) /
                     self.query_native_k.to(torch.float32)[None, None, :]).unsqueeze(-1)

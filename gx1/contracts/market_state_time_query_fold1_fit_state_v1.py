@@ -59,7 +59,8 @@ def _require_model_binding(model):
     expected = contract(ta_only=True,
         dedicated_m5_side=model.state_model._dedicated_m5_side,
         dedicated_non_m5_side=model.state_model._dedicated_non_m5_side,
-        dedicated_tf_activity=model.state_model._dedicated_tf_activity)['contract_sha256']
+        dedicated_tf_activity=model.state_model._dedicated_tf_activity,
+        direct_tf_hidden=model.state_model._direct_tf_hidden)['contract_sha256']
     reference = torch.tensor(list(bytes.fromhex(expected)), dtype=torch.uint8,
                              device=model.future_head.weight.device)
     head = model.future_head
@@ -96,6 +97,7 @@ def _numerical(value, model):
                   dedicated_m5_side=model.state_model._dedicated_m5_side,
                   dedicated_non_m5_side=model.state_model._dedicated_non_m5_side,
                   dedicated_tf_activity=model.state_model._dedicated_tf_activity,
+                  direct_tf_hidden=model.state_model._direct_tf_hidden,
                   m5_equal_observation=value.get('m5_equal_observation', False),
                   m5_direction_only=value.get('m5_direction_only', False))
               and value['research_objective_sha256'] == model.research_objective['contract_sha256']
@@ -103,6 +105,7 @@ def _numerical(value, model):
                   dedicated_m5_side=model.state_model._dedicated_m5_side,
                   dedicated_non_m5_side=model.state_model._dedicated_non_m5_side,
                   dedicated_tf_activity=model.state_model._dedicated_tf_activity,
+                  direct_tf_hidden=model.state_model._direct_tf_hidden,
                   m5_equal_observation=value.get('m5_equal_observation', False),
                   m5_direction_only=value.get('m5_direction_only', False))['contract_sha256']
               and value['future_weight'] == 1.0
@@ -414,6 +417,8 @@ def copy_dedicated_m5_weights_to_non_m5_sides(legacy_model, model, *,
           and model.state_model._dedicated_m5_side is True
           and legacy_model.state_model._dedicated_non_m5_side is False
           and model.state_model._dedicated_non_m5_side is True
+          and legacy_model.state_model._direct_tf_hidden is False
+          and model.state_model._direct_tf_hidden is False
           and legacy_model.state_model._dedicated_tf_activity
               is model.state_model._dedicated_tf_activity,
           'NON_M5_WARMSTART_MODE')

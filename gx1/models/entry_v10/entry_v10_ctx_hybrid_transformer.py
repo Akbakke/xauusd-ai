@@ -2822,6 +2822,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         return {
             "representation": representation,
             "mtf_repr": mtf_repr,
+            "tf_attended": tf_attended,
             "tf_gate": tf_gate,
             "family_tf_cooperation_gate": family_tf_cooperation_gate,
             "family_tf_feature_gate": family_tf_feature_gate,
@@ -4324,6 +4325,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         gc_seq_d1: Optional[torch.Tensor] = None,
         liquidation_relative_values: bool = False,
         research_representation_only: bool = False,
+        research_timeframe_representations: bool = False,
     ) -> Dict[str, torch.Tensor]:
         expected_profile = (
             dict(zip(("name", "contract_sha256"), self._entry_execution_profile_identity))
@@ -4359,6 +4361,11 @@ class EntryV10CtxHybridTransformer(nn.Module):
                     self.entry_training_phase != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
                     or liquidation_relative_values))):
             raise RuntimeError("ENTRY_RESEARCH_REPRESENTATION_MODE_INVALID")
+        if (type(research_timeframe_representations) is not bool
+                or (research_timeframe_representations and (
+                    not research_representation_only
+                    or self._gc_mtf_history_identity is not None))):
+            raise RuntimeError("ENTRY_RESEARCH_TIMEFRAME_MODE_INVALID")
         z_v3, specialist_gate, global_context_h = self._encode_shared_feature_base(
             seq_x=seq_x,
             snap_x=snap_x,
@@ -4398,10 +4405,23 @@ class EntryV10CtxHybridTransformer(nn.Module):
         )
         if research_representation_only:
             _assert_finite("entry_q_joint_hidden", entry_q_joint_hidden)
-            return {"entry_q_joint_hidden": entry_q_joint_hidden,
+            result = {"entry_q_joint_hidden": entry_q_joint_hidden,
                 "specialist_gate": specialist_gate, "tf_gate": tf_gate,
                 "family_tf_cooperation_gate": family_tf_cooperation_gate,
                 "family_tf_feature_gate": family_tf_feature_gate}
+            if research_timeframe_representations:
+                tf_tokens = entry_mtf["tf_attended"]
+                tf_source = torch.cat((
+                    z_v3[:, None, :].expand_as(tf_tokens),
+                    z[:, None, :].expand_as(tf_tokens),
+                    tf_tokens,
+                    global_context_h[:, None, :].expand_as(tf_tokens),
+                ), dim=-1)
+                tf_hidden = nn.functional.gelu(
+                    self.entry_q_joint_in(self.entry_q_joint_norm(tf_source)))
+                _assert_finite("entry_q_timeframe_hidden", tf_hidden)
+                result["entry_q_timeframe_hidden"] = tf_hidden
+            return result
         if self.entry_training_phase == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
             # Candidate curve learning has no admitted native action-Q or Exit
             # token. Legacy serving cannot silently consume a unitless score.

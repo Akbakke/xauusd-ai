@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_M5_STRUCTURE_PERSISTENCE_NO_ESTABLISHED_GAIN_EDGE_UNQUALIFIED.
+TA_DIRECT_TF_SOURCE_ONLY_FIT_UNADMITTED_EDGE_UNQUALIFIED.
 Den tidligere ikke-GC S-lesningen er fullført og M5-Edge fortsatt ubevist.
 Fold2 S-only full-GC 25-cellers engangsplan er fullført og konsumert.
 training_enabled=false, native_training_enabled=false og
@@ -220,7 +220,7 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   RESULT-, TERMINAL- og opptakshasher uten ny forward. Dette lokaliserer
   målt TF-kollaps, men beviser ikke at direkte TF-vektorer ville forbedre
   M5: den konsumerte lineære før-pooling-kontrollen tapte fortsatt mot M5-
-  prior. Ingen ny modellkode, flaggpromotering eller fit følger her.
+  prior. Målingen alene ga ingen fit- eller Edge-admisjon.
 
 - En lesende kontroll av tre allerede konsumerte TRAIN-kvitteringer avgrenser
   M5-målet uten ny kjøring. I fem kronologiske OOF-folder er aktivitet kjent
@@ -322,6 +322,20 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   Kilder: market_state_ta_fold2_m5_direction_fit_20261114_004 i policy og
   docs/TA_FOLD2_SHARED_M5_FIT_RESULT_REVIEW_20261114.json. Ingen ny fit.
 
+- En ny avskrudd-som-standard ikke-GC-forskningsrute
+  `direct_tf_hidden=True` bevarer fem post-attention TF-token frem til
+  S/F-dekoderen. Den bruker eksisterende entry-Q-projeksjon uten nye
+  backbone-parametre og krever egne sidehoder for alle fem TF. Feature view,
+  anchor-span, S/F-tap og numerisk oppskrift binder samme eksplisitte flagg;
+  gammel standardrute og kontrakthasher er bevart. Fire nye syntetiske
+  fokustester kontrollerer TF-lokal dekoding, ett encoder-kall, backbone-
+  utgang og view-/oppskriftsbinding. Eldre berørte testpakker er kontrollert.
+  Dette er mekanikk og kildekandidat, ikke fysisk native forward,
+  læringsgevinst, ONLINE-paritet, fit-admisjon eller Edge.
+- Strukturkandidatens dokumentstatus er rettet til faktisk målt Fold2-
+  dekning. Den faste SMC-persistensregelen tapte mot fryst TRAIN-prior;
+  ingen flere enkeltregelrunder følger.
+
 ## Ikke gjort / faktisk hindring
 
 Det målte problemet er svake M5-vendinger og utilstrekkelige selvstendige
@@ -349,65 +363,27 @@ Entry, TEST eller handel åpnes av denne presiseringen.
 
 ## Neste steg
 
-1. Plan003 er konsumert og full-GC S-hypotesen forkastet. Operatøren har
-   trukket den uinnrømmede 30-epokers memoriseringsdiagnosen; ingen trening
-   åpnes av dette arbeidet.
-2. Respekter Full GC-pausen. Bruk eksisterende, allerede målte ikke-GC-
-   resultater til å avgrense M5-retning og de fire øvrige TF-retningene uten
-   ny modellkjøring. M5 er det etablerte beslutningspunktet; mål om de
-   separate TF-prognosene faktisk tilfører M5 verdi før en kildeendring.
-   Neste TA-recipe må eksplisitt velge egne S/F-sidehoder på alle fem TF,
-   med M5 som beslutningspunkt. En separat kildekandidat for neste
-   bekreftede M5-topp/bunn mot nivåer fryst ved beslutningen står i
-   docs/TA_M5_STRUCTURE_OUTCOME_CANDIDATE.md. Den binder nivåidentitet,
-   pivotens tre lukkede bekreftelsesbarer, nivåtreff/brudd/avvisning og
-   sensur ved M5-klokkebrudd/foldgrense, uten å omdøpe dette til S eller F.
-   Eksakte dokumenterte markedsstengninger kan nå passeres bare ved full
-   intervallinneslutning; øvrige M5-klokkebrudd forblir ukjente.
-   Kildekandidaten er implementert i
-   gx1/audit/measure_ta_m5_structure_candidate_v1.py og åtte fokuserte
-   syntetiske tester består. En konkret sensurfeil mellom bekreftet fryst
-   nivå og M5-beslutningen ble rettet før denne overleveringen; bar på
-   den eksklusive foldgrensen avvises. Den ene fysisk bundne Fold2 TRAIN-
-   lesningen er fullført og konsumert under 4G/512M/900s uten modellsteg.
-   Originale CLAIM/RESULT/TERMINAL ligger privat i
-   GX1_RUNS/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001; samlet aggregering
-   og begrensninger er i
-   docs/TA_M5_STRUCTURE_FOLD2_AUDIT_RESULT_REVIEW_20261116.json.
-   47 567/47 784 beslutningsbarer har begge neste pivoter bekreftet;
-   47 195 har entydig parklasse. Av 589 ukjente parklasser mangler 217
-   komplett par og 372 har samme bar som topp og bunn uten observert intern
-   rekkefølge. OPP=18 043, NED=14 514, BLANDET=14 581, LIKT=57.
-   Kjent lukning forklarer 166 passerte M5-klokkebrudd; åtte forblir
-   ukjente i innlest segment. Dette er dekning, ikke prognosegevinst,
-   ONLINE-paritet eller Edge; strukturklassen erstatter ikke S/F.
-   Planen relanseres ikke. Per-plan spørregel for små lesende CPU-auditer
-   er fjernet fra AGENTS.md; store kjøringer krever fortsatt spørsmål.
-   En på forhånd låst kausal SMC-persistensregel er målt én gang mot
-   fryst mai–august-TRAIN-prior på senere september–desember Fold2.
-   23 886 tidligere issues hadde modnet før skillepunktet; 23 302 senere
-   utfall hadde entydig klasse. Regelen traff 8 253/23 302 (35,42 %),
-   fryst prior 8 936/23 302 (38,35 %): −2,93 prosentpoeng, paret
-   ukeblokk-95 % [−6,20,+0,89] prosentpoeng. Ingen kvalifisert gevinst.
-   Originale CLAIM/RESULT/TERMINAL ligger privat i
-   GX1_RUNS/TA_M5_STRUCTURE_PERSISTENCE_20261116_001; aggregerte tall og
-   grenser står i docs/TA_M5_STRUCTURE_PERSISTENCE_RESULT_REVIEW_20261116.json.
-   Denne planen er konsumert. Ett SMC-felt og en fast regel tester ikke
-   samspill mellom alle indikatorene; ingen modellfit eller Edge følger.
-   Ikke lag flere enkeltregelrunder. Neste meningsfulle beslutning er en
-   kausalt låst M5-vendefasit og egne fem-TF-retninger før én forhåndsbundet
-   multi-feature-kontroll. Ikke fyll bit5 med oppdiktet side.
-   Ingen Full
-   GC-kode, checkpointdiagnose eller ny full-GC-hypotese nå.
-3. En senere særskilt innrømmet, kort matchet kontroll må vise både M5-side
-   mot fryst referanse og faktisk vendingsdiskriminering før mer trening.
-   Senere kronologisk generalisering og alle valgte/åpne posisjoners økonomi
-   trengs før Edge. TEST, broker og handel er fortsatt stengt.
-4. Den innrømmede S-lesningen er fullført, gjennomgått og konsumert.
-   Ikke relanser eller lag flere lineære decoder-runder på samme panel.
-   Før-pooling alene ga ingen M5-reparasjon mot fryst prior eller native.
-   Neste læringssteg må være særskilt innrømmet, kildekausalt og målt på
-   faktisk M5-beslutning og selvstendige fem-TF-retninger.
+1. Fullfør én samlet ikke-GC M5/MTF-kampanjekontrakt før stor kjøring:
+   M5 er beslutningsklokken, M15/H1/H4/D1 gir egne kausale retninger,
+   og alle genuine indikatorfamilier beholdes. Bruk `direct_tf_hidden` med
+   fem egne S/F-sidehoder som eksplisitt kandidat; ikke ommerk gamle
+   checkpoints. Kjør først én faktisk, begrenset source-/forward-/gradient-
+   preflight på bundne TRAIN-inputs. Syntetisk PASS er ikke fysisk paritet.
+2. Bind nåtilstand og vending ærlig. S bruker ordnet M1-forløp som dagens
+   ikke-GC TA-input mangler; undersøk en kausal lukket-M1 nåtilstand med
+   ONLINE-paritet før den eventuelt legges inn. Den separate M5-topp/bunn-
+   kandidaten har god fysisk dekning, men er ennå ikke låst som treningsmål.
+   Behold bit5 `{OPP,NED}`, blandet struktur og ukjente forløp uten gjettet
+   side eller FLAT. Dette er én samlet mål-/inputbeslutning, ikke flere
+   enkle indikatorregler.
+3. Forhåndsbind én meningsfull multi-feature TRAIN-fit og én senere
+   kronologisk score med fryste priorer: S/F per TF, faktisk M5-vending,
+   kalibrering og strukturutfall på de samme deklarerte radene. Bare målt
+   senere gevinst kan rettferdiggjøre større trening. Kostet M5-beslutning,
+   alle valgte/åpne posisjoner og senere forward-bekreftelse trengs før
+   økonomisk Edge. Spør operatøren først når en eksakt stor kjøring er
+   kvalifisert; `training_enabled=false`, Full GC-pause og TEST-forsegling
+   består. Ingen ny enkeltregel- eller VAL-utvalgsrunde.
 
 Opprydding: historiske overleveringsavsnitt er fjernet her og bevart i Git.
 Ingen Python-fil er slettet; gjeldende referanse-, import-, test- og

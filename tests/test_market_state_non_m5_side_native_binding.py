@@ -192,3 +192,40 @@ def test_fit_batch_uses_actual_model_flag_in_original_loss_metadata(monkeypatch,
         assert report["loss_contract_sha256"] != objective.contract(
             ta_only=True, dedicated_m5_side=True,
             m5_equal_observation=equal_observation)["contract_sha256"]
+
+
+def test_direct_tf_view_binds_factory_and_loss_identity(time_query_case, monkeypatch):
+    args = _arguments(time_query_case)
+    old = views.bind_native_direction_feature_view(**args, dedicated_non_m5_side=True)
+    assert old == views.bind_native_direction_feature_view(
+        **args, dedicated_non_m5_side=True, direct_tf_hidden=False)
+    trial = views.bind_native_direction_feature_view(
+        **args, dedicated_non_m5_side=True, direct_tf_hidden=True)
+    assert trial['direct_tf_hidden'] is True
+    assert trial['research_objective'] == factorized_time_query_model_contract(
+        ta_only=True, dedicated_m5_side=True, dedicated_non_m5_side=True,
+        direct_tf_hidden=True)
+    assert views.bind_native_direction_feature_view(
+        **args, dedicated_non_m5_side=True, direct_tf_hidden=True, expected=trial) == trial
+    calls, _ = _constructor_spy(monkeypatch)
+    model = views.build_native_direction_research_model(
+        trial, prefix_normalization=args['prefix_normalization'],
+        constructor_metadata=args['constructor_metadata'], device=torch.device('cpu'))
+    assert len(calls) == 1 and model._direct_tf_hidden is True
+    dual = NativeFutureDualModel(model)
+    assert objective.contract(ta_only=True, dedicated_m5_side=True,
+        dedicated_non_m5_side=True, direct_tf_hidden=True)['dual_model_contract_sha256'] == (
+            dual.research_objective['contract_sha256'])
+    dual._require_binding()
+    from gx1.contracts import market_state_time_query_fold1_fit_state_v1 as state
+    from gx1.contracts.market_state_time_query_fold1_fit_v1 import ta_sf_numerical_recipe
+    numerical = ta_sf_numerical_recipe(dedicated_m5_side=True,
+        dedicated_non_m5_side=True, direct_tf_hidden=True)
+    assert numerical['research_objective_sha256'] == dual.research_objective['contract_sha256']
+    assert numerical['native_F_loss_contract_sha256'] == objective.contract(
+        ta_only=True, dedicated_m5_side=True, dedicated_non_m5_side=True,
+        direct_tf_hidden=True)['contract_sha256']
+    state._require_model_binding(dual)
+    assert state._numerical(numerical, dual) == numerical
+    with pytest.raises(RuntimeError, match='DIRECT_TF_HIDDEN_SCOPE'):
+        views.bind_native_direction_feature_view(**args, direct_tf_hidden=True)
