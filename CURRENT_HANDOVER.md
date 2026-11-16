@@ -7,16 +7,16 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_INTEGRATED_FOLD2_FIT_ADMITTED_ONE_USE_PREBOOT.
-Den tidligere ikke-GC S-lesningen er fullført og M5-Edge fortsatt ubevist.
-Fold2 S-only full-GC 25-cellers engangsplan er fullført og konsumert.
-Operatøren svarte «Ja» på eksakt integrert plan-SHA
+TA_INTEGRATED_FOLD2_FIT_001_FAILED_CONSUMED_ZERO_UPDATES.
+Operatøren innrømmet eksakt plan-SHA
 `4016255217a3c87bdc84715b6e65707090fa09dcaa1e70a3a1b3455bdac84621`.
-training_enabled, native_training_enabled og full_epoch_training_allowed er
-midlertidig true bare for denne ene ikke-GC Fold2-kjøringen. Før dispatch
-må fysisk Windows boot-ID være >655. Full GC er pauset.
-GX1RandomAccessCampaignV2 er deaktivert. Ingen annen fit, relansering,
-TEST, Entry/Exit, broker eller handel er innrømmet.
+Fysisk Windows boot-ID 656 og signerte 20G/512M/GPU-vakter besto.
+Planen ble CLAIM-et, men feilet i initial TRAIN-strukturskår før optimizer
+ble opprettet: 256 initialforwards, null oppdateringer, ingen checkpoint
+eller senere score. Engangsplanen er konsumert og må aldri relanseres.
+training_enabled=false, native_training_enabled=false og
+full_epoch_training_allowed=false. Full GC er pauset; TEST, Entry/Exit,
+broker og handel er lukket. M5-Edge er ubevist.
 
 Brukeren innrømmet 16.11 én ikke-GC S CPU-lesning på låste opptak.
 Syntetisk preflight under 4G/512M besto. Den ene kjøringen avsluttet
@@ -487,9 +487,14 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   M5-par og AUC 0,457503 → 0,541573; H4 hadde null gyldige nabopar.
   Dette validerer leseren, ikke den nye modellens læring eller Edge.
   Se `docs/TA_INTEGRATED_FOLD2_FIT_PREPARATION_20261116.json`.
-  Ingen trening eller senere resultat finnes ennå. Brukerens eksakte
-  engangsadgang står i `docs/TA_INTEGRATED_FOLD2_FIT_ADMISSION_20261116.json`;
-  boot-ID >655 og alle fysiske vakter er fortsatt nødvendige før CLAIM.
+  Den eksakte engangsadgangen sto i
+  `docs/TA_INTEGRATED_FOLD2_FIT_ADMISSION_20261116.json`. Etter fysisk boot
+  656 feilet kjøringen i min nye `structure_readout`: boolske hit-etiketter
+  ble kastet til float64 før en AUC-funksjon som indekserer med bool.
+  256 initiale TRAIN-forwards, null optimizersteg, ingen checkpoint eller
+  senere score. Terminal exit 1 og vaktlogg er bundet i
+  `docs/TA_INTEGRATED_FOLD2_FIT_FAILED_REVIEW_20261116.json`.
+  Ingen ny plan er innrømmet.
 
 ## Ikke gjort / faktisk hindring
 
@@ -518,19 +523,17 @@ Entry, TEST eller handel åpnes av denne presiseringen.
 
 ## Neste steg
 
-1. Kontroller fysisk Windows boot-ID >655, kildelås, plan-SHA og
-   maskinvarevakter; kjør deretter bare den ene innrømmede integrerte planen.
-   Ingen modellrunde eller kildeendring mens den går. Steng gaten igjen
-   etter terminalkvittering, også ved feil.
-2. Les initial og final på de samme forhåndsvalgte TRAIN-/senere panelene:
-   fem TF S/F aktivitet og side mot fryst TRAIN-prior, M5-topp/bunn mot
-   fryst TRAIN-prior, samt kalibrering og faktisk M5-vendingssporing.
-   Et endret treningsloss alene er ikke senere generalisering.
-3. Bare hvis den samlede senere gevinsten holder, planlegg Entry-beslutning
-   med forhåndsbundet kostmodell og alle valgte/åpne posisjoner, samt
-   uavhengig forward-bekreftelse. Den nåværende utviklingsperioden og
-   prognoseskåren kan ikke bevise netto Edge. Full GC er fortsatt pauset;
-   TEST, ONLINE, broker og handel er lukket.
+1. Rett bare den observerte bool/float-feilen i `structure_readout`.
+   Test faktisk maskert topp/bunn-skår med både kjente og ukjente etiketter,
+   og behold alle gamle kvitteringer. Kildeendringen gjør plan001 ugyldig.
+2. Forbered en ny, eksakt kilde-/inputbundet engangsplan med samme
+   helhetlige S/F/struktur-læring og faste senere panel. Kjør lesende
+   preflight, kontroller fersk initialbaseline og be om egen adgang før
+   en ny stor kjøring. Ingen automatisk relansering eller enkeltregelrunde.
+3. Først etter faktisk fit: vurder alle fem TF, M5-vending, struktur og
+   kalibrering på samme faste utviklingsrader. Kostet Entry og uavhengig
+   forward-bekreftelse kreves senere for økonomisk Edge. Full GC, TEST,
+   ONLINE, broker og handel forblir lukket.
 
 Opprydding: historiske overleveringsavsnitt er fjernet her og bevart i Git.
 Ingen Python-fil er slettet; gjeldende referanse-, import-, test- og

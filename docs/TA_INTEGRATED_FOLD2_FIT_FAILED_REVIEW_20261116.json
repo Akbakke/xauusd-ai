@@ -1,0 +1,44 @@
+{
+  "schema_version": "gx1_ta_integrated_fold2_fit_failed_review_v1",
+  "decision": "FAILED_CONSUMED_INITIAL_TRAIN_STRUCTURE_AUC_LABEL_DTYPE_ZERO_OPTIMIZER_UPDATES",
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_FIT_20261116_001/PLAN.json",
+    "sha256": "4016255217a3c87bdc84715b6e65707090fa09dcaa1e70a3a1b3455bdac84621"
+  },
+  "source_commit": "0d43f8c117a1e7695b06e9cac8ca10de840915c0",
+  "physical_windows_boot_id": 656,
+  "claim": {
+    "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_FIT_20261116_001/CLAIM.json",
+    "sha256": "c83ee6915bcb5dbd20dac2bd334a237852742c16d7a66f468add4e3eeafdc063"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_FIT_20261116_001/TERMINAL.json",
+    "sha256": "e0162843803cfac4a1fcf72c03218da1b6ed3ef0a083e675c254b64a7324d3e1"
+  },
+  "guard_log": {
+    "path": "/home/andre2/GX1_RUNS/.TA_INTEGRATED_FOLD2_FIT_20261116_001.guard.wo9aQBTJ.log",
+    "sha256": "4f4f0cf25469d8f6d7ea611430a68a1f5f92f76b7a6cf95907d71306efc8dcc5"
+  },
+  "trainer_stdio_log": {
+    "path": "/home/andre2/GX1_RUNS/.TA_INTEGRATED_FOLD2_FIT_20261116_001.trainer.eP1DBRAU.log",
+    "sha256": "0bbeea04ceaaece8ec3ffbd0cbee0dd3ee6c3e20369aa545add13b7332746852"
+  },
+  "failure": "structure_readout casts observed bool hit labels to float64 before auc_with_ties requires bool indices",
+  "source_site": "gx1/audit/run_market_state_ta_integrated_fold2_fit_v1.py structure_readout",
+  "initial_train_panel_forwards_before_error": 256,
+  "initial_later_panel_forwards": 0,
+  "optimizer_constructed": false,
+  "optimizer_updates": 0,
+  "checkpoint_written": false,
+  "result_written": false,
+  "guard_peak": {
+    "core_temp_c": 51,
+    "memory_temp_c": 54,
+    "power_draw_w": 136.19,
+    "memory_used_mib": 554
+  },
+  "next": "Close gate; make only the observed dtype correction and test actual bool/unknown structure masks. A new physical plan needs a new exact admission; never relaunch this one.",
+  "test_data_used": false,
+  "training_authorized": false,
+  "economic_edge_proven": false
+}
