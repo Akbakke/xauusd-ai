@@ -46,5 +46,40 @@
   ],
   "training_authorized": false,
   "test_data_used": false,
-  "economic_edge_proven": false
+  "economic_edge_proven": false,
+  "reversal_readout": {
+    "primary": "M5 S prospective state switch on exact adjacent five-minute issue pairs in the fixed later panel",
+    "current_truth": "previous issue S native-k=1 known side, with validity equal to current issue",
+    "future_truth": "current issue S native-k=1 known side; require both sides eligible, mature and allowed in {1,4}",
+    "switch_truth": "current and future known sides differ",
+    "switch_probability": "current-issue conditional P(UP) if current side is DOWN; 1-P(UP) if current side is UP",
+    "predicted_side_threshold": "current-issue raw conditional-side logit >= 0 predicts UP",
+    "point_metrics": [
+      "known_pair_count",
+      "actual_switch_count",
+      "switch_probability_auc",
+      "switch_probability_brier",
+      "predicted_switch_count",
+      "true_positive_switch_count"
+    ],
+    "paired_uncertainty": {
+      "clusters": [
+        "UTC_DAY",
+        "UTC_MONDAY_WEEK"
+      ],
+      "replicates": 2000,
+      "seeds": {
+        "UTC_DAY": 20260911,
+        "UTC_MONDAY_WEEK": 20260912
+      },
+      "comparisons": [
+        "FINAL_minus_INITIAL_AUC",
+        "FINAL_minus_INITIAL_Brier",
+        "FINAL_AUC_minus_0.5"
+      ]
+    },
+    "secondary": "same prospective S method per available M15/H1/H4/D1 native-cadence pairs; report zero-support as unknown; F has its own pointwise direction score",
+    "source_method": "docs/TA_NON_GC_NATIVE_TURN_TRACKING_REVIEW_20261116.json prospective method",
+    "selection": "no threshold search, month selection or refit on the fixed later development panel"
+  }
 }

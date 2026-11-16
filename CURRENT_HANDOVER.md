@@ -478,6 +478,9 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   null optimizersteg. Maksimum ved eventuell separat innrømmelse er
   47 338 TRAIN-rader, 2 959 oppdateringer, 1 024 initial-/final-
   skårforwards og 10 500 sekunder under 20G/512M/GPU-vakt.
+  Fast senere M5-vendingslesning er nå definert på eksakte nabobarer:
+  kjent forrige S-side som nåfasit, nåværende issue sin S-prognose for
+  neste fem minutter, AUC/Brier og parvis dag-/ukekontroll uten terskelsøk.
   Se `docs/TA_INTEGRATED_FOLD2_FIT_PREPARATION_20261116.json`.
   Ingen trening eller senere resultat finnes; engangsgaten står stengt.
 
