@@ -360,10 +360,16 @@ Entry, TEST eller handel åpnes av denne presiseringen.
    bekreftede M5-topp/bunn mot nivåer fryst ved beslutningen står i
    docs/TA_M5_STRUCTURE_OUTCOME_CANDIDATE.md. Den binder nivåidentitet,
    pivotens tre lukkede bekreftelsesbarer, nivåtreff/brudd/avvisning og
-   sensur ved gap/foldgrense, uten å omdøpe dette til S eller F. Den er
-   bare spesifisert, ikke implementert eller fysisk kvalifisert. Neste
-   nødvendige kontroll er TRAIN-dekning/modning og faktiske forløp før
-   eventuelt modellfit; ikke fyll bit5 med oppdiktet side. Ingen Full
+   sensur ved M5-klokkebrudd/foldgrense, uten å omdøpe dette til S eller F.
+   Kildekandidaten er implementert i
+   gx1/audit/measure_ta_m5_structure_candidate_v1.py og seks fokuserte
+   syntetiske tester består. En konkret sensurfeil mellom bekreftet fryst
+   nivå og M5-beslutningen ble rettet før denne overleveringen; bar på
+   TRAIN-sluttgrensen avvises. Dette er ingen fysisk TRAIN-kontroll:
+   dekning, modning og faktiske forløp er fortsatt ukjent. Kandidaten er
+   ikke låst target, innrømmet kjøring eller modellfit. Neste nødvendige
+   kontroll er én avgrenset TRAIN-måling før eventuell supervisjon; ikke
+   fyll bit5 med oppdiktet side. Ingen Full
    GC-kode, checkpointdiagnose eller ny full-GC-hypotese nå.
 3. En senere særskilt innrømmet, kort matchet kontroll må vise både M5-side
    mot fryst referanse og faktisk vendingsdiskriminering før mer trening.

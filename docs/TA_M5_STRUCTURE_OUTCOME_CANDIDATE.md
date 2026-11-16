@@ -1,6 +1,8 @@
 # M5-strukturutfall fra kjente topper og bunner
 
-Status: **forslag til separat TRAIN-kontroll, ikke låst target eller kjøreplan**.
+Status: **kildekandidat med syntetisk kontroll; fysisk TRAIN-dekning ikke målt,
+ikke låst target eller kjøreplan**. Implementasjon:
+`gx1/audit/measure_ta_m5_structure_candidate_v1.py`.
 M5 er fortsatt beslutningsklokken. Full GC, modellfit, TEST og handel er stengt.
 Dette utfallet erstatter verken lokal tilstand S eller nettoendepunkt F.
 
@@ -25,7 +27,9 @@ Lagre signerte avstander `(neste_topp - fryst_topp)/ATR(t)` og
 topp og bunn `<=` fryst bunn. Registrer separat om pivotbarens wick går
 forbi nivået og lukker tilbake, eller lukker på andre siden. Likhet,
 wick-avvisning og sluttprisbrudd må ikke slås sammen. Begge nivåer kan
-bli truffet; ukjent rekkefølge inne i en bar forblir ukjent.
+bli truffet. Hvis samme bar er både neste topp og neste bunn, behold
+begge treff, men la parretningen være ukjent siden rekkefølgen i baren
+ikke er observert.
 
 Først når begge nye pivoter er bekreftet kan paret beskrives som høyere
 topp/høyere bunn, lavere topp/lavere bunn, blandet eller likt. En ren
@@ -36,7 +40,8 @@ og størrelse/varighet; ikke lag en hard UP/DOWN-etikett av blandede par.
 
 ## Sensur og kontroll før modell
 
-Kildegap, ufullstendig bekreftelsesvindu og TRAIN-foldens målgrense
+Kildegap mellom fryst nivås bekreftelse og beslutning, kildegap etter
+beslutning, ufullstendig bekreftelsesvindu og TRAIN-foldens målgrense
 sensurerer berørt komponent. Manglende neste pivot er ikke «ingen treff»
 eller FLAT. Ingen maksimal holdetid eller resultatutvalgt ATR-terskel
 innføres. Lesende TRAIN-kontroll må vise dekning, modningstid, klasse-
