@@ -82,15 +82,24 @@ forårsaker mest skade er ennå ikke isolert. S-fasiten er fem marginale
 framtidstilstander per TF, ikke direkte vendetid eller kostet Entry.
 Individuell indikatornytte, generalisering og økonomisk Edge er ubevist.
 
+Operatørpresisering 16.11: M5 er prognosens brennpunkt og senere Entry-klokke.
+M5, M15, H1, H4 og D1 skal hver ha sin egen målte retning/tilstand; andre
+tidsrammer understøtter M5 med kausalt lukket kontekst. Uenighet mellom
+tidsrammer er et gyldig utfall, ikke en modellfeil. Fem output-plasser er
+utilstrekkelig når de i praksis gir samme retningssvar. Den nåværende
+full-GC-kjøringen oppfyller ikke dette funksjonelle kravet. Dette vedtaket
+åpner ikke trening, Entry, TEST eller handel.
+
 ## Neste steg
 
 1. Plan003 er konsumert og full-GC S-hypotesen forkastet. Operatøren har
    trukket den uinnrømmede 30-epokers memoriseringsdiagnosen; ingen trening
    åpnes av dette arbeidet.
-2. Gjør M5 til primær beslutningsskala i neste konkrete design; behold alle
-   fem genuine tidsrammer som målbar kontekst/hjelpemål. Bruk lagrede
-   checkpoint/score først for å avgrense hva felles hode, query-kondisjonering
-   og de 25 aktivitet-/sidetermene faktisk gjør mot M5-side. Ingen bred
+2. Bind én separat, etterprøvbar retningsprognose for hver av de fem TF,
+   med M5 som brennpunkt og de fire øvrige som målt, kausal kontekst.
+   Bruk lagrede checkpoint/score til å avgrense hvorfor dagens delte
+   dekoder ikke skiller TF; vurder minste endring i eksisterende hode-/tapsti.
+   Mål både kvalitet per TF og om konteksten faktisk hjelper M5. Ingen bred
    arkitekturendring eller gjentatt modellrunde uten en målt blokkering.
 3. En senere særskilt innrømmet, kort matchet kontroll må vise både M5-side
    mot fryst referanse og faktisk vendingsdiskriminering før mer trening.
