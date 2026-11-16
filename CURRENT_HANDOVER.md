@@ -12,8 +12,13 @@ Fold2 S-only full-GC 25-cellers engangsplan er fullført og konsumert.
 training_enabled=false, native_training_enabled=false og
 full_epoch_training_allowed=false. Full GC er ifølge operatøren pauset
 inntil videre (bekreftet 16.11). Windows-oppgaven
-GX1RandomAccessCampaignV2 er deaktivert. Ingen relansering, ny modellfit,
+GX1RandomAccessCampaignV2 er deaktivert. Ingen relansering, native modellfit,
 TEST, Entry/Exit, broker eller handel er innrømmet.
+
+Brukeren innrømmet 16.11 én ikke-GC S CPU-lesning på låste opptak.
+Syntetisk preflight under 4G/512M besto uten genuine fits eller CLAIM.
+Engangsgaten er nå åpen bare for denne planen; etter terminal skal den lukkes.
+Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
 
 ## Gjort og kontrollert
 
