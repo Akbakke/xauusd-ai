@@ -191,7 +191,13 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   ikke-M5-hoder endret outputene, men ga ingen etablert senere M5-gevinst.
   Delt hode er en målt koblingsvei, ikke bevist eneste årsak til svake svar.
   Fold2 M5-only-tap lærte ikke de fire øvrige sidene direkte og kan ikke
-  kvalifisere fem retninger.
+  kvalifisere fem retninger. Brukeren har nå bestemt at en neste TA-kandidat
+  skal ha eget retningshode for hver av M5/M15/H1/H4/D1, for både S og F.
+  Dette finnes allerede som eksplisitt opt-in `dedicated_non_m5_side=True`
+  sammen med M5-hodet; gammel checkpoint bruker fremdeles delt ikke-M5-hode.
+  En matchet 256-stegs prøve med separate hoder ga blandede endringer og
+  ingen etablert M5-gevinst. Ingen ny modellkode, flaggpromotering eller fit
+  følger av designvedtaket alene.
 
 - En lesende kontroll av tre allerede konsumerte TRAIN-kvitteringer avgrenser
   M5-målet uten ny kjøring. I fem kronologiske OOF-folder er aktivitet kjent
@@ -219,7 +225,20 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   market_state_time_query_references_20261107_001 og
   market_state_ema_side_reference_20261107_001 i NEXT_RUN_POLICY.json.
   Dette er målt svak supervisjonsdekning og ustabil nåside-referanse, ikke
-  bevis for at ikke-lineære indikatorer ikke kan ha informasjon.
+  bevis for at ikke-lineære indikatorer ikke kan ha informasjon. Kjent,
+  lukket M5-OHLC og kjent framtidig side er forskjellige størrelser. Den
+  faktiske ikke-GC TA-profilen fører 317 lokale signalfelt og 255 felt per
+  lukket TF-vindu til modellen, blant dem bekreftede swing-/pivotnivåer,
+  BOS/CHOCH, sweeps, nivåavstand, brudd og retest. Dette er felt, ikke 255
+  uavhengige indikatorer eller bevist nytte. SMC bekrefter en pivot først
+  etter tre påfølgende lukkede barer; den kan ikke være kjent på pivotbaren.
+  Kildetapen har også 95 ukjente kildegap blant 591 682 TRAIN-M1-rader og
+  413 dokumenterte lukningsgap, så «alle barer» gjelder bare observerte,
+  lukkede barer. På det målte M1-båndet skyldes de fleste bit5 fasitens
+  mellomkategori, ikke et hull i observert OHLC. En vendefasit må bruke
+  nivåer kjent ved beslutningen og senere faktisk nivåtreff/bekreftelse
+  som utfall, med særskilt håndtering av
+  manglende og tvetydige forløp; ingen slik fasit er låst eller fitet nå.
 
 - Lesende Fold2 M5-only-før/etterkontroll på et annet, låst panel enn
   prepool-lesningen: beholdt TRAIN S-side (1 402 kjent) går AUC
@@ -236,12 +255,17 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   prediksjon/utfall-samvariasjon motvirker -0,000845. Netto Brier-gap er
   +0,000968.
   S/F-fasiter er like på 924/955 senere M5-rader med begge sider kjent,
-  men sluttlogittene korrelerer -0,5298 der. F-side har senere AUC
-  0,487387/Brier 0,251524 mot prior 0,249257. Koden kobler begge M5-hoder
-  til tap og optimizer; en tidligere bundet felles S/F-hodekontroll ga
-  identiske M5-logitter, men F-AUC 0,508735/Brier 0,250042, fortsatt ikke
-  kvalifisert. Ulik S/F-fasit eller manglende optimizer-rute er derfor ikke
-  påvist årsak; årsaken til kalibrerings-/F-rangeringssvikten er uisolert.
+  men dette er bare overlappet: 437 ekstra har kjent S-side og F=FLAT,
+  mens 636 har kjent F-side og S=aktiv/side ukjent. Beholdt TRAIN har
+  tilsvarende 1 025 begge-kjent, 377 bare S og 636 bare F. Disse er ulike
+  målmasker, ikke to like oppgaver som bare mangler felles hode. På de 955
+  senere begge-kjente er sluttlogittene likevel negativt korrelert
+  (-0,5298). F-side har senere AUC 0,487387/Brier 0,251524 mot prior
+  0,249257. Koden kobler begge M5-hoder til tap og optimizer; en tidligere
+  bundet felles S/F-hodekontroll ga identiske M5-logitter, men F-AUC
+  0,508735/Brier 0,250042, fortsatt ikke kvalifisert. Direkte motsatt
+  kjent S/F-side er sjelden (31/955), men ulik maske/tilstandssemantikk
+  er målt. Deres bidrag til svak rangering og kalibrering er ikke isolert.
   Kilder: market_state_ta_fold2_m5_direction_fit_20261114_004 i policy og
   docs/TA_FOLD2_SHARED_M5_FIT_RESULT_REVIEW_20261114.json. Ingen ny fit.
 
@@ -279,7 +303,12 @@ Entry, TEST eller handel åpnes av denne presiseringen.
    resultater til å avgrense M5-retning og de fire øvrige TF-retningene uten
    ny modellkjøring. M5 er det etablerte beslutningspunktet; mål om de
    separate TF-prognosene faktisk tilfører M5 verdi før en kildeendring.
-   Ingen Full GC-kode, checkpointdiagnose eller ny full-GC-hypotese nå.
+   Neste TA-recipe må eksplisitt velge egne S/F-sidehoder på alle fem TF,
+   med M5 som beslutningspunkt. Før en ny treningsplan: definer én kausal
+   TRAIN-fasit for nivåtreff/vending mot allerede bekreftede M5-topper og
+   -bunner, med resultat for ingen treff, begge treff og kildegap. Bruk
+   beholdte felt og data; ikke fyll bit5 med oppdiktet side. Ingen Full
+   GC-kode, checkpointdiagnose eller ny full-GC-hypotese nå.
 3. En senere særskilt innrømmet, kort matchet kontroll må vise både M5-side
    mot fryst referanse og faktisk vendingsdiskriminering før mer trening.
    Senere kronologisk generalisering og alle valgte/åpne posisjoners økonomi
