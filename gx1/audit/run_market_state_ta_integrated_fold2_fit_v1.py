@@ -12,8 +12,8 @@ import subprocess
 import time
 
 REPO = Path('/home/andre2/src/GX1_CURRENT')
-ROOT = Path('/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_FIT_20261116_001')
-STAGE = 'ta_integrated_fold2_fit_20261116_001'
+ROOT = Path('/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_FIT_20261116_002')
+STAGE = 'ta_integrated_fold2_fit_20261116_002'
 TRAIN_ROWS = 47338
 BATCH = 16
 BATCHES = 2959

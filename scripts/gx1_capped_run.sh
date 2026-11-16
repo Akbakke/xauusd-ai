@@ -837,7 +837,7 @@ validate_target_command() {
     return
   fi
   if [[ "${3:-}" == "$TA_INTEGRATED_FOLD2_FIT_TRAINER_MODULE" ]]; then
-    local integrated_fit_root=/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_FIT_20261116_001
+    local integrated_fit_root=/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_FIT_20261116_002
     if [[ "$ATTENDED_SMOKE" != false || "$CUDA_PRODUCER_GUARD" != false ]] \
       || ! matches_bound_market_state_ta_integrated_fold2_fit \
         "$integrated_fit_root/PLAN.json" "$integrated_fit_root" "$@"; then
