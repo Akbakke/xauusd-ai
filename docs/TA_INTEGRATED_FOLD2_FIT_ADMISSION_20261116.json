@@ -1,0 +1,32 @@
+{
+  "schema_version": "gx1_ta_integrated_fold2_fit_admission_v1",
+  "decision": "ADMIT_EXACT_ONE_USE_INTEGRATED_NON_GC_FOLD2_FIT_ONLY",
+  "operator_reply": "Ja",
+  "operator_reply_context": "Approval of exact plan SHA256 4016255217a3c87bdc84715b6e65707090fa09dcaa1e70a3a1b3455bdac84621 after explicit request for the single large run",
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_FIT_20261116_001/PLAN.json",
+    "sha256": "4016255217a3c87bdc84715b6e65707090fa09dcaa1e70a3a1b3455bdac84621"
+  },
+  "source_base_commit": "0d43f8c117a1e7695b06e9cac8ca10de840915c0",
+  "prior_physical_windows_boot_id": 655,
+  "required_invocation_windows_boot_id_greater_than": 655,
+  "one_use_limit": {
+    "invocations": 1,
+    "fit_rows": 47338,
+    "max_optimizer_updates": 2959,
+    "max_model_forwards": 3983,
+    "max_script_seconds": 10500,
+    "outer_guard_seconds": 10800,
+    "cgroup_memory": "20G",
+    "swap": "512M",
+    "gpu_power_limit_max_w": 300,
+    "gpu_actual_draw_stop_w": 310,
+    "gpu_core_temperature_stop_c": 85
+  },
+  "scope": "Integrated TA S/F five distinct TF heads plus M5 structure, fixed Fold2 TRAIN and Jan-Mar2025 development panels only",
+  "full_gc_paused": true,
+  "test_data_used": false,
+  "entry_exit_or_trade_authorized": false,
+  "relaunch_authorized": false,
+  "economic_edge_proven": false
+}

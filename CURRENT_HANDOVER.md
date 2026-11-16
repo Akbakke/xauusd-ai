@@ -7,13 +7,15 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_INTEGRATED_FOLD2_FIT_PLAN_PREPARED_NOT_ADMITTED.
+TA_INTEGRATED_FOLD2_FIT_ADMITTED_ONE_USE_PREBOOT.
 Den tidligere ikke-GC S-lesningen er fullført og M5-Edge fortsatt ubevist.
 Fold2 S-only full-GC 25-cellers engangsplan er fullført og konsumert.
-training_enabled=false, native_training_enabled=false og
-full_epoch_training_allowed=false. Full GC er ifølge operatøren pauset
-inntil videre (bekreftet 16.11). Windows-oppgaven
-GX1RandomAccessCampaignV2 er deaktivert. Ingen relansering, native modellfit,
+Operatøren svarte «Ja» på eksakt integrert plan-SHA
+`4016255217a3c87bdc84715b6e65707090fa09dcaa1e70a3a1b3455bdac84621`.
+training_enabled, native_training_enabled og full_epoch_training_allowed er
+midlertidig true bare for denne ene ikke-GC Fold2-kjøringen. Før dispatch
+må fysisk Windows boot-ID være >655. Full GC er pauset.
+GX1RandomAccessCampaignV2 er deaktivert. Ingen annen fit, relansering,
 TEST, Entry/Exit, broker eller handel er innrømmet.
 
 Brukeren innrømmet 16.11 én ikke-GC S CPU-lesning på låste opptak.
@@ -485,7 +487,9 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   M5-par og AUC 0,457503 → 0,541573; H4 hadde null gyldige nabopar.
   Dette validerer leseren, ikke den nye modellens læring eller Edge.
   Se `docs/TA_INTEGRATED_FOLD2_FIT_PREPARATION_20261116.json`.
-  Ingen trening eller senere resultat finnes; engangsgaten står stengt.
+  Ingen trening eller senere resultat finnes ennå. Brukerens eksakte
+  engangsadgang står i `docs/TA_INTEGRATED_FOLD2_FIT_ADMISSION_20261116.json`;
+  boot-ID >655 og alle fysiske vakter er fortsatt nødvendige før CLAIM.
 
 ## Ikke gjort / faktisk hindring
 
@@ -514,10 +518,10 @@ Entry, TEST eller handel åpnes av denne presiseringen.
 
 ## Neste steg
 
-1. Innhent eksakt operatøradgang til den forberedte store engangskjøringen
-   før `training_enabled` eventuelt endres. Kontroller fersk fysisk boot,
-   kildelås, plan-SHA og maskinvarevakter. Kjør bare den ene bundne
-   integrerte planen; ingen modellrunde eller kildeendring mens den går.
+1. Kontroller fysisk Windows boot-ID >655, kildelås, plan-SHA og
+   maskinvarevakter; kjør deretter bare den ene innrømmede integrerte planen.
+   Ingen modellrunde eller kildeendring mens den går. Steng gaten igjen
+   etter terminalkvittering, også ved feil.
 2. Les initial og final på de samme forhåndsvalgte TRAIN-/senere panelene:
    fem TF S/F aktivitet og side mot fryst TRAIN-prior, M5-topp/bunn mot
    fryst TRAIN-prior, samt kalibrering og faktisk M5-vendingssporing.
