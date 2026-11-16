@@ -71,3 +71,16 @@ def test_integrated_loss_rejects_unobserved_positive_and_broken_factorization():
         integrated_loss(model_output=output, state_truth=truth, future_truth=truth,
                         state_query_k=query, structure_hit=hits,
                         structure_observed=observed)
+
+
+def test_structure_readout_uses_bool_known_labels():
+    from gx1.audit.run_market_state_ta_integrated_fold2_fit_v1 import structure_readout
+
+    logits = np.array([[2.0, -2.0], [-2.0, 2.0], [100.0, -100.0]], dtype=np.float32)
+    hit = np.array([[True, False], [False, True], [False, False]], dtype=bool)
+    observed = np.array([[True, True], [True, True], [False, False]], dtype=bool)
+    result = structure_readout(logits, hit, observed, np.array([.5, .5]))
+    assert result['high']['observed'] == result['low']['observed'] == 2
+    assert result['high']['auc'] == result['low']['auc'] == 1.0
+    assert result['high']['hit'] == result['low']['hit'] == 1
+    assert result['high']['brier'] < result['high']['prior_brier']

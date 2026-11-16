@@ -196,7 +196,7 @@ def structure_readout(raw, hit, observed, prior):
     out = {}
     for j, side in enumerate(('high', 'low')):
         mask = observed[:, j]
-        target = hit[mask, j].astype(np.float64)
+        target = hit[mask, j]
         probability = 1.0 / (1.0 + np.exp(-np.clip(raw[mask, j].astype(np.float64), -80., 80.)))
         p0 = float(prior[j])
         out[side] = {'observed': int(mask.sum()), 'hit': int(target.sum()),
