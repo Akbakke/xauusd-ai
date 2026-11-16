@@ -48,6 +48,26 @@
   "method": "Exact Fold2 fit parent/issue axis, five M1 bar starts at issue minus 5 through 1 minutes; read only intersecting source row groups, compare presence and 13 literal mid/bid/ask OHLC and volume fields bitexact; verify published S current source row against raw parquet global row index.",
   "model_forwards": 0,
   "optimizer_steps": 0,
+  "path_owner_validation": {
+    "focused_tests_passed": 3,
+    "full_five_bar_paths": 47124,
+    "limitation": "Five M1 bars resolve within-M5 order only; longer M1 history, live completion and TA model consumption are unqualified.",
+    "model_forwards": 0,
+    "observed_m1_slots": 235956,
+    "optimizer_steps": 0,
+    "physical_fold2_fit_issues": 47338,
+    "raw_base_normalized_path_float32_bitexact": true,
+    "raw_base_observation_masks_equal": true,
+    "source": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_ta_m1_issue_path_v1.py",
+      "sha256": "b87e537add0a1b84b1375f138e9001d716b636efc62fba5d8b6c429815786388"
+    },
+    "test_data_used": false,
+    "tests": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_market_state_ta_m1_issue_path_v1.py",
+      "sha256": "a8fd95fe8564fe4f27b908bb86c6b3e124a0975e4bd59faf8240930418d2803d"
+    }
+  },
   "raw_row_groups": [
     1820,
     1901

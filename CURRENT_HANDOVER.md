@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_M1_ARCHIVE_PARITY_PASS_INTEGRATED_MODEL_UNQUALIFIED.
+TA_M1_FIVE_BAR_INPUT_SOURCE_PASS_INTEGRATED_MODEL_UNQUALIFIED.
 Den tidligere ikke-GC S-lesningen er fullført og M5-Edge fortsatt ubevist.
 Fold2 S-only full-GC 25-cellers engangsplan er fullført og konsumert.
 training_enabled=false, native_training_enabled=false og
@@ -375,8 +375,8 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   beslutning ved `t` kan dermed be om de fem lukkede M1-barene med starter
   `t−5` til `t−1` minutter fra én serving-kapsel. S-tapens gyldighet
   `t` svarer til slutt på M1-baren `t−1`. Dette er kodelesning av en
-  tilgjengelig leveringsvei, ikke målt TRAIN/ONLINE-verdi- eller
-  samtidighetsparitet; TA-modellen konsumerer ennå ikke banen.
+  tilgjengelig leveringsvei, ikke bevis for faktisk live lukking;
+  TA-modellen konsumerer ennå ikke banen.
 
 - En capped 4G lesende Fold2-kontroll sammenlignet hashbundet S-TRAIN-M1
   med den arkiverte, hashbundne Entry-serving-parets `BASE28` på alle 47 338
@@ -387,6 +387,15 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   214 var ufullstendige og skal maskeres uten å droppes. Aggregatet og
   kildehashene står i `docs/TA_M1_PATH_ARCHIVE_PARITY_REVIEW_20261116.json`.
   Dette er arkivparitet, ikke fysisk live-levering, TA-modellinput eller Edge.
+- En ny ren `M1IssuePathTape` returnerer ved hver M5-issue akkurat de fem
+  M1-startene `t−5..t−1`, fire mid-OHLC-felt i bps fra siste M1-slutt,
+  observasjonsmaske per minutt og full-baneflagg uten radfjerning.
+  Tre fokustester består; en capped 4G fysisk kontroll på alle 47 338
+  Fold2-fit-issues ga samme 47 124 fulle baner og 235 956 observerte
+  plasser fra både S-TRAIN-M1 og arkivert `BASE28`, med bitidentiske
+  normaliserte input og masker. M5-intern rekkefølge blir nå representerbar;
+  lengre M1-historikk for øvrige TF, faktisk ONLINE-levering, modellforward,
+  læring og Edge er ennå ikke bevist.
 
 ## Ikke gjort / faktisk hindring
 
@@ -424,7 +433,8 @@ Entry, TEST eller handel åpnes av denne presiseringen.
    TRAIN-inputs. Syntetisk PASS er ikke fysisk paritet.
 2. Bind nåtilstand og vending ærlig. `gather_current` er bare et
    historisk, M1-avledet nåoppslag; det er ennå ikke input til TA-modellen
-   og erstatter ikke hele ordnede M1-banen. Bred historisk Fold2-dekning
+   og erstatter ikke hele ordnede M1-banen. Fem-barers M1-M5-kilde er nå
+   fysisk kontrollert, men ennå ikke modellinput. Bred historisk Fold2-dekning
    er målt; arkivert `BASE28` og S-TRAIN-M1 har null verdi-/klokkeavvik
    på hele Fold2-fitaksen. Gjenbruk den eksakte M1-leseren og bevis faktisk
    ONLINE-levering/lukking før eventuell live modellkobling.
