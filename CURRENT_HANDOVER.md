@@ -385,7 +385,12 @@ Entry, TEST eller handel åpnes av denne presiseringen.
    er fjernet fra AGENTS.md; store kjøringer krever fortsatt spørsmål.
    Neste nødvendige kontroll er om framtidig struktur faktisk kan
    predikeres bedre enn fryst TRAIN-prior og kausal persistens før
-   eventuelt targetvalg eller modellfit. Ikke fyll bit5 med oppdiktet side.
+   eventuelt targetvalg eller modellfit. En fast lesende sammenligning er
+   forberedt i configs/research/TA_M5_STRUCTURE_PERSISTENCE_20261116_001.json:
+   prior fra M5-issues mai–august hvis begge pivoter var bekreftet før
+   01.09; evaluering september–desember. SMC 0→OPP, 3→NED,
+   1/2→BLANDET, 4→fryst prior; ingen modellfit. Planen er ikke kjørt,
+   og audit-gaten står false. Ikke fyll bit5 med oppdiktet side.
    Ingen Full
    GC-kode, checkpointdiagnose eller ny full-GC-hypotese nå.
 3. En senere særskilt innrømmet, kort matchet kontroll må vise både M5-side
