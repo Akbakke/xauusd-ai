@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_CURRENT_S_EXACT_CLOCK_SOURCE_ONLY_MODEL_INPUT_UNQUALIFIED.
+TA_INTEGRATED_TARGET_BOUNDARY_CORRECTED_SOURCE_ONLY_UNQUALIFIED.
 Den tidligere ikke-GC S-lesningen er fullført og M5-Edge fortsatt ubevist.
 Fold2 S-only full-GC 25-cellers engangsplan er fullført og konsumert.
 training_enabled=false, native_training_enabled=false og
@@ -352,6 +352,20 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   Dette viser bred historisk klokke-/kildedekning, men ikke ONLINE-
   levering, modellkonsum eller Edge. Bit5 er en målt målgråsone, ikke
   manglende M1-bar.
+- En lesende metadata-binding av den kvalifiserte Fold2 TA-spanvisningen
+  mot gjeldende kode og `direct_tf_hidden=True` besto med fem egne S/F-
+  sidehoder. Den beholder 317 lokale felt og 255 felt per TF;
+  kontraktshash er `29487410165986cfba333749a7ebbd1875eea0e93d710dbfbb6f57093fac94f5`.
+  Dette er ikke lagret modellinput, fysisk forward eller gradientbevis.
+- Strukturkandidatens framtidige pivotbekreftelse kunne tidligere telles selv
+  når bekreftelsesbaren først lukket nøyaktig på foldens eksklusive slutt.
+  En målrettet test feilet før rettelsen og består nå: modning krever
+  `bekreftelsesbar_start + 5 min < foldslutt`. Alle ni fokuserte
+  strukturtester består. Den gamle fysiske Fold2-kjøringen brukte den
+  tidligere kildeversjonen; dens 47 195 kjente parklasser er historisk
+  kildedekning, ikke kvalifisert dekning for den korrigerte målsemantikken.
+  Ikke relanser den konsumerte planen; beregn korrigert, bundet dekning
+  som del av én samlet kampanje.
 
 ## Ikke gjort / faktisk hindring
 
@@ -384,13 +398,14 @@ Entry, TEST eller handel åpnes av denne presiseringen.
    M5 er beslutningsklokken, M15/H1/H4/D1 gir egne kausale retninger,
    og alle genuine indikatorfamilier beholdes. Bruk `direct_tf_hidden` med
    fem egne S/F-sidehoder som eksplisitt kandidat; ikke ommerk gamle
-   checkpoints. Kjør først én faktisk, begrenset source-/forward-/gradient-
-   preflight på bundne TRAIN-inputs. Syntetisk PASS er ikke fysisk paritet.
+   checkpoints. Bind M1-/strukturdelene i samme kandidat og kjør deretter
+   én faktisk, begrenset source-/forward-/gradient-preflight på bundne
+   TRAIN-inputs. Syntetisk PASS er ikke fysisk paritet.
 2. Bind nåtilstand og vending ærlig. `gather_current` er bare et
    historisk, M1-avledet nåoppslag; det er ennå ikke input til TA-modellen
-   og erstatter ikke hele ordnede M1-banen. Kontroller bred, fysisk
-   nåoppslagsdekning og samme lukkede beslutningsklokke i framtidig
-   ONLINE-levering før eventuell modellkobling. Den separate M5-topp/bunn-
+   og erstatter ikke hele ordnede M1-banen. Bred historisk Fold2-dekning
+   er målt; krev samme lukkede beslutningsklokke i framtidig ONLINE-levering
+   før eventuell modellkobling. Den separate M5-topp/bunn-
    kandidaten har god fysisk dekning, men er ennå ikke låst som treningsmål.
    Behold bit5 `{OPP,NED}`, blandet struktur og ukjente forløp uten gjettet
    side eller FLAT. Dette er én samlet mål-/inputbeslutning, ikke flere

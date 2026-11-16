@@ -37,6 +37,17 @@ def test_frozen_levels_and_next_confirmed_pair_are_separate():
     assert result["low_hit"].tolist() == [True, True]
 
 
+def test_confirmation_closing_at_exclusive_fold_end_is_censored():
+    # The bar at row 21 starts before the cutoff but closes exactly at it.
+    # Its newly confirmed high cannot be a mature within-fold target.
+    result = _case(close=CLOSE[:22], issues=(11,))
+    assert result["next_high_pivot_found"][0]
+    assert not result["future_high_valid"][0]
+    assert not result["high_observed"][0]
+    assert result["low_observed"][0]
+    assert result["pair_class"][0] == UNKNOWN
+
+
 def test_unconfirmed_future_and_source_gap_are_censored():
     full = _case(issues=(11,))
     prefix = _case(close=CLOSE[:21], issues=(11,))

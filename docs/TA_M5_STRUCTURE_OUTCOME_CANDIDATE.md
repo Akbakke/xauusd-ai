@@ -1,7 +1,8 @@
 # M5-strukturutfall fra kjente topper og bunner
 
-Status: **kildekandidat med syntetisk kontroll og målt Fold2 TRAIN-dekning;
-ikke låst target eller kjøreplan**. Implementasjon:
+Status: **kildekandidat med syntetisk kontroll og historisk Fold2
+TRAIN-dekning under tidligere grenseregel; korrigert dekning er ikke målt,
+og target/kjøreplan er ikke låst**. Implementasjon:
 `gx1/audit/measure_ta_m5_structure_candidate_v1.py`.
 M5 er fortsatt beslutningsklokken. Full GC, modellfit, TEST og handel er stengt.
 Dette utfallet erstatter verken lokal tilstand S eller nettoendepunkt F.
@@ -59,7 +60,12 @@ kilde- og kjøringsbinding. En på forhånd låst SMC-persistensregel scoret
 8 253/23 302 (35,42 %) mot fryst TRAIN-prior 8 936/23 302 (38,35 %)
 på senere september–desember; se
 `docs/TA_M5_STRUCTURE_PERSISTENCE_RESULT_REVIEW_20261116.json`.
-Dette kvalifiserer ikke regelen eller en modellfit. Sammenlign senere enhver
-prognose med fryst TRAIN-prior, reelle M5-vendinger og alle fem TF-retninger. Økonomisk Edge
+Den konsumerte Fold2-auditen brukte en eldre grensetest som tillot at en
+bekreftelsesbar lukket nøyaktig ved foldslutt. Gjeldende kilde krever nå at
+bekreftelsens lukketid er **strengt før** foldslutt. Tallet 47 195 er derfor
+historisk kildedekning, ikke korrigert bundet målpopulasjon; denne må telles
+som del av den samlede kampanjen. Den gamle engangsplanen skal ikke kjøres
+på nytt. Dette kvalifiserer ikke regelen eller en modellfit.
+Sammenlign senere enhver prognose med fryst TRAIN-prior, reelle M5-vendinger og alle fem TF-retninger. Økonomisk Edge
 krever i tillegg egne kost- og posisjonsmålinger; denne definisjonen
 beviser ingen verdi alene.

@@ -149,7 +149,7 @@ def measure_candidate(
         if not len(pivot):
             continue
         next_idx, next_confirm = pivot[chosen], confirmation[chosen]
-        future_valid = (available & (time[next_confirm] < fold_target_end_ns)
+        future_valid = (available & (time[next_confirm] + M5_NS < fold_target_end_ns)
                         & clear_window(next_idx - SWING_LOOKBACK, next_confirm)
                         & (gap[next_confirm] == gap[issues]))
         result[f"future_{side}_valid"] = future_valid
