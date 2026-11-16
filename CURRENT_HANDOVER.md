@@ -83,10 +83,30 @@ TEST, Entry/Exit, broker eller handel er innrømmet.
   fra egne TF-hoder eller lineær lesning før TF-pooling; F M5 femfolds
   utviklings-OOF slo heller ikke fryst TRAIN-prior. Kilderevisjonen fant
   ingen frakoblet genuine TA-feature eller manglende TF, men individuell
-  indikatornytte er ubevist. Nåværende TA-tap
-  lærer punktvis aktivitet/side, uten egen framoverskuende skifteterm.
-  Dette avgrenser et konkret mål-/evalueringsgap, men isolerer ikke én
-  rotårsak eller rettferdiggjør ny modellrunde.
+  indikatornytte er ubevist. Den målte TA-kjøringen hadde allerede eget
+  M5-sidehode og lik-observasjonsnormalisering for M5-side. Nåværende
+  TA-tap lærer punktvis aktivitet/side, uten egen framoverskuende skifteterm.
+  TA native har bare M5-k=1 (fem minutter) per issue; ingen trenet/
+  bevart M5-minuttbane eller direkte skiftsannsynlighet fra samme issue.
+  En lesende, framoverskuende kontroll på 556 kjente M5-par sammenligner
+  PASS2-prognosen ved issue med observert tilstand nå og fem minutter senere:
+  skifte-AUC 0,533695 mot importert INITIAL 0,526155, Brier 0,252937
+  mot 0,249471. Parvise dag-/ukeintervaller omfatter både AUC 0,5 og
+  null endring; ingen etablert M5-vendingsgevinst. D1 punkt-AUC 0,798
+  kommer fra bare 11 dager/5 uker, og parvis gevinst er usikker.
+  H4 mangler native par i dette utvalget. ONLINE-paritet for nåtilstanden
+  er ikke vist. En tidligere, annen TA-modell ga FLAT som treklasse-argmax
+  på alle 4 096 utviklingsrader.
+  Dette avgrenser mål-/evalueringsgapet, men isolerer ikke én rotårsak
+  eller rettferdiggjør ny modellrunde.
+- På et separat, allerede fullført ikke-GC Fold2 TA-retningsløp
+  (47 338 TRAIN-rader, M5 direction-only) økte framoverskuende M5-skifte-AUC
+  0,457503 → 0,541573 på 531 kjente senere par. Parvise dag-/ukeintervaller
+  for gevinsten er positive, og Brier faller 0,264438 → 0,249265; men
+  FINAL-AUC-intervallene omfatter 0,5. Dette er avgrenset læringsrespons,
+  ikke bevist absolutt diskriminering eller Edge. Det er en annen modell
+  og en annen utviklingsperiode enn Fold1 PASS2; årsaksforskjellen er ukjent.
+  H4 mangler native par også her. Samme rapport inneholder alle TF.
 
 ## Ikke gjort / faktisk hindring
 

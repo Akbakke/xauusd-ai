@@ -289,7 +289,7 @@
   "schema_version": "gx1_ta_native_tf_cadence_transition_readout_v1",
   "source": "locked_initial_and_pass2_later_captures_full_prefix_TA_only",
   "test_data_used": false,
-  "status": "COMPLETE_READ_ONLY_TA_TURN_TRACKING_WEAK_CAUSE_UNISOLATED",
+  "status": "COMPLETE_READ_ONLY_TA_SCOPED_TURN_LEARNING_EDGE_UNQUALIFIED",
   "prior_reused_reviews": {
     "prepool_predictive": {
       "path": "docs/TA_PREPOOL_PREDICTIVE_REVIEW.json",
@@ -323,7 +323,17 @@
     "H4 has no issue pairs exactly 240 minutes apart in the fixed panel. Its native-cadence turn tracking is UNKNOWN here, not zero skill.",
     "Prior independent timeframe side heads and fixed prepool linear readouts did not establish later M5 ranking improvement. A head or pooling edit alone is not a qualified repair.",
     "The existing TA loss scores pointwise states, not prospective changes. This is a measured objective/evaluation alignment gap, not proof that adding a transition term will produce Edge.",
-    "The prior non-GC source/data chain found no disconnected genuine TA field or missing timeframe. Individual indicator utility remains unproved; the current evidence cannot attribute turn-tracking failure to a specific indicator."
+    "The prior non-GC source/data chain found no disconnected genuine TA field or missing timeframe. Individual indicator utility remains unproved; the current evidence cannot attribute turn-tracking failure to a specific indicator.",
+    "Retained recipe and view verify dedicated M5 side decoding and equal-observation M5 side normalization. Thus this TA M5 failure is not explained by the absence of those two mechanisms, although it does not identify a unique optimization, target or market cause.",
+    "A prior TA period-transfer review reported full three-class M5 argmax FLAT for all 4096 reused rows, matching the always-FLAT reference. It is a distinct model state from this PASS2 capture, but shows why conditional-side component tests cannot be equated with selective Entry behavior.",
+    "The rolling switch count above compares forecasts issued at different times. A separate prospective diagnostic uses the prior native S label as the current state at the next completed issue and scores that issue forecast one native interval ahead. These are different questions and must not be conflated.",
+    "On 556 certified M5 pairs, the prospective PASS2 switch AUC is 0.533695 versus imported INITIAL 0.526155. PASS2-minus-INITIAL AUC day/week percentile intervals include zero; PASS2 AUC day/week intervals include 0.5. Brier is 0.252937 versus 0.249471, with paired change intervals including zero. No learned M5 reversal advantage is established.",
+    "D1 prospective PASS2 AUC is 0.798060 on 198 certified pairs, but only 11 UTC days and five Monday weeks contribute. Pointwise day/week PASS2-level intervals exceed 0.5, while paired gain intervals include zero. This is scoped reused-development evidence, not stable D1 context value or economic Edge.",
+    "No exact native-cadence H4 pair exists in the fixed sampled panel, so prospective H4 reversal quality remains UNKNOWN here.",
+    "On the distinct pre-existing Fold2 TA direction-only model and fixed Jan-Mar2025 later rows, prospective M5 state-turn AUC moves 0.457503 at INITIAL to 0.541573 at FINAL on 531 certified pairs. Paired day and week AUC-gain intervals exclude zero; paired Brier change is negative in both. This is scoped training response on reused development, not independent Edge.",
+    "Fold2 FINAL M5 turn-AUC day/week intervals still include 0.5. The gain starts from a below-0.5 INITIAL, so learning improvement alone does not qualify useful absolute discrimination or trading.",
+    "Fold2 M15 prospective turn gain also has positive paired day/week AUC intervals, but FINAL level intervals include 0.5. Fold2 D1 FINAL AUC is 0.475422 with wide intervals, unlike the earlier Fold1 PASS2 point estimate. Different periods and training recipes prevent causal attribution to regime, head, target or indicators.",
+    "The fixed Fold2 panel again has no exact 240-minute H4 issue pair. Full five-timeframe prospective turn qualification is unavailable from these two retained panels."
   ],
   "limits": [
     "Only stored non-GC TA-only INITIAL and full-prefix PASS2 later captures; both are dependent on historical model training and later data were reused for development.",
@@ -332,6 +342,791 @@
     "The fixed zero-logit conditional-side decision is a diagnostic, not a selected trading threshold; activity, FLAT, costs and abstention are not included.",
     "No matched H4 pairs at native cadence; no all-five-timeframe qualification.",
     "Point counts and descriptive absolute-logit-change AUC have no independent confidence claim; no checkpoint, threshold, timeframe or model selected from this review.",
-    "No new feature, target, model forward, fit, optimizer update, TEST, broker, order, promotion or trade."
-  ]
+    "No new feature, target, model forward, fit, optimizer update, TEST, broker, order, promotion or trade.",
+    "The measured rolling switch requires a second later issue; no same-issue prospective M5 transition forecast or Entry decision is established.",
+    "Prospective current state is reconstructed offline from the previous native S target whose validity equals the later completed issue. The target source uses trailing M1 data and as-of ATR, but ONLINE parity of a current-state provider is not qualified here.",
+    "Prospective evaluation requires a certified future side and therefore covers a retrospective outcome subset; it is not a selectable live coverage set.",
+    "The D1 point estimate has only 11 day and five week clusters; intervals are pointwise exploratory and do not establish robust gain, selection or generalization.",
+    "Fold1 PASS2 and Fold2 direction-only are different fitted models, source histories and later periods. Cross-fold differences cannot isolate a training objective or architecture effect.",
+    "Fold2 interval estimates are paired within that model run, pointwise exploratory, on a reused later development period; no sealed TEST, multiple-comparison or economic claim.",
+    "Fold2 M5 turn score conditions on retrospective certified current and future sides, and current-state ONLINE parity remains unqualified."
+  ],
+  "retained_TA_model_scope": {
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_002/RECIPE.json",
+      "sha256": "993b9f1dc7b581e700f3fb148f90028c7eb1b51fdf5e1c9d62f8b7bd7182c23f"
+    },
+    "feature_view": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001/FEATURE_VIEW.json",
+      "sha256": "2b15bcfe7fec09d83dfc6af71fe406b6c8153aa5d0a5d9262d112fea3ace3d60"
+    },
+    "dedicated_m5_side": true,
+    "dedicated_non_m5_side": false,
+    "dedicated_tf_activity": true,
+    "m5_equal_observation_side_normalization": true,
+    "inference": "The measured M5 turn-tracking gap remains despite an existing dedicated M5 side head and equal-observation normalization. These controls are not missing in this non-GC model.",
+    "native_query_domain": {
+      "source": "gx1/contracts/market_state_time_query_target_v1.py NATIVE_K=(1,3,12,48,288)",
+      "M5": "Only k=1, five minutes after each completed M5 issue in this TA native fit.",
+      "S_training": "gx1/contracts/market_state_time_query_binding_v1.py sampled_query_k yields one query k per TF and issue per pass; M5 is always k=1.",
+      "F_training": "gx1/contracts/market_state_time_query_native_F_batch_v1.py uses the native endpoint for F.",
+      "limit": "This fit does not train or retain a same-issue M5 minute-by-minute path or a direct probability of a future state switch. Endpoint direction could still carry reversal information if compared with a causal current state; that comparison is not qualified here."
+    }
+  },
+  "prospective_native_state_turn": {
+    "capture_refs": {
+      "FULL_PREFIX_PASS2_LATER": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_002/FULL_PREFIX_PASS2_LATER_READOUT.npz",
+        "sha256": "6b8c5f0a54b74284b0d2033f5322d38c6d8e4d1a18706205fc18ae8bf1e8cf39"
+      },
+      "INITIAL_LATER": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_002/INITIAL_LATER_READOUT.npz",
+        "sha256": "575fc555c79ea2d420ebc8d8efd1c899ea0ae4f2443a1a1efe3e5b1776313e46"
+      }
+    },
+    "method": "At each later issue j, current certified S state is the previous native S target at issue i exactly one TF interval earlier, whose validity equals issue j. Compare the forecast made at j for j+one TF interval to that current state. Require both current and future S sides certified only for evaluation. Fixed UP threshold is raw side logit>=0. Change probability is pUP if current DOWN, else 1-pUP.",
+    "model_forwards": 0,
+    "optimizer_updates": 0,
+    "phases": {
+      "FULL_PREFIX_PASS2_LATER": {
+        "D1": {
+          "actual_switches": 124,
+          "certified_current_and_future_pairs": 198,
+          "clock_pairs": 1760,
+          "correctly_predicted_switches": 73,
+          "false_switch_predictions": 14,
+          "future_side_accuracy": 0.6717171717171717,
+          "issue_gap_minutes": 1440,
+          "missed_switches": 51,
+          "persist_current_side_accuracy": 0.37373737373737376,
+          "predicted_switches": 87,
+          "switch_precision": 0.8390804597701149,
+          "switch_probability_auc": 0.7980601569311246,
+          "switch_probability_brier": 0.20648790380981416,
+          "switch_recall": 0.5887096774193549
+        },
+        "H1": {
+          "actual_switches": 141,
+          "certified_current_and_future_pairs": 247,
+          "clock_pairs": 992,
+          "correctly_predicted_switches": 61,
+          "false_switch_predictions": 38,
+          "future_side_accuracy": 0.5222672064777328,
+          "issue_gap_minutes": 60,
+          "missed_switches": 80,
+          "persist_current_side_accuracy": 0.4291497975708502,
+          "predicted_switches": 99,
+          "switch_precision": 0.6161616161616161,
+          "switch_probability_auc": 0.6065837013247692,
+          "switch_probability_brier": 0.2658457333197243,
+          "switch_recall": 0.4326241134751773
+        },
+        "H4": {
+          "actual_switches": 0,
+          "certified_current_and_future_pairs": 0,
+          "clock_pairs": 0,
+          "correctly_predicted_switches": 0,
+          "false_switch_predictions": 0,
+          "future_side_accuracy": null,
+          "issue_gap_minutes": 240,
+          "missed_switches": 0,
+          "persist_current_side_accuracy": null,
+          "predicted_switches": 0,
+          "switch_precision": null,
+          "switch_probability_auc": null,
+          "switch_probability_brier": null,
+          "switch_recall": null
+        },
+        "M15": {
+          "actual_switches": 431,
+          "certified_current_and_future_pairs": 814,
+          "clock_pairs": 3300,
+          "correctly_predicted_switches": 187,
+          "false_switch_predictions": 153,
+          "future_side_accuracy": 0.5122850122850123,
+          "issue_gap_minutes": 15,
+          "missed_switches": 244,
+          "persist_current_side_accuracy": 0.4705159705159705,
+          "predicted_switches": 340,
+          "switch_precision": 0.55,
+          "switch_probability_auc": 0.5112768290392734,
+          "switch_probability_brier": 0.29356700203223945,
+          "switch_recall": 0.43387470997679817
+        },
+        "M5": {
+          "actual_switches": 293,
+          "certified_current_and_future_pairs": 556,
+          "clock_pairs": 3828,
+          "correctly_predicted_switches": 183,
+          "false_switch_predictions": 154,
+          "future_side_accuracy": 0.5251798561151079,
+          "issue_gap_minutes": 5,
+          "missed_switches": 110,
+          "persist_current_side_accuracy": 0.47302158273381295,
+          "predicted_switches": 337,
+          "switch_precision": 0.543026706231454,
+          "switch_probability_auc": 0.5336949610039061,
+          "switch_probability_brier": 0.2529365812943648,
+          "switch_recall": 0.6245733788395904
+        }
+      },
+      "INITIAL_LATER": {
+        "D1": {
+          "actual_switches": 124,
+          "certified_current_and_future_pairs": 198,
+          "clock_pairs": 1760,
+          "correctly_predicted_switches": 28,
+          "false_switch_predictions": 17,
+          "future_side_accuracy": 0.4292929292929293,
+          "issue_gap_minutes": 1440,
+          "missed_switches": 96,
+          "persist_current_side_accuracy": 0.37373737373737376,
+          "predicted_switches": 45,
+          "switch_precision": 0.6222222222222222,
+          "switch_probability_auc": 0.6261987794245859,
+          "switch_probability_brier": 0.2700540785818693,
+          "switch_recall": 0.22580645161290322
+        },
+        "H1": {
+          "actual_switches": 141,
+          "certified_current_and_future_pairs": 247,
+          "clock_pairs": 992,
+          "correctly_predicted_switches": 59,
+          "false_switch_predictions": 33,
+          "future_side_accuracy": 0.5344129554655871,
+          "issue_gap_minutes": 60,
+          "missed_switches": 82,
+          "persist_current_side_accuracy": 0.4291497975708502,
+          "predicted_switches": 92,
+          "switch_precision": 0.6413043478260869,
+          "switch_probability_auc": 0.5663053659842098,
+          "switch_probability_brier": 0.2631450082495003,
+          "switch_recall": 0.41843971631205673
+        },
+        "H4": {
+          "actual_switches": 0,
+          "certified_current_and_future_pairs": 0,
+          "clock_pairs": 0,
+          "correctly_predicted_switches": 0,
+          "false_switch_predictions": 0,
+          "future_side_accuracy": null,
+          "issue_gap_minutes": 240,
+          "missed_switches": 0,
+          "persist_current_side_accuracy": null,
+          "predicted_switches": 0,
+          "switch_precision": null,
+          "switch_probability_auc": null,
+          "switch_probability_brier": null,
+          "switch_recall": null
+        },
+        "M15": {
+          "actual_switches": 431,
+          "certified_current_and_future_pairs": 814,
+          "clock_pairs": 3300,
+          "correctly_predicted_switches": 173,
+          "false_switch_predictions": 158,
+          "future_side_accuracy": 0.48894348894348894,
+          "issue_gap_minutes": 15,
+          "missed_switches": 258,
+          "persist_current_side_accuracy": 0.4705159705159705,
+          "predicted_switches": 331,
+          "switch_precision": 0.5226586102719033,
+          "switch_probability_auc": 0.49334536841276283,
+          "switch_probability_brier": 0.27491488627388805,
+          "switch_recall": 0.4013921113689095
+        },
+        "M5": {
+          "actual_switches": 293,
+          "certified_current_and_future_pairs": 556,
+          "clock_pairs": 3828,
+          "correctly_predicted_switches": 201,
+          "false_switch_predictions": 174,
+          "future_side_accuracy": 0.5215827338129496,
+          "issue_gap_minutes": 5,
+          "missed_switches": 92,
+          "persist_current_side_accuracy": 0.47302158273381295,
+          "predicted_switches": 375,
+          "switch_precision": 0.536,
+          "switch_probability_auc": 0.5261552836138543,
+          "switch_probability_brier": 0.24947124597255071,
+          "switch_recall": 0.6860068259385665
+        }
+      }
+    },
+    "schema_version": "gx1_ta_prospective_native_state_turn_readout_v1",
+    "scope": "Same locked 4096 later TA-only rows and imported INITIAL/PASS2 native S captures; no model or fit.",
+    "test_data_used": false
+  },
+  "prospective_paired_uncertainty": {
+    "method": "1000 paired cluster bootstrap replicates, same sampled UTC day or Monday week multiplicities for INITIAL/PASS2; 2.5/97.5 percentile intervals for PASS2 AUC, PASS2-minus-INITIAL AUC and Brier. Degenerate one-class draws skipped. All supported TF retained; pointwise exploratory intervals on reused development.",
+    "model_forwards": 0,
+    "optimizer_updates": 0,
+    "replicates": 1000,
+    "schema_version": "gx1_ta_prospective_state_turn_paired_cluster_interval_v1",
+    "seed": 20261116,
+    "source_captures": {
+      "FULL_PREFIX_PASS2_LATER": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_002/FULL_PREFIX_PASS2_LATER_READOUT.npz",
+        "sha256": "6b8c5f0a54b74284b0d2033f5322d38c6d8e4d1a18706205fc18ae8bf1e8cf39"
+      },
+      "INITIAL_LATER": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_002/INITIAL_LATER_READOUT.npz",
+        "sha256": "575fc555c79ea2d420ebc8d8efd1c899ea0ae4f2443a1a1efe3e5b1776313e46"
+      }
+    },
+    "test_data_used": false,
+    "timeframes": {
+      "D1": {
+        "actual_switches": 124,
+        "certified_pairs": 198,
+        "intervals": {
+          "UTC_Monday_week": {
+            "auc_delta_95": [
+              -0.09493836873852612,
+              0.7515762925598991
+            ],
+            "brier_delta_95": [
+              -0.19281962915966733,
+              0.02798063040102583
+            ],
+            "clusters": 5,
+            "pass2_auc_95": [
+              0.6120481927710844,
+              1.0
+            ],
+            "valid_replicates": 994
+          },
+          "UTC_day": {
+            "auc_delta_95": [
+              -0.05763774718757744,
+              0.43504616437376803
+            ],
+            "brier_delta_95": [
+              -0.14540616338960027,
+              0.014245660507933284
+            ],
+            "clusters": 11,
+            "pass2_auc_95": [
+              0.5481684433032473,
+              0.9555441869869419
+            ],
+            "valid_replicates": 1000
+          }
+        },
+        "point": {
+          "auc_delta": 0.17186137750653874,
+          "brier_delta": -0.06356617477205515,
+          "initial_auc": 0.6261987794245859,
+          "initial_brier": 0.2700540785818693,
+          "pass2_auc": 0.7980601569311246,
+          "pass2_brier": 0.20648790380981416
+        }
+      },
+      "H1": {
+        "actual_switches": 141,
+        "certified_pairs": 247,
+        "intervals": {
+          "UTC_Monday_week": {
+            "auc_delta_95": [
+              -0.03434540583624965,
+              0.1035843805114639
+            ],
+            "brier_delta_95": [
+              -0.016067370764442607,
+              0.02389302625539759
+            ],
+            "clusters": 14,
+            "pass2_auc_95": [
+              0.5102692403738986,
+              0.7061977764096566
+            ],
+            "valid_replicates": 1000
+          },
+          "UTC_day": {
+            "auc_delta_95": [
+              -0.042736629881154564,
+              0.109927841618023
+            ],
+            "brier_delta_95": [
+              -0.02012723175409844,
+              0.028915324933516007
+            ],
+            "clusters": 57,
+            "pass2_auc_95": [
+              0.47531201883231194,
+              0.7148701408233377
+            ],
+            "valid_replicates": 1000
+          }
+        },
+        "point": {
+          "auc_delta": 0.04027833534055947,
+          "brier_delta": 0.0027007250702239527,
+          "initial_auc": 0.5663053659842098,
+          "initial_brier": 0.2631450082495003,
+          "pass2_auc": 0.6065837013247692,
+          "pass2_brier": 0.2658457333197243
+        }
+      },
+      "H4": {
+        "actual_switches": 0,
+        "certified_pairs": 0,
+        "intervals": {}
+      },
+      "M15": {
+        "actual_switches": 431,
+        "certified_pairs": 814,
+        "intervals": {
+          "UTC_Monday_week": {
+            "auc_delta_95": [
+              -0.005412371419544442,
+              0.04122857460588785
+            ],
+            "brier_delta_95": [
+              0.01042513194809161,
+              0.02638979294625759
+            ],
+            "clusters": 14,
+            "pass2_auc_95": [
+              0.47101914978677145,
+              0.5445827749978033
+            ],
+            "valid_replicates": 1000
+          },
+          "UTC_day": {
+            "auc_delta_95": [
+              -0.01000660126494921,
+              0.04317603448244073
+            ],
+            "brier_delta_95": [
+              0.010247077215736283,
+              0.02737200454277955
+            ],
+            "clusters": 68,
+            "pass2_auc_95": [
+              0.455114321425349,
+              0.5644913770167088
+            ],
+            "valid_replicates": 1000
+          }
+        },
+        "point": {
+          "auc_delta": 0.017931460626510576,
+          "brier_delta": 0.018652115758351406,
+          "initial_auc": 0.49334536841276283,
+          "initial_brier": 0.27491488627388805,
+          "pass2_auc": 0.5112768290392734,
+          "pass2_brier": 0.29356700203223945
+        }
+      },
+      "M5": {
+        "actual_switches": 293,
+        "certified_pairs": 556,
+        "intervals": {
+          "UTC_Monday_week": {
+            "auc_delta_95": [
+              -0.005234913572637284,
+              0.02096579462079211
+            ],
+            "brier_delta_95": [
+              -0.0017809995411753015,
+              0.009712499204645668
+            ],
+            "clusters": 14,
+            "pass2_auc_95": [
+              0.4901997621201884,
+              0.5792898989398388
+            ],
+            "valid_replicates": 1000
+          },
+          "UTC_day": {
+            "auc_delta_95": [
+              -0.009201703014328122,
+              0.026112887349698494
+            ],
+            "brier_delta_95": [
+              -0.002356964911816272,
+              0.009998214772716096
+            ],
+            "clusters": 66,
+            "pass2_auc_95": [
+              0.485364684674243,
+              0.5844413097359324
+            ],
+            "valid_replicates": 1000
+          }
+        },
+        "point": {
+          "auc_delta": 0.007539677390051791,
+          "brier_delta": 0.003465335321814089,
+          "initial_auc": 0.5261552836138543,
+          "initial_brier": 0.24947124597255071,
+          "pass2_auc": 0.5336949610039061,
+          "pass2_brier": 0.2529365812943648
+        }
+      }
+    }
+  },
+  "fold2_distinct_TA_direction_only_prospective": {
+    "capture_refs": {
+      "FINAL": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_004/FINAL_LATER_READOUT.npz",
+        "sha256": "7ca3c77164dffa0b568b1a50fe0e83e8757ca596359f5f0b0b59e253e20eb4c4"
+      },
+      "INITIAL": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_004/LATER_READOUT.npz",
+        "sha256": "90f60a307c855c1c8543aab8a86924519257c21d29be4c728550c00147865108"
+      }
+    },
+    "method": "Same fixed prospective native S method as Fold1 review: earlier native target validity equals later completed issue, current S side from earlier target; score later issue forecast one native TF interval ahead on pairs with both certified sides.",
+    "model_forwards": 0,
+    "optimizer_updates": 0,
+    "phases": {
+      "FINAL": {
+        "D1": {
+          "actual_switches": 124,
+          "certified_pairs": 313,
+          "clock_pairs": 2303,
+          "correct_switches": 76,
+          "gap_minutes": 1440,
+          "predicted_switches": 188,
+          "switch_auc": 0.4754224270353303,
+          "switch_brier": 0.25205613911833663,
+          "switch_precision": 0.40425531914893614,
+          "switch_recall": 0.6129032258064516
+        },
+        "H1": {
+          "actual_switches": 139,
+          "certified_pairs": 243,
+          "clock_pairs": 1007,
+          "correct_switches": 106,
+          "gap_minutes": 60,
+          "predicted_switches": 186,
+          "switch_auc": 0.5319590481460985,
+          "switch_brier": 0.24810122868032605,
+          "switch_precision": 0.5698924731182796,
+          "switch_recall": 0.762589928057554
+        },
+        "H4": {
+          "actual_switches": 0,
+          "certified_pairs": 0,
+          "clock_pairs": 0,
+          "correct_switches": 0,
+          "gap_minutes": 240,
+          "predicted_switches": 0,
+          "switch_auc": null,
+          "switch_brier": null,
+          "switch_precision": null,
+          "switch_recall": null
+        },
+        "M15": {
+          "actual_switches": 402,
+          "certified_pairs": 755,
+          "clock_pairs": 3314,
+          "correct_switches": 317,
+          "gap_minutes": 15,
+          "predicted_switches": 549,
+          "switch_auc": 0.5497301030259467,
+          "switch_brier": 0.2488859926628557,
+          "switch_precision": 0.5774134790528234,
+          "switch_recall": 0.7885572139303483
+        },
+        "M5": {
+          "actual_switches": 277,
+          "certified_pairs": 531,
+          "clock_pairs": 3834,
+          "correct_switches": 208,
+          "gap_minutes": 5,
+          "predicted_switches": 377,
+          "switch_auc": 0.5415730975866284,
+          "switch_brier": 0.24926545561944013,
+          "switch_precision": 0.5517241379310345,
+          "switch_recall": 0.7509025270758123
+        }
+      },
+      "INITIAL": {
+        "D1": {
+          "actual_switches": 124,
+          "certified_pairs": 313,
+          "clock_pairs": 2303,
+          "correct_switches": 50,
+          "gap_minutes": 1440,
+          "predicted_switches": 160,
+          "switch_auc": 0.4778119132957843,
+          "switch_brier": 0.2642282689882491,
+          "switch_precision": 0.3125,
+          "switch_recall": 0.4032258064516129
+        },
+        "H1": {
+          "actual_switches": 139,
+          "certified_pairs": 243,
+          "clock_pairs": 1007,
+          "correct_switches": 84,
+          "gap_minutes": 60,
+          "predicted_switches": 152,
+          "switch_auc": 0.5042197011621472,
+          "switch_brier": 0.25596505454425406,
+          "switch_precision": 0.5526315789473685,
+          "switch_recall": 0.60431654676259
+        },
+        "H4": {
+          "actual_switches": 0,
+          "certified_pairs": 0,
+          "clock_pairs": 0,
+          "correct_switches": 0,
+          "gap_minutes": 240,
+          "predicted_switches": 0,
+          "switch_auc": null,
+          "switch_brier": null,
+          "switch_precision": null,
+          "switch_recall": null
+        },
+        "M15": {
+          "actual_switches": 402,
+          "certified_pairs": 755,
+          "clock_pairs": 3314,
+          "correct_switches": 178,
+          "gap_minutes": 15,
+          "predicted_switches": 407,
+          "switch_auc": 0.4059870618578496,
+          "switch_brier": 0.26925127761005574,
+          "switch_precision": 0.43734643734643736,
+          "switch_recall": 0.4427860696517413
+        },
+        "M5": {
+          "actual_switches": 277,
+          "certified_pairs": 531,
+          "clock_pairs": 3834,
+          "correct_switches": 134,
+          "gap_minutes": 5,
+          "predicted_switches": 285,
+          "switch_auc": 0.45750305580033546,
+          "switch_brier": 0.2644378650700417,
+          "switch_precision": 0.47017543859649125,
+          "switch_recall": 0.48375451263537905
+        }
+      }
+    },
+    "schema_version": "gx1_ta_fold2_prospective_native_state_turn_readout_v1",
+    "scope": "Separate Fold2 TA model, 4096 fixed Jan-Mar2025 later development rows, immutable INITIAL/FINAL native S captures; not a replication of Fold1 PASS2 model.",
+    "test_data_used": false
+  },
+  "fold2_distinct_TA_direction_only_uncertainty": {
+    "method": "1000 paired cluster bootstrap replicates, same sampled UTC day or Monday week multiplicities for INITIAL/FINAL; 2.5/97.5 percentile intervals for FINAL AUC, FINAL-minus-INITIAL AUC and Brier. Degenerate one-class draws skipped. All supported TF retained; pointwise exploratory intervals on reused development.",
+    "model_forwards": 0,
+    "optimizer_updates": 0,
+    "replicates": 1000,
+    "schema_version": "gx1_ta_fold2_prospective_state_turn_paired_cluster_interval_v1",
+    "seed": 20261116,
+    "source_captures": {
+      "FINAL": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_004/FINAL_LATER_READOUT.npz",
+        "sha256": "7ca3c77164dffa0b568b1a50fe0e83e8757ca596359f5f0b0b59e253e20eb4c4"
+      },
+      "INITIAL": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_FRESH_INITIAL_20261114_004/LATER_READOUT.npz",
+        "sha256": "90f60a307c855c1c8543aab8a86924519257c21d29be4c728550c00147865108"
+      }
+    },
+    "test_data_used": false,
+    "timeframes": {
+      "D1": {
+        "actual_switches": 124,
+        "certified_pairs": 313,
+        "intervals": {
+          "UTC_Monday_week": {
+            "auc_delta_95": [
+              -0.43040540540540545,
+              0.2987179487179487
+            ],
+            "brier_delta_95": [
+              -0.05349126165795953,
+              0.04431444157689529
+            ],
+            "clusters": 7,
+            "final_auc_95": [
+              0.22293346996465743,
+              0.6472483369198615
+            ],
+            "valid_replicates": 997
+          },
+          "UTC_day": {
+            "auc_delta_95": [
+              -0.2578763556840118,
+              0.279504725292341
+            ],
+            "brier_delta_95": [
+              -0.05673453184973844,
+              0.02865007754342904
+            ],
+            "clusters": 14,
+            "final_auc_95": [
+              0.2810202898689007,
+              0.678850360914005
+            ],
+            "valid_replicates": 1000
+          }
+        },
+        "point": {
+          "auc_delta": -0.0023894862604540434,
+          "brier_delta": -0.012172129869912451,
+          "final_auc": 0.4754224270353303,
+          "final_brier": 0.25205613911833663,
+          "initial_auc": 0.4778119132957843,
+          "initial_brier": 0.2642282689882491
+        }
+      },
+      "H1": {
+        "actual_switches": 139,
+        "certified_pairs": 243,
+        "intervals": {
+          "UTC_Monday_week": {
+            "auc_delta_95": [
+              -0.04791748694058948,
+              0.11538318418101401
+            ],
+            "brier_delta_95": [
+              -0.019382259767282438,
+              0.004374947295384909
+            ],
+            "clusters": 14,
+            "final_auc_95": [
+              0.4213089858202517,
+              0.6531523856276908
+            ],
+            "valid_replicates": 1000
+          },
+          "UTC_day": {
+            "auc_delta_95": [
+              -0.08265699551151738,
+              0.13752979432895449
+            ],
+            "brier_delta_95": [
+              -0.02341345264824424,
+              0.008596962337628975
+            ],
+            "clusters": 47,
+            "final_auc_95": [
+              0.41322295832524436,
+              0.6573415749838432
+            ],
+            "valid_replicates": 1000
+          }
+        },
+        "point": {
+          "auc_delta": 0.027739346983951307,
+          "brier_delta": -0.007863825863928003,
+          "final_auc": 0.5319590481460985,
+          "final_brier": 0.24810122868032605,
+          "initial_auc": 0.5042197011621472,
+          "initial_brier": 0.25596505454425406
+        }
+      },
+      "H4": {
+        "actual_switches": 0,
+        "certified_pairs": 0,
+        "intervals": {}
+      },
+      "M15": {
+        "actual_switches": 402,
+        "certified_pairs": 755,
+        "intervals": {
+          "UTC_Monday_week": {
+            "auc_delta_95": [
+              0.04267680709534016,
+              0.22041061682566523
+            ],
+            "brier_delta_95": [
+              -0.02641236968877133,
+              -0.012952475462559355
+            ],
+            "clusters": 14,
+            "final_auc_95": [
+              0.4783094384233327,
+              0.6064850571687032
+            ],
+            "valid_replicates": 1000
+          },
+          "UTC_day": {
+            "auc_delta_95": [
+              0.06195694355833307,
+              0.22600036158651834
+            ],
+            "brier_delta_95": [
+              -0.02718757635004863,
+              -0.013389420774262903
+            ],
+            "clusters": 63,
+            "final_auc_95": [
+              0.49006140900746314,
+              0.6149303196418054
+            ],
+            "valid_replicates": 1000
+          }
+        },
+        "point": {
+          "auc_delta": 0.1437430411680971,
+          "brier_delta": -0.020365284947200052,
+          "final_auc": 0.5497301030259467,
+          "final_brier": 0.2488859926628557,
+          "initial_auc": 0.4059870618578496,
+          "initial_brier": 0.26925127761005574
+        }
+      },
+      "M5": {
+        "actual_switches": 277,
+        "certified_pairs": 531,
+        "intervals": {
+          "UTC_Monday_week": {
+            "auc_delta_95": [
+              0.05135977726576222,
+              0.1212621146808327
+            ],
+            "brier_delta_95": [
+              -0.021504051521229934,
+              -0.009336250945748917
+            ],
+            "clusters": 14,
+            "final_auc_95": [
+              0.49766716786839016,
+              0.5956363121349143
+            ],
+            "valid_replicates": 1000
+          },
+          "UTC_day": {
+            "auc_delta_95": [
+              0.03724678504806824,
+              0.13425721509424463
+            ],
+            "brier_delta_95": [
+              -0.021466920561715112,
+              -0.009272521800256731
+            ],
+            "clusters": 62,
+            "final_auc_95": [
+              0.49703441503562035,
+              0.5892699123552926
+            ],
+            "valid_replicates": 1000
+          }
+        },
+        "point": {
+          "auc_delta": 0.08407004178629296,
+          "brier_delta": -0.015172409450601554,
+          "final_auc": 0.5415730975866284,
+          "final_brier": 0.24926545561944013,
+          "initial_auc": 0.45750305580033546,
+          "initial_brier": 0.2644378650700417
+        }
+      }
+    }
+  },
+  "fold2_distinct_model_recipe": {
+    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_M5_DIRECTION_FIT_20261114_004/RECIPE.json",
+    "sha256": "aa144f7fed073e25c58bd9818dc4610394cd9449d6aaf27a8651e85dfa915eca",
+    "m5_direction_only": true,
+    "fit_rows": 47338,
+    "max_updates": 2959,
+    "interpretation": "Actual pre-existing Fold2 TA-only direction-only fit, not a new model run in this review."
+  }
 }
