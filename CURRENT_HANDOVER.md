@@ -481,6 +481,9 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   Fast senere M5-vendingslesning er nå definert på eksakte nabobarer:
   kjent forrige S-side som nåfasit, nåværende issue sin S-prognose for
   neste fem minutter, AUC/Brier og parvis dag-/ukekontroll uten terskelsøk.
+  Leseren gjenskapte et annet, allerede lagret Fold2-opptak med 531 kjente
+  M5-par og AUC 0,457503 → 0,541573; H4 hadde null gyldige nabopar.
+  Dette validerer leseren, ikke den nye modellens læring eller Edge.
   Se `docs/TA_INTEGRATED_FOLD2_FIT_PREPARATION_20261116.json`.
   Ingen trening eller senere resultat finnes; engangsgaten står stengt.
 

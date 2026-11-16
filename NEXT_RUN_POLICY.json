@@ -89031,7 +89031,7 @@
     "source_commit": "0d43f8c117a1e7695b06e9cac8ca10de840915c0",
     "preparation_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/TA_INTEGRATED_FOLD2_FIT_PREPARATION_20261116.json",
-      "sha256": "70b64caef8f329f0bb03aa8258de944b507f3c6e333abecb151fd4d36cce0b5a"
+      "sha256": "4f8dca8981733d35674d5eacb4861fdbb09333341a778135aa9a9e11c177da14"
     },
     "max_invocations": 1,
     "remaining_invocations": 0,

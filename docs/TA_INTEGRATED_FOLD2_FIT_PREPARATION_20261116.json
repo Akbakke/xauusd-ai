@@ -80,6 +80,23 @@
     },
     "secondary": "same prospective S method per available M15/H1/H4/D1 native-cadence pairs; report zero-support as unknown; F has its own pointwise direction score",
     "source_method": "docs/TA_NON_GC_NATIVE_TURN_TRACKING_REVIEW_20261116.json prospective method",
-    "selection": "no threshold search, month selection or refit on the fixed later development panel"
+    "selection": "no threshold search, month selection or refit on the fixed later development panel",
+    "source": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/score_market_state_ta_integrated_turn_v1.py",
+      "sha256": "2a8949d656a0ce7df60f38ed351b359075edde8d10fc41e05189b63c4ff1c4c2"
+    },
+    "read_only_replay": {
+      "source": "completed_distinct_Fold2_direction_only_INITIAL_and_FINAL_later_captures",
+      "known_M5_pairs": 531,
+      "actual_M5_switches": 277,
+      "initial_M5_auc": 0.4575030558003354,
+      "final_M5_auc": 0.5415730975866284,
+      "initial_M5_brier": 0.2644378650700417,
+      "final_M5_brier": 0.24926545561944013,
+      "H4_known_pairs": 0,
+      "optimizer_updates": 0,
+      "model_forwards": 0,
+      "interpretation": "method_replay_only_not_integrated_model_learning_or_economic_edge"
+    }
   }
 }
