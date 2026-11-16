@@ -356,13 +356,14 @@ Entry, TEST eller handel åpnes av denne presiseringen.
    ny modellkjøring. M5 er det etablerte beslutningspunktet; mål om de
    separate TF-prognosene faktisk tilfører M5 verdi før en kildeendring.
    Neste TA-recipe må eksplisitt velge egne S/F-sidehoder på alle fem TF,
-   med M5 som beslutningspunkt. Før en ny treningsplan: definer én separat,
-   kausal TRAIN-kontroll for om neste bekreftede strukturelle hendelse
-   tester eller avviser M5-topper/-bunner som allerede var kjent ved t.
-   Behold ingen treff, begge treff og kildegap som egne utfall/sensurering.
-   Dette erstatter ikke den dynamiske S-tilstanden eller F-nettomålet;
-   NATIVE_LEARNING.md tillater ikke å omdøpe førstetreff til S. Bruk
-   beholdte felt og data; ikke fyll bit5 med oppdiktet side. Ingen Full
+   med M5 som beslutningspunkt. En separat kildekandidat for neste
+   bekreftede M5-topp/bunn mot nivåer fryst ved beslutningen står i
+   docs/TA_M5_STRUCTURE_OUTCOME_CANDIDATE.md. Den binder nivåidentitet,
+   pivotens tre lukkede bekreftelsesbarer, nivåtreff/brudd/avvisning og
+   sensur ved gap/foldgrense, uten å omdøpe dette til S eller F. Den er
+   bare spesifisert, ikke implementert eller fysisk kvalifisert. Neste
+   nødvendige kontroll er TRAIN-dekning/modning og faktiske forløp før
+   eventuelt modellfit; ikke fyll bit5 med oppdiktet side. Ingen Full
    GC-kode, checkpointdiagnose eller ny full-GC-hypotese nå.
 3. En senere særskilt innrømmet, kort matchet kontroll må vise både M5-side
    mot fryst referanse og faktisk vendingsdiskriminering før mer trening.
