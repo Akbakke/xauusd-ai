@@ -196,8 +196,23 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   Dette finnes allerede som eksplisitt opt-in `dedicated_non_m5_side=True`
   sammen med M5-hodet; gammel checkpoint bruker fremdeles delt ikke-M5-hode.
   En matchet 256-stegs prøve med separate hoder ga blandede endringer og
-  ingen etablert M5-gevinst. Ingen ny modellkode, flaggpromotering eller fit
-  følger av designvedtaket alene.
+  ingen etablert M5-gevinst. Kildesporet viser hvorfor hodesplitt alene er
+  utilstrekkelig som arkitekturreparasjon: backbone lager fem 128D-vektorer
+  etter kryss-TF-attention, men vekter dem sammen og returnerer bare én
+  `entry_q_joint_hidden` på 128D. Både S- og F-dekoderen kopierer denne
+  samme vektoren til alle fem TF; først deretter legges TF-one-hot og
+  horisontfraksjon til. Det er ingen direkte TF-spesifikk vektor i dagens
+  retningshoder.
+  Det hashbundne, allerede konsumerte TRAIN-/LATER-opptaket har 4 096 rader
+  per panel. Blant M15/H1/H4/D1 utgjør rad×TF-samspill 0,7956/1,7264 %
+  av variasjonen i vektorene før pooling (TRAIN/LATER), men bare
+  0,0878/0,0795 % i S-sidelogittene og 0,0823/0,0718 % i F. Både før
+  og etter pooling dominerer felles radeffekt. Kilde:
+  market_state_ta_prepool_capture_20261113_001 i policy, kontrollert mot
+  RESULT-, TERMINAL- og opptakshasher uten ny forward. Dette lokaliserer
+  målt TF-kollaps, men beviser ikke at direkte TF-vektorer ville forbedre
+  M5: den konsumerte lineære før-pooling-kontrollen tapte fortsatt mot M5-
+  prior. Ingen ny modellkode, flaggpromotering eller fit følger her.
 
 - En lesende kontroll av tre allerede konsumerte TRAIN-kvitteringer avgrenser
   M5-målet uten ny kjøring. I fem kronologiske OOF-folder er aktivitet kjent
