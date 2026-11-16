@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_INTEGRATED_FOLD2_FIT_001_FAILED_CONSUMED_ZERO_UPDATES.
+TA_INTEGRATED_FOLD2_FIT_002_PREPARED_NOT_ADMITTED.
 Operatøren innrømmet eksakt plan-SHA
 `4016255217a3c87bdc84715b6e65707090fa09dcaa1e70a3a1b3455bdac84621`.
 Fysisk Windows boot-ID 656 og signerte 20G/512M/GPU-vakter besto.
@@ -495,6 +495,17 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   senere score. Terminal exit 1 og vaktlogg er bundet i
   `docs/TA_INTEGRATED_FOLD2_FIT_FAILED_REVIEW_20261116.json`.
   Ingen ny plan er innrømmet.
+- Den konkrete feilen er rettet med én boolsk etikettlinje og en fokusert
+  regresjonstest. En capped, lesende kontroll besto hele skårveien på
+  faktiske TRAIN-/senere B16-blokker med begge topp/bunn-klasser, samme
+  initialmodell og null optimizersteg. Ny plan002 har samme inputs,
+  modell, tap, rekkefølge, panel og grenser som konsumert plan001;
+  bare rettet kilde og ny engangsidentitet skiller. Plan-SHA er
+  `330e4cb1dd4c76980264b44a32f091e67c43142819514901f60068abed102783`.
+  Kilde-/input-preflight besto med null forwards/CLAIM, og runner avviser
+  eksplisitt plan001 med exit 75. Se
+  `docs/TA_INTEGRATED_FOLD2_FIT_002_PREPARATION_20261116.json`.
+  training_enabled=false; plan002 er ikke innrømmet.
 
 ## Ikke gjort / faktisk hindring
 
@@ -523,17 +534,16 @@ Entry, TEST eller handel åpnes av denne presiseringen.
 
 ## Neste steg
 
-1. Rett bare den observerte bool/float-feilen i `structure_readout`.
-   Test faktisk maskert topp/bunn-skår med både kjente og ukjente etiketter,
-   og behold alle gamle kvitteringer. Kildeendringen gjør plan001 ugyldig.
-2. Forbered en ny, eksakt kilde-/inputbundet engangsplan med samme
-   helhetlige S/F/struktur-læring og faste senere panel. Kjør lesende
-   preflight, kontroller fersk initialbaseline og be om egen adgang før
-   en ny stor kjøring. Ingen automatisk relansering eller enkeltregelrunde.
-3. Først etter faktisk fit: vurder alle fem TF, M5-vending, struktur og
-   kalibrering på samme faste utviklingsrader. Kostet Entry og uavhengig
-   forward-bekreftelse kreves senere for økonomisk Edge. Full GC, TEST,
-   ONLINE, broker og handel forblir lukket.
+1. Innhent egen eksakt operatøradgang til plan002. Først da kan
+   training_enabled åpnes for én ny stor kjøring. Ta fysisk Windows boot-ID
+   >656 etter innrømmelse, verifiser ren kilde og signerte vakter, og start
+   bare plan002. Plan001 er konsumert og kan aldri relanseres.
+2. Etter faktisk fit, vurder alle fem TF S/F, M5-vending, struktur og
+   kalibrering på de samme faste TRAIN-/senere utviklingsradene. Et grønt
+   skårprogram alene viser ikke læring eller generalisering.
+3. Bare hvis senere gevinst holder, bind kostet Entry og uavhengig
+   forward-bekreftelse før økonomisk Edge hevdes. Full GC, TEST, ONLINE,
+   broker og handel forblir lukket.
 
 Opprydding: historiske overleveringsavsnitt er fjernet her og bevart i Git.
 Ingen Python-fil er slettet; gjeldende referanse-, import-, test- og

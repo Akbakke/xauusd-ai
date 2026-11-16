@@ -1,0 +1,74 @@
+{
+  "schema_version": "gx1_ta_integrated_fold2_fit_successor_preparation_v1",
+  "decision": "SOURCE_AND_PHYSICAL_SCORE_READY_NEW_ONE_USE_EXECUTION_NOT_ADMITTED",
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_FIT_20261116_002/PLAN.json",
+    "sha256": "330e4cb1dd4c76980264b44a32f091e67c43142819514901f60068abed102783"
+  },
+  "source_commit": "1ea48c459ceda58dd60dde3ae08560018f9d7644",
+  "consumed_prior_plan": {
+    "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_FIT_20261116_001/PLAN.json",
+    "sha256": "4016255217a3c87bdc84715b6e65707090fa09dcaa1e70a3a1b3455bdac84621"
+  },
+  "prior_failure_review": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/TA_INTEGRATED_FOLD2_FIT_FAILED_REVIEW_20261116.json",
+    "sha256": "ee27d8f826d47b556bf96d5c3c90bac40d8e4f0a63915c024244a9effbfd4575"
+  },
+  "observed_defect": "structure_readout converted bool structure labels to float64 before bool-index AUC",
+  "minimal_fix": {
+    "source": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/run_market_state_ta_integrated_fold2_fit_v1.py",
+      "sha256": "b2d35798100f7fe6da356861b16ef390278ce8f88aa5c280e13a85f522cc0dc2"
+    },
+    "change": "preserve bool labels for AUC; no target, loss, model, optimizer, input or panel change"
+  },
+  "focused_control": {
+    "synthetic_tests_passed": 3,
+    "actual_fold2_train_and_later_B16_full_score": "PASS",
+    "actual_train_first_position": 16,
+    "actual_later_first_position": 16,
+    "structure_high_observed_each_panel": 16,
+    "structure_low_observed_later": 16,
+    "initial_model_state_unchanged": true,
+    "optimizer_updates": 0,
+    "consumed_plan001_runner_rejected_exit": 75,
+    "source_input_policy_preflight": "PASS_ZERO_MODEL_FORWARDS_NO_CLAIM"
+  },
+  "unchanged_from_plan001": [
+    "fit_and_later_input_refs",
+    "model_contract_sha256",
+    "objective_contract_sha256",
+    "view_sha256",
+    "seed",
+    "batch_size",
+    "fit_rows",
+    "batch_visits",
+    "evaluation_forwards",
+    "max_optimizer_updates",
+    "max_seconds",
+    "test_data_used"
+  ],
+  "proposed_one_use_bounds": {
+    "fit_rows": 47338,
+    "batch_visits": 2959,
+    "max_optimizer_updates": 2959,
+    "evaluation_forwards": 1024,
+    "model_forwards_max": 3983,
+    "max_script_seconds": 10500,
+    "outer_guard_seconds": 10800,
+    "memory": "20G",
+    "swap": "512M",
+    "gpu_limit_w": 300,
+    "actual_draw_stop_w": 310,
+    "core_temp_stop_c": 85
+  },
+  "limits": [
+    "The prior failed plan is consumed, and its user approval does not authorize this new plan.",
+    "Physical score control proves execution path, not learning or Edge.",
+    "A fresh physical boot after any exact new admission and all signed guards are still required.",
+    "Fixed Jan-Mar2025 development remains reused, not independent forward confirmation."
+  ],
+  "training_authorized": false,
+  "test_data_used": false,
+  "economic_edge_proven": false
+}
