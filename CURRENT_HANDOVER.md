@@ -389,8 +389,10 @@ Entry, TEST eller handel åpnes av denne presiseringen.
    forberedt i configs/research/TA_M5_STRUCTURE_PERSISTENCE_20261116_001.json:
    prior fra M5-issues mai–august hvis begge pivoter var bekreftet før
    01.09; evaluering september–desember. SMC 0→OPP, 3→NED,
-   1/2→BLANDET, 4→fryst prior; ingen modellfit. Planen er ikke kjørt,
-   og audit-gaten står false. Ikke fyll bit5 med oppdiktet side.
+   1/2→BLANDET, 4→fryst prior; ingen modellfit. Capped preflight og
+   syntetisk suksess-/feilvei besto. Den lille lesende planen er innrømmet
+   én gang under stående lokal autorisasjon; ingen CLAIM eller prislesing
+   ennå. Ikke fyll bit5 med oppdiktet side.
    Ingen Full
    GC-kode, checkpointdiagnose eller ny full-GC-hypotese nå.
 3. En senere særskilt innrømmet, kort matchet kontroll må vise både M5-side
