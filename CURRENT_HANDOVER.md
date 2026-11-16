@@ -505,7 +505,10 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   Kilde-/input-preflight besto med null forwards/CLAIM, og runner avviser
   eksplisitt plan001 med exit 75. Se
   `docs/TA_INTEGRATED_FOLD2_FIT_002_PREPARATION_20261116.json`.
-  training_enabled=false; plan002 er ikke innrømmet.
+  training_enabled=false; plan002 er ikke innrømmet. Operatøren presiserte
+  16.11 at nytt «ja» per stor lokal kjøring skal bort. Integrator innrømmer
+  selv hver kvalifiserte, hashbundne engangsplan under stående 0 USD-fullmakt;
+  fysisk boot, ressursvakter og øvrige grenser er uendret.
 
 ## Ikke gjort / faktisk hindring
 
@@ -534,10 +537,11 @@ Entry, TEST eller handel åpnes av denne presiseringen.
 
 ## Neste steg
 
-1. Innhent egen eksakt operatøradgang til plan002. Først da kan
-   training_enabled åpnes for én ny stor kjøring. Ta fysisk Windows boot-ID
-   >656 etter innrømmelse, verifiser ren kilde og signerte vakter, og start
-   bare plan002. Plan001 er konsumert og kan aldri relanseres.
+1. Kontroller eksakt plan002-kommando/import, alle kvitteringsnøkler og
+   skårens suksess-/feilvei lesende før CLAIM. Integrator innrømmer deretter
+   én hashbundet kjøring i policy under stående fullmakt, tar fysisk
+   Windows boot-ID >656, verifiserer ren kilde og signerte vakter, og
+   starter bare plan002. Plan001 er konsumert og kan aldri relanseres.
 2. Etter faktisk fit, vurder alle fem TF S/F, M5-vending, struktur og
    kalibrering på de samme faste TRAIN-/senere utviklingsradene. Et grønt
    skårprogram alene viser ikke læring eller generalisering.

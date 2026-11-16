@@ -20,8 +20,12 @@ Claude og Codex. En teknisk PASS er ikke bedre handelsbeslutninger eller profitt
 - Ikke relanser fullførte, claimede eller avbrutte engangsplaner.
   Små lokale, lesende CPU-kontroller (høyst audit 4G/512M/900s, uten betalte
   kall, modellfit, TEST, broker eller handel) kan innrømmes av integrator med
-  eksakt policybinding og ressursvakter. Spør operatøren før store kjøringer.
-  training_enabled=false stenger trening.
+  eksakt policybinding og ressursvakter. Brukerens stående autorisasjon for
+  det aktive ikke-GC M5/MTF-målet gjelder også store lokale 0 USD-kjøringer;
+  integrator innrømmer hver ny hashbundet engangsplan i NEXT_RUN_POLICY uten
+  nytt operatør-ja. training_enabled=false stenger fortsatt trening fram til
+  eksakt plan er kvalifisert og innrømmet. Full GC, TEST, broker, handel og
+  spending er utenfor denne autorisasjonen.
 - Én tung jobb innen CURRENT, alltid gjennom scripts/gx1_capped_run.sh og
   eksisterende maskinvarevakter. Separate prosjekter har separate prosjektlåser;
   dette svekker ingen kapasitets-, minne-, CPU-, effekt- eller temperaturgrense.

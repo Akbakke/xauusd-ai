@@ -93,13 +93,17 @@ uten gjentatte «fortsett». Gå videre mellom
 konkrete, allerede autoriserte lokale milepæler; avdekk og rett målte mangler,
 gjenbruk kvitteringer og klargjør én begrunnet kandidat om gangen. Ikke fyll
 ventetid med nye modellrunder eller gjentatte uendrede kontroller. Fullfør
-lokalt beslutningsgrunnlag før en nødvendig ny eksakt admisjon legges fram.
+lokalt beslutningsgrunnlag før integrator innrømmer en ny eksakt plan i policy.
 
 Senere operatørpresisering05.11.2026: «Ja, og ikke spør meg hver jævla gang.
 ALT som ikke koster penger/tokens/Api tokens gjør du uten å spørre».
 Lokalt GX1-arbeid til 0 USD uten betalte eksterne API-/modelltoken kan derfor
-fortsette uten nye operatørspørsmål. Hver ny kjøring skal fortsatt ha egen
-nøyaktig policyadmisjon, kilde-/ressursbinding og nødvendige maskinvarevakter;
+fortsette uten nye operatørspørsmål. Operatøren presiserte 16.11.2026 at
+kravet om nytt «ja» for hver stor lokal ikke-GC M5/MTF-kjøring skal slettes.
+Integratoren kan selv innrømme teknisk kvalifiserte engangsplaner innen det
+aktive målet; dette gjelder også en ny plan etter en konkret teknisk feil.
+Hver ny kjøring skal fortsatt ha egen nøyaktig policyadmisjon, kilde-/
+ressursbinding og nødvendige maskinvarevakter;
 brukte engangsplaner relanseres aldri. Før policy-claim av ny engangsplan må
 oppstart/import fra den eksakte planlagte kommandoen, arbeidskatalogen og
 miljøet røykprøves lesende uten å lage CLAIM/OUTPUT. En lett preflight må
@@ -110,12 +114,14 @@ små syntetiske verdier.
 Før ny native fit skal den faktiske bundne feature-/normaliseringsidentiteten
 valideres lesende mot checkpointkontrakten; syntetisk form alene er ikke nok.
 Ingen full data-/modelljobb gjentas for denne kontrollen.
-Denne presiseringen åpner ingen TEST,
+Denne presiseringen åpner ingen Full GC, TEST,
 broker, ordre, handel, spending eller Exit. Modellporten `training_enabled=false`
 endres først etter en egen kvalifisert, eksakt modelladmisjon og trygg omstart
-når ruten krever det.
-Arbeidsbestillingen åpner ikke trening, konsumerte planer, desembergjenbruk,
-TEST, broker, handel, spending eller Exit. Uavklart fysisk UTC stenger
+når ruten krever det. Den tidligere arbeidsbestillingen alene ga ikke
+treningsadgang; presiseringen 16.11 gir integrator adgang til å innrømme nye
+kvalifiserte, lokale ikke-GC-engangsplaner uten gjentatt operatørspørsmål.
+Konsumerte planer, desembergjenbruk, TEST, broker, handel, spending og Exit
+åpnes ikke. Uavklart fysisk UTC stenger
 påstander om ONLINE-punktlighet, ikke kilde-/syntetisk forberedelse av
 historisk TRAIN-OOF. Status og neste milepæl eies fortsatt av NEXT_RUN_POLICY;
 teknisk kvalifikasjon, TRAIN-læring, uavhengig retningsverdi og økonomi er

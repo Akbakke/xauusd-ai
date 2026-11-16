@@ -63,12 +63,13 @@
     "core_temp_stop_c": 85
   },
   "limits": [
-    "The prior failed plan is consumed, and its user approval does not authorize this new plan.",
+    "The prior failed plan is consumed and never relaunches. Standing user authorization lets the integrator admit a new exact local 0 USD plan after all preclaim and hardware gates without another user answer.",
     "Physical score control proves execution path, not learning or Edge.",
     "A fresh physical boot after any exact new admission and all signed guards are still required.",
     "Fixed Jan-Mar2025 development remains reused, not independent forward confirmation."
   ],
   "training_authorized": false,
   "test_data_used": false,
-  "economic_edge_proven": false
+  "economic_edge_proven": false,
+  "operator_authorization": "Standing local 0 USD non-GC M5/MTF goal authorization, reaffirmed 2026-11-16; integrator must still bind exact one-use policy admission before fit."
 }
