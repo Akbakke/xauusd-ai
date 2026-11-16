@@ -1,0 +1,107 @@
+{
+  "schema_version": "gx1_ta_m5_structure_persistence_review_v1",
+  "decision": "COMPLETE_FIXED_PERSISTENCE_NO_ESTABLISHED_GAIN_TARGET_EDGE_UNQUALIFIED",
+  "plan": {
+    "path": "configs/research/TA_M5_STRUCTURE_PERSISTENCE_20261116_001.json",
+    "sha256": "907ff7ce4fe6a9449f71501b9f4913f1637e2e6b747ce98670fd206a92f21d4a"
+  },
+  "parent_result_sha256": "e6be73a2e5e04a9e0abf91e3b0b3775e93f0d75b6064ff8c842c123b1f842450",
+  "source_commit_at_claim": "91704fb010232909e51ffaa007e2d80e4a267440",
+  "private_receipts": {
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_PERSISTENCE_20261116_001/CLAIM.json",
+      "sha256": "a731f909e8cce5ef949679d65b882ed06520ee19ff53c264a2a0e86fdd1994ed"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_PERSISTENCE_20261116_001/RESULT.json",
+      "sha256": "ea10505d4fa8490880d14a126973a8a4fd0f2f4b59ca7e4c08c67b1f05085c86"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_PERSISTENCE_20261116_001/TERMINAL.json",
+      "sha256": "7290d4bae30cb4c4d212af311f714b80e27263605c49641e9874512eb14c7e3f"
+    }
+  },
+  "metrics": {
+    "prior_issues_mature_before_split": 23886,
+    "prior_class_counts": {
+      "1": 9100,
+      "2": 7280,
+      "0": 7470,
+      "3": 36
+    },
+    "frozen_prior_class": 1,
+    "evaluation_issues": 23610,
+    "evaluation_known_classes": 23302,
+    "evaluation_class_counts": {
+      "1": 8936,
+      "2": 7234,
+      "0": 7111,
+      "3": 21
+    },
+    "fixed_rule": {
+      "0": 1,
+      "1": 0,
+      "2": 0,
+      "3": 2,
+      "4": 1
+    },
+    "frozen_prior_accuracy": 0.3834863960175092,
+    "persistence_accuracy": 0.35417560724401337,
+    "persistence_minus_prior_accuracy": -0.029310788773495838,
+    "paired_utc_week_block_bootstrap_95pct": [
+      -0.06198948689469298,
+      0.008894672303075278
+    ],
+    "utc_week_blocks": 18,
+    "current_smc_state_by_future_class": {
+      "0": {
+        "1": 3219,
+        "2": 2191,
+        "0": 2196,
+        "3": 14
+      },
+      "1": {
+        "1": 1351,
+        "2": 1243,
+        "0": 1407,
+        "3": 1
+      },
+      "2": {
+        "1": 1962,
+        "2": 1563,
+        "0": 1301,
+        "3": 2
+      },
+      "3": {
+        "1": 2174,
+        "2": 2096,
+        "0": 2067,
+        "3": 4
+      },
+      "4": {
+        "1": 230,
+        "2": 141,
+        "0": 140,
+        "3": 0
+      }
+    }
+  },
+  "accounting": {
+    "frozen_prior_correct": 8936,
+    "fixed_persistence_correct": 8253,
+    "correct_difference": -683,
+    "evaluation_known_classes": 23302
+  },
+  "interpretation": [
+    "On later chronological Fold2, the fixed causal SMC swing-state persistence rule is 2.9311 percentage points below frozen earlier TRAIN majority-class accuracy. The paired UTC-week block bootstrap interval includes zero; no qualified improvement.",
+    "SMC state 0 has 42.24% future UP versus 34.28% for state 3 in this later panel; this descriptive conditional shift is not a selected profitable rule.",
+    "This controls one frozen SMC rule only. It does not test nonlinear interaction among all genuine indicators, independent MTF heads, model learning, ONLINE parity, Entry or economic Edge.",
+    "The high structural label coverage does not make existing M1-path-dependent S labels known; structural pair outcome remains a separate unlocked target.",
+    "The one-use plan is consumed and must not be relaunched."
+  ],
+  "model_forwards": 0,
+  "optimizer_steps": 0,
+  "test_data_used": false,
+  "target_locked": false,
+  "economic_edge_proven": false
+}

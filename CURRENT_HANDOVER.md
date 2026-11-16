@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_M5_STRUCTURE_FOLD2_AUDIT_COMPLETE_TARGET_EDGE_UNQUALIFIED.
+TA_M5_STRUCTURE_PERSISTENCE_NO_ESTABLISHED_GAIN_EDGE_UNQUALIFIED.
 Den tidligere ikke-GC S-lesningen er fullført og M5-Edge fortsatt ubevist.
 Fold2 S-only full-GC 25-cellers engangsplan er fullført og konsumert.
 training_enabled=false, native_training_enabled=false og
@@ -383,16 +383,20 @@ Entry, TEST eller handel åpnes av denne presiseringen.
    ONLINE-paritet eller Edge; strukturklassen erstatter ikke S/F.
    Planen relanseres ikke. Per-plan spørregel for små lesende CPU-auditer
    er fjernet fra AGENTS.md; store kjøringer krever fortsatt spørsmål.
-   Neste nødvendige kontroll er om framtidig struktur faktisk kan
-   predikeres bedre enn fryst TRAIN-prior og kausal persistens før
-   eventuelt targetvalg eller modellfit. En fast lesende sammenligning er
-   forberedt i configs/research/TA_M5_STRUCTURE_PERSISTENCE_20261116_001.json:
-   prior fra M5-issues mai–august hvis begge pivoter var bekreftet før
-   01.09; evaluering september–desember. SMC 0→OPP, 3→NED,
-   1/2→BLANDET, 4→fryst prior; ingen modellfit. Capped preflight og
-   syntetisk suksess-/feilvei besto. Den lille lesende planen er innrømmet
-   én gang under stående lokal autorisasjon; ingen CLAIM eller prislesing
-   ennå. Ikke fyll bit5 med oppdiktet side.
+   En på forhånd låst kausal SMC-persistensregel er målt én gang mot
+   fryst mai–august-TRAIN-prior på senere september–desember Fold2.
+   23 886 tidligere issues hadde modnet før skillepunktet; 23 302 senere
+   utfall hadde entydig klasse. Regelen traff 8 253/23 302 (35,42 %),
+   fryst prior 8 936/23 302 (38,35 %): −2,93 prosentpoeng, paret
+   ukeblokk-95 % [−6,20,+0,89] prosentpoeng. Ingen kvalifisert gevinst.
+   Originale CLAIM/RESULT/TERMINAL ligger privat i
+   GX1_RUNS/TA_M5_STRUCTURE_PERSISTENCE_20261116_001; aggregerte tall og
+   grenser står i docs/TA_M5_STRUCTURE_PERSISTENCE_RESULT_REVIEW_20261116.json.
+   Denne planen er konsumert. Ett SMC-felt og en fast regel tester ikke
+   samspill mellom alle indikatorene; ingen modellfit eller Edge følger.
+   Ikke lag flere enkeltregelrunder. Neste meningsfulle beslutning er en
+   kausalt låst M5-vendefasit og egne fem-TF-retninger før én forhåndsbundet
+   multi-feature-kontroll. Ikke fyll bit5 med oppdiktet side.
    Ingen Full
    GC-kode, checkpointdiagnose eller ny full-GC-hypotese nå.
 3. En senere særskilt innrømmet, kort matchet kontroll må vise både M5-side
