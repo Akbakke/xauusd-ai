@@ -217,6 +217,14 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   gråsone mellom 0,5 ATR for aktivitet og 1,0 ATR for lokal side. Bare fire
   av 198 069 kandidater med sertifisert side ble ukjente i lokal replay.
   Gråsonetallet gjelder hele M1-båndet, ikke eksakt OOF-M5-fordeling.
+  Den allerede fullførte fysiske M5-kontrollen måler derimot 62 687 av
+  118 192 komplette TRAIN-femminuttersutfall (53,04 %) i den samme
+  0,5–1,0-ATR-gråsonen. Andelen er 50,43–55,50 % i hver av de 20
+  TRAIN-månedene; grå M5-celler har median absolutt netto 0,296 ATR og
+  1,179 noterte spreads. Dette er observert prisbevegelse,
+  ikke automatisk bevist side eller økonomisk verdi. Den hashkontrollerte
+  kvitteringen er market_state_gray_physical_20261107_001 i policy;
+  ingen ny telling eller modellfit ble gjort her.
   Den faktiske tapskontrakten gir bit5 aktivitetsgradient, men eksakt null
   direkte side-logittgradient. M5-side har allerede en kvalifisert variant
   som normaliserer de kjente sidene; svak M5-score kan derfor ikke forklares
@@ -304,9 +312,12 @@ Entry, TEST eller handel åpnes av denne presiseringen.
    ny modellkjøring. M5 er det etablerte beslutningspunktet; mål om de
    separate TF-prognosene faktisk tilfører M5 verdi før en kildeendring.
    Neste TA-recipe må eksplisitt velge egne S/F-sidehoder på alle fem TF,
-   med M5 som beslutningspunkt. Før en ny treningsplan: definer én kausal
-   TRAIN-fasit for nivåtreff/vending mot allerede bekreftede M5-topper og
-   -bunner, med resultat for ingen treff, begge treff og kildegap. Bruk
+   med M5 som beslutningspunkt. Før en ny treningsplan: definer én separat,
+   kausal TRAIN-kontroll for om neste bekreftede strukturelle hendelse
+   tester eller avviser M5-topper/-bunner som allerede var kjent ved t.
+   Behold ingen treff, begge treff og kildegap som egne utfall/sensurering.
+   Dette erstatter ikke den dynamiske S-tilstanden eller F-nettomålet;
+   NATIVE_LEARNING.md tillater ikke å omdøpe førstetreff til S. Bruk
    beholdte felt og data; ikke fyll bit5 med oppdiktet side. Ingen Full
    GC-kode, checkpointdiagnose eller ny full-GC-hypotese nå.
 3. En senere særskilt innrømmet, kort matchet kontroll må vise både M5-side
