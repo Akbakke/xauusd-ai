@@ -17,8 +17,11 @@ Claude og Codex. En teknisk PASS er ikke bedre handelsbeslutninger eller profitt
   Les øvrige metode-/designdokumenter bare når den aktuelle oppgaven trenger dem.
   Ingen daglige historikkvedlegg eller gjentatt gjennomgang av uendrede steg.
   Prosessobservasjon og eksakte terminalkvitteringer overstyrer prosa.
-- Ikke relanser fullførte, claimede eller avbrutte engangsplaner. En ny plan er
-  ikke autorisert av en gammel godkjenning. training_enabled=false stenger trening.
+- Ikke relanser fullførte, claimede eller avbrutte engangsplaner.
+  Små lokale, lesende CPU-kontroller (høyst audit 4G/512M/900s, uten betalte
+  kall, modellfit, TEST, broker eller handel) kan innrømmes av integrator med
+  eksakt policybinding og ressursvakter. Spør operatøren før store kjøringer.
+  training_enabled=false stenger trening.
 - Én tung jobb innen CURRENT, alltid gjennom scripts/gx1_capped_run.sh og
   eksisterende maskinvarevakter. Separate prosjekter har separate prosjektlåser;
   dette svekker ingen kapasitets-, minne-, CPU-, effekt- eller temperaturgrense.

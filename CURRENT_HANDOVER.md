@@ -377,8 +377,11 @@ Entry, TEST eller handel åpnes av denne presiseringen.
    lesende aggregater og høyst åtte private eksempler. Låst leserute
    gx1/audit/run_ta_m5_structure_fold2_readonly_v1.py kan bare preflighte
    uten innrømmelse; ingen prislesing før særskilt policygate og kapsling.
-   Planen er ikke innrømmet;
-   execution_authorized=false, ingen prisrader er lest i denne bølgen.
+   Operatøren innrømmet denne eksakte planen én gang; status
+   ADMITTED_ONE_USE, execution_authorized=true og claimed_invocations=0.
+   Den capped preflighten besto uten CLAIM/prislesing. Kjøringen er ennå
+   ikke startet. Per-plan spørregel for små lesende CPU-auditer er fjernet
+   fra AGENTS.md; store kjøringer krever fortsatt spørsmål.
    Ikke fyll bit5 med oppdiktet side. Ingen Full
    GC-kode, checkpointdiagnose eller ny full-GC-hypotese nå.
 3. En senere særskilt innrømmet, kort matchet kontroll må vise både M5-side
