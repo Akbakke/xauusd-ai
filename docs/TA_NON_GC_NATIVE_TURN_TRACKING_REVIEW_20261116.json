@@ -322,7 +322,7 @@
     "On the same 710 certified M5 future clock pairs, actual side switches number 363. PASS2 predicts 69 and matches 31; imported INITIAL predicts 105 and matches 58.",
     "H4 has no issue pairs exactly 240 minutes apart in the fixed panel. Its native-cadence turn tracking is UNKNOWN here, not zero skill.",
     "Prior independent timeframe side heads and fixed prepool linear readouts did not establish later M5 ranking improvement. A head or pooling edit alone is not a qualified repair.",
-    "The existing TA loss scores pointwise states, not prospective changes. This is a measured objective/evaluation alignment gap, not proof that adding a transition term will produce Edge.",
+    "The existing TA loss has no explicit transition output, but adding a turn BCE to the same future-side logit is algebraically identical to the existing future-side BCE whenever the current and future sides are known; it only reweights that subset. The unresolved question is whether an explicit causal current-state input, independent output, or different representation adds predictive information.",
     "The prior non-GC source/data chain found no disconnected genuine TA field or missing timeframe. Individual indicator utility remains unproved; the current evidence cannot attribute turn-tracking failure to a specific indicator.",
     "Retained recipe and view verify dedicated M5 side decoding and equal-observation M5 side normalization. Thus this TA M5 failure is not explained by the absence of those two mechanisms, although it does not identify a unique optimization, target or market cause.",
     "A prior TA period-transfer review reported full three-class M5 argmax FLAT for all 4096 reused rows, matching the always-FLAT reference. It is a distinct model state from this PASS2 capture, but shows why conditional-side component tests cannot be equated with selective Entry behavior.",
@@ -1675,6 +1675,24 @@
       "A conditional side threshold diagnostic is not the three-class state decision or an Entry/trade rule.",
       "Certified side masks use realized outcomes and do not define online selection.",
       "Both panels were reused for development; no independent generalization or economic claim."
+    ]
+  },
+  "prospective_transition_loss_identity": {
+    "schema_version": "gx1_ta_same_logit_transition_bce_identity_v1",
+    "source_loss": "gx1/contracts/market_state_time_query_loss_v2.py",
+    "source_loss_sha256": "d098429d34af9321c558e1e51e534b0305d91eb4f16c0d0a7950aaad8f84ce13",
+    "source_side_loss": "binary_cross_entropy_with_logits(raw_logits[...,1], allowed==4) on certified side_known rows",
+    "definition": "For current_UP C in {0,1}, future_UP Y in {0,1}, and future-side logit z: turn_label T=C XOR Y; turn_logit= z if C=0 else -z. BCEWithLogits(turn_logit,T)=BCEWithLogits(z,Y) exactly.",
+    "numeric_check": {
+      "capture": "fold2_distinct_TA_direction_only_prospective.capture_refs.FINAL",
+      "certified_native_M5_pairs": 531,
+      "max_absolute_float64_BCE_difference": 0.0,
+      "sum_absolute_float64_BCE_difference": 0.0
+    },
+    "consequence": "A prospective transition BCE on the unchanged side logit supplies no new supervision on paired known states; an added term changes only relative sample weighting. It is not a justified standalone repair for turn prediction or TF separation. A separate current-state-conditioned model/output is a different untested design and requires causal availability and a fresh admission.",
+    "limits": [
+      "Identity applies only where current and future sides are certified and the same logit is used; it does not assert that current-state input or a separate transition head would be redundant.",
+      "This algebra does not establish predictive skill, generalization, Edge or a preferred loss weight."
     ]
   }
 }

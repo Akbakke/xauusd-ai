@@ -85,7 +85,11 @@ TEST, Entry/Exit, broker eller handel er innrømmet.
   ingen frakoblet genuine TA-feature eller manglende TF, men individuell
   indikatornytte er ubevist. Den målte TA-kjøringen hadde allerede eget
   M5-sidehode og lik-observasjonsnormalisering for M5-side. Nåværende
-  TA-tap lærer punktvis aktivitet/side, uten egen framoverskuende skifteterm.
+  TA-tap lærer punktvis aktivitet/side og har ikke et eget skifteoutput.
+  En skifte-BCE på samme framtidige sidelogit er imidlertid algebraisk
+  identisk med eksisterende side-BCE når nå- og framtidsside er kjent; på
+  531 beholdte M5-par er differansen eksakt null. En ekstra slik term ville
+  bare vekte parene mer, ikke tilføre ny supervisjon.
   TA native har bare M5-k=1 (fem minutter) per issue; ingen trenet/
   bevart M5-minuttbane eller direkte skiftsannsynlighet fra samme issue.
   En lesende, framoverskuende kontroll på 556 kjente M5-par sammenligner
@@ -97,7 +101,7 @@ TEST, Entry/Exit, broker eller handel er innrømmet.
   H4 mangler native par i dette utvalget. ONLINE-paritet for nåtilstanden
   er ikke vist. En tidligere, annen TA-modell ga FLAT som treklasse-argmax
   på alle 4 096 utviklingsrader.
-  Dette avgrenser mål-/evalueringsgapet, men isolerer ikke én rotårsak
+  Dette avgrenser utgangs-/representasjonsgapet, men isolerer ikke én rotårsak
   eller rettferdiggjør ny modellrunde.
 - På et separat, allerede fullført ikke-GC Fold2 TA-retningsløp
   (47 338 TRAIN-rader, M5 direction-only) økte framoverskuende M5-skifte-AUC
