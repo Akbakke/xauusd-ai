@@ -8,7 +8,7 @@ from pathlib import Path
 import subprocess
 
 REPO = Path('/home/andre2/src/GX1_CURRENT')
-ROOT = Path('/home/andre2/GX1_RUNS/TA_INTEGRATED_PREFLIGHT_20261116_003')
+ROOT = Path('/home/andre2/GX1_RUNS/TA_INTEGRATED_PREFLIGHT_20261116_004')
 TRAIN = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001')
 LATER = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_LATER_INPUTS_20261113_002')
 TF = ('M5', 'M15', 'H1', 'H4', 'D1')
@@ -45,25 +45,21 @@ def head_and_clean():
 
 def main():
     import numpy as np
-    import pandas as pd
-    import pyarrow.parquet as pq
     import torch
     from gx1.audit import qualify_market_state_mature_prefix_normalization_v1 as mature
-    from gx1.audit.measure_ta_m5_structure_candidate_v1 import measure_candidate
     from gx1.contracts import entry_anchor_span_feature_view_v1 as span
     from gx1.contracts import entry_native_direction_feature_view_v1 as views
     from gx1.contracts.entry_anchor_span_feature_inputs_v1 import build_anchor_span_inputs
     from gx1.contracts.entry_exit_feature_surface_v1 import load_m1_feature_surface_times
     from gx1.contracts.gx1_capped_execution_v1 import (require_capped_cpu_audit_execution,
                                                          require_capped_lock_ancestry)
-    from gx1.contracts.market_state_five_endpoint_target_binding_v1 import load_bound_five_endpoint_targets
     from gx1.contracts.market_state_future_displacement_candidate_v1 import load_bound_future_displacement
-    from gx1.contracts.market_state_ta_integrated_model_v1 import (IntegratedTAMarketStateModel,
-                                                                     masked_structure_hit_sums)
-    from gx1.contracts.market_state_ta_m1_issue_path_v1 import M1IssuePathTape
+    from gx1.contracts.market_state_ta_integrated_model_v1 import IntegratedTAMarketStateModel
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import integrated_loss
+    from gx1.contracts.market_state_time_query_binding_v1 import (load_bound_time_query_targets,
+                                                                  sampled_query_k)
+    from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
     from gx1.contracts.market_state_time_query_native_F_model_v1 import NativeFutureDualModel
-    from gx1.contracts.market_state_time_query_native_F_objective_v1 import combined_loss
-    from gx1.contracts.market_state_time_query_target_v1 import NATIVE_K
 
     cap = require_capped_cpu_audit_execution()
     require_capped_lock_ancestry()
@@ -75,7 +71,7 @@ def main():
     need(not ROOT.exists(), 'ONE_USE')
     ROOT.mkdir()
     claim = {'source_commit': head, 'source_sha256': sha(__file__), 'cap': cap,
-             'scope': 'one_read_only_fold2_train_batch_36000_36015',
+             'scope': 'one_read_only_fold2_train_objective_batch_36000_36015',
              'claimed_utc': datetime.now(timezone.utc).isoformat()}
     (ROOT / 'CLAIM.json').write_text(json.dumps(claim, indent=2) + '\n')
     try:
@@ -147,113 +143,76 @@ def main():
              and gathered['witness']['decision_ns'] == issues.tolist(), 'GATHER_CLOCK')
         features = {key: torch.from_numpy(value) for key, value in gathered['features'].items()}
 
-        parity = json.loads((REPO / 'docs/TA_M1_PATH_ARCHIVE_PARITY_REVIEW_20261116.json').read_text())
-        m1_ref = parity['source_refs']['S_train_m1_quotes_parquet']
-        need(sha(m1_ref['path']) == m1_ref['sha256'], 'M1_SOURCE_SHA')
-        m1_parquet = pq.ParquetFile(m1_ref['path'])
-        wanted_start, wanted_end = int(issues[0] - 300_000_000_000), int(issues[-1] - 60_000_000_000)
-        groups = []
-        for index in range(m1_parquet.metadata.num_row_groups):
-            stats = m1_parquet.metadata.row_group(index).column(0).statistics
-            if pd.Timestamp(stats.max).value >= wanted_start and pd.Timestamp(stats.min).value <= wanted_end:
-                groups.append(index)
-        need(0 < len(groups) <= 2, 'M1_ROW_GROUP_SCOPE')
-        raw = m1_parquet.read_row_groups(groups, columns=['time', 'open', 'high', 'low', 'close'])
-        m1_time = raw['time'].to_numpy(zero_copy_only=False).astype('datetime64[ns]').astype(np.int64)
-        m1_ohlc = np.stack([raw[key].to_numpy(zero_copy_only=False)
-                            for key in ('open', 'high', 'low', 'close')], axis=1)
-        path = M1IssuePathTape(m1_time, m1_ohlc).gather(issues)
-        need(path['observed'].shape == (16, 5), 'M1_PATH')
-
-        structure_plan = json.loads((REPO / 'configs/research/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001.json').read_text())
-        m5_ref = structure_plan['input']
-        need(sha(m5_ref['path']) == m5_ref['sha256_expected_from_manifest'], 'M5_SOURCE_SHA')
-        parquet = pq.ParquetFile(m5_ref['path'])
-        pieces = {key: [] for key in ('time', 'high', 'low', 'close', 'atr')}
-        for group in range(241, 253):
-            table = parquet.read_row_group(group, columns=list(pieces))
-            for key in pieces:
-                column = table[key].to_numpy(zero_copy_only=False)
-                pieces[key].append(column.astype('datetime64[ns]').astype(np.int64)
-                                   if key == 'time' else column)
-        bars = {key: np.concatenate(chunks) for key, chunks in pieces.items()}
-        cutoff = int(np.searchsorted(bars['time'], END))
-        bars = {key: value[:cutoff] for key, value in bars.items()}
-        close_authority = read(structure_plan['closure_authority'])
-        closure = np.array([[pd.Timestamp(item['closure_start_utc']).value,
-                             pd.Timestamp(item['closure_end_utc_exclusive']).value]
-                            for item in close_authority['intervals']
-                            if item['successor_across_gap_allowed'] is True],
-                           dtype=np.int64).reshape(-1, 2)
-        issue_rows = np.flatnonzero(bars['time'] >= int(np.datetime64('2024-05-01', 'ns').astype(np.int64))).astype(np.int64)
-        measured = measure_candidate(bars['time'], bars['high'], bars['low'],
-            bars['close'], bars['atr'], issue_rows,
-            fold_target_end_ns=END, known_closure_ns=closure)
-        actual = np.searchsorted(bars['time'][issue_rows], issues - 300_000_000_000)
-        need(np.array_equal(bars['time'][issue_rows[actual]], issues - 300_000_000_000),
-             'STRUCTURE_ISSUE_CLOCK')
-        hits = np.stack((measured['high_hit'][actual], measured['low_hit'][actual]), axis=1)
-        observed = np.stack((measured['high_observed'][actual], measured['low_observed'][actual]), axis=1)
+        tape_review = json.loads((REPO / 'docs/TA_INTEGRATED_FOLD2_FIT_INPUTS_REVIEW_20261116.json').read_text())
+        tape_ref = tape_review['input_archive']
+        need(sha(tape_ref['path']) == tape_ref['sha256'], 'FIT_TAPE_SHA')
+        with np.load(tape_ref['path'], allow_pickle=False) as tape:
+            need(np.array_equal(tape['parent_rows'][LEFT:RIGHT], rows)
+                 and np.array_equal(tape['issue_ns'][LEFT:RIGHT], issues),
+                 'FIT_TAPE_AXIS')
+            m1_bps = tape['m1_mid_ohlc_bps'][LEFT:RIGHT].copy()
+            m1_observed = tape['m1_observed'][LEFT:RIGHT].copy()
+            hits = tape['structure_hit'][LEFT:RIGHT].copy()
+            observed = tape['structure_observed'][LEFT:RIGHT].copy()
+        need(m1_bps.shape == (16, 5, 4) and m1_observed.shape == (16, 5)
+             and hits.shape == observed.shape == (16, 2), 'TAPE_SHAPES')
 
         torch.manual_seed(20260911)
         state = views.build_native_direction_research_model(view,
             prefix_normalization=packet, constructor_metadata=constructor,
             device=torch.device('cpu'), unobserved_units_profile=None)
         model = IntegratedTAMarketStateModel(NativeFutureDualModel(state)).eval()
-        query = torch.tensor([NATIVE_K] * 16, dtype=torch.int64)
+        initial_model_sha = canonical_model_state_sha256(model.state_dict())
+        query = torch.from_numpy(sampled_query_k(issues, pass_index=0, seed=20260911))
         output = model(features, query_k=query,
-            m1_path_bps=torch.from_numpy(path['mid_ohlc_bps']),
-            m1_observed=torch.from_numpy(path['observed']))
+            m1_path_bps=torch.from_numpy(m1_bps),
+            m1_observed=torch.from_numpy(m1_observed))
         baseline = model.dual(**features, query_k=query)
         need(all(torch.equal(output[key], value) for key, value in baseline.items()),
              'ZERO_GATE_BASELINE_PARITY')
-        state_truth = load_bound_five_endpoint_targets().gather(rows, issues, fold_id=2, partition='fit')
-        future_truth = load_bound_future_displacement().gather(rows, issues, fold_id=2, partition='fit')
-        sf = combined_loss(state_raw=output['state_activity_side_logits'],
-            future_raw=output['future_activity_side_logits'],
+        state_truth = load_bound_time_query_targets().gather_fit_sampled(
+            rows, issues, fold_id=2, pass_index=0, seed=20260911)
+        future_truth = load_bound_future_displacement().gather(
+            rows, issues, fold_id=2, partition='fit')
+        report = integrated_loss(model_output=output,
             state_truth=state_truth, future_truth=future_truth,
-            state_query_k=query, future_weight=1.0, ta_only=True,
-            dedicated_m5_side=True, dedicated_non_m5_side=True,
-            dedicated_tf_activity=True, direct_tf_hidden=True, fold_id=2)
-        structure = masked_structure_hit_sums(output['m5_structure_hit_logits'],
-            torch.from_numpy(hits), torch.from_numpy(observed))
-        need(bool(torch.isfinite(sf['loss'])) and bool(torch.isfinite(structure['loss_sums']).all()),
-             'LOSS_FINITE')
-        sf['loss'].backward(retain_graph=True)
-        sf_gate_grad = int(torch.count_nonzero(model.m1_tf_gate.weight.grad).item())
+            state_query_k=query, structure_hit=hits,
+            structure_observed=observed)
+        need(not report['skip_update'] and bool(torch.isfinite(report['loss'])),
+             'INTEGRATED_LOSS')
+        report['loss'].backward()
+        gate_grad = int(torch.count_nonzero(model.m1_tf_gate.weight.grad).item())
         state_heads = (model.dual.state_model.m5_side_head,
                        *(model.dual.state_model.non_m5_side_heads[tf] for tf in TF[1:]))
         future_heads = (model.dual.future_m5_side_head,
                         *(model.dual.future_non_m5_side_heads[tf] for tf in TF[1:]))
         state_side_grads = [int(torch.count_nonzero(head.weight.grad).item()) for head in state_heads]
         future_side_grads = [int(torch.count_nonzero(head.weight.grad).item()) for head in future_heads]
-        need(sf_gate_grad > 0 and all(state_side_grads) and all(future_side_grads),
-             'ALL_TF_SF_SIDE_GRADIENTS')
-        model.zero_grad(set_to_none=True)
-        structure['loss_sums'].sum().backward()
-        structure_gate_grad = int(torch.count_nonzero(model.m1_tf_gate.weight.grad).item())
         structure_head_grad = int(torch.count_nonzero(model.m5_structure_head.weight.grad).item())
-        need(structure_gate_grad > 0 and structure_head_grad > 0, 'STRUCTURE_GRADIENT')
-        result = {'status': 'PASS_ONE_ACTUAL_TRAIN_BATCH_FORWARD_AND_GRADIENT_NO_FIT',
+        need(gate_grad > 0 and all(state_side_grads) and all(future_side_grads)
+             and structure_head_grad > 0, 'INTEGRATED_GRADIENTS')
+        known = lambda truth: [int((truth['eligible'][:, j] & truth['mature'][:, j]
+                                  & np.isin(truth['allowed'][:, j], (1, 4))).sum())
+                               for j in range(5)]
+        result = {'status': 'PASS_ACTUAL_FOLD2_TRAIN_INTEGRATED_OBJECTIVE_NO_FIT',
                   'source_commit': head, 'view_sha256': view['contract_sha256'],
                   'model_contract_sha256': model.research_objective['contract_sha256'],
+                  'objective_contract_sha256': report['contract_sha256'],
+                  'initial_model_state_sha256_CPU': initial_model_sha,
                   'batch_positions': [LEFT, RIGHT], 'rows': 16, 'model_forwards': 2,
                   'optimizer_constructions': 0, 'optimizer_steps': 0, 'checkpoint_reads': 0,
-                  'M1_full_paths': int(path['full_path'].sum()),
-                  'M1_observed_slots': int(path['observed'].sum()),
-                  'S_known_sides_by_tf': [int(np.isin(state_truth['allowed'][:, j], (1, 4)).sum()) for j in range(5)],
-                  'F_known_sides_by_tf': [int(np.isin(future_truth['allowed'][:, j], (1, 4)).sum()) for j in range(5)],
+                  'M1_full_paths': int(m1_observed.all(axis=1).sum()),
+                  'M1_observed_slots': int(m1_observed.sum()),
+                  'S_known_sides_by_tf': known(state_truth),
+                  'F_known_sides_by_tf': known(future_truth),
                   'structure_high_observed_batch': int(observed[:, 0].sum()),
                   'structure_low_observed_batch': int(observed[:, 1].sum()),
-                  'corrected_structure_full_fold_high_observed': int(measured['high_observed'].sum()),
-                  'corrected_structure_full_fold_low_observed': int(measured['low_observed'].sum()),
-                  'corrected_structure_full_fold_pair_class_known': int(np.isin(measured['pair_class'], (0, 1, 2, 3)).sum()),
-                  'S_F_diagnostic_loss': float(sf['loss'].detach()),
-                  'structure_diagnostic_loss_sum': float(structure['loss_sums'].sum().detach()),
-                  'S_F_M1_gate_nonzero_gradient_cells': sf_gate_grad,
+                  'integrated_loss': float(report['loss'].detach()),
+                  'S_F_loss': float(report['S_F_loss'].detach()),
+                  'structure_mean_loss': float(report['structure_loss'].detach()),
+                  'M1_gate_nonzero_gradient_cells': gate_grad,
                   'S_side_head_nonzero_gradient_cells_by_tf': state_side_grads,
                   'F_side_head_nonzero_gradient_cells_by_tf': future_side_grads,
-                  'structure_M1_gate_nonzero_gradient_cells': structure_gate_grad,
                   'structure_head_nonzero_gradient_cells': structure_head_grad,
                   'test_data_used': False, 'training_authorized': False,
                   'online_delivery_parity_verified': False, 'economic_edge_proven': False,
