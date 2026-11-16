@@ -1,0 +1,49 @@
+{
+  "schema_version": "gx1_ta_integrated_fold2_fit_inputs_review_v1",
+  "decision": "FIT_M1_AND_STRUCTURE_SOURCE_TAPE_BOUND_NO_FIT_AUTHORITY",
+  "source_commit": "22c173756023069d4190f2574475beb52d84bd15",
+  "input_archive": {
+    "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_INPUTS_20261116_001/INPUTS.npz",
+    "sha256": "00300177b925facce71824ec08f91129496340106ab4d3541f94789639607b89",
+    "bytes": 3427305
+  },
+  "private_receipts": {
+    "CLAIM": {
+      "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_INPUTS_20261116_001/CLAIM.json",
+      "sha256": "ea676cf796df34dd8ff01d3fae188441a2a60721ca0d092df5635468ca009dc1"
+    },
+    "RESULT": {
+      "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_INPUTS_20261116_001/RESULT.json",
+      "sha256": "a09e2970155c7bbab5c164eff055aa9b4d35aba271525852c230ec13c86888b9"
+    },
+    "TERMINAL": {
+      "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_INPUTS_20261116_001/TERMINAL.json",
+      "sha256": "b9ea46eac14607238e66a2c5146562f90a4e586e856afdde2dcb6e23d28408b4"
+    }
+  },
+  "source_owner": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/materialize_market_state_ta_integrated_fold2_inputs_v1.py",
+    "sha256": "0352f3e7c17e6a685942e556de6411471c4cca499210634794e6efa8bb0c3607"
+  },
+  "fit_axis": {
+    "rows": 47338,
+    "issue_axis_sha256": "380184a9c95a02f2716326765783746b1834371a7266545113fb1eae6722da47"
+  },
+  "counts": {
+    "m1_observed_slots": 235956,
+    "m1_complete_paths": 47124,
+    "structure_high_observed": 47193,
+    "structure_low_observed": 47188,
+    "structure_high_hit": 24428,
+    "structure_low_hit": 20923,
+    "structure_both_observed": 47152
+  },
+  "limits": [
+    "The private tape covers Fold2 TRAIN only; no later score input or target tape has been materialized.",
+    "Structure is a candidate auxiliary target, not a selected fit objective or proven reversal predictor.",
+    "No model forward, optimizer step, TRAIN learning, later generalization, live ONLINE parity or Edge was measured in this materialization."
+  ],
+  "test_data_used": false,
+  "training_authorized": false,
+  "economic_edge_proven": false
+}

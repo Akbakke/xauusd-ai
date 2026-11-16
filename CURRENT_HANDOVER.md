@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_INTEGRATED_PHYSICAL_TRAIN_FORWARD_GRADIENT_PASS_FIT_UNQUALIFIED.
+TA_INTEGRATED_FOLD2_FIT_INPUT_TAPE_BOUND_TRAINING_CLOSED.
 Den tidligere ikke-GC S-lesningen er fullført og M5-Edge fortsatt ubevist.
 Fold2 S-only full-GC 25-cellers engangsplan er fullført og konsumert.
 training_enabled=false, native_training_enabled=false og
@@ -421,6 +421,20 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   S/F-side på alle fem TF. Eksakte kvitteringer og begrensninger:
   `docs/TA_INTEGRATED_PHYSICAL_PREFLIGHT_REVIEW_20261116.json`.
   Dette beviser numerisk kobling, ikke læring, ONLINE-levering eller Edge.
+
+
+- Et nytt privat, hashbundet Fold2 TRAIN-opptak binder M1-bane og korrigert
+  M5-topp/bunn-fasit til alle 47 338 fit-issues. Det gjenbruker de samme
+  235 956 observerte M1-plassene og 47 124 komplette banene som kildepariteten.
+  Toppfasit er observert på 47 193 rader, bunnfasit på 47 188, begge på
+  47 152. Arkivet er 3,43 MB, ligger i GX1_RUNS og er ikke pushet.
+  Kjøringen var capped 4G, null modellforwards og null optimizersteg;
+  kvitteringer og hash står i
+  `docs/TA_INTEGRATED_FOLD2_FIT_INPUTS_REVIEW_20261116.json`.
+  Den fysiske modellpreflighten bandt viewhash `8056fe96...`; den tidligere
+  metadatahashen `29487410...` er ikke identisk med denne og må ikke brukes
+  som kvittering for den fysiske modellen. Senere score-input og samlet
+  tapsoppskrift er ennå ikke bundet.
 
 ## Ikke gjort / faktisk hindring
 
