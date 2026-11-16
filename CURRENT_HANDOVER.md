@@ -71,6 +71,22 @@ TEST, Entry/Exit, broker eller handel er innrømmet.
   docs/S_FOLD2_S_ONLY_FULL_FIT_RESULT_REVIEW_20261115.json.
   Tidligere funksjonsrevisjon: docs/FEATURE_AUDIT.md. 25 fokuserte rutetester
   besto før kjøringen; mekanisk PASS er ikke bedre handelsbeslutninger.
+- Ikke-GC TA-opptak er gjenbrukt uten modellkjøring: på fast senere
+  utvikling fant PASS2 27/293 kjente M5-tilstandsskifter og 31/363
+  M5-framtidsskifter mellom prognoser én M5-periode fra hverandre.
+  Importert INITIAL fant 52/293 og 58/363 på samme par. Dette er svak
+  rullerende skiftesporing, ikke bevis for tidlig varsling eller Edge.
+  H4 har 0 tilgjengelige par med eksakt 240 minutters avstand i dette
+  utvalget; H4-native skiftekvalitet er ukjent her. Alle fem TF og S/F
+  er rapportert i docs/TA_NON_GC_NATIVE_TURN_TRACKING_REVIEW_20261116.json.
+- Eldre ikke-GC kontroller viste ingen etablert senere M5-rangeringsgevinst
+  fra egne TF-hoder eller lineær lesning før TF-pooling; F M5 femfolds
+  utviklings-OOF slo heller ikke fryst TRAIN-prior. Kilderevisjonen fant
+  ingen frakoblet genuine TA-feature eller manglende TF, men individuell
+  indikatornytte er ubevist. Nåværende TA-tap
+  lærer punktvis aktivitet/side, uten egen framoverskuende skifteterm.
+  Dette avgrenser et konkret mål-/evalueringsgap, men isolerer ikke én
+  rotårsak eller rettferdiggjør ny modellrunde.
 
 ## Ikke gjort / faktisk hindring
 
