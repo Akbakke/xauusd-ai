@@ -311,10 +311,16 @@
     "The trained model predicts mostly DOWN and detects no certified M5 adjacent-checkpoint changes. This is a concrete failure to read reversals in the tested representation.",
     "A same-row exploratory TRAIN replay also shows M5 side degradation, so later regime shift alone cannot explain the observed result.",
     "The backbone contains feature-family and cross-timeframe gates and attention, but this result does not prove predictive cooperation among indicators. The joint activity/side objective allows the easier activity task to improve while certified side worsens.",
-    "The causal reason for the side collapse is not isolated. Shared-head interference, optimization and feature/target relationships remain competing explanations. A tiny fixed TRAIN overfit diagnostic can separate basic fit capacity from generalization, but requires a separately admitted one-use training plan.",
+    "The causal reason for the side collapse is not isolated. Shared-head interference, optimization and feature/target relationships remain competing explanations. The operator withdrew the unadmitted 30-epoch overfit proposal after the observed failure.",
     "At the native endpoint, M5 and D1 side probabilities are nearly identical on later rows while certified M5/D1 sides often disagree; the current shared query output fails timeframe discrimination.",
     "Saved checkpoint weights confirm the query-coordinate columns changed; a completely frozen query projection is ruled out, while useful timeframe-conditioned side behavior remains absent.",
-    "On 256 fixed later rows, the local eight-family specialist gate concentrated 78.3 percent mean weight on volatility/compression after training versus 2.8 percent initially; the separate TF gate remained nonuniform. This is observed routing, not a causal attribution of side failure to one family."
+    "On 256 fixed later rows, the local eight-family specialist gate concentrated 78.3 percent mean weight on volatility/compression after training versus 2.8 percent initially; the separate TF gate remained nonuniform. This is observed routing, not a causal attribution of side failure to one family.",
+    "The same 256 later rows show activity Brier 0.280493 to 0.078990 but M5 minute5 known-side Brier 0.243376 to 0.269708 by update512; harmful side behavior starts well before the final checkpoint.",
+    "Between updates2560 and2959, M5 minute5 predicted UP on the same 93 later known sides falls 0.471719 to 0.298021 while Brier rises 0.271524 to 0.327660. On 169 known sides sampled from the recent TRAIN slice, predicted UP falls 0.622027 to 0.392524 and Brier improves 0.308953 to 0.265399. This supports late cohort adaptation but does not establish its exact cause or useful TRAIN discrimination.",
+    "The last full TRAIN cohort has 2161 known M5 minute5 sides and 50.44 percent UP; its M5 target prevalence alone cannot explain a 29.80 percent UP prediction on the sampled later cohort.",
+    "The current loss treats M5 minute5 side as one of 25 side cells and also trains 25 activity cells. One shared side head decodes a common backbone vector plus timeframe/query coordinates. This exact objective and output boundary do not prioritize the M5 reversal decision; the training outcome shows near-identical timeframe answers.",
+    "A prior TA-only dedicated M5 head and later separate timeframe decoders did not establish a generalized M5 direction improvement. Merely adding a separate head is not a verified repair.",
+    "Full Fold2 TRAIN native certified sides disagree between M5 and D1 in 2072/4234 both-known rows (48.94 percent), and between M5 and H4 in 3704/7470 (49.59 percent). The nearly identical final outputs fail to express distinctions the targets require; this is an observed task-conditioning failure, not proof that multi-timeframe inputs inherently harm M5."
   ],
   "not_measured": [
     "independent sealed TEST adaptation",
@@ -467,5 +473,274 @@
     "optimizer_steps": 0,
     "test_data_used": false,
     "limitation": "256 sampled later rows; gate weights describe routing and do not prove causal feature contribution or profit."
+  },
+  "exploratory_checkpoint_trajectory": {
+    "scope": "Same 256 evenly spread later-development rows, 93 certified M5 minute5 sides; read-only CPU replay of existing checkpoints; no model update or selection.",
+    "selection_start_indices": [
+      0,
+      272,
+      544,
+      816,
+      1088,
+      1360,
+      1632,
+      1904,
+      2176,
+      2448,
+      2720,
+      2992,
+      3264,
+      3536,
+      3808,
+      4080
+    ],
+    "actual_m5_q5_up_rate": 0.5698924731182796,
+    "checkpoints": {
+      "0": {
+        "m5_q5_known_side_rows": 93,
+        "m5_q5_side_brier": 0.24337580539927178,
+        "m5_q5_pred_up_mean": 0.5253503121786149,
+        "m5_q5_activity_brier": 0.28049302132913,
+        "m5_d1_q5_side_corr": 0.9966457333821549,
+        "local_vol_compression_gate_mean": 0.027749277651309967,
+        "local_specialist_gate_mean_entropy": 1.8156001567840576
+      },
+      "512": {
+        "m5_q5_known_side_rows": 93,
+        "m5_q5_side_brier": 0.2697078861613585,
+        "m5_q5_pred_up_mean": 0.4333116755366601,
+        "m5_q5_activity_brier": 0.07899019699837104,
+        "m5_d1_q5_side_corr": 0.9999746534525854,
+        "local_vol_compression_gate_mean": 0.5968937873840332,
+        "local_specialist_gate_mean_entropy": 1.1350059509277344
+      },
+      "2048": {
+        "m5_q5_known_side_rows": 93,
+        "m5_q5_side_brier": 0.26613242316889707,
+        "m5_q5_pred_up_mean": 0.5559888139760774,
+        "m5_q5_activity_brier": 0.07966019215104604,
+        "m5_d1_q5_side_corr": 0.9998369459805206,
+        "local_vol_compression_gate_mean": 0.7010631561279297,
+        "local_specialist_gate_mean_entropy": 0.8966606259346008
+      },
+      "2560": {
+        "m5_q5_known_side_rows": 93,
+        "m5_q5_side_brier": 0.27152351147491005,
+        "m5_q5_pred_up_mean": 0.4717193410474016,
+        "m5_q5_activity_brier": 0.07764064700551312,
+        "m5_d1_q5_side_corr": 0.9996858653893981,
+        "local_vol_compression_gate_mean": 0.9658421874046326,
+        "local_specialist_gate_mean_entropy": 0.14135323464870453
+      },
+      "2959": {
+        "m5_q5_known_side_rows": 93,
+        "m5_q5_side_brier": 0.3276599520421623,
+        "m5_q5_pred_up_mean": 0.29802095155067154,
+        "m5_q5_activity_brier": 0.07782660454341891,
+        "m5_d1_q5_side_corr": 0.9998311161138935,
+        "local_vol_compression_gate_mean": 0.7826447486877441,
+        "local_specialist_gate_mean_entropy": 0.5926377773284912
+      }
+    },
+    "limits": "Small reused later sample; trajectory is a diagnostic, not a checkpoint-selection rule or independent generalization."
+  },
+  "exploratory_late_train_path": {
+    "scope": "Same 512 recent TRAIN rows selected as 32 contiguous B16 windows within indices 40960:47338; 169 certified M5 minute5 sides; read-only CPU replay.",
+    "selection_start_indices": [
+      40960,
+      41165,
+      41370,
+      41575,
+      41780,
+      41986,
+      42191,
+      42396,
+      42601,
+      42807,
+      43012,
+      43217,
+      43422,
+      43627,
+      43833,
+      44038,
+      44243,
+      44448,
+      44654,
+      44859,
+      45064,
+      45269,
+      45474,
+      45680,
+      45885,
+      46090,
+      46295,
+      46501,
+      46706,
+      46911,
+      47116,
+      47322
+    ],
+    "actual_m5_q5_up_rate_on_sample": 0.4556213017751479,
+    "checkpoints": {
+      "2560": {
+        "m5_q5_known_side_rows": 169,
+        "m5_q5_side_brier": 0.30895265661983484,
+        "m5_q5_pred_up_mean": 0.6220269881993588,
+        "m5_q5_activity_brier": 0.055097349195278554,
+        "m5_d1_q5_side_corr": 0.9997648886148492,
+        "local_vol_compression_gate_mean": 0.9663379192352295,
+        "local_specialist_gate_mean_entropy": 0.1498376727104187
+      },
+      "2959": {
+        "m5_q5_known_side_rows": 169,
+        "m5_q5_side_brier": 0.26539919560003195,
+        "m5_q5_pred_up_mean": 0.39252381556795557,
+        "m5_q5_activity_brier": 0.055894147741566036,
+        "m5_d1_q5_side_corr": 0.999651099330301,
+        "local_vol_compression_gate_mean": 0.7916355133056641,
+        "local_specialist_gate_mean_entropy": 0.622771143913269
+      }
+    },
+    "limits": "Selected TRAIN subset; no full TRAIN score and no causal attribution of the update."
+  },
+  "train_target_cohort_rates": {
+    "method": "Actual fixed Fold2 S target tape; native minute5/15/60/240/1440; certified known side only; no model forward or update.",
+    "cohorts": [
+      {
+        "D1": {
+          "known_side": 1933,
+          "up_rate": 0.47542679772374546
+        },
+        "H1": {
+          "known_side": 3052,
+          "up_rate": 0.5121231979030144
+        },
+        "H4": {
+          "known_side": 3219,
+          "up_rate": 0.5511028269648959
+        },
+        "M15": {
+          "known_side": 2981,
+          "up_rate": 0.5166051660516605
+        },
+        "M5": {
+          "known_side": 2758,
+          "up_rate": 0.5264684554024656
+        },
+        "start": 0,
+        "stop": 8192
+      },
+      {
+        "D1": {
+          "known_side": 6065,
+          "up_rate": 0.6435284418796373
+        },
+        "H1": {
+          "known_side": 9135,
+          "up_rate": 0.5357416529830323
+        },
+        "H4": {
+          "known_side": 9985,
+          "up_rate": 0.5303955933900851
+        },
+        "M15": {
+          "known_side": 9449,
+          "up_rate": 0.5180442374854481
+        },
+        "M5": {
+          "known_side": 8351,
+          "up_rate": 0.5164650940007185
+        },
+        "start": 8192,
+        "stop": 32768
+      },
+      {
+        "D1": {
+          "known_side": 3063,
+          "up_rate": 0.5079986940907607
+        },
+        "H1": {
+          "known_side": 3437,
+          "up_rate": 0.5542624381728252
+        },
+        "H4": {
+          "known_side": 3325,
+          "up_rate": 0.5771428571428572
+        },
+        "M15": {
+          "known_side": 3294,
+          "up_rate": 0.5370370370370371
+        },
+        "M5": {
+          "known_side": 2831,
+          "up_rate": 0.5185446838572942
+        },
+        "start": 32768,
+        "stop": 40960
+      },
+      {
+        "D1": {
+          "known_side": 1230,
+          "up_rate": 0.6008130081300813
+        },
+        "H1": {
+          "known_side": 2349,
+          "up_rate": 0.5317156236696466
+        },
+        "H4": {
+          "known_side": 1862,
+          "up_rate": 0.3791621911922664
+        },
+        "M15": {
+          "known_side": 2458,
+          "up_rate": 0.49959316517493896
+        },
+        "M5": {
+          "known_side": 2161,
+          "up_rate": 0.5043961129106895
+        },
+        "start": 40960,
+        "stop": 47338
+      }
+    ],
+    "limits": "Target base rates describe cohorts; they do not establish conditional predictability or explain shared-parameter learning."
+  },
+  "saved_later_decoder_boundary": {
+    "scope": "All 4096 fixed later rows at native query5, read-only saved INITIAL and FINAL raw logits.",
+    "initial_m5_d1_mean_abs_side_logit_gap": 0.005306619444581884,
+    "final_m5_d1_mean_abs_side_logit_gap": 0.033544011436333676,
+    "initial_m5_side_logit_sd_across_rows": 0.06740242930678449,
+    "final_m5_side_logit_sd_across_rows": 0.2614075866836681,
+    "final_mean_within_row_five_tf_side_logit_sd": 0.023767214632008597,
+    "source_identity": "market_state_time_query_model_v2.py decode_raw_query_grid: shared backbone hidden expanded over TF; one-hot TF and native fraction pass through one shared query projection and one shared side head in full-GC mode.",
+    "interpretation": "TF-dependent logit gap grew from INITIAL but remains small relative to row-to-row M5 variation; not a frozen query coordinate and not evidence of useful TF-specific direction."
+  },
+  "full_train_native_side_disagreement": {
+    "optimizer_updates": 0,
+    "pairs": {
+      "D1": {
+        "both_known": 4234,
+        "different": 2072,
+        "disagreement_fraction": 0.4893717524799244
+      },
+      "H1": {
+        "both_known": 7921,
+        "different": 3675,
+        "disagreement_fraction": 0.4639565711400076
+      },
+      "H4": {
+        "both_known": 7470,
+        "different": 3704,
+        "disagreement_fraction": 0.4958500669344043
+      },
+      "M15": {
+        "both_known": 9519,
+        "different": 3170,
+        "disagreement_fraction": 0.33301817417795987
+      }
+    },
+    "rows": 47338,
+    "scope": "full_Fold2_TRAIN_native_5TF_certified_side_pair_disagreement",
+    "test_data_used": false
   }
 }

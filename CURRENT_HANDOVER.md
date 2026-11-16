@@ -39,6 +39,24 @@ TEST, Entry/Exit, broker eller handel er innrømmet.
   TF-diskrimineringssvikt i sluttoutput, ikke bevist årsak i én bestemt port.
   Lagrede vekter viser at de seks TF-/tid-kolonnene i spørringsprojeksjonen
   faktisk ble oppdatert (RMS-endring 0,0310); de var ikke fryst.
+- Lagrede checkpoint, lest uten trening på de samme 256 senere radene, viser
+  tidlig splitt: ved steg 512 falt M5-aktivitets-Brier 0,280493 → 0,078990,
+  mens M5-side-Brier steg 0,243376 → 0,269708. Mellom steg 2560 og 2959
+  steg side-Brier 0,271524 → 0,327660, og predikert UP falt 47,2 → 29,8 %.
+  De siste 399 stegene bedret side-Brier på en separat prøve av 512 nylige
+  TRAIN-rader (0,308953 → 0,265399), men forverret altså senere score.
+  Full siste TRAIN-kohort hadde 50,4 % faktisk M5-UP på 2 161 kjente sider;
+  enkel M5-fasitubalanse forklarer ikke den senere 29,8 %-prognosen.
+  På hele TRAIN er M5/D1-fasiter ulike i 2 072/4 234 felles kjente tilfeller,
+  M5/H4 i 3 704/7 470. Samme sluttretning på slike ulike oppgaver er en
+  konkret svikt i TF-kondisjonering, ikke bevis mot MTF-data i seg selv.
+- Tapet gir M5-side ved minutt 5 én av 25 sidetermene og har i tillegg
+  25 aktivitetstermer. I full-GC bruker alle fem tidsrammer felles
+  backbone og retningshode; TF-/tidkoordinater legges først til i
+  spørringsprojeksjonen. Sluttlogitten varierer mye mer mellom rader enn
+  mellom tidsrammer på samme rad. Dette lokaliserer svikten til læringsmål /
+  utgangsgrense, men beviser ikke én isolert rotårsak. Eldre TA-kjøringer
+  med eget M5-hode og TF-dekodere ga ingen etablert generell M5-gevinst.
 - Lesende CPU-portmåling på 256 faste senere rader: lokal åttefamilieport
   la 78,3 % snittvekt på volatilitet/kompresjon etter fit, mot 2,8 % før.
   TF-porten var ulik mellom tidsrammer, men sluttretningene ble nesten like.
@@ -55,31 +73,29 @@ TEST, Entry/Exit, broker eller handel er innrømmet.
 
 ## Ikke gjort / faktisk hindring
 
-Modellen er trent, men den nyttige retningsdelen lærte ikke en robust
-fortsettelse/vending i denne testen. Nåværende tapsfunksjon optimerer
-aktivitet og sertifisert side sammen; aktivitet bedres kraftig fra fersk
-initial, mens side forverres. Koden har genuine familie-/tidsrammeporter og
-oppmerksomhet, men dette er ikke bevis for at indikatorene samarbeider
-prediktivt. Nøyaktig årsak til sidekollapsen er ennå ikke isolert.
-S-fasiten er fem marginale framtidstilstander per tidsramme, ikke en
-eksakt vendetid eller en selektiv, kostet Entry-beslutning. Full individuell
-nytte for alle indikatorer og økonomisk Edge er ubevist.
+Det målte problemet er at boten lærer aktivitet og felles retningsnivå, men
+ikke nyttig TF-spesifikk retning eller sertifiserte M5-vendinger i denne
+S-kjøringen. Et stort indikatorbibliotek hjelper ikke når M5-sidemålet er
+ett av 25 sidemål, fasiten ofte er ukjent, og samme hode presses av alle fem
+tidsrammer. Dette er en konkret mål-/utgangskobling; hvilken del som
+forårsaker mest skade er ennå ikke isolert. S-fasiten er fem marginale
+framtidstilstander per TF, ikke direkte vendetid eller kostet Entry.
+Individuell indikatornytte, generalisering og økonomisk Edge er ubevist.
 
 ## Neste steg
 
-1. Behandle plan003 som konsumert og denne 25-cellers S-hypotesen som
-   forkastet. Ikke velg ny epoke, terskel eller modell fra gjenbrukt senere
-   utvikling.
-2. En konkret, uinnrømmet 30-epokers diagnose er fryst i
-   docs/S_FOLD2_S_TINY_OVERFIT_DIAGNOSTIC_DESIGN_20261115.json: 1 024 faste
-   TRAIN-rader i 64 B16-vinduer, høyst 1 920 oppdateringer, samme ferske
-   modell og 25-cellers tap, samme-rad M5-side før/etter. Dette er en
-   memoriseringskontroll uten senere modellvalg, TEST eller økonomisk påstand.
-   Ny eksakt engangsadmisjon og fersk boot kreves før trening.
-3. Hvis selv liten TRAIN-side ikke kan fittes, mål gradient-/hodekonflikt
-   før ny arkitektur. Hvis den kan fittes, er generalisering og en direkte
-   vending-/Entry-måling neste sperre. Bruk fryst referanse og senere
-   kronologisk evidens; økonomi må inkludere alle valgte handler og kostnader.
+1. Plan003 er konsumert og full-GC S-hypotesen forkastet. Operatøren har
+   trukket den uinnrømmede 30-epokers memoriseringsdiagnosen; ingen trening
+   åpnes av dette arbeidet.
+2. Gjør M5 til primær beslutningsskala i neste konkrete design; behold alle
+   fem genuine tidsrammer som målbar kontekst/hjelpemål. Bruk lagrede
+   checkpoint/score først for å avgrense hva felles hode, query-kondisjonering
+   og de 25 aktivitet-/sidetermene faktisk gjør mot M5-side. Ingen bred
+   arkitekturendring eller gjentatt modellrunde uten en målt blokkering.
+3. En senere særskilt innrømmet, kort matchet kontroll må vise både M5-side
+   mot fryst referanse og faktisk vendingsdiskriminering før mer trening.
+   Senere kronologisk generalisering og alle valgte/åpne posisjoners økonomi
+   trengs før Edge. TEST, broker og handel er fortsatt stengt.
 
 Opprydding: historiske overleveringsavsnitt er fjernet her og bevart i Git.
 Ingen Python-fil er slettet; gjeldende referanse-, import-, test- og
