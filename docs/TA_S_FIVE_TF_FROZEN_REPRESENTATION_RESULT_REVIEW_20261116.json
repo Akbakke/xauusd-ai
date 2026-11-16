@@ -737,5 +737,51 @@
       "true_side_conflicts": 208
     }
   ],
-  "full_detail": "All day/week intervals, all ten TF pair conflicts for every arm, and every three-class output count remain immutable in source.independent_review (REVIEW.json) with SHA-256 above."
+  "full_detail": "All day/week intervals, all ten TF pair conflicts for every arm, and every three-class output count remain immutable in source.independent_review (REVIEW.json) with SHA-256 above.",
+  "exploratory_temporal_transfer": {
+    "scope": "Read-only post-hoc reuse of the locked LATER capture and predictions; no fit, forward, selection, TEST or trade. This is diagnostic, not a prespecified qualification.",
+    "mask": "M5 S allowed in {DOWN=1,UP=4}, eligible and mature; issue UTC day; N=1414 (706 DOWN,708 UP).",
+    "within_day_auc": {
+      "method": "Pair-weighted AUC on 67 days with both classes; 1410 rows; 2000 UTC-day cluster bootstrap replicates, seed 20261116.",
+      "PREPOOL": 0.522156,
+      "SHARED": 0.523581,
+      "NATIVE": 0.573465,
+      "NATIVE_95pct": [
+        0.545646,
+        0.603124
+      ],
+      "NATIVE_minus_PREPOOL": 0.051309,
+      "difference_95pct": [
+        0.017882,
+        0.086977
+      ],
+      "fraction_of_all_class_pairs_within_valid_days": 0.015441
+    },
+    "pooled_auc": {
+      "PREPOOL": 0.507714,
+      "SHARED": 0.516861,
+      "NATIVE": 0.534733
+    },
+    "native_between_day_pair_auc": 0.534125,
+    "historical_now_state_from_exact_previous_capture": {
+      "method": "For an issue t, the captured M5 S query k=1 from exact previous issue t-5min has validity t. Source constructs S from closed M1 bars and ATR available by t; this is historical causality, not demonstrated ONLINE parity.",
+      "all_rows": 4096,
+      "exact_previous_issue_rows": 3828,
+      "future_side_known_all": 1414,
+      "future_side_known_with_exact_previous": 1319,
+      "now_DOWN": 286,
+      "now_FLAT": 33,
+      "now_UP": 270,
+      "now_ACTIVE_SIDE_UNKNOWN": 730,
+      "now_ALL_UNKNOWN": 0,
+      "known_now_and_future_side_pairs": 556,
+      "actual_switches_on_known_pairs": 293
+    },
+    "interpretation": "The native representation contains limited local ordering on selected known-side rows, but most positive/negative pairs compare different days; pooled ranking, Brier versus frozen TRAIN prior, prospective turns, three-class decisions and economic Edge remain unqualified. Explicit current side cannot by itself resolve the many active-side-unknown rows.",
+    "source_clock_owners": [
+      "gx1/contracts/entry_dynamic_mtf_state_targets_v1.py",
+      "gx1/contracts/market_state_time_query_target_v1.py",
+      "gx1/audit/market_state_time_query_reference_core_v1.py"
+    ]
+  }
 }

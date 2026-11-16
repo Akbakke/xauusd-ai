@@ -167,6 +167,18 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   docs/TA_S_FIVE_TF_FROZEN_REPRESENTATION_RESULT_REVIEW_20261116.json;
   alle parvise TF-konflikter er bevart med hash i kjøringens REVIEW.json.
 
+- Lesende etterkontroll på samme låste senere M5-S-prediksjoner: native AUC
+  innen 67 UTC-dager med begge sider er 0,573465 (dag-bootstrap 95 %
+  0,545646–0,603124), mot 0,534733 samlet. PREPOOL har 0,522156 innen dag;
+  native minus PREPOOL er 0,051309 (0,017882–0,086977). Bare 1,54 % av
+  alle OPP/NED-par er innen slike dager, så dette er en avgrenset, etterpå-
+  undersøkt lokal rangering, ikke en kvalifisert beslutning eller Edge.
+  M5-S ved eksakt beslutningsklokke kan historisk bygges fra lukket M1 og
+  tilgjengelig ATR. I opptaket har 1 319 rader både kjent framtidsside og
+  eksakt forrige M5-issue; nåsiden er kjent i bare 556, FLAT i 33 og aktiv
+  med ukjent side i 730. De 556 kjente parene har 293 faktiske skifter.
+  ONLINE-paritet er ikke vist. Ingen ny fit eller modellkjøring ble utført.
+
 ## Ikke gjort / faktisk hindring
 
 Det målte problemet er at boten lærer aktivitet og felles retningsnivå, men
