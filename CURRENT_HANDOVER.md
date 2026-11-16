@@ -283,6 +283,11 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   og bidrag til modellfeilen
   er ikke målt. En eventuell M1-tilstand som input krever eksakt lukket
   beslutningsklokke og ONLINE-paritet; eksemplet åpner ingen ny inputrute.
+  Den eldre `NativeDynamicMTFStateResearch(current_state_input=True)` har
+  riktignok egen nåtilstandsprojeksjon, men kontrakten merker den
+  `current_input_available_online=false` og `historical_event_time_only`;
+  dens forward krever dessuten fem GC-sekvenser. Den er ingen kvalifisert
+  ikke-GC TA-/ONLINE-rute og gjenbrukes ikke blindt mens Full GC er pauset.
   En vendefasit må bruke nivåer kjent ved beslutningen og senere faktisk
   nivåtreff/bekreftelse som utfall, med særskilt håndtering av
   manglende og tvetydige forløp; ingen slik fasit er låst eller fitet nå.
