@@ -221,11 +221,37 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   Dette er målt svak supervisjonsdekning og ustabil nåside-referanse, ikke
   bevis for at ikke-lineære indikatorer ikke kan ha informasjon.
 
+- Lesende Fold2 M5-only-før/etterkontroll på et annet, låst panel enn
+  prepool-lesningen: beholdt TRAIN S-side (1 402 kjent) går AUC
+  0,489089→0,522454 og Brier 0,259222→0,249832, men fryst prior er
+  0,249659. Senere utvikling (1 392 kjent) går AUC 0,521870→0,548964
+  og Brier 0,262975→0,249722, fortsatt svakere enn prior 0,248755.
+  Etterpå beregnet dag-/uke-bootstrap (2 000, seed 20261116) gir slutt-
+  AUC 95 % [0,527809,0,571690]/[0,527510,0,576424] over 0,5,
+  men gevinst mot INITIAL har intervaller som omfatter null. Dette viser
+  begrenset absolutt S-rangering i gjenbrukt utvikling, ikke bevist
+  treningsgevinst, M5-vending, handel eller Edge. Senere S-modell gir
+  49,50 % OPP mot 54,53 % faktisk; mot fryst prior gir ekstra kalibrerings-
+  skjevhet +0,001719 Brier og sannsynlighetsspredning +0,000093, mens
+  prediksjon/utfall-samvariasjon motvirker -0,000845. Netto Brier-gap er
+  +0,000968.
+  S/F-fasiter er like på 924/955 senere M5-rader med begge sider kjent,
+  men sluttlogittene korrelerer -0,5298 der. F-side har senere AUC
+  0,487387/Brier 0,251524 mot prior 0,249257. Koden kobler begge M5-hoder
+  til tap og optimizer; en tidligere bundet felles S/F-hodekontroll ga
+  identiske M5-logitter, men F-AUC 0,508735/Brier 0,250042, fortsatt ikke
+  kvalifisert. Ulik S/F-fasit eller manglende optimizer-rute er derfor ikke
+  påvist årsak; årsaken til kalibrerings-/F-rangeringssvikten er uisolert.
+  Kilder: market_state_ta_fold2_m5_direction_fit_20261114_004 i policy og
+  docs/TA_FOLD2_SHARED_M5_FIT_RESULT_REVIEW_20261114.json. Ingen ny fit.
+
 ## Ikke gjort / faktisk hindring
 
 Det målte problemet er svake M5-vendinger og utilstrekkelige selvstendige
-fem-TF-retninger. M5-side er svak også i den særskilte ikke-GC M5-only-fitten
-og ved lineær lesning før pooling. At M5-side var ett av 25 sidemål i den
+fem-TF-retninger. M5-only-fitten gir begrenset senere S-rangering, men
+ikke sikker før/etter-gevinst eller bedre Brier enn prior; F og faktiske
+M5-vendinger forblir utilstrekkelige. Lineær lesning før pooling ga heller
+ingen M5-reparasjon. At M5-side var ett av 25 sidemål i den
 separate full-GC-fitten kan derfor ikke alene forklare dette. Den historiske
 nå-/framtidssidefasiten er ofte uavklart, og den trente TA-modellen gir
 nesten felles ikke-M5-logitter tross tilkoblet TF-koordinat. Dette er målte
