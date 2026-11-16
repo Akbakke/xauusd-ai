@@ -179,15 +179,31 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   med ukjent side i 730. De 556 kjente parene har 293 faktiske skifter.
   ONLINE-paritet er ikke vist. Ingen ny fit eller modellkjøring ble utført.
 
+- Direkte kilde- og outputkontroll skiller to problemer. I den låste
+  full-prefix TA-modellen har M5 eget sidehode; M15/H1/H4/D1 deler ett
+  sidehode, men får hver sin faktisk tilkoblede TF-koordinat. På 4 096
+  senere S-rader ligger 99,6298 % av de fire ikke-M5-logittenes variasjon
+  i et felles radeffektledd og bare 0,0795 % i rad×TF-samspill; parvise
+  logittkorrelasjoner er minst 0,998846. Fire TF-er svarer derfor nesten
+  likt i denne modellen: på M15/H1 er fasit ulik i 431 kjente par, og
+  begge treklassesvar er riktige i 4. M5/D1 har 57/208 riktige
+  treklassesvar på fasitkonflikter. En tidligere matchet prøve med egne
+  ikke-M5-hoder endret outputene, men ga ingen etablert senere M5-gevinst.
+  Delt hode er en målt koblingsvei, ikke bevist eneste årsak til svake svar.
+  Fold2 M5-only-tap lærte ikke de fire øvrige sidene direkte og kan ikke
+  kvalifisere fem retninger.
+
 ## Ikke gjort / faktisk hindring
 
-Det målte problemet er at boten lærer aktivitet og felles retningsnivå, men
-ikke nyttig TF-spesifikk retning eller sertifiserte M5-vendinger i denne
-S-kjøringen. Et stort indikatorbibliotek hjelper ikke når M5-sidemålet er
-ett av 25 sidemål, fasiten ofte er ukjent, og samme hode presses av alle fem
-tidsrammer. Dette er en konkret mål-/utgangskobling; hvilken del som
-forårsaker mest skade er ennå ikke isolert. S-fasiten er fem marginale
-framtidstilstander per TF, ikke direkte vendetid eller kostet Entry.
+Det målte problemet er svake M5-vendinger og utilstrekkelige selvstendige
+fem-TF-retninger. M5-side er svak også i den særskilte ikke-GC M5-only-fitten
+og ved lineær lesning før pooling. At M5-side var ett av 25 sidemål i den
+separate full-GC-fitten kan derfor ikke alene forklare dette. Den historiske
+nå-/framtidssidefasiten er ofte uavklart, og den trente TA-modellen gir
+nesten felles ikke-M5-logitter tross tilkoblet TF-koordinat. Dette er målte
+begrensninger i mål og output; deres andeler av M5-feilen er ikke isolert.
+S-fasiten er fem marginale framtidstilstander per TF, ikke direkte vendetid
+eller kostet Entry.
 Individuell indikatornytte, generalisering og økonomisk Edge er ubevist.
 
 M5 som prognose-/beslutningspunkt er allerede fastlagt i GX1_RULES.md

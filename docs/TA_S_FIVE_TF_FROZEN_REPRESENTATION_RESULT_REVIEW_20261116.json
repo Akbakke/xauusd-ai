@@ -783,5 +783,53 @@
       "gx1/contracts/market_state_time_query_target_v1.py",
       "gx1/audit/market_state_time_query_reference_core_v1.py"
     ]
+  },
+  "exploratory_non_m5_output_geometry": {
+    "scope": "Read-only post-hoc algebra on locked S conditional-side raw logits; no model forward, fit, source alteration or candidate selection.",
+    "captures": {
+      "TRAIN": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_PREPOOL_CAPTURE_20261113_001/TRAIN_CAPTURE.npz",
+        "sha256": "807801df5e391c2d437a3de4ae3a67c28af93ab15157d82e5491c081ccdd4844"
+      },
+      "LATER": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_PREPOOL_CAPTURE_20261113_001/LATER_CAPTURE.npz",
+        "sha256": "d15575c25d6dccfbd9a6cb23637e19d39f495c675dffdd6a46c65e80d8eda8fe"
+      }
+    },
+    "method": "For M15/H1/H4/D1, decompose each 4096x4 side-logit matrix into grand mean, row effect, timeframe effect and row-by-timeframe residual; report squared-energy shares. This is output geometry, not attribution of forecast quality.",
+    "TRAIN": {
+      "row_share": 0.997412,
+      "timeframe_share": 0.00171,
+      "row_by_timeframe_share": 0.000878,
+      "pairwise_logit_correlation_min": 0.998982,
+      "pairwise_logit_correlation_max": 0.999729,
+      "rows_with_any_distinct_side_sign": 166
+    },
+    "LATER": {
+      "row_share": 0.996298,
+      "timeframe_share": 0.002906,
+      "row_by_timeframe_share": 0.000795,
+      "pairwise_logit_correlation_min": 0.998846,
+      "pairwise_logit_correlation_max": 0.999822,
+      "rows_with_any_distinct_side_sign": 179
+    },
+    "later_conflict_examples_from_immutable_review": {
+      "M15_H1": {
+        "joint_certified": 1051,
+        "true_side_conflicts": 431,
+        "predicted_distinct_classes": 32,
+        "both_correct_on_conflicts": 4
+      },
+      "M5_D1": {
+        "joint_certified": 429,
+        "true_side_conflicts": 208,
+        "predicted_distinct_classes": 181,
+        "both_correct_on_conflicts": 57
+      }
+    },
+    "source_mechanism": "Actual non-GC model passes a five-timeframe one-hot coordinate into a shared query projection and uses one shared side head for M15/H1/H4/D1; M5 has a dedicated side head. The coordinate is connected. The captured trained model has near-common non-M5 logits, while M5 may differ.",
+    "prior_matched_control": "docs/TA_NON_M5_SHORT_LEARNING_REVIEW.json: separate non-M5 side heads altered learning/output changes at 256 updates but did not establish later M5 gain or Edge. A shared head is therefore a measured coupling mechanism, not a proven sole cause of poor forecasts.",
+    "limits": "The S readout capture is a different model/run from Fold2 direction-only. These measurements cannot be transferred as Fold2 numeric geometry or used to claim five-timeframe predictive qualification.",
+    "conflict_decision_semantics": "The conflict counts use the immutable review factorized DOWN/FLAT/UP argmax with unchanged native activity; they are not conditional-side-only correctness."
   }
 }
