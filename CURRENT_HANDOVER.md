@@ -523,7 +523,7 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
 
 Den avsluttede fit002-lesningen er bundet i
 `docs/TA_INTEGRATED_FOLD2_FIT_002_RESULT_REVIEW_20261116.json` (SHA256
-`b5d0f398ba7535e812404a4e1f1f390cb263f2a272c375d37c41980faf90c512`).
+`685290f9080682c36d63bba69ba45f03954fd446743b127a1c062cb04d3e298e`).
 Senere S/F-side-Brier var dårligere enn fryst TRAIN-prior
 i 10/10 TF-/oppgaveceller; treklasse-Brier var også dårligere i 10/10.
 Struktur topp/bunn slo prior med AUC 0,7945/0,7834, men M5-vending på
@@ -554,6 +554,20 @@ i bare 36. Senere utvikling ga 249/557 mot 15. Den effektive kollapsen
 ligger dermed etter ulike TF-vektorer, i F-utlesning/læring. Årsaken
 (tapskonflikt, kronologisk rekkefølge, utilstrekkelig fit eller svakt
 signal) er ikke isolert. Ingen ny optimizer eller model fit ble kjørt.
+
+En lesende dekomponering av de hashbundne faste TRAIN-prognosene viser at F
+undervurderer OPP på alle fem TF: kjent fasit er 51,1–64,7 % OPP, mens
+modellens gjennomsnittlige P(OPP) er 33,6–43,2 %. På M5 er F-Brier
+0,255209 mot fryst TRAIN-prior 0,249876; 0,006283 av feilen kommer fra
+kvadrert avvik mellom gjennomsnittlig prognose og fasit, mens prediksjon/utfall-samvariasjon motvirker noe.
+En rent algebraisk fjerning av dette middelavviket på samme TRAIN-panel ville gi
+M5-Brier 0,248926, under prior med mindre enn 0,001; den endrer ikke
+rangering eller M5-vending. M15/H1/H4/D1 er fortsatt svake ved slik optimistisk
+TRAIN-diagnose. Full TRAIN-fasit under faktisk batchnormalisering er over
+50 % OPP på alle fem TF, og kilde-/loss-/skårtegn for OPP er samme bit4.
+Batchvekting eller enkelt fortegnsbytte forklarer derfor ikke F-kollapsen.
+Dette isolerer ikke optimizer, oppgavemiks, representasjon eller signal.
+Ingen ny fit ble kjørt.
 
 Det målte problemet er svake M5-vendinger og utilstrekkelige selvstendige
 fem-TF-retninger. M5-only-fitten gir begrenset senere S-rangering, men

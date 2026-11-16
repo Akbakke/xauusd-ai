@@ -612,7 +612,7 @@
   "training_enabled": false,
   "economic_edge_proven": false,
   "test_data_used": false,
-  "next_boundary": "F collapse occurs after distinct TF representations in a scoped actual TRAIN probe. Qualify one TRAIN-only frozen-encoder F readout/optimizer control and a native S query schedule before any new exact chronological OOF fit. Do not select a model on reused Jan-Mar development. Training, Full GC, TEST and trading remain closed.",
+  "next_boundary": "F native-side labels and batch weighting do not explain the all-down output. On fixed TRAIN, separate the large mean calibration bias from weak TF-specific ranking with one capped, TRAIN-only frozen-encoder F readout/optimizer control; qualify native S query exposure for all five TF before any exact chronological OOF fit. Do not select a model on reused Jan-Mar development. Training, Full GC, TEST and trading remain closed.",
   "additional_train_and_query_diagnosis": {
     "class": "TRAIN_and_source_only_no_new_fit",
     "input_ref": {
@@ -800,6 +800,133 @@
       "The representation probe covers 16 fixed TRAIN rows and has no immutable private output receipt; its result is a scoped source/CPU observation, not generalization evidence.",
       "The full captured output comparisons cover 4096 fixed TRAIN and 4096 reused later rows; those capture bytes are hash-bound.",
       "No new fit, threshold search, TEST, costed Entry or economic Edge."
+    ]
+  },
+  "F_train_side_calibration_diagnosis": {
+    "method": "Read-only decomposition of hash-bound fixed-spread 4096-row TRAIN captures; Brier = Var(y) + (mean(p)-mean(y))^2 + Var(p) - 2 Cov(p,y). Full-fit target fractions use bound F source and exact 47338-row fit axis, no model forward or optimizer.",
+    "initial_train_capture": {
+      "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_FIT_20261116_002/INITIAL_TRAIN_READOUT.npz",
+      "sha256": "9c8dce24921a82fbf797a5a54b365bcf219ad423f51c6983892c71e12c35c9a1"
+    },
+    "final_train_capture": {
+      "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_FIT_20261116_002/FINAL_TRAIN_READOUT.npz",
+      "sha256": "9e794d5836b401f25747f78c6bf286b7fbff7ff172fc54154eda394dc22050d3"
+    },
+    "full_fit_input_ref": {
+      "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_INPUTS_20261116_001/INPUTS.npz",
+      "sha256": "00300177b925facce71824ec08f91129496340106ab4d3541f94789639607b89",
+      "bytes": 3427305
+    },
+    "full_fit_target_ref": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_TARGET_COUNTS_20261113_001/RESULT.json",
+      "sha256": "ba50eb96f1a663ec8829554d67364d03a2a9cc642a4807554f614a47af645131"
+    },
+    "F_by_TF": {
+      "M5": {
+        "known_side_rows": 1661,
+        "up_fraction": 0.5111378687537628,
+        "initial_mean_p_up": 0.4903569657771625,
+        "initial_brier": 0.25045231208347185,
+        "final_mean_p_up": 0.43187291012227136,
+        "final_up_sign_fraction": 0.1535219747140277,
+        "final_brier": 0.25520933573812693,
+        "frozen_train_prior_brier": 0.249876381230037,
+        "outcome_variance": 0.24987594787962394,
+        "mean_bias_squared": 0.006282933666852045,
+        "prediction_variance": 0.003374662763697867,
+        "twice_prediction_outcome_covariance": 0.0043242085720469675,
+        "same_panel_zero_mean_bias_brier_diagnostic": 0.24892640207127487,
+        "full_fit_known_side_rows": 19072,
+        "full_fit_up_fraction": 0.511797399328859,
+        "equal_nonempty_batch_up_fraction": 0.5162449988805922,
+        "nonempty_fit_batches": 2950
+      },
+      "M15": {
+        "known_side_rows": 1536,
+        "up_fraction": 0.5149739583333334,
+        "initial_mean_p_up": 0.5000964185353052,
+        "initial_brier": 0.2501532166848264,
+        "final_mean_p_up": 0.408454824562454,
+        "final_up_sign_fraction": 0.21744791666666666,
+        "final_brier": 0.26727447640880503,
+        "frozen_train_prior_brier": 0.24977608708548046,
+        "outcome_variance": 0.2497757805718316,
+        "mean_bias_squared": 0.011346325859298489,
+        "prediction_variance": 0.013087391825740506,
+        "twice_prediction_outcome_covariance": 0.006935021848065558,
+        "same_panel_zero_mean_bias_brier_diagnostic": 0.2559281505495066,
+        "full_fit_known_side_rows": 17483,
+        "full_fit_up_fraction": 0.5155293713893496,
+        "equal_nonempty_batch_up_fraction": 0.5292602836485816,
+        "nonempty_fit_batches": 2820
+      },
+      "H1": {
+        "known_side_rows": 1529,
+        "up_fraction": 0.525833878351864,
+        "initial_mean_p_up": 0.5036310175090369,
+        "initial_brier": 0.2504930993919892,
+        "final_mean_p_up": 0.33568335284388384,
+        "final_up_sign_fraction": 0.16939175931981687,
+        "final_brier": 0.30376190489536714,
+        "frozen_train_prior_brier": 0.24935015909394798,
+        "outcome_variance": 0.24933261072930113,
+        "mean_bias_squared": 0.03615722235096102,
+        "prediction_variance": 0.02335578567593008,
+        "twice_prediction_outcome_covariance": 0.005083713860825026,
+        "same_panel_zero_mean_bias_brier_diagnostic": 0.2676046825444062,
+        "full_fit_known_side_rows": 16552,
+        "full_fit_up_fraction": 0.5300265828902851,
+        "equal_nonempty_batch_up_fraction": 0.5322564561484661,
+        "nonempty_fit_batches": 2403
+      },
+      "H4": {
+        "known_side_rows": 1377,
+        "up_fraction": 0.6056644880174292,
+        "initial_mean_p_up": 0.5063100560862498,
+        "initial_brier": 0.24776303331876462,
+        "final_mean_p_up": 0.35513592688014345,
+        "final_up_sign_fraction": 0.11837327523602033,
+        "final_brier": 0.30617571192015874,
+        "frozen_train_prior_brier": 0.24138574906352042,
+        "outcome_variance": 0.23883501597201454,
+        "mean_bias_squared": 0.06276455994551874,
+        "prediction_variance": 0.013320545957229856,
+        "twice_prediction_outcome_covariance": 0.008744409954604418,
+        "same_panel_zero_mean_bias_brier_diagnostic": 0.24341115197463997,
+        "full_fit_known_side_rows": 16278,
+        "full_fit_up_fraction": 0.5551664823688414,
+        "equal_nonempty_batch_up_fraction": 0.5578894734336545,
+        "nonempty_fit_batches": 1856
+      },
+      "D1": {
+        "known_side_rows": 1323,
+        "up_fraction": 0.6470143613000756,
+        "initial_mean_p_up": 0.5003668198892242,
+        "initial_brier": 0.24869329010136057,
+        "final_mean_p_up": 0.4037127078254601,
+        "final_up_sign_fraction": 0.1889644746787604,
+        "final_brier": 0.29382487071525126,
+        "frozen_train_prior_brier": 0.2287589429785573,
+        "outcome_variance": 0.22838677757153084,
+        "mean_bias_squared": 0.05919569458348189,
+        "prediction_variance": 0.009934906425212253,
+        "twice_prediction_outcome_covariance": 0.0036925078649736325,
+        "same_panel_zero_mean_bias_brier_diagnostic": 0.23462917613176945,
+        "full_fit_known_side_rows": 15148,
+        "full_fit_up_fraction": 0.6277396355954582,
+        "equal_nonempty_batch_up_fraction": 0.6160515209428253,
+        "nonempty_fit_batches": 1196
+      }
+    },
+    "findings": [
+      "Final F mean P(UP) is below observed UP frequency on fixed TRAIN in all five TF; only 11.8-21.7 percent of known rows get UP as the higher-probability side.",
+      "The mean bias explains most of the excess F M5 Brier over its frozen TRAIN prior; removing only mean bias on the same TRAIN panel would give Brier below prior by less than 0.001, without changing ranking. M15/H1/H4/D1 remain weak even under this optimistic same-panel diagnostic.",
+      "Full-fit UP fractions under the actual per-batch side normalization are still above 0.5 at every TF (M5 uses q/N row weighting); batch weighting alone does not explain the all-down F outputs. Source sign>0 maps to UP bit4 and the loss/scorer both use bit4 for UP."
+    ],
+    "limits": [
+      "The zero-mean-bias Brier is same-panel algebra, not a fitted deployable calibration or independent score.",
+      "This does not identify whether optimizer duration/order, task interference, backbone adaptation or weak signal caused the skew.",
+      "No new fit, Jan-Mar selection, TEST, trade or Edge claim."
     ]
   }
 }
