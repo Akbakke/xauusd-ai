@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_INTEGRATED_FOLD2_OBJECTIVE_AND_FIXED_LATER_INPUTS_READY_FIT_CLOSED.
+TA_INTEGRATED_ACTUAL_TRAIN_OBJECTIVE_GRADIENT_PASS_FIT_CLOSED.
 Den tidligere ikke-GC S-lesningen er fullført og M5-Edge fortsatt ubevist.
 Fold2 S-only full-GC 25-cellers engangsplan er fullført og konsumert.
 training_enabled=false, native_training_enabled=false og
@@ -447,6 +447,16 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   på 4 068/4 081 rader. Dette er gjenbrukt utvikling, ikke forseglet TEST
   eller uavhengig bekreftelse. Kvitteringer og begrensninger står i
   `docs/TA_INTEGRATED_OBJECTIVE_LATER_INPUTS_REVIEW_20261116.json`.
+
+
+- Den samlede tapsfunksjonen er kjørt én gang på faktisk Fold2 TRAIN-input
+  med samplet S-spørring, native F, korrekt M1-/struktur-tape og alle fem
+  tidsrammer. Alle ti sidehoder, M1-porten og strukturhodet hadde ikke-null
+  gradient. Total tap 2,825355 = S/F 2,590821 + 0,25 × struktur 0,938137.
+  Null optimizersteg, to modellforwards; CPU-initialdigest er bare mekanikk,
+  ingen fersk CUDA baseline. Kvittering:
+  `docs/TA_INTEGRATED_ACTUAL_OBJECTIVE_PREFLIGHT_REVIEW_20261116.json`.
+  Fit, senere score, kalibrering, vending, kostnader og Edge gjenstår.
 
 ## Ikke gjort / faktisk hindring
 

@@ -1,0 +1,73 @@
+{
+  "schema_version": "gx1_ta_integrated_actual_objective_preflight_review_v1",
+  "decision": "PASS_GENUINE_TRAIN_ALL_FIVE_TF_OBJECTIVE_GRADIENT_NO_OPTIMIZER",
+  "source_commit": "c28bd6e10b6e2251ba6c9a771d9d78ac93ad3c74",
+  "private_result": {
+    "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_PREFLIGHT_20261116_004/RESULT.json",
+    "sha256": "5e5a1790b4ae8673f6f3ddd63ed078b81e469a92870cf3ac6b5f0fc2b75ac2c4"
+  },
+  "private_terminal": {
+    "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_PREFLIGHT_20261116_004/TERMINAL.json",
+    "sha256": "5a78207f76cdf61f84d35925bc444dcee62c4587aabf03d732c3b81fb793811a"
+  },
+  "objective_contract_sha256": "f4cd885a7994f66367abc54fcbdedbe5339275ef8404dee29362b38bf2819bd1",
+  "model_contract_sha256": "70a0497b27ba0ab45277ba622443ab2fca36a448357f1ccb3158689193f8bc82",
+  "view_sha256": "8056fe96b4340bccc149da7f22dde85e4ac1b62c5e58c874ec7fbb771c1dff1a",
+  "batch_positions": [
+    36000,
+    36016
+  ],
+  "counts": {
+    "rows": 16,
+    "model_forwards": 2,
+    "optimizer_constructions": 0,
+    "optimizer_steps": 0,
+    "M1_full_paths": 16,
+    "M1_observed_slots": 80,
+    "S_known_sides_by_tf": [
+      4,
+      3,
+      5,
+      9,
+      13
+    ],
+    "F_known_sides_by_tf": [
+      4,
+      6,
+      3,
+      12,
+      16
+    ],
+    "structure_high_observed_batch": 16,
+    "structure_low_observed_batch": 16,
+    "M1_gate_nonzero_gradient_cells": 15360,
+    "S_side_head_nonzero_gradient_cells_by_tf": [
+      128,
+      128,
+      128,
+      128,
+      128
+    ],
+    "F_side_head_nonzero_gradient_cells_by_tf": [
+      128,
+      128,
+      128,
+      128,
+      128
+    ],
+    "structure_head_nonzero_gradient_cells": 256
+  },
+  "numerics": {
+    "integrated_loss": 2.825355052947998,
+    "S_F_loss": 2.590820789337158,
+    "structure_mean_loss": 0.9381369352340698
+  },
+  "limits": [
+    "One actual TRAIN batch establishes numeric source/model/loss/gradient linkage only.",
+    "CPU fresh initial digest is not a CUDA initial score baseline.",
+    "No optimizer step, full TRAIN fit, later score, live ONLINE parity, independent generalization or economic Edge occurred."
+  ],
+  "training_authorized": false,
+  "test_data_used": false,
+  "economic_edge_proven": false
+}
