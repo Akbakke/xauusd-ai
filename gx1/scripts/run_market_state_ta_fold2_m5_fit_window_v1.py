@@ -148,7 +148,8 @@ def prepare_qualified_inputs(*, initial_plan_ref: dict, design: dict,
         require_endpoint_priors,
     )
 
-    _need(device.type == 'cuda' and device.index == 0, 'CUDA_DEVICE')
+    _need((device.type == 'cuda' and device.index == 0) or
+          (integrated_direct_tf and device.type == 'cpu'), 'DEVICE')
     inputs = require_reused_input_refs(initial_plan_ref)
     train_plan, later_plan = read(inputs['train_plan']), read(inputs['later_plan'])
     train_result, later_result = read(inputs['physical_result']), read(inputs['later_result'])
