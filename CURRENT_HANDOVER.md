@@ -193,6 +193,34 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   Fold2 M5-only-tap lærte ikke de fire øvrige sidene direkte og kan ikke
   kvalifisere fem retninger.
 
+- En lesende kontroll av tre allerede konsumerte TRAIN-kvitteringer avgrenser
+  M5-målet uten ny kjøring. I fem kronologiske OOF-folder er aktivitet kjent
+  på 88 376 M5-spørringer, men side er kjent på bare 29 576 (33,47 %);
+  52 931 (59,89 %) er aktiv med ukjent side og 5 869 er FLAT. Ved egne
+  native endepunkter er side kjent på 38,93 % for M15, 39,51 % for H1,
+  41,83 % for H4 og 44,37 % for D1; over halvparten av aktivitetsradene
+  har ukjent side på hver av disse fire også. På 12 129 M5-par med kjent
+  side både nå og fem minutter senere skifter 6 237 (51,42 %);
+  foldene ligger mellom 50,42 og 53,11 %. Enkel kausal nåside-persistens har
+  Brier 0,514222 mot fryst TRAIN-prior 0,249182 på samme par. En egen
+  kronologisk referanse basert på EMA50/200 gir Brier 0,249492 mot
+  prior 0,249438 på de 29 576 kjente sidene: ingen stabil enkel
+  indikatorgevinst.
+  Revisjonen av alle 591 682 observerte TRAIN-M1-minutter fant 349 345
+  aktive med ukjent side; 308 149 (88,2 %) kommer fra kontraktens bevisste
+  gråsone mellom 0,5 ATR for aktivitet og 1,0 ATR for lokal side. Bare fire
+  av 198 069 kandidater med sertifisert side ble ukjente i lokal replay.
+  Gråsonetallet gjelder hele M1-båndet, ikke eksakt OOF-M5-fordeling.
+  Den faktiske tapskontrakten gir bit5 aktivitetsgradient, men eksakt null
+  direkte side-logittgradient. M5-side har allerede en kvalifisert variant
+  som normaliserer de kjente sidene; svak M5-score kan derfor ikke forklares
+  bare som manglende tapsvekt. Flere epoker skaper ingen sidefasit på bit5.
+  Eksakte resultater og SHA-256 står under market_state_m1_duration_20261107_001,
+  market_state_time_query_references_20261107_001 og
+  market_state_ema_side_reference_20261107_001 i NEXT_RUN_POLICY.json.
+  Dette er målt svak supervisjonsdekning og ustabil nåside-referanse, ikke
+  bevis for at ikke-lineære indikatorer ikke kan ha informasjon.
+
 ## Ikke gjort / faktisk hindring
 
 Det målte problemet er svake M5-vendinger og utilstrekkelige selvstendige
