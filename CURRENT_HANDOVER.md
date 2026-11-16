@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_M1_FIVE_BAR_INPUT_SOURCE_PASS_INTEGRATED_MODEL_UNQUALIFIED.
+TA_INTEGRATED_SOURCE_SYNTHETIC_PASS_PHYSICAL_UNQUALIFIED.
 Den tidligere ikke-GC S-lesningen er fullført og M5-Edge fortsatt ubevist.
 Fold2 S-only full-GC 25-cellers engangsplan er fullført og konsumert.
 training_enabled=false, native_training_enabled=false og
@@ -397,6 +397,16 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   lengre M1-historikk for øvrige TF, faktisk ONLINE-levering, modellforward,
   læring og Edge er ennå ikke bevist.
 
+- En ny avskrudd-som-standard `IntegratedTAMarketStateModel` binder samme
+  fulle TA-encoder, fem separate post-attention TF-vektorer og egne S/F-
+  retningshoder per TF til den maskerte fem-M1-banen. En nullinitialisert,
+  TF-lokal port bevarer eksisterende S/F-output eksakt ved start; M5-struktur
+  har egne logitter for treff av frossen topp og bunn, og ukjent fasit maskeres.
+  Tre syntetiske fokustester består for ett encoder-kall, startparitet,
+  TF-lokal følsomhet, gradientvei og ukjent-maske. Dette er en kildekandidat:
+  ingen faktisk bundet TRAIN-forward, gradient på fysisk input, låst
+  strukturdekning, tapsvekting, ONLINE-levering, fit eller Edge er vist.
+
 ## Ikke gjort / faktisk hindring
 
 Det målte problemet er svake M5-vendinger og utilstrekkelige selvstendige
@@ -426,11 +436,11 @@ Entry, TEST eller handel åpnes av denne presiseringen.
 
 1. Fullfør én samlet ikke-GC M5/MTF-kampanjekontrakt før stor kjøring:
    M5 er beslutningsklokken, M15/H1/H4/D1 gir egne kausale retninger,
-   og alle genuine indikatorfamilier beholdes. Bruk `direct_tf_hidden` med
-   fem egne S/F-sidehoder som eksplisitt kandidat; ikke ommerk gamle
-   checkpoints. Bind M1-/strukturdelene i samme kandidat og kjør deretter
-   én faktisk, begrenset source-/forward-/gradient-preflight på bundne
-   TRAIN-inputs. Syntetisk PASS er ikke fysisk paritet.
+   og alle genuine indikatorfamilier beholdes. Den opt-in integrerte
+   kildekandidaten binder nå `direct_tf_hidden`, fem egne S/F-sidehoder,
+   fem-M1-banen og separate M5-strukturutganger. Ikke ommerk gamle
+   checkpoints. Kjør én faktisk, begrenset source-/forward-/gradient-
+   preflight på bundne TRAIN-inputs. Syntetisk PASS er ikke fysisk paritet.
 2. Bind nåtilstand og vending ærlig. `gather_current` er bare et
    historisk, M1-avledet nåoppslag; det er ennå ikke input til TA-modellen
    og erstatter ikke hele ordnede M1-banen. Fem-barers M1-M5-kilde er nå
