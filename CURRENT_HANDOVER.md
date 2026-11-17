@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_APR_JUN_M1_STRUCTURE_INPUT_002_ADMITTED_AFTER_001_CONSUMED.
+TA_APR_JUN_M1_STRUCTURE_INPUT_002_COMPLETE_CONSUMED_NO_MODEL.
 Brukeren fjernet kravet om nytt «ja» for hver stor lokal ikke-GC-kjøring.
 Integrator innrømmet plan002 SHA
 `330e4cb1dd4c76980264b44a32f091e67c43142819514901f60068abed102783`
@@ -562,9 +562,14 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
 - Minste rettelse normaliserer closure-ref til path/SHA og kontrollerer den
   allerede i preflight. Ny plan002 SHA
   `a200d63f4b128d89b7a282bf20a7b6b39a3d57c09237caad0f4b7bfd8dc0c445`
-  har samme 17 536 Apr–jun-rader, 31 M1-/21 M5-kildegrupper og 4G/512M,
-  maks 1 800 sekunder. Den er innrømmet én gang bare for lesende input.
-  Ingen CLAIM, modellforward eller fit på plan002 ennå.
+  hadde samme 17 536 Apr–jun-rader, 31 M1-/21 M5-kildegrupper og 4G/512M,
+  maks 1 800 sekunder. Den fullførte med terminal exit 0 og uendret kilde.
+  Arkivet har `(17 536,5,4)` lukket M1-bane med 17 470 komplette rader;
+  ukjente M1-plasser er nullmaskert. M5-topp/bunn-fasiten er observert
+  på begge sider i 17 399 rader, og treff uten observert fasit er null.
+  Arkiv-SHA `1d7163801d5fb1eb5a43e48511d79ef7d2199d16c3655d3e5cba8fb4d77086da`.
+  RESULT/TERMINAL står i policy. Engangsplan002 er konsumert; null
+  modellforward, optimizersteg eller TEST. ONLINE-paritet og Edge er ubevist.
 
 ## Ikke gjort / faktisk hindring
 
@@ -671,10 +676,9 @@ Entry, TEST eller handel åpnes av denne presiseringen.
 
 ## Neste steg
 
-1. Kjør bare den nye innrømmede Apr–jun M1-/strukturplan002 under capped
-   audit. Kontroller terminal og ukjente masker, deretter én faktisk
-   normalisert ni-flaters modellbatch mot ny kildevisning. Ikke bruk
-   Jan–mar til modellvalg.
+1. Bind én faktisk normalisert ni-flaters Apr–jun-modellbatch i preflight
+   for den helhetlige kampanjen, med ny kildevisning, M1-bane og masker.
+   Bruk ikke Jan–mar til modellvalg.
 2. Forhåndsbind én kronologisk integrert fem-TF F/S/strukturkampanje med
    både native og varierende S-spørringshorisonter. Bruk separat målt
    retning per TF, de 6 746 kjente M5-naboparene, faste proper scores,
