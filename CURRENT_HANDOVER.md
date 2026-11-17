@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_APR_JUN_M5_COST_001_COMPLETE_CONSUMED_NO_EDGE. Én integrert ikke-GC
+TA_M5_COST_PATH_TARGETS_001_ADMITTED_NO_MODEL. Én integrert ikke-GC
 Fold2-fit på 47 338 TRAIN-rader er fullført; fast apr–jun-skår på 17 536
 senere utviklingsrader fant ingen kvalifisert native M5-S/F-retning.
 Strukturtreff lærte, men ga ingen påvist M5-sideprognose. Den etterfølgende
@@ -820,8 +820,9 @@ Det gjenbruker eksakt Fold2-fitakse (47 338), plan002s faste apr–jun-akse
 kostautoritet. Seks allerede brukte observasjonsavstander 1/5/15/60/240/
 480 min får separate masker for terminal netto og komplett prisbane;
 LONG/SHORT netto, MFE og konservativ MAE før første MFE bevares som
-separate mål. Ingen modelldel, Exit-regel, CLAIM eller prisutfall er
-kjørt fra denne forberedelsen. Trening forblir stengt.
+separate mål. Faktisk 16-raders FIT- og SCORE-preflight besto under
+4G/512M uten CLAIM, modellforward eller optimizersteg. Kun én CPU-audit
+er nå innrømmet for dette eksakte målarkivet; modelltrening forblir stengt.
 
 ## Neste steg
 
