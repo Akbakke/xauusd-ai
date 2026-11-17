@@ -55,12 +55,12 @@ def binding_case(spec):
 
 
 def test_immutable_fold2_span_metadata_rejects_changed_feature_profile():
-    with pytest.raises(RuntimeError, match='ENTRY_INPUT_NORMALIZATION_SURFACE_IDENTITY_INVALID'):
+    with pytest.raises(RuntimeError, match='ANCHOR_SPAN_NORMALIZATION_CONSUMER_BINDING'):
         binding_case(extension.FOLD2_BINDING)
 
 
 def test_immutable_fold1_span_metadata_rejects_changed_feature_profile():
-    with pytest.raises(RuntimeError, match='NATIVE_DIRECTION_PREFIX_UNITS_ANCHOR_SPAN_SIGNAL_NAMES'):
+    with pytest.raises(RuntimeError, match='ANCHOR_SPAN_NORMALIZATION_CONSUMER_BINDING'):
         binding_case(extension.FOLD1_BINDING)
 
 
@@ -178,11 +178,13 @@ def make_gather_case(monkeypatch, *, later=False, full_gc=False):
     local_names=['chart.'+n for n in overlay.SPAN_FIELDS]
     source=c['entry_sequence_source']['signal']
     for j,name in enumerate(local_names):source[:,fields['signal'].index(name)]=np.arange(len(source))%11+j+1
+    source[:,fields['signal'].index(overlay.EMA_DELTA_LOCAL_FIELD)]=np.arange(len(source),dtype=np.float32)/7-5
     c['snap_x']=source[c['entry_sequence_source']['sample_positions']].copy()
     # Span additions are not historical context aliases; all old aliases stay.
     for tf,frame in c['multi_tf_sources'].items():
         values=np.array(frame.to_numpy(dtype=np.float32,copy=False),copy=True,order='C')
         for j,name in enumerate(overlay.SPAN_FIELDS):values[:,fields['mtf'].index(name)]=np.arange(len(values))%13+j+1
+        values[:,fields['mtf'].index(overlay.EMA_DELTA_MTF_FIELD)]=np.arange(len(values),dtype=np.float32)/9-3
         rebuilt=pd.DataFrame(values,index=frame.index,columns=frame.columns,copy=False)
         rebuilt.attrs.update(frame.attrs)
         rebuilt.attrs['feats_np']=values
@@ -253,6 +255,85 @@ def test_composed_batch_matches_full_current_arrays_and_original_native_row_witn
         assert output['features'][key].tobytes()==value.tobytes(),key
     assert output['witness']==expected['witness']
     assert all(rows[0]>0 for rows in args['anchor_span_inputs'].mtf_parent_rows.values())
+
+
+def test_new_ema_sidecars_match_full_native_values_and_reject_mismatch(monkeypatch):
+    view,args,expected,build=make_gather_case(monkeypatch)
+    local_name,mtf_name=overlay.EMA_DELTA_LOCAL_FIELD,overlay.EMA_DELTA_MTF_FIELD
+    source=build['entry_sequence_source']['signal']
+    local_at=build['parent_signal_names'].index(local_name)
+    local_values=source[:,local_at].copy()
+    build['entry_sequence_source']={**build['entry_sequence_source'],
+        'signal':readonly(np.delete(source,local_at,axis=1))}
+    build['snap_x']=readonly(np.delete(build['snap_x'],local_at,axis=1))
+    build['parent_signal_names'].pop(local_at)
+    mtf_values={}
+    for tf,parent in build['parent_mtf_values'].items():
+        at=build['parent_mtf_names'].index(mtf_name)
+        mtf_values[tf]=parent[:,at].copy()
+        build['parent_mtf_values'][tf]=readonly(np.delete(parent,at,axis=1))
+    build['parent_mtf_names'].pop(at)
+    sha=lambda a,dtype:hashlib.sha256(np.ascontiguousarray(a,dtype=dtype).tobytes()).hexdigest()
+    payloads,surfaces,refs={},{},{}
+    for lane in ('local',*overlay.TIMEFRAMES):
+        span=build['span_payloads'][lane]
+        rows,times=span['row_indices'],span['times_ns']
+        values=(local_values if lane=='local' else mtf_values[lane])[rows].astype(np.float32)
+        payloads[lane]=dict(row_indices=rows.copy(),times_ns=times.copy(),
+                            delta_5_atr=np.ascontiguousarray(values))
+        refs[lane]=ref(lane+'_EMA_DELTA.npz')
+        surfaces[lane]=dict(artifact=refs[lane],span_artifact=ref(lane+'_ANCHOR_SPANS.npz'),
+            row_indices_sha256=sha(rows,'<i8'),times_ns_sha256=sha(times,'<i8'),
+            delta_5_atr_sha256=sha(values,'<f4'),rows=len(rows),
+            first_time_ns=int(times[0]),last_time_ns=int(times[-1]),old_slope_parity_rows=1)
+    manifest=dict(schema_version=overlay.EMA_DELTA_MANIFEST_SCHEMA,status='COMPLETE',
+        cutoff_ns=overlay.COLD_FULL_LATER_END_NS,
+        source=ref('source.parquet'),local_surface_manifest=ref('source.json'),
+        mtf_cache_manifest=ref('cache.json'),span_reuse_result=ref('span.json'),
+        fields=dict(local=local_name,mtf=mtf_name),surfaces=surfaces,
+        test_data_used=False,model_forwards=0,optimizer_steps=0)
+    manifest_ref=ref('MANIFEST.json')
+    result=dict(schema_version=overlay.EMA_DELTA_RESULT_SCHEMA,status='COMPLETE',
+        manifest=manifest_ref,surfaces=deepcopy(surfaces),source=manifest['source'],
+        cutoff_ns=manifest['cutoff_ns'],fit_rows=29574,later_parent_start=29849,
+        later_rows=17489,test_data_used=False,model_forwards=0,optimizer_steps=0)
+    result_ref=ref('RESULT.json')
+    view['physical_widths']=dict(signal=318,ctx_cont=132,ctx_cat=1,mtf=256)
+    view['ema_delta_input_extension']=dict(schema_version=overlay.EMA_DELTA_INPUT_SCHEMA,
+        physical_input_result=result_ref,sidecars=refs,fit_rows=29574,
+        score_parent_start=29849,score_rows=17489,
+        score_end_exclusive_ns=overlay.COLD_FULL_LATER_END_NS,execution_authorized=False)
+    bundle=dict(result_ref=result_ref,result=result,manifest_ref=manifest_ref,
+                manifest=manifest,payloads=payloads)
+    build['ema_delta_bundle']=bundle
+    bound=overlay.build_anchor_span_inputs(view,**build)
+    args.update(entry_sequence_source=build['entry_sequence_source'],snap_x=build['snap_x'],
+        multi_tf_sources=bound.mtf_sources,anchor_span_inputs=bound)
+    output=views.gather_native_direction_feature_batch(view,**args)
+    assert output['witness']==expected['witness']
+    for key,value in expected['features'].items():
+        assert output['features'][key].tobytes()==value.tobytes(),key
+    later={'physical_sidecars':{lane:item['span_artifact'] for lane,item in surfaces.items()}}
+    assert set(overlay._require_ema_delta_bundle(
+        view,bundle,build['span_payloads'],later))=={'local',*overlay.TIMEFRAMES}
+    later['physical_sidecars']['M15']=ref('different_span.npz')
+    with pytest.raises(RuntimeError,match='EMA_LATER_SPAN_REF_AND_AXES:M15'):
+        overlay._require_ema_delta_bundle(view,bundle,build['span_payloads'],later)
+    with pytest.raises(RuntimeError,match='EMA_BUNDLE_REQUIRED_OR_UNEXPECTED'):
+        overlay.build_anchor_span_inputs(view,**{k:v for k,v in build.items() if k!='ema_delta_bundle'})
+    changed=deepcopy(bundle)
+    changed['payloads']['M15']['delta_5_atr'][0]+=1
+    with pytest.raises(RuntimeError,match='EMA_SURFACE_ARRAYS:M15'):
+        overlay.build_anchor_span_inputs(view,**{**build,'ema_delta_bundle':changed})
+    changed=deepcopy(bundle)
+    changed['payloads']['M15']['times_ns']+=1
+    changed['manifest']['surfaces']['M15']['times_ns_sha256']=sha(
+        changed['payloads']['M15']['times_ns'],'<i8')
+    changed['manifest']['surfaces']['M15']['first_time_ns']+=1
+    changed['manifest']['surfaces']['M15']['last_time_ns']+=1
+    changed['result']['surfaces']=deepcopy(changed['manifest']['surfaces'])
+    with pytest.raises(RuntimeError,match='UNCOVERED_OR_DIFFERENT_CLOCK'):
+        overlay.build_anchor_span_inputs(view,**{**build,'ema_delta_bundle':changed})
 
 
 def test_full_gc_composed_batch_preserves_all_xau_and_gc_values(monkeypatch):

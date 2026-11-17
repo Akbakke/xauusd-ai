@@ -23,6 +23,11 @@ from gx1.contracts.entry_anchor_span_normalization_v1 import SPAN_FIELDS
 TIMEFRAMES = ('M5','M15','H1','H4','D1')
 LATER_COVERAGE_SCHEMA = 'entry_anchor_span_later_coverage_v1'
 COLD_FULL_LATER_COVERAGE_SCHEMA = 'entry_anchor_span_cold_full_later_coverage_v1'
+EMA_DELTA_INPUT_SCHEMA = 'gx1_ema_delta_input_extension_v1'
+EMA_DELTA_MANIFEST_SCHEMA = 'entry_ta_ema_delta_sidecars_v1'
+EMA_DELTA_RESULT_SCHEMA = 'entry_ta_ema_delta_materialization_result_v1'
+EMA_DELTA_LOCAL_FIELD = 'chart.local_ema50_200_spread_delta_5_atr'
+EMA_DELTA_MTF_FIELD = 'ema50_200_spread_delta_5_atr'
 LATER_BATCH_INDICES = tuple(i * 1108 // 255 for i in range(256))
 LATER_SCORE_START_NS = 1727740800000000000  # 2024-10-01 UTC
 LATER_SCORE_END_NS = 1735689600000000000  # 2025-01-01 UTC
@@ -264,6 +269,110 @@ def combine_selected(parent, parent_positions, spans, *, columns):
     return result
 
 
+def _require_ema_delta_bundle(view, bundle, span_payloads, later_coverage):
+    """Join one qualified additive field to the existing physical row/time surfaces.
+
+    The caller verifies RESULT, MANIFEST and NPZ file SHA before loading. This
+    owner verifies their in-memory joins and every array used in composition.
+    """
+    marker = view.get('ema_delta_input_extension')
+    panel = cold_full_later_panel()
+    need(type(marker) is dict and set(marker) == {
+        'schema_version', 'physical_input_result', 'sidecars', 'fit_rows',
+        'score_parent_start', 'score_rows', 'score_end_exclusive_ns',
+        'execution_authorized'}, 'EMA_MARKER_KEYS')
+    need(marker['schema_version'] == EMA_DELTA_INPUT_SCHEMA
+         and marker['fit_rows'] == panel['prefix_rows']
+         and marker['score_parent_start'] == panel['score_parent_start']
+         and marker['score_rows'] == panel['score_rows']
+         and marker['score_end_exclusive_ns'] == panel['score_end_exclusive_ns']
+         and marker['execution_authorized'] is False
+         and view.get('full_ta_feature_profile') is True
+         and view['physical_widths'] == dict(signal=318,ctx_cont=132,ctx_cat=1,mtf=256),
+         'EMA_VIEW_SCOPE')
+    need(type(bundle) is dict and set(bundle) == {
+        'result_ref', 'result', 'manifest_ref', 'manifest', 'payloads'},
+        'EMA_BUNDLE_KEYS')
+    result_ref, result = bundle['result_ref'], bundle['result']
+    manifest_ref, manifest = bundle['manifest_ref'], bundle['manifest']
+    need(result_ref == marker['physical_input_result']
+         and type(result) is dict and set(result) == {
+            'schema_version', 'status', 'manifest', 'surfaces', 'source',
+            'cutoff_ns', 'fit_rows', 'later_parent_start', 'later_rows',
+            'test_data_used', 'model_forwards', 'optimizer_steps'}
+         and result['schema_version'] == EMA_DELTA_RESULT_SCHEMA
+         and result['status'] == 'COMPLETE'
+         and result['manifest'] == manifest_ref
+         and result['fit_rows'] == marker['fit_rows']
+         and result['later_parent_start'] == marker['score_parent_start']
+         and result['later_rows'] == marker['score_rows']
+         and result['cutoff_ns'] == marker['score_end_exclusive_ns']
+         and result['test_data_used'] is False
+         and result['model_forwards'] == result['optimizer_steps'] == 0,
+         'EMA_RESULT_BINDING')
+    need(type(manifest) is dict and set(manifest) == {
+        'schema_version', 'status', 'cutoff_ns', 'source',
+        'local_surface_manifest', 'mtf_cache_manifest', 'span_reuse_result',
+        'fields', 'surfaces', 'test_data_used', 'model_forwards', 'optimizer_steps'}
+         and manifest['schema_version'] == EMA_DELTA_MANIFEST_SCHEMA
+         and manifest['status'] == 'COMPLETE'
+         and manifest['cutoff_ns'] == result['cutoff_ns']
+         and manifest['source'] == result['source']
+         and manifest['surfaces'] == result['surfaces']
+         and manifest['fields'] == dict(local=EMA_DELTA_LOCAL_FIELD,mtf=EMA_DELTA_MTF_FIELD)
+         and manifest['test_data_used'] is False
+         and manifest['model_forwards'] == manifest['optimizer_steps'] == 0,
+         'EMA_MANIFEST_BINDING')
+    lanes = {'local', *TIMEFRAMES}
+    need(type(marker['sidecars']) is dict and type(bundle['payloads']) is dict
+         and type(manifest['surfaces']) is dict
+         and set(marker['sidecars']) == set(bundle['payloads'])
+             == set(manifest['surfaces']) == lanes,
+         'EMA_SIX_SURFACES')
+    def digest(value, dtype):
+        return hashlib.sha256(np.ascontiguousarray(value,dtype=dtype).tobytes()).hexdigest()
+    selected = {}
+    for lane in ('local', *TIMEFRAMES):
+        item = manifest['surfaces'][lane]
+        payload = bundle['payloads'][lane]
+        need(type(item) is dict and set(item) == {
+            'artifact', 'span_artifact', 'row_indices_sha256',
+            'times_ns_sha256', 'delta_5_atr_sha256', 'rows',
+            'first_time_ns', 'last_time_ns', 'old_slope_parity_rows'}
+             and item['artifact'] == marker['sidecars'][lane]
+             and type(payload) is dict
+             and set(payload) == {'row_indices','times_ns','delta_5_atr'},
+             'EMA_SURFACE_KEYS:' + lane)
+        rows, times, values = (payload[k] for k in
+            ('row_indices','times_ns','delta_5_atr'))
+        need(all(isinstance(a,np.ndarray) and a.flags.c_contiguous for a in
+                 (rows,times,values))
+             and rows.dtype == times.dtype == np.int64
+             and values.dtype == np.float32
+             and rows.ndim == times.ndim == values.ndim == 1
+             and rows.shape == times.shape == values.shape
+             and len(rows) > 0 and np.all(np.diff(rows) == 1)
+             and np.all(np.diff(times) > 0) and np.isfinite(values).all()
+             and type(item['rows']) is int and item['rows'] == len(rows)
+             and type(item['first_time_ns']) is int and item['first_time_ns'] == int(times[0])
+             and type(item['last_time_ns']) is int and item['last_time_ns'] == int(times[-1])
+             and type(item['old_slope_parity_rows']) is int
+             and item['old_slope_parity_rows'] >= 0
+             and digest(rows,'<i8') == item['row_indices_sha256']
+             and digest(times,'<i8') == item['times_ns_sha256']
+             and digest(values,'<f4') == item['delta_5_atr_sha256'],
+             'EMA_SURFACE_ARRAYS:' + lane)
+        span = span_payloads[lane]
+        at = exact_span_positions(rows,times,span['row_indices'],span['times_ns'])
+        if later_coverage is not None:
+            need(item['span_artifact'] == later_coverage['physical_sidecars'][lane]
+                 and np.array_equal(rows,span['row_indices'])
+                 and np.array_equal(times,span['times_ns']),
+                 'EMA_LATER_SPAN_REF_AND_AXES:' + lane)
+        selected[lane] = owned_readonly(values[at],np.float32)
+    return selected
+
+
 @dataclass(frozen=True)
 class QualifiedAnchorSpanInputs:
     view_sha256: str
@@ -339,7 +448,7 @@ def build_anchor_span_inputs(view, *, entry_sequence_source, snap_x, ctx_cont, c
                              parent_signal_names, parent_mtf_names, parent_mtf_values,
                              parent_mtf_times, span_payloads, physical_populations,
                              unobserved_units_profile, later_coverage=None, later_axes=None,
-                             later_sidecar_refs=None):
+                             later_sidecar_refs=None, ema_delta_bundle=None):
     """Compose TRAIN sidecars, or a separately qualified fixed later panel.
 
     Later envelopes remain contiguous so the existing native window owner sees
@@ -355,9 +464,18 @@ def build_anchor_span_inputs(view, *, entry_sequence_source, snap_x, ctx_cont, c
          and set(entry_sequence_source)=={'signal','times_ns','sample_positions','audit'},'LOCAL_SOURCE_KEYS')
     profile=owners.compile_full_ta_entry_execution_profile()
     parent_signal=list(parent_signal_names);parent_mtf=list(parent_mtf_names)
+    additive = 'ema_delta_input_extension' in view
+    need(additive == (ema_delta_bundle is not None), 'EMA_BUNDLE_REQUIRED_OR_UNEXPECTED')
     new_local=['chart.'+name for name in SPAN_FIELDS]
+    new_mtf=list(SPAN_FIELDS)
+    if additive:
+        need(EMA_DELTA_LOCAL_FIELD in profile['source_field_names']['signal']
+             and EMA_DELTA_MTF_FIELD in htf.MULTI_TF_PER_BAR_FEATURES_V4,
+             'EMA_CANONICAL_FIELD')
+        new_local.append(EMA_DELTA_LOCAL_FIELD)
+        new_mtf.append(EMA_DELTA_MTF_FIELD)
     expected_parent_signal = [n for n in profile['source_field_names']['signal'] if n not in new_local]
-    expected_parent_mtf = [n for n in htf.MULTI_TF_PER_BAR_FEATURES_V4 if n not in SPAN_FIELDS]
+    expected_parent_mtf = [n for n in htf.MULTI_TF_PER_BAR_FEATURES_V4 if n not in new_mtf]
     need(parent_signal == expected_parent_signal and parent_mtf == expected_parent_mtf,
          'EXACT_PARENT_NAMES')
     signal_parent_width = len(expected_parent_signal)
@@ -405,6 +523,11 @@ def build_anchor_span_inputs(view, *, entry_sequence_source, snap_x, ctx_cont, c
              and np.all(available<coverage_cutoff),'QUALIFIED_POPULATION:' + lane)
         selected[lane]=(owned_readonly(rows,np.int64),owned_readonly(clocks,np.int64),
                         owned_readonly(values,np.float32))
+    if additive:
+        ema_values = _require_ema_delta_bundle(view,ema_delta_bundle,span_payloads,later_coverage)
+        selected={lane:(rows,clocks,owned_readonly(
+            np.column_stack((spans,ema_values[lane])),np.float32))
+            for lane,(rows,clocks,spans) in selected.items()}
     local_rows,local_times,local_spans=selected['local']
     need(np.all(local_rows>=0) and np.all(local_rows<len(source))
          and np.array_equal(times[local_rows],local_times),'LOCAL_PHYSICAL_CLOCK')
@@ -412,7 +535,7 @@ def build_anchor_span_inputs(view, *, entry_sequence_source, snap_x, ctx_cont, c
                    if view.get('full_ta_feature_profile') is True
                    else profile['source_field_names']['signal'])
     local_columns=column_plan(parent_signal,new_local,local_names)
-    mtf_columns=column_plan(parent_mtf,SPAN_FIELDS,htf.MULTI_TF_PER_BAR_FEATURES_V4)
+    mtf_columns=column_plan(parent_mtf,new_mtf,htf.MULTI_TF_PER_BAR_FEATURES_V4)
     frames,mapped_rows,backings={},{},{}
     for tf in TIMEFRAMES:
         rows,clock,spans=selected[tf]
