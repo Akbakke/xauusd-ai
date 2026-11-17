@@ -1,0 +1,32 @@
+{
+  "schema_version": "gx1_ta_apr_jun_paired_fit_admission_v1",
+  "decision": "ADMIT_EXACT_ONE_USE_CORRECTED_NON_GC_FOLD2_PAIRED_S_F_STRUCTURE_FIT_ONLY",
+  "authorization": "standing_operator_approval_2026-11-17_for_local_zero_cost_non_GC_without_repeat_yes",
+  "plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_INTEGRATED_APR_JUN_PAIRED_FIT_20261117_002.json",
+    "sha256": "10daa0b49a18f72abebfeb3549ca4330986209adf473685e2afe5c4ce8850839"
+  },
+  "source_base_commit": "3db9549b8ee1691e280dfd2d6e545a954e5a55ca",
+  "prior_physical_windows_boot_id": 658,
+  "admitted_physical_windows_boot_id": 659,
+  "one_use_limit": {
+    "invocations": 1,
+    "fit_rows": 47338,
+    "score_rows": 17536,
+    "max_optimizer_updates": 2959,
+    "max_model_forwards": 5151,
+    "max_script_seconds": 10500,
+    "outer_guard_seconds": 10800,
+    "cgroup_memory": "20G",
+    "swap": "512M",
+    "gpu_power_limit_max_w": 300,
+    "gpu_actual_draw_stop_w": 310,
+    "gpu_core_temperature_stop_c": 85
+  },
+  "prior_failed_plan_consumed": true,
+  "full_gc_paused": true,
+  "test_data_used": false,
+  "entry_exit_or_trade_authorized": false,
+  "relaunch_authorized": false,
+  "economic_edge_proven": false
+}

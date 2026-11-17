@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_APR_JUN_PAIRED_FIT_002_PREPARED_NOT_ADMITTED.
+TA_APR_JUN_PAIRED_FIT_002_ADMITTED_ONE_USE_NOT_STARTED.
 Brukeren fjernet kravet om nytt «ja» for hver stor lokal ikke-GC-kjøring.
 Integrator innrømmet plan002 SHA
 `330e4cb1dd4c76980264b44a32f091e67c43142819514901f60068abed102783`
@@ -716,14 +716,14 @@ Den eneste rettelsen etter plan001 er én felles inputref-funksjon med
 Distinkt plan002 SHA
 `10daa0b49a18f72abebfeb3549ca4330986209adf473685e2afe5c4ce8850839`
 har samme modell, mål, data, tap, score og ressursgrenser, men ny kilde og
-engangsidentitet. Den er forberedt uten treningsadgang; fysisk boot-ID må
-være over 658 før innrømmelse. Plan001 forblir urørt og konsumert.
+engangsidentitet. Metadata-preflight besto med eksakt inputref-nøkkelsett, null CLAIM og
+null forward. Fysisk boot-ID 659 er kontrollert. Kun plan002 er nå innrømmet
+for én voktet kjøring; plan001 forblir urørt og konsumert.
 
 ## Neste steg
 
-1. Kjør metadata-preflight på plan002 fra ren kilde. Kontroller ny fysisk
-   boot og innrøm bare denne ene voktede kjøringen. Følg stabil drift
-   omtrent hver time; lukk treningsgaten på terminalutfallet.
+1. Start plan002 én gang under voktede grenser. Følg stabil drift omtrent
+   hver time, og lukk treningsgaten på terminalutfallet.
 2. Forhåndsbind én kronologisk integrert fem-TF F/S/strukturkampanje med
    både native og varierende S-spørringshorisonter. Bruk separat målt
    retning per TF, de 6 746 kjente M5-naboparene, faste proper scores,
