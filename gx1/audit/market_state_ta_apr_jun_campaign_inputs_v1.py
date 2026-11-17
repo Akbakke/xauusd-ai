@@ -111,6 +111,8 @@ def cold_campaign_input_refs():
             'coverage_result': ref(COLD_ROOT / 'RESULT.json'),
             'coverage': ref(COLD_ROOT / 'COVERAGE.json'),
             'coverage_terminal': ref(COLD_ROOT / 'TERMINAL.json'),
+            'prefix_span_result': ref(COLD_PREFIX_SPANS / 'RESULT.json'),
+            'prefix_span_terminal': ref(COLD_PREFIX_SPANS / 'TERMINAL.json'),
             'fit_review': ref(FIT_REVIEW)}
 
 

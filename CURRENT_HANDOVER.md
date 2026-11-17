@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-ACTIVE_M5_COLD_MODEL_INPUT_PREFLIGHT_PENDING_NO_EDGE.
+ACTIVE_M5_COLD_FOLD1_PRIOR_ADMITTED_NO_EDGE.
 Første direkte kostete M5-fit valgte 11 486 SHORT, 0 LONG og
 6 050 FLAT på 17 536 gjenbrukte Apr–jun-rader. Kjente valgte
 terminalutfall ga −0,578 bps i snitt etter oppgitte kostnader;
@@ -57,6 +57,13 @@ Beslutningstapet er nå endret i kilde, men ingen ny modell er trent eller skår
   dekker 17 489 modne Oct–Dec-rader med 1-rads hale. Null modellforward,
   optimizersteg eller normaliseringsfit. Dette beviser bare fysisk dekning;
   faktisk kald normalisert FIT-/SCORE-gather og fersk initial er ubevist.
+- Den gamle Fold1 S/F-prioren har eldre tapskontrakt og avvises av dagens
+  kalde inputvakt. Ny eksakt CPU-plan `TA_M5_COLD_FOLD1_ENDPOINT_PRIORS_20261117_001`
+  (SHA `c192038bcf0f2d3c20288130c72dbcb405a537d50b63debb43a573e7740e3b37`) er innrømmet for 29 574 modne
+  Fold1-rader, dagens kontrakt og null modellforward/optimizersteg. Først
+  ren preflight, så én capped kjøring. Ingen prior eller kald gather er ennå
+  produsert; trening er stengt. To manglende Fold1-prefikskvitteringer i
+  kald inputbinding ble rettet og fokuserte tester besto.
 - Oppryddingsrevisjonen fant ingen repo-fil eller DATA/RUNS-artefakt som var
   bevist trygg å slette. Målt ledig plass var 543 GB; ingen sletting ble gjort.
 - M5 er beslutningspunkt. Den siste matchede modellen valgte 0 LONG,
@@ -71,19 +78,15 @@ Beslutningstapet er nå endret i kilde, men ingen ny modell er trent eller skår
   kjente utviklingsrader (60,8 % LONG-bedre ved OPP, 40,7 % ved NED),
   mens den eldre trente F-utgangen hadde AUC 0,493 for dette sidevalget.
   Dette beviser verken indikator-predikerbarhet eller Edge.
-- En tidligere, full TA-normalisering på 29 574 rader gjennom 29.09.2024
-  har eksakte aksehash-matcher mot dagens FIT-mål. Et kaldt fem-TF-view
-  kan bindes lesende med samme fysiske TA-felt som dagens view, men er
-  ikke materialisert som ny innrømmet kilde. Gammelt senere Fold1-opptak
-  dekker bare 4 096 utvalgte rader og er bundet til gammelt view-hash.
-- Ved eventuell gjenopptakelse: kvalifiser senere input mot kaldt view
-  med alle valgte utviklingsrader før én ny engangsplan for samlet M5/
-  M15/H1/H4/D1-læring. Dagens faste `later_panel` har ingen slik full
-  Fold1-dekning. Fold2-TRAIN-sidecars ser ut til å dekke hele den modne
-  perioden, men gjenbruk som senere kald dekning er ikke kvalifisert.
-  Ikke bytt hash eller omgå `ANCHOR_SPAN_PREFIX_ONLY`/
-  `LATER_COVERAGE_BINDING`. Historisk score er utvikling; en egen M5-
-  forward-journal trenger operatørvedtak før uavhengig Edge kan måles.
+- Den gjenbrukte TA-normaliseringen har 29 574 rader gjennom 29.09.2024
+  og eksakte aksehash-matcher mot dagens FIT-mål. Det kalde fem-TF-viewet
+  er materialisert med full fysisk Oct–Dec-dekning. Gammelt Fold1-opptak
+  dekker bare 4 096 utvalgte rader under et annet view-hash og brukes ikke.
+- Full fysisk senere dekning er nå kvalifisert for det kalde viewet, men
+  faktisk normalisert FIT-/SCORE-gather og fersk initial må bestå før én
+  samlet M5/M15/H1/H4/D1-plan kan innrømmes. Ikke bytt hash eller omgå
+  `ANCHOR_SPAN_PREFIX_ONLY`/`LATER_COVERAGE_BINDING`. Historisk score er
+  utvikling; uavhengig Edge krever separat forward-journalvedtak.
 
 Plan001 SHA `4016255217a3c87bdc84715b6e65707090fa09dcaa1e70a3a1b3455bdac84621`
 ble CLAIM-et under fysisk boot 656, men feilet i initial TRAIN-strukturskår
