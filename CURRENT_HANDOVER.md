@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_APR_JUN_M1_STRUCTURE_INPUT_002_COMPLETE_CONSUMED_NO_MODEL.
+TA_APR_JUN_PAIRED_PREFLIGHT_ADMITTED_NO_TRAINING.
 Brukeren fjernet kravet om nytt «ja» for hver stor lokal ikke-GC-kjøring.
 Integrator innrømmet plan002 SHA
 `330e4cb1dd4c76980264b44a32f091e67c43142819514901f60068abed102783`
@@ -674,10 +674,24 @@ oppfylte ikke funksjonskravet. Full GC er nå pauset; historiske målinger
 beholdes uten ny GC-diagnose, kildeendring eller kjøring. Ingen trening,
 Entry, TEST eller handel åpnes av denne presiseringen.
 
+Parede S-spørringer er nå kodet for én samlet ikke-GC-kampanje: ett
+encoderpass gir både label-blindt samplet S og native S på alle fem TF, med
+separat native F og M5-struktur. Fast tap er 0,5 samplet S + 0,5 native S
++ 1,0 F + 0,25 struktur. Dermed får de tidligere nesten fraværende
+native H4/D1-sidene gradient uten at M5-S dubleres. Sju fokuserte
+modell-/tapstester består, inkludert nullgradient for ukjente mål og
+M5-paritet. Ny Fold2-normalisert april–juni-visning og én felles inputadapter
+binder 47 338 TRAIN-rader og 17 536 faste score-rader; adapterens faktiske
+modellbatch er ennå ikke kjørt. Én eksakt CPU-preflight, plan SHA
+`54c4e9b8670d2103afadd32798248695678bd6a6b24823a8e3b503e5490c9f8f`,
+er innrømmet uten trening. Den skal lese ni faktiske score-flater og kontrollere
+normalisering, M1-masker, mål og paret forward før en eventuell native fit.
+Ingen Edge, kampanjefit eller ny modellkvittering er påstått.
+
 ## Neste steg
 
-1. Bind én faktisk normalisert ni-flaters Apr–jun-modellbatch i preflight
-   for den helhetlige kampanjen, med ny kildevisning, M1-bane og masker.
+1. Kjør og lukk den innrømmede engangs-CPU-preflighten på én faktisk
+   normalisert ni-flaters Apr–jun-batch med M1-bane og masker.
    Bruk ikke Jan–mar til modellvalg.
 2. Forhåndsbind én kronologisk integrert fem-TF F/S/strukturkampanje med
    både native og varierende S-spørringshorisonter. Bruk separat målt

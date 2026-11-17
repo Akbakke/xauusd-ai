@@ -102,9 +102,14 @@ class IntegratedTAMarketStateModel(nn.Module):
         _need(isinstance(features, Mapping), 'FEATURE_MAPPING')
         hidden = self.dual.encode_features(**features)
         batch, tf_count, width = hidden.shape
+        paired = isinstance(query_k, torch.Tensor) and query_k.ndim == 3
+        query_grid = None
+        if isinstance(query_k, torch.Tensor):
+            query_grid = query_k if paired else query_k[:, None, :]
         _need(tf_count == len(TIMEFRAMES)
               and isinstance(query_k, torch.Tensor) and query_k.dtype == torch.int64
-              and query_k.shape == (batch, tf_count) and query_k.device == hidden.device
+              and query_grid.shape == (batch, 2 if paired else 1, tf_count)
+              and query_k.device == hidden.device
               and isinstance(m1_path_bps, torch.Tensor)
               and m1_path_bps.dtype == torch.float32
               and m1_path_bps.shape == (batch, M1_BARS, M1_FIELDS)
@@ -122,17 +127,22 @@ class IntegratedTAMarketStateModel(nn.Module):
                             m1_observed.to(torch.float32)), dim=-1)
         gate = torch.tanh(self.m1_tf_gate(source).reshape(batch, tf_count, width))
         fused = hidden * (1.0 + gate)
-        state_raw = self.dual.state_model.decode_raw_query_grid(
-            fused, query_k[:, None, :])[:, 0]
+        state_grid = self.dual.state_model.decode_raw_query_grid(fused, query_grid)
+        state_raw = state_grid[:, 0]
         future_raw = self.dual.decode_native_F_raw(fused)
         structure_raw = self.m5_structure_head(fused[:, 0])
         _need(structure_raw.shape == (batch, len(STRUCTURE_FIELDS))
               and bool(torch.isfinite(structure_raw).all()), 'STRUCTURE_LOGITS')
-        return {'state_activity_side_logits': state_raw,
-                'state_log_probs': factorized_log_probabilities(state_raw),
-                'future_activity_side_logits': future_raw,
-                'future_log_probs': factorized_log_probabilities(future_raw),
-                'm5_structure_hit_logits': structure_raw}
+        output = {'state_activity_side_logits': state_raw,
+                  'state_log_probs': factorized_log_probabilities(state_raw),
+                  'future_activity_side_logits': future_raw,
+                  'future_log_probs': factorized_log_probabilities(future_raw),
+                  'm5_structure_hit_logits': structure_raw}
+        if paired:
+            native_raw = state_grid[:, 1]
+            output['state_native_activity_side_logits'] = native_raw
+            output['state_native_log_probs'] = factorized_log_probabilities(native_raw)
+        return output
 
 
 def masked_structure_hit_sums(logits: torch.Tensor, hits: torch.Tensor,

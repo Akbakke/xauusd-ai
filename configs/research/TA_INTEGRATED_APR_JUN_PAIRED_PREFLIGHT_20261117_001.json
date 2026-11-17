@@ -1,0 +1,59 @@
+{
+  "batch_positions": [
+    0,
+    16
+  ],
+  "inputs": {
+    "base_view": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_FOLD2_APR_JUN_FEATURE_VIEW_20261117_001.json",
+      "sha256": "2e8d3e2aec63c423a1a85d1391e02edbe8dc2864fa687ea11e73a9af1d2e6eda"
+    },
+    "fit_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_INTEGRATED_FOLD2_FIT_INPUTS_REVIEW_20261116.json",
+      "sha256": "25b8d4749e5f1ac4baaefe0489b882f7f7188fcd6964f55e495099614fd443c6"
+    },
+    "issue_result": {
+      "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_APR_JUN_ISSUE_INPUTS_20261117_002/RESULT.json",
+      "sha256": "7b16159e3a2547addf5662fb889b92c271a95a3b196062dfa7bdb60a799c0c6c"
+    },
+    "issue_terminal": {
+      "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_APR_JUN_ISSUE_INPUTS_20261117_002/TERMINAL.json",
+      "sha256": "9269091134848e2aec540d4aeead46bd5f7d6797e0c8ecd366b78f02ef02d568"
+    },
+    "model_view": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_FOLD2_APR_JUN_INTEGRATED_VIEW_20261117_001.json",
+      "sha256": "1a101deb62a99e1fe0ccd3f5c87b20c28140b2ef78a7ae8879361bb30e343db7"
+    },
+    "physical_coverage": {
+      "path": "/home/andre2/GX1_RUNS/TA_FOLD2_APR_JUN_INPUTS_20261117_001/COVERAGE.json",
+      "sha256": "c9e9ed663d9ed3a72880e279b1a363cc7d9ae34876e26f253ab802d4ecfca9ab"
+    },
+    "physical_result": {
+      "path": "/home/andre2/GX1_RUNS/TA_FOLD2_APR_JUN_INPUTS_20261117_001/RESULT.json",
+      "sha256": "f71cf8ab06af1f4ba3706d61ee9d4d6e961e6ae63b42a84f78390b5b4efda513"
+    },
+    "physical_terminal": {
+      "path": "/home/andre2/GX1_RUNS/TA_FOLD2_APR_JUN_INPUTS_20261117_001/TERMINAL.json",
+      "sha256": "1cabcfb2be30e1d1f9e25c892073317fd489de749799d8379957dbc226546216"
+    }
+  },
+  "max_seconds": 900,
+  "model_contract_sha256": "70a0497b27ba0ab45277ba622443ab2fca36a448357f1ccb3158689193f8bc82",
+  "model_forwards": 1,
+  "optimizer_steps": 0,
+  "output_root": "/home/andre2/GX1_RUNS/TA_INTEGRATED_APR_JUN_PAIRED_PREFLIGHT_20261117_001",
+  "paired_objective_sha256": "33cb52383bef97776d70b30ff799c49b2fa8e1daa64daf392328b568682d055a",
+  "schema_version": "gx1_ta_integrated_apr_jun_paired_preflight_plan_v1",
+  "score_rows": 17536,
+  "source_base_commit": "a72af6367233ab4a396462533972cf716109f301",
+  "source_owners": {
+    "gx1/audit/market_state_ta_apr_jun_campaign_inputs_v1.py": "affd84d5d6aba7f3d925b9e3eba9155b44ebfd9d0d766bee3f010d3cd41e9874",
+    "gx1/audit/qualify_market_state_ta_apr_jun_paired_preflight_v1.py": "85b55e84ae058bafafe2aadea9a891a18fabfd8bbbaa99ba05bd753caff406c0",
+    "gx1/contracts/market_state_ta_decoder_view_rebind_v1.py": "56d5a50b24834ae3c6655bfcc97878cf64281d8e2b4c07af1163d3bd4c8375df",
+    "gx1/contracts/market_state_ta_integrated_model_v1.py": "384524fccc6ba69d48c53debde814f4fe9ae41a504bd91e98c011b3b16fe091d",
+    "gx1/contracts/market_state_ta_integrated_paired_objective_v1.py": "d70361c812eb28b62c29e72d6f60a24c48b97827a6495dc695378f2eaaea5fe0"
+  },
+  "stage": "ta_integrated_apr_jun_paired_preflight_20261117_001",
+  "test_data_used": false,
+  "view_sha256": "8c58f3c8b13a6d13143c1b5580051f0386fc5201452493a32ae072cd54b7cfd9"
+}

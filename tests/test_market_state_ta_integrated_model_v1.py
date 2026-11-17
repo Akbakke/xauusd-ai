@@ -99,3 +99,24 @@ def test_missing_m1_values_fail_and_structure_mask_has_zero_unknown_gradient(mon
     report['loss_sums'].sum().backward()
     assert logits.grad[0, 1] == logits.grad[1, 0] == 0
     assert logits.grad[0, 0] != 0 and logits.grad[1, 1] != 0
+
+
+def test_paired_native_and_sampled_queries_share_one_encoder(monkeypatch):
+    calls = []
+    model = _model(monkeypatch, calls)
+    args = _inputs()
+    sampled = torch.tensor([[1, 1, 2, 4, 24]] * 2, dtype=torch.int64)
+    native = torch.tensor([NATIVE_K] * 2, dtype=torch.int64)
+    paired = model(**{**args, 'query_k': torch.stack((sampled, native), dim=1)})
+    assert calls == [1]
+    assert paired['state_native_activity_side_logits'].shape == (2, 5, 2)
+    assert paired['state_native_log_probs'].shape == (2, 5, 3)
+    calls.clear()
+    old_sampled = model(**{**args, 'query_k': sampled})
+    old_native = model(**{**args, 'query_k': native})
+    assert calls == [1, 1]
+    assert torch.equal(paired['state_activity_side_logits'], old_sampled['state_activity_side_logits'])
+    torch.testing.assert_close(paired['state_native_activity_side_logits'],
+                               old_native['state_activity_side_logits'], atol=1e-5, rtol=1e-6)
+    assert torch.equal(paired['future_activity_side_logits'], old_native['future_activity_side_logits'])
+    assert torch.equal(paired['m5_structure_hit_logits'], old_native['m5_structure_hit_logits'])
