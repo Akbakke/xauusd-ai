@@ -238,5 +238,9 @@ trening. Visningsfil-SHA `638b3706ebc4566439599e27826cd00322d8e0156166333e507a47
 `0372b18d1fd80e7d8ae5efd0fadd1d56413ff18d406a5dc1a96c85756b6c2139`. Alle seks faktiske EMA-arkiver besto direkte
 inputvakt. Første bygging av full-gather-plan avdekket én konkret kontraktfeil:
 constructorens 2 728 råfelter ble forvekslet med 318 TA-projiserte felter.
-Ingen plan, CLAIM eller gather-jobb ble opprettet. Rett bare denne kontrollen,
-bygg så planen og kjør reell preflight før én eventuell kapslet gather.
+Feilen er rettet med egen regresjonstest; ingen gammel jobb ble claimet.
+Ny engangsplan `TA_M5_EMA_DELTA_FULL_GATHER_20261118_001`, SHA
+`a8d1a39819402ca8fe80bb53e459f8431308fc7ea3153ac0a6e7ef65f2ff4864`, er innrømmet som targetfri
+FIT/later inputaudit: 47 063 valgte rader, 2 943 B16/tail-batcher, alle åtte
+rå og normaliserte flater. Ingen modell, optimering eller TEST er åpnet.
+Neste steg er ren preflight og deretter høyst én kapslet auditkjøring.
