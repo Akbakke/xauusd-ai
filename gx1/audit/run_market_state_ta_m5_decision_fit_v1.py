@@ -26,6 +26,8 @@ COLD_STAGE = 'ta_m5_cold_joint_fit_20261117_001'
 COLD_PLAN = REPO / 'configs/research/TA_M5_COLD_JOINT_FIT_20261117_001.json'
 COLD_ROOT = Path('/home/andre2/GX1_RUNS/TA_M5_COLD_JOINT_FIT_20261117_001')
 COLD_TARGETS = Path('/home/andre2/GX1_RUNS/TA_M5_COST_PATH_TARGETS_20261117_001/FIT_TARGETS.npz')
+COLD_RAW_ROOT = Path('/home/andre2/GX1_RUNS/TA_M5_COLD_MODEL_INPUT_GATHER_20261117_001')
+COLD_INITIAL_ROOT = Path('/home/andre2/GX1_RUNS/TA_M5_COLD_INITIAL_PREFLIGHT_20261117_001')
 COLD_SCORE_BATCHES = (COLD_SCORE_ROWS + BATCH - 1) // BATCH
 COLD_FIT_BATCHES = (COLD_FIT_ROWS + BATCH - 1) // BATCH
 SOURCES = tuple(dict.fromkeys((*PAIRED_SOURCES,
@@ -400,12 +402,18 @@ def inspect_cold(plan_sha, *, admitted):
     """Bind a new cold plan to qualified full later coverage and Fold1-only loss."""
     import numpy as np
     from gx1.contracts.market_state_ta_m5_decision_v1 import contract, fit_statistics
+    from gx1.contracts.market_state_ta_integrated_paired_objective_v1 import contract as paired_contract
     need(ref(COLD_PLAN)['sha256'] == plan_sha and not COLD_ROOT.exists(), 'COLD_PLAN_OUTPUT')
     plan = read(ref(COLD_PLAN))
     expected_inputs = {**cold_campaign_input_refs(),
         'fit_targets': ref(COLD_TARGETS),
         'target_result': ref(COLD_TARGETS.parent / 'RESULT.json'),
-        'target_terminal': ref(COLD_TARGETS.parent / 'TERMINAL.json')}
+        'target_terminal': ref(COLD_TARGETS.parent / 'TERMINAL.json'),
+        'raw_plan': ref(REPO / 'configs/research/TA_M5_COLD_MODEL_INPUT_GATHER_20261117_001.json'),
+        'raw_result': ref(COLD_RAW_ROOT / 'RESULT.json'),
+        'raw_terminal': ref(COLD_RAW_ROOT / 'TERMINAL.json'),
+        'initial_result': ref(COLD_INITIAL_ROOT / 'RESULT.json'),
+        'initial_terminal': ref(COLD_INITIAL_ROOT / 'TERMINAL.json')}
     need(plan['schema_version'] == 'gx1_ta_m5_cold_joint_fit_plan_v1'
          and plan['stage'] == COLD_STAGE and plan['status'] == 'PREPARED_NOT_ADMITTED'
          and plan['output_root'] == str(COLD_ROOT)
@@ -419,9 +427,27 @@ def inspect_cold(plan_sha, *, admitted):
          and plan['max_optimizer_updates'] == COLD_FIT_BATCHES
          and plan['max_seconds'] == 10500 and plan['seed'] == SEED
          and plan['fresh_initial'] is True and plan['test_data_used'] is False
+         and plan['economic_edge_proven'] is False
+         and plan['training_authorized'] is False
+         and plan['test_authorized'] is False
+         and plan['online_authorized'] is False
+         and plan['broker_access_allowed'] is False
+         and plan['horizon_minutes'] == [1, 5, 15, 60, 240, 480]
+         and plan['capped_execution'] == {'class': 'trainer', 'memory': '20G',
+                                           'swap': '512M'}
+         and plan['model_forwards'] == COLD_FIT_BATCHES + 2 * COLD_SCORE_BATCHES
+         and plan['cold_paired_objective_sha256'] == paired_contract(fold_id=1)['contract_sha256']
+         and plan['initial_model_state_sha256'] ==
+             '803214ff3b5b5724cb1c1488e5ae29c1c17d479ca8db23d51301a45a6094629e'
+         and plan['fit_statistics_sha256'] ==
+             '284b244f244ee0e08297d89b1d5edf9865926fa944946d32662e06396a64fee2'
+         and plan['core_contract_sha256'] ==
+             '70a0497b27ba0ab45277ba622443ab2fca36a448357f1ccb3158689193f8bc82'
+         and plan['decision_contract_sha256'] ==
+             'f76320d70a611c25f5c569dc22df3c8d4feba4935c7f907663fbcf23e8815dfc'
          and plan['inputs'] == expected_inputs
          and plan['view_sha256'] == COLD_VIEW_SHA256
-         and plan['prior_physical_windows_boot_id'] >= 663
+         and plan['prior_physical_windows_boot_id'] == 663
          and plan['required_invocation_windows_boot_id_greater_than']
              == plan['prior_physical_windows_boot_id']
          and source_clean(plan), 'COLD_FIXED_SCOPE_SOURCE')
@@ -448,6 +474,53 @@ def inspect_cold(plan_sha, *, admitted):
          and target_terminal['exit_code'] == 0
          and target_terminal['result'] == expected_inputs['target_result'],
          'COLD_REUSED_RESULTS')
+    raw = read(expected_inputs['raw_result'])
+    raw_terminal = read(expected_inputs['raw_terminal'])
+    initial = read(expected_inputs['initial_result'])
+    initial_terminal = read(expected_inputs['initial_terminal'])
+    cold_refs = cold_campaign_input_refs()
+    raw_inputs = {**cold_refs, 'fit_targets': expected_inputs['fit_targets']}
+    initial_inputs = {**raw_inputs, **{key: expected_inputs[key] for key in
+        ('raw_plan', 'raw_result', 'raw_terminal')}}
+    need(raw['status'] == raw_terminal['status'] == 'COMPLETE'
+         and raw['plan'] == expected_inputs['raw_plan']
+         and raw['inputs'] == raw_inputs
+         and raw['view_sha256'] == COLD_VIEW_SHA256
+         and raw['ta_prefix_normalization_sha256'] ==
+             plan['ta_prefix_normalization_sha256'] ==
+             '6c882086902701d5c9503d0c77c72c8e291ed65c44d065171c2d27afa500c3f6'
+         and raw['raw_values_not_normalized'] is True
+         and [batch['name'] for batch in raw['batches']] ==
+             ['FIT_B16', 'FIT_TAIL6', 'SCORE_B16', 'SCORE_TAIL1']
+         and [batch['rows'] for batch in raw['batches']] == [16, 6, 16, 1]
+         and raw['model_constructions'] == raw['model_forwards'] ==
+             raw['optimizer_steps'] == raw['normalization_fits'] == 0
+         and raw['test_data_used'] is False and raw['source_unchanged'] is True
+         and raw_terminal['exit_code'] == 0
+         and raw_terminal['result'] == expected_inputs['raw_result']
+         and initial['status'] == 'COMPLETE_COLD_INITIAL_FIT_SCORE_NO_FIT'
+         and initial['inputs'] == initial_inputs
+         and initial['core_contract_sha256'] == plan['core_contract_sha256']
+         and initial['decision_contract_sha256'] ==
+             initial['fit_loss_contract_sha256'] == plan['decision_contract_sha256']
+         and initial['cold_paired_objective_sha256'] ==
+             plan['cold_paired_objective_sha256']
+         and initial['fit_statistics_sha256'] == plan['fit_statistics_sha256']
+         and initial['initial_model_state_sha256'] == plan['initial_model_state_sha256']
+         and initial['scope']['fit_rows'] == COLD_FIT_ROWS
+         and initial['scope']['score_parent_start'] == COLD_SCORE_START
+         and initial['scope']['view_sha256'] == COLD_VIEW_SHA256
+         and initial['fresh_model_constructions'] == 1
+         and initial['model_forwards'] == 2
+         and initial['optimizer_constructions'] == initial['optimizer_steps'] ==
+             initial['backward_calls'] == initial['normalization_fits'] == 0
+         and bool(initial['normalized_numeric_surfaces'])
+         and initial['source_unchanged'] is True
+         and initial['test_data_used'] is False
+         and initial_terminal['status'] == 'COMPLETE'
+         and initial_terminal['exit_code'] == 0
+         and initial_terminal['result'] == expected_inputs['initial_result'],
+         'COLD_RAW_AND_INITIAL_RECEIPTS')
     full = load_targets(expected_inputs['fit_targets'], TRAIN_ROWS)
     fit = target_slice(full, 0, COLD_FIT_ROWS)
     later = target_slice(full, COLD_SCORE_START, TRAIN_ROWS)
@@ -459,9 +532,33 @@ def inspect_cold(plan_sha, *, admitted):
          and len(later['parent_rows']) == COLD_SCORE_ROWS, 'COLD_FIT_STATISTICS')
     policy = json.loads((REPO / 'NEXT_RUN_POLICY.json').read_text())
     gate = policy.get(COLD_STAGE, {})
+    predecessors = (
+        ('ta_m5_cold_full_later_inputs_20261117_001',
+         'COMPLETE_CONSUMED_PHYSICAL_COLD_LATER_COVERAGE_NO_MODEL',
+         'coverage_result', 'coverage_terminal'),
+        ('ta_m5_cold_fold1_endpoint_priors_20261117_001',
+         'COMPLETE_CONSUMED_EXACT_FOLD1_CURRENT_PRIOR_NO_MODEL',
+         'prior_result', 'prior_terminal'),
+        ('ta_m5_cold_model_input_gather_20261117_001',
+         'COMPLETE_CONSUMED_COLD_RAW_FIT_SCORE_GATHER_NO_MODEL',
+         'raw_result', 'raw_terminal'),
+        ('ta_m5_cold_initial_preflight_20261117_001',
+         'COMPLETE_CONSUMED_COLD_INITIAL_FIT_SCORE_NO_TRAINING',
+         'initial_result', 'initial_terminal'))
+    need(all(policy[stage]['status'] == status
+             and policy[stage]['result'] == expected_inputs[result_key]
+             and policy[stage]['terminal'] == expected_inputs[terminal_key]
+             and policy[stage]['remaining_invocations'] == 0
+             and policy[stage]['execution_authorized'] is False
+             and policy[stage]['test_data_used'] is False
+             for stage, status, result_key, terminal_key in predecessors),
+         'COLD_PREDECESSOR_POLICY')
     closed = (policy['full_val_allowed'] is False
               and policy['exit_training_and_evaluation_this_wave'] is False
-              and gate.get('test_data_used') is False)
+              and gate.get('test_data_used') is False
+              and gate.get('test_authorized') is False
+              and gate.get('online_authorized') is False
+              and gate.get('broker_access_allowed') is False)
     if admitted:
         need(closed and policy['training_enabled'] is policy['native_training_enabled'] is True
              and policy['full_epoch_training_allowed'] is policy['native_launch_authorized'] is True
