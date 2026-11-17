@@ -186,6 +186,11 @@ Gjennomgå referanser, importer, tester og eierskap før bevist frakoblet
 repo-kode fjernes. Frigjør DATA/RUNS bare via retention-eieren etter regel 9.
 Teknisk PASS, positivt terminaltall på gjenbrukt utvikling og ufittet tap er
 ikke edge; skill alltid læring, generalisering og økonomi.
+Etter negativ senere score: mål først feilen med eksisterende output. Ingen
+serie av små tapsendringer fulgt av lange fits. Før en ny tung plan må ett
+falsifiserbart edge-spørsmål, stopkriterium og forventet kjøretid fra målt
+throughput være konkret. Stabil ventetid fylles ikke med meldinger eller
+minuttpolling.
 
 Bruk eksisterende fungerende eiere og beståtte kontroller. Rett målte
 blokkeringer og vedtatte designgap fortløpende med minst nødvendig endring;
