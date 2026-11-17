@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_APR_JUN_M1_STRUCTURE_INPUT_ADMITTED_NO_MODEL.
+TA_APR_JUN_M1_STRUCTURE_INPUT_002_ADMITTED_AFTER_001_CONSUMED.
 Brukeren fjernet kravet om nytt «ja» for hver stor lokal ikke-GC-kjøring.
 Integrator innrømmet plan002 SHA
 `330e4cb1dd4c76980264b44a32f091e67c43142819514901f60068abed102783`
@@ -552,13 +552,19 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   TERMINAL-ref står i policy. Dette er fysisk TA-input, ikke en faktisk
   normalisert modellbatch eller Edge.
 
-- Ny engangsplan for lukket M1-bane og M5-topp/bunn-fasit på de samme
-  17 536 Apr–jun-radene er forberedt og innrømmet som 4G/512M CPU-audit,
-  maks 1 800 sekunder. Plan-SHA
-  `15d534feed3cf3852717a7add6e736804789544517b145028944cee14c088748`.
-  Metadata-preflight bandt 31 M1- og 21 M5-kildegrupper, nøyaktig
-  utviklingsakse og fullført fysisk TA-kvittering. Ingen CLAIM, rålesning
-  i ny jobb, modellforward eller optimizersteg ennå.
+- M1-/strukturplan001 SHA
+  `15d534feed3cf3852717a7add6e736804789544517b145028944cee14c088748`
+  ble CLAIM-et én gang og feilet etter 4,96 sekunder før output: closure-
+  filens SHA stemte, men planens binding hadde tre metadatafelt i tillegg
+  til path/SHA; ny leser krevde eksakt tofeltsref. Ingen modellforward,
+  optimizersteg eller M1-/strukturarkiv. Terminal og FAILED er bevart i
+  privat RUNS og referert fra policy; plan001 er konsumert.
+- Minste rettelse normaliserer closure-ref til path/SHA og kontrollerer den
+  allerede i preflight. Ny plan002 SHA
+  `a200d63f4b128d89b7a282bf20a7b6b39a3d57c09237caad0f4b7bfd8dc0c445`
+  har samme 17 536 Apr–jun-rader, 31 M1-/21 M5-kildegrupper og 4G/512M,
+  maks 1 800 sekunder. Den er innrømmet én gang bare for lesende input.
+  Ingen CLAIM, modellforward eller fit på plan002 ennå.
 
 ## Ikke gjort / faktisk hindring
 
@@ -665,9 +671,10 @@ Entry, TEST eller handel åpnes av denne presiseringen.
 
 ## Neste steg
 
-1. Kjør bare den innrømmede Apr–jun M1-/strukturplanen under capped audit.
-   Kontroller terminal og ukjente masker, deretter én faktisk normalisert
-   ni-flaters modellbatch mot ny kildevisning. Ikke bruk Jan–mar til modellvalg.
+1. Kjør bare den nye innrømmede Apr–jun M1-/strukturplan002 under capped
+   audit. Kontroller terminal og ukjente masker, deretter én faktisk
+   normalisert ni-flaters modellbatch mot ny kildevisning. Ikke bruk
+   Jan–mar til modellvalg.
 2. Forhåndsbind én kronologisk integrert fem-TF F/S/strukturkampanje med
    både native og varierende S-spørringshorisonter. Bruk separat målt
    retning per TF, de 6 746 kjente M5-naboparene, faste proper scores,

@@ -12,10 +12,10 @@ import subprocess
 import time
 
 REPO = Path('/home/andre2/src/GX1_CURRENT')
-ROOT = Path('/home/andre2/GX1_RUNS/TA_INTEGRATED_APR_JUN_ISSUE_INPUTS_20261117_001')
-PLAN = REPO / 'configs/research/TA_INTEGRATED_APR_JUN_ISSUE_INPUTS_20261117_001.json'
+ROOT = Path('/home/andre2/GX1_RUNS/TA_INTEGRATED_APR_JUN_ISSUE_INPUTS_20261117_002')
+PLAN = REPO / 'configs/research/TA_INTEGRATED_APR_JUN_ISSUE_INPUTS_20261117_002.json'
 PHYSICAL = Path('/home/andre2/GX1_RUNS/TA_FOLD2_APR_JUN_INPUTS_20261117_001')
-STAGE = 'ta_integrated_apr_jun_issue_inputs_20261117_001'
+STAGE = 'ta_integrated_apr_jun_issue_inputs_20261117_002'
 START = 1714521600000000000  # 2024-05-01, same structure replay warmup as fit
 SCORE_END = 1751328000000000000  # 2025-07-01 exclusive
 M5_NS = 300_000_000_000
@@ -80,7 +80,8 @@ def build_plan():
     structure = json.loads((REPO / 'configs/research/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001.json').read_text())
     m5 = {'path': structure['input']['path'],
           'sha256': structure['input']['sha256_expected_from_manifest']}
-    closure = structure['closure_authority']
+    closure = {key: structure['closure_authority'][key] for key in ('path', 'sha256')}
+    need(ref(closure['path']) == closure, 'CLOSURE_SOURCE_SHA')
     head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=REPO, text=True).strip()
     return {'schema_version': 'gx1_ta_apr_jun_m1_structure_input_plan_v1',
         'stage': STAGE, 'source_base_commit': head,
@@ -131,6 +132,9 @@ def inspect(plan_sha, *, execute):
         need(not subprocess.check_output(['git', 'status', '--porcelain'], cwd=REPO, text=True),
              'CLEAN_SOURCE')
     coverage = read(plan['physical_coverage'])
+    closure = read(plan['closure_authority'])
+    need(type(closure.get('intervals')) is list and len(closure['intervals']) > 0,
+         'CLOSURE_INTERVALS')
     axis_ref = coverage['full_axes']['source']
     need(ref(axis_ref['path']) == axis_ref, 'AXIS_SHA')
     with np.load(axis_ref['path'], allow_pickle=False) as archive:

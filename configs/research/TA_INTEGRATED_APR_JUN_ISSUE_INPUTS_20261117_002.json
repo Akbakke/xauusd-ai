@@ -1,0 +1,50 @@
+{
+  "closure_authority": {
+    "path": "/home/andre2/GX1_RUNS/FULL_TRAIN_XAU_CLOSURE_AUTHORITY_20261107_001/closure_authority.json",
+    "sha256": "4fcde066583cef98fd1fcd8a748c4544b4f11eb5be8fbf2705159fc3b1bfe978"
+  },
+  "execution": {
+    "class": "audit",
+    "max_seconds": 1800,
+    "memory": "4G",
+    "swap": "512M"
+  },
+  "m1_source": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m1_quotes_source/m1_quotes.parquet",
+    "sha256": "54b66c5e9b5a0125f089afcc9d3327c79af9c3543eebdb2644281ed9d3c2734c"
+  },
+  "m5_source": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/M5_ENRICHED.parquet",
+    "sha256": "5e5cb256fc60a5e9a7ffe1a161aa875660f01806b8e8de2bf601fc2f528e7f99"
+  },
+  "output_root": "/home/andre2/GX1_RUNS/TA_INTEGRATED_APR_JUN_ISSUE_INPUTS_20261117_002",
+  "physical_coverage": {
+    "path": "/home/andre2/GX1_RUNS/TA_FOLD2_APR_JUN_INPUTS_20261117_001/COVERAGE.json",
+    "sha256": "c9e9ed663d9ed3a72880e279b1a363cc7d9ae34876e26f253ab802d4ecfca9ab"
+  },
+  "physical_result": {
+    "path": "/home/andre2/GX1_RUNS/TA_FOLD2_APR_JUN_INPUTS_20261117_001/RESULT.json",
+    "sha256": "f71cf8ab06af1f4ba3706d61ee9d4d6e961e6ae63b42a84f78390b5b4efda513"
+  },
+  "physical_terminal": {
+    "path": "/home/andre2/GX1_RUNS/TA_FOLD2_APR_JUN_INPUTS_20261117_001/TERMINAL.json",
+    "sha256": "1cabcfb2be30e1d1f9e25c892073317fd489de749799d8379957dbc226546216"
+  },
+  "schema_version": "gx1_ta_apr_jun_m1_structure_input_plan_v1",
+  "scope": {
+    "model_forwards": 0,
+    "optimizer_steps": 0,
+    "score_end_exclusive_ns": 1751328000000000000,
+    "score_start_ns": 1743465600000000000,
+    "selected_rows": 17536,
+    "structure_warmup_start_ns": 1714521600000000000,
+    "test_data_used": false
+  },
+  "source_base_commit": "f05d75fa84834c67fe0f8671ee5b72761c3a91d6",
+  "source_owners": {
+    "gx1/audit/materialize_market_state_ta_integrated_apr_jun_v1.py": "6d64e5ca9ea3a37e9aeaf649b4c4c926fee53c83a0b5a10f68521b048a1736cc",
+    "gx1/audit/measure_ta_m5_structure_candidate_v1.py": "d37419d782dded9c77227e6ff64b2ee90bb7ba36283ba451a6da97971b5905b2",
+    "gx1/contracts/market_state_ta_m1_issue_path_v1.py": "b87e537add0a1b84b1375f138e9001d716b636efc62fba5d8b6c429815786388"
+  },
+  "stage": "ta_integrated_apr_jun_issue_inputs_20261117_002"
+}
