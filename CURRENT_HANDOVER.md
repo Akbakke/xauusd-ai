@@ -204,3 +204,17 @@ Neste steg er å måle årsaken til paritetsavviket og rette bare denne sperren
 før en eventuell ny plan. Ny normalisering, view, full rå/normalisert gather og
 modellinitial er ikke gjort. Alle treningsflagg er stengt; ingen modellforward,
 trening eller TEST fant sted.
+
+Årsaken til `_001`-feilen er målt: gammel MTF-cache er beregnet fra
+manifestbundet native M5-historikk som starter i 2009 og deretter beskåret til
+M5_ENRICHED fra 2010. Den første nye jobben startet MTF-beregningen på den
+beskårne filen. Med full native-kilde og opprinnelig prisoppløsning stemte begge
+gamle EMA-helningene bitlikt på 550 kontrollerte M5-rader; 840 kontrollerte
+2024-pris-/klokkerader stemte eksakt mellom native og M5_ENRICHED.
+
+Korrigert engangsplan `TA_M5_EMA_DELTA_SIDECARS_20261117_002`, SHA
+`a575667f96460b1ed282137e1069fba1d0842f64748cc306089e055798463c42`,
+er innrømmet i policy, ikke claimet. Den binder 16 årlige native prisdeler
+2009–2024 og begrenser 2024-lesningen til før 31.12.2024. Lokal M5-rute og
+bitlik MTF-paritet beholdes. Nytt FIT-only normaliseringsaudit er kodet og
+testet, men venter på fysisk `_002`-resultat. Ingen modell eller trening er åpnet.
