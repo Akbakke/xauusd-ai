@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_M5_DECISION_UNFITTED_COLD_CHRONO_GATE_REQUIRED_NO_EDGE.
+TA_M5_COLD_TA_PREFIX_REUSE_VERIFIED_LATER_COVERAGE_BLOCK_NO_EDGE.
 Første direkte kostete M5-fit valgte 11 486 SHORT, 0 LONG og
 6 050 FLAT på 17 536 gjenbrukte Apr–jun-rader. Kjente valgte
 terminalutfall ga −0,578 bps i snitt etter oppgitte kostnader;
@@ -1055,11 +1055,23 @@ umiddelbart neste M5-steg var for vid.
    radene, og prefiksnormaliseringen er tilpasset alle 47 338. En
    oktober–desember-holdout bare for nytt beslutningshode ville derfor
    lekke tidligere læring og normalisering. En ærlig intern kronologisk
-   kontroll må initialisere hele kjernen på nytt, normalisere kun på
-   tidligere FIT-prefix, trene kun der og skåre senere FIT-rader uten
+   kontroll må initialisere hele kjernen på nytt, bruke kun en
+   normalisering fra tidligere FIT-prefix, trene kun der og skåre senere FIT-rader uten
    omvalg. En mulig datogrense er 1. oktober: 29 849 rader før og
-   17 489 etter. Dette er ennå ikke en innrømmet kjøring, og heller
-   ikke uavhengig Edge-bevis fordi perioden er undersøkt tidligere.
+   17 489 etter. Videre lesende kontroll fant en bedre, allerede
+   tilpasset TA-prefiksnormalisering gjennom 29. september (29 574
+   rader); alle tre aksehashene er eksakt lik første 29 574 av dagens
+   FIT-mål. Fra samme uendrede fysiske kilde kan et kaldt fem-TF
+   TA-view bindes med identisk full akse, TA-feltbredder, feltnavn og
+   modellobjektiv som dagens view. Dermed trengs ikke ny normalisering.
+   Eksisterende senere Fold1-dekning er derimot bundet til gammelt
+   view-hash og bare 4 096 faste rader. To kapslede lesende CPU-kontroller
+   stoppet korrekt på `ANCHOR_SPAN_PREFIX_ONLY` og
+   `ANCHOR_SPAN_FEATURE_INPUT_LATER_COVERAGE_BINDING`; ingen modell
+   ble konstruert, ingen optimizersteg. Ny senere inputdekning må
+   kvalifiseres eksplisitt mot det nye viewet; ingen hash byttes manuelt.
+   Et senere historisk utfall er fortsatt utviklingsbevis, ikke
+   uavhengig Edge, fordi perioden er undersøkt tidligere.
 4. Ingen ny fit uten ny, gyldig engangsplan og stor-kjøringsadgang.
    Eksisterende D1-journal gir ingen M5-/TEST-adgang. En separat
    framtidig M5-journal krever eget operatørvedtak og dataautoritet.
