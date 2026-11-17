@@ -27,7 +27,8 @@ def native_field_names():
 
     physical = compile_compact_entry_execution_profile()["physical_field_names"]
     # These two historical profiles own the sealed pre-extension physical map.
-    signal = [n for n in physical["signal"] if n not in owner.ANCHOR_SPAN_SIGNAL_FIELDS]
+    signal = [n for n in physical["signal"] if n not in owner.ANCHOR_SPAN_SIGNAL_FIELDS
+              and n != owner.EMA_DELTA_SIGNAL_FIELD]
     assert len(signal) == 2725
     assert _sha(signal) == owner.october_prefix_units_profile()["surfaces"]["signal"]["field_names_sha256"]
     return {"signal": signal, "ctx_cont": physical["ctx_cont"],

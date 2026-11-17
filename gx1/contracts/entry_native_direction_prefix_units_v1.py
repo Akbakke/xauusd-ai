@@ -21,6 +21,9 @@ _MATURE_FOLD1_PLAN_FILE = Path(__file__).resolve().parents[2] / MATURE_FOLD1_PLA
 ANCHOR_SPAN_FOLD1_PROFILE_NAME = "market_state_mature_fold1_anchor_span_prefix_units_v1"
 ANCHOR_SPAN_FOLD1_PARENT_SHA256 = "8fe7982aaf6ef8de947997cc945669cb58e94c6729282a38f57e7a967d3013bc"
 ANCHOR_SPAN_FOLD1_SIGNAL_SHA256 = "99f626ba2a99113627ccc114b8635e6d984e344bf48d759f7058c2184c5d16db"
+EMA_DELTA_FOLD1_PROFILE_NAME = "market_state_mature_fold1_anchor_span_ema_delta_prefix_units_v1"
+EMA_DELTA_SIGNAL_FIELD = "chart.local_ema50_200_spread_delta_5_atr"
+EMA_DELTA_FOLD1_SIGNAL_SHA256 = "39637cfc67822b82126cfa20dcf49b6c1e30ba2dec43d90441b0b1e89998ba00"
 ANCHOR_SPAN_SIGNAL_FIELDS = (
     "chart.geomline_above_anchor_span_bars", "chart.geomline_below_anchor_span_bars",
 )
@@ -172,7 +175,9 @@ def anchor_span_fold1_prefix_units_profile():
     _require(source["contract_sha256"] == ANCHOR_SPAN_FOLD1_PARENT_SHA256
              and _sha({k: v for k, v in source.items() if k != "contract_sha256"})
              == ANCHOR_SPAN_FOLD1_PARENT_SHA256, "ANCHOR_SPAN_PARENT")
-    names = list(compile_full_ta_entry_execution_profile()["source_field_names"]["signal"])
+    current_names = list(compile_full_ta_entry_execution_profile()["source_field_names"]["signal"])
+    _require(current_names.count(EMA_DELTA_SIGNAL_FIELD) == 1, "EMA_DELTA_SOURCE_FIELD")
+    names = [name for name in current_names if name != EMA_DELTA_SIGNAL_FIELD]
     _require(len(names) == 2727 and all(type(name) is str for name in names)
              and len(set(names)) == 2727
              and tuple(name for name in names if name in ANCHOR_SPAN_SIGNAL_FIELDS)
@@ -208,6 +213,66 @@ def anchor_span_fold1_prefix_units_profile():
     return {**value, "contract_sha256": _sha(value)}
 
 
+def ema_delta_fold1_prefix_units_profile():
+    """Remap sealed fold-1 units across the restored, observed EMA delta field.
+
+    The additional field has no observation-mask or unit claim; physical values
+    and its FIT statistics require separate exact receipts before model use.
+    """
+    from gx1.features.entry_specialist_feature_groups_v1 import compile_full_ta_entry_execution_profile
+
+    source = anchor_span_fold1_prefix_units_profile()
+    names = list(compile_full_ta_entry_execution_profile()["source_field_names"]["signal"])
+    _require(len(names) == len(set(names)) == 2728
+             and names.count(EMA_DELTA_SIGNAL_FIELD) == 1
+             and _sha(names) == EMA_DELTA_FOLD1_SIGNAL_SHA256,
+             "EMA_DELTA_SIGNAL_NAMES")
+    old_names = [name for name in names if name != EMA_DELTA_SIGNAL_FIELD]
+    bound = source["surfaces"]["signal"]
+    _require(len(old_names) == bound["width"] == 2727
+             and _sha(old_names) == bound["field_names_sha256"],
+             "EMA_DELTA_PARENT_NAMES")
+    indices = {name: index for index, name in enumerate(names)}
+    columns = []
+    for column in bound["columns"]:
+        field = bound["value_name_prefix"] + column["field"]
+        mask = field + "_observed"
+        _require(old_names[column["value_index"]] == field
+                 and old_names[column["mask_index"]] == mask,
+                 "EMA_DELTA_PARENT_COLUMN")
+        columns.append({**column, "value_index": indices[field],
+                        "mask_index": indices[mask]})
+    value = {key: item for key, item in source.items() if key != "contract_sha256"}
+    value["profile_name"] = EMA_DELTA_FOLD1_PROFILE_NAME
+    value["surfaces"] = {**source["surfaces"], "signal": {
+        **bound, "width": len(names), "field_names_sha256": _sha(names),
+        "columns": columns,
+    }}
+    value["extension_provenance"] = {
+        "schema_version": "gx1_mature_fold1_ema_delta_units_extension_v1",
+        "parent_profile_name": ANCHOR_SPAN_FOLD1_PROFILE_NAME,
+        "parent_profile_sha256": source["contract_sha256"],
+        "inserted_signal_fields": [EMA_DELTA_SIGNAL_FIELD],
+        "mapping": "existing_signal_value_and_mask_indices_by_exact_field_name",
+        "new_observation_masks": False,
+        "statistics_fitted": False,
+        "physical_value_qualification": "separate_exact_sidecar_receipt_required",
+    }
+    return {**value, "contract_sha256": _sha(value)}
+
+
+def require_ema_delta_fold1_prefix_units_profile(profile):
+    """Reject modified or resealed EMA-delta unit mappings."""
+    _require(isinstance(profile, Mapping), "PROFILE")
+    expected = ema_delta_fold1_prefix_units_profile()
+    try:
+        actual = _canonical(dict(profile))
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError("NATIVE_DIRECTION_PREFIX_UNITS_PROFILE") from exc
+    _require(actual == _canonical(expected), "PROFILE_IDENTITY")
+    return expected
+
+
 def require_anchor_span_fold1_prefix_units_profile(profile):
     """Reject modified or resealed anchor-span identities, including provenance."""
     _require(isinstance(profile, Mapping), "PROFILE")
@@ -221,7 +286,7 @@ def require_anchor_span_fold1_prefix_units_profile(profile):
 
 
 def require_prefix_units_profile(profile):
-    """Allow only the three exact, independently sealed prefix unit identities."""
+    """Allow only exact, independently sealed prefix unit identities."""
     _require(isinstance(profile, Mapping), "PROFILE")
     if profile.get("profile_name") == PROFILE_NAME:
         return require_october_prefix_units_profile(profile)
@@ -229,6 +294,8 @@ def require_prefix_units_profile(profile):
         return require_mature_fold1_prefix_units_profile(profile)
     if profile.get("profile_name") == ANCHOR_SPAN_FOLD1_PROFILE_NAME:
         return require_anchor_span_fold1_prefix_units_profile(profile)
+    if profile.get("profile_name") == EMA_DELTA_FOLD1_PROFILE_NAME:
+        return require_ema_delta_fold1_prefix_units_profile(profile)
     _require(False, "PROFILE_IDENTITY")
 
 

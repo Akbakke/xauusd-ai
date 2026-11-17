@@ -16,6 +16,8 @@ from gx1.contracts import entry_native_direction_prefix_units_v1 as units
 from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
 
 SPAN_FIELDS = ('geomline_above_anchor_span_bars', 'geomline_below_anchor_span_bars')
+EMA_DELTA_FIELD = 'ema50_200_spread_delta_5_atr'
+EMA_DELTA_SCHEMA = 'gx1_exact_fold1_ema_delta_normalization_extension_v1'
 SURFACES = ('signal', 'mtf_m5', 'mtf_m15', 'mtf_h1', 'mtf_h4', 'mtf_d1')
 PARENT_BASE_SHA = '3167248a761b06e08a09de3fed3a8ea56a94cd698a52aa3bd9b08e3ff25227f5'
 PARENT_ARTIFACT = {
@@ -74,6 +76,10 @@ def copy(value):
 
 def span_names(surface):
     return [('chart.' if surface == 'signal' else '') + name for name in SPAN_FIELDS]
+
+
+def ema_delta_names(surface):
+    return [('chart.local_' if surface == 'signal' else '') + EMA_DELTA_FIELD]
 
 
 def _restamp_surface(stats):
@@ -164,7 +170,13 @@ def extend_anchor_span_normalization(parent, new_statistics):
          and 'ta_projection' not in parent and 'anchor_span_extension' not in parent, 'EXACT_PARENT')
     need(isinstance(new_statistics, Mapping) and set(new_statistics) == set(SURFACES),
          'SIX_NEW_STAT_SURFACES')
-    fields = compile_full_ta_entry_execution_profile()['source_field_names']
+    fields = {key:list(value) for key,value in
+              compile_full_ta_entry_execution_profile()['source_field_names'].items()}
+    need(fields['signal'].count(ema_delta_names('signal')[0]) == 1
+         and fields['mtf'].count(ema_delta_names('mtf_m5')[0]) == 1,
+         'LEGACY_FIELD_RECONSTRUCTION')
+    fields['signal'].remove(ema_delta_names('signal')[0])
+    fields['mtf'].remove(ema_delta_names('mtf_m5')[0])
     full_names = {surface:list(fields['mtf' if surface.startswith('mtf_') else surface])
                   for surface in norm.EXPECTED_SURFACES}
     old_names = {surface:[n for n in names if n not in span_names(surface)]
@@ -217,20 +229,92 @@ def extend_anchor_span_normalization(parent, new_statistics):
     return result
 
 
+def extend_ema_delta_normalization(parent, new_statistics, *, physical_result):
+    """Add only the restored EMA delta's six FIT statistics to a sealed fold-1 parent."""
+    from gx1.features.entry_specialist_feature_groups_v1 import compile_full_ta_entry_execution_profile
+    need(isinstance(parent, Mapping) and 'anchor_span_extension' in parent
+         and parent['anchor_span_extension'].get('schema_version') ==
+             'gx1_exact_fold1_anchor_span_normalization_extension_v1'
+         and 'ta_projection' not in parent, 'EMA_DELTA_PARENT')
+    need(isinstance(new_statistics, Mapping) and set(new_statistics) == set(SURFACES),
+         'EMA_DELTA_SIX_SURFACES')
+    need(isinstance(physical_result, Mapping) and set(physical_result) == {'path','sha256'}
+         and isinstance(physical_result['path'], str)
+         and physical_result['path'].startswith('/home/andre2/GX1_RUNS/')
+         and physical_result['path'].endswith('/RESULT.json')
+         and isinstance(physical_result['sha256'], str)
+         and len(physical_result['sha256']) == 64
+         and all(c in '0123456789abcdef' for c in physical_result['sha256']),
+         'EMA_DELTA_PHYSICAL_RESULT_REF')
+    fields = compile_full_ta_entry_execution_profile()['source_field_names']
+    full_names = {surface:list(fields['mtf' if surface.startswith('mtf_') else surface])
+                  for surface in norm.EXPECTED_SURFACES}
+    old_names = {surface:[name for name in names if name not in ema_delta_names(surface)]
+                 for surface,names in full_names.items()}
+    old_units = units.anchor_span_fold1_prefix_units_profile()
+    new_units = units.ema_delta_fold1_prefix_units_profile()
+    original = norm.require_input_normalization_contract(
+        parent,expected_field_names=old_names,expected_ctx_cat_names=fields['ctx_cat'],
+        expected_entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+        unobserved_units_profile=old_units)
+    additions = {}
+    for surface in SURFACES:
+        stat = norm.require_surface_normalization(new_statistics[surface],surface=surface,
+                                                  field_names=ema_delta_names(surface))
+        need(set(stat) == set(original['surfaces']['mtf_h1'])
+             and stat['fit_row_count'] == original['surfaces'][surface]['fit_row_count']
+             and stat['binary_mask'] == stat['categorical_mask'] == [0]
+             and stat['categorical_domains'] == {}
+             and all(source in ('raw_iqr','median_positive_abs_deviation')
+                     for source in stat['scale_source']),
+             'EMA_DELTA_NEW_STAT_SCOPE:' + surface)
+        additions[surface] = stat
+    surfaces = {surface:merge_surface(original['surfaces'][surface],additions.get(surface),
+        field_names=full_names[surface],units_profile_sha=new_units['contract_sha256'])
+        for surface in norm.EXPECTED_SURFACES}
+    maps = {surface:{index:full_names[surface].index(name)
+             for index,name in enumerate(original['surfaces'][surface]['field_names'])}
+            for surface in ('signal','ctx_cont')}
+    aliases = [{**alias,'signal_index':maps['signal'][alias['signal_index']],
+                'ctx_cont_index':maps['ctx_cont'][alias['ctx_cont_index']]}
+               for alias in original['temporal_aliases']]
+    result = norm.build_input_normalization_contract(
+        fit_start_utc=original['fit_start_utc'],fit_end_utc=original['fit_end_utc'],
+        surfaces=surfaces,ctx_cat=original['ctx_cat'],lineage=original['lineage'],
+        temporal_aliases=aliases,entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+        unobserved_units_profile=new_units)
+    preservation = old_field_preservation(original,result)
+    result['anchor_span_extension'] = dict(
+        schema_version=EMA_DELTA_SCHEMA,source_contract=copy(original),
+        physical_input_result=copy(physical_result),new_field_statistics=copy(additions),
+        unobserved_units_profile=copy(new_units),preservation=preservation,
+        physical_storage='unchanged_parent_arrays_plus_qualified_one_field_sidecars',
+        added_statistics_fitted_by_caller_only=True,old_statistics_refitted=False)
+    result.pop('contract_sha256')
+    result['contract_sha256'] = norm._canonical_sha256(result)
+    return result
+
+
 def require_anchor_span_normalization(value, *, expected_field_names, expected_ctx_cat_names,
                                       expected_entry_training_phase, unobserved_units_profile):
     """Reconstruct the entire extension; resealing cannot alter an old statistic."""
     need(isinstance(value, Mapping), 'CONTRACT')
     provenance = value.get('anchor_span_extension')
     need(isinstance(provenance, Mapping), 'PROVENANCE_AND_UNITS_REQUIRED')
-    expected = extend_anchor_span_normalization(
-        provenance.get('source_contract'),provenance.get('new_field_statistics'))
+    successor = provenance.get('schema_version') == EMA_DELTA_SCHEMA
+    expected = (extend_ema_delta_normalization(
+        provenance.get('source_contract'),provenance.get('new_field_statistics'),
+        physical_result=provenance.get('physical_input_result')) if successor else
+        extend_anchor_span_normalization(
+        provenance.get('source_contract'),provenance.get('new_field_statistics')))
     if expected['anchor_span_extension']['unobserved_units_profile'] is None:
         need(unobserved_units_profile is None, 'FOLD2_UNOBSERVED_UNITS_FORBIDDEN')
         profile = None
     else:
         need(isinstance(unobserved_units_profile, Mapping), 'PROVENANCE_AND_UNITS_REQUIRED')
-        profile = units.require_anchor_span_fold1_prefix_units_profile(unobserved_units_profile)
+        profile = (units.require_ema_delta_fold1_prefix_units_profile(unobserved_units_profile)
+                   if successor else
+                   units.require_anchor_span_fold1_prefix_units_profile(unobserved_units_profile))
     need(profile == expected['anchor_span_extension']['unobserved_units_profile']
          and norm._canonical_sha256(value) == norm._canonical_sha256(expected), 'EXACT_EXTENSION')
     fields = {surface:stat['field_names'] for surface,stat in expected['surfaces'].items()}

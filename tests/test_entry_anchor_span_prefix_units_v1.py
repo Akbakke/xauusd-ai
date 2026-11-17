@@ -51,7 +51,7 @@ def test_old_profile_identities_remain_exact_and_new_profile_has_explicit_parent
 def test_signal_units_follow_exact_names_and_new_spans_receive_no_mask_or_unit(physical):
     profile = units.anchor_span_fold1_prefix_units_profile()
     parent = units.mature_fold1_prefix_units_profile()
-    names = list(physical['signal'])
+    names = [name for name in physical['signal'] if name != units.EMA_DELTA_SIGNAL_FIELD]
     old_names = [name for name in names if name not in units.ANCHOR_SPAN_SIGNAL_FIELDS]
     assert len(names) == 2727 and len(old_names) == 2725
     assert units._sha(names) == '99f626ba2a99113627ccc114b8635e6d984e344bf48d759f7058c2184c5d16db'
@@ -72,6 +72,30 @@ def test_signal_units_follow_exact_names_and_new_spans_receive_no_mask_or_unit(p
         units.prefix_units_surface_columns(parent, surface='signal', field_names=names)
     with pytest.raises(RuntimeError, match='FIELD_NAMES'):
         units.prefix_units_surface_columns(profile, surface='signal', field_names=old_names)
+
+
+def test_ema_delta_successor_only_remaps_existing_units(physical):
+    old = units.anchor_span_fold1_prefix_units_profile()
+    new = units.ema_delta_fold1_prefix_units_profile()
+    names = list(physical['signal'])
+    old_names = [name for name in names if name != units.EMA_DELTA_SIGNAL_FIELD]
+    assert len(names) == 2728 and units._sha(names) == units.EMA_DELTA_FOLD1_SIGNAL_SHA256
+    assert old['contract_sha256'] == 'accae7dfbc704c2f1af33d4fe71ffa7c270b675c5f1f13ce0d18d15381a93e1e'
+    assert new['contract_sha256'] == '593febb9a3a006790242e92a9b141bde28c2aafa310d64afae5cf1ea917356a0'
+    prior = units.prefix_units_surface_columns(old, surface='signal', field_names=old_names)
+    current = units.prefix_units_surface_columns(new, surface='signal', field_names=names)
+    assert {names[index]: {**item, 'mask_index': names.index(item['mask'])}
+            for index, item in current.items()} == {
+            old_names[index]: {**item, 'mask_index': names.index(item['mask'])}
+            for index, item in prior.items()}
+    assert names.index(units.EMA_DELTA_SIGNAL_FIELD) not in current
+    assert new['authority'] == old['authority']
+    assert new['extension_provenance']['statistics_fitted'] is False
+    assert units.require_prefix_units_profile(new) == new
+    tampered = deepcopy(new)
+    tampered['extension_provenance']['inserted_signal_fields'] = []
+    with pytest.raises(RuntimeError, match='PROFILE_IDENTITY'):
+        units.require_prefix_units_profile(reseal(tampered))
 
 
 @pytest.mark.parametrize('surface', ('ctx_cont', 'gc_mtf_d1'))

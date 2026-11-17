@@ -53,9 +53,7 @@ def _require_legacy_bound_profile():
 
 @pytest.mark.parametrize('binding', tuple(extension.FOLD_BINDINGS.values()),
                          ids=lambda value: f'fold{value[0]}')
-def test_immutable_fold_normalization_rejects_changed_feature_profile(binding):
-    if _legacy_bound_profile_matches():
-        pytest.skip('current feature profile still matches the historical binding')
+def test_immutable_fold_normalization_reconstructs_only_its_old_view(binding):
     fold_id, parent_ref, _ = binding
     path = Path(parent_ref['path'])
     if not path.is_file():
@@ -66,10 +64,14 @@ def test_immutable_fold_normalization_rejects_changed_feature_profile(binding):
     additions = {surface: statistics(surface, extension.span_names(surface),
                                     parent['surfaces'][surface]['fit_row_count'])
                  for surface in extension.SURFACES}
-    failure = ('NATIVE_DIRECTION_PREFIX_UNITS_ANCHOR_SPAN_SIGNAL_NAMES' if fold_id == 1
-               else 'ENTRY_INPUT_NORMALIZATION_SURFACE_IDENTITY_INVALID')
-    with pytest.raises(RuntimeError, match=failure):
-        extension.extend_anchor_span_normalization(parent, additions)
+    old = extension.extend_anchor_span_normalization(parent, additions)
+    assert [old['surfaces'][s]['field_count'] for s in norm.EXPECTED_SURFACES] == \
+           [2727, 2542, 255, 255, 255, 255, 255]
+    assert old['anchor_span_extension']['schema_version'] == \
+           f'gx1_exact_fold{fold_id}_anchor_span_normalization_extension_v1'
+    current = compile_full_ta_entry_execution_profile()['source_field_names']
+    assert extension.ema_delta_names('signal')[0] in current['signal']
+    assert extension.ema_delta_names('mtf_m5')[0] in current['mtf']
 
 
 def merge_case():
@@ -357,3 +359,41 @@ def test_later_fold_metadata_extension_uses_own_parent_and_keeps_old_stats(fold_
     assert norm.require_input_normalization_contract(expanded, **kwargs) == expanded
     projected = norm.project_ta_input_normalization_contract(expanded)
     assert projected['surfaces']['mtf_m5']['field_count'] == 255
+
+
+def test_ema_delta_successor_preserves_old_stats_and_projects_current_view():
+    path = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_20261112_001/EXTENDED_BASE_NORMALIZATION.json')
+    if not path.is_file():
+        pytest.skip('requires immutable fold1 normalization metadata only')
+    old = json.loads(path.read_text())
+    assert old['contract_sha256'] == '58e9e9bb63b65f05ae2b95ee04c6338623eb4489b75c0626c87978d41323fead'
+    additions = {surface: statistics(surface, extension.ema_delta_names(surface),
+                                    old['surfaces'][surface]['fit_row_count'])
+                 for surface in extension.SURFACES}
+    physical = {'path': '/home/andre2/GX1_RUNS/SYNTHETIC_NOT_PUBLISHED/RESULT.json',
+                'sha256': 'a' * 64}
+    new = extension.extend_ema_delta_normalization(old, additions, physical_result=physical)
+    profile = units.ema_delta_fold1_prefix_units_profile()
+    assert extension.old_field_preservation(old, new)['all_old_stat_vectors_exact'] is True
+    assert new['anchor_span_extension']['source_contract'] == old
+    assert new['anchor_span_extension']['physical_input_result'] == physical
+    assert [new['surfaces'][surface]['field_count'] for surface in norm.EXPECTED_SURFACES] == \
+           [2728, 2542, 256, 256, 256, 256, 256]
+    names = {surface: stat['field_names'] for surface, stat in new['surfaces'].items()}
+    assert norm.require_input_normalization_contract(new, expected_field_names=names,
+        expected_ctx_cat_names=new['ctx_cat']['field_names'],
+        unobserved_units_profile=profile) == new
+    projected = norm.project_ta_input_normalization_contract(new,
+        unobserved_units_profile=profile)
+    assert [projected['surfaces'][surface]['field_count'] for surface in norm.EXPECTED_SURFACES] == \
+           [318, 132, 256, 256, 256, 256, 256]
+    changed = deepcopy(additions)
+    changed['mtf_h1']['fit_row_count'] += 1
+    with pytest.raises(RuntimeError, match='EMA_DELTA_NEW_STAT_SCOPE'):
+        extension.extend_ema_delta_normalization(old, changed, physical_result=physical)
+    changed = deepcopy(new)
+    changed['surfaces']['signal']['center'][0] += 1.
+    with pytest.raises(RuntimeError, match='EXACT_EXTENSION'):
+        norm.require_input_normalization_contract(seal(changed), expected_field_names=names,
+            expected_ctx_cat_names=new['ctx_cat']['field_names'],
+            unobserved_units_profile=profile)
