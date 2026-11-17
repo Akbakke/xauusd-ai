@@ -108,6 +108,9 @@ def prepare(*, device: torch.device):
          'QUALIFIED_SCORE_RECEIPTS')
     base_view, view = read(ref(BASE_VIEW)), read(ref(MODEL_VIEW))
     packet, constructor = read(inputs['packet']), read(inputs['constructor'])
+    priors = read(inputs['priors'])
+    from gx1.contracts.market_state_time_query_native_F_objective_v1 import require_endpoint_priors
+    require_endpoint_priors(priors, fold_id=2, ta_only=True, dedicated_m5_side=True)
     need(base_view['contract_sha256'] == coverage['view_sha256']
          and view['prefix'] == base_view['prefix']
          and view['full_axes'] == base_view['full_axes']
@@ -204,7 +207,7 @@ def prepare(*, device: torch.device):
             provider.flush_pages(value)
 
     return {'view': view, 'base_view': base_view, 'packet': packet,
-            'constructor': constructor, 'axes': axes, 'selected': selected,
+            'constructor': constructor, 'priors': priors, 'axes': axes, 'selected': selected,
             'fit_tape': fit_tape, 'score_tape': score_tape,
             'features': features, 'release': release,
             'input_refs': {'physical_result': ref(PHYSICAL / 'RESULT.json'),

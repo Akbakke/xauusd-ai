@@ -99,8 +99,8 @@ def paired_integrated_loss(*, model_output: dict, sampled_truth: dict,
             and bool(np.all(~structure_hit | structure_observed))):
         raise ValueError('TA_PAIRED_STRUCTURE')
     aux = masked_structure_hit_sums(structure,
-        torch.from_numpy(structure_hit).to(device=structure.device),
-        torch.from_numpy(structure_observed).to(device=structure.device))
+        torch.from_numpy(structure_hit.copy()).to(device=structure.device),
+        torch.from_numpy(structure_observed.copy()).to(device=structure.device))
     aux_loss = (aux['loss_sums'] / aux['observed_counts'].clamp(min=1)).mean()
     total = (S_SAMPLED_WEIGHT * sf['state']['loss']
              + S_NATIVE_WEIGHT * native_s['loss']

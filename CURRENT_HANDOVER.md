@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_APR_JUN_PAIRED_PREFLIGHT_ADMITTED_NO_TRAINING.
+TA_APR_JUN_PAIRED_FIT_PREPARED_NOT_ADMITTED.
 Brukeren fjernet kravet om nytt «ja» for hver stor lokal ikke-GC-kjøring.
 Integrator innrømmet plan002 SHA
 `330e4cb1dd4c76980264b44a32f091e67c43142819514901f60068abed102783`
@@ -681,18 +681,31 @@ separat native F og M5-struktur. Fast tap er 0,5 samplet S + 0,5 native S
 native H4/D1-sidene gradient uten at M5-S dubleres. Sju fokuserte
 modell-/tapstester består, inkludert nullgradient for ukjente mål og
 M5-paritet. Ny Fold2-normalisert april–juni-visning og én felles inputadapter
-binder 47 338 TRAIN-rader og 17 536 faste score-rader; adapterens faktiske
-modellbatch er ennå ikke kjørt. Én eksakt CPU-preflight, plan SHA
-`54c4e9b8670d2103afadd32798248695678bd6a6b24823a8e3b503e5490c9f8f`,
-er innrømmet uten trening. Den skal lese ni faktiske score-flater og kontrollere
-normalisering, M1-masker, mål og paret forward før en eventuell native fit.
-Ingen Edge, kampanjefit eller ny modellkvittering er påstått.
+binder 47 338 TRAIN-rader og 17 536 faste score-rader; adapterens faktiske scorebatch er kjørt. Engangs-CPU-preflight plan SHA
+`54c4e9b8670d2103afadd32798248695678bd6a6b24823a8e3b503e5490c9f8f`
+fullførte med terminal exit 0 på 12,4 sekunder. Åtte numeriske flater ble
+normalisert med Fold2-frosne verdier; kategori var den niende flaten.
+Paret S/F/struktur-forward og masket tap var endelig, med kjente mål på alle
+fem TF i denne ene batchen. Modellens CPU-initialdigest var identisk med
+tidligere integrert initialtilstand; null optimizer ble konstruert eller kjørt.
+Resultat SHA `24ae40f68edcf15778081ac703c8f423e9b155f8d5fc4e88c14c56736e14418f`.
+Gaten er konsumert. Ingen Edge eller kampanjefit er påstått.
+
+En ny, ennå ikke innrømmet engangsplan er bundet til ett Fold2 TRAIN-pass
+(47 338 rader, høyst 2 959 optimizersteg) og initial/slutt-skår på alle
+17 536 faste Apr–jun 2025-utviklingsrader (2 192 score-forwards). Plan SHA
+`855bc0abb4e8a8a375bb126ec82f3afa3d40b5ac17b335f67d652793b370f5b3`.
+Måltap, fem TF-hoder, fryst Fold2-prior, F-kalibrering, kjente M5-nabovendinger,
+TF-uenighet og struktur er forhåndsbundet. Kjøringen har 10 500 s
+skriptfrist, 10 800 s ytre vakt, 20G/512M og signerte GPU-grenser.
+Fersk fysisk Windows boot-ID over 657 kreves før innrømmelse. Trening er
+fortsatt stengt, og ingen skår eller økonomisk Edge er hevdet fra denne planen.
 
 ## Neste steg
 
-1. Kjør og lukk den innrømmede engangs-CPU-preflighten på én faktisk
-   normalisert ni-flaters Apr–jun-batch med M1-bane og masker.
-   Bruk ikke Jan–mar til modellvalg.
+1. Kjør metadata-preflight for den eksakte planen, kontroller fersk fysisk
+   boot og innrøm bare denne ene voktede TRAIN-/Apr–jun-kjøringen. Den beståtte
+   batchpreflighten gjenbrukes; ingen Jan–mar-modellvalg eller enkeltregeltest.
 2. Forhåndsbind én kronologisk integrert fem-TF F/S/strukturkampanje med
    både native og varierende S-spørringshorisonter. Bruk separat målt
    retning per TF, de 6 746 kjente M5-naboparene, faste proper scores,
