@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-ACTIVE_M5_COLD_PHYSICAL_COVERAGE_AUDIT_ADMITTED_NO_EDGE.
+ACTIVE_M5_COLD_MODEL_INPUT_PREFLIGHT_PENDING_NO_EDGE.
 Første direkte kostete M5-fit valgte 11 486 SHORT, 0 LONG og
 6 050 FLAT på 17 536 gjenbrukte Apr–jun-rader. Kjente valgte
 terminalutfall ga −0,578 bps i snitt etter oppgitte kostnader;
@@ -48,11 +48,15 @@ Beslutningstapet er nå endret i kilde, men ingen ny modell er trent eller skår
   begge feilene er rettet i kilde før fit. En regressjon i gammel varm
   preflight ble også rettet. Fokuserte tester/syntaks besto; faktisk kald
   normalisert input, modellforward og læring er fortsatt ubevist.
-- Én CPU-plan for fysisk kald senere dekning er nå innrømmet, uten trening:
-  `TA_M5_COLD_FULL_LATER_INPUTS_20261117_001`, SHA `ccf3437645cd63f5defd896a996fb6b8ee2db27e373fa09705787e06d41cb836`.
-  Den binder 17 489 modne Oct–Dec-rader til eksisterende sidecars, med 1-rads
-  hale. Ingen CLAIM eller RESULT finnes ennå. Den beviser bare fysisk dekning;
-  eksakt kald FIT-/SCORE-gather og fersk initial må kontrolleres separat.
+- Én CPU-plan for fysisk kald senere dekning er fullført og konsumert uten
+  modell: `TA_M5_COLD_FULL_LATER_INPUTS_20261117_001`, plan SHA
+  `ccf3437645cd63f5defd896a996fb6b8ee2db27e373fa09705787e06d41cb836`,
+  RESULT SHA `614c5b766e564fa0466a3f68f72f94300674b9823d67f34490c8e986fd01b36d`, COVERAGE SHA
+  `ca030948f3f450d19e7af6244d881db7c5cc7cb10157a53aba368d5bfa55ea2c`, TERMINAL SHA
+  `ab7a81b2f25d268e7ee537d294be91915a6cab36c8a8cd87a7473e8c0f34d4e5`. Eksakt view/akse/sidecar-binding
+  dekker 17 489 modne Oct–Dec-rader med 1-rads hale. Null modellforward,
+  optimizersteg eller normaliseringsfit. Dette beviser bare fysisk dekning;
+  faktisk kald normalisert FIT-/SCORE-gather og fersk initial er ubevist.
 - Oppryddingsrevisjonen fant ingen repo-fil eller DATA/RUNS-artefakt som var
   bevist trygg å slette. Målt ledig plass var 543 GB; ingen sletting ble gjort.
 - M5 er beslutningspunkt. Den siste matchede modellen valgte 0 LONG,
