@@ -12,12 +12,12 @@ M5-fit-planen er fullført og konsumert. `training_enabled`,
 `native_launch_authorized` er `false`. Full GC, TEST, ONLINE, broker og
 handel er stengt. Ingen økonomisk edge eller uavhengig generalisering er bevist.
 
-## Pågående fullrevisjon 17.11.2026
+## Fullrevisjon 17.11.2026
 
 Brukeren ba om hele-prosjekt-sanity check, avgrensede agenter og sletting av
 bevist foreldede filer. 2 069 sporede filer / 984 774 tekstlinjer er maskinelt
 skannet; alle 1 353 Python-, 625 JSON- og 9 shellfiler parser. Dette er ikke
-manuell semantisk godkjenning av hver linje. Avgrensede agenter reviderer feature/modell, mål/tap/score, tester,
+manuell semantisk godkjenning av hver linje. Avgrensede agenter reviderte feature/modell, mål/tap/score, tester,
 status/kontrakter og kjøring/retention. Ingen trening eller TEST.
 
 Konkrete retention-funn: eieren ignorerte `PermissionError` i `/proc/*/fd` og
@@ -32,16 +32,21 @@ samme inode. Retention-eieren slettet eksakt én ureferert gammel run,
 `3e3150233e10c4e19413f0e2f8f82cf4a0d951a8c5e2a9ba412c2a81df7a1bc7`,
 godkjenning SHA `3509d43f1a71f094cf6b2b4408d1f518da53baf6ef1f85d0bec71e2343419a4b`,
 DELETE_COMPLETE-rapport SHA `160406465b2e4588f1aab45b43082b25db558b02890760195a30fb26b8dc92f3`.
-Sti og karantene er borte; ingen andre DATA/RUNS er rørt. Eksakte kvitteringsstier
-og byteantall står i `NEXT_RUN_POLICY.json`.
+Sti og karantene er borte. Eksakte kvitteringsstier og byteantall står i
+`NEXT_RUN_POLICY.json`.
 
 Videre revisjon fant at retention-eierens gjeldende-dokument-sjekk overså
 relative `GX1_RUNS/...` og `GX1_DATA/...`-navn. Minste fail-closed rettelse
 normaliserer dem til eksakte hjemmebaner og bevarer absolutte referanser.
 162 fokuserte tester besto; den gamle V12-topprooten avvises nå korrekt fordi
-et gjeldende prereg-dokument navngir en manifeststi under den. Tre interne
-V12-undermapper på 904 784 968 bytes er kun plan-kandidater inntil eierens
-referansegraf og prosessvakt godkjenner dem. Ingen V12-sletting er gjort.
+et gjeldende prereg-dokument navngir en manifeststi under den. Eieren
+planla, godkjente og slettet bare tre interne V12-undermapper: 35 filer,
+4 mapper, 904 784 968 bytes. Plan SHA
+`99ae8a2546c16e5c92cbf8e22b9f6915e0220f04fbe0a8234ddf2ff225aa2e04`,
+godkjenning SHA `b52190a8a83c79cd638c6671442031799c0361c25927e840f65eee60bdfdc418`,
+DELETE_COMPLETE-rapport SHA `0daa22ef9182cf38f0e5e94a2a5141a4bd7fcca6ede0968085f679e5d1d23b67`.
+Alle tre mål og karantener er borte; walkforward-mappen og V12-roten står.
+Eksakte stier ligger i `NEXT_RUN_POLICY.json`. Ingen andre GX1 DATA/RUNS er rørt.
 
 Mål/tap-revisjonen fant en målbar side-skala-feil: `side_pair_loss` brukte
 kvadratsummen av separate LONG/SHORT-standardavvik og ignorerte negativ
@@ -68,14 +73,19 @@ ga 92 PASS, 47 eksplisitte SKIP for gamle hashbundne 317/255-kvitteringer og
 ikke full manuell semantisk lesning av alle nær én million kodelinjer.
 
 Diskrevisjonen målte 669,64 GiB brukt på Windows C:. Ubuntu-VHDX brukte
-456,52 GiB av dette; inne i WSL er om lag 412 GiB brukt, hvor GX1_DATA og
-GX1_RUNS står for rundt 335 GiB. På C: ble 274 gamle, eksklusivt lesbare
-Temp-GUID/`swap.vhdx`-filer re-sjekket og slettet: 117 214 019 584 bytes
-(109,16 GiB). Én aktiv låst swapfil ble bevart; ingen av de 274 gjenstår.
-C: fri plass steg fra 278 856 753 152 til 396 070 227 968 bytes.
-GX1 DATA/RUNS-referanser kartlegges fortsatt gjennom retention-eieren.
-Ubuntu-VHDX er ikke sparse; komprimering krever separat avsluttet WSL og er
-ikke utført.
+456,52 GiB av dette; inne i WSL var om lag 412 GiB brukt, hvor GX1_DATA og
+GX1_RUNS sto for rundt 335 GiB. På C: ble 274 gamle, eksklusivt lesbare
+Temp-GUID/`swap.vhdx`-filer re-sjekket og slettet: 117 214 019 584 bytes.
+Én aktiv låst swapfil ble bevart. Deretter ble 222 gamle `wct*.tmp` og én
+gammel installer, 1 331 148 525 bytes, slettet etter ny alders-/låskontroll;
+åtte nyere `wct` og nye/aktive RdClient-logger ble beholdt. Samlet direkte
+C:-sletting var 118 545 168 109 bytes (110,40 GiB); siste målte frie plass
+var 397 166 620 672 bytes mot 278 856 753 152 før første sletting.
+To gamle, urefererte `/var/tmp/gx1-*-next-batch.pt`-filer på 536 371 599
+bytes ble slettet under prosjektlås etter eier-/alder-/åpen-fil-kontroll.
+GX1 DATA/RUNS-kartleggingen fant at de største datasettene og kjøringene
+er bundet til gjeldende kvitteringer eller dokumenter. Ubuntu-VHDX er ikke
+sparse; komprimering krever separat avsluttet WSL og er ikke utført.
 
 ## Gjort og målt 17.11.2026
 
@@ -132,10 +142,9 @@ handel er åpnet. Posisjonsført PnL, alle åpne posisjoner og uavhengig
 økonomisk generalisering er ikke målt. Ikke bruk positive terminalsnitt,
 FLAT eller tekniske PASS som edge.
 
-Ikke start flere modellrunder fra dette resultatet. Fullfør den eksakte
-retention-eierkontrollen av tre V12-undermapper; en nektelse betyr behold.
-For ny 318/256-featureprofil må faktisk full FIT/later input, normalisering,
-kausalitet og alle hasher kvalifiseres på nytt før en eventuell ny samlet
-treningsplan kan vurderes. Gjenbruk gamle pris-/mål- og sidecarverdier bare
-når deres klokke og bindinger fortsatt består. Ingen ny plan eller trening er
-admittert; TEST forblir forseglet. M5-forward-journal krever separat vedtak.
+Ikke start flere modellrunder fra dette resultatet. For ny 318/256-
+featureprofil må faktisk full FIT/later input, normalisering, kausalitet og
+alle hasher kvalifiseres på nytt før en eventuell ny samlet treningsplan kan
+vurderes. Gjenbruk gamle pris-/mål- og sidecarverdier bare når deres klokke og
+bindinger fortsatt består. Ingen ny plan eller trening er admittert; TEST
+forblir forseglet. M5-forward-journal krever separat vedtak.
