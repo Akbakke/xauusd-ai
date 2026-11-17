@@ -3,7 +3,9 @@ import numpy as np
 import pytest
 import torch
 
-from gx1.contracts.market_state_ta_integrated_paired_objective_v1 import paired_integrated_loss
+from gx1.contracts.market_state_ta_integrated_paired_objective_v1 import (
+    contract, paired_integrated_loss,
+)
 from gx1.contracts.market_state_time_query_model_v2 import factorized_log_probabilities
 from gx1.contracts.market_state_time_query_native_F_objective_v1 import combined_loss
 from gx1.contracts.market_state_time_query_target_v1 import NATIVE_K
@@ -81,3 +83,24 @@ def test_m5_target_parity_is_required():
     args = _case(native_truth=_truth([4, 7, 7, 7, 7]))
     with pytest.raises(ValueError, match='TA_PAIRED_M5_TARGET_PARITY'):
         paired_integrated_loss(**args)
+
+
+def test_cold_fold1_uses_prefix_m5_mass_not_fold2():
+    raw = torch.zeros((1, 5, 2), dtype=torch.float32, requires_grad=True)
+    state = _truth([4, 1, 2, 5, 7])
+    future = _truth([1, 4, 2, 7, 5])
+    args = _case(sampled_truth=state, native_truth=state,
+                 future_truth=future, shared_raw=raw)
+    report = paired_integrated_loss(**args, fold_id=1)
+    reference = combined_loss(state_raw=raw,
+        future_raw=args['model_output']['future_activity_side_logits'],
+        state_truth=state, future_truth=future,
+        state_query_k=args['query_grid'][:, 0], future_weight=1.0,
+        ta_only=True, dedicated_m5_side=True, dedicated_non_m5_side=True,
+        dedicated_tf_activity=True, direct_tf_hidden=True,
+        m5_equal_observation=True, fold_id=1)
+    fold2 = paired_integrated_loss(**args, fold_id=2)
+    torch.testing.assert_close(report['loss'], reference['loss'], atol=0, rtol=0)
+    assert report['contract_sha256'] == contract(fold_id=1)['contract_sha256']
+    assert report['contract_sha256'] != fold2['contract_sha256']
+    assert report['loss'].item() != fold2['loss'].item()

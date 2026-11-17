@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-PAUSED_BY_USER_M5_COLD_LATER_COVERAGE_UNQUALIFIED_NO_EDGE.
+ACTIVE_M5_COLD_PHYSICAL_COVERAGE_AUDIT_ADMITTED_NO_EDGE.
 Første direkte kostete M5-fit valgte 11 486 SHORT, 0 LONG og
 6 050 FLAT på 17 536 gjenbrukte Apr–jun-rader. Kjente valgte
 terminalutfall ga −0,578 bps i snitt etter oppgitte kostnader;
@@ -33,11 +33,28 @@ Full GC er pauset; TEST, ONLINE, broker og handel er lukket.
 Uavhengig handelsgeneralisering er ikke bevist.
 Beslutningstapet er nå endret i kilde, men ingen ny modell er trent eller skåret.
 
-## Kort overlevering ved pause 17.11.2026
+## Gjenopptatt arbeid 17.11.2026
 
-- Brukeren har satt målet på pause. Ingen kjøring, trening, TEST-lesning,
-  ONLINE, broker eller handel skal startes før ny instruks. Arbeidsstedet
-  er bare denne grenen i GX1_CURRENT; alle engangsplaner 001–004 er brukt.
+- Brukeren gjenopptok direkte edge-arbeid og ba om avgrensede agenter for
+  beslutningskjeden, kald inputdekning og opprydding. Integrator eier regler,
+  policy, launch og samlet kontroll. Søk aktivt etter konkrete feil; fjern bare
+  bevist unødvendig kode og bruk retention-eieren for DATA/RUNS.
+  Ingen tung jobb, trening, TEST-lesning, ONLINE, broker eller handel er
+  innrømmet av gjenopptakelsen alene. Arbeidsstedet er bare denne grenen i
+  GX1_CURRENT; alle engangsplaner 001–004 er brukt.
+- Lesende revisjon fant ingen ny mismatch mellom kostet mål, tap og score, og ingen
+  bevist frakoblet aktiv TA-/TF-feature. En foreslått kald rute ville ha brukt
+  Fold2-hjelpevekter fra senere score og full Fold2-sidecar i prefix-TRAIN;
+  begge feilene er rettet i kilde før fit. En regressjon i gammel varm
+  preflight ble også rettet. Fokuserte tester/syntaks besto; faktisk kald
+  normalisert input, modellforward og læring er fortsatt ubevist.
+- Én CPU-plan for fysisk kald senere dekning er nå innrømmet, uten trening:
+  `TA_M5_COLD_FULL_LATER_INPUTS_20261117_001`, SHA `ccf3437645cd63f5defd896a996fb6b8ee2db27e373fa09705787e06d41cb836`.
+  Den binder 17 489 modne Oct–Dec-rader til eksisterende sidecars, med 1-rads
+  hale. Ingen CLAIM eller RESULT finnes ennå. Den beviser bare fysisk dekning;
+  eksakt kald FIT-/SCORE-gather og fersk initial må kontrolleres separat.
+- Oppryddingsrevisjonen fant ingen repo-fil eller DATA/RUNS-artefakt som var
+  bevist trygg å slette. Målt ledig plass var 543 GB; ingen sletting ble gjort.
 - M5 er beslutningspunkt. Den siste matchede modellen valgte 0 LONG,
   favoriserte SHORT på 99,84 % av komplette h480-baner og undervurderte
   motbevegelse før MFE. +6,232 bps gjaldt bare kjente terminalutfall på

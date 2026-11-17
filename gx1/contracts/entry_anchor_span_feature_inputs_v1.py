@@ -22,9 +22,11 @@ from gx1.contracts.entry_anchor_span_normalization_v1 import SPAN_FIELDS
 
 TIMEFRAMES = ('M5','M15','H1','H4','D1')
 LATER_COVERAGE_SCHEMA = 'entry_anchor_span_later_coverage_v1'
+COLD_FULL_LATER_COVERAGE_SCHEMA = 'entry_anchor_span_cold_full_later_coverage_v1'
 LATER_BATCH_INDICES = tuple(i * 1108 // 255 for i in range(256))
 LATER_SCORE_START_NS = 1727740800000000000  # 2024-10-01 UTC
 LATER_SCORE_END_NS = 1735689600000000000  # 2025-01-01 UTC
+COLD_FULL_LATER_END_NS = 1735603200000000000  # 2024-12-31 UTC; mature Fold2 prefix
 
 
 
@@ -51,17 +53,27 @@ def later_panel(*, fold_id=1):
         batch_indices=list(range(1096)))
 
 
+def cold_full_later_panel():
+    """All mature Oct-Dec decisions after the independent 29,574-row fit prefix."""
+    return dict(prefix_rows=29574, prefix_cutoff_ns=1727654400000000000,
+        score_parent_start=29849, score_rows=17489, batch_size=16,
+        full_batches=1093, tail_rows=1, score_start_ns=LATER_SCORE_START_NS,
+        score_end_exclusive_ns=COLD_FULL_LATER_END_NS)
+
+
 def _axis_sha(value):
     return hashlib.sha256(value.astype('<i8', copy=False).tobytes()).hexdigest()
 
 
-def _require_later_coverage(view, coverage, axes, populations):
+def _require_later_coverage(view, coverage, axes, populations, *, sidecar_refs=None):
     """Bind one exact development panel; this grants no execution.
 
-    The caller must verify the referenced COMPLETE qualification and sidecar
-    file hashes. This owner verifies their declared axes and actual arrays.
-    Normalization provenance remains the original TRAIN prefix.
+    The caller verifies the qualification and sidecar file hashes first.
+    This owner verifies declared axes and actual arrays.
     """
+    if type(coverage) is dict and coverage.get('schema_version') == COLD_FULL_LATER_COVERAGE_SCHEMA:
+        return _require_cold_full_later_coverage(view, coverage, axes, populations, sidecar_refs)
+    need(sidecar_refs is None, 'LATER_UNEXPECTED_SIDECAR_REFS')
     keys = {'schema_version', 'status', 'qualification', 'view_sha256', 'full_axes',
             'normalization_prefix', 'score_parent_start', 'score_rows',
             'score_start_ns', 'score_end_exclusive_ns', 'batch_size', 'batch_indices',
@@ -113,6 +125,87 @@ def _require_later_coverage(view, coverage, axes, populations):
     parents, decisions = axes['parent_rows'][positions], axes['decision_ns'][positions]
     need(_axis_sha(parents) == coverage['selected_parent_rows_sha256']
          and _axis_sha(decisions) == coverage['selected_decision_ns_sha256'], 'LATER_SELECTED_AXES')
+    digest = hashlib.sha256(json.dumps(coverage, sort_keys=True, separators=(',', ':'),
+                                       allow_nan=False).encode()).hexdigest()
+    return dict(later_parent_positions=owned_readonly(positions, np.int64),
+                later_parent_rows=owned_readonly(parents, np.int64),
+                later_decision_ns=owned_readonly(decisions, np.int64),
+                later_coverage_sha256=digest, later_qualification=(ref['path'], ref['sha256']))
+
+
+def _require_cold_full_later_coverage(view, coverage, axes, populations, sidecar_refs):
+    """Bind every mature Oct-Dec row to one cold view and verified sidecar refs.
+
+    The caller verifies the qualification RESULT and each sidecar file SHA before
+    loading the arrays. The physical population hashes are checked again below.
+    """
+    keys = {'schema_version', 'status', 'qualification', 'view_sha256', 'full_axes',
+            'normalization_prefix', 'score_parent_start', 'score_rows',
+            'score_start_ns', 'score_end_exclusive_ns', 'batch_size',
+            'full_batches', 'tail_rows', 'selected_parent_rows_sha256',
+            'selected_decision_ns_sha256', 'physical_populations', 'physical_sidecars'}
+    need(type(coverage) is dict and set(coverage) == keys, 'LATER_COLD_KEYS')
+    panel = cold_full_later_panel()
+    need(coverage['schema_version'] == COLD_FULL_LATER_COVERAGE_SCHEMA
+         and coverage['status'] == 'COMPLETE'
+         and coverage['view_sha256'] == view['contract_sha256']
+         and coverage['full_axes'] == view['full_axes']
+         and coverage['normalization_prefix'] == view['prefix']
+         and coverage['physical_populations'] == populations, 'LATER_COLD_BINDING')
+    need(view['full_axes']['rows'] == 118249
+         and view['prefix']['rows'] == panel['prefix_rows']
+         and view['prefix']['cutoff_ns'] == panel['prefix_cutoff_ns']
+         and view['prefix']['last_decision_ns'] + 1440 * 60 * 10**9 < panel['score_start_ns'],
+         'LATER_COLD_MATURE_PREFIX')
+    fixed = {k: panel[k] for k in ('score_parent_start', 'score_rows', 'batch_size',
+        'full_batches', 'tail_rows', 'score_start_ns', 'score_end_exclusive_ns')}
+    need(all(type(coverage[k]) is int and coverage[k] == v for k, v in fixed.items())
+         and panel['full_batches'] * panel['batch_size'] + panel['tail_rows'] == panel['score_rows'],
+         'LATER_COLD_FULL_PANEL')
+    ref = coverage['qualification']
+    need(type(ref) is dict and set(ref) == {'path', 'sha256'}
+         and type(ref['path']) is str and type(ref['sha256']) is str,
+         'LATER_COLD_QUALIFICATION_REF')
+    path = PurePosixPath(ref['path'])
+    need(str(path) == ref['path'] and path.is_absolute() and '..' not in path.parts
+         and ref['path'].startswith('/home/andre2/GX1_RUNS/') and path.name == 'RESULT.json'
+         and len(ref['sha256']) == 64 and all(c in '0123456789abcdef' for c in ref['sha256']),
+         'LATER_COLD_QUALIFICATION_REF')
+    sidecars = coverage['physical_sidecars']
+    need(type(sidecars) is dict and type(sidecar_refs) is dict
+         and set(sidecars) == set(sidecar_refs) == {'local', *TIMEFRAMES}
+         and sidecars == sidecar_refs, 'LATER_COLD_SIDECAR_BINDING')
+    root = PurePosixPath('/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_002')
+    for lane, item in sidecars.items():
+        need(type(item) is dict and set(item) == {'path', 'sha256'}
+             and type(item['path']) is str and type(item['sha256']) is str
+             and str(PurePosixPath(item['path'])) == item['path']
+             and '..' not in PurePosixPath(item['path']).parts
+             and PurePosixPath(item['path']) == root / (lane + '_ANCHOR_SPANS.npz')
+             and len(item['sha256']) == 64
+             and all(c in '0123456789abcdef' for c in item['sha256']),
+             'LATER_COLD_SIDECAR_REF:' + lane)
+    need(type(axes) is dict and set(axes) == {'parent_rows', 'bar_start_ns', 'decision_ns'},
+         'LATER_COLD_FULL_AXIS_KEYS')
+    for name, value in axes.items():
+        need(isinstance(value, np.ndarray) and value.dtype == np.int64
+             and value.shape == (view['full_axes']['rows'],) and value.flags.c_contiguous
+             and not value.flags.writeable and np.all(np.diff(value) > 0)
+             and _axis_sha(value) == view['full_axes'][name + '_sha256'],
+             'LATER_COLD_FULL_AXIS:' + name)
+    need(np.array_equal(axes['bar_start_ns'] + 300 * 10**9, axes['decision_ns']),
+         'LATER_COLD_DECISION_CLOCK')
+    start, stop = panel['score_parent_start'], panel['score_parent_start'] + panel['score_rows']
+    score_times = axes['decision_ns'][start:stop]
+    need(len(score_times) == panel['score_rows']
+         and np.all(score_times >= panel['score_start_ns'])
+         and np.all(score_times < panel['score_end_exclusive_ns']),
+         'LATER_COLD_SCORE_INTERVAL')
+    positions = np.arange(start, stop, dtype=np.int64)
+    parents, decisions = axes['parent_rows'][positions], axes['decision_ns'][positions]
+    need(_axis_sha(parents) == coverage['selected_parent_rows_sha256']
+         and _axis_sha(decisions) == coverage['selected_decision_ns_sha256'],
+         'LATER_COLD_SELECTED_AXES')
     digest = hashlib.sha256(json.dumps(coverage, sort_keys=True, separators=(',', ':'),
                                        allow_nan=False).encode()).hexdigest()
     return dict(later_parent_positions=owned_readonly(positions, np.int64),
@@ -245,7 +338,8 @@ class QualifiedAnchorSpanInputs:
 def build_anchor_span_inputs(view, *, entry_sequence_source, snap_x, ctx_cont, ctx_cat,
                              parent_signal_names, parent_mtf_names, parent_mtf_values,
                              parent_mtf_times, span_payloads, physical_populations,
-                             unobserved_units_profile, later_coverage=None, later_axes=None):
+                             unobserved_units_profile, later_coverage=None, later_axes=None,
+                             later_sidecar_refs=None):
     """Compose TRAIN sidecars, or a separately qualified fixed later panel.
 
     Later envelopes remain contiguous so the existing native window owner sees
@@ -278,11 +372,12 @@ def build_anchor_span_inputs(view, *, entry_sequence_source, snap_x, ctx_cont, c
     need(tuple(parent_mtf_values)==tuple(parent_mtf_times)==TIMEFRAMES
          and set(span_payloads)==set(physical_populations)=={'local',*TIMEFRAMES},'SIX_SURFACES')
     if later_coverage is None:
-        need(later_axes is None, 'UNBOUND_LATER_AXES')
+        need(later_axes is None and later_sidecar_refs is None, 'UNBOUND_LATER_AXES')
         later_binding = {}
         coverage_cutoff = view['prefix']['cutoff_ns']
     else:
-        later_binding = _require_later_coverage(view, later_coverage, later_axes, physical_populations)
+        later_binding = _require_later_coverage(view, later_coverage, later_axes,
+            physical_populations, sidecar_refs=later_sidecar_refs)
         coverage_cutoff = later_coverage['score_end_exclusive_ns']
         need(np.all(positions >= 0) and np.all(positions < len(times))
              and np.array_equal(times[positions], later_axes['bar_start_ns']), 'LATER_PARENT_SOURCE_CLOCK')

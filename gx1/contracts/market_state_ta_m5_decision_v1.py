@@ -11,7 +11,9 @@ from torch import nn
 from torch.nn import functional as F
 
 from gx1.contracts.market_state_ta_integrated_model_v1 import IntegratedTAMarketStateModel
-from gx1.contracts.market_state_ta_integrated_paired_objective_v1 import paired_integrated_loss
+from gx1.contracts.market_state_ta_integrated_paired_objective_v1 import (
+    contract as paired_contract, paired_integrated_loss,
+)
 
 HORIZONS = (1, 5, 15, 60, 240, 480)
 FIELDS = ('net_bps', 'mfe_bps', 'pre_mfe_mae_upper_bps')
@@ -71,7 +73,8 @@ def fit_statistics(targets: Mapping[str, np.ndarray]) -> dict:
     return result
 
 
-def contract(core_sha256: str, statistics_sha256: str) -> dict:
+def contract(core_sha256: str, statistics_sha256: str, *, aux_fold_id: int = 2) -> dict:
+    require(type(aux_fold_id) is int and aux_fold_id in (1, 2), 'AUX_FOLD_ID')
     value = {'schema_version': 'gx1_ta_m5_cost_path_decision_v1',
         'role': 'research_only_no_fit_or_trade_authority',
         'core_sha256': core_sha256, 'fit_statistics_sha256': statistics_sha256,
@@ -85,14 +88,21 @@ def contract(core_sha256: str, statistics_sha256: str) -> dict:
         'action': 'argmax_predicted_net_minus_nonnegative_MAE_or_FLAT_if_nonpositive',
         'tie': 'earliest_horizon_then_LONG; FLAT_at_zero',
         'test_data_used': False}
+    # The consumed warm Fold2 hash is unchanged; cold Fold1 gets its own loss identity.
+    if aux_fold_id == 1:
+        value['cold_aux_fold_id'] = aux_fold_id
+        value['cold_aux_contract_sha256'] = paired_contract(fold_id=aux_fold_id)['contract_sha256']
     raw = json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
     return {**value, 'contract_sha256': hashlib.sha256(raw).hexdigest()}
 
 
 class IntegratedTAM5DecisionModel(nn.Module):
-    def __init__(self, core: IntegratedTAMarketStateModel, statistics: dict):
+    def __init__(self, core: IntegratedTAMarketStateModel, statistics: dict, *,
+                 aux_fold_id: int = 2):
         super().__init__()
         require(type(core) is IntegratedTAMarketStateModel, 'CORE_TYPE')
+        require(type(aux_fold_id) is int and aux_fold_id in (1, 2), 'AUX_FOLD_ID')
+        self.aux_fold_id = aux_fold_id
         require(all(statistics[key].shape == shape for key, shape in (
             ('mean_bps', (6, 2, 3)), ('std_bps', (6, 2, 3)),
             ('quality_std_bps', (6, 2)))), 'STAT_SHAPE')
@@ -118,7 +128,7 @@ class IntegratedTAM5DecisionModel(nn.Module):
     @property
     def research_objective(self) -> dict:
         return contract(self.core.research_objective['contract_sha256'],
-                        self.statistics_sha256)
+                        self.statistics_sha256, aux_fold_id=self.aux_fold_id)
 
     def forward(self, features: Mapping[str, torch.Tensor], *, query_k: torch.Tensor,
                 m1_path_bps: torch.Tensor, m1_observed: torch.Tensor) -> dict:
@@ -185,7 +195,10 @@ def decision_loss(*, model_output: dict, targets: Mapping[str, np.ndarray],
     aux = paired_integrated_loss(model_output={key: model_output[key] for key in CORE_KEYS},
         sampled_truth=sampled_truth, native_truth=native_truth,
         future_truth=future_truth, query_grid=query_grid,
-        structure_hit=structure_hit, structure_observed=structure_observed)
+        structure_hit=structure_hit, structure_observed=structure_observed,
+        fold_id=model.aux_fold_id)
+    require(aux['contract_sha256'] == paired_contract(
+        fold_id=model.aux_fold_id)['contract_sha256'], 'AUX_CONTRACT')
     total = primary + AUX_WEIGHT * aux['loss']
     require(bool(torch.isfinite(total)), 'LOSS_FINITE')
     return {'loss': total, 'decision_loss': primary, 'net_loss': field_losses[0],

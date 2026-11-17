@@ -6,7 +6,7 @@ from pytest import MonkeyPatch
 import torch
 
 from gx1.contracts.market_state_ta_m5_decision_v1 import (
-    IntegratedTAM5DecisionModel, choose_actions, decision_loss,
+    IntegratedTAM5DecisionModel, choose_actions, contract, decision_loss,
 )
 from tests.test_market_state_ta_integrated_model_v1 import _inputs, _model
 from tests.test_market_state_ta_integrated_paired_objective_v1 import _case
@@ -60,7 +60,7 @@ def test_cost_and_path_masks_block_unknown_gradients_and_flat_tie():
                'pre_mfe_mae_upper_bps': mae}
     model = SimpleNamespace(target_std_bps=torch.ones((6, 2, 3)),
         quality_std_bps=torch.ones((6, 2)),
-        research_objective={'contract_sha256': 'synthetic'})
+        research_objective={'contract_sha256': 'synthetic'}, aux_fold_id=2)
     result = decision_loss(**args, targets=targets, model=model)
     result['loss'].backward()
     grad = prediction.grad.detach().numpy()
@@ -89,7 +89,7 @@ def test_side_pair_and_adverse_path_gradients():
                'pre_mfe_mae_upper_bps': mae}
     model = SimpleNamespace(target_std_bps=torch.ones((6, 2, 3)),
         quality_std_bps=torch.ones((6, 2)),
-        research_objective={'contract_sha256': 'synthetic'})
+        research_objective={'contract_sha256': 'synthetic'}, aux_fold_id=2)
     losses = decision_loss(**args, targets=targets, model=model)
     side_grad = torch.autograd.grad(losses['side_pair_loss'], prediction,
                                     retain_graph=True)[0]
@@ -98,3 +98,16 @@ def test_side_pair_and_adverse_path_gradients():
     assert torch.all(mae_grad[0, 0, :, 2] < 0)
     assert torch.count_nonzero(side_grad[:, 1:]) == 0
     assert torch.count_nonzero(mae_grad[:, 1:]) == 0
+
+
+def test_cold_aux_fold_contract_is_distinct_from_consumed_fold2():
+    from gx1.contracts.market_state_ta_integrated_paired_objective_v1 import (
+        contract as paired_contract,
+    )
+    warm = contract('core', 'stats')
+    assert warm == contract('core', 'stats', aux_fold_id=2)
+    cold = contract('core', 'stats', aux_fold_id=1)
+    assert cold['contract_sha256'] != warm['contract_sha256']
+    assert cold['cold_aux_fold_id'] == 1
+    assert cold['cold_aux_contract_sha256'] == paired_contract(fold_id=1)['contract_sha256']
+    assert 'cold_aux_fold_id' not in warm

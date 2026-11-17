@@ -175,6 +175,18 @@ kjøringsordre. TEST-forsegling og en eksakt ny treningsadmisjon består.
 Aktivt arbeid skal isolere målte årsaker til svak retningslæring med minst
 nødvendig kontroll og rettelse, med gjenbruk av eksisterende evidens.
 
+Operatørpresisering17.11.2026: Arbeid direkte mot dokumenterbar M5-retnings- og
+prisbaneedge. Søk fra nå aktivt etter feil og mismatches gjennom faktisk
+kilde → input → fasit → tap → prognose → valg → kostet utfall. Hver endring må
+ha ett konkret målt avvik eller en nødvendig gate og den minste begrunnede
+rettelsen. Bruk tokens konservativt: ingen brede omskrivninger, modellrunder
+eller arbeid for å fylle ventetid. Flere avgrensede agenter kan kontrollere
+ulike deler samtidig; én integrator eier policy, launch og samlet bevis.
+Gjennomgå referanser, importer, tester og eierskap før bevist frakoblet
+repo-kode fjernes. Frigjør DATA/RUNS bare via retention-eieren etter regel 9.
+Teknisk PASS, positivt terminaltall på gjenbrukt utvikling og ufittet tap er
+ikke edge; skill alltid læring, generalisering og økonomi.
+
 Bruk eksisterende fungerende eiere og beståtte kontroller. Rett målte
 blokkeringer og vedtatte designgap fortløpende med minst nødvendig endring;
 ikke bruk tid på kosmetisk ombygging. Dobbeltsjekk utført arbeid. Usikre

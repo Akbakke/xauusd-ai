@@ -21,7 +21,9 @@ F_WEIGHT = 1.0
 STRUCTURE_WEIGHT = 0.25
 
 
-def contract() -> dict:
+def contract(*, fold_id: int = 2) -> dict:
+    if type(fold_id) is not int or fold_id not in (1, 2):
+        raise ValueError('TA_PAIRED_FOLD_ID')
     value = {'schema_version': 'gx1_ta_fold2_paired_S_integrated_objective_v1',
         'role': 'research_only_no_fit_or_trade_authority',
         'sampled_S_query': 'label_blind_k_in_1_to_native_k_per_TF_per_issue',
@@ -34,6 +36,11 @@ def contract() -> dict:
         'M5_native_S': 'duplicates_sampled_M5_k1_but_average_preserves_mass',
         'unknowns': 'separate_activity_side_and_structure_masks_zero_gradient',
         'test_data_used': False}
+    # Preserve the consumed Fold2 contract; the cold fit binds its own q/N.
+    if fold_id == 1:
+        value['cold_fit_fold_id'] = fold_id
+        value['cold_fit_m5_weight_profile_sha256'] = (
+            m5_equal_observation_profile(fold_id=fold_id)['contract_sha256'])
     raw = json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
     return {**value, 'contract_sha256': hashlib.sha256(raw).hexdigest()}
 
@@ -41,7 +48,10 @@ def contract() -> dict:
 def paired_integrated_loss(*, model_output: dict, sampled_truth: dict,
                            native_truth: dict, future_truth: dict,
                            query_grid: torch.Tensor, structure_hit: np.ndarray,
-                           structure_observed: np.ndarray) -> dict:
+                           structure_observed: np.ndarray,
+                           fold_id: int = 2) -> dict:
+    if type(fold_id) is not int or fold_id not in (1, 2):
+        raise ValueError('TA_PAIRED_FOLD_ID')
     expected = {'state_activity_side_logits', 'state_log_probs',
         'state_native_activity_side_logits', 'state_native_log_probs',
         'future_activity_side_logits', 'future_log_probs',
@@ -83,8 +93,8 @@ def paired_integrated_loss(*, model_output: dict, sampled_truth: dict,
         state_query_k=query_grid[:, 0], future_weight=F_WEIGHT,
         ta_only=True, dedicated_m5_side=True, dedicated_non_m5_side=True,
         dedicated_tf_activity=True, direct_tf_hidden=True,
-        m5_equal_observation=True, fold_id=2)
-    profile = m5_equal_observation_profile(fold_id=2)['state']
+        m5_equal_observation=True, fold_id=fold_id)
+    profile = m5_equal_observation_profile(fold_id=fold_id)['state']
     native_s = allowed_set_loss(native,
         truth_tensor(native_truth, 'allowed', 'uint8'),
         truth_tensor(native_truth, 'eligible', 'bool'),
@@ -117,4 +127,4 @@ def paired_integrated_loss(*, model_output: dict, sampled_truth: dict,
             'structure_observed_counts': aux['observed_counts'],
             'skip_update': sf['skip_update'] and native_s['skip_update']
                            and not bool(aux['observed_counts'].any()),
-            'contract_sha256': contract()['contract_sha256']}
+            'contract_sha256': contract(fold_id=fold_id)['contract_sha256']}

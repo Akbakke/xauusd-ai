@@ -217,7 +217,7 @@ def make_gather_case(monkeypatch, *, later=False, full_gc=False):
             later_decision_ns=readonly(c['decision_ns'][4:6].copy()),
             later_coverage_sha256='b'*64,
             later_qualification=('/home/andre2/GX1_RUNS/SYNTHETIC/RESULT.json','c'*64))
-        monkeypatch.setattr(overlay,'_require_later_coverage',lambda *a:later_binding)
+        monkeypatch.setattr(overlay,'_require_later_coverage',lambda *a,**kw:later_binding)
         build.update(later_coverage={'synthetic_only':True,
             'score_end_exclusive_ns':int(c['decision_ns'][-1])+views.BAR_NS},later_axes={
             key:c[key] for key in ('parent_rows','bar_start_ns','decision_ns')})
@@ -287,6 +287,75 @@ def later_metadata_case(fold_id=1):
         selected_decision_ns_sha256=sha(axes['decision_ns'][selected]),
         physical_populations=deepcopy(populations))
     return view,coverage,axes,populations,selected
+
+
+def cold_full_metadata_case():
+    view,coverage,axes,populations,_=later_metadata_case(1)
+    panel=overlay.cold_full_later_panel()
+    # The 65-minute closed-market gap leaves the full 1,440-minute target
+    # mature before the October score starts, as in the bound prefix.
+    decisions=axes['decision_ns'].copy()
+    decisions[:panel['prefix_rows']]-=65*60*10**9
+    axes['decision_ns']=readonly(decisions)
+    axes['bar_start_ns']=readonly(decisions-views.BAR_NS)
+    sha=lambda a:hashlib.sha256(a.astype('<i8').tobytes()).hexdigest()
+    view['full_axes']={**view['full_axes'],**{
+        k+'_sha256':sha(a) for k,a in axes.items()}}
+    view['prefix']['last_decision_ns']=int(decisions[panel['prefix_rows']-1])
+    coverage.update(schema_version=overlay.COLD_FULL_LATER_COVERAGE_SCHEMA,
+        full_axes=deepcopy(view['full_axes']),normalization_prefix=deepcopy(view['prefix']),
+        score_parent_start=panel['score_parent_start'],score_rows=panel['score_rows'],
+        score_start_ns=panel['score_start_ns'],score_end_exclusive_ns=panel['score_end_exclusive_ns'],
+        batch_size=panel['batch_size'],full_batches=panel['full_batches'],tail_rows=panel['tail_rows'])
+    del coverage['batch_indices']
+    positions=np.arange(panel['score_parent_start'],panel['score_parent_start']+panel['score_rows'],dtype=np.int64)
+    coverage['selected_parent_rows_sha256']=sha(axes['parent_rows'][positions])
+    coverage['selected_decision_ns_sha256']=sha(axes['decision_ns'][positions])
+    root='/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_002/'
+    sidecars={lane:dict(path=root+lane+'_ANCHOR_SPANS.npz',sha256='1'*64)
+              for lane in ('local',*overlay.TIMEFRAMES)}
+    coverage['physical_sidecars']=deepcopy(sidecars)
+    return view,coverage,axes,populations,sidecars,positions
+
+
+def test_cold_full_later_covers_all_mature_rows_including_single_tail():
+    view,coverage,axes,populations,sidecars,positions=cold_full_metadata_case()
+    before=deepcopy((view,coverage,populations,sidecars))
+    actual=overlay._require_later_coverage(view,coverage,axes,populations,sidecar_refs=sidecars)
+    assert (view,coverage,populations,sidecars)==before
+    assert len(positions)==17489 and positions[0]==29849 and positions[-1]==47337
+    assert coverage['full_batches']*coverage['batch_size']+coverage['tail_rows']==len(positions)
+    for key,expected in [('later_parent_positions',positions),
+                         ('later_parent_rows',axes['parent_rows'][positions]),
+                         ('later_decision_ns',axes['decision_ns'][positions])]:
+        assert np.array_equal(actual[key],expected) and not actual[key].flags.writeable
+        assert not any(np.shares_memory(actual[key],a) for a in axes.values())
+    assert len(actual['later_coverage_sha256'])==64
+    assert actual['later_qualification']==tuple(coverage['qualification'][k] for k in ('path','sha256'))
+
+
+@pytest.mark.parametrize('fault',['view','prefix','maturity','full_axes','population','sidecar_binding',
+    'sidecar_sha','sidecar_path','batch_count','tail','score_count','selected_axis_hash',
+    'axis_changed','qualification'])
+def test_cold_full_later_fails_closed_on_wrong_binding_or_coverage(fault):
+    view,coverage,axes,populations,sidecars,_=cold_full_metadata_case()
+    if fault=='view':coverage['view_sha256']='b'*64
+    elif fault=='prefix':coverage['normalization_prefix']['rows']+=1
+    elif fault=='maturity':view['prefix']['last_decision_ns']+=views.BAR_NS
+    elif fault=='full_axes':coverage['full_axes']['rows']-=1
+    elif fault=='population':coverage['physical_populations']['M5']['available_ns_sha256']='0'*64
+    elif fault=='sidecar_binding':sidecars['M5']['sha256']='2'*64
+    elif fault=='sidecar_sha':coverage['physical_sidecars']['M5']['sha256']='g'*64;sidecars=deepcopy(coverage['physical_sidecars'])
+    elif fault=='sidecar_path':coverage['physical_sidecars']['M5']['path']='/home/andre2/GX1_RUNS/other/M5_ANCHOR_SPANS.npz';sidecars=deepcopy(coverage['physical_sidecars'])
+    elif fault=='batch_count':coverage['full_batches']-=1
+    elif fault=='tail':coverage['tail_rows']=0
+    elif fault=='score_count':coverage['score_rows']-=1
+    elif fault=='selected_axis_hash':coverage['selected_decision_ns_sha256']='0'*64
+    elif fault=='axis_changed':
+        a=axes['parent_rows'].copy();a[40000]+=1;axes['parent_rows']=readonly(a)
+    else:coverage['qualification']['sha256']='g'*64
+    with pytest.raises(RuntimeError,match='LATER_COLD'):
+        overlay._require_later_coverage(view,coverage,axes,populations,sidecar_refs=sidecars)
 
 
 @pytest.mark.parametrize('fold_id,first,last,count',[(1,29849,47592,4096),(2,47602,64881,4096),(3,64890,82425,17536)])

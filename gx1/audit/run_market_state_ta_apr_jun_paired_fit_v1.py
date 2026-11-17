@@ -215,7 +215,12 @@ def _turn_and_disagreement(state_raw, state_truth, issues):
     return {'M5_turns': turn, 'TF_disagreement': tf}
 
 
-def score(model, context, *, deadline, collect_decision=False):
+def score(model, context, *, deadline, fold_id: int, partition: str,
+          collect_decision=False):
+    need(type(fold_id) is int and fold_id in (2, 3)
+         and partition in ('fit', 'score')
+         and ((fold_id, partition) in ((2, 'fit'), (3, 'score'))),
+         'SCORE_TRUTH_SCOPE')
     import numpy as np
     import torch
     from gx1.audit.observe_market_state_ta_fold2_fresh_initial_v1 import direction_readout
@@ -226,23 +231,25 @@ def score(model, context, *, deadline, collect_decision=False):
     from gx1.contracts.market_state_time_query_target_v1 import NATIVE_K
     axes, selected, tape = context['axes'], context['selected'], context['score_tape']
     rows, issues = axes['parent_rows'][selected], axes['decision_ns'][selected]
+    score_rows = len(selected)
+    need(score_rows > 0 and len(rows) == len(issues), 'SCORE_ROWS')
     sampled = sampled_query_k(issues, pass_index=0, seed=SEED)
     native = np.broadcast_to(np.asarray(NATIVE_K, dtype=np.int64), sampled.shape).copy()
     truth = {'sampled_S': load_bound_time_query_targets().gather(
-                 rows, issues, sampled, fold_id=3, partition='score'),
+                 rows, issues, sampled, fold_id=fold_id, partition=partition),
              'native_S': load_bound_five_endpoint_targets().gather(
-                 rows, issues, fold_id=3, partition='score'),
+                 rows, issues, fold_id=fold_id, partition=partition),
              'native_F': load_bound_future_displacement().gather(
-                 rows, issues, fold_id=3, partition='score')}
-    raw = {name: np.empty((SCORE_ROWS, 5, 2), dtype=np.float32)
+                 rows, issues, fold_id=fold_id, partition=partition)}
+    raw = {name: np.empty((score_rows, 5, 2), dtype=np.float32)
            for name in ('sampled_S', 'native_S', 'native_F')}
-    structure = np.empty((SCORE_ROWS, 2), dtype=np.float32)
-    decision = np.empty((SCORE_ROWS, 6, 2, 3), dtype=np.float32) if collect_decision else None
+    structure = np.empty((score_rows, 2), dtype=np.float32)
+    decision = np.empty((score_rows, 6, 2, 3), dtype=np.float32) if collect_decision else None
     model.eval()
     with torch.inference_mode():
-        for left in range(0, SCORE_ROWS, BATCH):
+        for left in range(0, score_rows, BATCH):
             need(time.monotonic() < deadline, 'SCORE_DEADLINE')
-            right = left + BATCH
+            right = min(left + BATCH, score_rows)
             features = context['features']('SCORE', rows[left:right], issues[left:right])
             grid = torch.from_numpy(np.stack((sampled[left:right], native[left:right]),
                                                axis=1).copy()).to(next(model.parameters()).device)
@@ -254,7 +261,7 @@ def score(model, context, *, deadline, collect_decision=False):
             raw['native_F'][left:right] = out['future_activity_side_logits'].cpu().numpy()
             structure[left:right] = out['m5_structure_hit_logits'].cpu().numpy()
             if collect_decision:
-                need(out['m5_cost_path_bps'].shape == (BATCH, 6, 2, 3), 'DECISION_SHAPE')
+                need(out['m5_cost_path_bps'].shape == (right - left, 6, 2, 3), 'DECISION_SHAPE')
                 decision[left:right] = out['m5_cost_path_bps'].cpu().numpy()
             del features, out
     prior = context['priors']['tasks']
@@ -273,7 +280,7 @@ def score(model, context, *, deadline, collect_decision=False):
                     tape['structure_hit'], tape['structure_observed'], prior_hit),
                'turn_and_tf': _turn_and_disagreement(raw['native_S'], truth['native_S'], issues),
                'structure_prior': prior_hit.tolist(),
-               'rows': SCORE_ROWS, 'model_forwards': SCORE_BATCHES,
+               'rows': score_rows, 'model_forwards': (score_rows + BATCH - 1) // BATCH,
                'score_start_ns': int(issues[0]), 'score_last_ns': int(issues[-1]),
                'test_data_used': False}
     capture = {'parent_rows': rows, 'issue_ns': issues,
@@ -330,7 +337,7 @@ def run(plan_sha):
         initial_sha = canonical_model_state_sha256(model.state_dict())
         need(model.research_objective['contract_sha256'] == plan['model_contract_sha256']
              and initial_sha == plan['initial_model_state_sha256'], 'FRESH_INITIAL')
-        initial, initial_capture = score(model, context, deadline=deadline)
+        initial, initial_capture = score(model, context, deadline=deadline, fold_id=3, partition='score')
         need(canonical_model_state_sha256(model.state_dict()) == initial_sha,
              'INITIAL_READOUT_MUTATION')
         model.train()
@@ -402,7 +409,7 @@ def run(plan_sha):
                            'native_S': 0., 'native_F': 0., 'structure': 0.,
                            'grad_norm': 0., 'updates': 0, 'skipped': 0}
         need(updates + skipped == BATCHES, 'FIT_VISITS')
-        final, final_capture = score(model, context, deadline=deadline)
+        final, final_capture = score(model, context, deadline=deadline, fold_id=3, partition='score')
         final_sha = canonical_model_state_sha256(model.state_dict())
         checkpoint = io.BytesIO()
         torch.save(model.state_dict(), checkpoint)
