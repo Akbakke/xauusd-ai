@@ -1,0 +1,214 @@
+{
+  "schema_version": "gx1_fold2_F_frozen_readout_result_review_v1",
+  "decision": "COMPLETE_CONSUMED_FROZEN_READOUT_FIT_ONLY_NO_TRANSFER_GAIN_NO_EDGE",
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/PLAN.json",
+    "sha256": "c87fcec1c25e351fec6e9c7a7bf2905ce97605661ba9055cc769e621b757e786"
+  },
+  "claim": {
+    "path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/CLAIM.json",
+    "sha256": "a86f6df01eed15e4be40a499e0fba2d2d4325cccf74a5b8602663474b8e79474"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/RESULT.json",
+    "sha256": "919a894ed21f49faf173aa733775054f734b5a96ad904f4a1ac3f0e792e4a643"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/TERMINAL.json",
+    "sha256": "f23e4ea3b4789ddd0ec72b72bed7de6e39e2d8eda7779b8b018d359c99a3643c"
+  },
+  "params": {
+    "path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/PARAMS.npz",
+    "sha256": "babe4452ee5e51b13a640360caf054e862e3eaab34c2af1d608bf370845fedba"
+  },
+  "predictions": {
+    "path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/PREDICTIONS.npz",
+    "sha256": "6e484806fdc8f26e1e51fa61f44f5e258583861b482b975a3be1947a02b33b46"
+  },
+  "capture": {
+    "path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_REP_CAPTURE_20261117_002/CAPTURE.npz",
+    "sha256": "d4c8fa49b82dd6095afa17ebfdf40aff2bcf00b9245450edc49044d8325fb256"
+  },
+  "reconciliation": {
+    "path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_REP_CAPTURE_20261117_002/RECONCILIATION.json",
+    "sha256": "9b1bdfae0386ad155f3c315623b9c053e1eec6359996c8b8507ae07e6e505a74"
+  },
+  "scope": {
+    "panel": "4096 fixed spread Fold2 TRAIN rows",
+    "fit": "first 3072 chronological panel rows, mature F-side labels only and endpoint-before-score embargo",
+    "score": "last 1024 chronological panel rows, no Jan-Mar reuse",
+    "methods": [
+      "frozen F query projection 128-D",
+      "frozen fused TF hidden 128-D"
+    ],
+    "heads": "one independent 128-D ridge logistic side readout per TF and method; ten fixed fits",
+    "ridge": 0.001,
+    "no_hyperparameter_search": true,
+    "encoder_and_normalization_seen_score_rows": true,
+    "native_model_forwards": 0,
+    "native_optimizer_updates": 0,
+    "test_data_used": false
+  },
+  "by_TF": {
+    "M5": {
+      "fit_known": 1253,
+      "score_known": 408,
+      "fit_up_fraction": 0.5059856344772546,
+      "score_up_fraction": 0.5269607843137255,
+      "fit_embargoed": 0,
+      "fit_auc": {
+        "original_F": 0.5422351100533577,
+        "projection_readout": 0.668346727957477,
+        "fused_readout": 0.6792781682065813
+      },
+      "score_auc": {
+        "original_F": 0.5446439330039764,
+        "projection_readout": 0.5102060489215569,
+        "fused_readout": 0.5190745872996747
+      },
+      "score_brier": {
+        "prefix_prior": 0.24971307301985113,
+        "original_F": 0.25400333571187245,
+        "projection_readout": 0.2715224851843514,
+        "fused_readout": 0.2705007613486463
+      },
+      "readout_iterations": {
+        "projection": 256,
+        "fused": 179
+      }
+    },
+    "M15": {
+      "fit_known": 1162,
+      "score_known": 374,
+      "fit_up_fraction": 0.5094664371772806,
+      "score_up_fraction": 0.5320855614973262,
+      "fit_embargoed": 0,
+      "fit_auc": {
+        "original_F": 0.5341245851114272,
+        "projection_readout": 0.7229285206258891,
+        "fused_readout": 0.7397374348032243
+      },
+      "score_auc": {
+        "original_F": 0.5341852117731515,
+        "projection_readout": 0.5168987796123474,
+        "fused_readout": 0.46099066762383345
+      },
+      "score_brier": {
+        "prefix_prior": 0.24948214152840698,
+        "original_F": 0.26531416434965516,
+        "projection_readout": 0.28627877426887244,
+        "fused_readout": 0.31739392988342097
+      },
+      "readout_iterations": {
+        "projection": 263,
+        "fused": 203
+      }
+    },
+    "H1": {
+      "fit_known": 1143,
+      "score_known": 386,
+      "fit_up_fraction": 0.5249343832020997,
+      "score_up_fraction": 0.5284974093264249,
+      "fit_embargoed": 0,
+      "fit_auc": {
+        "original_F": 0.5140454266421117,
+        "projection_readout": 0.8222866789441375,
+        "fused_readout": 0.8356261510128914
+      },
+      "score_auc": {
+        "original_F": 0.552898082309847,
+        "projection_readout": 0.4799073475544064,
+        "fused_readout": 0.42744020685197154
+      },
+      "score_brier": {
+        "prefix_prior": 0.24920059281684478,
+        "original_F": 0.28862680756740666,
+        "projection_readout": 0.33894752448172105,
+        "fused_readout": 0.37420611980749174
+      },
+      "readout_iterations": {
+        "projection": 277,
+        "fused": 213
+      }
+    },
+    "H4": {
+      "fit_known": 1065,
+      "score_known": 312,
+      "fit_up_fraction": 0.596244131455399,
+      "score_up_fraction": 0.6378205128205128,
+      "fit_embargoed": 0,
+      "fit_auc": {
+        "original_F": 0.5431752426295551,
+        "projection_readout": 0.91437465665629,
+        "fused_readout": 0.9396447537081121
+      },
+      "score_auc": {
+        "original_F": 0.5307955707742251,
+        "projection_readout": 0.440876951127318,
+        "fused_readout": 0.49539734068572955
+      },
+      "score_brier": {
+        "prefix_prior": 0.23273410173330825,
+        "original_F": 0.3087261942334297,
+        "projection_readout": 0.34434274676530596,
+        "fused_readout": 0.3739402221136287
+      },
+      "readout_iterations": {
+        "projection": 249,
+        "fused": 195
+      }
+    },
+    "D1": {
+      "fit_known": 973,
+      "score_known": 334,
+      "fit_up_fraction": 0.7070914696813977,
+      "score_up_fraction": 0.4550898203592814,
+      "fit_embargoed": 16,
+      "fit_auc": {
+        "original_F": 0.5109547123623011,
+        "projection_readout": 0.9737862097103224,
+        "fused_readout": 0.9768869849041207
+      },
+      "score_auc": {
+        "original_F": 0.6107938114517062,
+        "projection_readout": 0.6122035858877964,
+        "fused_readout": 0.6395676691729323
+      },
+      "score_brier": {
+        "prefix_prior": 0.31148790702570534,
+        "original_F": 0.23838313583647827,
+        "projection_readout": 0.38899459593204583,
+        "fused_readout": 0.33737693771260974
+      },
+      "readout_iterations": {
+        "projection": 195,
+        "fused": 154
+      }
+    }
+  },
+  "aggregate": {
+    "readout_score_brier_worse_than_prefix_prior_cells": 10,
+    "readout_score_brier_worse_than_original_F_cells": 10,
+    "fit_AUC_projection_range": [
+      0.668346727957477,
+      0.9737862097103224
+    ],
+    "score_AUC_projection_range": [
+      0.440876951127318,
+      0.6122035858877964
+    ]
+  },
+  "independent_verification": "Reconstructed all ten probability arrays from saved parameter, center and scale arrays and verified score AUC/Brier against RESULT within 1e-12; exact capture/plan/claim/result/terminal hashes checked.",
+  "interpretation": [
+    "The frozen 128-D representations allow strong fit on the same TRAIN-prefix rows, but the ten fixed readouts do not improve later chronological TRAIN-panel Brier over either the prefix prior or original F head.",
+    "A simple refit of the present linear readout is therefore not a sufficient repair on this fixed control. In-sample separability cannot be promoted to future direction ability.",
+    "D1 fit UP frequency 70.7 percent fell to 45.5 percent in score, demonstrating a substantial regime shift on this TRAIN split. This comparison does not isolate optimizer, feature utility or a unique cause."
+  ],
+  "limits": [
+    "The encoder and normalization had already seen the whole Fold2 TRAIN panel, including score rows; this is not independent OOF or generalization.",
+    "The single predefined ridge and split are not a search over fitting methods. A different training design may behave differently.",
+    "No M5 turning skill, individual-indicator value, Entry, costed economics, TEST or Edge is proven."
+  ],
+  "training_enabled_after_review": false,
+  "next_boundary": "Close the one-use readout gate. Do not tune ridge on its score quarter. Qualify native S query exposure and one genuinely chronological prefix-only integrated F/S fit and later score; handle F calibration and TF disagreement as predeclared measures. Full GC, TEST and trading remain closed."
+}

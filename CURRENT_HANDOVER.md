@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_FOLD2_F_FROZEN_READOUT_ADMITTED_CPU_ONLY_NO_EDGE.
+TA_FOLD2_F_FROZEN_READOUT_COMPLETE_CONSUMED_NO_TRANSFER_GAIN.
 Brukeren fjernet kravet om nytt «ja» for hver stor lokal ikke-GC-kjøring.
 Integrator innrømmet plan002 SHA
 `330e4cb1dd4c76980264b44a32f091e67c43142819514901f60068abed102783`
@@ -15,8 +15,8 @@ i policy under stående 0 USD-fullmakt. Den kjørte etter fysisk Windows
 boot-ID 657 og avsluttet med terminal exit 0: 47 338 TRAIN-rader,
 2 959 optimizersteg, 1 024 initial-/final-skårforwards og uendret kilde.
 Signert GPU-vakt holdt seg innen grensene. Engangsplanen er konsumert;
-training_enabled=true bare for én eksakt CPU-utlesningskontroll;
-native_training_enabled=false og full_epoch_training_allowed=false. Faste TRAIN- og senere opptak er nå
+training_enabled=false, native_training_enabled=false og
+full_epoch_training_allowed=false. Faste TRAIN- og senere opptak er nå
 gjennomgått: struktur lærte, men M5-vending og kalibrert S/F-retning
 kvalifiserte ikke. Full GC er pauset; TEST, Entry/Exit, broker og handel er
 lukket. M5-Edge er ubevist. Stabile langkjøringer sjekkes omtrent hver time.
@@ -580,15 +580,24 @@ SHA256 `d4c8fa49b82dd6095afa17ebfdf40aff2bcf00b9245450edc49044d8325fb256`.
 Detaljer og begrensninger står i
 `docs/TA_FOLD2_F_FROZEN_READOUT_ADMISSION_20261117.json`.
 
-Én eksakt CPU-kontroll av frossen F-projeksjon og frosset TF-hidden på alle fem
-TF er innrømmet med PLAN SHA256
-`c87fcec1c25e351fec6e9c7a7bf2905ce97605661ba9055cc769e621b757e786`.
-Kilde-/import-/kvitterings- og syntetisk rapporteringspreflight besto uten CLAIM.
-Den planlagte lesningen fitter ti små lineære hoder på første 3 072
-TRAIN-panelrader og scorer siste 1 024 med modne labels og embargo.
-Dette er trening av utlesningen, så training_enabled er åpen kun for denne
-engangsplanen; native modellvekter endres ikke. Encoder og normalisering har
-sett hele Fold2 TRAIN, så kontrollen er ikke uavhengig OOF eller Edge.
+Den eksakte CPU-kontrollen med PLAN SHA256
+`c87fcec1c25e351fec6e9c7a7bf2905ce97605661ba9055cc769e621b757e786`
+fullførte med exit 0 og ti faste lineære F-utlesningsfit på frosne
+representasjoner, uten native modellforward eller optimizersteg. Den er
+konsumert og training_enabled er lukket igjen. Første 3 072 kronologiske
+TRAIN-panelrader ble brukt til fit, siste 1 024 til score, med modne labels
+og embargo. På fit-radene fikk projeksjonsutlesningen AUC 0,668–0,974,
+men på senere TRAIN-rader var alle ti Brier-skårene dårligere enn både
+fit-prefix-prior og opprinnelig F-hode. M5 projeksjon fikk score-AUC
+0,510 og Brier 0,27152 mot prior 0,24971; D1 hadde sterk klassedrift
+(70,7 % OPP i fit, 45,5 % i score). Lagrende parametre og prognoser er
+rekonstruert uavhengig med samsvar i AUC/Brier innen 1e-12.
+Se `docs/TA_FOLD2_F_FROZEN_READOUT_RESULT_REVIEW_20261117.json` (SHA256
+`01e4ed18528116681b8d808f6c5ba28906c395432d5e5d29ae697c0f4d457cf2`).
+En enkel lineær nyutlesning er ikke tilstrekkelig reparasjon her. Encoder
+og normalisering hadde allerede sett hele Fold2 TRAIN, også scorekvartalet;
+resultatet er en mekanikkontroll, ikke uavhengig OOF eller Edge. Ingen
+ridge-tuning på scorekvartalet følger.
 
 Det målte problemet er svake M5-vendinger og utilstrekkelige selvstendige
 fem-TF-retninger. M5-only-fitten gir begrenset senere S-rangering, men
@@ -615,17 +624,17 @@ Entry, TEST eller handel åpnes av denne presiseringen.
 
 ## Neste steg
 
-1. Kjør den innrømmede, capped CPU-utlesningskontrollen én gang. Lukk
-   training_enabled etter terminal og vurder F-hode mot frossen utlesning på
-   TRAIN uten å velge etter januar–mars-panelet. Kvalifiser deretter native
-   S-plan for alle fem TF; bruk de 6 746 kjente M5-naboparene uten nytt
-   vendingshode.
+1. Kvalifiser native S-spørring for alle fem TF, særlig H4/D1 med bare
+   340/37 kjente native sider i siste fit. Bind deretter én ekte kronologisk
+   prefix-only F/S-plan som måler F-kalibrering og ulik TF-retning uten
+   scorebasert ridge-/modellvalg. Bruk de 6 746 kjente M5-naboparene uten
+   nytt vendingshode.
 2. Bind deretter én eksakt kronologisk OOF-/forward-plan bare hvis
    mål og observerbarhet er kvalifisert. Økonomisk Edge krever senere
    forhåndsbundet kostet Entry og alle valgte/åpne posisjoner.
-3. Full GC, native modelltrening, TEST, ONLINE, broker og handel forblir
-   lukket. Kun den ene CPU-utlesningen er innrømmet. De gamle fit-planene
-   001 og 002 er konsumert og kan aldri relanseres.
+3. Full GC, trening, TEST, ONLINE, broker og handel forblir lukket.
+   CPU-utlesningen og de gamle fit-planene 001/002 er konsumert og kan
+   aldri relanseres.
 
 Opprydding: historiske overleveringsavsnitt er fjernet her og bevart i Git.
 Ingen Python-fil er slettet; gjeldende referanse-, import-, test- og
