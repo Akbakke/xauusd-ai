@@ -5,7 +5,7 @@ import pytest
 import torch
 
 from gx1.audit.market_state_ta_apr_jun_campaign_inputs_v1 import (
-    COLD_PREFIX_SPANS, cold_campaign_input_refs, prepare, read, ref,
+    COLD_PREFIX_SPANS, COLD_PRIOR_ROOT, cold_campaign_input_refs, prepare, read, ref,
 )
 
 
@@ -20,6 +20,13 @@ def test_cold_inputs_bind_prefix_receipts_before_gather():
     terminal = read(refs['prefix_span_terminal'])
     assert terminal['status'] == 'COMPLETE' and terminal['exit_code'] == 0
     assert terminal['result'] == refs['prefix_span_result']
-    with pytest.raises(RuntimeError, match='COLD_INPUT_REFS'):
-        prepare(device=torch.device('cpu'),
-                cold_inputs={k: v for k, v in refs.items() if k != 'prefix_span_result'})
+    assert refs['priors'] == ref(COLD_PRIOR_ROOT / 'ENDPOINT_PRIORS.json')
+    prior_result = read(refs['prior_result'])
+    prior_terminal = read(refs['prior_terminal'])
+    assert prior_result['status'] == prior_terminal['status'] == 'COMPLETE'
+    assert prior_result['endpoint_priors'] == refs['priors']
+    assert prior_terminal['result'] == refs['prior_result']
+    for missing in ('prefix_span_result', 'prior_result', 'prior_terminal'):
+        with pytest.raises(RuntimeError, match='COLD_INPUT_REFS'):
+            prepare(device=torch.device('cpu'),
+                    cold_inputs={k: v for k, v in refs.items() if k != missing})

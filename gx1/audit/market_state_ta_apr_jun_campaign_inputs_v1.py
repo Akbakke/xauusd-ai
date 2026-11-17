@@ -35,7 +35,8 @@ COLD_FIT_ROWS, COLD_SCORE_START, COLD_SCORE_ROWS = 29574, 29849, 17489
 COLD_ROOT = Path('/home/andre2/GX1_RUNS/TA_M5_COLD_FULL_LATER_INPUTS_20261117_001')
 COLD_BASE_VIEW = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_M5_OBJECTIVE_BENCHMARK_20261112_001/FEATURE_VIEW.json')
 COLD_PACKET = COLD_BASE_VIEW.parent / 'PREFIX_PACKET.json'
-COLD_PRIORS = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_DEDICATED_M5_SOURCE_20261109_001/ENDPOINT_PRIORS.json')
+COLD_PRIOR_ROOT = Path('/home/andre2/GX1_RUNS/TA_M5_COLD_FOLD1_ENDPOINT_PRIORS_20261117_001')
+COLD_PRIORS = COLD_PRIOR_ROOT / 'ENDPOINT_PRIORS.json'
 COLD_PREFIX_SPANS = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001')
 COLD_VIEW_SHA256 = '7cdcc64b80ba8a1ac92aae24ac7fcd2b62252da31cf96e57ad7a86fc943c3293'
 
@@ -108,6 +109,8 @@ def cold_campaign_input_refs():
             'constructor': source['constructor'],
             'base_view': ref(COLD_BASE_VIEW), 'model_view': ref(COLD_ROOT / 'FEATURE_VIEW.json'),
             'packet': ref(COLD_PACKET), 'priors': ref(COLD_PRIORS),
+            'prior_result': ref(COLD_PRIOR_ROOT / 'RESULT.json'),
+            'prior_terminal': ref(COLD_PRIOR_ROOT / 'TERMINAL.json'),
             'coverage_result': ref(COLD_ROOT / 'RESULT.json'),
             'coverage': ref(COLD_ROOT / 'COVERAGE.json'),
             'coverage_terminal': ref(COLD_ROOT / 'TERMINAL.json'),
@@ -128,11 +131,23 @@ def prepare(*, device: torch.device, cold_inputs: dict | None = None):
     if cold:
         train_result = read(inputs['prefix_span_result'])
         prefix_terminal = read(inputs['prefix_span_terminal'])
+        prior_result = read(inputs['prior_result'])
+        prior_terminal = read(inputs['prior_terminal'])
         panel = cold_full_later_panel()
         score_result = full_result
         result = read(inputs['coverage_result'])
         coverage = read(inputs['coverage'])
         terminal = read(inputs['coverage_terminal'])
+        need(prior_result['status'] == prior_terminal['status'] == 'COMPLETE'
+             and prior_result['endpoint_priors'] == inputs['priors']
+             and prior_result['fold_id'] == 1
+             and prior_result['fit_rows'] == COLD_FIT_ROWS
+             and prior_result['model_forwards'] == prior_result['optimizer_steps'] == 0
+             and prior_result['test_data_used'] is False
+             and prior_terminal['exit_code'] == 0
+             and prior_terminal['result'] == inputs['prior_result']
+             and prior_terminal['endpoint_priors'] == inputs['priors'],
+             'COLD_PRIOR_RECEIPTS')
         need(train_result['status'] == 'COMPLETE_INPUT_EXTENSION_ONLY'
              and train_result['scope']['fold_id'] == 1
              and train_result['scope']['parent_rows'] == COLD_FIT_ROWS

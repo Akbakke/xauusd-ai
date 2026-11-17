@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-ACTIVE_M5_COLD_FOLD1_PRIOR_ADMITTED_NO_EDGE.
+ACTIVE_M5_COLD_NORMALIZED_INPUT_PREFLIGHT_PENDING_NO_EDGE.
 Første direkte kostete M5-fit valgte 11 486 SHORT, 0 LONG og
 6 050 FLAT på 17 536 gjenbrukte Apr–jun-rader. Kjente valgte
 terminalutfall ga −0,578 bps i snitt etter oppgitte kostnader;
@@ -57,13 +57,16 @@ Beslutningstapet er nå endret i kilde, men ingen ny modell er trent eller skår
   dekker 17 489 modne Oct–Dec-rader med 1-rads hale. Null modellforward,
   optimizersteg eller normaliseringsfit. Dette beviser bare fysisk dekning;
   faktisk kald normalisert FIT-/SCORE-gather og fersk initial er ubevist.
-- Den gamle Fold1 S/F-prioren har eldre tapskontrakt og avvises av dagens
-  kalde inputvakt. Ny eksakt CPU-plan `TA_M5_COLD_FOLD1_ENDPOINT_PRIORS_20261117_001`
-  (SHA `c192038bcf0f2d3c20288130c72dbcb405a537d50b63debb43a573e7740e3b37`) er innrømmet for 29 574 modne
-  Fold1-rader, dagens kontrakt og null modellforward/optimizersteg. Først
-  ren preflight, så én capped kjøring. Ingen prior eller kald gather er ennå
-  produsert; trening er stengt. To manglende Fold1-prefikskvitteringer i
-  kald inputbinding ble rettet og fokuserte tester besto.
+- Den gamle Fold1 S/F-prioren ble korrekt avvist for eldre tapskontrakt.
+  Den nye prior-planen `TA_M5_COLD_FOLD1_ENDPOINT_PRIORS_20261117_001`
+  (SHA `c192038bcf0f2d3c20288130c72dbcb405a537d50b63debb43a573e7740e3b37`)
+  fullførte på 29 574 modne Fold1-rader under dagens kontrakt. Prior SHA
+  `5a96feb918ccb8373cc0b81ec5288a2b780b3c0611c641f860db0c3648f0d8d7`, RESULT SHA
+  `224f6f3f9565e7f1ad22eea59dcfdda8ddc1f19a3cec115d8da803b620663d66`, TERMINAL SHA
+  `6e95acc26c2d0b7eddefa00f3515f0c20321cf8a8d98b06e6f5b2719fdf40914`; null modellforward,
+  optimizersteg og normaliseringsfit. Planen er konsumert. Kald input
+  binder nå både prior- og prefikskvitteringer. Faktisk normalisert
+  FIT-/SCORE-gather er neste port; trening er fortsatt stengt.
 - Oppryddingsrevisjonen fant ingen repo-fil eller DATA/RUNS-artefakt som var
   bevist trygg å slette. Målt ledig plass var 543 GB; ingen sletting ble gjort.
 - M5 er beslutningspunkt. Den siste matchede modellen valgte 0 LONG,
