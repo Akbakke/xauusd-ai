@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-ACTIVE_M5_COLD_LAUNCH_PREFLIGHT_PENDING_NO_EDGE.
+ACTIVE_M5_COLD_FIT_ADMITTED_ONE_USE_NO_EDGE.
 Første direkte kostete M5-fit valgte 11 486 SHORT, 0 LONG og
 6 050 FLAT på 17 536 gjenbrukte Apr–jun-rader. Kjente valgte
 terminalutfall ga −0,578 bps i snitt etter oppgitte kostnader;
@@ -23,15 +23,16 @@ ble filtrert bort; de 4 872 kjente av disse ga −7,602 bps. På
 +3,246 bps mot faktisk −16,167 bps. Dette er markout på gjenbrukt
 utviklingsdata, ikke posisjonsført PnL eller bevist Edge. Plan002 og plan003 stoppet før CLAIM av to ulike
 oppstartshindre, med null modellsteg; alle fire engangsplaner er
-konsumert. training_enabled=false, native_training_enabled=false,
-full_epoch_training_allowed=false og native_launch_authorized=false.
+konsumert. Den nye kalde planen er innrømmet én gang på boot 664;
+training_enabled, native_training_enabled, full_epoch_training_allowed
+og native_launch_authorized er true bare for dette opptaket.
 En avgrenset TRAIN-kontroll bekreftet 0 LONG og overoptimistisk
 valgt prisbanekvalitet også før senere markedsdata. På gjenbrukt
 SCORE rangerer modellen SHORT bedre enn LONG på 99,84 % av de
 11 368 komplette 480-minuttersbanene, mot 52,45 % i fasit.
 Full GC er pauset; TEST, ONLINE, broker og handel er lukket.
 Uavhengig handelsgeneralisering er ikke bevist.
-Beslutningstapet er nå endret i kilde, men ingen ny modell er trent eller skåret.
+Beslutningstapet er endret i kilde; ny modell har bare bestått initial B16-preflight, ikke trening.
 
 ## Gjenopptatt arbeid 17.11.2026
 
@@ -92,17 +93,16 @@ Beslutningstapet er nå endret i kilde, men ingen ny modell er trent eller skår
   `803214ff3b5b5724cb1c1488e5ae29c1c17d479ca8db23d51301a45a6094629e` var uendret.
   Fersk modell 1, forwards 2, backward/optimizer 0; ingen trening
   eller edge. Neste steg er én eksakt kald fit-plan med fersk boot.
-- Én samlet kald fit-plan er forberedt, ikke innrømmet:
+- Én samlet kald fit-plan er innrømmet én gang:
   `TA_M5_COLD_JOINT_FIT_20261117_001`, plan SHA
   `f6d2d368ebc48280dd688a35c58182a63401384a01a90a5eb0722f04037697b6`. Den binder 29 574 FIT,
   275 ekskluderte gaprader og 17 489 Oct–Dec-utviklingsrader,
   initialhash, prior, rå og normalisert preflight, 4 037 maks
-  modellforwards og 1 849 maks optimizersteg. Boot er fortsatt
-  663; fysisk >663 og ren planport kreves før separat policyopptak.
-  Boot 664 er bekreftet, signert hosttelemetri passerte, GPU/lås er ledig.
-  Launch-skriptet godtar nå bare denne eksakte kalde planstien; lesende
-  preflight bruker samme trenerwrapper uten CLAIM eller output.
-  training_enabled=false og ingen modelljobb kjører.
+  modellforwards og 1 849 maks optimizersteg. Fysisk boot 664
+  oppfyller >663. Eksakt trainer-wrapper ga lesende PREFLIGHT_PASS
+  med signert hosttelemetri, ren kilde, null CLAIM/output/modellarbeid.
+  Kun dette policyopptaket åpner training_enabled=true. TEST, ONLINE,
+  broker og handel forblir stengt; ingen edge er bevist.
 - Oppryddingsrevisjonen fant ingen repo-fil eller DATA/RUNS-artefakt som var
   bevist trygg å slette. Målt ledig plass var 543 GB; ingen sletting ble gjort.
 - M5 er beslutningspunkt. Den siste matchede modellen valgte 0 LONG,
