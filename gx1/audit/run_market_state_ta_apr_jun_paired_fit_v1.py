@@ -217,9 +217,9 @@ def _turn_and_disagreement(state_raw, state_truth, issues):
 
 def score(model, context, *, deadline, fold_id: int, partition: str,
           collect_decision=False):
-    need(type(fold_id) is int and fold_id in (2, 3)
+    need(type(fold_id) is int and fold_id in (1, 2, 3)
          and partition in ('fit', 'score')
-         and ((fold_id, partition) in ((2, 'fit'), (3, 'score'))),
+         and ((fold_id, partition) in ((1, 'score'), (2, 'fit'), (3, 'score'))),
          'SCORE_TRUTH_SCOPE')
     import numpy as np
     import torch

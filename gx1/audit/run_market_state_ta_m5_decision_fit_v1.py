@@ -513,8 +513,8 @@ def run_cold(plan_sha):
         need(context['fit_rows'] == COLD_FIT_ROWS
              and context['score_rows'] == COLD_SCORE_ROWS
              and context['fit_fold_id'] == 1
-             and context['score_fold_id'] == 2
-             and context['score_partition'] == 'fit'
+             and context['score_fold_id'] == 1
+             and context['score_partition'] == 'score'
              and np.array_equal(axes['parent_rows'][:COLD_FIT_ROWS], fit['parent_rows'])
              and np.array_equal(axes['decision_ns'][:COLD_FIT_ROWS], fit['issue_ns'])
              and np.array_equal(axes['parent_rows'][selected], later['parent_rows'])
@@ -524,7 +524,7 @@ def run_cold(plan_sha):
         trainer._set_deterministic(SEED, device, trainer.DETERMINISTIC_FP32)
         state = build_native_direction_research_model(context['view'],
             prefix_normalization=context['packet'], constructor_metadata=context['constructor'],
-            device=torch.device('cpu'), unobserved_units_profile=None)
+            device=torch.device('cpu'), unobserved_units_profile=context['units_profile'])
         core = IntegratedTAMarketStateModel(NativeFutureDualModel(state))
         need(core.research_objective['contract_sha256'] == plan['core_contract_sha256'],
              'COLD_CORE_CONTRACT')
@@ -534,14 +534,14 @@ def run_cold(plan_sha):
              and model.research_objective['contract_sha256'] == plan['decision_contract_sha256'],
              'COLD_INITIAL_STATE_CONTRACT')
         initial_core, initial_capture = score(model, context, deadline=deadline,
-            fold_id=2, partition='fit', collect_decision=True)
+            fold_id=1, partition='score', collect_decision=True)
         initial = decision_readout(initial_capture['m5_cost_path_bps'], later)
         del initial_capture
         blocks, updates, skipped = _fit_one_pass(model, context, fit, device=device,
             fit_rows=COLD_FIT_ROWS, fold_id=1,
             contract_sha256=plan['decision_contract_sha256'], deadline=deadline)
         final_core, capture = score(model, context, deadline=deadline,
-            fold_id=2, partition='fit', collect_decision=True)
+            fold_id=1, partition='score', collect_decision=True)
         final = decision_readout(capture['m5_cost_path_bps'], later)
         final_sha = canonical_model_state_sha256(model.state_dict())
         checkpoint = io.BytesIO()

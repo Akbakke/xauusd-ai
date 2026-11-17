@@ -34,7 +34,7 @@ class _Model(torch.nn.Module):
 
 
 @pytest.mark.parametrize(('n', 'scope', 'sizes'), [
-    (16, (3, 'score'), [16]), (17, (2, 'fit'), [16, 1])])
+    (16, (3, 'score'), [16]), (17, (1, 'score'), [16, 1])])
 def test_score_full_batch_and_one_row_tail(monkeypatch, n, scope, sizes):
     def truth(rows, *args, **kwargs):
         assert (kwargs['fold_id'], kwargs['partition']) == scope

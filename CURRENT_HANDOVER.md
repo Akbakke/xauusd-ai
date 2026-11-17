@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-ACTIVE_M5_COLD_NORMALIZED_INPUT_PREFLIGHT_PENDING_NO_EDGE.
+ACTIVE_M5_COLD_RAW_GATHER_PREFLIGHT_PENDING_NO_EDGE.
 Første direkte kostete M5-fit valgte 11 486 SHORT, 0 LONG og
 6 050 FLAT på 17 536 gjenbrukte Apr–jun-rader. Kjente valgte
 terminalutfall ga −0,578 bps i snitt etter oppgitte kostnader;
@@ -56,7 +56,7 @@ Beslutningstapet er nå endret i kilde, men ingen ny modell er trent eller skår
   `ab7a81b2f25d268e7ee537d294be91915a6cab36c8a8cd87a7473e8c0f34d4e5`. Eksakt view/akse/sidecar-binding
   dekker 17 489 modne Oct–Dec-rader med 1-rads hale. Null modellforward,
   optimizersteg eller normaliseringsfit. Dette beviser bare fysisk dekning;
-  faktisk kald normalisert FIT-/SCORE-gather og fersk initial er ubevist.
+  faktisk kald rå-FIT-/SCORE-gather og postnormalisert initial er ubevist.
 - Den gamle Fold1 S/F-prioren ble korrekt avvist for eldre tapskontrakt.
   Den nye prior-planen `TA_M5_COLD_FOLD1_ENDPOINT_PRIORS_20261117_001`
   (SHA `c192038bcf0f2d3c20288130c72dbcb405a537d50b63debb43a573e7740e3b37`)
@@ -65,8 +65,14 @@ Beslutningstapet er nå endret i kilde, men ingen ny modell er trent eller skår
   `224f6f3f9565e7f1ad22eea59dcfdda8ddc1f19a3cec115d8da803b620663d66`, TERMINAL SHA
   `6e95acc26c2d0b7eddefa00f3515f0c20321cf8a8d98b06e6f5b2719fdf40914`; null modellforward,
   optimizersteg og normaliseringsfit. Planen er konsumert. Kald input
-  binder nå både prior- og prefikskvitteringer. Faktisk normalisert
-  FIT-/SCORE-gather er neste port; trening er fortsatt stengt.
+  binder nå både prior- og prefikskvitteringer. Faktisk rå-gather
+  og modellens normaliserte initial er neste porter; trening er stengt.
+- Kildekontroll fant to flere konkrete kald-rute-feil før CLAIM: eksplisitt
+  Fold1-profil for uobserverte enheter ble ikke sendt gjennom input og
+  modell, og Oct–Dec SCORE ble kalt Fold2 FIT uten påkrevd sampled-query
+  schedule. Ruten sender nå låst profil fra prefikspakken og scorer
+  Fold1 SCORE innen eksakt 01.10–01.01-grense. Fokuserte tester
+  besto; ingen fysisk kald gather eller modellforward er kjørt.
 - Oppryddingsrevisjonen fant ingen repo-fil eller DATA/RUNS-artefakt som var
   bevist trygg å slette. Målt ledig plass var 543 GB; ingen sletting ble gjort.
 - M5 er beslutningspunkt. Den siste matchede modellen valgte 0 LONG,
@@ -86,7 +92,7 @@ Beslutningstapet er nå endret i kilde, men ingen ny modell er trent eller skår
   er materialisert med full fysisk Oct–Dec-dekning. Gammelt Fold1-opptak
   dekker bare 4 096 utvalgte rader under et annet view-hash og brukes ikke.
 - Full fysisk senere dekning er nå kvalifisert for det kalde viewet, men
-  faktisk normalisert FIT-/SCORE-gather og fersk initial må bestå før én
+  faktisk rå-FIT-/SCORE-gather og normalisert fersk initial må bestå før én
   samlet M5/M15/H1/H4/D1-plan kan innrømmes. Ikke bytt hash eller omgå
   `ANCHOR_SPAN_PREFIX_ONLY`/`LATER_COVERAGE_BINDING`. Historisk score er
   utvikling; uavhengig Edge krever separat forward-journalvedtak.

@@ -195,6 +195,8 @@ def prepare(*, device: torch.device, cold_inputs: dict | None = None):
         priors = read(inputs['priors'])
         fit_rows, score_rows, fold_id = TRAIN_ROWS, SCORE_ROWS, 2
         panel = later_panel(fold_id=3)
+    units_profile = packet['unobserved_units_profile'] if cold else None
+    need(not cold or units_profile == view['unobserved_units_profile'], 'COLD_UNITS')
     from gx1.contracts.market_state_time_query_native_F_objective_v1 import require_endpoint_priors
     require_endpoint_priors(priors, fold_id=fold_id, ta_only=True, dedicated_m5_side=True)
     need((view['contract_sha256'] == COLD_VIEW_SHA256 if cold else
@@ -269,7 +271,7 @@ def prepare(*, device: torch.device, cold_inputs: dict | None = None):
             physical_populations=(coverage['physical_populations'] if label == 'SCORE'
                                   else {lane: item['population']
                                         for lane, item in physical['surfaces'].items()}),
-            unobserved_units_profile=None,
+            unobserved_units_profile=units_profile,
             **({'later_coverage': coverage, 'later_axes': axes,
                 **({'later_sidecar_refs': sidecar_refs} if cold else {})}
                if label == 'SCORE' else {}))
@@ -295,7 +297,7 @@ def prepare(*, device: torch.device, cold_inputs: dict | None = None):
             snap_x=current['snap'], ctx_cont=current['ctx_cont'], ctx_cat=current['ctx_cat'],
             multi_tf_sources=overlays[label].mtf_sources, gc_surfaces=None,
             gc_layout=None, batch_parent_rows=rows,
-            unobserved_units_profile=None, anchor_span_inputs=overlays[label])
+            unobserved_units_profile=units_profile, anchor_span_inputs=overlays[label])
         need(batch['witness']['parent_rows'] == rows.tolist()
              and batch['witness']['decision_ns'] == issues.tolist(), 'GATHER_AXIS')
         return {key: torch.from_numpy(value).to(device) for key, value in batch['features'].items()}
@@ -312,5 +314,6 @@ def prepare(*, device: torch.device, cold_inputs: dict | None = None):
             'fit_tape': fit_tape, 'score_tape': score_tape,
             'features': features, 'release': release,
             'fit_rows': fit_rows, 'score_rows': score_rows, 'fit_fold_id': fold_id,
-            'score_fold_id': 2 if cold else 3, 'score_partition': 'fit' if cold else 'score',
+            'score_fold_id': 1 if cold else 3, 'score_partition': 'score',
+            'units_profile': units_profile,
             'input_refs': inputs if cold else campaign_input_refs()}
