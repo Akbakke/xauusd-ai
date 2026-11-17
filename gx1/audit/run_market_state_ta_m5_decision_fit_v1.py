@@ -253,7 +253,8 @@ def run(plan_sha):
         tape = context['fit_tape']
         blocks, updates, skipped = [], 0, 0
         current = {'first_batch': 0, 'loss': 0., 'decision': 0., 'net': 0.,
-                   'mfe': 0., 'mae': 0., 'quality': 0., 'aux': 0.,
+                   'mfe': 0., 'mae': 0., 'quality': 0., 'side_pair': 0.,
+                   'mae_under': 0., 'aux': 0.,
                    'grad_norm': 0., 'updates': 0, 'skipped': 0}
         for index in range(BATCHES):
             need(time.monotonic() < deadline, 'FIT_DEADLINE')
@@ -281,7 +282,8 @@ def run(plan_sha):
             for key, field in (('loss', 'loss'), ('decision', 'decision_loss'),
                                ('net', 'net_loss'), ('mfe', 'mfe_loss'),
                                ('mae', 'mae_loss'), ('quality', 'quality_loss'),
-                               ('aux', 'aux_loss')):
+                               ('side_pair', 'side_pair_loss'),
+                               ('mae_under', 'mae_under_loss'), ('aux', 'aux_loss')):
                 current[key] += float(loss[field].detach())
             if loss['skip_update']:
                 skipped += 1
@@ -301,12 +303,14 @@ def run(plan_sha):
                 blocks.append({'first_batch': current['first_batch'],
                     'last_batch_exclusive': index + 1,
                     **{'mean_' + key: current[key] / visits for key in
-                       ('loss', 'decision', 'net', 'mfe', 'mae', 'quality', 'aux')},
+                       ('loss', 'decision', 'net', 'mfe', 'mae', 'quality',
+                        'side_pair', 'mae_under', 'aux')},
                     'mean_gradient_norm_per_update':
                         current['grad_norm'] / current['updates'] if current['updates'] else None,
                     'updates': current['updates'], 'skipped': current['skipped']})
                 current = {'first_batch': index + 1, 'loss': 0., 'decision': 0.,
-                           'net': 0., 'mfe': 0., 'mae': 0., 'quality': 0., 'aux': 0.,
+                           'net': 0., 'mfe': 0., 'mae': 0., 'quality': 0.,
+                           'side_pair': 0., 'mae_under': 0., 'aux': 0.,
                            'grad_norm': 0., 'updates': 0, 'skipped': 0}
         need(updates + skipped == BATCHES, 'FIT_VISITS')
         final_core, capture = score(model, context, deadline=deadline,

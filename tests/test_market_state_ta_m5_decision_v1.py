@@ -70,3 +70,31 @@ def test_cost_and_path_masks_block_unknown_gradients_and_flat_tie():
     assert np.all(grad[0, 2:] == 0)
     actions, horizons = choose_actions(np.zeros((1, 6, 2, 3), dtype=np.float32))
     assert actions.tolist() == [2] and horizons.tolist() == [-1]
+
+
+def test_side_pair_and_adverse_path_gradients():
+    args = _case()
+    prediction = torch.zeros((1, 6, 2, 3), dtype=torch.float32, requires_grad=True)
+    args['model_output']['m5_cost_path_bps'] = prediction
+    observed = np.zeros((1, 6), dtype=np.bool_)
+    observed[0, 0] = True
+    net = np.full((1, 6, 2), np.nan)
+    mfe = net.copy()
+    mae = net.copy()
+    net[0, 0] = [6, -6]
+    mfe[0, 0] = [1, 1]
+    mae[0, 0] = [2, 4]
+    targets = {'terminal_observed': observed, 'path_observed': observed.copy(),
+               'net_bps': net, 'mfe_bps': mfe,
+               'pre_mfe_mae_upper_bps': mae}
+    model = SimpleNamespace(target_std_bps=torch.ones((6, 2, 3)),
+        quality_std_bps=torch.ones((6, 2)),
+        research_objective={'contract_sha256': 'synthetic'})
+    losses = decision_loss(**args, targets=targets, model=model)
+    side_grad = torch.autograd.grad(losses['side_pair_loss'], prediction,
+                                    retain_graph=True)[0]
+    mae_grad = torch.autograd.grad(losses['mae_under_loss'], prediction)[0]
+    assert side_grad[0, 0, 0, 0] < 0 and side_grad[0, 0, 1, 0] > 0
+    assert torch.all(mae_grad[0, 0, :, 2] < 0)
+    assert torch.count_nonzero(side_grad[:, 1:]) == 0
+    assert torch.count_nonzero(mae_grad[:, 1:]) == 0

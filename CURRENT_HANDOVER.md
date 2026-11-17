@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_M5_DECISION_POSTFIT_TRAIN_AUDIT_CONFIRMS_DIRECTION_COLLAPSE_NO_EDGE.
+TA_M5_DECISION_LOSS_CORRECTION_PREPARED_UNFITTED_NO_EDGE.
 Første direkte kostete M5-fit valgte 11 486 SHORT, 0 LONG og
 6 050 FLAT på 17 536 gjenbrukte Apr–jun-rader. Kjente valgte
 terminalutfall ga −0,578 bps i snitt etter oppgitte kostnader;
@@ -31,6 +31,7 @@ SCORE rangerer modellen SHORT bedre enn LONG på 99,84 % av de
 11 368 komplette 480-minuttersbanene, mot 52,45 % i fasit.
 Full GC er pauset; TEST, ONLINE, broker og handel er lukket.
 Uavhengig handelsgeneralisering er ikke bevist.
+Beslutningstapet er nå endret i kilde, men ingen ny modell er trent eller skåret.
 
 Plan001 SHA `4016255217a3c87bdc84715b6e65707090fa09dcaa1e70a3a1b3455bdac84621`
 ble CLAIM-et under fysisk boot 656, men feilet i initial TRAIN-strukturskår
@@ -1042,13 +1043,17 @@ umiddelbart neste M5-steg var for vid.
    Apr–jun. Den positive terminalnettoen er utviklingsseleksjon;
    0 LONG, nesten konstant SHORT-fordel og MAE-underprediksjon
    gjør dette til en ukvalifisert M5-beslutning.
-2. Før en eventuell ny fit må én TRAIN-bundet designendring forklare
-   hvordan inngangens ugunstige prisbane og begge sider skal læres
-   og kontrolleres. Gjenbruk eksisterende input, mål og vakter;
-   ingen flere tilfeldige regelrunder. Eksisterende D1-journal gir
-   ingen M5-/TEST-adgang. En separat framtidig M5-journal krever
-   eget operatørvedtak og dataautoritet. TEST, Full GC, ONLINE,
-   broker og handel er lukket.
+2. Én TRAIN-bundet tapsendring er nå kodet: differansen mellom LONG-
+   og SHORT-kvalitet får et eget maskert Huber-ledd, og undervurdering
+   av faktisk MAE får et eget ensidig ledd. De fire gamle komponentene
+   beholdes; seks direkte ledd vektes likt. Treneren vil logge de nye
+   leddene. Tre fokuserte tester bekrefter gradientes retning og maskering.
+   Dette er en ufittet hypotese, ikke ny læring eller Edge. Gjenbruk
+   eksisterende input, mål og vakter; ingen VAL-valg fra Apr–jun.
+3. Ingen ny fit uten ny, gyldig engangsplan og stor-kjøringsadgang.
+   Eksisterende D1-journal gir ingen M5-/TEST-adgang. En separat
+   framtidig M5-journal krever eget operatørvedtak og dataautoritet.
+   TEST, Full GC, ONLINE, broker og handel er lukket.
 
 Opprydding: historiske overleveringsavsnitt er fjernet her og bevart i Git.
 Ingen Python-fil er slettet; gjeldende referanse-, import-, test- og

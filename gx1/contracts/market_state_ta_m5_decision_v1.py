@@ -80,7 +80,7 @@ def contract(core_sha256: str, statistics_sha256: str) -> dict:
         'field_order': list(FIELDS), 'head': 'single_linear_5TF_to_36',
         'head_initial': 'zero_units_equals_FIT_component_mean',
         'target_masks': 'net_terminal_MFE_MAE_complete_path_separate',
-        'loss': 'equal_horizon_masked_unit_Huber_on_net_MFE_MAE_and_net_minus_MAE',
+        'loss': 'six_equal_horizon_terms_unit_Huber_net_MFE_MAE_quality_side_pair_plus_one_sided_unit_MAE_underprediction',
         'decision_weight': 1.0, 'paired_S_F_structure_aux_weight': AUX_WEIGHT,
         'action': 'argmax_predicted_net_minus_nonnegative_MAE_or_FLAT_if_nonpositive',
         'tie': 'earliest_horizon_then_LONG; FLAT_at_zero',
@@ -172,7 +172,16 @@ def decision_loss(*, model_output: dict, targets: Mapping[str, np.ndarray],
     q_mask = torch.from_numpy(path.copy()).to(pred.device)[:, :, None].expand(-1, -1, 2)
     q_loss = _horizon_mean(F.smooth_l1_loss(q_error, torch.zeros_like(q_error),
                                            reduction='none'), q_mask)
-    primary = (sum(field_losses) + q_loss) / 4
+    side_scale = model.quality_std_bps.square().sum(dim=1).sqrt()
+    side_error = ((q_pred[..., 0] - q_pred[..., 1])
+                  - (q_target[..., 0] - q_target[..., 1])) / side_scale
+    side_pair_loss = _horizon_mean(
+        F.smooth_l1_loss(side_error, torch.zeros_like(side_error),
+                         reduction='none')[:, :, None].expand(-1, -1, 2), q_mask)
+    mae_under_loss = _horizon_mean(
+        ((tensors[2] - pred[..., 2]) / model.target_std_bps[..., 2]).clamp_min(0),
+        q_mask)
+    primary = (sum(field_losses) + q_loss + side_pair_loss + mae_under_loss) / 6
     aux = paired_integrated_loss(model_output={key: model_output[key] for key in CORE_KEYS},
         sampled_truth=sampled_truth, native_truth=native_truth,
         future_truth=future_truth, query_grid=query_grid,
@@ -181,7 +190,8 @@ def decision_loss(*, model_output: dict, targets: Mapping[str, np.ndarray],
     require(bool(torch.isfinite(total)), 'LOSS_FINITE')
     return {'loss': total, 'decision_loss': primary, 'net_loss': field_losses[0],
             'mfe_loss': field_losses[1], 'mae_loss': field_losses[2],
-            'quality_loss': q_loss, 'aux_loss': aux['loss'],
+            'quality_loss': q_loss, 'side_pair_loss': side_pair_loss,
+            'mae_under_loss': mae_under_loss, 'aux_loss': aux['loss'],
             'skip_update': aux['skip_update'] and not bool(term.any()),
             'contract_sha256': model.research_objective['contract_sha256']}
 
