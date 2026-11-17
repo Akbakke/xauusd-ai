@@ -769,8 +769,10 @@ oppgitte 4 bps tur-retur-kostnader. Før prisutfall leses, er seks
 observasjonspunkter (1/5/15/60/240/480 min), treklasse-argmax med FLAT
 ved likhet, tvunget OPP/NED som diagnostikk, og alltid-LONG/SHORT/FLAT
 bundet. Samme komplette prisbane-maske brukes for alle. Dette er ingen
-holderegel, Exit, handelsportefølje eller ny modellkjøring. Ingen CLAIM,
-prisutfall eller adgang er gitt fra denne forberedelsen.
+holderegel, Exit, handelsportefølje eller ny modellkjøring. Eksakt
+4G-cappet preflight besto på ren kilde uten CLAIM, prisutfall eller
+modellforward. Kun denne engangsplanen er nå innrømmet for én CPU-audit;
+trening og TEST forblir stengt.
 
 ## Neste steg
 
