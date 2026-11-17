@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_M5_DECISION_FIT_004_COMPLETE_CONSUMED_DEV_POSITIVE_EDGE_UNPROVEN.
+TA_M5_DECISION_FIT_004_REVIEWED_CONSUMED_DEV_SELECTIVITY_PATH_FAIL_EDGE_UNPROVEN.
 Første direkte kostete M5-fit valgte 11 486 SHORT, 0 LONG og
 6 050 FLAT på 17 536 gjenbrukte Apr–jun-rader. Kjente valgte
 terminalutfall ga −0,578 bps i snitt etter oppgitte kostnader;
@@ -16,9 +16,12 @@ hjelpetap 1,28–1,77 ganger sterkere enn det direkte kostmålet.
 En matchet fit med kun hjelpetapsvekt 0,10 fullførte på 47 338
 Fold2-TRAIN-rader og 2 959 oppdateringer. Dens faste regel valgte
 5 684 SHORT, 0 LONG og 11 852 FLAT; 5 001 kjente valgte
-terminalutfall ga +6,232 bps i snitt, 683 er ukjente. Dette er
-markout på gjenbrukt utviklingsdata, ikke posisjonsført PnL eller
-bevist Edge. Plan002 og plan003 stoppet før CLAIM av to ulike
+terminalutfall ga +6,232 bps i snitt, 683 er ukjente. Uavhengig
+gjennomberegning bekreftet dette og at 5 805 signaler fra første fit
+ble filtrert bort; de 4 872 kjente av disse ga −7,602 bps. På
+4 031 valgte rader med komplett prisbane var predikert netto-minus-MAE
++3,246 bps mot faktisk −16,167 bps. Dette er markout på gjenbrukt
+utviklingsdata, ikke posisjonsført PnL eller bevist Edge. Plan002 og plan003 stoppet før CLAIM av to ulike
 oppstartshindre, med null modellsteg; alle fire engangsplaner er
 konsumert. training_enabled=false, native_training_enabled=false,
 full_epoch_training_allowed=false og native_launch_authorized=false.
@@ -945,8 +948,8 @@ portvideresendingen `172.30.224.1:38128 → 127.0.0.1:38127` var
 konfigurert, men lyttet ikke etter reboot. Å legge inn igjen nøyaktig
 samme regel ga en signaturverifisert måling `36,44,22.99,250,78`.
 Ingen telemetri-, effekt- eller temperaturgrense er svekket.
-Plan003 relanseres ikke; plan004 krever ny fysisk boot >662 og frisk
-signert måling før innrømmelse.
+Plan003 relanseres ikke. Plan004 ble senere kjørt på boot 663 etter
+frisk signaturverifisert måling.
 
 Plan004 kjørte på fysisk Windows-boot 663 med ren pushet kilde
 76e81a81. `RESULT.json` SHA
@@ -963,18 +966,46 @@ Handlingsregelen valgte +6,232 bps på 5 001 kjente terminalutfall,
 men 683 valgte terminalutfall er ukjente og overlappende markouts
 er ikke gjennomførte handler. Månedsmidler var +4,967/+9,598/+6,472
 bps i april/mai/juni på 2 785/957/1 259 kjente valgte utfall.
-Disse tallene krever uavhengig gjennomberegning før de brukes videre.
+Uavhengig gjennomberegning av opptaket mot de faste SCORE-målene
+bekreftet akser, alle valg, masker, månedsmidler og valgt netto.
+Vekt 0,10 valgte 5 681 av de samme radene som vekt 0,25 og bare tre
+nye; den filtrerte bort 5 805 gamle signaler. Blant 4 872 av disse
+med kjent terminalutfall var netto −7,602 bps i snitt. De 4 999
+kjente felles valgene ga +6,205 bps. Dette er utviklingsseleksjon,
+ikke uavhengig bekreftet Edge.
+
+På 4 031 valgte rader med komplett prisbane var predikert kvalitet
+(netto minus konservativ MAE før MFE) +3,246 bps, faktisk kvalitet
+−16,167 bps; bare 1 609/4 031 hadde positiv kvalitetsfasit.
+970 valgte rader hadde kjent sluttpris men ufullstendig prisbane.
+Modellen er fortsatt for optimistisk om inngangskvalitet, og den
+velger 0 LONG. M5 native S/F side-AUC var 0,513/0,494;
+Brier 0,2525/0,2551 mot fryst prior 0,2496/0,2499.
+Alle ti native S/F-sideceller på de fem TF hadde Brier verre enn
+fryst prior. Ved M5-tilstandsskifte fanget modellen 176/1 138
+kjente skifter og ga 176 falske skifter. Den leser ikke pålitelig
+om markedet snur.
+
+Den forhåndsvalgte alltid-LONG-referansen ved 480 minutters
+observasjon var −4,375 bps på alle 15 480 kjente rader; alltid-SHORT
+var −8,464. Modellens valgte 4 994 kjente 480-minutters-SHORT-rader
+ga +6,243 bps. Dette er ulike utvalg og ikke en tradbar
+referanseavkastning. Ni av 13 ISO-uker hadde positiv valgt netto,
+fire negativ; ukemidlene spente −42,643 til +27,843 bps.
+Overlappende åttetimersobservasjoner, 683 ukjente utfall,
+null LONG og manglende posisjonsregnskap gjør økonomisk Edge
+ubevist. Apr–jun er gjenbrukt utvikling, ikke uavhengig test.
 
 ## Neste steg
 
 1. Behold plan001–004 konsumert og treningsporten lukket.
-   Gjennomberegn plan004-opptaket mot faste SCORE-mål, masker,
-   måneder og samme-rad-referanser; sammenlign med plan001 uten
-   å velge nytt observasjonspunkt eller ny regel fra Apr–jun.
-2. Skill TRAIN-læring, gjenbrukt utviklingsskår og økonomisk Edge.
-   Edge krever uavhengig framtidig journal med alle valgte handler,
-   åpne posisjoner og faktiske kostnader. TEST, Full GC, ONLINE,
-   broker og handel er lukket.
+   Ingen ny vekt, horisont eller handlingsregel velges fra gjenbrukt
+   Apr–jun. Målt nettoforbedring på dette utviklingsutvalget er
+   interessant, mens retning og MAE før MFE fortsatt feiler.
+2. Neste meningsfulle Edge-bevis er en forhåndsbundet uavhengig
+   forward-journal med alle valgte handler, åpne posisjoner og
+   faktiske kostnader, innen GX1_RULES uten refit eller handel.
+   TEST, Full GC, ONLINE, broker og handel er lukket.
 
 Opprydding: historiske overleveringsavsnitt er fjernet her og bevart i Git.
 Ingen Python-fil er slettet; gjeldende referanse-, import-, test- og
