@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_M5_DECISION_LOSS_CORRECTION_PREPARED_UNFITTED_NO_EDGE.
+TA_M5_DECISION_UNFITTED_COLD_CHRONO_GATE_REQUIRED_NO_EDGE.
 Første direkte kostete M5-fit valgte 11 486 SHORT, 0 LONG og
 6 050 FLAT på 17 536 gjenbrukte Apr–jun-rader. Kjente valgte
 terminalutfall ga −0,578 bps i snitt etter oppgitte kostnader;
@@ -1050,7 +1050,17 @@ umiddelbart neste M5-steg var for vid.
    leddene. Tre fokuserte tester bekrefter gradientes retning og maskering.
    Dette er en ufittet hypotese, ikke ny læring eller Edge. Gjenbruk
    eksisterende input, mål og vakter; ingen VAL-valg fra Apr–jun.
-3. Ingen ny fit uten ny, gyldig engangsplan og stor-kjøringsadgang.
+3. Det låste FIT-målet dekker mai–desember 2024 (47 338 rader). Den
+   gjenbrukte varme kjernen hadde 2 959 oppdateringer på alle disse
+   radene, og prefiksnormaliseringen er tilpasset alle 47 338. En
+   oktober–desember-holdout bare for nytt beslutningshode ville derfor
+   lekke tidligere læring og normalisering. En ærlig intern kronologisk
+   kontroll må initialisere hele kjernen på nytt, normalisere kun på
+   tidligere FIT-prefix, trene kun der og skåre senere FIT-rader uten
+   omvalg. En mulig datogrense er 1. oktober: 29 849 rader før og
+   17 489 etter. Dette er ennå ikke en innrømmet kjøring, og heller
+   ikke uavhengig Edge-bevis fordi perioden er undersøkt tidligere.
+4. Ingen ny fit uten ny, gyldig engangsplan og stor-kjøringsadgang.
    Eksisterende D1-journal gir ingen M5-/TEST-adgang. En separat
    framtidig M5-journal krever eget operatørvedtak og dataautoritet.
    TEST, Full GC, ONLINE, broker og handel er lukket.
