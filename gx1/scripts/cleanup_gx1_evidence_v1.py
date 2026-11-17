@@ -487,8 +487,11 @@ def _inventory_manifest_rows(target: dict[str, Any]) -> list[dict[str, Any]]:
     return rows
 
 
+_PROCESS_ROOT = Path("/proc")
+
+
 def _reject_open_writer_fds(target: Path) -> None:
-    proc = Path("/proc")
+    proc = _PROCESS_ROOT
     if not proc.is_dir():
         raise RuntimeError("cannot prove open-writer state without /proc")
     for process in proc.iterdir():
@@ -497,8 +500,12 @@ def _reject_open_writer_fds(target: Path) -> None:
         fd_root = process / "fd"
         try:
             descriptors = list(fd_root.iterdir())
-        except (FileNotFoundError, PermissionError, ProcessLookupError):
-            continue
+        except (FileNotFoundError, ProcessLookupError):
+            continue  # Process exited before its descriptors could be inspected.
+        except PermissionError as exc:
+            raise RuntimeError(
+                f"cleanup cannot inspect process fd table: pid={process.name}"
+            ) from exc
         for descriptor in descriptors:
             try:
                 linked = Path(os.readlink(descriptor))
@@ -510,21 +517,19 @@ def _reject_open_writer_fds(target: Path) -> None:
                     if line.startswith("flags:")
                 )
                 flags = int(flags_line.split()[1], 8)
-            except (
-                FileNotFoundError,
-                PermissionError,
-                ProcessLookupError,
-                StopIteration,
-                ValueError,
-            ):
-                continue
+            except (FileNotFoundError, ProcessLookupError):
+                continue  # Descriptor closed while the process was inspected.
+            except (PermissionError, StopIteration, ValueError, IndexError) as exc:
+                raise RuntimeError(
+                    f"cleanup cannot inspect process fd flags: "
+                    f"pid={process.name} fd={descriptor.name}"
+                ) from exc
             if linked == target or target in linked.parents:
                 if (flags & os.O_ACCMODE) in {os.O_WRONLY, os.O_RDWR}:
                     raise RuntimeError(
                         f"cleanup target has an open writer fd: pid={process.name} "
                         f"fd={descriptor.name} path={linked}"
                     )
-
 
 def _delete_manifest_file(root: Path, row: dict[str, Any]) -> None:
     relative = str(row["relative_path"])

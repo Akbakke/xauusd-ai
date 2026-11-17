@@ -12,6 +12,25 @@ M5-fit-planen er fullført og konsumert. `training_enabled`,
 `native_launch_authorized` er `false`. Full GC, TEST, ONLINE, broker og
 handel er stengt. Ingen økonomisk edge eller uavhengig generalisering er bevist.
 
+## Pågående fullrevisjon 17.11.2026
+
+Brukeren ba om hele-prosjekt-sanity check, avgrensede agenter og sletting av
+bevist foreldede filer. 2 069 sporede filer / 984 774 tekstlinjer er maskinelt
+skannet; alle 1 353 Python-, 625 JSON- og 9 shellfiler parser. Dette er ikke
+manuell semantisk godkjenning av hver linje. Tre agenter reviderer henholdsvis
+feature/modell, mål/tap/score og kjøring/retention. Ingen trening eller TEST.
+
+Konkrete retention-funn: eieren ignorerte `PermissionError` i `/proc/*/fd` og
+`fdinfo` og kunne derfor feilaktig godkjenne sletting uten fullt
+åpen-skriver-bevis. Minste fail-closed rettelse og to negative tester er gjort;
+162 fokuserte tester besto. Fysisk normal bruker får nektet 27/31 fd-tabeller;
+root kan lese alle. Root-capped audit med 4G/512M er verifisert og en ytre
+`flock` på andre2s eksisterende prosjektlås blokkerer parallell jobb på
+samme inode. Ingen DATA/RUNS er slettet. Retention-eieren har laget én plan
+for `HISTORY2009W_EARLY_DECISION_20260927` (2 600 617 478 bytes): plan SHA
+`3e3150233e10c4e19413f0e2f8f82cf4a0d951a8c5e2a9ba412c2a81df7a1bc7`.
+Godkjenning/utføring er ikke kjørt.
+
 ## Gjort og målt 17.11.2026
 
 - Regelen om direkte M5-edge, aktiv mismatch-kontroll, sparsom tokenbruk og

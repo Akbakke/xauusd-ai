@@ -32,6 +32,14 @@ VEDTAK = "GX1-CLEANUP-TEST"
 CREATED_UTC = "2026-07-20T10:00:00+00:00"
 
 
+@pytest.fixture(autouse=True)
+def _isolated_proc_for_retention_tests(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Synthetic cleanup tests must not depend on the host's process table."""
+    proc = tmp_path / "proc"
+    proc.mkdir()
+    monkeypatch.setattr(cleanup_script, "_PROCESS_ROOT", proc)
+
+
 def test_canonical_retention_launch_root_declares_protected_leaves_not_the_policy_graph() -> None:
     repo = Path(__file__).resolve().parents[1]
     launch = json.loads((repo / "PROJECT_STATE_xau_direction_launch.json").read_text())
@@ -290,6 +298,50 @@ def test_valid_plan_proves_byte_identity_and_dry_run_deletes_nothing(
     )
     assert target.exists()
     assert not report_dir.exists()
+
+
+def test_open_writer_scan_fails_closed_when_fd_table_is_inaccessible(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    proc = tmp_path / "proc"
+    process = proc / "123"
+    fd_root = process / "fd"
+    fd_root.mkdir(parents=True)
+    original_iterdir = Path.iterdir
+
+    def denied_iterdir(path: Path):
+        if path == fd_root:
+            raise PermissionError("fd table denied")
+        return original_iterdir(path)
+
+    monkeypatch.setattr(Path, "iterdir", denied_iterdir)
+    with pytest.raises(RuntimeError, match="cannot inspect process fd table: pid=123"):
+        cleanup_script._reject_open_writer_fds(tmp_path / "evidence.bin")
+
+
+def test_open_writer_scan_fails_closed_when_fdinfo_is_inaccessible(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    proc = tmp_path / "proc"
+    process = proc / "123"
+    fd_root = process / "fd"
+    fd_root.mkdir(parents=True)
+    target = tmp_path / "evidence.bin"
+    target.write_bytes(b"evidence")
+    (fd_root / "4").symlink_to(target)
+    fdinfo = process / "fdinfo" / "4"
+    fdinfo.parent.mkdir()
+    fdinfo.write_text("flags:\t0000001\n")
+    original_read_text = Path.read_text
+
+    def denied_read_text(path: Path, *args, **kwargs):
+        if path == fdinfo:
+            raise PermissionError("fdinfo denied")
+        return original_read_text(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", denied_read_text)
+    with pytest.raises(RuntimeError, match="cannot inspect process fd flags: pid=123 fd=4"):
+        cleanup_script._reject_open_writer_fds(target)
 
 
 def test_stage_rejects_open_writer_before_moving_the_canonical_path(
