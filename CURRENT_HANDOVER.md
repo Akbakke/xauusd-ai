@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_M5_DECISION_FIT_002_ADMITTED_ONE_USE_PENDING_CLAIM. Første direkte kostete
+TA_M5_DECISION_FIT_002_ABORTED_PRECLAIM_CONSUMED_NO_MODEL. Første direkte kostete
 M5-fit er fullført og konsumert uten Edge: 47 338 Fold2-TRAIN-rader,
 2 959 oppdateringer. På 17 536 gjenbrukte Apr–jun-rader valgte modellen
 0 LONG, 11 486 SHORT og 6 050 FLAT. De 9 853 valgene med kjent
@@ -15,12 +15,14 @@ terminalutfall ga −0,578 bps i snitt etter oppgitte kostnader;
 1 633 valgte utfall er ukjente. Full native M5-F/S side-AUC var
 0,493/0,514. Selvstendige S/F-hoder på fem TF ga ikke en pålitelig
 M5-beslutning. Én matchet etterfølger med bare hjelpetapsvekt
-0,25 → 0,10 er innrømmet én gang etter en avgrenset
-TRAIN-gradientkontroll. Fysisk Windows-boot 661, ren pushet kilde
-4f20922a, 13 inputhash, 17 kildehash, ledig GPU/prosess/lås og
-uforandret artefaktgrunnlag er bekreftet. training_enabled=true,
-native_training_enabled=true, full_epoch_training_allowed=true og
-native_launch_authorized=true bare for denne eksakte engangsplanen.
+0,25 → 0,10 ble innrømmet én gang etter en avgrenset
+TRAIN-gradientkontroll. Plan002 stoppet før CLAIM ved Windows-bootoppslag
+inne i vakten; frakoblet WSL-oppstart ga `UtilAcceptVsock`-feil.
+Ingen outputrot, modellforward eller optimizersteg ble opprettet.
+Plan002 er konsumert. training_enabled=false,
+native_training_enabled=false, full_epoch_training_allowed=false og
+native_launch_authorized=false. Fysisk boot 661, ren kilde,
+13 inputhash og 17 kildehash var kontrollert før forsøket.
 Full GC er pauset; TEST, ONLINE, broker og handel er lukket. Ingen
 økonomisk Edge eller uavhengig handelsgeneralisering er bevist.
 Stabile langkjøringer kontrolleres omtrent hver time.
@@ -923,12 +925,25 @@ eller at neste fit får Edge. Apr–jun forblir gjenbrukt utvikling. Seks fokuse
 én numerisk tråd; én ordinær kjøring traff en eksisterende 1e-5-
 toleranse med 1,14e-5 avvik i et uendret delt-encoder-testtilfelle.
 
+Plan002-startforsøk på boot 661: kapslet 20G/512M-vakt kom opp,
+signert hosttelemetri viste 36 °C kjerne, 44 °C minne og 25,35 W
+maks, men treneren feilet før `ROOT.mkdir()` og før CLAIM i
+`physical_windows_boot_id()`. Guardlogg SHA
+`9d154000f4845cf9c05a1f6ff13df178fa64b121688b2d7ec59fc9553581a594`,
+trenerlogg SHA
+`b407543b0d7b3ef76103f1511997d5618f7e2a5239640155cc7ca3c95716cd0c`.
+Lesende boot-oppslag returnerte 661 både direkte og i tilkoblet
+systemd-scope etterpå. Frakoblet WSL-sesjonslevetid er sannsynlig
+startårsak, men ikke endelig isolert. Ingen resultat- eller
+terminalkvittering fra modellrunner finnes; plan002 relanseres ikke.
+
 ## Neste steg
 
-1. Behold første beslutningsfit konsumert. Start innrømmet plan002
-   høyst én gang gjennom scripts/gx1_capped_run.sh med gjeldende vakter;
-   fysisk boot 661 og alle kilde-/input-/maskinporter er kontrollert.
-2. Kjør den matchede ikke-GC fitten med kun hjelpetapsvekt 0,10. Behold seks observasjonspunkter,
+1. Behold plan001 og plan002 konsumert. Klargjør bare ny plan003 med
+   samme modell og hjelpetapsvekt 0,10; bytt startmåte til tilkoblet
+   WSL-sesjon og krev ny fysisk Windows-boot >661.
+2. Innrøm og kjør høyst én matchet ikke-GC fit hvis eksakte
+   kilde-/input-/maskin-/oppstartskontroller passerer. Behold seks observasjonspunkter,
    fem selvstendige TF, kostmål, seed og handlingsregel. Ikke velg
    480 minutter eller ny regel fra gjenbrukt Apr–jun.
 3. Lukk engangsgaten ved terminalkvittering. Skill TRAIN-læring,
