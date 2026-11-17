@@ -7,26 +7,23 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_M5_DECISION_FIT_004_ADMITTED_ONE_USE_PENDING_CLAIM. Første direkte kostete
-M5-fit ble fullført på 47 338 Fold2-TRAIN-rader og 2 959 oppdateringer,
-men fant ingen Edge: på 17 536 gjenbrukte Apr–jun-rader valgte den
-0 LONG, 11 486 SHORT og 6 050 FLAT. De 9 853 valgene med kjent
+TA_M5_DECISION_FIT_004_COMPLETE_CONSUMED_DEV_POSITIVE_EDGE_UNPROVEN.
+Første direkte kostete M5-fit valgte 11 486 SHORT, 0 LONG og
+6 050 FLAT på 17 536 gjenbrukte Apr–jun-rader. Kjente valgte
 terminalutfall ga −0,578 bps i snitt etter oppgitte kostnader;
-1 633 valgte utfall er ukjente. Native M5-F/S side-AUC var 0,493/0,514.
-En TRAIN-gradientkontroll viste hjelpetap 1,28–1,77 ganger sterkere enn
-det direkte kostmålet på faste prøver. En etterfølger med kun vekten
-0,25 → 0,10 er klargjort. Plan002 og plan003 stoppet begge før CLAIM
-av ulike oppstartshindre, med null modellsteg; de er konsumert.
-Plan004 er innrømmet nøyaktig én gang på fysisk boot 663 etter
-ren pushet kilde fd8489fb, 13 inputhash, 17 kildehash, ledig GPU/lås,
-tilkoblet WSL-bootoppslag og to signaturverifiserte hostmålinger.
-Eksakt samme portvideresending måtte legges inn igjen etter reboot.
-training_enabled=true, native_training_enabled=true,
-full_epoch_training_allowed=true og native_launch_authorized=true
-bare for plan004. Full GC er pauset; TEST, ONLINE,
-broker og handel er lukket. Ingen økonomisk Edge eller uavhengig
-handelsgeneralisering er bevist. Stabile langkjøringer kontrolleres
-omtrent hver time.
+1 633 var ukjente. En TRAIN-gradientkontroll målte 0,25-vektet
+hjelpetap 1,28–1,77 ganger sterkere enn det direkte kostmålet.
+En matchet fit med kun hjelpetapsvekt 0,10 fullførte på 47 338
+Fold2-TRAIN-rader og 2 959 oppdateringer. Dens faste regel valgte
+5 684 SHORT, 0 LONG og 11 852 FLAT; 5 001 kjente valgte
+terminalutfall ga +6,232 bps i snitt, 683 er ukjente. Dette er
+markout på gjenbrukt utviklingsdata, ikke posisjonsført PnL eller
+bevist Edge. Plan002 og plan003 stoppet før CLAIM av to ulike
+oppstartshindre, med null modellsteg; alle fire engangsplaner er
+konsumert. training_enabled=false, native_training_enabled=false,
+full_epoch_training_allowed=false og native_launch_authorized=false.
+Full GC er pauset; TEST, ONLINE, broker og handel er lukket.
+Uavhengig handelsgeneralisering er ikke bevist.
 
 Plan001 SHA `4016255217a3c87bdc84715b6e65707090fa09dcaa1e70a3a1b3455bdac84621`
 ble CLAIM-et under fysisk boot 656, men feilet i initial TRAIN-strukturskår
@@ -951,19 +948,33 @@ Ingen telemetri-, effekt- eller temperaturgrense er svekket.
 Plan003 relanseres ikke; plan004 krever ny fysisk boot >662 og frisk
 signert måling før innrømmelse.
 
+Plan004 kjørte på fysisk Windows-boot 663 med ren pushet kilde
+76e81a81. `RESULT.json` SHA
+`a7c3c2d913a92b1f6ec36b5272a8adbd90fc9b0b3a6ba4883dabb86bb1379058`,
+`TERMINAL.json` SHA
+`8c08645a9406ea2fa582bf803e8eca0cc61fa720384859a46213e2c942b9bd9e`.
+Terminal exit 0, 2 959 optimizersteg, null skip, 1 096 senere
+skåringsforwards, 6 461,6 sekunder, kilde uendret. Guardens
+5 019 målinger hadde maksimum 54 °C kjerne, 58 °C minne,
+164,91 W og 2 181 MiB. Ingen TEST eller handel. Final
+checkpoint SHA `b192e7cd383d774192455d24b13f7c71eca980c20281226a3e1a8bb27d06ad36`,
+SCORE-opptak SHA `5b02fd56400911a3487cfe38061391509da32a2e1b802f63891d7e978e8e0486`.
+Handlingsregelen valgte +6,232 bps på 5 001 kjente terminalutfall,
+men 683 valgte terminalutfall er ukjente og overlappende markouts
+er ikke gjennomførte handler. Månedsmidler var +4,967/+9,598/+6,472
+bps i april/mai/juni på 2 785/957/1 259 kjente valgte utfall.
+Disse tallene krever uavhengig gjennomberegning før de brukes videre.
+
 ## Neste steg
 
-1. Behold plan001–003 konsumert. Start innrømmet plan004
-   høyst én gang med tilkoblet WSL-sesjon og gjeldende vakter.
-   Boot 663, ren kilde, input, ledig maskin og signert telemetri
-   er kontrollert.
-2. Kjør den matchede ikke-GC fitten. Behold seks observasjonspunkter, fem selvstendige
-   TF, kostmål, seed, handlingsregel og hjelpetapsvekt 0,10.
-   Ikke velg 480 minutter eller ny regel fra gjenbrukt Apr–jun.
-3. Lukk engangsgaten ved terminalkvittering. Skill TRAIN-læring,
-   senere utviklingsskår og økonomisk Edge. Edge krever uavhengig
-   framtidig journal med alle valgte handler, åpne posisjoner og
-   faktiske kostnader. TEST, Full GC, ONLINE, broker og handel er lukket.
+1. Behold plan001–004 konsumert og treningsporten lukket.
+   Gjennomberegn plan004-opptaket mot faste SCORE-mål, masker,
+   måneder og samme-rad-referanser; sammenlign med plan001 uten
+   å velge nytt observasjonspunkt eller ny regel fra Apr–jun.
+2. Skill TRAIN-læring, gjenbrukt utviklingsskår og økonomisk Edge.
+   Edge krever uavhengig framtidig journal med alle valgte handler,
+   åpne posisjoner og faktiske kostnader. TEST, Full GC, ONLINE,
+   broker og handel er lukket.
 
 Opprydding: historiske overleveringsavsnitt er fjernet her og bevart i Git.
 Ingen Python-fil er slettet; gjeldende referanse-, import-, test- og
