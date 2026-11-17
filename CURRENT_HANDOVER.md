@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_M5_COLD_TA_PREFIX_REUSE_VERIFIED_LATER_COVERAGE_BLOCK_NO_EDGE.
+TA_M5_SF_TRUTH_COST_SIDE_ASSOCIATION_NOT_LEARNED_COLD_LATER_GATE_NO_EDGE.
 Første direkte kostete M5-fit valgte 11 486 SHORT, 0 LONG og
 6 050 FLAT på 17 536 gjenbrukte Apr–jun-rader. Kjente valgte
 terminalutfall ga −0,578 bps i snitt etter oppgitte kostnader;
@@ -1036,6 +1036,22 @@ ikke kvalifisert for slik bekreftelse når TRAIN-prøven viser
 prisbanesvikt. Tidligere formulering om forward-journal som
 umiddelbart neste M5-steg var for vid.
 
+En lesende kobling av lagret Fold1-later-opptak mot dagens låste
+kost-/banemål fant 4 032 eksakt like issue-/parent-rader; 2 627 hadde
+komplett 480-minuttersbane. Når native F-sidefasit var kjent (1 144),
+var LONG-kvalitet bedre i 60,8 % ved faktisk OPP og 40,7 % ved NED.
+Gjennomsnittlig LONG-minus-SHORT-kvalitet var +7,826 mot −30,758 bps.
+Native S-fasit viste 58,4 % mot 41,9 % (1 011 kjente). Den eldre,
+trente M5-S/F-sideutgangen rangerte derimot bedre kostside med AUC
+0,497/0,493, omtrent som sin initialtilstand 0,490/0,488.
+Dette avgrenser problemet: S/F-fasiten har en side-sammenheng på dette
+utvalget, mens denne modellen ikke lærte en brukbar prognose for den.
+Det beviser ikke at indikatorene kan forutsi fasiten, og overlappende
+baner/utvalgsvalg gir ingen uavhengig økonomisk Edge. Ingen modellforward,
+optimizer eller TEST i kontrollen. Bevis:
+`docs/TA_M5_SF_COST_SIDE_ALIGNMENT_20261117.json`
+(SHA `2242d727f219d165457d3040ed1e43209e6e5a6c149c72c02b147c69f5e10881`).
+
 ## Neste steg
 
 1. Behold plan001–004 konsumert og treningsporten lukket.
@@ -1050,6 +1066,8 @@ umiddelbart neste M5-steg var for vid.
    leddene. Tre fokuserte tester bekrefter gradientes retning og maskering.
    Dette er en ufittet hypotese, ikke ny læring eller Edge. Gjenbruk
    eksisterende input, mål og vakter; ingen VAL-valg fra Apr–jun.
+   Behold S/F som støtteoppgaver: fasitens kobling til kostside er
+   observert, men den eldre S/F-prognosen feilet samme kontroll.
 3. Det låste FIT-målet dekker mai–desember 2024 (47 338 rader). Den
    gjenbrukte varme kjernen hadde 2 959 oppdateringer på alle disse
    radene, og prefiksnormaliseringen er tilpasset alle 47 338. En

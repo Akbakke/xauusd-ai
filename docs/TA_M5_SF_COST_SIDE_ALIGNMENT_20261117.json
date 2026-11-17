@@ -1,0 +1,69 @@
+{
+  "coverage": {
+    "h480_long_better_share": 0.5150361629234869,
+    "h480_path_complete_rows": 2627,
+    "joined_fit_rows": 4032,
+    "saved_later_rows": 4096
+  },
+  "economic_edge_proven": false,
+  "inputs": {
+    "fit_cost_path_targets": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_COST_PATH_TARGETS_20261117_001/FIT_TARGETS.npz",
+      "sha256": "3f0a9c74a4a40da80fc62850b62dde3b67d7f896963440d58a5c810af9908024"
+    },
+    "initial_later_capture": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_002/INITIAL_LATER_READOUT.npz",
+      "sha256": "575fc555c79ea2d420ebc8d8efd1c899ea0ae4f2443a1a1efe3e5b1776313e46"
+    },
+    "trained_later_capture": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FULL_PREFIX_LEARNING_20261112_002/FULL_PREFIX_PASS2_LATER_READOUT.npz",
+      "sha256": "6b8c5f0a54b74284b0d2033f5322d38c6d8e4d1a18706205fc18ae8bf1e8cf39"
+    }
+  },
+  "limits": [
+    "fixed_selected_development_sample_only",
+    "overlapping_480_minute_paths",
+    "native_side_is_future_truth_not_available_as_entry_input",
+    "association_does_not_prove_predictability_from_indicators",
+    "no_realized_PnL_or_independent_Edge",
+    "no_model_forward_or_optimizer_in_this_audit"
+  ],
+  "method": {
+    "auc_positive": "LONG_quality_greater_than_SHORT_quality",
+    "join": "exact_parent_rows_and_issue_ns",
+    "known_native_S_F_side": "eligible_and_mature_and_allowed_in_1_4",
+    "mask": "both_side_path_observed",
+    "model_score": "M5_native_side_logit",
+    "population": "fixed_Fold1_later_sample_Oct_Dec_2024",
+    "quality": "h480_costed_terminal_net_bps_minus_pre_MFE_MAE_upper_bps",
+    "target_side_up": "allowed_equals_4"
+  },
+  "model_auc_long_better": {
+    "INITIAL_F": 0.4883902392613194,
+    "INITIAL_S": 0.49041666811701656,
+    "TRAINED_F": 0.49284687437997543,
+    "TRAINED_S": 0.49700937854247956
+  },
+  "role": "read_only_development_diagnostic_no_fit_or_edge",
+  "schema_version": "gx1_ta_m5_sf_cost_side_alignment_audit_v1",
+  "source_commit": "8f88285f34c06e22479fcbcbbc71e717b11f605d",
+  "test_data_used": false,
+  "truth_side_relation": {
+    "F": {
+      "known": 1144,
+      "long_better_given_down": 0.4072072072072072,
+      "long_better_given_up": 0.6078098471986417,
+      "mean_long_minus_short_quality_given_down_bps": -30.758157719788823,
+      "mean_long_minus_short_quality_given_up_bps": 7.8259961797122095,
+      "up_share": 0.5148601398601399
+    },
+    "S": {
+      "known": 1011,
+      "long_better_given_down": 0.4188376753507014,
+      "long_better_given_up": 0.583984375,
+      "mean_long_minus_short_quality_given_down_bps": -27.604700289407344,
+      "mean_long_minus_short_quality_given_up_bps": -1.4535618969075355,
+      "up_share": 0.506429277942631
+    }
+  }
+}
