@@ -795,16 +795,37 @@ Kostoppsettet er 4 bps tur-retur pluss deklarert finansiering, ikke
 historiske fyll. Overlappende markouts er ikke posisjonsregnskap,
 selektiv handelsstrategi, uavhengig generalisering eller økonomisk Edge.
 
+Kildediagnosen er nå avgrenset uten ny fit: F-M5-merket har eksakt
+femminuttersendepunkt, ingen mellomliggende kildegap på modellradene og
+bitlik M5-pris/ATR14-merkeproduksjon
+(`docs/TA_F_M5_TARGET_ENDPOINT_GAP_REVIEW_20261114.json` og
+`docs/TA_F_M5_PRICE_ATR_SOURCE_RECONSTRUCTION_20261114.json`). Fem
+lagrede 64-runders F-tabularmodeller lærte TRAIN-radene (AUC 0,699–0,795),
+men fikk bare 0,501–0,513 på senere foldrader og tapte Brier mot frossen
+TRAIN-prior. Indre TRAIN-kontroll gjentok overføringssvikten
+(`docs/TA_F_M5_SAVED_MODEL_TRAIN_SCORE_DIAGNOSIS_20261114.json` og
+`docs/TA_F_M5_INNER_TRAIN_TRANSFER_RESULT_REVIEW_20261114.json`). Den
+nye integrerte fitten fikk F-M5 AUC 0,498 og dårligere Brier enn prior.
+En eldre, separat oktoberkontroll av F-retning mot hvilken LONG/SHORT-side
+som fikk bedre netto +5-minutterspris ga AUC 0,491 på 6 297 rader;
+dette er et annet kohort og beviser ikke Apr–jun-økonomi. De undersøkte endepunkt-, pris-, ATR- og gapfeilene er dermed
+avvist, mens årsaken til svak overføring ikke er isolert. F er korrekt som separat terminalt prognosemål, men kvalifiserer
+ikke en Entry-handling. Flere F-only-epoker, hodesplitter eller
+indikatorregler uten nytt beslutningsmål har ingen målt begrunnelse.
+
 ## Neste steg
 
 1. Behold plan002 og kostplan001 konsumert og treningsporten lukket.
-   Ikke start flere epoker eller indikator-/modellrunder på teknisk PASS.
-2. Avklar det målte gapet mellom native F-mål, M5-vending, strukturtreff
-   og kostet Entry-verdi fra eksisterende fasit- og kostkvitteringer.
-   F-målet lærer en 0,5-ATR terminalklasse der FLAT dominerer; direkte
-   Entry-verdi og liten MAE før første MFE er ennå ikke trent eller
-   økonomisk kvalifisert. Bind én integrert, begrunnet målrettelse før
-   eventuell ny fit, uten scorebasert horisontutvalg.
+   Ikke start flere F-only-epoker, hodesplitt- eller indikatorregler på
+   teknisk PASS; den rene F-kilden og gjentatt transferfeil er dokumentert.
+2. Bind én integrert ikke-GC M5-beslutningskandidat med det eksisterende
+   dynamiske M1-pris-/kostmålgrunnlaget: separat kostet LONG/SHORT/FLAT-
+   verdi og konservativ prisbane-kvalitet ved 1 minutt til mange timer.
+   Behold de fem selvstendige S/F-retningene og M5-struktur som egne
+   prognosemål fra samme kausale encoder. Avklar masker, TRAIN-skala,
+   output/tap, fast handlingsregel og alle målepunkter før eventuell fit;
+   ingen horisont velges etter utviklingsskår. Dette er designarbeid,
+   ikke Entry-trening eller ny kjøreautoritet.
 3. Økonomisk Edge krever senere alle valgte handler og åpne posisjoner
    på en uavhengig periode. Full GC, TEST, ONLINE, broker og handel er
    lukket. Gamle engangsplaner relanseres aldri.
