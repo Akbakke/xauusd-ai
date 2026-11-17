@@ -97,7 +97,8 @@ class IntegratedTAMarketStateModel(nn.Module):
               'MODEL_BINDING')
 
     def forward(self, features: Mapping[str, torch.Tensor], *, query_k: torch.Tensor,
-                m1_path_bps: torch.Tensor, m1_observed: torch.Tensor) -> dict[str, torch.Tensor]:
+                m1_path_bps: torch.Tensor, m1_observed: torch.Tensor,
+                return_fused_tf_hidden: bool = False) -> dict[str, torch.Tensor]:
         self._require_binding()
         _need(isinstance(features, Mapping), 'FEATURE_MAPPING')
         hidden = self.dual.encode_features(**features)
@@ -142,6 +143,8 @@ class IntegratedTAMarketStateModel(nn.Module):
             native_raw = state_grid[:, 1]
             output['state_native_activity_side_logits'] = native_raw
             output['state_native_log_probs'] = factorized_log_probabilities(native_raw)
+        if return_fused_tf_hidden:
+            output['fused_tf_hidden'] = fused
         return output
 
 

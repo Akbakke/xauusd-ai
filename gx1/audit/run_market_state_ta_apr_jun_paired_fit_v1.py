@@ -215,7 +215,7 @@ def _turn_and_disagreement(state_raw, state_truth, issues):
     return {'M5_turns': turn, 'TF_disagreement': tf}
 
 
-def score(model, context, *, deadline):
+def score(model, context, *, deadline, collect_decision=False):
     import numpy as np
     import torch
     from gx1.audit.observe_market_state_ta_fold2_fresh_initial_v1 import direction_readout
@@ -237,6 +237,7 @@ def score(model, context, *, deadline):
     raw = {name: np.empty((SCORE_ROWS, 5, 2), dtype=np.float32)
            for name in ('sampled_S', 'native_S', 'native_F')}
     structure = np.empty((SCORE_ROWS, 2), dtype=np.float32)
+    decision = np.empty((SCORE_ROWS, 6, 2, 3), dtype=np.float32) if collect_decision else None
     model.eval()
     with torch.inference_mode():
         for left in range(0, SCORE_ROWS, BATCH):
@@ -252,6 +253,9 @@ def score(model, context, *, deadline):
             raw['native_S'][left:right] = out['state_native_activity_side_logits'].cpu().numpy()
             raw['native_F'][left:right] = out['future_activity_side_logits'].cpu().numpy()
             structure[left:right] = out['m5_structure_hit_logits'].cpu().numpy()
+            if collect_decision:
+                need(out['m5_cost_path_bps'].shape == (BATCH, 6, 2, 3), 'DECISION_SHAPE')
+                decision[left:right] = out['m5_cost_path_bps'].cpu().numpy()
             del features, out
     prior = context['priors']['tasks']
     prior_raw = {name: np.asarray(prior[key]['raw_logits'], dtype=np.float32)
@@ -277,6 +281,8 @@ def score(model, context, *, deadline):
                'structure_raw': structure,
                'structure_hit': tape['structure_hit'],
                'structure_observed': tape['structure_observed']}
+    if collect_decision:
+        capture['m5_cost_path_bps'] = decision
     for name in raw:
         capture[name + '_raw'] = raw[name]
         for key in ('allowed', 'eligible', 'mature'):

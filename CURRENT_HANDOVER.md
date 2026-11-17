@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_M5_COST_PATH_TARGETS_001_COMPLETE_CONSUMED_NO_EDGE. Én integrert ikke-GC
+TA_M5_DECISION_FIT_001_PREPARED_NOT_ADMITTED. Én integrert ikke-GC
 Fold2-fit på 47 338 TRAIN-rader er fullført; fast apr–jun-skår på 17 536
 senere utviklingsrader fant ingen kvalifisert native M5-S/F-retning.
 Strukturtreff lærte, men ga ingen påvist M5-sideprognose. Den
@@ -835,19 +835,38 @@ må ikke blandes. Bakoverskuende andel med minst én positiv side er
 ikke modellens fangstevne eller Edge. Null modellforward, null
 optimizersteg, ingen TEST eller handel. Treningsporten er stengt.
 
+En direkte, ikke-GC M5-beslutningskandidat er nå kildeimplementert med
+plan `TA_M5_DECISION_FIT_20261117_001` (SHA
+`0849950662bb4ac0712e0a9203610e752746f593fc0c2d00a91c2a09e171dd82`).
+Den gjenbruker forrige integrerte fem-TF-kjerne og dens lagrede checkpoint,
+legger ett 36-verdihode på alle fem kausale TF-vektorer, og trener netto
+LONG/SHORT, MFE, konservativ MAE og netto minus MAE på seks faste
+observasjonsavstander. Alle skalaer kommer kun fra Fold2-FIT. S/F og
+struktur beholdes som separate utganger og hjelpetap. En fast
+predikert kvalitetsregel velger LONG/SHORT eller FLAT uten å lese
+framtidsmasker. Ingen Exit eller holdetid er bestemt.
+
+Fokusert eksisterende modellkontroll og to nye beslutningskontroller besto.
+Faktisk 16-raders FIT- og SCORE-kontroll under 4G/512M ga bitlike gamle
+S/F-/strukturutganger, korrekt checkpoint, eksakte targetakser, beregnet
+tap 0,7731 og null optimizersteg. En sammenligningsfeil i den første
+syntetiske testen ble rettet; andre kjøring besto. Én engangsfit er bare
+forberedt: 2 959 TRAIN-batcher og 1 096 senere utviklingsforwards.
+Den er ikke innrømmet; training_enabled=false. Før eventuell faktisk
+kjøring kreves ren kilde, fersk fysisk Windows-boot >659 og en eksakt
+engangsadgang. Apr–jun er gjenbrukt utvikling, ikke uavhengig TEST.
+
 ## Neste steg
 
 1. Behold plan002, kostplan001 og målplan001 konsumert og treningsporten lukket.
    Ikke start flere F-only-epoker, hodesplitt- eller indikatorregler på
    teknisk PASS; den rene F-kilden og gjentatt transferfeil er dokumentert.
-2. Bind én integrert ikke-GC M5-beslutningskandidat til de lagrede
-   Fold2/Apr–jun-kost-/prisbanemålene: separat kostet LONG/SHORT/FLAT-
-   verdi og konservativ prisbane-kvalitet ved 1 minutt til mange timer.
-   Behold de fem selvstendige S/F-retningene og M5-struktur som egne
-   prognosemål fra samme kausale encoder. Avklar masker, TRAIN-skala,
-   output/tap, fast handlingsregel og alle målepunkter før eventuell fit;
-   ingen horisont velges etter utviklingsskår. Dette er designarbeid,
-   ikke Entry-trening eller ny kjøreautoritet.
+2. Kvalifiser den ene forberedte direkte M5-beslutningsruten på ren,
+   innbundet kilde. Deretter kan den ene 47 338-raders fitten innrømmes
+   etter fersk fysisk boot og måles på alle faste Apr–jun-punkter uten
+   ny horisont- eller parameterutvelging. Mål valgt/avstått, ukjente
+   utfall og netto etter kostnader; ikke kall overlappende markouts
+   realisert PnL eller uavhengig generalisering.
 3. Økonomisk Edge krever senere alle valgte handler og åpne posisjoner
    på en uavhengig periode. Full GC, TEST, ONLINE, broker og handel er
    lukket. Gamle engangsplaner relanseres aldri.

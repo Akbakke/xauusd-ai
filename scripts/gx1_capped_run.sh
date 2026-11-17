@@ -58,6 +58,7 @@ TA_FOLD2_SHARED_M5_INITIAL_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_fol
 TA_FOLD2_SHARED_M5_FIT_TRAINER_MODULE=gx1.audit.run_market_state_ta_fold2_shared_m5_fit_v1
 TA_INTEGRATED_FOLD2_FIT_TRAINER_MODULE=gx1.audit.run_market_state_ta_integrated_fold2_fit_v1
 TA_APR_JUN_PAIRED_FIT_TRAINER_MODULE=gx1.audit.run_market_state_ta_apr_jun_paired_fit_v1
+TA_M5_DECISION_FIT_TRAINER_MODULE=gx1.audit.run_market_state_ta_m5_decision_fit_v1
 RUNNER_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
 REPO_ROOT="$(cd "$(dirname "$RUNNER_PATH")/.." && pwd -P)"
 CANONICAL_TRAINER_PYTHON="$REPO_ROOT/.venv/bin/python"
@@ -475,6 +476,16 @@ matches_bound_market_state_ta_apr_jun_paired_fit() {
   [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$7" ]]
 }
 
+# One exact direct-cost M5 fit on the reused Fold2 and April-June axes.
+matches_bound_market_state_ta_m5_decision_fit() {
+  local expected_plan="$1" expected_output="$2"
+  shift 2
+  [[ $# -eq 11 ]] || return 1
+  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m && "$3" == "$TA_M5_DECISION_FIT_TRAINER_MODULE" && "$4" == --plan && "$5" == "$expected_plan" && "$6" == --plan-sha256 && "$7" =~ ^[0-9a-f]{64}$ && "$8" == --device && "$9" == cuda && "${10}" == --out-dir && "${11}" == "$expected_output" && "$expected_plan" == /* && "$expected_output" == /* ]] || return 1
+  [[ -f "$expected_plan" && ! -L "$expected_plan" && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1
+  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$7" ]]
+}
+
 # Exact passive current first-batch numerical route comparison, including metadata-only preflight.
 matches_bound_market_state_ta_current_numeric_routes() {
   local expected_plan="$1" expected_output="$2"
@@ -876,6 +887,21 @@ validate_target_command() {
     fi
     TRAINER_DEVICE=cuda
     TRAINER_OUT_BUNDLE_DIR="$paired_fit_root"
+    TRAINER_MAX_WALL_SECONDS=10800
+    TRAINER_MODEL_MAX_WALL_SECONDS=10800
+    TRAINER_GPU_MAX_POWER_LIMIT_W=300
+    TRAINER_GPU_MAX_POWER_DRAW_W=310
+    TRAINER_GPU_MAX_CORE_TEMP_C=85
+    return
+  fi
+  if [[ "${3:-}" == "$TA_M5_DECISION_FIT_TRAINER_MODULE" ]]; then
+    local decision_root=/home/andre2/GX1_RUNS/TA_M5_DECISION_FIT_20261117_001
+    if [[ "$ATTENDED_SMOKE" != false || "$CUDA_PRODUCER_GUARD" != false ]] || ! matches_bound_market_state_ta_m5_decision_fit "$REPO_ROOT/configs/research/TA_M5_DECISION_FIT_20261117_001.json" "$decision_root" "$@"; then
+      echo "FATAL: direct-cost M5 decision fit is not exactly bound" >&2
+      exit 75
+    fi
+    TRAINER_DEVICE=cuda
+    TRAINER_OUT_BUNDLE_DIR="$decision_root"
     TRAINER_MAX_WALL_SECONDS=10800
     TRAINER_MODEL_MAX_WALL_SECONDS=10800
     TRAINER_GPU_MAX_POWER_LIMIT_W=300
