@@ -7,20 +7,19 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_M5_DECISION_FIT_001_COMPLETE_CONSUMED_NO_EDGE. Én integrert ikke-GC
-Fold2-fit på 47 338 TRAIN-rader er fullført; fast apr–jun-skår på 17 536
-senere utviklingsrader fant ingen kvalifisert native M5-S/F-retning.
-Strukturtreff lærte, men ga ingen påvist M5-sideprognose. Den
-forhåndsbundne kostkontrollen valgte FLAT på alle rader og tvungen side
-tapte i snitt ved alle seks målepunkter. Det nye, eksakte Fold2/Apr–jun-
-målarkivet for M5-kost og prisbane er produsert og uavhengig kontrollert;
-det har ikke trent en beslutningsmodell. Alle tre engangsplaner er
-konsumert. training_enabled=false, native_training_enabled=false og
-full_epoch_training_allowed=false. Full GC er pauset; TEST, Entry/Exit,
-ONLINE, broker og handel er lukket. Ingen økonomisk Edge eller uavhengig
-handelsgeneralisering er bevist. Brukeren fjernet kravet om nytt «ja»
-for hver kvalifisert lokal ikke-GC-kjøring. Stabile langkjøringer
-kontrolleres omtrent hver time.
+TA_M5_DECISION_FIT_001_COMPLETE_CONSUMED_NO_EDGE. En integrert ikke-GC
+S/F-/strukturfit og én direkte kostet M5-beslutningsfit på 47 338
+Fold2-TRAIN-rader er fullført. På de 17 536 gjenbrukte Apr–jun-radene
+valgte beslutningsmodellen 0 LONG, 11 486 SHORT og 6 050 FLAT. De 9 853
+valgte radene med kjent terminalt utfall ga −0,578 bps i snitt etter
+oppgitte kostnader; 1 633 valgte utfall er ukjente. Full native M5-F/S
+side-AUC var 0,493/0,514. S/F-hodene er selvstendige på alle fem TF,
+men M5-beslutningen og prisbanekvaliteten generaliserte ikke.
+Engangsplanene er konsumert; training_enabled=false,
+native_training_enabled=false og full_epoch_training_allowed=false.
+Full GC er pauset; TEST, ONLINE, broker og handel er lukket. Ingen
+økonomisk Edge eller uavhengig handelsgeneralisering er bevist.
+Stabile langkjøringer kontrolleres omtrent hver time.
 
 Plan001 SHA `4016255217a3c87bdc84715b6e65707090fa09dcaa1e70a3a1b3455bdac84621`
 ble CLAIM-et under fysisk boot 656, men feilet i initial TRAIN-strukturskår
@@ -847,36 +846,66 @@ predikert kvalitetsregel velger LONG/SHORT eller FLAT uten å lese
 framtidsmasker. Ingen Exit eller holdetid er bestemt.
 
 Fokusert eksisterende modellkontroll og to nye beslutningskontroller besto.
-Faktisk 16-raders FIT- og SCORE-kontroll under 4G/512M ga bitlike gamle
-S/F-/strukturutganger, korrekt checkpoint, eksakte targetakser, beregnet
-tap 0,7731 og null optimizersteg. En sammenligningsfeil i den første
-syntetiske testen ble rettet; andre kjøring besto. Én engangsfit er bare
-forberedt: 2 959 TRAIN-batcher og 1 096 senere utviklingsforwards.
-Den ene fitten fullførte etter fysisk Windows-boot 660 fra ren kilde
-be8cf257. Terminal exit 0, 2 959 optimizersteg, null skip, 1 096
-senere skåringsforwards og 6 378,5 sekunder. Resultat SHA
+En faktisk 16-raders FIT-/SCORE-kontroll under 4G/512M beviste bitlike
+gamle S/F-/strukturutganger, eksakte targetakser, gyldig checkpoint og
+tap 0,7731 uten optimizersteg. Ren kilde, plan, boot 660 og ledig
+maskin/GPU/lås ble kontrollert før engangsfitten. Den fullførte fra
+kilde be8cf257 med terminal exit 0, 2 959 optimizersteg, null skip,
+1 096 senere skåringsforwards og 6 378,5 sekunder. RESULT SHA
 `675ea10e89616ab9187ca8c5b41a5c375a482e59494ec0b00217bfaf49cff004`;
-terminal SHA `30c76d6bc496fad7e35adc2dea63c73475649d14765f12459444c550ac840a93`.
-Checkpoint og scoreopptak er bevart i RUNS. Primær M5-beslutning gikk
-fra 17 536 FLAT ved initial til 11 486 SHORT, 0 LONG og 6 050 FLAT.
-Av valgte rader har 9 853 kjent terminal netto, med gjennomsnitt
-−0,578 bps; 1 633 valgte terminalutfall er ukjente. Dette beviser
-ingen økonomisk Edge. Engangsplanen er konsumert, training_enabled=false.
-Apr–jun er gjenbrukt utvikling, ikke uavhengig TEST.
+TERMINAL SHA `30c76d6bc496fad7e35adc2dea63c73475649d14765f12459444c550ac840a93`.
+Checkpoint SHA `e32a30d1da9b3e216d32ff5e57981664bd27ac2201fbb26b1e3a277bfcc7127f`.
+Engangsgaten er konsumert, all trening stengt og worktree pushet.
+
+Uavhengig gjennomberegning av FINAL-opptaket mot SCORE-målene bekreftet
+alle 17 536 handlingsvalg, masker, valgt netto og månedsfordeling.
+Initialvalget var 17 536 FLAT; FINAL valgte 11 486 SHORT, 0 LONG og
+6 050 FLAT. På 9 853 valgte rader med kjent terminalt utfall var netto
+−0,578 bps; 1 633 valgte terminalutfall er ukjente. De 2 097 valgte
+240-minuttersradene ga −9,177 bps på 1 579 kjente utfall. De 9 389
+valgte 480-minuttersradene ga +1,064 bps på 8 274 kjente utfall,
+men dette er en etterfølgende delmengde av en samlet tapsregel,
+ikke tillatelse til å velge bare 480 minutter fra gjenbrukt VAL.
+Månedlig valgt terminalnetto var +1,361/−1,652/−2,627 bps i
+april/mai/juni. Åpne/ukjente utfall og overlappende markouts hindrer
+fullstendig posisjonsregnskap og Edge-påstand.
+
+På de 7 945 valgte radene med komplett prisbane var modellens
+predikerte netto-minus-konservativ-MAE +9,774 bps, mens faktisk
+kvalitet var −21,418 bps; bare 2 880/7 945 hadde positiv fasit.
+På samme komplette SCORE-480-maske var predikert LONG/SHORT terminal
+netto −29,956/+16,202 bps mot faktisk −7,872/−4,933 bps. Ved
+240 minutter var predikert −23,719/+10,696 mot faktisk
+−6,171/−6,395. Dette er stor feature-avhengig SHORT-overprediksjon:
+beslutningshodets lagrede bias er nær Fold2-FIT-midlene, mens utslaget
+på senere inputs kommer fra head-vekter ganger fem-TF-vektorene.
+Eksakt TF-/indikatorbidrag er ikke målt. Fold2-fasit favoriserte LONG
+fra mai til oktober 2024 og SHORT i november/desember; fitten besøkte
+batchene i tidsrekkefølge. Regimeskifte eller recency-effekt er mulig,
+men ingen av dem er isolert som årsak. Flere epoker eller ny regel
+har ingen støtte i dette resultatet.
+
+S/F-hodene ble bevart, men M5 side ble ikke en pålitelig prognose:
+FINAL native M5-F AUC 0,493 og M5-S 0,514. Samplet S på
+M15/H1/H4/D1 hadde AUC 0,668/0,703/0,729/0,676, men disse
+retningene dokumenterer ikke kostet M5-handel. Dette forklarer hvorfor
+tekniske PASS-er og 250 indikatorer ikke alene har gitt Edge: fysisk
+input og mål er kontrollert, mens modellens senere verdiestimat og
+handlingskalibrering feiler. Apr–jun er gjenbrukt utvikling, ikke
+uavhengig TEST; Full GC, Exit, broker og handel er fortsatt lukket.
 
 ## Neste steg
 
-1. Behold plan002, kostplan001 og målplan001 konsumert og treningsporten lukket.
-   Ikke start flere F-only-epoker, hodesplitt- eller indikatorregler på
-   teknisk PASS; den rene F-kilden og gjentatt transferfeil er dokumentert.
-2. Gjennomgå alle forhåndsbundne Apr–jun-målepunkter og måneder, S/F-
-   og strukturutfall, masker og kostreferanser for å forklare ensidig
-   SHORT-valg og negativ netto. Ingen ny fit velges fra utviklingsskåren. Mål valgt/avstått, ukjente
-   utfall og netto etter kostnader; ikke kall overlappende markouts
-   realisert PnL eller uavhengig generalisering.
-3. Økonomisk Edge krever senere alle valgte handler og åpne posisjoner
-   på en uavhengig periode. Full GC, TEST, ONLINE, broker og handel er
-   lukket. Gamle engangsplaner relanseres aldri.
+1. Behold alle nevnte engangsplaner konsumert og treningsporten lukket.
+   Ingen ny fit eller 480-minuttersregel velges fra gjenbrukt Apr–jun.
+2. Avgrens én lesende kildekontroll på den lagrede modellen: mål hvilke
+   fem-TF-vektorer og TRAIN-versus-senere inputskift som driver den
+   sterke SHORT-overprediksjonen. Skill et målt kilde-/normaliseringsavvik
+   fra mulig optimizer-rekkefølge; ikke kall korrelasjon årsak.
+3. Økonomisk Edge krever en uavhengig framtidig journal med alle valgte
+   handler og åpne posisjoner, faktiske kostnader og forhåndsbundet
+   handlingsregel. TEST, Full GC, ONLINE, broker og handel er lukket.
+   Gamle engangsplaner relanseres aldri.
 
 Opprydding: historiske overleveringsavsnitt er fjernet her og bevart i Git.
 Ingen Python-fil er slettet; gjeldende referanse-, import-, test- og
