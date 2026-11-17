@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_M5_DECISION_FIT_002_PREPARED_NOT_ADMITTED. Første direkte kostete
+TA_M5_DECISION_FIT_002_ADMITTED_ONE_USE_PENDING_CLAIM. Første direkte kostete
 M5-fit er fullført og konsumert uten Edge: 47 338 Fold2-TRAIN-rader,
 2 959 oppdateringer. På 17 536 gjenbrukte Apr–jun-rader valgte modellen
 0 LONG, 11 486 SHORT og 6 050 FLAT. De 9 853 valgene med kjent
@@ -15,9 +15,12 @@ terminalutfall ga −0,578 bps i snitt etter oppgitte kostnader;
 1 633 valgte utfall er ukjente. Full native M5-F/S side-AUC var
 0,493/0,514. Selvstendige S/F-hoder på fem TF ga ikke en pålitelig
 M5-beslutning. Én matchet etterfølger med bare hjelpetapsvekt
-0,25 → 0,10 er klargjort etter en avgrenset TRAIN-gradientkontroll,
-men ikke innrømmet. training_enabled=false, native_training_enabled=false,
-full_epoch_training_allowed=false og native_launch_authorized=false.
+0,25 → 0,10 er innrømmet én gang etter en avgrenset
+TRAIN-gradientkontroll. Fysisk Windows-boot 661, ren pushet kilde
+4f20922a, 13 inputhash, 17 kildehash, ledig GPU/prosess/lås og
+uforandret artefaktgrunnlag er bekreftet. training_enabled=true,
+native_training_enabled=true, full_epoch_training_allowed=true og
+native_launch_authorized=true bare for denne eksakte engangsplanen.
 Full GC er pauset; TEST, ONLINE, broker og handel er lukket. Ingen
 økonomisk Edge eller uavhengig handelsgeneralisering er bevist.
 Stabile langkjøringer kontrolleres omtrent hver time.
@@ -922,11 +925,10 @@ toleranse med 1,14e-5 avvik i et uendret delt-encoder-testtilfelle.
 
 ## Neste steg
 
-1. Behold første beslutningsfit konsumert og all trening stengt inntil
-   kilde, maskin, fysiske input, ledig GPU/lås og en ny fysisk boot >660
-   er kontrollert. Klargjort plan002 er ikke en innrømmelse.
-2. Kjør høyst én matchet ikke-GC fit med kun hjelpetapsvekt 0,10 dersom
-   alle eksakte porter passerer. Behold seks observasjonspunkter,
+1. Behold første beslutningsfit konsumert. Start innrømmet plan002
+   høyst én gang gjennom scripts/gx1_capped_run.sh med gjeldende vakter;
+   fysisk boot 661 og alle kilde-/input-/maskinporter er kontrollert.
+2. Kjør den matchede ikke-GC fitten med kun hjelpetapsvekt 0,10. Behold seks observasjonspunkter,
    fem selvstendige TF, kostmål, seed og handlingsregel. Ikke velg
    480 minutter eller ny regel fra gjenbrukt Apr–jun.
 3. Lukk engangsgaten ved terminalkvittering. Skill TRAIN-læring,
