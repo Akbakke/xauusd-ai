@@ -813,6 +813,16 @@ avvist, mens årsaken til svak overføring ikke er isolert. F er korrekt som sep
 ikke en Entry-handling. Flere F-only-epoker, hodesplitter eller
 indikatorregler uten nytt beslutningsmål har ingen målt begrunnelse.
 
+Et nytt, ennå ikke innrømmet CPU-datagrunnlag er bundet som
+`TA_M5_COST_PATH_TARGETS_20261117_001` (SHA `ac265434e616bc7cbfc6e1cca122d083f0e40cc13b1cd4f6520e1671c67b523e`).
+Det gjenbruker eksakt Fold2-fitakse (47 338), plan002s faste apr–jun-akse
+(17 536), den tidligere kvalifiserte M1 bid/ask-priskilden og samme
+kostautoritet. Seks allerede brukte observasjonsavstander 1/5/15/60/240/
+480 min får separate masker for terminal netto og komplett prisbane;
+LONG/SHORT netto, MFE og konservativ MAE før første MFE bevares som
+separate mål. Ingen modelldel, Exit-regel, CLAIM eller prisutfall er
+kjørt fra denne forberedelsen. Trening forblir stengt.
+
 ## Neste steg
 
 1. Behold plan002 og kostplan001 konsumert og treningsporten lukket.
