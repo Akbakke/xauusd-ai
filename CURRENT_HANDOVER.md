@@ -729,23 +729,52 @@ terminal SHA `c1bcc24963d5f3a86cce23e6448e38b3bd2158af7e15588b97d06f2a6072256b`.
 Skriptet brukte 7 348 sekunder; signert vakt topp 54 °C kjerne,
 58 °C minne, 165,97 W og 2 172 MiB. Checkpoint og råopptak ligger kun
 under GX1_RUNS; ingen vekter er pushet. Engangsplanen er konsumert og
-training_enabled=false. Modell-/referanseskårene gjenstår å tolke;
-økonomisk Edge er ikke bevist.
+training_enabled=false. Den faste skåringen er kontrollert mot de SHA-bundne initial- og
+sluttopptakene. Brier, observerte antall og M5-vendinger ble regnet om fra
+opptakene uten ny modellforward. Sluttresultatet er en negativ kontroll for
+native M5-retning: S-side Brier 0,253992 mot fryst TRAIN-prior 0,249572
+(AUC 0,516; 5 734 kjente), F-side 0,261731 mot 0,249882 (AUC 0,498;
+6 886 kjente). F-side er svakere enn samme prior på alle fem TF; bare
+D1 native S-side er marginalt bedre (0,242887 mot 0,245305). Av 2 265
+kjente sammenhengende M5-par hadde 1 138 faktisk sideskifte. Modellen
+meldte 580 skifter, hvorav 273 riktige og 307 falske: presisjon 47,1 %
+mot faktisk skifteandel 50,2 %. Fem TF-output er mer ulike etter fit,
+men native retningskvalitet er ikke kvalifisert.
+
+Strukturhodet lærte den avgrensede fasiten «treffer neste bekreftede
+M5-topp/bunn et nivå fryst ved beslutningstid?»: høy AUC 0,843,
+Brier 0,162625 mot prior 0,250109; lav AUC 0,836, Brier 0,171595
+mot prior 0,248721. Dette er framtidige pivotutfall, ikke neste
+prisretning eller kostet Entry. En eksplorativ, naturlig forskjell mellom
+sannsynlighetene for høy- og lavtreff ga AUC 0,488 mot kjent native M5-S
+(5 687 rader) og 0,510 mot M5-F (6 832 rader). Den binder derfor ikke
+strukturtreff til en brukbar M5-sideprognose.
+
+Samplet S-spørring ga høyere AUC på M15/H1/H4/D1 (0,679/0,720/0,739/
+0,682), men spørringsavstanden varierer fra 5 minutter til tidsrammens
+native endepunkt. På delmengden der kausal nåretning og framtidig side
+begge er kjent, ga enkel videreføring av nåretningen AUC 0,638/0,697/
+0,755/0,757 på M15/H1/H4/D1; modellen ga 0,689/0,734/0,755/0,709
+på nøyaktig samme rader. H4 er dermed lik referansen, D1 svakere;
+M15/H1 har mulig kortsiktig merverdi som ikke kvalifiserer M5-vendinger.
+Disse delmengdene og den eksplorative strukturkontrasten er diagnostikk,
+ikke et forhåndsbundet handelsutvalg. Ingen uavhengig handelsøkonomi,
+generalisering eller Edge er bevist.
 
 ## Neste steg
 
-1. Revider den faste Apr–jun-skåringen kritisk mot Fold2-prior, kjente
-   M5-nabovendinger, TF-uenighet, F-kalibrering og M5-struktur. Ikke
-   åpne ny trening på grunnlag av teknisk PASS.
-2. Forhåndsbind én kronologisk integrert fem-TF F/S/strukturkampanje med
-   både native og varierende S-spørringshorisonter. Bruk separat målt
-   retning per TF, de 6 746 kjente M5-naboparene, faste proper scores,
-   F-kalibrering og TF-uenighet. Ny fit krever eksakt engangsadgang i
-   policy; ingen enkeltrunde eller scorebasert modellvalg.
-3. Økonomisk Edge krever senere forhåndsbundet kostet Entry og alle
-   valgte/åpne posisjoner. Full GC, trening, TEST, ONLINE, broker og
-   handel er lukket. Gamle fit-/CPU-planer er konsumert og kan ikke
-   relanseres. Stabil langkjøring kontrolleres omtrent hver time.
+1. Behold plan002 konsumert og treningsporten lukket. Ikke start flere
+   epoker eller flere indikator-/modellrunder på teknisk PASS.
+2. Bruk de lagrede Apr–jun-prognosene og eksisterende pris-/kostkilder til
+   én forhåndsbundet M5 retningsmarkout med LONG/SHORT/FLAT på samme
+   observerte rader og alltid-LONG som referanse. Målehorisontene er
+   observasjoner, ikke fast holdetid eller Exit-regler. Dette er en
+   utviklingskontroll; den beviser ikke samlet handelsøkonomi.
+3. Hvis markout ikke viser verdi, undersøk det målte gapet mellom
+   kortsiktig tilstandsvidereføring, M5-vendinger og native F-side før
+   ny fit. Økonomisk Edge krever senere alle valgte handler og åpne
+   posisjoner. Full GC, TEST, ONLINE, broker og handel er lukket. Gamle
+   engangsplaner relanseres aldri.
 
 Opprydding: historiske overleveringsavsnitt er fjernet her og bevart i Git.
 Ingen Python-fil er slettet; gjeldende referanse-, import-, test- og
