@@ -182,3 +182,21 @@ alle hasher kvalifiseres på nytt før en eventuell ny samlet treningsplan kan
 vurderes. Gjenbruk gamle pris-/mål- og sidecarverdier bare når deres klokke og
 bindinger fortsatt består. Ingen ny plan eller trening er admittert; TEST
 forblir forseglet. M5-forward-journal krever separat vedtak.
+
+## Aktiv 318/256-inputkvalifisering 17.11.2026
+
+Den gamle 317/255-kilden kan ikke relabeles som ny featureprofil. Den gamle
+kalde rågatheren kontrollerte fire eksempelbatcher, ikke samtlige FIT/later-
+verdier. Nye kildekontroller bygger kun EMA50/200-spreadendringen fra kausale
+prisbarer før 31.12.2024 og legger seks hashbundne verdiarkiver oppå gamle
+pris- og spanverdier. Gammel enhets-/normaliseringsidentitet bevares; den nye
+318/256-identiteten trenger egne FIT-statistikker for det nye feltet.
+
+Engangsplan `TA_M5_EMA_DELTA_SIDECARS_20261117_001`, SHA
+`e2e9f9233e27223099f8905a003e05f637cfa0c7e0325485d1d55b2f89223b08`,
+er forberedt og innrømmet i `NEXT_RUN_POLICY.json`, men ikke claimet eller kjørt.
+Scope er 29 574 FIT-beslutninger, 17 489 senere beslutninger og seks fysiske
+flater; ingen modellforward, trening eller TEST. Neste steg er ren preflight,
+én kapslet materialisering og kontroll av terminal/verdiparitet. Deretter må
+ny normalisering, view, full rå og normalisert gather og modellinitial bestå
+før en eventuell ny samlet fit kan vurderes. Alle treningsflagg er stengt.

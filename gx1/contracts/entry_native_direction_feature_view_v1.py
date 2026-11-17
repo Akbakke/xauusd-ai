@@ -67,6 +67,7 @@ TIME_QUERY_V2_SOURCE_REF_KEYS = (TIME_QUERY_SOURCE_REF_KEYS -
     {'time_query_model_source', 'time_query_loss_source'}) | frozenset({
     'time_query_v2_model_source', 'time_query_v2_loss_source'})
 ANCHOR_SPAN_SOURCE_REF_KEYS = frozenset({'anchor_span_inputs_source'})
+EMA_DELTA_SOURCE_REF_KEYS = frozenset({'ema_delta_inputs_source'})
 TIME_QUERY_MATURE_FIT_ROWS = (47338, 64615, 82152, 100224)
 TIME_QUERY_MODEL_AXIS_ROWS = 118249
 TIME_QUERY_MATURE_FOLD1_PLAN_PATH = str(time_query_targets.ROOT /
@@ -258,7 +259,9 @@ def _require_view(view, *, unobserved_units_profile=None):
     time_query = 'market_state_time_query' in view or time_query_v2
     _require(units_profile == ('unobserved_units_profile' in view), 'EXPLICIT_UNOBSERVED_UNITS_PROFILE')
     if units_profile:
-        profile = (units.require_anchor_span_fold1_prefix_units_profile(unobserved_units_profile) if anchor_span
+        profile = (units.require_ema_delta_fold1_prefix_units_profile(unobserved_units_profile)
+                   if anchor_span and 'ema_delta_input_extension' in view
+                   else units.require_anchor_span_fold1_prefix_units_profile(unobserved_units_profile) if anchor_span
                    else units.require_mature_fold1_prefix_units_profile(unobserved_units_profile) if time_query
                    else units.require_october_prefix_units_profile(unobserved_units_profile))
         _require(view['unobserved_units_profile'] == profile, 'UNOBSERVED_UNITS_VIEW_BINDING')
@@ -289,10 +292,13 @@ def _require_view(view, *, unobserved_units_profile=None):
     family = 'family_intervention' in view
     initialization = view.get('price_momentum_initialization', 'zero_residual')
     relative = 'gc_relative_coordinates_sha256' in view
+    ema_delta = 'ema_delta_input_extension' in view
     _require(set(view) == VIEW_KEYS | ({'bps_scale'} if 'bps_scale' in view else set()) | ({'magnitude_weight_contract'} if 'magnitude_weight_contract' in view else set()) | ({'dense_minute_supervision'} if dense else set()) | ({'price_momentum_profile'} if price_momentum else set()) | ({'full_feature_profile'} if full else set()) | ({'full_ta_feature_profile'} if ta_only else set()) | ({'dedicated_m5_side'} if dedicated_m5_side else set()) | ({'dedicated_non_m5_side'} if dedicated_non_m5_side else set()) | ({'direct_tf_hidden'} if direct_tf_hidden else set()) | ({'dedicated_tf_activity'} if dedicated_tf_activity else set()) | ({'five_minute_priority'} if five_priority else set()) | ({'dense_bps_scale'} if dense_bps else set()) | ({'m1_ofi_normalization'} if m1_ofi else set()) | ({'m1_ofi_coarsened'} if coarsened else set()) | ({'family_intervention'} if family else set()) | ({'price_momentum_initialization'} if initialization != 'zero_residual' else set()) | ({'gc_relative_coordinates_sha256'} if relative else set()) | ({'dynamic_state_supervision'} if dynamic_state else set()) | ({'market_state_five_endpoint'} if five_endpoint else set()) | ({'market_state_time_query'} if 'market_state_time_query' in view else set()) | ({'market_state_time_query_v2'} if time_query_v2 else set()) | ({'current_state_first_loss_weight'} if current_state else set()) | ({'confirmed_run_age_input'} if confirmed_age else set()) | ({'extended_forecast_minutes'} if extended_state else set()) | ({'first_flat_activity_weight'} if first_activity else set())
         | ({'native_endpoint_loss'} if endpoint else set()) | ({'zero_support_profile', 'reserved_observer_axes'} if masked_profile else set())
         | ({'unobserved_units_profile'} if units_profile else set()) | ({'october_observer_axes'} if scoped_october else set())
         | ({'anchor_span_input_extension'} if anchor_span else set())
+        | ({'ema_delta_input_extension'} if ema_delta else set())
+        and (not ema_delta or (anchor_span and ta_only))
         and not (masked_profile and units_profile)
         and (not ta_only or (view['full_ta_feature_profile'] is True and full and time_query_v2))
         and (not dedicated_m5_side or (view['dedicated_m5_side'] is True and ta_only and time_query_v2))
@@ -374,7 +380,7 @@ def _require_view(view, *, unobserved_units_profile=None):
         and view['research_objective'] == objective
         and view['evidence_scope'] == EVIDENCE_SCOPE
         and type(view['max_batch_rows']) is int and view['max_batch_rows'] > 0, 'VIEW_CANONICAL_IDENTITY')
-    _require(set(view['source_bindings']) == SOURCE_REF_KEYS | (DENSE_SOURCE_REF_KEYS if dense else set()) | (PRICE_MOMENTUM_SOURCE_REF_KEYS if price_momentum else set()) | (FIVE_PRIORITY_SOURCE_REF_KEYS if five_priority else set()) | (DENSE_BPS_SOURCE_REF_KEYS if dense_bps else set()) | (M1_OFI_SOURCE_REF_KEYS if m1_ofi else set()) | (FAMILY_SOURCE_REF_KEYS if family else set()) | (GC_RELATIVE_SOURCE_REF_KEYS if relative else set()) | (DYNAMIC_STATE_SOURCE_REF_KEYS if dynamic_state else set()) | (FIVE_ENDPOINT_SOURCE_REF_KEYS if five_endpoint else set()) | (TIME_QUERY_V2_SOURCE_REF_KEYS if time_query_v2 else TIME_QUERY_SOURCE_REF_KEYS if time_query else set()) | (CONFIRMED_AGE_SOURCE_REF_KEYS if confirmed_age else set()) | (OCTOBER_SOURCE_REF_KEYS if october_source else set()) | (ANCHOR_SPAN_SOURCE_REF_KEYS if anchor_span else set()), 'SOURCE_REF_KEYS')
+    _require(set(view['source_bindings']) == SOURCE_REF_KEYS | (DENSE_SOURCE_REF_KEYS if dense else set()) | (PRICE_MOMENTUM_SOURCE_REF_KEYS if price_momentum else set()) | (FIVE_PRIORITY_SOURCE_REF_KEYS if five_priority else set()) | (DENSE_BPS_SOURCE_REF_KEYS if dense_bps else set()) | (M1_OFI_SOURCE_REF_KEYS if m1_ofi else set()) | (FAMILY_SOURCE_REF_KEYS if family else set()) | (GC_RELATIVE_SOURCE_REF_KEYS if relative else set()) | (DYNAMIC_STATE_SOURCE_REF_KEYS if dynamic_state else set()) | (FIVE_ENDPOINT_SOURCE_REF_KEYS if five_endpoint else set()) | (TIME_QUERY_V2_SOURCE_REF_KEYS if time_query_v2 else TIME_QUERY_SOURCE_REF_KEYS if time_query else set()) | (CONFIRMED_AGE_SOURCE_REF_KEYS if confirmed_age else set()) | (OCTOBER_SOURCE_REF_KEYS if october_source else set()) | (ANCHOR_SPAN_SOURCE_REF_KEYS if anchor_span else set()) | (EMA_DELTA_SOURCE_REF_KEYS if ema_delta else set()), 'SOURCE_REF_KEYS')
     for item in view['source_bindings'].values(): _ref(item)
     if five_endpoint:
         path, sha256 = five_endpoint_targets.REFS['mask']
