@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_APR_JUN_PAIRED_FIT_PREPARED_NOT_ADMITTED.
+TA_APR_JUN_PAIRED_FIT_ADMITTED_ONE_USE_NOT_STARTED.
 Brukeren fjernet kravet om nytt «ja» for hver stor lokal ikke-GC-kjøring.
 Integrator innrømmet plan002 SHA
 `330e4cb1dd4c76980264b44a32f091e67c43142819514901f60068abed102783`
@@ -698,14 +698,15 @@ En ny, ennå ikke innrømmet engangsplan er bundet til ett Fold2 TRAIN-pass
 Måltap, fem TF-hoder, fryst Fold2-prior, F-kalibrering, kjente M5-nabovendinger,
 TF-uenighet og struktur er forhåndsbundet. Kjøringen har 10 500 s
 skriptfrist, 10 800 s ytre vakt, 20G/512M og signerte GPU-grenser.
-Fersk fysisk Windows boot-ID over 657 kreves før innrømmelse. Trening er
-fortsatt stengt, og ingen skår eller økonomisk Edge er hevdet fra denne planen.
+Fersk fysisk Windows boot-ID 658 er kontrollert. Metadata-preflight på ren
+kilde besto uten CLAIM eller modellforward. Bare denne planen er nå innrømmet
+for én voktet lokal kjøring; trening er åpen kun til den konsumeres.
+Ingen skår eller økonomisk Edge er hevdet fra planen.
 
 ## Neste steg
 
-1. Kjør metadata-preflight for den eksakte planen, kontroller fersk fysisk
-   boot og innrøm bare denne ene voktede TRAIN-/Apr–jun-kjøringen. Den beståtte
-   batchpreflighten gjenbrukes; ingen Jan–mar-modellvalg eller enkeltregeltest.
+1. Start den eksakt innrømmede, voktede TRAIN-/Apr–jun-kjøringen én gang.
+   Følg stabil drift omtrent hver time og lukk gaten på terminalutfallet.
 2. Forhåndsbind én kronologisk integrert fem-TF F/S/strukturkampanje med
    både native og varierende S-spørringshorisonter. Bruk separat målt
    retning per TF, de 6 746 kjente M5-naboparene, faste proper scores,
