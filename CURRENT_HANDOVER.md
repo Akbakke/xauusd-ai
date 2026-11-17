@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-ACTIVE_M5_COLD_RAW_GATHER_ADMITTED_NO_EDGE.
+ACTIVE_M5_COLD_INITIAL_PREFLIGHT_PENDING_NO_EDGE.
 Første direkte kostete M5-fit valgte 11 486 SHORT, 0 LONG og
 6 050 FLAT på 17 536 gjenbrukte Apr–jun-rader. Kjente valgte
 terminalutfall ga −0,578 bps i snitt etter oppgitte kostnader;
@@ -73,13 +73,15 @@ Beslutningstapet er nå endret i kilde, men ingen ny modell er trent eller skår
   schedule. Ruten sender nå låst profil fra prefikspakken og scorer
   Fold1 SCORE innen eksakt 01.10–01.01-grense. Fokuserte tester
   besto; ingen fysisk kald gather eller modellforward er kjørt.
-- Én eksakt CPU-plan for kald rå-gather er innrømmet:
-  `TA_M5_COLD_MODEL_INPUT_GATHER_20261117_001`, SHA
-  `ece422925d18f2996214342059b3975e8a3835cedb09979d677db837cd69d6e3`. Den binder full fysisk dekning, ny
-  Fold1-prior, prefikspakke og faste mål-akser; prøver FIT første
-  16/siste 6 og SCORE første 16/siste 1. Ren preflight må bestå før
-  én capped kjøring. Resultatet kan bare kvalifisere rå features,
-  ikke modellens postnormaliserte tensor eller edge.
+- Kald rå-gather `TA_M5_COLD_MODEL_INPUT_GATHER_20261117_001`, plan
+  SHA `ece422925d18f2996214342059b3975e8a3835cedb09979d677db837cd69d6e3`,
+  fullførte og er konsumert. RESULT SHA `26fea62e0ccf1f1af93c7882c9f13c9cb354cdab4cdd50334d6fc63cca6c2b50`,
+  TERMINAL SHA `53b8a659771bc903482a3c7605a3817a82a6f4537644d91b60feb41bc3aae530`. De ni
+  faktiske featureflatene på FIT første 16/siste 6 og SCORE første
+  16/siste 1 passerte akse-, form-, finitthets- og viewbinding på 8,3 s.
+  TA-normaliseringskontrakt SHA `6c882086902701d5c9503d0c77c72c8e291ed65c44d065171c2d27afa500c3f6`.
+  Null modellforward/optimizer; verdiene er rå. Fersk initial må
+  måle postnormalisering og én ekte kostjustert M5-loss før fit.
 - Oppryddingsrevisjonen fant ingen repo-fil eller DATA/RUNS-artefakt som var
   bevist trygg å slette. Målt ledig plass var 543 GB; ingen sletting ble gjort.
 - M5 er beslutningspunkt. Den siste matchede modellen valgte 0 LONG,
