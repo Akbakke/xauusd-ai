@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_M5_DECISION_FIT_001_PREPARED_NOT_ADMITTED. Én integrert ikke-GC
+TA_M5_DECISION_FIT_001_ADMITTED_ONE_USE. Én integrert ikke-GC
 Fold2-fit på 47 338 TRAIN-rader er fullført; fast apr–jun-skår på 17 536
 senere utviklingsrader fant ingen kvalifisert native M5-S/F-retning.
 Strukturtreff lærte, men ga ingen påvist M5-sideprognose. Den
@@ -852,19 +852,20 @@ S/F-/strukturutganger, korrekt checkpoint, eksakte targetakser, beregnet
 tap 0,7731 og null optimizersteg. En sammenligningsfeil i den første
 syntetiske testen ble rettet; andre kjøring besto. Én engangsfit er bare
 forberedt: 2 959 TRAIN-batcher og 1 096 senere utviklingsforwards.
-Den er ikke innrømmet; training_enabled=false. Før eventuell faktisk
-kjøring kreves ren kilde, fersk fysisk Windows-boot >659 og en eksakt
-engangsadgang. Apr–jun er gjenbrukt utvikling, ikke uavhengig TEST.
+Den ene fitten er nå innrømmet etter fysisk Windows-boot 660, ren
+kilde 1da2f9db, ledig GPU/lås og intakte input-/checkpointreferanser.
+training_enabled=true gjelder bare denne eksakte engangsruten; ingen
+annen fit eller relansering åpnes. Apr–jun er gjenbrukt utvikling,
+ikke uavhengig TEST.
 
 ## Neste steg
 
 1. Behold plan002, kostplan001 og målplan001 konsumert og treningsporten lukket.
    Ikke start flere F-only-epoker, hodesplitt- eller indikatorregler på
    teknisk PASS; den rene F-kilden og gjentatt transferfeil er dokumentert.
-2. Kvalifiser den ene forberedte direkte M5-beslutningsruten på ren,
-   innbundet kilde. Deretter kan den ene 47 338-raders fitten innrømmes
-   etter fersk fysisk boot og måles på alle faste Apr–jun-punkter uten
-   ny horisont- eller parameterutvelging. Mål valgt/avstått, ukjente
+2. Start kun den innrømmede engangsfitten under eksisterende 20G/512M-
+   og maskinvarevakter. Steng gaten umiddelbart etter terminalkvittering.
+   Mål alle faste Apr–jun-punkter uten ny horisont- eller parameterutvelging. Mål valgt/avstått, ukjente
    utfall og netto etter kostnader; ikke kall overlappende markouts
    realisert PnL eller uavhengig generalisering.
 3. Økonomisk Edge krever senere alle valgte handler og åpne posisjoner
