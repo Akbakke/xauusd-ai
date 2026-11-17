@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_INTEGRATED_FOLD2_FIT_002_COMPLETE_CONSUMED_M5_TURN_UNQUALIFIED.
+TA_FOLD2_F_FROZEN_READOUT_ADMITTED_CPU_ONLY_NO_EDGE.
 Brukeren fjernet kravet om nytt «ja» for hver stor lokal ikke-GC-kjøring.
 Integrator innrømmet plan002 SHA
 `330e4cb1dd4c76980264b44a32f091e67c43142819514901f60068abed102783`
@@ -15,8 +15,8 @@ i policy under stående 0 USD-fullmakt. Den kjørte etter fysisk Windows
 boot-ID 657 og avsluttet med terminal exit 0: 47 338 TRAIN-rader,
 2 959 optimizersteg, 1 024 initial-/final-skårforwards og uendret kilde.
 Signert GPU-vakt holdt seg innen grensene. Engangsplanen er konsumert;
-training_enabled=false, native_training_enabled=false og
-full_epoch_training_allowed=false. Faste TRAIN- og senere opptak er nå
+training_enabled=true bare for én eksakt CPU-utlesningskontroll;
+native_training_enabled=false og full_epoch_training_allowed=false. Faste TRAIN- og senere opptak er nå
 gjennomgått: struktur lærte, men M5-vending og kalibrert S/F-retning
 kvalifiserte ikke. Full GC er pauset; TEST, Entry/Exit, broker og handel er
 lukket. M5-Edge er ubevist. Stabile langkjøringer sjekkes omtrent hver time.
@@ -569,6 +569,27 @@ Batchvekting eller enkelt fortegnsbytte forklarer derfor ikke F-kollapsen.
 Dette isolerer ikke optimizer, oppgavemiks, representasjon eller signal.
 Ingen ny fit ble kjørt.
 
+En første capped lesende F-representasjonskjøring nådde 4 096 TRAIN-rader, men
+feilet på en for trang CPU/GPU-paritetsgrense på 0,000020; planen er konsumert.
+Ny engangsplan fullførte 256 CPU-forwards på samme panel. Største lagret
+F-logittavvik var 0,00002313, middelavvik 0,00000441, og modelldigesten
+var uendret. RESULT.plan.path ble feilaktig siste M1-tensor fordi privat
+auditkode gjenbrukte variabelnavnet `path`. Originalkvitteringen er bevart;
+CLAIM, terminal og en separat RECONCILIATION.json validerer opptaket
+SHA256 `d4c8fa49b82dd6095afa17ebfdf40aff2bcf00b9245450edc49044d8325fb256`.
+Detaljer og begrensninger står i
+`docs/TA_FOLD2_F_FROZEN_READOUT_ADMISSION_20261117.json`.
+
+Én eksakt CPU-kontroll av frossen F-projeksjon og frosset TF-hidden på alle fem
+TF er innrømmet med PLAN SHA256
+`c87fcec1c25e351fec6e9c7a7bf2905ce97605661ba9055cc769e621b757e786`.
+Kilde-/import-/kvitterings- og syntetisk rapporteringspreflight besto uten CLAIM.
+Den planlagte lesningen fitter ti små lineære hoder på første 3 072
+TRAIN-panelrader og scorer siste 1 024 med modne labels og embargo.
+Dette er trening av utlesningen, så training_enabled er åpen kun for denne
+engangsplanen; native modellvekter endres ikke. Encoder og normalisering har
+sett hele Fold2 TRAIN, så kontrollen er ikke uavhengig OOF eller Edge.
+
 Det målte problemet er svake M5-vendinger og utilstrekkelige selvstendige
 fem-TF-retninger. M5-only-fitten gir begrenset senere S-rangering, men
 ikke sikker før/etter-gevinst eller bedre Brier enn prior; F og faktiske
@@ -594,15 +615,17 @@ Entry, TEST eller handel åpnes av denne presiseringen.
 
 ## Neste steg
 
-1. Kvalifiser på TRAIN en native S-plan for alle fem TF og én
-   frossen-encoder-kontroll som skiller F-utlesning fra optimizer/
-   oppgavemiks. Bruk de 6 746 kjente M5-naboparene uten nytt
-   vendingshode. Ikke velg ny modell etter januar–mars-panelet.
+1. Kjør den innrømmede, capped CPU-utlesningskontrollen én gang. Lukk
+   training_enabled etter terminal og vurder F-hode mot frossen utlesning på
+   TRAIN uten å velge etter januar–mars-panelet. Kvalifiser deretter native
+   S-plan for alle fem TF; bruk de 6 746 kjente M5-naboparene uten nytt
+   vendingshode.
 2. Bind deretter én eksakt kronologisk OOF-/forward-plan bare hvis
    mål og observerbarhet er kvalifisert. Økonomisk Edge krever senere
    forhåndsbundet kostet Entry og alle valgte/åpne posisjoner.
-3. Full GC, trening, TEST, ONLINE, broker og handel forblir lukket.
-   Plan001 og plan002 er konsumert og kan aldri relanseres.
+3. Full GC, native modelltrening, TEST, ONLINE, broker og handel forblir
+   lukket. Kun den ene CPU-utlesningen er innrømmet. De gamle fit-planene
+   001 og 002 er konsumert og kan aldri relanseres.
 
 Opprydding: historiske overleveringsavsnitt er fjernet her og bevart i Git.
 Ingen Python-fil er slettet; gjeldende referanse-, import-, test- og

@@ -1,0 +1,99 @@
+{
+  "schema_version": "gx1_fold2_F_frozen_readout_admission_review_v1",
+  "decision": "ADMIT_ONE_CPU_FROZEN_READOUT_CONTROL_TRAIN_ONLY",
+  "source_base_commit": "78c952851d3d367157a9e2e436d8746c490fa253",
+  "failed_readonly_capture": {
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_REP_CAPTURE_20261116_001/TERMINAL.json",
+      "sha256": "23b85189ebe8ac0a51607db2bd18ba19e1fc98e5f37dc8d5f7d37fd3d7e9f8e4"
+    },
+    "reason": "An over-tight 2e-5 full-panel CPU/GPU logit threshold failed after 4096 forwards; no capture published, plan consumed."
+  },
+  "accepted_readonly_capture": {
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_REP_CAPTURE_20261117_002/RESULT.json",
+      "sha256": "552a4e5800fae509ad6ddd95df69ad78f6150b1a98d5f617fdc3d827af802faa"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_REP_CAPTURE_20261117_002/TERMINAL.json",
+      "sha256": "f4939b6b231d54995ddafcf99b0909e84599f7fec5db15dc0bc3afefb8d35087"
+    },
+    "capture": {
+      "path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_REP_CAPTURE_20261117_002/CAPTURE.npz",
+      "sha256": "d4c8fa49b82dd6095afa17ebfdf40aff2bcf00b9245450edc49044d8325fb256"
+    },
+    "reconciliation": {
+      "path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_REP_CAPTURE_20261117_002/RECONCILIATION.json",
+      "sha256": "9b1bdfae0386ad155f3c315623b9c053e1eec6359996c8b8507ae07e6e505a74"
+    },
+    "plan_path_reporting_error": "Original result plan.path was overwritten by last M1 tensor; CLAIM and separate immutable reconciliation identify correct PLAN. Original receipts preserved.",
+    "max_abs_saved_F_logit_difference": 2.3126602172851562e-05,
+    "model_state_digest_unchanged": true,
+    "panel_rows": 4096,
+    "model_forwards": 256,
+    "optimizer_updates": 0,
+    "test_data_used": false
+  },
+  "readout_plan": {
+    "path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/PLAN.json",
+    "sha256": "c87fcec1c25e351fec6e9c7a7bf2905ce97605661ba9055cc769e621b757e786"
+  },
+  "readout_script": {
+    "path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/readout.py",
+    "sha256": "f7a4c3ca36c71abd92774ea3be10da11e144c6b3fda52336a522552a05bcd290"
+  },
+  "preflight": {
+    "status": "PASS_SOURCE_CAPTURE_SYNTHETIC_REPORT_PREFLIGHT",
+    "imports_from_exact_command": true,
+    "source_and_capture_hashes_checked": true,
+    "synthetic_success_and_failure_reporting_checked": true,
+    "claim_created": false,
+    "model_forwards": 0,
+    "optimizer_updates": 0
+  },
+  "fixed_control": {
+    "input": "frozen final-model fused hidden and F projection for five TF on the same hash-bound 4096-row Fold2 TRAIN panel",
+    "readouts": "two fixed 128-feature independent linear logistic side heads per TF, ten convex fits total",
+    "split": "first 3072 chronological TRAIN-panel rows for fitting; last 1024 for readout scoring",
+    "target_maturity": "fit side label issue plus 5/15/60/240/1440 minutes must end strictly before score-start issue; unknown side masked",
+    "normalization": "per-TF fit-prefix-only mean and standard deviation; score receives frozen transform",
+    "penalty": {
+      "L2": 0.001,
+      "chosen_once_no_search": true
+    },
+    "comparators": [
+      "same-prefix constant UP prior",
+      "original F head"
+    ],
+    "metrics": [
+      "known-side count",
+      "AUC",
+      "Brier",
+      "log loss",
+      "mean P(UP)",
+      "UP sign fraction"
+    ],
+    "selection": "no tuning, no later Jan-Mar selection, no promotion from this control"
+  },
+  "execution": {
+    "class": "audit",
+    "memory_max": "4G",
+    "swap_max": "512M",
+    "max_seconds": 600,
+    "one_use": true,
+    "zero_paid_cost": true,
+    "native_model_forwards": 0,
+    "native_optimizer_updates": 0,
+    "readout_fits": 10,
+    "fresh_physical_boot_required": false,
+    "fresh_boot_reason": "CPU-only readout on frozen already captured tensors; no GPU or native model construction."
+  },
+  "scope_limits": [
+    "This readout fit is training and requires the exact scoped policy gate before CLAIM.",
+    "The encoder and normalization were fit on all Fold2 TRAIN, including the readout score quarter; this is a mechanics control, not independent OOF or generalization.",
+    "No Full GC, sealed TEST, ONLINE, broker, order, trading, Entry, Exit, spending or Edge claim."
+  ],
+  "operator_authority": "Standing 16 Nov local non-GC zero-cost authorization; exact one-use technical admission remains required.",
+  "training_enabled_on_admission": true,
+  "training_enabled_after_terminal": false
+}
