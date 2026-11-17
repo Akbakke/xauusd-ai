@@ -1,0 +1,157 @@
+{
+  "schema_version": "gx1_ta_native_S_F_fold2_fold3_scope_review_v1",
+  "decision": "NATIVE_S_TARGET_PARITY_AND_SUPPORT_QUALIFIED_NO_MODEL_FIT",
+  "source_commit": "5604637d38fb834ab20e2fd544b6db18dd5862e6",
+  "source_owners": {
+    "gx1/contracts/market_state_time_query_binding_v1.py": "6db09212d8c1a565afb5b6ba650a049a84319de64d11668819fe238a1eca72bd",
+    "gx1/contracts/market_state_time_query_target_v1.py": "bd87e01e10ebac86932bc438012820dd4ea0b04ed1acf82644cc233e1fac83f9",
+    "gx1/contracts/market_state_five_endpoint_target_binding_v1.py": "71dc01154aada84d01e930cb78970a79608c5bff5ebd710d9f48273934e14bfd",
+    "gx1/contracts/market_state_future_displacement_candidate_v1.py": "4a7e0a582bef097109555ddfe1b96cb2c9d7b31c2a53366ef9a4bbbe0c6deb62"
+  },
+  "fit_axis_input": {
+    "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_INPUTS_20261116_001/INPUTS.npz",
+    "sha256": "00300177b925facce71824ec08f91129496340106ab4d3541f94789639607b89"
+  },
+  "method": "Load pinned Fold2 fit axis and bound five-endpoint S/F targets. Compare S five-endpoint owner to time-query M1 tape at fixed native k=[1,3,12,48,288] on every fit cell; count mature certified sides. Separately use pre-existing Fold3 April-June 2025 score axis only to count S/F target support. Zero model forwards/optimizer steps.",
+  "fold2_fit": {
+    "rows": 47338,
+    "first_issue_utc": "2024-05-01T00:05:00",
+    "last_issue_utc": "2024-12-30T23:55:00",
+    "native_S_tape_cells": 236690,
+    "allowed_bit_mismatches": 0,
+    "maturity_mismatches": 0,
+    "eligible_mature_mismatches": 0,
+    "native_k": [
+      1,
+      3,
+      12,
+      48,
+      288
+    ],
+    "sampled_fit_native_known_side_from_fit002": {
+      "M5": {
+        "native_k": 1,
+        "sampled_native_rows": 47338,
+        "known_side_native_rows": 16101,
+        "known_side_any_sampled_query_rows": 16101
+      },
+      "M15": {
+        "native_k": 3,
+        "sampled_native_rows": 15812,
+        "known_side_native_rows": 6112,
+        "known_side_any_sampled_query_rows": 18237
+      },
+      "H1": {
+        "native_k": 12,
+        "sampled_native_rows": 3887,
+        "known_side_native_rows": 1488,
+        "known_side_any_sampled_query_rows": 17964
+      },
+      "H4": {
+        "native_k": 48,
+        "sampled_native_rows": 925,
+        "known_side_native_rows": 340,
+        "known_side_any_sampled_query_rows": 18690
+      },
+      "D1": {
+        "native_k": 288,
+        "sampled_native_rows": 167,
+        "known_side_native_rows": 37,
+        "known_side_any_sampled_query_rows": 13490
+      }
+    },
+    "by_TF": {
+      "M5": {
+        "fit_native_S_known_side": 16101,
+        "fit_native_S_up": 8323,
+        "fit_native_F_known_side": 19072,
+        "fit_S_F_joint_known_side": 11516,
+        "fit_S_F_opposite_side": 338,
+        "fit_S_F_opposite_fraction": 0.02935046891281695
+      },
+      "M15": {
+        "fit_native_S_known_side": 18182,
+        "fit_native_S_up": 9432,
+        "fit_native_F_known_side": 17483,
+        "fit_S_F_joint_known_side": 12597,
+        "fit_S_F_opposite_side": 769,
+        "fit_S_F_opposite_fraction": 0.06104628086052235
+      },
+      "H1": {
+        "fit_native_S_known_side": 17973,
+        "fit_native_S_up": 9611,
+        "fit_native_F_known_side": 16552,
+        "fit_S_F_joint_known_side": 12695,
+        "fit_S_F_opposite_side": 1137,
+        "fit_S_F_opposite_fraction": 0.08956282000787712
+      },
+      "H4": {
+        "fit_native_S_known_side": 18391,
+        "fit_native_S_up": 9695,
+        "fit_native_F_known_side": 16278,
+        "fit_S_F_joint_known_side": 12774,
+        "fit_S_F_opposite_side": 958,
+        "fit_S_F_opposite_fraction": 0.07499608579927979
+      },
+      "D1": {
+        "fit_native_S_known_side": 12291,
+        "fit_native_S_up": 7117,
+        "fit_native_F_known_side": 15148,
+        "fit_S_F_joint_known_side": 9878,
+        "fit_S_F_opposite_side": 238,
+        "fit_S_F_opposite_fraction": 0.024093946142943915
+      }
+    },
+    "joint_M5_D1_known_side_truth": {
+      "S": {
+        "joint": 4234,
+        "opposite": 2072,
+        "fraction": 0.4893717524799244
+      },
+      "F": {
+        "joint": 6057,
+        "opposite": 2689,
+        "fraction": 0.4439491497440977
+      }
+    }
+  },
+  "fold3_later_development_target_scope": {
+    "fold_id": 3,
+    "period_start_utc": "2025-04-01T00:00:00",
+    "period_end_exclusive_utc": "2025-07-01T00:00:00",
+    "rows": 17537,
+    "first_issue_utc": "2025-04-01T00:00:00",
+    "last_issue_utc": "2025-06-30T23:55:00",
+    "native_S_known_side_by_TF": {
+      "M5": 5734,
+      "M15": 6632,
+      "H1": 6395,
+      "H4": 6663,
+      "D1": 6602
+    },
+    "native_F_known_side_by_TF": {
+      "M5": 6886,
+      "M15": 6449,
+      "H1": 6080,
+      "H4": 6476,
+      "D1": 5528
+    },
+    "not_sealed_TEST": true,
+    "feature_sidecars_bound": false,
+    "closed_M1_path_bound": false,
+    "structure_targets_bound": false,
+    "model_score_performed": false
+  },
+  "interpretation": [
+    "The existing five-endpoint S owner is exactly the native-k projection of the time-query M1 tape on all 236690 fit cells. New S label code is unnecessary.",
+    "Native S H4/D1 had 340/37 certified sampled training exposures in fit002; native per-row queries would expose 18391/12291 known sides. Overall sampled-query known-side counts were already much larger, so this changes endpoint supervision rather than creating new observable truth.",
+    "On jointly known sides, S and F disagree on 2.4 to 9.0 percent by TF. Direct opposite-side labels are not the dominant measured conflict; their masks and task semantics still differ.",
+    "Actual M5 and D1 truth disagree on 49 percent of jointly known S rows and 44 percent of jointly known F rows, so near-identical five-TF outputs cannot represent the observed target structure."
+  ],
+  "next_design_boundary": "Preserve variable-horizon S learning while guaranteeing native supervision; do not globally replace sampled queries without a paired native-plus-sampled design. Reuse the qualified Fold2 TRAIN TA view/normalization and build only a fresh Apr-Jun2025 development score input/M1 path. Then preflight one integrated all-five-TF F/S/structure objective before exact capped fit admission. Predeclare M5 turning, per-TF proper scores, F mean calibration, and TF disagreement; no Jan-Mar model selection.",
+  "limits": [
+    "The Fold3 later period is a development scope, not independent sealed confirmation or economic Edge.",
+    "No April-June feature input, model output, costed Entry, TEST, broker or trade is authorized by target coverage.",
+    "No model fit, TRAIN normalization change or source code change in this review."
+  ]
+}

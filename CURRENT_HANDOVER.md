@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_FOLD2_F_FROZEN_READOUT_COMPLETE_CONSUMED_NO_TRANSFER_GAIN.
+TA_NATIVE_S_F_TARGET_SCOPE_QUALIFIED_NO_MODEL_FIT.
 Brukeren fjernet kravet om nytt «ja» for hver stor lokal ikke-GC-kjøring.
 Integrator innrømmet plan002 SHA
 `330e4cb1dd4c76980264b44a32f091e67c43142819514901f60068abed102783`
@@ -519,6 +519,24 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   terminal exit 0 og er nå konsumert. Eksakte kvitteringer:
   `docs/TA_INTEGRATED_FOLD2_FIT_002_TERMINAL_REVIEW_20261116.json`.
 
+- Lesende full Fold2-målkontroll: eksisterende fem-endepunkt-S og M1-
+  spørringstape er identiske på alle 236 690 fit-celler (null tillatelses-
+  eller modenhetsavvik). Faste native S-spørringer gir kjent side på M5
+  16 101, M15 18 182, H1 17 973, H4 18 391 og D1 12 291 rader. I
+  fit002 var native kjent S-side spurt på bare 16 101/6 112/1 488/340/37;
+  høyere TF hadde likevel mange kjente sider ved andre spørringshorisonter.
+  Endringen gjelder native endepunktsupervisjon, ikke nye fasiter. Direkte
+  motsatt S/F-side finnes i 2,4–9,0 % av felles kjente rader per TF.
+  M5/D1-fasit er derimot ulik i 2 072/4 234 S- og 2 689/6 057 F-rader;
+  nesten felles fem-TF-output kan ikke representere dette. Ingen ny
+  merkemekanikk, modellforward eller fit ble brukt. Eksakt målscope:
+  `docs/TA_NATIVE_S_F_TARGET_SCOPE_20261117.json`.
+- En forhåndseksisterende Fold3 Apr–jun 2025 utviklingsakse har 17 537
+  rader og kjent native S-side på 5 734–6 663 rader per TF; F har
+  5 528–6 886. Bare mål er kvalifisert. TA-featureinput, lukket M1-bane
+  og strukturfasit må bindes før en ny kronologisk score. Dette er
+  utvikling, ikke forseglet bekreftelse eller Edge.
+
 ## Ikke gjort / faktisk hindring
 
 Den avsluttede fit002-lesningen er bundet i
@@ -624,17 +642,18 @@ Entry, TEST eller handel åpnes av denne presiseringen.
 
 ## Neste steg
 
-1. Kvalifiser native S-spørring for alle fem TF, særlig H4/D1 med bare
-   340/37 kjente native sider i siste fit. Bind deretter én ekte kronologisk
-   prefix-only F/S-plan som måler F-kalibrering og ulik TF-retning uten
-   scorebasert ridge-/modellvalg. Bruk de 6 746 kjente M5-naboparene uten
-   nytt vendingshode.
-2. Bind deretter én eksakt kronologisk OOF-/forward-plan bare hvis
-   mål og observerbarhet er kvalifisert. Økonomisk Edge krever senere
-   forhåndsbundet kostet Entry og alle valgte/åpne posisjoner.
-3. Full GC, trening, TEST, ONLINE, broker og handel forblir lukket.
-   CPU-utlesningen og de gamle fit-planene 001/002 er konsumert og kan
-   aldri relanseres.
+1. Bind kun ny Apr–jun 2025 utviklings-TA-featureinput og lukket M1-bane
+   med eksisterende eiere. Kvalifiser strukturfasit og observerbarhet;
+   ikke bruk Jan–mar på nytt til modellvalg.
+2. Forhåndsbind én kronologisk integrert fem-TF F/S/strukturkampanje med
+   både native og varierende S-spørringshorisonter. Bruk separat målt
+   retning per TF, de 6 746 kjente M5-naboparene, faste proper scores,
+   F-kalibrering og TF-uenighet. Ny fit krever eksakt engangsadgang i
+   policy; ingen enkeltrunde eller scorebasert modellvalg.
+3. Økonomisk Edge krever senere forhåndsbundet kostet Entry og alle
+   valgte/åpne posisjoner. Full GC, trening, TEST, ONLINE, broker og
+   handel er lukket. Gamle fit-/CPU-planer er konsumert og kan ikke
+   relanseres. Stabil langkjøring kontrolleres omtrent hver time.
 
 Opprydding: historiske overleveringsavsnitt er fjernet her og bevart i Git.
 Ingen Python-fil er slettet; gjeldende referanse-, import-, test- og
