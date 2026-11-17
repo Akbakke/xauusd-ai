@@ -226,5 +226,9 @@ ny 318/256-visning og full rå/normalisert FIT/later gather. Trening er stengt.
 FIT-only normaliseringsplan `TA_M5_EMA_DELTA_FIT_NORMALIZATION_20261118_001`
 (SHA `68f987910976de6ec0d24c1b5787e8773c01abf1672c1fe304561b5619bc1fc2`) er innrømmet som én auditkjøring: seks nye
 statistikkfitter på gammel Fold1-prefix, null modellforward og ingen senere
-statistikk. Planen er ikke claimet. Etter en ren kildekontroll kan den kjøres
-én gang med ressursvakt. Den nye visningen og full FIT/later gather gjenstår.
+statistikk. Planen er fullført og konsumert; terminal-SHA
+`47eeacd82df0a18f5da5693382131aa62c15561e67c542572ad59f7ec2d260d8`.
+Seks nye felt ble normalisert bare på gammel Fold1-FIT-prefix, 29 574 valgte
+FIT-rader; gamle felt ble kopiert uten ny fit. Ny TA-projeksjon har 318/256
+felter, uten modellforward eller TEST. Den nye visningen og full FIT/later
+rå/normalisert gather gjenstår før eventuell modellinitial.
