@@ -1,8 +1,9 @@
 """Materialize one additive EMA-spread field on the frozen cold FIT/later clocks.
 
-Old signal and MTF matrices stay immutable. Only source bars before the fixed
-2024-12-31 cutoff enter the calculation; selected rows are the already
-qualified Fold2 anchor-span physical union (including all history windows).
+Old signal and MTF matrices stay immutable. Local values use the trimmed M5
+enriched source; MTF values use its bound full native source from 2009 so their
+EMA and ATR state matches the old cache. Only bars before the 2024-12-31 cutoff
+enter the calculation; selected rows are the qualified physical window union.
 """
 from __future__ import annotations
 
@@ -31,6 +32,7 @@ from gx1.scripts.prebuild_multi_tf_cache_v4 import (
 
 BASE = Path('/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003')
 SOURCE = BASE / 'M5_ENRICHED.parquet'
+SOURCE_MANIFEST = Path(str(SOURCE) + '.manifest.json')
 LOCAL = BASE / 'SURFACES_050/M5_FEATURE_BASE_050.parquet'
 LOCAL_MANIFEST = Path(str(LOCAL) + '.manifest.json')
 LOCAL_SIGNAL = Path('/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_NORMALIZATION_20261024_261/SUPPORT_SCRATCH/source050/signal.mmap')
@@ -43,9 +45,9 @@ PREFIX_RESULT = PREFIX_SPANS / 'RESULT.json'
 CUTOFF_NS = 1735603200000000000
 LANES = ('local', 'M5', 'M15', 'H1', 'H4', 'D1')
 REPO = Path('/home/andre2/src/GX1_CURRENT')
-STAGE = 'ta_m5_ema_delta_sidecars_20261117_001'
-ROOT = Path('/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001')
-PLAN = REPO / 'configs/research/TA_M5_EMA_DELTA_SIDECARS_20261117_001.json'
+STAGE = 'ta_m5_ema_delta_sidecars_20261117_002'
+ROOT = Path('/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_002')
+PLAN = REPO / 'configs/research/TA_M5_EMA_DELTA_SIDECARS_20261117_002.json'
 POLICY = REPO / 'NEXT_RUN_POLICY.json'
 WALL_SECONDS = 1800
 LOCAL_FIELD = 'chart.local_ema50_200_spread_delta_5_atr'
@@ -101,6 +103,39 @@ def _delta_and_slopes(frame: pd.DataFrame) -> tuple[np.ndarray, np.ndarray, np.n
     fast = (block['ema50'] - block['ema50'].shift(5)) / denom
     slow = (block['ema200'] - block['ema200'].shift(20)) / denom
     return tuple(series.to_numpy(dtype=np.float32) for series in (delta, fast, slow))
+
+
+def _native_source_refs() -> tuple[dict, dict, dict[str, dict]]:
+    """Bind the exact full-history owner used before M5 enriched was trimmed."""
+    enriched = _read_json(SOURCE_MANIFEST)
+    native = enriched['native_m5_source']
+    root = Path(native['root'])
+    manifest = Path(native['manifest_path'])
+    _need(manifest == root / 'MANIFEST.json'
+          and _ref(manifest)['sha256'] == native['manifest_sha256'],
+          'NATIVE_MANIFEST')
+    paths = [Path(item) for item in native['part_paths']]
+    _need(len(paths) == 18 and len(native['part_sha256']) == 18
+          and all(paths[i] == root / f'year={2009 + i}/part-000.parquet'
+                  for i in range(18)), 'NATIVE_PART_ORDER')
+    selected = {}
+    for year, path in zip(range(2009, 2025), paths[:16]):
+        binding = _ref(path)
+        _need(binding['sha256'] == native['part_sha256'][str(path)],
+              'NATIVE_PART_SHA:' + str(year))
+        selected[str(year)] = binding
+    return _ref(SOURCE_MANIFEST), _ref(manifest), selected
+
+
+def _read_native_prefix(parts: dict[str, dict]) -> pd.DataFrame:
+    frames = [_read_prefix(Path(parts[str(year)]['path']),
+                           ['time', 'open', 'high', 'low', 'close', 'volume'])
+              for year in range(2009, 2025)]
+    frame = pd.concat(frames, axis=0)
+    _need(frame.index.is_unique and frame.index.is_monotonic_increasing
+          and int(frame.index[-1].value) < CUTOFF_NS
+          and frame.index[0].year == 2009, 'NATIVE_PREFIX_CLOCK')
+    return frame
 
 
 def _checked_names(local_manifest: dict, cache_manifest: dict) -> tuple[list[str], list[str]]:
@@ -195,6 +230,7 @@ def materialize(out_dir: Path) -> dict:
           'OUTPUT')
     local_ref, cache_ref, span_ref = (_ref(path) for path in
                                       (LOCAL_MANIFEST, CACHE_MANIFEST, SPAN_RESULT))
+    native_source_ref, native_manifest_ref, native_parts = _native_source_refs()
     local_manifest, cache_manifest, span_result = (
         _read_json(path) for path in (LOCAL_MANIFEST, CACHE_MANIFEST, SPAN_RESULT)
     )
@@ -248,9 +284,30 @@ def materialize(out_dir: Path) -> dict:
         )
         lane_values = {'local': selected}
         del old_local, raw_delta, raw_fast, raw_slow
-        mtf_raw = raw.copy()
-        for name in ('open', 'high', 'low', 'close', 'volume'):
-            mtf_raw[name] = mtf_raw[name].astype(np.float32)
+        mtf_raw = _read_native_prefix(native_parts)
+        source_at = np.searchsorted(mtf_raw.index.asi8, source_clock)
+        _need(np.all(source_at < len(mtf_raw))
+              and np.array_equal(mtf_raw.index.asi8[source_at], source_clock)
+              and np.array_equal(
+                  mtf_raw.loc[raw.index, ['open', 'high', 'low', 'close', 'volume']]
+                      .to_numpy(dtype=np.float64),
+                  raw[['open', 'high', 'low', 'close', 'volume']]
+                      .to_numpy(dtype=np.float64)),
+              'NATIVE_ENRICHED_OHLC_PARITY')
+        native_digest = hashlib.sha256()
+        for name in ('open', 'high', 'low', 'close'):
+            native_digest.update(np.ascontiguousarray(
+                mtf_raw[name].to_numpy(dtype='<f8')).tobytes())
+        native_digest.update(np.ascontiguousarray(
+            mtf_raw['volume'].to_numpy(dtype='<i8')).tobytes())
+        source_binding.update({
+            'native_m5_source_manifest': native_source_ref,
+            'native_m5_manifest': native_manifest_ref,
+            'native_m5_parts': native_parts,
+            'native_prefix_rows': len(mtf_raw),
+            'native_prefix_time_sha256': _array_sha(mtf_raw.index.asi8, '<i8'),
+            'native_prefix_ohlcv_sha256': native_digest.hexdigest(),
+        })
         expected = htf.build_multi_tf_v4_closed_timestamp_indices(mtf_raw.index)
         for lane in LANES[1:]:
             frame = htf._resample_ohlcv(mtf_raw, lane).dropna(subset=['open', 'high', 'low', 'close'])
@@ -258,12 +315,15 @@ def materialize(out_dir: Path) -> dict:
             delta, fast, slow = _delta_and_slopes(frame)
             clock = np.load(CACHE / (lane + '_ts.npy'), mmap_mode='r', allow_pickle=False)
             old = np.load(CACHE / (lane + '_feats.npy'), mmap_mode='r', allow_pickle=False)
-            _need(old.shape == (len(clock), len(mtf_names))
-                  and np.array_equal(clock[:len(frame)], frame.index.asi8),
-                  'MTF_PREFIX_CLOCK:' + lane)
             rows, times = payloads[lane]
+            cache_prefix = clock[:int(rows[-1]) + 1]
+            at = np.searchsorted(frame.index.asi8, cache_prefix)
+            _need(old.shape == (len(clock), len(mtf_names))
+                  and np.all(at < len(frame))
+                  and np.array_equal(frame.index.asi8[at], cache_prefix),
+                  'MTF_PREFIX_CLOCK:' + lane)
             lane_values[lane] = _check_selected(
-                lane, rows, times, clock, delta, fast, slow,
+                lane, rows, times, clock, delta[at], fast[at], slow[at],
                 np.asarray(old[rows, mtf_names.index('ema50_slope_atr')]),
                 np.asarray(old[rows, mtf_names.index('ema200_slope_atr')]),
             )
@@ -345,7 +405,11 @@ def build_plan() -> dict:
           and local['source_parquet'] == cache['m5_prebuilt_source'] == str(SOURCE),
           'PLAN_SOURCE')
     span = _read_json(SPAN_RESULT)
+    native_source_ref, native_manifest_ref, native_parts = _native_source_refs()
     inputs = {
+        'm5_enriched_manifest': native_source_ref,
+        'native_m5_manifest': native_manifest_ref,
+        **{'native_m5_' + year: ref for year, ref in native_parts.items()},
         'local_surface_manifest': _ref(LOCAL_MANIFEST),
         'mtf_cache_manifest': _ref(CACHE_MANIFEST),
         'span_reuse_result': _ref(SPAN_RESULT),
@@ -362,6 +426,7 @@ def build_plan() -> dict:
         'gx1/features/technical_indicators_v1.py',
         'gx1/contracts/gx1_capped_execution_v1.py',
         'gx1/scripts/prebuild_multi_tf_cache_v4.py',
+        'gx1/scripts/build_entry_exit_m1_enriched_frame_v1.py',
         'tests/test_ta_ema_delta_sidecars_v1.py',
     )
     return {
@@ -413,6 +478,7 @@ def _inspect_plan(plan_sha256: str, *, execute: bool) -> tuple[dict, dict, dict 
     if not execute:
         return plan, plan_ref, None, head, clean
     _need(clean, 'CLEAN_SOURCE')
+    _native_source_refs()
     # Hash-only integrity check; no cutoff-or-later feature values are decoded.
     _need(_sha_file(SOURCE) == plan['source_sha256'], 'SOURCE_FILE_SHA')
     policy_ref = _ref(POLICY)
