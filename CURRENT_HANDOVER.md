@@ -771,23 +771,44 @@ ved likhet, tvunget OPP/NED som diagnostikk, og alltid-LONG/SHORT/FLAT
 bundet. Samme komplette prisbane-maske brukes for alle. Dette er ingen
 holderegel, Exit, handelsportefølje eller ny modellkjøring. Eksakt
 4G-cappet preflight besto på ren kilde uten CLAIM, prisutfall eller
-modellforward. Kun denne engangsplanen er nå innrømmet for én CPU-audit;
-trening og TEST forblir stengt.
+modellforward. Den ene CPU-auditen er nå fullført og konsumert; trening
+og TEST forblir stengt.
+
+Engangsauditen fullførte på 54,9 sekunder med null modellforward og null
+optimizersteg. Resultat SHA `1bed7bdc818e89c5b9163c802d941c680f0f939de2a7b2cc403d6fe07521cf8d`, terminal SHA
+`56651c04d1e2a36148a93d44d0457c5f4c1b8fad63b05c7f1bbcf1c38feda870`. Den forhåndsbundne treklassebeslutningen fra
+native M5-F valgte FLAT på samtlige 17 536 prognoser; på felles pris-/
+banemaske var den identisk med alltid-FLAT ved alle seks målepunkter.
+F-fasiten i opptaket består av 10 650 FLAT, 3 368 NED og 3 518 OPP:
+60,7 % FLAT. F defineres som fortegnet til lukket M5-prisforskyvning
+ved native endepunkt bare når størrelsen når 0,5 × ATR. Den er verken
+kostet Entry-verdi eller konservativ MAE før MFE. Modellens gjennomsnittlige
+aktivitetsprognose var 0,380; tvungen side ga 1 632 LONG og 15 904
+SHORT på hele opptaket.
+
+Tvungen side hadde negativt gjennomsnitt etter oppgitte kostnader ved
+alle seks faste observasjonspunkter: −6,146/−6,196/−6,168/−6,396/
+−6,692/−3,766 bps ved 1/5/15/60/240/480 min. Ved 480 min slo
+−3,766 bps både alltid-LONG (−7,872) og alltid-SHORT (−4,933) på
+samme 11 368 komplette rader, men tapte fortsatt i absolutt forstand.
+Alle punkter rapporteres; ingen horisont ble valgt som holderegel.
+Kostoppsettet er 4 bps tur-retur pluss deklarert finansiering, ikke
+historiske fyll. Overlappende markouts er ikke posisjonsregnskap,
+selektiv handelsstrategi, uavhengig generalisering eller økonomisk Edge.
 
 ## Neste steg
 
-1. Behold plan002 konsumert og treningsporten lukket. Ikke start flere
-   epoker eller flere indikator-/modellrunder på teknisk PASS.
-2. Bruk de lagrede Apr–jun-prognosene og eksisterende pris-/kostkilder til
-   én forhåndsbundet M5 retningsmarkout med LONG/SHORT/FLAT på samme
-   observerte rader og alltid-LONG som referanse. Målehorisontene er
-   observasjoner, ikke fast holdetid eller Exit-regler. Dette er en
-   utviklingskontroll; den beviser ikke samlet handelsøkonomi.
-3. Hvis markout ikke viser verdi, undersøk det målte gapet mellom
-   kortsiktig tilstandsvidereføring, M5-vendinger og native F-side før
-   ny fit. Økonomisk Edge krever senere alle valgte handler og åpne
-   posisjoner. Full GC, TEST, ONLINE, broker og handel er lukket. Gamle
-   engangsplaner relanseres aldri.
+1. Behold plan002 og kostplan001 konsumert og treningsporten lukket.
+   Ikke start flere epoker eller indikator-/modellrunder på teknisk PASS.
+2. Avklar det målte gapet mellom native F-mål, M5-vending, strukturtreff
+   og kostet Entry-verdi fra eksisterende fasit- og kostkvitteringer.
+   F-målet lærer en 0,5-ATR terminalklasse der FLAT dominerer; direkte
+   Entry-verdi og liten MAE før første MFE er ennå ikke trent eller
+   økonomisk kvalifisert. Bind én integrert, begrunnet målrettelse før
+   eventuell ny fit, uten scorebasert horisontutvalg.
+3. Økonomisk Edge krever senere alle valgte handler og åpne posisjoner
+   på en uavhengig periode. Full GC, TEST, ONLINE, broker og handel er
+   lukket. Gamle engangsplaner relanseres aldri.
 
 Opprydding: historiske overleveringsavsnitt er fjernet her og bevart i Git.
 Ingen Python-fil er slettet; gjeldende referanse-, import-, test- og
