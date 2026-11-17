@@ -214,7 +214,11 @@ gamle EMA-helningene bitlikt på 550 kontrollerte M5-rader; 840 kontrollerte
 
 Korrigert engangsplan `TA_M5_EMA_DELTA_SIDECARS_20261117_002`, SHA
 `a575667f96460b1ed282137e1069fba1d0842f64748cc306089e055798463c42`,
-er innrømmet i policy, ikke claimet. Den binder 16 årlige native prisdeler
-2009–2024 og begrenser 2024-lesningen til før 31.12.2024. Lokal M5-rute og
-bitlik MTF-paritet beholdes. Nytt FIT-only normaliseringsaudit er kodet og
-testet, men venter på fysisk `_002`-resultat. Ingen modell eller trening er åpnet.
+er fullført og konsumert, terminal-SHA
+`2b697d3c86a61a134de2e41dee7ff7f0f21b70b85e9a37da257a8c3b44f0dbb5`.
+Seks fysiske sidecars er verifisert mot filhash og gammel EMA-helning bitlikt
+på samtlige rader: lokal 47 614, M5 47 534, M15 15 903, H1 4 058, H4 1 134,
+D1 425. Materialiseringen dekker 29 574 FIT og 17 489 senere valgte rader;
+modellforward, optimeringssteg og TEST-lesning var null. Dette kvalifiserer
+verdiene, ikke full modellinput eller edge. Neste steg er FIT-only statistikk,
+ny 318/256-visning og full rå/normalisert FIT/later gather. Trening er stengt.
