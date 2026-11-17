@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_M5_DECISION_FIT_001_ADMITTED_ONE_USE. Én integrert ikke-GC
+TA_M5_DECISION_FIT_001_COMPLETE_CONSUMED_NO_EDGE. Én integrert ikke-GC
 Fold2-fit på 47 338 TRAIN-rader er fullført; fast apr–jun-skår på 17 536
 senere utviklingsrader fant ingen kvalifisert native M5-S/F-retning.
 Strukturtreff lærte, men ga ingen påvist M5-sideprognose. Den
@@ -852,20 +852,26 @@ S/F-/strukturutganger, korrekt checkpoint, eksakte targetakser, beregnet
 tap 0,7731 og null optimizersteg. En sammenligningsfeil i den første
 syntetiske testen ble rettet; andre kjøring besto. Én engangsfit er bare
 forberedt: 2 959 TRAIN-batcher og 1 096 senere utviklingsforwards.
-Den ene fitten er nå innrømmet etter fysisk Windows-boot 660, ren
-kilde 1da2f9db, ledig GPU/lås og intakte input-/checkpointreferanser.
-training_enabled=true gjelder bare denne eksakte engangsruten; ingen
-annen fit eller relansering åpnes. Apr–jun er gjenbrukt utvikling,
-ikke uavhengig TEST.
+Den ene fitten fullførte etter fysisk Windows-boot 660 fra ren kilde
+be8cf257. Terminal exit 0, 2 959 optimizersteg, null skip, 1 096
+senere skåringsforwards og 6 378,5 sekunder. Resultat SHA
+`675ea10e89616ab9187ca8c5b41a5c375a482e59494ec0b00217bfaf49cff004`;
+terminal SHA `30c76d6bc496fad7e35adc2dea63c73475649d14765f12459444c550ac840a93`.
+Checkpoint og scoreopptak er bevart i RUNS. Primær M5-beslutning gikk
+fra 17 536 FLAT ved initial til 11 486 SHORT, 0 LONG og 6 050 FLAT.
+Av valgte rader har 9 853 kjent terminal netto, med gjennomsnitt
+−0,578 bps; 1 633 valgte terminalutfall er ukjente. Dette beviser
+ingen økonomisk Edge. Engangsplanen er konsumert, training_enabled=false.
+Apr–jun er gjenbrukt utvikling, ikke uavhengig TEST.
 
 ## Neste steg
 
 1. Behold plan002, kostplan001 og målplan001 konsumert og treningsporten lukket.
    Ikke start flere F-only-epoker, hodesplitt- eller indikatorregler på
    teknisk PASS; den rene F-kilden og gjentatt transferfeil er dokumentert.
-2. Start kun den innrømmede engangsfitten under eksisterende 20G/512M-
-   og maskinvarevakter. Steng gaten umiddelbart etter terminalkvittering.
-   Mål alle faste Apr–jun-punkter uten ny horisont- eller parameterutvelging. Mål valgt/avstått, ukjente
+2. Gjennomgå alle forhåndsbundne Apr–jun-målepunkter og måneder, S/F-
+   og strukturutfall, masker og kostreferanser for å forklare ensidig
+   SHORT-valg og negativ netto. Ingen ny fit velges fra utviklingsskåren. Mål valgt/avstått, ukjente
    utfall og netto etter kostnader; ikke kall overlappende markouts
    realisert PnL eller uavhengig generalisering.
 3. Økonomisk Edge krever senere alle valgte handler og åpne posisjoner
