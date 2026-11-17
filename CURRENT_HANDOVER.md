@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_M5_DECISION_FIT_002_ABORTED_PRECLAIM_CONSUMED_NO_MODEL. Første direkte kostete
+TA_M5_DECISION_FIT_003_PREPARED_NOT_ADMITTED. Første direkte kostete
 M5-fit er fullført og konsumert uten Edge: 47 338 Fold2-TRAIN-rader,
 2 959 oppdateringer. På 17 536 gjenbrukte Apr–jun-rader valgte modellen
 0 LONG, 11 486 SHORT og 6 050 FLAT. De 9 853 valgene med kjent
@@ -19,10 +19,12 @@ M5-beslutning. Én matchet etterfølger med bare hjelpetapsvekt
 TRAIN-gradientkontroll. Plan002 stoppet før CLAIM ved Windows-bootoppslag
 inne i vakten; frakoblet WSL-oppstart ga `UtilAcceptVsock`-feil.
 Ingen outputrot, modellforward eller optimizersteg ble opprettet.
-Plan002 er konsumert. training_enabled=false,
-native_training_enabled=false, full_epoch_training_allowed=false og
-native_launch_authorized=false. Fysisk boot 661, ren kilde,
-13 inputhash og 17 kildehash var kontrollert før forsøket.
+Plan002 er konsumert. Plan003 med identisk modell, mål, seed og
+handlingsregel er klargjort for tilkoblet WSL-start, men ikke
+innrømmet. training_enabled=false, native_training_enabled=false,
+full_epoch_training_allowed=false og native_launch_authorized=false.
+Fysisk boot 661, ren kilde, 13 inputhash og 17 kildehash var
+kontrollert før plan002-forsøket; plan003 krever ny fysisk boot >661.
 Full GC er pauset; TEST, ONLINE, broker og handel er lukket. Ingen
 økonomisk Edge eller uavhengig handelsgeneralisering er bevist.
 Stabile langkjøringer kontrolleres omtrent hver time.
@@ -939,9 +941,9 @@ terminalkvittering fra modellrunner finnes; plan002 relanseres ikke.
 
 ## Neste steg
 
-1. Behold plan001 og plan002 konsumert. Klargjør bare ny plan003 med
-   samme modell og hjelpetapsvekt 0,10; bytt startmåte til tilkoblet
-   WSL-sesjon og krev ny fysisk Windows-boot >661.
+1. Behold plan001 og plan002 konsumert. Plan003 er klargjort, men
+   treningsporten er stengt. Kontroller ledig maskin og en ny fysisk
+   Windows-boot >661; behold WSL-sesjonen tilkoblet under hele forsøket.
 2. Innrøm og kjør høyst én matchet ikke-GC fit hvis eksakte
    kilde-/input-/maskin-/oppstartskontroller passerer. Behold seks observasjonspunkter,
    fem selvstendige TF, kostmål, seed og handlingsregel. Ikke velg
