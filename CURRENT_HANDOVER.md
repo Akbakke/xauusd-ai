@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-ACTIVE_M5_COLD_INITIAL_PREFLIGHT_PENDING_NO_EDGE.
+ACTIVE_M5_COLD_INITIAL_ADMITTED_NO_EDGE.
 Første direkte kostete M5-fit valgte 11 486 SHORT, 0 LONG og
 6 050 FLAT på 17 536 gjenbrukte Apr–jun-rader. Kjente valgte
 terminalutfall ga −0,578 bps i snitt etter oppgitte kostnader;
@@ -82,6 +82,14 @@ Beslutningstapet er nå endret i kilde, men ingen ny modell er trent eller skår
   TA-normaliseringskontrakt SHA `6c882086902701d5c9503d0c77c72c8e291ed65c44d065171c2d27afa500c3f6`.
   Null modellforward/optimizer; verdiene er rå. Fersk initial må
   måle postnormalisering og én ekte kostjustert M5-loss før fit.
+- Én eksakt CPU-preflight uten trening er innrømmet:
+  `TA_M5_COLD_INITIAL_PREFLIGHT_20261117_001`, plan SHA
+  `9214e4ab11aa4dc2dba01f413b31676b3d7188a0e034b235e678baf26d14a5d1`. Den tillater én fersk M5-modell
+  og to forwards: Fold1 FIT B16 med dagens beslutningstap, og
+  Fold1 SCORE B16 gjennom eksisterende scorer. Den binder rå
+  inputhash, måler åtte postnormaliserte numeriske flater og
+  initial state-hash. Null backward/optimizer/fit. Ren preflight
+  må bestå før én capped kjøring; dette er ikke edgebevis.
 - Oppryddingsrevisjonen fant ingen repo-fil eller DATA/RUNS-artefakt som var
   bevist trygg å slette. Målt ledig plass var 543 GB; ingen sletting ble gjort.
 - M5 er beslutningspunkt. Den siste matchede modellen valgte 0 LONG,
