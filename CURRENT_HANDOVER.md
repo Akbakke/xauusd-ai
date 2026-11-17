@@ -761,6 +761,17 @@ Disse delmengdene og den eksplorative strukturkontrasten er diagnostikk,
 ikke et forhåndsbundet handelsutvalg. Ingen uavhengig handelsøkonomi,
 generalisering eller Edge er bevist.
 
+En separat, ennå ikke innrømmet kost-/prisobservasjon er nå kildebundet til
+plan `TA_APR_JUN_M5_FIXED_COST_20261117_001` (SHA
+`d92d6108146328aaec3bfaace0a6f5f4d6df6d2fb1a77472f6d41346ef1cf9ed`). Den bruker bare sluttprognosene for M5-F fra
+plan002, samme 17 536 Apr–jun-rader, eksisterende M1-quote-kilde og
+oppgitte 4 bps tur-retur-kostnader. Før prisutfall leses, er seks
+observasjonspunkter (1/5/15/60/240/480 min), treklasse-argmax med FLAT
+ved likhet, tvunget OPP/NED som diagnostikk, og alltid-LONG/SHORT/FLAT
+bundet. Samme komplette prisbane-maske brukes for alle. Dette er ingen
+holderegel, Exit, handelsportefølje eller ny modellkjøring. Ingen CLAIM,
+prisutfall eller adgang er gitt fra denne forberedelsen.
+
 ## Neste steg
 
 1. Behold plan002 konsumert og treningsporten lukket. Ikke start flere
