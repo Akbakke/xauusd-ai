@@ -895,8 +895,8 @@ validate_target_command() {
     return
   fi
   if [[ "${3:-}" == "$TA_M5_DECISION_FIT_TRAINER_MODULE" ]]; then
-    local decision_root=/home/andre2/GX1_RUNS/TA_M5_DECISION_FIT_20261117_003
-    if [[ "$ATTENDED_SMOKE" != false || "$CUDA_PRODUCER_GUARD" != false ]] || ! matches_bound_market_state_ta_m5_decision_fit "$REPO_ROOT/configs/research/TA_M5_DECISION_FIT_20261117_003.json" "$decision_root" "$@"; then
+    local decision_root=/home/andre2/GX1_RUNS/TA_M5_DECISION_FIT_20261117_004
+    if [[ "$ATTENDED_SMOKE" != false || "$CUDA_PRODUCER_GUARD" != false ]] || ! matches_bound_market_state_ta_m5_decision_fit "$REPO_ROOT/configs/research/TA_M5_DECISION_FIT_20261117_004.json" "$decision_root" "$@"; then
       echo "FATAL: direct-cost M5 decision fit is not exactly bound" >&2
       exit 75
     fi

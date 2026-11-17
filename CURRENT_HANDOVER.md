@@ -7,28 +7,22 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_M5_DECISION_FIT_003_ADMITTED_ONE_USE_PENDING_CLAIM. Første direkte kostete
-M5-fit er fullført og konsumert uten Edge: 47 338 Fold2-TRAIN-rader,
-2 959 oppdateringer. På 17 536 gjenbrukte Apr–jun-rader valgte modellen
+TA_M5_DECISION_FIT_004_PREPARED_NOT_ADMITTED. Første direkte kostete
+M5-fit ble fullført på 47 338 Fold2-TRAIN-rader og 2 959 oppdateringer,
+men fant ingen Edge: på 17 536 gjenbrukte Apr–jun-rader valgte den
 0 LONG, 11 486 SHORT og 6 050 FLAT. De 9 853 valgene med kjent
 terminalutfall ga −0,578 bps i snitt etter oppgitte kostnader;
-1 633 valgte utfall er ukjente. Full native M5-F/S side-AUC var
-0,493/0,514. Selvstendige S/F-hoder på fem TF ga ikke en pålitelig
-M5-beslutning. Én matchet etterfølger med bare hjelpetapsvekt
-0,25 → 0,10 ble innrømmet én gang etter en avgrenset
-TRAIN-gradientkontroll. Plan002 stoppet før CLAIM ved Windows-bootoppslag
-inne i vakten; frakoblet WSL-oppstart ga `UtilAcceptVsock`-feil.
-Ingen outputrot, modellforward eller optimizersteg ble opprettet.
-Plan002 er konsumert. Plan003 med identisk modell, mål, seed og
-handlingsregel er innrømmet nøyaktig én gang for tilkoblet WSL-start.
-Fysisk boot 662, ren pushet kilde fbaf19b5, 13 inputhash,
-17 kildehash, ledig GPU/prosess/lås og Windows boot-ID i tilkoblet
-systemd-scope er kontrollert. training_enabled=true,
-native_training_enabled=true, full_epoch_training_allowed=true og
-native_launch_authorized=true bare for denne eksakte engangsplanen.
-Full GC er pauset; TEST, ONLINE, broker og handel er lukket. Ingen
-økonomisk Edge eller uavhengig handelsgeneralisering er bevist.
-Stabile langkjøringer kontrolleres omtrent hver time.
+1 633 valgte utfall er ukjente. Native M5-F/S side-AUC var 0,493/0,514.
+En TRAIN-gradientkontroll viste hjelpetap 1,28–1,77 ganger sterkere enn
+det direkte kostmålet på faste prøver. En etterfølger med kun vekten
+0,25 → 0,10 er klargjort. Plan002 og plan003 stoppet begge før CLAIM
+av ulike oppstartshindre, med null modellsteg; de er konsumert.
+Plan004 er forberedt, men ikke innrømmet. training_enabled=false,
+native_training_enabled=false, full_epoch_training_allowed=false og
+native_launch_authorized=false. Full GC er pauset; TEST, ONLINE,
+broker og handel er lukket. Ingen økonomisk Edge eller uavhengig
+handelsgeneralisering er bevist. Stabile langkjøringer kontrolleres
+omtrent hver time.
 
 Plan001 SHA `4016255217a3c87bdc84715b6e65707090fa09dcaa1e70a3a1b3455bdac84621`
 ble CLAIM-et under fysisk boot 656, men feilet i initial TRAIN-strukturskår
@@ -940,20 +934,32 @@ systemd-scope etterpå. Frakoblet WSL-sesjonslevetid er sannsynlig
 startårsak, men ikke endelig isolert. Ingen resultat- eller
 terminalkvittering fra modellrunner finnes; plan002 relanseres ikke.
 
+Plan003-startforsøk på boot 662: tilkoblet WSL-sesjon og kapslet
+20G/512M-scope kom opp, men GPU-vakten stanset før trenerstart fordi
+signert hosttelemetri ikke svarte; guard exit 75, 0 måleprøver,
+ingen outputrot, CLAIM, modellforward eller optimizersteg. Guardlogg
+SHA `60b88dacdca37ae08b5e00cc3f41a6b8f182c7f4036f97a10c14c1ec0e9d6ca8`.
+Windows-tjenesten lyttet på `127.0.0.1:38127`, mens den eksisterende
+portvideresendingen `172.30.224.1:38128 → 127.0.0.1:38127` var
+konfigurert, men lyttet ikke etter reboot. Å legge inn igjen nøyaktig
+samme regel ga en signaturverifisert måling `36,44,22.99,250,78`.
+Ingen telemetri-, effekt- eller temperaturgrense er svekket.
+Plan003 relanseres ikke; plan004 krever ny fysisk boot >662 og frisk
+signert måling før innrømmelse.
+
 ## Neste steg
 
-1. Behold plan001 og plan002 konsumert. Kjør innrømmet plan003
-   høyst én gang gjennom gjeldende vakter med tilkoblet WSL-sesjon
-   under hele forsøket; boot 662 og eksakte porter er kontrollert.
-2. Gjennomfør den matchede ikke-GC fitten bare med hjelpetapsvekt
-   0,10, og lukk engangsgaten ved terminalkvittering. Behold seks observasjonspunkter,
-   fem selvstendige TF, kostmål, seed og handlingsregel. Ikke velg
-   480 minutter eller ny regel fra gjenbrukt Apr–jun.
+1. Behold plan001–003 konsumert. Plan004 er klargjort uten adgang.
+   Krev ny fysisk boot >662, frisk signaturverifisert telemetri,
+   rene kilde-/inputhash og ledig GPU/prosess/lås før innrømmelse.
+2. Innrøm høyst én matchet ikke-GC fit med tilkoblet WSL-sesjon og
+   gjeldende vakter. Behold seks observasjonspunkter, fem selvstendige
+   TF, kostmål, seed, handlingsregel og hjelpetapsvekt 0,10.
+   Ikke velg 480 minutter eller ny regel fra gjenbrukt Apr–jun.
 3. Lukk engangsgaten ved terminalkvittering. Skill TRAIN-læring,
-   senere utviklingsskår og økonomisk Edge. Økonomisk Edge krever en
-   uavhengig framtidig journal med alle valgte handler og åpne
-   posisjoner, faktiske kostnader og forhåndsbundet handlingsregel.
-   TEST, Full GC, ONLINE, broker og handel er lukket.
+   senere utviklingsskår og økonomisk Edge. Edge krever uavhengig
+   framtidig journal med alle valgte handler, åpne posisjoner og
+   faktiske kostnader. TEST, Full GC, ONLINE, broker og handel er lukket.
 
 Opprydding: historiske overleveringsavsnitt er fjernet her og bevart i Git.
 Ingen Python-fil er slettet; gjeldende referanse-, import-, test- og
