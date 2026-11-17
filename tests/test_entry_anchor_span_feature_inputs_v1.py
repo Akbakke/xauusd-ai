@@ -289,13 +289,13 @@ def later_metadata_case(fold_id=1):
     return view,coverage,axes,populations,selected
 
 
-@pytest.mark.parametrize('fold_id,first,last',[(1,29849,47592),(2,47602,64881)])
-def test_fixed_later_metadata_owns_only_selected_axes_without_changing_train_normalization(fold_id,first,last):
+@pytest.mark.parametrize('fold_id,first,last,count',[(1,29849,47592,4096),(2,47602,64881,4096),(3,64890,82425,17536)])
+def test_fixed_later_metadata_owns_only_selected_axes_without_changing_train_normalization(fold_id,first,last,count):
     view,coverage,axes,populations,positions=later_metadata_case(fold_id)
     before=deepcopy((view,coverage,populations))
     actual=overlay._require_later_coverage(view,coverage,axes,populations)
     assert (view,coverage,populations)==before
-    assert len(positions)==4096 and positions[0]==first and positions[-1]==last
+    assert len(positions)==count and positions[0]==first and positions[-1]==last
     for key,expected in [('later_parent_positions',positions),
                          ('later_parent_rows',axes['parent_rows'][positions]),
                          ('later_decision_ns',axes['decision_ns'][positions])]:
@@ -310,7 +310,7 @@ def test_fixed_later_metadata_owns_only_selected_axes_without_changing_train_nor
 @pytest.mark.parametrize('fault',[
     'view','full_axes','normalization','population','batch_selection','score_count','boolean_count',
     'unfinished','ref_path','ref_sha','selected_axis_hash','mutable_axis','changed_axis','extra_key'])
-@pytest.mark.parametrize('fold_id',[1,2])
+@pytest.mark.parametrize('fold_id',[1,2,3])
 def test_later_metadata_rejects_scope_axis_or_provenance_changes(fault,fold_id):
     view,coverage,axes,populations,_=later_metadata_case(fold_id)
     if fault=='view':coverage['view_sha256']='b'*64

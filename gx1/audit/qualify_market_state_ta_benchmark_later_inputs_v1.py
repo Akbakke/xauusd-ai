@@ -161,7 +161,7 @@ def envelopes_from_clocks(plan, axes, local_clock, clocks, *, fold_id=1):
              'FULL_AXIS:'+name)
     need(np.array_equal(axes['bar_start_ns']+300*10**9,axes['decision_ns']), 'DECISION_CLOCK')
     panel=overlay.later_panel(fold_id=fold_id)
-    if fold_id == 2:
+    if fold_id in (2, 3):
         prefix=plan.get('normalization_prefix', {})
         need(prefix.get('rows')==panel['prefix_rows']
              and prefix.get('cutoff_ns')==panel['prefix_cutoff_ns'], 'FOLD2_NORMALIZATION_PREFIX')
@@ -171,7 +171,8 @@ def envelopes_from_clocks(plan, axes, local_clock, clocks, *, fold_id=1):
          and np.all(score_times<panel['score_end_exclusive_ns']), 'SCORE_INTERVAL')
     chosen = selected_positions(fold_id=fold_id)
     starts,decisions = axes['bar_start_ns'][chosen],axes['decision_ns'][chosen]
-    need(len(chosen)==4096 and np.all(decisions>=panel['score_start_ns'])
+    need(len(chosen)==len(panel['batch_indices'])*panel['batch_size']
+         and np.all(decisions>=panel['score_start_ns'])
          and np.all(decisions<panel['score_end_exclusive_ns']), 'FIXED_SCORE_INTERVAL')
     need(plan['local_sequence_rows']==MODEL_NATIVE_SEQ_LEN and plan['window_rows']==dict(WINDOW_ROWS)
          and set(clocks)==set(replay.TFS), 'CANONICAL_WINDOW_LENGTHS')
@@ -280,7 +281,8 @@ def verify_native_windows(plan, bounds, reports, axes, local_clock, chosen, loca
             observed[tf][0]=int(original[0]) if observed[tf][0] is None else min(observed[tf][0],int(original[0]))
             observed[tf][1]=int(original[-1])+1
             counts['mtf_windows']+=1
-    need(counts==dict(local_windows=4096,native_window_calls=4096,mtf_windows=20480)
+    need(counts==dict(local_windows=len(chosen),native_window_calls=len(chosen),
+                      mtf_windows=len(chosen)*len(replay.TFS))
          and all(observed[tf]==bounds[tf] for tf in replay.TFS), 'NATIVE_WINDOW_COUNTS_AND_ENVELOPES')
     return counts
 

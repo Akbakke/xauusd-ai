@@ -29,19 +29,26 @@ LATER_SCORE_END_NS = 1735689600000000000  # 2025-01-01 UTC
 
 
 def later_panel(*, fold_id=1):
-    """Two fixed development panels; never infer a scope from observed values."""
-    need(type(fold_id) is int and fold_id in (1, 2), 'LATER_FOLD_ID')
+    """Fixed development panels; the third keeps the Fold2 normalization."""
+    need(type(fold_id) is int and fold_id in (1, 2, 3), 'LATER_FOLD_ID')
     if fold_id == 1:
         return dict(prefix_rows=29574, prefix_cutoff_ns=1727654400000000000,
             score_parent_start=29849, score_rows=17753, batch_size=16,
             score_start_ns=LATER_SCORE_START_NS, score_end_exclusive_ns=LATER_SCORE_END_NS,
             batch_indices=list(LATER_BATCH_INDICES))
-    # Exact245 metadata b043ec38: Jan-Mar2025 has17288 rows at[47602,64890).
-    # Same256 evenly spaced complete B16 groups; final8 partial rows are excluded.
+    if fold_id == 2:
+        # Exact245 metadata b043ec38: Jan-Mar2025 has17288 rows at[47602,64890).
+        # Same256 evenly spaced complete B16 groups; final8 partial rows are excluded.
+        return dict(prefix_rows=47338, prefix_cutoff_ns=1735603200000000000,
+            score_parent_start=47602, score_rows=17288, batch_size=16,
+            score_start_ns=1735689600000000000, score_end_exclusive_ns=1743465600000000000,
+            batch_indices=[i * 1079 // 255 for i in range(256)])
+    # Apr-Jun2025 is a new chronological development period after Fold2 fit.
+    # Cover every complete B16 group; only the final single row is excluded.
     return dict(prefix_rows=47338, prefix_cutoff_ns=1735603200000000000,
-        score_parent_start=47602, score_rows=17288, batch_size=16,
-        score_start_ns=1735689600000000000, score_end_exclusive_ns=1743465600000000000,
-        batch_indices=[i * 1079 // 255 for i in range(256)])
+        score_parent_start=64890, score_rows=17537, batch_size=16,
+        score_start_ns=1743465600000000000, score_end_exclusive_ns=1751328000000000000,
+        batch_indices=list(range(1096)))
 
 
 def _axis_sha(value):
@@ -49,7 +56,7 @@ def _axis_sha(value):
 
 
 def _require_later_coverage(view, coverage, axes, populations):
-    """Bind one exact fold1/fold2 development panel; this grants no execution.
+    """Bind one exact development panel; this grants no execution.
 
     The caller must verify the referenced COMPLETE qualification and sidecar
     file hashes. This owner verifies their declared axes and actual arrays.
@@ -67,9 +74,11 @@ def _require_later_coverage(view, coverage, axes, populations):
          and coverage['full_axes'] == view['full_axes']
          and coverage['normalization_prefix'] == view['prefix']
          and coverage['physical_populations'] == populations, 'LATER_COVERAGE_BINDING')
-    panels = [later_panel(fold_id=i) for i in (1, 2)]
+    panels = [later_panel(fold_id=i) for i in (1, 2, 3)]
     matches = [p for p in panels if view['prefix']['rows'] == p['prefix_rows']
-               and view['prefix']['cutoff_ns'] == p['prefix_cutoff_ns']]
+               and view['prefix']['cutoff_ns'] == p['prefix_cutoff_ns']
+               and coverage['score_start_ns'] == p['score_start_ns']
+               and coverage['score_end_exclusive_ns'] == p['score_end_exclusive_ns']]
     need(view['full_axes']['rows'] == 118249 and len(matches) == 1, 'LATER_QUALIFIED_PREFIX')
     panel = matches[0]
     fixed = {k: panel[k] for k in ('score_parent_start', 'score_rows', 'batch_size',

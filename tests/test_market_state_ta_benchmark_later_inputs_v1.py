@@ -195,7 +195,23 @@ def test_fold2_envelopes_reject_mixed_scope(monkeypatch,fault):
     elif fault=='wrong_period':
         plan,axes,local,clocks=clock_case(monkeypatch,1)
         plan['normalization_prefix']=dict(rows=47338,cutoff_ns=1735603200000000000)
-    elif fault=='unknown_fold':fold_id=3
+    elif fault=='unknown_fold':fold_id=4
     else:fold_id=True
     with pytest.raises(RuntimeError,match='PREFIX|INTERVAL|FOLD_ID'):
         worker.envelopes_from_clocks(plan,axes,local,clocks,fold_id=fold_id)
+
+
+def test_fold3_full_development_envelope_keeps_fold2_normalization(monkeypatch):
+    plan,axes,local,clocks=clock_case(monkeypatch,3)
+    bounds,pops,chosen,positions=worker.envelopes_from_clocks(
+        plan,axes,local,clocks,fold_id=3)
+    assert len(chosen)==17536 and chosen[0]==64890 and chosen[-1]==82425
+    assert bounds['local']==[int(positions[0])-95,int(positions[-1])+1]
+    plan['view_sha256']='a'*64
+    view=dict(contract_sha256=plan['view_sha256'],full_axes=plan['full_axes'],
+              prefix=plan['normalization_prefix'])
+    result=dict(path=str(worker.ROOT/'RESULT.json'),sha256='b'*64)
+    coverage=worker.coverage_record(plan,view,axes,pops,result,fold_id=3)
+    assert coverage['score_rows']==17537 and coverage['batch_indices']==list(range(1096))
+    assert coverage['normalization_prefix']==dict(rows=47338,cutoff_ns=1735603200000000000)
+    assert worker.overlay._require_later_coverage(view,coverage,axes,pops)['later_parent_positions'][-1]==82425

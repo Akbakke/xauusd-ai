@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_NATIVE_S_F_TARGET_SCOPE_QUALIFIED_NO_MODEL_FIT.
+TA_FOLD2_APR_JUN_INPUT_ADMITTED_NO_MODEL.
 Brukeren fjernet kravet om nytt «ja» for hver stor lokal ikke-GC-kjøring.
 Integrator innrømmet plan002 SHA
 `330e4cb1dd4c76980264b44a32f091e67c43142819514901f60068abed102783`
@@ -537,6 +537,17 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   og strukturfasit må bindes før en ny kronologisk score. Dette er
   utvikling, ikke forseglet bekreftelse eller Edge.
 
+- Apr–jun 2025-utviklingsinput er nå eksakt forberedt: 17 536 komplette
+  B16-rader av 17 537 på forhåndsvalgt M5-akse. Eksisterende seksflaters
+  TA-produsent får målt fysisk behov på lokal/M5/M15/H1/H4/D1
+  17 697/17 617/5 931/1 563/480/316 rader. Ny visning endrer bare
+  kildehash og avledet visningshash; Fold2-fasiter, features, fullakser og
+  normalisering er uendret. Kvalifisert plan-SHA
+  `906ec2f69a6208bb9f4b83f6dbb7cb1ce6eaf5eb6fa35e8d65e00a9daa4b59d1`
+  er innrømmet én gang som 4G/512M, maks 2 700 sekunder, bare lesende
+  inputproduksjon. Ingen modellforward, fit eller TEST-adgang. Dette er
+  fortsatt inputforberedelse, ikke Edge.
+
 ## Ikke gjort / faktisk hindring
 
 Den avsluttede fit002-lesningen er bundet i
@@ -642,9 +653,9 @@ Entry, TEST eller handel åpnes av denne presiseringen.
 
 ## Neste steg
 
-1. Bind kun ny Apr–jun 2025 utviklings-TA-featureinput og lukket M1-bane
-   med eksisterende eiere. Kvalifiser strukturfasit og observerbarhet;
-   ikke bruk Jan–mar på nytt til modellvalg.
+1. Kjør kun den innrømmede Apr–jun TA-inputplanen gjennom capped audit.
+   Kontroller terminal og alle seks flater, bind så lukket M1-bane og
+   strukturfasit på samme akse. Ikke bruk Jan–mar på nytt til modellvalg.
 2. Forhåndsbind én kronologisk integrert fem-TF F/S/strukturkampanje med
    både native og varierende S-spørringshorisonter. Bruk separat målt
    retning per TF, de 6 746 kjente M5-naboparene, faste proper scores,
