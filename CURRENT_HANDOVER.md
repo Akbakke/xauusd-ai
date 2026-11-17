@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-ACTIVE_M5_COLD_INITIAL_ADMITTED_NO_EDGE.
+ACTIVE_M5_COLD_FIT_PLAN_PREPARATION_NO_EDGE.
 Første direkte kostete M5-fit valgte 11 486 SHORT, 0 LONG og
 6 050 FLAT på 17 536 gjenbrukte Apr–jun-rader. Kjente valgte
 terminalutfall ga −0,578 bps i snitt etter oppgitte kostnader;
@@ -82,14 +82,16 @@ Beslutningstapet er nå endret i kilde, men ingen ny modell er trent eller skår
   TA-normaliseringskontrakt SHA `6c882086902701d5c9503d0c77c72c8e291ed65c44d065171c2d27afa500c3f6`.
   Null modellforward/optimizer; verdiene er rå. Fersk initial må
   måle postnormalisering og én ekte kostjustert M5-loss før fit.
-- Én eksakt CPU-preflight uten trening er innrømmet:
-  `TA_M5_COLD_INITIAL_PREFLIGHT_20261117_001`, plan SHA
-  `9214e4ab11aa4dc2dba01f413b31676b3d7188a0e034b235e678baf26d14a5d1`. Den tillater én fersk M5-modell
-  og to forwards: Fold1 FIT B16 med dagens beslutningstap, og
-  Fold1 SCORE B16 gjennom eksisterende scorer. Den binder rå
-  inputhash, måler åtte postnormaliserte numeriske flater og
-  initial state-hash. Null backward/optimizer/fit. Ren preflight
-  må bestå før én capped kjøring; dette er ikke edgebevis.
+- Kald initialpreflight `TA_M5_COLD_INITIAL_PREFLIGHT_20261117_001`, plan
+  SHA `9214e4ab11aa4dc2dba01f413b31676b3d7188a0e034b235e678baf26d14a5d1`,
+  fullførte og er konsumert. RESULT SHA `1b536acf1f56e3d24687a17b1eae258eb49b08b085d14c71d7093a499e608f9a`,
+  TERMINAL SHA `c6f3d21583309486e605d256eb89c9686e96ac63362b72811cd634e3b5ada067`.
+  Låste rå FIT/SCORE-B16-hasher matchet. Åtte postnormaliserte
+  flater var finitte; Fold1 FIT M5-loss `0.48889419436454773` var finitt,
+  og Fold1 SCORE passerte gammel scorer. Initial state SHA
+  `803214ff3b5b5724cb1c1488e5ae29c1c17d479ca8db23d51301a45a6094629e` var uendret.
+  Fersk modell 1, forwards 2, backward/optimizer 0; ingen trening
+  eller edge. Neste steg er én eksakt kald fit-plan med fersk boot.
 - Oppryddingsrevisjonen fant ingen repo-fil eller DATA/RUNS-artefakt som var
   bevist trygg å slette. Målt ledig plass var 543 GB; ingen sletting ble gjort.
 - M5 er beslutningspunkt. Den siste matchede modellen valgte 0 LONG,
