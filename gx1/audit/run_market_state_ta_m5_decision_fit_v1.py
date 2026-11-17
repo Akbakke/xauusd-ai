@@ -573,7 +573,12 @@ def inspect_cold(plan_sha, *, admitted):
                  plan['required_invocation_windows_boot_id_greater_than'], 'COLD_ONE_USE_ADMISSION')
     else:
         need(closed and policy['training_enabled'] is policy['native_training_enabled'] is False
-             and gate.get('execution_authorized') is not True, 'COLD_TRAINING_CLOSED')
+             and policy['full_epoch_training_allowed'] is policy['native_launch_authorized'] is False
+             and gate.get('status') == 'PREPARED_NOT_ADMITTED'
+             and gate.get('plan') == ref(COLD_PLAN)
+             and gate.get('remaining_invocations') == 0
+             and gate.get('execution_authorized') is gate.get('training_authorized') is False,
+             'COLD_TRAINING_CLOSED')
     return plan, stats
 
 
@@ -691,11 +696,28 @@ def main():
     parser.add_argument('--plan-sha256', required=True)
     parser.add_argument('--device', choices=('cuda',), required=True)
     parser.add_argument('--out-dir', required=True)
+    parser.add_argument('--preflight', action='store_true')
     args = parser.parse_args()
-    if args.plan == str(PLAN) and args.out_dir == str(ROOT):
+    if args.plan == str(PLAN) and args.out_dir == str(ROOT) and not args.preflight:
         run(args.plan_sha256)
     elif args.plan == str(COLD_PLAN) and args.out_dir == str(COLD_ROOT):
-        run_cold(args.plan_sha256)
+        if args.preflight:
+            plan, _ = inspect_cold(args.plan_sha256, admitted=False)
+            boot = physical_windows_boot_id()
+            print(json.dumps({'status': 'PREFLIGHT_PASS', 'plan': ref(COLD_PLAN),
+                'scope': {key: plan[key] for key in ('fit_rows', 'excluded_gap_rows',
+                    'score_rows', 'batch_size', 'batch_visits', 'initial_score_forwards',
+                    'final_score_forwards', 'model_forwards', 'max_optimizer_updates',
+                    'capped_execution')},
+                'physical_windows_boot_id': boot,
+                'fresh_physical_boot': boot > plan['required_invocation_windows_boot_id_greater_than'],
+                'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'],
+                    cwd=REPO, text=True).strip(), 'source_clean': True,
+                'output_root_absent': True, 'claim_created': False,
+                'model_constructions': 0, 'model_forwards': 0,
+                'optimizer_steps': 0, 'test_data_used': False}, sort_keys=True))
+        else:
+            run_cold(args.plan_sha256)
     else:
         need(False, 'CLI_SCOPE')
 

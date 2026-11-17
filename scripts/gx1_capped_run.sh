@@ -479,7 +479,15 @@ matches_bound_market_state_ta_apr_jun_paired_fit() {
 # One exact direct-cost M5 fit on the reused Fold2 and April-June axes.
 matches_bound_market_state_ta_m5_decision_fit() {
   local expected_plan="$1" expected_output="$2"
+  if [[ "$expected_plan" == "$REPO_ROOT/configs/research/TA_M5_COLD_JOINT_FIT_20261117_001.json" ]]; then
+    [[ "$expected_output" == /home/andre2/GX1_RUNS/TA_M5_COLD_JOINT_FIT_20261117_001 ]] || return 1
+  fi
   shift 2
+  if [[ $# -eq 12 ]]; then
+    [[ "$expected_plan" == "$REPO_ROOT/configs/research/TA_M5_COLD_JOINT_FIT_20261117_001.json" \
+      && "${12}" == --preflight ]] || return 1
+    set -- "${@:1:11}"
+  fi
   [[ $# -eq 11 ]] || return 1
   [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m && "$3" == "$TA_M5_DECISION_FIT_TRAINER_MODULE" && "$4" == --plan && "$5" == "$expected_plan" && "$6" == --plan-sha256 && "$7" =~ ^[0-9a-f]{64}$ && "$8" == --device && "$9" == cuda && "${10}" == --out-dir && "${11}" == "$expected_output" && "$expected_plan" == /* && "$expected_output" == /* ]] || return 1
   [[ -f "$expected_plan" && ! -L "$expected_plan" && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1
@@ -896,7 +904,16 @@ validate_target_command() {
   fi
   if [[ "${3:-}" == "$TA_M5_DECISION_FIT_TRAINER_MODULE" ]]; then
     local decision_root=/home/andre2/GX1_RUNS/TA_M5_DECISION_FIT_20261117_004
-    if [[ "$ATTENDED_SMOKE" != false || "$CUDA_PRODUCER_GUARD" != false ]] || ! matches_bound_market_state_ta_m5_decision_fit "$REPO_ROOT/configs/research/TA_M5_DECISION_FIT_20261117_004.json" "$decision_root" "$@"; then
+    local cold_decision_root=/home/andre2/GX1_RUNS/TA_M5_COLD_JOINT_FIT_20261117_001
+    if [[ "$ATTENDED_SMOKE" != false || "$CUDA_PRODUCER_GUARD" != false ]]; then
+      echo "FATAL: direct-cost M5 decision fit is not exactly bound" >&2
+      exit 75
+    fi
+    if matches_bound_market_state_ta_m5_decision_fit "$REPO_ROOT/configs/research/TA_M5_DECISION_FIT_20261117_004.json" "$decision_root" "$@"; then
+      :
+    elif matches_bound_market_state_ta_m5_decision_fit "$REPO_ROOT/configs/research/TA_M5_COLD_JOINT_FIT_20261117_001.json" "$cold_decision_root" "$@"; then
+      decision_root="$cold_decision_root"
+    else
       echo "FATAL: direct-cost M5 decision fit is not exactly bound" >&2
       exit 75
     fi

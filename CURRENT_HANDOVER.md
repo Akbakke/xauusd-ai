@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-ACTIVE_M5_COLD_FIT_DRAFT_PREFLIGHT_NO_EDGE.
+ACTIVE_M5_COLD_LAUNCH_PREFLIGHT_PENDING_NO_EDGE.
 Første direkte kostete M5-fit valgte 11 486 SHORT, 0 LONG og
 6 050 FLAT på 17 536 gjenbrukte Apr–jun-rader. Kjente valgte
 terminalutfall ga −0,578 bps i snitt etter oppgitte kostnader;
@@ -94,11 +94,14 @@ Beslutningstapet er nå endret i kilde, men ingen ny modell er trent eller skår
   eller edge. Neste steg er én eksakt kald fit-plan med fersk boot.
 - Én samlet kald fit-plan er forberedt, ikke innrømmet:
   `TA_M5_COLD_JOINT_FIT_20261117_001`, plan SHA
-  `bf06c34125479b656a9113f5b33c5333b83ffdea470d5cd700be872a9a1c1dde`. Den binder 29 574 FIT,
+  `f6d2d368ebc48280dd688a35c58182a63401384a01a90a5eb0722f04037697b6`. Den binder 29 574 FIT,
   275 ekskluderte gaprader og 17 489 Oct–Dec-utviklingsrader,
   initialhash, prior, rå og normalisert preflight, 4 037 maks
   modellforwards og 1 849 maks optimizersteg. Boot er fortsatt
   663; fysisk >663 og ren planport kreves før separat policyopptak.
+  Boot 664 er bekreftet, signert hosttelemetri passerte, GPU/lås er ledig.
+  Launch-skriptet godtar nå bare denne eksakte kalde planstien; lesende
+  preflight bruker samme trenerwrapper uten CLAIM eller output.
   training_enabled=false og ingen modelljobb kjører.
 - Oppryddingsrevisjonen fant ingen repo-fil eller DATA/RUNS-artefakt som var
   bevist trygg å slette. Målt ledig plass var 543 GB; ingen sletting ble gjort.

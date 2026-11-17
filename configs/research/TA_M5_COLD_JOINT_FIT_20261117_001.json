@@ -135,11 +135,11 @@
   "score_parent_start": 29849,
   "score_rows": 17489,
   "seed": 20260911,
-  "source_base_commit": "d19685052648b5f1774beeba09ccfd3ae8dc13f6",
+  "source_base_commit": "b862eaf3b330758e55fc9314c8d9bcb9e9fb7b05",
   "source_owners": {
     "gx1/audit/market_state_ta_apr_jun_campaign_inputs_v1.py": "a874b0659d096e177a8b239b59270b5e0cf923d48546b185911b05bef4483658",
     "gx1/audit/run_market_state_ta_apr_jun_paired_fit_v1.py": "bbd56baf6b587b7920df88b43ef8bffd7dfcf663035200aad4adafa132dd529a",
-    "gx1/audit/run_market_state_ta_m5_decision_fit_v1.py": "6955c938559cf1256c0c6ae2da1122e2ac0c8b8dd4e615c31ce81bf6ecfe583a",
+    "gx1/audit/run_market_state_ta_m5_decision_fit_v1.py": "ba6145b1fe70eeb8fc99c8dd530220429bb9e17cb7da4571d968db7ee3b24fed",
     "gx1/contracts/entry_anchor_span_feature_inputs_v1.py": "5430b22679ed8124b31b59e54780ab2dfb505a8dc2700cbc0e09bca12f991bd4",
     "gx1/contracts/entry_native_direction_feature_view_v1.py": "e84c6cb54934023a84a045202cd7763a8dd9fcca8016c0264abd9dc638bf5825",
     "gx1/contracts/market_state_five_endpoint_target_binding_v1.py": "71dc01154aada84d01e930cb78970a79608c5bff5ebd710d9f48273934e14bfd",
@@ -152,7 +152,7 @@
     "gx1/contracts/market_state_time_query_scorer_v2.py": "a3bd1e8e4482030cee0e267ad88da7552f4e1fe65e4e79182b19339e31acad12",
     "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": "577f2048e96681dc928a901dd5975c1d2bb9e67c855b9bb4ac9eed8016f821b5",
     "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "5983cd8d6395ed2a61a139a35069d96accc4c8c62378a8460d09ff3aeaf7201e",
-    "scripts/gx1_capped_run.sh": "6d2155a46a1323fbc92d992b7d18cf3f49b8e5c2c9f961a098589e90e6a73730",
+    "scripts/gx1_capped_run.sh": "06cb81cd2815d08236113f108bf5dbd5b4a3a99a736b6ad8f82b198cba77f6c8",
     "scripts/gx1_guarded_trainer_exec.sh": "6c4a4bfe704828aeb1c5ad2d89160e4cbb8fadb210be5fc33d26f12b96db0c45"
   },
   "stage": "ta_m5_cold_joint_fit_20261117_001",
