@@ -146,6 +146,17 @@ def input_refs():
     return refs
 
 
+def require_constructor_widths(constructor, view):
+    """The constructor sees full raw signal columns before 318-wide TA routing."""
+    need(constructor['physical_layout'] == 'current_full_raw_before_ta_projection'
+         and constructor['seq_input_dim'] == constructor['snap_input_dim'] == 2728
+         and constructor['ctx_cont_dim'] == 2542
+         and all(constructor['multi_tf'][tf.lower() + '_seq_dim'] == 256
+                 for tf in overlay.TIMEFRAMES)
+         and view['physical_widths']['signal'] == 318
+         and view['physical_widths']['mtf'] == 256, 'CONSTRUCTOR_WIDTHS')
+
+
 def checked_dependencies(plan):
     refs = plan['inputs']
     material, manifest = read(refs['material_result']), read(refs['material_manifest'])
@@ -204,8 +215,7 @@ def checked_dependencies(plan):
     views._require_view(view, unobserved_units_profile=units)
     need(ta == norm.project_ta_input_normalization_contract(
          base, unobserved_units_profile=units), 'TA_NORMALIZATION_RECONSTRUCTION')
-    need(constructor['seq_input_dim'] == 318
-         and constructor['multi_tf']['m5_seq_dim'] == 256, 'CONSTRUCTOR_WIDTHS')
+    require_constructor_widths(constructor, view)
     fit_result, later_result = (read(refs[k]) for k in
         ('fit_span_result', 'later_span_result'))
     need(fit_result['status'] == 'COMPLETE_INPUT_EXTENSION_ONLY'

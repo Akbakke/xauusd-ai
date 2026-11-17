@@ -81,3 +81,14 @@ def test_gather_rejects_category_outside_contract(monkeypatch):
             normal=normal, axes=axes, seq={}, current={'snap': None,
             'ctx_cont': None, 'ctx_cat': None}, bound=SimpleNamespace(mtf_sources={}),
             started=time.monotonic())
+
+
+def test_constructor_full_raw_width_precedes_ta_projection():
+    constructor = {'physical_layout': 'current_full_raw_before_ta_projection',
+        'seq_input_dim': 2728, 'snap_input_dim': 2728, 'ctx_cont_dim': 2542,
+        'multi_tf': {tf.lower() + '_seq_dim': 256 for tf in gather.overlay.TIMEFRAMES}}
+    view = {'physical_widths': {'signal': 318, 'mtf': 256}}
+    gather.require_constructor_widths(constructor, view)
+    constructor['seq_input_dim'] = 318
+    with pytest.raises(RuntimeError, match='CONSTRUCTOR_WIDTHS'):
+        gather.require_constructor_widths(constructor, view)
