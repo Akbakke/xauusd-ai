@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_M5_DECISION_FIT_004_PREPARED_NOT_ADMITTED. Første direkte kostete
+TA_M5_DECISION_FIT_004_ADMITTED_ONE_USE_PENDING_CLAIM. Første direkte kostete
 M5-fit ble fullført på 47 338 Fold2-TRAIN-rader og 2 959 oppdateringer,
 men fant ingen Edge: på 17 536 gjenbrukte Apr–jun-rader valgte den
 0 LONG, 11 486 SHORT og 6 050 FLAT. De 9 853 valgene med kjent
@@ -17,9 +17,13 @@ En TRAIN-gradientkontroll viste hjelpetap 1,28–1,77 ganger sterkere enn
 det direkte kostmålet på faste prøver. En etterfølger med kun vekten
 0,25 → 0,10 er klargjort. Plan002 og plan003 stoppet begge før CLAIM
 av ulike oppstartshindre, med null modellsteg; de er konsumert.
-Plan004 er forberedt, men ikke innrømmet. training_enabled=false,
-native_training_enabled=false, full_epoch_training_allowed=false og
-native_launch_authorized=false. Full GC er pauset; TEST, ONLINE,
+Plan004 er innrømmet nøyaktig én gang på fysisk boot 663 etter
+ren pushet kilde fd8489fb, 13 inputhash, 17 kildehash, ledig GPU/lås,
+tilkoblet WSL-bootoppslag og to signaturverifiserte hostmålinger.
+Eksakt samme portvideresending måtte legges inn igjen etter reboot.
+training_enabled=true, native_training_enabled=true,
+full_epoch_training_allowed=true og native_launch_authorized=true
+bare for plan004. Full GC er pauset; TEST, ONLINE,
 broker og handel er lukket. Ingen økonomisk Edge eller uavhengig
 handelsgeneralisering er bevist. Stabile langkjøringer kontrolleres
 omtrent hver time.
@@ -949,11 +953,11 @@ signert måling før innrømmelse.
 
 ## Neste steg
 
-1. Behold plan001–003 konsumert. Plan004 er klargjort uten adgang.
-   Krev ny fysisk boot >662, frisk signaturverifisert telemetri,
-   rene kilde-/inputhash og ledig GPU/prosess/lås før innrømmelse.
-2. Innrøm høyst én matchet ikke-GC fit med tilkoblet WSL-sesjon og
-   gjeldende vakter. Behold seks observasjonspunkter, fem selvstendige
+1. Behold plan001–003 konsumert. Start innrømmet plan004
+   høyst én gang med tilkoblet WSL-sesjon og gjeldende vakter.
+   Boot 663, ren kilde, input, ledig maskin og signert telemetri
+   er kontrollert.
+2. Kjør den matchede ikke-GC fitten. Behold seks observasjonspunkter, fem selvstendige
    TF, kostmål, seed, handlingsregel og hjelpetapsvekt 0,10.
    Ikke velg 480 minutter eller ny regel fra gjenbrukt Apr–jun.
 3. Lukk engangsgaten ved terminalkvittering. Skill TRAIN-læring,
