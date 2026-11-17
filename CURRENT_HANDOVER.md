@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_FOLD2_APR_JUN_PHYSICAL_INPUT_COMPLETE_CONSUMED_NO_MODEL.
+TA_APR_JUN_M1_STRUCTURE_INPUT_ADMITTED_NO_MODEL.
 Brukeren fjernet kravet om nytt «ja» for hver stor lokal ikke-GC-kjøring.
 Integrator innrømmet plan002 SHA
 `330e4cb1dd4c76980264b44a32f091e67c43142819514901f60068abed102783`
@@ -552,6 +552,14 @@ Ingen native trening, Full GC, TEST, broker eller handel er åpnet.
   TERMINAL-ref står i policy. Dette er fysisk TA-input, ikke en faktisk
   normalisert modellbatch eller Edge.
 
+- Ny engangsplan for lukket M1-bane og M5-topp/bunn-fasit på de samme
+  17 536 Apr–jun-radene er forberedt og innrømmet som 4G/512M CPU-audit,
+  maks 1 800 sekunder. Plan-SHA
+  `15d534feed3cf3852717a7add6e736804789544517b145028944cee14c088748`.
+  Metadata-preflight bandt 31 M1- og 21 M5-kildegrupper, nøyaktig
+  utviklingsakse og fullført fysisk TA-kvittering. Ingen CLAIM, rålesning
+  i ny jobb, modellforward eller optimizersteg ennå.
+
 ## Ikke gjort / faktisk hindring
 
 Den avsluttede fit002-lesningen er bundet i
@@ -657,9 +665,9 @@ Entry, TEST eller handel åpnes av denne presiseringen.
 
 ## Neste steg
 
-1. Bind lukket M1-bane og M5-strukturfasit på de samme 17 536 Apr–jun-
-   utviklingsradene. Kontroller deretter én faktisk normalisert ni-flaters
-   modellbatch mot den nye kildevisningen. Ikke bruk Jan–mar til modellvalg.
+1. Kjør bare den innrømmede Apr–jun M1-/strukturplanen under capped audit.
+   Kontroller terminal og ukjente masker, deretter én faktisk normalisert
+   ni-flaters modellbatch mot ny kildevisning. Ikke bruk Jan–mar til modellvalg.
 2. Forhåndsbind én kronologisk integrert fem-TF F/S/strukturkampanje med
    både native og varierende S-spørringshorisonter. Bruk separat målt
    retning per TF, de 6 746 kjente M5-naboparene, faste proper scores,
