@@ -222,3 +222,9 @@ D1 425. Materialiseringen dekker 29 574 FIT og 17 489 senere valgte rader;
 modellforward, optimeringssteg og TEST-lesning var null. Dette kvalifiserer
 verdiene, ikke full modellinput eller edge. Neste steg er FIT-only statistikk,
 ny 318/256-visning og full rå/normalisert FIT/later gather. Trening er stengt.
+
+FIT-only normaliseringsplan `TA_M5_EMA_DELTA_FIT_NORMALIZATION_20261118_001`
+(SHA `68f987910976de6ec0d24c1b5787e8773c01abf1672c1fe304561b5619bc1fc2`) er innrømmet som én auditkjøring: seks nye
+statistikkfitter på gammel Fold1-prefix, null modellforward og ingen senere
+statistikk. Planen er ikke claimet. Etter en ren kildekontroll kan den kjøres
+én gang med ressursvakt. Den nye visningen og full FIT/later gather gjenstår.
