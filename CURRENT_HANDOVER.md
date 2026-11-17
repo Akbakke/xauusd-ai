@@ -232,3 +232,11 @@ Seks nye felt ble normalisert bare på gammel Fold1-FIT-prefix, 29 574 valgte
 FIT-rader; gamle felt ble kopiert uten ny fit. Ny TA-projeksjon har 318/256
 felter, uten modellforward eller TEST. Den nye visningen og full FIT/later
 rå/normalisert gather gjenstår før eventuell modellinitial.
+
+Ny 318/256-pakke og visning er publisert som metadata uten modell eller
+trening. Visningsfil-SHA `638b3706ebc4566439599e27826cd00322d8e0156166333e507a4707bd1bac25`; RESULT-SHA
+`0372b18d1fd80e7d8ae5efd0fadd1d56413ff18d406a5dc1a96c85756b6c2139`. Alle seks faktiske EMA-arkiver besto direkte
+inputvakt. Første bygging av full-gather-plan avdekket én konkret kontraktfeil:
+constructorens 2 728 råfelter ble forvekslet med 318 TA-projiserte felter.
+Ingen plan, CLAIM eller gather-jobb ble opprettet. Rett bare denne kontrollen,
+bygg så planen og kjør reell preflight før én eventuell kapslet gather.
