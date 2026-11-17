@@ -7,19 +7,18 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_APR_JUN_PAIRED_FIT_002_COMPLETE_CONSUMED_ECONOMICS_UNPROVEN.
-Brukeren fjernet kravet om nytt «ja» for hver stor lokal ikke-GC-kjøring.
-Integrator innrømmet plan002 SHA
-`330e4cb1dd4c76980264b44a32f091e67c43142819514901f60068abed102783`
-i policy under stående 0 USD-fullmakt. Den kjørte etter fysisk Windows
-boot-ID 657 og avsluttet med terminal exit 0: 47 338 TRAIN-rader,
-2 959 optimizersteg, 1 024 initial-/final-skårforwards og uendret kilde.
-Signert GPU-vakt holdt seg innen grensene. Engangsplanen er konsumert;
-training_enabled=false, native_training_enabled=false og
-full_epoch_training_allowed=false. Faste TRAIN- og senere opptak er nå
-gjennomgått: struktur lærte, men M5-vending og kalibrert S/F-retning
-kvalifiserte ikke. Full GC er pauset; TEST, Entry/Exit, broker og handel er
-lukket. M5-Edge er ubevist. Stabile langkjøringer sjekkes omtrent hver time.
+TA_APR_JUN_M5_COST_001_COMPLETE_CONSUMED_NO_EDGE. Én integrert ikke-GC
+Fold2-fit på 47 338 TRAIN-rader er fullført; fast apr–jun-skår på 17 536
+senere utviklingsrader fant ingen kvalifisert native M5-S/F-retning.
+Strukturtreff lærte, men ga ingen påvist M5-sideprognose. Den etterfølgende
+forhåndsbundne kostkontrollen valgte FLAT på alle rader i sin primære
+M5-F-beslutning; tvungen side tapte i snitt ved alle seks målepunkter.
+Begge engangsplaner er konsumert. training_enabled=false,
+native_training_enabled=false og full_epoch_training_allowed=false.
+Full GC er pauset; TEST, Entry/Exit, ONLINE, broker og handel er lukket.
+Ingen økonomisk Edge eller uavhengig handelsgeneralisering er bevist.
+Brukeren fjernet kravet om nytt «ja» for hver kvalifisert lokal ikke-GC-
+kjøring. Stabile langkjøringer kontrolleres omtrent hver time.
 
 Plan001 SHA `4016255217a3c87bdc84715b6e65707090fa09dcaa1e70a3a1b3455bdac84621`
 ble CLAIM-et under fysisk boot 656, men feilet i initial TRAIN-strukturskår
