@@ -842,6 +842,7 @@ EXPECTED_LIVE_SPECIALIST_ROUTING: dict[str, tuple[str, ...]] = {
         "_v1_kama30_change_5_atr",
         "_v1_tema20_change_3_atr",
         "chart.local_ema200_slope_atr",
+        "chart.local_ema50_200_spread_delta_5_atr",
         "chart.local_ema50_200_bull_state",
         "chart.local_ema50_200_cross_down",
         "chart.local_ema50_200_cross_up",
@@ -1190,18 +1191,17 @@ def test_family_timeframe_lane_has_no_unclassifiable_or_contradicted_field() -> 
     assert not unmapped, unmapped
 
 
-# Digests were measured from the prequalified 060 proposal (3721f91e...),
-# independently of this compiler. The external artifact is not a test/runtime
-# dependency and neither formulas nor normalization are selected again here.
-def test_compact_profile_matches_prequalified_ordered_field_sets() -> None:
+# A source feature addition changes these hashes. Existing bound profiles and
+# normalization are stale until a fresh input qualification is completed.
+def test_compact_profile_matches_current_ordered_field_sets() -> None:
     compiled = compile_compact_entry_execution_profile()
     assert compiled["name"] == COMPACT_ENTRY_EXECUTION_PROFILE_NAME
     # The two chart anchor spans enlarge physical surfaces; compact active names stay exact.
-    assert compiled["contract_sha256"] == "7a24f2df96b7ed70cabd40795627415b9545fd9604b4ddc8919e33a90be19f8b"
+    assert compiled["contract_sha256"] == "74f6ab75711689fc275af642ab44c2bb3ff4937f84ba797b2e84d815875f3ece"
     expected = {
-        "signal": (2622, "0acd1c2c9c73f8ef1e4acaa06a01f8fabd74ae4df57ba33baff3ee7a1d580549"),
+        "signal": (2623, "c18361ae8524303a47b73f0665ac143d85fe0ba3d1d64da09e8f4f79cd1308e5"),
         "ctx_cont": (2525, "6e565dd7fc69977cfb26926e93e8844875989df4b718becd3302f6d9d0575d7a"),
-        "mtf": (139, "06702ede1ada77f56fdd6c97281a724b2ec6f43cdccd51e74238b415a08ca3e6"),
+        "mtf": (140, "2336d27e62ec702200384120c7c1cff5c52a404ab9763df88d8c59b03807b05c"),
     }
     for surface, (width, digest) in expected.items():
         names = compiled["active_field_names"][surface]
@@ -1212,7 +1212,7 @@ def test_compact_profile_matches_prequalified_ordered_field_sets() -> None:
         physical = compiled["physical_field_names"][surface]
         assert tuple(physical[i] for i in indices) == names
         assert tuple(sorted(indices)) == indices
-    assert tuple(map(len, compiled["physical_field_names"].values())) == (2727, 2542, 1, 255)
+    assert tuple(map(len, compiled["physical_field_names"].values())) == (2728, 2542, 1, 256)
     payload = {k: v for k, v in compiled.items() if k != "contract_sha256"}
     assert compiled["contract_sha256"] == hashlib.sha256(json.dumps(
         payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True,
@@ -1237,7 +1237,7 @@ def test_full_ta_anchor_spans_reach_local_and_shared_five_tf_chart_routes() -> N
             assert classify_entry_specialist_feature(name) == "chart_geometry_encoder"
     # TA uses all five native matrices with this one exact ordered MTF surface.
     assert profile["physical_field_names"]["mtf"] == tuple(MULTI_TF_PER_BAR_FEATURES_V4)
-    assert len(profile["physical_field_names"]["mtf"]) == 255
+    assert len(profile["physical_field_names"]["mtf"]) == 256
 
 
 def test_compact_profile_preserves_gc_macro_and_actual_owner_routes() -> None:
@@ -1277,7 +1277,7 @@ def test_compact_profile_preserves_gc_macro_and_actual_owner_routes() -> None:
     for family, expected in (("price_action_candle_encoder", 74), ("vol_compression_encoder", 102)):
         names = [fields["signal"][i] for i in compiled["local_signal_indices_by_specialist"][family]]
         assert sum(n.removeprefix("ctx_cont.") in gc_set for n in names) == expected
-    assert len(compiled["generic_snap_signal_indices"]) == 97
+    assert len(compiled["generic_snap_signal_indices"]) == 98
     assert all(not fields["signal"][i].startswith("ctx_cont.") for i in compiled["generic_snap_signal_indices"])
 
 

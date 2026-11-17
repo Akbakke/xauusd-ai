@@ -154,12 +154,10 @@ def test_valid_full_contract_has_stable_names_order_and_bits(tmp_path: Path) -> 
             # narrower surface rather than a changed one.  The width itself is
             # never restated: it is read from the owner tuple below.
             (240, len(PRICE_DERIVED_FEATURE_NAMES)),
-            # 2026-09-21 fidelity wave: three exact-affine fields retired
-            # (F-9/F-10) and the slow-span slope moved to k=20 (F-22), so
-            # the value hash moves by design; regenerated on the same
-            # deterministic fixture.
-            "49e54f8a8470411aa028f1020c37bb099a4ab0e4afd3f1792cb6e297731f52aa",
-            "d2a71d7e4648741e287d73414b497ecda89c4363957bde84ce9e39db1cb68d16",
+            # Restoring the distinct five-bar spread delta adds one field;
+            # these hashes pin the same deterministic fixture after repair.
+            "3f69a8f70e06e899ec3c4da68219ed9cd8e4bab0c95ada696c2864ccbd48dece",
+            "fe0736fdab927a0e08a385f4a3def529e0dde5797d9403a0bd37611705114567",
         ),
         "candle": (
             candle_x,
@@ -652,6 +650,7 @@ _REPAIRED_ATR_FIELDS_TO_PER_TF_OWNER = {
     "chart.local_price_vs_ema200_atr": "ema200_dist_atr",
     "chart.local_ema50_slope_atr": "ema50_slope_atr",
     "chart.local_ema200_slope_atr": "ema200_slope_atr",
+    "chart.local_ema50_200_spread_delta_5_atr": "ema50_200_spread_delta_5_atr",
 }
 
 
@@ -664,9 +663,8 @@ def test_repaired_local_atr_fields_are_bit_identical_to_the_per_tf_owner(
     ``ema{50,200}_slope_atr`` on every per-TF clock since V4; the local M5/M1
     clock carried neither a genuine EMA slope nor an ATR-normalized price
     distance.  Asserting bit-equality against that owner on the same native M5
-    frame binds the lookback (5 closed bars), the denominator (the shared
-    block's ``atr14_positive``) and the numerator at once: no literal restated
-    in the local owner can drift from the convention it claims to adopt.
+    frame binds the five-bar EMA50 and spread lookbacks, the twenty-bar
+    EMA200 lookback, and the current positive Wilder ATR denominator.
     """
 
     _matrix, _names, _samples, source, _source_path = _valid_inputs(
@@ -764,17 +762,10 @@ def test_retired_bps_slope_was_an_exact_multiple_of_the_price_gap(
     assert not np.allclose(ratio, float(ratio[0]))
 
 
-def test_repaired_spread_derivatives_are_raw_difference_over_current_atr(
+def test_spread_delta_5_is_genuine_and_uses_current_positive_atr(
     tmp_path: Path,
 ) -> None:
-    """2026-09-21 (F-10): the spread delta/accel are retired outright.
-
-    The D-5 5-bar delta was measured bit-equal to
-    ``local_ema50_slope_atr - local_ema200_slope_atr`` (same numerator
-    algebra over the same current-bar ATR), and the accel survived only on a
-    t-5-vs-t denominator mismatch.  The slopes remain inputs; this test pins
-    the retirement and the exact identity that motivated it.
-    """
+    """The 5-bar spread delta is not the 5/20-bar slope difference."""
 
     _matrix, _names, samples, source, source_path = _valid_inputs(tmp_path)
     source_index = pd.DatetimeIndex(source["time"])
@@ -785,27 +776,27 @@ def test_repaired_spread_derivatives_are_raw_difference_over_current_atr(
         indexed["close"].astype(np.float64),
     )
     spread = block["spread"]
-    atr14_positive = block["atr14_positive"]
-    lookback = LOCAL_EMA_SLOPE_LOOKBACK_BARS
-
-    local, local_names = build_price_derived_layer(samples, source_path)
-    assert "chart.local_ema50_200_spread_delta_atr" not in local_names
-    assert "chart.local_ema50_200_spread_accel_atr" not in local_names
-
-    retired_delta = (
-        (spread - spread.shift(lookback)) / atr14_positive
+    expected = (
+        (spread - spread.shift(LOCAL_EMA_SLOPE_LOOKBACK_BARS))
+        / block["atr14_positive"]
     ).loc[samples["time"]]
-    slope_difference = (
-        (
-            (block["ema50"] - block["ema50"].shift(lookback))
-            - (block["ema200"] - block["ema200"].shift(lookback))
-        )
-        / atr14_positive
-    ).loc[samples["time"]]
+    local, names = build_price_derived_layer(samples, source_path)
     np.testing.assert_array_equal(
-        retired_delta.to_numpy(dtype=np.float32),
-        slope_difference.to_numpy(dtype=np.float32),
+        local[:, names.index("chart.local_ema50_200_spread_delta_5_atr")],
+        expected.to_numpy(dtype=np.float32),
     )
+    slow_slope = (
+        block["ema200"] - block["ema200"].shift(LOCAL_EMA_SLOW_SLOPE_LOOKBACK_BARS)
+    ) / block["atr14_positive"]
+    fast_slope = (
+        block["ema50"] - block["ema50"].shift(LOCAL_EMA_SLOPE_LOOKBACK_BARS)
+    ) / block["atr14_positive"]
+    retained_difference = (fast_slope - slow_slope).loc[samples["time"]]
+    assert np.max(np.abs(
+        expected.to_numpy(dtype=np.float64)
+        - retained_difference.to_numpy(dtype=np.float64)
+    )) > 1e-3
+    assert "chart.local_ema50_200_spread_accel_atr" not in names
 
 
 def test_layer_has_no_price_relative_field_and_bps_stays_exactly_recoverable(
@@ -1020,5 +1011,5 @@ def test_anchor_spans_survive_each_native_tf_window_and_chart_selection(timefram
         frame, labels[-1], length, htf.MULTI_TF_SHIFT[timeframe], return_row_indices=True
     )
     np.testing.assert_array_equal(rows, np.arange(1, length + 1, dtype=np.int64))
-    assert window.shape == (length, 255)
+    assert window.shape == (length, len(names))
     np.testing.assert_array_equal(window[:, route][:, positions], values[1:-1, spans])

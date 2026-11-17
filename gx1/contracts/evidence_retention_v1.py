@@ -61,6 +61,7 @@ CURRENT_DOCUMENT_GLOBS = (
     "docs/*.md", "configs/research/*.json",
 )
 _ABSOLUTE_DATA_PATH_RE = re.compile(r"/home/andre2/GX1_(?:DATA|RUNS)[^\s\"'`,;)\]}<>]*")
+_RELATIVE_DATA_PATH_RE = re.compile(r"(?<![/\w])GX1_(?:DATA|RUNS)/[^\s\"'`,;)\]}<>]*")
 INCIDENT_WITNESS_KEYS = ("dry_run_evidence", "execution_evidence")
 _DIRECTORY_MANIFEST_NAMES = (
     "manifest.json", "MANIFEST.json", "PAIR_MANIFEST.json",
@@ -928,9 +929,14 @@ def current_document_named_paths(repo_root: Path = REPO_ROOT) -> dict[str, tuple
         for document in matches:
             if not document.is_file() or document.is_symlink():
                 raise EvidenceRetentionError(f"current document is not a regular file: {document}")
-            found = tuple(sorted(set(_ABSOLUTE_DATA_PATH_RE.findall(document.read_text(encoding="utf-8", errors="strict")))))
+            content = document.read_text(encoding="utf-8", errors="strict")
+            found = set(_ABSOLUTE_DATA_PATH_RE.findall(content))
+            found.update(str(Path("/home/andre2") / match) for match in
+                         _RELATIVE_DATA_PATH_RE.findall(content))
+            # Prose often appends ':' or '.' to an exact path; keep both interpretations.
+            found.update(path.rstrip(":.") for path in tuple(found))
             if found:
-                named[str(document)] = found
+                named[str(document)] = tuple(sorted(found))
     return named
 
 

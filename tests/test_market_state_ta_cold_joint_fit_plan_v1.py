@@ -13,7 +13,21 @@ import pytest
 from gx1.audit import run_market_state_ta_m5_decision_fit_v1 as fit
 
 
-def _closed_policy(monkeypatch):
+ACTUAL_COLD_ROOT = fit.COLD_ROOT
+
+
+def _cold_root_inventory():
+    def inventory(root):
+        if not root.exists():
+            return None
+        paths = [root, *root.rglob('*')]
+        return tuple(sorted((str(path.relative_to(root)), path.stat().st_mode,
+                             path.stat().st_size, path.stat().st_mtime_ns)
+                            for path in paths))
+    return inventory(ACTUAL_COLD_ROOT), inventory(fit.COLD_ROOT)
+
+
+def _closed_policy(monkeypatch, tmp_path):
     policy = json.loads((fit.REPO / 'NEXT_RUN_POLICY.json').read_text())
     policy[fit.COLD_STAGE] = {'status': 'PREPARED_NOT_ADMITTED',
         'plan': fit.ref(fit.COLD_PLAN), 'remaining_invocations': 0,
@@ -22,26 +36,40 @@ def _closed_policy(monkeypatch):
         'execution_authorized': False, 'training_authorized': False}
     monkeypatch.setattr(fit, 'json', SimpleNamespace(loads=lambda _text: policy))
     monkeypatch.setattr(fit, 'source_clean', lambda _plan: True)
+    monkeypatch.setattr(fit, 'COLD_ROOT', tmp_path / 'unclaimed-cold-root')
+    real_read = fit.read
+    def read_unclaimed_plan(binding):
+        value = real_read(binding)
+        if binding['path'] == str(fit.COLD_PLAN):
+            value = copy.deepcopy(value)
+            value['output_root'] = str(fit.COLD_ROOT)
+        return value
+    monkeypatch.setattr(fit, 'read', read_unclaimed_plan)
     return policy
 
 
-def test_cold_plan_reuses_exact_preflight_and_prefix_only_stats(monkeypatch):
-    _closed_policy(monkeypatch)
-    plan, stats = fit.inspect_cold(fit.ref(fit.COLD_PLAN)['sha256'], admitted=False)
+def test_consumed_cold_plan_rejects_new_loss_statistics_without_side_effects(monkeypatch, tmp_path):
+    _closed_policy(monkeypatch, tmp_path)
+    before = _cold_root_inventory()
+    plan = fit.read(fit.ref(fit.COLD_PLAN))
+    with pytest.raises(RuntimeError, match='COLD_FIT_STATISTICS'):
+        fit.inspect_cold(fit.ref(fit.COLD_PLAN)['sha256'], admitted=False)
     assert plan['inputs']['initial_result']['sha256'] == (
         '1b536acf1f56e3d24687a17b1eae258eb49b08b085d14c71d7093a499e608f9a')
     assert plan['inputs']['raw_result']['sha256'] == (
         '26fea62e0ccf1f1af93c7882c9f13c9cb354cdab4cdd50334d6fc63cca6c2b50')
     assert plan['initial_model_state_sha256'] == (
         '803214ff3b5b5724cb1c1488e5ae29c1c17d479ca8db23d51301a45a6094629e')
-    assert stats['sha256'] == plan['fit_statistics_sha256']
+    assert plan['fit_statistics_sha256'] == (
+        '284b244f244ee0e08297d89b1d5edf9865926fa944946d32662e06396a64fee2')
     assert (plan['fit_rows'], plan['excluded_gap_rows'], plan['score_rows']) == (29574, 275, 17489)
     assert plan['model_forwards'] == 4037 and plan['max_optimizer_updates'] == 1849
-    assert not fit.COLD_ROOT.exists()
+    assert _cold_root_inventory() == before
 
 
-def test_cold_plan_rejects_mutated_initial_receipt_before_claim(monkeypatch):
-    _closed_policy(monkeypatch)
+def test_cold_plan_rejects_mutated_initial_receipt_before_claim(monkeypatch, tmp_path):
+    _closed_policy(monkeypatch, tmp_path)
+    before = _cold_root_inventory()
     real_read = fit.read
     def altered(binding):
         value = real_read(binding)
@@ -52,11 +80,12 @@ def test_cold_plan_rejects_mutated_initial_receipt_before_claim(monkeypatch):
     monkeypatch.setattr(fit, 'read', altered)
     with pytest.raises(RuntimeError, match='COLD_RAW_AND_INITIAL_RECEIPTS'):
         fit.inspect_cold(fit.ref(fit.COLD_PLAN)['sha256'], admitted=False)
-    assert not fit.COLD_ROOT.exists()
+    assert _cold_root_inventory() == before
 
 
-def test_cold_fit_requires_boot_after_663(monkeypatch):
-    policy = _closed_policy(monkeypatch)
+def test_consumed_cold_plan_rejects_forged_readmission_before_boot(monkeypatch, tmp_path):
+    policy = _closed_policy(monkeypatch, tmp_path)
+    before = _cold_root_inventory()
     for key in ('training_enabled', 'native_training_enabled',
                 'full_epoch_training_allowed', 'native_launch_authorized'):
         policy[key] = True
@@ -65,12 +94,13 @@ def test_cold_fit_requires_boot_after_663(monkeypatch):
         execution_authorized=True, training_authorized=True,
         relaunch_allowed=False, max_optimizer_updates=1849, model_forwards=4037)
     monkeypatch.setattr(fit, 'physical_windows_boot_id', lambda: 663)
-    with pytest.raises(RuntimeError, match='COLD_ONE_USE_ADMISSION'):
+    with pytest.raises(RuntimeError, match='COLD_FIT_STATISTICS'):
         fit.inspect_cold(fit.ref(fit.COLD_PLAN)['sha256'], admitted=True)
-    assert not fit.COLD_ROOT.exists()
+    assert _cold_root_inventory() == before
 
 
 def test_cold_cli_preflight_never_runs_model_or_claim(monkeypatch, capsys):
+    before = _cold_root_inventory()
     plan = json.loads(fit.COLD_PLAN.read_text())
     monkeypatch.setattr(fit, 'inspect_cold',
                         lambda plan_sha, *, admitted: (plan, {}) if not admitted else None)
@@ -85,7 +115,7 @@ def test_cold_cli_preflight_never_runs_model_or_claim(monkeypatch, capsys):
     assert report['physical_windows_boot_id'] == 664
     assert report['fresh_physical_boot'] is True
     assert report['claim_created'] is False and report['model_forwards'] == 0
-    assert not fit.COLD_ROOT.exists()
+    assert _cold_root_inventory() == before
 
 
 def test_warm_cli_rejects_preflight(monkeypatch):

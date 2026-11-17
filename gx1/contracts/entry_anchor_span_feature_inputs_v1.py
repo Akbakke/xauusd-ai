@@ -356,16 +356,19 @@ def build_anchor_span_inputs(view, *, entry_sequence_source, snap_x, ctx_cont, c
     profile=owners.compile_full_ta_entry_execution_profile()
     parent_signal=list(parent_signal_names);parent_mtf=list(parent_mtf_names)
     new_local=['chart.'+name for name in SPAN_FIELDS]
-    need(parent_signal==[n for n in profile['source_field_names']['signal'] if n not in new_local]
-         and parent_mtf==[n for n in htf.MULTI_TF_PER_BAR_FEATURES_V4 if n not in SPAN_FIELDS]
-         and len(parent_signal)==2725 and len(parent_mtf)==253,'EXACT_PARENT_NAMES')
+    expected_parent_signal = [n for n in profile['source_field_names']['signal'] if n not in new_local]
+    expected_parent_mtf = [n for n in htf.MULTI_TF_PER_BAR_FEATURES_V4 if n not in SPAN_FIELDS]
+    need(parent_signal == expected_parent_signal and parent_mtf == expected_parent_mtf,
+         'EXACT_PARENT_NAMES')
+    signal_parent_width = len(expected_parent_signal)
+    mtf_parent_width = len(expected_parent_mtf)
     source,times,positions=(entry_sequence_source[k] for k in ('signal','times_ns','sample_positions'))
     total=view['full_axes']['rows']
     need(isinstance(source,np.ndarray) and source.dtype==np.float32 and source.ndim==2
-         and source.shape[1]==2725 and isinstance(times,np.ndarray) and times.dtype==np.int64
+         and source.shape[1]==signal_parent_width and isinstance(times,np.ndarray) and times.dtype==np.int64
          and times.shape==(len(source),) and isinstance(positions,np.ndarray)
          and positions.dtype==np.int64 and positions.shape==(total,),'LOCAL_PARENT_HEADERS')
-    for a,width,dtype in ((snap_x,2725,np.float32),(ctx_cont,2542,np.float32),(ctx_cat,1,np.int64)):
+    for a,width,dtype in ((snap_x,signal_parent_width,np.float32),(ctx_cont,2542,np.float32),(ctx_cat,1,np.int64)):
         need(isinstance(a,np.ndarray) and a.dtype==dtype and a.shape==(total,width),'CURRENT_PARENT_HEADERS')
     need(all(not a.flags.writeable for a in (source,times,positions,snap_x,ctx_cont,ctx_cat)),
          'PARENT_READONLY')
@@ -415,7 +418,7 @@ def build_anchor_span_inputs(view, *, entry_sequence_source, snap_x, ctx_cont, c
         rows,clock,spans=selected[tf]
         parent=parent_mtf_values[tf];parent_clock=parent_mtf_times[tf]
         need(isinstance(parent,np.ndarray) and parent.dtype==np.float32 and parent.ndim==2
-             and parent.shape[1]==253 and not parent.flags.writeable
+             and parent.shape[1]==mtf_parent_width and not parent.flags.writeable
              and isinstance(parent_clock,np.ndarray) and parent_clock.dtype==np.int64
              and parent_clock.shape==(len(parent),) and not parent_clock.flags.writeable
              and np.all(rows>=0) and np.all(rows<len(parent))

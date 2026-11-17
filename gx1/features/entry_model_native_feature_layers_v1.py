@@ -80,7 +80,7 @@ LOCAL_EMA_SLOPE_LOOKBACK_BARS = 5
 LOCAL_EMA_SLOW_SLOPE_LOOKBACK_BARS = 20
 
 # EMA200 seeds at index199; its twenty-bar slope is first finite at index219.
-# Retired spread derivatives no longer participate in the warmup floor.
+# The restored five-bar spread delta is available before this slow-slope floor.
 PRICE_DERIVED_CAUSAL_WARMUP_ROWS = 199 + LOCAL_EMA_SLOW_SLOPE_LOOKBACK_BARS
 
 # V30 (2026-08-13): ``local_kama_efficiency_30`` is the Kaufman efficiency
@@ -194,28 +194,25 @@ PRICE_DERIVED_FEATURE_NAMES = (
     # field whose name promised the average's direction.  The repaired fields
     # disagree in sign with the gap on 50,200 (ema50) and 24,375 (ema200) of
     # those rows: states the retired fields could not express at all.  They
-    # are replaced by the genuine k-bar EMA change
-    # ``(ema[t] - ema[t-5])/atr14_positive``: the exact formula, lookback,
-    # denominator and SPELLING of the per-TF lane's ``ema50_slope_atr`` /
-    # ``ema200_slope_atr``, which the local M5/M1 clock had never carried.
+    # are replaced by genuine EMA changes over five bars for EMA50 and
+    # twenty for EMA200, each divided by current positive Wilder ATR. These
+    # match the formulas on the per-TF lane and preserve the slow slope.
     # Nothing is invented; the values are asserted bit-identical to that owner.
     "chart.local_price_vs_ema50_atr",
     "chart.local_price_vs_ema200_atr",
     "chart.local_ema50_slope_atr",
     "chart.local_ema200_slope_atr",
-    # The two spread derivatives follow the established "raw difference over
+    # The restored spread delta follows the established "raw difference over
     # the CURRENT closed bar's positive ATR" convention (``mom_5_atr``,
     # ``ema20_slope_atr``, ``_v1_tema20_change_3_atr``,
     # ``_v1_kama30_change_5_atr``): the numerator is the raw USD spread
     # difference, not a difference of an already normalized series.  The unit
     # now lives in the name, so the value change cannot travel silently under
     # an unchanged field name.
-    # 2026-09-21 (F-10): ``spread_delta_atr`` RETIRED — measured bit-equal to
-    # ``local_ema50_slope_atr - local_ema200_slope_atr`` (the D-5 repair
-    # replaced one exact affine duplicate with another); ``spread_accel_atr``
-    # RETIRED with it — it survived only on a t-5-vs-t denominator mismatch,
-    # not on new numerator evidence, and both slopes remain inputs (rule 4:
-    # the primitives stay, the restatement goes).
+    # With the current five-bar EMA50 and twenty-bar EMA200 slope lookbacks,
+    # their difference does not equal a five-bar spread change. Preserve that
+    # distinct change over the current bar's positive Wilder ATR.
+    "chart.local_ema50_200_spread_delta_5_atr",
     "chart.local_kama_efficiency_30",
     # V30 Phase-A completion (2026-08-13): trend_ema GAP-2/GAP-3 on the LOCAL
     # clock.  The per-TF lane carries the matching raw EMA-state durations,
@@ -705,10 +702,11 @@ def build_price_derived_layer(
         ema200 - ema200.shift(LOCAL_EMA_SLOW_SLOPE_LOOKBACK_BARS)
     ) / atr14_positive
 
-    # 2026-09-21 (F-10): the D-5 spread delta/accel were RETIRED at the
-    # tuple — the k-bar delta is exactly ``ema50_slope_atr -
-    # ema200_slope_atr`` (measured bit-equal), and the accel survived only
-    # on a denominator mismatch.  The slopes above carry the evidence.
+    # EMA200's twenty-bar slope cannot reconstruct this five-bar spread
+    # delta from the two retained slope values at one decision row.
+    spread_delta_5_atr = (
+        spread - spread.shift(LOCAL_EMA_SLOPE_LOOKBACK_BARS)
+    ) / atr14_positive
 
     # V30 Kaufman efficiency ratio, window 30 (see the name-tuple comment):
     # the exact ER of basic_v1.kama_np — |net 30-bar change| over the summed
@@ -763,6 +761,7 @@ def build_price_derived_layer(
             "price_vs_ema200_atr": price_vs_ema200_atr,
             "ema50_slope_atr": ema50_slope_atr,
             "ema200_slope_atr": ema200_slope_atr,
+            "ema50_200_spread_delta_5_atr": spread_delta_5_atr,
             "kama_efficiency_30": kama_efficiency_30,
             "ema50_200_state_age_bars": ema50_200_state_age_bars,
             "price_vs_ema50_state_age_bars": price_state_age_bars[50],

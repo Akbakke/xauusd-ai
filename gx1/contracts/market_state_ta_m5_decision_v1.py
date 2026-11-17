@@ -29,7 +29,7 @@ def require(ok, reason):
 
 
 def fit_statistics(targets: Mapping[str, np.ndarray]) -> dict:
-    """Fit means and population scales on observed Fold2 FIT cells only."""
+    """Fit component and paired-side population scales on observed FIT cells."""
     term, path = targets['terminal_observed'], targets['path_observed']
     n = len(term)
     require(term.shape == path.shape == (n, 6) and n > 0
@@ -65,8 +65,17 @@ def fit_statistics(targets: Mapping[str, np.ndarray]) -> dict:
             scale = float(np.sqrt(np.mean((q - q.mean()) ** 2)))
             require(np.isfinite(scale) and scale > 0, 'FIT_QUALITY_SCALE')
             qstd[j, side] = scale
+    paired_std = np.empty(6, dtype=np.float32)
+    for j in range(6):
+        quality = (values[0][path[:, j], j, :]
+                   - values[2][path[:, j], j, :]).astype(np.float64)
+        difference = quality[:, 0] - quality[:, 1]
+        scale = float(np.sqrt(np.mean((difference - difference.mean()) ** 2)))
+        require(np.isfinite(scale) and scale > 0, 'FIT_PAIRED_QUALITY_SCALE')
+        paired_std[j] = scale
     result = {'mean_bps': mean, 'std_bps': std,
-              'quality_std_bps': qstd, 'observed_count': counts}
+              'quality_std_bps': qstd, 'paired_quality_std_bps': paired_std,
+              'observed_count': counts}
     payload = {key: value.tolist() for key, value in result.items()}
     result['sha256'] = hashlib.sha256(json.dumps(payload, sort_keys=True,
         separators=(',', ':'), allow_nan=False).encode()).hexdigest()
@@ -75,7 +84,7 @@ def fit_statistics(targets: Mapping[str, np.ndarray]) -> dict:
 
 def contract(core_sha256: str, statistics_sha256: str, *, aux_fold_id: int = 2) -> dict:
     require(type(aux_fold_id) is int and aux_fold_id in (1, 2), 'AUX_FOLD_ID')
-    value = {'schema_version': 'gx1_ta_m5_cost_path_decision_v1',
+    value = {'schema_version': 'gx1_ta_m5_cost_path_decision_v2',
         'role': 'research_only_no_fit_or_trade_authority',
         'core_sha256': core_sha256, 'fit_statistics_sha256': statistics_sha256,
         'input': 'all_five_post_attention_TF_vectors_after_causal_M1_gate',
@@ -84,6 +93,7 @@ def contract(core_sha256: str, statistics_sha256: str, *, aux_fold_id: int = 2) 
         'head_initial': 'zero_units_equals_FIT_component_mean',
         'target_masks': 'net_terminal_MFE_MAE_complete_path_separate',
         'loss': 'six_equal_horizon_terms_unit_Huber_net_MFE_MAE_quality_side_pair_plus_one_sided_unit_MAE_underprediction',
+        'side_pair_scale': 'population_std_of_FIT_path_observed_paired_LONG_minus_SHORT_quality',
         'decision_weight': 1.0, 'paired_S_F_structure_aux_weight': AUX_WEIGHT,
         'action': 'argmax_predicted_net_minus_nonnegative_MAE_or_FLAT_if_nonpositive',
         'tie': 'earliest_horizon_then_LONG; FLAT_at_zero',
@@ -105,11 +115,14 @@ class IntegratedTAM5DecisionModel(nn.Module):
         self.aux_fold_id = aux_fold_id
         require(all(statistics[key].shape == shape for key, shape in (
             ('mean_bps', (6, 2, 3)), ('std_bps', (6, 2, 3)),
-            ('quality_std_bps', (6, 2)))), 'STAT_SHAPE')
+            ('quality_std_bps', (6, 2)),
+            ('paired_quality_std_bps', (6,)))), 'STAT_SHAPE')
         require(all(np.isfinite(statistics[key]).all() for key in
-                    ('mean_bps', 'std_bps', 'quality_std_bps'))
+                    ('mean_bps', 'std_bps', 'quality_std_bps',
+                     'paired_quality_std_bps'))
                 and np.all(statistics['std_bps'] > 0)
-                and np.all(statistics['quality_std_bps'] > 0), 'STAT_FINITE')
+                and np.all(statistics['quality_std_bps'] > 0)
+                and np.all(statistics['paired_quality_std_bps'] > 0), 'STAT_FINITE')
         self.core = core
         device = core.dual.state_model.query_head.weight.device
         width = core.dual.state_model._hidden_width
@@ -123,6 +136,8 @@ class IntegratedTAM5DecisionModel(nn.Module):
             statistics['std_bps'], device=device).clone())
         self.register_buffer('quality_std_bps', torch.as_tensor(
             statistics['quality_std_bps'], device=device).clone())
+        self.register_buffer('paired_quality_std_bps', torch.as_tensor(
+            statistics['paired_quality_std_bps'], device=device).clone())
         self.statistics_sha256 = statistics['sha256']
 
     @property
@@ -182,7 +197,7 @@ def decision_loss(*, model_output: dict, targets: Mapping[str, np.ndarray],
     q_mask = torch.from_numpy(path.copy()).to(pred.device)[:, :, None].expand(-1, -1, 2)
     q_loss = _horizon_mean(F.smooth_l1_loss(q_error, torch.zeros_like(q_error),
                                            reduction='none'), q_mask)
-    side_scale = model.quality_std_bps.square().sum(dim=1).sqrt()
+    side_scale = model.paired_quality_std_bps
     side_error = ((q_pred[..., 0] - q_pred[..., 1])
                   - (q_target[..., 0] - q_target[..., 1])) / side_scale
     side_pair_loss = _horizon_mean(

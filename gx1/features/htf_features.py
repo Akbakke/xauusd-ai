@@ -340,6 +340,7 @@ MULTI_TF_V4_GROUP_A_BASE_FEATURES = (
     "ema50_slope_atr",
     "ema100_slope_atr",
     "ema200_slope_atr",
+    "ema50_200_spread_delta_5_atr",
     "ema_stack_aligned_v2",
     # 2026-09-21 (F-24): renamed from ``vwap_local_cycle_dist_atr`` — the D-4
     # repair changed the operand to the 5-bar rolling VWAP and the file's own
@@ -3498,6 +3499,9 @@ def compute_per_bar_features_v4(
     )
     out["ema200_slope_atr"] = (
         (ema200 - ema200.shift(20)) / atr_positive
+    )
+    out["ema50_200_spread_delta_5_atr"] = (
+        (ema50 - ema200 - (ema50 - ema200).shift(5)) / atr_positive
     )
 
     bull = (ema20 > ema50) & (ema50 > ema100) & (ema100 > ema200)

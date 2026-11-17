@@ -206,7 +206,7 @@ def test_ta_builder_passes_reduced_statistics_and_no_gc_modules(time_query_case,
         constructor_metadata=args['constructor_metadata'], device='synthetic')
     assert len(calls) == 1
     kwargs = calls[0]
-    assert kwargs['seq_input_dim'] == kwargs['snap_input_dim'] == 317
+    assert kwargs['seq_input_dim'] == kwargs['snap_input_dim'] == 318
     assert kwargs['ctx_cont_dim'] == 132
     assert kwargs['gc_mtf_history'] is None
     assert 'research_unobserved_units_profile' not in kwargs

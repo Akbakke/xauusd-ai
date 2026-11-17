@@ -41,6 +41,37 @@ def statistics(surface, names, rows):
     })
 
 
+def _legacy_bound_profile_matches():
+    fields = compile_full_ta_entry_execution_profile()['physical_field_names']
+    return (len(fields['signal']), len(fields['mtf'])) == (317, 255)
+
+
+def _require_legacy_bound_profile():
+    if not _legacy_bound_profile_matches():
+        pytest.skip('immutable 317/255 normalization receipts belong to the old feature profile')
+
+
+@pytest.mark.parametrize('binding', tuple(extension.FOLD_BINDINGS.values()),
+                         ids=lambda value: f'fold{value[0]}')
+def test_immutable_fold_normalization_rejects_changed_feature_profile(binding):
+    if _legacy_bound_profile_matches():
+        pytest.skip('current feature profile still matches the historical binding')
+    fold_id, parent_ref, _ = binding
+    path = Path(parent_ref['path'])
+    if not path.is_file():
+        pytest.skip('immutable fold metadata unavailable on this host')
+    raw = path.read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == parent_ref['sha256']
+    parent = json.loads(raw)['base_normalization']
+    additions = {surface: statistics(surface, extension.span_names(surface),
+                                    parent['surfaces'][surface]['fit_row_count'])
+                 for surface in extension.SURFACES}
+    failure = ('NATIVE_DIRECTION_PREFIX_UNITS_ANCHOR_SPAN_SIGNAL_NAMES' if fold_id == 1
+               else 'ENTRY_INPUT_NORMALIZATION_SURFACE_IDENTITY_INVALID')
+    with pytest.raises(RuntimeError, match=failure):
+        extension.extend_anchor_span_normalization(parent, additions)
+
+
 def merge_case():
     old = statistics('signal', ['old_continuous', 'old_category'], 7)
     old.update(center=[-0., 0.], scale=[2., 1.], categorical_mask=[0, 1],
@@ -97,6 +128,7 @@ def test_merge_requires_the_same_declared_physical_population(fault):
 
 @pytest.fixture(scope='module')
 def metadata_case():
+    _require_legacy_bound_profile()
     path = Path(extension.PARENT_ARTIFACT['path'])
     if not path.is_file():
         pytest.skip('requires immutable e24 JSON metadata; no market payload is read')
@@ -236,6 +268,7 @@ def test_resealed_parent_and_wrong_consumer_are_rejected(metadata_case):
 
 @pytest.fixture(scope='module')
 def fold2_metadata_case():
+    _require_legacy_bound_profile()
     path = Path(extension.FOLD2_PARENT_ARTIFACT['path'])
     if not path.is_file():
         pytest.skip('requires exact fold2 JSON metadata only')
@@ -281,6 +314,7 @@ def test_fold2_resealing_cannot_change_old_fields_or_bound_provenance(fold2_meta
 
 
 def test_retained_fold1_extension_reconstructs_without_identity_change():
+    _require_legacy_bound_profile()
     path = Path('/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_NORMALIZATION_20261112_001/EXTENDED_BASE_NORMALIZATION.json')
     if not path.is_file():
         pytest.skip('requires retained fold1 JSON only')
@@ -292,6 +326,7 @@ def test_retained_fold1_extension_reconstructs_without_identity_change():
 
 @pytest.mark.parametrize('fold_id', (3, 4, 5))
 def test_later_fold_metadata_extension_uses_own_parent_and_keeps_old_stats(fold_id):
+    _require_legacy_bound_profile()
     binding = next((value for value in extension.FOLD_BINDINGS.values()
                     if value[0] == fold_id), None)
     assert binding is not None

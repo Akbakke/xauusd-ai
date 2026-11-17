@@ -54,13 +54,32 @@ def binding_case(spec):
         dedicated_m5_side=True,dedicated_tf_activity=True)
 
 
+def test_immutable_fold2_span_metadata_rejects_changed_feature_profile():
+    with pytest.raises(RuntimeError, match='ENTRY_INPUT_NORMALIZATION_SURFACE_IDENTITY_INVALID'):
+        binding_case(extension.FOLD2_BINDING)
+
+
+def test_immutable_fold1_span_metadata_rejects_changed_feature_profile():
+    with pytest.raises(RuntimeError, match='NATIVE_DIRECTION_PREFIX_UNITS_ANCHOR_SPAN_SIGNAL_NAMES'):
+        binding_case(extension.FOLD1_BINDING)
+
+
+def _require_legacy_bound_profile():
+    gc = views.owners.compile_compact_entry_execution_profile()['physical_field_names']
+    ta = views.owners.compile_full_ta_entry_execution_profile()['physical_field_names']
+    if (len(gc['signal']), len(gc['mtf']), len(ta['signal']), len(ta['mtf'])) != (2727, 255, 317, 255):
+        pytest.skip('immutable 317/255 span-view receipts belong to the old feature profile')
+
+
 @pytest.fixture(scope='module')
 def binding():
+    _require_legacy_bound_profile()
     return binding_case(extension.FOLD1_BINDING)
 
 
 @pytest.fixture(scope='module')
 def fold2_binding():
+    _require_legacy_bound_profile()
     return binding_case(extension.FOLD2_BINDING)
 
 

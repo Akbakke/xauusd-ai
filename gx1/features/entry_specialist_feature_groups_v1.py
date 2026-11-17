@@ -163,6 +163,7 @@ MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4 = OrderedDict(
                 # 2026-09-21 (F-22): ema100 finally has its slope on the lanes.
                 "ema100_slope_atr",
                 "ema200_slope_atr",
+                "ema50_200_spread_delta_5_atr",
                 "ema_stack_aligned_v2",
                 "adx14",
                 # V30 (2026-08-13): signed DI spread from the same _adx14
@@ -1566,9 +1567,9 @@ def compile_compact_entry_execution_profile() -> dict[str, object]:
         "vol_compression_encoder", "session_regime_encoder",
     )
     if (
-        (len(signal), len(ctx_cont), len(ctx_cat), len(mtf)) != (2727, 2542, 1, 255)
+        (len(signal), len(ctx_cont), len(ctx_cat), len(mtf)) != (2728, 2542, 1, 256)
         or (len(signal_indices), len(ctx_indices), len(mtf_indices),
-            len(generic_snap_indices)) != (2622, 2525, 139, 97)
+            len(generic_snap_indices)) != (2623, 2525, 140, 98)
         or tuple(local_routes) != expected_local
         or tuple(selected_mtf_routes) != expected_mtf
         or len(gc_ctx) != 2410 or set(gc_ctx) != set(_GC_OWNERS)

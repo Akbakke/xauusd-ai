@@ -162,6 +162,7 @@ EXPECTED_V4_GROUP_A_BASE_FEATURES = (
     # ema100 finally has a lane slope.
     "ema100_slope_atr",
     "ema200_slope_atr",
+    "ema50_200_spread_delta_5_atr",
     "ema_stack_aligned_v2",
     # V30 (2026-08-14): the handwritten `regime_class_id` discretization is
     # retired; the raw EMA-stack alignment and trend-state age remain.
@@ -500,7 +501,7 @@ def test_v4_routes_every_field_to_all_eight_specialists() -> None:
         # V30 (2026-08-13): + di_spread_signed in the explicit non-event
         # routing tuple; 2026-09-21 (F-22) + ema100_slope_atr, (F-11)
         # - rsi14_delta_5.
-        "trend_ema_encoder": 12
+        "trend_ema_encoder": 13
         + len(htf.MULTI_TF_V4_TREND_EVENT_FEATURES),
             "vol_compression_encoder": 2
             + len(htf.MULTI_TF_V4_VOLATILITY_SQUEEZE_FEATURES),

@@ -2290,6 +2290,32 @@ def test_targets_named_by_current_documents_are_refused(tmp_path: Path) -> None:
         retention_contract.require_targets_unnamed_in_current_documents([target], repo_root=docs)
     (docs / "docs" / "note.md").write_text("retired; see git history")
     retention_contract.require_targets_unnamed_in_current_documents([target], repo_root=docs)
+    relative_run = Path("/home/andre2/GX1_RUNS/V12_EPOCH1_REVIEW_20260923")
+    (docs / "docs" / "note.md").write_text(
+        "manifest: GX1_RUNS/V12_EPOCH1_REVIEW_20260923/"
+        "ENTRY_DIRECTION_WALKFORWARD_20260923/patterns_v1/manifest.json"
+    )
+    with pytest.raises(EvidenceRetentionError, match="named by current document"):
+        retention_contract.require_targets_unnamed_in_current_documents(
+            [relative_run], repo_root=docs)
+    (docs / "docs" / "note.md").write_text(
+        "source: GX1_DATA/data/data/prebuilt/SYNTHETIC_RETENTION_TEST_ONLY/CHAIN/x.parquet"
+    )
+    with pytest.raises(EvidenceRetentionError, match="named by current document"):
+        retention_contract.require_targets_unnamed_in_current_documents(
+            [target], repo_root=docs)
+    (docs / "docs" / "note.md").write_text(
+        "audit: GX1_RUNS/V12_EPOCH1_REVIEW_20260923/audit:"
+    )
+    with pytest.raises(EvidenceRetentionError, match="named by current document"):
+        retention_contract.require_targets_unnamed_in_current_documents(
+            [relative_run / "audit"], repo_root=docs)
+    (docs / "docs" / "note.md").write_text(
+        "report: " + str(target / "CHAIN" / "x.parquet") + "."
+    )
+    with pytest.raises(EvidenceRetentionError, match="named by current document"):
+        retention_contract.require_targets_unnamed_in_current_documents(
+            [target / "CHAIN" / "x.parquet"], repo_root=docs)
     (docs / "CURRENT_HANDOVER.md").unlink()
     with pytest.raises(EvidenceRetentionError, match="current document missing"):
         retention_contract.require_targets_unnamed_in_current_documents([target], repo_root=docs)
