@@ -275,6 +275,9 @@ def _marker(overlay, binding):
 
 def require_anchor_span_view_provenance(view, profile):
     """Additional exact metadata gates; generic geometry/objective gates remain."""
+    if 'ema_delta_input_extension' in view:
+        from gx1.contracts.entry_ema_delta_feature_view_v1 import require_ema_delta_view_provenance
+        return require_ema_delta_view_provenance(view, profile)
     binding = _binding(view.get('prefix_normalization'), 'packet_sha', 'VIEW_NORMALIZATION')
     profile = _profile(profile, binding)
     ta_only = view.get('full_ta_feature_profile') is True

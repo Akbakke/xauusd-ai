@@ -507,6 +507,9 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
     scalar configuration/full raw routing are used, never its old GC stats join.
     """
     arguments = locals().copy()
+    if prefix_normalization.get('schema_version') == 'gx1_ema_delta_feature_prefix_packet_v1':
+        from gx1.contracts.entry_ema_delta_feature_view_v1 import bind_ema_delta_feature_view
+        return bind_ema_delta_feature_view(**arguments)
     if prefix_normalization.get('schema_version') == 'gx1_anchor_span_feature_prefix_packet_v1':
         from gx1.contracts.entry_anchor_span_feature_view_v1 import bind_anchor_span_feature_view
         return bind_anchor_span_feature_view(**arguments)
