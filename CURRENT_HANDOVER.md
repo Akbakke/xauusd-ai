@@ -106,9 +106,9 @@ bytes; dette er ledige blokkmarkeringer, ikke frigjort plass på C:. VHDX-
 lengden og C:-plassen var uendret etterpå. Grov øvre størrelseforskjell
 mellom VHDX og brukt ext4 er 52 003 160 064 bytes (48,43 GiB), ikke en
 forventet komprimeringsgevinst. To interaktive WSL-shell er åpne; full lokal
-backup av VHDX får ikke plass på C:. Operatøren valgte å vente på backupplass
-og lukkede terminaler. Ingen `wsl --shutdown`, DiskPart eller VHDX-
-komprimering er utført. `NEXT_RUN_POLICY.json` binder denne beslutningen.
+backup av VHDX får ikke plass på C:. Operatøren valgte deretter å droppe
+komprimeringen. Ingen `wsl --shutdown`, DiskPart eller VHDX-komprimering er
+utført. `NEXT_RUN_POLICY.json` binder denne beslutningen.
 
 Skjult hjemmelagring ble skilt fra GX1: eldre Cursor-runtimeversjoner,
 Cursor-snapshots, Codex-arkiver, Python-miljø og papirkurv. Fire gamle
