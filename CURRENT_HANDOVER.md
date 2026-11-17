@@ -7,16 +7,17 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_M5_DECISION_FIT_001_COMPLETE_CONSUMED_NO_EDGE. En integrert ikke-GC
-S/F-/strukturfit og én direkte kostet M5-beslutningsfit på 47 338
-Fold2-TRAIN-rader er fullført. På de 17 536 gjenbrukte Apr–jun-radene
-valgte beslutningsmodellen 0 LONG, 11 486 SHORT og 6 050 FLAT. De 9 853
-valgte radene med kjent terminalt utfall ga −0,578 bps i snitt etter
-oppgitte kostnader; 1 633 valgte utfall er ukjente. Full native M5-F/S
-side-AUC var 0,493/0,514. S/F-hodene er selvstendige på alle fem TF,
-men M5-beslutningen og prisbanekvaliteten generaliserte ikke.
-Engangsplanene er konsumert; training_enabled=false,
-native_training_enabled=false og full_epoch_training_allowed=false.
+TA_M5_DECISION_FIT_002_PREPARED_NOT_ADMITTED. Første direkte kostete
+M5-fit er fullført og konsumert uten Edge: 47 338 Fold2-TRAIN-rader,
+2 959 oppdateringer. På 17 536 gjenbrukte Apr–jun-rader valgte modellen
+0 LONG, 11 486 SHORT og 6 050 FLAT. De 9 853 valgene med kjent
+terminalutfall ga −0,578 bps i snitt etter oppgitte kostnader;
+1 633 valgte utfall er ukjente. Full native M5-F/S side-AUC var
+0,493/0,514. Selvstendige S/F-hoder på fem TF ga ikke en pålitelig
+M5-beslutning. Én matchet etterfølger med bare hjelpetapsvekt
+0,25 → 0,10 er klargjort etter en avgrenset TRAIN-gradientkontroll,
+men ikke innrømmet. training_enabled=false, native_training_enabled=false,
+full_epoch_training_allowed=false og native_launch_authorized=false.
 Full GC er pauset; TEST, ONLINE, broker og handel er lukket. Ingen
 økonomisk Edge eller uavhengig handelsgeneralisering er bevist.
 Stabile langkjøringer kontrolleres omtrent hver time.
@@ -879,7 +880,7 @@ netto −29,956/+16,202 bps mot faktisk −7,872/−4,933 bps. Ved
 −6,171/−6,395. Dette er stor feature-avhengig SHORT-overprediksjon:
 beslutningshodets lagrede bias er nær Fold2-FIT-midlene, mens utslaget
 på senere inputs kommer fra head-vekter ganger fem-TF-vektorene.
-Eksakt TF-/indikatorbidrag er ikke målt. Fold2-fasit favoriserte LONG
+Eksakt råindikatorbidrag er ikke målt. Fold2-fasit favoriserte LONG
 fra mai til oktober 2024 og SHORT i november/desember; fitten besøkte
 batchene i tidsrekkefølge. Regimeskifte eller recency-effekt er mulig,
 men ingen av dem er isolert som årsak. Flere epoker eller ny regel
@@ -894,18 +895,45 @@ input og mål er kontrollert, mens modellens senere verdiestimat og
 handlingskalibrering feiler. Apr–jun er gjenbrukt utvikling, ikke
 uavhengig TEST; Full GC, Exit, broker og handel er fortsatt lukket.
 
+Lesende etterkontroll av første beslutningscheckpoint (uten ny trening)
+rekonstruerte de lagrede SCORE-prognosene innen 0,0011 bps og splittet
+SHORT-minus-LONG-480-bidraget eksakt over fem post-attention TF-vektorer
+(maks avvik 0,000019 bps). Alle fem TF bidro positivt til SHORT-valget;
+dette er ikke årsaksattribusjon til råindikatorer. På 128 jevnt spredte
+FIT-rader per måned ga hodet SHORT > LONG også i mai–oktober 2024,
+selv om kostfasiten da favoriserte LONG. Svikt finnes altså allerede
+på TRAIN og kan ikke forklares bare med senere markedsskifte.
+
+En egen TRAIN-kontroll på 128 faste rader fra mai, september og desember
+2024, 24 CPU-forwards og null optimizersteg, målte normen til
+0,25-vektet S/F-/strukturgradient mot direkte kostgradient i felles
+fem-TF-representasjon. For M5/M15/H1/H4/D1 var forholdene
+mai 1,571/1,300/1,507/1,304/1,431; september
+1,626/1,303/1,493/1,428/1,529; desember
+1,767/1,350/1,431/1,369/1,276. Samlet kosinus mellom
+hjelpe- og kostgradient var 0,014/0,029/0,008. Det valgte
+0,25-hjelpetapet dominerte dermed kostmålet i denne begrensede
+TRAIN-prøven ved sluttcheckpoint. Ved lineær nedvekting til 0,10 tilsvarer forholdet ved
+samme checkpoint beregnet 0,51–0,71; S/F/struktur beholdes. Dette isolerer
+én konkret tapsprioritering, men beviser ikke at den er eneste årsak
+eller at neste fit får Edge. Apr–jun forblir gjenbrukt utvikling. Seks fokuserte tester besto med
+én numerisk tråd; én ordinær kjøring traff en eksisterende 1e-5-
+toleranse med 1,14e-5 avvik i et uendret delt-encoder-testtilfelle.
+
 ## Neste steg
 
-1. Behold alle nevnte engangsplaner konsumert og treningsporten lukket.
-   Ingen ny fit eller 480-minuttersregel velges fra gjenbrukt Apr–jun.
-2. Avgrens én lesende kildekontroll på den lagrede modellen: mål hvilke
-   fem-TF-vektorer og TRAIN-versus-senere inputskift som driver den
-   sterke SHORT-overprediksjonen. Skill et målt kilde-/normaliseringsavvik
-   fra mulig optimizer-rekkefølge; ikke kall korrelasjon årsak.
-3. Økonomisk Edge krever en uavhengig framtidig journal med alle valgte
-   handler og åpne posisjoner, faktiske kostnader og forhåndsbundet
-   handlingsregel. TEST, Full GC, ONLINE, broker og handel er lukket.
-   Gamle engangsplaner relanseres aldri.
+1. Behold første beslutningsfit konsumert og all trening stengt inntil
+   kilde, maskin, fysiske input, ledig GPU/lås og en ny fysisk boot >660
+   er kontrollert. Klargjort plan002 er ikke en innrømmelse.
+2. Kjør høyst én matchet ikke-GC fit med kun hjelpetapsvekt 0,10 dersom
+   alle eksakte porter passerer. Behold seks observasjonspunkter,
+   fem selvstendige TF, kostmål, seed og handlingsregel. Ikke velg
+   480 minutter eller ny regel fra gjenbrukt Apr–jun.
+3. Lukk engangsgaten ved terminalkvittering. Skill TRAIN-læring,
+   senere utviklingsskår og økonomisk Edge. Økonomisk Edge krever en
+   uavhengig framtidig journal med alle valgte handler og åpne
+   posisjoner, faktiske kostnader og forhåndsbundet handlingsregel.
+   TEST, Full GC, ONLINE, broker og handel er lukket.
 
 Opprydding: historiske overleveringsavsnitt er fjernet her og bevart i Git.
 Ingen Python-fil er slettet; gjeldende referanse-, import-, test- og

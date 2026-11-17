@@ -15,7 +15,7 @@ from gx1.contracts.market_state_ta_integrated_paired_objective_v1 import paired_
 
 HORIZONS = (1, 5, 15, 60, 240, 480)
 FIELDS = ('net_bps', 'mfe_bps', 'pre_mfe_mae_upper_bps')
-AUX_WEIGHT = 0.25
+AUX_WEIGHT = 0.10
 CORE_KEYS = frozenset(('state_activity_side_logits', 'state_log_probs',
     'state_native_activity_side_logits', 'state_native_log_probs',
     'future_activity_side_logits', 'future_log_probs', 'm5_structure_hit_logits'))

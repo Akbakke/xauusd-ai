@@ -18,9 +18,9 @@ from gx1.audit.run_market_state_ta_apr_jun_paired_fit_v1 import (
     physical_windows_boot_id, score,
 )
 
-STAGE = 'ta_m5_decision_fit_20261117_001'
-PLAN = REPO / 'configs/research/TA_M5_DECISION_FIT_20261117_001.json'
-ROOT = Path('/home/andre2/GX1_RUNS/TA_M5_DECISION_FIT_20261117_001')
+STAGE = 'ta_m5_decision_fit_20261117_002'
+PLAN = REPO / 'configs/research/TA_M5_DECISION_FIT_20261117_002.json'
+ROOT = Path('/home/andre2/GX1_RUNS/TA_M5_DECISION_FIT_20261117_002')
 SOURCES = tuple(dict.fromkeys((*PAIRED_SOURCES,
     'gx1/audit/run_market_state_ta_m5_decision_fit_v1.py',
     'gx1/contracts/market_state_ta_m5_decision_v1.py')))
@@ -59,8 +59,8 @@ def inspect(plan_sha):
          and plan['batch_visits'] == BATCHES and plan['final_score_forwards'] == SCORE_BATCHES
          and plan['max_optimizer_updates'] == BATCHES and plan['max_seconds'] == 10500
          and plan['seed'] == SEED and plan['test_data_used'] is False
-         and plan['prior_physical_windows_boot_id'] == 659
-         and plan['required_invocation_windows_boot_id_greater_than'] == 659
+         and plan['prior_physical_windows_boot_id'] == 660
+         and plan['required_invocation_windows_boot_id_greater_than'] == 660
          and plan['warm_core_result'] == plan['inputs']['prior_fit_result']
          and plan['target_result'] == plan['inputs']['target_result']
          and source_clean(plan), 'FIXED_SCOPE_SOURCE')
