@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_APR_JUN_PAIRED_FIT_002_ADMITTED_ONE_USE_NOT_STARTED.
+TA_APR_JUN_PAIRED_FIT_002_COMPLETE_CONSUMED_ECONOMICS_UNPROVEN.
 Brukeren fjernet kravet om nytt «ja» for hver stor lokal ikke-GC-kjøring.
 Integrator innrømmet plan002 SHA
 `330e4cb1dd4c76980264b44a32f091e67c43142819514901f60068abed102783`
@@ -720,10 +720,23 @@ engangsidentitet. Metadata-preflight besto med eksakt inputref-nøkkelsett, null
 null forward. Fysisk boot-ID 659 er kontrollert. Kun plan002 er nå innrømmet
 for én voktet kjøring; plan001 forblir urørt og konsumert.
 
+Plan002 fullførte etter fysisk boot 659 med terminal exit 0 og uendret kilde.
+47 338 TRAIN-rader ble besøkt i 2 959 batcher og alle 2 959 optimizersteg
+ble utført. Den faste Apr–jun-perioden fikk 1 096 initiale og 1 096
+endelige skårforwards, 17 536 rader hver. Resultat SHA
+`9ae36908fcbbc95f4170f0ed90231aa7be61bfcd163efd780b1e0bcf18fe0b1a`,
+terminal SHA `c1bcc24963d5f3a86cce23e6448e38b3bd2158af7e15588b97d06f2a6072256b`.
+Skriptet brukte 7 348 sekunder; signert vakt topp 54 °C kjerne,
+58 °C minne, 165,97 W og 2 172 MiB. Checkpoint og råopptak ligger kun
+under GX1_RUNS; ingen vekter er pushet. Engangsplanen er konsumert og
+training_enabled=false. Modell-/referanseskårene gjenstår å tolke;
+økonomisk Edge er ikke bevist.
+
 ## Neste steg
 
-1. Start plan002 én gang under voktede grenser. Følg stabil drift omtrent
-   hver time, og lukk treningsgaten på terminalutfallet.
+1. Revider den faste Apr–jun-skåringen kritisk mot Fold2-prior, kjente
+   M5-nabovendinger, TF-uenighet, F-kalibrering og M5-struktur. Ikke
+   åpne ny trening på grunnlag av teknisk PASS.
 2. Forhåndsbind én kronologisk integrert fem-TF F/S/strukturkampanje med
    både native og varierende S-spørringshorisonter. Bruk separat målt
    retning per TF, de 6 746 kjente M5-naboparene, faste proper scores,
