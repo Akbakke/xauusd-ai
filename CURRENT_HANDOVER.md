@@ -194,9 +194,13 @@ pris- og spanverdier. Gammel enhets-/normaliseringsidentitet bevares; den nye
 
 Engangsplan `TA_M5_EMA_DELTA_SIDECARS_20261117_001`, SHA
 `e2e9f9233e27223099f8905a003e05f637cfa0c7e0325485d1d55b2f89223b08`,
-er forberedt og innrømmet i `NEXT_RUN_POLICY.json`, men ikke claimet eller kjørt.
-Scope er 29 574 FIT-beslutninger, 17 489 senere beslutninger og seks fysiske
-flater; ingen modellforward, trening eller TEST. Neste steg er ren preflight,
-én kapslet materialisering og kontroll av terminal/verdiparitet. Deretter må
-ny normalisering, view, full rå og normalisert gather og modellinitial bestå
-før en eventuell ny samlet fit kan vurderes. Alle treningsflagg er stengt.
+besto ren preflight og eksakt kilde-SHA, men den kapslede jobben stoppet på
+`TA_EMA_DELTA_OLD_SLOPE_PARITY:M5`. CLAIM ble opprettet, ingen RESULT ble
+publisert. Terminal er `FAILED_CONSUMED`, exit 1, kilde uendret; terminal-SHA
+`5eac4f13ad8f9d0c768b58cd7db006d9744dc77b5c3d2ecc988fe112fd304eee`.
+Engangsplanen er lukket i `NEXT_RUN_POLICY.json` og skal aldri relanseres.
+Dette er en konkret gammel/ny M5-verdiparitetsfeil, ikke kvalifisert ny input.
+Neste steg er å måle årsaken til paritetsavviket og rette bare denne sperren
+før en eventuell ny plan. Ny normalisering, view, full rå/normalisert gather og
+modellinitial er ikke gjort. Alle treningsflagg er stengt; ingen modellforward,
+trening eller TEST fant sted.
