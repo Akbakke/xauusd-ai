@@ -84,6 +84,14 @@ def _tape(binding, parents, issues):
     return value
 
 
+def campaign_input_refs():
+    return {'physical_result': ref(PHYSICAL / 'RESULT.json'),
+            'physical_coverage': ref(PHYSICAL / 'COVERAGE.json'),
+            'issue_result': ref(ISSUE / 'RESULT.json'),
+            'fit_review': ref(FIT_REVIEW),
+            'model_view': ref(MODEL_VIEW), 'base_view': ref(BASE_VIEW)}
+
+
 def prepare(*, device: torch.device):
     """Read only immutable inputs. Caller owns admission and releases mappings."""
     need(isinstance(device, torch.device) and device.type in ('cpu', 'cuda'), 'DEVICE')
@@ -210,8 +218,4 @@ def prepare(*, device: torch.device):
             'constructor': constructor, 'priors': priors, 'axes': axes, 'selected': selected,
             'fit_tape': fit_tape, 'score_tape': score_tape,
             'features': features, 'release': release,
-            'input_refs': {'physical_result': ref(PHYSICAL / 'RESULT.json'),
-                           'coverage': ref(PHYSICAL / 'COVERAGE.json'),
-                           'score_tape_result': ref(ISSUE / 'RESULT.json'),
-                           'fit_review': ref(FIT_REVIEW),
-                           'model_view': ref(MODEL_VIEW), 'base_view': ref(BASE_VIEW)}}
+            'input_refs': campaign_input_refs()}

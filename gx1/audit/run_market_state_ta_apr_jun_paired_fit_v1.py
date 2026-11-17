@@ -12,12 +12,12 @@ import subprocess
 import time
 
 from gx1.audit.market_state_ta_apr_jun_campaign_inputs_v1 import (
-    REPO, SCORE_ROWS, TRAIN_ROWS, need, prepare, read, ref,
+    REPO, SCORE_ROWS, TRAIN_ROWS, campaign_input_refs, need, prepare, read, ref,
 )
 
-STAGE = 'ta_integrated_apr_jun_paired_fit_20261117_001'
-PLAN = REPO / 'configs/research/TA_INTEGRATED_APR_JUN_PAIRED_FIT_20261117_001.json'
-ROOT = Path('/home/andre2/GX1_RUNS/TA_INTEGRATED_APR_JUN_PAIRED_FIT_20261117_001')
+STAGE = 'ta_integrated_apr_jun_paired_fit_20261117_002'
+PLAN = REPO / 'configs/research/TA_INTEGRATED_APR_JUN_PAIRED_FIT_20261117_002.json'
+ROOT = Path('/home/andre2/GX1_RUNS/TA_INTEGRATED_APR_JUN_PAIRED_FIT_20261117_002')
 BATCH, SEED = 16, 20260911
 BATCHES = (TRAIN_ROWS + BATCH - 1) // BATCH
 SCORE_BATCHES = SCORE_ROWS // BATCH
@@ -84,13 +84,14 @@ def inspect(plan_sha, *, admitted):
          and plan['final_score_forwards'] == SCORE_BATCHES
          and plan['max_optimizer_updates'] == BATCHES
          and plan['max_seconds'] == 10500 and plan['test_data_used'] is False
-         and plan['prior_physical_windows_boot_id'] == 657
-         and plan['required_invocation_windows_boot_id_greater_than'] == 657
+         and plan['prior_physical_windows_boot_id'] == 658
+         and plan['required_invocation_windows_boot_id_greater_than'] == 658
          and plan['objective_contract_sha256'] == contract()['contract_sha256']
          and set(plan['source_owners']) == set(SOURCES)
          and set(plan['inputs']) == set(bound_inputs()) | {
              'preflight_result', 'preflight_terminal'}
          and all(plan['inputs'][key] == value for key, value in bound_inputs().items())
+         and all(plan['inputs'][key] == value for key, value in campaign_input_refs().items())
          and plan['inputs']['preflight_result'] == ref(
              '/home/andre2/GX1_RUNS/TA_INTEGRATED_APR_JUN_PAIRED_PREFLIGHT_20261117_001/RESULT.json')
          and plan['inputs']['preflight_terminal'] == ref(

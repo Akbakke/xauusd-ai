@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_APR_JUN_PAIRED_FIT_ADMITTED_ONE_USE_NOT_STARTED.
+TA_APR_JUN_PAIRED_FIT_002_PREPARED_NOT_ADMITTED.
 Brukeren fjernet kravet om nytt «ja» for hver stor lokal ikke-GC-kjøring.
 Integrator innrømmet plan002 SHA
 `330e4cb1dd4c76980264b44a32f091e67c43142819514901f60068abed102783`
@@ -703,10 +703,27 @@ kilde besto uten CLAIM eller modellforward. Bare denne planen er nå innrømmet
 for én voktet lokal kjøring; trening er åpen kun til den konsumeres.
 Ingen skår eller økonomisk Edge er hevdet fra planen.
 
+Engangskampanje plan001 ble CLAIM-et etter fysisk boot 658, men stoppet
+etter 11 sekunder før modellforward, optimizer, checkpoint og score. Min nye
+inputreferanse hadde nøkkelen `coverage`, mens planen ventet
+`physical_coverage`; terminal exit 1 og `KeyError: coverage` er bevart i
+`/home/andre2/GX1_RUNS/TA_INTEGRATED_APR_JUN_PAIRED_FIT_20261117_001/TERMINAL.json`.
+Plan001 er konsumert. Signert GPU-vakt målte ingen belastning utover idle.
+Trening er stengt igjen. Dette er en mekanisk koblingsfeil, ikke et målresultat.
+
+Den eneste rettelsen etter plan001 er én felles inputref-funksjon med
+`physical_coverage` og `issue_result`, kontrollert også i metadata-preflight.
+Distinkt plan002 SHA
+`10daa0b49a18f72abebfeb3549ca4330986209adf473685e2afe5c4ce8850839`
+har samme modell, mål, data, tap, score og ressursgrenser, men ny kilde og
+engangsidentitet. Den er forberedt uten treningsadgang; fysisk boot-ID må
+være over 658 før innrømmelse. Plan001 forblir urørt og konsumert.
+
 ## Neste steg
 
-1. Start den eksakt innrømmede, voktede TRAIN-/Apr–jun-kjøringen én gang.
-   Følg stabil drift omtrent hver time og lukk gaten på terminalutfallet.
+1. Kjør metadata-preflight på plan002 fra ren kilde. Kontroller ny fysisk
+   boot og innrøm bare denne ene voktede kjøringen. Følg stabil drift
+   omtrent hver time; lukk treningsgaten på terminalutfallet.
 2. Forhåndsbind én kronologisk integrert fem-TF F/S/strukturkampanje med
    både native og varierende S-spørringshorisonter. Bruk separat målt
    retning per TF, de 6 746 kjente M5-naboparene, faste proper scores,

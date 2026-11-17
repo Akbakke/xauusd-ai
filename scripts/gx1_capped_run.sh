@@ -869,8 +869,8 @@ validate_target_command() {
     return
   fi
   if [[ "${3:-}" == "$TA_APR_JUN_PAIRED_FIT_TRAINER_MODULE" ]]; then
-    local paired_fit_root=/home/andre2/GX1_RUNS/TA_INTEGRATED_APR_JUN_PAIRED_FIT_20261117_001
-    if [[ "$ATTENDED_SMOKE" != false || "$CUDA_PRODUCER_GUARD" != false ]] || ! matches_bound_market_state_ta_apr_jun_paired_fit "$REPO_ROOT/configs/research/TA_INTEGRATED_APR_JUN_PAIRED_FIT_20261117_001.json" "$paired_fit_root" "$@"; then
+    local paired_fit_root=/home/andre2/GX1_RUNS/TA_INTEGRATED_APR_JUN_PAIRED_FIT_20261117_002
+    if [[ "$ATTENDED_SMOKE" != false || "$CUDA_PRODUCER_GUARD" != false ]] || ! matches_bound_market_state_ta_apr_jun_paired_fit "$REPO_ROOT/configs/research/TA_INTEGRATED_APR_JUN_PAIRED_FIT_20261117_002.json" "$paired_fit_root" "$@"; then
       echo "FATAL: April-June paired TA fit is not exactly bound" >&2
       exit 75
     fi
