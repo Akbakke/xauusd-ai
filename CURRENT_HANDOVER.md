@@ -87,6 +87,40 @@ GX1 DATA/RUNS-kartleggingen fant at de største datasettene og kjøringene
 er bundet til gjeldende kvitteringer eller dokumenter. Ubuntu-VHDX er ikke
 sparse; komprimering krever separat avsluttet WSL og er ikke utført.
 
+## Lagringsstatus og komprimering 17.11.2026
+
+Ny måling: Windows C: har 601 409 798 144 bytes brukt (560,11 GiB) og
+397 167 644 672 bytes ledig. Ubuntu-VHDX er 490 187 259 904 bytes
+(456,52 GiB), ikke sparse; ext4 inni bruker 438 184 099 840 bytes
+(408,09 GiB). GX1_DATA + GX1_RUNS + GX1_CURRENT utgjør om lag 340 GiB,
+ikke 500 GiB. Ubuntu-filen rommer også separat EURUSD, Linux-system,
+virtuelle miljøer og slack. Av cirka 166 GiB prebuilt er en 37 GiB-mappe
+fysisk kilde for den konsumerte M5-featurevisningen. Store øvrige mapper er
+navngitt i gjeldende policy/dokumenter; urefererte toppmapper utgjør bare
+om lag 0,45 GiB i RUNS og 1 MB i prebuilt før retention-grafkontroll.
+Å komme ned mot 200 GiB krever avvikling eller ekstern arkivering av minst
+om lag 140 GiB navngitt historisk evidens, ikke enkel cache-sletting.
+
+Kapslet `fstrim -v /` fullførte og rapporterte 630 501 879 808 trimmete
+bytes; dette er ledige blokkmarkeringer, ikke frigjort plass på C:. VHDX-
+lengden og C:-plassen var uendret etterpå. Grov øvre størrelseforskjell
+mellom VHDX og brukt ext4 er 52 003 160 064 bytes (48,43 GiB), ikke en
+forventet komprimeringsgevinst. To interaktive WSL-shell er åpne; full lokal
+backup av VHDX får ikke plass på C:. Operatøren valgte å vente på backupplass
+og lukkede terminaler. Ingen `wsl --shutdown`, DiskPart eller VHDX-
+komprimering er utført. `NEXT_RUN_POLICY.json` binder denne beslutningen.
+
+Skjult hjemmelagring ble skilt fra GX1: eldre Cursor-runtimeversjoner,
+Cursor-snapshots, Codex-arkiver, Python-miljø og papirkurv. Fire gamle
+Cursor-runtimeversjoner uten åpne filer/referanser ble slettet under
+prosjektlås: 1 767 837 696 allokerte bytes. Nyeste runtime står.
+Papirkurven (~1,30 GB) inneholder gjenopprettingskopier av prosjektdata og
+checkpoints og er bevart. Cursor-snapshots (~13,79 GB), Codex-økter
+(~6,33 GB) og Python-pakker (~6,00 GB) er også bevart. Denne slettingen
+reduserer ext4-bruk, men ikke den uendrede ikke-sparse VHDX-lengden på C:.
+`fstrim` ble kjørt før Cursor-slettingen og må gjentas før en senere
+komprimering.
+
 ## Gjort og målt 17.11.2026
 
 - Regelen om direkte M5-edge, aktiv mismatch-kontroll, sparsom tokenbruk og
