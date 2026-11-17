@@ -26,10 +26,14 @@ Konkrete retention-funn: eieren ignorerte `PermissionError` i `/proc/*/fd` og
 162 fokuserte tester besto. Fysisk normal bruker får nektet 27/31 fd-tabeller;
 root kan lese alle. Root-capped audit med 4G/512M er verifisert og en ytre
 `flock` på andre2s eksisterende prosjektlås blokkerer parallell jobb på
-samme inode. Ingen DATA/RUNS er slettet. Retention-eieren har laget én plan
-for `HISTORY2009W_EARLY_DECISION_20260927` (2 600 617 478 bytes): plan SHA
-`3e3150233e10c4e19413f0e2f8f82cf4a0d951a8c5e2a9ba412c2a81df7a1bc7`.
-Godkjenning/utføring er ikke kjørt.
+samme inode. Retention-eieren slettet eksakt én ureferert gammel run,
+`HISTORY2009W_EARLY_DECISION_20260927`: 470 filer, 17 mapper og
+2 600 617 478 bytes. Plan SHA
+`3e3150233e10c4e19413f0e2f8f82cf4a0d951a8c5e2a9ba412c2a81df7a1bc7`,
+godkjenning SHA `3509d43f1a71f094cf6b2b4408d1f518da53baf6ef1f85d0bec71e2343419a4b`,
+DELETE_COMPLETE-rapport SHA `160406465b2e4588f1aab45b43082b25db558b02890760195a30fb26b8dc92f3`.
+Sti og karantene er borte; ingen andre DATA/RUNS er rørt. Eksakte kvitteringsstier
+og byteantall står i `NEXT_RUN_POLICY.json`.
 
 ## Gjort og målt 17.11.2026
 
