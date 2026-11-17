@@ -1,0 +1,101 @@
+{
+  "checkpoint": {
+    "path": "/home/andre2/GX1_RUNS/TA_M5_DECISION_FIT_20261117_004/FINAL_MODEL.pt",
+    "sha256": "b192e7cd383d774192455d24b13f7c71eca980c20281226a3e1a8bb27d06ad36"
+  },
+  "economic_edge_proven": false,
+  "findings": [
+    "The zero-LONG and quality-overprediction problem is present on sampled FIT rows, not only in later development data.",
+    "On selected later path-complete rows, pre-MFE MAE underprediction accounts for most of the quality gap; this is a measured error, not proof of its sole cause.",
+    "The M5 better-side prediction at 480 minutes is nearly always SHORT while ground truth is close to balanced.",
+    "Positive selected terminal markout on reused development does not prove independent generalization, entry path quality, position-accounted PnL or economic Edge."
+  ],
+  "fit_sample": {
+    "batch_size": 16,
+    "capped_memory": "4G",
+    "capped_swap": "512M",
+    "forward_batches": 24,
+    "limit": "384 sampled FIT rows; not a full-FIT estimate",
+    "months": {
+      "2024-05": {
+        "actions": {
+          "FLAT": 101,
+          "LONG": 0,
+          "SHORT": 27
+        },
+        "actual_quality_bps_mean": -18.809846918177765,
+        "h480_long_quality_positive": 27,
+        "h480_pred_short_minus_long_bps_mean": 29.174554045607405,
+        "predicted_quality_bps_mean": 3.104955321864078,
+        "selected_path_known": 19
+      },
+      "2024-09": {
+        "actions": {
+          "FLAT": 48,
+          "LONG": 0,
+          "SHORT": 80
+        },
+        "actual_quality_bps_mean": -28.403284639739656,
+        "h480_long_quality_positive": 31,
+        "h480_pred_short_minus_long_bps_mean": 42.97877845419458,
+        "predicted_quality_bps_mean": 3.924380449148325,
+        "selected_path_known": 52
+      },
+      "2024-12": {
+        "actions": {
+          "FLAT": 109,
+          "LONG": 0,
+          "SHORT": 19
+        },
+        "actual_quality_bps_mean": -1.443274533167605,
+        "h480_long_quality_positive": 22,
+        "h480_pred_short_minus_long_bps_mean": 30.862013328506286,
+        "predicted_quality_bps_mean": 2.5968242287635803,
+        "selected_path_known": 16
+      }
+    },
+    "selection": "128 evenly spaced issue rows within each named Fold2 FIT month, chosen before reading predictions or labels"
+  },
+  "fit_targets": {
+    "path": "/home/andre2/GX1_RUNS/TA_M5_COST_PATH_TARGETS_20261117_001/FIT_TARGETS.npz",
+    "sha256": "3f0a9c74a4a40da80fc62850b62dde3b67d7f896963440d58a5c810af9908024"
+  },
+  "forward_journal_boundary": {
+    "existing_route": "D1 swing_ridge h20/h5 68-field journal only",
+    "gx1_rules_section": "GX1_RULES.md lines 634-649",
+    "m5_journal_admitted": false,
+    "native_TEST_read_allowed": false
+  },
+  "optimizer_updates": 0,
+  "reused_development_score": {
+    "actual_net_bps_mean_on_selected_path": 11.64999579347855,
+    "actual_pre_mfe_mae_bps_mean_on_selected_path": 27.817207288287403,
+    "actual_quality_bps_mean_on_selected_path": -16.167211494808853,
+    "h480_actual_SHORT_better_fraction": 0.5245425756509501,
+    "h480_better_side_accuracy": 0.5255981703026038,
+    "h480_path_complete": 11368,
+    "h480_predicted_SHORT_better_fraction": 0.9984166080225193,
+    "h480_predicted_vs_actual_side_difference_correlation": 0.1801437967779755,
+    "predicted_net_bps_mean_on_selected_path": 16.247084597268433,
+    "predicted_pre_mfe_mae_bps_mean_on_selected_path": 13.001478321408552,
+    "predicted_quality_bps_mean_on_selected_path": 3.245606275859881,
+    "score_rows": 17536,
+    "selected": 5684,
+    "selected_net_bps_mean_on_known_terminal": 6.23237328913527,
+    "selected_path_complete": 4031,
+    "selected_terminal_known": 5001,
+    "selected_terminal_unknown": 683
+  },
+  "role": "aggregate_read_only_research_no_launch_or_trade_authority",
+  "schema_version": "gx1_ta_m5_postfit_diagnostic_v1",
+  "score_capture": {
+    "path": "/home/andre2/GX1_RUNS/TA_M5_DECISION_FIT_20261117_004/FINAL_SCORE_READOUT.npz",
+    "sha256": "5b02fd56400911a3487cfe38061391509da32a2e1b802f63891d7e978e8e0486"
+  },
+  "score_targets": {
+    "path": "/home/andre2/GX1_RUNS/TA_M5_COST_PATH_TARGETS_20261117_001/SCORE_TARGETS.npz",
+    "sha256": "3969494002f84a913161072da9f77abea86b82e1213d8b257468a7eb71f18a34"
+  },
+  "source_commit_at_audit": "1db690e6842bbc157ea17137de09bab5b1273a12",
+  "test_data_used": false
+}

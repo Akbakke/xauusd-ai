@@ -7,7 +7,7 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_M5_DECISION_FIT_004_REVIEWED_CONSUMED_DEV_SELECTIVITY_PATH_FAIL_EDGE_UNPROVEN.
+TA_M5_DECISION_POSTFIT_TRAIN_AUDIT_CONFIRMS_DIRECTION_COLLAPSE_NO_EDGE.
 Første direkte kostete M5-fit valgte 11 486 SHORT, 0 LONG og
 6 050 FLAT på 17 536 gjenbrukte Apr–jun-rader. Kjente valgte
 terminalutfall ga −0,578 bps i snitt etter oppgitte kostnader;
@@ -25,6 +25,10 @@ utviklingsdata, ikke posisjonsført PnL eller bevist Edge. Plan002 og plan003 st
 oppstartshindre, med null modellsteg; alle fire engangsplaner er
 konsumert. training_enabled=false, native_training_enabled=false,
 full_epoch_training_allowed=false og native_launch_authorized=false.
+En avgrenset TRAIN-kontroll bekreftet 0 LONG og overoptimistisk
+valgt prisbanekvalitet også før senere markedsdata. På gjenbrukt
+SCORE rangerer modellen SHORT bedre enn LONG på 99,84 % av de
+11 368 komplette 480-minuttersbanene, mot 52,45 % i fasit.
 Full GC er pauset; TEST, ONLINE, broker og handel er lukket.
 Uavhengig handelsgeneralisering er ikke bevist.
 
@@ -996,16 +1000,55 @@ Overlappende åttetimersobservasjoner, 683 ukjente utfall,
 null LONG og manglende posisjonsregnskap gjør økonomisk Edge
 ubevist. Apr–jun er gjenbrukt utvikling, ikke uavhengig test.
 
+Etter terminalen ble plan004-checkpointet kontrollert lesende på
+384 forhåndsbestemte FIT-rader: 128 jevnt spredte rader i hver av
+mai, september og desember 2024, 24 CPU-forwards under 4G/512M,
+null optimizersteg og ingen TEST. Checkpointets modellstat hadde
+samme hash som `RESULT.json`. Modellen valgte 0 LONG i alle tre
+månedene. Den valgte 27/80/19 SHORT, mens 27/31/22 av de
+komplett observerte 480-minuttersradene i de respektive månedene
+hadde positiv LONG-kvalitet. På de valgte komplette banene var
+predikert/faktisk kvalitet +3,105/−18,810 bps i mai,
++3,924/−28,403 i september og +2,597/−1,443 i desember.
+Dette er en begrenset TRAIN-prøve, ikke full TRAIN-score; den viser
+at feilretningen og kvalitetsoptimismen også finnes før Apr–jun.
+
+På samme 4 031 valgte komplette Apr–jun-baner var predikert
+netto 16,247 mot faktisk 11,650 bps og predikert konservativ
+MAE før MFE 13,001 mot faktisk 27,817 bps. MAE-underprediksjonen
+14,816 bps forklarer mesteparten av den målte kvalitetsdifferansen
+19,413 bps, uten å bevise én isolert årsak. Ved alle 11 368
+komplette 480-minuttersbaner ga modellen SHORT høyere predikert
+kvalitet enn LONG i 99,84 %, mens fasit favoriserte SHORT i
+52,45 %; bedre-side-treff 52,56 %, nær flertallsreferansen.
+Dokumentert i `docs/TA_M5_DECISION_POSTFIT_DIAGNOSTIC_20261117.json`
+(SHA `9f64aa03d5e390c873ffc2d74841d63c67556bccea52b81c9dfdd40de327fb04`).
+Symmetrisk Huber for MAE-feltet gir ingen egen straff for
+MAE-underprediksjon; dette er en observert designbegrensning,
+men ikke bevis for at én tapsendring skaper Edge.
+
+GX1_RULES.md vedtak 11.10 linje 634–649 begrenser eksisterende
+forward-journal til 68-felts D1 swing_ridge h20/h5. Det finnes ingen
+innrømmet M5-journal som kan score forseglet periode, og native
+TEST-split skal ikke leses. Den nåværende M5-kandidaten er heller
+ikke kvalifisert for slik bekreftelse når TRAIN-prøven viser
+prisbanesvikt. Tidligere formulering om forward-journal som
+umiddelbart neste M5-steg var for vid.
+
 ## Neste steg
 
 1. Behold plan001–004 konsumert og treningsporten lukket.
    Ingen ny vekt, horisont eller handlingsregel velges fra gjenbrukt
-   Apr–jun. Målt nettoforbedring på dette utviklingsutvalget er
-   interessant, mens retning og MAE før MFE fortsatt feiler.
-2. Neste meningsfulle Edge-bevis er en forhåndsbundet uavhengig
-   forward-journal med alle valgte handler, åpne posisjoner og
-   faktiske kostnader, innen GX1_RULES uten refit eller handel.
-   TEST, Full GC, ONLINE, broker og handel er lukket.
+   Apr–jun. Den positive terminalnettoen er utviklingsseleksjon;
+   0 LONG, nesten konstant SHORT-fordel og MAE-underprediksjon
+   gjør dette til en ukvalifisert M5-beslutning.
+2. Før en eventuell ny fit må én TRAIN-bundet designendring forklare
+   hvordan inngangens ugunstige prisbane og begge sider skal læres
+   og kontrolleres. Gjenbruk eksisterende input, mål og vakter;
+   ingen flere tilfeldige regelrunder. Eksisterende D1-journal gir
+   ingen M5-/TEST-adgang. En separat framtidig M5-journal krever
+   eget operatørvedtak og dataautoritet. TEST, Full GC, ONLINE,
+   broker og handel er lukket.
 
 Opprydding: historiske overleveringsavsnitt er fjernet her og bevart i Git.
 Ingen Python-fil er slettet; gjeldende referanse-, import-, test- og
