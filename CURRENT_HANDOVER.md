@@ -7,18 +7,20 @@ finnes i Git.
 
 ## Gjeldende status
 
-TA_M5_COST_PATH_TARGETS_001_ADMITTED_NO_MODEL. Én integrert ikke-GC
+TA_M5_COST_PATH_TARGETS_001_COMPLETE_CONSUMED_NO_EDGE. Én integrert ikke-GC
 Fold2-fit på 47 338 TRAIN-rader er fullført; fast apr–jun-skår på 17 536
 senere utviklingsrader fant ingen kvalifisert native M5-S/F-retning.
-Strukturtreff lærte, men ga ingen påvist M5-sideprognose. Den etterfølgende
-forhåndsbundne kostkontrollen valgte FLAT på alle rader i sin primære
-M5-F-beslutning; tvungen side tapte i snitt ved alle seks målepunkter.
-Begge engangsplaner er konsumert. training_enabled=false,
-native_training_enabled=false og full_epoch_training_allowed=false.
-Full GC er pauset; TEST, Entry/Exit, ONLINE, broker og handel er lukket.
-Ingen økonomisk Edge eller uavhengig handelsgeneralisering er bevist.
-Brukeren fjernet kravet om nytt «ja» for hver kvalifisert lokal ikke-GC-
-kjøring. Stabile langkjøringer kontrolleres omtrent hver time.
+Strukturtreff lærte, men ga ingen påvist M5-sideprognose. Den
+forhåndsbundne kostkontrollen valgte FLAT på alle rader og tvungen side
+tapte i snitt ved alle seks målepunkter. Det nye, eksakte Fold2/Apr–jun-
+målarkivet for M5-kost og prisbane er produsert og uavhengig kontrollert;
+det har ikke trent en beslutningsmodell. Alle tre engangsplaner er
+konsumert. training_enabled=false, native_training_enabled=false og
+full_epoch_training_allowed=false. Full GC er pauset; TEST, Entry/Exit,
+ONLINE, broker og handel er lukket. Ingen økonomisk Edge eller uavhengig
+handelsgeneralisering er bevist. Brukeren fjernet kravet om nytt «ja»
+for hver kvalifisert lokal ikke-GC-kjøring. Stabile langkjøringer
+kontrolleres omtrent hver time.
 
 Plan001 SHA `4016255217a3c87bdc84715b6e65707090fa09dcaa1e70a3a1b3455bdac84621`
 ble CLAIM-et under fysisk boot 656, men feilet i initial TRAIN-strukturskår
@@ -813,24 +815,33 @@ avvist, mens årsaken til svak overføring ikke er isolert. F er korrekt som sep
 ikke en Entry-handling. Flere F-only-epoker, hodesplitter eller
 indikatorregler uten nytt beslutningsmål har ingen målt begrunnelse.
 
-Et nytt, ennå ikke innrømmet CPU-datagrunnlag er bundet som
-`TA_M5_COST_PATH_TARGETS_20261117_001` (SHA `ac265434e616bc7cbfc6e1cca122d083f0e40cc13b1cd4f6520e1671c67b523e`).
-Det gjenbruker eksakt Fold2-fitakse (47 338), plan002s faste apr–jun-akse
-(17 536), den tidligere kvalifiserte M1 bid/ask-priskilden og samme
-kostautoritet. Seks allerede brukte observasjonsavstander 1/5/15/60/240/
-480 min får separate masker for terminal netto og komplett prisbane;
-LONG/SHORT netto, MFE og konservativ MAE før første MFE bevares som
-separate mål. Faktisk 16-raders FIT- og SCORE-preflight besto under
-4G/512M uten CLAIM, modellforward eller optimizersteg. Kun én CPU-audit
-er nå innrømmet for dette eksakte målarkivet; modelltrening forblir stengt.
+M5-kost-/prisbanemålene fra engangsplan
+`TA_M5_COST_PATH_TARGETS_20261117_001` er nå fullført og konsumert.
+Plan SHA `ac265434e616bc7cbfc6e1cca122d083f0e40cc13b1cd4f6520e1671c67b523e`;
+CLAIM SHA `d6ef09efd9e60ef0632fb65e2cf1a5a4b4efffcc3bcdf8af193c53a7538c12b1`,
+RESULT SHA `dd8741c5f4d757a4ce366f681ff808841f20ca59f5e663413280b26aa2953ee7`,
+TERMINAL SHA `d6334b04ce9ada129291cb9244d2ec131aaafb4084a9aad550e59eeceaf114a6`.
+Kjøretid etter CLAIM var 56,6 sekunder. FIT-arkivet har 47 338 rader
+(SHA `3f0a9c74a4a40da80fc62850b62dde3b67d7f896963440d58a5c810af9908024`);
+SCORE har 17 536 rader (SHA `3969494002f84a913161072da9f77abea86b82e1213d8b257468a7eb71f18a34`).
+Begge har separate terminal- og komplett prisbane-masker samt LONG/SHORT
+netto, MFE og konservativ MAE før MFE ved alle seks forhåndsbundne
+observasjonspunkter. Uavhengig kontroll fant eksakte inputakser,
+filhash, maskeinvarianter og FIT-paritet mot tidligere M1-kostaudit.
+SCORE-kostgjennomsnittet er bitlikt for LONG og SHORT ved alle seks
+punkter når samme komplette prisbane-rader brukes. Ved 480 minutter
+har 15 480 rader sluttpris, men bare 11 368 komplett prisbane; disse
+må ikke blandes. Bakoverskuende andel med minst én positiv side er
+ikke modellens fangstevne eller Edge. Null modellforward, null
+optimizersteg, ingen TEST eller handel. Treningsporten er stengt.
 
 ## Neste steg
 
-1. Behold plan002 og kostplan001 konsumert og treningsporten lukket.
+1. Behold plan002, kostplan001 og målplan001 konsumert og treningsporten lukket.
    Ikke start flere F-only-epoker, hodesplitt- eller indikatorregler på
    teknisk PASS; den rene F-kilden og gjentatt transferfeil er dokumentert.
-2. Bind én integrert ikke-GC M5-beslutningskandidat med det eksisterende
-   dynamiske M1-pris-/kostmålgrunnlaget: separat kostet LONG/SHORT/FLAT-
+2. Bind én integrert ikke-GC M5-beslutningskandidat til de lagrede
+   Fold2/Apr–jun-kost-/prisbanemålene: separat kostet LONG/SHORT/FLAT-
    verdi og konservativ prisbane-kvalitet ved 1 minutt til mange timer.
    Behold de fem selvstendige S/F-retningene og M5-struktur som egne
    prognosemål fra samme kausale encoder. Avklar masker, TRAIN-skala,
