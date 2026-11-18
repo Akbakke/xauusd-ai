@@ -260,5 +260,9 @@ er foreldet; v2-statistikk på den uendrede 29 574-raders FIT-målfilen er målt
 til `1e1278c2eced0a2344f2a7162fa8d54f5e5cb49d92640c59edf3edd38976fd30`.
 Ny target-only engangsplan `TA_M5_EMA_DELTA_FOLD1_PRIORS_20261118_001`
 (SHA `d249c24d449324a3591b0af8426256e05a97618edf7959a879bee9dc48118148`) er innrømmet med null
-modellforward og null senere mål i priorfit. Før kjøring kreves ren kilde og
-preflight. Initial- og fit-planer er ikke innrømmet.
+modellforward og null senere mål i priorfit. Ren preflight og én kapslet audit besto. Ny prior-fil SHA
+`1fdd70246c6dbb295819ec0dcfe45ab5c6260d8767ca8e4cdbd516591609f009`, RESULT-SHA
+`55a9cdd4a54cf612434f6e3ce8a650b49f8514fc04b26f7f0decfceafde28267`, TERMINAL-SHA
+`a4a948fc6c49989eca42f49b7841363a8dc5e471ac3c55b275b866f12a118965`. Dagens Fold1/F-objektiv godtar prioren;
+29 574 modne FIT-rader, null modell og ingen senere mål i priorfit. Planen er
+konsumert. Neste steg er fersk initialbaseline; fit-plan er ikke innrømmet.
