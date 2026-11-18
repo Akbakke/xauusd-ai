@@ -3,7 +3,8 @@
 All existing eight TA specialist families and five TF windows enter the one
 unchanged native backbone. Five post-attention TF vectors and distinct S/F
 heads are mandatory. A five-closed-M1-bar path gates those vectors separately;
-unknown M1 minutes stay masked. Targets never enter forward. No fit authority.
+unknown M1 minutes stay masked and the path requires its closing M1 price.
+Targets never enter forward. No fit authority.
 """
 from __future__ import annotations
 
@@ -38,12 +39,12 @@ def contract(dual: NativeFutureDualModel) -> dict:
           and state._dedicated_tf_activity and not dual._shared_m5_side,
           'FIVE_TF_MODE')
     value = {
-        'schema_version': 'gx1_ta_integrated_m1_structure_model_v1',
+        'schema_version': 'gx1_ta_integrated_m1_structure_model_v2',
         'role': 'research_only_no_fit_or_trade_authority',
         'dual_S_F_contract_sha256': dual.research_objective['contract_sha256'],
         'backbone': 'one_unchanged_full_TA_encode_with_five_post_attention_TF_vectors',
-        'M1_path': 'five_closed_mid_OHLC_bps_last_close_plus_per_minute_observed_mask',
-        'M1_fusion': 'zero_initialized_distinct_per_TF_bounded_multiplicative_gate',
+        'M1_path': 'five_closed_mid_OHLC_bps_and_price_mask_require_observed_last_close',
+        'M1_fusion': 'zero_initialized_distinct_per_TF_bounded_gate_with_identity_without_last_close',
         'S_F_direction_heads': 'five_distinct_per_task_conditional_side_heads',
         'M5_structure_logits': list(STRUCTURE_FIELDS),
         'M5_structure_truth_as_forward_input': False,
@@ -124,9 +125,12 @@ class IntegratedTAMarketStateModel(nn.Module):
               and bool((m1_path_bps[:, -1, 3] == 0).all())
               and bool((m1_observed[:, -1] | (m1_path_bps == 0).all(dim=(1, 2))).all()),
               'M1_PATH')
+        anchor_observed = m1_observed[:, -1]
+        price_observed = m1_observed & anchor_observed[:, None]
         source = torch.cat((m1_path_bps.reshape(batch, -1),
-                            m1_observed.to(torch.float32)), dim=-1)
+                            price_observed.to(torch.float32)), dim=-1)
         gate = torch.tanh(self.m1_tf_gate(source).reshape(batch, tf_count, width))
+        gate = torch.where(anchor_observed[:, None, None], gate, 0.0)
         fused = hidden * (1.0 + gate)
         state_grid = self.dual.state_model.decode_raw_query_grid(fused, query_grid)
         state_raw = state_grid[:, 0]

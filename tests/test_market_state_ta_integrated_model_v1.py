@@ -81,6 +81,31 @@ def test_m1_gate_is_tf_local_and_reaches_side_and_structure_gradients(monkeypatc
     assert len(calls) == 3
 
 
+def test_m1_gate_needs_a_closed_price_anchor_even_with_learned_bias(monkeypatch):
+    model = _model(monkeypatch, [])
+    args = _inputs(batch=4)
+    args['m1_path_bps'][:2] = 0
+    args['m1_observed'][0, -1] = False
+    args['m1_observed'][1] = False
+    args['m1_path_bps'][2, 1] = 0
+    args['m1_observed'][2, 1] = False
+    hidden = model.dual.encode_features(**args['features'])
+    with torch.no_grad():
+        model.m1_tf_gate.weight[:, 20] = 0.1
+        model.m1_tf_gate.bias.fill_(0.2)
+    observed = args['m1_observed']
+    path = args['m1_path_bps']
+    old_input = torch.cat((path.flatten(1), observed.float()), dim=1)
+    old_gate = torch.tanh(model.m1_tf_gate(old_input)).reshape_as(hidden)
+    fused = model(**args, return_fused_tf_hidden=True)['fused_tf_hidden']
+    assert torch.equal(fused[:2], hidden[:2])
+    assert torch.equal(fused[2:], hidden[2:] * (1.0 + old_gate[2:]))
+    assert not torch.equal(fused[2:], hidden[2:])
+    fused[:2].sum().backward()
+    for parameter in model.m1_tf_gate.parameters():
+        assert torch.count_nonzero(parameter.grad) == 0
+
+
 def test_missing_m1_values_fail_and_structure_mask_has_zero_unknown_gradient(monkeypatch):
     model = _model(monkeypatch, [])
     args = _inputs()

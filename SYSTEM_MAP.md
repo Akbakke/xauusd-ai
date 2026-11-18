@@ -2,29 +2,26 @@
 
 Gjeldende bindinger eies av NEXT_RUN_POLICY.json; dokumentet er ikke en recipe.
 
-Aktuell bølge bygger bare M5 Entry. Samme encoder lærer separat netto
-endepunktsmarkout, signert MFE og konservativ MAE før første MFE fra1..480min;
-dagshorisonter er maskert støtte. Et delt indeks over originale M1 BID/ASK
-og target-only radpekere erstatter lagrede tette framtidsbaner. Endepunkt og
-prisforløp har uavhengige masker. Fremtidige utfall/masker brukes aldri som
-inputs. Ingen Exit-tap er aktive. Kvalitetskandidaten er eksplisitt kvalitet i
-bps: predikert netto endepunktsmarkout minus predikert pre-MFE-MAE upper.
-Lik bps-vekt1 er et valgt kvalitetsmål, ingen cash-/optimalitetsclaim. Ulike
-observasjonsmasker gir ingen ubetinget felles forventningsclaim. Kandidaten
-har ingen native beslutningsautoritet før kvalifisering; publiserte022/026
-features kvalifiserer ikke den nye modellen.
+Aktiv fase er prognose av OPP/NED/FLATT på M5, M15, H1, H4 og D1
+ved hver lukkede M5-bar. S beskriver lokal markedstilstand. F beskriver
+framtidig nettoendring med egen observasjonsmaske. Entry, Entry-Q og Exit
+kommer senere. Siste kjørte kontroll brukte TA-profilen med åtte
+spesialistfamilier og D1/makro via global kontekst. Native GC-retning
+har en egen modellrute. Den dedikerte TA-modellen med fem S/F-tilstander
+har foreløpig ingen kvalifisert felles GC MBP-1-komposisjon.
 
 ```text
-hash-bundne XAUUSD M1/M5-priser + GC MBP-1 trades/BBO/order counts
-  → GC M1-observationer + bevaret prisgrid/footprint + kontrakt/coverage-metadata
-  → eksisterende feature-eiere / åtte spesialister + niende D1/makro-kontekst
-  → kausale M5/M15/H1/H4/D1-ruter med eksplisitt kilde-/observasjonsmaske
-  → native signalmanifest og uforanderlig TRAIN-normalisering
-  → Entry M5-vinduer + separate M1-views + økonomi/tilstandsindekser
-  → delt encoder og separate Entry-retning-/MFE-/MAE-kurver, Exit inaktiv
-  → initial-/læringsmåling og fryste TRAIN/CONTROL-koordinater
-  → egne lærings-, generaliserings-, paritets- og økonomiporter
+hashbundne XAUUSD M1/M5-priser og kausalt lukkede M15/H1/H4/D1-barer
+  → indikatorer, observasjonsmasker, native signalmanifest og FIT-statistikk
+  → åtte spesialistfamilier og D1/makro-kontekst
+  → familie- og tidsrammeoppmerksomhet, separat blanding innen hver tidsramme
+  → per-TF skjult vektor med lukket M1-kontekst og separate S/F-hoder
+  → separate skårer for aktivitet, kjent OPP/NED og M5-vendinger
 ```
+
+GC-kjeden beholder MBP-1 trades/BBO, prisgrid, footprint, kontrakt og faktisk
+dekning i egen native feature- og modellrute. S-/F-fasit og observerbarhet
+går til tap og skåring.
 
 ## Eiere
 
@@ -38,6 +35,8 @@ hash-bundne XAUUSD M1/M5-priser + GC MBP-1 trades/BBO/order counts
   aldri en separat handelsregel.
 - Normalisering: entry_model_native_input_normalization_v1 og eksisterende
   unified_exit-native/composite normalization-eiere.
+- S/F-prognose: market_state_time_query_model_v2,
+  market_state_time_query_native_F_model_v1 og market_state_ta_integrated_model_v1.
 - Entry-observerte markedsmål: entry_observed_market_horizons_v1; aktuelt
   h20-terminalmål må ikke beskrives som en måling av M5-MAE/MFE-path-quality.
 - Fitted-Q/handlinger: entry_fitted_q_v1, unified_exit_fitted_q_v1 og

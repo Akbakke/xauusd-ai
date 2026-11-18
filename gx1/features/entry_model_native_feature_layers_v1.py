@@ -433,7 +433,7 @@ def model_native_m5_local_per_bar_exact_aliases(
     for name in PRICE_DERIVED_FEATURE_NAMES:
         bare = name.removeprefix("chart.local_")
         if bare == "kama_efficiency_30":
-            continue  # No per-TF counterpart is implemented.
+            continue  # Its fully qualified MTF alias is added below.
         bare = {"price_vs_ema50_atr": "ema50_dist_atr",
                 "price_vs_ema200_atr": "ema200_dist_atr"}.get(bare, bare)
         aliases.append((name, bare))
@@ -465,42 +465,8 @@ def model_native_m5_local_per_bar_exact_aliases(
     return result
 
 
-# The FULL emitted surface of every registered family, in the same label order.
-#
-# All remaining specialist layers emit exactly their mandatory raw/event
-# surface.  The retired chart and candlestick scorebooks had separate
-# candidate-only emissions; no such hidden surface remains.
-_SPECIALIST_LAYER_FULL_EMISSION_OVERRIDES: dict[str, tuple[str, ...]] = {}
-MODEL_NATIVE_SPECIALIST_LAYER_EMITTED_FEATURES: tuple[
-    tuple[str, tuple[str, ...]], ...
-] = tuple(
-    (label, _SPECIALIST_LAYER_FULL_EMISSION_OVERRIDES.get(label, tuple(features)))
-    for label, features in MODEL_NATIVE_SPECIALIST_LAYER_FEATURES
-)
-_emitted_labels = {label for label, _features in MODEL_NATIVE_SPECIALIST_LAYER_FEATURES}
-if set(_SPECIALIST_LAYER_FULL_EMISSION_OVERRIDES) - _emitted_labels:
-    raise RuntimeError(
-        "MODEL_NATIVE_SPECIALIST_LAYER_EMISSION_OVERRIDE_UNKNOWN_LABEL: "
-        f"{sorted(set(_SPECIALIST_LAYER_FULL_EMISSION_OVERRIDES) - _emitted_labels)}"
-    )
-for (
-    (_mandatory_label, _mandatory_features),
-    (_emitted_label, _emitted_features),
-) in zip(
-    MODEL_NATIVE_SPECIALIST_LAYER_FEATURES,
-    MODEL_NATIVE_SPECIALIST_LAYER_EMITTED_FEATURES,
-):
-    if _mandatory_label != _emitted_label:
-        raise RuntimeError(
-            "MODEL_NATIVE_SPECIALIST_LAYER_EMISSION_ORDER_MISMATCH: "
-            f"{_mandatory_label} != {_emitted_label}"
-        )
-    if not set(_mandatory_features).issubset(set(_emitted_features)):
-        raise RuntimeError(
-            "MODEL_NATIVE_SPECIALIST_LAYER_MANDATORY_NOT_EMITTED: "
-            f"{_mandatory_label} "
-            f"{sorted(set(_mandatory_features) - set(_emitted_features))[:10]}"
-        )
+# Every registered layer emits exactly its mandatory fields in the same order.
+MODEL_NATIVE_SPECIALIST_LAYER_EMITTED_FEATURES = MODEL_NATIVE_SPECIALIST_LAYER_FEATURES
 
 _mandatory_family_labels = tuple(
     family for family, _features in MODEL_NATIVE_MANDATORY_FAMILY_FEATURES

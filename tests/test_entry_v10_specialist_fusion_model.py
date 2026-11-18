@@ -93,7 +93,7 @@ def _valid_ctx_cont(batch_size: int) -> torch.Tensor:
     # observed. Gaussian values are not legal binary availability masks.
     for name in (*GC_OBSERVED_FIELDS, "close_range_observed"):
         values[:, list(MODEL_NATIVE_CTX_CONT_FIELDS).index(name)] = 1.0
-    return values
+    return _valid_range_observation_input(values, MODEL_NATIVE_CTX_CONT_FIELDS)
 
 
 def _synchronized_seq_snap(
@@ -182,6 +182,45 @@ def _guard_test_model(
             mtf_width=mtf_width,
         ),
     ).eval()
+
+
+def test_mtf_family_mix_survives_small_global_timeframe_weight() -> None:
+    torch.manual_seed(2408)
+    model = _guard_test_model(_context_routing(_specialist_indices()))
+    timeframes = tuple(tf.lower() for tf in ENTRY_MTF_CONTEXT_TIMEFRAMES)
+    inputs = tuple((tf, torch.randn(1, 4, MTF_DIM), 4, MTF_DIM) for tf in timeframes)
+    base = torch.zeros(1, model.cfg.d_model)
+    attention_inputs = []
+
+    def capture_attention_input(_module, args):
+        attention_inputs.append(args[0].clone())
+
+    with torch.no_grad():
+        model.family_tf_context_gate.weight.zero_()
+        model.family_tf_context_gate.bias.zero_()
+        model.family_tf_token_gate.weight.zero_()
+        model.family_tf_token_gate.bias.zero_()
+
+        hook = model.cross_tf_attn.register_forward_pre_hook(capture_attention_input)
+        try:
+            first = model._encode_multi_tf_route(
+                base_representation=base, tf_inputs=inputs,
+                route_timeframes=ENTRY_MTF_CONTEXT_TIMEFRAMES, route_label="entry",
+            )
+            # Every family logit on M5 moves equally. That should change the
+            # global cooperation weights while keeping each TF-local mix fixed.
+            model.family_tf_context_gate.bias[:MTF_DIM].fill_(100.0)
+            second = model._encode_multi_tf_route(
+                base_representation=base, tf_inputs=inputs,
+                route_timeframes=ENTRY_MTF_CONTEXT_TIMEFRAMES, route_label="entry",
+            )
+        finally:
+            hook.remove()
+
+    assert len(attention_inputs) == 2
+    assert first["family_tf_cooperation_gate"][0, :MTF_DIM].sum() < 0.25
+    assert second["family_tf_cooperation_gate"][0, :MTF_DIM].sum() > 0.99
+    torch.testing.assert_close(attention_inputs[1], attention_inputs[0], rtol=0, atol=0)
 
 
 def test_m5_family_token_has_no_hard_coded_duplicate_current_bar_merge() -> None:
@@ -297,7 +336,9 @@ def test_actual_model_native_signal_and_mtf_partitions_reach_every_family_branch
     for field, domain in CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS.items():
         ctx_cont[:, list(MODEL_NATIVE_CTX_CONT_FIELDS).index(field)] = 0.0
         assert 0 in domain
-    seq = torch.randn(batch_size, 4, len(signal_fields))
+    seq = _valid_range_observation_input(
+        torch.randn(batch_size, 4, len(signal_fields)), signal_fields
+    )
     for alias in context_routing["temporal_alias_policy"]["aliases"]:
         seq[:, :, int(alias["signal_index"])] = ctx_cont[
             :, int(alias["ctx_cont_index"])

@@ -185,27 +185,34 @@ def _proper(raw, truth, query, *, prior=None):
 
 
 def _turn_and_disagreement(state_raw, state_truth, issues):
+    """Score oriented M5 turns and compare native forecasts at each issue."""
     import numpy as np
-    from gx1.contracts.market_state_time_query_target_v1 import TIMEFRAMES
+    from gx1.contracts.market_state_time_query_target_v1 import NATIVE_K, TICK_NS, TIMEFRAMES
     known = state_truth['eligible'] & state_truth['mature'] & np.isin(
         state_truth['allowed'], (1, 4))
     p = 1.0 / (1.0 + np.exp(-np.clip(state_raw[:, :, 1].astype(np.float64), -80, 80)))
-    paired = known[:-1, 0] & known[1:, 0] & (np.diff(issues) == 300_000_000_000)
+    paired = known[:-1, 0] & known[1:, 0] & (np.diff(issues) == TICK_NS)
     truth = state_truth['allowed'][:, 0]
     actual_turn = truth[:-1] != truth[1:]
     prediction = p[:, 0] >= 0.5
     predicted_turn = prediction[:-1] != prediction[1:]
+    simultaneous_turn = paired & actual_turn & predicted_turn
+    destination_correct = prediction[1:] == (truth[1:] == 4)
     turn = {'known_contiguous_pairs': int(paired.sum()),
             'actual_turns': int((paired & actual_turn).sum()),
             'predicted_turns': int((paired & predicted_turn).sum()),
-            'captured_actual_turns': int((paired & actual_turn & predicted_turn).sum()),
+            'captured_actual_turns': int((simultaneous_turn & destination_correct).sum()),
+            'reverse_direction_turns': int((simultaneous_turn & ~destination_correct).sum()),
+            # A false alert counts a forecast flip while the observed side stays fixed.
             'false_predicted_turns': int((paired & ~actual_turn & predicted_turn).sum())}
     tf = {}
     for j, name in enumerate(TIMEFRAMES[1:], 1):
         mask = known[:, 0] & known[:, j]
         different = mask & (state_truth['allowed'][:, 0] != state_truth['allowed'][:, j])
         opposing_predictions = (p[:, 0] >= 0.5) != (p[:, j] >= 0.5)
-        tf[name] = {'joint_known': int(mask.sum()),
+        tf[name] = {'alignment': 'same_issue',
+                    'm5_query_k': NATIVE_K[0], 'other_query_k': NATIVE_K[j],
+                    'joint_known': int(mask.sum()),
                     'opposite_truth': int(different.sum()),
                     'opposite_prediction_on_opposite_truth': int(
                         (different & opposing_predictions).sum()),
@@ -217,9 +224,7 @@ def _turn_and_disagreement(state_raw, state_truth, issues):
 
 def score(model, context, *, deadline, fold_id: int, partition: str,
           collect_decision=False):
-    need(type(fold_id) is int and fold_id in (1, 2, 3)
-         and partition in ('fit', 'score')
-         and ((fold_id, partition) in ((1, 'score'), (2, 'fit'), (3, 'score'))),
+    need(type(fold_id) is int and fold_id in (1, 3) and partition == 'score',
          'SCORE_TRUTH_SCOPE')
     import numpy as np
     import torch

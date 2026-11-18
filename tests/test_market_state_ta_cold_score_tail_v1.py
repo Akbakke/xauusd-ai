@@ -1,4 +1,4 @@
-"""The reused scorer accepts an exact 1-row cold tail and the old full warm batch."""
+"""Check the reused scorer's batch tails and native direction diagnostics."""
 from __future__ import annotations
 
 import time
@@ -14,6 +14,7 @@ from gx1.audit import run_market_state_ta_integrated_fold2_fit_v1 as integrated
 from gx1.contracts import market_state_five_endpoint_target_binding_v1 as five
 from gx1.contracts import market_state_future_displacement_candidate_v1 as future
 from gx1.contracts import market_state_time_query_binding_v1 as sampled
+from gx1.contracts.market_state_time_query_target_v1 import TICK_NS
 
 
 class _Model(torch.nn.Module):
@@ -71,3 +72,36 @@ def test_score_full_batch_and_one_row_tail(monkeypatch, n, scope, sizes):
     assert model.batch_sizes == sizes
     assert result['rows'] == n and result['model_forwards'] == len(sizes)
     assert capture['m5_cost_path_bps'].shape == (n, 6, 2, 3)
+
+
+def test_score_rejects_fold2_fit_before_reading_context_or_truth(monkeypatch):
+    def unexpected_target_read():
+        pytest.fail('unexpected target read')
+
+    monkeypatch.setattr(sampled, 'load_bound_time_query_targets', unexpected_target_read)
+    with pytest.raises(RuntimeError, match='SCORE_TRUTH_SCOPE'):
+        paired.score(None, None, deadline=time.monotonic(), fold_id=2, partition='fit')
+
+
+def test_turns_require_correct_destination_and_disagreement_reports_native_queries():
+    issues = np.array([0, 1, 2, 3, 4, 6, 7], dtype=np.int64) * TICK_NS
+    allowed = np.full((len(issues), 5), 4, dtype=np.uint8)
+    allowed[:, 0] = [4, 1, 1, 4, 4, 1, 7]
+    known = np.ones(allowed.shape, dtype=np.bool_)
+    raw = np.zeros((*allowed.shape, 2), dtype=np.float32)
+    raw[:, 0, 1] = [-1, 1, -1, 1, -1, 1, -1]
+
+    result = paired._turn_and_disagreement(
+        raw, {'allowed': allowed, 'eligible': known, 'mature': known}, issues)
+
+    assert result['M5_turns'] == {
+        'known_contiguous_pairs': 4,
+        'actual_turns': 2,
+        'predicted_turns': 4,
+        'captured_actual_turns': 1,
+        'reverse_direction_turns': 1,
+        'false_predicted_turns': 2,
+    }
+    h4 = result['TF_disagreement']['H4']
+    assert (h4['alignment'], h4['m5_query_k'], h4['other_query_k']) == ('same_issue', 1, 48)
+    assert (h4['joint_known'], h4['opposite_truth']) == (6, 3)

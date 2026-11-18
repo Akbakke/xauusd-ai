@@ -2768,20 +2768,19 @@ class EntryV10CtxHybridTransformer(nn.Module):
             1,
             route_indices,
         ).reshape(batch_size, -1)
-        family_tf_cooperation_gate = torch.softmax(
+        family_tf_logits = (
             route_family_context_logits
-            + self.family_tf_token_gate(cooperation_tokens).squeeze(-1),
-            dim=1,
+            + self.family_tf_token_gate(cooperation_tokens).squeeze(-1)
         )
-        family_gate_by_tf = family_tf_cooperation_gate.reshape(
-            batch_size,
-            route_count,
-            len(self._mtf_specialist_names),
-        )
-        family_gate_within_tf = family_gate_by_tf / family_gate_by_tf.sum(
+        family_tf_cooperation_gate = torch.softmax(family_tf_logits, dim=1)
+        # A timeframe's local mix must remain normalized even when its
+        # marginal weight in the global cooperation pool rounds to zero.
+        family_gate_within_tf = torch.softmax(
+            family_tf_logits.reshape(
+                batch_size, route_count, len(self._mtf_specialist_names)
+            ),
             dim=2,
-            keepdim=True,
-        ).clamp_min(1e-12)
+        )
         tf_tokens = (
             family_grid * family_gate_within_tf.unsqueeze(-1)
         ).sum(dim=2)

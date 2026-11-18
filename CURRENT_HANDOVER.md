@@ -4,14 +4,65 @@ Arbeidssted: `/home/andre2/src/GX1_CURRENT`, gren `work/gx1-current`.
 `GX1_RULES.md` er bindende. `NEXT_RUN_POLICY.json` er eneste arbeidsstatus;
 prosess og eksakte terminalkvitteringer overstyrer prosa. Tidligere bølger finnes i Git.
 
-## Gjeldende status
+## Gjeldende status 18.11.2026
 
-`PAUSED_M5_EMA_FIT_CONSUMED_EDGE_UNPROVEN`. Ingen GX1-jobb kjører. Den ene
-318/256 EMA M5-fit-planen er fullført og konsumert. `training_enabled`,
-`native_training_enabled`, `full_epoch_training_allowed` og
-`native_launch_authorized` er `false`. Full GC, TEST, ONLINE, broker og
-handel er stengt. Ingen økonomisk edge eller uavhengig generalisering er bevist.
-Siste eksakte resultat står nederst; mellomliggende avsnitt er historisk kronologi.
+`PAUSED_M5_MTF_DIRECTION_SOURCE_REVIEW_PENDING_REQUALIFICATION`.
+Entry og Entry-Q er satt på pause etter operatørens nye bestilling. Aktiv
+oppgave er dynamisk OPP/NED/FLATT på M5/M15/H1/H4/D1 ved M5-takt. Siste
+terminal er den konsumerte EMA S/F-kontrollen på 29 574 FIT-rader og 17 489
+senere utviklingsrader. Brier slo FIT-prior for aktivitet i 8/10 celler og
+for betinget retning i 0/10. Senere M5 F-side-AUC var 0,512.
+
+### Retningsrevisjon fra kildene
+
+- Statisk sjekk av 2 106 inngående sporede filer og 995 187 tekstlinjer.
+  Syntaks: 1 379 Python-, 636 JSON-, 9 shell- og 9 PowerShell-filer
+  samt commit-hooken. Ingen dupliserte JSON-nøkler eller manglende
+  direkte gx1-modulimporter. Tre avgrensede
+  agenter sporet data/indikatorer, modell/fusjon og fasit/tap/skåring.
+  Dette dekker statisk inventar og målrettet semantisk kontroll.
+- MTF-fusjon blandet familieverdier innen en TF ved å dividere en global
+  softmax med en klampet TF-masse. En syntetisk felles +100-forskyvning for
+  én TF endret 605/640 lokale tokenverdier i den faktiske ruten. Direkte
+  softmax innen hver TF bevarer de lokale verdiene i vitnet og beholder
+  global vekt. Forekomst i gamle ekte forwards og retningsvirkning er ukjent.
+- Lukket M1-prisbane krever siste observerte M1-sluttpris som anker.
+  11 FIT-rader og 0 senere rader hadde tidligere minutter, men manglet
+  ankeret. M1-grenen er nå identitet der, også med trent bias. Fysisk tape
+  bevarer observasjonsmasken. Endret modellkontrakt avviser gammel identitet.
+- M5-vending krever riktig destinasjon. Samtidig flip til motsatt side
+  telles separat. Sammenligning på tvers av TF ved samme utstedelse
+  oppgir sine faktiske native horisonter. Fjernet ubrukt Fold2 FIT-akse
+  fra en scorer med kun SCORE-visninger.
+- Fire urefererte familie-rapporter fra 31.10 er fjernet fra repo etter
+  kontroll av referanser, hashbinding og eierskap. De tolv original-
+  referansene er fortsatt hashbundet i policy. Originalfiler og DATA/RUNS
+  ble ikke endret. Fjernet ubrukt tomt overstyringsregister i
+  feature-eieren. Samme 10 lag og 165 utgående felt, feltrekkefølge,
+  aliaser og kontrakthasher.
+
+Kontroller: 54 integrerte regresjons-/bindingstester og 53 fokuserte
+featuretester bestod. Syntaks, stale-path-scan, gamle plan-/resultat-/
+terminalhasher og `git diff --check` bestod.
+
+Den kjørte TA-visningen ruter alle åtte familier og 61 D1/makrofelter.
+Dedikert S/F per TF og den eksisterende GC-ruten har forskjellige
+komposisjoner. Ingen full joint GC-kjøring, feltvis retningsnytte eller
+effekt av rettelsene er målt. På tidligere FIT har M5 fast sidevekt per
+kjent rad. De fire andre TF bruker batchvis støtte, mens skåringen vekter
+radene likt. For eksempel endret dette den konstante native F-D1-
+referansen fra 66,69 % OPP radvis til 64,18 % batchvis. Virkning på
+rangering er ukjent. Den konsumerte planen har heller ingen direkte
+hashbinding av enkelte faktiske S/F-, taps- og AdamW-eiere. De undersøkte
+blobene var uendret fra planens opprinnelige commit til revisjonsstart.
+
+Før en ny fit kreves fersk kildebundet baseline for endret forward,
+hashbinding av faktiske kilde-/inputeiere og én falsifiserbar
+retningshypotese på fast FIT og full senere utvikling. Ingen modelljobb eller ny plan er innrømmet.
+Trening, Full GC, TEST, ONLINE, broker og handel er stengt.
+
+Historisk kontekst følger. Arbeidsstatus og eksakt gjeldende terminal
+eies av `NEXT_RUN_POLICY.json`.
 
 ## Fullrevisjon 17.11.2026
 
