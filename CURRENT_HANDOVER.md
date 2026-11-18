@@ -505,3 +505,8 @@ Plan `TA_M5_EMA_LOSS_GRADIENT_PROBE_20261118_001` er klargjort mot
 kildecommit `57e7eca8` og de samme 31 kvalifiserte inputreferansene.
 Policy er `PREPARED_NOT_ADMITTED`: null tillatte kall, trening fortsatt
 stengt. Preflight og deretter eventuell eksakt engangsinnrømmelse gjenstår.
+
+Gradientprobens eksakte kapslede preflight bestod uten CLAIM, forward eller
+resultatrot. Kun denne separate 20-batch-proben er innrømmet én gang.
+`training_enabled=false`, null optimizeroppdateringer og stengt TEST/Full
+GC/ONLINE/broker/handel består. Kilde og policy fryses under kjøringen.
