@@ -605,3 +605,31 @@ Neste mulige fit trenger en **annen**, forhåndsbundet informasjons- eller
 målkontrakt, kvalifiserte komplette senere inputs og én samlet voktet plan.
 Entry-Q v3 er fortsatt bare framtidig design. `training_enabled=false`;
 Full GC, TEST, ONLINE, broker og handel er stengt.
+
+## Eksakt S/F-hovedmål-kontroll forberedt 18.11.2026
+
+Den konsumerte EMA-modellens rapporterte senere initial- og sluttmåling
+bruker samme 17 489 rader. Betinget side-Brier ble dårligere etter
+trening i alle ti native S/F×TF-celler; F-H4 gikk 0,249780→0,286405,
+F-D1 0,250652→0,275951. Original RESULT/TERMINAL, checkpoint og
+sluttcapture er hashkontrollert. I oktober forbedret den trente modellen
+F-H4/D1, men i november/desember ble både kalibrering og H4-rangering
+svakere. Sluttmodellens F-D1 OPP-andel lå også langt over faktisk andel
+i FIT-mai; dette er ikke bare et senere regimeskifte.
+
+Dette gir ett nytt, direkte kontrollspørsmål: Kan S/F som eneste hovedmål
+på **eksakt samme** EMA-input og friske startvekter slå fast FIT-prior
+på hele FIT, og bære forbedringen til full senere utvikling? Den eldre
+S/F-hovedtreningen brukte et annet view/panel; M5-gradientproben dekker
+ikke alle TF eller parameteroppdateringer. Et negativt FIT-svar avviser
+målprioritet som tilstrekkelig rettelse; FIT-gevinst uten senere gevinst
+peker på overføring/regime. Én kontrollpassering, ikke epokejakt.
+
+Ny kilde og eksakt 10 800-sekunders kapslet rute er klargjort. De binder
+29 574 Fold1 FIT-rader, 17 489 senere rader, 1 849 B16-oppdateringer,
+full FIT/senere S/F-skår og F-H4-fortegn som fast markout-proxy mot
+alltid-LONG. Samme initiale EMA-wrapper-hash er rekonstruert på CPU uten
+forward; core-hash er `b73dd0c23c0e62fb20bcb79bbb7a87dd84794580ebdcea814559fab508f63826`.
+Sju nye fokuserte tester, syntaks og kapselkontroll består. Plan,
+preflight og eventuell engangsinnrømmelse gjenstår. Ingen ny trening
+eller TEST-lesning er startet; globale treningsflagg er fortsatt false.
