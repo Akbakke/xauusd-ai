@@ -753,5 +753,7 @@ eller en feil i radfasit/skår. Den isolerer ikke om gjenværende årsak er
 svakt kausalt retningssignal, delt representasjon, én kronologisk passering,
 klipping eller måloppgavenes samspill. Ingen kildeendring eller ny fit er
 begrunnet. Konsumert Entry-v2 forblir en robust proxy, ikke forventet
-økonomisk verdi; framtidig middelverdikonsistent Entry-v3 er fortsatt
-utenfor aktiv S/F-trening. Policy og alle lukkede porter består.
+økonomisk verdi. Den senere Entry-v3-kontrakten er nå matematisk
+bundet i `docs/NATIVE_LEARNING.md` til direkte Q=netto−pre-MFE-MAE på samme
+komplette banemaske, kvadratisk tap og identisk Q ved valg; ingen kjørbar
+v3-modell eller ny fit er åpnet. Policy og alle lukkede porter består.

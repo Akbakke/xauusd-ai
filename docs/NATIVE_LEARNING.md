@@ -891,5 +891,18 @@ kostjustert kvalitet eller alle dens lineære komponenter, og nøyaktig
 samme uttrykk i tap og handlingsvalg. Ensidig MAE-straff kan rapporteres
 som egen risikodiagnostikk, ikke forskyve forventningsverdien. Ukjente
 valgte baner og åpne posisjoner må føres separat; komplett bane alene er
-ikke handels-PnL. Dette er en designgrense for senere Entry, ingen v3-
-implementasjon, fit- eller handelsadmisjon i den aktive S/F-fasen.
+ikke handels-PnL. Den minste etterfølgerkontrakten er et **direkte**
+`Q[i,h,side] = net_bps[i,h,side] - pre_mfe_mae_upper_bps[i,h,side]`
+bare der `path_observed[i,h]` er sann og begge sider er endelige. Prediker
+`Q_hat` direkte i bps; bruk kvadratisk feil på nøyaktig disse cellene,
+med eventuelle positive, FIT-faste skalafaktorer per horisont, slik at
+konstant optimum er aritmetisk middelverdi av samme observerte Q.
+Handlingsuttrykket er nøyaktig `argmax(Q_hat)` over side og beregningshorisont
+når maksimum er positivt, ellers FLAT. Huber, ensidig MAE-ledd,
+MAE-klamping og ulik terminal-/banemaske hører ikke til Q-tapet eller
+handlingsformelen. Ufullstendige baner får verken imputert mål eller
+tapsgradient; åpne posisjoner må fortsatt regnskapsføres separat.
+Dette estimerer forventet konservativ kostet banekvalitet, ikke realisert
+PnL eller bevist Edge. Beregningshorisonten er ingen holdetidsregel.
+Dette er et kontraktkrav for senere Entry, ingen v3-implementasjon,
+fit- eller handelsadmisjon i den aktive S/F-fasen.
