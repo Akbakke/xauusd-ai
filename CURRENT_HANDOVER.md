@@ -439,3 +439,34 @@ Eksakt kapslet preflight bestod uten CLAIM, modellforward eller resultatrot.
 Denne separate scoringsporten er deretter innrømmet én gang, med
 `training_enabled=false`, null optimizeroppdateringer og fortsatt stengt
 TEST/Full GC/ONLINE/broker/handel. Kilde og policy fryses under kjøringen.
+
+## Fryst FIT-sluttmodell kontrollert 18.11.2026
+
+Engangsscoringen fullførte på 2 380 sekunder med 1 849 forwards, null
+optimizeroppdateringer/backward/normaliseringsfit og uendret modell-digest.
+Resultat, checkpoint, policy ved CLAIM, mål-/featureakser og lagret capture
+er bundet; uavhengig beregning fra capture og fryste mål gjenskapte h480 og
+M5 S/F-tallene. Planen er konsumert og stengt.
+
+På 18 901 komplette FIT-h480-baner hadde sideforskjellen LONG−SHORT
+AUC 0,570 og korrelasjon 0,143, men modellen foretrakk LONG på 99,38 %.
+Valgt-side kvalitet var −18,165 bps mot alltid-LONG −18,189 bps. På
+11 318 senere komplette baner var AUC 0,473, korrelasjon 0,007 og
+valgt-side kvalitet −25,566 bps mot alltid-LONG −25,463 bps. Alle er
+overlappende markout, ikke posisjonsført PnL eller uavhengig TEST.
+
+Enda viktigere for aktiv fase: M5 native S/F retnings-AUC på FIT var
+0,528/0,517; på senere utvikling 0,512/0,509. FIT Brier for betinget
+M5-side var S 0,25108 mot FIT-prior 0,24965 og F 0,25307 mot 0,24988.
+Av alle fem TF hadde S ingen bedre betinget side-Brier enn FIT-prioren,
+og F bare D1 svakt bedre (0,21993 mot 0,22214). Senere var F dårligere
+enn prioren på alle fem TF. Sluttmodellen har altså svak S/F-læring allerede
+på eget FIT-utvalg; dette er ikke bare en senere overføringssvikt. Den
+aktive fasens markedstilstand var kun hjelpetap 0,10 i denne treningen.
+
+Et konkret neste kontrollspørsmål er om eksisterende fullverdig S/F- og
+struktur-tap som eneste mål kan slå FIT-prioren uten å skade senere score
+på de kvalifiserte EMA-inputene. Gjennomgå tidligere tilsvarende fit først;
+ingen ny treningsplan er laget eller innrømmet. Huber-verdiavviket for
+Entry-kvalitet står åpent for senere, eget middelverdikonsistent mål.
+Full GC, TEST, ONLINE, broker og handel forblir stengt.
