@@ -253,3 +253,12 @@ dekodet 0, modellforward 0, normaliseringsfit 0, optimeringssteg 0, TEST 0.
 Kilde uendret. Dette kvalifiserer input, ikke læring eller edge. Neste steg er
 en fersk 318/256-initialmodell med samme FIT/later aksene; treningsflagg er
 fortsatt stengt. Fysisk Windows-boot er fortsatt 664; ny fit krever >664.
+
+Gammel Fold1-endepunktprior `loss_contract_sha256=63cb7337…` avvises av dagens
+318/256 F-objektiv (`2bcdacf1…`). Også gammel FIT-statistikkhash `284b…`
+er foreldet; v2-statistikk på den uendrede 29 574-raders FIT-målfilen er målt
+til `1e1278c2eced0a2344f2a7162fa8d54f5e5cb49d92640c59edf3edd38976fd30`.
+Ny target-only engangsplan `TA_M5_EMA_DELTA_FOLD1_PRIORS_20261118_001`
+(SHA `d249c24d449324a3591b0af8426256e05a97618edf7959a879bee9dc48118148`) er innrømmet med null
+modellforward og null senere mål i priorfit. Før kjøring kreves ren kilde og
+preflight. Initial- og fit-planer er ikke innrømmet.
