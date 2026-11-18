@@ -39,7 +39,7 @@ RANDOM_ACCESS_VAL_MODULE=gx1.scripts.run_unified_exit_random_access_val_v1
 NATIVE_CANDIDATE_WINDOW_MODULE=gx1.scripts.run_unified_exit_native_candidate_window_v1
 ATTENDED_HARDWARE_SMOKE_MODULE=gx1.scripts.attended_model_native_hardware_smoke_v1
 # CUDA producer routes are intentionally enumerated rather than accepting an
-# arbitrary module.  Both are read-only, TRAIN/VAL-only evidence producers;
+# arbitrary module. These are read-only, TRAIN/VAL-only evidence producers;
 # neither has an execution, promotion or TEST surface.
 CUDA_PRODUCER_MODULE=gx1.scripts.evaluate_entry_candidate_selective_edge_v1
 TECHNICAL_VALIDATION_PRODUCER_MODULE=gx1.scripts.validate_entry_model_native_technical_checkpoint_v1
@@ -50,6 +50,7 @@ TA_TF_ACTIVITY_INITIAL_INPUTS_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_
 TA_TF_ACTIVITY_BOUNDARIES_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_tf_activity_boundaries_v1
 TA_CURRENT_UPDATES_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_current_updates_v1
 TA_CURRENT_NUMERIC_ROUTES_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_current_numeric_routes_v1
+TA_EMA_FINAL_FIT_SCORE_PRODUCER_MODULE=gx1.audit.score_ta_ema_final_fit_v1
 TA_CURRENT_MODES_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_current_modes_v1
 TA_CONTEXT_DRIFT_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_context_drift_v1
 TA_HEAD_INPUT_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_head_input_v1
@@ -517,6 +518,26 @@ matches_bound_market_state_ta_current_numeric_routes() {
   [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$7" ]]
 }
 
+# One read-only final FIT score for the sealed EMA checkpoint; no training route.
+matches_bound_ta_ema_final_fit_score() {
+  local expected_plan="$REPO_ROOT/configs/research/TA_M5_EMA_FINAL_FIT_SCORE_20261118_001.json"
+  local expected_output=/home/andre2/GX1_RUNS/TA_M5_EMA_FINAL_FIT_SCORE_20261118_001
+  if [[ $# -eq 12 ]]; then
+    [[ "${12}" == --preflight ]] || return 1
+    set -- "${@:1:11}"
+  fi
+  [[ $# -eq 11 ]] || return 1
+  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \
+    && "$3" == "$TA_EMA_FINAL_FIT_SCORE_PRODUCER_MODULE" \
+    && "$4" == --plan && "$5" == "$expected_plan" \
+    && "$6" == --plan-sha256 && "$7" =~ ^[0-9a-f]{64}$ \
+    && "$8" == --device && "$9" == cuda && "${10}" == --out-dir \
+    && "${11}" == "$expected_output" ]] || return 1
+  [[ -f "$expected_plan" && ! -L "$expected_plan" \
+    && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1
+  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$7" ]]
+}
+
 validate_target_command() {
   local executable_basename="${1##*/}" target_arg module
   local trainer_reference=false hardware_smoke_reference=false
@@ -571,6 +592,7 @@ validate_target_command() {
           && [[ "${3:-}" != "$TA_TF_ACTIVITY_BOUNDARIES_PRODUCER_MODULE" ]] \
           && [[ "${3:-}" != "$TA_CURRENT_UPDATES_PRODUCER_MODULE" ]] \
           && [[ "${3:-}" != "$TA_CURRENT_NUMERIC_ROUTES_PRODUCER_MODULE" ]] \
+          && [[ "${3:-}" != "$TA_EMA_FINAL_FIT_SCORE_PRODUCER_MODULE" ]] \
           && [[ "${3:-}" != "$TA_CURRENT_MODES_PRODUCER_MODULE" ]] \
           && [[ "${3:-}" != "$TA_CONTEXT_DRIFT_PRODUCER_MODULE" ]] \
           && [[ "${3:-}" != "$TA_HEAD_INPUT_PRODUCER_MODULE" ]] \
@@ -812,6 +834,17 @@ validate_target_command() {
         TRAINER_GPU_MAX_POWER_LIMIT_W=250
         TRAINER_MAX_WALL_SECONDS=1800
         TRAINER_MODEL_MAX_WALL_SECONDS=1800
+      fi
+      if [[ "${3:-}" == "$TA_EMA_FINAL_FIT_SCORE_PRODUCER_MODULE" ]]; then
+        if [[ "$MEM" != 20G || "$SWAP" != 512M ]] \
+          || ! matches_bound_ta_ema_final_fit_score "$@"; then
+          echo "FATAL: final EMA FIT score producer is not exactly bound" >&2
+          exit 75
+        fi
+        NUMERICAL_THREAD_COUNT=8
+        TRAINER_GPU_MAX_POWER_LIMIT_W=250
+        # Reuse the 3600 s CUDA producer cap: the prior 6118 s job had
+        # 4037 mixed forwards; this FIT-only replay has 1849, no updates.
       fi
       if [[ "${3:-}" == "$TA_CURRENT_NUMERIC_ROUTES_PRODUCER_MODULE" ]]; then
         local ta_current_numeric_routes_root=/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_NUMERIC_ROUTES_20261113_001

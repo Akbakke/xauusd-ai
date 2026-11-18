@@ -417,3 +417,15 @@ oppdateringsfri scoring av den fryste EMA-checkpointen på eksakt 29 574 FIT-
 rader, sammenlignet med allerede lagret senere score på h480 og S/F.
 Ingen slik plan er laget eller innrømmet. Fram til FIT-vs-senere er skilt,
 forblir trening, Full GC, TEST, ONLINE, broker og handel stengt.
+
+## Fryst FIT-scoring klargjort 18.11.2026
+
+En separat, oppdateringsfri scorer er lagt til for den eksakte fryste
+EMA-sluttmodellen og de 29 574 Fold1 FIT-radene. Den binder 31 kvalifiserte
+inputreferanser, konsumert checkpoint, mål-/featureakser, kildefiler og en
+engangsport med global trening fortsatt stengt. Scoreren rapporterer
+forhåndsvalgt komplett h480-sidepanel og S/F-score mot FIT-prioren; et
+uavhengig kontrollgrunnlag lagres. Kapslet CUDA-produsentrute er eksakt
+avgrenset til denne planen, 20G/512M og maksimalt 3 600 sekunder. To
+scorertester og 14 rutetester, syntaks og diffkontroll består. Ingen
+modellscoring eller trening er startet; plan og innrømmelse følger separat.
