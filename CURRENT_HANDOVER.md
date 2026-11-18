@@ -571,3 +571,9 @@ Plan `TA_M5_PROJECTED_H4_LINE_20261118_001` er klargjort mot
 kildecommit `ab03b7c4`, 31 kvalifiserte EMA-referanser og tidligere fysisk
 H4-orakel. Policy er `PREPARED_NOT_ADMITTED`, med null tillatte kall.
 Eksakt kapslet preflight er neste steg; ingen modell- eller målfit er åpnet.
+
+Kapslet preflight fullførte på cirka 15 sekunder uten CLAIM eller utmappe.
+Den fant 850 komplette H4-barer og 1 654 opp-/1 623 nedbrudd på de
+47 063 faste FIT/senere-radene; 23 rader lå utenfor fysisk H4-orakel.
+Kun denne lesemålingen er innrømmet én gang. Ingen modellforward,
+optimizer eller trening er autorisert; TEST og handel forblir stengt.
