@@ -32,6 +32,7 @@
 # entered. If any protection cannot be created or verified, the job fails closed.
 set -euo pipefail
 JOB_CLASS="" ; MEM=4G ; SWAP=512M ; ATTENDED_SMOKE=false
+H4_LINE_AUDIT_GUARD=false
 
 CANONICAL_TRAINER_MODULE=gx1.models.entry_v10.entry_v10_ctx_train_v3
 RANDOM_ACCESS_FIXED_STEP_MODULE=gx1.scripts.run_unified_exit_random_access_fixed_step_v1
@@ -52,6 +53,7 @@ TA_CURRENT_UPDATES_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_current_upd
 TA_CURRENT_NUMERIC_ROUTES_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_current_numeric_routes_v1
 TA_EMA_FINAL_FIT_SCORE_PRODUCER_MODULE=gx1.audit.score_ta_ema_final_fit_v1
 TA_EMA_LOSS_GRADIENT_PROBE_PRODUCER_MODULE=gx1.audit.probe_ta_ema_loss_gradient_v1
+TA_M5_PROJECTED_H4_LINE_AUDIT_MODULE=gx1.audit.measure_ta_m5_projected_h4_line_v1
 TA_CURRENT_MODES_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_current_modes_v1
 TA_CONTEXT_DRIFT_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_context_drift_v1
 TA_HEAD_INPUT_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_head_input_v1
@@ -559,9 +561,28 @@ matches_bound_ta_ema_loss_gradient_probe() {
   [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$7" ]]
 }
 
+# Exact one-use CPU audit for M5 price versus a causal projected H4 line.
+matches_bound_ta_m5_projected_h4_line() {
+  local expected_plan="$REPO_ROOT/configs/research/TA_M5_PROJECTED_H4_LINE_20261118_001.json"
+  local expected_output=/home/andre2/GX1_RUNS/TA_M5_PROJECTED_H4_LINE_20261118_001
+  if [[ $# -eq 10 ]]; then
+    [[ "${10}" == --preflight ]] || return 1
+    set -- "${@:1:9}"
+  fi
+  [[ $# -eq 9 ]] || return 1
+  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \
+    && "$3" == "$TA_M5_PROJECTED_H4_LINE_AUDIT_MODULE" \
+    && "$4" == --plan && "$5" == "$expected_plan" \
+    && "$6" == --plan-sha256 && "$7" =~ ^[0-9a-f]{64}$ \
+    && "$8" == --out-dir && "$9" == "$expected_output" ]] || return 1
+  [[ -f "$expected_plan" && ! -L "$expected_plan" \
+    && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1
+  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$7" ]]
+}
+
 validate_target_command() {
   local executable_basename="${1##*/}" target_arg module
-  local trainer_reference=false hardware_smoke_reference=false
+  local trainer_reference=false hardware_smoke_reference=false h4_line_reference=false
   local trainer_flag_count=0 trainer_device_count=0 hardware_smoke_flag_count=0
   local profile_count=0 execution_tier_count=0 out_bundle_dir_count=0 out_dir_count=0
   local checkpoint_dir_count=0 launch_manifest_count=0 stage_count=0 arm_batch_size_count=0
@@ -584,6 +605,9 @@ validate_target_command() {
     if [[ "$target_arg" == *"$ATTENDED_HARDWARE_SMOKE_MODULE"* ]]; then
       hardware_smoke_reference=true
     fi
+    if [[ "$target_arg" == *"$TA_M5_PROJECTED_H4_LINE_AUDIT_MODULE"* ]]; then
+      h4_line_reference=true
+    fi
     if [[ "$target_arg" == "--train" ]]; then
       trainer_flag_count=$((trainer_flag_count + 1))
     fi
@@ -597,6 +621,15 @@ validate_target_command() {
     if [[ "$hardware_smoke_reference" == true ]]; then
       echo "FATAL: attended hardware smoke requires --class trainer" >&2
       exit 75
+    fi
+    if [[ "$h4_line_reference" == true ]]; then
+      if [[ "$JOB_CLASS" != audit || "$ATTENDED_SMOKE" != false \
+        || "$CUDA_PRODUCER_GUARD" != false || "$MEM" != 4G || "$SWAP" != 512M ]] \
+        || ! matches_bound_ta_m5_projected_h4_line "$@"; then
+        echo "FATAL: projected H4 line audit is not exactly bound" >&2
+        exit 75
+      fi
+      H4_LINE_AUDIT_GUARD=true
     fi
     if [[ "$CUDA_PRODUCER_GUARD" == true ]]; then
       [[ "$JOB_CLASS" == producer ]] || {
@@ -1493,6 +1526,10 @@ if [[ "$GX1_CAPPED_CLASS" == trainer || "$GX1_CUDA_PRODUCER_GUARD" == true ]]; t
   fi
   exec /usr/bin/taskset -c "$verified_cpu_affinity" /usr/bin/ionice -c 3 /usr/bin/nice -n 10 "$GX1_GPU_GUARD_PATH" "$@"
 fi
+if [[ "$GX1_H4_LINE_AUDIT_GUARD" == true ]]; then
+  exec /usr/bin/taskset -c "$verified_cpu_affinity" /usr/bin/ionice -c 3 /usr/bin/nice -n 10 \
+    /usr/bin/timeout --signal=TERM --kill-after=10s 1800s "$@"
+fi
 exec /usr/bin/taskset -c "$verified_cpu_affinity" /usr/bin/ionice -c 3 /usr/bin/nice -n 10 "$@"
 '
 systemd-run --user --scope --quiet \
@@ -1510,6 +1547,7 @@ systemd-run --user --scope --quiet \
   --setenv=GX1_CAPPED_TASKS_MAX="$TASKS_MAX" \
   --setenv=GX1_GPU_GUARD_PATH="$GPU_GUARD_PATH" \
   --setenv=GX1_CUDA_PRODUCER_GUARD="$CUDA_PRODUCER_GUARD" \
+  --setenv=GX1_H4_LINE_AUDIT_GUARD="$H4_LINE_AUDIT_GUARD" \
   --setenv=GX1_TRAINER_GUARD_LOG_PATH="$TRAINER_GUARD_LOG_PATH" \
   --setenv=GX1_TRAINER_STDIO_LOG_PATH="$TRAINER_STDIO_LOG_PATH" \
   --setenv=GX1_TRAINER_DEVICE="$TRAINER_DEVICE" \

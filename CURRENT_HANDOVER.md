@@ -540,3 +540,29 @@ modellfit krever en **distinkt** forhåndsdefinert informasjons- eller
 målkontrakt med fast FIT/senere kontroll, ikke flere like runder. Huber-
 utgangen for Entry kan fremdeles ikke kalles forventet økonomisk verdi.
 Full GC, TEST, ONLINE, broker og handel forblir stengt.
+
+## Ny, avgrenset informasjonskontroll klargjort 18.11.2026
+
+S/F-fasiten er fortsatt relevant som framtidsorakel: på h480-komplette
+baner med kjent F-H4-side var oracle-AUC mot kostjustert beste side
+0,926/0,919 på FIT/senere (7 592/4 888 rader). Fryst modell-F-H4
+rangerte den faktiske kostsiden bare 0,530/0,497 på alle komplette baner.
+En ren fortegnkontroll ga senere valgt kvalitet −24,452 mot alltid-LONG
+−25,463 bps på 11 318 baner, men forskjellen +1,011 bps har ukeblokk-
+intervall [−0,033,+2,378], bruker bare 225 SHORT og gjenbrukt utvikling.
+Dette er ikke Edge. Eksakte target-/captureakser ble kontrollregnet.
+
+Kildegjennomgangen fant én konkret manglende relasjon: gjeldende M5-pris
+sammenlignes ikke eksplisitt med siste kausalt lukkede H4-trendlinje
+projisert til samme M5-tid. En egen, lesebasert forskningsmåling er nå
+implementert uten modellkall. Den bruker bare komplette 48×M5 H4-barer,
+sammenhengende M5-klokke, to aktive cachelinjer og ett forhåndsbundet
+M5-sluttprisbrudd. Fraksjonell H4-linjeprojeksjon er en **ny** konvensjon;
+integer-linjefeltene støttes av tidligere fysisk H4-orakel. Preflight
+sjekker kilde, klokke og linjearitmetikk før F-/h480-utfall åpnes.
+Fem modul- og 11 rutetester, syntaks og diffkontroll består. Ingen måling
+eller trening er startet; engangsplan og innrømmelse følger separat.
+
+For Huber-mismatchen er framtidig middelverdikonsistent Entry-mål spesifisert
+i `docs/NATIVE_LEARNING.md`. Den konsumerte v2-koden er ikke mutert:
+aktiv fase er S/F før Entry, og ny Entry-fit er ikke begrunnet.

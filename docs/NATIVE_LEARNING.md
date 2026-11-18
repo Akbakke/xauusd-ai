@@ -877,3 +877,19 @@ leser opprinnelige markedsinputs. Import av eksisterende eierdefinisjoner og
 små syntetiske Parquet/ridge-fixtures er eksplisitt avgrenset i kildekontrollen.
 Fysisk cache-/klokke-/parent-/191paritet og3345kapasitet trenger egen bundet
 kvalifikasjon. Fullfilhashing teller i I/O-budsjettet selv uten seq-dekoding.
+
+## Senere Entry-verdi: målkonsistens før ny kontrakt
+
+Den konsumerte EMA-beslutningskontrakten v2 trener robust Huber for netto,
+MAE, kvalitet og sidepar, samt ensidig MAE-undervurdering, men velger side
+som om `netto − MAE` var en forventet økonomisk verdi. På komplette senere
+h480-baner var konstant Huber-sentrum +4,683 bps LONG−SHORT, mens
+middelverdien var −5,303 bps. Dette er en reell mål-/verdi-mismatch.
+En framtidig Entry-kontrakt må bruke samme observerte populasjon for
+handlingsverdiens netto og MAE, et middelverdikonsistent tap for direkte
+kostjustert kvalitet eller alle dens lineære komponenter, og nøyaktig
+samme uttrykk i tap og handlingsvalg. Ensidig MAE-straff kan rapporteres
+som egen risikodiagnostikk, ikke forskyve forventningsverdien. Ukjente
+valgte baner og åpne posisjoner må føres separat; komplett bane alene er
+ikke handels-PnL. Dette er en designgrense for senere Entry, ingen v3-
+implementasjon, fit- eller handelsadmisjon i den aktive S/F-fasen.
