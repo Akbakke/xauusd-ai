@@ -633,6 +633,9 @@ forward; core-hash er `b73dd0c23c0e62fb20bcb79bbb7a87dd84794580ebdcea814559fab50
 Sju nye fokuserte tester, syntaks og kapselkontroll består. Planen
 `TA_M5_EMA_SF_ONLY_CONTROL_20261118_001` er nå bundet til kildecommit
 `3ff90f57`, SHA `9a0a54b087d1089869a513492bee7b5cc4d3974d5ffa862dbb25b3217e2980b4`, 31 uendrede inputreferanser
-og null tillatte kall. Kapslet preflight og eventuell separat
-engangsinnrømmelse gjenstår. Ingen ny trening
-eller TEST-lesning er startet; globale treningsflagg er fortsatt false.
+og null tillatte kall. Kapslet preflight bestod uten CLAIM, resultatmappe, modellforward eller
+oppdatering og bekreftet samme core-hash. GPU og GX1-jobblås er ledige.
+Kun denne planen er nå innrømmet én gang. Kjøring krever fysisk
+Windows-boot >665 og ny kontroll av eksakt kilde/input/vakter. Ingen
+trening eller TEST-lesning er startet; globale treningsflagg er åpne
+bare for det eksakt innrømmede engangskallet.
