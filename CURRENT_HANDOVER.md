@@ -266,3 +266,9 @@ modellforward og null senere mål i priorfit. Ren preflight og én kapslet audit
 `a4a948fc6c49989eca42f49b7841363a8dc5e471ac3c55b275b866f12a118965`. Dagens Fold1/F-objektiv godtar prioren;
 29 574 modne FIT-rader, null modell og ingen senere mål i priorfit. Planen er
 konsumert. Neste steg er fersk initialbaseline; fit-plan er ikke innrømmet.
+
+Fersk initial-engangsplan `TA_M5_EMA_DELTA_INITIAL_PREFLIGHT_20261118_001`
+(SHA `eec69cb41408f43485a047ee764c4cf5810a920584068b2964de0a1c3c3d8f4f`) er innrømmet: én ny
+318/256-modell, én FIT B16 v2-loss og én senere B16 score, null optimizer.
+Planen binder full gather, ny Fold1-prior, dagens FIT-statistikkhash og uendret
+måltape. Ingen CLAIM eller modellforward ennå; ren preflight kreves først.
