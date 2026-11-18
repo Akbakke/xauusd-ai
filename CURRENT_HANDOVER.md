@@ -639,3 +639,9 @@ Kun denne planen er nå innrømmet én gang. Kjøring krever fysisk
 Windows-boot >665 og ny kontroll av eksakt kilde/input/vakter. Ingen
 trening eller TEST-lesning er startet; globale treningsflagg er åpne
 bare for det eksakt innrømmede engangskallet.
+
+Den eksakt innrømmede S/F-kontrollen fullførte på boot 666 med exit 0:
+1 849/1 849 oppdateringer, 2 943 sluttscore-forwards og uendret kilde.
+CLAIM, RESULT, TERMINAL, begge radcapturer og checkpoint er hashbundet.
+Kjøringen er konsumert; alle globale treningsflagg er lukket igjen.
+Uavhengig radkontroll og endelig tolking følger før resultattall brukes.
