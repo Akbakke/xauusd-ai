@@ -1,4 +1,4 @@
-"""One opt-in TA encode with TF-local M1 interaction and M5 structure output."""
+"""M5/MTF direction uses one native encode and excludes M1 model input."""
 import pytest
 import torch
 
@@ -29,15 +29,11 @@ def _model(monkeypatch, calls):
 
 
 def _inputs(batch=2):
-    path = torch.arange(batch * 20, dtype=torch.float32).reshape(batch, 5, 4) / 10
-    path[:, -1, 3] = 0
     return dict(features=features(batch, ta_only=True),
-                query_k=torch.tensor([NATIVE_K] * batch, dtype=torch.int64),
-                m1_path_bps=path,
-                m1_observed=torch.ones(batch, 5, dtype=torch.bool))
+                query_k=torch.tensor([NATIVE_K] * batch, dtype=torch.int64))
 
 
-def test_zero_gate_preserves_dual_outputs_and_uses_one_backbone(monkeypatch):
+def test_direct_m5_mtf_heads_preserve_dual_outputs_and_use_one_backbone(monkeypatch):
     calls = []
     model = _model(monkeypatch, calls)
     args = _inputs()
@@ -52,70 +48,46 @@ def test_zero_gate_preserves_dual_outputs_and_uses_one_backbone(monkeypatch):
     assert model.research_objective['M5_structure_truth_as_forward_input'] is False
 
 
-def test_m1_gate_is_tf_local_and_reaches_side_and_structure_gradients(monkeypatch):
+def test_m5_input_reaches_side_and_structure_gradients(monkeypatch):
     calls = []
     model = _model(monkeypatch, calls)
     args = _inputs()
-    baseline = model(**args)
-    with torch.no_grad():
-        model.m1_tf_gate.weight[2 * WIDTH, 0] = 0.1
-    changed = dict(args)
-    changed['m1_path_bps'] = args['m1_path_bps'].clone()
-    changed['m1_path_bps'][:, 0, 0] += 1
-    out = model(**changed)
-    for task in ('state', 'future'):
-        key = task + '_activity_side_logits'
-        assert not torch.equal(out[key][:, 2], baseline[key][:, 2])
-        assert torch.equal(out[key][:, [0, 1, 3, 4]], baseline[key][:, [0, 1, 3, 4]])
-    assert torch.equal(out['m5_structure_hit_logits'], baseline['m5_structure_hit_logits'])
-    model.zero_grad(set_to_none=True)
-    fresh = model(**args)
-    (fresh['state_activity_side_logits'][:, :, 1].sum()
-     + fresh['future_activity_side_logits'][:, :, 1].sum()
-     + fresh['m5_structure_hit_logits'].sum()).backward()
-    assert torch.count_nonzero(model.m1_tf_gate.weight.grad) > 0
+    args['features']['seq_x'].requires_grad_()
+    out = model(**args)
+    (out['state_activity_side_logits'][:, :, 1].sum()
+     + out['future_activity_side_logits'][:, :, 1].sum()
+     + out['m5_structure_hit_logits'].sum()).backward()
+    assert torch.count_nonzero(args['features']['seq_x'].grad) > 0
     assert torch.count_nonzero(model.m5_structure_head.weight.grad) > 0
     assert model.dual.state_model.m5_side_head.weight.grad is not None
     for head in model.dual.state_model.non_m5_side_heads.values():
         assert head.weight.grad is not None
-    assert len(calls) == 3
+    assert calls == [1]
 
 
-def test_m1_gate_needs_a_closed_price_anchor_even_with_learned_bias(monkeypatch):
+def test_m1_inputs_and_legacy_checkpoint_are_rejected(monkeypatch):
     model = _model(monkeypatch, [])
-    args = _inputs(batch=4)
-    args['m1_path_bps'][:2] = 0
-    args['m1_observed'][0, -1] = False
-    args['m1_observed'][1] = False
-    args['m1_path_bps'][2, 1] = 0
-    args['m1_observed'][2, 1] = False
-    hidden = model.dual.encode_features(**args['features'])
+    args = _inputs()
+    for name, value in (
+        ('m1_path_bps', torch.zeros(2, 5, 4)),
+        ('m1_observed', torch.ones(2, 5, dtype=torch.bool)),
+    ):
+        with pytest.raises(TypeError, match=name):
+            model(**args, **{name: value})
+    assert not any('m1' in name for name, _ in model.named_parameters())
+    assert model.research_objective['forecast_input_timeframes'] == [
+        'M5', 'M15', 'H1', 'H4', 'D1']
+    legacy = dict(model.state_dict())
+    legacy['m1_tf_gate.weight'] = torch.zeros(5 * WIDTH, 25)
+    with pytest.raises(RuntimeError, match='Unexpected key'):
+        model.load_state_dict(legacy)
     with torch.no_grad():
-        model.m1_tf_gate.weight[:, 20] = 0.1
-        model.m1_tf_gate.bias.fill_(0.2)
-    observed = args['m1_observed']
-    path = args['m1_path_bps']
-    old_input = torch.cat((path.flatten(1), observed.float()), dim=1)
-    old_gate = torch.tanh(model.m1_tf_gate(old_input)).reshape_as(hidden)
-    fused = model(**args, return_fused_tf_hidden=True)['fused_tf_hidden']
-    assert torch.equal(fused[:2], hidden[:2])
-    assert torch.equal(fused[2:], hidden[2:] * (1.0 + old_gate[2:]))
-    assert not torch.equal(fused[2:], hidden[2:])
-    fused[:2].sum().backward()
-    for parameter in model.m1_tf_gate.parameters():
-        assert torch.count_nonzero(parameter.grad) == 0
+        model.integrated_objective_sha256.zero_()
+    with pytest.raises(ValueError, match='MODEL_BINDING'):
+        model(**args)
 
 
-def test_missing_m1_values_fail_and_structure_mask_has_zero_unknown_gradient(monkeypatch):
-    model = _model(monkeypatch, [])
-    args = _inputs()
-    args['m1_observed'][0, 2] = False
-    with pytest.raises(ValueError, match='M1_PATH'):
-        model(**args)
-    args = _inputs()
-    args['m1_path_bps'][0, -1, 3] = 1
-    with pytest.raises(ValueError, match='M1_PATH'):
-        model(**args)
+def test_structure_mask_has_zero_unknown_gradient():
     logits = torch.tensor([[0., 1.], [2., 3.]], requires_grad=True)
     hits = torch.tensor([[True, False], [False, True]])
     observed = torch.tensor([[True, False], [False, True]])

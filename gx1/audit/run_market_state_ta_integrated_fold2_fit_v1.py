@@ -232,14 +232,11 @@ def score_panels(model, context, fit_tape, later_tape, prior, deadline):
         for left in range(0, PANEL, BATCH):
             need(time.monotonic() < deadline, 'SCORE_DEADLINE')
             right = left + BATCH
-            selected = tape_positions[left:right]
             features = context['features'](name, rows[left:right], issues[left:right])
             query = torch.tensor([NATIVE_K] * BATCH, dtype=torch.int64,
                                  device=model.dual.state_model.query_native_k.device)
             with torch.no_grad():
-                out = model(features, query_k=query,
-                    m1_path_bps=torch.from_numpy(tape['m1_mid_ohlc_bps'][selected]).to(query.device),
-                    m1_observed=torch.from_numpy(tape['m1_observed'][selected]).to(query.device))
+                out = model(features, query_k=query)
             for task in raw:
                 raw[task][left:right] = out[task + '_activity_side_logits'].detach().cpu().numpy()
             structure[left:right] = out['m5_structure_hit_logits'].detach().cpu().numpy()
@@ -349,9 +346,7 @@ def run(plan_path, plan_sha):
             features = context['features']('TRAIN', rows, issues)
             query = torch.from_numpy(sampled_query_k(issues, pass_index=0,
                 seed=SEED)).to(device)
-            output = model(features, query_k=query,
-                m1_path_bps=torch.from_numpy(fit_tape['m1_mid_ohlc_bps'][left:right]).to(device),
-                m1_observed=torch.from_numpy(fit_tape['m1_observed'][left:right]).to(device))
+            output = model(features, query_k=query)
             state_truth = context['state_fit_bound'].gather_fit_sampled(
                 rows, issues, fold_id=2, pass_index=0, seed=SEED)
             future_truth = context['future_bound'].gather(

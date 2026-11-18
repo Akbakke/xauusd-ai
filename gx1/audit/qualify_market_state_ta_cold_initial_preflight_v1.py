@@ -221,9 +221,7 @@ def fit_probe(model, context, fit_targets, expected):
         ('terminal_observed','path_observed','net_bps','mfe_bps','pre_mfe_mae_upper_bps')}
     model.eval()
     with torch.inference_mode():
-        output = model(features, query_k=grid,
-            m1_path_bps=torch.from_numpy(tape['m1_mid_ohlc_bps'][:BATCH].copy()),
-            m1_observed=torch.from_numpy(tape['m1_observed'][:BATCH].copy()))
+        output = model(features, query_k=grid)
         loss = decision_loss(model_output=output, targets=target, model=model,
             sampled_truth=sampled_truth, native_truth=native_truth,
             future_truth=future_truth, query_grid=grid,

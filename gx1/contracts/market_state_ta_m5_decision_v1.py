@@ -84,10 +84,10 @@ def fit_statistics(targets: Mapping[str, np.ndarray]) -> dict:
 
 def contract(core_sha256: str, statistics_sha256: str, *, aux_fold_id: int = 2) -> dict:
     require(type(aux_fold_id) is int and aux_fold_id in (1, 2), 'AUX_FOLD_ID')
-    value = {'schema_version': 'gx1_ta_m5_cost_path_decision_v2',
+    value = {'schema_version': 'gx1_ta_m5_cost_path_decision_v3',
         'role': 'research_only_no_fit_or_trade_authority',
         'core_sha256': core_sha256, 'fit_statistics_sha256': statistics_sha256,
-        'input': 'all_five_post_attention_TF_vectors_after_causal_M1_gate',
+        'input': 'all_five_post_attention_M5_MTF_vectors',
         'horizon_minutes': list(HORIZONS), 'side_order': ['LONG', 'SHORT'],
         'field_order': list(FIELDS), 'head': 'single_linear_5TF_to_36',
         'head_initial': 'zero_units_equals_FIT_component_mean',
@@ -98,7 +98,7 @@ def contract(core_sha256: str, statistics_sha256: str, *, aux_fold_id: int = 2) 
         'action': 'argmax_predicted_net_minus_nonnegative_MAE_or_FLAT_if_nonpositive',
         'tie': 'earliest_horizon_then_LONG; FLAT_at_zero',
         'test_data_used': False}
-    # The consumed warm Fold2 hash is unchanged; cold Fold1 gets its own loss identity.
+    # Each Fold1 objective keeps its explicitly bound auxiliary loss.
     if aux_fold_id == 1:
         value['cold_aux_fold_id'] = aux_fold_id
         value['cold_aux_contract_sha256'] = paired_contract(fold_id=aux_fold_id)['contract_sha256']
@@ -145,10 +145,8 @@ class IntegratedTAM5DecisionModel(nn.Module):
         return contract(self.core.research_objective['contract_sha256'],
                         self.statistics_sha256, aux_fold_id=self.aux_fold_id)
 
-    def forward(self, features: Mapping[str, torch.Tensor], *, query_k: torch.Tensor,
-                m1_path_bps: torch.Tensor, m1_observed: torch.Tensor) -> dict:
-        out = self.core(features, query_k=query_k, m1_path_bps=m1_path_bps,
-                        m1_observed=m1_observed, return_fused_tf_hidden=True)
+    def forward(self, features: Mapping[str, torch.Tensor], *, query_k: torch.Tensor) -> dict:
+        out = self.core(features, query_k=query_k, return_fused_tf_hidden=True)
         hidden = out.pop('fused_tf_hidden')
         require(hidden.ndim == 3 and hidden.shape[1] == 5, 'FUSED_SHAPE')
         unit = self.decision_head(hidden.reshape(len(hidden), -1)).reshape(-1, 6, 2, 3)

@@ -154,9 +154,7 @@ def run(plan_sha):
             native = np.broadcast_to(np.asarray(NATIVE_K, dtype=np.int64), sampled.shape)
             query = torch.from_numpy(np.stack((sampled, native), axis=1).copy())
             tape = context['score_tape']
-            output = model(features, query_k=query,
-                m1_path_bps=torch.from_numpy(tape['m1_mid_ohlc_bps'][:16].copy()),
-                m1_observed=torch.from_numpy(tape['m1_observed'][:16].copy()))
+            output = model(features, query_k=query)
             sampled_truth = load_bound_time_query_targets().gather(
                 rows, issues, sampled, fold_id=3, partition='score')
             native_truth = load_bound_five_endpoint_targets().gather(

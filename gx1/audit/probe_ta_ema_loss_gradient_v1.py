@@ -269,15 +269,11 @@ def run(plan_sha):
             sampled = sampled_query_k(issue, pass_index=0, seed=replay.SEED)
             native = np.broadcast_to(np.asarray(NATIVE_K, dtype=np.int64), sampled.shape)
             grid = torch.from_numpy(np.stack((sampled, native), axis=1).copy()).to(device)
-            m1 = torch.from_numpy(tape['m1_mid_ohlc_bps'][left:right].copy()).to(device)
-            m1_observed = torch.from_numpy(tape['m1_observed'][left:right].copy()).to(device)
             with torch.no_grad():
                 original = model.core(features, query_k=grid,
-                    m1_path_bps=m1, m1_observed=m1_observed,
                     return_fused_tf_hidden=True)
                 if position == 0:
-                    original_decision = model(features, query_k=grid,
-                        m1_path_bps=m1, m1_observed=m1_observed)['m5_cost_path_bps']
+                    original_decision = model(features, query_k=grid)['m5_cost_path_bps']
             fused = original.pop('fused_tf_hidden').detach().requires_grad_(True)
             state_grid = model.core.dual.state_model.decode_raw_query_grid(fused, grid)
             state_raw, native_raw = state_grid[:, 0], state_grid[:, 1]

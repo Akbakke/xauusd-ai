@@ -42,6 +42,17 @@ M5-barer med kausal M15/H1/H4/D1-kontekst, M1-avledet nåtilstand bare
 ved M5-tidspunkter, og ingen egen M1-Entry-klokke. Tettere overvåking av
 en åpen handel og Exit hører til senere faser.
 
+## Operatørpresisering18.11.2026: M5-retning før handel
+
+Retningsprognosen vurderer markedet på lukkede M5-barer med kausalt lukket
+M15/H1/H4/D1-kontekst. M1 som modellinput hører til den senere oppfølgingen
+av en åpnet handel. Prognosemodellens forward skal bare konsumere de fem
+M5/MTF-inputene og deres eksisterende indikator-/kontekstfelt. M1-prisbane
+og M1-observasjonsmasker inngår ikke i retningsmodellens forward. Historisk
+fasit og kildeoppløsning for utfall holdes atskilt fra prognosens inputs.
+Entry, Entry-Q, Exit og handler er senere faser. Først skal retningsprognosene
+kvalifiseres på faste TRAIN-rader og kronologisk senere utvikling.
+
 ## Operatørpresisering06.11.2026: markedstilstand før Entry
 
 Aktiv fase er å definere og lære løpende markedstilstand riktig **før** vi

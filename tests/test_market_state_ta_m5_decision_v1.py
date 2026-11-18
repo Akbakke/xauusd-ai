@@ -144,7 +144,7 @@ def test_paired_quality_scale_uses_joint_fit_paths_and_changes_statistics_hash()
                                   fitted['quality_std_bps'])
     assert refitted['sha256'] != fitted['sha256']
     assert contract('core', fitted['sha256'])['schema_version'] == (
-        'gx1_ta_m5_cost_path_decision_v2')
+        'gx1_ta_m5_cost_path_decision_v3')
 
 
 
@@ -158,6 +158,6 @@ def test_paired_scale_is_bound_to_model_and_contract_without_forward():
         torch.testing.assert_close(model.paired_quality_std_bps, torch.ones(6))
         assert 'paired_quality_std_bps' in model.state_dict()
         assert model.research_objective['schema_version'] == (
-            'gx1_ta_m5_cost_path_decision_v2')
+            'gx1_ta_m5_cost_path_decision_v3')
     finally:
         patch.undo()

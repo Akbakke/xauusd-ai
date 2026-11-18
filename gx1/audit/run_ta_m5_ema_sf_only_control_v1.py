@@ -219,9 +219,7 @@ def score_fit(model, context, *, deadline):
             features = context['features']('TRAIN', rows[left:right], issues[left:right])
             grid = torch.from_numpy(np.stack((sampled[left:right], native[left:right]),
                                              axis=1).copy()).to(next(model.parameters()).device)
-            output = model(features, query_k=grid,
-                m1_path_bps=torch.from_numpy(tape['m1_mid_ohlc_bps'][left:right].copy()).to(grid.device),
-                m1_observed=torch.from_numpy(tape['m1_observed'][left:right].copy()).to(grid.device))
+            output = model(features, query_k=grid)
             raw['sampled_S'][left:right] = output['state_activity_side_logits'].cpu().numpy()
             raw['native_S'][left:right] = output['state_native_activity_side_logits'].cpu().numpy()
             raw['native_F'][left:right] = output['future_activity_side_logits'].cpu().numpy()
@@ -304,9 +302,7 @@ def fit_one_pass(model, context, *, deadline):
         sampled = sampled_query_k(i, pass_index=0, seed=SEED)
         native = np.broadcast_to(np.asarray(NATIVE_K, dtype=np.int64), sampled.shape)
         grid = torch.from_numpy(np.stack((sampled, native), axis=1).copy()).to(next(model.parameters()).device)
-        output = model(features, query_k=grid,
-            m1_path_bps=torch.from_numpy(tape['m1_mid_ohlc_bps'][left:right].copy()).to(grid.device),
-            m1_observed=torch.from_numpy(tape['m1_observed'][left:right].copy()).to(grid.device))
+        output = model(features, query_k=grid)
         loss = paired_integrated_loss(model_output=output,
             sampled_truth=sampled_bound.gather_fit_sampled(
                 r, i, fold_id=1, pass_index=0, seed=SEED),

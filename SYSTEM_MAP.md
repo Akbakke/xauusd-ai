@@ -11,13 +11,16 @@ har en egen modellrute. Den dedikerte TA-modellen med fem S/F-tilstander
 har foreløpig ingen kvalifisert felles GC MBP-1-komposisjon.
 
 ```text
-hashbundne XAUUSD M1/M5-priser og kausalt lukkede M15/H1/H4/D1-barer
+native XAUUSD M5-priser og kausalt lukkede M15/H1/H4/D1-barer
   → indikatorer, observasjonsmasker, native signalmanifest og FIT-statistikk
   → åtte spesialistfamilier og D1/makro-kontekst
   → familie- og tidsrammeoppmerksomhet, separat blanding innen hver tidsramme
-  → per-TF skjult vektor med lukket M1-kontekst og separate S/F-hoder
+  → per-TF skjult vektor direkte til separate S/F-hoder
   → separate skårer for aktivitet, kjent OPP/NED og M5-vendinger
 ```
+
+M1 som modellinput hører til senere oppfølging av åpne handler.
+Historiske utfalls- og målmasker går separat til tap og skåring.
 
 GC-kjeden beholder MBP-1 trades/BBO, prisgrid, footprint, kontrakt og faktisk
 dekning i egen native feature- og modellrute. S-/F-fasit og observerbarhet

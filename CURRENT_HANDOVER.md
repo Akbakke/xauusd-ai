@@ -7,13 +7,36 @@ prosess og eksakte terminalkvitteringer overstyrer prosa. Tidligere bølger finn
 ## Gjeldende status 18.11.2026
 
 `PAUSED_M5_MTF_DIRECTION_SOURCE_REVIEW_PENDING_REQUALIFICATION`.
-Entry og Entry-Q er satt på pause etter operatørens nye bestilling. Aktiv
-oppgave er dynamisk OPP/NED/FLATT på M5/M15/H1/H4/D1 ved M5-takt. Siste
-terminal er den konsumerte EMA S/F-kontrollen på 29 574 FIT-rader og 17 489
-senere utviklingsrader. Brier slo FIT-prior for aktivitet i 8/10 celler og
-for betinget retning i 0/10. Senere M5 F-side-AUC var 0,512.
+Operatøren presiserte at markedet skal vurderes på M5 med lukket
+M15/H1/H4/D1-kontekst. M1 som modellinput tilhører senere oppfølging
+av en åpnet handel. Entry og Entry-Q er pauset.
 
-### Retningsrevisjon fra kildene
+M1-prisbanegrenen og dens parametere er fjernet fra den integrerte
+S/F-modellen. Samme fem TF-representasjoner går direkte til eksisterende
+S/F- og strukturhoder. Forward avviser M1-prisbane og M1-masker. Alle
+14 modellkall i ti auditfiler bruker den nye signaturen. Modellen har
+ny v3-kontrakt; gamle M1-checkpoints avvises ved strict load/binding.
+Den avhengige Entry-wrapperens signatur følger kjernen.
+
+Native XAU-inputene i gjeldende EMA-visning er opprinnelig M5, med
+egne lukkede høyere TF. Alle åtte TA-familier og 61 D1/makrofelter
+beholdes. Eksisterende M1-utgangspunkt i historiske fasit-/utfallseiere
+går separat til tap/skåring. Ukjente utfall og masker beholdes.
+
+Siste ekte terminal er den konsumerte EMA S/F-kontrollen med M1-input
+på 29 574 FIT- og 17 489 senere utviklingsrader. Den kvalifiserer sin
+opprinnelige funksjon. Den nye M5/MTF-kjernen mangler fersk ekte initial,
+gradient/resume og målt senere retning. Policyens aktuelle baseline- og
+tekniske kvalifikasjonsflagg er derfor lukket. Ingen ny modellfit eller
+dataprodusent er innrømmet; ingen TEST, ONLINE, broker eller handel.
+
+43 fokuserte syntetiske modell-, maske-, scorer- og preflighttester bestod.
+De dekker direkte M5/MTF-gradienter, avviste M1-argumenter/gamle
+checkpointnøkler og eksisterende S/F-/strukturmasker. Ingen ny ekte
+markedsforward eller optimizeroppdatering ble utført. Syntaks,
+stale-M1-callsite-scan og git diff --check bestod.
+
+### Kilderevisjon før M1-presiseringen18.11 (historisk)
 
 - Statisk sjekk av 2 106 inngående sporede filer og 995 187 tekstlinjer.
   Syntaks: 1 379 Python-, 636 JSON-, 9 shell- og 9 PowerShell-filer

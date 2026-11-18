@@ -150,12 +150,9 @@ def main():
             need(np.array_equal(tape['parent_rows'][LEFT:RIGHT], rows)
                  and np.array_equal(tape['issue_ns'][LEFT:RIGHT], issues),
                  'FIT_TAPE_AXIS')
-            m1_bps = tape['m1_mid_ohlc_bps'][LEFT:RIGHT].copy()
-            m1_observed = tape['m1_observed'][LEFT:RIGHT].copy()
             hits = tape['structure_hit'][LEFT:RIGHT].copy()
             observed = tape['structure_observed'][LEFT:RIGHT].copy()
-        need(m1_bps.shape == (16, 5, 4) and m1_observed.shape == (16, 5)
-             and hits.shape == observed.shape == (16, 2), 'TAPE_SHAPES')
+        need(hits.shape == observed.shape == (16, 2), 'TAPE_SHAPES')
 
         torch.manual_seed(20260911)
         state = views.build_native_direction_research_model(view,
@@ -164,12 +161,10 @@ def main():
         model = IntegratedTAMarketStateModel(NativeFutureDualModel(state)).eval()
         initial_model_sha = canonical_model_state_sha256(model.state_dict())
         query = torch.from_numpy(sampled_query_k(issues, pass_index=0, seed=20260911))
-        output = model(features, query_k=query,
-            m1_path_bps=torch.from_numpy(m1_bps),
-            m1_observed=torch.from_numpy(m1_observed))
+        output = model(features, query_k=query)
         baseline = model.dual(**features, query_k=query)
         need(all(torch.equal(output[key], value) for key, value in baseline.items()),
-             'ZERO_GATE_BASELINE_PARITY')
+             'DIRECT_BACKBONE_BASELINE_PARITY')
         state_truth = load_bound_time_query_targets().gather_fit_sampled(
             rows, issues, fold_id=2, pass_index=0, seed=20260911)
         future_truth = load_bound_future_displacement().gather(
@@ -181,7 +176,6 @@ def main():
         need(not report['skip_update'] and bool(torch.isfinite(report['loss'])),
              'INTEGRATED_LOSS')
         report['loss'].backward()
-        gate_grad = int(torch.count_nonzero(model.m1_tf_gate.weight.grad).item())
         state_heads = (model.dual.state_model.m5_side_head,
                        *(model.dual.state_model.non_m5_side_heads[tf] for tf in TF[1:]))
         future_heads = (model.dual.future_m5_side_head,
@@ -189,7 +183,7 @@ def main():
         state_side_grads = [int(torch.count_nonzero(head.weight.grad).item()) for head in state_heads]
         future_side_grads = [int(torch.count_nonzero(head.weight.grad).item()) for head in future_heads]
         structure_head_grad = int(torch.count_nonzero(model.m5_structure_head.weight.grad).item())
-        need(gate_grad > 0 and all(state_side_grads) and all(future_side_grads)
+        need(all(state_side_grads) and all(future_side_grads)
              and structure_head_grad > 0, 'INTEGRATED_GRADIENTS')
         known = lambda truth: [int((truth['eligible'][:, j] & truth['mature'][:, j]
                                   & np.isin(truth['allowed'][:, j], (1, 4))).sum())
@@ -201,8 +195,6 @@ def main():
                   'initial_model_state_sha256_CPU': initial_model_sha,
                   'batch_positions': [LEFT, RIGHT], 'rows': 16, 'model_forwards': 2,
                   'optimizer_constructions': 0, 'optimizer_steps': 0, 'checkpoint_reads': 0,
-                  'M1_full_paths': int(m1_observed.all(axis=1).sum()),
-                  'M1_observed_slots': int(m1_observed.sum()),
                   'S_known_sides_by_tf': known(state_truth),
                   'F_known_sides_by_tf': known(future_truth),
                   'structure_high_observed_batch': int(observed[:, 0].sum()),
@@ -210,7 +202,6 @@ def main():
                   'integrated_loss': float(report['loss'].detach()),
                   'S_F_loss': float(report['S_F_loss'].detach()),
                   'structure_mean_loss': float(report['structure_loss'].detach()),
-                  'M1_gate_nonzero_gradient_cells': gate_grad,
                   'S_side_head_nonzero_gradient_cells_by_tf': state_side_grads,
                   'F_side_head_nonzero_gradient_cells_by_tf': future_side_grads,
                   'structure_head_nonzero_gradient_cells': structure_head_grad,

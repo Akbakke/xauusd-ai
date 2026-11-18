@@ -257,9 +257,7 @@ def _fit_one_pass(model, context, fit, *, device, fit_rows, fold_id,
         sampled = sampled_query_k(i, pass_index=0, seed=SEED)
         native = np.broadcast_to(np.asarray(NATIVE_K, dtype=np.int64), sampled.shape)
         grid = torch.from_numpy(np.stack((sampled, native), axis=1).copy()).to(device)
-        output = model(features, query_k=grid,
-            m1_path_bps=torch.from_numpy(tape['m1_mid_ohlc_bps'][left:right].copy()).to(device),
-            m1_observed=torch.from_numpy(tape['m1_observed'][left:right].copy()).to(device))
+        output = model(features, query_k=grid)
         target = {key: fit[key][left:right] for key in
             ('terminal_observed', 'path_observed', 'net_bps', 'mfe_bps',
              'pre_mfe_mae_upper_bps')}

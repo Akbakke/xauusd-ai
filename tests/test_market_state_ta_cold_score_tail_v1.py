@@ -23,8 +23,8 @@ class _Model(torch.nn.Module):
         self.weight = torch.nn.Parameter(torch.zeros(()))
         self.batch_sizes = []
 
-    def forward(self, features, **kwargs):
-        n = len(kwargs['m1_observed'])
+    def forward(self, features, *, query_k):
+        n = len(query_k)
         self.batch_sizes.append(n)
         z = torch.zeros((n, 5, 2))
         return {'state_activity_side_logits': z,
@@ -53,9 +53,7 @@ def test_score_full_batch_and_one_row_tail(monkeypatch, n, scope, sizes):
     monkeypatch.setattr(paired, '_turn_and_disagreement', lambda *a: {})
     monkeypatch.setattr(initial, 'direction_readout', lambda *a: {})
     monkeypatch.setattr(integrated, 'structure_readout', lambda *a: {})
-    tape = {'m1_mid_ohlc_bps': np.zeros((n, 5, 4), dtype=np.float32),
-            'm1_observed': np.ones((n, 5), dtype=np.bool_),
-            'structure_hit': np.zeros((n, 2), dtype=np.bool_),
+    tape = {'structure_hit': np.zeros((n, 2), dtype=np.bool_),
             'structure_observed': np.ones((n, 2), dtype=np.bool_)}
     fit_tape = {'structure_hit': np.array([[True, False], [False, True]]),
                 'structure_observed': np.ones((2, 2), dtype=np.bool_)}

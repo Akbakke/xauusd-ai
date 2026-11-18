@@ -7,6 +7,13 @@ ikke relanser ferdige inputs, kapasitetstester eller engangsplaner.
 
 ## Prognosemål før Entry
 
+Retningsmodellens inputs er native M5 og kausalt lukkede M15/H1/H4/D1-barer
+med tilhørende indikatorer og D1/makro-kontekst. Operatørpresiseringen18.11
+reserverer M1 som modellinput til senere oppfølging av en åpen handel.
+M5/MTF-modellen dekoder direkte fra sine fem TF-representasjoner. M1-rådata
+i historiske targeteiere og utfallsmasker er separat fra modellens forward.
+Entry og Entry-Q er pauset mens retningsprognosene kvalifiseres.
+
 Prognosen gjelder løpende, dynamisk OPP/NED/FLATT på M5/M15/H1/H4/D1:
 fortsettelse, overgang til flathet, ny bevegelse og vendinger i begge retninger.
 Ingen fast startpris, returpris eller første terskelpassering definerer målet.

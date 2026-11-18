@@ -1,10 +1,8 @@
-"""Opt-in non-GC TA S/F plus M5 structure readout with closed M1 context.
+"""M5/MTF TA S/F and M5 structure readout over one native encode.
 
-All existing eight TA specialist families and five TF windows enter the one
-unchanged native backbone. Five post-attention TF vectors and distinct S/F
-heads are mandatory. A five-closed-M1-bar path gates those vectors separately;
-unknown M1 minutes stay masked and the path requires its closing M1 price.
-Targets never enter forward. No fit authority.
+The eight TA specialist families and closed M5/M15/H1/H4/D1 windows feed
+the S/F heads directly. M1 trade management belongs to a later phase.
+Targets enter only loss and scoring. This contract grants no fit authority.
 """
 from __future__ import annotations
 
@@ -21,8 +19,6 @@ from gx1.contracts.market_state_time_query_native_F_model_v1 import NativeFuture
 from gx1.contracts.market_state_time_query_target_v1 import TIMEFRAMES
 
 
-M1_BARS = 5
-M1_FIELDS = 4
 STRUCTURE_FIELDS = ('next_high_hits_frozen_high', 'next_low_hits_frozen_low')
 
 
@@ -39,12 +35,13 @@ def contract(dual: NativeFutureDualModel) -> dict:
           and state._dedicated_tf_activity and not dual._shared_m5_side,
           'FIVE_TF_MODE')
     value = {
-        'schema_version': 'gx1_ta_integrated_m1_structure_model_v2',
+        'schema_version': 'gx1_ta_integrated_m5_mtf_structure_model_v3',
         'role': 'research_only_no_fit_or_trade_authority',
         'dual_S_F_contract_sha256': dual.research_objective['contract_sha256'],
         'backbone': 'one_unchanged_full_TA_encode_with_five_post_attention_TF_vectors',
-        'M1_path': 'five_closed_mid_OHLC_bps_and_price_mask_require_observed_last_close',
-        'M1_fusion': 'zero_initialized_distinct_per_TF_bounded_gate_with_identity_without_last_close',
+        'forecast_input_timeframes': list(TIMEFRAMES),
+        'forecast_cadence': 'closed_M5',
+        'S_F_input': 'direct_five_post_attention_TF_vectors',
         'S_F_direction_heads': 'five_distinct_per_task_conditional_side_heads',
         'M5_structure_logits': list(STRUCTURE_FIELDS),
         'M5_structure_truth_as_forward_input': False,
@@ -55,7 +52,7 @@ def contract(dual: NativeFutureDualModel) -> dict:
 
 
 class IntegratedTAMarketStateModel(nn.Module):
-    """One native TA encode; TF-local M1 gate; S/F plus M5 high/low hits."""
+    """One M5/MTF encode shared by S/F and M5 high/low heads."""
 
     def __init__(self, dual: NativeFutureDualModel):
         super().__init__()
@@ -64,11 +61,6 @@ class IntegratedTAMarketStateModel(nn.Module):
         self.dual = dual
         width = dual.state_model._hidden_width
         device = dual.state_model.query_head.weight.device
-        self.m1_tf_gate = nn.Linear(M1_BARS * (M1_FIELDS + 1),
-                                    len(TIMEFRAMES) * width,
-                                    device=device, dtype=torch.float32)
-        nn.init.zeros_(self.m1_tf_gate.weight)
-        nn.init.zeros_(self.m1_tf_gate.bias)
         self.m5_structure_head = nn.Linear(width, len(STRUCTURE_FIELDS),
                                            device=device, dtype=torch.float32)
         self.register_buffer('integrated_objective_sha256', torch.tensor(
@@ -85,25 +77,20 @@ class IntegratedTAMarketStateModel(nn.Module):
         device = self.dual.state_model.query_head.weight.device
         digest = torch.tensor(list(bytes.fromhex(self.research_objective['contract_sha256'])),
                               device=device, dtype=torch.uint8)
-        _need(type(self.m1_tf_gate) is nn.Linear
-              and self.m1_tf_gate.in_features == M1_BARS * (M1_FIELDS + 1)
-              and self.m1_tf_gate.out_features == len(TIMEFRAMES) * width
-              and type(self.m5_structure_head) is nn.Linear
+        _need(type(self.m5_structure_head) is nn.Linear
               and self.m5_structure_head.in_features == width
               and self.m5_structure_head.out_features == len(STRUCTURE_FIELDS)
               and all(p.device == device and p.dtype == torch.float32
-                      for p in (*self.m1_tf_gate.parameters(),
-                                *self.m5_structure_head.parameters()))
+                      for p in self.m5_structure_head.parameters())
               and torch.equal(self.integrated_objective_sha256, digest),
               'MODEL_BINDING')
 
     def forward(self, features: Mapping[str, torch.Tensor], *, query_k: torch.Tensor,
-                m1_path_bps: torch.Tensor, m1_observed: torch.Tensor,
                 return_fused_tf_hidden: bool = False) -> dict[str, torch.Tensor]:
         self._require_binding()
         _need(isinstance(features, Mapping), 'FEATURE_MAPPING')
         hidden = self.dual.encode_features(**features)
-        batch, tf_count, width = hidden.shape
+        batch, tf_count, _ = hidden.shape
         paired = isinstance(query_k, torch.Tensor) and query_k.ndim == 3
         query_grid = None
         if isinstance(query_k, torch.Tensor):
@@ -111,31 +98,12 @@ class IntegratedTAMarketStateModel(nn.Module):
         _need(tf_count == len(TIMEFRAMES)
               and isinstance(query_k, torch.Tensor) and query_k.dtype == torch.int64
               and query_grid.shape == (batch, 2 if paired else 1, tf_count)
-              and query_k.device == hidden.device
-              and isinstance(m1_path_bps, torch.Tensor)
-              and m1_path_bps.dtype == torch.float32
-              and m1_path_bps.shape == (batch, M1_BARS, M1_FIELDS)
-              and m1_path_bps.device == hidden.device
-              and bool(torch.isfinite(m1_path_bps).all())
-              and isinstance(m1_observed, torch.Tensor)
-              and m1_observed.dtype == torch.bool
-              and m1_observed.shape == (batch, M1_BARS)
-              and m1_observed.device == hidden.device
-              and bool((m1_path_bps[~m1_observed] == 0).all())
-              and bool((m1_path_bps[:, -1, 3] == 0).all())
-              and bool((m1_observed[:, -1] | (m1_path_bps == 0).all(dim=(1, 2))).all()),
-              'M1_PATH')
-        anchor_observed = m1_observed[:, -1]
-        price_observed = m1_observed & anchor_observed[:, None]
-        source = torch.cat((m1_path_bps.reshape(batch, -1),
-                            price_observed.to(torch.float32)), dim=-1)
-        gate = torch.tanh(self.m1_tf_gate(source).reshape(batch, tf_count, width))
-        gate = torch.where(anchor_observed[:, None, None], gate, 0.0)
-        fused = hidden * (1.0 + gate)
-        state_grid = self.dual.state_model.decode_raw_query_grid(fused, query_grid)
+              and query_k.device == hidden.device,
+              'QUERY_GRID')
+        state_grid = self.dual.state_model.decode_raw_query_grid(hidden, query_grid)
         state_raw = state_grid[:, 0]
-        future_raw = self.dual.decode_native_F_raw(fused)
-        structure_raw = self.m5_structure_head(fused[:, 0])
+        future_raw = self.dual.decode_native_F_raw(hidden)
+        structure_raw = self.m5_structure_head(hidden[:, 0])
         _need(structure_raw.shape == (batch, len(STRUCTURE_FIELDS))
               and bool(torch.isfinite(structure_raw).all()), 'STRUCTURE_LOGITS')
         output = {'state_activity_side_logits': state_raw,
@@ -148,7 +116,7 @@ class IntegratedTAMarketStateModel(nn.Module):
             output['state_native_activity_side_logits'] = native_raw
             output['state_native_log_probs'] = factorized_log_probabilities(native_raw)
         if return_fused_tf_hidden:
-            output['fused_tf_hidden'] = fused
+            output['fused_tf_hidden'] = hidden
         return output
 
 

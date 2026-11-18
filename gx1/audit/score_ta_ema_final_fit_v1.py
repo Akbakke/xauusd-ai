@@ -300,9 +300,7 @@ def run(plan_sha):
                 features = context['features']('TRAIN', rows[left:right], issues[left:right])
                 query = torch.from_numpy(np.stack((sampled[left:right], native[left:right]),
                                                   axis=1).copy()).to(device)
-                out = model(features, query_k=query,
-                    m1_path_bps=torch.from_numpy(tape['m1_mid_ohlc_bps'][left:right].copy()).to(device),
-                    m1_observed=torch.from_numpy(tape['m1_observed'][left:right].copy()).to(device))
+                out = model(features, query_k=query)
                 need(out['m5_cost_path_bps'].shape == (right - left, 6, 2, 3),
                      'DECISION_SHAPE')
                 raw['native_S'][left:right] = out['state_native_activity_side_logits'].cpu().numpy()
