@@ -349,7 +349,10 @@ forsterket LONG-biasen; det isolerer ikke alene om feilen ligger i signal,
 modell, mål eller markedsskifte. På det faste h480-panelet var predikert/faktisk
 kvalitet −2,796/−25,463 bps for LONG og −47,088/−20,160 bps for SHORT:
 begge sider er feilkalibrert, ikke bare seleksjonen. 7 380 av 7 450 valg
-lå på h480.
+lå på h480. På det samme faste panelet ga modellens foretrukne h480-side
+(8 SHORT av 11 318) kostet netto −8,324 bps og kvalitet −25,566 bps, mot
+forhåndsvalgt alltid-LONG −8,216 bps netto og −25,463 bps kvalitet. Dette er
+overlappende markout, ikke posisjonsført handels-PnL.
 
 Resultatet gjelder gjenbrukt oktober–desember-utvikling, ikke uavhengig TEST,
 handels-PnL eller posisjonsførte åpne handler. Den nye EMA-indikatoren og
