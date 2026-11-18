@@ -429,3 +429,8 @@ uavhengig kontrollgrunnlag lagres. Kapslet CUDA-produsentrute er eksakt
 avgrenset til denne planen, 20G/512M og maksimalt 3 600 sekunder. To
 scorertester og 14 rutetester, syntaks og diffkontroll består. Ingen
 modellscoring eller trening er startet; plan og innrømmelse følger separat.
+
+Plan `TA_M5_EMA_FINAL_FIT_SCORE_20261118_001` er nå klargjort mot
+kildecommit `b0eecca7` og 31 inputreferanser; policy står
+`PREPARED_NOT_ADMITTED` med null tillatte kall. Neste steg er eksakt
+preflight og kontroll av kapsling; dette er ingen treningsåpning.

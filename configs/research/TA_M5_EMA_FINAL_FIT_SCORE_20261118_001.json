@@ -1,0 +1,220 @@
+{
+  "batch_size": 16,
+  "broker_access_allowed": false,
+  "capped_execution": {
+    "class": "producer",
+    "memory": "20G",
+    "swap": "512M"
+  },
+  "consumed_ema": {
+    "checkpoint": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_JOINT_FIT_20261118_001/FINAL_MODEL.pt",
+      "sha256": "5e370c6220e7e16236a0941933919541d181cd0638956394e0a60d288009c2d5"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_JOINT_FIT_20261118_001/CLAIM.json",
+      "sha256": "417b9332006fb8a033fa1ee194764e8edb72b40ce82aed1b775ffd0e32a35ae9"
+    },
+    "final_capture": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_JOINT_FIT_20261118_001/FINAL_SCORE_READOUT.npz",
+      "sha256": "11ae0f94c82e6e8471175859c28349a8f883bf84e831b5da6ae2a3cb0a7916a9"
+    },
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_EMA_DELTA_JOINT_FIT_20261118_001.json",
+      "sha256": "0ce0eecd763c3b9f55105f4ee6eb1d9e3ffbee0d1b1a1635577b647d5c4f912c"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_JOINT_FIT_20261118_001/RESULT.json",
+      "sha256": "6cd1d9176765ec73ff4c6230b79490c2459bd0d79d5f13d657f3511e2143aa0c"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_JOINT_FIT_20261118_001/TERMINAL.json",
+      "sha256": "33871aa1f5e5e84d37eee9efea7a391659022dcb60ba1b597f7c86f60d3fde00"
+    }
+  },
+  "economic_edge_proven": false,
+  "final_model_state_sha256": "7323cd0103f37250ec1ed6bc8ab7d680836feab5cd9be84992e23cf7762f9a5d",
+  "fit_parent_start": 0,
+  "fit_rows": 29574,
+  "fit_statistics_sha256": "1e1278c2eced0a2344f2a7162fa8d54f5e5cb49d92640c59edf3edd38976fd30",
+  "fold_id": 1,
+  "h480_complete_panel_predeclared": true,
+  "inputs": {
+    "constructor": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_FEATURE_VIEW_20261118_001/CONSTRUCTOR_METADATA.json",
+      "sha256": "5541ef5db0606e12f767ebbe590a55594cbdb71a091c459ddc43e61e114ece6d"
+    },
+    "fit_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/TA_INTEGRATED_FOLD2_FIT_INPUTS_REVIEW_20261116.json",
+      "sha256": "25b8d4749e5f1ac4baaefe0489b882f7f7188fcd6964f55e495099614fd443c6"
+    },
+    "fit_span_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001/RESULT.json",
+      "sha256": "8878d17a5bf114fcf9cd5eb0e74792ddc5df068b95b67951b594759d5b2b05bb"
+    },
+    "fit_tape": {
+      "path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_INPUTS_20261116_001/INPUTS.npz",
+      "sha256": "00300177b925facce71824ec08f91129496340106ab4d3541f94789639607b89"
+    },
+    "fit_targets": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_COST_PATH_TARGETS_20261117_001/FIT_TARGETS.npz",
+      "sha256": "3f0a9c74a4a40da80fc62850b62dde3b67d7f896963440d58a5c810af9908024"
+    },
+    "gather_coverage": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_FULL_GATHER_20261118_001/COVERAGE.json",
+      "sha256": "d3c95a7a16a3a63c3276ba5f90dfa3b99a93957edea302cf990d521c3c20325c"
+    },
+    "gather_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_EMA_DELTA_FULL_GATHER_20261118_001.json",
+      "sha256": "a8d1a39819402ca8fe80bb53e459f8431308fc7ea3153ac0a6e7ef65f2ff4864"
+    },
+    "gather_result": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_FULL_GATHER_20261118_001/RESULT.json",
+      "sha256": "f1589bff55919ac9a1bcb0c9ed99ae7848c51e5dd34bf453d9bd6d92d34b8f2a"
+    },
+    "gather_terminal": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_FULL_GATHER_20261118_001/TERMINAL.json",
+      "sha256": "57ff529479000918ac382268e857d518c8d89f7ebe8111bad16aedb4a6149ce3"
+    },
+    "later_span_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_REUSE_20261113_002/RESULT.json",
+      "sha256": "8f2acfafc459cc9a2fbcb7b588c40eb008d1e75c7e47835bbc55f24b68f32cc2"
+    },
+    "material_manifest": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_002/OUTPUT/MANIFEST.json",
+      "sha256": "7e4630cf6791e00b85e6d4c8d15cf0fe0bb2b1944de9a1d83a7709ce4050a139"
+    },
+    "material_result": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_002/OUTPUT/RESULT.json",
+      "sha256": "aea480092efea5b0f3f97dfe2be34dda97d9da377434c2a78d8712174a1e4c20"
+    },
+    "material_terminal": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_002/TERMINAL.json",
+      "sha256": "2b697d3c86a61a134de2e41dee7ff7f0f21b70b85e9a37da257a8c3b44f0dbb5"
+    },
+    "normal_base": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_FIT_NORMALIZATION_20261118_001/EXTENDED_BASE_NORMALIZATION.json",
+      "sha256": "e3a643872ad69ea7999dabcb2cf200189948f933729b0c72fb3c87dbe9d2dead"
+    },
+    "normal_result": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_FIT_NORMALIZATION_20261118_001/RESULT.json",
+      "sha256": "dfc3f5b9e021a7e122ae87a6ca04136a7b960f86ba4930df46354150ba25973a"
+    },
+    "normal_ta": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_FIT_NORMALIZATION_20261118_001/TA_INPUT_NORMALIZATION.json",
+      "sha256": "cd1b972dd08d060b89b93b92d9c3770fdaae99418ba1f3f9bb58f8986d84bd2f"
+    },
+    "normal_terminal": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_FIT_NORMALIZATION_20261118_001/TERMINAL.json",
+      "sha256": "47eeacd82df0a18f5da5693382131aa62c15561e67c542572ad59f7ec2d260d8"
+    },
+    "normal_units": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_FIT_NORMALIZATION_20261118_001/NEW_UNITS_PROFILE.json",
+      "sha256": "d062de090dbf974d093a2d7bec909904b346f66fbd25212ab65a69d309232ebb"
+    },
+    "old_gather_plan": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_SPAN_VIEW_20261113_001/PLAN.json",
+      "sha256": "783ae8cc3c8992d7d209d70de841b52c3dd6d04d5dc2a21a772f61a2cc151596"
+    },
+    "old_physical_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_TA_TRENDLINE_ANCHOR_SPAN_INPUTS_20261112_001.json",
+      "sha256": "889161060a9abb9c028abffe3246420f06a63891ee9a51305d3e8173d970fbf1"
+    },
+    "packet": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_FEATURE_VIEW_20261118_001/PREFIX_PACKET.json",
+      "sha256": "1d572ff79c14483dea947870948a03d1ccc2dd83f157b76b24483bc30c82fc01"
+    },
+    "prior_result": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_FOLD1_PRIORS_20261118_001/RESULT.json",
+      "sha256": "55a9cdd4a54cf612434f6e3ce8a650b49f8514fc04b26f7f0decfceafde28267"
+    },
+    "prior_terminal": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_FOLD1_PRIORS_20261118_001/TERMINAL.json",
+      "sha256": "a4a948fc6c49989eca42f49b7841363a8dc5e471ac3c55b275b866f12a118965"
+    },
+    "priors": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_FOLD1_PRIORS_20261118_001/ENDPOINT_PRIORS.json",
+      "sha256": "1fdd70246c6dbb295819ec0dcfe45ab5c6260d8767ca8e4cdbd516591609f009"
+    },
+    "provider_plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/PLAN_SUPPORT.json",
+      "sha256": "96ff82533042ab069292505b3a44315c13223a9b9d9e9ee669cd757e3f84c086"
+    },
+    "provider_worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/qualify_physical_prefix_support_guarded.py",
+      "sha256": "a007b01d5fb41785ffae3de11be71b50b7b3959875a69966c830e5a0c7b2d5e9"
+    },
+    "target_result": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_COST_PATH_TARGETS_20261117_001/RESULT.json",
+      "sha256": "dd8741c5f4d757a4ce366f681ff808841f20ca59f5e663413280b26aa2953ee7"
+    },
+    "target_terminal": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_COST_PATH_TARGETS_20261117_001/TERMINAL.json",
+      "sha256": "d6334b04ce9ada129291cb9244d2ec131aaafb4084a9aad550e59eeceaf114a6"
+    },
+    "view": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_FEATURE_VIEW_20261118_001/FEATURE_VIEW.json",
+      "sha256": "638b3706ebc4566439599e27826cd00322d8e0156166333e507a4707bd1bac25"
+    },
+    "view_result": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_FEATURE_VIEW_20261118_001/RESULT.json",
+      "sha256": "0372b18d1fd80e7d8ae5efd0fadd1d56413ff18d406a5dc1a96c85756b6c2139"
+    },
+    "view_terminal": {
+      "path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_FEATURE_VIEW_20261118_001/TERMINAL.json",
+      "sha256": "daec97fbcf6354c30e60f57255acdf26075618531b3a4070aaaa81aed032bc5a"
+    }
+  },
+  "max_optimizer_updates": 0,
+  "max_seconds": 3600,
+  "model_forwards": 1849,
+  "native_S_F_fit_auc_brier_predeclared": true,
+  "online_authorized": false,
+  "output_root": "/home/andre2/GX1_RUNS/TA_M5_EMA_FINAL_FIT_SCORE_20261118_001",
+  "partition": "fit",
+  "schema_version": "gx1_ta_m5_ema_final_fit_score_plan_v1",
+  "seed": 20260911,
+  "source_base_commit": "b0eecca73fa683788b021f9051daf4dc00ab6b98",
+  "source_owners": {
+    "gx1/audit/market_state_ta_apr_jun_campaign_inputs_v1.py": "a874b0659d096e177a8b239b59270b5e0cf923d48546b185911b05bef4483658",
+    "gx1/audit/market_state_ta_ema_delta_campaign_inputs_v1.py": "8ec40e3c765a21795b9db36c94aab3698bd3155c1d1a42db7b2e7f7cb37b1d0c",
+    "gx1/audit/observe_market_state_ta_fold2_fresh_initial_v1.py": "f2d14e38a39637ac68cdab8be34785d0fe4e55d5c0607f02447d3cb8aceeb5f3",
+    "gx1/audit/qualify_market_state_mature_prefix_normalization_v1.py": "479837880848b6961897982590bc81799772aa350b2a6d8230719ac29f49c54a",
+    "gx1/audit/qualify_ta_ema_delta_full_gather_v1.py": "3841d02c18b95fcdc76c9808eee420c10ab7701c57b16b66a8730997f0aad20c",
+    "gx1/audit/qualify_ta_ema_delta_initial_preflight_v1.py": "574d11a46df1b4b6b4aaa4ed6f34e75abe2f253139e91547946a8fecd0e4f222",
+    "gx1/audit/run_market_state_ta_apr_jun_paired_fit_v1.py": "bbd56baf6b587b7920df88b43ef8bffd7dfcf663035200aad4adafa132dd529a",
+    "gx1/audit/run_market_state_ta_m5_decision_fit_v1.py": "a0e6f152a7e852f61052572781366bbbd4cbd73171a854de69e49c248f836e6a",
+    "gx1/audit/score_ta_ema_final_fit_v1.py": "aed2ad4c994c8630e81684003550c9f06ac47107bb54bb19087d30dc72401736",
+    "gx1/contracts/entry_anchor_span_feature_inputs_v1.py": "3f8b1ba8f94a259ac18ff6424f9b6d8aefd0d05d3652e9b7448aae714843853b",
+    "gx1/contracts/entry_ema_delta_feature_view_v1.py": "f972912cf5477fe266f7052874d3f337c914e927f19dde5c4c00a63c04f1ec8c",
+    "gx1/contracts/entry_exit_feature_surface_v1.py": "64bef1d239f7ef4cc347e08243c13f2e2cb7b9b2e799ac5a114cb76176b49d31",
+    "gx1/contracts/entry_model_native_input_normalization_v1.py": "e55d8cfb8a93c2c5ce58fb4f39e733ba55c35e9040dbee50f1d8a8c904ea8ea7",
+    "gx1/contracts/entry_native_direction_feature_view_v1.py": "3750bab026977e9526d4e956b7e8f67000760be7c305ff8de74743aef3810ce9",
+    "gx1/contracts/gx1_capped_execution_v1.py": "60b1ccf2eda470a84ddded0d8160c628314ebb19f5766b87b70fef7c9aa3ccff",
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "gx1/contracts/market_state_five_endpoint_target_binding_v1.py": "71dc01154aada84d01e930cb78970a79608c5bff5ebd710d9f48273934e14bfd",
+    "gx1/contracts/market_state_future_displacement_candidate_v1.py": "4a7e0a582bef097109555ddfe1b96cb2c9d7b31c2a53366ef9a4bbbe0c6deb62",
+    "gx1/contracts/market_state_ta_decoder_view_rebind_v1.py": "56d5a50b24834ae3c6655bfcc97878cf64281d8e2b4c07af1163d3bd4c8375df",
+    "gx1/contracts/market_state_ta_integrated_model_v1.py": "3041730672c6ae4831c91d41d3b0c3b66df6fe5375cc6f0894690ca05cfbcfe0",
+    "gx1/contracts/market_state_ta_integrated_paired_objective_v1.py": "68b0ebdae5b9140df44b74b7b79d564a2c769b8a014d39ba44ea6eee3eeef9d6",
+    "gx1/contracts/market_state_ta_m5_decision_v1.py": "083883dc0ea8a972bea047eca64aa846938eb582efaefa32e678b5b77756e62a",
+    "gx1/contracts/market_state_time_query_binding_v1.py": "6db09212d8c1a565afb5b6ba650a049a84319de64d11668819fe238a1eca72bd",
+    "gx1/contracts/market_state_time_query_native_F_batch_v1.py": "32c4ad3e846d28333d69aa39eaeba018c3fd8216b73da419a8385f4cfdc5c2e6",
+    "gx1/contracts/market_state_time_query_native_F_model_v1.py": "0cda1a4e936764a2463cd3e8f5fa8e704eaa024f8f59ab8e68198e73b98adb73",
+    "gx1/contracts/market_state_time_query_native_F_objective_v1.py": "7b240546906a90096e6b2edb55f148ff3f6a495a7b33573a241f21addca4cace",
+    "gx1/contracts/market_state_time_query_scorer_v2.py": "a3bd1e8e4482030cee0e267ad88da7552f4e1fe65e4e79182b19339e31acad12",
+    "gx1/contracts/market_state_time_query_target_v1.py": "bd87e01e10ebac86932bc438012820dd4ea0b04ed1acf82644cc233e1fac83f9",
+    "gx1/contracts/model_state_digest_v1.py": "f5d362079bb61bd61919bdea56e7f782d2461499691f2d588cc9a6a078e487e4",
+    "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": "577f2048e96681dc928a901dd5975c1d2bb9e67c855b9bb4ac9eed8016f821b5",
+    "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "5983cd8d6395ed2a61a139a35069d96accc4c8c62378a8460d09ff3aeaf7201e",
+    "scripts/gx1_capped_run.sh": "9bdf328c915c51bf10cbd74ce7ebdd9896ebf4c00bb9411757d85c38abd65d48",
+    "scripts/gx1_guarded_trainer_exec.sh": "6c4a4bfe704828aeb1c5ad2d89160e4cbb8fadb210be5fc33d26f12b96db0c45",
+    "tests/test_market_state_ta_ema_delta_joint_fit_plan_v1.py": "2d682c4b8d8883790d1a05b48c2374fa18f9a7709493fc886aa66b6f00137f07",
+    "tests/test_score_ta_ema_final_fit_v1.py": "a3880b1afdc461b6d846e3388bef6534059ff6a0d68f9bd1e641299049b82a1d"
+  },
+  "stage": "ta_m5_ema_final_fit_score_20261118_001",
+  "status": "PREPARED_NOT_ADMITTED",
+  "test_authorized": false,
+  "test_data_used": false,
+  "training_authorized": false
+}
