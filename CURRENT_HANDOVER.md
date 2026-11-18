@@ -679,3 +679,24 @@ full senere inputkvalifikasjon og ny engangsinnrømmelse. Den konsumerte
 Entry-v2-kvalitetsutgangen er fortsatt ikke en forventningsverdi;
 middelverdikonsistent Entry-v3 er spesifisert som senere design, ikke
 den aktive S/F-fasens treningsmål. Ingen ny plan er innrømmet.
+
+En samlet, oppdateringsfri dekomponering av de samme FIT/senere-capturene
+skiller hva kjernen faktisk lærer: aktivitet-Brier slo fast FIT-prior i
+8/10 native S/F×TF-celler på både FIT og senere; betinget side-Brier i
+0/10. Struktur-high/low hadde AUC 0,808/0,799 på FIT og 0,802/0,794
+senere. Dette er spesifikk svikt i retningssiden, ikke generell manglende
+modellforward, dataflyt eller optimizeroppdatering.
+
+På full FIT var F-M5 gjennomsnittlig predikert OPP-sannsynlighet 0,091
+over faktisk andel, F-H4 0,203 og F-D1 0,161. Den eksisterende
+side-BCE-en har kjente F-sider i 1 844/1 849 M5-batcher, 1 143 H4-
+og 705 D1-batcher. F-H4 og F-D1 har egne lineære sidebiaser; regnet fra
+sluttcapturen er gjennomsnittlig direkte tapgradient på disse biasene
++0,0253 og +0,0140 per FIT-batch etter faktisk TF-divisor. En lokal
+senkning av bias ville derfor redusert fast FIT-side-BCE. Modellen
+avsluttet ikke ved et full-FIT-stasjonært sidepunkt. Få kjente H4/D1-
+batcher kan bidra til oppgavenes ubalanse, men M5 er kjent i nesten alle
+batcher og feiler også. Dette isolerer ikke om årsaken er én passering,
+samspill mellom oppgaver, representasjon eller målstøy. En ren biasretting
+ville uansett ikke bedre AUC eller bevise senere Edge; flere epoker er
+ikke innrømmet av dette funnet.
