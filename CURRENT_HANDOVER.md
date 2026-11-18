@@ -464,6 +464,19 @@ enn prioren på alle fem TF. Sluttmodellen har altså svak S/F-læring allerede
 på eget FIT-utvalg; dette er ikke bare en senere overføringssvikt. Den
 aktive fasens markedstilstand var kun hjelpetap 0,10 i denne treningen.
 
+En ny, oppdateringsfri lesning av de samme hashbundne FIT/senere-capturene
+viser systematisk OPP-skjevhet på kjente native F-sider. H4 hadde
+predikert/faktisk OPP-andel 0,697/0,567 på FIT (n=10 134) og
+0,712/0,543 senere (n=6 053); retnings-AUC falt 0,542→0,472.
+D1 hadde 0,735/0,667 på FIT (n=8 926) og 0,737/0,567 senere
+(n=6 063); AUC falt 0,602→0,505. Også M5 lå over faktisk andel
+på både FIT (0,556/0,511) og senere (0,562/0,513). Dette er
+betinget OPP-sannsynlighet på kjente sider, ikke andel av alle rader.
+En ren terskelendring kan ikke reparere svak rangering. FIT-kalibrering
+svikter før senere regimeskifte; materialet isolerer ikke om årsaken er
+representasjon, mål, optimizer eller samspillet i trening. Ingen ny fit
+eller parameterendring følger av dette alene.
+
 Et konkret neste kontrollspørsmål er om eksisterende fullverdig S/F- og
 struktur-tap som eneste mål kan slå FIT-prioren uten å skade senere score
 på de kvalifiserte EMA-inputene. Gjennomgå tidligere tilsvarende fit først;
