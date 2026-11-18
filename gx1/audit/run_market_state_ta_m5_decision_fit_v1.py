@@ -33,6 +33,19 @@ COLD_FIT_BATCHES = (COLD_FIT_ROWS + BATCH - 1) // BATCH
 SOURCES = tuple(dict.fromkeys((*PAIRED_SOURCES,
     'gx1/audit/run_market_state_ta_m5_decision_fit_v1.py',
     'gx1/contracts/market_state_ta_m5_decision_v1.py')))
+EMA_STAGE = 'ta_m5_ema_delta_joint_fit_20261118_001'
+EMA_PLAN = REPO / 'configs/research/TA_M5_EMA_DELTA_JOINT_FIT_20261118_001.json'
+EMA_ROOT = Path('/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_JOINT_FIT_20261118_001')
+EMA_INITIAL_ROOT = Path('/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_INITIAL_PREFLIGHT_20261118_001')
+EMA_GATHER_ROOT = Path('/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_FULL_GATHER_20261118_001')
+EMA_PRIOR_BOOT = 664
+EMA_SOURCES = tuple(dict.fromkeys((*SOURCES,
+    'gx1/audit/market_state_ta_ema_delta_campaign_inputs_v1.py',
+    'gx1/audit/qualify_ta_ema_delta_full_gather_v1.py',
+    'gx1/audit/qualify_ta_ema_delta_initial_preflight_v1.py',
+    'gx1/contracts/entry_ema_delta_feature_view_v1.py',
+    'tests/test_market_state_ta_ema_delta_joint_fit_plan_v1.py',
+    'scripts/gx1_capped_run.sh')))
 
 
 def publish(name, value, *, root=ROOT):
@@ -43,7 +56,7 @@ def publish(name, value, *, root=ROOT):
     return ref(root / name)
 
 
-def source_clean(plan):
+def source_clean(plan, sources=SOURCES):
     head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=REPO, text=True).strip()
     return (subprocess.check_output(['git', 'branch', '--show-current'],
             cwd=REPO, text=True).strip() == 'work/gx1-current'
@@ -51,9 +64,9 @@ def source_clean(plan):
                             plan['source_base_commit'], head],
                            cwd=REPO, capture_output=True).returncode == 0
         and not subprocess.check_output(['git', 'status', '--porcelain'], cwd=REPO, text=True)
-        and set(plan['source_owners']) == set(SOURCES)
+        and set(plan['source_owners']) == set(sources)
         and all(ref(REPO / name)['sha256'] == plan['source_owners'][name]
-                for name in SOURCES))
+                for name in sources))
 
 
 def inspect(plan_sha):
