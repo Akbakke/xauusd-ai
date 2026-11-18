@@ -434,3 +434,8 @@ Plan `TA_M5_EMA_FINAL_FIT_SCORE_20261118_001` er nå klargjort mot
 kildecommit `b0eecca7` og 31 inputreferanser; policy står
 `PREPARED_NOT_ADMITTED` med null tillatte kall. Neste steg er eksakt
 preflight og kontroll av kapsling; dette er ingen treningsåpning.
+
+Eksakt kapslet preflight bestod uten CLAIM, modellforward eller resultatrot.
+Denne separate scoringsporten er deretter innrømmet én gang, med
+`training_enabled=false`, null optimizeroppdateringer og fortsatt stengt
+TEST/Full GC/ONLINE/broker/handel. Kilde og policy fryses under kjøringen.
