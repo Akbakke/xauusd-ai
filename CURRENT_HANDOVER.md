@@ -700,3 +700,58 @@ batcher og feiler også. Dette isolerer ikke om årsaken er én passering,
 samspill mellom oppgaver, representasjon eller målstøy. En ren biasretting
 ville uansett ikke bedre AUC eller bevise senere Edge; flere epoker er
 ikke innrømmet av dette funnet.
+
+## EMA 318/256: målrettet input-, fasit- og modellrevisjon 18.11.2026
+
+Tre avgrensede, parallelle leserevisjoner og én oppdateringsfri analyse av
+allerede lagrede rader fant ingen konkret kode-, klokke-, maske- eller
+skåringsfeil som forklarer S/F-sidekollapsen. Ingen modellforward,
+optimizersteg, TEST-lesning eller ny innrømmelse ble gjort.
+
+Det nye EMA50/200-spreadendringsfeltet kobles på alle fem TF etter fysisk
+rad-/tidparitet. Tilgjengelighet krever barstart + TF-varighet ≤ M5-issue;
+M1-kontekstens fem barer er også lukket, og strukturfasit går bare til tap.
+FIT-only asinh-normalisering er invertibel uten klipping. Det normaliserte
+M5-feltet har standardavvik 0,623 på FIT og 0,630 senere, nullandel 0;
+modellens EMA-projeksjonskolonne har ikke-null vekt. Dette beviser input-
+kontakt, ikke output-sensitivitet eller prediktiv verdi.
+
+En direkte, ujustert rangering av **kun det nye råfeltet** mot kjent native
+F-side, med samme lukkede-bar-kobling og de hashbundne FIT/senere-capturene,
+ga følgende OPP-AUC (FIT/senere): lokal/M5 0,4937/0,4915
+(n=11 909/7 058), M15 0,4905/0,4937, H1 0,4914/0,5169,
+H4 0,4677/0,5249 og D1 0,3452/0,4086. D1 har bare 109/65 ulike
+lukkede barverdier på disse overlappende issueradene. Ingen fortegn,
+terskel eller modell er tilpasset fra senere data. M5/M15 viser ingen tydelig
+standalone retningsrangering fra tilleggsfeltet; dette utelukker ikke
+ikke-lineært samspill med øvrige indikatorer og er ikke Edge.
+
+Samtlige 29 574 FIT- og 17 489 senere rader matchet de bundne
+allowed/eligible/mature-fasitene for sampled S, native S og native F i
+alle fem TF; alle ti native side-Brier-tall og FIT-priorer matchet RESULT.
+Alle ti dedikerte S/F×TF-sidehoder avvek i sluttcheckpointet fra
+fellesradene de ble klonet fra ved init (vekt-L2 0,045–0,123). Fellesradenes
+output overstyres før tapet, så dette er sterk kilde- og checkpoint-evidens
+for oppdaterte sidehoder, ikke en direkte initial→final tensorserie.
+Sideprediksjonene er likevel ikke kalibrert godt nok. Backbone
+har dropout 0,05, ingen BatchNorm; ingen lagret train-mode sluttscore eller
+per-oppgave gradientbane isolerer dropout, klipping eller oppgavekonkurranse
+som årsak. Ingen sidehead-ruting eller optimizerfeil er bevist.
+
+S og F har ulike aktivitetsbegreper: S beskriver lokal range, mens F
+bruker terminal nettoendring. På felles informative M5-rader var
+S-AKTIV/F-FLAT_NET 52,0 % på FIT og 53,0 % senere. De har egne hoder,
+så dette er et målt semantisk målskille, ikke en feilmerket side. Kjente
+M5 S/F-sider var enige i 97,1 % begge perioder. M5 aktivitet-Brier-gevinsten
+mot FIT-prior var liten: S 0,00297/0,00255 og F 0,00143/0,00091
+(FIT/senere). For F-H4 var fasitsiden enig med kostet beste h480-side i
+92,7/92,0 % av kjente, komplette baner, men dette er et delutvalg.
+
+Revisjonen avgrenser feilen til manglende læring/kalibrering av betinget
+framtidsretning på allerede kjent FIT, ikke bortfall av det nye EMA-feltet
+eller en feil i radfasit/skår. Den isolerer ikke om gjenværende årsak er
+svakt kausalt retningssignal, delt representasjon, én kronologisk passering,
+klipping eller måloppgavenes samspill. Ingen kildeendring eller ny fit er
+begrunnet. Konsumert Entry-v2 forblir en robust proxy, ikke forventet
+økonomisk verdi; framtidig middelverdikonsistent Entry-v3 er fortsatt
+utenfor aktiv S/F-trening. Policy og alle lukkede porter består.
