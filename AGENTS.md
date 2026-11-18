@@ -35,6 +35,10 @@ Claude og Codex. En teknisk PASS er ikke bedre handelsbeslutninger eller profitt
 - Modell-/treningskode endres bare for en konkret observert blokkering eller
   vedtatt designendring. Begrunn minste rettelse før implementasjon. Ingen
   forebyggende refaktorering, brede søk, nye rammeverk eller gjentatte fullsuiter.
+- ALDRI M1 til retning. Bruk native M5 med lukket M15/H1/H4/D1.
+  Forbudet omfatter inputs, fasit/labels, masker, radutvalg, priorer,
+  normalisering, tap, modellutvalg, evaluering og dataklargjøring/metadata.
+  M1 brukes bare i senere oppfølging av en åpnet handel.
 - Aktiv fase etter brukerpresisering06.11: definer og lær dynamisk
   markedstilstand først; Entry-beslutning og Entry-Q kommer senere. M5 er
   prognosetakt, ikke en Entry-ordre i denne bølgen. Se GX1_RULES.md.

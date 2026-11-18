@@ -144,20 +144,12 @@ def test_mature_oof_prefix_censors_one_day_and_keeps_original_score_and_unknown(
         bound.mature_oof_axes(fold_id=6)
 
 
-def test_pinned_mature_oof_axes_keep_five_original_score_windows():
-    bound = binding.load_bound_five_endpoint_targets()
-    expected_old = (29849, 47602, 64890, 82427, 100499)
-    expected_fit = (29574, 47338, 64615, 82152, 100224)
-    expected_score = (17753, 17288, 17537, 18072, 17750)
-    for fold_id in range(1, 6):
-        cohort = bound.mature_oof_axes(fold_id=fold_id)
-        assert cohort["old_joined_fit_rows"] == expected_old[fold_id - 1]
-        assert cohort["joined_fit_rows"] == expected_fit[fold_id - 1]
-        assert cohort["score_parent_rows"].shape == (expected_score[fold_id - 1],)
-        assert cohort["discarded_joined_fit_rows"] == expected_old[fold_id - 1] - expected_fit[fold_id - 1]
-        assert cohort["official_fit_cutoff_ns"] == binding.FOLD_BOUNDARIES_NS[fold_id - 1]
-        assert cohort["score_end_exclusive_ns"] == binding.FOLD_BOUNDARIES_NS[fold_id]
-        fit = bound.gather(cohort["fit_parent_rows"], cohort["fit_decision_ns"],
-                           fold_id=fold_id, partition="fit")
-        assert fit["mature"].all()
-        assert np.isin(fit["allowed"], (1, 2, 4, 5, 7)).all()
+def test_retired_m1_endpoint_loader_rejects_before_receipts_or_tape_read(monkeypatch):
+    def unexpected_read(*args, **kwargs):
+        pytest.fail("retired M1 endpoint loader attempted a receipt or tape read")
+
+    monkeypatch.setattr(binding, "_json", unexpected_read)
+    monkeypatch.setattr(binding, "_checked_bytes", unexpected_read)
+    monkeypatch.setattr(binding.np, "load", unexpected_read)
+    with pytest.raises(ValueError, match="DIRECTION_M1_TARGET_RETIRED_REQUIRES_NATIVE_M5"):
+        binding.load_bound_five_endpoint_targets()

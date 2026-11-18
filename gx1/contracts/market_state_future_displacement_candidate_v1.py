@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import hashlib
-import io
 import json
 from pathlib import Path
 
@@ -128,44 +127,5 @@ class BoundFutureDisplacement:
 
 
 def load_bound_future_displacement() -> BoundFutureDisplacement:
-    """Validate the frozen F receipt and join it to existing S model rows."""
-    result = json.loads(_read('result', 1024 * 1024))
-    terminal = json.loads(_read('terminal', 1024 * 1024))
-    refs = {name: {'path': str(path), 'sha256': digest}
-            for name, (path, digest) in REFS.items()}
-    _need(result.get('schema_version') == 'gx1_market_state_decision_return_gc_result_v1'
-          and result.get('status') == 'COMPLETE'
-          and result.get('target_tape') == refs['tape']
-          and result.get('test_data_used') is False
-          and terminal.get('schema_version') == 'gx1_market_state_decision_return_gc_terminal_v1'
-          and terminal.get('status') == 'COMPLETE'
-          and terminal.get('exit_code') == 0
-          and terminal.get('result') == refs['result']
-          and terminal.get('target_tape') == refs['tape']
-          and terminal.get('test_data_used') is False, 'SOURCE_RECEIPTS')
-    source = state.load_bound_five_endpoint_targets()
-    with np.load(io.BytesIO(_read('tape', 16 * 1024 * 1024)), allow_pickle=False) as tape:
-        _need(set(tape.files) == TAPE_KEYS, 'TAPE_MEMBERS')
-        issue = tape['issue_ns']
-        valid = tape['target_valid']
-        sign = tape['future_sign']
-        mag = tape['abs_future_over_atr_t']
-        exact = tape['exact_endpoint']
-        gap = tape['gap_between']
-    n = len(issue)
-    _need(issue.dtype == np.int64 and issue.shape == (118706,)
-          and np.all(np.diff(issue) > 0)
-          and valid.dtype == exact.dtype == gap.dtype == np.bool_
-          and sign.dtype == np.int8 and mag.dtype == np.float64
-          and valid.shape == sign.shape == mag.shape == exact.shape == gap.shape == (n, 5)
-          and np.all(valid <= exact), 'TAPE_SCHEMA')
-    allowed_bits(sign, mag, valid)
-    at = np.searchsorted(issue, source.decision_ns)
-    _need(len(at) == len(source.parent_rows) == 118249
-          and np.all(at < n) and np.array_equal(issue[at], source.decision_ns),
-          'MODEL_ISSUE_JOIN')
-    arrays = (source.parent_rows, source.decision_ns, valid[at].copy(),
-              sign[at].copy(), mag[at].copy(), gap[at].copy())
-    for array in arrays:
-        array.setflags(write=False)
-    return BoundFutureDisplacement(*arrays)
+    """Reject the retired M1-based axis selection before reading F receipts."""
+    raise ValueError("DIRECTION_M1_AXIS_RETIRED_REQUIRES_NATIVE_M5")

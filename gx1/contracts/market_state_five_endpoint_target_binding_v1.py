@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import hashlib
-import io
 import json
 from pathlib import Path
 
@@ -227,42 +226,5 @@ def _bind_arrays(model, mask, *, expected_model_rows: int | None = None,
 
 
 def load_bound_five_endpoint_targets() -> BoundFiveEndpointTargets:
-    """Load only pinned receipts and compact arrays; never open raw M1/TEST."""
-    result, terminal = _json("mask_result"), _json("mask_terminal")
-    corrected, selected = _json("mask_plan"), _json("selected_plan")
-    target_source, model_plan = _json("target_source_plan"), _json("model_plan")
-    _need(result.get("row_masks") == _ref("mask")
-          and result.get("plan") == _ref("mask_plan")
-          and result.get("decision") == "PASS_SEVEN_LOCAL_SIDE_DEMOTIONS_SOURCE_ONLY"
-          and result.get("status") == "COMPLETE" and result.get("changed_cells") == 7
-          and result.get("test_data_used") is False
-          and terminal.get("result") == _ref("mask_result")
-          and terminal.get("row_masks") == _ref("mask")
-          and terminal.get("exit_code") == 0 and terminal.get("status") == "COMPLETE"
-          and terminal.get("test_data_used") is False, "CORRECTED_RECEIPTS")
-    _need(corrected.get("inputs", {}).get("selected", {}).get("plan") == _ref("selected_plan")
-          and selected.get("inputs", {}).get("full_plan") == _ref("target_source_plan")
-          and corrected.get("test_data_used") is False
-          and selected.get("test_data_used") is False
-          and target_source.get("test_data_used") is False
-          and target_source.get("lead_minutes") == list(LEAD_MINUTES)
-          and target_source.get("train_start_utc") == "2024-05-01T00:00:00+00:00"
-          and target_source.get("train_end_utc_exclusive") == "2026-01-01T00:00:00+00:00",
-          "TARGET_LINEAGE")
-    axes = model_plan.get("axes", {})
-    base = model_plan.get("base_lineage", {})
-    m5 = target_source.get("m5", {}).get("source", {})
-    _need(axes.get("source") == _ref("model_axes")
-          and axes.get("rows") == 118249
-          and axes.get("decision_rule") == "bar_start_ns_plus_300000000000"
-          and base.get("m5_prebuilt_path") == m5.get("path")
-          and base.get("m5_prebuilt_sha256") == m5.get("sha256"), "MODEL_SOURCE_LINEAGE")
-    with np.load(io.BytesIO(_checked_bytes("model_axes", 32 * 1024 * 1024)), allow_pickle=False) as model:
-        _need(_axis_hash(model["parent_rows"]) == axes.get("parent_rows_sha256")
-              and _axis_hash(model["bar_start_ns"]) == axes.get("bar_start_ns_sha256"),
-              "MODEL_AXES_HASH")
-        with np.load(io.BytesIO(_checked_bytes("mask", 4 * 1024 * 1024)), allow_pickle=False) as mask:
-            bound = _bind_arrays(model, mask, expected_model_rows=118249,
-                                 expected_target_rows=118706)
-    _need(bound.unjoined_target_rows == 457, "UNJOINED_TARGET_ROWS")
-    return bound
+    """Reject the retired M1 direction targets before any receipt or data read."""
+    raise ValueError("DIRECTION_M1_TARGET_RETIRED_REQUIRES_NATIVE_M5")

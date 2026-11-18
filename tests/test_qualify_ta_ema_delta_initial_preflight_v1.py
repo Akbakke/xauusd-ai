@@ -1,5 +1,4 @@
-"""Focused 318/256 receipt, normalization and Fold1 FIT-statistic guards."""
-from copy import deepcopy
+"""Numeric normalization guards and retired M1 initial-plan refusal."""
 from types import SimpleNamespace
 
 import numpy as np
@@ -7,34 +6,6 @@ import pytest
 import torch
 
 from gx1.audit import qualify_ta_ema_delta_initial_preflight_v1 as cold
-
-
-def gather_case():
-    plan = cold.checked(cold.GATHER_REFS['plan'])
-    refs = {'campaign': {'view':plan['inputs']['view'],
-                         'normal_ta':plan['inputs']['normal_ta'],
-                         'material_result':plan['inputs']['material_result']},
-            'gather':cold.GATHER_REFS}
-    result,coverage,terminal = (cold.checked(cold.GATHER_REFS[key]) for key in
-        ('result','coverage','terminal'))
-    return {'inputs':refs},result,coverage,terminal
-
-
-def test_full_318_256_gather_chain_is_exact_and_old_qualification_rejected():
-    plan,result,coverage,terminal=gather_case()
-    fit,later=cold.verify_gather(result,coverage,terminal,plan)
-    assert (fit['rows'],fit['batches'],fit['tail_rows'])==(29574,1849,6)
-    assert (later['rows'],later['batches'],later['tail_rows'])==(17489,1094,1)
-    assert fit['surfaces']['seq_x']['shape_per_row']==[96,318]
-    assert later['surfaces']['seq_d1']['shape_per_row']==[252,256]
-    bad=deepcopy(coverage)
-    bad['qualification']=cold.GATHER_REFS['result']
-    with pytest.raises(RuntimeError,match='GATHER_CHAIN'):
-        cold.verify_gather(result,bad,terminal,plan)
-    bad=deepcopy(result)
-    bad['later']['surfaces']['seq_d1']['shape_per_row']=[252,255]
-    with pytest.raises(RuntimeError,match='GATHER_SURFACES'):
-        cold.verify_gather(bad,coverage,terminal,plan)
 
 
 def test_numeric_model_reference_parity_guard(monkeypatch):
@@ -57,17 +28,14 @@ def test_numeric_model_reference_parity_guard(monkeypatch):
         cold.normalize_probe(model,features,ta,'FIT')
 
 
-def test_current_v2_fold1_cost_statistics_are_not_old_v1():
-    binding=cold.ref(cold.COLD_TARGETS)
-    assert binding['sha256']==cold.FIT_TARGET_SHA
-    full=cold.load_targets(binding,47338)
-    fit=cold.target_slice(full,0,29574)
-    assert cold.axis_hash(fit['parent_rows'])=='1c5a8c36a94b8fa39d613f0bc122cf869dc9fa3c2f87dc64c0506acd2f55a90f'
-    assert cold.axis_hash(fit['issue_ns'])=='ebb3489c45b01b6fd8e77bf27529d650beb6883ba84b57ee936dc549ec74e427'
-    stats=cold.fit_statistics(fit)
-    assert stats['sha256']==cold.STATS_SHA
-    assert stats['sha256']!='284b244f244ee0e08297d89b1d5edf9865926fa944946d32662e06396a64fee2'
-    assert stats['paired_quality_std_bps'].shape==(6,)
+def test_retired_initial_plan_refuses_before_reading_receipts(monkeypatch):
+    def unexpected_read(*args, **kwargs):
+        pytest.fail('retired initial plan opened a receipt or target')
+
+    monkeypatch.setattr(cold, 'checked', unexpected_read)
+    monkeypatch.setattr(cold, 'load_targets', unexpected_read)
+    with pytest.raises(RuntimeError, match='DIRECTION_M1_PROVENANCE_RETIRED'):
+        cold.build_plan()
 
 
 def test_wrong_fit_scope_stops_before_model_or_target_work():

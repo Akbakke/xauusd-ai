@@ -51,3 +51,13 @@ def test_existing_factorized_loss_gives_no_F_side_gradient_on_flat_or_missing():
     assert raw.grad is not None
     assert raw.grad[0, 0, 1] != 0 and raw.grad[0, 4, 1] != 0
     assert torch.equal(raw.grad[0, 1:4, 1], torch.zeros(3))
+
+
+def test_retired_F_axis_reads_no_receipt_or_payload(monkeypatch):
+    def reject_read(*args, **kwargs):
+        pytest.fail('retired F binding read historical dependencies')
+    monkeypatch.setattr(f, '_read', reject_read)
+    monkeypatch.setattr(state, 'load_bound_five_endpoint_targets', reject_read)
+    monkeypatch.setattr(np, 'load', reject_read)
+    with pytest.raises(ValueError, match='DIRECTION_M1_AXIS_RETIRED_REQUIRES_NATIVE_M5'):
+        f.load_bound_future_displacement()

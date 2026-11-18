@@ -183,17 +183,12 @@ def test_current_lookup_enforces_exact_parent_and_fold_without_future_query():
     assert score['present'].tolist() == [True]
 
 
-def test_published_train_tape_delivers_current_only_on_bound_fold2_issues():
-    bound = binding.load_bound_time_query_targets()
-    rows, issues = bound.parent_rows[:3].copy(), bound.decision_ns[:3].copy()
-    current = bound.gather_current(rows, issues, fold_id=2, partition='fit')
-    assert current['clock_basis'] == 'historical_closed_M1_event_time_not_online_delivery'
-    assert set(current) == {'parent_rows', 'issue_ns', 'allowed', 'm1_source_row',
-                            'path_observed', 'gap_kind', 'present',
-                            'activity_known', 'side_known', 'clock_basis'}
-    assert np.array_equal(current['issue_ns'], issues)
-    assert np.array_equal(current['parent_rows'], rows)
-    assert np.all(~current['path_observed'] | current['side_known']
-                  | (current['allowed'] == 2))
-    assert not any(key.startswith('future') or key in ('query_k', 'validity_ns')
-                   for key in current)
+def test_retired_m1_direction_loader_rejects_before_receipts_or_tape_read(monkeypatch):
+    def unexpected_read(*args, **kwargs):
+        pytest.fail("retired M1 direction loader attempted a receipt or tape read")
+
+    monkeypatch.setattr(binding, "_candidate_receipts", unexpected_read)
+    monkeypatch.setattr(binding, "_checked_bytes", unexpected_read)
+    monkeypatch.setattr(binding.np, "load", unexpected_read)
+    with pytest.raises(ValueError, match="DIRECTION_M1_TARGET_RETIRED_REQUIRES_NATIVE_M5"):
+        binding.load_bound_time_query_targets()

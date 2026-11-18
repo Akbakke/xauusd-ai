@@ -19,8 +19,9 @@ native XAUUSD M5-priser og kausalt lukkede M15/H1/H4/D1-barer
   → separate skårer for aktivitet, kjent OPP/NED og M5-vendinger
 ```
 
-M1 som modellinput hører til senere oppfølging av åpne handler.
-Historiske utfalls- og målmasker går separat til tap og skåring.
+Retningsinputs, fasit, masker, akser, priorer, tap og evaluering bygges
+fra native M5/høyere med egen kildeidentitet. M1 er for senere oppfølging
+av åpne handler. Eldre M1-baserte mål og dataklargjøring er sperret.
 
 GC-kjeden beholder MBP-1 trades/BBO, prisgrid, footprint, kontrakt og faktisk
 dekning i egen native feature- og modellrute. S-/F-fasit og observerbarhet

@@ -17,7 +17,7 @@ arkivfiler på disk er aldri kjøreautoritet.
 
 ## Varig prosjektmål og arbeidsmåte
 
-Siste målpresisering06.11 nedenfor styrer den aktive prognosefasen;
+Siste målpresisering18.11 nedenfor styrer den aktive prognosefasen;
 01.11-definisjonen av markedstilstand består. Eldre daterte beskrivelser
 er bakgrunn der de er avløst.
 
@@ -42,16 +42,22 @@ M5-barer med kausal M15/H1/H4/D1-kontekst, M1-avledet nåtilstand bare
 ved M5-tidspunkter, og ingen egen M1-Entry-klokke. Tettere overvåking av
 en åpen handel og Exit hører til senere faser.
 
-## Operatørpresisering18.11.2026: M5-retning før handel
+## Operatørpresisering18.11.2026: aldri M1 til retning
 
-Retningsprognosen vurderer markedet på lukkede M5-barer med kausalt lukket
-M15/H1/H4/D1-kontekst. M1 som modellinput hører til den senere oppfølgingen
-av en åpnet handel. Prognosemodellens forward skal bare konsumere de fem
-M5/MTF-inputene og deres eksisterende indikator-/kontekstfelt. M1-prisbane
-og M1-observasjonsmasker inngår ikke i retningsmodellens forward. Historisk
-fasit og kildeoppløsning for utfall holdes atskilt fra prognosens inputs.
-Entry, Entry-Q, Exit og handler er senere faser. Først skal retningsprognosene
-kvalifiseres på faste TRAIN-rader og kronologisk senere utvikling.
+Retning vurderes på native M5 med kausalt lukkede M15/H1/H4/D1-barer.
+M1 skal aldri inngå i retningsinputs, fasit, labels, masker, radutvalg,
+priorer, normalisering, tapsgrunnlag, modellutvalg eller evaluering.
+Forbudet gjelder også indirekte avhengigheter i dataklargjøring og metadata.
+M1 er for senere oppfølging av en allerede åpnet handel. Entry, Entry-Q,
+Exit og handel kommer etter kvalifiserte retningsprognoser.
+
+Dette avløser alle tidligere tillatelser til M1 i retningsarbeidet,
+inkludert unntaket for historisk fasit. Gamle M1-baserte resultater og
+artefakter bevares historisk og kan ikke kvalifisere den nye retningen.
+M1-avledede modeller/checkpoints brukes heller ikke som warmstart.
+En ny retningskjede binder native M5-kilde, M5-baserte akser og utvalg,
+høyere TF, mål, masker og evaluering uten M1. Ingen kilde eller kvittering
+kan ommerkes fra M1 til M5.
 
 ## Operatørpresisering06.11.2026: markedstilstand før Entry
 
@@ -59,9 +65,8 @@ Aktiv fase er å definere og lære løpende markedstilstand riktig **før** vi
 bestemmer hvor en Entry skal ligge. Entry-beslutning, Entry-Q, Exit, ordre
 og handel kommer senere og skal ikke brukes som suksessmål eller treningsmål
 i denne bølgen. M5 er tidspunktet for nye prognoser; M15/H1/H4/D1 er kausalt
-lukket kontekst og har egne framtidige tilstandsmål. M1-oppløsning kan
-brukes til faktisk tilstandsfasit, ikke som egen Entry-klokke eller framtidig
-input. 01.11-definisjonen av dynamisk OPP/NED/FLATT, lokale skalaer,
+lukket kontekst og har egne framtidige tilstandsmål. Etter presiseringen18.11
+bruker også fasit native M5 eller høyere. 01.11-definisjonen av dynamisk OPP/NED/FLATT, lokale skalaer,
 retning/størrelse/tidsforløp, ukjente utfall og ingen fast prisanker består.
 
 Før en ny fit skal målkontrakten beskrive meningsfull bevegelse og FLATT på

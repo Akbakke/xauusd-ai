@@ -7,167 +7,56 @@ ikke relanser ferdige inputs, kapasitetstester eller engangsplaner.
 
 ## Prognosemål før Entry
 
-Retningsmodellens inputs er native M5 og kausalt lukkede M15/H1/H4/D1-barer
-med tilhørende indikatorer og D1/makro-kontekst. Operatørpresiseringen18.11
-reserverer M1 som modellinput til senere oppfølging av en åpen handel.
-M5/MTF-modellen dekoder direkte fra sine fem TF-representasjoner. M1-rådata
-i historiske targeteiere og utfallsmasker er separat fra modellens forward.
-Entry og Entry-Q er pauset mens retningsprognosene kvalifiseres.
+Retningsarbeidet bruker bare native M5 med kausalt lukket M15/H1/H4/D1.
+Operatøren presiserte18.11 at M1 aldri skal inngå i retning. Dette gjelder
+inputs, fasit/labels, masker, radutvalg, priorer, normalisering, tap,
+modellutvalg og evaluering, også via dataklargjøring og metadata.
+M1 er for senere oppfølging av en åpnet handel. Entry og Entry-Q er pauset.
+M1-avledede modeller og checkpoints brukes ikke som retnings-warmstart.
 
-Prognosen gjelder løpende, dynamisk OPP/NED/FLATT på M5/M15/H1/H4/D1:
-fortsettelse, overgang til flathet, ny bevegelse og vendinger i begge retninger.
-Ingen fast startpris, returpris eller første terskelpassering definerer målet.
-Det er den lokale prisutviklingen på hver skala som skal beskrives. Entry og
-handler kommer senere; prognosetidspunktet er bare en kausal tidsreferanse.
+Prognosen gjelder løpende OPP/NED/FLATT på hver av de fem tidsrammene,
+med fortsettelse, avtakende bevegelse og vendinger. Kausal M5-utstedelse
+skal forutsi senere tilstand. Et fast utstedelsesprisanker eller en
+terminal nettoendring kan ikke erstatte den lokale tilstandens forløp.
+Bevegelse, stillstand og ukjent utfall trenger separate sanne masker.
 
-En tilstandsfasit S_s(v) for skala s og gyldighetstid/-intervall v må ha en
-reproduserbar definisjon ut fra den deklarerte prisbanen. Den avhenger ikke
-av hvilken gammel prognosepris markedet tilfeldigvis sammenlignes med.
-En prognose utstedt ved t estimerer OPP/NED/FLATT ved framtidig v, basert bare
-på informasjon tilgjengelig ved t. De tre tilstandssannsynlighetene summerer
-til én for samme s/v. Et lengre forløp kan inneholde alle tre tilstander;
-oppgang og nedgang er ikke gjensidig utelukkende hendelser i hele perioden.
+Pris- og tidsgrunnlaget er native M5 OHLC og faktisk lukkede høyere TF.
+Kilde, oppløsning, barstart, varighet, sluttklokke, dekning og hasher
+bindes eksplisitt. Indikatorer og ATR bruker sine kausale lukkede barer.
+M5-kilden må bekrefte native M5 uten M1-resampling eller M1-filtrering.
+Tidsakser og inkluderte rader verifiseres direkte mot M5-kilden.
+Eksisterende provider/metadata med M1-avhengigheter erstattes før bruk.
 
-Dette er et målkrav, ikke et valg av ny modellarkitektur. Marginale tilstands-
-sannsynligheter dokumenterer ikke alene en felles sannsynlighet for hele
-forløpet. Eventuelle påstander om rekkefølge eller overgangssannsynligheter
-må støttes av outputens faktiske semantikk og tilsvarende måling. Løpende
-prognoser kan bruke nye observasjoner når de kommer; de må aldri omskrives
-i ettertid som om den nyere informasjonen var kjent i en tidligere prognose.
+For S-tilstand gjenbrukes 0,5 × Wilder ATR(14) som den tidligere valgte
+kandidaten til bevegelsesstørrelse. Ny M5-basert lokal range og retning
+må kvalifiseres på TRAIN-prisbaner med sanne masker for manglende data
+og ukjent rekkefølge innen M5-baren. Ingen rekkefølge eller M1-bane
+konstrueres fra M5 OHLC. Et ukjent hull er ukjent til faktisk M5-dekning
+gjenoppretter det deklarerte observasjonsbehovet. Gamle M1-baserte
+lukkeautoriter, sideetiketter og maskefiler gir ingen slik kvalifikasjon.
 
-FLATT er en observert tilstand på en eksplisitt skala, ikke lav konfidens,
-manglende fasit eller bare liten nettoendring. Store relevante bevegelser
-begge veier skal fortsatt telles. Ingen gjettet tallgrense, tilfeldig
-utglatting eller tapsvekt innføres. Definisjonen må skille relevant bevegelse
-fra små svingninger uten å gjøre et helt volatilt forløp flatt ved kansellering.
-Framtidig størrelse, varighet og tidspunkt brukes til å kontrollere at
-prognosen dekker bevegelsene brukeren etterspør; dette gir ingen handelsregel.
+F-målet er egen framtidig nettoendring mellom eksakte M5-sluttpriser med
+kausal ATR ved utstedelse. Dets M5-prisverdier kan gjenbrukes ved verifisert
+kilde-/klokkeidentitet. Bindingen må ha nye selvstendige M5-akser, masker,
+radutvalg og TRAIN-priorer. Et kjent endepunkt beviser ingen mellomliggende
+prisbane. S- og F-fasit og deres observasjonsmasker er egne mål.
 
-Godkjent utgangspunkt02.11 er minste lokale bevegelsesstørrelse
-0,5 × Wilder ATR(14) fra kausalt lukkede barer på den aktuelle TF. Dette er
-en uttrykkelig kandidatdefinisjon, ikke en målt optimal terskel. TRAIN-merker
-for ro, vedvarende retning og vendinger kontrolleres før kontrakten låses.
-Ingen faktor velges etter modellscore eller VAL. ATR-skalaens tidsstempel,
-state-observasjon og prognosens informasjonstid må bindes hver for seg.
+Alle genuine indikatorer og de åtte spesialistfamiliene med D1/makro
+beholdes på M5/høyere. Formel, enhet, warmup, maske, normalisering og
+faktisk forbruk skal dokumenteres. Samspill eller prediktiv nytte bevises
+med måling på den aktuelle funksjonen og de bundne radene.
 
-Dokumenterte markedspauser kan dekke et observert kildegap helt uten at
-publisert åpningstid flyttes. Bevar både hele det eksternt dokumenterte
-lukkeintervallet og det sertifiserte kildegapet i en hashbundet dekningskvittering.
-Bare full inneslutning tillates; delvis dekning og udokumenterte helligdager
-forblir ukjente. Kalenderen lager ingen priser, manglende labels eller FLAT.
-Lokal range, full dekning og alderen på intraminuttuklarhet måles over de siste
-5/15/60/240/1440 faktisk observerte M1-minuttene per TF. Dokumenterte pauser
-bevarer historikken; de teller ikke som observerbar ro og eldes ikke inn i FLAT.
-Et ukjent hull stenger FLAT/path til en hel lokal observasjonsperiode er dekket
-igjen; en ny bekreftet retning kan være kjent tidligere. Framtidige queryer
-bruker fortsatt veggklokketid, med egne masker for fraværende/umodne minutter.
-Et umodent querypunkt ved/etter cutoff returnerer bare IMMATURE, aldri
-framtidige source-/intraminuttårsaker til TRAIN-diagnostikken.
+Før modellfit trenger den nye kjeden egen kilde-/input-/målidentitet,
+fersk baseline og samsvar i output, tap og skåring. Faste FIT-rader,
+kronologisk senere utvikling og TRAIN-priorer må bruke samme M5-kontrakt.
+Mål retning, kalibrering, fortsettelse/vendinger, dekning og ukjente utfall.
+Overlappende observasjoner behandles som avhengige. TEST er forseglet.
 
-Hver av de fem TF trenger navngitt fasit, observasjonsmaske, output-/tapskobling
-og egne målinger. M5 NED og D1 OPP kan være samtidige gyldige tilstander.
-TF er ikke lik en enkelt framtidig barhorisont eller kildens oppløsning.
-Veggklokkeminutter, observerte M5-rader og UTC22-sesjoner holdes atskilt.
-Et avgrenset målevindu trengs for etterprøvbarhet, men innfører ingen fast
-60minuttersgrense, maksimal bevegelseslengde eller maksimal holdetid.
-
-Gjenbruk eksisterende kausale pris-/akse-/maskeeiere der semantikken passer.
-En gammel first-positive-quote-klasse eller terminalretning kan ikke bare
-omdøpes til dynamisk tilstand. Fasit fra framtidige observasjoner modnes først
-når det deklarerte observasjonsbehovet er dekket; disse observasjonene og
-etterfølgende vendepunkter mates aldri inn som kjent informasjon ved t.
-Ukjent intrabarrekkefølge og manglende dekning beholdes som ukjent. En fasit
-fra lukkede M1-barer beviser ikke subminuttforløpet. Hvis lokal range med
-komplett dekning beviser aktivitet/ro mens retningen er ukjent, behold et
-eget binært mål og maske for samme framtidstidspunkt. Eksisterende singleton-
-målspørring og desember-scorer dekker de fem native ledetidene uten ny
-fasitmotor; det aktive treningstapet bruker binær aktivitet bare ved første
-minutt. Før et eventuelt nytt tap skal eksisterende output, maske og binær
-score bindes på de samme radene. Ekstra aktivitetstap er en hypotese, ingen
-bevist retningsforbedring. En delvis fasit på ett TF/gyldighetstidspunkt er
-{OPP}, {NED} eller {FLATT} når treklassetilstanden er bevist; ellers
-{OPP, NED} når komplett lokal range beviser ikke-FLATT, men rekkefølgen
-ikke avgjør retningen; ellers ingen supervisjon. Det er ingen fjerde
-markeds-/handlingsklasse. Treklasse- og aktivitetsmaskene er separate:
-en kjent retning kan forekomme uten komplett aktivitetsvindu på lang TF.
-
-Velg meningsfull ATR-grense før modellfit og uten VAL/TEST/modelscore som
-velger. Bruk bare det deklarerte TRAIN-prefikset til å vise terskelen i
-XAU-prisenheter og observerte spread-enheter, lokale tilstanders varighet,
-skifter, FLATT/aktiv-frekvens og retningsdekning per TF/måned; håndkontroller
-representative prisforløp mot hva OPP/NED/FLATT skal bety. Bind på forhånd
-hvilken fysisk bevegelse, varighet og observerbarhet som er akseptabel, og
-begrunn én felles ATR-faktor eller eksplisitte TF-spesifikke faktorer.
-0,5 mot 1,0 ATR er en sensitivitet, ikke et resultatvalg: bedre dekning alene,
-klassebalanse eller senere treff gir ingen semantisk mållås. Før en tilstand
-kalles vedvarende, sammenlign observerte, sensurerte OPP/NED/FLATT-løp med
-hver TFs forhåndsvalgte prognosetid; kortere løp krever en bevisst ny
-mål-/episodekontrakt, ikke flere epoker på samme fasit. Skifter over
-markedspauser må skilles fra sammenhengende M1-minutter. Kontroller om
-rullerende range eller ATR-terskeloppdatering faktisk utløser skiftene.
-En ren retningsendring fra M1-sluttpriser er en separat proxy: store motgående
-high/low-bevegelser inne i minuttet kan ikke oppgraderes fra `{OPP, NED}` til
-sikker retning. Mål varighet både i observerte M1-minutter og ved eksakte
-framtidige prognosetidspunkter i UTC; framtidig varighet kan ikke omskrive
-en tidligere etikett. Gjenåpningsgap og endret ATR-skala merkes særskilt.
-
-Mål kvalitet på alle tre tilstander og alle fem TF, både fortsettelse og
-skifter: sannsynlighetskvalitet/kalibrering, feilvarsler, oversette bevegelser
-og hvor tidlig eller sent skift varsles. Bevegelsenes størrelse og varighet
-må følge resultatet, slik at mange små riktige etiketter ikke alene kalles
-nyttig prognose. Hele erklærte populasjonen, også ukjente utfall, rapporteres.
-Sammenlign med forhåndsvalgte TRAIN-priorer og kausale enkle referanser;
-en persistensreferanse må ikke få se en framtidsutjevnet fasit for nåtiden.
-Overlappende tidspunkter/TF behandles som avhengige observasjoner.
-
-Alle genuine indikatorer revideres fra formel og tilgjengelighet til faktisk
-modellkonsum på fem TF. Behold åtte spesialister og D1/makro; at en familie
-er representert beviser ikke at hvert felt brukes eller gir prognoseverdi.
-Ingen automatisk aktivering, sletting eller ny modellkjøring følger av dette.
-Beslutningsforankret framtidig sluttprisforskjell `F_s(t,v)=XAU_M5_close(v)-XAU_M5_close(t)` er et **separat** retningsmål, aldri en erstatning for den lokale tilstanden `S_s(v)` eller en ommerking av `{OPP,NED}`. Et mulig F-mål må ha egen maske for eksakt start-/sluttklokke og foldmodning, egen aktivitetsdefinisjon ut fra `|F|/ATR(t)`, betinget OPP/NED-supervisjon bare når meningsfull bevegelse er bevist, og egne skår mot forhåndsbundne referanser. `0,5 ATR(t)` fra den valgte S-aktivitetsgrensen kan undersøkes som kandidat; det er ingen optimalisert F-grense. Små, ikke-null F-fortegn skal ikke automatisk gi hard retningsfasit. D1-endepunkt over mellomliggende datagap beviser sluttprisforskjell, ikke prisbane. En eventuell modellendring må holde S- og F-output, tap og måling atskilt og bevise null direkte F-sidegradient når F-side er ukjent.
-
-Neste native S/F-kandidat bruker separat aktivitets-BCE normalisert over
-informative rader og betinget retnings-BCE normalisert over rader med bevist
-side, for hvert TF og hvert mål. F-tapet får forhåndsbundet vekt 1,0 mot
-S-tapet; dette gir to likeverdige målmiddelverdier, uten scorevalgt vektsøk.
-På senere TRAIN ved faste native endepunkter hadde bare 33–44 % av S-radene
-og 37–41 % av F-radene entydig side. Den gamle delingen på alle informative
-rader fortynnet sideleddet tilsvarende. Dette er en mål-/tapshypotese, ikke
-bevist årsak til tidligere svak retning; 0,25 i nullsteg var kun en teknisk
-vitnevekt. Fysisk nullstegs-initial er bestått; optimizer/resume-kvalifikasjon kreves før fit.
-Ingen endring i mål, masker, features eller modellarkitektur følger herav.
-
-Dagens S-treningsspørring velger `k` i `1..native_k` for hver TF. Den lagrede F-fasiten finnes bare ved `native_k`. En egen F-output må derfor få ett fast native-spørsmål per TF og rad fra **samme** kausale enkoder som S; F kan ikke arve det tilfeldige S-spørsmålet eller kreve en ny full enkoderpassering. S-hode, spørringsplan og skår forblir egne, og F evalueres på nøyaktig egne native endepunkt og kronologiske rader.
-
-TRAIN-fit, senere generalisering og eventuell handelsverdi måles separat.
-
-En dynamisk fem-TF target-/output-/loss-kandidat er nå implementert og teknisk
-regelkontrollert. Den binære 1..60-minuttersfunksjonen var et snevrere eldre
-forskningsmål. Kandidatens meningsfulle bevegelsesgrense og høye andel
-ukjente M5-etiketter er ennå ikke kvalifisert som endelig mål. Den aktive
-XAU-kilden har M1-OHLC uten tidsstemplet intraminuttrekkefølge; ukjent høy/lav-
-rekkefølge må beholdes som ukjent. En forhåndsbundet 0,5 mot 1,0 × ATR-
-sensitivitet på fitprefikset 01.05–30.09.2024 må tolkes som en kontroll av
-observerbarhet, klassefordeling og skifter på fem TF, ikke automatisk
-målvalg. Den fullførte engangsplanen står i CURRENT_HANDOVER.md og gjentas
-ikke uten en ny konkret hypotese. Bruk ikke modelltreff, VAL eller TEST til
-terskelvalg.
-Tidligere path-/bps-forsøk beholdes som avgrenset evidens. Gjeldende
-kjøreautorisasjon eies av NEXT_RUN_POLICY; målbeskrivelsen starter ingen jobb.
-
-For første kronologiske fem-endepunkts-OOF er det vedtatt å kutte hver folds
-fysiske fitpopulasjon ett døgn før den opprinnelige foldgrensen:
-`decision_ns < offisiell_foldgrense_ns − 1 440 × MINUTE_NS`. Begge
-inputnormalisering og modellfit bruker akkurat dette sammenhengende
-prefikset; original scoreakse endres ikke. Den bundne TRAIN-targeten viser
-tap av 275/264/275/275/275 joined fit-rader i fold 1–5 og at alle fem
-mål er tidsmessig modne på de gjenværende radene. Kildehull og ukjent
-retning beholdes som masker, ikke oppdiktede labels. Alle fem eldre
-prefixnormaliseringer omfatter umodne rader og må refittes/bindes på nytt;
-første folds nullstøtte-enhetsprofil krever egen ny kvalifikasjon. Frosset
-TRAIN-prior må estimeres på samme forkortede fitpopulasjon før parvis OOF.
-Dette er en modningsgrense for treningsrader, ikke en handelsregel eller
-maksimal holdetid. Valgt design gir ingen modellfit-admisjon.
+De gamle M1-baserte S-loaderne og dataklargjørerne er sperret før lesing.
+Historiske kvitteringer bevares med sitt opprinnelige omfang. M5-fasit,
+selvstendig provider og nye bindinger må bygges og kvalifiseres før noen
+ny retningsmåling eller fit. Metode for tidligere og senere faser nedenfor
+gir ingen adgang til M1 i retningsarbeidet.
 
 ## Før en modell kan startes
 
@@ -695,7 +584,7 @@ for TRAIN/CONTROL); ingen feature-/target-/sekvenskolonner, råMBP eller PT/mode
 trengs for denne sammenligningen. Ingen nye forwards, refits eller Exit-arbeid.
 
 
-## Retningsinformasjon i inputs og modellens lærte prognoser
+## Historisk retningsundersøkelse med avløst datagrunnlag
 
 Operatørpresisering 27.10: Endepunktsretning ved flere tidspunkter er fortsatt
 et gyldig delmål: tidligere punkter kan fange en oppgang selv når sluttprisen

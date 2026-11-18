@@ -1,7 +1,6 @@
 """Exact one-use EMA S/F-control launch boundaries."""
 from __future__ import annotations
 
-import copy
 import hashlib
 import json
 import subprocess
@@ -91,94 +90,41 @@ def test_fixed_h480_side_panel_excludes_incomplete_and_preserves_long_reference(
     assert capture['h480_complete'].tolist() == [True, True, False, True]
 
 
-def _isolated_plan(monkeypatch, tmp_path):
+def test_retired_control_plan_refuses_before_input_reads(monkeypatch):
+    def unexpected_io(*args, **kwargs):
+        pytest.fail('retired control opened an input')
+
+    monkeypatch.setattr(control, 'ref', unexpected_io)
+    monkeypatch.setattr(control, 'read', unexpected_io)
+    monkeypatch.setattr(control, 'initial_core', unexpected_io)
+    with pytest.raises(RuntimeError, match='DIRECTION_M1_PROVENANCE_RETIRED'):
+        control.build_plan()
+
+
+def test_retired_cli_preflight_refuses_before_model_or_claim(monkeypatch, tmp_path):
     root = tmp_path / 'no-claim'
+    path = tmp_path / 'retired-plan.json'
+    path.write_text(json.dumps({'source_base_commit': 'retired-fixture'}) + '\n')
     monkeypatch.setattr(control, 'ROOT', root)
-    plan = control.build_plan()
-    assert (plan['fit_rows'], plan['later_rows'], plan['batch_visits'],
-            plan['fit_score_forwards'], plan['later_score_forwards'],
-            plan['model_forwards']) == (29574, 17489, 1849, 1849, 1094, 4792)
-    assert plan['inputs'] == control.successor_input_refs()
-    assert plan['sf_objective_sha256']
-    assert plan['source_owners']['scripts/gx1_capped_run.sh'] == hashlib.sha256(
-        (REPO / 'scripts/gx1_capped_run.sh').read_bytes()).hexdigest()
-    plan_path = tmp_path / 'TA_M5_EMA_SF_ONLY_CONTROL_20261118_001.json'
-    plan_path.write_text(json.dumps(plan, sort_keys=True) + '\n')
-    monkeypatch.setattr(control, 'PLAN', plan_path)
-    monkeypatch.setattr(control, 'build_plan', lambda *, source_base_commit=None: plan)
-    monkeypatch.setattr(control, 'source_clean', lambda _plan: True)
-    policy = json.loads((REPO / 'NEXT_RUN_POLICY.json').read_text())
-    policy[control.STAGE] = {'status': 'PREPARED_NOT_ADMITTED',
-        'plan': control.ref(plan_path), 'output_root': str(root),
-        'fit_rows': 29574, 'later_rows': 17489,
-        'max_optimizer_updates': 1849, 'model_forwards': 4792,
-        'max_invocations': 1, 'remaining_invocations': 0,
-        'claimed_invocations': 0, 'completed_invocations': 0,
-        'execution_authorized': False, 'training_authorized': False,
-        'test_authorized': False, 'online_authorized': False,
-        'broker_access_allowed': False, 'test_data_used': False,
-        'relaunch_allowed': False}
+    monkeypatch.setattr(control, 'PLAN', path)
     original_read = control.read
-    def read(ref):
-        if ref['path'] == str(REPO / 'NEXT_RUN_POLICY.json'):
-            return policy
-        return original_read(ref)
-    monkeypatch.setattr(control, 'read', read)
-    return plan, plan_path, root, policy
 
+    def fixture_only(binding):
+        assert binding['path'] == str(path)
+        return original_read(binding)
 
-def test_prepared_admission_requires_fresh_boot_and_unclaimed_root(monkeypatch, tmp_path):
-    plan, path, root, policy = _isolated_plan(monkeypatch, tmp_path)
-    actual, _ = control.inspect(control.ref(path)['sha256'], admitted=False)
-    assert actual == plan and not root.exists()
-    for key in ('training_enabled', 'native_training_enabled',
-                'full_epoch_training_allowed', 'native_launch_authorized'):
-        policy[key] = True
-    policy[control.STAGE].update(status='ADMITTED_ONE_USE',
-        execution_authorized=True, training_authorized=True,
-        remaining_invocations=1)
-    monkeypatch.setattr(control.paired, 'physical_windows_boot_id', lambda: 665)
-    with pytest.raises(RuntimeError, match='ONE_USE_ADMISSION'):
-        control.inspect(control.ref(path)['sha256'], admitted=True)
-    monkeypatch.setattr(control.paired, 'physical_windows_boot_id', lambda: 666)
-    accepted, _ = control.inspect(control.ref(path)['sha256'], admitted=True)
-    assert accepted == plan and not root.exists()
-    root.mkdir()
-    with pytest.raises(RuntimeError, match='PLAN_OUTPUT'):
-        control.inspect(control.ref(path)['sha256'], admitted=True)
+    def unexpected_model_or_claim(*args, **kwargs):
+        pytest.fail('retired control constructed a model or created a claim')
 
-
-def test_preflight_does_not_claim_or_forward(monkeypatch, tmp_path, capsys):
-    plan, path, root, _ = _isolated_plan(monkeypatch, tmp_path)
-    monkeypatch.setattr(control, 'inspect', lambda _sha, *, admitted: (plan, control.ref(path)))
-    monkeypatch.setattr(control, 'successor_input_refs', lambda: {'fit_targets': {}})
-    monkeypatch.setattr(control, 'prepare_ema', lambda *, device, inputs: {'release': lambda: None})
-    monkeypatch.setattr(control.decision, 'load_targets', lambda *_args: object())
-    monkeypatch.setattr(control.decision, 'target_slice', lambda *_args: object())
-    monkeypatch.setattr(control, 'initial_core', lambda *_args, **_kwargs: (None, plan['original_initial_core_sha256']))
-    monkeypatch.setattr(control.paired, 'physical_windows_boot_id', lambda: 665)
-    monkeypatch.setattr(control, 'run', lambda _sha: pytest.fail('trainer started'))
+    monkeypatch.setattr(control, 'read', fixture_only)
+    monkeypatch.setattr(control, 'initial_core', unexpected_model_or_claim)
+    monkeypatch.setattr(control.decision, 'publish', unexpected_model_or_claim)
+    monkeypatch.setattr(control, 'run', unexpected_model_or_claim)
     monkeypatch.setattr(sys, 'argv', ['control', '--plan', str(path),
         '--plan-sha256', control.ref(path)['sha256'], '--device', 'cuda',
         '--out-dir', str(root), '--preflight'])
-    control.main()
-    report = json.loads(capsys.readouterr().out)
-    assert report['status'] == 'PREFLIGHT_PASS'
-    assert report['claim_created'] is False
-    assert report['model_forwards'] == report['optimizer_updates'] == 0
-    assert report['output_root_absent'] is True and not root.exists()
 
+    with pytest.raises(RuntimeError, match='DIRECTION_M1_PROVENANCE_RETIRED'):
+        control.main()
 
-@pytest.mark.parametrize('binding', ('source', 'input'))
-def test_inspect_rejects_forged_binding_before_claim(monkeypatch, tmp_path, binding):
-    plan, path, root, policy = _isolated_plan(monkeypatch, tmp_path)
-    forged = copy.deepcopy(plan)
-    if binding == 'source':
-        forged['source_owners']['scripts/gx1_capped_run.sh'] = '0' * 64
-    else:
-        forged['inputs']['fit_targets']['sha256'] = '0' * 64
-    path.write_text(json.dumps(forged, sort_keys=True) + '\n')
-    policy[control.STAGE]['plan'] = control.ref(path)
-    with pytest.raises(RuntimeError, match='FIXED_SCOPE_SOURCE'):
-        control.inspect(control.ref(path)['sha256'], admitted=False)
     assert not root.exists()

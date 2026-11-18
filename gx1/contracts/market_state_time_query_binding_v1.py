@@ -8,7 +8,6 @@ Query schedules depend only on issue time, TF, pass and a fixed seed.
 from __future__ import annotations
 
 import hashlib
-import io
 import json
 from pathlib import Path
 import struct
@@ -226,41 +225,5 @@ def sampled_query_k(issue_ns: np.ndarray, *, pass_index: int, seed: int) -> np.n
 
 
 def load_bound_time_query_targets() -> BoundTimeQueryTargets:
-    """Read pinned COMPLETE candidate and old selected/model axes; no raw M1."""
-    result = _candidate_receipts()
-    with np.load(io.BytesIO(_checked_bytes('tape', 32 * 1024**2)),
-                 allow_pickle=False) as saved:
-        _need(set(saved.files) == TAPE_KEYS, 'TAPE_MEMBERS')
-        axis = np.array(saved['validity_ns'], copy=True)
-        source = np.array(saved['m1_source_row'], copy=True)
-        bits = np.array(saved['allowed_set'], copy=True)
-        path = np.array(saved['path_observed'], copy=True)
-        gap = np.array(saved['gap_kind'], copy=True)
-    _need(axis.shape == source.shape == gap.shape == (591682,)
-          and bits.shape == path.shape == (591682, 5)
-          and axis.dtype == source.dtype == np.int64
-          and bits.dtype == gap.dtype == np.uint8
-          and path.dtype == np.bool_
-          and np.array_equal(source, np.arange(5193205, 5193205 + 591682))
-          and np.isin(gap, (0, 1, 2)).all()
-          and int((gap == 1).sum()) == 413
-          and int((gap == 2).sum()) == 95
-          and np.all(path <= np.isin(bits, (1, 2, 4)))
-          and result.get('tape_report', {}).get('m1_rows') == 591682,
-          'TAPE_SCHEMA')
-    tape = TimeQueryTargetTape(axis, source, bits,
-                               path_observed=path, gap_kind=gap)
-    bound = old.load_bound_five_endpoint_targets()
-    with np.load(io.BytesIO(old._checked_bytes('mask', 4 * 1024**2)),
-                 allow_pickle=False) as selected:
-        _need(set(selected.files) == old.MASK_KEYS, 'SELECTED_MEMBERS')
-        issue = np.array(selected['issue_ns'], copy=True)
-        allowed = np.array(selected['allowed_set'], copy=True)
-        endpoint_source = np.array(selected['m1_source_row'], copy=True)
-    _need(len(bound.decision_ns) == 118249
-          and len(issue) == 118706
-          and bound.unjoined_target_rows == 457,
-          'BOUND_ROWS')
-    return BoundTimeQueryTargets(
-        bound.parent_rows, bound.decision_ns, tape, issue, allowed,
-        endpoint_source, train_end_ns=old.FOLD_BOUNDARIES_NS[-1])
+    """Reject the retired M1 direction targets before any receipt or data read."""
+    raise ValueError("DIRECTION_M1_TARGET_RETIRED_REQUIRES_NATIVE_M5")

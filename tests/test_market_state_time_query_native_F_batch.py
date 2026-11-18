@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 import torch
 
-from gx1.audit import verify_market_state_time_query_v2_zero_step_v1 as zero
 from gx1.contracts import market_state_five_endpoint_target_binding_v1 as state
 from gx1.contracts import market_state_future_displacement_candidate_v1 as future
 from gx1.contracts import market_state_time_query_binding_v1 as query
@@ -32,42 +31,17 @@ class RecordingModel:
                 'future_log_probs': factorized_log_probabilities(future)}
 
 
-def test_feature_only_forward_on_actual_bound_train_rows(monkeypatch):
-    # Synthetic forward keeps the expensive backbone out; target data are real.
-    bound_state = query.load_bound_time_query_targets()
-    bound_future = future.load_bound_future_displacement()
-    axes = state.load_bound_five_endpoint_targets().mature_oof_axes(fold_id=1)
-    rows = axes['fit_parent_rows'][:8]
-    issues = axes['fit_decision_ns'][:8]
-    # The batch owner explicitly requires its dual model class; patch only the
-    # class identity here so this test can inspect the exact forward boundary.
-    monkeypatch.setattr(batch, 'NativeFutureDualModel', RecordingModel)
-    model = RecordingModel()
-    features = {key: torch.zeros((8, 1), dtype=torch.float32)
-                for key in batch.FEATURE_KEYS}
-    features['seq_x'] = torch.zeros((8, 1, 4), dtype=torch.float32)
-    out = batch.evaluate_fit_batch(
-        model, features, bound_state, bound_future, rows, issues,
-        fold_id=1, pass_index=zero.PASS_INDEX, seed=zero.SEED,
-        future_weight=0.25)
-    assert model.keys == set(batch.FEATURE_KEYS) | {'query_k'}
-    assert out['state_count'] > 0 and out['future_count'] == 40
-    assert out['future_native_k'].tolist() == list(NATIVE_K)
-    assert out['state_query_k'][0].tolist() != list(NATIVE_K)
-    assert bool(torch.isfinite(out['loss']))
-
-
 def test_selected_native_state_fit_uses_bound_endpoints_and_existing_balanced_loss(monkeypatch):
     from gx1.contracts.market_state_time_query_native_F_objective_v1 import contract
-    bound_state = state.load_bound_five_endpoint_targets()
-    bound_future = future.load_bound_future_displacement()
+    from tests.test_market_state_time_query_native_F_objective import _endpoint_fixture
+    bound_state, bound_future = _endpoint_fixture()
     axes = bound_state.mature_oof_axes(fold_id=1)
-    rows, issues = axes['fit_parent_rows'][:8], axes['fit_decision_ns'][:8]
+    rows, issues = axes['fit_parent_rows'], axes['fit_decision_ns']
     monkeypatch.setattr(batch, 'NativeFutureDualModel', RecordingModel)
     model = RecordingModel()
-    features = {key: torch.zeros((8, 1), dtype=torch.float32)
+    features = {key: torch.zeros((len(rows), 1), dtype=torch.float32)
                 for key in batch.FEATURE_KEYS}
-    features['seq_x'] = torch.zeros((8, 1, 4), dtype=torch.float32)
+    features['seq_x'] = torch.zeros((len(rows), 1, 4), dtype=torch.float32)
     gather = state.BoundFiveEndpointTargets.gather
     def after_forward(self, *args, **kwargs):
         assert model.keys == set(batch.FEATURE_KEYS) | {'query_k'}
@@ -77,27 +51,31 @@ def test_selected_native_state_fit_uses_bound_endpoints_and_existing_balanced_lo
         model, features, bound_state, bound_future, rows, issues,
         fold_id=1, pass_index=0, seed=20260911, future_weight=0.25,
         selected_state_endpoints=True)
-    expected_query = np.broadcast_to(np.asarray(NATIVE_K, np.int64), (8, 5))
+    expected_query = np.broadcast_to(np.asarray(NATIVE_K, np.int64), (len(rows), 5))
     np.testing.assert_array_equal(model.query_k, expected_query)
     np.testing.assert_array_equal(out['state_query_k'], expected_query)
-    np.testing.assert_array_equal(out['state_allowed'], bound_state.allowed_set[:8])
+    np.testing.assert_array_equal(out['state_allowed'], bound_state.allowed_set[:len(rows)])
     assert out['state_target_mode'] == 'selected_native_endpoints'
     assert out['state_mature'].all()
     assert out['loss_contract_sha256'] == contract()['contract_sha256']
     assert bool(torch.isfinite(out['loss']))
     with pytest.raises(ValueError, match='NATIVE_F_BATCH_INPUT'):
         batch.evaluate_fit_batch(
-            RecordingModel(), features, query.load_bound_time_query_targets(),
+            RecordingModel(), features, object(),
             bound_future, rows, issues, fold_id=1, pass_index=0,
             seed=20260911, future_weight=0.25, selected_state_endpoints=True)
 
 
 def test_selected_native_state_fit_rejects_immature_fold_tail(monkeypatch):
-    bound_state = state.load_bound_five_endpoint_targets()
-    bound_future = future.load_bound_future_displacement()
-    last = np.searchsorted(bound_state.decision_ns, state.FOLD_BOUNDARIES_NS[0]) - 1
-    rows = bound_state.parent_rows[last:last + 1]
-    issues = bound_state.decision_ns[last:last + 1]
+    rows = np.array([1], dtype=np.int64)
+    issues = np.array([state.FOLD_BOUNDARIES_NS[0] - state.M5_NS], dtype=np.int64)
+    known = np.ones((1, 5), dtype=np.bool_)
+    bound_state = state.BoundFiveEndpointTargets(
+        rows, issues, np.full((1, 5), 4, dtype=np.uint8),
+        np.zeros((1, 5), dtype=np.int64), np.zeros(1, dtype=np.int64), 0)
+    bound_future = future.BoundFutureDisplacement(
+        rows, issues, known, np.ones((1, 5), dtype=np.int8),
+        np.ones((1, 5), dtype=np.float64), ~known)
     assert len(rows) == 1 and issues[0] + 1440 * state.MINUTE_NS >= state.FOLD_BOUNDARIES_NS[0]
     monkeypatch.setattr(batch, 'NativeFutureDualModel', RecordingModel)
     model = RecordingModel()

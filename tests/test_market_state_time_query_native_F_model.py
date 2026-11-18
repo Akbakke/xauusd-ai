@@ -5,11 +5,6 @@ import pytest
 import torch
 from torch import nn
 
-from gx1.audit import verify_market_state_time_query_v2_zero_step_v1 as zero
-from gx1.contracts import market_state_five_endpoint_target_binding_v1 as endpoint_binding
-from gx1.contracts import market_state_future_displacement_candidate_v1 as future_binding
-from gx1.contracts import market_state_time_query_binding_v1 as state_binding
-from gx1.contracts import market_state_time_query_native_F_batch_v1 as dual_batch
 from gx1.contracts.entry_model_native_training_objective_v1 import (
     ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
 )
@@ -102,26 +97,6 @@ def test_F_loss_changes_shared_encoder_but_not_S_head_and_masks_F_side(monkeypat
     assert dual.future_head.weight.grad is not None
     assert dual.state_model.query_projection[0].weight.grad is not None
     assert dual.state_model.query_head.weight.grad is None
-
-
-def test_real_target_rows_reach_dual_heads_after_one_synthetic_forward(monkeypatch):
-    calls = []
-    dual = NativeFutureDualModel(model(monkeypatch, calls))
-    axes = endpoint_binding.load_bound_five_endpoint_targets().mature_oof_axes(fold_id=1)
-    rows, issues = axes['fit_parent_rows'][:8], axes['fit_decision_ns'][:8]
-    state_targets = state_binding.load_bound_time_query_targets()
-    future_targets = future_binding.load_bound_future_displacement()
-    out = dual_batch.evaluate_fit_batch(
-        dual, features(batch=8), state_targets, future_targets, rows, issues,
-        fold_id=1, pass_index=zero.PASS_INDEX, seed=zero.SEED,
-        future_weight=0.25)
-    assert len(calls) == 1
-    assert out['state_count'] == 25 and out['future_count'] == 40
-    assert out['state_query_k'][0].tolist() != list(NATIVE_K)
-    assert out['future_native_k'].tolist() == list(NATIVE_K)
-    out['loss'].backward()
-    assert dual.state_model.query_head.weight.grad is not None
-    assert dual.future_head.weight.grad is not None
 
 
 def test_ta_dual_model_uses_exact_nine_inputs_once_and_rejects_gc(monkeypatch):

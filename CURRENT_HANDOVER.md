@@ -6,35 +6,38 @@ prosess og eksakte terminalkvitteringer overstyrer prosa. Tidligere bølger finn
 
 ## Gjeldende status 18.11.2026
 
-`PAUSED_M5_MTF_DIRECTION_SOURCE_REVIEW_PENDING_REQUALIFICATION`.
-Operatøren presiserte at markedet skal vurderes på M5 med lukket
-M15/H1/H4/D1-kontekst. M1 som modellinput tilhører senere oppfølging
-av en åpnet handel. Entry og Entry-Q er pauset.
+`BLOCKED_DIRECTION_NATIVE_M5_DATA_AND_TARGETS_REQUIRED`.
 
-M1-prisbanegrenen og dens parametere er fjernet fra den integrerte
-S/F-modellen. Samme fem TF-representasjoner går direkte til eksisterende
-S/F- og strukturhoder. Forward avviser M1-prisbane og M1-masker. Alle
-14 modellkall i ti auditfiler bruker den nye signaturen. Modellen har
-ny v3-kontrakt; gamle M1-checkpoints avvises ved strict load/binding.
-Den avhengige Entry-wrapperens signatur følger kjernen.
+Brukerens bindende presisering er **ALDRI M1 til retning**. Dette omfatter
+inputs, fasit/labels, masker, radutvalg, priorer, normalisering, tap,
+modellutvalg, evaluering og dataklargjøring/metadata. M1 hører bare til
+senere oppfølging av en allerede åpnet handel. Entry og Entry-Q er pauset.
 
-Native XAU-inputene i gjeldende EMA-visning er opprinnelig M5, med
-egne lukkede høyere TF. Alle åtte TA-familier og 61 D1/makrofelter
-beholdes. Eksisterende M1-utgangspunkt i historiske fasit-/utfallseiere
-går separat til tap/skåring. Ukjente utfall og masker beholdes.
+Den forrige rettelsen fjernet M1 fra forward, men beholdt feilaktig M1
+i fasit og klargjøring. Dette er trukket tilbake. S-fasitloaderne og den
+gamle F-aksebindingen avviser nå før lesing. TA-/EMA-providernes plan-,
+kvitterings- og dataklargjøringsruter er også sperret før avhengigheter leses.
+De gamle M1-baserte S-filene, maskene, priorene, radutvalgene og metadataene
+kan ikke brukes til ny retningsmåling, kalibrering, modellutvalg eller fit.
+Historiske filer og kvitteringer er bevart med opprinnelig omfang.
 
-Siste ekte terminal er den konsumerte EMA S/F-kontrollen med M1-input
-på 29 574 FIT- og 17 489 senere utviklingsrader. Den kvalifiserer sin
-opprinnelige funksjon. Den nye M5/MTF-kjernen mangler fersk ekte initial,
-gradient/resume og målt senere retning. Policyens aktuelle baseline- og
-tekniske kvalifikasjonsflagg er derfor lukket. Ingen ny modellfit eller
-dataprodusent er innrømmet; ingen TEST, ONLINE, broker eller handel.
+De ordinære XAU-featureverdiene stammer fra native M5. F-prisverdiene
+bruker også native M5. Disse kan bare gjenbrukes etter ny selvstendig
+M5-kilde-/klokke-/aksebinding. Den gamle F-loaderen arvet S/M1-radutvalg,
+og strukturmaskene brukte en M1-avledet lukkeautoritet. Hele de gamle
+providerne og targetarkivene kvalifiserer derfor ikke M5-only retning.
 
-43 fokuserte syntetiske modell-, maske-, scorer- og preflighttester bestod.
-De dekker direkte M5/MTF-gradienter, avviste M1-argumenter/gamle
-checkpointnøkler og eksisterende S/F-/strukturmasker. Ingen ny ekte
-markedsforward eller optimizeroppdatering ble utført. Syntaks,
-stale-M1-callsite-scan og git diff --check bestod.
+Neste arbeid er native M5 OHLC → egne M5-akser og radutvalg → lukkede
+M15/H1/H4/D1-barer/ATR → M5-basert S-fasit og selvstendig F-binding,
+observasjonsmasker og TRAIN-priorer → ny provider og fersk modellbaseline.
+Ukjent forløp/rekkefølge i en M5-bar beholdes som ukjent. De nye
+M5-fasitene og provideren er ennå ikke bygget eller kvalifisert.
+Ingen ny modell-/dataplan er innrømmet. Trening og TEST er stengt.
+
+59 fokuserte syntetiske tester bestod. Testene av de gamle target- og
+providerinngangene avviser enhver fil-/metadatalesing. Ren
+modell-/adapter-/maskealgebra kontrolleres med syntetiske fixtures.
+Ingen ny ekte targetbygging, modellforward eller fit er utført.
 
 ### Kilderevisjon før M1-presiseringen18.11 (historisk)
 
