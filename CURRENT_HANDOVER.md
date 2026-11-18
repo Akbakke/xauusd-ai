@@ -292,3 +292,12 @@ CLAIM er ikke opprettet. Den rapporterte `fresh_physical_boot=false` på
 Windows-boot 664. Engangsfit forblir PREPARED_NOT_ADMITTED; neste steg krever
 operatørens valg om fysisk omstart, deretter ny boot-/kilde-/maskinvarekontroll
 før eventuell admittering.
+
+Windows ble fysisk startet om fra boot 664 til 665 etter ledig jobb-/GPU-/lås-
+kontroll. Ny preflight på ren commit `226507f4` besto; plan-SHA er uendret
+`0ce0eecd763c3b9f55105f4ee6eb1d9e3ffbee0d1b1a1635577b647d5c4f912c`, outputrot fraværende og CLAIM ikke opprettet.
+Eksakt én `TA_M5_EMA_DELTA_JOINT_FIT_20261118_001` er nå innrømmet i policy
+for capped trainer 20G/512M, 29 574 FIT, 17 489 senere, høyst 1 849
+optimizersteg og 4 037 forwards. Bare de fire nødvendige treningsflaggene
+er åpnet for denne engangsjobben; TEST, Full GC, ONLINE, broker og handel
+forblir stengt. Kilde og plan skal fryses fra launch til terminal.
