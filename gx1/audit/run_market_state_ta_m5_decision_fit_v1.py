@@ -39,6 +39,13 @@ EMA_ROOT = Path('/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_JOINT_FIT_20261118_001')
 EMA_INITIAL_ROOT = Path('/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_INITIAL_PREFLIGHT_20261118_001')
 EMA_GATHER_ROOT = Path('/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_FULL_GATHER_20261118_001')
 EMA_PRIOR_BOOT = 664
+EMA_VIEW_SHA = '1bf7066a7595040ee541b83ca92765c500bc3619898553bca1714ed692fa3921'
+EMA_FIT_STATS_SHA = '1e1278c2eced0a2344f2a7162fa8d54f5e5cb49d92640c59edf3edd38976fd30'
+EMA_INITIAL_SHA = 'b00f694b982ba6e46742e51e7de6b9c6376b109ae8b987c25f9dbc3e90e57c40'
+EMA_CORE_SHA = 'f29ee851a687968e2542f66c8bc18a032d49aebb6cab7d2207f61cb2b05a0bfd'
+EMA_DECISION_SHA = 'dada493e3e9c48cee54f98a9b5d476894d6df3aa4771bc8f544726b794b1b1f0'
+EMA_PAIR_SHA = 'de4808076ff2cf7f838f80797d946b47613841c6bd5a17a94bb2f3303ef0fbb1'
+EMA_PRIOR_LOSS_SHA = '2bcdacf11c849ff60da490af984ec065abf18948540f8494d6a8805517203f20'
 EMA_SOURCES = tuple(dict.fromkeys((*SOURCES,
     'gx1/audit/market_state_ta_ema_delta_campaign_inputs_v1.py',
     'gx1/audit/qualify_ta_ema_delta_full_gather_v1.py',
@@ -703,6 +710,290 @@ def run_cold(plan_sha):
         if context is not None:
             context['release']()
 
+
+def ema_input_refs():
+    from gx1.audit.market_state_ta_ema_delta_campaign_inputs_v1 import successor_input_refs
+    return {**successor_input_refs(),
+        'initial_result': ref(EMA_INITIAL_ROOT / 'RESULT.json'),
+        'initial_terminal': ref(EMA_INITIAL_ROOT / 'TERMINAL.json')}
+
+
+def build_ema_plan(*, source_base_commit=None, return_stats=False):
+    """Seal exact completed 318/256 inputs and fresh zero-update initial evidence."""
+    from gx1.audit.market_state_ta_ema_delta_campaign_inputs_v1 import (
+        successor_input_refs, _receipts,
+    )
+    from gx1.contracts.market_state_ta_m5_decision_v1 import contract, fit_statistics
+    from gx1.contracts.market_state_ta_integrated_paired_objective_v1 import contract as paired_contract
+    inputs = ema_input_refs()
+    campaign = successor_input_refs()
+    need(inputs == {**campaign, 'initial_result': inputs['initial_result'],
+                       'initial_terminal': inputs['initial_terminal']}, 'EMA_INPUT_KEYS')
+    _receipts(campaign)
+    initial, terminal = read(inputs['initial_result']), read(inputs['initial_terminal'])
+    view = read(inputs['view'])
+    prior = read(inputs['prior_result'])
+    need(initial['status'] == 'COMPLETE_EMA_DELTA_INITIAL_FIT_SCORE_NO_FIT'
+         and terminal['status'] == 'COMPLETE' and terminal['exit_code'] == 0
+         and terminal['result'] == inputs['initial_result']
+         and terminal['source_unchanged'] is initial['source_unchanged'] is True
+         and terminal['no_relaunch'] is True
+         and initial['view'] == inputs['view']
+         and initial['normalization'] == inputs['normal_ta']
+         and initial['raw_gather_result'] == inputs['gather_result']
+         and initial['raw_gather_coverage'] == inputs['gather_coverage']
+         and initial['raw_gather_terminal'] == inputs['gather_terminal']
+         and initial['fit_targets'] == inputs['fit_targets']
+         and initial['prior'] == inputs['priors']
+         and initial['prior_result'] == inputs['prior_result']
+         and initial['prior_terminal'] == inputs['prior_terminal']
+         and initial['model_constructions'] == 1
+         and initial['model_forwards'] == 2
+         and initial['optimizer_constructions'] == initial['optimizer_steps'] ==
+             initial['backward_calls'] == initial['normalization_fits'] == 0
+         and bool(initial['normalized_numeric_surfaces'])
+         and initial['test_data_used'] is False
+         and initial['economic_edge_proven'] is False
+         and view['contract_sha256'] == initial['scope']['view_sha256'] == EMA_VIEW_SHA
+         and initial['scope']['fit_rows'] == COLD_FIT_ROWS
+         and initial['scope']['later_parent_start'] == COLD_SCORE_START
+         and initial['scope']['later_rows'] == COLD_SCORE_ROWS
+         and initial['scope']['prior_loss_contract_sha256'] ==
+             prior['loss_contract_sha256'] == EMA_PRIOR_LOSS_SHA
+         and initial['initial_model_state_sha256'] == EMA_INITIAL_SHA
+         and initial['core_contract_sha256'] == EMA_CORE_SHA
+         and initial['decision_contract_sha256'] ==
+             initial['fit_loss_contract_sha256'] == EMA_DECISION_SHA
+         and initial['cold_paired_objective_sha256'] ==
+             initial['scope']['fold1_paired_objective_sha256'] == EMA_PAIR_SHA
+         and initial['fit_statistics_sha256'] ==
+             initial['scope']['fit_statistics_sha256'] == EMA_FIT_STATS_SHA,
+         'EMA_INITIAL_RECEIPTS')
+    full = load_targets(inputs['fit_targets'], TRAIN_ROWS)
+    fit = target_slice(full, 0, COLD_FIT_ROWS)
+    stats = fit_statistics(fit)
+    need(stats['sha256'] == EMA_FIT_STATS_SHA
+         and paired_contract(fold_id=1)['contract_sha256'] == EMA_PAIR_SHA
+         and contract(EMA_CORE_SHA, stats['sha256'], aux_fold_id=1)['contract_sha256']
+             == EMA_DECISION_SHA, 'EMA_CURRENT_FIT_CONTRACTS')
+    head = source_base_commit or subprocess.check_output(
+        ['git', 'rev-parse', 'HEAD'], cwd=REPO, text=True).strip()
+    value = {'schema_version': 'gx1_ta_m5_ema_delta_joint_fit_plan_v1',
+        'stage': EMA_STAGE, 'status': 'PREPARED_NOT_ADMITTED',
+        'source_base_commit': head,
+        'source_owners': {name: ref(REPO / name)['sha256'] for name in EMA_SOURCES},
+        'inputs': inputs, 'output_root': str(EMA_ROOT),
+        'fit_rows': COLD_FIT_ROWS, 'score_parent_start': COLD_SCORE_START,
+        'score_rows': COLD_SCORE_ROWS,
+        'excluded_gap_rows': COLD_SCORE_START - COLD_FIT_ROWS,
+        'batch_size': BATCH, 'batch_visits': COLD_FIT_BATCHES,
+        'initial_score_forwards': COLD_SCORE_BATCHES,
+        'final_score_forwards': COLD_SCORE_BATCHES,
+        'model_forwards': COLD_FIT_BATCHES + 2 * COLD_SCORE_BATCHES,
+        'max_optimizer_updates': COLD_FIT_BATCHES, 'max_seconds': 10500,
+        'seed': SEED, 'fresh_initial': True, 'view_sha256': EMA_VIEW_SHA,
+        'initial_model_state_sha256': EMA_INITIAL_SHA,
+        'fit_statistics_sha256': EMA_FIT_STATS_SHA,
+        'core_contract_sha256': EMA_CORE_SHA,
+        'decision_contract_sha256': EMA_DECISION_SHA,
+        'cold_paired_objective_sha256': EMA_PAIR_SHA,
+        'prior_loss_contract_sha256': EMA_PRIOR_LOSS_SHA,
+        'prior_physical_windows_boot_id': EMA_PRIOR_BOOT,
+        'required_invocation_windows_boot_id_greater_than': EMA_PRIOR_BOOT,
+        'horizon_minutes': [1, 5, 15, 60, 240, 480],
+        'capped_execution': {'class': 'trainer', 'memory': '20G', 'swap': '512M'},
+        'training_authorized': False, 'test_authorized': False,
+        'online_authorized': False, 'broker_access_allowed': False,
+        'test_data_used': False, 'economic_edge_proven': False}
+    return (value, stats) if return_stats else value
+
+
+def inspect_ema(plan_sha, *, admitted):
+    binding = ref(EMA_PLAN)
+    need(binding['sha256'] == plan_sha and not EMA_ROOT.exists(), 'EMA_PLAN_OUTPUT')
+    plan = read(binding)
+    expected, stats = build_ema_plan(
+        source_base_commit=plan.get('source_base_commit'), return_stats=True)
+    need(plan == expected
+         and plan['status'] == 'PREPARED_NOT_ADMITTED'
+         and plan['fit_rows'] == 29574 and plan['score_rows'] == 17489
+         and plan['excluded_gap_rows'] == 275
+         and plan['batch_visits'] == 1849
+         and plan['initial_score_forwards'] == plan['final_score_forwards'] == 1094
+         and plan['model_forwards'] == 4037
+         and plan['max_optimizer_updates'] == 1849
+         and Path.cwd().resolve() == REPO
+         and source_clean(plan, EMA_SOURCES), 'EMA_FIXED_SCOPE_SOURCE')
+    policy = json.loads((REPO / 'NEXT_RUN_POLICY.json').read_text())
+    inputs = plan['inputs']
+    for stage, result_key, terminal_key in (
+        ('ta_m5_ema_delta_sidecars_20261117_002', 'material_result', 'material_terminal'),
+        ('ta_m5_ema_delta_fit_normalization_20261118_001', 'normal_result', 'normal_terminal'),
+        ('ta_m5_ema_delta_full_gather_20261118_001', 'gather_result', 'gather_terminal'),
+        ('ta_m5_ema_delta_fold1_priors_20261118_001', 'prior_result', 'prior_terminal'),
+        ('ta_m5_ema_delta_initial_preflight_20261118_001', 'initial_result', 'initial_terminal')):
+        gate = policy.get(stage, {})
+        need(gate.get('status') == 'COMPLETE_CONSUMED'
+             and gate.get('result') == inputs[result_key]
+             and gate.get('terminal') == inputs[terminal_key]
+             and gate.get('remaining_invocations') == 0
+             and gate.get('execution_authorized') is False,
+             'EMA_PREDECESSOR_POLICY:' + stage)
+    metadata = policy.get('ta_m5_ema_delta_feature_view_20261118_001', {})
+    need(metadata.get('status') == 'COMPLETE_METADATA_ONLY'
+         and metadata.get('result') == inputs['view_result']
+         and metadata.get('terminal') == inputs['view_terminal'],
+         'EMA_VIEW_POLICY')
+    gate = policy.get(EMA_STAGE, {})
+    closed = (policy['full_val_allowed'] is False
+              and policy['exit_training_and_evaluation_this_wave'] is False
+              and gate.get('test_data_used') is False
+              and gate.get('test_authorized') is False
+              and gate.get('online_authorized') is False
+              and gate.get('broker_access_allowed') is False)
+    if admitted:
+        need(closed and policy['training_enabled'] is policy['native_training_enabled'] is True
+             and policy['full_epoch_training_allowed'] is policy['native_launch_authorized'] is True
+             and gate.get('status') == 'ADMITTED_ONE_USE'
+             and gate.get('plan') == binding
+             and gate.get('remaining_invocations') == gate.get('max_invocations') == 1
+             and gate.get('claimed_invocations') == gate.get('completed_invocations') == 0
+             and gate.get('execution_authorized') is gate.get('training_authorized') is True
+             and gate.get('relaunch_allowed') is False
+             and gate.get('max_optimizer_updates') == COLD_FIT_BATCHES
+             and gate.get('model_forwards') == COLD_FIT_BATCHES + 2 * COLD_SCORE_BATCHES
+             and physical_windows_boot_id() > EMA_PRIOR_BOOT,
+             'EMA_ONE_USE_ADMISSION')
+    else:
+        need(closed and policy['training_enabled'] is policy['native_training_enabled'] is False
+             and policy['full_epoch_training_allowed'] is policy['native_launch_authorized'] is False
+             and gate.get('status') == 'PREPARED_NOT_ADMITTED'
+             and gate.get('plan') == binding
+             and gate.get('remaining_invocations') == 0
+             and gate.get('execution_authorized') is gate.get('training_authorized') is False,
+             'EMA_TRAINING_CLOSED')
+    return plan, stats
+
+
+def run_ema(plan_sha):
+    """Fresh 318/256 FIT one pass and two fixed later development readouts."""
+    import numpy as np
+    import torch
+    from gx1.audit.market_state_ta_ema_delta_campaign_inputs_v1 import (
+        successor_input_refs, prepare as prepare_ema,
+    )
+    from gx1.contracts.entry_native_direction_feature_view_v1 import build_native_direction_research_model
+    from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_trainer_execution
+    from gx1.contracts.market_state_ta_integrated_model_v1 import IntegratedTAMarketStateModel
+    from gx1.contracts.market_state_ta_m5_decision_v1 import IntegratedTAM5DecisionModel
+    from gx1.contracts.market_state_time_query_native_F_model_v1 import NativeFutureDualModel
+    from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    guard = require_guarded_cuda_trainer_execution()
+    plan, stats = inspect_ema(plan_sha, admitted=True)
+    head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=REPO, text=True).strip()
+    EMA_ROOT.mkdir()
+    claim = publish('CLAIM.json', {'plan': ref(EMA_PLAN), 'source_commit': head,
+        'physical_windows_boot_id': physical_windows_boot_id(), 'guard': guard,
+        'test_data_used': False}, root=EMA_ROOT)
+    started = time.monotonic()
+    deadline = started + plan['max_seconds'] - 60
+    context, result = None, None
+    try:
+        device = torch.device('cuda', 0)
+        campaign = successor_input_refs()
+        need({key: plan['inputs'][key] for key in campaign} == campaign,
+             'EMA_CAMPAIGN_INPUT_REFS')
+        context = prepare_ema(device=device, inputs=campaign)
+        full = load_targets(plan['inputs']['fit_targets'], TRAIN_ROWS)
+        fit = target_slice(full, 0, COLD_FIT_ROWS)
+        later = target_slice(full, COLD_SCORE_START, TRAIN_ROWS)
+        axes, selected = context['axes'], context['selected']
+        need(context['input_refs'] == campaign
+             and context['fit_rows'] == COLD_FIT_ROWS
+             and context['score_rows'] == COLD_SCORE_ROWS
+             and context['fit_fold_id'] == context['score_fold_id'] == 1
+             and context['score_partition'] == 'score'
+             and np.array_equal(axes['parent_rows'][:COLD_FIT_ROWS], fit['parent_rows'])
+             and np.array_equal(axes['decision_ns'][:COLD_FIT_ROWS], fit['issue_ns'])
+             and np.array_equal(axes['parent_rows'][selected], later['parent_rows'])
+             and np.array_equal(axes['decision_ns'][selected], later['issue_ns'])
+             and context['view']['contract_sha256'] == EMA_VIEW_SHA,
+             'EMA_TARGET_FEATURE_AXES')
+        trainer._set_deterministic(SEED, device, trainer.DETERMINISTIC_FP32)
+        state = build_native_direction_research_model(context['view'],
+            prefix_normalization=context['packet'], constructor_metadata=context['constructor'],
+            device=torch.device('cpu'), unobserved_units_profile=context['units_profile'])
+        core = IntegratedTAMarketStateModel(NativeFutureDualModel(state))
+        need(core.research_objective['contract_sha256'] == EMA_CORE_SHA,
+             'EMA_CORE_CONTRACT')
+        model = IntegratedTAM5DecisionModel(core, stats, aux_fold_id=1).to(device)
+        initial_sha = canonical_model_state_sha256(model.state_dict())
+        need(initial_sha == EMA_INITIAL_SHA
+             and model.research_objective['contract_sha256'] == EMA_DECISION_SHA,
+             'EMA_INITIAL_STATE_CONTRACT')
+        initial_core, initial_capture = score(model, context, deadline=deadline,
+            fold_id=1, partition='score', collect_decision=True)
+        initial = decision_readout(initial_capture['m5_cost_path_bps'], later)
+        del initial_capture
+        blocks, updates, skipped = _fit_one_pass(model, context, fit, device=device,
+            fit_rows=COLD_FIT_ROWS, fold_id=1,
+            contract_sha256=EMA_DECISION_SHA, deadline=deadline)
+        need(updates == COLD_FIT_BATCHES and skipped == 0, 'EMA_ALL_UPDATES')
+        final_core, capture = score(model, context, deadline=deadline,
+            fold_id=1, partition='score', collect_decision=True)
+        final = decision_readout(capture['m5_cost_path_bps'], later)
+        final_sha = canonical_model_state_sha256(model.state_dict())
+        need(source_clean(plan, EMA_SOURCES)
+             and subprocess.check_output(['git', 'rev-parse', 'HEAD'],
+                 cwd=REPO, text=True).strip() == head
+             and ema_input_refs() == plan['inputs']
+             and time.monotonic() < deadline, 'EMA_SOURCE_INPUT_TIME_BOOKEND')
+        checkpoint = io.BytesIO()
+        torch.save(model.state_dict(), checkpoint)
+        checkpoint_ref = publish('FINAL_MODEL.pt', checkpoint.getvalue(), root=EMA_ROOT)
+        stream = io.BytesIO()
+        np.savez_compressed(stream, **capture)
+        capture_ref = publish('FINAL_SCORE_READOUT.npz', stream.getvalue(), root=EMA_ROOT)
+        context['release']()
+        context = None
+        result = publish('RESULT.json', {
+            'status': 'COMPLETE_ONE_PASS_EMA_DELTA_FOLD1_M5_DECISION_LATER_SCORE',
+            'plan': ref(EMA_PLAN), 'claim': claim, 'source_commit': head,
+            'source_unchanged': True, 'guard': guard, 'fresh_initial': True,
+            'fold1_aux_contract_sha256': model.research_objective['cold_aux_contract_sha256'],
+            'fit_statistics_sha256': stats['sha256'],
+            'initial_model_state_sha256': initial_sha,
+            'final_model_state_sha256': final_sha,
+            'fit_rows': COLD_FIT_ROWS,
+            'excluded_gap_rows': COLD_SCORE_START - COLD_FIT_ROWS,
+            'score_rows': COLD_SCORE_ROWS, 'batch_visits': COLD_FIT_BATCHES,
+            'optimizer_updates': updates, 'skipped_batches': skipped,
+            'training_forwards': COLD_FIT_BATCHES,
+            'evaluation_forwards': 2 * COLD_SCORE_BATCHES,
+            'fit_blocks': blocks, 'initial_core': initial_core,
+            'initial_decision': initial, 'final_core': final_core,
+            'final_decision': final, 'checkpoint': checkpoint_ref,
+            'final_capture': capture_ref, 'test_data_used': False,
+            'economic_edge_proven': False,
+            'elapsed_seconds': time.monotonic() - started}, root=EMA_ROOT)
+        publish('TERMINAL.json', {'status': 'COMPLETE', 'exit_code': 0,
+            'plan': ref(EMA_PLAN), 'result': result, 'source_unchanged': True,
+            'relaunch_allowed': False, 'remaining_invocations': 0,
+            'test_data_used': False}, root=EMA_ROOT)
+    except BaseException as error:
+        publish('TERMINAL.json', {'status': 'FAILED_CONSUMED', 'exit_code': 1,
+            'plan': ref(EMA_PLAN), 'result': result,
+            'error': type(error).__name__ + ':' + str(error)[:2000],
+            'relaunch_allowed': False, 'remaining_invocations': 0,
+            'test_data_used': False}, root=EMA_ROOT)
+        raise
+    finally:
+        if context is not None:
+            context['release']()
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--plan', required=True)
@@ -731,6 +1022,24 @@ def main():
                 'optimizer_steps': 0, 'test_data_used': False}, sort_keys=True))
         else:
             run_cold(args.plan_sha256)
+    elif args.plan == str(EMA_PLAN) and args.out_dir == str(EMA_ROOT):
+        if args.preflight:
+            plan, _ = inspect_ema(args.plan_sha256, admitted=False)
+            boot = physical_windows_boot_id()
+            print(json.dumps({'status': 'PREFLIGHT_PASS', 'plan': ref(EMA_PLAN),
+                'scope': {key: plan[key] for key in ('fit_rows', 'excluded_gap_rows',
+                    'score_rows', 'batch_size', 'batch_visits', 'initial_score_forwards',
+                    'final_score_forwards', 'model_forwards', 'max_optimizer_updates',
+                    'capped_execution')},
+                'physical_windows_boot_id': boot,
+                'fresh_physical_boot': boot > EMA_PRIOR_BOOT,
+                'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'],
+                    cwd=REPO, text=True).strip(), 'source_clean': True,
+                'output_root_absent': True, 'claim_created': False,
+                'model_constructions': 0, 'model_forwards': 0,
+                'optimizer_steps': 0, 'test_data_used': False}, sort_keys=True))
+        else:
+            run_ema(args.plan_sha256)
     else:
         need(False, 'CLI_SCOPE')
 
