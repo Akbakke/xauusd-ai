@@ -481,10 +481,13 @@ matches_bound_market_state_ta_m5_decision_fit() {
   local expected_plan="$1" expected_output="$2"
   if [[ "$expected_plan" == "$REPO_ROOT/configs/research/TA_M5_COLD_JOINT_FIT_20261117_001.json" ]]; then
     [[ "$expected_output" == /home/andre2/GX1_RUNS/TA_M5_COLD_JOINT_FIT_20261117_001 ]] || return 1
+  elif [[ "$expected_plan" == "$REPO_ROOT/configs/research/TA_M5_EMA_DELTA_JOINT_FIT_20261118_001.json" ]]; then
+    [[ "$expected_output" == /home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_JOINT_FIT_20261118_001 ]] || return 1
   fi
   shift 2
   if [[ $# -eq 12 ]]; then
-    [[ "$expected_plan" == "$REPO_ROOT/configs/research/TA_M5_COLD_JOINT_FIT_20261117_001.json" \
+    [[ ( "$expected_plan" == "$REPO_ROOT/configs/research/TA_M5_COLD_JOINT_FIT_20261117_001.json" \
+      || "$expected_plan" == "$REPO_ROOT/configs/research/TA_M5_EMA_DELTA_JOINT_FIT_20261118_001.json" ) \
       && "${12}" == --preflight ]] || return 1
     set -- "${@:1:11}"
   fi
@@ -905,6 +908,7 @@ validate_target_command() {
   if [[ "${3:-}" == "$TA_M5_DECISION_FIT_TRAINER_MODULE" ]]; then
     local decision_root=/home/andre2/GX1_RUNS/TA_M5_DECISION_FIT_20261117_004
     local cold_decision_root=/home/andre2/GX1_RUNS/TA_M5_COLD_JOINT_FIT_20261117_001
+    local ema_decision_root=/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_JOINT_FIT_20261118_001
     if [[ "$ATTENDED_SMOKE" != false || "$CUDA_PRODUCER_GUARD" != false ]]; then
       echo "FATAL: direct-cost M5 decision fit is not exactly bound" >&2
       exit 75
@@ -913,6 +917,8 @@ validate_target_command() {
       :
     elif matches_bound_market_state_ta_m5_decision_fit "$REPO_ROOT/configs/research/TA_M5_COLD_JOINT_FIT_20261117_001.json" "$cold_decision_root" "$@"; then
       decision_root="$cold_decision_root"
+    elif matches_bound_market_state_ta_m5_decision_fit "$REPO_ROOT/configs/research/TA_M5_EMA_DELTA_JOINT_FIT_20261118_001.json" "$ema_decision_root" "$@"; then
+      decision_root="$ema_decision_root"
     else
       echo "FATAL: direct-cost M5 decision fit is not exactly bound" >&2
       exit 75
