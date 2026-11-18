@@ -510,3 +510,33 @@ Gradientprobens eksakte kapslede preflight bestod uten CLAIM, forward eller
 resultatrot. Kun denne separate 20-batch-proben er innrømmet én gang.
 `training_enabled=false`, null optimizeroppdateringer og stengt TEST/Full
 GC/ONLINE/broker/handel består. Kilde og policy fryses under kjøringen.
+
+## EMA-gradientpartisjon fullført 18.11.2026
+
+Den eksakt innrømmede proben fullførte 20 faste FIT-batcher på 69,6 sekunder:
+21 forwards, 80 autograd-kall kun ved løsrevet delt TF-representasjon, null
+parametergradienter, optimizer eller oppdateringer. Modell-digest var uendret,
+forward-paritet og tapspartisjon bestod; 19 batcher hadde til sammen 117
+kjente native M5 F-sider. Resultat/CLAIM/TERMINAL er hashbundet. Uavhengig
+summering av de lagrede batchverdiene gjenskapte dot, kosinus, norm og
+støttetelling.
+
+Det forhåndsbundne rene fortegnsvilkåret slo ut: primært beslutningstap hadde
+negativt dot-produkt med isolert F-side i 13 av 19 støttede batcher og i
+summen. Størrelsen er imidlertid nær null: samlet kosinus −0,00235.
+Beslutningsgradientens norm var 5,39 ganger den isolerte F-sidegradienten,
+men nesten ortogonal. Hele faktisk tap hadde positiv F-side-kosinus +0,117,
+og S/F-hjelpetapet +0,173. Dette viser en svak lokal fortegnskonflikt,
+**ikke** en materiell gradientmotstand som forklarer svak F-læring. Proben
+måler bare grensen til fused TF-representasjonen på 20 batcher, ikke hele
+upstream-parameteroppdateringen eller historisk optimizerforløp. Ingen ny
+fit, tapsomvekting eller epoke følger av dette resultatet.
+
+Arbeidsblokkeringen er nå konkret: full FIT-retning svikter FIT-prior;
+senere kostjustert sidevalg og S/F-generaliserering svikter; gammel S/F-
+primærtrening og ekstra epoke hjalp ikke, og gjeldende tapskonflikt er
+for liten på målt grense til å gi en begrunnet vektjustering. En neste
+modellfit krever en **distinkt** forhåndsdefinert informasjons- eller
+målkontrakt med fast FIT/senere kontroll, ikke flere like runder. Huber-
+utgangen for Entry kan fremdeles ikke kalles forventet økonomisk verdi.
+Full GC, TEST, ONLINE, broker og handel forblir stengt.
