@@ -566,3 +566,8 @@ eller trening er startet; engangsplan og innrømmelse følger separat.
 For Huber-mismatchen er framtidig middelverdikonsistent Entry-mål spesifisert
 i `docs/NATIVE_LEARNING.md`. Den konsumerte v2-koden er ikke mutert:
 aktiv fase er S/F før Entry, og ny Entry-fit er ikke begrunnet.
+
+Plan `TA_M5_PROJECTED_H4_LINE_20261118_001` er klargjort mot
+kildecommit `ab03b7c4`, 31 kvalifiserte EMA-referanser og tidligere fysisk
+H4-orakel. Policy er `PREPARED_NOT_ADMITTED`, med null tillatte kall.
+Eksakt kapslet preflight er neste steg; ingen modell- eller målfit er åpnet.
