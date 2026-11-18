@@ -554,26 +554,41 @@ Dette er ikke Edge. Eksakte target-/captureakser ble kontrollregnet.
 
 Kildegjennomgangen fant én konkret manglende relasjon: gjeldende M5-pris
 sammenlignes ikke eksplisitt med siste kausalt lukkede H4-trendlinje
-projisert til samme M5-tid. En egen, lesebasert forskningsmåling er nå
-implementert uten modellkall. Den bruker bare komplette 48×M5 H4-barer,
+projisert til samme M5-tid. En egen, lesebasert forskningsmåling ble
+implementert og kjørt én gang uten modellkall. Den bruker bare komplette
+48×M5 H4-barer,
 sammenhengende M5-klokke, to aktive cachelinjer og ett forhåndsbundet
 M5-sluttprisbrudd. Fraksjonell H4-linjeprojeksjon er en **ny** konvensjon;
 integer-linjefeltene støttes av tidligere fysisk H4-orakel. Preflight
 sjekker kilde, klokke og linjearitmetikk før F-/h480-utfall åpnes.
-Fem modul- og 11 rutetester, syntaks og diffkontroll består. Ingen måling
-eller trening er startet; engangsplan og innrømmelse følger separat.
+Fem modul- og 11 rutetester, syntaks og diffkontroll består. Målingen er
+nå fullført én gang; ingen modelltrening er startet.
 
 For Huber-mismatchen er framtidig middelverdikonsistent Entry-mål spesifisert
 i `docs/NATIVE_LEARNING.md`. Den konsumerte v2-koden er ikke mutert:
 aktiv fase er S/F før Entry, og ny Entry-fit er ikke begrunnet.
 
-Plan `TA_M5_PROJECTED_H4_LINE_20261118_001` er klargjort mot
-kildecommit `ab03b7c4`, 31 kvalifiserte EMA-referanser og tidligere fysisk
-H4-orakel. Policy er `PREPARED_NOT_ADMITTED`, med null tillatte kall.
-Eksakt kapslet preflight er neste steg; ingen modell- eller målfit er åpnet.
+Plan `TA_M5_PROJECTED_H4_LINE_20261118_001` ble kvalifisert mot
+kildecommit `ab03b7c4`, 31 EMA-referanser og fysisk H4-orakel. Kapslet
+preflight bestod på cirka 15 sekunder uten CLAIM eller utmappe. Én
+innrømmet lesemåling fullførte med exit 0, uendret kilde, null
+modellforward/optimizer og ingen TEST. CLAIM, RESULT, TERMINAL og lagret
+raduttrekk er hashkontrollert; mål og kvalitet er kontrollregnet fra
+raduttrekket uavhengig av rapporten. Engangskallet er konsumert.
 
-Kapslet preflight fullførte på cirka 15 sekunder uten CLAIM eller utmappe.
-Den fant 850 komplette H4-barer og 1 654 opp-/1 623 nedbrudd på de
-47 063 faste FIT/senere-radene; 23 rader lå utenfor fysisk H4-orakel.
-Kun denne lesemålingen er innrømmet én gang. Ingen modellforward,
-optimizer eller trening er autorisert; TEST og handel forblir stengt.
+På 2 081 FIT- og 1 196 senere prisbrudd var kjent F-H4-retning bare
+51,0 % riktig på 723 FIT-rader og 49,1 % på 491 senere rader. For
+komplette h480-baner var hendelsesvalgt kvalitet mot alltid-LONG
+−0,771 bps på 1 186 FIT-rader og +11,408 bps på 717 senere rader.
+Ukeblokk-bootstrap med 20 000 trekk (frø 20261118) ga 95 %
+intervall [−9,047, +7,623] og [−9,898, +34,945] bps. Seneregevinst
+kommer fra gjenbrukt utvikling og varierer mellom uker/måneder; den
+beviser verken stabil prediksjon, handels-PnL eller Edge. Dette er
+M5-sluttprisbrudd, ikke intrabarberøring. 23 FIT-rader ligger utenfor
+fysisk H4-orakel, og hendelsen dekker bare en liten del av alle rader.
+
+Denne H4-linjeproxyen gir ikke grunnlag for S/F-refit eller en ny epoke.
+Neste mulige fit trenger en **annen**, forhåndsbundet informasjons- eller
+målkontrakt, kvalifiserte komplette senere inputs og én samlet voktet plan.
+Entry-Q v3 er fortsatt bare framtidig design. `training_enabled=false`;
+Full GC, TEST, ONLINE, broker og handel er stengt.
