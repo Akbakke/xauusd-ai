@@ -30,7 +30,8 @@ def test_ema_plan_seals_current_fit_and_initial_receipts():
         '55a9cdd4a54cf612434f6e3ce8a650b49f8514fc04b26f7f0decfceafde28267')
 
 
-def test_ema_plan_rejects_altered_initial_state_before_claim(monkeypatch):
+def test_ema_plan_rejects_altered_initial_state_before_claim(monkeypatch, tmp_path):
+    monkeypatch.setattr(fit, 'EMA_ROOT', tmp_path / 'no-claim')
     original = fit.read
     def altered(binding):
         value = original(binding)

@@ -6,11 +6,12 @@ prosess og eksakte terminalkvitteringer overstyrer prosa. Tidligere bølger finn
 
 ## Gjeldende status
 
-`PAUSED_M5_COLD_FIT_CONSUMED_EDGE_UNPROVEN`. Ingen GX1-jobb kjører. Den ene kalde
-M5-fit-planen er fullført og konsumert. `training_enabled`,
+`PAUSED_M5_EMA_FIT_CONSUMED_EDGE_UNPROVEN`. Ingen GX1-jobb kjører. Den ene
+318/256 EMA M5-fit-planen er fullført og konsumert. `training_enabled`,
 `native_training_enabled`, `full_epoch_training_allowed` og
 `native_launch_authorized` er `false`. Full GC, TEST, ONLINE, broker og
 handel er stengt. Ingen økonomisk edge eller uavhengig generalisering er bevist.
+Siste eksakte resultat står nederst; mellomliggende avsnitt er historisk kronologi.
 
 ## Fullrevisjon 17.11.2026
 
@@ -169,7 +170,7 @@ komprimering.
   eller andre DATA/RUNS er slettet uten tilsvarende eierskapsbevis.
   Gammel handover-prosa ligger i Git.
 
-## Ikke gjort og neste direkte steg
+## Tilstand etter kald runde 17.11 (historisk)
 
 Ingen ytterligere fit, TEST-lesning, forward-journal, ONLINE-baseline, broker eller
 handel er åpnet. Posisjonsført PnL, alle åpne posisjoner og uavhengig
@@ -301,3 +302,62 @@ for capped trainer 20G/512M, 29 574 FIT, 17 489 senere, høyst 1 849
 optimizersteg og 4 037 forwards. Bare de fire nødvendige treningsflaggene
 er åpnet for denne engangsjobben; TEST, Full GC, ONLINE, broker og handel
 forblir stengt. Kilde og plan skal fryses fra launch til terminal.
+
+## EMA 318/256 én-epoke FIT — terminal og vurdering 18.11.2026
+
+Etter ledig jobb-/GPU-/lås-kontroll ble Windows fysisk startet fra boot 664
+til 665. Ren kilde `7c7a8bd9` innrømmet eksakt én plan
+`TA_M5_EMA_DELTA_JOINT_FIT_20261118_001`, SHA
+`0ce0eecd763c3b9f55105f4ee6eb1d9e3ffbee0d1b1a1635577b647d5c4f912c`.
+En første wrapper-kommando med relativ Python-sti ble avvist før CLAIM;
+samme uclaimede plan startet deretter med absolutt sti gjennom kapslet
+trainer 20G/512M. Ingen annen fit ble startet. 29 574 FIT-rader,
+1 849/1 849 optimizersteg, 1 849 treningsforwards og 2 × 1 094 senere
+scoreforwards, null hoppede batcher. Terminal `COMPLETE`, exit 0,
+6 117,67 sekunder; kilde uendret og TEST ikke lest. RESULT-SHA
+`6cd1d9176765ec73ff4c6230b79490c2459bd0d79d5f13d657f3511e2143aa0c`,
+TERMINAL-SHA `33871aa1f5e5e84d37eee9efea7a391659022dcb60ba1b597f7c86f60d3fde00`,
+checkpoint-SHA `5e370c6220e7e16236a0941933919541d181cd0638956394e0a60d288009c2d5`,
+SCORE-capture-SHA `11ae0f94c82e6e8471175859c28349a8f883bf84e831b5da6ae2a3cb0a7916a9`.
+Kvitteringsreferanser og resultatantall er verifisert; SCORE-capture er
+uavhengig rekalkulert mot den uendrede faste målfilen.
+
+Fersk initial valgte alle 17 489 FLAT. Trenet modell valgte 7 450 LONG,
+0 SHORT og 10 039 FLAT. Av 7 450 valg hadde 6 512 kjent terminal og
+938 ukjent terminal; kostet netto på kjente terminaler var −11,073 bps.
+5 288 valgte baner var komplette, 2 162 ukjente. På komplette valgte
+baner var predikert kvalitet +5,545 bps mot faktisk −27,486 bps;
+predikert netto +20,784 mot faktisk −10,610 bps. Dette er ikke edge.
+
+På de samme 11 318 komplette h480-banene som forrige kalde modell rangerte
+den nye modellen LONG best i 99,93 %, mens fasiten gjorde det i 53,45 %.
+Side-treff var 53,38 %, men predikert/faktisk sideforskjell korrelerte
+bare 0,0073 (forrige modell 0,0349). M5 F-retnings-AUC var 0,509 og S
+0,512; alle fem F-sidetaps Brier-tall på senere utvikling var dårligere enn
+FIT-prioren. Av 1 301 faktiske M5-vendinger fanget den 92 og varslet 78
+falske. Struktur-headet lærte high/low (AUC 0,784/0,781), men dette ga
+ikke dokumentert framtidsretning eller gode kostjusterte valg.
+
+Et direkte målskifte er målt på h480: I 18 901 komplette FIT-baner var
+LONG minus SHORT faktisk kvalitet +10,724 bps i snitt; i 11 318 komplette
+senere baner var den −5,303 bps. Oktober/november/desember hadde faktisk
+sideforskjell +7,070/−16,613/−7,910 bps, mens modellens predikerte
+sideforskjell var +32,484/+50,424/+51,606 bps. Samme lengre horisontskifte
+fra positiv FIT-sideforskjell til negativ senere sideforskjell sees også ved
+60 og 240 minutter. Dette viser en konkret FIT→senere mismatch og at modellen
+forsterket LONG-biasen; det isolerer ikke alene om feilen ligger i signal,
+modell, mål eller markedsskifte. På det faste h480-panelet var predikert/faktisk
+kvalitet −2,796/−25,463 bps for LONG og −47,088/−20,160 bps for SHORT:
+begge sider er feilkalibrert, ikke bare seleksjonen. 7 380 av 7 450 valg
+lå på h480.
+
+Resultatet gjelder gjenbrukt oktober–desember-utvikling, ikke uavhengig TEST,
+handels-PnL eller posisjonsførte åpne handler. Den nye EMA-indikatoren og
+rettet side-skala ga ingen målbar forbedring i sidevalg; endringene kan ikke
+isoleres kausalt fra hverandre i denne ene fit. Engangsplanen er konsumert,
+treningsflaggene er lukket, og ingen ny plan er innrømmet. En fokusert
+test som antok fravær av resultatrot etter kjøringen, er isolert til en
+temporær no-claim-mappe; modell og historiske kvitteringer er uendret. Neste
+direkte arbeid er diagnose av side-rangering og kvalitetskalibrering med de fryste
+FIT/later-kvitteringene før eventuell ny modellhypotese. Full GC, TEST,
+ONLINE, broker og handel forblir stengt.
