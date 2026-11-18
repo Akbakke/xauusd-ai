@@ -243,4 +243,13 @@ Ny engangsplan `TA_M5_EMA_DELTA_FULL_GATHER_20261118_001`, SHA
 `a8d1a39819402ca8fe80bb53e459f8431308fc7ea3153ac0a6e7ef65f2ff4864`, er innrømmet som targetfri
 FIT/later inputaudit: 47 063 valgte rader, 2 943 B16/tail-batcher, alle åtte
 rå og normaliserte flater. Ingen modell, optimering eller TEST er åpnet.
-Neste steg er ren preflight og deretter høyst én kapslet auditkjøring.
+Kapslet audit er fullført og konsumert på 1 544,39 s. RESULT-SHA
+`f1589bff55919ac9a1bcb0c9ed99ae7848c51e5dd34bf453d9bd6d92d34b8f2a`, COVERAGE-SHA
+`d3c95a7a16a3a63c3276ba5f90dfa3b99a93957edea302cf990d521c3c20325c`, TERMINAL-SHA
+`57ff529479000918ac382268e857d518c8d89f7ebe8111bad16aedb4a6149ce3`. FIT: 29 574 rader/1 849 batcher;
+senere: 17 489 rader/1 094 batcher. Åtte flater har rå og normalisert
+fullhash i begge perioder, alle 23 544 normaliseringskall fullført. Målarrays
+dekodet 0, modellforward 0, normaliseringsfit 0, optimeringssteg 0, TEST 0.
+Kilde uendret. Dette kvalifiserer input, ikke læring eller edge. Neste steg er
+en fersk 318/256-initialmodell med samme FIT/later aksene; treningsflagg er
+fortsatt stengt. Fysisk Windows-boot er fortsatt 664; ny fit krever >664.
