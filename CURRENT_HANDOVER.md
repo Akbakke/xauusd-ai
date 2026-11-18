@@ -470,3 +470,33 @@ på de kvalifiserte EMA-inputene. Gjennomgå tidligere tilsvarende fit først;
 ingen ny treningsplan er laget eller innrømmet. Huber-verdiavviket for
 Entry-kvalitet står åpent for senere, eget middelverdikonsistent mål.
 Full GC, TEST, ONLINE, broker og handel forblir stengt.
+
+## Hvorfor ny epoke eller S/F-omvekting ikke er neste steg
+
+Nærmeste tidligere native S/F-hovedmål på 317/255-visningen fullførte 2 959
+oppdateringer, men på fast TRAIN4096 steg M5 F-side-Brier fra 0,25045 til
+0,25521, mot FIT-prior 0,24988. S/F-side-Brier var verre enn prioren på alle
+ti S/F×TF-celler. Dette panelet er ikke hele det eldre FIT-utvalget. En eldre
+topass-kontroll på samme 29 574 foreldre gjorde senere M5 F-side-Brier
+0,2573 etter første pass og 0,2587 etter andre, mot prior 0,2497; den brukte
+et annet view. Batchrekkefølgetest påvirket sannsynlighetsnivå, men ga ikke
+målt bedre retningsrangering. Fallende samlet treningstap over forskjellige
+kronologiske batcher motsier ikke disse faste, dårlige retningstallene.
+
+På den aktuelle EMA-visningen er både betinget M5 S- og F-log-tap på fullt
+FIT også dårligere enn prioren. Masker, UP/DOWN-koding, akser og native
+query samsvarer eksakt i FIT og senere capture. Dermed er det ingen grunn
+til å gjenta det samme tapet, stokke batcher eller legge på epoker som
+«rettelse». Tidligere gradientgjennomgang fant ingen bred S/F-konflikt ved
+M5-grensen, men målte ikke den nye beslutningshovedveiens effekt. Neste
+minste falsifiserbare måling er en oppdateringsfri gradientpartisjon på
+forhåndsvalgte FIT-batcher av den fryste EMA-modellen: om kostet primærtap
+motvirker native F-side ved den delte representasjonen. En ny fit er ikke
+innrømmet. Økonomisk edge er fortsatt ubevist.
+
+Kilde for den nye gradientproben er nå klargjort: 20 faste hele B16-batcher
+spredt over Fold1 FIT; 21 forwards (ett ekstra paritetskall), 80 autograd-
+kall kun til løsrevet delt TF-representasjon, null parametergradient,
+optimizer eller oppdatering. En eksakt 1 800-sekunders kapslet rute er
+lagt til. Fire probetester og 12 rutetester består. Plan og opptak følger;
+ingen modelljobb er startet.

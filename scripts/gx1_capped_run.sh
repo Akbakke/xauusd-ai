@@ -51,6 +51,7 @@ TA_TF_ACTIVITY_BOUNDARIES_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_tf_a
 TA_CURRENT_UPDATES_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_current_updates_v1
 TA_CURRENT_NUMERIC_ROUTES_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_current_numeric_routes_v1
 TA_EMA_FINAL_FIT_SCORE_PRODUCER_MODULE=gx1.audit.score_ta_ema_final_fit_v1
+TA_EMA_LOSS_GRADIENT_PROBE_PRODUCER_MODULE=gx1.audit.probe_ta_ema_loss_gradient_v1
 TA_CURRENT_MODES_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_current_modes_v1
 TA_CONTEXT_DRIFT_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_context_drift_v1
 TA_HEAD_INPUT_PRODUCER_MODULE=gx1.audit.observe_market_state_ta_head_input_v1
@@ -538,6 +539,26 @@ matches_bound_ta_ema_final_fit_score() {
   [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$7" ]]
 }
 
+# One no-update gradient partition of the frozen EMA model on fixed FIT batches.
+matches_bound_ta_ema_loss_gradient_probe() {
+  local expected_plan="$REPO_ROOT/configs/research/TA_M5_EMA_LOSS_GRADIENT_PROBE_20261118_001.json"
+  local expected_output=/home/andre2/GX1_RUNS/TA_M5_EMA_LOSS_GRADIENT_PROBE_20261118_001
+  if [[ $# -eq 12 ]]; then
+    [[ "${12}" == --preflight ]] || return 1
+    set -- "${@:1:11}"
+  fi
+  [[ $# -eq 11 ]] || return 1
+  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \
+    && "$3" == "$TA_EMA_LOSS_GRADIENT_PROBE_PRODUCER_MODULE" \
+    && "$4" == --plan && "$5" == "$expected_plan" \
+    && "$6" == --plan-sha256 && "$7" =~ ^[0-9a-f]{64}$ \
+    && "$8" == --device && "$9" == cuda && "${10}" == --out-dir \
+    && "${11}" == "$expected_output" ]] || return 1
+  [[ -f "$expected_plan" && ! -L "$expected_plan" \
+    && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1
+  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$7" ]]
+}
+
 validate_target_command() {
   local executable_basename="${1##*/}" target_arg module
   local trainer_reference=false hardware_smoke_reference=false
@@ -593,6 +614,7 @@ validate_target_command() {
           && [[ "${3:-}" != "$TA_CURRENT_UPDATES_PRODUCER_MODULE" ]] \
           && [[ "${3:-}" != "$TA_CURRENT_NUMERIC_ROUTES_PRODUCER_MODULE" ]] \
           && [[ "${3:-}" != "$TA_EMA_FINAL_FIT_SCORE_PRODUCER_MODULE" ]] \
+          && [[ "${3:-}" != "$TA_EMA_LOSS_GRADIENT_PROBE_PRODUCER_MODULE" ]] \
           && [[ "${3:-}" != "$TA_CURRENT_MODES_PRODUCER_MODULE" ]] \
           && [[ "${3:-}" != "$TA_CONTEXT_DRIFT_PRODUCER_MODULE" ]] \
           && [[ "${3:-}" != "$TA_HEAD_INPUT_PRODUCER_MODULE" ]] \
@@ -845,6 +867,17 @@ validate_target_command() {
         TRAINER_GPU_MAX_POWER_LIMIT_W=250
         # Reuse the 3600 s CUDA producer cap: the prior 6118 s job had
         # 4037 mixed forwards; this FIT-only replay has 1849, no updates.
+      fi
+      if [[ "${3:-}" == "$TA_EMA_LOSS_GRADIENT_PROBE_PRODUCER_MODULE" ]]; then
+        if [[ "$MEM" != 20G || "$SWAP" != 512M ]] \
+          || ! matches_bound_ta_ema_loss_gradient_probe "$@"; then
+          echo "FATAL: EMA loss gradient probe is not exactly bound" >&2
+          exit 75
+        fi
+        NUMERICAL_THREAD_COUNT=8
+        TRAINER_GPU_MAX_POWER_LIMIT_W=250
+        TRAINER_MAX_WALL_SECONDS=1800
+        TRAINER_MODEL_MAX_WALL_SECONDS=1800
       fi
       if [[ "${3:-}" == "$TA_CURRENT_NUMERIC_ROUTES_PRODUCER_MODULE" ]]; then
         local ta_current_numeric_routes_root=/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_NUMERIC_ROUTES_20261113_001

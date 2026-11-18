@@ -518,6 +518,15 @@ forbudt og kan ikke gjenåpnes av historiske moduler på disk.
     uoppfordret). Kjør dyprevisjonen før du påstår noe, sveip en funnet defektklasse over alle
     eiere i samme bølge, og dokumenter hva som ble og ikke ble verifisert.
 
+26. **Gjeldende M5/MTF-læringsport.** Fall i samlet treningstap over ulike
+    kronologiske batcher er ikke bevist retningslæring. Sammenlign S/F-side på
+    samme frosne FIT-rader mot FIT-prioren med AUC, Brier og log-tap, og mål
+    uendrede senere rader separat. Ny epoke, batchrekkefølge eller tapsvekt
+    krever ett konkret, målt og falsifiserbart avvik når tilsvarende fit allerede
+    feilet; ingen rutinegjentakelse. Et Huber-/ensidig MAE-trent output kan ikke
+    brukes som forventet økonomisk verdi uten separat middelverdikonsistent
+    mål og kalibreringsbevis på riktig populasjon. TEST forblir forseglet.
+
 ## Operatørvedtak09.10.2026: uavhengig Entry-læring
 
 Entry skal lære stabile retningsmuligheter fra observerte markedsutfall,
