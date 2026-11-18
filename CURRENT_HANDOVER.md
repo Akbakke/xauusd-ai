@@ -630,6 +630,9 @@ Ny kilde og eksakt 10 800-sekunders kapslet rute er klargjort. De binder
 full FIT/senere S/F-skår og F-H4-fortegn som fast markout-proxy mot
 alltid-LONG. Samme initiale EMA-wrapper-hash er rekonstruert på CPU uten
 forward; core-hash er `b73dd0c23c0e62fb20bcb79bbb7a87dd84794580ebdcea814559fab508f63826`.
-Sju nye fokuserte tester, syntaks og kapselkontroll består. Plan,
-preflight og eventuell engangsinnrømmelse gjenstår. Ingen ny trening
+Sju nye fokuserte tester, syntaks og kapselkontroll består. Planen
+`TA_M5_EMA_SF_ONLY_CONTROL_20261118_001` er nå bundet til kildecommit
+`3ff90f57`, SHA `9a0a54b087d1089869a513492bee7b5cc4d3974d5ffa862dbb25b3217e2980b4`, 31 uendrede inputreferanser
+og null tillatte kall. Kapslet preflight og eventuell separat
+engangsinnrømmelse gjenstår. Ingen ny trening
 eller TEST-lesning er startet; globale treningsflagg er fortsatt false.
