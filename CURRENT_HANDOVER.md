@@ -271,4 +271,11 @@ Fersk initial-engangsplan `TA_M5_EMA_DELTA_INITIAL_PREFLIGHT_20261118_001`
 (SHA `eec69cb41408f43485a047ee764c4cf5810a920584068b2964de0a1c3c3d8f4f`) er innrømmet: én ny
 318/256-modell, én FIT B16 v2-loss og én senere B16 score, null optimizer.
 Planen binder full gather, ny Fold1-prior, dagens FIT-statistikkhash og uendret
-måltape. Ingen CLAIM eller modellforward ennå; ren preflight kreves først.
+måltape. Ren preflight og én kapslet CPU-initialaudit er fullført og konsumert.
+RESULT-SHA `8fe95ca667c1ba814a6c0b9785218891cf9bae5e4e0d2fb01cbddbb2a3972adb`; TERMINAL-SHA
+`5b121cf92eab315db9102cec583b632641cf9d72bbc8734c840f9f577922e344`. Faktisk ny modelltilstand
+`b00f694b982ba6e46742e51e7de6b9c6376b109ae8b987c25f9dbc3e90e57c40` og kjerne-/beslutningskontrakter
+er publisert. To forwards, null optimizer. I begge B16-batcher var største
+avvik mellom modellens normalisering og referanse null på alle åtte flater.
+Dette er mekanisk baseline, ikke læring/edge. Neste steg er én eksakt fit-plan;
+Windows-boot 664 tilfredsstiller ennå ikke kravet om en senere fysisk boot.
