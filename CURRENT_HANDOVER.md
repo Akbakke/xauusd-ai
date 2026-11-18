@@ -361,6 +361,59 @@ isoleres kausalt fra hverandre i denne ene fit. Engangsplanen er konsumert,
 treningsflaggene er lukket, og ingen ny plan er innrømmet. En fokusert
 test som antok fravær av resultatrot etter kjøringen, er isolert til en
 temporær no-claim-mappe; modell og historiske kvitteringer er uendret. Neste
-direkte arbeid er diagnose av side-rangering og kvalitetskalibrering med de fryste
-FIT/later-kvitteringene før eventuell ny modellhypotese. Full GC, TEST,
+direkte arbeid var diagnose av side-rangering og kvalitetskalibrering med de
+fryste FIT/later-kvitteringene; resultatet følger nedenfor. Full GC, TEST,
 ONLINE, broker og handel forblir stengt.
+
+## Diagnose med fryste FIT/later-kvitteringer 18.11.2026
+
+Tre avgrensede lesere reviderte mål/tap/valg, indikator- og TF-konsum samt
+treningsveien. Ingen ny modellforward, optimizeroppdatering, TEST-lesning eller
+kildeendring. I den reviderte ruten var LONG/SHORT-orden og klokker like fra
+bid/ask-mål gjennom tap, lagret prognose og scorer; alle 17 489 senere
+radkoblinger og handlingsantall ble uavhengig gjenskapt. Begge beslutningssider
+har ikke-null trente vekter; 0 SHORT er ikke en død eller frakoblet utgang.
+Den nye EMA-endringen når lokal input og alle fem kausale TF-baner. Lokal/M5-
+verdien er ikke konstant og bare 0,02 % av senere verdier ligger utenfor
+observert FIT-spenn etter normalisering. Dens enkle korrelasjon med h480-
+sidekvalitet var +0,027 på FIT og −0,043 senere; dette beviser verken
+prediktiv nytte eller mangel på ikke-lineært samspill. Gjeldende TA-profil
+utelater GC/MBP-1 med vilje, så denne fitten tester ikke full featureflaten.
+
+På komplette h480-baner kom FIT→senere forskjellen hovedsakelig fra netto
+LONG−SHORT: +9,901 til −4,688 bps. Forskjellen i pre-MFE MAE var
+−0,823 til +0,614 bps. Kvalitetsforskjellen +10,724 til −5,303 bps er et
+observert utvalgsskifte. Ukeblokk-bootstrap med 20 000 trekk, frø 20261118 og uavhengig
+resampling av ISO-ukers summer/antall på 22 FIT- og 14 senere uker ga
+95 % intervall [−36,994, +4,636] bps for endringen;
+null er inkludert, så dette er ikke et statistisk etablert regimeskifte.
+
+Den aktive markedstilstandsfasen prioriterer S/F-retning før Entry. Denne
+EMA-runden trente kostjustert M5-prisbane som hovedtap, med S/F og struktur
+som hjelpetap multiplisert med 0,10. Hjelpetapet sto for omtrent 37–43 % av
+registrert skalar tapsverdi; gradientandel er ikke målt. Dette er et faktisk
+målprioriteringsskille, ikke bevis for at vekten alene forårsaket svikten.
+I h480-sideparets eksakte FIT-skala (111,040 bps) er konstant minimizer for
+Huber-leddet på de senere 11 318 komplette banene +4,683 bps LONG−SHORT,
+mens aritmetisk gjennomsnittlig kostet kvalitet er −5,303 bps. Beslutningen
+bruker prognosen som forventet kvalitet. Dette er en matematisk mål-/verdi-
+mismatch på denne fordelingen: et perfekt robust konstantestimat kan velge
+motsatt side av gjennomsnittlig økonomisk verdi. FIT hadde både positivt
+Huber-sentrum og positivt gjennomsnitt; mismatchen alene forklarer ikke
+modellens senere +44,292 bps predikerte sideforskjell eller nær-null rangering.
+
+Et eldre, separat LightGBM-kontrollforsøk på lukkede indikatorøyeblikksbilder
+hadde M5 S/F-AUC 0,788/0,769 på FIT, men 0,510/0,509 senere. Det var et
+annet view og ingen native sekvensmodell; det viser at høy FIT-score i en
+enkel kontroll heller ikke dokumenterer overføring. Denne EMA-kjøringen
+lagret kun initial/sluttprognoser på senere rader og kronologiske FIT-
+tapsblokker, ikke sluttmodellens FIT-prognoser. Derfor er det fortsatt
+ubevist om dagens modell lærer sidebetingelsen på FIT og så mister den,
+eller ikke lærer den der. En ny epoke eller liten tapsjustering avklares
+ikke av denne evidensen.
+
+Neste falsifiserbare, direkte kontroll er én separat innrømmet, kapslet og
+oppdateringsfri scoring av den fryste EMA-checkpointen på eksakt 29 574 FIT-
+rader, sammenlignet med allerede lagret senere score på h480 og S/F.
+Ingen slik plan er laget eller innrømmet. Fram til FIT-vs-senere er skilt,
+forblir trening, Full GC, TEST, ONLINE, broker og handel stengt.
