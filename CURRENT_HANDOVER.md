@@ -287,3 +287,8 @@ Den binder de nye fullgather-, prior- og initialkvitteringene, 29 574 FIT,
 TRAIN/TEST/ONLINE/broker er fortsatt stengt. Ny fysisk Windows-boot >664
 kreves før eventuell engangsadmisjon og capped trainer-kjøring. Ingen ny
 modellfit, checkpoint eller edge-bevis finnes fra dette viewet ennå.
+Direkte preflight på ren commit `003adda6` besto, outputrot er fraværende og
+CLAIM er ikke opprettet. Den rapporterte `fresh_physical_boot=false` på
+Windows-boot 664. Engangsfit forblir PREPARED_NOT_ADMITTED; neste steg krever
+operatørens valg om fysisk omstart, deretter ny boot-/kilde-/maskinvarekontroll
+før eventuell admittering.
