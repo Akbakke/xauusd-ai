@@ -500,3 +500,8 @@ kall kun til løsrevet delt TF-representasjon, null parametergradient,
 optimizer eller oppdatering. En eksakt 1 800-sekunders kapslet rute er
 lagt til. Fire probetester og 12 rutetester består. Plan og opptak følger;
 ingen modelljobb er startet.
+
+Plan `TA_M5_EMA_LOSS_GRADIENT_PROBE_20261118_001` er klargjort mot
+kildecommit `57e7eca8` og de samme 31 kvalifiserte inputreferansene.
+Policy er `PREPARED_NOT_ADMITTED`: null tillatte kall, trening fortsatt
+stengt. Preflight og deretter eventuell eksakt engangsinnrømmelse gjenstår.
