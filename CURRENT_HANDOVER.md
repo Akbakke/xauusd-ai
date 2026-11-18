@@ -279,3 +279,11 @@ er publisert. To forwards, null optimizer. I begge B16-batcher var største
 avvik mellom modellens normalisering og referanse null på alle åtte flater.
 Dette er mekanisk baseline, ikke læring/edge. Neste steg er én eksakt fit-plan;
 Windows-boot 664 tilfredsstiller ennå ikke kravet om en senere fysisk boot.
+
+Eksakt én-epoke kandidat `TA_M5_EMA_DELTA_JOINT_FIT_20261118_001` er
+forberedt, **ikke innrømmet**, plan-SHA `0ce0eecd763c3b9f55105f4ee6eb1d9e3ffbee0d1b1a1635577b647d5c4f912c`.
+Den binder de nye fullgather-, prior- og initialkvitteringene, 29 574 FIT,
+17 489 senere, 1 849 maksimale oppdateringer og 4 037 planlagte forwards.
+TRAIN/TEST/ONLINE/broker er fortsatt stengt. Ny fysisk Windows-boot >664
+kreves før eventuell engangsadmisjon og capped trainer-kjøring. Ingen ny
+modellfit, checkpoint eller edge-bevis finnes fra dette viewet ennå.
