@@ -630,18 +630,52 @@ Ny kilde og eksakt 10 800-sekunders kapslet rute er klargjort. De binder
 full FIT/senere S/F-skår og F-H4-fortegn som fast markout-proxy mot
 alltid-LONG. Samme initiale EMA-wrapper-hash er rekonstruert på CPU uten
 forward; core-hash er `b73dd0c23c0e62fb20bcb79bbb7a87dd84794580ebdcea814559fab508f63826`.
-Sju nye fokuserte tester, syntaks og kapselkontroll består. Planen
-`TA_M5_EMA_SF_ONLY_CONTROL_20261118_001` er nå bundet til kildecommit
-`3ff90f57`, SHA `9a0a54b087d1089869a513492bee7b5cc4d3974d5ffa862dbb25b3217e2980b4`, 31 uendrede inputreferanser
-og null tillatte kall. Kapslet preflight bestod uten CLAIM, resultatmappe, modellforward eller
-oppdatering og bekreftet samme core-hash. GPU og GX1-jobblås er ledige.
-Kun denne planen er nå innrømmet én gang. Kjøring krever fysisk
-Windows-boot >665 og ny kontroll av eksakt kilde/input/vakter. Ingen
-trening eller TEST-lesning er startet; globale treningsflagg er åpne
-bare for det eksakt innrømmede engangskallet.
+Sju nye fokuserte tester, syntaks og kapselkontroll bestod. Plan
+`TA_M5_EMA_SF_ONLY_CONTROL_20261118_001` var bundet til kildecommit
+`3ff90f57`, SHA `9a0a54b087d1089869a513492bee7b5cc4d3974d5ffa862dbb25b3217e2980b4`
+og 31 kvalifiserte inputreferanser. Kapslet preflight bestod uten CLAIM,
+resultatmappe, modellforward eller oppdatering og gjenskapte samme core-hash.
+
+Fysisk Windows-boot 666 oppfylte fersk-boot-vakten. Umiddelbart etter
+omstart var siste lokale Git-commit, to blobber og ett tre null byte.
+Arbeidsfiler og indeks matchet eksakte Git-hasher; blobene og treet ble
+gjenskapt fra uendrede filer og indeks. Det eksakte treet fikk gyldig
+commit `a2ee53d6` med forrige gyldige commit som forelder.
+Ødelagte nullobjekter og nulltegn i to reflogger ble fjernet. Git-kjedens
+tilkobling, ren arbeidskopi og innrømmet kilde-/boot-vakt bestod på nytt;
+commitene ble pushet før trening. Ingen modellkilde eller planinnhold ble
+endret i reparasjonen.
 
 Den eksakt innrømmede S/F-kontrollen fullførte på boot 666 med exit 0:
-1 849/1 849 oppdateringer, 2 943 sluttscore-forwards og uendret kilde.
-CLAIM, RESULT, TERMINAL, begge radcapturer og checkpoint er hashbundet.
-Kjøringen er konsumert; alle globale treningsflagg er lukket igjen.
-Uavhengig radkontroll og endelig tolking følger før resultattall brukes.
+1 849/1 849 oppdateringer, 2 943 sluttscore-forwards, 7 254 sekunder og
+uendret kilde. CLAIM, RESULT, TERMINAL, begge radcapturer og checkpoint
+er hashbundet. Gjeldende trening, Full GC, TEST, ONLINE, broker og handel
+er stengt, og engangskallet er konsumert. Checkpoint-digest, gammel
+policy ved CLAIM, FIT/senere-akser, alle ti S/F proper scores og h480-
+kvalitet er kontrollregnet uavhengig fra lagrede rader og faste mål.
+
+**Hovedkontrollen feilet allerede på FIT.** Native F-M5 betinget side-Brier
+var 0,26266 mot fast FIT-prior 0,24988 på 11 909 kjente FIT-sider, og
+0,26578 mot 0,24983 på 7 058 senere sider. Begge var også verre enn
+beslutningsmodellens 0,25307/0,25428. Alle ti native S/F×TF-celler var
+verre enn FIT-prior på både full FIT og full senere utvikling; log-tap
+for F-M5 var også verre. Retnings-AUC F-M5 var 0,520/0,512 FIT/senere,
+F-H4 0,553/0,486. Målprioriteten alene var altså ingen tilstrekkelig
+rettelse av denne modellens S/F-læring. Å legge til epoker på samme
+kontrakt er ikke begrunnet av dette resultatet.
+
+Forhåndsbundet F-H4-fortegn som sideproxy på komplette h480-baner ga
++1,149 bps mot alltid-LONG på FIT (18 901 rader) og +1,853 bps senere
+(11 318). ISO-ukeblokk-bootstrap med 20 000 trekk, frø 20261118, ga
+95 % intervall [−1,062, +3,239] og [+0,153, +3,693] bps. Senere var
+586 SHORT-valg, hvorav 488 i oktober; kontinuerlig kostside-AUC var
+0,503, og 6 171 senere h480-baner var ufullstendige. Dette er en liten,
+forhåndsvalgt utviklingsobservasjon på overlappende markout, ikke
+posisjonsført PnL, uavhengig generalisering eller Edge. Den kan ikke
+brukes til å åpne TEST eller handel.
+
+Neste fit trenger en faktisk ny, kausal informasjons- eller målkontrakt,
+full senere inputkvalifikasjon og ny engangsinnrømmelse. Den konsumerte
+Entry-v2-kvalitetsutgangen er fortsatt ikke en forventningsverdi;
+middelverdikonsistent Entry-v3 er spesifisert som senere design, ikke
+den aktive S/F-fasens treningsmål. Ingen ny plan er innrømmet.
