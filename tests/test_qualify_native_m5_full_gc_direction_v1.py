@@ -992,3 +992,203 @@ def test_shuffled_pass_boundary_cold_restore_preserves_next_batch_adamw_rng_and_
         with pytest.raises(ValueError,match='TA_FIT_CHECKPOINT_PASS_CURSOR'):
             owner.restore_fit_checkpoint(resumed,other,context,plan,plan_ref,bad)
         assert owner.state_sha(resumed.state_dict())==state_before
+
+
+def test_shared_gradient_cross_conflict_is_distinct_from_joint_direction_and_zero_norm():
+    report=owner.shared_gradient_measures((torch.tensor([1.,0.]),),(torch.tensor([-.5,1.]),))
+    assert report['cross_dot']==-.5 and report['cosine']<0
+    assert report['g5_dot_joint']==.5 and report['raw_joint_opposes_M5']is False
+    zero=owner.shared_gradient_measures((None,torch.zeros(2)),(torch.ones(1),torch.ones(2)))
+    assert zero['g5_l2']==0 and zero['cosine']is None and zero['g5_dot_joint']==0
+    assert zero['raw_joint_opposes_M5']is False and zero['unused_M5_parameter_tensors']==1
+    with pytest.raises(ValueError,match='SHARED_NONFINITE_GRADIENT'):
+        owner.shared_gradient_measures((torch.tensor([float('inf')]),),(None,))
+
+
+def test_shared_gradient_parent_refs_and_cpu_cli_fail_before_io(monkeypatch):
+    monkeypatch.setattr(owner,'read',lambda *_:pytest.fail('unbound parent read'))
+    with pytest.raises(ValueError,match='SHARED_EXACT_PARENT_REFS'):owner.shared_gradient_metadata({})
+    bad=copy.deepcopy(owner.SHARED_GRADIENT_PARENT);bad['block_result']['sha256']='0'*64
+    with pytest.raises(ValueError,match='SHARED_EXACT_PARENT_REFS'):owner.shared_gradient_metadata(bad)
+    monkeypatch.setattr(owner,'inspect_shared_gradient',lambda *a,**k:pytest.fail('bad CLI reached metadata gate'))
+    args=SimpleNamespace(plan=str(owner.SHARED_GRADIENT_PLAN),out_dir=str(owner.SHARED_GRADIENT_ROOT),
+        device='cuda',plan_sha256='0'*64,preflight=True)
+    with pytest.raises(ValueError,match='SHARED_CLI_SCOPE'):owner.shared_gradient_cli(args)
+    assert owner.SHARED_GRADIENT_BLOCKS==(0,31,63,95)
+    assert owner.SHARED_GRADIENT_EXECUTION['internal_seconds']==870
+    assert owner.SHARED_GRADIENT_EXECUTION['external_wall_timeout_enforced']is False
+
+
+def test_shared_gradient_source_bridge_keeps_entire_old_driver_except_cpu_dispatch(tmp_path,monkeypatch):
+    leaves=('fresh_fit_model','fit_step','fit_score','prepare_ta_native_fit','fit_axes','seed_native_fit',
+        'training_rng','restore_training_rng','state_sha','slice_truth','fit_checkpoint','publish_checkpoint',
+        'restore_fit_checkpoint','fit_state_proof','_ta_initial_prior_proof','cold_resume_fit','require_cold_resume_proof')
+    original="ADAMW_RECIPE={'lr':1e-4}\n"+''.join('def '+name+'():return 1\n'for name in leaves)
+    original+='def main():return 1\n'
+    changed=original.replace('def main():return 1','def main():return 2')
+    changed+='SHARED_GRADIENT_STAGE="new"\ndef qualify_shared_gradient():return 8\n'
+    driver='gx1/audit/qualify_native_m5_full_gc_direction_v1.py';test='tests/test_qualify_native_m5_full_gc_direction_v1.py'
+    paths=(driver,test,'gx1/contracts/unchanged_numeric.py');parent={'mode':'ta_shuffle','source_base_commit':'f'*40,'source_owners':{}}
+    for name in paths:
+        path=tmp_path/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(original if name==driver else'original\n')
+        parent['source_owners'][name]=owner.sha(path)
+    (tmp_path/driver).write_text(changed)
+    monkeypatch.setattr(owner,'REPO',tmp_path);monkeypatch.setattr(owner,'TA_FIT_SOURCE_PATHS',paths)
+    monkeypatch.setattr(owner.subprocess,'check_output',lambda *a,**kw:original.encode())
+    proof=owner.shared_gradient_source_bridge(parent)
+    assert proof['all_other_source_owners_exact']and len(proof['numeric_identity']['unchanged_numeric_leaf_ast_sha256'])==18
+    (tmp_path/driver).write_text(changed.replace('def fit_score():return 1','def fit_score():return 2'))
+    with pytest.raises(ValueError,match='SHARED_EXISTING_DRIVER_AST'):owner.shared_gradient_source_bridge(parent)
+    (tmp_path/driver).write_text(changed);(tmp_path/paths[-1]).write_text('changed model/loss/stats\n')
+    with pytest.raises(ValueError,match='SHARED_UNCHANGED_MODEL_LOSS_STATS_OWNERS'):owner.shared_gradient_source_bridge(parent)
+
+
+def test_shared_gradient_qualifier_has_four_train_forwards_eight_derivatives_and_immutable_state(tmp_path,monkeypatch):
+    parent,context,prior=_ta_prior_context();parent['mode']='ta_shuffle'
+    selected,selection=owner.selected_small_cohorts(parent,context);template,_,_=_batch_truth();seen=[]
+    first=selected['FIT'][:16];positions=np.searchsorted(context['cohorts']['TRAIN']['rows'],first)
+    context['cohorts']['TRAIN']['truth']['open_known_at_issue'][positions]=True
+    provider=_provider();provider.surfaces={'source_binding':{'native_only':True}}
+    issue=np.zeros(int(context['cohorts']['CONTROL']['rows'][-1])+1,np.int64)
+    for cohort in context['cohorts'].values():issue[cohort['rows']]=dict.__getitem__(cohort['truth'],'issue_ns')
+    provider.issue_ns=issue
+    def gather(rows,*,max_rows):
+        seen.append(rows.copy());assert max_rows==len(rows)==16
+        out={key:np.repeat(value[:1],len(rows),axis=0).copy()for key,value in template.items()}
+        for value in out.values():
+            if value.ndim==3:value[:,-1,0]=(rows%7+1).astype(np.float32)
+        return out
+    provider.gather=gather
+    norm={'unit_TRAIN_only':True};normal_ref=owner.publish(tmp_path/'norm.json',norm);prior_ref=owner.publish(tmp_path/'prior.json',prior)
+    context.update(provider=provider,normalization=norm,normalization_ref=normal_ref,prior=prior,prior_ref=prior_ref)
+    model=_training_model(provider).eval()
+    from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
+    before=canonical_model_state_sha256(model.state_dict())
+    plan={'metadata':{'parent_fit_plan':parent,'normalization':normal_ref,'prior':prior_ref,
+        'selected_cohorts':selection,'final_checkpoint':{'path':'unit_checkpoint','sha256':'1'*64},'final_state_sha256':before}}
+    monkeypatch.setattr(owner,'prepare_native_fit',lambda *a,**kw:context)
+    monkeypatch.setattr(owner,'shared_gradient_load_model',lambda *args:model)
+    monkeypatch.setattr(torch.optim,'AdamW',lambda *a,**k:pytest.fail('diagnostic constructed optimizer'))
+    monkeypatch.setattr(torch.Tensor,'backward',lambda *a,**k:pytest.fail('diagnostic called backward'))
+    real=torch.autograd.grad;derivatives=[]
+    def grad(*args,**kwargs):
+        result=real(*args,**kwargs);derivatives.append(tuple(None if x is None else x.detach().clone()for x in result));return result
+    monkeypatch.setattr(torch.autograd,'grad',grad)
+    report=owner.qualify_shared_gradient(plan)
+    assert report['actual_counts']==owner.SHARED_GRADIENT_LIMITS and len(derivatives)==8
+    assert len(seen)==4 and [item['canonical_TRAIN_block']for item in report['batches']]==[0,31,63,95]
+    for actual,index in zip(seen,[0,31,63,95]):np.testing.assert_array_equal(actual,selected['FIT'][index*16:(index+1)*16])
+    assert report['CONTROL_analysis_rows']==0 and report['shared_loader_may_decode_qualified_CONTROL']is True
+    assert report['model_unchanged']and report['CPU_python_numpy_torch_RNG_unchanged']
+    assert report['parameter_grad_None_before_and_after']and all(p.grad is None for p in model.parameters())
+    assert canonical_model_state_sha256(model.state_dict())==before
+    weights=np.array([item['Ntotal']for item in report['batches']],np.float64);assert len(np.unique(weights))>1
+    parameters=tuple(p for p in model.backbone.parameters()if p.requires_grad)
+    vectors=[]
+    for task in (0,1):
+        values=[]
+        for grads in derivatives[task::2]:
+            values.append(np.concatenate([np.zeros(p.numel())if g is None else g.numpy().astype(np.float64).ravel()
+                for p,g in zip(parameters,grads)]))
+        vectors.append(np.average(np.stack(values),axis=0,weights=weights))
+    a,b=vectors;expected_dot=float(a@b)
+    assert report['panel']['cross_dot']==pytest.approx(expected_dot,abs=1e-12)
+    assert report['panel']['g5_dot_joint']==pytest.approx(float(a@(a+b)),abs=1e-12)
+    assert report['panel']['g5_l2']==pytest.approx(float(np.linalg.norm(a)),abs=1e-12)
+
+
+def test_shared_gradient_controller_preclaim_and_failed_terminal_are_one_use(tmp_path,monkeypatch):
+    root=tmp_path/'diagnostic';monkeypatch.setattr(owner,'SHARED_GRADIENT_ROOT',root)
+    monkeypatch.setattr(owner.common,'firewall_state',lambda:{'denied_attempts':0})
+    cap={'memory_max':12*1024**3,'memory_high':12*1024**3,'swap':512*1024**2,'pids':64,
+        'numerical_threads':1,'cgroup_path':'/sys/fs/cgroup/unit'}
+    monkeypatch.setattr(owner.common,'require_capped_cpu_research_producer_execution',lambda:cap)
+    monkeypatch.setattr(owner.common,'require_capped_lock_ancestry',lambda:{'scope':'/unit'})
+    def blocked(*a,**k):raise ValueError('preclaim refused')
+    monkeypatch.setattr(owner,'inspect_shared_gradient',blocked)
+    with pytest.raises(ValueError,match='preclaim refused'):owner.run_shared_gradient('0'*64)
+    assert not root.exists()
+    plan_ref={'path':'unitplan','sha256':'1'*64};policy_ref={'path':'unitpolicy','sha256':'2'*64}
+    monkeypatch.setattr(owner,'inspect_shared_gradient',lambda *a,**k:({},plan_ref,policy_ref))
+    def failed(*args):raise FloatingPointError('nonfinite raw gradient')
+    monkeypatch.setattr(owner,'qualify_shared_gradient',failed)
+    previous=owner.signal.getsignal(owner.signal.SIGALRM)
+    with pytest.raises(FloatingPointError,match='nonfinite raw gradient'):owner.run_shared_gradient('0'*64)
+    terminal=json.loads((root/'TERMINAL.json').read_text())
+    assert terminal['status']=='FAILED_CONSUMED'and terminal['remaining_invocations']==0
+    assert terminal['relaunch_allowed']is False and terminal['test_data_used']is False
+    assert (root/'CLAIM.json').exists()and owner.signal.getitimer(owner.signal.ITIMER_REAL)==(0.,0.)
+    assert owner.signal.getsignal(owner.signal.SIGALRM)==previous
+    # A separate synthetic one-use root exercises the success terminal, never a relaunch.
+    complete=tmp_path/'complete';monkeypatch.setattr(owner,'SHARED_GRADIENT_ROOT',complete)
+    monkeypatch.setattr(owner,'qualify_shared_gradient',lambda p:{'actual_counts':owner.SHARED_GRADIENT_LIMITS})
+    monkeypatch.setattr(owner,'shared_gradient_checked_inputs',lambda p:None)
+    monkeypatch.setattr(owner,'shared_gradient_source_clean',lambda p:True)
+    real_ref=owner.ref
+    monkeypatch.setattr(owner,'ref',lambda p:policy_ref if p==owner.POLICY else plan_ref if p==owner.SHARED_GRADIENT_PLAN else real_ref(p))
+    refs=owner.run_shared_gradient('0'*64)
+    done=json.loads((complete/'TERMINAL.json').read_text());result=json.loads((complete/'RESULT.json').read_text())
+    assert done['status']=='COMPLETE'and done['result']==refs['result']and done['relaunch_allowed']is False
+    assert result['training_authorized']is False and result['optimizer_steps']==0
+    assert set(path.name for path in complete.iterdir())=={'CLAIM.json','RESULT.json','TERMINAL.json'}
+
+
+def test_shared_gradient_loads_only_final_model_state_and_rejects_wrong_bindings_before_copy(tmp_path,monkeypatch):
+    import io
+    from gx1.contracts import market_state_ta_integrated_model_v1 as models
+    from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
+    parent,_=_shuffle_unit();parent['metadata'].update(architecture={'unit':True},target_contract=target_contract())
+    provider=_provider();provider.input_binding=lambda norm:{'unit_normalization':norm['contract_sha256']}
+    context={'provider':provider,'normalization':{'contract_sha256':'unit_norm'},'prior':{'unit_prior':True},
+        'normalization_ref':{'path':'unitnorm','sha256':'1'*64},'prior_ref':{'path':'unitprior','sha256':'2'*64}}
+    def small():
+        model=_training_model(provider);model.research_objective={'unit_prior_contract':True};return model
+    original=small();parent_ref={'path':'unitparent','sha256':'3'*64};calls=[]
+    checkpoint={'schema_version':'gx1_native_m5_ta_prior_training_state_v1','plan':parent_ref,'cursor':384,
+        'schedule_position':owner._ta_schedule_position(parent,384),'model_state':original.state_dict(),
+        'optimizer_state':{'must_never_be_applied':True},'optimizer_parameter_names':[name for name,_ in original.named_parameters()],
+        'bindings':{'input':provider.input_binding(context['normalization']),'normalization':context['normalization_ref'],
+            'prior':context['prior_ref'],'target':target_contract(),'architecture':parent['metadata']['architecture'],
+            'recipe':parent['recipe'],'model_contract':original.research_objective}}
+    def save(name):
+        stream=io.BytesIO();torch.save(checkpoint,stream);return owner.publish(tmp_path/name,stream.getvalue())
+    plan={'metadata':{'parent_fit_plan':parent,'dependencies':{'parent_plan':parent_ref},
+        'final_checkpoint':save('final.pt'),'final_state_sha256':canonical_model_state_sha256(original.state_dict())}}
+    def factory(**kwargs):
+        assert kwargs['device']==torch.device('cpu')and kwargs['train_prior']is context['prior']
+        model=small();load=model.load_state_dict
+        def strict(state,*,strict):calls.append(strict);return load(state,strict=strict)
+        model.load_state_dict=strict;return model
+    monkeypatch.setattr(models,'build_native_bar_direction_model',factory)
+    monkeypatch.setattr(torch.optim,'AdamW',lambda *a,**kw:pytest.fail('optimizer constructed'))
+    monkeypatch.setattr(owner,'fresh_fit_model',lambda *a,**kw:pytest.fail('training factory called'))
+    loaded=owner.shared_gradient_load_model(plan,context)
+    assert calls==[True]and loaded.training is False
+    assert canonical_model_state_sha256(loaded.state_dict())==plan['metadata']['final_state_sha256']
+    checkpoint['bindings']['prior']={'path':'wrong_prior','sha256':'0'*64}
+    plan['metadata']['final_checkpoint']=save('bad.pt')
+    with pytest.raises(ValueError,match='SHARED_FINAL_CHECKPOINT_BINDINGS'):owner.shared_gradient_load_model(plan,context)
+    assert calls==[True]
+
+
+def test_shared_gradient_admission_keeps_training_flags_false(tmp_path,monkeypatch):
+    root=tmp_path/'not_created';monkeypatch.setattr(owner,'SHARED_GRADIENT_ROOT',root)
+    plan={'inputs':{},'metadata':{'dependencies':{}},'source_base_commit':'unit',
+        'execution':copy.deepcopy(owner.SHARED_GRADIENT_EXECUTION)}
+    plan_ref={'path':str(owner.SHARED_GRADIENT_PLAN),'sha256':'1'*64};policy_ref={'path':str(owner.POLICY),'sha256':'2'*64}
+    policy={key:False for key in owner.ta_audit.data.CLOSED_FLAGS}
+    policy[owner.SHARED_GRADIENT_STAGE]={'plan':plan_ref,'output_root':str(root),
+        'max_invocations':1,'claimed_invocations':0,'completed_invocations':0,'remaining_invocations':1,
+        'relaunch_allowed':False,'training_authorized':False,'test_authorized':False,
+        'execution':plan['execution'],'status':'ADMITTED_ONE_USE','execution_authorized':True,**owner.SHARED_GRADIENT_LIMITS}
+    monkeypatch.setattr(owner.Path,'cwd',lambda:owner.REPO)
+    monkeypatch.setattr(owner,'read',lambda binding:plan if binding==plan_ref else policy)
+    monkeypatch.setattr(owner,'ref',lambda path:policy_ref)
+    monkeypatch.setattr(owner,'build_shared_gradient_plan',lambda **kw:plan)
+    monkeypatch.setattr(owner,'shared_gradient_source_clean',lambda p:True)
+    assert owner.inspect_shared_gradient('1'*64,admitted=True)[0]is plan
+    policy['training_enabled']=True
+    with pytest.raises(ValueError,match='SHARED_CLOSED_POLICY'):owner.inspect_shared_gradient('1'*64,admitted=True)
+    policy['training_enabled']=False;policy[owner.SHARED_GRADIENT_STAGE]['training_authorized']=True
+    with pytest.raises(ValueError,match='SHARED_CLOSED_POLICY'):owner.inspect_shared_gradient('1'*64,admitted=True)
+    assert not root.exists()

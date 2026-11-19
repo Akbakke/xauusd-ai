@@ -48,6 +48,17 @@ neste målte spørsmål om øvrige tap motarbeider M5-close i felles backbone.
 En liten kontroll uten optimizeroppdateringer på faste TRAIN-batcher
 skal kvalifiseres først. Rågradienter er ikke faktisk AdamW-retning.
 
+
+Neste planlagte kontroll er avgrenset til FINAL fra BLOCK_ORDER001 og
+faste canonical TRAIN-blokker 0/31/63/95: CPU, én modell, 4 forwards og
+8 autograd-kall, 0 optimizerobjekter/oppdateringer. Bare TRAIN inngår i
+gradientene. Den felles, uendrede klargjøringen kan dekode eksisterende
+CONTROL-mål, uten at de brukes i utvalg/loss/gradient. Eksisterende
+12G/512M/1tråd/64tasks CPU-producervakter og intern SIGALRM870s beholdes.
+Kilden er kvalifisert med 7 nye syntetiske tilfeller og uavhengig revisjon:
+hele tidligere driver-AST og 18 numeriske identiteter er uendret, bortsett
+fra ny eksakt CPU-dispatch. Ingen diagnosejobb er ennå innrømmet.
+
 ### Fullført kronologisk TA-referanse og grunnlag
 
 ### Ny TA-only-funksjon og teknisk kvalifikasjon

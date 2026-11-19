@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "NATIVE_M5_DIRECTION_BALANCE_ACTIVE_ORDER_REVIEWED_M5_UNQUALIFIED",
+  "status": "NATIVE_M5_DIRECTION_BALANCE_ACTIVE_SHARED_GRADIENT_SOURCE_QUALIFIED",
   "storage_cursor_runtime_cleanup_20261117_001": {"deleted_allocated_bytes": 1767837696, "deleted_old_version_count": 4, "economic_edge_proven": false, "gx1_data_runs_touched": false, "newest_version_preserved": "be4c9e5350d77747b42cd467cbd3370a753d4640", "open_fd_check_passed": true, "path_root": "/home/andre2/.cursor-server/bin/linux-x64", "status": "DELETE_COMPLETE", "test_authorized": false, "training_authorized": false, "user_snapshots_codex_sessions_trash_preserved": true},
   "storage_compaction_20261117_001": {"broker_access_allowed": false, "diskpart_compact_executed": false, "economic_edge_proven": false, "ext4_used_bytes": 438184099840, "fstrim_completed": true, "fstrim_reported_trimmed_bytes": 630501879808, "full_local_backup_fits_current_c_free": false, "gx1_current_data_runs_repo_approx_gib": 340, "rough_max_reclaim_bytes_not_prediction": 52003160064, "running_wsl_interactive_shells_observed": 2, "scope": "Windows C and sole Ubuntu-22.04 WSL VHDX; no model or data source change", "status": "CANCELLED_BY_OPERATOR_NO_COMPACTION", "test_authorized": false, "training_authorized": false, "vhdx_bytes": 490187259904, "vhdx_bytes_after_fstrim": 490187259904, "vhdx_path": "C:\\Users\\Andre\\AppData\\Local\\Packages\\CanonicalGroupLimited.Ubuntu22.04LTS_79rhkp1fndgsc\\LocalState\\ext4.vhdx", "vhdx_sparse": false, "windows_c_capacity_bytes": 998577442816, "windows_c_free_bytes_before_compaction": 397167644672, "windows_c_used_bytes_before_compaction": 601409798144, "wsl_shutdown_executed": false, "operator_decision": "DROP_COMPACTION_20261117", "fstrim_before_latest_cursor_cleanup": true, "fstrim_recheck_required_before_compaction": true},
   "ta_m5_ema_delta_sidecars_20261117_001": {"claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/CLAIM.json", "sha256": "81d85f74bea367750b70173cd5edf6af089253a26684d86caa22e6a0954192a5"}, "claimed_invocations": 1, "completed_invocations": 0, "data_reads_authorized": false, "economic_edge_proven": false, "execution_authorized": false, "failure": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/FAILED.json", "sha256": "d26cb8597913ad94110127aebe2b9a06119c9d01491bf4b0dc395b8dd6aceaf5"}, "max_invocations": 1, "model_forwards_authorized": 0, "observed_failure": "TA_EMA_DELTA_OLD_SLOPE_PARITY:M5", "optimizer_steps_authorized": 0, "output_root": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_EMA_DELTA_SIDECARS_20261117_001.json", "sha256": "e2e9f9233e27223099f8905a003e05f637cfa0c7e0325485d1d55b2f89223b08"}, "relaunch_allowed": false, "remaining_invocations": 0, "scope": {"cutoff_ns": 1735603200000000000, "fit_rows": 29574, "later_parent_start": 29849, "later_rows": 17489, "model_forwards": 0, "optimizer_steps": 0, "physical_surfaces": 6, "test_data_used": false}, "source_unchanged": true, "status": "FAILED_CONSUMED_SOURCE_PARITY_M5", "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/TERMINAL.json", "sha256": "5eac4f13ad8f9d0c768b58cd7db006d9744dc77b5c3d2ecc988fe112fd304eee"}, "test_authorized": false, "test_data_used": false, "training_authorized": false},
@@ -4701,7 +4701,7 @@
     },
     "latest_external_process_exit": {"observation": {"path": "/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_002/EXTERNAL_EXIT_OBSERVATION.json", "sha256": "cf11ff31ccfa403317611fdf7a3447494bcdfaf50ba103518e7aa9b0a39c6c2c"}, "exit_code": 137, "native_terminal_present": false},
     "operator_request": "NEVER M1 for direction. All direction inputs, labels, masks, row selection, priors, normalization, loss, model selection, evaluation and metadata must be native M5/higher. M1 is only for later management of an already opened trade. Direction quality precedes Entry.",
-    "current_activity": "Independent paired review complete; continuing direction-balance goal active. No workload; zero-update gradient diagnostic is next, not another fit.",
+    "current_activity": "Zero-update shared-gradient source qualified with7new synthetic cases and independent source review; exact CPU plan pending.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -92478,7 +92478,7 @@
     }
   },
   "native_m5_direction_balance_goal_20261119": {
-    "status": "ACTIVE_ORDER_REVIEWED_SHARED_GRADIENT_DIAGNOSIS_NEXT",
+    "status": "ACTIVE_SHARED_GRADIENT_SOURCE_QUALIFIED_PLAN_PENDING",
     "operator_request": "Ja, gj\u00f8r dette. Samtidig, lag deg et m\u00e5l som du jobber med til vi er helt forn\u00f8yde med vektingen av opp/ned/flat.",
     "objective": "Qualify useful and honestly calibrated native M5/MTF OPP/NED/FLAT probabilities, preserving all genuine TA inputs; start with one exact order-only comparison to the completed four-pass baseline.",
     "scope": "M5 with closed M15/H1/H4/D1, all eight TA families and61 D1/macro fields. GC deferred; never M1 direction lineage.",
@@ -92653,7 +92653,45 @@
       "Final CONTROL LL0.720930 versus chronological0.726116 and TRAINprior0.716887.",
       "Final CONTROL AUC0.476531; FIT AUC0.530687, so later ranking remains unqualified.",
       "Exact LIK class still has only4FIT/2CONTROL, not a separately defined FLAT market."
-    ]
+    ],
+    "next_diagnostic": {
+      "stage": "native_m5_ta_shared_gradient_20261119_001",
+      "subject_stage": "native_m5_ta_prior_block_order_20261119_001",
+      "canonical_TRAIN_block_indices": [
+        0,
+        31,
+        63,
+        95
+      ],
+      "rows_per_block": 16,
+      "selection": "fixed_source_order_only_before_gradient_values",
+      "device": "cpu",
+      "models": 1,
+      "forwards": 4,
+      "autograd_calls": 8,
+      "optimizer_constructions": 0,
+      "optimizer_steps": 0,
+      "capacity": "existing capped CPU producer12G/512M/1thread/64tasks; internal SIGALRM870s only",
+      "question": "Do auxiliary task raw gradients locally oppose or dominate the primary M5 futureclose gradient in the shared backbone?",
+      "components": "M5close_sum/Ntotal versus all other predictive sums/Ntotal; same native masks and objective denominator",
+      "scope_limit": "Eval raw gradients on selected TRAIN panel, not historical dropout gradients or actual AdamW direction; no loss-weight change.",
+      "only_TRAIN_enters_forward_loss_gradient": true,
+      "shared_immutable_preparation_may_decode_existing_CONTROL_targets": true,
+      "execution_authorized": false,
+      "training_authorized": false,
+      "source_qualification": {
+        "new_focused_synthetic_cases_passed": 7,
+        "previous49_driver_cases_reused": true,
+        "independent_original_driver_AST_and18_numeric_identities_exact": true,
+        "allowed_changed_source_paths": [
+          "gx1/audit/qualify_native_m5_full_gc_direction_v1.py",
+          "tests/test_qualify_native_m5_full_gc_direction_v1.py"
+        ],
+        "negative_crossdot_jointpositive_and_zero_norm_cases_passed": true,
+        "strict_CPU_load_without_optimizer_and_failure_terminal_cases_passed": true,
+        "genuine_model_run_started": false
+      }
+    }
   },
   "native_m5_ta_prior_block_order_20261119_001": {
     "status": "COMPLETE_CONSUMED_REVIEWED_ORDER_EFFECT_M5_UNQUALIFIED",

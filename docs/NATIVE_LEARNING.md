@@ -194,6 +194,16 @@ ikke et sideveis FLAT-marked eller usikkerhet. Dagens prisfasit beholdes til
 en eventuell separat FLAT-definisjon er uttrykkelig avklart. Det vedvarende
 vektingsmålet avsluttes ikke av én teknisk kontroll eller én liten fit.
 
+En oppdateringsfri shared-gradient-diagnose kan gjenbruke et hashbundet
+FINAL-checkpoint som analyseobjekt på CPU, aldri som skjult warmstart for
+en ny hovedfit. Bare faste TRAIN-paneler inngår i forward/loss/gradient.
+M5-close og øvrige prediktive tap bruker samme native Ntotal; pooled panel
+vektes med faktisk celletall. Negativ kryssdot alene beviser ikke at samlet
+rågradient motarbeider M5, og rå evalgradient er ikke faktisk AdamW-retning.
+Ved nullnorm er cosinus udefinert. Modell/statistikk/RNG/.grad=None skal
+bevares; ingen optimizer opprettes. Egen eksakt CPU-produceradmisjon,
+kilde-/checkpointporter og intern tidsgrense kreves med alle treningsporter stengt.
+
 Bruk eksisterende eksakt bundne trainerklasse og maskinvarevakter.
 M1-forbud, TEST-forsegling og Entry-pausen gjelder også optimizer/resume.
 Ingen automatisk ekstra runde eller påstand om edge følger av et lavere tap.

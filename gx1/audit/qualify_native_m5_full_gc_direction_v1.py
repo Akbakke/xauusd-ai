@@ -472,6 +472,7 @@ def main():
     parser=argparse.ArgumentParser();parser.add_argument('--plan',required=True);parser.add_argument('--plan-sha256',required=True)
     parser.add_argument('--out-dir',required=True);parser.add_argument('--preflight',action='store_true');parser.add_argument('--device',choices=('cpu','cuda'))
     args=parser.parse_args();common.firewall_state()
+    if args.plan==str(SHARED_GRADIENT_PLAN):return shared_gradient_cli(args)
     if args.plan!=str(PLAN):return fit_cli(args)
     need(args.device in(None,'cpu'),'QUALIFICATION_CPU_ONLY')
     need(args.plan==str(PLAN)and args.out_dir==str(ROOT),'CLI_SCOPE')
@@ -1658,6 +1659,303 @@ def fit_cli(args):
             'claim_created':False,'raw_values_decoded':0,'feature_values_decoded':0,
             'model_constructions':0,'optimizer_steps':0}))
     else:print(json.dumps(run_native_fit(args.plan_sha256,mode),sort_keys=True))
+
+
+SHARED_GRADIENT_STAGE='native_m5_ta_shared_gradient_20261119_001'
+SHARED_GRADIENT_PLAN=REPO/'configs/research/NATIVE_M5_TA_SHARED_GRADIENT_20261119_001.json'
+SHARED_GRADIENT_ROOT=Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_SHARED_GRADIENT_20261119_001')
+SHARED_GRADIENT_PARENT={
+    'block_result':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_BLOCK_ORDER_20261119_001/RESULT.json',
+        'sha256':'396959706d0ad0676b407fc008d2db40d7e22a2ed73d36c17fc21a7f766ce0f5'},
+    'block_terminal':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_BLOCK_ORDER_20261119_001/TERMINAL.json',
+        'sha256':'2248843836fc5c2bd711c78e38a695beaa89561921ad9c4fdcea2e462fc18e40'},
+    'block_review':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_BLOCK_ORDER_20261119_001/MATCHED_ORDER_RESULT_REVIEW.json',
+        'sha256':'09e03b5418ac6ef2ddd3ca4188d0f50f0fce3dcc6fb2c901760ad7cadc0b6d5d'}}
+SHARED_GRADIENT_BLOCKS=(0,31,63,95)
+SHARED_GRADIENT_LIMITS={'model_constructions':1,'checkpoint_loads':1,'model_forwards':4,'autograd_calls':8,
+    'backward_calls':0,'optimizer_constructions':0,'optimizer_steps':0}
+SHARED_GRADIENT_EXECUTION={'class':'producer','device':'cpu','memory':'12G','swap':'512M','tasks_max':64,
+    'numerical_threads':1,'internal_seconds':870,'external_wall_timeout_enforced':False}
+
+
+def shared_gradient_source_identity(source):
+    import ast
+    tree=ast.parse(source)
+    diagnostic={'shared_gradient_source_identity','shared_gradient_source_bridge','shared_gradient_metadata',
+        'build_shared_gradient_plan','shared_gradient_checked_inputs','shared_gradient_source_clean',
+        'inspect_shared_gradient','shared_gradient_rng','shared_gradient_restore_rng','shared_gradient_measures',
+        'shared_gradient_load_model','qualify_shared_gradient','run_shared_gradient','shared_gradient_cli','main'}
+    constants={'SHARED_GRADIENT_STAGE','SHARED_GRADIENT_PLAN','SHARED_GRADIENT_ROOT','SHARED_GRADIENT_PARENT',
+        'SHARED_GRADIENT_BLOCKS','SHARED_GRADIENT_LIMITS','SHARED_GRADIENT_EXECUTION'}
+    tree.body=[node for node in tree.body if not(isinstance(node,(ast.FunctionDef,ast.AsyncFunctionDef))
+        and node.name in diagnostic)and not(isinstance(node,ast.Assign)and any(
+            isinstance(target,ast.Name)and target.id in constants for target in node.targets))]
+    return {'existing_module_ast_sha256':hashlib.sha256(ast.dump(tree,include_attributes=False).encode()).hexdigest(),
+        'numeric_identity':ta_block_order_numeric_identity(ast.unparse(tree))}
+
+
+def shared_gradient_source_bridge(parent):
+    owner='gx1/audit/qualify_native_m5_full_gc_direction_v1.py'
+    allowed={owner,'tests/test_qualify_native_m5_full_gc_direction_v1.py'}
+    need(parent['mode']=='ta_shuffle'and set(parent['source_owners'])==set(TA_FIT_SOURCE_PATHS),'SHARED_PARENT_SOURCE_SET')
+    current={name:sha(REPO/name)for name in TA_FIT_SOURCE_PATHS}
+    need(all(current[name]==value for name,value in parent['source_owners'].items()if name not in allowed),
+        'SHARED_UNCHANGED_MODEL_LOSS_STATS_OWNERS')
+    original=subprocess.check_output(['git','show',parent['source_base_commit']+':'+owner],cwd=REPO)
+    need(hashlib.sha256(original).hexdigest()==parent['source_owners'][owner],'SHARED_ORIGINAL_DRIVER_BLOB')
+    identity=shared_gradient_source_identity(original.decode())
+    need(identity==shared_gradient_source_identity((REPO/owner).read_text()),'SHARED_EXISTING_DRIVER_AST')
+    return {'schema_version':'gx1_native_m5_ta_shared_gradient_source_bridge_v1',**identity,
+        'original_block_order_source_base_commit':parent['source_base_commit'],
+        'allowed_changed_source_paths':sorted(allowed),'all_other_source_owners_exact':True,
+        'source_changes':{name:{'original_sha256':parent['source_owners'][name],'current_sha256':current[name]}
+            for name in sorted(allowed)if current[name]!=parent['source_owners'][name]},
+        'scope':'new_zero_update_diagnostic_and_exact_CPU_CLI_dispatch_only'}
+
+
+def shared_gradient_metadata(inputs):
+    need(type(inputs)is dict and inputs==SHARED_GRADIENT_PARENT,'SHARED_EXACT_PARENT_REFS')
+    result,terminal,review=(read(inputs[key])for key in SHARED_GRADIENT_PARENT)
+    parent,claim=read(result['plan']),read(result['claim']);report=result['report']
+    need(result['status']=='COMPLETE_NATIVE_M5_TA_PRIOR_BLOCK_ORDER'
+        and result['stage']==terminal['stage']==parent['stage']==claim['stage']==FIT_SCOPES['ta_shuffle'][0]
+        and terminal['status']=='COMPLETE'and terminal['exit_code']==0
+        and terminal['result']==inputs['block_result']and terminal['plan']==result['plan']==claim['plan']
+        and terminal['claim']==result['claim']and result['source_unchanged']is True
+        and result['test_data_used']is terminal['test_data_used']is False
+        and parent['mode']=='ta_shuffle'and parent['recipe']==fit_recipe(parent['recipe'],'ta_shuffle')
+        and result['optimizer_steps']==report['canonical_optimizer_updates']==384
+        and report['actual_counts']=={'model_constructions':1,'model_forwards':544,'backward_calls':384,'optimizer_steps':384}
+        and report['declared_passes']==4 and report['normalization_fits']==report['prior_fits']==0
+        and result['clean_process_io_firewall']['denied_attempts']==0,'SHARED_COMPLETE_BLOCK_PARENT')
+    need(review['schema_version']=='gx1_native_m5_whole_block_order_result_review_v1'
+        and review['result']==inputs['block_result']and review['terminal']==inputs['block_terminal']
+        and review['plan']==result['plan']and review['normalization']==report['normalization']
+        and review['prior']==report['prior']and review['final_state_sha256']==report['final_state_sha256']
+        and review['actual_counts']==report['actual_counts']and review['training_schedule']==report['training_schedule']
+        and review['actual_source_row_schedule_sha256']==report['actual_source_row_schedule_sha256']
+        and review['GC_used']is review['test_data_used']is False and review['M1_attempts']==0,'SHARED_MATCHED_REVIEW')
+    dependencies={**parent['metadata']['dependencies'],'parent_plan':result['plan'],'parent_claim':result['claim'],
+        'final_checkpoint':report['final_checkpoint'],'normalization':report['normalization'],'prior':report['prior']}
+    return {'dependencies':dependencies,'parent_fit_plan':parent,'normalization':report['normalization'],
+        'prior':report['prior'],'final_checkpoint':report['final_checkpoint'],
+        'final_state_sha256':report['final_state_sha256'],'selected_cohorts':report['selected_cohorts'],
+        'source_bridge':shared_gradient_source_bridge(parent)}
+
+
+def build_shared_gradient_plan(*,inputs,source_base_commit=None):
+    metadata=shared_gradient_metadata(inputs)
+    head=source_base_commit or subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip()
+    return {'schema_version':'gx1_native_m5_ta_shared_gradient_plan_v1','stage':SHARED_GRADIENT_STAGE,
+        'status':'PREPARED_NOT_ADMITTED','output_root':str(SHARED_GRADIENT_ROOT),'source_base_commit':head,
+        'source_owners':{name:sha(REPO/name)for name in TA_FIT_SOURCE_PATHS},'inputs':inputs,'metadata':metadata,
+        'execution':SHARED_GRADIENT_EXECUTION,'limits':SHARED_GRADIENT_LIMITS,
+        'canonical_TRAIN_block_indices':list(SHARED_GRADIENT_BLOCKS),'rows_per_block':16,
+        'gradient_partition':'M5_close_sum/Ntotal_and_all_remaining_predictive_loss_sums/Ntotal',
+        'panel_aggregation':'sum_predictive_cell_losses_across_four_batches_divided_by_sum_Ntotal',
+        'analysis_mode':'eval_raw_parameter_gradients_not_AdamW_or_historical_dropout',
+        'CONTROL_analysis_rows':0,'shared_loader_may_decode_qualified_CONTROL':True,
+        'training_authorized':False,'test_data_used':False,'economic_edge_proven':False}
+
+
+def shared_gradient_checked_inputs(plan):
+    for binding in [*plan['inputs'].values(),*plan['metadata']['dependencies'].values()]:
+        need(ref(binding['path'])==binding,'SHARED_INPUT_HASH_BOOKEND')
+
+
+def shared_gradient_source_clean(plan):
+    return fit_source_clean({**plan,'mode':'ta_shuffle'})
+
+
+def inspect_shared_gradient(plan_sha,*,admitted):
+    need(Path.cwd().resolve()==REPO and not SHARED_GRADIENT_ROOT.exists(),'SHARED_CWD_OUTPUT')
+    plan_ref={'path':str(SHARED_GRADIENT_PLAN),'sha256':plan_sha};plan=read(plan_ref)
+    need(plan==build_shared_gradient_plan(inputs=plan['inputs'],source_base_commit=plan['source_base_commit'])
+        and shared_gradient_source_clean(plan),'SHARED_PLAN_SOURCE')
+    policy_ref=ref(POLICY);policy=read(policy_ref);gate=policy.get(SHARED_GRADIENT_STAGE,{})
+    need(all(policy.get(key)is False for key in ta_audit.data.CLOSED_FLAGS)
+        and gate.get('plan')==plan_ref and gate.get('output_root')==str(SHARED_GRADIENT_ROOT)
+        and gate.get('max_invocations')==1 and gate.get('claimed_invocations')==gate.get('completed_invocations')==0
+        and gate.get('relaunch_allowed')is False and gate.get('training_authorized')is False
+        and gate.get('test_authorized')is False and gate.get('execution')==plan['execution']
+        and all(gate.get(key)==value for key,value in SHARED_GRADIENT_LIMITS.items()),'SHARED_CLOSED_POLICY')
+    expected=('ADMITTED_ONE_USE',True,1)if admitted else('PREPARED_NOT_ADMITTED',False,0)
+    need((gate.get('status'),gate.get('execution_authorized'),gate.get('remaining_invocations'))==expected,'SHARED_ONE_USE')
+    shared_gradient_checked_inputs(plan);return plan,plan_ref,policy_ref
+
+
+def shared_gradient_rng():
+    import random,torch
+    return {'python':random.getstate(),'numpy':np.random.get_state(),'torch_cpu':torch.get_rng_state().clone()}
+
+
+def shared_gradient_restore_rng(value):
+    import random,torch
+    random.setstate(value['python']);np.random.set_state(value['numpy']);torch.set_rng_state(value['torch_cpu'])
+
+
+def shared_gradient_measures(g5,gaux):
+    import math,torch
+    need(len(g5)==len(gaux),'SHARED_GRADIENT_PARAMETER_AXIS')
+    norm5=normaux=dot=0.;unused5=unusedaux=0
+    for left,right in zip(g5,gaux):
+        unused5+=left is None;unusedaux+=right is None
+        for value in (left,right):
+            need(value is None or bool(torch.isfinite(value).all()),'SHARED_NONFINITE_GRADIENT')
+        if left is not None:norm5+=float(left.detach().double().square().sum())
+        if right is not None:normaux+=float(right.detach().double().square().sum())
+        if left is not None and right is not None:
+            need(left.shape==right.shape,'SHARED_GRADIENT_SHAPE')
+            dot+=float((left.detach().double()*right.detach().double()).sum())
+    a,b=math.sqrt(norm5),math.sqrt(normaux);joint=norm5+dot
+    return {'g5_l2':a,'gaux_l2':b,'cross_dot':dot,'cosine':dot/(a*b)if a>0 and b>0 else None,
+        'g5_dot_joint':joint,'raw_joint_opposes_M5':joint<0,
+        'unused_M5_parameter_tensors':unused5,'unused_aux_parameter_tensors':unusedaux}
+
+
+def shared_gradient_load_model(plan,context):
+    import torch
+    from gx1.contracts.market_state_ta_integrated_model_v1 import build_native_bar_direction_model
+    from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
+    meta=plan['metadata'];parent=meta['parent_fit_plan'];checkpoint_ref=meta['final_checkpoint']
+    need(ref(checkpoint_ref['path'])==checkpoint_ref,'SHARED_FINAL_BEFORE_DECODE')
+    model=build_native_bar_direction_model(input_normalization=context['normalization'],
+        input_binding=context['provider'].input_binding(context['normalization']),
+        architecture=parent['metadata']['architecture'],device=torch.device('cpu'),train_prior=context['prior'])
+    checkpoint=torch.load(checkpoint_ref['path'],map_location='cpu',weights_only=True)
+    need(checkpoint['schema_version']=='gx1_native_m5_ta_prior_training_state_v1'
+        and checkpoint['plan']==meta['dependencies']['parent_plan']and checkpoint['cursor']==384
+        and checkpoint['schedule_position']==_ta_schedule_position(parent,384)
+        and checkpoint['bindings']=={'input':context['provider'].input_binding(context['normalization']),
+            'normalization':context['normalization_ref'],'prior':context['prior_ref'],
+            'target':parent['metadata']['target_contract'],'architecture':parent['metadata']['architecture'],
+            'recipe':parent['recipe'],'model_contract':model.research_objective}
+        and checkpoint['optimizer_parameter_names']==[name for name,_ in model.named_parameters()]
+        and canonical_model_state_sha256(checkpoint['model_state'])==meta['final_state_sha256'],
+        'SHARED_FINAL_CHECKPOINT_BINDINGS')
+    # Only trained model state is applied. No optimizer is constructed or restored.
+    model.load_state_dict(checkpoint['model_state'],strict=True);model.eval()
+    need(canonical_model_state_sha256(model.state_dict())==meta['final_state_sha256']
+        and ref(checkpoint_ref['path'])==checkpoint_ref,'SHARED_FINAL_STRICT_LOAD')
+    return model
+
+
+def qualify_shared_gradient(plan):
+    import torch
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import native_bar_direction_loss
+    from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
+    meta=plan['metadata'];parent=meta['parent_fit_plan'];torch.set_num_threads(1)
+    context=prepare_native_fit(parent,SHARED_GRADIENT_ROOT)
+    need(context['normalization_ref']==meta['normalization']and context['prior_ref']==meta['prior'],
+        'SHARED_FROZEN_STATISTICS')
+    selected,selection=selected_small_cohorts(parent,context)
+    need(selection==meta['selected_cohorts'],'SHARED_MATCHED_SOURCE_COHORTS')
+    blocks=all_score_batches(selected['FIT'],16)
+    norm_before=state_sha(context['normalization']);prior_before=state_sha(context['prior'])
+    source_before=state_sha(_fit_source_binding(context['provider'],parent));rng_before=shared_gradient_rng()
+    model=shared_gradient_load_model(plan,context)
+    # Construction draws no decision information; restore its temporary CPU RNG consumption.
+    shared_gradient_restore_rng(rng_before)
+    named=[(name,parameter)for name,parameter in model.backbone.named_parameters()if parameter.requires_grad]
+    parameters=tuple(parameter for _,parameter in named)
+    need(parameters and all(parameter.grad is None for parameter in model.parameters()),'SHARED_INITIAL_GRAD_NONE')
+    before=canonical_model_state_sha256(model.state_dict());counts=dict.fromkeys(SHARED_GRADIENT_LIMITS,0)
+    counts.update(model_constructions=1,checkpoint_loads=1);aggregate5=[None]*len(parameters);aggregateaux=[None]*len(parameters)
+    total=0;reports=[];count_sums={'open':np.zeros(5,np.int64),'close':np.zeros(5,np.int64)}
+    for index in SHARED_GRADIENT_BLOCKS:
+        rows=blocks[index];raw=context['provider'].gather(rows,max_rows=16)
+        output=model({key:torch.from_numpy(value)for key,value in raw.items()});counts['model_forwards']+=1
+        loss=native_bar_direction_loss(model_output=output,truth=slice_truth(context['cohorts']['TRAIN'],rows,fit=True),
+            fold_upper_ns=FIT_END_NS,target_contract_sha256=parent['metadata']['target_contract']['contract_sha256'])
+        n=int(loss['counts']['open'].sum()+loss['counts']['close'].sum())
+        need(n>0 and not loss['skip_update'],'SHARED_PREDICTIVE_SUPPORT')
+        l5=loss['loss_sums']['close'][0]/n
+        laux=(loss['loss_sums']['open'].sum()+loss['loss_sums']['close'][1:].sum())/n
+        g5=torch.autograd.grad(l5,parameters,retain_graph=True,allow_unused=True);counts['autograd_calls']+=1
+        gaux=torch.autograd.grad(laux,parameters,allow_unused=True);counts['autograd_calls']+=1
+        measures=shared_gradient_measures(g5,gaux)
+        for accum,gradients in ((aggregate5,g5),(aggregateaux,gaux)):
+            for j,value in enumerate(gradients):
+                if value is None:continue
+                if accum[j]is None:accum[j]=value.detach().double()*n
+                else:accum[j].add_(value.detach().double(),alpha=n)
+        support={key:value.detach().cpu().tolist()for key,value in loss['counts'].items()}
+        for key,value in support.items():count_sums[key]+=np.asarray(value,np.int64)
+        total+=n
+        reports.append({'canonical_TRAIN_block':index,'rows':len(rows),'source_rows_sha256':digest(rows),
+            'issue_ns_sha256':digest(context['provider'].issue_ns[rows]),'Ntotal':n,'predictive_counts':support,
+            'M5_close_predictive_cells':support['close'][0],'aux_predictive_cells':n-support['close'][0],
+            'L5_joint_denominator':float(l5.detach()),'Laux_joint_denominator':float(laux.detach()),**measures})
+        need(all(parameter.grad is None for parameter in model.parameters()),'SHARED_AUTOGRAD_LEFT_PARAMETER_GRAD')
+    for gradients in (aggregate5,aggregateaux):
+        for value in gradients:
+            if value is not None:value.div_(total)
+    panel=shared_gradient_measures(aggregate5,aggregateaux)
+    need(counts==SHARED_GRADIENT_LIMITS and canonical_model_state_sha256(model.state_dict())==before==meta['final_state_sha256']
+        and state_sha(context['normalization'])==norm_before and state_sha(context['prior'])==prior_before
+        and state_sha(_fit_source_binding(context['provider'],parent))==source_before
+        and state_sha(shared_gradient_rng())==state_sha(rng_before)
+        and all(parameter.grad is None for parameter in model.parameters()),'SHARED_IMMUTABLE_BOOKEND')
+    need(ref(meta['normalization']['path'])==meta['normalization']and ref(meta['prior']['path'])==meta['prior'],
+        'SHARED_STATISTICS_FILE_BOOKEND')
+    return {'actual_counts':counts,'batches':reports,'panel':{**panel,'Ntotal':total,
+        'predictive_counts':{key:value.tolist()for key,value in count_sums.items()},
+        'aggregation':'sum_cell_losses_all_four_batches_divided_by_sum_Ntotal; gradients_weighted_by_batch_Ntotal'},
+        'shared_parameter_tensors':len(parameters),'shared_parameter_elements':sum(p.numel()for p in parameters),
+        'shared_parameter_names_sha256':hashlib.sha256(json.dumps([name for name,_ in named]).encode()).hexdigest(),
+        'model_state_sha256_before':before,'model_state_sha256_after':before,'model_unchanged':True,
+        'normalization_unchanged':True,'prior_unchanged':True,'CPU_python_numpy_torch_RNG_unchanged':True,
+        'CUDA_RNG_not_accessed':True,'parameter_grad_None_before_and_after':True,
+        'normalization':meta['normalization'],'prior':meta['prior'],'checkpoint':meta['final_checkpoint'],
+        'CONTROL_analysis_rows':0,'shared_loader_may_decode_qualified_CONTROL':True,
+        'role':'raw_eval_gradients_at_frozen_FINAL_not_actual_AdamW_or_historical_training_causality'}
+
+
+def run_shared_gradient(plan_sha):
+    began=time.monotonic();common.firewall_state()
+    cap=common.require_capped_cpu_research_producer_execution();lock=common.require_capped_lock_ancestry()
+    need(cap['memory_max']==cap['memory_high']==12*1024**3 and cap['swap']==512*1024**2
+        and cap['pids']==64 and cap['numerical_threads']==1
+        and lock['scope']==cap['cgroup_path'][len('/sys/fs/cgroup'):]
+        and signal.getitimer(signal.ITIMER_REAL)==(0.,0.),'SHARED_CAP_LIMITS')
+    plan,plan_ref,policy_ref=inspect_shared_gradient(plan_sha,admitted=True)
+    SHARED_GRADIENT_ROOT.mkdir(exist_ok=False)
+    claim=publish(SHARED_GRADIENT_ROOT/'CLAIM.json',{'stage':SHARED_GRADIENT_STAGE,'status':'CLAIMED_ONE_USE',
+        'plan':plan_ref,'policy_at_claim':policy_ref,'max_invocations':1,'remaining_invocations':0,'test_data_used':False})
+    old=signal.getsignal(signal.SIGALRM);result=None
+    def expired(*args):raise TimeoutError('NATIVE_M5_SHARED_GRADIENT_INTERNAL_870S')
+    try:
+        remaining=870-(time.monotonic()-began);need(remaining>0,'SHARED_TIME_BEFORE_DECODE')
+        signal.signal(signal.SIGALRM,expired);signal.setitimer(signal.ITIMER_REAL,remaining)
+        report=qualify_shared_gradient(plan);shared_gradient_checked_inputs(plan)
+        need(shared_gradient_source_clean(plan)and ref(POLICY)==policy_ref
+            and ref(SHARED_GRADIENT_PLAN)==plan_ref,'SHARED_SOURCE_POLICY_BOOKEND')
+        result=publish(SHARED_GRADIENT_ROOT/'RESULT.json',{'stage':SHARED_GRADIENT_STAGE,
+            'status':'COMPLETE_NATIVE_M5_TA_SHARED_GRADIENT','plan':plan_ref,'claim':claim,'report':report,
+            'source_unchanged':True,'training_authorized':False,'test_data_used':False,'economic_edge_proven':False,
+            'optimizer_steps':0,'model_forwards':4,'autograd_calls':8,
+            'clean_process_io_firewall':common.firewall_state(),'elapsed_seconds':time.monotonic()-began})
+        terminal=publish(SHARED_GRADIENT_ROOT/'TERMINAL.json',{'stage':SHARED_GRADIENT_STAGE,'status':'COMPLETE',
+            'exit_code':0,'plan':plan_ref,'claim':claim,'result':result,'remaining_invocations':0,
+            'relaunch_allowed':False,'test_data_used':False})
+        return {'result':result,'terminal':terminal}
+    except BaseException as error:
+        publish(SHARED_GRADIENT_ROOT/'TERMINAL.json',{'stage':SHARED_GRADIENT_STAGE,'status':'FAILED_CONSUMED',
+            'exit_code':1,'plan':plan_ref,'claim':claim,'result':result,'error':type(error).__name__+':'+str(error)[:2000],
+            'remaining_invocations':0,'relaunch_allowed':False,'test_data_used':False})
+        raise
+    finally:signal.setitimer(signal.ITIMER_REAL,0);signal.signal(signal.SIGALRM,old)
+
+
+def shared_gradient_cli(args):
+    need(args.plan==str(SHARED_GRADIENT_PLAN)and args.out_dir==str(SHARED_GRADIENT_ROOT)
+        and args.device=='cpu','SHARED_CLI_SCOPE')
+    if args.preflight:
+        _,plan_ref,policy_ref=inspect_shared_gradient(args.plan_sha256,admitted=False)
+        print(json.dumps({'status':'PREFLIGHT_NATIVE_M5_TA_SHARED_GRADIENT_METADATA_ONLY','plan':plan_ref,
+            'policy':policy_ref,'claim_created':False,'feature_values_decoded':0,'target_values_decoded':0,
+            'checkpoint_decodes':0,'model_constructions':0,'optimizer_constructions':0,'optimizer_steps':0}))
+    else:print(json.dumps(run_shared_gradient(args.plan_sha256),sort_keys=True))
 
 
 if __name__=='__main__':main()
