@@ -1192,3 +1192,128 @@ def test_shared_gradient_admission_keeps_training_flags_false(tmp_path,monkeypat
     policy['training_enabled']=False;policy[owner.SHARED_GRADIENT_STAGE]['training_authorized']=True
     with pytest.raises(ValueError,match='SHARED_CLOSED_POLICY'):owner.inspect_shared_gradient('1'*64,admitted=True)
     assert not root.exists()
+
+
+def test_primary_recipe_keeps_prior_stats_and_block_order_with_explicit_probe_budget():
+    plan,selected=_shuffle_unit();plan['mode']='ta_primary_main'
+    plan['backbone_gradient_policy']=owner.PRIMARY_BACKBONE_GRADIENT_POLICY
+    assert owner.fit_recipe(plan['recipe'],'ta_primary_main')==plan['recipe']
+    assert owner.fit_limits(plan['recipe'],'ta_primary_main',plan['metadata'])=={
+        'model_constructions':1,'model_forwards':544,'backward_calls':384,'optimizer_steps':384,'autograd_calls':0}
+    expected=copy.deepcopy(plan);expected['mode']='ta_shuffle'
+    for actual,old in zip(owner._ta_training_batches(selected,plan),owner._ta_training_batches(selected,expected)):
+        np.testing.assert_array_equal(actual,old)
+    assert owner._ta_schedule_position(plan,96)==owner._ta_schedule_position(expected,96)
+    mechanics=copy.deepcopy(plan);mechanics['mode']='ta_primary_mechanics';mechanics['recipe']=_ta_recipe()
+    assert owner.fit_recipe(mechanics['recipe'],'ta_primary_mechanics')==mechanics['recipe']
+    assert owner.fit_limits(mechanics['recipe'],'ta_primary_mechanics',mechanics['metadata'])=={
+        'model_constructions':2,'model_forwards':67,'backward_calls':3,'optimizer_steps':3,'autograd_calls':6}
+    batches=owner._ta_training_batches(selected,mechanics)
+    assert len(batches)==2;np.testing.assert_array_equal(batches[0],batches[1])
+    assert owner._ta_schedule_position(mechanics,1)['next_pass']==1
+    assert owner.FIT_SCOPES['ta_primary_mechanics'][1].name=='NATIVE_M5_TA_PRIMARY_BACKBONE_MECHANICS_20261119_001.json'
+    assert owner.FIT_SCOPES['ta_primary_main'][1].name=='NATIVE_M5_TA_PRIMARY_BACKBONE_FIT_20261119_001.json'
+
+
+def test_primary_parent_role_gate_precedes_receipts_and_new_policy_is_explicit(monkeypatch):
+    monkeypatch.setattr(owner,'read',lambda *_:pytest.fail('unbound primary receipt read'))
+    with pytest.raises(ValueError,match='PRIMARY_EXACT_PARENT_REFS'):owner.primary_backbone_metadata({},'ta_primary_mechanics')
+    refs={**copy.deepcopy(owner.SHARED_GRADIENT_PARENT),**copy.deepcopy(owner.PRIMARY_GRADIENT_DESIGN_REFERENCE),
+        'matched_prior_reference':copy.deepcopy(owner.TA_MATCHED_PRIOR_REFERENCE)}
+    refs['gradient_review']['sha256']='0'*64
+    with pytest.raises(ValueError,match='PRIMARY_EXACT_PARENT_REFS'):owner.primary_backbone_metadata(refs,'ta_primary_mechanics')
+    assert owner.PRIMARY_BACKBONE_GRADIENT_POLICY=='m5_close_only_backbone_v1'
+
+
+def test_primary_source_identity_opens_only_readout_policy_and_nonmutating_probes():
+    leaves=('fresh_fit_model','fit_step','fit_score','prepare_ta_native_fit','fit_axes','seed_native_fit',
+        'training_rng','restore_training_rng','state_sha','slice_truth','fit_checkpoint','publish_checkpoint',
+        'restore_fit_checkpoint','fit_state_proof','_ta_initial_prior_proof','cold_resume_fit','require_cold_resume_proof')
+    source="ADAMW_RECIPE={'lr':1e-4}\n"+''.join('def '+name+'():return {}\n'for name in leaves)
+    changed=source.replace('def fresh_fit_model():return {}',
+        'def fresh_fit_model():\n if _primary_fit(plan):kwargs["backbone_gradient_policy"]="m5_close_only_backbone_v1"\n return {}')
+    changed=changed.replace('def fit_step():return {}',
+        'def fit_step():\n primary_probe=primary_backbone_probe(model,loss,features)if plan.get("mode")=="ta_primary_mechanics"else{}\n return {**primary_probe}')
+    assert owner.primary_driver_source_identity(source)==owner.primary_driver_source_identity(changed)
+    wrong=changed.replace('def fit_score():return {}','def fit_score():return {"changed_loss_math":1}')
+    assert owner.primary_driver_source_identity(source)!=owner.primary_driver_source_identity(wrong)
+    old='class NativeM5BarDirectionModel:\n def forward(self):return 1\n def _gc_binding_matches(self):return 1\n'
+    new=old.replace('def forward(self):return 1','def forward(self):return 2')+'M5_CLOSE_ONLY_BACKBONE_GRADIENT_POLICY="new"\n'
+    assert owner.primary_model_source_identity(old)['unchanged_model_ast_sha256']==owner.primary_model_source_identity(new)['unchanged_model_ast_sha256']
+    bad=new.replace('def _gc_binding_matches(self):return 1','def _gc_binding_matches(self):return 2')
+    assert owner.primary_model_source_identity(old)['unchanged_model_ast_sha256']!=owner.primary_model_source_identity(bad)['unchanged_model_ast_sha256']
+
+
+def _primary_training_unit(monkeypatch,leak=False):
+    _cpu_rng(monkeypatch);_,truth,_=_batch_truth();rows=np.array([0,1],np.int64)
+    class Model(torch.nn.Module):
+        def __init__(self):
+            super().__init__();self.backbone=torch.nn.Sequential(torch.nn.Linear(2,4),torch.nn.Dropout(.25))
+            self.open_heads=torch.nn.ModuleDict({tf:torch.nn.Linear(4,3)for tf in ta.TIMEFRAMES})
+            self.close_heads=torch.nn.ModuleDict({tf:torch.nn.Linear(4,3)for tf in ta.TIMEFRAMES})
+            for heads in (self.open_heads,self.close_heads):
+                for head in heads.values():
+                    with torch.no_grad():head.weight.zero_();head.bias.copy_(torch.log(torch.tensor([.4,.2,.4])))
+            self.research_objective={'backbone_gradient_policy':{'name':owner.PRIMARY_BACKBONE_GRADIENT_POLICY}}
+            self._native_fit_counts={'model_constructions':1,'model_forwards':0,'backward_calls':0,'optimizer_steps':0,'autograd_calls':0}
+        def forward(self,features):
+            self._native_fit_counts['model_forwards']+=1;h=self.backbone(features['x'])
+            return {task+'_logits':torch.stack([heads[tf](h if leak or(task=='close'and tf=='M5')else h.detach())
+                for tf in ta.TIMEFRAMES],dim=1)for task,heads in (('open',self.open_heads),('close',self.close_heads))}
+    provider=SimpleNamespace(gather=lambda r,max_rows:{'x':np.array([[1.,2.],[3.,-1.]],np.float32)},
+        input_binding=lambda norm:{'unit_norm':norm['contract_sha256']})
+    cohort={'rows':rows,'fit_rows':rows,'truth':truth,'fit_truth':truth,'upper_ns':owner.FIT_END_NS}
+    plan={'mode':'ta_primary_mechanics','recipe':_ta_recipe(),'metadata':{'target_contract':target_contract(),'architecture':{'unit':True}},
+        'backbone_gradient_policy':owner.PRIMARY_BACKBONE_GRADIENT_POLICY}
+    context={'provider':provider,'normalization':{'contract_sha256':'unit_prior_norm'},
+        'normalization_ref':{'path':'unitnorm','sha256':'1'*64},'prior_ref':{'path':'unitprior','sha256':'2'*64}}
+    def fresh():
+        model=Model();return model,torch.optim.AdamW(model.parameters(),**{**owner.ADAMW_RECIPE,'betas':tuple(owner.ADAMW_RECIPE['betas'])})
+    return provider,cohort,context,plan,fresh
+
+
+def test_primary_mechanics_reuses_loss_for_six_probes_and_exact_cold_pass_boundary(monkeypatch):
+    provider,cohort,context,plan,fresh=_primary_training_unit(monkeypatch);torch.manual_seed(42);model,optimizer=fresh()
+    first=owner.fit_step(model,optimizer,provider,cohort,cohort['rows'],plan)
+    route=first['primary_gradient_routing']
+    assert route['auxiliary_shared_gradient_l2']==route['M5_shared_gradient_l2']==0
+    assert route['auxiliary_head_gradient_l2']>0 and route['M5_head_gradient_l2']>0
+    assert route['input_key_gradient_l2']=={'x':0.}
+    plan_ref={'path':'primary_plan','sha256':'3'*64}
+    checkpoint=copy.deepcopy(owner.fit_checkpoint(model,optimizer,context,plan,plan_ref,1))
+    assert checkpoint['schedule_position']['next_pass']==1 and checkpoint['schedule_position']['next_batch_in_pass']==0
+    second=owner.fit_step(model,optimizer,provider,cohort,cohort['rows'],plan)
+    route=second['primary_gradient_routing'];assert route['auxiliary_shared_gradient_l2']==0
+    assert route['M5_shared_gradient_l2']>0 and route['input_key_gradient_l2']['x']>0
+    expected=owner.fit_state_proof(model,optimizer,2,second)
+    resumed,other=fresh();owner.restore_fit_checkpoint(resumed,other,context,plan,plan_ref,checkpoint)
+    actual_step=owner.fit_step(resumed,other,provider,cohort,cohort['rows'],plan)
+    assert owner.fit_state_proof(resumed,other,2,actual_step)==expected
+    assert model._native_fit_counts['autograd_calls']+resumed._native_fit_counts['autograd_calls']==6
+    assert all(p.grad is None for p in model.parameters())and all(p.grad is None for p in resumed.parameters())
+    assert first['predictive_counts']==second['predictive_counts']==actual_step['predictive_counts']
+
+
+def test_primary_probe_rejects_actual_auxiliary_shared_leak_and_main_has_no_probes(monkeypatch):
+    provider,cohort,_,plan,fresh=_primary_training_unit(monkeypatch,leak=True);model,optimizer=fresh()
+    with torch.no_grad():model.close_heads['H1'].weight[0].fill_(.25)
+    with pytest.raises(ValueError,match='PRIMARY_AUXILIARY_ROUTE_OR_GRAD_ACCUMULATION'):
+        owner.fit_step(model,optimizer,provider,cohort,cohort['rows'],plan)
+    provider,cohort,_,plan,fresh=_primary_training_unit(monkeypatch);plan['mode']='ta_primary_main';model,optimizer=fresh()
+    monkeypatch.setattr(owner,'primary_backbone_probe',lambda *a,**kw:pytest.fail('main probed gradients'))
+    result=owner.fit_step(model,optimizer,provider,cohort,cohort['rows'],plan)
+    assert 'primary_gradient_routing'not in result and model._native_fit_counts['autograd_calls']==0
+
+
+def test_primary_prepare_reuses_parent_statistics_and_never_initializes_from_old_weights(tmp_path,monkeypatch):
+    parent={'mode':'ta_shuffle'};normal={'path':'normal','sha256':'1'*64};prior={'path':'prior','sha256':'2'*64}
+    context={'normalization_ref':normal,'prior_ref':prior,'axis':{'unit_TRAIN_and_CONTROL':True},
+        'normalization_fits':0,'prior_fits':0};seen=[]
+    def prepare(p,root,**kwargs):seen.append((p,root,kwargs));return context
+    monkeypatch.setattr(owner,'prepare_native_fit',prepare)
+    plan={'mode':'ta_primary_main','metadata':{'parent_fit_plan':parent,
+        'mechanics':{'normalization':normal,'prior':prior,'axis':context['axis']}}}
+    assert owner.prepare_primary_native_fit(plan,tmp_path,reload_normalization=normal,reload_prior=prior)is context
+    assert seen==[(parent,tmp_path,{'reload_normalization':normal,'reload_prior':prior})]
+    context['normalization_fits']=1
+    with pytest.raises(ValueError,match='PRIMARY_NO_STATISTICS_REFIT'):owner.prepare_primary_native_fit(plan,tmp_path)

@@ -181,8 +181,34 @@ def native_bar_prior_initialization_contract(train_prior):
         'checkpoint_load_reinitializes_heads':False})
 
 
-def native_bar_model_contract(input_binding,*,train_prior=None):
+M5_CLOSE_ONLY_BACKBONE_GRADIENT_POLICY = 'm5_close_only_backbone_v1'
+
+
+def native_bar_backbone_gradient_policy_contract(policy):
+    _need(type(policy) is str and policy == M5_CLOSE_ONLY_BACKBONE_GRADIENT_POLICY,
+          'NATIVE_BACKBONE_GRADIENT_POLICY')
+    return _seal_native({
+        'schema_version': 'gx1_native_m5_close_only_backbone_gradient_policy_v1',
+        'name': policy, 'attached_heads': ['close.M5'],
+        'detached_heads': ['open.' + tf for tf in TIMEFRAMES]
+            + ['close.' + tf for tf in TIMEFRAMES if tf != 'M5'],
+        'method': 'detach_only_at_auxiliary_Linear_head_inputs',
+        'all_head_parameters_trainable': True,
+        'loss_labels_masks_and_total_denominator': 'unchanged',
+        'checkpoint_load_reinitializes_heads': False,
+    })
+
+
+def _require_backbone_gradient_policy(policy, binding, train_prior):
+    if policy is not None:
+        native_bar_backbone_gradient_policy_contract(policy)
+        _need(len(_native_bar_feature_keys(binding)) == 9 and train_prior is not None,
+              'NATIVE_BACKBONE_GRADIENT_POLICY_TA_PRIOR_REQUIRED')
+
+
+def native_bar_model_contract(input_binding,*,train_prior=None,backbone_gradient_policy=None):
     binding = require_native_bar_input_binding(input_binding)
+    _require_backbone_gradient_policy(backbone_gradient_policy, binding, train_prior)
     value={
         'schema_version': 'gx1_native_m5_bar_direction_model_v1',
         'role': 'research_forecast_no_fit_entry_or_trade_authority',
@@ -200,15 +226,20 @@ def native_bar_model_contract(input_binding,*,train_prior=None):
         _need(len(_native_bar_feature_keys(binding))==9,'NATIVE_PRIOR_TA_ONLY')
         value['schema_version']='gx1_native_m5_bar_direction_prior_initialized_model_v1'
         value['initialization']=native_bar_prior_initialization_contract(train_prior)
+    if backbone_gradient_policy is not None:
+        value['schema_version']='gx1_native_m5_bar_direction_m5_close_backbone_model_v1'
+        value['backbone_gradient_policy']=native_bar_backbone_gradient_policy_contract(backbone_gradient_policy)
     return _seal_native(value)
 
 
 class NativeM5BarDirectionModel(nn.Module):
     """Two independent three-class bar readouts over each shared native TF token."""
 
-    def __init__(self, backbone, *, input_binding,train_prior=None):
+    def __init__(self, backbone, *, input_binding,train_prior=None,backbone_gradient_policy=None):
         super().__init__()
         self.input_binding = require_native_bar_input_binding(input_binding)
+        _require_backbone_gradient_policy(backbone_gradient_policy, self.input_binding, train_prior)
+        self._backbone_gradient_policy = backbone_gradient_policy
         self._train_prior=None
         if train_prior is not None:
             _need(len(_native_bar_feature_keys(self.input_binding))==9,'NATIVE_PRIOR_TA_ONLY')
@@ -239,6 +270,10 @@ class NativeM5BarDirectionModel(nn.Module):
             for name,digest in (('native_bar_initialization_sha256',native_bar_prior_initialization_contract(self._train_prior)['contract_sha256']),
                                 ('native_bar_train_prior_sha256',self._train_prior['contract_sha256'])):
                 self.register_buffer(name,torch.tensor(list(bytes.fromhex(digest)),device=device,dtype=torch.uint8))
+        if self._backbone_gradient_policy is not None:
+            digest = native_bar_backbone_gradient_policy_contract(self._backbone_gradient_policy)['contract_sha256']
+            self.register_buffer('native_bar_backbone_gradient_policy_sha256', torch.tensor(
+                list(bytes.fromhex(digest)), device=device, dtype=torch.uint8))
         self.register_buffer('native_bar_objective_sha256', torch.tensor(
             list(bytes.fromhex(self.research_objective['contract_sha256'])),
             device=device, dtype=torch.uint8))
@@ -247,7 +282,8 @@ class NativeM5BarDirectionModel(nn.Module):
 
     @property
     def research_objective(self):
-        return native_bar_model_contract(self.input_binding,train_prior=self._train_prior)
+        return native_bar_model_contract(self.input_binding,train_prior=self._train_prior,
+            backbone_gradient_policy=self._backbone_gradient_policy)
 
     def require_prior_initialization_state(self):
         # Fresh-state assertion only; checkpoint restore never calls this.
@@ -283,6 +319,11 @@ class NativeM5BarDirectionModel(nn.Module):
                 actual=getattr(self,name)
                 _need(torch.equal(actual.detach().cpu(),torch.tensor(list(bytes.fromhex(digest)),dtype=torch.uint8)),
                       'NATIVE_PRIOR_STATE_BINDING')
+        if self._backbone_gradient_policy is not None:
+            digest = native_bar_backbone_gradient_policy_contract(self._backbone_gradient_policy)['contract_sha256']
+            expected = torch.tensor(list(bytes.fromhex(digest)), dtype=torch.uint8)
+            _need(torch.equal(self.native_bar_backbone_gradient_policy_sha256.detach().cpu(), expected),
+                  'NATIVE_BACKBONE_GRADIENT_POLICY_STATE_BINDING')
         self.backbone.require_input_normalization_state()
         device = self.backbone.entry_q_joint_in.weight.device
         expected = torch.tensor(list(bytes.fromhex(self.research_objective['contract_sha256'])),
@@ -318,6 +359,8 @@ class NativeM5BarDirectionModel(nn.Module):
         names = ['native_bar_objective_sha256','backbone.input_norm_contract_sha256']
         if self._train_prior is not None:
             names += ['native_bar_initialization_sha256','native_bar_train_prior_sha256']
+        if self._backbone_gradient_policy is not None:
+            names += ['native_bar_backbone_gradient_policy_sha256']
         if len(_native_bar_feature_keys(self.input_binding))==14:
             names += ['backbone.gc_mtf_layout_sha256','backbone.gc_mtf_normalization_sha256','backbone.entry_execution_profile_contract_sha256']
         for name in names:
@@ -343,10 +386,11 @@ class NativeM5BarDirectionModel(nn.Module):
               and hidden.shape[0] == features['seq_x'].shape[0] > 0
               and hidden.shape[1:] == (len(TIMEFRAMES), self.backbone.cfg.d_model)
               and bool(torch.isfinite(hidden).all()), 'NATIVE_HIDDEN')
+        auxiliary_hidden = hidden if self._backbone_gradient_policy is None else hidden.detach()
         return {
-            'open_logits': torch.stack([self.open_heads[tf](hidden[:, j])
+            'open_logits': torch.stack([self.open_heads[tf](auxiliary_hidden[:, j])
                                         for j, tf in enumerate(TIMEFRAMES)], dim=1),
-            'close_logits': torch.stack([self.close_heads[tf](hidden[:, j])
+            'close_logits': torch.stack([self.close_heads[tf](hidden[:, j] if tf == 'M5' else auxiliary_hidden[:, j])
                                          for j, tf in enumerate(TIMEFRAMES)], dim=1),
         }
 
@@ -357,12 +401,13 @@ def native_bar_backbone_geometry():
     return {'local': ENTRY_FEATURE_SEQUENCE_BARS, **dict(PRODUCTION_MTF_PER_TF_WINDOW_BARS)}
 
 
-def build_native_bar_direction_model(*, input_normalization, input_binding, architecture, device, gc_mtf_history=None,train_prior=None):
+def build_native_bar_direction_model(*, input_normalization, input_binding, architecture, device, gc_mtf_history=None,train_prior=None,backbone_gradient_policy=None):
     """Build fresh native parameters from explicit architecture and native statistics."""
     from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
     from gx1.features import entry_specialist_feature_groups_v1 as owners
     binding = require_native_bar_input_binding(input_binding)
     _need(train_prior is None or len(_native_bar_feature_keys(binding))==9,'NATIVE_PRIOR_TA_ONLY')
+    _require_backbone_gradient_policy(backbone_gradient_policy, binding, train_prior)
     if len(_native_bar_feature_keys(binding))==14:
         _need(gc_mtf_history is not None and input_normalization.get('gc_mtf_history')==gc_mtf_history,'NATIVE_GC_FACTORY_HISTORY')
         profile = owners.compile_native_m5_full_gc_entry_execution_profile(gc_mtf_history)
@@ -414,4 +459,5 @@ def build_native_bar_direction_model(*, input_normalization, input_binding, arch
         kwargs[tf.lower() + '_seq_dim'] = widths['mtf']
         kwargs[tf.lower() + '_seq_len'] = geometry[tf]
     backbone = EntryV10CtxHybridTransformer(**kwargs).to(device)
-    return NativeM5BarDirectionModel(backbone, input_binding=binding,train_prior=train_prior).to(device)
+    return NativeM5BarDirectionModel(backbone, input_binding=binding,train_prior=train_prior,
+        backbone_gradient_policy=backbone_gradient_policy).to(device)

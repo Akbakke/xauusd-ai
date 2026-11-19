@@ -548,6 +548,12 @@ matches_bound_native_m5_full_gc_fit() {
     "$REPO_ROOT/configs/research/NATIVE_M5_TA_PRIOR_BLOCK_ORDER_20261119_001.json")
       expected_plan="$REPO_ROOT/configs/research/NATIVE_M5_TA_PRIOR_BLOCK_ORDER_20261119_001.json"
       expected_output=/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_BLOCK_ORDER_20261119_001 ;;
+    "$REPO_ROOT/configs/research/NATIVE_M5_TA_PRIMARY_BACKBONE_MECHANICS_20261119_001.json")
+      expected_plan="$REPO_ROOT/configs/research/NATIVE_M5_TA_PRIMARY_BACKBONE_MECHANICS_20261119_001.json"
+      expected_output=/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIMARY_BACKBONE_MECHANICS_20261119_001 ;;
+    "$REPO_ROOT/configs/research/NATIVE_M5_TA_PRIMARY_BACKBONE_FIT_20261119_001.json")
+      expected_plan="$REPO_ROOT/configs/research/NATIVE_M5_TA_PRIMARY_BACKBONE_FIT_20261119_001.json"
+      expected_output=/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIMARY_BACKBONE_FIT_20261119_001 ;;
     *) return 1 ;;
   esac
   if [[ $# -eq 12 ]]; then
@@ -1112,7 +1118,7 @@ validate_target_command() {
     fi
     TRAINER_DEVICE=cuda
     TRAINER_OUT_BUNDLE_DIR="${11}"
-    if [[ "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_FULL_GC_FIT_MECHANICS_20261119_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_FULL_GC_FIT_MECHANICS_20261119_002.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_FULL_GC_SHORT_FIT_20261119_002.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_PRIOR_MECHANICS_20261119_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_PRIOR_BLOCK_ORDER_20261119_001.json" ]]; then
+    if [[ "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_FULL_GC_FIT_MECHANICS_20261119_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_FULL_GC_FIT_MECHANICS_20261119_002.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_FULL_GC_SHORT_FIT_20261119_002.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_PRIOR_MECHANICS_20261119_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_PRIOR_BLOCK_ORDER_20261119_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_PRIMARY_BACKBONE_MECHANICS_20261119_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_PRIMARY_BACKBONE_FIT_20261119_001.json" ]]; then
       TRAINER_MAX_WALL_SECONDS=1800
       TRAINER_MODEL_MAX_WALL_SECONDS=1800
     else

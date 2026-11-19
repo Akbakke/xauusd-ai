@@ -586,3 +586,109 @@ def test_native_random_default_retains_linear_initialization_rng_contract_and_st
     assert model.research_objective['initialization']=='fresh_random_no_checkpoint'
     assert owner.native_bar_model_contract(binding)==owner.native_bar_model_contract(binding,train_prior=None)
     assert not any(key in model.state_dict()for key in ('native_bar_initialization_sha256','native_bar_train_prior_sha256'))
+
+
+def test_native_ta_m5_primary_policy_preserves_forward_heads_and_strict_state(monkeypatch,native_gc_single_thread):
+    import copy
+    import numpy as np
+    from gx1.contracts import market_state_ta_integrated_model_v1 as owner
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import native_bar_direction_loss,native_bar_train_prior_logits
+    normalization,raw,cats,truth,prior=_native_ta_prior_packet();binding=_native_model_binding(normalization)
+    architecture={'dropout':.05,'multi_tf_num_layers':2,'multi_tf_scale':.5,
+        'specialist_num_layers':1,'specialist_fusion_scale':.25,'cross_family_fusion_scale':.25}
+    policy=owner.M5_CLOSE_ONLY_BACKBONE_GRADIENT_POLICY
+    models=[]
+    with torch.random.fork_rng(devices=[]):
+        for choice in (None,policy):
+            torch.manual_seed(61)
+            models.append(owner.build_native_bar_direction_model(input_normalization=normalization,
+                input_binding=binding,architecture=architecture,device=torch.device('cpu'),
+                train_prior=prior,backbone_gradient_policy=choice).eval())
+            if choice is None:rng=torch.get_rng_state().clone()
+            else:assert torch.equal(rng,torch.get_rng_state())
+    default,routed=models
+    assert all(torch.equal(a,b) for a,b in zip(default.parameters(),routed.parameters()))
+    assert all(p.requires_grad for model in models for p in model.parameters())
+    excluded={'native_bar_objective_sha256','native_bar_backbone_gradient_policy_sha256'}
+    assert {k for k in default.state_dict()}=={k for k in routed.state_dict() if k not in excluded}|{'native_bar_objective_sha256'}
+    assert all(torch.equal(value,routed.state_dict()[key]) for key,value in default.state_dict().items() if key not in excluded)
+    assert 'backbone_gradient_policy' not in default.research_objective
+    assert owner.native_bar_model_contract(binding,train_prior=prior)==owner.native_bar_model_contract(
+        binding,train_prior=prior,backbone_gradient_policy=None)
+    descriptor=routed.research_objective['backbone_gradient_policy']
+    assert descriptor['attached_heads']==['close.M5'] and len(descriptor['detached_heads'])==9
+    def synthetic_encode(self,**values):
+        assert values.pop('research_representation_only')is True
+        assert values.pop('research_timeframe_representations')is True
+        source=values['seq_x'][:,-1,:self.cfg.d_model]
+        hidden=self.entry_q_joint_in(torch.cat((source,)*4,dim=1))
+        return {'entry_q_timeframe_hidden':hidden[:,None].expand(-1,5,-1)}
+    monkeypatch.setattr(EntryV10CtxHybridTransformer,'forward',synthetic_encode)
+    sequence=np.stack((raw['signal'],raw['signal'][::-1]))
+    values={'seq_x':torch.from_numpy(sequence),'snap_x':torch.from_numpy(sequence[:,-1]),
+        'ctx_cont':torch.from_numpy(np.stack((raw['ctx_cont'][-1],raw['ctx_cont'][0]))),
+        'ctx_cat':torch.from_numpy(np.stack((cats[-1],cats[0])))}
+    values.update({'seq_'+tf:torch.from_numpy(np.stack((raw['mtf_'+tf],raw['mtf_'+tf][::-1])))
+        for tf in ('m5','m15','h1','h4','d1')})
+    kwargs={'truth':{key:value[:2].copy() for key,value in truth.items()},
+        'fold_upper_ns':normalization['fit_population']['cutoff_ns'],
+        'target_contract_sha256':prior['target_contract_sha256']}
+    expected=native_bar_train_prior_logits(prior,rows=2)
+    for model in models:
+        output=model(values)
+        assert all(torch.equal(output[key],torch.from_numpy(expected[key])) for key in output)
+        loss=native_bar_direction_loss(model_output=output,**kwargs)['loss']
+        shared,head=torch.autograd.grad(loss,(model.backbone.entry_q_joint_in.weight,model.close_heads['M5'].weight))
+        assert torch.count_nonzero(shared)==0 and torch.count_nonzero(head)>0
+    # Exercise routing after the zero-head initialization, when hidden gradients are real.
+    with torch.no_grad():
+        for model in models:
+            for index,head in enumerate([*model.open_heads.values(),*model.close_heads.values()]):
+                source=torch.arange(head.weight.numel(),dtype=torch.float32).reshape_as(head.weight)
+                head.weight.copy_(torch.sin(source*.13+index)*.02)
+    outputs=[model(values) for model in models]
+    assert all(torch.equal(outputs[0][key],outputs[1][key]) for key in outputs[0])
+    gradients=[]
+    for model,output in zip(models,outputs):
+        result=native_bar_direction_loss(model_output=output,**kwargs)
+        n=result['counts']['open'].sum()+result['counts']['close'].sum()
+        primary=result['loss_sums']['close'][0]/n
+        auxiliary=(result['loss_sums']['open'].sum()+result['loss_sums']['close'][1:].sum())/n
+        shared=model.backbone.entry_q_joint_in.weight
+        primary_heads=list(model.close_heads['M5'].parameters())
+        auxiliary_heads=[p for tf in owner.TIMEFRAMES for p in model.open_heads[tf].parameters()]
+        auxiliary_heads += [p for tf in owner.TIMEFRAMES if tf!='M5' for p in model.close_heads[tf].parameters()]
+        primary_grad=torch.autograd.grad(primary,[shared,*primary_heads],retain_graph=True)
+        auxiliary_grad=torch.autograd.grad(auxiliary,[shared,*auxiliary_heads],allow_unused=True,retain_graph=True)
+        total_shared=torch.autograd.grad(result['loss'],shared)[0]
+        gradients.append((primary_grad,auxiliary_grad,total_shared))
+    left,right=gradients
+    assert all(torch.equal(a,b) for a,b in zip(left[0],right[0]))
+    assert all(torch.count_nonzero(value)>0 for value in right[0])
+    assert left[1][0]is not None and torch.count_nonzero(left[1][0])>0
+    # The close-logit stack can retain a zero derivative through its M5 cell.
+    assert right[1][0]is None or torch.count_nonzero(right[1][0])==0
+    assert all(torch.equal(a,b) for a,b in zip(left[1][1:],right[1][1:]))
+    assert any(torch.count_nonzero(value)>0 for value in right[1][1:])
+    assert torch.equal(right[2],right[0][0])
+    assert all(p.grad is None for model in models for p in model.parameters())
+    snapshot=copy.deepcopy(routed.state_dict())
+    restored=owner.NativeM5BarDirectionModel(copy.deepcopy(routed.backbone),input_binding=binding,
+        train_prior=prior,backbone_gradient_policy=policy).eval()
+    restored.load_state_dict(snapshot,strict=True)
+    assert all(torch.equal(value,restored.state_dict()[key]) for key,value in snapshot.items())
+    assert all(torch.equal(restored(values)[key],outputs[1][key]) for key in outputs[1])
+    with pytest.raises(ValueError,match='NATIVE_FRESH_PRIOR_HEAD_STATE'):
+        restored.require_prior_initialization_state()
+    for recipient,state in ((default,snapshot),(routed,default.state_dict()),
+        (routed,{**snapshot,'native_bar_backbone_gradient_policy_sha256':torch.zeros(32,dtype=torch.uint8)})):
+        before=copy.deepcopy(recipient.state_dict())
+        with pytest.raises(ValueError,match='NATIVE_CHECKPOINT_IDENTITY'):
+            recipient.load_state_dict(state,strict=True)
+        assert all(torch.equal(value,recipient.state_dict()[key]) for key,value in before.items())
+    with monkeypatch.context() as patch:
+        patch.setattr(torch.nn,'Linear',lambda *args,**keys:pytest.fail('head created before policy validation'))
+        with pytest.raises(ValueError,match='NATIVE_BACKBONE_GRADIENT_POLICY_TA_PRIOR_REQUIRED'):
+            owner.NativeM5BarDirectionModel(default.backbone,input_binding=binding,backbone_gradient_policy=policy)
+        with pytest.raises(ValueError,match='NATIVE_BACKBONE_GRADIENT_POLICY'):
+            owner.NativeM5BarDirectionModel(default.backbone,input_binding=binding,train_prior=prior,backbone_gradient_policy='unknown')

@@ -502,7 +502,13 @@ FIT_SCOPES={
         Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001')),
     'ta_shuffle':('native_m5_ta_prior_block_order_20261119_001',
         REPO/'configs/research/NATIVE_M5_TA_PRIOR_BLOCK_ORDER_20261119_001.json',
-        Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_BLOCK_ORDER_20261119_001'))}
+        Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_BLOCK_ORDER_20261119_001')),
+    'ta_primary_mechanics':('native_m5_ta_primary_backbone_mechanics_20261119_001',
+        REPO/'configs/research/NATIVE_M5_TA_PRIMARY_BACKBONE_MECHANICS_20261119_001.json',
+        Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIMARY_BACKBONE_MECHANICS_20261119_001')),
+    'ta_primary_main':('native_m5_ta_primary_backbone_fit_20261119_001',
+        REPO/'configs/research/NATIVE_M5_TA_PRIMARY_BACKBONE_FIT_20261119_001.json',
+        Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIMARY_BACKBONE_FIT_20261119_001'))}
 ADAMW_RECIPE={'lr':1e-4,'betas':[.9,.999],'eps':1e-8,'weight_decay':1e-4,
     'amsgrad':False,'foreach':None,'maximize':False,'capturable':False,
     'differentiable':False,'fused':None}
@@ -529,15 +535,15 @@ TA_FIT_SOURCE_PATHS=tuple(dict.fromkeys((*ta_audit.SOURCE_PATHS,
 
 
 def _ta_fit(plan):
-    return plan.get('mode') in ('ta_mechanics','ta_main','ta_shuffle')
+    return plan.get('mode') in ('ta_mechanics','ta_main','ta_shuffle','ta_primary_mechanics','ta_primary_main')
 
 
 def _ta_main(mode):
-    return mode in ('ta_main','ta_shuffle')
+    return mode in ('ta_main','ta_shuffle','ta_primary_main')
 
 
 def _mechanics(mode):
-    return mode in ('mechanics','ta_mechanics')
+    return mode in ('mechanics','ta_mechanics','ta_primary_mechanics')
 
 
 def _ta_pool_axis(ta_plan,*,return_source_rows=False):
@@ -691,7 +697,7 @@ def fit_recipe(value,mode):
     fields={'optimizer','gradient_clip_norm','scheduler','seed','batch_rows','score_batch_rows','fit_batches',
         'score_batches_per_split','checkpoint_every_updates','outer_seconds','internal_seconds',
         'required_windows_boot_id_greater_than'}
-    if mode in ('ta_mechanics','ta_main','ta_shuffle'):fields.add('passes')
+    if mode in ('ta_mechanics','ta_main','ta_shuffle','ta_primary_mechanics','ta_primary_main'):fields.add('passes')
     need(type(value)is dict and set(value)==fields,'FIT_RECIPE_FIELDS')
     need(value['optimizer']==ADAMW_RECIPE and value['gradient_clip_norm']==1.
         and value['scheduler']is None and value['seed']==20260911 and value['batch_rows']==16
@@ -703,14 +709,14 @@ def fit_recipe(value,mode):
     need(value['checkpoint_every_updates']<=value['fit_batches']
         and value['internal_seconds']==value['outer_seconds']-30 and value['outer_seconds']<=10800,'FIT_BUDGET')
     need(mode in FIT_SCOPES and(not _mechanics(mode)or value['fit_batches']==2),'FIT_MODE')
-    if mode in ('ta_mechanics','ta_main','ta_shuffle'):
+    if mode in ('ta_mechanics','ta_main','ta_shuffle','ta_primary_mechanics','ta_primary_main'):
         need(type(value['passes'])is int and value['passes']>0
-            and value['fit_batches']==value['passes']*(1 if mode=='ta_mechanics'else 96)
-            and(mode!='ta_mechanics'or value['passes']==2)
-            and value['checkpoint_every_updates']==(1 if mode=='ta_mechanics'else 96)
+            and value['fit_batches']==value['passes']*(1 if mode in('ta_mechanics','ta_primary_mechanics')else 96)
+            and(mode not in('ta_mechanics','ta_primary_mechanics')or value['passes']==2)
+            and value['checkpoint_every_updates']==(1 if mode in('ta_mechanics','ta_primary_mechanics')else 96)
             and value['score_batches_per_split']is None
             and value['outer_seconds']==1800 and value['internal_seconds']==1770,'TA_FIT_FIXED_RECIPE')
-        if mode=='ta_shuffle':need(value['passes']==4 and value['fit_batches']==384,'TA_BLOCK_FIXED_FOUR_PASSES')
+        if mode in('ta_shuffle','ta_primary_main'):need(value['passes']==4 and value['fit_batches']==384,'TA_BLOCK_FIXED_FOUR_PASSES')
         return dict(value)
     if mode=='main':
         need(value['fit_batches']==96 and value['checkpoint_every_updates']==32
@@ -722,7 +728,8 @@ def fit_recipe(value,mode):
 
 
 def fit_metadata(inputs,mode):
-    if mode in ('ta_mechanics','ta_main','ta_shuffle'):return ta_fit_metadata(inputs,mode)
+    if mode in('ta_primary_mechanics','ta_primary_main'):return primary_backbone_metadata(inputs,mode)
+    if mode in ('ta_mechanics','ta_main','ta_shuffle','ta_primary_mechanics','ta_primary_main'):return ta_fit_metadata(inputs,mode)
     from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
     fields={'joint_result','joint_terminal'}|({'mechanics_result','mechanics_terminal'}if mode=='main'else {'stats_result','stats_terminal'})
     need(type(inputs)is dict and set(inputs)==fields,'FIT_INPUT_ROLES')
@@ -967,13 +974,15 @@ def prepare_matched_prior(context,fit_rows,plan,root):
 
 
 def fit_limits(recipe,mode,metadata=None):
-    if mode in ('ta_mechanics','ta_main','ta_shuffle'):
+    if mode in ('ta_mechanics','ta_main','ta_shuffle','ta_primary_mechanics','ta_primary_main'):
         score=sum((item['rows']+recipe['score_batch_rows']-1)//recipe['score_batch_rows']
             for item in small_cohort_manifest(metadata)['cohorts'].values())
-        updates=3 if mode=='ta_mechanics'else recipe['fit_batches']
-        return {'model_constructions':2 if mode=='ta_mechanics'else 1,
-            'model_forwards':updates+score*(2 if mode=='ta_mechanics'else recipe['passes']+1),
-            'backward_calls':updates,'optimizer_steps':updates}
+        mechanics=mode in('ta_mechanics','ta_primary_mechanics')
+        updates=3 if mechanics else recipe['fit_batches']
+        return {'model_constructions':2 if mechanics else 1,
+            'model_forwards':updates+score*(2 if mechanics else recipe['passes']+1),
+            'backward_calls':updates,'optimizer_steps':updates,
+            **({'autograd_calls':6 if mode=='ta_primary_mechanics'else 0}if mode in('ta_primary_mechanics','ta_primary_main')else{})}
     updates=3 if mode=='mechanics'else recipe['fit_batches']
     return {'model_constructions':2 if mode=='mechanics'else 1,
         'model_forwards':updates+(4*recipe['score_batches_per_split']if mode=='mechanics'else
@@ -987,17 +996,19 @@ def build_fit_plan(*,inputs,recipe,mode,source_base_commit=None):
     stage,path,root=FIT_SCOPES[mode]
     metadata=fit_metadata(inputs,mode)
     head=source_base_commit or subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip()
-    ta_only=mode in ('ta_mechanics','ta_main','ta_shuffle')
-    paths=TA_FIT_SOURCE_PATHS if ta_only else FIT_SOURCE_PATHS
+    ta_only=mode in ('ta_mechanics','ta_main','ta_shuffle','ta_primary_mechanics','ta_primary_main')
+    paths=PRIMARY_FIT_SOURCE_PATHS if mode in('ta_primary_mechanics','ta_primary_main')else TA_FIT_SOURCE_PATHS if ta_only else FIT_SOURCE_PATHS
     return {'schema_version':'gx1_native_m5_ta_prior_fit_plan_v1'if ta_only else'gx1_native_m5_full_gc_fit_plan_v1','stage':stage,'mode':mode,
         'status':'PREPARED_NOT_ADMITTED','output_root':str(root),'source_base_commit':head,
         'source_owners':{p:sha(REPO/p)for p in paths},'inputs':inputs,'metadata':metadata,
         'recipe':recipe,**({'cohort_selection':small_cohort_manifest(metadata)}if mode=='main'or ta_only else{}),
-        **({'training_schedule':ta_block_schedule(metadata,recipe)}if mode=='ta_shuffle'else{}),
+        **({'training_schedule':metadata['parent_fit_plan']['training_schedule']}if mode=='ta_primary_main'else
+            {'training_schedule':ta_block_schedule(metadata,recipe)}if mode=='ta_shuffle'else{}),
+        **({'backbone_gradient_policy':PRIMARY_BACKBONE_GRADIENT_POLICY}if mode in('ta_primary_mechanics','ta_primary_main')else{}),
         'execution':{'class':'trainer','device':'cuda','memory':'20G','swap':'512M',
             'tasks_max':128,'numerical_threads':8,'outer_seconds':recipe['outer_seconds'],
             'internal_seconds':recipe['internal_seconds'],'kill_after_seconds':10},
-        'fit_order':('whole_fixed_B16_blocks_permuted_per_pass_by_local_PCG64_seed'if mode=='ta_shuffle'else
+        'fit_order':('whole_fixed_B16_blocks_permuted_per_pass_by_local_PCG64_seed'if mode in('ta_shuffle','ta_primary_main')else
             'declared_passes_of_same_source_only_nonoverlapping_FIT_batches_no_CONTROL_selection'if ta_only
             else'source_only_evenly_spaced_nonoverlapping_contiguous_batches'),
         'score_order':'fixed_source_only_evenly_spaced_nonoverlapping_contiguous_batches',
@@ -1010,6 +1021,10 @@ def build_fit_plan(*,inputs,recipe,mode,source_base_commit=None):
 
 
 def fit_source_clean(plan):
+    if _primary_fit(plan):
+        need(set(plan['source_owners'])==set(PRIMARY_FIT_SOURCE_PATHS),'PRIMARY_SOURCE_SET')
+        adapted={**plan,'source_owners':{p:plan['source_owners'][p]for p in ta_audit.SOURCE_PATHS}}
+        return ta_audit.source_clean(adapted)and all(sha(REPO/p)==value for p,value in plan['source_owners'].items())
     if _ta_fit(plan):
         need(set(plan['source_owners'])==set(TA_FIT_SOURCE_PATHS),'TA_FIT_SOURCE_SET')
         adapted={**plan,'source_owners':{p:plan['source_owners'][p]for p in ta_audit.SOURCE_PATHS}}
@@ -1062,7 +1077,7 @@ def fit_boot_state(plan,*,admitted):
     fresh=actual>threshold
     if admitted:
         need(fresh,'FIT_FRESH_PHYSICAL_BOOT')
-        if plan['mode']in('main','ta_main','ta_shuffle'):
+        if plan['mode']in('main','ta_main','ta_shuffle','ta_primary_main'):
             need(actual>=plan['metadata']['mechanics']['physical_windows_boot_id'],'FIT_MAIN_BOOT_LINEAGE')
     return {'actual_windows_boot_id':actual,'required_greater_than':threshold,'fresh':fresh}
 
@@ -1171,6 +1186,9 @@ def fresh_fit_model(provider,normalization,plan,*,train_prior=None):
     seed_native_fit(plan['recipe']['seed'])
     kwargs={'train_prior':train_prior}if _ta_fit(plan)else{'gc_mtf_history':normalization['gc_mtf_history']}
     need(not _ta_fit(plan)or train_prior is not None,'TA_FIT_INITIAL_PRIOR')
+    if _primary_fit(plan):
+        need(plan['backbone_gradient_policy']==PRIMARY_BACKBONE_GRADIENT_POLICY,'PRIMARY_FACTORY_POLICY')
+        kwargs['backbone_gradient_policy']=PRIMARY_BACKBONE_GRADIENT_POLICY
     model=build_native_bar_direction_model(input_normalization=normalization,
         input_binding=provider.input_binding(normalization),architecture=plan['metadata']['architecture'],
         device=torch.device('cuda',0),**kwargs)
@@ -1178,6 +1196,7 @@ def fresh_fit_model(provider,normalization,plan,*,train_prior=None):
     optimizer=torch.optim.AdamW(model.parameters(),**options)
     need(not optimizer.state,'FIT_FRESH_OPTIMIZER')
     model._native_fit_counts={'model_constructions':1,'model_forwards':0,'backward_calls':0,'optimizer_steps':0}
+    if _primary_fit(plan):model._native_fit_counts['autograd_calls']=0
     def count_forward(module,args):
         module._native_fit_counts['model_forwards']+=1
         need(module._native_fit_counts['model_forwards']<=plan['limits']['model_forwards'],'FIT_FORWARD_LIMIT')
@@ -1189,8 +1208,8 @@ def _ta_training_batches(selected,plan):
     # Mechanics crosses a pass boundary on one fixed source-only B16 panel.
     # The admitted main consumes all 96 frozen FIT batches once per declared pass.
     base=all_score_batches(selected['FIT'],plan['recipe']['batch_rows'])
-    if plan['mode']=='ta_mechanics':base=base[:1]
-    if plan['mode']=='ta_shuffle':
+    if plan['mode']in('ta_mechanics','ta_primary_mechanics'):base=base[:1]
+    if plan['mode']in('ta_shuffle','ta_primary_main'):
         expected=ta_block_schedule_from_rows(selected['FIT'],plan['recipe'],
             plan['cohort_selection']['cohorts']['FIT']['selection_identity_sha256'])
         need(plan['training_schedule']==expected,'TA_BLOCK_EXACT_SCHEDULE')
@@ -1199,11 +1218,11 @@ def _ta_training_batches(selected,plan):
 
 
 def _ta_schedule_position(plan,cursor):
-    per_pass=1 if plan['mode']=='ta_mechanics'else 96
+    per_pass=1 if plan['mode']in('ta_mechanics','ta_primary_mechanics')else 96
     need(type(cursor)is int and 0<=cursor<=plan['recipe']['fit_batches'],'TA_FIT_SCHEDULE_CURSOR')
     position={'completed_updates':cursor,'next_pass':cursor//per_pass,'next_batch_in_pass':cursor%per_pass,
         'batches_per_pass':per_pass,'declared_passes':plan['recipe']['passes']}
-    if plan['mode']=='ta_shuffle':
+    if plan['mode']in('ta_shuffle','ta_primary_main'):
         schedule=plan['training_schedule']
         body={key:value for key,value in schedule.items()if key!='contract_sha256'}
         need(schedule['contract_sha256']==hashlib.sha256(json.dumps(body,sort_keys=True).encode()).hexdigest()
@@ -1262,6 +1281,7 @@ def prepare_ta_native_fit(plan,root,*,reload_normalization=None,reload_prior=Non
 
 
 def prepare_native_fit(plan,root,*,reload_normalization=None,reload_prior=None):
+    if _primary_fit(plan):return prepare_primary_native_fit(plan,root,reload_normalization=reload_normalization,reload_prior=reload_prior)
     if _ta_fit(plan):
         return prepare_ta_native_fit({**plan,'mode':'ta_main'}if plan['mode']=='ta_shuffle'else plan,root,
             reload_normalization=reload_normalization,reload_prior=reload_prior)
@@ -1294,11 +1314,15 @@ def fit_step(model,optimizer,provider,cohort,rows,plan):
     model.train();optimizer.zero_grad(set_to_none=True)
     raw=provider.gather(rows,max_rows=plan['recipe']['batch_rows'])
     features={key:torch.from_numpy(value).to(next(model.parameters()).device)for key,value in raw.items()}
+    if plan.get('mode')=='ta_primary_mechanics':
+        for value in features.values():
+            if value.is_floating_point():value.requires_grad_(True)
     truth=slice_truth(cohort,rows,fit=True)
     output=model(features)
     loss=native_bar_direction_loss(model_output=output,truth=truth,fold_upper_ns=FIT_END_NS,
         target_contract_sha256=plan['metadata']['target_contract']['contract_sha256'])
     need(not loss['skip_update']and bool(torch.isfinite(loss['loss'])),'FIT_SUPERVISED_FINITE_LOSS')
+    primary_probe=primary_backbone_probe(model,loss,features)if plan.get('mode')=='ta_primary_mechanics'else{}
     loss['loss'].backward()
     model._native_fit_counts['backward_calls']+=1
     gradients=[p for p in model.parameters()if p.grad is not None]
@@ -1315,7 +1339,7 @@ def fit_step(model,optimizer,provider,cohort,rows,plan):
     optimizer.step();model._native_fit_counts['optimizer_steps']+=1;optimizer.zero_grad(set_to_none=True)
     need(all(bool(torch.isfinite(p).all())for p in model.parameters()),'FIT_FINITE_PARAMETERS')
     return {'loss':float(loss['loss'].detach()),'gradient_norm':float(norm),'source_rows_sha256':digest(rows),
-        **gradient_proof,
+        **gradient_proof,**primary_probe,
         'predictive_counts':{key:value.detach().cpu().tolist()for key,value in loss['counts'].items()},
         'output_sha256':{key:digest(value.detach().cpu().numpy())for key,value in output.items()}}
 
@@ -1458,7 +1482,8 @@ def fit_physical(plan,plan_ref,root):
     initial_sha=canonical_model_state_sha256(model.state_dict())
     statistics_parent=(plan['metadata'].get('mechanics')if ta_only else
         plan['metadata']['mechanics']if plan['mode']=='main'else plan['metadata']['statistics_parent'])
-    if statistics_parent is not None:need(initial_sha==statistics_parent['initial_state_sha256'],'FIT_FRESH_MAIN_INITIAL')
+    if statistics_parent is not None and plan['mode']!='ta_primary_mechanics':
+        need(initial_sha==statistics_parent['initial_state_sha256'],'FIT_FRESH_MAIN_INITIAL')
     score_started=time.monotonic();initial,capture_initial=fit_score(model,context,panels,plan)
     torch.cuda.synchronize();initial_score_seconds=time.monotonic()-score_started
     prior_initialization=_ta_initial_prior_proof(model,context,capture_initial)if ta_only else None
@@ -1476,6 +1501,10 @@ def fit_physical(plan,plan_ref,root):
         if ta_only and cursor<2:
             need(step['heads_gradient_l2']>0 and(step['backbone_gradient_l2']==0 if cursor==0
                 else step['backbone_gradient_l2']>0),'TA_FIT_ZERO_HEAD_GRADIENT_TRANSITION')
+        if plan['mode']=='ta_primary_mechanics':
+            proof=step['primary_gradient_routing']
+            need(proof['M5_head_gradient_l2']>0 and(proof['M5_shared_gradient_l2']==0 if cursor==0
+                else proof['M5_shared_gradient_l2']>0),'PRIMARY_M5_GRADIENT_TRANSITION')
         if _mechanics(plan['mode'])and cursor==0:
             mechanics_checkpoint=publish_checkpoint(root/'RESUME_STATE.pt',fit_checkpoint(
                 model,optimizer,context,plan,plan_ref,1))
@@ -1491,7 +1520,7 @@ def fit_physical(plan,plan_ref,root):
             capture_ref=publish(root/('CAPTURE_PASS_'+str(number).zfill(3)+'.npz'),stream.getvalue());stream.close()
             curve.append({'pass':number,'completed_updates':cursor+1,'scores':score_ref,'capture':capture_ref,
                 'checkpoint':checkpoint_refs[-1],'model_state_sha256':canonical_model_state_sha256(model.state_dict())})
-    if plan['mode']=='ta_shuffle':need(digest(np.concatenate(batches))==plan['training_schedule']['source_row_schedule_sha256'],
+    if plan['mode']in('ta_shuffle','ta_primary_main'):need(digest(np.concatenate(batches))==plan['training_schedule']['source_row_schedule_sha256'],
         'TA_BLOCK_ACTUAL_SOURCE_ROW_SCHEDULE')
     score_started=time.monotonic();final,capture_final=(pass_scores,pass_capture)if _ta_main(plan['mode'])else fit_score(model,context,panels,plan)
     torch.cuda.synchronize();final_score_seconds=elapsed if _ta_main(plan['mode'])else time.monotonic()-score_started
@@ -1514,7 +1543,14 @@ def fit_physical(plan,plan_ref,root):
             'declared_passes':recipe['passes'],'learning_curve':curve,
             **({'training_schedule':plan['training_schedule'],
                 'actual_source_row_schedule_sha256':digest(np.concatenate(batches)),
-                'chronological_reference':plan['metadata']['chronological_reference']}if plan['mode']=='ta_shuffle'else{}),
+                'chronological_reference':plan['metadata']['chronological_reference']}if plan['mode']in('ta_shuffle','ta_primary_main')else{}),
+            **({'backbone_gradient_policy':PRIMARY_BACKBONE_GRADIENT_POLICY,
+                'raw_gradient_design_evidence':plan['metadata']['raw_gradient_design_evidence']}if _primary_fit(plan)else{}),
+            **({'primary_backbone_qualification':{
+                'auxiliary_shared_zero_all_steps':all(x['primary_gradient_routing']['auxiliary_shared_gradient_l2']==0 for x in steps),
+                'M5_shared_positive_after_first_head_update':steps[1]['primary_gradient_routing']['M5_shared_gradient_l2']>0,
+                'supported_auxiliary_heads_positive_all_steps':all(x['primary_gradient_routing']['auxiliary_head_gradient_l2']>0
+                    for x in steps if x['primary_gradient_routing']['auxiliary_predictive_cells']>0)}}if plan['mode']=='ta_primary_mechanics'else{}),
             'gradient_transition':{'first_backbone_gradient_l2':steps[0]['backbone_gradient_l2'],
                 'second_backbone_gradient_l2':steps[1]['backbone_gradient_l2'],
                 'zero_first_gradient_is_expected_from_zero_readout_weights':True,
@@ -1624,7 +1660,9 @@ def run_native_fit(plan_sha,mode):
         need(fit_source_clean(plan)and ref(POLICY)==policy_ref and ref(path)==plan_ref,'FIT_SOURCE_POLICY_BOOKEND')
         updates=3 if _mechanics(mode)else plan['recipe']['fit_batches']
         result=publish(root/'RESULT.json',{'stage':stage,
-            'status':('COMPLETE_NATIVE_M5_TA_PRIOR_MECHANICS'if mode=='ta_mechanics'else
+            'status':('COMPLETE_NATIVE_M5_TA_PRIMARY_BACKBONE_MECHANICS'if mode=='ta_primary_mechanics'else
+                'COMPLETE_NATIVE_M5_TA_PRIMARY_BACKBONE_FIT'if mode=='ta_primary_main'else
+                'COMPLETE_NATIVE_M5_TA_PRIOR_MECHANICS'if mode=='ta_mechanics'else
                 'COMPLETE_NATIVE_M5_TA_PRIOR_BLOCK_ORDER'if mode=='ta_shuffle'else
                 'COMPLETE_NATIVE_M5_TA_PRIOR_LEARNING_CURVE'if mode=='ta_main'else
                 'COMPLETE_NATIVE_M5_FULL_GC_FIT_MECHANICS'if mode=='mechanics'else'COMPLETE_NATIVE_M5_FULL_GC_SHORT_FIT'),
@@ -1956,6 +1994,225 @@ def shared_gradient_cli(args):
             'policy':policy_ref,'claim_created':False,'feature_values_decoded':0,'target_values_decoded':0,
             'checkpoint_decodes':0,'model_constructions':0,'optimizer_constructions':0,'optimizer_steps':0}))
     else:print(json.dumps(run_shared_gradient(args.plan_sha256),sort_keys=True))
+
+
+PRIMARY_BACKBONE_GRADIENT_POLICY='m5_close_only_backbone_v1'
+PRIMARY_GRADIENT_DESIGN_REFERENCE={
+    'gradient_result':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_TA_SHARED_GRADIENT_20261119_001/RESULT.json',
+        'sha256':'c9f90357f73ca1d4ac1bb214ad885100f806d06a0b53e444657daa23a1cdeb76'},
+    'gradient_terminal':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_TA_SHARED_GRADIENT_20261119_001/TERMINAL.json',
+        'sha256':'20546b6e7010f8127b13f5d16584b76725d86d99912377be2464ece01b84be87'},
+    'gradient_review':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_TA_SHARED_GRADIENT_20261119_001/MATCHED_GRADIENT_REVIEW.json',
+        'sha256':'ac838e47c54cfe40b767714937f99920582a599bbc79b690d3927c548c608e02'}}
+PRIMARY_FIT_SOURCE_PATHS=tuple(dict.fromkeys((*TA_FIT_SOURCE_PATHS,'tests/test_market_state_ta_integrated_model_v1.py')))
+
+
+def _primary_fit(plan):
+    return plan.get('mode')in('ta_primary_mechanics','ta_primary_main')
+
+
+def primary_model_source_identity(source):
+    import ast
+    tree=ast.parse(source)
+    top={'native_bar_backbone_gradient_policy_contract','_require_backbone_gradient_policy',
+        'native_bar_model_contract','build_native_bar_direction_model'}
+    methods={'__init__','research_objective','_require_binding','load_state_dict','forward'}
+    changed={}
+    retained=[]
+    for node in tree.body:
+        if isinstance(node,ast.Assign)and any(isinstance(t,ast.Name)and t.id=='M5_CLOSE_ONLY_BACKBONE_GRADIENT_POLICY'for t in node.targets):continue
+        if isinstance(node,(ast.FunctionDef,ast.AsyncFunctionDef))and node.name in top:
+            changed[node.name]=hashlib.sha256(ast.dump(node,include_attributes=False).encode()).hexdigest();continue
+        if isinstance(node,ast.ClassDef)and node.name=='NativeM5BarDirectionModel':
+            body=[]
+            for method in node.body:
+                if isinstance(method,(ast.FunctionDef,ast.AsyncFunctionDef))and method.name in methods:
+                    changed[node.name+'.'+method.name]=hashlib.sha256(ast.dump(method,include_attributes=False).encode()).hexdigest()
+                else:body.append(method)
+            node.body=body
+        retained.append(node)
+    tree.body=retained
+    return {'unchanged_model_ast_sha256':hashlib.sha256(ast.dump(tree,include_attributes=False).encode()).hexdigest(),
+        'reviewed_policy_definition_sha256':changed}
+
+
+def primary_driver_source_identity(source):
+    import ast
+    tree=ast.parse(source)
+    # Strip only the exact opt-in factory/count instrumentation and the two
+    # non-mutating autograd probes; the existing optimizer/clip/loss math remains.
+    for node in tree.body:
+        if not isinstance(node,ast.FunctionDef):continue
+        if node.name=='fresh_fit_model':
+            node.body=[item for item in node.body if not(isinstance(item,ast.If)
+                and isinstance(item.test,ast.Call)and isinstance(item.test.func,ast.Name)and item.test.func.id=='_primary_fit')]
+        if node.name=='fit_step':
+            node.body=[item for item in node.body if not(isinstance(item,ast.Assign)
+                and any(isinstance(target,ast.Name)and target.id=='primary_probe'for target in item.targets))
+                and not(isinstance(item,ast.If)and isinstance(item.test,ast.Compare)
+                    and any(isinstance(value,ast.Constant)and value.value=='ta_primary_mechanics'for value in item.test.comparators))]
+            for item in node.body:
+                if isinstance(item,ast.Return)and isinstance(item.value,ast.Dict):
+                    pairs=[(key,value)for key,value in zip(item.value.keys,item.value.values)
+                        if not(key is None and isinstance(value,ast.Name)and value.id=='primary_probe')]
+                    item.value.keys=[key for key,_ in pairs];item.value.values=[value for _,value in pairs]
+    orchestration={'_ta_fit','_ta_main','_mechanics','fit_recipe','fit_metadata','fit_limits','build_fit_plan',
+        'fit_source_clean','fit_boot_state','_ta_training_batches','_ta_schedule_position','prepare_native_fit',
+        'fit_physical','run_native_fit','_primary_fit','primary_model_source_identity','primary_driver_source_identity',
+        'primary_source_bridge','primary_backbone_metadata','prepare_primary_native_fit','primary_backbone_probe'}
+    tree.body=[node for node in tree.body if not(isinstance(node,(ast.FunctionDef,ast.AsyncFunctionDef))and node.name in orchestration)
+        and not(isinstance(node,ast.Assign)and any(isinstance(target,ast.Name)and target.id in(
+            'FIT_SCOPES','PRIMARY_BACKBONE_GRADIENT_POLICY','PRIMARY_GRADIENT_DESIGN_REFERENCE','PRIMARY_FIT_SOURCE_PATHS')for target in node.targets))]
+    leaves={node.name:node for node in tree.body if isinstance(node,ast.FunctionDef)}
+    names=('fresh_fit_model','fit_step','fit_score','prepare_ta_native_fit','fit_axes','seed_native_fit',
+        'training_rng','restore_training_rng','state_sha','slice_truth','fit_checkpoint','publish_checkpoint',
+        'restore_fit_checkpoint','fit_state_proof','_ta_initial_prior_proof','cold_resume_fit','require_cold_resume_proof')
+    return {'unchanged_driver_ast_sha256':hashlib.sha256(ast.dump(tree,include_attributes=False).encode()).hexdigest(),
+        'unchanged_numerical_leaf_sha256':{name:hashlib.sha256(ast.dump(leaves[name],include_attributes=False).encode()).hexdigest()for name in names}}
+
+
+def primary_source_bridge(parent):
+    driver='gx1/audit/qualify_native_m5_full_gc_direction_v1.py';model='gx1/contracts/market_state_ta_integrated_model_v1.py'
+    model_test='tests/test_market_state_ta_integrated_model_v1.py'
+    allowed={driver,model,'tests/test_qualify_native_m5_full_gc_direction_v1.py',model_test,
+        'scripts/gx1_capped_run.sh','tests/test_gx1_capped_run_contract.py'}
+    need(parent['stage']==SHARED_GRADIENT_STAGE and set(parent['source_owners'])==set(TA_FIT_SOURCE_PATHS),
+        'PRIMARY_DESIGN_SOURCE_SET')
+    current={name:sha(REPO/name)for name in PRIMARY_FIT_SOURCE_PATHS}
+    need(all(current[name]==value for name,value in parent['source_owners'].items()if name not in allowed),
+        'PRIMARY_UNCHANGED_OTHER_NUMERICAL_OWNERS')
+    originals={}
+    for name in (driver,model,model_test):
+        raw=subprocess.check_output(['git','show',parent['source_base_commit']+':'+name],cwd=REPO)
+        if name in parent['source_owners']:need(hashlib.sha256(raw).hexdigest()==parent['source_owners'][name],'PRIMARY_ORIGINAL_BLOB:'+name)
+        originals[name]=raw
+    driver_before=primary_driver_source_identity(originals[driver].decode())
+    need(driver_before==primary_driver_source_identity((REPO/driver).read_text()),'PRIMARY_UNCHANGED_DRIVER_MATH')
+    old_model=primary_model_source_identity(originals[model].decode());new_model=primary_model_source_identity((REPO/model).read_text())
+    need(old_model['unchanged_model_ast_sha256']==new_model['unchanged_model_ast_sha256'],'PRIMARY_MODEL_POLICY_SCOPE')
+    previous={**parent['source_owners'],model_test:hashlib.sha256(originals[model_test]).hexdigest()}
+    return {'schema_version':'gx1_native_m5_primary_backbone_source_bridge_v1','basis_plan_stage':parent['stage'],
+        'original_source_base_commit':parent['source_base_commit'],'allowed_changed_source_paths':sorted(allowed),
+        'all_other_source_owners_exact':True,**driver_before,
+        'unchanged_model_ast_sha256':old_model['unchanged_model_ast_sha256'],
+        'reviewed_model_policy_definitions':{'original':old_model['reviewed_policy_definition_sha256'],
+            'current':new_model['reviewed_policy_definition_sha256']},
+        'source_changes':{name:{'original_sha256':previous[name],'current_sha256':current[name]}
+            for name in allowed if previous[name]!=current[name]},
+        'scope':'one_explicit_detach_at_auxiliary_readout_policy_and_driver_orchestration_probes_only'}
+
+
+def primary_backbone_metadata(inputs,mode):
+    base={**SHARED_GRADIENT_PARENT,**PRIMARY_GRADIENT_DESIGN_REFERENCE,'matched_prior_reference':TA_MATCHED_PRIOR_REFERENCE}
+    fields=set(base)|({'primary_mechanics_result','primary_mechanics_terminal'}if mode=='ta_primary_main'else set())
+    need(type(inputs)is dict and set(inputs)==fields and all(inputs[key]==value for key,value in base.items()),
+        'PRIMARY_EXACT_PARENT_REFS')
+    block,terminal,review=(read(inputs[key])for key in SHARED_GRADIENT_PARENT)
+    parent,claim=read(block['plan']),read(block['claim']);report=block['report']
+    need(block['status']=='COMPLETE_NATIVE_M5_TA_PRIOR_BLOCK_ORDER'and terminal['status']=='COMPLETE'
+        and terminal['exit_code']==0 and terminal['result']==inputs['block_result']
+        and terminal['plan']==block['plan']==claim['plan']and terminal['claim']==block['claim']
+        and block['stage']==terminal['stage']==parent['stage']==claim['stage']==FIT_SCOPES['ta_shuffle'][0]
+        and block['source_unchanged']is terminal['source_unchanged']is True
+        and block['test_data_used']is terminal['test_data_used']is False
+        and report['declared_passes']==4 and report['actual_counts']=={
+            'model_constructions':1,'model_forwards':544,'backward_calls':384,'optimizer_steps':384}
+        and report['normalization_fits']==report['prior_fits']==0
+        and review['result']==inputs['block_result']and review['terminal']==inputs['block_terminal']
+        and review['normalization']==report['normalization']and review['prior']==report['prior'],'PRIMARY_BLOCK_PARENT')
+    result,done,audit=(read(inputs[key])for key in PRIMARY_GRADIENT_DESIGN_REFERENCE)
+    design,design_claim=read(result['plan']),read(result['claim'])
+    need(result['status']=='COMPLETE_NATIVE_M5_TA_SHARED_GRADIENT'and done['status']=='COMPLETE'and done['exit_code']==0
+        and done['result']==inputs['gradient_result']and done['plan']==result['plan']==design_claim['plan']
+        and done['claim']==result['claim']and result['stage']==done['stage']==design['stage']==design_claim['stage']==SHARED_GRADIENT_STAGE
+        and result['source_unchanged']is True and result['test_data_used']is done['test_data_used']is False
+        and result['optimizer_steps']==0 and result['report']['actual_counts']==SHARED_GRADIENT_LIMITS
+        and design['inputs']==SHARED_GRADIENT_PARENT
+        and result['report']['model_state_sha256_before']==result['report']['model_state_sha256_after']==report['final_state_sha256']
+        and audit['schema_version']=='gx1_native_m5_ta_shared_gradient_review_v1'
+        and audit['result']==inputs['gradient_result']and audit['terminal']==inputs['gradient_terminal']
+        and audit['metadata_and_scalar_arithmetic_independently_checked']is True
+        and audit['model_statistics_RNG_grad_fields_unchanged']is True and audit['test_data_used']is False,
+        'PRIMARY_RAW_GRADIENT_DESIGN_EVIDENCE')
+    dependencies={**parent['metadata']['dependencies'],'block_plan':block['plan'],'block_claim':block['claim'],
+        'gradient_plan':result['plan'],'gradient_claim':result['claim'],
+        'train_normalization':report['normalization'],'train_prior':report['prior']}
+    metadata={**parent['metadata'],'dependencies':dependencies,'parent_fit_plan':parent,
+        'primary_backbone_gradient_policy':PRIMARY_BACKBONE_GRADIENT_POLICY,
+        'primary_source_compatibility':primary_source_bridge(design),
+        'block_order_reference':{key:inputs[key]for key in SHARED_GRADIENT_PARENT},
+        'raw_gradient_design_evidence':{key:inputs[key]for key in PRIMARY_GRADIENT_DESIGN_REFERENCE}}
+    if mode=='ta_primary_main':
+        stage,_,root=FIT_SCOPES['ta_primary_mechanics']
+        need(inputs['primary_mechanics_result']['path']==str(root/'RESULT.json')
+            and inputs['primary_mechanics_terminal']['path']==str(root/'TERMINAL.json'),'PRIMARY_MECHANICS_PATH')
+        trained,last=read(inputs['primary_mechanics_result']),read(inputs['primary_mechanics_terminal'])
+        mechanics,mc=read(trained['plan']),read(trained['claim']);proof=trained['report']
+        need(trained['status']=='COMPLETE_NATIVE_M5_TA_PRIMARY_BACKBONE_MECHANICS'
+            and trained['stage']==last['stage']==mechanics['stage']==mc['stage']==stage
+            and last['status']=='COMPLETE'and last['exit_code']==0 and last['result']==inputs['primary_mechanics_result']
+            and last['plan']==trained['plan']==mc['plan']and last['claim']==trained['claim']
+            and trained['source_unchanged']is last['source_unchanged']is True
+            and trained['test_data_used']is last['test_data_used']is False
+            and proof['cold_resume']['bitexact']is True and proof['actual_counts']['autograd_calls']==6
+            and proof['primary_backbone_qualification']['auxiliary_shared_zero_all_steps']is True
+            and proof['primary_backbone_qualification']['M5_shared_positive_after_first_head_update']is True
+            and proof['primary_backbone_qualification']['supported_auxiliary_heads_positive_all_steps']is True
+            and proof['normalization_fits']==proof['prior_fits']==0
+            and proof['normalization']==report['normalization']and proof['prior']==report['prior']
+            and mechanics['metadata']==metadata and all(mechanics['inputs'][key]==value for key,value in base.items())
+            and set(mechanics['source_owners'])==set(PRIMARY_FIT_SOURCE_PATHS)
+            and all(sha(REPO/name)==value for name,value in mechanics['source_owners'].items()),'PRIMARY_COMPLETED_MECHANICS')
+        metadata['mechanics']={'result':inputs['primary_mechanics_result'],'terminal':inputs['primary_mechanics_terminal'],
+            'plan':trained['plan'],'claim':trained['claim'],'normalization':proof['normalization'],'prior':proof['prior'],
+            'axis':proof['axis'],'normalization_population':proof['normalization_population'],
+            'initial_state_sha256':proof['initial_state_sha256'],'physical_windows_boot_id':trained['physical_windows_boot_id']}
+        dependencies.update(primary_mechanics_plan=trained['plan'],primary_mechanics_claim=trained['claim'])
+    return metadata
+
+
+def prepare_primary_native_fit(plan,root,*,reload_normalization=None,reload_prior=None):
+    context=prepare_native_fit(plan['metadata']['parent_fit_plan'],root,
+        reload_normalization=reload_normalization,reload_prior=reload_prior)
+    need(context.get('normalization_fits',0)==context.get('prior_fits',0)==0,'PRIMARY_NO_STATISTICS_REFIT')
+    if plan['mode']=='ta_primary_main':
+        parent=plan['metadata']['mechanics']
+        need(context['normalization_ref']==parent['normalization']and context['prior_ref']==parent['prior']
+            and context['axis']==parent['axis'],'PRIMARY_IMMUTABLE_MECHANICS_INPUTS')
+    return context
+
+
+def primary_backbone_probe(model,loss,features):
+    import torch
+    from gx1.contracts.market_state_native_m5_feature_inputs_v1 import TIMEFRAMES
+    shared=tuple(p for p in model.backbone.parameters()if p.requires_grad)
+    auxiliary=tuple(p for task,heads in (('open',model.open_heads),('close',model.close_heads))
+        for tf in TIMEFRAMES if not(task=='close'and tf=='M5')for p in heads[tf].parameters()if p.requires_grad)
+    primary=tuple(p for p in model.close_heads['M5'].parameters()if p.requires_grad)
+    n=int(loss['counts']['open'].sum()+loss['counts']['close'].sum())
+    need(n>0 and shared and auxiliary and primary,'PRIMARY_PROBE_PARAMETER_SUPPORT')
+    laux=(loss['loss_sums']['open'].sum()+loss['loss_sums']['close'][1:].sum())/n
+    l5=loss['loss_sums']['close'][0]/n
+    aux=torch.autograd.grad(laux,shared+auxiliary,retain_graph=True,allow_unused=True)
+    model._native_fit_counts['autograd_calls']+=1
+    input_names=tuple(sorted(key for key,value in features.items()if value.is_floating_point()))
+    inputs=tuple(features[key]for key in input_names)
+    m5=torch.autograd.grad(l5,shared+primary+inputs,retain_graph=True,allow_unused=True)
+    model._native_fit_counts['autograd_calls']+=1
+    def l2(values):
+        need(all(v is None or bool(torch.isfinite(v).all())for v in values),'PRIMARY_PROBE_FINITE')
+        return float(torch.sqrt(sum((v.detach().double().square().sum()for v in values if v is not None),
+            torch.zeros((),device=primary[0].device))))
+    result={'auxiliary_shared_gradient_l2':l2(aux[:len(shared)]),'auxiliary_head_gradient_l2':l2(aux[len(shared):]),
+        'M5_shared_gradient_l2':l2(m5[:len(shared)]),'M5_head_gradient_l2':l2(m5[len(shared):len(shared)+len(primary)]),
+        'input_key_gradient_l2':{key:l2((value,))for key,value in zip(input_names,m5[len(shared)+len(primary):])},
+        'auxiliary_predictive_cells':n-int(loss['counts']['close'][0]),
+        'M5_predictive_cells':int(loss['counts']['close'][0]),'autograd_probe_calls':2}
+    need(all(value is None or int(torch.count_nonzero(value))==0 for value in aux[:len(shared)])
+        and result['auxiliary_shared_gradient_l2']==0
+        and(result['auxiliary_head_gradient_l2']>0 if result['auxiliary_predictive_cells']>0 else result['auxiliary_head_gradient_l2']==0)
+        and all(p.grad is None for p in model.parameters()),'PRIMARY_AUXILIARY_ROUTE_OR_GRAD_ACCUMULATION')
+    return {'primary_gradient_routing':result}
 
 
 if __name__=='__main__':main()

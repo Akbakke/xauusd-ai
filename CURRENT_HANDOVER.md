@@ -76,13 +76,24 @@ g5·(g5+gaux)=−0,00193489; samlet rågradient motarbeidet M5 i 3/4 paneler.
 ikke faktisk AdamW-retning, historisk årsaksbevis eller dokumentert gevinst.
 Uavhengig metadata-/skalarregning bekreftet identitetene med ≤1,1e−19
 avvik; gradienttensorene ble ikke uavhengig regnet på nytt.
+CPU-terminalen utelater source_unchanged; feltet er derfor registrert ukjent
+i terminalstatus. Kilde-/policybeviset kommer fra original RESULT.
+Originale kvitteringer er ikke endret.
 MATCHED_GRADIENT_REVIEW.json er hashbundet i policy.
 
-Neste design gjennomgås før kode/trening: M5-close kan få styre felles
-representasjon, mens øvrige hoder fortsatt lærer egne parametre uten
-shared-gradient. Alle TA-inputs og tidsrammer skal beholdes; ingen
-klassevekter eller fasit endres. Ingen ny fit er innrømmet.
-Det vedvarende målet er fortsatt aktivt.
+Én kandidat er nå vedtatt for kildekvalifikasjon: optional
+m5_close_only_backbone_v1 lar M5-close styre felles representasjon, mens
+øvrige ni hoder fortsatt lærer egne parametre fra detached hidden.
+Alle TA-inputs, fem TF, alle hoder/tap og samme Ntotal, norm/prior,
+kohorter/PCG64/optimizer beholdes. Ingen klassevekter eller fasit endres.
+Default-ruten er uendret; ny policy bindes i modell/state og krever fersk
+genuin baseline, gradient- og cold-resume-kontroll før hovedrunde.
+Øvrige TF kan tape representasjonskvalitet; senere gevinst er ikke bevist.
+Kilden er kvalifisert med 6 nye drivercaser, én ny modellpolicycase under
+CPU4G-cap og 16 nye eksakte guardtilfeller. Uavhengig modell-/driverreview og
+positiv faktisk metadata-kontroll bestod. Gammel default og øvrig matematikk
+er bevart. Genuin fersk baseline, gradient- og coldproof gjenstår.
+Ingen ny fit er innrømmet. Det vedvarende målet er fortsatt aktivt.
 
 ### Fullført kronologisk TA-referanse og grunnlag
 

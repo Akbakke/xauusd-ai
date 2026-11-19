@@ -204,6 +204,17 @@ Ved nullnorm er cosinus udefinert. Modell/statistikk/RNG/.grad=None skal
 bevares; ingen optimizer opprettes. Egen eksakt CPU-produceradmisjon,
 kilde-/checkpointporter og intern tidsgrense kreves med alle treningsporter stengt.
 
+Den målte shared-gradientkonflikten begrunner én eksplisitt, valgfri
+M5-close-primary kandidat: bare M5-close-headen mottar attached hidden,
+øvrige ni hoder mottar detached hidden. Alle hoder lærer fortsatt egne
+parametre; alle features, TF, mål, masker, tapsledd og native Ntotal beholdes.
+Dette endrer gradientruting, ikke klassevekter eller forwardverdier ved like
+parametre. Defaultmodellen beholdes. En ny modell-/stateidentitet, ekte
+freshbaseline, aux→shared eksakt0, gradienter til støttede aux-hoder og M5-sharedgrad
+etter første headoppdatering samt ny bit-identisk kald replay må kvalifiseres.
+Hovedrunden bruker ferske vekter og samme frosne PCG64-ordning; dette er én
+kontrollert kandidat, ingen søk over tapsvekter.
+
 Bruk eksisterende eksakt bundne trainerklasse og maskinvarevakter.
 M1-forbud, TEST-forsegling og Entry-pausen gjelder også optimizer/resume.
 Ingen automatisk ekstra runde eller påstand om edge følger av et lavere tap.
