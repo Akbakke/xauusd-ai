@@ -1,4 +1,669 @@
 {
+  "native_m5_pipeline_20261119_004": {
+    "status": "PREPARED_NOT_ADMITTED",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_PIPELINE_20261119_004.json",
+      "sha256": "23609320f0e469fa14ec10e7fea6ac9360fdcf9dab6c0b0ddeb92928af0e1ac9"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_004",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "test_authorized": false,
+    "broker_access_allowed": false,
+    "model_constructions": 1,
+    "model_forwards": 1,
+    "optimizer_steps": 0,
+    "parameter_fits": 0,
+    "execution": {
+      "class": "producer",
+      "memory": "12G",
+      "swap": "512M",
+      "outer_seconds": 3600,
+      "internal_seconds": 3570,
+      "kill_after_seconds": 10,
+      "numerical_threads": 1,
+      "model_constructions": 1,
+      "model_forwards": 1,
+      "optimizer_steps": 0
+    },
+    "admission_basis": "Notadmitted. Completednative5arrays/parameters only; explicit provider/domain migration +freshnormalization+oneCPUinitialbatch pending exactpreflight.",
+    "candidate_inputs": {
+      "original_plan": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_PIPELINE_20261119_003.json",
+        "sha256": "feeb5e6ed662c5b0d97a7354d0d383d2be88ce6c0e9f34dc6c1f4dc8041d4582"
+      },
+      "original_claim": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_003/CLAIM.json",
+        "sha256": "2dc02dd0e00cde0a5c1b38b3352480012c2d15c626d01160d9256efb711e27b1"
+      },
+      "candidate_dependencies": {
+        "plan": {
+          "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_PIPELINE_20261119_003.json",
+          "sha256": "feeb5e6ed662c5b0d97a7354d0d383d2be88ce6c0e9f34dc6c1f4dc8041d4582"
+        },
+        "claim": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_003/CLAIM.json",
+          "sha256": "2dc02dd0e00cde0a5c1b38b3352480012c2d15c626d01160d9256efb711e27b1"
+        }
+      },
+      "original_provider_contract_sha256": "363c7941fe9f5c7e478c488fadb575e4dc6fb8fa36f6687634a092588d6f6e48",
+      "admitted_provider_contract_sha256": "b86bfe811e39499863ec4915f472518da73a8266c5f739955defbf56ecb29dae",
+      "original_execution_profile": {
+        "contract_sha256": "dc9253d6472dca90ca6a493303d216e4ce811a69cd0b484e2dad66dea1c7bc5a",
+        "name": "full_xau_ta_mtf_entry_research_v1"
+      },
+      "admitted_execution_profile": {
+        "name": "full_xau_ta_mtf_entry_research_v1",
+        "contract_sha256": "b3adfd8777da6c071b104edffb2481e8c7b0bce10571dc35f253f8e25aa2b82e"
+      },
+      "original_provider_schema": "gx1_native_m5_feature_provider_v1",
+      "admitted_provider_schema": "gx1_native_m5_feature_provider_v2",
+      "fresh_normalization_semantic_domains": {
+        "schema_version": "native_m5_exact_owner_input_domains_v1",
+        "signed_ternary": {
+          "schema_version": "native_m5_signed_ema_stack_units_v1",
+          "formula_owner": "gx1.features.htf_features.compute_per_bar_features_v4",
+          "formula": "strict_bull_EMA20_50_100_200:+1_strict_bear:-1_other:0",
+          "domain": [
+            -1,
+            0,
+            1
+          ],
+          "center": 0,
+          "scale": 1,
+          "transform": "asinh_numeric_not_binary_or_categorical",
+          "fields_by_surface": {
+            "signal": [
+              "ctx_cont.m5_ema_stack_aligned_v2",
+              "ctx_cont.m15_ema_stack_aligned_v2",
+              "ctx_cont.h1_ema_stack_aligned_v2",
+              "ctx_cont.h4_ema_stack_aligned_v2",
+              "ctx_cont.d1_ema_stack_aligned_v2"
+            ],
+            "ctx_cont": [
+              "m5_ema_stack_aligned_v2",
+              "m15_ema_stack_aligned_v2",
+              "h1_ema_stack_aligned_v2",
+              "h4_ema_stack_aligned_v2",
+              "d1_ema_stack_aligned_v2"
+            ],
+            "mtf_m5": [
+              "ema_stack_aligned_v2"
+            ],
+            "mtf_m15": [
+              "ema_stack_aligned_v2"
+            ],
+            "mtf_h1": [
+              "ema_stack_aligned_v2"
+            ],
+            "mtf_h4": [
+              "ema_stack_aligned_v2"
+            ],
+            "mtf_d1": [
+              "ema_stack_aligned_v2"
+            ]
+          },
+          "contract_sha256": "7689d499c9d93150c76928b0baadc9c22cdab7f01d6ba9108a1c6bd4e968ce56"
+        },
+        "binary_domain": [
+          0,
+          1
+        ],
+        "binary_transform": "identity_center_0_scale_1",
+        "binary_same_M5_aliases": [
+          [
+            "candle.raw_body_contains_previous_flag",
+            "mtf_candle_raw_body_contains_previous_flag"
+          ],
+          [
+            "candle.raw_body_contained_by_previous_flag",
+            "mtf_candle_raw_body_contained_by_previous_flag"
+          ],
+          [
+            "candle.raw_range_contains_previous_flag",
+            "mtf_candle_raw_range_contains_previous_flag"
+          ],
+          [
+            "candle.raw_range_contained_by_previous_flag",
+            "mtf_candle_raw_range_contained_by_previous_flag"
+          ],
+          [
+            "candle.raw_bull_body_covers_previous_bear_body_event",
+            "mtf_candle_raw_bull_body_covers_previous_bear_body_event"
+          ],
+          [
+            "candle.raw_bear_body_covers_previous_bull_body_event",
+            "mtf_candle_raw_bear_body_covers_previous_bull_body_event"
+          ],
+          [
+            "candle.raw_high_rejection_previous_high_event",
+            "mtf_candle_raw_high_rejection_previous_high_event"
+          ],
+          [
+            "candle.raw_low_rejection_previous_low_event",
+            "mtf_candle_raw_low_rejection_previous_low_event"
+          ],
+          [
+            "level_above2_present",
+            "mtf_level_above2_present"
+          ],
+          [
+            "level_below_present",
+            "mtf_level_below_present"
+          ],
+          [
+            "level_below2_present",
+            "mtf_level_below2_present"
+          ],
+          [
+            "level_break_up_event",
+            "mtf_level_break_up_event"
+          ],
+          [
+            "level_break_down_event",
+            "mtf_level_break_down_event"
+          ],
+          [
+            "ctx_cont.swing_impulse_present",
+            "swing_impulse_present"
+          ],
+          [
+            "swing_high_break_event",
+            "swing_high_break_event"
+          ],
+          [
+            "swing_low_break_event",
+            "swing_low_break_event"
+          ],
+          [
+            "swing_high_level_intact",
+            "swing_high_level_intact"
+          ],
+          [
+            "swing_low_level_intact",
+            "swing_low_level_intact"
+          ],
+          [
+            "bear_divergence_event",
+            "bear_divergence_event"
+          ],
+          [
+            "bull_divergence_event",
+            "bull_divergence_event"
+          ],
+          [
+            "hidden_bear_divergence_event",
+            "hidden_bear_divergence_event"
+          ],
+          [
+            "hidden_bull_divergence_event",
+            "hidden_bull_divergence_event"
+          ],
+          [
+            "chart.local_ema50_200_bull_state",
+            "ema50_200_bull_state"
+          ],
+          [
+            "chart.local_ema50_200_cross_up",
+            "ema50_200_cross_up"
+          ],
+          [
+            "chart.local_ema50_200_cross_down",
+            "ema50_200_cross_down"
+          ],
+          [
+            "chart.local_price_x_ema50_cross_up",
+            "price_x_ema50_cross_up"
+          ],
+          [
+            "chart.local_price_x_ema50_cross_down",
+            "price_x_ema50_cross_down"
+          ],
+          [
+            "chart.local_price_x_ema200_cross_up",
+            "price_x_ema200_cross_up"
+          ],
+          [
+            "chart.local_price_x_ema200_cross_down",
+            "price_x_ema200_cross_down"
+          ],
+          [
+            "smc_bos_up",
+            "mtf_smc_bos_up"
+          ],
+          [
+            "smc_bos_down",
+            "mtf_smc_bos_down"
+          ],
+          [
+            "smc_choch_up",
+            "mtf_smc_choch_up"
+          ],
+          [
+            "smc_choch_down",
+            "mtf_smc_choch_down"
+          ],
+          [
+            "smc_sweep_up_state",
+            "mtf_smc_sweep_up_state"
+          ],
+          [
+            "smc_sweep_down_state",
+            "mtf_smc_sweep_down_state"
+          ],
+          [
+            "smc_sweep_up_event",
+            "mtf_smc_sweep_up_event"
+          ],
+          [
+            "smc_sweep_down_event",
+            "mtf_smc_sweep_down_event"
+          ],
+          [
+            "smc_choch",
+            "smc_choch"
+          ],
+          [
+            "ctx_cont.close_range_observed",
+            "close_range_observed"
+          ],
+          [
+            "ctx_cont.session_change_flag",
+            "session_change_flag"
+          ]
+        ],
+        "binary_fields_by_surface": {
+          "signal": [
+            "candle.raw_body_contains_previous_flag",
+            "candle.raw_body_contained_by_previous_flag",
+            "candle.raw_range_contains_previous_flag",
+            "candle.raw_range_contained_by_previous_flag",
+            "candle.raw_bull_body_covers_previous_bear_body_event",
+            "candle.raw_bear_body_covers_previous_bull_body_event",
+            "candle.raw_high_rejection_previous_high_event",
+            "candle.raw_low_rejection_previous_low_event",
+            "level_above2_present",
+            "level_below_present",
+            "level_below2_present",
+            "level_break_up_event",
+            "level_break_down_event",
+            "ctx_cont.swing_impulse_present",
+            "swing_high_break_event",
+            "swing_low_break_event",
+            "swing_high_level_intact",
+            "swing_low_level_intact",
+            "bear_divergence_event",
+            "bull_divergence_event",
+            "hidden_bear_divergence_event",
+            "hidden_bull_divergence_event",
+            "chart.local_ema50_200_bull_state",
+            "chart.local_ema50_200_cross_up",
+            "chart.local_ema50_200_cross_down",
+            "chart.local_price_x_ema50_cross_up",
+            "chart.local_price_x_ema50_cross_down",
+            "chart.local_price_x_ema200_cross_up",
+            "chart.local_price_x_ema200_cross_down",
+            "smc_bos_up",
+            "smc_bos_down",
+            "smc_choch_up",
+            "smc_choch_down",
+            "smc_sweep_up_state",
+            "smc_sweep_down_state",
+            "smc_sweep_up_event",
+            "smc_sweep_down_event",
+            "smc_choch",
+            "ctx_cont.close_range_observed",
+            "ctx_cont.session_change_flag"
+          ],
+          "ctx_cont": [
+            "swing_impulse_present",
+            "close_range_observed",
+            "session_change_flag"
+          ],
+          "mtf_m5": [
+            "bear_divergence_event",
+            "bull_divergence_event",
+            "close_range_observed",
+            "ema20_50_bull_state",
+            "ema20_50_cross_down",
+            "ema20_50_cross_up",
+            "ema50_200_bull_state",
+            "ema50_200_cross_down",
+            "ema50_200_cross_up",
+            "geomchan_active",
+            "geomchan_converging",
+            "geomline_break_down",
+            "geomline_break_up",
+            "geomline_retest_fail_down",
+            "geomline_retest_fail_up",
+            "geomline_retest_hold_down",
+            "geomline_retest_hold_up",
+            "geomline_touch_above",
+            "geomline_touch_below",
+            "hidden_bear_divergence_event",
+            "hidden_bull_divergence_event",
+            "mtf_candle_raw_bear_body_covers_previous_bull_body_event",
+            "mtf_candle_raw_body_contained_by_previous_flag",
+            "mtf_candle_raw_body_contains_previous_flag",
+            "mtf_candle_raw_bull_body_covers_previous_bear_body_event",
+            "mtf_candle_raw_high_rejection_previous_high_event",
+            "mtf_candle_raw_low_rejection_previous_low_event",
+            "mtf_candle_raw_range_contained_by_previous_flag",
+            "mtf_candle_raw_range_contains_previous_flag",
+            "mtf_level_above2_present",
+            "mtf_level_below2_present",
+            "mtf_level_below_present",
+            "mtf_level_break_down_event",
+            "mtf_level_break_up_event",
+            "mtf_smc_bos_down",
+            "mtf_smc_bos_up",
+            "mtf_smc_choch_down",
+            "mtf_smc_choch_up",
+            "mtf_smc_sweep_down_event",
+            "mtf_smc_sweep_down_state",
+            "mtf_smc_sweep_up_event",
+            "mtf_smc_sweep_up_state",
+            "price_x_ema200_cross_down",
+            "price_x_ema200_cross_up",
+            "price_x_ema20_cross_down",
+            "price_x_ema20_cross_up",
+            "price_x_ema50_cross_down",
+            "price_x_ema50_cross_up",
+            "session_change_flag",
+            "smc_choch",
+            "swing_high_break_event",
+            "swing_high_level_intact",
+            "swing_impulse_present",
+            "swing_low_break_event",
+            "swing_low_level_intact"
+          ],
+          "mtf_m15": [
+            "bear_divergence_event",
+            "bull_divergence_event",
+            "close_range_observed",
+            "ema20_50_bull_state",
+            "ema20_50_cross_down",
+            "ema20_50_cross_up",
+            "ema50_200_bull_state",
+            "ema50_200_cross_down",
+            "ema50_200_cross_up",
+            "geomchan_active",
+            "geomchan_converging",
+            "geomline_break_down",
+            "geomline_break_up",
+            "geomline_retest_fail_down",
+            "geomline_retest_fail_up",
+            "geomline_retest_hold_down",
+            "geomline_retest_hold_up",
+            "geomline_touch_above",
+            "geomline_touch_below",
+            "hidden_bear_divergence_event",
+            "hidden_bull_divergence_event",
+            "mtf_candle_raw_bear_body_covers_previous_bull_body_event",
+            "mtf_candle_raw_body_contained_by_previous_flag",
+            "mtf_candle_raw_body_contains_previous_flag",
+            "mtf_candle_raw_bull_body_covers_previous_bear_body_event",
+            "mtf_candle_raw_high_rejection_previous_high_event",
+            "mtf_candle_raw_low_rejection_previous_low_event",
+            "mtf_candle_raw_range_contained_by_previous_flag",
+            "mtf_candle_raw_range_contains_previous_flag",
+            "mtf_level_above2_present",
+            "mtf_level_below2_present",
+            "mtf_level_below_present",
+            "mtf_level_break_down_event",
+            "mtf_level_break_up_event",
+            "mtf_smc_bos_down",
+            "mtf_smc_bos_up",
+            "mtf_smc_choch_down",
+            "mtf_smc_choch_up",
+            "mtf_smc_sweep_down_event",
+            "mtf_smc_sweep_down_state",
+            "mtf_smc_sweep_up_event",
+            "mtf_smc_sweep_up_state",
+            "price_x_ema200_cross_down",
+            "price_x_ema200_cross_up",
+            "price_x_ema20_cross_down",
+            "price_x_ema20_cross_up",
+            "price_x_ema50_cross_down",
+            "price_x_ema50_cross_up",
+            "session_change_flag",
+            "smc_choch",
+            "swing_high_break_event",
+            "swing_high_level_intact",
+            "swing_impulse_present",
+            "swing_low_break_event",
+            "swing_low_level_intact"
+          ],
+          "mtf_h1": [
+            "bear_divergence_event",
+            "bull_divergence_event",
+            "close_range_observed",
+            "ema20_50_bull_state",
+            "ema20_50_cross_down",
+            "ema20_50_cross_up",
+            "ema50_200_bull_state",
+            "ema50_200_cross_down",
+            "ema50_200_cross_up",
+            "geomchan_active",
+            "geomchan_converging",
+            "geomline_break_down",
+            "geomline_break_up",
+            "geomline_retest_fail_down",
+            "geomline_retest_fail_up",
+            "geomline_retest_hold_down",
+            "geomline_retest_hold_up",
+            "geomline_touch_above",
+            "geomline_touch_below",
+            "hidden_bear_divergence_event",
+            "hidden_bull_divergence_event",
+            "mtf_candle_raw_bear_body_covers_previous_bull_body_event",
+            "mtf_candle_raw_body_contained_by_previous_flag",
+            "mtf_candle_raw_body_contains_previous_flag",
+            "mtf_candle_raw_bull_body_covers_previous_bear_body_event",
+            "mtf_candle_raw_high_rejection_previous_high_event",
+            "mtf_candle_raw_low_rejection_previous_low_event",
+            "mtf_candle_raw_range_contained_by_previous_flag",
+            "mtf_candle_raw_range_contains_previous_flag",
+            "mtf_level_above2_present",
+            "mtf_level_below2_present",
+            "mtf_level_below_present",
+            "mtf_level_break_down_event",
+            "mtf_level_break_up_event",
+            "mtf_smc_bos_down",
+            "mtf_smc_bos_up",
+            "mtf_smc_choch_down",
+            "mtf_smc_choch_up",
+            "mtf_smc_sweep_down_event",
+            "mtf_smc_sweep_down_state",
+            "mtf_smc_sweep_up_event",
+            "mtf_smc_sweep_up_state",
+            "price_x_ema200_cross_down",
+            "price_x_ema200_cross_up",
+            "price_x_ema20_cross_down",
+            "price_x_ema20_cross_up",
+            "price_x_ema50_cross_down",
+            "price_x_ema50_cross_up",
+            "session_change_flag",
+            "smc_choch",
+            "swing_high_break_event",
+            "swing_high_level_intact",
+            "swing_impulse_present",
+            "swing_low_break_event",
+            "swing_low_level_intact"
+          ],
+          "mtf_h4": [
+            "bear_divergence_event",
+            "bull_divergence_event",
+            "close_range_observed",
+            "ema20_50_bull_state",
+            "ema20_50_cross_down",
+            "ema20_50_cross_up",
+            "ema50_200_bull_state",
+            "ema50_200_cross_down",
+            "ema50_200_cross_up",
+            "geomchan_active",
+            "geomchan_converging",
+            "geomline_break_down",
+            "geomline_break_up",
+            "geomline_retest_fail_down",
+            "geomline_retest_fail_up",
+            "geomline_retest_hold_down",
+            "geomline_retest_hold_up",
+            "geomline_touch_above",
+            "geomline_touch_below",
+            "hidden_bear_divergence_event",
+            "hidden_bull_divergence_event",
+            "mtf_candle_raw_bear_body_covers_previous_bull_body_event",
+            "mtf_candle_raw_body_contained_by_previous_flag",
+            "mtf_candle_raw_body_contains_previous_flag",
+            "mtf_candle_raw_bull_body_covers_previous_bear_body_event",
+            "mtf_candle_raw_high_rejection_previous_high_event",
+            "mtf_candle_raw_low_rejection_previous_low_event",
+            "mtf_candle_raw_range_contained_by_previous_flag",
+            "mtf_candle_raw_range_contains_previous_flag",
+            "mtf_level_above2_present",
+            "mtf_level_below2_present",
+            "mtf_level_below_present",
+            "mtf_level_break_down_event",
+            "mtf_level_break_up_event",
+            "mtf_smc_bos_down",
+            "mtf_smc_bos_up",
+            "mtf_smc_choch_down",
+            "mtf_smc_choch_up",
+            "mtf_smc_sweep_down_event",
+            "mtf_smc_sweep_down_state",
+            "mtf_smc_sweep_up_event",
+            "mtf_smc_sweep_up_state",
+            "price_x_ema200_cross_down",
+            "price_x_ema200_cross_up",
+            "price_x_ema20_cross_down",
+            "price_x_ema20_cross_up",
+            "price_x_ema50_cross_down",
+            "price_x_ema50_cross_up",
+            "session_change_flag",
+            "smc_choch",
+            "swing_high_break_event",
+            "swing_high_level_intact",
+            "swing_impulse_present",
+            "swing_low_break_event",
+            "swing_low_level_intact"
+          ],
+          "mtf_d1": [
+            "bear_divergence_event",
+            "bull_divergence_event",
+            "close_range_observed",
+            "ema20_50_bull_state",
+            "ema20_50_cross_down",
+            "ema20_50_cross_up",
+            "ema50_200_bull_state",
+            "ema50_200_cross_down",
+            "ema50_200_cross_up",
+            "geomchan_active",
+            "geomchan_converging",
+            "geomline_break_down",
+            "geomline_break_up",
+            "geomline_retest_fail_down",
+            "geomline_retest_fail_up",
+            "geomline_retest_hold_down",
+            "geomline_retest_hold_up",
+            "geomline_touch_above",
+            "geomline_touch_below",
+            "hidden_bear_divergence_event",
+            "hidden_bull_divergence_event",
+            "mtf_candle_raw_bear_body_covers_previous_bull_body_event",
+            "mtf_candle_raw_body_contained_by_previous_flag",
+            "mtf_candle_raw_body_contains_previous_flag",
+            "mtf_candle_raw_bull_body_covers_previous_bear_body_event",
+            "mtf_candle_raw_high_rejection_previous_high_event",
+            "mtf_candle_raw_low_rejection_previous_low_event",
+            "mtf_candle_raw_range_contained_by_previous_flag",
+            "mtf_candle_raw_range_contains_previous_flag",
+            "mtf_level_above2_present",
+            "mtf_level_below2_present",
+            "mtf_level_below_present",
+            "mtf_level_break_down_event",
+            "mtf_level_break_up_event",
+            "mtf_smc_bos_down",
+            "mtf_smc_bos_up",
+            "mtf_smc_choch_down",
+            "mtf_smc_choch_up",
+            "mtf_smc_sweep_down_event",
+            "mtf_smc_sweep_down_state",
+            "mtf_smc_sweep_up_event",
+            "mtf_smc_sweep_up_state",
+            "price_x_ema200_cross_down",
+            "price_x_ema200_cross_up",
+            "price_x_ema20_cross_down",
+            "price_x_ema20_cross_up",
+            "price_x_ema50_cross_down",
+            "price_x_ema50_cross_up",
+            "session_change_flag",
+            "smc_choch",
+            "swing_high_break_event",
+            "swing_high_level_intact",
+            "swing_impulse_present",
+            "swing_low_break_event",
+            "swing_low_level_intact"
+          ]
+        },
+        "continuous_constants": "fail_closed_without_declared_source_units",
+        "observation_inference_used": false,
+        "contract_sha256": "e49bc2fd8f03146332d01ac6e3e25e1d64f26f1cd31dc661d0c46614a3443a76"
+      },
+      "permitted_changed_domains": [
+        "explicit_provider_v1_to_v2_semantic_contract",
+        "independent_static_field_catalog_and_profile_identity",
+        "fresh_native_binary_and_signed_ternary_normalization_domain_policy"
+      ],
+      "unchanged_provider_contract_domains": [
+        "field_names",
+        "gc_scope",
+        "input_selection",
+        "local_price_formula_contract",
+        "local_sequence_rows",
+        "local_value_owners",
+        "macro_contract",
+        "materialization",
+        "missing_values",
+        "mtf_matrix_contract",
+        "source_bar_seconds",
+        "source_clock_contract",
+        "timeframes",
+        "window_rows"
+      ],
+      "numeric_owner_ast_sha256": {
+        "gx1/contracts/market_state_native_m5_feature_inputs_v1.py": "b140c5f18fce266217689319eb0853db9b470ff2b8924c3db58de6ea03ee7da6",
+        "gx1/features/htf_features.py": "4e6207ec53f6090a9175a4fb759fd009d17e9d27bb1dcec12d6edc4da4604c76",
+        "gx1/features/entry_model_native_feature_layers_v1.py": "d552f6b201b09d36823246b20ae20a65d217c42de2e323cb47045971a1fb03a4",
+        "gx1/features/technical_indicators_v1.py": "834a0d6ce6a2e77ea2fd46fe355ef130c96e6c2c7e80d3950ae18f075390e627",
+        "gx1/features/basic_v1.py": "d512b2bcd1b14311bf8d937ed050e36d22925cf85f57ceb7c9d20c518f36b354",
+        "gx1/features/micro_structure_v1.py": "2b7c0e9c6862f53c06c88f81b76ca845707e51809df9d9a8d64063d37f65207c",
+        "gx1/features/volume_features.py": "fe3f8c3fab7760c6af28f1902c0c92f2c544ee6faed7caa64407a87d14248238",
+        "gx1/features/entry_foundation_structure_v1.py": "48546d8441fd01ccef9410836b995dcab5bd34d57c96bb65b982e0d7af0580dd",
+        "gx1/features/smc_v1.py": "da56159ebfba010ee61b931f901fe8dcdc5be9163dfec55ae5027a257c5788bb",
+        "gx1/features/level_registry_v1.py": "cacb1e7f09beab407b0a76c3ec7e2d87b337f0597b3cafc94fab14e8b9492b80",
+        "gx1/features/trendline_registry_v1.py": "cba1f7b2c94c8b47700a18eec3fd17985c04a08b8d734e54a12907d88d5e2af9",
+        "gx1/features/event_age_v1.py": "55bff2143897f3fa6efc4c4dbf8968e0d410d88745fc5ba58c05fd4885cd0b89",
+        "gx1/features/volatility_squeeze_state_v1.py": "1b0be0c5c17d5cc54fd4ce976fc939ca5eb676ce2ddd49f7bb384a9f4d1a3983",
+        "gx1/features/d1_macro_context_v1.py": "62e2a0cbf438a4ade26c1660c37ddb49f5b631cf23adef227763eb3d4d77089c",
+        "gx1/time/session_detector.py": "949baf82c7f99b2eb3f121408c7527335c17732b1fb8357d446fba05a209e436",
+        "gx1/scripts/materialize_canonical_v3_augment.py": "b4a67fff71e48280f7bddbce3c0b65a98f66dad2b73a7a0a75c7f614edb1a37c",
+        "gx1/scripts/materialize_build_canonical_features_v1.py": "cfca4be2660a9fed59552e1b986e5098990a2874979ba605ed7de9ef539baf2b"
+      },
+      "excluded_non_raw_functions": [
+        "native_m5_feature_provider_contract",
+        "fit_native_m5_feature_normalization"
+      ],
+      "original_full_process_M1_free": false,
+      "new_admission_requires_clean_process_and_exact_physical_array_checks": true
+    },
+    "test_data_used": false
+  },
   "native_m5_bar_direction_targets_20261119_002": {
     "status": "COMPLETE_CONSUMED_ALL_OBSERVED_BAR_FACTS_KNOWN",
     "plan": {
@@ -228,7 +893,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-19T09:30:11.468943+00:00",
+  "observed_utc": "2026-11-19T09:59:53.025593+00:00",
   "market_state_fold2_selected_native_b16_gather_20261115_001": {
     "status": "COMPLETE_CONSUMED_EDGE_UNQUALIFIED",
     "decision": "PASS_FULL_GC_FOLD2_SELECTED_B16_GATHER_NO_EDGE",
@@ -279,7 +944,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "NATIVE_M5_PIPELINE003_FAILED_CANDIDATE_INPUTS_PRESERVED",
+  "status": "NATIVE_M5_CLEAN_CACHE_PIPELINE004_PREPARED_NOT_ADMITTED",
   "storage_cursor_runtime_cleanup_20261117_001": {"deleted_allocated_bytes": 1767837696, "deleted_old_version_count": 4, "economic_edge_proven": false, "gx1_data_runs_touched": false, "newest_version_preserved": "be4c9e5350d77747b42cd467cbd3370a753d4640", "open_fd_check_passed": true, "path_root": "/home/andre2/.cursor-server/bin/linux-x64", "status": "DELETE_COMPLETE", "test_authorized": false, "training_authorized": false, "user_snapshots_codex_sessions_trash_preserved": true},
   "storage_compaction_20261117_001": {"broker_access_allowed": false, "diskpart_compact_executed": false, "economic_edge_proven": false, "ext4_used_bytes": 438184099840, "fstrim_completed": true, "fstrim_reported_trimmed_bytes": 630501879808, "full_local_backup_fits_current_c_free": false, "gx1_current_data_runs_repo_approx_gib": 340, "rough_max_reclaim_bytes_not_prediction": 52003160064, "running_wsl_interactive_shells_observed": 2, "scope": "Windows C and sole Ubuntu-22.04 WSL VHDX; no model or data source change", "status": "CANCELLED_BY_OPERATOR_NO_COMPACTION", "test_authorized": false, "training_authorized": false, "vhdx_bytes": 490187259904, "vhdx_bytes_after_fstrim": 490187259904, "vhdx_path": "C:\\Users\\Andre\\AppData\\Local\\Packages\\CanonicalGroupLimited.Ubuntu22.04LTS_79rhkp1fndgsc\\LocalState\\ext4.vhdx", "vhdx_sparse": false, "windows_c_capacity_bytes": 998577442816, "windows_c_free_bytes_before_compaction": 397167644672, "windows_c_used_bytes_before_compaction": 601409798144, "wsl_shutdown_executed": false, "operator_decision": "DROP_COMPACTION_20261117", "fstrim_before_latest_cursor_cleanup": true, "fstrim_recheck_required_before_compaction": true},
   "ta_m5_ema_delta_sidecars_20261117_001": {"claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/CLAIM.json", "sha256": "81d85f74bea367750b70173cd5edf6af089253a26684d86caa22e6a0954192a5"}, "claimed_invocations": 1, "completed_invocations": 0, "data_reads_authorized": false, "economic_edge_proven": false, "execution_authorized": false, "failure": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/FAILED.json", "sha256": "d26cb8597913ad94110127aebe2b9a06119c9d01491bf4b0dc395b8dd6aceaf5"}, "max_invocations": 1, "model_forwards_authorized": 0, "observed_failure": "TA_EMA_DELTA_OLD_SLOPE_PARITY:M5", "optimizer_steps_authorized": 0, "output_root": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_EMA_DELTA_SIDECARS_20261117_001.json", "sha256": "e2e9f9233e27223099f8905a003e05f637cfa0c7e0325485d1d55b2f89223b08"}, "relaunch_allowed": false, "remaining_invocations": 0, "scope": {"cutoff_ns": 1735603200000000000, "fit_rows": 29574, "later_parent_start": 29849, "later_rows": 17489, "model_forwards": 0, "optimizer_steps": 0, "physical_surfaces": 6, "test_data_used": false}, "source_unchanged": true, "status": "FAILED_CONSUMED_SOURCE_PARITY_M5", "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/TERMINAL.json", "sha256": "5eac4f13ad8f9d0c768b58cd7db006d9744dc77b5c3d2ecc988fe112fd304eee"}, "test_authorized": false, "test_data_used": false, "training_authorized": false},
@@ -2093,7 +2758,7 @@
   "market_state_ta_integrated_objective_later_20261116": {"status": "SOURCE_OBJECTIVE_AND_LATER_INPUTS_READY_NO_FIT", "review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_INTEGRATED_OBJECTIVE_LATER_INPUTS_REVIEW_20261116.json", "sha256": "d93d30dd580bab052d21219aae31102329f5f37c33148e9135cb495512632d8c"}, "objective_contract_sha256": "f4cd885a7994f66367abc54fcbdedbe5339275ef8404dee29362b38bf2819bd1", "later_input_archive": {"path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_LATER_INPUTS_20261116_001/INPUTS.npz", "sha256": "9b527afd59c906f32cf91046ddee282b998cfad5b22216030fb6a873f651ae47"}, "later_input_result": {"path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_LATER_INPUTS_20261116_001/RESULT.json", "sha256": "293e9d042788fa750c60fa49bf84dcdef9e016995805605218b552f8e77c5985"}, "later_score_rows": 4096, "later_issue_axis_sha256": "c03ec2ae8b418e21739f9f7966b946615878344364e6dc4e4d80087a0fee99d3", "later_M1_complete_paths": 4089, "later_structure_high_observed": 4068, "later_structure_low_observed": 4081, "training_authorized": false, "test_authorized": false, "economic_edge_proven": false},
   "market_state_ta_integrated_objective_preflight_20261116_004": {"status": "GENUINE_TRAIN_INTEGRATED_OBJECTIVE_GRADIENT_PASS_NO_FIT", "review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_INTEGRATED_ACTUAL_OBJECTIVE_PREFLIGHT_REVIEW_20261116.json", "sha256": "ad48b1ddc40ab5a893ce0c0f936e06eb9f850d85f1ba023baf8787b999f0ff8d"}, "private_result": {"path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_PREFLIGHT_20261116_004/RESULT.json", "sha256": "5e5a1790b4ae8673f6f3ddd63ed078b81e469a92870cf3ac6b5f0fc2b75ac2c4"}, "objective_contract_sha256": "f4cd885a7994f66367abc54fcbdedbe5339275ef8404dee29362b38bf2819bd1", "model_contract_sha256": "70a0497b27ba0ab45277ba622443ab2fca36a448357f1ccb3158689193f8bc82", "all_five_S_F_side_head_gradients_nonzero": true, "optimizer_steps": 0, "training_authorized": false, "test_authorized": false, "economic_edge_proven": false},
   "market_state_ta_integrated_later_view_rebind_20261116": {"status": "ACTUAL_LATER_FEATURE_GATHER_PASS_NO_MODEL", "review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_INTEGRATED_LATER_VIEW_REBIND_REVIEW_20261116.json", "sha256": "18616578ac8a0f79eb250c892757ccd099e15b27f567eeee02e36b96a546785c"}, "view_sha256": "8056fe96b4340bccc149da7f22dde85e4ac1b62c5e58c874ec7fbb771c1dff1a", "later_rows_gathered": 16, "all_nine_surfaces_finite": true, "model_forwards": 0, "optimizer_steps": 0, "training_authorized": false, "test_authorized": false, "economic_edge_proven": false},
-  "next_action": "Fix exact signed-domain normalization and split pure field catalog from lazy legacy049source. Explicitly qualify preserved27native5arrays under clean imports, then fresh normalization/initial16rows. Prepare direct rawMBP\u2192nativeM5GC separately. No modeltraining/Entry/TEST.",
+  "next_action": "Runexactclean-processpipeline004metadata/preflightunderexistingcapbeforeclaim. Verifycurrentnativeinputdomainsandpreserved27arrays; thenonefreshinitialbatchonly. NativeGCsourceunits/jointconnectionremainpending. No training/Entry/TEST.",
   "ta_fold2_F_frozen_readout_20261117_001": {"status": "COMPLETE_CONSUMED_NO_TRANSFER_GAIN", "plan": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/PLAN.json", "sha256": "c87fcec1c25e351fec6e9c7a7bf2905ce97605661ba9055cc769e621b757e786"}, "admission_review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_FOLD2_F_FROZEN_READOUT_ADMISSION_20261117.json", "sha256": "a9ababbb1b6ec9ed9a17e9ccff0426b4f994cfe4b78e9a3b72776cd48659629c"}, "capture": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_REP_CAPTURE_20261117_002/CAPTURE.npz", "sha256": "d4c8fa49b82dd6095afa17ebfdf40aff2bcf00b9245450edc49044d8325fb256"}, "reconciliation": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_REP_CAPTURE_20261117_002/RECONCILIATION.json", "sha256": "9b1bdfae0386ad155f3c315623b9c053e1eec6359996c8b8507ae07e6e505a74"}, "training_scope": "ten CPU linear side readouts on frozen Fold2 TRAIN representations only", "execution_authorized": false, "remaining_invocations": 0, "claimed_invocations": 1, "max_readout_fits": 10, "native_model_forwards": 0, "native_optimizer_updates": 0, "model_updates_authorized": false, "fresh_physical_boot_required": false, "relaunch_allowed": false, "test_data_used": false, "economic_edge_proven": false, "completed_invocations": 1, "actual_readout_fits": 10, "result": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/RESULT.json", "sha256": "919a894ed21f49faf173aa733775054f734b5a96ad904f4a1ac3f0e792e4a643"}, "terminal": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/TERMINAL.json", "sha256": "f23e4ea3b4789ddd0ec72b72bed7de6e39e2d8eda7779b8b018d359c99a3643c"}, "params": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/PARAMS.npz", "sha256": "babe4452ee5e51b13a640360caf054e862e3eaab34c2af1d608bf370845fedba"}, "predictions": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/PREDICTIONS.npz", "sha256": "6e484806fdc8f26e1e51fa61f44f5e258583861b482b975a3be1947a02b33b46"}, "result_review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_FOLD2_F_FROZEN_READOUT_RESULT_REVIEW_20261117.json", "sha256": "01e4ed18528116681b8d808f6c5ba28906c395432d5e5d29ae697c0f4d457cf2"}, "training_authorized": false, "independent_generalization_proven": false},
   "ta_m5_structure_persistence_20261116_001": {"status": "COMPLETE_CONSUMED_FIXED_REFERENCE_NO_ESTABLISHED_GAIN", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_STRUCTURE_PERSISTENCE_20261116_001.json", "sha256": "907ff7ce4fe6a9449f71501b9f4913f1637e2e6b747ce98670fd206a92f21d4a"}, "claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_PERSISTENCE_20261116_001/CLAIM.json", "sha256": "a731f909e8cce5ef949679d65b882ed06520ee19ff53c264a2a0e86fdd1994ed"}, "result": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_PERSISTENCE_20261116_001/RESULT.json", "sha256": "ea10505d4fa8490880d14a126973a8a4fd0f2f4b59ca7e4c08c67b1f05085c86"}, "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_PERSISTENCE_20261116_001/TERMINAL.json", "sha256": "7290d4bae30cb4c4d212af311f714b80e27263605c49641e9874512eb14c7e3f"}, "repository_review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_STRUCTURE_PERSISTENCE_RESULT_REVIEW_20261116.json", "sha256": "020a6b02aa158d4f6d35cb62197683c36bedf5d6be357b94953a2c69fc420fb5"}, "execution_authorized": false, "claimed_invocations": 1, "completed_invocations": 1, "relaunch_allowed": false, "actual_counts": {"prior_mature_issues": 23886, "later_known_classes": 23302, "prior_correct": 8936, "persistence_correct": 8253, "model_forwards": 0, "optimizer_steps": 0}, "target_locked": false, "model_fits_authorized": false, "test_data_used": false, "economic_edge_proven": false},
   "ta_m5_structure_fold2_audit_20261116_001": {"status": "COMPLETE_CONSUMED_SOURCE_COVERAGE_ONLY_TARGET_UNQUALIFIED", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001.json", "sha256": "2d5b7359b377a8d4d7658ff7cbc6a756db94565d70673604f69a86530750c081"}, "claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001/CLAIM.json", "sha256": "12f4d4c5c0c131cb61bf15d2795f557b3c3ceab37cf7b9f4fab13db569a1a0c8"}, "result": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001/RESULT.json", "sha256": "e6be73a2e5e04a9e0abf91e3b0b3775e93f0d75b6064ff8c842c123b1f842450"}, "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001/TERMINAL.json", "sha256": "f6a131efb8b3c0f1a85cfa5544dd16d225cf3a75f98d551c0f27041cea1badd9"}, "repository_review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_STRUCTURE_FOLD2_AUDIT_RESULT_REVIEW_20261116.json", "sha256": "601809c2472d5d9f021499dfce2f72f53d56522404f16654df0334451f6de12d"}, "execution_authorized": false, "claimed_invocations": 1, "completed_invocations": 1, "relaunch_allowed": false, "actual_counts": {"m5_issues": 47784, "both_observed": 47567, "known_pair_class": 47195, "same_pivot_bar": 372, "model_forwards": 0, "optimizer_steps": 0}, "target_locked": false, "model_fits_authorized": false, "test_data_used": false, "economic_edge_proven": false},
@@ -9984,7 +10649,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Fix exact signed-domain normalization and split pure field catalog from lazy legacy049source. Explicitly qualify preserved27native5arrays under clean imports, then fresh normalization/initial16rows. Prepare direct rawMBP\u2192nativeM5GC separately. No modeltraining/Entry/TEST.",
+    "next_action": "Runexactclean-processpipeline004metadata/preflightunderexistingcapbeforeclaim. Verifycurrentnativeinputdomainsandpreserved27arrays; thenonefreshinitialbatchonly. NativeGCsourceunits/jointconnectionremainpending. No training/Entry/TEST.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -23275,8 +23940,8 @@
         "new_model_calls": 0
       }
     },
-    "status": "NATIVE_M5_PIPELINE003_FAILED_CANDIDATE_INPUTS_PRESERVED",
-    "observed_utc": "2026-11-19T09:30:11.468943+00:00",
+    "status": "NATIVE_M5_CLEAN_CACHE_PIPELINE004_PREPARED_NOT_ADMITTED",
+    "observed_utc": "2026-11-19T09:59:53.025593+00:00",
     "current_observation_stage": "market_state_ta_current_update_observation_20261113_003",
     "current_observation_plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_003/PLAN.json",
