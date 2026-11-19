@@ -7,8 +7,8 @@ original prosess/terminalkvittering overstyrer prosa. Historikk finnes i Git.
 ## Gjeldende status 19.11.2026
 
 Det vedvarende målet for tilfredsstillende OPP/NED/FLAT er aktivt og ikke oppnådd.
-Ingen aktiv modelljobb. Alle treningsporter er stengt mens én ny firepassplan
-klargjøres. Aldri M1 til retning; GC utsatt; TEST, Entry/Exit og handel stengt.
+Ingen aktiv modelljobb ved innrømming. Bare eksakt PRIMARY_BACKBONE_FIT001
+er nå innrømmet én gang; kilde/policy fryses gjennom dens terminal. Aldri M1 til retning; GC utsatt; TEST, Entry/Exit og handel stengt.
 Dagens nullklasse er eksakt LIK pris, ikke sideveis marked. FIT har4 og
 CONTROL2 slike M5-close-celler. Brukeravklaring om separat FLAT står fortsatt
 ubesvart; fasit og native tapsvekter er uendret. Ingen tvungen klassekvote.
@@ -54,7 +54,8 @@ norm/prior og fryste PCG64(20260911)-hele-blokk-schedule som BLOCK_ORDER001.
 Bare gradientruten er endret. Pass4 er fast slutt; intet best-passvalg fra CONTROL.
 Genuin probe-inkludert throughput gir konservativt under20min mot1800s ytre cap;
 ingen ekstra benchmark-update. Fysisk boot667, eksisterende cap/vakter beholdes.
-Preflight og separat engangsinnrømming gjenstår før launch. Ingen automatisk
+Eksakt metadata-/CLI-preflight bestod med0modeller/updates/featureverdier,
+og uavhengig planreview bestod. Bare denne planen er innrømmet. Ingen automatisk
 serie av fits. Målet avsluttes aldri av teknisk PASS eller én liten utviklingstest.
 
 ### Fullført kronologisk TA-referanse og grunnlag
