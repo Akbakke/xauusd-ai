@@ -141,9 +141,10 @@ signerte;288første-dagsbøtter har ukjent kausalt kontraktsvalg. Kjent delvis
 B/S/N-flow bevares separat. Publisert klokkehendelse fjerner8260kontrakter/
 4836betroddeT fra dagsvolumer, med eksplisitt delvis-observasjon i to
 kontraktsdøgn. Ingen full-feeddag/completeness eller modellkonsum er påstått.
-JOINT_QUALIFICATION001 er PREPARED_NOT_ADMITTED med COMPLETE006 og denne
-COMPLETE-assemblyen. Eksakt joint-metadata-CLI/admisjon gjenstår før fersk
-12flate-normalisering/modell og siste modell-/gradientkontroll.
+JOINT_QUALIFICATION001 er ADMITTED_ONE_USE med COMPLETE006 og denne
+COMPLETE-assemblyen. Eksakt capped metadata-CLI består med0data-/modell-/
+autograddekoding før claim. Én12G/512M/1800sjobb, fersk12flate-normalisering/
+modell,3gradaktiverte forwards/1autograd/0optimizer. Kilde/policy fryst til terminal.
 Rollevalg bruker betrodde individuelle T-mengder minus klokkehendelser;
 hele-feature-bøtter har separat strengere kvalitetsmaske. Ukjent første
 handelsdag og manglende historikk beholdes eksplisitt. Ingen råreplay i assembly.
