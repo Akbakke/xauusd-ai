@@ -143,3 +143,59 @@ def test_native_bar_objective_rejects_old_target_identity_and_false_maturity():
     kwargs['truth']['mature'][0, 0] = False
     with pytest.raises(ValueError, match='OBSERVABILITY'):
         native_bar_direction_loss(**kwargs)
+
+
+def test_native_train_prior_uses_three_classes_predictive_masks_and_issue_weighting():
+    from copy import deepcopy
+    from gx1.contracts import market_state_ta_integrated_objective_v1 as owner
+    from gx1.contracts.market_state_native_m5_targets_v1 import contract as target_contract
+    truth=_native_bar_truth();before=deepcopy(truth)
+    prior=owner.fit_native_bar_train_prior(truth=truth,fold_upper_ns=1_200_000_000_000,
+        target_contract_sha256=target_contract()['contract_sha256'])
+    assert owner.require_native_bar_train_prior(prior)==prior
+    assert prior['per_task']['close']['M5']['class_counts']==[1,1,0]
+    assert prior['per_task']['close']['M5']['probabilities']==[.4,.4,.2]
+    assert prior['per_task']['close']['M15']['count']==2
+    assert prior['per_task']['close']['M15']['unique_target_rows']==1
+    assert prior['per_task']['open']['M5']['class_counts']==[1,1,0]
+    for tf in ('M15','H1','H4','D1'):
+        cell=prior['per_task']['open'][tf]
+        assert cell['count']==0 and cell['class_counts']==[0,0,0]
+        assert cell['probabilities']==[1/3]*3 and cell['train_observations_available']is False
+    for key in truth:np.testing.assert_array_equal(truth[key],before[key])
+    logits=owner.native_bar_train_prior_logits(prior,rows=3)
+    assert all(value.dtype==np.float32 and value.shape==(3,5,3) and np.isfinite(value).all()for value in logits.values())
+    scores=owner.native_bar_direction_score_sums(model_output=logits,truth=truth,
+        fold_upper_ns=1_200_000_000_000,target_contract_sha256=target_contract()['contract_sha256'])['per_task']
+    assert scores['close']['M5']['log_loss_sum']==pytest.approx(-2*np.log(.4),abs=1e-7)
+    assert scores['close']['M5']['brier_sum']==pytest.approx(1.12,abs=1e-7)
+    assert scores['close']['M15']['unique_target_rows']==1
+    assert scores['open']['H4']['count']==0 and scores['open_known']['H4']['count']==2
+
+
+def test_native_train_prior_is_frozen_for_control_and_rejects_unmatched_or_future_fit():
+    from copy import deepcopy
+    from gx1.contracts import market_state_ta_integrated_objective_v1 as owner
+    from gx1.contracts.entry_model_native_input_normalization_v1 import NATIVE_M5_TRAIN_FIT_CUTOFF_NS
+    from gx1.contracts.market_state_native_m5_targets_v1 import contract as target_contract
+    truth=_native_bar_truth();target_sha=target_contract()['contract_sha256']
+    prior=owner.fit_native_bar_train_prior(truth=truth,fold_upper_ns=1_200_000_000_000,
+        target_contract_sha256=target_sha);before=deepcopy(prior)
+    control=deepcopy(truth);control['issue_ns']+=1_200_000_000_000;control['validity_ns']+=1_200_000_000_000
+    control['target_row'][control['mature']]+=100
+    control['open_sign']*=-1;control['close_sign']*=-1
+    score=owner.native_bar_direction_score_sums(model_output=owner.native_bar_train_prior_logits(prior,rows=3),
+        truth=control,fold_upper_ns=2_400_000_000_000,target_contract_sha256=target_sha)
+    assert score['per_task']['close']['M5']['count']==2 and prior==before
+    with pytest.raises(ValueError,match='TRAIN_CUTOFF_OR_AXIS'):
+        owner.fit_native_bar_train_prior(truth=truth,fold_upper_ns=NATIVE_M5_TRAIN_FIT_CUTOFF_NS+300_000_000_000,
+            target_contract_sha256=target_sha)
+    with pytest.raises(ValueError,match='TARGET_CONTRACT'):
+        owner.fit_native_bar_train_prior(truth=truth,fold_upper_ns=1_200_000_000_000,target_contract_sha256='0'*64)
+    bad=deepcopy(prior);bad['per_task']['close']['M5']['probabilities']=[1/3]*3
+    with pytest.raises(ValueError,match='FIXED_LAPLACE_ONE'):owner.require_native_bar_train_prior(bad)
+    bad=deepcopy(prior);bad['fit_population']['scope']='CONTROL'
+    with pytest.raises(ValueError,match='POPULATION'):owner.require_native_bar_train_prior(bad)
+    bad_truth={key:value[::-1].copy()for key,value in truth.items()}
+    with pytest.raises(ValueError,match='ISSUE_ORDER'):
+        owner.fit_native_bar_train_prior(truth=bad_truth,fold_upper_ns=1_200_000_000_000,target_contract_sha256=target_sha)

@@ -1379,3 +1379,56 @@ def test_alternate_xdg_cannot_start_a_second_top_level_job(tmp_path: Path) -> No
     )
     assert "UNEXPECTED_SCOPE_DISPATCH" not in result.stderr
     assert not (alternate / "gx1-current-heavy-job.lock").exists()
+
+
+@pytest.mark.parametrize("basename", [
+    "NATIVE_M5_FULL_GC_FIT_MECHANICS_20261119_001",
+    "NATIVE_M5_FULL_GC_SHORT_FIT_20261119_001",
+])
+@pytest.mark.parametrize("variant", [
+    "valid", "preflight", "wrong_device", "wrong_output", "wrong_sha",
+    "unregistered_plan", "extra_flag", "symlink_plan",
+])
+def test_native_m5_full_gc_trainer_exact_command(
+    tmp_path: Path, basename: str, variant: str,
+) -> None:
+    """Exercise the actual allowlist before any cgroup, hardware or model work."""
+    config_dir = tmp_path / "configs" / "research"
+    config_dir.mkdir(parents=True)
+    plan = config_dir / (basename + ".json")
+    plan.write_text('{"test_only":true}\n')
+    plan_sha = hashlib.sha256(plan.read_bytes()).hexdigest()
+    output = "/home/andre2/GX1_RUNS/" + basename
+    module = "gx1.audit.qualify_native_m5_full_gc_direction_v1"
+    python = str(tmp_path / ".venv" / "bin" / "python")
+    args = [python, "-m", module, "--plan", str(plan), "--plan-sha256",
+            plan_sha, "--device", "cuda", "--out-dir", output]
+    if variant == "preflight":
+        args.append("--preflight")
+    elif variant == "wrong_device":
+        args[8] = "cpu"
+    elif variant == "wrong_output":
+        args[10] += "_UNREGISTERED"
+    elif variant == "wrong_sha":
+        args[6] = "0" * 64
+    elif variant == "unregistered_plan":
+        args[4] = str(config_dir / "NATIVE_M5_FULL_GC_SHORT_FIT_20261119_002.json")
+    elif variant == "extra_flag":
+        args.append("--cold-resume")
+    elif variant == "symlink_plan":
+        original = plan.with_suffix(".original")
+        plan.rename(original)
+        plan.symlink_to(original)
+    source = RUNNER.read_text()
+    signature = "matches_bound_native_m5_full_gc_fit() {"
+    function = signature + source.split(signature, 1)[1].split("\n}\n", 1)[0] + "\n}\n"
+    command = "\n".join([
+        "set -eu",
+        "REPO_ROOT=" + shlex.quote(str(tmp_path)),
+        "CANONICAL_TRAINER_PYTHON=" + shlex.quote(python),
+        "NATIVE_M5_FULL_GC_FIT_TRAINER_MODULE=" + shlex.quote(module),
+        function,
+        "matches_bound_native_m5_full_gc_fit " + shlex.join(args),
+    ])
+    result = subprocess.run(["bash", "-c", command], capture_output=True, text=True)
+    assert (result.returncode == 0) == (variant in {"valid", "preflight"}), result.stderr

@@ -64,6 +64,7 @@ TA_INTEGRATED_FOLD2_FIT_TRAINER_MODULE=gx1.audit.run_market_state_ta_integrated_
 TA_APR_JUN_PAIRED_FIT_TRAINER_MODULE=gx1.audit.run_market_state_ta_apr_jun_paired_fit_v1
 TA_M5_DECISION_FIT_TRAINER_MODULE=gx1.audit.run_market_state_ta_m5_decision_fit_v1
 TA_M5_EMA_SF_ONLY_CONTROL_TRAINER_MODULE=gx1.audit.run_ta_m5_ema_sf_only_control_v1
+NATIVE_M5_FULL_GC_FIT_TRAINER_MODULE=gx1.audit.qualify_native_m5_full_gc_direction_v1
 RUNNER_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
 REPO_ROOT="$(cd "$(dirname "$RUNNER_PATH")/.." && pwd -P)"
 CANONICAL_TRAINER_PYTHON="$REPO_ROOT/.venv/bin/python"
@@ -519,6 +520,28 @@ matches_bound_ta_m5_ema_sf_only_control() {
     && "${11}" == "$expected_output" ]] || return 1
   [[ -f "$expected_plan" && ! -L "$expected_plan" \
     && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1
+  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$7" ]]
+}
+
+# Only the two source-bound native M5/fullGC fit plans may use this trainer route.
+matches_bound_native_m5_full_gc_fit() {
+  local expected_plan expected_output
+  case "${5:-}" in
+    "$REPO_ROOT/configs/research/NATIVE_M5_FULL_GC_FIT_MECHANICS_20261119_001.json")
+      expected_plan="$REPO_ROOT/configs/research/NATIVE_M5_FULL_GC_FIT_MECHANICS_20261119_001.json"
+      expected_output=/home/andre2/GX1_RUNS/NATIVE_M5_FULL_GC_FIT_MECHANICS_20261119_001 ;;
+    "$REPO_ROOT/configs/research/NATIVE_M5_FULL_GC_SHORT_FIT_20261119_001.json")
+      expected_plan="$REPO_ROOT/configs/research/NATIVE_M5_FULL_GC_SHORT_FIT_20261119_001.json"
+      expected_output=/home/andre2/GX1_RUNS/NATIVE_M5_FULL_GC_SHORT_FIT_20261119_001 ;;
+    *) return 1 ;;
+  esac
+  if [[ $# -eq 12 ]]; then
+    [[ "${12}" == --preflight ]] || return 1
+    set -- "${@:1:11}"
+  fi
+  [[ $# -eq 11 ]] || return 1
+  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m     && "$3" == "$NATIVE_M5_FULL_GC_FIT_TRAINER_MODULE"     && "$4" == --plan && "$5" == "$expected_plan"     && "$6" == --plan-sha256 && "$7" =~ ^[0-9a-f]{64}$     && "$8" == --device && "$9" == cuda && "${10}" == --out-dir     && "${11}" == "$expected_output" ]] || return 1
+  [[ -f "$expected_plan" && ! -L "$expected_plan"     && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1
   [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$7" ]]
 }
 
@@ -1062,6 +1085,25 @@ validate_target_command() {
     TRAINER_OUT_BUNDLE_DIR=/home/andre2/GX1_RUNS/TA_M5_EMA_SF_ONLY_CONTROL_20261118_001
     TRAINER_MAX_WALL_SECONDS=10800
     TRAINER_MODEL_MAX_WALL_SECONDS=10800
+    TRAINER_GPU_MAX_POWER_LIMIT_W=300
+    TRAINER_GPU_MAX_POWER_DRAW_W=310
+    TRAINER_GPU_MAX_CORE_TEMP_C=85
+    return
+  fi
+  if [[ "${3:-}" == "$NATIVE_M5_FULL_GC_FIT_TRAINER_MODULE" ]]; then
+    if [[ "$ATTENDED_SMOKE" != false || "$CUDA_PRODUCER_GUARD" != false ]]       || ! matches_bound_native_m5_full_gc_fit "$@"; then
+      echo "FATAL: native M5/fullGC fit is not exactly bound" >&2
+      exit 75
+    fi
+    TRAINER_DEVICE=cuda
+    TRAINER_OUT_BUNDLE_DIR="${11}"
+    if [[ "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_FULL_GC_FIT_MECHANICS_20261119_001.json" ]]; then
+      TRAINER_MAX_WALL_SECONDS=1800
+      TRAINER_MODEL_MAX_WALL_SECONDS=1800
+    else
+      TRAINER_MAX_WALL_SECONDS=10800
+      TRAINER_MODEL_MAX_WALL_SECONDS=10800
+    fi
     TRAINER_GPU_MAX_POWER_LIMIT_W=300
     TRAINER_GPU_MAX_POWER_DRAW_W=310
     TRAINER_GPU_MAX_CORE_TEMP_C=85

@@ -13,7 +13,8 @@ NEXT_RUN_POLICY eier arbeidsstatus og hashreferanser til originalkvitteringene.
 
 Dette kvalifiserer datagrunnlag og den kontrollerte modellkoblingen.
 Full-TRAIN initial prognosebaseline, læring, senere generalisering og
-retningsedge er fortsatt ikke målt. Entry og trening er stengt.
+retningsedge er fortsatt ikke målt. Aktivt brukermål klargjør nå én kort
+treningsrunde; ingen ny kjøring eller trening er innrømmet ennå.
 
 ### Full historikkfasit
 
@@ -105,16 +106,34 @@ agentrevisjon er gjennomført. Sluttartefaktenes hasher er kontrollert mot
 RESULT/TERMINAL og bundet i policy. Ingen bestått suite eller modelljobb skal
 gjentas uten et konkret nytt behov.
 
-### Gjenstår / neste steg
+### Gjenstår / aktivt mål
 
-Den samlede 16-raders kontrollen beviser teknisk modellkonsum og påvirkning,
-ikke bedre retningsprognoser. Full-TRAIN initial prognosemåling og deretter
-kvalifisert læring/generalisering må vurderes separat med nytt, konkret
-kjøringsvedtak. Ingen videre kjøring er innrømmet nå. Ferdige historikkmål,
-TA-parametre/inputs og GC-komponenter/pakke skal gjenbrukes.
+Brukeren har opprettet mål om å kvalifisere og gjennomføre én kort offline
+retnings-fit. TRAIN låses til 01.05.–01.09.2024 og senere CONTROL til
+01.09.–01.10.2024, begge fra den eksisterende kvalifiserte inputpakken.
+Dette krever fersk TRAIN-only normalisering: gammel mai–september-statistikk
+har sett CONTROL og kan ikke brukes. Rådata, TA-arrays, squeeze/V29-parametre,
+historikkmål og fysisk GC-pakke gjenbrukes uten ny produksjon.
 
-Ingen modellfit, fullGC-fit, Entry/Exit, TEST, live/paper, broker, handel eller
-promotion er åpnet. Ingen fast tapsgrense eller maksimal holdetid er innført.
+Tre avgrensede agentoppgaver er integrert: eksisterende driver har ny
+eksakt fit-/resume-rute, fast Laplace1-treklasse-TRAIN-prior og separate
+populasjoner. 45 fokuserte capped4G-testfall består. Hovedrunden skal skåre
+alle 24 175 TRAIN- og 5 789 CONTROL-inputrader før/etter, med korte haler og
+ukjent siste kontrollrad. De to apex-formlene er separat observert på de
+faktiske TRAIN-unionene; eksisterende normaliseringskode kan gjenbrukes.
+
+Neste steg er én separat, eksakt bundet teknisk GPU-kontroll med to
+kanoniske updates og én kald repetisjon av neste steg i ny prosess.
+Dette skal bevise faktisk modell-/AdamW-/RNG-/cursor-paritet og egen
+null-M1-kvittering for barnet. CPU-unitkontrollene beviser ikke at denne
+GPU-kjøringen er utført. Integrator eier plan, trygg fysisk omstart,
+maskinvarevakter, policyadmisjon og launch. Hovedrunden får ferske vekter;
+bare ny TRAIN-normalisering og prior gjenbrukes.
+
+Ingen ny kjøring er innrømmet. Ingen Entry/Exit, TEST, live/paper, broker,
+handel, spending eller promotion er åpnet. En bestått kort fit skal skilles
+fra senere generalisering og økonomisk edge. Én hovedrunde, ingen automatisk
+ekstra trening. Samtlige konsumerte engangsplaner forblir stengt.
 
 ### Kilderevisjon før M1-presiseringen18.11 (historisk)
 

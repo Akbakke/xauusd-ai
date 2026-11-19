@@ -220,3 +220,124 @@ def native_bar_direction_score_sums(*, model_output, truth, fold_upper_ns,
             'contract_sha256': native_bar_objective_contract()['contract_sha256'],
             'class_order': [-1, 0, 1], 'open_known_role': 'observed_context_diagnostic',
             'per_task': report}
+
+
+def _native_prior_seal(value):
+    raw=json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False).encode()
+    return {**value,'contract_sha256':hashlib.sha256(raw).hexdigest()}
+
+
+def _native_prior_array_sha(arrays):
+    digest=hashlib.sha256()
+    for name,array in sorted(arrays.items()):
+        value=np.ascontiguousarray(array)
+        digest.update(json.dumps([name,value.dtype.str,list(value.shape)],separators=(',',':')).encode()+b'\0')
+        digest.update(value.tobytes())
+    return digest.hexdigest()
+
+
+def native_bar_train_prior_contract():
+    return _native_prior_seal({'schema_version':'gx1_native_m5_train_threeclass_prior_contract_v1',
+        'target_contract_sha256':native_target_contract()['contract_sha256'],
+        'objective_contract_sha256':native_bar_objective_contract()['contract_sha256'],
+        'class_order':[-1,0,1],'timeframes':list(TIMEFRAMES),'pseudocount_per_class':1,
+        'formula':'(TRAIN_predictive_issue_cell_class_count+1)/(TRAIN_predictive_issue_cell_count+3)',
+        'fit_masks':'same_conditional_open_and_close_masks_as_native_bar_direction_loss',
+        'known_open_role':'excluded_from_prior_fit_separate_observed_context_diagnostic',
+        'zero_observation_cell':'explicit_unfitted_uniform_pseudocount_reference',
+        'logits':'float32_log_probabilities_reused_by_existing_native_bar_direction_score_sums',
+        'class_or_smoothing_selection_from_control':False})
+
+
+def require_native_bar_train_prior(value):
+    from gx1.contracts.entry_model_native_input_normalization_v1 import NATIVE_M5_TRAIN_FIT_CUTOFF_NS
+    def need(ok,reason):
+        if not bool(ok):raise ValueError('NATIVE_BAR_TRAIN_PRIOR_'+reason)
+    def sha(text):
+        return isinstance(text,str) and len(text)==64 and all(c in '0123456789abcdef' for c in text)
+    keys={'schema_version','prior_contract_sha256','target_contract_sha256','objective_contract_sha256',
+          'class_order','timeframes','fit_population','per_task','contract_sha256'}
+    spec=native_bar_train_prior_contract()
+    need(type(value)is dict and set(value)==keys and value['schema_version']=='gx1_native_m5_train_threeclass_prior_v1','SCHEMA')
+    need(value['prior_contract_sha256']==spec['contract_sha256']
+        and value['target_contract_sha256']==spec['target_contract_sha256']
+        and value['objective_contract_sha256']==spec['objective_contract_sha256']
+        and value['class_order']==[-1,0,1] and value['timeframes']==list(TIMEFRAMES),'IDENTITY')
+    population=value['fit_population']
+    need(type(population)is dict and set(population)=={'scope','cutoff_ns','issue_rows','first_issue_ns',
+        'last_issue_ns','issue_ns_sha256','truth_sha256'} and population['scope']=='TRAIN','POPULATION')
+    need(type(population['cutoff_ns'])is int and 0<population['cutoff_ns']<=NATIVE_M5_TRAIN_FIT_CUTOFF_NS
+        and population['cutoff_ns']%300_000_000_000==0 and type(population['issue_rows'])is int
+        and population['issue_rows']>0 and type(population['first_issue_ns'])is int
+        and type(population['last_issue_ns'])is int
+        and 0<population['first_issue_ns']<=population['last_issue_ns']<population['cutoff_ns']
+        and population['first_issue_ns']%300_000_000_000==population['last_issue_ns']%300_000_000_000==0
+        and sha(population['issue_ns_sha256']) and sha(population['truth_sha256']),'TRAIN_CUTOFF_OR_AXIS')
+    need(type(value['per_task'])is dict and set(value['per_task'])=={'open','close'},'TASKS')
+    for task,cells in value['per_task'].items():
+        need(type(cells)is dict and set(cells)==set(TIMEFRAMES),'TIMEFRAMES')
+        for tf,cell in cells.items():
+            need(type(cell)is dict and set(cell)=={'class_counts','count','unique_target_rows',
+                'mask_sha256','population_sha256','probabilities','train_observations_available'},'CELL_SCHEMA')
+            counts=cell['class_counts'];count=cell['count'];unique=cell['unique_target_rows']
+            need(type(counts)is list and len(counts)==3 and all(type(n)is int and n>=0 for n in counts)
+                and type(count)is int and count==sum(counts) and count<=population['issue_rows']
+                and type(unique)is int and 0<=unique<=count and (unique>0)==(count>0)
+                and type(cell['train_observations_available'])is bool
+                and cell['train_observations_available']==(count>0)
+                and sha(cell['mask_sha256']) and sha(cell['population_sha256']),'CELL_COUNTS')
+            probabilities=cell['probabilities']
+            need(type(probabilities)is list and len(probabilities)==3
+                and all(type(p)is float and np.isfinite(p) and 0<p<=1 for p in probabilities)
+                and probabilities==[(n+1)/(count+3)for n in counts],'FIXED_LAPLACE_ONE')
+    expected=_native_prior_seal({k:v for k,v in value.items()if k!='contract_sha256'})
+    need(value==expected,'HASH')
+    return json.loads(json.dumps(value))
+
+
+def fit_native_bar_train_prior(*,truth,fold_upper_ns,target_contract_sha256):
+    """Freeze one predefined threeclass reference on the exact TRAIN issue cells."""
+    from gx1.contracts.entry_model_native_input_normalization_v1 import NATIVE_M5_TRAIN_FIT_CUTOFF_NS
+    if (type(truth)is not dict or not isinstance(truth.get('issue_ns'),np.ndarray)
+        or type(fold_upper_ns)is not int or not 0<fold_upper_ns<=NATIVE_M5_TRAIN_FIT_CUTOFF_NS):
+        raise ValueError('NATIVE_BAR_TRAIN_PRIOR_TRAIN_CUTOFF_OR_AXIS')
+    issues=truth['issue_ns'];rows=len(issues)
+    if rows==0 or not np.all(np.diff(issues)>0):
+        raise ValueError('NATIVE_BAR_TRAIN_PRIOR_ISSUE_ORDER')
+    masks=_native_truth(truth,rows=rows,fold_upper_ns=fold_upper_ns,
+                        target_contract_sha256=target_contract_sha256)
+    per_task={}
+    for task in ('open','close'):
+        cells={}
+        for j,tf in enumerate(TIMEFRAMES):
+            mask=masks[task][:,j];sign=truth[task+'_sign'][mask,j]
+            counts=np.bincount(sign.astype(np.int64)+1,minlength=3).tolist();count=int(mask.sum())
+            targets=truth['target_row'][mask,j]
+            cells[tf]={'class_counts':counts,'count':count,'unique_target_rows':int(np.unique(targets).size),
+                'mask_sha256':hashlib.sha256(np.ascontiguousarray(mask).tobytes()).hexdigest(),
+                'population_sha256':_native_prior_array_sha({'issue_ns':issues[mask],'target_row':targets,'sign':sign}),
+                'probabilities':[(n+1)/(count+3)for n in counts],
+                'train_observations_available':count>0}
+        per_task[task]=cells
+    keys=('issue_ns','target_row','validity_ns','target_present','observed_previous','mature',
+          'eligible','open_known_at_issue','open_sign','close_sign')
+    prior=_native_prior_seal({'schema_version':'gx1_native_m5_train_threeclass_prior_v1',
+        'prior_contract_sha256':native_bar_train_prior_contract()['contract_sha256'],
+        'target_contract_sha256':target_contract_sha256,
+        'objective_contract_sha256':native_bar_objective_contract()['contract_sha256'],
+        'class_order':[-1,0,1],'timeframes':list(TIMEFRAMES),
+        'fit_population':{'scope':'TRAIN','cutoff_ns':fold_upper_ns,'issue_rows':rows,
+            'first_issue_ns':int(issues[0]),'last_issue_ns':int(issues[-1]),
+            'issue_ns_sha256':hashlib.sha256(np.ascontiguousarray(issues).tobytes()).hexdigest(),
+            'truth_sha256':_native_prior_array_sha({key:truth[key]for key in keys})},
+        'per_task':per_task})
+    return require_native_bar_train_prior(prior)
+
+
+def native_bar_train_prior_logits(prior,*,rows):
+    """Constant frozen reference logits; never a learned model input."""
+    prior=require_native_bar_train_prior(prior)
+    if type(rows)is not int or rows<=0:raise ValueError('NATIVE_BAR_TRAIN_PRIOR_SCORE_ROWS')
+    return {task+'_logits':np.broadcast_to(np.log(np.asarray([
+        prior['per_task'][task][tf]['probabilities']for tf in TIMEFRAMES],np.float64)).astype(np.float32),
+        (rows,len(TIMEFRAMES),3)).copy()for task in ('open','close')}

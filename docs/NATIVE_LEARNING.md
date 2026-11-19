@@ -122,6 +122,36 @@ observasjoner, og unike målbarer rapporteres. TEST er forseglet.
 Metode for tidligere og senere faser nedenfor gir ingen adgang til M1
 eller den avløste ATR-/intrabarfasiten i det aktive retningsarbeidet.
 
+## Kort native barretnings-fit
+
+Lås tidligere TRAIN og senere CONTROL på kildeklokker før utfall/skåring.
+Ferdige inputarrays kan deles kronologisk, men statistikk fra hele pakken
+kan ikke gjenbrukes hvis pakken også inneholder CONTROL. Ny normalisering
+bruker bare unionen av faktisk konsumerte TRAIN-vinduer. Begge kohorter
+bruker samme fysiske felt-/kildeakse og én ny, frossen modellbinding.
+
+En fast treklasse-referanse tilpasses de samme prediktive TRAIN-cellene:
+Laplace1 gir (klasseantall + 1) / (celleantall + 3). Kjent åpning utelates
+fra fit og har separat diagnostikk. En celle uten TRAIN-observasjoner
+merkes eksplisitt ufittet. Verken referanse eller normalisering tilpasses
+CONTROL. Tap, proper-score og prior bruker samme modne målmasker.
+
+En separat teknisk engangsplan skal bevise ekte optimizeroppdatering og
+kald neste-steg-paritet i en ny prosess. Checkpoint binder modell, optimizer,
+CPU-/CUDA-/NumPy-/Python-RNG, cursor, eventuell scheduler og inputidentitet.
+Filhash valideres før dekoding. Den tekniske planens vekter brukes aldri i
+hovedrunden; bare de kvalifiserte TRAIN-statistikkene og prioren kan gjenbrukes.
+
+Hovedrunden starter med ferske vekter og skårer hele de valgte FIT- og
+CONTROL-populasjonene før og etter et fast oppdateringsbudsjett. Korte
+halebatcher og rader uten modne mål beholdes i dekningsrapporten. Unike
+TF-mål telles på hele kohorten, ikke ved å summere batchvise unike tellinger.
+Små tekniske kontrollpaneler kvalifiserer ikke en full prognosebaseline.
+
+Bruk eksisterende eksakt bundne trainerklasse og maskinvarevakter.
+M1-forbud, TEST-forsegling og Entry-pausen gjelder også optimizer/resume.
+Ingen automatisk ekstra runde eller påstand om edge følger av et lavere tap.
+
 ## Før en modell kan startes
 
 Aktuell ren/committet/pushet kilde, fysiske inputs, preprocessing og

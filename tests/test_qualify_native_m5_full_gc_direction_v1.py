@@ -226,3 +226,172 @@ def test_joint_driver_three_genuine_lanes_and_counterfactual_without_old_weights
     with np.load(report['capture']['path'],allow_pickle=False)as archive:
         assert len([key for key in archive.files if key.startswith('raw_')])==14
     assert json.loads((tmp_path/'DIAGNOSTIC_COUNTERFACTUAL.json').read_text())['production_binding_created']is False
+
+
+def _fit_recipe(mode='mechanics'):
+    return {'optimizer':copy.deepcopy(owner.ADAMW_RECIPE),'gradient_clip_norm':1.,'scheduler':None,
+        'seed':20260911,'batch_rows':16,'fit_batches':2 if mode=='mechanics'else 8,
+        'score_batches_per_split':1 if mode=='mechanics'else None,
+        'checkpoint_every_updates':1,'outer_seconds':1800,'internal_seconds':1770,
+        'required_windows_boot_id_greater_than':666}
+
+
+@pytest.mark.parametrize('change',[{'scheduler':{'kind':'cosine'}},{'gradient_clip_norm':2.},
+    {'seed':7},{'optimizer':{'lr':.1}},{'internal_seconds':1700}])
+def test_native_fit_recipe_rejects_unbound_numeric_changes(change):
+    recipe=_fit_recipe();recipe.update(change)
+    with pytest.raises(ValueError):owner.fit_recipe(recipe,'mechanics')
+
+
+def test_native_main_scores_all_input_rows_with_short_and_unknown_tail():
+    recipe=_fit_recipe('main');metadata={'mechanics':{'axis':{
+        'TRAIN':{'input_ready_rows':24175},'CONTROL':{'input_ready_rows':5789}}}}
+    assert owner.fit_recipe(recipe,'main')==recipe
+    assert owner.fit_limits(recipe,'main',metadata)['model_forwards']==8+3746
+    rows=np.arange(5789,dtype=np.int64);batches=owner.all_score_batches(rows,16)
+    np.testing.assert_array_equal(np.concatenate(batches),rows)
+    assert len(batches[-1])==13 and batches[-1][-1]==5788
+    recipe['score_batches_per_split']=1
+    with pytest.raises(ValueError,match='FIT_SCORE_SCOPE'):owner.fit_recipe(recipe,'main')
+
+
+def test_fit_batch_schedule_is_source_only_nonoverlapping_and_stable():
+    rows=1000+np.arange(160,dtype=np.int64)*3
+    batches=owner.selected_batches(rows,3)
+    assert [int(np.searchsorted(rows,value[0]))for value in batches]==[0,64,144]
+    assert len(np.unique(np.concatenate(batches)))==48
+    np.testing.assert_array_equal(batches[1],owner.selected_batches(rows,3)[1])
+
+
+def _cpu_rng(monkeypatch):
+    monkeypatch.setattr(torch.cuda,'get_rng_state_all',lambda:[])
+    monkeypatch.setattr(torch.cuda,'set_rng_state_all',lambda value:None)
+    monkeypatch.setattr(torch.cuda,'device_count',lambda:0)
+
+
+def _training_model(provider):
+    class Stochastic(_Model):
+        def __init__(self):
+            super().__init__(provider);self.dropout=torch.nn.Dropout(.35)
+            self._native_fit_counts={'model_constructions':1,'model_forwards':0,'backward_calls':0,'optimizer_steps':0}
+        def forward(self,features):
+            self._native_fit_counts['model_forwards']+=1
+            return {key:self.dropout(value)for key,value in super().forward(features).items()}
+    return Stochastic()
+
+
+def _training_unit(monkeypatch):
+    _cpu_rng(monkeypatch);provider=_provider();batch,truth,_=_batch_truth()
+    provider.gather=lambda rows,max_rows:{key:value.copy()for key,value in batch.items()}
+    provider.input_binding=lambda norm:{'normalization_sha256':norm['contract_sha256']}
+    rows=np.array([0,1],np.int64)
+    cohort={'rows':rows,'truth':truth,'fit_rows':rows,'fit_truth':truth,'upper_ns':owner.FIT_END_NS}
+    context={'provider':provider,'normalization':{'contract_sha256':'synthetic'},
+        'normalization_ref':{'path':'synthetic_norm','sha256':'1'*64},
+        'prior_ref':{'path':'synthetic_prior','sha256':'2'*64}}
+    plan={'recipe':_fit_recipe(),'metadata':{'target_contract':target_contract(),'architecture':{'synthetic':True}}}
+    def fresh():
+        model=_training_model(provider)
+        kwargs={**owner.ADAMW_RECIPE,'betas':tuple(owner.ADAMW_RECIPE['betas'])}
+        return model,torch.optim.AdamW(model.parameters(),**kwargs)
+    return provider,cohort,context,plan,fresh
+
+
+def test_native_dropout_checkpoint_restores_adamw_rng_and_next_update_exactly(tmp_path,monkeypatch):
+    import random
+    _,cohort,context,plan,fresh=_training_unit(monkeypatch)
+    random.seed(7);np.random.seed(7);torch.manual_seed(7)
+    model,optimizer=fresh();rows=cohort['fit_rows'];plan_ref={'path':'synthetic_plan','sha256':'3'*64}
+    first=owner.fit_step(model,optimizer,context['provider'],cohort,rows,plan)
+    assert np.isfinite(first['loss']) and optimizer.state
+    artifact=owner.publish_checkpoint(tmp_path/'RESUME.pt',
+        owner.fit_checkpoint(model,optimizer,context,plan,plan_ref,1))
+    second=owner.fit_step(model,optimizer,context['provider'],cohort,rows,plan)
+    expected=owner.fit_state_proof(model,optimizer,2,second)
+    cold,cold_optimizer=fresh()
+    loaded=torch.load(artifact['path'],map_location='cpu',weights_only=True)
+    assert owner.restore_fit_checkpoint(cold,cold_optimizer,context,plan,plan_ref,loaded)==1
+    repeated=owner.fit_step(cold,cold_optimizer,context['provider'],cohort,rows,plan)
+    assert owner.fit_state_proof(cold,cold_optimizer,2,repeated)==expected
+    assert all(parameter.grad is None for parameter in cold.parameters())
+
+
+def test_native_restore_rejects_wrong_optimizer_shape_before_parameter_copy(tmp_path,monkeypatch):
+    _,cohort,context,plan,fresh=_training_unit(monkeypatch)
+    model,optimizer=fresh();plan_ref={'path':'synthetic_plan','sha256':'3'*64}
+    owner.fit_step(model,optimizer,context['provider'],cohort,cohort['fit_rows'],plan)
+    checkpoint=owner.fit_checkpoint(model,optimizer,context,plan,plan_ref,1)
+    checkpoint=copy.deepcopy(checkpoint)
+    next(iter(checkpoint['optimizer_state']['state'].values()))['exp_avg']=torch.zeros(999)
+    cold,cold_optimizer=fresh();before=owner.state_sha(cold.state_dict())
+    with pytest.raises(ValueError,match='FIT_OPTIMIZER_STATE'):
+        owner.restore_fit_checkpoint(cold,cold_optimizer,context,plan,plan_ref,checkpoint)
+    assert owner.state_sha(cold.state_dict())==before
+
+
+def test_fit_axis_keeps_control_unknown_tail_and_per_head_cutoffs(tmp_path):
+    step=300_000_000_000;train=owner.FIT_START_NS+np.arange(20,dtype=np.int64)*step
+    control=np.r_[owner.FIT_END_NS+np.arange(19,dtype=np.int64)*step,owner.CONTROL_END_NS-step]
+    issues=np.r_[train,control];source=1000+np.arange(40,dtype=np.int64);shape=(40,5)
+    truth={key:np.ones(shape,bool)for key in ('target_present','observed_previous','mature','eligible','open_known_at_issue')}
+    validity=np.broadcast_to((issues+step)[:,None],shape).copy()
+    # One higher-TF label crosses TRAIN cutoff while other heads remain mature.
+    validity[0,4]=owner.FIT_END_NS
+    truth.update(issue_ns=issues,target_row=np.broadcast_to(np.arange(40)[:,None],shape).copy(),
+        validity_ns=validity,open_sign=np.ones(shape,np.int8),close_sign=np.full(shape,-1,np.int8))
+    archive=tmp_path/'targets.npz';np.savez(archive,source_row=source,issue_ns=issues,
+        **{'future_'+key:value for key,value in truth.items()})
+    provider=SimpleNamespace(issue_ns=issues,source_row=source,input_ready=np.ones(40,bool))
+    cohorts,report=owner.fit_axes(provider,owner.ref(archive))
+    assert report['TRAIN']['base_issue_rows']==20 and report['CONTROL']['input_ready_rows']==20
+    assert cohorts['TRAIN']['truth']['eligible'][0,:].tolist()==[True,True,True,True,False]
+    assert not cohorts['CONTROL']['truth']['eligible'][-1].any()
+    assert cohorts['CONTROL']['rows'][-1]==source[-1]
+    np.testing.assert_array_equal(cohorts['CONTROL']['truth']['close_sign'][-1],np.zeros(5,np.int8))
+
+
+def test_native_fit_scoring_uses_global_unique_targets_and_preserves_rng(monkeypatch):
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import fit_native_bar_train_prior
+    _cpu_rng(monkeypatch);provider=_provider();step=300_000_000_000;shape=(32,5)
+    issues=np.arange(1,33,dtype=np.int64)*step
+    truth={key:np.ones(shape,bool)for key in ('target_present','observed_previous','mature','eligible')}
+    truth.update(open_known_at_issue=np.zeros(shape,bool),open_sign=np.zeros(shape,np.int8),
+        close_sign=np.ones(shape,np.int8),issue_ns=issues,target_row=np.zeros(shape,np.int64),
+        validity_ns=np.full(shape,33*step,np.int64))
+    rows=np.arange(32,dtype=np.int64);cohort={'rows':rows,'truth':truth,'upper_ns':34*step}
+    raw,_,_=_batch_truth()
+    provider.gather=lambda rows,max_rows:{key:np.repeat(value[:1],len(rows),axis=0)for key,value in raw.items()}
+    prior=fit_native_bar_train_prior(truth=truth,fold_upper_ns=34*step,
+        target_contract_sha256=target_contract()['contract_sha256'])
+    context={'provider':provider,'cohorts':{'TRAIN':cohort,'CONTROL':cohort},'prior':prior}
+    panels={name:owner.all_score_batches(rows,16)for name in context['cohorts']}
+    plan={'recipe':_fit_recipe(),'metadata':{'target_contract':target_contract()}}
+    model=_training_model(provider).train();before=owner.state_sha(owner.training_rng())
+    scores,capture=owner.fit_score(model,context,panels,plan)
+    assert model.training and owner.state_sha(owner.training_rng())==before
+    for name in ('TRAIN','CONTROL'):
+        assert scores[name]['model']['per_task']['close']['D1']['count']==32
+        assert scores[name]['model']['per_task']['close']['D1']['unique_target_rows']==1
+        assert len(capture[name+'__source_row'])==32
+
+def test_fit_physical_boot_gate_reports_stale_preflight_and_rejects_claim(monkeypatch):
+    plan={'mode':'mechanics','recipe':_fit_recipe()}
+    monkeypatch.setattr(owner,'physical_windows_boot_id',lambda:666)
+    assert owner.fit_boot_state(plan,admitted=False)['fresh']is False
+    with pytest.raises(ValueError,match='FIT_FRESH_PHYSICAL_BOOT'):
+        owner.fit_boot_state(plan,admitted=True)
+    monkeypatch.setattr(owner,'physical_windows_boot_id',lambda:667)
+    assert owner.fit_boot_state(plan,admitted=True)['fresh']
+    plan={'mode':'main','recipe':_fit_recipe('main'),'metadata':{'mechanics':{'physical_windows_boot_id':667}}}
+    assert owner.fit_boot_state(plan,admitted=True)['actual_windows_boot_id']==667
+
+
+def test_cold_resume_proof_requires_child_zero_forbidden_io():
+    proof={'bitexact':True,'parent_pid':123,'clean_process_io_firewall':{
+        'denied_attempts':0,'denied_operations':{}}}
+    assert owner.require_cold_resume_proof(proof,parent_pid=123)is proof
+    for firewall in (None,{'denied_attempts':1,'denied_operations':{'open':1}},
+                     {'denied_attempts':0,'denied_operations':{'stat':1}}):
+        bad={**proof,'clean_process_io_firewall':firewall}
+        with pytest.raises(ValueError,match='FIT_COLD_PROOF'):
+            owner.require_cold_resume_proof(bad,parent_pid=123)
