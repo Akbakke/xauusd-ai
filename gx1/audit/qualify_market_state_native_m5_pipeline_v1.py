@@ -731,6 +731,9 @@ def run(plan_sha):
         signal.setitimer(signal.ITIMER_REAL, remaining)
         history = verify_native_m5_bar_facts_003(
             source_spec=plan['target_source_spec'], archive_ref=plan['inputs']['target_tape'])
+        history_ref = publish('HISTORY_VERIFICATION.json', {
+            'plan': plan_ref, 'claim': claim, 'target_tape': plan['inputs']['target_tape'],
+            'verification': history})
         parameters = physical_parameter_fits(plan)
         report = qualify_physical_pipeline(plan, parameters)
         checked_inputs(plan)
@@ -741,7 +744,7 @@ def run(plan_sha):
             'plan': plan_ref, 'claim': claim, 'policy_at_claim': policy_ref,
             'source_unchanged': True, 'parameters': {key: value for key, value in parameters.items()
                                                    if key != 'registry_constants'},
-            'history_verification': history,
+            'history_verification': history, 'history_verification_artifact': history_ref,
             'report': report, 'model_forwards': 1, 'optimizer_steps': 0,
             'normalization_fits': 1, 'test_data_used': False, 'economic_edge_proven': False,
             'elapsed_seconds': time.monotonic() - started})

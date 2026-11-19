@@ -6,40 +6,44 @@ prosess og eksakte terminalkvitteringer overstyrer prosa. Tidligere bølger finn
 
 ## Gjeldende status 19.11.2026
 
-`FULL_HISTORY_NATIVE_M5_FACT_AUDIT_003_ADMITTED`.
+`FULL_HISTORY_NATIVE_M5_FACTS_COMPLETE_PIPELINE_PHYSICAL_PENDING`.
 
-Bestillingen er utvidet til all tillatt native historikk før forseglet TEST
-01.07.2026. Fasit er åpning mot forrige observerte åpning og slutt mot
-forrige observerte slutt på M5/M15/H1/H4/D1. Første faktiske bar uten
-forgjenger er ukjent; årsskifter nullstiller ikke sammenligningene.
-Utviklings-VAL juni2026 inngår bare i prisfaktakontrollen, uten fit/utvalg.
+Fullhistorikk-plan003 er fullført én gang med exit0 og uendret kilde.
+1 215 514 native M5-rader er dekodet fra18kildeår2009–2026. Én bar
+med slutt nøyaktig på TEST-grensen01.07.2026 er utelatt av den strenge
+grensen. Tape inneholder1 215 513M5-barer.
 
-Plan002 er konsumert og kontrollert på mai–september2024 med
-29 964/9 988/2 499/654/109 observerte barer og 100 % kjent forgjenger.
-Alle76 lagrede arrays samsvarte med uavhengig råberegning. Dette er
-prisfakta og ingen prognosetreffmåling. Originale002-kvitteringer består.
+| TF | Observerte barer | Uten første forgjenger |
+|---|---:|---:|
+| M5 | 1,215,513 | 1 |
+| M15 | 406,109 | 1 |
+| H1 | 102,354 | 1 |
+| H4 | 26,427 | 1 |
+| D1 | 4,417 | 1 |
 
-Kildearbeid for003 dekker manifestets18år og 1 215 514 native M5-rader.
-Fullhistorikk-plan003 er ADMITTED_ONE_USE etter capped preflight uten prisdekoding.
-Planhash: 6c7d1c93a30b68d609a275bccceb0c4b37d3728831ab4beefc29bb666f91026e. Ingen prisdekoding eller CLAIM ennå.
-Den nye native featurekjeden beregner alle full-TA-felt fra riktige eiere,
-med fem kausale TF, åtte familier og61 as-of-makrofelter. Den får ferske
-fem-TF-squeeze-/V29-parametre, egne normaliseringspopulasjoner og separate
-treklasseprognoser for åpning/slutt. GAMLE M1-baserte kilder, akser,
-normalisering, aktivitets-/S/F-masker og checkpoints kvalifiserer ikke ruten.
+Alle barer med observert forgjenger har kjent åpning mot forrige åpning
+og slutt mot forrige slutt. Likhet er kjent. Hver TF har akkurat én
+første bar uten forgjenger og17 bevarte sammenligninger over årsskifter.
+5 558M5-kildegap beholdes som informasjon, uten å fjerne prisfakta.
+Juni2026 omfatter6 024utviklings-VAL-rader kun til prisfaktakontroll.
+Ingen fit, modell eller TEST er brukt.
 
-320 fokuserte kilde-/kontrakttesttilfeller er kvalifisert. Første bølge ga
-317 PASS og én factory-typefeil; åtte berørte/utvidede tilfeller bestod
-etter minste rettelse. Tuple/list-tilpasningen bevarer alle132 aliaspar og
-alleåtte familier. Fersk normalisering er også testet samlet gjennom alle
-sju faktiske statistikkfit, delte aliasstatistikker, kontrakt og inputbinding.
-Syntaks og diffkontroll bestod. Genuin fysisk kvalifisering gjenstår.
-GC/MBP er en separat beholdt rute med kortere faktisk dekning; den blir
-ikke fabrikkert i full-TA-profilen. Modellfit, Entry, TEST og handel er stengt.
+Plan003 tok334,87s under4G/512M og900s ytre grense. Originale CLAIM,
+RESULT, TERMINAL og TARGETS er hashbundet i NEXT_RUN_POLICY; engangsplanen
+er konsumert og kan ikke relanseres. De tidligere001/002-kvitteringene består.
 
-Neste steg er eksakt én003-kjøring med fryst kilde/policy,4G/512M og900s ytre grense. Etter faktakontrollen følger én egen
-kildebundet fysisk parameter-/input-/nullstegsmodellkvalifisering.
-NEXT_RUN_POLICY er eneste kjøreautoritet.
+Den nye native kilden/provideren, parameterrutene, normaliseringskontrakten,
+132aliaspar, åtte familier og separate åpnings-/slutthoder er kvalifisert
+med320 distinkte fokuserte testtilfeller. Fabrikkens tuple/list-grense er rettet.
+Syntaks, diffkontroll og commit-vakter består. Seks livssyklustester er
+gjentatt etter varig publisering av den uavhengige historikkontrollen.
+
+Neste er én egen pipeline001-plan: uavhengig råberegning av alle76arrays,
+ferske native5-squeeze-/V29-parametre,318signaler/132kontekst/256felt perTF,
+61as-of-makrofelter, hele faktisk konsumerte TRAIN-normaliseringspopulasjonen
+og én fersk teknisk CPU-batch på16rader med privat initialcheckpoint.
+Dette er ennå ikke fysisk utført. GC/MBP-ruten er separat og beholdt.
+M1, Entry, modellfit, TEST, broker og handel forblir stengt.
 
 ### Kilderevisjon før M1-presiseringen18.11 (historisk)
 
