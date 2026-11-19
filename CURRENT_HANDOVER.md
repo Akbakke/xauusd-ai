@@ -6,7 +6,7 @@ prosess og eksakte terminalkvitteringer overstyrer prosa. Tidligere bølger finn
 
 ## Gjeldende status 19.11.2026
 
-`NATIVE_M5_CLEAN_CACHE_PIPELINE004_PREPARED_NOT_ADMITTED`.
+`NATIVE_M5_CLEAN_CACHE_PIPELINE004_ADMITTED`.
 
 Fullhistorikk-plan003 er fullført én gang med exit0 og uendret kilde.
 1 215 514 native M5-rader er dekodet fra18kildeår2009–2026. Én bar
@@ -101,9 +101,10 @@ kvalifikasjon, enhetskart/normalisering eller samlet GC-modellkonsum.
 Råprodusenten med varige kontrollpunkter per originalfil er klar; seks
 fokuserte livssyklus-/bevaringstester består. Ingen fysiskGC-kjøring er startet.
 
-Pipeline004 er PREPARED_NOT_ADMITTED: bevart27-arraytape, ny ren katalog-/
+Pipeline004 er ADMITTED_ONE_USE etter bestått eksakt capped preflight: bevart27-arraytape, ny ren katalog-/
 domenekontrakt, fersk normalisering og én CPU-initialbatch. Parametre/formler
-refittes ikke. Eksakt kilde/kvittering/CLI må bestå før egen policyadmisjon.
+refittes ikke. Preflight leste0prisverdier, konstruerte0modeller og hadde0forbudte IO-forsøk.
+Én ny CPU-initialbatch er innrømmet; kilde og policy holdes fryst under kjøringen.
 
 Fysisk feature-/modellkvalifisering er fortsatt ikke fullført. M1, Entry,
 modellfit, TEST, broker og handel er stengt. GC/MBP-ruten er separat og beholdt.
