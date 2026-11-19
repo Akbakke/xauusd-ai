@@ -130,6 +130,13 @@ kan ikke gjenbrukes hvis pakken også inneholder CONTROL. Ny normalisering
 bruker bare unionen av faktisk konsumerte TRAIN-vinduer. Begge kohorter
 bruker samme fysiske felt-/kildeakse og én ny, frossen modellbinding.
 
+Ved en eksplisitt mindre kontroll skilles den opprinnelige TRAIN-poolen
+for inputnormalisering fra de valgte FIT-radene som faktisk optimaliseres.
+Frys poolidentitet og ordnede kilde-ranker før utfall/prognoser leses.
+Alle valgte FIT- og senere CONTROL-rader skåres før/etter; opprinnelige
+data og ukjente utfall beholdes. En matchet prior tilpasses valgte FIT,
+ikke en større pools fasit.
+
 En fast treklasse-referanse tilpasses de samme prediktive TRAIN-cellene:
 Laplace1 gir (klasseantall + 1) / (celleantall + 3). Kjent åpning utelates
 fra fit og har separat diagnostikk. En celle uten TRAIN-observasjoner

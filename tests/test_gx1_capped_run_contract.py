@@ -1385,6 +1385,7 @@ def test_alternate_xdg_cannot_start_a_second_top_level_job(tmp_path: Path) -> No
     "NATIVE_M5_FULL_GC_FIT_MECHANICS_20261119_001",
     "NATIVE_M5_FULL_GC_FIT_MECHANICS_20261119_002",
     "NATIVE_M5_FULL_GC_SHORT_FIT_20261119_001",
+    "NATIVE_M5_FULL_GC_SHORT_FIT_20261119_002",
 ])
 @pytest.mark.parametrize("variant", [
     "valid", "preflight", "wrong_device", "wrong_output", "wrong_sha",
@@ -1413,7 +1414,7 @@ def test_native_m5_full_gc_trainer_exact_command(
     elif variant == "wrong_sha":
         args[6] = "0" * 64
     elif variant == "unregistered_plan":
-        args[4] = str(config_dir / "NATIVE_M5_FULL_GC_SHORT_FIT_20261119_002.json")
+        args[4] = str(config_dir / "NATIVE_M5_FULL_GC_SHORT_FIT_20261119_099.json")
     elif variant == "extra_flag":
         args.append("--cold-resume")
     elif variant == "symlink_plan":

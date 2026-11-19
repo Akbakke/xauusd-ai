@@ -6,16 +6,18 @@ prosess og eksakte terminalkvitteringer overstyrer prosa. Tidligere bølger finn
 
 ## Gjeldende status 19.11.2026
 
-Hele tilgjengelige native prishistorikk før TEST har tett barfasit på alle
-fem tidsrammer. Native TA, direkte rå-GC, fysisk GC-pakke og den samlede
-modellens tekniske konsumkontroll er fullført. NEXT_RUN_POLICY eier
-arbeidsstatus og hashreferanser til originalkvitteringene.
+Brukeren har endret første hovedrunde til et mindre datasett og omtrent
+30minutters kjøretid. Oppfølging er hver30.minutt (avløser timeønsket).
+Den lange SHORT_FIT001 er stoppet under INITIAL-skåring før første update.
+Original CLAIM/TERMINAL og separat OPERATOR_STOP_REQUEST/OBSERVATION er bevart.
+Native TimeoutError skyldes vårt styrte stoppsignal, ikke utløpt3timersfrist.
+Ingen INITIAL_SCORE/INITIAL_STATE finnes; kildebundet kontrollflyt beviser
+0optimizersteg. Ingen ferdig prognosebaseline eller mainresultat foreligger.
 
-Mechanics001 og002 er fullført og konsumert; ekte CUDA-update/kald resume
-består. SHORT_FIT001 er innrømmet én gang for256oppdateringer og full
-før-/ettermåling. Kilde/policy fryses fra CLAIM til TERMINAL; faktisk prosess
-og kvitteringer styrer kjørestatus. Ingen hovedresultater foreligger ennå.
-Full prognosebaseline, læring, senere generalisering og edge er ikke målt.
+Alle trenings-/kjøringsporter er stengt. Én ny, mindre og nøyaktig30minutters
+plan skal klargjøres; main001 er konsumert og relanseres aldri. Ferdige
+native data, stats og genuine modell-/coldresume-kontroller gjenbrukes.
+M1 er aldri retningsgrunnlag. TEST, Entry/Exit, broker og handel er stengt.
 
 ### Full historikkfasit
 
@@ -156,26 +158,24 @@ Initial og final model-state er identiske med001;0norm-/priorfit og ingen
 gamle vekter er lest. B64-to-batchskåringer tok12,478/12,826s; B16updates
 6,889/6,771s. Målt peakCUDA-allokering1,891GB ligger under eksisterende vakt.
 
-SHORT_FIT_20261119_001 er ADMITTED_ONE_USE, plan-SHA
-74fa5ea3ffb3463f91f0018abae1bb58b488bb85f0401a09dee402f5bb405e28.
-Én fersk modell,256faste B16updates på4096kildefordelteTRAIN-rader,
-før/etter på alle24 175/5 789inputrader med B64 og938scoreforwards.
-Totalt1194forwards/256backwards/256optimizersteg. Checkpoint hvert64steg;
-originalTRAIN-stats/prior gjenbrukes, ingen refit. Konservativ projeksjon fra
-faktisk002 er7958s (2t13m), med20prosentmargin9550s (2t39m), innen10770s
-internfrist/10800s eksisterende guard. Dette er budsjettanslag, ikke målt
-full main-runtime eller edge. Eksakt CLI-førkontroll er bestått med null
-modeller/updates på boot667. Bare denne hovedplanen innrømmes én gang.
-Kilde/policy fryses til terminal; stabil kjøring kontrolleres omtrent hver
-15.–30.minutt. Full INITIAL skåres før første update; samtlige valgte rader
-skåres igjen etter256. Ingen automatisk ekstra fit.
-Gamle mechanics001 gjenkjøres aldri; ferdig TRAIN-normalisering/prior gjenbrukes. Ingen redusert
-skåringspopulasjon eller omgått vakt brukes som løsning.
+SHORT_FIT001 er OPERATOR_ABORTED_CONSUMED_BEFORE_FIRST_UPDATE.
+Den tidligere store24 175/5 789-før-/ettermålingen er avløst av brukerens
+nye mindre scope, ikke fullført. Native0updates og kvitteringer bevares.
+Nytt scope er1536FIT-rader (96spredte B16blokker) og512senereCONTROL
+(8spredteB64blokker). Begge inkluderer første/siste poolrad, også ukjent
+sisteCONTROL. Pool/rank-hasher fryses før labels/prognoser. Originalnormen
+fra24175TRAIN-poolrader gjenbrukes, mens matchet Laplace1-prior fittes én
+gang på nøyaktig1536FIT-rader.96updates+64scoreforwards=160forwards.
+Konservativ20prosentprojeksjon er1502s≈25min innen1770/1800s.
+32driver- og11nye/berørte guardtilfeller består capped4G. Ingen modelljobb.
 
-Mechanics002 er nå fullført og konsumert. Hovedplanen er nå innrømmet én gang etter bestått eksakt førkontroll. Ingen hovedfit er startet. Ferdige
-stats/prior/checkpoints og originalkvitteringer bevares; mechanics001
-relanseres aldri. Målet om én kort hovedrunde består. TEST, Entry/Exit,
-broker, handel, spending og promotion forblir stengt.
+Den kvalifiserte mekanikk002 gjenbrukes via verifisert Gitblob/fullmodul-AST
+for uendret modellmatematikk, optimizer, RNG og checkpoint. Bare navngitt
+kohort-/prior-/planorkestrering og fire eksplisitt hashbundne filer kan
+avvike; alle andre kildeeiere må være eksakt uendret. Nye små kohorter
+krever ingen ny GPU-mekanikkrunde. Før nyadmisjon gjenstår kildecommit,
+eksaktplan og samme faktiske kilde-/kvitterings-/maskinvareførkontroll. Ingen
+utfallsstyrt seleksjon, ny råproduksjon eller relansering av konsumerte planer.
 
 ### Kilderevisjon før M1-presiseringen18.11 (historisk)
 

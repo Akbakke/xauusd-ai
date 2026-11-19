@@ -230,9 +230,9 @@ def test_joint_driver_three_genuine_lanes_and_counterfactual_without_old_weights
 
 def _fit_recipe(mode='mechanics'):
     return {'optimizer':copy.deepcopy(owner.ADAMW_RECIPE),'gradient_clip_norm':1.,'scheduler':None,
-        'seed':20260911,'batch_rows':16,'score_batch_rows':64,'fit_batches':2 if mode=='mechanics'else 8,
+        'seed':20260911,'batch_rows':16,'score_batch_rows':64,'fit_batches':2 if mode=='mechanics'else 96,
         'score_batches_per_split':1 if mode=='mechanics'else None,
-        'checkpoint_every_updates':1,'outer_seconds':1800,'internal_seconds':1770,
+        'checkpoint_every_updates':1 if mode=='mechanics'else 32,'outer_seconds':1800,'internal_seconds':1770,
         'required_windows_boot_id_greater_than':666}
 
 
@@ -244,10 +244,9 @@ def test_native_fit_recipe_rejects_unbound_numeric_changes(change):
 
 
 def test_native_main_scores_all_input_rows_with_short_and_unknown_tail():
-    recipe=_fit_recipe('main');metadata={'mechanics':{'axis':{
-        'TRAIN':{'input_ready_rows':24175},'CONTROL':{'input_ready_rows':5789}}}}
+    recipe=_fit_recipe('main');metadata=_rank_context()[0]
     assert owner.fit_recipe(recipe,'main')==recipe
-    assert owner.fit_limits(recipe,'main',metadata)['model_forwards']==8+938
+    assert owner.fit_limits(recipe,'main',metadata)['model_forwards']==160
     rows=np.arange(5789,dtype=np.int64);batches=owner.all_score_batches(rows,64)
     np.testing.assert_array_equal(np.concatenate(batches),rows)
     assert len(batches[-1])==29 and batches[-1][-1]==5788
@@ -486,3 +485,108 @@ def test_mechanics002_reuses_norm_and_prior_without_fitter_copy_or_weight_io(tmp
     assert seen==[norm_ref,prior_ref]
     with pytest.raises(ValueError,match='FIT_EXACT_REUSED_STATISTICS'):
         owner.prepare_native_fit(plan,tmp_path,reload_normalization={'path':'copied_norm','sha256':'4'*64})
+
+
+def _rank_context():
+    step=300_000_000_000
+    class ClockOnly(dict):
+        def __getitem__(self,key):
+            assert key=='issue_ns','outcome read during source selection'
+            return super().__getitem__(key)
+    cohorts={};axis={}
+    for name,n,start,offset in [('TRAIN',24175,owner.FIT_START_NS,1_000_000),
+                              ('CONTROL',5789,owner.FIT_END_NS,1_100_000)]:
+        rows=offset+np.arange(n,dtype=np.int64);issues=start+np.arange(n,dtype=np.int64)*step
+        cohorts[name]={'rows':rows,'truth':ClockOnly(issue_ns=issues)}
+        axis[name]={'input_ready_rows':n,'input_not_ready_rows':0,
+            'source_rows_sha256':owner.digest(rows),'issue_ns_sha256':owner.digest(issues)}
+    metadata={'mechanics':{'result':{'path':'mechanics002/RESULT.json','sha256':'1'*64},'axis':axis}}
+    return metadata,{'cohorts':cohorts}
+
+
+def test_small_source_rank_manifest_freezes_endpoints_without_labels_or_io(monkeypatch):
+    metadata,context=_rank_context()
+    monkeypatch.setattr(owner,'read',lambda *_:pytest.fail('selection performed receipt/label IO'))
+    manifest=owner.small_cohort_manifest(metadata)
+    plan={'metadata':metadata,'cohort_selection':manifest}
+    selected,report=owner.selected_small_cohorts(plan,context)
+    for name,count,blocks,batch in [('FIT',1536,96,16),('CONTROL',512,8,64)]:
+        pool=context['cohorts']['TRAIN'if name=='FIT'else'CONTROL']['rows']
+        rows=selected[name];ranks=owner.spread_rank_blocks(len(pool),blocks,batch)
+        assert len(rows)==count and len(np.unique(rows))==count and np.all(np.diff(rows)>0)
+        assert rows[0]==pool[0] and rows[-1]==pool[-1]
+        np.testing.assert_array_equal(rows,pool[ranks])
+        assert report[name]['first_and_last_pool_rows_included']
+        assert owner.digest(ranks)==manifest['cohorts'][name]['selected_rank_sha256']
+    bad=copy.deepcopy(plan);bad['cohort_selection']['cohorts']['CONTROL']['selected_rank_sha256']='0'*64
+    with pytest.raises(ValueError,match='FIT_FROZEN_SOURCE_SELECTION'):
+        owner.selected_small_cohorts(bad,context)
+
+
+def test_small_source_selection_rejects_runtime_pool_or_overlapping_blocks():
+    metadata,context=_rank_context();plan={'metadata':metadata,'cohort_selection':owner.small_cohort_manifest(metadata)}
+    context['cohorts']['CONTROL']['rows'][100]+=1
+    with pytest.raises(ValueError,match='FIT_RUNTIME_SOURCE_POOL'):owner.selected_small_cohorts(plan,context)
+    with pytest.raises(ValueError,match='FIT_SOURCE_RANK_POPULATION'):owner.spread_rank_blocks(127,2,64)
+
+
+def test_consumed_short_fit001_cli_is_rejected_before_any_receipt_read(monkeypatch):
+    monkeypatch.setattr(owner,'read',lambda *_:pytest.fail('consumed main receipt read'))
+    args=SimpleNamespace(plan=str(owner.REPO/'configs/research/NATIVE_M5_FULL_GC_SHORT_FIT_20261119_001.json'),
+        plan_sha256='0'*64,device='cuda',out_dir='/unused',preflight=False)
+    with pytest.raises(ValueError,match='FIT_CLI_SCOPE'):owner.fit_cli(args)
+
+
+def test_small_source_bridge_allows_only_orchestration_and_exact_four_paths(tmp_path,monkeypatch):
+    import hashlib
+    driver='gx1/audit/qualify_native_m5_full_gc_direction_v1.py'
+    paths=(driver,'tests/test_qualify_native_m5_full_gc_direction_v1.py',
+        'scripts/gx1_capped_run.sh','tests/test_gx1_capped_run_contract.py','gx1/contracts/model_math.py')
+    original="import os\nFIT_SCOPES={'main':'001'}\nADAMW_RECIPE={'lr':1e-4}\ndef fit_step():return 1\ndef fit_physical():return 1\n"
+    changed=original.replace("'001'","'002'").replace("def fit_physical():return 1","def fit_physical():return 96")
+    hashes={}
+    for path in paths:
+        target=tmp_path/path;target.parent.mkdir(parents=True,exist_ok=True)
+        body=original if path==driver else'unchanged\n'
+        target.write_text(body);hashes[path]=hashlib.sha256(body.encode()).hexdigest()
+    (tmp_path/driver).write_text(changed)
+    (tmp_path/'scripts/gx1_capped_run.sh').write_text('new exact scope/deadline\n')
+    monkeypatch.setattr(owner,'REPO',tmp_path);monkeypatch.setattr(owner,'FIT_SOURCE_PATHS',paths)
+    monkeypatch.setattr(owner.subprocess,'check_output',lambda *a,**kw:original.encode())
+    parent={'source_owners':hashes,'source_base_commit':'a'*40}
+    proof=owner.fit_orchestration_source_bridge(parent)
+    assert proof['all_other_source_owners_exact'] and len(proof['allowed_changed_source_paths'])==4
+    for wrong in (changed.replace('def fit_step():return 1','def fit_step():return 2'),
+                  changed.replace("1e-4","2e-4"),changed.replace('import os','import sys')):
+        (tmp_path/driver).write_text(wrong)
+        with pytest.raises(ValueError,match='FIT_MECHANICS_NUMERICAL_AST'):
+            owner.fit_orchestration_source_bridge(parent)
+    (tmp_path/driver).write_text(changed)
+    (tmp_path/'gx1/contracts/model_math.py').write_text('wrong numerical source\n')
+    with pytest.raises(ValueError,match='FIT_MECHANICS_NUMERICAL_SOURCE'):
+        owner.fit_orchestration_source_bridge(parent)
+
+
+def test_small_matched_prior_uses_exact_fit1536_and_keeps_pool_normalization(tmp_path):
+    metadata,context=_rank_context();n=24175;shape=(n,5);step=300_000_000_000
+    train=context['cohorts']['TRAIN'];issues=dict.__getitem__(train['truth'],'issue_ns')
+    truth={key:np.ones(shape,bool)for key in ('target_present','observed_previous','mature','eligible')}
+    truth.update(open_known_at_issue=np.zeros(shape,bool),issue_ns=issues,
+        target_row=np.broadcast_to(np.arange(n,dtype=np.int64)[:,None],shape).copy(),
+        validity_ns=np.broadcast_to((issues+step)[:,None],shape).copy(),
+        open_sign=np.zeros(shape,np.int8),
+        close_sign=np.broadcast_to((np.arange(n,dtype=np.int64)%3-1).astype(np.int8)[:,None],shape).copy())
+    train.update(truth=truth,fit_rows=train['rows'],fit_truth=truth)
+    plan={'metadata':{**metadata,'target_contract':target_contract()},
+        'cohort_selection':owner.small_cohort_manifest(metadata)}
+    selected,_=owner.selected_small_cohorts(plan,context)
+    immutable_norm={'same_frozen_pool_contract':True};context['normalization']=immutable_norm
+    context['prior']={'old_pool_prior':True};context['prior_ref']={'path':'old_pool_prior','sha256':'2'*64}
+    artifact=owner.prepare_matched_prior(context,selected['FIT'],plan,tmp_path)
+    prior=json.loads((tmp_path/'MATCHED_FIT_PRIOR.json').read_text())
+    assert context['normalization']is immutable_norm and context['prior_ref']==artifact
+    assert prior['fit_population']['issue_rows']==1536
+    ranks=owner.spread_rank_blocks(n,96,16)
+    expected=np.bincount(truth['close_sign'][ranks,0].astype(np.int64)+1,minlength=3)
+    assert prior['per_task']['close']['M5']['class_counts']==expected.tolist()
+    assert prior['fit_population']['issue_ns_sha256']==owner.digest(issues[ranks])
