@@ -6,28 +6,49 @@ prosess og eksakte terminalkvitteringer overstyrer prosa. Tidligere bølger finn
 
 ## Gjeldende status 19.11.2026
 
-Et nytt vedvarende brukermål er aktivt: arbeid til vekting og prognoser for
-OPP/NED/FLAT er tilfredsstillende og ærlig kvalifisert. Første bestilte steg er
-én kontrollert sammenligning av hele TRAIN-batchers rekkefølge mot den
-fullførte firepassreferansen nedenfor. Kilden er kvalifisert med 49 driver-
-og 8 nye guardtilfeller, uavhengig kilde-/schedulekontroll og positiv kontroll
-av de faktiske kvitteringene. Eksakt BLOCK_ORDER001 er nå innrømmet én gang;
-kilde og policy fryses til native TERMINAL. GC er utsatt; M1, TEST, Entry/Exit, broker, handel,
-spending og promotion forblir stengt.
+Det vedvarende målet for tilfredsstillende OPP/NED/FLAT-vekting er aktivt,
+ikke oppnådd. BLOCK_ORDER001-sammenligningen er fullført med exit0 på
+580,72 sekunder (9m41): 4 faste pass / 384 updates / 544 forwards / én fersk modell.
+Initial, norm/prior, kohorter, kausale vinduer og øvrig matematikk var de samme
+som i kronologisk TA-main001. Bare hele B16-TRAIN-blokkers rekkefølge ble endret.
+Alle384 faktiske batcher matcher den låste schedule-SHAen. Kilde/policy var
+uendret. Checkpoints og capturer er bevart og fysisk hashkontrollert.
+
+Ingen aktiv modelljobb, og alle trenings-/kjøringsporter er stengt.
+Uavhengig sammenligning av alle lagrede score/capturer er ferdig med
+maksimalt skårsumavvik 0. Alle kilder, fasit, masker, initialtilstand og
+384 batch-SHAer matcher planen og den kronologiske referansen.
+OPP-valgene er mindre ensidige, men M5-close taper fortsatt matchet prior
+på senere CONTROL.
+Dette er ikke ferdig vekting eller edge. GC er utsatt; M1, TEST, Entry/Exit,
+broker, handel, spending og promotion forblir stengt.
+
+49 drivertilfeller og 8 nye eksakte guardtilfeller består; uavhengig kildebro
+bekreftet 18 uendrede numeriske identiteter og øvrige sourceeiere.
+Ingen ny norm-/priorfit eller tekniske/baselinevekter ble brukt.
 
 Dagens 0-klasse er nøyaktig LIK pris, ikke sideveis marked. M5-close har bare
 4 FIT- og 2 CONTROL-likheter. Brukeren er spurt om FLAT skal defineres separat;
-batchtesten beholder all eksisterende prisfasit uendret. Ingen klassekvote eller
-ny flatterskel er innført. Et teknisk PASS eller én kort test avslutter ikke
-dette vedvarende målet. NEXT_RUN_POLICY eier akseptgrenser og neste steg.
+prisfasiten er uendret, og ingen klassekvote/flatterskel er innført.
+Det vedvarende målet avsluttes ikke av teknisk PASS eller én liten fit.
 
 
-BLOCK_ORDER001-planen er nå klargjort: samme ferske initial, norm/prior,
-1536 FIT / 512 CONTROL og 4 pass / 384 updates / 544 forwards. Bare hele
-B16-blokker flyttes etter den låste lokale PCG64-ordren. Planen binder
-kronologisk referanse og alle source-/schedule-hasher. Anslag fra samme
-modell er omtrent 10–12 minutter, hardgrense 30 minutter. Eksakt CLI-
-preflight bestod med 0 modeller/updates/featureverdier og fysisk boot667.
+Fast slutt etter pass4, M5-close:
+- FIT logloss 0,708095 mot prior 0,709405 og kronologisk 0,712238; AUC 0,530687.
+- CONTROL logloss 0,720930 mot prior 0,716887 og kronologisk 0,726116.
+- CONTROL Brier 0,506435 mot prior 0,504676; AUC 0,476531 mot kronologisk 0,500511.
+- CONTROL argmax OPP 368/511 mot tidligere 509/511; faktisk OPP 243/511.
+- Gjennomsnittlig P(OPP), treklasse, er 49,33 prosent FIT og 50,65 CONTROL.
+  Dette er forskjellig fra argmaxandelen. Ingen klassekvote ble brukt.
+
+Rekkefølgeintervensjonen reduserte offset i dette faste parforsøket, men
+ga ingen kvalifisert senere M5-edge. MATCHED_ORDER_RESULT_REVIEW.json
+er hashbundet i policy. Det vedvarende målet fortsetter; før en ny fit er
+neste målte spørsmål om øvrige tap motarbeider M5-close i felles backbone.
+En liten kontroll uten optimizeroppdateringer på faste TRAIN-batcher
+skal kvalifiseres først. Rågradienter er ikke faktisk AdamW-retning.
+
+### Fullført kronologisk TA-referanse og grunnlag
 
 ### Ny TA-only-funksjon og teknisk kvalifikasjon
 
