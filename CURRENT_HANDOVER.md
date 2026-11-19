@@ -7,8 +7,9 @@ prosess og eksakte terminalkvitteringer overstyrer prosa. Tidligere bølger finn
 ## Gjeldende status 19.11.2026
 
 Native prisfasit er fullført for hele tilgjengelige2009–2026-historikken før
-TEST. GC-kilde-/felt-/normaliserings-/modellkoden er klargjort og testet;
-fysisk nativeGC-korpus og fersk modellbaseline er ennå ikke kvalifisert.
+TEST. TA-kjeden har fullført fysisk normalisering og én fersk CPU-initialbatch.
+GC-kilde-/felt-/normaliserings-/modellkoden er klargjort og testet; fysisk
+nativeGC-korpus, samlet initialbaseline og full-TRAIN-baseline gjenstår.
 Arbeidsstatus og samtlige originale hashreferanser eies av NEXT_RUN_POLICY.
 
 ### Full historikkfasit
@@ -108,13 +109,25 @@ originale005-kvitteringer. Nativeenhetsrettelsen er nå implementert for akkurat
 TRAIN-median0, kildefast full-rangeenhet1, null spredningsestimat og støttebevis
 for én avvikende observasjon. Kontinuerlige0/.2/.59/1 og produksjons-Torch-
 transform er testet; feltet blir ikke binært.165berørte capped-regresjonsfall
-består. Pipeline006 er ADMITTED_ONE_USE etter bestått capped førkontroll:15roller,
-sju-flaters domeneobservasjon,11klokkearrays/0featurematriser/0modell/0forbudteIO.
-Kilde/policy fryses til terminal for én fersk normalisering/CPU-initialbatch.
+består. Pipeline006 er COMPLETE_CONSUMED med exit0/uendret kilde på18,347s.
+Alle27originalarrays er kvalifisert uten ny råindikatorberegning eller refit.
+Normalisering bruker hele de sju faktiske konsumpopulasjonene/29 963fitissues.
+Alle29 964utstedelser er inputklare, én har ingen modne framtidshoder og
+utelates bare fra norm-/supervisjonsaksen.132aliaspar og allefeltdomener består.
+Én ny CPU-modell/16rader ga endelige logits/tap,9normaliserte forwardflater,
+åtte familier og61makrofelt. INITIAL_MODEL-strictreload har identisk stateSHA;
+0optimizersteg og0forbudteM1/049-IO-forsøk. Private NORMALIZATION, INITIAL_MODEL,
+INITIAL_CAPTURE, RESULT og TERMINAL er hashbundet i policy. Dette er kun en
+teknisk16-raders initialmåling; ingen full-TRAIN-, lærings- eller edgekvalifikasjon.
 
 Ingen full råindikatorberegning eller parameterfit skal gjentas.
 
-Deretter kan én separat kildebundet råGC-jobb produsere varige komponenter
+Ny kilde for en genuin joint-nullstegskontroll er ferdig og9capped-testfall
+består. Uavhengig leserevisjon avdekket og rettet fire kontrollhull. Den binder: COMPLETE006 + COMPLETEGC-assembly, ferske12statsflater/ferske
+vekter, tre eval-forwards/én autogradberegning/0optimizer, og kun eksplisitt
+koordinat-diagnostikk som kontroll. Ingen ny produksjonsbinding for varianten.
+
+Neste steg er én separat kildebundet råGC-jobb som produserer varige komponenter
 per originalfil. Først ved COMPLETE66/66 kan assembler koble kausal forrige-
 dag-kontrakt, publiserte klokkehendelser, nativeXAU-M5-basis og allefelt.
 Rollevalg bruker betrodde individuelle T-mengder minus klokkehendelser;

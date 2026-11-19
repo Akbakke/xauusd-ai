@@ -88,6 +88,15 @@ på tvers av signal/kontekst/TF. Statistikkdeling følger eksplisitt aliasbindin
 og faktisk TRAIN-populasjon. En konstant TRAIN-periode gjør ikke et
 signed felt binært og gir ingen generell tillatelse til å omgå nullskala.
 
+
+Ved manglende empirisk spredning brukes bare en eksplisitt kildebevist enhet.
+Native M5 geomchan_apex_proximity har kildefast[0,1]-område; ved én avvikende
+TRAIN-observasjon beholdes median og full-rangeenhet1, med null sprednings-
+estimat og faktisk støttebevis. Generiske TA-felt får ingen slik overstyring.
+GC bruker sine deklarerte fysiske enheter og observasjonsmasker; helt ukjent
+felt har null parameterestimat, forskjellig fra et kjent sjeldent felt uten
+estimerbar spredning. Ingen M1-enhetsplan gjenbrukes.
+
 GC reduseres direkte fra originale MBP-hendelser til300s-bøtter og egne
 høyere TF. Ingen minuttmellomlag eller tidligere GC-kilderegister innrømmes.
 Mengder, prisstiger, integral-summer, observerte varigheter og hendelses-
