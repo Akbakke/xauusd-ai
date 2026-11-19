@@ -93,6 +93,10 @@ Kilden er kvalifisert med 6 nye drivercaser, én ny modellpolicycase under
 CPU4G-cap og 16 nye eksakte guardtilfeller. Uavhengig modell-/driverreview og
 positiv faktisk metadata-kontroll bestod. Gammel default og øvrig matematikk
 er bevart. Genuin fersk baseline, gradient- og coldproof gjenstår.
+Eksakt PRIMARY_BACKBONE_MECHANICS001-plan er nå klargjort:
+2 modeller / 67 forwards / 3 updates inkludert kald child / 6 avgrensede
+autograd-prober. Norm/prior refittes ikke; gamle vekter lastes ikke.
+Metadata-preflight gjenstår før én teknisk innrømmelse.
 Ingen ny fit er innrømmet. Det vedvarende målet er fortsatt aktivt.
 
 ### Fullført kronologisk TA-referanse og grunnlag
