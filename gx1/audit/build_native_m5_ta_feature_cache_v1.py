@@ -255,7 +255,7 @@ def produce(plan):
         'source_axes':provider.surfaces['axes'],'yearly_readiness':annual,'overlap_parity':parity,
         'families':list(provider.profile['local_specialists']),'macro_fields':list(provider.profile['macro_context_fields']),
         'rows':len(provider.surfaces['retained_issue_rows']),'retained_local_rows':len(provider.retained_source_rows),
-        'physical_bytes':sum(provider.surfaces[key].nbytes for key in('signal','ctx_cont','ctx_cat','observed'))+
+        'primary_matrix_bytes':sum(provider.surfaces[key].nbytes for key in('signal','ctx_cont','ctx_cat','observed'))+
             sum(frame.attrs['feats_np'].nbytes for frame in provider.surfaces['multi_tf_sources'].values()),
         'actual_counts':COUNTS,'Torch_imported':False,'GC_used':False,'M1_used':False,'test_data_used':False}
 
