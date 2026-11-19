@@ -6,152 +6,115 @@ prosess og eksakte terminalkvitteringer overstyrer prosa. Tidligere bølger finn
 
 ## Gjeldende status 19.11.2026
 
-Native prisfasit er fullført for hele tilgjengelige2009–2026-historikken før
-TEST. TA-kjeden har fullført fysisk normalisering og én fersk CPU-initialbatch.
-GC-kilde-/felt-/normaliserings-/modellkoden er klargjort og testet; fysisk
-nativeGC-korpus, samlet initialbaseline og full-TRAIN-baseline gjenstår.
-Arbeidsstatus og samtlige originale hashreferanser eies av NEXT_RUN_POLICY.
+Hele tilgjengelige native prishistorikk før TEST har tett barfasit på alle
+fem tidsrammer. Native TA, direkte rå-GC, fysisk GC-pakke og den samlede
+modellens tekniske konsumkontroll er fullført. Ingen kjøring er aktiv.
+NEXT_RUN_POLICY eier arbeidsstatus og hashreferanser til originalkvitteringene.
+
+Dette kvalifiserer datagrunnlag og den kontrollerte modellkoblingen.
+Full-TRAIN initial prognosebaseline, læring, senere generalisering og
+retningsedge er fortsatt ikke målt. Entry og trening er stengt.
 
 ### Full historikkfasit
 
-18 originale M5-årsfiler ga1 215 514råbarer. Baren som slutter nøyaktig på
-TEST-grensen01.07.2026 er utelatt:1 215 513M5-barer i faktatapen.
+18 originale M5-årsfiler fra 2009–2026 ga 1 215 514 råbarer. Baren som
+slutter nøyaktig på TEST-grensen 01.07.2026 er utelatt; faktatapen har
+1 215 513 M5-barer. Ingen forseglet TEST-periode er brukt.
 
 | TF | Observerte barer | Første uten forgjenger |
 |---|---:|---:|
-| M5 | 1,215,513 | 1 |
-| M15 | 406,109 | 1 |
-| H1 | 102,354 | 1 |
-| H4 | 26,427 | 1 |
-| D1 | 4,417 | 1 |
+| M5 | 1 215 513 | 1 |
+| M15 | 406 109 | 1 |
+| H1 | 102 354 | 1 |
+| H4 | 26 427 | 1 |
+| D1 | 4 417 | 1 |
 
 Åpning mot forrige observerte åpning og slutt mot forrige observerte slutt
-har separate fortegn-1/0/+1. Likhet og blandede fortegn er kjente fakta.
-Hver TF har17 bevarte årsskifter;5 558M5-kildegap annoteres uten å fjerne
-kjente fakta. Første bar mangler forgjenger. Framtidsmål får sine egne
-modnings-/sluttmasker; siste ufullstendige TF gir ingen framtidskreditt.
-Juni2026 har6 024utviklings-VAL-rader til faktakontroll, ingen fitting.
+har separate fortegn -1/0/+1. Likhet og blandede fortegn er kjente fakta.
+Hver TF har 17 bevarte årsskifter. De 5 558 M5-kildegapene annoteres uten å
+fjerne kjente fakta; ingen tomme barer fabrikkeres. Bare første bar mangler
+forgjenger. Framtidsmål har separate modningsmasker, og allerede kjent
+åpning gis ingen prognosekreditt.
 
-Historikk003 fullførte med exit0/uendret kilde på334,87s. En uavhengig
-råaggregering gjenskapte alle76lagrede arrays eksakt. Originale kvitteringer
-og HISTORY_VERIFICATION.json bevares; ingen M1-pris eller modell ble brukt.
+Juni 2026 har 6 024 utviklings-VAL-rader til faktakontroll, ingen fitting.
+Historikk003 fullførte med exit 0 og uendret kilde på 334,87 sekunder.
+Uavhengig råaggregering gjenskapte alle 76 arrays eksakt.
 
-### Rettet og testet
+### Indikatorer og konkrete rettelser
 
-TA har318signalfelt,132kontinuerlige kontekstfelt,256perTF og61D1/makrofelt.
-Alleåtte spesialistfamilier og egne åpning-/slutthoder beholdes. Native felt-
-domener følger formel-eierne:40binære signal-,3kontekst- og55TF-felt;
-signedEMA beholder-1/0/+1 med eksplisitt enhet. Andre kontinuerlige
-konstantfelt får ingen generell skalaoverstyring. Ren feltkatalog er skilt
-fra eldre kilder. En prosessvakt avviser M1-artefakter og gammelt049-register.
+M1 er aldri retningsgrunnlag: heller ikke via klargjøring, akser, mål,
+masker, priorer, normalisering, metadata eller warmstart. En kald prosessvakt
+avviser M1-artefakter og det gamle 049-registeret før kilde-/modellimport.
+M1 tilhører bare senere oppfølging av en allerede åpnet handel.
 
-Ferdige nativeM5-squeezeparametre for allefem TF og V29 gjenbrukes uten refit.
-Tidligere pipeline001/002/003/004/005 er konsumert og relanseres aldri.002 ble
-memcg-drept uten nativeTERMINAL; originale wrapper-/kjernelogg og ekstern
-observasjon består.003 bevarte27inputarrays før D1-normaliseringsfeil.
-004 stoppet før stats/modell på en feilaktig felles D1-radnummerantagelse.
+Native TA har 318 signalfelt, 132 kontekstfelt, 256 felt per TF og 61
+D1/makrofelt. Alle åtte spesialistfamilier beholdes. Native squeezeparametre
+for fem TF og V29 gjenbrukes uten refit. Feil i tomme helgebarers aggregering,
+binære/signed feltdomener, normaliseringsenheter og koblingen mellom
+feature-ID og fasittid er rettet. Opprinnelige ID-er og kildegap beholdes.
 
-Den feilen er rettet i005-kilden: opprinnelige feature-ID-er valideres mot
-feature-eierens hele akse; mål kobles separat på eksakt start/tilgjengelighet.
-Fasit beholder første delbar, feature-eieren utelater label før kildestart.
-M5/M15/H1 har mål-offset0; H4/D1 har1 på den faktiske kilden. Ingen hardkodet
-forskyvning brukes. Alle30 059/10 051/2 594/750/361lagrede TF-tidsstempler
-matcher.35 fokuserte tilfeller og faktisk11-klokkearrayport består før claim;
-pris-/featurematriser dekodes ikke i denne førkontrollen.
+Pipeline006 kvalifiserte alle 27 eksisterende inputarrays uten ny
+råindikatorberegning. De sju faktiske konsumpopulasjonene fikk fersk
+normalisering; én fersk 16-raders CPU-initialbatch og identisk strict reload
+bestod. M5-apexfeltets målte mangel på estimerbar spredning har en avgrenset,
+kildebegrunnet enhetsregel. Ingen generell konstant-/skalafallback er åpnet.
+Originale feilkvitteringer fra 001–005 bevares og planene relanseres aldri.
 
-GC går direkte råMBP→300s→M5/M15/H1/H4/D1.66originalfiler,23definisjoner og
-15kontrakter er metadata-bundet uten MBP-dekoding. Tidligere register manglet
-ti genuine kjøps-/salgs-maksfelt. Ny katalog har1220verdikonsepter:
-1205opprinnelige,10manglende og5støttefelt.210Boolean-domener er deklarert,
-inkludert59tidligere manglende. Invers kontroll krever at alle genuine
-primitiveier-felt har rute eller bevist eksakt alias.
+GC går direkte fra rå MBP-hendelser til 300-sekunders grunnlag og videre til
+M5/M15/H1/H4/D1. Ingen M1-reduksjon brukes. Alle 66 originalfiler,
+892 100 712 hendelser, 23 definisjoner og 15 kontrakter er behandlet.
+Råhashbookends og mengde-/stige-konservering består per fil.
+RAW_COMPONENTS001 fullførte på 935,924 sekunder uten modell eller råreplay.
 
-Ny jointprovider har2748signal-/2562kontekstfelt og14forwardkeys.
-GC-historikkbredder er643/497/457/435/403. Opprinnelige TA-rad-ID-er og M5-
-rader bevares også uten GC-/D1-forhistorikk. Lokale GC-felt bruker siste
-lukkede GC-bar; GC-sekvenser bruker eksakte TA-TF-koordinater. Overlapp
-kontrolleres på faktisk kildebar; alder beregnes med hver rutes egen klokke.
-Ukjent markedsverdi lagres0 bak observed0 og maskeres før lært projeksjon.
+ASSEMBLY001 gjenbrukte alle komponentene og fullførte på 537,195 sekunder.
+Den fysiske pakken har 1 215 baseverdikonsepter og fem støttefelt.
+Ti genuine kjøps-/salgs-maksfelt manglet tidligere i registeret og er nå
+koblet inn. De 210 boolske verdidomenene er eksplisitte, inkludert 59 som
+tidligere manglet. Invers kontroll fanger uregistrerte primitiveier-felt.
 
-GC-normalisering bruker ferske kilder, enheter, unike konsumerte TF-rader
-og faktiske observasjonstellinger. Målt syntetisk M15-teller hadde130/144
-observasjoner og verdier2én gang/3resten. Spredning er ikke estimerbar fra
-én avvikende observasjon: ny eksplisitt nativeGC-policy bruker deklarert
-fysisk enhet og TRAIN-median, med null spredningsestimat og støttebevis.
-Dette merkes ikke konstant og åpner ingen generell TA-overstyring.
+Pakken har 227 808 kalenderbøtter, 152 999 volume-admitterte og 23 430 helt
+signerte. De 288 første-dagsbøttene uten kausalt kontraktsvalg beholdes ukjente.
+Kjent delvis B/S/N-flow bevares separat. Dokumenterte klokkehendelser,
+manglende historikk og svak observasjonsdekning har eksplisitte masker.
+At alle kildekolonner finnes betyr ikke at alle verdier er observerte.
 
-Fokuserte nye provider-/felttester19/19 består; råprodusent6 og assembler13
-består. Hele5TF-pakken, kontrollpunkter/konservering, hendelsesalder, masker,
-klokker, enheter, aliaser og konsekvent primitive-perturbasjon er testet.
-Fersk faktisk fullmodell-test med14keys/allehoder/backward består med0
-M1/049-IO-forsøk, ikke oppvarmet legacycache. Observerte GC-markedsverdier/
-projeksjoner får gradient, observed0-markedsverdier får null gradient;
-D1-ukjent rad beholdes. Ny checkpoint-/dimensjonskontroll avviser før kopiering.
-222 berørte regresjonsfall bestod under capped4G/512M; fersk fullGC-wrapper
-ble gjenbrukt fra egen bestått kontroll. Syntaks/diffkontroll består. Den kontrollerte diagnostikk-ruten er dessuten
-uavhengig revidert og7capped-testfall består: én kildekolonne regatheres på
-tvers av ruter uten ny produksjonsbinding/COMPLETE-bevis. Originalpakke,
-normalisering og kvitteringer bevares; dette er ikke en ny markedsbane.
+### Bestått samlet kontroll på ekte data
 
-### Ikke gjort / neste steg
+JOINT_QUALIFICATION001 er COMPLETE_CONSUMED_GENUINE_JOINT_TECHNICAL_ONLY:
+exit 0, uendret kilde, 235,244 sekunder. Ingen ny råreduksjon eller parameterfit.
 
-Pipeline005 er FAILED_CONSUMED. Originalt FEATURE_INPUTS_REQUALIFICATION
-beviser alle27arrays, opprinnelige klokker/ID-er, ruter og støtte; M1/049-vakten
-hadde0forbudteforsøk. Deretter stoppet normalisering på M5-feltet
-geomchan_apex_proximity uten støttet spredning. Formel-eieren begrenser[0,1],
-men tidligere særregel var knyttet til avløst M1-enhetsplan. Ingen normalisering,
-modell eller checkpoint er publisert. Alle7 faktiske konsumpopulasjoner er nå
-kontrollert samlet: nøyaktig ett problem, dette M5-feltet med29 977nuller og
-én0,5902256. Domener/akser i de andre seks flatene består.29 964inputrader
-er klare; normaksen har29 963fordi én rad mangler modne framtidshoder.
-Ekstern read-only-observasjon er varig bevart og hashbundet uten å endre
-originale005-kvitteringer. Nativeenhetsrettelsen er nå implementert for akkurat dette M5-feltet:
-TRAIN-median0, kildefast full-rangeenhet1, null spredningsestimat og støttebevis
-for én avvikende observasjon. Kontinuerlige0/.2/.59/1 og produksjons-Torch-
-transform er testet; feltet blir ikke binært.165berørte capped-regresjonsfall
-består. Pipeline006 er COMPLETE_CONSUMED med exit0/uendret kilde på18,347s.
-Alle27originalarrays er kvalifisert uten ny råindikatorberegning eller refit.
-Normalisering bruker hele de sju faktiske konsumpopulasjonene/29 963fitissues.
-Alle29 964utstedelser er inputklare, én har ingen modne framtidshoder og
-utelates bare fra norm-/supervisjonsaksen.132aliaspar og allefeltdomener består.
-Én ny CPU-modell/16rader ga endelige logits/tap,9normaliserte forwardflater,
-åtte familier og61makrofelt. INITIAL_MODEL-strictreload har identisk stateSHA;
-0optimizersteg og0forbudteM1/049-IO-forsøk. Private NORMALIZATION, INITIAL_MODEL,
-INITIAL_CAPTURE, RESULT og TERMINAL er hashbundet i policy. Dette er kun en
-teknisk16-raders initialmåling; ingen full-TRAIN-, lærings- eller edgekvalifikasjon.
+- Alle 29 964 opprinnelige M5-utstedelser er inputklare. Ingen fjernes fordi
+  GC mangler. Normalisering bruker alle 29 963 issues med modne framtidsmål.
+- Tolv ferske normaliseringsflater og ferske vekter; ingen gamle statistikker
+  eller vekter lastet. Den faktiske modellen mottar 14 inputflater:
+  signalbredde 2 748, kontekstbredde 2 562, TA-historikk og egne GC-historikker.
+- Åtte spesialistfamilier, 61 makrofelt og ti åpning-/slutthoder er koblet.
+  Alle 25 GC-familie/TF-ruter har målte gradienter gjennom observerte
+  kontinuerlige markedsverdier og projeksjonsvekter.
+- Den kildevalgte kontrollgruppen har 16 rader. Åtte hoder har kvalifiserte
+  tapsceller og gradient; to åpninghoder har ingen slike celler på akkurat
+  disse radene og korrekt null gradient. Ukjente markedsverdier har null gradient.
+- Tre forwards og én autogradberegning, null optimizersteg. Én kontrollert
+  endring av en kildekoordinat gir målbar logitendring gjennom produksjonsruten.
+  Kontrollvarianten er bare DIAGNOSTIC; originalpakke, binding og normalisering
+  er uendret. Strict reload gir identisk initial model-state.
+- Null forbudte M1/049-IO-forsøk. Ingen TEST, broker, ordre eller spending.
 
-Ingen full råindikatorberegning eller parameterfit skal gjentas.
+Fokuserte regresjoner, faktisk kald fullmodell/backward og uavhengig
+agentrevisjon er gjennomført. Sluttartefaktenes hasher er kontrollert mot
+RESULT/TERMINAL og bundet i policy. Ingen bestått suite eller modelljobb skal
+gjentas uten et konkret nytt behov.
 
-Ny kilde for en genuin joint-nullstegskontroll er ferdig og9capped-testfall
-består. Uavhengig leserevisjon avdekket og rettet fire kontrollhull. Den binder: COMPLETE006 + COMPLETEGC-assembly, ferske12statsflater/ferske
-vekter, tre eval-forwards/én autogradberegning/0optimizer, og kun eksplisitt
-koordinat-diagnostikk som kontroll. Ingen ny produksjonsbinding for varianten.
+### Gjenstår / neste steg
 
-GC_RAW_COMPONENTS001 er COMPLETE_CONSUMED_RAW_COMPONENTS_ONLY. Alle66filer og
-892 100 712originale hendelser er direkte300s-redusert på935,924s, med
-uendret kilde/råhashbookends og mengde-/stige-konservering i hver fil.
-0M1/049-IO,0modeller og0optimizer. Varige komponent-/stige-/kvitteringsfiler
-for alle66 er hashbundet fra original RESULT/TERMINAL i policy. Ingen råreplay.
-GC_ASSEMBLY001 er COMPLETE_CONSUMED_NATIVE_GC_INPUTS_ONLY, exit0/uendret kilde
-på537,195s. Alle66komponenter er gjenbrukt uten råreplay eller modell.
-Allefem TF og1215baseverdier+5støttefelt finnes i fysisk pakke, hashbundet
-med nativeXAU-M5-basis, kvitteringer, klokker, masker, enheter og konservering.
-0M1/049-IO.227 808nativekalenderbøtter,152 999volume-admitterte og23 430helt
-signerte;288første-dagsbøtter har ukjent kausalt kontraktsvalg. Kjent delvis
-B/S/N-flow bevares separat. Publisert klokkehendelse fjerner8260kontrakter/
-4836betroddeT fra dagsvolumer, med eksplisitt delvis-observasjon i to
-kontraktsdøgn. Ingen full-feeddag/completeness eller modellkonsum er påstått.
-JOINT_QUALIFICATION001 er ADMITTED_ONE_USE med COMPLETE006 og denne
-COMPLETE-assemblyen. Eksakt capped metadata-CLI består med0data-/modell-/
-autograddekoding før claim. Én12G/512M/1800sjobb, fersk12flate-normalisering/
-modell,3gradaktiverte forwards/1autograd/0optimizer. Kilde/policy fryst til terminal.
-Rollevalg bruker betrodde individuelle T-mengder minus klokkehendelser;
-hele-feature-bøtter har separat strengere kvalitetsmaske. Ukjent første
-handelsdag og manglende historikk beholdes eksplisitt. Ingen råreplay i assembly.
+Den samlede 16-raders kontrollen beviser teknisk modellkonsum og påvirkning,
+ikke bedre retningsprognoser. Full-TRAIN initial prognosemåling og deretter
+kvalifisert læring/generalisering må vurderes separat med nytt, konkret
+kjøringsvedtak. Ingen videre kjøring er innrømmet nå. Ferdige historikkmål,
+TA-parametre/inputs og GC-komponenter/pakke skal gjenbrukes.
 
-Retningsedge, læring og økonomi er ikke målt for denne funksjonen.
-M1 er bare til senere oppfølging av åpnet handel. Entry, modellfit, FullGC-fit,
-TEST, broker og handel er stengt. Kilde/policy fryses under hver fysisk jobb.
+Ingen modellfit, fullGC-fit, Entry/Exit, TEST, live/paper, broker, handel eller
+promotion er åpnet. Ingen fast tapsgrense eller maksimal holdetid er innført.
 
 ### Kilderevisjon før M1-presiseringen18.11 (historisk)
 
