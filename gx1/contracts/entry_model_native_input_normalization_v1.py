@@ -34,12 +34,12 @@ from gx1.contracts.entry_model_native_training_objective_v1 import (
     require_entry_training_phase,
 )
 
-from gx1.features import gc_native_context_v1 as _gc_context
+from gx1.features import gc_native_field_catalog_v1 as _gc_context
 from gx1.features import micro_structure_v1 as _micro_context
 from gx1.features.basic_v1 import session_native_binary_event_fields
 
 SCHEMA_VERSION = "entry_model_native_input_normalization_v11"
-NATIVE_M5_NORMALIZATION_SCHEMA = 'gx1_native_m5_input_normalization_v1'
+NATIVE_M5_NORMALIZATION_SCHEMA = 'gx1_native_m5_input_normalization_v2'
 NATIVE_M5_TRAIN_FIT_CUTOFF_NS = 1780272000000000000  # 2026-06-01T00:00:00Z, exclusive TRAIN ceiling
 TRANSFORM = "shared_entry_exit_train_only_median_raw_iqr_asinh_v7"
 FIT_POPULATION = "unique_physical_train_rows_entry_exit_union_v2"
@@ -132,6 +132,65 @@ def _canonical_sha256(value: Any) -> str:
             allow_nan=False,
         ).encode("utf-8")
     ).hexdigest()
+
+
+SIGNED_TERNARY_UNIT_SCALE_SOURCE = 'semantic_signed_ternary_unit_scale'
+
+
+def signed_ternary_unit_fields(surface):
+    """Exact htf_features EMA-stack numeric domains; never inferred from samples."""
+    aliases = tuple(tf.lower() + '_ema_stack_aligned_v2' for tf in EXPECTED_TFS)
+    if surface == 'signal':
+        return tuple('ctx_cont.' + name for name in aliases)
+    if surface == 'ctx_cont':
+        return aliases
+    if surface in tuple('mtf_' + tf.lower() for tf in EXPECTED_TFS):
+        return ('ema_stack_aligned_v2',)
+    return ()
+
+
+def signed_ternary_unit_contract():
+    payload = {
+        'schema_version': 'native_m5_signed_ema_stack_units_v1',
+        'formula_owner': 'gx1.features.htf_features.compute_per_bar_features_v4',
+        'formula': 'strict_bull_EMA20_50_100_200:+1_strict_bear:-1_other:0',
+        'domain': [-1, 0, 1], 'center': 0, 'scale': 1,
+        'transform': 'asinh_numeric_not_binary_or_categorical',
+        'fields_by_surface': {surface: list(signed_ternary_unit_fields(surface))
+                              for surface in EXPECTED_SURFACES},
+    }
+    return {**payload, 'contract_sha256': _canonical_sha256(payload)}
+
+
+def native_m5_binary_fields(surface, field_names):
+    from gx1.features.entry_model_native_feature_layers_v1 import model_native_m5_local_per_bar_exact_aliases
+    pairs = model_native_m5_local_per_bar_exact_aliases()
+    local = {name for name, native in pairs if native in MTF_SEMANTIC_BINARY_FIELDS}
+    if surface == 'signal':
+        declared = local
+    elif surface == 'ctx_cont':
+        declared = {name.removeprefix('ctx_cont.') for name in local if name.startswith('ctx_cont.')}
+    elif surface in tuple('mtf_' + tf.lower() for tf in EXPECTED_TFS):
+        declared = MTF_SEMANTIC_BINARY_FIELDS
+    else:
+        declared = set()
+    return set(field_names).intersection(declared)
+
+
+def native_m5_input_domain_contract():
+    from gx1.features.entry_model_native_feature_layers_v1 import model_native_m5_local_per_bar_exact_aliases
+    pairs = model_native_m5_local_per_bar_exact_aliases()
+    local = [name for name, native in pairs if native in MTF_SEMANTIC_BINARY_FIELDS]
+    payload = {'schema_version': 'native_m5_exact_owner_input_domains_v1',
+        'signed_ternary': signed_ternary_unit_contract(),
+        'binary_domain': [0, 1], 'binary_transform': 'identity_center_0_scale_1',
+        'binary_same_M5_aliases': [[name, native] for name, native in pairs if name in local],
+        'binary_fields_by_surface': {'signal': local,
+            'ctx_cont': [name.removeprefix('ctx_cont.') for name in local if name.startswith('ctx_cont.')],
+            **{'mtf_' + tf.lower(): sorted(MTF_SEMANTIC_BINARY_FIELDS) for tf in EXPECTED_TFS}},
+        'continuous_constants': 'fail_closed_without_declared_source_units',
+        'observation_inference_used': False}
+    return {**payload, 'contract_sha256': _canonical_sha256(payload)}
 
 
 def _field_names_sha256(field_names: Sequence[str]) -> str:
@@ -786,6 +845,7 @@ def fit_surface_normalization(
     column_chunk: int = FIT_COLUMN_CHUNK,
     semantic_categorical_domains: Mapping[str, Sequence[int]] | None = None,
     semantic_binary_fields: Sequence[str] | None = None,
+    semantic_signed_ternary_units: bool = False,
     allow_constant_train_fields: bool = False,
     allow_unobserved_train_fields: bool = False,
     zero_support_profile: Mapping[str, Any] | None = None,
@@ -906,6 +966,9 @@ def fit_surface_normalization(
             f"surface={surface}"
         )
 
+    if type(semantic_signed_ternary_units) is not bool:
+        raise RuntimeError('ENTRY_INPUT_NORMALIZATION_SIGNED_UNIT_POLICY_INVALID')
+    signed_fields = set(signed_ternary_unit_fields(surface)) if semantic_signed_ternary_units else set()
     observation_pairs = dict((*_gc_context.masking_pairs(names), *_micro_context.range_observation_masking_pairs(names)))
     for index, entry in unit_columns.items():
         if (observation_pairs.get(index) != entry["mask_index"]
@@ -984,6 +1047,12 @@ def fit_surface_normalization(
                         scale_source[index] = "unobserved_prefix_unit_scale"
                     continue
                 q25[local], median[local], q75[local] = np.quantile(column, [0.25, 0.5, 0.75])
+            if names[index] in signed_fields:
+                if not np.isin(column, (-1., 0., 1.)).all():
+                    raise RuntimeError('ENTRY_INPUT_NORMALIZATION_SIGNED_TERNARY_DOMAIN_INVALID:' + names[index])
+                center[index], scale[index] = 0., 1.
+                scale_source[index] = SIGNED_TERNARY_UNIT_SCALE_SOURCE
+                continue
             if names[index] in binary_fields:
                 if not np.logical_or(column == 0.0, column == 1.0).all():
                     raise RuntimeError(
@@ -1173,6 +1242,9 @@ def require_surface_normalization(
             f"[ENTRY_INPUT_NORMALIZATION_SURFACE_MISSING] surface={surface}"
         )
     data = dict(value)
+    native_domain = data.get('native_domain_contract_sha256')
+    if native_domain is not None and native_domain != native_m5_input_domain_contract()['contract_sha256']:
+        raise RuntimeError('NATIVE_M5_NORMALIZATION_SURFACE_DOMAIN_POLICY')
     expected_keys = {
         "surface",
         "continuous_transform",
@@ -1192,6 +1264,8 @@ def require_surface_normalization(
         "train_transformed_max",
         "stats_sha256",
     }
+    if native_domain is not None:
+        expected_keys.add('native_domain_contract_sha256')
     structural = {}
     profile_sha = data.get("zero_support_profile_sha256")
     if profile_sha is not None:
@@ -1299,6 +1373,8 @@ def require_surface_normalization(
     # New GC histories retain source-declared first-retouch event units; legacy surfaces stay unchanged.
     if str(surface) in ("gc_mtf_m5", "gc_mtf_m15", "gc_mtf_h1", "gc_mtf_h4", "gc_mtf_d1"):
         expected_binary_fields |= _gc_context.mtf_history_binary_fields(names)
+    if native_domain is not None:
+        expected_binary_fields = native_m5_binary_fields(surface, names)
     observed_binary_fields = {
         names[index] for index in np.flatnonzero(binary_mask)
     }
@@ -1368,6 +1444,14 @@ def require_surface_normalization(
                     "[ENTRY_INPUT_NORMALIZATION_CATEGORICAL_TRAIN_SUPPORT_INVALID] "
                     f"surface={surface} field={names[index]}"
                 )
+        signed_unit = scale_source[index] == SIGNED_TERNARY_UNIT_SCALE_SOURCE
+        if signed_unit and (
+            names[index] not in signed_ternary_unit_fields(surface)
+            or is_binary or is_categorical or center[index] != 0. or scale[index] != 1.
+            or transformed_min[index] not in (-float(np.arcsinh(1.)), 0., float(np.arcsinh(1.)))
+            or transformed_max[index] not in (-float(np.arcsinh(1.)), 0., float(np.arcsinh(1.)))
+        ):
+            raise RuntimeError('ENTRY_INPUT_NORMALIZATION_SIGNED_UNIT_CONTRACT_INVALID')
         bounded_unit = scale_source[index] == "source_bounded_unit_scale"
         if bounded_unit and (
             surface != "mtf_m5" or names[index] != "geomchan_apex_proximity"
@@ -1391,6 +1475,7 @@ def require_surface_normalization(
             "median_positive_abs_deviation",
             "constant_train_unit_scale",
             "source_bounded_unit_scale",
+            SIGNED_TERNARY_UNIT_SCALE_SOURCE,
         }:
             raise RuntimeError(
                 f"[ENTRY_INPUT_NORMALIZATION_SCALE_SOURCE_INVALID] "
@@ -1400,6 +1485,7 @@ def require_surface_normalization(
             not is_binary
             and not is_categorical
             and not constant_unit
+            and not signed_unit
             and transformed_min[index] >= transformed_max[index]
         ):
             raise RuntimeError(
@@ -1954,6 +2040,9 @@ def apply_surface_normalization(
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_APPLY_WIDTH_MISMATCH]")
     if not np.isfinite(matrix).all():
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_APPLY_NONFINITE]")
+    for index, source in enumerate(surface_contract['scale_source']):
+        if source == SIGNED_TERNARY_UNIT_SCALE_SOURCE and not np.isin(matrix[..., index], (-1., 0., 1.)).all():
+            raise RuntimeError('ENTRY_INPUT_NORMALIZATION_SIGNED_TERNARY_DOMAIN_INVALID:' + field_names[index])
     # Binary identity is reserved for source-declared structural 0/1 fields.
     # The stored mask is validated against that registry before apply.
     if binary.any():
@@ -2040,7 +2129,7 @@ def invert_surface_normalization(
 _NATIVE_M5_NORMALIZATION_KEYS = frozenset({
     'schema_version', 'source_clock_contract', 'native_m5_manifest',
     'feature_provider_contract_sha256', 'source_axes_sha256', 'fit_population',
-    'surfaces', 'ctx_cat', 'temporal_aliases', 'contract_sha256',
+    'surfaces', 'ctx_cat', 'temporal_aliases', 'semantic_domain_contract_sha256', 'contract_sha256',
 })
 _NATIVE_M5_POPULATION_KEYS = frozenset({
     'cutoff_ns', 'first_issue_ns', 'last_issue_ns', 'issue_rows',
@@ -2067,6 +2156,7 @@ def require_native_m5_input_normalization_contract(
     _native_m5_need(type(value) is dict and set(value) == _NATIVE_M5_NORMALIZATION_KEYS,
                     'KEYS')
     data = dict(value)
+    _native_m5_need(data['semantic_domain_contract_sha256'] == native_m5_input_domain_contract()['contract_sha256'], 'DOMAIN_POLICY')
     reference = data['native_m5_manifest']
     _native_m5_need(data['schema_version'] == NATIVE_M5_NORMALIZATION_SCHEMA
         and data['source_clock_contract'] == 'native_m5_and_closed_higher_no_m1_v1'
@@ -2115,6 +2205,10 @@ def require_native_m5_input_normalization_contract(
             data['surfaces'][surface], surface=surface, field_names=canonical[surface])
         _native_m5_need(surfaces[surface]['fit_row_count'] == expected_rows[surface],
                         'SURFACE_POPULATION')
+        _native_m5_need(surfaces[surface].get('native_domain_contract_sha256') == native_m5_input_domain_contract()['contract_sha256'], 'SURFACE_DOMAIN_POLICY')
+        for index, name in enumerate(canonical[surface]):
+            if name in signed_ternary_unit_fields(surface):
+                _native_m5_need(surfaces[surface]['scale_source'][index] == SIGNED_TERNARY_UNIT_SCALE_SOURCE, 'SIGNED_DOMAIN_POLICY')
     ctx_cat = require_ctx_cat_contract(data['ctx_cat'], field_names=list(CTX_CAT_DOMAINS))
     _native_m5_need(ctx_cat['fit_row_count'] == population['context_rows'], 'CTX_ROWS')
     aliases = _require_aliases(data['temporal_aliases'],
@@ -2136,6 +2230,19 @@ def build_native_m5_input_normalization_contract(
         'feature_provider_contract_sha256': feature_provider_contract_sha256,
         'source_axes_sha256': source_axes_sha256, 'fit_population': fit_population,
         'surfaces': surfaces, 'ctx_cat': ctx_cat, 'temporal_aliases': temporal_aliases,
+        'semantic_domain_contract_sha256': native_m5_input_domain_contract()['contract_sha256'],
     }
     return require_native_m5_input_normalization_contract(
         {**payload, 'contract_sha256': _canonical_sha256(payload)})
+
+
+def fit_native_m5_surface_normalization(values, **kwargs):
+    """Native-only explicit source-unit policy; historical fit defaults stay unchanged."""
+    if 'semantic_signed_ternary_units' in kwargs:
+        raise RuntimeError('NATIVE_M5_NORMALIZATION_DOMAIN_OVERRIDE')
+    if 'semantic_binary_fields' in kwargs:
+        raise RuntimeError('NATIVE_M5_NORMALIZATION_BINARY_DOMAIN_OVERRIDE')
+    result = fit_surface_normalization(values, semantic_signed_ternary_units=True,
+        semantic_binary_fields=native_m5_binary_fields(kwargs['surface'], kwargs['field_names']), **kwargs)
+    result['native_domain_contract_sha256'] = native_m5_input_domain_contract()['contract_sha256']
+    return result

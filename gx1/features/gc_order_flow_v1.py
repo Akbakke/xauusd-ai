@@ -31,6 +31,16 @@ OBSERVED_FOOTPRINT_FIELDS = {
 }
 
 
+def _reduction_interval_ns(value):
+    if type(value) is not int or value not in (60_000_000_000, 300_000_000_000):
+        raise ValueError('GC_REDUCTION_INTERVAL_MUST_BE_M1_OR_NATIVE_M5')
+    return value
+
+
+def _endpoint_suffix(interval):
+    return 'minute_ns' if interval == timing.MINUTE_NS else 'bucket_start_ns'
+
+
 def histogram_features(ticks, buy, sell, unknown, tick_size):
     """Exact integer ladder reduction; volume quantiles use the lower crossing.
 
@@ -68,12 +78,19 @@ def histogram_features(ticks, buy, sell, unknown, tick_size):
 
 class TradeLadderCollector:
     """A streaming callback of the source owner, never a second record parser."""
-    def __init__(self, path: Path | None, selected, valid, symbol_index, tick_size, *, reference_bars=()):
+    def __init__(self, path: Path | None, selected, valid, symbol_index, tick_size, *, reference_bars=(), input_interval_ns=60_000_000_000):
+        self.input_interval_ns = _reduction_interval_ns(input_interval_ns)
+        self.index_column = 'minute_index' if self.input_interval_ns == timing.MINUTE_NS else 'bucket_index'
         self.selected, self.valid = selected, valid
         self.symbol_index, self.tick_size = symbol_index, tick_size
         self.ohlc = np.zeros((len(selected),4),dtype=np.int64)
+        if self.input_interval_ns == 300_000_000_000:
+            self.first_trade_recv_ns = np.full(len(selected), -1, np.int64)
+            self.last_trade_recv_ns = np.full(len(selected), -1, np.int64)
+            self.first_trusted_trade_recv_ns = self.first_trade_recv_ns
+            self.last_trusted_trade_recv_ns = self.last_trade_recv_ns
         self.writer = None if path is None else pq.ParquetWriter(path, pa.schema([
-            ('minute_index',pa.int32()),('price_tick',pa.int64()),
+            (self.index_column,pa.int32()),('price_tick',pa.int64()),
             ('buy',pa.uint64()),('sell',pa.uint64()),('unknown',pa.uint64())]), compression='zstd')
         self.rows = 0
         self.reference_bars = frozenset(reference_bars)
@@ -87,12 +104,17 @@ class TradeLadderCollector:
         ticks = data['price'].to_numpy(zero_copy_only=False)[take]//self.tick_size
         size = data['size'].to_numpy(zero_copy_only=False)[take].astype(np.uint64)
         side = data['side'].to_numpy(zero_copy_only=False)[take]
-        for bar in self.reference_bars.intersection(set((minutes//5).tolist())):
+        native_m5 = minutes // (300_000_000_000 // self.input_interval_ns)
+        for bar in self.reference_bars.intersection(set(native_m5.tolist())):
             refs = self.reference_trades.setdefault(int(bar),[])
-            for j in np.flatnonzero(minutes//5==bar):
+            for j in np.flatnonzero(native_m5==bar):
                 refs.append((int(ticks[j]),int(size[j]),str(side[j])))
         unique, first, counts = np.unique(minutes,return_index=True,return_counts=True)
         empty = self.ohlc[unique,0] == 0
+        if self.input_interval_ns == 300_000_000_000:
+            received = data['ts_recv'].to_numpy(zero_copy_only=False)[take].astype(np.int64)
+            self.first_trade_recv_ns[unique[empty]] = received[first[empty]]
+            self.last_trade_recv_ns[unique] = received[first+counts-1]
         self.ohlc[unique[empty],0] = ticks[first[empty]]
         self.ohlc[unique,3] = ticks[first+counts-1]
         lo = np.minimum.reduceat(ticks,first)
@@ -109,7 +131,7 @@ class TradeLadderCollector:
             a = np.zeros(len(levels),dtype=np.uint64)
             np.add.at(a,inverse[side==value],size[side==value])
             quantities[name] = a
-        self.writer.write_table(pa.table({'minute_index':levels['minute'], 'price_tick':levels['price'], **quantities}))
+        self.writer.write_table(pa.table({self.index_column:levels['minute'], 'price_tick':levels['price'], **quantities}))
         self.rows += int(take.sum())
 
     def close(self):
@@ -117,11 +139,13 @@ class TradeLadderCollector:
             self.writer.close()
 
 
-def timeframe_skeleton(minutes, selected, metrics, masks, ohlc, timeframe, tick_size):
+def timeframe_skeleton(minutes, selected, metrics, masks, ohlc, timeframe, tick_size, *, input_interval_ns=60_000_000_000):
+    interval = _reduction_interval_ns(input_interval_ns)
+    units = interval // timing.MINUTE_NS
     labels = multi_tf_bar_label(pd.DatetimeIndex(minutes,tz='UTC'),timeframe).asi8
     stamps, first, inverse, counts = np.unique(labels,return_index=True,return_inverse=True,return_counts=True)
     duration = MULTI_TF_SHIFT[timeframe].value
-    expected = duration//timing.MINUTE_NS
+    expected = duration//interval
     valid = (counts==expected) & np.logical_and.reduceat(masks['volume'],first)
     valid &= np.minimum.reduceat(selected,first)==np.maximum.reduceat(selected,first)
     signed = valid & np.logical_and.reduceat(masks['delta'],first)
@@ -140,7 +164,7 @@ def timeframe_skeleton(minutes, selected, metrics, masks, ohlc, timeframe, tick_
     out['known_aggressor_fraction'] = np.divide(out['buy']+out['sell'],out['volume'],
         out=np.full(len(stamps),np.nan),where=out['volume']>0)
     # Preserve the strict complete-clock domain above. The separate observed
-    # domain describes only admitted M1 bytes, never a complete exchange tape.
+    # domain describes only admitted source buckets, never a complete exchange tape.
     # Expected minutes are the fixed UTC bucket duration, not a guessed calendar.
     accepted = np.asarray(masks['volume'], bool)
     accepted_count = np.add.reduceat(accepted.astype(np.int64), first)
@@ -149,8 +173,8 @@ def timeframe_skeleton(minutes, selected, metrics, masks, ohlc, timeframe, tick_
     contract_valid &= np.minimum.reduceat(selected, first) == np.maximum.reduceat(selected, first)
     observed = (counts == expected) & contract_valid & (accepted_count > 0)
     out.update(observed_valid=observed, observed_contract_valid=contract_valid,
-        observed_clock_minutes=counts, observed_expected_clock_minutes=np.full(len(stamps), expected, np.int64),
-        observed_accepted_minutes=accepted_count, observed_signed_minutes=signed_count,
+        observed_clock_minutes=counts * units, observed_expected_clock_minutes=np.full(len(stamps), expected * units, np.int64),
+        observed_accepted_minutes=accepted_count * units, observed_signed_minutes=signed_count * units,
         observed_coverage_fraction=accepted_count / expected,
         observed_signed_minute_fraction=np.divide(signed_count, accepted_count,
             out=np.full(len(stamps), np.nan), where=accepted_count > 0))
@@ -189,7 +213,7 @@ def timeframe_skeleton(minutes, selected, metrics, masks, ohlc, timeframe, tick_
         encoded = timestamps.astype(np.float64)
         if not np.array_equal(encoded.astype(np.int64), timestamps):
             raise RuntimeError('GC_FEATURE_OBSERVED_TIMESTAMP_PRECISION')
-        out['observed_' + name + '_minute_ns'] = np.where(observed, encoded, np.nan)
+        out['observed_' + name + '_' + _endpoint_suffix(interval)] = np.where(observed, encoded, np.nan)
     for name in PROFILE_FIELDS + ('val_usd', 'vah_usd'):
         out['observed_' + name] = np.full(len(stamps), np.nan)
     for name in OBSERVED_FOOTPRINT_FIELDS.values():
@@ -197,8 +221,10 @@ def timeframe_skeleton(minutes, selected, metrics, masks, ohlc, timeframe, tick_
     return out,inverse
 
 
-def consume_ladder(path: Path, surfaces, minute_maps, tick_size, *, profile_output=None, profile_state_max_bytes=None, strict_profile_output=None):
+def consume_ladder(path: Path, surfaces, minute_maps, tick_size, *, profile_output=None, profile_state_max_bytes=None, strict_profile_output=None, input_interval_ns=60_000_000_000):
     """Reduce bounded Arrow batches into one currently open histogram per TF."""
+    interval = _reduction_interval_ns(input_interval_ns)
+    index_column = 'minute_index' if interval == timing.MINUTE_NS else 'bucket_index'
     states = {tf:None for tf in surfaces}
     profile_state = None
     strict_profile_state = None
@@ -256,10 +282,19 @@ def consume_ladder(path: Path, surfaces, minute_maps, tick_size, *, profile_outp
             if surface['signed_valid'][bar]:
                 for name in FOOTPRINT_FIELDS:
                     surface[name][bar] = values[name]
-    for batch in pq.ParquetFile(path).iter_batches(batch_size=65536):
+    paths = list(path) if isinstance(path, (list, tuple)) else [path]
+    if not paths:
+        raise RuntimeError('GC_LADDER_SOURCE_PATHS_EMPTY')
+    def batches():
+        for source_path in paths:
+            reader = pq.ParquetFile(source_path)
+            if interval != timing.MINUTE_NS and set(reader.schema_arrow.names) != {index_column, 'price_tick', 'buy', 'sell', 'unknown'}:
+                raise RuntimeError('GC_LADDER_SOURCE_CLOCK_SCHEMA')
+            yield from reader.iter_batches(batch_size=65536)
+    for batch in batches():
         a = {n:batch.column(batch.schema.get_field_index(n)).to_numpy() for n in batch.schema.names}
         for tf,surface in surfaces.items():
-            bars = minute_maps[tf][a['minute_index']]
+            bars = minute_maps[tf][a[index_column]]
             take = (surface['volume_valid'] | surface['observed_valid'])[bars]
             if not np.any(take):
                 continue
@@ -296,7 +331,8 @@ def consume_ladder(path: Path, surfaces, minute_maps, tick_size, *, profile_outp
         'combined_profile_peak_upper_bound_bytes':observed_peak + strict_peak}
 
 
-def add_structure_and_cvd(surface, minute_cvd, minute_maps, minutes):
+def add_structure_and_cvd(surface, minute_cvd, minute_maps, minutes, *, input_interval_ns=60_000_000_000):
+    interval = _reduction_interval_ns(input_interval_ns)
     valid = surface['volume_valid']
     labels = surface['bar_start_ns']
     duration = int(surface['available_ns'][0]-labels[0])
@@ -315,7 +351,7 @@ def add_structure_and_cvd(surface, minute_cvd, minute_maps, minutes):
             if name not in surface:
                 surface[name] = np.full(len(valid),np.nan)
             surface[name][begin:end] = values
-    end_index = np.searchsorted(minutes,surface['available_ns']-timing.MINUTE_NS)
+    end_index = np.searchsorted(minutes,surface['available_ns']-interval)
     inside = end_index<len(minutes)
     for name,values in minute_cvd.items():
         take = inside & surface['signed_valid']
@@ -332,7 +368,7 @@ def add_structure_and_cvd(surface, minute_cvd, minute_maps, minutes):
             surface[name] = value
 
 
-def add_observed_structure(surface):
+def add_observed_structure(surface, *, input_interval_ns=60_000_000_000):
     """Causal structure on actual observed candles, never filled calendar bars.
 
     Pivots/BOS/sweeps use the same-contract observed candle sequence. Partial
@@ -342,13 +378,14 @@ def add_observed_structure(surface):
     of pivot history. Retouch always means first OBSERVED wick intersection.
     No uninterrupted market path or institutional order identity is claimed.
     """
+    interval = _reduction_interval_ns(input_interval_ns)
     if 'observed_contract_valid' not in surface:
         raise ValueError('GC_OBSERVED_STRUCTURE_CONTRACT_METADATA_REQUIRED')
     valid = np.asarray(surface['observed_valid'])
     labels = np.asarray(surface['bar_start_ns'])
     available = np.asarray(surface['available_ns'])
-    first_observed = np.asarray(surface['observed_first_minute_ns'], np.float64)
-    last_observed = np.asarray(surface['observed_last_minute_ns'], np.float64)
+    first_observed = np.asarray(surface['observed_first_' + _endpoint_suffix(interval)], np.float64)
+    last_observed = np.asarray(surface['observed_last_' + _endpoint_suffix(interval)], np.float64)
     contract = np.asarray(surface['contract_index'])
     contract_valid = np.asarray(surface['observed_contract_valid'])
     if (valid.ndim != 1 or not len(valid) or valid.dtype.kind != 'b' or contract_valid.dtype.kind != 'b'
@@ -360,12 +397,12 @@ def add_observed_structure(surface):
         raise ValueError('GC_OBSERVED_STRUCTURE_CONTRACT_DOMAIN')
     duration = int(available[0] - labels[0])
     delta_labels = np.diff(labels)
-    if (duration <= 0 or duration % timing.MINUTE_NS or np.any(available - labels != duration)
+    if (duration <= 0 or duration % interval or np.any(available - labels != duration)
             or np.any(delta_labels <= 0) or np.any(delta_labels % duration)
             or np.any(valid & (~np.isfinite(first_observed) | ~np.isfinite(last_observed)
-                | (first_observed % timing.MINUTE_NS != 0) | (last_observed % timing.MINUTE_NS != 0)
+                | (first_observed % interval != 0) | (last_observed % interval != 0)
                 | (first_observed < labels) | (last_observed < first_observed)
-                | (last_observed + timing.MINUTE_NS > available)))):
+                | (last_observed + interval > available)))):
         raise ValueError('GC_OBSERVED_STRUCTURE_CLOCK')
     # Scan the whole declared grid for real contract boundaries, including a
     # mixed/invalid bucket that would disappear when selecting observed rows.
@@ -387,7 +424,7 @@ def add_observed_structure(surface):
         surface['observed_proxy_elapsed_minutes'][rows[1:]] = elapsed / timing.MINUTE_NS
         surface['observed_proxy_skipped_candles'][rows[1:]] = skipped
         surface['observed_proxy_boundary_gap_minutes'][rows[1:]] = np.maximum(
-            (first_observed[rows[1:]] - last_observed[rows[:-1]]) / timing.MINUTE_NS - 1, 0)
+            (first_observed[rows[1:]] - last_observed[rows[:-1]] - interval) / timing.MINUTE_NS, 0)
         values = [np.asarray(surface['observed_' + name])[rows] for name in
             ('open_usd', 'high_usd', 'low_usd', 'close_usd', 'volume')]
         if not all(np.isfinite(value).all() for value in values):
@@ -400,8 +437,9 @@ def add_observed_structure(surface):
     return surface
 
 
-def relative_cvd(minutes, selected, masks, metrics):
-    segments = source.reset_segments(selected,masks['cvd'],minutes)
+def relative_cvd(minutes, selected, masks, metrics, *, input_interval_ns=60_000_000_000):
+    interval = _reduction_interval_ns(input_interval_ns)
+    segments = source.reset_segments(selected,masks['cvd'],minutes,input_interval_ns=interval)
     out = {name:np.full(len(minutes),np.nan) for name in CVD_FIELDS}
     previous = -1
     delta = volume = count = 0
@@ -412,21 +450,22 @@ def relative_cvd(minutes, selected, masks, metrics):
         delta += int(metrics['buy'][i])-int(metrics['sell'][i])
         volume += int(metrics['volume'][i])
         count += 1
-        for name,value in zip(CVD_FIELDS,(delta,volume,count)):
+        for name,value in zip(CVD_FIELDS,(delta,volume,count * (interval // timing.MINUTE_NS))):
             out[name][i] = value
     return out
 
-def known_cumulative_contributions_v1(minutes, selected, masks, metrics):
+def known_cumulative_contributions_v1(minutes, selected, masks, metrics, *, input_interval_ns=60_000_000_000):
     """Known B/A and retained N on the existing causal volume-segment clock.
 
     Unknown aggressors contribute only to unknown quantity. This is never
     a full signed CVD. UTC-date, roll and invalid/silent-minute resets reuse
     the canonical segment owner rather than guessing a session calendar.
     """
+    interval = _reduction_interval_ns(input_interval_ns)
     names = ('buy_contracts', 'sell_contracts', 'unknown_contracts', 'volume_contracts',
              'known_delta_contracts', 'unknown_fraction', 'observed_minutes')
     out = {name: np.full(len(minutes), np.nan) for name in names}
-    segment = source.reset_segments(selected, masks['volume'], minutes)
+    segment = source.reset_segments(selected, masks['volume'], minutes, input_interval_ns=interval)
     previous = -1
     buy = sell = unknown = volume = count = 0
     for i in np.flatnonzero(masks['volume']):
@@ -437,15 +476,16 @@ def known_cumulative_contributions_v1(minutes, selected, masks, metrics):
         unknown += int(metrics['unknown'][i]); volume += int(metrics['volume'][i]); count += 1
         if volume != buy + sell + unknown or volume <= 0 or volume > 2**53:
             raise RuntimeError('GC_KNOWN_CUMULATIVE_CONSERVATION')
-        values = (buy, sell, unknown, volume, buy - sell, unknown / volume, count)
+        values = (buy, sell, unknown, volume, buy - sell, unknown / volume, count * (interval // timing.MINUTE_NS))
         for name, value in zip(names, values):out[name][i] = value
     return out
 
 
-def add_known_cumulative_contributions_v1(surface, minute_values, minutes):
+def add_known_cumulative_contributions_v1(surface, minute_values, minutes, *, input_interval_ns=60_000_000_000):
     """Project the exact last observed M1, never a later/full-signed endpoint."""
+    interval = _reduction_interval_ns(input_interval_ns)
     valid = surface['observed_valid']
-    end = surface['observed_last_minute_ns']
+    end = surface['observed_last_' + _endpoint_suffix(interval)]
     idx = np.searchsorted(minutes, np.where(valid, end, minutes[0]).astype(np.int64))
     clip = np.minimum(idx, len(minutes) - 1)
     if np.any(valid & ((idx >= len(minutes)) | (minutes[clip] != end))):
@@ -465,7 +505,7 @@ L1_ORDER_COUNT_FIELDS_V1 = ('tw_bid_orders', 'tw_ask_orders', 'tw_order_count_im
 VALUE_AREA_FRACTION_V2 = (7,10)  # preregistered 70%, never fitted to outcomes
 
 
-def aggregate_observed_book_v1(minutes, selected, book, timeframe):
+def aggregate_observed_book_v1(minutes, selected, book, timeframe, *, input_interval_ns=60_000_000_000):
     """Aggregate already-qualified M1 book bytes, without a raw-event replay.
 
     Additive flow uses its own OFI mask. BBO and displayed-order means use
@@ -474,10 +514,12 @@ def aggregate_observed_book_v1(minutes, selected, book, timeframe):
     joins the first and last admitted BBO states and exposes their M1 timestamps;
     it is not a return over a fully observed interval when coverage is partial.
     """
+    interval = _reduction_interval_ns(input_interval_ns)
+    units = interval // timing.MINUTE_NS
     minutes = np.asarray(minutes, np.int64)
     selected = np.asarray(selected, np.int64)
     if (minutes.ndim != 1 or not len(minutes) or selected.shape != minutes.shape or
-            np.any(np.diff(minutes) <= 0) or np.any(minutes % timing.MINUTE_NS)):
+            np.any(np.diff(minutes) <= 0) or np.any(minutes % interval)):
         raise ValueError('GC_OBSERVED_BOOK_MINUTE_CLOCK')
     required = ('ofi_valid', 'bbo_valid', 'covered_ns', 'order_count_valid',
         'order_covered_ns', 'opening_mid_tick', 'closing_mid_tick') + L1_FIELDS_V2 + L1_ORDER_COUNT_FIELDS_V1
@@ -489,7 +531,7 @@ def aggregate_observed_book_v1(minutes, selected, book, timeframe):
             raise ValueError('GC_OBSERVED_BOOK_MASK')
     covered, order_covered = arrays['covered_ns'], arrays['order_covered_ns']
     if (not np.isfinite(covered).all() or not np.isfinite(order_covered).all() or
-            np.any(covered < 0) or np.any(covered > timing.MINUTE_NS) or
+            np.any(covered < 0) or np.any(covered > interval) or
             np.any(order_covered < 0) or np.any(order_covered > covered) or
             np.any(covered != covered.astype(np.int64)) or
             np.any(order_covered != order_covered.astype(np.int64))):
@@ -497,7 +539,7 @@ def aggregate_observed_book_v1(minutes, selected, book, timeframe):
     flow = arrays['ofi_valid'].astype(bool)
     bbo = arrays['bbo_valid'].astype(bool)
     orders = arrays['order_count_valid'].astype(bool)
-    if np.any(bbo & (covered != timing.MINUTE_NS)) or np.any(orders & (order_covered != timing.MINUTE_NS)):
+    if np.any(bbo & (covered != interval)) or np.any(orders & (order_covered != interval)):
         raise ValueError('GC_OBSERVED_BOOK_PARTIAL_MEAN_UNAVAILABLE')
     if np.any(bbo & ~flow) or np.any(orders & ~bbo):
         raise ValueError('GC_OBSERVED_BOOK_MASK_DEPENDENCY')
@@ -509,14 +551,14 @@ def aggregate_observed_book_v1(minutes, selected, book, timeframe):
     labels = multi_tf_bar_label(pd.DatetimeIndex(minutes, tz='UTC'), timeframe).asi8
     stamps, first, counts = np.unique(labels, return_index=True, return_counts=True)
     duration = MULTI_TF_SHIFT[timeframe].value
-    expected = duration // timing.MINUTE_NS
+    expected = duration // interval
     same = (np.minimum.reduceat(selected, first) >= 0)
     same &= np.minimum.reduceat(selected, first) == np.maximum.reduceat(selected, first)
     bucket = (counts == expected) & same
     out = {'bar_start_ns': stamps, 'available_ns': stamps + duration,
         'contract_index': selected[first], 'observed_book_contract_valid': same,
-        'observed_book_clock_minutes': counts,
-        'observed_book_expected_clock_minutes': np.full(len(stamps), expected, np.int64)}
+        'observed_book_clock_minutes': counts * units,
+        'observed_book_expected_clock_minutes': np.full(len(stamps), expected * units, np.int64)}
     flow_count = np.add.reduceat(flow.astype(np.int64), first)
     bbo_count = np.add.reduceat(bbo.astype(np.int64), first)
     order_count = np.add.reduceat(orders.astype(np.int64), first)
@@ -526,11 +568,11 @@ def aggregate_observed_book_v1(minutes, selected, book, timeframe):
     bbo_valid = bucket & (bbo_time > 0)
     order_valid = bucket & (order_time > 0)
     out.update(observed_book_flow_valid=flow_valid,
-        observed_book_flow_accepted_minutes=flow_count,
+        observed_book_flow_accepted_minutes=flow_count * units,
         observed_book_flow_coverage_fraction=flow_count / expected,
-        observed_book_valid=bbo_valid, observed_book_accepted_minutes=bbo_count,
+        observed_book_valid=bbo_valid, observed_book_accepted_minutes=bbo_count * units,
         observed_book_covered_ns=bbo_time, observed_book_coverage_fraction=bbo_time / duration,
-        observed_order_valid=order_valid, observed_order_accepted_minutes=order_count,
+        observed_order_valid=order_valid, observed_order_accepted_minutes=order_count * units,
         observed_order_covered_ns=order_time, observed_order_coverage_fraction=order_time / duration)
     for name in L1_FIELDS_V2[:6]:
         value = np.add.reduceat(np.where(flow, arrays[name], 0.0), first)
@@ -552,15 +594,15 @@ def aggregate_observed_book_v1(minutes, selected, book, timeframe):
     out['observed_book_opening_mid_tick'] = np.where(bbo_valid, opened, np.nan)
     out['observed_book_closing_mid_tick'] = np.where(bbo_valid, closed, np.nan)
     out['observed_book_mid_response_ticks'] = np.where(bbo_valid, closed - opened, np.nan)
-    span = (minutes[closing] - minutes[opening]) // timing.MINUTE_NS + 1
-    out['observed_book_response_span_minutes'] = np.where(bbo_valid, span, np.nan)
+    span = (minutes[closing] - minutes[opening]) // interval + 1
+    out['observed_book_response_span_minutes'] = np.where(bbo_valid, span * units, np.nan)
     out['observed_book_response_contiguous'] = bbo_valid & (bbo_count == span)
     for name, index in (('first', opening), ('last', closing)):
         timestamps = minutes[index]
         encoded = timestamps.astype(np.float64)
         if not np.array_equal(encoded.astype(np.int64), timestamps):
             raise RuntimeError('GC_FEATURE_OBSERVED_TIMESTAMP_PRECISION')
-        out['observed_book_' + name + '_minute_ns'] = np.where(bbo_valid, encoded, np.nan)
+        out['observed_book_' + name + '_' + _endpoint_suffix(interval)] = np.where(bbo_valid, encoded, np.nan)
     return out
 
 
@@ -595,19 +637,20 @@ EVENT_DIAGNOSTIC_REDUCERS_V1 = {
 }
 
 
-def aggregate_observed_event_diagnostics_v1(minutes, selected, events, timeframe):
+def aggregate_observed_event_diagnostics_v1(minutes, selected, events, timeframe, *, input_interval_ns=60_000_000_000):
     """Aggregate exact event sufficient statistics with separate denominators."""
+    interval = _reduction_interval_ns(input_interval_ns)
     labels = multi_tf_bar_label(pd.DatetimeIndex(minutes, tz='UTC'), timeframe).asi8
     stamps, first, counts = np.unique(labels, return_index=True, return_counts=True)
     duration = MULTI_TF_SHIFT[timeframe].value
-    expected = duration // timing.MINUTE_NS
+    expected = duration // interval
     same = (np.minimum.reduceat(selected, first) >= 0)
     same &= np.minimum.reduceat(selected, first) == np.maximum.reduceat(selected, first)
     count = np.asarray(events['qualified_final_event_count'])
     accepted = np.isfinite(count) & (count > 0)
     n = np.add.reduceat(accepted.astype(np.int64), first)
     valid = (counts == expected) & same & (n > 0)
-    out = {'observed_event_valid': valid, 'observed_event_accepted_minutes': n}
+    out = {'observed_event_valid': valid, 'observed_event_accepted_minutes': n * (interval // timing.MINUTE_NS)}
     reduced = {}
     for name, operation in EVENT_DIAGNOSTIC_REDUCERS_V1.items():
         values = np.asarray(events[name]); finite = np.isfinite(values) & accepted
@@ -660,12 +703,13 @@ def trusted_trade_record_count_v1(stats):
     return known+unknown
 
 
-def aggregate_observed_trade_size_v1(minutes, selected, metrics, masks, stats, timeframe):
+def aggregate_observed_trade_size_v1(minutes, selected, metrics, masks, stats, timeframe, *, input_interval_ns=60_000_000_000):
     """T-record sizes only, on the exact observed volume/contract domain.
 
     Population deviation uses exact integer n*sum(size**2)-sum(size)**2 before
     the final square root; no parent-order grouping or threshold is inferred.
     """
+    interval = _reduction_interval_ns(input_interval_ns)
     if set(stats)!=set(TRUSTED_TRADE_SIZE_FIELDS_V1):raise RuntimeError('GC_TRADE_STAT_SCHEMA')
     if any(np.asarray(v).shape!=minutes.shape or np.asarray(v).dtype!=np.dtype('uint64') for v in stats.values()):
         raise RuntimeError('GC_TRADE_STAT_SHAPE_OR_INTEGER')
@@ -674,7 +718,7 @@ def aggregate_observed_trade_size_v1(minutes, selected, metrics, masks, stats, t
         raise RuntimeError('GC_TRADE_STAT_M1_VOLUME_OR_RECORD_PARITY')
     labels = multi_tf_bar_label(pd.DatetimeIndex(minutes,tz='UTC'),timeframe).asi8
     stamps,first,counts = np.unique(labels,return_index=True,return_counts=True)
-    expected = MULTI_TF_SHIFT[timeframe].value//timing.MINUTE_NS
+    expected = MULTI_TF_SHIFT[timeframe].value//interval
     same = (np.minimum.reduceat(selected,first)>=0) & (np.minimum.reduceat(selected,first)==np.maximum.reduceat(selected,first))
     accepted = masks['volume'];number = np.add.reduceat(accepted.astype(np.int64),first)
     valid = (counts==expected)&same&(number>0)
@@ -716,10 +760,11 @@ class L1FeatureCollectorV2:
     """Streaming final-event L1 reducer, piecewise constant on ts_recv.
 
     Integrals use the state strictly before each interval's right boundary.
-    All values are later gated by the unchanged 012 clean-prior-minute mask.
-    A file seam clears the anchor. Missing interior minutes are not filled.
+    All values are later gated by the declared source quality mask.
+    A file seam clears the anchor. Missing interior source buckets are not filled.
     """
-    def __init__(self,wanted,tick_size,*,origin_ns=timing.STUDY_START_NS,reference_minutes=(),include_order_counts=False,include_event_diagnostics=False,include_trusted_trade_stats=False):
+    def __init__(self,wanted,tick_size,*,origin_ns=timing.STUDY_START_NS,reference_minutes=(),include_order_counts=False,include_event_diagnostics=False,include_trusted_trade_stats=False,input_interval_ns=60_000_000_000):
+        self.input_interval_ns = _reduction_interval_ns(input_interval_ns)
         self.wanted=np.asarray(wanted,np.int64);self.tick_size=tick_size
         self.origin_ns=origin_ns;self.previous=None;self.end_ns=None
         self.sums=np.zeros((len(wanted),12),np.float64)
@@ -750,7 +795,7 @@ class L1FeatureCollectorV2:
         take[take] &= self.wanted[pos[take]]==minute[take]
         return pos,take
     def _integrate(self,p,left,right):
-        minute=(left-self.origin_ns)//timing.MINUTE_NS
+        minute=(left-self.origin_ns)//self.input_interval_ns
         pos,take=self._positions(minute)
         take &= (right>left)&(p[:,1]>0)&(p[:,2]>p[:,1])&(p[:,3]>0)&(p[:,4]>0)
         if not take.any():return
@@ -782,7 +827,7 @@ class L1FeatureCollectorV2:
         if not len(c):return
         p=np.vstack((c[0] if self.previous is None else self.previous,c[:-1]))
         transition=bbo_transition_v2(p[:,:5],c[:,:5])
-        minute=(c[:,0]-self.origin_ns)//timing.MINUTE_NS
+        minute=(c[:,0]-self.origin_ns)//self.input_interval_ns
         pos,take=self._positions(minute)
         anchor=np.ones(len(c),bool)
         if self.previous is None:anchor[0]=False
@@ -792,11 +837,11 @@ class L1FeatureCollectorV2:
         active=anchor&(right>=left)
         # At most the two boundary minutes are integrated across a long gap.
         # Any unobserved middle minute keeps coverage zero and cannot qualify.
-        boundary=self.origin_ns+(((left-self.origin_ns)//timing.MINUTE_NS)+1)*timing.MINUTE_NS
+        boundary=self.origin_ns+(((left-self.origin_ns)//self.input_interval_ns)+1)*self.input_interval_ns
         self._integrate(p[active],left[active],np.minimum(right,boundary)[active])
         cross=active&(right>boundary)
         if cross.any():
-            endstart=self.origin_ns+((right-self.origin_ns)//timing.MINUTE_NS)*timing.MINUTE_NS
+            endstart=self.origin_ns+((right-self.origin_ns)//self.input_interval_ns)*self.input_interval_ns
             second=np.maximum(boundary,endstart)
             self._integrate(p[cross],second[cross],right[cross])
         self.previous=c[-1].copy()
@@ -808,7 +853,7 @@ class L1FeatureCollectorV2:
         clean &= np.asarray(data['action'].to_numpy(zero_copy_only=False)[take]) != 'R'
         p = np.vstack((c[0] if self.event_previous is None else self.event_previous[0], c[:-1]))
         prior_clean = np.r_[False if self.event_previous is None else self.event_previous[1], clean[:-1]]
-        minute = (c[:, 0] - self.origin_ns) // timing.MINUTE_NS
+        minute = (c[:, 0] - self.origin_ns) // self.input_interval_ns
         pos, wanted = self._positions(minute)
         def add(name, mask, values):
             selected = wanted & mask
@@ -900,7 +945,7 @@ class L1FeatureCollectorV2:
         c=np.column_stack(cols)
         if self.include_event_diagnostics:self._consume_event_diagnostics(data, take, c)
         if self.reference_minutes and len(c):
-            m=(c[:,0]-self.origin_ns)//timing.MINUTE_NS
+            m=(c[:,0]-self.origin_ns)//self.input_interval_ns
             ref=np.isin(m,list(self.reference_minutes))
             if ref.any():self.references.append(c[ref].copy())
         self.consume(c)
@@ -909,16 +954,16 @@ class L1FeatureCollectorV2:
         end=self.end_ns if end_ns is None else end_ns
         if end<self.previous[0]:raise ValueError('L1_FINISH_BEFORE_LAST_EVENT')
         p=self.previous[None,:];left=p[:,0];right=np.array([end],np.int64)
-        boundary=self.origin_ns+(((left-self.origin_ns)//timing.MINUTE_NS)+1)*timing.MINUTE_NS
+        boundary=self.origin_ns+(((left-self.origin_ns)//self.input_interval_ns)+1)*self.input_interval_ns
         self._integrate(p,left,np.minimum(right,boundary))
         # No state carry to an unobserved later minute at EOF/prefix boundary.
         self.previous=self.previous.copy();self.previous[0]=end
     def values(self,candidate):
-        mask=np.asarray(candidate,bool)&(self.covered==timing.MINUTE_NS)
+        mask=np.asarray(candidate,bool)&(self.covered==self.input_interval_ns)
         out={}
         for j,name in enumerate(L1_FIELDS_V2):
             if j<6:v=self.sums[:,j].copy()
-            elif j<11:v=self.sums[:,j]/timing.MINUTE_NS
+            elif j<11:v=self.sums[:,j]/self.input_interval_ns
             else:v=self.last-self.first
             v[~(np.asarray(candidate,bool) if j<6 else mask)]=np.nan;out[name]=v
         return out,mask
@@ -928,10 +973,10 @@ class L1FeatureCollectorV2:
         """Observed BBO order counts, isolated from the unchanged 12-field book surface."""
         if not self.include_order_counts:
             raise RuntimeError('L1_ORDER_COUNTS_NOT_REQUESTED')
-        valid=np.asarray(candidate,bool)&(self.order_covered==timing.MINUTE_NS)
+        valid=np.asarray(candidate,bool)&(self.order_covered==self.input_interval_ns)
         out={}
         for j,name in enumerate(L1_ORDER_COUNT_FIELDS_V1):
-            values=self.order_sums[:,j]/timing.MINUTE_NS
+            values=self.order_sums[:,j]/self.input_interval_ns
             values[~valid]=np.nan
             out[name]=values
         return out,valid
@@ -1077,13 +1122,14 @@ def add_projected_m5_profiles_v2(surface, m5_available, profiles, source_coverag
     return surface
 
 
-def completion_native_candidates_v1(*, include_trade_size_stats=True):
+def completion_native_candidates_v1(*, include_trade_size_stats=True, input_interval_ns=60_000_000_000):
     """Declared field/owner/domain/clock inventory, never name-heuristic routing.
 
     Identity and absolute snapshot timestamps remain metadata. Latency ns are
     measured differences, not absolute identities. Actual TRAIN support and
     duplicate/constant reports are still required before registry admission.
     """
+    interval = _reduction_interval_ns(input_interval_ns)
     groups = []
     def add(columns, owner, validity, clock='available_ns', role='market_value'):
         groups.append({'columns': list(columns), 'owner': owner, 'validity_column': validity,
@@ -1103,7 +1149,7 @@ def completion_native_candidates_v1(*, include_trade_size_stats=True):
                 add(('observed_'+side+'_max_executed_trade_contracts',),flow,'observed_'+side+'_trade_size_valid')
     add(('observed_open_usd','observed_high_usd','observed_low_usd','observed_close_usd'), 'price_action_candle_encoder', 'observed_valid')
     add(('observed_spot_basis_bps','observed_spot_basis_age_minutes'), flow,
-        'observed_spot_basis_valid', 'observed_spot_basis_source_available_ns', 'same_closed_m1_cross_venue_basis')
+        'observed_spot_basis_valid', 'observed_spot_basis_source_available_ns', ('same_closed_m1_cross_venue_basis' if interval == timing.MINUTE_NS else 'same_closed_native_m5_cross_venue_basis'))
     add(tuple('observed_' + name for name in PROFILE_FIELDS + ('val_usd','vah_usd')), liquidity, 'observed_valid')
     add(tuple(OBSERVED_FOOTPRINT_FIELDS.values()), flow, 'observed_valid')
     add(tuple('observed_known_cumulative_' + name for name in ('buy_contracts','sell_contracts','unknown_contracts',
@@ -1154,9 +1200,9 @@ def completion_native_candidates_v1(*, include_trade_size_stats=True):
                     **{key: value for key, value in group.items() if key != 'columns'}})
     identities = [(row['table'], row['column']) for row in records]
     if len(set(identities)) != len(identities):raise RuntimeError('GC_COMPLETION_CANDIDATE_OWNER_DUPLICATE')
-    return {'schema_version':'gc_completion_native_candidates_v1','fields':records,
-        'metadata_columns':['bar_start_ns','available_ns','contract_index','observed_first_minute_ns',
-            'observed_last_minute_ns','observed_book_first_minute_ns','observed_book_last_minute_ns',
+    return {'schema_version':('gc_completion_native_candidates_v1' if interval == timing.MINUTE_NS else 'gc_native_m5_completion_candidates_v1'),'fields':records,
+        'metadata_columns':['bar_start_ns','available_ns','contract_index','observed_first_' + _endpoint_suffix(interval),
+            'observed_last_' + _endpoint_suffix(interval),'observed_book_first_' + _endpoint_suffix(interval),'observed_book_last_' + _endpoint_suffix(interval),
             'observed_profile_snapshot_available_ns','observed_spot_basis_source_available_ns',
             'observed_proxy_ob_bull_state_valid','observed_proxy_ob_bear_state_valid'],
         'observed_structure_semantics':'same-contract actual observed candle pivots/BOS/sweeps; whole missing TF candles censor OB zone/origin state until new observed creation; first_retouch means first OBSERVED wick intersection; age_bars counts observed candles',

@@ -40,6 +40,7 @@ def _fixture(tmp_path,monkeypatch,*,missing_macro_row=None,wrong_calibration_sou
         for j,name in enumerate(fields['mtf']):
             if name in owner.norm.MTF_SEMANTIC_BINARY_FIELDS:values[:,j]=(np.arange(len(clock))%2).astype(np.float32)
             if name in owner.norm.MTF_SEMANTIC_CATEGORICAL_DOMAINS:values[:,j]=np.arange(len(clock))%5
+            if name in owner.norm.signed_ternary_unit_fields('mtf_'+tf.lower()):values[:,j]=np.arange(len(clock))%3-1
         frame=pd.DataFrame(values,index=clock,columns=fields['mtf'])
         scalar_fields=owner.htf.MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4[tf]
         scalars=(np.arange(len(clock),dtype=np.float32)[:,None]+np.arange(len(scalar_fields),dtype=np.float32)[None,:])
@@ -75,7 +76,13 @@ def _fixture(tmp_path,monkeypatch,*,missing_macro_row=None,wrong_calibration_sou
     def attach(frame,**kwargs):
         for j,name in enumerate(fields['ctx_cont']):
             if name not in owner.macro.D1_MACRO_CONTEXT_FIELDS:
-                frame[name]=np.cos(raw.index.get_indexer(frame.index)*.03+j*.17).astype(np.float32)
+                positions=raw.index.get_indexer(frame.index)
+                if name in owner.norm.signed_ternary_unit_fields('ctx_cont'):
+                    frame[name]=(positions%3-1).astype(np.float32)
+                elif name in owner.norm.native_m5_binary_fields('ctx_cont',fields['ctx_cont']):
+                    frame[name]=(positions%2).astype(np.float32)
+                else:
+                    frame[name]=np.cos(positions*.03+j*.17).astype(np.float32)
     monkeypatch.setattr(owner.htf,'attach_model_native_mtf_scalars_v4',attach)
     monkeypatch.setattr(owner.htf,'project_multi_tf_v4_scalars',lambda *a,**k:{})
     from gx1.features import trendline_registry_v1 as trend
@@ -240,11 +247,11 @@ def test_real_provider_normalization_fit_alias_share_and_contract_boundary(tmp_p
                  else owner.norm.SIGNAL_SEMANTIC_CATEGORICAL_DOMAINS)
         for name,domain in domains.items():
             if name in names:values[:,names.index(name)]=np.asarray(domain)[np.arange(rows)%len(domain)]
-        if mtf:
-            for name in owner.norm.MTF_SEMANTIC_BINARY_FIELDS.intersection(names):
-                values[:,names.index(name)]=np.arange(rows)%2
-        if 'ema_stack_aligned_v2' in names:
-            values[:,names.index('ema_stack_aligned_v2')]=np.arange(rows)%3-1
+        surface='mtf_m5' if mtf else 'ctx_cont' if list(names)==list(fields['ctx_cont']) else 'signal'
+        for name in owner.norm.native_m5_binary_fields(surface,names):
+            values[:,names.index(name)]=np.arange(rows)%2
+        for name in owner.norm.signed_ternary_unit_fields(surface):
+            if name in names:values[:,names.index(name)]=np.arange(rows)%3-1
         return _valid_range_observation_input(torch.from_numpy(values),names).numpy()
     signal=matrix(fields['signal'],n);context=matrix(fields['ctx_cont'],n)
     profile=owner.owners.compile_full_ta_entry_execution_profile()

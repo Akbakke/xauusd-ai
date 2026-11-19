@@ -583,9 +583,8 @@ MODEL_NATIVE_CTX_CONT_REGIME_FIELDS = (
 # the M5 decision time by gx1.features.d1_macro_context_v1; one owner, one order.
 from gx1.features.d1_macro_context_v1 import D1_MACRO_CONTEXT_FIELDS as _D1_MACRO_CONTEXT_FIELDS  # noqa: E402
 MODEL_NATIVE_CTX_CONT_D1_MACRO_FIELDS = tuple(_D1_MACRO_CONTEXT_FIELDS)
-from gx1.features.gc_native_context_v1 import (
+from gx1.features.gc_native_field_catalog_v1 import (
     CONTEXT_FIELDS as MODEL_NATIVE_CTX_CONT_GC_FIELDS,
-    contract as gc_native_context_contract,
 )  # noqa: E402
 MODEL_NATIVE_CTX_CONT_FIELDS = (
     MODEL_NATIVE_CTX_CONT_V1_PREFIX_FIELDS
@@ -742,6 +741,8 @@ def model_native_context_contract_metadata() -> dict[str, Any]:
     available after the hand-composed dip/structure and smart-context score
     fields are retired.
     """
+
+    from gx1.features.gc_native_context_v1 import contract as gc_native_context_contract
 
     return {
         "schema_version": MODEL_NATIVE_CONTEXT_SCHEMA_VERSION,

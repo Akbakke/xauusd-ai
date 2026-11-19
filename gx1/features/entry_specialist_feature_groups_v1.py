@@ -341,7 +341,8 @@ _D1_MACRO_CONTEXT_OVERRIDES = {
     **{name.lower(): D1_MACRO_CONTEXT_SPECIALIST for name in _D1_MACRO_CONTEXT_FIELDS},
 }
 
-from gx1.features.gc_native_context_v1 import SPECIALIST_OWNERS as _GC_OWNERS  # noqa: E402
+from gx1.features.gc_native_field_catalog_v1 import SPECIALIST_OWNERS as _GC_OWNERS
+from gx1.features.gc_native_field_catalog_v1 import catalog_contract as _gc_field_catalog_contract  # noqa: E402
 
 CONTEXT_FEATURE_SPECIALIST_OVERRIDES = {
     **_D1_MACRO_CONTEXT_OVERRIDES,
@@ -1834,7 +1835,8 @@ def compile_full_ta_entry_execution_profile() -> dict[str, object]:
         raise RuntimeError("FULL_TA_CONTEXT_ALIAS_COVERAGE")
     alias_signal = tuple(a for a, _ in alias_pairs)
     payload = {
-        "schema_version": "gx1_full_ta_mtf_entry_research_profile_v1",
+        "schema_version": "gx1_full_ta_mtf_entry_research_profile_v2",
+        "gc_exclusion_catalog": _gc_field_catalog_contract(),
         "name": FULL_TA_ENTRY_EXECUTION_PROFILE_NAME,
         "gather_stage": "canonical_non_gc_columns_before_normalization_and_device_transfer",
         "source_field_names": source,

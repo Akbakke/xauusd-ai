@@ -173,7 +173,8 @@ def test_masked_structural_value_extrema_follow_binary_identity(prefix, surface,
 def test_structural_value_identity_is_explicit_even_constant_and_checks_all_runtime_paths(monkeypatch):
     from gx1.contracts.entry_full_input_liveness_v1 import classify_field_status
     name=gc.VALUE_FIELDS[0];observed=gc.OBSERVED_FIELDS[0];names=[name,observed]
-    monkeypatch.setattr(gc,'STRUCTURAL_VALUE_FIELDS',frozenset({name}))
+    from gx1.features import gc_native_field_catalog_v1 as catalog
+    monkeypatch.setattr(catalog,'STRUCTURAL_VALUE_FIELDS',frozenset({name}))
     raw=np.array([[0.,1.],[0.,1.],[0.,1.]],np.float32)
     contract=fit_surface_normalization(raw,surface='ctx_cont',field_names=names)
     assert contract['binary_mask']==[1,1]

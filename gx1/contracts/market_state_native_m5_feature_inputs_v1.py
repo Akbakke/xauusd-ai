@@ -78,9 +78,10 @@ def _owned(value, dtype):
 def native_m5_feature_provider_contract():
     profile = owners.compile_full_ta_entry_execution_profile()
     return _seal({
-        'schema_version':'gx1_native_m5_feature_provider_v1',
+        'schema_version':'gx1_native_m5_feature_provider_v2',
         'source_clock_contract':CLOCK_CONTRACT, 'source_bar_seconds':300,
         'execution_profile':{'name':profile['name'],'contract_sha256':profile['contract_sha256']},
+        'input_semantic_domains':norm.native_m5_input_domain_contract(),
         'timeframes':list(TIMEFRAMES), 'field_names':{k:list(v) for k,v in profile['physical_field_names'].items()},
         'local_sequence_rows':MODEL_NATIVE_SEQ_LEN, 'window_rows':dict(WINDOWS),
         'mtf_matrix_contract':htf.HTF_V4_MATRIX_CONTRACT,
@@ -508,7 +509,7 @@ def fit_native_m5_feature_normalization(provider,*,fit_source_rows,cutoff_ns):
               'ctx_cont_field':fields['ctx_cont'][ci],
               'specialist':owners.classify_entry_specialist_feature(fields['signal'][si])} for si,ci in zip(
         provider.profile['temporal_alias_signal_indices'],provider.profile['temporal_alias_ctx_cont_indices'])]
-    surfaces={name:norm.fit_surface_normalization(part,surface=name,field_names=fields[name],
+    surfaces={name:norm.fit_native_m5_surface_normalization(part,surface=name,field_names=fields[name],
         semantic_categorical_domains=(norm.SIGNAL_SEMANTIC_CATEGORICAL_DOMAINS if name=='signal' else {}))
         for name,part in parts.items()}
     surfaces['ctx_cont']=norm.share_temporal_alias_stats_from_signal(surfaces['ctx_cont'],surfaces['signal'],
@@ -519,7 +520,7 @@ def fit_native_m5_feature_normalization(provider,*,fit_source_rows,cutoff_ns):
         available=provider.tf_times[tf][ids]+int(htf.MULTI_TF_SHIFT[tf].value)
         _need(np.all(available<cutoff_ns),'FIT_TF_CUTOFF:'+tf)
         key='mtf_'+tf.lower();part=norm.MatrixPopulationPart(provider.tf_values[tf],row_indices=ids,source=key)
-        surfaces[key]=norm.fit_surface_normalization(part,surface=key,field_names=fields['mtf'],
+        surfaces[key]=norm.fit_native_m5_surface_normalization(part,surface=key,field_names=fields['mtf'],
             semantic_categorical_domains=norm.MTF_SEMANTIC_CATEGORICAL_DOMAINS)
         tf_population[tf]={'rows':len(ids),'source_rows_sha256':_array_sha(provider.tf_source_rows[tf][ids],'<i8'),
                            'available_ns_sha256':_array_sha(available,'<i8')}

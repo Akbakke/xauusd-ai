@@ -10,6 +10,9 @@ from gx1.audit import qualify_market_state_native_m5_pipeline_v1 as audit
 
 
 def lifecycle(monkeypatch, tmp_path):
+    from gx1.contracts.native_m5_direction_io_firewall_v1 import contract
+    monkeypatch.setattr(audit, '_IO_FIREWALL', {'contract': contract(),
+        'denied_attempts': 0, 'denied_operations': {}})
     monkeypatch.setattr(audit, 'ROOT', tmp_path / 'OUT')
     plan_ref = {'path': str(tmp_path / 'PLAN.json'), 'sha256': '1' * 64}
     policy_ref = {'path': str(tmp_path / 'POLICY.json'), 'sha256': '2' * 64}
@@ -344,3 +347,131 @@ def test_bounded_feature_snapshot_saves_all_arrays_with_verified_reload(monkeypa
         np.testing.assert_array_equal(saved['tf_D1_owner_row_indices'], [70, 71])
         np.testing.assert_array_equal(saved['signal'], surfaces['signal'])
     assert metadata['timeframes']['D1']['scalar_attributes']['model_native_mtf_scalar_fields_v4'] == ['scalar']
+
+
+def candidate_fixture(monkeypatch):
+    binding = lambda path: {'path': str(path), 'sha256': '1' * 64}
+    inputs = {key: binding('/synthetic/' + key) for key in audit.BASE_INPUT_KEYS}
+    for key, name in {'candidate_snapshot': 'FEATURE_INPUTS.json',
+        'candidate_archive': 'FEATURE_INPUTS.npz', 'candidate_support': 'FEATURE_SUPPORT.json',
+        'candidate_terminal': 'TERMINAL.json'}.items():
+        inputs[key] = binding(audit.CANDIDATE_ROOT / name)
+    from gx1.contracts.entry_model_native_input_normalization_v1 import native_m5_input_domain_contract
+    before = {'schema_version': 'gx1_native_m5_feature_provider_v1', 'execution_profile': {'name': 'native_TA', 'contract_sha256': '2' * 64},
+        'field_names': {'signal': ['genuine_field']}, 'contract_sha256': '3' * 64}
+    after = {**before, 'schema_version': 'gx1_native_m5_feature_provider_v2',
+             'input_semantic_domains': native_m5_input_domain_contract(), 'execution_profile': {'name': 'native_TA', 'contract_sha256': '4' * 64},
+             'contract_sha256': '5' * 64}
+    plan_ref = binding(audit.REPO / 'configs/research/NATIVE_M5_PIPELINE_20261119_003.json')
+    claim_ref = binding(audit.CANDIDATE_ROOT / 'CLAIM.json')
+    old_plan = {'stage': 'native_m5_pipeline_20261119_003',
+        'inputs': {key: inputs[key] for key in audit.BASE_INPUT_KEYS},
+        'feature_contract': before, 'feature_source_spec': {}}
+    saved = {'schema_version': 'gx1_native_m5_bounded_feature_snapshot_v1',
+        'archive': inputs['candidate_archive'], 'arrays': {str(i): {} for i in range(27)},
+        'timeframes': {tf: {} for tf in ('M5','M15','H1','H4','D1')},
+        'surfaces_metadata': {'provider_contract': before},
+        'reload_all_arrays_dtype_shape_equal_nan_and_bytes_sha256': True,
+        'model_forwards': 0, 'optimizer_steps': 0}
+    terminal = {'plan': plan_ref, 'claim': claim_ref, 'stage': old_plan['stage'],
+        'status': 'FAILED_CONSUMED', 'exit_code': 1, 'result': None,
+        'relaunch_allowed': False, 'test_data_used': False,
+        'error': 'RuntimeError:[ENTRY_INPUT_NORMALIZATION_UNSCALEABLE] field=ctx_cont.d1_ema_stack_aligned_v2'}
+    records = {inputs['candidate_snapshot']['path']: saved,
+        inputs['candidate_support']['path']: {'feature_source_spec': {}, 'model_forwards': 0, 'optimizer_steps': 0},
+        inputs['candidate_terminal']['path']: terminal,
+        plan_ref['path']: old_plan, claim_ref['path']: {'stage': old_plan['stage'], 'plan': plan_ref}}
+    monkeypatch.setattr(audit, 'read', lambda ref: records[ref['path']])
+    monkeypatch.setattr(audit, 'numeric_owner_identities', lambda plan: {'numeric_owner': '6' * 64})
+    return inputs, before, after, saved, terminal
+
+
+def test_candidate_requalification_declares_changed_catalog_and_fresh_domain_only(monkeypatch):
+    inputs, before, after, saved, _ = candidate_fixture(monkeypatch)
+    proof = audit.candidate_metadata(inputs, after)
+    assert proof['original_execution_profile'] == before['execution_profile']
+    assert proof['admitted_execution_profile'] == after['execution_profile']
+    assert proof['original_full_process_M1_free'] is False
+    assert saved['surfaces_metadata']['provider_contract'] is before
+
+
+@pytest.mark.parametrize('fault', ('fields', 'terminal', 'archive'))
+def test_candidate_metadata_rejects_changed_numeric_contract_or_origin(monkeypatch, fault):
+    inputs, before, after, saved, terminal = candidate_fixture(monkeypatch)
+    if fault == 'fields':
+        after['field_names'] = {'signal': ['different_formula']}
+    elif fault == 'terminal':
+        terminal['status'] = 'COMPLETE'
+    else:
+        saved['archive'] = {**inputs['candidate_archive'], 'sha256': '7' * 64}
+    with pytest.raises(ValueError, match='CANDIDATE_'):
+        audit.candidate_metadata(inputs, after)
+
+
+def test_numeric_owner_identity_ignores_docs_import_wiring_but_preserves_formulas():
+    original = 'import old_catalog\nLIMIT=3\ndef formula(x):\n    "doc"\n    return x+LIMIT\n'
+    moved = 'import pure_catalog\nLIMIT=3\ndef formula(x):\n    "new docs"\n    return x+LIMIT\n'
+    assert audit.numeric_ast_identity(original) == audit.numeric_ast_identity(moved)
+    assert audit.numeric_ast_identity(original) != audit.numeric_ast_identity(moved.replace('LIMIT=3','LIMIT=4'))
+    assert audit.numeric_ast_identity(original) != audit.numeric_ast_identity(moved.replace('x+LIMIT','x-LIMIT'))
+
+
+def cached_physical_fixture(monkeypatch, tmp_path):
+    from tests.test_market_state_native_m5_feature_inputs_v1 import _fixture, _build
+    from gx1.contracts import market_state_native_m5_feature_inputs_v1 as owner
+    fixture = _fixture(tmp_path, monkeypatch)
+    surfaces = _build(fixture)
+    provider = owner.NativeM5FeatureProvider(surfaces)
+    monkeypatch.setattr(audit, 'ROOT', tmp_path)
+    snapshot = audit.publish_feature_snapshot(provider)
+    saved = audit.read(snapshot)
+    target_path = tmp_path / 'TARGETS.npz'
+    target = {'issue_ns': provider.issue_ns, 'source_row': provider.source_row}
+    for tf, frame in fixture[-1].items():
+        target['bars_' + tf + '_bar_start_ns'] = frame.index.asi8
+    np.savez(target_path, **target)
+    plan = {'inputs': {'candidate_snapshot': snapshot, 'candidate_archive': saved['archive'],
+                      'target_tape': {'path': str(target_path)}},
+        'candidate_requalification': {}, 'feature_contract': owner.native_m5_feature_provider_contract(),
+        'feature_source_spec': surfaces['source_binding']['source_spec'],
+        'parameter_reuse': {'registry_contract_sha256': surfaces['registry_contract_sha256'],
+                            'squeeze_binding': surfaces['squeeze_binding']}}
+    monkeypatch.setattr(audit, 'candidate_metadata', lambda *args: {})
+    return plan, saved, provider
+
+
+def test_cached_physical_requalification_preserves_all27_arrays_axes_and_aliases(monkeypatch, tmp_path):
+    plan, _, original = cached_physical_fixture(monkeypatch, tmp_path)
+    provider, proof = audit.load_candidate_provider(plan)
+    assert proof['array_count'] == 27 and proof['raw_numeric_values_recomputed'] is False
+    np.testing.assert_array_equal(provider.issue_ns, original.issue_ns)
+    for key in ('signal', 'ctx_cont', 'ctx_cat', 'observed'):
+        np.testing.assert_array_equal(provider.surfaces[key], original.surfaces[key])
+        assert not provider.surfaces[key].flags.writeable
+
+
+@pytest.mark.parametrize('fault', ('bytes', 'global_tf_id', 'field_order', 'alias', 'lineage'))
+def test_cached_physical_requalification_rejects_mismatches(monkeypatch, tmp_path, fault):
+    plan, saved, _ = cached_physical_fixture(monkeypatch, tmp_path)
+    archive_path = plan['inputs']['candidate_archive']['path']
+    with np.load(archive_path, allow_pickle=False) as archive:
+        arrays = {key: archive[key] for key in archive.files}
+    if fault in ('bytes', 'alias'):
+        key = 'ctx_cont'
+        arrays[key][0, 0] += 1.
+        if fault == 'alias':
+            saved['arrays'][key]['sha256'] = audit.hashlib.sha256(arrays[key].tobytes()).hexdigest()
+    elif fault == 'global_tf_id':
+        key = 'tf_H1_owner_row_indices'
+        arrays[key] += 1
+        saved['arrays'][key]['sha256'] = audit.hashlib.sha256(arrays[key].tobytes()).hexdigest()
+    elif fault == 'field_order':
+        saved['timeframes']['M5']['columns'][0:2] = saved['timeframes']['M5']['columns'][1::-1]
+    else:
+        key = next(iter(saved['surfaces_metadata']['field_lineage']))
+        saved['surfaces_metadata']['field_lineage'][key] = 'wrong_owner'
+    np.savez(archive_path, **arrays)
+    plan['inputs']['candidate_archive'] = audit.ref(archive_path)
+    monkeypatch.setattr(audit, 'read', lambda ref: saved)
+    with pytest.raises((ValueError, RuntimeError), match='(CANDIDATE_|CONTEXT_ALIAS_VALUES)'):
+        audit.load_candidate_provider(plan)

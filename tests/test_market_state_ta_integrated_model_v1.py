@@ -100,7 +100,10 @@ def test_structure_mask_has_zero_unknown_gradient():
 
 def test_paired_native_and_sampled_queries_share_one_encoder(monkeypatch):
     calls = []
-    model = _model(monkeypatch, calls)
+    # Isolate decoder initialization from preceding tests' random draws.
+    with torch.random.fork_rng(devices=[]):
+        torch.manual_seed(11)
+        model = _model(monkeypatch, calls)
     args = _inputs()
     sampled = torch.tensor([[1, 1, 2, 4, 24]] * 2, dtype=torch.int64)
     native = torch.tensor([NATIVE_K] * 2, dtype=torch.int64)
@@ -168,6 +171,15 @@ def test_native_bar_factory_accepts_fresh_normalization_and_binds_checkpoint(mon
     assert not hasattr(model.backbone, 'dynamic_m5_query_horizons')
     assert model.backbone.cfg.dynamic_m5_query_minutes is None
     assert model.research_objective['class_order'] == [-1, 0, 1]
+    stack_index = profile['physical_field_names']['signal'].index('ctx_cont.d1_ema_stack_aligned_v2')
+    consumer_input = torch.from_numpy(raw['signal'][:3].copy()).requires_grad_()
+    normalized = model.backbone._normalize_input_surface(consumer_input, surface='signal')
+    assert torch.unique(normalized[:, stack_index]).numel() == 3
+    model.backbone.seq_proj(normalized).square().sum().backward()
+    assert bool((consumer_input.grad[:, stack_index].abs() > 0.).all())
+    binary_index = profile['physical_field_names']['signal'].index('smc_bos_up')
+    assert torch.equal(normalized[:, binary_index], consumer_input[:, binary_index])
+    assert bool((consumer_input.grad[:, binary_index].abs() > 0.).all())
     with pytest.raises(RuntimeError, match='NATIVE_BAR_DIRECTION_REPRESENTATION_ONLY'):
         model.backbone(None, None, ctx_cat=None, ctx_cont=None,
                        seq_m5=None, seq_m15=None, seq_h1=None, seq_h4=None, seq_d1=None)
@@ -207,3 +219,63 @@ def test_native_bar_factory_accepts_fresh_normalization_and_binds_checkpoint(mon
         model({**values, 'future_validity_ns': torch.zeros(1, 5)})
     with pytest.raises(TypeError, match='query_k'):
         model(values, query_k=torch.ones(1, 5))
+
+
+def test_native_ta_fresh_process_firewall_covers_import_fit_factory_and_forward():
+    import subprocess
+    import sys
+    import textwrap
+
+    code = textwrap.dedent('''
+        from gx1.contracts.native_m5_direction_io_firewall_v1 import install_native_m5_direction_io_firewall
+        guard = install_native_m5_direction_io_firewall()
+        import json
+        from pathlib import Path
+        import numpy as np
+        import torch
+        from gx1.contracts.market_state_ta_integrated_model_v1 import build_native_bar_direction_model
+        from gx1.contracts.market_state_native_m5_feature_inputs_v1 import native_m5_feature_provider_contract
+        from gx1.features.entry_specialist_feature_groups_v1 import compile_full_ta_entry_execution_profile
+        from tests.test_entry_model_native_input_normalization import native_m5_normalization_fixture
+        from tests.test_market_state_ta_integrated_model_v1 import _native_model_binding
+        torch.set_num_threads(1)
+        torch.manual_seed(41)
+        normalization, raw, cats = native_m5_normalization_fixture()
+        profile = compile_full_ta_entry_execution_profile()
+        provider = native_m5_feature_provider_contract()
+        architecture = {'dropout': .05, 'multi_tf_num_layers': 2, 'multi_tf_scale': .5,
+            'specialist_num_layers': 1, 'specialist_fusion_scale': .25, 'cross_family_fusion_scale': .25}
+        model = build_native_bar_direction_model(input_normalization=normalization,
+            input_binding=_native_model_binding(normalization), architecture=architecture,
+            device=torch.device('cpu')).eval()
+        geometry = {'m5':16, 'm15':64, 'h1':96, 'h4':96, 'd1':252}
+        sequence = raw['signal'][np.arange(96) % 32]
+        batch = {'seq_x':torch.from_numpy(sequence[None]), 'snap_x':torch.from_numpy(sequence[-1:]),
+            'ctx_cont':torch.from_numpy(raw['ctx_cont'][-1:]), 'ctx_cat':torch.from_numpy(cats[-1:])}
+        batch.update({'seq_'+tf:torch.from_numpy(raw['mtf_'+tf][np.arange(length)%32][None])
+                      for tf,length in geometry.items()})
+        with torch.inference_mode():
+            output = model(batch)
+        assert all(value.shape==(1,5,3) and torch.isfinite(value).all() for value in output.values())
+        serialized = json.dumps([normalization,profile,provider,model.research_objective])
+        assert 'NATIVE_GC_CONTEXT_FIELDS_20261018_049' not in serialized
+        assert '3e444777099a848cd8795688b57a19122d1ac5454f42902a3495e64aad73a757' not in serialized
+        assert guard['denied_attempts']==0
+        for operation in (
+            lambda:Path('/tmp/NATIVE_GC_CONTEXT_FIELDS_20261018_049.json').read_bytes(),
+            lambda:Path('/tmp/XAU_M1_NATIVE/MANIFEST.json').stat(),
+            lambda:np.load('/tmp/inputs_M1.npz',allow_pickle=False),
+            lambda:torch.load('/tmp/checkpoint_M1.pt',weights_only=True),
+        ):
+            try:
+                operation()
+            except PermissionError as error:
+                assert 'DIRECTION_M1_IO_FORBIDDEN' in str(error)
+            else:
+                raise AssertionError('forbidden IO reached')
+        assert guard['denied_attempts']==4
+        print('NATIVE_FIREWALL_PASS')
+    ''')
+    result = subprocess.run([sys.executable, '-c', code], capture_output=True, text=True, timeout=120)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert result.stdout.strip().endswith('NATIVE_FIREWALL_PASS')

@@ -11,7 +11,7 @@ import torch
 import torch.nn as nn
 from torch.utils.checkpoint import checkpoint as _torch_checkpoint
 
-from gx1.features import gc_native_context_v1 as _gc_context
+from gx1.features import gc_native_field_catalog_v1 as _gc_context
 from gx1.features.micro_structure_v1 import mask_normalized_range_torch
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_DIM,
@@ -49,7 +49,8 @@ from gx1.contracts.entry_model_native_tf_input_scale_v1 import (
 )
 from gx1.contracts.entry_model_native_input_normalization_v1 import (
     EXPECTED_SURFACES as INPUT_NORMALIZATION_SURFACES,
-    require_input_normalization_contract,
+    require_input_normalization_contract, NATIVE_M5_NORMALIZATION_SCHEMA,
+    SIGNED_TERNARY_UNIT_SCALE_SOURCE,
 )
 from gx1.contracts.entry_model_native_joint_task_weighting_v1 import (
     JOINT_TASK_NAMES,
@@ -632,7 +633,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 gc_mtf_history=gc_mtf_history,
                 unobserved_units_profile=research_unobserved_units_profile,
                 native_m5_normalization=(isinstance(input_normalization, Mapping)
-                    and input_normalization.get("schema_version") == "gx1_native_m5_input_normalization_v1"),
+                    and input_normalization.get("schema_version") == NATIVE_M5_NORMALIZATION_SCHEMA),
             )
         super().__init__()
         self.entry_training_phase = require_entry_training_phase(
@@ -656,7 +657,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             if profile_reference is not None else None
         )
         self._native_bar_direction_only = (isinstance(input_normalization, Mapping)
-            and input_normalization.get("schema_version") == "gx1_native_m5_input_normalization_v1")
+            and input_normalization.get("schema_version") == NATIVE_M5_NORMALIZATION_SCHEMA)
         dynamic_phase = (self.entry_training_phase == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
                          and not self._native_bar_direction_only)
         if dynamic_phase:
@@ -827,7 +828,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         ta_only = (profile_reference is not None
                    and profile_reference["name"] == FULL_TA_ENTRY_EXECUTION_PROFILE_NAME)
         native_m5_norm = (isinstance(input_normalization, Mapping)
-            and input_normalization.get("schema_version") == "gx1_native_m5_input_normalization_v1")
+            and input_normalization.get("schema_version") == NATIVE_M5_NORMALIZATION_SCHEMA)
         if ta_only != (isinstance(input_normalization, Mapping)
                        and ("ta_projection" in input_normalization or native_m5_norm)):
             raise RuntimeError("TA_INPUT_NORMALIZATION_PROFILE_BINDING")
@@ -2139,6 +2140,11 @@ class EntryV10CtxHybridTransformer(nn.Module):
                     "ENTRY_INPUT_NORMALIZATION_MTF_EMA_STACK_DOMAIN_INVALID: "
                     f"surface={surface}"
                 )
+        for index, source in enumerate(self._input_normalization_contract['surfaces'].get(surface, {}).get('scale_source', [])):
+            if source == SIGNED_TERNARY_UNIT_SCALE_SOURCE:
+                values = raw_float[..., index]
+                if bool(((values != -1.) & (values != 0.) & (values != 1.)).any()):
+                    raise RuntimeError('ENTRY_INPUT_NORMALIZATION_SIGNED_TERNARY_DOMAIN_INVALID:' + field_names[index])
         if bool(binary_mask.any().item()):
             binary_values = raw_float[..., binary_mask]
             if bool(

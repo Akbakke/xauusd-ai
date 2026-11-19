@@ -14,6 +14,12 @@ import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 
+# The executable guard precedes every GX1 source/feature/model import.
+_IO_FIREWALL = None
+if __name__ == '__main__':
+    from gx1.contracts.native_m5_direction_io_firewall_v1 import install_native_m5_direction_io_firewall
+    _IO_FIREWALL = install_native_m5_direction_io_firewall()
+
 from gx1.audit import build_native_m5_direction_targets_v1 as data
 from gx1.contracts.gx1_capped_execution_v1 import (
     require_capped_cpu_research_producer_execution, require_capped_lock_ancestry,
@@ -22,9 +28,9 @@ from gx1.contracts.immutable_event_authority_v1 import _publish_bytes
 
 REPO = data.REPO
 POLICY = REPO / 'NEXT_RUN_POLICY.json'
-STAGE = 'native_m5_pipeline_20261119_003'
-PLAN = REPO / 'configs/research/NATIVE_M5_PIPELINE_20261119_003.json'
-ROOT = Path('/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_003')
+STAGE = 'native_m5_pipeline_20261119_004'
+PLAN = REPO / 'configs/research/NATIVE_M5_PIPELINE_20261119_004.json'
+ROOT = Path('/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_004')
 FIT_START_NS = 1714521600000000000
 FIT_END_NS = 1727740800000000000
 PARAMETER_START_NS = 1243814400000000000
@@ -67,6 +73,135 @@ SOURCE_PATHS = (
     'tests/test_qualify_market_state_native_m5_pipeline_v1.py',
 )
 sha, ref, read, stamp = data.sha, data.ref, data.read, data.stamp
+
+
+BASE_INPUT_KEYS = INPUT_KEYS.copy()
+CANDIDATE_ROOT = Path('/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_003')
+CANDIDATE_ROLES = {'candidate_snapshot', 'candidate_archive', 'candidate_support', 'candidate_terminal'}
+INPUT_KEYS |= CANDIDATE_ROLES
+# These owners produce physical values. Imports/docs and catalogue-only profiles
+# are separate contracts; numerical statements and helper bodies must match.
+NUMERIC_OWNER_PATHS = (
+    'gx1/contracts/market_state_native_m5_feature_inputs_v1.py',
+    'gx1/features/htf_features.py', 'gx1/features/entry_model_native_feature_layers_v1.py',
+    'gx1/features/technical_indicators_v1.py', 'gx1/features/basic_v1.py',
+    'gx1/features/micro_structure_v1.py', 'gx1/features/volume_features.py',
+    'gx1/features/entry_foundation_structure_v1.py', 'gx1/features/smc_v1.py',
+    'gx1/features/level_registry_v1.py', 'gx1/features/trendline_registry_v1.py',
+    'gx1/features/event_age_v1.py', 'gx1/features/volatility_squeeze_state_v1.py',
+    'gx1/features/d1_macro_context_v1.py', 'gx1/time/session_detector.py',
+    'gx1/scripts/materialize_canonical_v3_augment.py',
+    'gx1/scripts/materialize_build_canonical_features_v1.py',
+)
+
+SOURCE_PATHS = tuple(dict.fromkeys((*SOURCE_PATHS, *NUMERIC_OWNER_PATHS,
+    'gx1/features/gc_native_field_catalog_v1.py',
+    'gx1/contracts/native_m5_direction_io_firewall_v1.py',
+    'gx1/features/gc_native_context_v1.py',
+    'gx1/contracts/entry_gc_mtf_history_v1.py')))
+
+
+def numeric_ast_identity(source, *, excluded_functions=()):
+    import ast
+    tree = ast.parse(source)
+    # Ignore only import wiring and documentation. Constant assignments and
+    # every function/class body remain, including unlisted helper dependencies.
+    tree.body = [node for node in tree.body
+                 if not (isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                         and node.name in excluded_functions)
+                 and not isinstance(node, (ast.Import, ast.ImportFrom))
+                 and not (isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant)
+                          and isinstance(node.value.value, str))]
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            node.body = [part for part in node.body
+                         if not (isinstance(part, ast.Expr) and isinstance(part.value, ast.Constant)
+                                 and isinstance(part.value.value, str))]
+    return hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest()
+
+
+def numeric_owner_identities(old_plan):
+    result = {}
+    for relative in NUMERIC_OWNER_PATHS:
+        original = subprocess.check_output(
+            ['git', 'show', old_plan['source_base_commit'] + ':' + relative], cwd=REPO)
+        if relative in old_plan['source_owners']:
+            need(hashlib.sha256(original).hexdigest() == old_plan['source_owners'][relative],
+                 'CANDIDATE_ORIGINAL_SOURCE')
+        excluded = ('native_m5_feature_provider_contract', 'fit_native_m5_feature_normalization') if (
+            relative == 'gx1/contracts/market_state_native_m5_feature_inputs_v1.py') else ()
+        old = numeric_ast_identity(original.decode(), excluded_functions=excluded)
+        current = numeric_ast_identity((REPO / relative).read_text(), excluded_functions=excluded)
+        need(old == current, 'CANDIDATE_NUMERIC_OWNER_CHANGED:' + relative)
+        result[relative] = current
+    return result
+
+
+def firewall_state():
+    from gx1.contracts.native_m5_direction_io_firewall_v1 import contract
+    need(_IO_FIREWALL is not None and _IO_FIREWALL['contract'] == contract()
+         and _IO_FIREWALL['denied_attempts'] == 0, 'CLEAN_PROCESS_IO_FIREWALL')
+    return json.loads(json.dumps(_IO_FIREWALL))
+
+
+def candidate_metadata(inputs, feature_contract):
+    from gx1.contracts.entry_model_native_input_normalization_v1 import native_m5_input_domain_contract
+    paths = {'candidate_snapshot': 'FEATURE_INPUTS.json', 'candidate_archive': 'FEATURE_INPUTS.npz',
+             'candidate_support': 'FEATURE_SUPPORT.json', 'candidate_terminal': 'TERMINAL.json'}
+    need(all(inputs[key]['path'] == str(CANDIDATE_ROOT / name)
+             for key, name in paths.items()), 'CANDIDATE_PATHS')
+    saved, support, terminal = (read(inputs[key]) for key in
+        ('candidate_snapshot', 'candidate_support', 'candidate_terminal'))
+    old_plan_ref, old_claim_ref = terminal['plan'], terminal['claim']
+    old_plan, old_claim = read(old_plan_ref), read(old_claim_ref)
+    need(old_plan_ref['path'] == str(REPO / 'configs/research/NATIVE_M5_PIPELINE_20261119_003.json')
+         and old_claim_ref['path'] == str(CANDIDATE_ROOT / 'CLAIM.json')
+         and terminal['stage'] == old_plan['stage'] == old_claim['stage']
+             == 'native_m5_pipeline_20261119_003'
+         and terminal['status'] == 'FAILED_CONSUMED' and terminal['exit_code'] == 1
+         and terminal['result'] is None and terminal['relaunch_allowed'] is False
+         and terminal['test_data_used'] is False and old_claim['plan'] == old_plan_ref
+         and terminal['error'].startswith('RuntimeError:[ENTRY_INPUT_NORMALIZATION_UNSCALEABLE]')
+         and all(old_plan['inputs'][key] == inputs[key] for key in BASE_INPUT_KEYS),
+         'CANDIDATE_ORIGIN')
+    need(saved['schema_version'] == 'gx1_native_m5_bounded_feature_snapshot_v1'
+         and saved['archive'] == inputs['candidate_archive']
+         and saved['reload_all_arrays_dtype_shape_equal_nan_and_bytes_sha256'] is True
+         and saved['model_forwards'] == saved['optimizer_steps'] == 0
+         and len(saved['arrays']) == 27 and set(saved['timeframes']) == {'M5','M15','H1','H4','D1'}
+         and saved['surfaces_metadata']['provider_contract'] == old_plan['feature_contract']
+         and support['feature_source_spec'] == old_plan['feature_source_spec']
+         and support['model_forwards'] == support['optimizer_steps'] == 0,
+         'CANDIDATE_SNAPSHOT')
+    before = saved['surfaces_metadata']['provider_contract']
+    strip = lambda value: {key: item for key, item in value.items()
+                          if key not in ('execution_profile', 'contract_sha256', 'schema_version',
+                                         'input_semantic_domains')}
+    need(before['schema_version'] == 'gx1_native_m5_feature_provider_v1'
+         and feature_contract['schema_version'] == 'gx1_native_m5_feature_provider_v2'
+         and 'input_semantic_domains' not in before
+         and feature_contract['input_semantic_domains'] == native_m5_input_domain_contract()
+         and strip(before) == strip(feature_contract)
+         and before['execution_profile']['name'] == feature_contract['execution_profile']['name'],
+         'CANDIDATE_PROVIDER_NUMERIC_CONTRACT')
+    return {'original_plan': old_plan_ref, 'original_claim': old_claim_ref,
+        'candidate_dependencies': {'plan': old_plan_ref, 'claim': old_claim_ref},
+        'original_provider_contract_sha256': before['contract_sha256'],
+        'admitted_provider_contract_sha256': feature_contract['contract_sha256'],
+        'original_execution_profile': before['execution_profile'],
+        'admitted_execution_profile': feature_contract['execution_profile'],
+        'original_provider_schema': before['schema_version'],
+        'admitted_provider_schema': feature_contract['schema_version'],
+        'fresh_normalization_semantic_domains': native_m5_input_domain_contract(),
+        'permitted_changed_domains': ['explicit_provider_v1_to_v2_semantic_contract',
+                                      'independent_static_field_catalog_and_profile_identity',
+                                      'fresh_native_binary_and_signed_ternary_normalization_domain_policy'],
+        'unchanged_provider_contract_domains': sorted(strip(before)),
+        'numeric_owner_ast_sha256': numeric_owner_identities(old_plan),
+        'excluded_non_raw_functions': ['native_m5_feature_provider_contract',
+                                       'fit_native_m5_feature_normalization'],
+        'original_full_process_M1_free': False,
+        'new_admission_requires_clean_process_and_exact_physical_array_checks': True}
 
 
 def need(ok, reason):
@@ -299,6 +434,7 @@ def build_plan(*, inputs, source_base_commit=None):
     )
     from gx1.contracts.market_state_ta_integrated_model_v1 import native_bar_backbone_geometry
     from gx1.contracts.market_state_ta_integrated_objective_v1 import native_bar_objective_contract
+    from gx1.contracts.native_m5_direction_io_firewall_v1 import contract as firewall_contract
     need(type(inputs) is dict and set(inputs) == INPUT_KEYS, 'INPUT_ROLES')
     squeeze, registry = fit_plans(inputs)
     source = read(inputs['native_source_plan'])
@@ -325,6 +461,12 @@ def build_plan(*, inputs, source_base_commit=None):
     for part in spec['parts']:
         need(all(key in pq.ParquetFile(part['path']).schema_arrow.names
                  for key in ('time', *RAW_COLUMNS)), 'RAW_FEATURE_COLUMNS')
+    feature_contract = native_m5_feature_provider_contract()
+    candidate = candidate_metadata(inputs, feature_contract)
+    old_plan = read(candidate['original_plan'])
+    need(old_plan['feature_source_spec'] == spec
+         and old_plan['macro_dependencies'] == dependencies
+         and old_plan['geometry'] == geometry, 'CANDIDATE_SCOPE')
     head = source_base_commit or subprocess.check_output(
         ['git', 'rev-parse', 'HEAD'], cwd=REPO, text=True).strip()
     return {
@@ -334,7 +476,7 @@ def build_plan(*, inputs, source_base_commit=None):
         'inputs': inputs, 'macro_dependencies': dependencies, 'feature_source_spec': spec,
         'history_lineage': {'plan': history['plan'], 'claim': history['claim']},
         'history_reuse': 'original_001_all_76_array_proof_for_identical_003_target_bytes',
-        'parameter_reuse': parameters,
+        'parameter_reuse': parameters, 'candidate_requalification': candidate,
         'feature_source_metadata': metadata, 'parameter_source_spec': squeeze['source_spec'],
         'target_source_spec': source['source_spec'], 'target_source_metadata': source['source_metadata'],
         'fit_start_ns': FIT_START_NS, 'fit_end_ns': FIT_END_NS,
@@ -342,7 +484,8 @@ def build_plan(*, inputs, source_base_commit=None):
         'normalization_population': 'whole_exact_consumption_union_of_selected_TRAIN_issues',
         'geometry': geometry, 'architecture': ARCHITECTURE,
         'seed': SEED, 'batch_rows': BATCH, 'execution': EXECUTION,
-        'feature_contract': native_m5_feature_provider_contract(),
+        'io_firewall': firewall_contract(),
+        'feature_contract': feature_contract,
         'target_contract': target_contract(), 'objective_contract': native_bar_objective_contract(),
         'metadata_scope': 'genuine_source_macro_and_target_receipts_no_price_decode',
         'model_forwards': 1, 'model_constructions': 1, 'optimizer_steps': 0,
@@ -367,6 +510,7 @@ def checked_inputs(plan):
     bindings = (list(plan['inputs'].values()) + list(plan['macro_dependencies'].values())
                 + list(plan['history_lineage'].values()))
     bindings.extend(plan['parameter_reuse']['parameter_dependencies'].values())
+    bindings.extend(plan['candidate_requalification']['candidate_dependencies'].values())
     bindings.append(plan['feature_source_spec']['manifest'])
     for spec in (plan['feature_source_spec'], plan['parameter_source_spec']):
         bindings.extend({'path': part['path'], 'sha256': part['sha256']} for part in spec['parts'])
@@ -565,6 +709,120 @@ def publish_feature_snapshot(provider):
         'raw_history_prices_stored': False, 'model_forwards': 0, 'optimizer_steps': 0})
 
 
+def load_candidate_provider(plan):
+    from gx1.contracts import market_state_native_m5_feature_inputs_v1 as features
+    from gx1.features import htf_features as htf
+    saved = read(plan['inputs']['candidate_snapshot'])
+    need(candidate_metadata(plan['inputs'], plan['feature_contract'])
+         == plan['candidate_requalification'], 'CANDIDATE_METADATA_BOOKEND')
+    need(ref(plan['inputs']['candidate_archive']['path']) == plan['inputs']['candidate_archive'],
+         'CANDIDATE_ARCHIVE_IDENTITY')
+    arrays = {}
+    expected = {'bar_start_ns', 'retained_source_rows', 'retained_issue_rows',
+                'signal', 'ctx_cont', 'ctx_cat', 'observed'}
+    attrs = {'ts_int64', 'feats_np', 'owner_row_indices', 'model_native_mtf_scalars_np_v4'}
+    for tf in saved['timeframes']:
+        expected.update('tf_' + tf + '_' + name for name in attrs)
+    with np.load(plan['inputs']['candidate_archive']['path'], allow_pickle=False) as archive:
+        need(set(archive.files) == set(saved['arrays']) == expected and len(expected) == 27,
+             'CANDIDATE_ARRAY_INVENTORY')
+        for name in sorted(expected):
+            value = archive[name]
+            header = saved['arrays'][name]
+            dtype = np.dtype(np.bool_ if name == 'observed' else np.float32 if
+                name in ('signal', 'ctx_cont') or name.endswith(('_feats_np', '_scalars_np_v4'))
+                else np.int64)
+            need(value.dtype == dtype and value.dtype.str == header['dtype']
+                 and list(value.shape) == header['shape']
+                 and hashlib.sha256(np.ascontiguousarray(value).tobytes()).hexdigest() == header['sha256'],
+                 'CANDIDATE_ARRAY_BYTES:' + name)
+            value.flags.writeable = False
+            arrays[name] = value
+    need(ref(plan['inputs']['candidate_archive']['path']) == plan['inputs']['candidate_archive'],
+         'CANDIDATE_ARCHIVE_BOOKEND')
+    surfaces = dict(saved['surfaces_metadata'])
+    need(surfaces['source_binding']['source_spec'] == plan['feature_source_spec']
+         and surfaces['source_binding']['native_m5_manifest'] == plan['feature_source_spec']['manifest']
+         and surfaces['source_binding']['raw_columns'] == list(features.RAW_COLUMNS)
+         and surfaces['registry_contract_sha256'] == plan['parameter_reuse']['registry_contract_sha256']
+         and surfaces['squeeze_binding'] == plan['parameter_reuse']['squeeze_binding']
+         and surfaces['parameter_available_ns'] == PARAMETER_END_NS,
+         'CANDIDATE_PHYSICAL_SOURCE_BINDINGS')
+    macro_binding = surfaces['macro_binding']
+    need(macro_binding['contract'] == plan['feature_contract']['macro_contract']
+         and macro_binding['binding_sha256'] == features._sha(
+             {key: value for key, value in macro_binding.items() if key != 'binding_sha256'}),
+         'CANDIDATE_MACRO_BINDING')
+    surfaces.update({name: arrays[name] for name in expected if not name.startswith('tf_')})
+    multi_tf = {}
+    for tf, descriptor in saved['timeframes'].items():
+        need(descriptor['array_attributes'] == {name: 'tf_' + tf + '_' + name for name in attrs}
+             and descriptor['columns'] == plan['feature_contract']['field_names']['mtf'],
+             'CANDIDATE_TF_ORDER:' + tf)
+        scalar = descriptor['scalar_attributes']
+        need(scalar['htf_feature_contract'] == htf.HTF_V4_MATRIX_CONTRACT
+             and scalar['model_native_mtf_scalar_contract_v4'] == htf.MODEL_NATIVE_MTF_SCALAR_CONTRACT_V4
+             and scalar['model_native_mtf_scalar_fields_v4']
+                 == list(htf.MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4[tf]),
+             'CANDIDATE_SCALAR_CONTRACT:' + tf)
+        values, times = arrays['tf_' + tf + '_feats_np'], arrays['tf_' + tf + '_ts_int64']
+        scalar_values = arrays['tf_' + tf + '_model_native_mtf_scalars_np_v4']
+        need(times.ndim == 1 and values.shape == (len(times), len(descriptor['columns']))
+             and scalar_values.shape == (len(times), len(scalar['model_native_mtf_scalar_fields_v4'])),
+             'CANDIDATE_TF_ARRAY_SHAPES:' + tf)
+        frame = pd.DataFrame(values, index=pd.to_datetime(times, utc=True),
+                             columns=descriptor['columns'], copy=False)
+        frame.attrs = dict(scalar)
+        frame.attrs.update({name: arrays[key] for name, key in descriptor['array_attributes'].items()})
+        multi_tf[tf] = frame
+    surfaces['multi_tf_sources'] = multi_tf
+    # The old receipt remains unchanged. Only this new in-memory representation
+    # uses the clean catalogue identity, after contract and byte equivalence.
+    surfaces['provider_contract'] = plan['feature_contract']
+    with np.load(plan['inputs']['target_tape']['path'], allow_pickle=False) as truth:
+        issues = truth['issue_ns']
+        source = truth['source_row']
+        starts = surfaces['bar_start_ns']
+        n = len(starts)
+        need(starts.ndim == 1 and n == surfaces['source_binding']['rows'] and len(issues) >= n
+             and np.array_equal(source[:n], np.arange(n, dtype=np.int64))
+             and np.array_equal(starts + data.M5_NS, issues[:n])
+             and np.all(starts + data.M5_NS < FIT_END_NS), 'CANDIDATE_NATIVE_SOURCE_AXIS')
+        for tf, frame in multi_tf.items():
+            ids, times = frame.attrs['owner_row_indices'], frame.attrs['ts_int64']
+            canonical_times = truth['bars_' + tf + '_bar_start_ns']
+            need(ids.dtype == np.int64 and ids.ndim == 1 and len(ids) > 0
+                 and ids[0] >= 0 and ids[-1] < len(canonical_times)
+                 and np.all(np.diff(ids) > 0) and np.array_equal(canonical_times[ids], times),
+                 'CANDIDATE_GLOBAL_TF_AXIS:' + tf)
+    provider = features.NativeM5FeatureProvider(surfaces)
+    aliases = dict(plan['feature_contract']['local_value_owners']['same_M5_exact_aliases'])
+    from gx1.features import entry_model_native_feature_layers_v1 as layers
+    trend = dict(zip(layers.TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES,
+                     layers.TRENDLINE_REGISTRY_FEATURE_NAMES_V1))
+    macro = set(provider.profile['macro_context_fields'])
+    lineage = {}
+    for name in provider.profile['physical_field_names']['signal']:
+        if name in aliases:
+            lineage[name] = 'same_native_M5_owner:' + aliases[name]
+        elif name in trend:
+            lineage[name] = 'local_native_M5_trendline:' + trend[name]
+        else:
+            need(name.startswith('ctx_cont.'), 'CANDIDATE_UNOWNED_FIELD:' + name)
+            lineage[name] = ('asof_macro:' if name[9:] in macro
+                             else 'closed_context_or_session:') + name[9:]
+    need(surfaces['field_lineage'] == lineage, 'CANDIDATE_FIELD_LINEAGE')
+    proof = {**plan['candidate_requalification'],
+        'candidate_snapshot': plan['inputs']['candidate_snapshot'],
+        'candidate_archive': plan['inputs']['candidate_archive'],
+        'array_count': len(arrays), 'all_array_bytes_dtype_shape_exact': True,
+        'global_M5_and_TF_axes_equal_independently_verified_native_target_axes': True,
+        'ordered_fields_aliases_and_formula_lineage_equal': True,
+        'source_axes_sha256_unchanged': surfaces['axes']['contract_sha256'],
+        'raw_numeric_values_recomputed': False, 'old_statistics_or_weights_loaded': False}
+    return provider, proof
+
+
 def qualify_physical_pipeline(plan, parameters):
     import torch
     from gx1.features import d1_macro_context_v1 as macro
@@ -578,19 +836,8 @@ def qualify_physical_pipeline(plan, parameters):
     )
     from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
 
-    native = read_feature_source(plan)
-    spec = plan['feature_source_spec']
-    binding = features.bind_native_m5_feature_source(
-        native, native_m5_manifest=spec['manifest'], source_spec=spec)
-    squeeze_ref = parameters['squeeze_manifest']
-    squeeze = load_volatility_squeeze_artifact_manifest(Path(squeeze_ref['path']),
-        expected_sha256=squeeze_ref['sha256'], clocks=VOLATILITY_SQUEEZE_DIRECTION_CLOCKS)
-    surfaces = features.build_native_m5_feature_surfaces(
-        native, source_binding=binding, v29_registry_constants=parameters['registry_constants'],
-        volatility_squeeze_artifacts=squeeze, issue_start_ns=FIT_START_NS, issue_end_ns=FIT_END_NS)
-    provider = features.NativeM5FeatureProvider(surfaces)
-    del native, surfaces
-    feature_snapshot_ref = publish_feature_snapshot(provider)
+    provider, admission = load_candidate_provider(plan)
+    feature_snapshot_ref = plan['inputs']['candidate_snapshot']
     rows, truth, population = target_axis(plan, provider)
     window_rows = np.flatnonzero((provider.issue_ns >= FIT_START_NS) & (provider.issue_ns < FIT_END_NS))
     readiness = provider.readiness_report(provider.source_row[window_rows])
@@ -599,6 +846,13 @@ def qualify_physical_pipeline(plan, parameters):
              for surface in support['surfaces'].values())
          and len(support['families']) == 8 and len(support['macro_fields']) == 61,
          'GENUINE_CONSUMED_SUPPORT')
+    original_support = read(plan['inputs']['candidate_support'])
+    need(population == original_support['fit_population']
+         and readiness == original_support['input_readiness']
+         and support == original_support['consumed_support'], 'CANDIDATE_CONSUMPTION_PARITY')
+    admission_ref = publish('FEATURE_INPUTS_REQUALIFICATION.json', {
+        **admission, 'exact_fit_population_readiness_and_consumed_support_equal': True,
+        'clean_process_io_firewall': firewall_state()})
     support_ref = publish('FEATURE_SUPPORT.json', {
         'fit_population': population, 'input_readiness': readiness,
         'consumed_support': support,
@@ -660,6 +914,7 @@ def qualify_physical_pipeline(plan, parameters):
         'fit_population': population, 'normalization_population': normalization['fit_population'],
         'input_readiness': readiness, 'consumed_support': support,
         'feature_support_artifact': support_ref, 'feature_inputs_artifact': feature_snapshot_ref,
+        'feature_inputs_requalification': admission_ref,
         'routed_families': support['families'],
         'field_lineage': provider.surfaces['field_lineage'], 'macro_field_count': len(macro.D1_MACRO_CONTEXT_FIELDS),
         'physical_missing_value_counts': missing, 'input_ready_rows': int(provider.input_ready.sum()),
@@ -670,6 +925,7 @@ def qualify_physical_pipeline(plan, parameters):
 
 
 def run(plan_sha):
+    firewall_state()
     started = time.monotonic()
     cap = require_capped_cpu_research_producer_execution()
     lock = require_capped_lock_ancestry()
@@ -707,7 +963,8 @@ def run(plan_sha):
             'history_verification': history, 'history_verification_artifact': history_ref,
             'history_verification_role': 'reused_original_001_proof_with_original_plan_and_claim',
             'report': report, 'model_forwards': 1, 'optimizer_steps': 0,
-            'normalization_fits': 1, 'test_data_used': False, 'economic_edge_proven': False,
+            'normalization_fits': 1, 'clean_process_io_firewall': firewall_state(),
+            'test_data_used': False, 'economic_edge_proven': False,
             'elapsed_seconds': time.monotonic() - started})
         terminal = publish('TERMINAL.json', {'status': 'COMPLETE', 'exit_code': 0,
             'stage': STAGE, 'plan': plan_ref, 'claim': claim, 'result': result_ref,
@@ -733,13 +990,15 @@ def main():
     parser.add_argument('--out-dir', required=True)
     parser.add_argument('--preflight', action='store_true')
     args = parser.parse_args()
+    firewall_state()
     need(args.plan == str(PLAN) and args.out_dir == str(ROOT), 'CLI_SCOPE')
     if args.preflight:
         plan, plan_ref, policy_ref = inspect(args.plan_sha256, admitted=False)
         print(json.dumps({'status': 'PREFLIGHT_PASS_GENUINE_METADATA_ONLY', 'plan': plan_ref,
             'policy': policy_ref, 'claim_created': False, 'output_root_absent': True,
             'parquet_values_decoded': 0, 'model_constructions': 0,
-            'model_forwards': 0, 'test_data_used': False}))
+            'model_forwards': 0, 'clean_process_io_firewall': firewall_state(),
+            'test_data_used': False}))
     else:
         print(json.dumps(run(args.plan_sha256), sort_keys=True))
 

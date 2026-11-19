@@ -1106,11 +1106,11 @@ def native_m5_normalization_fixture():
         domains = {name: domain for name, domain in domains.items() if name in names}
         for name, domain in domains.items():
             values[:, names.index(name)] = np.asarray(domain)[np.arange(rows) % len(domain)]
-        if 'ema_stack_aligned_v2' in names:
-            values[:, names.index('ema_stack_aligned_v2')] = axis % 3 - 1
-        if surface.startswith('mtf_'):
-            for name in owner.MTF_SEMANTIC_BINARY_FIELDS.intersection(names):
-                values[:, names.index(name)] = axis % 2
+        for name in owner.signed_ternary_unit_fields(surface):
+            if name in names:
+                values[:, names.index(name)] = axis % 3 - 1
+        for name in owner.native_m5_binary_fields(surface, names):
+            values[:, names.index(name)] = axis % 2
         raw[surface] = _valid_range_observation_input(torch.from_numpy(values), names).numpy()
     for alias in aliases:
         raw['signal'][:, alias['signal_index']] = raw['ctx_cont'][:, alias['ctx_cont_index']]
@@ -1118,7 +1118,7 @@ def native_m5_normalization_fixture():
         domains = (owner.MTF_SEMANTIC_CATEGORICAL_DOMAINS if surface.startswith('mtf_')
                    else owner.SIGNAL_SEMANTIC_CATEGORICAL_DOMAINS if surface == 'signal'
                    else owner.CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS)
-        surfaces[surface] = owner.fit_surface_normalization(
+        surfaces[surface] = owner.fit_native_m5_surface_normalization(
             raw[surface], surface=surface, field_names=names,
             semantic_categorical_domains={name: domain for name, domain in domains.items() if name in names})
     surfaces['ctx_cont'] = owner.share_temporal_alias_stats_from_signal(
@@ -1158,3 +1158,62 @@ def test_native_m5_normalization_has_independent_schema_and_rejects_legacy_linea
         'cutoff_ns': owner.NATIVE_M5_TRAIN_FIT_CUTOFF_NS + 300_000_000_000})
     with pytest.raises(RuntimeError, match='NATIVE_M5_NORMALIZATION_TRAIN_FIT_CUTOFF'):
         owner.require_native_m5_input_normalization_contract(late)
+
+
+@pytest.mark.parametrize('surface,field', [
+    ('signal', 'ctx_cont.' + tf.lower() + '_ema_stack_aligned_v2') for tf in ('M5','M15','H1','H4','D1')
+] + [('ctx_cont', tf.lower() + '_ema_stack_aligned_v2') for tf in ('M5','M15','H1','H4','D1')]
+  + [('mtf_' + tf.lower(), 'ema_stack_aligned_v2') for tf in ('M5','M15','H1','H4','D1')])
+def test_native_signed_ema_units_preserve_bear_flat_bull_after_constant_fit(surface, field):
+    owner = normalization_contract
+    train = np.ones((8, 1), np.float32)
+    fitted = owner.fit_native_m5_surface_normalization(train, surface=surface, field_names=[field])
+    assert fitted['center'] == [0.] and fitted['scale'] == [1.]
+    assert fitted['binary_mask'] == fitted['categorical_mask'] == [0]
+    assert fitted['scale_source'] == [owner.SIGNED_TERNARY_UNIT_SCALE_SOURCE]
+    served = np.array([[-1.], [0.], [1.]], np.float32)
+    actual = owner.apply_surface_normalization(served, fitted)
+    np.testing.assert_allclose(actual, np.arcsinh(served), rtol=1e-7)
+    assert np.all(np.diff(actual[:, 0]) > 0.)
+    np.testing.assert_allclose(owner.invert_surface_normalization(actual, fitted), served, atol=1e-7)
+    with pytest.raises(RuntimeError, match='SIGNED_TERNARY_DOMAIN_INVALID'):
+        owner.apply_surface_normalization(np.array([[2.]], np.float32), fitted)
+    with pytest.raises(RuntimeError, match='SIGNED_TERNARY_DOMAIN_INVALID'):
+        owner.fit_native_m5_surface_normalization(np.full((8, 1), 2., np.float32), surface=surface, field_names=[field])
+    with pytest.raises(RuntimeError, match='UNSCALEABLE'):
+        owner.fit_native_m5_surface_normalization(train, surface=surface, field_names=['unknown_continuous'])
+
+
+def test_native_normalization_requires_explicit_signed_domain_policy():
+    owner = normalization_contract
+    fitted, _, _ = native_m5_normalization_fixture()
+    bad = dict(fitted, semantic_domain_contract_sha256='0' * 64)
+    with pytest.raises(RuntimeError, match='NATIVE_M5_NORMALIZATION_DOMAIN_POLICY'):
+        owner.require_native_m5_input_normalization_contract(bad)
+    import copy
+    bad = copy.deepcopy(fitted)
+    i = bad['surfaces']['signal']['field_names'].index('ctx_cont.d1_ema_stack_aligned_v2')
+    bad['surfaces']['signal']['scale_source'][i] = 'constant_train_unit_scale'
+    with pytest.raises(RuntimeError):
+        owner.require_native_m5_input_normalization_contract(bad)
+
+
+@pytest.mark.parametrize('surface,field', [
+    ('signal', 'smc_bos_up'), ('ctx_cont', 'swing_impulse_present'),
+    ('mtf_m5', 'mtf_smc_bos_up'), ('mtf_d1', 'mtf_smc_bos_up'),
+])
+@pytest.mark.parametrize('constant', [0., 1.])
+def test_native_source_binary_flags_keep_opposite_future_state(surface, field, constant):
+    owner = normalization_contract
+    fitted = owner.fit_native_m5_surface_normalization(
+        np.full((8, 1), constant, np.float32), surface=surface, field_names=[field])
+    assert fitted['binary_mask'] == [1] and fitted['categorical_mask'] == [0]
+    assert fitted['center'] == [0.] and fitted['scale'] == [1.]
+    owner.require_surface_normalization(fitted, surface=surface, field_names=[field])
+    served = np.array([[0.], [1.]], np.float32)
+    np.testing.assert_array_equal(owner.apply_surface_normalization(served, fitted), served)
+    with pytest.raises(RuntimeError, match='BINARY_VALUE_INVALID'):
+        owner.apply_surface_normalization(np.array([[-1.]], np.float32), fitted)
+    forged = dict(fitted, native_domain_contract_sha256='0'*64)
+    with pytest.raises(RuntimeError, match='SURFACE_DOMAIN_POLICY'):
+        owner.require_surface_normalization(forged, surface=surface, field_names=[field])

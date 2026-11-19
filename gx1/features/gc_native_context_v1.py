@@ -25,6 +25,7 @@ def _stream_sha256(path):
     return digest.hexdigest()
 
 
+@lru_cache(maxsize=1)
 def _read_registry():
     path = Path(__file__).resolve().parents[2] / REGISTRY_PATH
     if _stream_sha256(path) != REGISTRY_SHA256:
@@ -35,27 +36,25 @@ def _read_registry():
     return result
 
 
-REGISTRY = _read_registry()
-VALUE_FIELDS = tuple(item['name'] for item in REGISTRY['fields'])
-STRUCTURAL_VALUE_FIELDS = frozenset(item['name'] for item in REGISTRY['fields']
-    if item.get('role') == 'structural_observation_mask')
-OBSERVED_FIELDS = tuple(item['availability_field'] for item in REGISTRY['fields'])
-# Same producer, exact source-column domains: smc_v1 replay Boolean formulas
-# (structure/BOS/sweep and OB active/created/retouch), copied unchanged into
-# strict and observed-proxy GC tables by gc_order_flow_v1. Missing is masked.
-_SOURCE_BINARY_COLUMNS = frozenset({
-    'structure_available', 'bos_up', 'bos_down', 'sweep_up_event', 'sweep_down_event',
-    'ob_bull_active', 'ob_bull_created', 'ob_bull_first_retouch',
-    'ob_bear_active', 'ob_bear_created', 'ob_bear_first_retouch',
-})
-_SOURCE_BINARY_COLUMNS |= frozenset('observed_proxy_' + name for name in _SOURCE_BINARY_COLUMNS)
-SOURCE_BINARY_VALUE_FIELDS = frozenset(item['name'] for item in REGISTRY['fields']
-    if item['column'] in _SOURCE_BINARY_COLUMNS)
-CONTEXT_FIELDS = tuple(name for item in REGISTRY['fields'] for name in (item['name'], item['availability_field']))
-SPECIALIST_OWNERS = {name: item['owner'] for item in REGISTRY['fields']
-                     for name in (item['name'], item['availability_field'])}
-if len(set(CONTEXT_FIELDS)) != len(CONTEXT_FIELDS):
-    raise RuntimeError('NATIVE_GC_DUPLICATE_FIELDS')
+from gx1.features.gc_native_field_catalog_v1 import (
+    VALUE_FIELDS, OBSERVED_FIELDS, CONTEXT_FIELDS, SPECIALIST_OWNERS,
+    STRUCTURAL_VALUE_FIELDS, SOURCE_BINARY_VALUE_FIELDS,
+    field_role, masking_pairs, binary_fields, mtf_history_binary_fields,
+    require_masked_storage_numpy, mask_normalized_numpy, mask_normalized_torch,
+)
+
+
+def _legacy_registry():
+    # Explicit overrides remain supported by historical source callers/tests.
+    if 'REGISTRY' in globals():
+        return globals()['REGISTRY']
+    return _read_registry()
+
+
+def __getattr__(name):
+    if name == 'REGISTRY':
+        return _legacy_registry()
+    raise AttributeError(name)
 
 
 BBO_TRAILING_SUPPORT_TRANSFORM = 'bbo_trailing_support_gap_minutes'
@@ -81,42 +80,6 @@ def _require_trailing_support_field(item):
     if expected is None or any(item.get(key) != value for key, value in expected.items()):
         raise RuntimeError('NATIVE_GC_TRAILING_SUPPORT_FIELD_CONTRACT')
     return expected
-
-
-def field_role(name):
-    name = str(name).removeprefix('ctx_cont.')
-    if name in OBSERVED_FIELDS or name in STRUCTURAL_VALUE_FIELDS:
-        return 'gc_observation_mask'
-    if name in VALUE_FIELDS or name in _TRAILING_SUPPORT_BY_NAME:
-        return 'gc_masked_source_value'
-    return 'dense_market_feature'
-
-
-def masking_pairs(names):
-    """Indices on the actual ordered signal or context surface, never an alias copy."""
-    positions = {name: i for i, name in enumerate(names)}
-    pairs = []
-    declared_pairs = tuple(zip(VALUE_FIELDS, OBSERVED_FIELDS)) + tuple(
-        (item['name'], item['availability_field']) for item in TRAILING_SUPPORT_FIELDS)
-    for value, observed in declared_pairs:
-        for prefix in ('', 'ctx_cont.'):
-            if prefix + value in positions:
-                if prefix + observed not in positions:
-                    raise RuntimeError('NATIVE_GC_OBSERVATION_FIELD_MISSING')
-                pairs.append((positions[prefix + value], positions[prefix + observed]))
-    return tuple(pairs)
-
-
-def binary_fields(names):
-    declared = set(OBSERVED_FIELDS) | STRUCTURAL_VALUE_FIELDS | SOURCE_BINARY_VALUE_FIELDS
-    return {name for name in names if str(name).removeprefix('ctx_cont.') in declared}
-
-
-def mtf_history_binary_fields(names):
-    """Canonical source-proven GC Boolean domains on every history surface."""
-    return binary_fields(names)
-
-
 
 
 def _needed_columns(fields):
@@ -148,7 +111,7 @@ def _load_sources(registry, *, decision_stop_ns=None):
 
 @lru_cache(maxsize=1)
 def _sources():
-    return _load_sources(REGISTRY)
+    return _load_sources(_legacy_registry())
 
 
 def _decision_stamps(decisions):
@@ -234,7 +197,7 @@ def build_context(decisions):
     sources = _sources()
     joins = {key: np.searchsorted(clock, stamps, side='right') - 1 for key, (clock, _) in sources.items()}
     output = np.zeros((len(times), len(CONTEXT_FIELDS)), np.float32)
-    for j, item in enumerate(REGISTRY['fields']):
+    for j, item in enumerate(_legacy_registry()['fields']):
         values, observed = _field_values(item, *sources[item['table']], stamps, joins[item['table']])
         output[:, 2 * j] = values
         output[:, 2 * j + 1] = observed.astype(np.float32)
@@ -279,7 +242,7 @@ def build_registry_from_train(candidate_map, table_bindings, train_decisions, *,
                 entry.get('bytes') != path.stat().st_size):
             raise RuntimeError('NATIVE_GC_COMPLETION_TABLE_BINDING')
         tables[key] = dict(binding)
-    retained = REGISTRY if retained_registry is None else retained_registry
+    retained = _legacy_registry() if retained_registry is None else retained_registry
     fields = []
     for original in retained['fields']:
         item = dict(original);key = item['table'];binding = retained['tables'][key]
@@ -337,57 +300,13 @@ def build_registry_from_train(candidate_map, table_bindings, train_decisions, *,
 
 def require_registry_train_clock_match(decisions, registry=None):
     """Whole physical TRAIN must exactly match the registry's fitted clock."""
-    registry = REGISTRY if registry is None else registry
+    registry = _legacy_registry() if registry is None else registry
     _, stamps = _decision_stamps(decisions)
     digest = hashlib.sha256(stamps.tobytes()).hexdigest()
     if (registry.get('train_decision_rows') != len(stamps) or
             registry.get('train_decision_clock_sha256') != digest):
         raise RuntimeError('NATIVE_GC_REGISTRY_PHYSICAL_TRAIN_CLOCK_MISMATCH')
     return {'rows':len(stamps),'train_decision_clock_sha256':digest,'exact_match':True}
-
-
-def require_masked_storage_numpy(values, names):
-    data = np.asarray(values)
-    for index, name in enumerate(names):
-        if str(name).removeprefix('ctx_cont.') in STRUCTURAL_VALUE_FIELDS and not np.isin(data[..., index], (0.0, 1.0)).all():
-            raise RuntimeError('NATIVE_GC_STRUCTURAL_VALUE_DOMAIN')
-    for value, observed in masking_pairs(names):
-        mask = data[..., observed]
-        if not np.isin(mask, (0.0, 1.0)).all() or np.any(data[..., value][mask == 0.0] != 0.0):
-            raise RuntimeError('NATIVE_GC_MASKED_STORAGE_INVALID')
-
-
-def mask_normalized_numpy(raw, normalized, names):
-    require_masked_storage_numpy(raw, names)
-    for value, observed in masking_pairs(names):
-        normalized[..., value] = np.where(raw[..., observed] == 1.0, normalized[..., value], 0.0)
-    return normalized
-
-
-@lru_cache(maxsize=16)
-def _torch_indices(names, device):
-    import torch
-    pairs = masking_pairs(names)
-    return (torch.tensor([v for v, _ in pairs], dtype=torch.long, device=device),
-            torch.tensor([m for _, m in pairs], dtype=torch.long, device=device))
-
-
-def mask_normalized_torch(raw, normalized, names):
-    import torch
-    if not masking_pairs(names):
-        return normalized
-    vi, mi = _torch_indices(tuple(names), raw.device)
-    binary = [i for i,name in enumerate(names) if str(name).removeprefix('ctx_cont.') in STRUCTURAL_VALUE_FIELDS]
-    if binary:
-        values = raw.index_select(-1, torch.tensor(binary, dtype=torch.long, device=raw.device))
-        if bool(((values != 0.0) & (values != 1.0)).any()):raise RuntimeError('NATIVE_GC_STRUCTURAL_VALUE_DOMAIN')
-    mask = raw.index_select(-1, mi)
-    value = raw.index_select(-1, vi)
-    if bool((((mask != 0.0) & (mask != 1.0)) | ((mask == 0.0) & (value != 0.0))).any()):
-        raise RuntimeError('NATIVE_GC_MASKED_STORAGE_INVALID')
-    result = normalized.clone()
-    result.index_copy_(-1, vi, torch.where(mask == 1.0, normalized.index_select(-1, vi), 0.0))
-    return result
 
 
 def contract():

@@ -198,7 +198,7 @@ class NativeM5BarDirectionModel(nn.Module):
               and self.backbone.cfg.dynamic_m5_query_minutes is None
               and not hasattr(self.backbone, 'dynamic_m5_query_horizons')
               and self.backbone._input_normalization_contract.get('schema_version')
-                  == 'gx1_native_m5_input_normalization_v1'
+                  == 'gx1_native_m5_input_normalization_v2'
               and self.backbone._input_normalization_contract.get('source_axes_sha256')
                   == binding['source_axes_sha256']
               and self.backbone._input_normalization_contract.get('feature_provider_contract_sha256')

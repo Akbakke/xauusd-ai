@@ -6,7 +6,7 @@ prosess og eksakte terminalkvitteringer overstyrer prosa. Tidligere bølger finn
 
 ## Gjeldende status 19.11.2026
 
-`BOUNDED_NATIVE_M5_PIPELINE003_ADMITTED`.
+`NATIVE_M5_PIPELINE003_FAILED_CANDIDATE_INPUTS_PRESERVED`.
 
 Fullhistorikk-plan003 er fullført én gang med exit0 og uendret kilde.
 1 215 514 native M5-rader er dekodet fra18kildeår2009–2026. Én bar
@@ -66,9 +66,40 @@ Den målte blokkeringen er rettet i kilden ved blokkvis finittvalidering og begr
 materialisering av modellens faktiske local-/TF-vinduer. Hele råhistorikken
 skal fortsatt gå gjennom stateful formel-eiere, og opprinnelige globale
 rad-IDer og kausalitet bevares. Ingen indikator fjernes eller minnegrense økes.
-Pipeline003 er ADMITTED_ONE_USE etter bestått capped preflight, planhashfeeb5e6ed662c5b0d97a7354d0d383d2be88ce6c0e9f34dc6c1f4dc8041d4582.
-Den skal laste ferdige parametre uten refit og fullføre faktisk
-318/132/256/61felt, TRAIN-normalisering og én teknisk16-radersmodellbatch.
+Pipeline003 er FAILED_CONSUMED med original TERMINAL og uendret kilde observert
+etter avslutning. Alle27 fysiske inputarrays er publisert og bevart før feilen:
+30 059 lokale rader,29 964 utstedelser, og30 059/10 051/2 594/750/361 TF-rader.
+Normalisering stoppet på ctx_cont.d1_ema_stack_aligned_v2, center1 og scale0.
+Formel-eieren erklærer signed{-1,0,+1}; feltet skal ikke feilmerkes binært.
+Ingen normalisering, modellcheckpoint eller forward er publisert.
+
+En separat målt importfeil leser gammelt049-GC-register ved import, selv i TA.
+Ingen M1-prisfil følges, men M1-foreldremetadata ble dekodet. Originale003-inputs
+er derfor kandidater, ingen kvalifisert helt M1-fri kjede. Minste rettelse er rent
+feltkatalog uten kildepayload og lazy legacy-lesing kun ved eksplisitt bruk.
+Ny kontroll skal bevise identiske27arrays, kilder, klokker og formler og eksplisitt
+innrømme ny ren kontrakt før fersk normalisering og én CPU-initialbatch.
+Den konsumerte003-planen relanseres aldri.
+
+Den native typekontrakten er nå rettet fra formel-eierne:40 binære signalfelt,
+3 binære kontekstfelt og55 perTF behandles som0/1. EMA-stack beholder
+signed{-1,0,+1} med eksplisitt enhetsskala; andre kontinuerlige konstantfelt
+feiler fortsatt. Katalogen er skilt fra lazy eldre kilder. Modell-/norm-/provider-
+og pipelinekontrollene har187 beståtte tilfeller; én eldre tilfeldig GEMM-
+sammenligning er gjort deterministisk og består med samme toleranser.
+Pipeline-eierens28 og seks berørte metadatafall er kontrollert etter API-rettelsen.
+En fersk prosess har kjørt faktisk fabrikk/forward med M1/049-filvakt.
+
+GC har direkte300s-råparser og ny bundet66-filers kildeinventar med23
+originaldefinisjoner/15kontrakter. Metadata-porten består uten MBP-dekoding;
+24 parser-/kilde-/roll-/hashkontroller består. Kildekoden har eksakt kart for
+1205 genuine GC-verdier og fem støttefelt gjennom allefem TF. 59 ytterligere
+Boolean-domener er kildebevist. 102 fokuserte GC-/katalog-/kompatibilitetsfall
+består, inkludert faktisk syntetisk råhendelse→M5→TF-kjede, separat hendelses-
+og intervallalder og streng TEST-grense. Dette er ennå ikke fysisk26måneders-
+kvalifikasjon, enhetskart/normalisering eller samlet GC-modellkonsum.
+Råprodusenten med varige kontrollpunkter per originalfil er klar; seks
+fokuserte livssyklus-/bevaringstester består. Ingen fysiskGC-kjøring er startet.
 
 Fysisk feature-/modellkvalifisering er fortsatt ikke fullført. M1, Entry,
 modellfit, TEST, broker og handel er stengt. GC/MBP-ruten er separat og beholdt.

@@ -32,9 +32,43 @@ COLUMNS = {
 }
 
 
-def scan_symbol(items: list[dict], tick_size: int, *, on_batch=None, extra_columns=None, on_file_start=None) -> dict[str, Any]:
+NATIVE_M5_REDUCTION_CLOCK_SCHEMA = 'gx1_gc_native_m5_reduction_clock_v1'
+NATIVE_M5_INTERVAL_NS = 300_000_000_000
+
+
+def reduction_clock_v1(native_m5_scope=None):
+    """Choose a physical raw-record reduction clock before allocating arrays.
+
+    The explicit native scope has no M1 parent, index, table or availability
+    offset. Legacy callers retain their historical clock unchanged.
+    """
+    if native_m5_scope is None:
+        return timing.STUDY_START_NS, timing.WINDOW_END_NS, timing.MINUTE_NS
+    if (not isinstance(native_m5_scope, dict)
+            or set(native_m5_scope) != {'schema_version', 'start_ns', 'end_ns', 'bar_duration_ns'}
+            or native_m5_scope['schema_version'] != NATIVE_M5_REDUCTION_CLOCK_SCHEMA
+            or any(type(native_m5_scope[k]) is not int for k in ('start_ns', 'end_ns', 'bar_duration_ns'))):
+        raise ValueError('GC_NATIVE_M5_REDUCTION_CLOCK_SCHEMA')
+    start, end, interval = (native_m5_scope[k] for k in ('start_ns', 'end_ns', 'bar_duration_ns'))
+    if (interval != NATIVE_M5_INTERVAL_NS or start < timing.STUDY_START_NS
+            or end > timing.WINDOW_END_NS or start >= end or start % interval or end % interval):
+        raise ValueError('GC_NATIVE_M5_REDUCTION_CLOCK_BOUNDS')
+    return start, end, interval
+
+
+def _input_interval_ns(value):
+    if type(value) is not int or value not in (timing.MINUTE_NS, NATIVE_M5_INTERVAL_NS):
+        raise ValueError('GC_REDUCTION_INPUT_INTERVAL')
+    return value
+
+
+def scan_symbol(items: list[dict], tick_size: int, *, on_batch=None, extra_columns=None, on_file_start=None, native_m5_scope=None) -> dict[str, Any]:
     """One bounded Arrow stream per outright. Integer quantities remain exact."""
-    width = (timing.WINDOW_END_NS - timing.STUDY_START_NS) // timing.MINUTE_NS
+    origin_ns, end_ns, interval_ns = reduction_clock_v1(native_m5_scope)
+    if (not items or type(tick_size) is not int or tick_size <= 0
+            or any(item['start_ns'] < origin_ns or item['end_ns'] > end_ns for item in items)):
+        raise ValueError('GC_CONTINUOUS_REDUCTION_SOURCE_SCOPE')
+    width = (end_ns - origin_ns) // interval_ns
     out = {name: np.zeros(width, dtype=np.uint64) for name in METRICS}
     file_reports = []
     columns=dict(COLUMNS)
@@ -69,7 +103,7 @@ def scan_symbol(items: list[dict], tick_size: int, *, on_batch=None, extra_colum
                 for name, allowed in (('action', timing.ALLOWED_ACTIONS), ('side', timing.ALLOWED_SIDES)):
                     if not pc.all(pc.is_in(data[name], value_set=pa.array(sorted(allowed)))).as_py():
                         raise ValueError('GC_CONTINUOUS_ACTION_OR_SIDE_INVALID')
-                idx = (recv.astype(np.int64) - timing.STUDY_START_NS) // timing.MINUTE_NS
+                idx = (recv.astype(np.int64) - origin_ns) // interval_ns
                 if np.any(idx < 0) or np.any(idx >= width):
                     raise ValueError('GC_CONTINUOUS_TEST_OR_WINDOW_VIOLATION')
                 trade = pc.equal(data['action'], 'T').to_numpy(zero_copy_only=False)
@@ -114,6 +148,8 @@ def scan_symbol(items: list[dict], tick_size: int, *, on_batch=None, extra_colum
         print(f'GC_CONTINUOUS_FILE_COMPLETE {symbol} records={count}', flush=True)
     out['symbol'] = symbol
     out['files'] = file_reports
+    if native_m5_scope is not None:
+        out['native_m5_reduction_clock'] = dict(native_m5_scope)
     return out
 
 
@@ -157,11 +193,12 @@ def row_masks(selected: np.ndarray, values: dict[str,np.ndarray], eligible: np.n
             'delta': signed, 'cvd': signed}
 
 
-def reset_segments(selected: np.ndarray, valid: np.ndarray, minute_ns: np.ndarray) -> np.ndarray:
+def reset_segments(selected: np.ndarray, valid: np.ndarray, minute_ns: np.ndarray, *, input_interval_ns=timing.MINUTE_NS) -> np.ndarray:
     """Segment relative CVD/profile at every UTC date, roll, or invalid minute.
 
     No cross-segment continuation or exchange-session-complete claim is made.
     """
+    input_interval_ns = _input_interval_ns(input_interval_ns)
     segment = np.full(len(valid), -1, dtype=np.int64)
     counter = -1
     for i in range(len(valid)):
@@ -169,13 +206,13 @@ def reset_segments(selected: np.ndarray, valid: np.ndarray, minute_ns: np.ndarra
             continue
         if (i == 0 or not valid[i-1] or selected[i] != selected[i-1] or
                 minute_ns[i] // DAY_NS != minute_ns[i-1] // DAY_NS or
-                minute_ns[i] - minute_ns[i-1] != timing.MINUTE_NS):
+                minute_ns[i] - minute_ns[i-1] != input_interval_ns):
             counter += 1
         segment[i] = counter
     return segment
 
 
-def source_incident_masks_v1(minutes, selected, quality, manifest, *, reject_duplicate_signature=True):
+def source_incident_masks_v1(minutes, selected, quality, manifest, *, reject_duplicate_signature=True, input_interval_ns=timing.MINUTE_NS):
     """Source-bound observation exclusion, never an inferred timestamp offset.
 
     Reductions cannot remove a single crossing transition after aggregation.
@@ -183,12 +220,13 @@ def source_incident_masks_v1(minutes, selected, quality, manifest, *, reject_dup
     clean M1 anchor after the published interval. The next minute may reuse that
     healthy anchor under the unchanged original prior-clean masks.
     """
+    input_interval_ns = _input_interval_ns(input_interval_ns)
     minutes = np.asarray(minutes)
     selected = np.asarray(selected)
     if (minutes.ndim != 1 or not len(minutes) or selected.shape != minutes.shape
-            or minutes.dtype.kind not in 'iu' or np.any(minutes % timing.MINUTE_NS)
-            or np.any(np.diff(minutes) != timing.MINUTE_NS)):
-        raise ValueError('GC_SOURCE_INCIDENT_M1_CLOCK')
+            or minutes.dtype.kind not in 'iu' or np.any(minutes % input_interval_ns)
+            or np.any(np.diff(minutes) != input_interval_ns)):
+        raise ValueError('GC_SOURCE_INCIDENT_M1_CLOCK' if input_interval_ns == timing.MINUTE_NS else 'GC_SOURCE_INCIDENT_NATIVE_M5_CLOCK')
     if (manifest.get('schema_version') != 'gx1_gc_vendor_source_incidents_v1'
             or manifest.get('dataset') != 'GLBX.MDP3' or not manifest.get('incidents')
             or manifest.get('nontrade_action_semantics_admitted') is not False):
@@ -210,17 +248,24 @@ def source_incident_masks_v1(minutes, selected, quality, manifest, *, reject_dup
         end = int(datetime.fromisoformat(incident['end_exclusive_utc'].replace('Z','+00:00')).timestamp()*1e9)
         if start >= end or not incident.get('incident_id') or not incident.get('source_url'):
             raise ValueError('GC_SOURCE_INCIDENT_INTERVAL')
-        overlap = (minutes < end) & (minutes + timing.MINUTE_NS > start)
+        overlap = (minutes < end) & (minutes + input_interval_ns > start)
         clock_excluded |= overlap
         if overlap.any():
             first = int(np.flatnonzero(overlap)[0]);last = int(np.flatnonzero(overlap)[-1])
             anchors = np.flatnonzero((np.arange(len(minutes)) > last) & clean)
             anchor = int(anchors[0]) if len(anchors) else len(minutes)-1
             state_excluded[first:anchor+1] = True
-            evidence.append({'incident_id':incident['incident_id'],'start_ns':start,'end_ns':end,
-                'overlap_m1_buckets':int(overlap.sum()),'first_overlap_minute_ns':int(minutes[first]),
-                'last_overlap_minute_ns':int(minutes[last]),'recovery_anchor_minute_ns':int(minutes[anchor]) if len(anchors) else None,
-                'book_event_excluded_m1_buckets':anchor-first+1})
+            if input_interval_ns == timing.MINUTE_NS:
+                evidence.append({'incident_id':incident['incident_id'],'start_ns':start,'end_ns':end,
+                    'overlap_m1_buckets':int(overlap.sum()),'first_overlap_minute_ns':int(minutes[first]),
+                    'last_overlap_minute_ns':int(minutes[last]),'recovery_anchor_minute_ns':int(minutes[anchor]) if len(anchors) else None,
+                    'book_event_excluded_m1_buckets':anchor-first+1})
+            else:
+                evidence.append({'incident_id':incident['incident_id'],'start_ns':start,'end_ns':end,
+                    'bar_duration_ns':input_interval_ns,'overlap_buckets':int(overlap.sum()),
+                    'first_overlap_bar_start_ns':int(minutes[first]),'last_overlap_bar_start_ns':int(minutes[last]),
+                    'recovery_anchor_bar_start_ns':int(minutes[anchor]) if len(anchors) else None,
+                    'book_event_excluded_buckets':anchor-first+1})
     return {'receive_clock_excluded':clock_excluded,'book_event_state_excluded':state_excluded,
             'incidents':evidence}
 
@@ -266,20 +311,32 @@ L1_QUALITY_METRICS=('records','clean_complete_bbo','bad_bbo','gap','bad_recv',
                     'full_record_duplicate_trade','signature_collision','file_seam')
 
 class L1QualityCollector:
-    """Selected-contract, per-M1 quality only; does not compute a predictor.
+    """Selected-contract, per-bucket quality only; does not compute a predictor.
 
     Full-record comparisons cover all 20 input fields, only for existing
     consecutive Trade-signature suspects. BBO snapshots are self-contained L1
-    observations; candidate continuous windows need a clean prior-minute anchor.
+    observations; candidate windows need a clean prior-bucket anchor.
     No claim of whole-feed sequence completeness or hidden order observability.
     """
-    def __init__(self,wanted_minute_indices,tick_size):
+    def __init__(self,wanted_minute_indices,tick_size,*,native_m5_scope=None):
         self.wanted=np.asarray(wanted_minute_indices,np.int64);self.tick_size=tick_size
+        self.native_m5_clock = None if native_m5_scope is None else reduction_clock_v1(native_m5_scope)
+        if self.native_m5_clock is not None:
+            origin,end,interval = self.native_m5_clock
+            if (self.wanted.ndim != 1 or np.any(np.diff(self.wanted) <= 0)
+                    or np.any(self.wanted < 0) or np.any(self.wanted >= (end-origin)//interval)):
+                raise ValueError('GC_NATIVE_M5_QUALITY_BUCKET_SCOPE')
         self.values={k:np.zeros(len(self.wanted),np.uint64) for k in L1_QUALITY_METRICS}
         self.previous_full=None;self.first_in_file=True
     def file_start(self,item):
         self.previous_full=None;self.first_in_file=True
     def __call__(self,data,idx,trusted_trade):
+        if self.native_m5_clock is not None:
+            origin,end,interval = self.native_m5_clock
+            recv=data['ts_recv'].to_numpy(zero_copy_only=False)
+            if (np.any(recv < origin) or np.any(recv >= end)
+                    or not np.array_equal(idx,(recv.astype(np.int64)-origin)//interval)):
+                raise ValueError('GC_NATIVE_M5_QUALITY_RAW_CLOCK_MISMATCH')
         names=[k for k in data if not k.startswith('_')]
         signature=data['_duplicate_trade_signature'].to_numpy(zero_copy_only=False)
         suspects=np.flatnonzero(signature);same=np.ones(len(suspects),bool)
