@@ -62,6 +62,28 @@ fra ny eksakt CPU-dispatch. Eksakt SHARED_GRADIENT001-metadata-/checkpoint-prefl
 CPU-diagnosen er innrømmet; alle treningsporter er fortsatt stengt.
 Kilde og policy fryses til native TERMINAL.
 
+### Fullført oppdateringsfri diagnose
+
+SHARED_GRADIENT001 fullførte med exit0 på 40,27 sekunder: én CPU-modell,
+4 forwards / 8 autograd / 0 optimizerobjekter eller oppdateringer.
+Modell, norm, prior, RNG og .grad=None ble bevart; source/policy uendret,
+0 M1/GC/TEST i modellen. Alle kjørings-/treningsporter er nå stengt.
+
+På de fire faste TRAIN-panelene var øvrige taps samlede shared-gradientnorm
+24,91 ganger M5-close. Pooled cosinus var −0,28891, og
+g5·(g5+gaux)=−0,00193489; samlet rågradient motarbeidet M5 i 3/4 paneler.
+406 prediktive celler ble brukt. Dette er rå evalgradient ved FINAL,
+ikke faktisk AdamW-retning, historisk årsaksbevis eller dokumentert gevinst.
+Uavhengig metadata-/skalarregning bekreftet identitetene med ≤1,1e−19
+avvik; gradienttensorene ble ikke uavhengig regnet på nytt.
+MATCHED_GRADIENT_REVIEW.json er hashbundet i policy.
+
+Neste design gjennomgås før kode/trening: M5-close kan få styre felles
+representasjon, mens øvrige hoder fortsatt lærer egne parametre uten
+shared-gradient. Alle TA-inputs og tidsrammer skal beholdes; ingen
+klassevekter eller fasit endres. Ingen ny fit er innrømmet.
+Det vedvarende målet er fortsatt aktivt.
+
 ### Fullført kronologisk TA-referanse og grunnlag
 
 ### Ny TA-only-funksjon og teknisk kvalifikasjon
