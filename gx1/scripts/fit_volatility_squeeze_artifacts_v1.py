@@ -58,7 +58,7 @@ def native_m5_fit_frames_from_plan(
     """
     import json
     import pyarrow.parquet as pq
-    from gx1.features.htf_features import _resample_ohlcv
+    from gx1.features.htf_features import _resample_ohlcv, multi_tf_resample
     from gx1.features.volatility_squeeze_state_v1 import (
         VOLATILITY_SQUEEZE_DIRECTION_CLOCKS as clocks,
         VOLATILITY_SQUEEZE_DIRECTION_CLOCK_CONTRACT as clock_contract,
@@ -124,6 +124,12 @@ def native_m5_fit_frames_from_plan(
     frames = {"M5": m5}
     for clock in clocks[1:]:
         frame = _resample_ohlcv(m5, clock)
+        # Empty periods retain volume=sum([])=0 in the OHLCV resampler.
+        # Remove only bins with no actual source members. An observed invalid
+        # price (even all four missing) remains for the strict fitter to reject.
+        members = multi_tf_resample(m5, clock).size().reindex(frame.index)
+        empty = frame[["open", "high", "low", "close"]].isna().all(axis=1) & members.eq(0)
+        frame = frame.loc[~empty]
         duration = pd.Timedelta(volatility_squeeze_bar_grid(clock)["duration_ns"], unit="ns")
         frames[clock] = frame.loc[
             (frame.index >= pd.Timestamp(start, tz="UTC"))

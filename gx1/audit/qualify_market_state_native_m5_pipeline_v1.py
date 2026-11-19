@@ -22,9 +22,9 @@ from gx1.contracts.immutable_event_authority_v1 import _publish_bytes
 
 REPO = data.REPO
 POLICY = REPO / 'NEXT_RUN_POLICY.json'
-STAGE = 'native_m5_pipeline_20261119_001'
-PLAN = REPO / 'configs/research/NATIVE_M5_PIPELINE_20261119_001.json'
-ROOT = Path('/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_001')
+STAGE = 'native_m5_pipeline_20261119_002'
+PLAN = REPO / 'configs/research/NATIVE_M5_PIPELINE_20261119_002.json'
+ROOT = Path('/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_002')
 FIT_START_NS = 1714521600000000000
 FIT_END_NS = 1727740800000000000
 PARAMETER_START_NS = 1243814400000000000
@@ -39,7 +39,8 @@ EXECUTION = {'class': 'producer', 'memory': '12G', 'swap': '512M',
     'numerical_threads': 1, 'model_constructions': 1, 'model_forwards': 1,
     'optimizer_steps': 0}
 INPUT_KEYS = {'squeeze_fit_plan', 'registry_fit_plan', 'native_source_plan',
-              'macro_source_plan', 'target_result', 'target_terminal', 'target_tape'}
+              'macro_source_plan', 'target_result', 'target_terminal', 'target_tape',
+              'history_verification', 'prefitted_squeeze_m5'}
 SOURCE_PATHS = (
     'gx1/audit/qualify_market_state_native_m5_pipeline_v1.py',
     'gx1/audit/build_native_m5_direction_targets_v1.py',
@@ -161,6 +162,71 @@ def feature_spec(source_plan):
     return {'manifest': original['manifest'], 'parts': parts, 'cutoff_ns': FIT_END_NS}
 
 
+def reused_history_verification(inputs):
+    binding = inputs['history_verification']
+    previous_root = Path('/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_001')
+    need(binding['path'] == str(previous_root / 'HISTORY_VERIFICATION.json'),
+         'HISTORY_REUSE_PATH')
+    saved = read(binding)
+    old_plan = read(saved['plan'])
+    old_claim = read(saved['claim'])
+    target = read(inputs['target_result'])
+    source = read(inputs['native_source_plan'])
+    proof = saved['verification']
+    need(saved['plan']['path'] == str(REPO / 'configs/research/NATIVE_M5_PIPELINE_20261119_001.json')
+         and saved['claim']['path'] == str(previous_root / 'CLAIM.json')
+         and old_plan['stage'] == old_claim['stage'] == 'native_m5_pipeline_20261119_001'
+         and old_claim['plan'] == saved['plan']
+         and saved['target_tape'] == old_plan['inputs']['target_tape'] == inputs['target_tape']
+         and old_plan['inputs']['native_source_plan'] == inputs['native_source_plan']
+         and old_plan['target_contract'] == target['target_contract']
+         and old_plan['target_source_spec'] == source['source_spec'],
+         'HISTORY_REUSE_LINEAGE')
+    report = target['report']
+    need(proof['schema_version'] == 'native_m5_independent_all_history_facts_verification_v1'
+         and target['target_contract']['schema_version'] == 'gx1_market_state_native_m5_bar_directions_v2'
+         and proof['array_count'] == len(proof['compared_arrays']) == 76
+         and set(proof['compared_arrays']) == set(report['array_shapes'])
+         and proof['all_arrays_exact_equal_nan'] is True
+         and proof['raw_and_archive_hash_bookends_unchanged'] is True
+         and proof['raw_parts'] == len(source['source_spec']['parts'])
+         and proof['retained_source_rows'] == report['source_rows']
+         and proof['issue_rows'] == report['selected_issue_rows']
+         and proof['strict_exclusive_close_cutoff_ns'] == source['source_spec']['cutoff_ns'],
+         'HISTORY_REUSE_COMPLETENESS')
+    fields = {'observed_bars': 'observed_bars', 'missing_first_previous': 'missing_previous_bars',
+              'cross_year_previous_bars': 'cross_year_previous_bars',
+              'future_present': 'future_target_present', 'future_mature': 'future_mature',
+              'future_eligible': 'future_eligible',
+              'future_unique_mature_rows': 'future_unique_mature_bar_rows'}
+    need(set(proof['coverage_by_timeframe']) == set(report['coverage_by_timeframe'])
+         and all(observed[left] == report['coverage_by_timeframe'][tf][right]
+                 for tf, observed in proof['coverage_by_timeframe'].items()
+                 for left, right in fields.items()), 'HISTORY_REUSE_COVERAGE')
+    return saved
+
+
+def prefitted_m5_metadata(inputs):
+    from gx1.features.volatility_squeeze_state_v1 import (
+        load_volatility_squeeze_params, VOLATILITY_SQUEEZE_DIRECTION_CLOCK_CONTRACT,
+    )
+    binding = inputs['prefitted_squeeze_m5']
+    need(binding['path'] == '/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_001/SQUEEZE/m5_params.json',
+         'PREFITTED_M5_PATH')
+    params = load_volatility_squeeze_params(Path(binding['path']),
+        expected_sha256=binding['sha256'], timeframe='M5',
+        expected_clock_contract=VOLATILITY_SQUEEZE_DIRECTION_CLOCK_CONTRACT)
+    provenance = params['source_provenance']
+    need(provenance['fit_plan_artifact'] == inputs['squeeze_fit_plan']['path']
+         and provenance['fit_plan_sha256'] == inputs['squeeze_fit_plan']['sha256']
+         and params['declared_train_window_start'] == pd.Timestamp(PARAMETER_START_NS, tz='UTC').isoformat()
+         and params['declared_train_window_end'] == pd.Timestamp(PARAMETER_END_NS, tz='UTC').isoformat(),
+         'PREFITTED_M5_SCOPE')
+    return {'artifact': binding, 'train_ohlcv_rows': params['train_ohlcv_rows'],
+            'train_ohlcv_sha256': params['train_ohlcv_sha256'],
+            'contract_sha256': params['contract_sha256']}
+
+
 def build_plan(*, inputs, source_base_commit=None):
     from gx1.contracts.market_state_native_m5_targets_v1 import contract as target_contract
     from gx1.contracts.market_state_native_m5_feature_inputs_v1 import (
@@ -186,6 +252,8 @@ def build_plan(*, inputs, source_base_commit=None):
          and target['target_contract'] == target_contract()
          and target['test_data_used'] is terminal['test_data_used'] is False,
          'TARGET_CHAIN')
+    history = reused_history_verification(inputs)
+    prefitted = prefitted_m5_metadata(inputs)
     dependencies = macro_metadata(inputs['macro_source_plan'])
     metadata = {part['path']: data.part_metadata(part) for part in spec['parts']}
     for part in spec['parts']:
@@ -198,6 +266,9 @@ def build_plan(*, inputs, source_base_commit=None):
         'status': 'PREPARED_NOT_ADMITTED', 'output_root': str(ROOT),
         'source_base_commit': head, 'source_owners': {p: sha(REPO / p) for p in SOURCE_PATHS},
         'inputs': inputs, 'macro_dependencies': dependencies, 'feature_source_spec': spec,
+        'history_lineage': {'plan': history['plan'], 'claim': history['claim']},
+        'history_reuse': 'original_001_all_76_array_proof_for_identical_003_target_bytes',
+        'prefitted_squeeze_m5': prefitted,
         'feature_source_metadata': metadata, 'parameter_source_spec': squeeze['source_spec'],
         'target_source_spec': source['source_spec'], 'target_source_metadata': source['source_metadata'],
         'fit_start_ns': FIT_START_NS, 'fit_end_ns': FIT_END_NS,
@@ -227,9 +298,10 @@ def source_clean(plan):
 
 
 def checked_inputs(plan):
-    bindings = list(plan['inputs'].values()) + list(plan['macro_dependencies'].values())
+    bindings = (list(plan['inputs'].values()) + list(plan['macro_dependencies'].values())
+                + list(plan['history_lineage'].values()))
     bindings.append(plan['feature_source_spec']['manifest'])
-    for spec in (plan['feature_source_spec'], plan['parameter_source_spec'], plan['target_source_spec']):
+    for spec in (plan['feature_source_spec'], plan['parameter_source_spec']):
         bindings.extend({'path': part['path'], 'sha256': part['sha256']} for part in spec['parts'])
     seen = {}
     for binding in bindings:
@@ -293,7 +365,8 @@ def physical_parameter_fits(plan):
         frames, declared_train_window_start=pd.Timestamp(PARAMETER_START_NS, tz='UTC'),
         declared_train_window_end=pd.Timestamp(PARAMETER_END_NS, tz='UTC'),
         source_provenance_by_clock=provenance, output_dir=output,
-        clocks=VOLATILITY_SQUEEZE_DIRECTION_CLOCKS)
+        clocks=VOLATILITY_SQUEEZE_DIRECTION_CLOCKS,
+        prefitted_params_by_clock={'M5': inputs['prefitted_squeeze_m5']})
     squeeze_ref = ref(manifest)
     saved = read(squeeze_ref)
     for tf in VOLATILITY_SQUEEZE_DIRECTION_CLOCKS:
@@ -311,7 +384,8 @@ def physical_parameter_fits(plan):
     constants = require_native_m5_registry_constants(constants)
     registry_ref = publish('REGISTRY_CONSTANTS.json', constants)
     return {'squeeze_manifest': squeeze_ref, 'registry_constants': constants,
-            'registry_artifact': registry_ref, 'physical_fit_proof': proof}
+            'registry_artifact': registry_ref, 'physical_fit_proof': proof,
+            'prefitted_squeeze_m5': inputs['prefitted_squeeze_m5']}
 
 
 def read_feature_source(plan):
@@ -496,217 +570,6 @@ def qualify_physical_pipeline(plan, parameters):
     }
 
 
-def verify_native_m5_bar_facts_003(*, source_spec, archive_ref):
-    """Read pinned originals and compare every 003 NPZ array without target owners."""
-    import hashlib
-    import json
-    from pathlib import Path
-    import numpy as np
-    import pyarrow.parquet as pq
-
-    tick = 300_000_000_000
-    cutoff = 1782864000000000000
-    issue_start = 1243814400000000000
-    native = Path('/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927')
-    manifest_ref = {'path': str(native / 'MANIFEST.json'),
-        'sha256': 'ca0012e5e30f7808876d666fe4d32e3fb873fddb6fc6178bd47b97eb89194cca'}
-    durations = {'M5': tick, 'M15': 3*tick, 'H1': 12*tick,
-                 'H4': 48*tick, 'D1': 288*tick}
-    offsets = {'M5': 0, 'M15': 0, 'H1': 0, 'H4': 24*tick, 'D1': 264*tick}
-    columns = ['time', 'open', 'high', 'low', 'close']
-
-    def need(ok, reason):
-        if not bool(ok):
-            raise RuntimeError('NATIVE_M5_INDEPENDENT_FACTS_' + reason)
-
-    def digest(path):
-        h = hashlib.sha256()
-        with Path(path).open('rb') as stream:
-            for block in iter(lambda: stream.read(1024*1024), b''):
-                h.update(block)
-        return h.hexdigest()
-
-    def checked_ref(ref):
-        need(type(ref) is dict and set(ref) == {'path', 'sha256'}, 'REF')
-        p = Path(ref['path'])
-        need(p.is_absolute() and not p.is_symlink() and p.resolve(strict=True) == p
-             and p.is_file() and digest(p) == ref['sha256'], 'REF_HASH')
-        return p
-
-    need(type(source_spec) is dict and set(source_spec) == {
-        'manifest', 'parts', 'closure_authority', 'issue_start_ns', 'cutoff_ns'}
-        and source_spec['manifest'] == manifest_ref
-        and source_spec['closure_authority'] is None
-        and source_spec['issue_start_ns'] == issue_start
-        and source_spec['cutoff_ns'] == cutoff, 'SOURCE_IDENTITY')
-    manifest = json.loads(checked_ref(manifest_ref).read_bytes())
-    identity = {'schema_version': 'xau_canonical_native_source_v3',
-        'instrument': 'XAU_USD', 'timeframe': 'M5', 'source_granularity': 'M5',
-        'source_kind': 'oanda_native_mba_candles', 'prices': 'MBA',
-        'bar_duration_seconds': 300, 'decision_available_offset_seconds': 300,
-        'timestamp_semantics': 'bar_start_utc', 'completion_field': 'complete',
-        'completion_value': True}
-    need(all(manifest.get(k) == v for k, v in identity.items()), 'MANIFEST_IDENTITY')
-    need(set(manifest['year_rows']) == {f'year={year}' for year in range(2009, 2027)},
-         'MANIFEST_YEARS')
-    parts = source_spec['parts']
-    need(type(parts) is list and len(parts) == 18, 'PART_COUNT')
-    archive_path = checked_ref(archive_ref)
-    starts_parts, price_parts, decoded_rows = [], [], 0
-    for year, part in zip(range(2009, 2027), parts):
-        key = f'year={year}'
-        need(type(part) is dict and set(part) == {'path', 'sha256', 'row_groups'}
-             and part['path'] == str(native / key / 'part-000.parquet')
-             and part['sha256'] == manifest['year_sha256'][key], 'PART_IDENTITY')
-        p = checked_ref({k: part[k] for k in ('path', 'sha256')})
-        parquet = pq.ParquetFile(p)
-        need(parquet.metadata.num_rows == manifest['year_rows'][key]
-             and all(k in parquet.schema_arrow.names for k in columns), 'PART_METADATA')
-        time_col = parquet.schema_arrow.names.index('time')
-        expected_groups = []
-        for group in range(parquet.num_row_groups):
-            clock = parquet.metadata.row_group(group).column(time_col).statistics
-            need(clock is not None and clock.has_min_max, 'RAW_CLOCK_STATISTICS')
-            first_ns = int(clock.min.timestamp()) * 1_000_000_000
-            if first_ns + tick < cutoff:
-                expected_groups.append(group)
-        need(part['row_groups'] == expected_groups, 'EXACT_PREFIX_ROW_GROUPS')
-        for group in expected_groups:
-            table = parquet.read_row_group(group, columns=columns, use_threads=False)
-            need(all(table[k].null_count == 0 for k in columns), 'RAW_NULL')
-            starts = table['time'].to_numpy(zero_copy_only=False).astype('datetime64[ns]').astype(np.int64)
-            prices = np.column_stack([table[k].to_numpy(zero_copy_only=False)
-                                      for k in columns[1:]]).astype(np.float64)
-            take = starts + tick < cutoff
-            starts_parts.append(starts[take]); price_parts.append(prices[take])
-            decoded_rows += len(starts)
-    starts = np.concatenate(starts_parts)
-    prices = np.concatenate(price_parts)
-    del starts_parts, price_parts
-    need(len(starts) > 0 and np.all(starts >= 0) and np.all(starts % tick == 0)
-         and np.all(np.diff(starts) > 0) and np.all(starts + tick < cutoff), 'RAW_CLOCK')
-    need(np.isfinite(prices).all() and np.all(prices > 0)
-         and np.all(prices[:, 1] >= np.maximum(prices[:, 0], prices[:, 3]))
-         and np.all(prices[:, 2] <= np.minimum(prices[:, 0], prices[:, 3])), 'RAW_OHLC')
-    gap = np.r_[False, np.diff(starts) != tick]
-    selected = np.flatnonzero((starts + tick >= issue_start) & (starts + tick < cutoff))
-    issues = starts[selected] + tick
-    need(len(issues) > 0, 'EMPTY_ISSUES')
-    shape = (len(issues), len(durations))
-    future = {'issue_ns': issues.copy(),
-        'target_row': np.full(shape, -1, np.int64),
-        'validity_ns': np.full(shape, -1, np.int64),
-        'target_present': np.zeros(shape, np.bool_),
-        'observed_previous': np.zeros(shape, np.bool_),
-        'mature': np.zeros(shape, np.bool_), 'eligible': np.zeros(shape, np.bool_),
-        'open_known_at_issue': np.zeros(shape, np.bool_),
-        'open_sign': np.zeros(shape, np.int8), 'close_sign': np.zeros(shape, np.int8),
-        'm5_count': np.zeros(shape, np.int64), 'source_gap': np.zeros(shape, np.bool_)}
-    bar_fields = ('bar_start_ns', 'available_ns', 'open_available_ns', 'ohlc',
-        'previous_open', 'previous_close', 'open_sign', 'close_sign',
-        'observed_previous', 'm5_count', 'source_gap')
-    expected_keys = {'issue_ns', 'source_row', 'ohlc', 'source_gap'}
-    expected_keys.update('future_' + k for k in future)
-    expected_keys.update('bars_' + tf + '_' + k for tf in durations for k in ('row',) + bar_fields)
-    compared, coverage = [], {}
-    with np.load(archive_path, allow_pickle=False) as saved:
-        need(len(expected_keys) == 76 and len(saved.files) == 76
-             and set(saved.files) == expected_keys, 'ALL_76_ARRAY_KEYS')
-        def compare(key, expected):
-            actual = saved[key]
-            need(actual.dtype == expected.dtype and actual.shape == expected.shape,
-                 'ARRAY_HEADER:' + key)
-            equal = np.array_equal(actual, expected, equal_nan=True) if np.issubdtype(
-                expected.dtype, np.floating) else np.array_equal(actual, expected)
-            need(equal, 'ARRAY_VALUES:' + key)
-            compared.append(key)
-
-        compare('issue_ns', issues)
-        compare('source_row', selected.astype(np.int64))
-        compare('ohlc', prices[selected])
-        compare('source_gap', gap[selected])
-        for j, (tf, duration) in enumerate(durations.items()):
-            label = (starts - offsets[tf]) // duration * duration + offsets[tf]
-            first = np.r_[0, np.flatnonzero(np.diff(label) != 0) + 1]
-            last = np.r_[first[1:] - 1, len(starts) - 1]
-            labels = label[first]
-            keep = labels + duration < cutoff
-            values = np.column_stack((prices[first, 0],
-                np.maximum.reduceat(prices[:, 1], first),
-                np.minimum.reduceat(prices[:, 2], first), prices[last, 3]))[keep]
-            available = (labels + duration)[keep]
-            native_gap = np.logical_or.reduceat(gap, first)[keep]
-            if len(available) > 1:
-                native_gap[1:] |= np.diff(available) != duration
-            n = len(available)
-            need(n > 0, 'EMPTY_TF:' + tf)
-            previous_open = np.r_[np.nan, values[:-1, 0]].astype(np.float64)
-            previous_close = np.r_[np.nan, values[:-1, 3]].astype(np.float64)
-            opens = np.r_[0, np.sign(np.diff(values[:, 0]))].astype(np.int8)
-            closes = np.r_[0, np.sign(np.diff(values[:, 3]))].astype(np.int8)
-            bars = {'bar_start_ns': labels[keep], 'available_ns': available,
-                'open_available_ns': starts[first[keep]] + tick, 'ohlc': values,
-                'previous_open': previous_open, 'previous_close': previous_close,
-                'open_sign': opens, 'close_sign': closes,
-                'observed_previous': np.arange(n) > 0,
-                'm5_count': (last - first + 1)[keep].astype(np.int64),
-                'source_gap': native_gap}
-            at = np.flatnonzero(available >= issue_start)
-            compare('bars_' + tf + '_row', at.astype(np.int64))
-            for key in bar_fields:
-                compare('bars_' + tf + '_' + key, bars[key][at])
-            next_row = np.searchsorted(available, issues, side='right')
-            present = next_row < n
-            future['target_present'][:, j] = present
-            future['validity_ns'][present, j] = available[next_row[present]]
-            future['open_known_at_issue'][present, j] = (
-                bars['open_available_ns'][next_row[present]] <= issues[present])
-            ready = present & (future['validity_ns'][:, j] < cutoff)
-            future['mature'][:, j] = ready
-            future['target_row'][ready, j] = next_row[ready]
-            for key in ('observed_previous', 'open_sign', 'close_sign', 'm5_count', 'source_gap'):
-                future[key][ready, j] = bars[key][next_row[ready]]
-            future['eligible'][:, j] = ready & future['observed_previous'][:, j]
-            years = available.astype('datetime64[ns]').astype('datetime64[Y]')
-            previous_years = np.r_[years[:1], years[:-1]]
-            known = bars['observed_previous']
-            coverage[tf] = {
-                'observed_bars': int(len(at)),
-                'missing_first_previous': int((~known[at]).sum()),
-                'cross_year_previous_bars': int((known[at] & (years[at] != previous_years[at])).sum()),
-                'yearly': {str(year): {
-                    'observed_bars': int((years[at] == year).sum()),
-                    'missing_previous': int(((years[at] == year) & ~known[at]).sum()),
-                    'cross_year_previous': int(((years[at] == year) & known[at]
-                        & (years[at] != previous_years[at])).sum()),
-                } for year in np.unique(years[at])},
-                'known_equal_open': int(((opens[at] == 0) & known[at]).sum()),
-                'known_equal_close': int(((closes[at] == 0) & known[at]).sum()),
-                'future_present': int(present.sum()), 'future_mature': int(ready.sum()),
-                'future_eligible': int(future['eligible'][:, j].sum()),
-                'future_open_known_at_issue': int(future['open_known_at_issue'][:, j].sum()),
-                'future_unique_mature_rows': int(np.unique(next_row[ready]).size),
-            }
-        for key, value in future.items():
-            compare('future_' + key, value)
-    need(len(compared) == 76 and set(compared) == expected_keys, 'COMPLETE_COMPARISON')
-    checked_ref(manifest_ref)
-    for part in parts:
-        checked_ref({k: part[k] for k in ('path', 'sha256')})
-    checked_ref(archive_ref)
-    return {'schema_version': 'native_m5_independent_all_history_facts_verification_v1',
-        'raw_parts': len(parts), 'decoded_rows': decoded_rows, 'retained_source_rows': len(starts),
-        'issue_rows': len(issues), 'array_count': len(compared),
-        'compared_arrays': sorted(compared), 'all_arrays_exact_equal_nan': True,
-        'raw_and_archive_hash_bookends_unchanged': True,
-        'aggregation': 'independent_integer_UTC_buckets_numpy_reduceat_first_open_max_high_min_low_last_close',
-        'offset_ns': offsets, 'strict_exclusive_close_cutoff_ns': cutoff,
-        'source_row_axis': 'own_ordered_filtered_raw_M5_prefix_ordinal',
-        'coverage_by_timeframe': coverage,
-        'target_metadata_never_model_input': True,
-        'target_resampler_audit_owner_imported': False}
-
-
 def run(plan_sha):
     started = time.monotonic()
     cap = require_capped_cpu_research_producer_execution()
@@ -729,11 +592,9 @@ def run(plan_sha):
         need(remaining > 0, 'TIME_BEFORE_PHYSICAL_WORK')
         signal.signal(signal.SIGALRM, expired)
         signal.setitimer(signal.ITIMER_REAL, remaining)
-        history = verify_native_m5_bar_facts_003(
-            source_spec=plan['target_source_spec'], archive_ref=plan['inputs']['target_tape'])
-        history_ref = publish('HISTORY_VERIFICATION.json', {
-            'plan': plan_ref, 'claim': claim, 'target_tape': plan['inputs']['target_tape'],
-            'verification': history})
+        original_history = reused_history_verification(plan['inputs'])
+        history = original_history['verification']
+        history_ref = plan['inputs']['history_verification']
         parameters = physical_parameter_fits(plan)
         report = qualify_physical_pipeline(plan, parameters)
         checked_inputs(plan)
@@ -745,6 +606,7 @@ def run(plan_sha):
             'source_unchanged': True, 'parameters': {key: value for key, value in parameters.items()
                                                    if key != 'registry_constants'},
             'history_verification': history, 'history_verification_artifact': history_ref,
+            'history_verification_role': 'reused_original_001_proof_with_original_plan_and_claim',
             'report': report, 'model_forwards': 1, 'optimizer_steps': 0,
             'normalization_fits': 1, 'test_data_used': False, 'economic_edge_proven': False,
             'elapsed_seconds': time.monotonic() - started})

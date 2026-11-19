@@ -14,7 +14,8 @@ def lifecycle(monkeypatch, tmp_path):
     plan_ref = {'path': str(tmp_path / 'PLAN.json'), 'sha256': '1' * 64}
     policy_ref = {'path': str(tmp_path / 'POLICY.json'), 'sha256': '2' * 64}
     plan = {'execution': dict(audit.EXECUTION), 'target_source_spec': {},
-            'inputs': {'target_tape': {}}}
+            'inputs': {'target_tape': {}, 'history_verification': {
+                'path': '/previous/HISTORY_VERIFICATION.json', 'sha256': '3' * 64}}}
     monkeypatch.setattr(audit, 'require_capped_cpu_research_producer_execution', lambda: {
         'memory_max': 12 * 1024**3, 'memory_high': 12 * 1024**3,
         'swap': 512 * 1024**2, 'numerical_threads': 1,
@@ -30,8 +31,8 @@ def lifecycle(monkeypatch, tmp_path):
 def test_success_checks_history_before_fits_and_publishes_one_use(monkeypatch, tmp_path):
     lifecycle(monkeypatch, tmp_path)
     events = []
-    monkeypatch.setattr(audit, 'verify_native_m5_bar_facts_003',
-        lambda **kwargs: events.append('history') or {'array_count': 76})
+    monkeypatch.setattr(audit, 'reused_history_verification',
+        lambda inputs: events.append('history') or {'verification': {'array_count': 76}})
     monkeypatch.setattr(audit, 'physical_parameter_fits',
         lambda plan: events.append('parameters') or {'registry_constants': {}})
     monkeypatch.setattr(audit, 'qualify_physical_pipeline',
@@ -46,15 +47,17 @@ def test_success_checks_history_before_fits_and_publishes_one_use(monkeypatch, t
     assert saved['report']['status'] == 'TECHNICAL_INITIAL_BATCH_ONLY'
     assert saved['model_forwards'] == 1 and saved['optimizer_steps'] == 0
     assert saved['economic_edge_proven'] is False
+    assert saved['history_verification_artifact']['path'] == '/previous/HISTORY_VERIFICATION.json'
+    assert not (audit.ROOT / 'HISTORY_VERIFICATION.json').exists()
     with pytest.raises(FileExistsError):
         audit.run('1' * 64)
 
 
-def test_independent_history_failure_consumes_claim_before_parameter_fit(monkeypatch, tmp_path):
+def test_reused_history_failure_consumes_claim_before_parameter_fit(monkeypatch, tmp_path):
     lifecycle(monkeypatch, tmp_path)
-    def failed(**kwargs):
+    def failed(inputs):
         raise RuntimeError('independent-history-mismatch')
-    monkeypatch.setattr(audit, 'verify_native_m5_bar_facts_003', failed)
+    monkeypatch.setattr(audit, 'reused_history_verification', failed)
     monkeypatch.setattr(audit, 'physical_parameter_fits',
                         lambda plan: pytest.fail('parameter fit reached'))
     with pytest.raises(RuntimeError, match='independent-history-mismatch'):
@@ -81,7 +84,7 @@ def test_preflight_never_decodes_or_constructs_model(monkeypatch, tmp_path, caps
     plan_ref = lifecycle(monkeypatch, tmp_path)
     def unexpected(*args, **kwargs):
         pytest.fail('physical work reached during preflight')
-    for name in ('read_feature_source', 'verify_native_m5_bar_facts_003',
+    for name in ('read_feature_source', 'reused_history_verification',
                  'physical_parameter_fits', 'qualify_physical_pipeline', 'publish'):
         monkeypatch.setattr(audit, name, unexpected)
     monkeypatch.setattr(sys, 'argv', ['audit', '--plan', str(audit.PLAN),
@@ -142,3 +145,68 @@ def test_build_plan_rejects_partial_history_before_feature_or_macro_work(monkeyp
                         lambda binding: pytest.fail('partial-history macro work reached'))
     with pytest.raises(ValueError, match='FULL_HISTORY_003_IDENTITY'):
         audit.build_plan(inputs=inputs)
+
+
+def history_fixture(monkeypatch):
+    old_root = '/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_001'
+    def binding(path):
+        return {'path': path, 'sha256': '1' * 64}
+    inputs = {
+        'history_verification': binding(old_root + '/HISTORY_VERIFICATION.json'),
+        'target_tape': binding('/synthetic/TARGETS.npz'),
+        'target_result': binding('/synthetic/RESULT.json'),
+        'native_source_plan': binding('/synthetic/SOURCE_PLAN.json')}
+    plan_ref = binding(str(audit.REPO / 'configs/research/NATIVE_M5_PIPELINE_20261119_001.json'))
+    claim_ref = binding(old_root + '/CLAIM.json')
+    spec = {'parts': [{}] * 18, 'cutoff_ns': audit.data.CUTOFF_NS}
+    contract = {'schema_version': 'gx1_market_state_native_m5_bar_directions_v2'}
+    coverage = {'observed_bars': 100, 'missing_previous_bars': 1,
+        'cross_year_previous_bars': 17, 'future_target_present': 90,
+        'future_mature': 90, 'future_eligible': 89, 'future_unique_mature_bar_rows': 90}
+    proof_coverage = {'observed_bars': 100, 'missing_first_previous': 1,
+        'cross_year_previous_bars': 17, 'future_present': 90,
+        'future_mature': 90, 'future_eligible': 89, 'future_unique_mature_rows': 90}
+    keys = ['synthetic_field_' + str(i) for i in range(76)]
+    proof = {'schema_version': 'native_m5_independent_all_history_facts_verification_v1',
+        'array_count': 76, 'compared_arrays': keys, 'all_arrays_exact_equal_nan': True,
+        'raw_and_archive_hash_bookends_unchanged': True, 'raw_parts': 18,
+        'retained_source_rows': 100, 'issue_rows': 100,
+        'strict_exclusive_close_cutoff_ns': audit.data.CUTOFF_NS,
+        'coverage_by_timeframe': {'M5': proof_coverage}}
+    target = {'target_contract': contract, 'report': {
+        'array_shapes': {key: [100] for key in keys}, 'source_rows': 100,
+        'selected_issue_rows': 100, 'coverage_by_timeframe': {'M5': coverage}}}
+    saved = {'plan': plan_ref, 'claim': claim_ref,
+             'target_tape': dict(inputs['target_tape']), 'verification': proof}
+    old_plan = {'stage': 'native_m5_pipeline_20261119_001',
+        'inputs': {'target_tape': dict(inputs['target_tape']),
+                   'native_source_plan': dict(inputs['native_source_plan'])},
+        'target_contract': contract, 'target_source_spec': spec}
+    old_claim = {'stage': old_plan['stage'], 'plan': plan_ref}
+    records = {inputs['history_verification']['path']: saved,
+        inputs['target_result']['path']: target,
+        inputs['native_source_plan']['path']: {'source_spec': spec},
+        plan_ref['path']: old_plan, claim_ref['path']: old_claim}
+    monkeypatch.setattr(audit, 'read', lambda ref: records[ref['path']])
+    return inputs, saved
+
+
+def test_reuse_keeps_original_plan_claim_and_all_76_proof(monkeypatch):
+    inputs, saved = history_fixture(monkeypatch)
+    actual = audit.reused_history_verification(inputs)
+    assert actual is saved
+    assert actual['plan']['path'].endswith('NATIVE_M5_PIPELINE_20261119_001.json')
+    assert actual['claim']['path'].endswith('_001/CLAIM.json')
+
+
+@pytest.mark.parametrize('fault', ('tape', 'incomplete', 'coverage'))
+def test_reuse_rejects_changed_scope_before_parameter_work(monkeypatch, fault):
+    inputs, saved = history_fixture(monkeypatch)
+    if fault == 'tape':
+        inputs['target_tape'] = {**inputs['target_tape'], 'sha256': '2' * 64}
+    elif fault == 'incomplete':
+        saved['verification']['array_count'] = 75
+    else:
+        saved['verification']['coverage_by_timeframe']['M5']['observed_bars'] = 99
+    with pytest.raises(ValueError, match='HISTORY_REUSE_(LINEAGE|COMPLETENESS|COVERAGE)'):
+        audit.reused_history_verification(inputs)

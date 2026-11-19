@@ -870,3 +870,57 @@ def test_native_fit_plan_start_must_match_declared_parameter_window(tmp_path):
         owner._require_native_m5_provenance(
             provenance['M5'], timeframe='M5', fit_cutoff_ns=int(end.value),
             fit_start_ns=int(frames['M5'].index[0].value) + 300_000_000_000)
+
+
+def test_native_manifest_reuses_only_exact_prefitted_M5_population(tmp_path, monkeypatch):
+    from gx1.features import volatility_squeeze_state_v1 as owner
+    clocks = owner.VOLATILITY_SQUEEZE_DIRECTION_CLOCKS
+    frames = {tf: _closed_ohlcv(tf) for tf in clocks}
+    provenance, end = _native_m5_provenance(tmp_path, frames)
+    start = frames['M5'].index[0]
+    params = owner.fit_volatility_squeeze_params(
+        frames['M5'], timeframe='M5', declared_train_window_start=start,
+        declared_train_window_end=end, source_provenance=provenance['M5'])
+    saved = owner.write_volatility_squeeze_params(tmp_path / 'prefitted_m5.json', params)
+    binding = {'path': str(saved), 'sha256': hashlib.sha256(saved.read_bytes()).hexdigest()}
+    actual_fit = owner.fit_volatility_squeeze_params
+    calls = []
+    def fit(frame, *, timeframe, **kwargs):
+        assert timeframe != 'M5', 'completed M5 fit was repeated'
+        calls.append(timeframe)
+        return actual_fit(frame, timeframe=timeframe, **kwargs)
+    monkeypatch.setattr(owner, 'fit_volatility_squeeze_params', fit)
+    output = tmp_path / 'reused'
+    output.mkdir()
+    manifest = owner.fit_volatility_squeeze_artifact_manifest(
+        frames, declared_train_window_start=start, declared_train_window_end=end,
+        source_provenance_by_clock=provenance, output_dir=output, clocks=clocks,
+        prefitted_params_by_clock={'M5': binding})
+    assert calls == list(clocks[1:])
+    fresh = json.loads((output / 'm5_params.json').read_text())
+    assert fresh == params
+    assert json.loads(manifest.read_text())['artifacts']['M5']['train_ohlcv_sha256'] == params['train_ohlcv_sha256']
+
+    changed = {tf: frame.copy() for tf, frame in frames.items()}
+    changed['M5'].iloc[50, changed['M5'].columns.get_loc('close')] += 0.00001
+    output = tmp_path / 'wrong_population'
+    output.mkdir()
+    with pytest.raises(RuntimeError, match='PREFITTED_POPULATION_MISMATCH'):
+        owner.fit_volatility_squeeze_artifact_manifest(
+            changed, declared_train_window_start=start, declared_train_window_end=end,
+            source_provenance_by_clock=provenance, output_dir=output, clocks=clocks,
+            prefitted_params_by_clock={'M5': binding})
+
+
+def test_prefitted_native_manifest_rejects_minute_reference_before_IO(tmp_path, monkeypatch):
+    from gx1.features import volatility_squeeze_state_v1 as owner
+    def forbidden(*args, **kwargs):
+        pytest.fail('forbidden source reference reached IO')
+    monkeypatch.setattr(Path, 'open', forbidden)
+    with pytest.raises(RuntimeError, match='PREFITTED_NATIVE_BINDING'):
+        owner.fit_volatility_squeeze_artifact_manifest(
+            {}, declared_train_window_start='2024-01-01T00:00:00Z',
+            declared_train_window_end='2024-02-01T00:00:00Z',
+            source_provenance_by_clock={}, output_dir=tmp_path,
+            clocks=owner.VOLATILITY_SQUEEZE_DIRECTION_CLOCKS,
+            prefitted_params_by_clock={'M1': {'path': '/forbidden', 'sha256': 'a'*64}})

@@ -6,7 +6,7 @@ prosess og eksakte terminalkvitteringer overstyrer prosa. Tidligere bølger finn
 
 ## Gjeldende status 19.11.2026
 
-`NATIVE_M5_PIPELINE_001_ADMITTED`.
+`FULL_HISTORY_RAW_VERIFIED_NATIVE_PIPELINE_EMPTY_BIN_REPAIR`.
 
 Fullhistorikk-plan003 er fullført én gang med exit0 og uendret kilde.
 1 215 514 native M5-rader er dekodet fra18kildeår2009–2026. Én bar
@@ -38,16 +38,22 @@ med320 distinkte fokuserte testtilfeller. Fabrikkens tuple/list-grense er rettet
 Syntaks, diffkontroll og commit-vakter består. Seks livssyklustester er
 gjentatt etter varig publisering av den uavhengige historikkontrollen.
 
-Pipeline001 er ADMITTED_ONE_USE etter godkjent fysisk metadata-preflight, planhashb245d3746b090a4836d342b6485773bea388f3fa381da82120b8810872d0fca0.
-Omfang: uavhengig råberegning av alle76arrays,
-ferske native5-squeeze-/V29-parametre,318signaler/132kontekst/256felt perTF,
-61as-of-makrofelter, hele faktisk konsumerte TRAIN-normaliseringspopulasjonen
-og én fersk teknisk CPU-batch på16rader med privat initialcheckpoint.
-Dette er ennå ikke fysisk utført.
-Første preflight ble avvist før oppstart fordi audit tillater høyst4G.
-Pipeline bruker derfor eksisterende CPU-research-producer med12G/512M.
-Ingen CLAIM eller prislesing ble gjort; klargjort plan er bundet på nytt og preflight bestod før admisjon. GC/MBP-ruten er separat og beholdt.
-M1, Entry, modellfit, TEST, broker og handel forblir stengt.
+Pipeline001 er FAILED_CONSUMED. Den uavhengige beregningen fra alle18
+originalfiler gjenskapte alle76lagrede arrays eksakt med uendrede filhasher.
+Original HISTORY_VERIFICATION.json er varig lagret og hashbundet i policy.
+
+M5-squeezeparametre er ferdig tilpasset258268fysiske rader på de vedtatte
+2009–2013-grensene. Deretter stoppet M15-fit fordi resampleren beholdt tomme
+helgebøtter medNaN-priser og nullvolum. Ingen modell eller normalisering
+ble konstruert. Plan001 er konsumert og relanseres aldri.
+
+Minste rettelse er å fjerne bare faktisk tomme TF-bøtter, bevare observerte
+delbøtter og la ugyldige observerte priser feile. Ny pipeline002 skal
+hashbinde og gjenbruke ferdig historikkontroll ogM5-parametre, deretter
+fullføre fireTF-squeeze, V29, faktisk318/132/256/61felt, hele TRAIN-
+normaliseringen og én fersk teknisk16-radersmodellbatch.
+Denne fysiske kjeden er fortsatt ukvalifisert. M1, Entry, modellfit,
+TEST, broker og handel er stengt. GC/MBP-ruten er separat og beholdt.
 
 ### Kilderevisjon før M1-presiseringen18.11 (historisk)
 

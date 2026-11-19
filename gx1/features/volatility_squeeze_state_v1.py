@@ -1368,10 +1368,18 @@ def fit_volatility_squeeze_artifact_manifest(
     source_provenance_by_clock: Mapping[str, Mapping[str, Any]],
     output_dir: Path,
     clocks: tuple[str, ...] = VOLATILITY_SQUEEZE_CLOCKS,
+    prefitted_params_by_clock: Mapping[str, Mapping[str, str]] | None = None,
 ) -> Path:
     """Fit and publish the explicitly declared six clocks or native M5 clocks."""
 
     schema, source_contract = _artifact_clock_contract(clocks)
+    prefitted = {} if prefitted_params_by_clock is None else prefitted_params_by_clock
+    if (not isinstance(prefitted, Mapping)
+            or (prefitted and (clocks != VOLATILITY_SQUEEZE_DIRECTION_CLOCKS
+                              or not set(prefitted).issubset(clocks)))
+            or any(not isinstance(item, Mapping) or set(item) != {"path", "sha256"}
+                   for item in prefitted.values())):
+        raise RuntimeError("VOLATILITY_SQUEEZE_PREFITTED_NATIVE_BINDING")
     if (
         not isinstance(closed_ohlcv_by_clock, Mapping)
         or tuple(closed_ohlcv_by_clock) != clocks
@@ -1439,13 +1447,26 @@ def fit_volatility_squeeze_artifact_manifest(
             common_lineage = lineage
         elif lineage != common_lineage:
             raise RuntimeError("VOLATILITY_SQUEEZE_COMMON_TRAIN_LINEAGE_MISMATCH")
-        params = fit_volatility_squeeze_params(
-            train,
-            timeframe=clock,
-            declared_train_window_start=start,
-            declared_train_window_end=end,
-            source_provenance=provenance,
-        )
+        if clock in prefitted:
+            binding = prefitted[clock]
+            params = load_volatility_squeeze_params(
+                Path(binding["path"]), expected_sha256=binding["sha256"],
+                timeframe=clock, expected_clock_contract=source_contract)
+            if (params["source_provenance"] != provenance
+                    or params["declared_train_window_start"] != start.isoformat()
+                    or params["declared_train_window_end"] != end.isoformat()
+                    or params["train_ohlcv_rows"] != len(train)
+                    or params["input_ohlcv_sha256"] != _ohlcv_sha256(train)
+                    or params["train_ohlcv_sha256"] != _ohlcv_sha256(train)):
+                raise RuntimeError("VOLATILITY_SQUEEZE_PREFITTED_POPULATION_MISMATCH")
+        else:
+            params = fit_volatility_squeeze_params(
+                train,
+                timeframe=clock,
+                declared_train_window_start=start,
+                declared_train_window_end=end,
+                source_provenance=provenance,
+            )
         params_path = write_volatility_squeeze_params(
             target / f"{clock.lower()}_params.json",
             params,
