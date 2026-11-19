@@ -81,8 +81,11 @@ Minste nye cache-only produsent for fast6år[2018-10-01,2024-10-01) designes
 fra eksisterende native reader/builder/snapshot. Ny308linjers adapter og gjenbrukt writer er kildekvalifisert:6fokuserte NumPy-
 tester under audit4G og uavhengig statiskreview består. Første ordinære pytest
 importerteTorch via eksisterende autouse-conftest; renCLI+--noconftest består,
-og produksjonsvakten er beholdt. Eksakt plan/preflight gjenstår; ingen produksjon
-er ennå innrømmet.
+og produksjonsvakten er beholdt. Eksakt seksårsplan er nå klargjort med41kildeeiere og107bindingsrefs;
+metadata-/CLI-preflight gjenstår. Ingen produksjon er innrømmet. CPU12G/512M,
+1tråd/64tasks og internSIGALRM3570s beholdes; ingen eksternwallcap eller
+seksårs kjøretid/minne er påstått. Rapportert primary_matrix_bytes er
+delvolum; total27-arrayvolum må beregnes fra descriptorene.
 Frosne parametre er tilgjengelige fra2013-01-01T22Z; ingen refit. Ikke gjenta flere epoker eller
 kandidatvalg fra CONTROL. Enhver ny tung plan krever målt begrunnelse,
 fersk eksakt engangsinnrømming og uendrede vakter. Stabile kjøringer følges
