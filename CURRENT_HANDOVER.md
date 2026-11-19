@@ -6,38 +6,18 @@ prosess og eksakte terminalkvitteringer overstyrer prosa. Tidligere bølger finn
 
 ## Gjeldende status 19.11.2026
 
-Brukeren har bestilt mål og gjennomføring av TRAIN-priorinitialisering,
-fersk TA-only-baseline og deretter én avgrenset læringskurve dersom de
-tekniske portene består. Kilden er kvalifisert i eksisterende modell-/drivereiere:
-43 ulike driver-/modelltilfeller og 16 nye eksakte guardtilfeller består.
-Uavhengig leserevisjon avdekket og fikk rettet foldbinding før head-konstruksjon
-og eksakt priorreferanse før CLAIM. Dette er kilde-/syntetisk evidens; ekte
-TA-only-baseline og kald replay gjenstår. Eksakt mechanics001-plan er nå
-klargjort: 67 forwards / 3 optimizersteg inkludert kald child / 2 ferske modeller,
-hele 1536 FIT og 512 CONTROL før/etter. Eksakt CLI-/kvitteringspreflight
-bestod med 0 modeller/updates/featureverdier og fysisk boot667. Bare denne
-tekniske engangsplanen er innrømmet; hovedtrening er ikke innrømmet.
-Kilde og policy fryses fra launch til native TERMINAL.
-GC er utsatt, M1-forbudet og TEST-forseglingen består.
-TA006-normaliseringen inkluderer septemberCONTROL og gjenbrukes ikke;
-ferdige TA-verdier/native parametre beholdes, med fersk tidligere-TRAIN-statistikk.
+TA-only mechanics001 er fullført med exit0 på 74,57 sekunder:
+67 forwards / 3 updates inkludert kald child / 2 modeller. Alle 1536 FIT
+og 512 CONTROL hadde eksakt priorlike INITIAL-logits. Første signalgradient
+til backbone var 0 som forventet; neste var 0,0145492. Kald replay over
+passgrensen var bit-identisk. Fersk norm bruker bare 24 175 tidligere TRAIN-
+rader før september; prioren matcher den eksisterende label-only-referansen.
+Ingen GC, M1 eller TEST inngår.
 
-Operatøren prioriterer nå retningsedge UTEN GC. GC settes på vent;
-alle genuine ikke-GC-indikatorfamilier og D1/makro beholdes på M5/MTF.
-Eksisterende fabrikk har en egen TA-rute med ni inputflater uten GC-historikk.
-Fersk baseline for denne funksjonen må kvalifiseres; full-GC-resultatet
-nedenfor er ikke en TA-only-baseline. Ingen ny modell/fit er innrømmet.
-Lesende UP-bias-/kildekontroll er ferdig; fersk TA-baseline gjenstår.
-M1 brukes aldri til retning. NEXT_RUN_POLICY eier kjørestatusen.
-
-Avgrenset før-treningskontroll: M5-FIT har 777 OPP / 754 NED / 4 LIK;
-alle 96 optimizerbatchers rekkefølge matcher lagrede kildehasher. De tre
-tredelene har 49,1 / 48,0 / 55,1 prosent OPP blant ikke-like utfall. Dette gir
-ingen begrunnelse for stor OPP/NED-klassevekting og beviser ingen årsak.
-Klasseorden og sign+1 samsvarer; native loss har ingen OPP-klassevekt.
-Hodene bruker symmetrisk tilfeldig initialisering. TRAIN-priorinitialisering
-er nå implementert og kildekvalifisert som eksplisitt TA-valg, uten endret tap.
-Ingen ny modellkjøring eller ekstra epoke er gjort; en kur er ikke bevist.
+Én ny læringskurve er klargjort med 4 faste pass / 384 updates / 544 forwards,
+samme lille utvalg og faste skåringer etter hvert pass. Målt throughput gir
+omtrent 11–13 minutter, hardgrense 30 minutter. Hovedrunden er ennå ikke
+innrømmet; preflight gjenstår. Teknisk PASS er ikke retningsedge.
 
 ### Sist fullførte runde, opprinnelig full-GC-omfang
 
