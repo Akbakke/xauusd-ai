@@ -23,15 +23,17 @@ from gx1.contracts.gx1_capped_execution_v1 import (
 from gx1.contracts.immutable_event_authority_v1 import _publish_bytes
 
 REPO = Path('/home/andre2/src/GX1_CURRENT')
-STAGE = 'native_m5_bar_direction_targets_20261119_002'
-PLAN = REPO / 'configs/research/NATIVE_M5_BAR_DIRECTION_TARGETS_20261119_002.json'
-ROOT = Path('/home/andre2/GX1_RUNS/NATIVE_M5_BAR_DIRECTION_TARGETS_20261119_002')
+STAGE = 'native_m5_bar_direction_targets_20261119_003'
+PLAN = REPO / 'configs/research/NATIVE_M5_BAR_DIRECTION_TARGETS_20261119_003.json'
+ROOT = Path('/home/andre2/GX1_RUNS/NATIVE_M5_BAR_DIRECTION_TARGETS_20261119_003')
 POLICY = REPO / 'NEXT_RUN_POLICY.json'
 NATIVE = Path('/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927')
 MANIFEST_SHA = 'ca0012e5e30f7808876d666fe4d32e3fb873fddb6fc6178bd47b97eb89194cca'
 M5_NS = 300_000_000_000
-ISSUE_START_NS = 1714521600000000000
-CUTOFF_NS = 1727740800000000000
+ISSUE_START_NS = 1243814400000000000
+CUTOFF_NS = 1782864000000000000
+DEVELOPMENT_VAL_START_NS = 1780272000000000000
+SEALED_TEST_START_NS = CUTOFF_NS
 COLUMNS = ['time', 'open', 'high', 'low', 'close']
 SOURCE_PATHS = (
     'gx1/audit/build_native_m5_direction_targets_v1.py',
@@ -111,8 +113,10 @@ def part_metadata(part):
         row = parquet.metadata.row_group(index)
         clock = row.column(names.index('time')).statistics
         need(clock is not None and clock.has_min_max, 'CLOCK_STATISTICS')
+        first, last = ns(clock.min), ns(clock.max)
+        need(0 <= first <= last < SEALED_TEST_START_NS, 'SOURCE_PRETEST_BOUNDARY')
         groups.append({'index': index, 'rows': row.num_rows,
-                       'first_bar_ns': ns(clock.min), 'last_bar_ns': ns(clock.max)})
+                       'first_bar_ns': first, 'last_bar_ns': last})
     need(stamp(part['path']) == before, 'METADATA_STABLE')
     return {'stat': before, 'total_rows': parquet.metadata.num_rows,
             'total_row_groups': parquet.num_row_groups, 'selected_groups': groups}
@@ -122,16 +126,28 @@ def native_source_spec():
     binding = {'path': str(NATIVE / 'MANIFEST.json'), 'sha256': MANIFEST_SHA}
     manifest = source_manifest(binding)
     parts = []
-    for year in (2024,):
+    need(ns(manifest['requested_start_utc']) == ISSUE_START_NS
+         and ns(manifest['requested_end_utc_exclusive']) == CUTOFF_NS
+         and ns(manifest['time_max_utc']) < SEALED_TEST_START_NS,
+         'NATIVE_HISTORY_BOUNDARIES')
+    years = sorted(int(key.removeprefix('year=')) for key in manifest['year_rows'])
+    need(len(years) > 0 and len(years) == len(set(years))
+         and all(f'year={year}' in manifest['year_sha256'] for year in years),
+         'NATIVE_HISTORY_YEARS')
+    for year in years:
         path = NATIVE / f'year={year}/part-000.parquet'
         parquet = pq.ParquetFile(path)
-        column = parquet.schema_arrow.names.index('time')
-        groups = [i for i in range(parquet.num_row_groups)
-                  if ns(parquet.metadata.row_group(i).column(column).statistics.min) + M5_NS < CUTOFF_NS]
-        parts.append({'path': str(path), 'sha256': manifest['year_sha256'][f'year={year}'],
-                      'row_groups': groups})
+        candidate = {'path': str(path), 'row_groups': list(range(parquet.num_row_groups))}
+        metadata = part_metadata(candidate)
+        groups = [group['index'] for group in metadata['selected_groups']
+                  if group['first_bar_ns'] + M5_NS < CUTOFF_NS]
+        if groups:
+            parts.append({'path': str(path), 'sha256': manifest['year_sha256'][f'year={year}'],
+                          'row_groups': groups})
+    need(len(parts) == len(years), 'COMPLETE_NATIVE_HISTORY')
     return {'manifest': binding, 'parts': parts, 'closure_authority': None,
             'issue_start_ns': ISSUE_START_NS, 'cutoff_ns': CUTOFF_NS}
+
 
 
 def build_plan(*, source_spec, source_base_commit=None):
@@ -147,7 +163,10 @@ def build_plan(*, source_spec, source_base_commit=None):
         'target_contract': contract(), 'columns': COLUMNS, 'execution': EXECUTION,
         'runtime_versions': {'numpy': np.__version__, 'pandas': pd.__version__, 'pyarrow': pyarrow.__version__},
         'max_invocations': 1, 'source_resolution_seconds': 300,
-        'native_prehistory': 'January_April_2024_for_previous_observed_bar_only_no_ATR_warmup',
+        'native_history': 'all_manifest_years_first_observed_TF_bar_previous_unknown',
+        'fact_population': 'pretest_TRAIN_and_reused_development_VAL_price_facts_only',
+        'development_val_start_ns': DEVELOPMENT_VAL_START_NS,
+        'sealed_test_start_ns': SEALED_TEST_START_NS,
         'decoded_crossing_group': 'filter_bar_start_plus_300s_strictly_before_cutoff',
         'source_gaps': 'reported_between_observed_bars_without_suppressing_open_close_comparisons',
         'target_tapes': 1, 'model_forwards': 0, 'optimizer_steps': 0,
@@ -198,6 +217,11 @@ def checked_inputs(plan):
 
 
 def read_source(plan):
+    need(0 < plan['source_spec']['cutoff_ns'] <= SEALED_TEST_START_NS,
+         'SOURCE_PRETEST_BOUNDARY')
+    for part in plan['source_spec']['parts']:
+        need(part_metadata(part) == plan['source_metadata'][part['path']],
+             'SOURCE_METADATA')
     times, prices = [], []
     decoded_rows = 0
     for part in plan['source_spec']['parts']:
@@ -208,7 +232,7 @@ def read_source(plan):
             starts = table['time'].to_numpy(zero_copy_only=False).astype('datetime64[ns]').astype(np.int64)
             ohlc = np.column_stack([table[name].to_numpy(zero_copy_only=False)
                                     for name in COLUMNS[1:]]).astype(np.float64)
-            selected = starts + M5_NS < plan['source_spec']['cutoff_ns']
+            selected = starts < plan['source_spec']['cutoff_ns'] - M5_NS
             times.append(starts[selected])
             prices.append(ohlc[selected])
             decoded_rows += len(starts)
@@ -251,10 +275,25 @@ def calculate(plan):
         arrays.update({'bars_' + tf + '_' + key: getattr(bars, key)[at]
                        for key in bar_fields})
         known = bars.observed_previous[at]
-        need(bool(known.all()), 'OBSERVED_PREDECESSOR_MISSING_' + tf)
+        years = bars.available_ns[at].astype('datetime64[ns]').astype('datetime64[Y]')
+        previous_years = bars.available_ns[np.maximum(at - 1, 0)].astype(
+            'datetime64[ns]').astype('datetime64[Y]')
+        cross_year = known & (years != previous_years)
+        yearly = {}
+        for year in np.unique(years):
+            in_year = years == year
+            yearly[str(year)] = {
+                'observed_bars': int(in_year.sum()),
+                'prior_observed_bars': int((in_year & known).sum()),
+                'missing_previous_bars': int((in_year & ~known).sum()),
+                'cross_year_previous_bars': int((in_year & cross_year).sum()),
+            }
         open_sign, close_sign = bars.open_sign[at], bars.close_sign[at]
         coverage[tf] = {
             'observed_bars': len(at), 'prior_observed_bars': int(known.sum()),
+            'missing_previous_bars': int((~known).sum()),
+            'yearly_bar_counts': yearly,
+            'cross_year_previous_bars': int(cross_year.sum()),
             'open_sign_counts': {str(sign): int(((open_sign == sign) & known).sum())
                                  for sign in (-1, 0, 1)},
             'close_sign_counts': {str(sign): int(((close_sign == sign) & known).sum())
@@ -268,6 +307,9 @@ def calculate(plan):
             'future_prior_observed': int(future['observed_previous'][:, col].sum()),
             'future_mature': int(future['mature'][:, col].sum()),
             'future_eligible': int(future['eligible'][:, col].sum()),
+            'future_missing_previous': int((future['mature'][:, col]
+                                            & ~future['observed_previous'][:, col]).sum()),
+            'future_unavailable_tail': int((~future['target_present'][:, col]).sum()),
             'future_unique_mature_bar_rows': int(np.unique(
                 future['target_row'][future['mature'][:, col], col]).size),
             'future_unique_eligible_bar_rows': int(np.unique(
@@ -288,11 +330,21 @@ def calculate(plan):
         'selected_issue_rows': len(issues), 'first_issue_ns': int(issues[0]),
         'last_issue_ns': int(issues[-1]), 'array_shapes': {
             key: list(value.shape) for key, value in arrays.items()},
-        'source_row_axis': 'zero_based_ordinal_in_ordered_native_2024_prefix_after_cutoff_filter',
+        'source_row_axis': 'zero_based_ordinal_in_all_ordered_native_manifest_years_after_cutoff_filter',
         'source_first_bar_ns': int(starts[0]), 'source_last_bar_ns': int(starts[-1]),
         'source_gap_count': int(targets.source_gap.sum()),
         'source_parts': [part['path'] for part in spec['parts']],
-        'source_year_filter': [2024],
+        'source_year_filter': [int(Path(part['path']).parent.name.split('=')[1])
+                               for part in spec['parts']],
+        'issue_rows_by_year': {str(year): int(count) for year, count in zip(
+            *np.unique(issues.astype('datetime64[ns]').astype('datetime64[Y]'),
+                       return_counts=True))},
+        'fact_period_rows': {
+            'TRAIN_before_2026_06_01': int((issues < DEVELOPMENT_VAL_START_NS).sum()),
+            'reused_development_VAL_2026_06': int((issues >= DEVELOPMENT_VAL_START_NS).sum()),
+        },
+        'missing_predecessor_policy': 'first_actual_bar_per_TF_unknown_no_fabricated_previous',
+        'fact_population_only_no_fit_or_selection': True,
         'selected_source_gap_count': int(targets.source_gap[selected].sum()),
         'coverage_by_timeframe': coverage,
     }

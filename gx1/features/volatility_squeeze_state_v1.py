@@ -96,6 +96,8 @@ VOLATILITY_SQUEEZE_CLOCK_CONTRACT = "closed_ohlcv_native_clock_v1"
 VOLATILITY_SQUEEZE_DIRECTION_CLOCK_CONTRACT = "native_m5_and_closed_higher_no_m1_v1"
 VOLATILITY_SQUEEZE_DIRECTION_MANIFEST_SCHEMA = "gx1_volatility_squeeze_native_m5_manifest_v1"
 VOLATILITY_SQUEEZE_DIRECTION_PARAMS_SCHEMA = "gx1_volatility_squeeze_native_m5_train_fit_v1"
+# June 2026 remains development VAL under AGENTS.md.
+NATIVE_M5_PARAMETER_TRAIN_END_NS = 1780272000000000000
 _CLOCK_DURATION = {
     "M1": pd.Timedelta(minutes=1),
     "M5": pd.Timedelta(minutes=5),
@@ -711,6 +713,7 @@ def _fit_two_state_model(relative_bandwidth: np.ndarray) -> dict[str, Any]:
 
 def _require_native_m5_provenance(
     value: Mapping[str, Any], *, timeframe: str, fit_cutoff_ns: int | None,
+    fit_start_ns: int | None = None,
 ) -> dict[str, Any]:
     """Verify the declared native M5 source and fit plan without opening raw parts."""
     if (set(value) != _NATIVE_M5_SOURCE_PROVENANCE_KEYS
@@ -755,17 +758,24 @@ def _require_native_m5_provenance(
     if (not isinstance(manifest, dict)
             or any(manifest.get(k) != v for k, v in source_contract.items())
             or not isinstance(plan, dict)
+            or set(plan) != {"schema_version", "native_m5_manifest", "timeframes",
+                              "source_clock_contract", "fit_start_ns", "fit_cutoff_ns", "source_spec"}
             or plan.get("schema_version") != "gx1_native_m5_squeeze_fit_plan_v1"
             or plan.get("timeframes") != list(VOLATILITY_SQUEEZE_DIRECTION_CLOCKS)
             or plan.get("source_clock_contract") != VOLATILITY_SQUEEZE_DIRECTION_CLOCK_CONTRACT
             or plan.get("native_m5_manifest") != native
+            or type(plan.get("fit_start_ns")) is not int
             or type(plan.get("fit_cutoff_ns")) is not int
+            or not 0 <= plan["fit_start_ns"] < plan["fit_cutoff_ns"] <= NATIVE_M5_PARAMETER_TRAIN_END_NS
+            or (fit_start_ns is not None and plan["fit_start_ns"] != fit_start_ns)
             or plan["fit_cutoff_ns"] != fit_cutoff_ns
             or not isinstance(plan.get("source_spec"), dict)):
         raise RuntimeError("VOLATILITY_SQUEEZE_NATIVE_M5_PROVENANCE_INVALID")
     spec = plan["source_spec"]
     parts = spec.get("parts")
-    if (spec.get("manifest") != native or not isinstance(parts, list) or not parts
+    if (set(spec) != {"manifest", "parts", "cutoff_ns"}
+            or spec.get("cutoff_ns") != fit_cutoff_ns
+            or spec.get("manifest") != native or not isinstance(parts, list) or not parts
             or not isinstance(manifest.get("year_sha256"), dict)):
         raise RuntimeError("VOLATILITY_SQUEEZE_NATIVE_M5_PROVENANCE_INVALID")
     for part in parts:
@@ -789,6 +799,7 @@ def _require_source_provenance(
     timeframe: str,
     expected_clock_contract: str | None = None,
     fit_cutoff_ns: int | None = None,
+    fit_start_ns: int | None = None,
 ) -> dict[str, Any]:
     if isinstance(value, Mapping):
         clock_contract = value.get("clock_contract")
@@ -796,7 +807,8 @@ def _require_source_provenance(
             raise RuntimeError("VOLATILITY_SQUEEZE_SOURCE_PROVENANCE_INVALID")
         if clock_contract == VOLATILITY_SQUEEZE_DIRECTION_CLOCK_CONTRACT:
             return _require_native_m5_provenance(
-                value, timeframe=timeframe, fit_cutoff_ns=fit_cutoff_ns)
+                value, timeframe=timeframe, fit_cutoff_ns=fit_cutoff_ns,
+                fit_start_ns=fit_start_ns)
     if not isinstance(value, Mapping) or set(value) != set(
         _SOURCE_PROVENANCE_KEYS
     ):
@@ -899,6 +911,7 @@ def fit_volatility_squeeze_params(
         raise RuntimeError("VOLATILITY_SQUEEZE_TRAIN_WINDOW_TOO_SHORT")
     provenance = _require_source_provenance(
         source_provenance, timeframe=clock, fit_cutoff_ns=int(window_end.value),
+        fit_start_ns=int(window_start.value),
     )
 
     bandwidth = bollinger_relative_bandwidth(
@@ -962,6 +975,9 @@ def require_volatility_squeeze_params(
     _require_source_provenance(
         observed["source_provenance"], timeframe=clock,
         expected_clock_contract=expected_clock_contract,
+        fit_start_ns=int(_require_utc_timestamp(
+            observed["declared_train_window_start"],
+            label="VOLATILITY_SQUEEZE_PARAMS_TRAIN_WINDOW").value),
         fit_cutoff_ns=int(_require_utc_timestamp(
             observed["declared_train_window_end"],
             label="VOLATILITY_SQUEEZE_PARAMS_TRAIN_WINDOW").value),
@@ -1000,7 +1016,7 @@ def require_volatility_squeeze_params(
     provenance = _require_source_provenance(
         observed["source_provenance"], timeframe=clock,
         expected_clock_contract=expected_clock_contract,
-        fit_cutoff_ns=int(end.value),
+        fit_cutoff_ns=int(end.value), fit_start_ns=int(start.value),
     )
     lineage = _train_lineage_payload(
         provenance,
@@ -1412,6 +1428,7 @@ def fit_volatility_squeeze_artifact_manifest(
         provenance = _require_source_provenance(
             source_provenance_by_clock[clock], timeframe=clock,
             expected_clock_contract=source_contract, fit_cutoff_ns=int(end.value),
+            fit_start_ns=int(start.value),
         )
         lineage = _train_lineage_payload(
             provenance,

@@ -924,14 +924,18 @@ def build_volatility_squeeze_local_layer(
 
     The whole exact closed-OHLCV prefix is evaluated before row alignment, so
     bounded offline chunks and the owner's explicit live carry have identical
-    first-row/event memory.  The six-clock manifest is mandatory; accepting a
-    loose params payload here would create an unbound TRAIN/live split.
+    first-row/event memory. The explicit native-five or trade-six manifest is
+    mandatory; loose params would create an unbound TRAIN/live split.
     """
 
     context = "VOLATILITY_SQUEEZE_LOCAL_LAYER"
     if timeframe not in {"M1", "M5"}:
         raise RuntimeError(f"{context}_TIMEFRAME_INVALID")
+    if not isinstance(artifact_set, VolatilitySqueezeArtifactSet):
+        raise RuntimeError(f"{context}_ARTIFACT_REQUIRED")
     frozen = require_volatility_squeeze_artifact_set(artifact_set)
+    # A five-clock direction artifact cannot enter the later M1 trade lane.
+    frozen.require_params(timeframe)
     src = _read_v29_price_source(
         source_parquet,
         context=context,

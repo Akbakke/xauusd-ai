@@ -84,3 +84,62 @@ def test_structure_readout_uses_bool_known_labels():
     assert result['high']['auc'] == result['low']['auc'] == 1.0
     assert result['high']['hit'] == result['low']['hit'] == 1
     assert result['high']['brier'] < result['high']['prior_brier']
+
+
+def _native_bar_truth():
+    issues = np.array([1, 2, 3], dtype=np.int64) * 300_000_000_000
+    validity = np.broadcast_to(issues[:, None] + 300_000_000_000, (3, 5)).copy()
+    mature = validity < 1_200_000_000_000
+    target_rows = np.full((3, 5), -1, dtype=np.int64)
+    target_rows[:2] = [[2] * 5, [3] * 5]
+    target_rows[:2, 1:] = 2
+    previous = mature.copy()
+    open_known = np.zeros((3, 5), dtype=np.bool_)
+    open_known[:2, 1:] = True
+    signs = np.array([[-1, 0, 1, -1, 0], [0, 1, -1, 0, 1], [0] * 5], dtype=np.int8)
+    return {'issue_ns': issues, 'validity_ns': validity,
+            'target_row': target_rows, 'target_present': np.ones((3, 5), dtype=np.bool_),
+            'mature': mature, 'observed_previous': previous, 'eligible': mature.copy(),
+            'open_known_at_issue': open_known, 'open_sign': signs, 'close_sign': signs.copy()}
+
+
+def test_native_bar_loss_keeps_equality_masks_known_open_and_matches_proper_scores():
+    from gx1.contracts.market_state_native_m5_targets_v1 import contract as target_contract
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import (
+        native_bar_direction_loss, native_bar_direction_score_sums,
+    )
+    output = {key: torch.zeros(3, 5, 3, requires_grad=True)
+              for key in ('open_logits', 'close_logits')}
+    kwargs = {'model_output': output, 'truth': _native_bar_truth(), 'fold_upper_ns': 1_200_000_000_000,
+              'target_contract_sha256': target_contract()['contract_sha256']}
+    result = native_bar_direction_loss(**kwargs)
+    assert result['counts']['open'].tolist() == [2, 0, 0, 0, 0]
+    assert result['counts']['close'].tolist() == [2] * 5
+    assert float(result['loss']) == pytest.approx(np.log(3))
+    result['loss'].backward()
+    assert torch.count_nonzero(output['open_logits'].grad[:, 1:]) == 0
+    assert torch.count_nonzero(output['close_logits'].grad[-1]) == 0
+    assert output['close_logits'].grad[0, 1, 1] < 0  # equality is class 1
+    score = native_bar_direction_score_sums(**kwargs)['per_task']
+    assert score['open']['M5']['count'] == 2
+    assert score['open_known']['H4']['count'] == 2
+    assert score['close']['H4']['count'] == 2
+    assert score['close']['H4']['unique_target_rows'] == 1
+    assert score['close']['H4']['max_logit_ties'] == 2
+    assert score['close']['H4']['log_loss_sum'] == pytest.approx(2 * np.log(3))
+    assert score['close']['H4']['brier_sum'] == pytest.approx(4 / 3)
+    assert np.asarray(score['close']['H4']['confusion_truth_by_prediction']).sum() == 2
+
+
+def test_native_bar_objective_rejects_old_target_identity_and_false_maturity():
+    from gx1.contracts.market_state_native_m5_targets_v1 import contract as target_contract
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import native_bar_direction_loss
+    output = {key: torch.zeros(3, 5, 3) for key in ('open_logits', 'close_logits')}
+    kwargs = {'model_output': output, 'truth': _native_bar_truth(), 'fold_upper_ns': 1_200_000_000_000,
+              'target_contract_sha256': '0' * 64}
+    with pytest.raises(ValueError, match='TARGET_CONTRACT'):
+        native_bar_direction_loss(**kwargs)
+    kwargs['target_contract_sha256'] = target_contract()['contract_sha256']
+    kwargs['truth']['mature'][0, 0] = False
+    with pytest.raises(ValueError, match='OBSERVABILITY'):
+        native_bar_direction_loss(**kwargs)

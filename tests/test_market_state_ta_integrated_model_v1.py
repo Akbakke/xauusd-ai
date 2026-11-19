@@ -117,3 +117,93 @@ def test_paired_native_and_sampled_queries_share_one_encoder(monkeypatch):
                                old_native['state_activity_side_logits'], atol=1e-5, rtol=1e-6)
     assert torch.equal(paired['future_activity_side_logits'], old_native['future_activity_side_logits'])
     assert torch.equal(paired['m5_structure_hit_logits'], old_native['m5_structure_hit_logits'])
+
+
+def _native_model_binding(normalization):
+    from gx1.contracts.market_state_ta_integrated_model_v1 import _seal_native
+    from gx1.features.entry_specialist_feature_groups_v1 import compile_full_ta_entry_execution_profile
+    profile = compile_full_ta_entry_execution_profile()
+    return _seal_native({
+        'schema_version': 'gx1_native_m5_bar_direction_inputs_v1',
+        'source_bar_seconds': 300, 'timeframes': ['M5', 'M15', 'H1', 'H4', 'D1'],
+        'source_clock_contract': 'native_m5_and_closed_higher_no_m1_v1',
+        'feature_provider_contract_sha256': normalization['feature_provider_contract_sha256'],
+        'source_axes_sha256': normalization['source_axes_sha256'],
+        'input_normalization_sha256': normalization['contract_sha256'],
+        'execution_profile': {key: profile[key] for key in ('name', 'contract_sha256')},
+        'warmstart_used': False,
+    })
+
+
+def test_native_bar_factory_accepts_fresh_normalization_and_binds_checkpoint(monkeypatch):
+    from gx1.contracts.market_state_ta_integrated_model_v1 import (
+        build_native_bar_direction_model, NativeM5BarDirectionModel,
+    )
+    from tests.test_entry_model_native_input_normalization import native_m5_normalization_fixture
+    normalization, raw, cats = native_m5_normalization_fixture()
+    architecture = {'dropout': .05, 'multi_tf_num_layers': 2, 'multi_tf_scale': .5,
+                    'specialist_num_layers': 1, 'specialist_fusion_scale': .25,
+                    'cross_family_fusion_scale': .25}
+    model = build_native_bar_direction_model(
+        input_normalization=normalization, input_binding=_native_model_binding(normalization),
+        architecture=architecture, device=torch.device('cpu'))
+    assert type(model) is NativeM5BarDirectionModel
+    from gx1.features.entry_specialist_feature_groups_v1 import compile_full_ta_entry_execution_profile
+    profile = compile_full_ta_entry_execution_profile()
+    pairs = sorted(zip(profile['temporal_alias_signal_indices'],
+                       profile['temporal_alias_ctx_cont_indices']))
+    assert len(pairs) == 132
+    assert pairs == [(a['signal_index'], a['ctx_cont_index'])
+                     for a in normalization['temporal_aliases']]
+    assert model.backbone.temporal_alias_signal_idx.tolist() == [si for si, _ in pairs]
+    assert model.backbone.temporal_alias_ctx_cont_idx.tolist() == [ci for _, ci in pairs]
+    assert all(profile['physical_field_names']['signal'][si] ==
+               'ctx_cont.' + profile['physical_field_names']['ctx_cont'][ci] for si, ci in pairs)
+    for family in profile['local_specialists']:
+        assert getattr(model.backbone, 'specialist_idx_' + family).tolist() == list(
+            profile['local_signal_indices_by_specialist'][family])
+        assert getattr(model.backbone, 'multi_tf_specialist_idx_' + family).tolist() == list(
+            profile['mtf_indices_by_specialist'][family])
+    assert not hasattr(model, 'dual')
+    assert not hasattr(model.backbone, 'dynamic_m5_query_horizons')
+    assert model.backbone.cfg.dynamic_m5_query_minutes is None
+    assert model.research_objective['class_order'] == [-1, 0, 1]
+    with pytest.raises(RuntimeError, match='NATIVE_BAR_DIRECTION_REPRESENTATION_ONLY'):
+        model.backbone(None, None, ctx_cat=None, ctx_cont=None,
+                       seq_m5=None, seq_m15=None, seq_h1=None, seq_h4=None, seq_d1=None)
+    model.load_state_dict(model.state_dict())
+    legacy = dict(model.state_dict())
+    legacy['native_bar_objective_sha256'] = torch.zeros(32, dtype=torch.uint8)
+    before = model.open_heads['M5'].weight.detach().clone()
+    with pytest.raises(ValueError, match='NATIVE_CHECKPOINT_IDENTITY'):
+        model.load_state_dict(legacy)
+    assert torch.equal(before, model.open_heads['M5'].weight)
+
+    calls = []
+    def synthetic_encode(self, **values):
+        assert values.pop('research_representation_only') is True
+        assert values.pop('research_timeframe_representations') is True
+        calls.append(set(values))
+        width = self.cfg.d_model
+        source = values['seq_x'][:, -1, :width]
+        hidden = self.entry_q_joint_in(torch.cat((source,) * 4, dim=1))
+        return {'entry_q_timeframe_hidden': hidden[:, None].expand(-1, 5, -1)}
+    monkeypatch.setattr(EntryV10CtxHybridTransformer, 'forward', synthetic_encode)
+    values = {'seq_x': torch.from_numpy(raw['signal'][None]).requires_grad_(),
+              'snap_x': torch.from_numpy(raw['signal'][-1:]),
+              'ctx_cont': torch.from_numpy(raw['ctx_cont'][-1:]),
+              'ctx_cat': torch.from_numpy(cats[-1:])}
+    values.update({'seq_' + tf: torch.from_numpy(raw['mtf_' + tf][None])
+                   for tf in ('m5', 'm15', 'h1', 'h4', 'd1')})
+    out = model(values)
+    assert set(out) == {'open_logits', 'close_logits'}
+    assert out['open_logits'].shape == out['close_logits'].shape == (1, 5, 3)
+    sum(value.sum() for value in out.values()).backward()
+    assert torch.count_nonzero(values['seq_x'].grad)
+    assert all(head.weight.grad is not None for head in model.open_heads.values())
+    assert all(head.weight.grad is not None for head in model.close_heads.values())
+    assert len(calls) == 1
+    with pytest.raises(ValueError, match='NATIVE_FEATURE_KEYS'):
+        model({**values, 'future_validity_ns': torch.zeros(1, 5)})
+    with pytest.raises(TypeError, match='query_k'):
+        model(values, query_k=torch.ones(1, 5))

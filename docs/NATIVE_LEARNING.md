@@ -47,8 +47,28 @@ er kjent. Samme M5/høyere proveniens gjelder hele featurekjeden.
 Squeeze-parametre for retning bruker egen fem-TF-kontrakt i
 `volatility_squeeze_state_v1`. Fit, parameterfil, manifest og binding
 skal angi native M5-manifest og samme egne fit-plan. Produsenten beviser
-native barer til fit-tabellenes hash og cutoff. Fysisk fitting og
-uavhengig M5-featureprovider må kvalifiseres før ny modellfit.
+native barer til fit-tabellenes hash og cutoff. V29-registerfit bruker tilsvarende egen
+native M5-plan. Fit-start, fit-slutt, opprinnelig M5-manifest og fysiske
+rårammehasher bindes ved produksjon og reload. Statistikkfitting stopper
+før utviklings-VAL juni2026; TEST åpnes ikke.
+
+Den nye M5-featureprovideren bygger de kanoniske full-TA-feltene på nytt
+fra formel-eierne. Samme-M5-aliaser gjenbrukes bare gjennom den eksakte
+alias-eieren. Alle fem TF bruker sine egne lukkede barer, og lokal
+trendlinje beholder sin egen96-barsgeometri. Makro bygges fra den
+pinnede kildeeieren med faktiske publiseringstider. Fitting av statistikk
+bruker hele unionen av faktiske TRAIN-vinduer, aldri samplet batchstatistikk.
+Manglende observasjoner og warmup beholdes; ingen gammel M1-akse eller
+normalisering brukes som snarvei.
+
+Hver TF har separate treklassehoder for åpning og slutt i
+NativeM5BarDirectionModel. Klasser er -1/0/+1 og blandede fortegn beholdes.
+Tap og skår bruker samme modne, observerte celler. Allerede kjent åpning
+får separat diagnostikk, uten prediksjonskreditt. Tap summeres og telles
+per TF og oppgave før samlet divisjon. Framtidige koblinger mates aldri
+til forward. Den aktive encoderruten konstruerer ingen gamle minuttqueryer.
+Fysisk parameterfit, hele normaliseringspopulasjonen, faktisk modellkonsum
+og en fersk initialtilstand må kvalifiseres før noen modellfit.
 
 Nye mål krever egen kilde-/input-/målidentitet, fersk baseline og samme
 semantikk i output, tap og skåring. Målene skal følge de fem TFs egne

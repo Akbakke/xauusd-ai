@@ -47,6 +47,127 @@ def _read_ohlcv(path: Path) -> pd.DataFrame:
     return frame.set_index("time")
 
 
+
+def native_m5_fit_frames_from_plan(
+    plan_path: Path, *, expected_sha256: str,
+) -> tuple[dict, dict, dict]:
+    """Build the five fit frames from physically verified native M5 bytes.
+
+    The caller owns the capped one-use policy lifecycle. This producer checks
+    the exact raw source and reconstructs every fitted frame itself.
+    """
+    import json
+    import pyarrow.parquet as pq
+    from gx1.features.htf_features import _resample_ohlcv
+    from gx1.features.volatility_squeeze_state_v1 import (
+        VOLATILITY_SQUEEZE_DIRECTION_CLOCKS as clocks,
+        VOLATILITY_SQUEEZE_DIRECTION_CLOCK_CONTRACT as clock_contract,
+        _require_native_m5_provenance, _ohlcv_sha256,
+        volatility_squeeze_bar_grid, NATIVE_M5_PARAMETER_TRAIN_END_NS,
+    )
+    checked_plan = _require_artifact(
+        Path(plan_path), expected_sha256, label="NATIVE_M5_SQUEEZE_PLAN")
+    plan = json.loads(checked_plan.read_text())
+    native = plan["native_m5_manifest"]
+    cutoff = plan["fit_cutoff_ns"]
+    start = plan["fit_start_ns"]
+    if (type(start) is not int or type(cutoff) is not int or start >= cutoff
+            or cutoff > NATIVE_M5_PARAMETER_TRAIN_END_NS
+            or plan["timeframes"] != list(clocks)
+            or plan["source_spec"].get("cutoff_ns") != cutoff):
+        raise RuntimeError("NATIVE_M5_SQUEEZE_FIT_SCOPE")
+    provenance = {
+        clock: {
+            "source_artifact": native["path"], "source_sha256": native["sha256"],
+            "source_schema_version": "xau_canonical_native_source_v3",
+            "source_lane": clock, "native_m5_manifest_artifact": native["path"],
+            "native_m5_manifest_sha256": native["sha256"],
+            "fit_plan_artifact": str(checked_plan),
+            "fit_plan_sha256": expected_sha256, "train_split_id": "TRAIN",
+            "clock_contract": clock_contract,
+            "bar_grid": volatility_squeeze_bar_grid(clock),
+        } for clock in clocks
+    }
+    _require_native_m5_provenance(
+        provenance["M5"], timeframe="M5", fit_cutoff_ns=cutoff, fit_start_ns=start)
+    pieces = []
+    decoded = 0
+    for part in plan["source_spec"]["parts"]:
+        source = _require_artifact(
+            Path(part["path"]), part["sha256"], label="NATIVE_M5_SQUEEZE_PART")
+        before = source.stat()
+        parquet = pq.ParquetFile(source)
+        names = parquet.schema_arrow.names
+        column = names.index("time")
+        for group in part["row_groups"]:
+            stats = parquet.metadata.row_group(group).column(column).statistics
+            if (stats is None or not stats.has_min_max
+                    or pd.Timestamp(stats.min).value + 300_000_000_000 >= cutoff
+                    or pd.Timestamp(stats.max).value >= pd.Timestamp("2026-07-01T00:00:00Z").value):
+                raise RuntimeError("NATIVE_M5_SQUEEZE_ROW_GROUP_SCOPE")
+            frame = parquet.read_row_group(
+                group, columns=["time", "open", "high", "low", "close", "volume"],
+                use_threads=False).to_pandas()
+            frame["time"] = pd.to_datetime(frame["time"], utc=True, errors="raise")
+            decoded += len(frame)
+            frame = frame.set_index("time")
+            pieces.append(frame.loc[
+                (frame.index >= pd.Timestamp(start, tz="UTC"))
+                & (frame.index + pd.Timedelta(minutes=5) < pd.Timestamp(cutoff, tz="UTC"))])
+        if source.stat() != before:
+            raise RuntimeError("NATIVE_M5_SQUEEZE_SOURCE_CHANGED")
+    if not pieces:
+        raise RuntimeError("NATIVE_M5_SQUEEZE_EMPTY")
+    m5 = pd.concat(pieces)
+    if not m5.index.is_monotonic_increasing or m5.index.has_duplicates:
+        raise RuntimeError("NATIVE_M5_SQUEEZE_SOURCE_ORDER")
+    frames = {"M5": m5}
+    for clock in clocks[1:]:
+        frame = _resample_ohlcv(m5, clock)
+        duration = pd.Timedelta(volatility_squeeze_bar_grid(clock)["duration_ns"], unit="ns")
+        frames[clock] = frame.loc[
+            (frame.index >= pd.Timestamp(start, tz="UTC"))
+            & (frame.index + duration < pd.Timestamp(cutoff, tz="UTC"))]
+    proof = {
+        "native_m5_manifest": native,
+        "fit_plan": {"path": str(checked_plan), "sha256": expected_sha256},
+        "decoded_native_m5_rows": decoded,
+        "fit_frames": {
+            clock: {"rows": len(frame), "ohlcv_sha256": _ohlcv_sha256(frame),
+                    "first_bar_ns": int(frame.index[0].value),
+                    "last_available_ns": int(frame.index[-1].value)
+                        + volatility_squeeze_bar_grid(clock)["duration_ns"]}
+            for clock, frame in frames.items()},
+        "timeframes": list(clocks), "source_clock_contract": clock_contract,
+    }
+    return frames, provenance, proof
+
+
+def fit_native_m5_artifacts_from_plan(
+    plan_path: Path, *, expected_sha256: str, output_dir: Path,
+) -> tuple[Path, dict]:
+    """Fit fresh five-clock parameters with a raw-frame identity proof."""
+    import json
+    from gx1.features.volatility_squeeze_state_v1 import (
+        VOLATILITY_SQUEEZE_DIRECTION_CLOCKS as clocks,
+        fit_volatility_squeeze_artifact_manifest,
+    )
+    frames, provenance, proof = native_m5_fit_frames_from_plan(
+        plan_path, expected_sha256=expected_sha256)
+    plan = json.loads(Path(plan_path).read_text())
+    start, cutoff = plan["fit_start_ns"], plan["fit_cutoff_ns"]
+    manifest = fit_volatility_squeeze_artifact_manifest(
+        frames, declared_train_window_start=pd.Timestamp(start, tz="UTC"),
+        declared_train_window_end=pd.Timestamp(cutoff, tz="UTC"),
+        source_provenance_by_clock=provenance, output_dir=output_dir, clocks=clocks)
+    payload = json.loads(manifest.read_text())
+    for clock in clocks:
+        if (payload["artifacts"][clock]["train_ohlcv_rows"] != proof["fit_frames"][clock]["rows"]
+                or payload["artifacts"][clock]["train_ohlcv_sha256"]
+                    != proof["fit_frames"][clock]["ohlcv_sha256"]):
+            raise RuntimeError("NATIVE_M5_SQUEEZE_PHYSICAL_FIT_IDENTITY")
+    return manifest, proof
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     for lane in ("m1", "m5"):

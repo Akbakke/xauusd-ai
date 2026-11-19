@@ -1013,3 +1013,14 @@ def test_anchor_spans_survive_each_native_tf_window_and_chart_selection(timefram
     np.testing.assert_array_equal(rows, np.arange(1, length + 1, dtype=np.int64))
     assert window.shape == (length, len(names))
     np.testing.assert_array_equal(window[:, route][:, positions], values[1:-1, spans])
+
+
+def test_native_five_squeeze_cannot_read_m1_local_price_source(monkeypatch,tmp_path):
+    from gx1.features import entry_model_native_feature_layers_v1 as owner
+    from gx1.features.volatility_squeeze_state_v1 import VolatilitySqueezeArtifactSet, VOLATILITY_SQUEEZE_DIRECTION_CLOCKS
+    artifact=VolatilitySqueezeArtifactSet(tmp_path/'native.json','a'*64,'b'*64,'c'*64,{}, {},
+                                          clocks=VOLATILITY_SQUEEZE_DIRECTION_CLOCKS)
+    monkeypatch.setattr(owner,'require_volatility_squeeze_artifact_set',lambda value:value)
+    monkeypatch.setattr(owner,'_read_v29_price_source',lambda *a,**k:pytest.fail('M1 price read'))
+    with pytest.raises(RuntimeError,match='ARTIFACT_SET_CLOCKS_INVALID'):
+        owner.build_volatility_squeeze_local_layer(None,tmp_path/'M1.parquet',timeframe='M1',artifact_set=artifact)

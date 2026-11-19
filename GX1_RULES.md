@@ -54,7 +54,10 @@ Disse sammenligningene har ingen ATR-, størrelses- eller intrabarport.
 Gap registreres separat og fjerner ikke kjent åpning/slutt fra en
 observert bar med kjent forgjenger. Bare faktisk manglende kilde eller
 forgjenger gir ukjent fasit. Tilstrekkelig forhistorie skal gi full
-dekning i valgt TRAIN-periode på alle fem tidsrammer.
+dekning på alle fem tidsrammer. Bestillingen19.11 omfatter all tilgjengelig,
+tillatt historikk, med sammenhengende forgjenger over årsskifter. Første
+faktiske bar uten forgjenger rapporteres ukjent. Forseglet TEST åpnes ikke;
+gjenbrukt utviklings-VAL kan kontrolleres for prisfakta uten fit eller utvalg.
 
 Prognoser utstedes ved lukket M5. Framtidig sluttmål peker til neste
 faktiske TF-barslutt etter utstedelsen. Bare modne, observerte utfall

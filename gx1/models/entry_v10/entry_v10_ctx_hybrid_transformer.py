@@ -631,6 +631,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 context="ENTRY_V10_MODEL_CONSTRUCTION",
                 gc_mtf_history=gc_mtf_history,
                 unobserved_units_profile=research_unobserved_units_profile,
+                native_m5_normalization=(isinstance(input_normalization, Mapping)
+                    and input_normalization.get("schema_version") == "gx1_native_m5_input_normalization_v1"),
             )
         super().__init__()
         self.entry_training_phase = require_entry_training_phase(
@@ -653,7 +655,10 @@ class EntryV10CtxHybridTransformer(nn.Module):
             (profile_reference["name"], profile_reference["contract_sha256"])
             if profile_reference is not None else None
         )
-        dynamic_phase = self.entry_training_phase == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+        self._native_bar_direction_only = (isinstance(input_normalization, Mapping)
+            and input_normalization.get("schema_version") == "gx1_native_m5_input_normalization_v1")
+        dynamic_phase = (self.entry_training_phase == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+                         and not self._native_bar_direction_only)
         if dynamic_phase:
             if (not isinstance(dynamic_m5_query_minutes, (list, tuple))
                     or any(type(value) is not int for value in dynamic_m5_query_minutes)
@@ -821,8 +826,15 @@ class EntryV10CtxHybridTransformer(nn.Module):
         }
         ta_only = (profile_reference is not None
                    and profile_reference["name"] == FULL_TA_ENTRY_EXECUTION_PROFILE_NAME)
-        if ta_only != (isinstance(input_normalization, Mapping) and "ta_projection" in input_normalization):
+        native_m5_norm = (isinstance(input_normalization, Mapping)
+            and input_normalization.get("schema_version") == "gx1_native_m5_input_normalization_v1")
+        if ta_only != (isinstance(input_normalization, Mapping)
+                       and ("ta_projection" in input_normalization or native_m5_norm)):
             raise RuntimeError("TA_INPUT_NORMALIZATION_PROFILE_BINDING")
+        if native_m5_norm and (
+                gc_mtf_history is not None
+                or entry_training_phase != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE):
+            raise RuntimeError("NATIVE_M5_INPUT_NORMALIZATION_MODEL_SCOPE")
         normalized_input_contract = require_input_normalization_contract(
             input_normalization,
             expected_field_names=normalization_field_names,
@@ -4353,6 +4365,11 @@ class EntryV10CtxHybridTransformer(nn.Module):
             if any(value is None for value in gc_values):
                 raise RuntimeError("GC_MTF_MODEL_INPUTS_REQUIRED")
             gc_tf_inputs = tuple(zip(TF_INPUT_SCALE_NAMES, gc_values))
+        if self._native_bar_direction_only and (
+                research_representation_only is not True
+                or research_timeframe_representations is not True
+                or liquidation_relative_values is not False):
+            raise RuntimeError("NATIVE_BAR_DIRECTION_REPRESENTATION_ONLY")
         if type(liquidation_relative_values) is not bool:
             raise RuntimeError("ENTRY_LIQUIDATION_GRADIENT_MODE_INVALID")
         if (type(research_representation_only) is not bool

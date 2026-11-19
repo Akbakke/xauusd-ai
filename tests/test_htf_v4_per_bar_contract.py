@@ -2126,3 +2126,14 @@ def test_shared_raw_context_reuses_exact_arrays_and_vector_pivots_match_strict_p
     reused = _compute_closed_lane_group_a(bars, timeframe="M5", context_m5=source,
         lane_atr=np.ones(len(bars)), _raw_source=shared)
     np.testing.assert_array_equal(full.to_numpy(), reused.to_numpy())
+
+
+def test_native_five_htf_consumer_rejects_legacy_registry_before_any_nested_read(monkeypatch,tmp_path):
+    from gx1.features.volatility_squeeze_state_v1 import VolatilitySqueezeArtifactSet, VOLATILITY_SQUEEZE_DIRECTION_CLOCKS
+    artifact=VolatilitySqueezeArtifactSet(tmp_path/'native.json','a'*64,'b'*64,'c'*64,{}, {},
+                                          clocks=VOLATILITY_SQUEEZE_DIRECTION_CLOCKS)
+    monkeypatch.setattr(htf,'require_v29_registry_constants',lambda *a,**k:pytest.fail('legacy nested registry read'))
+    monkeypatch.setattr(htf,'require_volatility_squeeze_artifact_set',lambda *a,**k:pytest.fail('nested squeeze read before lineage gate'))
+    with pytest.raises(RuntimeError,match='NATIVE_M5_REGISTRY_PROVENANCE'):
+        htf.build_multi_tf_per_bar_features_v4(pd.DataFrame(),v29_registry_constants={},
+                                              volatility_squeeze_artifacts=artifact)

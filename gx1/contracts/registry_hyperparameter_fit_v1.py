@@ -142,6 +142,90 @@ def _require_immutable_file(
     return path
 
 
+NATIVE_M5_REGISTRY_FIT_PLAN_SCHEMA = "gx1_native_m5_registry_fit_plan_v1"
+NATIVE_M5_REGISTRY_SOURCE_KEYS = frozenset({
+    "source_artifact", "source_sha256", "source_schema_version", "source_lane",
+    "native_m5_manifest_artifact", "native_m5_manifest_sha256",
+    "fit_plan_artifact", "fit_plan_sha256", "source_clock_contract",
+    "train_split_id", "declared_train_window_start", "declared_train_window_end",
+})
+
+
+def _require_native_m5_registry_source(value, *, clock):
+    # Decide the native contract before following any caller-supplied reference.
+    from gx1.contracts.entry_model_native_input_normalization_v1 import NATIVE_M5_TRAIN_FIT_CUTOFF_NS
+    from gx1.features.volatility_squeeze_state_v1 import (
+        VOLATILITY_SQUEEZE_DIRECTION_CLOCKS as clocks,
+        VOLATILITY_SQUEEZE_DIRECTION_CLOCK_CONTRACT as contract,
+    )
+    if (set(value) != NATIVE_M5_REGISTRY_SOURCE_KEYS or clock not in clocks
+            or value["source_lane"] != clock or value["train_split_id"] != "TRAIN"
+            or value["source_clock_contract"] != contract
+            or value["source_schema_version"] != "xau_canonical_native_source_v3"
+            or value["source_artifact"] != value["native_m5_manifest_artifact"]
+            or value["source_sha256"] != value["native_m5_manifest_sha256"]):
+        raise RuntimeError("[NATIVE_M5_REGISTRY_SOURCE_INVALID]")
+    decoded = []
+    for path_key, sha_key in (("native_m5_manifest_artifact", "native_m5_manifest_sha256"),
+                              ("fit_plan_artifact", "fit_plan_sha256")):
+        _require_immutable_file(value[path_key], expected_sha256=value[sha_key],
+                                label="NATIVE_M5_REGISTRY_SOURCE")
+        decoded.append(json.loads(Path(value[path_key]).read_text()))
+    native, plan = decoded
+    manifest_ref = {"path": value["source_artifact"], "sha256": value["source_sha256"]}
+    required_native = {
+        "schema_version": "xau_canonical_native_source_v3", "instrument": "XAU_USD",
+        "timeframe": "M5", "source_granularity": "M5", "source_kind": "oanda_native_mba_candles",
+        "prices": "MBA", "bar_duration_seconds": 300, "decision_available_offset_seconds": 300,
+        "timestamp_semantics": "bar_start_utc", "completion_field": "complete", "completion_value": True,
+    }
+    if (not isinstance(native, dict) or any(native.get(k) != v for k, v in required_native.items())
+            or not isinstance(plan, dict) or set(plan) != {
+                "schema_version", "native_m5_manifest", "timeframes", "source_clock_contract",
+                "fit_start_ns", "fit_cutoff_ns", "source_spec", "declared_train_window_start",
+                "declared_train_window_end", "declared_inner_fit_window_end"}
+            or plan.get("schema_version") != NATIVE_M5_REGISTRY_FIT_PLAN_SCHEMA
+            or plan.get("native_m5_manifest") != manifest_ref
+            or plan.get("timeframes") != list(clocks) or plan.get("source_clock_contract") != contract
+            or plan.get("declared_train_window_start") != value["declared_train_window_start"]
+            or plan.get("declared_train_window_end") != value["declared_train_window_end"]
+            or not isinstance(plan.get("source_spec"), dict)):
+        raise RuntimeError("[NATIVE_M5_REGISTRY_SOURCE_INVALID]")
+    try:
+        start, end, inner = (datetime.fromisoformat(str(plan[k]).replace("Z", "+00:00")) for k in
+            ("declared_train_window_start", "declared_train_window_end", "declared_inner_fit_window_end"))
+    except (KeyError, TypeError, ValueError) as exc:
+        raise RuntimeError("[NATIVE_M5_REGISTRY_FIT_WINDOW_INVALID]") from exc
+    if (any(t.tzinfo is None or t.utcoffset() != timezone.utc.utcoffset(t) for t in (start, end, inner))
+            or not start < inner < end or type(plan.get("fit_cutoff_ns")) is not int
+            or type(plan.get("fit_start_ns")) is not int
+            or plan["fit_start_ns"] != int(start.timestamp()) * 1_000_000_000
+            or plan["fit_cutoff_ns"] != int(end.timestamp()) * 1_000_000_000
+            or plan["fit_cutoff_ns"] > NATIVE_M5_TRAIN_FIT_CUTOFF_NS):
+        raise RuntimeError("[NATIVE_M5_REGISTRY_FIT_WINDOW_INVALID]")
+    spec = plan["source_spec"]
+    if (set(spec) != {"manifest", "parts", "cutoff_ns"}
+            or spec["manifest"] != manifest_ref or spec["cutoff_ns"] != plan["fit_cutoff_ns"]
+            or not isinstance(spec["parts"], list)
+            or not spec["parts"] or not isinstance(native.get("year_sha256"), dict)):
+        raise RuntimeError("[NATIVE_M5_REGISTRY_SOURCE_INVALID]")
+    paths = []
+    for part in spec["parts"]:
+        if (not isinstance(part, dict) or set(part) != {"path", "sha256", "row_groups"}
+                or not isinstance(part["row_groups"], list) or not part["row_groups"]
+                or any(type(i) is not int or i < 0 for i in part["row_groups"])
+                or part["row_groups"] != sorted(set(part["row_groups"]))):
+            raise RuntimeError("[NATIVE_M5_REGISTRY_SOURCE_INVALID]")
+        path = Path(str(part["path"]))
+        if (path != Path(value["source_artifact"]).parent / path.parent.name / "part-000.parquet"
+                or part["sha256"] != native["year_sha256"].get(path.parent.name)):
+            raise RuntimeError("[NATIVE_M5_REGISTRY_SOURCE_INVALID]")
+        paths.append(str(path))
+    if paths != sorted(set(paths)):
+        raise RuntimeError("[NATIVE_M5_REGISTRY_SOURCE_INVALID]")
+    return dict(value)
+
+
 def require_registry_fit_source_v1(
     value: Any,
     *,
@@ -149,6 +233,8 @@ def require_registry_fit_source_v1(
 ) -> dict[str, Any]:
     """Validate and recompute every immutable TRAIN source binding."""
 
+    if isinstance(value, Mapping) and "source_clock_contract" in value:
+        return _require_native_m5_registry_source(value, clock=clock)
     if not isinstance(value, Mapping) or set(value) != set(_SOURCE_KEYS):
         raise RuntimeError("[REGISTRY_FIT_SOURCE_SCHEMA_INVALID]")
     observed = dict(value)

@@ -373,3 +373,92 @@ def test_declared_train_window_remains_the_only_train_population_authority(tmp_p
     naive["declared_train_window_end"] = "2020-01-01T00:39:00"
     with pytest.raises(RuntimeError, match="REGISTRY_FIT_TRAIN_WINDOW_INVALID"):
         require_registry_fit_source_v1(naive, clock="M5")
+
+
+def _native_source(tmp_path, *, clock='M5'):
+    from gx1.contracts.registry_hyperparameter_fit_v1 import NATIVE_M5_REGISTRY_FIT_PLAN_SCHEMA
+    from gx1.features.volatility_squeeze_state_v1 import VOLATILITY_SQUEEZE_DIRECTION_CLOCKS, VOLATILITY_SQUEEZE_DIRECTION_CLOCK_CONTRACT
+    import pandas as pd
+    manifest_path=tmp_path/'MANIFEST.json'
+    native={'schema_version':'xau_canonical_native_source_v3','instrument':'XAU_USD','timeframe':'M5',
+        'source_granularity':'M5','source_kind':'oanda_native_mba_candles','prices':'MBA',
+        'bar_duration_seconds':300,'decision_available_offset_seconds':300,'timestamp_semantics':'bar_start_utc',
+        'completion_field':'complete','completion_value':True,'year_sha256':{'year=2020':'a'*64}}
+    manifest_path.write_text(json.dumps(native))
+    ref={'path':str(manifest_path),'sha256':_sha(manifest_path)}
+    start='2020-01-01T00:00:00+00:00';inner='2020-01-01T01:40:00+00:00';end='2020-01-01T03:20:00+00:00'
+    plan={'schema_version':NATIVE_M5_REGISTRY_FIT_PLAN_SCHEMA,'native_m5_manifest':ref,
+        'timeframes':list(VOLATILITY_SQUEEZE_DIRECTION_CLOCKS),
+        'source_clock_contract':VOLATILITY_SQUEEZE_DIRECTION_CLOCK_CONTRACT,
+        'fit_start_ns':int(pd.Timestamp(start).value),'fit_cutoff_ns':int(pd.Timestamp(end).value),
+        'declared_train_window_start':start,'declared_train_window_end':end,
+        'declared_inner_fit_window_end':inner,
+        'source_spec':{'manifest':ref,'cutoff_ns':int(pd.Timestamp(end).value),
+            'parts':[{'path':str(tmp_path/'year=2020/part-000.parquet'),'sha256':'a'*64,'row_groups':[0]}]}}
+    plan_path=tmp_path/'REGISTRY_FIT_PLAN.json';plan_path.write_text(json.dumps(plan))
+    return {'source_artifact':ref['path'],'source_sha256':ref['sha256'],'source_schema_version':native['schema_version'],
+        'source_lane':clock,'native_m5_manifest_artifact':ref['path'],'native_m5_manifest_sha256':ref['sha256'],
+        'fit_plan_artifact':str(plan_path),'fit_plan_sha256':_sha(plan_path),
+        'source_clock_contract':VOLATILITY_SQUEEZE_DIRECTION_CLOCK_CONTRACT,'train_split_id':'TRAIN',
+        'declared_train_window_start':start,'declared_train_window_end':end}
+
+
+def test_native_m5_registry_fit_roundtrip_reads_only_native_manifest_and_fit_plan(tmp_path,monkeypatch):
+    from gx1.contracts import registry_hyperparameter_fit_v1 as owner
+    import pandas as pd
+    source=_native_source(tmp_path)
+    visited=[];original=owner._require_immutable_file
+    def guarded(value,**kwargs):
+        assert Path(value).name in {'MANIFEST.json','REGISTRY_FIT_PLAN.json'}
+        visited.append(str(value));return original(value,**kwargs)
+    monkeypatch.setattr(owner,'_require_immutable_file',guarded)
+    price=2000.+np.arange(40,dtype=np.float64)
+    payload=owner.fit_registry_competing_risk_threshold_v1(_stream(reaction_boundary=.3),
+        registry_kind='horizontal_level',clock='M5',n_rows=40,inner_fit_end_exclusive=20,
+        index_ns=int(pd.Timestamp(source['declared_train_window_start']).value)+np.arange(40,dtype=np.int64)*300_000_000_000,
+        frame_columns=(price,price+1,price-1),source_provenance=source,
+        population_configuration={'owner':'synthetic_native_clock_test'})
+    assert payload['source_provenance']==source
+    assert owner.require_registry_hyperparameter_payload_v1(payload,registry_kind='horizontal_level',clock='M5')==payload
+    assert {Path(p).name for p in visited}=={'MANIFEST.json','REGISTRY_FIT_PLAN.json'}
+
+
+@pytest.mark.parametrize('mutation',['legacy_keys','wrong_clock','wrong_schema'])
+def test_native_registry_rejects_inherited_source_before_nested_io(tmp_path,monkeypatch,mutation):
+    from gx1.contracts import registry_hyperparameter_fit_v1 as owner
+    source=_native_source(tmp_path)
+    if mutation=='legacy_keys':source.update(tape_manifest_artifact='/M1/tape.json',tape_manifest_sha256='a'*64)
+    elif mutation=='wrong_clock':source['source_clock_contract']='closed_ohlcv_native_clock_v1'
+    else:source['source_schema_version']='gx1_legacy_pair_v1'
+    monkeypatch.setattr(owner,'_require_immutable_file',lambda *a,**k:pytest.fail('nested source read before refusal'))
+    with pytest.raises(RuntimeError,match='NATIVE_M5_REGISTRY_SOURCE_INVALID'):
+        owner.require_registry_fit_source_v1(source,clock='M5')
+
+
+def test_native_registry_plan_refuses_indirect_m1_reference_without_following_it(tmp_path,monkeypatch):
+    from gx1.contracts import registry_hyperparameter_fit_v1 as owner
+    source=_native_source(tmp_path)
+    p=Path(source['fit_plan_artifact']);plan=json.loads(p.read_text())
+    plan['source_spec']['m1_manifest']={'path':'/M1/MANIFEST.json','sha256':'f'*64}
+    p.write_text(json.dumps(plan));source['fit_plan_sha256']=_sha(p)
+    original=owner._require_immutable_file
+    def guarded(value,**kwargs):
+        assert '/M1/' not in str(value);return original(value,**kwargs)
+    monkeypatch.setattr(owner,'_require_immutable_file',guarded)
+    with pytest.raises(RuntimeError,match='NATIVE_M5_REGISTRY_SOURCE_INVALID'):
+        owner.require_registry_fit_source_v1(source,clock='M5')
+
+
+def test_native_registry_refuses_train_fit_after_development_val_boundary(tmp_path):
+    from gx1.contracts import registry_hyperparameter_fit_v1 as owner
+    from gx1.contracts.entry_model_native_input_normalization_v1 import NATIVE_M5_TRAIN_FIT_CUTOFF_NS
+    import pandas as pd
+    source=_native_source(tmp_path)
+    path=Path(source['fit_plan_artifact']);plan=json.loads(path.read_text())
+    end=str(pd.Timestamp(NATIVE_M5_TRAIN_FIT_CUTOFF_NS+300_000_000_000,tz='UTC').isoformat())
+    plan['fit_cutoff_ns']=NATIVE_M5_TRAIN_FIT_CUTOFF_NS+300_000_000_000
+    plan['declared_train_window_end']=source['declared_train_window_end']=end
+    plan['source_spec']['cutoff_ns']=plan['fit_cutoff_ns']
+    path.write_text(json.dumps(plan));source['fit_plan_sha256']=_sha(path)
+    with pytest.raises(RuntimeError,match='NATIVE_M5_REGISTRY_FIT_WINDOW_INVALID'):
+        owner.require_registry_fit_source_v1(source,clock='M5')

@@ -722,8 +722,9 @@ def _native_m5_provenance(tmp_path, frames):
         "schema_version": "gx1_native_m5_squeeze_fit_plan_v1",
         "native_m5_manifest": native, "timeframes": list(owner.VOLATILITY_SQUEEZE_DIRECTION_CLOCKS),
         "source_clock_contract": owner.VOLATILITY_SQUEEZE_DIRECTION_CLOCK_CONTRACT,
+        "fit_start_ns": int(frames["M5"].index[0].value),
         "fit_cutoff_ns": int(end.value),
-        "source_spec": {"manifest": native, "parts": [
+        "source_spec": {"manifest": native, "cutoff_ns": int(end.value), "parts": [
             {"path": str(tmp_path / "year=2022/part-000.parquet"),
              "sha256": "a" * 64, "row_groups": [0]}]},
     }
@@ -858,3 +859,14 @@ def test_native_manifest_fitter_rejects_inherited_source_before_fit(tmp_path, mo
             declared_train_window_end=frames["D1"].index[-1] + pd.Timedelta(days=1),
             source_provenance_by_clock=provenance, output_dir=tmp_path,
             clocks=clocks)
+
+
+def test_native_fit_plan_start_must_match_declared_parameter_window(tmp_path):
+    from gx1.features import volatility_squeeze_state_v1 as owner
+    frames = {clock: _closed_ohlcv(clock)
+              for clock in owner.VOLATILITY_SQUEEZE_DIRECTION_CLOCKS}
+    provenance, end = _native_m5_provenance(tmp_path, frames)
+    with pytest.raises(RuntimeError, match='NATIVE_M5_PROVENANCE_INVALID'):
+        owner._require_native_m5_provenance(
+            provenance['M5'], timeframe='M5', fit_cutoff_ns=int(end.value),
+            fit_start_ns=int(frames['M5'].index[0].value) + 300_000_000_000)

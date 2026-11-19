@@ -84,15 +84,15 @@ def test_preflight_checks_same_input_hash_gate_without_decode_or_output(monkeypa
 
 def test_source_reader_discards_cutoff_close_and_retains_own_m5_clock(tmp_path):
     path = tmp_path / 'part.parquet'
-    starts = pd.date_range('2024-09-30 23:45', periods=4, freq='5min', tz='UTC')
+    starts = pd.date_range('2026-06-30 23:45', periods=3, freq='5min', tz='UTC')
     table = pa.table({'time': pa.Array.from_pandas(starts),
-        'open': [1.] * 4, 'high': [2.] * 4, 'low': [0.] * 4, 'close': [1.] * 4})
+        'open': [1.] * 3, 'high': [2.] * 3, 'low': [0.] * 3, 'close': [1.] * 3})
     pq.write_table(table, path, row_group_size=2)
     part = {'path': str(path), 'sha256': audit.sha(path), 'row_groups': [0, 1]}
     plan = {'source_spec': {'parts': [part], 'cutoff_ns': audit.CUTOFF_NS},
             'source_metadata': {str(path): audit.part_metadata(part)}}
     times, ohlc, decoded = audit.read_source(plan)
-    assert decoded == 4
+    assert decoded == 3
     assert times.tolist() == starts.asi8[:2].tolist()
     assert ohlc.shape == (2, 4)
     assert np.all(times + audit.M5_NS < audit.CUTOFF_NS)
@@ -192,3 +192,92 @@ def test_calculate_publishes_all_bar_comparisons_and_native_future_rows(monkeypa
             assert coverage['future_unique_eligible_bar_rows'] == len(np.unique(
                 saved['future_target_row'][eligible, col]))
             assert np.all(saved['future_validity_ns'][eligible, col] > saved['issue_ns'][eligible])
+
+
+def test_all_manifest_years_selected_from_metadata_without_value_reads(monkeypatch, tmp_path):
+    monkeypatch.setattr(audit, 'NATIVE', tmp_path)
+    years = {2009: '2009-06-01', 2011: '2011-01-03', 2026: '2026-06-30 23:50'}
+    manifest = {
+        'requested_start_utc': '2009-06-01T00:00:00+00:00',
+        'requested_end_utc_exclusive': '2026-07-01T00:00:00+00:00',
+        'time_max_utc': '2026-06-30T23:55:00+00:00',
+        'year_rows': {}, 'year_sha256': {},
+    }
+    for year, start in years.items():
+        path = tmp_path / f'year={year}/part-000.parquet'
+        path.parent.mkdir()
+        times = pd.date_range(start, periods=2, freq='5min', tz='UTC')
+        pq.write_table(pa.table({'time': pa.Array.from_pandas(times),
+            'open': [1., 1.], 'high': [2., 2.], 'low': [.5, .5],
+            'close': [1., 1.]}), path, row_group_size=1)
+        manifest['year_rows'][f'year={year}'] = 2
+        manifest['year_sha256'][f'year={year}'] = audit.sha(path)
+    monkeypatch.setattr(audit, 'source_manifest', lambda binding: manifest)
+    def unexpected_decode(*args, **kwargs):
+        pytest.fail('metadata preparation decoded source values')
+    monkeypatch.setattr(pq.ParquetFile, 'read_row_group', unexpected_decode)
+    spec = audit.native_source_spec()
+    assert [part['path'] for part in spec['parts']] == [
+        str(tmp_path / f'year={year}/part-000.parquet') for year in years]
+    assert spec['parts'][-1]['row_groups'] == [0]
+    assert spec['issue_start_ns'] == audit.ISSUE_START_NS
+    assert spec['cutoff_ns'] == audit.SEALED_TEST_START_NS
+
+
+def test_post_test_row_group_refused_before_any_source_values(monkeypatch, tmp_path):
+    parts, metadata = [], {}
+    for name, start in (('earlier', '2025-01-02'), ('forbidden', '2026-07-01')):
+        path = tmp_path / (name + '.parquet')
+        times = pd.date_range(start, periods=2, freq='5min', tz='UTC')
+        pq.write_table(pa.table({'time': pa.Array.from_pandas(times),
+            'open': [1., 1.], 'high': [2., 2.], 'low': [.5, .5],
+            'close': [1., 1.]}), path)
+        part = {'path': str(path), 'sha256': audit.sha(path), 'row_groups': [0]}
+        parts.append(part)
+        metadata[str(path)] = audit.part_metadata(part) if name == 'earlier' else {}
+    def unexpected_decode(*args, **kwargs):
+        pytest.fail('reader decoded values before checking every selected group')
+    monkeypatch.setattr(pq.ParquetFile, 'read_row_group', unexpected_decode)
+    plan = {'source_spec': {'parts': parts, 'cutoff_ns': audit.CUTOFF_NS},
+            'source_metadata': metadata}
+    with pytest.raises(ValueError, match='SOURCE_PRETEST_BOUNDARY'):
+        audit.read_source(plan)
+
+
+def test_complete_history_retains_first_unknown_and_cross_year_predecessors(monkeypatch):
+    import io
+    from gx1.contracts.market_state_native_m5_targets_v1 import TIMEFRAMES
+    starts = pd.date_range('2023-12-29', periods=1800, freq='5min', tz='UTC').asi8
+    opens = 2000. + np.arange(len(starts)) * .001
+    closes = np.full(len(starts), 2001.)
+    ohlc = np.column_stack((opens, np.maximum(opens, closes) + .1,
+                           np.minimum(opens, closes) - .1, closes))
+    monkeypatch.setattr(audit, 'read_source', lambda plan: (starts, ohlc, len(starts)))
+    plan = {'source_spec': {
+        'manifest': {'path': '/synthetic/NATIVE_M5_MANIFEST.json', 'sha256': '1' * 64},
+        'issue_start_ns': int(starts[0]),
+        'cutoff_ns': int(starts[-1] + 2 * audit.M5_NS),
+        'parts': [{'path': '/synthetic/year=2023/part-000.parquet'},
+                  {'path': '/synthetic/year=2024/part-000.parquet'}]}}
+    payload, report = audit.calculate(plan)
+    assert report['source_year_filter'] == [2023, 2024]
+    assert set(report['issue_rows_by_year']) == {'2023', '2024'}
+    assert sum(report['fact_period_rows'].values()) == len(starts)
+    assert report['fact_population_only_no_fit_or_selection'] is True
+    with np.load(io.BytesIO(payload), allow_pickle=False) as saved:
+        for tf in TIMEFRAMES:
+            prefix = 'bars_' + tf + '_'
+            known = saved[prefix + 'observed_previous']
+            assert not known[0] and known[1:].all()
+            assert np.isnan(saved[prefix + 'previous_open'][0])
+            coverage = report['coverage_by_timeframe'][tf]
+            assert coverage['missing_previous_bars'] == 1
+            assert coverage['prior_observed_bars'] == coverage['observed_bars'] - 1
+            assert coverage['cross_year_previous_bars'] == 1
+            assert coverage['yearly_bar_counts']['2023']['missing_previous_bars'] == 1
+            assert coverage['yearly_bar_counts']['2024']['missing_previous_bars'] == 0
+            assert coverage['yearly_bar_counts']['2024']['cross_year_previous_bars'] == 1
+            assert coverage['future_unavailable_tail'] > 0
+            years = saved[prefix + 'available_ns'].astype('datetime64[ns]').astype('datetime64[Y]')
+            first_2024 = np.flatnonzero(years == np.datetime64('2024', 'Y'))[0]
+            assert saved[prefix + 'previous_open'][first_2024] == saved[prefix + 'ohlc'][first_2024 - 1, 0]

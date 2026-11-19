@@ -470,3 +470,21 @@ def test_compact_architecture_rejects_forged_reference_and_unbound_extra_profile
     observed["entry_execution_profile"] = None
     with pytest.raises(RuntimeError, match="ENTRY_EXIT_PRODUCTION_ARCHITECTURE_MISMATCH"):
         require_entry_exit_production_architecture(observed, context="TEST_COMPACT_UNBOUND")
+
+
+def test_native_m5_normalization_schema_requires_explicit_full_ta_scope():
+    from gx1.contracts.entry_model_native_input_normalization_v1 import NATIVE_M5_NORMALIZATION_SCHEMA
+    from gx1.features.entry_specialist_feature_groups_v1 import compile_full_ta_entry_execution_profile
+    profile = compile_full_ta_entry_execution_profile()
+    identity = {key: profile[key] for key in ('name', 'contract_sha256')}
+    observed = current_entry_exit_architecture_observation(entry_execution_profile=identity)
+    observed['schemas']['input_normalization'] = NATIVE_M5_NORMALIZATION_SCHEMA
+    with pytest.raises(RuntimeError, match='ARCHITECTURE_MISMATCH'):
+        require_entry_exit_production_architecture(observed, context='SYNTHETIC')
+    verified = require_entry_exit_production_architecture(
+        observed, context='SYNTHETIC', native_m5_normalization=True)
+    assert verified['schemas']['input_normalization'] == NATIVE_M5_NORMALIZATION_SCHEMA
+    with pytest.raises(RuntimeError, match='NATIVE_M5_NORMALIZATION_ARCHITECTURE_SCOPE'):
+        require_entry_exit_production_architecture(
+            current_entry_exit_architecture_observation(),
+            context='SYNTHETIC', native_m5_normalization=True)

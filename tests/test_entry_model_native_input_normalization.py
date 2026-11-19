@@ -1082,3 +1082,79 @@ def test_unobserved_prefix_metadata_is_rejected_by_native_validator(metadata):
         normalization_contract.require_surface_normalization(
             {**native, **extra}, surface=kwargs["surface"],
             field_names=kwargs["field_names"])
+
+
+def native_m5_normalization_fixture():
+    """Fresh synthetic native statistics without an Entry/Exit lineage packet."""
+    from gx1.contracts import entry_model_native_input_normalization_v1 as owner
+    from gx1.features import entry_specialist_feature_groups_v1 as groups
+    from tests.test_entry_v10_ctx_model_shapes import _valid_range_observation_input
+    profile = groups.compile_full_ta_entry_execution_profile()
+    fields = profile['physical_field_names']
+    rows = 32
+    axis = np.arange(rows, dtype=np.float32)
+    surfaces, raw = {}, {}
+    names_by_surface = {'signal': list(fields['signal']), 'ctx_cont': list(fields['ctx_cont']),
+                        **{'mtf_' + tf.lower(): list(fields['mtf']) for tf in owner.EXPECTED_TFS}}
+    aliases = groups.model_native_context_temporal_alias_policy(fields['signal'])['aliases']
+    for surface, names in names_by_surface.items():
+        values = np.column_stack([axis * (.01 + (i + 1) / 1000) + i % 3 for i in range(len(names))])
+        values = _valid_range_observation_input(torch.from_numpy(values.astype(np.float32)), names).numpy()
+        domains = (owner.MTF_SEMANTIC_CATEGORICAL_DOMAINS if surface.startswith('mtf_')
+                   else owner.SIGNAL_SEMANTIC_CATEGORICAL_DOMAINS if surface == 'signal'
+                   else owner.CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS)
+        domains = {name: domain for name, domain in domains.items() if name in names}
+        for name, domain in domains.items():
+            values[:, names.index(name)] = np.asarray(domain)[np.arange(rows) % len(domain)]
+        if 'ema_stack_aligned_v2' in names:
+            values[:, names.index('ema_stack_aligned_v2')] = axis % 3 - 1
+        if surface.startswith('mtf_'):
+            for name in owner.MTF_SEMANTIC_BINARY_FIELDS.intersection(names):
+                values[:, names.index(name)] = axis % 2
+        raw[surface] = _valid_range_observation_input(torch.from_numpy(values), names).numpy()
+    for alias in aliases:
+        raw['signal'][:, alias['signal_index']] = raw['ctx_cont'][:, alias['ctx_cont_index']]
+    for surface, names in names_by_surface.items():
+        domains = (owner.MTF_SEMANTIC_CATEGORICAL_DOMAINS if surface.startswith('mtf_')
+                   else owner.SIGNAL_SEMANTIC_CATEGORICAL_DOMAINS if surface == 'signal'
+                   else owner.CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS)
+        surfaces[surface] = owner.fit_surface_normalization(
+            raw[surface], surface=surface, field_names=names,
+            semantic_categorical_domains={name: domain for name, domain in domains.items() if name in names})
+    surfaces['ctx_cont'] = owner.share_temporal_alias_stats_from_signal(
+        surfaces['ctx_cont'], surfaces['signal'], temporal_aliases=aliases,
+        ctx_cont_values=raw['ctx_cont'])
+    cats = np.column_stack([np.arange(rows) % len(domain) for domain in owner.CTX_CAT_DOMAINS.values()])
+    ctx_cat = owner.fit_ctx_cat_contract(cats, field_names=list(owner.CTX_CAT_DOMAINS))
+    population = {'cutoff_ns': 1727740800000000000, 'first_issue_ns': 1714521600000000000,
+        'last_issue_ns': 1714530900000000000, 'issue_rows': rows,
+        'selected_issue_ns_sha256': '1' * 64, 'selected_source_rows_sha256': '2' * 64,
+        'local_rows': rows, 'context_rows': rows,
+        'per_tf': {tf: {'rows': rows, 'source_rows_sha256': '3' * 64,
+                       'available_ns_sha256': '4' * 64} for tf in owner.EXPECTED_TFS}}
+    from gx1.contracts.market_state_native_m5_feature_inputs_v1 import native_m5_feature_provider_contract
+    normalization = owner.build_native_m5_input_normalization_contract(
+        native_m5_manifest={'path': '/synthetic/NATIVE_M5_MANIFEST.json', 'sha256': '5' * 64},
+        feature_provider_contract_sha256=native_m5_feature_provider_contract()['contract_sha256'],
+        source_axes_sha256='7' * 64,
+        fit_population=population, surfaces=surfaces, ctx_cat=ctx_cat, temporal_aliases=aliases)
+    return normalization, raw, cats
+
+
+def test_native_m5_normalization_has_independent_schema_and_rejects_legacy_lineage():
+    from gx1.contracts import entry_model_native_input_normalization_v1 as owner
+    normalization, _, _ = native_m5_normalization_fixture()
+    names = {key: value['field_names'] for key, value in normalization['surfaces'].items()}
+    result = owner.require_input_normalization_contract(
+        normalization, expected_field_names=names, expected_ctx_cat_names=list(owner.CTX_CAT_DOMAINS))
+    assert result == normalization and 'ta_projection' not in result
+    legacy = dict(normalization, ta_projection={'source': '/forbidden/M1'})
+    with pytest.raises(RuntimeError, match='NATIVE_M5_NORMALIZATION_KEYS'):
+        owner.require_native_m5_input_normalization_contract(legacy)
+    bad = dict(normalization, source_clock_contract='closed_ohlcv_native_clock_v1')
+    with pytest.raises(RuntimeError, match='NATIVE_M5_NORMALIZATION_IDENTITY'):
+        owner.require_native_m5_input_normalization_contract(bad)
+    late = dict(normalization, fit_population={**normalization['fit_population'],
+        'cutoff_ns': owner.NATIVE_M5_TRAIN_FIT_CUTOFF_NS + 300_000_000_000})
+    with pytest.raises(RuntimeError, match='NATIVE_M5_NORMALIZATION_TRAIN_FIT_CUTOFF'):
+        owner.require_native_m5_input_normalization_contract(late)

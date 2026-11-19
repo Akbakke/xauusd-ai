@@ -39,6 +39,8 @@ from gx1.features import micro_structure_v1 as _micro_context
 from gx1.features.basic_v1 import session_native_binary_event_fields
 
 SCHEMA_VERSION = "entry_model_native_input_normalization_v11"
+NATIVE_M5_NORMALIZATION_SCHEMA = 'gx1_native_m5_input_normalization_v1'
+NATIVE_M5_TRAIN_FIT_CUTOFF_NS = 1780272000000000000  # 2026-06-01T00:00:00Z, exclusive TRAIN ceiling
 TRANSFORM = "shared_entry_exit_train_only_median_raw_iqr_asinh_v7"
 FIT_POPULATION = "unique_physical_train_rows_entry_exit_union_v2"
 DYNAMIC_M5_FIT_POPULATION = "unique_physical_train_rows_entry_only_dynamic_m5_path_v1"
@@ -1798,6 +1800,13 @@ def require_input_normalization_contract(
 ) -> dict[str, Any]:
     if not isinstance(value, Mapping):
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_CONTRACT_MISSING]")
+    if value.get("schema_version") == NATIVE_M5_NORMALIZATION_SCHEMA:
+        if unobserved_units_profile is not None:
+            raise RuntimeError("NATIVE_M5_NORMALIZATION_LEGACY_UNITS_PROFILE")
+        return require_native_m5_input_normalization_contract(
+            value, expected_field_names=expected_field_names,
+            expected_ctx_cat_names=expected_ctx_cat_names,
+            expected_entry_training_phase=expected_entry_training_phase)
     if "ta_projection" in value:
         return _require_ta_input_normalization_contract(
             value, expected_field_names=expected_field_names,
@@ -2026,3 +2035,107 @@ def invert_surface_normalization(
     result = _gc_context.mask_normalized_numpy(normalized, np.asarray(restored, dtype=np.float32),
         surface_contract["field_names"])
     return _micro_context.mask_normalized_range_numpy(normalized, result, surface_contract["field_names"])
+
+
+_NATIVE_M5_NORMALIZATION_KEYS = frozenset({
+    'schema_version', 'source_clock_contract', 'native_m5_manifest',
+    'feature_provider_contract_sha256', 'source_axes_sha256', 'fit_population',
+    'surfaces', 'ctx_cat', 'temporal_aliases', 'contract_sha256',
+})
+_NATIVE_M5_POPULATION_KEYS = frozenset({
+    'cutoff_ns', 'first_issue_ns', 'last_issue_ns', 'issue_rows',
+    'selected_issue_ns_sha256', 'selected_source_rows_sha256',
+    'local_rows', 'context_rows', 'per_tf',
+})
+
+
+def _native_m5_need(ok, reason):
+    if not bool(ok):
+        raise RuntimeError('NATIVE_M5_NORMALIZATION_' + reason)
+
+
+def require_native_m5_input_normalization_contract(
+    value, *, expected_field_names=None, expected_ctx_cat_names=None,
+    expected_entry_training_phase=None,
+):
+    """Validate fresh native M5 statistics without historical Entry/Exit lineage."""
+    from gx1.features.entry_specialist_feature_groups_v1 import compile_full_ta_entry_execution_profile
+    profile = compile_full_ta_entry_execution_profile()
+    names = profile['physical_field_names']
+    canonical = {'signal': list(names['signal']), 'ctx_cont': list(names['ctx_cont']),
+                 **{'mtf_' + tf.lower(): list(names['mtf']) for tf in EXPECTED_TFS}}
+    _native_m5_need(type(value) is dict and set(value) == _NATIVE_M5_NORMALIZATION_KEYS,
+                    'KEYS')
+    data = dict(value)
+    reference = data['native_m5_manifest']
+    _native_m5_need(data['schema_version'] == NATIVE_M5_NORMALIZATION_SCHEMA
+        and data['source_clock_contract'] == 'native_m5_and_closed_higher_no_m1_v1'
+        and expected_entry_training_phase in (None, ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
+        and (expected_field_names is None or {
+            key: list(fields) for key, fields in expected_field_names.items()} == canonical)
+        and (expected_ctx_cat_names is None or list(expected_ctx_cat_names) == list(CTX_CAT_DOMAINS))
+        and type(reference) is dict and set(reference) == {'path', 'sha256'}
+        and isinstance(reference['path'], str) and reference['path'].startswith('/')
+        and '..' not in reference['path'].split('/'), 'IDENTITY')
+    for digest in (reference['sha256'], data['source_axes_sha256'],
+                   data['feature_provider_contract_sha256']):
+        _native_m5_need(isinstance(digest, str) and _SHA256_RE.fullmatch(digest), 'DIGEST')
+    population = data['fit_population']
+    _native_m5_need(type(population) is dict and set(population) == _NATIVE_M5_POPULATION_KEYS,
+                    'POPULATION_KEYS')
+    for key in ('cutoff_ns', 'first_issue_ns', 'last_issue_ns'):
+        _native_m5_need(type(population[key]) is int and population[key] > 0
+                        and population[key] % 300_000_000_000 == 0, 'CLOCK')
+    _native_m5_need(population['cutoff_ns'] <= NATIVE_M5_TRAIN_FIT_CUTOFF_NS,
+                    'TRAIN_FIT_CUTOFF')
+    _native_m5_need(population['first_issue_ns'] <= population['last_issue_ns']
+                    < population['cutoff_ns'], 'CUTOFF')
+    for key in ('issue_rows', 'local_rows', 'context_rows'):
+        _native_m5_need(type(population[key]) is int and population[key] > 0, 'FIT_ROWS')
+    _native_m5_need(population['issue_rows'] == population['context_rows']
+                    and population['local_rows'] >= population['issue_rows'], 'FIT_ROWS')
+    for key in ('selected_issue_ns_sha256', 'selected_source_rows_sha256'):
+        _native_m5_need(isinstance(population[key], str)
+                        and _SHA256_RE.fullmatch(population[key]), 'AXIS_DIGEST')
+    _native_m5_need(type(population['per_tf']) is dict
+                    and set(population['per_tf']) == set(EXPECTED_TFS), 'TF_POPULATION')
+    expected_rows = {'signal': population['local_rows'], 'ctx_cont': population['context_rows']}
+    for tf, item in population['per_tf'].items():
+        _native_m5_need(type(item) is dict
+            and set(item) == {'rows', 'source_rows_sha256', 'available_ns_sha256'}
+            and type(item['rows']) is int and item['rows'] > 0
+            and all(isinstance(item[key], str) and _SHA256_RE.fullmatch(item[key])
+                    for key in ('source_rows_sha256', 'available_ns_sha256')), 'TF_ROWS')
+        expected_rows['mtf_' + tf.lower()] = item['rows']
+    _native_m5_need(isinstance(data['surfaces'], Mapping)
+                    and set(data['surfaces']) == set(EXPECTED_SURFACES), 'SURFACES')
+    surfaces = {}
+    for surface in EXPECTED_SURFACES:
+        surfaces[surface] = require_surface_normalization(
+            data['surfaces'][surface], surface=surface, field_names=canonical[surface])
+        _native_m5_need(surfaces[surface]['fit_row_count'] == expected_rows[surface],
+                        'SURFACE_POPULATION')
+    ctx_cat = require_ctx_cat_contract(data['ctx_cat'], field_names=list(CTX_CAT_DOMAINS))
+    _native_m5_need(ctx_cat['fit_row_count'] == population['context_rows'], 'CTX_ROWS')
+    aliases = _require_aliases(data['temporal_aliases'],
+                              signal=surfaces['signal'], ctx_cont=surfaces['ctx_cont'])
+    _native_m5_need(data['temporal_aliases'] == aliases, 'ALIASES')
+    payload = {key: item for key, item in data.items() if key != 'contract_sha256'}
+    _native_m5_need(data['contract_sha256'] == _canonical_sha256(payload), 'HASH')
+    return json.loads(json.dumps(data))
+
+
+def build_native_m5_input_normalization_contract(
+    *, native_m5_manifest, feature_provider_contract_sha256, source_axes_sha256,
+    fit_population, surfaces, ctx_cat, temporal_aliases,
+):
+    payload = {
+        'schema_version': NATIVE_M5_NORMALIZATION_SCHEMA,
+        'source_clock_contract': 'native_m5_and_closed_higher_no_m1_v1',
+        'native_m5_manifest': native_m5_manifest,
+        'feature_provider_contract_sha256': feature_provider_contract_sha256,
+        'source_axes_sha256': source_axes_sha256, 'fit_population': fit_population,
+        'surfaces': surfaces, 'ctx_cat': ctx_cat, 'temporal_aliases': temporal_aliases,
+    }
+    return require_native_m5_input_normalization_contract(
+        {**payload, 'contract_sha256': _canonical_sha256(payload)})

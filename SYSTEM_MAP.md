@@ -2,13 +2,16 @@
 
 Gjeldende bindinger eies av NEXT_RUN_POLICY.json; dokumentet er ikke en recipe.
 
-Aktiv fase er prognose av OPP/NED/FLATT på M5, M15, H1, H4 og D1
+Aktiv fase er prognose av åpnings-/sluttretning (lavere/lik/høyere)
+på M5, M15, H1, H4 og D1
 ved hver lukkede M5-bar. Fasit sammenligner hver TF-bars åpning med
 forrige åpning og slutt med forrige slutt, med kjente likhetsutfall. Entry, Entry-Q og Exit
 kommer senere. Siste kjørte kontroll brukte TA-profilen med åtte
 spesialistfamilier og D1/makro via global kontekst. Native GC-retning
-har en egen modellrute. Den dedikerte TA-modellen med fem S/F-tilstander
-har foreløpig ingen kvalifisert felles GC MBP-1-komposisjon.
+har en egen beholdt modellrute. Barprognosen bruker egne treklassehoder
+for åpning og slutt på hver TF; den arver ingen S/F-aktivitetsmaske.
+Full-TA-profilen omfatter de kanoniske tekniske feltene og makro, mens
+felles fysisk GC MBP-1-komposisjon krever egen kvalifisering.
 
 ```text
 native XAUUSD M5-priser og kausalt lukkede M15/H1/H4/D1-barer
@@ -30,7 +33,10 @@ går til tap og skåring.
 ## Eiere
 
 - Barfasit og framtidige TF-koblinger: market_state_native_m5_targets_v1.
-  Binding til nye prognoseoutput og tap kvalifiseres før modellfit.
+  build_native_m5_direction_targets_v1 kontrollerer hele tillatte native
+  historikken med eksplisitte første-forgjenger- og grensemasker.
+- Native M5-featurebygging, egne akser og fysiske normaliseringspopulasjoner:
+  market_state_native_m5_feature_inputs_v1. Ingen gammel M1-view eller statistikk.
 
 - Feltorden/familier: gx1/contracts/entry_model_native_signal_v1.py og
   gx1/features/entry_model_native_feature_layers_v1.py.
@@ -42,8 +48,12 @@ går til tap og skåring.
   aldri en separat handelsregel.
 - Normalisering: entry_model_native_input_normalization_v1 og eksisterende
   unified_exit-native/composite normalization-eiere.
-- S/F-prognose: market_state_time_query_model_v2,
-  market_state_time_query_native_F_model_v1 og market_state_ta_integrated_model_v1.
+- Aktiv barprognose: NativeM5BarDirectionModel i market_state_ta_integrated_model_v1,
+  med native_bar_direction_loss/score_sums i market_state_ta_integrated_objective_v1.
+  Felles encoder beholder fem TF, åtte familier og makro; gamle minuttqueryer
+  konstrueres ikke. Eldre S/F-eiere er historiske kontrakter.
+- Fysisk ny native rute: qualify_market_state_native_m5_pipeline_v1,
+  med eksakte ferske parameterplaner og uavhengig priskontroll før modellbaseline.
 - Entry-observerte markedsmål: entry_observed_market_horizons_v1; aktuelt
   h20-terminalmål må ikke beskrives som en måling av M5-MAE/MFE-path-quality.
 - Fitted-Q/handlinger: entry_fitted_q_v1, unified_exit_fitted_q_v1 og

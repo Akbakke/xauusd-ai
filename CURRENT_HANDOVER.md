@@ -6,52 +6,39 @@ prosess og eksakte terminalkvitteringer overstyrer prosa. Tidligere bølger finn
 
 ## Gjeldende status 19.11.2026
 
-`NATIVE_M5_BAR_FACTS_100_PERCENT_ALL_FIVE_TF_QUALIFIED`.
+`FULL_HISTORY_NATIVE_M5_SOURCE_QUALIFIED_AWAITING_FACT_AUDIT`.
 
-Brukerens barfasit er kontrollert mot faktiske native M5-priser på alle
-fem tidsrammer. Åpning sammenlignes med forrige observerte åpning,
-og slutt med forrige observerte slutt. Begge fortegn −1/0/+1 er egne,
-kjente opplysninger. Likhet og blandede fortegn beholdes.
-ATR, størrelse, intrabarorden og gap filtrerer ikke disse barfaktaene.
+Bestillingen er utvidet til all tillatt native historikk før forseglet TEST
+01.07.2026. Fasit er åpning mot forrige observerte åpning og slutt mot
+forrige observerte slutt på M5/M15/H1/H4/D1. Første faktiske bar uten
+forgjenger er ukjent; årsskifter nullstiller ikke sammenligningene.
+Utviklings-VAL juni2026 inngår bare i prisfaktakontrollen, uten fit/utvalg.
 
-| TF | Observerte barer | Kjent åpning og slutt |
-|---|---:|---:|
-| M5 | 29 964 | 100 % |
-| M15 | 9 988 | 100 % |
-| H1 | 2 499 | 100 % |
-| H4 | 654 | 100 % |
-| D1 | 109 | 100 % |
+Plan002 er konsumert og kontrollert på mai–september2024 med
+29 964/9 988/2 499/654/109 observerte barer og 100 % kjent forgjenger.
+Alle76 lagrede arrays samsvarte med uavhengig råberegning. Dette er
+prisfakta og ingen prognosetreffmåling. Originale002-kvitteringer består.
 
-Kontrollperioden er 01.05–30.09.2024. Januar–april i native 2024-kilden
-gir forgjengerhistorikk. 109 kildegap markeres separat, uten å fjerne
-sammenligningen mot forrige observerte bar. Tomme perioder lager ingen
-oppdiktet bar. Første kildebar uten forgjenger ligger utenfor valgt periode.
+Kildearbeid for003 dekker manifestets18år og 1 215 514 native M5-rader.
+Fullhistorikk-jobben er ennå ikke innrømmet eller utført.
+Den nye native featurekjeden beregner alle full-TA-felt fra riktige eiere,
+med fem kausale TF, åtte familier og61 as-of-makrofelter. Den får ferske
+fem-TF-squeeze-/V29-parametre, egne normaliseringspopulasjoner og separate
+treklasseprognoser for åpning/slutt. GAMLE M1-baserte kilder, akser,
+normalisering, aktivitets-/S/F-masker og checkpoints kvalifiserer ikke ruten.
 
-Engangsplan002 fullførte på 14,25 sekunder med exit 0 og 4G/512M.
-55 320 native M5-rader ble dekodet og 53 387 lå før eksklusiv cutoff.
-Alle originale hasher, kvitteringer og source/input/policy-bookend er
-kontrollert. En uavhengig beregning fra den bundne råfilen grupperte
-samtlige TF med egen heltallsaritmetikk, uten mål-/resample-eierne.
-Alle 76 lagrede arrays samsvarte eksakt, inkludert OHLC, tidligere
-åpning/slutt, fortegn, tellinger, gap og framtidige koblinger.
-Ingen modellforward, optimizer eller normaliseringsfit ble utført.
-Gjeldende policyfelt for status og treningsstart er avstemt med denne kjeden.
+320 fokuserte kilde-/kontrakttesttilfeller er kvalifisert. Første bølge ga
+317 PASS og én factory-typefeil; åtte berørte/utvidede tilfeller bestod
+etter minste rettelse. Tuple/list-tilpasningen bevarer alle132 aliaspar og
+alleåtte familier. Fersk normalisering er også testet samlet gjennom alle
+sju faktiske statistikkfit, delte aliasstatistikker, kontrakt og inputbinding.
+Syntaks og diffkontroll bestod. Genuin fysisk kvalifisering gjenstår.
+GC/MBP er en separat beholdt rute med kortere faktisk dekning; den blir
+ikke fabrikkert i full-TA-profilen. Modellfit, Entry, TEST og handel er stengt.
 
-Framtidsmål peker til neste faktiske TF-barslutt etter M5-utstedelsen.
-Kjente høyere-TF-åpninger rapporteres separat fra senere sluttretning.
-Cutoff gir 1/3/12/23/23 utilgjengelige framtidsmål på M5/M15/H1/H4/D1.
-Framtidige datoer, indekser og masker er målmetadata og blir aldri inputs.
-
-19 syntetiske mål-/livssyklustester og commit-vakter bestod. Plan002 er
-konsumert og kan ikke relanseres. Plan001 er historisk og avløst:
-3,5 %-tallet beskrev den gamle ATR-/intrabarfasiten, ikke manglende
-åpnings- og sluttpriser.
-
-Neste arbeid er ferske native fem-TF-squeezeparametre, uavhengig
-M5-featureprovider/normalisering og ny binding mellom barfasit og
-modelloutput/tap, deretter fersk baseline før eventuell retningsfit.
-De åtte familiene og D1/makro beholdes. ALDRI M1 til retning består.
-Entry, modellfit, TEST, broker og handel er stengt.
+Neste steg er kildefrys og eksakt engangsadmisjon av003 etter metadata-preflight. Etter faktakontrollen følger én egen
+kildebundet fysisk parameter-/input-/nullstegsmodellkvalifisering.
+NEXT_RUN_POLICY er eneste kjøreautoritet.
 
 ### Kilderevisjon før M1-presiseringen18.11 (historisk)
 

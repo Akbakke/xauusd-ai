@@ -21,7 +21,7 @@ from gx1.contracts.entry_exit_feature_base_v1 import (
     EXIT_MTF_CONTEXT_TIMEFRAMES,
 )
 from gx1.contracts.entry_model_native_input_normalization_v1 import (
-    SCHEMA_VERSION as INPUT_NORMALIZATION_SCHEMA_VERSION,
+    SCHEMA_VERSION as INPUT_NORMALIZATION_SCHEMA_VERSION, NATIVE_M5_NORMALIZATION_SCHEMA,
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_DIM,
@@ -278,6 +278,7 @@ def require_entry_exit_production_architecture(
     context: str,
     gc_mtf_history: Mapping[str, Any] | None = None,
     unobserved_units_profile=None,
+    native_m5_normalization: bool = False,
 ) -> dict[str, Any]:
     """Reject any shape, route, schema, encoder, or specialist drift."""
 
@@ -288,6 +289,13 @@ def require_entry_exit_production_architecture(
         entry_execution_profile=profile, gc_mtf_history=gc_mtf_history,
         **({} if unobserved_units_profile is None else {"unobserved_units_profile": unobserved_units_profile}),
     )
+    if type(native_m5_normalization) is not bool or (native_m5_normalization and (
+            not isinstance(profile, Mapping)
+            or profile.get("name") != FULL_TA_ENTRY_EXECUTION_PROFILE_NAME
+            or gc_mtf_history is not None or unobserved_units_profile is not None)):
+        raise RuntimeError("NATIVE_M5_NORMALIZATION_ARCHITECTURE_SCOPE")
+    if native_m5_normalization:
+        expected["schemas"]["input_normalization"] = NATIVE_M5_NORMALIZATION_SCHEMA
     mismatch = _first_mismatch(expected, value, path="architecture")
     if mismatch is not None:
         path, expected_value, observed_value = mismatch

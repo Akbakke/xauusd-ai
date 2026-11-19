@@ -1628,6 +1628,47 @@ def _require_positive_finite_float(value: object, *, label: str) -> float:
     return out
 
 
+
+def require_native_m5_registry_constants(value):
+    """Reject inherited M1 provenance before the general validator opens refs."""
+    from gx1.contracts.registry_hyperparameter_fit_v1 import NATIVE_M5_REGISTRY_SOURCE_KEYS
+    from gx1.features.volatility_squeeze_state_v1 import VOLATILITY_SQUEEZE_DIRECTION_CLOCK_CONTRACT
+    if not isinstance(value, Mapping) or not isinstance(value.get("provenance"), Mapping):
+        raise RuntimeError("HTF_V4_NATIVE_M5_REGISTRY_PROVENANCE")
+    provenance = value["provenance"]
+    payloads = []
+    for name in ("level_recurrence_threshold", "trendline_band"):
+        group = provenance.get(name)
+        if not isinstance(group, Mapping) or set(group) != set(MULTI_TF_RESAMPLE_RULES):
+            raise RuntimeError("HTF_V4_NATIVE_M5_REGISTRY_PROVENANCE")
+        payloads.extend((tf, group[tf]) for tf in MULTI_TF_RESAMPLE_RULES)
+    payloads.append(("M5", provenance.get("entry_m5_trendline_band")))
+    refs = []
+    for tf, payload in payloads:
+        source = payload.get("source_provenance") if isinstance(payload, Mapping) else None
+        if (not isinstance(source, Mapping) or set(source) != NATIVE_M5_REGISTRY_SOURCE_KEYS
+                or source["source_clock_contract"] != VOLATILITY_SQUEEZE_DIRECTION_CLOCK_CONTRACT
+                or source["source_lane"] != tf):
+            raise RuntimeError("HTF_V4_NATIVE_M5_REGISTRY_PROVENANCE")
+        refs.append(tuple(source[k] for k in ("native_m5_manifest_artifact", "native_m5_manifest_sha256",
+            "fit_plan_artifact", "fit_plan_sha256", "declared_train_window_start", "declared_train_window_end")))
+    if len(set(refs)) != 1:
+        raise RuntimeError("HTF_V4_NATIVE_M5_REGISTRY_PROVENANCE")
+    return require_v29_registry_constants(value)
+
+
+def _require_feature_squeeze_and_registry(artifact_set, constants):
+    from gx1.features.volatility_squeeze_state_v1 import VOLATILITY_SQUEEZE_DIRECTION_CLOCKS
+    if not isinstance(artifact_set, VolatilitySqueezeArtifactSet):
+        raise RuntimeError("HTF_V4_VOLATILITY_SQUEEZE_ARTIFACT_REQUIRED")
+    clocks = artifact_set.clocks
+    # Native provenance is checked first, without following any legacy refs.
+    registry = (require_native_m5_registry_constants(constants)
+                if clocks == VOLATILITY_SQUEEZE_DIRECTION_CLOCKS
+                else require_v29_registry_constants(constants))
+    return require_volatility_squeeze_artifact_set(artifact_set), registry
+
+
 def require_v29_registry_constants(
     value: object,
     *,
@@ -3356,10 +3397,8 @@ def compute_per_bar_features_v4(
         raise RuntimeError(
             f"HTF_V4_TIMEFRAME_INVALID: {timeframe!r}"
         )
-    registry_constants = require_v29_registry_constants(v29_registry_constants)
-    squeeze_artifacts = require_volatility_squeeze_artifact_set(
-        volatility_squeeze_artifacts
-    )
+    squeeze_artifacts, registry_constants = _require_feature_squeeze_and_registry(
+        volatility_squeeze_artifacts, v29_registry_constants)
 
     from gx1.features.entry_candle_primitives_v1 import (
         build_entry_candle_primitive_layer,
@@ -3986,10 +4025,8 @@ def build_multi_tf_per_bar_features_v4(
     payload; it is validated once here and passed to every per-TF surface
     computation.  There is no default (rule 2a).
     """
-    registry_constants = require_v29_registry_constants(v29_registry_constants)
-    squeeze_artifacts = require_volatility_squeeze_artifact_set(
-        volatility_squeeze_artifacts
-    )
+    squeeze_artifacts, registry_constants = _require_feature_squeeze_and_registry(
+        volatility_squeeze_artifacts, v29_registry_constants)
     base_bar_duration = pd.Timedelta(minutes=5)
     _validate_m5_input(
         m5_df,
