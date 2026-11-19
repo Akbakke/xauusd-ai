@@ -2058,7 +2058,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-19T20:00:18.667979+00:00",
+  "observed_utc": "2026-11-19T20:20:49.007504+00:00",
   "market_state_fold2_selected_native_b16_gather_20261115_001": {
     "status": "COMPLETE_CONSUMED_EDGE_UNQUALIFIED",
     "decision": "PASS_FULL_GC_FOLD2_SELECTED_B16_GATHER_NO_EDGE",
@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "NATIVE_M5_TA_PRIOR_LEARNING_CURVE4P_ADMITTED_ONE_USE",
+  "status": "NATIVE_M5_TA_PRIOR_FOUR_PASS_COMPLETE_REVIEWED_M5_UNQUALIFIED",
   "storage_cursor_runtime_cleanup_20261117_001": {"deleted_allocated_bytes": 1767837696, "deleted_old_version_count": 4, "economic_edge_proven": false, "gx1_data_runs_touched": false, "newest_version_preserved": "be4c9e5350d77747b42cd467cbd3370a753d4640", "open_fd_check_passed": true, "path_root": "/home/andre2/.cursor-server/bin/linux-x64", "status": "DELETE_COMPLETE", "test_authorized": false, "training_authorized": false, "user_snapshots_codex_sessions_trash_preserved": true},
   "storage_compaction_20261117_001": {"broker_access_allowed": false, "diskpart_compact_executed": false, "economic_edge_proven": false, "ext4_used_bytes": 438184099840, "fstrim_completed": true, "fstrim_reported_trimmed_bytes": 630501879808, "full_local_backup_fits_current_c_free": false, "gx1_current_data_runs_repo_approx_gib": 340, "rough_max_reclaim_bytes_not_prediction": 52003160064, "running_wsl_interactive_shells_observed": 2, "scope": "Windows C and sole Ubuntu-22.04 WSL VHDX; no model or data source change", "status": "CANCELLED_BY_OPERATOR_NO_COMPACTION", "test_authorized": false, "training_authorized": false, "vhdx_bytes": 490187259904, "vhdx_bytes_after_fstrim": 490187259904, "vhdx_path": "C:\\Users\\Andre\\AppData\\Local\\Packages\\CanonicalGroupLimited.Ubuntu22.04LTS_79rhkp1fndgsc\\LocalState\\ext4.vhdx", "vhdx_sparse": false, "windows_c_capacity_bytes": 998577442816, "windows_c_free_bytes_before_compaction": 397167644672, "windows_c_used_bytes_before_compaction": 601409798144, "wsl_shutdown_executed": false, "operator_decision": "DROP_COMPACTION_20261117", "fstrim_before_latest_cursor_cleanup": true, "fstrim_recheck_required_before_compaction": true},
   "ta_m5_ema_delta_sidecars_20261117_001": {"claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/CLAIM.json", "sha256": "81d85f74bea367750b70173cd5edf6af089253a26684d86caa22e6a0954192a5"}, "claimed_invocations": 1, "completed_invocations": 0, "data_reads_authorized": false, "economic_edge_proven": false, "execution_authorized": false, "failure": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/FAILED.json", "sha256": "d26cb8597913ad94110127aebe2b9a06119c9d01491bf4b0dc395b8dd6aceaf5"}, "max_invocations": 1, "model_forwards_authorized": 0, "observed_failure": "TA_EMA_DELTA_OLD_SLOPE_PARITY:M5", "optimizer_steps_authorized": 0, "output_root": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_EMA_DELTA_SIDECARS_20261117_001.json", "sha256": "e2e9f9233e27223099f8905a003e05f637cfa0c7e0325485d1d55b2f89223b08"}, "relaunch_allowed": false, "remaining_invocations": 0, "scope": {"cutoff_ns": 1735603200000000000, "fit_rows": 29574, "later_parent_start": 29849, "later_rows": 17489, "model_forwards": 0, "optimizer_steps": 0, "physical_surfaces": 6, "test_data_used": false}, "source_unchanged": true, "status": "FAILED_CONSUMED_SOURCE_PARITY_M5", "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/TERMINAL.json", "sha256": "5eac4f13ad8f9d0c768b58cd7db006d9744dc77b5c3d2ecc988fe112fd304eee"}, "test_authorized": false, "test_data_used": false, "training_authorized": false},
@@ -3913,7 +3913,7 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Requested smallSHORT_FIT002 completed/consumed and independentlyreviewed. No training/execution, automaticextra fit, full epoch, TEST, Entry/Exit, broker, trading, spending or promotion. Futurework uses preserved outputs first; everynewrun needs its own exactunconsumedadmission. M1neverfordirection.",
@@ -3923,7 +3923,7 @@
   "market_state_ta_integrated_objective_later_20261116": {"status": "SOURCE_OBJECTIVE_AND_LATER_INPUTS_READY_NO_FIT", "review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_INTEGRATED_OBJECTIVE_LATER_INPUTS_REVIEW_20261116.json", "sha256": "d93d30dd580bab052d21219aae31102329f5f37c33148e9135cb495512632d8c"}, "objective_contract_sha256": "f4cd885a7994f66367abc54fcbdedbe5339275ef8404dee29362b38bf2819bd1", "later_input_archive": {"path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_LATER_INPUTS_20261116_001/INPUTS.npz", "sha256": "9b527afd59c906f32cf91046ddee282b998cfad5b22216030fb6a873f651ae47"}, "later_input_result": {"path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_LATER_INPUTS_20261116_001/RESULT.json", "sha256": "293e9d042788fa750c60fa49bf84dcdef9e016995805605218b552f8e77c5985"}, "later_score_rows": 4096, "later_issue_axis_sha256": "c03ec2ae8b418e21739f9f7966b946615878344364e6dc4e4d80087a0fee99d3", "later_M1_complete_paths": 4089, "later_structure_high_observed": 4068, "later_structure_low_observed": 4081, "training_authorized": false, "test_authorized": false, "economic_edge_proven": false},
   "market_state_ta_integrated_objective_preflight_20261116_004": {"status": "GENUINE_TRAIN_INTEGRATED_OBJECTIVE_GRADIENT_PASS_NO_FIT", "review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_INTEGRATED_ACTUAL_OBJECTIVE_PREFLIGHT_REVIEW_20261116.json", "sha256": "ad48b1ddc40ab5a893ce0c0f936e06eb9f850d85f1ba023baf8787b999f0ff8d"}, "private_result": {"path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_PREFLIGHT_20261116_004/RESULT.json", "sha256": "5e5a1790b4ae8673f6f3ddd63ed078b81e469a92870cf3ac6b5f0fc2b75ac2c4"}, "objective_contract_sha256": "f4cd885a7994f66367abc54fcbdedbe5339275ef8404dee29362b38bf2819bd1", "model_contract_sha256": "70a0497b27ba0ab45277ba622443ab2fca36a448357f1ccb3158689193f8bc82", "all_five_S_F_side_head_gradients_nonzero": true, "optimizer_steps": 0, "training_authorized": false, "test_authorized": false, "economic_edge_proven": false},
   "market_state_ta_integrated_later_view_rebind_20261116": {"status": "ACTUAL_LATER_FEATURE_GATHER_PASS_NO_MODEL", "review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_INTEGRATED_LATER_VIEW_REBIND_REVIEW_20261116.json", "sha256": "18616578ac8a0f79eb250c892757ccd099e15b27f567eeee02e36b96a546785c"}, "view_sha256": "8056fe96b4340bccc149da7f22dde85e4ac1b62c5e58c874ec7fbb771c1dff1a", "later_rows_gathered": 16, "all_nine_surfaces_finite": true, "model_forwards": 0, "optimizer_steps": 0, "training_authorized": false, "test_authorized": false, "economic_edge_proven": false},
-  "next_action": "Exactly one fresh TA-only prior-initialized4-pass learningcurve,384updates/544forwards, no normalization/prior refit and no mechanics weights. Frozen1536FIT/512laterCONTROL, eval after each fixed pass; no CONTROL-based selection. Hard1800s; GC/M1/TEST/Entry/Exit/trading closed.",
+  "next_action": "User-requested TA-only prior qualification and fixed four-pass curve completed and independently reviewed. M5 future-close FIT and laterCONTROL lost matchedprior at every pass; final CONTROL AUC0.500511. Other tasks learned on FIT, so random head start and too few single-pass updates are not an established explanation or cure. No active job or automatic epochs. Any next fit needs one measured cause or explicit qualified design and a new exact admission. Preserve all genuine TA inputs; GC deferred, never M1, TEST/Entry/Exit/broker/trading/spending/promotion closed.",
   "ta_fold2_F_frozen_readout_20261117_001": {"status": "COMPLETE_CONSUMED_NO_TRANSFER_GAIN", "plan": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/PLAN.json", "sha256": "c87fcec1c25e351fec6e9c7a7bf2905ce97605661ba9055cc769e621b757e786"}, "admission_review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_FOLD2_F_FROZEN_READOUT_ADMISSION_20261117.json", "sha256": "a9ababbb1b6ec9ed9a17e9ccff0426b4f994cfe4b78e9a3b72776cd48659629c"}, "capture": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_REP_CAPTURE_20261117_002/CAPTURE.npz", "sha256": "d4c8fa49b82dd6095afa17ebfdf40aff2bcf00b9245450edc49044d8325fb256"}, "reconciliation": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_REP_CAPTURE_20261117_002/RECONCILIATION.json", "sha256": "9b1bdfae0386ad155f3c315623b9c053e1eec6359996c8b8507ae07e6e505a74"}, "training_scope": "ten CPU linear side readouts on frozen Fold2 TRAIN representations only", "execution_authorized": false, "remaining_invocations": 0, "claimed_invocations": 1, "max_readout_fits": 10, "native_model_forwards": 0, "native_optimizer_updates": 0, "model_updates_authorized": false, "fresh_physical_boot_required": false, "relaunch_allowed": false, "test_data_used": false, "economic_edge_proven": false, "completed_invocations": 1, "actual_readout_fits": 10, "result": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/RESULT.json", "sha256": "919a894ed21f49faf173aa733775054f734b5a96ad904f4a1ac3f0e792e4a643"}, "terminal": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/TERMINAL.json", "sha256": "f23e4ea3b4789ddd0ec72b72bed7de6e39e2d8eda7779b8b018d359c99a3643c"}, "params": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/PARAMS.npz", "sha256": "babe4452ee5e51b13a640360caf054e862e3eaab34c2af1d608bf370845fedba"}, "predictions": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/PREDICTIONS.npz", "sha256": "6e484806fdc8f26e1e51fa61f44f5e258583861b482b975a3be1947a02b33b46"}, "result_review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_FOLD2_F_FROZEN_READOUT_RESULT_REVIEW_20261117.json", "sha256": "01e4ed18528116681b8d808f6c5ba28906c395432d5e5d29ae697c0f4d457cf2"}, "training_authorized": false, "independent_generalization_proven": false},
   "ta_m5_structure_persistence_20261116_001": {"status": "COMPLETE_CONSUMED_FIXED_REFERENCE_NO_ESTABLISHED_GAIN", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_STRUCTURE_PERSISTENCE_20261116_001.json", "sha256": "907ff7ce4fe6a9449f71501b9f4913f1637e2e6b747ce98670fd206a92f21d4a"}, "claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_PERSISTENCE_20261116_001/CLAIM.json", "sha256": "a731f909e8cce5ef949679d65b882ed06520ee19ff53c264a2a0e86fdd1994ed"}, "result": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_PERSISTENCE_20261116_001/RESULT.json", "sha256": "ea10505d4fa8490880d14a126973a8a4fd0f2f4b59ca7e4c08c67b1f05085c86"}, "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_PERSISTENCE_20261116_001/TERMINAL.json", "sha256": "7290d4bae30cb4c4d212af311f714b80e27263605c49641e9874512eb14c7e3f"}, "repository_review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_STRUCTURE_PERSISTENCE_RESULT_REVIEW_20261116.json", "sha256": "020a6b02aa158d4f6d35cb62197683c36bedf5d6be357b94953a2c69fc420fb5"}, "execution_authorized": false, "claimed_invocations": 1, "completed_invocations": 1, "relaunch_allowed": false, "actual_counts": {"prior_mature_issues": 23886, "later_known_classes": 23302, "prior_correct": 8936, "persistence_correct": 8253, "model_forwards": 0, "optimizer_steps": 0}, "target_locked": false, "model_fits_authorized": false, "test_data_used": false, "economic_edge_proven": false},
   "ta_m5_structure_fold2_audit_20261116_001": {"status": "COMPLETE_CONSUMED_SOURCE_COVERAGE_ONLY_TARGET_UNQUALIFIED", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001.json", "sha256": "2d5b7359b377a8d4d7658ff7cbc6a756db94565d70673604f69a86530750c081"}, "claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001/CLAIM.json", "sha256": "12f4d4c5c0c131cb61bf15d2795f557b3c3ceab37cf7b9f4fab13db569a1a0c8"}, "result": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001/RESULT.json", "sha256": "e6be73a2e5e04a9e0abf91e3b0b3775e93f0d75b6064ff8c842c123b1f842450"}, "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001/TERMINAL.json", "sha256": "f6a131efb8b3c0f1a85cfa5544dd16d225cf3a75f98d551c0f27041cea1badd9"}, "repository_review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_STRUCTURE_FOLD2_AUDIT_RESULT_REVIEW_20261116.json", "sha256": "601809c2472d5d9f021499dfce2f72f53d56522404f16654df0334451f6de12d"}, "execution_authorized": false, "claimed_invocations": 1, "completed_invocations": 1, "relaunch_allowed": false, "actual_counts": {"m5_issues": 47784, "both_observed": 47567, "known_pair_class": 47195, "same_pivot_bar": 372, "model_forwards": 0, "optimizer_steps": 0}, "target_locked": false, "model_fits_authorized": false, "test_data_used": false, "economic_edge_proven": false},
@@ -4648,6 +4648,24 @@
         "sha256": "663db7468e568ff49e3d81a4ff5218b748f403ba420e990b688f671b8e26a02f"
       },
       "initial_state_sha256": "d30d41feb2d8c37ba624785b6504cd58ecf4530d06d785191219ecdc9a36712d"
+    },
+    "latest_native_ta_prior_learning_curve": {
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001/RESULT.json",
+        "sha256": "3bf639efeb58b5526600b2c3478f1139eb7aa52704ca8d33a97ea6272c241d1d"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001/TERMINAL.json",
+        "sha256": "3b4a0c0b3c5883662f99d9c3c49728852951e3f6cf7fa2bb7fb5d2cc21f9b728"
+      },
+      "review": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001/MATCHED_RESULT_REVIEW.json",
+        "sha256": "98b9d778887b1dff1a687a75cdd4a009075bb6a774105a82add34c16231ab3b4"
+      },
+      "initial_baseline_qualified": true,
+      "M5_close_direction_qualified": false,
+      "independent_generalization_demonstrated": false,
+      "profitability_demonstrated": false
     }
   },
   "current_work": {
@@ -4658,7 +4676,7 @@
     },
     "selected_short_fit_completed": true,
     "monitor_interval_minutes": 30,
-    "source_bookend_witness": "Original main002 RESULT and TERMINAL explicitly prove source_unchanged=true; frozen policy remained exact through completion.",
+    "source_bookend_witness": "Original TA-main RESULT/TERMINAL prove source_unchanged=true and exact frozen policy through completion.",
     "source_unchanged_at_result": true,
     "active_stage": "native_m5_ta_prior_learning_curve_20261119_001",
     "latest_native_result": {
@@ -4667,7 +4685,7 @@
     },
     "latest_external_process_exit": {"observation": {"path": "/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_002/EXTERNAL_EXIT_OBSERVATION.json", "sha256": "cf11ff31ccfa403317611fdf7a3447494bcdfaf50ba103518e7aa9b0a39c6c2c"}, "exit_code": 137, "native_terminal_present": false},
     "operator_request": "NEVER M1 for direction. All direction inputs, labels, masks, row selection, priors, normalization, loss, model selection, evaluation and metadata must be native M5/higher. M1 is only for later management of an already opened trade. Direction quality precedes Entry.",
-    "current_activity": "TA-only four-pass learning curve admitted after genuine mechanics and independent NumPy review; pending capped launch. Source and policy frozen through terminal.",
+    "current_activity": "Completed requested TA-only prior baseline and four-pass independent review; M5 direction unqualified, no active workload or extra fit.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -4696,11 +4714,11 @@
     "gc_goal_status": "GENUINE_NATIVE_GC_JOINT_TECHNICAL_PASS_DIRECTION_QUALITY_UNQUALIFIED",
     "existing_indicator_surface_changed": true,
     "training_started": false,
-    "latest_terminal_role": "TA_PRIOR_MECHANICS_COMPLETE_FULL_SELECTED_INITIAL_AND_COLD_RESUME",
+    "latest_terminal_role": "TA_PRIOR_FOUR_PASS_DIRECTION_LEARNING_COMPLETE384_UPDATES",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_GC_SHORT_FIT_20261119_002",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_MECHANICS_20261119_001/TERMINAL.json",
-      "sha256": "663db7468e568ff49e3d81a4ff5218b748f403ba420e990b688f671b8e26a02f"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001/TERMINAL.json",
+      "sha256": "3b4a0c0b3c5883662f99d9c3c49728852951e3f6cf7fa2bb7fb5d2cc21f9b728"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -11831,7 +11849,7 @@
         }
       }
     },
-    "training_started_note": "Historical full-GC002 completed96 updates; this new TA-only review has no model construction, forward or update. Full-GC weights do not qualify a fresh TA-only function.",
+    "training_started_note": "TA-only mechanics completed2 canonical updates+1cold replay; main completed384updates across4fixedpasses. Both plans consumed and closed.",
     "scalar_repair_note": "14.10.2026 document audit: scalars re-pointed from the FEATURE_REPAIR/V38 generation to the NATIVE_D1 minimum learning plan",
     "retention_wave1_20261014": {
       "status": "DELETE_COMPLETE",
@@ -13320,9 +13338,10 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "Technical2-update mechanics is not a direction fit or edge proof.",
-      "No main multi-pass fit completed yet.",
-      "Independent generalization and economic profitability unproven."
+      "M5 future-close logloss/Brier lose matchedprior on both FIT and laterCONTROL at all four fixed checkpoints.",
+      "Final CONTROL conditional-direction AUC0.500511 on509 non-equal cells; cause unproven.",
+      "Higher-TF observations overlap: CONTROL H4/D1 close only18/12 unique targets. All are reused small development.",
+      "No independent generalization, Entry quality or economic edge demonstrated."
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -20658,7 +20677,7 @@
         "Originals preserved; unusedwindows3/4revoked. No new epoch,HPO,checkpoint/threshold selection,normalization refit,trading,broker,Exit or promotion."
       ]
     },
-    "latest_terminal_evidence_scope": "Genuine TA-only9-input fresh prior baseline on1536FIT/512laterCONTROL, fresh24175earlier-TRAIN norm;2canonical updates+1cold replay,67forwards/2models, no GC/M1/TEST.",
+    "latest_terminal_evidence_scope": "Fresh TA-only prior-initialized model, all1536FIT/512laterCONTROL before and after each of4fixedpasses;384updates/544forwards; frozen TRAINstats/prior,0GC/0M1/0TEST.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -21883,7 +21902,7 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "Exactly native_m5_ta_prior_learning_curve_20261119_001;4fixed passes,384updates/544forwards, no extra fit.",
+    "current_training_scope": "closed; requested TA-only technical and four-pass plans consumed, no extra fit",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -39066,7 +39085,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -43808,7 +43827,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "ONE_TA_PRIOR_LEARNING_CURVE001_ONLY_4_FIXED_PASSES_384_UPDATES",
+  "training_enabled_scope": "CLOSED_TA_PRIOR4P_COMPLETE_REVIEWED_NO_MORE_FIT",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -91961,7 +91980,7 @@
     }
   },
   "native_m5_ta_prior_goal_20261119": {
-    "status": "ACTIVE_EXACT_FOUR_PASS_LEARNING_CURVE_ADMITTED",
+    "status": "COMPLETE_PRIOR_BASELINE_AND_FIXED_FOUR_PASS_REVIEW_M5_UNQUALIFIED",
     "operator_request": "19.11: Ja lag deg m\u00e5l og gj\u00f8r dette.",
     "objective": "Qualify TRAIN-prior initialization and a fresh native M5/MTF TA-only baseline, then one prebound short multi-pass learning curve if technical gates pass.",
     "scope": "Nine TA input surfaces; all eight specialist families and61 D1/macro fields. Closed M5/M15/H1/H4/D1; never M1 or GC data.",
@@ -92004,7 +92023,13 @@
       ],
       "unchanged": "Target semantics, unweighted loss, optimizer recipe, all genuine TA inputs, original GC runs and artifact bytes",
       "genuine_initial_baseline_complete": false
-    }
+    },
+    "matched_result_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001/MATCHED_RESULT_REVIEW.json",
+      "sha256": "98b9d778887b1dff1a687a75cdd4a009075bb6a774105a82add34c16231ab3b4"
+    },
+    "completed_scope": "TRAIN-prior initialization, genuine full-selected initial baseline/cold-resume and one fixed4-pass TA-only learningcurve with independent review. No edge claim.",
+    "edge_demonstrated": false
   },
   "native_m5_ta_prior_mechanics_20261119_001": {
     "status": "COMPLETE_CONSUMED_GENUINE_TA_PRIOR_BASELINE_AND_COLD_RESUME",
@@ -92193,19 +92218,19 @@
     }
   },
   "native_m5_ta_prior_learning_curve_20261119_001": {
-    "status": "ADMITTED_ONE_USE",
+    "status": "COMPLETE_CONSUMED_REVIEWED_M5_CLOSE_UNQUALIFIED",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001.json",
       "sha256": "c371decc68129698e07d5356142e0801c90ae67ef05fbb8352c1009df38d7e72"
     },
     "output_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
-    "execution_authorized": true,
-    "training_authorized": true,
+    "execution_authorized": false,
+    "training_authorized": false,
     "test_authorized": false,
     "broker_access_allowed": false,
     "model_constructions": 1,
@@ -92244,7 +92269,7 @@
     },
     "independent_generalization_proven": false,
     "economic_edge_proven": false,
-    "next_action": "Run once through existing capped trainer; source/policy frozen through native TERMINAL. Exactly4 passes, fixed final; all intermediate checkpoints descriptive.",
+    "next_action": "Completed once and independently reviewed. Preserve artifacts; no more fit/epochs admitted. Primary M5 close lost prior at all four fixed passes.",
     "preflight": {
       "passed": true,
       "plan": {
@@ -92261,6 +92286,180 @@
       "optimizer_steps": 0,
       "raw_values_decoded": 0,
       "feature_values_decoded": 0
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001/RESULT.json",
+      "sha256": "3bf639efeb58b5526600b2c3478f1139eb7aa52704ca8d33a97ea6272c241d1d"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001/TERMINAL.json",
+      "sha256": "3b4a0c0b3c5883662f99d9c3c49728852951e3f6cf7fa2bb7fb5d2cc21f9b728"
+    },
+    "elapsed_seconds": 574.2842592590005,
+    "normalization": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_MECHANICS_20261119_001/NORMALIZATION.json",
+      "sha256": "a28120c4db021f7fc5e5ded50d7facceb271c2eb8d6b711a19ab6f54c9293e34"
+    },
+    "prior": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_MECHANICS_20261119_001/MATCHED_FIT_PRIOR.json",
+      "sha256": "122f285e0eeddf66158079c3c018679d6b1d580976cd09311c3c4bf5fa05c691"
+    },
+    "initial_state_sha256": "d30d41feb2d8c37ba624785b6504cd58ecf4530d06d785191219ecdc9a36712d",
+    "final_state_sha256": "07947b9bf9027056179152c18f63776783968e874d316f61668c4703285ce007",
+    "initial_checkpoint": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001/INITIAL_STATE.pt",
+      "sha256": "dfd5de73a24534f810927a06fb3ddb1976664d36aff7ccf5ea1cd775021ede8c"
+    },
+    "final_checkpoint": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001/FINAL_STATE.pt",
+      "sha256": "5106b3839a2d2ca09eac674b5b40ed760f6cc9f0a3613047bab0484ef4b9bb89"
+    },
+    "checkpoints": [
+      {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001/CHECKPOINT_000096.pt",
+        "sha256": "ced655f9137fbab3a9b61b48a9436852a36f46cdee6c18d059f5f5ab24aa791a"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001/CHECKPOINT_000192.pt",
+        "sha256": "eed33fb4d43c61d0b874ffe0790cbbbd738b1545eb696a0046f9e2aa49b7ec0f"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001/CHECKPOINT_000288.pt",
+        "sha256": "45f317f03cdd382426658ebbfa03118abcce9f3ff470ea4afaa6a9866eb3c9a1"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001/CHECKPOINT_000384.pt",
+        "sha256": "5106b3839a2d2ca09eac674b5b40ed760f6cc9f0a3613047bab0484ef4b9bb89"
+      }
+    ],
+    "captures": {
+      "FINAL": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001/FINAL_CAPTURE.npz",
+        "sha256": "9a1c6bffdb8dfb872f14a6cdc1fa10bca4216de0ff90c35558907ba1bb9ab0ab"
+      },
+      "INITIAL": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001/INITIAL_CAPTURE.npz",
+        "sha256": "8798f49a511fcac3e18278cc58cbce77642cfbff05949d28ca21cf58b3515872"
+      }
+    },
+    "learning_curve": [
+      {
+        "capture": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001/CAPTURE_PASS_001.npz",
+          "sha256": "3c3df7c1e7955efc60dbd767216b8a292661424c5a1e9057149fb05de5f14b6f"
+        },
+        "checkpoint": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001/CHECKPOINT_000096.pt",
+          "sha256": "ced655f9137fbab3a9b61b48a9436852a36f46cdee6c18d059f5f5ab24aa791a"
+        },
+        "completed_updates": 96,
+        "model_state_sha256": "c36b74ef72b8475a13b02782511979ed460a356372ae75449fb66ee2ca7945cb",
+        "pass": 1,
+        "scores": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001/SCORE_PASS_001.json",
+          "sha256": "4ac6a27c9ce7f0eaef1486d5635b5397b6d5ab5dc25a876e5162db9396329b1f"
+        }
+      },
+      {
+        "capture": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001/CAPTURE_PASS_002.npz",
+          "sha256": "28b9197859f53d93ee3ab39dda3624e694a33afa466ca305fd3815bfbb98d561"
+        },
+        "checkpoint": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001/CHECKPOINT_000192.pt",
+          "sha256": "eed33fb4d43c61d0b874ffe0790cbbbd738b1545eb696a0046f9e2aa49b7ec0f"
+        },
+        "completed_updates": 192,
+        "model_state_sha256": "132b4a2bda48eb339ef51968831340b7f254221bacfa6065eeef059421a28e0d",
+        "pass": 2,
+        "scores": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001/SCORE_PASS_002.json",
+          "sha256": "5a54be8a39ce0aafe2b8a8f667d880ec337bf92788fbe58ca2fc3cab920e7226"
+        }
+      },
+      {
+        "capture": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001/CAPTURE_PASS_003.npz",
+          "sha256": "f1936c868ad78b9a59db0a36ef40c989a9c53e110740e15a1c8ecd75ba926843"
+        },
+        "checkpoint": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001/CHECKPOINT_000288.pt",
+          "sha256": "45f317f03cdd382426658ebbfa03118abcce9f3ff470ea4afaa6a9866eb3c9a1"
+        },
+        "completed_updates": 288,
+        "model_state_sha256": "5206fa0e6740eac5ab3a96ba1bc36f49996f58549f53c691cdc223049963bbce",
+        "pass": 3,
+        "scores": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001/SCORE_PASS_003.json",
+          "sha256": "41169d738d6e6b999f7b32b598c12d60e2f50d8725f4ccb966c11b334c02afdb"
+        }
+      },
+      {
+        "capture": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001/CAPTURE_PASS_004.npz",
+          "sha256": "9a1c6bffdb8dfb872f14a6cdc1fa10bca4216de0ff90c35558907ba1bb9ab0ab"
+        },
+        "checkpoint": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001/CHECKPOINT_000384.pt",
+          "sha256": "5106b3839a2d2ca09eac674b5b40ed760f6cc9f0a3613047bab0484ef4b9bb89"
+        },
+        "completed_updates": 384,
+        "model_state_sha256": "07947b9bf9027056179152c18f63776783968e874d316f61668c4703285ce007",
+        "pass": 4,
+        "scores": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001/SCORE_PASS_004.json",
+          "sha256": "5f5ee39a7620502ab9355711453a2dae20781a1c00b7e311cc8958d7b9a0c0ba"
+        }
+      }
+    ],
+    "results_review_complete": true,
+    "matched_result_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001/MATCHED_RESULT_REVIEW.json",
+      "sha256": "98b9d778887b1dff1a687a75cdd4a009075bb6a774105a82add34c16231ab3b4"
+    },
+    "M5_close_final": {
+      "TRAIN": {
+        "AUC_UP_DOWN": 0.5146972474558682,
+        "AUC_protocol": "FP32_saved_logits_cast_float64_before_UP_minus_DOWN;exclude_known_equal;ties_half_win",
+        "AUC_rows": 1531,
+        "Brier": 0.5058442727996743,
+        "actual_UP": 777,
+        "actual_non_equal_UP_share": 0.5075114304376225,
+        "argmax_UP": 1533,
+        "beats_prior_both": false,
+        "count": 1535,
+        "log_loss": 0.7122383033148185,
+        "mean_P_DOWN_EQUAL_UP": [
+          0.450475992525894,
+          0.002205201007601265,
+          0.547318806466503
+        ],
+        "mean_conditional_P_UP": 0.5485167541192867,
+        "prior_Brier": 0.5024840462565059,
+        "prior_log_loss": 0.7094046361021636,
+        "unique_target_rows": 1535
+      },
+      "CONTROL": {
+        "AUC_UP_DOWN": 0.5005105355982549,
+        "AUC_protocol": "FP32_saved_logits_cast_float64_before_UP_minus_DOWN;exclude_known_equal;ties_half_win",
+        "AUC_rows": 509,
+        "Brier": 0.5129747566589814,
+        "actual_UP": 243,
+        "actual_non_equal_UP_share": 0.4774066797642436,
+        "argmax_UP": 509,
+        "beats_prior_both": false,
+        "count": 511,
+        "log_loss": 0.7261161205548018,
+        "mean_P_DOWN_EQUAL_UP": [
+          0.45353162093276855,
+          0.0020665044010159464,
+          0.5444018746662157
+        ],
+        "mean_conditional_P_UP": 0.5455575244141404,
+        "prior_Brier": 0.5046764909623267,
+        "prior_log_loss": 0.7168871850625566,
+        "unique_target_rows": 511
+      }
     }
   }
 }

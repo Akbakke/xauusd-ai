@@ -6,20 +6,79 @@ prosess og eksakte terminalkvitteringer overstyrer prosa. Tidligere bølger finn
 
 ## Gjeldende status 19.11.2026
 
-TA-only mechanics001 er fullført med exit0 på 74,57 sekunder:
-67 forwards / 3 updates inkludert kald child / 2 modeller. Alle 1536 FIT
-og 512 CONTROL hadde eksakt priorlike INITIAL-logits. Første signalgradient
-til backbone var 0 som forventet; neste var 0,0145492. Kald replay over
-passgrensen var bit-identisk. Fersk norm bruker bare 24 175 tidligere TRAIN-
-rader før september; prioren matcher den eksisterende label-only-referansen.
-Ingen GC, M1 eller TEST inngår.
+Brukerens mål om TRAIN-priorinitialisering, fersk TA-only-baseline og én
+avgrenset læringskurve er gjennomført og uavhengig vurdert. Dette er ikke
+oppnådd retningsedge. Alle trenings-/kjøringsporter er stengt; ingen aktiv
+modelljobb eller ekstra epoke. GC er utsatt. M1, TEST, Entry/Exit, broker,
+handel, spending og promotion forblir stengt.
 
-Én ny læringskurve er klargjort med 4 faste pass / 384 updates / 544 forwards,
-samme lille utvalg og faste skåringer etter hvert pass. Målt throughput gir
-omtrent 11–13 minutter, hardgrense 30 minutter. Eksakt hovedrunde er nå innrømmet etter metadata-preflight og
-uavhengig NumPy-kontroll: alle INITIAL/FINAL-summer og tellinger ble
-gjenskapt med avvik 0, og alle initiallogits var priorlike.
-Kilde/policy fryses til native TERMINAL. Teknisk PASS er ikke retningsedge.
+### Ny TA-only-funksjon og teknisk kvalifikasjon
+
+Optional priorvalg gir null sluttvekter og eksakt FP32 log av den frosne
+Laplace1-TRAIN-prioren som bias. Alle åtte TA-familier, 61 D1/makrofelt
+og M5/M15/H1/H4/D1 beholdes på ni inputflater. Tilfeldig standardfunksjon
+er uendret. Modell/state binder prior og TRAIN-fold; feil fold eller prior
+avvises før head-konstruksjon/vektkopiering. Ingen taps-/klassevekt er endret.
+
+Mechanics001 fullførte på 74,57 sekunder: 67 forwards / 3 updates inkludert
+kald child / 2 modeller. Alle 1536 FIT og 512 CONTROL hadde priorlike
+INITIAL-logits. Backbonegradient gikk forventet 0 → 0,0145492 etter første
+headoppdatering. Kald replay over passgrensen var bit-identisk.
+Fersk TA-normalisering bruker bare 24 175 tidligere TRAIN-rader før september;
+TA006-statistikk med september ble ikke gjenbrukt. Bare denne nye normen og
+label-only-prioren ble gjenbrukt i hovedrunden, aldri tekniske vekter.
+
+43 ulike fokuserte driver-/modelltilfeller og 16 nye eksakte guardtilfeller
+består. Uavhengig leserevisjon fant og fikk rettet foldbinding og tidlig
+priorreferanse før CLAIM. Ingen ny råproduksjon eller indikatorparameterfit.
+
+### Fire faste pass, ærlig M5-resultat
+
+TA-main001 fullførte med exit0 på 574,28 sekunder (9m34):
+én fersk modell / 4 faste pass / 384 updates / 544 forwards.
+Samme 1536 FIT- og 512 senere septemberCONTROL-rader ble skåret ved start og
+etter hvert pass. Norm/prior ble ikke refittet; initialSHA matcher mechanics.
+Kilde/policy var fryst og uendret. Originale checkpoints og alle capturer er
+bevart og fysisk hashkontrollert.
+
+M5 framtidig sluttretning, logloss (lavere er bedre), samme frosne rader:
+
+| Måling | FIT | CONTROL | CONTROL AUC opp/ned |
+|---|---:|---:|---:|
+| INITIAL = matchet TRAIN-prior | 0,709405 | 0,716887 | 0,500000 |
+| Pass 1 | 0,710858 | 0,725490 | 0,488536 |
+| Pass 2 | 0,710505 | 0,724903 | 0,511711 |
+| Pass 3 | 0,712055 | 0,725667 | 0,518704 |
+| Fast slutt etter pass 4 | 0,712238 | 0,726116 | 0,500511 |
+
+M5-close taper prior på både logloss og Brier i FIT og CONTROL ved alle fire
+pass. Endelig CONTROL Brier er 0,512975 mot prior 0,504676. Argmax velger
+OPP 509/511 ganger, faktisk OPP er 243/511. Gjennomsnittlig betinget
+P(OPP|OPP/NED) er 54,56 prosent; argmaxandelen er ikke samme som konfidens.
+AUC bruker float64 av lagrede FP32-logits før OPP−NED, kjente likheter utelates,
+ties får halv vekt; 509 ikke-like CONTROL-celler.
+
+Andre oppgaver lærer på FIT: M15/H1/H4/D1-close logloss er henholdsvis
+0,6515/0,5277/0,4353/0,3631 mot prior 0,7059/0,6937/0,6831/0,6935.
+På senere CONTROL slår bare H4-close prior på begge proper scores; dette
+omfatter bare 18 unike målbarer. D1-close har 12 unike. Åpningsoppgavene
+forbedres, men D1-open har 0 prediktiv støtte og får ingen læringskreditt;
+H4-open har bare 6 CONTROL-celler. Samlet oppgavegevinst kvalifiserer ikke M5.
+
+Uavhengig NumPy gjenskapte alle INITIAL/PASS1–4/FINAL modell-/priorsummer,
+counts og globale unike mål med avvik 0, også known-open-diagnostikk.
+Kohorter, issue-/source-identitet, fasit og masker er identiske i alle faser.
+Ingen Torch eller checkpointdekoding ble brukt i den uavhengige kontrollen.
+MATCHED_RESULT_REVIEW.json er hashbundet i NEXT_RUN_POLICY.
+
+### Gjenværende grense
+
+Startfordelingen og teknikken er kvalifisert; M5-læringen er fortsatt svak.
+Denne lille testen beviser ingen årsak, kapasitetsgrense eller mangel på
+indikatorsignal. Flere epoker ga ingen M5 proper-score-forbedring i den
+avtalte firepasskurven. Før en ny fit må én målt årsak eller uttrykkelig
+kvalifisert designendring og eksakt plan begrunnes. Ingen automatisk ekstra
+trening, GC-innføring eller kandidatvalg fra CONTROL.
 
 ### Sist fullførte runde, opprinnelig full-GC-omfang
 
