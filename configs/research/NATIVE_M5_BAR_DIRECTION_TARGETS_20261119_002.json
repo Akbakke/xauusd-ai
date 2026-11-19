@@ -1,0 +1,272 @@
+{
+  "columns": [
+    "time",
+    "open",
+    "high",
+    "low",
+    "close"
+  ],
+  "decoded_crossing_group": "filter_bar_start_plus_300s_strictly_before_cutoff",
+  "economic_edge_proven": false,
+  "execution": {
+    "class": "audit",
+    "internal_seconds": 870,
+    "kill_after_seconds": 10,
+    "memory": "4G",
+    "outer_seconds": 900,
+    "swap": "512M"
+  },
+  "max_invocations": 1,
+  "model_forwards": 0,
+  "native_prehistory": "January_April_2024_for_previous_observed_bar_only_no_ATR_warmup",
+  "normalization_fits": 0,
+  "optimizer_steps": 0,
+  "output_root": "/home/andre2/GX1_RUNS/NATIVE_M5_BAR_DIRECTION_TARGETS_20261119_002",
+  "runtime_versions": {
+    "numpy": "2.2.6",
+    "pandas": "2.3.3",
+    "pyarrow": "23.0.1"
+  },
+  "schema_version": "native_m5_bar_direction_target_audit_plan_v1",
+  "source_base_commit": "4d562be25740e5f089ed5743679f838a50d94ecb",
+  "source_gaps": "reported_between_observed_bars_without_suppressing_open_close_comparisons",
+  "source_metadata": {
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2024/part-000.parquet": {
+      "selected_groups": [
+        {
+          "first_bar_ns": 1704150000000000000,
+          "index": 0,
+          "last_bar_ns": 1705096500000000000,
+          "rows": 2484
+        },
+        {
+          "first_bar_ns": 1705273200000000000,
+          "index": 1,
+          "last_bar_ns": 1706486100000000000,
+          "rows": 2742
+        },
+        {
+          "first_bar_ns": 1706486400000000000,
+          "index": 2,
+          "last_bar_ns": 1707782100000000000,
+          "rows": 3036
+        },
+        {
+          "first_bar_ns": 1707782400000000000,
+          "index": 3,
+          "last_bar_ns": 1709078100000000000,
+          "rows": 3006
+        },
+        {
+          "first_bar_ns": 1709078400000000000,
+          "index": 4,
+          "last_bar_ns": 1710374100000000000,
+          "rows": 3048
+        },
+        {
+          "first_bar_ns": 1710374400000000000,
+          "index": 5,
+          "last_bar_ns": 1711659300000000000,
+          "rows": 3012
+        },
+        {
+          "first_bar_ns": 1711922400000000000,
+          "index": 6,
+          "last_bar_ns": 1712955300000000000,
+          "rows": 2760
+        },
+        {
+          "first_bar_ns": 1713132000000000000,
+          "index": 7,
+          "last_bar_ns": 1714164900000000000,
+          "rows": 2760
+        },
+        {
+          "first_bar_ns": 1714341600000000000,
+          "index": 8,
+          "last_bar_ns": 1715558100000000000,
+          "rows": 2784
+        },
+        {
+          "first_bar_ns": 1715558400000000000,
+          "index": 9,
+          "last_bar_ns": 1716854100000000000,
+          "rows": 3006
+        },
+        {
+          "first_bar_ns": 1716854400000000000,
+          "index": 10,
+          "last_bar_ns": 1718150100000000000,
+          "rows": 3036
+        },
+        {
+          "first_bar_ns": 1718150400000000000,
+          "index": 11,
+          "last_bar_ns": 1719446100000000000,
+          "rows": 3006
+        },
+        {
+          "first_bar_ns": 1719446400000000000,
+          "index": 12,
+          "last_bar_ns": 1720742100000000000,
+          "rows": 3006
+        },
+        {
+          "first_bar_ns": 1720742400000000000,
+          "index": 13,
+          "last_bar_ns": 1722027300000000000,
+          "rows": 3012
+        },
+        {
+          "first_bar_ns": 1722204000000000000,
+          "index": 14,
+          "last_bar_ns": 1723236900000000000,
+          "rows": 2760
+        },
+        {
+          "first_bar_ns": 1723413600000000000,
+          "index": 15,
+          "last_bar_ns": 1724630100000000000,
+          "rows": 2784
+        },
+        {
+          "first_bar_ns": 1724630400000000000,
+          "index": 16,
+          "last_bar_ns": 1725926100000000000,
+          "rows": 3006
+        },
+        {
+          "first_bar_ns": 1725926400000000000,
+          "index": 17,
+          "last_bar_ns": 1727222100000000000,
+          "rows": 3036
+        },
+        {
+          "first_bar_ns": 1727222400000000000,
+          "index": 18,
+          "last_bar_ns": 1728518100000000000,
+          "rows": 3036
+        }
+      ],
+      "stat": {
+        "ctime_ns": 1790525241583669170,
+        "device": 2096,
+        "inode": 357776,
+        "mode": 33188,
+        "mtime_ns": 1790525241583669170,
+        "size": 3196738
+      },
+      "total_row_groups": 25,
+      "total_rows": 71208
+    }
+  },
+  "source_owners": {
+    "gx1/audit/build_native_m5_direction_targets_v1.py": "92cf9b299c3ba10a86007fd8177fdd6f9167550e5b45e54d0c7e2ebee9c5620d",
+    "gx1/contracts/gx1_capped_execution_v1.py": "60b1ccf2eda470a84ddded0d8160c628314ebb19f5766b87b70fef7c9aa3ccff",
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "gx1/contracts/market_state_native_m5_targets_v1.py": "27201859b40ed0d1a63056482b4ddc5a01c75c181dd8937e5b5a62972c6cc291",
+    "gx1/features/htf_features.py": "e1f4c55f674eba650fe272e05cca1fd1d6ac0cf0e59c6ef7adb428c4d7566902",
+    "gx1/features/technical_indicators_v1.py": "3a81bec825639e57a3071cc28d4dc2d3d394fef031dc89d71da3b468ca28ecad",
+    "scripts/gx1_capped_run.sh": "6028e86a7662267562f5f71ecc8ac8dbd4adf571612997ac6f23f001b91df9c1",
+    "tests/test_build_native_m5_direction_targets_v1.py": "86a53fe0c5e58d2501f5bf3d4c349014ff4fb503d3f21bea6dbd76392fcd884f",
+    "tests/test_market_state_native_m5_targets_v1.py": "fb0c9db833e8cccddb17e0d653c242be76887fdcdbcb849c927f8c387df8d038"
+  },
+  "source_resolution_seconds": 300,
+  "source_spec": {
+    "closure_authority": null,
+    "cutoff_ns": 1727740800000000000,
+    "issue_start_ns": 1714521600000000000,
+    "manifest": {
+      "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/MANIFEST.json",
+      "sha256": "ca0012e5e30f7808876d666fe4d32e3fb873fddb6fc6178bd47b97eb89194cca"
+    },
+    "parts": [
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2024/part-000.parquet",
+        "row_groups": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18
+        ],
+        "sha256": "e08957b10dc2023c8c0bc438704cdf868e8df4c2f07f0ad7526fc20bda51abbf"
+      }
+    ]
+  },
+  "stage": "native_m5_bar_direction_targets_20261119_002",
+  "status": "PREPARED_NOT_ADMITTED",
+  "target_contract": {
+    "close_sign": "sign(current_observed_TF_close_minus_previous_observed_TF_close)",
+    "contract_sha256": "2d9db49dd9703c6b5eeefcdc678bdb75cea8f1b705b6763a52630139db163acb",
+    "cutoff": "exclusive_source_M5_close_and_native_TF_bar_availability",
+    "equality": "known_zero_when_previous_observed_TF_bar_exists",
+    "forecast_interpretation": "close_sign_predictive_score_separate_from_already_observed_open_sign",
+    "future_eligibility": "target_present_and_mature_and_observed_previous",
+    "future_target": "next_observed_TF_bar_with_available_ns_strictly_after_M5_issue",
+    "gathered_metadata": "future_time_index_eligibility_and_labels_are_target_only_never_features",
+    "immature_target_storage": "target_row_minus_one_zero_signs_and_false_observed_previous",
+    "issue": "native_M5_bar_start_plus_300_seconds",
+    "mixed_open_close": "two_separate_known_signs",
+    "observed_TF_bar": "canonical_nonempty_native_M5_aggregate_available_at_label_plus_TF_duration",
+    "observed_previous": "all_observed_TF_bars_except_first_source_prefix_bar",
+    "open_availability": "first_actual_M5_member_close_of_observed_TF_bar",
+    "open_known_at_issue": "target_open_available_ns_le_M5_issue_may_precede_target_close",
+    "open_sign": "sign(current_observed_TF_open_minus_previous_observed_TF_open)",
+    "partial_TF_bins": "observed_M5_count_reported_first_open_last_close_no_missing_values_inferred",
+    "previous_unknown_storage": "NaN_previous_prices_and_zero_signs_with_false_mask",
+    "role": "bar_direction_targets_no_training_or_trading_authority",
+    "schema_version": "gx1_market_state_native_m5_bar_directions_v2",
+    "sign_values": [
+      -1,
+      0,
+      1
+    ],
+    "source_bar_seconds": 300,
+    "source_columns": [
+      "open",
+      "high",
+      "low",
+      "close"
+    ],
+    "source_gap": "reported_observed_M5_interruption_or_missing_TF_bins_comparisons_remain_known",
+    "target_maturity": "next_actual_TF_available_ns_strictly_before_fold_upper",
+    "tf_duration_ns": {
+      "D1": 86400000000000,
+      "H1": 3600000000000,
+      "H4": 14400000000000,
+      "M15": 900000000000,
+      "M5": 300000000000
+    },
+    "tf_resample_origin": {
+      "D1": "0 days 22:00:00",
+      "H1": "0 days 00:00:00",
+      "H4": "0 days 02:00:00",
+      "M15": "0 days 00:00:00",
+      "M5": "0 days 00:00:00"
+    },
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ]
+  },
+  "target_tapes": 1,
+  "test_data_used": false
+}

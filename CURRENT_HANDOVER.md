@@ -6,7 +6,7 @@ prosess og eksakte terminalkvitteringer overstyrer prosa. Tidligere bølger finn
 
 ## Gjeldende status 19.11.2026
 
-`NATIVE_M5_BAR_DIRECTION_SOURCE_V2_PREPARED_NOT_ADMITTED`.
+`NATIVE_M5_BAR_DIRECTION_AUDIT_002_PREPARED_NOT_ADMITTED`.
 
 Brukeren presiserte at faktiske åpnings- og sluttprissammenligninger
 skal være kjente på samtlige observerte barer i alle fem TF.
@@ -31,9 +31,9 @@ Modenhet kontrolleres før framtidig fasit leses.
 Ny runner002 har egen plan-/stage-/utmappeidentitet. Den bruker bare
 native 2024-data med januar–april som forgjengerhistorikk og mai–september
 som valgt periode. Publisering krever kjent forgjenger for hver valgt
-observert bar på alle fem TF. Ingen slik fysisk jobb er innrømmet ennå.
+observert bar på alle fem TF. Eksakt plan er bundet i policy. Fysisk kjøring er ikke innrømmet ennå.
 
-Kilde- og syntetiske tester er klargjort. Etter faktisk barfaktakontroll
+19 fokuserte mål-/livssyklustester og commit-vaktene bestod. Etter faktisk barfaktakontroll
 gjenstår ferske native fem-TF-squeezeparametre, uavhengig featureprovider,
 normalisering og ny binding fra barfasit til modelloutput/tap.
 De åtte indikatorfamiliene og D1/makro er fortsatt prosjektmålet.
