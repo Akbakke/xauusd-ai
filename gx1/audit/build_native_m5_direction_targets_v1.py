@@ -328,6 +328,7 @@ def run(plan_sha):
         terminal = publish('TERMINAL.json', {'status': 'COMPLETE', 'exit_code': 0,
             'stage': STAGE, 'plan': plan_ref, 'claim': claim, 'result': result_ref,
             'target_tape': tape_ref, 'remaining_invocations': 0,
+            'source_unchanged': True,
             'relaunch_allowed': False, 'test_data_used': False})
         return {'result': result_ref, 'terminal': terminal, 'target_tape': tape_ref}
     except BaseException as error:

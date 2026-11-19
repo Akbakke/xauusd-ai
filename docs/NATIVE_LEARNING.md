@@ -46,6 +46,12 @@ beholdes på M5/høyere. Formel, enhet, warmup, maske, normalisering og
 faktisk forbruk skal dokumenteres. Samspill eller prediktiv nytte bevises
 med måling på den aktuelle funksjonen og de bundne radene.
 
+Squeeze-parametre for retning bruker en egen fem-TF-kildekontrakt i
+`volatility_squeeze_state_v1`. Fit, parameterfil, manifest og binding
+skal angi native M5-manifest og samme egne fit-plan. Produsenten beviser
+native M5/høyere barer til fit-tabellenes hash, med faktisk cutoff.
+Lasting avviser gammel kildekontrakt før videre kilde- eller metadatalesing.
+
 Før modellfit trenger den nye kjeden egen kilde-/input-/målidentitet,
 fersk baseline og samsvar i output, tap og skåring. Faste FIT-rader,
 kronologisk senere utvikling og TRAIN-priorer må bruke samme M5-kontrakt.

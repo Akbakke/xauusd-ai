@@ -39,6 +39,7 @@ def test_success_publishes_bound_target_result_terminal_and_consumes_root(monkey
     saved = json.loads((audit.ROOT / 'RESULT.json').read_text())
     assert terminal['status'] == 'COMPLETE' and terminal['exit_code'] == 0
     assert terminal['result'] == result['result']
+    assert terminal['source_unchanged'] is True
     assert saved['target_tape'] == terminal['target_tape'] == result['target_tape']
     assert saved['model_forwards'] == saved['optimizer_steps'] == 0
     assert terminal['remaining_invocations'] == 0 and terminal['relaunch_allowed'] is False

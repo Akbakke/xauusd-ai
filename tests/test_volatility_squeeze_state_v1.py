@@ -698,5 +698,163 @@ def test_manifest_excludes_bar_closing_after_declared_end(clock, tmp_path, monke
             {clock: frame}, declared_train_window_start=frame.index[0],
             declared_train_window_end=end,
             source_provenance_by_clock={clock: _provenance(clock)},
-            output_dir=tmp_path,
+            output_dir=tmp_path, clocks=(clock,),
         )
+
+
+def _native_m5_provenance(tmp_path, frames):
+    from gx1.features import volatility_squeeze_state_v1 as owner
+    native_path = tmp_path / "native_m5_manifest.json"
+    manifest = {
+        "schema_version": "xau_canonical_native_source_v3",
+        "instrument": "XAU_USD", "timeframe": "M5", "source_granularity": "M5",
+        "source_kind": "oanda_native_mba_candles", "prices": "MBA",
+        "bar_duration_seconds": 300, "decision_available_offset_seconds": 300,
+        "timestamp_semantics": "bar_start_utc", "completion_field": "complete",
+        "completion_value": True, "year_sha256": {"year=2022": "a" * 64},
+    }
+    native_path.write_text(json.dumps(manifest))
+    native = {"path": str(native_path), "sha256": hashlib.sha256(native_path.read_bytes()).hexdigest()}
+    end = max(frame.index[-1] + pd.Timedelta(_FREQ[clock])
+              for clock, frame in frames.items())
+    plan_path = tmp_path / "native_m5_fit_plan.json"
+    plan = {
+        "schema_version": "gx1_native_m5_squeeze_fit_plan_v1",
+        "native_m5_manifest": native, "timeframes": list(owner.VOLATILITY_SQUEEZE_DIRECTION_CLOCKS),
+        "source_clock_contract": owner.VOLATILITY_SQUEEZE_DIRECTION_CLOCK_CONTRACT,
+        "fit_cutoff_ns": int(end.value),
+        "source_spec": {"manifest": native, "parts": [
+            {"path": str(tmp_path / "year=2022/part-000.parquet"),
+             "sha256": "a" * 64, "row_groups": [0]}]},
+    }
+    plan_path.write_text(json.dumps(plan))
+    plan_sha = hashlib.sha256(plan_path.read_bytes()).hexdigest()
+    return {
+        clock: {
+            "source_artifact": native["path"], "source_sha256": native["sha256"],
+            "source_schema_version": manifest["schema_version"], "source_lane": clock,
+            "native_m5_manifest_artifact": native["path"],
+            "native_m5_manifest_sha256": native["sha256"],
+            "fit_plan_artifact": str(plan_path), "fit_plan_sha256": plan_sha,
+            "train_split_id": "TRAIN",
+            "clock_contract": owner.VOLATILITY_SQUEEZE_DIRECTION_CLOCK_CONTRACT,
+            "bar_grid": owner.volatility_squeeze_bar_grid(clock),
+        }
+        for clock in frames
+    }, end
+
+
+@pytest.mark.parametrize("native", [True, False])
+def test_declared_five_or_six_clock_manifest_roundtrip(tmp_path, monkeypatch, native):
+    from gx1.features import volatility_squeeze_state_v1 as owner
+    clocks = owner.VOLATILITY_SQUEEZE_DIRECTION_CLOCKS if native else owner.VOLATILITY_SQUEEZE_CLOCKS
+    frames = {clock: _closed_ohlcv(clock) for clock in clocks}
+    if native:
+        provenance, end = _native_m5_provenance(tmp_path, frames)
+    else:
+        provenance = {clock: _provenance(clock) for clock in clocks}
+        end = max(frame.index[-1] + pd.Timedelta(_FREQ[clock])
+                  for clock, frame in frames.items())
+    output = tmp_path / "artifacts"
+    output.mkdir()
+    old_open = Path.open
+
+    def guarded_open(path, *args, **kwargs):
+        if native:
+            assert not path.name.startswith("m1_"), "native M5 path attempted M1 IO"
+        return old_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", guarded_open)
+    manifest = owner.fit_volatility_squeeze_artifact_manifest(
+        frames, declared_train_window_start=frames[clocks[0]].index[0],
+        declared_train_window_end=end, source_provenance_by_clock=provenance,
+        output_dir=output, clocks=clocks)
+    digest = hashlib.sha256(manifest.read_bytes()).hexdigest()
+    loaded = owner.load_volatility_squeeze_artifact_manifest(
+        manifest, expected_sha256=digest, clocks=clocks)
+    binding = loaded.binding()
+    assert tuple(binding["params_payload_sha256_by_clock"]) == clocks
+    restored = owner.require_volatility_squeeze_artifact_binding(binding)
+    assert restored.binding() == binding
+    assert set(p.name for p in output.iterdir()) == {
+        "manifest.json", *(f"{clock.lower()}_params.json" for clock in clocks)}
+    for clock in clocks:
+        params = restored.require_params(clock)
+        result, _ = owner.compute_volatility_squeeze_state(
+            frames[clock], timeframe=clock, params=params)
+        assert np.isfinite(result.iloc[19:].to_numpy()).all()
+        assert params["schema_version"] == (
+            owner.VOLATILITY_SQUEEZE_DIRECTION_PARAMS_SCHEMA if native
+            else owner.VOLATILITY_SQUEEZE_STATE_SCHEMA_VERSION)
+    if native:
+        with pytest.raises(RuntimeError, match="CLOCKS_INVALID"):
+            restored.require_params("M1")
+        payload = json.loads(manifest.read_bytes())
+        bad_source = tmp_path / "m1_forbidden_source.json"
+        polluted = json.loads(json.dumps(payload))
+        polluted["artifacts"]["M5"]["source_artifact"] = str(bad_source)
+        polluted["artifacts"]["M5"]["source_sha256"] = "f" * 64
+        polluted["contract_sha256"] = owner._canonical_sha256(polluted)
+        old_sha = owner._sha256_file
+        old_stat = Path.stat
+
+        def guard_entry_source(path):
+            assert path != bad_source, "unbound M1 entry source was read"
+            return old_sha(path)
+
+        def guard_entry_stat(path, *args, **kwargs):
+            assert path != bad_source, "unbound M1 entry source metadata was read"
+            return old_stat(path, *args, **kwargs)
+
+        with monkeypatch.context() as guard:
+            guard.setattr(owner, "_sha256_file", guard_entry_source)
+            guard.setattr(Path, "stat", guard_entry_stat)
+            with pytest.raises(RuntimeError, match="ARTIFACT_ENTRY_MISMATCH"):
+                owner._require_artifact_manifest_payload(polluted)
+        payload["common_train_lineage"]["clock_contract"] = owner.VOLATILITY_SQUEEZE_CLOCK_CONTRACT
+
+        def forbidden(*args, **kwargs):
+            pytest.fail("inherited lineage reached nested source IO")
+        monkeypatch.setattr(owner, "_sha256_file", forbidden)
+        monkeypatch.setattr(owner, "load_volatility_squeeze_params", forbidden)
+        with pytest.raises(RuntimeError, match="COMMON_TRAIN_LINEAGE_INVALID"):
+            owner._require_artifact_manifest_payload(payload)
+
+
+def test_native_params_reject_legacy_provenance_before_nested_read(tmp_path, monkeypatch):
+    from gx1.features import volatility_squeeze_state_v1 as owner
+    params = _fit(_closed_ohlcv("M5"), "M5")
+    params["source_provenance"]["source_artifact"] = str(tmp_path / "m1_forbidden.json")
+    params["contract_sha256"] = _canonical_sha256(params)
+    path = tmp_path / "m5_params.json"
+    path.write_text(json.dumps(params))
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    old_open = Path.open
+
+    def guarded_open(candidate, *args, **kwargs):
+        assert candidate == path, "legacy nested provenance was read"
+        return old_open(candidate, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", guarded_open)
+    with pytest.raises(RuntimeError, match="SOURCE_PROVENANCE_INVALID"):
+        owner.load_volatility_squeeze_params(
+            path, expected_sha256=digest, timeframe="M5",
+            expected_clock_contract=owner.VOLATILITY_SQUEEZE_DIRECTION_CLOCK_CONTRACT)
+
+
+def test_native_manifest_fitter_rejects_inherited_source_before_fit(tmp_path, monkeypatch):
+    from gx1.features import volatility_squeeze_state_v1 as owner
+    clocks = owner.VOLATILITY_SQUEEZE_DIRECTION_CLOCKS
+    frames = {clock: _closed_ohlcv(clock) for clock in clocks}
+    provenance = {clock: _provenance(clock) for clock in clocks}
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("legacy source reached nested IO or model fit")
+    monkeypatch.setattr(Path, "open", forbidden)
+    monkeypatch.setattr(owner, "_fit_two_state_model", forbidden)
+    with pytest.raises(RuntimeError, match="SOURCE_PROVENANCE_INVALID"):
+        owner.fit_volatility_squeeze_artifact_manifest(
+            frames, declared_train_window_start=frames["M5"].index[0],
+            declared_train_window_end=frames["D1"].index[-1] + pd.Timedelta(days=1),
+            source_provenance_by_clock=provenance, output_dir=tmp_path,
+            clocks=clocks)

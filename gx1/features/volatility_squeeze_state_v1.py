@@ -91,7 +91,11 @@ BOLLINGER_STD_MULTIPLIER = 2.0
 VOLATILITY_SQUEEZE_PREFIX_ROWS = BOLLINGER_PERIOD_BARS - 1
 
 VOLATILITY_SQUEEZE_CLOCKS = ("M1", "M5", "M15", "H1", "H4", "D1")
+VOLATILITY_SQUEEZE_DIRECTION_CLOCKS = ("M5", "M15", "H1", "H4", "D1")
 VOLATILITY_SQUEEZE_CLOCK_CONTRACT = "closed_ohlcv_native_clock_v1"
+VOLATILITY_SQUEEZE_DIRECTION_CLOCK_CONTRACT = "native_m5_and_closed_higher_no_m1_v1"
+VOLATILITY_SQUEEZE_DIRECTION_MANIFEST_SCHEMA = "gx1_volatility_squeeze_native_m5_manifest_v1"
+VOLATILITY_SQUEEZE_DIRECTION_PARAMS_SCHEMA = "gx1_volatility_squeeze_native_m5_train_fit_v1"
 _CLOCK_DURATION = {
     "M1": pd.Timedelta(minutes=1),
     "M5": pd.Timedelta(minutes=5),
@@ -152,6 +156,17 @@ _SOURCE_PROVENANCE_KEYS = frozenset(
         "bar_grid",
     }
 )
+_NATIVE_M5_SOURCE_PROVENANCE_KEYS = frozenset({
+    "source_artifact", "source_sha256", "source_schema_version", "source_lane",
+    "native_m5_manifest_artifact", "native_m5_manifest_sha256",
+    "fit_plan_artifact", "fit_plan_sha256", "train_split_id",
+    "clock_contract", "bar_grid",
+})
+_NATIVE_M5_COMMON_TRAIN_LINEAGE_KEYS = frozenset({
+    "declared_train_window_start", "declared_train_window_end", "train_split_id",
+    "native_m5_manifest_artifact", "native_m5_manifest_sha256",
+    "fit_plan_artifact", "fit_plan_sha256", "clock_contract", "train_lineage_sha256",
+})
 # Lineage keys retired on 2026-08-15. Nothing may reintroduce them: they are
 # asserted absent from every payload key set by the owner's own tests.
 RETIRED_TRAIN_LINEAGE_KEYS = frozenset(
@@ -266,6 +281,16 @@ def _require_timeframe(timeframe: str) -> str:
             f"observed={timeframe!r} expected={VOLATILITY_SQUEEZE_CLOCKS}"
         )
     return timeframe
+
+
+def _artifact_clock_contract(clocks: tuple[str, ...]) -> tuple[str, str]:
+    if clocks == VOLATILITY_SQUEEZE_CLOCKS:
+        return (VOLATILITY_SQUEEZE_ARTIFACT_MANIFEST_SCHEMA_VERSION,
+                VOLATILITY_SQUEEZE_CLOCK_CONTRACT)
+    if clocks == VOLATILITY_SQUEEZE_DIRECTION_CLOCKS:
+        return (VOLATILITY_SQUEEZE_DIRECTION_MANIFEST_SCHEMA,
+                VOLATILITY_SQUEEZE_DIRECTION_CLOCK_CONTRACT)
+    raise RuntimeError("VOLATILITY_SQUEEZE_ARTIFACT_SET_CLOCKS_INVALID")
 
 
 def volatility_squeeze_bar_grid(timeframe: str) -> dict[str, Any]:
@@ -684,11 +709,94 @@ def _fit_two_state_model(relative_bandwidth: np.ndarray) -> dict[str, Any]:
     }
 
 
+def _require_native_m5_provenance(
+    value: Mapping[str, Any], *, timeframe: str, fit_cutoff_ns: int | None,
+) -> dict[str, Any]:
+    """Verify the declared native M5 source and fit plan without opening raw parts."""
+    if (set(value) != _NATIVE_M5_SOURCE_PROVENANCE_KEYS
+            or timeframe not in VOLATILITY_SQUEEZE_DIRECTION_CLOCKS
+            or value["source_lane"] != timeframe
+            or value["train_split_id"] != "TRAIN"
+            or value["clock_contract"] != VOLATILITY_SQUEEZE_DIRECTION_CLOCK_CONTRACT):
+        raise RuntimeError("VOLATILITY_SQUEEZE_NATIVE_M5_PROVENANCE_INVALID")
+    observed = dict(value)
+    _require_bar_grid(observed["bar_grid"], timeframe=timeframe)
+    native = {"path": observed["native_m5_manifest_artifact"],
+              "sha256": observed["native_m5_manifest_sha256"]}
+    plan_ref = {"path": observed["fit_plan_artifact"],
+                "sha256": observed["fit_plan_sha256"]}
+    if (observed["source_artifact"] != native["path"]
+            or observed["source_sha256"] != native["sha256"]
+            or observed["source_schema_version"] != "xau_canonical_native_source_v3"):
+        raise RuntimeError("VOLATILITY_SQUEEZE_NATIVE_M5_PROVENANCE_INVALID")
+    decoded = []
+    for binding in (native, plan_ref):
+        path = Path(str(binding["path"])).expanduser()
+        expected = _require_sha256(binding["sha256"], label="VOLATILITY_SQUEEZE_NATIVE_M5_SOURCE")
+        if (not path.is_absolute() or path.is_symlink() or not path.is_file()
+                or path.resolve(strict=True) != path):
+            raise RuntimeError("VOLATILITY_SQUEEZE_NATIVE_M5_PROVENANCE_INVALID")
+        raw = path.read_bytes()
+        if hashlib.sha256(raw).hexdigest() != expected:
+            raise RuntimeError("VOLATILITY_SQUEEZE_NATIVE_M5_PROVENANCE_INVALID")
+        try:
+            decoded.append(json.loads(raw))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise RuntimeError("VOLATILITY_SQUEEZE_NATIVE_M5_PROVENANCE_INVALID") from exc
+    manifest, plan = decoded
+    source_contract = {
+        "schema_version": "xau_canonical_native_source_v3",
+        "instrument": "XAU_USD", "timeframe": "M5", "source_granularity": "M5",
+        "source_kind": "oanda_native_mba_candles", "prices": "MBA",
+        "bar_duration_seconds": 300, "decision_available_offset_seconds": 300,
+        "timestamp_semantics": "bar_start_utc", "completion_field": "complete",
+        "completion_value": True,
+    }
+    if (not isinstance(manifest, dict)
+            or any(manifest.get(k) != v for k, v in source_contract.items())
+            or not isinstance(plan, dict)
+            or plan.get("schema_version") != "gx1_native_m5_squeeze_fit_plan_v1"
+            or plan.get("timeframes") != list(VOLATILITY_SQUEEZE_DIRECTION_CLOCKS)
+            or plan.get("source_clock_contract") != VOLATILITY_SQUEEZE_DIRECTION_CLOCK_CONTRACT
+            or plan.get("native_m5_manifest") != native
+            or type(plan.get("fit_cutoff_ns")) is not int
+            or plan["fit_cutoff_ns"] != fit_cutoff_ns
+            or not isinstance(plan.get("source_spec"), dict)):
+        raise RuntimeError("VOLATILITY_SQUEEZE_NATIVE_M5_PROVENANCE_INVALID")
+    spec = plan["source_spec"]
+    parts = spec.get("parts")
+    if (spec.get("manifest") != native or not isinstance(parts, list) or not parts
+            or not isinstance(manifest.get("year_sha256"), dict)):
+        raise RuntimeError("VOLATILITY_SQUEEZE_NATIVE_M5_PROVENANCE_INVALID")
+    for part in parts:
+        if (not isinstance(part, dict) or set(part) != {"path", "sha256", "row_groups"}
+                or not isinstance(part["row_groups"], list) or not part["row_groups"]
+                or any(type(i) is not int or i < 0 for i in part["row_groups"])
+                or part["row_groups"] != sorted(set(part["row_groups"]))):
+            raise RuntimeError("VOLATILITY_SQUEEZE_NATIVE_M5_PROVENANCE_INVALID")
+        path = Path(str(part["path"]))
+        year = path.parent.name
+        if (year not in manifest["year_sha256"]
+                or path != Path(native["path"]).parent / year / "part-000.parquet"
+                or part["sha256"] != manifest["year_sha256"][year]):
+            raise RuntimeError("VOLATILITY_SQUEEZE_NATIVE_M5_PROVENANCE_INVALID")
+    return observed
+
+
 def _require_source_provenance(
     value: Mapping[str, Any],
     *,
     timeframe: str,
+    expected_clock_contract: str | None = None,
+    fit_cutoff_ns: int | None = None,
 ) -> dict[str, Any]:
+    if isinstance(value, Mapping):
+        clock_contract = value.get("clock_contract")
+        if expected_clock_contract is not None and clock_contract != expected_clock_contract:
+            raise RuntimeError("VOLATILITY_SQUEEZE_SOURCE_PROVENANCE_INVALID")
+        if clock_contract == VOLATILITY_SQUEEZE_DIRECTION_CLOCK_CONTRACT:
+            return _require_native_m5_provenance(
+                value, timeframe=timeframe, fit_cutoff_ns=fit_cutoff_ns)
     if not isinstance(value, Mapping) or set(value) != set(
         _SOURCE_PROVENANCE_KEYS
     ):
@@ -737,17 +845,19 @@ def _train_lineage_payload(
     declared_train_window_start: pd.Timestamp,
     declared_train_window_end: pd.Timestamp,
 ) -> dict[str, Any]:
+    lineage_keys = (
+        ("native_m5_manifest_artifact", "native_m5_manifest_sha256",
+         "fit_plan_artifact", "fit_plan_sha256")
+        if provenance["clock_contract"] == VOLATILITY_SQUEEZE_DIRECTION_CLOCK_CONTRACT
+        else ("tape_manifest_artifact", "tape_manifest_sha256",
+              "pair_manifest_artifact", "pair_manifest_sha256",
+              "pair_generation_id", "pair_symbol"))
     payload = {
         "declared_train_window_start": declared_train_window_start.isoformat(),
         "declared_train_window_end": declared_train_window_end.isoformat(),
         "train_split_id": provenance["train_split_id"],
-        "tape_manifest_artifact": provenance["tape_manifest_artifact"],
-        "tape_manifest_sha256": provenance["tape_manifest_sha256"],
-        "pair_manifest_artifact": provenance["pair_manifest_artifact"],
-        "pair_manifest_sha256": provenance["pair_manifest_sha256"],
-        "pair_generation_id": provenance["pair_generation_id"],
-        "pair_symbol": provenance["pair_symbol"],
         "clock_contract": provenance["clock_contract"],
+        **{key: provenance[key] for key in lineage_keys},
     }
     payload["train_lineage_sha256"] = _canonical_sha256(payload)
     return payload
@@ -788,8 +898,7 @@ def fit_volatility_squeeze_params(
     if len(source) <= VOLATILITY_SQUEEZE_PREFIX_ROWS:
         raise RuntimeError("VOLATILITY_SQUEEZE_TRAIN_WINDOW_TOO_SHORT")
     provenance = _require_source_provenance(
-        source_provenance,
-        timeframe=clock,
+        source_provenance, timeframe=clock, fit_cutoff_ns=int(window_end.value),
     )
 
     bandwidth = bollinger_relative_bandwidth(
@@ -802,7 +911,10 @@ def fit_volatility_squeeze_params(
         declared_train_window_end=window_end,
     )
     payload: dict[str, Any] = {
-        "schema_version": VOLATILITY_SQUEEZE_STATE_SCHEMA_VERSION,
+        "schema_version": (
+            VOLATILITY_SQUEEZE_DIRECTION_PARAMS_SCHEMA
+            if provenance["clock_contract"] == VOLATILITY_SQUEEZE_DIRECTION_CLOCK_CONTRACT
+            else VOLATILITY_SQUEEZE_STATE_SCHEMA_VERSION),
         "owner": VOLATILITY_SQUEEZE_STATE_OWNER,
         "timeframe": clock,
         "bollinger_period_bars": BOLLINGER_PERIOD_BARS,
@@ -824,6 +936,7 @@ def require_volatility_squeeze_params(
     params: Mapping[str, Any],
     *,
     timeframe: str,
+    expected_clock_contract: str | None = None,
 ) -> dict[str, Any]:
     """Validate exact schema, fit semantics, provenance and payload hash."""
 
@@ -831,8 +944,14 @@ def require_volatility_squeeze_params(
     if not isinstance(params, Mapping) or set(params) != set(_PARAM_KEYS):
         raise RuntimeError("VOLATILITY_SQUEEZE_PARAMS_KEYS_INVALID")
     observed = dict(params)
+    provenance = observed["source_provenance"]
+    if not isinstance(provenance, Mapping):
+        raise RuntimeError("VOLATILITY_SQUEEZE_SOURCE_PROVENANCE_INVALID")
+    schema = (VOLATILITY_SQUEEZE_DIRECTION_PARAMS_SCHEMA
+              if provenance.get("clock_contract") == VOLATILITY_SQUEEZE_DIRECTION_CLOCK_CONTRACT
+              else VOLATILITY_SQUEEZE_STATE_SCHEMA_VERSION)
     if (
-        observed["schema_version"] != VOLATILITY_SQUEEZE_STATE_SCHEMA_VERSION
+        observed["schema_version"] != schema
         or observed["owner"] != VOLATILITY_SQUEEZE_STATE_OWNER
         or observed["timeframe"] != clock
         or observed["bollinger_period_bars"] != BOLLINGER_PERIOD_BARS
@@ -841,8 +960,11 @@ def require_volatility_squeeze_params(
     ):
         raise RuntimeError("VOLATILITY_SQUEEZE_PARAMS_CONTRACT_INVALID")
     _require_source_provenance(
-        observed["source_provenance"],
-        timeframe=clock,
+        observed["source_provenance"], timeframe=clock,
+        expected_clock_contract=expected_clock_contract,
+        fit_cutoff_ns=int(_require_utc_timestamp(
+            observed["declared_train_window_end"],
+            label="VOLATILITY_SQUEEZE_PARAMS_TRAIN_WINDOW").value),
     )
     _require_sha256(
         observed["input_ohlcv_sha256"],
@@ -876,8 +998,9 @@ def require_volatility_squeeze_params(
     ):
         raise RuntimeError("VOLATILITY_SQUEEZE_PARAMS_TRAIN_WINDOW_INVALID")
     provenance = _require_source_provenance(
-        observed["source_provenance"],
-        timeframe=clock,
+        observed["source_provenance"], timeframe=clock,
+        expected_clock_contract=expected_clock_contract,
+        fit_cutoff_ns=int(end.value),
     )
     lineage = _train_lineage_payload(
         provenance,
@@ -964,6 +1087,7 @@ def load_volatility_squeeze_params(
     *,
     expected_sha256: str,
     timeframe: str,
+    expected_clock_contract: str | None = None,
 ) -> dict[str, Any]:
     """Load one explicit regular artifact and bind its exact file hash."""
 
@@ -981,12 +1105,14 @@ def load_volatility_squeeze_params(
         payload = json.loads(data)
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise RuntimeError("VOLATILITY_SQUEEZE_ARTIFACT_JSON_INVALID") from exc
-    return require_volatility_squeeze_params(payload, timeframe=timeframe)
+    return require_volatility_squeeze_params(
+        payload, timeframe=timeframe,
+        expected_clock_contract=expected_clock_contract)
 
 
 @dataclass(frozen=True)
 class VolatilitySqueezeArtifactSet:
-    """Verified six-clock artifact set; the only admitted runtime carrier."""
+    """Verified exact six-clock or native M5 direction artifact set."""
 
     manifest_path: Path
     manifest_file_sha256: str
@@ -994,14 +1120,16 @@ class VolatilitySqueezeArtifactSet:
     train_lineage_sha256: str
     params_by_clock: Mapping[str, Mapping[str, Any]]
     params_file_sha256_by_clock: Mapping[str, str]
+    clocks: tuple[str, ...] = VOLATILITY_SQUEEZE_CLOCKS
 
     def require_params(self, timeframe: str) -> dict[str, Any]:
         clock = _require_timeframe(timeframe)
-        if tuple(self.params_by_clock) != VOLATILITY_SQUEEZE_CLOCKS:
+        _, source_contract = _artifact_clock_contract(self.clocks)
+        if tuple(self.params_by_clock) != self.clocks or clock not in self.clocks:
             raise RuntimeError("VOLATILITY_SQUEEZE_ARTIFACT_SET_CLOCKS_INVALID")
         params = require_volatility_squeeze_params(
-            self.params_by_clock[clock],
-            timeframe=clock,
+            self.params_by_clock[clock], timeframe=clock,
+            expected_clock_contract=source_contract,
         )
         if params["train_lineage_sha256"] != self.train_lineage_sha256:
             raise RuntimeError("VOLATILITY_SQUEEZE_ARTIFACT_SET_LINEAGE_MISMATCH")
@@ -1010,19 +1138,20 @@ class VolatilitySqueezeArtifactSet:
     def binding(self) -> dict[str, Any]:
         """Small exact manifest binding embedded in downstream artifacts."""
 
+        schema, _ = _artifact_clock_contract(self.clocks)
         return {
-            "schema_version": VOLATILITY_SQUEEZE_ARTIFACT_MANIFEST_SCHEMA_VERSION,
+            "schema_version": schema,
             "manifest_path": str(self.manifest_path),
             "manifest_file_sha256": self.manifest_file_sha256,
             "manifest_payload_sha256": self.manifest_payload_sha256,
             "train_lineage_sha256": self.train_lineage_sha256,
             "params_payload_sha256_by_clock": {
                 clock: self.require_params(clock)["contract_sha256"]
-                for clock in VOLATILITY_SQUEEZE_CLOCKS
+                for clock in self.clocks
             },
             "params_file_sha256_by_clock": {
                 clock: self.params_file_sha256_by_clock[clock]
-                for clock in VOLATILITY_SQUEEZE_CLOCKS
+                for clock in self.clocks
             },
         }
 
@@ -1048,7 +1177,7 @@ def require_volatility_squeeze_artifact_set(
     if not isinstance(value, VolatilitySqueezeArtifactSet):
         raise RuntimeError(
             "VOLATILITY_SQUEEZE_ARTIFACT_SET_REQUIRED: load the exact "
-            "six-clock manifest; bare params/defaults are forbidden"
+            "clock manifest; bare params/defaults are forbidden"
         )
     _require_sha256(
         value.manifest_file_sha256,
@@ -1062,9 +1191,10 @@ def require_volatility_squeeze_artifact_set(
         value.train_lineage_sha256,
         label="VOLATILITY_SQUEEZE_TRAIN_LINEAGE",
     )
-    if tuple(value.params_file_sha256_by_clock) != VOLATILITY_SQUEEZE_CLOCKS:
+    _artifact_clock_contract(value.clocks)
+    if tuple(value.params_file_sha256_by_clock) != value.clocks:
         raise RuntimeError("VOLATILITY_SQUEEZE_ARTIFACT_SET_CLOCKS_INVALID")
-    for clock in VOLATILITY_SQUEEZE_CLOCKS:
+    for clock in value.clocks:
         _require_sha256(
             value.params_file_sha256_by_clock[clock],
             label=f"VOLATILITY_SQUEEZE_{clock}_PARAMS_FILE",
@@ -1082,11 +1212,16 @@ def require_volatility_squeeze_artifact_binding(
         _ARTIFACT_SET_BINDING_KEYS
     ):
         raise RuntimeError("VOLATILITY_SQUEEZE_ARTIFACT_BINDING_INVALID")
-    if value["schema_version"] != VOLATILITY_SQUEEZE_ARTIFACT_MANIFEST_SCHEMA_VERSION:
+    if value["schema_version"] == VOLATILITY_SQUEEZE_DIRECTION_MANIFEST_SCHEMA:
+        clocks = VOLATILITY_SQUEEZE_DIRECTION_CLOCKS
+    elif value["schema_version"] == VOLATILITY_SQUEEZE_ARTIFACT_MANIFEST_SCHEMA_VERSION:
+        clocks = VOLATILITY_SQUEEZE_CLOCKS
+    else:
         raise RuntimeError("VOLATILITY_SQUEEZE_ARTIFACT_BINDING_INVALID")
     loaded = load_volatility_squeeze_artifact_manifest(
         Path(str(value["manifest_path"])),
         expected_sha256=str(value["manifest_file_sha256"]),
+        clocks=clocks,
     )
     if loaded.binding() != dict(value):
         raise RuntimeError("VOLATILITY_SQUEEZE_ARTIFACT_BINDING_MISMATCH")
@@ -1094,9 +1229,10 @@ def require_volatility_squeeze_artifact_binding(
 
 
 def _require_common_train_lineage(value: Any) -> dict[str, Any]:
-    if not isinstance(value, Mapping) or set(value) != set(
-        _COMMON_TRAIN_LINEAGE_KEYS
-    ):
+    native = (isinstance(value, Mapping)
+              and value.get("clock_contract") == VOLATILITY_SQUEEZE_DIRECTION_CLOCK_CONTRACT)
+    keys = _NATIVE_M5_COMMON_TRAIN_LINEAGE_KEYS if native else _COMMON_TRAIN_LINEAGE_KEYS
+    if not isinstance(value, Mapping) or set(value) != keys:
         raise RuntimeError("VOLATILITY_SQUEEZE_COMMON_TRAIN_LINEAGE_INVALID")
     observed = dict(value)
     start = _require_utc_timestamp(
@@ -1111,16 +1247,8 @@ def _require_common_train_lineage(value: Any) -> dict[str, Any]:
         raise RuntimeError("VOLATILITY_SQUEEZE_COMMON_TRAIN_LINEAGE_INVALID")
     pseudo_provenance = {
         key: observed[key]
-        for key in (
-            "train_split_id",
-            "tape_manifest_artifact",
-            "tape_manifest_sha256",
-            "pair_manifest_artifact",
-            "pair_manifest_sha256",
-            "pair_generation_id",
-            "pair_symbol",
-            "clock_contract",
-        )
+        for key in keys - {
+            "declared_train_window_start", "declared_train_window_end", "train_lineage_sha256"}
     }
     expected = _train_lineage_payload(
         pseudo_provenance,
@@ -1138,24 +1266,28 @@ def _require_artifact_manifest_payload(value: Any) -> dict[str, Any]:
     ):
         raise RuntimeError("VOLATILITY_SQUEEZE_ARTIFACT_MANIFEST_INVALID")
     observed = dict(value)
+    if not isinstance(observed["clocks"], (list, tuple)):
+        raise RuntimeError("VOLATILITY_SQUEEZE_ARTIFACT_MANIFEST_INVALID")
+    clocks = tuple(observed["clocks"])
+    schema, source_contract = _artifact_clock_contract(clocks)
     if (
-        observed["schema_version"]
-        != VOLATILITY_SQUEEZE_ARTIFACT_MANIFEST_SCHEMA_VERSION
+        observed["schema_version"] != schema
         or observed["owner"] != VOLATILITY_SQUEEZE_STATE_OWNER
-        or tuple(observed["clocks"]) != VOLATILITY_SQUEEZE_CLOCKS
         or tuple(observed["feature_names"]) != VOLATILITY_SQUEEZE_FEATURE_NAMES
         or not isinstance(observed["artifacts"], Mapping)
-        or tuple(observed["artifacts"]) != VOLATILITY_SQUEEZE_CLOCKS
+        or tuple(observed["artifacts"]) != clocks
     ):
         raise RuntimeError("VOLATILITY_SQUEEZE_ARTIFACT_MANIFEST_INVALID")
     lineage = _require_common_train_lineage(observed["common_train_lineage"])
+    if lineage["clock_contract"] != source_contract:
+        raise RuntimeError("VOLATILITY_SQUEEZE_COMMON_TRAIN_LINEAGE_INVALID")
     _require_sha256(
         observed["contract_sha256"],
         label="VOLATILITY_SQUEEZE_MANIFEST_PAYLOAD",
     )
     if observed["contract_sha256"] != _canonical_sha256(observed):
         raise RuntimeError("VOLATILITY_SQUEEZE_ARTIFACT_MANIFEST_HASH_MISMATCH")
-    for clock in VOLATILITY_SQUEEZE_CLOCKS:
+    for clock in clocks:
         entry = observed["artifacts"][clock]
         if not isinstance(entry, Mapping) or set(entry) != set(_ARTIFACT_ENTRY_KEYS):
             raise RuntimeError("VOLATILITY_SQUEEZE_ARTIFACT_ENTRY_INVALID")
@@ -1181,20 +1313,16 @@ def _require_artifact_manifest_payload(value: Any) -> dict[str, Any]:
         source_path = Path(str(entry["source_artifact"])).expanduser()
         if (
             not params_path.is_absolute()
-            or not source_path.is_absolute()
             or params_path.is_symlink()
-            or source_path.is_symlink()
             or not params_path.is_file()
-            or not source_path.is_file()
             or params_path.resolve(strict=True) != params_path
-            or source_path.resolve(strict=True) != source_path
-            or _sha256_file(source_path) != entry["source_sha256"]
         ):
             raise RuntimeError("VOLATILITY_SQUEEZE_ARTIFACT_ENTRY_INVALID")
         params = load_volatility_squeeze_params(
             params_path,
             expected_sha256=entry["params_file_sha256"],
             timeframe=clock,
+            expected_clock_contract=source_contract,
         )
         provenance = params["source_provenance"]
         if (
@@ -1209,6 +1337,10 @@ def _require_artifact_manifest_payload(value: Any) -> dict[str, Any]:
             or provenance["bar_grid"] != entry["bar_grid"]
         ):
             raise RuntimeError("VOLATILITY_SQUEEZE_ARTIFACT_ENTRY_MISMATCH")
+        if (not source_path.is_absolute() or source_path.is_symlink()
+                or not source_path.is_file() or source_path.resolve(strict=True) != source_path
+                or _sha256_file(source_path) != entry["source_sha256"]):
+            raise RuntimeError("VOLATILITY_SQUEEZE_ARTIFACT_ENTRY_INVALID")
     return observed
 
 
@@ -1219,14 +1351,16 @@ def fit_volatility_squeeze_artifact_manifest(
     declared_train_window_end: Any,
     source_provenance_by_clock: Mapping[str, Mapping[str, Any]],
     output_dir: Path,
+    clocks: tuple[str, ...] = VOLATILITY_SQUEEZE_CLOCKS,
 ) -> Path:
-    """Fit and publish one TRAIN-only artifact for each of the six clocks."""
+    """Fit and publish the explicitly declared six clocks or native M5 clocks."""
 
+    schema, source_contract = _artifact_clock_contract(clocks)
     if (
         not isinstance(closed_ohlcv_by_clock, Mapping)
-        or tuple(closed_ohlcv_by_clock) != VOLATILITY_SQUEEZE_CLOCKS
+        or tuple(closed_ohlcv_by_clock) != clocks
         or not isinstance(source_provenance_by_clock, Mapping)
-        or tuple(source_provenance_by_clock) != VOLATILITY_SQUEEZE_CLOCKS
+        or tuple(source_provenance_by_clock) != clocks
     ):
         raise RuntimeError("VOLATILITY_SQUEEZE_SIX_CLOCK_INPUT_INVALID")
     start = _require_utc_timestamp(
@@ -1250,7 +1384,7 @@ def fit_volatility_squeeze_artifact_manifest(
     manifest_path = target / "manifest.json"
     expected_names = {
         "manifest.json",
-        *(f"{clock.lower()}_params.json" for clock in VOLATILITY_SQUEEZE_CLOCKS),
+        *(f"{clock.lower()}_params.json" for clock in clocks),
     }
     if any(target.iterdir()) or any(
         (target / name).exists() or (target / name).is_symlink()
@@ -1260,7 +1394,7 @@ def fit_volatility_squeeze_artifact_manifest(
 
     artifacts: dict[str, Any] = {}
     common_lineage: dict[str, Any] | None = None
-    for clock in VOLATILITY_SQUEEZE_CLOCKS:
+    for clock in clocks:
         full_source = _validate_closed_ohlcv(
             closed_ohlcv_by_clock[clock],
             timeframe=clock,
@@ -1276,8 +1410,8 @@ def fit_volatility_squeeze_artifact_manifest(
         if len(train) <= VOLATILITY_SQUEEZE_PREFIX_ROWS:
             raise RuntimeError(f"VOLATILITY_SQUEEZE_{clock}_TRAIN_WINDOW_TOO_SHORT")
         provenance = _require_source_provenance(
-            source_provenance_by_clock[clock],
-            timeframe=clock,
+            source_provenance_by_clock[clock], timeframe=clock,
+            expected_clock_contract=source_contract, fit_cutoff_ns=int(end.value),
         )
         lineage = _train_lineage_payload(
             provenance,
@@ -1314,9 +1448,9 @@ def fit_volatility_squeeze_artifact_manifest(
     if common_lineage is None:
         raise RuntimeError("VOLATILITY_SQUEEZE_COMMON_TRAIN_LINEAGE_MISSING")
     manifest: dict[str, Any] = {
-        "schema_version": VOLATILITY_SQUEEZE_ARTIFACT_MANIFEST_SCHEMA_VERSION,
+        "schema_version": schema,
         "owner": VOLATILITY_SQUEEZE_STATE_OWNER,
-        "clocks": list(VOLATILITY_SQUEEZE_CLOCKS),
+        "clocks": list(clocks),
         "feature_names": list(VOLATILITY_SQUEEZE_FEATURE_NAMES),
         "common_train_lineage": common_lineage,
         "artifacts": artifacts,
@@ -1335,9 +1469,11 @@ def load_volatility_squeeze_artifact_manifest(
     path: Path,
     *,
     expected_sha256: str,
+    clocks: tuple[str, ...] = VOLATILITY_SQUEEZE_CLOCKS,
 ) -> VolatilitySqueezeArtifactSet:
-    """Load a complete six-clock manifest and all exact bound artifacts."""
+    """Load exactly the declared clock inventory and its bound artifacts."""
 
+    schema, source_contract = _artifact_clock_contract(clocks)
     artifact = Path(path).expanduser()
     if (
         not artifact.is_absolute()
@@ -1348,7 +1484,7 @@ def load_volatility_squeeze_artifact_manifest(
         raise RuntimeError("VOLATILITY_SQUEEZE_ARTIFACT_MANIFEST_MISSING")
     expected_inventory = {
         "manifest.json",
-        *(f"{clock.lower()}_params.json" for clock in VOLATILITY_SQUEEZE_CLOCKS),
+        *(f"{clock.lower()}_params.json" for clock in clocks),
     }
     if (
         artifact.name != "manifest.json"
@@ -1367,15 +1503,19 @@ def load_volatility_squeeze_artifact_manifest(
         payload = json.loads(data)
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise RuntimeError("VOLATILITY_SQUEEZE_ARTIFACT_MANIFEST_JSON_INVALID") from exc
+    if (not isinstance(payload, dict) or payload.get("schema_version") != schema
+            or payload.get("clocks") != list(clocks)):
+        raise RuntimeError("VOLATILITY_SQUEEZE_ARTIFACT_MANIFEST_INVALID")
     manifest = _require_artifact_manifest_payload(payload)
     params_by_clock: dict[str, dict[str, Any]] = {}
     file_sha_by_clock: dict[str, str] = {}
-    for clock in VOLATILITY_SQUEEZE_CLOCKS:
+    for clock in clocks:
         entry = manifest["artifacts"][clock]
         params_by_clock[clock] = load_volatility_squeeze_params(
             Path(entry["params_artifact"]),
             expected_sha256=entry["params_file_sha256"],
             timeframe=clock,
+            expected_clock_contract=source_contract,
         )
         file_sha_by_clock[clock] = entry["params_file_sha256"]
     result = VolatilitySqueezeArtifactSet(
@@ -1385,6 +1525,7 @@ def load_volatility_squeeze_artifact_manifest(
         train_lineage_sha256=manifest["common_train_lineage"]["train_lineage_sha256"],
         params_by_clock=params_by_clock,
         params_file_sha256_by_clock=file_sha_by_clock,
+        clocks=clocks,
     )
     return require_volatility_squeeze_artifact_set(result)
 
@@ -1588,6 +1729,10 @@ __all__ = [
     "RETIRED_TRAIN_LINEAGE_KEYS",
     "VOLATILITY_SQUEEZE_CLOCKS",
     "VOLATILITY_SQUEEZE_CLOCK_CONTRACT",
+    "VOLATILITY_SQUEEZE_DIRECTION_CLOCKS",
+    "VOLATILITY_SQUEEZE_DIRECTION_CLOCK_CONTRACT",
+    "VOLATILITY_SQUEEZE_DIRECTION_MANIFEST_SCHEMA",
+    "VOLATILITY_SQUEEZE_DIRECTION_PARAMS_SCHEMA",
     "VOLATILITY_SQUEEZE_ARTIFACT_MANIFEST_SCHEMA_VERSION",
     "VOLATILITY_SQUEEZE_FEATURE_NAMES",
     "VOLATILITY_SQUEEZE_PREFIX_ROWS",
