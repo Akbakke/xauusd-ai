@@ -6,6 +6,25 @@ prosess og eksakte terminalkvitteringer overstyrer prosa. Tidligere bølger finn
 
 ## Gjeldende status 19.11.2026
 
+Operatøren prioriterer nå retningsedge UTEN GC. GC settes på vent;
+alle genuine ikke-GC-indikatorfamilier og D1/makro beholdes på M5/MTF.
+Eksisterende fabrikk har en egen TA-rute med ni inputflater uten GC-historikk.
+Fersk baseline for denne funksjonen må kvalifiseres; full-GC-resultatet
+nedenfor er ikke en TA-only-baseline. Ingen ny modell/fit er innrømmet.
+Lesende UP-bias-/kildekontroll er ferdig; fersk TA-baseline gjenstår.
+M1 brukes aldri til retning. NEXT_RUN_POLICY eier kjørestatusen.
+
+Avgrenset før-treningskontroll: M5-FIT har 777 OPP / 754 NED / 4 LIK;
+alle 96 optimizerbatchers rekkefølge matcher lagrede kildehasher. De tre
+tredelene har 49,1 / 48,0 / 55,1 prosent OPP blant ikke-like utfall. Dette gir
+ingen begrunnelse for stor OPP/NED-klassevekting og beviser ingen årsak.
+Klasseorden og sign+1 samsvarer; native loss har ingen OPP-klassevekt.
+Hodene bruker symmetrisk tilfeldig initialisering. TRAIN-priorinitialisering
+er bare en kandidat, ikke implementert eller bevist som kur. Ingen
+modell-/tapsmatematikk, modellkjøring eller ekstra epoke er gjort her.
+
+### Sist fullførte runde, opprinnelig full-GC-omfang
+
 Den brukerbestilte mindre retningsrunden er fullført og uavhengig vurdert:
 SHORT_FIT002,18min23s,exit0,uendretkilde,96AdamW-steg/160forwards/énfersk
 modell. Alle trenings-/kjøringsporter er stengt. Ingen aktiv modelljobb,
@@ -113,7 +132,8 @@ er målt. M5-sluttretning slo ikke prior på senereCONTROL. Ingen selvstendig
 generalisering, Entry-kvalitet, handelsøkonomi eller edge er dokumentert.
 FullTRAIN-poolbaseline/stortrening er ikke gjort av denne lille testen.
 
-Ingen ny fit innrømmes. Eventuell videre årsaksanalyse skal først bruke
+GC er utsatt etter ny operatørpresisering. Ingen ny fit innrømmes av
+denne scopebindingen. Videre årsaksanalyse skal først bruke
 lagrede prognoser, forvekslingsmatriser og task-/TF-tall til å undersøke
 UP-bias; resultatet beviser ikke hvorfor den oppstod. En kort runde er
 ingen generell kapasitetsdom eller grunn til å kassere genuine indikatorer.

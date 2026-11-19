@@ -42,6 +42,18 @@ M5-barer med kausal M15/H1/H4/D1-kontekst, M1-avledet nåtilstand bare
 ved M5-tidspunkter, og ingen egen M1-Entry-klokke. Tettere overvåking av
 en åpen handel og Exit hører til senere faser.
 
+## Operatørpresisering 19.11.2026: indikatorer før GC
+
+Aktivt retningsarbeid skal først søke edge uten GC. Genuine ikke-GC-
+indikatorer, alle åtte spesialistfamilier og D1/makro-kontekst beholdes på
+native M5 med kausalt lukkede M15/H1/H4/D1. GC utsettes til en senere,
+separat kvalifisert sammenligning; dette avløser tidligere GC-prioritet
+for den aktive fasen. Bevar GC-kilde, kode og originale artefakter.
+Siste full-GC-kjøring er full-GC-evidens og kvalifiserer ingen fersk
+baseline eller læring for funksjonen uten GC. M1-forbudet består.
+UP-skjevhet skal undersøkes før ny trening; flere epoker er ikke en
+automatisk rettelse. Gjeldende baseline- og treningsporter består.
+
 ## Operatørpresisering19.11.2026: barretning på alle tidsrammer
 
 Fasit skal kjenne faktiske prisendringer for samtlige observerte barer
