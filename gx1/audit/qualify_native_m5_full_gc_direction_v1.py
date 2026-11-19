@@ -498,7 +498,10 @@ FIT_SCOPES={
         Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_MECHANICS_20261119_001')),
     'ta_main':('native_m5_ta_prior_learning_curve_20261119_001',
         REPO/'configs/research/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001.json',
-        Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001'))}
+        Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001')),
+    'ta_shuffle':('native_m5_ta_prior_block_order_20261119_001',
+        REPO/'configs/research/NATIVE_M5_TA_PRIOR_BLOCK_ORDER_20261119_001.json',
+        Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_BLOCK_ORDER_20261119_001'))}
 ADAMW_RECIPE={'lr':1e-4,'betas':[.9,.999],'eps':1e-8,'weight_decay':1e-4,
     'amsgrad':False,'foreach':None,'maximize':False,'capturable':False,
     'differentiable':False,'fused':None}
@@ -510,6 +513,13 @@ FIT_SOURCE_PATHS=tuple(dict.fromkeys((*SOURCE_PATHS,
 TA_MATCHED_PRIOR_REFERENCE={
     'path':'/home/andre2/GX1_RUNS/NATIVE_M5_FULL_GC_SHORT_FIT_20261119_002/MATCHED_FIT_PRIOR.json',
     'sha256':'122f285e0eeddf66158079c3c018679d6b1d580976cd09311c3c4bf5fa05c691'}
+TA_BLOCK_ORDER_REFERENCE={
+    'chronological_result':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001/RESULT.json',
+        'sha256':'3bf639efeb58b5526600b2c3478f1139eb7aa52704ca8d33a97ea6272c241d1d'},
+    'chronological_terminal':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001/TERMINAL.json',
+        'sha256':'3b4a0c0b3c5883662f99d9c3c49728852951e3f6cf7fa2bb7fb5d2cc21f9b728'},
+    'chronological_review':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001/MATCHED_RESULT_REVIEW.json',
+        'sha256':'98b9d778887b1dff1a687a75cdd4a009075bb6a774105a82add34c16231ab3b4'}}
 TA_FIT_SOURCE_PATHS=tuple(dict.fromkeys((*ta_audit.SOURCE_PATHS,
     'gx1/audit/qualify_native_m5_full_gc_direction_v1.py',
     'tests/test_qualify_native_m5_full_gc_direction_v1.py',
@@ -518,14 +528,18 @@ TA_FIT_SOURCE_PATHS=tuple(dict.fromkeys((*ta_audit.SOURCE_PATHS,
 
 
 def _ta_fit(plan):
-    return plan.get('mode') in ('ta_mechanics','ta_main')
+    return plan.get('mode') in ('ta_mechanics','ta_main','ta_shuffle')
+
+
+def _ta_main(mode):
+    return mode in ('ta_main','ta_shuffle')
 
 
 def _mechanics(mode):
     return mode in ('mechanics','ta_mechanics')
 
 
-def _ta_pool_axis(ta_plan):
+def _ta_pool_axis(ta_plan,*,return_source_rows=False):
     # Selection reads only two admitted clock/index arrays, never features or labels.
     snapshot=read(ta_plan['inputs']['candidate_snapshot'])
     archive_ref=ta_plan['inputs']['candidate_archive']
@@ -539,26 +553,30 @@ def _ta_pool_axis(ta_plan):
     starts=arrays['bar_start_ns'];rows=arrays['retained_issue_rows']
     need(len(rows)>0 and rows[0]>=0 and rows[-1]<len(starts)and np.all(np.diff(rows)>0)
         and np.all(np.diff(starts)>0),'TA_CLOCK_AXIS')
-    issues=starts[rows]+300_000_000_000;axis={}
+    issues=starts[rows]+300_000_000_000;axis={};sources={}
     for name,start,end in [('TRAIN',FIT_START_NS,FIT_END_NS),('CONTROL',FIT_END_NS,CONTROL_END_NS)]:
         chosen=(issues>=start)&(issues<end);source=rows[chosen];times=issues[chosen]
         need(len(source)>0,'TA_CLOCK_POPULATION:'+name)
+        sources[name]=source
         axis[name]={'input_ready_rows':len(source),'input_not_ready_rows':0,
             'source_rows_sha256':digest(source),'issue_ns_sha256':digest(times)}
     need(ref(archive_ref['path'])==archive_ref,'TA_CLOCK_ARCHIVE_BOOKEND')
-    return axis
+    return (axis,sources)if return_source_rows else axis
 
 
 def ta_fit_metadata(inputs,mode):
     from gx1.contracts.market_state_ta_integrated_objective_v1 import native_bar_train_prior_contract
     fields={'ta_result','ta_terminal','matched_prior_reference'}|(
-        {'mechanics_result','mechanics_terminal'}if mode=='ta_main'else set())
+        {'mechanics_result','mechanics_terminal'}if _ta_main(mode)else set())
+    if mode=='ta_shuffle':fields.update(TA_BLOCK_ORDER_REFERENCE)
     need(type(inputs)is dict and set(inputs)==fields,'TA_FIT_INPUT_ROLES')
     need(inputs['ta_result']=={'path':'/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_006/RESULT.json',
         'sha256':'5c015b3af8a17c8a16459be0eeba5ca017b7625db91e193aa84b101e664e7bca'}
         and inputs['ta_terminal']=={'path':'/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_006/TERMINAL.json',
         'sha256':'849bcda1483e088ca5fa2ec8671e8ed6b003654331a6556c70af53dcfc11c874'},'TA_FIT_EXACT_PARENT')
     need(inputs['matched_prior_reference']==TA_MATCHED_PRIOR_REFERENCE,'TA_FIT_EXACT_MATCHED_PRIOR')
+    if mode=='ta_shuffle':
+        need(all(inputs[key]==value for key,value in TA_BLOCK_ORDER_REFERENCE.items()),'TA_BLOCK_EXACT_CHRONOLOGICAL_REFERENCE')
     result,ta_plan,plan_ref,claim_ref=complete_parent(inputs['ta_result'],inputs['ta_terminal'],
         'COMPLETE_NATIVE_M5_PIPELINE_TECHNICAL_QUALIFICATION','native_m5_pipeline_20261119_006')
     need(result['model_forwards']==1 and result['clean_process_io_firewall']['denied_attempts']==0,
@@ -583,7 +601,7 @@ def ta_fit_metadata(inputs,mode):
         'input_view':'native_M5_full_TA_9_surfaces_GC_deferred',
         'normalization_policy':'fresh_whole_earlier_TRAIN_consumption_union_before_source_rank_sampling',
         'initialization':'fresh_backbone_zero_final_head_weights_TRAIN_Laplace1_log_biases'}
-    if mode=='ta_main':
+    if _ta_main(mode):
         stage,_,root=FIT_SCOPES['ta_mechanics']
         need(inputs['mechanics_result']['path']==str(root/'RESULT.json')
             and inputs['mechanics_terminal']['path']==str(root/'TERMINAL.json'),'TA_FIT_MECHANICS_PATH')
@@ -607,24 +625,72 @@ def ta_fit_metadata(inputs,mode):
             and parent['metadata']==metadata and all(parent['inputs'][key]==inputs[key]
             for key in ('ta_result','ta_terminal','matched_prior_reference')),'TA_FIT_MECHANICS_DOMAINS')
         # No numerically relevant source change is allowed between these two plans.
-        need(set(parent['source_owners'])==set(TA_FIT_SOURCE_PATHS)
-            and all(sha(REPO/name)==value for name,value in parent['source_owners'].items()),'TA_FIT_MECHANICS_SOURCE')
+        compatibility=ta_block_order_source_bridge(parent)if mode=='ta_shuffle'else None
+        if compatibility is None:
+            need(set(parent['source_owners'])==set(TA_FIT_SOURCE_PATHS)
+                and all(sha(REPO/name)==value for name,value in parent['source_owners'].items()),'TA_FIT_MECHANICS_SOURCE')
         report=done['report']
         metadata['mechanics']={'result':inputs['mechanics_result'],'terminal':inputs['mechanics_terminal'],
             'plan':done['plan'],'claim':done['claim'],'normalization':report['normalization'],'prior':report['prior'],
             'axis':report['axis'],'normalization_population':report['normalization_population'],
             'initial_state_sha256':report['initial_state_sha256'],
-            'physical_windows_boot_id':done['physical_windows_boot_id']}
+            'physical_windows_boot_id':done['physical_windows_boot_id'],
+            **({'source_compatibility':compatibility}if compatibility is not None else{})}
         dependencies.update({'mechanics_plan':done['plan'],'mechanics_claim':done['claim'],
             'train_normalization':report['normalization'],'train_prior':report['prior']})
+    if mode=='ta_shuffle':metadata['chronological_reference']=ta_chronological_reference(inputs,metadata)
     return metadata
+
+
+def ta_chronological_reference(inputs,metadata):
+    result,terminal,review=(read(inputs[key])for key in TA_BLOCK_ORDER_REFERENCE)
+    parent,claim=read(result['plan']),read(result['claim']);report=result['report']
+    initial='d30d41feb2d8c37ba624785b6504cd58ecf4530d06d785191219ecdc9a36712d'
+    need(result['status']=='COMPLETE_NATIVE_M5_TA_PRIOR_LEARNING_CURVE'
+        and result['stage']==terminal['stage']==parent['stage']==claim['stage']==FIT_SCOPES['ta_main'][0]
+        and terminal['status']=='COMPLETE'and terminal['exit_code']==0
+        and terminal['result']==inputs['chronological_result']and terminal['plan']==result['plan']==claim['plan']
+        and terminal['claim']==result['claim']and result['source_unchanged']is True
+        and result['test_data_used']is terminal['test_data_used']is False
+        and result['optimizer_steps']==report['canonical_optimizer_updates']==384
+        and report['declared_passes']==4 and report['actual_counts']=={
+            'model_constructions':1,'model_forwards':544,'backward_calls':384,'optimizer_steps':384}
+        and report['normalization_fits']==report['prior_fits']==0
+        and report['qualification_weights_loaded']is False
+        and result['clean_process_io_firewall']['denied_attempts']==0,'TA_BLOCK_COMPLETE_CHRONOLOGICAL')
+    mechanics=metadata['mechanics']
+    need(parent['mode']=='ta_main'and parent['recipe']==fit_recipe(parent['recipe'],'ta_main')
+        and parent['recipe']['passes']==4 and parent['cohort_selection']==small_cohort_manifest(metadata)
+        and report['normalization']==mechanics['normalization']and report['prior']==mechanics['prior']
+        and report['axis']==mechanics['axis']and report['normalization_population']==mechanics['normalization_population']
+        and report['initial_state_sha256']==mechanics['initial_state_sha256']==initial
+        and all(parent['metadata'][key]==metadata[key]for key in (
+            'architecture','seed','target_contract','fit_start_ns','fit_end_ns','control_end_ns','prior_contract','source_pool'))
+        and all(parent['inputs'][key]==inputs[key]for key in (
+            'ta_result','ta_terminal','matched_prior_reference','mechanics_result','mechanics_terminal')),
+        'TA_BLOCK_MATCHED_CHRONOLOGICAL_DOMAINS')
+    for name in ('FIT','CONTROL'):
+        item=report['selected_cohorts'][name];expected=small_cohort_manifest(metadata)['cohorts'][name]
+        need(item['rows']==expected['rows']and item['frozen_selection_identity_sha256']==expected['selection_identity_sha256']
+            and item['first_and_last_pool_rows_included']is True,'TA_BLOCK_MATCHED_COHORT:'+name)
+    need(review['schema_version']=='gx1_native_m5_ta_prior_fourpass_result_review_v1'
+        and review['result']==inputs['chronological_result']and review['terminal']==inputs['chronological_terminal']
+        and review['plan']==result['plan']and review['initial_state_sha256']==initial
+        and review['fixed_passes']==4 and review['actual_counts']==report['actual_counts']
+        and review['normalization']==report['normalization']and review['prior']==report['prior']
+        and review['selected_cohorts']==report['selected_cohorts']and review['no_best_checkpoint_selection']is True
+        and review['GC_used']is review['test_data_used']is False and review['M1_attempts']==0,'TA_BLOCK_CHRONOLOGICAL_REVIEW')
+    metadata['dependencies'].update({'chronological_plan':result['plan'],'chronological_claim':result['claim']})
+    return {**{key:inputs[key]for key in TA_BLOCK_ORDER_REFERENCE},'plan':result['plan'],'claim':result['claim'],
+        'normalization':report['normalization'],'prior':report['prior'],'selected_cohorts':report['selected_cohorts'],
+        'initial_state_sha256':initial,'reference_weights_loaded':False}
 
 
 def fit_recipe(value,mode):
     fields={'optimizer','gradient_clip_norm','scheduler','seed','batch_rows','score_batch_rows','fit_batches',
         'score_batches_per_split','checkpoint_every_updates','outer_seconds','internal_seconds',
         'required_windows_boot_id_greater_than'}
-    if mode in ('ta_mechanics','ta_main'):fields.add('passes')
+    if mode in ('ta_mechanics','ta_main','ta_shuffle'):fields.add('passes')
     need(type(value)is dict and set(value)==fields,'FIT_RECIPE_FIELDS')
     need(value['optimizer']==ADAMW_RECIPE and value['gradient_clip_norm']==1.
         and value['scheduler']is None and value['seed']==20260911 and value['batch_rows']==16
@@ -636,13 +702,14 @@ def fit_recipe(value,mode):
     need(value['checkpoint_every_updates']<=value['fit_batches']
         and value['internal_seconds']==value['outer_seconds']-30 and value['outer_seconds']<=10800,'FIT_BUDGET')
     need(mode in FIT_SCOPES and(not _mechanics(mode)or value['fit_batches']==2),'FIT_MODE')
-    if mode in ('ta_mechanics','ta_main'):
+    if mode in ('ta_mechanics','ta_main','ta_shuffle'):
         need(type(value['passes'])is int and value['passes']>0
             and value['fit_batches']==value['passes']*(1 if mode=='ta_mechanics'else 96)
             and(mode!='ta_mechanics'or value['passes']==2)
             and value['checkpoint_every_updates']==(1 if mode=='ta_mechanics'else 96)
             and value['score_batches_per_split']is None
             and value['outer_seconds']==1800 and value['internal_seconds']==1770,'TA_FIT_FIXED_RECIPE')
+        if mode=='ta_shuffle':need(value['passes']==4 and value['fit_batches']==384,'TA_BLOCK_FIXED_FOUR_PASSES')
         return dict(value)
     if mode=='main':
         need(value['fit_batches']==96 and value['checkpoint_every_updates']==32
@@ -654,7 +721,7 @@ def fit_recipe(value,mode):
 
 
 def fit_metadata(inputs,mode):
-    if mode in ('ta_mechanics','ta_main'):return ta_fit_metadata(inputs,mode)
+    if mode in ('ta_mechanics','ta_main','ta_shuffle'):return ta_fit_metadata(inputs,mode)
     from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
     fields={'joint_result','joint_terminal'}|({'mechanics_result','mechanics_terminal'}if mode=='main'else {'stats_result','stats_terminal'})
     need(type(inputs)is dict and set(inputs)==fields,'FIT_INPUT_ROLES')
@@ -722,6 +789,86 @@ def _fit_statistics_parent(inputs,metadata,mode):
         'physical_windows_boot_id':done['physical_windows_boot_id'],
         'source_base_commit':parent_plan['source_base_commit'],
         **({'source_compatibility':compatibility}if mode=='main'else{})}
+
+
+def ta_block_order_numeric_identity(source):
+    import ast
+    tree=ast.parse(source)
+    leaves=('fresh_fit_model','fit_step','fit_score','prepare_ta_native_fit','fit_axes',
+        'seed_native_fit','training_rng','restore_training_rng','state_sha','slice_truth',
+        'fit_checkpoint','publish_checkpoint','restore_fit_checkpoint','fit_state_proof',
+        '_ta_initial_prior_proof','cold_resume_fit','require_cold_resume_proof')
+    functions={node.name:node for node in tree.body if isinstance(node,(ast.FunctionDef,ast.AsyncFunctionDef))}
+    need(set(leaves)<=set(functions),'TA_BLOCK_NUMERICAL_FUNCTIONS')
+    sha_ast=lambda node:hashlib.sha256(ast.dump(node,include_attributes=False).encode()).hexdigest()
+    unchanged={name:sha_ast(functions[name])for name in leaves}
+    constants={target.id:node for node in tree.body if isinstance(node,ast.Assign)
+        for target in node.targets if isinstance(target,ast.Name)}
+    unchanged['ADAMW_RECIPE']=sha_ast(constants['ADAMW_RECIPE'])
+    # Only named scope/selection/schedule/launch orchestration may differ.
+    orchestration={'_ta_fit','_ta_main','_ta_pool_axis','ta_fit_metadata','ta_chronological_reference',
+        'ta_block_order_numeric_identity','ta_block_order_source_bridge','ta_block_schedule_from_rows','ta_block_schedule',
+        'fit_recipe','fit_metadata','fit_limits','build_fit_plan','fit_boot_state',
+        '_ta_training_batches','_ta_schedule_position','prepare_native_fit','fit_physical','run_native_fit'}
+    tree.body=[node for node in tree.body if not(
+        isinstance(node,(ast.FunctionDef,ast.AsyncFunctionDef))and node.name in orchestration)and not(
+        isinstance(node,ast.Assign)and any(isinstance(target,ast.Name)and target.id in (
+            'FIT_SCOPES','TA_BLOCK_ORDER_REFERENCE')for target in node.targets))]
+    return {'remaining_module_ast_sha256':sha_ast(tree),'unchanged_numeric_leaf_ast_sha256':unchanged}
+
+
+def ta_block_order_source_bridge(parent_plan):
+    owner='gx1/audit/qualify_native_m5_full_gc_direction_v1.py'
+    allowed={owner,'tests/test_qualify_native_m5_full_gc_direction_v1.py',
+        'scripts/gx1_capped_run.sh','tests/test_gx1_capped_run_contract.py'}
+    need(parent_plan['mode']=='ta_mechanics'and set(parent_plan['source_owners'])==set(TA_FIT_SOURCE_PATHS),
+        'TA_BLOCK_MECHANICS_SOURCE_SET')
+    current={name:sha(REPO/name)for name in TA_FIT_SOURCE_PATHS}
+    need(all(current[name]==value for name,value in parent_plan['source_owners'].items()if name not in allowed),
+        'TA_BLOCK_UNCHANGED_MODEL_LOSS_STATS_OWNERS')
+    original=subprocess.check_output(['git','show',parent_plan['source_base_commit']+':'+owner],cwd=REPO)
+    need(hashlib.sha256(original).hexdigest()==parent_plan['source_owners'][owner],'TA_BLOCK_ORIGINAL_DRIVER_BLOB')
+    numerical=ta_block_order_numeric_identity(original.decode())
+    need(numerical==ta_block_order_numeric_identity((REPO/owner).read_text()),'TA_BLOCK_UNCHANGED_NUMERICAL_AST')
+    return {'schema_version':'gx1_native_m5_ta_block_order_source_bridge_v1',
+        'original_mechanics_source_base_commit':parent_plan['source_base_commit'],
+        'allowed_changed_source_paths':sorted(allowed),'all_other_source_owners_exact':True,**numerical,
+        'source_changes':{name:{'original_sha256':parent_plan['source_owners'][name],'current_sha256':current[name]}
+            for name in sorted(allowed)if current[name]!=parent_plan['source_owners'][name]},
+        'scope':'only_ta_shuffle_block_order001_same_numeric_model_loss_optimizer_statistics_score_reload',
+        'guard_change_scope':'one_additional_exact_plan_output_path_no_resource_sensor_cgroup_change'}
+
+
+def ta_block_schedule_from_rows(rows,recipe,selection_sha):
+    rows=np.asarray(rows)
+    need(rows.dtype==np.int64 and rows.shape==(1536,)and np.all(np.diff(rows)>0)
+        and recipe['passes']==4 and recipe['batch_rows']==16 and recipe['seed']==20260911,'TA_BLOCK_SCHEDULE_POPULATION')
+    generator=np.random.Generator(np.random.PCG64(recipe['seed']))
+    orders=np.stack([generator.permutation(96)for _ in range(4)]).astype(np.int64)
+    blocks=rows.reshape(96,16);ordered=blocks[orders]
+    body={'schema_version':'gx1_native_m5_ta_whole_block_order_schedule_v1',
+        'rng':'dedicated_local_numpy_Generator_PCG64_no_global_RNG_state',
+        'seed':recipe['seed'],'passes':4,'batches_per_pass':96,'rows_per_batch':16,
+        'selection_identity_sha256':selection_sha,'ordered_FIT_source_rows_sha256':digest(rows),
+        'base_block_source_rows_sha256':[digest(block)for block in blocks],
+        'block_orders':orders.tolist(),'block_orders_sha256':digest(orders),
+        'per_pass_source_rows_sha256':[digest(value)for value in ordered],
+        'source_row_schedule_sha256':digest(ordered),
+        'window_interior_permuted':False,'labels_or_CONTROL_used_for_order':False}
+    body['contract_sha256']=hashlib.sha256(json.dumps(body,sort_keys=True).encode()).hexdigest()
+    return body
+
+
+def ta_block_schedule(metadata,recipe):
+    axis,pools=_ta_pool_axis(metadata['ta_plan'],return_source_rows=True)
+    need(axis==metadata['source_pool']['axis'],'TA_BLOCK_SCHEDULE_SOURCE_AXIS')
+    ranks=spread_rank_blocks(len(pools['TRAIN']),96,16);rows=pools['TRAIN'][ranks]
+    expected=metadata['chronological_reference']['selected_cohorts']['FIT']
+    control=pools['CONTROL'][spread_rank_blocks(len(pools['CONTROL']),8,64)]
+    need(digest(rows)==expected['source_rows_sha256']
+        and digest(control)==metadata['chronological_reference']['selected_cohorts']['CONTROL']['source_rows_sha256'],
+        'TA_BLOCK_CHRONOLOGICAL_SOURCE_ROWS')
+    return ta_block_schedule_from_rows(rows,recipe,small_cohort_manifest(metadata)['cohorts']['FIT']['selection_identity_sha256'])
 
 
 def fit_orchestration_source_bridge(parent_plan):
@@ -819,7 +966,7 @@ def prepare_matched_prior(context,fit_rows,plan,root):
 
 
 def fit_limits(recipe,mode,metadata=None):
-    if mode in ('ta_mechanics','ta_main'):
+    if mode in ('ta_mechanics','ta_main','ta_shuffle'):
         score=sum((item['rows']+recipe['score_batch_rows']-1)//recipe['score_batch_rows']
             for item in small_cohort_manifest(metadata)['cohorts'].values())
         updates=3 if mode=='ta_mechanics'else recipe['fit_batches']
@@ -839,16 +986,18 @@ def build_fit_plan(*,inputs,recipe,mode,source_base_commit=None):
     stage,path,root=FIT_SCOPES[mode]
     metadata=fit_metadata(inputs,mode)
     head=source_base_commit or subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip()
-    ta_only=mode in ('ta_mechanics','ta_main')
+    ta_only=mode in ('ta_mechanics','ta_main','ta_shuffle')
     paths=TA_FIT_SOURCE_PATHS if ta_only else FIT_SOURCE_PATHS
     return {'schema_version':'gx1_native_m5_ta_prior_fit_plan_v1'if ta_only else'gx1_native_m5_full_gc_fit_plan_v1','stage':stage,'mode':mode,
         'status':'PREPARED_NOT_ADMITTED','output_root':str(root),'source_base_commit':head,
         'source_owners':{p:sha(REPO/p)for p in paths},'inputs':inputs,'metadata':metadata,
         'recipe':recipe,**({'cohort_selection':small_cohort_manifest(metadata)}if mode=='main'or ta_only else{}),
+        **({'training_schedule':ta_block_schedule(metadata,recipe)}if mode=='ta_shuffle'else{}),
         'execution':{'class':'trainer','device':'cuda','memory':'20G','swap':'512M',
             'tasks_max':128,'numerical_threads':8,'outer_seconds':recipe['outer_seconds'],
             'internal_seconds':recipe['internal_seconds'],'kill_after_seconds':10},
-        'fit_order':('declared_passes_of_same_source_only_nonoverlapping_FIT_batches_no_CONTROL_selection'if ta_only
+        'fit_order':('whole_fixed_B16_blocks_permuted_per_pass_by_local_PCG64_seed'if mode=='ta_shuffle'else
+            'declared_passes_of_same_source_only_nonoverlapping_FIT_batches_no_CONTROL_selection'if ta_only
             else'source_only_evenly_spaced_nonoverlapping_contiguous_batches'),
         'score_order':'fixed_source_only_evenly_spaced_nonoverlapping_contiguous_batches',
         'normalization_axis':'all_TRAIN_input_ready_issues_with_any_mature_supervised_cell_before_sampling',
@@ -912,7 +1061,7 @@ def fit_boot_state(plan,*,admitted):
     fresh=actual>threshold
     if admitted:
         need(fresh,'FIT_FRESH_PHYSICAL_BOOT')
-        if plan['mode']in('main','ta_main'):
+        if plan['mode']in('main','ta_main','ta_shuffle'):
             need(actual>=plan['metadata']['mechanics']['physical_windows_boot_id'],'FIT_MAIN_BOOT_LINEAGE')
     return {'actual_windows_boot_id':actual,'required_greater_than':threshold,'fresh':fresh}
 
@@ -1040,14 +1189,28 @@ def _ta_training_batches(selected,plan):
     # The admitted main consumes all 96 frozen FIT batches once per declared pass.
     base=all_score_batches(selected['FIT'],plan['recipe']['batch_rows'])
     if plan['mode']=='ta_mechanics':base=base[:1]
+    if plan['mode']=='ta_shuffle':
+        expected=ta_block_schedule_from_rows(selected['FIT'],plan['recipe'],
+            plan['cohort_selection']['cohorts']['FIT']['selection_identity_sha256'])
+        need(plan['training_schedule']==expected,'TA_BLOCK_EXACT_SCHEDULE')
+        return [base[index]for order in expected['block_orders']for index in order]
     return base*plan['recipe']['passes']
 
 
 def _ta_schedule_position(plan,cursor):
     per_pass=1 if plan['mode']=='ta_mechanics'else 96
     need(type(cursor)is int and 0<=cursor<=plan['recipe']['fit_batches'],'TA_FIT_SCHEDULE_CURSOR')
-    return {'completed_updates':cursor,'next_pass':cursor//per_pass,'next_batch_in_pass':cursor%per_pass,
+    position={'completed_updates':cursor,'next_pass':cursor//per_pass,'next_batch_in_pass':cursor%per_pass,
         'batches_per_pass':per_pass,'declared_passes':plan['recipe']['passes']}
+    if plan['mode']=='ta_shuffle':
+        schedule=plan['training_schedule']
+        body={key:value for key,value in schedule.items()if key!='contract_sha256'}
+        need(schedule['contract_sha256']==hashlib.sha256(json.dumps(body,sort_keys=True).encode()).hexdigest()
+            and schedule['passes']==plan['recipe']['passes'],'TA_BLOCK_CHECKPOINT_SCHEDULE_IDENTITY')
+        block=schedule['block_orders'][cursor//per_pass][cursor%per_pass]if cursor<plan['recipe']['fit_batches']else None
+        position.update(training_schedule_sha256=schedule['contract_sha256'],next_source_block=block,
+            next_source_batch_sha256=schedule['base_block_source_rows_sha256'][block]if block is not None else None)
+    return position
 
 
 def _fit_source_binding(provider,plan):
@@ -1099,7 +1262,8 @@ def prepare_ta_native_fit(plan,root,*,reload_normalization=None,reload_prior=Non
 
 def prepare_native_fit(plan,root,*,reload_normalization=None,reload_prior=None):
     if _ta_fit(plan):
-        return prepare_ta_native_fit(plan,root,reload_normalization=reload_normalization,reload_prior=reload_prior)
+        return prepare_ta_native_fit({**plan,'mode':'ta_main'}if plan['mode']=='ta_shuffle'else plan,root,
+            reload_normalization=reload_normalization,reload_prior=reload_prior)
     from gx1.contracts import market_state_native_m5_gc_feature_inputs_v1 as gc
     from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
     meta=plan['metadata'];ta,_=ta_audit.load_candidate_provider(meta['ta_plan'])
@@ -1317,7 +1481,7 @@ def fit_physical(plan,plan_ref,root):
         if (cursor+1)%recipe['checkpoint_every_updates']==0 or cursor+1==len(batches):
             checkpoint_refs.append(publish_checkpoint(root/('CHECKPOINT_'+str(cursor+1).zfill(6)+'.pt'),
                 fit_checkpoint(model,optimizer,context,plan,plan_ref,cursor+1)))
-        if plan['mode']=='ta_main'and(cursor+1)%96==0:
+        if _ta_main(plan['mode'])and(cursor+1)%96==0:
             score_started=time.monotonic();pass_scores,pass_capture=fit_score(model,context,panels,plan)
             torch.cuda.synchronize();elapsed=time.monotonic()-score_started
             number=(cursor+1)//96;score_ref=publish(root/('SCORE_PASS_'+str(number).zfill(3)+'.json'),
@@ -1326,8 +1490,10 @@ def fit_physical(plan,plan_ref,root):
             capture_ref=publish(root/('CAPTURE_PASS_'+str(number).zfill(3)+'.npz'),stream.getvalue());stream.close()
             curve.append({'pass':number,'completed_updates':cursor+1,'scores':score_ref,'capture':capture_ref,
                 'checkpoint':checkpoint_refs[-1],'model_state_sha256':canonical_model_state_sha256(model.state_dict())})
-    score_started=time.monotonic();final,capture_final=(pass_scores,pass_capture)if plan['mode']=='ta_main'else fit_score(model,context,panels,plan)
-    torch.cuda.synchronize();final_score_seconds=elapsed if plan['mode']=='ta_main'else time.monotonic()-score_started
+    if plan['mode']=='ta_shuffle':need(digest(np.concatenate(batches))==plan['training_schedule']['source_row_schedule_sha256'],
+        'TA_BLOCK_ACTUAL_SOURCE_ROW_SCHEDULE')
+    score_started=time.monotonic();final,capture_final=(pass_scores,pass_capture)if _ta_main(plan['mode'])else fit_score(model,context,panels,plan)
+    torch.cuda.synchronize();final_score_seconds=elapsed if _ta_main(plan['mode'])else time.monotonic()-score_started
     need(state_sha(context['normalization'])==normalization_body
         and state_sha(_fit_source_binding(provider,plan))==source_body
         and ref(context['normalization_ref']['path'])==context['normalization_ref'],'FIT_NORMALIZATION_SOURCE_BOOKEND')
@@ -1345,6 +1511,9 @@ def fit_physical(plan,plan_ref,root):
         'selected_cohorts':selected_report,'statistics_parent':statistics_parent['result']if statistics_parent else None,
         **({'prior_initialization':prior_initialization,'feature_requalification':context['feature_requalification'],
             'declared_passes':recipe['passes'],'learning_curve':curve,
+            **({'training_schedule':plan['training_schedule'],
+                'actual_source_row_schedule_sha256':digest(np.concatenate(batches)),
+                'chronological_reference':plan['metadata']['chronological_reference']}if plan['mode']=='ta_shuffle'else{}),
             'gradient_transition':{'first_backbone_gradient_l2':steps[0]['backbone_gradient_l2'],
                 'second_backbone_gradient_l2':steps[1]['backbone_gradient_l2'],
                 'zero_first_gradient_is_expected_from_zero_readout_weights':True,
@@ -1455,6 +1624,7 @@ def run_native_fit(plan_sha,mode):
         updates=3 if _mechanics(mode)else plan['recipe']['fit_batches']
         result=publish(root/'RESULT.json',{'stage':stage,
             'status':('COMPLETE_NATIVE_M5_TA_PRIOR_MECHANICS'if mode=='ta_mechanics'else
+                'COMPLETE_NATIVE_M5_TA_PRIOR_BLOCK_ORDER'if mode=='ta_shuffle'else
                 'COMPLETE_NATIVE_M5_TA_PRIOR_LEARNING_CURVE'if mode=='ta_main'else
                 'COMPLETE_NATIVE_M5_FULL_GC_FIT_MECHANICS'if mode=='mechanics'else'COMPLETE_NATIVE_M5_FULL_GC_SHORT_FIT'),
             'plan':plan_ref,'claim':claim,'report':report,'guard':guard,'source_unchanged':True,

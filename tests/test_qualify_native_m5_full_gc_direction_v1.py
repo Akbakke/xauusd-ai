@@ -841,3 +841,154 @@ def test_ta_wrong_but_valid_prior_reference_rejected_before_any_receipt_io(tmp_p
     # The exact historical path with different valid prior bytes is equally forbidden.
     inputs['matched_prior_reference']={**owner.TA_MATCHED_PRIOR_REFERENCE,'sha256':wrong_ref['sha256']}
     with pytest.raises(ValueError,match='TA_FIT_EXACT_MATCHED_PRIOR'):owner.ta_fit_metadata(inputs,mode)
+
+
+def _shuffle_unit():
+    metadata,context=_rank_context();metadata={'source_pool':metadata['mechanics']}
+    plan={'mode':'ta_shuffle','recipe':_ta_recipe('ta_main',4),'metadata':metadata,
+        'cohort_selection':owner.small_cohort_manifest(metadata)}
+    selected,_=owner.selected_small_cohorts(plan,context)
+    plan['training_schedule']=owner.ta_block_schedule_from_rows(selected['FIT'],plan['recipe'],
+        plan['cohort_selection']['cohorts']['FIT']['selection_identity_sha256'])
+    return plan,selected
+
+
+def test_whole_block_order_is_prebound_dedicated_rng_and_keeps_every_window_interior():
+    plan,selected=_shuffle_unit();before=np.random.get_state()
+    schedule=owner.ta_block_schedule_from_rows(selected['FIT'],plan['recipe'],
+        plan['cohort_selection']['cohorts']['FIT']['selection_identity_sha256'])
+    after=np.random.get_state()
+    assert before[0]==after[0]and np.array_equal(before[1],after[1])and before[2:]==after[2:]
+    assert schedule==plan['training_schedule']
+    assert schedule['block_orders_sha256']=='d5b44663d994aec349eba598892bbbaa21c0a024c86f5748e331e599414b7f39'
+    assert owner.fit_recipe(plan['recipe'],'ta_shuffle')==plan['recipe']
+    assert owner.fit_limits(plan['recipe'],'ta_shuffle',plan['metadata'])=={
+        'model_constructions':1,'model_forwards':544,'backward_calls':384,'optimizer_steps':384}
+    batches=owner._ta_training_batches(selected,plan);blocks=selected['FIT'].reshape(96,16)
+    for number,order in enumerate(schedule['block_orders']):
+        np.testing.assert_array_equal(np.sort(order),np.arange(96))
+        assert order!=list(range(96))
+        for batch,index in zip(batches[number*96:(number+1)*96],order):
+            np.testing.assert_array_equal(batch,blocks[index])
+        assert owner.digest(np.concatenate(batches[number*96:(number+1)*96]))==schedule['per_pass_source_rows_sha256'][number]
+    assert owner.digest(np.concatenate(batches))==schedule['source_row_schedule_sha256']
+    for change in ({'passes':3,'fit_batches':288},{'seed':7}):
+        bad=copy.deepcopy(plan['recipe']);bad.update(change)
+        with pytest.raises(ValueError):owner.fit_recipe(bad,'ta_shuffle')
+    assert owner.FIT_SCOPES['ta_shuffle'][1].name=='NATIVE_M5_TA_PRIOR_BLOCK_ORDER_20261119_001.json'
+
+
+def test_block_order_schedule_and_checkpoint_cursor_reject_different_order_or_rows():
+    plan,selected=_shuffle_unit();position=owner._ta_schedule_position(plan,96);schedule=plan['training_schedule']
+    block=schedule['block_orders'][1][0]
+    assert position['next_pass']==1 and position['next_batch_in_pass']==0
+    assert position['next_source_block']==block
+    assert position['next_source_batch_sha256']==owner.digest(selected['FIT'].reshape(96,16)[block])
+    assert position['training_schedule_sha256']==schedule['contract_sha256']
+    assert owner._ta_schedule_position(plan,384)['next_source_block']is None
+    for kind in ('order','hash','source'):
+        bad=copy.deepcopy(plan);other=copy.deepcopy(selected)
+        if kind=='order':bad['training_schedule']['block_orders'][0][:2]=reversed(bad['training_schedule']['block_orders'][0][:2])
+        if kind=='hash':bad['training_schedule']['contract_sha256']='0'*64
+        if kind=='source':other['FIT'][0]-=1
+        with pytest.raises(ValueError,match='TA_BLOCK_EXACT_SCHEDULE'):owner._ta_training_batches(other,bad)
+    bad=copy.deepcopy(plan);bad['training_schedule']['block_orders'][0][0]=96
+    with pytest.raises(ValueError,match='TA_BLOCK_CHECKPOINT_SCHEDULE_IDENTITY'):owner._ta_schedule_position(bad,0)
+
+
+def test_shuffle_dispatch_reuses_identical_ta_statistics_owner_without_mutating_plan(monkeypatch,tmp_path):
+    plan,_=_shuffle_unit();before=copy.deepcopy(plan);calls=[]
+    def prepare(p,root,**kwargs):calls.append((p,root,kwargs));return {'TA_statistics_reused':True}
+    monkeypatch.setattr(owner,'prepare_ta_native_fit',prepare)
+    assert owner.prepare_native_fit(plan,tmp_path)=={'TA_statistics_reused':True}
+    assert calls[0][0]['mode']=='ta_main'and calls[0][0]['training_schedule']==plan['training_schedule']
+    assert calls[0][1]==tmp_path and plan==before
+
+
+@pytest.mark.parametrize('role',list(owner.TA_BLOCK_ORDER_REFERENCE))
+def test_shuffle_exact_chronological_reference_gate_precedes_all_receipt_io(monkeypatch,role):
+    inputs={'ta_result':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_006/RESULT.json',
+        'sha256':'5c015b3af8a17c8a16459be0eeba5ca017b7625db91e193aa84b101e664e7bca'},
+        'ta_terminal':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_006/TERMINAL.json',
+        'sha256':'849bcda1483e088ca5fa2ec8671e8ed6b003654331a6556c70af53dcfc11c874'},
+        'matched_prior_reference':copy.deepcopy(owner.TA_MATCHED_PRIOR_REFERENCE),
+        'mechanics_result':{},'mechanics_terminal':{},**copy.deepcopy(owner.TA_BLOCK_ORDER_REFERENCE)}
+    inputs[role]['sha256']='0'*64
+    monkeypatch.setattr(owner,'read',lambda *_:pytest.fail('unbound chronological receipt read'))
+    with pytest.raises(ValueError,match='TA_BLOCK_EXACT_CHRONOLOGICAL_REFERENCE'):owner.ta_fit_metadata(inputs,'ta_shuffle')
+
+
+def test_block_source_bridge_is_narrow_and_rejects_numeric_or_other_owner_changes(tmp_path,monkeypatch):
+    leaves=('fresh_fit_model','fit_step','fit_score','prepare_ta_native_fit','fit_axes',
+        'seed_native_fit','training_rng','restore_training_rng','state_sha','slice_truth',
+        'fit_checkpoint','publish_checkpoint','restore_fit_checkpoint','fit_state_proof',
+        '_ta_initial_prior_proof','cold_resume_fit','require_cold_resume_proof')
+    original="FIT_SCOPES={'ta_main':'old'}\nADAMW_RECIPE={'lr':1e-4}\n"+''.join('def '+name+'():return 1\n'for name in leaves)
+    original+='def _ta_training_batches():return 1\n'
+    changed=original.replace("'old'","'new'").replace('def _ta_training_batches():return 1','def _ta_training_batches():return 96')
+    driver='gx1/audit/qualify_native_m5_full_gc_direction_v1.py'
+    paths=(driver,'tests/test_qualify_native_m5_full_gc_direction_v1.py',
+        'scripts/gx1_capped_run.sh','tests/test_gx1_capped_run_contract.py','gx1/contracts/model_numeric.py')
+    parent={'mode':'ta_mechanics','source_base_commit':'f'*40,'source_owners':{}}
+    for path in paths:
+        target=tmp_path/path;target.parent.mkdir(parents=True,exist_ok=True)
+        target.write_text(original if path==driver else'original\n');parent['source_owners'][path]=owner.sha(target)
+    (tmp_path/driver).write_text(changed)
+    monkeypatch.setattr(owner,'REPO',tmp_path);monkeypatch.setattr(owner,'TA_FIT_SOURCE_PATHS',paths)
+    monkeypatch.setattr(owner.subprocess,'check_output',lambda *a,**kw:original.encode())
+    proof=owner.ta_block_order_source_bridge(parent)
+    assert proof['all_other_source_owners_exact']and len(proof['unchanged_numeric_leaf_ast_sha256'])==18
+    assert set(proof['source_changes'])=={driver}
+    (tmp_path/driver).write_text(changed.replace('def fit_step():return 1','def fit_step():return 2'))
+    with pytest.raises(ValueError,match='TA_BLOCK_UNCHANGED_NUMERICAL_AST'):owner.ta_block_order_source_bridge(parent)
+    (tmp_path/driver).write_text(changed);(tmp_path/paths[-1]).write_text('altered numeric model\n')
+    with pytest.raises(ValueError,match='TA_BLOCK_UNCHANGED_MODEL_LOSS_STATS_OWNERS'):owner.ta_block_order_source_bridge(parent)
+
+
+def test_shuffled_pass_boundary_cold_restore_preserves_next_batch_adamw_rng_and_rejects_tampering(monkeypatch):
+    _cpu_rng(monkeypatch);plan,selected=_shuffle_unit();batches=owner._ta_training_batches(selected,plan)
+    provider=_provider();raw,_,_=_batch_truth();rows=selected['FIT'];n=len(rows);step=300_000_000_000
+    def gather(source_rows,*,max_rows):
+        assert len(source_rows)<=max_rows
+        out={key:np.repeat(value[:1],len(source_rows),axis=0).copy()for key,value in raw.items()}
+        for value in out.values():
+            if value.ndim==3:value[:,-1,0]=(source_rows%11+1).astype(np.float32)
+        return out
+    provider.gather=gather;provider.input_binding=lambda norm:{'normalization_sha256':norm['contract_sha256']}
+    issues=owner.FIT_START_NS+np.arange(n,dtype=np.int64)*step;shape=(n,5)
+    truth={key:np.ones(shape,bool)for key in ('target_present','observed_previous','mature','eligible','open_known_at_issue')}
+    truth.update(issue_ns=issues,open_sign=np.zeros(shape,np.int8),
+        close_sign=np.broadcast_to((np.arange(n)%3-1).astype(np.int8)[:,None],shape).copy(),
+        target_row=np.broadcast_to(np.arange(n,dtype=np.int64)[:,None],shape).copy(),
+        validity_ns=np.broadcast_to((issues+step)[:,None],shape).copy())
+    cohort={'rows':rows,'fit_rows':rows,'truth':truth,'fit_truth':truth,'upper_ns':owner.FIT_END_NS}
+    context={'provider':provider,'normalization':{'contract_sha256':'unit_TA_normalization'},
+        'normalization_ref':{'path':'unitnorm','sha256':'1'*64},'prior_ref':{'path':'unitprior','sha256':'2'*64}}
+    plan['metadata'].update(target_contract=target_contract(),architecture={'unit':True})
+    plan_ref={'path':'unit_shuffle_plan','sha256':'3'*64}
+    def fresh():
+        model=_training_model(provider);model.research_objective={'unit_prior_initialization_sha256':'4'*64}
+        return model,torch.optim.AdamW(model.parameters(),**{**owner.ADAMW_RECIPE,'betas':tuple(owner.ADAMW_RECIPE['betas'])})
+    torch.manual_seed(42);model,optimizer=fresh()
+    for batch in batches[:96]:owner.fit_step(model,optimizer,provider,cohort,batch,plan)
+    checkpoint=copy.deepcopy(owner.fit_checkpoint(model,optimizer,context,plan,plan_ref,96))
+    assert checkpoint['schedule_position']['next_pass']==1 and checkpoint['schedule_position']['next_batch_in_pass']==0
+    assert checkpoint['schedule_position']['next_source_batch_sha256']==owner.digest(batches[96])
+    expected_step=owner.fit_step(model,optimizer,provider,cohort,batches[96],plan)
+    expected=owner.fit_state_proof(model,optimizer,97,expected_step)
+    resumed,other=fresh();assert owner.restore_fit_checkpoint(resumed,other,context,plan,plan_ref,checkpoint)==96
+    actual_step=owner.fit_step(resumed,other,provider,cohort,batches[96],plan)
+    actual=owner.fit_state_proof(resumed,other,97,actual_step)
+    # The optional first-two-local-call gradient diagnostic is process-local;
+    # parameters, optimizer, RNG, logits, loss and the true next source batch are exact.
+    assert {key:value for key,value in actual.items()if key!='step'}=={key:value for key,value in expected.items()if key!='step'}
+    assert all(actual_step[key]==value for key,value in expected_step.items())
+    state_before=owner.state_sha(resumed.state_dict())
+    for key in ('cursor','next_source_block','training_schedule_sha256'):
+        bad=copy.deepcopy(checkpoint)
+        if key=='cursor':bad['cursor']=97
+        elif key=='next_source_block':bad['schedule_position'][key]=(bad['schedule_position'][key]+1)%96
+        else:bad['schedule_position'][key]='0'*64
+        with pytest.raises(ValueError,match='TA_FIT_CHECKPOINT_PASS_CURSOR'):
+            owner.restore_fit_checkpoint(resumed,other,context,plan,plan_ref,bad)
+        assert owner.state_sha(resumed.state_dict())==state_before

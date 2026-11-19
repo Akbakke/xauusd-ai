@@ -6,11 +6,19 @@ prosess og eksakte terminalkvitteringer overstyrer prosa. Tidligere bølger finn
 
 ## Gjeldende status 19.11.2026
 
-Brukerens mål om TRAIN-priorinitialisering, fersk TA-only-baseline og én
-avgrenset læringskurve er gjennomført og uavhengig vurdert. Dette er ikke
-oppnådd retningsedge. Alle trenings-/kjøringsporter er stengt; ingen aktiv
-modelljobb eller ekstra epoke. GC er utsatt. M1, TEST, Entry/Exit, broker,
-handel, spending og promotion forblir stengt.
+Et nytt vedvarende brukermål er aktivt: arbeid til vekting og prognoser for
+OPP/NED/FLAT er tilfredsstillende og ærlig kvalifisert. Første bestilte steg er
+én kontrollert sammenligning av hele TRAIN-batchers rekkefølge mot den
+fullførte firepassreferansen nedenfor. Kilden er kvalifisert med 49 driver-
+og 8 nye guardtilfeller, uavhengig kilde-/schedulekontroll og positiv kontroll
+av de faktiske kvitteringene. Ingen ny modelljobb eller trening er innrømmet. GC er utsatt; M1, TEST, Entry/Exit, broker, handel,
+spending og promotion forblir stengt.
+
+Dagens 0-klasse er nøyaktig LIK pris, ikke sideveis marked. M5-close har bare
+4 FIT- og 2 CONTROL-likheter. Brukeren er spurt om FLAT skal defineres separat;
+batchtesten beholder all eksisterende prisfasit uendret. Ingen klassekvote eller
+ny flatterskel er innført. Et teknisk PASS eller én kort test avslutter ikke
+dette vedvarende målet. NEXT_RUN_POLICY eier akseptgrenser og neste steg.
 
 ### Ny TA-only-funksjon og teknisk kvalifikasjon
 

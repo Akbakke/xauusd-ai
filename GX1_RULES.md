@@ -42,6 +42,18 @@ M5-barer med kausal M15/H1/H4/D1-kontekst, M1-avledet nåtilstand bare
 ved M5-tidspunkter, og ingen egen M1-Entry-klokke. Tettere overvåking av
 en åpen handel og Exit hører til senere faser.
 
+## Operatørpresisering 19.11.2026: vedvarende retningsvekting
+
+Brukeren ber om et mål som fortsetter til vi er fornøyde med OPP/NED/FLAT.
+Første konkrete steg er en sammenligning der bare rekkefølgen av hele TRAIN-
+batcher endres, med samme kausale vinduer, senere CONTROL og øvrig matematikk.
+Klassekvoter skal ikke tvinges. Eksakt LIK prisfasit, sideveis FLAT-marked og
+modellusikkerhet holdes atskilt; uavklart FLAT-semantikk gir ingen ny terskel
+eller målomskriving. Videre arbeid bygger på målte avvik og minste rettelse.
+En teknisk PASS eller én kort test avslutter ikke dette vedvarende målet.
+Hver tung jobb krever fortsatt egen eksakt kvalifikasjon/admisjon og vakter;
+ingen automatisk fitserie eller utvalg på CONTROL. GC er fortsatt utsatt.
+
 ## Operatørpresisering 19.11.2026: indikatorer før GC
 
 Aktivt retningsarbeid skal først søke edge uten GC. Genuine ikke-GC-

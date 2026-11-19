@@ -172,6 +172,28 @@ halebatcher og rader uten modne mål beholdes i dekningsrapporten. Unike
 TF-mål telles på hele kohorten, ikke ved å summere batchvise unike tellinger.
 Små tekniske kontrollpaneler kvalifiserer ikke en full prognosebaseline.
 
+Den bestilte sammenligningen av batchrekkefølge gjenbruker den genuine
+TA-only-normaliseringen, prioren, kohortene, modellen og firepassbudsjettet.
+Bare rekkefølgen av de 96 hele B16-TRAIN-blokkene endres per pass.
+En dedikert lokal PCG64-generator med det eksisterende recipe-seedet lager
+fire permutasjoner før label-/CONTROL-vurdering. Planen binder blokkordre og
+source-row-hasher; checkpoint binder hele schedule og neste opprinnelige
+blokk. Causal vindusrekkefølge og den senere CONTROL-perioden er uendret.
+Scoring skjer fortsatt i samme kanoniske radrekkefølge ved start og etter
+hvert av de fire faste passene. Ingen valg av beste checkpoint eller seed.
+
+En navngitt kildebro må bevise identiske numeriske eiere, modell/loss,
+AdamW/clip, normalisering, RNG, score og reload mot den genuine mechanics-
+kontrollen. Bare den eksakte nye orkestreringen og dens guard-/teststier
+kan avvike. Eksisterende genuine cold-resume-bevis gjenbrukes sammen med
+fokusert negativ kontroll av den nye schedule/cursor-bindingen.
+
+OPP/NED-kalibrering vurderes med proper scores og klassevise sannsynligheter;
+endret argmaxfordeling alene beviser ingen retningsverdi. Eksakt pris-LIK er
+ikke et sideveis FLAT-marked eller usikkerhet. Dagens prisfasit beholdes til
+en eventuell separat FLAT-definisjon er uttrykkelig avklart. Det vedvarende
+vektingsmålet avsluttes ikke av én teknisk kontroll eller én liten fit.
+
 Bruk eksisterende eksakt bundne trainerklasse og maskinvarevakter.
 M1-forbud, TEST-forsegling og Entry-pausen gjelder også optimizer/resume.
 Ingen automatisk ekstra runde eller påstand om edge følger av et lavere tap.
