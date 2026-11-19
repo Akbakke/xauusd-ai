@@ -2490,7 +2490,7 @@
     "obsolete_generated_cleanup_complete": false,
     "gc_goal_status": "GC_PAUSED_TA_INPUT_AND_RECOVERY_QUALIFIED_DIRECTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
-    "training_started": true,
+    "training_started": false,
     "latest_terminal_role": "NATIVE_M5_BAR_DIRECTION_002_COMPLETE_INDEPENDENT_RAW_VERIFICATION",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_BAR_DIRECTION_TARGETS_20261119_002",
     "latest_terminal": {
@@ -9626,7 +9626,7 @@
         }
       }
     },
-    "training_started_note": "TA recovery imported256updates and completed1593new updates; no active trainer, Windows task disabled, plans consumed.",
+    "training_started_note": "Current native M5 bar-fact chain has performed no model forwards or optimizer updates. Earlier TA recovery updates are historical and are not part of this chain.",
     "scalar_repair_note": "14.10.2026 document audit: scalars re-pointed from the FEATURE_REPAIR/V38 generation to the NATIVE_D1 minimum learning plan",
     "retention_wave1_20261014": {
       "status": "DELETE_COMPLETE",
@@ -23277,8 +23277,8 @@
         "new_model_calls": 0
       }
     },
-    "status": "PAUSED_M5_COLD_FIT_CONSUMED_EDGE_UNPROVEN",
-    "observed_utc": "2026-11-13T03:49:42.485840+00:00",
+    "status": "NATIVE_M5_BAR_FACTS_100_PERCENT_ALL_FIVE_TF_QUALIFIED",
+    "observed_utc": "2026-11-19T06:40:59.813170+00:00",
     "current_observation_stage": "market_state_ta_current_update_observation_20261113_003",
     "current_observation_plan": {
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_CURRENT_UPDATE_OBSERVATION_20261113_003/PLAN.json",

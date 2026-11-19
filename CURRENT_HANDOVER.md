@@ -35,6 +35,7 @@ samtlige TF med egen heltallsaritmetikk, uten mål-/resample-eierne.
 Alle 76 lagrede arrays samsvarte eksakt, inkludert OHLC, tidligere
 åpning/slutt, fortegn, tellinger, gap og framtidige koblinger.
 Ingen modellforward, optimizer eller normaliseringsfit ble utført.
+Gjeldende policyfelt for status og treningsstart er avstemt med denne kjeden.
 
 Framtidsmål peker til neste faktiske TF-barslutt etter M5-utstedelsen.
 Kjente høyere-TF-åpninger rapporteres separat fra senere sluttretning.
