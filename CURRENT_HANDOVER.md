@@ -1,105 +1,61 @@
 # CURRENT_HANDOVER — GX1
 
-Arbeidssted: `/home/andre2/src/GX1_CURRENT`, gren `work/gx1-current`.
-`GX1_RULES.md` er bindende. `NEXT_RUN_POLICY.json` er eneste arbeidsstatus;
-prosess og eksakte terminalkvitteringer overstyrer prosa. Tidligere bølger finnes i Git.
+Arbeidssted: /home/andre2/src/GX1_CURRENT, branch work/gx1-current.
+GX1_RULES.md er bindende. NEXT_RUN_POLICY.json eier arbeidsstatus;
+original prosess/terminalkvittering overstyrer prosa. Historikk finnes i Git.
 
 ## Gjeldende status 19.11.2026
 
-Det vedvarende målet for tilfredsstillende OPP/NED/FLAT-vekting er aktivt,
-ikke oppnådd. BLOCK_ORDER001-sammenligningen er fullført med exit0 på
-580,72 sekunder (9m41): 4 faste pass / 384 updates / 544 forwards / én fersk modell.
-Initial, norm/prior, kohorter, kausale vinduer og øvrig matematikk var de samme
-som i kronologisk TA-main001. Bare hele B16-TRAIN-blokkers rekkefølge ble endret.
-Alle384 faktiske batcher matcher den låste schedule-SHAen. Kilde/policy var
-uendret. Checkpoints og capturer er bevart og fysisk hashkontrollert.
+Det vedvarende målet for tilfredsstillende OPP/NED/FLAT er aktivt og ikke oppnådd.
+Ingen aktiv modelljobb. Alle treningsporter er stengt mens én ny firepassplan
+klargjøres. Aldri M1 til retning; GC utsatt; TEST, Entry/Exit og handel stengt.
+Dagens nullklasse er eksakt LIK pris, ikke sideveis marked. FIT har4 og
+CONTROL2 slike M5-close-celler. Brukeravklaring om separat FLAT står fortsatt
+ubesvart; fasit og native tapsvekter er uendret. Ingen tvungen klassekvote.
 
-Ingen aktiv modelljobb, og alle trenings-/kjøringsporter er stengt.
-Uavhengig sammenligning av alle lagrede score/capturer er ferdig med
-maksimalt skårsumavvik 0. Alle kilder, fasit, masker, initialtilstand og
-384 batch-SHAer matcher planen og den kronologiske referansen.
-OPP-valgene er mindre ensidige, men M5-close taper fortsatt matchet prior
-på senere CONTROL.
-Dette er ikke ferdig vekting eller edge. GC er utsatt; M1, TEST, Entry/Exit,
-broker, handel, spending og promotion forblir stengt.
+### Målt blokkering og minste vedtatte endring
 
-49 drivertilfeller og 8 nye eksakte guardtilfeller består; uavhengig kildebro
-bekreftet 18 uendrede numeriske identiteter og øvrige sourceeiere.
-Ingen ny norm-/priorfit eller tekniske/baselinevekter ble brukt.
+BLOCK_ORDER001 fullførte4pass/384updates/544forwards på580,72s.
+Kun hele TRAIN-blokkers rekkefølge var endret fra kronologisk referanse.
+CONTROL M5 logloss0,720930 mot prior0,716887; Brier0,506435 mot0,504676;
+AUC0,476531. OPP-argmax368/511 mot tidligere509/511, faktisk243/511.
+Offset ble mindre; ingen senere M5-edge. Uavhengig scorekontroll: maksavvik0.
 
-Dagens 0-klasse er nøyaktig LIK pris, ikke sideveis marked. M5-close har bare
-4 FIT- og 2 CONTROL-likheter. Brukeren er spurt om FLAT skal defineres separat;
-prisfasiten er uendret, og ingen klassekvote/flatterskel er innført.
-Det vedvarende målet avsluttes ikke av teknisk PASS eller én liten fit.
+Deretter ga SHARED_GRADIENT001 på4 faste TRAIN-paneler, uten updates:
+aux/M5 shared-gradientnorm24,91, cosinus−0,28891 og g5·joint−0,00193489.
+Rågradienten motarbeidet M5 i3/4 paneler. Dette er evalgradient ved én tilstand,
+ikke historisk AdamW-årsaksbevis. Original CPU-TERMINAL utelater kildefeltet;
+uendret kilde/policy er dokumentert i dens RESULT, uten endret original.
 
+Vedtatt optional m5_close_only_backbone_v1 lar M5-close styre fellesdelen.
+Øvrige ni hoder lærer fortsatt, men via detached hidden. Alle ni TA-inputflater,
+fem TF, åtte familier,61makrofelt, fasit, native loss/Ntotal og optimizer beholdes.
+Default-ruten er uendret; ny modell/state-policy er strengt bundet.
+Fokuserte modell-/driver-/guardtilfeller og uavhengig kildekontroll bestod.
 
-Fast slutt etter pass4, M5-close:
-- FIT logloss 0,708095 mot prior 0,709405 og kronologisk 0,712238; AUC 0,530687.
-- CONTROL logloss 0,720930 mot prior 0,716887 og kronologisk 0,726116.
-- CONTROL Brier 0,506435 mot prior 0,504676; AUC 0,476531 mot kronologisk 0,500511.
-- CONTROL argmax OPP 368/511 mot tidligere 509/511; faktisk OPP 243/511.
-- Gjennomsnittlig P(OPP), treklasse, er 49,33 prosent FIT og 50,65 CONTROL.
-  Dette er forskjellig fra argmaxandelen. Ingen klassekvote ble brukt.
+### Ny funksjon genuint kvalifisert
 
-Rekkefølgeintervensjonen reduserte offset i dette faste parforsøket, men
-ga ingen kvalifisert senere M5-edge. MATCHED_ORDER_RESULT_REVIEW.json
-er hashbundet i policy. Det vedvarende målet fortsetter; før en ny fit er
-neste målte spørsmål om øvrige tap motarbeider M5-close i felles backbone.
-En liten kontroll uten optimizeroppdateringer på faste TRAIN-batcher
-skal kvalifiseres først. Rågradienter er ikke faktisk AdamW-retning.
+PRIMARY_BACKBONE_MECHANICS001 fullførte exit0 på77,059s:
+2modeller/67forwards/3updates/6autograd-prober, inkludert kald child.
+INITIAL for hele1536FIT/512CONTROL er byteidentisk med tidligere logprior-capture;
+ny policy-initialSHA7aaf0461a03938d26713fbdd30225c7aefef3d75f0ecd46427f50fe4162461b7.
+M5-fellesgradient0→0,0012441275; øvrige→felles eksakt0.
+Øvrige headgradienter og alle8 flytende inputgradientflater er positive.
+Kald replay over passgrense var bit-identisk. Ingen norm-/priorrefit eller gamle
+vekter;0forbudte IO. Original RESULT/TERMINAL bekrefter uendret kilde/policy.
+Uavhengig NumPy/metadatakontroll av alle scores/support/captures ga maksavvik0.
+Dette kvalifiserer mekanikk og valgt initialbaseline, ikke retningsevne.
 
+### Neste eksakte engangsplan
 
-Neste planlagte kontroll er avgrenset til FINAL fra BLOCK_ORDER001 og
-faste canonical TRAIN-blokker 0/31/63/95: CPU, én modell, 4 forwards og
-8 autograd-kall, 0 optimizerobjekter/oppdateringer. Bare TRAIN inngår i
-gradientene. Den felles, uendrede klargjøringen kan dekode eksisterende
-CONTROL-mål, uten at de brukes i utvalg/loss/gradient. Eksisterende
-12G/512M/1tråd/64tasks CPU-producervakter og intern SIGALRM870s beholdes.
-Kilden er kvalifisert med 7 nye syntetiske tilfeller og uavhengig revisjon:
-hele tidligere driver-AST og 18 numeriske identiteter er uendret, bortsett
-fra ny eksakt CPU-dispatch. Eksakt SHARED_GRADIENT001-metadata-/checkpoint-preflight bestod med
-0 modeller/updates/dekodede checkpoints/featureverdier. Bare denne ene
-CPU-diagnosen er innrømmet; alle treningsporter er fortsatt stengt.
-Kilde og policy fryses til native TERMINAL.
-
-### Fullført oppdateringsfri diagnose
-
-SHARED_GRADIENT001 fullførte med exit0 på 40,27 sekunder: én CPU-modell,
-4 forwards / 8 autograd / 0 optimizerobjekter eller oppdateringer.
-Modell, norm, prior, RNG og .grad=None ble bevart; source/policy uendret,
-0 M1/GC/TEST i modellen. Alle kjørings-/treningsporter er nå stengt.
-
-På de fire faste TRAIN-panelene var øvrige taps samlede shared-gradientnorm
-24,91 ganger M5-close. Pooled cosinus var −0,28891, og
-g5·(g5+gaux)=−0,00193489; samlet rågradient motarbeidet M5 i 3/4 paneler.
-406 prediktive celler ble brukt. Dette er rå evalgradient ved FINAL,
-ikke faktisk AdamW-retning, historisk årsaksbevis eller dokumentert gevinst.
-Uavhengig metadata-/skalarregning bekreftet identitetene med ≤1,1e−19
-avvik; gradienttensorene ble ikke uavhengig regnet på nytt.
-CPU-terminalen utelater source_unchanged; feltet er derfor registrert ukjent
-i terminalstatus. Kilde-/policybeviset kommer fra original RESULT.
-Originale kvitteringer er ikke endret.
-MATCHED_GRADIENT_REVIEW.json er hashbundet i policy.
-
-Én kandidat er nå vedtatt for kildekvalifikasjon: optional
-m5_close_only_backbone_v1 lar M5-close styre felles representasjon, mens
-øvrige ni hoder fortsatt lærer egne parametre fra detached hidden.
-Alle TA-inputs, fem TF, alle hoder/tap og samme Ntotal, norm/prior,
-kohorter/PCG64/optimizer beholdes. Ingen klassevekter eller fasit endres.
-Default-ruten er uendret; ny policy bindes i modell/state og krever fersk
-genuin baseline, gradient- og cold-resume-kontroll før hovedrunde.
-Øvrige TF kan tape representasjonskvalitet; senere gevinst er ikke bevist.
-Kilden er kvalifisert med 6 nye drivercaser, én ny modellpolicycase under
-CPU4G-cap og 16 nye eksakte guardtilfeller. Uavhengig modell-/driverreview og
-positiv faktisk metadata-kontroll bestod. Gammel default og øvrig matematikk
-er bevart. Genuin fersk baseline, gradient- og coldproof gjenstår.
-Eksakt PRIMARY_BACKBONE_MECHANICS001-plan er nå klargjort:
-2 modeller / 67 forwards / 3 updates inkludert kald child / 6 avgrensede
-autograd-prober. Norm/prior refittes ikke; gamle vekter lastes ikke.
-Eksakt metadata-/CLI-preflight bestod med 0 modeller/updates/featureverdier
-og fysisk boot667. Kun denne tekniske engangsplanen er innrømmet.
-Kilde/policy fryses til native TERMINAL; hovedrunde er ikke innrømmet.
-Ingen ny fit er innrømmet. Det vedvarende målet er fortsatt aktivt.
+PRIMARY_BACKBONE_FIT001 klargjøres med ferske vekter og4 faste pass:
+1modell/544forwards/384updates/0autograd-prober, samme1536FIT/512CONTROL,
+norm/prior og fryste PCG64(20260911)-hele-blokk-schedule som BLOCK_ORDER001.
+Bare gradientruten er endret. Pass4 er fast slutt; intet best-passvalg fra CONTROL.
+Genuin probe-inkludert throughput gir konservativt under20min mot1800s ytre cap;
+ingen ekstra benchmark-update. Fysisk boot667, eksisterende cap/vakter beholdes.
+Preflight og separat engangsinnrømming gjenstår før launch. Ingen automatisk
+serie av fits. Målet avsluttes aldri av teknisk PASS eller én liten utviklingstest.
 
 ### Fullført kronologisk TA-referanse og grunnlag
 
