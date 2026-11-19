@@ -797,8 +797,9 @@ def normalized_batch_report(model, tensors):
     return report
 
 
-def publish_feature_snapshot(provider):
-    """Persist the bounded physical inputs, with exact array reload verification."""
+def publish_feature_snapshot(provider, *, publish_artifact=None):
+    """Persist physical inputs through the original or caller-owned publisher."""
+    publish_artifact = publish if publish_artifact is None else publish_artifact
     surfaces = provider.surfaces
     top_arrays = ('bar_start_ns', 'retained_source_rows', 'retained_issue_rows',
                   'signal', 'ctx_cont', 'ctx_cat', 'observed')
@@ -832,7 +833,7 @@ def publish_feature_snapshot(provider):
             'sha256': hashlib.sha256(np.ascontiguousarray(value).tobytes()).hexdigest()}
     stream = io.BytesIO()
     np.savez_compressed(stream, **arrays)
-    archive_ref = publish('FEATURE_INPUTS.npz', stream.getvalue())
+    archive_ref = publish_artifact('FEATURE_INPUTS.npz', stream.getvalue())
     stream.close()
     with np.load(archive_ref['path'], allow_pickle=False) as saved:
         need(set(saved.files) == set(arrays), 'SNAPSHOT_ARRAY_INVENTORY')
@@ -842,7 +843,7 @@ def publish_feature_snapshot(provider):
                  and np.array_equal(loaded, original, equal_nan=True)
                  and hashlib.sha256(np.ascontiguousarray(loaded).tobytes()).hexdigest()
                      == descriptors[name]['sha256'], 'SNAPSHOT_ARRAY_ROUNDTRIP')
-    return publish('FEATURE_INPUTS.json', {
+    return publish_artifact('FEATURE_INPUTS.json', {
         'schema_version': 'gx1_native_m5_bounded_feature_snapshot_v1',
         'archive': archive_ref, 'surfaces_metadata': metadata,
         'timeframes': timeframes, 'arrays': descriptors,

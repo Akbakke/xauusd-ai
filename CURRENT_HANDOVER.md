@@ -78,7 +78,11 @@ Usikkerhet og ukjent er heller ikke FLAT.
 Neste arbeid: avklar ønsket FLAT-semantikk, og metadata er kontrollert: aktiv dependencykjede
 har bare mai–september2024-inputs, ikke full kildeakse som featuredekning.
 Minste nye cache-only produsent for fast6år[2018-10-01,2024-10-01) designes
-fra eksisterende native reader/builder/snapshot. Ingen produksjon er innrømmet.
+fra eksisterende native reader/builder/snapshot. Ny308linjers adapter og gjenbrukt writer er kildekvalifisert:6fokuserte NumPy-
+tester under audit4G og uavhengig statiskreview består. Første ordinære pytest
+importerteTorch via eksisterende autouse-conftest; renCLI+--noconftest består,
+og produksjonsvakten er beholdt. Eksakt plan/preflight gjenstår; ingen produksjon
+er ennå innrømmet.
 Frosne parametre er tilgjengelige fra2013-01-01T22Z; ingen refit. Ikke gjenta flere epoker eller
 kandidatvalg fra CONTROL. Enhver ny tung plan krever målt begrunnelse,
 fersk eksakt engangsinnrømming og uendrede vakter. Stabile kjøringer følges
