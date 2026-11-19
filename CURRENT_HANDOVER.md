@@ -122,8 +122,12 @@ alle 24 175 TRAIN- og 5 789 CONTROL-inputrader før/etter, med korte haler og
 ukjent siste kontrollrad. De to apex-formlene er separat observert på de
 faktiske TRAIN-unionene; eksisterende normaliseringskode kan gjenbrukes.
 
-Neste steg er én separat, eksakt bundet teknisk GPU-kontroll med to
-kanoniske updates og én kald repetisjon av neste steg i ny prosess.
+FIT_MECHANICS_20261119_001 er PREPARED_NOT_ADMITTED med plan-SHA
+bc29782055b6d0c6720fa687d504930b6a1fd8db1b087b10af58794e8f979275.
+Neste steg er eksakt metadata-førkontroll, trygg ny fysisk boot etter666
+og deretter én teknisk GPU-kontroll med to kanoniske updates og én kald
+repetisjon av neste steg i ny prosess. Rammen er 20G/512M/1800s med alle
+eksisterende trainer-/sensorvakter; 2 modeller/7 forwards/3 faktiske updates.
 Dette skal bevise faktisk modell-/AdamW-/RNG-/cursor-paritet og egen
 null-M1-kvittering for barnet. CPU-unitkontrollene beviser ikke at denne
 GPU-kjøringen er utført. Integrator eier plan, trygg fysisk omstart,

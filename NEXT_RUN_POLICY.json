@@ -1,4 +1,40 @@
 {
+  "native_m5_full_gc_fit_mechanics_20261119_001": {
+    "status": "PREPARED_NOT_ADMITTED",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_FULL_GC_FIT_MECHANICS_20261119_001.json",
+      "sha256": "bc29782055b6d0c6720fa687d504930b6a1fd8db1b087b10af58794e8f979275"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_GC_FIT_MECHANICS_20261119_001",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "test_authorized": false,
+    "broker_access_allowed": false,
+    "model_constructions": 2,
+    "model_forwards": 7,
+    "backward_calls": 3,
+    "optimizer_steps": 3,
+    "test_data_used": false,
+    "economic_edge_proven": false,
+    "execution": {
+      "class": "trainer",
+      "device": "cuda",
+      "memory": "20G",
+      "swap": "512M",
+      "tasks_max": 128,
+      "numerical_threads": 8,
+      "outer_seconds": 1800,
+      "internal_seconds": 1770,
+      "kill_after_seconds": 10
+    },
+    "required_windows_boot_id_greater_than": 666,
+    "scope": "Technical actual CUDA optimizer/cold-resume only; tiny fixed source-only panels do not qualify full prediction baseline. Fresh TRAIN-only stats/prior may be reused by one main fit; weights may not."
+  },
   "native_m5_full_gc_short_fit_goal_20261119": {
     "apex_support_conclusion": "Measured exact new TRAIN M5 union: 24190 rows, 1 positive bounded apex value. Existing named unit rule applies unchanged. Distinct local-chart formula has 2474 positive rows in 24270-row union. No normalization code change needed; 0 models/normfit/GC/raw build/forbidden IO.",
     "preclaim_apex_support_observation": {
@@ -1502,7 +1538,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "NATIVE_M5_FULL_GC_SHORT_FIT_PREPARING",
+  "status": "NATIVE_M5_FULL_GC_FIT_MECHANICS_PREPARED",
   "storage_cursor_runtime_cleanup_20261117_001": {"deleted_allocated_bytes": 1767837696, "deleted_old_version_count": 4, "economic_edge_proven": false, "gx1_data_runs_touched": false, "newest_version_preserved": "be4c9e5350d77747b42cd467cbd3370a753d4640", "open_fd_check_passed": true, "path_root": "/home/andre2/.cursor-server/bin/linux-x64", "status": "DELETE_COMPLETE", "test_authorized": false, "training_authorized": false, "user_snapshots_codex_sessions_trash_preserved": true},
   "storage_compaction_20261117_001": {"broker_access_allowed": false, "diskpart_compact_executed": false, "economic_edge_proven": false, "ext4_used_bytes": 438184099840, "fstrim_completed": true, "fstrim_reported_trimmed_bytes": 630501879808, "full_local_backup_fits_current_c_free": false, "gx1_current_data_runs_repo_approx_gib": 340, "rough_max_reclaim_bytes_not_prediction": 52003160064, "running_wsl_interactive_shells_observed": 2, "scope": "Windows C and sole Ubuntu-22.04 WSL VHDX; no model or data source change", "status": "CANCELLED_BY_OPERATOR_NO_COMPACTION", "test_authorized": false, "training_authorized": false, "vhdx_bytes": 490187259904, "vhdx_bytes_after_fstrim": 490187259904, "vhdx_path": "C:\\Users\\Andre\\AppData\\Local\\Packages\\CanonicalGroupLimited.Ubuntu22.04LTS_79rhkp1fndgsc\\LocalState\\ext4.vhdx", "vhdx_sparse": false, "windows_c_capacity_bytes": 998577442816, "windows_c_free_bytes_before_compaction": 397167644672, "windows_c_used_bytes_before_compaction": 601409798144, "wsl_shutdown_executed": false, "operator_decision": "DROP_COMPACTION_20261117", "fstrim_before_latest_cursor_cleanup": true, "fstrim_recheck_required_before_compaction": true},
   "ta_m5_ema_delta_sidecars_20261117_001": {"claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/CLAIM.json", "sha256": "81d85f74bea367750b70173cd5edf6af089253a26684d86caa22e6a0954192a5"}, "claimed_invocations": 1, "completed_invocations": 0, "data_reads_authorized": false, "economic_edge_proven": false, "execution_authorized": false, "failure": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/FAILED.json", "sha256": "d26cb8597913ad94110127aebe2b9a06119c9d01491bf4b0dc395b8dd6aceaf5"}, "max_invocations": 1, "model_forwards_authorized": 0, "observed_failure": "TA_EMA_DELTA_OLD_SLOPE_PARITY:M5", "optimizer_steps_authorized": 0, "output_root": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_EMA_DELTA_SIDECARS_20261117_001.json", "sha256": "e2e9f9233e27223099f8905a003e05f637cfa0c7e0325485d1d55b2f89223b08"}, "relaunch_allowed": false, "remaining_invocations": 0, "scope": {"cutoff_ns": 1735603200000000000, "fit_rows": 29574, "later_parent_start": 29849, "later_rows": 17489, "model_forwards": 0, "optimizer_steps": 0, "physical_surfaces": 6, "test_data_used": false}, "source_unchanged": true, "status": "FAILED_CONSUMED_SOURCE_PARITY_M5", "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/TERMINAL.json", "sha256": "5eac4f13ad8f9d0c768b58cd7db006d9744dc77b5c3d2ecc988fe112fd304eee"}, "test_authorized": false, "test_data_used": false, "training_authorized": false},
@@ -3725,14 +3761,14 @@
   "current_work": {
     "source_bookend_witness": "Joint001 TERMINAL has no source_unchanged field; preserve original schema and report null at_terminal. Its hash-bound RESULT explicitly proves source_unchanged=true. No receipt rewritten.",
     "source_unchanged_at_result": true,
-    "active_stage": "native_m5_full_gc_short_fit_goal_20261119",
+    "active_stage": "native_m5_full_gc_fit_mechanics_20261119_001",
     "latest_native_result": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_GC_JOINT_QUALIFICATION_20261119_001/RESULT.json",
       "sha256": "55fd0cdb2ff308984b72764abc090c5751f54aada7831583b898d9909f698aff"
     },
     "latest_external_process_exit": {"observation": {"path": "/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_002/EXTERNAL_EXIT_OBSERVATION.json", "sha256": "cf11ff31ccfa403317611fdf7a3447494bcdfaf50ba103518e7aa9b0a39c6c2c"}, "exit_code": 137, "native_terminal_present": false},
     "operator_request": "NEVER M1 for direction. All direction inputs, labels, masks, row selection, priors, normalization, loss, model selection, evaluation and metadata must be native M5/higher. M1 is only for later management of an already opened trade. Direction quality precedes Entry.",
-    "current_activity": "Coordinated source preparation: existing fullGC driver fit/resume lifecycle; native threeclass TRAIN-prior; exact cached TRAIN/CONTROL provider population. One integrator owns guarded admission/launch. No active model job.",
+    "current_activity": "Source and 45 focused tests plus mandatory precommit contracts passed. Exact mechanics plan prepared; metadata-only launch preflight and safe fresh physical boot remain before one-use admission. No model job active.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -24547,7 +24583,7 @@
         "new_model_calls": 0
       }
     },
-    "status": "NATIVE_M5_FULL_GC_SHORT_FIT_PREPARING",
+    "status": "NATIVE_M5_FULL_GC_FIT_MECHANICS_PREPARED",
     "observed_utc": "2026-11-19T15:22:49.519032+00:00",
     "current_observation_stage": "market_state_ta_current_update_observation_20261113_003",
     "current_observation_plan": {
@@ -42874,7 +42910,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "CLOSED_TA_M5_COLD_JOINT_FIT_20261117_001_CONSUMED_EDGE_UNPROVEN",
+  "training_enabled_scope": "CLOSED_PREPARING_NATIVE_M5_FULL_GC_FIT_MECHANICS_20261119_001",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -79338,7 +79374,7 @@
     "unresolved_campaign_marker_preserved": true,
     "standard_campaign_receipt_available": false
   },
-  "active_stage": "native_m5_full_gc_short_fit_goal_20261119",
+  "active_stage": "native_m5_full_gc_fit_mechanics_20261119_001",
   "market_state_ta_m5_c171_short_learning_20261111_002": {
     "decision": "CLOSED",
     "status": "COMPLETE_CONSUMED",
