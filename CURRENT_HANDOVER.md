@@ -14,8 +14,8 @@ Native TimeoutError skyldes vårt styrte stoppsignal, ikke utløpt3timersfrist.
 Ingen INITIAL_SCORE/INITIAL_STATE finnes; kildebundet kontrollflyt beviser
 0optimizersteg. Ingen ferdig prognosebaseline eller mainresultat foreligger.
 
-Alle trenings-/kjøringsporter er stengt. Én ny, mindre og nøyaktig30minutters
-plan skal klargjøres; main001 er konsumert og relanseres aldri. Ferdige
+Bare den navngitte SHORT_FIT002 er nå innrømmet én gang for et mindre,
+omtrent30minutters forsøk. Main001 er konsumert og relanseres aldri. Ferdige
 native data, stats og genuine modell-/coldresume-kontroller gjenbrukes.
 M1 er aldri retningsgrunnlag. TEST, Entry/Exit, broker og handel er stengt.
 
@@ -173,10 +173,13 @@ Den kvalifiserte mekanikk002 gjenbrukes via verifisert Gitblob/fullmodul-AST
 for uendret modellmatematikk, optimizer, RNG og checkpoint. Bare navngitt
 kohort-/prior-/planorkestrering og fire eksplisitt hashbundne filer kan
 avvike; alle andre kildeeiere må være eksakt uendret. Nye små kohorter
-krever ingen ny GPU-mekanikkrunde. SHORT_FIT002 er PREPARED_NOT_ADMITTED med plan-SHA
+krever ingen ny GPU-mekanikkrunde. SHORT_FIT002 er ADMITTED_ONE_USE med plan-SHA
 bb841bfced12176a16bd9a0d12c2777427f9475871cbab6f305dbd7553891daf.
 32drivertester,11nye/berørte guardtilfeller, AST/diff og uavhengig
-kilderevisjon består. Eksakt CLI-førkontroll og engangsadmisjon gjenstår. Ingen
+kilderevisjon består. Eksakt faktisk CLI-førkontroll består på boot667
+med null modeller/updates. Bare denne planen innrømmes; kilde/policy fryses
+til terminal. Maskinvaktene kjører kontinuerlig, operatøroppfølging30min.
+Ingen andre fits eller handlinger åpnes. Ingen
 utfallsstyrt seleksjon, ny råproduksjon eller relansering av konsumerte planer.
 
 ### Kilderevisjon før M1-presiseringen18.11 (historisk)
