@@ -24,10 +24,13 @@ fra native M5/høyere med egen kildeidentitet. M1 er for senere oppfølging
 av åpne handler. Eldre M1-baserte mål og dataklargjøring er sperret.
 
 GC-kjeden beholder MBP-1 trades/BBO, prisgrid, footprint, kontrakt og faktisk
-dekning i egen native feature- og modellrute. S-/F-fasit og observerbarhet
+dekning i egen native feature- og modellrute. Åpnings-/sluttfasit og observerbarhet
 går til tap og skåring.
 
 ## Eiere
+
+- Barfasit og framtidige TF-koblinger: market_state_native_m5_targets_v1.
+  Binding til nye prognoseoutput og tap kvalifiseres før modellfit.
 
 - Feltorden/familier: gx1/contracts/entry_model_native_signal_v1.py og
   gx1/features/entry_model_native_feature_layers_v1.py.
