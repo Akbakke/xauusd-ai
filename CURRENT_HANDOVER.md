@@ -14,7 +14,8 @@ NEXT_RUN_POLICY eier arbeidsstatus og hashreferanser til originalkvitteringene.
 Dette kvalifiserer datagrunnlag og den kontrollerte modellkoblingen.
 Full-TRAIN initial prognosebaseline, læring, senere generalisering og
 retningsedge er fortsatt ikke målt. Aktivt brukermål klargjør nå én kort
-treningsrunde; ingen ny kjøring eller trening er innrømmet ennå.
+treningsrunde. Bare den navngitte tekniske GPU-planen er innrømmet;
+hovedtrening og Entry er fortsatt stengt.
 
 ### Full historikkfasit
 
