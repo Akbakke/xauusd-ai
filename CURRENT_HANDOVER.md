@@ -132,11 +132,16 @@ GC_RAW_COMPONENTS001 er COMPLETE_CONSUMED_RAW_COMPONENTS_ONLY. Alle66filer og
 uendret kilde/råhashbookends og mengde-/stige-konservering i hver fil.
 0M1/049-IO,0modeller og0optimizer. Varige komponent-/stige-/kvitteringsfiler
 for alle66 er hashbundet fra original RESULT/TERMINAL i policy. Ingen råreplay.
-GC_ASSEMBLY001 er ADMITTED_ONE_USE, bundet til alle66COMPLETE-filer og
-18nativeXAU-M5-årsfiler. Eksakt metadata-CLI består med0komponentdekoding/
-0råreplay/0modeller. Énworker/12G/512M/7200s, kilde/policy fryst til terminal.
-Først ved COMPLETE66/66 kan assembler koble kausal forrige-
-dag-kontrakt, publiserte klokkehendelser, nativeXAU-M5-basis og allefelt.
+GC_ASSEMBLY001 er COMPLETE_CONSUMED_NATIVE_GC_INPUTS_ONLY, exit0/uendret kilde
+på537,195s. Alle66komponenter er gjenbrukt uten råreplay eller modell.
+Allefem TF og1215baseverdier+5støttefelt finnes i fysisk pakke, hashbundet
+med nativeXAU-M5-basis, kvitteringer, klokker, masker, enheter og konservering.
+0M1/049-IO.227 808nativekalenderbøtter,152 999volume-admitterte og23 430helt
+signerte;288første-dagsbøtter har ukjent kausalt kontraktsvalg. Kjent delvis
+B/S/N-flow bevares separat. Publisert klokkehendelse fjerner8260kontrakter/
+4836betroddeT fra dagsvolumer, med eksplisitt delvis-observasjon i to
+kontraktsdøgn. Ingen full-feeddag/completeness eller modellkonsum er påstått.
+Neste er faktisk joint-metadata-CLI/admisjon og siste modell-/gradientkontroll.
 Rollevalg bruker betrodde individuelle T-mengder minus klokkehendelser;
 hele-feature-bøtter har separat strengere kvalitetsmaske. Ukjent første
 handelsdag og manglende historikk beholdes eksplisitt. Ingen råreplay i assembly.
