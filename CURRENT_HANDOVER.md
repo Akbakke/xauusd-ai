@@ -6,7 +6,7 @@ prosess og eksakte terminalkvitteringer overstyrer prosa. Tidligere bølger finn
 
 ## Gjeldende status 19.11.2026
 
-`NATIVE_M5_DIRECTION_TARGET_SOURCE_PREPARED_NOT_ADMITTED`.
+`NATIVE_M5_DIRECTION_TARGET_AUDIT_PREPARED_NOT_ADMITTED`.
 
 ALDRI M1 til retning gjelder hele kjeden, inkludert fasit, masker,
 radutvalg, priorer, normalisering og evaluering. Entry er pauset.
@@ -22,9 +22,9 @@ kausal ATR-formel og gir ingen påstand om komplett markedsdekning.
 
 Ny auditeier `build_native_m5_direction_targets_v1` binder native
 OANDA-M5-manifest og årspartene 2009–2024 med egen klokke og kildehash.
-Foreslått første observasjon er TRAIN 01.05–30.09.2024, med tidligere
+Eksakt forberedt engangsplan er TRAIN 01.05–30.09.2024, med tidligere
 native M5-historikk som ATR-oppvarming. Kryssende siste radgruppe
-beskjæres før målberegning. Plan og kjøring er ennå ikke innrømmet.
+beskjæres før målberegning. Planen er bundet i policy; kjøring er ennå ikke innrømmet.
 
 18 fokuserte syntetiske mål-/livssyklustester bestod. De dekker alle
 fem TF, fremtidstillegg, ukjente gap, modenhet, datadomener og både
