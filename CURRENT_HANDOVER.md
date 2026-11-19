@@ -173,8 +173,10 @@ Den kvalifiserte mekanikk002 gjenbrukes via verifisert Gitblob/fullmodul-AST
 for uendret modellmatematikk, optimizer, RNG og checkpoint. Bare navngitt
 kohort-/prior-/planorkestrering og fire eksplisitt hashbundne filer kan
 avvike; alle andre kildeeiere må være eksakt uendret. Nye små kohorter
-krever ingen ny GPU-mekanikkrunde. Før nyadmisjon gjenstår kildecommit,
-eksaktplan og samme faktiske kilde-/kvitterings-/maskinvareførkontroll. Ingen
+krever ingen ny GPU-mekanikkrunde. SHORT_FIT002 er PREPARED_NOT_ADMITTED med plan-SHA
+bb841bfced12176a16bd9a0d12c2777427f9475871cbab6f305dbd7553891daf.
+32drivertester,11nye/berørte guardtilfeller, AST/diff og uavhengig
+kilderevisjon består. Eksakt CLI-førkontroll og engangsadmisjon gjenstår. Ingen
 utfallsstyrt seleksjon, ny råproduksjon eller relansering av konsumerte planer.
 
 ### Kilderevisjon før M1-presiseringen18.11 (historisk)
