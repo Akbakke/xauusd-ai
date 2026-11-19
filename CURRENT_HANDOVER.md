@@ -4,40 +4,38 @@ Arbeidssted: `/home/andre2/src/GX1_CURRENT`, gren `work/gx1-current`.
 `GX1_RULES.md` er bindende. `NEXT_RUN_POLICY.json` er eneste arbeidsstatus;
 prosess og eksakte terminalkvitteringer overstyrer prosa. Tidligere bølger finnes i Git.
 
-## Gjeldende status 18.11.2026
+## Gjeldende status 19.11.2026
 
-`BLOCKED_DIRECTION_NATIVE_M5_DATA_AND_TARGETS_REQUIRED`.
+`NATIVE_M5_DIRECTION_TARGET_SOURCE_PREPARED_NOT_ADMITTED`.
 
-Brukerens bindende presisering er **ALDRI M1 til retning**. Dette omfatter
-inputs, fasit/labels, masker, radutvalg, priorer, normalisering, tap,
-modellutvalg, evaluering og dataklargjøring/metadata. M1 hører bare til
-senere oppfølging av en allerede åpnet handel. Entry og Entry-Q er pauset.
+ALDRI M1 til retning gjelder hele kjeden, inkludert fasit, masker,
+radutvalg, priorer, normalisering og evaluering. Entry er pauset.
+Gamle M1-avhengige loadere og dataklargjørere er fortsatt sperret.
 
-Den forrige rettelsen fjernet M1 fra forward, men beholdt feilaktig M1
-i fasit og klargjøring. Dette er trukket tilbake. S-fasitloaderne og den
-gamle F-aksebindingen avviser nå før lesing. TA-/EMA-providernes plan-,
-kvitterings- og dataklargjøringsruter er også sperret før avhengigheter leses.
-De gamle M1-baserte S-filene, maskene, priorene, radutvalgene og metadataene
-kan ikke brukes til ny retningsmåling, kalibrering, modellutvalg eller fit.
-Historiske filer og kvitteringer er bevart med opprinnelig omfang.
+Ny ren måleier `market_state_native_m5_targets_v1` bruker egne native
+M5-akser og kausale M15/H1/H4/D1-aggregater med Wilder ATR14.
+S beskriver lokal tilstand med konservative OHLC-masker. F bruker
+eksakte M5-endepunkter og egen modenhet/observerbarhet. Gap er ukjente;
+ingen tidligere M1-lukkeautoritet inngår. Faktisk antall M5-barer i hver
+høyere TF rapporteres. Delvis observerte aggregater følger eksisterende
+kausal ATR-formel og gir ingen påstand om komplett markedsdekning.
 
-De ordinære XAU-featureverdiene stammer fra native M5. F-prisverdiene
-bruker også native M5. Disse kan bare gjenbrukes etter ny selvstendig
-M5-kilde-/klokke-/aksebinding. Den gamle F-loaderen arvet S/M1-radutvalg,
-og strukturmaskene brukte en M1-avledet lukkeautoritet. Hele de gamle
-providerne og targetarkivene kvalifiserer derfor ikke M5-only retning.
+Ny auditeier `build_native_m5_direction_targets_v1` binder native
+OANDA-M5-manifest og årspartene 2009–2024 med egen klokke og kildehash.
+Foreslått første observasjon er TRAIN 01.05–30.09.2024, med tidligere
+native M5-historikk som ATR-oppvarming. Kryssende siste radgruppe
+beskjæres før målberegning. Plan og kjøring er ennå ikke innrømmet.
 
-Neste arbeid er native M5 OHLC → egne M5-akser og radutvalg → lukkede
-M15/H1/H4/D1-barer/ATR → M5-basert S-fasit og selvstendig F-binding,
-observasjonsmasker og TRAIN-priorer → ny provider og fersk modellbaseline.
-Ukjent forløp/rekkefølge i en M5-bar beholdes som ukjent. De nye
-M5-fasitene og provideren er ennå ikke bygget eller kvalifisert.
-Ingen ny modell-/dataplan er innrømmet. Trening og TEST er stengt.
+18 fokuserte syntetiske mål-/livssyklustester bestod. De dekker alle
+fem TF, fremtidstillegg, ukjente gap, modenhet, datadomener og både
+vellykket og mislykket kvitteringspublisering. Syntaks og diffkontroll
+bestod. Ekte data- og modellkjøring er ikke startet.
 
-59 fokuserte syntetiske tester bestod. Testene av de gamle target- og
-providerinngangene avviser enhver fil-/metadatalesing. Ren
-modell-/adapter-/maskealgebra kontrolleres med syntetiske fixtures.
-Ingen ny ekte targetbygging, modellforward eller fit er utført.
+Etter fysisk målkontroll gjenstår en uavhengig M5-featureprovider og
+normalisering. Squeeze-eieren krever fortsatt metadata for seks klokker
+inkludert M1; denne ruten kan ikke gjenbrukes til retning. De åtte
+familiene og D1/makro beholdes, med nye M5-bindinger før eventuell fit.
+Trening, TEST, GC, broker og handel er stengt.
 
 ### Kilderevisjon før M1-presiseringen18.11 (historisk)
 
