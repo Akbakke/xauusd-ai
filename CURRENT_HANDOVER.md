@@ -14,8 +14,8 @@ NEXT_RUN_POLICY eier arbeidsstatus og hashreferanser til originalkvitteringene.
 Dette kvalifiserer datagrunnlag og den kontrollerte modellkoblingen.
 Full-TRAIN initial prognosebaseline, læring, senere generalisering og
 retningsedge er fortsatt ikke målt. Aktivt brukermål klargjør nå én kort
-treningsrunde. Bare den navngitte tekniske GPU-planen er innrømmet;
-hovedtrening og Entry er fortsatt stengt.
+treningsrunde. Teknisk GPU-update/kald resume er nå bestått; hovedrunden
+er ikke innrømmet. Alle treningsporter er stengt igjen.
 
 ### Full historikkfasit
 
@@ -123,24 +123,25 @@ alle 24 175 TRAIN- og 5 789 CONTROL-inputrader før/etter, med korte haler og
 ukjent siste kontrollrad. De to apex-formlene er separat observert på de
 faktiske TRAIN-unionene; eksisterende normaliseringskode kan gjenbrukes.
 
-FIT_MECHANICS_20261119_001 er ADMITTED_ONE_USE med plan-SHA
-bc29782055b6d0c6720fa687d504930b6a1fd8db1b087b10af58794e8f979275.
-Eksakt metadata-førkontroll består før og etter trygg Windows-boot666→667.
-Nå innrømmes én teknisk GPU-kontroll med to kanoniske updates og én kald
-repetisjon av neste steg i ny prosess. Rammen er 20G/512M/1800s med alle
-eksisterende trainer-/sensorvakter; 2 modeller/7 forwards/3 faktiske updates.
-Dette skal bevise faktisk modell-/AdamW-/RNG-/cursor-paritet og egen
-null-M1-kvittering for barnet. CPU-unitkontrollene beviser ikke at denne
-GPU-kjøringen er utført. Integrator eier plan, trygg fysisk omstart,
-maskinvarevakter, policyadmisjon og launch. Hovedrunden får ferske vekter;
-bare ny TRAIN-normalisering og prior gjenbrukes.
+FIT_MECHANICS_20261119_001 er COMPLETE_CONSUMED, exit0/uendret kilde,
+450,045s etter trygg fysisk Windows-boot666→667. Ekte CUDA-kjøring ga
+2 modeller, 7 forwards og 3 AdamW-steg (to kanoniske, ett kaldt repetert).
+Ny prosess gjenskapte neste modell-/optimizer-/RNG-/cursor-/logitstate
+bit-identisk. Begge prosesser har null M1/049-IO. Fersk TRAIN-only
+12-flate-normalisering og Laplace1-prior er lagret; ingen gamle vekter lastet.
+Dette er teknisk kvalifikasjon, ikke full prognosebaseline eller læring.
 
-Bare den navngitte tekniske engangsplanen er innrømmet; hovedrunden er
-fortsatt stengt. Kilde/policy fryses til terminal. Ingen Entry/Exit, TEST,
-live/paper, broker,
-handel, spending eller promotion er åpnet. En bestått kort fit skal skilles
-fra senere generalisering og økonomisk edge. Én hovedrunde, ingen automatisk
-ekstra trening. Samtlige konsumerte engangsplaner forblir stengt.
+En konkret ny runtimeblokkering er målt: to B16-skåringer tok35,912/36,605s,
+og hvert treningssteg18,886/18,944s. Hele før-/ettermålingen trenger3746
+forwards før treningssteg; dette er ikke kvalifisert innen10800s-vakten.
+Avgrenset kilderevisjon/måling skal skille engangskostnad fra gjentatt
+kontrakt-/batcharbeid og rette bare påvist årsak. Ingen redusert
+skåringspopulasjon eller omgått vakt brukes som løsning.
+
+Alle treningsporter er stengt igjen. Ingen hovedfit er startet. Ferdige
+stats/prior/checkpoints og originalkvitteringer bevares; mechanics001
+relanseres aldri. Målet om én kort hovedrunde består. TEST, Entry/Exit,
+broker, handel, spending og promotion forblir stengt.
 
 ### Kilderevisjon før M1-presiseringen18.11 (historisk)
 
